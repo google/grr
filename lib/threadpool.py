@@ -407,10 +407,10 @@ class ThreadPool(object):
 
   def CPUUsage(self):
     # Do not block this call.
-    return self.process.get_cpu_percent(0)
+    return self.process.cpu_percent(0)
 
   def Join(self):
-    """Waits until all outstanding tasks are completed."""""
+    """Waits until all outstanding tasks are completed."""
     self._queue.join()
 
 

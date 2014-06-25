@@ -22,7 +22,7 @@ class Netstat(actions.ActionPlugin):
 
     for proc in psutil.process_iter():
       try:
-        netstat.append((proc.pid, proc.get_connections()))
+        netstat.append((proc.pid, proc.connections()))
       except (psutil.NoSuchProcess, psutil.AccessDenied):
         pass
 
@@ -34,7 +34,8 @@ class Netstat(actions.ActionPlugin):
         res.type = conn.type
 
         try:
-          res.state = conn.status
+          if conn.status:
+            res.state = conn.status
         except ValueError:
           logging.warn("Encountered unknown connection status (%s).",
                        conn.status)

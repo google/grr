@@ -61,6 +61,19 @@ config_lib.DEFINE_list("Artifacts.interrogate_store_in_aff4",
                        " populate the knowledgebase, but store results "
                        "elsewhere in aff4.")
 
+config_lib.DEFINE_list("Artifacts.interrogate_store_in_aff4_additions",
+                       [],
+                       "Extra artifacts to add to the "
+                       "interrogate_store_in_aff4 list. This allows per-site "
+                       "tweaks without having to redefine the whole list.")
+
+# TODO(user): RootDiskVolumeUsage can be removed from the skip list after
+# people have had a chance to upgrade clients past 2.9.2.
+config_lib.DEFINE_list("Artifacts.interrogate_store_in_aff4_skip",
+                       ["RootDiskVolumeUsage"],
+                       "Artifacts to remove from the "
+                       "interrogate_store_in_aff4 list. This allows per-site "
+                       "tweaks without having to redefine the whole list.")
 
 config_lib.DEFINE_list("Artifacts.netgroup_filter_regexes", [],
                        help="Only parse groups that match one of these regexes"

@@ -9,8 +9,27 @@ import "grr/proto/semantic.proto";
 // Proto representation of an Collector.
 message Collector {
 
-  optional string action = 1 [(sem_type) = {
-      description: "The name of the action the collector performs.",
+  enum CollectorType {
+    COLLECTOR_TYPE_UNKNOWN = 0;
+    FILE = 1;
+    REGISTRY_KEY = 2;
+    REGISTRY_VALUE = 3;
+    WMI = 4;
+    ARTIFACT = 5;
+
+    // TODO(user): these types will likely be separated out from artifacts in
+    // the future
+    GRR_CLIENT_ACTION = 40;
+    LIST_FILES = 41;
+    ARTIFACT_FILES = 42;
+    GREP = 43;
+    VOLATILITY_PLUGIN = 44;
+    COMMAND = 45;
+
+  };
+
+  optional CollectorType collector_type = 1 [(sem_type) = {
+      description: "The type of collector.",
     }];
 
   optional Dict args = 2 [(sem_type) = {

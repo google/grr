@@ -59,6 +59,8 @@ class TestLaunchBinaries(base.ClientTestBase):
   filenames = {"Windows": "hello.exe",
                "Linux": "hello"}
 
+  limit = None
+
   def __init__(self, **kwargs):
     super(TestLaunchBinaries, self).__init__(**kwargs)
     self.context = ["Platform:%s" % self.platform.title()]
@@ -78,7 +80,7 @@ class TestLaunchBinaries(base.ClientTestBase):
 
       maintenance_utils.UploadSignedConfigBlob(
           open(source, "rb").read(), aff4_path=self.binary,
-          client_context=self.context, token=self.token)
+          client_context=self.context, token=self.token, limit=self.limit)
 
   def CheckFlow(self):
     # Check that the test binary returned the correct stdout:
@@ -90,4 +92,10 @@ class TestLaunchBinaries(base.ClientTestBase):
     self.assertTrue("Hello world" in logs)
 
 
+class TestLaunchChunkedBinaries(TestLaunchBinaries):
+  # Set a small limit for the maximum blob size such that the binary gets
+  # split into multiple parts when uploading.
+  limit = 5000
 
+  filenames = {"Windows": "hello_chunked.exe",
+               "Linux": "hello_chunked"}

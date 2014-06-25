@@ -126,6 +126,14 @@ class Interrogate(flow.GRRFlow):
     else:
       self.Log("Could not get InstallDate")
 
+  def _GetExtraArtifactsForCollection(self):
+    original_set = set(config_lib.CONFIG["Artifacts.interrogate_store_in_aff4"])
+    add_set = set(
+        config_lib.CONFIG["Artifacts.interrogate_store_in_aff4_additions"])
+    skip_set = set(
+        config_lib.CONFIG["Artifacts.interrogate_store_in_aff4_skip"])
+    return original_set.union(add_set) - skip_set
+
   @flow.StateHandler(next_state=["ProcessArtifactResponses"])
   def ProcessKnowledgeBase(self, responses):
     """Update the SUMMARY from the knowledgebase data."""
@@ -138,16 +146,16 @@ class Interrogate(flow.GRRFlow):
           rdfvalue.User().FromKnowledgeBaseUser(kbuser))
 
     # Collect any non-knowledgebase artifacts that will be stored in aff4.
-    self.CallFlow(
-        "ArtifactCollectorFlow",
-        artifact_list=config_lib.CONFIG["Artifacts.interrogate_store_in_aff4"],
-        next_state="ProcessArtifactResponses",
-        store_results_in_aff4=True)
+    artifact_list = self._GetExtraArtifactsForCollection()
+    if artifact_list:
+      self.CallFlow("ArtifactCollectorFlow", artifact_list=artifact_list,
+                    next_state="ProcessArtifactResponses",
+                    store_results_in_aff4=True)
 
   @flow.StateHandler()
   def ProcessArtifactResponses(self, responses):
     if not responses.success:
-      self.Log("Error collecting artifacts: %s" % responses.status)
+      self.Log("Error collecting artifacts: %s", responses.status)
 
   FILTERED_IPS = ["127.0.0.1", "::1", "fe80::1"]
 
@@ -169,9 +177,8 @@ class Interrogate(flow.GRRFlow):
           mac_addresses.append(response.mac_address.human_readable_address)
 
         for address in response.addresses:
-          if (address.human_readable and
-              address.human_readable not in self.FILTERED_IPS):
-            ip_addresses.append(address.human_readable)
+          if address.human_readable_address not in self.FILTERED_IPS:
+            ip_addresses.append(address.human_readable_address)
 
       self.client.Set(self.client.Schema.MAC_ADDRESS(
           "\n".join(mac_addresses)))

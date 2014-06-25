@@ -96,5 +96,11 @@ class WindowsRegistryParserTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(results[0].temp, r"temp\path")
     self.assertEqual(results[0].userdomain, "GEVULOT")
 
+  def testWinSystemDriveParser(self):
+    sysroot = (r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT"
+               r"\CurrentVersion\SystemRoot")
+    stat = self._MakeRegStat(sysroot, r"C:\Windows", None)
+    parser = windows_registry_parser.WinSystemDriveParser()
+    self.assertEqual(r"C:", parser.Parse(stat, None).next())
 
 

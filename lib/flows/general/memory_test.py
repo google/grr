@@ -27,7 +27,28 @@ class DummyLoadMemoryDriverFlow(flow.GRRFlow):
     self.SendReply(rdfvalue.MemoryInformation(
         device=rdfvalue.PathSpec(
             path=os.path.join(config_lib.CONFIG["Test.data_dir"], "auth.log"),
-            pathtype=rdfvalue.PathSpec.PathType.OS)))
+            pathtype=rdfvalue.PathSpec.PathType.OS),
+        runs=[rdfvalue.BufferReference(length=638976, offset=5),
+              rdfvalue.BufferReference(length=145184, offset=643074)]))
+
+
+class DummyDiskVolumeInfo(flow.GRRFlow):
+  args_type = rdfvalue.DiskVolumeInfoArgs
+
+  @flow.StateHandler()
+  def Start(self):
+    if "/opt" in self.args.path_list[0]:
+      mnt = rdfvalue.UnixVolume(mount_point="/opt")
+      self.SendReply(rdfvalue.Volume(unix=mnt, bytes_per_sector=4096,
+                                     sectors_per_allocation_unit=1,
+                                     actual_available_allocation_units=10,
+                                     total_allocation_units=100))
+    else:
+      mnt = rdfvalue.UnixVolume(mount_point="/var")
+      self.SendReply(rdfvalue.Volume(unix=mnt, bytes_per_sector=1,
+                                     sectors_per_allocation_unit=1,
+                                     actual_available_allocation_units=784165,
+                                     total_allocation_units=78416500))
 
 
 class TestMemoryCollector(test_lib.FlowTestsBaseclass):
@@ -50,18 +71,21 @@ class TestMemoryCollector(test_lib.FlowTestsBaseclass):
     self.client_mock = test_lib.ActionMock("TransferBuffer", "HashBuffer",
                                            "StatFile", "CopyPathToFile",
                                            "SendFile", "DeleteGRRTempFiles",
+                                           "GetConfiguration",
                                            "Find", "Grep")
 
     self.old_driver_flow = flow.GRRFlow.classes["LoadMemoryDriver"]
     flow.GRRFlow.classes["LoadMemoryDriver"] = DummyLoadMemoryDriverFlow
+    self.old_diskvolume_flow = flow.GRRFlow.classes["DiskVolumeInfo"]
+    flow.GRRFlow.classes["DiskVolumeInfo"] = DummyDiskVolumeInfo
 
     vfs.VFS_HANDLERS[
         rdfvalue.PathSpec.PathType.MEMORY] = test_lib.ClientTestDataVFSFixture
 
   def tearDown(self):
     super(TestMemoryCollector, self).tearDown()
-
     flow.GRRFlow.classes["LoadMemoryDriver"] = self.old_driver_flow
+    flow.GRRFlow.classes["DiskVolumeInfo"] = self.old_diskvolume_flow
 
   def testCallWithDefaultArgumentsDoesNothing(self):
     for _ in test_lib.TestFlowHelper(
@@ -82,12 +106,29 @@ class TestMemoryCollector(test_lib.FlowTestsBaseclass):
             ), token=self.token, output=self.output_path)
 
     for _ in test_lib.TestFlowHelper(
-        flow_urn, self.client_mock, client_id=self.client_id, token=self.token):
+        flow_urn, self.client_mock,
+        client_id=self.client_id,
+        token=self.token):
       pass
 
     return aff4.FACTORY.Open(flow_urn, token=self.token)
 
   def testMemoryImageLocalCopyDownload(self):
+    dump_option = rdfvalue.MemoryCollectorDumpOption(
+        option_type=rdfvalue.MemoryCollectorDumpOption.Option.WITH_LOCAL_COPY,
+        with_local_copy=rdfvalue.MemoryCollectorWithLocalCopyDumpOption(
+            gzip=False, check_disk_free_space=False))
+
+    flow_obj = self.RunWithDownload(dump_option)
+    self.assertTrue(flow_obj.state.memory_src_path is not None)
+    self.assertEqual(
+        flow_obj.state.downloaded_file,
+        self.client_id.Add("fs/os").Add(flow_obj.state.memory_src_path.path))
+
+    fd = aff4.FACTORY.Open(flow_obj.state.downloaded_file, token=self.token)
+    self.assertEqual(fd.Read(1024 * 1024), self.memory_dump)
+
+  def testMemoryImageLocalCopyDiskCheck(self):
     dump_option = rdfvalue.MemoryCollectorDumpOption(
         option_type=rdfvalue.MemoryCollectorDumpOption.Option.WITH_LOCAL_COPY,
         with_local_copy=rdfvalue.MemoryCollectorWithLocalCopyDumpOption(
@@ -101,6 +142,14 @@ class TestMemoryCollector(test_lib.FlowTestsBaseclass):
 
     fd = aff4.FACTORY.Open(flow_obj.state.downloaded_file, token=self.token)
     self.assertEqual(fd.Read(1024 * 1024), self.memory_dump)
+
+  def testMemoryImageLocalCopyNoSpace(self):
+    dump_option = rdfvalue.MemoryCollectorDumpOption(
+        option_type=rdfvalue.MemoryCollectorDumpOption.Option.WITH_LOCAL_COPY,
+        with_local_copy=rdfvalue.MemoryCollectorWithLocalCopyDumpOption(
+            gzip=False, destdir="/opt/tmp/testing"))
+
+    self.assertRaises(RuntimeError, self.RunWithDownload, dump_option)
 
   def testMemoryImageLocalCopyDownloadWithOffsetAndLength(self):
     dump_option = rdfvalue.MemoryCollectorDumpOption(

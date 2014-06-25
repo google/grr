@@ -21,8 +21,7 @@ class TestCollector(base.AutomatedTest):
                                    token=self.token)
     self.assertIsInstance(collection, aff4.RDFValueCollection)
 
-    self.assertTrue(len(collection) > 3)
+    self.assertTrue(len(collection) >= 1)
     for statentry in collection:
       self.assertTrue(isinstance(statentry, rdfvalue.StatEntry))
       self.assertTrue("Run" in statentry.pathspec.path)
-

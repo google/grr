@@ -337,8 +337,14 @@ class Volume(structs.RDFProtoStruct):
   protobuf = sysinfo_pb2.Volume
 
   def FreeSpacePercent(self):
-    return (self.actual_available_allocation_units/
-            float(self.total_allocation_units)) * 100.0
+    try:
+      return (self.actual_available_allocation_units/
+              float(self.total_allocation_units)) * 100.0
+    except ZeroDivisionError:
+      return 100
+
+  def FreeSpaceBytes(self):
+    return self.AUToBytes(self.actual_available_allocation_units)
 
   def AUToBytes(self, allocation_units):
     """Convert a number of allocation units to bytes."""

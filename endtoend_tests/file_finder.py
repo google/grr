@@ -31,9 +31,9 @@ class TestFileFinderOSWindows(transfer.TestGetFileOSWindows):
           "conditions": filecondition, "action": action}
 
 
-class TestFileFinderOSLinuxDarwin(transfer.TestGetFileOSLinux):
+class TestFileFinderOSLinux(transfer.TestGetFileOSLinux):
   """Download a file with FileFinder."""
-  platforms = ["Linux", "Darwin"]
+  platforms = ["Linux"]
   flow = "FileFinder"
   test_output_path = "/fs/os/bin/ps"
 
@@ -51,7 +51,14 @@ class TestFileFinderOSLinuxDarwin(transfer.TestGetFileOSLinux):
           "conditions": filecondition, "action": action}
 
 
-class TestFileFinderOSHomedir(TestFileFinderOSLinuxDarwin):
+class TestFileFinderOSDarwin(TestFileFinderOSLinux):
+  platforms = ["Darwin"]
+
+  def CheckFile(self, fd):
+    self.CheckMacMagic(fd)
+
+
+class TestFileFinderOSHomedir(TestFileFinderOSLinux):
   """List files in homedir with FileFinder.
 
   Exercise globbing and interpolation.

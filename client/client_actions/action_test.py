@@ -37,41 +37,69 @@ class MockWindowsProcess(object):
   """A mock windows process."""
 
   pid = 10
-  ppid = 1
-  name = "cmd"
-  exe = "cmd.exe"
-  username = "test"
-  cmdline = ["c:\\Windows\\cmd.exe", "/?"]
 
-  create_time = 1217061982.375000
-  status = "running"
-
-  def getcwd(self):
-    return "X:\\RECEP\xc3\x87\xc3\x95ES"
-
-  def get_num_threads(self):
+  def ppid(self):
     return 1
 
-  def get_cpu_times(self):
+  def name(self):
+    return "cmd"
+
+  def exe(self):
+    return "cmd.exe"
+
+  def username(self):
+    return "test"
+
+  def cmdline(self):
+    return ["c:\\Windows\\cmd.exe", "/?"]
+
+  def create_time(self):
+    return 1217061982.375000
+
+  def status(self):
+    return "running"
+
+  def cwd(self):
+    return "X:\\RECEP\xc3\x87\xc3\x95ES"
+
+  def num_threads(self):
+    return 1
+
+  def cpu_times(self):
     return (1.0, 1.0)
 
-  def get_cpu_percent(self):
+  def cpu_percent(self):
     return 10.0
 
-  def get_memory_info(self):
+  def memory_info(self):
     return (100000, 150000)
 
-  def get_memory_percent(self):
+  def memory_percent(self):
     return 10.0
 
-  def get_open_files(self):
+  def open_files(self):
     return []
 
-  def get_connections(self):
+  def connections(self):
     return []
 
-  def get_nice(self):
+  def nice(self):
     return 10
+
+  def as_dict(self, attrs=None):
+    dic = {}
+    if attrs is None:
+      return dic
+    for name in attrs:
+      if hasattr(self, name):
+        attr = getattr(self, name)
+        if callable(attr):
+          dic[name] = attr()
+        else:
+          dic[name] = attr
+      else:
+        dic[name] = None
+    return dic
 
 
 class ProgressAction(actions.ActionPlugin):
@@ -252,14 +280,14 @@ class ActionTest(test_lib.EmptyActionTest):
     old_listdir = os.listdir
 
     # Mock the open call
-    def MockedOpen(requested_path):
+    def MockedOpen(requested_path, mode="r"):
       # Any calls to open the wtmp get the mocked out version.
       if "wtmp" in requested_path:
         self.assertEqual(requested_path, "/var/log/wtmp")
         return old_open(path)
 
       # Everything else has to be opened normally.
-      return old_open(requested_path)
+      return old_open(requested_path, mode)
 
     __builtin__.open = MockedOpen
     os.listdir = lambda x: ["wtmp"]
@@ -336,7 +364,7 @@ class ActionTest(test_lib.EmptyActionTest):
       def __init__(self, unused_pid):
         pass
 
-      def get_cpu_times(self):
+      def cpu_times(self):
         return self.times.pop(0)
 
     results = []

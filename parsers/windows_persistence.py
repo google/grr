@@ -13,6 +13,8 @@ class WindowsPersistenceMechanismsParser(parsers.ArtifactFilesParser):
   """Turn various persistence objects into PersistenceFiles."""
   output_types = ["PersistenceFile"]
   supported_artifacts = ["WindowsPersistenceMechanisms"]
+  # Required for environment variable expansion
+  knowledgebase_dependencies = ["environ_systemdrive", "environ_systemroot"]
 
   def __init__(self):
     # Service keys have peculiar ways of specifying systemroot, these regexes

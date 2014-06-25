@@ -1,0 +1,28 @@
+Package: t1
+Status: install ok installed
+Priority: optional
+Section: web
+Installed-Size: 10
+Maintainer: package-builder <package-builder-team@example.com>
+Architecture: amd64
+Version: v1
+Provides: t1
+Depends: t2
+Size: 10
+Description: Test package entry
+
+Package: t2
+Status: install ok installed
+Priority: optional
+Section: web
+Installed-Size: 20
+Maintainer: package-builder <package-builder-team@example.com>
+Architecture: amd64
+Version: v2
+Provides: t2
+Filename: pool/main/t/test/t2_v2_amd64.deb
+Size: 20
+Description: Test package entry
+
+Package: ohiambroken
+Status: install ok not-installed

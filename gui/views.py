@@ -87,7 +87,7 @@ def Homepage(request):
       if module_components[-2] == "plugins":
         renderers_js_files.add(module_components[-1] + ".js")
 
-  create_time = psutil.Process(os.getpid()).create_time
+  create_time = psutil.Process(os.getpid()).create_time()
   context = {"page_title": config_lib.CONFIG["AdminUI.page_title"],
              "heading": config_lib.CONFIG["AdminUI.heading"],
              "report_url": config_lib.CONFIG["AdminUI.report_url"],

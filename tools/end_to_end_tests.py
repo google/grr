@@ -48,7 +48,8 @@ def RunEndToEndTests():
 
   client_id_set = base.GetClientTestTargets(
       client_ids=flags.FLAGS.client_ids,
-      hostnames=flags.FLAGS.hostnames)
+      hostnames=flags.FLAGS.hostnames,
+      checkin_duration_threshold="1h")
 
   if not client_id_set:
     print ("No clients to test on.  Define Test.end_to_end_client* config "
@@ -103,5 +104,3 @@ def main(unused_argv):
 
 if __name__ == "__main__":
   flags.StartMain(main)
-
-

@@ -240,19 +240,47 @@ def RepackAllBinaries(upload=False, debug_build=False):
 
   base_context = ["ClientBuilder Context"]
   if debug_build:
-    base_context += ["ClientDebug Context"]
-  for context, deployer in (
+    base_context += ["DebugClientBuild Context"]
+
+  clients_to_repack = [
       (["Target:Windows", "Platform:Windows", "Arch:amd64"],
        build.WindowsClientDeployer),
       (["Target:Windows", "Platform:Windows", "Arch:i386"],
        build.WindowsClientDeployer),
       (["Target:Linux", "Platform:Linux", "Arch:amd64"],
        build.LinuxClientDeployer),
+      (["Target:Linux", "Platform:Linux", "Arch:i386"],
+       build.LinuxClientDeployer),
       (["Target:Linux", "Target:LinuxRpm", "Platform:Linux", "Arch:amd64"],
        build.CentosClientDeployer),
       (["Target:Darwin", "Platform:Darwin", "Arch:amd64"],
-       build.DarwinClientDeployer)):
+       build.DarwinClientDeployer)]
 
+  msg = "Will repack the following clients "
+  if debug_build:
+    msg += "(debug build)"
+  print msg + ":"
+  print
+
+  for context, deployer in clients_to_repack:
+    context = base_context + context
+
+    template_path = config_lib.CONFIG.Get("ClientBuilder.template_path",
+                                          context=context)
+    output_path = config_lib.CONFIG.Get("ClientBuilder.output_path",
+                                        context=context)
+    readable = (os.path.isfile(template_path) and
+                os.access(template_path, os.R_OK))
+
+    if not readable:
+      readable_str = " (NOT READABLE)"
+    else:
+      readable_str = ""
+    print "Repacking : " + template_path + readable_str
+    print "To :        " + output_path
+    print
+
+  for context, deployer in clients_to_repack:
     context = base_context + context
     output_path = _RepackBinary(context, deployer)
     if output_path:

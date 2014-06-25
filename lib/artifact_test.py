@@ -541,6 +541,43 @@ class GrrKbTest(ArtifactTestHelper):
           config_lib.CONFIG["Test.data_dir"], "test_artifacts.json")
       artifact_lib.LoadArtifactsFromFiles([test_artifacts_file])
 
+      # No dependencies
+      args = artifact.CollectArtifactDependenciesArgs(
+          artifact_list=["DepsHomedir2"])
+      collect_obj = artifact.CollectArtifactDependencies(None, token=self.token)
+      collect_obj.args = args
+      collect_obj.knowledge_base = None
+      collect_obj.state.Register("all_deps", set())
+      collect_obj.state.Register("awaiting_deps_artifacts", [])
+      collect_obj.state.Register("knowledge_base",
+                                 rdfvalue.KnowledgeBase(os="Windows"))
+      no_deps = collect_obj.GetFirstFlowsForCollection()
+
+      self.assertItemsEqual(no_deps, [])
+      self.assertItemsEqual(collect_obj.state.all_deps, [])
+      self.assertItemsEqual(collect_obj.state.awaiting_deps_artifacts, [])
+
+      # Dependency tree with a single starting point
+      args = artifact.CollectArtifactDependenciesArgs(
+          artifact_list=["DepsHomedir"])
+      collect_obj.args = args
+      no_deps = collect_obj.GetFirstFlowsForCollection()
+
+      self.assertItemsEqual(no_deps, ["DepsControlSet"])
+      self.assertItemsEqual(collect_obj.state.all_deps, ["environ_windir",
+                                                         "users.username",
+                                                         "current_control_set"])
+      self.assertItemsEqual(collect_obj.state.awaiting_deps_artifacts,
+                            ["DepsWindir", "DepsWindirRegex"])
+
+  def testGetKBDependencies(self):
+    """Test that KB dependencies are calculated correctly."""
+    self.SetupWindowsMocks()
+    with test_lib.Stubber(artifact_lib.ArtifactRegistry, "artifacts", {}):
+      test_artifacts_file = os.path.join(
+          config_lib.CONFIG["Test.data_dir"], "test_artifacts.json")
+      artifact_lib.LoadArtifactsFromFiles([test_artifacts_file])
+
       config_lib.CONFIG.Set("Artifacts.knowledge_base", ["DepsParent",
                                                          "DepsDesktop",
                                                          "DepsHomedir",
@@ -560,13 +597,17 @@ class GrrKbTest(ArtifactTestHelper):
       kb_init.state.Register("awaiting_deps_artifacts", [])
       kb_init.state.Register("knowledge_base",
                              rdfvalue.KnowledgeBase(os="Windows"))
-      no_deps, all_deps, waiting = kb_init._GetDependencies()
+      no_deps = kb_init.GetFirstFlowsForCollection()
+
       self.assertItemsEqual(no_deps, ["DepsControlSet", "DepsHomedir2"])
-      self.assertItemsEqual(all_deps, ["users.homedir", "users.desktop",
-                                       "users.username", "environ_windir",
-                                       "current_control_set"])
-      self.assertItemsEqual(waiting, ["DepsParent", "DepsDesktop",
-                                      "DepsHomedir", "DepsWindirRegex"])
+      self.assertItemsEqual(kb_init.state.all_deps, ["users.homedir",
+                                                     "users.desktop",
+                                                     "users.username",
+                                                     "environ_windir",
+                                                     "current_control_set"])
+      self.assertItemsEqual(kb_init.state.awaiting_deps_artifacts,
+                            ["DepsParent", "DepsDesktop", "DepsHomedir",
+                             "DepsWindirRegex"])
 
 
 def main(argv):

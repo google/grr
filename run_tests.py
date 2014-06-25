@@ -189,6 +189,9 @@ def main(argv=None):
         if "--output" not in argv:
           argv.extend(["--output", result_filename])
 
+        if flags.FLAGS.config:
+          argv.extend(["--config", flags.FLAGS.config])
+
         argv.extend(["--tests", name])
         argv.extend(["--labels", ",".join(flags.FLAGS.labels)])
 

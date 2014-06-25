@@ -243,6 +243,9 @@ class RDFString(RDFBytes):
   def __unicode__(self):
     return utils.SmartUnicode(self._value)
 
+  def __getitem__(self, value):
+    return self._value.__getitem__(value)
+
   def SerializeToString(self):
     return utils.SmartStr(self._value)
 

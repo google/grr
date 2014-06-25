@@ -43,7 +43,7 @@ class MultiGetFileTestFlow(flow.GRRFlow):
                       src_path=urandom,
                       dest_dir="",
                       gzip_output=False,
-                      lifetime=60,
+                      lifetime=600,
                       next_state="HashFile")
 
   @flow.StateHandler(next_state=["MultiGetFile"])
@@ -90,7 +90,6 @@ class TestMultiGetFile(base.AutomatedTest):
   platforms = ["Linux", "Darwin"]
   flow = "MultiGetFileTestFlow"
   args = {}
-  timeout = 60
 
   def CheckFlow(self):
     # Reopen the object to update the state.
@@ -228,28 +227,44 @@ class TestSendFile(base.LocalClientTest):
 ##########
 
 
-class TestGetFileTSKMac(TestGetFileTSKLinux):
-  """Tests if GetFile works on Mac using Sleuthkit."""
+class TestMultiGetFileTSKMac(TestGetFileTSKLinux):
+  """Tests if MultiGetFile works on Mac using Sleuthkit."""
   platforms = ["Darwin"]
 
-  def CheckFile(self, fd):
-    data = fd.Read(10)
-    self.assertEqual(data[:4], "\xca\xfe\xba\xbe")
-
-
-class TestMultiGetFileTSKMac(TestGetFileTSKMac):
-  """Tests if MultiGetFile works on Mac using Sleuthkit."""
   flow = "MultiGetFile"
-  args = {"pathspecs": [rdfvalue.PathSpec(
-      path="/bin/ls",
-      pathtype=rdfvalue.PathSpec.PathType.TSK)]}
+
+  def setUp(self):
+    # TODO(user): At some point we'd like GRR to also be able to correctly
+    # open a pathspec that only specifies "/" and TSK. For now, this doesn't
+    # work though so we try all the available devices and just make sure
+    # that we can get at least one result.
+    pathspecs = []
+    tsk_dirs = aff4.FACTORY.Open(
+        self.client_id.Add("fs/tsk/dev")).OpenChildren()
+
+    for d in tsk_dirs:
+      pathspec = d.Get(d.Schema.PATHSPEC)
+      if pathspec:
+        pathspec.nested_path = rdfvalue.PathSpec(
+            path="/bin/ls",
+            pathtype=rdfvalue.PathSpec.PathType.TSK)
+        pathspecs.append(pathspec)
+    if not pathspecs:
+      self.fail("No suitable devices found for TSK.")
+
+    self.args = {"pathspecs": pathspecs}
+
+  def CheckFile(self, fd):
+    self.CheckMacMagic(fd)
 
 
-class TestGetFileOSMac(TestGetFileTSKMac):
+class TestGetFileOSMac(TestGetFileOSLinux):
   """Tests if GetFile works on Mac."""
   args = {"pathspec": rdfvalue.PathSpec(
       path="/bin/ls",
       pathtype=rdfvalue.PathSpec.PathType.OS)}
+
+  test_output_path = "/fs/os/bin/ls"
 
 
 class TestMultiGetFileOSMac(TestGetFileOSMac):

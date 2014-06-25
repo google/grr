@@ -380,7 +380,7 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
 
     if sys.platform == "win32":
       # We need .exe here.
-      suffix = ".exe"
+      suffix = "exe"
     else:
       suffix = ""
 
@@ -468,13 +468,14 @@ class ListProcesses(actions.ActionPlugin):
 
     for proc in psutil.process_iter():
       response = rdfvalue.Process()
-      for field in ["pid", "ppid", "name", "exe", "username", "terminal"]:
+      process_fields = ["pid", "ppid", "name", "exe", "username", "terminal"]
+
+      for field in process_fields:
         try:
-          value = getattr(proc, field, None)
+          value = getattr(proc, field)
           if value is None:
             continue
 
-          # Newer psutils actually replace properties with methods.
           if callable(value):
             value = value()
 
@@ -482,17 +483,17 @@ class ListProcesses(actions.ActionPlugin):
             value = utils.SmartUnicode(value)
 
           setattr(response, field, value)
-        except (psutil.NoSuchProcess, psutil.AccessDenied):
+        except (psutil.NoSuchProcess, psutil.AccessDenied, AttributeError):
           pass
 
       try:
-        for arg in proc.cmdline:
+        for arg in proc.cmdline():
           response.cmdline.append(utils.SmartUnicode(arg))
       except (psutil.NoSuchProcess, psutil.AccessDenied):
         pass
 
       try:
-        response.nice = proc.get_nice()
+        response.nice = proc.nice()
       except (psutil.NoSuchProcess, psutil.AccessDenied):
         pass
 
@@ -500,53 +501,54 @@ class ListProcesses(actions.ActionPlugin):
         # Not available on Windows.
         if hasattr(proc, "uids"):
           (response.real_uid, response.effective_uid,
-           response.saved_uid) = proc.uids
+           response.saved_uid) = proc.uids()
           (response.real_gid, response.effective_gid,
-           response.saved_gid) = proc.gids
+           response.saved_gid) = proc.gids()
       except (psutil.NoSuchProcess, psutil.AccessDenied):
         pass
 
       try:
-        response.ctime = long(proc.create_time * 1e6)
-        response.status = str(proc.status)
+        response.ctime = long(proc.create_time() * 1e6)
+        response.status = str(proc.status())
       except (psutil.NoSuchProcess, psutil.AccessDenied):
         pass
 
       try:
         # Not available on OSX.
-        if hasattr(proc, "getcwd"):
-          response.cwd = utils.SmartUnicode(proc.getcwd())
+        if hasattr(proc, "cwd"):
+          response.cwd = utils.SmartUnicode(proc.cwd())
       except (psutil.NoSuchProcess, psutil.AccessDenied):
         pass
 
       try:
-        response.num_threads = proc.get_num_threads()
+        response.num_threads = proc.num_threads()
       except (psutil.NoSuchProcess, psutil.AccessDenied, RuntimeError):
         pass
 
       try:
         (response.user_cpu_time,
-         response.system_cpu_time) = proc.get_cpu_times()
+         response.system_cpu_time) = proc.cpu_times()
         # This is very time consuming so we do not collect cpu_percent here.
         # response.cpu_percent = proc.get_cpu_percent()
       except (psutil.NoSuchProcess, psutil.AccessDenied):
         pass
 
       try:
-        response.RSS_size, response.VMS_size = proc.get_memory_info()
-        response.memory_percent = proc.get_memory_percent()
+        response.RSS_size, response.VMS_size = proc.memory_info()
+        response.memory_percent = proc.memory_percent()
       except (psutil.NoSuchProcess, psutil.AccessDenied):
         pass
 
-      # Due to a bug in psutil, this function is disabled for now.
+      # Due to a bug in psutil, this function is disabled for now
+      # (https://github.com/giampaolo/psutil/issues/340)
       # try:
-      #   for f in proc.get_open_files():
-      #     response.open_files.append(utils.SmartUnicode(f.path))
+      #  for f in proc.open_files():
+      #    response.open_files.append(utils.SmartUnicode(f.path))
       # except (psutil.NoSuchProcess, psutil.AccessDenied):
-      #   pass
+      #  pass
 
       try:
-        for c in proc.get_connections():
+        for c in proc.connections():
           conn = response.connections.Append(family=c.family,
                                              type=c.type,
                                              pid=proc.pid)

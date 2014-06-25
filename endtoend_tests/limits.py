@@ -26,7 +26,7 @@ class NetworkLimitTestFlow(flow.GRRFlow):
                     src_path=urandom,
                     dest_dir="",
                     gzip_output=False,
-                    lifetime=10,
+                    lifetime=600,
                     next_state="MultiGetFile")
 
   @flow.StateHandler(next_state="Done")
@@ -124,4 +124,3 @@ class TestMultiGetFileNetworkLimitExceeded(base.AutomatedTest):
 
     fd = aff4.FACTORY.Open(self.urn, mode="r", token=self.token)
     self.assertEqual(type(fd), aff4.AFF4Volume)
-

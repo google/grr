@@ -305,11 +305,15 @@ class MongoDataStore(data_store.DataStore):
 
     return result
 
+  def Size(self):
+    info = self.db_handle.command("dbStats")
+    return info["storageSize"]
+
   def Transaction(self, subject, lease_time=None, token=None):
     return MongoTransaction(self, subject, lease_time=lease_time, token=token)
 
 
-class MongoTransaction(data_store.Transaction):
+class MongoTransaction(data_store.CommonTransaction):
   """The Mongo data store transaction object.
 
   This object does not aim to ensure ACID like consistently. We only ensure that
@@ -328,14 +332,11 @@ class MongoTransaction(data_store.Transaction):
 
   def __init__(self, store, subject, lease_time=None, token=None):
     """Ensure we can take a lock on this subject."""
-    self.store = store
-    self.token = token
-    self.subject = utils.SmartUnicode(subject)
+    super(MongoTransaction, self).__init__(store, subject,
+                                           lease_time=lease_time, token=token)
     self.object_id = objectid.ObjectId(
         hashlib.sha256(utils.SmartStr(self.subject)).digest()[:12])
 
-    self.to_set = {}
-    self.to_delete = set()
     if lease_time is None:
       lease_time = config_lib.CONFIG["Datastore.transaction_timeout"]
 
@@ -386,40 +387,13 @@ class MongoTransaction(data_store.Transaction):
     if self.document:
       self.document["expires"] = self.expires
 
-  def DeleteAttribute(self, predicate):
-    self.to_delete.add(predicate)
-
-  def Resolve(self, predicate):
-    if predicate in self.to_set:
-      return sorted(self.to_set[predicate], key=lambda vt: vt[1])[-1]
-    if predicate in self.to_delete:
-      return None
-    return self.store.Resolve(self.subject, predicate, token=self.token)
-
-  def ResolveRegex(self, predicate_regex, timestamp=None):
-    # TODO(user): Retrieve values from to_set as well.
-    return self.store.ResolveRegex(self.subject, predicate_regex,
-                                   token=self.token, timestamp=timestamp)
-
-  def Set(self, predicate, value, timestamp=None, replace=None):
-    if replace:
-      self.to_delete.add(predicate)
-
-    if timestamp is None:
-      timestamp = int(time.time() * 1e6)
-
-    self.to_set.setdefault(predicate, []).append((value, timestamp))
-
   def Abort(self):
     if self.locked:
       self._RemoveLock()
 
   def Commit(self):
     if self.locked:
-      self.store.DeleteAttributes(self.subject, self.to_delete, sync=True,
-                                  token=self.token)
-
-      self.store.MultiSet(self.subject, self.to_set, token=self.token)
+      super(MongoTransaction, self).Commit()
       self._RemoveLock()
 
   def _RemoveLock(self):
@@ -437,12 +411,6 @@ class MongoTransaction(data_store.Transaction):
       raise data_store.TransactionError(
           "Could not remove lock for %s." % self.subject)
     self.locked = False
-
-  def __del__(self):
-    try:
-      self.Abort()
-    except Exception:  # This can raise on cleanup pylint: disable=broad-except
-      pass
 
 
 def Decode(document):

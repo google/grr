@@ -24,6 +24,12 @@ class RDFStringTest(test_base.RDFValueTestCase):
   def GenerateSample(self, number=0):
     return rdfvalue.RDFString(u"Grüezi %s" % number)
 
+  def testRDFStringGetItem(self):
+    rdfstring = rdfvalue.RDFString("123456789")
+    self.assertEqual(rdfstring[3], "4")
+    self.assertEqual(rdfstring[-3:], "789")
+    self.assertEqual(rdfstring[3:-3], "456")
+
 
 class RDFIntegerTest(test_base.RDFValueTestCase):
   rdfvalue_class = rdfvalue.RDFInteger

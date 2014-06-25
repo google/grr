@@ -9,7 +9,7 @@ from grr.lib import aff4
 from grr.lib import flow
 
 # How long to wait, by default, for a flow to finish.
-DEFAULT_TIMEOUT = 30
+DEFAULT_TIMEOUT = 650
 
 
 def GetUserInfo(client, user):

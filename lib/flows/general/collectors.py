@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 """Flows for handling the collection for artifacts."""
 
-import re
-
 import logging
 
 from grr.lib import aff4
@@ -12,95 +10,6 @@ from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import parsers
 from grr.lib import rdfvalue
-from grr.proto import flows_pb2
-
-
-class BootStrapKnowledgeBaseFlow(flow.GRRFlow):
-  """Flow that finds core bootstrap artifacts.
-
-  To use artifacts we need to be able to interpolate paths that the artifacts
-  use. These are stored in the knowledgebase. However most of the things in the
-  knowledge base come from artifacts, which in turn rely on facts in the
-  knowledge base. To resolve the dependency loop we rely on a couple of core
-  knowledge base values that we call Bootstrap values.
-
-  This flow collects or guesses those Bootstrap values.
-  """
-
-  @flow.StateHandler(next_state="ProcessRegStat")
-  def Start(self):
-    """For each artifact, create subflows for each collector."""
-    self.client = aff4.FACTORY.Open(self.client_id, token=self.token)
-    self.state.Register("bootstrap_initialized", False)
-
-    system = self.client.Get(self.client.Schema.SYSTEM)
-    if system != "Windows":
-      # We don't need bootstrapping for non-windows clients at the moment.
-      self.state.bootstrap_initialized = True
-      self.CallState(next_state="End")
-      return
-
-    # First try querying the registry, this should work fine for live clients
-    # but won't support offline clients.
-    system_root_reg = (r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT"
-                       r"\CurrentVersion\SystemRoot")
-    pathspec = rdfvalue.PathSpec(path=system_root_reg,
-                                 pathtype=rdfvalue.PathSpec.PathType.REGISTRY)
-    self.CallClient("StatFile", pathspec=pathspec,
-                    request_data={"bootstrap_var": "system_root"},
-                    next_state="ProcessRegStat")
-
-  @flow.StateHandler(next_state="ProcessFileStats")
-  def ProcessRegStat(self, responses):
-    """Check SystemRoot registry value."""
-    if responses.success:
-      systemroot = responses.First().registry_data.GetValue()
-      if systemroot:
-        systemdrive = systemroot[0:2]
-        if re.match(r"^[A-Za-z]:$", systemdrive):
-          self.SendReply(rdfvalue.Dict({"environ_systemroot": systemroot,
-                                        "environ_systemdrive": systemdrive}))
-          self.state.bootstrap_initialized = True
-          return
-
-    # If registry querying didn't work, we try to guess common paths instead.
-    system_drive_opts = ["C:", "D:"]
-    for drive in system_drive_opts:
-      pathspec = rdfvalue.PathSpec(path=drive,
-                                   pathtype=rdfvalue.PathSpec.PathType.OS)
-      self.CallClient("ListDirectory", pathspec=pathspec,
-                      request_data={"bootstrap_var": "system_root"},
-                      next_state="ProcessFileStats")
-
-  @flow.StateHandler(next_state="End")
-  def ProcessFileStats(self, responses):
-    """Extract DataBlob from Stat response."""
-    if not responses.success:
-      return
-    system_root_paths = ["Windows", "WinNT", "WINNT35", "WTSRV"]
-
-    for response in responses:
-      if response.pathspec.path[4:] in system_root_paths:
-        systemdrive = response.pathspec.path[1:3]
-        systemroot = "%s\\%s" % (systemdrive, response.pathspec.path[4:])
-        self.SendReply(rdfvalue.Dict({"environ_systemroot": systemroot,
-                                      "environ_systemdrive": systemdrive}))
-        self.state.bootstrap_initialized = True
-        break
-
-  @flow.StateHandler()
-  def End(self):
-    """Finalize and test if we succeeded. No notification required."""
-    if not self.state.bootstrap_initialized:
-      raise flow.FlowError("Could not bootstrap systemroot.")
-
-
-class ArtifactCollectorFlowArgs(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.ArtifactCollectorFlowArgs
-
-  def Validate(self):
-    if not self.artifact_list:
-      raise ValueError("No artifacts to collect.")
 
 
 class ArtifactCollectorFlow(flow.GRRFlow):
@@ -134,7 +43,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
   """
 
   category = "/Collectors/"
-  args_type = ArtifactCollectorFlowArgs
+  args_type = rdfvalue.ArtifactCollectorFlowArgs
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   @flow.StateHandler(next_state=["StartCollection"])
@@ -145,8 +54,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     self.state.Register("artifacts_skipped_due_to_condition", [])
     self.state.Register("failed_count", 0)
     self.state.Register("artifacts_failed", [])
-    self.state.Register("bootstrap_complete", False)
     self.state.Register("knowledge_base", self.args.knowledge_base)
+    self.state.Register("called_fallbacks", set())
     self.state.Register("client_anomaly_store", None)
 
     if self.args.use_tsk:
@@ -154,7 +63,21 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     else:
       self.state.Register("path_type", rdfvalue.PathSpec.PathType.OS)
 
-    if not self.state.knowledge_base:
+    if (self.args.dependencies ==
+        rdfvalue.ArtifactCollectorFlowArgs.Dependency.FETCH_NOW):
+      # Don't retrieve a full knowledgebase, just get the dependencies we
+      # need.  CollectArtifactDependencies calls back to this flow to retrieve
+      # the necessary dependencies.  We avoid a loop because
+      # dependencies defaults to USE_CACHED set and a knowledgebase is
+      # provided.
+      self.CallFlow("CollectArtifactDependencies",
+                    artifact_list=self.args.artifact_list,
+                    next_state="StartCollection")
+      return
+
+    elif (self.args.dependencies ==
+          rdfvalue.ArtifactCollectorFlowArgs.Dependency.USE_CACHED) and (
+              not self.state.knowledge_base):
       # If not provided, get a knowledge base from the client.
       try:
         self.state.knowledge_base = artifact.GetArtifactKnowledgeBase(
@@ -172,8 +95,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
   @flow.StateHandler(next_state=["ProcessCollected",
                                  "ProcessCollectedArtifactFiles",
-                                 "ProcessFileFinderResults",
-                                 "ProcessRegistryValue", "ProcessBootstrap"])
+                                 "ProcessFileFinderResults"])
   def StartCollection(self, responses):
     """Start collecting."""
     if not responses.success:
@@ -232,39 +154,34 @@ class ArtifactCollectorFlow(flow.GRRFlow):
             collector_conditions_met = False
 
       if collector_conditions_met:
-        action_name = collector.action
+        type_name = collector.collector_type
         self.current_artifact_name = artifact_name
-        if action_name == "Bootstrap":
-          # Can't do anything with a bootstrap action.
-          pass
-        elif action_name == "RunCommand":
+        if type_name == rdfvalue.Collector.CollectorType.COMMAND:
           self.RunCommand(collector)
-        elif action_name == "GetFiles":
+        elif type_name == rdfvalue.Collector.CollectorType.FILE:
           self.GetFiles(collector, self.state.path_type,
                         self.args.max_file_size)
-        elif action_name == "Grep":
+        elif type_name == rdfvalue.Collector.CollectorType.GREP:
           self.Grep(collector, self.state.path_type)
-        elif action_name == "ListFiles":
+        elif type_name == rdfvalue.Collector.CollectorType.LIST_FILES:
           self.Glob(collector, self.state.path_type)
-        elif action_name == "GetRegistryKeys":
+        elif type_name == rdfvalue.Collector.CollectorType.REGISTRY_KEY:
           self.Glob(collector, rdfvalue.PathSpec.PathType.REGISTRY)
-        elif action_name == "GetRegistryValue":
+        elif type_name == rdfvalue.Collector.CollectorType.REGISTRY_VALUE:
           self.GetRegistryValue(collector)
-        elif action_name == "GetRegistryValues":
-          self.GetRegistryValue(collector)
-        elif action_name == "WMIQuery":
+        elif type_name == rdfvalue.Collector.CollectorType.WMI:
           self.WMIQuery(collector)
-        elif action_name == "VolatilityPlugin":
+        elif type_name == rdfvalue.Collector.CollectorType.VOLATILITY_PLUGIN:
           self.VolatilityPlugin(collector)
-        elif action_name == "CollectArtifacts":
+        elif type_name == rdfvalue.Collector.CollectorType.ARTIFACT:
           self.CollectArtifacts(collector)
-        elif action_name == "CollectArtifactFiles":
+        elif type_name == rdfvalue.Collector.CollectorType.ARTIFACT_FILES:
           self.CollectArtifactFiles(collector)
-        elif action_name == "RunGrrClientAction":
+        elif type_name == rdfvalue.Collector.CollectorType.GRR_CLIENT_ACTION:
           self.RunGrrClientAction(collector)
         else:
-          raise RuntimeError("Invalid action %s in %s" % (action_name,
-                                                          artifact_name))
+          raise RuntimeError("Invalid type %s in %s" % (type_name,
+                                                        artifact_name))
 
       else:
         logging.debug("Artifact %s no collectors run due to all collectors "
@@ -359,13 +276,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
   def GetRegistryValue(self, collector):
     """Retrieve directly specified registry values, returning Stat objects."""
-    if collector.action == "GetRegistryValue":
-      path_list = [collector.args["path"]]
-    elif collector.action == "GetRegistryValues":
-      path_list = collector.args["path_list"]
-
     new_paths = set()
-    for path in path_list:
+    for path in collector.args["path_list"]:
       expanded_paths = artifact_lib.InterpolateKbAttributes(
           path, self.state.knowledge_base)
       new_paths.update(expanded_paths)
@@ -377,7 +289,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
           "StatFile", pathspec=pathspec,
           request_data={"artifact_name": self.current_artifact_name,
                         "collector": collector.ToPrimitiveDict()},
-          next_state="ProcessRegistryValue"
+          next_state="ProcessCollected"
           )
 
   def CollectArtifacts(self, collector):
@@ -490,20 +402,32 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         next_state="ProcessCollected",
         **self.InterpolateDict(collector.args.get("action_args", {})))
 
-  @flow.StateHandler(next_state="ProcessCollected")
-  def ProcessRegistryValue(self, responses):
-    """Extract DataBlob from Stat response."""
-    # TODO(user): This currently does no transformation.
-    message = responses.First()
-    if not responses.success or not message.registry_data:
-      self.Log("Failed to get registry value %s" %
-               responses.request_data["artifact_name"])
-    else:
-      self.CallState(next_state="ProcessCollected",
-                     request_data=responses.request_data.ToDict(),
-                     messages=[message])
+  def CallFallback(self, artifact_name, request_data):
+    classes = artifact.ArtifactFallbackCollector.classes.items()
+    for clsname, fallback_class in classes:
 
-  @flow.StateHandler()
+      if not aff4.issubclass(fallback_class,
+                             artifact.ArtifactFallbackCollector):
+        continue
+
+      if artifact_name in fallback_class.artifacts:
+        if artifact_name in self.state.called_fallbacks:
+          self.Log("Already called fallback class %s for artifact: %s",
+                   clsname, artifact_name)
+        else:
+          self.Log("Calling fallback class %s for artifact: %s",
+                   clsname, artifact_name)
+
+          self.CallFlow(clsname, request_data=request_data.ToDict(),
+                        artifact_name=artifact_name,
+                        next_state="ProcessCollected")
+
+          # Make sure we only try this once
+          self.state.called_fallbacks.add(artifact_name)
+          return True
+    return False
+
+  @flow.StateHandler(next_state=["ProcessCollected", "End"])
   def ProcessCollected(self, responses):
     """Each individual collector will call back into here.
 
@@ -525,8 +449,9 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     else:
       self.Log("Artifact %s data collection failed. Status: %s.",
                artifact_name, responses.status)
-      self.state.failed_count += 1
-      self.state.artifacts_failed.append(artifact_name)
+      if not self.CallFallback(artifact_name, responses.request_data):
+        self.state.failed_count += 1
+        self.state.artifacts_failed.append(artifact_name)
       return
 
     # Initialize some local non-state saved variables for processing.

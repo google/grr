@@ -19,9 +19,12 @@ from grr.lib import rdfvalue
 # pylint: disable=g-import-not-at-top
 try:
   import win32file
-  import fcntl
 except ImportError:
   win32file = None
+
+try:
+  import fcntl
+except ImportError:
   fcntl = None
 # pylint: enable=g-import-not-at-top
 

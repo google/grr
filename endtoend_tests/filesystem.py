@@ -49,8 +49,10 @@ class TestListDirectoryOSLinuxDarwin(base.AutomatedTest):
     super(TestListDirectoryOSLinuxDarwin, self).tearDown()
 
 
-class TestListDirectoryTSKLinuxDarwin(TestListDirectoryOSLinuxDarwin):
+# TODO(user): Find a way to run this on Darwin with Filevault turned on.
+class TestListDirectoryTSKLinux(TestListDirectoryOSLinuxDarwin):
   """Tests if ListDirectory works on Linux and Darwin using Sleuthkit."""
+  platforms = ["Linux"]
   args = {"pathspec": rdfvalue.PathSpec(
       path="/bin",
       pathtype=rdfvalue.PathSpec.PathType.TSK)}
@@ -60,10 +62,6 @@ class TestListDirectoryTSKLinuxDarwin(TestListDirectoryOSLinuxDarwin):
 class TestRecursiveListDirectoryLinuxDarwin(TestListDirectoryOSLinuxDarwin):
   """Test recursive list directory on linux and darwin."""
   flow = "RecursiveListDirectory"
-  args = {"pathspec": rdfvalue.PathSpec(
-      path="/usr",
-      pathtype=rdfvalue.PathSpec.PathType.OS),
-          "max_depth": 1}
   file_to_find = "less"
   output_path = "/fs/os/usr/bin"
   args = {"pathspec": rdfvalue.PathSpec(
@@ -76,7 +74,8 @@ class TestRecursiveListDirectoryLinuxDarwin(TestListDirectoryOSLinuxDarwin):
   timeout = 60
 
 
-class TestFindTSKLinuxDarwin(TestListDirectoryTSKLinuxDarwin):
+# TODO(user): Find a way to run this on Darwin with Filevault turned on.
+class TestFindTSKLinux(TestListDirectoryTSKLinux):
   """Tests if the find flow works on Linux and Darwin using Sleuthkit."""
   flow = "FindFiles"
 
@@ -113,7 +112,7 @@ class TestListDirectoryOSWindows(TestListDirectoryOSLinuxDarwin):
   output_path = "/fs/os/C:/Windows"
 
 
-class TestListDirectoryTSKWindows(TestListDirectoryTSKLinuxDarwin):
+class TestListDirectoryTSKWindows(TestListDirectoryTSKLinux):
   """Tests if ListDirectory works on Windows using Sleuthkit."""
   platforms = ["Windows"]
   args = {"pathspec": rdfvalue.PathSpec(
@@ -150,6 +149,3 @@ class TestRecursiveListDirectoryOSWindows(TestListDirectoryOSWindows):
           "max_depth": 1}
   file_to_find = "regedit.exe"
   output_path = "/fs/os/C:/Windows"
-
-
-

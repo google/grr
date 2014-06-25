@@ -3,6 +3,7 @@
 
 
 import re
+import sys
 import threading
 import time
 
@@ -11,22 +12,19 @@ from grr.lib import data_store
 from grr.lib import utils
 
 
-class FakeTransaction(data_store.Transaction):
+class FakeTransaction(data_store.CommonTransaction):
   """A fake transaction object for testing."""
 
   def __init__(self, store, subject, lease_time=None, token=None):
-    self.data_store = store
-    self.subject = subject
-    self.token = token
+    super(FakeTransaction, self).__init__(store, subject, lease_time=lease_time,
+                                          token=token)
     self.locked = False
-    self.to_set = {}
-    self.to_delete = set()
     if lease_time is None:
       lease_time = config_lib.CONFIG["Datastore.transaction_timeout"]
 
     self.expires = time.time() + lease_time
 
-    with self.data_store.lock:
+    with self.store.lock:
       expires = store.transactions.get(subject)
       if expires and time.time() < expires:
         raise data_store.TransactionError("Subject is locked")
@@ -41,56 +39,20 @@ class FakeTransaction(data_store.Transaction):
 
   def UpdateLease(self, duration):
     self.expires = time.time() + duration
-    self.data_store.transactions[self.subject] = self.expires
-
-  def DeleteAttribute(self, predicate):
-    self.to_delete.add(predicate)
-
-  def ResolveRegex(self, predicate_regex, timestamp=None):
-    # TODO(user): Retrieve values from to_set as well.
-    return self.data_store.ResolveRegex(self.subject, predicate_regex,
-                                        timestamp=timestamp,
-                                        token=self.token)
-
-  def Set(self, predicate, value, timestamp=None, replace=True):
-    if replace:
-      self.to_delete.add(predicate)
-
-    if timestamp is None:
-      timestamp = int(time.time() * 1e6)
-
-    self.to_set.setdefault(predicate, []).append((value, int(timestamp)))
-
-  def Resolve(self, predicate):
-    if predicate in self.to_set:
-      return sorted(self.to_set[predicate], key=lambda vt: vt[1])[-1]
-    if predicate in self.to_delete:
-      return None
-
-    return self.data_store.Resolve(self.subject, predicate, token=self.token)
+    self.store.transactions[self.subject] = self.expires
 
   def Abort(self):
     self.Unlock()
 
   def Commit(self):
-    self.data_store.DeleteAttributes(self.subject, self.to_delete, sync=True,
-                                     token=self.token)
-
-    self.data_store.MultiSet(self.subject, self.to_set, token=self.token)
-
+    super(FakeTransaction, self).Commit()
     self.Unlock()
 
   def Unlock(self):
-    with self.data_store.lock:
+    with self.store.lock:
       if self.locked:
-        self.data_store.transactions.pop(self.subject, None)
+        self.store.transactions.pop(self.subject, None)
         self.locked = False
-
-  def __del__(self):
-    try:
-      self.Abort()
-    except Exception:  # This can raise on cleanup pylint: disable=broad-except
-      pass
 
 
 class FakeDataStore(data_store.DataStore):
@@ -204,7 +166,8 @@ class FakeDataStore(data_store.DataStore):
           continue
 
         start = start or 0
-        end = end or (2 ** 63) - 1  # sys.maxint
+        if end is None:
+          end = (2 ** 63) - 1  # sys.maxint
         new_values = []
         for value, timestamp in values:
           if not start <= timestamp <= end:
@@ -303,7 +266,7 @@ class FakeDataStore(data_store.DataStore):
     if isinstance(timestamp, (list, tuple)):
       start, end = timestamp
     else:
-      start, end = -1, 1 << 65
+      start, end = 0, (2 ** 63) - 1
 
     start = int(start)
     end = int(end)
@@ -350,3 +313,16 @@ class FakeDataStore(data_store.DataStore):
       for v in sorted(values):
         result.append((k, v[2], v[1]))
     return result
+
+  def Size(self):
+    total_size = sys.getsizeof(self.subjects)
+    for subject, record in self.subjects.iteritems():
+      total_size += sys.getsizeof(subject)
+      total_size += sys.getsizeof(record)
+      for attribute, values in record.iteritems():
+        total_size += sys.getsizeof(attribute)
+        total_size += sys.getsizeof(values)
+        for value, timestamp in values:
+          total_size += sys.getsizeof(value)
+          total_size += sys.getsizeof(timestamp)
+    return total_size

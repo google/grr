@@ -4,8 +4,8 @@
 name: AllUsersAppDataEnvironmentVariable
 doc: The %ProgramData% environment variable.
 collectors:
-- action: GetRegistryValue
-  args: {path: 'HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\ProfileList\ProgramData'}
+- collector_type: REGISTRY_VALUE
+  args: {path_list: ['HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\ProfileList\ProgramData']}
 provides: [environ_allusersappdata]
 supported_os: [Windows]
 urls: ['http://environmentvariables.org/ProgramData']
@@ -13,7 +13,7 @@ urls: ['http://environmentvariables.org/ProgramData']
 name: AllUsersProfileEnvironmentVariable
 doc: The %AllUsersProfile% environment variable.
 collectors:
-- action: GetRegistryKeys
+- collector_type: REGISTRY_KEY
   args:
     path_list:
       - 'HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\ProfileList\ProfilesDirectory'
@@ -25,8 +25,8 @@ urls: ['http://support.microsoft.com/kb//214653']
 name: CurrentControlSet
 doc: The control set the system is currently using.
 collectors:
-- action: GetRegistryValue
-  args: {path: 'HKEY_LOCAL_MACHINE\SYSTEM\Select\Current'}
+- collector_type: REGISTRY_VALUE
+  args: {path_list: ['HKEY_LOCAL_MACHINE\SYSTEM\Select\Current']}
 provides: [current_control_set]
 supported_os: [Windows]
 urls: ['https://code.google.com/p/winreg-kb/wiki/SystemKeys']
@@ -34,8 +34,8 @@ urls: ['https://code.google.com/p/winreg-kb/wiki/SystemKeys']
 name: ProgramFiles
 doc: The %ProgramFiles% environment variable.
 collectors:
-- action: GetRegistryValue
-  args: {path: 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\ProgramFilesDir'}
+- collector_type: REGISTRY_VALUE
+  args: {path_list: ['HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\ProgramFilesDir']}
 provides: [environ_programfiles]
 supported_os: [Windows]
 urls: ['http://environmentvariables.org/ProgramFiles']
@@ -43,8 +43,8 @@ urls: ['http://environmentvariables.org/ProgramFiles']
 name: ProgramFilesx86
 doc: The %ProgramFiles (x86)% environment variable.
 collectors:
-- action: GetRegistryValue
-  args: {path: 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\ProgramFilesDir (x86)'}
+- collector_type: REGISTRY_VALUE
+  args: {path_list: ['HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\ProgramFilesDir (x86)']}
 provides: [environ_programfilesx86]
 supported_os: [Windows]
 urls: ['http://environmentvariables.org/ProgramFiles']
@@ -52,7 +52,8 @@ urls: ['http://environmentvariables.org/ProgramFiles']
 name: SystemDriveEnvironmentVariable
 doc: The %SystemDrive% environment variable, usually "C:".
 collectors:
-- {action: Bootstrap}
+- collector_type: REGISTRY_VALUE
+  args: {path_list: ['HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRoot']}
 provides: [environ_systemdrive]
 supported_os: [Windows]
 urls: ['http://environmentvariables.org/SystemDrive']
@@ -60,7 +61,8 @@ urls: ['http://environmentvariables.org/SystemDrive']
 name: SystemRoot
 doc: The base system directory, usually "C:\Windows".
 collectors:
-- {action: Bootstrap}
+- collector_type: REGISTRY_VALUE
+  args: {path_list: ['HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRoot']}
 provides: [environ_systemroot]
 supported_os: [Windows]
 urls: ['http://environmentvariables.org/SystemRoot']
@@ -68,8 +70,8 @@ urls: ['http://environmentvariables.org/SystemRoot']
 name: TempEnvironmentVariable
 doc: The %TEMP% environment variable.
 collectors:
-- action: GetRegistryValue
-  args: {path: '%%current_control_set%%\Control\Session Manager\Environment\TEMP'}
+- collector_type: REGISTRY_VALUE
+  args: {path_list: ['%%current_control_set%%\Control\Session Manager\Environment\TEMP']}
 provides: [environ_temp]
 supported_os: [Windows]
 urls: ['http://environmentvariables.org/WinDir']
@@ -77,7 +79,7 @@ urls: ['http://environmentvariables.org/WinDir']
 name: UserShellFolders
 doc: The Shell Folders information for Windows users.
 collectors:
-- action: GetRegistryKeys
+- collector_type: REGISTRY_KEY
   args:
     path_list:
       - 'HKEY_USERS\%%users.sid%%\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders\*'
@@ -102,8 +104,8 @@ supported_os: [Windows]
 name: WinCodePage
 doc: The codepage of the system.
 collectors:
-- action: GetRegistryValue
-  args: {path: '%%current_control_set%%\Control\Nls\CodePage\ACP'}
+- collector_type: REGISTRY_VALUE
+  args: {path_list: ['%%current_control_set%%\Control\Nls\CodePage\ACP']}
 provides: [code_page]
 supported_os: [Windows]
 urls: ['http://en.wikipedia.org/wiki/Windows_code_page']
@@ -111,8 +113,8 @@ urls: ['http://en.wikipedia.org/wiki/Windows_code_page']
 name: WinDirEnvironmentVariable
 doc: The %WinDir% environment variable.
 collectors:
-- action: GetRegistryValue
-  args: {path: '%%current_control_set%%\Control\Session Manager\Environment\windir'}
+- collector_type: REGISTRY_VALUE
+  args: {path_list: ['%%current_control_set%%\Control\Session Manager\Environment\windir']}
 provides: [environ_windir]
 supported_os: [Windows]
 urls: ['http://environmentvariables.org/WinDir']
@@ -120,16 +122,16 @@ urls: ['http://environmentvariables.org/WinDir']
 name: WinDomainName
 doc: The Windows domain the system is connected to.
 collectors:
-- action: GetRegistryValue
-  args: {path: '%%current_control_set%%\Services\Tcpip\Parameters\Domain'}
+- collector_type: REGISTRY_VALUE
+  args: {path_list: ['%%current_control_set%%\Services\Tcpip\Parameters\Domain']}
 provides: [domain]
 supported_os: [Windows]
 ---
 name: WinPathEnvironmentVariable
 doc: The %PATH% environment variable.
 collectors:
-- action: GetRegistryValue
-  args: {path: '%%current_control_set%%\Control\Session Manager\Environment\Path'}
+- collector_type: REGISTRY_VALUE
+  args: {path_list: ['%%current_control_set%%\Control\Session Manager\Environment\Path']}
 provides: [environ_path]
 supported_os: [Windows]
 urls: ['http://environmentvariables.org/WinDir']
@@ -137,8 +139,8 @@ urls: ['http://environmentvariables.org/WinDir']
 name: WinTimeZone
 doc: The timezone of the system in Olson format.
 collectors:
-- action: GetRegistryValue
-  args: {path: '%%current_control_set%%\Control\TimeZoneInformation\StandardName'}
+- collector_type: REGISTRY_VALUE
+  args: {path_list: ['%%current_control_set%%\Control\TimeZoneInformation\StandardName']}
 provides: [time_zone]
 supported_os: [Windows]
 urls: ['https://code.google.com/p/winreg-kb/wiki/TimeZoneKeys']
@@ -150,7 +152,7 @@ doc: |
   This looks in the Windows registry where the profiles are stored and retrieves
   the paths for each profile.
 collectors:
-- action: GetRegistryKeys
+- collector_type: REGISTRY_KEY
   args:
     path_list: ['HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\*\ProfileImagePath']
 labels: [Users]
@@ -172,7 +174,7 @@ doc: |
   base. Unfortunately even limiting by username this query can be slow, and
   this artifact runs it for each user present on the system.
 collectors:
-- action: WMIQuery
+- collector_type: WMI
   args: {query: SELECT * FROM Win32_UserAccount WHERE name='%%users.username%%'}
 labels: [Users]
 provides: [users.userdomain]
@@ -187,7 +189,7 @@ doc: |
   base. We expect it to be collected with WindowsRegistryProfiles to
   supply the rest of the user information.
 collectors:
-- action: WMIQuery
+- collector_type: WMI
   args: {query: SELECT * FROM Win32_UserProfile WHERE SID='%%users.sid%%'}
 labels: [Users]
 provides: [users.homedir]

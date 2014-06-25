@@ -3,6 +3,8 @@
 
 import urllib2
 
+import logging
+
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import config_lib
@@ -75,9 +77,16 @@ class RekallRepositoryProfileServer(ProfileServer):
                        profile_name)
       handle = urllib2.urlopen(url, timeout=10)
 
-    except urllib2.URLError as e:
+    except urllib2.HTTPError as e:
       if e.code == 404:
+        logging.info(
+            "Got a 404 while downloading Rekall profile %s", url)
         return None
+      raise
+    except urllib2.URLError as e:
+      logging.info(
+          "Got an URLError while downloading Rekall profile %s: %s",
+          url, e.reason)
       raise
 
     profile_data = handle.read()

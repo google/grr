@@ -9,7 +9,7 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 
 
-class AFF4Benchmark(test_lib.MicroBenchmarks):
+class AFF4Benchmark(test_lib.AverageMicroBenchmarks):
   """Test performance of the AFF4 subsystem."""
 
   REPEATS = 50

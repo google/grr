@@ -3,11 +3,11 @@
 name: SophosAVLogs
 doc: Sophos Anti-Virus log files.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args: {path_list: ['%%environ_allusersappdata%%\Sophos\Sophos Anti-Virus\Logs\*']}
   supported_os: [Windows]
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args: {path_list: ['/Library/Logs/Sophos*.log']}
   supported_os: [Darwin]
 labels: [Antivirus, Logs]
@@ -15,10 +15,10 @@ labels: [Antivirus, Logs]
 name: SophosAVQuarantine
 doc: Sophos Anti-Virus Quarantine (Infected) files.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args: {path_list: ['%%environ_allusersappdata%%\Sophos\Sophos Anti-Virus\INFECTED\*']}
   supported_os: [Windows]
-- action: GetFiles
+- collector_type: FILE
   args: {path_list: ['/Users/Shared/Infected']}
   supported_os: [Darwin]
 labels: [Antivirus]
@@ -26,7 +26,7 @@ labels: [Antivirus]
 name: MicrosoftAVQuarantine
 doc: Microsoft Anti-Virus Quarantine (Infected) files.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args: {path_list: ['%%environ_systemdrive%%\ProgramData\Microsoft\Microsoft Antimalware\Quarantine\**3']}
   supported_os: [Windows]
 labels: [Antivirus]

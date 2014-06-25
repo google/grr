@@ -38,6 +38,8 @@ class WinEnvironmentParser(parsers.RegistryValueParser):
   supported_artifacts = ["WinPathEnvironmentVariable",
                          "WinDirEnvironmentVariable", "TempEnvironmentVariable",
                          "AllUsersAppDataEnvironmentVariable"]
+  # Required for environment variable expansion
+  knowledgebase_dependencies = ["environ_systemdrive", "environ_systemroot"]
 
   def Parse(self, stat, knowledge_base):
     """Parse the key currentcontrolset output."""
@@ -48,6 +50,40 @@ class WinEnvironmentParser(parsers.RegistryValueParser):
                                                            knowledge_base)
     if value:
       yield rdfvalue.RDFString(value)
+
+
+class WinSystemDriveParser(parsers.RegistryValueParser):
+  """Parser for SystemDrive environment variable."""
+
+  output_types = ["RDFString"]
+  supported_artifacts = ["SystemDriveEnvironmentVariable"]
+
+  def Parse(self, stat, _):
+    """Parse the key currentcontrolset output."""
+    value = stat.registry_data.GetValue()
+    if not value:
+      raise parsers.ParseError("Invalid value for key %s" % stat.pathspec.path)
+
+    systemdrive = value[0:2]
+    if re.match(r"^[A-Za-z]:$", systemdrive):
+      yield rdfvalue.RDFString(systemdrive)
+    else:
+      raise parsers.ParseError(
+          "Bad drive letter for key %s" % stat.pathspec.path)
+
+
+class WinSystemRootParser(parsers.RegistryValueParser):
+  """Parser for SystemRoot environment variables."""
+
+  output_types = ["RDFString"]
+  supported_artifacts = ["SystemRoot"]
+
+  def Parse(self, stat, _):
+    value = stat.registry_data.GetValue()
+    if value:
+      yield rdfvalue.RDFString(value)
+    else:
+      raise parsers.ParseError("Invalid value for key %s" % stat.pathspec.path)
 
 
 class CodepageParser(parsers.RegistryValueParser):
@@ -70,6 +106,8 @@ class AllUsersProfileEnvironmentVariable(parsers.RegistryParser):
   """
   output_types = ["RDFString"]
   supported_artifacts = ["AllUsersProfileEnvironmentVariable"]
+  # Required for environment variable expansion
+  knowledgebase_dependencies = ["environ_systemdrive", "environ_systemroot"]
   process_together = True
 
   def ParseMultiple(self, stats, knowledge_base):
@@ -138,6 +176,9 @@ class WinUserSpecialDirs(parsers.RegistryParser):
   output_types = ["KnowledgeBaseUser"]
   supported_artifacts = ["UserShellFolders"]
   process_together = True
+  # Required for environment variable expansion
+  knowledgebase_dependencies = ["environ_systemdrive", "environ_systemroot",
+                                "users.userprofile"]
 
   key_var_mapping = {
       "Shell Folders": {

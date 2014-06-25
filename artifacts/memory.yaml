@@ -3,7 +3,7 @@
 name: VolatilityPsList
 doc: Process listing using Volatility.
 collectors:
-- action: VolatilityPlugin
+- collector_type: VOLATILITY_PLUGIN
   args:
     args: {}
     plugin: pslist

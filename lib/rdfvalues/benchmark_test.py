@@ -78,7 +78,7 @@ class FastVolatilityValues(rdfvalue.RDFProtoStruct):
       )
 
 
-class RDFValueBenchmark(test_lib.MicroBenchmarks):
+class RDFValueBenchmark(test_lib.AverageMicroBenchmarks):
   """Microbenchmark tests for RDFProtos."""
 
   REPEATS = 1000

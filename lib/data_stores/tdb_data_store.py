@@ -66,6 +66,9 @@ class TDBIndex(rdfvalue.RDFBytes):
       self._value = "\x00".join(self.index)
       self.context.Put(self._value, *self.parts)
 
+  def __len__(self):
+    return len(self.index)
+
   def __iter__(self):
     return iter(self.index)
 
@@ -270,15 +273,37 @@ class TDBDataStore(data_store.DataStore):
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
     _ = sync
 
-    # TODO(user): This has to work with start and end.
-
     with TDB_CACHE.Get(subject) as tdb_context:
       with TDBIndex(subject, self.INDEX_SUFFIX,
                     context=tdb_context) as attribute_index:
-
-        for attribute in list(attributes):
-          attribute_index.Remove(attribute)
-          self._DeleteAttribute(subject, attribute, tdb_context)
+        if start is None and end is None:
+          # This is done when we delete all attributes at once without
+          # caring about timestamps.
+          for attribute in list(attributes):
+            attribute_index.Remove(attribute)
+            self._DeleteAttribute(subject, attribute, tdb_context)
+        else:
+          # This code path is taken when we have a timestamp range - we
+          # first enumerate all existing timestamps and then remove
+          # the ones that fall in that range.
+          start = start or 0
+          if end is None:
+            end = (2 ** 63) - 1  # sys.maxint
+          for attribute in list(attributes):
+            attribute_removed = False
+            with TDBIndex(subject, attribute,
+                          self.INDEX_SUFFIX,
+                          context=tdb_context) as timestamp_index:
+              filtered_ts = [x for x in timestamp_index
+                             if start <= int(x) <= end]
+              attribute_removed = (len(filtered_ts) == len(timestamp_index))
+              for timestamp in filtered_ts:
+                tdb_context.Delete(subject, attribute, timestamp)
+                timestamp_index.Remove(timestamp)
+            if attribute_removed:
+              attribute_index.Remove(attribute)
+              # Also delete the timestamp index.
+              tdb_context.Delete(subject, attribute, self.INDEX_SUFFIX)
 
   def DeleteAttributesRegex(self, subject, regexes, token=None):
     """Deletes attributes using one or more regular expressions."""
@@ -426,11 +451,34 @@ class TDBDataStore(data_store.DataStore):
 
     return results
 
+  def Size(self):
+    root_path = config_lib.CONFIG["TDBDatastore.root_path"]
+    if not os.path.exists(root_path):
+      # Database does not exist yet.
+      return 0
+    if not os.path.isdir(root_path):
+      # Database should be a directory.
+      raise IOError("expected TDB directory %s to be a directory" % root_path)
+    total_size = os.path.getsize(root_path)
+    for subject in os.listdir(root_path):
+      subject_path = os.path.join(root_path, subject)
+      if os.path.isfile(subject_path):
+        if subject.endswith(".tdb"):
+          total_size += os.path.getsize(subject_path)
+        else:
+          # All files in this directory must end with '.tdb'.
+          raise IOError("file %s is not a valid TDB file" % subject_path)
+      else:
+        # Only files are allowed in this directory.
+        raise IOError("only regular files are allowed in TDB directory %s" %
+                      root_path)
+    return total_size
+
   def Transaction(self, subject, lease_time=None, token=None):
-    return Transaction(self, subject, lease_time=lease_time, token=token)
+    return TDBTransaction(self, subject, lease_time=lease_time, token=token)
 
 
-class Transaction(data_store.Transaction):
+class TDBTransaction(data_store.CommonTransaction):
   """The TDB data store transaction object.
 
   This does not aim to ensure ACID like consistently. We only ensure that two
@@ -450,11 +498,8 @@ class Transaction(data_store.Transaction):
 
   def __init__(self, store, subject, lease_time=None, token=None):
     """Ensure we can take a lock on this subject."""
-    self.store = store
-    self.token = token
-    self.subject = utils.SmartUnicode(subject)
-    self.to_delete = []
-    self.to_set = {}
+    super(TDBTransaction, self).__init__(store, utils.SmartUnicode(subject),
+                                         lease_time=lease_time, token=token)
 
     # Note that we have the luxury of real file locking here so this will block
     # until we obtain the lock.
@@ -482,35 +527,13 @@ class Transaction(data_store.Transaction):
       self.expires = time.time() + duration
       tdb_context.Put(self.expires, "lock")
 
-  def DeleteAttribute(self, predicate):
-    self.to_delete.append(predicate)
-
-  def Resolve(self, predicate):
-    return self.store.Resolve(self.subject, predicate, token=self.token)
-
-  def ResolveRegex(self, predicate_regex, timestamp=None):
-    return self.store.ResolveRegex(self.subject, predicate_regex,
-                                   token=self.token, timestamp=timestamp)
-
-  def Set(self, predicate, value, timestamp=None, replace=None):
-    if replace:
-      self.to_delete.append(predicate)
-
-    if timestamp is None:
-      timestamp = int(time.time() * 1e6)
-
-    self.to_set.setdefault(predicate, []).append((value, timestamp))
-
   def Abort(self):
     if self.locked:
       self._RemoveLock()
 
   def Commit(self):
     if self.locked:
-      self.store.DeleteAttributes(self.subject, self.to_delete, sync=True,
-                                  token=self.token)
-
-      self.store.MultiSet(self.subject, self.to_set, token=self.token)
+      super(TDBTransaction, self).Commit()
       self._RemoveLock()
 
   def _RemoveLock(self):
@@ -518,9 +541,3 @@ class Transaction(data_store.Transaction):
       tdb_context.Delete("lock")
 
     self.locked = False
-
-  def __del__(self):
-    try:
-      self.Abort()
-    except Exception:  # This can raise on cleanup pylint: disable=broad-except
-      pass

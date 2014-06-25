@@ -96,7 +96,7 @@ config_lib.DEFINE_string(
 config_lib.DEFINE_string(
     name="Client.tempdir",
     help="Default temporary directory to use on the client.",
-    default="/var/tmp/grr/")
+    default="/var/tmp/%(Client.name)/")
 
 config_lib.DEFINE_integer("Client.version_major", 0,
                           "Major version number of client binary.")

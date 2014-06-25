@@ -3,7 +3,7 @@
 name: KasperskyCaretoIndicators
 doc: Kaspersky Careto Indicators.
 collectors:
-- action: CollectArtifacts
+- collector_type: ARTIFACT
   args:
     artifact_list:
       - KasperskyCaretoWindowsFiles
@@ -15,7 +15,7 @@ urls: ['http://www.securelist.com/en/downloads/vlpdfs/unveilingthemask_v1.0.pdf'
 name: KasperskyCaretoWindowsFiles
 doc: Windows Careto IOCs.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args:
     path_list:
       - '%%environ_systemroot%%\System32\objframe.dll'
@@ -77,7 +77,7 @@ urls: ['http://www.securelist.com/en/downloads/vlpdfs/unveilingthemask_v1.0.pdf'
 name: KasperskyCaretoWindowsRegKeys
 doc: Windows Careto IOCs.
 collectors:
-- action: GetRegistryValues
+- collector_type: REGISTRY_VALUE
   args:
     path_list:
     - HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\WindowsUpdate\CISCNF4654
@@ -92,7 +92,7 @@ urls: ['http://www.securelist.com/en/downloads/vlpdfs/unveilingthemask_v1.0.pdf'
 name: KasperskyCaretoDarwinFiles
 doc: Darwin Careto IOCs.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args:
     path_list:
       - /Applications/.DS_Store.app/**10

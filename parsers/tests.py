@@ -15,3 +15,8 @@ from grr.parsers import sqlite_file_test
 from grr.parsers import volatility_artifact_parser_test
 from grr.parsers import windows_persistence_test
 from grr.parsers import windows_registry_parser_test
+# pylint: disable=g-import-not-at-top
+try:
+  from grr.parsers import linux_software_parser_test
+except ImportError:
+  pass

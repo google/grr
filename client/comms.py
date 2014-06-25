@@ -140,7 +140,7 @@ class GRRClientWorker(object):
       self.nanny_controller.Heartbeat()
 
   def ClientMachineIsIdle(self):
-    return psutil.get_cpu_percent(0.05) <= 100 * self.IDLE_THRESHOLD
+    return psutil.cpu_percent(0.05) <= 100 * self.IDLE_THRESHOLD
 
   def __del__(self):
     self.nanny_controller.StopNanny()
@@ -343,7 +343,7 @@ class GRRClientWorker(object):
 
   def MemoryExceeded(self):
     """Returns True if our memory footprint is too large."""
-    rss_size, _ = self.proc.get_memory_info()
+    rss_size, _ = self.proc.memory_info()
     return rss_size/1024/1024 > config_lib.CONFIG["Client.rss_max"]
 
   def InQueueSize(self):

@@ -3,7 +3,7 @@
 name: AllRunningProcessBinaryFiles
 doc: Download binaries of all the running processes.
 collectors:
-- action: CollectArtifactFiles
+- collector_type: ARTIFACT_FILES
   args:
     artifact_list: [ListProcessesGrr]
     pathspec_attribute: exe

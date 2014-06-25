@@ -223,7 +223,8 @@ grr.artifact_view.renderArtifactFromObject = function(artifact, element) {
   $(collector_element + ' tr').remove();
   if (artifact.collectors.length > 0) {
     $.each(artifact.collectors, function(index, collector) {
-      collector_row = '<tr><td>Action<td>' + collector.action + '</tr>';
+      collector_row = '<tr><td>Collector_Type<td>' + collector.collector_type +
+        '</tr>';
       $.each(collector.args, function(name, value) {
         if ($.isArray(value)) {
           value = value.join('<br>');

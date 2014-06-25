@@ -1756,7 +1756,7 @@ class AFF4Volume(AFF4Object):
     """
     direct_child_urns = []
     for entry in data_store.DB.ResolveRegex(self.urn, "index:dir/.*",
-                                            token=self.token):
+                                            limit=limit, token=self.token):
       _, filename = entry[0].split("/", 1)
       direct_child_urns.append(self.urn.Add(filename))
 

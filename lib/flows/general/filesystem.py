@@ -9,7 +9,6 @@ from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import rdfvalue
 
-
 from grr.lib.aff4_objects import aff4_grr
 from grr.proto import flows_pb2
 
@@ -701,70 +700,70 @@ class Glob(flow.GRRFlow):
             matching_components.append(matching_path)
 
         if matching_components:
-          self._ProcessResponse(response, matching_components)
+          self._ProcessResponse(response, matching_components,
+                                base_wildcard=True)
 
-  def _ProcessResponse(self, response, component_paths):
+  def _ProcessResponse(self, response, component_paths, base_wildcard=False):
     for component_path in component_paths:
       regexes_to_get = []
       recursions_to_get = {}
 
       node = self.FindNode(component_path)
 
-      if node:
-        # There are further components in the tree - iterate over them.
-        for component_str, next_node in node.items():
-          component = rdfvalue.PathSpec(component_str)
-          next_component = component_path + [component_str]
-
-          # Use the pathtype from the flow args.
-          component.pathtype = self.state.args.pathtype
-          if component.path_options == component.Options.RECURSIVE:
-            # Only descend into real directories unless no_file_type_check
-            # is specified. This reduces the number of TSK opens on the
-            # client that may sometimes lead to instabilities due to bugs in
-            # the library.
-            if (self.args.no_file_type_check or
-                response.st_mode == 0 or
-                stat.S_ISDIR(response.st_mode)):
-              recursions_to_get.setdefault(
-                  component.recursion_depth, []).append(component)
-          elif component.path_options == component.Options.REGEX:
-            # Only descend into real directories unless no_file_type_check
-            # is specified. This reduces the number of TSK opens on the
-            # client that may sometimes lead to instabilities due to bugs in
-            # the library.
-            if (self.args.no_file_type_check or
-                response.st_mode == 0 or
-                stat.S_ISDIR(response.st_mode)):
-              regexes_to_get.append(component)
-
-          elif component.path_options == component.Options.CASE_INSENSITIVE:
-            # Check for the existence of the last node.
-            if not next_node:
-              pathspec = response.pathspec.Copy().AppendPath(component.path)
-              request = rdfvalue.ListDirRequest(pathspec=pathspec)
-
-              if response.st_mode == 0 or not stat.S_ISREG(response.st_mode):
-                # If next node is empty, this node is a leaf node, we
-                # therefore must stat it to check that it is there.
-                self.CallClient(
-                    "StatFile", request, next_state="ProcessEntry",
-                    request_data=dict(component_path=next_component))
-
-            else:
-              pathspec = response.pathspec.Copy().AppendPath(component.path)
-
-              # There is no need to go back to the client for intermediate
-              # paths in the prefix tree, just emulate this by recursively
-              # calling this state inline.
-              self.CallStateInline(
-                  [rdfvalue.StatEntry(pathspec=pathspec)],
-                  next_state="ProcessEntry",
-                  request_data=dict(component_path=next_component))
-
-      else:
+      if not node:
         # Node is empty representing a leaf node - we found a hit - report it.
         self.ReportMatch(response)
+        return
+
+      # There are further components in the tree - iterate over them.
+      for component_str, next_node in node.items():
+        component = rdfvalue.PathSpec(component_str)
+        # Use the pathtype from the flow args.
+        component.pathtype = self.state.args.pathtype
+        next_component = component_path + [component_str]
+
+        # If we reach this point, we are instructed to go deeper into the
+        # directory structure. We only want to actually do this if
+        # - the last response was a proper directory,
+        # - or it was a file (an image) that was explicitly given meaning
+        #   no wildcards or groupings,
+        # - or no_file_type_check was set.
+        #
+        # This reduces the number of TSK opens on the client that may
+        # sometimes lead to instabilities due to bugs in the library.
+
+        if not (stat.S_ISDIR(response.st_mode) or
+                not base_wildcard or
+                self.args.no_file_type_check):
+          continue
+
+        if component.path_options == component.Options.RECURSIVE:
+          recursions_to_get.setdefault(
+              component.recursion_depth, []).append(component)
+        elif component.path_options == component.Options.REGEX:
+          regexes_to_get.append(component)
+
+        elif component.path_options == component.Options.CASE_INSENSITIVE:
+          pathspec = response.pathspec.Copy().Append(component)
+
+          if not next_node:
+            # Check for the existence of the last node.
+            request = rdfvalue.ListDirRequest(pathspec=pathspec)
+
+            if response.st_mode == 0 or not stat.S_ISREG(response.st_mode):
+              # If next node is empty, this node is a leaf node, we
+              # therefore must stat it to check that it is there.
+              self.CallClient(
+                  "StatFile", request, next_state="ProcessEntry",
+                  request_data=dict(component_path=next_component))
+          else:
+            # There is no need to go back to the client for intermediate
+            # paths in the prefix tree, just emulate this by recursively
+            # calling this state inline.
+            self.CallStateInline(
+                [rdfvalue.StatEntry(pathspec=pathspec)],
+                next_state="ProcessEntry",
+                request_data=dict(component_path=next_component))
 
       if recursions_to_get:
         for depth, recursions in recursions_to_get.iteritems():
@@ -792,3 +791,110 @@ class Glob(flow.GRRFlow):
         self.CallClient("Find", findspec,
                         next_state="ProcessEntry",
                         request_data=dict(base_path=component_path))
+
+
+class DiskVolumeInfoArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.DiskVolumeInfoArgs
+
+
+def PathHasDriveLetter(path):
+  """Check path for windows drive letter.
+
+  Use 1:2 to avoid raising on single character paths.
+
+  Args:
+    path: path string
+  Returns:
+    True if this path has a drive letter.
+  """
+  return path[1:2] == ":"
+
+
+class DiskVolumeInfo(flow.GRRFlow):
+  """Get disk volume info for a given path.
+
+  On linux and OS X we call StatFS on each path and return the results. For
+  windows we collect all the volume information and filter it using the drive
+  letters in the supplied path list.
+  """
+  args_type = DiskVolumeInfoArgs
+  category = "/Filesystem/"
+  behaviours = flow.GRRFlow.behaviours + "ADVANCED"
+
+  @flow.StateHandler(next_state=["CollectVolumeInfo", "StoreSystemRoot"])
+  def Start(self):
+    client = aff4.FACTORY.Open(self.client_id, token=self.token)
+    self.state.Register("system", client.Get(client.Schema.SYSTEM))
+    self.state.Register("drive_letters", set())
+    self.state.Register("system_root_required", False)
+
+    if self.state.system == "Windows":
+      # Handle the case where a path is specified without the drive letter by
+      # collecting systemroot and making sure we report the disk usage for it.
+      for path in self.args.path_list:
+        if PathHasDriveLetter(path):
+          self.state.drive_letters.add(path[0:2])
+        else:
+          self.state.system_root_required = True
+      if self.state.system_root_required:
+        self.CallFlow(
+            "ArtifactCollectorFlow",
+            artifact_list=["SystemRoot"],
+            next_state="StoreSystemRoot")
+        return
+
+    self.CallStateInline(next_state="CollectVolumeInfo")
+
+  @flow.StateHandler(next_state=["CollectVolumeInfo"])
+  def StoreSystemRoot(self, responses):
+    if not responses.success or not responses.First():
+      if self.state.drive_letters:
+        # We have at least one path that already has a drive letter so we'll log
+        # rather than raise.
+        self.Log("Error collecting SystemRoot artifact: %s", responses.status)
+      else:
+        raise flow.FlowError(
+            "Error collecting SystemRoot artifact: %s" % responses.status)
+
+    drive = str(responses.First())[0:2]
+    if drive:
+      self.state.drive_letters.add(drive)
+    else:
+      self.Log("Bad result for systemdrive: %s", responses.First())
+
+    self.CallStateInline(next_state="CollectVolumeInfo")
+
+  @flow.StateHandler(next_state=["ProcessVolumes", "ProcessWindowsVolumes"])
+  def CollectVolumeInfo(self, unused_responses):
+    if self.state.system == "Windows":
+      # No dependencies for WMI
+      deps = rdfvalue.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS
+      self.CallFlow(
+          "ArtifactCollectorFlow",
+          artifact_list=["WMILogicalDisks"],
+          next_state="ProcessWindowsVolumes",
+          dependencies=deps,
+          store_results_in_aff4=True)
+    else:
+      self.CallClient("StatFS",
+                      rdfvalue.StatFSRequest(
+                          path_list=self.args.path_list,
+                          pathtype=self.args.pathtype),
+                      next_state="ProcessVolumes")
+
+  @flow.StateHandler()
+  def ProcessWindowsVolumes(self, responses):
+    if not responses.success:
+      self.Log("Error running WMILogicalDisks artifact: %s", responses.status)
+
+    for response in responses:
+      if response.windows.drive_letter in self.state.drive_letters:
+        self.SendReply(response)
+
+  @flow.StateHandler()
+  def ProcessVolumes(self, responses):
+    if not responses.success:
+      self.Log("Error running StatFS: %s", responses.status)
+
+    for response in responses:
+      self.SendReply(response)

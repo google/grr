@@ -22,6 +22,7 @@ class LinuxClientBuilder(build.ClientBuilder):
     self.CleanDirectory(config_lib.CONFIG.Get("PyInstaller.dpkg_root",
                                               context=self.context))
     self.BuildWithPyInstaller()
+    self.CopyMissingModules()
     self.PatchUpPyinstaller()
     self.CopyFiles()
     self.MakeZip()

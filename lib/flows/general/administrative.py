@@ -815,7 +815,7 @@ class LaunchBinary(flow.GRRFlow):
       self.CallClient(
           "ExecuteBinaryCommand", executable=blob, more_data=i < fd.chunks-1,
           args=shlex.split(self.args.command_line), offset=offset,
-          write_path="%s.exe" % int(time.time()), next_state="End")
+          write_path="%s" % int(time.time()), next_state="End")
 
       offset += len(blob.data)
 

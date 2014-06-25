@@ -10,7 +10,7 @@ doc: |
   * GPU shader cache
   * PNaCl translation cache
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args:
     path_list:
       - '%%users.localappdata%%\Google\Chrome\User Data\*\Application Cache\Cache\*'
@@ -22,7 +22,7 @@ collectors:
       - '%%users.localappdata%%\Chromium\User Data\*\Media Cache\*'
       - '%%users.localappdata%%\Chromium\User Data\*\GPUCache\*'
   supported_os: [Windows]
-- action: GetFiles
+- collector_type: FILE
   args:
     path_list:
       - '%%users.homedir%%/Caches/Google/Chrome/*/Cache/*'
@@ -38,7 +38,7 @@ collectors:
       - '%%users.homedir%%/Library/Application Support/Chromium/*/GPUCache/*'
       - '%%users.homedir%%/Library/Caches/Chromium/PnaclTranslationCache/*'
   supported_os: [Darwin]
-- action: GetFiles
+- collector_type: FILE
   args:
     path_list:
       - '%%users.homedir%%/.cache/google-chrome/*/Cache/*'
@@ -62,7 +62,7 @@ urls: ['http://www.forensicswiki.org/wiki/Google_Chrome']
 name: ChromeHistory
 doc: Chrome browser history.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args:
     path_list:
       - '%%users.localappdata%%\Google\Chrome\User Data\*\Archived History'
@@ -70,7 +70,7 @@ collectors:
       - '%%users.localappdata%%\Chromium\User Data\*\Archived History'
       - '%%users.localappdata%%\Chromium\User Data\*\History'
   supported_os: [Windows]
-- action: GetFiles
+- collector_type: FILE
   args:
     path_list:
       - '%%users.homedir%%/Library/Application Support/Google/Chrome/*/Archived History'
@@ -78,7 +78,7 @@ collectors:
       - '%%users.homedir%%/Library/Application Support/Chromium/*/Archived History'
       - '%%users.homedir%%/Library/Application Support/Chromium/*/History'
   supported_os: [Darwin]
-- action: GetFiles
+- collector_type: FILE
   args:
     path_list:
       - '%%users.homedir%%/.config/google-chrome/*/Archived History'
@@ -92,18 +92,18 @@ urls: ['http://www.forensicswiki.org/wiki/Google_Chrome']
 name: FirefoxHistory
 doc: Firefox browser history (places.sqlite).
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args:
     path_list:
       - '%%users.localappdata%%\Mozilla\Firefox\Profiles\*\places.sqlite'
       - '%%users.appdata%%\Mozilla\Firefox\Profiles\*\places.sqlite'
   supported_os: [Windows]
-- action: GetFiles
+- collector_type: FILE
   args:
     path_list:
       - '%%users.homedir%%/Library/Application Support/Firefox/Profiles/*/places.sqlite'
   supported_os: [Darwin]
-- action: GetFiles
+- collector_type: FILE
   args:
     path_list:
       - '%%users.homedir%%/.mozilla/firefox/*/places.sqlite'
@@ -117,7 +117,7 @@ doc: |
 
   * MSIE 4 - 9 Temporary Internet files.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args:
     path_list:
       - '%%users.localappdata%%\Microsoft\Windows\Temporary Internet Files\Content.IE5\*\*'
@@ -132,7 +132,7 @@ doc: |
 
   * MSIE 4 - 9 Cache files (index.dat)
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args:
     path_list:
       - '%%users.appdata%%\Roaming\Microsoft\Windows\Cookies\index.dat'
@@ -148,7 +148,7 @@ doc: |
   * MSIE 4 - 9 Cache files (index.dat);
   * MSIE 10 WebCacheV*.dat files.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args:
     path_list:
       - '%%users.localappdata%%\Microsoft\Windows\Temporary Internet Files\Content.IE5\index.dat'
@@ -167,7 +167,7 @@ urls: ['http://www.forensicswiki.org/wiki/Internet_Explorer']
 name: InternetExplorerTypedURLsKeys
 doc: Microsoft Internet Explorer TypedUrls keys.
 collectors:
-- action: GetRegistryKeys
+- collector_type: REGISTRY_KEY
   args:
     path_list: ['HKEY_USERS\%%users.sid%%\Software\Microsoft\Internet Explorer\TypedURLs\*']
 labels: [Browser]
@@ -177,12 +177,12 @@ urls: ['http://www.forensicswiki.org/wiki/Internet_Explorer#Typed_URLs']
 name: SafariCache
 doc: Safari browser cache (cache.db).
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args:
     path_list:
       - '%%users.localappdata%%\Apple Computer\Safari\cache.db'
   supported_os: [Windows]
-- action: GetFiles
+- collector_type: FILE
   args:
     path_list:
       - '%%users.homedir%%/Library/Caches/com.apple.Safari/cache.db'
@@ -193,13 +193,13 @@ urls: ['http://www.forensicswiki.org/wiki/Apple_Safari']
 name: SafariHistory
 doc: Safari browser history (History.plist).
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args:
     path_list:
       - '%%users.localappdata%%\Apple Computer\Safari\History.plist'
       - '%%users.appdata%%\Roaming\Apple Computer\Safari\History.plist'
   supported_os: [Windows]
-- action: GetFiles
+- collector_type: FILE
   args:
     path_list:
       - '%%users.homedir%%/Library/Safari/History.plist'

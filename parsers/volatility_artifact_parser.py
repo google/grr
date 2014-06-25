@@ -36,6 +36,8 @@ class VolatilityPsListParser(parsers.VolatilityPluginParser):
 class VolatilityVADParser(parsers.VolatilityPluginParser):
   output_types = ["PathSpec"]
   supported_artifacts = ["FullVADBinaryList"]
+  # Required for environment variable expansion
+  knowledgebase_dependencies = ["environ_systemdrive", "environ_systemroot"]
 
   def Parse(self, result, knowledge_base):
     binaries = set()

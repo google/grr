@@ -20,16 +20,16 @@ from grr.test_data import client_fixture
 
 
 class TestArtifactCollectors(artifact_test.ArtifactTestHelper):
-  """Test the artifact collection mechanism works."""
+  """Test the artifact collection mechanism with fake artifacts."""
 
   def setUp(self):
     """Make sure things are initialized."""
     super(TestArtifactCollectors, self).setUp()
-
+    self.original_artifact_reg = artifact_lib.ArtifactRegistry.artifacts
+    artifact_lib.ArtifactRegistry.ClearRegistry()
     self.LoadTestArtifacts()
     artifact_reg = artifact_lib.ArtifactRegistry.artifacts
     self.fakeartifact = artifact_reg["FakeArtifact"]
-    self.badpathspecartifact = artifact_reg["BadPathspecArtifact"]
 
     with aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw") as fd:
       fd.Set(fd.Schema.SYSTEM("Linux"))
@@ -39,6 +39,7 @@ class TestArtifactCollectors(artifact_test.ArtifactTestHelper):
 
   def tearDown(self):
     super(TestArtifactCollectors, self).tearDown()
+    artifact_lib.ArtifactRegistry.artifacts = self.original_artifact_reg
     self.fakeartifact.collectors = []  # Reset any Collectors
     self.fakeartifact.conditions = []  # Reset any Conditions
 
@@ -104,7 +105,7 @@ class TestArtifactCollectors(artifact_test.ArtifactTestHelper):
           rdfvalue.KnowledgeBaseUser(username="test2"))
 
       collector = rdfvalue.Collector(
-          action="Grep",
+          collector_type=rdfvalue.Collector.CollectorType.GREP,
           args={"path_list": ["/etc/passwd"],
                 "content_regex_list": [r"^a%%users.username%%b$"]})
       collect_flow.Grep(collector, rdfvalue.PathSpec.PathType.TSK)
@@ -126,8 +127,9 @@ class TestArtifactCollectors(artifact_test.ArtifactTestHelper):
 
     # Dynamically add a Collector specifying the base path.
     file_path = os.path.join(self.base_path, "test_img.dd")
-    coll1 = rdfvalue.Collector(action="GetFiles",
-                               args={"path_list": [file_path]})
+    coll1 = rdfvalue.Collector(
+        collector_type=rdfvalue.Collector.CollectorType.FILE,
+        args={"path_list": [file_path]})
     self.fakeartifact.collectors.append(coll1)
 
     artifact_list = ["FakeArtifact"]
@@ -152,8 +154,9 @@ class TestArtifactCollectors(artifact_test.ArtifactTestHelper):
     client.Set(client.Schema.SYSTEM("Linux"))
     client.Flush()
 
-    coll1 = rdfvalue.Collector(action="RunGrrClientAction",
-                               args={"client_action": r"ListProcesses"})
+    coll1 = rdfvalue.Collector(
+        collector_type=rdfvalue.Collector.CollectorType.GRR_CLIENT_ACTION,
+        args={"client_action": r"ListProcesses"})
     self.fakeartifact.collectors.append(coll1)
     artifact_list = ["FakeArtifact"]
     for _ in test_lib.TestFlowHelper("ArtifactCollectorFlow", client_mock,
@@ -169,46 +172,14 @@ class TestArtifactCollectors(artifact_test.ArtifactTestHelper):
     self.assertTrue(isinstance(list(fd)[0], rdfvalue.Process))
     self.assertTrue(len(fd) > 5)
 
-  def testRunWMIArtifact(self):
-
-    class WMIActionMock(test_lib.ActionMock):
-
-      def WmiQuery(self, _):
-        return client_fixture.WMI_SAMPLE
-
-    client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
-    client.Set(client.Schema.SYSTEM("Windows"))
-    client.Set(client.Schema.OS_VERSION("6.2"))
-    client.Flush()
-
-    client_mock = WMIActionMock()
-    for _ in test_lib.TestFlowHelper("ArtifactCollectorFlow", client_mock,
-                                     artifact_list=["WMILogicalDisks"],
-                                     token=self.token, client_id=self.client_id,
-                                     store_results_in_aff4=True):
-      pass
-
-    # Test that we set the client VOLUMES attribute
-    client = aff4.FACTORY.Open(self.client_id, token=self.token)
-    volumes = client.Get(client.Schema.VOLUMES)
-    self.assertEqual(len(volumes), 2)
-    for result in volumes:
-      self.assertTrue(isinstance(result, rdfvalue.Volume))
-      self.assertTrue(result.windows.drive_letter in ["Z:", "C:"])
-      if result.windows.drive_letter == "C:":
-        self.assertAlmostEqual(result.FreeSpacePercent(), 76.142, delta=0.001)
-        self.assertEqual(result.Name(), "C:")
-      elif result.windows.drive_letter == "Z:":
-        self.assertEqual(result.Name(), "homefileshare$")
-        self.assertAlmostEqual(result.FreeSpacePercent(), 58.823, delta=0.001)
-
   def testConditions(self):
     """Test we can get a GRR client artifact with conditions."""
     # Run with false condition.
     client_mock = test_lib.ActionMock("ListProcesses")
-    coll1 = rdfvalue.Collector(action="RunGrrClientAction",
-                               args={"client_action": "ListProcesses"},
-                               conditions=["os == 'Windows'"])
+    coll1 = rdfvalue.Collector(
+        collector_type=rdfvalue.Collector.CollectorType.GRR_CLIENT_ACTION,
+        args={"client_action": "ListProcesses"},
+        conditions=["os == 'Windows'"])
     self.fakeartifact.collectors.append(coll1)
     fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
     self.assertEquals(fd.__class__.__name__, "AFF4Volume")
@@ -231,9 +202,9 @@ class TestArtifactCollectors(artifact_test.ArtifactTestHelper):
     """Test supported_os inside the collector object."""
     # Run with false condition.
     client_mock = test_lib.ActionMock("ListProcesses")
-    coll1 = rdfvalue.Collector(action="RunGrrClientAction",
-                               args={"client_action": "ListProcesses"},
-                               supported_os=["Windows"])
+    coll1 = rdfvalue.Collector(
+        collector_type=rdfvalue.Collector.CollectorType.GRR_CLIENT_ACTION,
+        args={"client_action": "ListProcesses"}, supported_os=["Windows"])
     self.fakeartifact.collectors.append(coll1)
     fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
     self.assertEquals(fd.__class__.__name__, "AFF4Volume")
@@ -271,6 +242,25 @@ class TestArtifactCollectors(artifact_test.ArtifactTestHelper):
     fd = aff4.FACTORY.Open(rdfvalue.RDFURN(self.client_id).Add(output),
                            token=self.token)
     return fd
+
+
+class TestArtifactCollectorsInteractions(
+    artifact_test.ArtifactTestHelper):
+  """Test the collection of artifacts.
+
+  This class loads both real and test artifacts to test the interaction of badly
+  defined artifacts with real artifacts.
+  """
+
+  def setUp(self):
+    """Add test artifacts to existing registry."""
+    super(TestArtifactCollectorsInteractions, self).setUp()
+    self.original_artifact_reg = artifact_lib.ArtifactRegistry.artifacts
+    self.LoadTestArtifacts()
+
+  def tearDown(self):
+    super(TestArtifactCollectorsInteractions, self).tearDown()
+    artifact_lib.ArtifactRegistry.artifacts = self.original_artifact_reg
 
   def testProcessCollectedArtifacts(self):
     """Test downloading files from artifacts."""
@@ -325,10 +315,106 @@ class TestArtifactCollectors(artifact_test.ArtifactTestHelper):
       self.assertFalse(getfile_instrument.args)
 
 
-class TestBootstrapKnowledgeBaseFlow(artifact_test.ArtifactTestHelper):
-  """Test the bootstrap collection mechanism works."""
+class TestArtifactCollectorsRealArtifacts(artifact_test.ArtifactTestHelper):
+  """Test the collection of real artifacts."""
 
-  def testBootstrapKnowledgeBaseFlow(self):
+  def _CheckDriveAndRoot(self):
+    client_mock = test_lib.ActionMock("StatFile", "ListDirectory")
+
+    for _ in test_lib.TestFlowHelper("ArtifactCollectorFlow", client_mock,
+                                     artifact_list=[
+                                         "SystemDriveEnvironmentVariable"],
+                                     token=self.token, client_id=self.client_id,
+                                     output="testsystemdrive"):
+      pass
+
+    fd = aff4.FACTORY.Open(rdfvalue.RDFURN(
+        self.client_id).Add("testsystemdrive"), token=self.token)
+    self.assertEqual(len(fd), 1)
+    self.assertEqual(str(fd[0]), "C:")
+
+    for _ in test_lib.TestFlowHelper("ArtifactCollectorFlow", client_mock,
+                                     artifact_list=["SystemRoot"],
+                                     token=self.token, client_id=self.client_id,
+                                     output="testsystemroot"):
+      pass
+
+    fd = aff4.FACTORY.Open(
+        rdfvalue.RDFURN(self.client_id).Add("testsystemroot"), token=self.token)
+    self.assertEqual(len(fd), 1)
+    # Filesystem gives WINDOWS, registry gives Windows
+    self.assertTrue(str(fd[0]) in [r"C:\Windows", r"C:\WINDOWS"])
+
+  def testSystemDriveArtifact(self):
+    client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
+    client.Set(client.Schema.SYSTEM("Windows"))
+    client.Set(client.Schema.OS_VERSION("6.2"))
+    client.Flush()
+
+    class BrokenClientMock(test_lib.ActionMock):
+
+      def StatFile(self, _):
+        raise IOError
+
+      def ListDirectory(self, _):
+        raise IOError
+
+    # No registry, broken filesystem, this should just raise.
+    with self.assertRaises(RuntimeError):
+      for _ in test_lib.TestFlowHelper("ArtifactCollectorFlow",
+                                       BrokenClientMock(), artifact_list=[
+                                           "SystemDriveEnvironmentVariable"],
+                                       token=self.token,
+                                       client_id=self.client_id,
+                                       output="testsystemdrive"):
+        pass
+
+    # No registry, so this should use the fallback flow
+    vfs.VFS_HANDLERS[
+        rdfvalue.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
+    self._CheckDriveAndRoot()
+
+    # Registry is present, so this should use the regular artifact collection
+    vfs.VFS_HANDLERS[
+        rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.ClientRegistryVFSFixture
+    self._CheckDriveAndRoot()
+
+  def testRunWMIArtifact(self):
+
+    class WMIActionMock(test_lib.ActionMock):
+
+      def WmiQuery(self, _):
+        return client_fixture.WMI_SAMPLE
+
+    client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
+    client.Set(client.Schema.SYSTEM("Windows"))
+    client.Set(client.Schema.OS_VERSION("6.2"))
+    client.Flush()
+
+    client_mock = WMIActionMock()
+    for _ in test_lib.TestFlowHelper(
+        "ArtifactCollectorFlow", client_mock, artifact_list=["WMILogicalDisks"],
+        token=self.token, client_id=self.client_id,
+        dependencies=rdfvalue.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS,
+        store_results_in_aff4=True):
+      pass
+
+    # Test that we set the client VOLUMES attribute
+    client = aff4.FACTORY.Open(self.client_id, token=self.token)
+    volumes = client.Get(client.Schema.VOLUMES)
+    self.assertEqual(len(volumes), 2)
+    for result in volumes:
+      self.assertTrue(isinstance(result, rdfvalue.Volume))
+      self.assertTrue(result.windows.drive_letter in ["Z:", "C:"])
+      if result.windows.drive_letter == "C:":
+        self.assertAlmostEqual(result.FreeSpacePercent(), 76.142, delta=0.001)
+        self.assertEqual(result.Name(), "C:")
+      elif result.windows.drive_letter == "Z:":
+        self.assertEqual(result.Name(), "homefileshare$")
+        self.assertAlmostEqual(result.FreeSpacePercent(), 58.823, delta=0.001)
+
+  def testRetrieveDependencies(self):
+    """Test getting an artifact without a KB using retrieve_depdendencies."""
     client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
     client.Set(client.Schema.SYSTEM("Windows"))
     client.Set(client.Schema.OS_VERSION("6.2"))
@@ -336,18 +422,22 @@ class TestBootstrapKnowledgeBaseFlow(artifact_test.ArtifactTestHelper):
 
     vfs.VFS_HANDLERS[
         rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.ClientRegistryVFSFixture
+    vfs.VFS_HANDLERS[
+        rdfvalue.PathSpec.PathType.OS] = test_lib.ClientFullVFSFixture
 
     client_mock = test_lib.ActionMock("TransferBuffer", "StatFile", "Find",
                                       "HashBuffer", "HashFile", "ListDirectory")
 
-    for _ in test_lib.TestFlowHelper("BootStrapKnowledgeBaseFlow", client_mock,
-                                     token=self.token, client_id=self.client_id,
-                                     output="bootstrap"):
+    artifact_list = ["WinDirEnvironmentVariable"]
+    for _ in test_lib.TestFlowHelper(
+        "ArtifactCollectorFlow", client_mock, artifact_list=artifact_list,
+        token=self.token, client_id=self.client_id,
+        dependencies=rdfvalue.ArtifactCollectorFlowArgs.Dependency.FETCH_NOW,
+        output="testRetrieveDependencies"):
       pass
 
-    fd = aff4.FACTORY.Open(rdfvalue.RDFURN(self.client_id).Add("bootstrap"),
-                           token=self.token)
-    self.assertEqual(len(fd), 1)
-    bootstrap = fd[0]
-    self.assertEqual(bootstrap["environ_systemdrive"], "C:")
-    self.assertEqual(bootstrap["environ_systemroot"], "C:\\Windows")
+    output = aff4.FACTORY.Open(self.client_id.Add("testRetrieveDependencies"),
+                               token=self.token)
+    self.assertEqual(len(output), 1)
+    self.assertEqual(output[0], r"C:\Windows")
+

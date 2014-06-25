@@ -78,7 +78,7 @@ class VFSTest(test_lib.GRRBaseTest):
   def testOpenFilehandles(self):
     """Test that file handles are cached."""
     current_process = psutil.Process(os.getpid())
-    num_open_files = len(current_process.get_open_files())
+    num_open_files = len(current_process.open_files())
 
     path = os.path.join(self.base_path, "morenumbers.txt")
 
@@ -91,14 +91,14 @@ class VFSTest(test_lib.GRRBaseTest):
       fds.append(fd)
 
     # This should not create any new file handles.
-    self.assertTrue(len(current_process.get_open_files()) - num_open_files < 5)
+    self.assertTrue(len(current_process.open_files()) - num_open_files < 5)
 
   def testOpenFilehandlesExpire(self):
     """Test that file handles expire from cache."""
     files.FILE_HANDLE_CACHE = utils.FastStore(max_size=10)
 
     current_process = psutil.Process(os.getpid())
-    num_open_files = len(current_process.get_open_files())
+    num_open_files = len(current_process.open_files())
 
     path = os.path.join(self.base_path, "morenumbers.txt")
     fd = vfs.VFSOpen(
@@ -114,7 +114,7 @@ class VFSTest(test_lib.GRRBaseTest):
       fds.append(child_fd)
 
     # This should not create any new file handles.
-    self.assertTrue(len(current_process.get_open_files()) - num_open_files < 5)
+    self.assertTrue(len(current_process.open_files()) - num_open_files < 5)
 
     # Make sure we exceeded the size of the cache.
     self.assert_(fds > 20)

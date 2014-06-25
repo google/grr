@@ -4,7 +4,7 @@ name: RootDiskVolumeUsage
 doc: |
   Volume info for disk mounted at "/".  Includes size and free space.
 collectors:
-- action: RunGrrClientAction
+- collector_type: GRR_CLIENT_ACTION
   args:
     client_action: StatFS
     action_args: {path_list: ["/"]}

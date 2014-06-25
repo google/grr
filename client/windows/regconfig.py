@@ -55,7 +55,7 @@ class RegistryConfigParser(config_lib.GRRConfigParser):
         # Only support strings here.
         if value_type == _winreg.REG_SZ:
           result[name] = utils.SmartStr(value)
-      except exceptions.WindowsError:
+      except (exceptions.WindowsError, TypeError):
         break
 
       i += 1

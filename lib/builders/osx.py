@@ -27,6 +27,7 @@ class DarwinClientBuilder(build.ClientBuilder):
     """
     self.MakeBuildDirectory()
     self.BuildWithPyInstaller()
+    self.CopyMissingModules()
     self.BuildInstallerPkg()
 
   # WARNING: change with care since the PackageMaker files are fragile!

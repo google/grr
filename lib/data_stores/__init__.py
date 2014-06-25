@@ -25,3 +25,9 @@ try:
   from grr.lib.data_stores import tdb_data_store
 except ImportError:
   pass
+
+# Simple data store based on the sqlite database (sqlite)
+try:
+  from grr.lib.data_stores import sqlite_data_store
+except ImportError:
+  pass

@@ -3,7 +3,7 @@
 name: DarwinPersistenceMechanismFiles
 doc: Files that are run by Darwin persistence mechanisms.
 collectors:
-- action: CollectArtifactFiles
+- collector_type: ARTIFACT_FILES
   args:
     artifact_list: [DarwinPersistenceMechanisms]
   returned_types: [StatEntry]
@@ -13,7 +13,7 @@ supported_os: [Darwin]
 name: DarwinPersistenceMechanisms
 doc: Persistence mechanisms on Darwin.
 collectors:
-- action: CollectArtifacts
+- collector_type: ARTIFACT
   args:
     artifact_list: [OSXServices]
   returned_types: [PersistenceFile]
@@ -23,7 +23,7 @@ supported_os: [Darwin]
 name: OSXLaunchAgents
 doc: Mac OS X Launch Agent files.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args: {path_list: ['/System/Library/LaunchAgents/*']}
 labels: [System]
 supported_os: [Darwin]
@@ -32,7 +32,7 @@ urls: ['http://www.forensicswiki.org/wiki/Mac_OS_X']
 name: OSXLaunchDaemons
 doc: Mac OS X Launch Daemons files.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args:
     path_list:
       - '/Library/LaunchDaemons/*'
@@ -44,7 +44,7 @@ urls: ['http://www.forensicswiki.org/wiki/Mac_OS_X']
 name: OSXQuarantineEvents
 doc: Mac OS X quarantine event database.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args:
     path_list:
       - '%%users.homedir%%/Library/Preferences/com.apple.LaunchServices.QuarantineEvents'
@@ -56,7 +56,7 @@ urls: ['http://www.forensicswiki.org/wiki/Mac_OS_X']
 name: OSXServices
 doc: Running services from the Max OS X service management framework.
 collectors:
-- action: RunGrrClientAction
+- collector_type: GRR_CLIENT_ACTION
   args: {client_action: OSXEnumerateRunningServices}
 labels: [System]
 supported_os: [Darwin]
@@ -64,7 +64,7 @@ supported_os: [Darwin]
 name: OSXStartupItems
 doc: Mac OS X Startup Items files.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args:
     path_list:
       - '/Library/StartupItems/*'
@@ -76,7 +76,7 @@ urls: ['http://www.forensicswiki.org/wiki/Mac_OS_X']
 name: OSXSystemLogs
 doc: Mac OS X system log files (/var/log).
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args: {path_list: ['/var/log/*']}
 labels: [Logs, System]
 supported_os: [Darwin]
@@ -84,7 +84,7 @@ supported_os: [Darwin]
 name: OSXSystemPreferences
 doc: Mac OS X system preferences files.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args: {path_list: ['/Library/Preferences/*']}
 labels: [System]
 supported_os: [Darwin]
@@ -92,7 +92,7 @@ supported_os: [Darwin]
 name: OSXUsers
 doc: User directories in /Users.
 collectors:
-- action: ListFiles
+- collector_type: LIST_FILES
   args: {path_list: ['/Users/*']}
   returned_types: [KnowledgeBaseUser]
 labels: [Users]
@@ -102,7 +102,7 @@ provides: [users.username]
 name: OSXUserLogs
 doc: Mac OS X user log files.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args: {path_list: ['%%users.homedir%%/Library/Logs/*']}
 labels: [Logs, Users]
 supported_os: [Darwin]
@@ -110,7 +110,7 @@ supported_os: [Darwin]
 name: OSXUserPreferences
 doc: Mac OS X user preferences files.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args: {path_list: ['%%users.homedir%%/Library/Preferences/*']}
 labels: [Users]
 supported_os: [Darwin]

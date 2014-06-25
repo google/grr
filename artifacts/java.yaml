@@ -3,17 +3,17 @@
 name: JavaCacheFiles
 doc: Java Plug-in cache.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args:
     path_list:
       - '%%users.localappdata_low%%\Sun\Java\Deployment\cache\**'
       - '%%users.homedir%%\AppData\LocalLow\Sun\Java\Deployment\cache\**'
       - '%%users.homedir%%\Application Data\Sun\Java\Deployment\cache\**'
   supported_os: [Windows]
-- action: GetFiles
+- collector_type: FILE
   args: {path_list: ['%%users.homedir%%/Library/Caches/Java/cache/**']}
   supported_os: [Darwin]
-- action: GetFiles
+- collector_type: FILE
   args: {path_list: ['%%users.homedir%%/.java/deployment/cache/**']}
   supported_os: [Linux]
 supported_os: [Windows, Linux, Darwin]

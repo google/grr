@@ -86,9 +86,15 @@ config_lib.DEFINE_string("Datastore.implementation", "FakeDataStore",
 config_lib.DEFINE_integer("Datastore.transaction_timeout", default=600,
                           help="How long do we wait for a transaction lock.")
 
+# TDB data store.
 config_lib.DEFINE_string("TDBDatastore.root_path", default="/tmp",
                          help=("The root directory under which the tdb files "
                                "are created."))
+
+# SQLite data store.
+config_lib.DEFINE_string("SqliteDatastore.root_path", default="/tmp",
+                         help=("The root directory under which the sqlite "
+                               "files are created."))
 
 # Mongo data store.
 config_lib.DEFINE_string("Mongo.server", "localhost",
@@ -189,7 +195,7 @@ config_lib.DEFINE_string("Server.master_watcher_class", "DefaultMasterWatcher",
 
 config_lib.DEFINE_string(
     "Rekall.profile_repository",
-    "https://profiles.rekall.googlecode.com/git/",
+    "https://github.com/google/rekall-profiles/raw/master",
     "The repository to use when downloading Rekall profiles.")
 
 config_lib.DEFINE_string(

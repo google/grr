@@ -1064,40 +1064,61 @@ class MicroBenchmarks(GRRBaseTest):
   """This base class created the GRR benchmarks."""
   __metaclass__ = registry.MetaclassRegistry
 
-  # Increase this for more accurate timing information.
-  REPEATS = 1000
-
   units = "us"
 
-  def setUp(self):
+  def setUp(self, extra_fields=None, extra_format=None):
     super(MicroBenchmarks, self).setUp()
 
+    if extra_fields is None:
+      extra_fields = []
+    if extra_format is None:
+      extra_format = []
+
+    base_scratchpad_fields = ["Benchmark", "Time (%s)", "Iterations"]
+    scratchpad_fields = base_scratchpad_fields + extra_fields
+    # Create format string for displaying benchmark results.
+    initial_fmt = ["45", "<20", "<20"] + extra_format
+    self.scratchpad_fmt = " ".join([("{%d:%s}" % (ind, x))
+                                    for ind, x in enumerate(initial_fmt)])
     # We use this to store temporary benchmark results.
-    self.benchmark_scratchpad = [
-        ["Benchmark", "Time (%s)", "Iterations"],
-        ["---------", "---------", "----------"]]
+    self.scratchpad = [scratchpad_fields,
+                       ["-" * len(x) for x in scratchpad_fields]]
 
   def tearDown(self):
+    super(MicroBenchmarks, self).tearDown()
     f = 1
     if self.units == "us":
       f = 1e6
     elif self.units == "ms":
       f = 1e3
-    if len(self.benchmark_scratchpad) > 2:
+    if len(self.scratchpad) > 2:
       print "\nRunning benchmark %s: %s" % (self._testMethodName,
                                             self._testMethodDoc or "")
 
-      for row in self.benchmark_scratchpad:
+      for row in self.scratchpad:
         if isinstance(row[1], (int, float)):
           row[1] = "%10.4f" % (row[1] * f)
         elif "%" in row[1]:
           row[1] %= self.units
 
-        if len(row) == 4 and isinstance(row[-1], (basestring, int, float)):
-          print "{0:45} {1:<20} {2:<20} ({3})".format(*row)
-        else:
-          print "{0:45} {1:<20} {2:<20}".format(*row)
+        print self.scratchpad_fmt.format(*row)
       print
+
+  def AddResult(self, name, time_taken, repetitions, *extra_values):
+    logging.info("%s: %s (%s)", name, time_taken, repetitions)
+    self.scratchpad.append([name, time_taken, repetitions] +
+                           list(extra_values))
+
+
+class AverageMicroBenchmarks(MicroBenchmarks):
+  """A MicroBenchmark subclass for tests that need to compute averages."""
+
+  # Increase this for more accurate timing information.
+  REPEATS = 1000
+  units = "s"
+
+  def setUp(self):
+    super(AverageMicroBenchmarks, self).setUp(["Value"])
 
   def TimeIt(self, callback, name=None, repetitions=None, pre=None, **kwargs):
     """Runs the callback repetitively and returns the average time."""
@@ -1112,15 +1133,10 @@ class MicroBenchmarks(GRRBaseTest):
 
     start = time.time()
     for _ in xrange(repetitions):
-      v = callback(**kwargs)
+      return_value = callback(**kwargs)
 
     time_taken = (time.time() - start)/repetitions
-    self.AddResult(name, time_taken, repetitions, v)
-
-  def AddResult(self, name, time_taken, repetitions, v=None):
-    logging.info("%s: %s (%s)", name, time_taken, repetitions)
-    self.benchmark_scratchpad.append(
-        [name, time_taken, repetitions, v])
+    self.AddResult(name, time_taken, repetitions, return_value)
 
 
 class GRRTestLoader(unittest.TestLoader):
@@ -1615,6 +1631,45 @@ class CrashClientMock(object):
     # This is normally done by the FrontEnd when a CLIENT_KILLED message is
     # received.
     flow.Events.PublishEvent("ClientCrash", msg, token=self.token)
+
+
+class UnixVolumeClientMock(ActionMock):
+  """A mock of client filesystem volumes."""
+  unix_local = rdfvalue.UnixVolume(mount_point="/usr")
+  unix_home = rdfvalue.UnixVolume(mount_point="/")
+  path_results = [
+      rdfvalue.Volume(
+          unix=unix_local, bytes_per_sector=4096, sectors_per_allocation_unit=1,
+          actual_available_allocation_units=50, total_allocation_units=100),
+      rdfvalue.Volume(
+          unix=unix_home, bytes_per_sector=4096,
+          sectors_per_allocation_unit=1,
+          actual_available_allocation_units=10,
+          total_allocation_units=100)]
+
+  def StatFS(self, _):
+    return self.path_results
+
+
+class WindowsVolumeClientMock(ActionMock):
+  """A mock of client filesystem volumes."""
+  windows_d = rdfvalue.WindowsVolume(drive_letter="D:")
+  windows_c = rdfvalue.WindowsVolume(drive_letter="C:")
+  path_results = [
+      rdfvalue.Volume(
+          windows=windows_d, bytes_per_sector=4096,
+          sectors_per_allocation_unit=1,
+          actual_available_allocation_units=50, total_allocation_units=100),
+      rdfvalue.Volume(
+          windows=windows_c, bytes_per_sector=4096,
+          sectors_per_allocation_unit=1, actual_available_allocation_units=10,
+          total_allocation_units=100)]
+
+  def WmiQuery(self, query):
+    if query.query == u"SELECT * FROM Win32_LogicalDisk":
+      return client_fixture.WMI_SAMPLE
+    else:
+      return None
 
 
 class MemoryClientMock(ActionMock):

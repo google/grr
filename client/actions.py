@@ -81,6 +81,8 @@ class ActionPlugin(object):
     self.response_id = INITIAL_RESPONSE_ID
     self.cpu_used = None
     self.nanny_controller = None
+    self.status = rdfvalue.GrrStatus(
+        status=rdfvalue.GrrStatus.ReturnedStatus.OK)
 
   def Execute(self, message):
     """This function parses the RDFValue from the server.
@@ -115,9 +117,6 @@ class ActionPlugin(object):
 
         args = self.message.payload
 
-      self.status = rdfvalue.GrrStatus(
-          status=rdfvalue.GrrStatus.ReturnedStatus.OK)
-
       # Only allow authenticated messages in the client
       if (self._authentication_required and
           self.message.auth_state !=
@@ -127,7 +126,7 @@ class ActionPlugin(object):
 
       pid = os.getpid()
       self.proc = psutil.Process(pid)
-      user_start, system_start = self.proc.get_cpu_times()
+      user_start, system_start = self.proc.cpu_times()
       self.cpu_start = (user_start, system_start)
       self.cpu_limit = self.message.cpu_limit
       self.network_bytes_limit = self.message.network_bytes_limit
@@ -137,7 +136,7 @@ class ActionPlugin(object):
 
       # Ensure we always add CPU usage even if an exception occured.
       finally:
-        user_end, system_end = self.proc.get_cpu_times()
+        user_end, system_end = self.proc.cpu_times()
 
         self.cpu_used = (user_end - user_start, system_end - system_start)
 
@@ -237,7 +236,7 @@ class ActionPlugin(object):
     self.nanny_controller.Heartbeat()
     try:
       user_start, system_start = self.cpu_start
-      user_end, system_end = self.proc.get_cpu_times()
+      user_end, system_end = self.proc.cpu_times()
 
       used_cpu = user_end - user_start + system_end - system_start
 

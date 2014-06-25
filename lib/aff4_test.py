@@ -1092,7 +1092,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
     flow_obj = aff4.FACTORY.Open(flow_id, token=self.token)
     self.assertEqual(flow_obj.args.pathspec.pathtype, pathspec.pathtype)
-    self.assertEqual(flow_obj.args.pathspec.path, additional_path)
+    self.assertEqual(flow_obj.args.pathspec.CollapsePath(), additional_path)
 
 
 class AFF4SymlinkTestSubject(aff4.AFF4Volume):

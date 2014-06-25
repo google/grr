@@ -343,8 +343,6 @@ class VFSFile(aff4.AFF4Image):
 class MemoryImage(VFSFile):
   """The server representation of the client's memory device."""
 
-  _behaviours = frozenset(["Container"])
-
   class SchemaCls(VFSFile.SchemaCls):
     LAYOUT = aff4.Attribute("aff4:memory/geometry", rdfvalue.MemoryInformation,
                             "The memory layout of this image.")

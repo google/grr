@@ -569,6 +569,21 @@ message ArtifactCollectorFlowArgs {
       label: ADVANCED
     }, default=100000000];
 
+  enum Dependency {
+    USE_CACHED = 0 [(description) = "Use the knowledgebase as a cache. If "
+        "knowledgebase isn't present, a new one will be populated."];
+
+    IGNORE_DEPS = 1 [(description) = "Ignore dependencies."];
+
+    FETCH_NOW = 2 [(description) = "Fetch only required dependencies for this "
+        "artifact"];
+  }
+
+  optional Dependency dependencies = 11 [(sem_type) = {
+      description: "Specifies how dependencies should be handled.",
+      label: ADVANCED,
+    }, default=USE_CACHED];
+
 }
 
 message InterrogateArgs {
@@ -1536,6 +1551,13 @@ message MemoryCollectorWithLocalCopyDumpOption {
       description: "Gzip temporary image file on the client.",
       label: ADVANCED
     }, default=true];
+
+  optional bool check_disk_free_space = 5 [(sem_type) = {
+      description: "If true, check for available disk space before doing a "
+      "local copy. Ignored if the dump option isn't local copy.",
+      label: ADVANCED
+    }, default=true];
+
 }
 
 message MemoryCollectorDumpOption {
@@ -1613,6 +1635,20 @@ message MemoryCollectorArgs {
     }];
 }
 
+message CollectArtifactDependenciesArgs {
+  repeated string artifact_list = 1 [(sem_type) = {
+      description: "A list of Artifact names to collect dependencies for.",
+      type: "ArtifactName",
+    }];
+}
+
+message ArtifactFallbackCollectorArgs {
+  optional string artifact_name = 1 [(sem_type) = {
+      description: "Name of the artifact using this fallback.",
+      type: "ArtifactName",
+    }];
+}
+
 message KnowledgeBaseInitializationArgs {
   optional bool require_complete = 1 [(sem_type) = {
       description: "If true require all dependencies to be complete.  "
@@ -1623,7 +1659,6 @@ message KnowledgeBaseInitializationArgs {
       description: "If true skip all heavyweight artifacts defined in "
       "Artifacts.knowledge_base_heavyweight.",
     }, default=true];
-
 }
 
 message ExportHuntResultsFilesAsZipArgs {
@@ -1638,4 +1673,15 @@ message EndToEndTestFlowArgs {
       description: "List of endtoend test classes to run. If none are specifed,"
       " run all automated endtoend tests.",
     }];
+}
+
+message DiskVolumeInfoArgs {
+  repeated string path_list = 1 [(sem_type) = {
+      description: "List of paths.",
+    }];
+
+  optional PathSpec.PathType pathtype = 2 [(sem_type) = {
+      description: "Type of path. Only OS is currently supported.",
+      label: HIDDEN
+    }, default=OS];
 }

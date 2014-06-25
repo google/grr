@@ -133,14 +133,6 @@ class PathSpec(structs.RDFProtoStruct):
 
     return self
 
-  def AppendPath(self, path_component):
-    self.last.path = utils.JoinPath(self.last.path, path_component)
-
-    # Clear any inode caches.
-    self.last.inode = None
-
-    return self
-
   def CollapsePath(self):
     return utils.JoinPath(*[x.path for x in self])
 

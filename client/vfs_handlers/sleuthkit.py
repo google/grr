@@ -119,9 +119,6 @@ class TSKFile(vfs.VFSHandler):
       # know what to do with it.
       raise IOError("Unable to parse base using Sleuthkit.")
 
-    # This is the path we try to open.
-    self.tsk_path = self.pathspec.last.path
-
     # If we are successful in opening this path below the path casing is
     # correct.
     self.pathspec.last.path_options = rdfvalue.PathSpec.Options.CASE_LITERAL

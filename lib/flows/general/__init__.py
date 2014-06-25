@@ -6,6 +6,7 @@
 # These imports populate the Flow registry
 from grr.lib.flows.general import administrative
 from grr.lib.flows.general import aff4_notifiers
+from grr.lib.flows.general import artifact_fallbacks
 from grr.lib.flows.general import audit
 
 # Disable these flows since they have no tests and are broken.

@@ -5,6 +5,7 @@
 from grr.endtoend_tests import base
 from grr.lib import aff4
 from grr.lib import data_store
+from grr.lib import utils
 
 
 class TestClientInterrogateEndToEnd(base.AutomatedTest):
@@ -83,7 +84,7 @@ class TestClientInterrogateEndToEnd(base.AutomatedTest):
     for user in kb.users:
       value = user.Get("username")
       self.assertTrue(value is not None, "username is none for user: %s" % user)
-      self.assertTrue(str(value))
+      self.assertTrue(utils.SmartUnicode(value))
 
       if system == "Windows":
         # The amount of information collected per user can vary wildly on
@@ -96,4 +97,3 @@ class TestClientInterrogateEndToEnd(base.AutomatedTest):
 
     self.assertTrue(complete_user,
                     "No users with complete KB user attributes: %s" % kb.users)
-

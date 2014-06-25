@@ -1884,6 +1884,10 @@ class RDFProtoStruct(RDFStruct):
   """
   _serializer = ProtocolBufferSerializer()
 
+  # TODO(user): if a semantic proto defines a field with the same name as
+  # these class variables under some circumstances the proto default value will
+  # be set incorrectly.  Figure out a way to make this safe.
+
   shortest_encoded_tag = 0
   longest_encoded_tag = 0
 
@@ -1898,8 +1902,8 @@ class RDFProtoStruct(RDFStruct):
 
   # By default include standard semantic objects. Additional objects can be
   # added if needed.
-  dependencies = dict(RDFURN=rdfvalue.RDFURN,
-                      RDFDatetime=rdfvalue.RDFDatetime)
+  _dependencies = dict(RDFURN=rdfvalue.RDFURN,
+                       RDFDatetime=rdfvalue.RDFDatetime)
 
   def AsPrimitiveProto(self):
     """Return an old style protocol buffer object."""

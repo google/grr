@@ -9,6 +9,7 @@ This module loads and registers all the tests for the RDFValue implementations.
 
 
 # These need to register plugins so, pylint: disable=unused-import
+from grr.lib.rdfvalues import artifacts_test
 from grr.lib.rdfvalues import basic_test
 from grr.lib.rdfvalues import benchmark_test
 from grr.lib.rdfvalues import client_test

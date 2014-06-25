@@ -52,7 +52,8 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
                       not result.supported_os)
 
     results = artifact_lib.ArtifactRegistry.GetArtifacts(
-        os_name="Windows", collector_action="Bootstrap",
+        os_name="Windows",
+        collector_type=rdfvalue.Collector.CollectorType.REGISTRY_VALUE,
         name_list=["SystemRoot"])
     self.assertEqual(results.pop().name, "SystemRoot")
 
@@ -125,7 +126,7 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
     for art_obj in artifact_lib.ArtifactRegistry.artifacts.values():
       # Exercise conversions to ensure we can move back and forth between the
       # different forms.
-      art_json = art_obj.ToPrettyJson(extended=True)
+      art_json = art_obj.ToPrettyJson(extended=False)
       new_art_obj = artifact_lib.ArtifactsFromYaml(art_json)[0]
       self.assertEqual(new_art_obj.ToPrimitiveDict(), art_obj.ToPrimitiveDict())
 

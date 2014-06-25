@@ -8,6 +8,7 @@ This module implements the Rekall enabled client actions.
 
 import json
 import os
+import sys
 
 
 # Initialize the Rekall plugins, so pylint: disable=unused-import
@@ -24,6 +25,7 @@ from rekall.ui import json_renderer
 import logging
 from grr.client import actions
 from grr.client import vfs
+from grr.client.client_actions import tempfiles
 from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -51,6 +53,11 @@ class GrrRenderer(json_renderer.JsonRenderer):
       action: The GRR Client Action which owns this renderer. We will use it to
          actually send messages back to the server.
     """
+    try:
+      sys.stdout.isatty()
+    except AttributeError:
+      sys.stdout.isatty = lambda: False
+
     super(GrrRenderer, self).__init__(session=rekall_session)
 
     # A handle to the client action we can use for sending responses.
@@ -59,11 +66,10 @@ class GrrRenderer(json_renderer.JsonRenderer):
     # The current plugin we are running.
     self.plugin = None
 
-  def start(self, plugin_name=None):
-    super(GrrRenderer, self).start(plugin_name=plugin_name)
+  def start(self, plugin_name=None, kwargs=None):
     self.plugin = plugin_name
-
-    return self
+    return super(GrrRenderer, self).start(plugin_name=plugin_name,
+                                          kwargs=kwargs)
 
   def write_data_stream(self):
     """Prepares a RekallResponse and send to the server."""
@@ -81,6 +87,9 @@ class GrrRenderer(json_renderer.JsonRenderer):
     if len(self.data) > self.RESPONSE_CHUNK_SIZE:
       self.flush()
 
+  def open(self, directory=None, filename=None, mode="rb"):
+    return tempfiles.CreateGRRTempFile(filename=filename, mode=mode)
+
 
 class GrrRekallSession(session.Session):
   """A GRR Specific Rekall session."""
@@ -96,25 +105,33 @@ class GrrRekallSession(session.Session):
   def LoadProfile(self, filename):
     """Wraps the Rekall profile's LoadProfile to fetch profiles from GRR."""
     # If the user specified a special profile path we use their choice.
-    try:
-      return super(GrrRekallSession, self).LoadProfile(filename)
-    except ValueError:
-      logging.debug("Asking server for profile %s" % filename)
+    profile = super(GrrRekallSession, self).LoadProfile(filename)
+    if profile:
+      return profile
 
-      # Cant load the profile, we need to ask the server for it.
-      self.action.SendReply(
-          rdfvalue.RekallResponse(
-              missing_profile="%s/%s" % (
-                  constants.PROFILE_REPOSITORY_VERSION, filename)))
+    # Cant load the profile, we need to ask the server for it.
 
-      # Wait for the server to wake us up. When we wake up the server should
-      # have sent the profile over by calling the WriteRekallProfile.
-      self.action.Suspend()
+    logging.debug("Asking server for profile %s" % filename)
+    self.action.SendReply(
+        rdfvalue.RekallResponse(
+            missing_profile="%s/%s" % (
+                constants.PROFILE_REPOSITORY_VERSION, filename)))
 
-      # Now the server should have sent the data already. We try to load the
-      # profile one more time, or we die.
-      return super(GrrRekallSession, self).LoadProfile(
-          filename, use_cache=False)
+    # Wait for the server to wake us up. When we wake up the server should
+    # have sent the profile over by calling the WriteRekallProfile.
+    self.action.Suspend()
+
+    # Now the server should have sent the data already. We try to load the
+    # profile one more time, or we die.
+    profile = super(GrrRekallSession, self).LoadProfile(
+        filename, use_cache=False)
+    if profile:
+      return profile
+    raise ValueError("Could not load profile %s" % filename)
+
+  def GetRenderer(self):
+    # We will use this renderer to push results to the server.
+    return GrrRenderer(rekall_session=self, action=self.action)
 
 
 class WriteRekallProfile(actions.ActionPlugin):
@@ -169,15 +186,11 @@ class RekallAction(actions.SuspendableAction):
         # available now.
         rekal_session.GetParameter("profile")
 
-      # We will use this renderer to push results to the server.
-      ui_renderer = GrrRenderer(rekall_session=rekal_session, action=self)
-
       for plugin_request in self.request.plugins:
         # Get the keyword args to this plugin.
         plugin_args = plugin_request.args.ToDict()
         try:
-          rekal_session.RunPlugin(plugin_request.plugin,
-                                  renderer=ui_renderer, **plugin_args)
+          rekal_session.RunPlugin(plugin_request.plugin, **plugin_args)
 
         except Exception:  # pylint: disable=broad-except
           # Just ignore errors, and run the next plugin. Errors will be reported

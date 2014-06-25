@@ -146,7 +146,7 @@ class ConfigurationTree(renderers.TreeRenderer):
       directory = aff4.FACTORY.Create(urn, "VFSDirectory", mode="r",
                                       token=request.token)
       children = list(directory.ListChildren(limit=100000))
-      infos = aff4.FACTORY.Stat(children)
+      infos = aff4.FACTORY.Stat(children, token=request.token)
       info_by_urn = {}
       for info in infos:
         info_by_urn[info["urn"]] = info

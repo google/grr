@@ -33,6 +33,10 @@ class Parser(object):
   # A list of string identifiers for artifacts that this parser can process.
   supported_artifacts = []
 
+  # Any knowledgebase dependencies required by the parser. Dependencies required
+  # by the artifact itself will be inferred from the artifact definition.
+  knowledgebase_dependencies = []
+
   # The semantic types that can be produced by this parser.
   output_types = []
 

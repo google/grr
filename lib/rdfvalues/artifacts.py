@@ -7,9 +7,19 @@ import yaml
 
 from grr.lib import artifact_lib
 from grr.lib import objectfilter
+from grr.lib import parsers
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import structs
 from grr.proto import artifact_pb2
+from grr.proto import flows_pb2
+
+
+class ArtifactCollectorFlowArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.ArtifactCollectorFlowArgs
+
+  def Validate(self):
+    if not self.artifact_list:
+      raise ValueError("No artifacts to collect.")
 
 
 class Artifact(structs.RDFProtoStruct):
@@ -45,6 +55,13 @@ class Artifact(structs.RDFProtoStruct):
   def ToPrimitiveDict(self):
     """Handle dict generation specifically for Artifacts."""
     artifact_dict = super(Artifact, self).ToPrimitiveDict()
+
+    # Convert proto enum to simple strings so they get rendered in the GUI
+    # properly
+    for collector in artifact_dict["collectors"]:
+      if "collector_type" in collector:
+        collector["collector_type"] = str(collector["collector_type"])
+
     # Repeated fields that have not been set should return as empty lists.
     for field in self.required_repeated_fields:
       if field not in artifact_dict:
@@ -108,7 +125,7 @@ class Artifact(structs.RDFProtoStruct):
     """
     deps = set()
     for collector in self.collectors:
-      if collector.action == "CollectArtifacts":
+      if collector.collector_type == rdfvalue.Collector.CollectorType.ARTIFACT:
         if collector.args.GetItem("artifact_list"):
           deps.update(collector.args.GetItem("artifact_list"))
 
@@ -124,6 +141,19 @@ class Artifact(structs.RDFProtoStruct):
           deps_set.update(new_dep)
 
     return deps_set
+
+  def GetArtifactParserDependencies(self):
+    """Return the set of knowledgebase path dependencies required by the parser.
+
+    Returns:
+      A set of strings for the required kb objects e.g.
+      ["users.appdata", "systemroot"]
+    """
+    deps = set()
+    processors = parsers.Parser.GetClassesByArtifact(self.name)
+    for parser in processors:
+      deps.update(parser.knowledgebase_dependencies)
+    return deps
 
   def GetArtifactPathDependencies(self):
     """Return a set of knowledgebase path dependencies.
@@ -143,6 +173,7 @@ class Artifact(structs.RDFProtoStruct):
         for path in paths:
           for match in artifact_lib.INTERPOLATED_REGEX.finditer(path):
             deps.add(match.group()[2:-2])   # Strip off %%.
+    deps.update(self.GetArtifactParserDependencies())
     return deps
 
   def Validate(self):
@@ -221,10 +252,10 @@ class Collector(structs.RDFProtoStruct):
   def Validate(self):
     """Check the collector is well constructed."""
     # Catch common mistake of path vs paths.
-    if self.args.GetItem("paths"):
-      if isinstance(self.args.GetItem("paths"), basestring):
+    if self.args.GetItem("path_list"):
+      if not isinstance(self.args.GetItem("path_list"), list):
         raise artifact_lib.ArtifactDefinitionError(
-            "Arg 'paths' that is not a list.")
+            "Arg 'path_list' that is not a list.")
     if self.args.GetItem("path"):
       if not isinstance(self.args.GetItem("path"), basestring):
         raise artifact_lib.ArtifactDefinitionError(
@@ -237,12 +268,12 @@ class Collector(structs.RDFProtoStruct):
           raise artifact_lib.ArtifactDefinitionError(
               "Invalid return type %s" % rdf_type)
 
-    if self.action not in artifact_lib.ACTIONS_MAP:
+    if str(self.collector_type) not in artifact_lib.TYPE_MAP:
       raise artifact_lib.ArtifactDefinitionError(
-          "Invalid action %s." % self.action)
+          "Invalid collector_type %s." % self.collector_type)
 
-    action = artifact_lib.ACTIONS_MAP[self.action]
-    required_args = action.get("required_args", [])
+    collector_type = artifact_lib.TYPE_MAP[str(self.collector_type)]
+    required_args = collector_type.get("required_args", [])
     missing_args = set(required_args).difference(self.args.keys())
     if missing_args:
       raise artifact_lib.ArtifactDefinitionError(

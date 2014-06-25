@@ -414,6 +414,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
 
     # We should still be able to modify using the first transaction:
     t1.Set(predicate, "1")
+    self.assertEqual(t1.Resolve(predicate)[0], "1")
     t1.Commit()
 
     self.assertEqual(
@@ -425,6 +426,40 @@ class DataStoreTest(test_lib.GRRBaseTest):
 
     self.assertEqual(
         data_store.DB.Resolve(subject, predicate, token=self.token)[0], "2")
+
+    # Check that ResolveRegex works correctly.
+    predicate1 = u"metadata:attribute10"
+    predicate1regex = "metadata:attribute1[0-9]"
+    predicate2 = u"metadata:attribute20"
+
+    t3 = data_store.DB.Transaction(subject, token=self.token)
+    t3.Set(predicate1, "10")
+    t3.Set(predicate2, "20")
+
+    self.assertEqual(t3.ResolveRegex(predicate1regex)[0][1], "10")
+    self.assertEqual(
+        t3.ResolveRegex(predicate1regex,
+                        timestamp=data_store.DB.NEWEST_TIMESTAMP)[0][1], "10")
+    t3.Commit()
+
+    self.assertEqual(t3.Resolve(predicate1)[0], "10")
+    self.assertEqual(t3.Resolve(predicate2)[0], "20")
+    self.assertEqual(t3.ResolveRegex(predicate1regex)[0][1], "10")
+    self.assertEqual(
+        t3.ResolveRegex(predicate1regex,
+                        timestamp=data_store.DB.NEWEST_TIMESTAMP)[0][1], "10")
+
+    t4 = data_store.DB.Transaction(subject, token=self.token)
+
+    t4.DeleteAttribute(predicate1)
+
+    self.assertEqual(t4.Resolve(predicate1), (None, 0))
+    self.assertEqual(len(t4.ResolveRegex(predicate1regex)), 0)
+    self.assertEqual(t4.Resolve(predicate2)[0], "20")
+    t4.Commit()
+
+    self.assertEqual(t4.Resolve(predicate1), (None, 0))
+    self.assertEqual(len(t4.ResolveRegex(predicate1regex)), 0)
 
     # Check that locks don't influence each other.
 

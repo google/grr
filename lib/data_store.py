@@ -37,6 +37,7 @@ able to filter it directly).
 
 import abc
 import atexit
+import re
 import sys
 import time
 
@@ -313,8 +314,7 @@ class DataStore(object):
 
       limit: The number of predicates to fetch.
     Returns:
-       A list of (predicate, value string, timestamp), or a (predicate, decoded
-       protobuf, timestamp) if protobuf was specified.
+       A list of (predicate, value string, timestamp).
 
     Raises:
       AccessError: if anything goes wrong.
@@ -332,6 +332,10 @@ class DataStore(object):
 
   def Flush(self):
     """Flushes the DataStore."""
+
+  def Size(self):
+    """DataStore size in bytes."""
+    return -1
 
   def __del__(self):
     try:
@@ -449,6 +453,106 @@ class Transaction(object):
   @abc.abstractmethod
   def Abort(self):
     """Aborts the transaction."""
+
+
+class CommonTransaction(Transaction):
+  """A common transaction that saves set/delete data before commiting."""
+
+  def __init__(self, table, subject, lease_time=None, token=None):
+    super(CommonTransaction, self).__init__(table, subject,
+                                            lease_time=lease_time, token=token)
+    self.to_set = {}
+    self.to_delete = set()
+    self.subject = subject
+    self.store = table
+    self.token = token
+
+  def DeleteAttribute(self, predicate):
+    self.to_delete.add(predicate)
+
+  def ResolveRegex(self, predicate_regex, timestamp=None):
+    # Break up the timestamp argument.
+    if isinstance(timestamp, (list, tuple)):
+      start, end = timestamp
+    elif isinstance(timestamp, int):
+      start = timestamp
+      end = timestamp
+    elif timestamp == DataStore.ALL_TIMESTAMPS or timestamp is None:
+      start, end = 0, (2 ** 63) - 1
+      timestamp = (start, end)
+    elif timestamp == DataStore.NEWEST_TIMESTAMP:
+      start, end = 0, (2 ** 63) - 1
+      # Do not change 'timestamp' since we will use it later.
+    else:
+      raise ValueError("Value %s is not a valid timestamp" %
+                       utils.SmartStr(timestamp))
+
+    start = int(start)
+    end = int(end)
+
+    # Compile the regular expression.
+    regex = re.compile(predicate_regex)
+
+    # Get all results from to_set.
+    results = []
+    if self.to_set:
+      for predicate, values in self.to_set.items():
+        if regex.match(utils.SmartStr(predicate)):
+          results = [(predicate, value, ts) for value, ts in values
+                     if start <= ts <= end]
+
+    # And also the results from the database.
+    ds_results = self.store.ResolveRegex(self.subject, predicate_regex,
+                                         timestamp=timestamp,
+                                         token=self.token)
+
+    # Must filter 'to_delete' from 'ds_results'.
+    if self.to_delete:
+      for val in ds_results:
+        predicate, value, ts = val
+        if predicate not in self.to_delete:
+          results.append(val)
+    else:
+      results.extend(ds_results)
+
+    if timestamp == DataStore.NEWEST_TIMESTAMP:
+      # For each predicate, select the value with the newest timestamp.
+      predicates = {predicate for predicate, value, ts in results}
+      results = [max(results, key=lambda (p, val, ts): 0 if p != pred else ts)
+                 for pred in predicates]
+
+    return sorted(results, key=lambda (p, val, ts): (p, ts, val))
+
+  def Set(self, predicate, value, timestamp=None, replace=True):
+    if replace:
+      self.to_delete.add(predicate)
+
+    if timestamp is None:
+      timestamp = int(time.time() * 1e6)
+
+    self.to_set.setdefault(predicate, []).append((value, int(timestamp)))
+
+  def Resolve(self, predicate):
+    if predicate in self.to_set:
+      return max(self.to_set[predicate], key=lambda vt: vt[1])
+    if predicate in self.to_delete:
+      return (None, 0)
+
+    return self.store.Resolve(self.subject, predicate, token=self.token)
+
+  def Commit(self):
+    self.store.DeleteAttributes(self.subject, self.to_delete, sync=True,
+                                token=self.token)
+
+    self.store.MultiSet(self.subject, self.to_set, token=self.token)
+    self.to_set = {}
+    self.to_delete = set()
+
+  def __del__(self):
+    try:
+      self.Abort()
+    except Exception:  # This can raise on cleanup pylint: disable=broad-except
+      pass
 
 
 class ResultSet(object):

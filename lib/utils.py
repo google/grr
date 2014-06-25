@@ -236,6 +236,10 @@ class FastStore(object):
     """
 
   @Synchronized
+  def __iter__(self):
+    return iter([(key, n.data) for key, n in self._hash.iteritems()])
+
+  @Synchronized
   def Expire(self):
     """Expires old cache entries."""
     while len(self._age) > self._limit:

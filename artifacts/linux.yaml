@@ -3,7 +3,7 @@
 name: SystemCronFiles
 doc: System-wide cron files.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args:
     path_list:
       - '/etc/crontab'
@@ -18,7 +18,7 @@ supported_os: [Linux]
 name: HostAccessPolicyConfiguration
 doc: Linux files related to host access policy configuration.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args:
     path_list:
       - '/etc/hosts.allow'
@@ -29,7 +29,7 @@ supported_os: [Linux]
 name: RedhatPackagesList
 doc: Linux output of rpm -qa.
 collectors:
-- action: RunCommand
+- collector_type: COMMAND
   args:
     args: [-qa]
     cmd: /bin/rpm
@@ -39,7 +39,7 @@ supported_os: [Linux]
 name: LinuxPasswd
 doc: Linux passwd file.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args: {path_list: ['/etc/passwd']}
 labels: [Authentication]
 supported_os: [Linux]
@@ -47,7 +47,7 @@ supported_os: [Linux]
 name: LinuxPasswdHomedirs
 doc: Grep passwd file for user homedirs.
 collectors:
-- action: Grep
+- collector_type: GREP
   args:
     path_list: ['/etc/passwd']
     content_regex_list: ["^%%users.username%%:[^:]*:[^:]*:[^:]*:[^:]*:[^:]+:[^:]*\n"]
@@ -58,7 +58,7 @@ supported_os: [Linux]
 name: NssCacheLinuxPasswdHomedirs
 doc: Grep /etc/passwd.cache file for user homedirs.
 collectors:
-- action: Grep
+- collector_type: GREP
   args:
     path_list: ['/etc/passwd.cache']
     content_regex_list: ["^%%users.username%%:[^:]*:[^:]*:[^:]*:[^:]*:[^:]+:[^:]*\n"]
@@ -70,7 +70,7 @@ urls: ['https://code.google.com/p/nsscache/']
 name: RootUserShellConfigs
 doc: Linux root shell configuration files.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args:
     path_list:
       - '/root/.bashrc'
@@ -89,7 +89,7 @@ supported_os: [Linux]
 name: DebianPackagesStatus
 doc: Linux dpkg status file.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args: {path_list: ['/var/lib/dpkg/status']}
 labels: [Software]
 supported_os: [Linux]
@@ -97,7 +97,7 @@ supported_os: [Linux]
 name: LinuxAuditLogs
 doc: Linux audit log files.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args: {path_list: ['/var/log/audit/*']}
 labels: [Logs]
 supported_os: [Linux]
@@ -105,7 +105,7 @@ supported_os: [Linux]
 name: LinuxAuthLogs
 doc: Linux auth log files.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args: {path_list: ['/var/log/auth.log*']}
 labels: [Logs, Authentication]
 supported_os: [Linux]
@@ -113,7 +113,7 @@ supported_os: [Linux]
 name: LinuxCronLogs
 doc: Linux cron log files.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args: {path_list: ['/var/log/cron.log*']}
 labels: [Logs]
 supported_os: [Linux]
@@ -121,7 +121,7 @@ supported_os: [Linux]
 name: LoginPolicyConfiguration
 doc: Linux files related to login policy configuration.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args:
     path_list:
       - '/etc/netgroup'
@@ -136,7 +136,7 @@ supported_os: [Linux]
 name: GlobalShellConfigs
 doc: Linux global shell configuration files.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args:
     path_list:
       - '/etc/bash.bashrc'
@@ -155,7 +155,7 @@ supported_os: [Linux]
 name: LinuxWtmp
 doc: Linux wtmp file.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args: {path_list: ['/var/log/wtmp']}
 labels: [Logs, Authentication]
 provides: [users.username, users.last_logon]
@@ -164,7 +164,7 @@ supported_os: [Linux]
 name: NetgroupConfiguration
 doc: Linux netgroup configuration.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args: {path_list: ['/etc/netgroup']}
 labels: [Authentication, Configuration Files]
 provides: [users.username]
@@ -177,7 +177,7 @@ doc: |
   * recent logins in wtmp;
   * user metadata in the output of getpwnam.
 collectors:
-- action: RunGrrClientAction
+- collector_type: GRR_CLIENT_ACTION
   args: {client_action: EnumerateUsers}
 labels: [Users]
 provides: [users.homedir, users.username, users.last_logon, users.full_name]
@@ -186,7 +186,7 @@ supported_os: [Linux]
 name: DebianPackagesList
 doc: Linux output of dpkg --list.
 collectors:
-- action: RunCommand
+- collector_type: COMMAND
   args:
     args: [--list]
     cmd: /usr/bin/dpkg
@@ -196,7 +196,7 @@ supported_os: [Linux]
 name: SudoersConfiguration
 doc: Linux sudoers configuration.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args:
     path_list: ['/etc/sudoers']
 labels: [Authentication, Configuration Files]

@@ -772,8 +772,9 @@ class GRRFlow(aff4.AFF4Volume):
     # For the flow itself we use a supervisor token.
     token = runner_args.token.SetUID()
 
-    # Extend the expiry time of this token indefinitely.
-    token.expiry = (2 ** 63) - 1  # sys.maxint
+    # Extend the expiry time of this token indefinitely. Python on Windows only
+    # supports dates up to the year 3000, this number corresponds to July, 2997.
+    token.expiry = 32427003069 * rdfvalue.RDFDatetime.converter
 
     # We create an anonymous AFF4 object first, The runner will then generate
     # the appropriate URN.

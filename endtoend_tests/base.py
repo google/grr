@@ -152,6 +152,12 @@ class ClientTestBase(unittest.TestCase):
       self.binary_name = config["Client.binary_name"]
       return self.binary_name
 
+  def CheckMacMagic(self, fd):
+    data = fd.Read(10)
+    magic_values = ["cafebabe", "cefaedfe", "cffaedfe"]
+    magic_values = [x.decode("hex") for x in magic_values]
+    self.assertTrue(data[:4] in magic_values)
+
 
 class AutomatedTest(ClientTestBase):
   """All tests that are safe to run in prod should inherit from this class."""
@@ -199,11 +205,15 @@ def GetClientTestTargets(client_ids=None, hostnames=None, token=None,
     client_id_set: set of rdfvalue.ClientURNs available for end-to-end tests.
   """
 
-  client_ids = client_ids or set(
-      config_lib.CONFIG.Get("Test.end_to_end_client_ids"))
+  if client_ids:
+    client_ids = set(client_ids)
+  else:
+    client_ids = set(config_lib.CONFIG.Get("Test.end_to_end_client_ids"))
 
-  hosts = hostnames or set(
-      config_lib.CONFIG.Get("Test.end_to_end_client_hostnames"))
+  if hostnames:
+    hosts = set(hostnames)
+  else:
+    hosts = set(config_lib.CONFIG.Get("Test.end_to_end_client_hostnames"))
 
   if hosts:
     client_id_dict = search.GetClientURNsForHostnames(hosts, token=token)

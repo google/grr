@@ -95,19 +95,81 @@ class MemoryCollector(flow.GRRFlow):
 
     return result
 
-  @flow.StateHandler(next_state="Filter")
+  @flow.StateHandler(next_state="StoreMemoryInformation")
   def Start(self):
+    self.state.Register("memory_information", None)
+    self.state.Register(
+        "destdir",
+        self.args.action.download.dump_option.with_local_copy.destdir)
     self.CallFlow("LoadMemoryDriver",
                   driver_installer=self.args.driver_installer,
-                  next_state="Filter")
+                  next_state="StoreMemoryInformation")
+
+  def _DiskFreeCheckRequired(self):
+    # pylint: disable=line-too-long
+    return (self.args.action.action_type == rdfvalue.MemoryCollectorAction.Action.DOWNLOAD
+            and self.args.action.download.dump_option.option_type == rdfvalue.MemoryCollectorDumpOption.Option.WITH_LOCAL_COPY
+            and self.args.action.download.dump_option.with_local_copy.check_disk_free_space)
+    # pylint: enable=line-too-long
+
+  @flow.StateHandler(next_state=["Filter", "StoreTmpDir", "CheckDiskFree"])
+  def StoreMemoryInformation(self, responses):
+    if not responses.success:
+      raise flow.FlowError("Failed due to no memory driver:%s." %
+                           responses.status)
+
+    self.state.memory_information = responses.First()
+
+    if self._DiskFreeCheckRequired():
+      if self.state.destdir:
+        self.CallStateInline(next_state="CheckDiskFree")
+      else:
+        self.CallClient("GetConfiguration", next_state="StoreTmpDir")
+    else:
+      self.CallStateInline(next_state="Filter")
+
+  @flow.StateHandler(next_state=["CheckDiskFree"])
+  def StoreTmpDir(self, responses):
+    # For local copy we need to know where the file will land to check for
+    # disk free space there. The default is to leave this blank, which will
+    # cause the client to use Client.tempdir
+    if not responses.success:
+      raise flow.FlowError("Couldn't get client config: %s." % responses.status)
+
+    self.state.destdir = responses.First().get("Client.tempdir")
+    if not self.state.destdir:
+      raise flow.FlowError("Couldn't determine Client.tempdir file destination,"
+                           " required for disk free check: %s.")
+
+    self.CallFlow("DiskVolumeInfo",
+                  path_list=[self.state.destdir],
+                  next_state="CheckDiskFree")
+
+  @flow.StateHandler(next_state=["Filter"])
+  def CheckDiskFree(self, responses):
+    if not responses.success or not responses.First():
+      raise flow.FlowError(
+          "Couldn't determine disk free space for path %s" %
+          self.args.action.download.dump_option.with_local_copy.destdir)
+
+    free_space = responses.First().FreeSpaceBytes()
+
+    mem_size = 0
+    for run in self.state.memory_information.runs:
+      mem_size += run.length
+
+    if free_space < mem_size:
+      # We expect that with compression the disk required will be significantly
+      # less, so this ensures there will still be some left once we are done.
+      raise flow.FlowError("Free space may be too low for local copy. Free "
+                           "space on volume %s is %s bytes. Mem size is: %s "
+                           "bytes. Override with check_disk_free_space=False."
+                           % (self.state.destdir, free_space, mem_size))
+
+    self.CallStateInline(next_state="Filter")
 
   @flow.StateHandler(next_state=["Action"])
   def Filter(self, responses):
-    if not responses.success:
-      raise flow.FlowError("Failed due to no memory driver.")
-
-    self.state.Register("memory_information", responses.First())
-
     if self.args.conditions:
       self.CallFlow("FileFinder",
                     paths=[self.state.memory_information.device.path],

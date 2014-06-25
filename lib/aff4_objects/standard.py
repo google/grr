@@ -46,7 +46,8 @@ class VFSDirectory(aff4.AFF4Volume):
         # nested path.
         new_path = utils.JoinPath(pathspec.last.path,
                                   *reversed(stripped_components[:-1]))
-        pathspec.last.path = new_path
+        pathspec.last.Append(rdfvalue.PathSpec(path=new_path,
+                                               pathtype=pathspec.last.pathtype))
     else:
       raise IOError("Item has no pathspec.")
 

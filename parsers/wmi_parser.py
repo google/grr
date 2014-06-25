@@ -94,6 +94,16 @@ class WMILogicalDisksParser(parsers.WMIQueryParser):
     winvolume = rdfvalue.WindowsVolume(drive_letter=result.get("DeviceID"),
                                        drive_type=result.get("DriveType"))
 
+    try:
+      size = int(result.get("Size"))
+    except ValueError:
+      size = None
+
+    try:
+      free_space = int(result.get("FreeSpace"))
+    except ValueError:
+      free_space = None
+
     # Since we don't get the sector sizes from WMI, we just set them at 1 byte
     volume = rdfvalue.Volume(windows=winvolume,
                              name=result.get("VolumeName"),
@@ -101,9 +111,7 @@ class WMILogicalDisksParser(parsers.WMIQueryParser):
                              serial_number=result.get("VolumeSerialNumber"),
                              sectors_per_allocation_unit=1,
                              bytes_per_sector=1,
-                             total_allocation_units=result.get("Size"),
-                             actual_available_allocation_units=result.get(
-                                 "FreeSpace"))
+                             total_allocation_units=size,
+                             actual_available_allocation_units=free_space)
 
     yield volume
-

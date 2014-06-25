@@ -227,7 +227,7 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
                      config_lib.CONFIG["Client.description"])
 
     # Check that the boot time is accurate.
-    self.assertAlmostEqual(psutil.BOOT_TIME, boot_time.AsSecondsFromEpoch())
+    self.assertAlmostEqual(psutil.boot_time(), boot_time.AsSecondsFromEpoch())
 
     # Run it again - this should not update any record.
     for _ in test_lib.TestFlowHelper(
@@ -240,7 +240,8 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
     self.assertEqual(client_info.age, fd.Get(fd.Schema.CLIENT_INFO).age)
 
     # Simulate a reboot in 10 minutes.
-    psutil.BOOT_TIME += 600
+    current_boot_time = psutil.boot_time()
+    psutil.boot_time = lambda: current_boot_time + 600
 
     # Run it again - this should now update the boot time.
     for _ in test_lib.TestFlowHelper(

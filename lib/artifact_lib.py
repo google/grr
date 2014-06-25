@@ -69,33 +69,30 @@ ARTIFACT_LABELS = {
 
 OUTPUT_UNDEFINED = "Undefined"
 
-ACTIONS_MAP = {"RunGrrClientAction": {"required_args": ["client_action"],
-                                      "output_type": OUTPUT_UNDEFINED},
-               "GetFiles": {"required_args": ["path_list"],
-                            "output_type": "StatEntry"},
-               "Grep": {"required_args": ["path_list", "content_regex_list"],
-                        "output_type": "BufferReference"},
-               "ListFiles": {"required_args": ["path_list"],
+
+TYPE_MAP = {"GRR_CLIENT_ACTION": {"required_args": ["client_action"],
+                                  "output_type": OUTPUT_UNDEFINED},
+            "FILE": {"required_args": ["path_list"],
+                     "output_type": "StatEntry"},
+            "GREP": {"required_args": ["path_list", "content_regex_list"],
+                     "output_type": "BufferReference"},
+            "LIST_FILES": {"required_args": ["path_list"],
+                           "output_type": "StatEntry"},
+            "REGISTRY_KEY": {"required_args": ["path_list"],
                              "output_type": "StatEntry"},
-               "GetRegistryKeys": {"required_args": ["path_list"],
-                                   "output_type": "StatEntry"},
-               "GetRegistryValue": {"required_args": ["path"],
-                                    "output_type": "RDFString"},
-               "GetRegistryValues": {"required_args": ["path_list"],
-                                     "output_type": "RDFString"},
-               "WMIQuery": {"required_args": ["query"],
-                            "output_type": "Dict"},
-               "RunCommand": {"required_args": ["cmd", "args"],
-                              "output_type": "ExecuteResponse"},
-               "VolatilityPlugin": {"required_args": ["plugin"],
-                                    "output_type": "VolatilityResponse"},
-               "CollectArtifacts": {"required_args": ["artifact_list"],
-                                    "output_type": OUTPUT_UNDEFINED},
-               "CollectArtifactFiles": {"required_args": ["artifact_list"],
-                                        "output_type": "StatEntry"},
-               "Bootstrap": {"required_args": [],
-                             "output_type": OUTPUT_UNDEFINED},
-              }
+            "REGISTRY_VALUE": {"required_args": ["path_list"],
+                               "output_type": "RDFString"},
+            "WMI": {"required_args": ["query"],
+                    "output_type": "Dict"},
+            "COMMAND": {"required_args": ["cmd", "args"],
+                        "output_type": "ExecuteResponse"},
+            "VOLATILITY_PLUGIN": {"required_args": ["plugin"],
+                                  "output_type": "VolatilityResponse"},
+            "ARTIFACT": {"required_args": ["artifact_list"],
+                         "output_type": OUTPUT_UNDEFINED},
+            "ARTIFACT_FILES": {"required_args": ["artifact_list"],
+                               "output_type": "StatEntry"},
+           }
 
 
 SUPPORTED_OS_LIST = ["Windows", "Linux", "Darwin"]
@@ -123,8 +120,12 @@ class ArtifactRegistry(object):
     cls.artifacts[artifact_rdfvalue.name] = artifact_rdfvalue
 
   @classmethod
+  def ClearRegistry(cls):
+    cls.artifacts = {}
+
+  @classmethod
   def GetArtifacts(cls, os_name=None, name_list=None,
-                   collector_action=None, exclude_dependents=False,
+                   collector_type=None, exclude_dependents=False,
                    provides=None):
     """Retrieve artifact classes with optional filtering.
 
@@ -133,7 +134,8 @@ class ArtifactRegistry(object):
     Args:
       os_name: string to match against supported_os
       name_list: list of strings to match against artifact names
-      collector_action: string to match against collector_action
+      collector_type: rdfvalue.Collector.CollectorType to match against
+                      collector_type
       exclude_dependents: if true only artifacts with no dependencies will be
                           returned
       provides: return the artifacts that provide these dependencies
@@ -149,9 +151,9 @@ class ArtifactRegistry(object):
         continue
       if name_list and artifact.name not in name_list:
         continue
-      if collector_action:
-        collector_actions = [c.action for c in artifact.collectors]
-        if collector_action not in collector_actions:
+      if collector_type:
+        collector_types = [c.collector_type for c in artifact.collectors]
+        if collector_type not in collector_types:
           continue
       if exclude_dependents and artifact.GetArtifactPathDependencies():
         continue

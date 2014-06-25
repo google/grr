@@ -122,8 +122,8 @@ class ConfigActionTest(test_lib.EmptyActionTest):
       def __init__(self):
         self.stats_collector = MockCollector()
 
-    old_boot_time = psutil.BOOT_TIME
-    psutil.BOOT_TIME = 100
+    old_boot_time = psutil.boot_time
+    psutil.boot_time = lambda: 100
     try:
 
       stats.STATS.IncrementCounter("grr_client_received_bytes", 1566)
@@ -138,4 +138,4 @@ class ConfigActionTest(test_lib.EmptyActionTest):
       action.Send = lambda r: self.VerifyResponse(r, received_bytes, sent_bytes)
       action.Run(None)
     finally:
-      psutil.BOOT_TIME = old_boot_time
+      psutil.boot_time = old_boot_time

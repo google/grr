@@ -3,7 +3,7 @@
 name: AllVADBinaryFiles
 doc: Download all currently running binaries on Windows.
 collectors:
-- action: CollectArtifactFiles
+- collector_type: ARTIFACT_FILES
   args:
     artifact_list: [FullVADBinaryList]
   returned_types: [PathSpec]
@@ -13,7 +13,7 @@ supported_os: [Windows]
 name: ApplicationEventLog
 doc: Windows Application Event log.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args: {path_list: ['%%environ_systemroot%%\System32\winevt\Logs\AppEvent.evt']}
 conditions: [os_major_version >= 6]
 labels: [Logs]
@@ -23,7 +23,7 @@ urls: ['http://www.forensicswiki.org/wiki/Windows_Event_Log_(EVT)']
 name: ApplicationEventLogEvtx
 doc: Windows Application Event log for Vista or later systems.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args: {path_list: ['%%environ_systemroot%%\System32\winevt\Logs\Application.evtx']}
 conditions: [os_major_version >= 6]
 labels: [Logs]
@@ -33,7 +33,7 @@ urls: ['http://www.forensicswiki.org/wiki/Windows_XML_Event_Log_(EVTX)']
 name: AvailableTimeZones
 doc: The timezones avaialable on the system.
 collectors:
-- action: GetRegistryKeys
+- collector_type: REGISTRY_KEY
   args:
     path_list: ['HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Time Zones\*\*']
 supported_os: [Windows]
@@ -42,7 +42,7 @@ urls: ['https://code.google.com/p/winreg-kb/wiki/TimeZoneKeys']
 name: FullVADBinaryList
 doc: Extract list of currently running binaries on Windows.
 collectors:
-- action: VolatilityPlugin
+- collector_type: VOLATILITY_PLUGIN
   args:
     plugin: vad
 labels: [Volatility, Processes]
@@ -51,7 +51,7 @@ supported_os: [Windows]
 name: EventLogs
 doc: Windows Event logs.
 collectors:
-- action: CollectArtifacts
+- collector_type: ARTIFACT
   args:
     artifact_list:
       - 'ApplicationEventLog'
@@ -71,7 +71,7 @@ doc: |
   'ignore download size limits' for this artifact to work. This will go away in
   the future.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args:
     path_list:
       - '%%environ_systemdrive%%\$MFT'
@@ -82,7 +82,7 @@ supported_os: [Windows]
 name: PrefectFiles
 doc: Windows Prefetch files.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args: {path_list: ['%%environ_systemroot%%\Prefetch\*.pf']}
 labels: [System]
 supported_os: [Windows]
@@ -91,7 +91,7 @@ urls: ['http://www.forensicswiki.org/wiki/Prefetch']
 name: SecurityEventLog
 doc: Windows Security Event log.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args: {path_list: ['%%environ_systemroot%%\System32\winevt\Logs\SecEvent.evt']}
 conditions: [os_major_version >= 6]
 labels: [Logs]
@@ -101,7 +101,7 @@ urls: ['http://www.forensicswiki.org/wiki/Windows_Event_Log_(EVT)']
 name: SecurityEventLogEvtx
 doc: Windows Security Event log for Vista or later systems.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args: {path_list: ['%%environ_systemroot%%\System32\winevt\Logs\Security.evtx']}
 conditions: [os_major_version >= 6]
 labels: [Logs]
@@ -111,10 +111,10 @@ urls: ['http://www.forensicswiki.org/wiki/Windows_XML_Event_Log_(EVTX)']
 name: SetupApiLogs
 doc: Windows setup API logs.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args: {path_list: ['%%environ_systemroot%%\setupapi.log']}
   conditions: [os_major_version < 6]
-- action: GetFiles
+- collector_type: FILE
   args:
     path_list:
       - '%%environ_systemroot%%\inf\setupapi.app.log'
@@ -128,7 +128,7 @@ urls: ['http://www.forensicswiki.org/wiki/Setup_API_Logs']
 name: SuperFetchFiles
 doc: Windows SuperFetch files.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args:
     path_list:
       - '%%environ_systemroot%%\Prefetch\Ag*.db'
@@ -140,7 +140,7 @@ urls: ['http://www.forensicswiki.org/wiki/SuperFetch']
 name: SystemEventLog
 doc: Windows System Event log.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args: {path_list: ['%%environ_systemroot%%\System32\winevt\Logs\SysEvent.evt']}
 conditions: [os_major_version >= 6]
 labels: [Logs]
@@ -150,7 +150,7 @@ urls: ['http://www.forensicswiki.org/wiki/Windows_Event_Log_(EVT)']
 name: SystemEventLogEvtx
 doc: Windows System Event log for Vista or later systems.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args: {path_list: ['%%environ_systemroot%%\System32\winevt\Logs\System.evtx']}
 conditions: [os_major_version >= 6]
 labels: [Logs]
@@ -160,7 +160,7 @@ urls: ['http://www.forensicswiki.org/wiki/Windows_XML_Event_Log_(EVTX)']
 name: TerminalServicesEventLogEvtx
 doc: Windows TerminalServices Event log.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args: {path_list: ['%%environ_systemroot%%\System32\winevt\Logs\Microsoft-Windows-TerminalServices-LocalSessionManager%4Operational.evtx']}
 conditions: [os_major_version >= 6]
 labels: [Logs]
@@ -170,7 +170,7 @@ urls: ['http://www.forensicswiki.org/wiki/Windows_XML_Event_Log_(EVTX)']
 name: WindowsHostsFiles
 doc: The Windows hosts and lmhosts file.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args:
     path_list:
       - '%%environ_systemroot%%\System32\Drivers\etc\Lmhosts'
@@ -180,7 +180,7 @@ supported_os: [Windows]
 name: WindowsPersistenceMechanisms
 doc: Persistence mechanisms in Windows.
 collectors:
-- action: CollectArtifacts
+- collector_type: ARTIFACT
   args:
     artifact_list: [WindowsRunKeys, WindowsServices]
   returned_types: [PersistenceFile]
@@ -190,7 +190,7 @@ supported_os: [Windows]
 name: WindowsPersistenceMechanismFiles
 doc: Files that are run by Windows persistence mechanisms.
 collectors:
-- action: CollectArtifactFiles
+- collector_type: ARTIFACT_FILES
   args:
     artifact_list: [WindowsPersistenceMechanisms]
   returned_types: [StatEntry]
@@ -200,7 +200,7 @@ supported_os: [Windows]
 name: WindowsRecycleBin
 doc: Windows Recycle Bin (Recyler, $Recycle.Bin) files.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args:
     path_list:
       - '\$Recycle.Bin\**'
@@ -216,7 +216,7 @@ doc: |
   Note users.sid will currently only expand to SIDs with profiles
   on the system, not all SIDs.
 collectors:
-- action: GetRegistryKeys
+- collector_type: REGISTRY_KEY
   args:
     path_list:
       - 'HKEY_USERS\%%users.sid%%\Software\Microsoft\Windows\CurrentVersion\Run\*'
@@ -230,7 +230,7 @@ supported_os: [Windows]
 name: WindowsSearchDatabase
 doc: Windows Search database (Windows.edb).
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args: {path_list: ['%%environ_allusersappdata%%\Microsoft\Search\Data\Applications\Windows\Windows.edb']}
 labels: [Software]
 supported_os: [Windows]
@@ -239,7 +239,7 @@ urls: ['http://www.forensicswiki.org/wiki/Windows_Desktop_Search']
 name: WindowsServices
 doc: Windows services from the registry.
 collectors:
-- action: GetRegistryKeys
+- collector_type: REGISTRY_KEY
   args:
     path_list:
       - '%%current_control_set%%\services\*\*'
@@ -253,7 +253,7 @@ urls:
 name: WindowsSystemRegistryFiles
 doc: Windows system Registry files.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args:
     path_list:
       - '%%environ_systemroot%%\System32\config\SAM'
@@ -268,7 +268,7 @@ urls: ['https://code.google.com/p/winreg-kb/wiki/RegistryFiles']
 name: WindowsUserRecentFiles
 doc: Windows user specific recent files.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args:
     path_list:
       - '%%users.appdata%%\Roaming\Microsoft\Office\Recent\*'
@@ -279,7 +279,7 @@ supported_os: [Windows]
 name: WindowsUserRegistryFiles
 doc: Windows user specific Registry files.
 collectors:
-- action: GetFiles
+- collector_type: FILE
   args:
     path_list:
       - '%%users.homedir%%\NTUSER.DAT'
@@ -292,7 +292,7 @@ urls: ['https://code.google.com/p/winreg-kb/wiki/RegistryFiles']
 name: WMIAdminstators
 doc: Aministrators via Windows Management Instrumentation (WMI).
 collectors:
-- action: WMIQuery
+- collector_type: WMI
   args: {query: SELECT * from Win32_GroupUser where Name = "Administrators"}
 conditions: [os_major_version >= 6]
 labels: [Software]
@@ -301,7 +301,7 @@ supported_os: [Windows]
 name: WMIDrivers
 doc: Installed drivers via Windows Management Instrumentation (WMI).
 collectors:
-- action: WMIQuery
+- collector_type: WMI
   args: {query: 'SELECT DisplayName, Description, InstallDate, Name, PathName, Status,
       State, ServiceType from Win32_SystemDriver'}
 conditions: [os_major_version >= 6]
@@ -311,7 +311,7 @@ supported_os: [Windows]
 name: WMIHotFixes
 doc: Installed hotfixes via Windows Management Instrumentation (WMI).
 collectors:
-- action: WMIQuery
+- collector_type: WMI
   args: {query: SELECT * from Win32_QuickFixEngineering}
 conditions: [os_major_version >= 6]
 labels: [Software]
@@ -320,7 +320,7 @@ supported_os: [Windows]
 name: WMIInstalledSoftware
 doc: Installed software via Windows Management Instrumentation (WMI).
 collectors:
-- action: WMIQuery
+- collector_type: WMI
   args: {query: 'SELECT Name, Vendor, Description, InstallDate, InstallDate2, Version
       from Win32_Product'}
 conditions: [os_major_version >= 6]
@@ -334,7 +334,7 @@ doc: |
   This WMI query may take a long time to complete when run on a domain and
   will create load on a domain controller.
 collectors:
-- action: WMIQuery
+- collector_type: WMI
   args: {query: SELECT * from Win32_GroupUser where Name = "login_users"}
 conditions: [os_major_version >= 6]
 labels: [Software]
@@ -343,7 +343,7 @@ supported_os: [Windows]
 name: WMIProcessList
 doc: Process listing via Windows Management Instrumentation (WMI).
 collectors:
-- action: WMIQuery
+- collector_type: WMI
   args: {query: SELECT * from Win32_Process}
 conditions: [os_major_version >= 6]
 labels: [Software]
@@ -357,7 +357,7 @@ doc: |
   domain which will be expensive and slow. Consider limiting by SID like
   WMIProfileUsersHomeDir.
 collectors:
-- action: WMIQuery
+- collector_type: WMI
   args: {query: SELECT * FROM Win32_UserAccount}
 labels: [Users]
 supported_os: [Windows]
@@ -366,7 +366,7 @@ urls: ['http://msdn.microsoft.com/en-us/library/windows/desktop/aa394507(v=vs.85
 name: WMILogicalDisks
 doc: Disk information via Windows Management Instrumentation (WMI).
 collectors:
-- action: WMIQuery
+- collector_type: WMI
   args: {query: SELECT * FROM Win32_LogicalDisk}
 labels: [System]
 supported_os: [Windows]

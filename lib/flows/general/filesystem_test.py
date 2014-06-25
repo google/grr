@@ -450,21 +450,21 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
   def testGlobRoundtrips(self):
     """Tests that glob doesn't use too many client round trips."""
 
-    for pattern, num_find, num_stat in [
-        ("test_data/test_artifact.json", 0, 1),
-        ("test_data/test_*", 1, 0),
-        ("test_*/test_artifact.json", 1, 1),
-        ("test_*/test_*", 2, 0),
-        ("test_*/test_{artifact,artifacts}.json", 1, 2),
-        ("test_data/test_{artifact,artifacts}.json", 0, 2),
-        ("test_data/{ntfs_img.dd,*.log,*.raw}", 1, 1),
-        ("test_data/{*.log,*.raw}", 1, 0),
-        ("test_data/a/**/helloc.txt", 1, None),
-        ("test_data/a/**/hello{c,d}.txt", 1, None),
-        ("test_data/a/**/hello*.txt", 4, None),
-        ("test_data/a/**.txt", 1, None),
-        ("test_data/a/**5*.txt", 1, None),
-        ("test_data/a/**{.json,.txt}", 1, 0),
+    for pattern, num_find, num_stat, duplicated_ok in [
+        ("test_data/test_artifact.json", 0, 1, False),
+        ("test_data/test_*", 1, 0, False),
+        ("test_*/test_artifact.json", 1, 1, False),
+        ("test_*/test_*", 2, 0, False),
+        ("test_*/test_{artifact,artifacts}.json", 1, 2, True),
+        ("test_data/test_{artifact,artifacts}.json", 0, 2, False),
+        ("test_data/{ntfs_img.dd,*.log,*.raw}", 1, 1, False),
+        ("test_data/{*.log,*.raw}", 1, 0, False),
+        ("test_data/a/**/helloc.txt", 1, None, False),
+        ("test_data/a/**/hello{c,d}.txt", 1, None, True),
+        ("test_data/a/**/hello*.txt", 4, None, False),
+        ("test_data/a/**.txt", 1, None, False),
+        ("test_data/a/**5*.txt", 1, None, False),
+        ("test_data/a/**{.json,.txt}", 1, 0, False),
         ]:
 
       path = os.path.join(os.path.dirname(self.base_path), pattern)
@@ -481,11 +481,43 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
       if num_stat is not None:
         self.assertEqual(client_mock.action_counts.get("StatFile", 0), num_stat)
 
-      # Check for duplicate client calls.
-      for method in "StatFile", "Find":
-        stat_args = client_mock.recorded_args.get(method, [])
-        stat_paths = [c.pathspec.path for c in stat_args]
-        self.assertListEqual(sorted(stat_paths), sorted(set(stat_paths)))
+      if not duplicated_ok:
+        # Check for duplicate client calls. There might be duplicates that are
+        # very cheap when we look for a wildcard (* or **) first and later in
+        # the pattern for a group of files ({}).
+        for method in "StatFile", "Find":
+          stat_args = client_mock.recorded_args.get(method, [])
+          stat_paths = [c.pathspec.CollapsePath() for c in stat_args]
+          self.assertListEqual(sorted(stat_paths), sorted(set(stat_paths)))
+
+  def _CheckCasing(self, path, filename):
+    output_path = self.client_id.Add("fs/os").Add(os.path.join(
+        self.base_path, path))
+    fd = aff4.FACTORY.Open(output_path, token=self.token)
+    filenames = [urn.Basename() for urn in fd.ListChildren()]
+    self.assertTrue(filename in filenames)
+
+  def testGlobCaseCorrection(self):
+    # This should get corrected to "a/b/c/helloc.txt"
+    test_path = "a/B/c/helloC.txt"
+
+    self._RunGlob([os.path.join(self.base_path, test_path)])
+
+    self._CheckCasing("a", "b")
+    self._CheckCasing("a/b/c", "helloc.txt")
+
+    aff4.FACTORY.Delete(self.client_id.Add("fs/os").Add(self.base_path),
+                        token=self.token)
+
+    # Make sure this also works with *s in the glob.
+
+    # This should also get corrected to "a/b/c/helloc.txt"
+    test_path = "a/*/C/*.txt"
+
+    self._RunGlob([os.path.join(self.base_path, test_path)])
+
+    self._CheckCasing("a", "b")
+    self._CheckCasing("a/b", "c")
 
   def testDownloadDirectory(self):
     """Test a FileFinder flow with depth=1."""
@@ -709,3 +741,67 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
     self.assertNotEqual(fd.Read(10000), "")
     self.assertNotEqual(fd.Get(fd.Schema.SIZE), 0)
+
+  def testDiskVolumeInfoOSXLinux(self):
+    client_mock = test_lib.UnixVolumeClientMock("StatFile", "ListDirectory")
+    with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
+      for _ in test_lib.TestFlowHelper(
+          "DiskVolumeInfo", client_mock, client_id=self.client_id,
+          token=self.token, path_list=["/usr/local", "/home"]):
+        pass
+
+      results = []
+      for _, reply in send_reply.args:
+        if isinstance(reply, rdfvalue.Volume):
+          results.append(reply)
+
+      self.assertItemsEqual([x.unix.mount_point for x in results],
+                            ["/", "/usr"])
+      self.assertEqual(len(results), 2)
+
+  def testDiskVolumeInfoWindows(self):
+    client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
+    client.Set(client.Schema.SYSTEM("Windows"))
+    client.Flush()
+    vfs.VFS_HANDLERS[
+        rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.ClientRegistryVFSFixture
+
+    client_mock = test_lib.WindowsVolumeClientMock("StatFile", "ListDirectory")
+
+    with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
+      for _ in test_lib.TestFlowHelper(
+          "DiskVolumeInfo", client_mock, client_id=self.client_id,
+          token=self.token, path_list=[r"D:\temp\something", r"/var/tmp"]):
+        pass
+
+      results = []
+      for cls, reply in send_reply.args:
+        if isinstance(cls, filesystem.DiskVolumeInfo) and isinstance(
+            reply, rdfvalue.Volume):
+          results.append(reply)
+
+      # We asked for D and we guessed systemroot (C) for "/var/tmp", but only C
+      # and Z are present, so we should just get C.
+      self.assertItemsEqual([x.windows.drive_letter for x in results],
+                            ["C:"])
+      self.assertEqual(len(results), 1)
+
+    with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
+      for _ in test_lib.TestFlowHelper(
+          "DiskVolumeInfo", client_mock, client_id=self.client_id,
+          token=self.token, path_list=[r"Z:\blah"]):
+        pass
+
+      results = []
+      for cls, reply in send_reply.args:
+        if isinstance(cls, filesystem.DiskVolumeInfo) and isinstance(
+            reply, rdfvalue.Volume):
+          results.append(reply)
+
+      self.assertItemsEqual([x.windows.drive_letter for x in results],
+                            ["Z:"])
+      self.assertEqual(len(results), 1)
+
+
+
+

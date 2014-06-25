@@ -13,6 +13,9 @@ import subprocess
 import sys
 import zipfile
 
+
+import distorm3
+
 from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -113,6 +116,22 @@ class ClientBuilder(BuilderBase):
            self.spec_file]
     logging.info("Running pyinstaller: %s", cmd)
     subprocess.check_call(cmd)
+
+  def CopyMissingModules(self):
+    # Distorm has a stupid way of importing its library that PyInstaller cannot
+    # analyze. Thus, we copy that library manually.
+
+    # Similar to distorm3 __init__.py.
+    distorm_path = os.path.dirname(distorm3.__file__)
+    potential_libs = ["distorm3.dll", "libdistorm3.dll",
+                      "libdistorm3.so", "libdistorm3.dylib"]
+    for potential_lib in potential_libs:
+      try:
+        path = os.path.join(distorm_path, potential_lib)
+        shutil.copy(path, self.output_dir)
+        logging.info("Copying additional dll %s.", path)
+      except IOError:
+        pass
 
   def MakeExecutableTemplate(self):
     """Create the executable template.

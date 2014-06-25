@@ -82,6 +82,15 @@ class OSXInstaller(installer.Installer):
     new_config.Write()
     logging.info("Config file extracted successfully.")
 
+    logging.info("Extracting additional files.")
+
+    install_dir = os.path.dirname(config_lib.CONFIG.parser.filename)
+    for zinfo in zf.filelist:
+      basename = os.path.basename(zinfo.filename)
+      if basename != "config.yaml":
+        with open(os.path.join(install_dir, basename), "wb") as f:
+          f.write(zf.open(zinfo.filename).read())
+
   def Run(self):
     self.ExtractConfig()
     self.CopySystemCert()

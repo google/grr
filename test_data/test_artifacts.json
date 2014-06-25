@@ -2,11 +2,11 @@
   {
    "name": "TestAggregationArtifact",
     "collectors": [
-      { "action": "CollectArtifacts",
+      { "collector_type": "ARTIFACT",
         "args": { "artifact_list": ["TestOSAgnostic"] },
         "returned_types": ["Process"]
       },
-      { "action": "CollectArtifacts",
+      { "collector_type": "ARTIFACT",
         "args": { "artifact_list": [ "TestCmdArtifact" ]
         },
         "returned_types": [ "SoftwarePackage" ]
@@ -19,7 +19,7 @@
 
   { "name": "TestAggregationArtifactDeps",
     "collectors": [
-      { "action": "CollectArtifacts",
+      { "collector_type": "ARTIFACT",
         "args": { "artifact_list": [ "TestAggregationArtifact" ]
         },
         "returned_types": [ "Process" ]
@@ -32,7 +32,7 @@
 
   { "name": "TestCmdArtifact",
     "collectors": [
-      { "action": "RunCommand",
+      { "collector_type": "COMMAND",
         "args": { "cmd": "/usr/bin/dpkg",
                   "args": ["--list"]
         },
@@ -46,7 +46,7 @@
 
   { "name": "TestOSAgnostic",
     "collectors": [
-      { "action": "RunGrrClientAction",
+      { "collector_type": "GRR_CLIENT_ACTION",
         "args": { "client_action": {"GetHostname"}}
       },
     ],
@@ -57,7 +57,7 @@
 
   { "name": "TestFilesArtifact",
     "collectors": [
-      { "action": "GetFiles",
+      { "collector_type": "FILE",
         "args": { "path_list": ["/var/log/auth.log"] }
       }
     ],
@@ -78,7 +78,7 @@
 
   { "name": "BadPathspecArtifact",
     "collectors": [
-      { "action": "CollectArtifactFiles",
+      { "collector_type": "ARTIFACT_FILES",
         "args": { "artifact_list": [ "WindowsPersistenceMechanisms" ],
           "pathspec_attribute": "broken"
         },
@@ -92,7 +92,7 @@
 
   { "name": "DepsParent",
     "collectors": [
-      { "action": "GetFiles",
+      { "collector_type": "FILE",
         "args": { "path_list": ["/test/%%users.desktop%%"] }
       }
     ],
@@ -103,7 +103,7 @@
 
   { "name": "DepsDesktop",
     "collectors": [
-      { "action": "GetFiles",
+      { "collector_type": "FILE",
         "args": { "path_list": ["/test/%%users.homedir%%"] }
       }
     ],
@@ -115,7 +115,7 @@
 
   { "name": "DepsHomedir",
     "collectors": [
-      { "action": "GetFiles",
+      { "collector_type": "FILE",
         "args": { "path_list": ["/test/%%environ_windir%%/%%current_control_set%%"] }
       }
     ],
@@ -127,7 +127,7 @@
 
   { "name": "DepsHomedir2",
     "collectors": [
-      { "action": "GetFiles",
+      { "collector_type": "FILE",
         "args": { "path_list": ["/test/blah"] }
       }
     ],
@@ -139,7 +139,7 @@
 
   { "name": "DepsWindir",
     "collectors": [
-      { "action": "GetFiles",
+      { "collector_type": "FILE",
         "args": { "path_list": ["/test/%%current_control_set%%"] }
       }
     ],
@@ -151,7 +151,7 @@
 
   { "name": "DepsWindirRegex",
     "collectors": [
-      { "action": "Grep",
+      { "collector_type": "GREP",
         "args": { "path_list": ["/test/%%current_control_set%%"],
                   "content_regex_list": ["%%users.username%%"]}
       }
@@ -164,7 +164,7 @@
 
   { "name": "DepsControlSet",
     "collectors": [
-      { "action": "GetFiles",
+      { "collector_type": "FILE",
         "args": { "path_list": ["/test/controlset"] }
       }
     ],

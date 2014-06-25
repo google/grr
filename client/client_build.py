@@ -74,6 +74,9 @@ parser_deploy.add_argument("-p", "--plugins", default=[], nargs="+",
                            help="Additional python files that will be loaded "
                            "as custom plugins.")
 
+parser_deploy.add_argument("--debug_build", action="store_true", default=False,
+                           help="Create a debug client.")
+
 args = parser.parse_args()
 
 
@@ -157,6 +160,9 @@ def main(_):
   elif args.subparser_name == "deploy":
     if args.plugins:
       config_lib.CONFIG.Set("Client.plugins", args.plugins)
+
+    if args.debug_build:
+      context += ["DebugClientBuild Context"]
 
     deployer = GetDeployer(context)
     template_path = args.template or config_lib.CONFIG.Get(

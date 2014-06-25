@@ -175,8 +175,10 @@ class MySQLDataStore(data_store.DataStore):
       if start or end:
         query += " and age >= %s and age <= %s"
         args.append(start or 0)
-        mysql_unsinged_bigint_max = 18446744073709551615
-        args.append(end or mysql_unsinged_bigint_max)
+        mysql_unsigned_bigint_max = 18446744073709551615
+        if end is None:
+          end = mysql_unsigned_bigint_max
+        args.append(end)
 
       cursor.Execute(query, args)
 
@@ -208,6 +210,18 @@ class MySQLDataStore(data_store.DataStore):
       self.to_set = []
 
     self._MultiSet(to_set)
+
+  def Size(self):
+    database_name = config_lib.CONFIG["Mysql.database_name"]
+    query = ("SELECT table_schema, Sum(data_length + index_length) `size` "
+             "FROM information_schema.tables "
+             "WHERE table_schema = \"%s\" GROUP by table_schema" %
+             database_name)
+    with self.pool.GetConnection() as cursor:
+      result = cursor.Execute(query, [])
+      if len(result) != 1:
+        return -1
+      return int(result[0]["size"])
 
   def Escape(self, string):
     """Escape the string so it can be interpolated into an sql statement."""
@@ -414,7 +428,7 @@ class MySQLDataStore(data_store.DataStore):
     return MySQLTransaction(self, subject, lease_time=lease_time, token=token)
 
 
-class MySQLTransaction(data_store.Transaction):
+class MySQLTransaction(data_store.CommonTransaction):
   """The Mysql data store transaction object.
 
   This object does not aim to ensure ACID like consistently. We only ensure that
@@ -429,16 +443,13 @@ class MySQLTransaction(data_store.Transaction):
 
   def __init__(self, store, subject, lease_time=None, token=None):
     """Ensure we can take a lock on this subject."""
-    self.store = store
+    super(MySQLTransaction, self).__init__(store, subject,
+                                           lease_time=lease_time, token=token)
     if lease_time is None:
       lease_time = config_lib.CONFIG["Datastore.transaction_timeout"]
 
     self.lock_time = lease_time
-    self.token = token
-    self.subject = utils.SmartUnicode(subject)
     self.table_name = store.table_name
-    self.to_set = {}
-    self.to_delete = set()
     with store.pool.GetConnection() as connection:
       self.expires_lock = int((time.time() + self.lock_time) * 1e6)
 
@@ -486,38 +497,11 @@ class MySQLTransaction(data_store.Transaction):
 
     self.CheckForLock(connection, subject)
 
-  def DeleteAttribute(self, predicate):
-    self.to_delete.add(predicate)
-
-  def Resolve(self, predicate):
-    if predicate in self.to_set:
-      return sorted(self.to_set[predicate], key=lambda vt: vt[1])[-1]
-    if predicate in self.to_delete:
-      return None
-    return self.store.Resolve(self.subject, predicate, token=self.token)
-
-  def ResolveRegex(self, predicate_regex, timestamp=None):
-    # TODO(user): Retrieve values from to_set as well.
-    return self.store.ResolveRegex(self.subject, predicate_regex,
-                                   token=self.token, timestamp=timestamp)
-
-  def Set(self, predicate, value, timestamp=None, replace=True):
-    if replace:
-      self.to_delete.add(predicate)
-
-    if timestamp is None:
-      timestamp = int(time.time() * 1e6)
-
-    self.to_set.setdefault(predicate, []).append((value, timestamp))
-
   def Abort(self):
     self._RemoveLock()
 
   def Commit(self):
-    self.store.DeleteAttributes(self.subject, self.to_delete, sync=True,
-                                token=self.token)
-
-    self.store.MultiSet(self.subject, self.to_set, token=self.token)
+    super(MySQLTransaction, self).Commit()
     self._RemoveLock()
 
   def _RemoveLock(self):
@@ -529,9 +513,3 @@ class MySQLTransaction(data_store.Transaction):
           "attribute='transaction' and value_integer=%%s and hash=md5(%%s) and "
           "subject=%%s" % self.table_name,
           (self.expires_lock, self.subject, self.subject))
-
-  def __del__(self):
-    try:
-      self.Abort()
-    except Exception:  # This can raise on cleanup pylint: disable=broad-except
-      pass

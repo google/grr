@@ -218,17 +218,17 @@ class GetClientStats(actions.ActionPlugin):
   def Run(self, unused_arg):
     """Returns the client stats."""
     proc = psutil.Process(os.getpid())
-    meminfo = proc.get_memory_info()
+    meminfo = proc.memory_info()
     response = rdfvalue.ClientStats(
         RSS_size=meminfo[0],
         VMS_size=meminfo[1],
-        memory_percent=proc.get_memory_percent(),
+        memory_percent=proc.memory_percent(),
         bytes_received=stats.STATS.GetMetricValue(
             "grr_client_received_bytes"),
         bytes_sent=stats.STATS.GetMetricValue(
             "grr_client_sent_bytes"),
-        create_time=long(proc.create_time * 1e6),
-        boot_time=long(psutil.BOOT_TIME * 1e6))
+        create_time=long(proc.create_time() * 1e6),
+        boot_time=long(psutil.boot_time() * 1e6))
 
     samples = self.grr_worker.stats_collector.cpu_samples
     for (timestamp, user, system, percent) in samples:
@@ -279,7 +279,7 @@ class SendStartupInfo(actions.ActionPlugin):
     logging.debug("Sending startup information.")
 
     response = rdfvalue.StartupInfo(
-        boot_time=long(psutil.BOOT_TIME * 1e6),
+        boot_time=long(psutil.boot_time() * 1e6),
         client_info=GetClientInformation())
 
     self.grr_worker.SendReply(
