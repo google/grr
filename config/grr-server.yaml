@@ -23,9 +23,9 @@ Client.name: GRR
 
 Client.proxy_servers:
 
-Client.version_major: 2
+Client.version_major: 3
 
-Client.version_minor: 10
+Client.version_minor: 0
 
 Client.version_release: 0
 

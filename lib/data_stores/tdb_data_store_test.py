@@ -24,19 +24,16 @@ class TDBTestMixin(object):
   def InitTable(self):
     self.token = access_control.ACLToken(username="test",
                                          reason="Running tests")
-    data_store.DB = tdb_data_store.TDBDataStore()
-    data_store.DB.security_manager = test_lib.MockSecurityManager()
-
     config_lib.CONFIG.SetRaw("TDBDatastore.root_path",
                              "%s/tdb_test/" % self.temp_dir)
-
-    # Start with a fresh data store each time.
-    tdb_data_store.TDB_CACHE.Flush()
 
     try:
       shutil.rmtree(config_lib.CONFIG.Get("TDBDatastore.root_path"))
     except (OSError, IOError):
       pass
+
+    data_store.DB = tdb_data_store.TDBDataStore()
+    data_store.DB.security_manager = test_lib.MockSecurityManager()
 
   def testCorrectDataStore(self):
     self.assertTrue(isinstance(data_store.DB, tdb_data_store.TDBDataStore))

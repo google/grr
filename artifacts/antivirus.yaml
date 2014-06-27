@@ -10,6 +10,7 @@ collectors:
 - collector_type: FILE
   args: {path_list: ['/Library/Logs/Sophos*.log']}
   supported_os: [Darwin]
+supported_os: [Windows, Darwin]
 labels: [Antivirus, Logs]
 ---
 name: SophosAVQuarantine
@@ -19,8 +20,9 @@ collectors:
   args: {path_list: ['%%environ_allusersappdata%%\Sophos\Sophos Anti-Virus\INFECTED\*']}
   supported_os: [Windows]
 - collector_type: FILE
-  args: {path_list: ['/Users/Shared/Infected']}
+  args: {path_list: ['/Users/Shared/Infected/*']}
   supported_os: [Darwin]
+supported_os: [Windows, Darwin]
 labels: [Antivirus]
 ---
 name: MicrosoftAVQuarantine
@@ -28,5 +30,13 @@ doc: Microsoft Anti-Virus Quarantine (Infected) files.
 collectors:
 - collector_type: FILE
   args: {path_list: ['%%environ_systemdrive%%\ProgramData\Microsoft\Microsoft Antimalware\Quarantine\**3']}
-  supported_os: [Windows]
+supported_os: [Windows]
+labels: [Antivirus]
+---
+name: EsetAVQuarantine
+doc: Eset Anti-Virus Quarantine (Infected) files.
+collectors:
+- collector_type: FILE
+  args: {path_list: ['/Library/Application Support/ESET/esets/cache/quarantine/*']}
+supported_os: [Darwin]
 labels: [Antivirus]

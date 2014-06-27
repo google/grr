@@ -9,6 +9,9 @@ from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.flows.general import filesystem
+from grr.lib.flows.general import fingerprint
+from grr.lib.flows.general import transfer
 from grr.proto import flows_pb2
 
 
@@ -56,7 +59,10 @@ class FileFinderResult(rdfvalue.RDFProtoStruct):
   protobuf = flows_pb2.FileFinderResult
 
 
-class FileFinder(flow.GRRFlow):
+class FileFinder(transfer.MultiGetFileMixin,
+                 fingerprint.FingerprintFileMixin,
+                 filesystem.GlobMixin,
+                 flow.GRRFlow):
   """This flow looks for files matching given criteria and acts on them.
 
   FileFinder searches for files that match glob expressions.  The "action"
@@ -98,10 +104,11 @@ class FileFinder(flow.GRRFlow):
         condition_options.condition_type]
     return condition_weight
 
-  @flow.StateHandler(next_state=["ProcessConditions"])
+  @flow.StateHandler()
   def Start(self):
     """Issue the find request."""
-    self.state.Register("files_to_fetch", [])
+    super(FileFinder, self).Start()
+
     self.state.Register("files_found", 0)
     self.state.Register("sorted_conditions",
                         sorted(self.args.conditions, key=self._ConditionWeight))
@@ -114,231 +121,178 @@ class FileFinder(flow.GRRFlow):
     if self.args.pathtype == rdfvalue.PathSpec.PathType.MEMORY:
       # If pathtype is MEMORY, we're treating provided paths not as globs,
       # but as paths to memory devices.
-      memory_devices = []
       for path in self.args.paths:
         pathspec = rdfvalue.PathSpec(
             path=utils.SmartUnicode(path),
             pathtype=rdfvalue.PathSpec.PathType.MEMORY)
+
         aff4path = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
             pathspec, self.client_id)
+
         stat_entry = rdfvalue.StatEntry(aff4path=aff4path, pathspec=pathspec)
-        memory_devices.append(stat_entry)
+        self.ApplyCondition(rdfvalue.FileFinderResult(stat_entry=stat_entry),
+                            condition_index=0)
 
-      self.CallStateInline(messages=memory_devices,
-                           next_state="ProcessConditions")
     else:
-      self.CallFlow("Glob", next_state="ProcessConditions",
-                    paths=self.args.paths, pathtype=self.args.pathtype,
-                    no_file_type_check=self.args.no_file_type_check)
+      self.GlobForPaths(self.args.paths, pathtype=self.args.pathtype)
 
-  @flow.StateHandler(next_state=["ApplyCondition"])
-  def ProcessConditions(self, responses):
-    """Iterate through glob responses, and filter each hit."""
-    if not responses.success:
-      # Glob failing is fatal here.
-      return self.Error("Failed Glob: %s", responses.status)
+  def GlobReportMatch(self, response):
+    """This method is called by the glob mixin when there is a match."""
+    super(FileFinder, self).GlobReportMatch(response)
 
-    results = []
-    for response in responses:
-      # Only process regular files.
-      if self.args.no_file_type_check or stat.S_ISREG(response.st_mode):
-        results.append(rdfvalue.FileFinderResult(stat_entry=response))
+    # Only process regular files.
+    if self.args.no_file_type_check or stat.S_ISREG(response.st_mode):
+      self.ApplyCondition(rdfvalue.FileFinderResult(stat_entry=response),
+                          condition_index=0)
 
-    self.CallStateInline(messages=results, next_state="ApplyCondition",
-                         request_data=dict(condition_index=0))
-
-  def ModificationTimeCondition(self, responses, condition_options,
+  def ModificationTimeCondition(self, response, condition_options,
                                 condition_index):
     """Applies modification time condition to responses."""
-    results = []
-    for response in responses:
-      settings = condition_options.modification_time
-      if (settings.min_last_modified_time.AsSecondsFromEpoch() <=
-          response.stat_entry.st_mtime <=
-          settings.max_last_modified_time.AsSecondsFromEpoch()):
-        results.append(response)
+    settings = condition_options.modification_time
+    if (settings.min_last_modified_time.AsSecondsFromEpoch() <=
+        response.stat_entry.st_mtime <=
+        settings.max_last_modified_time.AsSecondsFromEpoch()):
 
-    self.CallStateInline(messages=results, next_state="ApplyCondition",
-                         request_data=dict(condition_index=condition_index + 1))
+      self.ApplyCondition(response, condition_index + 1)
 
-  def AccessTimeCondition(self, responses, condition_options, condition_index):
+  def AccessTimeCondition(self, response, condition_options, condition_index):
     """Applies access time condition to responses."""
-    results = []
-    for response in responses:
-      settings = condition_options.access_time
-      if (settings.min_last_access_time.AsSecondsFromEpoch() <=
-          response.stat_entry.st_atime <=
-          settings.max_last_access_time.AsSecondsFromEpoch()):
-        results.append(response)
+    settings = condition_options.access_time
+    if (settings.min_last_access_time.AsSecondsFromEpoch() <=
+        response.stat_entry.st_atime <=
+        settings.max_last_access_time.AsSecondsFromEpoch()):
+      self.ApplyCondition(response, condition_index + 1)
 
-    self.CallStateInline(messages=results, next_state="ApplyCondition",
-                         request_data=dict(condition_index=condition_index + 1))
-
-  def InodeChangeTimeCondition(self, responses, condition_options,
+  def InodeChangeTimeCondition(self, response, condition_options,
                                condition_index):
     """Applies inode change time condition to responses."""
-    results = []
-    for response in responses:
-      settings = condition_options.inode_change_time
-      if (settings.min_last_inode_change_time.AsSecondsFromEpoch() <=
-          response.stat_entry.st_ctime <=
-          settings.max_last_inode_change_time.AsSecondsFromEpoch()):
-        results.append(response)
+    settings = condition_options.inode_change_time
+    if (settings.min_last_inode_change_time.AsSecondsFromEpoch() <=
+        response.stat_entry.st_ctime <=
+        settings.max_last_inode_change_time.AsSecondsFromEpoch()):
+      self.ApplyCondition(response, condition_index + 1)
 
-    self.CallStateInline(messages=results, next_state="ApplyCondition",
-                         request_data=dict(condition_index=condition_index + 1))
-
-  def SizeCondition(self, responses, condition_options, condition_index):
+  def SizeCondition(self, response, condition_options, condition_index):
     """Applies size condition to responses."""
-    results = []
-    for response in responses:
-      if (condition_options.size.min_file_size <=
-          response.stat_entry.st_size <=
-          condition_options.size.max_file_size):
-        results.append(response)
+    if (condition_options.size.min_file_size <=
+        response.stat_entry.st_size <=
+        condition_options.size.max_file_size):
+      self.ApplyCondition(response, condition_index + 1)
 
-    self.CallStateInline(messages=results, next_state="ApplyCondition",
-                         request_data=dict(condition_index=condition_index + 1))
-
-  def ContentsRegexMatchCondition(self, responses, condition_options,
+  def ContentsRegexMatchCondition(self, response, condition_options,
                                   condition_index):
     """Applies contents regex condition to responses."""
     options = condition_options.contents_regex_match
-    for response in responses:
-      grep_spec = rdfvalue.GrepSpec(
-          target=response.stat_entry.pathspec,
-          regex=options.regex,
-          mode=options.mode,
-          start_offset=options.start_offset,
-          length=options.length,
-          bytes_before=options.bytes_before,
-          bytes_after=options.bytes_after)
+    grep_spec = rdfvalue.GrepSpec(
+        target=response.stat_entry.pathspec,
+        regex=options.regex,
+        mode=options.mode,
+        start_offset=options.start_offset,
+        length=options.length,
+        bytes_before=options.bytes_before,
+        bytes_after=options.bytes_after)
 
-      self.CallClient(
-          "Grep", request=grep_spec, next_state="ApplyCondition",
-          request_data=dict(
-              original_result=response,
-              condition_index=condition_index + 1))
+    self.CallClient(
+        "Grep", request=grep_spec, next_state="ProcessGrep",
+        request_data=dict(
+            original_result=response,
+            condition_index=condition_index + 1))
 
-  def ContentsLiteralMatchCondition(self, responses, condition_options,
+  def ContentsLiteralMatchCondition(self, response, condition_options,
                                     condition_index):
     """Applies literal match condition to responses."""
     options = condition_options.contents_literal_match
+    grep_spec = rdfvalue.GrepSpec(
+        target=response.stat_entry.pathspec,
+        literal=options.literal,
+        mode=options.mode,
+        start_offset=options.start_offset,
+        length=options.length,
+        bytes_before=options.bytes_before,
+        bytes_after=options.bytes_after,
+        xor_in_key=options.xor_in_key,
+        xor_out_key=options.xor_out_key)
+
+    self.CallClient(
+        "Grep", request=grep_spec, next_state="ProcessGrep",
+        request_data=dict(
+            original_result=response,
+            condition_index=condition_index + 1))
+
+  @flow.StateHandler()
+  def ProcessGrep(self, responses):
     for response in responses:
-      grep_spec = rdfvalue.GrepSpec(
-          target=response.stat_entry.pathspec,
-          literal=options.literal,
-          mode=options.mode,
-          start_offset=options.start_offset,
-          length=options.length,
-          bytes_before=options.bytes_before,
-          bytes_after=options.bytes_after,
-          xor_in_key=options.xor_in_key,
-          xor_out_key=options.xor_out_key)
+      if "original_result" not in responses.request_data:
+        raise RuntimeError("Got a buffer reference, but original result "
+                           "is missing")
 
-      self.CallClient(
-          "Grep", request=grep_spec, next_state="ApplyCondition",
-          request_data=dict(
-              original_result=response,
-              condition_index=condition_index + 1))
+      condition_index = responses.request_data["condition_index"]
+      original_result = responses.request_data["original_result"]
+      original_result.matches.append(response)
 
-  @flow.StateHandler(next_state=["ProcessAction", "ApplyCondition"])
-  def ApplyCondition(self, responses):
-    """Applies next condition to responses or calls ProcessAction."""
-    # We filtered out everything, no need to continue
-    if not responses:
-      return
+      self.ApplyCondition(original_result, condition_index)
 
-    messages = []
-    for response in responses:
-      if isinstance(response, rdfvalue.BufferReference):
-        if "original_result" not in responses.request_data:
-          raise RuntimeError("Got a buffer reference, but original result "
-                             "is missing")
-
-        if not messages:
-          messages.append(responses.request_data["original_result"])
-
-        messages[0].matches.append(response)
-      else:
-        messages.append(response)
-
-    condition_index = responses.request_data["condition_index"]
-
+  def ApplyCondition(self, response, condition_index):
+    """Applies next condition to responses."""
     if condition_index >= len(self.state.sorted_conditions):
-      self.CallStateInline(messages=messages, next_state="ProcessAction")
+      # All conditions satisfied, do the action now.
+      self.ProcessAction(response)
+
     else:
+      # Apply the next condition handler.
       condition_options = self.state.sorted_conditions[condition_index]
       condition_handler, _ = self.condition_handlers[
           condition_options.condition_type]
-      condition_handler(messages, condition_options, condition_index)
 
-  @flow.StateHandler(next_state=["HandleFingerprintResults", "Done"])
-  def ProcessAction(self, responses):
+      condition_handler(response, condition_options, condition_index)
+
+  def ProcessAction(self, response):
     """Applies action specified by user to responses."""
-    self.state.files_found += len(responses)
+    self.state.files_found += 1
 
     action = self.state.args.action.action_type
+
     # For stat and download we can sendreply now, for hash we need to call
     # fingerprint file first.
     if action != rdfvalue.FileFinderAction.Action.HASH:
-      for response in responses:
-        self.SendReply(response)
+      self.SendReply(response)
 
     if action == rdfvalue.FileFinderAction.Action.STAT:
-      self.StatAction(responses)
+      # No need to do anything here, we already have StatEntries for all the
+      # files
+      pass
+
     elif action == rdfvalue.FileFinderAction.Action.HASH:
-      self.HashAction(responses)
+      self.FingerprintFile(response.stat_entry.pathspec,
+                           request_data=dict(original_result=response))
+
     elif action == rdfvalue.FileFinderAction.Action.DOWNLOAD:
-      self.DownloadAction(responses)
-
-  def StatAction(self, responses):
-    # No need to do anything here, we already have StatEntries for all the files
-    pass
-
-  def HashAction(self, responses):
-    """Calls FingerprintFile for every response."""
-    for response in responses:
-      self.CallFlow("FingerprintFile", pathspec=response.stat_entry.pathspec,
-                    request_data=dict(original_result=response),
-                    next_state="HandleFingerprintResults")
-
-  def DownloadAction(self, responses):
-    """Downloads files corresponding to all the responses."""
-    files_to_fetch = []
-
-    for response in responses:
       # If the binary is too large we just ignore it.
       file_size = response.stat_entry.st_size
       if file_size > self.args.action.download.max_size:
         self.Log("%s too large to fetch. Size=%d",
                  response.stat_entry.pathspec.CollapsePath(), file_size)
       else:
-        files_to_fetch.append(response.stat_entry.pathspec)
+        pathspec = response.stat_entry.pathspec
+        vfs_urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
+            pathspec, self.client_id)
 
-    if files_to_fetch:
-      use_stores = self.args.action.download.use_external_stores
-      self.CallFlow(
-          "MultiGetFile", pathspecs=files_to_fetch,
-          use_external_stores=use_stores, next_state="Done")
+        self.StartFile(pathspec, vfs_urn)
 
-  @flow.StateHandler(next_state=["Done"])
-  def HandleFingerprintResults(self, responses):
-    """Handle hash results."""
-    if "original_result" in responses.request_data:
-      result = responses.request_data["original_result"]
-      result.hash_entry = responses.First().hash_entry
+  def ReceiveFileFingerprint(self, urn, hash_obj, request_data=None):
+    """Handle hash results from the FingerprintFileMixin."""
+    if "original_result" in request_data:
+      result = request_data["original_result"]
+      result.hash_entry = hash_obj
       self.SendReply(result)
     else:
       raise RuntimeError("Got a fingerprintfileresult, but original result "
                          "is missing")
 
   @flow.StateHandler()
-  def Done(self, responses):
-    pass
-
-  @flow.StateHandler()
   def End(self, responses):
+    super(FileFinder, self).End()
+
     self.Log("Found and processed %d files.", self.state.files_found)
     if self.runner.output is not None:
       urn = self.runner.output.urn

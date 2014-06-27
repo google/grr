@@ -326,9 +326,12 @@ class FlowTest(test_lib.FlowTestsBaseclass):
 
   def testBrokenFlow(self):
     """Check that flows which call to incorrect states raise."""
-    self.assertRaises(flow_runner.FlowRunnerError, flow.GRRFlow.StartFlow,
-                      client_id=self.client_id, flow_name="BrokenFlow",
-                      token=self.token)
+    client_mock = test_lib.ActionMock("ReadBuffer")
+    with self.assertRaises(RuntimeError):
+      for _ in test_lib.TestFlowHelper(
+          "BrokenFlow", client_mock, client_id=self.client_id,
+          check_flow_errors=True, token=self.token):
+        pass
 
   def SendMessages(self, response_ids, session_id, authenticated=True):
     """Send messages to the flow."""

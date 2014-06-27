@@ -74,6 +74,14 @@ class TestAnalyzeClientMemory(base.AutomatedTest):
     # We are running a test but we want to use the real profile server.
     config_lib.CONFIG.Set("Rekall.profile_server", "GRRRekallProfileServer")
 
+    self.setUpRequest()
+
+    # RDFValueCollections need to be deleted recursively.
+    aff4.FACTORY.Delete(self.client_id.Add(self.test_output_path),
+                        token=self.token)
+    super(TestAnalyzeClientMemory, self).setUp()
+
+  def setUpRequest(self):
     windows_binary_name = config_lib.CONFIG.Get(
         "Client.binary_name", context=["Client context", "Platform:Windows"])
 
@@ -86,11 +94,6 @@ class TestAnalyzeClientMemory(base.AutomatedTest):
                                    )),
         rdfvalue.PluginRequest(plugin="modules"),
         ]
-
-    # RDFValueCollections need to be deleted recursively.
-    aff4.FACTORY.Delete(self.client_id.Add(self.test_output_path),
-                        token=self.token)
-    super(TestAnalyzeClientMemory, self).setUp()
 
   def tearDown(self):
     # RDFValueCollections need to be deleted recursively.
@@ -124,11 +127,13 @@ class TestAnalyzeClientMemory(base.AutomatedTest):
 
 
 class TestAnalyzeClientMemoryMac(TestAnalyzeClientMemory):
+  """Runs Rekall on Macs."""
+
   platforms = ["Darwin"]
-  test_output_path = "analysis/memory"
-  args = {"request": rdfvalue.RekallRequest(
-      plugins=[rdfvalue.PluginRequest(plugin="pslist")]),
-          "output": test_output_path}
+
+  def setUpRequest(self):
+    self.args["request"].plugins = [
+        rdfvalue.PluginRequest(plugin="pslist")]
 
   def CheckFlow(self):
     response = aff4.FACTORY.Open(self.client_id.Add(self.test_output_path),

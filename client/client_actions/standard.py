@@ -281,6 +281,7 @@ class HashFile(ListDirectory):
         if not data: break
 
         hasher.update(data)
+        self.Progress()
 
     except (IOError, OSError), e:
       self.SetStatus(rdfvalue.GrrStatus.ReturnedStatus.IOERROR, e)

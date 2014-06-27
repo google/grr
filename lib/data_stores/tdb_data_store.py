@@ -28,6 +28,9 @@ from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.data_stores import common
+
+TDB_SEPARATOR = "\x00"
 
 
 class TDBIndex(rdfvalue.RDFBytes):
@@ -43,7 +46,7 @@ class TDBIndex(rdfvalue.RDFBytes):
 
     # The index is always a byte string, but we read and write unicode objects
     # to it.
-    self.index = set(self._value.split("\x00"))
+    self.index = set(self._value.split(TDB_SEPARATOR))
     self.index.discard("")
     self._dirty = False
 
@@ -63,7 +66,7 @@ class TDBIndex(rdfvalue.RDFBytes):
 
   def __exit__(self, exc_type, exc_value, traceback):
     if self._dirty:
-      self._value = "\x00".join(self.index)
+      self._value = TDB_SEPARATOR.join(self.index)
       self.context.Put(self._value, *self.parts)
 
   def __len__(self):
@@ -79,33 +82,16 @@ class TDBContextCache(utils.FastStore):
   def KillObject(self, obj):
     obj.Close()
 
-  def _ConvertSubjectToFilename(self, subject):
-    """Converts a subject to a filesystem safe filename.
-
-    For maximum compatibility we escape all chars which are not alphanumeric (in
-    the unicode sense).
-
-    Args:
-     subject: a unicode subject.
-
-    Returns:
-      A safe filename with escaped special chars.
-    """
-    result = re.sub(
-        r"\W", lambda x: "%%%02X" % ord(x.group(0)),
-        utils.SmartUnicode(subject), flags=re.UNICODE).rstrip("/")
-
-    # Some filesystems are not able to represent unicode chars.
-    return utils.SmartStr(result)
-
   @utils.Synchronized
   def Get(self, subject):
     """This will create the object if needed so should not fail."""
+    subject = common.ResolveSubjectDestination(subject)
     try:
       return super(TDBContextCache, self).Get(subject)
     except KeyError:
-      subject_path = utils.JoinPath(config_lib.CONFIG["TDBDatastore.root_path"],
-                                    self._ConvertSubjectToFilename(subject))
+      root_path = config_lib.CONFIG["TDBDatastore.root_path"]
+      filename = common.ConvertStringToFilename(subject)
+      subject_path = utils.JoinPath(root_path, filename)
       filename = subject_path + ".tdb"
       try:
         context = TDBContext(filename)
@@ -123,11 +109,6 @@ class TDBContextCache(utils.FastStore):
       return context
 
 
-# A cache of tdb contexts. It is slightly faster to reuse contexts than to open
-# the tdb all the time.
-TDB_CACHE = TDBContextCache(100)
-
-
 class TDBContext(object):
   """A wrapper around the raw tdb context."""
 
@@ -137,24 +118,23 @@ class TDBContext(object):
                             flags=os.O_CREAT|os.O_RDWR)
     self.lock = threading.RLock()
 
+  def _MakeKey(self, parts):
+    # TDB can only handle strings here.
+    return TDB_SEPARATOR.join([utils.SmartStr(part) for part in parts])
+
   @utils.Synchronized
   def Get(self, *parts):
-    parts = [utils.SmartStr(part) for part in parts]
-
-    # TDB can only handle strings here.
-    return self.context.get("\x00".join(parts))
+    return self.context.get(self._MakeKey(parts))
 
   @utils.Synchronized
   def Put(self, value, *parts):
     # TDB can only handle binary strings here.
-    parts = [utils.SmartStr(x) for x in parts]
-    self.context.store("\x00".join(parts), utils.SmartStr(value))
+    self.context.store(self._MakeKey(parts), utils.SmartStr(value))
 
+  @utils.Synchronized
   def Delete(self, *parts):
-    parts = [utils.SmartStr(part) for part in parts]
     try:
-      # TDB can only handle strings here.
-      self.context.delete("\x00".join(parts))
+      self.context.delete(self._MakeKey(parts))
     except RuntimeError:
       pass
 
@@ -173,26 +153,30 @@ class TDBContext(object):
     self.context.close()
     self.context = None
 
+  def PrettyPrint(self):
+    """Pretty print the entire tdb database."""
+    for key in self.context:
+      value = self.context.get(key)
+      if value.endswith("index"):
+        value = TDBIndex(value)
 
-def TDBPrettyPrint(tdb_context):
-  """Pretty print the entire tdb database."""
-  for key in tdb_context.context:
-    value = tdb_context.context.get(key)
-    if value.endswith("index"):
-      value = TDBIndex(value)
-
-    print "Key: %s" % key
-    print "Value: %s" % value
-    print "-------------------------"
+      print "Key: %s" % key
+      print "Value: %s" % value
+      print "-------------------------"
 
 
 class TDBDataStore(data_store.DataStore):
   """A file based data store using the Samba project's trivial database."""
   INDEX_SUFFIX = "index"
 
+  cache = None
+
   def __init__(self):
     self._CalculateAttributeStorageTypes()
     super(TDBDataStore, self).__init__()
+    # A cache of tdb contexts. It is slightly faster to reuse contexts than
+    # to open the tdb all the time.
+    self.cache = TDBContextCache(100)
 
   def _CalculateAttributeStorageTypes(self):
     """Build a mapping between column names and types.
@@ -236,7 +220,7 @@ class TDBDataStore(data_store.DataStore):
     if to_delete is None:
       to_delete = []
 
-    with TDB_CACHE.Get(subject) as tdb_context:
+    with self.cache.Get(subject) as tdb_context:
       with TDBIndex(subject, self.INDEX_SUFFIX,
                     context=tdb_context) as attribute_index:
 
@@ -273,7 +257,7 @@ class TDBDataStore(data_store.DataStore):
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
     _ = sync
 
-    with TDB_CACHE.Get(subject) as tdb_context:
+    with self.cache.Get(subject) as tdb_context:
       with TDBIndex(subject, self.INDEX_SUFFIX,
                     context=tdb_context) as attribute_index:
         if start is None and end is None:
@@ -309,7 +293,7 @@ class TDBDataStore(data_store.DataStore):
     """Deletes attributes using one or more regular expressions."""
     matching_attributes = []
 
-    with TDB_CACHE.Get(subject) as tdb_context:
+    with self.cache.Get(subject) as tdb_context:
       with TDBIndex(subject, self.INDEX_SUFFIX,
                     context=tdb_context) as attribute_index:
         for regex in regexes:
@@ -322,11 +306,13 @@ class TDBDataStore(data_store.DataStore):
   def DeleteSubject(self, subject, token=None):
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
 
-    # Deleting the subject means removing the entire tdb file.
-    with TDB_CACHE.Get(subject) as tdb_context:
-      filename = tdb_context.filename
-      TDB_CACHE.ExpireObject(subject)
-      os.unlink(utils.SmartStr(filename))
+    with self.cache.Get(subject) as tdb_context:
+      with TDBIndex(subject, self.INDEX_SUFFIX,
+                    context=tdb_context) as attribute_index:
+        for attribute in attribute_index:
+          self._DeleteAttribute(subject, attribute, tdb_context)
+        # Delete attribute index.
+        tdb_context.Delete(subject, self.INDEX_SUFFIX)
 
   def MultiResolveRegex(self, subjects, predicate_regex, token=None,
                         timestamp=None, limit=None):
@@ -351,8 +337,8 @@ class TDBDataStore(data_store.DataStore):
 
   def DumpTDBDatabase(self, subject, token=None):
     self.security_manager.CheckDataStoreAccess(token, [subject], "r")
-    with TDB_CACHE.Get(subject) as tdb_context:
-      TDBPrettyPrint(tdb_context)
+    with self.cache.Get(subject) as tdb_context:
+      tdb_context.PrettyPrint()
 
   def ResolveRegex(self, subject, predicate_regex, token=None,
                    timestamp=None, limit=None):
@@ -366,7 +352,7 @@ class TDBDataStore(data_store.DataStore):
     # are lists of timestamped data.
     results = []
 
-    with TDB_CACHE.Get(subject) as tdb_context:
+    with self.cache.Get(subject) as tdb_context:
       nr_results = 0
       for regex in predicate_regex:
         regex = re.compile(regex)
@@ -394,7 +380,7 @@ class TDBDataStore(data_store.DataStore):
     # are lists of timestamped data.
     results = []
 
-    with TDB_CACHE.Get(subject) as tdb_context:
+    with self.cache.Get(subject) as tdb_context:
       attribute_index = TDBIndex(subject, self.INDEX_SUFFIX,
                                  context=tdb_context)
       for predicate in predicates:
@@ -501,21 +487,22 @@ class TDBTransaction(data_store.CommonTransaction):
     super(TDBTransaction, self).__init__(store, utils.SmartUnicode(subject),
                                          lease_time=lease_time, token=token)
 
+    self.lock_key = utils.SmartUnicode(self.subject) + "_lock"
+    if lease_time is None:
+      lease_time = config_lib.CONFIG["Datastore.transaction_timeout"]
+
     # Note that we have the luxury of real file locking here so this will block
     # until we obtain the lock.
-    with TDB_CACHE.Get(self.subject) as tdb_context:
-      locked_until = tdb_context.Get("lock")
+    with store.cache.Get(self.subject) as tdb_context:
+      locked_until = tdb_context.Get(self.lock_key)
 
       # This is currently locked by another thread.
       if locked_until and time.time() < float(locked_until):
         raise data_store.TransactionError("Subject %s is locked" % subject)
 
       # Subject is not locked, we take a lease on it.
-      if lease_time is None:
-        lease_time = config_lib.CONFIG["Datastore.transaction_timeout"]
-
       self.expires = time.time() + lease_time
-      tdb_context.Put(self.expires, "lock")
+      tdb_context.Put(self.expires, self.lock_key)
       self.locked = True
 
   def CheckLease(self):
@@ -523,9 +510,9 @@ class TDBTransaction(data_store.CommonTransaction):
 
   def UpdateLease(self, duration):
     self.expires = time.time() + duration
-    with TDB_CACHE.Get(self.subject) as tdb_context:
+    with self.store.cache.Get(self.subject) as tdb_context:
       self.expires = time.time() + duration
-      tdb_context.Put(self.expires, "lock")
+      tdb_context.Put(self.expires, self.lock_key)
 
   def Abort(self):
     if self.locked:
@@ -537,7 +524,7 @@ class TDBTransaction(data_store.CommonTransaction):
       self._RemoveLock()
 
   def _RemoveLock(self):
-    with TDB_CACHE.Get(self.subject) as tdb_context:
-      tdb_context.Delete("lock")
+    with self.store.cache.Get(self.subject) as tdb_context:
+      tdb_context.Delete(self.lock_key)
 
     self.locked = False

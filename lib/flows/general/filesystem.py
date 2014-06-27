@@ -504,19 +504,67 @@ class GlobArgs(rdfvalue.RDFProtoStruct):
     self.paths.Validate()
 
 
-class Glob(flow.GRRFlow):
-  """Glob the filesystem for patterns.
+class GlobMixin(object):
+  """A MixIn to implement the glob functionality."""
 
-  Returns:
-    StatResponse messages, one for each matching file.
-  """
+  def GlobForPaths(self, paths, pathtype="OS", root_path=None):
+    """Starts the Glob.
 
-  args_type = GlobArgs
+    This is the main entry point for this flow mixin.
 
-  def ReportMatch(self, stat_response):
+    First we convert the pattern into regex components, and then we
+    interpolate each component. Finally, we generate a cartesian product of all
+    combinations.
+
+    Args:
+      paths: A list of GlobExpression instances.
+      pathtype: The pathtype to use for creating pathspecs.
+      root_path: A pathspec where to start searching from.
+    """
+    patterns = []
+
+    client = aff4.FACTORY.Open(self.client_id, token=self.token)
+
+    # Transform the patterns by substitution of client attributes. When the
+    # client has multiple values for an attribute, this generates multiple
+    # copies of the pattern, one for each variation. e.g.:
+    # /home/%%Usernames%%/* -> [ /home/user1/*, /home/user2/* ]
+    for path in paths:
+      patterns.extend(path.Interpolate(client=client))
+
+    # Expand each glob pattern into a list of components. A component is either
+    # a wildcard or a literal component.
+    # e.g. /usr/lib/*.exe -> ['/usr/lib', '.*.exe']
+
+    # We build a tree for each component such that duplicated components are
+    # merged. We do not need to reissue the same client requests for the same
+    # components. For example, the patterns:
+    # '/home/%%Usernames%%*' -> {'/home/': {
+    #      'syslog.*\\Z(?ms)': {}, 'test.*\\Z(?ms)': {}}}
+    # Note: The component tree contains serialized pathspecs in dicts.
+    for pattern in patterns:
+      # The root node.
+      node = self.state.component_tree
+
+      for component in self.ConvertGlobIntoPathComponents(pattern):
+        node = node.setdefault(component.SerializeToString(), {})
+
+    # Process the component tree from the root.
+    root = rdfvalue.StatEntry()
+    root.pathspec = root_path
+    if not root.pathspec:
+      root.pathspec.path = "/"
+
+    # root_path.pathtype overridden by user-settable args.pathtype
+    root.pathspec.pathtype = pathtype
+
+    self.CallStateInline(messages=[root], next_state="ProcessEntry",
+                         request_data=dict(component_path=[]))
+
+  def GlobReportMatch(self, stat_response):
     """Called when we've found a matching a StatEntry."""
+    # By default write the stat_response to the AFF4 VFS.
     CreateAFF4Object(stat_response, self.client_id, self.token)
-    self.SendReply(stat_response)
 
   # A regex indicating if there are shell globs in this path.
   GLOB_MAGIC_CHECK = re.compile("[*?[]")
@@ -576,52 +624,10 @@ class Glob(flow.GRRFlow):
 
     return components
 
-  @flow.StateHandler(next_state="ProcessEntry")
-  def Start(self):
-    """Starts the Glob.
-
-    First we convert the pattern into regex components, and then we
-    interpolate each component. Finally, we generate a cartesian product of all
-    combinations.
-    """
+  @flow.StateHandler()
+  def Start(self, **_):
+    super(GlobMixin, self).Start()
     self.state.Register("component_tree", {})
-    patterns = []
-
-    client = aff4.FACTORY.Open(self.client_id, token=self.token)
-
-    # Transform the patterns by substitution of client attributes. When the
-    # client has multiple values for an attribute, this generates multiple
-    # copies of the pattern, one for each variation. e.g.:
-    # /home/%%Usernames%%/* -> [ /home/user1/*, /home/user2/* ]
-    for path in self.state.args.paths:
-      patterns.extend(path.Interpolate(client=client))
-
-    # Expand each glob pattern into a list of components. A component is either
-    # a wildcard or a literal component.
-    # e.g. /usr/lib/*.exe -> ['/usr/lib', '.*.exe']
-
-    # We build a tree for each component such that duplicated components are
-    # merged. We do not need to reissue the same client requests for the same
-    # components. For example, the patterns:
-    # '/home/%%Usernames%%*' -> {'/home/': {
-    #      'syslog.*\\Z(?ms)': {}, 'test.*\\Z(?ms)': {}}}
-    # Note: The component tree contains serialized pathspecs in dicts.
-    for pattern in patterns:
-      # The root node.
-      node = self.state.component_tree
-
-      for component in self.ConvertGlobIntoPathComponents(pattern):
-        node = node.setdefault(component.SerializeToString(), {})
-
-    # Process the component tree from the root.
-    root = rdfvalue.StatEntry()
-    root.pathspec = self.state.args.root_path
-    if not root.pathspec:
-      root.pathspec.path = "/"
-    # root_path.pathtype overridden by user-settable args.pathtype
-    root.pathspec.pathtype = self.state.args.pathtype
-    self.CallStateInline(messages=[root], next_state="ProcessEntry",
-                         request_data=dict(component_path=[]))
 
   def FindNode(self, component_path):
     """Find the node in the component_tree from component_path.
@@ -641,6 +647,7 @@ class Glob(flow.GRRFlow):
     return node
 
   def _MatchPath(self, pathspec, response):
+    """Check if the responses matches the pathspec (considering options)."""
     to_match = response.pathspec.Basename()
     if pathspec.path_options == rdfvalue.PathSpec.Options.CASE_INSENSITIVE:
       return to_match.lower() == pathspec.path.lower()
@@ -712,7 +719,7 @@ class Glob(flow.GRRFlow):
 
       if not node:
         # Node is empty representing a leaf node - we found a hit - report it.
-        self.ReportMatch(response)
+        self.GlobReportMatch(response)
         return
 
       # There are further components in the tree - iterate over them.
@@ -791,6 +798,33 @@ class Glob(flow.GRRFlow):
         self.CallClient("Find", findspec,
                         next_state="ProcessEntry",
                         request_data=dict(base_path=component_path))
+
+
+class Glob(GlobMixin, flow.GRRFlow):
+  """Glob the filesystem for patterns.
+
+  Returns:
+    StatResponse messages, one for each matching file.
+  """
+
+  args_type = GlobArgs
+
+  @flow.StateHandler(next_state="ProcessEntry")
+  def Start(self):
+    """Starts the Glob.
+
+    First we convert the pattern into regex components, and then we
+    interpolate each component. Finally, we generate a cartesian product of all
+    combinations.
+    """
+    super(Glob, self).Start()
+    self.GlobForPaths(self.args.paths, pathtype=self.args.pathtype,
+                      root_path=self.args.root_path)
+
+  def GlobReportMatch(self, stat_response):
+    """Called when we've found a matching a StatEntry."""
+    super(Glob, self).GlobReportMatch(stat_response)
+    self.SendReply(stat_response)
 
 
 class DiskVolumeInfoArgs(rdfvalue.RDFProtoStruct):

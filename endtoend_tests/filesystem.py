@@ -68,11 +68,6 @@ class TestRecursiveListDirectoryLinuxDarwin(TestListDirectoryOSLinuxDarwin):
       path="/usr", pathtype=rdfvalue.PathSpec.PathType.OS),
           "max_depth": 1}
 
-  # This is a fair number of files and directories so it takes more than the
-  # default 30s, but it isn't that easy to pick one that is guaranteed to be
-  # there on mac and linux and has at least a few subfolders.
-  timeout = 60
-
 
 # TODO(user): Find a way to run this on Darwin with Filevault turned on.
 class TestFindTSKLinux(TestListDirectoryTSKLinux):

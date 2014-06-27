@@ -17,19 +17,12 @@ class FingerprintFileResult(rdfvalue.RDFProtoStruct):
   protobuf = flows_pb2.FingerprintFileResult
 
 
-class FingerprintFile(flow.GRRFlow):
+class FingerprintFileMixin(object):
   """Retrieve all fingerprints of a file."""
 
-  category = "/Filesystem/"
-  args_type = FingerprintFileArgs
-  behaviours = flow.GRRFlow.behaviours + "ADVANCED"
-
-  @flow.StateHandler(next_state="Done")
-  def Start(self):
-    """Issue the fingerprinting request."""
-
-    request = rdfvalue.FingerprintRequest(
-        pathspec=self.args.pathspec)
+  def FingerprintFile(self, pathspec, request_data=None):
+    """Launch a fingerprint client action."""
+    request = rdfvalue.FingerprintRequest(pathspec=pathspec)
 
     # Generic hash.
     request.AddRequest(
@@ -45,10 +38,11 @@ class FingerprintFile(flow.GRRFlow):
                  rdfvalue.FingerprintTuple.Hash.SHA1,
                  rdfvalue.FingerprintTuple.Hash.SHA256])
 
-    self.CallClient("FingerprintFile", request, next_state="Done")
+    self.CallClient("FingerprintFile", request, next_state="ProcessFingerprint",
+                    request_data=request_data)
 
   @flow.StateHandler()
-  def Done(self, responses):
+  def ProcessFingerprint(self, responses):
     """Store the fingerprint response."""
     if not responses.success:
       # Its better to raise rather than merely logging since it will make it to
@@ -93,11 +87,33 @@ class FingerprintFile(flow.GRRFlow):
     fd.Set(fd.Schema.FINGERPRINT(response))
     fd.Close(sync=False)
 
+    self.ReceiveFileFingerprint(
+        urn, hash_obj, request_data=responses.request_data)
+
+  def ReceiveFileFingerprint(self, urn, hash_obj, request_data=None):
+    """This method will be called with the new urn and the received hash."""
+
+
+class FingerprintFile(FingerprintFileMixin, flow.GRRFlow):
+  """Retrieve all fingerprints of a file."""
+
+  category = "/Filesystem/"
+  args_type = FingerprintFileArgs
+  behaviours = flow.GRRFlow.behaviours + "ADVANCED"
+
+  @flow.StateHandler(next_state="Done")
+  def Start(self):
+    """Issue the fingerprinting request."""
+    self.FingerprintFile(self.args.pathspec)
+
+  def ReceiveFileFingerprint(self, urn, hash_obj, request_data=None):
     # Notify any parent flows.
     self.SendReply(FingerprintFileResult(file_urn=urn, hash_entry=hash_obj))
 
   @flow.StateHandler()
   def End(self):
     """Finalize the flow."""
+    super(FingerprintFile, self).End()
+
     self.Notify("ViewObject", self.state.urn, "Fingerprint retrieved.")
     self.Status("Finished fingerprinting %s", self.args.pathspec.path)

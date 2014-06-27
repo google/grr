@@ -260,11 +260,10 @@ class TestMultiGetFileTSKMac(TestGetFileTSKLinux):
 
 class TestGetFileOSMac(TestGetFileOSLinux):
   """Tests if GetFile works on Mac."""
-  args = {"pathspec": rdfvalue.PathSpec(
-      path="/bin/ls",
-      pathtype=rdfvalue.PathSpec.PathType.OS)}
+  platforms = ["Darwin"]
 
-  test_output_path = "/fs/os/bin/ls"
+  def CheckFile(self, fd):
+    self.CheckMacMagic(fd)
 
 
 class TestMultiGetFileOSMac(TestGetFileOSMac):

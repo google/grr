@@ -8,6 +8,7 @@ SQLite database files are created by taking the root of each AFF4 object.
 
 import os
 import re
+import tempfile
 import threading
 import time
 
@@ -17,6 +18,7 @@ from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import utils
+from grr.lib.data_stores import common
 
 SQLITE_EXTENSION = "sqlite"
 
@@ -27,15 +29,13 @@ class SqliteConnectionCache(utils.FastStore):
   # Contents of the database that are written initially to a database file.
   template = None
 
-  MODEL_NAME = "000000000000MODEL00000000000"
-
   def _CreateModelDatabase(self):
     # Create model database file.
-    model = utils.JoinPath(config_lib.CONFIG["SqliteDatastore.root_path"],
-                           self._ConvertStringToFilename(self.MODEL_NAME))
-    dirname = os.path.dirname(model)
-    if not os.path.isdir(dirname):
-      os.makedirs(dirname)
+    root_path = config_lib.CONFIG["SqliteDatastore.root_path"]
+    if not os.path.isdir(root_path):
+      os.makedirs(root_path)
+    fd, model = tempfile.mkstemp(dir=root_path)
+    os.close(fd)
     conn = sqlite3.connect(model, 5.0, sqlite3.PARSE_DECLTYPES |
                            sqlite3.PARSE_COLNAMES,
                            "EXCLUSIVE", False)
@@ -49,6 +49,8 @@ class SqliteConnectionCache(utils.FastStore):
     query = """CREATE TABLE IF NOT EXISTS lock (
                subject VARCHAR(512) PRIMARY KEY NOT NULL,
                expires BIG INTEGER NOT NULL)"""
+    cursor.execute(query)
+    query = "CREATE INDEX tbl_index ON tbl (subject, predicate, timestamp)"
     cursor.execute(query)
     cursor.execute("PRAGMA journal_mode = MEMORY")
     cursor.execute("PRAGMA count_changes = OFF")
@@ -73,57 +75,16 @@ class SqliteConnectionCache(utils.FastStore):
   def KillObject(self, conn):
     conn.Close()
 
-  def _ConvertStringToFilename(self, string):
-    """Converts a string to a filesystem safe filename.
-
-    For maximum compatibility we escape all chars which are not alphanumeric (in
-    the unicode sense).
-
-    Args:
-     string: a unicode string that is part of a subject.
-
-    Returns:
-      A safe filename with escaped special chars.
-    """
-    result = re.sub(
-        r"\W", lambda x: "%%%02X" % ord(x.group(0)),
-        string, flags=re.UNICODE).rstrip("/")
-
-    # Some filesystems are not able to represent unicode chars.
-    return utils.SmartStr(result)
-
-  def _RemoveAFF4Prefix(self, name):
-    """Removes aff4:/ prefix from name."""
-
-    prefix = "aff4:/"
-
-    if name.startswith(prefix):
-      return name[len(prefix):]
-    else:
-      return name
-
-  def _PickTopDirectory(self, subject):
-    if not subject:
-      return "AFF4ROOT"
-    else:
-      vec = subject.split("/", 1)
-      return vec[0]
-
-  def _ResolveSubject(self, subject):
-    subject = utils.SmartUnicode(subject)
-    subject = self._RemoveAFF4Prefix(subject)
-    return self._PickTopDirectory(subject)
-
   @utils.Synchronized
   def Get(self, subject):
     """This will create the connection if needed so should not fail."""
-    subject = self._ResolveSubject(subject)
+    subject = common.ResolveSubjectDestination(subject)
 
     try:
       return super(SqliteConnectionCache, self).Get(subject)
     except KeyError:
       path = utils.JoinPath(config_lib.CONFIG["SqliteDatastore.root_path"],
-                            self._ConvertStringToFilename(subject))
+                            common.ConvertStringToFilename(subject))
       filename = path + "." + SQLITE_EXTENSION
       assert os.path.isdir(os.path.dirname(filename))
       self._CopyModelDatabase(filename)

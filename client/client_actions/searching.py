@@ -85,6 +85,8 @@ class Find(actions.IteratedAction):
     Returns:
       True of the file matches all conditions, false otherwise.
     """
+    self.Progress()
+
     # Check timestamp
     if file_stat.HasField("st_mtime") and (
         file_stat.st_mtime < self.request.start_time or

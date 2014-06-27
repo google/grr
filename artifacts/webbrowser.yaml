@@ -187,6 +187,7 @@ collectors:
     path_list:
       - '%%users.homedir%%/Library/Caches/com.apple.Safari/cache.db'
   supported_os: [Darwin]
+supported_os: [Windows, Darwin]
 labels: [Browser]
 urls: ['http://www.forensicswiki.org/wiki/Apple_Safari']
 ---
@@ -204,5 +205,6 @@ collectors:
     path_list:
       - '%%users.homedir%%/Library/Safari/History.plist'
   supported_os: [Darwin]
+supported_os: [Windows, Darwin]
 labels: [Browser]
 urls: ['http://www.forensicswiki.org/wiki/Apple_Safari']

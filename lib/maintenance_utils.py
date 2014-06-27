@@ -211,7 +211,6 @@ def _RepackBinary(context, builder_cls):
       return builder_obj.MakeDeployableBinary(template_path)
     except Exception as e:  # pylint: disable=broad-except
       print "Repacking template %s failed: %s" % (template_path, e)
-      raise
   else:
     print "Template %s missing - will not repack." % template_path
 
@@ -282,8 +281,11 @@ def RepackAllBinaries(upload=False, debug_build=False):
 
   for context, deployer in clients_to_repack:
     context = base_context + context
+    template_path = config_lib.CONFIG.Get("ClientBuilder.template_path",
+                                          context=context)
     output_path = _RepackBinary(context, deployer)
     if output_path:
+      print "%s repacked ok." % template_path
       built.append(output_path)
       if upload:
         dest = config_lib.CONFIG.Get("Executables.installer",
@@ -293,6 +295,8 @@ def RepackAllBinaries(upload=False, debug_build=False):
           dest = rdfvalue.RDFURN(dest.Dirname()).Add("dbg_%s" % dest.Basename())
         UploadSignedConfigBlob(open(output_path).read(100*1024*1024),
                                dest, client_context=context)
+    else:
+      print "Failed to repack %s." % template_path
 
   return built
 

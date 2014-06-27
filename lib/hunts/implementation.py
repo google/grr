@@ -189,6 +189,7 @@ class HuntRunner(flow_runner.FlowRunner):
         # time.
         kill_timestamp=None,
         network_bytes_sent=0,
+        next_client_due=0,
         next_outbound_id=1,
         next_processed_request=1,
         next_states=set(),
@@ -248,8 +249,7 @@ class HuntRunner(flow_runner.FlowRunner):
 
     # When the next client can be scheduled. Implements gradual client
     # recruitment rate according to the client_rate.
-    self.context.Register("next_client_due",
-                          rdfvalue.RDFDatetime().Now())
+    self.context.next_client_due = rdfvalue.RDFDatetime().Now()
 
     self._CreateAuditEvent("HUNT_STARTED")
 

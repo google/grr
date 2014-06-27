@@ -42,12 +42,10 @@ class VFSDirectory(aff4.AFF4Volume):
 
     if pathspec:
       if stripped_components:
-        # We stripped pieces of the URL, time to add them back at the deepest
-        # nested path.
-        new_path = utils.JoinPath(pathspec.last.path,
-                                  *reversed(stripped_components[:-1]))
-        pathspec.last.Append(rdfvalue.PathSpec(path=new_path,
-                                               pathtype=pathspec.last.pathtype))
+        # We stripped pieces of the URL, time to add them back.
+        new_path = utils.JoinPath(*reversed(stripped_components[:-1]))
+        pathspec.Append(rdfvalue.PathSpec(path=new_path,
+                                          pathtype=pathspec.last.pathtype))
     else:
       raise IOError("Item has no pathspec.")
 

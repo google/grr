@@ -133,6 +133,9 @@ class DataObject(dict):
   """This class wraps a dict and provides easier access functions."""
 
   def Register(self, item, value=None):
+    if item in self:
+      raise AttributeError("Item %s already registered." % item)
+
     self[item] = value
 
   def __setattr__(self, item, value):

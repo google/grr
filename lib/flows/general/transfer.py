@@ -223,14 +223,8 @@ class FileTracker(object):
     return self.fd
 
 
-class MultiGetFileArgs(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.MultiGetFileArgs
-
-
-class MultiGetFile(flow.GRRFlow):
-  """A flow to effectively retrieve a number of files."""
-
-  args_type = MultiGetFileArgs
+class MultiGetFileMixin(object):
+  """A flow mixin to efficiently retrieve a number of files."""
 
   CHUNK_SIZE = 512 * 1024
 
@@ -238,10 +232,12 @@ class MultiGetFile(flow.GRRFlow):
   # allows us to amortize file store round trips and increases throughput.
   MIN_CALL_TO_FILE_STORE = 200
 
-  @flow.StateHandler(next_state=["ReceiveFileHash", "StoreStat"])
   def Start(self):
-    """Start state of the flow."""
+    """Initialize our state."""
+    super(MultiGetFileMixin, self).Start()
+
     self.state.Register("files_hashed", 0)
+    self.state.Register("use_external_stores", False)
     self.state.Register("files_to_fetch", 0)
     self.state.Register("files_fetched", 0)
     self.state.Register("files_skipped", 0)
@@ -262,25 +258,20 @@ class MultiGetFile(flow.GRRFlow):
                            token=self.token)
     self.state.Register("filestore", fd)
 
-    unique_paths = set()
-    for pathspec in self.args.pathspecs:
-
-      vfs_urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
-          pathspec, self.client_id)
-
-      if vfs_urn not in unique_paths:
-        # Only Stat/Hash each path once, input pathspecs can have dups.
-        unique_paths.add(vfs_urn)
-
-        self.StartFile(pathspec, vfs_urn)
-
-  def StartFile(self, pathspec, vfs_urn):
+  def StartFile(self, pathspec, vfs_urn, request_data=None):
+    """The entry point for this flow mixin - Schedules new file transfer."""
+    request_data = request_data or {}
+    request_data["vfs_urn"] = vfs_urn
     self.CallClient("StatFile", pathspec=pathspec,
                     next_state="StoreStat",
-                    request_data=dict(vfs_urn=vfs_urn))
+                    request_data=request_data)
+
     self.CallClient("HashFile", pathspec=pathspec,
                     next_state="ReceiveFileHash",
-                    request_data=dict(vfs_urn=vfs_urn))
+                    request_data=request_data)
+
+  def FetchedFile(self, stat_entry):
+    """This method will be called for each new file successfully fetched."""
 
   @flow.StateHandler()
   def StoreStat(self, responses):
@@ -338,7 +329,7 @@ class MultiGetFile(flow.GRRFlow):
     # First we get all the files which are present in the file store.
     files_in_filestore = set()
     for file_store_urn, digest in self.state.filestore.CheckHashes(
-        file_hashes.values(), external=self.args.use_external_stores):
+        file_hashes.values(), external=self.state.use_external_stores):
 
       self.HeartBeat()
 
@@ -384,7 +375,7 @@ class MultiGetFile(flow.GRRFlow):
         file_tracker.fd.Close(sync=False)
 
         # Let the caller know we have this file already.
-        self.SendReply(file_tracker.stat_entry)
+        self.FetchedFile(file_tracker.stat_entry)
 
     # Now we iterate over all the files which are not in the store and arrange
     # for them to be copied.
@@ -407,6 +398,7 @@ class MultiGetFile(flow.GRRFlow):
       # VFS cache hit rate and is far more efficient than launching multiple
       # GetFile flows.
       self.state.files_to_fetch += 1
+
       for i in range(expected_number_of_hashes):
         self.CallClient("HashBuffer", pathspec=file_tracker.pathspec,
                         offset=i * self.CHUNK_SIZE,
@@ -523,16 +515,49 @@ class MultiGetFile(flow.GRRFlow):
   def RemoveInFlightFile(self, vfs_urn):
     file_tracker = self.state.pending_files.pop(vfs_urn)
     if file_tracker:
-      self.SendReply(file_tracker.stat_entry)
+      self.FetchedFile(file_tracker.stat_entry)
 
   @flow.StateHandler(next_state=["CheckHash", "WriteBuffer"])
   def End(self):
+    super(MultiGetFileMixin, self).End()
+
     # There are some files still in flight.
     if self.state.pending_hashes or self.state.pending_files:
       self._CheckHashesWithFileStore()
       self.FetchFileContent()
-    else:
-      return super(MultiGetFile, self).End()
+
+
+class MultiGetFileArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.MultiGetFileArgs
+
+
+class MultiGetFile(MultiGetFileMixin, flow.GRRFlow):
+  """A flow to effectively retrieve a number of files."""
+
+  args_type = MultiGetFileArgs
+
+  @flow.StateHandler(next_state=["ReceiveFileHash", "StoreStat"])
+  def Start(self):
+    """Start state of the flow."""
+    super(MultiGetFile, self).Start()
+
+    self.state.use_external_stores = self.args.use_external_stores
+
+    unique_paths = set()
+    for pathspec in self.args.pathspecs:
+
+      vfs_urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
+          pathspec, self.client_id)
+
+      if vfs_urn not in unique_paths:
+        # Only Stat/Hash each path once, input pathspecs can have dups.
+        unique_paths.add(vfs_urn)
+
+        self.StartFile(pathspec, vfs_urn)
+
+  def FetchedFile(self, stat_entry):
+    """This method will be called for each new file successfully fetched."""
+    self.SendReply(stat_entry)
 
 
 class FileStoreCreateFile(flow.EventListener):

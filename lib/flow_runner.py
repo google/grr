@@ -517,9 +517,16 @@ class FlowRunner(object):
 
       # Extend our lease if needed.
       self.flow_obj.HeartBeat()
-      getattr(self.flow_obj, method)(direct_response=direct_response,
-                                     request=request,
-                                     responses=responses)
+      try:
+        method = getattr(self.flow_obj, method)
+      except AttributeError:
+        raise FlowRunnerError("Flow %s has no state method %s" % (
+            self.flow_obj.__class__.__name__, method))
+
+      method(direct_response=direct_response,
+             request=request,
+             responses=responses)
+
     # We don't know here what exceptions can be thrown in the flow but we have
     # to continue. Thus, we catch everything.
     except Exception:  # pylint: disable=broad-except
@@ -605,18 +612,6 @@ class FlowRunner(object):
         if not isinstance(request, action.in_rdfvalue):
           raise RuntimeError("Client action expected %s but got %s" % (
               action.in_rdfvalue, type(request)))
-
-    # Check that the next state is allowed
-    if next_state is None:
-      raise FlowRunnerError("next_state is not specified for CallClient")
-
-    if (self.process_requests_in_order and
-        next_state not in self.context.next_states):
-      raise FlowRunnerError("Flow %s: State '%s' called to '%s' which is "
-                            "not declared in decorator." % (
-                                self.__class__.__name__,
-                                self.context.current_state,
-                                next_state))
 
     outbound_id = self.GetNextOutboundId()
 

@@ -1,8 +1,14 @@
+grr-server (0.3.0-1) unstable; urgency=low
+
+  * Version change to make client versioning easier.
+
+ -- GRR development team <grr-dev@googlegroups.com>  Tue, 26 Jun 2014 11:35:00 +0100
+
 grr-server (0.2.10-1) unstable; urgency=low
 
   * Update
 
- -- GRR development team <grr-dev@googlegroups.com>  Tue, 15 Apr 2013 12:08:00 +0100
+ -- GRR development team <grr-dev@googlegroups.com>  Tue, 15 Apr 2014 12:08:00 +0100
 
 grr-server (0.2.9-1) unstable; urgency=low
 

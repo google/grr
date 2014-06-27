@@ -452,6 +452,7 @@ class GrrKbTest(ArtifactTestHelper):
         "KnowledgeBaseInitializationFlow", client_mock,
         client_id=self.client_id, token=self.token):
       pass
+
     client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
     kb = artifact.GetArtifactKnowledgeBase(client)
     self.assertEqual(kb.os_major_version, 12)

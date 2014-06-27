@@ -267,3 +267,21 @@ class AFF4SparseImageTest(test_lib.GRRBaseTest):
       fd.Read(fd.chunksize)
 
 
+class VFSDirectoryTest(test_lib.GRRBaseTest):
+
+  def testRealPathspec(self):
+
+    client_id = rdfvalue.ClientURN("C.%016X" % 1234)
+    for path in ["a/b", "a/b/c/d"]:
+      d = aff4.FACTORY.Create(client_id.Add("fs/os").Add(path),
+                              aff4_type="VFSDirectory",
+                              token=self.token)
+      pathspec = rdfvalue.PathSpec(path=path,
+                                   pathtype=rdfvalue.PathSpec.PathType.OS)
+      d.Set(d.Schema.PATHSPEC, pathspec)
+      d.Close()
+
+    d = aff4.FACTORY.Create(client_id.Add("fs/os").Add("a/b/c"),
+                            aff4_type="VFSDirectory", mode="rw",
+                            token=self.token)
+    self.assertEqual(d.real_pathspec.CollapsePath(), "a/b/c")
