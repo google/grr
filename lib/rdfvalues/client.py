@@ -29,7 +29,7 @@ class ClientURN(rdfvalue.RDFURN):
   """A client urn has to have a specific form."""
 
   # Valid client urns must match this expression.
-  CLIENT_ID_RE = re.compile(r"^(aff4:/)?C\.[0-9a-fA-F]{16}$")
+  CLIENT_ID_RE = re.compile(r"^(aff4:/)?(?P<clientid>(c|C)\.[0-9a-fA-F]{16})$")
 
   def __init__(self, initializer=None, age=None):
     if isinstance(initializer, rdfvalue.RDFURN):
@@ -41,10 +41,26 @@ class ClientURN(rdfvalue.RDFURN):
     super(ClientURN, self).__init__(initializer=initializer, age=age)
 
   def ParseFromString(self, value):
+    """Parse a string into a client URN.
+
+    Convert case so that all URNs are of the form C.[0-9a-f].
+
+    Args:
+      value: string value to parse
+    """
+    value = value.strip()
+
     if not self.Validate(value):
       raise type_info.TypeValueError("Client urn malformed: %s" % value)
 
-    return super(ClientURN, self).ParseFromString(value)
+    match = self.CLIENT_ID_RE.match(value)
+
+    clientid = match.group("clientid")
+    clientid_correctcase = "".join((clientid[0].upper(), clientid[1:].lower()))
+
+    value = value.replace(clientid, clientid_correctcase, 1)
+
+    super(ClientURN, self).ParseFromString(value)
 
   @classmethod
   def Validate(cls, value):
@@ -86,6 +102,16 @@ class ClientURN(rdfvalue.RDFURN):
   def Queue(self):
     """Returns the queue name of this clients task queue."""
     return self.Add("tasks")
+
+
+def GetClientURNFromPath(path):
+  """Extracts the Client id from the path, if it is present."""
+
+  # Make sure that the first component of the path looks like a client.
+  try:
+    return ClientURN(path.split("/")[1])
+  except (type_info.TypeValueError, IndexError):
+    return None
 
 
 # These are objects we store as attributes of the client.
@@ -467,9 +493,15 @@ class ClientStats(rdfvalue.RDFProtoStruct):
 
     Args:
       sampling_interval: The sampling interval in seconds.
+    Returns:
+      New ClientStats object with cpu and IO samples downsampled.
     """
-    self.cpu_samples = self.DownsampleList(self.cpu_samples, sampling_interval)
-    self.io_samples = self.DownsampleList(self.io_samples, sampling_interval)
+    result = rdfvalue.ClientStats(self)
+    result.cpu_samples = self.DownsampleList(self.cpu_samples,
+                                             sampling_interval)
+    result.io_samples = self.DownsampleList(self.io_samples,
+                                            sampling_interval)
+    return result
 
 
 class DriverInstallTemplate(rdfvalue.RDFProtoStruct):
@@ -743,3 +775,8 @@ class ClientCrash(rdfvalue.RDFProtoStruct):
 class ClientSummary(rdfvalue.RDFProtoStruct):
   """Object containing client's summary data."""
   protobuf = jobs_pb2.ClientSummary
+
+
+class GetClientStatsRequest(rdfvalue.RDFProtoStruct):
+  """Request for GetClientStats action."""
+  protobuf = jobs_pb2.GetClientStatsRequest

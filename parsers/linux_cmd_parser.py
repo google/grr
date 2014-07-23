@@ -60,4 +60,3 @@ class UserParser(parsers.GenericResponseParser):
       yield user.ToKnowledgeBaseUser()
     else:
       yield user
-

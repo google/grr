@@ -759,10 +759,23 @@ class OptionFormRenderer(TypeDescriptorFormRenderer):
 </div>
 """)
 
-  def __init__(self, prefix="option", item=None, render_label=False, **kwargs):
+  def __init__(self, prefix="option", default_item_type=None,
+               render_label=False, **kwargs):
+    """Constructor.
+
+    Args:
+      prefix: Id of the select control will be [prefix]-option. Having
+              different prefixes allows one to have multiple
+              OptionFormRenderers on the same page.
+      default_item_type: Item type of the option item that will be selected
+                         by default.
+      render_label: If True, will render the label for this field.
+      **kwargs: passthrough to baseclass.
+    """
     super(OptionFormRenderer, self).__init__(render_label=render_label,
                                              **kwargs)
     self.prefix = prefix
+    self.default_item_type = default_item_type
 
   def ParseOption(self, option, request):
     """Override this to parse the specific option selected."""
@@ -778,7 +791,8 @@ class OptionFormRenderer(TypeDescriptorFormRenderer):
   def Layout(self, request, response):
     super(OptionFormRenderer, self).Layout(request, response)
     return self.CallJavascript(response, "OptionFormRenderer.Layout",
-                               prefix=self.prefix)
+                               prefix=self.prefix,
+                               default_item_type=self.default_item_type)
 
   def RenderAjax(self, request, response):
     self.prefix = request.REQ.get("prefix", self.option_name)
@@ -829,10 +843,13 @@ class MultiFormRenderer(renderers.TemplateRenderer):
   def Layout(self, request, response):
     """Renders given item's form. Calls Layout() js code if no item is given."""
     self.item = request.REQ.get("item")
+    default_item_type = request.REQ.get("default_item_type", None)
+
     if self.item is not None:
       self.child = self.child_renderer(
           prefix="%s_%s" % (self.option_name, self.item),
-          item=self.item).RawHTML(request)
+          item=self.item,
+          default_item_type=default_item_type).RawHTML(request)
     else:
       self.CallJavascript(response, "MultiFormRenderer.Layout",
                           option=self.option_name,

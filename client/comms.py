@@ -93,7 +93,11 @@ class GRRClientWorker(object):
 
   sent_bytes_per_flow = {}
 
-  STATS_SEND_INTERVALL = 50 * 60  # 50 minutes
+  # Client sends stats notifications at least every 50 minutes.
+  STATS_MAX_SEND_INTERVAL = rdfvalue.Duration("50m")
+
+  # Client sends stats notifications at most every 60 seconds.
+  STATS_MIN_SEND_INTERVAL = rdfvalue.Duration("60s")
 
   def __init__(self):
     """Create a new GRRClientWorker."""
@@ -110,8 +114,13 @@ class GRRClientWorker(object):
 
     self._is_active = False
 
+    # If True, ClientStats will be forcibly sent to server during next
+    # CheckStats() call, if less than STATS_MIN_SEND_INTERVAL time has passed
+    # since last stats notification was sent.
+    self._send_stats_on_check = False
+
     # Last time when we've sent stats back to the server.
-    self.last_stats_sent_time = 0
+    self.last_stats_sent_time = None
 
     self.proc = psutil.Process(os.getpid())
 
@@ -295,6 +304,8 @@ class GRRClientWorker(object):
       self.nanny_controller.CleanTransactionLog()
     finally:
       self._is_active = False
+      # We want to send ClientStats when client action is complete.
+      self._send_stats_on_check = True
 
   def QueueMessages(self, messages):
     """Queue a message from the server for processing.
@@ -360,21 +371,35 @@ class GRRClientWorker(object):
 
   def CheckStats(self):
     """Checks if the last transmission of client stats is too long ago."""
-    if not self.last_stats_sent_time:
-      self.last_stats_sent_time = time.time()
+    if self.last_stats_sent_time is None:
+      self.last_stats_sent_time = rdfvalue.RDFDatetime().Now()
       stats.STATS.SetGaugeValue("grr_client_last_stats_sent_time",
-                                self.last_stats_sent_time)
+                                self.last_stats_sent_time.AsSecondsFromEpoch())
 
-    if time.time() - self.last_stats_sent_time > self.STATS_SEND_INTERVALL:
+    time_since_last_check = (rdfvalue.RDFDatetime().Now() -
+                             self.last_stats_sent_time)
+
+    # No matter what, we don't want to send stats more often than
+    # once per STATS_MIN_SEND_INTERVAL.
+    if time_since_last_check < self.STATS_MIN_SEND_INTERVAL:
+      return
+
+    if (time_since_last_check > self.STATS_MAX_SEND_INTERVAL or
+        self._is_active or self._send_stats_on_check):
+
+      self._send_stats_on_check = False
+
       logging.info("Sending back client statistics to the server.")
-      self.last_stats_sent_time = time.time()
-      stats.STATS.SetGaugeValue("grr_client_last_stats_sent_time",
-                                self.last_stats_sent_time)
 
       action_cls = actions.ActionPlugin.classes.get(
           "GetClientStatsAuto", actions.ActionPlugin)
       action = action_cls(grr_worker=self)
-      action.Run(None)
+      action.Run(rdfvalue.GetClientStatsRequest(
+          start_time=self.last_stats_sent_time))
+
+      self.last_stats_sent_time = rdfvalue.RDFDatetime().Now()
+      stats.STATS.SetGaugeValue("grr_client_last_stats_sent_time",
+                                self.last_stats_sent_time.AsSecondsFromEpoch())
 
   def SendNannyMessage(self):
     msg = self.nanny_controller.GetNannyMessage()

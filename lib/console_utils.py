@@ -17,6 +17,7 @@ from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import search
+from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.flows.general import memory
 
@@ -175,15 +176,17 @@ def ApprovalFind(object_id, token=None):
     print "No token available for access to %s" % object_id
 
 
-def ApprovalCreateRaw(client_id, reason="", expire_in=60*60*24*7,
+def ApprovalCreateRaw(aff4_path, reason="", expire_in=60*60*24*7,
                       token=None, approval_type="ClientApproval"):
   """Creates an approval with raw access.
 
-  This method doesn't work through the Gatekeeper for obvious reasons. To use
-  it, the console has to use raw datastore access.
+  This method requires raw datastore access to manipulate approvals directly.
+  This currently doesn't work for hunt or cron approvals, because they check
+  that each approver has the admin label.  Since the fake users don't exist the
+  check fails.
 
   Args:
-    client_id: The client id the approval should be created for.
+    aff4_path: The aff4_path or client id the approval should be created for.
     reason: The reason to put in the token.
     expire_in: Expiry in seconds to use in the token.
     token: The token that will be used. If this is specified reason and expiry
@@ -196,7 +199,10 @@ def ApprovalCreateRaw(client_id, reason="", expire_in=60*60*24*7,
   Raises:
     RuntimeError: On bad token.
   """
-  client_id = rdfvalue.ClientURN(client_id)
+  if approval_type == "ClientApproval":
+    urn = rdfvalue.ClientURN(aff4_path)
+  else:
+    urn = rdfvalue.RDFURN(aff4_path)
 
   if not token:
     expiry = time.time() + expire_in
@@ -207,8 +213,8 @@ def ApprovalCreateRaw(client_id, reason="", expire_in=60*60*24*7,
   if not token.username:
     token.username = getpass.getuser()
   approval_urn = flow.GRRFlow.RequestApprovalWithReasonFlow.ApprovalUrnBuilder(
-      client_id.Path(), token.username, token.reason)
-  super_token = access_control.ACLToken(username="test")
+      urn.Path(), token.username, token.reason)
+  super_token = access_control.ACLToken(username="raw-approval-superuser")
   super_token.supervisor = True
 
   approval_request = aff4.FACTORY.Create(approval_urn, approval_type,
@@ -222,20 +228,23 @@ def ApprovalCreateRaw(client_id, reason="", expire_in=60*60*24*7,
   approval_request.Close(sync=True)
 
 
-def ApprovalRevokeRaw(client_id, token, remove_from_cache=False):
+def ApprovalRevokeRaw(aff4_path, token, remove_from_cache=False):
   """Revokes an approval for a given token.
 
-  This method doesn't work through the Gatekeeper for obvious reasons. To use
-  it, the console has to use raw datastore access.
+  This method requires raw datastore access to manipulate approvals directly.
 
   Args:
-    client_id: The client id the approval should be revoked for.
+    aff4_path: The aff4_path or client id the approval should be created for.
     token: The token that should be revoked.
     remove_from_cache: If True, also remove the approval from the
                        security_manager cache.
   """
-  client_id = rdfvalue.ClientURN(client_id)
-  approval_urn = aff4.ROOT_URN.Add("ACL").Add(client_id.Path()).Add(
+  try:
+    urn = rdfvalue.ClientURN(aff4_path)
+  except type_info.TypeValueError:
+    urn = rdfvalue.RDFURN(aff4_path)
+
+  approval_urn = aff4.ROOT_URN.Add("ACL").Add(urn.Path()).Add(
       token.username).Add(utils.EncodeReasonString(token.reason))
 
   super_token = access_control.ACLToken(username="test")

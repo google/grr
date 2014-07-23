@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en" ng-app="grr">
 <head>
 
 {% block styles %}
@@ -23,6 +23,11 @@
 <script src="/static/javascript/bootstrap.js"></script>
 <script src="/static/javascript/select2.js"></script>
 <script src="/static/javascript/rangyinputs_jquery.js"></script>
+
+<script src="/static/javascript/angular/angular.js"></script>
+<script src="/static/javascript/angular/angular-animate.js"></script>
+<script src="/static/javascript/angular/angular-cookies.js"></script>
+<script src="/static/javascript/angular/angular-resource.js"></script>
 
 <link rel="stylesheet" type="text/css" href="/static/css/bootstrap.css" media="screen"/>
 <link rel="stylesheet" type="text/css" href="/static/css/select2.css" media="screen"/>
@@ -70,7 +75,7 @@
       </ul>
 
       <ul class="nav pull-right">
-        <li><a href="{{help_url|escape}}"" target="_blank">Help</a></li>
+        <li><a href="{{help_url|escape}}" target="_blank">Help</a></li>
         <li><a href="{{report_url|escape}}" target="_blank">Report a problem</a></li>
       </ul>
 

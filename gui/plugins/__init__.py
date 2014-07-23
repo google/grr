@@ -20,6 +20,7 @@ from grr.gui.plugins import rekall_viewer
 from grr.gui.plugins import reports_view
 from grr.gui.plugins import searchclient
 from grr.gui.plugins import semantic
+from grr.gui.plugins import server_load_view
 from grr.gui.plugins import statistics
 from grr.gui.plugins import timeline_view
 from grr.gui.plugins import usage

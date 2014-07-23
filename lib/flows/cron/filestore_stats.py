@@ -52,7 +52,7 @@ class GraphDistribution(stats_lib.Distribution):
   def __init__(self, attribute, title):
     self.attribute = attribute
     self.graph = self.attribute(title=title)
-    super(GraphDistribution, self).__init__(self._bins)
+    super(GraphDistribution, self).__init__(bins=self._bins)
 
   def ProcessFile(self, fd):
     raise NotImplementedError()

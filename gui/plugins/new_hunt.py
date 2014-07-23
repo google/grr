@@ -10,11 +10,18 @@ from grr.gui import renderers
 from grr.gui.plugins import flow_management
 from grr.gui.plugins import forms
 from grr.gui.plugins import wizards
+from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
 
 from grr.lib.hunts import implementation
 from grr.lib.hunts import output_plugins
+
+
+config_lib.DEFINE_string("AdminUI.new_hunt_wizard.default_output_plugin",
+                         None,
+                         "Output plugin that will be added by default in the "
+                         "'New Hunt' wizard output plugins selection page.")
 
 
 class HuntArgsParser(object):
@@ -220,6 +227,13 @@ class HuntConfigureOutputPlugins(forms.MultiFormRenderer):
   button_text = "Add Output Plugin"
   description = "Define Output Processing"
   add_one_default = False
+
+  def Layout(self, request, response):
+    response = super(HuntConfigureOutputPlugins, self).Layout(request, response)
+    return self.CallJavascript(
+        response, "HuntConfigureOutputPlugins.Layout",
+        default_output_plugin=config_lib.CONFIG[
+            "AdminUI.new_hunt_wizard.default_output_plugin"])
 
   def Validate(self, request, _):
     # Check each plugin for validity.

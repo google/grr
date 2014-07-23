@@ -87,12 +87,12 @@ config_lib.DEFINE_integer("Datastore.transaction_timeout", default=600,
                           help="How long do we wait for a transaction lock.")
 
 # TDB data store.
-config_lib.DEFINE_string("TDBDatastore.root_path", default="/tmp",
+config_lib.DEFINE_string("TDBDatastore.root_path", default="/tmp/grr-tdb",
                          help=("The root directory under which the tdb files "
                                "are created."))
 
 # SQLite data store.
-config_lib.DEFINE_string("SqliteDatastore.root_path", default="/tmp",
+config_lib.DEFINE_string("SqliteDatastore.root_path", default="/tmp/grr-sqlite",
                          help=("The root directory under which the sqlite "
                                "files are created."))
 

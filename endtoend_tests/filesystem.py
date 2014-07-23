@@ -40,6 +40,9 @@ class TestListDirectoryOSLinuxDarwin(base.AutomatedTest):
 
     fd = aff4.FACTORY.Open(urn.Add(self.file_to_find),
                            mode="r", token=self.token)
+    if type(fd) == aff4.AFF4Volume:
+      self.fail(("No results were written to the data store. Maybe the GRR "
+                 "client is not running with root privileges?"))
     self.assertEqual(type(fd), aff4.VFSFile)
 
   def tearDown(self):

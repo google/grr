@@ -95,11 +95,23 @@ class DataStore(object):
         config_lib.CONFIG["Datastore.security_manager"])()
     self.security_manager = security_manager
     logging.info("Using security manager %s", security_manager)
-
     # Start the flusher thread.
     self.flusher_thread = utils.InterruptableThread(target=self.Flush,
                                                     sleep_time=0.5)
     self.flusher_thread.start()
+    self.monitor_thread = None
+
+  def InitializeMonitorThread(self):
+    """Start the thread that registers the size of the DataStore."""
+    if self.monitor_thread:
+      return
+    self.monitor_thread = utils.InterruptableThread(target=self._RegisterSize,
+                                                    sleep_time=60)
+    self.monitor_thread.start()
+
+  def _RegisterSize(self):
+    """Measures size of DataStore."""
+    stats.STATS.SetGaugeValue("datastore_size", self.Size())
 
   def Initialize(self):
     """Initialization of the datastore."""
@@ -338,6 +350,10 @@ class DataStore(object):
     return -1
 
   def __del__(self):
+    if self.flusher_thread:
+      self.flusher_thread.Stop()
+    if self.monitor_thread:
+      self.monitor_thread.Stop()
     try:
       self.Flush()
     except Exception:  # pylint: disable=broad-except
@@ -498,8 +514,8 @@ class CommonTransaction(Transaction):
     if self.to_set:
       for predicate, values in self.to_set.items():
         if regex.match(utils.SmartStr(predicate)):
-          results = [(predicate, value, ts) for value, ts in values
-                     if start <= ts <= end]
+          results.extend([(predicate, value, ts) for value, ts in values
+                          if start <= ts <= end])
 
     # And also the results from the database.
     ds_results = self.store.ResolveRegex(self.subject, predicate_regex,
@@ -611,6 +627,12 @@ class DataStoreInit(registry.InitHook):
     DB = cls()  # pylint: disable=g-bad-name
     DB.Initialize()
     atexit.register(DB.Flush)
+    monitor_port = config_lib.CONFIG["Monitoring.http_port"]
+    if monitor_port != 0:
+      stats.STATS.RegisterGaugeMetric("datastore_size", int,
+                                      docstring="Size of data store in bytes",
+                                      units="BYTES")
+      DB.InitializeMonitorThread()
 
   def RunOnce(self):
     """Initialize some Varz."""

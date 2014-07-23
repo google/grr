@@ -153,7 +153,6 @@ class OSBreakDown(AbstractClientStatsCronFlow):
   def BeginProcessing(self):
     self.counters = [
         _ActiveCounter(self.stats.Schema.OS_HISTOGRAM),
-        _ActiveCounter(self.stats.Schema.VERSION_HISTOGRAM),
         _ActiveCounter(self.stats.Schema.RELEASE_HISTOGRAM),
         ]
 
@@ -171,13 +170,10 @@ class OSBreakDown(AbstractClientStatsCronFlow):
     # Windows, Linux, Darwin
     self.counters[0].Add(system, ping)
 
-    version = client.Get(client.Schema.VERSION, "Unknown")
-    # Windows XP, Linux Ubuntu, Darwin OSX
-    self.counters[1].Add("%s %s" % (system, version), ping)
-
-    release = client.Get(client.Schema.OS_RELEASE, "Unknown")
-    # Windows XP 5.1.2600 SP3, Linux Ubuntu 12.04, Darwin OSX 10.8.2
-    self.counters[2].Add("%s %s %s" % (system, version, release), ping)
+    uname = client.Get(client.Schema.UNAME, "Unknown")
+    # Windows-2008ServerR2-6.1.7601SP1, Linux-Ubuntu-12.04,
+    # Darwin-OSX-10.9.3
+    self.counters[1].Add(uname, ping)
 
 
 class LastAccessStats(AbstractClientStatsCronFlow):
@@ -271,7 +267,7 @@ class PurgeClientStats(cronjobs.SystemCronFlow):
 
     for client_urn in client_urns:
       data_store.DB.DeleteAttributes(client_urn.Add("stats"),
-                                     [u"aff4:stats", u"aff4:type"],
+                                     [u"aff4:stats"],
                                      start=self.start, end=self.end, sync=False,
                                      token=self.token)
       self.HeartBeat()
@@ -381,5 +377,3 @@ class EndToEndTests(cronjobs.SystemCronFlow):
         self.state.hunt_id.Add("Results"), token=self.token) as results:
       self._CheckForSuccess(results)
       self.Log("Tests passed on all clients: %s", self.state.client_ids)
-
-

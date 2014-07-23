@@ -351,7 +351,7 @@ class RequestApprovalWithReasonFlow(flow.GRRFlow):
                 "Please grant access to %s" % subject_title, self.session_id)
       fd.Close()
 
-      template = """
+      template = u"""
 <html><body><h1>Approval to access %(subject_title)s requested.</h1>
 
 The user "%(username)s" has requested access to %(subject_title)s
@@ -371,17 +371,19 @@ Please click <a href='%(admin_ui)s#%(approval_urn)s'>
 
       url = urllib.urlencode((("acl", utils.SmartStr(approval_urn)),
                               ("main", "GrantAccess")))
+
+      body = template % dict(
+          username=self.token.username,
+          reason=self.args.reason,
+          admin_ui=config_lib.CONFIG["AdminUI.url"],
+          subject_title=subject_title,
+          approval_urn=url,
+          image=image)
+
       email_alerts.SendEmail(user, self.token.username,
-                             "Please grant %s approval to %s." % (
+                             u"Please grant %s approval to %s." % (
                                  self.token.username, subject_title),
-                             template % dict(
-                                 username=self.token.username,
-                                 reason=utils.SmartStr(self.args.reason),
-                                 admin_ui=config_lib.CONFIG["AdminUI.url"],
-                                 subject_title=subject_title,
-                                 approval_urn=url,
-                                 image=image),
-                             is_html=True)
+                             utils.SmartStr(body), is_html=True)
 
 
 class GrantApprovalWithReasonFlowArgs(rdfvalue.RDFProtoStruct):
@@ -441,7 +443,7 @@ class GrantApprovalWithReasonFlow(flow.GRRFlow):
               % (self.token.username, subject_title), self.session_id)
     fd.Close()
 
-    template = """
+    template = u"""
 <html><body><h1>Access to %(subject_title)s granted.</h1>
 
 The user %(username)s has granted access to %(subject_title)s for the
@@ -453,16 +455,16 @@ Please click <a href='%(admin_ui)s#%(subject_urn)s'>here</a> to access it.
 <p>The GRR team.
 </body></html>"""
 
+    body = template % dict(
+        subject_title=subject_title,
+        username=self.token.username,
+        reason=self.args.reason,
+        admin_ui=config_lib.CONFIG["AdminUI.url"],
+        subject_urn=access_urn
+        )
     email_alerts.SendEmail(self.args.delegate, self.token.username,
-                           "Access to %s granted." % subject_title,
-                           template % dict(
-                               subject_title=subject_title,
-                               username=self.token.username,
-                               reason=utils.SmartStr(self.args.reason),
-                               admin_ui=config_lib.CONFIG["AdminUI.url"],
-                               subject_urn=access_urn
-                               ),
-                           is_html=True)
+                           u"Access to %s granted." % subject_title,
+                           utils.SmartStr(body), is_html=True)
 
 
 class BreakGlassGrantApprovalWithReasonFlow(GrantApprovalWithReasonFlow):
@@ -500,7 +502,7 @@ class BreakGlassGrantApprovalWithReasonFlow(GrantApprovalWithReasonFlow):
               "%s." % subject_title, self.session_id)
     fd.Close()
 
-    template = """
+    template = u"""
 <html><body><h1>Emergency Access Granted.</h1>
 
 The user %(username)s has requested emergency access to %(subject_title)s.
@@ -512,16 +514,17 @@ This access has been logged and granted for 24 hours.
 <p>The GRR team.
 </body></html>"""
 
+    body = template % dict(
+        client_id=self.client_id,
+        username=self.token.username,
+        subject_title=subject_title,
+        reason=self.args.reason),
+
     email_alerts.SendEmail(
         config_lib.CONFIG["Monitoring.emergency_access_email"],
         self.token.username,
-        "Emergency approval granted for %s." % subject_title,
-        template % dict(
-            client_id=self.client_id,
-            username=self.token.username,
-            subject_title=subject_title,
-            reason=utils.SmartStr(self.args.reason)),
-        is_html=True)
+        u"Emergency approval granted for %s." % subject_title,
+        utils.SmartStr(body), is_html=True)
 
 
 class RequestClientApprovalFlow(RequestApprovalWithReasonFlow):
@@ -546,7 +549,7 @@ class RequestClientApprovalFlow(RequestApprovalWithReasonFlow):
     """Returns the string with subject's title."""
     client = aff4.FACTORY.Open(self.client_id, token=self.token)
     hostname = client.Get(client.Schema.HOSTNAME)
-    return "GRR client %s (%s)" % (self.client_id.Basename(), hostname)
+    return u"GRR client %s (%s)" % (self.client_id.Basename(), hostname)
 
 
 class GrantClientApprovalFlow(GrantApprovalWithReasonFlow):
@@ -577,7 +580,7 @@ class GrantClientApprovalFlow(GrantApprovalWithReasonFlow):
     """Returns the string with subject's title."""
     client = aff4.FACTORY.Open(self.client_id, token=self.token)
     hostname = client.Get(client.Schema.HOSTNAME)
-    return "GRR client %s (%s)" % (self.client_id.Basename(), hostname)
+    return u"GRR client %s (%s)" % (self.client_id.Basename(), hostname)
 
 
 class BreakGlassGrantClientApprovalFlow(BreakGlassGrantApprovalWithReasonFlow):
@@ -602,7 +605,7 @@ class BreakGlassGrantClientApprovalFlow(BreakGlassGrantApprovalWithReasonFlow):
     """Returns the string with subject's title."""
     client = aff4.FACTORY.Open(self.client_id, token=self.token)
     hostname = client.Get(client.Schema.HOSTNAME)
-    return "GRR client %s (%s)" % (self.client_id.Basename(), hostname)
+    return u"GRR client %s (%s)" % (self.client_id.Basename(), hostname)
 
 
 class RequestHuntApprovalFlow(RequestApprovalWithReasonFlow):
@@ -627,7 +630,7 @@ class RequestHuntApprovalFlow(RequestApprovalWithReasonFlow):
 
   def BuildSubjectTitle(self):
     """Returns the string with subject's title."""
-    return "hunt %s" % self.args.subject_urn.Basename()
+    return u"hunt %s" % self.args.subject_urn.Basename()
 
 
 class GrantHuntApprovalFlow(GrantApprovalWithReasonFlow):
@@ -652,7 +655,7 @@ class GrantHuntApprovalFlow(GrantApprovalWithReasonFlow):
 
   def BuildSubjectTitle(self):
     """Returns the string with subject's title."""
-    return "hunt %s" % self.args.subject_urn.Basename()
+    return u"hunt %s" % self.args.subject_urn.Basename()
 
   def BuildAccessUrl(self):
     """Builds the urn to access this object."""
@@ -682,7 +685,7 @@ class RequestCronJobApprovalFlow(RequestApprovalWithReasonFlow):
 
   def BuildSubjectTitle(self):
     """Returns the string with subject's title."""
-    return "a cron job"
+    return u"a cron job"
 
 
 class GrantCronJobApprovalFlow(GrantApprovalWithReasonFlow):
@@ -707,7 +710,7 @@ class GrantCronJobApprovalFlow(GrantApprovalWithReasonFlow):
 
   def BuildSubjectTitle(self):
     """Returns the string with subject's title."""
-    return "a cron job"
+    return u"a cron job"
 
   def BuildAccessUrl(self):
     """Builds the urn to access this object."""

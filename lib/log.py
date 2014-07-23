@@ -47,6 +47,7 @@ class GrrApplicationLogger(object):
 
 
 class MemoryHandler(handlers.MemoryHandler):
+
   def shouldFlush(self, record):
     return len(self.buffer) >= self.capacity
 

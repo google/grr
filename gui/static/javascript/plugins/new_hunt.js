@@ -10,3 +10,14 @@ grr.Renderer('HuntInformation', {
     });
   }
 });
+
+grr.Renderer('HuntConfigureOutputPlugins', {
+  Layout: function(state) {
+    var unique = state.unique;
+    var defaultOutputPlugin = state.default_output_plugin;
+
+    if (defaultOutputPlugin) {
+      $('#AddButton' + unique).trigger('addItem', [defaultOutputPlugin]);
+    }
+  }
+});

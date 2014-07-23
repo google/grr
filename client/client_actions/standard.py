@@ -8,7 +8,6 @@ import hashlib
 import os
 import platform
 import socket
-import sys
 import time
 import zlib
 
@@ -335,6 +334,8 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
   in_rdfvalue = rdfvalue.ExecuteBinaryRequest
   out_rdfvalue = rdfvalue.ExecuteBinaryResponse
 
+  suffix = ""
+
   def WriteBlobToFile(self, request, suffix=""):
     """Writes the blob to a file and returns its path."""
     lifetime = 0
@@ -379,34 +380,30 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
     args.executable.Verify(config_lib.CONFIG[
         "Client.executable_signing_public_key"])
 
-    if sys.platform == "win32":
-      # We need .exe here.
-      suffix = "exe"
-    else:
-      suffix = ""
-
-    path = self.WriteBlobToFile(args, suffix)
+    path = self.WriteBlobToFile(args, self.suffix)
 
     # Only actually run the file on the last chunk.
     if not args.more_data:
-      res = client_utils_common.Execute(path, args.args, args.time_limit,
-                                        bypass_whitelist=True)
-      (stdout, stderr, status, time_used) = res
-
+      self.ProcessFile(path, args)
       self.CleanUp(path)
 
-      # Limit output to 10MB so our response doesn't get too big.
-      stdout = stdout[:10 * 1024 * 1024]
-      stderr = stderr[:10 * 1024 * 1024]
+  def ProcessFile(self, path, args):
+    res = client_utils_common.Execute(path, args.args, args.time_limit,
+                                      bypass_whitelist=True)
+    (stdout, stderr, status, time_used) = res
 
-      result = rdfvalue.ExecuteBinaryResponse(
-          stdout=stdout,
-          stderr=stderr,
-          exit_status=status,
-          # We have to return microseconds.
-          time_used=int(1e6 * time_used))
+    # Limit output to 10MB so our response doesn't get too big.
+    stdout = stdout[:10 * 1024 * 1024]
+    stderr = stderr[:10 * 1024 * 1024]
 
-      self.SendReply(result)
+    result = rdfvalue.ExecuteBinaryResponse(
+        stdout=stdout,
+        stderr=stderr,
+        exit_status=status,
+        # We have to return microseconds.
+        time_used=int(1e6 * time_used))
+
+    self.SendReply(result)
 
 
 class ExecutePython(actions.ActionPlugin):

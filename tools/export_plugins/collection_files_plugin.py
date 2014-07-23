@@ -29,6 +29,11 @@ class CollectionFilesExportPlugin(plugin.ExportPlugin):
                         "for seeing the hostname/users of the "
                         "machine the client id refers to.")
 
+    parser.add_argument("--flatten", action="store_true", default=False,
+                        help="Create a 'files' folder in the output folder "
+                        "with flat list of symlinks pointing to all the "
+                        "found files.")
+
     parser.add_argument("--overwrite", action="store_true", default=False,
                         help="Overwrite files if they exist.")
 
@@ -40,4 +45,5 @@ class CollectionFilesExportPlugin(plugin.ExportPlugin):
     export_utils.DownloadCollection(args.path, args.output,
                                     overwrite=args.overwrite,
                                     dump_client_info=args.dump_client_info,
+                                    flatten=args.flatten,
                                     max_threads=args.threads)

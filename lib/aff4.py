@@ -259,6 +259,55 @@ class Factory(object):
     return "%s:%s:%s" % (utils.SmartStr(urn), utils.SmartStr(token),
                          self.ParseAgeSpecification(age))
 
+  def CreateWithLock(self, urn, aff4_type, token=None, age=NEWEST_TIME,
+                     ignore_cache=False, force_new_version=True,
+                     blocking=True, blocking_lock_timeout=10,
+                     blocking_sleep_interval=1, lease_time=100):
+    """Creates a new object and locks it.
+
+    Similar to OpenWithLock below, this creates a locked object. The difference
+    is that when you call CreateWithLock, the object does not yet have to exist
+    in the data store.
+
+    Args:
+      urn: The object to create.
+      aff4_type: The desired type for this object.
+      token: The Security Token to use for opening this item.
+      age: The age policy used to build this object. Only makes sense when mode
+           has "r".
+      ignore_cache: Bypass the aff4 cache.
+      force_new_version: Forces the creation of a new object in the data_store.
+      blocking: When True, wait and repeatedly try to grab the lock.
+      blocking_lock_timeout: Maximum wait time when sync is True.
+      blocking_sleep_interval: Sleep time between lock grabbing attempts. Used
+          when blocking is True.
+      lease_time: Maximum time the object stays locked. Lock will be considered
+          released when this time expires.
+
+    Returns:
+      An AFF4 object of the desired type and mode.
+
+    Raises:
+      AttributeError: If the mode is invalid.
+    """
+
+    transaction = self._AcquireLock(
+        urn, token=token, blocking=blocking,
+        blocking_lock_timeout=blocking_lock_timeout,
+        blocking_sleep_interval=blocking_sleep_interval,
+        lease_time=lease_time)
+
+    # Since we now own the data store subject, we can simply create the aff4
+    # object in the usual way.
+    obj = self.Create(urn, aff4_type, mode="rw", ignore_cache=ignore_cache,
+                      token=token, age=age, force_new_version=force_new_version)
+
+    # Keep the transaction around - when this object is closed, the transaction
+    # will be committed.
+    obj.transaction = transaction
+
+    return obj
+
   def OpenWithLock(self, urn, aff4_type=None, token=None,
                    age=NEWEST_TIME, blocking=True, blocking_lock_timeout=10,
                    blocking_sleep_interval=1, lease_time=100):
@@ -288,16 +337,43 @@ class Factory(object):
       lease_time: Maximum time the object stays locked. Lock will be considered
           released when this time expires.
 
+    Raises:
+      ValueError: The URN passed in is None.
+
     Returns:
       Context manager to be used in 'with ...' statement.
     """
+
+    transaction = self._AcquireLock(
+        urn, token=token, blocking=blocking,
+        blocking_lock_timeout=blocking_lock_timeout,
+        blocking_sleep_interval=blocking_sleep_interval,
+        lease_time=lease_time)
+
+    # Since we now own the data store subject, we can simply read the aff4
+    # object in the usual way.
+    obj = self.Open(urn, aff4_type=aff4_type, mode="rw", ignore_cache=True,
+                    token=token, age=age, follow_symlinks=False)
+
+    # Keep the transaction around - when this object is closed, the transaction
+    # will be committed.
+    obj.transaction = transaction
+
+    return obj
+
+  def _AcquireLock(self, urn, token=None, blocking=None,
+                   blocking_lock_timeout=None, lease_time=None,
+                   blocking_sleep_interval=None):
+    """This actually acquires the lock for a given URN."""
     timestamp = time.time()
 
     if token is None:
       token = data_store.default_token
 
-    if urn is not None:
-      urn = rdfvalue.RDFURN(urn)
+    if urn is None:
+      raise ValueError("URN cannot be None")
+
+    urn = rdfvalue.RDFURN(urn)
 
     # Try to get a transaction object on this subject. Note that if another
     # transaction object exists, this will raise TransactionError, and we will
@@ -313,16 +389,7 @@ class Factory(object):
         else:
           time.sleep(blocking_sleep_interval)
 
-    # Since we now own the data store subject, we can simply read the aff4
-    # object in the usual way.
-    obj = self.Open(urn, aff4_type=aff4_type, mode="rw", ignore_cache=True,
-                    token=token, age=age, follow_symlinks=False)
-
-    # Keep the transaction around - when this object is closed, the transaction
-    # will be committed.
-    obj.transaction = transaction
-
-    return obj
+    return transaction
 
   def Copy(self, old_urn, new_urn, age=NEWEST_TIME, token=None, limit=None,
            sync=False):
@@ -556,14 +623,14 @@ class Factory(object):
     the specified type.
 
     Args:
-       urn: The object to create.
-       aff4_type: The desired type for this object.
-       mode: The desired mode for this object.
-       token: The Security Token to use for opening this item.
-       age: The age policy used to build this object. Only makes sense when mode
-            has "r".
-       ignore_cache: Bypass the aff4 cache.
-       force_new_version: Forces the creation of a new object in the data_store.
+      urn: The object to create.
+      aff4_type: The desired type for this object.
+      mode: The desired mode for this object.
+      token: The Security Token to use for opening this item.
+      age: The age policy used to build this object. Only makes sense when mode
+           has "r".
+      ignore_cache: Bypass the aff4 cache.
+      force_new_version: Forces the creation of a new object in the data_store.
 
     Returns:
       An AFF4 object of the desired type and mode.
@@ -1571,10 +1638,14 @@ class AFF4Object(object):
        object.
 
     Raises:
+       RuntimeError: When the object to upgrade is locked.
        AttributeError: When the new object can not accept some of the old
        attributes.
        InstantiationError: When we cannot instantiate the object type class.
     """
+    if self.locked:
+      raise RuntimeError("Cannot upgrade a locked object.")
+
     # We are already of the required type
     if self.__class__.__name__ == aff4_class:
       return self
@@ -2311,7 +2382,7 @@ class AFF4NotificationRule(AFF4Object):
 # Utility functions
 class AFF4InitHook(registry.InitHook):
 
-  pre = ["DataStoreInit"]
+  pre = ["ACLInit", "DataStoreInit"]
 
   def Run(self):
     """Delayed loading of aff4 plugins to break import cycles."""

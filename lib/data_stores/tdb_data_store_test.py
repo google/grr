@@ -21,16 +21,13 @@ from grr.lib.data_stores import tdb_data_store
 
 class TDBTestMixin(object):
 
-  def InitTable(self):
+  def InitDatastore(self):
     self.token = access_control.ACLToken(username="test",
                                          reason="Running tests")
     config_lib.CONFIG.SetRaw("TDBDatastore.root_path",
                              "%s/tdb_test/" % self.temp_dir)
 
-    try:
-      shutil.rmtree(config_lib.CONFIG.Get("TDBDatastore.root_path"))
-    except (OSError, IOError):
-      pass
+    self.DestroyDatastore()
 
     data_store.DB = tdb_data_store.TDBDataStore()
     data_store.DB.security_manager = test_lib.MockSecurityManager()
@@ -38,22 +35,25 @@ class TDBTestMixin(object):
   def testCorrectDataStore(self):
     self.assertTrue(isinstance(data_store.DB, tdb_data_store.TDBDataStore))
 
+  def DestroyDatastore(self):
+    try:
+      shutil.rmtree(config_lib.CONFIG.Get("TDBDatastore.root_path"))
+    except (OSError, IOError):
+      pass
+
 
 class TDBDataStoreTest(TDBTestMixin, data_store_test.DataStoreTest):
   """Test the tdb data store."""
-
-  def setUp(self):
-    super(TDBDataStoreTest, self).setUp()
-    self.InitTable()
 
 
 class TDBDataStoreBenchmarks(TDBTestMixin,
                              data_store_test.DataStoreBenchmarks):
   """Benchmark the TDB data store abstraction."""
 
-  def setUp(self):
-    super(TDBDataStoreBenchmarks, self).setUp()
-    self.InitTable()
+
+class TDBDataStoreCSVBenchmarks(TDBTestMixin,
+                                data_store_test.DataStoreCSVBenchmarks):
+  """Benchmark the TDB data store abstraction."""
 
 
 def main(args):

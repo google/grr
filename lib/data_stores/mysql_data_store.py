@@ -131,13 +131,18 @@ class MySQLDataStore(data_store.DataStore):
       except MySQLdb.Error:
         self.RecreateDataBase()
 
-  def RecreateDataBase(self):
-    """Drops the table and creates a new one."""
+  def DropDatabase(self):
+    """Drops the database table."""
     with self.pool.GetConnection() as connection:
       try:
         connection.Execute("drop table `%s`" % self.table_name)
       except MySQLdb.OperationalError:
         pass
+
+  def RecreateDataBase(self):
+    """Drops the table and creates a new one."""
+    self.DropDatabase()
+    with self.pool.GetConnection() as connection:
       connection.Execute("""
   CREATE TABLE `%s` (
     hash BINARY(32) DEFAULT NULL,

@@ -58,7 +58,7 @@ class ProfileServerTest(test_lib.GRRBaseTest):
 
     with test_lib.Stubber(urllib2, "urlopen", FakeOpen):
       profile = self.server.GetProfileByName(profile_name)
-      uncompressed = zlib.decompress(profile.data, 15 + 32)
+      uncompressed = zlib.decompress(profile.data, 16 + zlib.MAX_WBITS)
       self.assertTrue("BusQueryDeviceID" in uncompressed)
 
     # We issued one http request.
@@ -74,7 +74,7 @@ class ProfileServerTest(test_lib.GRRBaseTest):
     with test_lib.Stubber(urllib2, "urlopen", FakeOpen):
       profile = self.server.GetProfileByName("v1.0/pe")
       # We received compressed data.
-      zlib.decompress(profile.data, 15 + 32)
+      zlib.decompress(profile.data, 16 + zlib.MAX_WBITS)
 
       # We issued one http request.
       self.assertEqual(FakeHandle.read_count, 1)

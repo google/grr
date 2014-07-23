@@ -7,12 +7,18 @@ Implementations should be able to pass these tests to be conformant.
 """
 
 
+import csv
 import hashlib
 import logging
+import operator
 import os
+import random
+import string
+import tempfile
 import thread
 import threading
 import time
+
 
 # pylint: disable=unused-import, g-bad-import-order
 from grr.lib import server_plugins
@@ -35,12 +41,23 @@ class DataStoreTest(test_lib.GRRBaseTest):
 
   def setUp(self):
     super(DataStoreTest, self).setUp()
+    self.InitDatastore()
 
     data_store.DB.DeleteSubject(self.test_row, token=self.token)
     for i in range(20):
       data_store.DB.DeleteSubject("aff4:/row:%s" % i, token=self.token)
 
     data_store.DB.Flush()
+
+  def tearDown(self):
+    super(DataStoreTest, self).tearDown()
+    self.DestroyDatastore()
+
+  def InitDatastore(self):
+    """Initiates custom data store."""
+
+  def DestroyDatastore(self):
+    """Destroys custom data store."""
 
   def testSetResolve(self):
     """Test the Set() and Resolve() methods."""
@@ -859,6 +876,468 @@ class DataStoreTest(test_lib.GRRBaseTest):
     self.assertEqual(len(self.results), self.OPEN_WITH_LOCK_NUM_THREADS)
 
 
+class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
+  """Long running benchmarks where the results are dumped to a CSV file."""
+
+  # What we consider as a big number of attributes.
+  BIG_NUM_ATTRIBUTES = 1000
+
+  units = "s"
+
+  # Database counters.
+  subjects = 0
+  predicates = 0
+  values = 0
+  queries_total = 0  # Total queries.
+  queries_last_timestep = 0  # Number of the queries up to the last timestep.
+  steps = 0  # How many steps so far.
+
+  query_interval = 3000  # A step is composed of this many queries.
+
+  test_name = ""  # Current operation being run.
+  start_time = None
+  last_time = None
+  predicate_template = "task:flow%d"
+
+  def setUp(self):
+    super(DataStoreCSVBenchmarks, self).setUp(["DB Size (KB)", "Queries",
+                                               "Subjects", "Predicates",
+                                               "Values"],
+                                              ["<20", "<10", "<10", "<10",
+                                               "<10"])
+    self.InitDatastore()
+    self.start_time = time.time()
+    self.last_time = self.start_time
+
+  def tearDown(self):
+    self.Register(force=True)
+    super(DataStoreCSVBenchmarks, self).tearDown()
+    self.WriteCSV()
+    self.DestroyDatastore()
+
+  def Register(self, force=False):
+    """Add a new result line to the benchmark result."""
+    self.queries_total += 1
+    if self.queries_total % self.query_interval == 0 or force:
+      data_store.DB.Flush()
+      this_time = time.time()
+      queries_diff = self.queries_total - self.queries_last_timestep
+      self.queries_last_timestep = self.queries_total
+      self.last_time = this_time
+      self.steps += 1
+      self.AddResult(self.test_name, this_time - self.start_time, self.steps,
+                     data_store.DB.Size()/1024, queries_diff, self.subjects,
+                     self.predicates, self.values)
+
+  def WriteCSV(self, remove=False):
+    """Write results to a CSV file."""
+    with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as fp:
+      writer = csv.writer(fp, delimiter=" ")
+      writer.writerow(["Benchmark", "Time", "DBSize", "Queries", "Subjects",
+                       "Predicates", "Values"])
+      for row in self.scratchpad[2:]:
+        writer.writerow([row[0], row[1], row[3], row[4], row[5],
+                         row[6], row[7]])
+
+      logging.info("CSV File is in %s", fp.name)
+      if remove:
+        os.unlink(fp.name)
+
+  def _RandomlyReadSubject(self, subject, predicates):
+    """Read certain parts of a given subject."""
+    for j, timestamps in predicates.items():
+      which = random.randint(0, 2)
+      if which == 0:
+        # Read all timestamps.
+        data_store.DB.ResolveRegex(subject, self.predicate_template % j,
+                                   timestamp=data_store.DB.ALL_TIMESTAMPS,
+                                   token=self.token)
+      elif which == 1:
+        # Read a specific timestamp.
+        if timestamps:
+          ts = random.choice(timestamps)
+          data_store.DB.ResolveRegex(subject, self.predicate_template % j,
+                                     timestamp=(ts, ts), token=self.token)
+      elif which == 2:
+        # Read latest.
+        data_store.DB.Resolve(subject, self.predicate_template % j,
+                              token=self.token)
+      self.Register()
+    if random.randint(0, 1) == 0:
+      # Find all attributes.
+      data_store.DB.ResolveRegex(subject, "task:flow.*",
+                                 timestamp=data_store.DB.NEWEST_TIMESTAMP,
+                                 token=self.token)
+      self.Register()
+
+  def _ReadRandom(self, subjects, fraction, change_test=True):
+    """Randomly read the database."""
+    if change_test:
+      self.test_name = "read random %d%%" % fraction
+    for _ in range(0, int(float(len(subjects)) * float(fraction)/100.0)):
+      i = random.choice(subjects.keys())
+      subject = subjects[i]["name"]
+      predicates = subjects[i]["attrs"]
+      self._RandomlyReadSubject(subject, predicates)
+
+  def _UpdateRandom(self, subjects, fraction, change_test=True):
+    """Update values/predicates for a given fraction of the subjects."""
+    if change_test:
+      self.test_name = "update %d%%" % fraction
+    new_value = os.urandom(100)
+    for i in subjects:
+      subject = subjects[i]["name"]
+      predicates = subjects[i]["attrs"]
+      if random.randint(0, 100) > fraction:
+        continue
+      which = random.randint(0, 2)
+      if which == 0 or which == 1:
+        for j, timestamp_info in predicates.items():
+          number_timestamps = len(timestamp_info)
+          if which == 0 and len(timestamp_info):
+            # Update one timestamp'ed value.
+            data_store.DB.Set(subject, self.predicate_template % j, new_value,
+                              timestamp=timestamp_info[-1], token=self.token)
+            self.Register()
+          elif which == 1:
+            # Add another timestamp.
+            timestamp_info.append(100 * number_timestamps + 1)
+            data_store.DB.Set(subject, self.predicate_template % j, new_value,
+                              timestamp=timestamp_info[-1], token=self.token)
+            self.values += 1
+            self.Register()
+      elif which == 2:
+        # Add an extra predicate.
+        j = len(predicates)
+        number_timestamps = random.randrange(1, 3)
+        ts = [100 * (ts + 1) for ts in xrange(number_timestamps)]
+        predicates[j] = ts
+        self.values += number_timestamps
+        self.predicates += 1
+        values = [(new_value, t) for t in ts]
+        data_store.DB.MultiSet(subject, {self.predicate_template % j: values},
+                               timestamp=100, token=self.token)
+        self.Register()
+    data_store.DB.Flush()
+
+  def _DeleteRandom(self, subjects, fraction, change_test=True):
+    """Delete predicates/subjects/values at random."""
+    if change_test:
+      self.test_name = "delete %d%%" % fraction
+    subjects_to_delete = []
+    for i, info in subjects.items():
+      subject = info["name"]
+      predicates = info["attrs"]
+      number_predicates = len(predicates)
+      do_it = (random.randint(0, 100) <= fraction)
+      which = random.randint(0, 2)
+      count_values = 0
+      predicates_to_delete = []
+      for j, timestamp_info in predicates.items():
+        number_timestamps = len(timestamp_info)
+        count_values += number_timestamps
+        if do_it:
+          if which == 0:
+            # Delete one timestamp'ed value.
+            if timestamp_info:
+              ts = timestamp_info[0]
+              data_store.DB.DeleteAttributes(subject,
+                                             [self.predicate_template % j],
+                                             start=ts, end=ts,
+                                             token=self.token)
+              self.values -= 1
+              timestamp_info.pop(0)
+              self.Register()
+            else:
+              which = 1
+          if which == 1:
+            # Delete the attribute itself.
+            data_store.DB.DeleteAttributes(subject,
+                                           [self.predicate_template % j],
+                                           token=self.token)
+            self.values -= number_timestamps
+            self.predicates -= 1
+            predicates_to_delete.append(j)
+            self.Register()
+      if do_it and which == 1:
+        for j in predicates_to_delete:
+          del predicates[j]
+      if do_it and which == 2:
+        # Delete subject.
+        data_store.DB.DeleteSubject(subject, token=self.token)
+        self.predicates -= number_predicates
+        self.values -= count_values
+        self.subjects -= 1
+        subjects_to_delete.append(i)
+        self.Register()
+    for i in subjects_to_delete:
+      del subjects[i]
+    data_store.DB.Flush()
+
+  def _GrowRandomly(self, subjects, fraction, nclients, change_test=True):
+    """Adds new clients/subjects to the database."""
+    if change_test:
+      self.test_name = "add %d%%" % fraction
+    how_many = int(float(len(subjects)) * float(fraction)/100)
+    new_value = os.urandom(100)
+    new_subject = max(subjects.iteritems(),
+                      key=operator.itemgetter(0))[0] + 1
+    # Generate client names.
+    clients = [self._GenerateRandomClient() for _ in xrange(nclients)]
+    for i in xrange(new_subject, new_subject + how_many):
+      client = clients[random.randint(0, nclients-1)]
+      self._AddNewSubject(client, subjects, i, new_value)
+    data_store.DB.Flush()
+
+  def _GenerateRandomSubject(self):
+    n = random.randint(1, 5)
+    seps = [self._GenerateRandomString(random.randint(5, 10))
+            for _ in xrange(n)]
+    return "/".join(seps)
+
+  def _AddNewSubject(self, client, subjects, i, value, max_attributes=3):
+    """Add a new subject to the database."""
+    number_predicates = random.randrange(1, max_attributes)
+    self.subjects += 1
+    predicates = dict.fromkeys(xrange(number_predicates))
+    self.predicates += number_predicates
+    subject = str(client.Add(self._GenerateRandomSubject()))
+    for j in xrange(number_predicates):
+      number_timestamps = random.randrange(1, 3)
+      self.values += number_timestamps
+      ts = [100 * (ts + 1) for ts in xrange(number_timestamps)]
+      predicates[j] = ts
+      values = [(value, t) for t in ts]
+      data_store.DB.MultiSet(subject, {self.predicate_template % j: values},
+                             timestamp=100, token=self.token)
+      self.Register()
+    info = {"name": subject, "attrs": predicates}
+    subjects[i] = info
+
+  def _ReadLinear(self, subjects, fraction):
+    """Linearly read subjects from the database."""
+    self.test_name = "read linear %d%%" % fraction
+    for i in subjects:
+      if random.randint(0, 100) > fraction:
+        return
+      subject = subjects[i]["name"]
+      predicates = subjects[i]["attrs"]
+      self._RandomlyReadSubject(subject, predicates)
+
+  def _AddManyAttributes(self, subjects, many):
+    """Add lots of predicates to a given number of subjects."""
+    self.test_name = "add +attrs %d" % many
+    new_value = os.urandom(100)
+    for _ in range(0, many):
+      i = random.choice(subjects.keys())
+      subject = subjects[i]["name"]
+      predicates = subjects[i]["attrs"]
+      how_many = random.randint(self.BIG_NUM_ATTRIBUTES,
+                                self.BIG_NUM_ATTRIBUTES + 1000)
+      self.predicates += how_many
+      new_predicate = max(predicates.iteritems(),
+                          key=operator.itemgetter(0))[0] + 1
+      for j in xrange(new_predicate, new_predicate + how_many):
+        number_timestamps = random.randrange(1, 3)
+        ts = [100 * (ts + 1) for ts in xrange(number_timestamps)]
+        self.values += number_timestamps
+        values = [(new_value, t) for t in ts]
+        predicates[j] = ts
+        data_store.DB.MultiSet(subject, {self.predicate_template % j: values},
+                               timestamp=100, token=self.token)
+        self.Register()
+    data_store.DB.Flush()
+
+  def _RemoveManyAttributes(self, subjects, fraction):
+    """Delete all predicates (except 1) from subjects with many predicates."""
+    self.test_name = "del +attrs %d%%" % fraction
+    often = 100/fraction
+    count = 0
+    for i in subjects:
+      subject = subjects[i]["name"]
+      predicates = subjects[i]["attrs"]
+      number_predicates = len(predicates)
+      if number_predicates >= self.BIG_NUM_ATTRIBUTES:
+        count += 1
+        if count == often:
+          count = 0
+          predicates_to_delete = [j for j in predicates.keys()[1:]]
+          values_deleted = sum(len(predicates[x])
+                               for x in predicates_to_delete)
+          self.values -= values_deleted
+          self.predicates -= len(predicates_to_delete)
+          for j in predicates_to_delete:
+            del predicates[j]
+            data_store.DB.DeleteAttributes(subject,
+                                           [self.predicate_template % j],
+                                           token=self.token)
+            self.Register()
+    data_store.DB.Flush()
+
+  def _Wipeout(self, subjects):
+    """Delete every subject from the database."""
+    self.test_name = "wipeout"
+    for i in subjects:
+      subject = subjects[i]["name"]
+      predicates = subjects[i]["attrs"]
+      number_predicates = len(predicates)
+      count_values = 0
+      for j in predicates:
+        count_values += len(predicates[j])
+      data_store.DB.DeleteSubject(subject, token=self.token)
+      self.predicates -= number_predicates
+      self.values -= count_values
+      self.subjects -= 1
+      self.Register()
+    subjects = {}
+    data_store.DB.Flush()
+
+  def _DoMix(self, subjects):
+    """Do a mix of database operations."""
+    self.test_name = "mix"
+    for _ in xrange(0, len(subjects)/2000):
+      # Do random operations.
+      op = random.randint(0, 3)
+      if op == 0:
+        self._ReadRandom(subjects, 14, False)
+      elif op == 1:
+        self._GrowRandomly(subjects, 5, 20, False)
+      elif op == 2:
+        self._UpdateRandom(subjects, 10, False)
+      elif op == 3:
+        self._DeleteRandom(subjects, 4, False)
+
+  def _GenerateRandomClient(self):
+    return rdfvalue.ClientURN("C.%016d" % random.randint(0, (10 ** 16)-1))
+
+  def _FillDatabase(self, nsubjects, nclients,
+                    max_attributes=3):
+    """Fill the database with a certain number of subjects and clients."""
+    # Start with an arbitrary seed.
+    random.seed(0)
+    self.test_name = "fill"
+    self.AddResult(self.test_name, 0, self.steps, data_store.DB.Size(),
+                   0, 0, 0, 0)
+    subjects = dict.fromkeys(xrange(nsubjects))
+    value = os.urandom(100)
+    clients = [self._GenerateRandomClient() for _ in xrange(nclients)]
+    for i in subjects:
+      client = random.choice(clients)
+      self._AddNewSubject(client, subjects, i, value, max_attributes)
+    data_store.DB.Flush()
+    return subjects
+
+  def _GenerateRandomString(self, chars):
+    return "".join([random.choice(string.ascii_letters)
+                    for _ in xrange(chars)])
+
+  def _AddBlobs(self, howmany, size):
+    """Adds 'howmany' blobs with size 'size' kbs."""
+    self.test_name = "add blobs %dx%dk" % (howmany, size)
+    blob_info = []
+    count = 0
+    often = howmany / 10
+
+    for count in xrange(howmany):
+      data = self._GenerateRandomString(1024 * size)
+
+      # Create a blob.
+      digest = hashlib.sha256(data).digest()
+      code = digest.encode("hex")
+      urn = aff4.ROOT_URN.Add("blobs").Add(code)
+      blob_fd = aff4.FACTORY.Create(urn, "AFF4MemoryStream", mode="w",
+                                    token=self.token)
+      blob_fd.Write(data)
+      blob_fd.Close(sync=True)
+
+      blob_info.append(urn)
+
+      if count % often == 0:
+        # Because adding blobs, takes too long we force the output of
+        # new results.
+        self.Register(force=True)
+
+    self.Register(force=True)
+    data_store.DB.Flush()
+    return blob_info
+
+  @test_lib.SetLabel("benchmark")
+  def manySubjectsFewAttrs(self):
+    """Database with many subjects with few attributes."""
+    subjects = self._FillDatabase(25000, 500)
+    self._ReadLinear(subjects, 50)
+    self._UpdateRandom(subjects, 50)
+    self._ReadRandom(subjects, 70)
+    self._DeleteRandom(subjects, 40)
+    self._GrowRandomly(subjects, 40, 50)
+    self._ReadRandom(subjects, 100)
+    self._DoMix(subjects)
+    self._Wipeout(subjects)
+
+  @test_lib.SetLabel("benchmark")
+  def manySubjectsFewWithManyAttrs(self):
+    """Database where a few subjects have many attributes."""
+    subjects = self._FillDatabase(25000, 500)
+    self._UpdateRandom(subjects, 50)
+    self._AddManyAttributes(subjects, 100)
+    self._ReadRandom(subjects, 30)
+
+    # For 1/2 of the subjects with many attributes, remove all but
+    # one of the attributes.
+    self._RemoveManyAttributes(subjects, 50)
+
+    self._ReadRandom(subjects, 30)
+    self._UpdateRandom(subjects, 50)
+    self._Wipeout(subjects)
+
+  @test_lib.SetLabel("benchmark")
+  def fewSubjectsManyAttrs(self):
+    """Database with a few subjects with many attributes."""
+    subjects = self._FillDatabase(100, 5)
+    self._UpdateRandom(subjects, 100)
+    self._AddManyAttributes(subjects, 50)
+    self._ReadRandom(subjects, 30)
+    self._RemoveManyAttributes(subjects, 50)
+    self._ReadRandom(subjects, 50)
+    self._Wipeout(subjects)
+
+  @test_lib.SetLabel("benchmark")
+  def blobs(self):
+    """Database that stores blobs of increasing size."""
+    subjects = self._FillDatabase(10000, 200)
+
+    def _ReadUpdate():
+      self._ReadRandom(subjects, 75)
+      self._UpdateRandom(subjects, 20)
+
+    _ReadUpdate()
+
+    self._AddBlobs(50, 512)
+    _ReadUpdate()
+
+    self._AddBlobs(50, 2048)
+    _ReadUpdate()
+
+    self._AddBlobs(50, 10240)
+    _ReadUpdate()
+
+    self._AddBlobs(20, 10240 * 10)
+    _ReadUpdate()
+
+  @test_lib.SetLabel("benchmark")
+  def manySubjectsManyAttrs(self):
+    """Database with many subjects with many attributes."""
+    subjects = self._FillDatabase(25000, 500, 50)
+    self._ReadLinear(subjects, 50)
+    self._UpdateRandom(subjects, 50)
+    self._ReadRandom(subjects, 50)
+    self._DeleteRandom(subjects, 40)
+    self._GrowRandomly(subjects, 40, 50)
+    self._ReadRandom(subjects, 50)
+    self._DoMix(subjects)
+    self._Wipeout(subjects)
+
+
 class DataStoreBenchmarks(test_lib.MicroBenchmarks):
 
   queue = rdfvalue.RDFURN("BENCHMARK")
@@ -866,12 +1345,20 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
 
   def setUp(self):
     super(DataStoreBenchmarks, self).setUp()
+    self.InitDatastore()
     self.tp = threadpool.ThreadPool.Factory("test_pool", 50)
     self.tp.Start()
 
   def tearDown(self):
     super(DataStoreBenchmarks, self).tearDown()
     self.tp.Stop()
+    self.DestroyDatastore()
+
+  def InitDatastore(self):
+    """Initiates custom data store."""
+
+  def DestroyDatastore(self):
+    """Destroys custom data store."""
 
   def GenerateFiles(self, client_id, n, directory="dir/dir"):
     res = []

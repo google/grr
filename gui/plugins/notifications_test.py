@@ -12,7 +12,6 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import stats
 from grr.lib import test_lib
 
 
@@ -170,15 +169,8 @@ class TestNotifications(test_lib.GRRSeleniumTest):
     self.Open("/")
     self.Click("css=button[id=notification_button]")
 
-    prev_download_count = stats.STATS.GetMetricValue(
-        "ui_renderer_latency", fields=["DownloadView"]).count
-    def FileWasDownloaded():
-      return (stats.STATS.GetMetricValue(
-          "ui_renderer_latency", fields=["DownloadView"]).count -
-              prev_download_count) > 0
-
     self.Click("css=td:contains('Here is your file, sir.')")
-    self.WaitUntil(FileWasDownloaded)
+    self.WaitUntil(self.FileWasDownloaded)
 
 
 def main(argv):

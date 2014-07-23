@@ -116,6 +116,8 @@ class GUISettings(rdfvalue.RDFProtoStruct):
 class GRRUser(aff4.AFF4Object):
   """An AFF4 object modeling a GRR User."""
 
+  SYSTEM_USERS = set(["GRRWorker", "GRREnroller", "GRRCron", "test"])
+
   class SchemaCls(aff4.AFF4Object.SchemaCls):
     """Schema for GRRUser."""
     PENDING_NOTIFICATIONS = aff4.Attribute(

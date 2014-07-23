@@ -13,6 +13,7 @@ grr.Renderer('UnauthorizedRenderer', {
 grr.Renderer('ACLDialog', {
   Layout: function(state) {
     $('#acl_dialog_submit').click(function(event) {
+      grr.addRecentReason($('#acl_reason').val());
       $('#acl_form form').submit();
     });
 
@@ -59,7 +60,13 @@ grr.Renderer('CheckAccess', {
     var approval_renderer = state.approval_renderer;
 
     $('#acl_form_' + unique).submit(function(event) {
-      if ($.trim($('#acl_reason').val()) == '') {
+
+      var reason = $('#acl_recent_reasons').val();
+      if (reason == 'new_reason') {
+        reason = $('#acl_reason').val();
+      }
+
+      if ($.trim(reason) == '') {
         $('#acl_reason_warning').show();
         event.preventDefault();
         return;
@@ -68,7 +75,7 @@ grr.Renderer('CheckAccess', {
       var state = {
         subject: subject,
         approver: $('#acl_approver').val(),
-        reason: $('#acl_reason').val()
+        reason: reason
       };
       if ($('#acl_keepalive').is(':checked')) {
         state['keepalive'] = 'yesplease';
@@ -86,6 +93,22 @@ grr.Renderer('CheckAccess', {
 
       event.preventDefault();
     });
+
+    if (grr.state.recent_reasons) {
+      grr.state.recent_reasons.map(function(item) {
+        $('#acl_recent_reasons').append(
+          $('<option></option>').val(item).html(item));
+      });
+    }
+
+    $('#acl_recent_reasons').change(function() {
+      if ($('#acl_recent_reasons').val() == 'new_reason') {
+        $('#acl_reason').attr('disabled', false);
+      } else {
+        $('#acl_reason').attr('disabled', true);
+      }
+    });
+
 
     if ($('#acl_dialog[aria-hidden=false]').size() == 0) {
       $('#acl_dialog').detach().appendTo('body');
@@ -107,6 +130,8 @@ grr.Renderer('CheckAccess', {
     var reason = state.reason;
     var silent = state.silent;
 
+    grr.addRecentReason(reason);
+
     grr.publish('hash_state', 'reason', reason);
     grr.state.reason = reason;
     if (!silent) {
@@ -114,3 +139,22 @@ grr.Renderer('CheckAccess', {
     }
   }
 });
+
+/**
+ * Add a new reason to the list of recently used ones.
+ *
+ * @param {string} reason the access reason to store
+  */
+grr.addRecentReason = function(reason) {
+  if (!grr.state.recent_reasons) {
+    grr.state.recent_reasons = [];
+  }
+  var index = grr.state.recent_reasons.indexOf(reason);
+  if (index >= 0) {
+    grr.state.recent_reasons.splice(index, 1);
+  }
+  grr.state.recent_reasons.push(reason);
+  if (grr.state.recent_reasons.length > 5) {
+    grr.state.recent_reasons.splice(0, 1);
+   }
+};

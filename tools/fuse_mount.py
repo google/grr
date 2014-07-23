@@ -14,7 +14,6 @@ from grr.lib import server_plugins
 
 import logging
 
-
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import data_store
@@ -27,6 +26,8 @@ from grr.lib import utils
 
 from grr.lib.aff4_objects import security
 from grr.lib.aff4_objects import standard
+
+from grr.lib.rdfvalues import client
 
 # Check if fuse is installed. If it's not, set it to None so we know to mock it
 # out later.
@@ -74,6 +75,14 @@ flags.DEFINE_bool("force_sparse_image", False,
 flags.DEFINE_integer("sparse_image_threshold", 1024*1024*1024,
                      "If a client side file that's not in the datastore yet"
                      " is >= than this size, then store it as a sparse image.")
+
+flags.DEFINE_string("username", None,
+                    "Username to use for client authorization check.")
+
+flags.DEFINE_string("reason", None,
+                    "Reason to use for client authorization check. This "
+                    "needs to match the string in your approval request.")
+
 
 # The modes we'll use for aff4 objects that aren't really files.
 # Taken from /etc
@@ -412,20 +421,10 @@ class GRRFuse(GRRFuseDatastoreOnly):
       return True
     return False
 
-  @staticmethod
-  def GetClientURNFromPath(path):
-    """Extracts the Client id from the path, if it is present."""
-
-    # Make sure that the first component of the path looks like a client.
-    try:
-      return rdfvalue.ClientURN(path.split("/")[1])
-    except (type_info.TypeValueError, IndexError):
-      return None
-
   def _RunAndWaitForVFSFileUpdate(self, path):
     """Runs a flow on the client, and waits for it to finish."""
 
-    client_id = self.GetClientURNFromPath(path)
+    client_id = client.GetClientURNFromPath(path)
 
     # If we're not actually in a directory on a client, no need to run a flow.
     if client_id is None:
@@ -492,7 +491,7 @@ class GRRFuse(GRRFuseDatastoreOnly):
     if not missing_chunks:
       return
 
-    client_id = self.GetClientURNFromPath(fd.urn.Path())
+    client_id = client.GetClientURNFromPath(fd.urn.Path())
     flow_utils.StartFlowAndWait(client_id, token=self.token,
                                 flow_name="UpdateSparseImageChunks",
                                 file_urn=fd.urn,
@@ -502,7 +501,7 @@ class GRRFuse(GRRFuseDatastoreOnly):
     fd = aff4.FACTORY.Open(self.root.Add(path), token=self.token,
                            ignore_cache=True)
     last = fd.Get(fd.Schema.CONTENT_LAST)
-    client_id = self.GetClientURNFromPath(path)
+    client_id = client.GetClientURNFromPath(path)
 
     if isinstance(fd, standard.AFF4SparseImage):
       # If we have a sparse image, update just a part of it.
@@ -577,20 +576,20 @@ Try:
 
   root = flags.FLAGS.aff4path
 
-  username = getpass.getuser()
+  username = flags.FLAGS.username or getpass.getuser()
+  token = rdfvalue.ACLToken(username=username, reason=flags.FLAGS.reason or
+                            "fusemount")
 
-  data_store.default_token = rdfvalue.ACLToken(username=username,
-                                               reason="fusemount")
-  # If we're mounting inside a client, check to see if we have access to that
-  # client.
-  client_id = GRRFuse.GetClientURNFromPath(root)
+  # If we're exporting a path inside a client, check to see if we have access to
+  # that client and get the appropriate token.
+  client_id = client.GetClientURNFromPath(root)
   if client_id is not None:
     token = security.Approval.GetApprovalForObject(
         client_id,
-        token=data_store.default_token,
+        token=token,
         username=username)
-  else:
-    token = data_store.default_token
+
+  data_store.default_token = token
 
   logging.info("fuse_mount.py is mounting %s at %s....", root,
                flags.FLAGS.mountpoint)

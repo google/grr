@@ -6,6 +6,8 @@
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import export_utils
+from grr.lib.aff4_objects import security
+from grr.lib.rdfvalues import client
 from grr.tools.export_plugins import plugin
 
 
@@ -35,6 +37,17 @@ class FileExportPlugin(plugin.ExportPlugin):
 
   def Run(self, args):
     """Downloads files/directories with the given path."""
+
+    # If we're exporting a path inside a client, check to see if we have access
+    # to that client and get the appropriate token.  This means we can avoid
+    # having to specify --reason.
+    client_id = client.GetClientURNFromPath(args.path)
+
+    if client_id is not None:
+      token = security.Approval.GetApprovalForObject(
+          client_id, token=data_store.default_token,
+          username=data_store.default_token.username)
+      data_store.default_token = token
 
     try:
       directory = aff4.FACTORY.Open(args.path, "AFF4Volume",

@@ -451,16 +451,9 @@ class GetMemoryInformation(actions.ActionPlugin):
 class UpdateAgent(standard.ExecuteBinaryCommand):
   """Updates the GRR agent to a new version."""
 
-  in_rdfvalue = rdfvalue.ExecuteBinaryRequest
-  out_rdfvalue = rdfvalue.ExecuteBinaryResponse
+  suffix = "deb"
 
-  def Run(self, args):
-    """Run."""
-    pub_key = config_lib.CONFIG["Client.executable_signing_public_key"]
-    if not args.executable.Verify(pub_key):
-      raise OSError("Executable signing failure.")
-
-    path = self.WriteBlobToFile(args.executable, args.write_path, ".deb")
+  def ProcessFile(self, path, args):
 
     cmd = "/usr/bin/dpkg"
     cmd_args = ["-i", path]

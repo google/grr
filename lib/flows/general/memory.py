@@ -137,9 +137,22 @@ class MemoryCollector(flow.GRRFlow):
       raise flow.FlowError("Couldn't get client config: %s." % responses.status)
 
     self.state.destdir = responses.First().get("Client.tempdir")
+
     if not self.state.destdir:
-      raise flow.FlowError("Couldn't determine Client.tempdir file destination,"
-                           " required for disk free check: %s.")
+      # This means Client.tempdir wasn't explicitly defined in the client
+      # config,  so we use the current server value with the right context for
+      # the client instead.  This may differ from the default value deployed
+      # with the client, but it's a fairly safe bet.
+      self.state.destdir = config_lib.CONFIG.Get(
+          "Client.tempdir",
+          context=GetClientContext(self.client_id, self.token))
+
+      if not self.state.destdir:
+        raise flow.FlowError("Couldn't determine Client.tempdir file "
+                             "destination, required for disk free check: %s.")
+
+      self.Log("Couldn't get Client.tempdir from client for disk space check,"
+               "guessing %s from server config", self.state.destdir)
 
     self.CallFlow("DiskVolumeInfo",
                   path_list=[self.state.destdir],
@@ -262,6 +275,7 @@ class MemoryCollector(flow.GRRFlow):
       self.Notify("ViewObject", self.state.downloaded_file,
                   "Memory image transferred successfully")
       self.Status("Memory image transferred successfully.")
+      self.SendReply(stat)
     elif (self.args.action.action_type ==
           MemoryCollectorAction.Action.SEND_TO_SOCKET):
       self.Status("Memory image transferred successfully.")
@@ -404,6 +418,7 @@ class LoadMemoryDriver(flow.GRRFlow):
       # same device path.
       installer = GetDriverFromURN(self.state.installer_urns[0],
                                    token=self.token)
+
       self.CallClient("GetMemoryInformation",
                       rdfvalue.PathSpec(
                           path=installer.device_path,
@@ -473,6 +488,38 @@ class LoadMemoryDriver(flow.GRRFlow):
                   "Driver successfully initialized.")
 
 
+def GetClientContext(client_id, token):
+  """Get context for the given client id.
+
+  Get platform, os release, and arch contexts for the client.
+
+  Args:
+    client_id: The client_id of the host to use.
+    token: Token to use for access.
+  Returns:
+    array of client_context strings
+  """
+  client_context = []
+  client = aff4.FACTORY.Open(client_id, token=token)
+  system = client.Get(client.Schema.SYSTEM)
+  if system:
+    client_context.append("Platform:%s" % system)
+
+  release = client.Get(client.Schema.OS_RELEASE)
+  if release:
+    client_context.append(utils.SmartStr(release))
+
+  arch = utils.SmartStr(client.Get(client.Schema.ARCH)).lower()
+  # Support synonyms for i386.
+  if arch == "x86":
+    arch = "i386"
+
+  if arch:
+    client_context.append("Arch:%s" % arch)
+
+  return client_context
+
+
 def GetMemoryModules(client_id, token):
   """Given a host, returns a list of urns to appropriate memory modules.
 
@@ -520,27 +567,9 @@ def GetMemoryModules(client_id, token):
       MemoryDriver.aff4_paths:
         - aff4:/config/drivers/windows/pmem_x86.sys
   """
-  client_context = []
-  client = aff4.FACTORY.Open(client_id, token=token)
-  system = client.Get(client.Schema.SYSTEM)
-  if system:
-    client_context.append("Platform:%s" % system)
-
-  release = client.Get(client.Schema.OS_RELEASE)
-  if release:
-    client_context.append(utils.SmartStr(release))
-
-  arch = utils.SmartStr(client.Get(client.Schema.ARCH)).lower()
-  # Support synonyms for i386.
-  if arch == "x86":
-    arch = "i386"
-
-  if arch:
-    client_context.append("Arch:%s" % arch)
-
   installer_urns = []
-  for aff4_path in config_lib.CONFIG.Get("MemoryDriver.aff4_paths",
-                                         context=client_context):
+  for aff4_path in config_lib.CONFIG.Get(
+      "MemoryDriver.aff4_paths", context=GetClientContext(client_id, token)):
     logging.debug("Will fetch driver at %s for client %s",
                   aff4_path, client_id)
     if GetDriverFromURN(aff4_path, token):
@@ -873,7 +902,8 @@ class ListVADBinaries(flow.GRRFlow):
           "GetProcessesBinariesVolatility binaries (regex: %s) " %
           self.args.filename_regex or "None"))
 
-    self.CallFlow("ArtifactCollectorFlow", artifact_list=["FullVADBinaryList"],
+    self.CallFlow("ArtifactCollectorFlow",
+                  artifact_list=["FullVADBinaryListVolatility"],
                   store_results_in_aff4=False,
                   next_state="FetchBinaries")
 

@@ -180,12 +180,19 @@ def GetLowDiskWarnings(client):
   """
   warnings = []
   volumes = client.Get(client.Schema.VOLUMES)
+
+  # Avoid showing warnings for the CDROM.  This is isn't a problem for linux and
+  # OS X since we only check usage on the disk mounted at "/".
+  exclude_windows_types = [
+      rdfvalue.WindowsVolume.WindowsDriveTypeEnum.DRIVE_CDROM]
+
   if volumes:
     for volume in volumes:
-      freespace = volume.FreeSpacePercent()
-      if freespace < 5.0:
-        warnings.append("{0} {1:.0f}% free".format(volume.Name(),
-                                                   freespace))
+      if volume.windows.drive_type not in exclude_windows_types:
+        freespace = volume.FreeSpacePercent()
+        if freespace < 5.0:
+          warnings.append("{0} {1:.0f}% free".format(volume.Name(),
+                                                     freespace))
   return warnings
 
 

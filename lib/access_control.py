@@ -144,7 +144,7 @@ class ACLInit(registry.InitHook):
   subsystem is ready.
   """
 
-  pre = ["StatsInit", "AFF4InitHook"]
+  pre = ["StatsInit"]
 
   def RunOnce(self):
     stats.STATS.RegisterEventMetric("acl_check_time")

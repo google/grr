@@ -568,7 +568,7 @@ class GRRAFF4Init(registry.InitHook):
   """Ensure critical AFF4 objects exist for GRR."""
 
   # Must run after the AFF4 subsystem is ready.
-  pre = ["AFF4InitHook", "ACLInit"]
+  pre = ["AFF4InitHook"]
 
   def Run(self):
     try:
@@ -578,11 +578,6 @@ class GRRAFF4Init(registry.InitHook):
       fd.Close()
     except access_control.UnauthorizedAccess:
       pass
-
-# We add these attributes to all objects. This means that every object we create
-# has a URN link back to the flow that created it.
-aff4.AFF4Object.SchemaCls.FLOW = aff4.Attribute(
-    "aff4:flow", rdfvalue.RDFURN, "A currently scheduled flow.")
 
 
 class AFF4CollectionView(rdfvalue.RDFValueArray):

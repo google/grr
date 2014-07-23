@@ -18,6 +18,7 @@ from grr.lib import flow
 from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib import utils
 from grr.lib.aff4_objects import cronjobs
 
 
@@ -131,6 +132,73 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     # One email for the original request and one for each approval.
     self.assertEqual(len(self.emails_sent), 3)
+
+  def testRecentReasonBox(self):
+    test_reason = u"ástæða"
+    self.Open("/")
+    with self.ACLChecksDisabled():
+      token = access_control.ACLToken(
+          username="test",
+          reason=test_reason)
+      self.GrantClientApproval("C.0000000000000006", token=token)
+
+    self.Type("client_query", "0006")
+    self.Click("client_query_submit")
+
+    self.WaitUntilEqual(u"C.0000000000000006",
+                        self.GetText, "css=span[type=subject]")
+
+    # Choose client 6
+    self.Click("css=td:contains('0006')")
+
+    self.WaitUntil(self.IsTextPresent, u"Access reason: %s" % test_reason)
+
+    # By now we should have a recent reason set, let's see if it shows up in the
+    # ACL dialog.
+
+    self.Type("client_query", "0001")
+    self.Click("client_query_submit")
+
+    self.WaitUntilEqual(u"C.0000000000000001",
+                        self.GetText, "css=span[type=subject]")
+
+    # Choose client 1
+    self.Click("css=td:contains('0001')")
+
+    # This should be rejected now and a form request is made.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=h3:contains('Create a new approval')")
+
+    options = self.GetText("css=select[id=acl_recent_reasons]").split("\n")
+    self.assertEqual(len(options), 2)
+    self.assertEqual(options[0].strip(), "Enter New Reason...")
+    self.assertEqual(options[1].strip(), test_reason)
+
+    # The reason text box should be there and enabled.
+    element = self.GetElement("css=input[id=acl_reason]")
+    self.assertTrue(element.is_enabled())
+
+    self.Select("css=select[id=acl_recent_reasons]", test_reason)
+
+    # Make sure clicking the recent reason greys out the reason text box.
+    element = self.GetElement("css=input[id=acl_reason]")
+    self.assertFalse(element.is_enabled())
+
+    # Ok now submit this.
+    self.Type("css=input[id=acl_approver]", "test")
+    self.ClickUntilNotVisible("acl_dialog_submit")
+
+    # And make sure the approval was created...
+    fd = aff4.FACTORY.Open("aff4:/ACL/C.0000000000000001/test",
+                           token=self.token)
+    approvals = list(fd.ListChildren())
+
+    self.assertEqual(len(approvals), 1)
+
+    # ... using the correct reason.
+    self.assertEqual(
+        utils.SmartUnicode(approvals[0].Basename().decode("base64")),
+        test_reason)
 
   def testHuntACLWorkflow(self):
     with self.ACLChecksDisabled():

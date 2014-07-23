@@ -49,8 +49,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
   def setUp(self):
     super(AFF4Tests, self).setUp()
-    # TODO(user): remove when everything is URN.
-    self.client_id = rdfvalue.RDFURN(self.client_id)
+    self.assertTrue(isinstance(self.client_id, rdfvalue.RDFURN))
     MockNotificationRule.OBJECTS_WRITTEN = []
 
   def testNonVersionedAttribute(self):
@@ -472,7 +471,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     self.assertEqual(int(fd.GetContentAge()), 101000000)
 
   def testAFF4FlowObject(self):
-    """Test the AFF4 Flow switch and object."""
+    """Test the AFF4 Flow object."""
     client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient",
                                  token=self.token)
     client.Close()
@@ -492,17 +491,6 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
     self.assertEqual(flow_obj.__class__.__name__, "FlowOrderTest")
 
-    # Now load multiple flows at once
-    client = aff4.FACTORY.Open(self.client_id, token=self.token,
-                               age=aff4.ALL_TIMES)
-
-    # This was removed...
-    for f in client.GetValuesForAttribute(client.Schema.FLOW):
-      session_ids.remove(f)
-
-    # Did we get them all?
-    self.assertEqual(session_ids, [])
-
   def testQuery(self):
     """Test the AFF4Collection object."""
     # First we create a fixture
@@ -512,14 +500,14 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     fd = aff4.FACTORY.Open(rdfvalue.ClientURN(client_id).Add(
         "/fs/os/c"), token=self.token)
 
-    # Test that we can match a unicode char
+    # Test that we can match a unicode char.
     matched = list(fd.Query(u"subject matches '中'"))
     self.assertEqual(len(matched), 1)
     self.assertEqual(utils.SmartUnicode(matched[0].urn),
                      u"aff4:/C.0000000000000000/"
                      u"fs/os/c/中国新闻网新闻中")
 
-    # Test that we can match a unicode char
+    # Test that we can match special chars.
     matched = list(fd.Query(ur"subject matches '\]\['"))
     self.assertEqual(len(matched), 1)
     self.assertEqual(utils.SmartUnicode(matched[0].urn),
@@ -866,6 +854,28 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     with aff4.FACTORY.OpenWithLock(self.client_id, token=self.token,
                                    blocking=False):
       pass
+
+  def testAsynchronousCreateWithLock(self):
+    self.client_id = rdfvalue.RDFURN(self.client_id)
+
+    with aff4.FACTORY.CreateWithLock(
+        self.client_id, "VFSGRRClient", token=self.token) as obj:
+
+      obj.Set(obj.Schema.HOSTNAME("client1"))
+
+      def TryOpen():
+        with aff4.FACTORY.OpenWithLock(self.client_id, token=self.token,
+                                       blocking=False):
+          pass
+
+      # This should raise, because obj1 is holding the lock
+      self.assertRaises(aff4.LockError, TryOpen)
+
+    # This shouldn't raise now, as previous Close() call has released the lock.
+    with aff4.FACTORY.OpenWithLock(self.client_id, token=self.token,
+                                   blocking=False) as obj:
+      # Check that the object is correctly opened by reading the attribute
+      self.assertEqual(obj.Get(obj.Schema.HOSTNAME), "client1")
 
   def testSynchronousOpenWithLockWorksCorrectly(self):
     client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient", mode="w",

@@ -59,6 +59,7 @@ from grr.lib import rekall_profile_server
 from grr.lib import server_plugins
 # pylint: enable=unused-import
 from grr.lib import startup
+from grr.lib import stats
 from grr.lib import utils
 from grr.lib import worker
 # pylint: disable=unused-import
@@ -261,6 +262,10 @@ class GRRBaseTest(unittest.TestCase):
 
     logging.info("Starting test: %s.%s",
                  self.__class__.__name__, self._testMethodName)
+
+    # "test" must not be a system user or notifications will not be delivered.
+    if "test" in aff4.GRRUser.SYSTEM_USERS:
+      aff4.GRRUser.SYSTEM_USERS.remove("test")
 
   def tearDown(self):
     logging.info("Completed test: %s.%s",
@@ -705,12 +710,18 @@ class MultiStubber(object):
 class FakeTime(object):
   """A context manager for faking time."""
 
-  def __init__(self, fake_time):
+  def __init__(self, fake_time, increment=0):
     self.time = fake_time
+    self.increment = increment
 
   def __enter__(self):
     self.old_time = time.time
-    time.time = lambda: self.time
+
+    def Time():
+      self.time += self.increment
+      return self.time
+
+    time.time = Time
 
   def __exit__(self, unused_type, unused_value, unused_traceback):
     time.time = self.old_time
@@ -929,6 +940,14 @@ class GRRSeleniumTest(GRRBaseTest):
     element = self.GetElement(target)
     return element and element.is_displayed()
 
+  def FileWasDownloaded(self):
+    new_count = stats.STATS.GetMetricValue(
+        "ui_renderer_latency", fields=["DownloadView"]).count
+
+    result = (new_count - self.prev_download_count) > 0
+    self.prev_download_count = new_count
+    return result
+
   def GetText(self, target):
     element = self.WaitUntil(self.GetVisibleElement, target)
     return element.text.strip()
@@ -1039,6 +1058,9 @@ class GRRSeleniumTest(GRRBaseTest):
 
   def setUp(self):
     super(GRRSeleniumTest, self).setUp()
+
+    self.prev_download_count = stats.STATS.GetMetricValue(
+        "ui_renderer_latency", fields=["DownloadView"]).count
 
     # Make the user use the advanced gui so we can test it.
     with aff4.FACTORY.Create(
@@ -1279,16 +1301,19 @@ class MockClient(object):
             response = rdfvalue.GrrMessage(
                 session_id=message.session_id, name=message.name,
                 response_id=response_id, request_id=message.request_id,
-                payload=response,
-                type=msg_type)
-
+                payload=response, type=msg_type)
+          elif isinstance(response, rdfvalue.Iterator):
+            msg_type = rdfvalue.GrrMessage.Type.ITERATOR
+            response = rdfvalue.GrrMessage(
+                session_id=message.session_id, name=message.name,
+                response_id=response_id, request_id=message.request_id,
+                payload=response, type=msg_type)
           elif not isinstance(response, rdfvalue.GrrMessage):
             msg_type = rdfvalue.GrrMessage.Type.MESSAGE
             response = rdfvalue.GrrMessage(
                 session_id=message.session_id, name=message.name,
                 response_id=response_id, request_id=message.request_id,
-                payload=response,
-                type=msg_type)
+                payload=response, type=msg_type)
 
           # Next expected response
           response_id = response.response_id + 1

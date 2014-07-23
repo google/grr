@@ -185,3 +185,6 @@ class VolatilityPluginParser(Parser):
         for row in section.table.rows:
           yield dict(zip(headers, row.values))
 
+
+class RekallPluginParser(Parser):
+  """Parses Rekall responses."""

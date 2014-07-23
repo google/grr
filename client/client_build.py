@@ -84,19 +84,19 @@ def GetBuilder(context):
   """Get the appropriate builder based on the selected flags."""
   try:
     if args.platform == "darwin":
-      context.append("Platform:Darwin")
+      context = ["Platform:Darwin"] + context
       builder_obj = builders.DarwinClientBuilder
 
     elif args.platform == "windows":
-      context.append("Platform:Windows")
+      context = ["Platform:Windows"] + context
       builder_obj = builders.WindowsClientBuilder
 
     elif args.platform == "linux":
-      context.append("Platform:Linux")
       if args.package_format == "deb":
+        context = ["Platform:Linux"] + context
         builder_obj = builders.LinuxClientBuilder
       else:
-        context.append("Target:LinuxRpm")
+        context = ["Platform:Linux", "Target:LinuxRpm"] + context
         builder_obj = builders.CentosClientBuilder
 
     else:
@@ -112,19 +112,19 @@ def GetBuilder(context):
 def GetDeployer(context):
   """Get the appropriate client deployer based on the selected flags."""
   if args.platform == "darwin":
-    context.append("Platform:Darwin")
+    context = ["Platform:Darwin"] + context
     deployer_obj = build.DarwinClientDeployer
 
   elif args.platform == "windows":
-    context.append("Platform:Windows")
+    context = ["Platform:Windows"] + context
     deployer_obj = build.WindowsClientDeployer
 
   elif args.platform == "linux":
-    context.append("Platform:Linux")
     if args.package_format == "deb":
+      context = ["Platform:Linux"] + context
       deployer_obj = build.LinuxClientDeployer
     else:
-      context.append("Target:LinuxRpm")
+      context = ["Platform:Linux", "Target:LinuxRpm"] + context
       deployer_obj = build.CentosClientDeployer
 
   else:

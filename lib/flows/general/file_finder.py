@@ -109,6 +109,10 @@ class FileFinder(transfer.MultiGetFileMixin,
     """Issue the find request."""
     super(FileFinder, self).Start()
 
+    if not self.args.paths:
+      # Nothing to do.
+      return
+
     self.state.Register("files_found", 0)
     self.state.Register("sorted_conditions",
                         sorted(self.args.conditions, key=self._ConditionWeight))
@@ -134,7 +138,8 @@ class FileFinder(transfer.MultiGetFileMixin,
                             condition_index=0)
 
     else:
-      self.GlobForPaths(self.args.paths, pathtype=self.args.pathtype)
+      self.GlobForPaths(self.args.paths, pathtype=self.args.pathtype,
+                        no_file_type_check=self.args.no_file_type_check)
 
   def GlobReportMatch(self, response):
     """This method is called by the glob mixin when there is a match."""

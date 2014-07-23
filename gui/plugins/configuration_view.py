@@ -317,7 +317,7 @@ class ConfigBinaryUploadHandler(fileview.UploadHandler):
 class ConfigurationViewInitHook(registry.InitHook):
   """Init hook run on load of UI to initialize config directories."""
 
-  pre = ["AFF4InitHook", "ACLInit"]
+  pre = ["AFF4InitHook"]
 
   def Run(self):
     """Create the necessary directories."""

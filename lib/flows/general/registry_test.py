@@ -255,6 +255,17 @@ class TestRegistryFinderFlow(test_lib.FlowTestsBaseclass):
                      "aff4:/C.1000000000000000/registry/HKEY_USERS/S-1-5-20/"
                      "Software/Microsoft/Windows/CurrentVersion/Run/Sidebar")
 
+  def testSizeCondition(self):
+    # There are two values, one is 20 bytes, the other 53.
+    self.RunFlow(
+        ["HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"],
+        [rdfvalue.RegistryFinderCondition(
+            condition_type=rdfvalue.RegistryFinderCondition.Type.SIZE,
+            size=rdfvalue.FileFinderSizeCondition(min_file_size=50))])
+    results = self.GetResults()
+    self.assertEqual(len(results), 1)
+    self.assertGreater(results[0].stat_entry.st_size, 50)
+
 
 class TestRegistryFlows(test_lib.FlowTestsBaseclass):
   """Test the Run Key and MRU registry flows."""

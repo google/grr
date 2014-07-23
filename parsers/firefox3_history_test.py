@@ -17,8 +17,8 @@ class Firefox3HistoryTest(test_lib.GRRBaseTest):
   """Test parsing of Firefox 3 history files."""
 
   # places.sqlite contains a single history entry:
-  # 2011-07-01 11:16:21.371935	FIREFOX3_VISIT \
-  # 	http://news.google.com/	Google News
+  # 2011-07-01 11:16:21.371935, FIREFOX3_VISIT,
+  # http://news.google.com/, Google News
   def testBasicParsing(self):
     """Test we can parse a standard file."""
     history_file = os.path.join(self.base_path, "places.sqlite")
@@ -52,6 +52,10 @@ class Firefox3HistoryTest(test_lib.GRRBaseTest):
     self.assertEquals(entries[2][2],
                       "https://blog.duosecurity.com/2012/07/exploit-mitigations"
                       "-in-android-jelly-bean-4-1/")
+
+    # Check that our results are properly time ordered
+    time_results = [x[0] for x in entries]
+    self.assertEqual(time_results, sorted(time_results))
 
 
 def main(argv):

@@ -101,12 +101,12 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     if not responses.success:
       raise artifact_lib.KnowledgeBaseUninitializedError(
           "Attempt to initialize Knowledge Base failed.")
-    else:
-      if not self.state.knowledge_base:
-        self.client = aff4.FACTORY.Open(self.client_id, token=self.token)
-        # If we are processing the knowledge base, it still won't exist yet.
-        self.state.knowledge_base = artifact.GetArtifactKnowledgeBase(
-            self.client, allow_uninitialized=True)
+
+    if not self.state.knowledge_base:
+      self.client = aff4.FACTORY.Open(self.client_id, token=self.token)
+      # If we are processing the knowledge base, it still won't exist yet.
+      self.state.knowledge_base = artifact.GetArtifactKnowledgeBase(
+          self.client, allow_uninitialized=True)
 
     for artifact_name in self.args.artifact_list:
       artifact_obj = self._GetArtifactFromName(artifact_name)
@@ -173,6 +173,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
           self.WMIQuery(collector)
         elif type_name == rdfvalue.Collector.CollectorType.VOLATILITY_PLUGIN:
           self.VolatilityPlugin(collector)
+        elif type_name == rdfvalue.Collector.CollectorType.REKALL_PLUGIN:
+          self.RekallPlugin(collector)
         elif type_name == rdfvalue.Collector.CollectorType.ARTIFACT:
           self.CollectArtifacts(collector)
         elif type_name == rdfvalue.Collector.CollectorType.ARTIFACT_FILES:
@@ -344,6 +346,22 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         "AnalyzeClientMemoryVolatility", request=request,
         request_data={"artifact_name": self.current_artifact_name,
                       "vol_plugin": collector.args["plugin"],
+                      "collector": collector.ToPrimitiveDict()},
+        next_state="ProcessCollected"
+        )
+
+  def RekallPlugin(self, collector):
+    request = rdfvalue.RekallRequest()
+    request.plugins = [
+        # Only use these methods for listing processes.
+        rdfvalue.PluginRequest(
+            plugin=collector.args["plugin"],
+            args=collector.args.get("args", {}))]
+
+    self.CallFlow(
+        "AnalyzeClientMemory", request=request,
+        request_data={"artifact_name": self.current_artifact_name,
+                      "rekall_plugin": collector.args["plugin"],
                       "collector": collector.ToPrimitiveDict()},
         next_state="ProcessCollected"
         )
@@ -626,6 +644,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
       elif isinstance(processor_obj, (parsers.RegistryParser,
                                       parsers.VolatilityPluginParser,
+                                      parsers.RekallPluginParser,
                                       parsers.RegistryValueParser,
                                       parsers.GenericResponseParser,
                                       parsers.GrepParser)):

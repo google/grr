@@ -81,7 +81,6 @@ class StatsTree(renderers.TreeRenderer):
 class Report(renderers.TemplateRenderer):
   """This is the base of all Statistic Reports."""
   category = None
-  SYSTEM_USERS = set(["GRRWorker", "GRREnroller", "GRRCron"])
 
   layout_template = renderers.Template("""
 <div class="padded">
@@ -150,7 +149,7 @@ class ReleaseBreakdown(OSBreakdown):
   title = "Operating system version break down."
   description = "This plot shows what OS clients active within the last day."
   active_day = 1
-  attribute = aff4.ClientFleetStats.SchemaCls.VERSION_HISTOGRAM
+  attribute = aff4.ClientFleetStats.SchemaCls.RELEASE_HISTOGRAM
 
 
 class ReleaseBreakdown7(ReleaseBreakdown):
@@ -287,6 +286,7 @@ class StatGraph(object):
 
 
 class StatData(object):
+
   def __init__(self, label, data):
     self.data = data
     self.label = label

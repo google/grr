@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
 <head>
 <meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
-<meta name="generator" content="AsciiDoc 8.6.6" />
+<meta name="generator" content="AsciiDoc 8.6.9" />
 <title>GRR Administrator Documentation</title>
 <style type="text/css">
 /* Shared CSS for AsciiDoc xhtml11 and html5 backends */
@@ -87,9 +87,15 @@ ul, ol, li > p {
 ul > li     { color: #aaa; }
 ul > li > * { color: black; }
 
-pre {
+.monospaced, code, pre {
+  font-family: "Courier New", Courier, monospace;
+  font-size: inherit;
+  color: navy;
   padding: 0;
   margin: 0;
+}
+pre {
+  white-space: pre-wrap;
 }
 
 #author {
@@ -219,7 +225,7 @@ div.exampleblock > div.content {
 }
 
 div.imageblock div.content { padding-left: 0; }
-span.image img { border-style: none; }
+span.image img { border-style: none; vertical-align: text-bottom; }
 a.image:visited { color: white; }
 
 dl {
@@ -349,7 +355,7 @@ div.colist td img {
   margin-bottom: 0.1em;
 }
 
-div.toclevel1, div.toclevel2, div.toclevel3, div.toclevel4 {
+div.toclevel0, div.toclevel1, div.toclevel2, div.toclevel3, div.toclevel4 {
   margin-top: 0;
   margin-bottom: 0;
 }
@@ -407,17 +413,13 @@ span.underline { text-decoration: underline; }
 span.overline { text-decoration: overline; }
 span.line-through { text-decoration: line-through; }
 
+div.unbreakable { page-break-inside: avoid; }
+
 
 /*
  * xhtml11 specific
  *
  * */
-
-tt {
-  font-family: monospace;
-  font-size: inherit;
-  color: navy;
-}
 
 div.tableblock {
   margin-top: 1.0em;
@@ -451,12 +453,6 @@ div.tableblock > table[frame="vsides"] {
  * html5 specific
  *
  * */
-
-.monospaced {
-  font-family: monospace;
-  font-size: inherit;
-  color: navy;
-}
 
 table.tableblock {
   margin-top: 1.0em;
@@ -537,6 +533,8 @@ body.manpage div.sectionbody {
 @media print {
   body.manpage div#toc { display: none; }
 }
+
+
 </style>
 <script type="text/javascript">
 /*<![CDATA[*/
@@ -581,7 +579,7 @@ toc: function (toclevels) {
 
   function tocEntries(el, toclevels) {
     var result = new Array;
-    var re = new RegExp('[hH]([2-'+(toclevels+1)+'])');
+    var re = new RegExp('[hH]([1-'+(toclevels+1)+'])');
     // Function that scans the DOM tree for header elements (the DOM2
     // nodeIterator API would be a better technique but not supported by all
     // browsers).
@@ -610,7 +608,7 @@ toc: function (toclevels) {
   var i;
   for (i = 0; i < toc.childNodes.length; i++) {
     var entry = toc.childNodes[i];
-    if (entry.nodeName == 'div'
+    if (entry.nodeName.toLowerCase() == 'div'
      && entry.getAttribute("class")
      && entry.getAttribute("class").match(/^toclevel/))
       tocEntriesToRemove.push(entry);
@@ -656,7 +654,7 @@ footnotes: function () {
   var entriesToRemove = [];
   for (i = 0; i < noteholder.childNodes.length; i++) {
     var entry = noteholder.childNodes[i];
-    if (entry.nodeName == 'div' && entry.getAttribute("class") == "footnote")
+    if (entry.nodeName.toLowerCase() == 'div' && entry.getAttribute("class") == "footnote")
       entriesToRemove.push(entry);
   }
   for (i = 0; i < entriesToRemove.length; i++) {
@@ -736,10 +734,6 @@ asciidoc.install(2);
 <body class="article">
 <div id="header">
 <h1>GRR Administrator Documentation</h1>
-<div id="toc">
-  <div id="toctitle">Table of Contents</div>
-  <noscript><p><b>JavaScript must be enabled in your browser to display the table of contents.</b></p></noscript>
-</div>
 </div>
 <div id="content">
 <div id="preamble">
@@ -780,7 +774,7 @@ Sign code and drivers sent to the client.
 <div class="paragraph"><p>These keys can be generated using the config_updater script normally installed
 in the path as grr_config_updater using the generate_keys command.</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.5
+<div class="content"><!-- Generator: GNU source-highlight 3.1.6
 by Lorenzo Bettini
 http://www.lorenzobettini.it
 http://www.gnu.org/software/src-highlite -->
@@ -809,7 +803,7 @@ normally reside in the directory <em>aff4:/users/&lt;username&gt;</em>. To manag
 possible to use the config_updater.py script:</p></div>
 <div class="paragraph"><p>To add the user joe as an admin:</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.5
+<div class="content"><!-- Generator: GNU source-highlight 3.1.6
 by Lorenzo Bettini
 http://www.lorenzobettini.it
 http://www.gnu.org/software/src-highlite -->
@@ -823,7 +817,7 @@ Labels<span style="color: #990000">:</span>
 Password<span style="color: #990000">:</span> <span style="font-weight: bold"><span style="color: #0000FF">set</span></span></tt></pre></div></div>
 <div class="paragraph"><p>To list all users:</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.5
+<div class="content"><!-- Generator: GNU source-highlight 3.1.6
 by Lorenzo Bettini
 http://www.lorenzobettini.it
 http://www.gnu.org/software/src-highlite -->
@@ -840,13 +834,13 @@ Password<span style="color: #990000">:</span> <span style="font-weight: bold"><s
 <div class="paragraph"><p>To update a user (useful for setting labels or for changing passwords):</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><tt>db@host:~$ sudo grr_config_updater update_user joe --label admin,user
+<pre><code>db@host:~$ sudo grr_config_updater update_user joe --label admin,user
 Using configuration &lt;ConfigFileParser filename="/etc/grr/grr-server.conf"&gt;
 Updating user joe
 
 Username: joe
 Labels: admin,user
-Password: set</tt></pre>
+Password: set</code></pre>
 </div></div>
 <div class="sect2">
 <h3 id="_security_managers">Security Managers.</h3>
@@ -1032,9 +1026,9 @@ certs to enable this by default as certificate management is messy, but you
 can enable by adding to your config something like:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><tt>AdminUI.enable_ssl: True
+<pre><code>AdminUI.enable_ssl: True
 AdminUI.ssl_cert_file: "/etc/ssl/certs/grr.crt"
-AdminUI.ssl_key_file: "/etc/ssl/private/grr.plain.key"</tt></pre>
+AdminUI.ssl_key_file: "/etc/ssl/private/grr.plain.key"</code></pre>
 </div></div>
 <div class="paragraph"><p>Note that SSL performance using this method may be average. If you have a lot
 of users and a single AdminUI, you may get better performance putting GRR behind
@@ -1104,10 +1098,10 @@ in memory only test datastore FakeDataStore.</p></div>
 You can configure it in the config file, e.g.</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><tt>[MongoDataStore]
+<pre><code>[MongoDataStore]
 server = mongodb.host.example.com
 port = 27017
-db_name = grr</tt></pre>
+db_name = grr</code></pre>
 </div></div>
 <div class="paragraph"><p>We also provide a useful script [scripts/database_reset.sh] to drop the Mongo
 database which is handy while testing things.</p></div>
@@ -1246,9 +1240,9 @@ config_updater to repack the binaries.
 This allows for changing basic configuration parameters such as the URL
 the client reports back to.</p></div>
 <div class="paragraph"><p>Once the config has been edited, you can repack all clients with the new config
-and upload them to the datastore using <tt>grr_config_updater repack_clients</tt></p></div>
+and upload them to the datastore using <code>grr_config_updater repack_clients</code></p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.5
+<div class="content"><!-- Generator: GNU source-highlight 3.1.6
 by Lorenzo Bettini
 http://www.lorenzobettini.it
 http://www.gnu.org/software/src-highlite -->
@@ -1264,7 +1258,7 @@ s/GRR_2<span style="color: #990000">.</span><span style="color: #993399">5.0</sp
 Uploaded to aff4<span style="color: #990000">:</span>/config/executables/windows/installers/GRR_2<span style="color: #990000">.</span><span style="color: #993399">5.0</span><span style="color: #990000">.</span>4_amd64<span style="color: #990000">.</span>exe
 db@host<span style="color: #990000">:</span>$</tt></pre></div></div>
 <div class="paragraph"><p>Repacking works by taking the template zip file which are by default installed
-to <tt>/usr/share/grr/executables</tt>, injecting relevant configuration files,
+to <code>/usr/share/grr/executables</code>, injecting relevant configuration files,
 and renaming files inside the zip to match requested names. This template is
 then turned into something that can be deployed on the system by using the
 debian package builder on linux, creating a self extracting zip on Windows, or
@@ -1301,14 +1295,14 @@ The process looks like:</p></div>
 <li>
 <p>
 For the client we are packing, find the correct context and platform,
-  e.g. <tt>Platform: Windows</tt> <tt>Client Context</tt>
+  e.g. <code>Platform: Windows</code> <code>Client Context</code>
 </p>
 </li>
 <li>
 <p>
 Extract the relevant configuration parameters for that context from the
  server configuration file, and write them to a client specific configuration
- file e.g. <tt>GRR.exe.yaml</tt>
+ file e.g. <code>GRR.exe.yaml</code>
 </p>
 </li>
 <li>
@@ -1323,13 +1317,13 @@ based on --config and --secondary_configs arguments that are given to it:</p></d
 <li>
 <p>
 Read the config file packed with the installer, default:
-<tt>c:\windows\system32\GRR\GRR.exe.yaml</tt>
+<code>c:\windows\system32\GRR\GRR.exe.yaml</code>
 </p>
 </li>
 <li>
 <p>
 GRR.exe.yaml reads the Config.writeback value, default:
-<tt>reg://HKEY_LOCAL_MACHINE/Software/GRR</tt> by default
+<code>reg://HKEY_LOCAL_MACHINE/Software/GRR</code> by default
 </p>
 </li>
 <li>
@@ -1340,7 +1334,7 @@ file with those values.
 </li>
 </ol></div>
 <div class="paragraph"><p>Most parameters are able to be modified by changing parameters and then
-restarting GRR. However, some configuration options, such as <tt>Client.name</tt>
+restarting GRR. However, some configuration options, such as <code>Client.name</code>
 affect the name of the actual binary itself and therefore can only be changed
 with a repack on the server.</p></div>
 <div class="paragraph"><p>Updating a configuration variable in the client can be done in multiple ways:</p></div>
@@ -1374,7 +1368,7 @@ achieve 3.
 <div class="paragraph"><p>As an example, to reduce how often the client polls the server to every 300
 seconds, you can update the registry as per below, and then restart the service:</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.5
+<div class="content"><!-- Generator: GNU source-highlight 3.1.6
 by Lorenzo Bettini
 http://www.lorenzobettini.it
 http://www.gnu.org/software/src-highlite -->
@@ -1595,8 +1589,8 @@ Affects whether the installer is silent.
 </td>
 </tr>
 </table></div>
-<div class="paragraph"><p>For a full list of available options you can run <tt>grr_server --config-help</tt> and
-look for <tt>Client</tt>, <tt>Nanny</tt> and <tt>Logging</tt> options.</p></div>
+<div class="paragraph"><p>For a full list of available options you can run <code>grr_server --config-help</code> and
+look for <code>Client</code>, <code>Nanny</code> and <code>Logging</code> options.</p></div>
 </div>
 </div>
 </div>
@@ -1628,7 +1622,7 @@ Protected functionality. If you have code that you want to deploy to deal with
 </li>
 </ul></div>
 <div class="paragraph"><p>The code that is pushed from the server must be signed by the corresponding
-private key for <tt>Client.executable_signing_public_key</tt> for python and binaries
+private key for <code>Client.executable_signing_public_key</code> for python and binaries
 or the corresponding private key for Client.driver_signing_public_key for
 drivers. These signatures will be checked by the client to ensure they match
 before the code is used.</p></div>
@@ -1647,7 +1641,7 @@ encoded in a variable called "magic_return_str".</p></div>
 <div class="paragraph"><p>E.g. as a simple example. The following code modifies the clients poll_max
 setting and pings test.com.</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.5
+<div class="content"><!-- Generator: GNU source-highlight 3.1.6
 by Lorenzo Bettini
 http://www.lorenzobettini.it
 http://www.gnu.org/software/src-highlite -->
@@ -1660,7 +1654,7 @@ magic_return_str <span style="color: #990000">=</span> <span style="color: #FF00
 required, and then needs to be uploaded to the data store. You can do this using
 the following command line.</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.5
+<div class="content"><!-- Generator: GNU source-highlight 3.1.6
 by Lorenzo Bettini
 http://www.lorenzobettini.it
 http://www.gnu.org/software/src-highlite -->
@@ -1668,7 +1662,7 @@ http://www.gnu.org/software/src-highlite -->
 <div class="paragraph"><p>At the end of this you should see something like:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><tt>Uploaded successfully to aff4:/config/python_hacks/myfile.py</tt></pre>
+<pre><code>Uploaded successfully to aff4:/config/python_hacks/myfile.py</code></pre>
 </div></div>
 <div class="paragraph"><p>The uploaded files live by convention in aff4:/config/python_hacks and are
 viewable in the Manage Binaries section of the Admin UI.</p></div>
@@ -1698,7 +1692,7 @@ file, encode it in a protobuf and upload it to a specific place in the GRR
 datastore. There is a shortcut to upload the existing memory drivers using
 config updater.</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.5
+<div class="content"><!-- Generator: GNU source-highlight 3.1.6
 by Lorenzo Bettini
 http://www.lorenzobettini.it
 http://www.gnu.org/software/src-highlite -->
@@ -1727,7 +1721,7 @@ be signed using the executable signing key (config option
 PrivateKeys.executable_signing_private_key).</p></div>
 <div class="paragraph"><p>To sign an exe for execution use the config updater script.</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.5
+<div class="content"><!-- Generator: GNU source-highlight 3.1.6
 by Lorenzo Bettini
 http://www.lorenzobettini.it
 http://www.gnu.org/software/src-highlite -->
@@ -1885,7 +1879,7 @@ The client is performing an action that is taking longer than it should.
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2014-06-27 15:44:13 CEST
+Last updated 2014-07-23 20:11:28 CEST
 </div>
 </div>
 </body>

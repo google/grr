@@ -8,7 +8,9 @@ SQLite database files are created by taking the root of each AFF4 object.
 
 import os
 import re
+import stat
 import tempfile
+import thread
 import threading
 import time
 
@@ -21,6 +23,12 @@ from grr.lib import utils
 from grr.lib.data_stores import common
 
 SQLITE_EXTENSION = "sqlite"
+SQLITE_TIMEOUT = 60.0
+SQLITE_ISOLATION = "DEFERRED"
+SQLITE_SUBJECT_SPEC = "VARCHAR(512)"
+SQLITE_DETECT_TYPES = 0
+SQLITE_FACTORY = sqlite3.Connection
+SQLITE_CACHED_STATEMENTS = 20
 
 
 class SqliteConnectionCache(utils.FastStore):
@@ -32,29 +40,35 @@ class SqliteConnectionCache(utils.FastStore):
   def _CreateModelDatabase(self):
     # Create model database file.
     root_path = config_lib.CONFIG["SqliteDatastore.root_path"]
-    if not os.path.isdir(root_path):
-      os.makedirs(root_path)
+    try:
+      if not os.path.isdir(root_path):
+        os.makedirs(root_path)
+    except OSError:
+      # Directory was created after the if.
+      pass
     fd, model = tempfile.mkstemp(dir=root_path)
     os.close(fd)
-    conn = sqlite3.connect(model, 5.0, sqlite3.PARSE_DECLTYPES |
-                           sqlite3.PARSE_COLNAMES,
-                           "EXCLUSIVE", False)
+    conn = sqlite3.connect(model, SQLITE_TIMEOUT, SQLITE_DETECT_TYPES,
+                           SQLITE_ISOLATION, False, SQLITE_FACTORY,
+                           SQLITE_CACHED_STATEMENTS)
     cursor = conn.cursor()
     query = """CREATE TABLE IF NOT EXISTS tbl (
-              subject VARCHAR(512) NOT NULL,
+              subject %(subject)s NOT NULL,
               predicate VARCHAR(512) NOT NULL,
               timestamp BIG INTEGER NOT NULL,
-              value BLOB)"""
+              value BLOB)""" % {"subject": SQLITE_SUBJECT_SPEC}
     cursor.execute(query)
     query = """CREATE TABLE IF NOT EXISTS lock (
-               subject VARCHAR(512) PRIMARY KEY NOT NULL,
-               expires BIG INTEGER NOT NULL)"""
+               subject %(subject)s PRIMARY KEY NOT NULL,
+               expires BIG INTEGER NOT NULL,
+               token BIG INTEGER NOT NULL)""" % {"subject": SQLITE_SUBJECT_SPEC}
     cursor.execute(query)
-    query = "CREATE INDEX tbl_index ON tbl (subject, predicate, timestamp)"
+    query = """CREATE INDEX IF NOT EXISTS tbl_index
+              ON tbl (subject, predicate, timestamp)"""
     cursor.execute(query)
-    cursor.execute("PRAGMA journal_mode = MEMORY")
     cursor.execute("PRAGMA count_changes = OFF")
     cursor.execute("PRAGMA cache_size = 10000")
+    cursor.execute("PRAGMA journal_mode = OFF")
     # Make sure the database is fully written to disk.
     cursor.execute("PRAGMA synchronous = ON")
     conn.commit()
@@ -64,9 +78,40 @@ class SqliteConnectionCache(utils.FastStore):
       self.template = model_file.read()
     os.unlink(model)
 
-  def _CopyModelDatabase(self, target_path):
-    with open(target_path, "wb") as target_file:
-      target_file.write(self.template)
+  def _WaitUntilReadable(self, target_path):
+    start_time = time.time()
+    # We will loop for 3 seconds until the file becomes readable.
+    # If we cannot get read access to the file, we simply give up.
+    while True:
+      if os.access(target_path, os.R_OK):
+        return
+      # Sleep a little bit.
+      time.sleep(0.001)
+      if time.time() - start_time >= 3.0:
+        raise IOError("database file %s cannot be read" % target_path)
+
+  def _EnsureDatabaseExists(self, target_path):
+    # Check if file already exists.
+    if os.path.exists(target_path):
+      self._WaitUntilReadable(target_path)
+      return
+    # Copy database file to a file that has no read permissions.
+    umask_original = os.umask(0)
+    write_permissions = stat.S_IWUSR | stat.S_IWGRP
+    read_permissions = stat.S_IRUSR | stat.S_IRGRP
+    try:
+      fd = os.open(target_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY,
+                   write_permissions)
+      os.close(fd)
+      with open(target_path, "wb") as target_file:
+        target_file.write(self.template)
+      os.chmod(target_path, write_permissions | read_permissions)
+    except OSError:
+      # File is already created.
+      # Wait until file can be read.
+      self._WaitUntilReadable(target_path)
+    finally:
+      os.umask(umask_original)
 
   def __init__(self, max_size):
     super(SqliteConnectionCache, self).__init__(max_size)
@@ -87,7 +132,7 @@ class SqliteConnectionCache(utils.FastStore):
                             common.ConvertStringToFilename(subject))
       filename = path + "." + SQLITE_EXTENSION
       assert os.path.isdir(os.path.dirname(filename))
-      self._CopyModelDatabase(filename)
+      self._EnsureDatabaseExists(filename)
       # Open database.
       connection = SqliteConnection(filename)
 
@@ -106,16 +151,18 @@ class SqliteConnection(object):
 
   def __init__(self, filename):
     self.filename = filename
-    self.conn = sqlite3.connect(filename, 5.0, sqlite3.PARSE_DECLTYPES |
-                                sqlite3.PARSE_COLNAMES, "EXCLUSIVE", False)
-    self.conn.text_factory = sqlite3.OptimizedUnicode
+    self.conn = sqlite3.connect(filename, SQLITE_TIMEOUT, SQLITE_DETECT_TYPES,
+                                SQLITE_ISOLATION, False, SQLITE_FACTORY,
+                                SQLITE_CACHED_STATEMENTS)
+    self.conn.text_factory = str
     self.conn.create_function("REGEXP", 2, SqliteRegexpFunction)
     self.cursor = self.conn.cursor()
     self.cursor.execute("PRAGMA synchronous = OFF")
-    self.cursor.execute("PRAGMA journal_mode = MEMORY")
+    self.cursor.execute("PRAGMA journal_mode = OFF")
     self.cursor.execute("PRAGMA count_changes = OFF")
     self.cursor.execute("PRAGMA cache_size = 10000")
     self.lock = threading.RLock()
+    self.dirty = False
 
   def Filename(self):
     return self.filename
@@ -123,39 +170,45 @@ class SqliteConnection(object):
   @utils.Synchronized
   def GetLock(self, subject):
     """Gets the expiration time for a given subject."""
-    subject = utils.SmartUnicode(subject)
-    query = "SELECT expires FROM lock WHERE subject = ?"
-    data = self.cursor.execute(query, (subject,)).fetchone()
+    subject = utils.SmartStr(subject)
+    query = "SELECT expires, token FROM lock WHERE subject = ?"
+    args = (subject,)
+    data = self.cursor.execute(query, args).fetchone()
 
     if data:
-      return data[0]
+      return data[0], data[1]
     else:
-      return None
+      return None, None
 
   @utils.Synchronized
-  def SetLock(self, subject, expires):
+  def SetLock(self, subject, expires, token):
     """Locks a subject."""
-    subject = utils.SmartUnicode(subject)
-    query = "INSERT OR REPLACE INTO lock VALUES(?, ?)"
-    self.cursor.execute(query, (subject, expires))
+    subject = utils.SmartStr(subject)
+    query = "INSERT OR REPLACE INTO lock VALUES(?, ?, ?)"
+    args = (subject, expires, token)
+    self.cursor.execute(query, args)
+    self.dirty = True
 
   @utils.Synchronized
   def RemoveLock(self, subject):
     """Removes the lock from a subject."""
-    subject = utils.SmartUnicode(subject)
+    subject = utils.SmartStr(subject)
     query = "DELETE FROM lock WHERE subject = ?"
-    self.cursor.execute(query, (subject,))
+    args = (subject,)
+    self.cursor.execute(query, args)
+    self.dirty = True
 
   @utils.Synchronized
   def GetNewestValue(self, subject, predicate):
     """Returns the newest value for subject/predicate."""
-    subject = utils.SmartUnicode(subject)
-    predicate = utils.SmartUnicode(predicate)
+    subject = utils.SmartStr(subject)
+    predicate = utils.SmartStr(predicate)
     query = """SELECT value, timestamp FROM tbl
                WHERE subject = ? AND predicate = ?
                ORDER BY timestamp DESC
                LIMIT 1"""
-    data = self.cursor.execute(query, (subject, predicate)).fetchone()
+    args = (subject, predicate)
+    data = self.cursor.execute(query, args).fetchone()
 
     if data:
       return (data[0], data[1])
@@ -174,7 +227,7 @@ class SqliteConnection(object):
     Returns:
      A list of the form (predicate, value, timestamp).
     """
-    subject = utils.SmartUnicode(subject)
+    subject = utils.SmartStr(subject)
     query = """SELECT predicate, MAX(timestamp), value FROM tbl
                WHERE subject = ? AND predicate REGEXP ?
                GROUP BY predicate"""
@@ -203,7 +256,7 @@ class SqliteConnection(object):
     Returns:
      A list of the form (predicate, value, timestamp).
     """
-    subject = utils.SmartUnicode(subject)
+    subject = utils.SmartStr(subject)
     query = """SELECT predicate, value, timestamp FROM tbl
                WHERE subject = ? AND predicate REGEXP ?
                      AND timestamp >= ? AND timestamp <= ?"""
@@ -230,8 +283,8 @@ class SqliteConnection(object):
     Returns:
      A list of the form (value, timestamp).
     """
-    subject = utils.SmartUnicode(subject)
-    predicate = utils.SmartUnicode(predicate)
+    subject = utils.SmartStr(subject)
+    predicate = utils.SmartStr(predicate)
     query = """SELECT value, timestamp FROM tbl
                WHERE subject = ? AND predicate = ? AND
                      timestamp >= ? AND timestamp <= ?
@@ -247,41 +300,51 @@ class SqliteConnection(object):
   @utils.Synchronized
   def DeleteAttribute(self, subject, predicate):
     """Deletes all values for the given subject/predicate."""
-    subject = utils.SmartUnicode(subject)
-    predicate = utils.SmartUnicode(predicate)
+    subject = utils.SmartStr(subject)
+    predicate = utils.SmartStr(predicate)
     query = "DELETE FROM tbl WHERE subject = ? AND predicate = ?"
-    self.cursor.execute(query, (subject, predicate))
+    args = (subject, predicate)
+    self.cursor.execute(query, args)
+    self.dirty = True
 
   @utils.Synchronized
   def SetAttribute(self, subject, predicate, value, timestamp):
     """Sets subject's predicate value with the given timestamp."""
-    subject = utils.SmartUnicode(subject)
-    predicate = utils.SmartUnicode(predicate)
+    subject = utils.SmartStr(subject)
+    predicate = utils.SmartStr(predicate)
     query = "INSERT INTO tbl VALUES (?, ?, ?, ?)"
-    self.cursor.execute(query, (subject, predicate, timestamp, value))
+    args = (subject, predicate, timestamp, value)
+    self.cursor.execute(query, args)
+    self.dirty = True
 
   @utils.Synchronized
   def DeleteAttributeRange(self, subject, predicate, start, end):
     """Deletes all values of a predicate within the range [start, end]."""
-    subject = utils.SmartUnicode(subject)
-    predicate = utils.SmartUnicode(predicate)
+    subject = utils.SmartStr(subject)
+    predicate = utils.SmartStr(predicate)
     query = """DELETE FROM tbl WHERE subject = ? AND predicate = ?
                AND timestamp >= ? AND timestamp <= ?"""
-    self.cursor.execute(query, (subject, predicate, start, end))
+    args = (subject, predicate, start, end)
+    self.cursor.execute(query, args)
+    self.dirty = True
 
   @utils.Synchronized
   def DeleteAttributesRegex(self, subject, regex):
     """Deletes all predicates that match 'regex'."""
-    subject = utils.SmartUnicode(subject)
+    subject = utils.SmartStr(subject)
     query = "DELETE FROM tbl WHERE subject = ? AND predicate REGEXP ?"
-    self.cursor.execute(query, (subject, regex))
+    args = (subject, regex)
+    self.cursor.execute(query, args)
+    self.dirty = True
 
   @utils.Synchronized
   def DeleteSubject(self, subject):
     """Deletes subject information."""
-    subject = utils.SmartUnicode(subject)
+    subject = utils.SmartStr(subject)
     query = "DELETE FROM tbl WHERE subject = ?"
-    self.cursor.execute(query, (subject,))
+    args = (subject,)
+    self.cursor.execute(query, args)
+    self.dirty = True
 
   def PrettyPrint(self):
     """Print the SQLite database."""
@@ -295,6 +358,9 @@ class SqliteConnection(object):
     return self
 
   def __exit__(self, exc_type, exc_value, traceback):
+    if self.dirty:
+      self.Flush()
+    self.dirty = False
     self.lock.release()
 
   @utils.Synchronized
@@ -310,7 +376,8 @@ class SqliteConnection(object):
   @utils.Synchronized
   def Close(self):
     """Flush and close connection."""
-    self.Flush()
+    if self.dirty:
+      self.Flush()
     self.cursor.close()
     self.conn.close()
     self.conn = None
@@ -336,39 +403,24 @@ class SqliteDataStore(data_store.DataStore):
       self._attribute_types[attribute.predicate] = (
           attribute.attribute_type.data_store_type)
 
-  def _Encode(self, attribute, value):
+  def _Encode(self, attr, value):
     """Encode the value for the attribute."""
-    if isinstance(value, int):
-      return str(value)
-    elif isinstance(value, unicode):
-      return value
+    if hasattr(value, "SerializeToString"):
+      return buffer(value.SerializeToString())
     else:
-      try:
-        if attribute.attribute_type.data_store_type in (
-            "integer", "unsigned_integer"):
-          return str(value)
-        elif attribute.attribute_type.data_store_type == "string":
-          return utils.SmartUnicode(value)
-        elif attribute.attribute_type.data_store_type == "bytes":
-          return utils.SmartUnicode(value)
-      except AttributeError:
-        try:
-          return utils.SmartUnicode(value.SerializeToString())
-        except AttributeError:
-          return utils.SmartUnicode(value)
+      # Types "string" and "bytes" are stored as strings here.
+      return buffer(utils.SmartStr(value))
 
   def _Decode(self, attribute, value):
     required_type = self._attribute_types.get(attribute, "bytes")
+    if isinstance(value, buffer):
+      value = str(value)
     if required_type in ("integer", "unsigned_integer"):
       return int(value)
-    elif required_type == "unicode":
-      return value
     elif required_type == "string":
-      return value
-    elif required_type == "bytes":
-      return utils.SmartStr(value)
+      return utils.SmartUnicode(value)
     else:
-      return utils.SmartStr(value)
+      return value
 
   def MultiSet(self, subject, values, timestamp=None, token=None,
                replace=True, sync=True, to_delete=None):
@@ -551,12 +603,6 @@ class SqliteDataStore(data_store.DataStore):
     for _, sql_connection in self.cache:
       sql_connection.PrettyPrint()
 
-  def Flush(self):
-    if not self.cache:
-      return
-    for _, sql_connection in self.cache:
-      sql_connection.Flush()
-
   def Size(self):
     root_path = config_lib.CONFIG["SqliteDatastore.root_path"]
     if not os.path.exists(root_path):
@@ -571,10 +617,6 @@ class SqliteDataStore(data_store.DataStore):
       subject_path = os.path.join(root_path, subject)
       if os.path.isfile(subject_path):
         total_size += os.path.getsize(subject_path)
-      else:
-        # Only files are allowed in this directory.
-        raise IOError("only regular files are allowed in SQLite directory %s" %
-                      root_path)
     return total_size
 
   def Transaction(self, subject, lease_time=None, token=None):
@@ -604,22 +646,32 @@ class SqliteTransaction(data_store.CommonTransaction):
     super(SqliteTransaction, self).__init__(store, utils.SmartUnicode(subject),
                                             lease_time=lease_time, token=token)
 
-    # Note that we have the luxury of real file locking here so this will block
-    # until we obtain the lock.
-    with store.cache.Get(self.subject) as sqlite_connection:
-      locked_until = sqlite_connection.GetLock(subject)
+    if lease_time is None:
+      lease_time = config_lib.CONFIG["Datastore.transaction_timeout"]
+
+    self.token = thread.get_ident()
+    sqlite_connection = store.cache.Get(self.subject)
+
+    # We first check if there is a lock on the subject.
+    # Next we set our lease time and token as identification.
+    with sqlite_connection:
+      locked_until, token = sqlite_connection.GetLock(subject)
 
       # This is currently locked by another thread.
       if locked_until and time.time() < float(locked_until):
         raise data_store.TransactionError("Subject %s is locked" % subject)
 
       # Subject is not locked, we take a lease on it.
-      if lease_time is None:
-        lease_time = config_lib.CONFIG["Datastore.transaction_timeout"]
-
       self.expires = time.time() + lease_time
-      sqlite_connection.SetLock(subject, self.expires)
-      self.locked = True
+      sqlite_connection.SetLock(subject, self.expires, self.token)
+
+    # Check if the lock stuck. If the stored token is not ours
+    # then probably someone was able to grab it before us.
+    locked_until, stored_token = sqlite_connection.GetLock(subject)
+    if stored_token != self.token:
+      raise data_store.TransactionError("Unable to lock subject %s" % subject)
+
+    self.locked = True
 
   def CheckLease(self):
     return max(0, self.expires - time.time())
@@ -628,7 +680,7 @@ class SqliteTransaction(data_store.CommonTransaction):
     self.expires = time.time() + duration
     with self.store.cache.Get(self.subject) as sqlite_connection:
       self.expires = time.time() + duration
-      sqlite_connection.SetLock(self.subject, self.expires)
+      sqlite_connection.SetLock(self.subject, self.expires, self.token)
 
   def Abort(self):
     if self.locked:

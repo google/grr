@@ -3759,7 +3759,7 @@ registry_data {
 "aff4:stat":
 """
 st_mode: 32768
-st_size: 51
+st_size: 53
 st_mtime: 1247546054
 registry_type: REG_EXPAND_SZ
 pathspec {
@@ -3775,7 +3775,7 @@ registry_data {
 "aff4:stat":
 """
 st_mode: 32768
-st_size: 51
+st_size: 20
 st_mtime: 1247546054
 registry_type: REG_EXPAND_SZ
 pathspec {
@@ -4145,4 +4145,3 @@ WMI_SAMPLE = [
              u"False", u"ErrorDescription": u"", u"LastErrorCode": u"",
              u"Availability": u"", u"SystemCreationClassName":
              u"Win32_ComputerSystem", u"Size": u"26843545600"})]
-

@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 """A server that retrieves Rekall profiles by name."""
 
+import json
 import urllib2
+import zlib
 
 import logging
 
@@ -90,6 +92,9 @@ class RekallRepositoryProfileServer(ProfileServer):
       raise
 
     profile_data = handle.read()
+    if profile_data[:3] != "\x1F\x8B\x08":
+      raise ValueError("Downloaded file does not look like gzipped data: %s",
+                       profile_data[:100])
     return rdfvalue.RekallProfile(name=profile_name,
                                   data=profile_data)
 
@@ -97,3 +102,18 @@ class RekallRepositoryProfileServer(ProfileServer):
 class GRRRekallProfileServer(CachingProfileServer,
                              RekallRepositoryProfileServer):
   """A caching Rekall profile server."""
+
+  def GetAllProfiles(self):
+    """This function will download all profiles and cache them locally."""
+
+    inv_profile = self.GetProfileByName("v1.0/inventory")
+    inventory_json = zlib.decompress(inv_profile.data, 16 + zlib.MAX_WBITS)
+    inventory = json.loads(inventory_json)
+
+    for profile in inventory["$INVENTORY"].keys():
+      profile = "v1.0/%s" % profile
+      logging.info("Getting profile: %s", profile)
+      try:
+        self.GetProfileByName(profile)
+      except urllib2.URLError as e:
+        logging.info("Exception: %s", e)

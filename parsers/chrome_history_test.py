@@ -38,14 +38,29 @@ class ChromeHistoryTest(test_lib.GRRBaseTest):
     except ValueError:
       dt2 = entries[-1][0]
 
-    self.assertEquals(str(dt1), "2013-05-03 15:11:26.556635")
+    # Check that our results are properly time ordered
+    time_results = [x[0] for x in entries]
+    self.assertEqual(time_results, sorted(time_results))
 
+    self.assertEquals(str(dt1), "2013-05-03 15:11:26.556635")
     self.assertTrue(entries[0][2].startswith(
         "https://www.google.ch/search?q=why+you+shouldn"))
 
     self.assertEquals(str(dt2), "2013-05-03 15:11:39.763984")
     self.assertTrue(entries[-1][2].startswith("http://www.test.ch/"))
+
     self.assertEquals(len(entries), 4)
+
+  def testTimeOrderingDownload(self):
+    """Test we can correctly time order downloads and visits."""
+    history_file = os.path.join(self.base_path, "History3")
+    history = chrome_history.ChromeParser(open(history_file))
+    entries = [x for x in history.Parse()]
+
+    # Check that our results are properly time ordered
+    time_results = [x[0] for x in entries]
+    self.assertEqual(time_results, sorted(time_results))
+    self.assertEquals(len(entries), 23)
 
   def testBasicParsingOldFormat(self):
     """Test we can parse a standard file."""
@@ -69,12 +84,17 @@ class ChromeHistoryTest(test_lib.GRRBaseTest):
     except ValueError:
       dt2 = entries[-1][0]
 
+    # Check that our results are properly time ordered
+    time_results = [x[0] for x in entries]
+    self.assertEqual(time_results, sorted(time_results))
+
     self.assertEquals(str(dt1), "2011-04-07 12:03:11")
     self.assertEquals(entries[0][2], "http://start.ubuntu.com/10.04/Google/")
 
-    self.assertEquals(str(dt2), "2011-05-23 08:36:05")
-    self.assertEquals(entries[-1][2],
-                      "http://www.photoscreensavers.us/Cats%20Demo.exe")
+    self.assertEquals(str(dt2), "2011-05-23 08:37:27.061516")
+    self.assertTrue(entries[-1][2].startswith("https://chrome.google.com/webs"
+                                              "tore/detail/mfjkgbjaikamkkojmak"
+                                              "jclmkianficch"))
 
     self.assertEquals(len(entries), 71)
 

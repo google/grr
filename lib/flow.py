@@ -202,7 +202,7 @@ class FakeResponses(Responses):
   def __init__(self, messages, request_data):
     super(FakeResponses, self).__init__()
     self.success = True
-    self._responses = messages
+    self._responses = messages or []
     self.request_data = request_data
     self.iterator = None
 
@@ -817,14 +817,6 @@ class GRRFlow(aff4.AFF4Volume):
                                runner_args=runner_args,
                                _store=_store or data_store.DB) as runner:
 
-      if runner_args.client_id:
-        # Add this flow to the client
-        client = aff4.FACTORY.Create(
-            runner_args.client_id, "VFSGRRClient", mode="w",
-            token=token, force_new_version=False)
-        client.AddAttribute(client.Schema.FLOW(flow_obj.urn))
-        client.Flush()
-
       logging.info(u"Scheduling %s(%s) on %s", flow_obj.urn,
                    runner_args.flow_name, runner_args.client_id)
 
@@ -998,7 +990,7 @@ class WellKnownFlow(GRRFlow):
   therefore do not need state handlers. In this regard a WellKnownFlow
   is basically an RPC mechanism - if you need to respond with a
   complex sequence of actions you will need to spawn a new flow from
-  here..
+  here.
   """
   # This is the session_id that will be used to register these flows
   well_known_session_id = None
@@ -1118,6 +1110,11 @@ class WellKnownFlow(GRRFlow):
         payload=request)
 
     queue_manager.QueueManager(token=self.token).Schedule(msg)
+
+  def WriteState(self):
+    if "w" in self.mode:
+      # For normal flows it's a bug to write an empty state, here it's ok.
+      self.Set(self.Schema.FLOW_STATE(self.state))
 
 
 def EventHandler(source_restriction=None, auth_required=True,
@@ -1805,6 +1802,8 @@ class FlowInit(registry.InitHook):
     # feeds requests into the frontend.
     stats.STATS.RegisterGaugeMetric(
         "frontend_active_count", int, fields=[("source", str)])
+    stats.STATS.RegisterGaugeMetric(
+        "frontend_max_active_count", int)
     stats.STATS.RegisterCounterMetric(
         "frontend_in_bytes", fields=[("source", str)])
     stats.STATS.RegisterCounterMetric(

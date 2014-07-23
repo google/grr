@@ -532,6 +532,7 @@ class QueueManager(object):
             # Make the time range narrow, but be sure to include the needed
             # notification.
             start=int(ts) - 1, end=int(ts) + 1)
+        continue
 
       # Strip the prefix from the predicate to get the session_id.
       session_id = predicate[len(self.NOTIFY_PREDICATE_PREFIX % ""):]

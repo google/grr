@@ -29,7 +29,7 @@ name: MicrosoftAVQuarantine
 doc: Microsoft Anti-Virus Quarantine (Infected) files.
 collectors:
 - collector_type: FILE
-  args: {path_list: ['%%environ_systemdrive%%\ProgramData\Microsoft\Microsoft Antimalware\Quarantine\**3']}
+  args: {path_list: ['%%environ_allusersappdata%%\Microsoft\Microsoft Antimalware\Quarantine\**']}
 supported_os: [Windows]
 labels: [Antivirus]
 ---

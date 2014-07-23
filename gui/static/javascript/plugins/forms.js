@@ -192,7 +192,8 @@ grr.Renderer('ProtoBoolFormRenderer', {
 
 grr.Renderer('OptionFormRenderer', {
   Layout: function(state) {
-    $('#' + state.prefix + '-option').on('change', function() {
+    var optionControl = $('#' + state.prefix + '-option');
+    optionControl.on('change', function() {
       grr.forms.inputOnChange(this);
 
       var data = $.extend({}, $(this).closest('.FormData').data());
@@ -201,7 +202,12 @@ grr.Renderer('OptionFormRenderer', {
 
       // First time the form appears, trigger the change event on the selector
       // to make the default choice appear.
-    }).trigger('change');
+    });
+
+    if (state.default_item_type) {
+      optionControl.val(state.default_item_type);
+    }
+    optionControl.trigger('change');
   }
 });
 
@@ -212,12 +218,14 @@ grr.Renderer('MultiFormRenderer', {
     var option = state.option || 'option';
 
     // This button is pressed when we want a new form.
-    var addButton = $('#AddButton' + unique).click(function() {
+    var addButton = $('#AddButton' + unique);
+    addButton.bind('addItem', function(event, defaultItemType) {
       var data = $(this).closest('.FormData').data();
       var count = data[option + '_count'] || 1;
       var new_id = unique + '_' + count;
 
       data.item = count;
+      data['default_item_type'] = defaultItemType;
       data[option + '_count'] = count + 1;
 
       var new_div = $('<div class="alert fade in" id="' +
@@ -231,6 +239,9 @@ grr.Renderer('MultiFormRenderer', {
       new_div.insertBefore(this);
 
       grr.layout(state.renderer, new_id, data);
+    });
+    addButton.click(function() {
+      addButton.trigger('addItem');
     });
 
     if (state.add_one_default) {

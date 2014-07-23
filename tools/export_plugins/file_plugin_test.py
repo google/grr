@@ -29,6 +29,7 @@ class FileExportPluginTest(test_lib.GRRBaseTest):
 
     data_store.default_token = rdfvalue.ACLToken(username="user",
                                                  reason="reason")
+    self.GrantClientApproval(self.client_id, token=data_store.default_token)
 
   def CreateDir(self, dirpath):
     path = self.out.Add(dirpath)
@@ -80,7 +81,8 @@ class FileExportPluginTest(test_lib.GRRBaseTest):
           "--output",
           tmpdir]))
 
-      expected_outdir = os.path.join(tmpdir, self.out.Add("testdir").Path()[1:])
+      expected_outdir = os.path.join(tmpdir,
+                                     self.out.Add("testdir").Path()[1:])
       self.assertTrue("testfile1" in os.listdir(expected_outdir))
       full_outdir = os.path.join(expected_outdir, "testdir1", "testdir2")
       self.assertTrue("testfile4" in os.listdir(full_outdir))

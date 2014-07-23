@@ -4,6 +4,7 @@
 
 syntax = "proto2";
 
+import "grr/proto/export.proto";
 import "grr/proto/jobs.proto";
 import "grr/proto/knowledge_base.proto";
 import "grr/proto/semantic.proto";
@@ -293,6 +294,25 @@ message EmailPluginArgs {
       description: "The email address that messages will be sent to.",
     }];
   optional uint64 email_limit = 2 [default=100];
+}
+
+
+message CSVOutputPluginArgs {
+  optional string output_dir = 1 [(sem_type) = {
+      type: "RDFURN",
+      description: "AFF4 directory where resulting CSV files will be written "
+      "to. If unset, results will be written to a file with a unique "
+      "identifier under aff4:/tmp.",
+      label: ADVANCED
+    }];
+  optional ExportOptions export_options = 2 [(sem_type) = {
+      description: "Export options.",
+      label: ADVANCED
+    }];
+  optional bool convert_values = 3 [(sem_type) = {
+      description: "If true, convert values for export-friendly format.",
+      label: HIDDEN
+    }, default=true];
 }
 
 
@@ -1495,6 +1515,7 @@ message RegistryFinderCondition {
     VALUE_LITERAL_MATCH = 0 [(description) = "Value literal match"];
     VALUE_REGEX_MATCH = 1 [(description) = "Value regex match"];
     MODIFICATION_TIME = 2 [(description) = "Modification time"];
+    SIZE = 3 [(description) = "Value size"];
   }
 
   optional Type condition_type = 1;
@@ -1502,6 +1523,7 @@ message RegistryFinderCondition {
   optional FileFinderContentsLiteralMatchCondition value_literal_match = 2;
   optional FileFinderContentsRegexMatchCondition value_regex_match = 3;
   optional FileFinderModificationTimeCondition modification_time = 4;
+  optional FileFinderSizeCondition size = 5;
 }
 
 message RegistryFinderArgs {

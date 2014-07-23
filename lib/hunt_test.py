@@ -260,24 +260,21 @@ class HuntTest(test_lib.FlowTestsBaseclass):
       with hunt.GetRunner() as runner:
         runner.Start()
 
-        client = aff4.FACTORY.Open(self.client_id, token=self.token,
-                                   age=aff4.ALL_TIMES)
-
-        flows = list(client.GetValuesForAttribute(client.Schema.FLOW))
+        flows = list(aff4.FACTORY.Open(self.client_id.Add("flows"),
+                                       token=self.token).ListChildren())
 
         self.assertEqual(flows, [])
 
         hunts.GRRHunt.StartClients(hunt.session_id, [self.client_id])
 
-    test_lib.TestHuntHelper(None, [self.client_id], False, self.token)
+      test_lib.TestHuntHelper(None, [self.client_id], False, self.token)
 
-    client = aff4.FACTORY.Open(self.client_id, token=self.token,
-                               age=aff4.ALL_TIMES)
+      flows = list(aff4.FACTORY.Open(self.client_id.Add("flows"),
+                                     token=self.token).ListChildren())
 
-    flows = list(client.GetValuesForAttribute(client.Schema.FLOW))
-
-    # One flow should have been started.
-    self.assertEqual(len(flows), 1)
+      # One flow should have been started.
+      self.assertEqual(len(flows), 1)
+      self.assertIn(hunt.session_id.Basename(), str(flows[0]))
 
   def testCallbackWithLimit(self):
 

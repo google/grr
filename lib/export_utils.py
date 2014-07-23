@@ -199,7 +199,8 @@ def RecursiveDownload(dir_obj, target_dir, max_depth=10, depth=1,
 
 
 def DownloadCollection(coll_path, target_path, token=None, overwrite=False,
-                       dump_client_info=False, max_threads=10):
+                       dump_client_info=False, flatten=False,
+                       max_threads=10):
   """Iterate through a Collection object downloading all files.
 
   Args:
@@ -210,6 +211,8 @@ def DownloadCollection(coll_path, target_path, token=None, overwrite=False,
     dump_client_info: If True, this will detect client paths, and dump a yaml
       version of the client object to the root path. This is useful for seeing
       the hostname/users of the machine the client id refers to.
+    flatten: If True, produce a "files" flat folder with links to all the found
+             files.
     max_threads: Use this many threads to do the downloads.
   """
   completed_clients = set()
@@ -264,15 +267,18 @@ def DownloadCollection(coll_path, target_path, token=None, overwrite=False,
     client_id = urn.Split()[0]
     re_match = aff4.AFF4Object.VFSGRRClient.CLIENT_ID_RE.match(client_id)
     if dump_client_info and re_match and client_id not in completed_clients:
-      args = (rdfvalue.RDFURN(client_id), target_path, token, overwrite)
+      args = (rdfvalue.ClientURN(client_id), target_path, token, overwrite)
       thread_pool.AddTask(target=DumpClientYaml, args=args,
                           name="ClientYamlDownloader")
       completed_clients.add(client_id)
 
     # Now queue downloading the actual files.
     args = (urn, target_path, token, overwrite)
-    thread_pool.AddTask(target=CopyAFF4ToLocal, args=args,
-                        name="Downloader")
+    if flatten:
+      target = CopyAndSymlinkAFF4ToLocal
+    else:
+      target = CopyAFF4ToLocal
+    thread_pool.AddTask(target=target, args=args, name="Downloader")
 
   # Join and stop the threadpool.
   thread_pool.Stop()
@@ -287,28 +293,68 @@ def CopyAFF4ToLocal(aff4_urn, target_dir, token=None, overwrite=False):
     token: Auth token.
     overwrite: If True overwrite the file if it exists.
 
+  Returns:
+    If aff4_urn points to a file, returns path to the downloaded file.
+    Otherwise returns None.
+
   By default file will only be overwritten if file size differs.
   """
   try:
-    fd = aff4.FACTORY.Open(aff4_urn, "AFF4Stream", token=token)
+    fd = aff4.FACTORY.Open(aff4_urn, token=token)
     filepath = os.path.join(target_dir, fd.urn.Path()[1:])
-    if not os.path.isfile(filepath):
+
+    # If urn points to a directory, just create it.
+    if isinstance(fd, aff4.VFSDirectory):
       try:
-        # Ensure directory exists.
-        os.makedirs(os.path.dirname(filepath))
+        os.makedirs(filepath)
       except OSError:
         pass
-      DownloadFile(fd, filepath)
-    elif (os.stat(filepath)[stat.ST_SIZE] != fd.Get(fd.Schema.SIZE) or
-          overwrite):
-      # We should overwrite because user said, or file sizes differ.
-      DownloadFile(fd, filepath)
+
+      return None
+    # If urn points to a file, download it.
+    elif isinstance(fd, aff4.AFF4Stream):
+      if not os.path.isfile(filepath):
+        try:
+          # Ensure directory exists.
+          os.makedirs(os.path.dirname(filepath))
+        except OSError:
+          pass
+        DownloadFile(fd, filepath)
+      elif (os.stat(filepath)[stat.ST_SIZE] != fd.Get(fd.Schema.SIZE) or
+            overwrite):
+        # We should overwrite because user said, or file sizes differ.
+        DownloadFile(fd, filepath)
+      else:
+        logging.info("File %s exists, skipping", filepath)
+
+      return filepath
     else:
-      logging.info("File %s exists, skipping", filepath)
+      raise RuntimeError("Opened urn is neither a downloaded file nor a "
+                         "directory: %s" % aff4_urn)
 
   except IOError as e:
-    logging.error("Failed to read %s due to %s", aff4_urn, e)
+    logging.exception("Failed to read %s due to %s", aff4_urn, e)
     raise
+
+
+def CopyAndSymlinkAFF4ToLocal(aff4_urn, target_dir, token=None,
+                              overwrite=False):
+  path = CopyAFF4ToLocal(aff4_urn, target_dir, token=token,
+                         overwrite=overwrite)
+  if path:
+    files_output_dir = os.path.join(target_dir, "files")
+    try:
+      os.makedirs(files_output_dir)
+    except OSError:
+      pass
+
+    unique_name = "_".join(aff4_urn.Split())
+    symlink_path = os.path.join(files_output_dir, unique_name)
+    try:
+      os.symlink(path, symlink_path)
+    except OSError:
+      logging.exception("Can't create symlink to a file: %s -> %s",
+                        symlink_path, path)
 
 
 def DumpClientYaml(client_urn, target_dir, token=None, overwrite=False):

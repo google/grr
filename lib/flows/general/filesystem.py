@@ -507,7 +507,8 @@ class GlobArgs(rdfvalue.RDFProtoStruct):
 class GlobMixin(object):
   """A MixIn to implement the glob functionality."""
 
-  def GlobForPaths(self, paths, pathtype="OS", root_path=None):
+  def GlobForPaths(self, paths, pathtype="OS", root_path=None,
+                   no_file_type_check=False):
     """Starts the Glob.
 
     This is the main entry point for this flow mixin.
@@ -520,10 +521,20 @@ class GlobMixin(object):
       paths: A list of GlobExpression instances.
       pathtype: The pathtype to use for creating pathspecs.
       root_path: A pathspec where to start searching from.
+      no_file_type_check: Work with all kinds of files - not only with regular
+                          ones.
     """
     patterns = []
 
+    if not paths:
+      # Nothing to do.
+      return
+
     client = aff4.FACTORY.Open(self.client_id, token=self.token)
+
+    self.state.Register("pathtype", pathtype)
+    self.state.Register("root_path", root_path)
+    self.state.Register("no_file_type_check", no_file_type_check)
 
     # Transform the patterns by substitution of client attributes. When the
     # client has multiple values for an attribute, this generates multiple
@@ -549,17 +560,9 @@ class GlobMixin(object):
       for component in self.ConvertGlobIntoPathComponents(pattern):
         node = node.setdefault(component.SerializeToString(), {})
 
-    # Process the component tree from the root.
-    root = rdfvalue.StatEntry()
-    root.pathspec = root_path
-    if not root.pathspec:
-      root.pathspec.path = "/"
-
-    # root_path.pathtype overridden by user-settable args.pathtype
-    root.pathspec.pathtype = pathtype
-
-    self.CallStateInline(messages=[root], next_state="ProcessEntry",
-                         request_data=dict(component_path=[]))
+    root_path = self.state.component_tree.keys()[0]
+    self.CallStateInline(messages=[None], next_state="ProcessEntry",
+                         request_data=dict(component_path=[root_path]))
 
   def GlobReportMatch(self, stat_response):
     """Called when we've found a matching a StatEntry."""
@@ -605,6 +608,7 @@ class GlobMixin(object):
 
         component = rdfvalue.PathSpec(
             path=fnmatch.translate(path_component),
+            pathtype=self.state.pathtype,
             path_options=rdfvalue.PathSpec.Options.RECURSIVE)
 
         # Allow the user to override the recursion depth.
@@ -614,10 +618,12 @@ class GlobMixin(object):
       elif self.GLOB_MAGIC_CHECK.search(path_component):
         component = rdfvalue.PathSpec(
             path=fnmatch.translate(path_component),
+            pathtype=self.state.pathtype,
             path_options=rdfvalue.PathSpec.Options.REGEX)
       else:
         component = rdfvalue.PathSpec(
             path=path_component,
+            pathtype=self.state.pathtype,
             path_options=rdfvalue.PathSpec.Options.CASE_INSENSITIVE)
 
       components.append(component)
@@ -710,6 +716,15 @@ class GlobMixin(object):
           self._ProcessResponse(response, matching_components,
                                 base_wildcard=True)
 
+  def _GetBasePathspec(self, response):
+    if response:
+      return response.pathspec.Copy()
+    else:
+      root_path = self.state.root_path
+      if root_path:
+        return root_path.Copy()
+    return None
+
   def _ProcessResponse(self, response, component_paths, base_wildcard=False):
     for component_path in component_paths:
       regexes_to_get = []
@@ -726,7 +741,7 @@ class GlobMixin(object):
       for component_str, next_node in node.items():
         component = rdfvalue.PathSpec(component_str)
         # Use the pathtype from the flow args.
-        component.pathtype = self.state.args.pathtype
+        component.pathtype = self.state.pathtype
         next_component = component_path + [component_str]
 
         # If we reach this point, we are instructed to go deeper into the
@@ -739,9 +754,10 @@ class GlobMixin(object):
         # This reduces the number of TSK opens on the client that may
         # sometimes lead to instabilities due to bugs in the library.
 
-        if not (stat.S_ISDIR(response.st_mode) or
-                not base_wildcard or
-                self.args.no_file_type_check):
+        if response and (
+            not (stat.S_ISDIR(response.st_mode) or
+                 not base_wildcard or
+                 self.state.no_file_type_check)):
           continue
 
         if component.path_options == component.Options.RECURSIVE:
@@ -751,13 +767,22 @@ class GlobMixin(object):
           regexes_to_get.append(component)
 
         elif component.path_options == component.Options.CASE_INSENSITIVE:
-          pathspec = response.pathspec.Copy().Append(component)
+          # Here we need to create the next pathspec by appending the current
+          # component to what we already have. If we don't have anything yet, we
+          # fall back to the root path. If there is no root path either, the
+          # current component becomes the new base.
+          base_pathspec = self._GetBasePathspec(response)
+          if base_pathspec:
+            pathspec = base_pathspec.Append(component)
+          else:
+            pathspec = component
 
           if not next_node:
             # Check for the existence of the last node.
             request = rdfvalue.ListDirRequest(pathspec=pathspec)
 
-            if response.st_mode == 0 or not stat.S_ISREG(response.st_mode):
+            if (response and
+                (response.st_mode == 0 or not stat.S_ISREG(response.st_mode))):
               # If next node is empty, this node is a leaf node, we
               # therefore must stat it to check that it is there.
               self.CallClient(
@@ -772,12 +797,19 @@ class GlobMixin(object):
                 next_state="ProcessEntry",
                 request_data=dict(component_path=next_component))
 
-      if recursions_to_get:
+      if recursions_to_get or regexes_to_get:
+        # Recursions or regexes need a base pathspec to operate on. If we
+        # have neither a response or a root path, we send a default pathspec
+        # that opens the root with pathtype "OS".
+        base_pathspec = self._GetBasePathspec(response)
+        if not base_pathspec:
+          base_pathspec = rdfvalue.Pathspec(path="/", pathtype="OS")
+
         for depth, recursions in recursions_to_get.iteritems():
           path_regex = "(?i)^" + "$|^".join(
               set([c.path for c in recursions])) + "$"
 
-          findspec = rdfvalue.FindSpec(pathspec=response.pathspec,
+          findspec = rdfvalue.FindSpec(pathspec=base_pathspec,
                                        cross_devs=True,
                                        max_depth=depth,
                                        path_regex=path_regex)
@@ -787,17 +819,17 @@ class GlobMixin(object):
                           next_state="ProcessEntry",
                           request_data=dict(base_path=component_path))
 
-      if regexes_to_get:
-        path_regex = "(?i)^" + "$|^".join(
-            set([c.path for c in regexes_to_get])) + "$"
-        findspec = rdfvalue.FindSpec(pathspec=response.pathspec,
-                                     max_depth=1,
-                                     path_regex=path_regex)
+        if regexes_to_get:
+          path_regex = "(?i)^" + "$|^".join(
+              set([c.path for c in regexes_to_get])) + "$"
+          findspec = rdfvalue.FindSpec(pathspec=base_pathspec,
+                                       max_depth=1,
+                                       path_regex=path_regex)
 
-        findspec.iterator.number = self.FILE_MAX_PER_DIR
-        self.CallClient("Find", findspec,
-                        next_state="ProcessEntry",
-                        request_data=dict(base_path=component_path))
+          findspec.iterator.number = self.FILE_MAX_PER_DIR
+          self.CallClient("Find", findspec,
+                          next_state="ProcessEntry",
+                          request_data=dict(base_path=component_path))
 
 
 class Glob(GlobMixin, flow.GRRFlow):
@@ -819,7 +851,8 @@ class Glob(GlobMixin, flow.GRRFlow):
     """
     super(Glob, self).Start()
     self.GlobForPaths(self.args.paths, pathtype=self.args.pathtype,
-                      root_path=self.args.root_path)
+                      root_path=self.args.root_path,
+                      no_file_type_check=self.args.no_file_type_check)
 
   def GlobReportMatch(self, stat_response):
     """Called when we've found a matching a StatEntry."""

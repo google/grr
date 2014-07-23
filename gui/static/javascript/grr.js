@@ -1660,3 +1660,28 @@ grr.pushState = function(domId, state) {
 
 /** Initialize the grr object */
 grr.init();
+
+/**
+ *  Initialize Angular GRR app. AngularJS has no problems coexisting with
+ *  existing set of GRR renderers.
+ */
+var grrApp = angular.module('grr', ['ngCookies']);
+
+grrApp.config(function($httpProvider, $interpolateProvider) {
+  // Set templating braces to be '{$' and '$}' to avoid conflicts with Django
+  // templates.
+  $interpolateProvider.startSymbol('{$');
+  $interpolateProvider.endSymbol('$}');
+
+  // Ensuring that Django plays nicely with Angular-initiated requests
+  // (see http://www.daveoncode.com/2013/10/17/how-to-
+  // make-angularjs-and-django-play-nice-together/).
+  $httpProvider.defaults.headers.post[
+    'Content-Type'] = 'application/x-www-form-urlencoded';
+  $httpProvider.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+});
+
+grrApp.run(function($http, $cookies) {
+  // Ensure CSRF token is in place for Angular-initiated HTTP requests.
+  $http.defaults.headers.post['X-CSRFToken'] = $cookies.csrftoken;
+});

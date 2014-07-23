@@ -201,3 +201,12 @@ collectors:
     path_list: ['/etc/sudoers']
 labels: [Authentication, Configuration Files]
 supported_os: [Linux]
+---
+name: ZeitgeistDatabase
+doc: Zeitgeist user activity database.
+collectors:
+- collector_type: FILE
+  args: {path_list: ['%%users.homedir%%/.local/share/zeitgeist/activity.sqlite']}
+labels: [Users, Logs]
+urls: ['http://forensicswiki.org/wiki/Zeitgeist']
+supported_os: [Linux]

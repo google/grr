@@ -1,7 +1,50 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc. All Rights Reserved.
+"""Statistics collection classes.
 
-"""Statistics collection classes."""
+GRR has a notion of statistic metrics. These metrics reflect GRR's state at
+any given moment. There are three types of metrics available:
+
+1. Counter. This is an integer metric that can only be incremented and never
+decremented. Example: number of handled requests.
+2. Gauge. Gauge metrics have a type, they can be either string, integer
+or float. Gauge metric may have any value of its type.
+3. Event. Event metrics are used to record events that take certain amount of
+time. They're stored as latency distributions. Example: request latency.
+
+Metrics may have fields. Fields are used in cases where you would generally
+require a dynamically named metric. For example if you have requests coming
+from http and rpc sources. You can defined 2 metrics: requests_count_http and
+requests_count_rpc or define a single metric with a field "source".
+
+Fields are essentially dimensions. For example,
+if a metric "request_count" has no fields, it will be stored as a simple list
+of data. I.e.:
+request_count: 10 11 12 13 14
+
+If "request_count" metric has a field "source" of type "str", then it will be
+stored as a table. I.e. it will store different lists of values for different
+values of the source field:
+request_count[source=http]: 10 11 12 13 14
+request_count[source=rpc]:  0  1  2  4  5
+
+If "request_count" metric has a field "source" of type "str" and a field
+"datacenter_index" of type "int", then it will be stored as a 3-dimensional
+table. I.e.:
+request_count[source=http,datacenter_index=0]: 10 11 12 13 14
+request_count[source=rpc,datacenter_index=0]:  0  0  0  2  2
+request_count[source=http,datacenter_index=1]: 33 34 45 88 99
+request_count[source=rpc,datacenter_index=1]:  0  2  3  4  4
+request_count[source=http,datacenter_index=2]: 22 33 44 55 66
+request_count[source=rpc,datacenter_index=2]:  10 11 11 20 21
+
+To summarize, for every combination of different fields values, a separate row
+of statistics data will be collected. Given that it's extremely important
+to ensure that every field used in particular metric has a finite number of
+possible values.
+
+Before any metric is used, it has to be registered with one of the Register*()
+methods.
+"""
 
 
 
@@ -11,8 +54,11 @@ import threading
 import time
 
 
+from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
+
+from grr.proto import jobs_pb2
 
 
 # Stats decorators
@@ -140,16 +186,20 @@ class _CounterMetric(_Metric):
       self._values[key] = delta
 
 
-class Distribution(object):
-  """Statistics for a particular type of event."""
+class Distribution(rdfvalue.RDFProtoStruct):
+  """Statistics values for events - i.e. things that take time."""
 
-  def __init__(self, bins):
-    self.sum = 0
-    self.count = 0
-    self.bins_heights = {}
-    self.bins = [-float("inf")] + bins
-    for b in self.bins:
-      self.bins_heights[b] = 0
+  protobuf = jobs_pb2.Distribution
+
+  def __init__(self, initializer=None, age=None, bins=None):
+    if initializer and bins:
+      raise ValueError("Either 'initializer' or 'bins' arguments can "
+                       "be specified.")
+
+    super(Distribution, self).__init__(initializer=initializer, age=age)
+    if bins:
+      self.bins = [-float("inf")] + bins
+      self.heights = [0] * len(self.bins)
 
   def Record(self, value):
     """Records given value."""
@@ -160,17 +210,20 @@ class Distribution(object):
     if pos < 0:
       pos = 0
     elif pos == len(self.bins):
-      pos = len(self.bins)
+      pos = len(self.bins) - 1
 
-    b = self.bins[pos]
-    self.bins_heights[b] += 1
+    self.heights[pos] += 1
+
+  @property
+  def bins_heights(self):
+    return dict(zip(self.bins, self.heights))
 
 
 class _EventMetric(_Metric):
   """EventMetric provides detailed stats, like averages, distribution, etc."""
 
   def _DefaultValue(self):
-    return Distribution(self._bins)
+    return Distribution(bins=self._bins)
 
   def __init__(self, bins, fields, docstring, units):
     self._bins = bins or [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.75, 1,
@@ -185,7 +238,7 @@ class _EventMetric(_Metric):
     try:
       entry = self._values[key]
     except KeyError:
-      entry = Distribution(self._bins)
+      entry = Distribution(bins=self._bins)
       self._values[key] = entry
 
     entry.Record(value)
@@ -220,38 +273,30 @@ class _GaugeMetric(_Metric):
       return result
 
 
-class MetricType(object):
-  """Available metrics types. Used when inspecting metrics metadata."""
-  COUNTER = "counter"
-  GAUGE = "gauge"
-  EVENT = "event"
+class MetricFieldDefinition(rdfvalue.RDFProtoStruct):
+  """Metric field definition."""
+
+  protobuf = jobs_pb2.MetricFieldDefinition
 
 
-class MetricUnits(object):
-  """Available metrics units. Used when registering metrics."""
-  SECONDS = "seconds"
-  MILLISECONDS = "milliseconds"
-  MICROSECONDS = "microseconds"
-  NANOSECONDS = "nanoseconds"
+class MetricMetadata(rdfvalue.RDFProtoStruct):
+  """Metric metadata for a particular metric."""
 
-  BITS = "bits"
-  BYTES = "bytes"
-  KILOBYTES = "kilobytes"
-  MEGABYTES = "megabytes"
-  GIGABYTES = "gigabytes"
+  protobuf = jobs_pb2.MetricMetadata
+
+  def DefaultValue(self):
+    if self.value_type == self.ValueType.INT:
+      return 0
+    elif self.value_type == self.ValueType.FLOAT:
+      return 0.0
+    elif self.value_type == self.ValueType.STR:
+      return ""
+    else:
+      return Distribution()
 
 
-class MetricMetadata(object):
-  """Metrics metadata."""
-
-  def __init__(self, varname=None, metric_type=None, value_type=None,
-               fields_defs=None, docstring=None, units=None):
-    self.varname = varname
-    self.metric_type = metric_type
-    self.value_type = value_type
-    self.fields_defs = fields_defs
-    self.docstring = docstring
-    self.units = units
+MetricType = MetricMetadata.MetricType  # pylint: disable=invalid-name
+MetricUnits = MetricMetadata.MetricUnits  # pylint: disable=invalid-name
 
 
 class StatsCollector(object):
@@ -261,6 +306,41 @@ class StatsCollector(object):
     self._metrics = {}
     self.lock = threading.Lock()
     self._metrics_metadata = {}
+
+  @staticmethod
+  def ValueTypeToMetricValueType(value_type):
+    """Convert python-style value type to enum-based value type."""
+
+    if value_type in (int, long):
+      value_type = MetricMetadata.ValueType.INT
+    elif value_type == str:
+      value_type = MetricMetadata.ValueType.STR
+    elif value_type == float:
+      value_type = MetricMetadata.ValueType.FLOAT
+    else:
+      raise ValueError("Unknown value type: %s" % value_type)
+
+    return value_type
+
+  @staticmethod
+  def FieldsToFieldsDefinitions(fields):
+    """Convert python-style fields definitions to rdfvalue-based definitions."""
+
+    if not fields:
+      return []
+
+    result = []
+    for field_name, field_type in fields:
+      if field_type in (int, long):
+        field_type = MetricFieldDefinition.FieldType.INT
+      elif field_type == str:
+        field_type = MetricFieldDefinition.FieldType.STR
+      else:
+        raise ValueError("Unknown field type: %s" % field_type)
+
+      result.append(MetricFieldDefinition(field_name=field_name,
+                                          field_type=field_type))
+    return result
 
   def RegisterCounterMetric(self, varname, fields=None, docstring=None,
                             units=None):
@@ -278,8 +358,10 @@ class StatsCollector(object):
     """
     self._metrics[varname] = _CounterMetric(fields, docstring, units)
     self._metrics_metadata[varname] = MetricMetadata(
-        varname=varname, metric_type=MetricType.COUNTER, value_type=int,
-        fields_defs=fields, docstring=docstring, units=units)
+        varname=varname, metric_type=MetricMetadata.MetricType.COUNTER,
+        value_type=MetricMetadata.ValueType.INT,
+        fields_defs=self.FieldsToFieldsDefinitions(fields),
+        docstring=docstring, units=units)
 
   @utils.Synchronized
   def IncrementCounter(self, varname, delta=1, fields=None):
@@ -318,7 +400,9 @@ class StatsCollector(object):
     """
     self._metrics[varname] = _EventMetric(bins, fields, docstring, units)
     self._metrics_metadata[varname] = MetricMetadata(
-        varname=varname, metric_type=MetricType.EVENT, fields_defs=fields,
+        varname=varname, metric_type=MetricMetadata.MetricType.EVENT,
+        value_type=MetricMetadata.ValueType.DISTRIBUTION,
+        fields_defs=self.FieldsToFieldsDefinitions(fields),
         docstring=docstring, units=units)
 
   @utils.Synchronized
@@ -353,8 +437,10 @@ class StatsCollector(object):
     """
     self._metrics[varname] = _GaugeMetric(value_type, fields, docstring, units)
     self._metrics_metadata[varname] = MetricMetadata(
-        varname=varname, metric_type=MetricType.GAUGE, value_type=value_type,
-        fields_defs=fields, docstring=docstring, units=units)
+        varname=varname, metric_type=MetricMetadata.MetricType.GAUGE,
+        value_type=self.ValueTypeToMetricValueType(value_type),
+        fields_defs=self.FieldsToFieldsDefinitions(fields),
+        docstring=docstring, units=units)
 
   @utils.Synchronized
   def SetGaugeValue(self, varname, value, fields=None):
@@ -414,7 +500,7 @@ class StatsCollector(object):
     Returns:
       Dictionary of (metric name, stats.MetricMetadata).
     """
-    return self._metrics_metadata
+    return self._metrics_metadata.copy()
 
   def GetMetricFields(self, varname):
     """Returns all fields values for a metric with a given name.
@@ -460,4 +546,3 @@ STATS = None
 class StatsInit(registry.InitHook):
   """Initialize stats collector."""
   pass
-

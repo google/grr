@@ -451,13 +451,6 @@ class TDBDataStore(data_store.DataStore):
       if os.path.isfile(subject_path):
         if subject.endswith(".tdb"):
           total_size += os.path.getsize(subject_path)
-        else:
-          # All files in this directory must end with '.tdb'.
-          raise IOError("file %s is not a valid TDB file" % subject_path)
-      else:
-        # Only files are allowed in this directory.
-        raise IOError("only regular files are allowed in TDB directory %s" %
-                      root_path)
     return total_size
 
   def Transaction(self, subject, lease_time=None, token=None):

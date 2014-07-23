@@ -6,6 +6,7 @@
 
 
 import os
+import pickle
 import subprocess
 import time
 
@@ -125,6 +126,12 @@ class ArtifactTestHelper(test_lib.FlowTestsBaseclass):
                                   "vol_pslist_result.dat")
       serialized_result = open(ps_list_file).read(100000)
       return [rdfvalue.VolatilityResult(serialized_result)]
+
+    def RekallAction(self, _):
+      ps_list_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
+                                  "rekall_pslist_result.dat")
+      serialized_responses = pickle.loads(open(ps_list_file, "rb").read())
+      return [rdfvalue.GrrMessage(x).payload for x in serialized_responses]
 
   def SetWindowsClient(self):
     fd = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
@@ -248,6 +255,16 @@ class ArtifactFlowTest(ArtifactTestHelper):
     self.assertEquals(len(fd), 50)
     self.assertEquals(fd[0].exe, "System")
     self.assertEquals(fd[0].pid, 4)
+
+  def testRekallArtifact(self):
+    """Check we can run Rekall based artifacts."""
+    self.SetWindowsClient()
+    self.CreateSignedDriver()
+    fd = self.RunCollectorAndGetCollection(["RekallPsList"])
+    self.assertEquals(len(fd), 36)
+    self.assertEquals(fd[0].exe, "System")
+    self.assertEquals(fd[0].pid, 4)
+    self.assertIn("DumpIt.exe", [x.exe for x in fd])
 
   def testFilesArtifact(self):
     """Check GetFiles artifacts."""

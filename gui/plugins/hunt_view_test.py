@@ -11,6 +11,7 @@ from grr.gui import runtests_test
 
 from grr.lib import aff4
 from grr.lib import flags
+from grr.lib import flow
 from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -22,7 +23,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
   reason = "Felt like it!"
 
   def CreateSampleHunt(self, flow_runner_args=None, flow_args=None,
-                       stopped=False):
+                       stopped=False, output_plugins=None):
     self.client_ids = self.SetupClients(10)
 
     with hunts.GRRHunt.StartHunt(
@@ -38,7 +39,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
         regex_rules=[rdfvalue.ForemanAttributeRegex(
             attribute_name="GRR client",
             attribute_regex="GRR")],
-        output_plugins=[],
+        output_plugins=output_plugins or [],
         client_rate=0, token=self.token) as hunt:
       if not stopped:
         hunt.Run()
@@ -537,9 +538,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     self.WaitUntil(self.IsElementPresent,
                    "css=button[name=generate_zip][disabled]")
-    self.WaitUntil(self.IsTextPresent,
-                   "Generation has started. Notification will "
-                   "be sent upon completion.")
+    self.WaitUntil(self.IsTextPresent, "Generation has started")
 
   def testStartsZipGenerationWhenGenerateZipButtonIsClicked(self):
     stat_entry = rdfvalue.StatEntry(aff4path="aff4:/foo/bar")
@@ -554,9 +553,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.Click("css=td:contains('GenericHunt')")
     self.Click("css=a[renderer=HuntResultsRenderer]")
     self.Click("css=button[name=generate_zip]")
-    self.WaitUntil(self.IsTextPresent,
-                   "Generation has started. Notification will "
-                   "be sent upon completion.")
+    self.WaitUntil(self.IsTextPresent, "Generation has started")
 
     with self.ACLChecksDisabled():
       flows_dir = aff4.FACTORY.Open("aff4:/flows")
@@ -565,6 +562,53 @@ class TestHuntView(test_lib.GRRSeleniumTest):
                       if f.__class__.__name__ == "ExportHuntResultFilesAsZip"]
       self.assertEqual(len(export_flows), 1)
       self.assertEqual(export_flows[0].args.hunt_urn, hunt_urn)
+
+  def testListOfCSVFilesIsNotShownWhenHuntProducedNoResults(self):
+    with self.ACLChecksDisabled():
+      self.client_ids = self.SetupClients(10)
+
+      # Create hunt without results.
+      self.CreateSampleHunt(output_plugins=[
+          rdfvalue.OutputPlugin(plugin_name="CSVOutputPlugin")])
+
+    self.Open("/#main=ManageHunts")
+    self.Click("css=td:contains('GenericHunt')")
+
+    # Click the Results tab.
+    self.Click("css=a[renderer=HuntResultsRenderer]")
+    self.WaitUntil(self.IsElementPresent, "css=table[aff4_path]")
+    self.WaitUntilNot(self.IsTextPresent,
+                      "CSV output plugin writes to following files")
+
+  def testShowsFilesAndAllowsDownloadWhenCSVExportIsUsed(self):
+    with self.ACLChecksDisabled():
+      self.client_ids = self.SetupClients(10)
+
+      # Create hunt.
+      self.CreateSampleHunt(output_plugins=[
+          rdfvalue.OutputPlugin(plugin_name="CSVOutputPlugin")])
+
+      # Actually run created hunt.
+      client_mock = test_lib.SampleHuntMock()
+      test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
+
+      # Make sure results are processed.
+      flow_urn = flow.GRRFlow.StartFlow(flow_name="ProcessHuntResultsCronFlow",
+                                        token=self.token)
+      for _ in test_lib.TestFlowHelper(flow_urn, token=self.token):
+        pass
+
+    self.Open("/#main=ManageHunts")
+    self.Click("css=td:contains('GenericHunt')")
+
+    # Click the Results tab.
+    self.Click("css=a[renderer=HuntResultsRenderer]")
+    self.WaitUntil(self.IsTextPresent,
+                   "CSV output plugin writes to following files")
+
+    # Check that displayed file can be downloaded.
+    self.Click("css=.csv-output-note a:contains('ExportedFile.csv')")
+    self.WaitUntil(self.FileWasDownloaded)
 
 
 def main(argv):

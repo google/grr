@@ -119,35 +119,59 @@ def GRRFindPackages():
   return packages
 
 
-grr_artifact_files_spec = ('grr',
-                           ['artifacts'],
-                           ['*.yaml'])
+grr_artifact_files = ('grr',
+                      ['artifacts'],
+                      ['*.yaml'])
 
-grr_data_files_spec = ('grr',
-                       ['tools', 'worker'],
-                       ['*.py'])
+grr_gui_data_files = ('grr.gui',
+                      ['static', 'templates'],
+                      ['*.css', '*.js', '*.gif', '*.html',
+                       '*.jpg', '*.MF', '*.png', '*.ico'])
 
-grr_config_files_spec = ('grr',
-                         ['config'],
-                         ['*.py', '*.in'])
+grr_config_defs = ('grr.config',
+                   ['local'],
+                   ['*.txt'])
 
 
-grr_gui_data_files_spec = ('grr.gui',
-                           ['static', 'templates'],
-                           ['*.css', '*.js', '*.gif', '*.html',
-                            '*.jpg', '*.MF', '*.png'])
+grr_client_data_files = ('grr.client',
+                         ['local'],
+                         ['*.txt'])
 
-grr_client_data_files_spec = ('grr.client',
-                              ['local'],
-                              ['*.txt', '*.py'])
+grr_client_nanny_files = ('grr.client',
+                          ['nanny'],
+                          ['*'])
 
-grr_test_data_files_spec = ('grr.test_data',
-                            [''],
-                            ['*'])
-
-grr_docs_files_spec = ('grr',
-                       ['docs'],
+grr_test_data_files = ('grr.test_data',
+                       [''],
                        ['*'])
+
+grr_docs_files = ('grr',
+                  ['docs'],
+                  ['*'])
+
+grr_wsgi_conf = ('grr',
+                 ['tools'],
+                 ['wsgi.conf'])
+
+grr_proto_defs = ('grr',
+                  ['proto'],
+                  ['*.proto'])
+
+grr_protobuf_cc = ('grr',
+                   ['lib'],
+                   ['protobuf.cc'])
+
+
+grr_all_files = [grr_artifact_files,
+                 grr_client_data_files,
+                 grr_client_nanny_files,
+                 grr_docs_files,
+                 grr_gui_data_files,
+                 grr_proto_defs,
+                 grr_protobuf_cc,
+                 grr_test_data_files,
+                 grr_wsgi_conf,
+                ]
 
 
 setup(name='grr',
@@ -158,13 +182,7 @@ setup(name='grr',
       install_requires=[],
       packages=GRRFindPackages(),
       package_dir={'grr': '../grr'},
-      package_data=GRRFindDataFiles([grr_artifact_files_spec,
-                                     grr_data_files_spec,
-                                     grr_gui_data_files_spec,
-                                     grr_client_data_files_spec,
-                                     grr_test_data_files_spec,
-                                     grr_config_files_spec,
-                                     grr_docs_files_spec]),
+      package_data=GRRFindDataFiles(grr_all_files),
       entry_points={
           'console_scripts': [
               'grr_console = grr.lib.distro_entry:Console',

@@ -262,6 +262,7 @@ class HuntTable(fileview.AbstractFileTable):
     fd = aff4.FACTORY.Open("aff4:/hunts", mode="r", token=request.token)
     try:
       children = list(fd.ListChildren())
+      nr_hunts = len(children)
 
       children.sort(key=operator.attrgetter("age"), reverse=True)
       children = children[start_row:end_row]
@@ -276,8 +277,6 @@ class HuntTable(fileview.AbstractFileTable):
         with hunt.GetRunner() as runner:
           hunt.create_time = runner.context.create_time
           hunt_list.append(hunt)
-
-      total_size = len(hunt_list)
 
       hunt_list.sort(key=lambda x: x.create_time, reverse=True)
 
@@ -320,10 +319,10 @@ class HuntTable(fileview.AbstractFileTable):
                     row_index=row_index)
         row_index += 1
 
-      self.size = total_size
-
     except IOError as e:
       logging.error("Bad hunt %s", e)
+
+    return nr_hunts >= end_row
 
 
 class HuntViewTabs(renderers.TabLayout):
@@ -594,7 +593,18 @@ class HuntOverviewRenderer(AbstractLogRenderer):
   <dd>{{ this.hunt_creator|escape }}</dd>
 
   <dt>Client Limit</dt>
-  <dd>{{ this.client_limit|escape }}</dd>
+  {% if this.client_limit == 0 %}
+    <dd>None</dd>
+  {% else %}
+    <dd>{{ this.client_limit|escape }}</dd>
+  {% endif %}
+
+  <dt>Client Rate (clients/min)</dt>
+  {% if this.client_rate == 0.0 %}
+    <dd>No rate limit</dd>
+  {% else %}
+    <dd>{{ this.client_rate|escape }}</dd>
+  {% endif %}
 
   <dt>Client Count</dt>
   <dd>{{ this.hunt.NumClients|escape }}</dd>
@@ -651,7 +661,6 @@ class HuntOverviewRenderer(AbstractLogRenderer):
     self.hash = urllib.urlencode(sorted(h.items()))
     self.data = {}
     self.args_str = ""
-    self.client_limit = None
 
     if self.hunt_id:
       try:
@@ -683,6 +692,7 @@ class HuntOverviewRenderer(AbstractLogRenderer):
           self.data["Status"] = self.hunt.Get(self.hunt.Schema.STATE)
 
           self.client_limit = runner.args.client_limit
+          self.client_rate = runner.args.client_rate
 
           self.args_str = renderers.DictRenderer(
               self.hunt.state, filter_keys=["context"]).RawHTML(request)
@@ -775,7 +785,7 @@ class HuntErrorRenderer(AbstractLogRenderer):
     err_vals = fd.GetValuesForAttribute(fd.Schema.ERRORS)
     log = []
     for l in err_vals:
-      if not hunt_client or hunt_client == rdfvalue.RDFURN(l.client_id):
+      if not hunt_client or hunt_client == rdfvalue.ClientURN(l.client_id):
         log.append((l.age, l.client_id, l.backtrace,
                     l.log_message))
     return log
@@ -943,14 +953,65 @@ class HuntHostInformationRenderer(fileview.AFF4Stats):
     if client_id:
       super(HuntHostInformationRenderer, self).Layout(
           request, response, client_id=client_id,
-          aff4_path=rdfvalue.RDFURN(client_id),
+          aff4_path=rdfvalue.ClientURN(client_id),
           age=aff4.ALL_TIMES)
+
+
+class OutputPluginNoteRenderer(renderers.TemplateRenderer):
+  """Baseclass for renderers who render output-plugin-specific notes."""
+
+  # Name of the output plugin class that this class should deal with.
+  for_output_plugin = None
+
+  def __init__(self, plugin_def=None, plugin_state=None, **kwargs):
+    super(OutputPluginNoteRenderer, self).__init__(**kwargs)
+
+    if plugin_def is None:
+      raise ValueError("plugin_def can't be None")
+
+    if plugin_state is None:
+      raise ValueError("plugin_state can't be None")
+
+    self.plugin_def = plugin_def
+    self.plugin_state = plugin_state
+
+
+class CSVOutputPluginNoteRenderer(OutputPluginNoteRenderer):
+  """Note renderer for CSV output plugin."""
+
+  for_output_plugin = "CSVOutputPlugin"
+
+  layout_template = renderers.Template("""
+{% if this.output_urns %}
+<div id="{{unique|escape}}" class="well well-small csv-output-note">
+<p>CSV output plugin writes to following files
+(last update on {{this.plugin_state.last_updated|escape}}):<br/>
+{% for output_urn in this.output_urns %}
+<a href="#" aff4_path="{{output_urn}}">{{output_urn|escape}}</a><br/>
+{% endfor %}
+</p>
+</div>
+{% endif %}
+""")
+
+  def Layout(self, request, response):
+    self.output_urns = []
+    for output_file in self.plugin_state.files_by_type.values():
+      self.output_urns.append(output_file.urn)
+
+    response = super(CSVOutputPluginNoteRenderer, self).Layout(request,
+                                                               response)
+    return self.CallJavascript(response, "CSVOutputPluginNoteRenderer.Layout")
 
 
 class HuntResultsRenderer(semantic.RDFValueCollectionRenderer):
   """Displays a collection of hunt's results."""
 
   layout_template = renderers.Template("""
+{% for output_plugin_note in this.output_plugins_notes %}
+{{output_plugin_note|safe}}
+{% endfor %}
+
 {% if this.exportable_results %}
 Results of this hunt can be downloaded as ZIP archive:
 <button name="generate_zip"
@@ -973,6 +1034,21 @@ Generate ZIP archive
     hunt_id = rdfvalue.RDFURN(request.REQ.get("hunt_id"))
     hunt = aff4.FACTORY.Open(hunt_id, token=request.token)
 
+    metadata_urn = hunt.urn.Add("ResultsMetadata")
+    metadata = aff4.FACTORY.Create(
+        metadata_urn, aff4_type="HuntResultsMetadata", mode="r",
+        token=request.token)
+    output_plugins = metadata.Get(metadata.Schema.OUTPUT_PLUGINS)
+
+    self.output_plugins_notes = []
+    for _, (plugin_def, plugin_state) in output_plugins.iteritems():
+      plugin_name = plugin_def.plugin_name
+      for renderer_class in renderers.Renderer.classes.values():
+        if getattr(renderer_class, "for_output_plugin", None) == plugin_name:
+          renderer = renderer_class(plugin_def=plugin_def,
+                                    plugin_state=plugin_state)
+          self.output_plugins_notes.append(renderer.RawHTML(request))
+
     export_view = renderers.CollectionExportView
     self.exportable_results = export_view.IsCollectionExportable(
         hunt.state.context.results_collection_urn,
@@ -990,7 +1066,7 @@ Generate ZIP archive
 class HuntGenerateResultsZip(renderers.TemplateRenderer):
 
   layout_template = renderers.Template("""
-<em>Generation has started. Notification will be sent upon completion.</em>
+<em>Generation has started. An email will be sent upon completion.</em>
 """)
 
   def Layout(self, request, response):

@@ -300,6 +300,24 @@ class ExportTest(test_lib.GRRBaseTest):
       self.assertItemsEqual(["test1", "test2"],
                             result.metadata.annotations.split(","))
 
+  def testExportedFileConverterIgnoresRegistryKeys(self):
+    stat = rdfvalue.StatEntry(
+        aff4path=rdfvalue.RDFURN(
+            "aff4:/C.0000000000000000/registry/HKEY_USERS/S-1-5-20/Software/"
+            "Microsoft/Windows/CurrentVersion/Run/Sidebar"),
+        st_mode=32768,
+        st_size=51,
+        st_mtime=1247546054,
+        pathspec=rdfvalue.PathSpec(
+            path="/HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/"
+            "CurrentVersion/Run/Sidebar",
+            pathtype=rdfvalue.PathSpec.PathType.REGISTRY))
+
+    converter = export.StatEntryToExportedFileConverter()
+    results = list(converter.Convert(rdfvalue.ExportedMetadata(), stat,
+                                     token=self.token))
+    self.assertFalse(results)
+
   def testStatEntryToExportedRegistryKeyConverter(self):
     stat = rdfvalue.StatEntry(
         aff4path=rdfvalue.RDFURN(
@@ -328,6 +346,50 @@ class ExportTest(test_lib.GRRBaseTest):
     self.assertEqual(results[0].type,
                      rdfvalue.StatEntry.RegistryType.REG_EXPAND_SZ)
     self.assertEqual(results[0].data, "Sidebar.exe")
+
+  def testRegistryKeyConverterIgnoresNonRegistryStatEntries(self):
+    stat = rdfvalue.StatEntry(
+        aff4path=rdfvalue.RDFURN("aff4:/C.00000000000000/fs/os/some/path"),
+        pathspec=rdfvalue.PathSpec(path="/some/path",
+                                   pathtype=rdfvalue.PathSpec.PathType.OS),
+        st_mode=33184,
+        st_ino=1063090,
+        st_atime=1336469177,
+        st_mtime=1336129892,
+        st_ctime=1336129892)
+
+    converter = export.StatEntryToExportedRegistryKeyConverter()
+    results = list(converter.Convert(rdfvalue.ExportedMetadata(), stat,
+                                     token=self.token))
+
+    self.assertFalse(results)
+
+  def testRegistryKeyConverterWorksWithRegistryKeys(self):
+    # Registry keys won't have registry_type and registry_data set.
+    stat = rdfvalue.StatEntry(
+        aff4path=rdfvalue.RDFURN(
+            "aff4:/C.0000000000000000/registry/HKEY_USERS/S-1-5-20/Software/"
+            "Microsoft/Windows/CurrentVersion/Run/Sidebar"),
+        st_mode=32768,
+        st_size=51,
+        st_mtime=1247546054,
+        pathspec=rdfvalue.PathSpec(
+            path="/HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/"
+            "CurrentVersion/Run/Sidebar",
+            pathtype=rdfvalue.PathSpec.PathType.REGISTRY))
+
+    converter = export.StatEntryToExportedRegistryKeyConverter()
+    results = list(converter.Convert(rdfvalue.ExportedMetadata(), stat,
+                                     token=self.token))
+
+    self.assertEqual(len(results), 1)
+    self.assertEqual(results[0].urn, rdfvalue.RDFURN(
+        "aff4:/C.0000000000000000/registry/HKEY_USERS/S-1-5-20/Software/"
+        "Microsoft/Windows/CurrentVersion/Run/Sidebar"))
+    self.assertEqual(results[0].last_modified,
+                     rdfvalue.RDFDatetimeSeconds(1247546054))
+    self.assertEqual(results[0].data, "")
+    self.assertEqual(results[0].type, 0)
 
   def testProcessToExportedProcessConverter(self):
     process = rdfvalue.Process(
@@ -664,7 +726,7 @@ class ExportTest(test_lib.GRRBaseTest):
     results = list(converter.Convert(metadata, file_finder_result,
                                      token=self.token))
 
-    # We expect 1 ExportedFile instances in the results
+    # We expect 1 ExportedFile instance in the results
     exported_files = [result for result in results
                       if isinstance(result, rdfvalue.ExportedFile)]
     self.assertEqual(len(exported_files), 1)
@@ -704,6 +766,52 @@ class ExportTest(test_lib.GRRBaseTest):
         exported_matches[1].urn,
         rdfvalue.RDFURN("aff4:/C.0000000000000001/fs/os/some/path"))
 
+  def testFileFinderResultExportConverterConvertsHashes(self):
+    pathspec = rdfvalue.PathSpec(path="/some/path",
+                                 pathtype=rdfvalue.PathSpec.PathType.OS)
+
+    stat_entry = rdfvalue.StatEntry(
+        aff4path=rdfvalue.RDFURN("aff4:/C.00000000000001/fs/os/some/path"),
+        pathspec=pathspec,
+        st_mode=33184,
+        st_ino=1063090,
+        st_atime=1336469177,
+        st_mtime=1336129892,
+        st_ctime=1336129892)
+    hash_entry = rdfvalue.Hash(
+        sha256=("0e8dc93e150021bb4752029ebbff51394aa36f069cf19901578"
+                "e4f06017acdb5").decode("hex"),
+        sha1="7dd6bee591dfcb6d75eb705405302c3eab65e21a".decode("hex"),
+        md5="bb0a15eefe63fd41f8dc9dee01c5cf9a".decode("hex"),
+        pecoff_md5="7dd6bee591dfcb6d75eb705405302c3eab65e21a".decode("hex"),
+        pecoff_sha1="7dd6bee591dfcb6d75eb705405302c3eab65e21a".decode("hex"))
+
+    file_finder_result = rdfvalue.FileFinderResult(stat_entry=stat_entry,
+                                                   hash_entry=hash_entry)
+    metadata = rdfvalue.ExportedMetadata(client_urn="C.0000000000000001")
+
+    converter = export.FileFinderResultConverter()
+    results = list(converter.Convert(metadata, file_finder_result,
+                                     token=self.token))
+
+    # We expect 1 ExportedFile instance in the results
+    exported_files = [result for result in results
+                      if isinstance(result, rdfvalue.ExportedFile)]
+    self.assertEqual(len(exported_files), 1)
+
+    self.assertEqual(exported_files[0].basename, "path")
+    self.assertEqual(exported_files[0].hash_sha256,
+                     "0e8dc93e150021bb4752029ebbff51394aa36f069cf19901578e4"
+                     "f06017acdb5")
+    self.assertEqual(exported_files[0].hash_sha1,
+                     "7dd6bee591dfcb6d75eb705405302c3eab65e21a")
+    self.assertEqual(exported_files[0].hash_md5,
+                     "bb0a15eefe63fd41f8dc9dee01c5cf9a")
+    self.assertEqual(exported_files[0].pecoff_hash_md5,
+                     "7dd6bee591dfcb6d75eb705405302c3eab65e21a")
+    self.assertEqual(exported_files[0].pecoff_hash_sha1,
+                     "7dd6bee591dfcb6d75eb705405302c3eab65e21a")
+
   def testRDFURNConverterWithURNPointingToCollection(self):
     urn = rdfvalue.RDFURN("aff4:/C.00000000000000/some/collection")
 
@@ -735,44 +843,53 @@ class ExportTest(test_lib.GRRBaseTest):
                      rdfvalue.RDFURN("aff4:/C.00000000000000/some/path"))
 
   def testGrrMessageConverter(self):
-    msg = rdfvalue.GrrMessage(payload=DummyRDFValue4("some"))
+    payload = DummyRDFValue4(
+        "some", age=rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
+    msg = rdfvalue.GrrMessage(payload=payload)
     msg.source = rdfvalue.ClientURN("C.0000000000000000")
     test_lib.ClientFixture(msg.source, token=self.token)
 
     metadata = rdfvalue.ExportedMetadata(
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(1),
         source_urn=rdfvalue.RDFURN("aff4:/hunts/W:000000/Results"))
 
     converter = export.GrrMessageConverter()
-    results = list(converter.Convert(metadata, msg, token=self.token))
+    with test_lib.FakeTime(2):
+      results = list(converter.Convert(metadata, msg, token=self.token))
 
     self.assertEqual(len(results), 1)
-    self.assertEqual(results[0].timestamp,
+    self.assertEqual(results[0].original_timestamp,
                      rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
+    self.assertEqual(results[0].timestamp,
+                     rdfvalue.RDFDatetime().FromSecondsFromEpoch(2))
     self.assertEqual(results[0].source_urn, "aff4:/hunts/W:000000/Results")
 
   def testGrrMessageConverterWithOneMissingClient(self):
-    msg1 = rdfvalue.GrrMessage(payload=DummyRDFValue4("some"))
+    payload1 = DummyRDFValue4(
+        "some", age=rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
+    msg1 = rdfvalue.GrrMessage(payload=payload1)
     msg1.source = rdfvalue.ClientURN("C.0000000000000000")
     test_lib.ClientFixture(msg1.source, token=self.token)
 
-    msg2 = rdfvalue.GrrMessage(payload=DummyRDFValue4("some2"))
+    payload2 = DummyRDFValue4(
+        "some2", age=rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
+    msg2 = rdfvalue.GrrMessage(payload=payload2)
     msg2.source = rdfvalue.ClientURN("C.0000000000000001")
 
     metadata1 = rdfvalue.ExportedMetadata(
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(1),
         source_urn=rdfvalue.RDFURN("aff4:/hunts/W:000000/Results"))
     metadata2 = rdfvalue.ExportedMetadata(
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(2),
         source_urn=rdfvalue.RDFURN("aff4:/hunts/W:000001/Results"))
 
     converter = export.GrrMessageConverter()
-    results = list(converter.BatchConvert(
-        [(metadata1, msg1), (metadata2, msg2)], token=self.token))
+    with test_lib.FakeTime(3):
+      results = list(converter.BatchConvert(
+          [(metadata1, msg1), (metadata2, msg2)], token=self.token))
 
     self.assertEqual(len(results), 1)
-    self.assertEqual(results[0].timestamp,
+    self.assertEqual(results[0].original_timestamp,
                      rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
+    self.assertEqual(results[0].timestamp,
+                     rdfvalue.RDFDatetime().FromSecondsFromEpoch(3))
     self.assertEqual(results[0].source_urn, "aff4:/hunts/W:000000/Results")
 
 

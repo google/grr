@@ -1048,8 +1048,10 @@ class GrrConfigManager(object):
       value = matches[-1][1]
       container = matches[-1][0]
 
-      if (len(matches) >= 2 and len(matches[-1][2]) == len(matches[-2][2]) and
-          matches[-1][2] != matches[-2][2]):
+      if (len(matches) >= 2 and
+          len(matches[-1][2]) == len(matches[-2][2]) and
+          matches[-1][2] != matches[-2][2] and
+          matches[-1][1] != matches[-2][1]):
         # This warning specifies that there is an ambiguous match, the config
         # attempts to find the most specific value e.g. if you have a value
         # for X.y in context A,B,C, and a value for X.y in D,B it should choose
@@ -1057,8 +1059,9 @@ class GrrConfigManager(object):
         # A,B and one in A,C. The config doesn't know which one to pick so picks
         # one and displays this warning.
         logging.warn("Ambiguous configuration for key %s: "
-                     "Contexts of equal length: %s and %s", name,
-                     matches[-1][2], matches[-2][2])
+                     "Contexts of equal length: %s (%s) and %s (%s)",
+                     name, matches[-1][2], matches[-1][1],
+                     matches[-2][2], matches[-2][1])
 
     # If there is a writeback location this overrides any previous
     # values.

@@ -8,6 +8,8 @@ import StringIO
 import zipfile
 
 from grr.lib import aff4
+from grr.lib import config_lib
+from grr.lib import email_alerts
 from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -56,11 +58,32 @@ class TestExportHuntResultsFilesAsZipFlow(test_lib.FlowTestsBaseclass):
                     path="fs/os/foo/bar/" + path.split("/")[-1],
                     pathtype=rdfvalue.PathSpec.PathType.OS)))
 
+  def _CheckEmailMessage(self, email_messages):
+    self.assertEqual(len(email_messages), 1)
+
+    for msg in email_messages:
+      self.assertEqual(msg["address"], "%s@%s" % (
+          self.token.username, config_lib.CONFIG.Get("Logging.domain")))
+      self.assertEqual(msg["sender"],
+                       "grr-noreply@%s" % config_lib.CONFIG.Get(
+                           "Logging.domain"))
+      self.assertTrue("ready for download" in msg["title"])
+      self.assertTrue("2 of 2 files" in msg["message"])
+
+  def SendEmailMock(self, address, sender, title, message, **_):
+    self.email_messages.append(dict(address=address, sender=sender,
+                                    title=title, message=message))
+
   def testNotifiesUserWithDownloadFileNotification(self):
-    for _ in test_lib.TestFlowHelper(
-        "ExportHuntResultFilesAsZip", None,
-        hunt_urn=self.hunt_urn, token=self.token):
-      pass
+
+    with test_lib.Stubber(email_alerts, "SendEmail", self.SendEmailMock):
+      self.email_messages = []
+      for _ in test_lib.TestFlowHelper(
+          "ExportHuntResultFilesAsZip", None,
+          hunt_urn=self.hunt_urn, token=self.token):
+        pass
+
+      self._CheckEmailMessage(self.email_messages)
 
     user_fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add("users").Add("test"),
                                 token=self.token)
@@ -72,10 +95,16 @@ class TestExportHuntResultsFilesAsZipFlow(test_lib.FlowTestsBaseclass):
                      "of 2 results)")
 
   def testCreatesZipContainingHuntResultsFiles(self):
-    for _ in test_lib.TestFlowHelper(
-        "ExportHuntResultFilesAsZip", None,
-        hunt_urn=self.hunt_urn, token=self.token):
-      pass
+
+    with test_lib.Stubber(email_alerts, "SendEmail", self.SendEmailMock):
+      self.email_messages = []
+
+      for _ in test_lib.TestFlowHelper(
+          "ExportHuntResultFilesAsZip", None,
+          hunt_urn=self.hunt_urn, token=self.token):
+        pass
+
+      self._CheckEmailMessage(self.email_messages)
 
     user_fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add("users").Add("test"),
                                 token=self.token)

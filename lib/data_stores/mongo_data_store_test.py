@@ -21,7 +21,7 @@ from grr.lib.data_stores import mongo_data_store
 class MongoTestMixin(object):
   """A mixin for Mongo tests."""
 
-  def InitTable(self):
+  def InitDatastore(self):
     """Initializes the data store."""
     self.token = access_control.ACLToken(username="test",
                                          reason="Running tests")
@@ -30,6 +30,9 @@ class MongoTestMixin(object):
     data_store.DB = mongo_data_store.MongoDataStore()
     data_store.DB.security_manager = test_lib.MockSecurityManager()
 
+    self.DestroyDatastore()
+
+  def DestroyDatastore(self):
     # Drop the collection.
     data_store.DB.db_handle.drop_collection(data_store.DB.latest_collection)
     data_store.DB.db_handle.drop_collection(data_store.DB.versioned_collection)
@@ -42,10 +45,6 @@ class MongoTestMixin(object):
 class MongoDataStoreTest(MongoTestMixin, data_store_test.DataStoreTest):
   """Test the mongo data store abstraction."""
 
-  def setUp(self):
-    super(MongoDataStoreTest, self).setUp()
-    self.InitTable()
-
 
 class MongoDataStoreBenchmarks(MongoTestMixin,
                                data_store_test.DataStoreBenchmarks):
@@ -55,9 +54,10 @@ class MongoDataStoreBenchmarks(MongoTestMixin,
   # 500 is standard for other data stores.
   files_per_dir = 50
 
-  def setUp(self):
-    super(MongoDataStoreBenchmarks, self).setUp()
-    self.InitTable()
+
+class MongoDataStoreCSVBenchmarks(MongoTestMixin,
+                                  data_store_test.DataStoreCSVBenchmarks):
+  """Benchmark the mongo data store abstraction."""
 
 
 def main(args):

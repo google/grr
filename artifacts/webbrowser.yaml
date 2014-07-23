@@ -99,14 +99,10 @@ collectors:
       - '%%users.appdata%%\Mozilla\Firefox\Profiles\*\places.sqlite'
   supported_os: [Windows]
 - collector_type: FILE
-  args:
-    path_list:
-      - '%%users.homedir%%/Library/Application Support/Firefox/Profiles/*/places.sqlite'
+  args: {path_list: ['%%users.homedir%%/Library/Application Support/Firefox/Profiles/*/places.sqlite']}
   supported_os: [Darwin]
 - collector_type: FILE
-  args:
-    path_list:
-      - '%%users.homedir%%/.mozilla/firefox/*/places.sqlite'
+  args: {path_list: ['%%users.homedir%%/.mozilla/firefox/*/places.sqlite']}
   supported_os: [Linux]
 labels: [Browser]
 urls: ['http://www.forensicswiki.org/wiki/Mozilla_Firefox']
@@ -168,24 +164,34 @@ name: InternetExplorerTypedURLsKeys
 doc: Microsoft Internet Explorer TypedUrls keys.
 collectors:
 - collector_type: REGISTRY_KEY
-  args:
-    path_list: ['HKEY_USERS\%%users.sid%%\Software\Microsoft\Internet Explorer\TypedURLs\*']
+  args: {path_list: ['HKEY_USERS\%%users.sid%%\Software\Microsoft\Internet Explorer\TypedURLs\*']}
 labels: [Browser]
 supported_os: [Windows]
 urls: ['http://www.forensicswiki.org/wiki/Internet_Explorer#Typed_URLs']
+---
+name: OperaHistory
+doc: Opera browser history (global_history.dat).
+collectors:
+- collector_type: FILE
+  args: {path_list: ['%%users.homedir%%/Library/Opera//global_history.dat']}
+  supported_os: [Darwin]
+- collector_type: FILE
+  args: {path_list: ['%%users.homedir%%/.opera/global_history.dat']}
+  supported_os: [Linux]
+- collector_type: FILE
+  args: {path_list: ['%%users.appdata%%\AppData\Roaming\Opera\Opera\global_history.dat']}
+  supported_os: [Windows]
+labels: [Browser]
+urls: ['http://www.forensicswiki.org/wiki/Opera']
 ---
 name: SafariCache
 doc: Safari browser cache (cache.db).
 collectors:
 - collector_type: FILE
-  args:
-    path_list:
-      - '%%users.localappdata%%\Apple Computer\Safari\cache.db'
+  args: {path_list: ['%%users.localappdata%%\Apple Computer\Safari\cache.db']}
   supported_os: [Windows]
 - collector_type: FILE
-  args:
-    path_list:
-      - '%%users.homedir%%/Library/Caches/com.apple.Safari/cache.db'
+  args: {path_list: ['%%users.homedir%%/Library/Caches/com.apple.Safari/cache.db']}
   supported_os: [Darwin]
 supported_os: [Windows, Darwin]
 labels: [Browser]
@@ -201,9 +207,7 @@ collectors:
       - '%%users.appdata%%\Roaming\Apple Computer\Safari\History.plist'
   supported_os: [Windows]
 - collector_type: FILE
-  args:
-    path_list:
-      - '%%users.homedir%%/Library/Safari/History.plist'
+  args: {path_list: ['%%users.homedir%%/Library/Safari/History.plist']}
   supported_os: [Darwin]
 supported_os: [Windows, Darwin]
 labels: [Browser]

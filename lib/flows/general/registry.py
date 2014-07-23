@@ -45,6 +45,10 @@ class RegistryFinder(flow.GRRFlow):
         result.append(rdfvalue.FileFinderCondition(
             condition_type=ff_condition_type_cls.CONTENTS_REGEX_MATCH,
             contents_regex_match=c.value_regex_match))
+      elif c.condition_type == RegistryFinderCondition.Type.SIZE:
+        result.append(rdfvalue.FileFinderCondition(
+            condition_type=ff_condition_type_cls.SIZE,
+            size=c.size))
       else:
         raise ValueError("Unknown condition type: %s", c.condition_type)
 
@@ -175,7 +179,7 @@ class GetMRU(flow.GRRFlow):
       if m:
         extension = m.group(1)
         fd = aff4.FACTORY.Create(
-            rdfvalue.RDFURN(self.client_id)
+            rdfvalue.ClientURN(self.client_id)
             .Add("analysis/MRU/Explorer")
             .Add(extension)
             .Add(username),

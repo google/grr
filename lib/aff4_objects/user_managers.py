@@ -310,6 +310,10 @@ class FullAccessControlManager(BaseAccessControlManager):
     h.Allow("aff4:/artifact_store")
     h.Allow("aff4:/artifact_store/*")
 
+    # Allow everyone to read monitoring data from stats store.
+    h.Allow("aff4:/stats_store")
+    h.Allow("aff4:/stats_store/*")
+
     return h
 
   def _CreateQueryAccessHelper(self):

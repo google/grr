@@ -25,6 +25,7 @@ message Collector {
     GREP = 43;
     VOLATILITY_PLUGIN = 44;
     COMMAND = 45;
+    REKALL_PLUGIN = 46;
 
   };
 

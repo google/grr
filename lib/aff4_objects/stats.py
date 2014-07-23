@@ -14,7 +14,8 @@ class ClientStats(standard.VFSDirectory):
 
   class SchemaCls(standard.VFSDirectory.SchemaCls):
     STATS = aff4.Attribute("aff4:stats", rdfvalue.ClientStats,
-                           "Client Stats.", "Client stats")
+                           "Client Stats.", "Client stats",
+                           creates_new_object_version=False)
 
 
 class ClientFleetStats(aff4.AFF4Object):
@@ -34,9 +35,6 @@ class ClientFleetStats(aff4.AFF4Object):
 
     RELEASE_HISTOGRAM = aff4.Attribute("aff4:stats/release", stats.GraphSeries,
                                        "Release statistics for active clients.")
-
-    VERSION_HISTOGRAM = aff4.Attribute("aff4:stats/version", stats.GraphSeries,
-                                       "Version statistics for active clients.")
 
     LAST_CONTACTED_HISTOGRAM = aff4.Attribute("aff4:stats/last_contacted",
                                               stats.Graph,
@@ -63,4 +61,3 @@ class FilestoreStats(aff4.AFF4Object):
     FILESTORE_CLIENTCOUNT_HISTOGRAM = aff4.Attribute(
         "aff4:stats/filestore/clientcount", stats.Graph,
         "File distribution across clients")
-

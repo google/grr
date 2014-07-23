@@ -3,6 +3,7 @@
 
 
 from grr.lib import rdfvalue
+from grr.lib import type_info
 from grr.lib.rdfvalues import test_base
 from grr.proto import jobs_pb2
 
@@ -112,4 +113,48 @@ class UserTests(test_base.RDFValueTestCase):
     self.assertEqual(user.special_folders.desktop, "/usr/local/test/Desktop")
     self.assertEqual(user.special_folders.local_app_data,
                      "/usr/local/test/AppData")
+
+
+class ClientURNTests(test_base.RDFValueTestCase):
+  """Test the ClientURN."""
+
+  rdfvalue_class = rdfvalue.ClientURN
+
+  def GenerateSample(self, number=0):
+    return rdfvalue.ClientURN("C.%016X" % number)
+
+  def testInitialization(self):
+    """ClientURNs don't allow empty init so we override the default test."""
+
+    self.rdfvalue_class("C.00aaeccbb45f33a3")
+
+    # Initialize from another instance.
+    sample = self.GenerateSample()
+
+    self.CheckRDFValue(self.rdfvalue_class(sample), sample)
+
+  def testURNValidation(self):
+    # These should all come out the same: C.00aaeccbb45f33a3
+    test_set = ["C.00aaeccbb45f33a3", "C.00aaeccbb45f33a3".upper(),
+                "c.00aaeccbb45f33a3", "C.00aaeccbb45f33a3 "]
+    results = []
+    for urnstr in test_set:
+      results.append(rdfvalue.ClientURN(urnstr))
+      results.append(rdfvalue.ClientURN("aff4:/%s" % urnstr))
+
+    self.assertEqual(len(results), len(test_set) * 2)
+
+    # Check all are identical
+    self.assertTrue(all([x == results[0] for x in results]))
+
+    # Check we can handle URN as well as string
+    rdfvalue.ClientURN(rdfvalue.ClientURN(test_set[0]))
+
+    error_set = ["B.00aaeccbb45f33a3", "",
+                 "c.00accbb45f33a3", "aff5:/C.00aaeccbb45f33a3"]
+
+    for badurn in error_set:
+      self.assertRaises(type_info.TypeValueError, rdfvalue.ClientURN, badurn)
+
+    self.assertRaises(ValueError, rdfvalue.ClientURN, None)
 

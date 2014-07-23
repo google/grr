@@ -28,10 +28,8 @@ class TestFingerprintFileOSLinux(base.AutomatedTest):
 
 class TestFingerprintFileOSWindows(TestFingerprintFileOSLinux):
   """Tests if Fingerprinting works on Windows."""
-  platforms = ["windows"]
+  platforms = ["Windows"]
   args = {"pathspec": rdfvalue.PathSpec(
       path="C:\\Windows\\regedit.exe",
       pathtype=rdfvalue.PathSpec.PathType.OS)}
   test_output_path = "/fs/os/C:/Windows/regedit.exe"
-
-

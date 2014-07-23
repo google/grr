@@ -8,7 +8,9 @@ import os
 import zipfile
 
 from grr.lib import aff4
+from grr.lib import config_lib
 from grr.lib import data_store
+from grr.lib import email_alerts
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -150,3 +152,35 @@ class ExportHuntResultFilesAsZip(flow.GRRFlow):
                 "Hunt results ready for download (archived %d out of %d "
                 "results)" % (self.state.archived_files,
                               self.state.total_files))
+
+    # TODO(user): it would be better to provide a direct download link in the
+    # email here, but it requires more work.  The notifications bar creates and
+    # submits a form in javascript to achieve the same thing.
+    template = """
+  <html><body>
+  <p>
+    The zip archive contains %(archived)s of %(total)s files for hunt
+    %(hunt_id)s.  Check the <a href='%(admin_ui)s/'>GRR notification bar</a> for
+    download links.
+  </p>
+
+  <p>Thanks,</p>
+  <p>The GRR team.</p>
+  </body></html>"""
+
+    subject = "Hunt results for %s ready for download." % (
+        self.args.hunt_urn.Basename())
+
+    if self.token.username != "GRRWorker":
+
+      email_alerts.SendEmail(
+          "%s@%s" % (
+              self.token.username, config_lib.CONFIG.Get("Logging.domain")),
+          "grr-noreply@%s" % config_lib.CONFIG.Get("Logging.domain"), subject,
+          template % dict(
+              hunt_id=self.args.hunt_urn.Basename(),
+              archived=self.state.archived_files,
+              total=self.state.total_files,
+              admin_ui=config_lib.CONFIG["AdminUI.url"]),
+          is_html=True)
+

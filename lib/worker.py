@@ -79,6 +79,7 @@ class GRRWorker(object):
 
     # Well known flows are just instantiated.
     self.well_known_flows = flow.WellKnownFlow.GetAllWellKnownFlows(token=token)
+    self.lease_time = config_lib.CONFIG["Worker.flow_lease_time"]
 
   def Run(self):
     """Event loop."""
@@ -218,11 +219,21 @@ class GRRWorker(object):
     flow_obj = None
     session_id = notification.session_id
 
-    # Take a lease on the flow:
     try:
-      with aff4.FACTORY.OpenWithLock(
-          session_id, lease_time=config_lib.CONFIG["Worker.flow_lease_time"],
-          blocking=False, token=self.token) as flow_obj:
+      # Take a lease on the flow:
+      if session_id in self.well_known_flows:
+        # Well known flows are not necessarily present in the data store so
+        # we need to create them instead of opening.
+        expected_flow = self.well_known_flows[session_id].__class__.__name__
+        flow_obj = aff4.FACTORY.CreateWithLock(
+            session_id, expected_flow, lease_time=self.lease_time,
+            blocking=False, token=self.token)
+      else:
+        flow_obj = aff4.FACTORY.OpenWithLock(
+            session_id, lease_time=self.lease_time,
+            blocking=False, token=self.token)
+
+      with flow_obj:
 
         now = time.time()
         logging.debug("Got lock on %s", session_id)
@@ -236,8 +247,7 @@ class GRRWorker(object):
         if session_id in self.well_known_flows:
           stats.STATS.IncrementCounter("well_known_flow_requests",
                                        fields=[str(session_id)])
-          self.well_known_flows[session_id].ProcessRequests(
-              self.thread_pool)
+          flow_obj.ProcessRequests(self.thread_pool)
 
         else:
           if not isinstance(flow_obj, flow.GRRFlow):

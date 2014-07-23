@@ -23,7 +23,7 @@ from grr.lib import type_info
 
 
 class EntryPointTest(test_lib.GRRBaseTest):
-  """This class tests the flow scheduling method in benchmark_tests.py."""
+  """This class tests GRR's code entry points run without failing."""
 
   def setUp(self):
     """Sets up the environment for the tests."""

@@ -75,7 +75,20 @@ class ClientCrashEventListener(flow.EventListener):
               hunt_session_id.Add("crashes"), crash_details)
 
 
-class GetClientStats(flow.GRRFlow):
+class GetClientStatsProcessResponseMixin(object):
+  """Mixin defining ProcessReponse() that writes client stats to datastore."""
+
+  def ProcessResponse(self, client_id, response):
+    """Actually processes the contents of the response."""
+    urn = client_id.Add("stats")
+
+    with aff4.FACTORY.Create(urn, "ClientStats", token=self.token,
+                             mode="w") as stats_fd:
+      # Only keep the average of all values that fall within one minute.
+      stats_fd.AddAttribute(stats_fd.Schema.STATS(response.DownSample()))
+
+
+class GetClientStats(flow.GRRFlow, GetClientStatsProcessResponseMixin):
   """This flow retrieves information about the GRR client process."""
 
   category = "/Administrative/"
@@ -95,21 +108,9 @@ class GetClientStats(flow.GRRFlow):
     for response in responses:
       self.ProcessResponse(self.client_id, response)
 
-  def ProcessResponse(self, client_id, response):
-    """Actually processes the contents of the response."""
-    urn = client_id.Add("stats")
 
-    stats_fd = aff4.FACTORY.Create(urn, "ClientStats", token=self.token,
-                                   mode="rw")
-
-    # Only keep the average of all values that fall within one minute.
-    response.DownSample()
-    stats_fd.AddAttribute(stats_fd.Schema.STATS(response))
-
-    stats_fd.Close()
-
-
-class GetClientStatsAuto(GetClientStats, flow.WellKnownFlow):
+class GetClientStatsAuto(flow.WellKnownFlow,
+                         GetClientStatsProcessResponseMixin):
   """This action pushes client stats to the server automatically."""
 
   category = None
@@ -257,6 +258,7 @@ class ExecutePythonHack(flow.GRRFlow):
     if not isinstance(fd, aff4.GRRSignedBlob):
       raise RuntimeError("Python hack %s not found." % self.args.hack_name)
 
+    # TODO(user): This will break if someone wants to execute lots of Python.
     for python_blob in fd:
       self.CallClient("ExecutePython", python_code=python_blob,
                       py_args=self.args.py_args, next_state="Done")
@@ -450,7 +452,9 @@ class UpdateClient(flow.GRRFlow):
   @flow.StateHandler(next_state="Interrogate")
   def Start(self):
     """Start."""
-    if not self.args.blob_path:
+    blob_path = self.args.blob_path
+    if not blob_path:
+      # No explicit path was given, we guess a reasonable default here.
       client = aff4.FACTORY.Open(self.client_id, token=self.token)
       client_platform = client.Get(client.Schema.SYSTEM)
       if not client_platform:
@@ -458,25 +462,27 @@ class UpdateClient(flow.GRRFlow):
       blob_urn = "aff4:/config/executables/%s/agentupdates" % (
           self.system_platform_mapping[client_platform])
       blob_dir = aff4.FACTORY.Open(blob_urn, token=self.token)
-      updates = sorted(list(blob_dir.OpenChildren()))
+      updates = sorted(list(blob_dir.ListChildren()))
       if not updates:
         raise RuntimeError(
             "No matching updates found, please specify one manually.")
-      aff4_blob = updates[-1]
-      self.args.blob_path = aff4_blob.urn
-    else:
-      aff4_blob = aff4.FACTORY.Open(self.args.blob_path, token=self.token)
+      blob_path = updates[-1]
 
-    blob = aff4_blob.Get(aff4_blob.Schema.BINARY)
-
-    if ("windows" in utils.SmartStr(self.args.blob_path) or
-        "darwin" in utils.SmartStr(self.args.blob_path) or
-        "linux" in utils.SmartStr(self.args.blob_path)):
-      self.CallClient("UpdateAgent", executable=blob, next_state="Interrogate")
-
-    else:
+    if not ("windows" in utils.SmartStr(self.args.blob_path) or
+            "darwin" in utils.SmartStr(self.args.blob_path) or
+            "linux" in utils.SmartStr(self.args.blob_path)):
       raise RuntimeError("Update not supported for this urn, use aff4:/config"
                          "/executables/<platform>/agentupdates/<version>")
+
+    aff4_blobs = aff4.FACTORY.Open(blob_path, token=self.token)
+    offset = 0
+    write_path = "%d" % time.time()
+    for i, blob in enumerate(aff4_blobs):
+      self.CallClient(
+          "UpdateAgent", executable=blob, more_data=i < aff4_blobs.chunks-1,
+          offset=offset, write_path=write_path, next_state="Interrogate")
+
+      offset += len(blob.data)
 
   @flow.StateHandler(next_state="Done")
   def Interrogate(self, responses):
@@ -811,11 +817,12 @@ class LaunchBinary(flow.GRRFlow):
       raise RuntimeError("Executable binary %s not found." % self.args.binary)
 
     offset = 0
+    write_path = "%d" % time.time()
     for i, blob in enumerate(fd):
       self.CallClient(
           "ExecuteBinaryCommand", executable=blob, more_data=i < fd.chunks-1,
           args=shlex.split(self.args.command_line), offset=offset,
-          write_path="%s" % int(time.time()), next_state="End")
+          write_path=write_path, next_state="End")
 
       offset += len(blob.data)
 

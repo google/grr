@@ -126,7 +126,8 @@ class TestGetFileTSKLinux(base.AutomatedTest):
           self.delete_urns.add(urn)
           return self.CheckFile(aff4.FACTORY.Open(urn, token=self.token))
 
-      self.fail("Output file not found.")
+      self.fail(("Output file not found. Maybe the GRR client "
+                 "is not running with root privileges?"))
 
     else:
       urn = self.client_id.Add(self.test_output_path)
@@ -281,7 +282,7 @@ class TestMultiGetFileOSMac(TestGetFileOSMac):
 
 class TestGetFileOSWindows(TestGetFileOSLinux):
   """Tests if GetFile works on Windows."""
-  platforms = ["windows"]
+  platforms = ["Windows"]
   args = {"pathspec": rdfvalue.PathSpec(
       path="C:\\Windows\\regedit.exe",
       pathtype=rdfvalue.PathSpec.PathType.OS)}

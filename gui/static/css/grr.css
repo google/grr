@@ -142,6 +142,10 @@ dd.histogram > div {
     height: 20px;
 }
 
+.no-bottom-margin {
+  margin-bottom: 0;
+}
+
 .padded {
   padding: 1em;
 }

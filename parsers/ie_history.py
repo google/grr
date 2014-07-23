@@ -17,6 +17,7 @@ File%20format/MSIE%20Cache%20File%20%28index.dat%29%20format.pdf
 
 import datetime
 import glob
+import operator
 import os
 import struct
 import sys
@@ -56,6 +57,8 @@ class IEParser(object):
   The following implementation is based on information from:
 
   http://www.forensicswiki.org/wiki/Internet_Explorer_History_File_Format
+
+  Returns results in chronological order based on mtime
   """
 
   FILE_HEADER = "Client UrlCache MMF Ver 5.2"
@@ -82,7 +85,13 @@ class IEParser(object):
       logging.error("Invalid index.dat file %s", self._file)
       return
 
+    # Events aren't time ordered in the history file, so we collect them all
+    # then sort.
+    events = []
     for event in self._DoParse():
+      events.append(event)
+
+    for event in sorted(events, key=operator.itemgetter("mtime")):
       yield event
 
   def _GetRecord(self, offset, record_size):

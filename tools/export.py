@@ -3,6 +3,7 @@
 
 
 
+import getpass
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
@@ -58,7 +59,7 @@ def main(unused_argv):
   startup.Init()
 
   data_store.default_token = rdfvalue.ACLToken(
-      username=flags.FLAGS.username or "export",
+      username=flags.FLAGS.username or getpass.getuser(),
       reason=flags.FLAGS.reason or "export")
 
   # If subcommand was specified by the user in the command line,

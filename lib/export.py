@@ -41,6 +41,13 @@ class ExportOptions(rdfvalue.RDFProtoStruct):
 class ExportedMetadata(rdfvalue.RDFProtoStruct):
   protobuf = export_pb2.ExportedMetadata
 
+  def __init__(self, initializer=None, age=None, payload=None, **kwarg):
+    super(ExportedMetadata, self).__init__(initializer=initializer,
+                                           age=age, **kwarg)
+
+    if not self.timestamp:
+      self.timestamp = rdfvalue.RDFDatetime().Now()
+
 
 class ExportedClient(rdfvalue.RDFProtoStruct):
   protobuf = export_pb2.ExportedClient
@@ -129,7 +136,8 @@ class ExportConverter(object):
 
     Metadata object is provided by the caller. It contains basic information
     about where the value is coming from (i.e. client_urn, session_id, etc)
-    as well as timestamps corresponding to when current export started.
+    as well as timestamps corresponding to when data was generated and
+    exported.
 
     ExportConverter should use the metadata when constructing export-friendly
     RDFValues.
@@ -154,7 +162,8 @@ class ExportConverter(object):
 
     Metadata object is provided by the caller. It contains basic information
     about where the value is coming from (i.e. client_urn, session_id, etc)
-    as well as timestamps corresponding to when current export started.
+    as well as timestamps corresponding to when data was generated and
+    exported.
 
     ExportConverter should use the metadata when constructing export-friendly
     RDFValues.
@@ -163,7 +172,7 @@ class ExportConverter(object):
       metadata_value_pairs: a list or a generator of tuples (metadata, value),
                             where metadata is ExportedMetadata to be used for
                             conversion and value is an RDFValue to be converted.
-      token: Security token:
+      token: Security token.
 
     Yields:
       Resulting RDFValues. Empty list is a valid result and means that
@@ -424,7 +433,8 @@ class StatEntryToExportedFileConverter(ExportConverter):
     """
     filtered_pairs = []
     for metadata, stat_entry in metadata_value_pairs:
-      if not stat_entry.HasField("registry_type"):
+      # Ignore registry keys.
+      if stat_entry.pathspec.pathtype != rdfvalue.PathSpec.PathType.REGISTRY:
         filtered_pairs.append((metadata, stat_entry))
 
     if self.options.export_files_hashes or self.options.export_files_contents:
@@ -495,24 +505,28 @@ class StatEntryToExportedRegistryKeyConverter(ExportConverter):
       List or generator with resulting RDFValues. Empty list if StatEntry
       corresponds to a file and not to a registry entry.
     """
-    if not stat_entry.HasField("registry_type"):
+    if stat_entry.pathspec.pathtype != rdfvalue.PathSpec.PathType.REGISTRY:
       return []
 
     result = ExportedRegistryKey(metadata=metadata,
                                  urn=stat_entry.aff4path,
-                                 last_modified=stat_entry.st_mtime,
-                                 type=stat_entry.registry_type)
+                                 last_modified=stat_entry.st_mtime)
 
-    try:
-      data = str(stat_entry.registry_data.GetValue())
-    except UnicodeEncodeError:
-      # If we can't represent this as a string...
-      # let's just get the byte representation *shrug*
-      data = stat.registry_data.GetValue()
+    if (stat_entry.HasField("registry_type") and
+        stat_entry.HasField("registry_data")):
+
+      result.type = stat_entry.registry_type
+      try:
+        data = str(stat_entry.registry_data.GetValue())
+      except UnicodeEncodeError:
+        # If we can't represent this as a string...
+        # let's just get the byte representation *shrug*
+        data = stat.registry_data.GetValue()
         # Get the byte representation of the string
-      data = unicode(data).encode("utf-16be")
+        data = unicode(data).encode("utf-16be")
 
-    result.data = data
+      result.data = data
+
     return [result]
 
 
@@ -732,6 +746,16 @@ class FileFinderResultConverter(ExportConverter):
     for result in ConvertValuesWithMetadata(
         [(metadata, val.stat_entry) for metadata, val in metadata_value_pairs],
         token=token, options=self.options):
+
+      # FileFinderResult has hashes in "hash_entry" attribute which is not
+      # passed to ConvertValuesWithMetadata call. We have to process these
+      # data explicitly here. Note also that we only do this when
+      # ConvertValuesWithMetadata produces ExportedFile values. We have to
+      # check for the value type explicitly as ConvertValuesWithMetadata
+      # may produce values of different types.
+      if val.HasField("hash_entry") and isinstance(result, ExportedFile):
+        StatEntryToExportedFileConverter.ParseFileHash(val.hash_entry, result)
+
       yield result
 
     matches = []
@@ -846,9 +870,8 @@ class GrrMessageConverter(ExportConverter):
   is done by GrrMessageConverter and not by the caller.
 
   Although ExportedMetadata should still be provided for the conversion to
-  happen, only "session_id" and "timestamp" values will be used. All other
-  metadata will be fetched from the client object pointed to by
-  GrrMessage.source.
+  happen, only "source_urn" and value will be used. All other metadata will be
+  fetched from the client object pointed to by GrrMessage.source.
   """
 
   input_rdf_type = "GrrMessage"
@@ -857,28 +880,28 @@ class GrrMessageConverter(ExportConverter):
     super(GrrMessageConverter, self).__init__(*args, **kw)
     self.cached_metadata = {}
 
-  def Convert(self, metadata, stat_entry, token=None):
+  def Convert(self, metadata, grr_message, token=None):
     """Converts GrrMessage into a set of RDFValues.
 
     Args:
       metadata: ExportedMetadata to be used for conversion.
-      stat_entry: StatEntry to be converted.
+      grr_message: GrrMessage to be converted.
       token: Security token.
 
     Returns:
-      List or generator with resulting RDFValues. Empty list if StatEntry
-      corresponds to a registry entry and not to a file.
+      List or generator with resulting RDFValues.
     """
-    return self.BatchConvert([(metadata, stat_entry)], token=token)
+    return self.BatchConvert([(metadata, grr_message)], token=token)
 
   def BatchConvert(self, metadata_value_pairs, token=None):
-    """Converts a batch of StatEntry value to ExportedFile values at once.
+    """Converts a batch of GrrMessages into a set of RDFValues at once.
 
     Args:
       metadata_value_pairs: a list or a generator of tuples (metadata, value),
                             where metadata is ExportedMetadata to be used for
-                            conversion and value is a StatEntry to be converted.
-      token: Security token:
+                            conversion and value is a GrrMessage to be
+                            converted.
+      token: Security token.
 
     Returns:
       Resulting RDFValues. Empty list is a valid result and means that
@@ -894,9 +917,7 @@ class GrrMessageConverter(ExportConverter):
     # Group messages by source (i.e. by client urn).
     msg_dict = {}
     for metadata, msg in metadata_value_pairs:
-      if msg.source not in msg_dict:
-        msg_dict[msg.source] = []
-      msg_dict[msg.source].append((metadata, msg))
+      msg_dict.setdefault(msg.source, []).append((metadata, msg))
 
     metadata_objects = []
     metadata_to_fetch = []
@@ -916,14 +937,15 @@ class GrrMessageConverter(ExportConverter):
         self.cached_metadata[metadata.client_urn] = metadata
       metadata_objects.extend(fetched_metadata)
 
-    # Get session id and timestamp from the original metadata provided.
+    # Get source_urn from the original metadata provided and
+    # original_timestamp from the payload age.
     batch_data = []
     for metadata in metadata_objects:
       try:
         for original_metadata, message in msg_dict[metadata.client_urn]:
           new_metadata = rdfvalue.ExportedMetadata(metadata)
           new_metadata.source_urn = original_metadata.source_urn
-          new_metadata.timestamp = original_metadata.timestamp
+          new_metadata.original_timestamp = message.payload.age
           batch_data.append((new_metadata, message.payload))
 
       except KeyError:
@@ -1023,8 +1045,6 @@ def GetMetadata(client, token=None):
     client_fd = client
 
   metadata = ExportedMetadata()
-
-  metadata.timestamp = rdfvalue.RDFDatetime().Now()
 
   metadata.client_urn = client_fd.urn
   metadata.client_age = client_fd.urn.age

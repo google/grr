@@ -3,12 +3,14 @@
 
 
 
+import csv
 import threading
 import urllib
 
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import email_alerts
+from grr.lib import export
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import rendering
@@ -182,6 +184,104 @@ class EmailPlugin(HuntOutputPlugin):
   def ProcessResponses(self, responses):
     for response in responses:
       self.ProcessResponse(response)
+
+
+class CSVOutputPluginArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.CSVOutputPluginArgs
+
+
+class CSVOutputPlugin(HuntOutputPlugin):
+  """Hunt output plugin that writes hunt's results to CSV file on AFF4.
+
+  CSV files are written incrementally. After every batch of results is written,
+  the file can be downloaded.
+
+  TODO(user): add support for zipped CSV files. Produce compressed CSV
+  files while retaining the capability to do incremental updates and have files
+  in downloadable state after every update is not exactly trivial.
+  """
+
+  name = "csv"
+  description = "Write CSV file to AFF4"
+  args_type = CSVOutputPluginArgs
+
+  def Initialize(self):
+    super(CSVOutputPlugin, self).Initialize()
+    self.state.Register("files_by_type", {})
+    self.state.Register("last_updated", rdfvalue.RDFDatetime().Now())
+
+  def ProcessResponses(self, responses):
+    default_metadata = rdfvalue.ExportedMetadata(
+        source_urn=self.state.collection_urn)
+
+    if self.state.args.convert_values:
+      # This is thread-safe - we just convert the values.
+      converted_responses = export.ConvertValues(
+          default_metadata, responses, token=self.state.token,
+          options=self.state.args.export_options)
+    else:
+      converted_responses = responses
+
+    # This is not thread-safe, therefore WriteValueToCSVFile is synchronized.
+    self.WriteValuesToCSVFile(converted_responses)
+
+  def GetCSVHeader(self, value_class, prefix=""):
+    header = []
+    for type_info in value_class.type_infos:
+      if type_info.__class__.__name__ == "ProtoEmbedded":
+        header.extend(
+            self.GetCSVHeader(type_info.type, prefix=type_info.name + "."))
+      else:
+        header.append(prefix + type_info.name)
+
+    return header
+
+  def WriteCSVHeader(self, output_file, value_type):
+    value_class = rdfvalue.RDFValue.classes[value_type]
+    csv.writer(output_file).writerow(self.GetCSVHeader(value_class))
+
+  def GetCSVRow(self, value):
+    row = []
+    for type_info in value.__class__.type_infos:
+      if type_info.__class__.__name__ == "ProtoEmbedded":
+        row.extend(self.GetCSVRow(value.Get(type_info.name)))
+      else:
+        row.append(value.Get(type_info.name))
+
+    return row
+
+  def WriteCSVRow(self, output_file, value):
+    csv.writer(output_file).writerow(self.GetCSVRow(value))
+
+  def GetOutputFile(self, value_type):
+    """Initializes output AFF4Image for a given value type."""
+    try:
+      output_file = self.state.files_by_type[value_type]
+    except KeyError:
+      if self.state.args.output_dir:
+        output_urn = self.state.args.output_dir.Add(value_type + ".csv")
+        output_file = aff4.FACTORY.Create(output_urn, "AFF4Image",
+                                          token=self.token)
+      else:
+        output_file = aff4.FACTORY.Create(None, "TempImageFile",
+                                          token=self.token)
+        output_file.urn = output_file.urn.Add(value_type + ".csv")
+
+      self.WriteCSVHeader(output_file, value_type)
+      self.state.files_by_type[value_type] = output_file
+
+    return output_file
+
+  @utils.Synchronized
+  def WriteValuesToCSVFile(self, values):
+    for value in values:
+      output_file = self.GetOutputFile(value.__class__.__name__)
+      self.WriteCSVRow(output_file, value)
+
+  def Flush(self):
+    for output_file in self.state.files_by_type.values():
+      output_file.Flush()
+    self.last_updated = rdfvalue.RDFDatetime().Now()
 
 
 class OutputPlugin(rdfvalue.RDFProtoStruct):

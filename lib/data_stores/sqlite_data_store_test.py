@@ -21,17 +21,14 @@ from grr.lib.data_stores import sqlite_data_store
 
 class SqliteTestMixin(object):
 
-  def InitTable(self):
+  def InitDatastore(self):
     self.token = access_control.ACLToken(username="test",
                                          reason="Running tests")
 
     config_lib.CONFIG.SetRaw("SqliteDatastore.root_path",
                              "%s/sqlite_test/" % self.temp_dir)
 
-    try:
-      shutil.rmtree(config_lib.CONFIG.Get("SqliteDatastore.root_path"))
-    except (OSError, IOError):
-      pass
+    self.DestroyDatastore()
 
     data_store.DB = sqlite_data_store.SqliteDataStore()
     data_store.DB.security_manager = test_lib.MockSecurityManager()
@@ -40,22 +37,25 @@ class SqliteTestMixin(object):
     self.assertTrue(isinstance(data_store.DB,
                                sqlite_data_store.SqliteDataStore))
 
+  def DestroyDatastore(self):
+    try:
+      shutil.rmtree(config_lib.CONFIG.Get("SqliteDatastore.root_path"))
+    except (OSError, IOError):
+      pass
+
 
 class SqliteDataStoreTest(SqliteTestMixin, data_store_test.DataStoreTest):
   """Test the sqlite data store."""
-
-  def setUp(self):
-    super(SqliteDataStoreTest, self).setUp()
-    self.InitTable()
 
 
 class SqliteDataStoreBenchmarks(SqliteTestMixin,
                                 data_store_test.DataStoreBenchmarks):
   """Benchmark the SQLite data store abstraction."""
 
-  def setUp(self):
-    super(SqliteDataStoreBenchmarks, self).setUp()
-    self.InitTable()
+
+class SqliteDataStoreCSVBenchmarks(SqliteTestMixin,
+                                   data_store_test.DataStoreCSVBenchmarks):
+  """Benchmark the SQLite data store abstraction."""
 
 
 def main(args):

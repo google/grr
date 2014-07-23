@@ -5,6 +5,8 @@
 
 
 
+import traceback
+
 import logging
 
 from grr.lib import aff4
@@ -445,6 +447,7 @@ class GenericHunt(implementation.GRRHunt):
                                 self.urn.Add("ResultsMetadata"))
     self.state.context.Register("results_collection_urn",
                                 self.urn.Add("Results"))
+    self.state.context.Register("results_collection_len", 0)
 
     with aff4.FACTORY.Create(
         self.state.context.results_metadata_urn, "HuntResultsMetadata",
@@ -465,7 +468,8 @@ class GenericHunt(implementation.GRRHunt):
       results_collection.SetChunksize(1024 * 1024)
       self.state.context.Register("results_collection", results_collection)
 
-    self.SetDescription()
+    if not self.state.context.args.description:
+      self.SetDescription()
 
   def SetDescription(self, description=None):
     if description:
@@ -513,10 +517,37 @@ class GenericHunt(implementation.GRRHunt):
   def Save(self):
     if self.state and self.processed_responses:
       with self.lock:
-        self.state.context.results_collection.Flush(sync=True)
-        data_store.DB.Set(self.RESULTS_QUEUE, self.urn,
-                          rdfvalue.RDFDatetime().Now(),
-                          replace=True, token=self.token)
+        fresh_collection = aff4.FACTORY.Open(
+            self.state.context.results_collection_urn, mode="rw",
+            ignore_cache=True, token=self.token)
+
+        # This is a "defensive programming" approach. Hunt's results collection
+        # should never be changed outside of the hunt. But if this happens,
+        # it means something is seriously wrong with the system, so we'd better
+        # detect it, log it and work around it.
+        if len(fresh_collection) != self.state.context.results_collection_len:
+          logging.error("Results collection was changed outside of hunt %s. "
+                        "Expected %d results, got %d. Will reopen collection "
+                        "again, which will lead to %d results being dropped. "
+                        "Trace: %s",
+                        self.urn,
+                        self.state.context.results_collection_len,
+                        len(fresh_collection),
+                        len(fresh_collection) -
+                        self.state.context.results_collection_len,
+                        traceback.format_stack())
+
+          self.state.context.results_collection = fresh_collection
+          self.state.context.results_collection_len = len(fresh_collection)
+        else:
+          self.state.context.results_collection.Flush(sync=True)
+          self.state.context.results_collection_len = len(
+              self.state.context.results_collection)
+
+          # Notify ProcessHuntResultsCronFlow that we got new results.
+          data_store.DB.Set(self.RESULTS_QUEUE, self.urn,
+                            rdfvalue.RDFDatetime().Now(),
+                            replace=True, token=self.token)
 
     super(GenericHunt, self).Save()
 

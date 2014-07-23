@@ -1415,13 +1415,10 @@ class HostInformation(AFF4Stats):
   behaviours = frozenset(["Host"])
   order = 0
   css_class = "TableBody"
-  attributes_to_show = ["USERNAMES", "HOSTNAME", "MAC_ADDRESS", "INSTALL_DATE",
-                        "SYSTEM", "CLOCK", "CLIENT_INFO", "UNAME", "ARCH",
-                        "FIRST_SEEN", "LABEL", "LAST_BOOT_TIME"]
 
   def Layout(self, request, response, client_id=None):
     client_id = client_id or request.REQ.get("client_id")
-    urn = rdfvalue.RDFURN(client_id)
+    urn = rdfvalue.ClientURN(client_id)
 
     # This verifies we have auth for deep client paths. If this raises, we
     # force the auth screen.

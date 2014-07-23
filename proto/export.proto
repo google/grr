@@ -38,6 +38,8 @@ message ExportOptions {
 }
 
 message ExportedMetadata {
+  // Next field ID: 16
+
   optional string client_urn = 1 [(sem_type) = {
       type: "ClientURN",
       description: "Client ID of a client that contains this entry."
@@ -56,7 +58,12 @@ message ExportedMetadata {
 
   optional uint64 timestamp = 10 [(sem_type) = {
       type: "RDFDatetime",
-      description: "When metadata were recorded."
+      description: "When data was exported."
+    }];
+
+  optional uint64 original_timestamp = 15 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "When original data was generated."
     }];
 
   // BEGIN DEPRECATED

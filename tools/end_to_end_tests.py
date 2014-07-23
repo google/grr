@@ -44,12 +44,19 @@ def RunEndToEndTests():
       "Test Context", "Context applied when we run tests.")
   startup.Init()
 
-  token = access_control.ACLToken(username="test", reason="client testing")
+  token = access_control.ACLToken(username="test",
+                                  reason="Running end to end client tests.")
 
   client_id_set = base.GetClientTestTargets(
       client_ids=flags.FLAGS.client_ids,
       hostnames=flags.FLAGS.hostnames,
       checkin_duration_threshold="1h")
+
+  for cls in base.ClientTestBase.classes.values():
+    for p in cls.platforms:
+      if p not in set(["Linux", "Darwin", "Windows"]):
+        raise ValueError(
+            "Unsupported platform: %s in class %s" % (p, cls.__name__))
 
   if not client_id_set:
     print ("No clients to test on.  Define Test.end_to_end_client* config "

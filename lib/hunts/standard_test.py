@@ -7,6 +7,8 @@ import math
 import time
 
 
+import logging
+
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
@@ -74,9 +76,19 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
                              token=self.token) as foreman:
         foreman.Set(foreman.Schema.RULES())
 
+    self.old_logging_error = logging.error
+    logging.error = self.AssertNoCollectionCorruption
+
   def tearDown(self):
     super(StandardHuntTest, self).tearDown()
+
+    logging.error = self.old_logging_error
     self.DeleteClients(10)
+
+  def AssertNoCollectionCorruption(self, message, *args, **kwargs):
+    self.assertFalse(
+        "Results collection was changed outside of hunt" in message)
+    self.old_logging_error(message, *args, **kwargs)
 
   def StartHunt(self, **kwargs):
     with hunts.GRRHunt.StartHunt(
@@ -101,9 +113,10 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     for client_id in client_ids:
       foreman.AssignTasksToClient(client_id)
 
-  def RunHunt(self, **mock_kwargs):
+  def RunHunt(self, client_ids=None, **mock_kwargs):
     client_mock = test_lib.SampleHuntMock(**mock_kwargs)
-    test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
+    test_lib.TestHuntHelper(client_mock, client_ids or self.client_ids, False,
+                            self.token)
 
   def StopHunt(self, hunt_urn):
     # Stop the hunt now.
@@ -378,7 +391,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
 
   def testHuntTermination(self):
     """This tests that hunts with a client limit terminate correctly."""
-    with test_lib.FakeTime(1000):
+    with test_lib.FakeTime(1000, increment=1e-6):
       with hunts.GRRHunt.StartHunt(
           hunt_name="GenericHunt",
           flow_runner_args=rdfvalue.FlowRunnerArgs(flow_name="GetFile"),
@@ -644,6 +657,52 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
         count += 1
       # 4 logs for each flow, 2 flow run.  One hunt-level log.
       self.assertEqual(count, 8 * len(self.client_ids) + 1)
+
+  def testHuntCollectionCorruptionIsProperlyDetected(self):
+    corruption_found = []
+
+    def CheckCorruption(message, *args, **kwargs):
+      if "Results collection was changed outside of hunt" in message:
+        corruption_found.append(True)
+      self.old_logging_error(message, *args, **kwargs)
+
+    logging.error = CheckCorruption
+
+    # Run hunt on a client. There should be no collection corruption detected.
+    hunt_urn = self.StartHunt()
+    self.AssignTasksToClients(client_ids=[self.client_ids[0]])
+    self.RunHunt(client_ids=[self.client_ids[0]], failrate=0)
+    self.assertFalse(corruption_found)
+    # We expect 1 result in the collection.
+    with aff4.FACTORY.Open(hunt_urn.Add("Results"),
+                           token=self.token) as hunt_results:
+      self.assertEqual(len(hunt_results), 1)
+
+    # Change the results collection (i.e. corrupt it).
+    with aff4.FACTORY.Open(hunt_urn.Add("Results"), token=self.token,
+                           mode="rw") as hunt_results:
+      hunt_results.Add(rdfvalue.GrrMessage(name="foo"))
+
+    # Run hunt on another client. Corrupption should be detected now.
+    self.AssignTasksToClients(client_ids=[self.client_ids[1]])
+    self.RunHunt(client_ids=[self.client_ids[1]], failrate=0)
+    self.assertTrue(corruption_found)
+    corruption_found = []
+    # We expect to have 2 results in the collection (if corruption detection
+    # didn't work, we'd have 3).
+    with aff4.FACTORY.Open(hunt_urn.Add("Results"),
+                           token=self.token) as hunt_results:
+      self.assertEqual(len(hunt_results), 2)
+
+    # Run hunt on yet another client. Now, again, there should be no
+    # corruption detected.
+    self.AssignTasksToClients(client_ids=self.client_ids[2:4])
+    self.RunHunt(client_ids=self.client_ids[2:4], failrate=0)
+    self.assertFalse(corruption_found)
+    # We expect to have 3 results in the collection.
+    with aff4.FACTORY.Open(hunt_urn.Add("Results"),
+                           token=self.token) as hunt_results:
+      self.assertEqual(len(hunt_results), 4)
 
 
 class FlowTestLoader(test_lib.GRRTestLoader):

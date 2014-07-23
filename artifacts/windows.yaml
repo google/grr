@@ -7,6 +7,16 @@ collectors:
   args:
     artifact_list: [FullVADBinaryList]
   returned_types: [PathSpec]
+labels: [Rekall, Processes, Software]
+supported_os: [Windows]
+---
+name: AllVADBinaryFilesVolatility
+doc: Download all currently running binaries on Windows.
+collectors:
+- collector_type: ARTIFACT_FILES
+  args:
+    artifact_list: [FullVADBinaryListVolatility]
+  returned_types: [PathSpec]
 labels: [Volatility, Processes, Software]
 supported_os: [Windows]
 ---
@@ -31,7 +41,7 @@ supported_os: [Windows]
 urls: ['http://www.forensicswiki.org/wiki/Windows_XML_Event_Log_(EVTX)']
 ---
 name: AvailableTimeZones
-doc: The timezones avaialable on the system.
+doc: The timezones available on the system.
 collectors:
 - collector_type: REGISTRY_KEY
   args:
@@ -41,6 +51,15 @@ urls: ['https://code.google.com/p/winreg-kb/wiki/TimeZoneKeys']
 ---
 name: FullVADBinaryList
 doc: Extract list of currently running binaries on Windows.
+collectors:
+- collector_type: REKALL_PLUGIN
+  args:
+    plugin: vad
+labels: [Rekall, Processes]
+supported_os: [Windows]
+---
+name: FullVADBinaryListVolatility
+doc: Extract list of currently running binaries on Windows using Volatility.
 collectors:
 - collector_type: VOLATILITY_PLUGIN
   args:
@@ -79,7 +98,7 @@ collectors:
 labels: [System]
 supported_os: [Windows]
 ---
-name: PrefectFiles
+name: PrefetchFiles
 doc: Windows Prefetch files.
 collectors:
 - collector_type: FILE
@@ -87,6 +106,16 @@ collectors:
 labels: [System]
 supported_os: [Windows]
 urls: ['http://www.forensicswiki.org/wiki/Prefetch']
+---
+name: ScheduledTasks
+doc: Windows Scheduled Tasks.
+collectors:
+- collector_type: FILE
+  args:
+    path_list:
+      - '%%environ_systemroot%%\Tasks\**10'
+      - '%%environ_systemroot%%\System32\Tasks\**10'
+supported_os: [Windows]
 ---
 name: SecurityEventLog
 doc: Windows Security Event log.
@@ -220,10 +249,19 @@ collectors:
   args:
     path_list:
       - 'HKEY_USERS\%%users.sid%%\Software\Microsoft\Windows\CurrentVersion\Run\*'
+      - 'HKEY_USERS\%%users.sid%%\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Run\*'
       - 'HKEY_USERS\%%users.sid%%\Software\Microsoft\Windows\CurrentVersion\RunOnce\*'
+      - 'HKEY_USERS\%%users.sid%%\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnce\*'
+      - 'HKEY_USERS\%%users.sid%%\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run\*'
+      - 'HKEY_USERS\%%users.sid%%\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run\*'
       - 'HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Run\*'
+      - 'HKEY_LOCAL_MACHINE\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Run\*'
       - 'HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\RunOnce\*'
+      - 'HKEY_LOCAL_MACHINE\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnce\*'
       - 'HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\RunOnceEx\*'
+      - 'HKEY_LOCAL_MACHINE\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnceEx\*'
+      - 'HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run\*'
+      - 'HKEY_LOCAL_MACHINE\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run\*'
 labels: [Software]
 supported_os: [Windows]
 ---

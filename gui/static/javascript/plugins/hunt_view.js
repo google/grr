@@ -276,3 +276,17 @@ grr.Renderer('HuntResultsRenderer', {
     }
   }
 });
+
+grr.Renderer('CSVOutputPluginNoteRenderer', {
+  Layout: function(state) {
+    var unique = state.unique;
+
+    $('#' + unique + '.csv-output-note a').each(function(index, element) {
+      var fileState = { aff4_path: $(element).attr('aff4_path') };
+      grr.downloadHandler($(element), fileState, false,
+                          '/render/Download/DownloadView');
+    }).click(function() {
+      $(this).trigger('download');
+    });
+  }
+});

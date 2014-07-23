@@ -101,6 +101,9 @@ class InterruptableThread(threading.Thread):
   def Iterate(self):
     """This will be repeatedly called between sleeps."""
 
+  def Stop(self):
+    self.exit = True
+
   def run(self):
     # When the main thread exits, the time module might disappear and be already
     # None. We take a local reference to the functions we need.
@@ -461,11 +464,6 @@ class AgeBasedCache(TimeBasedCache):
     return stored[1]
 
 
-# TODO(user): Remove this once all hunts use the new cache.
-class PickleableStore(FastStore):
-  """A cache which keeps its contained members during pickling."""
-
-
 # TODO(user): Eventually slot in Volatility parsing system in here
 class Struct(object):
   """A baseclass for parsing binary Structs."""
@@ -746,7 +744,7 @@ def EncodeReasonString(reason):
 
 
 def DecodeReasonString(reason):
-  return base64.urlsafe_b64decode(SmartStr(reason))
+  return SmartUnicode(base64.urlsafe_b64decode(SmartStr(reason)))
 
 
 # Regex chars that should not be in a regex

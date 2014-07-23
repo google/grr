@@ -69,11 +69,6 @@ class CAEnroler(flow.GRRFlow):
 
     self.Log("Enrolled %s successfully", self.client_id)
 
-    # This is needed for backwards compatibility.
-    # TODO(user): Remove this once all clients are > 2200.
-    self.CallClient("SaveCert", pem=cert.as_pem(),
-                    type=rdfvalue.Certificate.Type.CRT, next_state="End")
-
   def MakeCert(self, cn, req):
     """Make new cert for the client."""
     # code inspired by M2Crypto unit tests

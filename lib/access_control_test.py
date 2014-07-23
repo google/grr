@@ -285,7 +285,7 @@ class AccessControlTest(test_lib.GRRBaseTest):
   def testFlowAccess(self):
     """Tests access to flows."""
     token = access_control.ACLToken(username="test", reason="For testing")
-    client_id = "C." + "A" * 16
+    client_id = "C." + "a" * 16
 
     self.assertRaises(access_control.UnauthorizedAccess, flow.GRRFlow.StartFlow,
                       client_id=client_id, flow_name="SendingFlow",
@@ -322,7 +322,7 @@ class AccessControlTest(test_lib.GRRBaseTest):
     """Makes sure that results are cached in the security manager."""
 
     token = access_control.ACLToken(username="test", reason="For testing")
-    client_id = "C." + "B" * 16
+    client_id = "C." + "b" * 16
 
     self.GrantClientApproval(client_id, token)
 

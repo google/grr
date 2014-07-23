@@ -18,6 +18,7 @@ from grr.lib.aff4_objects import security
 from grr.lib.aff4_objects import software
 from grr.lib.aff4_objects import standard
 from grr.lib.aff4_objects import stats
+from grr.lib.aff4_objects import stats_store
 from grr.lib.aff4_objects import timeline
 from grr.lib.aff4_objects import user_managers
 from grr.lib.aff4_objects import users

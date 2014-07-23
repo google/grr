@@ -216,7 +216,7 @@ message KnowledgeBase {
 
   optional string current_control_set = 28 [(sem_type) = {
       description: "The current value of the system CurrentControlSet "
-        "e.g. ControlSet001",
+        "e.g. HKEY_LOCAL_MACHINE\\SYSTEM\\ControlSet001",
     }];
 
   optional string code_page = 30 [(sem_type) = {

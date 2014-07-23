@@ -4,13 +4,14 @@
 
 
 
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.parsers import volatility_artifact_parser
 
 
 class VolatilityVADParserTest(test_lib.GRRBaseTest):
-  """Test parsing of volatility "vad" plugin outpu."""
+  """Test parsing of volatility "vad" plugin output."""
 
   @staticmethod
   def GenerateVADVolatilityResult(process_list):
@@ -56,3 +57,10 @@ class VolatilityVADParserTest(test_lib.GRRBaseTest):
 
     results = list(parser.Parse(volatility_data, knowledge_base))
     self.assertListEqual(results, expected)
+
+
+def main(argv):
+  test_lib.main(argv)
+
+if __name__ == "__main__":
+  flags.StartMain(main)

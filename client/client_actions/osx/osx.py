@@ -48,9 +48,11 @@ class UnsupportedOSVersionError(Error):
 #       u_char  sdl_slen;       /* link layer selector length */
 #       char    sdl_data[12];   /* minimum work area, can be larger;
 #                                  contains both if name and ll address */
-#       u_short sdl_rcf;        /* source routing control */
-#       u_short sdl_route[16];  /* source routing information */
 # };
+
+
+# Interfaces can have names up to 15 chars long and sdl_data contains name + mac
+# but no separators - we need to make sdl_data at least 15+6 bytes.
 
 
 class Sockaddrdl(ctypes.Structure):
@@ -63,9 +65,7 @@ class Sockaddrdl(ctypes.Structure):
       ("sdl_nlen", ctypes.c_ubyte),
       ("sdl_alen", ctypes.c_ubyte),
       ("sdl_slen", ctypes.c_ubyte),
-      ("sdl_data", ctypes.c_char * 12),
-      ("sdl_rcf", ctypes.c_ushort),
-      ("sdl_route", ctypes.c_char * 16)
+      ("sdl_data", ctypes.c_ubyte * 24),
       ]
 
 # struct sockaddr_in {
@@ -167,7 +167,8 @@ class EnumerateInterfaces(actions.ActionPlugin):
           data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrdl))
           iflen = data.contents.sdl_nlen
           addlen = data.contents.sdl_alen
-          macs[ifname] = data.contents.sdl_data[iflen:iflen+addlen]
+          macs[ifname] = "".join(
+              map(chr, data.contents.sdl_data[iflen:iflen+addlen]))
 
         if iffamily == 0x1E:     # AF_INET6
           data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin6))
@@ -441,16 +442,9 @@ class UninstallDriver(actions.ActionPlugin):
 class UpdateAgent(standard.ExecuteBinaryCommand):
   """Updates the GRR agent to a new version."""
 
-  in_rdfvalue = rdfvalue.ExecuteBinaryRequest
-  out_rdfvalue = rdfvalue.ExecuteBinaryResponse
+  suffix = "pkg"
 
-  def Run(self, args):
-    """Run."""
-    pub_key = config_lib.CONFIG["Client.executable_signing_public_key"]
-    if not args.executable.Verify(pub_key):
-      raise OSError("Executable signing failure.")
-
-    path = self.WriteBlobToFile(args.executable, args.write_path, ".pkg")
+  def ProcessFile(self, path, args):
 
     cmd = "/usr/sbin/installer"
     cmd_args = ["-pkg", path, "-target", "/"]
@@ -459,8 +453,6 @@ class UpdateAgent(standard.ExecuteBinaryCommand):
     res = client_utils_common.Execute(cmd, cmd_args, time_limit=time_limit,
                                       bypass_whitelist=True)
     (stdout, stderr, status, time_used) = res
-
-    self.CleanUp(path)
 
     # Limit output to 10MB so our response doesn't get too big.
     stdout = stdout[:10 * 1024 * 1024]

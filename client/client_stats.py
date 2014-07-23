@@ -9,6 +9,7 @@ import time
 
 import psutil
 
+from grr.lib import rdfvalue
 from grr.lib import stats
 
 
@@ -44,14 +45,16 @@ class ClientStatsCollector(threading.Thread):
 
     user, system = self.proc.cpu_times()
     percent = self.proc.cpu_percent()
-    self.cpu_samples.append((time.time(), user, system, percent))
+    self.cpu_samples.append((rdfvalue.RDFDatetime().Now(),
+                             user, system, percent))
     # Keep stats for one hour.
     self.cpu_samples = self.cpu_samples[-3600/self.sleep_time:]
 
     # Not supported on MacOS.
     try:
       _, _, read_bytes, write_bytes = self.proc.io_counters()
-      self.io_samples.append((time.time(), read_bytes, write_bytes))
+      self.io_samples.append((rdfvalue.RDFDatetime().Now(),
+                              read_bytes, write_bytes))
       self.io_samples = self.io_samples[-3600/self.sleep_time:]
     except (AttributeError, NotImplementedError, psutil.Error):
       pass

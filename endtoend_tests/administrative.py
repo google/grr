@@ -58,6 +58,8 @@ class TestLaunchBinaries(base.ClientTestBase):
   flow = "LaunchBinary"
   filenames = {"Windows": "hello.exe",
                "Linux": "hello"}
+  ds_names = {"Windows": "hello.exe",
+              "Linux": "hello"}
 
   limit = None
 
@@ -66,7 +68,7 @@ class TestLaunchBinaries(base.ClientTestBase):
     self.context = ["Platform:%s" % self.platform.title()]
     self.binary = config_lib.CONFIG.Get(
         "Executables.aff4_path", context=self.context).Add(
-            "test/%s" % self.filenames[self.platform])
+            "test/%s" % self.ds_names[self.platform])
 
     self.args = dict(binary=self.binary)
 
@@ -77,6 +79,9 @@ class TestLaunchBinaries(base.ClientTestBase):
       print "Uploading the test binary to the Executables area."
       source = os.path.join(config_lib.CONFIG["Test.data_dir"],
                             self.filenames[self.platform])
+
+      if not os.path.exists(source):
+        self.fail("Path %s should exist." % source)
 
       maintenance_utils.UploadSignedConfigBlob(
           open(source, "rb").read(), aff4_path=self.binary,
@@ -97,5 +102,7 @@ class TestLaunchChunkedBinaries(TestLaunchBinaries):
   # split into multiple parts when uploading.
   limit = 5000
 
-  filenames = {"Windows": "hello_chunked.exe",
-               "Linux": "hello_chunked"}
+  # Since we want to store the binary using chunks, we need to assign it a
+  # different aff4 path than the one used in the previous test.
+  ds_names = {"Windows": "hello_chunked.exe",
+              "Linux": "hello_chunked"}

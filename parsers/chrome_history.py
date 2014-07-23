@@ -47,43 +47,50 @@ class ChromeParser(sqlite_file.SQLiteFile):
       c = ChromeParser(open('History'))
       for hist in c.Parse():
         print hist
+
+  Returns results in chronological order
   """
   VISITS_QUERY = ("SELECT visits.visit_time, urls.url, urls.title, "
                   "urls.typed_count "
                   "FROM urls, visits "
-                  "WHERE urls.id = visits.url;")
+                  "WHERE urls.id = visits.url "
+                  "ORDER BY visits.visit_time ASC;")
 
+  # We use DESC here so we can pop off the end of the list and interleave with
+  # visits to maintain time order.
   DOWNLOADS_QUERY = ("SELECT downloads.start_time, downloads.url, "
                      "downloads.full_path, downloads.received_bytes, "
                      "downloads.total_bytes "
-                     "FROM downloads;")
+                     "FROM downloads "
+                     "ORDER BY downloads.start_time DESC;")
 
   # This is the newer form of downloads, introduced circa Mar 2013.
   DOWNLOADS_QUERY_2 = ("SELECT downloads.start_time, downloads_url_chains.url,"
                        "downloads.target_path, downloads.received_bytes,"
                        "downloads.total_bytes "
                        "FROM downloads, downloads_url_chains "
-                       "WHERE downloads.id = downloads_url_chains.id;")
+                       "WHERE downloads.id = downloads_url_chains.id "
+                       "ORDER BY downloads.start_time DESC;")
 
   # Time diff to convert microseconds since Jan 1, 1601 00:00:00 to
   # microseconds since Jan 1, 1970 00:00:00
   TIME_CONV_CONST = 11644473600000000
 
   def Parse(self):
-    """Iterator returning dict for each entry in history."""
-    for timestamp, url, title, typed_count in self.Query(self.VISITS_QUERY):
-      if not isinstance(timestamp, long) or timestamp < 11644473600000000:
-        timestamp = 0
-      else:
+    """Iterator returning a list for each entry in history.
 
-        timestamp -= self.TIME_CONV_CONST
+    We store all the download events in an array (choosing this over visits
+    since there are likely to be less of them). We later interleave them with
+    visit events to get an overall correct time order.
 
-      yield [timestamp, "CHROME_VISIT", url, title, typed_count, ""]
-
+    Yields:
+      a list of attributes for each entry
+    """
     # Query for old style and newstyle downloads storage.
     query_iter = itertools.chain(self.Query(self.DOWNLOADS_QUERY),
                                  self.Query(self.DOWNLOADS_QUERY_2))
 
+    downloads = []
     for timestamp, url, path, received_bytes, total_bytes in query_iter:
 
       if isinstance(timestamp, int):
@@ -95,8 +102,27 @@ class ChromeParser(sqlite_file.SQLiteFile):
       else:
         timestamp = 0
 
-      yield [timestamp, "CHROME_DOWNLOAD", url, path, received_bytes,
-             total_bytes]
+      downloads.append((timestamp, "CHROME_DOWNLOAD", url, path, received_bytes,
+                        total_bytes))
+
+    for timestamp, url, title, typed_count in self.Query(self.VISITS_QUERY):
+      if (not isinstance(timestamp, (long, int)) or
+          timestamp < 11644473600000000):
+        timestamp = 0
+      else:
+
+        timestamp -= self.TIME_CONV_CONST
+
+      # If the most recent element from the downloads list occurred before this
+      # visit, it should be reported first to maintain time order.
+      if downloads and downloads[-1][0] < timestamp:
+        yield downloads.pop()
+
+      yield [timestamp, "CHROME_VISIT", url, title, typed_count, ""]
+
+    # Yield any remaining download records
+    while downloads:
+      yield downloads.pop()
 
 
 def main(argv):
@@ -135,4 +161,3 @@ def main(argv):
 
 if __name__ == "__main__":
   main(sys.argv)
-

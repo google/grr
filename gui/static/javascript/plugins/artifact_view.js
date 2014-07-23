@@ -29,6 +29,11 @@ grr.Renderer('ArtifactManagerToolbar', {
       grr.layout('ArtifactJsonUploadView',
                  'upload_dialog_body_' + unique);
     });
+
+    $('#delete_confirm_dialog_' + unique).on('show', function() {
+      grr.layout('DeleteArtifactsConfirmationDialog',
+                 'delete_confirm_dialog_' + unique);
+    });
   }
 });
 

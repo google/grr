@@ -43,16 +43,19 @@ class Firefox3History(sqlite_file.SQLiteFile):
       c = Firefox3History(open('places.sqlite'))
       for hist in c.Parse():
         print hist
+
+  Returns results in chronological order
   """
   VISITS_QUERY = ("SELECT moz_historyvisits.visit_date, moz_places.url,"
                   " moz_places.title "
                   "FROM moz_places, moz_historyvisits "
-                  "WHERE moz_places.id = moz_historyvisits.place_id;")
+                  "WHERE moz_places.id = moz_historyvisits.place_id "
+                  "ORDER BY moz_historyvisits.visit_date ASC;")
 
   def Parse(self):
     """Iterator returning dict for each entry in history."""
     for timestamp, url, title in self.Query(self.VISITS_QUERY):
-      if not isinstance(timestamp, long):
+      if not isinstance(timestamp, (long, int)):
         timestamp = 0
 
       yield [timestamp, "FIREFOX3_VISIT", url, title]
@@ -94,4 +97,3 @@ def main(argv):
 
 if __name__ == "__main__":
   main(sys.argv)
-

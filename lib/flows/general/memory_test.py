@@ -344,11 +344,12 @@ class TestMemoryCollector(test_lib.FlowTestsBaseclass):
                                token=self.token)
     # First item of the collection is the BufferReference, second is the
     # path of the downloaded
-    self.assertEqual(len(output), 1)
+    self.assertEqual(len(output), 2)
     self.assertEqual(output[0].offset, 350)
     self.assertEqual(output[0].length, 52)
     self.assertEqual(output[0].data, "session): session opened for user "
                      "dearjohn by (uid=0")
+    self.assertTrue(isinstance(output[1], rdfvalue.StatEntry))
 
     self.assertTrue(flow_obj.state.memory_src_path is not None)
     self.assertEqual(

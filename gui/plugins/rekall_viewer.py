@@ -139,9 +139,10 @@ class SectionHeader(renderers.TemplateRenderer):
 <h3>{{this.header}}</h3>
 """)
 
-  def __init__(self, header, **kwargs):
+  def __init__(self, header=None, name=None, width=50, keep_sort=False,
+               **kwargs):
     super(SectionHeader, self).__init__(**kwargs)
-    self.header = header
+    self.header = header or name or ""
 
 
 class FreeFormatText(renderers.TemplateRenderer):
@@ -179,12 +180,16 @@ class RekallResponseCollectionRenderer(semantic.RDFValueRenderer):
 
   semantic_map = dict(
       Literal=LiteralFormatter,
+      String=LiteralFormatter,
+      _UNICODE_STRING=LiteralFormatter,
       Struct=StructFormatter,
       NativeType=LiteralFormatter,
       Pointer=LiteralFormatter,
       AddressSpace=AddressSpaceFormatter,
+      BaseAddressSpace=AddressSpaceFormatter,
       NoneObject=NoneObjectFormatter,
       DateTime=DatetimeFormatter,
+      UnixTimeStamp=DatetimeFormatter,
       )
 
   def __init__(self, *args, **kw):
@@ -194,18 +199,22 @@ class RekallResponseCollectionRenderer(semantic.RDFValueRenderer):
     self.free_text = []
 
   def _decode_value(self, value):
-    if isinstance(value, dict):
+    if value is None:
+      return None
+    elif isinstance(value, dict):
       return self._decode(value)
+    elif isinstance(value, list):
+      if not value:
+        return []
+      if value[0] == "+":
+        return self.lexicon[str(value[1])].decode("base64")
+      elif value[0] == "_":
+        return [self._decode(x) for x in value[1:]]
+      else:
+        return value
 
     try:
-      result = self.lexicon[str(value)]
-      # Check if this is a string encoded as a list.
-      if (isinstance(result, list) and
-          len(result) == 2 and
-          self.lexicon[str(result[1])] == 1):
-        return self.lexicon[str(result[0])].decode("base64")
-
-      return result
+      return self.lexicon[str(value)]
     except KeyError:
       raise ValueError("Lexicon corruption: Tag %s" % value)
 
@@ -213,11 +222,11 @@ class RekallResponseCollectionRenderer(semantic.RDFValueRenderer):
     if not isinstance(item, dict):
       return self._decode_value(item)
 
-    elif isinstance(item, str):
-      return self._decode_value(item)
-
     state = {}
     for k, v in item.items():
+      if k == "_" and v == 1:
+        continue
+
       decoded_key = self._decode_value(k)
       decoded_value = self._decode_value(v)
       if isinstance(decoded_value, dict):
@@ -229,12 +238,13 @@ class RekallResponseCollectionRenderer(semantic.RDFValueRenderer):
     if semantic_type is None:
       return state
 
-    item_renderer = self.semantic_map.get(semantic_type)
-    if item_renderer is None:
-      raise ValueError("Unsupported Semantic type %s" % semantic_type)
+    mro = semantic_type.split(",")
+    for cls in mro:
+      item_renderer = self.semantic_map.get(cls)
+      if item_renderer:
+        return item_renderer(state)
 
-    # Instantiate the BaseObject this refers to.
-    return item_renderer(state)
+    raise ValueError("Unsupported Semantic type %s" % semantic_type)
 
   def _flush_table(self):
     if self.current_table:

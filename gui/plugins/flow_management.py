@@ -255,9 +255,12 @@ Launched Flow {{this.flow_name}}.
 
   context_help_url = "user_manual.html#_flows"
 
+  def _GetFlowName(self, request):
+    return os.path.basename(request.REQ.get("flow_path", ""))
+
   def Layout(self, request, response):
     """Render the form for creating the flow args."""
-    self.flow_name = os.path.basename(request.REQ.get("flow_path", ""))
+    self.flow_name = self._GetFlowName(request)
     self.flow_cls = flow.GRRFlow.classes.get(self.flow_name)
 
     if aff4.issubclass(self.flow_cls, flow.GRRFlow):
@@ -277,7 +280,7 @@ Launched Flow {{this.flow_name}}.
 
   def RenderAjax(self, request, response):
     """Parse the flow args from the form and launch the flow."""
-    self.flow_name = request.REQ.get("flow_path", "").split("/")[-1]
+    self.flow_name = self._GetFlowName(request)
     self.client_id = request.REQ.get("client_id", None)
     self.dom_node = request.REQ.get("dom_node")
 
@@ -615,7 +618,7 @@ class ListFlowsTable(renderers.TableRenderer):
       client_id = request.REQ.get("client_id")
       if not client_id: return
 
-      flow_urn = rdfvalue.RDFURN(client_id).Add("flows")
+      flow_urn = rdfvalue.ClientURN(client_id).Add("flows")
 
     flow_root = aff4.FACTORY.Open(flow_urn, mode="r", token=request.token)
     root_children_paths = sorted(flow_root.ListChildren(),

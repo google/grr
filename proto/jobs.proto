@@ -1442,6 +1442,20 @@ message PlistRequest {
     }];
 }
 
+message GetClientStatsRequest {
+  optional uint64 start_time = 5 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Request stats data points with timestamp > start_time."
+    }, default=0];
+
+
+  optional uint64 end_time = 6 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Request stats data points with timestamp < end_time."
+    }, default = 9223372036854775807];
+}
+
+
 // The Foreman schedules flows based on these rules firing.
 message ForemanAttributeRegex {
   // A relative path under the client which the attribute applies to
@@ -1774,6 +1788,114 @@ message CronJobRunStatus {
   }
 
   optional Status status = 1 [default = OK];
+}
+
+
+message MetricFieldDefinition {
+  enum FieldType {
+    INT = 0;
+    STR = 1;
+  }
+
+  optional string field_name = 1;
+  optional FieldType field_type = 2;
+}
+
+message MetricMetadata {
+  enum MetricType {
+    COUNTER = 0 [(description) = "Integer metric that can only be incremented "
+                 "and never decremented."];
+    GAUGE = 1 [(description) = "Gauge metrics can be either string, integer or "
+               "float. Their value may be any value of their type and they may "
+               "change their value arbitrarily (unlike counters, which can "
+               "only be incremented."];
+    EVENT = 2 [(description) = "Event metrics are used to record events that "
+               "take certain amount of time. They're stored as latency "
+               "distributions."];
+  }
+
+  enum MetricUnits {
+    SECONDS = 0;
+    MILLISECONDS = 1;
+    MICROSECONDS = 2;
+    NANOSECONDS = 3;
+
+    BITS = 10;
+    BYTES = 11;
+    KILOBYTES = 12;
+    MEGABYTES = 13;
+    GIGABYTES = 14;
+  }
+
+  // COUNTER metric must have an INT type and EVENT metric must have a
+  // DISTRIBUTION type. GAUGE metrics can be INT, FLOAT or STR.
+  enum ValueType {
+    INT = 0;
+    FLOAT = 1;
+    STR = 2;
+    DISTRIBUTION = 3;
+  }
+
+  optional string varname = 1 [(sem_type) = {
+      description: "Metric name."
+    }];
+  optional MetricType metric_type = 2 [(sem_type) = {
+      description: "Metric type: counter, gauge or event."
+    }];
+  optional ValueType value_type = 3 [(sem_type) = {
+      description: "Metric value type: int, float, str or distribution. Please "
+      "note that counter metrics always have type INT and event metrics always "
+      "have type DISTRIBUTION. Gauge metrics can be INT, FLOAT or STR."
+    }];
+  repeated MetricFieldDefinition fields_defs = 4 [(sem_type) = {
+      description: "Fields definitions for a given metric."
+    }];
+  optional string docstring = 5 [(sem_type) = {
+      description: "Description of the metric."
+    }];
+  optional MetricUnits units = 6 [(sem_type) = {
+      description: "For numerical metrics - measuring unit that is used."
+    }];
+}
+
+message StatsStoreMetricsMetadata {
+  repeated MetricMetadata metrics = 1;
+}
+
+
+message Distribution {
+  optional float sum = 1 [(sem_type) = {
+      description: "Sum of all the values recorded in a distribution."
+    }];
+  optional uint64 count = 2 [(sem_type) = {
+      description: "Count of all the values recorded in a distribution."
+    }];
+  repeated float bins = 3 [(sem_type) = {
+      description: "Values of upper range limits of all the bins in the "
+      "distribution. The first bin will have a lower range limit of -Infinity. "
+      "The last bin will accept all the values bigger than its' higher range."
+    }];
+  repeated float bins_heights = 4 [(sem_type) = {
+      description: "Heights of all the bins defined in the bins field."
+    }];
+}
+
+message StatsStoreFieldValue {
+  optional MetricFieldDefinition.FieldType field_type = 1;
+
+  optional string str_value = 2;
+  optional int64 int_value = 3;
+}
+
+message StatsStoreValue {
+  optional MetricMetadata.ValueType value_type = 1;
+
+  optional string str_value = 2;
+  optional int64 int_value = 3;
+  optional float float_value = 4;
+  optional Distribution distribution_value = 5;
+
+  repeated StatsStoreFieldValue fields_values = 6;
 }
 
 // File used for persistence on a system.  e.g. windows service or runkey

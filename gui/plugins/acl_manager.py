@@ -153,7 +153,7 @@ class ClientApprovalDetailsRenderer(fileview.HostInformation):
     # We skip the direct super class to avoid the access control check.
     super(fileview.HostInformation, self).Layout(
         request, response, client_id=client_id,
-        aff4_path=rdfvalue.RDFURN(client_id))
+        aff4_path=rdfvalue.ClientURN(client_id))
 
 
 class HuntApprovalDetailsRenderer(hunt_view.HuntOverviewRenderer):
@@ -336,7 +336,15 @@ class CheckAccess(renderers.TemplateRenderer):
     </div>
   </div>
   <div class="control-group">
-    <label class="control-label" for="acl_reason">Reason</label>
+    <label class="control-label" for="acl_recent_reasons">Reason</label>
+    <div class="controls">
+      <select id="acl_recent_reasons">
+        <option value="new_reason">Enter New Reason...</option>
+      </select>
+    </div>
+  </div>
+  <div class="control-group">
+    <label class="control-label" for="acl_reason"></label>
     <div class="controls">
       <input type="text" id="acl_reason" />
     </div>

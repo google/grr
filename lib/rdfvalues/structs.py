@@ -1136,6 +1136,9 @@ class RepeatedFieldHelper(object):
 
     return "\n".join(result)
 
+  def __unicode__(self):
+    return utils.SmartUnicode(str(self))
+
   def Validate(self):
     for x in self:
       x.Validate()
@@ -1724,6 +1727,9 @@ class RDFStruct(rdfvalue.RDFValue):
 
   def __str__(self):
     return "\n".join(self.Format())
+
+  def __unicode__(self):
+    return utils.SmartUnicode(str(self))
 
   def __dir__(self):
     """Add the virtualized fields to the console's tab completion."""

@@ -1044,7 +1044,10 @@ class FlowRunner(object):
        subject: The urn of the AFF4 object of interest in this link.
        msg: A free form textual message.
     """
-    if self.args.notify_to_user:
+    user = self.context.creator
+    # Don't send notifications to system users.
+    if self.args.notify_to_user and user not in aff4.GRRUser.SYSTEM_USERS:
+
       # Prefix the message with the hostname of the client we are running
       # against.
       if self.args.client_id:
@@ -1057,7 +1060,7 @@ class FlowRunner(object):
 
       # Add notification to the User object.
       fd = aff4.FACTORY.Create(aff4.ROOT_URN.Add("users").Add(
-          self.context.creator), "GRRUser", mode="rw", token=self.token)
+          user), "GRRUser", mode="rw", token=self.token)
 
       # Queue notifications to the user.
       fd.Notify(message_type, subject, client_msg, self.session_id)

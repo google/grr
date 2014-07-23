@@ -8,7 +8,6 @@
 from grr.lib.data_stores import fake_data_store
 try:
   from grr.lib.data_stores import mongo_data_store
-  from grr.lib.data_stores import mongo_data_store_old
 except ImportError:
   # Mongo data store not supported.
   pass

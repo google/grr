@@ -12,6 +12,15 @@ from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.hunts import output_plugins
+
+
+class DummyOutputPlugin(output_plugins.HuntOutputPlugin):
+  """An output plugin that sends an email for each response received."""
+
+  name = "dummy"
+  description = "Dummy do do."
+  args_type = rdfvalue.ListProcessesArgs
 
 
 class TestNewHuntWizard(test_lib.GRRSeleniumTest):
@@ -270,6 +279,35 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
     self.assertEquals(hunt_rules[0].integer_rules[0].operator,
                       rdfvalue.ForemanAttributeInteger.Operator.GREATER_THAN)
     self.assertEquals(hunt_rules[0].integer_rules[0].value, 1336650631137737)
+
+  def testOutputPluginsListEmptyWhenNoDefaultOutputPluginSet(self):
+    self.Open("/#main=ManageHunts")
+    self.Click("css=button[name=NewHunt]")
+
+    # Select "List Processes" flow.
+    self.Click("css=#_Processes > ins.jstree-icon")
+    self.Click("link=ListProcesses")
+
+    # There should be no dummy output plugin visible.
+    self.Click("css=.Wizard button.Next")
+    self.WaitUntil(self.IsTextPresent, "Output Processing")
+    self.WaitUntilNot(self.IsTextPresent, "Dummy do do")
+
+  def testDefaultOutputPluginIsCorrectlyAddedToThePluginsList(self):
+    config_lib.CONFIG.Set("AdminUI.new_hunt_wizard.default_output_plugin",
+                          "DummyOutputPlugin")
+
+    self.Open("/#main=ManageHunts")
+    self.Click("css=button[name=NewHunt]")
+
+    # Select "List Processes" flow.
+    self.Click("css=#_Processes > ins.jstree-icon")
+    self.Click("link=ListProcesses")
+
+    # Dummy output plugin should be added by default.
+    self.Click("css=.Wizard button.Next")
+    self.WaitUntil(self.IsTextPresent, "Output Processing")
+    self.WaitUntil(self.IsTextPresent, "Dummy do do")
 
 
 def main(argv):

@@ -31,6 +31,17 @@ class TestFileFinderOSWindows(transfer.TestGetFileOSWindows):
           "conditions": filecondition, "action": action}
 
 
+class TestFileFinderTSKWindows(TestFileFinderOSWindows):
+
+  download = file_finder.FileFinderDownloadActionOptions()
+  action = file_finder.FileFinderAction(
+      action_type=file_finder.FileFinderAction.Action.DOWNLOAD,
+      download=download)
+
+  args = {"paths": ["%%environ_systemroot%%\\System32\\notepad.*"],
+          "action": action, "pathtype": "TSK"}
+
+
 class TestFileFinderOSLinux(transfer.TestGetFileOSLinux):
   """Download a file with FileFinder."""
   platforms = ["Linux"]

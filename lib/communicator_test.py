@@ -10,7 +10,6 @@ import urllib2
 
 
 from M2Crypto import X509
-import mox
 
 import logging
 
@@ -612,60 +611,106 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
   def testClientStatsCollection(self):
     """Tests that the client stats are collected automatically."""
-
     now = 1000000
     # Pretend we have already sent stats.
-    self.client_communicator.client_worker.last_stats_sent_time = now
-
-    self.mox = mox.Mox()
-    self.mox.StubOutWithMock(logging, "info")
-    self.mox.StubOutWithMock(time, "time")
-
-    try:
-      # No calls to logging here.
-      time.time().AndReturn(now)
-      self.mox.ReplayAll()
-      self.client_communicator.client_worker.CheckStats()
-
-    finally:
-      self.mox.UnsetStubs()
-      self.mox.VerifyAll()
-
-    # Creating responses calls time.time() so we mock the action out.
-    action_cls = actions.ActionPlugin.classes.get("GetClientStatsAuto")
-    old_run = action_cls.Run
-    action_cls.Run = lambda cls, _: True
-    self.mox.StubOutWithMock(logging, "info")
-    self.mox.StubOutWithMock(time, "time")
-
-    try:
-      # No stats collection after 10 minutes.
-      time.time().AndReturn(now + 600)
-      # Let one hour pass.
-      time.time().AndReturn(now + 3600)
-      # This time the client should collect stats.
-      logging.info("Sending back client statistics to the server.")
-      # For setting the last time we need to replay another time() call.
-      time.time().AndReturn(now + 3600)
-
-      # The last call will be shortly after.
-      time.time().AndReturn(now + 3600 + 600)
-      # Again, there should be no stats collection and, thus, no logging either.
-
-      self.mox.ReplayAll()
-
-      self.client_communicator.client_worker.CheckStats()
-      self.client_communicator.client_worker.CheckStats()
-      self.client_communicator.client_worker.CheckStats()
-
-    finally:
-      self.mox.UnsetStubs()
-      self.mox.VerifyAll()
-      action_cls.Run = old_run
-
-    # Disable stats collection again.
     self.client_communicator.client_worker.last_stats_sent_time = (
-        time.time() + 3600)
+        rdfvalue.RDFDatetime().FromSecondsFromEpoch(now))
+
+    with test_lib.FakeTime(now):
+      self.client_communicator.client_worker.CheckStats()
+
+    runs = []
+    action_cls = actions.ActionPlugin.classes.get("GetClientStatsAuto")
+    with test_lib.Stubber(action_cls, "Run", lambda cls, _: runs.append(1)):
+
+      # No stats collection after 10 minutes.
+      with test_lib.FakeTime(now + 600):
+        self.client_communicator.client_worker.CheckStats()
+        self.assertEqual(len(runs), 0)
+
+      # Let one hour pass.
+      with test_lib.FakeTime(now + 3600):
+        self.client_communicator.client_worker.CheckStats()
+        # This time the client should collect stats.
+        self.assertEqual(len(runs), 1)
+
+      # Let one hour and ten minutes pass.
+      with test_lib.FakeTime(now + 3600 + 600):
+        self.client_communicator.client_worker.CheckStats()
+        # Again, there should be no stats collection, as last collection
+        # happened less than an hour ago.
+        self.assertEqual(len(runs), 1)
+
+  def testClientStatsCollectionHappensEveryMinuteWhenClientIsBusy(self):
+    """Tests that client stats are collected more often when client is busy."""
+    now = 1000000
+    # Pretend we have already sent stats.
+    self.client_communicator.client_worker.last_stats_sent_time = (
+        rdfvalue.RDFDatetime().FromSecondsFromEpoch(now))
+    self.client_communicator.client_worker._is_active = True
+
+    with test_lib.FakeTime(now):
+      self.client_communicator.client_worker.CheckStats()
+
+    runs = []
+    action_cls = actions.ActionPlugin.classes.get("GetClientStatsAuto")
+    with test_lib.Stubber(action_cls, "Run", lambda cls, _: runs.append(1)):
+
+      # No stats collection after 30 seconds.
+      with test_lib.FakeTime(now + 30):
+        self.client_communicator.client_worker.CheckStats()
+        self.assertEqual(len(runs), 0)
+
+      # Let 61 seconds pass.
+      with test_lib.FakeTime(now + 61):
+        self.client_communicator.client_worker.CheckStats()
+        # This time the client should collect stats.
+        self.assertEqual(len(runs), 1)
+
+      # No stats collection within one minute from the last time.
+      with test_lib.FakeTime(now + 61 + 59):
+        self.client_communicator.client_worker.CheckStats()
+        self.assertEqual(len(runs), 1)
+
+      # Stats collection happens as more than one minute has passed since the
+      # last one.
+      with test_lib.FakeTime(now + 61 + 61):
+        self.client_communicator.client_worker.CheckStats()
+        self.assertEqual(len(runs), 2)
+
+  def testClientStatsCollectionAlwaysHappensAfterHandleMessage(self):
+    """Tests that client stats are collected more often when client is busy."""
+    now = 1000000
+    # Pretend we have already sent stats.
+    self.client_communicator.client_worker.last_stats_sent_time = (
+        rdfvalue.RDFDatetime().FromSecondsFromEpoch(now))
+
+    with test_lib.FakeTime(now):
+      self.client_communicator.client_worker.CheckStats()
+
+    runs = []
+    action_cls = actions.ActionPlugin.classes.get("GetClientStatsAuto")
+    with test_lib.Stubber(action_cls, "Run", lambda cls, _: runs.append(1)):
+
+      # No stats collection after 30 seconds.
+      with test_lib.FakeTime(now + 30):
+        self.client_communicator.client_worker.CheckStats()
+        self.assertEqual(len(runs), 0)
+
+      self.client_communicator.client_worker.HandleMessage(
+          rdfvalue.GrrMessage())
+
+      # HandleMessage was called, but one minute hasn't passed, so
+      # stats should not be sent.
+      with test_lib.FakeTime(now + 59):
+        self.client_communicator.client_worker.CheckStats()
+        self.assertEqual(len(runs), 0)
+
+      # HandleMessage was called more than one minute ago, so stats
+      # should be sent.
+      with test_lib.FakeTime(now + 61):
+        self.client_communicator.client_worker.CheckStats()
+        self.assertEqual(len(runs), 1)
 
   def RaiseError(self, request, timeout=0):
     raise urllib2.URLError("Not a real connection.")
