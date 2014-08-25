@@ -31,6 +31,7 @@ from grr.lib import utils
 from grr.lib.data_stores import common
 
 TDB_SEPARATOR = "\x00"
+TDB_EXTENSION = "tdb"
 
 
 class TDBIndex(rdfvalue.RDFBytes):
@@ -79,32 +80,50 @@ class TDBIndex(rdfvalue.RDFBytes):
 class TDBContextCache(utils.FastStore):
   """A local cache of tdb context objects."""
 
+  def __init__(self, size):
+    super(TDBContextCache, self).__init__(max_size=size)
+    self.root_path = TDBDataStore.GetLocation()
+    self.RecreatePathing()
+
+  def RecreatePathing(self, pathing=None):
+    if not pathing:
+      pathing = config_lib.CONFIG.Get("Datastore.pathing")
+    try:
+      self.path_regexes = [re.compile(path) for path in pathing]
+    except re.error:
+      raise data_store.Error("Invalid regular expression in Datastore.pathing")
+
   def KillObject(self, obj):
     obj.Close()
+
+  def RootPath(self):
+    return self.root_path
 
   @utils.Synchronized
   def Get(self, subject):
     """This will create the object if needed so should not fail."""
-    subject = common.ResolveSubjectDestination(subject)
+    filename, directory = common.ResolveSubjectDestination(subject,
+                                                           self.path_regexes)
+    key = common.MakeDestinationKey(directory, filename)
     try:
-      return super(TDBContextCache, self).Get(subject)
+      return super(TDBContextCache, self).Get(key)
     except KeyError:
-      root_path = config_lib.CONFIG["TDBDatastore.root_path"]
-      filename = common.ConvertStringToFilename(subject)
-      subject_path = utils.JoinPath(root_path, filename)
-      filename = subject_path + ".tdb"
-      try:
-        context = TDBContext(filename)
-      except IOError as e:
-        if "No such file or directory" in str(e):
-          dirname = os.path.dirname(subject_path)
+      root_path = self.RootPath()
+      dirname = utils.JoinPath(root_path, directory)
+      path = utils.JoinPath(dirname, filename) + "." + TDB_EXTENSION
+      dirname = utils.SmartStr(dirname)
+      path = utils.SmartStr(path)
+
+      # Make sure directory exists.
+      if not os.path.isdir(dirname):
+        try:
           os.makedirs(dirname)
+        except OSError:
+          pass
 
-          context = TDBContext(filename)
-        else:
-          raise
+      context = TDBContext(path)
 
-      super(TDBContextCache, self).Put(subject, context)
+      super(TDBContextCache, self).Put(key, context)
 
       return context
 
@@ -177,6 +196,9 @@ class TDBDataStore(data_store.DataStore):
     # A cache of tdb contexts. It is slightly faster to reuse contexts than
     # to open the tdb all the time.
     self.cache = TDBContextCache(100)
+
+  def RecreatePathing(self, pathing):
+    self.cache.RecreatePathing(pathing)
 
   def _CalculateAttributeStorageTypes(self):
     """Build a mapping between column names and types.
@@ -438,20 +460,33 @@ class TDBDataStore(data_store.DataStore):
     return results
 
   def Size(self):
-    root_path = config_lib.CONFIG["TDBDatastore.root_path"]
+    root_path = self.Location()
     if not os.path.exists(root_path):
       # Database does not exist yet.
       return 0
     if not os.path.isdir(root_path):
       # Database should be a directory.
       raise IOError("expected TDB directory %s to be a directory" % root_path)
-    total_size = os.path.getsize(root_path)
-    for subject in os.listdir(root_path):
-      subject_path = os.path.join(root_path, subject)
-      if os.path.isfile(subject_path):
-        if subject.endswith(".tdb"):
-          total_size += os.path.getsize(subject_path)
-    return total_size
+    size, _ = common.DatabaseDirectorySize(root_path, self.FileExtension())
+    return size
+
+  @staticmethod
+  def SetLocation(location):
+    """Change pre-defined location of the data store."""
+    config_lib.CONFIG.Set("TDBDatastore.root_path", location)
+
+  @staticmethod
+  def GetLocation():
+    """Get pre-defined location of the data store."""
+    return config_lib.CONFIG.Get("TDBDatastore.root_path")
+
+  @staticmethod
+  def FileExtension():
+    return TDB_EXTENSION
+
+  def Location(self):
+    """Get location of the data store."""
+    return self.cache.RootPath()
 
   def Transaction(self, subject, lease_time=None, token=None):
     return TDBTransaction(self, subject, lease_time=lease_time, token=token)
@@ -497,9 +532,6 @@ class TDBTransaction(data_store.CommonTransaction):
       self.expires = time.time() + lease_time
       tdb_context.Put(self.expires, self.lock_key)
       self.locked = True
-
-  def CheckLease(self):
-    return max(0, self.expires - time.time())
 
   def UpdateLease(self, duration):
     self.expires = time.time() + duration

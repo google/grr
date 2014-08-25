@@ -61,7 +61,7 @@ class FileExportPlugin(plugin.ExportPlugin):
       directory_parent = aff4.FACTORY.Open(directory.urn.Dirname(),
                                            token=data_store.default_token)
       if directory.urn not in directory_parent.ListChildren():
-        raise RuntimeError("Specified path doesn't exist!")
+        raise RuntimeError("Specified path %s doesn't exist!" % directory.urn)
 
     if directory:
       export_utils.RecursiveDownload(directory, args.output,

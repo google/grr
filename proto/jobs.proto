@@ -1097,24 +1097,6 @@ message ExecutePythonResponse {
   optional int32 time_used = 2;
 }
 
-// Issue a request for volatility memory analysis.
-message VolatilityRequest {
-  optional Dict args = 1;
-
-  // We can run several plugins in one request.
-  repeated string plugins = 2;
-
-  // The profile name to use. Defaults to autoguessing on the client.
-  optional string profile = 3;
-
-  // The raw device to use.
-  optional PathSpec device = 4;
-
-  // These parameters are used to initialize the session.
-  optional Dict session = 5;
-}
-
-
 message PluginRequest {
   optional string plugin = 2 [(sem_type) = {
       description: "The plugin name to run.",
@@ -1168,51 +1150,6 @@ message RekallProfile {
 
   // A Rekall profile as a data blob.
   optional bytes data = 2;
-}
-
-message VolatilityHeader {
-  optional string print_name = 1;
-  optional string name = 2;
-  optional string format_hint = 3;
-}
-
-message VolatilityValue {
-  optional string type = 1;
-  optional string name = 2;
-  optional int64 offset = 3;
-  optional string vm = 4;
-  optional int64 value = 5;
-  optional string svalue = 6;
-  optional string reason = 7;
-}
-
-message VolatilityValues {
-  repeated VolatilityValue values = 1;
-}
-
-message VolatilityTable {
-  repeated VolatilityHeader headers = 1;
-  repeated VolatilityValues rows = 2;
-}
-
-message VolatilityFormattedValue {
-  optional string formatstring = 1;
-  optional VolatilityValues data = 2;
-}
-
-message VolatilityFormattedValues {
-  repeated VolatilityFormattedValue formatted_values = 1;
-}
-
-message VolatilitySection {
-  optional VolatilityTable table = 1;
-  optional VolatilityFormattedValues formatted_value_list = 2;
-}
-
-message VolatilityResponse {
-  repeated VolatilitySection sections = 1;
-  optional string plugin = 2;
-  optional string error = 3;
 }
 
 // Requests and responses to allow for executing an arbitrary binary.
@@ -1718,6 +1655,7 @@ message AuditEvent {
     HUNT_PAUSED = 11;
     HUNT_STARTED = 12;
     HUNT_STOPPED = 13;
+    CLIENT_ADD_LABEL = 14;
   };
 
   optional Action action = 3 [default=UNKNOWN];
@@ -1896,6 +1834,21 @@ message StatsStoreValue {
   optional Distribution distribution_value = 5;
 
   repeated StatsStoreFieldValue fields_values = 6;
+}
+
+message AFF4ObjectLabel {
+  optional string name = 1;
+  optional string owner = 2 [(sem_type) = {
+      description: "Username of the user who added the label.",
+    }];
+  optional uint64 timestamp = 3 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Timestamp for when the label was added.",
+    }];
+}
+
+message AFF4ObjectLabelsList {
+  repeated AFF4ObjectLabel labels = 1;
 }
 
 // File used for persistence on a system.  e.g. windows service or runkey

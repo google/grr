@@ -110,6 +110,10 @@ class Template(template.Template):
     """Support concatenation."""
     return Template(utils.SmartStr(other) + self.template_string)
 
+  def RawHTML(self, **kwargs):
+    kwargs["unique"] = GetNextId()
+    return self.render(template.Context(kwargs))
+
 
 class Renderer(object):
   """Baseclass for renderer classes."""

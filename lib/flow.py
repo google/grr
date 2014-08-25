@@ -502,6 +502,27 @@ class GRRFlow(aff4.AFF4Volume):
       if value is not None:
         setattr(protobuf, descriptor.name, value)
 
+  def UpdateKillNotification(self):
+    # If kill timestamp is set (i.e. if the flow is currently being
+    # processed by the worker), delete the old "kill if stuck" notification
+    # and schedule a new one, further in the future.
+    if (self.runner.schedule_kill_notifications and
+        self.runner.context.kill_timestamp):
+      with queue_manager.QueueManager(token=self.token) as manager:
+        manager.DeleteNotification(
+            self.session_id,
+            start=self.runner.context.kill_timestamp,
+            end=self.runner.context.kill_timestamp +
+            rdfvalue.Duration("1s"))
+
+        stuck_flows_timeout = rdfvalue.Duration(
+            config_lib.CONFIG["Worker.stuck_flows_timeout"])
+        self.runner.context.kill_timestamp = (rdfvalue.RDFDatetime().Now() +
+                                              stuck_flows_timeout)
+        manager.QueueNotification(
+            session_id=self.session_id, in_progress=True,
+            timestamp=self.runner.context.kill_timestamp)
+
   def HeartBeat(self):
     if self.locked:
       lease_time = config_lib.CONFIG["Worker.flow_lease_time"]
@@ -509,25 +530,7 @@ class GRRFlow(aff4.AFF4Volume):
         logging.info("%s: Extending Lease", self.session_id)
         self.UpdateLease(lease_time)
 
-        # If kill timestamp is set (i.e. if the flow is currently being
-        # processed by the worker), delete the old "kill if stuck" notification
-        # and schedule a new one, further in the future.
-        if (self.runner.schedule_kill_notifications and
-            self.runner.context.kill_timestamp):
-          with queue_manager.QueueManager(token=self.token) as manager:
-            manager.DeleteNotification(
-                self.session_id,
-                start=self.runner.context.kill_timestamp,
-                end=self.runner.context.kill_timestamp +
-                rdfvalue.Duration("1s"))
-
-            stuck_flows_timeout = rdfvalue.Duration(
-                config_lib.CONFIG["Worker.stuck_flows_timeout"])
-            self.runner.context.kill_timestamp = (rdfvalue.RDFDatetime().Now() +
-                                                  stuck_flows_timeout)
-            manager.QueueNotification(
-                session_id=self.session_id, in_progress=True,
-                timestamp=self.runner.context.kill_timestamp)
+        self.UpdateKillNotification()
     else:
       logging.warning("%s is heartbeating while not being locked.", self.urn)
 
@@ -1116,6 +1119,10 @@ class WellKnownFlow(GRRFlow):
       # For normal flows it's a bug to write an empty state, here it's ok.
       self.Set(self.Schema.FLOW_STATE(self.state))
 
+  def UpdateKillNotification(self):
+    # For WellKnownFlows it doesn't make sense to kill them ever.
+    pass
+
 
 def EventHandler(source_restriction=None, auth_required=True,
                  allow_client_access=False):
@@ -1658,7 +1665,7 @@ class FrontEndServer(object):
     client = rdfvalue.ClientURN(client)
 
     start_time = time.time()
-    # Drain the queue for this client:
+    # Drain the queue for this client
     new_tasks = queue_manager.QueueManager(token=self.token).QueryAndOwn(
         queue=client.Queue(), limit=max_count,
         lease_seconds=self.message_expiry_time)

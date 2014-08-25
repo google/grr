@@ -283,9 +283,14 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
     self.urlopen = urllib2.urlopen
     urllib2.urlopen = self.UrlMock
+
     self.messages = []
 
     ca_enroller.enrolment_cache.Flush()
+
+    # Response to send back to clients.
+    self.server_response = dict(session_id="aff4:/W:session", name="Echo",
+                                response_id=2)
 
   def CreateNewServerCommunicator(self):
     self.server_communicator = ServerCommunicatorFake(
@@ -339,8 +344,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
       response_comms = rdfvalue.ClientCommunication()
       message_list = rdfvalue.MessageList()
       for i in range(0, num_messages):
-        message_list.job.Append(session_id="aff4:/W:session", name="Echo",
-                                response_id=2, request_id=i)
+        message_list.job.Append(request_id=i, **self.server_response)
 
       # Preserve the timestamp as a nonce
       self.server_communicator.EncodeMessages(
@@ -490,6 +494,44 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     self.SendToServer()
     self.client_communicator.RunOnce()
     self.CheckClientQueue()
+
+  def _CheckFastPoll(self, require_fastpoll, expected_sleeptime):
+    sleeptime = []
+
+    def RecordSleep(_, interval, **unused_kwargs):
+      sleeptime.append(interval)
+
+    self.server_response = dict(session_id="aff4:/W:session", name="Echo",
+                                response_id=2, priority="LOW_PRIORITY",
+                                require_fastpoll=require_fastpoll)
+
+    # Make sure we don't have any output messages that might override the
+    # fastpoll setting from the input messages we send
+    self.assertEqual(self.client_communicator.client_worker.OutQueueSize(), 0)
+
+    status = self.client_communicator.RunOnce()
+    self.assertEqual(status.received_count, 10)
+    self.assertEqual(status.require_fastpoll, require_fastpoll)
+    with test_lib.Stubber(comms.GRRHTTPClient, "Sleep", RecordSleep):
+      self.client_communicator.Wait(status)
+
+    self.assertEqual(len(sleeptime), 1)
+    self.assertEqual(sleeptime[0], expected_sleeptime)
+    self.CheckClientQueue()
+
+  def testNoFastPoll(self):
+    """Test the the fast poll False is respected on input messages.
+
+    Also make sure we wait the correct amount of time before next poll.
+    """
+    self._CheckFastPoll(False, config_lib.CONFIG["Client.poll_max"])
+
+  def testFastPoll(self):
+    """Test the the fast poll True is respected on input messages.
+
+    Also make sure we wait the correct amount of time before next poll.
+    """
+    self._CheckFastPoll(True, config_lib.CONFIG["Client.poll_min"])
 
   def testCachedRSAOperations(self):
     """Make sure that expensive RSA operations are cached."""

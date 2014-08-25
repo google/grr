@@ -290,9 +290,6 @@ def RepackAllBinaries(upload=False, debug_build=False):
       if upload:
         dest = config_lib.CONFIG.Get("Executables.installer",
                                      context=context)
-        if debug_build:
-          dest = rdfvalue.RDFURN(dest)
-          dest = rdfvalue.RDFURN(dest.Dirname()).Add("dbg_%s" % dest.Basename())
         UploadSignedConfigBlob(open(output_path).read(100*1024*1024),
                                dest, client_context=context)
     else:

@@ -8,37 +8,6 @@ from grr.lib import config_lib
 from grr.lib import rdfvalue
 
 
-class TestAnalyzeClientMemoryVolatility(base.AutomatedTest):
-  """Test AnalyzeClientMemoryVolatility."""
-  platforms = ["Windows"]
-  flow = "AnalyzeClientMemoryVolatility"
-  test_output_path = "analysis/pslist/testing"
-  args = {"request": rdfvalue.VolatilityRequest(
-      plugins=["pslist"], args={"pslist": {}}),
-          "output": test_output_path}
-
-  def CheckFlow(self):
-    response = aff4.FACTORY.Open(self.client_id.Add(self.test_output_path),
-                                 token=self.token)
-    self.assertIsInstance(response, aff4.RDFValueCollection)
-    self.assertEqual(len(response), 1)
-    result = response[0]
-    self.assertEqual(result.error, "")
-    self.assertGreater(len(result.sections), 0)
-
-    rows = result.sections[0].table.rows
-    self.assertGreater(len(rows), 0)
-
-    expected_name = self.GetGRRBinaryName()
-    for values in rows:
-      for value in values.values:
-        if value.name == "ImageFileName":
-          if expected_name == value.svalue:
-            return
-
-    self.fail("Process listing does not contain %s." % expected_name)
-
-
 class TestGrepMemory(base.AutomatedTest):
   """Test ScanMemory."""
   platforms = ["Windows", "Darwin"]
@@ -84,7 +53,6 @@ class TestAnalyzeClientMemory(base.AutomatedTest):
   def setUpRequest(self):
     windows_binary_name = config_lib.CONFIG.Get(
         "Client.binary_name", context=["Client context", "Platform:Windows"])
-
     self.args["request"].plugins = [
         rdfvalue.PluginRequest(plugin="pslist"),
         rdfvalue.PluginRequest(plugin="dlllist",
@@ -112,14 +80,14 @@ class TestAnalyzeClientMemory(base.AutomatedTest):
     for plugin in ["pslist", "dlllist", "modules"]:
       self.assertTrue("Plugin %s" % plugin in result_str)
 
-    # Make sure the dlllist found our process by regex:
-    expected_name = self.GetGRRBinaryName()
-    self.assertTrue("%s pid:" % expected_name in result_str)
-
     # Split into results per plugin, strip the first half line.
     parts = result_str.split("********* Plugin ")[1:]
 
     self.assertEqual(len(parts), 3)
+
+    # Make sure the dlllist found our process by regex:
+    expected_name = self.GetGRRBinaryName()
+    self.assertTrue("%s" % expected_name in parts[1])
 
     for part in parts:
       # There should be some result per plugin.

@@ -200,6 +200,9 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     super(GrrWorkerTest, self).setUp()
     WorkerStuckableTestFlow.Reset()
 
+    # Clear the results global
+    del RESULTS[:]
+
   def SendResponse(self, session_id, data, client_id=None, well_known=False):
     if not isinstance(data, rdfvalue.RDFValue):
       data = rdfvalue.DataBlob(string=data)
@@ -225,6 +228,8 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
             type=rdfvalue.GrrMessage.Type.STATUS))
 
       flow_manager.QueueNotification(session_id=session_id)
+      timestamp = flow_manager.frozen_timestamp
+    return timestamp
 
   def testProcessMessages(self):
     """Test processing of several inbound messages."""
@@ -253,9 +258,6 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     self.SendResponse(session_id_2, "Hello2")
     self.SendResponse(session_id_1, "Hello1")
     self.SendResponse(session_id_2, "Hello2")
-
-    # Clear the results global
-    del RESULTS[:]
 
     # Process all messages
     worker_obj.RunOnce()
@@ -313,8 +315,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
         # Wait until worker thread starts processing the flow.
         WorkerStuckableHunt.WaitUntilWorkerStartsProcessing()
 
-      # Assert that there are no stuck notifications in the worker's
-      # queue.
+      # Assert that there are no stuck notifications in the worker's queue.
       with queue_manager.QueueManager(token=self.token) as manager:
         notifications = manager.GetNotificationsByPriority(
             worker_obj.queue)
@@ -646,6 +647,145 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
                        notifications[0].first_queued)
       self.assertNotEqual(requeued_notifications[0].timestamp,
                           notifications[0].timestamp)
+
+  def testNoValidStatusRaceIsResolved(self):
+
+    # This tests for the regression of a long standing race condition we saw
+    # where notifications would trigger the reading of another request that
+    # arrives later but wasn't completely written to the database yet.
+    # Timestamp based notification handling should eliminate this bug.
+
+    # We need a random flow object for this test.
+    session_id = flow.GRRFlow.StartFlow(client_id=self.client_id,
+                                        flow_name="WorkerSendingTestFlow",
+                                        token=self.token)
+    worker_obj = worker.GRRWorker(worker.DEFAULT_WORKER_QUEUE,
+                                  token=self.token)
+    manager = queue_manager.QueueManager(token=self.token)
+    manager.DeleteNotification(session_id)
+    manager.Flush()
+
+    # We have a first request that is complete (request_id 1, response_id 1).
+    self.SendResponse(session_id, "Response 1")
+
+    # However, we also have request #2 already coming in. The race is that
+    # the queue manager might write the status notification to
+    # session_id/state as "status:00000002" but not the status response
+    # itself yet under session_id/state/request:00000002
+
+    request_id = 2
+    response_id = 1
+    flow_manager = queue_manager.QueueManager(token=self.token)
+    flow_manager.FreezeTimestamp()
+
+    flow_manager.QueueResponse(session_id, rdfvalue.GrrMessage(
+        source=self.client_id,
+        session_id=session_id,
+        payload=rdfvalue.DataBlob(string="Response 2"),
+        request_id=request_id,
+        response_id=response_id))
+
+    status = rdfvalue.GrrMessage(
+        source=self.client_id,
+        session_id=session_id,
+        payload=rdfvalue.GrrStatus(
+            status=rdfvalue.GrrStatus.ReturnedStatus.OK),
+        request_id=request_id, response_id=response_id+1,
+        type=rdfvalue.GrrMessage.Type.STATUS)
+
+    # Now we write half the status information.
+    subject = session_id.Add("state")
+    queue = flow_manager.to_write.setdefault(subject, {})
+    queue.setdefault(
+        flow_manager.FLOW_STATUS_TEMPLATE % request_id,
+        []).append((status.SerializeToString(), None))
+
+    flow_manager.Flush()
+
+    # We make the race even a bit harder by saying the new notification gets
+    # written right before the old one gets deleted. If we are not careful here,
+    # we delete the new notification as well and the flow becomes stuck.
+
+    def WriteNotification(self, arg_session_id, start=None, end=None):
+      if arg_session_id == session_id:
+        flow_manager.QueueNotification(session_id=arg_session_id)
+        flow_manager.Flush()
+
+      self.DeleteNotification.old_target(
+          self, arg_session_id, start=start, end=end)
+
+    with test_lib.Stubber(
+        queue_manager.QueueManager, "DeleteNotification", WriteNotification):
+      # This should process request 1 but not touch request 2.
+      worker_obj.RunOnce()
+      worker_obj.thread_pool.Join()
+
+    flow_obj = aff4.FACTORY.Open(session_id, token=self.token)
+    self.assertFalse(flow_obj.state.context.backtrace)
+    self.assertNotEqual(flow_obj.state.context.state,
+                        rdfvalue.Flow.State.ERROR)
+
+    request2_data = data_store.DB.ResolveRegex(session_id.Add("state"),
+                                               ".*:00000002", token=self.token)
+    # Make sure the status field and the original request are still there.
+    self.assertEqual(len(request2_data), 2)
+
+    request1_data = data_store.DB.ResolveRegex(session_id.Add("state"),
+                                               ".*:00000001", token=self.token)
+    # Everything from request 1 should have been deleted.
+    self.assertEqual(len(request1_data), 0)
+
+    # The notification for request 2 should have survived.
+    with queue_manager.QueueManager(token=self.token) as manager:
+      notifications = manager.GetNotifications(worker.DEFAULT_WORKER_QUEUE)
+      self.assertEqual(len(notifications), 1)
+      notification = notifications[0]
+      self.assertEqual(notification.session_id, session_id)
+      self.assertEqual(notification.timestamp, flow_manager.frozen_timestamp)
+
+    self.assertEqual(RESULTS, ["Response 1"])
+
+    # The last missing piece of request 2 is the actual status message.
+    flow_manager.QueueResponse(session_id, status)
+    flow_manager.Flush()
+
+    # Now make sure request 2 runs as expected.
+    worker_obj.RunOnce()
+    worker_obj.thread_pool.Join()
+
+    self.assertEqual(RESULTS, ["Response 1", "Response 2"])
+
+  def testUniformTimestamps(self):
+    session_id = flow.GRRFlow.StartFlow(client_id=self.client_id,
+                                        flow_name="WorkerSendingTestFlow",
+                                        token=self.token)
+
+    # Convert to int to make test output nicer in case of failure.
+    frozen_timestamp = int(self.SendResponse(session_id, "Hey"))
+
+    request_id = 1
+    with queue_manager.QueueManager(token=self.token) as manager:
+      request_urn = session_id.Add("state")
+      res = data_store.DB.ResolveRegex(
+          request_urn, "flow:status:00000001", token=self.token)
+      self.assertTrue(res)
+      self.assertEqual(res[0][2], frozen_timestamp)
+
+      response_urn = manager.GetFlowResponseSubject(session_id, request_id)
+      res = data_store.DB.ResolveRegex(
+          response_urn, "flow:response:00000001:.*", token=self.token)
+      self.assertTrue(res)
+
+      for (_, _, timestamp) in res:
+        self.assertEqual(timestamp, frozen_timestamp)
+
+      notification_urn = worker.DEFAULT_WORKER_QUEUE
+
+      res = data_store.DB.ResolveRegex(
+          notification_urn, "notify:%s" % session_id, token=self.token)
+      self.assertTrue(res)
+      for (_, _, timestamp) in res:
+        self.assertEqual(timestamp, frozen_timestamp)
 
 
 def main(_):

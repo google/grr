@@ -194,18 +194,19 @@ class GrantAccess(fileview.HostInformation):
   <blockquote>
     {{this.reason|escape}}
   </blockquote>
-  <p>Details:</p>
-  <div id="details_{{unique|escape}}" class="well"></div>
-
   <button id="{{unique|escape}}_approve" class="btn btn-success">
     Approve
   </button>
+  <h3>{{this.detail_header|escape}}</h3>
+  <div id="details_{{unique|escape}}" class="well"></div>
 </div>
 """)
 
   ajax_template = renderers.Template("""
 You have granted access for {{this.subject|escape}} to {{this.user|escape}}
 """)
+
+  detail_header = "Details"
 
   def Layout(self, request, response):
     """Launch the RequestApproval flow on the backend."""
@@ -236,12 +237,15 @@ You have granted access for {{this.subject|escape}} to {{this.user|escape}}
     if namespace == "hunts":
       self.details_renderer = "HuntApprovalDetailsRenderer"
       self.user = components[3]
+      self.detail_header = "Hunt Information"
     elif namespace == "cron":
       self.details_renderer = "CronJobApprovalDetailsRenderer"
       self.user = components[3]
+      self.detail_header = "Cronjob Information"
     elif aff4.AFF4Object.VFSGRRClient.CLIENT_ID_RE.match(namespace):
       self.details_renderer = "ClientApprovalDetailsRenderer"
       self.user = components[2]
+      self.detail_header = "Client Information"
     else:
       raise access_control.UnauthorizedAccess(
           "Approval object is not well formed.")

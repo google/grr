@@ -3,6 +3,7 @@
 
 
 import hashlib
+import re
 import StringIO
 
 from grr.lib import aff4
@@ -18,38 +19,6 @@ class VFSDirectory(aff4.AFF4Volume):
 
   # We contain other objects within the tree.
   _behaviours = frozenset(["Container"])
-
-  @property
-  def real_pathspec(self):
-    pathspec = self.Get(self.Schema.PATHSPEC)
-
-    stripped_components = []
-    parent = self
-
-    # TODO(user): this code is potentially slow due to multiple separate
-    # aff4.FACTORY.Open() calls. OTOH the loop below is executed very rarely -
-    # only when we deal with deep files that got fetched alone and then
-    # one of the directories in their path gets updated.
-    while not pathspec and len(parent.urn.Split()) > 1:
-      # We try to recurse up the tree to get a real pathspec.
-      # These directories are created automatically without pathspecs when a
-      # deep directory is listed without listing the parents.
-      # Note /fs/os or /fs/tsk won't be updateable so we will raise IOError
-      # if we try.
-      stripped_components.append(parent.urn.Basename())
-      pathspec = parent.Get(parent.Schema.PATHSPEC)
-      parent = aff4.FACTORY.Open(parent.urn.Dirname(), token=self.token)
-
-    if pathspec:
-      if stripped_components:
-        # We stripped pieces of the URL, time to add them back.
-        new_path = utils.JoinPath(*reversed(stripped_components[:-1]))
-        pathspec.Append(rdfvalue.PathSpec(path=new_path,
-                                          pathtype=pathspec.last.pathtype))
-    else:
-      raise IOError("Item has no pathspec.")
-
-    return pathspec
 
   def Update(self, attribute=None, priority=None):
     """Refresh an old attribute.
@@ -674,12 +643,11 @@ class AFF4Index(aff4.AFF4Object):
                for a in attributes]
     start = 0
     try:
-      start, length = limit
+      start, length = limit  # pylint: disable=unpacking-non-sequence
     except TypeError:
       length = limit
 
     # Get all the hits
-
     index_hits = set()
     for col, _, _ in data_store.DB.ResolveRegex(
         self.urn, regexes, token=self.token,
@@ -714,7 +682,7 @@ class AFF4Index(aff4.AFF4Object):
     # Make the regular expressions.
     combined_regexes = []
     # Begin and end string matches work because they are explicit in storage.
-    regexes = [r.lstrip("^").rstrip("$") for r in regexes]
+    regexes = [r.lstrip("^").rstrip("$").lower() for r in regexes]
     for attribute in attributes:
       combined_regexes.append("index:%s:(%s):.*" % (
           attribute.predicate, "|".join(regexes)))
@@ -739,6 +707,171 @@ class AFF4Index(aff4.AFF4Object):
     column_name = "index:%s:%s:%s" % (
         attribute.predicate, value.lower(), urn)
     self.to_delete.add(column_name)
+
+
+class AFF4IndexSet(aff4.AFF4Object):
+  """Index that behaves as a set of strings."""
+
+  PLACEHOLDER_VALUE = "X"
+  INDEX_PREFIX = "index:"
+  INDEX_PREFIX_LEN = len(INDEX_PREFIX)
+
+  def Initialize(self):
+    super(AFF4IndexSet, self).Initialize()
+    self.to_set = {}
+    self.to_delete = set()
+
+  def Add(self, value):
+    column_name = self.INDEX_PREFIX + utils.SmartStr(value)
+    self.to_set[column_name] = self.PLACEHOLDER_VALUE
+
+  def Remove(self, value):
+    column_name = self.INDEX_PREFIX + utils.SmartStr(value)
+    self.to_delete.add(column_name)
+
+  def ListValues(self, regex=".*", limit=10000):
+    values = data_store.DB.ResolveRegex(self.urn, self.INDEX_PREFIX + regex,
+                                        token=self.token)
+
+    result = set()
+    for v in values:
+      column_name = v[0]
+      if column_name in self.to_delete:
+        continue
+
+      result.add(column_name[self.INDEX_PREFIX_LEN:])
+
+    for column_name in self.to_set:
+      if column_name in self.to_delete:
+        continue
+
+      result.add(column_name[self.INDEX_PREFIX_LEN:])
+
+    return result
+
+  def Flush(self, sync=False):
+    super(AFF4IndexSet, self).Flush(sync=sync)
+
+    data_store.DB.MultiSet(self.urn, self.to_set, token=self.token,
+                           to_delete=list(self.to_delete), replace=True,
+                           sync=sync)
+    self.to_set = {}
+    self.to_delete = set()
+
+  def Close(self, sync=False):
+    self.Flush(sync=sync)
+
+    super(AFF4IndexSet, self).Close(sync=sync)
+
+
+class AFF4LabelsIndex(aff4.AFF4Volume):
+  """Index for objects' labels with vaiorus querying capabilities."""
+
+  def Initialize(self):
+    super(AFF4LabelsIndex, self).Initialize()
+
+    self._urns_index = None
+    self._used_labels_index = None
+
+  @property
+  def urns_index(self):
+    if self._urns_index is None:
+      self._urns_index = aff4.FACTORY.Create(
+          self.urn.Add("urns_index"), "AFF4Index", mode=self.mode,
+          token=self.token)
+
+    return self._urns_index
+
+  @property
+  def used_labels_index(self):
+    if self._used_labels_index is None:
+      self._used_labels_index = aff4.FACTORY.Create(
+          self.urn.Add("used_labels_index"), "AFF4IndexSet", mode=self.mode,
+          token=self.token)
+
+    return self._used_labels_index
+
+  def IndexNameForLabel(self, label_name, label_owner):
+    return label_owner +  "." + label_name
+
+  def LabelForIndexName(self, index_name):
+    label_owner, label_name = utils.SmartStr(index_name).split(".", 1)
+    return rdfvalue.AFF4ObjectLabel(name=label_name, owner=label_owner)
+
+  def AddLabel(self, urn, label_name, owner=None):
+    if owner is None:
+      raise ValueError("owner can't be None")
+
+    index_name = self.IndexNameForLabel(label_name, owner)
+    self.urns_index.Add(urn, aff4.AFF4Object.SchemaCls.LABELS, index_name)
+    self.used_labels_index.Add(index_name)
+
+  def RemoveLabel(self, urn, label_name, owner=None):
+    if owner is None:
+      raise ValueError("owner can't be None")
+
+    self.urns_index.DeleteAttributeIndexesForURN(
+        aff4.AFF4Object.SchemaCls.LABELS,
+        self.IndexNameForLabel(label_name, owner), urn)
+
+  def ListUsedLabels(self):
+    index_results = self.used_labels_index.ListValues()
+    return [self.LabelForIndexName(name) for name in index_results]
+
+  def FindUrnsByLabel(self, label, owner=None):
+    results = self.MultiFindUrnsByLabel([label], owner=owner).values()
+    if not results:
+      return []
+    else:
+      return results[0]
+
+  def MultiFindUrnsByLabel(self, labels, owner=None):
+    if owner is None:
+      owner = ".+?"
+    else:
+      owner = re.escape(owner)
+
+    query_results = self.urns_index.MultiQuery(
+        [aff4.AFF4Object.SchemaCls.LABELS],
+        [owner + "\\." + re.escape(label) for label in labels])
+
+    results = {}
+    for key, value in query_results.iteritems():
+      results[self.LabelForIndexName(key)] = value
+    return results
+
+  def FindUrnsByLabelNameRegex(self, label_name_regex, owner=None):
+    return self.MultiFindUrnsByLabelNameRegex([label_name_regex], owner=owner)
+
+  def MultiFindUrnsByLabelNameRegex(self, label_name_regexes, owner=None):
+    if owner is None:
+      owner = ".+?"
+    else:
+      owner = re.escape(owner)
+
+    query_results = self.urns_index.MultiQuery(
+        [aff4.AFF4Object.SchemaCls.LABELS],
+        [owner + "\\." + regex
+         for regex in label_name_regexes])
+
+    results = {}
+    for key, value in query_results.iteritems():
+      results[self.LabelForIndexName(key)] = value
+    return results
+
+  def CleanUpUsedLabelsIndex(self):
+    raise NotImplementedError()
+
+  def Flush(self, sync=False):
+    super(AFF4LabelsIndex, self).Flush(sync=sync)
+
+    self.urns_index.Flush(sync=sync)
+    self.used_labels_index.Flush(sync=sync)
+
+  def Close(self, sync=False):
+    self.Flush(sync=sync)
+
+    super(AFF4LabelsIndex, self).Close(sync=sync)
 
 
 class TempMemoryFile(aff4.AFF4MemoryStream):

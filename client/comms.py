@@ -1,5 +1,8 @@
 #!/usr/bin/env python
-"""This class handles the GRR Client Communication."""
+"""This class handles the GRR Client Communication.
+
+Tests are in lib/communicator_test.py
+"""
 
 
 import hashlib
@@ -867,6 +870,7 @@ class GRRHTTPClient(object):
       sent_count = 0
       sent = {}
       require_fastpoll = False
+
       for message in message_list.job:
         sent_count += 1
 
@@ -943,6 +947,16 @@ class GRRHTTPClient(object):
         return status
 
       status.received_count = len(messages)
+
+      # If we're not going to fastpoll based on outbound messages, check to see
+      # if any inbound messages want us to fastpoll. This means we drop to
+      # fastpoll immediately on a new request rather than waiting for the next
+      # beacon to report results.
+      if not status.require_fastpoll:
+        for message in messages:
+          if message.require_fastpoll:
+            status.require_fastpoll = True
+            break
 
       # Process all messages. Messages can be processed by clients in
       # any order since clients do not have state.
@@ -1062,7 +1076,7 @@ class GRRHTTPClient(object):
       return
 
     # If we communicated this time we want to continue aggressively
-    if status.require_fastpoll > 0 or status.received_count > 0:
+    if status.require_fastpoll > 0:
       self.sleep_time = config_lib.CONFIG["Client.poll_min"]
 
     cn = self.communicator.common_name
@@ -1176,7 +1190,7 @@ class ClientCommunicator(communicator.Communicator):
     csr.set_pubkey(pk)
     name = csr.get_subject()
     name.CN = str(self.common_name)
-
+    csr.sign(pk, "sha1")
     return csr.as_pem()
 
   def SavePrivateKey(self, pkey):

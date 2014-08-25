@@ -53,7 +53,8 @@ class WMIUserParser(parsers.WMIQueryParser):
 
   output_types = ["KnowledgeBaseUser"]
   supported_artifacts = ["WMIProfileUsersHomeDir",
-                         "WMIAccountUsersDomain"]
+                         "WMIAccountUsersDomain",
+                         "WMIUsers"]
 
   account_mapping = {
       # Win32_UserAccount

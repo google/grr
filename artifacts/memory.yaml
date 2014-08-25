@@ -1,17 +1,5 @@
 # Artifacts that work with memory.
 
-name: VolatilityPsList
-doc: Process listing using Volatility.
-collectors:
-- collector_type: VOLATILITY_PLUGIN
-  args:
-    args: {}
-    plugin: pslist
-labels: [Volatility, Processes]
-urls: ['https://code.google.com/p/volatility/wiki/CommandReference#pslist']
-
----
-
 name: RekallPsList
 doc: Process listing using Rekall.
 collectors:

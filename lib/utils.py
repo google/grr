@@ -464,7 +464,6 @@ class AgeBasedCache(TimeBasedCache):
     return stored[1]
 
 
-# TODO(user): Eventually slot in Volatility parsing system in here
 class Struct(object):
   """A baseclass for parsing binary Structs."""
 
@@ -508,8 +507,8 @@ def GroupBy(items, key):
     key: A function which given each item will return the key.
 
   Returns:
-    Generator of tuples of (unique keys, list of items) where all items have the
-    same key.  session id.
+    A dict with keys being each unique key and values being a list of items of
+    that key.
   """
   key_map = {}
 
@@ -919,6 +918,19 @@ class StreamingZipWriter(object):
                             # descriptors.
 
     return zinfo
+
+  def WriteSymlink(self, src_arcname, dst_arcname):
+    # Inspired by:
+    # http://www.mail-archive.com/python-list@python.org/msg34223.html
+
+    zinfo = zipfile.ZipInfo(dst_arcname)
+    # The zipinfo.create_system value describes the host OS. "3" corresponds
+    # to UNIX.
+    zinfo.create_system = 3
+    # This marks a symlink.
+    zinfo.external_attr = 2716663808L
+
+    self.zip_fd.writestr(zinfo, src_arcname)
 
   def WriteFromFD(self, src_fd, arcname=None, compress_type=None, st=None):
     """Write a zip member from a file like object.

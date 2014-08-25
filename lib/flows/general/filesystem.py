@@ -621,9 +621,15 @@ class GlobMixin(object):
             pathtype=self.state.pathtype,
             path_options=rdfvalue.PathSpec.Options.REGEX)
       else:
+        pathtype = self.state.pathtype
+        # TODO(user): This is a backwards compatibility hack. Remove when
+        # all clients reach 3.0.0.2.
+        if (pathtype == rdfvalue.PathSpec.PathType.TSK and
+            re.match("^.:$", path_component)):
+          path_component = "%s\\" % path_component
         component = rdfvalue.PathSpec(
             path=path_component,
-            pathtype=self.state.pathtype,
+            pathtype=pathtype,
             path_options=rdfvalue.PathSpec.Options.CASE_INSENSITIVE)
 
       components.append(component)
@@ -740,8 +746,6 @@ class GlobMixin(object):
       # There are further components in the tree - iterate over them.
       for component_str, next_node in node.items():
         component = rdfvalue.PathSpec(component_str)
-        # Use the pathtype from the flow args.
-        component.pathtype = self.state.pathtype
         next_component = component_path + [component_str]
 
         # If we reach this point, we are instructed to go deeper into the
@@ -803,7 +807,7 @@ class GlobMixin(object):
         # that opens the root with pathtype "OS".
         base_pathspec = self._GetBasePathspec(response)
         if not base_pathspec:
-          base_pathspec = rdfvalue.Pathspec(path="/", pathtype="OS")
+          base_pathspec = rdfvalue.PathSpec(path="/", pathtype="OS")
 
         for depth, recursions in recursions_to_get.iteritems():
           path_regex = "(?i)^" + "$|^".join(
@@ -839,6 +843,8 @@ class Glob(GlobMixin, flow.GRRFlow):
     StatResponse messages, one for each matching file.
   """
 
+  category = "/Filesystem/"
+  behaviours = flow.GRRFlow.behaviours + "ADVANCED"
   args_type = GlobArgs
 
   @flow.StateHandler(next_state="ProcessEntry")

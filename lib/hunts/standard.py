@@ -5,11 +5,10 @@
 
 
 
-import traceback
-
 import logging
 
 from grr.lib import aff4
+from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import rdfvalue
@@ -434,50 +433,6 @@ class GenericHunt(implementation.GRRHunt):
 
   args_type = GenericHuntArgs
 
-  RESULTS_QUEUE = rdfvalue.RDFURN("HR")
-
-  def Initialize(self):
-    super(GenericHunt, self).Initialize()
-    self.processed_responses = False
-
-  @flow.StateHandler()
-  def Start(self):
-    """Initializes this hunt from arguments."""
-    self.state.context.Register("results_metadata_urn",
-                                self.urn.Add("ResultsMetadata"))
-    self.state.context.Register("results_collection_urn",
-                                self.urn.Add("Results"))
-    self.state.context.Register("results_collection_len", 0)
-
-    with aff4.FACTORY.Create(
-        self.state.context.results_metadata_urn, "HuntResultsMetadata",
-        mode="rw", token=self.token) as results_metadata:
-
-      state = rdfvalue.FlowState()
-      plugins = self.state.args.output_plugins or []
-      for index, plugin in enumerate(plugins):
-        plugin_obj = plugin.GetPluginForHunt(self)
-        state.Register("%s_%d" % (plugin.plugin_name, index),
-                       (plugin, plugin_obj.state))
-
-      results_metadata.Set(results_metadata.Schema.OUTPUT_PLUGINS(state))
-
-    with aff4.FACTORY.Create(
-        self.state.context.results_collection_urn, "RDFValueCollection",
-        mode="rw", token=self.token) as results_collection:
-      results_collection.SetChunksize(1024 * 1024)
-      self.state.context.Register("results_collection", results_collection)
-
-    if not self.state.context.args.description:
-      self.SetDescription()
-
-  def SetDescription(self, description=None):
-    if description:
-      self.state.context.args.description = description
-    else:
-      flow_name = self.state.args.flow_runner_args.flow_name
-      self.state.context.args.description = flow_name
-
   @flow.StateHandler(next_state=["MarkDone"])
   def RunClient(self, responses):
     # Just run the flow on this client.
@@ -514,49 +469,8 @@ class GenericHunt(implementation.GRRHunt):
 
     return [x[0] for _, x in flows]
 
-  def Save(self):
-    if self.state and self.processed_responses:
-      with self.lock:
-        fresh_collection = aff4.FACTORY.Open(
-            self.state.context.results_collection_urn, mode="rw",
-            ignore_cache=True, token=self.token)
-
-        # This is a "defensive programming" approach. Hunt's results collection
-        # should never be changed outside of the hunt. But if this happens,
-        # it means something is seriously wrong with the system, so we'd better
-        # detect it, log it and work around it.
-        if len(fresh_collection) != self.state.context.results_collection_len:
-          logging.error("Results collection was changed outside of hunt %s. "
-                        "Expected %d results, got %d. Will reopen collection "
-                        "again, which will lead to %d results being dropped. "
-                        "Trace: %s",
-                        self.urn,
-                        self.state.context.results_collection_len,
-                        len(fresh_collection),
-                        len(fresh_collection) -
-                        self.state.context.results_collection_len,
-                        traceback.format_stack())
-
-          self.state.context.results_collection = fresh_collection
-          self.state.context.results_collection_len = len(fresh_collection)
-        else:
-          self.state.context.results_collection.Flush(sync=True)
-          self.state.context.results_collection_len = len(
-              self.state.context.results_collection)
-
-          # Notify ProcessHuntResultsCronFlow that we got new results.
-          data_store.DB.Set(self.RESULTS_QUEUE, self.urn,
-                            rdfvalue.RDFDatetime().Now(),
-                            replace=True, token=self.token)
-
-    super(GenericHunt, self).Save()
-
-  @flow.StateHandler()
-  def MarkDone(self, responses):
-    """Mark a client as done."""
-    client_id = responses.request.client_id
-
-    # Open child flow and account its' reported resource usage
+  def StoreResourceUsage(self, responses, client_id):
+    """Open child flow and account its' reported resource usage."""
     flow_path = responses.status.child_session_id
     status = responses.status
 
@@ -568,20 +482,12 @@ class GenericHunt(implementation.GRRHunt):
     resources.network_bytes_sent = status.network_bytes_sent
     self.state.context.usage_stats.RegisterResources(resources)
 
-    if responses.success:
-      with self.lock:
-        self.processed_responses = True
-        msgs = [rdfvalue.GrrMessage(payload=response, source=client_id)
-                for response in responses]
-        # Pass the callback to ensure we heartbeat while writing the
-        # results.
-        self.state.context.results_collection.AddAll(
-            msgs, callback=lambda index, rdf_value: self.HeartBeat())
-
-    else:
-      self.LogClientError(client_id, log_message=utils.SmartStr(
-          responses.status))
-
+  @flow.StateHandler()
+  def MarkDone(self, responses):
+    """Mark a client as done."""
+    client_id = responses.request.client_id
+    self.StoreResourceUsage(responses, client_id)
+    self.AddResultsToCollection(responses, client_id)
     self.MarkClientDone(client_id)
 
 
@@ -637,3 +543,70 @@ class VariableGenericHunt(GenericHunt):
         client_ids.add(client_id)
 
     self.StartClients(self.session_id, client_ids, token=token)
+
+
+class StatsHunt(implementation.GRRHunt):
+  """A Hunt to continuously collect stats from all clients.
+
+  This hunt is very unusual, it doesn't call any flows, instead using CallClient
+  directly.  This is done to minimise the message handling and server load
+  caused by collecting this information with a short time period.
+
+  TODO(user): implement a aff4 object cleanup cron that we can use to
+  automatically delete the collections generated by this hunt.
+  """
+
+  args_type = GenericHuntArgs
+
+  def Start(self, **kwargs):
+    super(StatsHunt, self).Start(**kwargs)
+
+    # Force all client communication to be LOW_PRIORITY. This ensures that
+    # clients do not switch to fast poll mode when returning stats messages.
+    self.runner.args.priority = "LOW_PRIORITY"
+    self.runner.args.require_fastpoll = False
+
+  @flow.StateHandler()
+  def RunClient(self, responses):
+    for client_id in responses:
+      self._CollectClientStats(client_id)
+
+  def _CollectClientStats(self, client_id):
+    now = rdfvalue.RDFDatetime().Now()
+    due = now + rdfvalue.Duration(
+        config_lib.CONFIG["StatsHunt.CollectionInterval"])
+    for client_action in config_lib.CONFIG["StatsHunt.ClientActions"]:
+      self.CallClient(client_action, next_state="StoreResults",
+                      client_id=client_id, start_time=due)
+
+  def ProcessInterface(self, response):
+    """Filter out localhost interfaces."""
+    if response.mac_address != "000000000000" and response.ifname != "lo":
+      return response
+
+  @flow.StateHandler()
+  def StoreResults(self, responses):
+    """Stores the responses."""
+    client_id = responses.request.client_id
+    # TODO(user): Should we record client usage stats?
+    processed_responses = []
+
+    for response in responses:
+      if isinstance(response, rdfvalue.Interface):
+        processed_responses += filter(None, [self.ProcessInterface(response)])
+
+    new_responses = flow.FakeResponses(processed_responses,
+                                       responses.request_data)
+    new_responses.success = responses.success
+    new_responses.status = responses.status
+    self.AddResultsToCollection(new_responses, client_id)
+
+    # Respect both the expiry and pause controls, since this will otherwise run
+    # forever. Pausing will effectively stop this hunt, and a new one will need
+    # to be created.
+    if self.runner.IsHuntStarted():
+      # Re-issue the request to the client for the next collection.
+      self._CollectClientStats(client_id)
+    else:
+      self.MarkClientDone(client_id)
+

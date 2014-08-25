@@ -6,6 +6,7 @@ import os
 
 
 from grr.client.client_actions import standard
+from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -59,7 +60,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
   def testGetFile(self):
     """Test that the GetFile flow works."""
 
-    client_mock = test_lib.ActionMock("TransferBuffer", "StatFile")
+    client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile")
     pathspec = rdfvalue.PathSpec(
         pathtype=rdfvalue.PathSpec.PathType.OS,
         path=os.path.join(self.base_path, "test_img.dd"))
@@ -86,7 +87,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
         pathtype=rdfvalue.PathSpec.PathType.OS,
         path=os.path.join(self.base_path, "test_img.dd"))
 
-    class ClientMock(test_lib.ActionMock):
+    class ClientMock(action_mocks.ActionMock):
 
       def StatFile(self, _):
         # Return a stat response with no size.
@@ -140,8 +141,8 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
   def testMultiGetFile(self):
     """Test MultiGetFile."""
 
-    client_mock = test_lib.ActionMock("TransferBuffer", "HashFile", "StatFile",
-                                      "HashBuffer")
+    client_mock = action_mocks.ActionMock("TransferBuffer", "HashFile",
+                                          "StatFile", "HashBuffer")
     pathspec = rdfvalue.PathSpec(
         pathtype=rdfvalue.PathSpec.PathType.OS,
         path=os.path.join(self.base_path, "test_img.dd"))

@@ -61,8 +61,8 @@ class MongoDataStore(data_store.DataStore):
     elif isinstance(timestamp, tuple):
       collection = self.versioned_collection
       start, end = timestamp
-      spec = {"$and": [dict(timestamp={"$gte": start}),
-                       dict(timestamp={"$lte": end}),
+      spec = {"$and": [dict(timestamp={"$gte": int(start)}),
+                       dict(timestamp={"$lte": int(end)}),
                        spec]}
     else:
       raise data_store.Error("Undefined timestamp specification.")
@@ -184,7 +184,7 @@ class MongoDataStore(data_store.DataStore):
         ]}
 
     if start:
-      spec["$and"].append(dict(timestamp={"$gte": start}))
+      spec["$and"].append(dict(timestamp={"$gte": int(start)}))
 
     if not end:
       # We can optimize this case since the latest version will always
@@ -193,20 +193,21 @@ class MongoDataStore(data_store.DataStore):
       self.latest_collection.remove(spec)
       return
 
-    spec["$and"].append(dict(timestamp={"$lte": end}))
+    spec["$and"].append(dict(timestamp={"$lte": int(end)}))
     self.versioned_collection.remove(spec)
 
     to_delete = set(attributes)
     to_set = {}
     cursor = self.versioned_collection.find(unversioned_spec).sort("timestamp")
     for document in cursor:
-      value = document["value"]
+      value = Decode(document)
       predicate = document["predicate"]
       to_delete.discard(predicate)
       timestamp = document["timestamp"]
       prefix = predicate.split(":", 1)[0]
       document = dict(subject=subject, timestamp=timestamp,
-                      predicate=predicate, prefix=prefix, value=value)
+                      predicate=predicate, prefix=prefix)
+      _Encode(document, value)
       to_set[predicate] = document
 
     if to_delete:
@@ -376,9 +377,6 @@ class MongoTransaction(data_store.CommonTransaction):
         return
 
     raise data_store.TransactionError("Subject %s is locked" % subject)
-
-  def CheckLease(self):
-    return max(0, self.expires - time.time())
 
   def UpdateLease(self, duration):
     self.expires = time.time() + duration

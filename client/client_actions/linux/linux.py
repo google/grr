@@ -213,6 +213,7 @@ class EnumerateUsers(actions.ActionPlugin):
     """Parse wtmp and extract the last logon time."""
     users = {}
 
+    wtmp_struct_size = UtmpStruct.GetSize()
     for filename in sorted(os.listdir("/var/log")):
       if filename.startswith("wtmp"):
         try:
@@ -220,13 +221,12 @@ class EnumerateUsers(actions.ActionPlugin):
         except IOError:
           continue
 
-        while wtmp:
+        for offset in xrange(0, len(wtmp), wtmp_struct_size):
           try:
-            record = UtmpStruct(wtmp)
+            record = UtmpStruct(wtmp[offset:offset+wtmp_struct_size])
           except RuntimeError:
             break
 
-          wtmp = wtmp[record.size:]
           # Users only appear for USER_PROCESS events, others are system.
           if record.ut_type != 7:
             continue

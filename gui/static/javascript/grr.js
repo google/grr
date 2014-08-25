@@ -681,13 +681,15 @@ grr.table.newTable = function(renderer, domId, unique, opt_state) {
     grr.update(renderer, tbody_id, null, function(data) { /* on_success */
       $('#' + tbody_id, me).html(data);
 
-      // If we can select previously selected row, select it.
-      // Otherwise - select the first one.
-      $('tr[row_id=' + selected_row_id + ']', me).each(function() {
-        $(this).click();
-      });
-      if ($('tr.selected', me).length == 0) {
-        $('tr', me).first().click();
+      if (selected_row_id) {
+        // If we can select previously selected row, select it.
+        // Otherwise - select the first one.
+        $('tr[row_id=' + selected_row_id + ']', me).each(function() {
+          $(this).click();
+        });
+        if ($('tr.selected', me).length == 0) {
+          $('tr', me).first().click();
+        }
       }
     });
   });
@@ -812,17 +814,31 @@ grr._update = function(renderer, domId, opt_state, on_success, inflight_key,
     },
     error: function(jqXHR) {
       if (grr.GetFromAjaxQueue(inflight_key) === jqXHR) {
+        var jsonData = false;
         if (jqXHR.status == 500) {
           var data = jqXHR.responseText;
-          data = $.parseJSON(data.substring(4, data.length));
+          try {
+            data = $.parseJSON(data.substring(4, data.length));
+            jsonData = true;
+          } catch (e) {
+            // Usually renderers get a <script>...</script> code when error
+            // happens. We handle this here.
+            $(document).append(data);
+            data = {
+              message: grr._lastError,
+              traceback: grr._lastBacktrace
+            };
+          }
         } else {
           var data = {message: 'Server Error',
                       traceback: jqXHR.responseText};
         }
 
         if (!on_error) {
-          grr.publish('grr_messages', data.message);
-          grr.publish('grr_traceback', data.traceback);
+          if (jsonData) {
+            grr.publish('grr_messages', data.message);
+            grr.publish('grr_traceback', data.traceback);
+          }
         }
         else {
           on_error(data);

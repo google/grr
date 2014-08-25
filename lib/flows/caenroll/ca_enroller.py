@@ -38,6 +38,10 @@ class CAEnroler(flow.GRRFlow):
 
     req = X509.load_request_string(self.args.csr.pem)
 
+    # Verify the CSR. This is not strictly necessary but doesn't harm either.
+    if req.verify(req.get_pubkey()) != 1:
+      raise flow.FlowError("CSR did not verify: %s", req.as_pem())
+
     # Verify that the CN is of the correct form. The common name should refer to
     # a client URN.
     public_key = req.get_pubkey().get_rsa().pub()[1]

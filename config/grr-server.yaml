@@ -27,7 +27,7 @@ Client.version_major: 3
 
 Client.version_minor: 0
 
-Client.version_release: 0
+Client.version_release: 3
 
 Client.version_revision: 0
 
@@ -193,11 +193,13 @@ ClientBuilder Context:
 
     Client.poll_max: 5
 
-    Client.foreman_poll_frequency: 30
+    Client.foreman_check_frequency: 30
 
     Client.rss_max: 4000
 
     Nanny.unresponsive_kill_period: 3600
+
+    Client.prefix: dbg_
 
 CommandLine Context:
   Logging.engines: stderr
@@ -369,6 +371,11 @@ Test Context:
     Logging.engines: stderr
 
   Rekall.profile_server: TestRekallRepositoryProfileServer
+
+DataServer Context:
+# By default use an sqlite backend.
+  Datastore.implementation: SqliteDataStore
+
 
 # These jobs will be enabled by default both for Worker Context and
 # Test Context. They will only actually run if Cron.active is True.

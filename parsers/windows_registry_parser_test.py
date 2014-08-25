@@ -37,7 +37,7 @@ class WindowsRegistryParserTest(test_lib.FlowTestsBaseclass):
   def testWinServicesParser(self):
     dword = rdfvalue.StatEntry.RegistryType.REG_DWORD_LITTLE_ENDIAN
     reg_str = rdfvalue.StatEntry.RegistryType.REG_SZ
-    hklm = "HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/services"
+    hklm = "HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Services"
     hklm_set01 = "HKEY_LOCAL_MACHINE/SYSTEM/ControlSet001/services"
     service_keys = [
         ("%s/ACPI/Type" % hklm, 1, dword),

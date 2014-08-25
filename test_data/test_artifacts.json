@@ -76,6 +76,13 @@
     "supported_os": [ "Linux" ]
   },
 
+  { "name": "FakeArtifact2",
+    "doc": "My second artifact.",
+    "labels": [ "System"],
+    "supported_os": [ "Linux" ]
+  },
+
+
   { "name": "BadPathspecArtifact",
     "collectors": [
       { "collector_type": "ARTIFACT_FILES",

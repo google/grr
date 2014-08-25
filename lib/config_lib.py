@@ -439,7 +439,7 @@ class StringInterpolator(lexer.Lexer):
 
   tokens = [
       # When in literal mode, only allow to escape }
-      lexer.Token("Literal", r"\\[^}]", "AppendArg", None),
+      lexer.Token("Literal", r"\\[^{}]", "AppendArg", None),
 
       # Allow escaping of special characters
       lexer.Token(None, r"\\(.)", "Escape", None),
@@ -448,7 +448,7 @@ class StringInterpolator(lexer.Lexer):
       # i.e. we include anything until the next }. It is still possible to
       # escape } if this character needs to be inserted literally.
       lexer.Token("Literal", r"\}", "EndLiteralExpression,PopState", None),
-      lexer.Token("Literal", r"[^}]+", "AppendArg", None),
+      lexer.Token("Literal", r"[^}\\]+", "AppendArg", None),
       lexer.Token(None, r"\%\{", "StartExpression,PushState", "Literal"),
 
       # Expansion sequence is %(....)
@@ -467,6 +467,8 @@ class StringInterpolator(lexer.Lexer):
   STRING_ESCAPES = {"\\\\": "\\",
                     "\\(": "(",
                     "\\)": ")",
+                    "\\{": "{",
+                    "\\}": "}",
                     "\\%": "%"}
 
   def __init__(self, data, config, default_section="", parameter=None,

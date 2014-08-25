@@ -37,6 +37,7 @@ class TestFileFinderTSKWindows(TestFileFinderOSWindows):
   action = file_finder.FileFinderAction(
       action_type=file_finder.FileFinderAction.Action.DOWNLOAD,
       download=download)
+  test_output_path = "/fs/tsk/.*/Windows/System32/notepad.exe"
 
   args = {"paths": ["%%environ_systemroot%%\\System32\\notepad.*"],
           "action": action, "pathtype": "TSK"}

@@ -64,7 +64,6 @@ message DataStoreRequest {
   optional uint32 limit = 8;
 };
 
-
 message QueryASTNode {
   optional string name = 1;
   repeated bytes args = 2;
@@ -133,47 +132,4 @@ message DataStoreResponse {
       description: "The request which elicited this response.",
     }];
 };
-
-message StartFlowRequest {
-  optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
-    }];
-  optional string flow_name = 2;
-  optional Dict args = 3;   // TODO(user): Aim to deprecate this field.
-  optional ACLToken token = 4;
-  optional EmbeddedRDFValue flow_args = 5;
-  optional EmbeddedRDFValue runner_args = 6;
-}
-
-message TerminateFlowRequest {
-  optional string session_id = 1 [(sem_type) = {
-      type: "RDFURN"
-    }];
-  optional string reason = 2;  //Why is this flow terminated?
-  optional bool force = 3;
-  optional ACLToken token = 4;
-};
-
-message StartFlowResponse {
-  enum Status {
-    OK = 0;
-    AUTHORIZATION_DENIED = 1;
-    DATA_STORE_ERROR = 2;
-    FLOW_ERROR = 3;
-    TIMEOUT_ERROR = 4;
-  };
-
-  optional string session_id = 1 [(sem_type) = {
-      type: "RDFURN"
-    }];
-
-  optional Status status = 2 [default = OK];
-
-  // Additional human readable message for the failure.
-  optional string status_desc = 3;
-
-  // In case of failure, subject that caused the request to fail
-  optional string failed_subject = 4;
-};
-
 

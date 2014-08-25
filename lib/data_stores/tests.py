@@ -27,3 +27,8 @@ try:
   from grr.lib.data_stores import sqlite_data_store_test
 except ImportError:
   pass
+
+try:
+  from grr.lib.data_stores import http_data_store_test
+except ImportError:
+  pass

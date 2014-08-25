@@ -11,6 +11,7 @@ import time
 
 import psutil
 
+from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import email_alerts
@@ -50,7 +51,8 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
     """Ensure we can retrieve and update the config."""
 
     # Only mock the pieces we care about.
-    client_mock = test_lib.ActionMock("GetConfiguration", "UpdateConfiguration")
+    client_mock = action_mocks.ActionMock("GetConfiguration",
+                                          "UpdateConfiguration")
 
     loc = "http://www.example.com"
     new_config = rdfvalue.Dict(
@@ -210,7 +212,7 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
     # Clean the client records.
     aff4.FACTORY.Delete(self.client_id, token=self.token)
 
-    client_mock = test_lib.ActionMock("SendStartupInfo")
+    client_mock = action_mocks.ActionMock("SendStartupInfo")
     for _ in test_lib.TestFlowHelper(
         "ClientActionRunner", client_mock, client_id=self.client_id,
         action="SendStartupInfo", token=self.token):
@@ -272,7 +274,7 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
                         int(fd.Get(fd.Schema.CLIENT_INFO).age))
 
   def testExecutePythonHack(self):
-    client_mock = test_lib.ActionMock("ExecutePython")
+    client_mock = action_mocks.ActionMock("ExecutePython")
     # This is the code we test. If this runs on the client mock we can check for
     # this attribute.
     sys.test_code_ran_here = False
@@ -292,7 +294,7 @@ sys.test_code_ran_here = True
     self.assertTrue(sys.test_code_ran_here)
 
   def testExecutePythonHackWithArgs(self):
-    client_mock = test_lib.ActionMock("ExecutePython")
+    client_mock = action_mocks.ActionMock("ExecutePython")
     sys.test_code_ran_here = 1234
     code = """
 import sys
@@ -309,7 +311,7 @@ sys.test_code_ran_here = py_args['value']
     self.assertEqual(sys.test_code_ran_here, 5678)
 
   def testExecuteBinariesWithArgs(self):
-    client_mock = test_lib.ActionMock("ExecuteBinaryCommand")
+    client_mock = action_mocks.ActionMock("ExecuteBinaryCommand")
 
     code = "I am a binary file"
     upload_path = config_lib.CONFIG["Executables.aff4_path"].Add("test.exe")
@@ -336,7 +338,7 @@ sys.test_code_ran_here = py_args['value']
     # This flow has an acl, the user needs to be admin.
     user = aff4.FACTORY.Create("aff4:/users/%s" % self.token.username,
                                mode="rw", aff4_type="GRRUser", token=self.token)
-    user.SetLabels("admin")
+    user.SetLabels("admin", owner="GRR")
     user.Close()
 
     with test_lib.Stubber(subprocess, "Popen", Popen):
@@ -361,7 +363,7 @@ sys.test_code_ran_here = py_args['value']
           config_lib.CONFIG["Client.tempdir"]))
 
   def testExecuteLargeBinaries(self):
-    client_mock = test_lib.ActionMock("ExecuteBinaryCommand")
+    client_mock = action_mocks.ActionMock("ExecuteBinaryCommand")
 
     code = "I am a large binary file" * 100
     upload_path = config_lib.CONFIG["Executables.aff4_path"].Add("test.exe")
@@ -397,7 +399,7 @@ sys.test_code_ran_here = py_args['value']
     # This flow has an acl, the user needs to be admin.
     user = aff4.FACTORY.Create("aff4:/users/%s" % self.token.username,
                                mode="rw", aff4_type="GRRUser", token=self.token)
-    user.SetLabels("admin")
+    user.SetLabels("admin", owner="GRR")
     user.Close()
 
     with test_lib.Stubber(subprocess, "Popen", Popen):
@@ -473,3 +475,125 @@ sys.test_code_ran_here = py_args['value']
 
     self.assertAlmostEqual(sample.cpu_samples[0].user_cpu_time, 15.0)
     self.assertAlmostEqual(sample.cpu_samples[1].system_cpu_time, 31.0)
+
+
+class TestApplyLabelsToClientsFlow(test_lib.FlowTestsBaseclass):
+  """Tests for ApplyLabelsToClientsFlow."""
+
+  def GetClientLabels(self, client_id):
+    fd = aff4.FACTORY.Open(client_id, aff4_type="VFSGRRClient",
+                           token=self.token)
+    return list(fd.Get(fd.Schema.LABELS,
+                       rdfvalue.AFF4ObjectLabelsList()).labels)
+
+  def testAppliesSingleLabelToSingleClient(self):
+    client_id = self.SetupClients(1)[0]
+
+    self.assertFalse(self.GetClientLabels(client_id))
+
+    with test_lib.FakeTime(42):
+      flow.GRRFlow.StartFlow(flow_name="ApplyLabelsToClientsFlow",
+                             clients=[client_id],
+                             labels=["foo"],
+                             token=self.token)
+
+    self.assertListEqual(
+        self.GetClientLabels(client_id),
+        [rdfvalue.AFF4ObjectLabel(
+            name="foo", owner="test",
+            timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))])
+
+  def testAppliesSingleLabelToMultipleClients(self):
+    client_ids = self.SetupClients(3)
+
+    for client_id in client_ids:
+      self.assertFalse(self.GetClientLabels(client_id))
+
+    with test_lib.FakeTime(42):
+      flow.GRRFlow.StartFlow(flow_name="ApplyLabelsToClientsFlow",
+                             clients=client_ids,
+                             labels=["foo"],
+                             token=self.token)
+
+    for client_id in client_ids:
+      self.assertListEqual(
+          self.GetClientLabels(client_id),
+          [rdfvalue.AFF4ObjectLabel(
+              name="foo", owner="test",
+              timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))])
+
+  def testAppliesMultipleLabelsToSingleClient(self):
+    client_id = self.SetupClients(1)[0]
+
+    self.assertFalse(self.GetClientLabels(client_id))
+
+    with test_lib.FakeTime(42):
+      flow.GRRFlow.StartFlow(flow_name="ApplyLabelsToClientsFlow",
+                             clients=[client_id],
+                             labels=["drei", "ein", "zwei"],
+                             token=self.token)
+
+    self.assertListEqual(
+        sorted(self.GetClientLabels(client_id),
+               key=lambda label: label.name),
+        [rdfvalue.AFF4ObjectLabel(
+            name="drei", owner="test",
+            timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42)),
+         rdfvalue.AFF4ObjectLabel(
+             name="ein", owner="test",
+             timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42)),
+         rdfvalue.AFF4ObjectLabel(
+             name="zwei", owner="test",
+             timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))])
+
+  def testAppliesMultipleLabelsToMultipleClients(self):
+    client_ids = self.SetupClients(3)
+
+    for client_id in client_ids:
+      self.assertFalse(self.GetClientLabels(client_id))
+
+    with test_lib.FakeTime(42):
+      flow.GRRFlow.StartFlow(flow_name="ApplyLabelsToClientsFlow",
+                             clients=client_ids,
+                             labels=["drei", "ein", "zwei"],
+                             token=self.token)
+
+    for client_id in client_ids:
+      self.assertListEqual(
+          sorted(self.GetClientLabels(client_id),
+                 key=lambda label: label.name),
+          [rdfvalue.AFF4ObjectLabel(
+              name="drei", owner="test",
+              timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42)),
+           rdfvalue.AFF4ObjectLabel(
+               name="ein", owner="test",
+               timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42)),
+           rdfvalue.AFF4ObjectLabel(
+               name="zwei", owner="test",
+               timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))])
+
+  def testAuditEntryIsCreatedForEveryClient(self):
+    client_ids = self.SetupClients(3)
+
+    flow.GRRFlow.StartFlow(flow_name="ApplyLabelsToClientsFlow",
+                           clients=client_ids,
+                           labels=["drei", "ein", "zwei"],
+                           token=self.token)
+    mock_worker = test_lib.MockWorker(token=self.token)
+    mock_worker.Simulate()
+
+    fd = aff4.FACTORY.Open("aff4:/audit/log", token=self.token)
+
+    for client_id in client_ids:
+      found_event = None
+      for event in fd:
+        if (event.action == rdfvalue.AuditEvent.Action.CLIENT_ADD_LABEL and
+            event.client == rdfvalue.ClientURN(client_id)):
+          found_event = event
+          break
+
+      self.assertFalse(found_event is None)
+
+      self.assertEqual(found_event.flow_name, "ApplyLabelsToClientsFlow")
+      self.assertEqual(found_event.user, self.token.username)
+      self.assertEqual(found_event.description, "test.drei,test.ein,test.zwei")

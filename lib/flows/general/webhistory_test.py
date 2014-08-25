@@ -6,6 +6,7 @@ import os
 from grr.client import client_utils_linux
 from grr.client import client_utils_osx
 from grr.client.client_actions import standard
+from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import artifact_test
 from grr.lib import rdfvalue
@@ -30,7 +31,7 @@ class TestWebHistory(test_lib.FlowTestsBaseclass):
     self.client.AddAttribute(self.client.Schema.USER, user_list)
     self.client.Close()
 
-    self.client_mock = test_lib.ActionMock(
+    self.client_mock = action_mocks.ActionMock(
         "ReadBuffer", "HashFile", "HashBuffer", "TransferBuffer", "StatFile",
         "Find", "ListDirectory", "Grep")
 
@@ -150,17 +151,19 @@ class TestWebHistoryWithArtifacts(artifact_test.ArtifactTestHelper):
     fd.AddAttribute(fd.Schema.KNOWLEDGE_BASE, self.kb)
     fd.Flush()
 
-    self.MockClientMountPointsWithImage(os.path.join(self.base_path,
-                                                     "test_img.dd"))
-    self.client_mock = test_lib.ActionMock(
+    self.client_mock = action_mocks.ActionMock(
         "ReadBuffer", "HashFile", "HashBuffer", "TransferBuffer", "StatFile",
         "Find", "ListDirectory")
 
   def testChrome(self):
     """Check we can run WMI based artifacts."""
-    fd = self.RunCollectorAndGetCollection(
-        ["ChromeHistory"], client_mock=self.client_mock, use_tsk=True,
-        knowledge_base=self.kb)
+    with self.MockClientMountPointsWithImage(
+        os.path.join(self.base_path, "test_img.dd")):
+
+      fd = self.RunCollectorAndGetCollection(
+          ["ChromeHistory"], client_mock=self.client_mock, use_tsk=True,
+          knowledge_base=self.kb)
+
     self.assertEquals(len(fd), 71)
     self.assertTrue("/home/john/Downloads/funcats_scr.exe" in
                     [d.download_path for d in fd])
@@ -170,15 +173,13 @@ class TestWebHistoryWithArtifacts(artifact_test.ArtifactTestHelper):
 
   def testFirefox(self):
     """Check we can run WMI based artifacts."""
-    fd = self.RunCollectorAndGetCollection(
-        ["FirefoxHistory"], client_mock=self.client_mock, use_tsk=True)
+    with self.MockClientMountPointsWithImage(
+        os.path.join(self.base_path, "test_img.dd")):
+      fd = self.RunCollectorAndGetCollection(
+          ["FirefoxHistory"], client_mock=self.client_mock, use_tsk=True)
+
     self.assertEquals(len(fd), 5)
     self.assertEquals(fd[0].access_time.AsSecondsFromEpoch(), 1340623334)
     self.assertTrue("http://sport.orf.at/" in [d.url for d in fd])
     self.assertTrue(fd[0].source_urn.Path().endswith(
         "/home/test/.mozilla/firefox/adts404t.default/places.sqlite"))
-
-  # TODO(user): Test IE once we have converted to new parsers.
-
-  def tearDown(self):
-    self.UnMockClientMountPoints()

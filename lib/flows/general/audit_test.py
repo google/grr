@@ -4,6 +4,7 @@
 
 import os
 
+from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -12,7 +13,7 @@ from grr.lib import test_lib
 class TestAuditSystem(test_lib.FlowTestsBaseclass):
 
   def testFlowExecution(self):
-    client_mock = test_lib.ActionMock("ListDirectory", "StatFile")
+    client_mock = action_mocks.ActionMock("ListDirectory", "StatFile")
 
     for _ in test_lib.TestFlowHelper(
         "ListDirectory", client_mock, client_id=self.client_id,

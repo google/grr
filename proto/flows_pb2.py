@@ -17,7 +17,7 @@ import grr.proto.semantic_pb2
 DESCRIPTOR = _descriptor.FileDescriptor(
   name='grr/proto/flows.proto',
   package='',
-  serialized_pb='\n\x15grr/proto/flows.proto\x1a\x16grr/proto/export.proto\x1a\x14grr/proto/jobs.proto\x1a\x1egrr/proto/knowledge_base.proto\x1a\x18grr/proto/semantic.proto\"\xc4\x01\n\x08\x41\x43LToken\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x0e\n\x06reason\x18\x02 \x01(\t\x12\x18\n\x10requested_access\x18\x03 \x01(\t\x12\x41\n\x06\x65xpiry\x18\x05 \x01(\x04\x42\x31\xe2\xfc\xe3\xc4\x01+\n\x0bRDFDatetime\x12\x1cWhen does this token expire?\x12\x12\n\nsource_ips\x18\x06 \x03(\t\x12\x0f\n\x07process\x18\x07 \x01(\t\x12\x14\n\x0cis_emergency\x18\x08 \x01(\x08\"\x8a\x03\n\x0bGUISettings\x12\x46\n\x04mode\x18\x01 \x01(\x0e\x32\x13.GUISettings.UIMode:\x05\x42\x41SICB\x1c\xe2\xfc\xe3\xc4\x01\x16\x12\x14User interface mode.\x12L\n\x0b\x63\x61nary_mode\x18\x03 \x01(\x08\x42\x37\xe2\xfc\xe3\xc4\x01\x31\x12/If true, show features that are being canaried.\x12\x64\n\rdocs_location\x18\x02 \x01(\x0e\x32\x19.GUISettings.DocsLocation:\x06REMOTEB*\xe2\xfc\xe3\xc4\x01$\x12\"Where to serve documentation from.\",\n\x06UIMode\x12\t\n\x05\x42\x41SIC\x10\x00\x12\x0c\n\x08\x41\x44VANCED\x10\x01\x12\t\n\x05\x44\x45\x42UG\x10\x02\"%\n\x0c\x44ocsLocation\x12\t\n\x05LOCAL\x10\x00\x12\n\n\x06REMOTE\x10\x01:*\xda\xfc\xe3\xc4\x01$\n\"User GUI settings and preferences.\"\xef\r\n\x0e\x46lowRunnerArgs\x12\x63\n\x08priority\x18\x01 \x01(\x0e\x32\x14.GrrMessage.Priority:\x0fMEDIUM_PRIORITYB*\xe2\xfc\xe3\xc4\x01$\x12 The priority used for this flow.\x18\x01\x12k\n\x0enotify_to_user\x18\x02 \x01(\x08:\x04trueBM\xe2\xfc\xe3\xc4\x01G\x12/Should a notification be sent to the initiator.\"\x14Notify at Completion\x12g\n\x0csend_replies\x18\x03 \x01(\x08:\x04trueBK\xe2\xfc\xe3\xc4\x01\x45\x12\x33Should send replies back to the parent flow or not.\x18\x02\"\x0cSend Replies\x12\x9e\x01\n\x12notification_event\x18\x04 \x01(\tB\x81\x01\xe2\xfc\xe3\xc4\x01{\x12\x63\x41n event listener\'s event name. An event will be published to this listener once the flow finishes.\x18\x02\"\x12Notification Event\x12\x88\x01\n\x10notification_urn\x18\x0e \x01(\tBn\xe2\xfc\xe3\xc4\x01h\n\tSessionID\x12YThe Session ID for the event listener to receive a notification when this flow completes.\x18\x02\x12L\n\tclient_id\x18\x05 \x01(\tB9\xe2\xfc\xe3\xc4\x01\x33\n\tClientURN\x12$The client id this flow operates on.\x18\x02\x12\x42\n\x05queue\x18\x06 \x01(\t:\x01WB0\xe2\xfc\xe3\xc4\x01*\n\x06RDFURN\x12\x1eThe queue to use for the flow.\x18\x02\x12H\n\x08\x65vent_id\x18\x07 \x01(\tB6\xe2\xfc\xe3\xc4\x01\x30\x12,A logging event id for issuing further logs.\x18\x02\x12Q\n\x05token\x18\x08 \x01(\x0b\x32\t.ACLTokenB7\xe2\xfc\xe3\xc4\x01\x31\x12-The access token to be used for this request.\x18\x02\x12Q\n\tcpu_limit\x18\t \x01(\x04\x42>\xe2\xfc\xe3\xc4\x01\x38\x12\x34\x41 limit on the client cpu seconds used by this flow.\x18\x01\x12V\n\x13network_bytes_limit\x18\r \x01(\x04\x42\x39\xe2\xfc\xe3\xc4\x01\x33\x12/A limit on the total traffic used by this flow.\x18\x01\x12U\n\rrequest_state\x18\n \x01(\x0b\x32\r.RequestStateB/\xe2\xfc\xe3\xc4\x01)\x12%The request state of the parent flow.\x18\x02\x12P\n\tflow_name\x18\x0b \x01(\tB=\xe2\xfc\xe3\xc4\x01\x37\x12\x33The name of the class implementing the flow to run.\x18\x02\x12l\n\x0f\x62\x61se_session_id\x18\x0c \x01(\tBS\xe2\xfc\xe3\xc4\x01M\n\x06RDFURN\x12\x41The session id for the flow runner. If not specified we make one.\x18\x02\x12~\n\nstart_time\x18\x0f \x01(\x04\x42j\xe2\xfc\xe3\xc4\x01\x64\n\x0bRDFDatetime\x12SDo not process this flow until this time. (Implies the flow is run asyncronously.).\x18\x01\x12\xa8\x01\n\x06output\x18\x10 \x01(\t:\x14\x61nalysis/{p}/{u}-{t}B\x81\x01\xe2\xfc\xe3\xc4\x01{\x12wIf set, a relative URN to the client\'s namespace where a collection will be created, and the result will be written to.\x18\x01\x12Z\n\x13logs_collection_urn\x18\x11 \x01(\tB=\xe2\xfc\xe3\xc4\x01\x37\n\x06RDFURN\x12+The logs collection to log to for the flow.\x18\x02\"\x8b\x0c\n\x0eHuntRunnerArgs\x12N\n\thunt_name\x18\x01 \x01(\tB;\xe2\xfc\xe3\xc4\x01\x35\x12\x33The name of the class implementing the hunt to run.\x12:\n\x0b\x64\x65scription\x18\x02 \x01(\tB%\xe2\xfc\xe3\xc4\x01\x1f\x12\x1dThe description of this hunt.\x12x\n\x0bregex_rules\x18\x03 \x03(\x0b\x32\x16.ForemanAttributeRegexBK\xe2\xfc\xe3\xc4\x01\x45\x12\x43Regex rules that trigger this hunt. Note that all rules must match.\x12s\n\rinteger_rules\x18\x04 \x03(\x0b\x32\x18.ForemanAttributeIntegerBB\xe2\xfc\xe3\xc4\x01<\x12:Integer rules that trigger this hunt.All rules must match.\x12\x63\n\x08priority\x18\x05 \x01(\x0e\x32\x14.GrrMessage.Priority:\x0fMEDIUM_PRIORITYB*\xe2\xfc\xe3\xc4\x01$\x12 The priority used for this flow.\x18\x01\x12\xa4\x01\n\x12notification_event\x18\x06 \x01(\tB\x87\x01\xe2\xfc\xe3\xc4\x01\x80\x01\x12hAn event name for an event listener. An event will be published to this listener once the flow finishes.\x18\x02\"\x12Notification Event\x12\x42\n\x05queue\x18\x07 \x01(\t:\x01WB0\xe2\xfc\xe3\xc4\x01*\n\x06RDFURN\x12\x1eThe queue to use for the flow.\x18\x02\x12Q\n\x05token\x18\x08 \x01(\x0b\x32\t.ACLTokenB7\xe2\xfc\xe3\xc4\x01\x31\x12-The access token to be used for this request.\x18\x02\x12Q\n\tcpu_limit\x18\t \x01(\x04\x42>\xe2\xfc\xe3\xc4\x01\x38\x12\x34\x41 limit on the client cpu seconds used by this flow.\x18\x01\x12V\n\x13network_bytes_limit\x18\r \x01(\x04\x42\x39\xe2\xfc\xe3\xc4\x01\x33\x12/A limit on the total traffic used by this flow.\x18\x01\x12\xea\x01\n\x0c\x63lient_limit\x18\n \x01(\x04:\x01\x30\x42\xd0\x01\xe2\xfc\xe3\xc4\x01\xc9\x01\x12\xb8\x01Maximum number of clients participating in the hunt. Note that this limit can be overshot by a small number of clients if there are multiple workers running. Use this only for testing.\"\x0c\x43lient Limit\x12V\n\x0b\x65xpiry_time\x18\x0b \x01(\x04:\x07\x32\x36\x37\x38\x34\x30\x30\x42\x38\xe2\xfc\xe3\xc4\x01\x32\n\x08\x44uration\x12\x19\x45xpiry time for the hunt.\"\x0b\x45xpiry Time\x12\x8e\x01\n\x0b\x63lient_rate\x18\x0c \x01(\x02:\x02\x32\x30\x42u\xe2\xfc\xe3\xc4\x01o\x12mThe maximum number of clients to engage per minute.A rate of 0 means to schedule clients as fast as possible.\x12Z\n\x13logs_collection_urn\x18\x0e \x01(\tB=\xe2\xfc\xe3\xc4\x01\x37\n\x06RDFURN\x12+The logs collection to log to for the hunt.\x18\x02\"W\n\x0eSampleHuntArgs\x12\x45\n\x08\x66ilename\x18\x01 \x01(\t:\r/tmp/evil.txtB$\xe2\xfc\xe3\xc4\x01\x1e\x12\x1c\x65vil filename to search for.\"\xce\x02\n\x0b\x46lowRequest\x12H\n\nclient_ids\x18\x01 \x03(\tB4\xe2\xfc\xe3\xc4\x01.\n\tClientURN\x12!The clients to start the flow on.\x12\xac\x01\n\x04\x61rgs\x18\x05 \x01(\x0c\x42\x9d\x01\xe2\xfc\xe3\xc4\x01\x96\x01\x12\x81\x01\x41rgs to the flow. These depend on the flow_name parameter.It is expected that this field contains an instance of flow\'s arg_type.*\x10GetFlowArgsClass\x12\x46\n\x0brunner_args\x18\x06 \x01(\x0b\x32\x0f.FlowRunnerArgsB \xe2\xfc\xe3\xc4\x01\x1a\x12\x18\x41rgs to the flow runner.\"\xd3\x01\n\x0cOutputPlugin\x12;\n\x0bplugin_name\x18\x01 \x01(\tB&\xe2\xfc\xe3\xc4\x01 \x12\x1eThe name of the output plugin.\x12\x85\x01\n\x0bplugin_args\x18\x02 \x01(\x0c\x42p\xe2\xfc\xe3\xc4\x01j\x12TThe parameters for this plugin. Must be an instance of the named plugin\'s args_type.*\x12GetPluginArgsClass\"\x88\x01\n\x0f\x45mailPluginArgs\x12[\n\x05\x65mail\x18\x01 \x01(\tBL\xe2\xfc\xe3\xc4\x01\x46\n\x12\x44omainEmailAddress\x12\x30The email address that messages will be sent to.\x12\x18\n\x0b\x65mail_limit\x18\x02 \x01(\x04:\x03\x31\x30\x30\"\xf3\x02\n\x13\x43SVOutputPluginArgs\x12\xbb\x01\n\noutput_dir\x18\x01 \x01(\tB\xa6\x01\xe2\xfc\xe3\xc4\x01\x9f\x01\n\x06RDFURN\x12\x92\x01\x41\x46\x46\x34 directory where resulting CSV files will be written to. If unset, results will be written to a file with a unique identifier under aff4:/tmp.\x18\x01\x12\x41\n\x0e\x65xport_options\x18\x02 \x01(\x0b\x32\x0e.ExportOptionsB\x19\xe2\xfc\xe3\xc4\x01\x13\x12\x0f\x45xport options.\x18\x01\x12[\n\x0e\x63onvert_values\x18\x03 \x01(\x08:\x04trueB=\xe2\xfc\xe3\xc4\x01\x37\x12\x33If true, convert values for export-friendly format.\x18\x02\"\x80\x01\n\x14\x43ollectionPluginArgs\x12h\n\x0f\x63ollection_name\x18\x01 \x01(\t:\x07ResultsBF\xe2\xfc\xe3\xc4\x01@\x12+The name of the collection within the hunt.\x18\x01\"\x0f\x43ollection Name\"\xd2\x01\n\x17VariableGenericHuntArgs\x12^\n\x05\x66lows\x18\x01 \x03(\x0b\x32\x0c.FlowRequestBA\xe2\xfc\xe3\xc4\x01;\x12\x39\x41 list of requests for starting flows on certain clients.\x12W\n\x0eoutput_plugins\x18\x02 \x03(\x0b\x32\r.OutputPluginB0\xe2\xfc\xe3\xc4\x01*\x12(The output plugins to use for this hunt.\"\xca\x02\n\x0fGenericHuntArgs\x12\x80\x01\n\tflow_args\x18\x02 \x01(\x0c\x42m\xe2\xfc\xe3\xc4\x01g\x12QArguments to the flow to run. This should be an instance of flow.args_type proto.\x18\x02*\x10GetFlowArgsClass\x12[\n\x10\x66low_runner_args\x18\x03 \x01(\x0b\x32\x0f.FlowRunnerArgsB0\xe2\xfc\xe3\xc4\x01*\x12(The runner args for launching each flow.\x12W\n\x0eoutput_plugins\x18\x04 \x03(\x0b\x32\r.OutputPluginB0\xe2\xfc\xe3\xc4\x01*\x12(The output plugins to use for this hunt.\"\x95\x08\n\x0c\x42\x61reGrepSpec\x12\x45\n\x0cstart_offset\x18\x02 \x01(\x04:\x01\x30\x42,\xe2\xfc\xe3\xc4\x01&\x12$Start searching at this file offset.\x12P\n\x06length\x18\x03 \x01(\x04:\x0b\x31\x30\x37\x33\x37\x34\x31\x38\x32\x34\x30\x42\x33\xe2\xfc\xe3\xc4\x01-\x12+How far (in bytes) into the file to search.\x12^\n\x05regex\x18\x04 \x01(\tBO\xe2\xfc\xe3\xc4\x01I\n\x11RegularExpression\x12\x34The regular expression which will be used to search.\x12K\n\x07literal\x18\x05 \x01(\x0c\x42:\xe2\xfc\xe3\xc4\x01\x34\n\x11LiteralExpression\x12\x1fSearch for this literal string.\x12u\n\x04mode\x18\x06 \x01(\x0e\x32\x12.BareGrepSpec.Mode:\x08\x41LL_HITSBI\xe2\xfc\xe3\xc4\x01\x43\x12\x41When should searching stop? Stop after one hit or search for all?\x12K\n\x0c\x62ytes_before\x18\x07 \x01(\r:\x02\x31\x30\x42\x31\xe2\xfc\xe3\xc4\x01+\x12\'Include this many bytes before the hit.\x18\x01\x12I\n\x0b\x62ytes_after\x18\x08 \x01(\r:\x02\x31\x30\x42\x30\xe2\xfc\xe3\xc4\x01*\x12&Include this many bytes after the hit.\x18\x01\x12\xc3\x01\n\nxor_in_key\x18\t \x01(\r:\x02\x33\x37\x42\xaa\x01\xe2\xfc\xe3\xc4\x01\xa3\x01\x12\x9e\x01When searching memory we need to ensure we dont hit on our own process. This allows us to obfuscate the search string in memory to avoid us finding ourselves.\x18\x01\x12\xc4\x01\n\x0bxor_out_key\x18\n \x01(\r:\x02\x35\x37\x42\xaa\x01\xe2\xfc\xe3\xc4\x01\xa3\x01\x12\x9e\x01When searching memory we need to ensure we dont hit on our own process. This allows us to obfuscate the search string in memory to avoid us finding ourselves.\x18\x01\"#\n\x04Mode\x12\x0c\n\x08\x41LL_HITS\x10\x00\x12\r\n\tFIRST_HIT\x10\x01\"^\n\rCAEnrolerArgs\x12M\n\x03\x63sr\x18\x01 \x01(\x0b\x32\x0c.CertificateB2\xe2\xfc\xe3\xc4\x01,\x12*A Certificate RDFValue with the CSR in it.\"\xa4\x02\n\x16\x44\x65leteGRRTempFilesArgs\x12\x89\x02\n\x08pathspec\x18\x01 \x01(\x0b\x32\t.PathSpecB\xeb\x01\xe2\xfc\xe3\xc4\x01\xe4\x01\x12\xe1\x01The pathspec target for deletion.If path is a directory, look in the top level for filenames beginning with Client.tempfile_prefix, and delete them. If path is a regular file and starts with Client.tempfile_prefix, delete it.\"?\n\rUninstallArgs\x12.\n\x04kill\x18\x01 \x01(\x08\x42 \xe2\xfc\xe3\xc4\x01\x1a\x12\x18Kills the client if set.\"[\n\x17UpdateConfigurationArgs\x12@\n\x06\x63onfig\x18\x01 \x01(\x0b\x32\x05.DictB)\xe2\xfc\xe3\xc4\x01#\x12!The config to send to the client.\"\x8c\x01\n\x15\x45xecutePythonHackArgs\x12;\n\thack_name\x18\x01 \x01(\tB(\xe2\xfc\xe3\xc4\x01\"\x12 The name of the hack to execute.\x12\x36\n\x07py_args\x18\x02 \x01(\x0b\x32\x05.DictB\x1e\xe2\xfc\xe3\xc4\x01\x18\x12\x16Python Hack Arguments.\"\xd8\x01\n\x12\x45xecuteCommandArgs\x12\x15\n\x03\x63md\x18\x01 \x01(\tB\x08\xe2\xfc\xe3\xc4\x01\x02\x12\x00\x12S\n\x0c\x63ommand_line\x18\x02 \x01(\tB=\xe2\xfc\xe3\xc4\x01\x37\x12\x35The arguments to the command as a shell command line.\x12V\n\ntime_limit\x18\x03 \x01(\x03:\x02-1B>\xe2\xfc\xe3\xc4\x01\x38\x12\x36The time limit for this execution, -1 means unlimited.\"\x93\x01\n\x16OnlineNotificationArgs\x12y\n\x05\x65mail\x18\x01 \x01(\tBj\xe2\xfc\xe3\xc4\x01\x64\n\x12\x44omainEmailAddress\x12NEmail address to send to. If not set, mail will be sent to the logged in user.\"o\n\x10UpdateClientArgs\x12[\n\tblob_path\x18\x01 \x01(\tBH\xe2\xfc\xe3\xc4\x01\x42\n\x06RDFURN\x12\x38\x41n aff4 path to a GRRSignedBlob of a new client version.\"s\n\rKeepAliveArgs\x12\x62\n\x08\x64uration\x18\x01 \x01(\x04:\x04\x33\x36\x30\x30\x42J\xe2\xfc\xe3\xc4\x01\x44\n\x08\x44uration\x12\x38Until when should the client stay in the fast poll mode.\"\x8c\x01\n\x11TerminateFlowArgs\x12\x46\n\x08\x66low_urn\x18\x01 \x01(\tB4\xe2\xfc\xe3\xc4\x01.\n\tSessionID\x12!The URN of the flow to terminate.\x12/\n\x06reason\x18\x02 \x01(\tB\x1f\xe2\xfc\xe3\xc4\x01\x19\x12\x17Reason for termination.\"\x9e\x01\n\x10LaunchBinaryArgs\x12\x41\n\x06\x62inary\x18\x01 \x01(\tB1\xe2\xfc\xe3\xc4\x01+\n\x06RDFURN\x12!The URN of the binary to execute.\x12G\n\x0c\x63ommand_line\x18\x02 \x01(\tB1\xe2\xfc\xe3\xc4\x01+\x12)Binary Arguments as a shell command line.\"\xd8\x04\n WinUserActivityInvestigationArgs\x12<\n\x08username\x18\x01 \x01(\tB*\xe2\xfc\xe3\xc4\x01$\x12\"The user to target the actions to.\x12R\n\x13get_browser_history\x18\x02 \x01(\x08:\x04trueB/\xe2\xfc\xe3\xc4\x01)\x12\'Call each of the browser history flows.\x12\\\n\x16recursive_list_homedir\x18\x03 \x01(\x04:\x01\x35\x42\x39\xe2\xfc\xe3\xc4\x01\x33\x12\x31Recursively list the users homedir to this depth.\x12Z\n\x1crecursive_list_user_registry\x18\x04 \x01(\x04:\x01\x35\x42\x31\xe2\xfc\xe3\xc4\x01+\x12)Recursively list the users registry hive.\x12\x46\n\rartifact_list\x18\x05 \x03(\tB/\xe2\xfc\xe3\xc4\x01)\n\x0c\x41rtifactName\x12\x19\x41 list of Artifact names.\x12\\\n\x17timeline_collected_data\x18\x06 \x01(\x08:\x04trueB5\xe2\xfc\xe3\xc4\x01/\x12-Once complete create a timeline for the host.\x12\x42\n\x07use_tsk\x18\x07 \x01(\x08\x42\x31\xe2\xfc\xe3\xc4\x01+\x12)Use raw filesystem access where possible.\"\x89\r\n\x19\x41rtifactCollectorFlowArgs\x12L\n\rartifact_list\x18\x01 \x03(\tB5\xe2\xfc\xe3\xc4\x01/\n\x0c\x41rtifactName\x12\x1f\x41 list of Artifact class names.\x12M\n\x07use_tsk\x18\x02 \x01(\x08:\x05\x66\x61lseB5\xe2\xfc\xe3\xc4\x01/\x12-Whether raw filesystem access should be used.\x12\xe5\x02\n\x15store_results_in_aff4\x18\x03 \x01(\x08:\x05\x66\x61lseB\xbe\x02\xe2\xfc\xe3\xc4\x01\xb7\x02\x12\xb2\x02Should the collected artifacts be written to the GRR AFF4 namespace based on the AFF4->RDF map. Collectors like GetFiles and GetRegistryKeys already write their results to the client space and only a small number of types are included in the map. Users should not enable this in the vast majority of cases.\x18\x01\x12\x92\x01\n\x18split_output_by_artifact\x18\x05 \x01(\x08:\x05\x66\x61lseBi\xe2\xfc\xe3\xc4\x01\x63\x12_If True, use output as a directory and write a separate collection for each artifact collected.\x18\x01\x12\x8d\x01\n\x0eknowledge_base\x18\x06 \x01(\x0b\x32\x0e.KnowledgeBaseBe\xe2\xfc\xe3\xc4\x01_\x12[An optional knowledge base to use, if not specified we retrieve one from the client object.\x18\x02\x12\x9c\x01\n\x11no_results_errors\x18\x07 \x01(\x08:\x05\x66\x61lseBz\xe2\xfc\xe3\xc4\x01t\x12rIf True, an artifact returning no results will raise a hard error. This is useful where you always expect results.\x12\xa6\x01\n\rapply_parsers\x18\x08 \x01(\x08:\x04trueB\x88\x01\xe2\xfc\xe3\xc4\x01\x81\x01\x12}If True, apply any relevant parser to the collected data. If False, return the raw collected data e.g Files or Registry Keys.\x18\x01\x12|\n\rmax_file_size\x18\t \x01(\x04:\t100000000BZ\xe2\xfc\xe3\xc4\x01T\n\x08\x42yteSize\x12\x46The maximum size of files we will download in bytes, 100MB by default.\x18\x01\x12\x80\x01\n\x0c\x64\x65pendencies\x18\x0b \x01(\x0e\x32%.ArtifactCollectorFlowArgs.Dependency:\nUSE_CACHEDB7\xe2\xfc\xe3\xc4\x01\x31\x12-Specifies how dependencies should be handled.\x18\x01\"\xf8\x01\n\nDependency\x12t\n\nUSE_CACHED\x10\x00\x1a\x64\xea\xb9\xcb\xb9\x01^Use the knowledgebase as a cache. If knowledgebase isn\'t present, a new one will be populated.\x12+\n\x0bIGNORE_DEPS\x10\x01\x1a\x1a\xea\xb9\xcb\xb9\x01\x14Ignore dependencies.\x12G\n\tFETCH_NOW\x10\x02\x1a\x38\xea\xb9\xcb\xb9\x01\x32\x46\x65tch only required dependencies for this artifact\"h\n\x0fInterrogateArgs\x12U\n\x0blightweight\x18\x01 \x01(\x08:\x04trueB:\xe2\xfc\xe3\xc4\x01\x34\x12\x32Perform a light weight version of the interrogate.\"Y\n\x13\x46ingerprintFileArgs\x12\x42\n\x08pathspec\x18\x01 \x01(\x0b\x32\t.PathSpecB%\xe2\xfc\xe3\xc4\x01\x1f\x12\x1dThe file path to fingerprint.\"\x92\x01\n\x15\x46ingerprintFileResult\x12\x43\n\x08\x66ile_urn\x18\x01 \x01(\tB1\xe2\xfc\xe3\xc4\x01+\n\x06RDFURN\x12!The URN of the file fingerprinted\x12\x34\n\nhash_entry\x18\x02 \x01(\x0b\x32\x05.HashB\x19\xe2\xfc\xe3\xc4\x01\x13\x12\x11\x46ile hash object.\"\xe7\x05\n\x17\x44ownloadMemoryImageArgs\x12\xa8\x01\n\x07\x64\x65stdir\x18\x01 \x01(\tB\x96\x01\xe2\xfc\xe3\xc4\x01\x8f\x01\x12\x8a\x01\x44\x65stination directory on the client for the temporary image. Leave blank to use defaults. Parent directories will be created if necessary.\x18\x01\x12\x44\n\x06offset\x18\x02 \x01(\x04:\x01\x30\x42\x31\xe2\xfc\xe3\xc4\x01+\x12\x16Memory offset in bytes\x18\x01\"\x0fStarting Offset\x12\x66\n\x06length\x18\x03 \x01(\x04:\x01\x30\x42S\xe2\xfc\xe3\xc4\x01M\x12\x35Number of bytes to copy (default 0 copies all memory)\x18\x01\"\x12Length to download\x12\x46\n\x04gzip\x18\x04 \x01(\x08:\x04trueB2\xe2\xfc\xe3\xc4\x01,\x12(Gzip temporary image file on the client.\x18\x01\x12\xc0\x01\n\x10\x64river_installer\x18\x05 \x01(\x0b\x32\x16.DriverInstallTemplateB\x8d\x01\xe2\xfc\xe3\xc4\x01\x86\x01\x12\x81\x01\x41n optional DriverInstallTemplate proto to control driver installation. If not set, the default  installation proto will be used.\x18\x02\x12h\n\x0fmake_local_copy\x18\x06 \x01(\x08:\x04trueBI\xe2\xfc\xe3\xc4\x01\x43\x12\x41Make a local copy of the memory on the client before downloading.\"\xca\x02\n\x14LoadMemoryDriverArgs\x12\xc0\x01\n\x10\x64river_installer\x18\x01 \x01(\x0b\x32\x16.DriverInstallTemplateB\x8d\x01\xe2\xfc\xe3\xc4\x01\x86\x01\x12\x81\x01\x41n optional DriverInstallTemplate proto to control driver installation. If not set, the default  installation proto will be used.\x18\x02\x12o\n\x10reload_if_loaded\x18\x02 \x01(\x08:\x05\x66\x61lseBN\xe2\xfc\xe3\xc4\x01H\x12-If the driver is already loaded we reload it.\"\x17\x46orce reload of driver.\"\xc5\x02\n!AnalyzeClientMemoryArgsVolatility\x12\xc0\x01\n\x10\x64river_installer\x18\x01 \x01(\x0b\x32\x16.DriverInstallTemplateB\x8d\x01\xe2\xfc\xe3\xc4\x01\x86\x01\x12\x81\x01\x41n optional DriverInstallTemplate proto to control driver installation. If not set, the default  installation proto will be used.\x18\x02\x12]\n\x07request\x18\x02 \x01(\x0b\x32\x12.VolatilityRequestB8\xe2\xfc\xe3\xc4\x01\x32\x12\x30\x41 request for the client\'s volatility subsystem.\"\xb3\x02\n\x17\x41nalyzeClientMemoryArgs\x12\xc0\x01\n\x10\x64river_installer\x18\x01 \x01(\x0b\x32\x16.DriverInstallTemplateB\x8d\x01\xe2\xfc\xe3\xc4\x01\x86\x01\x12\x81\x01\x41n optional DriverInstallTemplate proto to control driver installation. If not set, the default  installation proto will be used.\x18\x02\x12U\n\x07request\x18\x02 \x01(\x0b\x32\x0e.RekallRequestB4\xe2\xfc\xe3\xc4\x01.\x12,A request for the client\'s Rekall subsystem.\"\xdd\x01\n\x0eScanMemoryArgs\x12\x43\n\x04grep\x18\x01 \x01(\x0b\x32\r.BareGrepSpecB&\xe2\xfc\xe3\xc4\x01 \x12\x1e\x41 grepspec for memory devices.\x12\x41\n\ralso_download\x18\x02 \x01(\x08\x42*\xe2\xfc\xe3\xc4\x01$\x12\"If a match is found, image memory.:C\xda\xfc\xe3\xc4\x01=\n;A grep specification which operates only on memory devices.\"a\n\x13SophosCollectorArgs\x12J\n\x08pathtype\x18\x01 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB \xe2\xfc\xe3\xc4\x01\x1a\x12\x18The requested path type.\"a\n\x0cMACTimesArgs\x12Q\n\x04path\x18\x01 \x01(\t:\x04/fs/B=\xe2\xfc\xe3\xc4\x01\x37\x12\x35\x41n AFF path (relative to the client area of the VFS).\"Y\n\x11\x46ileCollectorArgs\x12\x44\n\tfindspecs\x18\x01 \x03(\x0b\x32\t.FindSpecB&\xe2\xfc\xe3\xc4\x01 \x12\x1e\x41 list of find specifications.\"\xc5\x03\n\x12\x46irefoxHistoryArgs\x12M\n\x08pathtype\x18\x01 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB#\xe2\xfc\xe3\xc4\x01\x1d\x12\x1bType of path access to use.\x12Z\n\x0bget_archive\x18\x02 \x01(\x08:\x05\x66\x61lseB>\xe2\xfc\xe3\xc4\x01\x38\x12\x36Should we get Archived History as well (3 months old).\x12\xaa\x01\n\x08username\x18\x03 \x01(\tB\x97\x01\xe2\xfc\xe3\xc4\x01\x90\x01\x12\x8d\x01The user to get history for. If history_path is not set this will be used to guess the path to the history files. Can be in form DOMAIN\\user.\x12W\n\x0chistory_path\x18\x05 \x01(\tBA\xe2\xfc\xe3\xc4\x01;\x12\x39Path to a profile directory that contains a History file.\"\xbf\x03\n\rCacheGrepArgs\x12V\n\ngrep_users\x18\x01 \x03(\tBB\xe2\xfc\xe3\xc4\x01<\x12:A list of users to check. Default all users on the system.\x12M\n\x08pathtype\x18\x02 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB#\xe2\xfc\xe3\xc4\x01\x1d\x12\x1bType of path access to use.\x12R\n\ndata_regex\x18\x03 \x01(\tB>\xe2\xfc\xe3\xc4\x01\x38\n\x11RegularExpression\x12#A regular expression to search for.\x12\x30\n\x0c\x63heck_chrome\x18\x05 \x01(\x08:\x04trueB\x14\xe2\xfc\xe3\xc4\x01\x0e\x12\x0c\x43heck Chrome\x12\x32\n\rcheck_firefox\x18\x06 \x01(\x08:\x04trueB\x15\xe2\xfc\xe3\xc4\x01\x0f\x12\rCheck Firefox\x12M\n\x08\x63heck_ie\x18\x07 \x01(\x08:\x04trueB5\xe2\xfc\xe3\xc4\x01/\x12-Check Internet Explorer (Not implemented yet)\"a\n\x11ListDirectoryArgs\x12L\n\x08pathspec\x18\x01 \x01(\x0b\x32\t.PathSpecB/\xe2\xfc\xe3\xc4\x01)\x12\'The pathspec for the directory to list.\"\xa2\x01\n\x1aRecursiveListDirectoryArgs\x12L\n\x08pathspec\x18\x01 \x01(\x0b\x32\t.PathSpecB/\xe2\xfc\xe3\xc4\x01)\x12\'The pathspec for the directory to list.\x12\x36\n\tmax_depth\x18\x02 \x01(\x04:\x01\x35\x42 \xe2\xfc\xe3\xc4\x01\x1a\x12\x18Maximum recursion depth.\"\x88\x01\n\x1d\x46\x65tchBufferForSparseImageArgs\x12G\n\x08\x66ile_urn\x18\x01 \x01(\tB5\xe2\xfc\xe3\xc4\x01/\n\x06RDFURN\x12%The URN of the sparse image to update\x12\x0e\n\x06length\x18\x02 \x01(\x04\x12\x0e\n\x06offset\x18\x03 \x01(\x04\"Q\n\x1aMakeNewAFF4SparseImageArgs\x12\x1b\n\x08pathspec\x18\x01 \x01(\x0b\x32\t.PathSpec\x12\x16\n\x0esize_threshold\x18\x02 \x01(\x04\"\x7f\n\x1bUpdateSparseImageChunksArgs\x12G\n\x08\x66ile_urn\x18\x01 \x01(\tB5\xe2\xfc\xe3\xc4\x01/\n\x06RDFURN\x12%The URN of the sparse image to update\x12\x17\n\x0f\x63hunks_to_fetch\x18\x02 \x03(\x04\"&\n\x08GrepArgs\x12\x1a\n\x07request\x18\x01 \x01(\x0b\x32\t.GrepSpec\"\xf8\x04\n\x08GlobArgs\x12\x7f\n\x05paths\x18\x01 \x03(\tBp\xe2\xfc\xe3\xc4\x01j\n\x0eGlobExpression\x12XA list of paths to glob that supports: ** path recursion, * wildcards and %% expansions.\x12L\n\x08pathtype\x18\x02 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB\"\xe2\xfc\xe3\xc4\x01\x1c\x12\x1aType of access to glob in.\x12\xd2\x01\n\troot_path\x18\x03 \x01(\x0b\x32\t.PathSpecB\xb3\x01\xe2\xfc\xe3\xc4\x01\xac\x01\x12\xa7\x01The root path to begin the glob.  Users should almost never need to change this. root_path.pathtype is unused in favor of pathtype to allow it to be modified by users.\x18\x01\x12\xc7\x01\n\x12no_file_type_check\x18\x04 \x01(\x08:\x05\x66\x61lseB\xa3\x01\xe2\xfc\xe3\xc4\x01\x9c\x01\x12\x97\x01Work with all kinds of files - not only with regular ones.NOTE: This is very dangerous and should be used with care, see MemoryCollector as an example.\x18\x02\"\xfb\x04\n\x15SearchFileContentArgs\x12u\n\x05paths\x18\x01 \x03(\tBf\xe2\xfc\xe3\xc4\x01`\n\x0eGlobExpression\x12NA path to glob that supports: ** path recursion, * wildcards and %% expansions\x12L\n\x08pathtype\x18\x02 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB\"\xe2\xfc\xe3\xc4\x01\x1c\x12\x1aType of access to glob in.\x12\xd2\x01\n\troot_path\x18\x05 \x01(\x0b\x32\t.PathSpecB\xb3\x01\xe2\xfc\xe3\xc4\x01\xac\x01\x12\xa7\x01The root path to begin the glob.  Users should almost never need to change this. root_path.pathtype is unused in favor of pathtype to allow it to be modified by users.\x18\x01\x12\x66\n\x04grep\x18\x03 \x01(\x0b\x32\r.BareGrepSpecBI\xe2\xfc\xe3\xc4\x01\x43\x12,Leave empty to match files by filename only.\"\x13\x46ile Content Search\x12`\n\ralso_download\x18\x04 \x01(\x08\x42I\xe2\xfc\xe3\xc4\x01\x43\x12(If checked, download any matching files.\"\x17\x44ownload matching files\"\xe5\x01\n\rFindFilesArgs\x12\x44\n\x08\x66indspec\x18\x01 \x01(\x0b\x32\t.FindSpecB\'\xe2\xfc\xe3\xc4\x01!\x12\x1f\x41 find operation specification.\x12\x45\n\x0bmax_results\x18\x03 \x01(\x04:\x03\x35\x30\x30\x42+\xe2\xfc\xe3\xc4\x01%\x12!Maximum number of results to get.\x18\x01\x12G\n\x0fiteration_count\x18\x04 \x01(\x04:\x05\x32\x30\x30\x30\x30\x42\'\xe2\xfc\xe3\xc4\x01!\x12\x1d\x46iles examined per iteration.\x18\x01\"\xc1\x02\n\x0bGetFileArgs\x12K\n\x08pathspec\x18\x01 \x01(\x0b\x32\t.PathSpecB.\xe2\xfc\xe3\xc4\x01(\x12&The pathspec for the file to retrieve.\x12s\n\x0bread_length\x18\x02 \x01(\x04:\x01\x30\x42[\xe2\xfc\xe3\xc4\x01U\x12QThe amount of data to read from the file. If 0 we use the value from a stat call.\x18\x01\x12p\n\x13ignore_stat_failure\x18\x03 \x01(\x08\x42S\xe2\xfc\xe3\xc4\x01M\x12IIgnore stat failures and try to read anyway. Disable for windows devices.\x18\x01\"Q\n\nGetMBRArgs\x12\x43\n\x06length\x18\x01 \x01(\x04:\x04\x34\x30\x39\x36\x42-\xe2\xfc\xe3\xc4\x01\'\x12%The length of the MBR buffer to read.\"\xc4\x03\n\x11\x43hromeHistoryArgs\x12M\n\x08pathtype\x18\x01 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB#\xe2\xfc\xe3\xc4\x01\x1d\x12\x1bType of path access to use.\x12S\n\x0bget_archive\x18\x02 \x01(\x08\x42>\xe2\xfc\xe3\xc4\x01\x38\x12\x36Should we get Archived History as well (3 months old).\x12\xb1\x01\n\x08username\x18\x03 \x01(\tB\x9e\x01\xe2\xfc\xe3\xc4\x01\x97\x01\x12\x94\x01The user to get Chrome history for. If history_path is not set this will be used to guess the path to the history files. Can be in form DOMAIN\\user.\x12W\n\x0chistory_path\x18\x05 \x01(\tBA\xe2\xfc\xe3\xc4\x01;\x12\x39Path to a profile directory that contains a History file.\"\xca\x02\n\x10\x43lientActionArgs\x12.\n\x06\x61\x63tion\x18\x01 \x01(\tB\x1e\xe2\xfc\xe3\xc4\x01\x18\x12\x16The action to execute.\x12\x63\n\x07save_to\x18\x02 \x01(\t:\x04/tmpBL\xe2\xfc\xe3\xc4\x01\x46\x12\x44If set, interpreted as a path to write pickle dumps of responses to.\x12V\n\tbreak_pdb\x18\x03 \x01(\x08:\x05\x66\x61lseB<\xe2\xfc\xe3\xc4\x01\x36\x12\x34If True, run pdb.set_trace when responses come back.\x12I\n\x0b\x61\x63tion_args\x18\x04 \x01(\x0c\x42\x34\xe2\xfc\xe3\xc4\x01.\x12\x18\x43lient action arguments.*\x12GetActionArgsClass\"\x83\x03\n\x14\x43onsoleDebugFlowArgs\x12*\n\x04\x66low\x18\x01 \x01(\tB\x1c\xe2\xfc\xe3\xc4\x01\x16\x12\x14The flow to execute.\x12i\n\x07save_to\x18\x02 \x01(\t:\x04/tmpBR\xe2\xfc\xe3\xc4\x01L\x12JIf not None, interpreted as an path to write pickle dumps of responses to.\x12V\n\tbreak_pdb\x18\x03 \x01(\x08:\x05\x66\x61lseB<\xe2\xfc\xe3\xc4\x01\x36\x12\x34If True, run pdb.set_trace when responses come back.\x12>\n\x0fprint_responses\x18\x04 \x01(\x08\x42%\xe2\xfc\xe3\xc4\x01\x1f\x12\x1dIf True, print each response.\x12<\n\tflow_args\x18\x05 \x01(\x0c\x42)\xe2\xfc\xe3\xc4\x01#\x12\x0f\x46low arguments.*\x10GetFlowArgsClass\"k\n\x19\x43reateGenericHuntFlowArgs\x12)\n\x10hunt_runner_args\x18\x01 \x01(\x0b\x32\x0f.HuntRunnerArgs\x12#\n\thunt_args\x18\x02 \x01(\x0b\x32\x10.GenericHuntArgs\"\xbb\x04\n\x15\x43reateCronJobFlowArgs\x12J\n\x0b\x64\x65scription\x18\x01 \x01(\tB5\xe2\xfc\xe3\xc4\x01/\x12-A human readable description of the cron job.\x12\x46\n\x0bperiodicity\x18\x02 \x01(\t:\x02\x37\x64\x42-\xe2\xfc\xe3\xc4\x01\'\n\x08\x43ronSpec\x12\x1bHow often to run this hunt.\x12)\n\x10\x66low_runner_args\x18\x03 \x01(\x0b\x32\x0f.FlowRunnerArgs\x12+\n\tflow_args\x18\x04 \x01(\x0c\x42\x18\xe2\xfc\xe3\xc4\x01\x12*\x10GetFlowArgsClass\x12\x16\n\x0e\x61llow_overruns\x18\x05 \x01(\x08\x12\x9d\x02\n\x08lifetime\x18\x06 \x01(\x04:\x01\x30\x42\x87\x02\xe2\xfc\xe3\xc4\x01\x80\x02\n\x08\x44uration\x12\xf3\x01How long each run of the cron should be allowed to run. Runs that exceed lifetime will be killed. This is complimentary but different to periodicity e.g. it allows us to run jobs weekly that should be killed if they take more than a few hours.\"\xb4\x01\n\x12ModifyHuntFlowArgs\x12?\n\x08hunt_urn\x18\x01 \x01(\tB-\xe2\xfc\xe3\xc4\x01\'\n\x06RDFURN\x12\x1dThe URN of the hunt to pause.\x12\x14\n\x0c\x63lient_limit\x18\x02 \x01(\x04\x12G\n\x0b\x65xpiry_time\x18\x03 \x01(\x04\x42\x32\xe2\xfc\xe3\xc4\x01,\n\x0bRDFDatetime\x12\x1dWhen should this hunt expire?\"\xf4\x02\n\x15ManageCronJobFlowArgs\x12\x34\n\x03urn\x18\x01 \x01(\tB\'\xe2\xfc\xe3\xc4\x01!\n\x06RDFURN\x12\x17The URN of the cron job\x12\x33\n\x06\x61\x63tion\x18\x02 \x01(\x0e\x32\x1d.ManageCronJobFlowArgs.Action:\x04NOOP\"\xef\x01\n\x06\x41\x63tion\x12@\n\x04NOOP\x10\x00\x1a\x36\xea\xb9\xcb\xb9\x01\x30\x44o nothing (but still check access permissions.)\x12\'\n\x07\x44ISABLE\x10\x01\x1a\x1a\xea\xb9\xcb\xb9\x01\x14\x44isable ths cron job\x12%\n\x06\x45NABLE\x10\x02\x1a\x19\xea\xb9\xcb\xb9\x01\x13\x45nable the cron job\x12%\n\x06\x44\x45LETE\x10\x03\x1a\x19\xea\xb9\xcb\xb9\x01\x13\x44\x65lete the cron job\x12,\n\x03RUN\x10\x04\x1a#\xea\xb9\xcb\xb9\x01\x1d\x46orce the cron job to run now\"\xbc\x02\n\x16\x43ronHuntOutputFlowArgs\x12\x30\n\x08hunt_urn\x18\x01 \x01(\tB\x1e\xe2\xfc\xe3\xc4\x01\x18\n\x06RDFURN\x12\x0eURN of a hunt.\x12P\n\x0cmetadata_urn\x18\x02 \x01(\tB:\xe2\xfc\xe3\xc4\x01\x34\n\x06RDFURN\x12*URN of a cron hunt output module metadata.\x12=\n\x12output_plugin_name\x18\x03 \x01(\tB!\xe2\xfc\xe3\xc4\x01\x1b\x12\x19Name of an output plugin.\x12_\n\x12output_plugin_args\x18\x04 \x01(\x0c\x42\x43\xe2\xfc\xe3\xc4\x01=\x12!Args passed to the output plugin.*\x18GetOutputPluginArgsClass\"o\n\x14PlistValueFilterArgs\x12W\n\x07request\x18\x01 \x01(\x0b\x32\r.PlistRequestB7\xe2\xfc\xe3\xc4\x01\x31\x12/A request for the client to parse a plist file.\"\xb9\x01\n\x11RunReportFlowArgs\x12G\n\x0breport_name\x18\x01 \x01(\tB2\xe2\xfc\xe3\xc4\x01,\n\nReportName\x12\x1eThe name of the report to run.\x12[\n\x05\x65mail\x18\x02 \x01(\tBL\xe2\xfc\xe3\xc4\x01\x46\n\x12\x44omainEmailAddress\x12\x30The email address that messages will be sent to.\"\xb8\x01\n\x15\x45numerateServicesArgs\x12M\n\x11\x64ownload_binaries\x18\x01 \x01(\x08:\x04trueB,\xe2\xfc\xe3\xc4\x01&\x12$If set, also downloads the binaries.\x12P\n\x08pathtype\x18\x03 \x01(\x0e\x32\x12.PathSpec.PathType:\x03TSKB%\xe2\xfc\xe3\xc4\x01\x1f\x12\x1dHow to access the filesystem.\"\xd0\x02\n\x11\x43hromePluginsArgs\x12q\n\x04path\x18\x01 \x01(\tBc\xe2\xfc\xe3\xc4\x01]\x12[A path to a Chrome Extensions directory. If not set, the path is guessed from the username.\x12=\n\x08pathtype\x18\x02 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB\x13\xe2\xfc\xe3\xc4\x01\r\x12\x0b\x41\x63\x63\x65ss mode\x12@\n\x08username\x18\x04 \x01(\tB.\xe2\xfc\xe3\xc4\x01(\x12&The user to get Chrome extensions for.\x12G\n\x0e\x64ownload_files\x18\x05 \x01(\x08:\x05\x66\x61lseB(\xe2\xfc\xe3\xc4\x01\"\x12 Should extensions be downloaded?\"\xe1\x01\n!RequestApprovalWithReasonFlowArgs\x12\x38\n\x06reason\x18\x01 \x01(\t:\x0bUnspecifiedB\x1b\xe2\xfc\xe3\xc4\x01\x15\x12\x13Reason for approval\x12+\n\x08\x61pprover\x18\x02 \x01(\tB\x19\xe2\xfc\xe3\xc4\x01\x13\x12\x11\x41pprover username\x12U\n\x0bsubject_urn\x18\x03 \x01(\tB@\xe2\xfc\xe3\xc4\x01:\n\x06RDFURN\x12\x30URN of the object that approval is required for.\"\xdf\x01\n\x1fGrantApprovalWithReasonFlowArgs\x12\x38\n\x06reason\x18\x01 \x01(\t:\x0bUnspecifiedB\x1b\xe2\xfc\xe3\xc4\x01\x15\x12\x13Reason for approval\x12+\n\x08\x64\x65legate\x18\x02 \x01(\tB\x19\xe2\xfc\xe3\xc4\x01\x13\x12\x11\x44\x65legate username\x12U\n\x0bsubject_urn\x18\x03 \x01(\tB@\xe2\xfc\xe3\xc4\x01:\n\x06RDFURN\x12\x30URN of the object that approval is required for.\"V\n\x11StartHuntFlowArgs\x12\x41\n\x08hunt_urn\x18\x01 \x01(\tB/\xe2\xfc\xe3\xc4\x01)\n\x06RDFURN\x12\x1fThe URN of the hunt to execute.\"T\n\x11PauseHuntFlowArgs\x12?\n\x08hunt_urn\x18\x01 \x01(\tB-\xe2\xfc\xe3\xc4\x01\'\n\x06RDFURN\x12\x1dThe URN of the hunt to pause.\"Z\n\x17\x43heckHuntAccessFlowArgs\x12?\n\x08hunt_urn\x18\x01 \x01(\tB-\xe2\xfc\xe3\xc4\x01\'\n\x06RDFURN\x12\x1dThe URN of the hunt to check.\"\x86\x01\n\x11UpdateVFSFileArgs\x12\x31\n\x0cvfs_file_urn\x18\x01 \x01(\tB\x1b\xe2\xfc\xe3\xc4\x01\x15\n\x06RDFURN\x12\x0bVFSFile urn\x12>\n\tattribute\x18\x02 \x01(\t:\raff4:containsB\x1c\xe2\xfc\xe3\xc4\x01\x16\x12\x14\x41ttribute to update.\"\xce\x02\n\x10MultiGetFileArgs\x12I\n\tpathspecs\x18\x02 \x03(\x0b\x32\t.PathSpecB+\xe2\xfc\xe3\xc4\x01%\x12#Pathspecs of files to be retrieved.\x12\xee\x01\n\x13use_external_stores\x18\x03 \x01(\x08:\x04trueB\xca\x01\xe2\xfc\xe3\xc4\x01\xc3\x01\x12\xbe\x01If true, look in any defined external file stores for filesbefore downloading them, and offer any new files to external stores.This should be true unless the external checks are misbehaving.\x18\x01\"\xb3\x03\n GetExecutablesFilteredByHashArgs\x12X\n\tpathspecs\x18\x01 \x03(\x0b\x32\t.PathSpecB:\xe2\xfc\xe3\xc4\x01\x34\x12\x32Pathspecs of files to be retrieved and their hash.\x12\x44\n\x06hashes\x18\x02 \x03(\x0c\x42\x34\xe2\xfc\xe3\xc4\x01.\n\nHashDigest\x12 SHA256 hash digest for the file.\x12\xee\x01\n\x13use_external_stores\x18\x03 \x01(\x08:\x04trueB\xca\x01\xe2\xfc\xe3\xc4\x01\xc3\x01\x12\xbe\x01If true, look in any defined external file stores for filesbefore downloading them, and offer any new files to external stores.This should be true unless the external checks are misbehaving.\x18\x01\"\xd0\x02\n\x1eProcessHuntResultsCronFlowArgs\x12\x62\n\nbatch_size\x18\x01 \x01(\x04\x42N\xe2\xfc\xe3\xc4\x01H\x12\x44Results will be processed by output plugins in batches of this size.\x18\x01\x12\xc9\x01\n\x10max_running_time\x18\x02 \x01(\x04\x42\xae\x01\xe2\xfc\xe3\xc4\x01\xa7\x01\n\x08\x44uration\x12\x98\x01ProcessHuntResultsCronFlow will run not much longer than max_running_time. It will finish (without an error) even if there are still results to process.\x18\x01\"\xbd\x01\n\x11ListProcessesArgs\x12q\n\x0e\x66ilename_regex\x18\x01 \x01(\t:\x01.BV\xe2\xfc\xe3\xc4\x01P\n\x11RegularExpression\x12+Regex used to filter the list of processes.\"\x0e\x46ilename Regex\x12\x35\n\x0e\x66\x65tch_binaries\x18\x02 \x01(\x08:\x05\x66\x61lseB\x16\xe2\xfc\xe3\xc4\x01\x10\"\x0e\x46\x65tch Binaries\"\xed\x01\n\x13ListVADBinariesArgs\x12p\n\x0e\x66ilename_regex\x18\x01 \x01(\t:\x01.BU\xe2\xfc\xe3\xc4\x01O\n\x11RegularExpression\x12*Regex used to filter the list of binaries.\"\x0e\x46ilename Regex\x12\x35\n\x0e\x66\x65tch_binaries\x18\x02 \x01(\x08:\x05\x66\x61lseB\x16\xe2\xfc\xe3\xc4\x01\x10\"\x0e\x46\x65tch Binaries\x12-\n\x07request\x18\x03 \x01(\x0b\x32\x12.VolatilityRequestB\x08\xe2\xfc\xe3\xc4\x01\x02\x18\x01\"\x9e\x02\n#FileFinderModificationTimeCondition\x12^\n\x16min_last_modified_time\x18\x05 \x01(\x04:\x01\x30\x42;\xe2\xfc\xe3\xc4\x01\x35\n\x0bRDFDatetime\x12&File must be modified after this time.\x12\x96\x01\n\x16max_last_modified_time\x18\x06 \x01(\x04:\x13\x39\x32\x32\x33\x33\x37\x32\x30\x33\x36\x38\x35\x34\x37\x37\x35\x38\x30\x37\x42\x61\xe2\xfc\xe3\xc4\x01[\n\x0bRDFDatetime\x12LFile must be modified before this time (default=heat death of the universe).\"\x94\x02\n\x1d\x46ileFinderAccessTimeCondition\x12\\\n\x14min_last_access_time\x18\x05 \x01(\x04:\x01\x30\x42;\xe2\xfc\xe3\xc4\x01\x35\n\x0bRDFDatetime\x12&File must be accessed after this time.\x12\x94\x01\n\x14max_last_access_time\x18\x06 \x01(\x04:\x13\x39\x32\x32\x33\x33\x37\x32\x30\x33\x36\x38\x35\x34\x37\x37\x35\x38\x30\x37\x42\x61\xe2\xfc\xe3\xc4\x01[\n\x0bRDFDatetime\x12LFile must be accessed before this time (default=heat death of the universe).\"\xad\x02\n\"FileFinderInodeChangeTimeCondition\x12i\n\x1amin_last_inode_change_time\x18\x05 \x01(\x04:\x01\x30\x42\x42\xe2\xfc\xe3\xc4\x01<\n\x0bRDFDatetime\x12-File\'s inode must be changed after this time.\x12\x9b\x01\n\x1amax_last_inode_change_time\x18\x06 \x01(\x04:\x13\x39\x32\x32\x33\x33\x37\x32\x30\x33\x36\x38\x35\x34\x37\x37\x35\x38\x30\x37\x42\x62\xe2\xfc\xe3\xc4\x01\\\n\x0bRDFDatetime\x12MFile\'s must be changed before this time (default=heat death of the universe).\"\xbe\x01\n\x17\x46ileFinderSizeCondition\x12=\n\rmin_file_size\x18\x0b \x01(\x04:\x01\x30\x42#\xe2\xfc\xe3\xc4\x01\x1d\x12\x1bMinimum file size in bytes.\x12\x64\n\rmax_file_size\x18\x0c \x01(\x04:\x13\x39\x32\x32\x33\x33\x37\x32\x30\x33\x36\x38\x35\x34\x37\x37\x35\x38\x30\x37\x42\x38\xe2\xfc\xe3\xc4\x01\x32\x12\x30Maximum file size in bytes (default=sys.maxint).\"\xf2\x04\n%FileFinderContentsRegexMatchCondition\x12^\n\x05regex\x18\x04 \x01(\tBO\xe2\xfc\xe3\xc4\x01I\n\x11RegularExpression\x12\x34The regular expression which will be used to search.\x12\x8e\x01\n\x04mode\x18\x06 \x01(\x0e\x32+.FileFinderContentsRegexMatchCondition.Mode:\x08\x41LL_HITSBI\xe2\xfc\xe3\xc4\x01\x43\x12\x41When should searching stop? Stop after one hit or search for all?\x12K\n\x0c\x62ytes_before\x18\x07 \x01(\r:\x02\x31\x30\x42\x31\xe2\xfc\xe3\xc4\x01+\x12\'Include this many bytes before the hit.\x18\x01\x12I\n\x0b\x62ytes_after\x18\x08 \x01(\r:\x02\x31\x30\x42\x30\xe2\xfc\xe3\xc4\x01*\x12&Include this many bytes after the hit.\x18\x01\x12G\n\x0cstart_offset\x18\x02 \x01(\x04:\x01\x30\x42.\xe2\xfc\xe3\xc4\x01(\x12$Start searching at this file offset.\x18\x01\x12R\n\x06length\x18\x03 \x01(\x04:\x0b\x31\x30\x37\x33\x37\x34\x31\x38\x32\x34\x30\x42\x35\xe2\xfc\xe3\xc4\x01/\x12+How far (in bytes) into the file to search.\x18\x01\"#\n\x04Mode\x12\x0c\n\x08\x41LL_HITS\x10\x00\x12\r\n\tFIRST_HIT\x10\x01\"\xee\x07\n\'FileFinderContentsLiteralMatchCondition\x12K\n\x07literal\x18\x05 \x01(\x0c\x42:\xe2\xfc\xe3\xc4\x01\x34\n\x11LiteralExpression\x12\x1fSearch for this literal string.\x12\x90\x01\n\x04mode\x18\x06 \x01(\x0e\x32-.FileFinderContentsLiteralMatchCondition.Mode:\x08\x41LL_HITSBI\xe2\xfc\xe3\xc4\x01\x43\x12\x41When should searching stop? Stop after one hit or search for all?\x12G\n\x0cstart_offset\x18\x02 \x01(\x04:\x01\x30\x42.\xe2\xfc\xe3\xc4\x01(\x12$Start searching at this file offset.\x18\x01\x12R\n\x06length\x18\x03 \x01(\x04:\x0b\x31\x30\x37\x33\x37\x34\x31\x38\x32\x34\x30\x42\x35\xe2\xfc\xe3\xc4\x01/\x12+How far (in bytes) into the file to search.\x18\x01\x12K\n\x0c\x62ytes_before\x18\x07 \x01(\r:\x02\x31\x30\x42\x31\xe2\xfc\xe3\xc4\x01+\x12\'Include this many bytes before the hit.\x18\x01\x12I\n\x0b\x62ytes_after\x18\x08 \x01(\r:\x02\x31\x30\x42\x30\xe2\xfc\xe3\xc4\x01*\x12&Include this many bytes after the hit.\x18\x01\x12\xc2\x01\n\nxor_in_key\x18\t \x01(\r:\x01\x30\x42\xaa\x01\xe2\xfc\xe3\xc4\x01\xa3\x01\x12\x9e\x01When searching memory we need to ensure we dont hit on our own process. This allows us to obfuscate the search string in memory to avoid us finding ourselves.\x18\x01\x12\xc3\x01\n\x0bxor_out_key\x18\n \x01(\r:\x01\x30\x42\xaa\x01\xe2\xfc\xe3\xc4\x01\xa3\x01\x12\x9e\x01When searching memory we need to ensure we dont hit on our own process. This allows us to obfuscate the search string in memory to avoid us finding ourselves.\x18\x01\"#\n\x04Mode\x12\x0c\n\x08\x41LL_HITS\x10\x00\x12\r\n\tFIRST_HIT\x10\x01\"\xf6\x05\n\x13\x46ileFinderCondition\x12Y\n\x0e\x63ondition_type\x18\x01 \x01(\x0e\x32\x19.FileFinderCondition.TypeB&\xe2\xfc\xe3\xc4\x01 \x12\x0e\x43ondition type\"\x0e\x43ondition type\x12?\n\x11modification_time\x18\x02 \x01(\x0b\x32$.FileFinderModificationTimeCondition\x12\x33\n\x0b\x61\x63\x63\x65ss_time\x18\x03 \x01(\x0b\x32\x1e.FileFinderAccessTimeCondition\x12>\n\x11inode_change_time\x18\x04 \x01(\x0b\x32#.FileFinderInodeChangeTimeCondition\x12&\n\x04size\x18\x05 \x01(\x0b\x32\x18.FileFinderSizeCondition\x12\x44\n\x14\x63ontents_regex_match\x18\x06 \x01(\x0b\x32&.FileFinderContentsRegexMatchCondition\x12H\n\x16\x63ontents_literal_match\x18\x07 \x01(\x0b\x32(.FileFinderContentsLiteralMatchCondition\"\x95\x02\n\x04Type\x12.\n\x11MODIFICATION_TIME\x10\x00\x1a\x17\xea\xb9\xcb\xb9\x01\x11Modification time\x12\"\n\x0b\x41\x43\x43\x45SS_TIME\x10\x01\x1a\x11\xea\xb9\xcb\xb9\x01\x0b\x41\x63\x63\x65ss time\x12.\n\x11INODE_CHANGE_TIME\x10\x02\x1a\x17\xea\xb9\xcb\xb9\x01\x11Inode change time\x12\x19\n\x04SIZE\x10\x03\x1a\x0f\xea\xb9\xcb\xb9\x01\tFile size\x12\x34\n\x14\x43ONTENTS_REGEX_MATCH\x10\x04\x1a\x1a\xea\xb9\xcb\xb9\x01\x14\x43ontents regex match\x12\x38\n\x16\x43ONTENTS_LITERAL_MATCH\x10\x05\x1a\x1c\xea\xb9\xcb\xb9\x01\x16\x43ontents literal match\"\xf2\x02\n\x1f\x46ileFinderDownloadActionOptions\x12\\\n\x08max_size\x18\x05 \x01(\x04:\t100000000B?\xe2\xfc\xe3\xc4\x01\x39\n\x08\x42yteSize\x12+The maximum size of files we will download.\x18\x01\x12\xf0\x01\n\x13use_external_stores\x18\x06 \x01(\x08:\x04trueB\xcc\x01\xe2\xfc\xe3\xc4\x01\xc5\x01\x12\xc0\x01If true, look in any defined external file stores for files before downloading them, and offer any new files to external stores. This should be true unless the external checks are misbehaving.\x18\x01\"\xff\x01\n\x10\x46ileFinderAction\x12\x63\n\x0b\x61\x63tion_type\x18\x01 \x01(\x0e\x32\x18.FileFinderAction.Action:\x04STATB.\xe2\xfc\xe3\xc4\x01(\x12\x1e\x41\x63tion to apply to found files\"\x06\x41\x63tion\x12\x32\n\x08\x64ownload\x18\x02 \x01(\x0b\x32 .FileFinderDownloadActionOptions\"R\n\x06\x41\x63tion\x12\x14\n\x04STAT\x10\x00\x1a\n\xea\xb9\xcb\xb9\x01\x04Stat\x12\x14\n\x04HASH\x10\x01\x1a\n\xea\xb9\xcb\xb9\x01\x04Hash\x12\x1c\n\x08\x44OWNLOAD\x10\x02\x1a\x0e\xea\xb9\xcb\xb9\x01\x08\x44ownload\"\xc7\x03\n\x0e\x46ileFinderArgs\x12U\n\x05paths\x18\x01 \x03(\tBF\xe2\xfc\xe3\xc4\x01@\n\x0eGlobExpression\x12.A path to glob that can contain %% expansions.\x12G\n\x08pathtype\x18\x02 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB\x1d\xe2\xfc\xe3\xc4\x01\x17\x12\x15Path type to glob in.\x12(\n\nconditions\x18\x05 \x03(\x0b\x32\x14.FileFinderCondition\x12!\n\x06\x61\x63tion\x18\x06 \x01(\x0b\x32\x11.FileFinderAction\x12\xc7\x01\n\x12no_file_type_check\x18\x07 \x01(\x08:\x05\x66\x61lseB\xa3\x01\xe2\xfc\xe3\xc4\x01\x9c\x01\x12\x97\x01Work with all kinds of files - not only with regular ones.NOTE: This is very dangerous and should be used with care, see MemoryCollector as an example.\x18\x02\"p\n\x10\x46ileFinderResult\x12\x1e\n\nstat_entry\x18\x01 \x01(\x0b\x32\n.StatEntry\x12!\n\x07matches\x18\x02 \x03(\x0b\x32\x10.BufferReference\x12\x19\n\nhash_entry\x18\x03 \x01(\x0b\x32\x05.Hash\"\xe6\x01\n\rFileReference\x12\x46\n\tclient_id\x18\x01 \x01(\tB3\xe2\xfc\xe3\xc4\x01-\n\tClientURN\x12 The client id the file lives on.\x12=\n\tpathspecs\x18\x02 \x03(\x0b\x32\t.PathSpecB\x1f\xe2\xfc\xe3\xc4\x01\x19\x12\x17The paths to the files.\x12N\n\rsha256_hashes\x18\x03 \x03(\x0c\x42\x37\xe2\xfc\xe3\xc4\x01\x31\n\nHashDigest\x12#A SHA256 hash digest for each file.\"3\n\x12\x42it9DownloaderArgs\x12\x1d\n\x05\x66iles\x18\x01 \x03(\x0b\x32\x0e.FileReference\"\xfc\x03\n\x17RegistryFinderCondition\x12\x35\n\x0e\x63ondition_type\x18\x01 \x01(\x0e\x32\x1d.RegistryFinderCondition.Type\x12\x45\n\x13value_literal_match\x18\x02 \x01(\x0b\x32(.FileFinderContentsLiteralMatchCondition\x12\x41\n\x11value_regex_match\x18\x03 \x01(\x0b\x32&.FileFinderContentsRegexMatchCondition\x12?\n\x11modification_time\x18\x04 \x01(\x0b\x32$.FileFinderModificationTimeCondition\x12&\n\x04size\x18\x05 \x01(\x0b\x32\x18.FileFinderSizeCondition\"\xb6\x01\n\x04Type\x12\x32\n\x13VALUE_LITERAL_MATCH\x10\x00\x1a\x19\xea\xb9\xcb\xb9\x01\x13Value literal match\x12.\n\x11VALUE_REGEX_MATCH\x10\x01\x1a\x17\xea\xb9\xcb\xb9\x01\x11Value regex match\x12.\n\x11MODIFICATION_TIME\x10\x02\x1a\x17\xea\xb9\xcb\xb9\x01\x11Modification time\x12\x1a\n\x04SIZE\x10\x03\x1a\x10\xea\xb9\xcb\xb9\x01\nValue size\"\xa2\x01\n\x12RegistryFinderArgs\x12^\n\nkeys_paths\x18\x01 \x03(\tBJ\xe2\xfc\xe3\xc4\x01\x44\n\x0eGlobExpression\x12\x32Glob expression for registry keys to be retrieved.\x12,\n\nconditions\x18\x02 \x03(\x0b\x32\x18.RegistryFinderCondition\"\xa4\x02\n\x18MemoryCollectorCondition\x12\x36\n\x0e\x63ondition_type\x18\x01 \x01(\x0e\x32\x1e.MemoryCollectorCondition.Type\x12?\n\rliteral_match\x18\x02 \x01(\x0b\x32(.FileFinderContentsLiteralMatchCondition\x12;\n\x0bregex_match\x18\x03 \x01(\x0b\x32&.FileFinderContentsRegexMatchCondition\"R\n\x04Type\x12&\n\rLITERAL_MATCH\x10\x01\x1a\x13\xea\xb9\xcb\xb9\x01\rLiteral match\x12\"\n\x0bREGEX_MATCH\x10\x02\x1a\x11\xea\xb9\xcb\xb9\x01\x0bRegex match\"+\n)MemoryCollectorWithoutLocalCopyDumpOption\"\xea\x04\n&MemoryCollectorWithLocalCopyDumpOption\x12\xa8\x01\n\x07\x64\x65stdir\x18\x01 \x01(\tB\x96\x01\xe2\xfc\xe3\xc4\x01\x8f\x01\x12\x8a\x01\x44\x65stination directory on the client for the temporary image. Leave blank to use defaults. Parent directories will be created if necessary.\x18\x01\x12\x44\n\x06offset\x18\x02 \x01(\x04:\x01\x30\x42\x31\xe2\xfc\xe3\xc4\x01+\x12\x16Memory offset in bytes\x18\x01\"\x0fStarting Offset\x12\x66\n\x06length\x18\x03 \x01(\x04:\x01\x30\x42S\xe2\xfc\xe3\xc4\x01M\x12\x35Number of bytes to copy (default 0 copies all memory)\x18\x01\"\x12Length to download\x12\x46\n\x04gzip\x18\x04 \x01(\x08:\x04trueB2\xe2\xfc\xe3\xc4\x01,\x12(Gzip temporary image file on the client.\x18\x01\x12\x9e\x01\n\x15\x63heck_disk_free_space\x18\x05 \x01(\x08:\x04trueBy\xe2\xfc\xe3\xc4\x01s\x12oIf true, check for available disk space before doing a local copy. Ignored if the dump option isn\'t local copy.\x18\x01\"\x8f\x03\n\x19MemoryCollectorDumpOption\x12s\n\x0boption_type\x18\x01 \x01(\x0e\x32!.MemoryCollectorDumpOption.Option:\x12WITHOUT_LOCAL_COPYB\'\xe2\xfc\xe3\xc4\x01!\x12\x12How to do the dump\"\x0b\x44ump option\x12\x46\n\x12without_local_copy\x18\x02 \x01(\x0b\x32*.MemoryCollectorWithoutLocalCopyDumpOption\x12@\n\x0fwith_local_copy\x18\x03 \x01(\x0b\x32\'.MemoryCollectorWithLocalCopyDumpOption\"s\n\x06Option\x12\x35\n\x12WITHOUT_LOCAL_COPY\x10\x00\x1a\x1d\xea\xb9\xcb\xb9\x01\x17\x44on\'t create local copy\x12\x32\n\x0fWITH_LOCAL_COPY\x10\x01\x1a\x1d\xea\xb9\xcb\xb9\x01\x17\x43reate local copy first\"n\n\x1dMemoryCollectorDownloadAction\x12M\n\x0b\x64ump_option\x18\x01 \x01(\x0b\x32\x1a.MemoryCollectorDumpOptionB\x1c\xe2\xfc\xe3\xc4\x01\x16\x12\x14Memory dump options.\"\xfe\x03\n!MemoryCollectorSendToSocketAction\x12M\n\x0b\x64ump_option\x18\x01 \x01(\x0b\x32\x1a.MemoryCollectorDumpOptionB\x1c\xe2\xfc\xe3\xc4\x01\x16\x12\x14Memory dump options.\x12j\n\x0e\x61\x64\x64ress_family\x18\x02 \x01(\x0e\x32\x16.NetworkAddress.Family:\x04INETB4\xe2\xfc\xe3\xc4\x01.\x12,address family to use (AF_INET or AF_INET6).\x12\x39\n\x04host\x18\x03 \x01(\tB+\xe2\xfc\xe3\xc4\x01%\x12#Hostname or IP to send the file to.\x12\x41\n\x04port\x18\x04 \x01(\x04:\x05\x31\x32\x33\x34\x35\x42,\xe2\xfc\xe3\xc4\x01&\x12$Port number on the listening server.\x12N\n\x03key\x18\x05 \x01(\x0c\x42\x41\xe2\xfc\xe3\xc4\x01;\n\tAES128Key\x12.An encryption key given in hex representation.\x12P\n\x02iv\x18\x06 \x01(\x0c\x42\x44\xe2\xfc\xe3\xc4\x01>\n\tAES128Key\x12\x31The iv for AES, also given in hex representation.\"\x81\x03\n\x15MemoryCollectorAction\x12\x64\n\x0b\x61\x63tion_type\x18\x01 \x01(\x0e\x32\x1d.MemoryCollectorAction.Action:\x04NONEB*\xe2\xfc\xe3\xc4\x01$\x12\x1aWhat to do with the memory\"\x06\x41\x63tion\x12\x30\n\x08\x64ownload\x18\x02 \x01(\x0b\x32\x1e.MemoryCollectorDownloadAction\x12:\n\x0esend_to_socket\x18\x03 \x01(\x0b\x32\".MemoryCollectorSendToSocketAction\"\x93\x01\n\x06\x41\x63tion\x12\x35\n\x04NONE\x10\x00\x1a+\xea\xb9\xcb\xb9\x01%None (just report conditions matches)\x12\x1c\n\x08\x44OWNLOAD\x10\x01\x1a\x0e\xea\xb9\xcb\xb9\x01\x08\x44ownload\x12\x34\n\x0eSEND_TO_SOCKET\x10\x02\x1a \xea\xb9\xcb\xb9\x01\x1aSend memory dump to socket\"\xae\x02\n\x13MemoryCollectorArgs\x12-\n\nconditions\x18\x01 \x03(\x0b\x32\x19.MemoryCollectorCondition\x12&\n\x06\x61\x63tion\x18\x02 \x01(\x0b\x32\x16.MemoryCollectorAction\x12\xbf\x01\n\x10\x64river_installer\x18\x05 \x01(\x0b\x32\x16.DriverInstallTemplateB\x8c\x01\xe2\xfc\xe3\xc4\x01\x85\x01\x12\x80\x01\x41n optional DriverInstallTemplate proto to control driver installation. If not set, the default installation proto will be used.\x18\x02\"\x85\x01\n\x1f\x43ollectArtifactDependenciesArgs\x12\x62\n\rartifact_list\x18\x01 \x03(\tBK\xe2\xfc\xe3\xc4\x01\x45\n\x0c\x41rtifactName\x12\x35\x41 list of Artifact names to collect dependencies for.\"w\n\x1d\x41rtifactFallbackCollectorArgs\x12V\n\rartifact_name\x18\x01 \x01(\tB?\xe2\xfc\xe3\xc4\x01\x39\n\x0c\x41rtifactName\x12)Name of the artifact using this fallback.\"\x92\x02\n\x1fKnowledgeBaseInitializationArgs\x12s\n\x10require_complete\x18\x01 \x01(\x08:\x04trueBS\xe2\xfc\xe3\xc4\x01M\x12KIf true require all dependencies to be complete.  Raise if any are missing.\x12z\n\x0blightweight\x18\x02 \x01(\x08:\x04trueB_\xe2\xfc\xe3\xc4\x01Y\x12WIf true skip all heavyweight artifacts defined in Artifacts.knowledge_base_heavyweight.\"Y\n\x1f\x45xportHuntResultsFilesAsZipArgs\x12\x36\n\x08hunt_urn\x18\x01 \x01(\tB$\xe2\xfc\xe3\xc4\x01\x1e\n\x06RDFURN\x12\x14The URN of the hunt.\"\x91\x01\n\x14\x45ndToEndTestFlowArgs\x12y\n\ntest_names\x18\x01 \x03(\tBe\xe2\xfc\xe3\xc4\x01_\x12]List of endtoend test classes to run. If none are specifed, run all automated endtoend tests.\"\xa2\x01\n\x12\x44iskVolumeInfoArgs\x12)\n\tpath_list\x18\x01 \x03(\tB\x16\xe2\xfc\xe3\xc4\x01\x10\x12\x0eList of paths.\x12\x61\n\x08pathtype\x18\x02 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB7\xe2\xfc\xe3\xc4\x01\x31\x12-Type of path. Only OS is currently supported.\x18\x02')
+  serialized_pb='\n\x15grr/proto/flows.proto\x1a\x16grr/proto/export.proto\x1a\x14grr/proto/jobs.proto\x1a\x1egrr/proto/knowledge_base.proto\x1a\x18grr/proto/semantic.proto\"\xc4\x01\n\x08\x41\x43LToken\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x0e\n\x06reason\x18\x02 \x01(\t\x12\x18\n\x10requested_access\x18\x03 \x01(\t\x12\x41\n\x06\x65xpiry\x18\x05 \x01(\x04\x42\x31\xe2\xfc\xe3\xc4\x01+\n\x0bRDFDatetime\x12\x1cWhen does this token expire?\x12\x12\n\nsource_ips\x18\x06 \x03(\t\x12\x0f\n\x07process\x18\x07 \x01(\t\x12\x14\n\x0cis_emergency\x18\x08 \x01(\x08\"\x8a\x03\n\x0bGUISettings\x12\x46\n\x04mode\x18\x01 \x01(\x0e\x32\x13.GUISettings.UIMode:\x05\x42\x41SICB\x1c\xe2\xfc\xe3\xc4\x01\x16\x12\x14User interface mode.\x12L\n\x0b\x63\x61nary_mode\x18\x03 \x01(\x08\x42\x37\xe2\xfc\xe3\xc4\x01\x31\x12/If true, show features that are being canaried.\x12\x64\n\rdocs_location\x18\x02 \x01(\x0e\x32\x19.GUISettings.DocsLocation:\x06REMOTEB*\xe2\xfc\xe3\xc4\x01$\x12\"Where to serve documentation from.\",\n\x06UIMode\x12\t\n\x05\x42\x41SIC\x10\x00\x12\x0c\n\x08\x41\x44VANCED\x10\x01\x12\t\n\x05\x44\x45\x42UG\x10\x02\"%\n\x0c\x44ocsLocation\x12\t\n\x05LOCAL\x10\x00\x12\n\n\x06REMOTE\x10\x01:*\xda\xfc\xe3\xc4\x01$\n\"User GUI settings and preferences.\"\xcb\x10\n\x0e\x46lowRunnerArgs\x12\x63\n\x08priority\x18\x01 \x01(\x0e\x32\x14.GrrMessage.Priority:\x0fMEDIUM_PRIORITYB*\xe2\xfc\xe3\xc4\x01$\x12 The priority used for this flow.\x18\x01\x12k\n\x0enotify_to_user\x18\x02 \x01(\x08:\x04trueBM\xe2\xfc\xe3\xc4\x01G\x12/Should a notification be sent to the initiator.\"\x14Notify at Completion\x12g\n\x0csend_replies\x18\x03 \x01(\x08:\x04trueBK\xe2\xfc\xe3\xc4\x01\x45\x12\x33Should send replies back to the parent flow or not.\x18\x02\"\x0cSend Replies\x12\x9e\x01\n\x12notification_event\x18\x04 \x01(\tB\x81\x01\xe2\xfc\xe3\xc4\x01{\x12\x63\x41n event listener\'s event name. An event will be published to this listener once the flow finishes.\x18\x02\"\x12Notification Event\x12\x88\x01\n\x10notification_urn\x18\x0e \x01(\tBn\xe2\xfc\xe3\xc4\x01h\n\tSessionID\x12YThe Session ID for the event listener to receive a notification when this flow completes.\x18\x02\x12L\n\tclient_id\x18\x05 \x01(\tB9\xe2\xfc\xe3\xc4\x01\x33\n\tClientURN\x12$The client id this flow operates on.\x18\x02\x12\x42\n\x05queue\x18\x06 \x01(\t:\x01WB0\xe2\xfc\xe3\xc4\x01*\n\x06RDFURN\x12\x1eThe queue to use for the flow.\x18\x02\x12H\n\x08\x65vent_id\x18\x07 \x01(\tB6\xe2\xfc\xe3\xc4\x01\x30\x12,A logging event id for issuing further logs.\x18\x02\x12Q\n\x05token\x18\x08 \x01(\x0b\x32\t.ACLTokenB7\xe2\xfc\xe3\xc4\x01\x31\x12-The access token to be used for this request.\x18\x02\x12Q\n\tcpu_limit\x18\t \x01(\x04\x42>\xe2\xfc\xe3\xc4\x01\x38\x12\x34\x41 limit on the client cpu seconds used by this flow.\x18\x01\x12V\n\x13network_bytes_limit\x18\r \x01(\x04\x42\x39\xe2\xfc\xe3\xc4\x01\x33\x12/A limit on the total traffic used by this flow.\x18\x01\x12U\n\rrequest_state\x18\n \x01(\x0b\x32\r.RequestStateB/\xe2\xfc\xe3\xc4\x01)\x12%The request state of the parent flow.\x18\x02\x12P\n\tflow_name\x18\x0b \x01(\tB=\xe2\xfc\xe3\xc4\x01\x37\x12\x33The name of the class implementing the flow to run.\x18\x02\x12l\n\x0f\x62\x61se_session_id\x18\x0c \x01(\tBS\xe2\xfc\xe3\xc4\x01M\n\x06RDFURN\x12\x41The session id for the flow runner. If not specified we make one.\x18\x02\x12~\n\nstart_time\x18\x0f \x01(\x04\x42j\xe2\xfc\xe3\xc4\x01\x64\n\x0bRDFDatetime\x12SDo not process this flow until this time. (Implies the flow is run asyncronously.).\x18\x01\x12\xa8\x01\n\x06output\x18\x10 \x01(\t:\x14\x61nalysis/{p}/{u}-{t}B\x81\x01\xe2\xfc\xe3\xc4\x01{\x12wIf set, a relative URN to the client\'s namespace where a collection will be created, and the result will be written to.\x18\x01\x12Z\n\x13logs_collection_urn\x18\x11 \x01(\tB=\xe2\xfc\xe3\xc4\x01\x37\n\x06RDFURN\x12+The logs collection to log to for the flow.\x18\x02\x12\xa2\x01\n\x1awrite_intermediate_results\x18\x12 \x01(\x08:\x05\x66\x61lseBw\xe2\xfc\xe3\xc4\x01q\x12mIf true, all child flow results received with sendreply will be written to the the flow\'s default collection.\x18\x01\x12\xb4\x01\n\x10require_fastpoll\x18\x13 \x01(\x08:\x04trueB\x93\x01\xe2\xfc\xe3\xc4\x01\x8c\x01\x12\x89\x01This value is passed to the client during CallClient, and by default will cause the client to enter fastpoll afterprocessing the message.\"\xc2\r\n\x0eHuntRunnerArgs\x12N\n\thunt_name\x18\x01 \x01(\tB;\xe2\xfc\xe3\xc4\x01\x35\x12\x33The name of the class implementing the hunt to run.\x12:\n\x0b\x64\x65scription\x18\x02 \x01(\tB%\xe2\xfc\xe3\xc4\x01\x1f\x12\x1dThe description of this hunt.\x12x\n\x0bregex_rules\x18\x03 \x03(\x0b\x32\x16.ForemanAttributeRegexBK\xe2\xfc\xe3\xc4\x01\x45\x12\x43Regex rules that trigger this hunt. Note that all rules must match.\x12s\n\rinteger_rules\x18\x04 \x03(\x0b\x32\x18.ForemanAttributeIntegerBB\xe2\xfc\xe3\xc4\x01<\x12:Integer rules that trigger this hunt.All rules must match.\x12\x63\n\x08priority\x18\x05 \x01(\x0e\x32\x14.GrrMessage.Priority:\x0fMEDIUM_PRIORITYB*\xe2\xfc\xe3\xc4\x01$\x12 The priority used for this flow.\x18\x01\x12\xa4\x01\n\x12notification_event\x18\x06 \x01(\tB\x87\x01\xe2\xfc\xe3\xc4\x01\x80\x01\x12hAn event name for an event listener. An event will be published to this listener once the flow finishes.\x18\x02\"\x12Notification Event\x12\x42\n\x05queue\x18\x07 \x01(\t:\x01WB0\xe2\xfc\xe3\xc4\x01*\n\x06RDFURN\x12\x1eThe queue to use for the flow.\x18\x02\x12Q\n\x05token\x18\x08 \x01(\x0b\x32\t.ACLTokenB7\xe2\xfc\xe3\xc4\x01\x31\x12-The access token to be used for this request.\x18\x02\x12Q\n\tcpu_limit\x18\t \x01(\x04\x42>\xe2\xfc\xe3\xc4\x01\x38\x12\x34\x41 limit on the client cpu seconds used by this flow.\x18\x01\x12V\n\x13network_bytes_limit\x18\r \x01(\x04\x42\x39\xe2\xfc\xe3\xc4\x01\x33\x12/A limit on the total traffic used by this flow.\x18\x01\x12\xea\x01\n\x0c\x63lient_limit\x18\n \x01(\x04:\x01\x30\x42\xd0\x01\xe2\xfc\xe3\xc4\x01\xc9\x01\x12\xb8\x01Maximum number of clients participating in the hunt. Note that this limit can be overshot by a small number of clients if there are multiple workers running. Use this only for testing.\"\x0c\x43lient Limit\x12V\n\x0b\x65xpiry_time\x18\x0b \x01(\x04:\x07\x32\x36\x37\x38\x34\x30\x30\x42\x38\xe2\xfc\xe3\xc4\x01\x32\n\x08\x44uration\x12\x19\x45xpiry time for the hunt.\"\x0b\x45xpiry Time\x12\x8e\x01\n\x0b\x63lient_rate\x18\x0c \x01(\x02:\x02\x32\x30\x42u\xe2\xfc\xe3\xc4\x01o\x12mThe maximum number of clients to engage per minute.A rate of 0 means to schedule clients as fast as possible.\x12Z\n\x13logs_collection_urn\x18\x0e \x01(\tB=\xe2\xfc\xe3\xc4\x01\x37\n\x06RDFURN\x12+The logs collection to log to for the hunt.\x18\x02\x12\xb4\x01\n\x10require_fastpoll\x18\x0f \x01(\x08:\x04trueB\x93\x01\xe2\xfc\xe3\xc4\x01\x8c\x01\x12\x89\x01This value is passed to the client during CallClient, and by default will cause the client to enter fastpoll afterprocessing the message.\"W\n\x0eSampleHuntArgs\x12\x45\n\x08\x66ilename\x18\x01 \x01(\t:\r/tmp/evil.txtB$\xe2\xfc\xe3\xc4\x01\x1e\x12\x1c\x65vil filename to search for.\"\xce\x02\n\x0b\x46lowRequest\x12H\n\nclient_ids\x18\x01 \x03(\tB4\xe2\xfc\xe3\xc4\x01.\n\tClientURN\x12!The clients to start the flow on.\x12\xac\x01\n\x04\x61rgs\x18\x05 \x01(\x0c\x42\x9d\x01\xe2\xfc\xe3\xc4\x01\x96\x01\x12\x81\x01\x41rgs to the flow. These depend on the flow_name parameter.It is expected that this field contains an instance of flow\'s arg_type.*\x10GetFlowArgsClass\x12\x46\n\x0brunner_args\x18\x06 \x01(\x0b\x32\x0f.FlowRunnerArgsB \xe2\xfc\xe3\xc4\x01\x1a\x12\x18\x41rgs to the flow runner.\"\xd3\x01\n\x0cOutputPlugin\x12;\n\x0bplugin_name\x18\x01 \x01(\tB&\xe2\xfc\xe3\xc4\x01 \x12\x1eThe name of the output plugin.\x12\x85\x01\n\x0bplugin_args\x18\x02 \x01(\x0c\x42p\xe2\xfc\xe3\xc4\x01j\x12TThe parameters for this plugin. Must be an instance of the named plugin\'s args_type.*\x12GetPluginArgsClass\"\x88\x01\n\x0f\x45mailPluginArgs\x12[\n\x05\x65mail\x18\x01 \x01(\tBL\xe2\xfc\xe3\xc4\x01\x46\n\x12\x44omainEmailAddress\x12\x30The email address that messages will be sent to.\x12\x18\n\x0b\x65mail_limit\x18\x02 \x01(\x04:\x03\x31\x30\x30\"\xf3\x02\n\x13\x43SVOutputPluginArgs\x12\xbb\x01\n\noutput_dir\x18\x01 \x01(\tB\xa6\x01\xe2\xfc\xe3\xc4\x01\x9f\x01\n\x06RDFURN\x12\x92\x01\x41\x46\x46\x34 directory where resulting CSV files will be written to. If unset, results will be written to a file with a unique identifier under aff4:/tmp.\x18\x01\x12\x41\n\x0e\x65xport_options\x18\x02 \x01(\x0b\x32\x0e.ExportOptionsB\x19\xe2\xfc\xe3\xc4\x01\x13\x12\x0f\x45xport options.\x18\x01\x12[\n\x0e\x63onvert_values\x18\x03 \x01(\x08:\x04trueB=\xe2\xfc\xe3\xc4\x01\x37\x12\x33If true, convert values for export-friendly format.\x18\x02\"\x80\x01\n\x14\x43ollectionPluginArgs\x12h\n\x0f\x63ollection_name\x18\x01 \x01(\t:\x07ResultsBF\xe2\xfc\xe3\xc4\x01@\x12+The name of the collection within the hunt.\x18\x01\"\x0f\x43ollection Name\"\xd2\x01\n\x17VariableGenericHuntArgs\x12^\n\x05\x66lows\x18\x01 \x03(\x0b\x32\x0c.FlowRequestBA\xe2\xfc\xe3\xc4\x01;\x12\x39\x41 list of requests for starting flows on certain clients.\x12W\n\x0eoutput_plugins\x18\x02 \x03(\x0b\x32\r.OutputPluginB0\xe2\xfc\xe3\xc4\x01*\x12(The output plugins to use for this hunt.\"\xca\x02\n\x0fGenericHuntArgs\x12\x80\x01\n\tflow_args\x18\x02 \x01(\x0c\x42m\xe2\xfc\xe3\xc4\x01g\x12QArguments to the flow to run. This should be an instance of flow.args_type proto.\x18\x02*\x10GetFlowArgsClass\x12[\n\x10\x66low_runner_args\x18\x03 \x01(\x0b\x32\x0f.FlowRunnerArgsB0\xe2\xfc\xe3\xc4\x01*\x12(The runner args for launching each flow.\x12W\n\x0eoutput_plugins\x18\x04 \x03(\x0b\x32\r.OutputPluginB0\xe2\xfc\xe3\xc4\x01*\x12(The output plugins to use for this hunt.\"\x95\x08\n\x0c\x42\x61reGrepSpec\x12\x45\n\x0cstart_offset\x18\x02 \x01(\x04:\x01\x30\x42,\xe2\xfc\xe3\xc4\x01&\x12$Start searching at this file offset.\x12P\n\x06length\x18\x03 \x01(\x04:\x0b\x31\x30\x37\x33\x37\x34\x31\x38\x32\x34\x30\x42\x33\xe2\xfc\xe3\xc4\x01-\x12+How far (in bytes) into the file to search.\x12^\n\x05regex\x18\x04 \x01(\tBO\xe2\xfc\xe3\xc4\x01I\n\x11RegularExpression\x12\x34The regular expression which will be used to search.\x12K\n\x07literal\x18\x05 \x01(\x0c\x42:\xe2\xfc\xe3\xc4\x01\x34\n\x11LiteralExpression\x12\x1fSearch for this literal string.\x12u\n\x04mode\x18\x06 \x01(\x0e\x32\x12.BareGrepSpec.Mode:\x08\x41LL_HITSBI\xe2\xfc\xe3\xc4\x01\x43\x12\x41When should searching stop? Stop after one hit or search for all?\x12K\n\x0c\x62ytes_before\x18\x07 \x01(\r:\x02\x31\x30\x42\x31\xe2\xfc\xe3\xc4\x01+\x12\'Include this many bytes before the hit.\x18\x01\x12I\n\x0b\x62ytes_after\x18\x08 \x01(\r:\x02\x31\x30\x42\x30\xe2\xfc\xe3\xc4\x01*\x12&Include this many bytes after the hit.\x18\x01\x12\xc3\x01\n\nxor_in_key\x18\t \x01(\r:\x02\x33\x37\x42\xaa\x01\xe2\xfc\xe3\xc4\x01\xa3\x01\x12\x9e\x01When searching memory we need to ensure we dont hit on our own process. This allows us to obfuscate the search string in memory to avoid us finding ourselves.\x18\x01\x12\xc4\x01\n\x0bxor_out_key\x18\n \x01(\r:\x02\x35\x37\x42\xaa\x01\xe2\xfc\xe3\xc4\x01\xa3\x01\x12\x9e\x01When searching memory we need to ensure we dont hit on our own process. This allows us to obfuscate the search string in memory to avoid us finding ourselves.\x18\x01\"#\n\x04Mode\x12\x0c\n\x08\x41LL_HITS\x10\x00\x12\r\n\tFIRST_HIT\x10\x01\"^\n\rCAEnrolerArgs\x12M\n\x03\x63sr\x18\x01 \x01(\x0b\x32\x0c.CertificateB2\xe2\xfc\xe3\xc4\x01,\x12*A Certificate RDFValue with the CSR in it.\"\xa4\x02\n\x16\x44\x65leteGRRTempFilesArgs\x12\x89\x02\n\x08pathspec\x18\x01 \x01(\x0b\x32\t.PathSpecB\xeb\x01\xe2\xfc\xe3\xc4\x01\xe4\x01\x12\xe1\x01The pathspec target for deletion.If path is a directory, look in the top level for filenames beginning with Client.tempfile_prefix, and delete them. If path is a regular file and starts with Client.tempfile_prefix, delete it.\"?\n\rUninstallArgs\x12.\n\x04kill\x18\x01 \x01(\x08\x42 \xe2\xfc\xe3\xc4\x01\x1a\x12\x18Kills the client if set.\"[\n\x17UpdateConfigurationArgs\x12@\n\x06\x63onfig\x18\x01 \x01(\x0b\x32\x05.DictB)\xe2\xfc\xe3\xc4\x01#\x12!The config to send to the client.\"\x8c\x01\n\x15\x45xecutePythonHackArgs\x12;\n\thack_name\x18\x01 \x01(\tB(\xe2\xfc\xe3\xc4\x01\"\x12 The name of the hack to execute.\x12\x36\n\x07py_args\x18\x02 \x01(\x0b\x32\x05.DictB\x1e\xe2\xfc\xe3\xc4\x01\x18\x12\x16Python Hack Arguments.\"\xd8\x01\n\x12\x45xecuteCommandArgs\x12\x15\n\x03\x63md\x18\x01 \x01(\tB\x08\xe2\xfc\xe3\xc4\x01\x02\x12\x00\x12S\n\x0c\x63ommand_line\x18\x02 \x01(\tB=\xe2\xfc\xe3\xc4\x01\x37\x12\x35The arguments to the command as a shell command line.\x12V\n\ntime_limit\x18\x03 \x01(\x03:\x02-1B>\xe2\xfc\xe3\xc4\x01\x38\x12\x36The time limit for this execution, -1 means unlimited.\"\x93\x01\n\x16OnlineNotificationArgs\x12y\n\x05\x65mail\x18\x01 \x01(\tBj\xe2\xfc\xe3\xc4\x01\x64\n\x12\x44omainEmailAddress\x12NEmail address to send to. If not set, mail will be sent to the logged in user.\"o\n\x10UpdateClientArgs\x12[\n\tblob_path\x18\x01 \x01(\tBH\xe2\xfc\xe3\xc4\x01\x42\n\x06RDFURN\x12\x38\x41n aff4 path to a GRRSignedBlob of a new client version.\"s\n\rKeepAliveArgs\x12\x62\n\x08\x64uration\x18\x01 \x01(\x04:\x04\x33\x36\x30\x30\x42J\xe2\xfc\xe3\xc4\x01\x44\n\x08\x44uration\x12\x38Until when should the client stay in the fast poll mode.\"\x8c\x01\n\x11TerminateFlowArgs\x12\x46\n\x08\x66low_urn\x18\x01 \x01(\tB4\xe2\xfc\xe3\xc4\x01.\n\tSessionID\x12!The URN of the flow to terminate.\x12/\n\x06reason\x18\x02 \x01(\tB\x1f\xe2\xfc\xe3\xc4\x01\x19\x12\x17Reason for termination.\"\x9e\x01\n\x10LaunchBinaryArgs\x12\x41\n\x06\x62inary\x18\x01 \x01(\tB1\xe2\xfc\xe3\xc4\x01+\n\x06RDFURN\x12!The URN of the binary to execute.\x12G\n\x0c\x63ommand_line\x18\x02 \x01(\tB1\xe2\xfc\xe3\xc4\x01+\x12)Binary Arguments as a shell command line.\"\xd8\x04\n WinUserActivityInvestigationArgs\x12<\n\x08username\x18\x01 \x01(\tB*\xe2\xfc\xe3\xc4\x01$\x12\"The user to target the actions to.\x12R\n\x13get_browser_history\x18\x02 \x01(\x08:\x04trueB/\xe2\xfc\xe3\xc4\x01)\x12\'Call each of the browser history flows.\x12\\\n\x16recursive_list_homedir\x18\x03 \x01(\x04:\x01\x35\x42\x39\xe2\xfc\xe3\xc4\x01\x33\x12\x31Recursively list the users homedir to this depth.\x12Z\n\x1crecursive_list_user_registry\x18\x04 \x01(\x04:\x01\x35\x42\x31\xe2\xfc\xe3\xc4\x01+\x12)Recursively list the users registry hive.\x12\x46\n\rartifact_list\x18\x05 \x03(\tB/\xe2\xfc\xe3\xc4\x01)\n\x0c\x41rtifactName\x12\x19\x41 list of Artifact names.\x12\\\n\x17timeline_collected_data\x18\x06 \x01(\x08:\x04trueB5\xe2\xfc\xe3\xc4\x01/\x12-Once complete create a timeline for the host.\x12\x42\n\x07use_tsk\x18\x07 \x01(\x08\x42\x31\xe2\xfc\xe3\xc4\x01+\x12)Use raw filesystem access where possible.\"\x8b\r\n\x19\x41rtifactCollectorFlowArgs\x12L\n\rartifact_list\x18\x01 \x03(\tB5\xe2\xfc\xe3\xc4\x01/\n\x0c\x41rtifactName\x12\x1f\x41 list of Artifact class names.\x12M\n\x07use_tsk\x18\x02 \x01(\x08:\x05\x66\x61lseB5\xe2\xfc\xe3\xc4\x01/\x12-Whether raw filesystem access should be used.\x12\xe5\x02\n\x15store_results_in_aff4\x18\x03 \x01(\x08:\x05\x66\x61lseB\xbe\x02\xe2\xfc\xe3\xc4\x01\xb7\x02\x12\xb2\x02Should the collected artifacts be written to the GRR AFF4 namespace based on the AFF4->RDF map. Collectors like GetFiles and GetRegistryKeys already write their results to the client space and only a small number of types are included in the map. Users should not enable this in the vast majority of cases.\x18\x01\x12\x92\x01\n\x18split_output_by_artifact\x18\x05 \x01(\x08:\x05\x66\x61lseBi\xe2\xfc\xe3\xc4\x01\x63\x12_If True, use output as a directory and write a separate collection for each artifact collected.\x18\x01\x12\x8d\x01\n\x0eknowledge_base\x18\x06 \x01(\x0b\x32\x0e.KnowledgeBaseBe\xe2\xfc\xe3\xc4\x01_\x12[An optional knowledge base to use, if not specified we retrieve one from the client object.\x18\x02\x12\x9e\x01\n\x13on_no_results_error\x18\x07 \x01(\x08:\x05\x66\x61lseBz\xe2\xfc\xe3\xc4\x01t\x12rIf True, an artifact returning no results will raise a hard error. This is useful where you always expect results.\x12\xa6\x01\n\rapply_parsers\x18\x08 \x01(\x08:\x04trueB\x88\x01\xe2\xfc\xe3\xc4\x01\x81\x01\x12}If True, apply any relevant parser to the collected data. If False, return the raw collected data e.g Files or Registry Keys.\x18\x01\x12|\n\rmax_file_size\x18\t \x01(\x04:\t100000000BZ\xe2\xfc\xe3\xc4\x01T\n\x08\x42yteSize\x12\x46The maximum size of files we will download in bytes, 100MB by default.\x18\x01\x12\x80\x01\n\x0c\x64\x65pendencies\x18\x0b \x01(\x0e\x32%.ArtifactCollectorFlowArgs.Dependency:\nUSE_CACHEDB7\xe2\xfc\xe3\xc4\x01\x31\x12-Specifies how dependencies should be handled.\x18\x01\"\xf8\x01\n\nDependency\x12t\n\nUSE_CACHED\x10\x00\x1a\x64\xea\xb9\xcb\xb9\x01^Use the knowledgebase as a cache. If knowledgebase isn\'t present, a new one will be populated.\x12+\n\x0bIGNORE_DEPS\x10\x01\x1a\x1a\xea\xb9\xcb\xb9\x01\x14Ignore dependencies.\x12G\n\tFETCH_NOW\x10\x02\x1a\x38\xea\xb9\xcb\xb9\x01\x32\x46\x65tch only required dependencies for this artifact\"h\n\x0fInterrogateArgs\x12U\n\x0blightweight\x18\x01 \x01(\x08:\x04trueB:\xe2\xfc\xe3\xc4\x01\x34\x12\x32Perform a light weight version of the interrogate.\"Y\n\x13\x46ingerprintFileArgs\x12\x42\n\x08pathspec\x18\x01 \x01(\x0b\x32\t.PathSpecB%\xe2\xfc\xe3\xc4\x01\x1f\x12\x1dThe file path to fingerprint.\"\x92\x01\n\x15\x46ingerprintFileResult\x12\x43\n\x08\x66ile_urn\x18\x01 \x01(\tB1\xe2\xfc\xe3\xc4\x01+\n\x06RDFURN\x12!The URN of the file fingerprinted\x12\x34\n\nhash_entry\x18\x02 \x01(\x0b\x32\x05.HashB\x19\xe2\xfc\xe3\xc4\x01\x13\x12\x11\x46ile hash object.\"\xe7\x05\n\x17\x44ownloadMemoryImageArgs\x12\xa8\x01\n\x07\x64\x65stdir\x18\x01 \x01(\tB\x96\x01\xe2\xfc\xe3\xc4\x01\x8f\x01\x12\x8a\x01\x44\x65stination directory on the client for the temporary image. Leave blank to use defaults. Parent directories will be created if necessary.\x18\x01\x12\x44\n\x06offset\x18\x02 \x01(\x04:\x01\x30\x42\x31\xe2\xfc\xe3\xc4\x01+\x12\x16Memory offset in bytes\x18\x01\"\x0fStarting Offset\x12\x66\n\x06length\x18\x03 \x01(\x04:\x01\x30\x42S\xe2\xfc\xe3\xc4\x01M\x12\x35Number of bytes to copy (default 0 copies all memory)\x18\x01\"\x12Length to download\x12\x46\n\x04gzip\x18\x04 \x01(\x08:\x04trueB2\xe2\xfc\xe3\xc4\x01,\x12(Gzip temporary image file on the client.\x18\x01\x12\xc0\x01\n\x10\x64river_installer\x18\x05 \x01(\x0b\x32\x16.DriverInstallTemplateB\x8d\x01\xe2\xfc\xe3\xc4\x01\x86\x01\x12\x81\x01\x41n optional DriverInstallTemplate proto to control driver installation. If not set, the default  installation proto will be used.\x18\x02\x12h\n\x0fmake_local_copy\x18\x06 \x01(\x08:\x04trueBI\xe2\xfc\xe3\xc4\x01\x43\x12\x41Make a local copy of the memory on the client before downloading.\"\xca\x02\n\x14LoadMemoryDriverArgs\x12\xc0\x01\n\x10\x64river_installer\x18\x01 \x01(\x0b\x32\x16.DriverInstallTemplateB\x8d\x01\xe2\xfc\xe3\xc4\x01\x86\x01\x12\x81\x01\x41n optional DriverInstallTemplate proto to control driver installation. If not set, the default  installation proto will be used.\x18\x02\x12o\n\x10reload_if_loaded\x18\x02 \x01(\x08:\x05\x66\x61lseBN\xe2\xfc\xe3\xc4\x01H\x12-If the driver is already loaded we reload it.\"\x17\x46orce reload of driver.\"\xb3\x02\n\x17\x41nalyzeClientMemoryArgs\x12\xc0\x01\n\x10\x64river_installer\x18\x01 \x01(\x0b\x32\x16.DriverInstallTemplateB\x8d\x01\xe2\xfc\xe3\xc4\x01\x86\x01\x12\x81\x01\x41n optional DriverInstallTemplate proto to control driver installation. If not set, the default  installation proto will be used.\x18\x02\x12U\n\x07request\x18\x02 \x01(\x0b\x32\x0e.RekallRequestB4\xe2\xfc\xe3\xc4\x01.\x12,A request for the client\'s Rekall subsystem.\"\xdd\x01\n\x0eScanMemoryArgs\x12\x43\n\x04grep\x18\x01 \x01(\x0b\x32\r.BareGrepSpecB&\xe2\xfc\xe3\xc4\x01 \x12\x1e\x41 grepspec for memory devices.\x12\x41\n\ralso_download\x18\x02 \x01(\x08\x42*\xe2\xfc\xe3\xc4\x01$\x12\"If a match is found, image memory.:C\xda\xfc\xe3\xc4\x01=\n;A grep specification which operates only on memory devices.\"a\n\x13SophosCollectorArgs\x12J\n\x08pathtype\x18\x01 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB \xe2\xfc\xe3\xc4\x01\x1a\x12\x18The requested path type.\"a\n\x0cMACTimesArgs\x12Q\n\x04path\x18\x01 \x01(\t:\x04/fs/B=\xe2\xfc\xe3\xc4\x01\x37\x12\x35\x41n AFF path (relative to the client area of the VFS).\"Y\n\x11\x46ileCollectorArgs\x12\x44\n\tfindspecs\x18\x01 \x03(\x0b\x32\t.FindSpecB&\xe2\xfc\xe3\xc4\x01 \x12\x1e\x41 list of find specifications.\"\xc5\x03\n\x12\x46irefoxHistoryArgs\x12M\n\x08pathtype\x18\x01 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB#\xe2\xfc\xe3\xc4\x01\x1d\x12\x1bType of path access to use.\x12Z\n\x0bget_archive\x18\x02 \x01(\x08:\x05\x66\x61lseB>\xe2\xfc\xe3\xc4\x01\x38\x12\x36Should we get Archived History as well (3 months old).\x12\xaa\x01\n\x08username\x18\x03 \x01(\tB\x97\x01\xe2\xfc\xe3\xc4\x01\x90\x01\x12\x8d\x01The user to get history for. If history_path is not set this will be used to guess the path to the history files. Can be in form DOMAIN\\user.\x12W\n\x0chistory_path\x18\x05 \x01(\tBA\xe2\xfc\xe3\xc4\x01;\x12\x39Path to a profile directory that contains a History file.\"\xbf\x03\n\rCacheGrepArgs\x12V\n\ngrep_users\x18\x01 \x03(\tBB\xe2\xfc\xe3\xc4\x01<\x12:A list of users to check. Default all users on the system.\x12M\n\x08pathtype\x18\x02 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB#\xe2\xfc\xe3\xc4\x01\x1d\x12\x1bType of path access to use.\x12R\n\ndata_regex\x18\x03 \x01(\tB>\xe2\xfc\xe3\xc4\x01\x38\n\x11RegularExpression\x12#A regular expression to search for.\x12\x30\n\x0c\x63heck_chrome\x18\x05 \x01(\x08:\x04trueB\x14\xe2\xfc\xe3\xc4\x01\x0e\x12\x0c\x43heck Chrome\x12\x32\n\rcheck_firefox\x18\x06 \x01(\x08:\x04trueB\x15\xe2\xfc\xe3\xc4\x01\x0f\x12\rCheck Firefox\x12M\n\x08\x63heck_ie\x18\x07 \x01(\x08:\x04trueB5\xe2\xfc\xe3\xc4\x01/\x12-Check Internet Explorer (Not implemented yet)\"a\n\x11ListDirectoryArgs\x12L\n\x08pathspec\x18\x01 \x01(\x0b\x32\t.PathSpecB/\xe2\xfc\xe3\xc4\x01)\x12\'The pathspec for the directory to list.\"\xa2\x01\n\x1aRecursiveListDirectoryArgs\x12L\n\x08pathspec\x18\x01 \x01(\x0b\x32\t.PathSpecB/\xe2\xfc\xe3\xc4\x01)\x12\'The pathspec for the directory to list.\x12\x36\n\tmax_depth\x18\x02 \x01(\x04:\x01\x35\x42 \xe2\xfc\xe3\xc4\x01\x1a\x12\x18Maximum recursion depth.\"\x88\x01\n\x1d\x46\x65tchBufferForSparseImageArgs\x12G\n\x08\x66ile_urn\x18\x01 \x01(\tB5\xe2\xfc\xe3\xc4\x01/\n\x06RDFURN\x12%The URN of the sparse image to update\x12\x0e\n\x06length\x18\x02 \x01(\x04\x12\x0e\n\x06offset\x18\x03 \x01(\x04\"Q\n\x1aMakeNewAFF4SparseImageArgs\x12\x1b\n\x08pathspec\x18\x01 \x01(\x0b\x32\t.PathSpec\x12\x16\n\x0esize_threshold\x18\x02 \x01(\x04\"\x7f\n\x1bUpdateSparseImageChunksArgs\x12G\n\x08\x66ile_urn\x18\x01 \x01(\tB5\xe2\xfc\xe3\xc4\x01/\n\x06RDFURN\x12%The URN of the sparse image to update\x12\x17\n\x0f\x63hunks_to_fetch\x18\x02 \x03(\x04\"&\n\x08GrepArgs\x12\x1a\n\x07request\x18\x01 \x01(\x0b\x32\t.GrepSpec\"\xf8\x04\n\x08GlobArgs\x12\x7f\n\x05paths\x18\x01 \x03(\tBp\xe2\xfc\xe3\xc4\x01j\n\x0eGlobExpression\x12XA list of paths to glob that supports: ** path recursion, * wildcards and %% expansions.\x12L\n\x08pathtype\x18\x02 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB\"\xe2\xfc\xe3\xc4\x01\x1c\x12\x1aType of access to glob in.\x12\xd2\x01\n\troot_path\x18\x03 \x01(\x0b\x32\t.PathSpecB\xb3\x01\xe2\xfc\xe3\xc4\x01\xac\x01\x12\xa7\x01The root path to begin the glob.  Users should almost never need to change this. root_path.pathtype is unused in favor of pathtype to allow it to be modified by users.\x18\x01\x12\xc7\x01\n\x12no_file_type_check\x18\x04 \x01(\x08:\x05\x66\x61lseB\xa3\x01\xe2\xfc\xe3\xc4\x01\x9c\x01\x12\x97\x01Work with all kinds of files - not only with regular ones.NOTE: This is very dangerous and should be used with care, see MemoryCollector as an example.\x18\x02\"\xfb\x04\n\x15SearchFileContentArgs\x12u\n\x05paths\x18\x01 \x03(\tBf\xe2\xfc\xe3\xc4\x01`\n\x0eGlobExpression\x12NA path to glob that supports: ** path recursion, * wildcards and %% expansions\x12L\n\x08pathtype\x18\x02 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB\"\xe2\xfc\xe3\xc4\x01\x1c\x12\x1aType of access to glob in.\x12\xd2\x01\n\troot_path\x18\x05 \x01(\x0b\x32\t.PathSpecB\xb3\x01\xe2\xfc\xe3\xc4\x01\xac\x01\x12\xa7\x01The root path to begin the glob.  Users should almost never need to change this. root_path.pathtype is unused in favor of pathtype to allow it to be modified by users.\x18\x01\x12\x66\n\x04grep\x18\x03 \x01(\x0b\x32\r.BareGrepSpecBI\xe2\xfc\xe3\xc4\x01\x43\x12,Leave empty to match files by filename only.\"\x13\x46ile Content Search\x12`\n\ralso_download\x18\x04 \x01(\x08\x42I\xe2\xfc\xe3\xc4\x01\x43\x12(If checked, download any matching files.\"\x17\x44ownload matching files\"\xe5\x01\n\rFindFilesArgs\x12\x44\n\x08\x66indspec\x18\x01 \x01(\x0b\x32\t.FindSpecB\'\xe2\xfc\xe3\xc4\x01!\x12\x1f\x41 find operation specification.\x12\x45\n\x0bmax_results\x18\x03 \x01(\x04:\x03\x35\x30\x30\x42+\xe2\xfc\xe3\xc4\x01%\x12!Maximum number of results to get.\x18\x01\x12G\n\x0fiteration_count\x18\x04 \x01(\x04:\x05\x32\x30\x30\x30\x30\x42\'\xe2\xfc\xe3\xc4\x01!\x12\x1d\x46iles examined per iteration.\x18\x01\"\xc1\x02\n\x0bGetFileArgs\x12K\n\x08pathspec\x18\x01 \x01(\x0b\x32\t.PathSpecB.\xe2\xfc\xe3\xc4\x01(\x12&The pathspec for the file to retrieve.\x12s\n\x0bread_length\x18\x02 \x01(\x04:\x01\x30\x42[\xe2\xfc\xe3\xc4\x01U\x12QThe amount of data to read from the file. If 0 we use the value from a stat call.\x18\x01\x12p\n\x13ignore_stat_failure\x18\x03 \x01(\x08\x42S\xe2\xfc\xe3\xc4\x01M\x12IIgnore stat failures and try to read anyway. Disable for windows devices.\x18\x01\"Q\n\nGetMBRArgs\x12\x43\n\x06length\x18\x01 \x01(\x04:\x04\x34\x30\x39\x36\x42-\xe2\xfc\xe3\xc4\x01\'\x12%The length of the MBR buffer to read.\"\xc4\x03\n\x11\x43hromeHistoryArgs\x12M\n\x08pathtype\x18\x01 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB#\xe2\xfc\xe3\xc4\x01\x1d\x12\x1bType of path access to use.\x12S\n\x0bget_archive\x18\x02 \x01(\x08\x42>\xe2\xfc\xe3\xc4\x01\x38\x12\x36Should we get Archived History as well (3 months old).\x12\xb1\x01\n\x08username\x18\x03 \x01(\tB\x9e\x01\xe2\xfc\xe3\xc4\x01\x97\x01\x12\x94\x01The user to get Chrome history for. If history_path is not set this will be used to guess the path to the history files. Can be in form DOMAIN\\user.\x12W\n\x0chistory_path\x18\x05 \x01(\tBA\xe2\xfc\xe3\xc4\x01;\x12\x39Path to a profile directory that contains a History file.\"\xca\x02\n\x10\x43lientActionArgs\x12.\n\x06\x61\x63tion\x18\x01 \x01(\tB\x1e\xe2\xfc\xe3\xc4\x01\x18\x12\x16The action to execute.\x12\x63\n\x07save_to\x18\x02 \x01(\t:\x04/tmpBL\xe2\xfc\xe3\xc4\x01\x46\x12\x44If set, interpreted as a path to write pickle dumps of responses to.\x12V\n\tbreak_pdb\x18\x03 \x01(\x08:\x05\x66\x61lseB<\xe2\xfc\xe3\xc4\x01\x36\x12\x34If True, run pdb.set_trace when responses come back.\x12I\n\x0b\x61\x63tion_args\x18\x04 \x01(\x0c\x42\x34\xe2\xfc\xe3\xc4\x01.\x12\x18\x43lient action arguments.*\x12GetActionArgsClass\"\x83\x03\n\x14\x43onsoleDebugFlowArgs\x12*\n\x04\x66low\x18\x01 \x01(\tB\x1c\xe2\xfc\xe3\xc4\x01\x16\x12\x14The flow to execute.\x12i\n\x07save_to\x18\x02 \x01(\t:\x04/tmpBR\xe2\xfc\xe3\xc4\x01L\x12JIf not None, interpreted as an path to write pickle dumps of responses to.\x12V\n\tbreak_pdb\x18\x03 \x01(\x08:\x05\x66\x61lseB<\xe2\xfc\xe3\xc4\x01\x36\x12\x34If True, run pdb.set_trace when responses come back.\x12>\n\x0fprint_responses\x18\x04 \x01(\x08\x42%\xe2\xfc\xe3\xc4\x01\x1f\x12\x1dIf True, print each response.\x12<\n\tflow_args\x18\x05 \x01(\x0c\x42)\xe2\xfc\xe3\xc4\x01#\x12\x0f\x46low arguments.*\x10GetFlowArgsClass\"k\n\x19\x43reateGenericHuntFlowArgs\x12)\n\x10hunt_runner_args\x18\x01 \x01(\x0b\x32\x0f.HuntRunnerArgs\x12#\n\thunt_args\x18\x02 \x01(\x0b\x32\x10.GenericHuntArgs\"\xbb\x04\n\x15\x43reateCronJobFlowArgs\x12J\n\x0b\x64\x65scription\x18\x01 \x01(\tB5\xe2\xfc\xe3\xc4\x01/\x12-A human readable description of the cron job.\x12\x46\n\x0bperiodicity\x18\x02 \x01(\t:\x02\x37\x64\x42-\xe2\xfc\xe3\xc4\x01\'\n\x08\x43ronSpec\x12\x1bHow often to run this hunt.\x12)\n\x10\x66low_runner_args\x18\x03 \x01(\x0b\x32\x0f.FlowRunnerArgs\x12+\n\tflow_args\x18\x04 \x01(\x0c\x42\x18\xe2\xfc\xe3\xc4\x01\x12*\x10GetFlowArgsClass\x12\x16\n\x0e\x61llow_overruns\x18\x05 \x01(\x08\x12\x9d\x02\n\x08lifetime\x18\x06 \x01(\x04:\x01\x30\x42\x87\x02\xe2\xfc\xe3\xc4\x01\x80\x02\n\x08\x44uration\x12\xf3\x01How long each run of the cron should be allowed to run. Runs that exceed lifetime will be killed. This is complimentary but different to periodicity e.g. it allows us to run jobs weekly that should be killed if they take more than a few hours.\"\xb4\x01\n\x12ModifyHuntFlowArgs\x12?\n\x08hunt_urn\x18\x01 \x01(\tB-\xe2\xfc\xe3\xc4\x01\'\n\x06RDFURN\x12\x1dThe URN of the hunt to pause.\x12\x14\n\x0c\x63lient_limit\x18\x02 \x01(\x04\x12G\n\x0b\x65xpiry_time\x18\x03 \x01(\x04\x42\x32\xe2\xfc\xe3\xc4\x01,\n\x0bRDFDatetime\x12\x1dWhen should this hunt expire?\"\xf4\x02\n\x15ManageCronJobFlowArgs\x12\x34\n\x03urn\x18\x01 \x01(\tB\'\xe2\xfc\xe3\xc4\x01!\n\x06RDFURN\x12\x17The URN of the cron job\x12\x33\n\x06\x61\x63tion\x18\x02 \x01(\x0e\x32\x1d.ManageCronJobFlowArgs.Action:\x04NOOP\"\xef\x01\n\x06\x41\x63tion\x12@\n\x04NOOP\x10\x00\x1a\x36\xea\xb9\xcb\xb9\x01\x30\x44o nothing (but still check access permissions.)\x12\'\n\x07\x44ISABLE\x10\x01\x1a\x1a\xea\xb9\xcb\xb9\x01\x14\x44isable ths cron job\x12%\n\x06\x45NABLE\x10\x02\x1a\x19\xea\xb9\xcb\xb9\x01\x13\x45nable the cron job\x12%\n\x06\x44\x45LETE\x10\x03\x1a\x19\xea\xb9\xcb\xb9\x01\x13\x44\x65lete the cron job\x12,\n\x03RUN\x10\x04\x1a#\xea\xb9\xcb\xb9\x01\x1d\x46orce the cron job to run now\"\xbc\x02\n\x16\x43ronHuntOutputFlowArgs\x12\x30\n\x08hunt_urn\x18\x01 \x01(\tB\x1e\xe2\xfc\xe3\xc4\x01\x18\n\x06RDFURN\x12\x0eURN of a hunt.\x12P\n\x0cmetadata_urn\x18\x02 \x01(\tB:\xe2\xfc\xe3\xc4\x01\x34\n\x06RDFURN\x12*URN of a cron hunt output module metadata.\x12=\n\x12output_plugin_name\x18\x03 \x01(\tB!\xe2\xfc\xe3\xc4\x01\x1b\x12\x19Name of an output plugin.\x12_\n\x12output_plugin_args\x18\x04 \x01(\x0c\x42\x43\xe2\xfc\xe3\xc4\x01=\x12!Args passed to the output plugin.*\x18GetOutputPluginArgsClass\"o\n\x14PlistValueFilterArgs\x12W\n\x07request\x18\x01 \x01(\x0b\x32\r.PlistRequestB7\xe2\xfc\xe3\xc4\x01\x31\x12/A request for the client to parse a plist file.\"\xb9\x01\n\x11RunReportFlowArgs\x12G\n\x0breport_name\x18\x01 \x01(\tB2\xe2\xfc\xe3\xc4\x01,\n\nReportName\x12\x1eThe name of the report to run.\x12[\n\x05\x65mail\x18\x02 \x01(\tBL\xe2\xfc\xe3\xc4\x01\x46\n\x12\x44omainEmailAddress\x12\x30The email address that messages will be sent to.\"\xb8\x01\n\x15\x45numerateServicesArgs\x12M\n\x11\x64ownload_binaries\x18\x01 \x01(\x08:\x04trueB,\xe2\xfc\xe3\xc4\x01&\x12$If set, also downloads the binaries.\x12P\n\x08pathtype\x18\x03 \x01(\x0e\x32\x12.PathSpec.PathType:\x03TSKB%\xe2\xfc\xe3\xc4\x01\x1f\x12\x1dHow to access the filesystem.\"\xd0\x02\n\x11\x43hromePluginsArgs\x12q\n\x04path\x18\x01 \x01(\tBc\xe2\xfc\xe3\xc4\x01]\x12[A path to a Chrome Extensions directory. If not set, the path is guessed from the username.\x12=\n\x08pathtype\x18\x02 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB\x13\xe2\xfc\xe3\xc4\x01\r\x12\x0b\x41\x63\x63\x65ss mode\x12@\n\x08username\x18\x04 \x01(\tB.\xe2\xfc\xe3\xc4\x01(\x12&The user to get Chrome extensions for.\x12G\n\x0e\x64ownload_files\x18\x05 \x01(\x08:\x05\x66\x61lseB(\xe2\xfc\xe3\xc4\x01\"\x12 Should extensions be downloaded?\"\xe1\x01\n!RequestApprovalWithReasonFlowArgs\x12\x38\n\x06reason\x18\x01 \x01(\t:\x0bUnspecifiedB\x1b\xe2\xfc\xe3\xc4\x01\x15\x12\x13Reason for approval\x12+\n\x08\x61pprover\x18\x02 \x01(\tB\x19\xe2\xfc\xe3\xc4\x01\x13\x12\x11\x41pprover username\x12U\n\x0bsubject_urn\x18\x03 \x01(\tB@\xe2\xfc\xe3\xc4\x01:\n\x06RDFURN\x12\x30URN of the object that approval is required for.\"\xdf\x01\n\x1fGrantApprovalWithReasonFlowArgs\x12\x38\n\x06reason\x18\x01 \x01(\t:\x0bUnspecifiedB\x1b\xe2\xfc\xe3\xc4\x01\x15\x12\x13Reason for approval\x12+\n\x08\x64\x65legate\x18\x02 \x01(\tB\x19\xe2\xfc\xe3\xc4\x01\x13\x12\x11\x44\x65legate username\x12U\n\x0bsubject_urn\x18\x03 \x01(\tB@\xe2\xfc\xe3\xc4\x01:\n\x06RDFURN\x12\x30URN of the object that approval is required for.\"V\n\x11StartHuntFlowArgs\x12\x41\n\x08hunt_urn\x18\x01 \x01(\tB/\xe2\xfc\xe3\xc4\x01)\n\x06RDFURN\x12\x1fThe URN of the hunt to execute.\"T\n\x11PauseHuntFlowArgs\x12?\n\x08hunt_urn\x18\x01 \x01(\tB-\xe2\xfc\xe3\xc4\x01\'\n\x06RDFURN\x12\x1dThe URN of the hunt to pause.\"Z\n\x17\x43heckHuntAccessFlowArgs\x12?\n\x08hunt_urn\x18\x01 \x01(\tB-\xe2\xfc\xe3\xc4\x01\'\n\x06RDFURN\x12\x1dThe URN of the hunt to check.\"\x86\x01\n\x11UpdateVFSFileArgs\x12\x31\n\x0cvfs_file_urn\x18\x01 \x01(\tB\x1b\xe2\xfc\xe3\xc4\x01\x15\n\x06RDFURN\x12\x0bVFSFile urn\x12>\n\tattribute\x18\x02 \x01(\t:\raff4:containsB\x1c\xe2\xfc\xe3\xc4\x01\x16\x12\x14\x41ttribute to update.\"\xce\x02\n\x10MultiGetFileArgs\x12I\n\tpathspecs\x18\x02 \x03(\x0b\x32\t.PathSpecB+\xe2\xfc\xe3\xc4\x01%\x12#Pathspecs of files to be retrieved.\x12\xee\x01\n\x13use_external_stores\x18\x03 \x01(\x08:\x04trueB\xca\x01\xe2\xfc\xe3\xc4\x01\xc3\x01\x12\xbe\x01If true, look in any defined external file stores for filesbefore downloading them, and offer any new files to external stores.This should be true unless the external checks are misbehaving.\x18\x01\"\xb3\x03\n GetExecutablesFilteredByHashArgs\x12X\n\tpathspecs\x18\x01 \x03(\x0b\x32\t.PathSpecB:\xe2\xfc\xe3\xc4\x01\x34\x12\x32Pathspecs of files to be retrieved and their hash.\x12\x44\n\x06hashes\x18\x02 \x03(\x0c\x42\x34\xe2\xfc\xe3\xc4\x01.\n\nHashDigest\x12 SHA256 hash digest for the file.\x12\xee\x01\n\x13use_external_stores\x18\x03 \x01(\x08:\x04trueB\xca\x01\xe2\xfc\xe3\xc4\x01\xc3\x01\x12\xbe\x01If true, look in any defined external file stores for filesbefore downloading them, and offer any new files to external stores.This should be true unless the external checks are misbehaving.\x18\x01\"\xd0\x02\n\x1eProcessHuntResultsCronFlowArgs\x12\x62\n\nbatch_size\x18\x01 \x01(\x04\x42N\xe2\xfc\xe3\xc4\x01H\x12\x44Results will be processed by output plugins in batches of this size.\x18\x01\x12\xc9\x01\n\x10max_running_time\x18\x02 \x01(\x04\x42\xae\x01\xe2\xfc\xe3\xc4\x01\xa7\x01\n\x08\x44uration\x12\x98\x01ProcessHuntResultsCronFlow will run not much longer than max_running_time. It will finish (without an error) even if there are still results to process.\x18\x01\"\xbd\x01\n\x11ListProcessesArgs\x12q\n\x0e\x66ilename_regex\x18\x01 \x01(\t:\x01.BV\xe2\xfc\xe3\xc4\x01P\n\x11RegularExpression\x12+Regex used to filter the list of processes.\"\x0e\x46ilename Regex\x12\x35\n\x0e\x66\x65tch_binaries\x18\x02 \x01(\x08:\x05\x66\x61lseB\x16\xe2\xfc\xe3\xc4\x01\x10\"\x0e\x46\x65tch Binaries\"\xbe\x01\n\x13ListVADBinariesArgs\x12p\n\x0e\x66ilename_regex\x18\x01 \x01(\t:\x01.BU\xe2\xfc\xe3\xc4\x01O\n\x11RegularExpression\x12*Regex used to filter the list of binaries.\"\x0e\x46ilename Regex\x12\x35\n\x0e\x66\x65tch_binaries\x18\x02 \x01(\x08:\x05\x66\x61lseB\x16\xe2\xfc\xe3\xc4\x01\x10\"\x0e\x46\x65tch Binaries\"\x9e\x02\n#FileFinderModificationTimeCondition\x12^\n\x16min_last_modified_time\x18\x05 \x01(\x04:\x01\x30\x42;\xe2\xfc\xe3\xc4\x01\x35\n\x0bRDFDatetime\x12&File must be modified after this time.\x12\x96\x01\n\x16max_last_modified_time\x18\x06 \x01(\x04:\x13\x39\x32\x32\x33\x33\x37\x32\x30\x33\x36\x38\x35\x34\x37\x37\x35\x38\x30\x37\x42\x61\xe2\xfc\xe3\xc4\x01[\n\x0bRDFDatetime\x12LFile must be modified before this time (default=heat death of the universe).\"\x94\x02\n\x1d\x46ileFinderAccessTimeCondition\x12\\\n\x14min_last_access_time\x18\x05 \x01(\x04:\x01\x30\x42;\xe2\xfc\xe3\xc4\x01\x35\n\x0bRDFDatetime\x12&File must be accessed after this time.\x12\x94\x01\n\x14max_last_access_time\x18\x06 \x01(\x04:\x13\x39\x32\x32\x33\x33\x37\x32\x30\x33\x36\x38\x35\x34\x37\x37\x35\x38\x30\x37\x42\x61\xe2\xfc\xe3\xc4\x01[\n\x0bRDFDatetime\x12LFile must be accessed before this time (default=heat death of the universe).\"\xad\x02\n\"FileFinderInodeChangeTimeCondition\x12i\n\x1amin_last_inode_change_time\x18\x05 \x01(\x04:\x01\x30\x42\x42\xe2\xfc\xe3\xc4\x01<\n\x0bRDFDatetime\x12-File\'s inode must be changed after this time.\x12\x9b\x01\n\x1amax_last_inode_change_time\x18\x06 \x01(\x04:\x13\x39\x32\x32\x33\x33\x37\x32\x30\x33\x36\x38\x35\x34\x37\x37\x35\x38\x30\x37\x42\x62\xe2\xfc\xe3\xc4\x01\\\n\x0bRDFDatetime\x12MFile\'s must be changed before this time (default=heat death of the universe).\"\xbe\x01\n\x17\x46ileFinderSizeCondition\x12=\n\rmin_file_size\x18\x0b \x01(\x04:\x01\x30\x42#\xe2\xfc\xe3\xc4\x01\x1d\x12\x1bMinimum file size in bytes.\x12\x64\n\rmax_file_size\x18\x0c \x01(\x04:\x13\x39\x32\x32\x33\x33\x37\x32\x30\x33\x36\x38\x35\x34\x37\x37\x35\x38\x30\x37\x42\x38\xe2\xfc\xe3\xc4\x01\x32\x12\x30Maximum file size in bytes (default=sys.maxint).\"\xf2\x04\n%FileFinderContentsRegexMatchCondition\x12^\n\x05regex\x18\x04 \x01(\tBO\xe2\xfc\xe3\xc4\x01I\n\x11RegularExpression\x12\x34The regular expression which will be used to search.\x12\x8e\x01\n\x04mode\x18\x06 \x01(\x0e\x32+.FileFinderContentsRegexMatchCondition.Mode:\x08\x41LL_HITSBI\xe2\xfc\xe3\xc4\x01\x43\x12\x41When should searching stop? Stop after one hit or search for all?\x12K\n\x0c\x62ytes_before\x18\x07 \x01(\r:\x02\x31\x30\x42\x31\xe2\xfc\xe3\xc4\x01+\x12\'Include this many bytes before the hit.\x18\x01\x12I\n\x0b\x62ytes_after\x18\x08 \x01(\r:\x02\x31\x30\x42\x30\xe2\xfc\xe3\xc4\x01*\x12&Include this many bytes after the hit.\x18\x01\x12G\n\x0cstart_offset\x18\x02 \x01(\x04:\x01\x30\x42.\xe2\xfc\xe3\xc4\x01(\x12$Start searching at this file offset.\x18\x01\x12R\n\x06length\x18\x03 \x01(\x04:\x0b\x31\x30\x37\x33\x37\x34\x31\x38\x32\x34\x30\x42\x35\xe2\xfc\xe3\xc4\x01/\x12+How far (in bytes) into the file to search.\x18\x01\"#\n\x04Mode\x12\x0c\n\x08\x41LL_HITS\x10\x00\x12\r\n\tFIRST_HIT\x10\x01\"\xee\x07\n\'FileFinderContentsLiteralMatchCondition\x12K\n\x07literal\x18\x05 \x01(\x0c\x42:\xe2\xfc\xe3\xc4\x01\x34\n\x11LiteralExpression\x12\x1fSearch for this literal string.\x12\x90\x01\n\x04mode\x18\x06 \x01(\x0e\x32-.FileFinderContentsLiteralMatchCondition.Mode:\x08\x41LL_HITSBI\xe2\xfc\xe3\xc4\x01\x43\x12\x41When should searching stop? Stop after one hit or search for all?\x12G\n\x0cstart_offset\x18\x02 \x01(\x04:\x01\x30\x42.\xe2\xfc\xe3\xc4\x01(\x12$Start searching at this file offset.\x18\x01\x12R\n\x06length\x18\x03 \x01(\x04:\x0b\x31\x30\x37\x33\x37\x34\x31\x38\x32\x34\x30\x42\x35\xe2\xfc\xe3\xc4\x01/\x12+How far (in bytes) into the file to search.\x18\x01\x12K\n\x0c\x62ytes_before\x18\x07 \x01(\r:\x02\x31\x30\x42\x31\xe2\xfc\xe3\xc4\x01+\x12\'Include this many bytes before the hit.\x18\x01\x12I\n\x0b\x62ytes_after\x18\x08 \x01(\r:\x02\x31\x30\x42\x30\xe2\xfc\xe3\xc4\x01*\x12&Include this many bytes after the hit.\x18\x01\x12\xc2\x01\n\nxor_in_key\x18\t \x01(\r:\x01\x30\x42\xaa\x01\xe2\xfc\xe3\xc4\x01\xa3\x01\x12\x9e\x01When searching memory we need to ensure we dont hit on our own process. This allows us to obfuscate the search string in memory to avoid us finding ourselves.\x18\x01\x12\xc3\x01\n\x0bxor_out_key\x18\n \x01(\r:\x01\x30\x42\xaa\x01\xe2\xfc\xe3\xc4\x01\xa3\x01\x12\x9e\x01When searching memory we need to ensure we dont hit on our own process. This allows us to obfuscate the search string in memory to avoid us finding ourselves.\x18\x01\"#\n\x04Mode\x12\x0c\n\x08\x41LL_HITS\x10\x00\x12\r\n\tFIRST_HIT\x10\x01\"\xf6\x05\n\x13\x46ileFinderCondition\x12Y\n\x0e\x63ondition_type\x18\x01 \x01(\x0e\x32\x19.FileFinderCondition.TypeB&\xe2\xfc\xe3\xc4\x01 \x12\x0e\x43ondition type\"\x0e\x43ondition type\x12?\n\x11modification_time\x18\x02 \x01(\x0b\x32$.FileFinderModificationTimeCondition\x12\x33\n\x0b\x61\x63\x63\x65ss_time\x18\x03 \x01(\x0b\x32\x1e.FileFinderAccessTimeCondition\x12>\n\x11inode_change_time\x18\x04 \x01(\x0b\x32#.FileFinderInodeChangeTimeCondition\x12&\n\x04size\x18\x05 \x01(\x0b\x32\x18.FileFinderSizeCondition\x12\x44\n\x14\x63ontents_regex_match\x18\x06 \x01(\x0b\x32&.FileFinderContentsRegexMatchCondition\x12H\n\x16\x63ontents_literal_match\x18\x07 \x01(\x0b\x32(.FileFinderContentsLiteralMatchCondition\"\x95\x02\n\x04Type\x12.\n\x11MODIFICATION_TIME\x10\x00\x1a\x17\xea\xb9\xcb\xb9\x01\x11Modification time\x12\"\n\x0b\x41\x43\x43\x45SS_TIME\x10\x01\x1a\x11\xea\xb9\xcb\xb9\x01\x0b\x41\x63\x63\x65ss time\x12.\n\x11INODE_CHANGE_TIME\x10\x02\x1a\x17\xea\xb9\xcb\xb9\x01\x11Inode change time\x12\x19\n\x04SIZE\x10\x03\x1a\x0f\xea\xb9\xcb\xb9\x01\tFile size\x12\x34\n\x14\x43ONTENTS_REGEX_MATCH\x10\x04\x1a\x1a\xea\xb9\xcb\xb9\x01\x14\x43ontents regex match\x12\x38\n\x16\x43ONTENTS_LITERAL_MATCH\x10\x05\x1a\x1c\xea\xb9\xcb\xb9\x01\x16\x43ontents literal match\"\xf2\x02\n\x1f\x46ileFinderDownloadActionOptions\x12\\\n\x08max_size\x18\x05 \x01(\x04:\t100000000B?\xe2\xfc\xe3\xc4\x01\x39\n\x08\x42yteSize\x12+The maximum size of files we will download.\x18\x01\x12\xf0\x01\n\x13use_external_stores\x18\x06 \x01(\x08:\x04trueB\xcc\x01\xe2\xfc\xe3\xc4\x01\xc5\x01\x12\xc0\x01If true, look in any defined external file stores for files before downloading them, and offer any new files to external stores. This should be true unless the external checks are misbehaving.\x18\x01\"\xff\x01\n\x10\x46ileFinderAction\x12\x63\n\x0b\x61\x63tion_type\x18\x01 \x01(\x0e\x32\x18.FileFinderAction.Action:\x04STATB.\xe2\xfc\xe3\xc4\x01(\x12\x1e\x41\x63tion to apply to found files\"\x06\x41\x63tion\x12\x32\n\x08\x64ownload\x18\x02 \x01(\x0b\x32 .FileFinderDownloadActionOptions\"R\n\x06\x41\x63tion\x12\x14\n\x04STAT\x10\x00\x1a\n\xea\xb9\xcb\xb9\x01\x04Stat\x12\x14\n\x04HASH\x10\x01\x1a\n\xea\xb9\xcb\xb9\x01\x04Hash\x12\x1c\n\x08\x44OWNLOAD\x10\x02\x1a\x0e\xea\xb9\xcb\xb9\x01\x08\x44ownload\"\xc7\x03\n\x0e\x46ileFinderArgs\x12U\n\x05paths\x18\x01 \x03(\tBF\xe2\xfc\xe3\xc4\x01@\n\x0eGlobExpression\x12.A path to glob that can contain %% expansions.\x12G\n\x08pathtype\x18\x02 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB\x1d\xe2\xfc\xe3\xc4\x01\x17\x12\x15Path type to glob in.\x12(\n\nconditions\x18\x05 \x03(\x0b\x32\x14.FileFinderCondition\x12!\n\x06\x61\x63tion\x18\x06 \x01(\x0b\x32\x11.FileFinderAction\x12\xc7\x01\n\x12no_file_type_check\x18\x07 \x01(\x08:\x05\x66\x61lseB\xa3\x01\xe2\xfc\xe3\xc4\x01\x9c\x01\x12\x97\x01Work with all kinds of files - not only with regular ones.NOTE: This is very dangerous and should be used with care, see MemoryCollector as an example.\x18\x02\"p\n\x10\x46ileFinderResult\x12\x1e\n\nstat_entry\x18\x01 \x01(\x0b\x32\n.StatEntry\x12!\n\x07matches\x18\x02 \x03(\x0b\x32\x10.BufferReference\x12\x19\n\nhash_entry\x18\x03 \x01(\x0b\x32\x05.Hash\"\xe6\x01\n\rFileReference\x12\x46\n\tclient_id\x18\x01 \x01(\tB3\xe2\xfc\xe3\xc4\x01-\n\tClientURN\x12 The client id the file lives on.\x12=\n\tpathspecs\x18\x02 \x03(\x0b\x32\t.PathSpecB\x1f\xe2\xfc\xe3\xc4\x01\x19\x12\x17The paths to the files.\x12N\n\rsha256_hashes\x18\x03 \x03(\x0c\x42\x37\xe2\xfc\xe3\xc4\x01\x31\n\nHashDigest\x12#A SHA256 hash digest for each file.\"3\n\x12\x42it9DownloaderArgs\x12\x1d\n\x05\x66iles\x18\x01 \x03(\x0b\x32\x0e.FileReference\"\xfc\x03\n\x17RegistryFinderCondition\x12\x35\n\x0e\x63ondition_type\x18\x01 \x01(\x0e\x32\x1d.RegistryFinderCondition.Type\x12\x45\n\x13value_literal_match\x18\x02 \x01(\x0b\x32(.FileFinderContentsLiteralMatchCondition\x12\x41\n\x11value_regex_match\x18\x03 \x01(\x0b\x32&.FileFinderContentsRegexMatchCondition\x12?\n\x11modification_time\x18\x04 \x01(\x0b\x32$.FileFinderModificationTimeCondition\x12&\n\x04size\x18\x05 \x01(\x0b\x32\x18.FileFinderSizeCondition\"\xb6\x01\n\x04Type\x12\x32\n\x13VALUE_LITERAL_MATCH\x10\x00\x1a\x19\xea\xb9\xcb\xb9\x01\x13Value literal match\x12.\n\x11VALUE_REGEX_MATCH\x10\x01\x1a\x17\xea\xb9\xcb\xb9\x01\x11Value regex match\x12.\n\x11MODIFICATION_TIME\x10\x02\x1a\x17\xea\xb9\xcb\xb9\x01\x11Modification time\x12\x1a\n\x04SIZE\x10\x03\x1a\x10\xea\xb9\xcb\xb9\x01\nValue size\"\xa2\x01\n\x12RegistryFinderArgs\x12^\n\nkeys_paths\x18\x01 \x03(\tBJ\xe2\xfc\xe3\xc4\x01\x44\n\x0eGlobExpression\x12\x32Glob expression for registry keys to be retrieved.\x12,\n\nconditions\x18\x02 \x03(\x0b\x32\x18.RegistryFinderCondition\"\xa4\x02\n\x18MemoryCollectorCondition\x12\x36\n\x0e\x63ondition_type\x18\x01 \x01(\x0e\x32\x1e.MemoryCollectorCondition.Type\x12?\n\rliteral_match\x18\x02 \x01(\x0b\x32(.FileFinderContentsLiteralMatchCondition\x12;\n\x0bregex_match\x18\x03 \x01(\x0b\x32&.FileFinderContentsRegexMatchCondition\"R\n\x04Type\x12&\n\rLITERAL_MATCH\x10\x01\x1a\x13\xea\xb9\xcb\xb9\x01\rLiteral match\x12\"\n\x0bREGEX_MATCH\x10\x02\x1a\x11\xea\xb9\xcb\xb9\x01\x0bRegex match\"+\n)MemoryCollectorWithoutLocalCopyDumpOption\"\xea\x04\n&MemoryCollectorWithLocalCopyDumpOption\x12\xa8\x01\n\x07\x64\x65stdir\x18\x01 \x01(\tB\x96\x01\xe2\xfc\xe3\xc4\x01\x8f\x01\x12\x8a\x01\x44\x65stination directory on the client for the temporary image. Leave blank to use defaults. Parent directories will be created if necessary.\x18\x01\x12\x44\n\x06offset\x18\x02 \x01(\x04:\x01\x30\x42\x31\xe2\xfc\xe3\xc4\x01+\x12\x16Memory offset in bytes\x18\x01\"\x0fStarting Offset\x12\x66\n\x06length\x18\x03 \x01(\x04:\x01\x30\x42S\xe2\xfc\xe3\xc4\x01M\x12\x35Number of bytes to copy (default 0 copies all memory)\x18\x01\"\x12Length to download\x12\x46\n\x04gzip\x18\x04 \x01(\x08:\x04trueB2\xe2\xfc\xe3\xc4\x01,\x12(Gzip temporary image file on the client.\x18\x01\x12\x9e\x01\n\x15\x63heck_disk_free_space\x18\x05 \x01(\x08:\x04trueBy\xe2\xfc\xe3\xc4\x01s\x12oIf true, check for available disk space before doing a local copy. Ignored if the dump option isn\'t local copy.\x18\x01\"\x8f\x03\n\x19MemoryCollectorDumpOption\x12s\n\x0boption_type\x18\x01 \x01(\x0e\x32!.MemoryCollectorDumpOption.Option:\x12WITHOUT_LOCAL_COPYB\'\xe2\xfc\xe3\xc4\x01!\x12\x12How to do the dump\"\x0b\x44ump option\x12\x46\n\x12without_local_copy\x18\x02 \x01(\x0b\x32*.MemoryCollectorWithoutLocalCopyDumpOption\x12@\n\x0fwith_local_copy\x18\x03 \x01(\x0b\x32\'.MemoryCollectorWithLocalCopyDumpOption\"s\n\x06Option\x12\x35\n\x12WITHOUT_LOCAL_COPY\x10\x00\x1a\x1d\xea\xb9\xcb\xb9\x01\x17\x44on\'t create local copy\x12\x32\n\x0fWITH_LOCAL_COPY\x10\x01\x1a\x1d\xea\xb9\xcb\xb9\x01\x17\x43reate local copy first\"n\n\x1dMemoryCollectorDownloadAction\x12M\n\x0b\x64ump_option\x18\x01 \x01(\x0b\x32\x1a.MemoryCollectorDumpOptionB\x1c\xe2\xfc\xe3\xc4\x01\x16\x12\x14Memory dump options.\"\xfe\x03\n!MemoryCollectorSendToSocketAction\x12M\n\x0b\x64ump_option\x18\x01 \x01(\x0b\x32\x1a.MemoryCollectorDumpOptionB\x1c\xe2\xfc\xe3\xc4\x01\x16\x12\x14Memory dump options.\x12j\n\x0e\x61\x64\x64ress_family\x18\x02 \x01(\x0e\x32\x16.NetworkAddress.Family:\x04INETB4\xe2\xfc\xe3\xc4\x01.\x12,address family to use (AF_INET or AF_INET6).\x12\x39\n\x04host\x18\x03 \x01(\tB+\xe2\xfc\xe3\xc4\x01%\x12#Hostname or IP to send the file to.\x12\x41\n\x04port\x18\x04 \x01(\x04:\x05\x31\x32\x33\x34\x35\x42,\xe2\xfc\xe3\xc4\x01&\x12$Port number on the listening server.\x12N\n\x03key\x18\x05 \x01(\x0c\x42\x41\xe2\xfc\xe3\xc4\x01;\n\tAES128Key\x12.An encryption key given in hex representation.\x12P\n\x02iv\x18\x06 \x01(\x0c\x42\x44\xe2\xfc\xe3\xc4\x01>\n\tAES128Key\x12\x31The iv for AES, also given in hex representation.\"\x81\x03\n\x15MemoryCollectorAction\x12\x64\n\x0b\x61\x63tion_type\x18\x01 \x01(\x0e\x32\x1d.MemoryCollectorAction.Action:\x04NONEB*\xe2\xfc\xe3\xc4\x01$\x12\x1aWhat to do with the memory\"\x06\x41\x63tion\x12\x30\n\x08\x64ownload\x18\x02 \x01(\x0b\x32\x1e.MemoryCollectorDownloadAction\x12:\n\x0esend_to_socket\x18\x03 \x01(\x0b\x32\".MemoryCollectorSendToSocketAction\"\x93\x01\n\x06\x41\x63tion\x12\x35\n\x04NONE\x10\x00\x1a+\xea\xb9\xcb\xb9\x01%None (just report conditions matches)\x12\x1c\n\x08\x44OWNLOAD\x10\x01\x1a\x0e\xea\xb9\xcb\xb9\x01\x08\x44ownload\x12\x34\n\x0eSEND_TO_SOCKET\x10\x02\x1a \xea\xb9\xcb\xb9\x01\x1aSend memory dump to socket\"\xae\x02\n\x13MemoryCollectorArgs\x12-\n\nconditions\x18\x01 \x03(\x0b\x32\x19.MemoryCollectorCondition\x12&\n\x06\x61\x63tion\x18\x02 \x01(\x0b\x32\x16.MemoryCollectorAction\x12\xbf\x01\n\x10\x64river_installer\x18\x05 \x01(\x0b\x32\x16.DriverInstallTemplateB\x8c\x01\xe2\xfc\xe3\xc4\x01\x85\x01\x12\x80\x01\x41n optional DriverInstallTemplate proto to control driver installation. If not set, the default installation proto will be used.\x18\x02\"\x85\x01\n\x1f\x43ollectArtifactDependenciesArgs\x12\x62\n\rartifact_list\x18\x01 \x03(\tBK\xe2\xfc\xe3\xc4\x01\x45\n\x0c\x41rtifactName\x12\x35\x41 list of Artifact names to collect dependencies for.\"w\n\x1d\x41rtifactFallbackCollectorArgs\x12V\n\rartifact_name\x18\x01 \x01(\tB?\xe2\xfc\xe3\xc4\x01\x39\n\x0c\x41rtifactName\x12)Name of the artifact using this fallback.\"\x92\x02\n\x1fKnowledgeBaseInitializationArgs\x12s\n\x10require_complete\x18\x01 \x01(\x08:\x04trueBS\xe2\xfc\xe3\xc4\x01M\x12KIf true require all dependencies to be complete.  Raise if any are missing.\x12z\n\x0blightweight\x18\x02 \x01(\x08:\x04trueB_\xe2\xfc\xe3\xc4\x01Y\x12WIf true skip all heavyweight artifacts defined in Artifacts.knowledge_base_heavyweight.\"\xcf\x01\n\x1f\x45xportHuntResultsFilesAsZipArgs\x12\x36\n\x08hunt_urn\x18\x01 \x01(\tB$\xe2\xfc\xe3\xc4\x01\x1e\n\x06RDFURN\x12\x14The URN of the hunt.\x12t\n\x0b\x64\x65\x64uplicate\x18\x02 \x01(\x08:\x04trueBY\xe2\xfc\xe3\xc4\x01S\x12\x35\x44\x65\x64uplicate files in resulting archive using symlinks\"\x1a\x44\x65\x64uplicate (via symlinks)\"\x91\x01\n\x14\x45ndToEndTestFlowArgs\x12y\n\ntest_names\x18\x01 \x03(\tBe\xe2\xfc\xe3\xc4\x01_\x12]List of endtoend test classes to run. If none are specifed, run all automated endtoend tests.\"\xa2\x01\n\x12\x44iskVolumeInfoArgs\x12)\n\tpath_list\x18\x01 \x03(\tB\x16\xe2\xfc\xe3\xc4\x01\x10\x12\x0eList of paths.\x12\x61\n\x08pathtype\x18\x02 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB7\xe2\xfc\xe3\xc4\x01\x31\x12-Type of path. Only OS is currently supported.\x18\x02\"R\n\x1c\x41pplyLabelsToClientsFlowArgs\x12\"\n\x07\x63lients\x18\x01 \x03(\tB\x11\xe2\xfc\xe3\xc4\x01\x0b\n\tClientURN\x12\x0e\n\x06labels\x18\x02 \x03(\t')
 
 
 
@@ -84,8 +84,8 @@ _BAREGREPSPEC_MODE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=6894,
-  serialized_end=6929,
+  serialized_start=7425,
+  serialized_end=7460,
 )
 
 _ARTIFACTCOLLECTORFLOWARGS_DEPENDENCY = _descriptor.EnumDescriptor(
@@ -109,8 +109,8 @@ _ARTIFACTCOLLECTORFLOWARGS_DEPENDENCY = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=10555,
-  serialized_end=10803,
+  serialized_start=11088,
+  serialized_end=11336,
 )
 
 _MANAGECRONJOBFLOWARGS_ACTION = _descriptor.EnumDescriptor(
@@ -142,8 +142,8 @@ _MANAGECRONJOBFLOWARGS_ACTION = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=19032,
-  serialized_end=19271,
+  serialized_start=19237,
+  serialized_end=19476,
 )
 
 _FILEFINDERCONTENTSREGEXMATCHCONDITION_MODE = _descriptor.EnumDescriptor(
@@ -163,8 +163,8 @@ _FILEFINDERCONTENTSREGEXMATCHCONDITION_MODE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=6894,
-  serialized_end=6929,
+  serialized_start=7425,
+  serialized_end=7460,
 )
 
 _FILEFINDERCONTENTSLITERALMATCHCONDITION_MODE = _descriptor.EnumDescriptor(
@@ -184,8 +184,8 @@ _FILEFINDERCONTENTSLITERALMATCHCONDITION_MODE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=6894,
-  serialized_end=6929,
+  serialized_start=7425,
+  serialized_end=7460,
 )
 
 _FILEFINDERCONDITION_TYPE = _descriptor.EnumDescriptor(
@@ -221,8 +221,8 @@ _FILEFINDERCONDITION_TYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=26007,
-  serialized_end=26284,
+  serialized_start=26165,
+  serialized_end=26442,
 )
 
 _FILEFINDERACTION_ACTION = _descriptor.EnumDescriptor(
@@ -246,8 +246,8 @@ _FILEFINDERACTION_ACTION = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=26833,
-  serialized_end=26915,
+  serialized_start=26991,
+  serialized_end=27073,
 )
 
 _REGISTRYFINDERCONDITION_TYPE = _descriptor.EnumDescriptor(
@@ -275,8 +275,8 @@ _REGISTRYFINDERCONDITION_TYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=28102,
-  serialized_end=28284,
+  serialized_start=28260,
+  serialized_end=28442,
 )
 
 _MEMORYCOLLECTORCONDITION_TYPE = _descriptor.EnumDescriptor(
@@ -296,8 +296,8 @@ _MEMORYCOLLECTORCONDITION_TYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=28662,
-  serialized_end=28744,
+  serialized_start=28820,
+  serialized_end=28902,
 )
 
 _MEMORYCOLLECTORDUMPOPTION_OPTION = _descriptor.EnumDescriptor(
@@ -317,8 +317,8 @@ _MEMORYCOLLECTORDUMPOPTION_OPTION = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=29697,
-  serialized_end=29812,
+  serialized_start=29855,
+  serialized_end=29970,
 )
 
 _MEMORYCOLLECTORACTION_ACTION = _descriptor.EnumDescriptor(
@@ -342,8 +342,8 @@ _MEMORYCOLLECTORACTION_ACTION = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=30678,
-  serialized_end=30825,
+  serialized_start=30836,
+  serialized_end=30983,
 )
 
 
@@ -587,6 +587,20 @@ _FLOWRUNNERARGS = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0017\n\006RDFURN\022+The logs collection to log to for the flow.\030\002')),
+    _descriptor.FieldDescriptor(
+      name='write_intermediate_results', full_name='FlowRunnerArgs.write_intermediate_results', index=17,
+      number=18, type=8, cpp_type=7, label=1,
+      has_default_value=True, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001q\022mIf true, all child flow results received with sendreply will be written to the the flow\'s default collection.\030\001')),
+    _descriptor.FieldDescriptor(
+      name='require_fastpoll', full_name='FlowRunnerArgs.require_fastpoll', index=18,
+      number=19, type=8, cpp_type=7, label=1,
+      has_default_value=True, default_value=True,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\214\001\022\211\001This value is passed to the client during CallClient, and by default will cause the client to enter fastpoll afterprocessing the message.')),
   ],
   extensions=[
   ],
@@ -597,7 +611,7 @@ _FLOWRUNNERARGS = _descriptor.Descriptor(
   is_extendable=False,
   extension_ranges=[],
   serialized_start=726,
-  serialized_end=2501,
+  serialized_end=2849,
 )
 
 
@@ -706,6 +720,13 @@ _HUNTRUNNERARGS = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0017\n\006RDFURN\022+The logs collection to log to for the hunt.\030\002')),
+    _descriptor.FieldDescriptor(
+      name='require_fastpoll', full_name='HuntRunnerArgs.require_fastpoll', index=14,
+      number=15, type=8, cpp_type=7, label=1,
+      has_default_value=True, default_value=True,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\214\001\022\211\001This value is passed to the client during CallClient, and by default will cause the client to enter fastpoll afterprocessing the message.')),
   ],
   extensions=[
   ],
@@ -715,8 +736,8 @@ _HUNTRUNNERARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=2504,
-  serialized_end=4051,
+  serialized_start=2852,
+  serialized_end=4582,
 )
 
 
@@ -743,8 +764,8 @@ _SAMPLEHUNTARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=4053,
-  serialized_end=4140,
+  serialized_start=4584,
+  serialized_end=4671,
 )
 
 
@@ -785,8 +806,8 @@ _FLOWREQUEST = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=4143,
-  serialized_end=4477,
+  serialized_start=4674,
+  serialized_end=5008,
 )
 
 
@@ -820,8 +841,8 @@ _OUTPUTPLUGIN = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=4480,
-  serialized_end=4691,
+  serialized_start=5011,
+  serialized_end=5222,
 )
 
 
@@ -855,8 +876,8 @@ _EMAILPLUGINARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=4694,
-  serialized_end=4830,
+  serialized_start=5225,
+  serialized_end=5361,
 )
 
 
@@ -897,8 +918,8 @@ _CSVOUTPUTPLUGINARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=4833,
-  serialized_end=5204,
+  serialized_start=5364,
+  serialized_end=5735,
 )
 
 
@@ -925,8 +946,8 @@ _COLLECTIONPLUGINARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=5207,
-  serialized_end=5335,
+  serialized_start=5738,
+  serialized_end=5866,
 )
 
 
@@ -960,8 +981,8 @@ _VARIABLEGENERICHUNTARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=5338,
-  serialized_end=5548,
+  serialized_start=5869,
+  serialized_end=6079,
 )
 
 
@@ -1002,8 +1023,8 @@ _GENERICHUNTARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=5551,
-  serialized_end=5881,
+  serialized_start=6082,
+  serialized_end=6412,
 )
 
 
@@ -1087,8 +1108,8 @@ _BAREGREPSPEC = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=5884,
-  serialized_end=6929,
+  serialized_start=6415,
+  serialized_end=7460,
 )
 
 
@@ -1115,8 +1136,8 @@ _CAENROLERARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=6931,
-  serialized_end=7025,
+  serialized_start=7462,
+  serialized_end=7556,
 )
 
 
@@ -1143,8 +1164,8 @@ _DELETEGRRTEMPFILESARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=7028,
-  serialized_end=7320,
+  serialized_start=7559,
+  serialized_end=7851,
 )
 
 
@@ -1171,8 +1192,8 @@ _UNINSTALLARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=7322,
-  serialized_end=7385,
+  serialized_start=7853,
+  serialized_end=7916,
 )
 
 
@@ -1199,8 +1220,8 @@ _UPDATECONFIGURATIONARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=7387,
-  serialized_end=7478,
+  serialized_start=7918,
+  serialized_end=8009,
 )
 
 
@@ -1234,8 +1255,8 @@ _EXECUTEPYTHONHACKARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=7481,
-  serialized_end=7621,
+  serialized_start=8012,
+  serialized_end=8152,
 )
 
 
@@ -1276,8 +1297,8 @@ _EXECUTECOMMANDARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=7624,
-  serialized_end=7840,
+  serialized_start=8155,
+  serialized_end=8371,
 )
 
 
@@ -1304,8 +1325,8 @@ _ONLINENOTIFICATIONARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=7843,
-  serialized_end=7990,
+  serialized_start=8374,
+  serialized_end=8521,
 )
 
 
@@ -1332,8 +1353,8 @@ _UPDATECLIENTARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=7992,
-  serialized_end=8103,
+  serialized_start=8523,
+  serialized_end=8634,
 )
 
 
@@ -1360,8 +1381,8 @@ _KEEPALIVEARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=8105,
-  serialized_end=8220,
+  serialized_start=8636,
+  serialized_end=8751,
 )
 
 
@@ -1395,8 +1416,8 @@ _TERMINATEFLOWARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=8223,
-  serialized_end=8363,
+  serialized_start=8754,
+  serialized_end=8894,
 )
 
 
@@ -1430,8 +1451,8 @@ _LAUNCHBINARYARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=8366,
-  serialized_end=8524,
+  serialized_start=8897,
+  serialized_end=9055,
 )
 
 
@@ -1500,8 +1521,8 @@ _WINUSERACTIVITYINVESTIGATIONARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=8527,
-  serialized_end=9127,
+  serialized_start=9058,
+  serialized_end=9658,
 )
 
 
@@ -1548,7 +1569,7 @@ _ARTIFACTCOLLECTORFLOWARGS = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001_\022[An optional knowledge base to use, if not specified we retrieve one from the client object.\030\002')),
     _descriptor.FieldDescriptor(
-      name='no_results_errors', full_name='ArtifactCollectorFlowArgs.no_results_errors', index=5,
+      name='on_no_results_error', full_name='ArtifactCollectorFlowArgs.on_no_results_error', index=5,
       number=7, type=8, cpp_type=7, label=1,
       has_default_value=True, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
@@ -1585,8 +1606,8 @@ _ARTIFACTCOLLECTORFLOWARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=9130,
-  serialized_end=10803,
+  serialized_start=9661,
+  serialized_end=11336,
 )
 
 
@@ -1613,8 +1634,8 @@ _INTERROGATEARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=10805,
-  serialized_end=10909,
+  serialized_start=11338,
+  serialized_end=11442,
 )
 
 
@@ -1641,8 +1662,8 @@ _FINGERPRINTFILEARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=10911,
-  serialized_end=11000,
+  serialized_start=11444,
+  serialized_end=11533,
 )
 
 
@@ -1676,8 +1697,8 @@ _FINGERPRINTFILERESULT = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=11003,
-  serialized_end=11149,
+  serialized_start=11536,
+  serialized_end=11682,
 )
 
 
@@ -1739,8 +1760,8 @@ _DOWNLOADMEMORYIMAGEARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=11152,
-  serialized_end=11895,
+  serialized_start=11685,
+  serialized_end=12428,
 )
 
 
@@ -1774,43 +1795,8 @@ _LOADMEMORYDRIVERARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=11898,
-  serialized_end=12228,
-)
-
-
-_ANALYZECLIENTMEMORYARGSVOLATILITY = _descriptor.Descriptor(
-  name='AnalyzeClientMemoryArgsVolatility',
-  full_name='AnalyzeClientMemoryArgsVolatility',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='driver_installer', full_name='AnalyzeClientMemoryArgsVolatility.driver_installer', index=0,
-      number=1, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\206\001\022\201\001An optional DriverInstallTemplate proto to control driver installation. If not set, the default  installation proto will be used.\030\002')),
-    _descriptor.FieldDescriptor(
-      name='request', full_name='AnalyzeClientMemoryArgsVolatility.request', index=1,
-      number=2, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0012\0220A request for the client\'s volatility subsystem.')),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  extension_ranges=[],
-  serialized_start=12231,
-  serialized_end=12556,
+  serialized_start=12431,
+  serialized_end=12761,
 )
 
 
@@ -1844,8 +1830,8 @@ _ANALYZECLIENTMEMORYARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=12559,
-  serialized_end=12866,
+  serialized_start=12764,
+  serialized_end=13071,
 )
 
 
@@ -1879,8 +1865,8 @@ _SCANMEMORYARGS = _descriptor.Descriptor(
   options=_descriptor._ParseOptions(descriptor_pb2.MessageOptions(), '\332\374\343\304\001=\n;A grep specification which operates only on memory devices.'),
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=12869,
-  serialized_end=13090,
+  serialized_start=13074,
+  serialized_end=13295,
 )
 
 
@@ -1907,8 +1893,8 @@ _SOPHOSCOLLECTORARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=13092,
-  serialized_end=13189,
+  serialized_start=13297,
+  serialized_end=13394,
 )
 
 
@@ -1935,8 +1921,8 @@ _MACTIMESARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=13191,
-  serialized_end=13288,
+  serialized_start=13396,
+  serialized_end=13493,
 )
 
 
@@ -1963,8 +1949,8 @@ _FILECOLLECTORARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=13290,
-  serialized_end=13379,
+  serialized_start=13495,
+  serialized_end=13584,
 )
 
 
@@ -2012,8 +1998,8 @@ _FIREFOXHISTORYARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=13382,
-  serialized_end=13835,
+  serialized_start=13587,
+  serialized_end=14040,
 )
 
 
@@ -2075,8 +2061,8 @@ _CACHEGREPARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=13838,
-  serialized_end=14285,
+  serialized_start=14043,
+  serialized_end=14490,
 )
 
 
@@ -2103,8 +2089,8 @@ _LISTDIRECTORYARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=14287,
-  serialized_end=14384,
+  serialized_start=14492,
+  serialized_end=14589,
 )
 
 
@@ -2138,8 +2124,8 @@ _RECURSIVELISTDIRECTORYARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=14387,
-  serialized_end=14549,
+  serialized_start=14592,
+  serialized_end=14754,
 )
 
 
@@ -2180,8 +2166,8 @@ _FETCHBUFFERFORSPARSEIMAGEARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=14552,
-  serialized_end=14688,
+  serialized_start=14757,
+  serialized_end=14893,
 )
 
 
@@ -2215,8 +2201,8 @@ _MAKENEWAFF4SPARSEIMAGEARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=14690,
-  serialized_end=14771,
+  serialized_start=14895,
+  serialized_end=14976,
 )
 
 
@@ -2250,8 +2236,8 @@ _UPDATESPARSEIMAGECHUNKSARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=14773,
-  serialized_end=14900,
+  serialized_start=14978,
+  serialized_end=15105,
 )
 
 
@@ -2278,8 +2264,8 @@ _GREPARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=14902,
-  serialized_end=14940,
+  serialized_start=15107,
+  serialized_end=15145,
 )
 
 
@@ -2327,8 +2313,8 @@ _GLOBARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=14943,
-  serialized_end=15575,
+  serialized_start=15148,
+  serialized_end=15780,
 )
 
 
@@ -2383,8 +2369,8 @@ _SEARCHFILECONTENTARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=15578,
-  serialized_end=16213,
+  serialized_start=15783,
+  serialized_end=16418,
 )
 
 
@@ -2425,8 +2411,8 @@ _FINDFILESARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=16216,
-  serialized_end=16445,
+  serialized_start=16421,
+  serialized_end=16650,
 )
 
 
@@ -2467,8 +2453,8 @@ _GETFILEARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=16448,
-  serialized_end=16769,
+  serialized_start=16653,
+  serialized_end=16974,
 )
 
 
@@ -2495,8 +2481,8 @@ _GETMBRARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=16771,
-  serialized_end=16852,
+  serialized_start=16976,
+  serialized_end=17057,
 )
 
 
@@ -2544,8 +2530,8 @@ _CHROMEHISTORYARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=16855,
-  serialized_end=17307,
+  serialized_start=17060,
+  serialized_end=17512,
 )
 
 
@@ -2593,8 +2579,8 @@ _CLIENTACTIONARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=17310,
-  serialized_end=17640,
+  serialized_start=17515,
+  serialized_end=17845,
 )
 
 
@@ -2649,8 +2635,8 @@ _CONSOLEDEBUGFLOWARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=17643,
-  serialized_end=18030,
+  serialized_start=17848,
+  serialized_end=18235,
 )
 
 
@@ -2684,8 +2670,8 @@ _CREATEGENERICHUNTFLOWARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=18032,
-  serialized_end=18139,
+  serialized_start=18237,
+  serialized_end=18344,
 )
 
 
@@ -2747,8 +2733,8 @@ _CREATECRONJOBFLOWARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=18142,
-  serialized_end=18713,
+  serialized_start=18347,
+  serialized_end=18918,
 )
 
 
@@ -2789,8 +2775,8 @@ _MODIFYHUNTFLOWARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=18716,
-  serialized_end=18896,
+  serialized_start=18921,
+  serialized_end=19101,
 )
 
 
@@ -2825,8 +2811,8 @@ _MANAGECRONJOBFLOWARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=18899,
-  serialized_end=19271,
+  serialized_start=19104,
+  serialized_end=19476,
 )
 
 
@@ -2874,8 +2860,8 @@ _CRONHUNTOUTPUTFLOWARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=19274,
-  serialized_end=19590,
+  serialized_start=19479,
+  serialized_end=19795,
 )
 
 
@@ -2902,8 +2888,8 @@ _PLISTVALUEFILTERARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=19592,
-  serialized_end=19703,
+  serialized_start=19797,
+  serialized_end=19908,
 )
 
 
@@ -2937,8 +2923,8 @@ _RUNREPORTFLOWARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=19706,
-  serialized_end=19891,
+  serialized_start=19911,
+  serialized_end=20096,
 )
 
 
@@ -2972,8 +2958,8 @@ _ENUMERATESERVICESARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=19894,
-  serialized_end=20078,
+  serialized_start=20099,
+  serialized_end=20283,
 )
 
 
@@ -3021,8 +3007,8 @@ _CHROMEPLUGINSARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=20081,
-  serialized_end=20417,
+  serialized_start=20286,
+  serialized_end=20622,
 )
 
 
@@ -3063,8 +3049,8 @@ _REQUESTAPPROVALWITHREASONFLOWARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=20420,
-  serialized_end=20645,
+  serialized_start=20625,
+  serialized_end=20850,
 )
 
 
@@ -3105,8 +3091,8 @@ _GRANTAPPROVALWITHREASONFLOWARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=20648,
-  serialized_end=20871,
+  serialized_start=20853,
+  serialized_end=21076,
 )
 
 
@@ -3133,8 +3119,8 @@ _STARTHUNTFLOWARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=20873,
-  serialized_end=20959,
+  serialized_start=21078,
+  serialized_end=21164,
 )
 
 
@@ -3161,8 +3147,8 @@ _PAUSEHUNTFLOWARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=20961,
-  serialized_end=21045,
+  serialized_start=21166,
+  serialized_end=21250,
 )
 
 
@@ -3189,8 +3175,8 @@ _CHECKHUNTACCESSFLOWARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=21047,
-  serialized_end=21137,
+  serialized_start=21252,
+  serialized_end=21342,
 )
 
 
@@ -3224,8 +3210,8 @@ _UPDATEVFSFILEARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=21140,
-  serialized_end=21274,
+  serialized_start=21345,
+  serialized_end=21479,
 )
 
 
@@ -3259,8 +3245,8 @@ _MULTIGETFILEARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=21277,
-  serialized_end=21611,
+  serialized_start=21482,
+  serialized_end=21816,
 )
 
 
@@ -3301,8 +3287,8 @@ _GETEXECUTABLESFILTEREDBYHASHARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=21614,
-  serialized_end=22049,
+  serialized_start=21819,
+  serialized_end=22254,
 )
 
 
@@ -3336,8 +3322,8 @@ _PROCESSHUNTRESULTSCRONFLOWARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=22052,
-  serialized_end=22388,
+  serialized_start=22257,
+  serialized_end=22593,
 )
 
 
@@ -3371,8 +3357,8 @@ _LISTPROCESSESARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=22391,
-  serialized_end=22580,
+  serialized_start=22596,
+  serialized_end=22785,
 )
 
 
@@ -3397,13 +3383,6 @@ _LISTVADBINARIESARGS = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\020\"\016Fetch Binaries')),
-    _descriptor.FieldDescriptor(
-      name='request', full_name='ListVADBinariesArgs.request', index=2,
-      number=3, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\002\030\001')),
   ],
   extensions=[
   ],
@@ -3413,8 +3392,8 @@ _LISTVADBINARIESARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=22583,
-  serialized_end=22820,
+  serialized_start=22788,
+  serialized_end=22978,
 )
 
 
@@ -3448,8 +3427,8 @@ _FILEFINDERMODIFICATIONTIMECONDITION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=22823,
-  serialized_end=23109,
+  serialized_start=22981,
+  serialized_end=23267,
 )
 
 
@@ -3483,8 +3462,8 @@ _FILEFINDERACCESSTIMECONDITION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=23112,
-  serialized_end=23388,
+  serialized_start=23270,
+  serialized_end=23546,
 )
 
 
@@ -3518,8 +3497,8 @@ _FILEFINDERINODECHANGETIMECONDITION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=23391,
-  serialized_end=23692,
+  serialized_start=23549,
+  serialized_end=23850,
 )
 
 
@@ -3553,8 +3532,8 @@ _FILEFINDERSIZECONDITION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=23695,
-  serialized_end=23885,
+  serialized_start=23853,
+  serialized_end=24043,
 )
 
 
@@ -3617,8 +3596,8 @@ _FILEFINDERCONTENTSREGEXMATCHCONDITION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=23888,
-  serialized_end=24514,
+  serialized_start=24046,
+  serialized_end=24672,
 )
 
 
@@ -3695,8 +3674,8 @@ _FILEFINDERCONTENTSLITERALMATCHCONDITION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=24517,
-  serialized_end=25523,
+  serialized_start=24675,
+  serialized_end=25681,
 )
 
 
@@ -3766,8 +3745,8 @@ _FILEFINDERCONDITION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=25526,
-  serialized_end=26284,
+  serialized_start=25684,
+  serialized_end=26442,
 )
 
 
@@ -3801,8 +3780,8 @@ _FILEFINDERDOWNLOADACTIONOPTIONS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=26287,
-  serialized_end=26657,
+  serialized_start=26445,
+  serialized_end=26815,
 )
 
 
@@ -3837,8 +3816,8 @@ _FILEFINDERACTION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=26660,
-  serialized_end=26915,
+  serialized_start=26818,
+  serialized_end=27073,
 )
 
 
@@ -3893,8 +3872,8 @@ _FILEFINDERARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=26918,
-  serialized_end=27373,
+  serialized_start=27076,
+  serialized_end=27531,
 )
 
 
@@ -3935,8 +3914,8 @@ _FILEFINDERRESULT = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=27375,
-  serialized_end=27487,
+  serialized_start=27533,
+  serialized_end=27645,
 )
 
 
@@ -3977,8 +3956,8 @@ _FILEREFERENCE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=27490,
-  serialized_end=27720,
+  serialized_start=27648,
+  serialized_end=27878,
 )
 
 
@@ -4005,8 +3984,8 @@ _BIT9DOWNLOADERARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=27722,
-  serialized_end=27773,
+  serialized_start=27880,
+  serialized_end=27931,
 )
 
 
@@ -4062,8 +4041,8 @@ _REGISTRYFINDERCONDITION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=27776,
-  serialized_end=28284,
+  serialized_start=27934,
+  serialized_end=28442,
 )
 
 
@@ -4097,8 +4076,8 @@ _REGISTRYFINDERARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=28287,
-  serialized_end=28449,
+  serialized_start=28445,
+  serialized_end=28607,
 )
 
 
@@ -4140,8 +4119,8 @@ _MEMORYCOLLECTORCONDITION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=28452,
-  serialized_end=28744,
+  serialized_start=28610,
+  serialized_end=28902,
 )
 
 
@@ -4161,8 +4140,8 @@ _MEMORYCOLLECTORWITHOUTLOCALCOPYDUMPOPTION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=28746,
-  serialized_end=28789,
+  serialized_start=28904,
+  serialized_end=28947,
 )
 
 
@@ -4217,8 +4196,8 @@ _MEMORYCOLLECTORWITHLOCALCOPYDUMPOPTION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=28792,
-  serialized_end=29410,
+  serialized_start=28950,
+  serialized_end=29568,
 )
 
 
@@ -4260,8 +4239,8 @@ _MEMORYCOLLECTORDUMPOPTION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=29413,
-  serialized_end=29812,
+  serialized_start=29571,
+  serialized_end=29970,
 )
 
 
@@ -4288,8 +4267,8 @@ _MEMORYCOLLECTORDOWNLOADACTION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=29814,
-  serialized_end=29924,
+  serialized_start=29972,
+  serialized_end=30082,
 )
 
 
@@ -4351,8 +4330,8 @@ _MEMORYCOLLECTORSENDTOSOCKETACTION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=29927,
-  serialized_end=30437,
+  serialized_start=30085,
+  serialized_end=30595,
 )
 
 
@@ -4394,8 +4373,8 @@ _MEMORYCOLLECTORACTION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=30440,
-  serialized_end=30825,
+  serialized_start=30598,
+  serialized_end=30983,
 )
 
 
@@ -4436,8 +4415,8 @@ _MEMORYCOLLECTORARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=30828,
-  serialized_end=31130,
+  serialized_start=30986,
+  serialized_end=31288,
 )
 
 
@@ -4464,8 +4443,8 @@ _COLLECTARTIFACTDEPENDENCIESARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=31133,
-  serialized_end=31266,
+  serialized_start=31291,
+  serialized_end=31424,
 )
 
 
@@ -4492,8 +4471,8 @@ _ARTIFACTFALLBACKCOLLECTORARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=31268,
-  serialized_end=31387,
+  serialized_start=31426,
+  serialized_end=31545,
 )
 
 
@@ -4527,8 +4506,8 @@ _KNOWLEDGEBASEINITIALIZATIONARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=31390,
-  serialized_end=31664,
+  serialized_start=31548,
+  serialized_end=31822,
 )
 
 
@@ -4546,6 +4525,13 @@ _EXPORTHUNTRESULTSFILESASZIPARGS = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\036\n\006RDFURN\022\024The URN of the hunt.')),
+    _descriptor.FieldDescriptor(
+      name='deduplicate', full_name='ExportHuntResultsFilesAsZipArgs.deduplicate', index=1,
+      number=2, type=8, cpp_type=7, label=1,
+      has_default_value=True, default_value=True,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001S\0225Deduplicate files in resulting archive using symlinks\"\032Deduplicate (via symlinks)')),
   ],
   extensions=[
   ],
@@ -4555,8 +4541,8 @@ _EXPORTHUNTRESULTSFILESASZIPARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=31666,
-  serialized_end=31755,
+  serialized_start=31825,
+  serialized_end=32032,
 )
 
 
@@ -4583,8 +4569,8 @@ _ENDTOENDTESTFLOWARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=31758,
-  serialized_end=31903,
+  serialized_start=32035,
+  serialized_end=32180,
 )
 
 
@@ -4618,8 +4604,43 @@ _DISKVOLUMEINFOARGS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=31906,
-  serialized_end=32068,
+  serialized_start=32183,
+  serialized_end=32345,
+)
+
+
+_APPLYLABELSTOCLIENTSFLOWARGS = _descriptor.Descriptor(
+  name='ApplyLabelsToClientsFlowArgs',
+  full_name='ApplyLabelsToClientsFlowArgs',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='clients', full_name='ApplyLabelsToClientsFlowArgs.clients', index=0,
+      number=1, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\013\n\tClientURN')),
+    _descriptor.FieldDescriptor(
+      name='labels', full_name='ApplyLabelsToClientsFlowArgs.labels', index=1,
+      number=2, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=32347,
+  serialized_end=32429,
 )
 
 _GUISETTINGS.fields_by_name['mode'].enum_type = _GUISETTINGS_UIMODE
@@ -4652,8 +4673,6 @@ _FINGERPRINTFILEARGS.fields_by_name['pathspec'].message_type = grr.proto.jobs_pb
 _FINGERPRINTFILERESULT.fields_by_name['hash_entry'].message_type = grr.proto.jobs_pb2._HASH
 _DOWNLOADMEMORYIMAGEARGS.fields_by_name['driver_installer'].message_type = grr.proto.jobs_pb2._DRIVERINSTALLTEMPLATE
 _LOADMEMORYDRIVERARGS.fields_by_name['driver_installer'].message_type = grr.proto.jobs_pb2._DRIVERINSTALLTEMPLATE
-_ANALYZECLIENTMEMORYARGSVOLATILITY.fields_by_name['driver_installer'].message_type = grr.proto.jobs_pb2._DRIVERINSTALLTEMPLATE
-_ANALYZECLIENTMEMORYARGSVOLATILITY.fields_by_name['request'].message_type = grr.proto.jobs_pb2._VOLATILITYREQUEST
 _ANALYZECLIENTMEMORYARGS.fields_by_name['driver_installer'].message_type = grr.proto.jobs_pb2._DRIVERINSTALLTEMPLATE
 _ANALYZECLIENTMEMORYARGS.fields_by_name['request'].message_type = grr.proto.jobs_pb2._REKALLREQUEST
 _SCANMEMORYARGS.fields_by_name['grep'].message_type = _BAREGREPSPEC
@@ -4683,7 +4702,6 @@ _ENUMERATESERVICESARGS.fields_by_name['pathtype'].enum_type = grr.proto.jobs_pb2
 _CHROMEPLUGINSARGS.fields_by_name['pathtype'].enum_type = grr.proto.jobs_pb2._PATHSPEC_PATHTYPE
 _MULTIGETFILEARGS.fields_by_name['pathspecs'].message_type = grr.proto.jobs_pb2._PATHSPEC
 _GETEXECUTABLESFILTEREDBYHASHARGS.fields_by_name['pathspecs'].message_type = grr.proto.jobs_pb2._PATHSPEC
-_LISTVADBINARIESARGS.fields_by_name['request'].message_type = grr.proto.jobs_pb2._VOLATILITYREQUEST
 _FILEFINDERCONTENTSREGEXMATCHCONDITION.fields_by_name['mode'].enum_type = _FILEFINDERCONTENTSREGEXMATCHCONDITION_MODE
 _FILEFINDERCONTENTSREGEXMATCHCONDITION_MODE.containing_type = _FILEFINDERCONTENTSREGEXMATCHCONDITION;
 _FILEFINDERCONTENTSLITERALMATCHCONDITION.fields_by_name['mode'].enum_type = _FILEFINDERCONTENTSLITERALMATCHCONDITION_MODE
@@ -4764,7 +4782,6 @@ DESCRIPTOR.message_types_by_name['FingerprintFileArgs'] = _FINGERPRINTFILEARGS
 DESCRIPTOR.message_types_by_name['FingerprintFileResult'] = _FINGERPRINTFILERESULT
 DESCRIPTOR.message_types_by_name['DownloadMemoryImageArgs'] = _DOWNLOADMEMORYIMAGEARGS
 DESCRIPTOR.message_types_by_name['LoadMemoryDriverArgs'] = _LOADMEMORYDRIVERARGS
-DESCRIPTOR.message_types_by_name['AnalyzeClientMemoryArgsVolatility'] = _ANALYZECLIENTMEMORYARGSVOLATILITY
 DESCRIPTOR.message_types_by_name['AnalyzeClientMemoryArgs'] = _ANALYZECLIENTMEMORYARGS
 DESCRIPTOR.message_types_by_name['ScanMemoryArgs'] = _SCANMEMORYARGS
 DESCRIPTOR.message_types_by_name['SophosCollectorArgs'] = _SOPHOSCOLLECTORARGS
@@ -4835,6 +4852,7 @@ DESCRIPTOR.message_types_by_name['KnowledgeBaseInitializationArgs'] = _KNOWLEDGE
 DESCRIPTOR.message_types_by_name['ExportHuntResultsFilesAsZipArgs'] = _EXPORTHUNTRESULTSFILESASZIPARGS
 DESCRIPTOR.message_types_by_name['EndToEndTestFlowArgs'] = _ENDTOENDTESTFLOWARGS
 DESCRIPTOR.message_types_by_name['DiskVolumeInfoArgs'] = _DISKVOLUMEINFOARGS
+DESCRIPTOR.message_types_by_name['ApplyLabelsToClientsFlowArgs'] = _APPLYLABELSTOCLIENTSFLOWARGS
 
 class ACLToken(_message.Message):
   __metaclass__ = _reflection.GeneratedProtocolMessageType
@@ -5021,12 +5039,6 @@ class LoadMemoryDriverArgs(_message.Message):
   DESCRIPTOR = _LOADMEMORYDRIVERARGS
 
   # @@protoc_insertion_point(class_scope:LoadMemoryDriverArgs)
-
-class AnalyzeClientMemoryArgsVolatility(_message.Message):
-  __metaclass__ = _reflection.GeneratedProtocolMessageType
-  DESCRIPTOR = _ANALYZECLIENTMEMORYARGSVOLATILITY
-
-  # @@protoc_insertion_point(class_scope:AnalyzeClientMemoryArgsVolatility)
 
 class AnalyzeClientMemoryArgs(_message.Message):
   __metaclass__ = _reflection.GeneratedProtocolMessageType
@@ -5448,6 +5460,12 @@ class DiskVolumeInfoArgs(_message.Message):
 
   # @@protoc_insertion_point(class_scope:DiskVolumeInfoArgs)
 
+class ApplyLabelsToClientsFlowArgs(_message.Message):
+  __metaclass__ = _reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _APPLYLABELSTOCLIENTSFLOWARGS
+
+  # @@protoc_insertion_point(class_scope:ApplyLabelsToClientsFlowArgs)
+
 
 _ACLTOKEN.fields_by_name['expiry'].has_options = True
 _ACLTOKEN.fields_by_name['expiry']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001+\n\013RDFDatetime\022\034When does this token expire?')
@@ -5493,6 +5511,10 @@ _FLOWRUNNERARGS.fields_by_name['output'].has_options = True
 _FLOWRUNNERARGS.fields_by_name['output']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001{\022wIf set, a relative URN to the client\'s namespace where a collection will be created, and the result will be written to.\030\001')
 _FLOWRUNNERARGS.fields_by_name['logs_collection_urn'].has_options = True
 _FLOWRUNNERARGS.fields_by_name['logs_collection_urn']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0017\n\006RDFURN\022+The logs collection to log to for the flow.\030\002')
+_FLOWRUNNERARGS.fields_by_name['write_intermediate_results'].has_options = True
+_FLOWRUNNERARGS.fields_by_name['write_intermediate_results']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001q\022mIf true, all child flow results received with sendreply will be written to the the flow\'s default collection.\030\001')
+_FLOWRUNNERARGS.fields_by_name['require_fastpoll'].has_options = True
+_FLOWRUNNERARGS.fields_by_name['require_fastpoll']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\214\001\022\211\001This value is passed to the client during CallClient, and by default will cause the client to enter fastpoll afterprocessing the message.')
 _HUNTRUNNERARGS.fields_by_name['hunt_name'].has_options = True
 _HUNTRUNNERARGS.fields_by_name['hunt_name']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0015\0223The name of the class implementing the hunt to run.')
 _HUNTRUNNERARGS.fields_by_name['description'].has_options = True
@@ -5521,6 +5543,8 @@ _HUNTRUNNERARGS.fields_by_name['client_rate'].has_options = True
 _HUNTRUNNERARGS.fields_by_name['client_rate']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001o\022mThe maximum number of clients to engage per minute.A rate of 0 means to schedule clients as fast as possible.')
 _HUNTRUNNERARGS.fields_by_name['logs_collection_urn'].has_options = True
 _HUNTRUNNERARGS.fields_by_name['logs_collection_urn']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0017\n\006RDFURN\022+The logs collection to log to for the hunt.\030\002')
+_HUNTRUNNERARGS.fields_by_name['require_fastpoll'].has_options = True
+_HUNTRUNNERARGS.fields_by_name['require_fastpoll']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\214\001\022\211\001This value is passed to the client during CallClient, and by default will cause the client to enter fastpoll afterprocessing the message.')
 _SAMPLEHUNTARGS.fields_by_name['filename'].has_options = True
 _SAMPLEHUNTARGS.fields_by_name['filename']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\036\022\034evil filename to search for.')
 _FLOWREQUEST.fields_by_name['client_ids'].has_options = True
@@ -5633,8 +5657,8 @@ _ARTIFACTCOLLECTORFLOWARGS.fields_by_name['split_output_by_artifact'].has_option
 _ARTIFACTCOLLECTORFLOWARGS.fields_by_name['split_output_by_artifact']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001c\022_If True, use output as a directory and write a separate collection for each artifact collected.\030\001')
 _ARTIFACTCOLLECTORFLOWARGS.fields_by_name['knowledge_base'].has_options = True
 _ARTIFACTCOLLECTORFLOWARGS.fields_by_name['knowledge_base']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001_\022[An optional knowledge base to use, if not specified we retrieve one from the client object.\030\002')
-_ARTIFACTCOLLECTORFLOWARGS.fields_by_name['no_results_errors'].has_options = True
-_ARTIFACTCOLLECTORFLOWARGS.fields_by_name['no_results_errors']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001t\022rIf True, an artifact returning no results will raise a hard error. This is useful where you always expect results.')
+_ARTIFACTCOLLECTORFLOWARGS.fields_by_name['on_no_results_error'].has_options = True
+_ARTIFACTCOLLECTORFLOWARGS.fields_by_name['on_no_results_error']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001t\022rIf True, an artifact returning no results will raise a hard error. This is useful where you always expect results.')
 _ARTIFACTCOLLECTORFLOWARGS.fields_by_name['apply_parsers'].has_options = True
 _ARTIFACTCOLLECTORFLOWARGS.fields_by_name['apply_parsers']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\201\001\022}If True, apply any relevant parser to the collected data. If False, return the raw collected data e.g Files or Registry Keys.\030\001')
 _ARTIFACTCOLLECTORFLOWARGS.fields_by_name['max_file_size'].has_options = True
@@ -5665,10 +5689,6 @@ _LOADMEMORYDRIVERARGS.fields_by_name['driver_installer'].has_options = True
 _LOADMEMORYDRIVERARGS.fields_by_name['driver_installer']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\206\001\022\201\001An optional DriverInstallTemplate proto to control driver installation. If not set, the default  installation proto will be used.\030\002')
 _LOADMEMORYDRIVERARGS.fields_by_name['reload_if_loaded'].has_options = True
 _LOADMEMORYDRIVERARGS.fields_by_name['reload_if_loaded']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001H\022-If the driver is already loaded we reload it.\"\027Force reload of driver.')
-_ANALYZECLIENTMEMORYARGSVOLATILITY.fields_by_name['driver_installer'].has_options = True
-_ANALYZECLIENTMEMORYARGSVOLATILITY.fields_by_name['driver_installer']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\206\001\022\201\001An optional DriverInstallTemplate proto to control driver installation. If not set, the default  installation proto will be used.\030\002')
-_ANALYZECLIENTMEMORYARGSVOLATILITY.fields_by_name['request'].has_options = True
-_ANALYZECLIENTMEMORYARGSVOLATILITY.fields_by_name['request']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0012\0220A request for the client\'s volatility subsystem.')
 _ANALYZECLIENTMEMORYARGS.fields_by_name['driver_installer'].has_options = True
 _ANALYZECLIENTMEMORYARGS.fields_by_name['driver_installer']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\206\001\022\201\001An optional DriverInstallTemplate proto to control driver installation. If not set, the default  installation proto will be used.\030\002')
 _ANALYZECLIENTMEMORYARGS.fields_by_name['request'].has_options = True
@@ -5867,8 +5887,6 @@ _LISTVADBINARIESARGS.fields_by_name['filename_regex'].has_options = True
 _LISTVADBINARIESARGS.fields_by_name['filename_regex']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001O\n\021RegularExpression\022*Regex used to filter the list of binaries.\"\016Filename Regex')
 _LISTVADBINARIESARGS.fields_by_name['fetch_binaries'].has_options = True
 _LISTVADBINARIESARGS.fields_by_name['fetch_binaries']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\020\"\016Fetch Binaries')
-_LISTVADBINARIESARGS.fields_by_name['request'].has_options = True
-_LISTVADBINARIESARGS.fields_by_name['request']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\002\030\001')
 _FILEFINDERMODIFICATIONTIMECONDITION.fields_by_name['min_last_modified_time'].has_options = True
 _FILEFINDERMODIFICATIONTIMECONDITION.fields_by_name['min_last_modified_time']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0015\n\013RDFDatetime\022&File must be modified after this time.')
 _FILEFINDERMODIFICATIONTIMECONDITION.fields_by_name['max_last_modified_time'].has_options = True
@@ -6015,10 +6033,14 @@ _KNOWLEDGEBASEINITIALIZATIONARGS.fields_by_name['lightweight'].has_options = Tru
 _KNOWLEDGEBASEINITIALIZATIONARGS.fields_by_name['lightweight']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001Y\022WIf true skip all heavyweight artifacts defined in Artifacts.knowledge_base_heavyweight.')
 _EXPORTHUNTRESULTSFILESASZIPARGS.fields_by_name['hunt_urn'].has_options = True
 _EXPORTHUNTRESULTSFILESASZIPARGS.fields_by_name['hunt_urn']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\036\n\006RDFURN\022\024The URN of the hunt.')
+_EXPORTHUNTRESULTSFILESASZIPARGS.fields_by_name['deduplicate'].has_options = True
+_EXPORTHUNTRESULTSFILESASZIPARGS.fields_by_name['deduplicate']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001S\0225Deduplicate files in resulting archive using symlinks\"\032Deduplicate (via symlinks)')
 _ENDTOENDTESTFLOWARGS.fields_by_name['test_names'].has_options = True
 _ENDTOENDTESTFLOWARGS.fields_by_name['test_names']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001_\022]List of endtoend test classes to run. If none are specifed, run all automated endtoend tests.')
 _DISKVOLUMEINFOARGS.fields_by_name['path_list'].has_options = True
 _DISKVOLUMEINFOARGS.fields_by_name['path_list']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\020\022\016List of paths.')
 _DISKVOLUMEINFOARGS.fields_by_name['pathtype'].has_options = True
 _DISKVOLUMEINFOARGS.fields_by_name['pathtype']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0011\022-Type of path. Only OS is currently supported.\030\002')
+_APPLYLABELSTOCLIENTSFLOWARGS.fields_by_name['clients'].has_options = True
+_APPLYLABELSTOCLIENTSFLOWARGS.fields_by_name['clients']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\013\n\tClientURN')
 # @@protoc_insertion_point(module_scope)

@@ -23,7 +23,8 @@ class SearchTest(test_lib.FlowTestsBaseclass):
     client1.Set(client1.Schema.FQDN("lmao.example.com"))
     client2.Set(client2.Schema.FQDN("lmao.example.com"))
     macs = client1.Get(client1.Schema.MAC_ADDRESS)
-    client1.AddLabels(["label1", "label2", "label3"])
+    client1.AddLabels("label1", "label3", owner="GRR")
+    client1.AddLabels("label2")
     client1.Flush()
     client2.Flush()
 
@@ -86,8 +87,9 @@ class SearchTest(test_lib.FlowTestsBaseclass):
     client2 = aff4.FACTORY.Open(client_ids[1], token=self.token, mode="rw")
     client1.Set(client1.Schema.FQDN("lmao1.example.com"))
     client2.Set(client2.Schema.FQDN("lmao2.example.com"))
-    client1.AddLabels(["label1", "label2", "label3"])
-    client2.AddLabels(["label1"])
+    client1.AddLabels("label1", "label3", owner="GRR")
+    client1.AddLabels("label2")
+    client2.AddLabels("label1", owner="GRR")
     client1.Flush()
     client2.Flush()
 
@@ -107,12 +109,13 @@ class SearchTest(test_lib.FlowTestsBaseclass):
     client_ids = self.SetupClients(2)
     client1 = aff4.FACTORY.Open(client_ids[0], token=self.token, mode="rw")
     client1.Set(client1.Schema.FQDN("lmao1.example.com"))
-    client1.AddLabels(["label1", "label2", "label3"])
+    client1.AddLabels("label1", "label3", owner="GRR")
+    client1.AddLabels("label2")
     client1.Flush()
     results = list(search.SearchClients("label:label2", token=self.token))
     self.assertEqual(len(results), 1)
 
-    client1.RemoveLabels(["label2"])
+    client1.RemoveLabels("label2")
     client1.Close(sync=True)
 
     results = list(search.SearchClients("label:label2", token=self.token))

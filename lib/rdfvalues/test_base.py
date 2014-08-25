@@ -16,9 +16,10 @@ class RDFValueBaseTest(test_lib.GRRBaseTest):
 
 
 class GenericRDFProtoTest(RDFValueBaseTest):
+
   def testNestedProtobufAssignment(self):
     """Check that we can assign a nested protobuf."""
-    container = rdfvalue.VolatilityRequest()
+    container = rdfvalue.RekallRequest()
     pathspec = rdfvalue.PathSpec(path=r"\\.\pmem", pathtype=1)
 
     # Should raise - incompatible RDFType.

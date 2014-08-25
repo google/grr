@@ -1,0 +1,105 @@
+
+syntax = "proto2";
+import "grr/proto/data_store.proto";
+
+
+
+message DataStoreCommand {
+  enum Command {
+    MULTI_SET = 0;
+    MULTI_RESOLVE_REGEX = 1;
+    RESOLVE_MULTI = 2;
+    DELETE_SUBJECT = 3;
+    DELETE_ATTRIBUTES = 4;
+    DELETE_ATTRIBUTES_REGEX = 5;
+    LOCK_SUBJECT = 6;
+    UNLOCK_SUBJECT = 7;
+    EXTEND_SUBJECT = 8;
+  };
+  optional Command command = 1;
+  optional DataStoreRequest request = 2;
+}
+
+message DataServerInterval {
+  // Range of hashes used by the server.
+  // Represented as an interval [start, end[.
+  optional uint64 start = 1;
+  optional uint64 end = 2;
+};
+
+message DataServerState {
+  enum Status {
+    AVAILABLE = 0;
+    OFFLINE = 1;
+  }
+
+  optional Status status = 1;
+  optional uint64 load = 2;
+  optional uint64 size = 3;
+  optional uint64 num_components = 4;
+  optional uint64 avg_component = 5;
+};
+
+message DataServerInformation {
+  optional uint64 index = 1;
+  optional string address = 2;
+  optional uint64 port = 3;
+  optional DataServerState state = 4;
+
+  optional DataServerInterval interval = 5;
+};
+
+message DataServerMapping {
+  // Version of the mapping.
+  optional uint64 version = 1;
+
+  // Number of data servers.
+  optional uint64 num_servers = 2;
+
+  // Information about each server.
+  repeated DataServerInformation servers = 3;
+
+  // Routing information for subject paths.
+  repeated string routing = 4;
+};
+
+message DataServerClientInformation {
+  // Client username.
+  optional string username = 1;
+
+  // Client password.
+  optional string password = 2;
+
+  // Client permissions (r, rw, w).
+  optional string permissions = 3;
+};
+
+message DataServerClientCredentials {
+  repeated DataServerClientInformation users = 1;
+};
+
+message DataServerRebalance {
+  // ID of operation.
+  optional string id = 1;
+
+  // New mapping information.
+  optional DataServerMapping mapping = 2;
+
+  // Number of files need to move.
+  repeated uint64 moving = 3;
+};
+
+message DataServerFileCopy {
+  // Rebalance operation.
+  optional string rebalance_id = 1;
+
+  // Directory where the file will be copied.
+  optional string directory = 2;
+
+  // Filename for the file to copy.
+  optional string filename = 3;
+
+  // Size of file.
+  optional uint64 size = 4;
+}
+

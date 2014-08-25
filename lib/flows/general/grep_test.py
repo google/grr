@@ -8,6 +8,7 @@ import os
 
 from grr.client import vfs
 from grr.client.client_actions import searching
+from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import rdfvalue
@@ -64,7 +65,7 @@ class TestSearchFileContentWithFixture(test_lib.FlowTestsBaseclass):
     # Install the mock
     vfs.VFS_HANDLERS[
         rdfvalue.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
-    self.client_mock = test_lib.ActionMock("Grep", "StatFile", "Find")
+    self.client_mock = action_mocks.ActionMock("Grep", "StatFile", "Find")
 
   def testNormalGrep(self):
     output_path = "analysis/grep1"
@@ -152,7 +153,7 @@ class TestSearchFileContent(test_lib.FlowTestsBaseclass):
   def testSearchFileContents(self):
     pattern = "test_data/*.log"
 
-    client_mock = test_lib.ActionMock("Find", "Grep", "StatFile")
+    client_mock = action_mocks.ActionMock("Find", "Grep", "StatFile")
     path = os.path.join(os.path.dirname(self.base_path), pattern)
 
     args = rdfvalue.SearchFileContentArgs(
@@ -184,7 +185,7 @@ class TestSearchFileContent(test_lib.FlowTestsBaseclass):
     """Search files without a grep specification."""
     pattern = "test_data/*.log"
 
-    client_mock = test_lib.ActionMock("Find", "Grep", "StatFile")
+    client_mock = action_mocks.ActionMock("Find", "Grep", "StatFile")
     path = os.path.join(os.path.dirname(self.base_path), pattern)
 
     # Do not provide a Grep expression - should match all files.
@@ -206,8 +207,9 @@ class TestSearchFileContent(test_lib.FlowTestsBaseclass):
 
     pattern = "test_data/*.log"
 
-    client_mock = test_lib.ActionMock("Find", "Grep", "StatFile", "HashFile",
-                                      "HashBuffer", "TransferBuffer")
+    client_mock = action_mocks.ActionMock("Find", "Grep", "StatFile",
+                                          "HashFile", "HashBuffer",
+                                          "TransferBuffer")
     path = os.path.join(os.path.dirname(self.base_path), pattern)
 
     # Do not provide a Grep expression - should match all files.

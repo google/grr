@@ -64,7 +64,6 @@ ARTIFACT_LABELS = {
     "Software": "Installed software.",
     "System": "Core system artifacts.",
     "Users": "Information about users.",
-    "Volatility": "Artifacts using the Volatility memory forensics framework.",
     "Rekall": "Artifacts using the Rekall memory forensics framework.",
     }
 
@@ -87,8 +86,6 @@ TYPE_MAP = {"GRR_CLIENT_ACTION": {"required_args": ["client_action"],
                     "output_type": "Dict"},
             "COMMAND": {"required_args": ["cmd", "args"],
                         "output_type": "ExecuteResponse"},
-            "VOLATILITY_PLUGIN": {"required_args": ["plugin"],
-                                  "output_type": "VolatilityResponse"},
             "REKALL_PLUGIN": {"required_args": ["plugin"],
                               "output_type": "RekallResponse"},
             "ARTIFACT": {"required_args": ["artifact_list"],

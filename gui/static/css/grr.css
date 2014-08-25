@@ -32,6 +32,12 @@
   margin-left: 10px;
 }
 
+.client-checkbox {
+  width: 100%;
+  height: 100%;
+  margin: 0 !important;
+}
+
 .nested-icon, .advanced-icon {
   margin-top: 6px;
 }
@@ -142,8 +148,12 @@ dd.histogram > div {
     height: 20px;
 }
 
+.no-margin {
+    margin: 0 !important;
+}
+
 .no-bottom-margin {
-  margin-bottom: 0;
+    margin-bottom: 0;
 }
 
 .padded {
@@ -533,6 +543,9 @@ abbr[title] {
 
   /* prevent horizontal scrollbar */
   overflow-x: hidden;
+
+  /* ensure autocomplete is always shown above other UI elements */
+  z-index: 1100 !important;
 }
 
 /* IE 6 doesn't support max-height

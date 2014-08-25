@@ -90,6 +90,9 @@ class DataStore(object):
   NEWEST_TIMESTAMP = "NEWEST_TIMESTAMP"
   TIMESTAMPS = [ALL_TIMESTAMPS, NEWEST_TIMESTAMP]
 
+  flusher_thread = None
+  monitor_thread = None
+
   def __init__(self):
     security_manager = access_control.BaseAccessControlManager.GetPlugin(
         config_lib.CONFIG["Datastore.security_manager"])()
@@ -482,6 +485,12 @@ class CommonTransaction(Transaction):
     self.subject = subject
     self.store = table
     self.token = token
+    self.expires = None
+
+  def CheckLease(self):
+    if not self.expires:
+      return 0
+    return max(0, self.expires - time.time())
 
   def DeleteAttribute(self, predicate):
     self.to_delete.add(predicate)
@@ -489,7 +498,7 @@ class CommonTransaction(Transaction):
   def ResolveRegex(self, predicate_regex, timestamp=None):
     # Break up the timestamp argument.
     if isinstance(timestamp, (list, tuple)):
-      start, end = timestamp
+      start, end = timestamp  # pylint: disable=unpacking-non-sequence
     elif isinstance(timestamp, int):
       start = timestamp
       end = timestamp
@@ -557,6 +566,9 @@ class CommonTransaction(Transaction):
     return self.store.Resolve(self.subject, predicate, token=self.token)
 
   def Commit(self):
+    if not self.CheckLease():
+      raise TransactionError("Lease is no longer valid.")
+
     self.store.DeleteAttributes(self.subject, self.to_delete, sync=True,
                                 token=self.token)
 

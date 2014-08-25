@@ -30,3 +30,9 @@ try:
   from grr.lib.data_stores import sqlite_data_store
 except ImportError:
   pass
+
+# HTTP remote data store.
+try:
+  from grr.lib.data_stores import http_data_store
+except ImportError:
+  pass

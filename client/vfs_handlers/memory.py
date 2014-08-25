@@ -316,7 +316,7 @@ class OSXMemory(MemoryVFS):
       desc_size: The size in bytes of an individual EfiMemoryRange struct.
 
     Returns:
-      List of tuples (start_address, number_of_pages)
+      List of tuples (start_address, length of segment in bytes)
     """
     num_descriptors = size / desc_size
     result = list()

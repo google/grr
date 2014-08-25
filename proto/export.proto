@@ -232,29 +232,6 @@ message ExportedOpenFile {
   optional string path = 3;
 }
 
-message ExportedVolatilityHandle {
-  optional ExportedMetadata metadata = 1;
-
-  optional int64 offset = 2; // position of the value in memory
-  optional int64 pid = 3; // handler's owner PID
-  optional int64 handle = 4;
-  optional int64 access = 5;
-  optional string type = 6; // system handle type, eg: Key or Process
-  optional string path = 7; // details, eg: MACHINE\X\Y
-}
-
-message ExportedVolatilityMutant {
-  optional ExportedMetadata metadata = 1;
-
-  optional int64 offset = 2; // position of the value in memory
-  optional int64 ptr_count = 3;
-  optional int64 handle_count = 4;
-  optional int64 signal = 5;
-  optional int64 thread = 6;
-  optional string cid = 7; // 12345678:123
-  optional string name = 8; // named object, eg: XYZLock
-}
-
 message ExportedFileStoreHash {
   optional ExportedMetadata metadata = 1;
 

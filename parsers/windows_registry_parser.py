@@ -24,6 +24,7 @@ class CurrentControlSetKBParser(parsers.RegistryValueParser):
   def Parse(self, stat, unused_knowledge_base):
     """Parse the key currentcontrolset output."""
     value = stat.registry_data.GetValue()
+
     if not str(value).isdigit() or int(value) > 999 or int(value) < 0:
       raise parsers.ParseError("Invalid value for CurrentControlSet key %s" %
                                value)
@@ -241,8 +242,10 @@ class WinServicesParser(parsers.RegistryValueParser):
   process_together = True
 
   def __init__(self):
+    # The key can be "services" or "Services" on different versions of windows.
     self.service_re = re.compile(
-        r".*HKEY_LOCAL_MACHINE/SYSTEM/[^/]+/services/([^/]+)(/(.*))?$")
+        r".*HKEY_LOCAL_MACHINE/SYSTEM/[^/]+/services/([^/]+)(/(.*))?$",
+        re.IGNORECASE)
     super(WinServicesParser, self).__init__()
 
   def _GetServiceName(self, path):

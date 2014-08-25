@@ -6,6 +6,7 @@ import os
 import random
 
 from grr.client import vfs
+from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import artifact
 from grr.lib import artifact_lib
@@ -30,6 +31,7 @@ class TestArtifactCollectors(artifact_test.ArtifactTestHelper):
     self.LoadTestArtifacts()
     artifact_reg = artifact_lib.ArtifactRegistry.artifacts
     self.fakeartifact = artifact_reg["FakeArtifact"]
+    self.fakeartifact2 = artifact_reg["FakeArtifact2"]
 
     with aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw") as fd:
       fd.Set(fd.Schema.SYSTEM("Linux"))
@@ -42,6 +44,9 @@ class TestArtifactCollectors(artifact_test.ArtifactTestHelper):
     artifact_lib.ArtifactRegistry.artifacts = self.original_artifact_reg
     self.fakeartifact.collectors = []  # Reset any Collectors
     self.fakeartifact.conditions = []  # Reset any Conditions
+
+    self.fakeartifact2.collectors = []  # Reset any Collectors
+    self.fakeartifact2.conditions = []  # Reset any Conditions
 
   def testInterpolateArgs(self):
     collect_flow = collectors.ArtifactCollectorFlow(None, token=self.token)
@@ -119,8 +124,8 @@ class TestArtifactCollectors(artifact_test.ArtifactTestHelper):
   def testGetArtifact1(self):
     """Test we can get a basic artifact."""
 
-    client_mock = test_lib.ActionMock("TransferBuffer", "StatFile", "Find",
-                                      "HashFile", "HashBuffer")
+    client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
+                                          "HashFile", "HashBuffer")
     client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
     client.Set(client.Schema.SYSTEM("Linux"))
     client.Flush()
@@ -149,7 +154,7 @@ class TestArtifactCollectors(artifact_test.ArtifactTestHelper):
 
   def testRunGrrClientActionArtifact(self):
     """Test we can get a GRR client artifact."""
-    client_mock = test_lib.ActionMock("ListProcesses")
+    client_mock = action_mocks.ActionMock("ListProcesses")
     client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
     client.Set(client.Schema.SYSTEM("Linux"))
     client.Flush()
@@ -172,10 +177,43 @@ class TestArtifactCollectors(artifact_test.ArtifactTestHelper):
     self.assertTrue(isinstance(list(fd)[0], rdfvalue.Process))
     self.assertTrue(len(fd) > 5)
 
+  def testRunGrrClientActionArtifactSplit(self):
+    """Test that artifacts get split into separate collections."""
+    client_mock = action_mocks.ActionMock("ListProcesses", "StatFile")
+    client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
+    client.Set(client.Schema.SYSTEM("Linux"))
+    client.Flush()
+
+    coll1 = rdfvalue.Collector(
+        collector_type=rdfvalue.Collector.CollectorType.GRR_CLIENT_ACTION,
+        args={"client_action": r"ListProcesses"})
+    self.fakeartifact.collectors.append(coll1)
+    self.fakeartifact2.collectors.append(coll1)
+    artifact_list = ["FakeArtifact", "FakeArtifact2"]
+    for _ in test_lib.TestFlowHelper("ArtifactCollectorFlow", client_mock,
+                                     artifact_list=artifact_list,
+                                     token=self.token, client_id=self.client_id,
+                                     output="test_artifact",
+                                     split_output_by_artifact=True):
+      pass
+
+    # Check that we got two separate collections based on artifact name
+    fd = aff4.FACTORY.Open(rdfvalue.RDFURN(
+        self.client_id).Add("test_artifact_FakeArtifact"),
+                           token=self.token)
+    self.assertTrue(isinstance(list(fd)[0], rdfvalue.Process))
+    self.assertTrue(len(fd) > 5)
+
+    fd = aff4.FACTORY.Open(rdfvalue.RDFURN(
+        self.client_id).Add("test_artifact_FakeArtifact2"),
+                           token=self.token)
+    self.assertTrue(len(fd) > 5)
+    self.assertTrue(isinstance(list(fd)[0], rdfvalue.Process))
+
   def testConditions(self):
     """Test we can get a GRR client artifact with conditions."""
     # Run with false condition.
-    client_mock = test_lib.ActionMock("ListProcesses")
+    client_mock = action_mocks.ActionMock("ListProcesses")
     coll1 = rdfvalue.Collector(
         collector_type=rdfvalue.Collector.CollectorType.GRR_CLIENT_ACTION,
         args={"client_action": "ListProcesses"},
@@ -201,7 +239,7 @@ class TestArtifactCollectors(artifact_test.ArtifactTestHelper):
   def testSupportedOS(self):
     """Test supported_os inside the collector object."""
     # Run with false condition.
-    client_mock = test_lib.ActionMock("ListProcesses")
+    client_mock = action_mocks.ActionMock("ListProcesses")
     coll1 = rdfvalue.Collector(
         collector_type=rdfvalue.Collector.CollectorType.GRR_CLIENT_ACTION,
         args={"client_action": "ListProcesses"}, supported_os=["Windows"])
@@ -274,8 +312,9 @@ class TestArtifactCollectorsInteractions(
     vfs.VFS_HANDLERS[
         rdfvalue.PathSpec.PathType.OS] = test_lib.ClientFullVFSFixture
 
-    client_mock = test_lib.ActionMock("TransferBuffer", "StatFile", "Find",
-                                      "HashBuffer", "HashFile", "ListDirectory")
+    client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
+                                          "HashBuffer", "HashFile",
+                                          "ListDirectory")
 
     # Get KB initialized
     for _ in test_lib.TestFlowHelper(
@@ -319,7 +358,7 @@ class TestArtifactCollectorsRealArtifacts(artifact_test.ArtifactTestHelper):
   """Test the collection of real artifacts."""
 
   def _CheckDriveAndRoot(self):
-    client_mock = test_lib.ActionMock("StatFile", "ListDirectory")
+    client_mock = action_mocks.ActionMock("StatFile", "ListDirectory")
 
     for _ in test_lib.TestFlowHelper("ArtifactCollectorFlow", client_mock,
                                      artifact_list=[
@@ -351,7 +390,7 @@ class TestArtifactCollectorsRealArtifacts(artifact_test.ArtifactTestHelper):
     client.Set(client.Schema.OS_VERSION("6.2"))
     client.Flush()
 
-    class BrokenClientMock(test_lib.ActionMock):
+    class BrokenClientMock(action_mocks.ActionMock):
 
       def StatFile(self, _):
         raise IOError
@@ -381,7 +420,7 @@ class TestArtifactCollectorsRealArtifacts(artifact_test.ArtifactTestHelper):
 
   def testRunWMIArtifact(self):
 
-    class WMIActionMock(test_lib.ActionMock):
+    class WMIActionMock(action_mocks.ActionMock):
 
       def WmiQuery(self, _):
         return client_fixture.WMI_SAMPLE
@@ -425,8 +464,9 @@ class TestArtifactCollectorsRealArtifacts(artifact_test.ArtifactTestHelper):
     vfs.VFS_HANDLERS[
         rdfvalue.PathSpec.PathType.OS] = test_lib.ClientFullVFSFixture
 
-    client_mock = test_lib.ActionMock("TransferBuffer", "StatFile", "Find",
-                                      "HashBuffer", "HashFile", "ListDirectory")
+    client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
+                                          "HashBuffer", "HashFile",
+                                          "ListDirectory")
 
     artifact_list = ["WinDirEnvironmentVariable"]
     for _ in test_lib.TestFlowHelper(

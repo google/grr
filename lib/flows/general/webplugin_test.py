@@ -5,6 +5,7 @@ import os
 
 from grr.client import client_utils_linux
 from grr.client import client_utils_osx
+from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -37,7 +38,7 @@ class TestChromePlugins(test_lib.FlowTestsBaseclass):
 
     self.client.Close()
 
-    client_mock = test_lib.ActionMock(
+    client_mock = action_mocks.ActionMock(
         "ReadBuffer", "HashFile", "TransferBuffer", "StatFile", "ListDirectory",
         "HashBuffer", "Find")
 

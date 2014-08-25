@@ -162,29 +162,5 @@ class ArtifactFilesParser(Parser):
     """Parse artifact files."""
 
 
-class VolatilityPluginParser(Parser):
-  """Abstract parser for processing Volatility results."""
-
-  def ParseMultiple(self, results, knowledge_base):
-    """Parse multiple results in a single call."""
-
-  def Parse(self, results, knowledge_base):
-    """Take the stat, and yield RDFValues."""
-
-  def CheckError(self, result):
-    if result.error:
-      raise ParseError("Volatility returned an error for plugin %s. Error: %s"
-                       % (result.plugin, result.error))
-
-  def IterateSections(self, result, plugin=None):
-    """Iterate through all sections if a plugin matches."""
-    self.CheckError(result)
-    if plugin and result.plugin == plugin:
-      for section in result.sections:
-        headers = [h.name for h in section.table.headers]
-        for row in section.table.rows:
-          yield dict(zip(headers, row.values))
-
-
 class RekallPluginParser(Parser):
   """Parses Rekall responses."""

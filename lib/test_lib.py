@@ -16,7 +16,6 @@ import StringIO
 import subprocess
 import sys
 import tempfile
-import threading
 import time
 import types
 import unittest
@@ -34,11 +33,11 @@ import logging
 import unittest
 
 from grr.client import actions
-from grr.client import client_stats
 from grr.client import comms
 from grr.client import vfs
 
 from grr.lib import access_control
+from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import config_lib
 
@@ -62,6 +61,7 @@ from grr.lib import startup
 from grr.lib import stats
 from grr.lib import utils
 from grr.lib import worker
+from grr.lib import worker_mocks
 # pylint: disable=unused-import
 from grr.lib.flows.caenroll import ca_enroller
 # pylint: enable=unused-import
@@ -126,6 +126,14 @@ class SendingFlow(flow.GRRFlow):
     """Just send a few messages."""
     for unused_i in range(0, self.args.message_count):
       self.CallClient("ReadBuffer", offset=0, length=100, next_state="Process")
+
+
+class RaiseOnStart(flow.GRRFlow):
+  """A broken flow that raises in the Start method."""
+
+  @flow.StateHandler(next_state="End")
+  def Start(self, unused_message=None):
+    raise Exception("Broken Start")
 
 
 class BrokenFlow(flow.GRRFlow):
@@ -344,6 +352,8 @@ class GRRBaseTest(unittest.TestCase):
         result.addFailure(self, sys.exc_info())
       except KeyboardInterrupt:
         raise
+      except unittest.SkipTest:
+        result.addSkip(self, sys.exc_info())
       except Exception:
         # Break into interactive debugger on test failure.
         if flags.FLAGS.debug:
@@ -372,7 +382,7 @@ class GRRBaseTest(unittest.TestCase):
     """Makes the test user an admin."""
     with aff4.FACTORY.Create("aff4:/users/%s" % username, "GRRUser",
                              token=self.token.SetUID()) as user:
-      user.SetLabels("admin")
+      user.SetLabels("admin", owner="GRR")
 
   def GrantClientApproval(self, client_id, token=None):
     token = token or self.token
@@ -603,7 +613,7 @@ class EmptyActionTest(GRRBaseTest):
       self.results.append(reply)
 
     if grr_worker is None:
-      grr_worker = FakeClientWorker()
+      grr_worker = worker_mocks.FakeClientWorker()
 
     try:
       suspended_action_id = arg.iterator.suspended_action
@@ -1220,7 +1230,7 @@ class MockClient(object):
       raise RuntimeError("Client id must be an instance of ClientURN")
 
     if client_mock is None:
-      client_mock = InvalidActionMock()
+      client_mock = action_mocks.InvalidActionMock()
 
     self.status_message_enforced = getattr(
         client_mock, "STATUS_MESSAGE_ENFORCED", True)
@@ -1231,7 +1241,7 @@ class MockClient(object):
     # Well known flows are run on the front end.
     self.well_known_flows = flow.WellKnownFlow.GetAllWellKnownFlows(token=token)
 
-  def PushToStateQueue(self, message, **kw):
+  def PushToStateQueue(self, manager, message, **kw):
     # Assume the client is authorized
     message.auth_state = rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED
 
@@ -1257,8 +1267,7 @@ class MockClient(object):
 
       return
 
-    with queue_manager.QueueManager(token=self.token) as manager:
-      manager.QueueResponse(message.session_id, message)
+    manager.QueueResponse(message.session_id, message)
 
   def Next(self):
     # Grab tasks for us from the queue.
@@ -1275,6 +1284,7 @@ class MockClient(object):
           if hasattr(self.client_mock, "HandleMessage"):
             responses = self.client_mock.HandleMessage(message)
           else:
+            self.client_mock.message = message
             responses = getattr(self.client_mock, message.name)(message.payload)
 
           if not responses:
@@ -1317,11 +1327,11 @@ class MockClient(object):
 
           # Next expected response
           response_id = response.response_id + 1
-          self.PushToStateQueue(response)
+          self.PushToStateQueue(manager, response)
 
         # Status may only be None if the client reported itself as crashed.
         if status is not None:
-          self.PushToStateQueue(message, response_id=response_id,
+          self.PushToStateQueue(manager, message, response_id=response_id,
                                 payload=status,
                                 type=rdfvalue.GrrMessage.Type.STATUS)
         else:
@@ -1399,7 +1409,6 @@ class MockWorker(worker.GRRWorker):
     """
     with queue_manager.QueueManager(token=self.token) as manager:
       notifications_available = manager.GetNotifications(self.queue)
-
       # Run all the flows until they are finished
       run_sessions = []
 
@@ -1428,7 +1437,7 @@ class MockWorker(worker.GRRWorker):
             cpu_used.user_cpu_time += user_cpu
             cpu_used.system_cpu_time += system_cpu
             runner.context.network_bytes_sent += network_bytes
-            runner.ProcessCompletedRequests(self.pool)
+            runner.ProcessCompletedRequests(notification, self.pool)
 
             if (self.check_flow_errors and
                 runner.context.state == rdfvalue.Flow.State.ERROR):
@@ -1439,110 +1448,6 @@ class MockWorker(worker.GRRWorker):
               raise RuntimeError(runner.context.backtrace)
 
     return run_sessions
-
-
-class FakeClientWorker(comms.GRRClientWorker):
-  """A Fake GRR client worker which just collects SendReplys."""
-
-  # Global store of suspended actions, indexed by the unique ID of the client
-  # action.
-  suspended_actions = {}
-
-  def __init__(self):
-    self.responses = []
-    self.sent_bytes_per_flow = {}
-    self.lock = threading.RLock()
-    self.stats_collector = client_stats.ClientStatsCollector(self)
-
-  def __del__(self):
-    pass
-
-  def SendReply(self, rdf_value,
-                message_type=rdfvalue.GrrMessage.Type.MESSAGE, **kw):
-    message = rdfvalue.GrrMessage(
-        type=message_type, payload=rdf_value, **kw)
-
-    self.responses.append(message)
-
-  def Drain(self):
-    result = self.responses
-    self.responses = []
-    return result
-
-
-class ActionMock(object):
-  """A client mock which runs a real action.
-
-  This can be used as input for TestFlowHelper.
-
-  It is possible to mix mocked actions with real actions. Simple extend this
-  class and add methods for the mocked actions, while instantiating with the
-  list of read actions to run:
-
-  class MixedActionMock(ActionMock):
-    def __init__(self):
-      super(MixedActionMock, self).__init__("RealAction")
-
-    def MockedAction(self, args):
-      return []
-
-  Will run the real action "RealAction" at the same time as a mocked action
-  MockedAction.
-  """
-
-  def __init__(self, *action_names):
-    self.action_names = action_names
-    self.action_classes = dict(
-        [(k, v) for (k, v) in actions.ActionPlugin.classes.items()
-         if k in action_names])
-    self.action_counts = dict((x, 0) for x in action_names)
-
-    # Create a single long lived client worker mock.
-    self.client_worker = FakeClientWorker()
-
-  def RecordCall(self, action_name, action_args):
-    pass
-
-  def HandleMessage(self, message):
-    message.auth_state = rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED
-
-    # We allow special methods to be specified for certain actions.
-    if hasattr(self, message.name):
-      return getattr(self, message.name)(message.payload)
-
-    self.RecordCall(message.name, message.payload)
-
-    # Try to retrieve a suspended action from the client worker.
-    try:
-      suspended_action_id = message.payload.iterator.suspended_action
-      action = self.client_worker.suspended_actions[suspended_action_id]
-
-    except (AttributeError, KeyError):
-      # Otherwise make a new action instance.
-      action_cls = self.action_classes[message.name]
-      action = action_cls(grr_worker=self.client_worker)
-
-    action.Execute(message)
-    self.action_counts[message.name] += 1
-
-    return self.client_worker.Drain()
-
-
-class RecordingActionMock(ActionMock):
-
-  def __init__(self, *action_names):
-    super(RecordingActionMock, self).__init__(*action_names)
-    self.recorded_args = {}
-
-  def RecordCall(self, action_name, action_args):
-    self.recorded_args.setdefault(action_name, []).append(action_args)
-
-
-class InvalidActionMock(object):
-  """An action mock which raises for all actions."""
-
-  def HandleMessage(self, unused_message):
-    raise RuntimeError("Invalid Action Mock.")
 
 
 class Test(actions.ActionPlugin):
@@ -1656,65 +1561,6 @@ class CrashClientMock(object):
     # This is normally done by the FrontEnd when a CLIENT_KILLED message is
     # received.
     flow.Events.PublishEvent("ClientCrash", msg, token=self.token)
-
-
-class UnixVolumeClientMock(ActionMock):
-  """A mock of client filesystem volumes."""
-  unix_local = rdfvalue.UnixVolume(mount_point="/usr")
-  unix_home = rdfvalue.UnixVolume(mount_point="/")
-  path_results = [
-      rdfvalue.Volume(
-          unix=unix_local, bytes_per_sector=4096, sectors_per_allocation_unit=1,
-          actual_available_allocation_units=50, total_allocation_units=100),
-      rdfvalue.Volume(
-          unix=unix_home, bytes_per_sector=4096,
-          sectors_per_allocation_unit=1,
-          actual_available_allocation_units=10,
-          total_allocation_units=100)]
-
-  def StatFS(self, _):
-    return self.path_results
-
-
-class WindowsVolumeClientMock(ActionMock):
-  """A mock of client filesystem volumes."""
-  windows_d = rdfvalue.WindowsVolume(drive_letter="D:")
-  windows_c = rdfvalue.WindowsVolume(drive_letter="C:")
-  path_results = [
-      rdfvalue.Volume(
-          windows=windows_d, bytes_per_sector=4096,
-          sectors_per_allocation_unit=1,
-          actual_available_allocation_units=50, total_allocation_units=100),
-      rdfvalue.Volume(
-          windows=windows_c, bytes_per_sector=4096,
-          sectors_per_allocation_unit=1, actual_available_allocation_units=10,
-          total_allocation_units=100)]
-
-  def WmiQuery(self, query):
-    if query.query == u"SELECT * FROM Win32_LogicalDisk":
-      return client_fixture.WMI_SAMPLE
-    else:
-      return None
-
-
-class MemoryClientMock(ActionMock):
-  """A mock of client state including memory actions."""
-
-  def InstallDriver(self, _):
-    return []
-
-  def UninstallDriver(self, _):
-    return []
-
-  def GetMemoryInformation(self, _):
-    reply = rdfvalue.MemoryInformation(
-        device=rdfvalue.PathSpec(
-            path=r"\\.\pmem",
-            pathtype=rdfvalue.PathSpec.PathType.MEMORY))
-    reply.runs.Append(offset=0x1000, length=0x10000)
-    reply.runs.Append(offset=0x20000, length=0x10000)
-
-    return [reply]
 
 
 class SampleHuntMock(object):

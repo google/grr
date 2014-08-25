@@ -8,6 +8,7 @@ This module implements the Rekall enabled client actions.
 
 import json
 import os
+import pdb
 import sys
 
 
@@ -19,7 +20,7 @@ from rekall import obj
 from rekall import plugins
 from rekall import session
 from rekall.plugins.addrspaces import standard
-from rekall.ui import json_renderer
+from rekall.plugins.renderers import data_export
 # pylint: enable=unused-import
 
 import logging
@@ -27,6 +28,7 @@ from grr.client import actions
 from grr.client import vfs
 from grr.client.client_actions import tempfiles
 from grr.lib import config_lib
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import utils
 
@@ -39,8 +41,43 @@ class ProfileNotFoundError(ValueError):
   pass
 
 
-class GrrRenderer(json_renderer.JsonRenderer):
-  """This renderer sends all messages to the server encoded as JSON."""
+class GRRObjectRenderer(data_export.NativeDataExportObjectRenderer):
+  """A default object renderer for the GRRRekallRenderer.
+
+  GRR Renders all Rekall objects using the Rekall DataExportRenderer. By default
+  we just delegate everything to DataExportRenderer.
+  """
+  renders_type = "object"
+  renderers = ["GRRRekallRenderer"]
+
+  def _GetDelegateObjectRenderer(self, item):
+    return self.FromEncoded(item, "DataExportRenderer")(
+        renderer=self.renderer)
+
+  def EncodeToJsonSafe(self, item, **options):
+    return self._GetDelegateObjectRenderer(item).EncodeToJsonSafe(
+        item, **options)
+
+  def DecodeFromJsonSafe(self, value, options):
+    return self._GetDelegateObjectRenderer(value).DecodeFromJsonSafe(
+        value, options)
+
+  def RawHTML(self, item, **options):
+    return self._GetDelegateObjectRenderer(item).Summary(item, **options)
+
+  def Summary(self, item, **options):
+    return self._GetDelegateObjectRenderer(item).Summary(item, **options)
+
+
+class GRRRekallRenderer(data_export.DataExportRenderer):
+  """This renderer sends all messages to the server encoded as JSON.
+
+  Note that this renderer is used to encode and deliver Rekall objects to the
+  server. Additionally Rekall ObjectRenderer implementations specific to GRR
+  will be attached to this renderer.
+  """
+
+  name = None
 
   # Maximum number of statements to queue before sending a reply.
   RESPONSE_CHUNK_SIZE = 1000
@@ -58,7 +95,7 @@ class GrrRenderer(json_renderer.JsonRenderer):
     except AttributeError:
       sys.stdout.isatty = lambda: False
 
-    super(GrrRenderer, self).__init__(session=rekall_session)
+    super(GRRRekallRenderer, self).__init__(session=rekall_session)
 
     # A handle to the client action we can use for sending responses.
     self.action = action
@@ -68,8 +105,8 @@ class GrrRenderer(json_renderer.JsonRenderer):
 
   def start(self, plugin_name=None, kwargs=None):
     self.plugin = plugin_name
-    return super(GrrRenderer, self).start(plugin_name=plugin_name,
-                                          kwargs=kwargs)
+    return super(GRRRekallRenderer, self).start(plugin_name=plugin_name,
+                                                kwargs=kwargs)
 
   def write_data_stream(self):
     """Prepares a RekallResponse and send to the server."""
@@ -82,13 +119,18 @@ class GrrRenderer(json_renderer.JsonRenderer):
       self.action.SendReply(response_msg)
 
   def SendMessage(self, statement):
-    super(GrrRenderer, self).SendMessage(statement)
+    super(GRRRekallRenderer, self).SendMessage(statement)
 
     if len(self.data) > self.RESPONSE_CHUNK_SIZE:
       self.flush()
 
   def open(self, directory=None, filename=None, mode="rb"):
     return tempfiles.CreateGRRTempFile(filename=filename, mode=mode)
+
+  def report_error(self, message):
+    super(GRRRekallRenderer, self).report_error(message)
+    if flags.FLAGS.debug:
+      pdb.post_mortem()
 
 
 class GrrRekallSession(session.Session):
@@ -131,7 +173,7 @@ class GrrRekallSession(session.Session):
 
   def GetRenderer(self):
     # We will use this renderer to push results to the server.
-    return GrrRenderer(rekall_session=self, action=self.action)
+    return GRRRekallRenderer(rekall_session=self, action=self.action)
 
 
 class WriteRekallProfile(actions.ActionPlugin):

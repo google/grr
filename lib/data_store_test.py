@@ -8,6 +8,7 @@ Implementations should be able to pass these tests to be conformant.
 
 
 import csv
+import functools
 import hashlib
 import logging
 import operator
@@ -35,9 +36,41 @@ from grr.lib import threadpool
 from grr.lib import worker
 
 
+def DeletionTest(f):
+  """This indicates a test that uses deletion."""
+  @functools.wraps(f)
+  def Decorator(testinstance):
+    if testinstance.TEST_DELETION:
+      return f(testinstance)
+    else:
+      return testinstance.skipTest("Tests that use deletion are disabled "
+                                   "for this data store.")
+
+  return Decorator
+
+
+def TransactionTest(f):
+  """This indicates a test that uses transactions."""
+  @functools.wraps(f)
+  def Decorator(testinstance):
+    if testinstance.TEST_TRANSACTIONS:
+      return f(testinstance)
+    else:
+      return testinstance.skipTest("Tests that use transactions are disabled "
+                                   "for this data store.")
+
+  return Decorator
+
+
 class DataStoreTest(test_lib.GRRBaseTest):
   """Test the data store abstraction."""
   test_row = "aff4:/row:foo"
+
+  # This flag controls if tests can also delete data. Some data stores don't
+  # support deletion so those tests will fail for them.
+  TEST_DELETION = True
+  # The same applies to transactions.
+  TEST_TRANSACTIONS = True
 
   def setUp(self):
     super(DataStoreTest, self).setUp()
@@ -217,6 +250,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
 
     self.assertEqual(count, 0)
 
+  @DeletionTest
   def testDeleteAttributes(self):
     """Test we can delete an attribute."""
     predicate = "metadata:predicate"
@@ -229,12 +263,14 @@ class DataStoreTest(test_lib.GRRBaseTest):
 
     self.assertEqual(stored, "hello")
 
-    data_store.DB.DeleteAttributes(self.test_row, [predicate], token=self.token)
+    data_store.DB.DeleteAttributes(self.test_row, [predicate], sync=True,
+                                   token=self.token)
     (stored, _) = data_store.DB.Resolve(self.test_row, predicate,
                                         token=self.token)
 
     self.assertEqual(stored, None)
 
+  @DeletionTest
   def testDeleteAttributesRegex(self):
     """Test we can delete an attribute."""
     predicate = "metadata:predicate"
@@ -267,6 +303,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
     self.assertEqual(stored, expected_value)
     self.assertEqual(ts, exptected_ts)
 
+  @DeletionTest
   def testDeleteAttributesTimestamps(self):
     """Test we can delete an attribute in a time range."""
     predicate = "metadata:tspredicate"
@@ -286,14 +323,14 @@ class DataStoreTest(test_lib.GRRBaseTest):
 
     # Delete timestamps between 0 and 150.
     data_store.DB.DeleteAttributes(self.test_row, [predicate], start=0, end=150,
-                                   token=self.token)
+                                   sync=True, token=self.token)
 
     self.CheckLast(predicate, "hello400", 400)
     self.CheckLength(predicate, 3)
 
     # Delete timestamps between 350 and 450.
     data_store.DB.DeleteAttributes(self.test_row, [predicate],
-                                   start=350, end=450,
+                                   start=350, end=450, sync=True,
                                    token=self.token)
 
     self.CheckLast(predicate, "hello300", 300)
@@ -301,7 +338,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
 
     # Delete everything.
     data_store.DB.DeleteAttributes(self.test_row, [predicate],
-                                   start=0, end=500,
+                                   start=0, end=500, sync=True,
                                    token=self.token)
 
     self.CheckLast(predicate, None, 0)
@@ -309,13 +346,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
 
   def testMultiResolveRegex(self):
     """tests MultiResolveRegex."""
-    # Make some rows
-    rows = []
-    for i in range(10):
-      row_name = "aff4:/row:%s" % i
-      data_store.DB.Set(row_name, "metadata:%s" % i, i, timestamp=5,
-                        token=self.token)
-      rows.append(row_name)
+    rows = self._MakeTimestampedRows()
 
     subjects = dict(data_store.DB.MultiResolveRegex(
         rows, ["metadata:[34]", "metadata:[78]"], token=self.token))
@@ -330,7 +361,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
 
   def testMultiResolveRegexTimestamp(self):
     """tests MultiResolveRegex with a timestamp."""
-    # Make some rows
+    # Make some rows.
     rows = []
     for i in range(10):
       row_name = "aff4:/row:%s" % i
@@ -413,6 +444,87 @@ class DataStoreTest(test_lib.GRRBaseTest):
     self.assertEqual(len(subjects[u"aff4:/row:7"]), 2)
     self.assertEqual(len(subjects[u"aff4:/row:8"]), 1)
 
+  def _MakeTimestampedRows(self):
+    # Make some rows.
+    rows = []
+    for i in range(5):
+      row_name = "aff4:/row:%s" % i
+      timestamp = rdfvalue.RDFDatetime(100 + i)
+      data_store.DB.Set(row_name, "metadata:%s" % i, i, timestamp=timestamp,
+                        token=self.token)
+      rows.append(row_name)
+
+    for i in range(5, 10):
+      row_name = "aff4:/row:%s" % i
+      timestamp = rdfvalue.RDFDatetime(100 + i)
+      data_store.DB.MultiSet(row_name, {"metadata:%s" % i: [i]},
+                             timestamp=timestamp, token=self.token)
+      rows.append(row_name)
+
+    return rows
+
+  def _CheckResultTimestamps(self, result, expected_timestamps):
+    timestamps = []
+    for predicates in result.itervalues():
+      for predicate in predicates:
+        timestamps.append(predicate[2])
+
+    self.assertListEqual(sorted(timestamps), sorted(expected_timestamps))
+
+  def testRDFDatetimeTimestamps(self):
+
+    test_rows = self._MakeTimestampedRows()
+
+    # Make sure all timestamps are set correctly.
+    result = dict(data_store.DB.MultiResolveRegex(
+        test_rows, ["metadata:.*"], token=self.token))
+
+    self._CheckResultTimestamps(result, range(100, 110))
+
+    # Now MultiResolve by timestamp.
+
+    timestamp = (rdfvalue.RDFDatetime(103), rdfvalue.RDFDatetime(108))
+    result = dict(data_store.DB.MultiResolveRegex(
+        test_rows, ["metadata:.*"], token=self.token, timestamp=timestamp))
+
+    # Timestamp selection is inclusive so we should have 103-108.
+    self._CheckResultTimestamps(result, range(103, 109))
+
+    # Now test timestamped attributes.
+    row_name = "aff4:/attribute_test_row"
+    attribute_name = "metadata:test_attribute"
+    attributes_to_set = {attribute_name: [
+        (i, rdfvalue.RDFDatetime(i)) for i in xrange(100, 110)]}
+    data_store.DB.MultiSet(row_name, attributes_to_set, replace=False,
+                           token=self.token)
+
+    # Make sure all timestamps are set correctly.
+    result = dict(data_store.DB.MultiResolveRegex(
+        [row_name], ["metadata:.*"], timestamp=data_store.DB.ALL_TIMESTAMPS,
+        token=self.token))
+
+    self._CheckResultTimestamps(result, range(100, 110))
+
+    if self.TEST_DELETION:
+      # Delete some of them.
+      data_store.DB.DeleteAttributes(row_name, [attribute_name],
+                                     start=rdfvalue.RDFDatetime(102),
+                                     end=rdfvalue.RDFDatetime(104),
+                                     token=self.token)
+      # Make sure that passing start==end deletes that version.
+      data_store.DB.DeleteAttributes(row_name, [attribute_name],
+                                     start=rdfvalue.RDFDatetime(106),
+                                     end=rdfvalue.RDFDatetime(106),
+                                     token=self.token)
+
+      result = dict(data_store.DB.MultiResolveRegex(
+          [row_name], ["metadata:.*"], timestamp=data_store.DB.ALL_TIMESTAMPS,
+          token=self.token))
+
+      expected_timestamps = [100, 101, 105, 107, 108, 109]
+      self._CheckResultTimestamps(result, expected_timestamps)
+
+  @TransactionTest
   def testTransactions(self):
     """Test transactions raise."""
     predicate = u"metadata:predicateÎñţér"
@@ -508,6 +620,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
 
     t1.Commit()
 
+  @TransactionTest
   def testTransactionLease(self):
     subject = u"aff4:/leasetest"
     predicate = "metadata:pred"
@@ -523,6 +636,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
     t = data_store.DB.Transaction(subject, token=self.token)
     self.assertEqual(t.Resolve(predicate)[0], "2")
 
+  @TransactionTest
   def testAbortTransaction(self):
     predicate = u"metadata:predicate_Îñţér"
     row = u"metadata:row1Îñţér"
@@ -541,6 +655,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
 
     self.assertEqual(t2.Resolve(predicate)[0], "2")
 
+  @TransactionTest
   def testTransactions2(self):
     """Test that transactions on different rows do not interfere."""
     predicate = u"metadata:predicate_Îñţér"
@@ -563,6 +678,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
     t2.Set(predicate, "2")
     t2.Commit()
 
+  @TransactionTest
   def testRetryWrapper(self):
     subject = "aff4:/subject"
     data_store.DB.DeleteSubject(subject, token=self.token)
@@ -808,6 +924,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
   OPEN_WITH_LOCK_SYNC_LOCK_SLEEP = 0.2
 
   @test_lib.SetLabel("large")
+  @TransactionTest
   def testAFF4OpenWithLock(self):
     self.opened = False
     self.client_urn = "aff4:/C.0000000000000001"
@@ -946,7 +1063,7 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
   def _RandomlyReadSubject(self, subject, predicates):
     """Read certain parts of a given subject."""
     for j, timestamps in predicates.items():
-      which = random.randint(0, 2)
+      which = self.rand.randint(0, 2)
       if which == 0:
         # Read all timestamps.
         data_store.DB.ResolveRegex(subject, self.predicate_template % j,
@@ -955,7 +1072,7 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
       elif which == 1:
         # Read a specific timestamp.
         if timestamps:
-          ts = random.choice(timestamps)
+          ts = self.rand.choice(timestamps)
           data_store.DB.ResolveRegex(subject, self.predicate_template % j,
                                      timestamp=(ts, ts), token=self.token)
       elif which == 2:
@@ -963,7 +1080,7 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
         data_store.DB.Resolve(subject, self.predicate_template % j,
                               token=self.token)
       self.Register()
-    if random.randint(0, 1) == 0:
+    if self.rand.randint(0, 1) == 0:
       # Find all attributes.
       data_store.DB.ResolveRegex(subject, "task:flow.*",
                                  timestamp=data_store.DB.NEWEST_TIMESTAMP,
@@ -975,7 +1092,7 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
     if change_test:
       self.test_name = "read random %d%%" % fraction
     for _ in range(0, int(float(len(subjects)) * float(fraction)/100.0)):
-      i = random.choice(subjects.keys())
+      i = self.rand.choice(subjects.keys())
       subject = subjects[i]["name"]
       predicates = subjects[i]["attrs"]
       self._RandomlyReadSubject(subject, predicates)
@@ -988,9 +1105,9 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
     for i in subjects:
       subject = subjects[i]["name"]
       predicates = subjects[i]["attrs"]
-      if random.randint(0, 100) > fraction:
+      if self.rand.randint(0, 100) > fraction:
         continue
-      which = random.randint(0, 2)
+      which = self.rand.randint(0, 2)
       if which == 0 or which == 1:
         for j, timestamp_info in predicates.items():
           number_timestamps = len(timestamp_info)
@@ -1009,7 +1126,7 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
       elif which == 2:
         # Add an extra predicate.
         j = len(predicates)
-        number_timestamps = random.randrange(1, 3)
+        number_timestamps = self.rand.randrange(1, 3)
         ts = [100 * (ts + 1) for ts in xrange(number_timestamps)]
         predicates[j] = ts
         self.values += number_timestamps
@@ -1029,8 +1146,8 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
       subject = info["name"]
       predicates = info["attrs"]
       number_predicates = len(predicates)
-      do_it = (random.randint(0, 100) <= fraction)
-      which = random.randint(0, 2)
+      do_it = (self.rand.randint(0, 100) <= fraction)
+      which = self.rand.randint(0, 2)
       count_values = 0
       predicates_to_delete = []
       for j, timestamp_info in predicates.items():
@@ -1085,31 +1202,31 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
     # Generate client names.
     clients = [self._GenerateRandomClient() for _ in xrange(nclients)]
     for i in xrange(new_subject, new_subject + how_many):
-      client = clients[random.randint(0, nclients-1)]
+      client = clients[self.rand.randint(0, nclients-1)]
       self._AddNewSubject(client, subjects, i, new_value)
     data_store.DB.Flush()
 
   def _GenerateRandomSubject(self):
-    n = random.randint(1, 5)
-    seps = [self._GenerateRandomString(random.randint(5, 10))
+    n = self.rand.randint(1, 5)
+    seps = [self._GenerateRandomString(self.rand.randint(5, 10))
             for _ in xrange(n)]
     return "/".join(seps)
 
   def _AddNewSubject(self, client, subjects, i, value, max_attributes=3):
     """Add a new subject to the database."""
-    number_predicates = random.randrange(1, max_attributes)
+    number_predicates = self.rand.randrange(1, max_attributes)
     self.subjects += 1
     predicates = dict.fromkeys(xrange(number_predicates))
     self.predicates += number_predicates
     subject = str(client.Add(self._GenerateRandomSubject()))
     for j in xrange(number_predicates):
-      number_timestamps = random.randrange(1, 3)
+      number_timestamps = self.rand.randrange(1, 3)
       self.values += number_timestamps
       ts = [100 * (ts + 1) for ts in xrange(number_timestamps)]
       predicates[j] = ts
       values = [(value, t) for t in ts]
       data_store.DB.MultiSet(subject, {self.predicate_template % j: values},
-                             timestamp=100, token=self.token)
+                             timestamp=100, sync=False, token=self.token)
       self.Register()
     info = {"name": subject, "attrs": predicates}
     subjects[i] = info
@@ -1118,7 +1235,7 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
     """Linearly read subjects from the database."""
     self.test_name = "read linear %d%%" % fraction
     for i in subjects:
-      if random.randint(0, 100) > fraction:
+      if self.rand.randint(0, 100) > fraction:
         return
       subject = subjects[i]["name"]
       predicates = subjects[i]["attrs"]
@@ -1129,22 +1246,22 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
     self.test_name = "add +attrs %d" % many
     new_value = os.urandom(100)
     for _ in range(0, many):
-      i = random.choice(subjects.keys())
+      i = self.rand.choice(subjects.keys())
       subject = subjects[i]["name"]
       predicates = subjects[i]["attrs"]
-      how_many = random.randint(self.BIG_NUM_ATTRIBUTES,
-                                self.BIG_NUM_ATTRIBUTES + 1000)
+      how_many = self.rand.randint(self.BIG_NUM_ATTRIBUTES,
+                                   self.BIG_NUM_ATTRIBUTES + 1000)
       self.predicates += how_many
       new_predicate = max(predicates.iteritems(),
                           key=operator.itemgetter(0))[0] + 1
       for j in xrange(new_predicate, new_predicate + how_many):
-        number_timestamps = random.randrange(1, 3)
+        number_timestamps = self.rand.randrange(1, 3)
         ts = [100 * (ts + 1) for ts in xrange(number_timestamps)]
         self.values += number_timestamps
         values = [(new_value, t) for t in ts]
         predicates[j] = ts
         data_store.DB.MultiSet(subject, {self.predicate_template % j: values},
-                               timestamp=100, token=self.token)
+                               timestamp=100, sync=False, token=self.token)
         self.Register()
     data_store.DB.Flush()
 
@@ -1170,7 +1287,7 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
             del predicates[j]
             data_store.DB.DeleteAttributes(subject,
                                            [self.predicate_template % j],
-                                           token=self.token)
+                                           sync=False, token=self.token)
             self.Register()
     data_store.DB.Flush()
 
@@ -1197,7 +1314,7 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
     self.test_name = "mix"
     for _ in xrange(0, len(subjects)/2000):
       # Do random operations.
-      op = random.randint(0, 3)
+      op = self.rand.randint(0, 3)
       if op == 0:
         self._ReadRandom(subjects, 14, False)
       elif op == 1:
@@ -1208,13 +1325,12 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
         self._DeleteRandom(subjects, 4, False)
 
   def _GenerateRandomClient(self):
-    return rdfvalue.ClientURN("C.%016d" % random.randint(0, (10 ** 16)-1))
+    return rdfvalue.ClientURN("C.%016d" % self.rand.randint(0, (10 ** 16)-1))
 
   def _FillDatabase(self, nsubjects, nclients,
                     max_attributes=3):
     """Fill the database with a certain number of subjects and clients."""
-    # Start with an arbitrary seed.
-    random.seed(0)
+    self.rand = random.Random(0)
     self.test_name = "fill"
     self.AddResult(self.test_name, 0, self.steps, data_store.DB.Size(),
                    0, 0, 0, 0)
@@ -1222,13 +1338,13 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
     value = os.urandom(100)
     clients = [self._GenerateRandomClient() for _ in xrange(nclients)]
     for i in subjects:
-      client = random.choice(clients)
+      client = self.rand.choice(clients)
       self._AddNewSubject(client, subjects, i, value, max_attributes)
     data_store.DB.Flush()
     return subjects
 
   def _GenerateRandomString(self, chars):
-    return "".join([random.choice(string.ascii_letters)
+    return "".join([self.rand.choice(string.ascii_letters)
                     for _ in xrange(chars)])
 
   def _AddBlobs(self, howmany, size):

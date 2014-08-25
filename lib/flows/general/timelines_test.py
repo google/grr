@@ -5,6 +5,7 @@
 """Tests for the Timelines flow."""
 
 from grr.client import vfs
+from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -21,7 +22,7 @@ class TestTimelines(test_lib.FlowTestsBaseclass):
     vfs.VFS_HANDLERS[
         rdfvalue.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
 
-    client_mock = test_lib.ActionMock("ListDirectory")
+    client_mock = action_mocks.ActionMock("ListDirectory")
     output_path = "analysis/Timeline/MAC"
 
     pathspec = rdfvalue.PathSpec(path="/",

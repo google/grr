@@ -22,9 +22,10 @@ class GRRUserTest(test_lib.AFF4ObjectTest):
   def testLabels(self):
     with aff4.FACTORY.Create("aff4:/users/test", "GRRUser",
                              token=self.token) as user:
-      user.SetLabels("hello", "world")
+      user.SetLabels("hello", "world", owner="GRR")
+
     user = aff4.FACTORY.Open(user.urn, token=self.token)
-    self.assertListEqual(["hello", "world"], user.GetLabels())
+    self.assertListEqual(["hello", "world"], user.GetLabelsNames())
 
 
 class CheckAccessHelperTest(test_lib.AFF4ObjectTest):

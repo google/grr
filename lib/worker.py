@@ -238,9 +238,10 @@ class GRRWorker(object):
         now = time.time()
         logging.debug("Got lock on %s", session_id)
 
-        # If we get here, we now own the flow, so we can remove the notification
-        # for it from the worker queue.
-        queue_manager.DeleteNotification(session_id)
+        # If we get here, we now own the flow. We can delete the notifications
+        # we just retrieved but we need to make sure we don't delete any that
+        # came in later.
+        queue_manager.DeleteNotification(session_id, end=notification.timestamp)
 
         # We still need to take a lock on the well known flow in the datastore,
         # but we can run a local instance.
@@ -277,7 +278,7 @@ class GRRWorker(object):
               runner.context.kill_timestamp = kill_timestamp
 
             try:
-              runner.ProcessCompletedRequests(self.thread_pool)
+              runner.ProcessCompletedRequests(notification, self.thread_pool)
 
             # Something went wrong - log it in the flow.
             except Exception as e:  # pylint: disable=broad-except
@@ -294,8 +295,7 @@ class GRRWorker(object):
                 if runner.schedule_kill_notifications:
                   manager.DeleteNotification(
                       session_id, start=runner.context.kill_timestamp,
-                      end=runner.context.kill_timestamp +
-                      rdfvalue.Duration("1s"))
+                      end=runner.context.kill_timestamp)
                   runner.context.kill_timestamp = None
 
                 if (runner.process_requests_in_order and

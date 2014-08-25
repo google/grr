@@ -1048,42 +1048,79 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     obj.Set(obj.Schema.LOCK_PROTECTED_ATTR("value"))
     obj.Close()
 
-  def testLabels(self):
+  def testAddLabelsCallAddsMultipleLabels(self):
     """Check we can set and remove labels."""
-    client1 = aff4.FACTORY.Create("C.0000000000000001", "VFSGRRClient",
-                                  mode="rw", token=self.token)
-    client_schema = client1.Schema
-    client1.Set(client_schema.HOSTNAME("client1"))
-    labels = ["label1", "label2", "label3"]
-    client1.AddLabels(labels)
-    client1.Flush()
-    self.assertEquals(labels, list(client1.Get(client_schema.LABEL)))
+    with aff4.FACTORY.Create("C.0000000000000001", "VFSGRRClient",
+                             mode="rw", token=self.token) as client:
+      labels = ["label1", "label2", "label3"]
+      client.AddLabels(*labels)
 
-    client1.RemoveLabels(["label1"])
-    client1.Flush()
+      # Check that labels are correctly set in the current object.
+      self.assertListEqual(labels, client.GetLabelsNames())
+
+    # Check that labels are correctly set in the object that is fresh from the
+    # data store.
+    client = aff4.FACTORY.Open("C.0000000000000001", token=self.token)
+    self.assertListEqual(labels, client.GetLabelsNames())
+
+  def testRemoveLabelsCallRemovesMultipleLabels(self):
+    with aff4.FACTORY.Create("C.0000000000000001", "VFSGRRClient",
+                             mode="rw", token=self.token) as client:
+      labels = ["label1", "label2", "label3"]
+      client.AddLabels(*labels)
+
+    with aff4.FACTORY.Create("C.0000000000000001", "VFSGRRClient",
+                             mode="rw", token=self.token) as client:
+      client.RemoveLabels("label1")
+
     self.assertEquals(["label2", "label3"],
-                      list(client1.Get(client_schema.LABEL)))
+                      list(client.GetLabelsNames()))
 
-  def testLabelIndexes(self):
-    """Check we can set and remove labels and indexes get handled."""
-    client1 = aff4.FACTORY.Create("C.0000000000000001", "VFSGRRClient",
-                                  mode="rw", token=self.token)
-    client_schema = client1.Schema
-    client1.Set(client_schema.HOSTNAME("client1"))
-    labels = ["label1", "label2", "label3"]
-    client1.AddLabels(labels)
-    client1.Flush()
+  def testLabelIndexesIsUpdatedWhenLabelIsAdded(self):
+    with aff4.FACTORY.Create("C.0000000000000001", "VFSGRRClient",
+                             mode="rw", token=self.token) as client:
+      labels = ["label1", "label2", "label3"]
+      client.AddLabels(*labels)
 
-    label_index_urn = rdfvalue.RDFURN("aff4:/index/label")
-    label_index = aff4.FACTORY.Create(label_index_urn, "AFF4Index", mode="r",
-                                      token=self.token)
-    index_results = label_index.Query([client_schema.LABEL], "label1")
-    self.assertEquals(index_results, [client1.urn])
+    label_index = aff4.FACTORY.Open(aff4.VFSGRRClient.labels_index_urn,
+                                    token=self.token)
+    self.assertSetEqual(set(label_index.ListUsedLabels()),
+                        set([rdfvalue.AFF4ObjectLabel(name="label1",
+                                                      owner="test"),
+                             rdfvalue.AFF4ObjectLabel(name="label2",
+                                                      owner="test"),
+                             rdfvalue.AFF4ObjectLabel(name="label3",
+                                                      owner="test")]))
 
-    client1.RemoveLabels(["label1"])
-    client1.Flush()
-    index_results = label_index.Query([client_schema.LABEL], "label1")
-    self.assertEquals(index_results, [])
+    found_urns = label_index.MultiFindUrnsByLabel(labels)
+    self.assertListEqual(found_urns[rdfvalue.AFF4ObjectLabel(name="label1",
+                                                             owner="test")],
+                         [rdfvalue.ClientURN("C.0000000000000001")])
+    self.assertListEqual(found_urns[rdfvalue.AFF4ObjectLabel(name="label2",
+                                                             owner="test")],
+                         [rdfvalue.ClientURN("C.0000000000000001")])
+    self.assertListEqual(found_urns[rdfvalue.AFF4ObjectLabel(name="label3",
+                                                             owner="test")],
+                         [rdfvalue.ClientURN("C.0000000000000001")])
+
+  def testLabelIndexIsNotUpdatedWhenLabelIsRemoved(self):
+    with aff4.FACTORY.Create("C.0000000000000001", "VFSGRRClient",
+                             mode="rw", token=self.token) as client:
+      labels = ["label1", "label2", "label3"]
+      client.AddLabels(*labels)
+
+    with aff4.FACTORY.Create("C.0000000000000001", "VFSGRRClient",
+                             mode="rw", token=self.token) as client:
+      labels = ["label1", "label2", "label3"]
+      client.RemoveLabels("label1")
+
+    label_index = aff4.FACTORY.Open(aff4.VFSGRRClient.labels_index_urn,
+                                    token=self.token)
+    self.assertTrue(rdfvalue.AFF4ObjectLabel(
+        name="label1", owner="test") in label_index.ListUsedLabels())
+    self.assertListEqual(
+        label_index.FindUrnsByLabel("label3"),
+        [rdfvalue.ClientURN("C.0000000000000001")])
 
   def testPathSpecInterpolation(self):
     # Create a base directory containing a pathspec.

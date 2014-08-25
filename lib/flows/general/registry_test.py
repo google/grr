@@ -5,6 +5,7 @@
 """Tests for the registry flows."""
 
 from grr.client import vfs
+from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -21,7 +22,7 @@ class TestRegistryFinderFlow(test_lib.FlowTestsBaseclass):
         rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.ClientRegistryVFSFixture
 
     self.output_path = "analysis/file_finder"
-    self.client_mock = test_lib.ActionMock(
+    self.client_mock = action_mocks.ActionMock(
         "Find", "TransferBuffer", "HashBuffer", "HashFile",
         "FingerprintFile", "Grep", "StatFile")
 
@@ -277,7 +278,7 @@ class TestRegistryFlows(test_lib.FlowTestsBaseclass):
         rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.ClientRegistryVFSFixture
 
     # Mock out the Find client action.
-    client_mock = test_lib.ActionMock("Find")
+    client_mock = action_mocks.ActionMock("Find")
 
     # Add some user accounts to this client.
     fd = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
@@ -320,8 +321,9 @@ class TestRegistryFlows(test_lib.FlowTestsBaseclass):
     vfs.VFS_HANDLERS[
         rdfvalue.PathSpec.PathType.OS] = test_lib.ClientFullVFSFixture
 
-    client_mock = test_lib.ActionMock("TransferBuffer", "StatFile", "Find",
-                                      "HashBuffer", "HashFile", "ListDirectory")
+    client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
+                                          "HashBuffer", "HashFile",
+                                          "ListDirectory")
 
     # Get KB initialized
     for _ in test_lib.TestFlowHelper(

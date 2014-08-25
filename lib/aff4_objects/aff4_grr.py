@@ -44,6 +44,9 @@ class VersionString(rdfvalue.RDFString):
 class VFSGRRClient(standard.VFSDirectory):
   """A Remote client."""
 
+  # URN of the index for client labels.
+  labels_index_urn = rdfvalue.RDFURN("aff4:/index/labels/clients")
+
   class SchemaCls(standard.VFSDirectory.SchemaCls):
     """The schema for the client."""
     client_index = rdfvalue.RDFURN("aff4:/index/client")
@@ -586,19 +589,6 @@ class AFF4CollectionView(rdfvalue.RDFValueArray):
 
 class RDFValueCollectionView(rdfvalue.RDFValueArray):
   """A view specifies how an RDFValueCollection is seen."""
-
-
-class VolatilityResponse(aff4.AFF4Volume):
-  _behaviours = frozenset(["Collection"])
-
-  class SchemaCls(standard.VFSDirectory.SchemaCls):
-
-    DESCRIPTION = aff4.Attribute("aff4:description", rdfvalue.RDFString,
-                                 "This collection's description", "description")
-
-    RESULT = aff4.Attribute("aff4:volatility_result",
-                            rdfvalue.VolatilityResult,
-                            "The result returned by the flow.")
 
 
 class MRUCollection(aff4.AFF4Object):

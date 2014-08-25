@@ -11,6 +11,7 @@ from grr.client import vfs
 from grr.gui import runtests_test
 
 from grr.lib import access_control
+from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flags
@@ -38,7 +39,7 @@ class TestTimelineView(test_lib.GRRSeleniumTest):
     # Install the mock
     vfs.VFS_HANDLERS[
         rdfvalue.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
-    client_mock = test_lib.ActionMock("ListDirectory")
+    client_mock = action_mocks.ActionMock("ListDirectory")
     output_path = "analysis/Timeline/MAC"
 
     for _ in test_lib.TestFlowHelper(

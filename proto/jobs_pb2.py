@@ -14,7 +14,7 @@ import grr.proto.semantic_pb2
 DESCRIPTOR = _descriptor.FileDescriptor(
   name='grr/proto/jobs.proto',
   package='',
-  serialized_pb='\n\x14grr/proto/jobs.proto\x1a\x18grr/proto/semantic.proto\"\xa0\x02\n\x0bHttpRequest\x12\x13\n\x0braw_headers\x18\x01 \x01(\t\x12\x12\n\nuser_agent\x18\x02 \x01(\t\x12\x11\n\tsource_ip\x18\x03 \x01(\t\x12\x0b\n\x03url\x18\x04 \x01(\t\x12\x17\n\x04user\x18\x05 \x01(\t:\tanonymous\x12T\n\ttimestamp\x18\x06 \x01(\x04\x42\x41\xe2\xfc\xe3\xc4\x01;\n\x0bRDFDatetime\x12,Timestamp: unique identifier for the request\x12\x13\n\x06method\x18\x07 \x01(\t:\x03GET\x12\x10\n\x08referrer\x18\x08 \x01(\t\x12\x32\n\x04size\x18\t \x01(\x04\x42$\xe2\xfc\xe3\xc4\x01\x1e\x12\x1cSize of the request in bytes\"\xe4\x0f\n\nGrrMessage\x12\x63\n\nsession_id\x18\x01 \x01(\tBO\xe2\xfc\xe3\xc4\x01I\n\rFlowSessionID\x12\x38The session id of the flow that this message belongs to.\x12j\n\nrequest_id\x18\x02 \x01(\x04\x42V\xe2\xfc\xe3\xc4\x01P\x12NThe message is in response to this request number (requests increment from 1).\x12Q\n\x0bresponse_id\x18\x03 \x01(\x04\x42<\xe2\xfc\xe3\xc4\x01\x36\x12\x34Responses for each request are also numbered from 1.\x12\x87\x01\n\x04name\x18\x04 \x01(\tBy\xe2\xfc\xe3\xc4\x01s\x12qThis is the name of the client action that will be executed. It is set by the flow and is executed by the client.\x12\x0c\n\x04\x61rgs\x18\x05 \x01(\x0c\x12\x1e\n\x03\x61rg\x18\x14 \x01(\x0b\x32\x11.EmbeddedRDFValue\x12\x64\n\x06source\x18\x06 \x01(\tBT\xe2\xfc\xe3\xc4\x01N\n\x06RDFURN\x12\x44\x43lient name where the message came from (Filled in by the frontend).\x12\x43\n\nauth_state\x18\x07 \x01(\x0e\x32\x1e.GrrMessage.AuthorizationState:\x0fUNAUTHENTICATED\x12\'\n\x04type\x18\x08 \x01(\x0e\x32\x10.GrrMessage.Type:\x07MESSAGE\x12\x9f\x01\n\x08priority\x18\t \x01(\x0e\x32\x14.GrrMessage.Priority:\x0fMEDIUM_PRIORITYBf\xe2\xfc\xe3\xc4\x01`\x12^The priority of this message - allows higher priority messages to leap to the front of queues.\x12m\n\x03ttl\x18\n \x01(\r:\x02\x31\x30\x42\\\xe2\xfc\xe3\xc4\x01V\x12TTime to live - each time a request is retransmitted this decrement until it expires.\x12o\n\x10require_fastpoll\x18\x0b \x01(\x08:\x04trueBO\xe2\xfc\xe3\xc4\x01I\x12GIf this is true, the client will enter fast poll mode after processing.\x12Y\n\tcpu_limit\x18\x0c \x01(\x02:\x04\x33\x36\x30\x30\x42@\xe2\xfc\xe3\xc4\x01:\x12\x38Maximum number of CPU seconds to be used by this action.\x12\x44\n\x08\x61rgs_age\x18\r \x01(\x04\x42\x32\xe2\xfc\xe3\xc4\x01,\n\x0bRDFDatetime\x12\x1dThe age of the args rdfvalue.\x12\x15\n\rargs_rdf_name\x18\x0e \x01(\t\x12\x0f\n\x07task_id\x18\x0f \x01(\x04\x12\x13\n\x08task_ttl\x18\x10 \x01(\x05:\x01\x37\x12\x46\n\x05queue\x18\x11 \x01(\tB7\xe2\xfc\xe3\xc4\x01\x31\n\x06RDFURN\x12\'The scheduler queue this message is in.\x12_\n\x03\x65ta\x18\x12 \x01(\x04\x42R\xe2\xfc\xe3\xc4\x01L\n\x0bRDFDatetime\x12=The time when this message will become available for leasing.\x12\x12\n\nlast_lease\x18\x13 \x01(\t\x12\xc1\x02\n\x13network_bytes_limit\x18\x15 \x01(\x04:\x0b\x31\x30\x37\x33\x37\x34\x31\x38\x32\x34\x30\x42\x96\x02\xe2\xfc\xe3\xc4\x01\x8f\x02\x12\x8c\x02Maximum number of network bytes to be sent, 10G default. All bytes charged against the flow session ID count towards the limit but only during TransferBuffer is the limit enforced. This means we can blockfile transfers but still communicate after the limit is reached.\"P\n\x12\x41uthorizationState\x12\x13\n\x0fUNAUTHENTICATED\x10\x00\x12\x11\n\rAUTHENTICATED\x10\x01\x12\x12\n\x0e\x44\x45SYNCHRONIZED\x10\x02\"-\n\x04Type\x12\x0b\n\x07MESSAGE\x10\x00\x12\n\n\x06STATUS\x10\x01\x12\x0c\n\x08ITERATOR\x10\x02\"D\n\x08Priority\x12\x10\n\x0cLOW_PRIORITY\x10\x00\x12\x13\n\x0fMEDIUM_PRIORITY\x10\x01\x12\x11\n\rHIGH_PRIORITY\x10\x02\"\'\n\x0bMessageList\x12\x18\n\x03job\x18\x01 \x03(\x0b\x32\x0b.GrrMessage\"\xd4\x02\n\x11SignedMessageList\x12\x14\n\x0cmessage_list\x18\x01 \x01(\x0c\x12H\n\x06source\x18\x03 \x01(\tB8\xe2\xfc\xe3\xc4\x01\x32\n\x06RDFURN\x12(The source where this message came from.\x12\x45\n\x0b\x63ompression\x18\x04 \x01(\x0e\x32\".SignedMessageList.CompressionType:\x0cUNCOMPRESSED\x12\x61\n\ttimestamp\x18\x06 \x01(\x04\x42N\xe2\xfc\xe3\xc4\x01H\n\x0bRDFDatetime\x12\x39The client sends its timestamp to prevent replay attacks.\"5\n\x0f\x43ompressionType\x12\x10\n\x0cUNCOMPRESSED\x10\x00\x12\x10\n\x0cZCOMPRESSION\x10\x01\"\xbc\x01\n\x10\x43ipherProperties\x12\x0c\n\x04name\x18\x01 \x02(\t\x12\x0b\n\x03key\x18\x02 \x02(\x0c\x12\x13\n\x0bmetadata_iv\x18\x03 \x01(\x0c\x12\x10\n\x08hmac_key\x18\x05 \x01(\x0c\x12:\n\thmac_type\x18\x06 \x01(\x0e\x32\x1a.CipherProperties.HMACType:\x0bSIMPLE_HMAC\"*\n\x08HMACType\x12\x0f\n\x0bSIMPLE_HMAC\x10\x00\x12\r\n\tFULL_HMAC\x10\x01\"\x84\x01\n\x0e\x43ipherMetadata\x12_\n\x06source\x18\x01 \x01(\tBO\xe2\xfc\xe3\xc4\x01I\n\x06RDFURN\x12?The common name this cipher should be used to communicate with.\x12\x11\n\tsignature\x18\x02 \x01(\x0c\"\xd2\x02\n\x13\x43lientCommunication\x12\x11\n\tencrypted\x18\x01 \x01(\x0c\x12\x18\n\x10\x65ncrypted_cipher\x18\x02 \x01(\x0c\x12!\n\x19\x65ncrypted_cipher_metadata\x18\t \x01(\x0c\x12\x11\n\tpacket_iv\x18\x08 \x01(\x0c\x12\"\n\x0corig_request\x18\x03 \x01(\x0b\x32\x0c.HttpRequest\x12\x15\n\nqueue_size\x18\x04 \x01(\r:\x01\x30\x12/\n\x06status\x18\x05 \x01(\x0e\x32\x1b.ClientCommunication.Status:\x02OK\x12\x13\n\x0b\x61pi_version\x18\x06 \x01(\r\x12\x0c\n\x04hmac\x18\x07 \x01(\x0c\x12\x11\n\tfull_hmac\x18\n \x01(\x0c\"6\n\x06Status\x12\x07\n\x02OK\x10\xc8\x01\x12\x10\n\x0b\x42\x41\x44_REQUEST\x10\x90\x03\x12\x11\n\x0c\x43IPHER_ERROR\x10\x96\x03\"\x9b\x03\n\tGrrStatus\x12-\n\x06status\x18\x01 \x01(\x0e\x32\x19.GrrStatus.ReturnedStatus:\x02OK\x12\x17\n\rerror_message\x18\x02 \x01(\t:\x00\x12\x13\n\tbacktrace\x18\x03 \x01(\t:\x00\x12\"\n\rcpu_time_used\x18\x04 \x01(\x0b\x32\x0b.CpuSeconds\x12\x42\n\x10\x63hild_session_id\x18\x05 \x01(\tB(\xe2\xfc\xe3\xc4\x01\"\n\tSessionID\x12\x15The URN of a subflow.\x12\x1a\n\x12network_bytes_sent\x18\x06 \x01(\x04\x12\x14\n\x0cnanny_status\x18\x07 \x01(\t\"\x96\x01\n\x0eReturnedStatus\x12\x06\n\x02OK\x10\x00\x12\x0b\n\x07IOERROR\x10\x01\x12\x1b\n\x17RETRANSMISSION_DETECTED\x10\x02\x12\x11\n\rCLIENT_KILLED\x10\x03\x12\x1a\n\x16NETWORK_LIMIT_EXCEEDED\x10\x04\x12\x10\n\x0cWORKER_STUCK\x10\t\x12\x11\n\rGENERIC_ERROR\x10\n\"\x8c\x04\n\x0fGrrNotification\x12%\n\nsession_id\x18\x01 \x01(\tB\x11\xe2\xfc\xe3\xc4\x01\x0b\n\tSessionID\x12\x37\n\x08priority\x18\x02 \x01(\x0e\x32\x14.GrrMessage.Priority:\x0fMEDIUM_PRIORITY\x12W\n\x0c\x66irst_queued\x18\x03 \x01(\x04\x42\x41\xe2\xfc\xe3\xc4\x01;\n\x0bRDFDatetime\x12,The first time this notification was queued.\x12|\n\x0blast_status\x18\x04 \x01(\x04\x42g\xe2\xfc\xe3\xc4\x01\x61\x12_If this is for a status based event (flows), the request number of the last status we received.\x12l\n\x0bin_progress\x18\x05 \x01(\x08:\x05\x66\x61lseBP\xe2\xfc\xe3\xc4\x01J\x12HThis indicates that the flow is currently being processed by the worker.\x12T\n\ttimestamp\x18\x06 \x01(\x04\x42\x41\xe2\xfc\xe3\xc4\x01;\n\x0bRDFDatetime\x12,The time the notification was scheduled for.\"\x96\x02\n\x0b\x43lientCrash\x12$\n\tclient_id\x18\x01 \x01(\tB\x11\xe2\xfc\xe3\xc4\x01\x0b\n\tClientURN\x12%\n\nsession_id\x18\x02 \x01(\tB\x11\xe2\xfc\xe3\xc4\x01\x0b\n\tSessionID\x12\'\n\x0b\x63lient_info\x18\x03 \x01(\x0b\x32\x12.ClientInformation\x12@\n\ttimestamp\x18\x04 \x01(\x04\x42-\xe2\xfc\xe3\xc4\x01\'\n\x0bRDFDatetime\x12\x18When the client crashed.\x12%\n\ncrash_type\x18\x05 \x01(\tB\x11\xe2\xfc\xe3\xc4\x01\x0b\n\tSessionID\x12\x15\n\rcrash_message\x18\x06 \x01(\t\x12\x11\n\tbacktrace\x18\x07 \x01(\t\"\xbc\x01\n\x10HuntNotification\x12%\n\nsession_id\x18\x01 \x01(\tB\x11\xe2\xfc\xe3\xc4\x01\x0b\n\tSessionID\x12$\n\tclient_id\x18\x02 \x01(\tB\x11\xe2\xfc\xe3\xc4\x01\x0b\n\tClientURN\x12(\n\x06status\x18\x03 \x01(\x0e\x32\x18.HuntNotification.Status\"1\n\x06Status\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x06\n\x02OK\x10\x01\x12\t\n\x05\x45RROR\x10\x02\x12\x07\n\x03\x42\x41\x44\x10\x03\"\xc6\x01\n\x10\x46lowNotification\x12%\n\nsession_id\x18\x01 \x01(\tB\x11\xe2\xfc\xe3\xc4\x01\x0b\n\tSessionID\x12\x11\n\tflow_name\x18\x02 \x01(\t\x12$\n\tclient_id\x18\x03 \x01(\tB\x11\xe2\xfc\xe3\xc4\x01\x0b\n\tClientURN\x12(\n\x06status\x18\x04 \x01(\x0e\x32\x18.FlowNotification.Status\"(\n\x06Status\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x06\n\x02OK\x10\x01\x12\t\n\x05\x45RROR\x10\x02\"\x92\x01\n\x11\x43lientInformation\x12\x13\n\x0b\x63lient_name\x18\x01 \x01(\t\x12\x16\n\x0e\x63lient_version\x18\x02 \x01(\r\x12\x10\n\x08revision\x18\x03 \x01(\x04\x12\x12\n\nbuild_time\x18\x04 \x01(\t\x12\x1a\n\x12\x63lient_description\x18\x05 \x01(\t\x12\x0e\n\x06labels\x18\x06 \x03(\t\"\x9a\x01\n\x04Task\x12\n\n\x02id\x18\x01 \x01(\x04\x12\r\n\x05value\x18\x02 \x01(\x0c\x12\x0e\n\x03ttl\x18\x03 \x01(\x05:\x01\x35\x12\x0b\n\x03\x65ta\x18\x04 \x01(\x04\x12\r\n\x05queue\x18\x05 \x01(\t\x12\x37\n\x08priority\x18\x06 \x01(\x0e\x32\x14.GrrMessage.Priority:\x0fMEDIUM_PRIORITY\x12\x12\n\nlast_lease\x18\x07 \x01(\t\"\xf4\x02\n\x08\x44\x61taBlob\x12\x0f\n\x07integer\x18\x01 \x01(\x03\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\x12\x0e\n\x06string\x18\x03 \x01(\t\x12\x12\n\nproto_name\x18\x04 \x01(\t\x12\x0c\n\x04none\x18\x05 \x01(\t\x12\x0f\n\x07\x62oolean\x18\x06 \x01(\x08\x12\x18\n\x04list\x18\x08 \x01(\x0b\x32\n.BlobArray\x12\x13\n\x04\x64ict\x18\t \x01(\x0b\x32\x05.Dict\x12S\n\trdf_value\x18\n \x01(\x0b\x32\x11.EmbeddedRDFValueB-\xe2\xfc\xe3\xc4\x01\'\x12%Store an embedded arbitrary RDFValue.\x12\r\n\x05\x66loat\x18\x0b \x01(\x02\x12<\n\x0b\x63ompression\x18\x07 \x01(\x0e\x32\x19.DataBlob.CompressionType:\x0cUNCOMPRESSED\"5\n\x0f\x43ompressionType\x12\x10\n\x0cUNCOMPRESSED\x10\x00\x12\x10\n\x0cZCOMPRESSION\x10\x01\"\'\n\tBlobArray\x12\x1a\n\x07\x63ontent\x18\x01 \x03(\x0b\x32\t.DataBlob\"+\n\x08PrintStr\x12\x11\n\x05level\x18\x01 \x01(\x05:\x02\x31\x30\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\t\"\xb3\x01\n\x0e\x43opyPathToFile\x12\x11\n\x06offset\x18\x01 \x01(\x04:\x01\x30\x12\x11\n\x06length\x18\x02 \x01(\x04:\x01\x30\x12\x1b\n\x08src_path\x18\x03 \x01(\x0b\x32\t.PathSpec\x12\x10\n\x08\x64\x65st_dir\x18\x04 \x01(\t\x12\x1c\n\tdest_path\x18\x05 \x01(\x0b\x32\t.PathSpec\x12\x19\n\x0bgzip_output\x18\x06 \x01(\x08:\x04true\x12\x13\n\x08lifetime\x18\x07 \x01(\x02:\x01\x30\"t\n\x0f\x42ufferReference\x12\x11\n\x06offset\x18\x01 \x01(\x04:\x01\x30\x12\x11\n\x06length\x18\x02 \x01(\x04:\x01\x30\x12\x10\n\x08\x63\x61llback\x18\x03 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x04 \x01(\x0c\x12\x1b\n\x08pathspec\x18\x06 \x01(\x0b\x32\t.PathSpec\"\xf4\x03\n\x0cRequestState\x12\n\n\x02id\x18\x01 \x02(\r\x12\r\n\x05ts_id\x18\x02 \x01(\x04\x12\x12\n\nnext_state\x18\x03 \x01(\t\x12\x1a\n\x06status\x18\x04 \x01(\x0b\x32\n.GrrStatus\x12]\n\x04\x64\x61ta\x18\x05 \x01(\x0b\x32\x05.DictBH\xe2\xfc\xe3\xc4\x01\x42\x12@This can contain any data we want to associate with the request.\x12\x19\n\x0eresponse_count\x18\x06 \x01(\r:\x01\x30\x12\x1d\n\x12transmission_count\x18\x07 \x01(\r:\x01\x30\x12~\n\tclient_id\x18\x08 \x01(\tBk\xe2\xfc\xe3\xc4\x01\x65\n\tClientURN\x12XThe client id where the request was heading - we only receiveresponses from this client.\x12\x62\n\nsession_id\x18\t \x01(\tBN\xe2\xfc\xe3\xc4\x01H\n\tSessionID\x12;This is the session_id of the flow this request belongs to.\x12\x1c\n\x07request\x18\n \x01(\x0b\x32\x0b.GrrMessage\"\xa7\x05\n\x04\x46low\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0e\n\x06pickle\x18\x02 \x01(\x0c\x12\r\n\x05ts_id\x18\x03 \x01(\x04\x12#\n\x05state\x18\x04 \x01(\x0e\x32\x0b.Flow.State:\x07RUNNING\x12%\n\nsession_id\x18\x05 \x01(\tB\x11\xe2\xfc\xe3\xc4\x01\x0b\n\tSessionID\x12\x1f\n\x14outstanding_requests\x18\x06 \x01(\r:\x01\x30\x12\x0f\n\x07\x63reator\x18\x07 \x01(\t\x12\\\n\tbacktrace\x18\x08 \x01(\tBI\xe2\xfc\xe3\xc4\x01\x43\n\tRDFString\x12\x36\x46lows terminated with an error include this backtrace.\x12H\n\x0b\x63reate_time\x18\t \x01(\x04:\x01\x30\x42\x30\xe2\xfc\xe3\xc4\x01*\n\x0bRDFDatetime\x12\x1bWhen this flow was created.\x12\x13\n\x08progress\x18\n \x01(\x05:\x01\x30\x12\x13\n\x04\x61rgs\x18\x0b \x01(\x0b\x32\x05.Dict\x12\x10\n\x08\x65vent_id\x18\x0c \x01(\t\x12$\n\rrequest_state\x18\x0e \x01(\x0b\x32\r.RequestState\x12\x0e\n\x06status\x18\x0f \x01(\t\x12\x10\n\x08\x63hildren\x18\x10 \x03(\t\x12$\n\tclient_id\x18\x11 \x01(\tB\x11\xe2\xfc\xe3\xc4\x01\x0b\n\tClientURN\x12\x1d\n\x08\x63pu_used\x18\x12 \x01(\x0b\x32\x0b.CpuSeconds\x12\x1a\n\x12network_bytes_sent\x18\x13 \x01(\x04\x12&\n\x08priority\x18\x14 \x01(\x0e\x32\x14.GrrMessage.Priority\"?\n\x05State\x12\x0b\n\x07RUNNING\x10\x00\x12\x0e\n\nTERMINATED\x10\x01\x12\t\n\x05\x45RROR\x10\x03\x12\x0e\n\nWELL_KNOWN\x10\x02\"<\n\nCpuSeconds\x12\x15\n\ruser_cpu_time\x18\x01 \x01(\x02\x12\x17\n\x0fsystem_cpu_time\x18\x02 \x01(\x02\"\x92\x01\n\tCpuSample\x12\x15\n\ruser_cpu_time\x18\x01 \x01(\x02\x12\x17\n\x0fsystem_cpu_time\x18\x02 \x01(\x02\x12\x13\n\x0b\x63pu_percent\x18\x03 \x01(\x02\x12@\n\ttimestamp\x18\x04 \x01(\x04\x42-\xe2\xfc\xe3\xc4\x01\'\n\x0bRDFDatetime\x12\x18The time of this sample.\"\x9e\x01\n\x08IOSample\x12\x12\n\nread_count\x18\x01 \x01(\x04\x12\x13\n\x0bwrite_count\x18\x02 \x01(\x04\x12\x12\n\nread_bytes\x18\x03 \x01(\x04\x12\x13\n\x0bwrite_bytes\x18\x04 \x01(\x04\x12@\n\ttimestamp\x18\x05 \x01(\x04\x42-\xe2\xfc\xe3\xc4\x01\'\n\x0bRDFDatetime\x12\x18The time of this sample.\"\xdd\x01\n\x0b\x43lientStats\x12\x1f\n\x0b\x63pu_samples\x18\x01 \x03(\x0b\x32\n.CpuSample\x12\x10\n\x08RSS_size\x18\x02 \x01(\x04\x12\x10\n\x08VMS_size\x18\x03 \x01(\x04\x12\x16\n\x0ememory_percent\x18\x04 \x01(\x02\x12\x16\n\x0e\x62ytes_received\x18\x05 \x01(\x04\x12\x12\n\nbytes_sent\x18\x06 \x01(\x04\x12\x1d\n\nio_samples\x18\x07 \x03(\x0b\x32\t.IOSample\x12\x13\n\x0b\x63reate_time\x18\x08 \x01(\x04\x12\x11\n\tboot_time\x18\t \x01(\x04\"I\n\x0bStartupInfo\x12\'\n\x0b\x63lient_info\x18\x01 \x01(\x0b\x32\x12.ClientInformation\x12\x11\n\tboot_time\x18\x02 \x01(\x04\"?\n\x0e\x45xecuteRequest\x12\x0b\n\x03\x63md\x18\x01 \x01(\t\x12\x0c\n\x04\x61rgs\x18\x02 \x03(\t\x12\x12\n\ntime_limit\x18\x03 \x01(\x05\"{\n\x0f\x45xecuteResponse\x12 \n\x07request\x18\x01 \x01(\x0b\x32\x0f.ExecuteRequest\x12\x13\n\x0b\x65xit_status\x18\x02 \x01(\x05\x12\x0e\n\x06stdout\x18\x03 \x01(\x0c\x12\x0e\n\x06stderr\x18\x04 \x01(\x0c\x12\x11\n\ttime_used\x18\x05 \x01(\x05\"\xe4\n\n\x08PathSpec\x12+\n\x08pathtype\x18\x01 \x01(\x0e\x32\x12.PathSpec.PathType:\x05UNSET\x12\x0c\n\x04path\x18\x02 \x01(\t\x12\x1d\n\x0bmount_point\x18\x03 \x01(\tB\x08\xe2\xfc\xe3\xc4\x01\x02\x18\x01\x12T\n\x0bstream_name\x18\x0b \x01(\tB?\xe2\xfc\xe3\xc4\x01\x39\x12\x35\x41 name for the data stream. For example, an ADS name.\x18\x01\x12\x1e\n\x0bnested_path\x18\x05 \x01(\x0b\x32\t.PathSpec\x12\x18\n\x06offset\x18\x06 \x01(\x04\x42\x08\xe2\xfc\xe3\xc4\x01\x02\x18\x01\x12\x43\n\x0cpath_options\x18\x07 \x01(\x0e\x32\x11.PathSpec.Options:\x10\x43\x41SE_INSENSITIVEB\x08\xe2\xfc\xe3\xc4\x01\x02\x18\x01\x12Y\n\x0frecursion_depth\x18\x0c \x01(\x04:\x01\x33\x42=\xe2\xfc\xe3\xc4\x01\x37\x12\x33Recursion depth when RECURSIVE option is specified.\x18\x02\x12\x17\n\x05inode\x18\x08 \x01(\x04\x42\x08\xe2\xfc\xe3\xc4\x01\x02\x18\x01\x12Q\n\tntfs_type\x18\t \x01(\x0e\x32\x1a.PathSpec.tsk_fs_attr_type:\x18TSK_FS_ATTR_TYPE_DEFAULTB\x08\xe2\xfc\xe3\xc4\x01\x02\x18\x01\x12\x19\n\x07ntfs_id\x18\n \x01(\x04\x42\x08\xe2\xfc\xe3\xc4\x01\x02\x18\x01\"I\n\x08PathType\x12\x12\n\x05UNSET\x10\xff\xff\xff\xff\xff\xff\xff\xff\xff\x01\x12\x06\n\x02OS\x10\x00\x12\x07\n\x03TSK\x10\x01\x12\x0c\n\x08REGISTRY\x10\x02\x12\n\n\x06MEMORY\x10\x03\"K\n\x07Options\x12\x14\n\x10\x43\x41SE_INSENSITIVE\x10\x00\x12\x10\n\x0c\x43\x41SE_LITERAL\x10\x01\x12\t\n\x05REGEX\x10\x02\x12\r\n\tRECURSIVE\x10\x03\"\xae\x05\n\x10tsk_fs_attr_type\x12\x1c\n\x18TSK_FS_ATTR_TYPE_DEFAULT\x10\x01\x12\x1c\n\x18TSK_FS_ATTR_TYPE_NTFS_SI\x10\x10\x12\"\n\x1eTSK_FS_ATTR_TYPE_NTFS_ATTRLIST\x10 \x12\x1f\n\x1bTSK_FS_ATTR_TYPE_NTFS_FNAME\x10\x30\x12\x1e\n\x1aTSK_FS_ATTR_TYPE_NTFS_VVER\x10@\x12\x1f\n\x1bTSK_FS_ATTR_TYPE_NTFS_OBJID\x10@\x12\x1d\n\x19TSK_FS_ATTR_TYPE_NTFS_SEC\x10P\x12\x1f\n\x1bTSK_FS_ATTR_TYPE_NTFS_VNAME\x10`\x12\x1f\n\x1bTSK_FS_ATTR_TYPE_NTFS_VINFO\x10p\x12\x1f\n\x1aTSK_FS_ATTR_TYPE_NTFS_DATA\x10\x80\x01\x12\"\n\x1dTSK_FS_ATTR_TYPE_NTFS_IDXROOT\x10\x90\x01\x12#\n\x1eTSK_FS_ATTR_TYPE_NTFS_IDXALLOC\x10\xa0\x01\x12!\n\x1cTSK_FS_ATTR_TYPE_NTFS_BITMAP\x10\xb0\x01\x12!\n\x1cTSK_FS_ATTR_TYPE_NTFS_SYMLNK\x10\xc0\x01\x12\"\n\x1dTSK_FS_ATTR_TYPE_NTFS_REPARSE\x10\xc0\x01\x12!\n\x1cTSK_FS_ATTR_TYPE_NTFS_EAINFO\x10\xd0\x01\x12\x1d\n\x18TSK_FS_ATTR_TYPE_NTFS_EA\x10\xe0\x01\x12\x1f\n\x1aTSK_FS_ATTR_TYPE_NTFS_PROP\x10\xf0\x01\x12\x1e\n\x19TSK_FS_ATTR_TYPE_NTFS_LOG\x10\x80\x02\x12 \n\x1bTSK_FS_ATTR_TYPE_UNIX_INDIR\x10\x81 \"J\n\x0eListDirRequest\x12\x1b\n\x08pathspec\x18\x01 \x01(\x0b\x32\t.PathSpec\x12\x1b\n\x08iterator\x18\x02 \x01(\x0b\x32\t.Iterator\"\x98\x01\n\rStatFSRequest\x12\x34\n\tpath_list\x18\x01 \x03(\tB!\xe2\xfc\xe3\xc4\x01\x1b\x12\x19List of paths for statfs.\x12Q\n\x08pathtype\x18\x02 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB\'\xe2\xfc\xe3\xc4\x01!\x12\x1fType of path to call statfs on.\"\xa1\t\n\tStatEntry\x12N\n\x08\x61\x66\x66\x34path\x18\x01 \x01(\tB<\xe2\xfc\xe3\xc4\x01\x36\n\x06RDFURN\x12,The location of this file in the AFF4 space.\x12\x42\n\x07st_mode\x18\x02 \x01(\x04:\x01\x30\x42.\xe2\xfc\xe3\xc4\x01(\n\x08StatMode\x12\x1c\x41 unix file permission mode.\x12\x0e\n\x06st_ino\x18\x03 \x01(\r\x12\x0e\n\x06st_dev\x18\x04 \x01(\r\x12\x10\n\x08st_nlink\x18\x05 \x01(\r\x12\x0e\n\x06st_uid\x18\x06 \x01(\r\x12\x0e\n\x06st_gid\x18\x07 \x01(\r\x12\x0f\n\x07st_size\x18\x08 \x01(\x04\x12?\n\x08st_atime\x18\t \x01(\x04\x42-\xe2\xfc\xe3\xc4\x01\'\n\x12RDFDatetimeSeconds\x12\x11Last access time.\x12\x41\n\x08st_mtime\x18\n \x01(\x04\x42/\xe2\xfc\xe3\xc4\x01)\n\x12RDFDatetimeSeconds\x12\x13Last modified time.\x12\x45\n\x08st_ctime\x18\x0b \x01(\x04\x42\x33\xe2\xfc\xe3\xc4\x01-\n\x12RDFDatetimeSeconds\x12\x17Last inode change time.\x12\x11\n\tst_blocks\x18\x0c \x01(\r\x12\x12\n\nst_blksize\x18\r \x01(\r\x12\x0f\n\x07st_rdev\x18\x0e \x01(\r\x12\x0f\n\x07symlink\x18\x0f \x01(\t\x12\xb9\x01\n\rregistry_type\x18\x10 \x01(\x0e\x32\x17.StatEntry.RegistryTypeB\x88\x01\xe2\xfc\xe3\xc4\x01\x81\x01\x12\x7fIf this is a stat of a registry value, this field contains the type of this value. The content will also be encoded in residet.\x12\x10\n\x08resident\x18\x11 \x01(\x0c\x12W\n\x08pathspec\x18\x12 \x01(\x0b\x32\t.PathSpecB:\xe2\xfc\xe3\xc4\x01\x34\x12\x32The path specification to this file on the client.\x12\x9e\x01\n\rregistry_data\x18\x13 \x01(\x0b\x32\t.DataBlobB|\xe2\xfc\xe3\xc4\x01v\x12tIf this entry represents a registry value, this field will contain that value encoded according to the correct type.\"\xc0\x01\n\x0cRegistryType\x12\x0c\n\x08REG_NONE\x10\x00\x12\n\n\x06REG_SZ\x10\x01\x12\x11\n\rREG_EXPAND_SZ\x10\x02\x12\x0e\n\nREG_BINARY\x10\x03\x12\r\n\tREG_DWORD\x10\x04\x12\x1b\n\x17REG_DWORD_LITTLE_ENDIAN\x10\x04\x12\x18\n\x14REG_DWORD_BIG_ENDIAN\x10\x05\x12\x0c\n\x08REG_LINK\x10\x06\x12\x10\n\x0cREG_MULTI_SZ\x10\x07\x12\r\n\tREG_QWORD\x10\x0b\"\'\n\nCollection\x12\x19\n\x05items\x18\x01 \x03(\x0b\x32\n.StatEntry\"0\n\nWmiRequest\x12\r\n\x05query\x18\x01 \x01(\t\x12\x13\n\x0b\x62\x61se_object\x18\x02 \x01(\t\"6\n\x08KeyValue\x12\x14\n\x01k\x18\x01 \x01(\x0b\x32\t.DataBlob\x12\x14\n\x01v\x18\x02 \x01(\x0b\x32\t.DataBlob\"D\n\x04\x44ict\x12<\n\x03\x64\x61t\x18\x01 \x03(\x0b\x32\t.KeyValueB$\xe2\xfc\xe3\xc4\x01\x1e\x12\x16\x41n arbitrary key/value\"\x04\x44\x61ta\"i\n\x0b\x43\x65rtificate\x12\x1f\n\x04type\x18\x01 \x01(\x0e\x32\x11.Certificate.Type\x12\x0b\n\x03pem\x18\x02 \x01(\x0c\x12\n\n\x02\x63n\x18\x03 \x01(\t\" \n\x04Type\x12\x07\n\x03\x43SR\x10\x00\x12\x07\n\x03\x43RT\x10\x01\x12\x06\n\x02\x43\x41\x10\x02\"\xf1\x03\n\x05Uname\x12\x43\n\x06system\x18\x01 \x01(\tB3\xe2\xfc\xe3\xc4\x01-\x12+The system platform (Windows|Darwin|Linux).\x12\x32\n\x04node\x18\x02 \x01(\tB$\xe2\xfc\xe3\xc4\x01\x1e\x12\x1cThe hostname of this system.\x12G\n\x07release\x18\x03 \x01(\tB6\xe2\xfc\xe3\xc4\x01\x30\x12.The OS release identifier e.g. 7, OSX, debian.\x12K\n\x07version\x18\x04 \x01(\tB:\xe2\xfc\xe3\xc4\x01\x34\x12\x32The OS version ID e.g. 6.1.7601SP1, 10.9.2, 14.04.\x12\x44\n\x07machine\x18\x05 \x01(\tB3\xe2\xfc\xe3\xc4\x01-\x12+The system architecture e.g. AMD64, x86_64.\x12R\n\x06kernel\x18\x06 \x01(\tBB\xe2\xfc\xe3\xc4\x01<\x12:The kernel version string e.g. 6.1.7601, 13.1.0, 3.15-rc2.\x12?\n\x04\x66qdn\x18\x07 \x01(\tB1\xe2\xfc\xe3\xc4\x01+\x12)The system\'s fully qualified domain name.\"\x86\x03\n\x11\x46olderInformation\x12\x10\n\x08\x61pp_data\x18\x01 \x01(\t\x12\r\n\x05\x63\x61\x63he\x18\x02 \x01(\t\x12\x0f\n\x07\x63ookies\x18\x03 \x01(\t\x12\x0f\n\x07\x64\x65sktop\x18\x04 \x01(\t\x12\x11\n\tfavorites\x18\x05 \x01(\t\x12\x0f\n\x07history\x18\x06 \x01(\t\x12\x16\n\x0elocal_app_data\x18\x07 \x01(\t\x12\x16\n\x0elocal_settings\x18\x08 \x01(\t\x12\x10\n\x08my_music\x18\t \x01(\t\x12\x13\n\x0bmy_pictures\x18\n \x01(\t\x12\x10\n\x08my_video\x18\x0b \x01(\t\x12\x10\n\x08net_hood\x18\x0c \x01(\t\x12\x10\n\x08personal\x18\r \x01(\t\x12\x12\n\nprint_hood\x18\x0e \x01(\t\x12\x10\n\x08programs\x18\x0f \x01(\t\x12\x0e\n\x06recent\x18\x10 \x01(\t\x12\x0f\n\x07send_to\x18\x11 \x01(\t\x12\x12\n\nstart_menu\x18\x12 \x01(\t\x12\x0f\n\x07startup\x18\x13 \x01(\t\x12\x11\n\ttemplates\x18\x14 \x01(\t\"\x87\x02\n\x04User\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x11\n\tfull_name\x18\x02 \x01(\t\x12\x0f\n\x07\x63omment\x18\x03 \x01(\t\x12K\n\nlast_logon\x18\x04 \x01(\x04\x42\x37\xe2\xfc\xe3\xc4\x01\x31\n\x0bRDFDatetime\x12\"The last logon time for this user.\x12\x0e\n\x06\x64omain\x18\x05 \x01(\t\x12\x0f\n\x07homedir\x18\x06 \x01(\t\x12\x0b\n\x03sid\x18\x07 \x01(\t\x12+\n\x0fspecial_folders\x18\x08 \x01(\x0b\x32\x12.FolderInformation:!\xda\xfc\xe3\xc4\x01\x1b\n\x19User account information.\"\xb1\x01\n\x0eNetworkAddress\x12,\n\x0c\x61\x64\x64ress_type\x18\x01 \x01(\x0e\x32\x16.NetworkAddress.Family\x12\x16\n\x0ehuman_readable\x18\x02 \x01(\t\x12\x14\n\x0cpacked_bytes\x18\x03 \x01(\x0c\"\x1d\n\x06\x46\x61mily\x12\x08\n\x04INET\x10\x00\x12\t\n\x05INET6\x10\x01:$\xda\xfc\xe3\xc4\x01\x1e\n\x1cNetwork Address information.\"\x93\x02\n\tInterface\x12?\n\x0bmac_address\x18\x01 \x01(\x0c\x42*\xe2\xfc\xe3\xc4\x01$\n\nMacAddress\x12\x16Interface MAC address.\x12\x15\n\rip4_addresses\x18\x02 \x03(\x0c\x12\x0e\n\x06ifname\x18\x03 \x01(\t\x12\x15\n\rip6_addresses\x18\x04 \x03(\x0c\x12W\n\taddresses\x18\x05 \x03(\x0b\x32\x0f.NetworkAddressB3\xe2\xfc\xe3\xc4\x01-\x12+A network address attached to an interface.:.\xda\xfc\xe3\xc4\x01(\n&Information about a network interface.\"\x82\x01\n\x11MemoryInformation\x12\x19\n\x06\x64\x65vice\x18\x01 \x01(\x0b\x32\t.PathSpec\x12\x1e\n\x04runs\x18\x02 \x03(\x0b\x32\x10.BufferReference\x12\x0b\n\x03\x63r3\x18\x03 \x01(\x04:%\xda\xfc\xe3\xc4\x01\x1f\n\x1d\x44\x65scribe the memory geometry.\"R\n\x16\x41uthenticodeSignedData\x12\x10\n\x08revision\x18\x01 \x01(\x04\x12\x11\n\tcert_type\x18\x02 \x01(\x04\x12\x13\n\x0b\x63\x65rtificate\x18\x03 \x01(\x0c\"\xb5\x01\n\x10\x46ingerprintTuple\x12\'\n\x07\x66p_type\x18\x01 \x02(\x0e\x32\x16.FingerprintTuple.Type\x12\'\n\x07hashers\x18\x02 \x03(\x0e\x32\x16.FingerprintTuple.Hash\"(\n\x04Type\x12\x0f\n\x0b\x46PT_GENERIC\x10\x00\x12\x0f\n\x0b\x46PT_PE_COFF\x10\x01\"%\n\x04Hash\x12\x07\n\x03MD5\x10\x00\x12\x08\n\x04SHA1\x10\x01\x12\n\n\x06SHA256\x10\x02\"T\n\x12\x46ingerprintRequest\x12\x1b\n\x08pathspec\x18\x01 \x01(\x0b\x32\t.PathSpec\x12!\n\x06tuples\x18\x02 \x03(\x0b\x32\x11.FingerprintTuple\"z\n\x13\x46ingerprintResponse\x12.\n\x0ematching_types\x18\x01 \x03(\x0e\x32\x16.FingerprintTuple.Type\x12\x16\n\x07results\x18\x02 \x03(\x0b\x32\x05.Dict\x12\x1b\n\x08pathspec\x18\x03 \x01(\x0b\x32\t.PathSpec\"\xd5\x04\n\x04Hash\x12>\n\x06sha256\x18\x01 \x01(\x0c\x42.\xe2\xfc\xe3\xc4\x01(\n\nHashDigest\x12\x1aSHA256 binary hash digest.\x12:\n\x04sha1\x18\x02 \x01(\x0c\x42,\xe2\xfc\xe3\xc4\x01&\n\nHashDigest\x12\x18SHA1 binary hash digest.\x12\x38\n\x03md5\x18\x03 \x01(\x0c\x42+\xe2\xfc\xe3\xc4\x01%\n\nHashDigest\x12\x17MD5 binary hash digest.\x12\x64\n\x0bpecoff_sha1\x18\x04 \x01(\x0c\x42O\xe2\xfc\xe3\xc4\x01I\n\nHashDigest\x12;Authenticode SHA1 hash digest for signed region of PE file.\x12\x62\n\npecoff_md5\x18\x05 \x01(\x0c\x42N\xe2\xfc\xe3\xc4\x01H\n\nHashDigest\x12:Authenticode MD5 hash digest for signed region of PE file.\x12h\n\rpecoff_sha256\x18\x07 \x01(\x0c\x42Q\xe2\xfc\xe3\xc4\x01K\n\nHashDigest\x12=Authenticode SHA256 hash digest for signed region of PE file.\x12\x63\n\x0bsigned_data\x18\x06 \x03(\x0b\x32\x17.AuthenticodeSignedDataB5\xe2\xfc\xe3\xc4\x01/\x12-Signed data which may be present in PE files.\"\xe5\x01\n\nSignedBlob\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\x12\x0e\n\x06\x64igest\x18\x02 \x01(\x0c\x12)\n\x0b\x64igest_type\x18\x03 \x01(\x0e\x32\x14.SignedBlob.HashType\x12\x11\n\tsignature\x18\x04 \x01(\x0c\x12\x31\n\x0esignature_type\x18\x05 \x01(\x0e\x32\x19.SignedBlob.SignatureType\")\n\x08HashType\x12\x07\n\x03MD5\x10\x00\x12\x08\n\x04SHA1\x10\x01\x12\n\n\x06SHA256\x10\x02\"\x1d\n\rSignatureType\x12\x0c\n\x08RSA_2048\x10\x00\"P\n\x14\x45xecutePythonRequest\x12 \n\x0bpython_code\x18\x01 \x01(\x0b\x32\x0b.SignedBlob\x12\x16\n\x07py_args\x18\x02 \x01(\x0b\x32\x05.Dict\">\n\x15\x45xecutePythonResponse\x12\x12\n\nreturn_val\x18\x01 \x01(\x0c\x12\x11\n\ttime_used\x18\x02 \x01(\x05\"}\n\x11VolatilityRequest\x12\x13\n\x04\x61rgs\x18\x01 \x01(\x0b\x32\x05.Dict\x12\x0f\n\x07plugins\x18\x02 \x03(\t\x12\x0f\n\x07profile\x18\x03 \x01(\t\x12\x19\n\x06\x64\x65vice\x18\x04 \x01(\x0b\x32\t.PathSpec\x12\x16\n\x07session\x18\x05 \x01(\x0b\x32\x05.Dict\"v\n\rPluginRequest\x12/\n\x06plugin\x18\x02 \x01(\tB\x1f\xe2\xfc\xe3\xc4\x01\x19\x12\x17The plugin name to run.\x12\x34\n\x04\x61rgs\x18\x03 \x01(\x0b\x32\x05.DictB\x1f\xe2\xfc\xe3\xc4\x01\x19\x12\x17The args to the plugin.\"\xc9\x03\n\rRekallRequest\x12\x1b\n\x08iterator\x18\x01 \x01(\x0b\x32\t.Iterator\x12\xa6\x01\n\x07plugins\x18\x02 \x03(\x0b\x32\x0e.PluginRequestB\x84\x01\xe2\xfc\xe3\xc4\x01~\x12|We can execute multiple plugins in the same session. This can take advantage of caching in the session to be more efficient.\x12\x39\n\x06\x64\x65vice\x18\x04 \x01(\x0b\x32\t.PathSpecB\x1e\xe2\xfc\xe3\xc4\x01\x18\x12\x16The raw device to use.\x12T\n\x07session\x18\x06 \x01(\x0b\x32\x05.DictB<\xe2\xfc\xe3\xc4\x01\x36\x12\x34These parameters are used to initialize the session.\x12\x61\n\x0cprofile_data\x18\x08 \x01(\x0b\x32\x0e.RekallProfileB;\xe2\xfc\xe3\xc4\x01\x35\x12\x33Profiles sent by the server to store on the client.\"\xe1\x01\n\x0eRekallResponse\x12\x15\n\rjson_messages\x18\x01 \x01(\t\x12\x0e\n\x06plugin\x18\x02 \x01(\t\x12K\n\nclient_urn\x18\x03 \x01(\tB7\xe2\xfc\xe3\xc4\x01\x31\n\tClientURN\x12$The client this response comes from.\x12[\n\x0fmissing_profile\x18\x04 \x01(\tBB\xe2\xfc\xe3\xc4\x01<\x12:Missing profiles that should be retrieved from the server.\"+\n\rRekallProfile\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\"I\n\x10VolatilityHeader\x12\x12\n\nprint_name\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x13\n\x0b\x66ormat_hint\x18\x03 \x01(\t\"x\n\x0fVolatilityValue\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0e\n\x06offset\x18\x03 \x01(\x03\x12\n\n\x02vm\x18\x04 \x01(\t\x12\r\n\x05value\x18\x05 \x01(\x03\x12\x0e\n\x06svalue\x18\x06 \x01(\t\x12\x0e\n\x06reason\x18\x07 \x01(\t\"4\n\x10VolatilityValues\x12 \n\x06values\x18\x01 \x03(\x0b\x32\x10.VolatilityValue\"V\n\x0fVolatilityTable\x12\"\n\x07headers\x18\x01 \x03(\x0b\x32\x11.VolatilityHeader\x12\x1f\n\x04rows\x18\x02 \x03(\x0b\x32\x11.VolatilityValues\"Q\n\x18VolatilityFormattedValue\x12\x14\n\x0c\x66ormatstring\x18\x01 \x01(\t\x12\x1f\n\x04\x64\x61ta\x18\x02 \x01(\x0b\x32\x11.VolatilityValues\"P\n\x19VolatilityFormattedValues\x12\x33\n\x10\x66ormatted_values\x18\x01 \x03(\x0b\x32\x19.VolatilityFormattedValue\"n\n\x11VolatilitySection\x12\x1f\n\x05table\x18\x01 \x01(\x0b\x32\x10.VolatilityTable\x12\x38\n\x14\x66ormatted_value_list\x18\x02 \x01(\x0b\x32\x1a.VolatilityFormattedValues\"Y\n\x12VolatilityResponse\x12$\n\x08sections\x18\x01 \x03(\x0b\x32\x12.VolatilitySection\x12\x0e\n\x06plugin\x18\x02 \x01(\t\x12\r\n\x05\x65rror\x18\x03 \x01(\t\"\xea\x03\n\x14\x45xecuteBinaryRequest\x12\x1f\n\nexecutable\x18\x01 \x01(\x0b\x32\x0b.SignedBlob\x12\x12\n\nwrite_path\x18\x02 \x01(\t\x12\x0c\n\x04\x61rgs\x18\x03 \x03(\t\x12\x12\n\ntime_limit\x18\x04 \x01(\x05\x12\xd7\x01\n\tmore_data\x18\x05 \x01(\x08\x42\xc3\x01\xe2\xfc\xe3\xc4\x01\xbc\x01\x12\xb9\x01If the binary does not fit inside a single request, the server will set this flag and send the file in chunks. The file will not be actually executed until the more_data flags is False.\x12\xa0\x01\n\x06offset\x18\x06 \x01(\x03\x42\x8f\x01\xe2\xfc\xe3\xc4\x01\x88\x01\x12\x85\x01The position in the file where this chunk exists. This must be the end of the file to ensure we did not lose any requests on the way.\"_\n\x15\x45xecuteBinaryResponse\x12\x13\n\x0b\x65xit_status\x18\x01 \x01(\x05\x12\x0e\n\x06stdout\x18\x02 \x01(\x0c\x12\x0e\n\x06stderr\x18\x03 \x01(\x0c\x12\x11\n\ttime_used\x18\x04 \x01(\x05\"\x92\x02\n\x15\x44riverInstallTemplate\x12\x1b\n\x06\x64river\x18\x01 \x01(\x0b\x32\x0b.SignedBlob\x12\x12\n\nwrite_path\x18\x02 \x01(\t\x12\x14\n\x0c\x66orce_reload\x18\x03 \x01(\r\x12\x13\n\x0b\x64river_name\x18\x06 \x01(\t\x12\x1b\n\x13\x64river_display_name\x18\x07 \x01(\t\x12\x13\n\x0b\x64\x65vice_path\x18\x08 \x01(\t\x12\x38\n\x04mode\x18\t \x01(\x0e\x32\".DriverInstallTemplate.RewriteMode:\x06\x45NABLE\"1\n\x0bRewriteMode\x12\x0b\n\x07\x44ISABLE\x10\x00\x12\n\n\x06\x45NABLE\x10\x01\x12\t\n\x05\x46ORCE\x10\x02\"\xea\x03\n\x0fSendFileRequest\x12K\n\x08pathspec\x18\x01 \x01(\x0b\x32\t.PathSpecB.\xe2\xfc\xe3\xc4\x01(\x12&The pathspec for the file to retrieve.\x12j\n\x0e\x61\x64\x64ress_family\x18\x02 \x01(\x0e\x32\x16.NetworkAddress.Family:\x04INETB4\xe2\xfc\xe3\xc4\x01.\x12,address family to use (AF_INET or AF_INET6).\x12\x39\n\x04host\x18\x03 \x01(\tB+\xe2\xfc\xe3\xc4\x01%\x12#Hostname or IP to send the file to.\x12\x41\n\x04port\x18\x04 \x01(\x04:\x05\x31\x32\x33\x34\x35\x42,\xe2\xfc\xe3\xc4\x01&\x12$Port number on the listening server.\x12N\n\x03key\x18\x05 \x01(\x0c\x42\x41\xe2\xfc\xe3\xc4\x01;\n\tAES128Key\x12.An encryption key given in hex representation.\x12P\n\x02iv\x18\x06 \x01(\x0c\x42\x44\xe2\xfc\xe3\xc4\x01>\n\tAES128Key\x12\x31The iv for AES, also given in hex representation.\"\xcb\x08\n\x08GrepSpec\x12>\n\x06target\x18\x01 \x01(\x0b\x32\t.PathSpecB#\xe2\xfc\xe3\xc4\x01\x1d\x12\x1bThis file will be searched.\x12\x45\n\x0cstart_offset\x18\x02 \x01(\x04:\x01\x30\x42,\xe2\xfc\xe3\xc4\x01&\x12$Start searching at this file offset.\x12P\n\x06length\x18\x03 \x01(\x04:\x0b\x31\x30\x37\x33\x37\x34\x31\x38\x32\x34\x30\x42\x33\xe2\xfc\xe3\xc4\x01-\x12+How far (in bytes) into the file to search.\x12^\n\x05regex\x18\x04 \x01(\tBO\xe2\xfc\xe3\xc4\x01I\n\x11RegularExpression\x12\x34The regular expression which will be used to search.\x12K\n\x07literal\x18\x05 \x01(\x0c\x42:\xe2\xfc\xe3\xc4\x01\x34\n\x11LiteralExpression\x12\x1fSearch for this literal string.\x12q\n\x04mode\x18\x06 \x01(\x0e\x32\x0e.GrepSpec.Mode:\x08\x41LL_HITSBI\xe2\xfc\xe3\xc4\x01\x43\x12\x41When should searching stop? Stop after one hit or search for all?\x12K\n\x0c\x62ytes_before\x18\x07 \x01(\r:\x02\x31\x30\x42\x31\xe2\xfc\xe3\xc4\x01+\x12\'Include this many bytes before the hit.\x18\x01\x12I\n\x0b\x62ytes_after\x18\x08 \x01(\r:\x02\x31\x30\x42\x30\xe2\xfc\xe3\xc4\x01*\x12&Include this many bytes after the hit.\x18\x01\x12\xc2\x01\n\nxor_in_key\x18\t \x01(\r:\x01\x30\x42\xaa\x01\xe2\xfc\xe3\xc4\x01\xa3\x01\x12\x9e\x01When searching memory we need to ensure we dont hit on our own process. This allows us to obfuscate the search string in memory to avoid us finding ourselves.\x18\x01\x12\xc3\x01\n\x0bxor_out_key\x18\n \x01(\r:\x01\x30\x42\xaa\x01\xe2\xfc\xe3\xc4\x01\xa3\x01\x12\x9e\x01When searching memory we need to ensure we dont hit on our own process. This allows us to obfuscate the search string in memory to avoid us finding ourselves.\x18\x01\"#\n\x04Mode\x12\x0c\n\x08\x41LL_HITS\x10\x00\x12\r\n\tFIRST_HIT\x10\x01\"\xc1\x07\n\x08\x46indSpec\x12%\n\x08iterator\x18\x01 \x01(\x0b\x32\t.IteratorB\x08\xe2\xfc\xe3\xc4\x01\x02\x18\x02\x12L\n\x08pathspec\x18\x02 \x01(\x0b\x32\t.PathSpecB/\xe2\xfc\xe3\xc4\x01)\x12\'The base path to recursive search from \x12\x43\n\tpath_glob\x18\r \x01(\tB0\xe2\xfc\xe3\xc4\x01*\n\x0eGlobExpression\x12\x18\x41 glob for the filename.\x12t\n\npath_regex\x18\x03 \x01(\tB`\xe2\xfc\xe3\xc4\x01Z\n\x11RegularExpression\x12\x33This matches the filename. Overrides the path_glob.\x18\x01\"\x0e\x46ilename RegEx\x12T\n\ndata_regex\x18\x04 \x01(\tB@\xe2\xfc\xe3\xc4\x01:\n\x11RegularExpression\x12%This matches the content of the file.\x12R\n\nstart_time\x18\x05 \x01(\x04:\x01\x30\x42;\xe2\xfc\xe3\xc4\x01\x35\n\x0bRDFDatetime\x12&File must be modified after this time.\x12\x88\x01\n\x08\x65nd_time\x18\x06 \x01(\x04:\x13\x39\x32\x32\x33\x33\x37\x32\x30\x33\x36\x38\x35\x34\x37\x37\x35\x38\x30\x37\x42\x61\xe2\xfc\xe3\xc4\x01[\n\x0bRDFDatetime\x12LFile must be modified before this time (default=heat death of the universe).\x12#\n\ncross_devs\x18\x07 \x01(\x08:\x05\x66\x61lseB\x08\xe2\xfc\xe3\xc4\x01\x02\x18\x01\x12\x1f\n\tmax_depth\x18\x08 \x01(\x05:\x02\x31\x35\x42\x08\xe2\xfc\xe3\xc4\x01\x02\x18\x01\x12@\n\x03hit\x18\t \x01(\x0b\x32\n.StatEntryB\'\xe2\xfc\xe3\xc4\x01!\x12\x1dResponses come in this field.\x18\x02\x12#\n\x08max_data\x18\n \x01(\x04:\x07\x31\x30\x32\x34\x30\x30\x30\x42\x08\xe2\xfc\xe3\xc4\x01\x02\x18\x01\x12=\n\rmin_file_size\x18\x0b \x01(\x04:\x01\x30\x42#\xe2\xfc\xe3\xc4\x01\x1d\x12\x1bMinimum file size in bytes.\x12\x64\n\rmax_file_size\x18\x0c \x01(\x04:\x13\x39\x32\x32\x33\x33\x37\x32\x30\x33\x36\x38\x35\x34\x37\x37\x35\x38\x30\x37\x42\x38\xe2\xfc\xe3\xc4\x01\x32\x12\x30Maximum file size in bytes (default=sys.maxint).\"\x8f\x02\n\x0cPlistRequest\x12N\n\x08pathspec\x18\x01 \x01(\x0b\x32\t.PathSpecB1\xe2\xfc\xe3\xc4\x01+\x12)The pathspec for the plist file to query.\x12\x44\n\x07\x63ontext\x18\x02 \x01(\tB3\xe2\xfc\xe3\xc4\x01-\x12+A path into the plist to base the filter on\x12i\n\x05query\x18\x03 \x01(\tBZ\xe2\xfc\xe3\xc4\x01T\n\nPlistQuery\x12\x46\x41 filter query to match the contents of the plist at the base_context.\"\xed\x01\n\x15GetClientStatsRequest\x12\x62\n\nstart_time\x18\x05 \x01(\x04:\x01\x30\x42K\xe2\xfc\xe3\xc4\x01\x45\n\x0bRDFDatetime\x12\x36Request stats data points with timestamp > start_time.\x12p\n\x08\x65nd_time\x18\x06 \x01(\x04:\x13\x39\x32\x32\x33\x33\x37\x32\x30\x33\x36\x38\x35\x34\x37\x37\x35\x38\x30\x37\x42I\xe2\xfc\xe3\xc4\x01\x43\n\x0bRDFDatetime\x12\x34Request stats data points with timestamp < end_time.\"\x81\x02\n\x15\x46oremanAttributeRegex\x12\x0f\n\x04path\x18\x01 \x01(\t:\x01/\x12\x45\n\x0e\x61ttribute_name\x18\x02 \x01(\tB-\xe2\xfc\xe3\xc4\x01\'\n\rAFF4Attribute\x12\x16\x41n AFF4 attribute name\x12\x8f\x01\n\x0f\x61ttribute_regex\x18\x03 \x01(\tBv\xe2\xfc\xe3\xc4\x01p\n\x11RegularExpression\x12[If these are specified we fire when the attribute\'s str() representation matches the regex.\"\xf4\x01\n\x17\x46oremanAttributeInteger\x12\x0f\n\x04path\x18\x01 \x01(\t:\x01/\x12\x45\n\x0e\x61ttribute_name\x18\x02 \x01(\tB-\xe2\xfc\xe3\xc4\x01\'\n\rAFF4Attribute\x12\x16\x41n AFF4 attribute name\x12:\n\x08operator\x18\x03 \x01(\x0e\x32!.ForemanAttributeInteger.Operator:\x05\x45QUAL\x12\r\n\x05value\x18\x04 \x01(\x04\"6\n\x08Operator\x12\t\n\x05\x45QUAL\x10\x00\x12\r\n\tLESS_THAN\x10\x01\x12\x10\n\x0cGREATER_THAN\x10\x02\"\xa6\x01\n\x11\x46oremanRuleAction\x12\x11\n\tflow_name\x18\x01 \x01(\t\x12\x13\n\x04\x61rgv\x18\x02 \x01(\x0b\x32\x05.Dict\x12\x11\n\thunt_name\x18\x03 \x01(\t\x12@\n\x07hunt_id\x18\x04 \x01(\tB/\xe2\xfc\xe3\xc4\x01)\n\tSessionID\x12\x1cThe id of the hunt to start.\x12\x14\n\x0c\x63lient_limit\x18\x05 \x01(\x04\"\xab\x02\n\x0b\x46oremanRule\x12+\n\x0bregex_rules\x18\x01 \x03(\x0b\x32\x16.ForemanAttributeRegex\x12/\n\rinteger_rules\x18\x02 \x03(\x0b\x32\x18.ForemanAttributeInteger\x12#\n\x07\x61\x63tions\x18\x03 \x03(\x0b\x32\x12.ForemanRuleAction\x12\x41\n\x07\x63reated\x18\x04 \x01(\x04\x42\x30\xe2\xfc\xe3\xc4\x01*\n\x0bRDFDatetime\x12\x1bWhen this rule was created.\x12\x41\n\x07\x65xpires\x18\x05 \x01(\x04\x42\x30\xe2\xfc\xe3\xc4\x01*\n\x0bRDFDatetime\x12\x1bWhen this rule will expire.\x12\x13\n\x0b\x64\x65scription\x18\x06 \x01(\t\"Y\n\tHuntError\x12$\n\tclient_id\x18\x01 \x01(\tB\x11\xe2\xfc\xe3\xc4\x01\x0b\n\tClientURN\x12\x13\n\x0blog_message\x18\x02 \x01(\t\x12\x11\n\tbacktrace\x18\x03 \x01(\t\"\xc9\x01\n\x07\x46lowLog\x12$\n\tclient_id\x18\x01 \x01(\tB\x11\xe2\xfc\xe3\xc4\x01\x0b\n\tClientURN\x12\x13\n\x0blog_message\x18\x02 \x01(\t\x12?\n\x03urn\x18\x03 \x01(\tB2\xe2\xfc\xe3\xc4\x01,\n\x06RDFURN\x12\"Session ID that generated the log.\x12\x42\n\tflow_name\x18\x04 \x01(\tB/\xe2\xfc\xe3\xc4\x01)\x12\'Human readable name for the session ID.\"\x9a\x01\n\x0f\x43lientResources\x12$\n\tclient_id\x18\x01 \x01(\tB\x11\xe2\xfc\xe3\xc4\x01\x0b\n\tClientURN\x12%\n\nsession_id\x18\x02 \x01(\tB\x11\xe2\xfc\xe3\xc4\x01\x0b\n\tSessionID\x12\x1e\n\tcpu_usage\x18\x03 \x01(\x0b\x32\x0b.CpuSeconds\x12\x1a\n\x12network_bytes_sent\x18\x04 \x01(\x04\"2\n\x0eStatsHistogram\x12 \n\x04\x62ins\x18\x03 \x03(\x0b\x32\x12.StatsHistogramBin\"9\n\x11StatsHistogramBin\x12\x17\n\x0frange_max_value\x18\x01 \x01(\x02\x12\x0b\n\x03num\x18\x02 \x01(\x04\"\\\n\x0cRunningStats\x12\"\n\thistogram\x18\x01 \x01(\x0b\x32\x0f.StatsHistogram\x12\x0b\n\x03num\x18\x02 \x01(\x04\x12\x0b\n\x03sum\x18\x03 \x01(\x01\x12\x0e\n\x06sum_sq\x18\x04 \x01(\x01\"\xc3\x01\n\x14\x43lientResourcesStats\x12%\n\x0euser_cpu_stats\x18\x01 \x01(\x0b\x32\r.RunningStats\x12\'\n\x10system_cpu_stats\x18\x02 \x01(\x0b\x32\r.RunningStats\x12/\n\x18network_bytes_sent_stats\x18\x03 \x01(\x0b\x32\r.RunningStats\x12*\n\x10worst_performers\x18\x04 \x03(\x0b\x32\x10.ClientResources\"\xab\x02\n\x08Iterator\x12\x1b\n\x0c\x63lient_state\x18\x01 \x01(\x0b\x32\x05.Dict\x12\x0f\n\x04skip\x18\x02 \x01(\r:\x01\x30\x12\x13\n\x06number\x18\x03 \x01(\r:\x03\x31\x30\x30\x12\'\n\x05state\x18\x04 \x01(\x0e\x32\x0f.Iterator.State:\x07RUNNING\x12\x8e\x01\n\x10suspended_action\x18\x05 \x01(\x04\x42t\xe2\xfc\xe3\xc4\x01n\x12lIf this is an iterator for a client action, we store the unique action id by which it is kept on the client.\"\"\n\x05State\x12\x0b\n\x07RUNNING\x10\x00\x12\x0c\n\x08\x46INISHED\x10\x01\"M\n\x14IteratedStatResponse\x12\x18\n\x04stat\x18\x01 \x01(\x0b\x32\n.StatEntry\x12\x1b\n\x08iterator\x18\x02 \x01(\x0b\x32\t.Iterator\"\x9f\x02\n\x0cNotification\x12\x0c\n\x04type\x18\x01 \x01(\t\x12N\n\x07subject\x18\x02 \x01(\tB=\xe2\xfc\xe3\xc4\x01\x37\n\x06RDFURN\x12-The subject which this notification is about.\x12\x0f\n\x07message\x18\x03 \x01(\t\x12V\n\x06source\x18\x04 \x01(\tBF\xe2\xfc\xe3\xc4\x01@\n\x06RDFURN\x12\x36The user or service which generated this notification.\x12H\n\ttimestamp\x18\x05 \x01(\x04\x42\x35\xe2\xfc\xe3\xc4\x01/\n\x0bRDFDatetime\x12 Time the notification was added.\"\xae\x02\n\x12GlobalNotification\x12&\n\x04type\x18\x01 \x01(\x0e\x32\x18.GlobalNotification.Type\x12\x0e\n\x06header\x18\x02 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x03 \x01(\t\x12\x0c\n\x04link\x18\x04 \x01(\t\x12S\n\tshow_from\x18\x05 \x01(\x04\x42@\xe2\xfc\xe3\xc4\x01:\n\x0bRDFDatetime\x12+Notification will be shown after this time.\x12\x42\n\x08\x64uration\x18\x06 \x01(\x04\x42\x30\xe2\xfc\xe3\xc4\x01*\n\x08\x44uration\x12\x1e\x44uration of this notification.\"(\n\x04Type\x12\x08\n\x04INFO\x10\x00\x12\x0b\n\x07WARNING\x10\x01\x12\t\n\x05\x45RROR\x10\x02\"C\n\x15GlobalNotificationSet\x12*\n\rnotifications\x18\x01 \x03(\x0b\x32\x13.GlobalNotification\"t\n\x10\x45mbeddedRDFValue\x12\x44\n\x0c\x65mbedded_age\x18\x01 \x01(\x04\x42.\xe2\xfc\xe3\xc4\x01(\n\x0bRDFDatetime\x12\x19The age of this RDFValue.\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x03 \x01(\x0c\"v\n\x11\x41\x46\x46\x34ObjectSummary\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x39\n\x03urn\x18\x02 \x01(\tB,\xe2\xfc\xe3\xc4\x01&\n\x06RDFURN\x12\x1cThe URN of this AFF4 object.\x12\x18\n\x04stat\x18\x03 \x01(\x0b\x32\n.StatEntry\"\xaf\x05\n\nAuditEvent\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x0c\n\x04user\x18\x02 \x01(\t\x12+\n\x06\x61\x63tion\x18\x03 \x01(\x0e\x32\x12.AuditEvent.Action:\x07UNKNOWN\x12\x11\n\tflow_name\x18\x04 \x01(\t\x12\x11\n\tflow_args\x18\x05 \x01(\x0c\x12G\n\x06\x63lient\x18\x06 \x01(\tB7\xe2\xfc\xe3\xc4\x01\x31\n\x06RDFURN\x12\'The client, this action was applied to.\x12?\n\ttimestamp\x18\x07 \x01(\x04\x42,\xe2\xfc\xe3\xc4\x01&\n\x0bRDFDatetime\x12\x17Time event was created.\x12\x13\n\x0b\x64\x65scription\x18\x08 \x01(\t\x12L\n\x03urn\x18\t \x01(\tB?\xe2\xfc\xe3\xc4\x01\x39\n\x06RDFURN\x12/The relevant hunt/flow/cron urn for this event.\"\xc6\x02\n\x06\x41\x63tion\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0c\n\x08RUN_FLOW\x10\x01\x12\'\n#CLIENT_APPROVAL_BREAK_GLASS_REQUEST\x10\x02\x12\x19\n\x15\x43LIENT_APPROVAL_GRANT\x10\x03\x12\x1b\n\x17\x43LIENT_APPROVAL_REQUEST\x10\x04\x12\x17\n\x13\x43RON_APPROVAL_GRANT\x10\x05\x12\x19\n\x15\x43RON_APPROVAL_REQUEST\x10\x06\x12\x17\n\x13HUNT_APPROVAL_GRANT\x10\x07\x12\x19\n\x15HUNT_APPROVAL_REQUEST\x10\x08\x12\x10\n\x0cHUNT_CREATED\x10\t\x12\x11\n\rHUNT_MODIFIED\x10\n\x12\x0f\n\x0bHUNT_PAUSED\x10\x0b\x12\x10\n\x0cHUNT_STARTED\x10\x0c\x12\x10\n\x0cHUNT_STOPPED\x10\r\"\xb1\x04\n\rClientSummary\x12\x37\n\tclient_id\x18\x01 \x01(\tB$\xe2\xfc\xe3\xc4\x01\x1e\n\tClientURN\x12\x11The Client\'s URN.\x12Q\n\ttimestamp\x18\x02 \x01(\x04\x42>\xe2\xfc\xe3\xc4\x01\x38\n\x0bRDFDatetime\x12)Timestamp for the creation of the record.\x12:\n\x0bsystem_info\x18\x03 \x01(\x0b\x32\x06.UnameB\x1d\xe2\xfc\xe3\xc4\x01\x17\x12\x15\x43lient\'s system info.\x12X\n\x0b\x63lient_info\x18\x04 \x01(\x0b\x32\x12.ClientInformationB/\xe2\xfc\xe3\xc4\x01)\x12\'Basic information about the GRR client.\x12M\n\x0cinstall_date\x18\x05 \x01(\x04\x42\x37\xe2\xfc\xe3\xc4\x01\x31\n\x0bRDFDatetime\x12\"The date the system was installed.\x12:\n\x05users\x18\x06 \x03(\x0b\x32\x05.UserB$\xe2\xfc\xe3\xc4\x01\x1e\x12\x1cUser accounts on the system.\x12\x45\n\ninterfaces\x18\x07 \x03(\x0b\x32\n.InterfaceB%\xe2\xfc\xe3\xc4\x01\x1f\x12\x1d\x41ll interfaces on the system.:,\xda\xfc\xe3\xc4\x01&\n$A summary of the client information.\"j\n\x10\x43ronJobRunStatus\x12,\n\x06status\x18\x01 \x01(\x0e\x32\x18.CronJobRunStatus.Status:\x02OK\"(\n\x06Status\x12\x06\n\x02OK\x10\x00\x12\x0b\n\x07TIMEOUT\x10\x01\x12\t\n\x05\x45RROR\x10\x02\"\x80\x01\n\x15MetricFieldDefinition\x12\x12\n\nfield_name\x18\x01 \x01(\t\x12\x34\n\nfield_type\x18\x02 \x01(\x0e\x32 .MetricFieldDefinition.FieldType\"\x1d\n\tFieldType\x12\x07\n\x03INT\x10\x00\x12\x07\n\x03STR\x10\x01\"\xa3\n\n\x0eMetricMetadata\x12%\n\x07varname\x18\x01 \x01(\tB\x14\xe2\xfc\xe3\xc4\x01\x0e\x12\x0cMetric name.\x12^\n\x0bmetric_type\x18\x02 \x01(\x0e\x32\x1a.MetricMetadata.MetricTypeB-\xe2\xfc\xe3\xc4\x01\'\x12%Metric type: counter, gauge or event.\x12\xfc\x01\n\nvalue_type\x18\x03 \x01(\x0e\x32\x19.MetricMetadata.ValueTypeB\xcc\x01\xe2\xfc\xe3\xc4\x01\xc5\x01\x12\xc2\x01Metric value type: int, float, str or distribution. Please note that counter metrics always have type INT and event metrics always have type DISTRIBUTION. Gauge metrics can be INT, FLOAT or STR.\x12[\n\x0b\x66ields_defs\x18\x04 \x03(\x0b\x32\x16.MetricFieldDefinitionB.\xe2\xfc\xe3\xc4\x01(\x12&Fields definitions for a given metric.\x12\x35\n\tdocstring\x18\x05 \x01(\tB\"\xe2\xfc\xe3\xc4\x01\x1c\x12\x1a\x44\x65scription of the metric.\x12h\n\x05units\x18\x06 \x01(\x0e\x32\x1b.MetricMetadata.MetricUnitsB<\xe2\xfc\xe3\xc4\x01\x36\x12\x34\x46or numerical metrics - measuring unit that is used.\"\xbc\x03\n\nMetricType\x12U\n\x07\x43OUNTER\x10\x00\x1aH\xea\xb9\xcb\xb9\x01\x42Integer metric that can only be incremented and never decremented.\x12\xd0\x01\n\x05GAUGE\x10\x01\x1a\xc4\x01\xea\xb9\xcb\xb9\x01\xbd\x01Gauge metrics can be either string, integer or float. Their value may be any value of their type and they may change their value arbitrarily (unlike counters, which can only be incremented.\x12\x83\x01\n\x05\x45VENT\x10\x02\x1ax\xea\xb9\xcb\xb9\x01rEvent metrics are used to record events that take certain amount of time. They\'re stored as latency distributions.\"\x91\x01\n\x0bMetricUnits\x12\x0b\n\x07SECONDS\x10\x00\x12\x10\n\x0cMILLISECONDS\x10\x01\x12\x10\n\x0cMICROSECONDS\x10\x02\x12\x0f\n\x0bNANOSECONDS\x10\x03\x12\x08\n\x04\x42ITS\x10\n\x12\t\n\x05\x42YTES\x10\x0b\x12\r\n\tKILOBYTES\x10\x0c\x12\r\n\tMEGABYTES\x10\r\x12\r\n\tGIGABYTES\x10\x0e\":\n\tValueType\x12\x07\n\x03INT\x10\x00\x12\t\n\x05\x46LOAT\x10\x01\x12\x07\n\x03STR\x10\x02\x12\x10\n\x0c\x44ISTRIBUTION\x10\x03\"=\n\x19StatsStoreMetricsMetadata\x12 \n\x07metrics\x18\x01 \x03(\x0b\x32\x0f.MetricMetadata\"\xd2\x03\n\x0c\x44istribution\x12\x46\n\x03sum\x18\x01 \x01(\x02\x42\x39\xe2\xfc\xe3\xc4\x01\x33\x12\x31Sum of all the values recorded in a distribution.\x12J\n\x05\x63ount\x18\x02 \x01(\x04\x42;\xe2\xfc\xe3\xc4\x01\x35\x12\x33\x43ount of all the values recorded in a distribution.\x12\xdb\x01\n\x04\x62ins\x18\x03 \x03(\x02\x42\xcc\x01\xe2\xfc\xe3\xc4\x01\xc5\x01\x12\xc2\x01Values of upper range limits of all the bins in the distribution. The first bin will have a lower range limit of -Infinity. The last bin will accept all the values bigger than its\' higher range.\x12P\n\x0c\x62ins_heights\x18\x04 \x03(\x02\x42:\xe2\xfc\xe3\xc4\x01\x34\x12\x32Heights of all the bins defined in the bins field.\"r\n\x14StatsStoreFieldValue\x12\x34\n\nfield_type\x18\x01 \x01(\x0e\x32 .MetricFieldDefinition.FieldType\x12\x11\n\tstr_value\x18\x02 \x01(\t\x12\x11\n\tint_value\x18\x03 \x01(\x03\"\xd4\x01\n\x0fStatsStoreValue\x12-\n\nvalue_type\x18\x01 \x01(\x0e\x32\x19.MetricMetadata.ValueType\x12\x11\n\tstr_value\x18\x02 \x01(\t\x12\x11\n\tint_value\x18\x03 \x01(\x03\x12\x13\n\x0b\x66loat_value\x18\x04 \x01(\x02\x12)\n\x12\x64istribution_value\x18\x05 \x01(\x0b\x32\r.Distribution\x12,\n\rfields_values\x18\x06 \x03(\x0b\x32\x15.StatsStoreFieldValue\"\xb6\x01\n\x0fPersistenceFile\x12\x1b\n\x08pathspec\x18\x01 \x01(\x0b\x32\t.PathSpec\x12\x85\x01\n\nsource_urn\x18\x02 \x01(\tBq\xe2\xfc\xe3\xc4\x01k\n\x06RDFURN\x12\x61URN for rdfvalue that used this file for  persistence. e.g. WindowsServiceInformation, StatEntry.\"\xca\x01\n\x12\x45ndToEndTestResult\x12@\n\x07success\x18\x01 \x01(\x08:\x05\x66\x61lseB(\xe2\xfc\xe3\xc4\x01\"\x12 Whether the test was successful.\x12\x17\n\x0ftest_class_name\x18\x02 \x01(\t\x12L\n\ttimestamp\x18\x03 \x01(\x04\x42\x39\xe2\xfc\xe3\xc4\x01\x33\n\x0bRDFDatetime\x12$Timestamp for when the test was run.\x12\x0b\n\x03log\x18\x04 \x01(\t\"\x0e\n\x0c\x45mptyMessage')
+  serialized_pb='\n\x14grr/proto/jobs.proto\x1a\x18grr/proto/semantic.proto\"\xa0\x02\n\x0bHttpRequest\x12\x13\n\x0braw_headers\x18\x01 \x01(\t\x12\x12\n\nuser_agent\x18\x02 \x01(\t\x12\x11\n\tsource_ip\x18\x03 \x01(\t\x12\x0b\n\x03url\x18\x04 \x01(\t\x12\x17\n\x04user\x18\x05 \x01(\t:\tanonymous\x12T\n\ttimestamp\x18\x06 \x01(\x04\x42\x41\xe2\xfc\xe3\xc4\x01;\n\x0bRDFDatetime\x12,Timestamp: unique identifier for the request\x12\x13\n\x06method\x18\x07 \x01(\t:\x03GET\x12\x10\n\x08referrer\x18\x08 \x01(\t\x12\x32\n\x04size\x18\t \x01(\x04\x42$\xe2\xfc\xe3\xc4\x01\x1e\x12\x1cSize of the request in bytes\"\xe4\x0f\n\nGrrMessage\x12\x63\n\nsession_id\x18\x01 \x01(\tBO\xe2\xfc\xe3\xc4\x01I\n\rFlowSessionID\x12\x38The session id of the flow that this message belongs to.\x12j\n\nrequest_id\x18\x02 \x01(\x04\x42V\xe2\xfc\xe3\xc4\x01P\x12NThe message is in response to this request number (requests increment from 1).\x12Q\n\x0bresponse_id\x18\x03 \x01(\x04\x42<\xe2\xfc\xe3\xc4\x01\x36\x12\x34Responses for each request are also numbered from 1.\x12\x87\x01\n\x04name\x18\x04 \x01(\tBy\xe2\xfc\xe3\xc4\x01s\x12qThis is the name of the client action that will be executed. It is set by the flow and is executed by the client.\x12\x0c\n\x04\x61rgs\x18\x05 \x01(\x0c\x12\x1e\n\x03\x61rg\x18\x14 \x01(\x0b\x32\x11.EmbeddedRDFValue\x12\x64\n\x06source\x18\x06 \x01(\tBT\xe2\xfc\xe3\xc4\x01N\n\x06RDFURN\x12\x44\x43lient name where the message came from (Filled in by the frontend).\x12\x43\n\nauth_state\x18\x07 \x01(\x0e\x32\x1e.GrrMessage.AuthorizationState:\x0fUNAUTHENTICATED\x12\'\n\x04type\x18\x08 \x01(\x0e\x32\x10.GrrMessage.Type:\x07MESSAGE\x12\x9f\x01\n\x08priority\x18\t \x01(\x0e\x32\x14.GrrMessage.Priority:\x0fMEDIUM_PRIORITYBf\xe2\xfc\xe3\xc4\x01`\x12^The priority of this message - allows higher priority messages to leap to the front of queues.\x12m\n\x03ttl\x18\n \x01(\r:\x02\x31\x30\x42\\\xe2\xfc\xe3\xc4\x01V\x12TTime to live - each time a request is retransmitted this decrement until it expires.\x12o\n\x10require_fastpoll\x18\x0b \x01(\x08:\x04trueBO\xe2\xfc\xe3\xc4\x01I\x12GIf this is true, the client will enter fast poll mode after processing.\x12Y\n\tcpu_limit\x18\x0c \x01(\x02:\x04\x33\x36\x30\x30\x42@\xe2\xfc\xe3\xc4\x01:\x12\x38Maximum number of CPU seconds to be used by this action.\x12\x44\n\x08\x61rgs_age\x18\r \x01(\x04\x42\x32\xe2\xfc\xe3\xc4\x01,\n\x0bRDFDatetime\x12\x1dThe age of the args rdfvalue.\x12\x15\n\rargs_rdf_name\x18\x0e \x01(\t\x12\x0f\n\x07task_id\x18\x0f \x01(\x04\x12\x13\n\x08task_ttl\x18\x10 \x01(\x05:\x01\x37\x12\x46\n\x05queue\x18\x11 \x01(\tB7\xe2\xfc\xe3\xc4\x01\x31\n\x06RDFURN\x12\'The scheduler queue this message is in.\x12_\n\x03\x65ta\x18\x12 \x01(\x04\x42R\xe2\xfc\xe3\xc4\x01L\n\x0bRDFDatetime\x12=The time when this message will become available for leasing.\x12\x12\n\nlast_lease\x18\x13 \x01(\t\x12\xc1\x02\n\x13network_bytes_limit\x18\x15 \x01(\x04:\x0b\x31\x30\x37\x33\x37\x34\x31\x38\x32\x34\x30\x42\x96\x02\xe2\xfc\xe3\xc4\x01\x8f\x02\x12\x8c\x02Maximum number of network bytes to be sent, 10G default. All bytes charged against the flow session ID count towards the limit but only during TransferBuffer is the limit enforced. This means we can blockfile transfers but still communicate after the limit is reached.\"P\n\x12\x41uthorizationState\x12\x13\n\x0fUNAUTHENTICATED\x10\x00\x12\x11\n\rAUTHENTICATED\x10\x01\x12\x12\n\x0e\x44\x45SYNCHRONIZED\x10\x02\"-\n\x04Type\x12\x0b\n\x07MESSAGE\x10\x00\x12\n\n\x06STATUS\x10\x01\x12\x0c\n\x08ITERATOR\x10\x02\"D\n\x08Priority\x12\x10\n\x0cLOW_PRIORITY\x10\x00\x12\x13\n\x0fMEDIUM_PRIORITY\x10\x01\x12\x11\n\rHIGH_PRIORITY\x10\x02\"\'\n\x0bMessageList\x12\x18\n\x03job\x18\x01 \x03(\x0b\x32\x0b.GrrMessage\"\xd4\x02\n\x11SignedMessageList\x12\x14\n\x0cmessage_list\x18\x01 \x01(\x0c\x12H\n\x06source\x18\x03 \x01(\tB8\xe2\xfc\xe3\xc4\x01\x32\n\x06RDFURN\x12(The source where this message came from.\x12\x45\n\x0b\x63ompression\x18\x04 \x01(\x0e\x32\".SignedMessageList.CompressionType:\x0cUNCOMPRESSED\x12\x61\n\ttimestamp\x18\x06 \x01(\x04\x42N\xe2\xfc\xe3\xc4\x01H\n\x0bRDFDatetime\x12\x39The client sends its timestamp to prevent replay attacks.\"5\n\x0f\x43ompressionType\x12\x10\n\x0cUNCOMPRESSED\x10\x00\x12\x10\n\x0cZCOMPRESSION\x10\x01\"\xbc\x01\n\x10\x43ipherProperties\x12\x0c\n\x04name\x18\x01 \x02(\t\x12\x0b\n\x03key\x18\x02 \x02(\x0c\x12\x13\n\x0bmetadata_iv\x18\x03 \x01(\x0c\x12\x10\n\x08hmac_key\x18\x05 \x01(\x0c\x12:\n\thmac_type\x18\x06 \x01(\x0e\x32\x1a.CipherProperties.HMACType:\x0bSIMPLE_HMAC\"*\n\x08HMACType\x12\x0f\n\x0bSIMPLE_HMAC\x10\x00\x12\r\n\tFULL_HMAC\x10\x01\"\x84\x01\n\x0e\x43ipherMetadata\x12_\n\x06source\x18\x01 \x01(\tBO\xe2\xfc\xe3\xc4\x01I\n\x06RDFURN\x12?The common name this cipher should be used to communicate with.\x12\x11\n\tsignature\x18\x02 \x01(\x0c\"\xd2\x02\n\x13\x43lientCommunication\x12\x11\n\tencrypted\x18\x01 \x01(\x0c\x12\x18\n\x10\x65ncrypted_cipher\x18\x02 \x01(\x0c\x12!\n\x19\x65ncrypted_cipher_metadata\x18\t \x01(\x0c\x12\x11\n\tpacket_iv\x18\x08 \x01(\x0c\x12\"\n\x0corig_request\x18\x03 \x01(\x0b\x32\x0c.HttpRequest\x12\x15\n\nqueue_size\x18\x04 \x01(\r:\x01\x30\x12/\n\x06status\x18\x05 \x01(\x0e\x32\x1b.ClientCommunication.Status:\x02OK\x12\x13\n\x0b\x61pi_version\x18\x06 \x01(\r\x12\x0c\n\x04hmac\x18\x07 \x01(\x0c\x12\x11\n\tfull_hmac\x18\n \x01(\x0c\"6\n\x06Status\x12\x07\n\x02OK\x10\xc8\x01\x12\x10\n\x0b\x42\x41\x44_REQUEST\x10\x90\x03\x12\x11\n\x0c\x43IPHER_ERROR\x10\x96\x03\"\x9b\x03\n\tGrrStatus\x12-\n\x06status\x18\x01 \x01(\x0e\x32\x19.GrrStatus.ReturnedStatus:\x02OK\x12\x17\n\rerror_message\x18\x02 \x01(\t:\x00\x12\x13\n\tbacktrace\x18\x03 \x01(\t:\x00\x12\"\n\rcpu_time_used\x18\x04 \x01(\x0b\x32\x0b.CpuSeconds\x12\x42\n\x10\x63hild_session_id\x18\x05 \x01(\tB(\xe2\xfc\xe3\xc4\x01\"\n\tSessionID\x12\x15The URN of a subflow.\x12\x1a\n\x12network_bytes_sent\x18\x06 \x01(\x04\x12\x14\n\x0cnanny_status\x18\x07 \x01(\t\"\x96\x01\n\x0eReturnedStatus\x12\x06\n\x02OK\x10\x00\x12\x0b\n\x07IOERROR\x10\x01\x12\x1b\n\x17RETRANSMISSION_DETECTED\x10\x02\x12\x11\n\rCLIENT_KILLED\x10\x03\x12\x1a\n\x16NETWORK_LIMIT_EXCEEDED\x10\x04\x12\x10\n\x0cWORKER_STUCK\x10\t\x12\x11\n\rGENERIC_ERROR\x10\n\"\x8c\x04\n\x0fGrrNotification\x12%\n\nsession_id\x18\x01 \x01(\tB\x11\xe2\xfc\xe3\xc4\x01\x0b\n\tSessionID\x12\x37\n\x08priority\x18\x02 \x01(\x0e\x32\x14.GrrMessage.Priority:\x0fMEDIUM_PRIORITY\x12W\n\x0c\x66irst_queued\x18\x03 \x01(\x04\x42\x41\xe2\xfc\xe3\xc4\x01;\n\x0bRDFDatetime\x12,The first time this notification was queued.\x12|\n\x0blast_status\x18\x04 \x01(\x04\x42g\xe2\xfc\xe3\xc4\x01\x61\x12_If this is for a status based event (flows), the request number of the last status we received.\x12l\n\x0bin_progress\x18\x05 \x01(\x08:\x05\x66\x61lseBP\xe2\xfc\xe3\xc4\x01J\x12HThis indicates that the flow is currently being processed by the worker.\x12T\n\ttimestamp\x18\x06 \x01(\x04\x42\x41\xe2\xfc\xe3\xc4\x01;\n\x0bRDFDatetime\x12,The time the notification was scheduled for.\"\x96\x02\n\x0b\x43lientCrash\x12$\n\tclient_id\x18\x01 \x01(\tB\x11\xe2\xfc\xe3\xc4\x01\x0b\n\tClientURN\x12%\n\nsession_id\x18\x02 \x01(\tB\x11\xe2\xfc\xe3\xc4\x01\x0b\n\tSessionID\x12\'\n\x0b\x63lient_info\x18\x03 \x01(\x0b\x32\x12.ClientInformation\x12@\n\ttimestamp\x18\x04 \x01(\x04\x42-\xe2\xfc\xe3\xc4\x01\'\n\x0bRDFDatetime\x12\x18When the client crashed.\x12%\n\ncrash_type\x18\x05 \x01(\tB\x11\xe2\xfc\xe3\xc4\x01\x0b\n\tSessionID\x12\x15\n\rcrash_message\x18\x06 \x01(\t\x12\x11\n\tbacktrace\x18\x07 \x01(\t\"\xbc\x01\n\x10HuntNotification\x12%\n\nsession_id\x18\x01 \x01(\tB\x11\xe2\xfc\xe3\xc4\x01\x0b\n\tSessionID\x12$\n\tclient_id\x18\x02 \x01(\tB\x11\xe2\xfc\xe3\xc4\x01\x0b\n\tClientURN\x12(\n\x06status\x18\x03 \x01(\x0e\x32\x18.HuntNotification.Status\"1\n\x06Status\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x06\n\x02OK\x10\x01\x12\t\n\x05\x45RROR\x10\x02\x12\x07\n\x03\x42\x41\x44\x10\x03\"\xc6\x01\n\x10\x46lowNotification\x12%\n\nsession_id\x18\x01 \x01(\tB\x11\xe2\xfc\xe3\xc4\x01\x0b\n\tSessionID\x12\x11\n\tflow_name\x18\x02 \x01(\t\x12$\n\tclient_id\x18\x03 \x01(\tB\x11\xe2\xfc\xe3\xc4\x01\x0b\n\tClientURN\x12(\n\x06status\x18\x04 \x01(\x0e\x32\x18.FlowNotification.Status\"(\n\x06Status\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x06\n\x02OK\x10\x01\x12\t\n\x05\x45RROR\x10\x02\"\x92\x01\n\x11\x43lientInformation\x12\x13\n\x0b\x63lient_name\x18\x01 \x01(\t\x12\x16\n\x0e\x63lient_version\x18\x02 \x01(\r\x12\x10\n\x08revision\x18\x03 \x01(\x04\x12\x12\n\nbuild_time\x18\x04 \x01(\t\x12\x1a\n\x12\x63lient_description\x18\x05 \x01(\t\x12\x0e\n\x06labels\x18\x06 \x03(\t\"\x9a\x01\n\x04Task\x12\n\n\x02id\x18\x01 \x01(\x04\x12\r\n\x05value\x18\x02 \x01(\x0c\x12\x0e\n\x03ttl\x18\x03 \x01(\x05:\x01\x35\x12\x0b\n\x03\x65ta\x18\x04 \x01(\x04\x12\r\n\x05queue\x18\x05 \x01(\t\x12\x37\n\x08priority\x18\x06 \x01(\x0e\x32\x14.GrrMessage.Priority:\x0fMEDIUM_PRIORITY\x12\x12\n\nlast_lease\x18\x07 \x01(\t\"\xf4\x02\n\x08\x44\x61taBlob\x12\x0f\n\x07integer\x18\x01 \x01(\x03\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\x12\x0e\n\x06string\x18\x03 \x01(\t\x12\x12\n\nproto_name\x18\x04 \x01(\t\x12\x0c\n\x04none\x18\x05 \x01(\t\x12\x0f\n\x07\x62oolean\x18\x06 \x01(\x08\x12\x18\n\x04list\x18\x08 \x01(\x0b\x32\n.BlobArray\x12\x13\n\x04\x64ict\x18\t \x01(\x0b\x32\x05.Dict\x12S\n\trdf_value\x18\n \x01(\x0b\x32\x11.EmbeddedRDFValueB-\xe2\xfc\xe3\xc4\x01\'\x12%Store an embedded arbitrary RDFValue.\x12\r\n\x05\x66loat\x18\x0b \x01(\x02\x12<\n\x0b\x63ompression\x18\x07 \x01(\x0e\x32\x19.DataBlob.CompressionType:\x0cUNCOMPRESSED\"5\n\x0f\x43ompressionType\x12\x10\n\x0cUNCOMPRESSED\x10\x00\x12\x10\n\x0cZCOMPRESSION\x10\x01\"\'\n\tBlobArray\x12\x1a\n\x07\x63ontent\x18\x01 \x03(\x0b\x32\t.DataBlob\"+\n\x08PrintStr\x12\x11\n\x05level\x18\x01 \x01(\x05:\x02\x31\x30\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\t\"\xb3\x01\n\x0e\x43opyPathToFile\x12\x11\n\x06offset\x18\x01 \x01(\x04:\x01\x30\x12\x11\n\x06length\x18\x02 \x01(\x04:\x01\x30\x12\x1b\n\x08src_path\x18\x03 \x01(\x0b\x32\t.PathSpec\x12\x10\n\x08\x64\x65st_dir\x18\x04 \x01(\t\x12\x1c\n\tdest_path\x18\x05 \x01(\x0b\x32\t.PathSpec\x12\x19\n\x0bgzip_output\x18\x06 \x01(\x08:\x04true\x12\x13\n\x08lifetime\x18\x07 \x01(\x02:\x01\x30\"t\n\x0f\x42ufferReference\x12\x11\n\x06offset\x18\x01 \x01(\x04:\x01\x30\x12\x11\n\x06length\x18\x02 \x01(\x04:\x01\x30\x12\x10\n\x08\x63\x61llback\x18\x03 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x04 \x01(\x0c\x12\x1b\n\x08pathspec\x18\x06 \x01(\x0b\x32\t.PathSpec\"\xf4\x03\n\x0cRequestState\x12\n\n\x02id\x18\x01 \x02(\r\x12\r\n\x05ts_id\x18\x02 \x01(\x04\x12\x12\n\nnext_state\x18\x03 \x01(\t\x12\x1a\n\x06status\x18\x04 \x01(\x0b\x32\n.GrrStatus\x12]\n\x04\x64\x61ta\x18\x05 \x01(\x0b\x32\x05.DictBH\xe2\xfc\xe3\xc4\x01\x42\x12@This can contain any data we want to associate with the request.\x12\x19\n\x0eresponse_count\x18\x06 \x01(\r:\x01\x30\x12\x1d\n\x12transmission_count\x18\x07 \x01(\r:\x01\x30\x12~\n\tclient_id\x18\x08 \x01(\tBk\xe2\xfc\xe3\xc4\x01\x65\n\tClientURN\x12XThe client id where the request was heading - we only receiveresponses from this client.\x12\x62\n\nsession_id\x18\t \x01(\tBN\xe2\xfc\xe3\xc4\x01H\n\tSessionID\x12;This is the session_id of the flow this request belongs to.\x12\x1c\n\x07request\x18\n \x01(\x0b\x32\x0b.GrrMessage\"\xa7\x05\n\x04\x46low\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0e\n\x06pickle\x18\x02 \x01(\x0c\x12\r\n\x05ts_id\x18\x03 \x01(\x04\x12#\n\x05state\x18\x04 \x01(\x0e\x32\x0b.Flow.State:\x07RUNNING\x12%\n\nsession_id\x18\x05 \x01(\tB\x11\xe2\xfc\xe3\xc4\x01\x0b\n\tSessionID\x12\x1f\n\x14outstanding_requests\x18\x06 \x01(\r:\x01\x30\x12\x0f\n\x07\x63reator\x18\x07 \x01(\t\x12\\\n\tbacktrace\x18\x08 \x01(\tBI\xe2\xfc\xe3\xc4\x01\x43\n\tRDFString\x12\x36\x46lows terminated with an error include this backtrace.\x12H\n\x0b\x63reate_time\x18\t \x01(\x04:\x01\x30\x42\x30\xe2\xfc\xe3\xc4\x01*\n\x0bRDFDatetime\x12\x1bWhen this flow was created.\x12\x13\n\x08progress\x18\n \x01(\x05:\x01\x30\x12\x13\n\x04\x61rgs\x18\x0b \x01(\x0b\x32\x05.Dict\x12\x10\n\x08\x65vent_id\x18\x0c \x01(\t\x12$\n\rrequest_state\x18\x0e \x01(\x0b\x32\r.RequestState\x12\x0e\n\x06status\x18\x0f \x01(\t\x12\x10\n\x08\x63hildren\x18\x10 \x03(\t\x12$\n\tclient_id\x18\x11 \x01(\tB\x11\xe2\xfc\xe3\xc4\x01\x0b\n\tClientURN\x12\x1d\n\x08\x63pu_used\x18\x12 \x01(\x0b\x32\x0b.CpuSeconds\x12\x1a\n\x12network_bytes_sent\x18\x13 \x01(\x04\x12&\n\x08priority\x18\x14 \x01(\x0e\x32\x14.GrrMessage.Priority\"?\n\x05State\x12\x0b\n\x07RUNNING\x10\x00\x12\x0e\n\nTERMINATED\x10\x01\x12\t\n\x05\x45RROR\x10\x03\x12\x0e\n\nWELL_KNOWN\x10\x02\"<\n\nCpuSeconds\x12\x15\n\ruser_cpu_time\x18\x01 \x01(\x02\x12\x17\n\x0fsystem_cpu_time\x18\x02 \x01(\x02\"\x92\x01\n\tCpuSample\x12\x15\n\ruser_cpu_time\x18\x01 \x01(\x02\x12\x17\n\x0fsystem_cpu_time\x18\x02 \x01(\x02\x12\x13\n\x0b\x63pu_percent\x18\x03 \x01(\x02\x12@\n\ttimestamp\x18\x04 \x01(\x04\x42-\xe2\xfc\xe3\xc4\x01\'\n\x0bRDFDatetime\x12\x18The time of this sample.\"\x9e\x01\n\x08IOSample\x12\x12\n\nread_count\x18\x01 \x01(\x04\x12\x13\n\x0bwrite_count\x18\x02 \x01(\x04\x12\x12\n\nread_bytes\x18\x03 \x01(\x04\x12\x13\n\x0bwrite_bytes\x18\x04 \x01(\x04\x12@\n\ttimestamp\x18\x05 \x01(\x04\x42-\xe2\xfc\xe3\xc4\x01\'\n\x0bRDFDatetime\x12\x18The time of this sample.\"\xdd\x01\n\x0b\x43lientStats\x12\x1f\n\x0b\x63pu_samples\x18\x01 \x03(\x0b\x32\n.CpuSample\x12\x10\n\x08RSS_size\x18\x02 \x01(\x04\x12\x10\n\x08VMS_size\x18\x03 \x01(\x04\x12\x16\n\x0ememory_percent\x18\x04 \x01(\x02\x12\x16\n\x0e\x62ytes_received\x18\x05 \x01(\x04\x12\x12\n\nbytes_sent\x18\x06 \x01(\x04\x12\x1d\n\nio_samples\x18\x07 \x03(\x0b\x32\t.IOSample\x12\x13\n\x0b\x63reate_time\x18\x08 \x01(\x04\x12\x11\n\tboot_time\x18\t \x01(\x04\"I\n\x0bStartupInfo\x12\'\n\x0b\x63lient_info\x18\x01 \x01(\x0b\x32\x12.ClientInformation\x12\x11\n\tboot_time\x18\x02 \x01(\x04\"?\n\x0e\x45xecuteRequest\x12\x0b\n\x03\x63md\x18\x01 \x01(\t\x12\x0c\n\x04\x61rgs\x18\x02 \x03(\t\x12\x12\n\ntime_limit\x18\x03 \x01(\x05\"{\n\x0f\x45xecuteResponse\x12 \n\x07request\x18\x01 \x01(\x0b\x32\x0f.ExecuteRequest\x12\x13\n\x0b\x65xit_status\x18\x02 \x01(\x05\x12\x0e\n\x06stdout\x18\x03 \x01(\x0c\x12\x0e\n\x06stderr\x18\x04 \x01(\x0c\x12\x11\n\ttime_used\x18\x05 \x01(\x05\"\xe4\n\n\x08PathSpec\x12+\n\x08pathtype\x18\x01 \x01(\x0e\x32\x12.PathSpec.PathType:\x05UNSET\x12\x0c\n\x04path\x18\x02 \x01(\t\x12\x1d\n\x0bmount_point\x18\x03 \x01(\tB\x08\xe2\xfc\xe3\xc4\x01\x02\x18\x01\x12T\n\x0bstream_name\x18\x0b \x01(\tB?\xe2\xfc\xe3\xc4\x01\x39\x12\x35\x41 name for the data stream. For example, an ADS name.\x18\x01\x12\x1e\n\x0bnested_path\x18\x05 \x01(\x0b\x32\t.PathSpec\x12\x18\n\x06offset\x18\x06 \x01(\x04\x42\x08\xe2\xfc\xe3\xc4\x01\x02\x18\x01\x12\x43\n\x0cpath_options\x18\x07 \x01(\x0e\x32\x11.PathSpec.Options:\x10\x43\x41SE_INSENSITIVEB\x08\xe2\xfc\xe3\xc4\x01\x02\x18\x01\x12Y\n\x0frecursion_depth\x18\x0c \x01(\x04:\x01\x33\x42=\xe2\xfc\xe3\xc4\x01\x37\x12\x33Recursion depth when RECURSIVE option is specified.\x18\x02\x12\x17\n\x05inode\x18\x08 \x01(\x04\x42\x08\xe2\xfc\xe3\xc4\x01\x02\x18\x01\x12Q\n\tntfs_type\x18\t \x01(\x0e\x32\x1a.PathSpec.tsk_fs_attr_type:\x18TSK_FS_ATTR_TYPE_DEFAULTB\x08\xe2\xfc\xe3\xc4\x01\x02\x18\x01\x12\x19\n\x07ntfs_id\x18\n \x01(\x04\x42\x08\xe2\xfc\xe3\xc4\x01\x02\x18\x01\"I\n\x08PathType\x12\x12\n\x05UNSET\x10\xff\xff\xff\xff\xff\xff\xff\xff\xff\x01\x12\x06\n\x02OS\x10\x00\x12\x07\n\x03TSK\x10\x01\x12\x0c\n\x08REGISTRY\x10\x02\x12\n\n\x06MEMORY\x10\x03\"K\n\x07Options\x12\x14\n\x10\x43\x41SE_INSENSITIVE\x10\x00\x12\x10\n\x0c\x43\x41SE_LITERAL\x10\x01\x12\t\n\x05REGEX\x10\x02\x12\r\n\tRECURSIVE\x10\x03\"\xae\x05\n\x10tsk_fs_attr_type\x12\x1c\n\x18TSK_FS_ATTR_TYPE_DEFAULT\x10\x01\x12\x1c\n\x18TSK_FS_ATTR_TYPE_NTFS_SI\x10\x10\x12\"\n\x1eTSK_FS_ATTR_TYPE_NTFS_ATTRLIST\x10 \x12\x1f\n\x1bTSK_FS_ATTR_TYPE_NTFS_FNAME\x10\x30\x12\x1e\n\x1aTSK_FS_ATTR_TYPE_NTFS_VVER\x10@\x12\x1f\n\x1bTSK_FS_ATTR_TYPE_NTFS_OBJID\x10@\x12\x1d\n\x19TSK_FS_ATTR_TYPE_NTFS_SEC\x10P\x12\x1f\n\x1bTSK_FS_ATTR_TYPE_NTFS_VNAME\x10`\x12\x1f\n\x1bTSK_FS_ATTR_TYPE_NTFS_VINFO\x10p\x12\x1f\n\x1aTSK_FS_ATTR_TYPE_NTFS_DATA\x10\x80\x01\x12\"\n\x1dTSK_FS_ATTR_TYPE_NTFS_IDXROOT\x10\x90\x01\x12#\n\x1eTSK_FS_ATTR_TYPE_NTFS_IDXALLOC\x10\xa0\x01\x12!\n\x1cTSK_FS_ATTR_TYPE_NTFS_BITMAP\x10\xb0\x01\x12!\n\x1cTSK_FS_ATTR_TYPE_NTFS_SYMLNK\x10\xc0\x01\x12\"\n\x1dTSK_FS_ATTR_TYPE_NTFS_REPARSE\x10\xc0\x01\x12!\n\x1cTSK_FS_ATTR_TYPE_NTFS_EAINFO\x10\xd0\x01\x12\x1d\n\x18TSK_FS_ATTR_TYPE_NTFS_EA\x10\xe0\x01\x12\x1f\n\x1aTSK_FS_ATTR_TYPE_NTFS_PROP\x10\xf0\x01\x12\x1e\n\x19TSK_FS_ATTR_TYPE_NTFS_LOG\x10\x80\x02\x12 \n\x1bTSK_FS_ATTR_TYPE_UNIX_INDIR\x10\x81 \"J\n\x0eListDirRequest\x12\x1b\n\x08pathspec\x18\x01 \x01(\x0b\x32\t.PathSpec\x12\x1b\n\x08iterator\x18\x02 \x01(\x0b\x32\t.Iterator\"\x98\x01\n\rStatFSRequest\x12\x34\n\tpath_list\x18\x01 \x03(\tB!\xe2\xfc\xe3\xc4\x01\x1b\x12\x19List of paths for statfs.\x12Q\n\x08pathtype\x18\x02 \x01(\x0e\x32\x12.PathSpec.PathType:\x02OSB\'\xe2\xfc\xe3\xc4\x01!\x12\x1fType of path to call statfs on.\"\xa1\t\n\tStatEntry\x12N\n\x08\x61\x66\x66\x34path\x18\x01 \x01(\tB<\xe2\xfc\xe3\xc4\x01\x36\n\x06RDFURN\x12,The location of this file in the AFF4 space.\x12\x42\n\x07st_mode\x18\x02 \x01(\x04:\x01\x30\x42.\xe2\xfc\xe3\xc4\x01(\n\x08StatMode\x12\x1c\x41 unix file permission mode.\x12\x0e\n\x06st_ino\x18\x03 \x01(\r\x12\x0e\n\x06st_dev\x18\x04 \x01(\r\x12\x10\n\x08st_nlink\x18\x05 \x01(\r\x12\x0e\n\x06st_uid\x18\x06 \x01(\r\x12\x0e\n\x06st_gid\x18\x07 \x01(\r\x12\x0f\n\x07st_size\x18\x08 \x01(\x04\x12?\n\x08st_atime\x18\t \x01(\x04\x42-\xe2\xfc\xe3\xc4\x01\'\n\x12RDFDatetimeSeconds\x12\x11Last access time.\x12\x41\n\x08st_mtime\x18\n \x01(\x04\x42/\xe2\xfc\xe3\xc4\x01)\n\x12RDFDatetimeSeconds\x12\x13Last modified time.\x12\x45\n\x08st_ctime\x18\x0b \x01(\x04\x42\x33\xe2\xfc\xe3\xc4\x01-\n\x12RDFDatetimeSeconds\x12\x17Last inode change time.\x12\x11\n\tst_blocks\x18\x0c \x01(\r\x12\x12\n\nst_blksize\x18\r \x01(\r\x12\x0f\n\x07st_rdev\x18\x0e \x01(\r\x12\x0f\n\x07symlink\x18\x0f \x01(\t\x12\xb9\x01\n\rregistry_type\x18\x10 \x01(\x0e\x32\x17.StatEntry.RegistryTypeB\x88\x01\xe2\xfc\xe3\xc4\x01\x81\x01\x12\x7fIf this is a stat of a registry value, this field contains the type of this value. The content will also be encoded in residet.\x12\x10\n\x08resident\x18\x11 \x01(\x0c\x12W\n\x08pathspec\x18\x12 \x01(\x0b\x32\t.PathSpecB:\xe2\xfc\xe3\xc4\x01\x34\x12\x32The path specification to this file on the client.\x12\x9e\x01\n\rregistry_data\x18\x13 \x01(\x0b\x32\t.DataBlobB|\xe2\xfc\xe3\xc4\x01v\x12tIf this entry represents a registry value, this field will contain that value encoded according to the correct type.\"\xc0\x01\n\x0cRegistryType\x12\x0c\n\x08REG_NONE\x10\x00\x12\n\n\x06REG_SZ\x10\x01\x12\x11\n\rREG_EXPAND_SZ\x10\x02\x12\x0e\n\nREG_BINARY\x10\x03\x12\r\n\tREG_DWORD\x10\x04\x12\x1b\n\x17REG_DWORD_LITTLE_ENDIAN\x10\x04\x12\x18\n\x14REG_DWORD_BIG_ENDIAN\x10\x05\x12\x0c\n\x08REG_LINK\x10\x06\x12\x10\n\x0cREG_MULTI_SZ\x10\x07\x12\r\n\tREG_QWORD\x10\x0b\"\'\n\nCollection\x12\x19\n\x05items\x18\x01 \x03(\x0b\x32\n.StatEntry\"0\n\nWmiRequest\x12\r\n\x05query\x18\x01 \x01(\t\x12\x13\n\x0b\x62\x61se_object\x18\x02 \x01(\t\"6\n\x08KeyValue\x12\x14\n\x01k\x18\x01 \x01(\x0b\x32\t.DataBlob\x12\x14\n\x01v\x18\x02 \x01(\x0b\x32\t.DataBlob\"D\n\x04\x44ict\x12<\n\x03\x64\x61t\x18\x01 \x03(\x0b\x32\t.KeyValueB$\xe2\xfc\xe3\xc4\x01\x1e\x12\x16\x41n arbitrary key/value\"\x04\x44\x61ta\"i\n\x0b\x43\x65rtificate\x12\x1f\n\x04type\x18\x01 \x01(\x0e\x32\x11.Certificate.Type\x12\x0b\n\x03pem\x18\x02 \x01(\x0c\x12\n\n\x02\x63n\x18\x03 \x01(\t\" \n\x04Type\x12\x07\n\x03\x43SR\x10\x00\x12\x07\n\x03\x43RT\x10\x01\x12\x06\n\x02\x43\x41\x10\x02\"\xf1\x03\n\x05Uname\x12\x43\n\x06system\x18\x01 \x01(\tB3\xe2\xfc\xe3\xc4\x01-\x12+The system platform (Windows|Darwin|Linux).\x12\x32\n\x04node\x18\x02 \x01(\tB$\xe2\xfc\xe3\xc4\x01\x1e\x12\x1cThe hostname of this system.\x12G\n\x07release\x18\x03 \x01(\tB6\xe2\xfc\xe3\xc4\x01\x30\x12.The OS release identifier e.g. 7, OSX, debian.\x12K\n\x07version\x18\x04 \x01(\tB:\xe2\xfc\xe3\xc4\x01\x34\x12\x32The OS version ID e.g. 6.1.7601SP1, 10.9.2, 14.04.\x12\x44\n\x07machine\x18\x05 \x01(\tB3\xe2\xfc\xe3\xc4\x01-\x12+The system architecture e.g. AMD64, x86_64.\x12R\n\x06kernel\x18\x06 \x01(\tBB\xe2\xfc\xe3\xc4\x01<\x12:The kernel version string e.g. 6.1.7601, 13.1.0, 3.15-rc2.\x12?\n\x04\x66qdn\x18\x07 \x01(\tB1\xe2\xfc\xe3\xc4\x01+\x12)The system\'s fully qualified domain name.\"\x86\x03\n\x11\x46olderInformation\x12\x10\n\x08\x61pp_data\x18\x01 \x01(\t\x12\r\n\x05\x63\x61\x63he\x18\x02 \x01(\t\x12\x0f\n\x07\x63ookies\x18\x03 \x01(\t\x12\x0f\n\x07\x64\x65sktop\x18\x04 \x01(\t\x12\x11\n\tfavorites\x18\x05 \x01(\t\x12\x0f\n\x07history\x18\x06 \x01(\t\x12\x16\n\x0elocal_app_data\x18\x07 \x01(\t\x12\x16\n\x0elocal_settings\x18\x08 \x01(\t\x12\x10\n\x08my_music\x18\t \x01(\t\x12\x13\n\x0bmy_pictures\x18\n \x01(\t\x12\x10\n\x08my_video\x18\x0b \x01(\t\x12\x10\n\x08net_hood\x18\x0c \x01(\t\x12\x10\n\x08personal\x18\r \x01(\t\x12\x12\n\nprint_hood\x18\x0e \x01(\t\x12\x10\n\x08programs\x18\x0f \x01(\t\x12\x0e\n\x06recent\x18\x10 \x01(\t\x12\x0f\n\x07send_to\x18\x11 \x01(\t\x12\x12\n\nstart_menu\x18\x12 \x01(\t\x12\x0f\n\x07startup\x18\x13 \x01(\t\x12\x11\n\ttemplates\x18\x14 \x01(\t\"\x87\x02\n\x04User\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x11\n\tfull_name\x18\x02 \x01(\t\x12\x0f\n\x07\x63omment\x18\x03 \x01(\t\x12K\n\nlast_logon\x18\x04 \x01(\x04\x42\x37\xe2\xfc\xe3\xc4\x01\x31\n\x0bRDFDatetime\x12\"The last logon time for this user.\x12\x0e\n\x06\x64omain\x18\x05 \x01(\t\x12\x0f\n\x07homedir\x18\x06 \x01(\t\x12\x0b\n\x03sid\x18\x07 \x01(\t\x12+\n\x0fspecial_folders\x18\x08 \x01(\x0b\x32\x12.FolderInformation:!\xda\xfc\xe3\xc4\x01\x1b\n\x19User account information.\"\xb1\x01\n\x0eNetworkAddress\x12,\n\x0c\x61\x64\x64ress_type\x18\x01 \x01(\x0e\x32\x16.NetworkAddress.Family\x12\x16\n\x0ehuman_readable\x18\x02 \x01(\t\x12\x14\n\x0cpacked_bytes\x18\x03 \x01(\x0c\"\x1d\n\x06\x46\x61mily\x12\x08\n\x04INET\x10\x00\x12\t\n\x05INET6\x10\x01:$\xda\xfc\xe3\xc4\x01\x1e\n\x1cNetwork Address information.\"\x93\x02\n\tInterface\x12?\n\x0bmac_address\x18\x01 \x01(\x0c\x42*\xe2\xfc\xe3\xc4\x01$\n\nMacAddress\x12\x16Interface MAC address.\x12\x15\n\rip4_addresses\x18\x02 \x03(\x0c\x12\x0e\n\x06ifname\x18\x03 \x01(\t\x12\x15\n\rip6_addresses\x18\x04 \x03(\x0c\x12W\n\taddresses\x18\x05 \x03(\x0b\x32\x0f.NetworkAddressB3\xe2\xfc\xe3\xc4\x01-\x12+A network address attached to an interface.:.\xda\xfc\xe3\xc4\x01(\n&Information about a network interface.\"\x82\x01\n\x11MemoryInformation\x12\x19\n\x06\x64\x65vice\x18\x01 \x01(\x0b\x32\t.PathSpec\x12\x1e\n\x04runs\x18\x02 \x03(\x0b\x32\x10.BufferReference\x12\x0b\n\x03\x63r3\x18\x03 \x01(\x04:%\xda\xfc\xe3\xc4\x01\x1f\n\x1d\x44\x65scribe the memory geometry.\"R\n\x16\x41uthenticodeSignedData\x12\x10\n\x08revision\x18\x01 \x01(\x04\x12\x11\n\tcert_type\x18\x02 \x01(\x04\x12\x13\n\x0b\x63\x65rtificate\x18\x03 \x01(\x0c\"\xb5\x01\n\x10\x46ingerprintTuple\x12\'\n\x07\x66p_type\x18\x01 \x02(\x0e\x32\x16.FingerprintTuple.Type\x12\'\n\x07hashers\x18\x02 \x03(\x0e\x32\x16.FingerprintTuple.Hash\"(\n\x04Type\x12\x0f\n\x0b\x46PT_GENERIC\x10\x00\x12\x0f\n\x0b\x46PT_PE_COFF\x10\x01\"%\n\x04Hash\x12\x07\n\x03MD5\x10\x00\x12\x08\n\x04SHA1\x10\x01\x12\n\n\x06SHA256\x10\x02\"T\n\x12\x46ingerprintRequest\x12\x1b\n\x08pathspec\x18\x01 \x01(\x0b\x32\t.PathSpec\x12!\n\x06tuples\x18\x02 \x03(\x0b\x32\x11.FingerprintTuple\"z\n\x13\x46ingerprintResponse\x12.\n\x0ematching_types\x18\x01 \x03(\x0e\x32\x16.FingerprintTuple.Type\x12\x16\n\x07results\x18\x02 \x03(\x0b\x32\x05.Dict\x12\x1b\n\x08pathspec\x18\x03 \x01(\x0b\x32\t.PathSpec\"\xd5\x04\n\x04Hash\x12>\n\x06sha256\x18\x01 \x01(\x0c\x42.\xe2\xfc\xe3\xc4\x01(\n\nHashDigest\x12\x1aSHA256 binary hash digest.\x12:\n\x04sha1\x18\x02 \x01(\x0c\x42,\xe2\xfc\xe3\xc4\x01&\n\nHashDigest\x12\x18SHA1 binary hash digest.\x12\x38\n\x03md5\x18\x03 \x01(\x0c\x42+\xe2\xfc\xe3\xc4\x01%\n\nHashDigest\x12\x17MD5 binary hash digest.\x12\x64\n\x0bpecoff_sha1\x18\x04 \x01(\x0c\x42O\xe2\xfc\xe3\xc4\x01I\n\nHashDigest\x12;Authenticode SHA1 hash digest for signed region of PE file.\x12\x62\n\npecoff_md5\x18\x05 \x01(\x0c\x42N\xe2\xfc\xe3\xc4\x01H\n\nHashDigest\x12:Authenticode MD5 hash digest for signed region of PE file.\x12h\n\rpecoff_sha256\x18\x07 \x01(\x0c\x42Q\xe2\xfc\xe3\xc4\x01K\n\nHashDigest\x12=Authenticode SHA256 hash digest for signed region of PE file.\x12\x63\n\x0bsigned_data\x18\x06 \x03(\x0b\x32\x17.AuthenticodeSignedDataB5\xe2\xfc\xe3\xc4\x01/\x12-Signed data which may be present in PE files.\"\xe5\x01\n\nSignedBlob\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\x12\x0e\n\x06\x64igest\x18\x02 \x01(\x0c\x12)\n\x0b\x64igest_type\x18\x03 \x01(\x0e\x32\x14.SignedBlob.HashType\x12\x11\n\tsignature\x18\x04 \x01(\x0c\x12\x31\n\x0esignature_type\x18\x05 \x01(\x0e\x32\x19.SignedBlob.SignatureType\")\n\x08HashType\x12\x07\n\x03MD5\x10\x00\x12\x08\n\x04SHA1\x10\x01\x12\n\n\x06SHA256\x10\x02\"\x1d\n\rSignatureType\x12\x0c\n\x08RSA_2048\x10\x00\"P\n\x14\x45xecutePythonRequest\x12 \n\x0bpython_code\x18\x01 \x01(\x0b\x32\x0b.SignedBlob\x12\x16\n\x07py_args\x18\x02 \x01(\x0b\x32\x05.Dict\">\n\x15\x45xecutePythonResponse\x12\x12\n\nreturn_val\x18\x01 \x01(\x0c\x12\x11\n\ttime_used\x18\x02 \x01(\x05\"v\n\rPluginRequest\x12/\n\x06plugin\x18\x02 \x01(\tB\x1f\xe2\xfc\xe3\xc4\x01\x19\x12\x17The plugin name to run.\x12\x34\n\x04\x61rgs\x18\x03 \x01(\x0b\x32\x05.DictB\x1f\xe2\xfc\xe3\xc4\x01\x19\x12\x17The args to the plugin.\"\xc9\x03\n\rRekallRequest\x12\x1b\n\x08iterator\x18\x01 \x01(\x0b\x32\t.Iterator\x12\xa6\x01\n\x07plugins\x18\x02 \x03(\x0b\x32\x0e.PluginRequestB\x84\x01\xe2\xfc\xe3\xc4\x01~\x12|We can execute multiple plugins in the same session. This can take advantage of caching in the session to be more efficient.\x12\x39\n\x06\x64\x65vice\x18\x04 \x01(\x0b\x32\t.PathSpecB\x1e\xe2\xfc\xe3\xc4\x01\x18\x12\x16The raw device to use.\x12T\n\x07session\x18\x06 \x01(\x0b\x32\x05.DictB<\xe2\xfc\xe3\xc4\x01\x36\x12\x34These parameters are used to initialize the session.\x12\x61\n\x0cprofile_data\x18\x08 \x01(\x0b\x32\x0e.RekallProfileB;\xe2\xfc\xe3\xc4\x01\x35\x12\x33Profiles sent by the server to store on the client.\"\xe1\x01\n\x0eRekallResponse\x12\x15\n\rjson_messages\x18\x01 \x01(\t\x12\x0e\n\x06plugin\x18\x02 \x01(\t\x12K\n\nclient_urn\x18\x03 \x01(\tB7\xe2\xfc\xe3\xc4\x01\x31\n\tClientURN\x12$The client this response comes from.\x12[\n\x0fmissing_profile\x18\x04 \x01(\tBB\xe2\xfc\xe3\xc4\x01<\x12:Missing profiles that should be retrieved from the server.\"+\n\rRekallProfile\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\"\xea\x03\n\x14\x45xecuteBinaryRequest\x12\x1f\n\nexecutable\x18\x01 \x01(\x0b\x32\x0b.SignedBlob\x12\x12\n\nwrite_path\x18\x02 \x01(\t\x12\x0c\n\x04\x61rgs\x18\x03 \x03(\t\x12\x12\n\ntime_limit\x18\x04 \x01(\x05\x12\xd7\x01\n\tmore_data\x18\x05 \x01(\x08\x42\xc3\x01\xe2\xfc\xe3\xc4\x01\xbc\x01\x12\xb9\x01If the binary does not fit inside a single request, the server will set this flag and send the file in chunks. The file will not be actually executed until the more_data flags is False.\x12\xa0\x01\n\x06offset\x18\x06 \x01(\x03\x42\x8f\x01\xe2\xfc\xe3\xc4\x01\x88\x01\x12\x85\x01The position in the file where this chunk exists. This must be the end of the file to ensure we did not lose any requests on the way.\"_\n\x15\x45xecuteBinaryResponse\x12\x13\n\x0b\x65xit_status\x18\x01 \x01(\x05\x12\x0e\n\x06stdout\x18\x02 \x01(\x0c\x12\x0e\n\x06stderr\x18\x03 \x01(\x0c\x12\x11\n\ttime_used\x18\x04 \x01(\x05\"\x92\x02\n\x15\x44riverInstallTemplate\x12\x1b\n\x06\x64river\x18\x01 \x01(\x0b\x32\x0b.SignedBlob\x12\x12\n\nwrite_path\x18\x02 \x01(\t\x12\x14\n\x0c\x66orce_reload\x18\x03 \x01(\r\x12\x13\n\x0b\x64river_name\x18\x06 \x01(\t\x12\x1b\n\x13\x64river_display_name\x18\x07 \x01(\t\x12\x13\n\x0b\x64\x65vice_path\x18\x08 \x01(\t\x12\x38\n\x04mode\x18\t \x01(\x0e\x32\".DriverInstallTemplate.RewriteMode:\x06\x45NABLE\"1\n\x0bRewriteMode\x12\x0b\n\x07\x44ISABLE\x10\x00\x12\n\n\x06\x45NABLE\x10\x01\x12\t\n\x05\x46ORCE\x10\x02\"\xea\x03\n\x0fSendFileRequest\x12K\n\x08pathspec\x18\x01 \x01(\x0b\x32\t.PathSpecB.\xe2\xfc\xe3\xc4\x01(\x12&The pathspec for the file to retrieve.\x12j\n\x0e\x61\x64\x64ress_family\x18\x02 \x01(\x0e\x32\x16.NetworkAddress.Family:\x04INETB4\xe2\xfc\xe3\xc4\x01.\x12,address family to use (AF_INET or AF_INET6).\x12\x39\n\x04host\x18\x03 \x01(\tB+\xe2\xfc\xe3\xc4\x01%\x12#Hostname or IP to send the file to.\x12\x41\n\x04port\x18\x04 \x01(\x04:\x05\x31\x32\x33\x34\x35\x42,\xe2\xfc\xe3\xc4\x01&\x12$Port number on the listening server.\x12N\n\x03key\x18\x05 \x01(\x0c\x42\x41\xe2\xfc\xe3\xc4\x01;\n\tAES128Key\x12.An encryption key given in hex representation.\x12P\n\x02iv\x18\x06 \x01(\x0c\x42\x44\xe2\xfc\xe3\xc4\x01>\n\tAES128Key\x12\x31The iv for AES, also given in hex representation.\"\xcb\x08\n\x08GrepSpec\x12>\n\x06target\x18\x01 \x01(\x0b\x32\t.PathSpecB#\xe2\xfc\xe3\xc4\x01\x1d\x12\x1bThis file will be searched.\x12\x45\n\x0cstart_offset\x18\x02 \x01(\x04:\x01\x30\x42,\xe2\xfc\xe3\xc4\x01&\x12$Start searching at this file offset.\x12P\n\x06length\x18\x03 \x01(\x04:\x0b\x31\x30\x37\x33\x37\x34\x31\x38\x32\x34\x30\x42\x33\xe2\xfc\xe3\xc4\x01-\x12+How far (in bytes) into the file to search.\x12^\n\x05regex\x18\x04 \x01(\tBO\xe2\xfc\xe3\xc4\x01I\n\x11RegularExpression\x12\x34The regular expression which will be used to search.\x12K\n\x07literal\x18\x05 \x01(\x0c\x42:\xe2\xfc\xe3\xc4\x01\x34\n\x11LiteralExpression\x12\x1fSearch for this literal string.\x12q\n\x04mode\x18\x06 \x01(\x0e\x32\x0e.GrepSpec.Mode:\x08\x41LL_HITSBI\xe2\xfc\xe3\xc4\x01\x43\x12\x41When should searching stop? Stop after one hit or search for all?\x12K\n\x0c\x62ytes_before\x18\x07 \x01(\r:\x02\x31\x30\x42\x31\xe2\xfc\xe3\xc4\x01+\x12\'Include this many bytes before the hit.\x18\x01\x12I\n\x0b\x62ytes_after\x18\x08 \x01(\r:\x02\x31\x30\x42\x30\xe2\xfc\xe3\xc4\x01*\x12&Include this many bytes after the hit.\x18\x01\x12\xc2\x01\n\nxor_in_key\x18\t \x01(\r:\x01\x30\x42\xaa\x01\xe2\xfc\xe3\xc4\x01\xa3\x01\x12\x9e\x01When searching memory we need to ensure we dont hit on our own process. This allows us to obfuscate the search string in memory to avoid us finding ourselves.\x18\x01\x12\xc3\x01\n\x0bxor_out_key\x18\n \x01(\r:\x01\x30\x42\xaa\x01\xe2\xfc\xe3\xc4\x01\xa3\x01\x12\x9e\x01When searching memory we need to ensure we dont hit on our own process. This allows us to obfuscate the search string in memory to avoid us finding ourselves.\x18\x01\"#\n\x04Mode\x12\x0c\n\x08\x41LL_HITS\x10\x00\x12\r\n\tFIRST_HIT\x10\x01\"\xc1\x07\n\x08\x46indSpec\x12%\n\x08iterator\x18\x01 \x01(\x0b\x32\t.IteratorB\x08\xe2\xfc\xe3\xc4\x01\x02\x18\x02\x12L\n\x08pathspec\x18\x02 \x01(\x0b\x32\t.PathSpecB/\xe2\xfc\xe3\xc4\x01)\x12\'The base path to recursive search from \x12\x43\n\tpath_glob\x18\r \x01(\tB0\xe2\xfc\xe3\xc4\x01*\n\x0eGlobExpression\x12\x18\x41 glob for the filename.\x12t\n\npath_regex\x18\x03 \x01(\tB`\xe2\xfc\xe3\xc4\x01Z\n\x11RegularExpression\x12\x33This matches the filename. Overrides the path_glob.\x18\x01\"\x0e\x46ilename RegEx\x12T\n\ndata_regex\x18\x04 \x01(\tB@\xe2\xfc\xe3\xc4\x01:\n\x11RegularExpression\x12%This matches the content of the file.\x12R\n\nstart_time\x18\x05 \x01(\x04:\x01\x30\x42;\xe2\xfc\xe3\xc4\x01\x35\n\x0bRDFDatetime\x12&File must be modified after this time.\x12\x88\x01\n\x08\x65nd_time\x18\x06 \x01(\x04:\x13\x39\x32\x32\x33\x33\x37\x32\x30\x33\x36\x38\x35\x34\x37\x37\x35\x38\x30\x37\x42\x61\xe2\xfc\xe3\xc4\x01[\n\x0bRDFDatetime\x12LFile must be modified before this time (default=heat death of the universe).\x12#\n\ncross_devs\x18\x07 \x01(\x08:\x05\x66\x61lseB\x08\xe2\xfc\xe3\xc4\x01\x02\x18\x01\x12\x1f\n\tmax_depth\x18\x08 \x01(\x05:\x02\x31\x35\x42\x08\xe2\xfc\xe3\xc4\x01\x02\x18\x01\x12@\n\x03hit\x18\t \x01(\x0b\x32\n.StatEntryB\'\xe2\xfc\xe3\xc4\x01!\x12\x1dResponses come in this field.\x18\x02\x12#\n\x08max_data\x18\n \x01(\x04:\x07\x31\x30\x32\x34\x30\x30\x30\x42\x08\xe2\xfc\xe3\xc4\x01\x02\x18\x01\x12=\n\rmin_file_size\x18\x0b \x01(\x04:\x01\x30\x42#\xe2\xfc\xe3\xc4\x01\x1d\x12\x1bMinimum file size in bytes.\x12\x64\n\rmax_file_size\x18\x0c \x01(\x04:\x13\x39\x32\x32\x33\x33\x37\x32\x30\x33\x36\x38\x35\x34\x37\x37\x35\x38\x30\x37\x42\x38\xe2\xfc\xe3\xc4\x01\x32\x12\x30Maximum file size in bytes (default=sys.maxint).\"\x8f\x02\n\x0cPlistRequest\x12N\n\x08pathspec\x18\x01 \x01(\x0b\x32\t.PathSpecB1\xe2\xfc\xe3\xc4\x01+\x12)The pathspec for the plist file to query.\x12\x44\n\x07\x63ontext\x18\x02 \x01(\tB3\xe2\xfc\xe3\xc4\x01-\x12+A path into the plist to base the filter on\x12i\n\x05query\x18\x03 \x01(\tBZ\xe2\xfc\xe3\xc4\x01T\n\nPlistQuery\x12\x46\x41 filter query to match the contents of the plist at the base_context.\"\xed\x01\n\x15GetClientStatsRequest\x12\x62\n\nstart_time\x18\x05 \x01(\x04:\x01\x30\x42K\xe2\xfc\xe3\xc4\x01\x45\n\x0bRDFDatetime\x12\x36Request stats data points with timestamp > start_time.\x12p\n\x08\x65nd_time\x18\x06 \x01(\x04:\x13\x39\x32\x32\x33\x33\x37\x32\x30\x33\x36\x38\x35\x34\x37\x37\x35\x38\x30\x37\x42I\xe2\xfc\xe3\xc4\x01\x43\n\x0bRDFDatetime\x12\x34Request stats data points with timestamp < end_time.\"\x81\x02\n\x15\x46oremanAttributeRegex\x12\x0f\n\x04path\x18\x01 \x01(\t:\x01/\x12\x45\n\x0e\x61ttribute_name\x18\x02 \x01(\tB-\xe2\xfc\xe3\xc4\x01\'\n\rAFF4Attribute\x12\x16\x41n AFF4 attribute name\x12\x8f\x01\n\x0f\x61ttribute_regex\x18\x03 \x01(\tBv\xe2\xfc\xe3\xc4\x01p\n\x11RegularExpression\x12[If these are specified we fire when the attribute\'s str() representation matches the regex.\"\xf4\x01\n\x17\x46oremanAttributeInteger\x12\x0f\n\x04path\x18\x01 \x01(\t:\x01/\x12\x45\n\x0e\x61ttribute_name\x18\x02 \x01(\tB-\xe2\xfc\xe3\xc4\x01\'\n\rAFF4Attribute\x12\x16\x41n AFF4 attribute name\x12:\n\x08operator\x18\x03 \x01(\x0e\x32!.ForemanAttributeInteger.Operator:\x05\x45QUAL\x12\r\n\x05value\x18\x04 \x01(\x04\"6\n\x08Operator\x12\t\n\x05\x45QUAL\x10\x00\x12\r\n\tLESS_THAN\x10\x01\x12\x10\n\x0cGREATER_THAN\x10\x02\"\xa6\x01\n\x11\x46oremanRuleAction\x12\x11\n\tflow_name\x18\x01 \x01(\t\x12\x13\n\x04\x61rgv\x18\x02 \x01(\x0b\x32\x05.Dict\x12\x11\n\thunt_name\x18\x03 \x01(\t\x12@\n\x07hunt_id\x18\x04 \x01(\tB/\xe2\xfc\xe3\xc4\x01)\n\tSessionID\x12\x1cThe id of the hunt to start.\x12\x14\n\x0c\x63lient_limit\x18\x05 \x01(\x04\"\xab\x02\n\x0b\x46oremanRule\x12+\n\x0bregex_rules\x18\x01 \x03(\x0b\x32\x16.ForemanAttributeRegex\x12/\n\rinteger_rules\x18\x02 \x03(\x0b\x32\x18.ForemanAttributeInteger\x12#\n\x07\x61\x63tions\x18\x03 \x03(\x0b\x32\x12.ForemanRuleAction\x12\x41\n\x07\x63reated\x18\x04 \x01(\x04\x42\x30\xe2\xfc\xe3\xc4\x01*\n\x0bRDFDatetime\x12\x1bWhen this rule was created.\x12\x41\n\x07\x65xpires\x18\x05 \x01(\x04\x42\x30\xe2\xfc\xe3\xc4\x01*\n\x0bRDFDatetime\x12\x1bWhen this rule will expire.\x12\x13\n\x0b\x64\x65scription\x18\x06 \x01(\t\"Y\n\tHuntError\x12$\n\tclient_id\x18\x01 \x01(\tB\x11\xe2\xfc\xe3\xc4\x01\x0b\n\tClientURN\x12\x13\n\x0blog_message\x18\x02 \x01(\t\x12\x11\n\tbacktrace\x18\x03 \x01(\t\"\xc9\x01\n\x07\x46lowLog\x12$\n\tclient_id\x18\x01 \x01(\tB\x11\xe2\xfc\xe3\xc4\x01\x0b\n\tClientURN\x12\x13\n\x0blog_message\x18\x02 \x01(\t\x12?\n\x03urn\x18\x03 \x01(\tB2\xe2\xfc\xe3\xc4\x01,\n\x06RDFURN\x12\"Session ID that generated the log.\x12\x42\n\tflow_name\x18\x04 \x01(\tB/\xe2\xfc\xe3\xc4\x01)\x12\'Human readable name for the session ID.\"\x9a\x01\n\x0f\x43lientResources\x12$\n\tclient_id\x18\x01 \x01(\tB\x11\xe2\xfc\xe3\xc4\x01\x0b\n\tClientURN\x12%\n\nsession_id\x18\x02 \x01(\tB\x11\xe2\xfc\xe3\xc4\x01\x0b\n\tSessionID\x12\x1e\n\tcpu_usage\x18\x03 \x01(\x0b\x32\x0b.CpuSeconds\x12\x1a\n\x12network_bytes_sent\x18\x04 \x01(\x04\"2\n\x0eStatsHistogram\x12 \n\x04\x62ins\x18\x03 \x03(\x0b\x32\x12.StatsHistogramBin\"9\n\x11StatsHistogramBin\x12\x17\n\x0frange_max_value\x18\x01 \x01(\x02\x12\x0b\n\x03num\x18\x02 \x01(\x04\"\\\n\x0cRunningStats\x12\"\n\thistogram\x18\x01 \x01(\x0b\x32\x0f.StatsHistogram\x12\x0b\n\x03num\x18\x02 \x01(\x04\x12\x0b\n\x03sum\x18\x03 \x01(\x01\x12\x0e\n\x06sum_sq\x18\x04 \x01(\x01\"\xc3\x01\n\x14\x43lientResourcesStats\x12%\n\x0euser_cpu_stats\x18\x01 \x01(\x0b\x32\r.RunningStats\x12\'\n\x10system_cpu_stats\x18\x02 \x01(\x0b\x32\r.RunningStats\x12/\n\x18network_bytes_sent_stats\x18\x03 \x01(\x0b\x32\r.RunningStats\x12*\n\x10worst_performers\x18\x04 \x03(\x0b\x32\x10.ClientResources\"\xab\x02\n\x08Iterator\x12\x1b\n\x0c\x63lient_state\x18\x01 \x01(\x0b\x32\x05.Dict\x12\x0f\n\x04skip\x18\x02 \x01(\r:\x01\x30\x12\x13\n\x06number\x18\x03 \x01(\r:\x03\x31\x30\x30\x12\'\n\x05state\x18\x04 \x01(\x0e\x32\x0f.Iterator.State:\x07RUNNING\x12\x8e\x01\n\x10suspended_action\x18\x05 \x01(\x04\x42t\xe2\xfc\xe3\xc4\x01n\x12lIf this is an iterator for a client action, we store the unique action id by which it is kept on the client.\"\"\n\x05State\x12\x0b\n\x07RUNNING\x10\x00\x12\x0c\n\x08\x46INISHED\x10\x01\"M\n\x14IteratedStatResponse\x12\x18\n\x04stat\x18\x01 \x01(\x0b\x32\n.StatEntry\x12\x1b\n\x08iterator\x18\x02 \x01(\x0b\x32\t.Iterator\"\x9f\x02\n\x0cNotification\x12\x0c\n\x04type\x18\x01 \x01(\t\x12N\n\x07subject\x18\x02 \x01(\tB=\xe2\xfc\xe3\xc4\x01\x37\n\x06RDFURN\x12-The subject which this notification is about.\x12\x0f\n\x07message\x18\x03 \x01(\t\x12V\n\x06source\x18\x04 \x01(\tBF\xe2\xfc\xe3\xc4\x01@\n\x06RDFURN\x12\x36The user or service which generated this notification.\x12H\n\ttimestamp\x18\x05 \x01(\x04\x42\x35\xe2\xfc\xe3\xc4\x01/\n\x0bRDFDatetime\x12 Time the notification was added.\"\xae\x02\n\x12GlobalNotification\x12&\n\x04type\x18\x01 \x01(\x0e\x32\x18.GlobalNotification.Type\x12\x0e\n\x06header\x18\x02 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x03 \x01(\t\x12\x0c\n\x04link\x18\x04 \x01(\t\x12S\n\tshow_from\x18\x05 \x01(\x04\x42@\xe2\xfc\xe3\xc4\x01:\n\x0bRDFDatetime\x12+Notification will be shown after this time.\x12\x42\n\x08\x64uration\x18\x06 \x01(\x04\x42\x30\xe2\xfc\xe3\xc4\x01*\n\x08\x44uration\x12\x1e\x44uration of this notification.\"(\n\x04Type\x12\x08\n\x04INFO\x10\x00\x12\x0b\n\x07WARNING\x10\x01\x12\t\n\x05\x45RROR\x10\x02\"C\n\x15GlobalNotificationSet\x12*\n\rnotifications\x18\x01 \x03(\x0b\x32\x13.GlobalNotification\"t\n\x10\x45mbeddedRDFValue\x12\x44\n\x0c\x65mbedded_age\x18\x01 \x01(\x04\x42.\xe2\xfc\xe3\xc4\x01(\n\x0bRDFDatetime\x12\x19The age of this RDFValue.\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x03 \x01(\x0c\"v\n\x11\x41\x46\x46\x34ObjectSummary\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x39\n\x03urn\x18\x02 \x01(\tB,\xe2\xfc\xe3\xc4\x01&\n\x06RDFURN\x12\x1cThe URN of this AFF4 object.\x12\x18\n\x04stat\x18\x03 \x01(\x0b\x32\n.StatEntry\"\xc5\x05\n\nAuditEvent\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x0c\n\x04user\x18\x02 \x01(\t\x12+\n\x06\x61\x63tion\x18\x03 \x01(\x0e\x32\x12.AuditEvent.Action:\x07UNKNOWN\x12\x11\n\tflow_name\x18\x04 \x01(\t\x12\x11\n\tflow_args\x18\x05 \x01(\x0c\x12G\n\x06\x63lient\x18\x06 \x01(\tB7\xe2\xfc\xe3\xc4\x01\x31\n\x06RDFURN\x12\'The client, this action was applied to.\x12?\n\ttimestamp\x18\x07 \x01(\x04\x42,\xe2\xfc\xe3\xc4\x01&\n\x0bRDFDatetime\x12\x17Time event was created.\x12\x13\n\x0b\x64\x65scription\x18\x08 \x01(\t\x12L\n\x03urn\x18\t \x01(\tB?\xe2\xfc\xe3\xc4\x01\x39\n\x06RDFURN\x12/The relevant hunt/flow/cron urn for this event.\"\xdc\x02\n\x06\x41\x63tion\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0c\n\x08RUN_FLOW\x10\x01\x12\'\n#CLIENT_APPROVAL_BREAK_GLASS_REQUEST\x10\x02\x12\x19\n\x15\x43LIENT_APPROVAL_GRANT\x10\x03\x12\x1b\n\x17\x43LIENT_APPROVAL_REQUEST\x10\x04\x12\x17\n\x13\x43RON_APPROVAL_GRANT\x10\x05\x12\x19\n\x15\x43RON_APPROVAL_REQUEST\x10\x06\x12\x17\n\x13HUNT_APPROVAL_GRANT\x10\x07\x12\x19\n\x15HUNT_APPROVAL_REQUEST\x10\x08\x12\x10\n\x0cHUNT_CREATED\x10\t\x12\x11\n\rHUNT_MODIFIED\x10\n\x12\x0f\n\x0bHUNT_PAUSED\x10\x0b\x12\x10\n\x0cHUNT_STARTED\x10\x0c\x12\x10\n\x0cHUNT_STOPPED\x10\r\x12\x14\n\x10\x43LIENT_ADD_LABEL\x10\x0e\"\xb1\x04\n\rClientSummary\x12\x37\n\tclient_id\x18\x01 \x01(\tB$\xe2\xfc\xe3\xc4\x01\x1e\n\tClientURN\x12\x11The Client\'s URN.\x12Q\n\ttimestamp\x18\x02 \x01(\x04\x42>\xe2\xfc\xe3\xc4\x01\x38\n\x0bRDFDatetime\x12)Timestamp for the creation of the record.\x12:\n\x0bsystem_info\x18\x03 \x01(\x0b\x32\x06.UnameB\x1d\xe2\xfc\xe3\xc4\x01\x17\x12\x15\x43lient\'s system info.\x12X\n\x0b\x63lient_info\x18\x04 \x01(\x0b\x32\x12.ClientInformationB/\xe2\xfc\xe3\xc4\x01)\x12\'Basic information about the GRR client.\x12M\n\x0cinstall_date\x18\x05 \x01(\x04\x42\x37\xe2\xfc\xe3\xc4\x01\x31\n\x0bRDFDatetime\x12\"The date the system was installed.\x12:\n\x05users\x18\x06 \x03(\x0b\x32\x05.UserB$\xe2\xfc\xe3\xc4\x01\x1e\x12\x1cUser accounts on the system.\x12\x45\n\ninterfaces\x18\x07 \x03(\x0b\x32\n.InterfaceB%\xe2\xfc\xe3\xc4\x01\x1f\x12\x1d\x41ll interfaces on the system.:,\xda\xfc\xe3\xc4\x01&\n$A summary of the client information.\"j\n\x10\x43ronJobRunStatus\x12,\n\x06status\x18\x01 \x01(\x0e\x32\x18.CronJobRunStatus.Status:\x02OK\"(\n\x06Status\x12\x06\n\x02OK\x10\x00\x12\x0b\n\x07TIMEOUT\x10\x01\x12\t\n\x05\x45RROR\x10\x02\"\x80\x01\n\x15MetricFieldDefinition\x12\x12\n\nfield_name\x18\x01 \x01(\t\x12\x34\n\nfield_type\x18\x02 \x01(\x0e\x32 .MetricFieldDefinition.FieldType\"\x1d\n\tFieldType\x12\x07\n\x03INT\x10\x00\x12\x07\n\x03STR\x10\x01\"\xa3\n\n\x0eMetricMetadata\x12%\n\x07varname\x18\x01 \x01(\tB\x14\xe2\xfc\xe3\xc4\x01\x0e\x12\x0cMetric name.\x12^\n\x0bmetric_type\x18\x02 \x01(\x0e\x32\x1a.MetricMetadata.MetricTypeB-\xe2\xfc\xe3\xc4\x01\'\x12%Metric type: counter, gauge or event.\x12\xfc\x01\n\nvalue_type\x18\x03 \x01(\x0e\x32\x19.MetricMetadata.ValueTypeB\xcc\x01\xe2\xfc\xe3\xc4\x01\xc5\x01\x12\xc2\x01Metric value type: int, float, str or distribution. Please note that counter metrics always have type INT and event metrics always have type DISTRIBUTION. Gauge metrics can be INT, FLOAT or STR.\x12[\n\x0b\x66ields_defs\x18\x04 \x03(\x0b\x32\x16.MetricFieldDefinitionB.\xe2\xfc\xe3\xc4\x01(\x12&Fields definitions for a given metric.\x12\x35\n\tdocstring\x18\x05 \x01(\tB\"\xe2\xfc\xe3\xc4\x01\x1c\x12\x1a\x44\x65scription of the metric.\x12h\n\x05units\x18\x06 \x01(\x0e\x32\x1b.MetricMetadata.MetricUnitsB<\xe2\xfc\xe3\xc4\x01\x36\x12\x34\x46or numerical metrics - measuring unit that is used.\"\xbc\x03\n\nMetricType\x12U\n\x07\x43OUNTER\x10\x00\x1aH\xea\xb9\xcb\xb9\x01\x42Integer metric that can only be incremented and never decremented.\x12\xd0\x01\n\x05GAUGE\x10\x01\x1a\xc4\x01\xea\xb9\xcb\xb9\x01\xbd\x01Gauge metrics can be either string, integer or float. Their value may be any value of their type and they may change their value arbitrarily (unlike counters, which can only be incremented.\x12\x83\x01\n\x05\x45VENT\x10\x02\x1ax\xea\xb9\xcb\xb9\x01rEvent metrics are used to record events that take certain amount of time. They\'re stored as latency distributions.\"\x91\x01\n\x0bMetricUnits\x12\x0b\n\x07SECONDS\x10\x00\x12\x10\n\x0cMILLISECONDS\x10\x01\x12\x10\n\x0cMICROSECONDS\x10\x02\x12\x0f\n\x0bNANOSECONDS\x10\x03\x12\x08\n\x04\x42ITS\x10\n\x12\t\n\x05\x42YTES\x10\x0b\x12\r\n\tKILOBYTES\x10\x0c\x12\r\n\tMEGABYTES\x10\r\x12\r\n\tGIGABYTES\x10\x0e\":\n\tValueType\x12\x07\n\x03INT\x10\x00\x12\t\n\x05\x46LOAT\x10\x01\x12\x07\n\x03STR\x10\x02\x12\x10\n\x0c\x44ISTRIBUTION\x10\x03\"=\n\x19StatsStoreMetricsMetadata\x12 \n\x07metrics\x18\x01 \x03(\x0b\x32\x0f.MetricMetadata\"\xd2\x03\n\x0c\x44istribution\x12\x46\n\x03sum\x18\x01 \x01(\x02\x42\x39\xe2\xfc\xe3\xc4\x01\x33\x12\x31Sum of all the values recorded in a distribution.\x12J\n\x05\x63ount\x18\x02 \x01(\x04\x42;\xe2\xfc\xe3\xc4\x01\x35\x12\x33\x43ount of all the values recorded in a distribution.\x12\xdb\x01\n\x04\x62ins\x18\x03 \x03(\x02\x42\xcc\x01\xe2\xfc\xe3\xc4\x01\xc5\x01\x12\xc2\x01Values of upper range limits of all the bins in the distribution. The first bin will have a lower range limit of -Infinity. The last bin will accept all the values bigger than its\' higher range.\x12P\n\x0c\x62ins_heights\x18\x04 \x03(\x02\x42:\xe2\xfc\xe3\xc4\x01\x34\x12\x32Heights of all the bins defined in the bins field.\"r\n\x14StatsStoreFieldValue\x12\x34\n\nfield_type\x18\x01 \x01(\x0e\x32 .MetricFieldDefinition.FieldType\x12\x11\n\tstr_value\x18\x02 \x01(\t\x12\x11\n\tint_value\x18\x03 \x01(\x03\"\xd4\x01\n\x0fStatsStoreValue\x12-\n\nvalue_type\x18\x01 \x01(\x0e\x32\x19.MetricMetadata.ValueType\x12\x11\n\tstr_value\x18\x02 \x01(\t\x12\x11\n\tint_value\x18\x03 \x01(\x03\x12\x13\n\x0b\x66loat_value\x18\x04 \x01(\x02\x12)\n\x12\x64istribution_value\x18\x05 \x01(\x0b\x32\r.Distribution\x12,\n\rfields_values\x18\x06 \x03(\x0b\x32\x15.StatsStoreFieldValue\"\xb2\x01\n\x0f\x41\x46\x46\x34ObjectLabel\x12\x0c\n\x04name\x18\x01 \x01(\t\x12@\n\x05owner\x18\x02 \x01(\tB1\xe2\xfc\xe3\xc4\x01+\x12)Username of the user who added the label.\x12O\n\ttimestamp\x18\x03 \x01(\x04\x42<\xe2\xfc\xe3\xc4\x01\x36\n\x0bRDFDatetime\x12\'Timestamp for when the label was added.\"8\n\x14\x41\x46\x46\x34ObjectLabelsList\x12 \n\x06labels\x18\x01 \x03(\x0b\x32\x10.AFF4ObjectLabel\"\xb6\x01\n\x0fPersistenceFile\x12\x1b\n\x08pathspec\x18\x01 \x01(\x0b\x32\t.PathSpec\x12\x85\x01\n\nsource_urn\x18\x02 \x01(\tBq\xe2\xfc\xe3\xc4\x01k\n\x06RDFURN\x12\x61URN for rdfvalue that used this file for  persistence. e.g. WindowsServiceInformation, StatEntry.\"\xca\x01\n\x12\x45ndToEndTestResult\x12@\n\x07success\x18\x01 \x01(\x08:\x05\x66\x61lseB(\xe2\xfc\xe3\xc4\x01\"\x12 Whether the test was successful.\x12\x17\n\x0ftest_class_name\x18\x02 \x01(\t\x12L\n\ttimestamp\x18\x03 \x01(\x04\x42\x39\xe2\xfc\xe3\xc4\x01\x33\n\x0bRDFDatetime\x12$Timestamp for when the test was run.\x12\x0b\n\x03log\x18\x04 \x01(\t\"\x0e\n\x0c\x45mptyMessage')
 
 
 
@@ -668,8 +668,8 @@ _DRIVERINSTALLTEMPLATE_REWRITEMODE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=16977,
-  serialized_end=17026,
+  serialized_start=16143,
+  serialized_end=16192,
 )
 
 _GREPSPEC_MODE = _descriptor.EnumDescriptor(
@@ -689,8 +689,8 @@ _GREPSPEC_MODE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=18586,
-  serialized_end=18621,
+  serialized_start=17752,
+  serialized_end=17787,
 )
 
 _FOREMANATTRIBUTEINTEGER_OPERATOR = _descriptor.EnumDescriptor(
@@ -714,8 +714,8 @@ _FOREMANATTRIBUTEINTEGER_OPERATOR = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=20552,
-  serialized_end=20606,
+  serialized_start=19718,
+  serialized_end=19772,
 )
 
 _ITERATOR_STATE = _descriptor.EnumDescriptor(
@@ -735,8 +735,8 @@ _ITERATOR_STATE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=22200,
-  serialized_end=22234,
+  serialized_start=21366,
+  serialized_end=21400,
 )
 
 _GLOBALNOTIFICATION_TYPE = _descriptor.EnumDescriptor(
@@ -760,8 +760,8 @@ _GLOBALNOTIFICATION_TYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=22868,
-  serialized_end=22908,
+  serialized_start=22034,
+  serialized_end=22074,
 )
 
 _AUDITEVENT_ACTION = _descriptor.EnumDescriptor(
@@ -826,11 +826,15 @@ _AUDITEVENT_ACTION = _descriptor.EnumDescriptor(
       name='HUNT_STOPPED', index=13, number=13,
       options=None,
       type=None),
+    _descriptor.EnumValueDescriptor(
+      name='CLIENT_ADD_LABEL', index=14, number=14,
+      options=None,
+      type=None),
   ],
   containing_type=None,
   options=None,
-  serialized_start=23579,
-  serialized_end=23905,
+  serialized_start=22745,
+  serialized_end=23093,
 )
 
 _CRONJOBRUNSTATUS_STATUS = _descriptor.EnumDescriptor(
@@ -854,8 +858,8 @@ _CRONJOBRUNSTATUS_STATUS = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=24537,
-  serialized_end=24577,
+  serialized_start=23725,
+  serialized_end=23765,
 )
 
 _METRICFIELDDEFINITION_FIELDTYPE = _descriptor.EnumDescriptor(
@@ -875,8 +879,8 @@ _METRICFIELDDEFINITION_FIELDTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=24679,
-  serialized_end=24708,
+  serialized_start=23867,
+  serialized_end=23896,
 )
 
 _METRICMETADATA_METRICTYPE = _descriptor.EnumDescriptor(
@@ -900,8 +904,8 @@ _METRICMETADATA_METRICTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=25374,
-  serialized_end=25818,
+  serialized_start=24562,
+  serialized_end=25006,
 )
 
 _METRICMETADATA_METRICUNITS = _descriptor.EnumDescriptor(
@@ -949,8 +953,8 @@ _METRICMETADATA_METRICUNITS = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=25821,
-  serialized_end=25966,
+  serialized_start=25009,
+  serialized_end=25154,
 )
 
 _METRICMETADATA_VALUETYPE = _descriptor.EnumDescriptor(
@@ -978,8 +982,8 @@ _METRICMETADATA_VALUETYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=25968,
-  serialized_end=26026,
+  serialized_start=25156,
+  serialized_end=25214,
 )
 
 
@@ -4119,62 +4123,6 @@ _EXECUTEPYTHONRESPONSE = _descriptor.Descriptor(
 )
 
 
-_VOLATILITYREQUEST = _descriptor.Descriptor(
-  name='VolatilityRequest',
-  full_name='VolatilityRequest',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='args', full_name='VolatilityRequest.args', index=0,
-      number=1, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='plugins', full_name='VolatilityRequest.plugins', index=1,
-      number=2, type=9, cpp_type=9, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='profile', full_name='VolatilityRequest.profile', index=2,
-      number=3, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=unicode("", "utf-8"),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='device', full_name='VolatilityRequest.device', index=3,
-      number=4, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='session', full_name='VolatilityRequest.session', index=4,
-      number=5, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  extension_ranges=[],
-  serialized_start=14474,
-  serialized_end=14599,
-)
-
-
 _PLUGINREQUEST = _descriptor.Descriptor(
   name='PluginRequest',
   full_name='PluginRequest',
@@ -4205,8 +4153,8 @@ _PLUGINREQUEST = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=14601,
-  serialized_end=14719,
+  serialized_start=14474,
+  serialized_end=14592,
 )
 
 
@@ -4261,8 +4209,8 @@ _REKALLREQUEST = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=14722,
-  serialized_end=15179,
+  serialized_start=14595,
+  serialized_end=15052,
 )
 
 
@@ -4310,8 +4258,8 @@ _REKALLRESPONSE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=15182,
-  serialized_end=15407,
+  serialized_start=15055,
+  serialized_end=15280,
 )
 
 
@@ -4345,323 +4293,8 @@ _REKALLPROFILE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=15409,
-  serialized_end=15452,
-)
-
-
-_VOLATILITYHEADER = _descriptor.Descriptor(
-  name='VolatilityHeader',
-  full_name='VolatilityHeader',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='print_name', full_name='VolatilityHeader.print_name', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=unicode("", "utf-8"),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='name', full_name='VolatilityHeader.name', index=1,
-      number=2, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=unicode("", "utf-8"),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='format_hint', full_name='VolatilityHeader.format_hint', index=2,
-      number=3, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=unicode("", "utf-8"),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  extension_ranges=[],
-  serialized_start=15454,
-  serialized_end=15527,
-)
-
-
-_VOLATILITYVALUE = _descriptor.Descriptor(
-  name='VolatilityValue',
-  full_name='VolatilityValue',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='type', full_name='VolatilityValue.type', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=unicode("", "utf-8"),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='name', full_name='VolatilityValue.name', index=1,
-      number=2, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=unicode("", "utf-8"),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='offset', full_name='VolatilityValue.offset', index=2,
-      number=3, type=3, cpp_type=2, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='vm', full_name='VolatilityValue.vm', index=3,
-      number=4, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=unicode("", "utf-8"),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='value', full_name='VolatilityValue.value', index=4,
-      number=5, type=3, cpp_type=2, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='svalue', full_name='VolatilityValue.svalue', index=5,
-      number=6, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=unicode("", "utf-8"),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='reason', full_name='VolatilityValue.reason', index=6,
-      number=7, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=unicode("", "utf-8"),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  extension_ranges=[],
-  serialized_start=15529,
-  serialized_end=15649,
-)
-
-
-_VOLATILITYVALUES = _descriptor.Descriptor(
-  name='VolatilityValues',
-  full_name='VolatilityValues',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='values', full_name='VolatilityValues.values', index=0,
-      number=1, type=11, cpp_type=10, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  extension_ranges=[],
-  serialized_start=15651,
-  serialized_end=15703,
-)
-
-
-_VOLATILITYTABLE = _descriptor.Descriptor(
-  name='VolatilityTable',
-  full_name='VolatilityTable',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='headers', full_name='VolatilityTable.headers', index=0,
-      number=1, type=11, cpp_type=10, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='rows', full_name='VolatilityTable.rows', index=1,
-      number=2, type=11, cpp_type=10, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  extension_ranges=[],
-  serialized_start=15705,
-  serialized_end=15791,
-)
-
-
-_VOLATILITYFORMATTEDVALUE = _descriptor.Descriptor(
-  name='VolatilityFormattedValue',
-  full_name='VolatilityFormattedValue',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='formatstring', full_name='VolatilityFormattedValue.formatstring', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=unicode("", "utf-8"),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='data', full_name='VolatilityFormattedValue.data', index=1,
-      number=2, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  extension_ranges=[],
-  serialized_start=15793,
-  serialized_end=15874,
-)
-
-
-_VOLATILITYFORMATTEDVALUES = _descriptor.Descriptor(
-  name='VolatilityFormattedValues',
-  full_name='VolatilityFormattedValues',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='formatted_values', full_name='VolatilityFormattedValues.formatted_values', index=0,
-      number=1, type=11, cpp_type=10, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  extension_ranges=[],
-  serialized_start=15876,
-  serialized_end=15956,
-)
-
-
-_VOLATILITYSECTION = _descriptor.Descriptor(
-  name='VolatilitySection',
-  full_name='VolatilitySection',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='table', full_name='VolatilitySection.table', index=0,
-      number=1, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='formatted_value_list', full_name='VolatilitySection.formatted_value_list', index=1,
-      number=2, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  extension_ranges=[],
-  serialized_start=15958,
-  serialized_end=16068,
-)
-
-
-_VOLATILITYRESPONSE = _descriptor.Descriptor(
-  name='VolatilityResponse',
-  full_name='VolatilityResponse',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='sections', full_name='VolatilityResponse.sections', index=0,
-      number=1, type=11, cpp_type=10, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='plugin', full_name='VolatilityResponse.plugin', index=1,
-      number=2, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=unicode("", "utf-8"),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='error', full_name='VolatilityResponse.error', index=2,
-      number=3, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=unicode("", "utf-8"),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  extension_ranges=[],
-  serialized_start=16070,
-  serialized_end=16159,
+  serialized_start=15282,
+  serialized_end=15325,
 )
 
 
@@ -4723,8 +4356,8 @@ _EXECUTEBINARYREQUEST = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=16162,
-  serialized_end=16652,
+  serialized_start=15328,
+  serialized_end=15818,
 )
 
 
@@ -4772,8 +4405,8 @@ _EXECUTEBINARYRESPONSE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=16654,
-  serialized_end=16749,
+  serialized_start=15820,
+  serialized_end=15915,
 )
 
 
@@ -4843,8 +4476,8 @@ _DRIVERINSTALLTEMPLATE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=16752,
-  serialized_end=17026,
+  serialized_start=15918,
+  serialized_end=16192,
 )
 
 
@@ -4906,8 +4539,8 @@ _SENDFILEREQUEST = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=17029,
-  serialized_end=17519,
+  serialized_start=16195,
+  serialized_end=16685,
 )
 
 
@@ -4998,8 +4631,8 @@ _GREPSPEC = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=17522,
-  serialized_end=18621,
+  serialized_start=16688,
+  serialized_end=17787,
 )
 
 
@@ -5110,8 +4743,8 @@ _FINDSPEC = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=18624,
-  serialized_end=19585,
+  serialized_start=17790,
+  serialized_end=18751,
 )
 
 
@@ -5152,8 +4785,8 @@ _PLISTREQUEST = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=19588,
-  serialized_end=19859,
+  serialized_start=18754,
+  serialized_end=19025,
 )
 
 
@@ -5187,8 +4820,8 @@ _GETCLIENTSTATSREQUEST = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=19862,
-  serialized_end=20099,
+  serialized_start=19028,
+  serialized_end=19265,
 )
 
 
@@ -5229,8 +4862,8 @@ _FOREMANATTRIBUTEREGEX = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=20102,
-  serialized_end=20359,
+  serialized_start=19268,
+  serialized_end=19525,
 )
 
 
@@ -5279,8 +4912,8 @@ _FOREMANATTRIBUTEINTEGER = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=20362,
-  serialized_end=20606,
+  serialized_start=19528,
+  serialized_end=19772,
 )
 
 
@@ -5335,8 +4968,8 @@ _FOREMANRULEACTION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=20609,
-  serialized_end=20775,
+  serialized_start=19775,
+  serialized_end=19941,
 )
 
 
@@ -5398,8 +5031,8 @@ _FOREMANRULE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=20778,
-  serialized_end=21077,
+  serialized_start=19944,
+  serialized_end=20243,
 )
 
 
@@ -5440,8 +5073,8 @@ _HUNTERROR = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=21079,
-  serialized_end=21168,
+  serialized_start=20245,
+  serialized_end=20334,
 )
 
 
@@ -5489,8 +5122,8 @@ _FLOWLOG = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=21171,
-  serialized_end=21372,
+  serialized_start=20337,
+  serialized_end=20538,
 )
 
 
@@ -5538,8 +5171,8 @@ _CLIENTRESOURCES = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=21375,
-  serialized_end=21529,
+  serialized_start=20541,
+  serialized_end=20695,
 )
 
 
@@ -5566,8 +5199,8 @@ _STATSHISTOGRAM = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=21531,
-  serialized_end=21581,
+  serialized_start=20697,
+  serialized_end=20747,
 )
 
 
@@ -5601,8 +5234,8 @@ _STATSHISTOGRAMBIN = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=21583,
-  serialized_end=21640,
+  serialized_start=20749,
+  serialized_end=20806,
 )
 
 
@@ -5650,8 +5283,8 @@ _RUNNINGSTATS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=21642,
-  serialized_end=21734,
+  serialized_start=20808,
+  serialized_end=20900,
 )
 
 
@@ -5699,8 +5332,8 @@ _CLIENTRESOURCESSTATS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=21737,
-  serialized_end=21932,
+  serialized_start=20903,
+  serialized_end=21098,
 )
 
 
@@ -5756,8 +5389,8 @@ _ITERATOR = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=21935,
-  serialized_end=22234,
+  serialized_start=21101,
+  serialized_end=21400,
 )
 
 
@@ -5791,8 +5424,8 @@ _ITERATEDSTATRESPONSE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=22236,
-  serialized_end=22313,
+  serialized_start=21402,
+  serialized_end=21479,
 )
 
 
@@ -5847,8 +5480,8 @@ _NOTIFICATION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=22316,
-  serialized_end=22603,
+  serialized_start=21482,
+  serialized_end=21769,
 )
 
 
@@ -5911,8 +5544,8 @@ _GLOBALNOTIFICATION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=22606,
-  serialized_end=22908,
+  serialized_start=21772,
+  serialized_end=22074,
 )
 
 
@@ -5939,8 +5572,8 @@ _GLOBALNOTIFICATIONSET = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=22910,
-  serialized_end=22977,
+  serialized_start=22076,
+  serialized_end=22143,
 )
 
 
@@ -5981,8 +5614,8 @@ _EMBEDDEDRDFVALUE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=22979,
-  serialized_end=23095,
+  serialized_start=22145,
+  serialized_end=22261,
 )
 
 
@@ -6023,8 +5656,8 @@ _AFF4OBJECTSUMMARY = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=23097,
-  serialized_end=23215,
+  serialized_start=22263,
+  serialized_end=22381,
 )
 
 
@@ -6108,8 +5741,8 @@ _AUDITEVENT = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=23218,
-  serialized_end=23905,
+  serialized_start=22384,
+  serialized_end=23093,
 )
 
 
@@ -6178,8 +5811,8 @@ _CLIENTSUMMARY = _descriptor.Descriptor(
   options=_descriptor._ParseOptions(descriptor_pb2.MessageOptions(), '\332\374\343\304\001&\n$A summary of the client information.'),
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=23908,
-  serialized_end=24469,
+  serialized_start=23096,
+  serialized_end=23657,
 )
 
 
@@ -6207,8 +5840,8 @@ _CRONJOBRUNSTATUS = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=24471,
-  serialized_end=24577,
+  serialized_start=23659,
+  serialized_end=23765,
 )
 
 
@@ -6243,8 +5876,8 @@ _METRICFIELDDEFINITION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=24580,
-  serialized_end=24708,
+  serialized_start=23768,
+  serialized_end=23896,
 )
 
 
@@ -6309,8 +5942,8 @@ _METRICMETADATA = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=24711,
-  serialized_end=26026,
+  serialized_start=23899,
+  serialized_end=25214,
 )
 
 
@@ -6337,8 +5970,8 @@ _STATSSTOREMETRICSMETADATA = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=26028,
-  serialized_end=26089,
+  serialized_start=25216,
+  serialized_end=25277,
 )
 
 
@@ -6386,8 +6019,8 @@ _DISTRIBUTION = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=26092,
-  serialized_end=26558,
+  serialized_start=25280,
+  serialized_end=25746,
 )
 
 
@@ -6428,8 +6061,8 @@ _STATSSTOREFIELDVALUE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=26560,
-  serialized_end=26674,
+  serialized_start=25748,
+  serialized_end=25862,
 )
 
 
@@ -6491,8 +6124,78 @@ _STATSSTOREVALUE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=26677,
-  serialized_end=26889,
+  serialized_start=25865,
+  serialized_end=26077,
+)
+
+
+_AFF4OBJECTLABEL = _descriptor.Descriptor(
+  name='AFF4ObjectLabel',
+  full_name='AFF4ObjectLabel',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='name', full_name='AFF4ObjectLabel.name', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='owner', full_name='AFF4ObjectLabel.owner', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001+\022)Username of the user who added the label.')),
+    _descriptor.FieldDescriptor(
+      name='timestamp', full_name='AFF4ObjectLabel.timestamp', index=2,
+      number=3, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0016\n\013RDFDatetime\022\'Timestamp for when the label was added.')),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=26080,
+  serialized_end=26258,
+)
+
+
+_AFF4OBJECTLABELSLIST = _descriptor.Descriptor(
+  name='AFF4ObjectLabelsList',
+  full_name='AFF4ObjectLabelsList',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='labels', full_name='AFF4ObjectLabelsList.labels', index=0,
+      number=1, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=26260,
+  serialized_end=26316,
 )
 
 
@@ -6526,8 +6229,8 @@ _PERSISTENCEFILE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=26892,
-  serialized_end=27074,
+  serialized_start=26319,
+  serialized_end=26501,
 )
 
 
@@ -6575,8 +6278,8 @@ _ENDTOENDTESTRESULT = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=27077,
-  serialized_end=27279,
+  serialized_start=26504,
+  serialized_end=26706,
 )
 
 
@@ -6596,8 +6299,8 @@ _EMPTYMESSAGE = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=27281,
-  serialized_end=27295,
+  serialized_start=26708,
+  serialized_end=26722,
 )
 
 _GRRMESSAGE.fields_by_name['arg'].message_type = _EMBEDDEDRDFVALUE
@@ -6689,23 +6392,12 @@ _SIGNEDBLOB_HASHTYPE.containing_type = _SIGNEDBLOB;
 _SIGNEDBLOB_SIGNATURETYPE.containing_type = _SIGNEDBLOB;
 _EXECUTEPYTHONREQUEST.fields_by_name['python_code'].message_type = _SIGNEDBLOB
 _EXECUTEPYTHONREQUEST.fields_by_name['py_args'].message_type = _DICT
-_VOLATILITYREQUEST.fields_by_name['args'].message_type = _DICT
-_VOLATILITYREQUEST.fields_by_name['device'].message_type = _PATHSPEC
-_VOLATILITYREQUEST.fields_by_name['session'].message_type = _DICT
 _PLUGINREQUEST.fields_by_name['args'].message_type = _DICT
 _REKALLREQUEST.fields_by_name['iterator'].message_type = _ITERATOR
 _REKALLREQUEST.fields_by_name['plugins'].message_type = _PLUGINREQUEST
 _REKALLREQUEST.fields_by_name['device'].message_type = _PATHSPEC
 _REKALLREQUEST.fields_by_name['session'].message_type = _DICT
 _REKALLREQUEST.fields_by_name['profile_data'].message_type = _REKALLPROFILE
-_VOLATILITYVALUES.fields_by_name['values'].message_type = _VOLATILITYVALUE
-_VOLATILITYTABLE.fields_by_name['headers'].message_type = _VOLATILITYHEADER
-_VOLATILITYTABLE.fields_by_name['rows'].message_type = _VOLATILITYVALUES
-_VOLATILITYFORMATTEDVALUE.fields_by_name['data'].message_type = _VOLATILITYVALUES
-_VOLATILITYFORMATTEDVALUES.fields_by_name['formatted_values'].message_type = _VOLATILITYFORMATTEDVALUE
-_VOLATILITYSECTION.fields_by_name['table'].message_type = _VOLATILITYTABLE
-_VOLATILITYSECTION.fields_by_name['formatted_value_list'].message_type = _VOLATILITYFORMATTEDVALUES
-_VOLATILITYRESPONSE.fields_by_name['sections'].message_type = _VOLATILITYSECTION
 _EXECUTEBINARYREQUEST.fields_by_name['executable'].message_type = _SIGNEDBLOB
 _DRIVERINSTALLTEMPLATE.fields_by_name['driver'].message_type = _SIGNEDBLOB
 _DRIVERINSTALLTEMPLATE.fields_by_name['mode'].enum_type = _DRIVERINSTALLTEMPLATE_REWRITEMODE
@@ -6763,6 +6455,7 @@ _STATSSTOREFIELDVALUE.fields_by_name['field_type'].enum_type = _METRICFIELDDEFIN
 _STATSSTOREVALUE.fields_by_name['value_type'].enum_type = _METRICMETADATA_VALUETYPE
 _STATSSTOREVALUE.fields_by_name['distribution_value'].message_type = _DISTRIBUTION
 _STATSSTOREVALUE.fields_by_name['fields_values'].message_type = _STATSSTOREFIELDVALUE
+_AFF4OBJECTLABELSLIST.fields_by_name['labels'].message_type = _AFF4OBJECTLABEL
 _PERSISTENCEFILE.fields_by_name['pathspec'].message_type = _PATHSPEC
 DESCRIPTOR.message_types_by_name['HttpRequest'] = _HTTPREQUEST
 DESCRIPTOR.message_types_by_name['GrrMessage'] = _GRRMESSAGE
@@ -6815,19 +6508,10 @@ DESCRIPTOR.message_types_by_name['Hash'] = _HASH
 DESCRIPTOR.message_types_by_name['SignedBlob'] = _SIGNEDBLOB
 DESCRIPTOR.message_types_by_name['ExecutePythonRequest'] = _EXECUTEPYTHONREQUEST
 DESCRIPTOR.message_types_by_name['ExecutePythonResponse'] = _EXECUTEPYTHONRESPONSE
-DESCRIPTOR.message_types_by_name['VolatilityRequest'] = _VOLATILITYREQUEST
 DESCRIPTOR.message_types_by_name['PluginRequest'] = _PLUGINREQUEST
 DESCRIPTOR.message_types_by_name['RekallRequest'] = _REKALLREQUEST
 DESCRIPTOR.message_types_by_name['RekallResponse'] = _REKALLRESPONSE
 DESCRIPTOR.message_types_by_name['RekallProfile'] = _REKALLPROFILE
-DESCRIPTOR.message_types_by_name['VolatilityHeader'] = _VOLATILITYHEADER
-DESCRIPTOR.message_types_by_name['VolatilityValue'] = _VOLATILITYVALUE
-DESCRIPTOR.message_types_by_name['VolatilityValues'] = _VOLATILITYVALUES
-DESCRIPTOR.message_types_by_name['VolatilityTable'] = _VOLATILITYTABLE
-DESCRIPTOR.message_types_by_name['VolatilityFormattedValue'] = _VOLATILITYFORMATTEDVALUE
-DESCRIPTOR.message_types_by_name['VolatilityFormattedValues'] = _VOLATILITYFORMATTEDVALUES
-DESCRIPTOR.message_types_by_name['VolatilitySection'] = _VOLATILITYSECTION
-DESCRIPTOR.message_types_by_name['VolatilityResponse'] = _VOLATILITYRESPONSE
 DESCRIPTOR.message_types_by_name['ExecuteBinaryRequest'] = _EXECUTEBINARYREQUEST
 DESCRIPTOR.message_types_by_name['ExecuteBinaryResponse'] = _EXECUTEBINARYRESPONSE
 DESCRIPTOR.message_types_by_name['DriverInstallTemplate'] = _DRIVERINSTALLTEMPLATE
@@ -6863,6 +6547,8 @@ DESCRIPTOR.message_types_by_name['StatsStoreMetricsMetadata'] = _STATSSTOREMETRI
 DESCRIPTOR.message_types_by_name['Distribution'] = _DISTRIBUTION
 DESCRIPTOR.message_types_by_name['StatsStoreFieldValue'] = _STATSSTOREFIELDVALUE
 DESCRIPTOR.message_types_by_name['StatsStoreValue'] = _STATSSTOREVALUE
+DESCRIPTOR.message_types_by_name['AFF4ObjectLabel'] = _AFF4OBJECTLABEL
+DESCRIPTOR.message_types_by_name['AFF4ObjectLabelsList'] = _AFF4OBJECTLABELSLIST
 DESCRIPTOR.message_types_by_name['PersistenceFile'] = _PERSISTENCEFILE
 DESCRIPTOR.message_types_by_name['EndToEndTestResult'] = _ENDTOENDTESTRESULT
 DESCRIPTOR.message_types_by_name['EmptyMessage'] = _EMPTYMESSAGE
@@ -7173,12 +6859,6 @@ class ExecutePythonResponse(_message.Message):
 
   # @@protoc_insertion_point(class_scope:ExecutePythonResponse)
 
-class VolatilityRequest(_message.Message):
-  __metaclass__ = _reflection.GeneratedProtocolMessageType
-  DESCRIPTOR = _VOLATILITYREQUEST
-
-  # @@protoc_insertion_point(class_scope:VolatilityRequest)
-
 class PluginRequest(_message.Message):
   __metaclass__ = _reflection.GeneratedProtocolMessageType
   DESCRIPTOR = _PLUGINREQUEST
@@ -7202,54 +6882,6 @@ class RekallProfile(_message.Message):
   DESCRIPTOR = _REKALLPROFILE
 
   # @@protoc_insertion_point(class_scope:RekallProfile)
-
-class VolatilityHeader(_message.Message):
-  __metaclass__ = _reflection.GeneratedProtocolMessageType
-  DESCRIPTOR = _VOLATILITYHEADER
-
-  # @@protoc_insertion_point(class_scope:VolatilityHeader)
-
-class VolatilityValue(_message.Message):
-  __metaclass__ = _reflection.GeneratedProtocolMessageType
-  DESCRIPTOR = _VOLATILITYVALUE
-
-  # @@protoc_insertion_point(class_scope:VolatilityValue)
-
-class VolatilityValues(_message.Message):
-  __metaclass__ = _reflection.GeneratedProtocolMessageType
-  DESCRIPTOR = _VOLATILITYVALUES
-
-  # @@protoc_insertion_point(class_scope:VolatilityValues)
-
-class VolatilityTable(_message.Message):
-  __metaclass__ = _reflection.GeneratedProtocolMessageType
-  DESCRIPTOR = _VOLATILITYTABLE
-
-  # @@protoc_insertion_point(class_scope:VolatilityTable)
-
-class VolatilityFormattedValue(_message.Message):
-  __metaclass__ = _reflection.GeneratedProtocolMessageType
-  DESCRIPTOR = _VOLATILITYFORMATTEDVALUE
-
-  # @@protoc_insertion_point(class_scope:VolatilityFormattedValue)
-
-class VolatilityFormattedValues(_message.Message):
-  __metaclass__ = _reflection.GeneratedProtocolMessageType
-  DESCRIPTOR = _VOLATILITYFORMATTEDVALUES
-
-  # @@protoc_insertion_point(class_scope:VolatilityFormattedValues)
-
-class VolatilitySection(_message.Message):
-  __metaclass__ = _reflection.GeneratedProtocolMessageType
-  DESCRIPTOR = _VOLATILITYSECTION
-
-  # @@protoc_insertion_point(class_scope:VolatilitySection)
-
-class VolatilityResponse(_message.Message):
-  __metaclass__ = _reflection.GeneratedProtocolMessageType
-  DESCRIPTOR = _VOLATILITYRESPONSE
-
-  # @@protoc_insertion_point(class_scope:VolatilityResponse)
 
 class ExecuteBinaryRequest(_message.Message):
   __metaclass__ = _reflection.GeneratedProtocolMessageType
@@ -7460,6 +7092,18 @@ class StatsStoreValue(_message.Message):
   DESCRIPTOR = _STATSSTOREVALUE
 
   # @@protoc_insertion_point(class_scope:StatsStoreValue)
+
+class AFF4ObjectLabel(_message.Message):
+  __metaclass__ = _reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _AFF4OBJECTLABEL
+
+  # @@protoc_insertion_point(class_scope:AFF4ObjectLabel)
+
+class AFF4ObjectLabelsList(_message.Message):
+  __metaclass__ = _reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _AFF4OBJECTLABELSLIST
+
+  # @@protoc_insertion_point(class_scope:AFF4ObjectLabelsList)
 
 class PersistenceFile(_message.Message):
   __metaclass__ = _reflection.GeneratedProtocolMessageType
@@ -7820,6 +7464,10 @@ _DISTRIBUTION.fields_by_name['bins'].has_options = True
 _DISTRIBUTION.fields_by_name['bins']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001\305\001\022\302\001Values of upper range limits of all the bins in the distribution. The first bin will have a lower range limit of -Infinity. The last bin will accept all the values bigger than its\' higher range.')
 _DISTRIBUTION.fields_by_name['bins_heights'].has_options = True
 _DISTRIBUTION.fields_by_name['bins_heights']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0014\0222Heights of all the bins defined in the bins field.')
+_AFF4OBJECTLABEL.fields_by_name['owner'].has_options = True
+_AFF4OBJECTLABEL.fields_by_name['owner']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001+\022)Username of the user who added the label.')
+_AFF4OBJECTLABEL.fields_by_name['timestamp'].has_options = True
+_AFF4OBJECTLABEL.fields_by_name['timestamp']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\0016\n\013RDFDatetime\022\'Timestamp for when the label was added.')
 _PERSISTENCEFILE.fields_by_name['source_urn'].has_options = True
 _PERSISTENCEFILE.fields_by_name['source_urn']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\342\374\343\304\001k\n\006RDFURN\022aURN for rdfvalue that used this file for  persistence. e.g. WindowsServiceInformation, StatEntry.')
 _ENDTOENDTESTRESULT.fields_by_name['success'].has_options = True

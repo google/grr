@@ -73,14 +73,6 @@ class ExportedOpenFile(rdfvalue.RDFProtoStruct):
   protobuf = export_pb2.ExportedOpenFile
 
 
-class ExportedVolatilityHandle(rdfvalue.RDFProtoStruct):
-  protobuf = export_pb2.ExportedVolatilityHandle
-
-
-class ExportedVolatilityMutant(rdfvalue.RDFProtoStruct):
-  protobuf = export_pb2.ExportedVolatilityMutant
-
-
 class ExportedNetworkInterface(rdfvalue.RDFProtoStruct):
   protobuf = export_pb2.ExportedNetworkInterface
 
@@ -609,110 +601,43 @@ class SoftwareToExportedSoftwareConverter(ExportConverter):
                            software=software)
 
 
-class VolatilityResultConverter(ExportConverter):
-  """Base class for converting volatility results."""
+class InterfaceToExportedNetworkInterfaceConverter(ExportConverter):
+  input_rdf_type = "Interface"
 
-  __abstract = True  # pylint: disable=g-bad-name
+  def Convert(self, metadata, interface, token=None):
+    """Converts Interface to ExportedNetworkInterfaces."""
+    ip4_addresses = []
+    ip6_addresses = []
+    for addr in interface.addresses:
+      if addr.address_type == addr.Family.INET:
+        ip4_addresses.append(addr.human_readable_address)
+      elif addr.address_type == addr.Family.INET6:
+        ip6_addresses.append(addr.human_readable_address)
+      else:
+        raise ValueError("Invalid address type: %s", addr.address_type)
 
-  input_rdf_type = "VolatilityResult"
+    result = ExportedNetworkInterface(
+        metadata=metadata,
+        ifname=interface.ifname,
+        ip4_addresses=" ".join(ip4_addresses),
+        ip6_addresses=" ".join(ip6_addresses))
 
-  mapping = None
-  output_rdf_cls = None
+    if interface.mac_address:
+      result.mac_address = interface.mac_address.human_readable_address
 
-  def __init__(self, *args, **kwargs):
-    super(VolatilityResultConverter, self).__init__(*args, **kwargs)
-    if not self.mapping:
-      raise ValueError("Mapping not specified.")
-
-    if not self.output_rdf_cls:
-      raise ValueError("output_rdf_cls not specified")
-
-  def Convert(self, metadata, volatility_result, token=None):
-    for section in volatility_result.sections:
-      # Keep a copy of the headers and their order.
-      try:
-        headers = tuple(self.mapping[h.name] for h in section.table.headers)
-      except KeyError as e:
-        logging.warning("Unmapped header: %s", e)
-        continue
-
-      if not section.table.rows:
-        logging.warning("No rows in the section.")
-        continue
-
-      for row in section.table.rows:
-        # pylint: disable=not-callable
-        out_rdf = self.output_rdf_cls(metadata=metadata)
-        # pylint: enable=not-callable
-
-        for attr, value in zip(headers, row.values):
-          if isinstance(getattr(out_rdf, attr), (str, unicode)):
-            setattr(out_rdf, attr, value.svalue)
-          else:
-            setattr(out_rdf, attr, value.value)
-        yield out_rdf
+    yield result
 
 
-class VolatilityResultToExportedVolatilityHandleConverter(
-    VolatilityResultConverter):
-  """Converts VolatilityResult to ExportedVolatilityHandle."""
-
-  mapping = {
-      "offset_v": "offset",
-      "pid": "pid",
-      "handle": "handle",
-      "access": "access",
-      "obj_type": "type",
-      "details": "path",
-  }
-
-  output_rdf_cls = rdfvalue.ExportedVolatilityHandle
-
-
-class VolatilityResultToExportedVolatilityMutantConverter(
-    VolatilityResultConverter):
-  """Converts VolatilityResult to ExportedVolatilityMutant."""
-
-  mapping = {
-      "offset_p": "offset",
-      "ptr_count": "ptr_count",
-      "hnd_count": "handle_count",
-      "mutant_signal": "signal",
-      "mutant_thread": "thread",
-      "cid": "cid",
-      "mutant_name": "name",
-  }
-
-  output_rdf_cls = rdfvalue.ExportedVolatilityMutant
-
-
-class ClientSummaryToExportedNetworkInterfaceConverter(ExportConverter):
+class ClientSummaryToExportedNetworkInterfaceConverter(
+    InterfaceToExportedNetworkInterfaceConverter):
   input_rdf_type = "ClientSummary"
 
   def Convert(self, metadata, client_summary, token=None):
     """Converts ClientSummary to ExportedNetworkInterfaces."""
-
     for interface in client_summary.interfaces:
-      ip4_addresses = []
-      ip6_addresses = []
-      for addr in interface.addresses:
-        if addr.address_type == addr.Family.INET:
-          ip4_addresses.append(addr.human_readable_address)
-        elif addr.address_type == addr.Family.INET6:
-          ip6_addresses.append(addr.human_readable_address)
-        else:
-          raise ValueError("Invalid address type: %s", addr.address_type)
-
-      result = ExportedNetworkInterface(
-          metadata=metadata,
-          ifname=interface.ifname,
-          ip4_addresses=" ".join(ip4_addresses),
-          ip6_addresses=" ".join(ip6_addresses))
-
-      if interface.mac_address:
-        result.mac_address = interface.mac_address.human_readable_address
-
-      yield result
+      yield super(
+          ClientSummaryToExportedNetworkInterfaceConverter, self).Convert(
+              metadata, interface, token=token).next()
 
 
 class ClientSummaryToExportedClientConverter(ExportConverter):

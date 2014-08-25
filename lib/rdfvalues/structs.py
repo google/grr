@@ -615,6 +615,10 @@ class ProtoEnum(ProtoSignedInteger):
     if default is not None:
       self.default = self.Validate(default)
 
+  def GetDefault(self, container=None):
+    _ = container
+    return Enum(self.default, name=self.reverse_enum.get(self.default))
+
   def Validate(self, value, **_):
     """Check that value is a valid enum."""
     # None is a valid value - it means the field is not set.

@@ -59,8 +59,8 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
 
     # Check supported_os = [] matches any OS
     results = artifact_lib.ArtifactRegistry.GetArtifacts(
-        os_name="Windows", name_list=["VolatilityPsList"])
-    self.assertEqual(results.pop().name, "VolatilityPsList")
+        os_name="Windows", name_list=["RekallPsList"])
+    self.assertEqual(results.pop().name, "RekallPsList")
 
     results = artifact_lib.ArtifactRegistry.GetArtifacts(
         os_name="Windows", exclude_dependents=True)

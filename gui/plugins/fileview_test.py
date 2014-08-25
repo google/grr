@@ -8,6 +8,7 @@
 from grr.gui import runtests_test
 
 from grr.lib import access_control
+from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import rdfvalue
@@ -312,7 +313,7 @@ class TestFileView(test_lib.GRRSeleniumTest):
       fd = aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
       flows = list(fd.ListChildren())
 
-      client_mock = test_lib.ActionMock()
+      client_mock = action_mocks.ActionMock()
       for flow_urn in flows:
         for _ in test_lib.TestFlowHelper(
             flow_urn, client_mock, client_id=client_id, token=self.token,

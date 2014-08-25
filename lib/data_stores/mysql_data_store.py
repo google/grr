@@ -179,11 +179,11 @@ class MySQLDataStore(data_store.DataStore):
 
       if start or end:
         query += " and age >= %s and age <= %s"
-        args.append(start or 0)
+        args.append(int(start or 0))
         mysql_unsigned_bigint_max = 18446744073709551615
         if end is None:
           end = mysql_unsigned_bigint_max
-        args.append(end)
+        args.append(int(end))
 
       cursor.Execute(query, args)
 

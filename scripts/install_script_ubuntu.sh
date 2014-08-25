@@ -20,7 +20,7 @@ SLEUTHKIT_DEB=sleuthkit-lib_3.2.3-1_${PLAT}.deb
 PYTSK_DEB=pytsk3_3.2.3-1_${PLAT}.deb
 M2CRYPTO_DEB=m2crypto_0.21.1-1_${PLAT}.deb
 
-GRR_STABLE_VERSION=0.3.0-1
+GRR_STABLE_VERSION=0.3.0-2
 GRR_TEST_VERSION=0.3.1-1
 SERVER_DEB_STABLE_BASE_URL=https://googledrive.com/host/0B1wsLqFoT7i2c3F0ZmI1RDJlUEU/grr-server_
 SERVER_DEB_TEST_BASE_URL=https://googledrive.com/host/0B1wsLqFoT7i2c3F0ZmI1RDJlUEU/test-grr-server_
@@ -108,7 +108,7 @@ function run_cmd_confirm()
 header "Updating APT and Installing dependencies"
 run_cmd_confirm sudo apt-get --yes update;
 run_cmd_confirm sudo apt-get --yes upgrade;
-run_cmd_confirm sudo apt-get --force-yes --yes install python-setuptools python-dateutil python-django ipython apache2-utils zip wget python-ipaddr python-support python-psutil python-matplotlib python-mox python-yaml python-pip dpkg-dev debhelper rpm prelink;
+run_cmd_confirm sudo apt-get --force-yes --yes install python-setuptools python-dateutil python-django ipython apache2-utils zip wget python-ipaddr python-support python-matplotlib python-mox python-yaml python-pip dpkg-dev debhelper rpm prelink build-essential python-dev python-pandas;
 
 # Fail silently if python-dev or libpython-dev is not available in the apt repo
 # python-dev is for Ubuntu version < 12.10 and libpython-dev is for > 12.04
@@ -135,16 +135,11 @@ run_cmd_confirm sudo apt-get --yes --force-yes install mongodb python-pymongo;
 sudo service mongodb start 2>/dev/null
 
 header "Installing Rekall"
-run_cmd_confirm sudo pip install rekall --pre
+run_cmd_confirm sudo pip install rekall --upgrade --pre
 
-header "Getting correct psutil version (we require 2.1 or newer)"
-PSUTIL_VERSION=`dpkg-query -W python-psutil | cut -f 2`
-if [[ "$PSUTIL_VERSION" != 2.1* ]]; then
-  echo "Unsupported psutil version ${PSUTIL_VERSION}. Upgrading with pip."
-  run_cmd_confirm sudo apt-get --yes remove python-psutil;
-  run_cmd_confirm sudo apt-get --yes --force-yes install build-essential python-dev;
-  run_cmd_confirm sudo easy_install psutil;
-fi
+header "Installing psutil via pip"
+run_cmd_confirm sudo apt-get --yes remove python-psutil;
+run_cmd_confirm sudo pip install psutil --upgrade
 
 header "Installing Selenium test framework for Tests"
 run_cmd_confirm sudo easy_install selenium

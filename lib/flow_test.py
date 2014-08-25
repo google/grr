@@ -12,6 +12,7 @@ from grr.lib.flows import tests
 
 from grr.client import actions
 from grr.client import vfs
+from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flags
@@ -300,7 +301,7 @@ class FlowCreationTest(test_lib.FlowTestsBaseclass):
     """Check that flows log correctly."""
     flow_urn = None
     for session_id in test_lib.TestFlowHelper("DummyLogFlow",
-                                              test_lib.ActionMock(),
+                                              action_mocks.ActionMock(),
                                               token=self.token,
                                               client_id=self.client_id):
       flow_urn = session_id
@@ -326,7 +327,7 @@ class FlowTest(test_lib.FlowTestsBaseclass):
 
   def testBrokenFlow(self):
     """Check that flows which call to incorrect states raise."""
-    client_mock = test_lib.ActionMock("ReadBuffer")
+    client_mock = action_mocks.ActionMock("ReadBuffer")
     with self.assertRaises(RuntimeError):
       for _ in test_lib.TestFlowHelper(
           "BrokenFlow", client_mock, client_id=self.client_id,
@@ -394,7 +395,8 @@ class FlowTest(test_lib.FlowTestsBaseclass):
     message = self.SendOKStatus(6, flow_obj.session_id)
 
     runner = flow_runner.FlowRunner(flow_obj)
-    runner.ProcessCompletedRequests([message])
+    notification = rdfvalue.Notification(timestamp=rdfvalue.RDFDatetime().Now())
+    runner.ProcessCompletedRequests(notification, [message])
 
     # Check that the messages were processed in order
     self.assertEqual(flow_obj.messages, [1, 2, 3, 4, 5])
@@ -441,7 +443,7 @@ class FlowTest(test_lib.FlowTestsBaseclass):
       messages.append(msg)
 
     with test_lib.Stubber(devnull, "ProcessMessage", StoreMessage):
-      client_mock = test_lib.ActionMock("GetClientStats")
+      client_mock = action_mocks.ActionMock("GetClientStats")
       for _ in test_lib.TestFlowHelper(
           "ClientActionRunner", client_mock, client_id=self.client_id,
           action="GetClientStats", token=self.token):
@@ -463,7 +465,8 @@ class FlowTest(test_lib.FlowTestsBaseclass):
     message = self.SendOKStatus(6, flow_obj.session_id)
 
     runner = flow_runner.FlowRunner(flow_obj)
-    runner.ProcessCompletedRequests([message])
+    notification = rdfvalue.Notification(timestamp=rdfvalue.RDFDatetime().Now())
+    runner.ProcessCompletedRequests(notification, [message])
 
     # Now messages should actually be processed
     self.assertEqual(flow_obj.messages, [])
@@ -500,7 +503,8 @@ class FlowTest(test_lib.FlowTestsBaseclass):
     message = self.SendOKStatus(7, flow_obj.session_id)
 
     runner = flow_runner.FlowRunner(flow_obj)
-    runner.ProcessCompletedRequests([message])
+    notification = rdfvalue.Notification(timestamp=rdfvalue.RDFDatetime().Now())
+    runner.ProcessCompletedRequests(notification, [message])
 
     # Some messages should actually be processed
     self.assertEqual(flow_obj.messages, [1, 2, 5, 6])
@@ -662,7 +666,7 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
     path = "/"
 
     # Run the flow in the simulated way
-    client_mock = test_lib.ActionMock("IteratedListDirectory")
+    client_mock = action_mocks.ActionMock("IteratedListDirectory")
     for _ in test_lib.TestFlowHelper(
         "IteratedListDirectory", client_mock, client_id=self.client_id,
         pathspec=rdfvalue.PathSpec(path="/",
@@ -715,7 +719,7 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
                              pathtype=rdfvalue.PathSpec.PathType.OS)
 
     # Run the flow in the simulated way
-    client_mock = test_lib.ActionMock("IteratedListDirectory")
+    client_mock = action_mocks.ActionMock("IteratedListDirectory")
     for _ in test_lib.TestFlowHelper(
         "IteratedListDirectory", client_mock, client_id=self.client_id,
         notification_urn=rdfvalue.SessionID("aff4:/flows/EV:FlowDone"),

@@ -3,6 +3,8 @@
 
 """Tests for memory related flows."""
 
+import copy
+import json
 import os
 import socket
 import threading
@@ -10,13 +12,13 @@ import threading
 from grr.client import vfs
 from grr.client.client_actions import grr_rekall_test
 
+from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.rdfvalues import crypto
-from grr.parsers import volatility_artifact_parser_test
 
 
 class DummyLoadMemoryDriverFlow(flow.GRRFlow):
@@ -68,11 +70,11 @@ class TestMemoryCollector(test_lib.FlowTestsBaseclass):
       self.memory_dump = f.read()
     self.assertTrue(self.memory_dump)
 
-    self.client_mock = test_lib.ActionMock("TransferBuffer", "HashBuffer",
-                                           "StatFile", "CopyPathToFile",
-                                           "SendFile", "DeleteGRRTempFiles",
-                                           "GetConfiguration",
-                                           "Find", "Grep")
+    self.client_mock = action_mocks.ActionMock("TransferBuffer", "HashBuffer",
+                                               "StatFile", "CopyPathToFile",
+                                               "SendFile", "DeleteGRRTempFiles",
+                                               "GetConfiguration", "Find",
+                                               "Grep")
 
     self.old_driver_flow = flow.GRRFlow.classes["LoadMemoryDriver"]
     flow.GRRFlow.classes["LoadMemoryDriver"] = DummyLoadMemoryDriverFlow
@@ -89,7 +91,7 @@ class TestMemoryCollector(test_lib.FlowTestsBaseclass):
 
   def testCallWithDefaultArgumentsDoesNothing(self):
     for _ in test_lib.TestFlowHelper(
-        "MemoryCollector", test_lib.ActionMock(), client_id=self.client_id,
+        "MemoryCollector", action_mocks.ActionMock(), client_id=self.client_id,
         token=self.token):
       pass
 
@@ -424,7 +426,7 @@ class TestMemoryAnalysis(grr_rekall_test.RekallTestSuite):
 
     # Run the flow in the simulated way
     for _ in test_lib.TestFlowHelper("LoadMemoryDriver",
-                                     test_lib.MemoryClientMock(),
+                                     action_mocks.MemoryClientMock(),
                                      token=self.token,
                                      client_id=self.client_id):
       pass
@@ -445,7 +447,7 @@ class TestMemoryAnalysis(grr_rekall_test.RekallTestSuite):
     self.CreateClient()
     self.CreateSignedDriver()
 
-    class ClientMock(test_lib.MemoryClientMock):
+    class ClientMock(action_mocks.MemoryClientMock):
       """A mock which returns the image as the driver path."""
 
       def GetMemoryInformation(self, _):
@@ -479,22 +481,42 @@ class TestMemoryAnalysis(grr_rekall_test.RekallTestSuite):
     self.assertEqual(fd[0].data, "\n85\n86\n87\n88\n89\n90\n91\n")
 
 
-class ListVADBinariesActionMock(test_lib.ActionMock):
-  """Client with real file actions and mocked-out VolatilityAction."""
+class ListVADBinariesActionMock(action_mocks.ActionMock):
+  """Client with real file actions and mocked-out RekallAction."""
 
-  def __init__(self, process_list):
+  def __init__(self, process_list=None):
     super(ListVADBinariesActionMock, self).__init__(
         "TransferBuffer", "StatFile", "Find", "HashBuffer", "HashFile",
         "ListDirectory")
-    self.process_list = process_list
+    self.process_list = process_list or []
 
-  def VolatilityAction(self, _):
-    vad_parser_test = volatility_artifact_parser_test.VolatilityVADParserTest
-    return [vad_parser_test.GenerateVADVolatilityResult(self.process_list)]
+  def RekallAction(self, _):
+    ps_list_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
+                                "rekall_vad_result.dat")
+    response = rdfvalue.RekallResponse(
+        json_messages=open(ps_list_file, "rb").read(),
+        plugin="pslist")
+
+    # If we are given process names here we need to craft a Rekall result
+    # containing them. This is so they point to valid files in the fixture.
+    if self.process_list:
+      json_data = json.loads(response.json_messages)
+      template = json_data[11]
+      if template[1]["filename"] != ur"\Windows\System32\ntdll.dll":
+        raise RuntimeError("Test data invalid.")
+
+      json_data = []
+      for process in self.process_list:
+        new_entry = copy.deepcopy(template)
+        new_entry[1]["filename"] = process
+        json_data.append(new_entry)
+      response.json_messages = json.dumps(json_data)
+
+    return [response, rdfvalue.Iterator(state="FINISHED")]
 
 
 class ListVADBinariesTest(test_lib.FlowTestsBaseclass):
-  """Tests the Volatility-powered "get processes binaries" flow."""
+  """Tests the Rekall-powered "get processes binaries" flow."""
 
   def setUp(self):
     super(ListVADBinariesTest, self).setUp()
@@ -527,10 +549,7 @@ class ListVADBinariesTest(test_lib.FlowTestsBaseclass):
     flow.GRRFlow.classes["LoadMemoryDriver"] = self.old_driver_flow
 
   def testListsBinaries(self):
-    process1_exe = "\\WINDOWS\\bar.exe"
-    process2_exe = "\\WINDOWS\\foo.exe"
-
-    client_mock = ListVADBinariesActionMock([process1_exe, process2_exe])
+    client_mock = ListVADBinariesActionMock()
     output_path = "analysis/ListVADBinariesTest1"
 
     for _ in test_lib.TestFlowHelper(
@@ -545,12 +564,9 @@ class ListVADBinariesTest(test_lib.FlowTestsBaseclass):
                            token=self.token)
 
     # Sorting output collection to make the test deterministic
-    binaries = sorted(fd, key=lambda x: x.CollapsePath())
-    self.assertListEqual(binaries, [
-        rdfvalue.PathSpec(path="C:" + process1_exe,
-                          pathtype=rdfvalue.PathSpec.PathType.OS),
-        rdfvalue.PathSpec(path="C:" + process2_exe,
-                          pathtype=rdfvalue.PathSpec.PathType.OS)])
+    paths = sorted([x.CollapsePath() for x in fd])
+    self.assertIn(u"C:\\Windows\\System32\\wintrust.dll", paths)
+    self.assertIn(u"C:\\Program Files\\Internet Explorer\\ieproxy.dll", paths)
 
   def testFetchesAndStoresBinary(self):
     process1_exe = "\\WINDOWS\\bar.exe"
@@ -587,8 +603,8 @@ class ListVADBinariesTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(fd.Read(1024), "this is foo")
 
   def testDoesNotFetchDuplicates(self):
-    process_exe = "\\WINDOWS\\bar.exe"
-    client_mock = ListVADBinariesActionMock([process_exe, process_exe])
+    process = "\\WINDOWS\\bar.exe"
+    client_mock = ListVADBinariesActionMock([process, process])
     output_path = "analysis/ListVADBinariesTest1"
 
     for _ in test_lib.TestFlowHelper(
@@ -639,9 +655,8 @@ class ListVADBinariesTest(test_lib.FlowTestsBaseclass):
 
   def testIgnoresMissingFiles(self):
     process1_exe = "\\WINDOWS\\bar.exe"
-    process2_exe = "\\WINDOWS\\missing.exe"
 
-    client_mock = ListVADBinariesActionMock([process1_exe, process2_exe])
+    client_mock = ListVADBinariesActionMock([process1_exe])
     output_path = "analysis/ListVADBinariesTest1"
 
     for _ in test_lib.TestFlowHelper(

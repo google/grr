@@ -5,6 +5,7 @@
 import time
 
 from grr.endtoend_tests import base
+from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flow
@@ -192,7 +193,7 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
     for clientid in self.client_ids:
       self._SetSummaries(clientid)
 
-    self.client_mock = test_lib.ActionMock("ListDirectory", "StatFile")
+    self.client_mock = action_mocks.ActionMock("ListDirectory", "StatFile")
 
     config_lib.CONFIG.Set("Test.end_to_end_client_ids", self.client_ids)
     with test_lib.MultiStubber((base.AutomatedTest, "classes",
@@ -229,7 +230,7 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
     for clientid in self.client_ids:
       self._SetSummaries(clientid)
 
-    self.client_mock = test_lib.ActionMock("ListDirectory", "StatFile")
+    self.client_mock = action_mocks.ActionMock("ListDirectory", "StatFile")
 
     endtoend = system.EndToEndTests(None, token=self.token)
     endtoend.state.Register("hunt_id", "aff4:/temphuntid")

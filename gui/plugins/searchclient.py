@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """This plugin renders the client search page."""
+
+import json
 import time
 
 from django.utils import datastructures
@@ -530,13 +532,148 @@ class FilestoreTable(renderers.TableRenderer):
     return False
 
 
+class ClientCheckboxHeaderRenderer(renderers.TemplateRenderer):
+
+  layout_template = renderers.Template("""
+<input select_all_client_urns type="checkbox" class="client-checkbox"></input>
+""")
+
+
+class ClientCheckboxRenderer(renderers.RDFValueRenderer):
+  """Render the online state by using a centered icon."""
+
+  layout_template = renderers.Template("""
+<input client_urn="{{this.urn|escape}}" type="checkbox"
+  class="client-checkbox"></input>
+""")
+
+  def Layout(self, request, response):
+    self.urn = self.proxy.urn
+    return super(ClientCheckboxRenderer, self).Layout(request, response)
+
+
+class ApplyLabelToClientsDialog(renderers.ConfirmationDialogRenderer):
+  """Dialog that asks confirmation to manage a cron job."""
+  post_parameters = ["selected_clients"]
+
+  content_template = renderers.Template("""
+<div class="control-group">
+  <label class="control-label" for="input_apply_label_to_clients">Label</label>
+  <div class="controls">
+    <input type="text" onchange="grr.forms.inputOnChange(this)"
+      id="input_apply_label_to_clients"></input>
+  </div>
+</div>
+
+<hr />
+<p>Affected clients:</p>
+<table class="table table-striped table-condensed">
+<thead>
+  <tr>
+    <th>Client URN</th>
+  </tr>
+</thead>
+<tbody>
+  {% for client_urn in this.client_urns %}
+  <tr><td>{{client_urn|escape}}</td></tr>
+  {% endfor %}
+</tbody>
+</table>
+""")
+
+  ajax_template = renderers.Template("""
+<div id="{{unique|escape}}">
+<p class="text-info">Label <strong>{{this.label}}</strong> applied successfully!</p>
+</div>
+""")
+
+  @property
+  def header(self):
+    return "Apply label to clients"
+
+  def Layout(self, request, response):
+    self.client_urns = []
+    for client_urn_str in json.loads(request.REQ["selected_clients"]):
+      self.client_urns.append(rdfvalue.ClientURN(client_urn_str))
+
+    labels_index = aff4.FACTORY.Create(
+        aff4.VFSGRRClient.labels_index_urn, "AFF4LabelsIndex",
+        mode="rw", token=request.token)
+    used_labels = sorted(
+        set([label.name for label in labels_index.ListUsedLabels()]))
+
+    response = super(ApplyLabelToClientsDialog, self).Layout(
+        request, response)
+    return self.CallJavascript(response, "ApplyLabelToClientsDialog.Layout",
+                               labels=used_labels)
+
+  def RenderAjax(self, request, response):
+    client_urns = []
+    for client_urn_str in json.loads(request.REQ["selected_clients"]):
+      client_urns.append(rdfvalue.ClientURN(client_urn_str))
+
+    self.label = request.REQ.get("input_apply_label_to_clients")
+
+    flow.GRRFlow.StartFlow(
+        flow_name="ApplyLabelsToClientsFlow", clients=client_urns,
+        labels=[self.label], token=request.token)
+
+    response = self.RenderFromTemplate(self.ajax_template, response,
+                                       unique=self.unique, this=self)
+    return self.CallJavascript(response, "ApplyLabelToClientsDialog.RenderAjax")
+
+
+class ClientLabelsRenderer(semantic.RDFValueRenderer):
+  """Renders client labels."""
+
+  layout_template = renderers.Template("""
+{% for label in this.labels %}
+
+{% if label.owner == 'GRR' %}
+<span class="label">{{label.name|escape}}</span>
+{% else %}
+<span class="label label-success">{{label.name|escape}}</span>
+{% endif %}
+
+{% endfor %}
+""")
+
+  def Layout(self, request, response):
+    labels_list = self.proxy.Get(self.proxy.Schema.LABELS)
+    if labels_list:
+      self.labels = labels_list.labels
+    else:
+      self.labels = []
+
+    return super(ClientLabelsRenderer, self).Layout(request, response)
+
+
 class HostTable(renderers.TableRenderer):
   """Render a table for searching hosts."""
+
+  layout_template = renderers.Template("""
+<div id="apply_label_dialog_{{unique|escape}}" name="ApplyLabelDialog"
+  class="modal hide" tabindex="-1" role="dialog" aria-hidden="true">
+</div>
+
+<ul id="client_action_bar_{{unique|escape}}" class="breadcrumb">
+<li>
+  <button id="apply_label_{{unique|escape}}" title="Apply Label" class="btn"
+    data-target="#apply_label_dialog_{{unique|escape}}" disabled="true"
+    data-toggle="modal" name="ApplyLabel">
+    <img src="/static/images/label.png" class="toolbar_icon"></img>
+  </button>
+</li>
+</ul>
+""") + renderers.TableRenderer.layout_template
 
   fixed_columns = False
 
   def __init__(self, **kwargs):
     super(HostTable, self).__init__(**kwargs)
+    self.AddColumn(semantic.RDFValueColumn(
+        "", width="40px", header=ClientCheckboxHeaderRenderer(),
+        renderer=ClientCheckboxRenderer))
     self.AddColumn(semantic.RDFValueColumn("Online", width="40px",
                                            renderer=ClientStatusIconsRenderer))
     self.AddColumn(semantic.AttributeColumn("subject", width="13em"))
@@ -548,7 +685,8 @@ class HostTable(renderers.TableRenderer):
                                             header="First Seen"))
     self.AddColumn(semantic.AttributeColumn("Install", width="15%",
                                             header="OS Install Date"))
-    self.AddColumn(semantic.AttributeColumn("Labels", width="8%"))
+    self.AddColumn(semantic.RDFValueColumn("Labels", width="8%",
+                                           renderer=ClientLabelsRenderer))
     self.AddColumn(semantic.AttributeColumn("Clock", width="15%",
                                             header="Last Checkin"))
 
@@ -579,8 +717,9 @@ class HostTable(renderers.TableRenderer):
         # Add the fd to all the columns
         self.AddRowFromFd(row_count + start, child)
 
-        # Also update the online and crash status.
-        self.columns[0].AddElement(row_count + start, child)
+        # Also update the checkbox and online/crash status.
+        for column in (self.columns[0], self.columns[1], self.columns[9]):
+          column.AddElement(row_count + start, child)
 
         row_count += 1
 
@@ -618,7 +757,14 @@ class SearchHostView(renderers.Renderer):
         self.template, response, title=self.title,
         id=self.id)
 
-    return self.CallJavascript(response, "SearchHostView.Layout")
+    labels_index = aff4.FACTORY.Create(
+        aff4.VFSGRRClient.labels_index_urn, "AFF4LabelsIndex",
+        mode="rw", token=request.token)
+    used_labels = sorted(list(
+        set([label.name for label in labels_index.ListUsedLabels()])))
+
+    return self.CallJavascript(response, "SearchHostView.Layout",
+                               labels=used_labels)
 
 
 class FrontPage(renderers.TemplateRenderer):

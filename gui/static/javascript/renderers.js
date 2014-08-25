@@ -101,11 +101,22 @@ grr.Renderer('ConfirmationDialogRenderer', {
   }
 });
 
+/**
+ *  Stores last error reported by ErrorHandler renderer.
+ */
+grr._lastError = null;
+/**
+ * Stores last error backtrace reported by ErrorHandler renderer.
+ */
+grr._lastBacktrace = null;
 
 grr.Renderer('ErrorHandler', {
   Layout: function(state) {
     var error = state.error;
     var backtrace = state.backtrace;
+
+    grr._lastError = error;
+    grr._lastBacktrace = backtrace;
 
     grr.publish('grr_messages', 'Error: ' + error);
     grr.publish('grr_traceback', 'Error: ' + backtrace);

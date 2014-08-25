@@ -39,18 +39,14 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     return hunt_rules
 
   @staticmethod
-  def CreateHuntFixture():
+  def CreateHuntFixtureWithTwoClients():
     token = access_control.ACLToken(username="test", reason="test")
 
     # Ensure that clients list is empty
     root = aff4.FACTORY.Open(aff4.ROOT_URN, token=token)
     for client_urn in root.ListChildren():
-      data_store.DB.DeleteSubject(client_urn, token=token)
-
-    # Ensure that hunts list is empty
-    hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=token)
-    for hunt_urn in hunts_root.ListChildren():
-      data_store.DB.DeleteSubject(hunt_urn, token=token)
+      if aff4.VFSGRRClient.CLIENT_ID_RE.match(client_urn.Basename()):
+        data_store.DB.DeleteSubject(client_urn, token=token)
 
     # Add 2 distinct clients
     client_id = "C.1%015d" % 0
@@ -69,16 +65,17 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
   def setUp(self):
     super(TestNewHuntWizard, self).setUp()
+
     with self.ACLChecksDisabled():
-      self.CreateHuntFixture()
+      # Create a Foreman with an empty rule set.
+      with aff4.FACTORY.Create("aff4:/foreman", "GRRForeman", mode="rw",
+                               token=self.token) as self.foreman:
+        self.foreman.Set(self.foreman.Schema.RULES())
+        self.foreman.Close()
 
   def testNewHuntWizard(self):
     with self.ACLChecksDisabled():
-      # Create a Foreman with an empty rule set
-      self.foreman = aff4.FACTORY.Create("aff4:/foreman", "GRRForeman",
-                                         token=self.token)
-      self.foreman.Set(self.foreman.Schema.RULES())
-      self.foreman.Close()
+      self.CreateHuntFixtureWithTwoClients()
 
     # Open up and click on View Hunts.
     self.Open("/")
@@ -308,6 +305,141 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
     self.Click("css=.Wizard button.Next")
     self.WaitUntil(self.IsTextPresent, "Output Processing")
     self.WaitUntil(self.IsTextPresent, "Dummy do do")
+
+  def testLabelsHuntRuleDisplaysAvailableLabels(self):
+    with self.ACLChecksDisabled():
+      with aff4.FACTORY.Open("C.0000000000000001", aff4_type="VFSGRRClient",
+                             mode="rw", token=self.token) as client:
+        client.AddLabels("foo", owner="owner1")
+        client.AddLabels("bar", owner="owner2")
+
+    self.Open("/#main=ManageHunts")
+    self.Click("css=button[name=NewHunt]")
+
+    # Select "List Processes" flow.
+    self.Click("css=#_Processes > ins.jstree-icon")
+    self.Click("link=ListProcesses")
+
+    # Click 'Next' to go to output plugins page.
+    self.Click("css=.Wizard button.Next")
+
+    # Click 'Next' to go to hunt rules page.
+    self.Click("css=.Wizard button.Next")
+
+    # Select 'Clients With Label' rule.
+    self.Select("css=.Wizard select[id=rule_1-option]", "Clients With Label")
+
+    # Check that there's an option present for labels 'bar' (this option should
+    # be selected) and for label 'foo'.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=.Wizard select[id=rule_1] option:selected[value=bar]")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=.Wizard select[id=rule_1] option[value=bar]")
+
+  def testLabelsHuntRuleCreatesForemanRegexRuleInResultingHunt(self):
+    with self.ACLChecksDisabled():
+      with aff4.FACTORY.Open("C.0000000000000001", mode="rw",
+                             token=self.token) as client:
+        client.AddLabels("foo", owner="test")
+
+    self.Open("/#main=ManageHunts")
+    self.Click("css=button[name=NewHunt]")
+
+    # Select "List Processes" flow.
+    self.Click("css=#_Processes > ins.jstree-icon")
+    self.Click("link=ListProcesses")
+
+    # Click 'Next' to go to the output plugins page.
+    self.Click("css=.Wizard button.Next")
+
+    # Click 'Next' to go to the hunt rules page.
+    self.Click("css=.Wizard button.Next")
+
+    # Select 'Clients With Label' rule.
+    self.Select("css=.Wizard select[id=rule_1-option]", "Clients With Label")
+    self.Select("css=.Wizard select[id=rule_1]", "foo")
+
+    # Click 'Next' to go to the hunt overview page. Check that generated regexp
+    # is displayed there.
+    self.Click("css=.Wizard button.Next")
+    self.WaitUntil(self.IsTextPresent, "(.+,|\\A)foo(,.+|\\Z)")
+
+    # Click 'Next' to go to submit the hunt and wait until it's created.
+    self.Click("css=.Wizard button.Next")
+    self.WaitUntil(self.IsTextPresent, "Hunt was created!")
+
+    # Get hunt's rules.
+    with self.ACLChecksDisabled():
+      hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
+      hunts_list = list(hunts_root.OpenChildren(mode="rw"))
+      hunt = hunts_list[0]
+
+      hunt.Run()  # Run the hunt so that rules are added to the foreman.
+      hunt_rules = self.FindForemanRules(hunt, token=self.token)
+
+    self.assertEquals(len(hunt_rules), 1)
+    self.assertEquals(len(hunt_rules[0].regex_rules), 1)
+    self.assertEquals(hunt_rules[0].regex_rules[0].path, "/")
+    self.assertEquals(hunt_rules[0].regex_rules[0].attribute_name, "Labels")
+    self.assertEquals(hunt_rules[0].regex_rules[0].attribute_regex,
+                      "(.+,|\\A)foo(,.+|\\Z)")
+
+  def testLabelsHuntRuleMatchesCorrectClients(self):
+    with self.ACLChecksDisabled():
+      client_ids = self.SetupClients(10)
+
+    with self.ACLChecksDisabled():
+      with aff4.FACTORY.Open("C.0000000000000001", mode="rw",
+                             token=self.token) as client:
+        client.AddLabels("foo", owner="owner1")
+        client.AddLabels("bar", owner="owner2")
+
+      with aff4.FACTORY.Open("C.0000000000000007", mode="rw",
+                             token=self.token) as client:
+        client.AddLabels("bar", owner="GRR")
+
+    self.Open("/#main=ManageHunts")
+    self.Click("css=button[name=NewHunt]")
+
+    # Select "List Processes" flow.
+    self.Click("css=#_Processes > ins.jstree-icon")
+    self.Click("link=ListProcesses")
+
+    # Click 'Next' to go to the output plugins page and then to hunt rules page.
+    self.Click("css=.Wizard button.Next")
+    self.Click("css=.Wizard button.Next")
+
+    # Select 'Clients With Label' rule.
+    self.Select("css=.Wizard select[id=rule_1-option]", "Clients With Label")
+    self.Select("css=.Wizard select[id=rule_1]", "foo")
+
+    # Click 'Next' to go to hunt overview page.  Then click 'Next' to go to
+    # submit the hunt and wait until it's created.
+    self.Click("css=.Wizard button.Next")
+    self.Click("css=.Wizard button.Next")
+    self.WaitUntil(self.IsTextPresent, "Hunt was created!")
+
+    with self.ACLChecksDisabled():
+      hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
+      hunts_list = list(hunts_root.OpenChildren(mode="rw"))
+      hunt = hunts_list[0]
+
+      hunt.Run()  # Run the hunt so that rules are added to the foreman.
+
+      foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
+      for client_id in client_ids:
+        foreman.AssignTasksToClient(client_id)
+
+      # Check that hunt flow was started only on labeled clients.
+      for client_id in client_ids:
+        flows_count = len(list(aff4.FACTORY.Open(
+            client_id.Add("flows"), token=self.token).ListChildren()))
+
+        if (client_id == rdfvalue.ClientURN("C.0000000000000001") or
+            client_id == rdfvalue.ClientURN("C.0000000000000007")):
+          self.assertEqual(flows_count, 1)
+        else:
+          self.assertEqual(flows_count, 0)
 
 
 def main(argv):

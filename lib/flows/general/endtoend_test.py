@@ -2,6 +2,7 @@
 """Tests for grr.lib.flows.general.endtoend."""
 
 from grr.endtoend_tests import base
+from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import rdfvalue
@@ -26,6 +27,11 @@ class MockEndToEndTest(base.AutomatedTest):
 
   def tearDown(self):
     pass
+
+
+class MockEndToEndTestBadFlow(MockEndToEndTest):
+  flow = "RaiseOnStart"
+  args = {}
 
 
 class TestBadSetUp(MockEndToEndTest):
@@ -61,7 +67,7 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
     self.client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
     self.client.Set(self.client.SchemaCls.SUMMARY(summary))
     self.client.Flush()
-    self.client_mock = test_lib.ActionMock("ListDirectory", "StatFile")
+    self.client_mock = action_mocks.ActionMock("ListDirectory", "StatFile")
 
   def testRunSuccess(self):
     args = rdfvalue.EndToEndTestFlowArgs(
@@ -148,6 +154,20 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
   def testRunBadTearDown(self):
     args = rdfvalue.EndToEndTestFlowArgs(
         test_names=["TestBadTearDown"])
+
+    self.assertRaises(RuntimeError, list, test_lib.TestFlowHelper(
+        "EndToEndTestFlow", self.client_mock, client_id=self.client_id,
+        token=self.token, args=args))
+
+  def testRunBadFlow(self):
+    """Test behaviour when test flow raises in Start.
+
+    A flow that raises in its Start method will kill the EndToEndTest run.
+    Protecting and reporting on this significantly complicates this code, and a
+    flow raising in Start is really broken, so we allow this behaviour.
+    """
+    args = rdfvalue.EndToEndTestFlowArgs(
+        test_names=["MockEndToEndTestBadFlow", "MockEndToEndTest"])
 
     self.assertRaises(RuntimeError, list, test_lib.TestFlowHelper(
         "EndToEndTestFlow", self.client_mock, client_id=self.client_id,

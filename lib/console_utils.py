@@ -27,16 +27,6 @@ def FormatISOTime(t):
   return time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(t / 1e6))
 
 
-def SetLabels(urn, labels, token=None):
-  """Set the labels on an object."""
-  fd = aff4.FACTORY.Open(urn, mode="rw", token=token)
-  current_labels = fd.Get(fd.Schema.LABEL, fd.Schema.LABEL())
-  for l in labels:
-    current_labels.Append(l)
-  fd.Set(current_labels)
-  fd.Close()
-
-
 def SearchClients(query_str, token=None, limit=1000):
   """Search indexes for clients. Returns list (client, hostname, os version)."""
   client_schema = aff4.AFF4Object.classes["VFSGRRClient"].SchemaCls
@@ -80,7 +70,7 @@ def DownloadDir(aff4_path, output_dir, bufsize=8192, preserve_path=True):
       outfile = os.path.join(full_dir, child.urn.Basename())
     else:
       outfile = os.path.join(output_dir, child.urn.Basename())
-    logging.info("Downloading %s to %s", child.urn, outfile)
+    logging.info(u"Downloading %s to %s", child.urn, outfile)
     with open(outfile, "wb") as out_fd:
       try:
         buf = child.Read(bufsize)
@@ -258,3 +248,42 @@ def ApprovalRevokeRaw(aff4_path, token, remove_from_cache=False):
   if remove_from_cache:
     data_store.DB.security_manager.acl_cache.ExpireObject(
         utils.SmartUnicode(approval_urn))
+
+
+# TODO(user): remove as soon as migration is complete.
+def MigrateObjectsLabels(root_urn, obj_type, token=None):
+  """Migrates labels of object under given root (non-recursive)."""
+
+  root = aff4.FACTORY.Open(root_urn, token=token)
+  children_urns = list(root.ListChildren())
+  print "Found %d children." % len(children_urns)
+
+  updated_objects = 0
+  ignored_objects = 0
+  for child in aff4.FACTORY.MultiOpen(
+      children_urns, mode="rw", token=token, age=aff4.NEWEST_TIME):
+
+    if isinstance(child, obj_type):
+      print "Current state: %d updated, %d ignored." % (updated_objects,
+                                                        ignored_objects)
+
+      old_labels = child.Get(child.Schema.DEPRECATED_LABEL, [])
+      if not old_labels:
+        ignored_objects += 1
+        continue
+
+      labels = [utils.SmartStr(label) for label in old_labels]
+      child.AddLabels(*labels, owner="GRR")
+      child.Close()
+      updated_objects += 1
+
+  aff4.FACTORY.Flush()
+
+
+def MigrateClientsAndUsersLabels(token=None):
+  """Migrates clients and users labels."""
+
+  print "Migrating clients."
+  MigrateObjectsLabels(aff4.ROOT_URN, aff4.VFSGRRClient, token=token)
+  print "\nMigrating users."
+  MigrateObjectsLabels(aff4.ROOT_URN.Add("users"), aff4.GRRUser, token)

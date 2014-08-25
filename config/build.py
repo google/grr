@@ -97,6 +97,14 @@ a = Analysis\(
     ["%(%(ClientBuilder.source)|unixpath)/grr/client/client.py"],
     hiddenimports=[],
     hookspath=None\)
+
+# Remove some optional libraries that would be packed but serve no purpose.
+for prefix in ["IPython"]:
+  for collection in [a.binaries, a.datas, a.pure]:
+    for item in collection[:]:
+      if item[0].startswith\(prefix\):
+        collection.remove\(item\)
+
 pyz = PYZ\(
     a.pure\)
 exe = EXE\(
@@ -119,7 +127,8 @@ coll = COLLECT\(
     strip=False,
     upx=False,
     name='grr-client'
-\)""")
+\)
+""")
 
 config_lib.DEFINE_string(
     name="PyInstaller.distpath",
@@ -182,8 +191,13 @@ config_lib.DEFINE_string(
     "The path to the build directory.")
 
 config_lib.DEFINE_string(
+    name="Client.prefix", default="",
+    help="A prefix for the client name, usually dbg_ for debug builds.")
+
+config_lib.DEFINE_string(
     name="ClientBuilder.output_basename",
-    default="%(Client.name)_%(Client.version_string)_%(Client.arch)",
+    default=("%(Client.prefix)%(Client.name)_"
+             "%(Client.version_string)_%(Client.arch)"),
     help="The base name of the output package.")
 
 # Windows client specific options.

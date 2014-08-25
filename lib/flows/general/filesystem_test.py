@@ -6,6 +6,7 @@ import hashlib
 import os
 
 from grr.client import vfs
+from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import rdfvalue
@@ -20,7 +21,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
   def testListDirectoryOnFile(self):
     """OS ListDirectory on a file will raise."""
-    client_mock = test_lib.ActionMock("ListDirectory", "StatFile")
+    client_mock = action_mocks.ActionMock("ListDirectory", "StatFile")
 
     pb = rdfvalue.PathSpec(
         path=os.path.join(self.base_path, "test_img.dd"),
@@ -33,7 +34,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
   def testListDirectory(self):
     """Test that the ListDirectory flow works."""
-    client_mock = test_lib.ActionMock("ListDirectory", "StatFile")
+    client_mock = action_mocks.ActionMock("ListDirectory", "StatFile")
 
     # Deliberately specify incorrect casing for the image name.
     pb = rdfvalue.PathSpec(
@@ -66,7 +67,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
   def testUnicodeListDirectory(self):
     """Test that the ListDirectory flow works on unicode directories."""
 
-    client_mock = test_lib.ActionMock("ListDirectory", "StatFile")
+    client_mock = action_mocks.ActionMock("ListDirectory", "StatFile")
 
     # Deliberately specify incorrect casing
     pb = rdfvalue.PathSpec(
@@ -102,7 +103,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     client.Set(users)
     client.Close()
 
-    client_mock = test_lib.ActionMock("Find", "StatFile")
+    client_mock = action_mocks.ActionMock("Find", "StatFile")
 
     # This glob selects all files which start with the username on this system.
     paths = [os.path.join(self.base_path, "%%Users.username%%*"),
@@ -136,7 +137,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
   def _RunGlob(self, paths):
     self.flow_replies = []
-    client_mock = test_lib.ActionMock("Find", "StatFile")
+    client_mock = action_mocks.ActionMock("Find", "StatFile")
     with test_lib.Stubber(flow.GRRFlow, "SendReply", self._MockSendReply):
       for _ in test_lib.TestFlowHelper(
           "Glob", client_mock, client_id=self.client_id,
@@ -155,7 +156,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     client.Set(users)
     client.Close()
 
-    client_mock = test_lib.ActionMock("Find", "StatFile")
+    client_mock = action_mocks.ActionMock("Find", "StatFile")
 
     # Glob for foo at a depth of 4.
     path = os.path.join("foo**4")
@@ -252,7 +253,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
                           [utils.JoinPath(self.temp_dir, x) for x in results])
 
   def testGlobWithInvalidStarStar(self):
-    client_mock = test_lib.ActionMock("Find", "StatFile")
+    client_mock = action_mocks.ActionMock("Find", "StatFile")
 
     # This glob is invalid since it uses 2 ** expressions..
     paths = [os.path.join(self.base_path, "test_img.dd", "**", "**", "foo")]
@@ -264,7 +265,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
         token=self.token))
 
   def testGlobWithWildcardsInsideTSKFile(self):
-    client_mock = test_lib.ActionMock("Find", "StatFile")
+    client_mock = action_mocks.ActionMock("Find", "StatFile")
 
     # This glob should find this file in test data: glob_test/a/b/foo.
     path = os.path.join("*", "a", "b", "*")
@@ -292,7 +293,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     self.assertEqual(children[0].Basename(), "foo")
 
   def testGlobWithWildcardsInsideTSKFileCaseInsensitive(self):
-    client_mock = test_lib.ActionMock("Find", "StatFile")
+    client_mock = action_mocks.ActionMock("Find", "StatFile")
 
     # This glob should find this file in test data: glob_test/a/b/foo.
     path = os.path.join("*", "a", "b", "FOO*")
@@ -320,7 +321,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     self.assertEqual(children[0].Basename(), "foo")
 
   def testGlobWildcardsAndTSK(self):
-    client_mock = test_lib.ActionMock("Find", "StatFile")
+    client_mock = action_mocks.ActionMock("Find", "StatFile")
 
     # This glob should find this file in test data: glob_test/a/b/foo.
     path = os.path.join(self.base_path,
@@ -382,7 +383,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
     client.Close()
 
-    client_mock = test_lib.ActionMock("Find", "StatFile")
+    client_mock = action_mocks.ActionMock("Find", "StatFile")
 
     # This glob selects all files which start with the username on this system.
     path = os.path.join(os.path.dirname(self.base_path),
@@ -407,7 +408,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
     pattern = "test_data/{ntfs_img.dd,*.log,*.raw}"
 
-    client_mock = test_lib.ActionMock("Find", "StatFile")
+    client_mock = action_mocks.ActionMock("Find", "StatFile")
     path = os.path.join(os.path.dirname(self.base_path), pattern)
 
     # Run the flow.
@@ -431,7 +432,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     # When running the flow asynchronously, we will not receive any errors from
     # the Start method, but the flow should still fail.
     paths = ["Test/%%Weird_illegal_attribute%%"]
-    client_mock = test_lib.ActionMock("Find", "StatFile")
+    client_mock = action_mocks.ActionMock("Find", "StatFile")
 
     # Run the flow.
     session_id = None
@@ -468,7 +469,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
         ]:
 
       path = os.path.join(os.path.dirname(self.base_path), pattern)
-      client_mock = test_lib.RecordingActionMock("Find", "StatFile")
+      client_mock = action_mocks.RecordingActionMock("Find", "StatFile")
 
       # Run the flow.
       for _ in test_lib.TestFlowHelper(
@@ -525,8 +526,8 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
         rdfvalue.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
 
     # Mock the client actions FileFinder uses.
-    client_mock = test_lib.ActionMock("HashFile", "HashBuffer", "StatFile",
-                                      "Find", "TransferBuffer")
+    client_mock = action_mocks.ActionMock("HashFile", "HashBuffer", "StatFile",
+                                          "Find", "TransferBuffer")
 
     for _ in test_lib.TestFlowHelper(
         "FileFinder", client_mock, client_id=self.client_id,
@@ -566,8 +567,8 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
         rdfvalue.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
 
     # Mock the client actions FileFinder uses.
-    client_mock = test_lib.ActionMock("HashFile", "HashBuffer", "StatFile",
-                                      "Find", "TransferBuffer")
+    client_mock = action_mocks.ActionMock("HashFile", "HashBuffer", "StatFile",
+                                          "Find", "TransferBuffer")
 
     for _ in test_lib.TestFlowHelper(
         "FileFinder", client_mock, client_id=self.client_id,
@@ -628,9 +629,9 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     fd = self.CreateNewSparseImage()
     urn = fd.urn
 
-    self.client_mock = test_lib.ActionMock("HashFile", "HashBuffer", "StatFile",
-                                           "Find", "TransferBuffer",
-                                           "ReadBuffer")
+    self.client_mock = action_mocks.ActionMock("HashFile", "HashBuffer",
+                                               "StatFile", "Find",
+                                               "TransferBuffer", "ReadBuffer")
     for _ in test_lib.TestFlowHelper(
         "FetchBufferForSparseImage", self.client_mock, client_id=self.client_id,
         token=self.token, file_urn=urn, length=length,
@@ -708,8 +709,9 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     pathspec = rdfvalue.PathSpec(
         path=path, pathtype=rdfvalue.PathSpec.PathType.OS)
 
-    client_mock = test_lib.ActionMock("HashFile", "HashBuffer", "StatFile",
-                                      "Find", "TransferBuffer", "ReadBuffer")
+    client_mock = action_mocks.ActionMock("HashFile", "HashBuffer", "StatFile",
+                                          "Find", "TransferBuffer",
+                                          "ReadBuffer")
 
     # Get everything as an AFF4SparseImage
     for _ in test_lib.TestFlowHelper(
@@ -743,7 +745,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     self.assertNotEqual(fd.Get(fd.Schema.SIZE), 0)
 
   def testDiskVolumeInfoOSXLinux(self):
-    client_mock = test_lib.UnixVolumeClientMock("StatFile", "ListDirectory")
+    client_mock = action_mocks.UnixVolumeClientMock("StatFile", "ListDirectory")
     with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
       for _ in test_lib.TestFlowHelper(
           "DiskVolumeInfo", client_mock, client_id=self.client_id,
@@ -766,7 +768,8 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     vfs.VFS_HANDLERS[
         rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.ClientRegistryVFSFixture
 
-    client_mock = test_lib.WindowsVolumeClientMock("StatFile", "ListDirectory")
+    client_mock = action_mocks.WindowsVolumeClientMock("StatFile",
+                                                       "ListDirectory")
 
     with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
       for _ in test_lib.TestFlowHelper(

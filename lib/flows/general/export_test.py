@@ -3,8 +3,10 @@
 
 
 
+import hashlib
 import os
 import StringIO
+import subprocess
 import zipfile
 
 from grr.lib import aff4
@@ -13,6 +15,7 @@ from grr.lib import email_alerts
 from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib import utils
 
 
 class TestExportHuntResultsFilesAsZipFlow(test_lib.FlowTestsBaseclass):
@@ -24,11 +27,15 @@ class TestExportHuntResultsFilesAsZipFlow(test_lib.FlowTestsBaseclass):
     path1 = "aff4:/C.0000000000000000/fs/os/foo/bar/hello1.txt"
     fd = aff4.FACTORY.Create(path1, "AFF4MemoryStream", token=self.token)
     fd.Write("hello1")
+    fd.Set(fd.Schema.HASH,
+           rdfvalue.Hash(sha256=hashlib.sha256("hello1").digest()))
     fd.Close()
 
     path2 = "aff4:/C.0000000000000000/fs/os/foo/bar/hello2.txt"
     fd = aff4.FACTORY.Create(path2, "AFF4MemoryStream", token=self.token)
     fd.Write("hello2")
+    fd.Set(fd.Schema.HASH,
+           rdfvalue.Hash(sha256=hashlib.sha256("hello2").digest()))
     fd.Close()
 
     self.paths = [path1, path2]
@@ -94,14 +101,14 @@ class TestExportHuntResultsFilesAsZipFlow(test_lib.FlowTestsBaseclass):
                      "Hunt results ready for download (archived 2 out "
                      "of 2 results)")
 
-  def testCreatesZipContainingHuntResultsFiles(self):
+  def testCreatesZipContainingHuntResultsFilesWithoutDeduplication(self):
 
     with test_lib.Stubber(email_alerts, "SendEmail", self.SendEmailMock):
       self.email_messages = []
 
       for _ in test_lib.TestFlowHelper(
           "ExportHuntResultFilesAsZip", None,
-          hunt_urn=self.hunt_urn, token=self.token):
+          hunt_urn=self.hunt_urn, deduplicate=False, token=self.token):
         pass
 
       self._CheckEmailMessage(self.email_messages)
@@ -128,3 +135,46 @@ class TestExportHuntResultsFilesAsZipFlow(test_lib.FlowTestsBaseclass):
                      "hello1")
     self.assertEqual(test_zip.read(os.path.join(prefix, "hello2.txt")),
                      "hello2")
+
+  def testCreatesZipContainingDeduplicatedHuntResultsFiles(self):
+
+    with test_lib.Stubber(email_alerts, "SendEmail", self.SendEmailMock):
+      self.email_messages = []
+
+      for _ in test_lib.TestFlowHelper(
+          "ExportHuntResultFilesAsZip", None,
+          hunt_urn=self.hunt_urn, deduplicate=True, token=self.token):
+        pass
+
+      self._CheckEmailMessage(self.email_messages)
+
+    user_fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add("users").Add("test"),
+                                token=self.token)
+    notifications = user_fd.Get(user_fd.Schema.PENDING_NOTIFICATIONS)
+    self.assertEqual(len(notifications), 1)
+
+    zip_fd = aff4.FACTORY.Open(notifications[0].subject, aff4_type="AFF4Stream",
+                               token=self.token)
+    zip_fd_contents = zip_fd.Read(len(zip_fd))
+
+    with utils.TempDirectory() as temp_dir:
+      archive_path = os.path.join(temp_dir, "archive.zip")
+      with open(archive_path, "w") as out_fd:
+        out_fd.write(zip_fd_contents)
+
+      # Builtin python ZipFile implementation doesn't support symlinks,
+      # so we have to extract the files with command line tool.
+      subprocess.check_call(["unzip", "-x", archive_path, "-d", temp_dir])
+
+      friendly_hunt_name = self.hunt_urn.Basename().replace(":", "_")
+      prefix = os.path.join(temp_dir, friendly_hunt_name,
+                            "C.0000000000000000/fs/os/foo/bar")
+
+      self.assertTrue(os.path.islink(os.path.join(prefix, "hello1.txt")))
+      self.assertTrue(os.path.islink(os.path.join(prefix, "hello2.txt")))
+
+      with open(os.path.join(prefix, "hello1.txt"), "r") as fd:
+        self.assertEqual(fd.read(), "hello1")
+
+      with open(os.path.join(prefix, "hello2.txt"), "r") as fd:
+        self.assertEqual(fd.read(), "hello2")

@@ -7,6 +7,7 @@ import os
 
 from grr.client import vfs
 
+from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import rdfvalue
@@ -15,7 +16,7 @@ from grr.lib import test_lib
 # pylint:mode=test
 
 
-class FileFinderActionMock(test_lib.ActionMock):
+class FileFinderActionMock(action_mocks.ActionMock):
 
   def __init__(self):
     super(FileFinderActionMock, self).__init__(

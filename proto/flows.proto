@@ -68,7 +68,7 @@ message GUISettings {
 
 
 message FlowRunnerArgs {
-  // Next field ID: 17
+  // Next field ID: 20
 
   optional GrrMessage.Priority priority = 1 [(sem_type) = {
       description: "The priority used for this flow.",
@@ -168,6 +168,17 @@ message FlowRunnerArgs {
       label: HIDDEN,
     }];
 
+  optional bool write_intermediate_results = 18 [(sem_type) = {
+      description: "If true, all child flow results received with sendreply"
+                   " will be written to the the flow's default collection.",
+      label: ADVANCED
+    }, default=false];
+
+  optional bool require_fastpoll = 19 [ default = true, (sem_type) = {
+      description: "This value is passed to the client during CallClient, and "
+                   "by default will cause the client to enter fastpoll after"
+                   "processing the message."
+    }];
 }
 
 
@@ -246,6 +257,12 @@ message HuntRunnerArgs {
       type: "RDFURN",
       description: "The logs collection to log to for the hunt.",
       label: HIDDEN,
+    }];
+
+  optional bool require_fastpoll = 15 [ default = true, (sem_type) = {
+      description: "This value is passed to the client during CallClient, and "
+                   "by default will cause the client to enter fastpoll after"
+                   "processing the message."
     }];
 
 };
@@ -571,7 +588,7 @@ message ArtifactCollectorFlowArgs {
       label: HIDDEN,
     }];
 
-  optional bool no_results_errors = 7 [(sem_type) = {
+  optional bool on_no_results_error = 7 [(sem_type) = {
       description: "If True, an artifact returning no results will raise a hard"
       " error. This is useful where you always expect results."
     }, default=false];
@@ -679,19 +696,6 @@ message LoadMemoryDriverArgs {
       description: "If the driver is already loaded we reload it.",
       friendly_name: "Force reload of driver."
     }, default=false];
-}
-
-message AnalyzeClientMemoryArgsVolatility {
-  optional DriverInstallTemplate driver_installer = 1 [(sem_type) = {
-      description: "An optional DriverInstallTemplate proto to control "
-      "driver installation. If not set, the default  installation proto will "
-      "be used.",
-      label: HIDDEN,
-    }];
-
-  optional VolatilityRequest request = 2 [(sem_type) = {
-      description: "A request for the client's volatility subsystem.",
-    }];
 }
 
 message AnalyzeClientMemoryArgs {
@@ -1261,10 +1265,6 @@ message ListVADBinariesArgs {
   optional bool fetch_binaries = 2 [(sem_type) = {
       friendly_name: "Fetch Binaries",
     }, default=false];
-
-  optional VolatilityRequest request = 3 [(sem_type) = {
-      label: ADVANCED
-    }];
 }
 
 message FileFinderModificationTimeCondition {
@@ -1688,6 +1688,10 @@ message ExportHuntResultsFilesAsZipArgs {
       type: "RDFURN",
       description: "The URN of the hunt."
     }];
+  optional bool deduplicate = 2 [(sem_type) = {
+      friendly_name: "Deduplicate (via symlinks)",
+      description: "Deduplicate files in resulting archive using symlinks"
+    }, default=true];
 }
 
 message EndToEndTestFlowArgs {
@@ -1706,4 +1710,11 @@ message DiskVolumeInfoArgs {
       description: "Type of path. Only OS is currently supported.",
       label: HIDDEN
     }, default=OS];
+}
+
+message ApplyLabelsToClientsFlowArgs {
+  repeated string clients = 1 [(sem_type) = {
+      type: "ClientURN"
+    }];
+  repeated string labels = 2;
 }

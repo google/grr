@@ -23,12 +23,21 @@ from grr.lib import utils
 from grr.lib.data_stores import common
 
 SQLITE_EXTENSION = "sqlite"
-SQLITE_TIMEOUT = 60.0
+SQLITE_TIMEOUT = 600.0
 SQLITE_ISOLATION = "DEFERRED"
 SQLITE_SUBJECT_SPEC = "VARCHAR(512)"
 SQLITE_DETECT_TYPES = 0
 SQLITE_FACTORY = sqlite3.Connection
 SQLITE_CACHED_STATEMENTS = 20
+# How many records need to be deleted before attempting to vacuum.
+SQLITE_VACUUM_CHECK = config_lib.CONFIG["SqliteDatastore.vacuum_check"]
+# Minimum amount of time between vacuum operations.
+SQLITE_VACUUM_FREQUENCY = config_lib.CONFIG["SqliteDatastore.vacuum_frequency"]
+# Minimum size of file before vacuuming.
+SQLITE_VACUUM_MINSIZE = config_lib.CONFIG["SqliteDatastore.vacuum_minsize"]
+# Ratio of free pages for vacuuming.
+SQLITE_VACUUM_RATIO = config_lib.CONFIG["SqliteDatastore.vacuum_ratio"]
+SQLITE_PAGE_SIZE = 1024
 
 
 class SqliteConnectionCache(utils.FastStore):
@@ -39,19 +48,24 @@ class SqliteConnectionCache(utils.FastStore):
 
   def _CreateModelDatabase(self):
     # Create model database file.
-    root_path = config_lib.CONFIG["SqliteDatastore.root_path"]
     try:
-      if not os.path.isdir(root_path):
-        os.makedirs(root_path)
+      if not os.path.isdir(self.root_path):
+        os.makedirs(self.root_path)
     except OSError:
       # Directory was created after the if.
       pass
-    fd, model = tempfile.mkstemp(dir=root_path)
+    fd, model = tempfile.mkstemp(dir=self.root_path)
     os.close(fd)
     conn = sqlite3.connect(model, SQLITE_TIMEOUT, SQLITE_DETECT_TYPES,
                            SQLITE_ISOLATION, False, SQLITE_FACTORY,
                            SQLITE_CACHED_STATEMENTS)
     cursor = conn.cursor()
+    cursor.execute("PRAGMA count_changes = OFF")
+    cursor.execute("PRAGMA cache_size = 10000")
+    cursor.execute("PRAGMA journal_mode = OFF")
+    # Make sure the database is fully written to disk.
+    cursor.execute("PRAGMA synchronous = ON")
+    cursor.execute("PRAGMA page_size = %d" % SQLITE_PAGE_SIZE)
     query = """CREATE TABLE IF NOT EXISTS tbl (
               subject %(subject)s NOT NULL,
               predicate VARCHAR(512) NOT NULL,
@@ -63,14 +77,13 @@ class SqliteConnectionCache(utils.FastStore):
                expires BIG INTEGER NOT NULL,
                token BIG INTEGER NOT NULL)""" % {"subject": SQLITE_SUBJECT_SPEC}
     cursor.execute(query)
+    query = """CREATE TABLE IF NOT EXISTS statistics (
+               name VARCHAR(512) PRIMARY KEY NOT NULL,
+               value BLOB)"""
+    cursor.execute(query)
     query = """CREATE INDEX IF NOT EXISTS tbl_index
               ON tbl (subject, predicate, timestamp)"""
     cursor.execute(query)
-    cursor.execute("PRAGMA count_changes = OFF")
-    cursor.execute("PRAGMA cache_size = 10000")
-    cursor.execute("PRAGMA journal_mode = OFF")
-    # Make sure the database is fully written to disk.
-    cursor.execute("PRAGMA synchronous = ON")
     conn.commit()
     cursor.close()
     conn.close()
@@ -113,9 +126,22 @@ class SqliteConnectionCache(utils.FastStore):
     finally:
       os.umask(umask_original)
 
-  def __init__(self, max_size):
-    super(SqliteConnectionCache, self).__init__(max_size)
+  def __init__(self, max_size, path):
+    super(SqliteConnectionCache, self).__init__(max_size=max_size)
+    self.root_path = path or SqliteDataStore.GetLocation()
     self._CreateModelDatabase()
+    self.RecreatePathing()
+
+  def RecreatePathing(self, pathing=None):
+    if not pathing:
+      pathing = config_lib.CONFIG.Get("Datastore.pathing")
+    try:
+      self.path_regexes = [re.compile(path) for path in pathing]
+    except re.error:
+      raise data_store.Error("Invalid regular expression in Datastore.pathing")
+
+  def RootPath(self):
+    return self.root_path
 
   def KillObject(self, conn):
     conn.Close()
@@ -123,20 +149,28 @@ class SqliteConnectionCache(utils.FastStore):
   @utils.Synchronized
   def Get(self, subject):
     """This will create the connection if needed so should not fail."""
-    subject = common.ResolveSubjectDestination(subject)
-
+    filename, directory = common.ResolveSubjectDestination(subject,
+                                                           self.path_regexes)
+    key = common.MakeDestinationKey(directory, filename)
     try:
-      return super(SqliteConnectionCache, self).Get(subject)
+      return super(SqliteConnectionCache, self).Get(key)
     except KeyError:
-      path = utils.JoinPath(config_lib.CONFIG["SqliteDatastore.root_path"],
-                            common.ConvertStringToFilename(subject))
-      filename = path + "." + SQLITE_EXTENSION
-      assert os.path.isdir(os.path.dirname(filename))
-      self._EnsureDatabaseExists(filename)
-      # Open database.
-      connection = SqliteConnection(filename)
+      dirname = utils.JoinPath(self.root_path, directory)
+      path = utils.JoinPath(dirname, filename) + "." + SQLITE_EXTENSION
+      dirname = utils.SmartStr(dirname)
+      path = utils.SmartStr(path)
 
-      super(SqliteConnectionCache, self).Put(subject, connection)
+      # Make sure directory exists.
+      if not os.path.isdir(dirname):
+        try:
+          os.makedirs(dirname)
+        except OSError:
+          pass
+
+      self._EnsureDatabaseExists(path)
+      connection = SqliteConnection(path)
+
+      super(SqliteConnectionCache, self).Put(key, connection)
 
       return connection
 
@@ -163,6 +197,9 @@ class SqliteConnection(object):
     self.cursor.execute("PRAGMA cache_size = 10000")
     self.lock = threading.RLock()
     self.dirty = False
+    # Counter for vacuuming purposes.
+    self.deleted = 0
+    self.next_vacuum_check = SQLITE_VACUUM_CHECK
 
   def Filename(self):
     return self.filename
@@ -306,6 +343,7 @@ class SqliteConnection(object):
     args = (subject, predicate)
     self.cursor.execute(query, args)
     self.dirty = True
+    self.deleted += self.cursor.rowcount
 
   @utils.Synchronized
   def SetAttribute(self, subject, predicate, value, timestamp):
@@ -316,6 +354,7 @@ class SqliteConnection(object):
     args = (subject, predicate, timestamp, value)
     self.cursor.execute(query, args)
     self.dirty = True
+    self.deleted = max(0, self.deleted - self.cursor.rowcount)
 
   @utils.Synchronized
   def DeleteAttributeRange(self, subject, predicate, start, end):
@@ -324,9 +363,10 @@ class SqliteConnection(object):
     predicate = utils.SmartStr(predicate)
     query = """DELETE FROM tbl WHERE subject = ? AND predicate = ?
                AND timestamp >= ? AND timestamp <= ?"""
-    args = (subject, predicate, start, end)
+    args = (subject, predicate, int(start), int(end))
     self.cursor.execute(query, args)
     self.dirty = True
+    self.deleted += self.cursor.rowcount
 
   @utils.Synchronized
   def DeleteAttributesRegex(self, subject, regex):
@@ -336,6 +376,7 @@ class SqliteConnection(object):
     args = (subject, regex)
     self.cursor.execute(query, args)
     self.dirty = True
+    self.deleted += self.cursor.rowcount
 
   @utils.Synchronized
   def DeleteSubject(self, subject):
@@ -345,6 +386,7 @@ class SqliteConnection(object):
     args = (subject,)
     self.cursor.execute(query, args)
     self.dirty = True
+    self.deleted += self.cursor.rowcount
 
   def PrettyPrint(self):
     """Print the SQLite database."""
@@ -372,6 +414,57 @@ class SqliteConnection(object):
       except sqlite3.OperationalError:
         # Transaction not active.
         pass
+    if self.deleted >= self.next_vacuum_check:
+      if self._NeedsVacuum() and not self._HasRecentVacuum():
+        self.Vacuum()
+        self.deleted = 0
+        self.next_vacuum_check = max(SQLITE_VACUUM_CHECK,
+                                     self.next_vacuum_check/2)
+      else:
+        # Back-off a bit.
+        self.next_vacuum_check *= 2
+
+  def _NeedsVacuum(self):
+    """Check if there are too many free pages."""
+    pages_result = self.cursor.execute("PRAGMA page_count").fetchone()
+    if not pages_result:
+      return False
+    pages = int(pages_result[0])
+    if pages * SQLITE_PAGE_SIZE < SQLITE_VACUUM_MINSIZE:
+      # Too few pages to worry about.
+      return False
+    free_pages_result = self.cursor.execute("PRAGMA freelist_count").fetchone()
+    if not free_pages_result:
+      return False
+    free_pages = int(free_pages_result[0])
+    # Return true if ratio of free pages is high enough.
+    return float(free_pages)/float(pages) * 100 >= SQLITE_VACUUM_RATIO
+
+  def _HasRecentVacuum(self):
+    """Check if a vacuum operation has been performed recently."""
+    query = "SELECT value FROM statistics WHERE name = 'vacuum_time'"
+    data = self.cursor.execute(query).fetchone()
+    if not data:
+      return False
+    try:
+      last_vacuum = int(str(data[0]))
+      return time.time() - last_vacuum < SQLITE_VACUUM_FREQUENCY
+    except ValueError:
+      # Should not happen.
+      return False
+
+  def Vacuum(self):
+    """Vacuum the database."""
+    now = time.time()
+    self.cursor.execute("VACUUM")
+    # Write time of the vacuum operation.
+    query = "INSERT OR REPLACE INTO statistics VALUES('vacuum_time', ?)"
+    args = (str(int(now)),)
+    self.cursor.execute(query, args)
+    try:
+      self.conn.commit()
+    except sqlite3.OperationalError:
+      pass
 
   @utils.Synchronized
   def Close(self):
@@ -390,10 +483,13 @@ class SqliteDataStore(data_store.DataStore):
   # A cache of SQLite connections.
   cache = None
 
-  def __init__(self):
+  def __init__(self, path=None):
     self._CalculateAttributeStorageTypes()
     super(SqliteDataStore, self).__init__()
-    self.cache = SqliteConnectionCache(1000)
+    self.cache = SqliteConnectionCache(1000, path)
+
+  def RecreatePathing(self, pathing):
+    self.cache.RecreatePathing(pathing)
 
   def _CalculateAttributeStorageTypes(self):
     """Build a mapping between column names and types."""
@@ -515,10 +611,12 @@ class SqliteDataStore(data_store.DataStore):
       return 0, (2 ** 63) - 1
     elif timestamp == self.NEWEST_TIMESTAMP:
       return -1, -1
+    elif isinstance(timestamp, int):
+      return timestamp, timestamp
     else:
       try:
         start, end = timestamp
-        return start, end
+        return int(start), int(end)
       except ValueError:
         return timestamp, timestamp
 
@@ -604,7 +702,7 @@ class SqliteDataStore(data_store.DataStore):
       sql_connection.PrettyPrint()
 
   def Size(self):
-    root_path = config_lib.CONFIG["SqliteDatastore.root_path"]
+    root_path = self.Location()
     if not os.path.exists(root_path):
       # Database does not exist yet.
       return 0
@@ -612,12 +710,26 @@ class SqliteDataStore(data_store.DataStore):
       # Database should be a directory.
       raise IOError("expected SQLite directory %s to be a directory" %
                     root_path)
-    total_size = os.path.getsize(root_path)
-    for subject in os.listdir(root_path):
-      subject_path = os.path.join(root_path, subject)
-      if os.path.isfile(subject_path):
-        total_size += os.path.getsize(subject_path)
-    return total_size
+    size, _ = common.DatabaseDirectorySize(root_path, self.FileExtension())
+    return size
+
+  @staticmethod
+  def SetLocation(location):
+    """Change pre-defined location of the data store."""
+    config_lib.CONFIG.Set("SqliteDatastore.root_path", location)
+
+  @staticmethod
+  def GetLocation():
+    """Get pre-defined location of the data store."""
+    return config_lib.CONFIG.Get("SqliteDatastore.root_path")
+
+  @staticmethod
+  def FileExtension():
+    return SQLITE_EXTENSION
+
+  def Location(self):
+    """Get location of the data store."""
+    return self.cache.RootPath()
 
   def Transaction(self, subject, lease_time=None, token=None):
     return SqliteTransaction(self, subject, lease_time=lease_time, token=token)
@@ -649,13 +761,13 @@ class SqliteTransaction(data_store.CommonTransaction):
     if lease_time is None:
       lease_time = config_lib.CONFIG["Datastore.transaction_timeout"]
 
-    self.token = thread.get_ident()
+    self.lock_token = thread.get_ident()
     sqlite_connection = store.cache.Get(self.subject)
 
     # We first check if there is a lock on the subject.
-    # Next we set our lease time and token as identification.
+    # Next we set our lease time and lock_token as identification.
     with sqlite_connection:
-      locked_until, token = sqlite_connection.GetLock(subject)
+      locked_until, stored_token = sqlite_connection.GetLock(subject)
 
       # This is currently locked by another thread.
       if locked_until and time.time() < float(locked_until):
@@ -663,24 +775,21 @@ class SqliteTransaction(data_store.CommonTransaction):
 
       # Subject is not locked, we take a lease on it.
       self.expires = time.time() + lease_time
-      sqlite_connection.SetLock(subject, self.expires, self.token)
+      sqlite_connection.SetLock(subject, self.expires, self.lock_token)
 
     # Check if the lock stuck. If the stored token is not ours
     # then probably someone was able to grab it before us.
     locked_until, stored_token = sqlite_connection.GetLock(subject)
-    if stored_token != self.token:
+    if stored_token != self.lock_token:
       raise data_store.TransactionError("Unable to lock subject %s" % subject)
 
     self.locked = True
-
-  def CheckLease(self):
-    return max(0, self.expires - time.time())
 
   def UpdateLease(self, duration):
     self.expires = time.time() + duration
     with self.store.cache.Get(self.subject) as sqlite_connection:
       self.expires = time.time() + duration
-      sqlite_connection.SetLock(self.subject, self.expires, self.token)
+      sqlite_connection.SetLock(self.subject, self.expires, self.lock_token)
 
   def Abort(self):
     if self.locked:

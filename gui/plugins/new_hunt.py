@@ -10,9 +10,11 @@ from grr.gui import renderers
 from grr.gui.plugins import flow_management
 from grr.gui.plugins import forms
 from grr.gui.plugins import wizards
+from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
+from grr.lib import type_info
 
 from grr.lib.hunts import implementation
 from grr.lib.hunts import output_plugins
@@ -242,11 +244,47 @@ class HuntConfigureOutputPlugins(forms.MultiFormRenderer):
       plugin.Validate()
 
 
+class ClientLabelNameFormRenderer(forms.TypeDescriptorFormRenderer):
+  """A renderer for AFF4 object label name."""
+
+  layout_template = """<div class="control-group">
+""" + forms.TypeDescriptorFormRenderer.default_description_view + """
+<div class="controls">
+
+<select id="{{this.prefix}}" class="unset"
+  onchange="grr.forms.inputOnChange(this)"
+  >
+{% for label in this.labels %}
+   <option {% if forloop.first %}selected{% endif %}
+     value="{{label|escape}}">
+     {{label|escape}}
+   </option>
+{% endfor %}
+</select>
+</div>
+</div>
+"""
+
+  def Layout(self, request, response):
+    labels_index = aff4.FACTORY.Create(
+        aff4.VFSGRRClient.labels_index_urn, "AFF4LabelsIndex",
+        mode="rw", token=request.token)
+    self.labels = sorted(list(
+        set([label.name for label in labels_index.ListUsedLabels()])))
+
+    response = super(ClientLabelNameFormRenderer, self).Layout(
+        request, response)
+    return self.CallJavascript(response,
+                               "AFF4ObjectLabelNameFormRenderer.Layout",
+                               prefix=self.prefix)
+
+
 class RuleOptionRenderer(forms.OptionFormRenderer):
   """Make a rule form based on rule type."""
   options = (("Windows", "Windows"),
              ("Linux", "Linux"),
              ("OSX", "OSX"),
+             ("Label", "Clients With Label"),
              ("Regex", "Regular Expressions"),
              ("Integer", "Integer Rule"))
 
@@ -273,6 +311,12 @@ This rule will match all <strong>{{system}}</strong> systems.
       return self.RenderFromTemplate(self.match_system_template, response,
                                      system="OSX")
 
+    elif option == "Label":
+      return self.RenderFromTemplate(
+          self.form_template, response, form=ClientLabelNameFormRenderer(
+              descriptor=type_info.TypeInfoObject(friendly_name="Label"),
+              default="", prefix=self.prefix).RawHTML(request))
+
     elif option == "Regex":
       return self.RenderFromTemplate(
           self.form_template, response, form=forms.SemanticProtoFormRenderer(
@@ -295,6 +339,17 @@ This rule will match all <strong>{{system}}</strong> systems.
 
     elif option == "OSX":
       return implementation.GRRHunt.MATCH_DARWIN
+
+    elif option == "Label":
+      label_name = ClientLabelNameFormRenderer(
+          descriptor=type_info.TypeInfoObject(),
+          default="", prefix=self.prefix).ParseArgs(request)
+      regex = rdfvalue.AFF4ObjectLabelsList.RegexForStringifiedValueMatch(
+          label_name)
+
+      return rdfvalue.ForemanAttributeRegex(
+          attribute_name="Labels",
+          attribute_regex=regex)
 
     elif option == "Regex":
       return forms.SemanticProtoFormRenderer(

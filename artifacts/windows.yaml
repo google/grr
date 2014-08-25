@@ -10,16 +10,6 @@ collectors:
 labels: [Rekall, Processes, Software]
 supported_os: [Windows]
 ---
-name: AllVADBinaryFilesVolatility
-doc: Download all currently running binaries on Windows.
-collectors:
-- collector_type: ARTIFACT_FILES
-  args:
-    artifact_list: [FullVADBinaryListVolatility]
-  returned_types: [PathSpec]
-labels: [Volatility, Processes, Software]
-supported_os: [Windows]
----
 name: ApplicationEventLog
 doc: Windows Application Event log.
 collectors:
@@ -56,15 +46,6 @@ collectors:
   args:
     plugin: vad
 labels: [Rekall, Processes]
-supported_os: [Windows]
----
-name: FullVADBinaryListVolatility
-doc: Extract list of currently running binaries on Windows using Volatility.
-collectors:
-- collector_type: VOLATILITY_PLUGIN
-  args:
-    plugin: vad
-labels: [Volatility, Processes]
 supported_os: [Windows]
 ---
 name: EventLogs
@@ -326,15 +307,6 @@ collectors:
 labels: [Users]
 supported_os: [Windows]
 urls: ['https://code.google.com/p/winreg-kb/wiki/RegistryFiles']
----
-name: WMIAdminstators
-doc: Aministrators via Windows Management Instrumentation (WMI).
-collectors:
-- collector_type: WMI
-  args: {query: SELECT * from Win32_GroupUser where Name = "Administrators"}
-conditions: [os_major_version >= 6]
-labels: [Software]
-supported_os: [Windows]
 ---
 name: WMIDrivers
 doc: Installed drivers via Windows Management Instrumentation (WMI).

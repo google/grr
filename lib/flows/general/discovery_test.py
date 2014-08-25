@@ -6,6 +6,7 @@
 import socket
 
 from grr.client import vfs
+from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import artifact_test
 from grr.lib import config_lib
@@ -13,7 +14,6 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import search
 from grr.lib import test_lib
-from grr.test_data import client_fixture
 
 
 class DiscoveryTestEventListener(flow.EventListener):
@@ -28,65 +28,6 @@ class DiscoveryTestEventListener(flow.EventListener):
   def ProcessMessage(self, message=None, event=None):
     _ = message
     DiscoveryTestEventListener.event = event
-
-
-class InterrogatedClient(test_lib.ActionMock):
-  """A mock of client state."""
-
-  def InitializeClient(self, system="Linux", version="12.04"):
-    self.system = system
-    self.version = version
-    self.response_count = 0
-
-  def GetPlatformInfo(self, _):
-    return [rdfvalue.Uname(
-        system=self.system,
-        node="test_node",
-        release="5",
-        version=self.version,
-        machine="i386")]
-
-  def GetInstallDate(self, _):
-    return [rdfvalue.DataBlob(integer=100)]
-
-  def EnumerateInterfaces(self, _):
-    return [rdfvalue.Interface(
-        mac_address="123456",
-        addresses=[
-            rdfvalue.NetworkAddress(
-                address_type=rdfvalue.NetworkAddress.Family.INET,
-                human_readable="100.100.100.1",
-                packed_bytes=socket.inet_aton("100.100.100.1"),
-                )]
-        )]
-
-  def EnumerateFilesystems(self, _):
-    return [rdfvalue.Filesystem(device="/dev/sda",
-                                mount_point="/mnt/data")]
-
-  def GetClientInfo(self, _):
-    return [rdfvalue.ClientInformation(
-        client_name=config_lib.CONFIG["Client.name"],
-        client_version=int(config_lib.CONFIG["Client.version_numeric"]),
-        build_time=config_lib.CONFIG["Client.build_time"],
-        labels=["GRRLabel1", "Label2"],
-        )]
-
-  def GetUserInfo(self, user):
-    user.homedir = "/usr/local/home/%s" % user.username
-    user.full_name = user.username.capitalize()
-    return [user]
-
-  def GetConfiguration(self, _):
-    return [rdfvalue.Dict({"Client.control_urls":
-                           ["http://localhost:8001/control"], "Client.poll_min":
-                           1.0})]
-
-  def WmiQuery(self, query):
-    if query.query == u"SELECT * FROM Win32_LogicalDisk":
-      return client_fixture.WMI_SAMPLE
-    else:
-      return None
 
 
 class TestClientInterrogate(artifact_test.ArtifactTestHelper):
@@ -214,6 +155,17 @@ class TestClientInterrogate(artifact_test.ArtifactTestHelper):
       self.assertTrue(isinstance(result, rdfvalue.Volume))
       self.assertTrue(result.windows.drive_letter in ["Z:", "C:"])
 
+  def _CheckRegistryPathspec(self):
+    # This tests that we can click refresh on a key in the registry vfs subtree
+    # even if we haven't downloaded any other key above it in the tree.
+
+    fd = aff4.FACTORY.Open(self.client_id.Add("registry").Add(
+        "HKEY_LOCAL_MACHINE").Add("random/path/bla"), token=self.token)
+    pathspec = fd.real_pathspec
+    self.assertEqual(pathspec.pathtype, rdfvalue.PathSpec.PathType.REGISTRY)
+    self.assertEqual(pathspec.CollapsePath(),
+                     u"/HKEY_LOCAL_MACHINE/random/path/bla")
+
   def testInterrogateLinuxWithWtmp(self):
     """Test the Interrogate flow."""
     test_lib.ClientFixture(self.client_id, token=self.token)
@@ -225,8 +177,9 @@ class TestClientInterrogate(artifact_test.ArtifactTestHelper):
                                                        "NetgroupConfiguration"])
     config_lib.CONFIG.Set("Artifacts.netgroup_filter_regexes", [r"^login$"])
     self.SetLinuxClient()
-    client_mock = InterrogatedClient("TransferBuffer", "StatFile", "Find",
-                                     "HashBuffer", "ListDirectory", "HashFile")
+    client_mock = action_mocks.InterrogatedClient("TransferBuffer", "StatFile",
+                                                  "Find", "HashBuffer",
+                                                  "ListDirectory", "HashFile")
     client_mock.InitializeClient()
 
     for _ in test_lib.TestFlowHelper("Interrogate", client_mock,
@@ -259,8 +212,9 @@ class TestClientInterrogate(artifact_test.ArtifactTestHelper):
     vfs.VFS_HANDLERS[
         rdfvalue.PathSpec.PathType.OS] = test_lib.ClientFullVFSFixture
 
-    client_mock = InterrogatedClient("TransferBuffer", "StatFile", "Find",
-                                     "HashBuffer", "ListDirectory", "HashFile")
+    client_mock = action_mocks.InterrogatedClient("TransferBuffer", "StatFile",
+                                                  "Find", "HashBuffer",
+                                                  "ListDirectory", "HashFile")
 
     self.SetWindowsClient()
     client_mock.InitializeClient(system="Windows", version="6.1.7600")
@@ -287,3 +241,4 @@ class TestClientInterrogate(artifact_test.ArtifactTestHelper):
     self._CheckVFS()
     self._CheckLabelIndex()
     self._CheckWindowsDiskInfo()
+    self._CheckRegistryPathspec()

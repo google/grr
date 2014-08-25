@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 """Tests for utility classes."""
 
+
+import os
 import StringIO
+import subprocess
 import time
 import zipfile
 
@@ -314,6 +317,39 @@ class UtilsTest(test_lib.GRRBaseTest):
 
       self.assertEqual(sorted(test_zip.namelist()), ["test1.txt", "test2.txt"])
       self.assertEqual(test_zip.read("test2.txt"), infd2.getvalue())
+
+  def testZipFileWithSymlink(self):
+    """Test that symlinks are preserved when unpacking generated zips."""
+
+    compressions = [zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED]
+    for compression in compressions:
+      outfd = StringIO.StringIO()
+
+      infd1 = StringIO.StringIO("this is a test string")
+      infd2 = StringIO.StringIO("this is another test string")
+      with utils.StreamingZipWriter(outfd, compression=compression) as writer:
+        writer.WriteFromFD(infd1, "test1.txt")
+        writer.WriteFromFD(infd2, "subdir/test2.txt")
+
+        writer.WriteSymlink("test1.txt", "test1.txt.link")
+        writer.WriteSymlink("subdir/test2.txt", "test2.txt.link")
+
+      with utils.TempDirectory() as temp_dir:
+        zip_path = os.path.join(temp_dir, "archive.zip")
+        with open(zip_path, "w") as fd:
+          fd.write(outfd.getvalue())
+
+        # Builtin python ZipFile implementation doesn't support symlinks,
+        # so we have to extract the files with command line tool.
+        subprocess.check_call(["unzip", "-x", zip_path, "-d", temp_dir])
+
+        link_path = os.path.join(temp_dir, "test1.txt.link")
+        self.assertTrue(os.path.islink(link_path))
+        self.assertEqual(os.readlink(link_path), "test1.txt")
+
+        link_path = os.path.join(temp_dir, "test2.txt.link")
+        self.assertTrue(os.path.islink(link_path))
+        self.assertEqual(os.readlink(link_path), "subdir/test2.txt")
 
 
 def main(argv):

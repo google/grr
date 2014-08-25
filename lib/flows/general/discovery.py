@@ -102,6 +102,12 @@ class Interrogate(flow.GRRFlow):
           response.system, response.release, response.version)))
       self.client.Flush(sync=True)
 
+      if response.system == "Windows":
+        with aff4.FACTORY.Create(self.client.urn.Add("registry"),
+                                 "VFSDirectory", token=self.token) as fd:
+          fd.Set(fd.Schema.PATHSPEC, fd.Schema.PATHSPEC(
+              path="/", pathtype=rdfvalue.PathSpec.PathType.REGISTRY))
+
     else:
       self.Log("Could not retrieve Platform info.")
 
@@ -261,7 +267,7 @@ class Interrogate(flow.GRRFlow):
       response = responses.First()
       self.state.summary.client_info = response
       self.client.Set(self.client.Schema.CLIENT_INFO(response))
-      self.client.AddLabels(response.labels)
+      self.client.AddLabels(*response.labels, owner="GRR")
       self.state.summary.client_info = response
     else:
       self.Log("Could not get ClientInfo.")

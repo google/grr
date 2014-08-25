@@ -5,6 +5,7 @@ import os
 import StringIO
 import time
 
+from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flow
@@ -111,8 +112,8 @@ class HashFileStoreTest(test_lib.GRRBaseTest):
 
     urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(pathspec, client_id)
 
-    client_mock = test_lib.ActionMock("TransferBuffer", "StatFile",
-                                      "HashBuffer")
+    client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile",
+                                          "HashBuffer")
     for _ in test_lib.TestFlowHelper(
         "GetFile", client_mock, token=token, client_id=client_id,
         pathspec=pathspec):

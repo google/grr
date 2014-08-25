@@ -220,10 +220,18 @@ class InterrogateClientsCronFlow(cronjobs.SystemCronFlow):
   fresh and enable searching by username etc. in the GUI.
   """
   frequency = rdfvalue.Duration("1w")
-  lifetime = rdfvalue.Duration("1w")
+  # This just starts a hunt, which should be essentially instantantaneous
+  lifetime = rdfvalue.Duration("30m")
 
   def GetOutputPlugins(self):
-    """Returns list of rdfvalue.OutputPlugin objects to be used in the hunt."""
+    """Returns list of rdfvalue.OutputPlugin objects to be used in the hunt.
+
+    This method can be overridden in a subclass in the server/local directory to
+    apply plugins specific to the local installation.
+
+    Returns:
+      list of rdfvalue.OutputPlugin objects
+    """
     return []
 
   @flow.StateHandler()
@@ -241,6 +249,44 @@ class InterrogateClientsCronFlow(cronjobs.SystemCronFlow):
         runner.args.expiry_time = "1w"
         runner.args.description = ("Interrogate run by cron to keep host"
                                    "info fresh.")
+        runner.Start()
+
+
+class StatsHuntCronFlow(cronjobs.SystemCronFlow):
+  """A cron job which runs a continuous stats hunt on all clients.
+
+  This hunt is designed to collect lightweight information from all clients with
+  very high resolution (similar to poll period). We roll over to a new hunt to
+  move to a new collection, and pick up any clients that might have fallen out
+  of the collection loop due to a worker dying or some other problem.
+  """
+  frequency = rdfvalue.Duration("1d")
+  # This just starts a hunt, which should be essentially instantantaneous
+  lifetime = rdfvalue.Duration("30m")
+
+  def GetOutputPlugins(self):
+    """Returns list of rdfvalue.OutputPlugin objects to be used in the hunt.
+
+    This method can be overridden in a subclass in the server/local directory to
+    apply plugins specific to the local installation.
+
+    Returns:
+      list of rdfvalue.OutputPlugin objects
+    """
+    return []
+
+  @flow.StateHandler()
+  def Start(self):
+    with hunts.GRRHunt.StartHunt(
+        hunt_name="StatsHunt",
+        output_plugins=self.GetOutputPlugins(),
+        regex_rules=[],
+        token=self.token) as hunt:
+
+      with hunt.GetRunner() as runner:
+        runner.args.client_rate = 0
+        runner.args.expiry_time = self.frequency
+        runner.args.description = "Stats hunt for high-res client info."
         runner.Start()
 
 

@@ -10,6 +10,7 @@ import socket
 from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
+from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import export
 from grr.lib import flags
@@ -214,8 +215,8 @@ class ExportTest(test_lib.GRRBaseTest):
     pathspec.Append(path="/Ext2IFS_1_10b.exe",
                     pathtype=rdfvalue.PathSpec.PathType.TSK)
 
-    client_mock = test_lib.ActionMock("TransferBuffer", "StatFile",
-                                      "HashBuffer")
+    client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile",
+                                          "HashBuffer")
     for _ in test_lib.TestFlowHelper(
         "GetFile", client_mock, token=self.token,
         client_id=client_id, pathspec=pathspec):
@@ -262,8 +263,8 @@ class ExportTest(test_lib.GRRBaseTest):
                     pathtype=rdfvalue.PathSpec.PathType.TSK)
     urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(pathspec, client_id)
 
-    client_mock = test_lib.ActionMock("TransferBuffer", "StatFile",
-                                      "HashBuffer")
+    client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile",
+                                          "HashBuffer")
     for _ in test_lib.TestFlowHelper(
         "GetFile", client_mock, token=self.token,
         client_id=client_id, pathspec=pathspec):
@@ -486,112 +487,6 @@ class ExportTest(test_lib.GRRBaseTest):
     self.assertEqual(results[1].pid, 1)
     self.assertEqual(results[1].ctime, 0)
 
-  def testVolatilityResultToExportedVolatilityHandleConverter(self):
-    volatility_values_1 = rdfvalue.VolatilityValues(values=[
-        rdfvalue.VolatilityValue(value=275427776305632),
-        rdfvalue.VolatilityValue(value=4),
-        rdfvalue.VolatilityValue(value=4),
-        rdfvalue.VolatilityValue(value=2097151),
-        rdfvalue.VolatilityValue(svalue="Process"),
-        rdfvalue.VolatilityValue(svalue="System(4)"),
-        rdfvalue.VolatilityValue()])
-    volatility_values_2 = rdfvalue.VolatilityValues(values=[
-        rdfvalue.VolatilityValue(value=273366078738336),
-        rdfvalue.VolatilityValue(value=4),
-        rdfvalue.VolatilityValue(value=8),
-        rdfvalue.VolatilityValue(value=131103),
-        rdfvalue.VolatilityValue(svalue="Key"),
-        rdfvalue.VolatilityValue(
-            svalue="MACHINE\\SYSTEM\\CONTROLSET001\\CONTROL\\HIVELIST")])
-
-    volatility_table = rdfvalue.VolatilityTable(
-        headers=[rdfvalue.VolatilityHeader(name="offset_v"),
-                 rdfvalue.VolatilityHeader(name="pid"),
-                 rdfvalue.VolatilityHeader(name="handle"),
-                 rdfvalue.VolatilityHeader(name="access"),
-                 rdfvalue.VolatilityHeader(name="obj_type"),
-                 rdfvalue.VolatilityHeader(name="details")],
-        rows=[volatility_values_1,
-              volatility_values_2])
-    volatility_result = rdfvalue.VolatilityResult(
-        plugin="mutantscan",
-        sections=[rdfvalue.VolatilitySection(table=volatility_table)])
-
-    converter = export.VolatilityResultToExportedVolatilityHandleConverter()
-    results = list(converter.Convert(rdfvalue.ExportedMetadata(),
-                                     volatility_result,
-                                     token=self.token))
-
-    self.assertEqual(len(results), 2)
-    self.assertEqual(results[0].offset, 275427776305632)
-    self.assertEqual(results[0].pid, 4)
-    self.assertEqual(results[0].handle, 4)
-    self.assertEqual(results[0].access, 2097151)
-    self.assertEqual(results[0].type, "Process")
-    self.assertEqual(results[0].path, "System(4)")
-
-    self.assertEqual(results[1].offset, 273366078738336)
-    self.assertEqual(results[1].pid, 4)
-    self.assertEqual(results[1].handle, 8)
-    self.assertEqual(results[1].access, 131103)
-    self.assertEqual(results[1].type, "Key")
-    self.assertEqual(results[1].path,
-                     "MACHINE\\SYSTEM\\CONTROLSET001\\CONTROL\\HIVELIST")
-
-  def testVolatilityResultToExportedVolatilityMutantConverter(self):
-    volatility_values_1 = rdfvalue.VolatilityValues(values=[
-        rdfvalue.VolatilityValue(value=50211728),
-        rdfvalue.VolatilityValue(value=1),
-        rdfvalue.VolatilityValue(value=1),
-        rdfvalue.VolatilityValue(value=1),
-        rdfvalue.VolatilityValue(value=0),
-        rdfvalue.VolatilityValue(svalue=""),
-        rdfvalue.VolatilityValue()])
-    volatility_values_2 = rdfvalue.VolatilityValues(values=[
-        rdfvalue.VolatilityValue(value=50740512),
-        rdfvalue.VolatilityValue(value=2),
-        rdfvalue.VolatilityValue(value=2),
-        rdfvalue.VolatilityValue(value=0),
-        rdfvalue.VolatilityValue(value=275427826012256),
-        rdfvalue.VolatilityValue(svalue="163255304:2168"),
-        rdfvalue.VolatilityValue(svalue="XYZLock")])
-
-    volatility_table = rdfvalue.VolatilityTable(
-        headers=[rdfvalue.VolatilityHeader(name="offset_p"),
-                 rdfvalue.VolatilityHeader(name="ptr_count"),
-                 rdfvalue.VolatilityHeader(name="hnd_count"),
-                 rdfvalue.VolatilityHeader(name="mutant_signal"),
-                 rdfvalue.VolatilityHeader(name="mutant_thread"),
-                 rdfvalue.VolatilityHeader(name="cid"),
-                 rdfvalue.VolatilityHeader(name="mutant_name")],
-        rows=[volatility_values_1,
-              volatility_values_2])
-    volatility_result = rdfvalue.VolatilityResult(
-        plugin="mutantscan",
-        sections=[rdfvalue.VolatilitySection(table=volatility_table)])
-
-    converter = export.VolatilityResultToExportedVolatilityMutantConverter()
-    results = list(converter.Convert(rdfvalue.ExportedMetadata(),
-                                     volatility_result,
-                                     token=self.token))
-
-    self.assertEqual(len(results), 2)
-    self.assertEqual(results[0].offset, 50211728)
-    self.assertEqual(results[0].ptr_count, 1)
-    self.assertEqual(results[0].handle_count, 1)
-    self.assertEqual(results[0].signal, 1)
-    self.assertEqual(results[0].thread, 0)
-    self.assertEqual(results[0].cid, "")
-    self.assertEqual(results[0].name, "")
-
-    self.assertEqual(results[1].offset, 50740512)
-    self.assertEqual(results[1].ptr_count, 2)
-    self.assertEqual(results[1].handle_count, 2)
-    self.assertEqual(results[1].signal, 0)
-    self.assertEqual(results[1].thread, 275427826012256)
-    self.assertEqual(results[1].cid, "163255304:2168")
-    self.assertEqual(results[1].name, "XYZLock")
-
   def testRDFURNConverterWithURNPointingToFile(self):
     urn = rdfvalue.RDFURN("aff4:/C.00000000000000/some/path")
 
@@ -647,6 +542,37 @@ class ExportTest(test_lib.GRRBaseTest):
     converter = export.ClientSummaryToExportedNetworkInterfaceConverter()
     results = list(converter.Convert(rdfvalue.ExportedMetadata(),
                                      client_summary,
+                                     token=self.token))
+    self.assertEqual(len(results), 1)
+    self.assertEqual(results[0].mac_address, "123456".encode("hex"))
+    self.assertEqual(results[0].ifname, "eth0")
+    self.assertEqual(results[0].ip4_addresses, "127.0.0.1 10.0.0.1")
+    self.assertEqual(results[0].ip6_addresses, "2001:720:1500:1::a100")
+
+  def testInterfaceToExportedNetworkInterfaceConverter(self):
+    interface = rdfvalue.Interface(
+        mac_address="123456",
+        ifname="eth0",
+        addresses=[
+            rdfvalue.NetworkAddress(
+                address_type=rdfvalue.NetworkAddress.Family.INET,
+                packed_bytes=socket.inet_aton("127.0.0.1"),
+            ),
+            rdfvalue.NetworkAddress(
+                address_type=rdfvalue.NetworkAddress.Family.INET,
+                packed_bytes=socket.inet_aton("10.0.0.1"),
+                ),
+            rdfvalue.NetworkAddress(
+                address_type=rdfvalue.NetworkAddress.Family.INET6,
+                packed_bytes=socket.inet_pton(socket.AF_INET6,
+                                              "2001:720:1500:1::a100"),
+                )
+            ]
+        )
+
+    converter = export.InterfaceToExportedNetworkInterfaceConverter()
+    results = list(converter.Convert(rdfvalue.ExportedMetadata(),
+                                     interface,
                                      token=self.token))
     self.assertEqual(len(results), 1)
     self.assertEqual(results[0].mac_address, "123456".encode("hex"))

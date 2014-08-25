@@ -5,7 +5,6 @@
 
 
 import os
-import pickle
 
 from grr.lib import config_lib
 from grr.lib import flags
@@ -20,21 +19,20 @@ class RekallVADParserTest(test_lib.GRRBaseTest):
   def testBasicParsing(self):
     ps_list_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
                                 "rekall_vad_result.dat")
-    serialized_responses = pickle.loads(open(ps_list_file, "rb").read())
-    responses = [rdfvalue.GrrMessage(x).payload for x in serialized_responses]
+
+    result = rdfvalue.RekallResponse(
+        json_messages=open(ps_list_file).read(10000000),
+        plugin="pslist",
+        )
 
     knowledge_base = rdfvalue.KnowledgeBase()
     knowledge_base.environ_systemdrive = "C:"
 
     parser = rekall_artifact_parser.RekallVADParser()
-    parsed_pathspecs = list(parser.ParseMultiple(responses, knowledge_base))
+    parsed_pathspecs = list(parser.Parse(result, knowledge_base))
 
     paths = [p.path for p in parsed_pathspecs]
-    for reference_path in [
-        u"C:\\Windows\\System32\\spoolsv.exe",
-        (u"C:\\Users\\testing\\AppData\\Local\\"
-         u"Temp\\Temp1_DumpIt.zip\\DumpIt.exe")]:
-      self.assertIn(reference_path, paths)
+    self.assertIn(u"C:\\Windows\\System32\\spoolsv.exe", paths)
 
 
 def main(argv):

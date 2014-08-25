@@ -110,7 +110,7 @@ def UpdateUser(username, password, labels):
         else:
           expanded_labels.append(label)
 
-      fd.SetLabels(*expanded_labels)
+      fd.SetLabels(*expanded_labels, owner="GRR")
 
   print "Updating user %s" % username
   ShowUser(username)

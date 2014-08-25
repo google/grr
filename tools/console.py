@@ -105,6 +105,7 @@ def main(unused_argv):
       "help": Help,
       "__name__": "GRR Console",
       "l": Lister,
+      "o": aff4.FACTORY.Open,
 
       # Bring some symbols from other modules into the console's
       # namespace.

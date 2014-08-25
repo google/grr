@@ -52,6 +52,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     self.client = aff4.FACTORY.Open(self.client_id, token=self.token)
 
     self.state.Register("artifacts_skipped_due_to_condition", [])
+    self.state.Register("response_count", 0)
     self.state.Register("failed_count", 0)
     self.state.Register("artifacts_failed", [])
     self.state.Register("knowledge_base", self.args.knowledge_base)
@@ -171,8 +172,6 @@ class ArtifactCollectorFlow(flow.GRRFlow):
           self.GetRegistryValue(collector)
         elif type_name == rdfvalue.Collector.CollectorType.WMI:
           self.WMIQuery(collector)
-        elif type_name == rdfvalue.Collector.CollectorType.VOLATILITY_PLUGIN:
-          self.VolatilityPlugin(collector)
         elif type_name == rdfvalue.Collector.CollectorType.REKALL_PLUGIN:
           self.RekallPlugin(collector)
         elif type_name == rdfvalue.Collector.CollectorType.ARTIFACT:
@@ -336,20 +335,6 @@ class ArtifactCollectorFlow(flow.GRRFlow):
           next_state="ProcessCollected"
           )
 
-  def VolatilityPlugin(self, collector):
-    """Run a Volatility Plugin."""
-    request = rdfvalue.VolatilityRequest()
-    request.args[collector.args["plugin"]] = self.InterpolateDict(
-        collector.args.get("args", {}))
-
-    self.CallFlow(
-        "AnalyzeClientMemoryVolatility", request=request,
-        request_data={"artifact_name": self.current_artifact_name,
-                      "vol_plugin": collector.args["plugin"],
-                      "collector": collector.ToPrimitiveDict()},
-        next_state="ProcessCollected"
-        )
-
   def RekallPlugin(self, collector):
     request = rdfvalue.RekallRequest()
     request.plugins = [
@@ -473,11 +458,9 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       return
 
     # Initialize some local non-state saved variables for processing.
-    if self.runner.output is not None:
-      if self.args.split_output_by_artifact:
-        self.output_collection_map = {}
-
-    if self.args.store_results_in_aff4:
+    if not hasattr(self, "output_collection_map"):
+      self.output_collection_map = {}
+    if not hasattr(self, "aff4_output_map"):
       self.aff4_output_map = {}
 
     # Now process the responses.
@@ -506,8 +489,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
                            artifact_name, collector)
 
     # Flush the results to the objects.
-    if self.runner.output is not None:
-      self._FinalizeCollection(artifact_name)
+    if self.args.split_output_by_artifact:
+      self._FinalizeSplitCollection()
     if self.args.store_results_in_aff4:
       self._FinalizeMappedAFF4Locations(artifact_name)
     if self.state.client_anomaly_store:
@@ -600,7 +583,11 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     _ = responses_obj
     if not processor_obj:
       # We don't do any parsing, the results are raw as they came back.
-      result_iterator = responses
+      # If this is an RDFValue we don't want to unpack it further
+      if isinstance(responses, rdfvalue.RDFValue):
+        result_iterator = [responses]
+      else:
+        result_iterator = responses
 
     else:
       # We have some processors to run.
@@ -643,7 +630,6 @@ class ArtifactCollectorFlow(flow.GRRFlow):
                                          self.state.knowledge_base)
 
       elif isinstance(processor_obj, (parsers.RegistryParser,
-                                      parsers.VolatilityPluginParser,
                                       parsers.RekallPluginParser,
                                       parsers.RegistryValueParser,
                                       parsers.GenericResponseParser,
@@ -667,44 +653,43 @@ class ArtifactCollectorFlow(flow.GRRFlow):
           # Anomalies are special results and get handled separately.
           self._ProcessAnomaly(result)
         elif not artifact_return_types or result_type in artifact_return_types:
-          self.SendReply(result)    # Send to parent.
-          if self.runner.output is not None:
-            # Output is set, we need to write to a collection.
-            self._WriteResultToCollection(result, artifact_name)
+          self.state.response_count += 1
+          self.SendReply(result)
+          self._WriteResultToSplitCollection(result, artifact_name)
           if self.args.store_results_in_aff4:
             # Write our result back to a mapped location in AFF4 space.
             self._WriteResultToMappedAFF4Location(result)
 
-  def _WriteResultToCollection(self, result, artifact_name):
-    """Write any results to the collection."""
+  def _WriteResultToSplitCollection(self, result, artifact_name):
+    """Write any results to the collection if we are splitting by artifact.
+
+    If not splitting, SendReply will handle writing to the collection.
+
+    Args:
+      result: result to write
+      artifact_name: artifact name string
+    """
     if self.args.split_output_by_artifact:
       if (self.runner.output is not None and
           artifact_name not in self.output_collection_map):
-        urn = self.runner.output.urn.Add(artifact_name)
+        # Create the new collections in the same directory but not as children,
+        # so they are visible in the GUI
+        urn = "_".join((str(self.runner.output.urn), artifact_name))
         collection = aff4.FACTORY.Create(urn, "RDFValueCollection", mode="rw",
                                          token=self.token)
         # Cache the opened object.
         self.output_collection_map[artifact_name] = collection
       self.output_collection_map[artifact_name].Add(result)
-    else:
-      # If not split the SendReply handling will take care of collection adding.
-      pass
 
-  def _FinalizeCollection(self, artifact_name):
+  def _FinalizeSplitCollection(self):
     """Finalize writes to the Collection."""
     total = 0
-    if self.args.split_output_by_artifact:
-      for collection in self.output_collection_map.values():
-        total += len(collection)
-        collection.Flush()
-    else:
-      if self.runner.output is not None:
-        self.runner.output.Flush()
-        total += len(self.runner.output)
+    for artifact_name, collection in self.output_collection_map.iteritems():
+      total += len(collection)
+      collection.Flush()
 
-    if self.runner.output is not None:
       self.Log("Wrote results from Artifact %s to %s. Collection size %d.",
-               artifact_name, self.runner.output.urn, total)
+               artifact_name, collection.urn, total)
 
   def _WriteResultToMappedAFF4Location(self, result):
     """If we have a mapping for this result type, write it there."""
@@ -793,8 +778,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
   @flow.StateHandler()
   def End(self):
     # If we got no responses, and user asked for it, we error out.
-    collect_count = self.runner.args.request_state.response_count
-    if self.args.no_results_errors and collect_count == 0:
+    if self.args.on_no_results_error and self.state.response_count == 0:
       raise artifact_lib.ArtifactProcessingError("Artifact collector returned "
                                                  "0 responses.")
     if self.runner.output is not None:
@@ -804,5 +788,5 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
     self.Notify("ViewObject", urn,
                 "Completed artifact collection of %s. Collected %d. Errors %d."
-                % (self.args.artifact_list, collect_count,
+                % (self.args.artifact_list, self.state.response_count,
                    self.state.failed_count))

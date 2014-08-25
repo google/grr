@@ -24,8 +24,8 @@ class TDBTestMixin(object):
   def InitDatastore(self):
     self.token = access_control.ACLToken(username="test",
                                          reason="Running tests")
-    config_lib.CONFIG.SetRaw("TDBDatastore.root_path",
-                             "%s/tdb_test/" % self.temp_dir)
+    config_lib.CONFIG.Set("TDBDatastore.root_path",
+                          "%s/tdb_test/" % self.temp_dir)
 
     self.DestroyDatastore()
 

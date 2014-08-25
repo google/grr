@@ -89,8 +89,9 @@ class ExportHuntResultFilesAsZip(flow.GRRFlow):
         pass
 
   def DownloadCollectionFiles(self, collection, output_zip, prefix):
-    """Recursively download all children."""
+    """Download all files from the collection and deduplicate along the way."""
 
+    hashes = set()
     for fd_urn_batch in utils.Grouper(self.ResultsToUrns(collection),
                                       self.BATCH_SIZE):
       self.HeartBeat()
@@ -100,10 +101,25 @@ class ExportHuntResultFilesAsZip(flow.GRRFlow):
 
         # Any file-like object with data in AFF4 should inherit AFF4Stream.
         if isinstance(fd, aff4.AFF4Stream):
+          archive_path = os.path.join(prefix, *fd.urn.Split())
           self.state.archived_files += 1
-          archive_name = os.path.join(prefix, *fd.urn.Split())
-          self.Log("Written " + archive_name)
-          output_zip.WriteFromFD(fd, archive_name, self.state.compression)
+
+          sha256_hash = fd.Get(fd.Schema.HASH, rdfvalue.Hash()).sha256
+          if not sha256_hash or not self.args.deduplicate:
+            self.Log("Written " + archive_path)
+            output_zip.WriteFromFD(fd, archive_path, self.state.compression)
+            continue
+
+          content_path = os.path.join(prefix, "hashes", str(sha256_hash))
+          if sha256_hash not in hashes:
+            output_zip.WriteFromFD(fd, content_path, self.state.compression)
+            hashes.add(sha256_hash)
+            self.Log("Written contents: " + content_path)
+
+          up_prefix = "../" * len(fd.urn.Split())
+          output_zip.WriteSymlink(up_prefix + content_path, archive_path)
+          self.Log("Written symlink %s -> %s", archive_path,
+                   up_prefix + content_path)
 
   @flow.StateHandler(next_state="CreateZipFile")
   def Start(self):
@@ -171,16 +187,13 @@ class ExportHuntResultFilesAsZip(flow.GRRFlow):
     subject = "Hunt results for %s ready for download." % (
         self.args.hunt_urn.Basename())
 
-    if self.token.username != "GRRWorker":
-
-      email_alerts.SendEmail(
-          "%s@%s" % (
-              self.token.username, config_lib.CONFIG.Get("Logging.domain")),
-          "grr-noreply@%s" % config_lib.CONFIG.Get("Logging.domain"), subject,
-          template % dict(
-              hunt_id=self.args.hunt_urn.Basename(),
-              archived=self.state.archived_files,
-              total=self.state.total_files,
-              admin_ui=config_lib.CONFIG["AdminUI.url"]),
-          is_html=True)
-
+    email_alerts.SendEmail(
+        "%s@%s" % (self.state.context.creator,
+                   config_lib.CONFIG.Get("Logging.domain")),
+        "grr-noreply@%s" % config_lib.CONFIG.Get("Logging.domain"), subject,
+        template % dict(
+            hunt_id=self.args.hunt_urn.Basename(),
+            archived=self.state.archived_files,
+            total=self.state.total_files,
+            admin_ui=config_lib.CONFIG["AdminUI.url"]),
+        is_html=True)

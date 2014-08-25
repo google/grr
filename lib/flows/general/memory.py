@@ -607,71 +607,6 @@ def GetDriverFromURN(urn, token=None):
   return None
 
 
-class AnalyzeClientMemoryArgsVolatility(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.AnalyzeClientMemoryArgsVolatility
-
-
-class AnalyzeClientMemoryVolatility(flow.GRRFlow):
-  """Runs client side analysis using volatility.
-
-  This flow takes a list of volatility plugins to run. It first calls
-  LoadMemoryDriver to ensure a Memory driver is loaded.
-  It then sends the list of volatility commands to the client. The client will
-  run those plugins using the client's copy of volatility.
-
-  Each plugin will return it's results and they will be stored in the
-  /analysis part of the vfs.
-  """
-
-  category = "/Memory/"
-  args_type = AnalyzeClientMemoryArgsVolatility
-  behaviours = flow.GRRFlow.behaviours + "BASIC"
-
-  @flow.StateHandler(next_state=["RunVolatilityPlugins"])
-  def Start(self, _):
-    self.CallFlow("LoadMemoryDriver", next_state="RunVolatilityPlugins",
-                  driver_installer=self.args.driver_installer)
-
-  @flow.StateHandler(next_state=["StoreResults"])
-  def RunVolatilityPlugins(self, responses):
-    """Call the client with the volatility actions."""
-    if not responses.success:
-      raise flow.FlowError("Unable to install memory driver.")
-
-    for plugin in self.args.request.plugins:
-      if plugin not in self.args.request.args:
-        self.args.request.args[plugin] = {}
-
-    memory_information = responses.First()
-    self.args.request.device = memory_information.device
-    self.CallClient("VolatilityAction", self.args.request,
-                    next_state="StoreResults")
-
-  @flow.StateHandler()
-  def StoreResults(self, responses):
-    """Stores the results."""
-    if not responses.success:
-      self.Log("Error running plugins: %s.", responses.status)
-      return
-
-    self.Log("Volatility returned %s responses." % len(responses))
-    for response in responses:
-      self.SendReply(response)
-      if self.runner.output is not None:
-        output_urn = self.runner.output.urn.Add(response.plugin)
-        with aff4.FACTORY.Create(output_urn, "VolatilityResponse",
-                                 mode="rw", token=self.token) as fd:
-          fd.Set(fd.Schema.DESCRIPTION("Volatility plugin by %s: %s" % (
-              self.state.context.user, str(self.args.request))))
-          fd.Set(fd.Schema.RESULT(response))
-
-  @flow.StateHandler()
-  def End(self):
-    if self.runner.output is not None:
-      self.Notify("ViewObject", self.runner.output.urn,
-                  "Ran analyze client memory")
-
-
 class AnalyzeClientMemoryArgs(rdfvalue.RDFProtoStruct):
   protobuf = flows_pb2.AnalyzeClientMemoryArgs
 
@@ -733,9 +668,11 @@ class AnalyzeClientMemory(flow.GRRFlow):
         profile_server = rekall_profile_server.ProfileServer.classes[
             config_lib.CONFIG["Rekall.profile_server"]]()
         profile = profile_server.GetProfileByName(response.missing_profile)
-        if profile:
-          self.CallClient("WriteRekallProfile", profile,
-                          next_state="UpdateProfile")
+        if not profile:
+          raise flow.FlowError("Needed profile %s not found!",
+                               response.missing_profile)
+        self.CallClient("WriteRekallProfile", profile,
+                        next_state="UpdateProfile")
 
       if response.json_messages:
         response.client_urn = self.client_id
@@ -856,9 +793,9 @@ class ListVADBinariesArgs(rdfvalue.RDFProtoStruct):
 
 
 class ListVADBinaries(flow.GRRFlow):
-  """Get list of all running binaries from Volatility, (optionally) fetch them.
+  """Get list of all running binaries from Rekall, (optionally) fetch them.
 
-    This flow executes the "vad" Volatility plugin to get the list of all
+    This flow executes the "vad" Rekall plugin to get the list of all
     currently running binaries (including dynamic libraries). Then if
     fetch_binaries option is set to True, it fetches all the binaries it has
     found.
@@ -899,17 +836,17 @@ class ListVADBinaries(flow.GRRFlow):
     """Request VAD data."""
     if self.runner.output is not None:
       self.runner.output.Set(self.runner.output.Schema.DESCRIPTION(
-          "GetProcessesBinariesVolatility binaries (regex: %s) " %
+          "GetProcessesBinariesRekall binaries (regex: %s) " %
           self.args.filename_regex or "None"))
 
     self.CallFlow("ArtifactCollectorFlow",
-                  artifact_list=["FullVADBinaryListVolatility"],
+                  artifact_list=["FullVADBinaryList"],
                   store_results_in_aff4=False,
                   next_state="FetchBinaries")
 
   @flow.StateHandler(next_state="HandleDownloadedFiles")
   def FetchBinaries(self, responses):
-    """Parses Volatility response and initiates FileFinder flows."""
+    """Parses the Rekall response and initiates FileFinder flows."""
     if not responses.success:
       self.Log("Error fetching VAD data: %s", responses.status)
       return

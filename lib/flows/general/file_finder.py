@@ -145,10 +145,8 @@ class FileFinder(transfer.MultiGetFileMixin,
     """This method is called by the glob mixin when there is a match."""
     super(FileFinder, self).GlobReportMatch(response)
 
-    # Only process regular files.
-    if self.args.no_file_type_check or stat.S_ISREG(response.st_mode):
-      self.ApplyCondition(rdfvalue.FileFinderResult(stat_entry=response),
-                          condition_index=0)
+    self.ApplyCondition(rdfvalue.FileFinderResult(stat_entry=response),
+                        condition_index=0)
 
   def ModificationTimeCondition(self, response, condition_options,
                                 condition_index):
@@ -179,6 +177,10 @@ class FileFinder(transfer.MultiGetFileMixin,
 
   def SizeCondition(self, response, condition_options, condition_index):
     """Applies size condition to responses."""
+    if not (self.args.no_file_type_check or
+            stat.S_ISREG(response.stat_entry.st_mode)):
+      return
+
     if (condition_options.size.min_file_size <=
         response.stat_entry.st_size <=
         condition_options.size.max_file_size):
@@ -187,6 +189,10 @@ class FileFinder(transfer.MultiGetFileMixin,
   def ContentsRegexMatchCondition(self, response, condition_options,
                                   condition_index):
     """Applies contents regex condition to responses."""
+    if not (self.args.no_file_type_check or
+            stat.S_ISREG(response.stat_entry.st_mode)):
+      return
+
     options = condition_options.contents_regex_match
     grep_spec = rdfvalue.GrepSpec(
         target=response.stat_entry.pathspec,
@@ -206,6 +212,10 @@ class FileFinder(transfer.MultiGetFileMixin,
   def ContentsLiteralMatchCondition(self, response, condition_options,
                                     condition_index):
     """Applies literal match condition to responses."""
+    if not (self.args.no_file_type_check or
+            stat.S_ISREG(response.stat_entry.st_mode)):
+      return
+
     options = condition_options.contents_literal_match
     grep_spec = rdfvalue.GrepSpec(
         target=response.stat_entry.pathspec,
@@ -267,22 +277,26 @@ class FileFinder(transfer.MultiGetFileMixin,
       # files
       pass
 
-    elif action == rdfvalue.FileFinderAction.Action.HASH:
-      self.FingerprintFile(response.stat_entry.pathspec,
-                           request_data=dict(original_result=response))
+    elif (self.args.no_file_type_check or
+          stat.S_ISREG(response.stat_entry.st_mode)):
+      # Hashing and downloading only makes sense for regular files.
 
-    elif action == rdfvalue.FileFinderAction.Action.DOWNLOAD:
-      # If the binary is too large we just ignore it.
-      file_size = response.stat_entry.st_size
-      if file_size > self.args.action.download.max_size:
-        self.Log("%s too large to fetch. Size=%d",
-                 response.stat_entry.pathspec.CollapsePath(), file_size)
-      else:
-        pathspec = response.stat_entry.pathspec
-        vfs_urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
-            pathspec, self.client_id)
+      if action == rdfvalue.FileFinderAction.Action.HASH:
+        self.FingerprintFile(response.stat_entry.pathspec,
+                             request_data=dict(original_result=response))
 
-        self.StartFile(pathspec, vfs_urn)
+      elif action == rdfvalue.FileFinderAction.Action.DOWNLOAD:
+        # If the binary is too large we just ignore it.
+        file_size = response.stat_entry.st_size
+        if file_size > self.args.action.download.max_size:
+          self.Log("%s too large to fetch. Size=%d",
+                   response.stat_entry.pathspec.CollapsePath(), file_size)
+        else:
+          pathspec = response.stat_entry.pathspec
+          vfs_urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
+              pathspec, self.client_id)
+
+          self.StartFile(pathspec, vfs_urn)
 
   def ReceiveFileFingerprint(self, urn, hash_obj, request_data=None):
     """Handle hash results from the FingerprintFileMixin."""

@@ -23,7 +23,7 @@ message Collector {
     LIST_FILES = 41;
     ARTIFACT_FILES = 42;
     GREP = 43;
-    VOLATILITY_PLUGIN = 44;
+
     COMMAND = 45;
     REKALL_PLUGIN = 46;
 

@@ -3,13 +3,14 @@
 
 import os
 
+from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 
 
-class ListProcessesMock(test_lib.ActionMock):
+class ListProcessesMock(action_mocks.ActionMock):
   """Client with real file actions and mocked-out ListProcesses."""
 
   def __init__(self, processes_list):

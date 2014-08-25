@@ -6,6 +6,7 @@
 
 from grr.gui import runtests_test
 
+from grr.lib import action_mocks
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
@@ -82,10 +83,18 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
 
     self.Click("css=#_Network")
     self.assertEqual("Netstat", self.GetText("link=Netstat"))
+
     self.Click("css=#_Browser")
+
+    # Wait until the tree has expanded.
+    self.WaitUntil(self.IsTextPresent, "FirefoxHistory")
 
     # Check that we can get a file in chinese
     self.Click("css=#_Filesystem")
+
+    # Wait until the tree has expanded.
+    self.WaitUntil(self.IsTextPresent, "UpdateSparseImageChunks")
+
     self.Click("link=GetFile")
 
     self.Select("css=select#args-pathspec-pathtype", "OS")
@@ -139,7 +148,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     # RecursiveTestFlow doesn't send any results back.
     with self.ACLChecksDisabled():
       for _ in test_lib.TestFlowHelper(
-          "RecursiveTestFlow", test_lib.ActionMock(),
+          "RecursiveTestFlow", action_mocks.ActionMock(),
           client_id=client_id, token=self.token):
         pass
 
@@ -163,7 +172,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
 
     with self.ACLChecksDisabled():
       for _ in test_lib.TestFlowHelper(
-          "FlowWithOneStatEntryResult", test_lib.ActionMock(),
+          "FlowWithOneStatEntryResult", action_mocks.ActionMock(),
           client_id=client_id, token=self.token):
         pass
 
@@ -181,7 +190,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
 
     with self.ACLChecksDisabled():
       for _ in test_lib.TestFlowHelper(
-          "FlowWithOneStatEntryResult", test_lib.ActionMock(),
+          "FlowWithOneStatEntryResult", action_mocks.ActionMock(),
           client_id=client_id, token=self.token):
         pass
 
@@ -203,7 +212,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     # RecursiveTestFlow doesn't send any results back.
     with self.ACLChecksDisabled():
       for _ in test_lib.TestFlowHelper(
-          "RecursiveTestFlow", test_lib.ActionMock(),
+          "RecursiveTestFlow", action_mocks.ActionMock(),
           client_id=client_id, token=self.token):
         pass
 
@@ -219,7 +228,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
 
     with self.ACLChecksDisabled():
       for _ in test_lib.TestFlowHelper(
-          "FlowWithOneNetworkConnectionResult", test_lib.ActionMock(),
+          "FlowWithOneNetworkConnectionResult", action_mocks.ActionMock(),
           client_id=client_id, token=self.token):
         pass
 

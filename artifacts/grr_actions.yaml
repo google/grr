@@ -29,7 +29,7 @@ doc: Get Hostname using the GRR GetHostname client action.
 collectors:
 - collector_type: GRR_CLIENT_ACTION
   args: {client_action: GetHostname}
-  returned_types: [RDFString]
+  returned_types: [DataBlob]
 labels: [System]
 ---
 name: EnumerateInterfacesGrr

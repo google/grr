@@ -136,11 +136,13 @@ class HookRegistry(object):
       cls_instance.RunOnce()
       self.already_run_once.add(hook_cls)
 
-  def _RunAllHooks(self, executed_hooks):
+  def _RunAllHooks(self, executed_hooks, skip_set):
     for hook_cls in self.__class__.classes.values():
+      if skip_set and hook_cls.__name__ in skip_set:
+        continue
       self._RunSingleHook(hook_cls, executed_hooks)
 
-  def Init(self):
+  def Init(self, skip_set=None):
     with InitHook.lock:
       executed_hooks = set()
       while 1:
@@ -148,7 +150,7 @@ class HookRegistry(object):
           # This code allows init hooks to import modules which have more hooks
           # defined - We ensure we only run each hook only once.
           last_run_hooks = len(executed_hooks)
-          self._RunAllHooks(executed_hooks)
+          self._RunAllHooks(executed_hooks, skip_set)
           if last_run_hooks == len(executed_hooks):
             break
 
@@ -178,9 +180,9 @@ def TestInit():
   InitHook().Init()
 
 
-def Init():
+def Init(skip_set=None):
   if InitHook.already_run_once:
     return
 
   # This initializes any class which inherits from InitHook.
-  InitHook().Init()
+  InitHook().Init(skip_set)

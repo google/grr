@@ -10,6 +10,7 @@ import time
 
 
 from grr.client.client_actions import standard
+from grr.lib import action_mocks
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import rdfvalue
@@ -212,7 +213,7 @@ class TestNetworkByteLimits(test_lib.EmptyActionTest):
     self.data = "X" * 500
     self.old_read = standard.vfs.ReadVFS
     standard.vfs.ReadVFS = lambda x, y, z, progress_callback=None: self.data
-    self.transfer_buf = test_lib.ActionMock("TransferBuffer")
+    self.transfer_buf = action_mocks.ActionMock("TransferBuffer")
 
   def testTransferNetworkByteLimitError(self):
     message = rdfvalue.GrrMessage(name="TransferBuffer",

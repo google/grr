@@ -304,6 +304,8 @@ interpolation1 = %(section%(Section1.foobar)|env)
 # But this means literally section%(Section1.foo):
 interpolation2 = %(section%{%(Section1.foo)}|env)
 
+literal = %{aff4:/C\.(?P<path>.\{1,16\}?)($|/.*)}
+
 """)
 
     # Test direct access.
@@ -340,6 +342,10 @@ interpolation2 = %(section%{%(Section1.foo)}|env)
     # OTOH when we write it raw, reading it back will interpolate:
     conf.SetRaw("Section1.foo6", "%(Section1.foo3)")
     self.assertEquals(conf["Section1.foo6"], "foo)")
+
+    # A complex regex which gets literally expanded.
+    self.assertEquals(
+        conf["Section1.literal"], r"aff4:/C\.(?P<path>.{1,16}?)($|/.*)")
 
   def testDataTypes(self):
     conf = config_lib.GrrConfigManager()

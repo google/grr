@@ -72,57 +72,6 @@ config_lib.DEFINE_semantic(
 config_lib.DEFINE_integer("ACL.cache_age", 600, "The number of seconds "
                           "approval objects live in the cache.")
 
-config_lib.DEFINE_integer("Datastore.maximum_blob_size",
-                          15*1024*1024,
-                          "Maximum blob size we may store in the datastore.")
-
-config_lib.DEFINE_string("Datastore.security_manager",
-                         "NullAccessControlManager",
-                         "The ACL manager for controlling access to data.")
-
-config_lib.DEFINE_string("Datastore.implementation", "FakeDataStore",
-                         "Storage subsystem to use.")
-
-config_lib.DEFINE_integer("Datastore.transaction_timeout", default=600,
-                          help="How long do we wait for a transaction lock.")
-
-# TDB data store.
-config_lib.DEFINE_string("TDBDatastore.root_path", default="/tmp/grr-tdb",
-                         help=("The root directory under which the tdb files "
-                               "are created."))
-
-# SQLite data store.
-config_lib.DEFINE_string("SqliteDatastore.root_path", default="/tmp/grr-sqlite",
-                         help=("The root directory under which the sqlite "
-                               "files are created."))
-
-# Mongo data store.
-config_lib.DEFINE_string("Mongo.server", "localhost",
-                         "The mongo server hostname.")
-
-config_lib.DEFINE_integer("Mongo.port", 27017, "The mongo server port..")
-
-config_lib.DEFINE_string("Mongo.db_name", "grr", "The mongo database name")
-
-# MySQL data store.
-config_lib.DEFINE_string("Mysql.host", "localhost",
-                         "The MySQL server hostname.")
-
-config_lib.DEFINE_integer("Mysql.port", 0, "The MySQL server port.")
-
-config_lib.DEFINE_string("Mysql.database_name", default="grr",
-                         help="Name of the database to use.")
-
-config_lib.DEFINE_string("Mysql.table_name", default="aff4",
-                         help="Name of the table to use.")
-
-config_lib.DEFINE_string("Mysql.database_username", default="root",
-                         help="The user to connect to the database.")
-
-config_lib.DEFINE_string("Mysql.database_password", default="",
-                         help="The password to connect to the database.")
-
-
 config_lib.DEFINE_bool("Cron.active", False,
                        "Set to true to run a cron thread on this binary.")
 
@@ -205,3 +154,15 @@ config_lib.DEFINE_string(
 config_lib.DEFINE_string(
     "Rekall.profile_server", "GRRRekallProfileServer",
     "Which Rekall profile server to use.")
+
+config_lib.DEFINE_list(
+    "StatsHunt.ClientActions", ["EnumerateInterfaces"],
+    "ClientActions that will be run by the StatsHunt every few minutes on all"
+    " clients. These need to be very lightweight.")
+
+config_lib.DEFINE_string(
+    "StatsHunt.CollectionInterval", "10m",
+    "How often to collect the StatsHunt information from each client. The "
+    "minimum bound here is effectively 2 * Client.poll_max, since a new request"
+    " is only scheduled after results are received in the previous poll.")
+

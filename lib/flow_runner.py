@@ -348,7 +348,7 @@ class FlowRunner(object):
     # Notify the worker about it.
     self.QueueNotification(session_id=self.session_id, timestamp=start_time)
 
-  def ProcessCompletedRequests(self, thread_pool):
+  def ProcessCompletedRequests(self, notification, thread_pool):
     """Go through the list of requests and process the completed ones.
 
     We take a snapshot in time of all requests and responses for this flow. We
@@ -361,6 +361,7 @@ class FlowRunner(object):
     queue.
 
     Args:
+      notification: The notification object that triggered this processing.
       thread_pool: For regular flows, the messages have to be processed in
                    order. Thus, the thread_pool argument is only used for hunts.
     """
@@ -369,7 +370,8 @@ class FlowRunner(object):
     # ASAP. This must happen before we actually run the flow to ensure the
     # client requests are removed from the client queues.
     with queue_manager.QueueManager(token=self.token) as manager:
-      for request, _ in manager.FetchCompletedRequests(self.session_id):
+      for request, _ in manager.FetchCompletedRequests(
+          self.session_id, timestamp=(0, notification.timestamp)):
         # Requests which are not destined to clients have no embedded request
         # message.
         if request.HasField("request"):
@@ -388,7 +390,7 @@ class FlowRunner(object):
         # Here we only care about completed requests - i.e. those requests with
         # responses followed by a status message.
         for request, responses in self.queue_manager.FetchCompletedResponses(
-            self.session_id):
+            self.session_id, timestamp=(0, notification.timestamp)):
 
           if request.id == 0:
             continue
@@ -537,7 +539,7 @@ class FlowRunner(object):
 
       stats.STATS.IncrementCounter("flow_errors",
                                    fields=[self.flow_obj.Name()])
-      logging.exception("Flow raised.")
+      logging.exception("Flow %s raised.", self.session_id)
 
       self.Error(traceback.format_exc(), client_id=client_id)
 
@@ -552,7 +554,7 @@ class FlowRunner(object):
     return my_id
 
   def CallClient(self, action_name, request=None, next_state=None,
-                 client_id=None, request_data=None, **kwargs):
+                 client_id=None, request_data=None, start_time=None, **kwargs):
     """Calls the client asynchronously.
 
     This sends a message to the client to invoke an Action. The run
@@ -577,6 +579,9 @@ class FlowRunner(object):
              protobuf for use in the execution of the state method. (so you can
              access this data by responses.request). Valid values are
              strings, unicode and protobufs.
+
+       start_time: Call the client at this time. This Delays the client request
+         for into the future.
 
        **kwargs: These args will be used to construct the client action semantic
          protobuf.
@@ -629,6 +634,7 @@ class FlowRunner(object):
     msg = rdfvalue.GrrMessage(
         session_id=utils.SmartUnicode(self.session_id), name=action_name,
         request_id=outbound_id, priority=self.args.priority,
+        require_fastpoll=self.args.require_fastpoll,
         queue=client_id.Queue(), payload=request)
 
     if self.context.remaining_cpu_quota:
@@ -651,7 +657,7 @@ class FlowRunner(object):
 
     state.request = msg
 
-    self.QueueRequest(state)
+    self.QueueRequest(state, timestamp=start_time)
 
   def Publish(self, event_name, msg, delay=0):
     """Sends the message to event listeners."""
@@ -772,6 +778,14 @@ class FlowRunner(object):
     cpu_limit = self.context.args.cpu_limit
     network_bytes_limit = self.context.args.network_bytes_limit
 
+    # If we were called with write_intermediate_results, propagate down to
+    # child flows.  This allows write_intermediate_results to be set to True
+    # either at the top level parent, or somewhere in the middle of
+    # the call chain.
+    write_intermediate = (kwargs.pop("write_intermediate_results", False) or
+                          getattr(self.args, "write_intermediate_results",
+                                  False))
+
     # Create the new child flow but do not notify the user about it.
     child_urn = self.flow_obj.StartFlow(
         client_id=client_id, flow_name=flow_name,
@@ -781,6 +795,7 @@ class FlowRunner(object):
         parent_flow=self.flow_obj, _store=self.data_store,
         network_bytes_limit=network_bytes_limit, sync=sync, output=output,
         queue=self.args.queue, cpu_limit=cpu_limit,
+        write_intermediate_results=write_intermediate,
         logs_collection_urn=logs_urn, **kwargs)
 
     self.QueueRequest(state)
@@ -800,9 +815,6 @@ class FlowRunner(object):
     """
     if not isinstance(response, rdfvalue.RDFValue):
       raise RuntimeError("SendReply can only send a Semantic Value")
-
-    if self.context.output is not None:
-      self.context.output.Add(response)
 
     # Only send the reply if we have a parent and if flow's send_replies
     # attribute is True. We have a parent only if we know our parent's request.
@@ -825,6 +837,13 @@ class FlowRunner(object):
 
       # Queue the response now
       self.queue_manager.QueueResponse(request_state.session_id, msg)
+
+      if self.args.write_intermediate_results:
+        self.context.output.Add(response)
+    else:
+      # Only write the reply to the collection if we are the parent flow.  This
+      # avoids creating a collection for every intermediate flow result.
+      self.context.output.Add(response)
 
   def __enter__(self):
     return self
@@ -964,7 +983,8 @@ class FlowRunner(object):
   def _QueueRequest(self, request, timestamp=None):
     if request.HasField("request") and request.request.name:
       # This message contains a client request as well.
-      self.queue_manager.QueueClientMessage(request.request)
+      self.queue_manager.QueueClientMessage(
+          request.request, timestamp=timestamp)
 
     self.queue_manager.QueueRequest(self.session_id, request,
                                     timestamp=timestamp)

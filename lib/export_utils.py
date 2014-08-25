@@ -132,7 +132,7 @@ def DownloadFile(file_obj, target_path, buffer_size=BUFFER_SIZE):
     target_path: Full path of file to write to.
     buffer_size: Read in chunks this size.
   """
-  logging.info("Downloading: %s to: %s", file_obj.urn, target_path)
+  logging.info(u"Downloading: %s to: %s", file_obj.urn, target_path)
 
   target_file = open(target_path, "w")
   file_obj.Seek(0)
@@ -144,7 +144,7 @@ def DownloadFile(file_obj, target_path, buffer_size=BUFFER_SIZE):
     data_buffer = file_obj.Read(buffer_size)
     count += 1
     if not count % 3:
-      logging.debug("Downloading: %s: %s done", file_obj.urn,
+      logging.debug(u"Downloading: %s: %s done", file_obj.urn,
                     utils.FormatNumberAsString(count*buffer_size))
   target_file.close()
 

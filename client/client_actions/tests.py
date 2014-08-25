@@ -17,14 +17,6 @@ from grr.client.client_actions import searching_test
 from grr.client.client_actions import standard_test
 from grr.client.client_actions import tempfiles_test
 
-# TODO(user): Volatility is deprecated, remove this as soon as Rekall is
-# rolled out.
-try:
-  from grr.client.client_actions import grr_volatility
-  from grr.client.client_actions import grr_volatility_test
-except ImportError:
-  pass
-
 # Enable the Rekall specific client actions only if Rekall is installed.
 try:
   from grr.client.client_actions import grr_rekall

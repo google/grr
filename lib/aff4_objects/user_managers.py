@@ -40,7 +40,7 @@ class BaseAccessControlManager(access_control.AccessControlManager):
 
       # Only return if all the authorized_labels are found in the user's
       # label list, otherwise raise UnauthorizedAccess.
-      if (authorized_labels.intersection(user.GetLabels()) ==
+      if (authorized_labels.intersection(user.GetLabelsNames()) ==
           authorized_labels):
         return
       raise access_control.UnauthorizedAccess(
@@ -295,6 +295,10 @@ class FullAccessControlManager(BaseAccessControlManager):
     # Namespace for audit data.
     h.Allow("aff4:/audit")
     h.Allow("aff4:/audit/*")
+
+    # Namespace for stats store data.
+    h.Allow("aff4:/stats_store")
+    h.Allow("aff4:/stats_store/*")
 
     # Namespace for clients.
     h.Allow(self.CLIENT_URN_PATTERN)

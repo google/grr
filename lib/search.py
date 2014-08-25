@@ -11,7 +11,7 @@ CLIENT_SCHEMA = aff4.AFF4Object.classes["VFSGRRClient"].SchemaCls
 INDEX_PREFIX_MAP = {"host": CLIENT_SCHEMA.HOSTNAME,
                     "fqdn": CLIENT_SCHEMA.FQDN,
                     "mac": CLIENT_SCHEMA.MAC_ADDRESS,
-                    "label": CLIENT_SCHEMA.LABEL,
+                    "label": CLIENT_SCHEMA.LABELS,
                     "user": CLIENT_SCHEMA.USERNAMES,
                     "ip": CLIENT_SCHEMA.HOST_IPS}
 
@@ -35,9 +35,10 @@ def SearchClients(query_string, start=0, max_results=1000, token=None):
     index_urn = client_schema.client_index
     index = aff4.FACTORY.Create(index_urn, aff4_type="AFF4Index",
                                 mode="rw", token=token)
-    label_index_urn = rdfvalue.RDFURN("aff4:/index/label")
-    label_index = aff4.FACTORY.Create(label_index_urn, aff4_type="AFF4Index",
-                                      mode="rw", token=token)
+
+    labels_index = aff4.FACTORY.Create(
+        aff4.VFSGRRClient.labels_index_urn, aff4_type="AFF4LabelsIndex",
+        mode="rw", token=token)
 
     indexed_attrs = []
 
@@ -62,7 +63,7 @@ def SearchClients(query_string, start=0, max_results=1000, token=None):
     else:
       # Search all indexes.
       indexed_attrs = [a for a in client_schema().ListAttributes() if a.index]
-      indexed_attrs.append(client_schema.LABEL)
+      indexed_attrs.append(client_schema.LABELS)
 
     # Fixup MAC addresses to match the MAC index format.
     match = re.search(mac_addr_re, query_string)
@@ -70,7 +71,7 @@ def SearchClients(query_string, start=0, max_results=1000, token=None):
       query_string = query_string.replace(":", "").replace("-", "")
 
     # Get the main results using wildcard matches.
-    if indexed_attrs != [client_schema.LABEL]:
+    if indexed_attrs != [client_schema.LABELS]:
       # If matching start or end of string, handle that explicitly.
       wildcard_query = query_string
       if not wildcard_query.startswith("^"):
@@ -82,11 +83,12 @@ def SearchClients(query_string, start=0, max_results=1000, token=None):
       search_results = [rdfvalue.ClientURN(r) for r in search_results]
       result_iterators.append(search_results)
 
-    if client_schema.LABEL in indexed_attrs:
+    if client_schema.LABELS in indexed_attrs:
       label_matches = []
       # Labels need to be exact matches.
-      label_results = label_index.Query(
-          [client_schema.LABEL], query_string, limit=(start, max_results))
+      label_results = itertools.chain.from_iterable(
+          labels_index.FindUrnsByLabelNameRegex(query_string).itervalues())
+      label_results = itertools.islice(label_results, start, max_results)
 
       # The above returns all labels, not all of which will be clients, we need
       # to filter for those that are clients.

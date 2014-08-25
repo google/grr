@@ -18,6 +18,7 @@ For this reason a hunt has its own runner - the HuntRunner.
 
 import re
 import threading
+import traceback
 
 import logging
 
@@ -200,6 +201,7 @@ class HuntRunner(flow_runner.FlowRunner):
         # Hunts are always in the running state.
         state=rdfvalue.Flow.State.RUNNING,
         usage_stats=rdfvalue.ClientResourcesStats(),
+        remaining_cpu_quota=args.cpu_limit,
         user=self.token.username,
         )
 
@@ -452,6 +454,8 @@ class GRRHunt(flow.GRRFlow):
   MATCH_DARWIN = rdfvalue.ForemanAttributeRegex(attribute_name="System",
                                                 attribute_regex="Darwin")
 
+  RESULTS_QUEUE = rdfvalue.RDFURN("HR")
+
   class SchemaCls(flow.GRRFlow.SchemaCls):
     """The schema for hunts.
 
@@ -494,6 +498,7 @@ class GRRHunt(flow.GRRFlow):
     super(GRRHunt, self).Initialize()
     # Hunts run in multiple threads so we need to protect access.
     self.lock = threading.RLock()
+    self.processed_responses = False
 
     if "r" in self.mode:
       self.client_count = self.Get(self.Schema.CLIENT_COUNT)
@@ -621,6 +626,58 @@ class GRRHunt(flow.GRRFlow):
     with self.GetRunner() as runner:
       runner.Stop()
 
+  def AddResultsToCollection(self, responses, client_id):
+    if responses.success:
+      with self.lock:
+        self.processed_responses = True
+        msgs = [rdfvalue.GrrMessage(payload=response, source=client_id)
+                for response in responses]
+        # Pass the callback to ensure we heartbeat while writing the
+        # results.
+        self.state.context.results_collection.AddAll(
+            msgs, callback=lambda index, rdf_value: self.HeartBeat())
+
+    else:
+      self.LogClientError(client_id, log_message=utils.SmartStr(
+          responses.status))
+
+  def Save(self):
+    if self.state and self.processed_responses:
+      with self.lock:
+        fresh_collection = aff4.FACTORY.Open(
+            self.state.context.results_collection_urn, mode="rw",
+            ignore_cache=True, token=self.token)
+
+        # This is a "defensive programming" approach. Hunt's results collection
+        # should never be changed outside of the hunt. But if this happens,
+        # it means something is seriously wrong with the system, so we'd better
+        # detect it, log it and work around it.
+        if len(fresh_collection) != self.state.context.results_collection_len:
+          logging.error("Results collection was changed outside of hunt %s. "
+                        "Expected %d results, got %d. Will reopen collection "
+                        "again, which will lead to %d results being dropped. "
+                        "Trace: %s",
+                        self.urn,
+                        self.state.context.results_collection_len,
+                        len(fresh_collection),
+                        len(fresh_collection) -
+                        self.state.context.results_collection_len,
+                        traceback.format_stack())
+
+          self.state.context.results_collection = fresh_collection
+          self.state.context.results_collection_len = len(fresh_collection)
+        else:
+          self.state.context.results_collection.Flush(sync=True)
+          self.state.context.results_collection_len = len(
+              self.state.context.results_collection)
+
+          # Notify ProcessHuntResultsCronFlow that we got new results.
+          data_store.DB.Set(self.RESULTS_QUEUE, self.urn,
+                            rdfvalue.RDFDatetime().Now(),
+                            replace=True, token=self.token)
+
+    super(GRRHunt, self).Save()
+
   def CallFlow(self, flow_name=None, next_state=None, request_data=None,
                client_id=None, **kwargs):
     """Create a new child flow from a hunt."""
@@ -738,12 +795,50 @@ class GRRHunt(flow.GRRFlow):
     if matching_clients:
       logging.info("Example matches: %s", str(matching_clients[:3]))
 
+  def SetDescription(self, description=None):
+    if description:
+      self.state.context.args.description = description
+    else:
+      try:
+        flow_name = self.state.args.flow_runner_args.flow_name
+      except AttributeError:
+        flow_name = ""
+      self.state.context.args.description = flow_name
+
   @flow.StateHandler()
   def Start(self):
-    """This method is called when the hunt is first created.
+    """Initializes this hunt from arguments."""
+    self.state.context.Register("results_metadata_urn",
+                                self.urn.Add("ResultsMetadata"))
+    self.state.context.Register("results_collection_urn",
+                                self.urn.Add("Results"))
+    self.state.context.Register("results_collection_len", 0)
 
-    Here we do any global initializations of the hunt we might need.
-    """
+    with aff4.FACTORY.Create(
+        self.state.context.results_metadata_urn, "HuntResultsMetadata",
+        mode="rw", token=self.token) as results_metadata:
+
+      state = rdfvalue.FlowState()
+      try:
+        plugins = self.state.args.output_plugins
+      except AttributeError:
+        plugins = []
+
+      for index, plugin in enumerate(plugins):
+        plugin_obj = plugin.GetPluginForHunt(self)
+        state.Register("%s_%d" % (plugin.plugin_name, index),
+                       (plugin, plugin_obj.state))
+
+      results_metadata.Set(results_metadata.Schema.OUTPUT_PLUGINS(state))
+
+    with aff4.FACTORY.Create(
+        self.state.context.results_collection_urn, "RDFValueCollection",
+        mode="rw", token=self.token) as results_collection:
+      results_collection.SetChunksize(1024 * 1024)
+      self.state.context.Register("results_collection", results_collection)
+
+    if not self.state.context.args.description:
+      self.SetDescription()
 
   @flow.StateHandler()
   def End(self):

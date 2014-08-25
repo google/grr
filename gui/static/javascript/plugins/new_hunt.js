@@ -21,3 +21,11 @@ grr.Renderer('HuntConfigureOutputPlugins', {
     }
   }
 });
+
+grr.Renderer('AFF4ObjectLabelNameFormRenderer', {
+  Layout: function(state) {
+    var prefix = state.prefix;
+
+    grr.forms.inputOnChange($('#' + prefix));
+  }
+});

@@ -2,11 +2,13 @@
 """Tests for grr.client.client_actions.grr_rekall."""
 
 
+import functools
 import os
 import re
 
 import logging
 
+from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import rdfvalue
@@ -41,15 +43,11 @@ class RekallTestSuite(test_lib.FlowTestsBaseclass):
     # directory. This forces the profiles to always be downloaded from the
     # server (since each test run gets a new temp directory).
     config_lib.CONFIG.Set("Client.rekall_profile_cache_path", self.temp_dir)
-
     image_path = os.path.join(self.base_path, "win7_trial_64bit.raw")
-    if not os.access(image_path, os.R_OK):
-      self.fail("Unable to locate test memory image. Skipping test.")
-
     self.CreateClient()
     self.CreateSignedDriver()
 
-    class ClientMock(test_lib.MemoryClientMock):
+    class ClientMock(action_mocks.MemoryClientMock):
       """A mock which returns the image as the driver path."""
 
       def GetMemoryInformation(self, _):
@@ -86,9 +84,25 @@ class RekallTestSuite(test_lib.FlowTestsBaseclass):
         os.stat(os.path.join(test_profile_dir, p_name)).st_size)
 
 
+def RequireTestImage(f):
+  """Decorator that skips tests if we don't have the memory image."""
+
+  @functools.wraps(f)
+  def Decorator(testinstance):
+    image_path = os.path.join(testinstance.base_path, "win7_trial_64bit.raw")
+    if os.access(image_path, os.R_OK):
+      return f(testinstance)
+    else:
+      return testinstance.skipTest("No win7_trial_64bit.raw memory image,"
+                                   "skipping test. Download it here: "
+                                   "goo.gl/19AJGl and put it in test_data.")
+  return Decorator
+
+
 class RekallTests(RekallTestSuite):
   """Test some core Rekall modules."""
 
+  @RequireTestImage
   def testRekallModules(self):
     """Tests the end to end Rekall memory analysis."""
     request = rdfvalue.RekallRequest()
@@ -116,23 +130,24 @@ class RekallTests(RekallTestSuite):
     module_output = re.split("^[*]{5}.+$", fd.RenderAsText(), flags=re.M)
 
     # First output pslist.
-    output = module_output[1]
+    output = module_output[1].strip()
 
-    # 35 processes and headers.
-    self.assertEqual(len(output.splitlines()), 35)
+    # 34 processes and headers.
+    self.assertEqual(len(output.splitlines()), 34)
 
     # And should include the DumpIt binary.
     self.assertTrue("DumpIt.exe" in output)
 
     # Next output modules plugin.
-    output = module_output[2]
+    output = module_output[2].strip()
 
-    # 106 modules and headers.
-    self.assertEqual(len(output.splitlines()), 106)
+    # 105 modules and headers.
+    self.assertEqual(len(output.splitlines()), 105)
 
     # And should include the DumpIt kernel driver.
     self.assertTrue("DumpIt.sys" in output)
 
+  @RequireTestImage
   def testParameters(self):
     request = rdfvalue.RekallRequest()
     request.plugins = [
@@ -150,13 +165,14 @@ class RekallTests(RekallTestSuite):
     fd = aff4.FACTORY.Open(self.client_id.Add("analysis/memory"),
                            token=self.token)
 
-    result = fd.RenderAsText().splitlines()[3:]  # Drop the column headers.
+    result = fd.RenderAsText().splitlines()[4:]  # Drop the column headers.
 
     # There should be 2 results back.
     self.assertEqual(len(result), 2)
     self.assertTrue("System" in result[0])
     self.assertTrue("DumpIt.exe" in result[1])
 
+  @RequireTestImage
   def testDLLList(self):
     """Tests that we can run a simple DLLList Action."""
     request = rdfvalue.RekallRequest()
@@ -185,6 +201,7 @@ class RekallTests(RekallTestSuite):
         sorted(result)):
       self.assertTrue(item in line)
 
+  @RequireTestImage
   def DisabledTestAllPlugins(self):
     """Tests that we can run a wide variety of plugins.
 

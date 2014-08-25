@@ -321,5 +321,5 @@ class ConfigurationViewInitHook(registry.InitHook):
 
   def Run(self):
     """Create the necessary directories."""
-    token = access_control.ACLToken(username="system", reason="Init")
+    token = access_control.ACLToken(username="system", reason="Init").SetUID()
     maintenance_utils.CreateBinaryConfigPaths(token=token)

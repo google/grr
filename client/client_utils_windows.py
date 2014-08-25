@@ -208,7 +208,9 @@ def WinGetRawDevice(path):
     raise IOError("No mountpoint for path: %s", path)
 
   if not path.startswith(mount_point):
-    raise IOError("path %s is not mounted under %s?" % (path, mount_point))
+    stripped_mp = mount_point.rstrip("\\")
+    if not path.startswith(stripped_mp):
+      raise IOError("path %s is not mounted under %s" % (path, mount_point))
 
   corrected_path = LocalPathToCanonicalPath(path[len(mount_point):])
   corrected_path = utils.NormalizePath(corrected_path)

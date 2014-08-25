@@ -71,30 +71,30 @@ class IndexTest(test_lib.AFF4ObjectTest):
 
     index = aff4.FACTORY.Create("aff4:/index/myfirstindex", "AFF4Index",
                                 mode="w", token=self.token)
-    index.Add(client1.urn, client_schema.LABEL, "test1")
-    index.Add(client1.urn, client_schema.LABEL, "test2")
-    index.Add(client2.urn, client_schema.LABEL, "extra-test1-extra")
-    index.Add(client2.urn, client_schema.LABEL, "test2")
+    index.Add(client1.urn, client_schema.LABELS, "test1")
+    index.Add(client1.urn, client_schema.LABELS, "test2")
+    index.Add(client2.urn, client_schema.LABELS, "extra-test1-extra")
+    index.Add(client2.urn, client_schema.LABELS, "test2")
     index.Flush(sync=True)
     index.Close(sync=True)
 
     # Reopen for querying.
     index = aff4.FACTORY.Open("aff4:/index/myfirstindex", aff4_type="AFF4Index",
                               token=self.token)
-    results = list(index.Query([client_schema.LABEL], "test1"))
+    results = list(index.Query([client_schema.LABELS], "test1"))
     self.assertEquals(len(results), 1)
 
-    results = list(index.Query([client_schema.LABEL], ".*test.*"))
+    results = list(index.Query([client_schema.LABELS], ".*test.*"))
     self.assertEquals(len(results), 2)
 
-    results = list(index.Query([client_schema.LABEL], "^test1.*"))
+    results = list(index.Query([client_schema.LABELS], "^test1.*"))
     self.assertEquals(len(results), 1)
 
-    results = list(index.Query([client_schema.LABEL], ".*test1$"))
+    results = list(index.Query([client_schema.LABELS], ".*test1$"))
     self.assertEquals(len(results), 1)
 
     # Check limit works.
-    results = list(index.Query([client_schema.LABEL], ".*test.*", limit=1))
+    results = list(index.Query([client_schema.LABELS], ".*test.*", limit=1))
     self.assertEquals(len(results), 1)
 
   def testIndexesDeletion(self):
@@ -111,26 +111,262 @@ class IndexTest(test_lib.AFF4ObjectTest):
 
     index = aff4.FACTORY.Create("aff4:/index/myfirstindex", "AFF4Index",
                                 mode="w", token=self.token)
-    index.Add(client1.urn, client_schema.LABEL, "test1")
-    index.Add(client1.urn, client_schema.LABEL, "test2")
-    index.Add(client2.urn, client_schema.LABEL, "test2")
-    index.Add(client1.urn, client_schema.LABEL, "test2")
-    index.Add(client2.urn, client_schema.LABEL, "test3")
+    index.Add(client1.urn, client_schema.LABELS, "test1")
+    index.Add(client1.urn, client_schema.LABELS, "test2")
+    index.Add(client2.urn, client_schema.LABELS, "test2")
+    index.Add(client1.urn, client_schema.LABELS, "test2")
+    index.Add(client2.urn, client_schema.LABELS, "test3")
     index.Flush(sync=True)
-    index.DeleteAttributeIndexesForURN(client_schema.LABEL, "test1",
+    index.DeleteAttributeIndexesForURN(client_schema.LABELS, "test1",
                                        client1.urn)
     index.Flush(sync=True)
 
-    results = list(index.Query([client_schema.LABEL], "test1"))
+    results = list(index.Query([client_schema.LABELS], "test1"))
     self.assertEquals(len(results), 0)
 
     index = aff4.FACTORY.Create("aff4:/index/myfirstindex", "AFF4Index",
                                 mode="rw", token=self.token)
-    index.DeleteAttributeIndexesForURN(client_schema.LABEL, "test2",
+    index.DeleteAttributeIndexesForURN(client_schema.LABELS, "test2",
                                        client1.urn)
     index.Flush(sync=True)
-    results = list(index.Query([client_schema.LABEL], "test2"))
+    results = list(index.Query([client_schema.LABELS], "test2"))
     self.assertEquals(len(results), 1)
+
+
+class AFF4IndexSetTest(test_lib.GRRBaseTest):
+
+  def CreateIndex(self, token=None):
+    return aff4.FACTORY.Create("aff4:/index/foo", "AFF4IndexSet",
+                               mode="w", token=token)
+
+  def ReadIndex(self, token=None):
+    return aff4.FACTORY.Open("aff4:/index/foo", aff4_type="AFF4IndexSet",
+                             token=token)
+
+  def testValueAddedToTheIndexIsThenListed(self):
+    with self.CreateIndex(token=self.token) as index:
+      index.Add("wow")
+
+    index = self.ReadIndex(token=self.token)
+    self.assertListEqual(["wow"], list(index.ListValues()))
+
+    with self.CreateIndex(token=self.token) as index:
+      index.Add("wow2")
+
+    index = self.ReadIndex(token=self.token)
+    self.assertListEqual(["wow", "wow2"], sorted(index.ListValues()))
+
+  def testValuesAddedToTheIndexAreListedBeforeFlushing(self):
+    with self.CreateIndex(token=self.token) as index:
+      index.Add("wow")
+      index.Add("wow2")
+
+      self.assertListEqual(["wow", "wow2"], sorted(index.ListValues()))
+
+  def testValueRemovedFromTheIndexIsNotListed(self):
+    with self.CreateIndex(token=self.token) as index:
+      index.Add("wow")
+      index.Add("wow2")
+      index.Add("wow3")
+
+    index = self.ReadIndex(token=self.token)
+    self.assertListEqual(["wow", "wow2", "wow3"], sorted(index.ListValues()))
+
+    with self.CreateIndex(token=self.token) as index:
+      index.Remove("wow2")
+
+    index = self.ReadIndex(token=self.token)
+    self.assertListEqual(["wow", "wow3"], sorted(index.ListValues()))
+
+  def testValueRemovedFromTheIndexIsNotListedBeforeFlushing(self):
+    with self.CreateIndex(token=self.token) as index:
+      index.Add("wow")
+      index.Add("wow2")
+      index.Add("wow3")
+
+    index = self.ReadIndex(token=self.token)
+    index.Remove("wow2")
+    self.assertListEqual(["wow", "wow3"], sorted(index.ListValues()))
+
+  def testValuesAddedAndThenFremovedAreNotListedBeforeFlushing(self):
+    with self.CreateIndex(token=self.token) as index:
+      index.Add("wow")
+      index.Add("wow2")
+      index.Add("wow3")
+      index.Remove("wow2")
+
+      self.assertListEqual(["wow", "wow3"], sorted(index.ListValues()))
+
+
+class AFF4LabelsIndexTest(test_lib.GRRBaseTest):
+
+  def CreateIndex(self, token=None):
+    return aff4.FACTORY.Create("aff4:/index/labels", "AFF4LabelsIndex",
+                               mode="w", token=token)
+
+  def ReadIndex(self, token=None):
+    return aff4.FACTORY.Open("aff4:/index/labels", aff4_type="AFF4LabelsIndex",
+                             token=token)
+
+  def testAddedLabelIsCorrectlyListed(self):
+    urn = rdfvalue.RDFURN("aff4:/foo/bar")
+
+    with self.CreateIndex(token=self.token) as index:
+      index.AddLabel(urn, "foo", owner="testuser")
+
+    index = self.ReadIndex(token=self.token)
+    self.assertListEqual(index.ListUsedLabels(),
+                         [rdfvalue.AFF4ObjectLabel(name="foo",
+                                                   owner="testuser")])
+
+  def testMultipleLabelsWithDifferentOwnersAreCorrectlyListed(self):
+    urn = rdfvalue.RDFURN("aff4:/foo/bar")
+
+    with self.CreateIndex(token=self.token) as index:
+      index.AddLabel(urn, "foo", owner="testuser1")
+      index.AddLabel(urn, "foo", owner="testuser2")
+
+    index = self.ReadIndex(token=self.token)
+    self.assertListEqual(index.ListUsedLabels(),
+                         [rdfvalue.AFF4ObjectLabel(name="foo",
+                                                   owner="testuser1"),
+                          rdfvalue.AFF4ObjectLabel(name="foo",
+                                                   owner="testuser2")])
+
+  def testUrnWithAddedLabelCanBeFound(self):
+    urn = rdfvalue.RDFURN("aff4:/foo/bar")
+
+    with self.CreateIndex(token=self.token) as index:
+      index.AddLabel(urn, "foo", owner="testuser")
+
+    index = self.ReadIndex(token=self.token)
+    found_urns = index.FindUrnsByLabel("foo")
+    self.assertListEqual(found_urns, [urn])
+
+  def testUrnWithAddedLabelCanBeFoundWithOwnerSpecified(self):
+    urn = rdfvalue.RDFURN("aff4:/foo/bar")
+
+    with self.CreateIndex(token=self.token) as index:
+      index.AddLabel(urn, "foo", owner="testuser")
+
+    index = self.ReadIndex(token=self.token)
+
+    found_urns = index.FindUrnsByLabel("foo", owner="testuser")
+    self.assertListEqual(found_urns, [urn])
+
+  def testUrnsWithAddedLabelNotFoundWithAnotherOwner(self):
+    urn = rdfvalue.RDFURN("aff4:/foo/bar")
+
+    with self.CreateIndex(token=self.token) as index:
+      index.AddLabel(urn, "foo", owner="testuser")
+
+    index = self.ReadIndex(token=self.token)
+
+    found_urns = index.FindUrnsByLabel("foo", owner="another")
+    self.assertFalse(found_urns)
+
+  def testUrnWithAddedLabelCanBeFoundViaLabelRegex(self):
+    with self.CreateIndex(token=self.token) as index:
+      index.AddLabel(rdfvalue.RDFURN("aff4:/foo/bar1"),
+                     "foo", owner="testuser1")
+      index.AddLabel(rdfvalue.RDFURN("aff4:/foo/bar2"),
+                     "bar", owner="testuser2")
+      index.AddLabel(rdfvalue.RDFURN("aff4:/foo/bar3"),
+                     "foo", owner="testuser3")
+
+    index = self.ReadIndex(token=self.token)
+    found_urns = index.FindUrnsByLabelNameRegex("f.*o")
+    self.assertEqual(len(found_urns), 2)
+    self.assertListEqual(
+        found_urns[rdfvalue.AFF4ObjectLabel(name="foo", owner="testuser1")],
+        [rdfvalue.RDFURN("aff4:/foo/bar1")])
+    self.assertListEqual(
+        found_urns[rdfvalue.AFF4ObjectLabel(name="foo", owner="testuser3")],
+        [rdfvalue.RDFURN("aff4:/foo/bar3")])
+
+  def testUrnWithAddedLabelCanBeFoundViaLabelRegexAndOwner(self):
+    with self.CreateIndex(token=self.token) as index:
+      index.AddLabel(rdfvalue.RDFURN("aff4:/foo/bar1"),
+                     "foo", owner="testuser1")
+      index.AddLabel(rdfvalue.RDFURN("aff4:/foo/bar2"),
+                     "bar", owner="testuser2")
+      index.AddLabel(rdfvalue.RDFURN("aff4:/foo/bar3"),
+                     "foo", owner="testuser3")
+
+    index = self.ReadIndex(token=self.token)
+    found_urns = index.FindUrnsByLabelNameRegex("f.*o", owner="testuser3")
+    self.assertEqual(len(found_urns), 1)
+    self.assertListEqual(
+        found_urns[rdfvalue.AFF4ObjectLabel(name="foo", owner="testuser3")],
+        [rdfvalue.RDFURN("aff4:/foo/bar3")])
+
+  def testUrnWithAddedLabelNotFoundWithWrongOwner(self):
+    with self.CreateIndex(token=self.token) as index:
+      index.AddLabel(rdfvalue.RDFURN("aff4:/foo/bar1"),
+                     "foo", owner="testuser1")
+      index.AddLabel(rdfvalue.RDFURN("aff4:/foo/bar2"),
+                     "bar", owner="testuser2")
+      index.AddLabel(rdfvalue.RDFURN("aff4:/foo/bar3"),
+                     "foo", owner="testuser3")
+
+    index = self.ReadIndex(token=self.token)
+    found_urns = index.FindUrnsByLabelNameRegex("f.*o", owner="another")
+    self.assertEqual(len(found_urns), 0)
+
+  def testTimestampInformationIsNotStoredInIndex(self):
+    urn = rdfvalue.RDFURN("aff4:/foo/bar")
+
+    with self.CreateIndex(token=self.token) as index:
+      index.AddLabel(urn, "foo", owner="user")
+
+    index = self.ReadIndex(token=self.token)
+    used_labels = index.ListUsedLabels()
+    self.assertEqual(len(used_labels), 1)
+    self.assertFalse(used_labels[0].HasField("timestamp"))
+
+  def testOwnerInformationIsStoredInIndex(self):
+    urn = rdfvalue.RDFURN("aff4:/foo/bar")
+
+    with self.CreateIndex(token=self.token) as index:
+      index.AddLabel(urn, "foo", owner="testuser")
+
+    index = self.ReadIndex(token=self.token)
+    used_labels = index.ListUsedLabels()
+    self.assertEqual(len(used_labels), 1)
+    self.assertEqual("testuser", used_labels[0].owner)
+
+  def testDeletedLabelIsRemovedFromUrnsAndLabelsMapping(self):
+    urn = rdfvalue.RDFURN("aff4:/foo/bar")
+
+    with self.CreateIndex(token=self.token) as index:
+      index.AddLabel(urn, "foo", owner="testuser")
+
+    index = self.ReadIndex(token=self.token)
+    found_urns = index.FindUrnsByLabel("foo")
+    self.assertListEqual(found_urns, [urn])
+
+    with self.CreateIndex(token=self.token) as index:
+      index.RemoveLabel(urn, "foo", owner="testuser")
+
+    index = self.ReadIndex(token=self.token)
+    found_urns = index.FindUrnsByLabel("foo")
+    self.assertFalse(found_urns)
+
+  def testDeletedLabelIsNotRemovedFromUsedLabelsList(self):
+    label = rdfvalue.AFF4ObjectLabel(name="foo", owner="testuser")
+    urn = rdfvalue.RDFURN("aff4:/foo/bar")
+
+    with self.CreateIndex(token=self.token) as index:
+      index.AddLabel(urn, "foo", owner="testuser")
+
+    index = self.ReadIndex(token=self.token)
+    self.assertListEqual(index.ListUsedLabels(), [label])
+
+    with self.CreateIndex(token=self.token) as index:
+      index.RemoveLabel(urn, "foo", owner="testuser")
+
+    index = self.ReadIndex(token=self.token)
+    self.assertListEqual(index.ListUsedLabels(), [label])
 
 
 class AFF4SparseImageTest(test_lib.GRRBaseTest):

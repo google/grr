@@ -51,8 +51,19 @@ class EndToEndTestFlow(flow.GRRFlow):
     # safe.
     test_object.setUp()
 
+    # We need to set write_intermediate_results=True here so that the results
+    # are written to the collections belonging to the child flows. The default
+    # behaviour is to only write to the top level parent collection, which in
+    # this case is us.  There are a bunch of tests that check for empty
+    # collections and fail in this case.
+
+    # Since CallFlow runs Start, a flow under test that raises in its Start
+    # method will kill the EndToEndTest run.  Protecting and reporting on this
+    # significantly complicates this code, and a flow raising in Start is really
+    # broken, so we allow this behaviour.
     test_object.session_id = self.CallFlow(test_object.flow,
                                            next_state="ProcessResults",
+                                           write_intermediate_results=True,
                                            **test_object.args)
 
     # Save the object so we can call CheckFlow once the flow is done

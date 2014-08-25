@@ -37,7 +37,7 @@ class TestStruct(structs.RDFProtoStruct):
       type_info.ProtoEnum(name="type", field_number=7,
                           enum_name="Type",
                           enum=dict(FIRST=1, SECOND=2, THIRD=3),
-                          description="An enum field"),
+                          default=3, description="An enum field"),
 
       type_info.ProtoFloat(name="float", field_number=8,
                            description="A float number", default=1.1),
@@ -233,6 +233,9 @@ class RDFStructsTest(test_base.RDFValueTestCase):
     self.assertEqual(tested.urn, rdfvalue.RDFURN("http://www.example.com"))
 
     # Test enums.
+    self.assertEqual(tested.type, 3)
+    self.assertEqual(tested.type.name, "THIRD")
+
     tested.type = "FIRST"
     self.assertEqual(tested.type, 1)
 

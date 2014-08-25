@@ -1124,14 +1124,15 @@ class AFF4Object(object):
   def behaviours(cls):  # pylint: disable=g-bad-name
     return cls._behaviours
 
+  # URN of the index for labels for generic AFF4Objects.
+  labels_index_urn = rdfvalue.RDFURN("aff4:/index/labels/generic")
+
   # We define the parts of the schema for each AFF4 Object as an internal
   # class. As new objects extend this, they can add more attributes to their
   # schema by extending their parents. Note that the class must be named
   # SchemaCls.
   class SchemaCls(object):
     """The standard AFF4 schema."""
-    label_index = rdfvalue.RDFURN("aff4:/index/label")
-
     TYPE = Attribute("aff4:type", rdfvalue.RDFString,
                      "The name of the AFF4Object derived class.", "type")
 
@@ -1146,9 +1147,15 @@ class AFF4Object(object):
 
     # Note labels should not be Set directly but should be manipulated via
     # the AddLabels method.
-    LABEL = Attribute("aff4:labels", grr_rdf.LabelList,
-                      "Any object can have labels applied to it.", "Labels",
-                      creates_new_object_version=False, versioned=False)
+    DEPRECATED_LABEL = Attribute("aff4:labels", grr_rdf.LabelList,
+                                 "DEPRECATED: used LABELS instead.",
+                                 "DEPRECATED_Labels",
+                                 creates_new_object_version=False,
+                                 versioned=False)
+
+    LABELS = Attribute("aff4:labels_list", rdfvalue.AFF4ObjectLabelsList,
+                       "Any object can have labels applied to it.", "Labels",
+                       creates_new_object_version=False, versioned=False)
 
     LEASED_UNTIL = Attribute("aff4:lease", rdfvalue.RDFDatetime,
                              "The time until which the object is leased by a "
@@ -1216,7 +1223,7 @@ class AFF4Object(object):
     self._to_delete = set()
 
     # Cached index object for Label handling.
-    self._label_index = None
+    self._labels_index = None
 
     # We maintain two attribute caches - self.synced_attributes reflects the
     # attributes which are synced with the data_store, while self.new_attributes
@@ -1410,8 +1417,8 @@ class AFF4Object(object):
       FACTORY.NotifyWriteObject(self)
 
       # Flush label indexes.
-      if self._label_index:
-        self._label_index.Flush(sync=sync)
+      if self._labels_index is not None:
+        self._labels_index.Flush(sync=sync)
 
   @utils.Synchronized
   def _SyncAttributes(self):
@@ -1721,37 +1728,55 @@ class AFF4Object(object):
 
       raise
 
-  def AddLabels(self, labels):
+  def _GetLabelsIndex(self):
+    """Creates and caches labels index object."""
+    if self._labels_index is None:
+      self._labels_index = FACTORY.Create(
+          self.labels_index_urn, "AFF4LabelsIndex", mode="w",
+          token=self.token)
+    return self._labels_index
+
+  def AddLabels(self, *labels_names, **kwargs):
     """Add labels to the AFF4Object."""
-    if not self._label_index:
-      self._label_index = FACTORY.Create(
-          self.Schema.label_index, "AFF4Index", mode="w", token=self.token)
+    owner = kwargs.get("owner", self.token.username)
 
-    label_list = self.Get(self.Schema.LABEL, self.Schema.LABEL())
-    for label in labels:
-      if label not in label_list:
-        label_list.Append(label)
-        self._label_index.Add(self.urn, self.Schema.LABEL, label)
-    self.Set(label_list)
+    labels_index = self._GetLabelsIndex()
+    current_labels = self.Get(self.Schema.LABELS, self.Schema.LABELS())
+    for label_name in labels_names:
+      label = rdfvalue.AFF4ObjectLabel(name=label_name, owner=owner,
+                                       timestamp=rdfvalue.RDFDatetime().Now())
+      if current_labels.AddLabel(label):
+        labels_index.AddLabel(self.urn, label_name, owner=owner)
 
-  def RemoveLabels(self, labels):
+    self.Set(current_labels)
+
+  def RemoveLabels(self, *labels_names, **kwargs):
     """Remove specified labels from the AFF4Object."""
-    if not self._label_index:
-      self._label_index = FACTORY.Create(rdfvalue.RDFURN("aff4:/index/label"),
-                                         "AFF4Index", mode="w",
-                                         token=self.token)
-    label_list = self.Get(self.Schema.LABEL)
-    new_label_list = self.Schema.LABEL()
-    if label_list:
-      for label in label_list:
-        if label not in labels:
-          new_label_list.Append(label)
-      self.Set(new_label_list)
+    owner = kwargs.get("owner", self.token.username)
 
-    # Clean up indexes.
-    for label in labels:
-      self._label_index.DeleteAttributeIndexesForURN(self.SchemaCls.LABEL,
-                                                     label, self.urn)
+    labels_index = self._GetLabelsIndex()
+    current_labels = self.Get(self.Schema.LABELS)
+    for label_name in labels_names:
+      label = rdfvalue.AFF4ObjectLabel(name=label_name, owner=owner)
+      current_labels.RemoveLabel(label)
+
+      labels_index.RemoveLabel(self.urn, label_name, owner=owner)
+
+    self.Set(self.Schema.LABELS, current_labels)
+
+  def SetLabels(self, *labels_names, **kwargs):
+    self.ClearLabels()
+    self.AddLabels(*labels_names, **kwargs)
+
+  def ClearLabels(self):
+    self.Set(self.Schema.LABELS, rdfvalue.AFF4ObjectLabelsList())
+
+  def GetLabels(self):
+    return self.Get(self.Schema.LABELS, rdfvalue.AFF4ObjectLabelsList()).labels
+
+  def GetLabelsNames(self):
+    return self.Get(self.Schema.LABELS, rdfvalue.AFF4ObjectLabelsList()).names
+
 
 # This will register all classes into this modules's namespace regardless of
 # where they are defined. This allows us to decouple the place of definition of
@@ -1924,6 +1949,39 @@ class AFF4Volume(AFF4Object):
       for child in FACTORY.MultiOpen(to_read, mode=mode, token=self.token,
                                      age=age):
         yield child
+
+  @property
+  def real_pathspec(self):
+    """Returns a pathspec for an aff4 object even if there is none stored."""
+    pathspec = self.Get(self.Schema.PATHSPEC)
+
+    stripped_components = []
+    parent = self
+
+    # TODO(user): this code is potentially slow due to multiple separate
+    # aff4.FACTORY.Open() calls. OTOH the loop below is executed very rarely -
+    # only when we deal with deep files that got fetched alone and then
+    # one of the directories in their path gets updated.
+    while not pathspec and len(parent.urn.Split()) > 1:
+      # We try to recurse up the tree to get a real pathspec.
+      # These directories are created automatically without pathspecs when a
+      # deep directory is listed without listing the parents.
+      # Note /fs/os or /fs/tsk won't be updateable so we will raise IOError
+      # if we try.
+      stripped_components.append(parent.urn.Basename())
+      pathspec = parent.Get(parent.Schema.PATHSPEC)
+      parent = FACTORY.Open(parent.urn.Dirname(), token=self.token)
+
+    if pathspec:
+      if stripped_components:
+        # We stripped pieces of the URL, time to add them back.
+        new_path = utils.JoinPath(*reversed(stripped_components[:-1]))
+        pathspec.Append(rdfvalue.PathSpec(path=new_path,
+                                          pathtype=pathspec.last.pathtype))
+    else:
+      raise IOError("Item has no pathspec.")
+
+    return pathspec
 
 
 class AFF4Root(AFF4Volume):

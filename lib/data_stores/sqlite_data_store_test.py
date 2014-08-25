@@ -25,8 +25,8 @@ class SqliteTestMixin(object):
     self.token = access_control.ACLToken(username="test",
                                          reason="Running tests")
 
-    config_lib.CONFIG.SetRaw("SqliteDatastore.root_path",
-                             "%s/sqlite_test/" % self.temp_dir)
+    config_lib.CONFIG.Set("SqliteDatastore.root_path",
+                          "%s/sqlite_test/" % self.temp_dir)
 
     self.DestroyDatastore()
 

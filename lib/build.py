@@ -614,8 +614,10 @@ class LinuxClientDeployer(ClientDeployer):
               "Client.binary_name", context=self.context)),
                0755)
 
+      arch = config_lib.CONFIG.Get("Client.arch", context=self.context)
+
       os.chdir(template_dir)
-      command = [buildpackage_binary, "-b"]
+      command = [buildpackage_binary, "-b", "-a%s" % arch]
       try:
         subprocess.check_output(command, stderr=subprocess.STDOUT)
       except subprocess.CalledProcessError as e:

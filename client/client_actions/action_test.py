@@ -25,6 +25,7 @@ from grr.client import actions
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib import worker_mocks
 
 
 # pylint: mode=test
@@ -190,7 +191,7 @@ class ActionTest(test_lib.EmptyActionTest):
     request.iterator.number = 2
     results = []
 
-    grr_worker = test_lib.FakeClientWorker()
+    grr_worker = worker_mocks.FakeClientWorker()
 
     while request.iterator.state != request.iterator.State.FINISHED:
       responses = self.RunAction("SuspendableListDirectory", request,
@@ -235,7 +236,7 @@ class ActionTest(test_lib.EmptyActionTest):
     request.iterator.number = 2
     results = []
 
-    grr_worker = test_lib.FakeClientWorker()
+    grr_worker = worker_mocks.FakeClientWorker()
     while request.iterator.state != request.iterator.State.FINISHED:
       responses = self.ExecuteAction("RaisingListDirectory", request,
                                      grr_worker=grr_worker)

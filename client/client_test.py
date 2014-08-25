@@ -118,19 +118,23 @@ class BasicContextTests(test_lib.GRRBaseTest):
     self.assert_("RuntimeError" in status.error_message)
     self.assertNotEqual(status.status, rdfvalue.GrrStatus.ReturnedStatus.OK)
 
-  def testPriorities(self):
+  def testPriorityAndFastPoll(self):
+    """Test priority and fast poll settings propagated to status results."""
     for i in range(10):
       message = rdfvalue.GrrMessage(
           name="MockAction",
           session_id=self.session_id.Basename() + str(i),
           auth_state=rdfvalue.GrrMessage.AuthorizationState.UNAUTHENTICATED,
           request_id=1,
-          priority=i%3)
+          priority=i%3,
+          require_fastpoll=i%2)
       self.context.HandleMessage(message)
     message_list = self.context.Drain(max_size=1000000).job
     self.assertEqual(len(message_list), 10)
     self.assertEqual([m.priority for m in message_list],
                      [2, 2, 2, 1, 1, 1, 0, 0, 0, 0])
+    self.assertEqual([m.require_fastpoll for m in message_list],
+                     [0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
 
   def testSizeQueue(self):
 

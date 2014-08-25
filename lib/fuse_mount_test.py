@@ -12,6 +12,7 @@ import time
 from grr.lib import server_plugins
 # pylint: enable=unused-import, g-bad-import-order
 
+from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flow_utils
 from grr.lib import rdfvalue
@@ -188,15 +189,17 @@ class GRRFuseTest(test_lib.FlowTestsBaseclass):
     self.grr_fuse = fuse_mount.GRRFuse(root="/", token=self.token,
                                        ignore_cache=True)
 
-    self.action_mock = test_lib.ActionMock("TransferBuffer", "StatFile", "Find",
-                                           "HashFile", "HashBuffer",
-                                           "UpdateVFSFile",
-                                           "EnumerateInterfaces",
-                                           "EnumerateFilesystems",
-                                           "GetConfiguration",
-                                           "GetConfig", "GetClientInfo",
-                                           "GetInstallDate", "GetPlatformInfo",
-                                           "EnumerateUsers", "ListDirectory")
+    self.action_mock = action_mocks.ActionMock("TransferBuffer", "StatFile",
+                                               "Find", "HashFile", "HashBuffer",
+                                               "UpdateVFSFile",
+                                               "EnumerateInterfaces",
+                                               "EnumerateFilesystems",
+                                               "GetConfiguration", "GetConfig",
+                                               "GetClientInfo",
+                                               "GetInstallDate",
+                                               "GetPlatformInfo",
+                                               "EnumerateUsers",
+                                               "ListDirectory")
 
     client_mock = test_lib.MockClient(self.client_id, self.action_mock,
                                       token=self.token)

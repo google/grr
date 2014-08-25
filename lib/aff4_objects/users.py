@@ -116,6 +116,9 @@ class GUISettings(rdfvalue.RDFProtoStruct):
 class GRRUser(aff4.AFF4Object):
   """An AFF4 object modeling a GRR User."""
 
+  # URN of the index for labels for users.
+  labels_index_urn = rdfvalue.RDFURN("aff4:/index/labels/users")
+
   SYSTEM_USERS = set(["GRRWorker", "GRREnroller", "GRRCron", "test"])
 
   class SchemaCls(aff4.AFF4Object.SchemaCls):
@@ -213,19 +216,6 @@ class GRRUser(aff4.AFF4Object):
   def CheckPassword(self, password):
     password_obj = self.Get(self.Schema.PASSWORD)
     return password_obj and password_obj.CheckPassword(password)
-
-  def SetLabels(self, *labels):
-    with aff4.FACTORY.Create(self.urn.Add("labels"), "AFF4Object",
-                             token=self.token) as fd:
-      new_labels = fd.Schema.LABEL()
-      for label in labels:
-        new_labels.Append(label)
-
-      fd.Set(new_labels)
-
-  def GetLabels(self):
-    fd = aff4.FACTORY.Open(self.urn.Add("labels"), token=self.token)
-    return [str(x) for x in fd.Get(fd.Schema.LABEL, [])]
 
   def GetPendingGlobalNotifications(self):
     storage = aff4.FACTORY.Create(GlobalNotificationStorage.DEFAULT_PATH,

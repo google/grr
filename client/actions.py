@@ -102,6 +102,7 @@ class ActionPlugin(object):
     self.message = message
     if message:
       self.priority = message.priority
+      self.require_fastpoll = message.require_fastpoll
 
     args = None
     try:

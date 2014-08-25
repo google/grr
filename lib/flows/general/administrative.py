@@ -706,7 +706,7 @@ class ClientStartupHandler(flow.EventListener):
     if new_data != old_data:
       client.Set(client.Schema.CLIENT_INFO(info))
 
-    client.AddLabels(info.labels)
+    client.AddLabels(*info.labels, owner="GRR")
 
     # Allow for some drift in the boot times (5 minutes).
     if abs(int(old_boot) - int(startup_info.boot_time)) > 300 * 1e6:
@@ -878,3 +878,37 @@ class RunReport(flow.GRRGlobalFlow):
     report_obj = report_cls(token=self.token)
     report_obj.Run()
     report_obj.MailReport(self.state.args.email)
+
+
+class ApplyLabelsToClientsFlowArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.ApplyLabelsToClientsFlowArgs
+
+
+class ApplyLabelsToClientsFlow(flow.GRRGlobalFlow):
+
+  args_type = ApplyLabelsToClientsFlowArgs
+
+  ACL_ENFORCED = False
+
+  @flow.StateHandler()
+  def Start(self):
+    audit_description = ",".join([self.token.username + "." + name
+                                  for name in self.args.labels])
+    audit_events = []
+    try:
+      client_objs = aff4.FACTORY.MultiOpen(
+          self.args.clients, aff4_type="VFSGRRClient", mode="rw",
+          token=self.token)
+      for client_obj in client_objs:
+        client_obj.AddLabels(*self.args.labels)
+        client_obj.Close()
+
+        audit_events.append(
+            rdfvalue.AuditEvent(user=self.token.username,
+                                action="CLIENT_ADD_LABEL",
+                                flow_name="ApplyLabelsToClientsFlow",
+                                client=client_obj.urn,
+                                description=audit_description))
+    finally:
+      flow.Events.PublishMultipleEvents({"Audit": audit_events},
+                                        token=self.token)

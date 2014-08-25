@@ -204,7 +204,7 @@ class GRRFuseDatastoreOnly(object):
     if not path:
       raise fuse.FuseOSError(errno.ENOENT)
 
-    if path != self.root.Path():
+    if path != self.root:
       full_path = self.root.Add(path)
     else:
       full_path = path
