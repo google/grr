@@ -1,1 +1,225 @@
-Hello world.
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>GRR Rapid Response</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="GRR Rapid Response">
+
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.css" rel="stylesheet">
+    <style>
+      body {
+        padding-top: 60px;
+      }
+    </style>
+    <link href="/css/rekall.css" rel="stylesheet">
+    <link href="/css/asciidoc.css" rel="stylesheet">
+    <link href="/css/treeview.css" rel="stylesheet">
+    <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
+    <script src="//code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.10.4/themes/smoothness/jquery-ui.css">
+
+    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></sc\
+ript>
+    <![endif]-->
+  </head>
+
+  <body>
+
+
+
+   <nav class="navbar navbar-inverse navbar-fixed-top"
+     role="navigation">
+     <div class="container-fluid">
+       <div class="navbar-header">
+         <a class="navbar-brand" href="#">GRR Rapid Response</a>
+       </div>
+
+       <div class="navbar-collapse collapse">
+         <ul class="nav navbar-nav">
+
+        <li>
+          <a class="active" href="/index.html">
+            Home
+          </a>
+        </li>
+
+        <li>
+          <a class="" href="/docs.html">
+            Documentation
+          </a>
+        </li>
+
+        <li>
+          <a class="" href="/faq.html">
+            FAQ
+          </a>
+        </li>
+
+         </ul>
+         <form class="navbar-form navbar-right" role="search" action="/search.html">
+           <div class="form-group">
+             <input type="text" name="q" class="form-control" placeholder="Site Search">
+           </div>
+           <button type="submit" class="btn btn-default">
+             <span class="glyphicon glyphicon-search"></span>
+           </button>
+         </form>
+       </div> <!-- navbar-collapse -->
+     </div> <!-- container-fluid -->
+   </nav>
+
+<div class="container-fluid">
+<div class="row">
+  <div class="col-md-2">
+    
+  </div>
+
+  <div class="col-md-8">
+    <h1>GRR Rapid Response Framework.</h1>
+<p>GRR is an Incident Response Framework focused on Remote Live Forensics.</p>
+<h2>State of the Project</h2>
+<p>GRR is currently in an Beta release, ready for testing by end users. More
+information can be found in the (GRR Rapid Response documentation)[docs.html].</p>
+<h3>Update: August 8 2014</h3>
+<p>Blackhat talk &ldquo;GRR: Find all the badness, collect all the things&rdquo;
+<a href="docs/References/Presentations/GRR_Blackhat_2014_Greg_Castle.html">slides</a> and
+<a href="docs/References/Papers/GRR_Artifacts_Whitepaper_Blackhat2014_Greg_Castle.html">artifact
+whitepaper</a>
+are up.</p>
+<h3>Update: August 4 2014</h3>
+<p>This weekend I gave a GRR workshop at the <a href="http://dfrws.org/">DFRWS</a> in
+Denver. This is probably mostly interesting for people who attended but the
+slides are available at <a href="docs/References/Presentations/DFRWS_US_2014.html">DFRWS US workshop
+slides</a>.</p>
+<p>I also released a minor update to the GRR server, the install script now points
+at version 3.0-2. New in this version:</p>
+<ul>
+<li>
+<p>There are some bugfixes to various flows (auto update, file finder, &hellip;).</p>
+</li>
+<li>
+<p>The clients also got upgraded to a new version (3.0.0.2). The most notable
+    bug we fixed is that the last Windows clients were missing a MSVC runtime
+    dll and would not install on machines that don&rsquo;t have the runtime installed
+    already.</p>
+</li>
+<li>
+<p>Some people had problems with the rendering of Rekall output in the last
+    version. We put a lot of effort into this so rendering should now work
+    better and also give some more information, check out the pslist plugin for
+    an example. There has been a Rekall release in the meantime so now you need
+    to run v1.0.3 on the server.</p>
+</li>
+</ul>
+<h3>Update: June 27 2014</h3>
+<p>Hey everyone,</p>
+<p>I have just updated our download site, we are releasing a new
+server package today!</p>
+<p>The new server has version 0.3.0 (not 0.2.10 like the release
+candidate / test server) but before you get too excited, we
+decided to change the versioning scheme to make client upgrades
+easier, not because it&rsquo;s so radically different from the last
+server. Think of it more like a version 0.2.10.</p>
+<p>Still, we have some cool new features since 0.2.9. We now use
+Rekall as the memory forensics platform which gives much better
+results than Volatility did and there are new flows that should
+make the basic everyday workflows more intuitive (File- or
+RegistryFinder for example). Since this was a pretty popular
+request, the new server now also comes with a client for rpm
+based Linux distros that should just work out of the box. There
+are also stability improvements if you run big hunts, some new
+gui elements, better data export functionality, and many more
+features I probably forgot.</p>
+<p>I&rsquo;d also like to use this opportunity to announce that this
+server is probably the last one that will use Mongo as the
+default backend. We currently have Flavio doing an internship
+here with the GRR team and he has done some proper research on
+the data store backends. Preliminary results confirm what we
+thought for quite some time that Mongo is really slow for our use
+case. As an alternative we offer the MySQL data store which is a
+bit better than Mongo but has its own weaknesses. We are
+currently experimenting with a TDB and a SQLite based data store
+and they are both <em>much</em> faster than MySQL (and of course Mongo)
+so using one of those should provide a much more scalable
+environment and we will therefore probably switch to one of those
+in the near future. Those backends are included in the server so
+you can play with them but they are probably not production ready
+yet, use at your own risk.</p>
+<p>If you want to test the new server right away, please redownload
+and run the installation script as described in
+https://code.google.com/p/grr/wiki/GettingStarted</p>
+<p>Have fun using the new server :)</p>
+<p>Cheers,
+- Andy</p>
+<p>Oh there is one known issue, we included a 32 bit client for deb
+based Linux platforms. That client does not repack in the default
+setting because we don&rsquo;t install the 32 bit libraries as a server
+dependency. Please ignore the error messages.</p>
+<p>This is still not fixed since we consider it quite low priority:</p>
+<ul>
+<li>This release comes with a prebuilt mac client which does not support custom
+    client names, it will always run as &ldquo;grr&rdquo; regardless of your Client.name
+    settings.</li>
+</ul>
+<p>To get an idea of where GRR is heading see the
+[https://code.google.com/p/grr/wiki/Roadmap roadmap].</p>
+<h2>Information</h2>
+<p>GRR consists of an agent that can deployed to a target system, and a server
+infrastructure that can manage and talk to the agent. More information can be
+found in the [https://github.com/google/grr-doc/blob/master/implementation.adoc
+GRR Developer documentation] and [http://code.google.com/p/grr/wiki/Contributing
+Contributing to GRR development].<br></p>
+<p>Client Features:</p>
+<ul>
+<li>Cross-platform support for Linux, Mac OS X and Windows clients (agents)</li>
+<li>Open source memory drivers for Linux, Mac OS X and Windows</li>
+<li>Supports searching, downloading</li>
+<li>Volatility integration for memory analysis</li>
+<li>Secure communication infrastructure designed for Internet deployment</li>
+<li>Client automatic update support</li>
+</ul>
+<p>Server Features:</p>
+<ul>
+<li>Fully fledged response capabilities handling most incident response and forensics tasks</li>
+<li>OS-level and raw access file system access, using the !SleuthKit (TSK)</li>
+<li>Ajax Web UI</li>
+<li>Fully scriptable IPython console access</li>
+<li>Enterprise hunting support</li>
+<li>Basic system timelining features</li>
+<li>Basic reporting infrastructure</li>
+<li>Support for asynchronous flows</li>
+<li>Fully scaleable back-end to handle very large deployments</li>
+<li>Detailed monitoring of client CPU, memory, IO usage</li>
+<li>Automated scheduling for reoccurring tasks</li>
+</ul>
+<p>See [http://code.google.com/p/grr/wiki/GettingStarted GettingStarted] to start using it.</p>
+<h2>Screenshots</h2>
+<p>||
+<a href="http://wiki.grr.googlecode.com/git/Screenshot from 2013-11-18 18:36:13.png"><img src="http://wiki.grr.googlecode.com/git/Screenshot from 2013-11-18 18:36:13.png" width="140" height="80" /></a>
+||
+<a href="http://wiki.grr.googlecode.com/git/Screenshot from 2013-11-18 18:36:46.png"><img src="http://wiki.grr.googlecode.com/git/Screenshot from 2013-11-18 18:36:46.png" width="140" height="80" /></a>
+||
+<a href="http://wiki.grr.googlecode.com/git/Screenshot from 2013-11-18 18:37:37.png"><img src="http://wiki.grr.googlecode.com/git/Screenshot from 2013-11-18 18:37:37.png" width="140" height="80" /></a>
+||
+<a href="http://wiki.grr.googlecode.com/git/Screenshot from 2013-11-18 18:40:49.png"><img src="http://wiki.grr.googlecode.com/git/Screenshot from 2013-11-18 18:40:49.png" width="140" height="80" /></a>
+||
+<a href="http://wiki.grr.googlecode.com/git/Screenshot from 2013-11-18 18:41:45.png"><img src="http://wiki.grr.googlecode.com/git/Screenshot from 2013-11-18 18:41:45.png" width="140" height="80" /></a></p>
+  </div>
+  <div class="col-md-2 sidebar">
+    <img src="/img/grr_logo.png" class="logo"></img>
+
+
+  </div>
+</div>
+</div>
+  <script>
+   $(".activate_tooltip").tooltip();
+  </script>
+  </body>
+</html>
+
