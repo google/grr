@@ -1012,3 +1012,38 @@ class StreamingZipWriter(object):
     # written correctly.
     self.zip_fd.filelist.append(zinfo)
     self.zip_fd.NameToInfo[zinfo.filename] = zinfo
+
+
+class Stubber(object):
+  """A context manager for doing simple stubs."""
+
+  def __init__(self, module, target_name, stub):
+    self.target_name = target_name
+    self.module = module
+    self.stub = stub
+
+  def __enter__(self):
+    self.old_target = getattr(self.module, self.target_name, None)
+    try:
+      self.stub.old_target = self.old_target
+    except AttributeError:
+      pass
+    setattr(self.module, self.target_name, self.stub)
+
+  def __exit__(self, unused_type, unused_value, unused_traceback):
+    setattr(self.module, self.target_name, self.old_target)
+
+
+class MultiStubber(object):
+  """A context manager for doing simple stubs."""
+
+  def __init__(self, *args):
+    self.stubbers = [Stubber(*x) for x in args]
+
+  def __enter__(self):
+    for x in self.stubbers:
+      x.__enter__()
+
+  def __exit__(self, t, value, traceback):
+    for x in self.stubbers:
+      x.__exit__(t, value, traceback)

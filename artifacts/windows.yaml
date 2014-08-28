@@ -96,7 +96,9 @@ collectors:
     path_list:
       - '%%environ_systemroot%%\Tasks\**10'
       - '%%environ_systemroot%%\System32\Tasks\**10'
+      - '%%environ_systemroot%%\SysWow64\Tasks\**10'
 supported_os: [Windows]
+urls: ['http://forensicswiki.org/wiki/Windows#Scheduled_Tasks']
 ---
 name: SecurityEventLog
 doc: Windows Security Event log.

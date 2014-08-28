@@ -395,7 +395,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
       self.assertEqual(fd.Read(13), "Test%08X\n" % i)
 
   def WriteImage(self, path, prefix="Test", timestamp=0):
-    with test_lib.Stubber(time, "time", lambda: timestamp):
+    with utils.Stubber(time, "time", lambda: timestamp):
       fd = aff4.FACTORY.Create(path, "AFF4Image", mode="w", token=self.token)
 
       timestamp += 1
@@ -745,7 +745,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
                          [client2_urn.Add("some2")])
 
   def testIndexNotUpdatedWhenWrittenWithinIntermediateCacheAge(self):
-    with test_lib.Stubber(time, "time", lambda: 100):
+    with utils.Stubber(time, "time", lambda: 100):
       fd = aff4.FACTORY.Create(
           self.client_id.Add("parent").Add("child1"),
           aff4_type="AFF4Volume", token=self.token)
@@ -758,7 +758,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
                      rdfvalue.RDFDatetime().FromSecondsFromEpoch(100))
 
     latest_time = 100 + config_lib.CONFIG["AFF4.intermediate_cache_age"] - 1
-    with test_lib.Stubber(time, "time", lambda: latest_time):
+    with utils.Stubber(time, "time", lambda: latest_time):
       fd = aff4.FACTORY.Create(
           self.client_id.Add("parent").Add("child2"),
           aff4_type="AFF4Volume", token=self.token)
@@ -771,7 +771,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
                      rdfvalue.RDFDatetime().FromSecondsFromEpoch(100))
 
   def testIndexUpdatedWhenWrittenAfterIntemediateCacheAge(self):
-    with test_lib.Stubber(time, "time", lambda: 100):
+    with utils.Stubber(time, "time", lambda: 100):
       fd = aff4.FACTORY.Create(
           self.client_id.Add("parent").Add("child1"),
           aff4_type="AFF4Volume", token=self.token)
@@ -784,7 +784,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
                      rdfvalue.RDFDatetime().FromSecondsFromEpoch(100))
 
     latest_time = 100 + config_lib.CONFIG["AFF4.intermediate_cache_age"] + 1
-    with test_lib.Stubber(time, "time", lambda: latest_time):
+    with utils.Stubber(time, "time", lambda: latest_time):
       fd = aff4.FACTORY.Create(
           self.client_id.Add("parent").Add("child2"),
           aff4_type="AFF4Volume", token=self.token)
@@ -1223,7 +1223,7 @@ class ForemanTests(test_lib.AFF4ObjectTest):
     fd.Set(fd.Schema.SYSTEM, rdfvalue.RDFString("Windows 7"))
     fd.Close()
 
-    with test_lib.Stubber(flow.GRRFlow, "StartFlow", self.StartFlow):
+    with utils.Stubber(flow.GRRFlow, "StartFlow", self.StartFlow):
       # Now setup the filters
       now = time.time() * 1e6
       expires = (time.time() + 3600) * 1e6
@@ -1298,7 +1298,7 @@ class ForemanTests(test_lib.AFF4ObjectTest):
     fd.Set(fd.Schema.LAST_BOOT_TIME(1336300000000000))
     fd.Close()
 
-    with test_lib.Stubber(flow.GRRFlow, "StartFlow", self.StartFlow):
+    with utils.Stubber(flow.GRRFlow, "StartFlow", self.StartFlow):
       # Now setup the filters
       now = time.time() * 1e6
       expires = (time.time() + 3600) * 1e6

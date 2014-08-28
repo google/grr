@@ -19,6 +19,7 @@ from grr.lib import flow
 from grr.lib import maintenance_utils
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib import utils
 from grr.proto import tests_pb2
 
 
@@ -96,7 +97,7 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
       self.email_message.update(dict(address=address, sender=sender,
                                      title=title, message=message))
 
-    with test_lib.Stubber(email_alerts, "SendEmail", SendEmail):
+    with utils.Stubber(email_alerts, "SendEmail", SendEmail):
       client = test_lib.CrashClientMock(self.client_id, self.token)
       for _ in test_lib.TestFlowHelper(
           "FlowWithOneClientRequest", client, client_id=self.client_id,
@@ -161,7 +162,7 @@ class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
       self.email_message.update(dict(address=address, sender=sender,
                                      title=title, message=message))
 
-    with test_lib.Stubber(email_alerts, "SendEmail", SendEmail):
+    with utils.Stubber(email_alerts, "SendEmail", SendEmail):
       msg = rdfvalue.GrrMessage(
           session_id=rdfvalue.SessionID("aff4:/flows/W:NannyMessage"),
           args=rdfvalue.DataBlob(string=nanny_message).SerializeToString(),
@@ -341,7 +342,7 @@ sys.test_code_ran_here = py_args['value']
     user.SetLabels("admin", owner="GRR")
     user.Close()
 
-    with test_lib.Stubber(subprocess, "Popen", Popen):
+    with utils.Stubber(subprocess, "Popen", Popen):
       for _ in test_lib.TestFlowHelper(
           "LaunchBinary", client_mock, client_id=self.client_id,
           binary=upload_path, command_line="--value 356", token=self.token):
@@ -402,7 +403,7 @@ sys.test_code_ran_here = py_args['value']
     user.SetLabels("admin", owner="GRR")
     user.Close()
 
-    with test_lib.Stubber(subprocess, "Popen", Popen):
+    with utils.Stubber(subprocess, "Popen", Popen):
       for _ in test_lib.TestFlowHelper(
           "LaunchBinary", client_mock, client_id=self.client_id,
           binary=upload_path, command_line="--value 356", token=self.token):

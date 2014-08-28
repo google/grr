@@ -14,6 +14,7 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import rekall_profile_server
 from grr.lib import test_lib
+from grr.lib import utils
 
 # pylint: mode=test
 
@@ -56,7 +57,7 @@ class ProfileServerTest(test_lib.GRRBaseTest):
 
     FakeHandle.read_count = 0
 
-    with test_lib.Stubber(urllib2, "urlopen", FakeOpen):
+    with utils.Stubber(urllib2, "urlopen", FakeOpen):
       profile = self.server.GetProfileByName(profile_name)
       uncompressed = zlib.decompress(profile.data, 16 + zlib.MAX_WBITS)
       self.assertTrue("BusQueryDeviceID" in uncompressed)
@@ -64,14 +65,14 @@ class ProfileServerTest(test_lib.GRRBaseTest):
     # We issued one http request.
     self.assertEqual(FakeHandle.read_count, 1)
 
-    with test_lib.Stubber(urllib2, "urlopen", FakeOpen):
+    with utils.Stubber(urllib2, "urlopen", FakeOpen):
       profile = self.server.GetProfileByName(profile_name)
 
     # This time it should have been cached.
     self.assertEqual(FakeHandle.read_count, 1)
 
   def testGzExtension(self):
-    with test_lib.Stubber(urllib2, "urlopen", FakeOpen):
+    with utils.Stubber(urllib2, "urlopen", FakeOpen):
       profile = self.server.GetProfileByName("v1.0/pe")
       # We received compressed data.
       zlib.decompress(profile.data, 16 + zlib.MAX_WBITS)

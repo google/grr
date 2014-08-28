@@ -25,6 +25,7 @@ from grr.client import actions
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib import utils
 from grr.lib import worker_mocks
 
 
@@ -376,8 +377,8 @@ class ActionTest(test_lib.EmptyActionTest):
     message = rdfvalue.GrrMessage(name="ProgressAction", cpu_limit=3600)
 
     action_cls = actions.ActionPlugin.classes[message.name]
-    with test_lib.MultiStubber((psutil, "Process", FakeProcess),
-                               (action_cls, "SendReply", MockSendReply)):
+    with utils.MultiStubber((psutil, "Process", FakeProcess),
+                            (action_cls, "SendReply", MockSendReply)):
 
       action_cls._authentication_required = False
       action = action_cls(grr_worker=MockWorker())
@@ -411,8 +412,8 @@ class ActionTest(test_lib.EmptyActionTest):
       """Only return True for the root path."""
       return path == "/"
 
-    with test_lib.MultiStubber((os, "statvfs", MockStatFS),
-                               (os.path, "ismount", MockIsMount)):
+    with utils.MultiStubber((os, "statvfs", MockStatFS),
+                            (os.path, "ismount", MockIsMount)):
 
       # This test assumes "/" is the mount point for /usr/bin
       results = self.RunAction(

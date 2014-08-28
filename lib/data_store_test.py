@@ -33,6 +33,7 @@ from grr.lib import rdfvalue
 from grr.lib import stats
 from grr.lib import test_lib
 from grr.lib import threadpool
+from grr.lib import utils
 from grr.lib import worker
 
 
@@ -702,7 +703,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
             10)
 
     # By mocking out sleep we can ensure all retries are exhausted.
-    with test_lib.Stubber(time, "sleep", MockSleep):
+    with utils.Stubber(time, "sleep", MockSleep):
       data_store.DB.RetryWrapper(subject, Callback, token=self.token)
 
   def testTimestamps(self):

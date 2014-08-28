@@ -21,6 +21,7 @@ from grr.lib import flow
 from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib import utils
 
 
 class TestHuntListener(flow.EventListener):
@@ -245,7 +246,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     client.Close()
 
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
-    with test_lib.Stubber(hunts.SampleHunt, "StartClients", self.Callback):
+    with utils.Stubber(hunts.SampleHunt, "StartClients", self.Callback):
       self.called = []
 
       foreman.AssignTasksToClient(client.urn)

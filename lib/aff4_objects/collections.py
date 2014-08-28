@@ -255,7 +255,7 @@ class AFF4Collection(aff4.AFF4Volume, RDFValueCollection):
       yield aff4object_summary.urn
 
 
-class GRRSignedBlobCollection(AFF4Collection):
+class GRRSignedBlobCollection(RDFValueCollection):
   _rdf_type = rdfvalue.SignedBlob
 
 

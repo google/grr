@@ -18,7 +18,9 @@ config_lib.DEFINE_integer("Datastore.transaction_timeout", default=600,
                           help="How long do we wait for a transaction lock.")
 
 config_lib.DEFINE_list("Datastore.pathing",
-                       [r"%{(?P<path>C\..\{1,16\}?)($|/.*)}",
+                       [r"%{(?P<path>W/[^/]+).*}",
+                        r"%{(?P<path>CA/[^/]+).*}",
+                        r"%{(?P<path>C\..\{1,16\}?)($|/.*)}",
                         r"%{(?P<path>hunts/[^/]+).*}",
                         r"%{(?P<path>blobs/[^/]+).*}",
                         r"%{(?P<path>[^/]+).*}"],

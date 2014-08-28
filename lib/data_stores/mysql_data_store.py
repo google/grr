@@ -144,7 +144,7 @@ class MySQLDataStore(data_store.DataStore):
     self.DropDatabase()
     with self.pool.GetConnection() as connection:
       connection.Execute("""
-  CREATE TABLE `%s` (
+  CREATE TABLE IF NOT EXISTS `%s` (
     hash BINARY(32) DEFAULT NULL,
     subject VARCHAR(4096) CHARACTER SET utf8 DEFAULT NULL,
     prefix VARCHAR(256) CHARACTER SET utf8 DEFAULT NULL,

@@ -13,6 +13,7 @@ from grr.client.vfs_handlers import memory
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib import utils
 
 
 class FakeFile(object):
@@ -33,6 +34,7 @@ class FakeFile(object):
 
 
 class MockOSXMemory(memory.OSXMemory):
+
   def __init__(self):
     page_size = memory.OSXMemory.page_size
     self.runs = [(0 * page_size, 1 * page_size),
@@ -133,7 +135,7 @@ cbae7000-cbffffff : ACPI Non-volatile Storage
       self.assertEqual(mode, "rb")
       return FakeFile()
 
-    with test_lib.Stubber(memory, "open", FakeOpen):
+    with utils.Stubber(memory, "open", FakeOpen):
       result = memory.LinuxMemory(None, pathspec=rdfvalue.PathSpec(
           path="/dev/pmem", pathtype=rdfvalue.PathSpec.PathType.MEMORY))
 
@@ -191,7 +193,7 @@ class TestWindowsMemory(OSXMemoryTest):
     return result
 
   def testPartialRead(self):
-    with test_lib.Stubber(memory, "win32file", Win32FileMock()):
+    with utils.Stubber(memory, "win32file", Win32FileMock()):
       super(TestWindowsMemory, self).testPartialRead()
 
 

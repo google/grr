@@ -17,7 +17,9 @@ config_lib.DEFINE_integer("Dataserver.max_connections", 5,
                            "per process."))
 
 config_lib.DEFINE_list("Dataserver.routing",
-                       [r"%{(?P<path>C\..\{1,16\}?)($|/.*)}",
+                       [r"%{(?P<path>W/[^/]+).*}",
+                        r"%{(?P<path>CA/[^/]+).*}",
+                        r"%{(?P<path>C\..\{1,16\}?)($|/.*)}",
                         r"%{(?P<path>hunts/[^/]+).*}",
                         r"%{(?P<path>blobs/[^/]+).*}",
                         r"%{(?P<path>[^/]+).*}"],

@@ -18,6 +18,7 @@ from grr.lib import hunts
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib import utils
 from grr.lib import worker
 from grr.lib.hunts import implementation
 
@@ -714,7 +715,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
       self.DeleteNotification.old_target(
           self, arg_session_id, start=start, end=end)
 
-    with test_lib.Stubber(
+    with utils.Stubber(
         queue_manager.QueueManager, "DeleteNotification", WriteNotification):
       # This should process request 1 but not touch request 2.
       worker_obj.RunOnce()

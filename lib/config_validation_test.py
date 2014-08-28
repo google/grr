@@ -9,6 +9,7 @@ import logging
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import test_lib
+from grr.lib import utils
 
 
 flags.PARSER.add_argument("config", nargs="?",
@@ -54,8 +55,8 @@ class BuildConfigTests(test_lib.GRRBaseTest):
     for filter_name in self.disabled_filters:
       test_filter_map[filter_name] = config_lib.ConfigFilter
 
-    with test_lib.Stubber(config_lib.ConfigFilter, "classes_by_name",
-                          test_filter_map):
+    with utils.Stubber(config_lib.ConfigFilter, "classes_by_name",
+                       test_filter_map):
       for config_file in configs:
         errors = ValidateConfig(config_file)
 

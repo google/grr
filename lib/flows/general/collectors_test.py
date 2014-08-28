@@ -13,6 +13,7 @@ from grr.lib import artifact_lib
 from grr.lib import artifact_test
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib import utils
 from grr.lib.flows.general import collectors
 from grr.lib.flows.general import transfer
 from grr.test_data import client_fixture
@@ -98,8 +99,8 @@ class TestArtifactCollectors(artifact_test.ArtifactTestHelper):
         self.kwargs = kwargs
 
     mock_call_flow = MockCallFlow()
-    with test_lib.Stubber(collectors.ArtifactCollectorFlow, "CallFlow",
-                          mock_call_flow.CallFlow):
+    with utils.Stubber(collectors.ArtifactCollectorFlow, "CallFlow",
+                       mock_call_flow.CallFlow):
 
       collect_flow = collectors.ArtifactCollectorFlow(None, token=self.token)
       collect_flow.state.Register("knowledge_base", rdfvalue.KnowledgeBase())
@@ -480,4 +481,3 @@ class TestArtifactCollectorsRealArtifacts(artifact_test.ArtifactTestHelper):
                                token=self.token)
     self.assertEqual(len(output), 1)
     self.assertEqual(output[0], r"C:\Windows")
-

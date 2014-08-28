@@ -173,7 +173,7 @@ class ArtifactTestHelper(test_lib.FlowTestsBaseclass):
     def MockGetMountpoints():
       return {"/": (image_path, fs_type)}
 
-    return test_lib.MultiStubber(
+    return utils.MultiStubber(
         (client_utils_linux, "GetMountpoints", MockGetMountpoints),
         (client_utils_osx, "GetMountpoints", MockGetMountpoints),
         (standard, "HASH_CACHE", utils.FastStore(100)))
@@ -230,7 +230,7 @@ class ArtifactFlowTest(ArtifactTestHelper):
         return "stdout here", "stderr here"
 
     client_mock = self.MockClient("ExecuteCommand", client_id=self.client_id)
-    with test_lib.Stubber(subprocess, "Popen", Popen):
+    with utils.Stubber(subprocess, "Popen", Popen):
       for _ in test_lib.TestFlowHelper(
           "ArtifactCollectorFlow", client_mock, client_id=self.client_id,
           store_results_in_aff4=True, use_tsk=False,
@@ -586,7 +586,7 @@ class GrrKbTest(ArtifactTestHelper):
   def testGetDependencies(self):
     """Test that dependencies are calculated correctly."""
     self.SetupWindowsMocks()
-    with test_lib.Stubber(artifact_lib.ArtifactRegistry, "artifacts", {}):
+    with utils.Stubber(artifact_lib.ArtifactRegistry, "artifacts", {}):
       test_artifacts_file = os.path.join(
           config_lib.CONFIG["Test.data_dir"], "test_artifacts.json")
       artifact_lib.LoadArtifactsFromFiles([test_artifacts_file])
@@ -623,7 +623,7 @@ class GrrKbTest(ArtifactTestHelper):
   def testGetKBDependencies(self):
     """Test that KB dependencies are calculated correctly."""
     self.SetupWindowsMocks()
-    with test_lib.Stubber(artifact_lib.ArtifactRegistry, "artifacts", {}):
+    with utils.Stubber(artifact_lib.ArtifactRegistry, "artifacts", {}):
       test_artifacts_file = os.path.join(
           config_lib.CONFIG["Test.data_dir"], "test_artifacts.json")
       artifact_lib.LoadArtifactsFromFiles([test_artifacts_file])

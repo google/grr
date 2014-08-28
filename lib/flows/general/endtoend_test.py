@@ -7,6 +7,7 @@ from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib import utils
 
 
 class MockEndToEndTest(base.AutomatedTest):
@@ -119,9 +120,9 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
   def testRunSuccessAndFail(self):
     args = rdfvalue.EndToEndTestFlowArgs()
 
-    with test_lib.Stubber(base.AutomatedTest, "classes",
-                          {"MockEndToEndTest": MockEndToEndTest,
-                           "TestFailure": TestFailure}):
+    with utils.Stubber(base.AutomatedTest, "classes",
+                       {"MockEndToEndTest": MockEndToEndTest,
+                        "TestFailure": TestFailure}):
       with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
         for _ in test_lib.TestFlowHelper(
             "EndToEndTestFlow", self.client_mock, client_id=self.client_id,
@@ -194,5 +195,3 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
           self.assertTrue("This should be logged" in reply.log)
 
       self.assertEqual(len(results), 1)
-
-

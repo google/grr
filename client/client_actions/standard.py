@@ -2,12 +2,14 @@
 """Standard actions that happen on the client."""
 
 
+import cStringIO as StringIO
 import ctypes
 import gzip
 import hashlib
 import os
 import platform
 import socket
+import sys
 import time
 import zlib
 
@@ -422,21 +424,43 @@ class ExecutePython(actions.ActionPlugin):
     """Run."""
     time_start = time.time()
 
+    class StdOutHook(object):
+
+      def __init__(self, buf):
+        self.buf = buf
+
+      def write(self, text):
+        self.buf.write(text)
+
     args.python_code.Verify(config_lib.CONFIG[
         "Client.executable_signing_public_key"])
 
     # The execed code can assign to this variable if it wants to return data.
-    magic_return_str = ""
     logging.debug("exec for python code %s", args.python_code.data[0:100])
-    # pylint: disable=exec-used,unused-variable
-    py_args = args.py_args.ToDict()
-    exec(args.python_code.data)
-    # pylint: enable=exec-used,unused-variable
+
+    context = globals().copy()
+    context["py_args"] = args.py_args.ToDict()
+    context["magic_return_str"] = ""
+    # Export the Progress function to allow python hacks to call it.
+    context["Progress"] = self.Progress
+
+    stdout = StringIO.StringIO()
+    with utils.Stubber(sys, "stdout", StdOutHook(stdout)):
+      exec(args.python_code.data, context)  # pylint: disable=exec-used
+
+    stdout_output = stdout.getvalue()
+    magic_str_output = context.get("magic_return_str")
+
+    if stdout_output and magic_str_output:
+      output = "Stdout: %s\nMagic Str:%s\n" % (stdout_output, magic_str_output)
+    else:
+      output = stdout_output or magic_str_output
+
     time_used = time.time() - time_start
     # We have to return microseconds.
     result = rdfvalue.ExecutePythonResponse(
         time_used=int(1e6 * time_used),
-        return_val=utils.SmartStr(magic_return_str))
+        return_val=utils.SmartStr(output))
     self.SendReply(result)
 
 

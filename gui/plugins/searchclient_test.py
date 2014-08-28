@@ -15,6 +15,7 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib import utils
 
 
 class TestNavigatorView(test_lib.GRRSeleniumTest):
@@ -36,7 +37,7 @@ class TestNavigatorView(test_lib.GRRSeleniumTest):
     return client_id
 
   def RecordCrash(self, client_id, timestamp):
-    with test_lib.Stubber(time, "time", timestamp.AsSecondsFromEpoch):
+    with utils.Stubber(time, "time", timestamp.AsSecondsFromEpoch):
       client = test_lib.CrashClientMock(client_id, self.token)
       for _ in test_lib.TestFlowHelper(
           "FlowWithOneClientRequest", client, client_id=client_id,
@@ -122,8 +123,8 @@ class TestNavigatorView(test_lib.GRRSeleniumTest):
       self.RecordCrash(client_id, timestamp - rdfvalue.Duration("5s"))
       self.GrantClientApproval(client_id)
 
-    with test_lib.Stubber(time, "time",
-                          lambda: float(timestamp.AsSecondsFromEpoch())):
+    with utils.Stubber(time, "time",
+                       lambda: float(timestamp.AsSecondsFromEpoch())):
       self.Open("/#c=" + str(client_id))
       self.WaitUntil(self.IsTextPresent, "Last crash")
       self.WaitUntil(self.IsTextPresent, "5 seconds ago")
@@ -136,8 +137,8 @@ class TestNavigatorView(test_lib.GRRSeleniumTest):
       self.RecordCrash(client_id, timestamp - rdfvalue.Duration("5s"))
       self.GrantClientApproval(client_id)
 
-    with test_lib.Stubber(time, "time",
-                          lambda: float(timestamp.AsSecondsFromEpoch())):
+    with utils.Stubber(time, "time",
+                       lambda: float(timestamp.AsSecondsFromEpoch())):
       self.Open("/#c=" + str(client_id))
       self.WaitUntil(self.IsTextPresent, "Last crash")
       self.WaitUntil(self.IsTextPresent, "5 seconds ago")
@@ -151,8 +152,8 @@ class TestNavigatorView(test_lib.GRRSeleniumTest):
       self.RecordCrash(client_id, timestamp - rdfvalue.Duration("8d"))
       self.GrantClientApproval(client_id)
 
-    with test_lib.Stubber(time, "time",
-                          lambda: float(timestamp.AsSecondsFromEpoch())):
+    with utils.Stubber(time, "time",
+                       lambda: float(timestamp.AsSecondsFromEpoch())):
       self.Open("/#c=" + str(client_id))
       self.WaitUntil(self.IsTextPresent, "Host-0")
       # This one is not displayed, because it happened more than 24 hours ago.

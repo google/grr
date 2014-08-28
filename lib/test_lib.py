@@ -682,41 +682,6 @@ class ACLChecksDisabledContextManager(object):
     data_store.DB.security_manager = self.old_security_manager
 
 
-class Stubber(object):
-  """A context manager for doing simple stubs."""
-
-  def __init__(self, module, target_name, stub):
-    self.target_name = target_name
-    self.module = module
-    self.stub = stub
-
-  def __enter__(self):
-    self.old_target = getattr(self.module, self.target_name, None)
-    try:
-      self.stub.old_target = self.old_target
-    except AttributeError:
-      pass
-    setattr(self.module, self.target_name, self.stub)
-
-  def __exit__(self, unused_type, unused_value, unused_traceback):
-    setattr(self.module, self.target_name, self.old_target)
-
-
-class MultiStubber(object):
-  """A context manager for doing simple stubs."""
-
-  def __init__(self, *args):
-    self.stubbers = [Stubber(*x) for x in args]
-
-  def __enter__(self):
-    for x in self.stubbers:
-      x.__enter__()
-
-  def __exit__(self, t, value, traceback):
-    for x in self.stubbers:
-      x.__exit__(t, value, traceback)
-
-
 class FakeTime(object):
   """A context manager for faking time."""
 
@@ -752,7 +717,7 @@ class Instrument(object):
       self.call_count += 1
       return self.old_target(*args, **kwargs)
 
-    self.stubber = Stubber(module, target_name, Wrapper)
+    self.stubber = utils.Stubber(module, target_name, Wrapper)
     self.args = []
     self.kwargs = []
     self.call_count = 0
@@ -1714,7 +1679,7 @@ class ClientFixture(object):
   def CreateClientObject(self, vfs_fixture):
     """Make a new client object."""
     # Create the fixture at a fixed time.
-    with Stubber(time, "time", lambda: self.age):
+    with FakeTime(self.age):
       for path, (aff4_type, attributes) in vfs_fixture:
         path %= self.args
 

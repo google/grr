@@ -13,6 +13,7 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib import utils
 
 
 class TestFileView(test_lib.GRRSeleniumTest):
@@ -122,7 +123,7 @@ class TestFileView(test_lib.GRRSeleniumTest):
       return fileview.http.HttpResponse(
           content="<script>window.close()</script>")
 
-    with test_lib.Stubber(fileview.DownloadView, "Download", FakeDownload):
+    with utils.Stubber(fileview.DownloadView, "Download", FakeDownload):
       # Try to download the file.
       self.Click("css=#Download")
 

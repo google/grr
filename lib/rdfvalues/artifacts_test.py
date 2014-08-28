@@ -3,7 +3,7 @@
 
 from grr.lib import parsers
 from grr.lib import rdfvalue
-from grr.lib import test_lib
+from grr.lib import utils
 from grr.lib.rdfvalues import test_base
 
 
@@ -49,9 +49,8 @@ class ArtifactTests(test_base.RDFValueTestCase):
     def MockGetClassesByArtifact(unused_cls, _):
       return [Parser1, Parser2]
 
-    with test_lib.Stubber(parsers.Parser, "GetClassesByArtifact",
-                          MockGetClassesByArtifact):
+    with utils.Stubber(parsers.Parser, "GetClassesByArtifact",
+                       MockGetClassesByArtifact):
       self.assertItemsEqual(artifact.GetArtifactPathDependencies(),
                             ["appdata", "sid", "desktop", "current_control_set",
                              "users.sid", "users.username"])
-

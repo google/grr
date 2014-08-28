@@ -4,7 +4,7 @@
 
 
 from grr.lib import rdfvalue
-from grr.lib import test_lib
+from grr.lib import utils
 from grr.lib.rdfvalues import flows
 from grr.lib.rdfvalues import test_base
 
@@ -54,7 +54,7 @@ class FlowStateTest(test_base.RDFValueTestCase):
     serialized = state.SerializeToString()
 
     # Substitute the class with something entirely different.
-    with test_lib.Stubber(rdfvalue, "RDFURN", None):
+    with utils.Stubber(rdfvalue, "RDFURN", None):
       # We now should not be able to restore the state normally since we can not
       # find the RDFURN instance.
       result = rdfvalue.FlowState(serialized)

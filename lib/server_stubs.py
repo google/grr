@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2010 Google Inc. All Rights Reserved.
 """Stubs of client actions which can not be loaded on the server.
 
 For example, some client actions require modules which only exist on the client

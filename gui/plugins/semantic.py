@@ -592,7 +592,7 @@ class ClientURNRenderer(RDFValueRenderer):
      </button>
      <h4 class="modal-title">Client {{this.proxy}}</h4>
     </div>
-    <div id="ClientInfoContent_{{unique|escape}}" class="modal-body"/>
+    <div id="ClientInfoContent_{{unique|escape}}" class="modal-body"/></div>
    </div>
   </div>
 </div>
@@ -656,6 +656,7 @@ class KeyValueFormRenderer(forms.TypeDescriptorFormRenderer):
    <li><a data-type="Float">Float</a></li>
    <li><a data-type="Boolean">Boolean</a></li>
   </ul>
+ </div>
  </div>
 </div>
 """)

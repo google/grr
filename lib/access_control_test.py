@@ -2,8 +2,6 @@
 """Tests for the access control mechanisms."""
 
 
-import time
-
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
@@ -156,14 +154,12 @@ class AccessControlTest(test_lib.GRRBaseTest):
       aff4.FACTORY.Open(urn, mode="rw", token=token)
 
     # Getting close.
-    with test_lib.Stubber(time, "time",
-                          lambda: 100.0 + 4 * 7 * 24 * 60 * 60 - 100.0):
+    with test_lib.FakeTime(100.0 + 4 * 7 * 24 * 60 * 60 - 100.0):
       # This should still work.
       aff4.FACTORY.Open(urn, mode="rw", token=token)
 
-      # Over 4 weeks now.
-    with test_lib.Stubber(time, "time",
-                          lambda: 100.0 + 4 * 7 * 24 * 60 * 60 + 100.0):
+    # Over 4 weeks now.
+    with test_lib.FakeTime(100.0 + 4 * 7 * 24 * 60 * 60 + 100.0):
       self.assertRaises(access_control.UnauthorizedAccess,
                         aff4.FACTORY.Open, urn, None, "rw", token)
 
@@ -362,7 +358,7 @@ class AccessControlTest(test_lib.GRRBaseTest):
       email["subject"] = subject
       email["message"] = message
 
-    with test_lib.Stubber(email_alerts, "SendEmail", SendEmail):
+    with utils.Stubber(email_alerts, "SendEmail", SendEmail):
       flow.GRRFlow.StartFlow(
           client_id=client_id, flow_name="BreakGlassGrantClientApprovalFlow",
           token=self.token, reason=self.token.reason)

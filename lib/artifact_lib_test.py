@@ -9,6 +9,7 @@ from grr.lib import flags
 from grr.lib import parsers
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib import utils
 
 
 class ArtifactHandlingTest(test_lib.GRRBaseTest):
@@ -94,7 +95,7 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
     self.assertItemsEqual(set(["OSXUsers"]), results_names)
 
   def testSearchDependencies(self):
-    with test_lib.Stubber(artifact_lib.ArtifactRegistry, "artifacts", {}):
+    with utils.Stubber(artifact_lib.ArtifactRegistry, "artifacts", {}):
       # Just use the test artifacts to verify dependency correctness so we
       # aren't subject to changing dependencies in the whole set
       test_artifacts_file = os.path.join(config_lib.CONFIG["Test.data_dir"],

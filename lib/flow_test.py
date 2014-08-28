@@ -22,6 +22,7 @@ from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import type_info
+from grr.lib import utils
 from grr.proto import tests_pb2
 
 # pylint: mode=test
@@ -263,8 +264,8 @@ class FlowCreationTest(test_lib.FlowTestsBaseclass):
 
     manager = queue_manager.QueueManager(token=self.token)
     self.old_notify = manager._MultiNotifyQueue
-    with test_lib.Stubber(queue_manager.QueueManager, "_MultiNotifyQueue",
-                          self.CollectNotifications):
+    with utils.Stubber(queue_manager.QueueManager, "_MultiNotifyQueue",
+                       self.CollectNotifications):
       session_id = flow.GRRFlow.StartFlow(
           client_id=self.client_id, flow_name="NoRequestParentFlow",
           token=self.token)
@@ -442,7 +443,7 @@ class FlowTest(test_lib.FlowTestsBaseclass):
     def StoreMessage(_, msg):
       messages.append(msg)
 
-    with test_lib.Stubber(devnull, "ProcessMessage", StoreMessage):
+    with utils.Stubber(devnull, "ProcessMessage", StoreMessage):
       client_mock = action_mocks.ActionMock("GetClientStats")
       for _ in test_lib.TestFlowHelper(
           "ClientActionRunner", client_mock, client_id=self.client_id,

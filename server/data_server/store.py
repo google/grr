@@ -301,7 +301,7 @@ class DataStoreService(object):
       return 0, 0
     if not os.path.isdir(loc):
       return 0, 0
-    size, files = common.DatabaseDirectorySize(loc, self.FileExtension())
+    size, files = common.DatabaseDirectorySize(loc, self.db.FileExtension())
     if files:
       return files, int(float(size)/float(files))
     else:

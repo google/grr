@@ -21,6 +21,7 @@ from grr.lib import flow
 from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib import utils
 from grr.lib.hunts import output_plugins
 
 
@@ -272,7 +273,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
       test[0] += 1e-6
       return test[0]
 
-    with test_lib.Stubber(time, "time", TimeStub):
+    with utils.Stubber(time, "time", TimeStub):
       self.StartHunt(output_plugins=[rdfvalue.OutputPlugin(
           plugin_name="LongRunningDummyHuntOutputPlugin")])
       self.AssignTasksToClients()
@@ -297,7 +298,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
       test[0] += 1e-6
       return test[0]
 
-    with test_lib.Stubber(time, "time", TimeStub):
+    with utils.Stubber(time, "time", TimeStub):
       self.StartHunt(output_plugins=[rdfvalue.OutputPlugin(
           plugin_name="LongRunningDummyHuntOutputPlugin")])
       self.AssignTasksToClients()
@@ -329,8 +330,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
       self.AssignTasksToClients(self.client_ids[5:])
       self.RunHunt(failrate=-1)
 
-    with test_lib.Stubber(DummyHuntOutputPlugin, "ProcessResponses",
-                          ProcessResponsesStub):
+    with utils.Stubber(DummyHuntOutputPlugin, "ProcessResponses",
+                       ProcessResponsesStub):
       # Process first 5 clients.
       self.AssignTasksToClients(self.client_ids[:5])
       self.RunHunt(failrate=-1)

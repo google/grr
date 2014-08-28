@@ -6,6 +6,7 @@
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import test_lib
+from grr.lib import utils
 
 from grr.server.data_server import auth
 
@@ -35,8 +36,8 @@ class AuthTest(test_lib.GRRBaseTest):
     self.assertEqual(None, store.GetNonce(nonce2))
 
   def testNonceStoreInvalidateOldNonces(self):
-    with test_lib.MultiStubber((auth.NonceStore, "NONCE_LEASE", 1),
-                               (auth.NonceStore, "MAX_NONCES", 5)):
+    with utils.MultiStubber((auth.NonceStore, "NONCE_LEASE", 1),
+                            (auth.NonceStore, "MAX_NONCES", 5)):
       store = auth.NonceStore()
 
       now = 1000000
@@ -55,7 +56,7 @@ class AuthTest(test_lib.GRRBaseTest):
           self.assertEqual(store.GetNonce(nonce), None)
 
   def testNonceStoreTooMany(self):
-    with test_lib.Stubber(auth.NonceStore, "MAX_NONCES", 5):
+    with utils.Stubber(auth.NonceStore, "MAX_NONCES", 5):
       # Attempt to get a lot of nonces at once.
       store = auth.NonceStore()
 

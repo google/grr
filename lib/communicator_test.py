@@ -165,7 +165,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     """X509 Verify can have several failure paths."""
 
     # This is a successful verify.
-    with test_lib.Stubber(X509.X509, "verify", lambda self, pkey=None: 1):
+    with utils.Stubber(X509.X509, "verify", lambda self, pkey=None: 1):
       self.client_communicator.LoadServerCertificate(
           self.server_certificate, config_lib.CONFIG["CA.certificate"])
 
@@ -512,7 +512,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     status = self.client_communicator.RunOnce()
     self.assertEqual(status.received_count, 10)
     self.assertEqual(status.require_fastpoll, require_fastpoll)
-    with test_lib.Stubber(comms.GRRHTTPClient, "Sleep", RecordSleep):
+    with utils.Stubber(comms.GRRHTTPClient, "Sleep", RecordSleep):
       self.client_communicator.Wait(status)
 
     self.assertEqual(len(sleeptime), 1)
@@ -576,7 +576,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
       req.data = self.client_communication.SerializeToString()
       return self.UrlMock(req)
 
-    with test_lib.Stubber(urllib2, "urlopen", Corruptor):
+    with utils.Stubber(urllib2, "urlopen", Corruptor):
       self.SendToServer()
       status = self.client_communicator.RunOnce()
       self.assertEqual(status.code, 200)
@@ -615,7 +615,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
       raise urllib2.HTTPError(url=None, code=500, msg=None, hdrs=None, fp=None)
 
-    with test_lib.Stubber(urllib2, "urlopen", FlakyServer):
+    with utils.Stubber(urllib2, "urlopen", FlakyServer):
       self.SendToServer()
       status = self.client_communicator.RunOnce()
       self.assertEqual(status.code, 500)
@@ -663,7 +663,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
     runs = []
     action_cls = actions.ActionPlugin.classes.get("GetClientStatsAuto")
-    with test_lib.Stubber(action_cls, "Run", lambda cls, _: runs.append(1)):
+    with utils.Stubber(action_cls, "Run", lambda cls, _: runs.append(1)):
 
       # No stats collection after 10 minutes.
       with test_lib.FakeTime(now + 600):
@@ -696,7 +696,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
     runs = []
     action_cls = actions.ActionPlugin.classes.get("GetClientStatsAuto")
-    with test_lib.Stubber(action_cls, "Run", lambda cls, _: runs.append(1)):
+    with utils.Stubber(action_cls, "Run", lambda cls, _: runs.append(1)):
 
       # No stats collection after 30 seconds.
       with test_lib.FakeTime(now + 30):
@@ -732,7 +732,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
     runs = []
     action_cls = actions.ActionPlugin.classes.get("GetClientStatsAuto")
-    with test_lib.Stubber(action_cls, "Run", lambda cls, _: runs.append(1)):
+    with utils.Stubber(action_cls, "Run", lambda cls, _: runs.append(1)):
 
       # No stats collection after 30 seconds.
       with test_lib.FakeTime(now + 30):
@@ -761,8 +761,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     client_obj = client.GRRClient()
 
     # Make the connection unavailable and skip the retry interval.
-    with test_lib.MultiStubber((urllib2, "urlopen", self.RaiseError),
-                               (time, "sleep", lambda s: None)):
+    with utils.MultiStubber((urllib2, "urlopen", self.RaiseError),
+                            (time, "sleep", lambda s: None)):
 
       # Simulate a client run but keep control.
       generator = client_obj.client.Run()

@@ -19,6 +19,7 @@ from grr.lib import flags
 from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib import utils
 
 
 class EmailPluginTest(test_lib.FlowTestsBaseclass):
@@ -67,7 +68,7 @@ class EmailPluginTest(test_lib.FlowTestsBaseclass):
       self.email_messages.append(dict(address=address, sender=sender,
                                       title=title, message=message))
 
-    with test_lib.Stubber(email_alerts, "SendEmail", SendEmail):
+    with utils.Stubber(email_alerts, "SendEmail", SendEmail):
       self.email_messages = []
 
       email_alerts.SendEmail = SendEmail

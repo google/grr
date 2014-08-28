@@ -332,7 +332,7 @@ Platform:Windows:
       - "%(Config.aff4_root)/drivers/windows/memory/winpmem.amd64.sys"
 
     MemoryDriver.driver_files:
-      - binaries/winpmem_amd64_1.4.sys
+      - binaries/winpmem_amd64_1.6.1.sys
 
   Arch:i386:
     ClientBuilder.vs_arch: Win32
@@ -343,7 +343,7 @@ Platform:Windows:
       - "%(Config.aff4_root)/drivers/windows/memory/winpmem.x86.sys"
 
     MemoryDriver.driver_files:
-      - binaries/winpmem_i386_1.4.sys
+      - binaries/winpmem_i386_1.6.1.sys
 
   Client Context:
     # This is where the client will write back volatile configuration data.

@@ -110,7 +110,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
              os.path.join(self.base_path, "wtmp")]
 
     # Set iterator really low to force iteration.
-    with test_lib.Stubber(filesystem.Glob, "FILE_MAX_PER_DIR", 2):
+    with utils.Stubber(filesystem.Glob, "FILE_MAX_PER_DIR", 2):
       for _ in test_lib.TestFlowHelper(
           "Glob", client_mock, client_id=self.client_id,
           paths=paths, pathtype=rdfvalue.PathSpec.PathType.OS,
@@ -138,7 +138,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
   def _RunGlob(self, paths):
     self.flow_replies = []
     client_mock = action_mocks.ActionMock("Find", "StatFile")
-    with test_lib.Stubber(flow.GRRFlow, "SendReply", self._MockSendReply):
+    with utils.Stubber(flow.GRRFlow, "SendReply", self._MockSendReply):
       for _ in test_lib.TestFlowHelper(
           "Glob", client_mock, client_id=self.client_id,
           paths=paths, pathtype=rdfvalue.PathSpec.PathType.OS,

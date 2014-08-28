@@ -11,6 +11,7 @@ from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib import utils
 from grr.lib.aff4_objects import filestore
 
 
@@ -42,8 +43,8 @@ class FileStoreTest(test_lib.GRRBaseTest):
     fake_store1 = FakeStore("aff4:/files/temp1", self.token)
     fake_store2 = FakeStore("aff4:/files/temp2", self.token)
 
-    with test_lib.Stubber(fs, "OpenChildren",
-                          lambda: [fake_store1, fake_store2]):
+    with utils.Stubber(fs, "OpenChildren",
+                       lambda: [fake_store1, fake_store2]):
 
       src_fd = aff4.FACTORY.Create(aff4.ROOT_URN.Add("temp").Add("src"),
                                    "VFSBlobImage", token=self.token, mode="rw")
@@ -81,8 +82,8 @@ class FileStoreTest(test_lib.GRRBaseTest):
     fs = aff4.FACTORY.Open(filestore.FileStore.PATH, "FileStore",
                            token=self.token)
 
-    with test_lib.Stubber(fs, "OpenChildren",
-                          lambda: [priority3, priority1, priority2]):
+    with utils.Stubber(fs, "OpenChildren",
+                       lambda: [priority3, priority1, priority2]):
 
       child_list = list(fs.GetChildrenByPriority())
       self.assertEqual(child_list[0].PRIORITY, 2)
@@ -160,7 +161,7 @@ class HashFileStoreTest(test_lib.GRRBaseTest):
         "9cf19901578e4f06017acdb5") in hashes)
 
   def testListHashesWithAge(self):
-    with test_lib.Stubber(time, "time", lambda: 42):
+    with utils.Stubber(time, "time", lambda: 42):
       self.AddFile("/Ext2IFS_1_10b.exe")
 
     hashes = list(aff4.HashFileStore.ListHashes(token=self.token, age=41e6))
@@ -178,7 +179,7 @@ class HashFileStoreTest(test_lib.GRRBaseTest):
                                                 age=(41e6, 1e10)))
     self.assertEqual(len(hashes), 0)
 
-    with test_lib.Stubber(time, "time", lambda: 42):
+    with utils.Stubber(time, "time", lambda: 42):
       self.AddFileToFileStore(
           rdfvalue.PathSpec(pathtype=rdfvalue.PathSpec.PathType.OS,
                             path=os.path.join(self.base_path, "empty_file")),
@@ -191,7 +192,7 @@ class HashFileStoreTest(test_lib.GRRBaseTest):
     self.assertEqual(len(hits), 1)
 
     latest_time = 42 + config_lib.CONFIG["AFF4.intermediate_cache_age"] - 1
-    with test_lib.Stubber(time, "time", lambda: latest_time):
+    with utils.Stubber(time, "time", lambda: latest_time):
       self.AddFileToFileStore(
           rdfvalue.PathSpec(
               pathtype=rdfvalue.PathSpec.PathType.OS,
@@ -213,7 +214,7 @@ class HashFileStoreTest(test_lib.GRRBaseTest):
                                                 age=(41e6, 1e10)))
     self.assertEqual(len(hashes), 0)
 
-    with test_lib.Stubber(time, "time", lambda: 42):
+    with utils.Stubber(time, "time", lambda: 42):
       self.AddFileToFileStore(
           rdfvalue.PathSpec(pathtype=rdfvalue.PathSpec.PathType.OS,
                             path=os.path.join(self.base_path, "empty_file")),
@@ -226,7 +227,7 @@ class HashFileStoreTest(test_lib.GRRBaseTest):
     self.assertEqual(len(hits), 1)
 
     latest_time = 42 + config_lib.CONFIG["AFF4.intermediate_cache_age"] + 1
-    with test_lib.Stubber(time, "time", lambda: latest_time):
+    with utils.Stubber(time, "time", lambda: latest_time):
       self.AddFileToFileStore(
           rdfvalue.PathSpec(
               pathtype=rdfvalue.PathSpec.PathType.OS,
@@ -253,7 +254,7 @@ class HashFileStoreTest(test_lib.GRRBaseTest):
         "fs/tsk").Add(self.base_path).Add("winexec_img.dd/Ext2IFS_1_10b.exe")])
 
   def testGetHitsForHashWithAge(self):
-    with test_lib.Stubber(time, "time", lambda: 42):
+    with utils.Stubber(time, "time", lambda: 42):
       self.AddFile("/Ext2IFS_1_10b.exe")
       self.AddFile("/idea.dll")
 
@@ -300,7 +301,7 @@ class HashFileStoreTest(test_lib.GRRBaseTest):
         "fs/tsk").Add(self.base_path).Add("winexec_img.dd/idea.dll")])
 
   def testGetHitsForHashesWithAge(self):
-    with test_lib.Stubber(time, "time", lambda: 42):
+    with utils.Stubber(time, "time", lambda: 42):
       self.AddFile("/Ext2IFS_1_10b.exe")
       self.AddFile("/idea.dll")
 

@@ -622,7 +622,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
       messages_sent.append(message)
 
     # Request client approval, it will trigger an email message.
-    with test_lib.Stubber(email_alerts, "SendEmail", SendEmailStub):
+    with utils.Stubber(email_alerts, "SendEmail", SendEmailStub):
       flow.GRRFlow.StartFlow(client_id=client_id,
                              flow_name="RequestClientApprovalFlow",
                              reason="Please please let me",

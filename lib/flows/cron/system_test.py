@@ -11,6 +11,7 @@ from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib import utils
 from grr.lib.flows.cron import system
 from grr.test_data import client_fixture
 
@@ -196,9 +197,9 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
     self.client_mock = action_mocks.ActionMock("ListDirectory", "StatFile")
 
     config_lib.CONFIG.Set("Test.end_to_end_client_ids", self.client_ids)
-    with test_lib.MultiStubber((base.AutomatedTest, "classes",
-                                {"MockEndToEndTest": MockEndToEndTest}),
-                               (system.EndToEndTests, "lifetime", 0)):
+    with utils.MultiStubber((base.AutomatedTest, "classes",
+                             {"MockEndToEndTest": MockEndToEndTest}),
+                            (system.EndToEndTests, "lifetime", 0)):
 
       # The test harness doesn't understand the callstate at a later time that
       # this flow is doing, so we need to disable check_flow_errors.
@@ -264,6 +265,3 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
                       [self._CreateResult(True, "aff4:/C.6000000000000000"),
                        self._CreateResult(False, "aff4:/C.6000000000000001"),
                        self._CreateResult(False, "aff4:/C.6000000000000002")])
-
-
-
