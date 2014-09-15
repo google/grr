@@ -20,8 +20,7 @@ Buildroot: /usr/local/grr_build/rpmroot
 # Do nothing here.
 
 %install
-
-%clean
+cp -R \%{_builddir}/* \%{buildroot}
 
 %post
 
@@ -31,6 +30,8 @@ if [ -e "/etc/init.d/%(Client.name)" ]; then
   /etc/init.d/%(Client.name) restart || exit $?
 fi
 
+chkconfig --add %(Client.name)
+
 %preun
 
 if [ "$1" -le 1 ]; then
@@ -38,6 +39,8 @@ if [ "$1" -le 1 ]; then
     /etc/init.d/%(Client.name) stop || exit $?
   fi
 fi
+
+chkconfig --del %(Client.name)
 
 %files
 \%attr\(755,root,root\)
