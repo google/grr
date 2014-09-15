@@ -181,19 +181,28 @@ class ExportHuntResultFilesAsZip(flow.GRRFlow):
   </p>
 
   <p>Thanks,</p>
-  <p>The GRR team.</p>
+  <p>%(team_name)s</p>
   </body></html>"""
 
     subject = "Hunt results for %s ready for download." % (
         self.args.hunt_urn.Basename())
 
-    email_alerts.SendEmail(
-        "%s@%s" % (self.state.context.creator,
-                   config_lib.CONFIG.Get("Logging.domain")),
-        "grr-noreply@%s" % config_lib.CONFIG.Get("Logging.domain"), subject,
-        template % dict(
-            hunt_id=self.args.hunt_urn.Basename(),
-            archived=self.state.archived_files,
-            total=self.state.total_files,
-            admin_ui=config_lib.CONFIG["AdminUI.url"]),
-        is_html=True)
+    if self.token.username != "GRRWorker":
+
+      try:
+        team_name = config_lib.CONFIG["AdminUI.team_name"]
+      except:
+        team_name = "The GRR team."
+
+      email_alerts.SendEmail(
+          "%s@%s" % (
+              self.token.username, config_lib.CONFIG.Get("Logging.domain")),
+          "grr-noreply@%s" % config_lib.CONFIG.Get("Logging.domain"), subject,
+          template % dict(
+              hunt_id=self.args.hunt_urn.Basename(),
+              archived=self.state.archived_files,
+              total=self.state.total_files,
+              admin_ui=config_lib.CONFIG["AdminUI.url"],
+              team_name=team_name),
+          is_html=True)
+
