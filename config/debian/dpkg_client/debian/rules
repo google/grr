@@ -39,5 +39,5 @@ override_dh_makeshlibs:
 
 override_dh_shlibdeps:
 	# Point debhelper to the locally included shared libraries.
-	dh_shlibdeps -l %(ClientBuilder.target_dir)
+	dh_shlibdeps --dpkg-shlibdeps-params=--ignore-missing-info -l %(ClientBuilder.target_dir)
 
