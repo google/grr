@@ -7,6 +7,7 @@ Contains the startup routines and Init functions for initializing GRR.
 import os
 import platform
 import sys
+import pwd
 
 from grr.lib import config_lib
 from grr.lib import flags
@@ -83,12 +84,19 @@ def Init():
   if INIT_RAN:
     return
 
-  stats.STATS = stats.StatsCollector()
-
   AddConfigContext()
   ConfigInit()
-
   ServerLoggingStartupInit()
+
+  try:
+    if config_lib.CONFIG["Server.username"]:
+      uid = pwd.getpwnam(config_lib.CONFIG["Server.username"])[2]
+      os.setuid(uid)
+  except:
+    pass
+
+  stats.STATS = stats.StatsCollector()
+  
   registry.Init()
   INIT_RAN = True
 
