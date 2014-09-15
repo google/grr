@@ -31,7 +31,7 @@ class ClientReport(Report):
   %(report_text)s
   <br/>
   <p>Thanks,</p>
-  <p>%(team_name)s</p>
+  <p>%(signature)s</p>
   </body></html>"""
   EMAIL_FROM = "noreply"
 
@@ -113,16 +113,11 @@ class ClientReport(Report):
     subject = subject or "%s - %s" % (self.REPORT_NAME, dt)
     report_text = self.AsHtmlTable()
 
-    try:
-      team_name = config_lib.CONFIG["AdminUI.team_name"]
-    except:
-      team_name = "The GRR team."
-
     email_alerts.SendEmail(recipient, self.EMAIL_FROM, subject,
                            self.EMAIL_TEMPLATE % dict(
                                report_text=report_text,
                                report_name=self.REPORT_NAME,
-                               team_name=team_name),
+                               signature=config_lib.CONFIG["Email.signature"]),
                            is_html=True)
     logging.info("Report %s mailed to %s", self.REPORT_NAME, recipient)
 

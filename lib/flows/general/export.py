@@ -181,18 +181,13 @@ class ExportHuntResultFilesAsZip(flow.GRRFlow):
   </p>
 
   <p>Thanks,</p>
-  <p>%(team_name)s</p>
+  <p>%(signature)s</p>
   </body></html>"""
 
     subject = "Hunt results for %s ready for download." % (
         self.args.hunt_urn.Basename())
 
     if self.token.username != "GRRWorker":
-
-      try:
-        team_name = config_lib.CONFIG["AdminUI.team_name"]
-      except:
-        team_name = "The GRR team."
 
       email_alerts.SendEmail(
           "%s@%s" % (
@@ -203,6 +198,6 @@ class ExportHuntResultFilesAsZip(flow.GRRFlow):
               archived=self.state.archived_files,
               total=self.state.total_files,
               admin_ui=config_lib.CONFIG["AdminUI.url"],
-              team_name=team_name),
+              signature=config_lib.CONFIG["Email.signature"]),
           is_html=True)
 

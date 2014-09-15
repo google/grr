@@ -378,7 +378,7 @@ class OnlineNotification(flow.GRRFlow):
 </p>
 
 <p>Thanks,</p>
-<p>%(team_name)s</p>
+<p>%(signature)s</p>
 </body></html>"""
 
   args_type = OnlineNotificationArgs
@@ -407,11 +407,6 @@ class OnlineNotification(flow.GRRFlow):
 
       subject = "GRR Client on %s became available." % hostname
 
-      try:
-        team_name = config_lib.CONFIG["AdminUI.team_name"]
-      except:
-        team_name = "The GRR team."
-
       email_alerts.SendEmail(
           self.args.email, "grr-noreply",
           subject,
@@ -421,7 +416,7 @@ class OnlineNotification(flow.GRRFlow):
               hostname=hostname,
               urn=url,
               creator=self.token.username,
-              team_name=team_name),
+              signature=config_lib.CONFIG["Email.signature"]),
           is_html=True)
     else:
       flow.FlowError("Error while pinging client.")
@@ -521,7 +516,7 @@ The nanny for client %(client_id)s (%(hostname)s) just sent a message:<br>
 <br>
 Click <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
 
-<p>%(team_name)s</p>
+<p>%(signature)s</p>
 
 </body></html>"""
 
@@ -558,11 +553,6 @@ Click <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
       url = urllib.urlencode((("c", client_id),
                               ("main", "HostInformation")))
 
-      try:
-        team_name = config_lib.CONFIG["AdminUI.team_name"]
-      except:
-        team_name = "The GRR team."
-
       email_alerts.SendEmail(
           config_lib.CONFIG["Monitoring.alert_email"],
           "GRR server",
@@ -571,7 +561,7 @@ Click <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
               client_id=client_id,
               admin_ui=config_lib.CONFIG["AdminUI.url"],
               hostname=hostname,
-              team_name=team_name,
+              signature=config_lib.CONFIG["Email.signature"],
               urn=url, 
               message=message),
           is_html=True)
@@ -592,7 +582,7 @@ The client %(client_id)s (%(hostname)s) just sent a message:<br>
 <br>
 Click <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
 
-<p>%(team_name)s</p>
+<p>%(signature)s</p>
 
 </body></html>"""
 
@@ -614,7 +604,7 @@ Client %(client_id)s (%(hostname)s) just crashed while executing an action.
 Click <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
 
 <p>Thanks,</p>
-<p>%(team_name)s</p>
+<p>%(signature)s</p>
 <p>
 P.S. The state of the failing flow was:
 %(state)s
@@ -664,11 +654,6 @@ P.S. The state of the failing flow was:
 
       renderer = rendering.FindRendererForObject(flow_obj.state)
 
-      try:
-        team_name = config_lib.CONFIG["AdminUI.team_name"]
-      except:
-        team_name = "The GRR team."
-
       email_alerts.SendEmail(
           config_lib.CONFIG["Monitoring.alert_email"],
           "GRR server",
@@ -680,7 +665,7 @@ P.S. The state of the failing flow was:
               state=renderer.RawHTML(),
               urn=url, 
               nanny_msg=nanny_msg,
-              team_name=team_name
+              signature=config_lib.CONFIG["Email.signature"]
               ),
           is_html=True)
 

@@ -131,7 +131,7 @@ class EmailPlugin(HuntOutputPlugin):
 </p>
 %(additional_message)s
 <p>Thanks,</p>
-<p>%(team_name)s</p>
+<p>%(signature)s</p>
 </body></html>"""
 
   too_many_mails_msg = ("<p> This hunt has now produced %d results so the "
@@ -165,11 +165,6 @@ class EmailPlugin(HuntOutputPlugin):
     else:
       additional_message = ""
 
-    try:
-      team_name = config_lib.CONFIG["AdminUI.team_name"]
-    except:
-      team_name = "The GRR team."
-
     email_alerts.SendEmail(
         self.state.args.email, "grr-noreply",
         subject,
@@ -182,7 +177,7 @@ class EmailPlugin(HuntOutputPlugin):
             collection_urn=self.state.collection_urn,
             response=response_htm,
             additional_message=additional_message,
-            team_name=team_name
+            signature=config_lib.CONFIG["Email.signature"]
             ),
         is_html=True)
 
