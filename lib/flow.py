@@ -881,7 +881,7 @@ class GRRFlow(aff4.AFF4Volume):
           return
 
         if token is None:
-          token = access_control.ACLToken()
+          token = access_control.ACLToken(username="GRRSystem")
 
         if reason is None:
           reason = "Manual termination by console."
@@ -1483,7 +1483,7 @@ class FrontEndServer(object):
                message_expiry_time=120, max_retransmission_time=10, store=None,
                threadpool_prefix="grr_threadpool"):
     # Identify ourselves as the server.
-    self.token = access_control.ACLToken(username="FrontEndServer",
+    self.token = access_control.ACLToken(username="GRRFrontEnd",
                                          reason="Implied.")
     self.token.supervisor = True
     self.throttle_callback = lambda: True
