@@ -99,37 +99,37 @@ parser_add_user.add_argument(
     help="Don't create the user as an administrator.")
 
 
-def UpdateUser(username, password, add_labels, delete_labels=[]):
+def UpdateUser(username, password, add_labels=[], delete_labels=[]):
   """Implementation of the update_user command."""
   with aff4.FACTORY.Create("aff4:/users/%s" % username,
                            "GRRUser", mode="rw") as fd:
     # Note this accepts blank passwords as valid.
-    if password:
+    if password != None:
       fd.SetPassword(password)
 
     current_labels = []
 
+    #Build a list of existing labels
     for label in fd.GetLabels():
       current_labels.append(label.name)
 
+    #Build a list of labels to be added
     expanded_add_labels = []
     if add_labels:
-      # Allow labels to be comma separated list of labels.
       for label in add_labels:
-        if "," in label:
-          expanded_add_labels.extend(label.split(","))
-        else:
-          expanded_add_labels.append(label)
+        #Split up any space or comma separated labels in the list before extending the list of labels to add
+        labels = re.findall(r'[^,\s]+', label)
+        expanded_add_labels.extend(labels)
 
+    #Build a list of labels to be added
     expanded_delete_labels = []
     if delete_labels:
-      # Allow labels to be comma separated list of labels.
       for label in delete_labels:
-        if "," in label:
-          expanded_delete_labels.extend(label.split(","))
-        else:
-          expanded_delete_labels.append(label)
-
+        #Split up any space or comma separated labels in the list before extending the list of labels to add
+        labels = re.findall(r'[^,\s]+', label)
+        expanded_delete_labels.extend(labels)
+        
+    #Use sets to dedup both expanded lists and then ensure a label is not being added and removed at the same time   
     new_labels = list(set(current_labels).union(set(expanded_add_labels)).difference(set(expanded_delete_labels)))
     fd.SetLabels(*new_labels, owner="GRR")
 
