@@ -15,7 +15,7 @@ doc: Windows Application Event log.
 collectors:
 - collector_type: FILE
   args: {path_list: ['%%environ_systemroot%%\System32\winevt\Logs\AppEvent.evt']}
-conditions: [os_major_version >= 6]
+conditions: [os_major_version < 6]
 labels: [Logs]
 supported_os: [Windows]
 urls: ['http://www.forensicswiki.org/wiki/Windows_Event_Log_(EVT)']
@@ -105,7 +105,7 @@ doc: Windows Security Event log.
 collectors:
 - collector_type: FILE
   args: {path_list: ['%%environ_systemroot%%\System32\winevt\Logs\SecEvent.evt']}
-conditions: [os_major_version >= 6]
+conditions: [os_major_version < 6]
 labels: [Logs]
 supported_os: [Windows]
 urls: ['http://www.forensicswiki.org/wiki/Windows_Event_Log_(EVT)']
@@ -154,7 +154,7 @@ doc: Windows System Event log.
 collectors:
 - collector_type: FILE
   args: {path_list: ['%%environ_systemroot%%\System32\winevt\Logs\SysEvent.evt']}
-conditions: [os_major_version >= 6]
+conditions: [os_major_version < 6]
 labels: [Logs]
 supported_os: [Windows]
 urls: ['http://www.forensicswiki.org/wiki/Windows_Event_Log_(EVT)']
