@@ -2,7 +2,9 @@
 
 name: ChromeCache
 doc: |
-  Google Chrome and Chromium browser caches.
+  Google Chrome, Canary and Chromium browser caches.
+
+  Canary uses "Chrome SxS" on windows.
 
   * Disk cache (or Cache)
   * Media cache
@@ -17,6 +19,10 @@ collectors:
       - '%%users.localappdata%%\Google\Chrome\User Data\*\Cache\*'
       - '%%users.localappdata%%\Google\Chrome\User Data\*\Media Cache\*'
       - '%%users.localappdata%%\Google\Chrome\User Data\*\GPUCache\*'
+      - '%%users.localappdata%%\Google\Chrome SxS\User Data\*\Application Cache\Cache\*'
+      - '%%users.localappdata%%\Google\Chrome SxS\User Data\*\Cache\*'
+      - '%%users.localappdata%%\Google\Chrome SxS\User Data\*\Media Cache\*'
+      - '%%users.localappdata%%\Google\Chrome SxS\User Data\*\GPUCache\*'
       - '%%users.localappdata%%\Chromium\User Data\*\Application Cache\Cache\*'
       - '%%users.localappdata%%\Chromium\User Data\*\Cache\*'
       - '%%users.localappdata%%\Chromium\User Data\*\Media Cache\*'
@@ -31,6 +37,12 @@ collectors:
       - '%%users.homedir%%/Library/Application Support/Google/Chrome/*/Application Cache/Cache/*'
       - '%%users.homedir%%/Library/Application Support/Google/Chrome/*/GPUCache/*'
       - '%%users.homedir%%/Library/Caches/Google/Chrome/PnaclTranslationCache/*'
+      - '%%users.homedir%%/Caches/Google/Chrome Canary/*/Cache/*'
+      - '%%users.homedir%%/Library/Caches/Google/Chrome Canary/*/Cache/*'
+      - '%%users.homedir%%/Library/Caches/Google/Chrome Canary/*/Media Cache/*'
+      - '%%users.homedir%%/Library/Application Support/Google/Chrome Canary/*/Application Cache/Cache/*'
+      - '%%users.homedir%%/Library/Application Support/Google/Chrome Canary/*/GPUCache/*'
+      - '%%users.homedir%%/Library/Caches/Google/Chrome Canary/PnaclTranslationCache/*'
       - '%%users.homedir%%/Caches/Chromium/*/Cache/*'
       - '%%users.homedir%%/Library/Caches/Chromium/*/Cache/*'
       - '%%users.homedir%%/Library/Caches/Chromium/*/Media Cache/*'
@@ -67,6 +79,8 @@ collectors:
     path_list:
       - '%%users.localappdata%%\Google\Chrome\User Data\*\Archived History'
       - '%%users.localappdata%%\Google\Chrome\User Data\*\History'
+      - '%%users.localappdata%%\Google\Chrome SxS\User Data\*\Archived History'
+      - '%%users.localappdata%%\Google\Chrome SxS\User Data\*\History'
       - '%%users.localappdata%%\Chromium\User Data\*\Archived History'
       - '%%users.localappdata%%\Chromium\User Data\*\History'
   supported_os: [Windows]
@@ -75,6 +89,8 @@ collectors:
     path_list:
       - '%%users.homedir%%/Library/Application Support/Google/Chrome/*/Archived History'
       - '%%users.homedir%%/Library/Application Support/Google/Chrome/*/History'
+      - '%%users.homedir%%/Library/Application Support/Google/Chrome Canary/*/Archived History'
+      - '%%users.homedir%%/Library/Application Support/Google/Chrome Canary/*/History'
       - '%%users.homedir%%/Library/Application Support/Chromium/*/Archived History'
       - '%%users.homedir%%/Library/Application Support/Chromium/*/History'
   supported_os: [Darwin]
@@ -88,6 +104,60 @@ collectors:
   supported_os: [Linux]
 labels: [Browser]
 urls: ['http://www.forensicswiki.org/wiki/Google_Chrome']
+---
+name: ChromeExtensionActivity
+doc: Chrome Extension Activity database.
+collectors:
+- collector_type: FILE
+  args:
+    path_list:
+      - '%%users.localappdata%%\Google\Chrome\User Data\*\Extension Activity'
+      - '%%users.localappdata%%\Google\Chrome SxS\User Data\*\Extension Activity'
+      - '%%users.localappdata%%\Chromium\User Data\*\Extension Activity'
+  supported_os: [Windows]
+- collector_type: FILE
+  args:
+    path_list:
+      - '%%users.homedir%%/Library/Application Support/Google/Chrome/*/Extension Activity'
+      - '%%users.homedir%%/Library/Application Support/Google/Chrome Canary/*/Extension Activity'
+      - '%%users.homedir%%/Library/Application Support/Chromium/*/Extension Activity'
+  supported_os: [Darwin]
+- collector_type: FILE
+  args:
+    path_list:
+      - '%%users.homedir%%/.config/google-chrome/*/Extension Activity'
+      - '%%users.homedir%%/.config/chromium/*/Extension Activity'
+  supported_os: [Linux]
+labels: [Browser]
+urls: ['http://forensicswiki.org/wiki/Google_Chrome#Extension_Activity_database']
+---
+name: ChromeExtensions
+doc: Chrome browser extension files.
+collectors:
+- collector_type: FILE
+  args:
+    path_list:
+      - '%%users.localappdata%%\Google\Chrome\User Data\*\Extensions\**'
+      - '%%users.localappdata%%\Chromium\User Data\*\Extensions\**'
+      - '%%users.localappdata%%\Google\Chrome SxS\User Data\*\Extensions\**'
+  supported_os: [Windows]
+- collector_type: FILE
+  args:
+    path_list:
+      - '%%users.homedir%%/Library/Application Support/Google/Chrome/*/Extensions/**'
+      - '%%users.homedir%%/Library/Application Support/Chromium/*/Extensions/**'
+      - '%%users.homedir%%/Library/Application Support/Google/Chrome Canary/*/Extensions/**'
+  supported_os: [Darwin]
+- collector_type: FILE
+  args:
+    path_list:
+      - '%%users.homedir%%/.config/google-chrome/*/Extensions/**'
+      - '%%users.homedir%%/.config/google-chrome-beta/*/Extensions/**'
+      - '%%users.homedir%%/.config/chromium/*/Extensions/**'
+  supported_os: [Linux]
+supported_os: [Windows, Darwin, Linux]
+labels: [Browser]
+urls: ['http://forensicswiki.org/wiki/Google_Chrome#Extensions']
 ---
 name: FirefoxHistory
 doc: Firefox browser history (places.sqlite).
@@ -131,8 +201,8 @@ collectors:
 - collector_type: FILE
   args:
     path_list:
-      - '%%users.appdata%%\Roaming\Microsoft\Windows\Cookies\index.dat'
-      - '%%users.appdata%%\Roaming\Microsoft\Windows\Cookies\Low\index.dat'
+      - '%%users.appdata%%\Microsoft\Windows\Cookies\index.dat'
+      - '%%users.appdata%%\Microsoft\Windows\Cookies\Low\index.dat'
 labels: [Browser]
 supported_os: [Windows]
 urls: ['http://www.forensicswiki.org/wiki/Internet_Explorer']
@@ -149,12 +219,12 @@ collectors:
     path_list:
       - '%%users.localappdata%%\Microsoft\Windows\Temporary Internet Files\Content.IE5\index.dat'
       - '%%users.localappdata%%\Microsoft\Windows\Temporary Internet Files\Low\Content.IE5\index.dat'
-      - '%%users.localappdata%%\Microsoft\Microsoft\Windows\History\History.IE5\index.dat'
-      - '%%users.localappdata%%\Microsoft\Microsoft\Windows\History\Low\History.IE5\index.dat'
-      - '%%users.localappdata%%\Microsoft\Microsoft\Windows\History\History.IE5\*\index.dat'
-      - '%%users.localappdata%%\Microsoft\Microsoft\Windows\History\Low\History.IE5\*\index.dat'
-      - '%%users.localappdata%%\Microsoft\Feeds Cache\index.dat'
-      - '%%users.appdata%%\Roaming\Microsoft\Windows\IEDownloadHistory\index.dat'
+      - '%%users.localappdata%%\Microsoft\Windows\History\History.IE5\index.dat'
+      - '%%users.localappdata%%\Microsoft\Windows\History\Low\History.IE5\index.dat'
+      - '%%users.localappdata%%\Microsoft\Windows\History\History.IE5\*\index.dat'
+      - '%%users.localappdata%%\Microsoft\Windows\History\Low\History.IE5\*\index.dat'
+      - '%%users.local_settings%%\Application Data\Microsoft\Feeds Cache\index.dat'
+      - '%%users.appdata%%\Microsoft\Windows\IEDownloadHistory\index.dat'
       - '%%users.localappdata%%\Microsoft\Windows\WebCache\WebCacheV*.dat'
 labels: [Browser]
 supported_os: [Windows]
@@ -179,7 +249,7 @@ collectors:
   args: {path_list: ['%%users.homedir%%/.opera/global_history.dat']}
   supported_os: [Linux]
 - collector_type: FILE
-  args: {path_list: ['%%users.appdata%%\AppData\Roaming\Opera\Opera\global_history.dat']}
+  args: {path_list: ['%%users.appdata%%\Opera\Opera\global_history.dat']}
   supported_os: [Windows]
 labels: [Browser]
 urls: ['http://www.forensicswiki.org/wiki/Opera']

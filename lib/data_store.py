@@ -104,6 +104,42 @@ class DataStore(object):
     self.flusher_thread.start()
     self.monitor_thread = None
 
+  def GetRequiredResolveAccess(self, predicate_regex):
+    """Returns required level of access for resolve operations.
+
+    Args:
+      predicate_regex: A string (single predicate) or a list of
+                       strings (multiple predicates).
+
+    Returns:
+      "r" when only read access is needed for resolve operation to succeed.
+      Read operation allows reading the object when its URN is known.
+      "rq" when both read and query access is needed for resolve operation to
+      succeed. Query access allows reading indices, and thus traversing
+      trees of objects (see AFF4Volume.ListChildren for details).
+    """
+
+    if isinstance(predicate_regex, basestring):
+      predicate_regex = [predicate_regex]
+    predicate_regex = [utils.SmartStr(x) for x in predicate_regex]
+
+    for regex in predicate_regex:
+      if regex == ".*":
+        continue
+
+      # Extract the column family
+      try:
+        column_family, unused_regex = regex.split(":", 1)
+      except ValueError:
+        raise RuntimeError("You must have an attribute prefix "
+                           "prior to the regex: " + regex)
+
+      # Columns with index require the query permission.
+      if column_family.startswith("index"):
+        return "rq"
+
+    return "r"
+
   def InitializeMonitorThread(self):
     """Start the thread that registers the size of the DataStore."""
     if self.monitor_thread:
@@ -307,8 +343,11 @@ class DataStore(object):
 
     Returns:
        A dict keyed by subjects, with values being a list of (predicate, value
-       string, timestamp), or a (predicate, decoded protobuf, timestamp) if
-       protobuf was specified.
+       string, timestamp).
+
+       Values with the same predicate (happens when timestamp is not
+       NEWEST_TIMESTAMP, but ALL_TIMESTAMPS or time range) are guaranteed
+       to be ordered in the decreasing timestamp order.
 
     Raises:
       AccessError: if anything goes wrong.
@@ -330,6 +369,10 @@ class DataStore(object):
       limit: The number of predicates to fetch.
     Returns:
        A list of (predicate, value string, timestamp).
+
+       Values with the same predicate (happens when timestamp is not
+       NEWEST_TIMESTAMP, but ALL_TIMESTAMPS or time range) are guaranteed
+       to be ordered in the decreasing timestamp order.
 
     Raises:
       AccessError: if anything goes wrong.

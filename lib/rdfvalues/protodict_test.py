@@ -18,6 +18,10 @@ from grr.lib.rdfvalues import structs
 from grr.lib.rdfvalues import test_base
 
 
+class TestRDFValueArray(rdfvalue.RDFValueArray):
+  rdf_type = rdfvalue.RDFString
+
+
 class DictTest(test_base.RDFProtoTestCase):
   """Test the Dict implementation."""
 
@@ -87,8 +91,59 @@ class DictTest(test_base.RDFProtoTestCase):
     self.CheckTestDict(test_dict, sample)
     self.CheckTestDict(test_dict, sample.ToDict())
 
-  def testOverwriting(self):
+  def testNestedDictsMultipleTypes(self):
+    test_dict = dict(
+        key1={"A": 1},
+        key2=rdfvalue.Dict({"A": 1}),
+        key3=[1, 2, 3, [1, 2, [3]]],
+        key4=[[], None, ["abc"]]
+        )
 
+    sample = rdfvalue.Dict(**test_dict)
+    self.CheckTestDict(test_dict, sample)
+    self.CheckTestDict(test_dict, sample.ToDict())
+
+  def testNestedDictsOpaqueTypes(self):
+
+    class UnSerializable(object):
+      pass
+
+    test_dict = dict(
+        key1={"A": 1},
+        key2=rdfvalue.Dict({"A": 1}),
+        key3=[1, UnSerializable(), 3, [1, 2, [3]]],
+        key4=[[], None, ["abc"]],
+        key5=UnSerializable(),
+        key6=["a", UnSerializable(), "b"]
+        )
+
+    self.assertRaises(TypeError, rdfvalue.Dict, **test_dict)
+
+    sample = rdfvalue.Dict()
+    for key, value in test_dict.iteritems():
+      sample.SetItem(key, value, raise_on_error=False)
+
+    # Need to do some manual checking here since this is a lossy conversion.
+    self.assertEqual(test_dict["key1"], sample["key1"])
+    self.assertEqual(test_dict["key2"], sample["key2"])
+
+    self.assertEqual(1, sample["key3"][0])
+    self.assertTrue("Unsupported type" in sample["key3"][1])
+    self.assertItemsEqual(test_dict["key3"][2:], sample["key3"][2:])
+
+    self.assertEqual(test_dict["key4"], sample["key4"])
+    self.assertTrue("Unsupported type" in sample["key5"])
+    self.assertEqual("a", sample["key6"][0])
+    self.assertTrue("Unsupported type" in sample["key6"][1])
+    self.assertEqual("b", sample["key6"][2])
+
+  def testBool(self):
+    sample = rdfvalue.Dict(a=True)
+    self.assertTrue(isinstance(sample["a"], bool))
+    sample = rdfvalue.Dict(a="true")
+    self.assertEqual(sample["a"], "true")
+
+  def testOverwriting(self):
     req = rdfvalue.Iterator(client_state=rdfvalue.Dict({"A": 1}))
     # There should be one element now.
     self.assertEqual(len(list(req.client_state.items())), 1)
@@ -144,10 +199,6 @@ class RDFValueArrayTest(test_base.RDFProtoTestCase):
 
   def testEnforcedArray(self):
     """Check that arrays with a forced type are enforced."""
-
-    class TestRDFValueArray(rdfvalue.RDFValueArray):
-      rdf_type = rdfvalue.RDFString
-
     sample = TestRDFValueArray()
 
     # Simple type should be coerced to an RDFString.
@@ -159,9 +210,6 @@ class RDFValueArrayTest(test_base.RDFProtoTestCase):
                       sample.Append, rdfvalue.RDFDatetime().Now())
 
   def testPop(self):
-    class TestRDFValueArray(rdfvalue.RDFValueArray):
-      rdf_type = rdfvalue.RDFString
-
     sample = TestRDFValueArray()
 
     # Simple type should be coerced to an RDFString.

@@ -48,8 +48,7 @@ class EmailPluginTest(test_lib.FlowTestsBaseclass):
       test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
 
       # Stop the hunt now.
-      with hunt.GetRunner() as runner:
-        runner.Stop()
+      hunt.GetRunner().Stop()
 
     # Run cron flow that executes actual output plugins
     for _ in test_lib.TestFlowHelper("ProcessHuntResultsCronFlow",
@@ -93,19 +92,15 @@ class EmailPluginTest(test_lib.FlowTestsBaseclass):
         pass
 
       # Stop the hunt now.
-      with hunt_obj.GetRunner() as runner:
-        runner.Stop()
+      hunt_obj.GetRunner().Stop()
 
       hunt_obj = aff4.FACTORY.Open(hunt_urn, age=aff4.ALL_TIMES,
                                    token=self.token)
 
-      started = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
-      finished = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.FINISHED)
-      errors = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.ERRORS)
-
-      self.assertEqual(len(set(started)), 40)
-      self.assertEqual(len(set(finished)), 40)
-      self.assertEqual(len(set(errors)), 20)
+      started, finished, errors = hunt_obj.GetClientsCounts()
+      self.assertEqual(started, 40)
+      self.assertEqual(finished, 40)
+      self.assertEqual(errors, 20)
 
       collection = aff4.FACTORY.Open(hunt_urn.Add("Results"),
                                      mode="r", token=self.token)

@@ -138,7 +138,7 @@ grr.init = function() {
   */
   var csrftoken = grr.getCookie('csrftoken');
 
-  $('html').ajaxSend(function(event, xhr, settings) {
+  $(document).ajaxSend(function(event, xhr, settings) {
     // Officially crossdomain should be covered by ajaxSetup call, but that
     // appears to not apply to tree renderers, so belt and braces here.
     if (!grr.csrfSafeMethod(settings.type)) {
@@ -1681,7 +1681,8 @@ grr.init();
  *  Initialize Angular GRR app. AngularJS has no problems coexisting with
  *  existing set of GRR renderers.
  */
-var grrApp = angular.module('grr', ['ngCookies']);
+var grrApp = angular.module('grr', ['ngCookies',
+                                    'grr.app.controller']);
 
 grrApp.config(function($httpProvider, $interpolateProvider) {
   // Set templating braces to be '{$' and '$}' to avoid conflicts with Django

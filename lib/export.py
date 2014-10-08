@@ -69,6 +69,10 @@ class ExportedNetworkConnection(rdfvalue.RDFProtoStruct):
   protobuf = export_pb2.ExportedNetworkConnection
 
 
+class ExportedDNSClientConfiguration(rdfvalue.RDFProtoStruct):
+  protobuf = export_pb2.ExportedDNSClientConfiguration
+
+
 class ExportedOpenFile(rdfvalue.RDFProtoStruct):
   protobuf = export_pb2.ExportedOpenFile
 
@@ -628,6 +632,18 @@ class InterfaceToExportedNetworkInterfaceConverter(ExportConverter):
     yield result
 
 
+class DNSClientConfigurationToExportedDNSClientConfiguration(ExportConverter):
+  input_rdf_type = "DNSClientConfiguration"
+
+  def Convert(self, metadata, config, token=None):
+    """Converts DNSClientConfiguration to ExportedDNSClientConfiguration."""
+    result = ExportedDNSClientConfiguration(
+        metadata=metadata,
+        dns_servers=" ".join(config.dns_server),
+        dns_suffixes=" ".join(config.dns_suffix))
+    yield result
+
+
 class ClientSummaryToExportedNetworkInterfaceConverter(
     InterfaceToExportedNetworkInterfaceConverter):
   input_rdf_type = "ClientSummary"
@@ -832,12 +848,6 @@ class GrrMessageConverter(ExportConverter):
       Resulting RDFValues. Empty list is a valid result and means that
       conversion wasn't possible.
     """
-    # Find set of converters for the first message payload.
-    # We assume that payload is of the same type for all the messages in the
-    # batch.
-    converters_classes = ExportConverter.GetConvertersByValue(
-        metadata_value_pairs[0][1].payload)
-    converters = [cls(self.options) for cls in converters_classes]
 
     # Group messages by source (i.e. by client urn).
     msg_dict = {}
@@ -846,6 +856,7 @@ class GrrMessageConverter(ExportConverter):
 
     metadata_objects = []
     metadata_to_fetch = []
+
     # Open the clients we don't have metadata for and fetch metadata.
     for client_urn in msg_dict.iterkeys():
       try:
@@ -862,23 +873,38 @@ class GrrMessageConverter(ExportConverter):
         self.cached_metadata[metadata.client_urn] = metadata
       metadata_objects.extend(fetched_metadata)
 
-    # Get source_urn from the original metadata provided and
-    # original_timestamp from the payload age.
-    batch_data = []
+    data_by_type = {}
     for metadata in metadata_objects:
       try:
         for original_metadata, message in msg_dict[metadata.client_urn]:
+          # Get source_urn from the original metadata provided and
+          # original_timestamp from the payload age.
           new_metadata = rdfvalue.ExportedMetadata(metadata)
           new_metadata.source_urn = original_metadata.source_urn
           new_metadata.original_timestamp = message.payload.age
-          batch_data.append((new_metadata, message.payload))
+          cls_name = message.payload.__class__.__name__
+
+          # Create a dict of values for conversion keyed by type, so we can
+          # apply the right converters to the right object types
+          if cls_name not in data_by_type:
+            converters_classes = ExportConverter.GetConvertersByValue(
+                message.payload)
+            data_by_type[cls_name] = {
+                "converters": [cls(self.options) for cls in converters_classes],
+                "batch_data": [(new_metadata, message.payload)]}
+          else:
+            data_by_type[cls_name]["batch_data"].append(
+                (new_metadata, message.payload))
 
       except KeyError:
         pass
 
+    # Run all converters against all objects of the relevant type
     converted_batch = []
-    for converter in converters:
-      converted_batch.extend(converter.BatchConvert(batch_data, token=token))
+    for dataset in data_by_type.values():
+      for converter in dataset["converters"]:
+        converted_batch.extend(converter.BatchConvert(dataset["batch_data"],
+                                                      token=token))
 
     return converted_batch
 
@@ -936,9 +962,9 @@ class FileStoreHashConverter(ExportConverter):
                       for metadata, urn in metadata_value_pairs])
 
     results = []
-    for hash_urn, hash_hits in filestore.HashFileStore.GetHitsForHashes(
+    for hash_urn, client_files in filestore.HashFileStore.GetClientsForHashes(
         urns, token=token):
-      for hit in hash_hits:
+      for hit in client_files:
         metadata = rdfvalue.ExportedMetadata(urns_dict[hash_urn])
         metadata.client_urn = rdfvalue.RDFURN(hit).Split(2)[0]
 

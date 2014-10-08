@@ -3,8 +3,6 @@
 
 """Loads up all client action tests."""
 
-import platform
-
 import logging
 
 # pylint: disable=unused-import
@@ -16,6 +14,8 @@ from grr.client.client_actions import plist_test
 from grr.client.client_actions import searching_test
 from grr.client.client_actions import standard_test
 from grr.client.client_actions import tempfiles_test
+from grr.client.client_actions.osx import osx_test
+from grr.client.client_actions.windows import windows_test
 
 # Enable the Rekall specific client actions only if Rekall is installed.
 try:
@@ -23,6 +23,3 @@ try:
   from grr.client.client_actions import grr_rekall_test
 except ImportError:
   logging.warning("Could not import Rekall, memory analysis will not work.")
-
-if platform.system() == "Darwin":
-  from grr.client.client_actions.osx import osx_test

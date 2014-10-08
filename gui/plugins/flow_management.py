@@ -293,8 +293,8 @@ Launched Flow {{this.flow_name}}.
       try:
         self.args.Validate()
       except ValueError as e:
-        return self.CallJavascript("SemanticProtoFlowForm.RenderAjaxError",
-                                   error=str(e))
+        return self.CallJavascript(
+            response, "SemanticProtoFlowForm.RenderAjaxError", error=str(e))
 
       self.runner_args = forms.SemanticProtoFormRenderer(
           flow.FlowRunnerArgs(), prefix="runner_").ParseArgs(request)
@@ -374,6 +374,17 @@ class ManageFlows(renderers.Splitter2Way):
   bottom_renderer = "FlowTabView"
 
 
+class FlowLogView(renderers.AngularDirectiveRenderer):
+  post_parameters = ["flow"]
+
+  directive = "grr-flow-log"
+
+  def Layout(self, request, response):
+    self.directive_args = {}
+    self.directive_args["flow-urn"] = request.REQ.get("flow")
+    return super(FlowLogView, self).Layout(request, response)
+
+
 class FlowTabView(renderers.TabLayout):
   """Show various flow information in a Tab view.
 
@@ -385,18 +396,19 @@ class FlowTabView(renderers.TabLayout):
   Internal State:
     - flow_path - The category and name of the flow we display.
   """
-  names = ["Flow Information", "Requests", "Results", "Export"]
+  names = ["Flow Information", "Requests", "Results", "Log", "Export"]
   delegated_renderers = ["ShowFlowInformation", "FlowRequestView",
-                         "FlowResultsView", "FlowResultsExportView"]
+                         "FlowResultsView", "FlowLogView",
+                         "FlowResultsExportView"]
 
   tab_hash = "ftv"
 
   def IsOutputExportable(self, flow_urn, token=None):
     flow_obj = aff4.FACTORY.Open(flow_urn, token=token)
-    with flow_obj.GetRunner() as runner:
-      if getattr(runner, "output_urn", None):
-        return fileview.CollectionExportView.IsCollectionExportable(
-            runner.output_urn, token=token)
+    runner = flow_obj.GetRunner()
+    if getattr(runner, "output_urn", None):
+      return fileview.CollectionExportView.IsCollectionExportable(
+          runner.output_urn, token=token)
 
     return False
 
@@ -475,15 +487,15 @@ class FlowResultsView(semantic.RDFValueCollectionRenderer):
       return
 
     flow_obj = aff4.FACTORY.Open(session_id, token=request.token)
-    with flow_obj.GetRunner() as runner:
-      # If there's collection in the runner, use it, otherwise display
-      # 'no results' message.
-      if getattr(runner, "output_urn", None):
-        return super(FlowResultsView, self).Layout(
-            request, response, aff4_path=runner.output_urn)
-      else:
-        return self.RenderFromTemplate(self.error_template, response,
-                                       unique=self.unique)
+    runner = flow_obj.GetRunner()
+    # If there's collection in the runner, use it, otherwise display
+    # 'no results' message.
+    if getattr(runner, "output_urn", None):
+      return super(FlowResultsView, self).Layout(
+          request, response, aff4_path=runner.output_urn)
+    else:
+      return self.RenderFromTemplate(self.error_template, response,
+                                     unique=self.unique)
 
 
 class FlowResultsExportView(fileview.CollectionExportView):
@@ -496,10 +508,10 @@ class FlowResultsExportView(fileview.CollectionExportView):
       return
 
     flow_obj = aff4.FACTORY.Open(session_id, token=request.token)
-    with flow_obj.GetRunner() as runner:
-      if runner.output_urn is not None:
-        return super(FlowResultsExportView, self).Layout(
-            request, response, aff4_path=runner.output_urn)
+    runner = flow_obj.GetRunner()
+    if runner.output_urn is not None:
+      return super(FlowResultsExportView, self).Layout(
+          request, response, aff4_path=runner.output_urn)
 
 
 class TreeColumn(semantic.RDFValueColumn, renderers.TemplateRenderer):
@@ -977,6 +989,6 @@ class RegularExpressionFormRenderer(forms.ProtoRDFValueFormRenderer):
   context_help_url = "user_manual.html#_regex_matches"
 
 
-class LiteralExpressionFormRenderer(forms.ProtoRDFValueFormRenderer):
+class LiteralExpressionFormRenderer(forms.BinaryStringTypeFormRenderer):
   type = rdfvalue.LiteralExpression
   context_help_url = "user_manual.html#_literal_matches"

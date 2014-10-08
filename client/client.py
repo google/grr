@@ -4,6 +4,8 @@
 
 import pdb
 
+import logging
+
 # pylint: disable=unused-import
 from grr.client import client_plugins
 # pylint: enable=unused-import
@@ -55,13 +57,15 @@ def main(unused_args):
 
   errors = config_lib.CONFIG.Validate(["Client", "CA", "Logging"])
 
-  if not errors:
-    client = GRRClient()
-  elif errors.keys() == ["Client.private_key"]:
-    client = GRRClient()
-    client.client.InitiateEnrolment(comms.Status())
-  else:
+  if errors and errors.keys() != ["Client.private_key"]:
     raise config_lib.ConfigFormatError(errors)
+
+  enrollment_necessary = not config_lib.CONFIG.Get("Client.private_key")
+  # Instantiating the client will create a private_key so we need to use a flag.
+  client = GRRClient()
+  if enrollment_necessary:
+    logging.info("No private key found, starting enrollment.")
+    client.client.InitiateEnrolment(comms.Status())
 
   if flags.FLAGS.break_on_start:
     pdb.set_trace()

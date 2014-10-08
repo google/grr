@@ -267,30 +267,6 @@ class StatFile(ListDirectory):
       return
 
 
-class HashFile(ListDirectory):
-  """Hashes the file and transmits it to the server."""
-  in_rdfvalue = rdfvalue.ListDirRequest
-  out_rdfvalue = rdfvalue.DataBlob
-
-  def Run(self, args):
-    """Hash a file."""
-    try:
-      fd = vfs.VFSOpen(args.pathspec, progress_callback=self.Progress)
-      hasher = hashlib.sha256()
-      while True:
-        data = fd.Read(1024*1024)
-        if not data: break
-
-        hasher.update(data)
-        self.Progress()
-
-    except (IOError, OSError), e:
-      self.SetStatus(rdfvalue.GrrStatus.ReturnedStatus.IOERROR, e)
-      return
-
-    self.SendReply(data=hasher.digest())
-
-
 class ExecuteCommand(actions.ActionPlugin):
   """Executes one of the predefined commands."""
   in_rdfvalue = rdfvalue.ExecuteRequest

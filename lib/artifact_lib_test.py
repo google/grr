@@ -170,12 +170,12 @@ class ArtifactKBTest(test_lib.GRRBaseTest):
     paths = artifact_lib.InterpolateKbAttributes("test%%users.username%%test",
                                                  kb)
     paths = list(paths)
-    self.assertEquals(len(paths), 2)
+    self.assertEqual(len(paths), 2)
     self.assertItemsEqual(paths, ["testjoetest", "testjimtest"])
 
     paths = artifact_lib.InterpolateKbAttributes(
         "%%environ_allusersprofile%%\\a", kb)
-    self.assertEquals(list(paths), ["c:\\programdata\\a"])
+    self.assertEqual(list(paths), ["c:\\programdata\\a"])
 
     self.assertRaises(
         artifact_lib.KnowledgeBaseInterpolationError, list,
@@ -210,58 +210,58 @@ class KnowledgeBaseUserMergeTest(test_lib.GRRBaseTest):
   def testUserMergeWindows(self):
     """Check Windows users are accurately merged."""
     kb = rdfvalue.KnowledgeBase()
-    self.assertEquals(len(kb.users), 0)
+    self.assertEqual(len(kb.users), 0)
     kb.MergeOrAddUser(rdfvalue.KnowledgeBaseUser(sid="1234"))
-    self.assertEquals(len(kb.users), 1)
+    self.assertEqual(len(kb.users), 1)
     kb.MergeOrAddUser(rdfvalue.KnowledgeBaseUser(sid="5678", username="test1"))
-    self.assertEquals(len(kb.users), 2)
+    self.assertEqual(len(kb.users), 2)
 
     _, conflicts = kb.MergeOrAddUser(
         rdfvalue.KnowledgeBaseUser(sid="5678", username="test2"))
-    self.assertEquals(len(kb.users), 2)
-    self.assertEquals(conflicts[0], ("username", "test1", "test2"))
-    self.assertEquals(kb.GetUser(sid="5678").username, "test2")
+    self.assertEqual(len(kb.users), 2)
+    self.assertEqual(conflicts[0], ("username", "test1", "test2"))
+    self.assertEqual(kb.GetUser(sid="5678").username, "test2")
 
     # This should merge on user name as we have no other data.
     kb.MergeOrAddUser(rdfvalue.KnowledgeBaseUser(username="test2", homedir="a"))
-    self.assertEquals(len(kb.users), 2)
+    self.assertEqual(len(kb.users), 2)
 
     # This should create a new user since the sid is different.
     new_attrs, conflicts = kb.MergeOrAddUser(
         rdfvalue.KnowledgeBaseUser(username="test2", sid="12345", temp="/blah"))
-    self.assertEquals(len(kb.users), 3)
+    self.assertEqual(len(kb.users), 3)
     self.assertItemsEqual(new_attrs, ["users.username", "users.temp",
                                       "users.sid"])
-    self.assertEquals(conflicts, [])
+    self.assertEqual(conflicts, [])
 
   def testUserMergeLinux(self):
     """Check Linux users are accurately merged."""
     kb = rdfvalue.KnowledgeBase()
-    self.assertEquals(len(kb.users), 0)
+    self.assertEqual(len(kb.users), 0)
     kb.MergeOrAddUser(rdfvalue.KnowledgeBaseUser(username="blake",
                                                  last_logon=1111))
-    self.assertEquals(len(kb.users), 1)
+    self.assertEqual(len(kb.users), 1)
     # This should merge since the username is the same.
     kb.MergeOrAddUser(rdfvalue.KnowledgeBaseUser(uid="12", username="blake"))
-    self.assertEquals(len(kb.users), 1)
+    self.assertEqual(len(kb.users), 1)
 
     # This should create a new record because the uid is different
     kb.MergeOrAddUser(
         rdfvalue.KnowledgeBaseUser(username="blake",
                                    uid="13", desktop="/home/blake/Desktop"))
-    self.assertEquals(len(kb.users), 2)
+    self.assertEqual(len(kb.users), 2)
 
     kb.MergeOrAddUser(
         rdfvalue.KnowledgeBaseUser(username="newblake",
                                    uid="14", desktop="/home/blake/Desktop"))
 
-    self.assertEquals(len(kb.users), 3)
+    self.assertEqual(len(kb.users), 3)
 
     # Check merging where we don't specify uid works
     new_attrs, conflicts = kb.MergeOrAddUser(
         rdfvalue.KnowledgeBaseUser(username="newblake",
                                    desktop="/home/blakey/Desktop"))
-    self.assertEquals(len(kb.users), 3)
+    self.assertEqual(len(kb.users), 3)
     self.assertItemsEqual(new_attrs, ["users.username", "users.desktop"])
     self.assertItemsEqual(conflicts, [("desktop", u"/home/blake/Desktop",
                                        u"/home/blakey/Desktop")])

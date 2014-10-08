@@ -27,6 +27,7 @@ from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import hunts
 from grr.lib import rdfvalue
+from grr.lib import utils
 
 
 class ManageHunts(renderers.Splitter2Way):
@@ -274,9 +275,8 @@ class HuntTable(fileview.AbstractFileTable):
         if not isinstance(hunt, hunts.GRRHunt) or not hunt.state:
           continue
 
-        with hunt.GetRunner() as runner:
-          hunt.create_time = runner.context.create_time
-          hunt_list.append(hunt)
+        hunt.create_time = hunt.GetRunner().context.create_time
+        hunt_list.append(hunt)
 
       hunt_list.sort(key=lambda x: x.create_time, reverse=True)
 
@@ -453,19 +453,13 @@ back to hunt view</a>
       return
     try:
       self.hunt = aff4.FACTORY.Open(hunt_id, token=request.token,
-                                    aff4_type="GRRHunt", age=aff4.ALL_TIMES)
+                                    aff4_type="GRRHunt")
     except IOError:
       logging.error("Invalid hunt %s", hunt_id)
       return
 
-    resources = self.hunt.GetValuesForAttribute(self.hunt.Schema.RESOURCES)
+    # TODO(user): enable per-client resource usage display.
     resource_usage = {}
-    for resource in resources:
-      usage = resource_usage.setdefault(resource.client_id, [0, 0, 0])
-      usage[0] += resource.cpu_usage.user_cpu_time
-      usage[1] += resource.cpu_usage.system_cpu_time
-      usage[2] += resource.network_bytes_sent
-      resource_usage[resource.client_id] = usage
 
     resource_max = [0, 0, 0]
     for resource in resource_usage.values():
@@ -606,14 +600,14 @@ class HuntOverviewRenderer(AbstractLogRenderer):
     <dd>{{ this.client_rate|escape }}</dd>
   {% endif %}
 
-  <dt>Client Count</dt>
-  <dd>{{ this.hunt.NumClients|escape }}</dd>
+  <dt>Clients Scheduled</dt>
+  <dd>{{ this.all_clients_count|escape }}</dd>
 
   <dt>Outstanding</dt>
-  <dd>{{ this.hunt.NumOutstanding|escape }}</dd>
+  <dd>{{ this.outstanding_clients_count|escape }}</dd>
 
   <dt>Completed</dt>
-  <dd>{{ this.hunt.NumCompleted|escape }}</dd>
+  <dd>{{ this.completed_clients_count|escape }}</dd>
 
   <dt>Total CPU seconds used</dt>
   <dd>{{ this.cpu_sum|escape }}</dd>
@@ -665,49 +659,46 @@ class HuntOverviewRenderer(AbstractLogRenderer):
     if self.hunt_id:
       try:
         self.hunt = aff4.FACTORY.Open(self.hunt_id, aff4_type="GRRHunt",
-                                      token=request.token, age=aff4.ALL_TIMES)
+                                      token=request.token)
 
         if self.hunt.state.Empty():
           raise IOError("No valid state could be found.")
 
-        # TODO(user): This is too expensive to do here. We should keep
-        # running stats in the hunt itself.
-        resources = self.hunt.GetValuesForAttribute(
-            self.hunt.Schema.RESOURCES)
-        self.cpu_sum, self.net_sum = 0, 0
+        hunt_stats = self.hunt.state.context.usage_stats
+        self.cpu_sum = "%.2f" %  hunt_stats.user_cpu_stats.sum
+        self.net_sum = hunt_stats.network_bytes_sent_stats.sum
 
-        for resource in resources:
-          self.cpu_sum += resource.cpu_usage.user_cpu_time
-          self.net_sum += resource.network_bytes_sent
+        (self.all_clients_count,
+         self.completed_clients_count, _) = self.hunt.GetClientsCounts()
+        self.outstanding_clients_count = (self.all_clients_count -
+                                          self.completed_clients_count)
 
-        self.cpu_sum = "%.2f" % self.cpu_sum
+        runner = self.hunt.GetRunner()
+        self.hunt_name = runner.args.hunt_name
+        self.hunt_creator = runner.context.creator
 
-        with self.hunt.GetRunner() as runner:
-          self.hunt_name = runner.args.hunt_name
-          self.hunt_creator = runner.context.creator
+        self.data = py_collections.OrderedDict()
+        self.data["Start Time"] = runner.context.start_time
+        self.data["Expiry Time"] = runner.context.expires
+        self.data["Status"] = self.hunt.Get(self.hunt.Schema.STATE)
 
-          self.data = py_collections.OrderedDict()
-          self.data["Start Time"] = runner.context.start_time
-          self.data["Expiry Time"] = runner.context.expires
-          self.data["Status"] = self.hunt.Get(self.hunt.Schema.STATE)
+        self.client_limit = runner.args.client_limit
+        self.client_rate = runner.args.client_rate
 
-          self.client_limit = runner.args.client_limit
-          self.client_rate = runner.args.client_rate
+        self.args_str = renderers.DictRenderer(
+            self.hunt.state, filter_keys=["context"]).RawHTML(request)
 
-          self.args_str = renderers.DictRenderer(
-              self.hunt.state, filter_keys=["context"]).RawHTML(request)
+        if runner.args.regex_rules:
+          self.regex_rules = foreman.RegexRuleArray(
+              runner.args.regex_rules).RawHTML(request)
+        else:
+          self.regex_rules = "None"
 
-          if runner.args.regex_rules:
-            self.regex_rules = foreman.RegexRuleArray(
-                runner.args.regex_rules).RawHTML(request)
-          else:
-            self.regex_rules = "None"
-
-          if runner.args.integer_rules:
-            self.integer_rules = foreman.IntegerRuleArray(
-                runner.args.integer_rules).RawHTML(request)
-          else:
-            self.integer_rules = "None"
+        if runner.args.integer_rules:
+          self.integer_rules = foreman.IntegerRuleArray(
+              runner.args.integer_rules).RawHTML(request)
+        else:
+          self.integer_rules = "None"
 
       except IOError:
         self.layout_template = self.error_template
@@ -737,58 +728,22 @@ class HuntContextView(renderers.TemplateRenderer):
     return super(HuntContextView, self).Layout(request, response)
 
 
-class HuntLogRenderer(AbstractLogRenderer):
-  """Render the hunt log.
+class HuntLogRenderer(renderers.AngularDirectiveRenderer):
+  directive = "grr-hunt-log"
 
-  TODO(user): This needs significant improvement. The logs for each flow
-  should probably be combined and collapsed by default, flow links should be
-  clickable, need proper pagination.
-  """
-  show_total_count = True
-  max_size = 500
-
-  def GetLog(self, request):
-    """Retrieve the log data."""
-    hunt_id = request.REQ.get("hunt_id")
-    hunt_client = request.REQ.get("hunt_client")
-    if hunt_id is None:
-      return []
-
-    log_vals = aff4.FACTORY.Create(rdfvalue.RDFURN(hunt_id).Add("Logs"),
-                                   mode="r",
-                                   aff4_type="PackedVersionedCollection",
-                                   token=request.token)
-
-    log = []
-    for i, line in enumerate(log_vals):
-      if ((not hunt_client or hunt_client == line.client_id) and
-          (line is not None) and
-          i < self.max_size):
-        log.append((line.age, line.urn, line.flow_name, line.log_message))
-
-    return sorted(log)
+  def Layout(self, request, response):
+    self.directive_args = {}
+    self.directive_args["hunt-urn"] = request.REQ.get("hunt_id")
+    return super(HuntLogRenderer, self).Layout(request, response)
 
 
-class HuntErrorRenderer(AbstractLogRenderer):
-  """Render the hunt errors."""
-  show_total_count = True
+class HuntErrorRenderer(renderers.AngularDirectiveRenderer):
+  directive = "grr-hunt-errors"
 
-  def GetLog(self, request):
-    """Retrieve the log data."""
-    hunt_id = request.REQ.get("hunt_id")
-    hunt_client = request.REQ.get("hunt_client")
-    if hunt_id is None:
-      return []
-
-    fd = aff4.FACTORY.Open(hunt_id, token=request.token,
-                           age=aff4.ALL_TIMES)
-    err_vals = fd.GetValuesForAttribute(fd.Schema.ERRORS)
-    log = []
-    for l in err_vals:
-      if not hunt_client or hunt_client == rdfvalue.ClientURN(l.client_id):
-        log.append((l.age, l.client_id, l.backtrace,
-                    l.log_message))
-    return log
+  def Layout(self, request, response):
+    self.directive_args = {}
+    self.directive_args["hunt-urn"] = request.REQ.get("hunt_id")
+    return super(HuntErrorRenderer, self).Layout(request, response)
 
 
 class HuntClientViewTabs(renderers.TabLayout):
@@ -854,9 +809,11 @@ No data to graph yet.
 
   def Layout(self, request, response):
     self.hunt_id = request.REQ.get("hunt_id")
-    hunt = aff4.FACTORY.Open(self.hunt_id, token=request.token)
 
-    self.clients = bool(hunt.Get(hunt.Schema.CLIENTS))
+    hunt = aff4.FACTORY.Open(self.hunt_id, token=request.token)
+    all_count, _, _ = hunt.GetClientsCounts()
+    self.clients = bool(all_count)
+
     response = super(HuntClientGraphRenderer, self).Layout(request, response)
     return self.CallJavascript(response, "HuntClientGraphRenderer.Layout",
                                hunt_id=self.hunt_id)
@@ -867,9 +824,11 @@ class HuntClientCompletionGraphRenderer(renderers.ImageDownloadRenderer):
   def Content(self, request, _):
     """Generates the actual image to display."""
     hunt_id = request.REQ.get("hunt_id")
-    hunt = aff4.FACTORY.Open(hunt_id, age=aff4.ALL_TIMES, token=request.token)
-    cl = hunt.GetValuesForAttribute(hunt.Schema.CLIENTS)
-    fi = hunt.GetValuesForAttribute(hunt.Schema.FINISHED)
+    hunt = aff4.FACTORY.Open(hunt_id, aff4_type="GRRHunt", token=request.token)
+    clients_by_status = hunt.GetClientsByStatus()
+
+    cl = clients_by_status["COMPLETED"] + clients_by_status["OUTSTANDING"]
+    fi = clients_by_status["COMPLETED"]
 
     cdict = {}
     for c in cl:
@@ -1013,13 +972,49 @@ class HuntResultsRenderer(semantic.RDFValueCollectionRenderer):
 {% endfor %}
 
 {% if this.exportable_results %}
-Results of this hunt can be downloaded as ZIP archive:
-<button name="generate_zip"
-  id="generate_hunt_results_zip_{{unique|escape}}" class="btn">
-Generate ZIP archive
-</button>
-<div id='generate_action_{{unique|escape}}'>
+<div id="generate_archive_{{unique|escape}}" class="well well-small">
+  <div class="export_tar pull-left">
+
+    Results of this hunt can be downloaded as an archive:&nbsp;
+    <div class="btn-group">
+      <button name="generate_tar" class="btn DownloadButton">
+        Generate TAR.GZ
+      </button>
+      <button class="btn dropdown-toggle" data-toggle="dropdown">
+        <span class="caret"></span>
+      </button>
+      <ul class="dropdown-menu">
+       <li><a name="generate_zip" href="#">Generate ZIP</a></li>
+      </ul>
+    </div>
+
+  </div>
+  <div class="export_zip pull-left">
+
+    Results of this hunt can be downloaded as an archive:&nbsp;
+    <div class="btn-group">
+      <button class="btn DownloadButton" name="generate_zip">
+        Generate ZIP
+      </button>
+      <button class="btn dropdown-toggle" data-toggle="dropdown">
+        <span class="caret"></span>
+      </button>
+      <ul class="dropdown-menu">
+       <li><a name="generate_tar" href="#">Generate TAR.GZ</a></li>
+      </ul>
+    </div>
+
+  </div>
+
+  <div class="pull-right">
+    <em>NOTE: generated archive will contain <strong>symlinks</strong>.<br/>
+      Unsure whether your archive utility supports them?<br/>
+      Just unpack the archive before browsing its contents.</em>
+  </div>
+  <div class="clearfix"></div>
 </div>
+
+<div id='generate_action_{{unique|escape}}'></div>
 {% endif %}
 """) + semantic.RDFValueCollectionRenderer.layout_template
 
@@ -1055,30 +1050,38 @@ Generate ZIP archive
         token=request.token)
 
     # In this renderer we show hunt results stored in the results collection.
-    with hunt.GetRunner() as runner:
-      response = super(HuntResultsRenderer, self).Layout(
-          request, response, aff4_path=runner.context.results_collection_urn)
-      return self.CallJavascript(response, "HuntResultsRenderer.Layout",
-                                 exportable_results=self.exportable_results,
-                                 hunt_id=hunt_id)
+    response = super(HuntResultsRenderer, self).Layout(
+        request, response,
+        aff4_path=hunt.GetRunner().context.results_collection_urn)
+    return self.CallJavascript(response, "HuntResultsRenderer.Layout",
+                               exportable_results=self.exportable_results,
+                               hunt_id=hunt_id)
 
 
-class HuntGenerateResultsZip(renderers.TemplateRenderer):
+class HuntGenerateResultsArchive(renderers.TemplateRenderer):
 
   layout_template = renderers.Template("""
-<em>Generation has started. An email will be sent upon completion.</em>
+<div class="alert alert-success">
+  <em>Generation has started. An email will be sent upon completion.</em>
+</div>
 """)
 
   def Layout(self, request, response):
     """Start the flow to generate zip file."""
 
     hunt_id = rdfvalue.RDFURN(request.REQ.get("hunt_id"))
-    urn = flow.GRRFlow.StartFlow(flow_name="ExportHuntResultFilesAsZip",
-                                 hunt_urn=hunt_id, token=request.token)
-    logging.info("Generating ZIP results for %s with flow %s.",
+    archive_format = utils.SmartStr(request.REQ.get("format"))
+    if (archive_format not in
+        rdfvalue.ExportHuntResultsFilesAsArchiveArgs.ArchiveFormat.enum_dict):
+      raise ValueError("Invalid format: %s.", format)
+
+    urn = flow.GRRFlow.StartFlow(flow_name="ExportHuntResultFilesAsArchive",
+                                 hunt_urn=hunt_id, format=archive_format,
+                                 token=request.token)
+    logging.info("Generating %s results for %s with flow %s.", format,
                  hunt_id, urn)
 
-    return super(HuntGenerateResultsZip, self).Layout(request, response)
+    return super(HuntGenerateResultsArchive, self).Layout(request, response)
 
 
 class HuntStatsRenderer(renderers.TemplateRenderer):
@@ -1169,7 +1172,7 @@ class HuntStatsRenderer(renderers.TemplateRenderer):
       try:
         hunt = aff4.FACTORY.Open(hunt_id,
                                  aff4_type="GRRHunt",
-                                 token=request.token, age=aff4.ALL_TIMES)
+                                 token=request.token)
         if hunt.state.Empty():
           raise IOError("No valid state could be found.")
 
@@ -1287,9 +1290,8 @@ class HuntOutstandingRenderer(renderers.TableRenderer):
     hunt = aff4.FACTORY.Open(hunt_id, aff4_type="GRRHunt", age=aff4.ALL_TIMES,
                              token=token)
 
-    started = hunt.GetValuesForAttribute(hunt.Schema.CLIENTS)
-    finished = hunt.GetValuesForAttribute(hunt.Schema.FINISHED)
-    outstanding = set(started) - set(finished)
+    clients_by_status = hunt.GetClientsByStatus()
+    outstanding = clients_by_status["OUTSTANDING"]
 
     self.size = len(outstanding)
 

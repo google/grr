@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 
-# Copyright 2011 Google Inc. All Rights Reserved.
 """Tests for the registry flows."""
 
 from grr.client import vfs
@@ -19,11 +18,11 @@ class TestRegistryFinderFlow(test_lib.FlowTestsBaseclass):
     super(TestRegistryFinderFlow, self).setUp()
 
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.ClientRegistryVFSFixture
+        rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
 
     self.output_path = "analysis/file_finder"
     self.client_mock = action_mocks.ActionMock(
-        "Find", "TransferBuffer", "HashBuffer", "HashFile",
+        "Find", "TransferBuffer", "HashBuffer", "FingerprintFile",
         "FingerprintFile", "Grep", "StatFile")
 
   def RunFlow(self, keys_paths=None, conditions=None):
@@ -100,14 +99,13 @@ class TestRegistryFinderFlow(test_lib.FlowTestsBaseclass):
 
     results = self.GetResults()
     self.assertEqual(len(results), 1)
+
+    key = ("/HKEY_USERS/S-1-5-21-2911950750-476812067-1487428992-1001/"
+           "Software/Microsoft/Windows/CurrentVersion/Explorer")
+
     self.assertEqual(results[0].stat_entry.aff4path,
-                     "aff4:/C.1000000000000000/registry/hkey_users/"
-                     "s-1-5-21-2911950750-476812067-1487428992-1001/"
-                     "software/microsoft/windows/currentversion/explorer")
-    self.assertEqual(
-        results[0].stat_entry.pathspec.path,
-        "/hkey_users/s-1-5-21-2911950750-476812067-1487428992-1001/"
-        "software/microsoft/windows/currentversion/explorer")
+                     "aff4:/C.1000000000000000/registry" + key)
+    self.assertEqual(results[0].stat_entry.pathspec.path, key)
     self.assertEqual(results[0].stat_entry.pathspec.pathtype,
                      rdfvalue.PathSpec.PathType.REGISTRY)
 
@@ -275,7 +273,7 @@ class TestRegistryFlows(test_lib.FlowTestsBaseclass):
     """Test that the MRU discovery flow. Flow is a work in Progress."""
     # Install the mock
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.ClientRegistryVFSFixture
+        rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
 
     # Mock out the Find client action.
     client_mock = action_mocks.ActionMock("Find")
@@ -317,12 +315,12 @@ class TestRegistryFlows(test_lib.FlowTestsBaseclass):
     client.Flush()
 
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.ClientRegistryVFSFixture
+        rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.OS] = test_lib.ClientFullVFSFixture
+        rdfvalue.PathSpec.PathType.OS] = test_lib.FakeFullVFSHandler
 
     client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
-                                          "HashBuffer", "HashFile",
+                                          "HashBuffer", "FingerprintFile",
                                           "ListDirectory")
 
     # Get KB initialized

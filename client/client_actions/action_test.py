@@ -5,7 +5,6 @@
 
 
 import __builtin__
-import hashlib
 import os
 import platform
 import posix
@@ -258,20 +257,6 @@ class ActionTest(test_lib.EmptyActionTest):
     self.assertIn("Ran out of iterations", status.error_message)
     self.assertEqual(grr_worker.suspended_actions, {})
 
-  def testHashFile(self):
-    """Can we hash a file?"""
-    path = os.path.join(self.base_path, "morenumbers.txt")
-    p = rdfvalue.PathSpec(path=path,
-                          pathtype=rdfvalue.PathSpec.PathType.OS)
-
-    # The action returns a DataBlob object.
-    result = self.RunAction("HashFile",
-                            rdfvalue.ListDirRequest(
-                                pathspec=p))[0]
-
-    self.assertEqual(result.data,
-                     hashlib.sha256(open(path).read()).digest())
-
   def testEnumerateUsersLinux(self):
     """Enumerate users from the wtmp file."""
     # Linux only
@@ -387,7 +372,7 @@ class ActionTest(test_lib.EmptyActionTest):
       self.assertTrue("Action exceeded cpu limit." in results[0].error_message)
       self.assertTrue("CPUExceededError" in results[0].error_message)
 
-      self.assertTrue(len(received_messages), 1)
+      self.assertEqual(len(received_messages), 1)
       self.assertEqual(received_messages[0], "Cpu limit exceeded.")
 
   def testStatFS(self):

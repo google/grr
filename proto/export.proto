@@ -104,6 +104,13 @@ message ExportedNetworkInterface {
   optional string ip6_addresses = 5;
 }
 
+message ExportedDNSClientConfiguration {
+  optional ExportedMetadata metadata = 1;
+
+  optional string dns_servers = 2;
+  optional string dns_suffixes = 3;
+}
+
 message ExportedFile {
   optional ExportedMetadata metadata = 1;
 

@@ -11,6 +11,7 @@ import logging
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import rdfvalue
+from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 
 
@@ -38,6 +39,8 @@ class RDFValueCollection(aff4.AFF4Object):
 
   def Initialize(self):
     """Initialize the internal storage stream."""
+    self.stream_dirty = False
+
     try:
       self.fd = aff4.FACTORY.Open(self.urn.Add("Stream"),
                                   aff4_type="AFF4Image", mode=self.mode,
@@ -62,9 +65,9 @@ class RDFValueCollection(aff4.AFF4Object):
     self.fd.SetChunksize(chunk_size)
 
   def Flush(self, sync=False):
-    if self._dirty and self.fd:
-      self.fd.Flush(sync=sync)
+    if self.stream_dirty:
       self.Set(self.Schema.SIZE(self.size))
+      self.fd.Flush(sync=sync)
 
     super(RDFValueCollection, self).Flush(sync=sync)
 
@@ -90,8 +93,9 @@ class RDFValueCollection(aff4.AFF4Object):
     self.fd.Seek(0, 2)
     self.fd.Write(struct.pack("<i", len(data)))
     self.fd.Write(data)
+    self.stream_dirty = True
+
     self.size += 1
-    self._dirty = True
 
   def AddAll(self, rdf_values, callback=None):
     """Adds a list of rdfvalues to the collection."""
@@ -111,13 +115,14 @@ class RDFValueCollection(aff4.AFF4Object):
       data = rdfvalue.EmbeddedRDFValue(payload=rdf_value).SerializeToString()
       buf.write(struct.pack("<i", len(data)))
       buf.write(data)
+
+      self.size += 1
       if callback:
         callback(index, rdf_value)
 
     self.fd.Seek(0, 2)
     self.fd.Write(buf.getvalue())
-    self.size += len(rdf_values)
-    self._dirty = True
+    self.stream_dirty = True
 
   def __len__(self):
     return self.size
@@ -314,8 +319,12 @@ class ClientAnomalyCollection(RDFValueCollection):
   _rdf_type = rdfvalue.Anomaly
 
 
+# DEPRECATED: this class is deprecated and is left here only temporary for
+# compatibility reasons. Add method raises a RuntimeError to discourage
+# further use of this class. Please use PackedVersionedCollection instead:
+# it has same functionality and better performance characterstics.
 class VersionedCollection(RDFValueCollection):
-  """A collection which uses the data store's version properties.
+  """DEPRECATED: A collection which uses the data store's version properties.
 
   This collection is very efficient for writing to - we can insert new values by
   blind writing them into the data store without needing to take a lock - using
@@ -326,28 +335,30 @@ class VersionedCollection(RDFValueCollection):
     DATA = aff4.Attribute("aff4:data", rdfvalue.EmbeddedRDFValue,
                           "The embedded semantic value.", versioned=True)
 
-  def Initialize(self):
-    self.fd = None
-
   def Add(self, rdf_value=None, **kwargs):
     """Add the rdf value to the collection."""
-    if rdf_value is None and self._rdf_type:
-      rdf_value = self._rdf_type(**kwargs)  # pylint: disable=not-callable
+    raise RuntimeError("VersionedCollection is deprecated, can't add new "
+                       "elements.")
 
-    if not rdf_value.age:
-      rdf_value.age.Now()
+  def AddAll(self, rdf_values, callback=None):
+    """Add multiple rdf values to the collection."""
+    raise RuntimeError("VersionedCollection is deprecated, can't add new "
+                       "elements.")
 
-    self.AddAttribute(self.Schema.DATA(payload=rdf_value,
-                                       age=rdf_value.age), age=rdf_value.age)
+  def GenerateItems(self, offset=None, timestamp=None):
+    if offset is not None and timestamp is not None:
+      raise ValueError("Either offset or timestamp can be specified.")
 
-  def GenerateItems(self, timestamp=None):
     if timestamp is None:
       timestamp = data_store.DB.ALL_TIMESTAMPS
 
+    index = 0
     for _, value, ts in data_store.DB.ResolveMulti(
         self.urn, [self.Schema.DATA.predicate], token=self.token,
         timestamp=timestamp):
-      yield self.Schema.DATA(value, age=ts).payload
+      if index >= offset:
+        yield self.Schema.DATA(value, age=ts).payload
+      index += 1
 
 
 class PackedVersionedCollection(RDFValueCollection):
@@ -367,6 +378,9 @@ class PackedVersionedCollection(RDFValueCollection):
     DATA = aff4.Attribute("aff4:data", rdfvalue.EmbeddedRDFValue,
                           "The embedded semantic value.", versioned=True)
 
+  COMPACTION_BATCH_SIZE = 10000
+  MAX_REVERSED_RESULTS = 10000
+
   def Add(self, rdf_value=None, **kwargs):
     """Add the rdf value to the collection."""
     if rdf_value is None and self._rdf_type:
@@ -375,23 +389,211 @@ class PackedVersionedCollection(RDFValueCollection):
     if not rdf_value.age:
       rdf_value.age.Now()
 
-    self.Set(self.Schema.DATA(payload=rdf_value, age=rdf_value.age))
+    self.Set(self.Schema.DATA(payload=rdf_value))
 
     # Let the compactor know we need compacting.
     data_store.DB.Set("aff4:/cron/versioned_collection_compactor",
                       "index:changed/%s" % self.urn, self.urn,
                       replace=True, token=self.token, sync=False)
 
-  def GenerateItems(self):
-    # First iterate over the versions, and then iterate over the stream.
-    for _, value, _ in data_store.DB.ResolveMulti(
-        self.urn, [self.Schema.DATA.predicate], token=self.token,
-        timestamp=data_store.DB.ALL_TIMESTAMPS):
-      yield self.Schema.DATA(value).payload
+  def AddAll(self, rdf_values, callback=None):
+    """Adds a list of rdfvalues to the collection."""
+    for rdf_value in rdf_values:
+      if rdf_value is None:
+        raise ValueError("Can't add None to the collection via AddAll.")
 
-    for x in super(
-        PackedVersionedCollection, self).GenerateItems():
-      yield x
+      if self._rdf_type and not isinstance(rdf_value, self._rdf_type):
+        raise ValueError("This collection only accepts values of type %s" %
+                         self._rdf_type.__name__)
+
+      if not rdf_value.age:
+        rdf_value.age.Now()
+
+    for index, rdf_value in enumerate(rdf_values):
+      self.Set(self.Schema.DATA(payload=rdf_value))
+      if callback:
+        callback(index, rdf_value)
+
+    # Let the compactor know we need compacting.
+    data_store.DB.Set("aff4:/cron/versioned_collection_compactor",
+                      "index:changed/%s" % self.urn, self.urn,
+                      replace=True, token=self.token, sync=False)
+
+  def GenerateItems(self, offset=0):
+    """First iterate over the versions, and then iterate over the stream."""
+    index = 0
+
+    for x in super(PackedVersionedCollection, self).GenerateItems():
+      if index >= offset:
+        yield x
+      index += 1
+
+    if self.IsAttributeSet(self.Schema.DATA):
+      results = []
+      for _, value, _ in data_store.DB.ResolveRegex(
+          self.urn, self.Schema.DATA.predicate, token=self.token,
+          timestamp=data_store.DB.ALL_TIMESTAMPS):
+        if index >= offset:
+          if results is not None:
+            results.append(self.Schema.DATA(value).payload)
+            if len(results) > self.MAX_REVERSED_RESULTS:
+              for result in results:
+                yield result
+              results = None
+          else:
+            yield self.Schema.DATA(value).payload
+
+        index += 1
+
+      if results is not None:
+        for result in reversed(results):
+          yield result
+
+  @utils.Synchronized
+  def Compact(self, callback=None):
+    """Compacts versioned attributes into the collection stream.
+
+    Versioned attributes come from the datastore sorted by the timestamp
+    in the decreasing order. This is the opposite of what we want in
+    the collection (as items in the collection should be in chronological
+    order).
+
+    Compact's implementation can handle very large collections that can't
+    be reversed in memory. It reads them in batches, reverses every batch
+    individually, and then reads batches back in the reversed order and
+    write their contents to the collection stream.
+
+    Args:
+      callback: An optional function without arguments that gets called
+                periodically while processing is done. Useful in flows
+                that have to heartbeat.
+
+    Raises:
+      RuntimeError: if problems are encountered when reading back temporary
+                    saved data.
+
+    Returns:
+      Number of compacted results.
+    """
+    compacted_count = 0
+
+    batches_urns = []
+    current_batch = []
+
+    # This timestamp will be used to delete attributes. We don't want
+    # to delete anything that was added after we started the compaction.
+    freeze_timestamp = rdfvalue.RDFDatetime().Now()
+
+    def DeleteVersionedDataAndFlush():
+      """Removes versioned attributes and flushes the stream."""
+      data_store.DB.DeleteAttributes(self.urn, [self.Schema.DATA.predicate],
+                                     end=freeze_timestamp,
+                                     token=self.token, sync=True)
+
+      if self.Schema.DATA in self.synced_attributes:
+        del self.synced_attributes[self.Schema.DATA]
+
+      self.size += compacted_count
+      self.Flush(sync=True)
+
+    # We over all versioned attributes. If we get more than
+    # self.COMPACTION_BATCH_SIZE, we write the data to temporary
+    # stream in the reversed order.
+    for _, value, _ in data_store.DB.ResolveRegex(
+        self.urn, self.Schema.DATA.predicate, token=self.token,
+        timestamp=(0, freeze_timestamp)):
+
+      if callback:
+        callback()
+
+      current_batch.append(value)
+      compacted_count += 1
+
+      if len(current_batch) >= self.COMPACTION_BATCH_SIZE:
+        batch_urn = rdfvalue.RDFURN("aff4:/tmp").Add(
+            "%X" % utils.PRNG.GetULong())
+        batches_urns.append(batch_urn)
+
+        buf = cStringIO.StringIO()
+        for data in reversed(current_batch):
+          buf.write(struct.pack("<i", len(data)))
+          buf.write(data)
+
+        # We use AFF4Image to avoid serializing/deserializing data stored
+        # in versioned attributes.
+        with aff4.FACTORY.Create(batch_urn, "AFF4Image", mode="w",
+                                 token=self.token) as batch_stream:
+          batch_stream.Write(buf.getvalue())
+
+        current_batch = []
+
+    # If there are no versioned attributes, we have nothing to do.
+    if not current_batch and not batches_urns:
+      return 0
+
+    # The last batch of results can be written to our collection's stream
+    # immediately, because we have to reverse the order of all the data
+    # stored in versioned attributes.
+    if current_batch:
+      buf = cStringIO.StringIO()
+      for data in reversed(current_batch):
+        buf.write(struct.pack("<i", len(data)))
+        buf.write(data)
+
+      self.fd.Seek(0, 2)
+      self.fd.Write(buf.getvalue())
+      self.stream_dirty = True
+
+      # If current_batch was the only available batch, just write everything
+      # and return.
+      if not batches_urns:
+        DeleteVersionedDataAndFlush()
+        return compacted_count
+
+    batches = {}
+    for batch in aff4.FACTORY.MultiOpen(batches_urns, aff4_type="AFF4Image",
+                                        token=self.token):
+      batches[batch.urn] = batch
+
+    if len(batches_urns) != len(batches):
+      raise RuntimeError("Internal inconsistency can't read back all the "
+                         "temporary batches.")
+
+    # We read all the temporary batches in reverse order (batches itself
+    # were reversed when they were written).
+    self.fd.Seek(0, 2)
+    for batch_urn in reversed(batches_urns):
+      batch = batches[batch_urn]
+
+      if callback:
+        callback()
+
+      data = batch.Read(len(batch))
+      self.fd.Write(data)
+      self.stream_dirty = True
+
+      aff4.FACTORY.Delete(batch_urn, token=self.token)
+
+    DeleteVersionedDataAndFlush()
+    return compacted_count
+
+  def CalculateLength(self):
+    length = super(PackedVersionedCollection, self).__len__()
+
+    if self.IsAttributeSet(self.Schema.DATA):
+      if self.age_policy == aff4.ALL_TIMES:
+        length += len(list(self.GetValuesForAttribute(self.Schema.DATA)))
+      else:
+        length += len(list(data_store.DB.ResolveMulti(
+            self.urn, [self.Schema.DATA.predicate], token=self.token,
+            timestamp=data_store.DB.ALL_TIMESTAMPS)))
+
+    return length
+
+  @property
+  def current_offset(self):
+    raise AttributeError("current_offset is called on a "
+                         "PackedVersionedCollection, this will not work.")
 
   def __len__(self):
     raise AttributeError(

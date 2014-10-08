@@ -387,3 +387,4 @@ Cron.enabled_system_jobs:
 - OSBreakDown
 - ProcessHuntResultsCronFlow
 - PurgeClientStats
+- PackedVersionedCollectionCompactor

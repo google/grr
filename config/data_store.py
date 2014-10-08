@@ -17,26 +17,28 @@ config_lib.DEFINE_string("Datastore.implementation", "FakeDataStore",
 config_lib.DEFINE_integer("Datastore.transaction_timeout", default=600,
                           help="How long do we wait for a transaction lock.")
 
-config_lib.DEFINE_list("Datastore.pathing",
-                       [r"%{(?P<path>W/[^/]+).*}",
-                        r"%{(?P<path>CA/[^/]+).*}",
-                        r"%{(?P<path>C\..\{1,16\}?)($|/.*)}",
-                        r"%{(?P<path>hunts/[^/]+).*}",
-                        r"%{(?P<path>blobs/[^/]+).*}",
-                        r"%{(?P<path>[^/]+).*}"],
+DATASTORE_PATHING = [r"%{(?P<path>files/hash/generic/sha256/...).*}",
+                     r"%{(?P<path>files/hash/generic/sha1/...).*}",
+                     r"%{(?P<path>files/hash/generic/md5/...).*}",
+                     r"%{(?P<path>files/hash/pecoff/md5/...).*}",
+                     r"%{(?P<path>files/hash/pecoff/sha1/...).*}",
+                     r"%{(?P<path>files/nsrl/...).*}",
+                     r"%{(?P<path>W/[^/]+).*}",
+                     r"%{(?P<path>CA/[^/]+).*}",
+                     r"%{(?P<path>C\..\{1,16\}?)($|/.*)}",
+                     r"%{(?P<path>hunts/[^/]+).*}",
+                     r"%{(?P<path>blobs/[^/]+).*}",
+                     r"%{(?P<path>[^/]+).*}"]
+
+config_lib.DEFINE_list("Datastore.pathing", DATASTORE_PATHING,
                        ("Path selection for subjects in the file-based data "
                         "stores (by priority)."))
 
-# TDB data store.
-config_lib.DEFINE_string("TDBDatastore.root_path", default="/tmp/grr-tdb",
-                         help=("The root directory under which the tdb files "
-                               "are created."))
+config_lib.DEFINE_string("Datastore.location", default="/tmp/grr-datastore",
+                         help=("Location of the data store (usually a "
+                               "filesystem directory)"))
 
 # SQLite data store.
-config_lib.DEFINE_string("SqliteDatastore.root_path", default="/tmp/grr-sqlite",
-                         help=("The root directory under which the sqlite "
-                               "files are created."))
-
 config_lib.DEFINE_integer("SqliteDatastore.vacuum_check", default=10,
                           help=("Number of rows that need to be deleted before "
                                 "checking if the sqlite file may need to be "

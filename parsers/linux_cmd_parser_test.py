@@ -19,7 +19,7 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     content = open(os.path.join(self.base_path, "dpkg.out")).read()
     out = list(parser.Parse("/usr/bin/dpkg", ["--list"], content, "", 0, 5,
                             None))
-    self.assertEquals(len(out), 181)
+    self.assertEqual(len(out), 181)
     self.assertTrue(isinstance(out[1], rdfvalue.SoftwarePackage))
     self.assertTrue(out[0].name, "acpi-support-base")
 

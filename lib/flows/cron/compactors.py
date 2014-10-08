@@ -2,53 +2,56 @@
 """These cron flows perform data compaction in various subsystems."""
 
 
+
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import rdfvalue
 
+from grr.lib.aff4_objects import cronjobs
 
-class PackedVersionedCollectionCompactor(flow.GRRFlow):
+
+class PackedVersionedCollectionCompactor(cronjobs.SystemCronFlow):
   """A Compactor which runs over all versioned collections."""
-  URN = "aff4:/cron/versioned_collection_compactor"
 
-  frequency = rdfvalue.Duration("1h")
-  lifetime = rdfvalue.Duration("20h")
+  INDEX_URN = "aff4:/cron/versioned_collection_compactor"
+  INDEX_PREDICATE = "index:changed/.+"
 
-  @flow.StateHandler(next_state="Process")
-  def Start(self):
-    """Calls "Process" state to avoid spending too much time in Start method."""
-    self.CallState(next_state="Process")
+  frequency = rdfvalue.Duration("5m")
+  lifetime = rdfvalue.Duration("40m")
 
   @flow.StateHandler()
-  def Process(self):
+  def Start(self):
     """Check all the dirty versioned collections, and compact them."""
     # Detect all changed collections:
+    processed_count = 0
+    errors_count = 0
+
+    freeze_timestamp = rdfvalue.RDFDatetime().Now()
     for predicate, urn, _ in data_store.DB.ResolveRegex(
-        self.URN, "index:changed/.+", timestamp=data_store.DB.NEWEST_TIMESTAMP,
-        token=self.token):
-      data_store.DB.DeleteAttributes(self.URN, [predicate], token=self.token)
+        self.INDEX_URN, self.INDEX_PREDICATE,
+        timestamp=(0, freeze_timestamp), token=self.token):
+      data_store.DB.DeleteAttributes(self.INDEX_URN, [predicate],
+                                     end=freeze_timestamp,
+                                     token=self.token)
+
+      self.HeartBeat()
       try:
         self.Compact(urn)
+        processed_count += 1
       except IOError:
-        pass
+        self.Log("Error while processing %s", urn)
+        errors_count += 1
+
+    self.Log("Total processed collections: %d, successful: %d, failed: %d",
+             processed_count + errors_count, processed_count, errors_count)
 
   def Compact(self, urn):
     """Run a compaction cycle on a PackedVersionedCollection."""
     fd = aff4.FACTORY.Open(urn, aff4_type="PackedVersionedCollection",
                            mode="rw", age=aff4.ALL_TIMES, token=self.token)
-
-    # Update the collection size.
-    size = fd.Get(fd.Schema.SIZE)
-
-    for item in sorted(fd.GetValuesForAttribute(fd.Schema.DATA),
-                       key=lambda x: x.age):
-      super(fd.__class__, fd).Add(item.payload)
-      size += 1
-
-    # Clear the data predicate now that its in the aff4 stream.
-    fd.DeleteAttribute(fd.Schema.DATA)
-    fd.Set(size)
-
+    num_compacted = fd.Compact(callback=self.HeartBeat)
     # Flush to the data store.
     fd.Close()
+
+    self.Log("Compacted %d items in %s", num_compacted, urn)

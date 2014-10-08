@@ -16,8 +16,18 @@ class DataBlob(structs.RDFProtoStruct):
   """Wrapper class for DataBlob protobuf."""
   protobuf = jobs_pb2.DataBlob
 
-  def SetValue(self, value):
-    """Receives a value and fills it into a DataBlob."""
+  def SetValue(self, value, raise_on_error=True):
+    """Receives a value and fills it into a DataBlob.
+
+    Args:
+      value: value to set
+      raise_on_error: if True, raise if we can't serialize.  If False, set the
+        key to an error string.
+    Returns:
+      self
+    Raises:
+      TypeError: if the value can't be serialized and raise_on_error is True
+    """
     type_mappings = [(unicode, "string"), (str, "data"), (bool, "boolean"),
                      (int, "integer"), (long, "integer"), (dict, "dict"),
                      (float, "float")]
@@ -31,10 +41,11 @@ class DataBlob(structs.RDFProtoStruct):
       self.rdf_value.name = value.__class__.__name__
 
     elif isinstance(value, (list, tuple)):
-      self.list.content.Extend([DataBlob().SetValue(v) for v in value])
+      self.list.content.Extend([DataBlob().SetValue(
+          v, raise_on_error=raise_on_error) for v in value])
 
     elif isinstance(value, dict):
-      self.dict.FromDict(value)
+      self.dict.FromDict(value, raise_on_error=raise_on_error)
 
     else:
       for type_mapping, member in type_mappings:
@@ -43,7 +54,11 @@ class DataBlob(structs.RDFProtoStruct):
 
           return self
 
-      raise TypeError("Unsupported type for ProtoDict: %s" % type(value))
+      message = "Unsupported type for ProtoDict: %s" % type(value)
+      if raise_on_error:
+        raise TypeError(message)
+
+      setattr(self, "string", message)
 
     return self
 
@@ -59,6 +74,9 @@ class DataBlob(structs.RDFProtoStruct):
 
     if len(values) != 1:
       return None
+
+    if self.HasField("boolean"):
+      return bool(values[0])
 
     # Unpack RDFValues.
     if self.HasField("rdf_value"):
@@ -118,12 +136,13 @@ class Dict(rdfvalue.RDFProtoStruct):
 
     return result
 
-  def FromDict(self, dictionary):
+  def FromDict(self, dictionary, raise_on_error=True):
     # First clear and then set the dictionary.
     self.dat = None
     for key, value in dictionary.iteritems():
-      self.dat.Append(k=rdfvalue.DataBlob().SetValue(key),
-                      v=rdfvalue.DataBlob().SetValue(value))
+      self.dat.Append(
+          k=rdfvalue.DataBlob().SetValue(key, raise_on_error=raise_on_error),
+          v=rdfvalue.DataBlob().SetValue(value, raise_on_error=raise_on_error))
     return self
 
   def __getitem__(self, key):
@@ -163,6 +182,24 @@ class Dict(rdfvalue.RDFProtoStruct):
 
   def __len__(self):
     return len(self.dat)
+
+  def SetItem(self, key, value, raise_on_error=True):
+    """Alternative to __setitem__ that can ignore errors.
+
+    Sometimes we want to serialize a structure that contains some simple
+    objects, and some that can't be serialized.  This method gives the caller a
+    way to specify that they don't care about values that can't be
+    serialized.
+
+    Args:
+      key: dict key
+      value: dict value
+      raise_on_error: if True, raise if we can't serialize.  If False, set the
+        key to an error string.
+    """
+    del self[key]
+    self.dat.Append(k=DataBlob().SetValue(key, raise_on_error=raise_on_error),
+                    v=DataBlob().SetValue(value, raise_on_error=raise_on_error))
 
   def __setitem__(self, key, value):
     del self[key]

@@ -25,6 +25,7 @@ import time
 from grr.lib import server_plugins
 # pylint: enable=unused-import, g-bad-import-order
 
+from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flow
@@ -82,6 +83,8 @@ class DataStoreTest(test_lib.GRRBaseTest):
       data_store.DB.DeleteSubject("aff4:/row:%s" % i, token=self.token)
 
     data_store.DB.Flush()
+
+    self.acls_installed = False
 
   def tearDown(self):
     super(DataStoreTest, self).tearDown()
@@ -472,6 +475,114 @@ class DataStoreTest(test_lib.GRRBaseTest):
 
     self.assertListEqual(sorted(timestamps), sorted(expected_timestamps))
 
+  def testResolveRegexResultsOrderedInDecreasingTimestampOrder1(self):
+    predicate1 = "metadata:predicate1"
+    subject = "aff4:/test_resolve_regex_results_order_in_dec_order1"
+
+    # Set 1000 values with increasing timestamps.
+    for i in range(1000):
+      data_store.DB.Set(
+          subject, predicate1, str(i), timestamp=i * 1000, replace=False,
+          token=self.token)
+
+    # Check that results will be returned in decreasing timestamp order.
+    # This test along with a next one tests that no matter how
+    # values were set, they will be sorted by timestamp in the decreasing
+    # order when fetched.
+    result = data_store.DB.ResolveRegex(
+        subject, predicate1, timestamp=data_store.DB.ALL_TIMESTAMPS,
+        token=self.token)
+    for result_index, i in enumerate(reversed(range(1000))):
+      self.assertEqual(result[result_index], (predicate1, str(i), i * 1000))
+
+  def testResolveRegexResultsOrderedInDecreasingTimestampOrder2(self):
+    predicate1 = "metadata:predicate1"
+    subject = "aff4:/test_resolve_regex_results_order_in_dec_order2"
+
+    # Set 1000 values with timestamps starting in the future and going to
+    # the past.
+    for i in reversed(range(1000)):
+      data_store.DB.Set(
+          subject, predicate1, str(i), timestamp=i * 1000, replace=False,
+          token=self.token)
+
+    # Check that results will be returned in decreasing timestamp order.
+    # This test along with a previous one tests that no matter how
+    # values were set, they will be sorted by timestamp in the decreasing
+    # order when fetched.
+    result = data_store.DB.ResolveRegex(
+        subject, predicate1, timestamp=data_store.DB.ALL_TIMESTAMPS,
+        token=self.token)
+    for result_index, i in enumerate(reversed(range(1000))):
+      self.assertEqual(result[result_index], (predicate1, str(i), i * 1000))
+
+  def testResolveRegexResultsOrderedInDecreasingTimestampOrderPerColumn1(self):
+    predicate1 = "metadata:predicate1"
+    predicate2 = "metadata:predicate2"
+    subject = "aff4:/test_resolve_regex_results_order_in_dec_order_per_column1"
+
+    # Set 1000 values with increasing timestamps for each predicate.
+    for i in range(1000):
+      data_store.DB.Set(
+          subject, predicate1, str(i), timestamp=i * 1000, replace=False,
+          token=self.token)
+      data_store.DB.Set(
+          subject, predicate2, str(i), timestamp=i * 1000, replace=False,
+          token=self.token)
+
+    # Check that results will be returned in decreasing timestamp order
+    # per column.
+    # This test along with a previous one tests that no matter how
+    # values were set, they will be sorted by timestamp in the decreasing
+    # order when fetched.
+    result = list(data_store.DB.ResolveRegex(
+        subject, "metadata:predicate.*", timestamp=data_store.DB.ALL_TIMESTAMPS,
+        limit=10000, token=self.token))
+
+    predicate1_results = [r for r in result if r[0] == predicate1]
+    for result_index, i in enumerate(reversed(range(1000))):
+      self.assertEqual(predicate1_results[result_index],
+                       (predicate1, str(i), i * 1000))
+
+    predicate2_results = [r for r in result if r[0] == predicate2]
+    for result_index, i in enumerate(reversed(range(1000))):
+      self.assertEqual(predicate2_results[result_index],
+                       (predicate2, str(i), i * 1000))
+
+  def testResolveRegexResultsOrderedInDecreasingTimestampOrderPerColumn2(self):
+    predicate1 = "metadata:predicate1"
+    predicate2 = "metadata:predicate2"
+    subject = "aff4:/test_resolve_regex_results_order_in_dec_order_per_column2"
+
+    # Set 1000 values for each predicate with timestamps starting in the
+    # future and going to the past.
+    for i in reversed(range(1000)):
+      data_store.DB.Set(
+          subject, predicate1, str(i), timestamp=i * 1000, replace=False,
+          token=self.token)
+      data_store.DB.Set(
+          subject, predicate2, str(i), timestamp=i * 1000, replace=False,
+          token=self.token)
+
+    # Check that results will be returned in decreasing timestamp order
+    # per column.
+    # This test along with a previous one tests that no matter how
+    # values were set, they will be sorted by timestamp in the decreasing
+    # order when fetched.
+    result = list(data_store.DB.ResolveRegex(
+        subject, "metadata:predicate.*", timestamp=data_store.DB.ALL_TIMESTAMPS,
+        limit=10000, token=self.token))
+
+    predicate1_results = [r for r in result if r[0] == predicate1]
+    for result_index, i in enumerate(reversed(range(1000))):
+      self.assertEqual(predicate1_results[result_index],
+                       (predicate1, str(i), i * 1000))
+
+    predicate2_results = [r for r in result if r[0] == predicate2]
+    for result_index, i in enumerate(reversed(range(1000))):
+      self.assertEqual(predicate2_results[result_index],
+                       (predicate2, str(i), i * 1000))
+
   def testRDFDatetimeTimestamps(self):
 
     test_rows = self._MakeTimestampedRows()
@@ -709,7 +820,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
   def testTimestamps(self):
     """Check that timestamps are reasonable."""
     predicate = "metadata:predicate"
-    subject = "aff4:/metadata:8"
+    subject = "aff4:test_timestamps"
 
     # Extend the range of valid timestamps returned from the table to account
     # for potential clock skew.
@@ -727,7 +838,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
   def testSpecificTimestamps(self):
     """Check arbitrary timestamps can be specified."""
     predicate = "metadata:predicate"
-    subject = "aff4:/metadata:9"
+    subject = "aff4:/test_specific_timestamps"
 
     # Check we can specify a timestamp
     data_store.DB.Set(subject, predicate, "2", timestamp=1000, token=self.token)
@@ -741,7 +852,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
     """Check that NEWEST_TIMESTAMP works as expected."""
     predicate1 = "metadata:predicate1"
     predicate2 = "metadata:predicate2"
-    subject = "aff4:/metadata:9.1"
+    subject = "aff4:/test_newest_timestamps"
 
     # Check we can specify a timestamp
     data_store.DB.Set(
@@ -751,22 +862,22 @@ class DataStoreTest(test_lib.GRRBaseTest):
         subject, predicate1, "1.2", timestamp=2000, replace=False,
         token=self.token)
     data_store.DB.Set(
-        subject, predicate2, "2.1", timestamp=1000, replace=False,
+        subject, predicate2, "2.1", timestamp=1010, replace=False,
         token=self.token)
     data_store.DB.Set(
-        subject, predicate2, "2.2", timestamp=2000, replace=False,
+        subject, predicate2, "2.2", timestamp=2020, replace=False,
         token=self.token)
 
     result = data_store.DB.ResolveRegex(
         subject, predicate1, timestamp=data_store.DB.ALL_TIMESTAMPS,
         token=self.token)
 
-    # Should return 2 results.
+    # Should return 2 results. Newest should be first.
     values = [x[1] for x in result]
     self.assertEqual(len(values), 2)
-    self.assertItemsEqual(values, ["1.1", "1.2"])
+    self.assertListEqual(values, ["1.2", "1.1"])
     times = [x[2] for x in result]
-    self.assertItemsEqual(times, [1000, 2000])
+    self.assertListEqual(times, [2000, 1000])
 
     result = data_store.DB.ResolveRegex(
         subject, predicate1, timestamp=data_store.DB.NEWEST_TIMESTAMP,
@@ -781,11 +892,13 @@ class DataStoreTest(test_lib.GRRBaseTest):
         subject, "metadata:.*", timestamp=data_store.DB.ALL_TIMESTAMPS,
         token=self.token))
 
-    self.assertItemsEqual(result, [
-        (u"metadata:predicate1", "1.1", 1000),
+    self.assertEqual(len(result), 4)
+    self.assertListEqual([r for r in result if r[0] == "metadata:predicate1"], [
         (u"metadata:predicate1", "1.2", 2000),
-        (u"metadata:predicate2", "2.1", 1000),
-        (u"metadata:predicate2", "2.2", 2000)])
+        (u"metadata:predicate1", "1.1", 1000)])
+    self.assertListEqual([r for r in result if r[0] == "metadata:predicate2"], [
+        (u"metadata:predicate2", "2.2", 2020),
+        (u"metadata:predicate2", "2.1", 1010)])
 
     result = list(data_store.DB.ResolveRegex(
         subject, "metadata:.*", timestamp=data_store.DB.NEWEST_TIMESTAMP,
@@ -794,12 +907,12 @@ class DataStoreTest(test_lib.GRRBaseTest):
     # Should only return the latest version.
     self.assertItemsEqual(result, [
         (u"metadata:predicate1", "1.2", 2000),
-        (u"metadata:predicate2", "2.2", 2000)])
+        (u"metadata:predicate2", "2.2", 2020)])
 
   def testResolveRegEx(self):
     """Test regex Resolving works."""
     predicate = "metadata:predicate"
-    subject = "aff4:/metadata:10"
+    subject = "aff4:/resolve_regex"
 
     # Check we can specify a timestamp
     data_store.DB.Set(subject, predicate, "3", timestamp=1000, token=self.token)
@@ -818,7 +931,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
   def testResolveRegExPrefix(self):
     """Test resolving with .* works (basically a prefix search)."""
     predicate = "metadata:predicate"
-    subject = "aff4:/metadata:101"
+    subject = "aff4:/test_resolve_regex_prefix"
 
     # Check we can specify a timestamp
     data_store.DB.Set(subject, predicate, "3", token=self.token)
@@ -833,7 +946,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
 
   def testResolveMulti(self):
     """Test regex Multi Resolving works."""
-    subject = "aff4:/metadata:11"
+    subject = "aff4:/resolve_multi"
 
     predicates = []
     for i in range(0, 100):
@@ -992,6 +1105,171 @@ class DataStoreTest(test_lib.GRRBaseTest):
 
     # Make sure all threads got it eventually.
     self.assertEqual(len(self.results), self.OPEN_WITH_LOCK_NUM_THREADS)
+
+  def _InstallACLChecks(self, forbidden_access):
+    if self.acls_installed:
+      raise RuntimeError("Seems like _InstallACLChecks was called twice in one "
+                         "test")
+
+    self.acls_installed = True
+    data_store.DB.security_manager = test_lib.MockSecurityManager(
+        forbidden_datastore_access=forbidden_access)
+
+  def _ListedMultiResolveRegex(self, *args, **kwargs):
+    return list(data_store.DB.MultiResolveRegex(*args, **kwargs))
+
+  def _ListedResolveMulti(self, *args, **kwargs):
+    return list(data_store.DB.ResolveMulti(*args, **kwargs))
+
+  def _ListedResolveRegex(self, *args, **kwargs):
+    return list(data_store.DB.ResolveRegex(*args, **kwargs))
+
+  def _FlushedDeleteAttributesRegex(self, *args, **kwargs):
+    # DeleteAttributesRegex is not guaranteed to be synchronous. Make sure that
+    # we flush data store when testing it.
+    data_store.DB.DeleteAttributesRegex(*args, **kwargs)
+    data_store.DB.Flush()
+
+  def _FlushedDeleteSubject(self, *args, **kwargs):
+    # DeleteSubject is not guaranteed to be synchronous. Make sure that
+    # we flush data store when testing it.
+    data_store.DB.DeleteSubject(*args, **kwargs)
+    data_store.DB.Flush()
+
+  def testSetChecksWriteAccess(self):
+    self._InstallACLChecks("w")
+
+    self.assertRaises(
+        access_control.UnauthorizedAccess,
+        data_store.DB.Set,
+        self.test_row, "task:00000001", rdfvalue.GrrMessage(), token=self.token)
+
+  @DeletionTest
+  def testDeleteSubjectChecksWriteAccess(self):
+    self._InstallACLChecks("w")
+
+    self.assertRaises(
+        access_control.UnauthorizedAccess,
+        self._FlushedDeleteSubject,
+        self.test_row, token=self.token)
+
+  def testMultiSetChecksWriteAccess(self):
+    self._InstallACLChecks("w")
+
+    self.assertRaises(
+        access_control.UnauthorizedAccess,
+        data_store.DB.MultiSet,
+        self.test_row, {"aff4:size": [(1, 100)],
+                        "aff4:stored": [("foo", 200)]},
+        token=self.token)
+
+  @DeletionTest
+  def testDeleteAttributesChecksWriteAccess(self):
+    self._InstallACLChecks("w")
+
+    self.assertRaises(
+        access_control.UnauthorizedAccess,
+        data_store.DB.DeleteAttributes,
+        self.test_row, ["metadata:predicate"], sync=True, token=self.token)
+
+  @DeletionTest
+  def testDeleteAttributesRegexChecksWriteAccess(self):
+    self._InstallACLChecks("w")
+
+    self.assertRaises(
+        access_control.UnauthorizedAccess,
+        self._FlushedDeleteAttributesRegex,
+        self.test_row, ["metadata:.+"], token=self.token)
+
+  def testMultiResolveRegexChecksReadAccess(self):
+    self._InstallACLChecks("r")
+
+    self.assertRaises(
+        access_control.UnauthorizedAccess,
+        self._ListedMultiResolveRegex,
+        [self.test_row], ["task:.*"], token=self.token)
+
+  def testMultiResolveRegexChecksQueryAccessWhenAccessingIndex(self):
+    self._InstallACLChecks("q")
+
+    self.assertRaises(
+        access_control.UnauthorizedAccess,
+        self._ListedMultiResolveRegex,
+        [self.test_row], ["index:.*"], token=self.token)
+
+    self.assertRaises(
+        access_control.UnauthorizedAccess,
+        self._ListedMultiResolveRegex,
+        [self.test_row], ["task:.*", "index:.*"], token=self.token)
+
+    # Check that simple resolve doesn't require query access.
+    self._ListedMultiResolveRegex(
+        [self.test_row], ["task:.*"], token=self.token)
+
+  def testResolveMultiChecksReadAccess(self):
+    self._InstallACLChecks("r")
+
+    self.assertRaises(
+        access_control.UnauthorizedAccess,
+        self._ListedResolveMulti,
+        self.test_row, ["task:000000001"], token=self.token)
+
+  def testResolveMultiChecksQueryAccessWhenAccessingIndex(self):
+    self._InstallACLChecks("q")
+
+    self.assertRaises(
+        access_control.UnauthorizedAccess,
+        self._ListedResolveMulti,
+        self.test_row, ["index:dir/foo"], token=self.token)
+
+    self.assertRaises(
+        access_control.UnauthorizedAccess,
+        self._ListedResolveMulti,
+        self.test_row, ["task:00000001", "index:dir/foo"], token=self.token)
+
+    # Check that simple resolve doesn't require query access.
+    self._ListedResolveMulti(
+        self.test_row, ["task:00000001"], token=self.token)
+
+  def testResolveRegexChecksReadAccess(self):
+    self._InstallACLChecks("r")
+
+    self.assertRaises(
+        access_control.UnauthorizedAccess,
+        self._ListedResolveRegex,
+        self.test_row, "task:.*", token=self.token)
+
+  def testResolveRegexChecksQueryAccessWhenAccessingIndex(self):
+    self._InstallACLChecks("q")
+
+    self.assertRaises(
+        access_control.UnauthorizedAccess,
+        self._ListedResolveRegex,
+        self.test_row, "index:.*", token=self.token)
+
+    # Check that simple resolve doesn't require query access.
+    self._ListedResolveRegex(
+        self.test_row, "task:.*", token=self.token)
+
+  def testResolveChecksReadAccess(self):
+    self._InstallACLChecks("r")
+
+    self.assertRaises(
+        access_control.UnauthorizedAccess,
+        data_store.DB.Resolve,
+        self.test_row, "task:000000001", token=self.token)
+
+  def testResolveChecksQueryAccessWhenAccessingIndex(self):
+    self._InstallACLChecks("q")
+
+    self.assertRaises(
+        access_control.UnauthorizedAccess,
+        data_store.DB.Resolve,
+        self.test_row, "index:dir/foo", token=self.token)
+
+    # Check that simple resolve doesn't require query access.
+    data_store.DB.Resolve(
+        self.test_row, "task:00000001", token=self.token)
 
 
 class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):

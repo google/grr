@@ -153,6 +153,15 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     obj = aff4.FACTORY.Open("foobar", token=self.token, age=aff4.ALL_TIMES)
     self.assertEqual(6, len(list(obj.GetValuesForAttribute(obj.Schema.STORED))))
 
+  def testLastAddedAttributeWinsWhenTimestampsAreEqual(self):
+    with test_lib.FakeTime(42):
+      with aff4.FACTORY.Create("foobar", "AFF4Object", token=self.token) as obj:
+        obj.Set(obj.Schema.STORED("foo"))
+        obj.Set(obj.Schema.STORED("bar"))
+
+    obj = aff4.FACTORY.Open("foobar", token=self.token)
+    self.assertEqual(obj.Get(obj.Schema.STORED), "bar")
+
   def testFlushNewestTime(self):
     """Flush with age policy NEWEST_TIME should only keeps a single version."""
     # Create an object to carry attributes
@@ -250,6 +259,39 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     aff4.FACTORY.Delete(os.path.dirname(path), token=self.token)
     self.assertRaises(IOError, aff4.FACTORY.Open, path, "AFF4MemoryStream",
                       token=self.token)
+
+  def testRecursiveDelete(self):
+    """Checks that recusrive deletion of objects works."""
+
+    paths_to_delete = ["aff4:/tmp/dir1/hello1.txt",
+                       "aff4:/tmp/dir1/foo/hello2.txt",
+                       "aff4:/tmp/dir1/foo/bar/hello3.txt"]
+    safe_paths = ["aff4:/tmp/dir2/hello4.txt"]
+
+    for path in paths_to_delete + safe_paths:
+      with aff4.FACTORY.Create(path, "AFF4MemoryStream",
+                               token=self.token) as fd:
+        fd.Write("hello")
+
+    fd = aff4.FACTORY.Open("aff4:/tmp", token=self.token)
+    self.assertListEqual(sorted(fd.ListChildren()),
+                         ["aff4:/tmp/dir1", "aff4:/tmp/dir2"])
+
+    aff4.FACTORY.Delete("aff4:/tmp/dir1", token=self.token)
+    for path in paths_to_delete:
+      self.assertRaises(IOError, aff4.FACTORY.Open, path, "AFF4MemoryStream",
+                        token=self.token)
+
+      fd = aff4.FACTORY.Open(os.path.dirname(path), token=self.token)
+      self.assertFalse(list(fd.ListChildren()))
+
+    fd = aff4.FACTORY.Open("aff4:/tmp", token=self.token)
+    self.assertListEqual(list(fd.ListChildren()),
+                         ["aff4:/tmp/dir2"])
+
+    fd = aff4.FACTORY.Open("aff4:/tmp/dir2", token=self.token)
+    self.assertListEqual(list(fd.ListChildren()),
+                         ["aff4:/tmp/dir2/hello4.txt"])
 
   def testClientObject(self):
     fd = aff4.FACTORY.Create(self.client_id, "VFSGRRClient", token=self.token)
@@ -622,9 +664,9 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
         token=self.token)
     fd.Close()
 
-    self.assertEquals(len(MockNotificationRule.OBJECTS_WRITTEN), 1)
-    self.assertEquals(MockNotificationRule.OBJECTS_WRITTEN[0].urn,
-                      rdfvalue.RDFURN("aff4:/some"))
+    self.assertEqual(len(MockNotificationRule.OBJECTS_WRITTEN), 1)
+    self.assertEqual(MockNotificationRule.OBJECTS_WRITTEN[0].urn,
+                     rdfvalue.RDFURN("aff4:/some"))
 
   def testNotificationRulesArePeriodicallyUpdated(self):
     current_time = time.time()
@@ -643,7 +685,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
       fd.Close()
 
       # There are no rules set up yet.
-      self.assertEquals(len(MockNotificationRule.OBJECTS_WRITTEN), 0)
+      self.assertEqual(len(MockNotificationRule.OBJECTS_WRITTEN), 0)
 
       # Settin up the rule.
       rule_fd = aff4.FACTORY.Create(
@@ -659,7 +701,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
       fd.Close()
 
       # Rules were not reloaded yet.
-      self.assertEquals(len(MockNotificationRule.OBJECTS_WRITTEN), 0)
+      self.assertEqual(len(MockNotificationRule.OBJECTS_WRITTEN), 0)
 
       t = (time_in_future +
            config_lib.CONFIG["AFF4.notification_rules_cache_age"] - 1)
@@ -671,7 +713,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
       fd.Close()
 
       # It's still too early to reload the rules.
-      self.assertEquals(len(MockNotificationRule.OBJECTS_WRITTEN), 0)
+      self.assertEqual(len(MockNotificationRule.OBJECTS_WRITTEN), 0)
 
       t = (time_in_future +
            config_lib.CONFIG["AFF4.notification_rules_cache_age"] + 1)
@@ -684,7 +726,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
       fd.Close()
 
       # Rules have been already reloaded.
-      self.assertEquals(len(MockNotificationRule.OBJECTS_WRITTEN), 1)
+      self.assertEqual(len(MockNotificationRule.OBJECTS_WRITTEN), 1)
 
   def testMultiOpen(self):
     root_urn = aff4.ROOT_URN.Add("path")
@@ -817,18 +859,18 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     client.Flush()
 
     # Get() returns the most recent version.
-    self.assertEquals(client.Get(client.Schema.HOSTNAME), "Host2")
+    self.assertEqual(client.Get(client.Schema.HOSTNAME), "Host2")
 
     client = aff4.FACTORY.Open(self.client_id, token=self.token,
                                age=aff4.ALL_TIMES)
 
     # Versioned attributes must be returned in most recent order first.
-    self.assertEquals(list(
+    self.assertEqual(list(
         client.GetValuesForAttribute(client.Schema.HOSTNAME)),
-                      ["Host2", "Host1"])
+                     ["Host2", "Host1"])
 
     # Get() returns the most recent version.
-    self.assertEquals(client.Get(client.Schema.HOSTNAME), "Host2")
+    self.assertEqual(client.Get(client.Schema.HOSTNAME), "Host2")
 
   def testAsynchronousOpenWithLockWorksCorrectly(self):
     self.client_id = rdfvalue.RDFURN(self.client_id)
@@ -1073,8 +1115,8 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
                              mode="rw", token=self.token) as client:
       client.RemoveLabels("label1")
 
-    self.assertEquals(["label2", "label3"],
-                      list(client.GetLabelsNames()))
+    self.assertEqual(["label2", "label3"],
+                     list(client.GetLabelsNames()))
 
   def testLabelIndexesIsUpdatedWhenLabelIsAdded(self):
     with aff4.FACTORY.Create("C.0000000000000001", "VFSGRRClient",

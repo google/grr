@@ -1,0 +1,53 @@
+<h5 class="pull-left" ng-if="totalCount !== undefined">
+  <span ng-if="totalCount && !filter.applied">{$ totalCount $} Entries</span>
+  <span ng-if="totalCount && filter.applied">Filtered by: {$ filter.value $}</span>
+  <span ng-if="!totalCount">No entries</span>
+</h5>
+
+<table class="proto_table" ng-if="totalCount !== undefined">
+  <div class="pull-right" ng-if="totalCount">
+    <input type="text" class="search-query"
+           ng-model="filter.editedValue"
+           ng-keydown="$event.which == 13 && applyFilter()"
+           placeholder="">
+    <button class="btn" ng-click="applyFilter()">Filter</button>
+  </div>
+  <div class="clear"></div>
+
+  <tr ng-repeat="item in collectionItems" grr-inject></tr>
+</table>
+
+<h5 ng-if="!filter.applied && showLoading">Loading...</h5>
+
+<div class="pagination" ng-if="totalCount !== undefined && totalCount > 0 && !filter.applied">
+  <ul>
+    <li ng-class="{disabled: currentPage == 0}"
+        ng-click="prevPage()">
+      <a href="#">Prev</a>
+    </li>
+    <li ng-repeat="pageNumber in pageNumbers track by $index" ng-class="{disabled: pageNumber == currentPage + 1}">
+      <a ng-if="pageNumber != -1"
+         ng-click="selectPage(pageNumber)">{$ pageNumber $}</a>
+      <span ng-if="pageNumber == -1">...</span>
+    </li>
+    <li ng-class="{disabled: currentPage == totalPages - 1}"
+        ng-click="nextPage()">
+      <a href="#">Next</a>
+    </li>
+  </ul>
+</div>
+
+<h5 ng-if="filter.applied && showLoading">Loading...</h5>
+
+<div ng-if="!showLoading && totalCount !== undefined && totalCount > 0 && filter.applied && !filter.finished" class="padded">
+  <div class="btn-group">
+    <button class="btn" ng-click="fetchFiltered(false)">Fetch More</button>
+
+    <button class="btn dropdown-toggle" data-toggle="dropdown">
+      <span class="caret"></span>
+    </button>
+    <ul class="dropdown-menu">
+      <li><a ng-click="fetchFiltered(true)">Fetch All</a></li>
+    </ul>
+  </div>
+</div>

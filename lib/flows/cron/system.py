@@ -244,12 +244,12 @@ class InterrogateClientsCronFlow(cronjobs.SystemCronFlow):
         output_plugins=self.GetOutputPlugins(),
         token=self.token) as hunt:
 
-      with hunt.GetRunner() as runner:
-        runner.args.client_rate = 50
-        runner.args.expiry_time = "1w"
-        runner.args.description = ("Interrogate run by cron to keep host"
-                                   "info fresh.")
-        runner.Start()
+      runner = hunt.GetRunner()
+      runner.args.client_rate = 50
+      runner.args.expiry_time = "1w"
+      runner.args.description = ("Interrogate run by cron to keep host"
+                                 "info fresh.")
+      runner.Start()
 
 
 class StatsHuntCronFlow(cronjobs.SystemCronFlow):
@@ -283,11 +283,12 @@ class StatsHuntCronFlow(cronjobs.SystemCronFlow):
         regex_rules=[],
         token=self.token) as hunt:
 
-      with hunt.GetRunner() as runner:
-        runner.args.client_rate = 0
-        runner.args.expiry_time = self.frequency
-        runner.args.description = "Stats hunt for high-res client info."
-        runner.Start()
+      runner = hunt.GetRunner()
+      runner.args.client_rate = 0
+      runner.args.client_limit = config_lib.CONFIG.Get("StatsHunt.ClientLimit")
+      runner.args.expiry_time = self.frequency
+      runner.args.description = "Stats hunt for high-res client info."
+      runner.Start()
 
 
 class PurgeClientStats(cronjobs.SystemCronFlow):

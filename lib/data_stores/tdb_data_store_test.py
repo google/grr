@@ -24,8 +24,7 @@ class TDBTestMixin(object):
   def InitDatastore(self):
     self.token = access_control.ACLToken(username="test",
                                          reason="Running tests")
-    config_lib.CONFIG.Set("TDBDatastore.root_path",
-                          "%s/tdb_test/" % self.temp_dir)
+    config_lib.CONFIG.Set("Datastore.location", "%s/tdb_test/" % self.temp_dir)
 
     self.DestroyDatastore()
 
@@ -37,7 +36,7 @@ class TDBTestMixin(object):
 
   def DestroyDatastore(self):
     try:
-      shutil.rmtree(config_lib.CONFIG.Get("TDBDatastore.root_path"))
+      shutil.rmtree(config_lib.CONFIG.Get("Datastore.location"))
     except (OSError, IOError):
       pass
 

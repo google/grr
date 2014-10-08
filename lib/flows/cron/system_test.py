@@ -13,27 +13,8 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.flows.cron import system
+from grr.lib.flows.general import endtoend_test
 from grr.test_data import client_fixture
-
-
-class MockEndToEndTest(base.AutomatedTest):
-  platforms = ["Linux", "Darwin"]
-  flow = "ListDirectory"
-  args = {"pathspec": rdfvalue.PathSpec(
-      path="/bin",
-      pathtype=rdfvalue.PathSpec.PathType.OS)}
-
-  output_path = "/fs/os/bin"
-  file_to_find = "ls"
-
-  def setUp(self):
-    pass
-
-  def CheckFlow(self):
-    pass
-
-  def tearDown(self):
-    pass
 
 
 class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
@@ -198,7 +179,8 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
 
     config_lib.CONFIG.Set("Test.end_to_end_client_ids", self.client_ids)
     with utils.MultiStubber((base.AutomatedTest, "classes",
-                             {"MockEndToEndTest": MockEndToEndTest}),
+                             {"MockEndToEndTest":
+                              endtoend_test.MockEndToEndTest}),
                             (system.EndToEndTests, "lifetime", 0)):
 
       # The test harness doesn't understand the callstate at a later time that
@@ -214,9 +196,11 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
     # We have only created one hunt, and we should have started with clean aff4
     # space.
     self.assertEqual(len(hunt_ids), 1)
-    hunt = aff4.FACTORY.Open(hunt_ids[0], token=self.token, age=aff4.ALL_TIMES)
-    self.assertItemsEqual(hunt.GetValuesForAttribute(hunt.Schema.CLIENTS),
-                          self.client_ids)
+
+    hunt_obj = aff4.FACTORY.Open(hunt_ids[0], token=self.token,
+                                 age=aff4.ALL_TIMES)
+    self.assertItemsEqual(sorted(hunt_obj.GetClients()),
+                          sorted(self.client_ids))
 
   def _CreateResult(self, success, clientid):
     success = rdfvalue.EndToEndTestResult(success=success)

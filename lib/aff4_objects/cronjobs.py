@@ -337,8 +337,8 @@ class CronJob(aff4.AFF4Volume):
     if current_urn:
       current_flow = aff4.FACTORY.Open(urn=current_urn,
                                        token=self.token, mode="r")
-      with current_flow.GetRunner() as runner:
-        return runner.context.state == rdfvalue.Flow.State.RUNNING
+      runner = current_flow.GetRunner()
+      return runner.context.state == rdfvalue.Flow.State.RUNNING
     return False
 
   def DueToRun(self):
@@ -423,26 +423,26 @@ class CronJob(aff4.AFF4Volume):
     current_flow_urn = self.Get(self.Schema.CURRENT_FLOW_URN)
     if current_flow_urn:
       current_flow = aff4.FACTORY.Open(current_flow_urn, token=self.token)
-      with current_flow.GetRunner() as runner:
-        if not runner.IsRunning():
-          if runner.context.state == rdfvalue.Flow.State.ERROR:
-            self.Set(self.Schema.LAST_RUN_STATUS,
-                     rdfvalue.CronJobRunStatus(
-                         status=rdfvalue.CronJobRunStatus.Status.ERROR))
-            stats.STATS.IncrementCounter("cron_job_failure",
-                                         fields=[self.urn.Basename()])
-          else:
-            self.Set(self.Schema.LAST_RUN_STATUS,
-                     rdfvalue.CronJobRunStatus(
-                         status=rdfvalue.CronJobRunStatus.Status.OK))
+      runner = current_flow.GetRunner()
+      if not runner.IsRunning():
+        if runner.context.state == rdfvalue.Flow.State.ERROR:
+          self.Set(self.Schema.LAST_RUN_STATUS,
+                   rdfvalue.CronJobRunStatus(
+                       status=rdfvalue.CronJobRunStatus.Status.ERROR))
+          stats.STATS.IncrementCounter("cron_job_failure",
+                                       fields=[self.urn.Basename()])
+        else:
+          self.Set(self.Schema.LAST_RUN_STATUS,
+                   rdfvalue.CronJobRunStatus(
+                       status=rdfvalue.CronJobRunStatus.Status.OK))
 
-            start_time = self.Get(self.Schema.LAST_RUN_TIME)
-            elapsed = time.time() - start_time.AsSecondsFromEpoch()
-            stats.STATS.RecordEvent("cron_job_latency", elapsed,
-                                    fields=[self.urn.Basename()])
+          start_time = self.Get(self.Schema.LAST_RUN_TIME)
+          elapsed = time.time() - start_time.AsSecondsFromEpoch()
+          stats.STATS.RecordEvent("cron_job_latency", elapsed,
+                                  fields=[self.urn.Basename()])
 
-          self.DeleteAttribute(self.Schema.CURRENT_FLOW_URN)
-          self.Flush()
+        self.DeleteAttribute(self.Schema.CURRENT_FLOW_URN)
+        self.Flush()
 
     if not force and not self.DueToRun():
       return

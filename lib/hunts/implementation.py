@@ -74,8 +74,7 @@ class HuntRunner(flow_runner.FlowRunner):
       self._RegisterAndRunClient(client_id)
 
   def _RegisterAndRunClient(self, client_id):
-    self.flow_obj.AddAttribute(
-        self.flow_obj.Schema.CLIENTS(client_id))
+    self.flow_obj.RegisterClient(client_id)
     self.RunStateMethod("RunClient", direct_response=[client_id])
 
   def _Process(self, request, responses, thread_pool=None, events=None):
@@ -202,7 +201,6 @@ class HuntRunner(flow_runner.FlowRunner):
         state=rdfvalue.Flow.State.RUNNING,
         usage_stats=rdfvalue.ClientResourcesStats(),
         remaining_cpu_quota=args.cpu_limit,
-        user=self.token.username,
         )
 
     # Store the context in the flow_obj for next time.
@@ -462,26 +460,37 @@ class GRRHunt(flow.GRRFlow):
     This object stores the persistent information for the hunt.
     """
 
-    CLIENTS = aff4.Attribute("aff4:clients", rdfvalue.RDFURN,
-                             "The list of clients this hunt was run against.",
-                             creates_new_object_version=False)
+    # TODO(user): remove as soon as there are no more active hunts
+    # storing client ids and errors in versioned attributes.
+    DEPRECATED_CLIENTS = aff4.Attribute("aff4:clients", rdfvalue.RDFURN,
+                                        "The list of clients this hunt was "
+                                        "run against.",
+                                        creates_new_object_version=False)
 
     CLIENT_COUNT = aff4.Attribute("aff4:client_count", rdfvalue.RDFInteger,
                                   "The total number of clients scheduled.",
                                   versioned=False,
                                   creates_new_object_version=False)
 
-    FINISHED = aff4.Attribute("aff4:finished", rdfvalue.RDFURN,
-                              "The list of clients the hunt has completed on.",
-                              creates_new_object_version=False)
+    # TODO(user): remove as soon as there are no more active hunts
+    # storing client ids and errors in versioned attributes.
+    DEPRECATED_FINISHED = aff4.Attribute(
+        "aff4:finished", rdfvalue.RDFURN,
+        "The list of clients the hunt has completed on.",
+        creates_new_object_version=False)
 
-    ERRORS = aff4.Attribute("aff4:errors", rdfvalue.HuntError,
-                            "The list of clients that returned an error.",
-                            creates_new_object_version=False)
+    # TODO(user): remove as soon as there are no more active hunts
+    # storing client ids and errors in versioned attributes.
+    DEPRECATED_ERRORS = aff4.Attribute(
+        "aff4:errors", rdfvalue.HuntError,
+        "The list of clients that returned an error.",
+        creates_new_object_version=False)
 
-    LOG = aff4.Attribute("aff4:result_log", rdfvalue.FlowLog,
-                         "The log entries.",
-                         creates_new_object_version=False)
+    # TODO(user): remove as soon as there's no more potential need to
+    # migrate old logs
+    DEPRECATED_LOG = aff4.Attribute("aff4:result_log", rdfvalue.FlowLog,
+                                    "The log entries.",
+                                    creates_new_object_version=False)
 
     # This needs to be kept out the args semantic value since must be updated
     # without taking a lock on the hunt object.
@@ -502,6 +511,48 @@ class GRRHunt(flow.GRRFlow):
 
     if "r" in self.mode:
       self.client_count = self.Get(self.Schema.CLIENT_COUNT)
+
+  @property
+  def logs_collection_urn(self):
+    return self.urn.Add("Logs")
+
+  @property
+  def all_clients_collection_urn(self):
+    return self.urn.Add("AllClients")
+
+  @property
+  def completed_clients_collection_urn(self):
+    return self.urn.Add("CompletedClients")
+
+  @property
+  def clients_errors_collection_urn(self):
+    return self.urn.Add("ErrorClients")
+
+  def _AddObjectToCollection(self, obj, collection_urn):
+    with aff4.FACTORY.Create(collection_urn, "PackedVersionedCollection",
+                             mode="w", token=self.token) as collection:
+      collection.Add(obj)
+
+  def _GetCollectionItems(self, collection_urn):
+    collection = aff4.FACTORY.Create(collection_urn,
+                                     "PackedVersionedCollection",
+                                     mode="r", token=self.token)
+    return collection.GenerateItems()
+
+  def RegisterClient(self, client_urn):
+    self._AddObjectToCollection(client_urn, self.all_clients_collection_urn)
+
+  def RegisterCompletedClient(self, client_urn):
+    self._AddObjectToCollection(client_urn,
+                                self.completed_clients_collection_urn)
+
+  def RegisterClientError(self, client_id, log_message=None, backtrace=None):
+    error = rdfvalue.HuntError(client_id=client_id,
+                               backtrace=backtrace)
+    if log_message:
+      error.log_message = utils.SmartUnicode(log_message)
+
+    self._AddObjectToCollection(error, self.clients_errors_collection_urn)
 
   @flow.StateHandler()
   def RunClient(self, client_id):
@@ -552,9 +603,9 @@ class GRRHunt(flow.GRRFlow):
     # should be called to start them.
     hunt_obj.Set(hunt_obj.Schema.STATE("PAUSED"))
 
-    with hunt_obj.CreateRunner(runner_args=runner_args) as runner:
-      # Allow the hunt to do its own initialization.
-      runner.RunStateMethod("Start")
+    runner = hunt_obj.CreateRunner(runner_args=runner_args)
+    # Allow the hunt to do its own initialization.
+    runner.RunStateMethod("Start")
 
     hunt_obj.Flush()
 
@@ -613,18 +664,15 @@ class GRRHunt(flow.GRRFlow):
 
   def Run(self):
     """A shortcut method for starting the hunt."""
-    with self.GetRunner() as runner:
-      runner.Start()
+    self.GetRunner().Start()
 
   def Pause(self):
     """A shortcut method for pausing the hunt."""
-    with self.GetRunner() as runner:
-      runner.Pause()
+    self.GetRunner().Pause()
 
   def Stop(self):
     """A shortcut method for stopping the hunt."""
-    with self.GetRunner() as runner:
-      runner.Stop()
+    self.GetRunner().Stop()
 
   def AddResultsToCollection(self, responses, client_id):
     if responses.success:
@@ -689,12 +737,11 @@ class GRRHunt(flow.GRRFlow):
     # Actually start the new flow.
     # We need to pass the logs_collection_urn here rather than in __init__ to
     # wait for the hunt urn to be created.
-    child_urn = self.runner.CallFlow(flow_name=flow_name, next_state=next_state,
-                                     base_session_id=base_session_id,
-                                     client_id=client_id,
-                                     request_data=request_data,
-                                     logs_collection_urn=self.urn.Add("Logs"),
-                                     **kwargs)
+    child_urn = self.runner.CallFlow(
+        flow_name=flow_name, next_state=next_state,
+        base_session_id=base_session_id, client_id=client_id,
+        request_data=request_data, logs_collection_urn=self.logs_collection_urn,
+        **kwargs)
 
     if client_id:
       # But we also create a symlink to it from the client's namespace.
@@ -846,7 +893,7 @@ class GRRHunt(flow.GRRFlow):
 
   def MarkClientDone(self, client_id):
     """Adds a client_id to the list of completed tasks."""
-    self.MarkClient(client_id, self.SchemaCls.FINISHED)
+    self.RegisterCompletedClient(client_id)
 
     if self.state.context.args.notification_event:
       status = rdfvalue.HuntNotification(session_id=self.session_id,
@@ -855,18 +902,8 @@ class GRRHunt(flow.GRRFlow):
 
   def LogClientError(self, client_id, log_message=None, backtrace=None):
     """Logs an error for a client."""
-    error = self.Schema.ERRORS()
-    if client_id:
-      error.client_id = client_id
-    if log_message:
-      error.log_message = utils.SmartUnicode(log_message)
-    if backtrace:
-      error.backtrace = backtrace
-    self.AddAttribute(error)
-
-  def MarkClient(self, client_id, attribute):
-    """Adds a client to the list indicated by attribute."""
-    self.AddAttribute(attribute(client_id))
+    self.RegisterClientError(client_id, log_message=log_message,
+                             backtrace=backtrace)
 
   def ProcessClientResourcesStats(self, client_id, status):
     """Process status message from a client and update the stats.
@@ -879,57 +916,45 @@ class GRRHunt(flow.GRRFlow):
       status: Status returned from the client.
     """
 
-  def _Num(self, attribute):
-    return len(set(self.GetValuesForAttribute(attribute)))
+  def GetClientsCounts(self):
+    collections = aff4.FACTORY.MultiOpen(
+        [self.all_clients_collection_urn, self.completed_clients_collection_urn,
+         self.clients_errors_collection_urn],
+        aff4_type="PackedVersionedCollection", mode="r", token=self.token)
+    collections_dict = dict((coll.urn, coll) for coll in collections)
 
-  def NumClients(self):
-    return self._Num(self.Schema.CLIENTS)
+    def CollectionLen(collection_urn):
+      if collection_urn in collections_dict:
+        return collections_dict[collection_urn].CalculateLength()
+      else:
+        return 0
 
-  def NumCompleted(self):
-    return self._Num(self.Schema.FINISHED)
+    all_clients_count = CollectionLen(self.all_clients_collection_urn)
+    completed_clients_count = CollectionLen(
+        self.completed_clients_collection_urn)
+    clients_errors_count = CollectionLen(self.clients_errors_collection_urn)
 
-  def NumOutstanding(self):
-    return self.NumClients() - self.NumCompleted()
+    return all_clients_count, completed_clients_count, clients_errors_count
 
-  def _List(self, attribute):
-    items = self.GetValuesForAttribute(attribute)
-    if items:
-      print len(items), "items:"
-      for item in items:
-        print item
+  def GetClientsErrors(self, client_id=None):
+    errors = self._GetCollectionItems(self.clients_errors_collection_urn)
+    if not client_id:
+      return errors
     else:
-      print "Nothing found."
+      return [error for error in errors if error.client_id == client_id]
 
-  def ListClients(self):
-    self._List(self.Schema.CLIENTS)
-
-  def GetCompletedClients(self):
-    return sorted(self.GetValuesForAttribute(self.Schema.FINISHED))
-
-  def ListCompletedClients(self):
-    self._List(self.Schema.FINISHED)
-
-  def GetOutstandingClients(self):
-    started = self.GetValuesForAttribute(self.Schema.CLIENTS)
-    done = self.GetValuesForAttribute(self.Schema.FINISHED)
-    return sorted(list(set(started) - set(done)))
-
-  def ListOutstandingClients(self):
-    outstanding = self.GetOutstandingClients()
-    if not outstanding:
-      print "No outstanding clients."
-      return
-
-    print len(outstanding), "outstanding clients:"
-    for client in outstanding:
-      print client
+  def GetClients(self):
+    return set(self._GetCollectionItems(self.all_clients_collection_urn))
 
   def GetClientsByStatus(self):
     """Get all the clients in a dict of {status: [client_list]}."""
-    completed = set(self.GetCompletedClients())
+    started = set(self._GetCollectionItems(self.all_clients_collection_urn))
+    completed = set(self._GetCollectionItems(
+        self.completed_clients_collection_urn))
+    outstanding = started - completed
 
     return {"COMPLETED": sorted(completed),
-            "OUTSTANDING": self.GetOutstandingClients()}
+            "OUTSTANDING": sorted(outstanding)}
 
   def GetClientStates(self, client_list, client_chunk=50):
     """Take in a client list and return dicts with their age and hostname."""
@@ -942,20 +967,11 @@ class GRRHunt(flow.GRRFlow):
         result["hostname"] = fd.Get(fd.Schema.HOSTNAME)
         yield (fd.urn, result)
 
-  def PrintLog(self, client_id=None):
+  def GetLog(self, client_id=None):
+    log_vals = aff4.FACTORY.Create(
+        self.logs_collection_urn, mode="r",
+        aff4_type="PackedVersionedCollection", token=self.token)
     if not client_id:
-      self._List(self.Schema.LOG)
-      return
-
-    for log in self.GetValuesForAttribute(self.Schema.LOG):
-      if log.client_id == client_id:
-        print log
-
-  def PrintErrors(self, client_id=None):
-    if not client_id:
-      self._List(self.Schema.ERRORS)
-      return
-
-    for error in self.GetValuesForAttribute(self.Schema.ERRORS):
-      if error.client_id == client_id:
-        print error
+      return log_vals
+    else:
+      return [val for val in log_vals if val.client_id == client_id]

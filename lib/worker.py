@@ -256,66 +256,60 @@ class GRRWorker(object):
                          type(flow_obj))
             return
 
-          with flow_obj.GetRunner() as runner:
-            if runner.schedule_kill_notifications:
-              # Create a notification for the flow in the future that
-              # indicates that this flow is in progess. We'll delete this
-              # notification when we're done with processing completed
-              # requests. If we're stuck for some reason, the notification
-              # will be delivered later and the stuck flow will get
-              # terminated.
-              stuck_flows_timeout = rdfvalue.Duration(
-                  config_lib.CONFIG["Worker.stuck_flows_timeout"])
-              kill_timestamp = (rdfvalue.RDFDatetime().Now() +
-                                stuck_flows_timeout)
-              with queue_manager_lib.QueueManager(token=self.token) as manager:
-                manager.QueueNotification(session_id=session_id,
-                                          in_progress=True,
-                                          timestamp=kill_timestamp)
+          runner = flow_obj.GetRunner()
+          if runner.schedule_kill_notifications:
+            # Create a notification for the flow in the future that
+            # indicates that this flow is in progess. We'll delete this
+            # notification when we're done with processing completed
+            # requests. If we're stuck for some reason, the notification
+            # will be delivered later and the stuck flow will get
+            # terminated.
+            stuck_flows_timeout = rdfvalue.Duration(
+                config_lib.CONFIG["Worker.stuck_flows_timeout"])
+            kill_timestamp = (rdfvalue.RDFDatetime().Now() +
+                              stuck_flows_timeout)
+            with queue_manager_lib.QueueManager(token=self.token) as manager:
+              manager.QueueNotification(session_id=session_id,
+                                        in_progress=True,
+                                        timestamp=kill_timestamp)
 
-              # kill_timestamp may get updated via flow.HeartBeat() calls, so we
-              # have to store it in the runner context.
-              runner.context.kill_timestamp = kill_timestamp
+            # kill_timestamp may get updated via flow.HeartBeat() calls, so we
+            # have to store it in the runner context.
+            runner.context.kill_timestamp = kill_timestamp
 
-            try:
-              runner.ProcessCompletedRequests(notification, self.thread_pool)
+          try:
+            runner.ProcessCompletedRequests(notification, self.thread_pool)
 
-            # Something went wrong - log it in the flow.
-            except Exception as e:  # pylint: disable=broad-except
-              runner.context.state = rdfvalue.Flow.State.ERROR
-              runner.context.backtrace = traceback.format_exc()
+          # Something went wrong - log it in the flow.
+          except Exception as e:  # pylint: disable=broad-except
+            runner.context.state = rdfvalue.Flow.State.ERROR
+            runner.context.backtrace = traceback.format_exc()
 
-              logging.error("Flow %s: %s", flow_obj, e)
-              return
+            logging.error("Flow %s: %s", flow_obj, e)
+            return
 
-            finally:
-              # Delete kill notification as the flow got processed and is not
-              # stuck.
-              with queue_manager_lib.QueueManager(token=self.token) as manager:
-                if runner.schedule_kill_notifications:
-                  manager.DeleteNotification(
-                      session_id, start=runner.context.kill_timestamp,
-                      end=runner.context.kill_timestamp)
-                  runner.context.kill_timestamp = None
+          finally:
+            # Delete kill notification as the flow got processed and is not
+            # stuck.
+            with queue_manager_lib.QueueManager(token=self.token) as manager:
+              if runner.schedule_kill_notifications:
+                manager.DeleteNotification(
+                    session_id, start=runner.context.kill_timestamp,
+                    end=runner.context.kill_timestamp)
+                runner.context.kill_timestamp = None
 
-                if (runner.process_requests_in_order and
-                    notification.last_status and
-                    (runner.context.next_processed_request <=
-                     notification.last_status)):
-                  # We are processing requests in order and have received a
-                  # notification for a specific request but could not process
-                  # that request. This might be a race condition in the data
-                  # store so we reschedule the notification in the future.
-                  delay = config_lib.CONFIG[
-                      "Worker.notification_retry_interval"]
-                  manager.QueueNotification(
-                      notification, timestamp=notification.timestamp + delay)
-
-            # NOTE: Flow object must be flushed _before_ the runner is
-            # flushed. The flow object must exist in the data store before any
-            # messages are queued to go out, otherwise responses might arrive
-            # with no associated flow.
-            flow_obj.Flush(sync=True)
+              if (runner.process_requests_in_order and
+                  notification.last_status and
+                  (runner.context.next_processed_request <=
+                   notification.last_status)):
+                # We are processing requests in order and have received a
+                # notification for a specific request but could not process
+                # that request. This might be a race condition in the data
+                # store so we reschedule the notification in the future.
+                delay = config_lib.CONFIG[
+                    "Worker.notification_retry_interval"]
+                manager.QueueNotification(
+                    notification, timestamp=notification.timestamp + delay)
 
         logging.debug("Done processing %s: %s sec", session_id,
                       time.time() - now)

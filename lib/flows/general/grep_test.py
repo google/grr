@@ -208,7 +208,7 @@ class TestSearchFileContent(test_lib.FlowTestsBaseclass):
     pattern = "test_data/*.log"
 
     client_mock = action_mocks.ActionMock("Find", "Grep", "StatFile",
-                                          "HashFile", "HashBuffer",
+                                          "FingerprintFile", "HashBuffer",
                                           "TransferBuffer")
     path = os.path.join(os.path.dirname(self.base_path), pattern)
 

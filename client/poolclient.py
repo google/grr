@@ -81,8 +81,13 @@ def CreateClientPool(n):
     for certificate in certificates:
       clients.append(PoolGRRClient(private_key=certificate))
 
+    clients_loaded = True
   except (IOError, EOFError):
-    pass
+    clients_loaded = False
+
+  if clients_loaded and len(clients) < n:
+    raise RuntimeError("Loaded %d clients, but expected %d." %
+                       (len(clients), n))
 
   while len(clients) < n:
     # Generate a new RSA key pair for each client.
@@ -119,14 +124,21 @@ def CreateClientPool(n):
     for cl in clients:
       cl.Stop()
 
-  logging.info("Pool done in %s seconds, saving certs.",
+  # Note: code below is going to be executed after SIGTERM is sent to this
+  # process.
+  logging.info("Pool done in %s seconds.",
                time.time() - start_time)
-  try:
-    fd = open(flags.FLAGS.cert_file, "wb")
-    pickle.dump([x.private_key for x in clients], fd)
-    fd.close()
-  except IOError:
-    pass
+
+  # The way benchmarking is supposed to work is that we execute poolclient with
+  # --enroll_only flag, it dumps the certificates to the flags.FLAGS.cert_file.
+  # Then, all further poolclient invocations just read private keys back
+  # from that file. Therefore if private keys were loaded from
+  # flags.FLAGS.cert_file, then there's no need to rewrite it again with the
+  # same data.
+  if not clients_loaded:
+    logging.info("Saving certificates.")
+    with open(flags.FLAGS.cert_file, "wb") as fd:
+      pickle.dump([x.private_key for x in clients], fd)
 
 
 def CheckLocation():

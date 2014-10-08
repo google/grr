@@ -237,7 +237,8 @@ class MySQLDataStore(data_store.DataStore):
 
   def ResolveMulti(self, subject, predicates, token=None, timestamp=None):
     """Resolves multiple predicates at once for one subject."""
-    self.security_manager.CheckDataStoreAccess(token, [subject], "r")
+    self.security_manager.CheckDataStoreAccess(
+        token, [subject], self.GetRequiredResolveAccess(predicates))
 
     with self.pool.GetConnection() as cursor:
       query = ("select * from `%s` where hash = md5(%%s) and "
@@ -273,7 +274,9 @@ class MySQLDataStore(data_store.DataStore):
 
   def MultiResolveRegex(self, subjects, predicate_regex, token=None,
                         timestamp=None, limit=None):
-    self.security_manager.CheckDataStoreAccess(token, subjects, "r")
+    self.security_manager.CheckDataStoreAccess(
+        token, subjects, self.GetRequiredResolveAccess(predicate_regex))
+
     if not subjects:
       return {}
 

@@ -665,14 +665,16 @@ class AnalyzeClientMemory(flow.GRRFlow):
     self.Log("Rekall returned %s responses." % len(responses))
     for response in responses:
       if response.missing_profile:
+        server_type = config_lib.CONFIG["Rekall.profile_server"]
+        logging.debug("Getting missing Rekall profile from %s", server_type)
         profile_server = rekall_profile_server.ProfileServer.classes[
-            config_lib.CONFIG["Rekall.profile_server"]]()
+            server_type]()
         profile = profile_server.GetProfileByName(response.missing_profile)
-        if not profile:
-          raise flow.FlowError("Needed profile %s not found!",
-                               response.missing_profile)
-        self.CallClient("WriteRekallProfile", profile,
-                        next_state="UpdateProfile")
+        if profile:
+          self.CallClient("WriteRekallProfile", profile,
+                          next_state="UpdateProfile")
+        else:
+          self.Log("Needed profile %s not found!", response.missing_profile)
 
       if response.json_messages:
         response.client_urn = self.client_id

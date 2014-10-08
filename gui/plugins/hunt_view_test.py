@@ -70,16 +70,16 @@ class TestHuntView(test_lib.GRRSeleniumTest):
         output_plugins=[],
         token=self.token) as hunt:
 
-      with hunt.GetRunner() as runner:
-        runner.Start()
+      runner = hunt.GetRunner()
+      runner.Start()
 
-        with aff4.FACTORY.Create(
-            runner.context.results_collection_urn,
-            aff4_type="RDFValueCollection", mode="w",
-            token=self.token) as collection:
+      with aff4.FACTORY.Create(
+          runner.context.results_collection_urn,
+          aff4_type="RDFValueCollection", mode="w",
+          token=self.token) as collection:
 
-          for value in values:
-            collection.Add(value)
+        for value in values:
+          collection.Add(value)
 
       return hunt.urn
 
@@ -97,9 +97,9 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
 
-    hunt = aff4.FACTORY.Open(hunt.urn, token=self.token, age=aff4.ALL_TIMES)
-    started = hunt.GetValuesForAttribute(hunt.Schema.CLIENTS)
-    self.assertEqual(len(set(started)), 10)
+    hunt = aff4.FACTORY.Open(hunt.urn, token=self.token)
+    all_count, _, _ = hunt.GetClientsCounts()
+    self.assertEqual(all_count, 10)
 
   def CheckState(self, state):
     self.WaitUntil(self.IsElementPresent, "css=div[state=\"%s\"]" % state)
@@ -120,7 +120,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     # Check we can now see the details.
     self.WaitUntil(self.IsElementPresent, "css=dl.dl-hunt")
-    self.WaitUntil(self.IsTextPresent, "Client Count")
+    self.WaitUntil(self.IsTextPresent, "Clients Scheduled")
     self.WaitUntil(self.IsTextPresent, "Hunt URN")
     self.WaitUntil(self.IsTextPresent, "Regex Rules")
     self.WaitUntil(self.IsTextPresent, "Integer Rules")
@@ -149,7 +149,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     # Check we can now see the details.
     self.WaitUntil(self.IsElementPresent, "css=dl.dl-hunt")
-    self.WaitUntil(self.IsTextPresent, "Client Count")
+    self.WaitUntil(self.IsTextPresent, "Clients Scheduled")
     self.WaitUntil(self.IsTextPresent, "Hunt URN")
 
     self.WaitUntil(self.IsElementPresent,
@@ -173,7 +173,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     # Check we can now see the details.
     self.WaitUntil(self.IsElementPresent, "css=dl.dl-hunt")
-    self.WaitUntil(self.IsTextPresent, "Client Count")
+    self.WaitUntil(self.IsTextPresent, "Clients Scheduled")
     self.WaitUntil(self.IsTextPresent, "Hunt URN")
 
     self.WaitUntil(self.IsElementPresent,
@@ -384,15 +384,15 @@ class TestHuntView(test_lib.GRRSeleniumTest):
                    "css=div[id^=HuntClientOverviewRenderer_]")
     self.WaitUntil(self.IsTextPresent, "Last Checkin")
 
-    self.Click("css=a:[renderer=HuntLogRenderer]")
+    self.Click("css=a[renderer=HuntLogRenderer]")
     self.WaitUntil(self.IsElementPresent, "css=div[id^=HuntLogRenderer_]")
     self.WaitUntil(self.IsTextPresent, "GetFile Flow Completed")
 
-    self.Click("css=a:[renderer=HuntErrorRenderer]")
+    self.Click("css=a[renderer=HuntErrorRenderer]")
     self.WaitUntil(self.IsElementPresent, "css=div[id^=HuntErrorRenderer_]")
     self.WaitUntil(self.IsTextPresent, "Client Error 1")
 
-    self.Click("css=a:[renderer=HuntHostInformationRenderer]")
+    self.Click("css=a[renderer=HuntHostInformationRenderer]")
     self.WaitUntil(self.IsElementPresent,
                    "css=div[id^=HuntHostInformationRenderer_]")
 
@@ -463,7 +463,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.assertTrue(self.IsTextPresent("Network bytes sent stdev"))
     self.assertTrue(self.IsTextPresent("8.6"))
 
-  def testDoesNotShowGenerateZipButtonForNonExportableRDFValues(self):
+  def testDoesNotShowGenerateArchiveButtonForNonExportableRDFValues(self):
     values = [rdfvalue.Process(pid=1),
               rdfvalue.Process(pid=42423)]
 
@@ -477,9 +477,9 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     self.WaitUntil(self.IsTextPresent, "42423")
     self.WaitUntilNot(self.IsTextPresent,
-                      "Results of this hunt can be downloaded as ZIP archive")
+                      "Results of this hunt can be downloaded as an archive")
 
-  def testDoesNotShowGenerateZipButtonWhenResultsCollectionIsEmpty(self):
+  def testDoesNotShowGenerateArchiveButtonWhenResultsCollectionIsEmpty(self):
     with self.ACLChecksDisabled():
       self.CreateGenericHuntWithCollection([])
 
@@ -490,9 +490,9 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     self.WaitUntil(self.IsTextPresent, "Value")
     self.WaitUntilNot(self.IsTextPresent,
-                      "Results of this hunt can be downloaded as ZIP archive")
+                      "Results of this hunt can be downloaded as an archive")
 
-  def testShowsGenerateZipButtonForFileFinderHunt(self):
+  def testShowsGenerateArchiveButtonForFileFinderHunt(self):
     stat_entry = rdfvalue.StatEntry(aff4path="aff4:/foo/bar")
     values = [rdfvalue.FileFinderResult(stat_entry=stat_entry)]
 
@@ -505,9 +505,9 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.Click("css=a[renderer=HuntResultsRenderer]")
 
     self.WaitUntil(self.IsTextPresent,
-                   "Results of this hunt can be downloaded as ZIP archive")
+                   "Results of this hunt can be downloaded as an archive")
 
-  def testHuntAuthorizationIsRequiredToGenerateZipResults(self):
+  def testHuntAuthorizationIsRequiredToGenerateResultsArchive(self):
     stat_entry = rdfvalue.StatEntry(aff4path="aff4:/foo/bar")
     values = [rdfvalue.FileFinderResult(stat_entry=stat_entry)]
 
@@ -518,7 +518,9 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.Click("css=a[grrtarget=ManageHunts]")
     self.Click("css=td:contains('GenericHunt')")
     self.Click("css=a[renderer=HuntResultsRenderer]")
-    self.Click("css=button[name=generate_zip]")
+    # Using :visible selector as we don't know which button (ZIP or TAR.GZ) will
+    # be shown - it depends on the platform.
+    self.Click("css=button.DownloadButton:visible")
 
     self.WaitUntil(self.IsElementPresent, "acl_dialog")
 
@@ -534,10 +536,12 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.Click("css=a[grrtarget=ManageHunts]")
     self.Click("css=td:contains('GenericHunt')")
     self.Click("css=a[renderer=HuntResultsRenderer]")
-    self.Click("css=button[name=generate_zip]")
+    # Using :visible selector as we don't know which button (ZIP or TAR.GZ) will
+    # be shown - it depends on the platform.
+    self.Click("css=button.DownloadButton:visible")
 
     self.WaitUntil(self.IsElementPresent,
-                   "css=button[name=generate_zip][disabled]")
+                   "css=button[name*=generate_][disabled]:visible")
     self.WaitUntil(self.IsTextPresent, "Generation has started")
 
   def testStartsZipGenerationWhenGenerateZipButtonIsClicked(self):
@@ -552,14 +556,17 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.Click("css=a[grrtarget=ManageHunts]")
     self.Click("css=td:contains('GenericHunt')")
     self.Click("css=a[renderer=HuntResultsRenderer]")
-    self.Click("css=button[name=generate_zip]")
+    # Using :visible selector as we don't know which button (ZIP or TAR.GZ) will
+    # be shown - it depends on the platform.
+    self.Click("css=button.DownloadButton:visible")
     self.WaitUntil(self.IsTextPresent, "Generation has started")
 
     with self.ACLChecksDisabled():
       flows_dir = aff4.FACTORY.Open("aff4:/flows")
       flows = list(flows_dir.OpenChildren())
-      export_flows = [f for f in flows
-                      if f.__class__.__name__ == "ExportHuntResultFilesAsZip"]
+      export_flows = [
+          f for f in flows
+          if f.__class__.__name__ == "ExportHuntResultFilesAsArchive"]
       self.assertEqual(len(export_flows), 1)
       self.assertEqual(export_flows[0].args.hunt_urn, hunt_urn)
 
@@ -609,6 +616,68 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     # Check that displayed file can be downloaded.
     self.Click("css=.csv-output-note a:contains('ExportedFile.csv')")
     self.WaitUntil(self.FileWasDownloaded)
+
+  def testLogsTabShowsLogsFromAllClients(self):
+    with self.ACLChecksDisabled():
+      self.SetupHuntDetailView(failrate=-1)
+
+    self.Open("/#main=ManageHunts")
+    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=a[renderer=HuntLogRenderer]")
+
+    for client_id in self.client_ids:
+      self.WaitUntil(self.IsTextPresent, str(client_id))
+      self.WaitUntil(self.IsTextPresent, "Finished reading " +
+                     str(client_id.Add("fs/os/tmp/evil.txt")))
+
+  def testLogsTabFiltersLogsByString(self):
+    with self.ACLChecksDisabled():
+      self.SetupHuntDetailView(failrate=-1)
+
+    self.Open("/#main=ManageHunts")
+    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=a[renderer=HuntLogRenderer]")
+
+    self.Type("css=grr-hunt-log input.search-query",
+              self.client_ids[-1].Basename())
+    self.Click("css=grr-hunt-log button:contains('Filter')")
+
+    self.WaitUntil(self.IsTextPresent, str(self.client_ids[-1]))
+    self.WaitUntil(self.IsTextPresent, "Finished reading " +
+                   str(self.client_ids[-1].Add("fs/os/tmp/evil.txt")))
+
+    for client_id in self.client_ids[:-1]:
+      self.WaitUntilNot(self.IsTextPresent, str(client_id))
+      self.WaitUntilNot(self.IsTextPresent, "Finished reading " +
+                        str(client_id.Add("fs/os/tmp/evil.txt")))
+
+  def testErrorsTabShowsErrorsFromAllClients(self):
+    with self.ACLChecksDisabled():
+      self.SetupHuntDetailView(failrate=1)
+
+    self.Open("/#main=ManageHunts")
+    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=a[renderer=HuntErrorRenderer]")
+
+    for client_id in self.client_ids:
+      self.WaitUntil(self.IsTextPresent, str(client_id))
+
+  def testErrorsTabFiltersErrorsByString(self):
+    with self.ACLChecksDisabled():
+      self.SetupHuntDetailView(failrate=1)
+
+    self.Open("/#main=ManageHunts")
+    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=a[renderer=HuntErrorRenderer]")
+
+    self.Type("css=grr-hunt-errors input.search-query",
+              self.client_ids[-1].Basename())
+    self.Click("css=grr-hunt-errors button:contains('Filter')")
+
+    self.WaitUntil(self.IsTextPresent, str(self.client_ids[-1]))
+
+    for client_id in self.client_ids[:-1]:
+      self.WaitUntilNot(self.IsTextPresent, str(client_id))
 
 
 def main(argv):

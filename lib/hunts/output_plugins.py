@@ -131,7 +131,7 @@ class EmailPlugin(HuntOutputPlugin):
 </p>
 %(additional_message)s
 <p>Thanks,</p>
-<p>%(signature)s</p>
+<p>The GRR team.</p>
 </body></html>"""
 
   too_many_mails_msg = ("<p> This hunt has now produced %d results so the "
@@ -177,7 +177,6 @@ class EmailPlugin(HuntOutputPlugin):
             collection_urn=self.state.collection_urn,
             response=response_htm,
             additional_message=additional_message,
-            signature=config_lib.CONFIG["Email.signature"]
             ),
         is_html=True)
 

@@ -22,6 +22,7 @@ urlpatterns = urls.patterns(
     "",
     (r"^$", view_base + "Homepage"),
     # Automatic rendering is done here
+    (r"^api/aff4/[^/]+/.*", view_base + "RenderAFF4Object"),
     (r"^render/[^/]+/.*", view_base + "RenderGenericRenderer"),
     (r"^download/[^/]+/.*", view_base + "RenderBinaryDownload"),
     (r"^static/(.*)$", static_handler,

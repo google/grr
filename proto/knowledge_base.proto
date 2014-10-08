@@ -79,7 +79,7 @@ message KnowledgeBaseUser {
 
   optional string localappdata = 15 [(sem_type) = {
       description: "The %LOCALAPPDATA% directory of the user as reported by the"
-        " system. E.g. AppData\\Local\\Microsoft\\Windows",
+        " system. E.g. c:\\Documents and Settings\\foo\\AppData\\Local",
     }];
 
   optional string internet_cache = 16 [(sem_type) = {

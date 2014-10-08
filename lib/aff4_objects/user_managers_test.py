@@ -9,6 +9,7 @@ from grr.lib.aff4_objects import user_managers
 
 
 class GRRUserTest(test_lib.AFF4ObjectTest):
+
   def testUserPasswords(self):
     with aff4.FACTORY.Create("aff4:/users/test", "GRRUser",
                              token=self.token) as user:
@@ -29,6 +30,7 @@ class GRRUserTest(test_lib.AFF4ObjectTest):
 
 
 class CheckAccessHelperTest(test_lib.AFF4ObjectTest):
+
   def setUp(self):
     super(CheckAccessHelperTest, self).setUp()
     self.helper = user_managers.CheckAccessHelper("test")

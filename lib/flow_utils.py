@@ -99,15 +99,15 @@ def WaitForFlow(flow_urn, token=None, timeout=DEFAULT_TIMEOUT, max_sleep_time=1,
   while True:
     # Reopen the AFF4Object to check if its status has changed, and also make
     # sure it's a flow.
-    flow_obj = aff4.FACTORY.Open(flow_urn, token=token, aff4_type="GRRFlow")
+    with aff4.FACTORY.Open(
+        flow_urn, token=token, aff4_type="GRRFlow") as flow_obj:
 
-    with flow_obj.GetRunner() as runner:
       # Stop if the flow is done or has timed out.
       if time.time() - start_time > timeout:
         logging.warn("Timed out after waiting %ss for %s!",
                      timeout, flow_obj)
         raise IOError("Timed out trying to access client! Is it connected?")
-      if not runner.IsRunning():
+      if not flow_obj.GetRunner().IsRunning():
         break
     # Decrease the time we sleep each iteration.
     sleep_time = max(sleep_time * dampening_multiplier,

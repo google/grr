@@ -103,8 +103,8 @@ class HuntTest(test_lib.FlowTestsBaseclass):
         token=self.token)
 
     # Push the rules to the foreman.
-    with hunt.GetRunner() as runner:
-      runner.Start()
+    with hunt:
+      hunt.GetRunner().Start()
 
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
     rules = foreman.Get(foreman.Schema.RULES)
@@ -127,8 +127,8 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(rule.actions[0].hunt_name, "SampleHunt")
 
     # Running a second time should not change the rules any more.
-    with hunt.GetRunner() as runner:
-      runner.Start()
+    with hunt:
+      hunt.GetRunner().Start()
 
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
     rules = foreman.Get(foreman.Schema.RULES)
@@ -177,22 +177,22 @@ class HuntTest(test_lib.FlowTestsBaseclass):
         client_rate=0,
         token=self.token)
 
-    with hunt.GetRunner() as runner:
+    with hunt:
+      runner = hunt.GetRunner()
       runner.Start()
 
-    # Add some more rules.
-    rules = [rdfvalue.ForemanRule(created=now, expires=expires,
-                                  description="Test rule3"),
-             rdfvalue.ForemanRule(created=now, expires=expires,
-                                  description="Test rule4")]
-    self.AddForemanRules(rules)
+      # Add some more rules.
+      rules = [rdfvalue.ForemanRule(created=now, expires=expires,
+                                    description="Test rule3"),
+               rdfvalue.ForemanRule(created=now, expires=expires,
+                                    description="Test rule4")]
+      self.AddForemanRules(rules)
 
-    foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
-    rules = foreman.Get(foreman.Schema.RULES)
-    self.assertEqual(len(rules), 5)
+      foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
+      rules = foreman.Get(foreman.Schema.RULES)
+      self.assertEqual(len(rules), 5)
 
-    # It should be running.
-    with hunt.GetRunner() as runner:
+      # It should be running.
       self.assertTrue(runner.IsHuntStarted())
 
       # Now we stop the hunt.
@@ -204,8 +204,8 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(rules), 4)
 
     # And the hunt should report no outstanding requests any more.
-    with hunt.GetRunner() as runner:
-      self.assertFalse(runner.IsHuntStarted())
+    with hunt:
+      self.assertFalse(hunt.GetRunner().IsHuntStarted())
 
   def testInvalidRules(self):
     """Tests the behavior when a wrong attribute name is passed in a rule."""
@@ -218,8 +218,8 @@ class HuntTest(test_lib.FlowTestsBaseclass):
         client_rate=0,
         token=self.token) as hunt:
 
-      with hunt.GetRunner() as runner:
-        self.assertRaises(ValueError, runner.Start)
+      runner = hunt.GetRunner()
+      self.assertRaises(ValueError, runner.Start)
 
   def Callback(self, hunt_id, client_id):
     self.called.append((hunt_id, client_id))
@@ -235,8 +235,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
         client_rate=0,
         token=self.token) as hunt:
 
-      with hunt.GetRunner() as runner:
-        runner.Start()
+      hunt.GetRunner().Start()
 
     # Create a client that matches our regex.
     client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
@@ -258,24 +257,23 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     with hunts.GRRHunt.StartHunt(
         hunt_name="SampleHunt", client_rate=0, token=self.token) as hunt:
 
-      with hunt.GetRunner() as runner:
-        runner.Start()
+      hunt.GetRunner().Start()
 
-        flows = list(aff4.FACTORY.Open(self.client_id.Add("flows"),
-                                       token=self.token).ListChildren())
+    flows = list(aff4.FACTORY.Open(self.client_id.Add("flows"),
+                                   token=self.token).ListChildren())
 
-        self.assertEqual(flows, [])
+    self.assertEqual(flows, [])
 
-        hunts.GRRHunt.StartClients(hunt.session_id, [self.client_id])
+    hunts.GRRHunt.StartClients(hunt.session_id, [self.client_id])
 
-      test_lib.TestHuntHelper(None, [self.client_id], False, self.token)
+    test_lib.TestHuntHelper(None, [self.client_id], False, self.token)
 
-      flows = list(aff4.FACTORY.Open(self.client_id.Add("flows"),
-                                     token=self.token).ListChildren())
+    flows = list(aff4.FACTORY.Open(self.client_id.Add("flows"),
+                                   token=self.token).ListChildren())
 
-      # One flow should have been started.
-      self.assertEqual(len(flows), 1)
-      self.assertIn(hunt.session_id.Basename(), str(flows[0]))
+    # One flow should have been started.
+    self.assertEqual(len(flows), 1)
+    self.assertIn(hunt.session_id.Basename(), str(flows[0]))
 
   def testCallbackWithLimit(self):
 
@@ -297,8 +295,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
         client_rate=0,
         token=self.token) as hunt:
 
-      with hunt.GetRunner() as runner:
-        runner.Start()
+      hunt.GetRunner().Start()
 
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
     for client_id in client_ids:
@@ -312,13 +309,9 @@ class HuntTest(test_lib.FlowTestsBaseclass):
         hunt.session_id, mode="r", age=aff4.ALL_TIMES,
         aff4_type="SampleHunt", token=self.token)
 
-    started = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
-    finished = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.FINISHED)
-
-    self.assertEqual(len(set(started)), 10)
-    self.assertEqual(len(set(finished)), 10)
-
-    self.DeleteClients(10)
+    started, finished, _ = hunt_obj.GetClientsCounts()
+    self.assertEqual(started, 10)
+    self.assertEqual(finished, 10)
 
   def testHangingClients(self):
     """This tests if the hunt completes when some clients hang or raise."""
@@ -333,8 +326,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
         client_rate=0,
         token=self.token) as hunt:
 
-      with hunt.GetRunner() as runner:
-        runner.Start()
+      hunt.GetRunner().Start()
 
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
     for client_id in client_ids:
@@ -347,15 +339,11 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     hunt_obj = aff4.FACTORY.Open(hunt.session_id, mode="rw",
                                  age=aff4.ALL_TIMES, token=self.token)
 
-    started = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
-    finished = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.FINISHED)
-
+    started, finished, _ = hunt_obj.GetClientsCounts()
     # We started the hunt on 10 clients.
-    self.assertEqual(len(set(started)), 10)
+    self.assertEqual(started, 10)
     # But only 8 should have finished.
-    self.assertEqual(len(set(finished)), 8)
-
-    self.DeleteClients(10)
+    self.assertEqual(finished, 8)
 
   def testPausingAndRestartingDoesNotStartHuntTwiceOnTheSameClient(self):
     """This tests if the hunt completes when some clients hang or raise."""
@@ -369,8 +357,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
         client_rate=0,
         token=self.token) as hunt:
 
-      with hunt.GetRunner() as runner:
-        runner.Start()
+      hunt.GetRunner().Start()
 
       hunt_id = hunt.urn
 
@@ -385,9 +372,9 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     # Pausing and running hunt: this leads to the fresh rules being written
     # to Foreman.RULES.
     with aff4.FACTORY.Open(hunt_id, mode="rw", token=self.token) as hunt:
-      with hunt.GetRunner() as runner:
-        runner.Pause()
-        runner.Start()
+      runner = hunt.GetRunner()
+      runner.Pause()
+      runner.Start()
 
     # Recreating the foreman so that it updates list of rules.
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
@@ -396,8 +383,6 @@ class HuntTest(test_lib.FlowTestsBaseclass):
       # No tasks should be assigned as this hunt ran on all the clients
       # before.
       self.assertEqual(num_tasks, 0)
-
-    self.DeleteClients(10)
 
   def testClientLimit(self):
     """This tests that we can limit hunts to a number of clients."""
@@ -425,14 +410,10 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     hunt_obj = aff4.FACTORY.Open(hunt.urn, mode="rw",
                                  age=aff4.ALL_TIMES, token=self.token)
 
-    started = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
-    finished = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.FINISHED)
-
+    started, finished, _ = hunt_obj.GetClientsCounts()
     # We limited here to 5 clients.
-    self.assertEqual(len(set(started)), 5)
-    self.assertEqual(len(set(finished)), 5)
-
-    self.DeleteClients(10)
+    self.assertEqual(started, 5)
+    self.assertEqual(finished, 5)
 
   def testBrokenHunt(self):
     """This tests the behavior when a hunt raises an exception."""
@@ -448,8 +429,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
         client_rate=0,
         token=self.token) as hunt:
 
-      with hunt.GetRunner() as runner:
-        runner.Start()
+      hunt.GetRunner().Start()
 
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
     for client_id in client_ids:
@@ -462,17 +442,12 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     hunt_obj = aff4.FACTORY.Open(hunt.session_id, mode="rw",
                                  age=aff4.ALL_TIMES, token=self.token)
 
-    started = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
-    finished = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.FINISHED)
-    errors = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.ERRORS)
-
-    self.assertEqual(len(set(started)), 10)
+    started, finished, errors = hunt_obj.GetClientsCounts()
+    self.assertEqual(started, 10)
     # There should be errors for the five clients where the hunt raised.
-    self.assertEqual(len(set(errors)), 5)
+    self.assertEqual(errors, 5)
     # All of the clients that have the file should still finish eventually.
-    self.assertEqual(len(set(finished)), 5)
-
-    self.DeleteClients(10)
+    self.assertEqual(finished, 5)
 
   def testHuntNotifications(self):
     """This tests the Hunt notification event."""
@@ -490,8 +465,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
         notification_event="TestHuntDone",
         token=self.token) as hunt:
 
-      with hunt.GetRunner() as runner:
-        runner.Start()
+      hunt.GetRunner().Start()
 
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
     for client_id in client_ids:
@@ -503,8 +477,6 @@ class HuntTest(test_lib.FlowTestsBaseclass):
                             token=self.token)
 
     self.assertEqual(len(TestHuntListener.received_events), 5)
-
-    self.DeleteClients(10)
 
   def testHuntClientRate(self):
     """Check that clients are scheduled slowly by the hunt."""
@@ -553,13 +525,8 @@ class HuntTest(test_lib.FlowTestsBaseclass):
         self.assertEqual(len(DummyHunt.client_ids), i + 1)
 
 
-class FlowTestLoader(test_lib.GRRTestLoader):
-  base_class = test_lib.FlowTestsBaseclass
-
-
-def main(argv):
-  # Run the full test suite
-  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+def main(args):
+  test_lib.main(args)
 
 if __name__ == "__main__":
   flags.StartMain(main)

@@ -128,7 +128,7 @@ class SqliteConnectionCache(utils.FastStore):
 
   def __init__(self, max_size, path):
     super(SqliteConnectionCache, self).__init__(max_size=max_size)
-    self.root_path = path or SqliteDataStore.GetLocation()
+    self.root_path = path or config_lib.CONFIG.Get("Datastore.location")
     self._CreateModelDatabase()
     self.RecreatePathing()
 
@@ -142,6 +142,9 @@ class SqliteConnectionCache(utils.FastStore):
 
   def RootPath(self):
     return self.root_path
+
+  def ChangePath(self, new_path):
+    self.root_path = new_path
 
   def KillObject(self, conn):
     conn.Close()
@@ -296,7 +299,8 @@ class SqliteConnection(object):
     subject = utils.SmartStr(subject)
     query = """SELECT predicate, value, timestamp FROM tbl
                WHERE subject = ? AND predicate REGEXP ?
-                     AND timestamp >= ? AND timestamp <= ?"""
+                     AND timestamp >= ? AND timestamp <= ?
+                     ORDER BY timestamp DESC"""
     if limit:
       query += " LIMIT ?"
       args = (subject, regex, start, end, limit)
@@ -575,6 +579,8 @@ class SqliteDataStore(data_store.DataStore):
 
   def DeleteAttributesRegex(self, subject, regexes, token=None):
     """Deletes attributes using one or more regular expressions."""
+    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
+
     with self.cache.Get(subject) as sqlite_connection:
       for regex in regexes:
         sqlite_connection.DeleteAttributesRegex(subject, regex)
@@ -623,7 +629,8 @@ class SqliteDataStore(data_store.DataStore):
   def ResolveRegex(self, subject, predicate_regex, token=None,
                    timestamp=None, limit=None):
     """Resolve all predicates for a subject matching a regex."""
-    self.security_manager.CheckDataStoreAccess(token, [subject], "r")
+    self.security_manager.CheckDataStoreAccess(
+        token, [subject], self.GetRequiredResolveAccess(predicate_regex))
 
     if limit and limit == 0:
       return []
@@ -662,7 +669,8 @@ class SqliteDataStore(data_store.DataStore):
   def ResolveMulti(self, subject, predicates, token=None,
                    timestamp=None, limit=None):
     """Resolve all predicates for a subject matching a regex."""
-    self.security_manager.CheckDataStoreAccess(token, [subject], "r")
+    self.security_manager.CheckDataStoreAccess(
+        token, [subject], self.GetRequiredResolveAccess(predicates))
 
     if limit and limit == 0:
       return []
@@ -714,22 +722,15 @@ class SqliteDataStore(data_store.DataStore):
     return size
 
   @staticmethod
-  def SetLocation(location):
-    """Change pre-defined location of the data store."""
-    config_lib.CONFIG.Set("SqliteDatastore.root_path", location)
-
-  @staticmethod
-  def GetLocation():
-    """Get pre-defined location of the data store."""
-    return config_lib.CONFIG.Get("SqliteDatastore.root_path")
-
-  @staticmethod
   def FileExtension():
     return SQLITE_EXTENSION
 
   def Location(self):
     """Get location of the data store."""
     return self.cache.RootPath()
+
+  def ChangeLocation(self, location):
+    self.cache.ChangePath(location)
 
   def Transaction(self, subject, lease_time=None, token=None):
     return SqliteTransaction(self, subject, lease_time=lease_time, token=token)

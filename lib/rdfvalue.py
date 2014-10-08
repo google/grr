@@ -705,6 +705,22 @@ class ByteSize(RDFInteger):
       raise InitializeError("Unknown initializer for ByteSize: %s." %
                             type(initializer))
 
+  def __str__(self):
+    size_token = ""
+    if self._value > 1024**3:
+      size_token = "Gb"
+      value = float(self._value) / 1024**3
+    elif self._value > 1024**2:
+      size_token = "Mb"
+      value = float(self._value) / 1024**2
+    elif self._value > 1024:
+      size_token = "Kb"
+      value = float(self._value) / 1024
+    else:
+      return utils.SmartStr(self._value) + "b"
+
+    return "%.1f%s" % (value, size_token)
+
   def ParseFromHumanReadable(self, string):
     """Parse a human readable string of a byte string.
 

@@ -54,7 +54,7 @@ class TestStats(test_lib.GRRSeleniumTest):
 
     # Make "test" user an admin
     with self.ACLChecksDisabled():
-      self.MakeUserAdmin("test")
+      self.CreateAdminUser("test")
 
     self.Open("/")
 

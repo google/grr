@@ -16,15 +16,6 @@ config_lib.DEFINE_integer("Dataserver.max_connections", 5,
                           ("Maximum number of connections to the data server "
                            "per process."))
 
-config_lib.DEFINE_list("Dataserver.routing",
-                       [r"%{(?P<path>W/[^/]+).*}",
-                        r"%{(?P<path>CA/[^/]+).*}",
-                        r"%{(?P<path>C\..\{1,16\}?)($|/.*)}",
-                        r"%{(?P<path>hunts/[^/]+).*}",
-                        r"%{(?P<path>blobs/[^/]+).*}",
-                        r"%{(?P<path>[^/]+).*}"],
-                       "Routing for subject paths (by priority).")
-
 config_lib.DEFINE_integer("Dataserver.port", 7000,
                           "Port for a specific data server.")
 
@@ -41,3 +32,10 @@ config_lib.DEFINE_string("Dataserver.username", "server",
 
 config_lib.DEFINE_string("Dataserver.password", "server",
                          "Password for servers.")
+
+# HTTP data store configuration.
+config_lib.DEFINE_string("HTTPDataStore.username", "user",
+                         "Username for using the distributed data store.")
+
+config_lib.DEFINE_string("HTTPDataStore.password", "user",
+                         "Password for using the distributed data store.")

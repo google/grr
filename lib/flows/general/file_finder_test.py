@@ -20,7 +20,7 @@ class FileFinderActionMock(action_mocks.ActionMock):
 
   def __init__(self):
     super(FileFinderActionMock, self).__init__(
-        "Find", "TransferBuffer", "HashBuffer", "HashFile",
+        "Find", "TransferBuffer", "HashBuffer", "FingerprintFile",
         "FingerprintFile", "Grep", "StatFile")
 
   def HandleMessage(self, message):
@@ -152,7 +152,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
           self.assertFalse(reply.hash_entry)
         elif action == rdfvalue.FileFinderAction.Action.DOWNLOAD:
           self.assertTrue(reply.stat_entry)
-          self.assertFalse(reply.hash_entry)
+          self.assertTrue(reply.hash_entry)
         elif action == rdfvalue.FileFinderAction.Action.HASH:
           self.assertTrue(reply.stat_entry)
           self.assertTrue(reply.hash_entry)
@@ -371,7 +371,9 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
 
     self.CheckFilesDownloaded(expected_files)
     self.CheckFilesNotDownloaded(non_expected_files)
-    self.CheckFilesNotHashed(non_expected_files)
+    # Even though the file is too big to download, we still want the
+    # hash.
+    self.CheckFilesHashed(non_expected_files)
 
   def testSizeAndRegexConditionsWithDifferentActions(self):
     files_over_size_limit = ["auth.log"]
@@ -471,9 +473,9 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
 
   def testAppliesLiteralConditionWhenMemoryPathTypeIsUsed(self):
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.OS] = test_lib.ClientTestDataVFSFixture
+        rdfvalue.PathSpec.PathType.OS] = test_lib.FakeTestDataVFSHandler
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.MEMORY] = test_lib.ClientTestDataVFSFixture
+        rdfvalue.PathSpec.PathType.MEMORY] = test_lib.FakeTestDataVFSHandler
 
     paths = [os.path.join(os.path.dirname(self.base_path), "auth.log"),
              os.path.join(os.path.dirname(self.base_path), "dpkg.log")]

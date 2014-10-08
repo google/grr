@@ -77,7 +77,8 @@ class MongoDataStore(data_store.DataStore):
   def ResolveMulti(self, subject, predicates, token=None,
                    timestamp=None):
     """Resolves multiple predicates at once for one subject."""
-    self.security_manager.CheckDataStoreAccess(token, [subject], "r")
+    self.security_manager.CheckDataStoreAccess(
+        token, [subject], self.GetRequiredResolveAccess(predicates))
 
     # Build a query spec.
     spec = {"$and": [
@@ -239,7 +240,9 @@ class MongoDataStore(data_store.DataStore):
   def MultiResolveRegex(self, subjects, predicate_regex, token=None,
                         timestamp=None, limit=None):
     """Retrieves a bunch of subjects in one round trip."""
-    self.security_manager.CheckDataStoreAccess(token, subjects, "r")
+    self.security_manager.CheckDataStoreAccess(
+        token, subjects, self.GetRequiredResolveAccess(predicate_regex))
+
     if not subjects:
       return {}
 
@@ -286,7 +289,9 @@ class MongoDataStore(data_store.DataStore):
   def MultiResolveLiteral(self, subjects, predicates, token=None,
                           timestamp=None, limit=None):
     """Retrieves a bunch of subjects in one round trip."""
-    self.security_manager.CheckDataStoreAccess(token, subjects, "r")
+    self.security_manager.CheckDataStoreAccess(
+        token, subjects, self.GetRequiredResolveAccess(predicates))
+
     if not subjects:
       return {}
 

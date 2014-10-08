@@ -221,6 +221,9 @@ class FullAccessControlManager(BaseAccessControlManager):
     policy. Please refer to these 2 functions to either review or modify
     GRR's ACLs.
 
+    Read access gives you the ability to open and read aff4 objects for which
+    you already have the URN.
+
     Returns:
       CheckAccessHelper for controlling read access.
     """
@@ -296,10 +299,6 @@ class FullAccessControlManager(BaseAccessControlManager):
     h.Allow("aff4:/audit")
     h.Allow("aff4:/audit/*")
 
-    # Namespace for stats store data.
-    h.Allow("aff4:/stats_store")
-    h.Allow("aff4:/stats_store/*")
-
     # Namespace for clients.
     h.Allow(self.CLIENT_URN_PATTERN)
     h.Allow(self.CLIENT_URN_PATTERN + "/*", self.UserHasClientApproval)
@@ -326,6 +325,10 @@ class FullAccessControlManager(BaseAccessControlManager):
     This function and _CreateReadAccessHelper essentially define GRR's ACL
     policy. Please refer to these 2 functions to either review or modify
     GRR's ACLs.
+
+    Query access gives you the ability to find objects in the tree without
+    knowing their URN, using ListChildren.  If you grant query access,
+    you will also need read access.
 
     Returns:
       CheckAccessHelper for controlling query access.
@@ -376,6 +379,10 @@ class FullAccessControlManager(BaseAccessControlManager):
     # Querying the index of filestore objects is allowed since it reveals the
     # clients which have this file.
     h.Allow("aff4:/files/hash/generic/sha256/" + "[a-z0-9]" * 64)
+
+    # Allow everyone to query monitoring data from stats store.
+    h.Allow("aff4:/stats_store")
+    h.Allow("aff4:/stats_store/*")
 
     return h
 

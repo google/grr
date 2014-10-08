@@ -68,7 +68,7 @@ message GUISettings {
 
 
 message FlowRunnerArgs {
-  // Next field ID: 20
+  // Next field ID: 21
 
   optional GrrMessage.Priority priority = 1 [(sem_type) = {
       description: "The priority used for this flow.",
@@ -125,7 +125,7 @@ message FlowRunnerArgs {
   optional uint64 cpu_limit = 9 [(sem_type) = {
       description: "A limit on the client cpu seconds used by this flow.",
       label: ADVANCED,
-    }];
+    }, default = 7200];
 
   optional uint64 network_bytes_limit = 13 [(sem_type) = {
       description: "A limit on the total traffic used by this flow.",
@@ -177,7 +177,15 @@ message FlowRunnerArgs {
   optional bool require_fastpoll = 19 [ default = true, (sem_type) = {
       description: "This value is passed to the client during CallClient, and "
                    "by default will cause the client to enter fastpoll after"
-                   "processing the message."
+                   "processing the message. Users shouldn't modify this "
+                   "setting.",
+      label: ADVANCED
+    }];
+
+  optional string creator = 20 [(sem_type) = {
+      description: "The creator of this flow or, if this is a child flow, the "
+                   "creator of the parent.",
+      label: HIDDEN,
     }];
 }
 
@@ -1473,8 +1481,10 @@ message FileFinderArgs {
       description: "Path type to glob in.",
     }, default=OS];
 
-
-  repeated FileFinderCondition conditions = 5;
+  repeated FileFinderCondition conditions = 5 [(sem_type) = {
+      description: "These conditions will be applied to all files that match"
+                   " the path arguments.",
+    }];
 
   optional FileFinderAction action = 6;
 
@@ -1532,7 +1542,10 @@ message RegistryFinderArgs {
       description: "Glob expression for registry keys to be retrieved."
     }];
 
-  repeated RegistryFinderCondition conditions = 2;
+  repeated RegistryFinderCondition conditions = 2 [(sem_type) = {
+    description: "These conditions will be applied to all items that match"
+                  " the keys path arguments.",
+    }];
 }
 
 message MemoryCollectorCondition {
@@ -1683,15 +1696,19 @@ message KnowledgeBaseInitializationArgs {
     }, default=true];
 }
 
-message ExportHuntResultsFilesAsZipArgs {
+message ExportHuntResultsFilesAsArchiveArgs {
   optional string hunt_urn = 1 [(sem_type) = {
       type: "RDFURN",
       description: "The URN of the hunt."
     }];
-  optional bool deduplicate = 2 [(sem_type) = {
-      friendly_name: "Deduplicate (via symlinks)",
-      description: "Deduplicate files in resulting archive using symlinks"
-    }, default=true];
+
+  enum ArchiveFormat {
+    ZIP = 0;
+    TAR_GZIP = 1;
+  }
+  optional ArchiveFormat format = 3 [(sem_type) = {
+      description: "Archive format.",
+    }, default=ZIP];
 }
 
 message EndToEndTestFlowArgs {

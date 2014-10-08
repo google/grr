@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Tests the SQLite data store - in memory implementation."""
+"""Tests the SQLite data store."""
 
 import shutil
 
@@ -14,6 +14,8 @@ from grr.lib import data_store
 from grr.lib import data_store_test
 from grr.lib import flags
 from grr.lib import test_lib
+from grr.lib import utils
+
 from grr.lib.data_stores import sqlite_data_store
 
 # pylint: mode=test
@@ -24,9 +26,9 @@ class SqliteTestMixin(object):
   def InitDatastore(self):
     self.token = access_control.ACLToken(username="test",
                                          reason="Running tests")
+    self.root_path = utils.SmartStr("%s/sqlite_test/" % self.temp_dir)
 
-    config_lib.CONFIG.Set("SqliteDatastore.root_path",
-                          "%s/sqlite_test/" % self.temp_dir)
+    config_lib.CONFIG.Set("Datastore.location", self.root_path)
 
     self.DestroyDatastore()
 
@@ -39,7 +41,8 @@ class SqliteTestMixin(object):
 
   def DestroyDatastore(self):
     try:
-      shutil.rmtree(config_lib.CONFIG.Get("SqliteDatastore.root_path"))
+      if self.root_path:
+        shutil.rmtree(self.root_path)
     except (OSError, IOError):
       pass
 

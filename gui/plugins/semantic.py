@@ -199,6 +199,10 @@ class RDFBytesRenderer(RDFValueRenderer):
     super(RDFBytesRenderer, self).Layout(request, response)
 
 
+class LiteralExpressionRenderer(RDFBytesRenderer):
+  classname = "LiteralExpression"
+
+
 class RDFURNRenderer(RDFValueRenderer):
   """A special renderer for RDFURNs."""
 
@@ -670,10 +674,10 @@ class KeyValueFormRenderer(forms.TypeDescriptorFormRenderer):
     if value in ["None", "none", None]:
       return None
 
-    if value in ["true", "yes"]:
+    if value in ["True", "true", "yes"]:
       return True
 
-    if value in ["false", "no"]:
+    if value in ["False", "false", "no"]:
       return False
 
     try:
@@ -707,10 +711,10 @@ class KeyValueFormRenderer(forms.TypeDescriptorFormRenderer):
     elif value_type == "Float":
       value = float(value)
     elif value_type == "Boolean":
-      if value in ["true", "yes"]:
+      if value in ["True", "true", "yes", "1"]:
         value = True
 
-      elif value in ["false", "no"]:
+      elif value in ["False", "false", "no", "0"]:
         value = False
 
       else:

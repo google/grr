@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
 <head>
 <meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
-<meta name="generator" content="AsciiDoc 8.6.9" />
+<meta name="generator" content="AsciiDoc 8.6.6" />
 <title>GRR Developer documentation</title>
 <style type="text/css">
 /* Shared CSS for AsciiDoc xhtml11 and html5 backends */
@@ -87,15 +87,9 @@ ul, ol, li > p {
 ul > li     { color: #aaa; }
 ul > li > * { color: black; }
 
-.monospaced, code, pre {
-  font-family: "Courier New", Courier, monospace;
-  font-size: inherit;
-  color: navy;
+pre {
   padding: 0;
   margin: 0;
-}
-pre {
-  white-space: pre-wrap;
 }
 
 #author {
@@ -225,7 +219,7 @@ div.exampleblock > div.content {
 }
 
 div.imageblock div.content { padding-left: 0; }
-span.image img { border-style: none; vertical-align: text-bottom; }
+span.image img { border-style: none; }
 a.image:visited { color: white; }
 
 dl {
@@ -355,7 +349,7 @@ div.colist td img {
   margin-bottom: 0.1em;
 }
 
-div.toclevel0, div.toclevel1, div.toclevel2, div.toclevel3, div.toclevel4 {
+div.toclevel1, div.toclevel2, div.toclevel3, div.toclevel4 {
   margin-top: 0;
   margin-bottom: 0;
 }
@@ -413,13 +407,17 @@ span.underline { text-decoration: underline; }
 span.overline { text-decoration: overline; }
 span.line-through { text-decoration: line-through; }
 
-div.unbreakable { page-break-inside: avoid; }
-
 
 /*
  * xhtml11 specific
  *
  * */
+
+tt {
+  font-family: monospace;
+  font-size: inherit;
+  color: navy;
+}
 
 div.tableblock {
   margin-top: 1.0em;
@@ -453,6 +451,12 @@ div.tableblock > table[frame="vsides"] {
  * html5 specific
  *
  * */
+
+.monospaced {
+  font-family: monospace;
+  font-size: inherit;
+  color: navy;
+}
 
 table.tableblock {
   margin-top: 1.0em;
@@ -533,8 +537,6 @@ body.manpage div.sectionbody {
 @media print {
   body.manpage div#toc { display: none; }
 }
-
-
 </style>
 <script type="text/javascript">
 /*<![CDATA[*/
@@ -579,7 +581,7 @@ toc: function (toclevels) {
 
   function tocEntries(el, toclevels) {
     var result = new Array;
-    var re = new RegExp('[hH]([1-'+(toclevels+1)+'])');
+    var re = new RegExp('[hH]([2-'+(toclevels+1)+'])');
     // Function that scans the DOM tree for header elements (the DOM2
     // nodeIterator API would be a better technique but not supported by all
     // browsers).
@@ -608,7 +610,7 @@ toc: function (toclevels) {
   var i;
   for (i = 0; i < toc.childNodes.length; i++) {
     var entry = toc.childNodes[i];
-    if (entry.nodeName.toLowerCase() == 'div'
+    if (entry.nodeName == 'div'
      && entry.getAttribute("class")
      && entry.getAttribute("class").match(/^toclevel/))
       tocEntriesToRemove.push(entry);
@@ -654,7 +656,7 @@ footnotes: function () {
   var entriesToRemove = [];
   for (i = 0; i < noteholder.childNodes.length; i++) {
     var entry = noteholder.childNodes[i];
-    if (entry.nodeName.toLowerCase() == 'div' && entry.getAttribute("class") == "footnote")
+    if (entry.nodeName == 'div' && entry.getAttribute("class") == "footnote")
       entriesToRemove.push(entry);
   }
   for (i = 0; i < entriesToRemove.length; i++) {
@@ -734,6 +736,10 @@ asciidoc.install(2);
 <body class="article">
 <div id="header">
 <h1>GRR Developer documentation</h1>
+<div id="toc">
+  <div id="toctitle">Table of Contents</div>
+  <noscript><p><b>JavaScript must be enabled in your browser to display the table of contents.</b></p></noscript>
+</div>
 </div>
 <div id="content">
 <div id="preamble">
@@ -985,31 +991,29 @@ clients' messages. Therefore well known flows are stateless.</p></div>
 <div class="paragraph"><p>A well known flow typically is used simply to launch another flow or to process
 an event. For example:</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.6
-by Lorenzo Bettini
-http://www.lorenzobettini.it
-http://www.gnu.org/software/src-highlite -->
-<pre><tt><span style="font-weight: bold"><span style="color: #0000FF">class</span></span> <span style="font-weight: bold"><span style="color: #000000">Enroler</span></span><span style="color: #990000">(</span>flow<span style="color: #990000">.</span>WellKnownFlow<span style="color: #990000">):</span>                                      <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/1.png" alt="1" /></span></span>
-<span style="font-style: italic"><span style="color: #9A1900">  """Manage enrollment requests."""</span></span>
-  well_known_session_id <span style="color: #990000">=</span> <span style="color: #FF0000">"CA:Enrol"</span>                                    <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/2.png" alt="2" /></span></span>
+<div class="content">
+<pre><tt>class Enroler(flow.WellKnownFlow):                                      # <img src="./images/icons/callouts/1.png" alt="1" />
+  """Manage enrollment requests."""
+  well_known_session_id = "CA:Enrol"                                    # <img src="./images/icons/callouts/2.png" alt="2" />
 
-  <span style="font-weight: bold"><span style="color: #0000FF">def</span></span> <span style="font-weight: bold"><span style="color: #000000">ProcessMessage</span></span><span style="color: #990000">(</span>self<span style="color: #990000">,</span> message<span style="color: #990000">):</span>
-<span style="font-style: italic"><span style="color: #9A1900">    """Begins an enrollment flow for this client."""</span></span>
-    cert <span style="color: #990000">=</span> jobs_pb2<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">Certificate</span></span><span style="color: #990000">()</span>                                       <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/3.png" alt="3" /></span></span>
-    cert<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">ParseFromString</span></span><span style="color: #990000">(</span>message<span style="color: #990000">.</span>args<span style="color: #990000">)</span>
+  def ProcessMessage(self, message):
+    """Begins an enrollment flow for this client."""
+    cert = jobs_pb2.Certificate()                                       # <img src="./images/icons/callouts/3.png" alt="3" />
+    cert.ParseFromString(message.args)
 
-    client_id <span style="color: #990000">=</span> message<span style="color: #990000">.</span>source
+    client_id = message.source
 
-    <span style="font-style: italic"><span style="color: #9A1900"># Create a new client object for this client.</span></span>
-    client <span style="color: #990000">=</span> aff4<span style="color: #990000">.</span>FACTORY<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">Create</span></span><span style="color: #990000">(</span>client_id<span style="color: #990000">,</span> <span style="color: #FF0000">"VFSGRRClient"</span><span style="color: #990000">,</span> mode<span style="color: #990000">=</span><span style="color: #FF0000">"rw"</span><span style="color: #990000">,</span>  <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/4.png" alt="4" /></span></span>
-                                 token<span style="color: #990000">=</span>self<span style="color: #990000">.</span>token<span style="color: #990000">)</span>
+    # Create a new client object for this client.
+    client = aff4.FACTORY.Create(client_id, "VFSGRRClient", mode="rw",  # <img src="./images/icons/callouts/4.png" alt="4" />
+                                 token=self.token)
 
-    <span style="font-style: italic"><span style="color: #9A1900"># Only enroll this client if it has no certificate yet.</span></span>
-    <span style="font-weight: bold"><span style="color: #0000FF">if</span></span> <span style="font-weight: bold"><span style="color: #0000FF">not</span></span> client<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">Get</span></span><span style="color: #990000">(</span>client<span style="color: #990000">.</span>Schema<span style="color: #990000">.</span>CERT<span style="color: #990000">):</span>
-      <span style="font-style: italic"><span style="color: #9A1900"># Start the enrollment flow for this client.</span></span>
-      flow<span style="color: #990000">.</span>FACTORY<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">StartFlow</span></span><span style="color: #990000">(</span>client_id<span style="color: #990000">=</span>client_id<span style="color: #990000">,</span> flow_name<span style="color: #990000">=</span><span style="color: #FF0000">"CAEnroler"</span><span style="color: #990000">,</span><span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/5.png" alt="5" /></span></span>
-                             csr<span style="color: #990000">=</span>cert<span style="color: #990000">,</span> queue_name<span style="color: #990000">=</span><span style="color: #FF0000">"CA"</span><span style="color: #990000">,</span>
-                             _client<span style="color: #990000">=</span>client<span style="color: #990000">,</span> token<span style="color: #990000">=</span>self<span style="color: #990000">.</span>token<span style="color: #990000">)</span></tt></pre></div></div>
+    # Only enroll this client if it has no certificate yet.
+    if not client.Get(client.Schema.CERT):
+      # Start the enrollment flow for this client.
+      flow.FACTORY.StartFlow(client_id=client_id, flow_name="CAEnroler",# <img src="./images/icons/callouts/5.png" alt="5" />
+                             csr=cert, queue_name="CA",
+                             _client=client, token=self.token)</tt></pre>
+</div></div>
 <div class="colist arabic"><table>
 <tr><td><img src="./images/icons/callouts/1.png" alt="1" /></td><td>
 A new well known flow is created by extending the WellKnownFlow baseclass.
@@ -1038,18 +1042,16 @@ have any other component broadcast the event.</p></div>
 <div class="paragraph"><p>For example, when a new client enrolls we wish to run the Interrogate flow
 automatically for it (so we can query it for hostname, usernames etc.):</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.6
-by Lorenzo Bettini
-http://www.lorenzobettini.it
-http://www.gnu.org/software/src-highlite -->
-<pre><tt><span style="font-weight: bold"><span style="color: #0000FF">class</span></span> <span style="font-weight: bold"><span style="color: #000000">EnrolmentInterrogateEvent</span></span><span style="color: #990000">(</span>flow<span style="color: #990000">.</span>EventListener<span style="color: #990000">):</span>                  <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/1.png" alt="1" /></span></span>
-<span style="font-style: italic"><span style="color: #9A1900">  """An event handler which will schedule interrogation on client enrollment."""</span></span>
-  EVENTS <span style="color: #990000">=</span> <span style="color: #990000">[</span><span style="color: #FF0000">"ClientEnrollment"</span><span style="color: #990000">]</span>                                       <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/2.png" alt="2" /></span></span>
-  well_known_session_id <span style="color: #990000">=</span> <span style="color: #FF0000">"W:Interrogate"</span>
+<div class="content">
+<pre><tt>class EnrolmentInterrogateEvent(flow.EventListener):                  # <img src="./images/icons/callouts/1.png" alt="1" />
+  """An event handler which will schedule interrogation on client enrollment."""
+  EVENTS = ["ClientEnrollment"]                                       # <img src="./images/icons/callouts/2.png" alt="2" />
+  well_known_session_id = "W:Interrogate"
 
-  @flow<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">EventHandler</span></span><span style="color: #990000">(</span>source_restriction<span style="color: #990000">=</span><span style="font-weight: bold"><span style="color: #0000FF">lambda</span></span> x<span style="color: #990000">:</span> x<span style="color: #990000">==</span><span style="color: #FF0000">"CA"</span><span style="color: #990000">)</span>
-  <span style="font-weight: bold"><span style="color: #0000FF">def</span></span> <span style="font-weight: bold"><span style="color: #000000">ProcessMessage</span></span><span style="color: #990000">(</span>self<span style="color: #990000">,</span> message<span style="color: #990000">=</span>None<span style="color: #990000">,</span> event<span style="color: #990000">=</span>None<span style="color: #990000">):</span>
-    flow<span style="color: #990000">.</span>FACTORY<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">StartFlow</span></span><span style="color: #990000">(</span>event<span style="color: #990000">.</span>cn<span style="color: #990000">,</span> <span style="color: #FF0000">"Interrogate"</span><span style="color: #990000">,</span> token<span style="color: #990000">=</span>self<span style="color: #990000">.</span>token<span style="color: #990000">)</span> <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/3.png" alt="3" /></span></span></tt></pre></div></div>
+  @flow.EventHandler(source_restriction=lambda x: x=="CA")
+  def ProcessMessage(self, message=None, event=None):
+    flow.FACTORY.StartFlow(event.cn, "Interrogate", token=self.token) # <img src="./images/icons/callouts/3.png" alt="3" /></tt></pre>
+</div></div>
 <div class="colist arabic"><table>
 <tr><td><img src="./images/icons/callouts/1.png" alt="1" /></td><td>
 An event listener is a class which extends flow.EventListener.
@@ -1067,19 +1069,17 @@ client.
 </table></div>
 <div class="paragraph"><p>The event can now be broadcast from any other flow:</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.6
-by Lorenzo Bettini
-http://www.lorenzobettini.it
-http://www.gnu.org/software/src-highlite -->
-<pre><tt><span style="font-weight: bold"><span style="color: #0000FF">class</span></span> <span style="font-weight: bold"><span style="color: #000000">CAEnroler</span></span><span style="color: #990000">(</span>flow<span style="color: #990000">.</span>GRRFlow<span style="color: #990000">):</span>
-<span style="font-style: italic"><span style="color: #9A1900">  """Enrol new clients."""</span></span>
-  <span style="color: #990000">.....</span>
+<div class="content">
+<pre><tt>class CAEnroler(flow.GRRFlow):
+  """Enrol new clients."""
+  .....
 
-  @flow<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">StateHandler</span></span><span style="color: #990000">(</span>next_state<span style="color: #990000">=</span><span style="color: #FF0000">"End"</span><span style="color: #990000">)</span>
-  <span style="font-weight: bold"><span style="color: #0000FF">def</span></span> <span style="font-weight: bold"><span style="color: #000000">Start</span></span><span style="color: #990000">(</span>self<span style="color: #990000">):</span>
-    <span style="color: #990000">.....</span>
-    <span style="font-style: italic"><span style="color: #9A1900"># Publish the client enrollment message.</span></span>
-    self<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">Publish</span></span><span style="color: #990000">(</span><span style="color: #FF0000">"ClientEnrollment"</span><span style="color: #990000">,</span> certificate_attribute<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">AsProto</span></span><span style="color: #990000">())</span></tt></pre></div></div>
+  @flow.StateHandler(next_state="End")
+  def Start(self):
+    .....
+    # Publish the client enrollment message.
+    self.Publish("ClientEnrollment", certificate_attribute.AsProto())</tt></pre>
+</div></div>
 </div>
 <div class="sect2">
 <h3 id="_rules_for_writing_flows">Rules for Writing Flows</h3>
@@ -1114,7 +1114,7 @@ Setting the label ADVANCED will hide the argument from the user in an
 </li>
 <li>
 <p>
-The flow class attribute <code>args_type</code> specifies which proto to use for the
+The flow class attribute <tt>args_type</tt> specifies which proto to use for the
  arguments to the flow.
 </p>
 </li>
@@ -1127,16 +1127,16 @@ Flow Help and Visibility
 <div class="ulist"><ul>
 <li>
 <p>
-Setting the flow class attribute <code>category</code> will define where in flow
+Setting the flow class attribute <tt>category</tt> will define where in flow
  hierarchy in the Admin UI the flow will appear. Setting it to None will stop it
  from being visible in the UI.
 </p>
 </li>
 <li>
 <p>
-Setting the flow class attribute <code>behaviours</code> will affect who sees the flow.
+Setting the flow class attribute <tt>behaviours</tt> will affect who sees the flow.
  By default flows are only visible if they user has selected to see Advanced
- flows. Set <code>behaviours = flow.GRRFlow.behaviours + "BASIC"</code> to make it visible
+ flows. Set <tt>behaviours = flow.GRRFlow.behaviours + "BASIC"</tt> to make it visible
  in basic view.
 </p>
 </li>
@@ -1396,11 +1396,9 @@ console users. In order to schedule a hunt, this is the process:</p></div>
 <div class="paragraph"><p>Import the hunts file and create a new hunt (This example uses the
 SampleHunt, replace with a hunt of your choice):</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.6
-by Lorenzo Bettini
-http://www.lorenzobettini.it
-http://www.gnu.org/software/src-highlite -->
-<pre><tt>hunt <span style="color: #990000">=</span> hunts<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">SampleHunt</span></span><span style="color: #990000">(</span>client_limit<span style="color: #990000">=</span><span style="color: #993399">100</span><span style="color: #990000">,</span> expiry_time<span style="color: #990000">=</span><span style="color: #993399">36000</span><span style="color: #990000">)</span></tt></pre></div></div>
+<div class="content">
+<pre><tt>hunt = hunts.SampleHunt(client_limit=100, expiry_time=36000)</tt></pre>
+</div></div>
 <div class="paragraph"><p>This creates the SampleHunt, possible parameters:</p></div>
 <div class="ulist"><ul>
 <li>
@@ -1420,46 +1418,38 @@ be run on. Rules either compare fields stored in the client
 description to integer values or match regular expressions against
 them:</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.6
-by Lorenzo Bettini
-http://www.lorenzobettini.it
-http://www.gnu.org/software/src-highlite -->
-<pre><tt>int_rule <span style="color: #990000">=</span> jobs_pb2<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">ForemanAttributeInteger</span></span><span style="color: #990000">(</span>
-                   attribute_name<span style="color: #990000">=</span>client<span style="color: #990000">.</span>Schema<span style="color: #990000">.</span>OS_RELEASE<span style="color: #990000">.</span>name<span style="color: #990000">,</span>
-                   operator<span style="color: #990000">=</span>jobs_pb2<span style="color: #990000">.</span>ForemanAttributeInteger<span style="color: #990000">.</span>EQUAL<span style="color: #990000">,</span>
-                   value<span style="color: #990000">=</span><span style="color: #993399">7</span><span style="color: #990000">)</span>
-regex_rule <span style="color: #990000">=</span> flow<span style="color: #990000">.</span>GRRHunt<span style="color: #990000">.</span>MATCH_WINDOWS</tt></pre></div></div>
+<div class="content">
+<pre><tt>int_rule = jobs_pb2.ForemanAttributeInteger(
+                   attribute_name=client.Schema.OS_RELEASE.name,
+                   operator=jobs_pb2.ForemanAttributeInteger.EQUAL,
+                   value=7)
+regex_rule = flow.GRRHunt.MATCH_WINDOWS</tt></pre>
+</div></div>
 <div class="paragraph"><p>The two rules above will match clients that run Windows and have an
 OS_RELEASE of 7.</p></div>
 <div class="paragraph"><p>Next, you add the rules to the hunt:</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.6
-by Lorenzo Bettini
-http://www.lorenzobettini.it
-http://www.gnu.org/software/src-highlite -->
-<pre><tt>hunt<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">AddRule</span></span><span style="color: #990000">([</span>int_rule<span style="color: #990000">,</span> regex_rule<span style="color: #990000">])</span></tt></pre></div></div>
+<div class="content">
+<pre><tt>hunt.AddRule([int_rule, regex_rule])</tt></pre>
+</div></div>
 <div class="paragraph"><p>You can call AddRule more than once. The hunt will be triggered if all
 the rules of one AddRule call match at the same time. So you can do:</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.6
-by Lorenzo Bettini
-http://www.lorenzobettini.it
-http://www.gnu.org/software/src-highlite -->
-<pre><tt>hunt<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">AddRule</span></span><span style="color: #990000">([</span> flow<span style="color: #990000">.</span>GRRHunt<span style="color: #990000">.</span>MATCH_WINDOWS<span style="color: #990000">,</span>
-  jobs_pb2<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">ForemanAttributeInteger</span></span><span style="color: #990000">(</span>attribute_name<span style="color: #990000">=</span>client<span style="color: #990000">.</span>Schema<span style="color: #990000">.</span>OS_RELEASE<span style="color: #990000">.</span>name<span style="color: #990000">,</span>
-  operator<span style="color: #990000">=</span>jobs_pb2<span style="color: #990000">.</span>ForemanAttributeInteger<span style="color: #990000">.</span>EQUAL<span style="color: #990000">,</span> value<span style="color: #990000">=</span><span style="color: #993399">7</span><span style="color: #990000">)])</span>
+<div class="content">
+<pre><tt>hunt.AddRule([ flow.GRRHunt.MATCH_WINDOWS,
+  jobs_pb2.ForemanAttributeInteger(attribute_name=client.Schema.OS_RELEASE.name,
+  operator=jobs_pb2.ForemanAttributeInteger.EQUAL, value=7)])
 
-hunt<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">AddRule</span></span><span style="color: #990000">([</span> flow<span style="color: #990000">.</span>GRRHunt<span style="color: #990000">.</span>MATCH_WINDOWS<span style="color: #990000">,</span>
-  jobs_pb2<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">ForemanAttributeInteger</span></span><span style="color: #990000">(</span>attribute_name<span style="color: #990000">=</span>client<span style="color: #990000">.</span>Schema<span style="color: #990000">.</span>OS_RELEASE<span style="color: #990000">.</span>name<span style="color: #990000">,</span>
-  operator<span style="color: #990000">=</span>jobs_pb2<span style="color: #990000">.</span>ForemanAttributeInteger<span style="color: #990000">.</span>EQUAL<span style="color: #990000">,</span> value<span style="color: #990000">=</span><span style="color: #993399">8</span><span style="color: #990000">)])</span></tt></pre></div></div>
+hunt.AddRule([ flow.GRRHunt.MATCH_WINDOWS,
+  jobs_pb2.ForemanAttributeInteger(attribute_name=client.Schema.OS_RELEASE.name,
+  operator=jobs_pb2.ForemanAttributeInteger.EQUAL, value=8)])</tt></pre>
+</div></div>
 <div class="paragraph"><p>to start a hunt on windows clients that have either OS_VERSION 7 or 8.</p></div>
 <div class="paragraph"><p>If you are unsure about your rules, you can call</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.6
-by Lorenzo Bettini
-http://www.lorenzobettini.it
-http://www.gnu.org/software/src-highlite -->
-<pre><tt>hunt<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">TestRules</span></span><span style="color: #990000">()</span></tt></pre></div></div>
+<div class="content">
+<pre><tt>hunt.TestRules()</tt></pre>
+</div></div>
 <div class="paragraph"><p>This will show you how many clients in the db match your rules and
 give you some matching sample clients. Note that this will open all
 the clients and will therefore take a while if you have a lot of
@@ -1467,20 +1457,16 @@ clients in the database.</p></div>
 <div class="paragraph"><p>Once you are happy with your rules, you upload the hunt to the
 foreman:</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.6
-by Lorenzo Bettini
-http://www.lorenzobettini.it
-http://www.gnu.org/software/src-highlite -->
-<pre><tt>hunt<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">Run</span></span><span style="color: #990000">()</span></tt></pre></div></div>
+<div class="content">
+<pre><tt>hunt.Run()</tt></pre>
+</div></div>
 <div class="paragraph"><p>At this point, matching clients will pick up and run the hunt and you
 can see the progress in the UI.</p></div>
 <div class="paragraph"><p>If you want to stop a running hunt and remove the foreman rules again, use</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.6
-by Lorenzo Bettini
-http://www.lorenzobettini.it
-http://www.gnu.org/software/src-highlite -->
-<pre><tt>hunt<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">Stop</span></span><span style="color: #990000">()</span></tt></pre></div></div>
+<div class="content">
+<pre><tt>hunt.Stop()</tt></pre>
+</div></div>
 </div>
 </div>
 <div class="sect1">
@@ -1538,22 +1524,20 @@ also have optional attributes which are defined in the object&#8217;s Schema. Fo
 example consider the following definition of an AFF4 object representing a GRR
 Client:</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.6
-by Lorenzo Bettini
-http://www.lorenzobettini.it
-http://www.gnu.org/software/src-highlite -->
-<pre><tt><span style="font-weight: bold"><span style="color: #0000FF">class</span></span> <span style="font-weight: bold"><span style="color: #000000">VFSGRRClient</span></span><span style="color: #990000">(</span>aff4<span style="color: #990000">.</span>AFF4Object<span style="color: #990000">):</span>                                   <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/1.png" alt="1" /></span></span>
-<span style="font-style: italic"><span style="color: #9A1900">  """A Remote client."""</span></span>
+<div class="content">
+<pre><tt>class VFSGRRClient(aff4.AFF4Object):                                   # <img src="./images/icons/callouts/1.png" alt="1" />
+  """A Remote client."""
 
-  <span style="font-weight: bold"><span style="color: #0000FF">class</span></span> <span style="font-weight: bold"><span style="color: #000000">SchemaCls</span></span><span style="color: #990000">(</span>aff4<span style="color: #990000">.</span>AFF4Object<span style="color: #990000">.</span>SchemaCls<span style="color: #990000">):</span>                          <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/2.png" alt="2" /></span></span>
-<span style="font-style: italic"><span style="color: #9A1900">    """The schema for the client."""</span></span>
-    CERT <span style="color: #990000">=</span> aff4<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">Attribute</span></span><span style="color: #990000">(</span><span style="color: #FF0000">"metadata:cert"</span><span style="color: #990000">,</span> RDFX509Cert<span style="color: #990000">,</span>                <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/3.png" alt="3" /></span></span>
-                          <span style="color: #FF0000">"The PEM encoded cert of the client."</span><span style="color: #990000">)</span>
+  class SchemaCls(aff4.AFF4Object.SchemaCls):                          # <img src="./images/icons/callouts/2.png" alt="2" />
+    """The schema for the client."""
+    CERT = aff4.Attribute("metadata:cert", RDFX509Cert,                # <img src="./images/icons/callouts/3.png" alt="3" />
+                          "The PEM encoded cert of the client.")
 
-    <span style="font-style: italic"><span style="color: #9A1900"># Information about the host.</span></span>
-    HOSTNAME <span style="color: #990000">=</span> aff4<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">Attribute</span></span><span style="color: #990000">(</span><span style="color: #FF0000">"metadata:hostname"</span><span style="color: #990000">,</span> aff4<span style="color: #990000">.</span>RDFString<span style="color: #990000">,</span>     <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/4.png" alt="4" /></span></span>
-                              <span style="color: #FF0000">"Hostname of the host."</span><span style="color: #990000">,</span> <span style="color: #FF0000">"Host"</span><span style="color: #990000">,</span>
-                              index<span style="color: #990000">=</span>client_index<span style="color: #990000">)</span></tt></pre></div></div>
+    # Information about the host.
+    HOSTNAME = aff4.Attribute("metadata:hostname", aff4.RDFString,     # <img src="./images/icons/callouts/4.png" alt="4" />
+                              "Hostname of the host.", "Host",
+                              index=client_index)</tt></pre>
+</div></div>
 <div class="colist arabic"><table>
 <tr><td><img src="./images/icons/callouts/1.png" alt="1" /></td><td>
 An AFF4 object is simply a class which extends the AFF4Object base class.
@@ -1606,7 +1590,7 @@ data store technology is abstracted. Usually AFF4 objects are managed using the
 aff4 FACTORY:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>In [8]: pslist = aff4.FACTORY.Open("aff4:/C.d74adcb3bef6a388/devices\    <img src="./images/icons/callouts/1.png" alt="1" />
+<pre><tt>In [8]: pslist = aff4.FACTORY.Open("aff4:/C.d74adcb3bef6a388/devices\    <img src="./images/icons/callouts/1.png" alt="1" />
    /memory/pslist", mode="r", age=aff4.ALL_TIMES)
 
 In [9]: pslist                                                           <img src="./images/icons/callouts/2.png" alt="2" />
@@ -1635,7 +1619,7 @@ In [15]: for s in pslist.GetValuesForAttribute(pslist.Schema.SIZE):     <img src
    ....:     print s, s.age
 4938 2012-05-21 14:48:20
 4832 2012-05-21 14:20:30
-4938 2012-05-21 13:53:05</code></pre>
+4938 2012-05-21 13:53:05</tt></pre>
 </div></div>
 <div class="colist arabic"><table>
 <tr><td><img src="./images/icons/callouts/1.png" alt="1" /></td><td>
@@ -1731,12 +1715,12 @@ new python file-like object from the previous file-like object. For example,
 image we have the following pathspec:</p></div>
 <div class="literalblock">
 <div class="content">
-<pre><code>path:   /dev/sda1
+<pre><tt>path:   /dev/sda1
 pathtype: OS
 nested_path: {
    path: /windows/notepad.exe
    pathtype: TSK
-}</code></pre>
+}</tt></pre>
 </div></div>
 <div class="paragraph"><p>This opens the raw device /dev/sda1 using the OS driver. The TSK driver is then
 given the previous file like object and the nested pathspec instructing it to
@@ -1745,7 +1729,7 @@ step.</p></div>
 <div class="paragraph"><p>This can get more involved, for example:</p></div>
 <div class="literalblock">
 <div class="content">
-<pre><code>path:   /dev/sda1
+<pre><tt>path:   /dev/sda1
 pathtype: OS
 nested_path: {
    path: /windows/system32/config/system
@@ -1754,7 +1738,7 @@ nested_path: {
       path: SOFTWARE/MICROSOFT/WINDOWS/
       pathtype: REGISTRY
   }
-}</code></pre>
+}</tt></pre>
 </div></div>
 <div class="paragraph"><p>Which means to use TSK to open the raw registry file and then REGFI to read the
 key from it (note that is needed because you generally cant read the registry
@@ -1775,14 +1759,14 @@ access the same file on disk. This file however, does have a well defined and
 unchanging casing. The client can correct file casing, e.g.:</p></div>
 <div class="literalblock">
 <div class="content">
-<pre><code>path: c:\documents and settings\
-pathtype: OS</code></pre>
+<pre><tt>path: c:\documents and settings\
+pathtype: OS</tt></pre>
 </div></div>
 <div class="paragraph"><p>Is corrected to the normalized form:</p></div>
 <div class="literalblock">
 <div class="content">
-<pre><code>path: /c/Documents and Settings/
-pathtype: OS</code></pre>
+<pre><tt>path: /c/Documents and Settings/
+pathtype: OS</tt></pre>
 </div></div>
 </div>
 <div class="sect3">
@@ -1796,18 +1780,18 @@ through the raw interface, and therefore converts the pathspec to the correct
 form using the mount points information. For example:</p></div>
 <div class="literalblock">
 <div class="content">
-<pre><code>path: /home/user/hello.txt
-pathtype: TSK</code></pre>
+<pre><tt>path: /home/user/hello.txt
+pathtype: TSK</tt></pre>
 </div></div>
 <div class="paragraph"><p>Is converted to:</p></div>
 <div class="literalblock">
 <div class="content">
-<pre><code>path: /dev/sda2
+<pre><tt>path: /dev/sda2
 pathtype: OS
 nested_path: {
       path: /user/hello.txt
       pathtype: TSK
-}</code></pre>
+}</tt></pre>
 </div></div>
 </div>
 <div class="sect3">
@@ -1831,8 +1815,8 @@ A ListDirectory Flow is called with a pathspec of:
 </p>
 <div class="literalblock">
 <div class="content">
-<pre><code>path: c:\docume~1\bob\
-pathtype: OS</code></pre>
+<pre><tt>path: c:\docume~1\bob\
+pathtype: OS</tt></pre>
 </div></div>
 </li>
 <li>
@@ -1848,8 +1832,8 @@ pathspec to:
 </p>
 <div class="literalblock">
 <div class="content">
-<pre><code>path: c:\Documents and Settings\Bob\
-pathtype: OS</code></pre>
+<pre><tt>path: c:\Documents and Settings\Bob\
+pathtype: OS</tt></pre>
 </div></div>
 </li>
 <li>
@@ -1867,8 +1851,8 @@ contains the case corrected - expanded pathspec:
 </p>
 <div class="literalblock">
 <div class="content">
-<pre><code>urn = GRRClient.PathspecToURN(pathspec)
-urn = aff4:/C.12345/fs/os/c/Documents and Settings/Bob</code></pre>
+<pre><tt>urn = GRRClient.PathspecToURN(pathspec)
+urn = aff4:/C.12345/fs/os/c/Documents and Settings/Bob</tt></pre>
 </div></div>
 </li>
 <li>
@@ -1939,10 +1923,10 @@ used and serve as examples for extension. There is no UI for these components
 currently, but they can be run from the Console.</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>r = reports.ClientListReport(access_control.ACLToken())            <img src="./images/icons/callouts/1.png" alt="1" />
+<pre><tt>r = reports.ClientListReport(access_control.ACLToken())            <img src="./images/icons/callouts/1.png" alt="1" />
 r.Run()                                                            <img src="./images/icons/callouts/2.png" alt="2" />
 r.MailReport("joe@mailinator.com")                                 <img src="./images/icons/callouts/3.png" alt="3" />
-open("client_list.csv", "w").write(r.AsCsv())                      <img src="./images/icons/callouts/4.png" alt="4" /></code></pre>
+open("client_list.csv", "w").write(r.AsCsv())                      <img src="./images/icons/callouts/4.png" alt="4" /></tt></pre>
 </div></div>
 <div class="colist arabic"><table>
 <tr><td><img src="./images/icons/callouts/1.png" alt="1" /></td><td>
@@ -1983,12 +1967,10 @@ ease use this variable is automatically populated by the console if --client is
 used.</p></div>
 <div class="paragraph"><p>Token generation is done using the access_control.ACLToken.</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.6
-by Lorenzo Bettini
-http://www.lorenzobettini.it
-http://www.gnu.org/software/src-highlite -->
-<pre><tt>token <span style="color: #990000">=</span> access_control<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">ACLToken</span></span><span style="color: #990000">()</span>
-fd <span style="color: #990000">=</span> aff4<span style="color: #990000">.</span>FACTORY<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">Open</span></span><span style="color: #990000">(</span><span style="color: #FF0000">"aff4:/C.12345/"</span><span style="color: #990000">,</span> token<span style="color: #990000">=</span>token<span style="color: #990000">)</span></tt></pre></div></div>
+<div class="content">
+<pre><tt>token = access_control.ACLToken()
+fd = aff4.FACTORY.Open("aff4:/C.12345/", token=token)</tt></pre>
+</div></div>
 </div>
 </div>
 <div class="sect1">
@@ -2002,40 +1984,38 @@ implementing new features.</p></div>
 non-trivial flow from the GRR source code:</p></div>
 <div class="listingblock">
 <div class="title">A sample flow for analyzing client memory using Volatility (abridged and annotated).</div>
-<div class="content"><!-- Generator: GNU source-highlight 3.1.6
-by Lorenzo Bettini
-http://www.lorenzobettini.it
-http://www.gnu.org/software/src-highlite -->
-<pre><tt><span style="font-weight: bold"><span style="color: #0000FF">class</span></span> <span style="font-weight: bold"><span style="color: #000000">AnalyzeClientMemory</span></span><span style="color: #990000">(</span>flow<span style="color: #990000">.</span>GRRFlow<span style="color: #990000">):</span>                   <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/1.png" alt="1" /></span></span>
-  category <span style="color: #990000">=</span> <span style="color: #FF0000">"/Memory/"</span>                                    <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/2.png" alt="2" /></span></span>
+<div class="content">
+<pre><tt>class AnalyzeClientMemory(flow.GRRFlow):                   # <img src="./images/icons/callouts/1.png" alt="1" />
+  category = "/Memory/"                                    # <img src="./images/icons/callouts/2.png" alt="2" />
 
-  <span style="font-weight: bold"><span style="color: #0000FF">def</span></span> <span style="font-weight: bold"><span style="color: #000000">__init__</span></span><span style="color: #990000">(</span>self<span style="color: #990000">,</span> plugins<span style="color: #990000">=</span><span style="color: #FF0000">"pslist,dlllist,modules"</span><span style="color: #990000">,</span> driver_installer<span style="color: #990000">=</span>None<span style="color: #990000">,</span>
-               profile<span style="color: #990000">=</span>None<span style="color: #990000">,</span> <span style="color: #990000">**</span>kwargs<span style="color: #990000">):</span>
-    <span style="font-weight: bold"><span style="color: #000000">super</span></span><span style="color: #990000">(</span>AnalyseClientMemory<span style="color: #990000">,</span> self<span style="color: #990000">).</span><span style="font-weight: bold"><span style="color: #000000">__init__</span></span><span style="color: #990000">(**</span>kwargs<span style="color: #990000">)</span>
-    self<span style="color: #990000">.</span>plugins <span style="color: #990000">=</span> plugins
-    self<span style="color: #990000">.</span>driver_installer <span style="color: #990000">=</span> driver_installer
-    self<span style="color: #990000">.</span>profile <span style="color: #990000">=</span> profile
+  def __init__(self, plugins="pslist,dlllist,modules", driver_installer=None,
+               profile=None, **kwargs):
+    super(AnalyseClientMemory, self).__init__(**kwargs)
+    self.plugins = plugins
+    self.driver_installer = driver_installer
+    self.profile = profile
 
-  @flow<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">StateHandler</span></span><span style="color: #990000">(</span>next_state<span style="color: #990000">=[</span><span style="color: #FF0000">"RunVolatilityPlugins"</span><span style="color: #990000">])</span>  <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/3.png" alt="3" /></span></span>
-  <span style="font-weight: bold"><span style="color: #0000FF">def</span></span> <span style="font-weight: bold"><span style="color: #000000">Start</span></span><span style="color: #990000">(</span>self<span style="color: #990000">):</span>
-    self<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">CallFlow</span></span><span style="color: #990000">(</span><span style="color: #FF0000">"LoadMemoryDriver"</span><span style="color: #990000">,</span> next_state<span style="color: #990000">=</span><span style="color: #FF0000">"RunVolatilityPlugins"</span><span style="color: #990000">,</span>
-                  driver_installer<span style="color: #990000">=</span>self<span style="color: #990000">.</span>driver_installer<span style="color: #990000">)</span>
+  @flow.StateHandler(next_state=["RunVolatilityPlugins"])  # <img src="./images/icons/callouts/3.png" alt="3" />
+  def Start(self):
+    self.CallFlow("LoadMemoryDriver", next_state="RunVolatilityPlugins",
+                  driver_installer=self.driver_installer)
 
-  @flow<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">StateHandler</span></span><span style="color: #990000">(</span>next_state<span style="color: #990000">=</span><span style="color: #FF0000">"ProcessVolatilityPlugins"</span><span style="color: #990000">)</span>
-  <span style="font-weight: bold"><span style="color: #0000FF">def</span></span> <span style="font-weight: bold"><span style="color: #000000">RunVolatilityPlugins</span></span><span style="color: #990000">(</span>self<span style="color: #990000">,</span> responses<span style="color: #990000">):</span>
-    <span style="font-weight: bold"><span style="color: #0000FF">if</span></span> responses<span style="color: #990000">.</span>success<span style="color: #990000">:</span>
-      memory_information <span style="color: #990000">=</span> responses<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">First</span></span><span style="color: #990000">()</span>
+  @flow.StateHandler(next_state="ProcessVolatilityPlugins")
+  def RunVolatilityPlugins(self, responses):
+    if responses.success:
+      memory_information = responses.First()
 
-      self<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">CallFlow</span></span><span style="color: #990000">(</span><span style="color: #FF0000">"VolatilityPlugins"</span><span style="color: #990000">,</span> plugins<span style="color: #990000">=</span>self<span style="color: #990000">.</span>plugins<span style="color: #990000">,</span>
-                    device<span style="color: #990000">=</span>memory_information<span style="color: #990000">.</span>device<span style="color: #990000">,</span> profile<span style="color: #990000">=</span>self<span style="color: #990000">.</span>profile<span style="color: #990000">,</span>
-                    next_state<span style="color: #990000">=</span><span style="color: #FF0000">"End"</span><span style="color: #990000">)</span>                      <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/4.png" alt="4" /></span></span>
-    <span style="font-weight: bold"><span style="color: #0000FF">else</span></span><span style="color: #990000">:</span>
-      <span style="font-weight: bold"><span style="color: #0000FF">raise</span></span> flow<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">FlowError</span></span><span style="color: #990000">(</span><span style="color: #FF0000">"Failed to Load driver: %s"</span> <span style="color: #990000">%</span> responses<span style="color: #990000">.</span>status<span style="color: #990000">)</span>
+      self.CallFlow("VolatilityPlugins", plugins=self.plugins,
+                    device=memory_information.device, profile=self.profile,
+                    next_state="End")                      # <img src="./images/icons/callouts/4.png" alt="4" />
+    else:
+      raise flow.FlowError("Failed to Load driver: %s" % responses.status)
 
-  @flow<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">StateHandler</span></span><span style="color: #990000">()</span>
-  <span style="font-weight: bold"><span style="color: #0000FF">def</span></span> <span style="font-weight: bold"><span style="color: #000000">End</span></span><span style="color: #990000">(</span>self<span style="color: #990000">):</span>
-    self<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">Notify</span></span><span style="color: #990000">(</span><span style="color: #FF0000">"ViewObject"</span><span style="color: #990000">,</span> self<span style="color: #990000">.</span>device_urn<span style="color: #990000">,</span>
-                <span style="color: #FF0000">"Completed execution of volatility plugins."</span><span style="color: #990000">)</span></tt></pre></div></div>
+  @flow.StateHandler()
+  def End(self):
+    self.Notify("ViewObject", self.device_urn,
+                "Completed execution of volatility plugins.")</tt></pre>
+</div></div>
 <div class="colist arabic"><table>
 <tr><td><img src="./images/icons/callouts/1.png" alt="1" /></td><td>
 A flow is simply a class which extends flow.GRRFlow.
@@ -2059,11 +2039,9 @@ from this flows will be fed back into the End state.
 1. Create the source file in lib/flows/general/, e.g. my_flow.py
 2. Add an import statement to lib/flows/general/<em>init</em>.py, e.g</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.6
-by Lorenzo Bettini
-http://www.lorenzobettini.it
-http://www.gnu.org/software/src-highlite -->
-<pre><tt><span style="font-weight: bold"><span style="color: #000080">from</span></span> grr<span style="color: #990000">.</span>lib<span style="color: #990000">.</span>flows<span style="color: #990000">.</span>general <span style="font-weight: bold"><span style="color: #000080">import</span></span> my_flow</tt></pre></div></div>
+<div class="content">
+<pre><tt>from grr.lib.flows.general import my_flow</tt></pre>
+</div></div>
 </div>
 <div class="sect3">
 <h4 id="_writing_a_new_flow">Writing a new flow</h4>
@@ -2075,12 +2053,10 @@ Create the flow class:
 </li>
 </ol></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.6
-by Lorenzo Bettini
-http://www.lorenzobettini.it
-http://www.gnu.org/software/src-highlite -->
-<pre><tt><span style="font-weight: bold"><span style="color: #0000FF">class</span></span> <span style="font-weight: bold"><span style="color: #000000">MyFlow</span></span><span style="color: #990000">(</span>flow<span style="color: #990000">.</span>GRRFlow<span style="color: #990000">):</span>
-<span style="font-style: italic"><span style="color: #9A1900">  """List the Volume Shadow Copies on the client."""</span></span></tt></pre></div></div>
+<div class="content">
+<pre><tt>class MyFlow(flow.GRRFlow):
+  """List the Volume Shadow Copies on the client."""</tt></pre>
+</div></div>
 <div class="olist arabic"><ol class="arabic">
 <li>
 <p>
@@ -2089,11 +2065,9 @@ Define the category the flow is part of:
 </li>
 </ol></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.6
-by Lorenzo Bettini
-http://www.lorenzobettini.it
-http://www.gnu.org/software/src-highlite -->
-<pre><tt>  category <span style="color: #990000">=</span> <span style="color: #FF0000">"/Filesystem/"</span></tt></pre></div></div>
+<div class="content">
+<pre><tt>  category = "/Filesystem/"</tt></pre>
+</div></div>
 <div class="olist arabic"><ol class="arabic">
 <li>
 <p>
@@ -2104,13 +2078,11 @@ information.
 </li>
 </ol></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.6
-by Lorenzo Bettini
-http://www.lorenzobettini.it
-http://www.gnu.org/software/src-highlite -->
-<pre><tt>flow_typeinfo <span style="color: #990000">=</span> type_info<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">TypeDescriptorSet</span></span><span style="color: #990000">(</span>
-  <span style="color: #990000">...</span>
-<span style="color: #990000">)</span></tt></pre></div></div>
+<div class="content">
+<pre><tt>flow_typeinfo = type_info.TypeDescriptorSet(
+  ...
+)</tt></pre>
+</div></div>
 <div class="olist arabic"><ol class="arabic">
 <li>
 <p>
@@ -2119,12 +2091,10 @@ Define the Start state handler.
 </li>
 </ol></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.6
-by Lorenzo Bettini
-http://www.lorenzobettini.it
-http://www.gnu.org/software/src-highlite -->
-<pre><tt>  @flow<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">StateHandler</span></span><span style="color: #990000">()</span>
-  <span style="font-weight: bold"><span style="color: #0000FF">def</span></span> <span style="font-weight: bold"><span style="color: #000000">Start</span></span><span style="color: #990000">(</span>self<span style="color: #990000">,</span> unused_response<span style="color: #990000">):</span></tt></pre></div></div>
+<div class="content">
+<pre><tt>  @flow.StateHandler()
+  def Start(self, unused_response):</tt></pre>
+</div></div>
 <div class="paragraph"><p>In the example above the flow only consists of the Start state handler
 and therefore only state handler is defined. As you can see in the
 AnalyzeClientMemory example provided earlier is it possible to chain
@@ -2133,12 +2103,10 @@ state handler is Start. Multiple states can be defined as a list e.g.
 ["MyNextState1", "MyNextState2", &#8230;]. Results from one state to
 another are passed via the response argument.</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.6
-by Lorenzo Bettini
-http://www.lorenzobettini.it
-http://www.gnu.org/software/src-highlite -->
-<pre><tt>  @flow<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">StateHandler</span></span><span style="color: #990000">()</span>
-  <span style="font-weight: bold"><span style="color: #0000FF">def</span></span> <span style="font-weight: bold"><span style="color: #000000">MyNextState</span></span><span style="color: #990000">(</span>self<span style="color: #990000">,</span> response<span style="color: #990000">):</span></tt></pre></div></div>
+<div class="content">
+<pre><tt>  @flow.StateHandler()
+  def MyNextState(self, response):</tt></pre>
+</div></div>
 <div class="paragraph"><p>The last state handler called that is always called is the End state
 handler, by default it return a generic "Flow completed" response.
 The End state handler can be overwritten to return more detailed status
@@ -2163,17 +2131,17 @@ sorted.</p></div>
 First you need to install the framework and chrome driver, we recommend using:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>apt-get install python-pip    # if you don't have it already
+<pre><tt>apt-get install python-pip    # if you don't have it already
 sudo pip install selenium
 sudo apt-get install libnss3 chromium-browser   # dependency of chromedriver
 wget https://chromedriver.googlecode.com/files/chromedriver_linux64_26.0.1383.0.zip
 unzip chromedriver*
-sudo mv chromedriver /usr/bin/</code></pre>
+sudo mv chromedriver /usr/bin/</tt></pre>
 </div></div>
 <div class="paragraph"><p>Use the run_tests.py script to run the unit tests.</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>joe@host:~/dev/grr$ PYTHONPATH="" python ./grr/run_tests.py
+<pre><tt>joe@host:~/dev/grr$ PYTHONPATH="" python ./grr/run_tests.py
         SchedulerTest                            PASSED in   0.31s
         FlowFactoryTest                          PASSED in   0.41s
         NetstatTest                              PASSED in   0.40s
@@ -2189,12 +2157,12 @@ sudo mv chromedriver /usr/bin/</code></pre>
         TestFileCollector                        PASSED in   2.02s
         TestWebHistory                           PASSED in   1.31s
 
-Ran 75 tests in 8.98 sec, 74 tests passed, 1 tests failed.</code></pre>
+Ran 75 tests in 8.98 sec, 74 tests passed, 1 tests failed.</tt></pre>
 </div></div>
 <div class="paragraph"><p>To run a specific test name the test class on the command line:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>joe@host:~/dev/grr$ PYTHONPATH="" python ./grr/run_tests.py TestAdministrativeFlows</code></pre>
+<pre><tt>joe@host:~/dev/grr$ PYTHONPATH="" python ./grr/run_tests.py TestAdministrativeFlows</tt></pre>
 </div></div>
 </div>
 <div class="sect2">
@@ -2205,12 +2173,12 @@ during the tests.</p></div>
 <div class="paragraph"><p>Then run the runtests_test.py script</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>joe@host:~/dev/grr$ PYTHONPATH="" python ./grr/gui/runtests_test.py</code></pre>
+<pre><tt>joe@host:~/dev/grr$ PYTHONPATH="" python ./grr/gui/runtests_test.py</tt></pre>
 </div></div>
 <div class="paragraph"><p>To run a specific test name the test class on the command line:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>joe@host:~/dev/grr$ PYTHONPATH="" python ./grr/gui/runtests_test.py TestTimelineView</code></pre>
+<pre><tt>joe@host:~/dev/grr$ PYTHONPATH="" python ./grr/gui/runtests_test.py TestTimelineView</tt></pre>
 </div></div>
 <div class="sect3">
 <h4 id="_debugging_gui_tests">Debugging GUI Tests</h4>
@@ -2218,13 +2186,11 @@ during the tests.</p></div>
 working it&#8217;s often useful to be able to single step through the Selenium actions.
 Add a call to import pdb; pdb.set_trace() into your test. e.g.</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.6
-by Lorenzo Bettini
-http://www.lorenzobettini.it
-http://www.gnu.org/software/src-highlite -->
-<pre><tt>sel<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">click</span></span><span style="color: #990000">(</span><span style="color: #FF0000">"css=tbody tr:first td"</span><span style="color: #990000">)</span>
-<span style="font-weight: bold"><span style="color: #000080">import</span></span> pdb<span style="color: #990000">;</span> pdb<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">set_trace</span></span><span style="color: #990000">()</span>
-sel<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">click</span></span><span style="color: #990000">(</span><span style="color: #FF0000">"css=a:contains(\"View details\")"</span><span style="color: #990000">)</span></tt></pre></div></div>
+<div class="content">
+<pre><tt>sel.click("css=tbody tr:first td")
+import pdb; pdb.set_trace()
+sel.click("css=a:contains(\"View details\")")</tt></pre>
+</div></div>
 <div class="paragraph"><p>When the test hits this point it will break into a pdb shell for you to step
 through.</p></div>
 </div>
@@ -2234,16 +2200,14 @@ through.</p></div>
 <div class="paragraph"><p>Client actions can be run manually without a flow by using the console. The
 following example shows using the ExecutePython client action without a flow.</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.6
-by Lorenzo Bettini
-http://www.lorenzobettini.it
-http://www.gnu.org/software/src-highlite -->
-<pre><tt>client_id <span style="color: #990000">=</span> <span style="color: #FF0000">"C.XXXXXXXXXXX"</span>
-token <span style="color: #990000">=</span> access_control<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">ACLToken</span></span><span style="color: #990000">()</span>
-fd <span style="color: #990000">=</span> aff4<span style="color: #990000">.</span>FACTORY<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">Open</span></span><span style="color: #990000">(</span><span style="color: #FF0000">"aff4:/config/python_hacks/myfile.py"</span><span style="color: #990000">)</span>
-request <span style="color: #990000">=</span> rdfvalue<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">ExecutePythonRequest</span></span><span style="color: #990000">(</span>python_code<span style="color: #990000">=</span>fd<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">Read</span></span><span style="color: #990000">(</span><span style="color: #993399">100000</span><span style="color: #990000">))</span>
-<span style="font-weight: bold"><span style="color: #000000">StartFlowAndWorker</span></span><span style="color: #990000">(</span>client_id<span style="color: #990000">,</span> <span style="color: #FF0000">"ClientAction"</span><span style="color: #990000">,</span> action<span style="color: #990000">=</span><span style="color: #FF0000">"ExecutePython"</span><span style="color: #990000">,</span>
-    args<span style="color: #990000">=</span>request<span style="color: #990000">,</span> break_pdb<span style="color: #990000">=</span>False<span style="color: #990000">,</span> save_to<span style="color: #990000">=</span><span style="color: #FF0000">"/tmp/grrdebug"</span><span style="color: #990000">)</span></tt></pre></div></div>
+<div class="content">
+<pre><tt>client_id = "C.XXXXXXXXXXX"
+token = access_control.ACLToken()
+fd = aff4.FACTORY.Open("aff4:/config/python_hacks/myfile.py")
+request = rdfvalue.ExecutePythonRequest(python_code=fd.Read(100000))
+StartFlowAndWorker(client_id, "ClientAction", action="ExecutePython",
+    args=request, break_pdb=False, save_to="/tmp/grrdebug")</tt></pre>
+</div></div>
 <div class="paragraph"><p>A few points about the above code:
 - This runs a worker on a separate queue called DEBUG which means production
   workers won&#8217;t attempt to process them.
@@ -2332,7 +2296,6 @@ capabilities)
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2014-08-28 18:12:54 CEST
 </div>
 </div>
 </body>

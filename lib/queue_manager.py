@@ -234,7 +234,8 @@ class QueueManager(object):
     if timestamp is None:
       timestamp = (0, self.frozen_timestamp or rdfvalue.RDFDatetime().Now())
     total_size = 0
-    for request, status in self.FetchCompletedRequests(session_id):
+    for request, status in self.FetchCompletedRequests(
+        session_id, timestamp=timestamp):
       # Make sure at least one response is fetched.
       response_subject = self.GetFlowResponseSubject(session_id, request.id)
       response_subjects[response_subject] = request

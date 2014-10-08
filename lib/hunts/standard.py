@@ -5,6 +5,8 @@
 
 
 
+import threading
+
 import logging
 
 from grr.lib import aff4
@@ -15,6 +17,7 @@ from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.aff4_objects import cronjobs
 from grr.lib.hunts import implementation
+from grr.parsers import wmi_parser
 from grr.proto import flows_pb2
 
 
@@ -108,8 +111,7 @@ class PauseHuntFlow(flow.GRRFlow):
         self.args.hunt_urn, aff4_type="GRRHunt", mode="rw",
         token=self.token) as hunt:
 
-      with hunt.GetRunner() as runner:
-        runner.Pause()
+      hunt.GetRunner().Pause()
 
 
 class ModifyHuntFlowArgs(rdfvalue.RDFProtoStruct):
@@ -135,34 +137,34 @@ class ModifyHuntFlow(flow.GRRFlow):
         self.args.hunt_urn, aff4_type="GRRHunt",
         mode="rw", token=self.token) as hunt:
 
-      with hunt.GetRunner() as runner:
-        data_store.DB.security_manager.CheckHuntAccess(
-            self.token.RealUID(), hunt.urn)
+      runner = hunt.GetRunner()
+      data_store.DB.security_manager.CheckHuntAccess(
+          self.token.RealUID(), hunt.urn)
 
-        # Make sure the hunt is not running:
-        if runner.IsHuntStarted():
-          raise RuntimeError("Unable to modify a running hunt. Pause it first.")
+      # Make sure the hunt is not running:
+      if runner.IsHuntStarted():
+        raise RuntimeError("Unable to modify a running hunt. Pause it first.")
 
-        # Record changes in the audit event
-        changes = []
-        if runner.context.expires != self.args.expiry_time:
-          changes.append("Expires: Old=%s, New=%s" % (runner.context.expires,
-                                                      self.args.expiry_time))
+      # Record changes in the audit event
+      changes = []
+      if runner.context.expires != self.args.expiry_time:
+        changes.append("Expires: Old=%s, New=%s" % (runner.context.expires,
+                                                    self.args.expiry_time))
 
-        if runner.args.client_limit != self.args.client_limit:
-          changes.append("Client Limit: Old=%s, New=%s" % (
-              runner.args.client_limit, self.args.client_limit))
+      if runner.args.client_limit != self.args.client_limit:
+        changes.append("Client Limit: Old=%s, New=%s" % (
+            runner.args.client_limit, self.args.client_limit))
 
-        description = ", ".join(changes)
-        event = rdfvalue.AuditEvent(user=self.token.username,
-                                    action="HUNT_MODIFIED",
-                                    urn=self.args.hunt_urn,
-                                    description=description)
-        flow.Events.PublishEvent("Audit", event, token=self.token)
+      description = ", ".join(changes)
+      event = rdfvalue.AuditEvent(user=self.token.username,
+                                  action="HUNT_MODIFIED",
+                                  urn=self.args.hunt_urn,
+                                  description=description)
+      flow.Events.PublishEvent("Audit", event, token=self.token)
 
-        # Just go ahead and change the hunt now.
-        runner.context.expires = self.args.expiry_time
-        runner.args.client_limit = self.args.client_limit
+      # Just go ahead and change the hunt now.
+      runner.context.expires = self.args.expiry_time
+      runner.args.client_limit = self.args.client_limit
 
 
 class CheckHuntAccessFlowArgs(rdfvalue.RDFProtoStruct):
@@ -452,8 +454,8 @@ class GenericHunt(implementation.GRRHunt):
       A list of flow URNs.
     """
     result = None
-    all_clients = set(self.GetValuesForAttribute(self.Schema.CLIENTS))
-    finished_clients = set(self.GetValuesForAttribute(self.Schema.FINISHED))
+    all_clients = set(self.ListAllClients())
+    finished_clients = set(self.ListFinishedClients())
     outstanding_clients = all_clients - finished_clients
 
     if flow_type == "all":
@@ -557,6 +559,8 @@ class StatsHunt(implementation.GRRHunt):
   """
 
   args_type = GenericHuntArgs
+  client_list = None
+  client_list_lock = None
 
   def Start(self, **kwargs):
     super(StatsHunt, self).Start(**kwargs)
@@ -566,18 +570,72 @@ class StatsHunt(implementation.GRRHunt):
     self.runner.args.priority = "LOW_PRIORITY"
     self.runner.args.require_fastpoll = False
 
+    # The first time we're loaded we create these variables here.  After we are
+    # sent to storage we recreate them in the Load method.
+    self._MakeLock()
+
+  def _MakeLock(self):
+    if self.client_list is None:
+      self.client_list = []
+    if self.client_list_lock is None:
+      self.client_list_lock = threading.RLock()
+
+  def Load(self):
+    super(StatsHunt, self).Load()
+    self._MakeLock()
+
+  def Save(self):
+    # Make sure we call any remaining clients before we are saved
+    with self.client_list_lock:
+      call_list, self.client_list = self.client_list, None
+
+    self._CallClients(call_list)
+
+    super(StatsHunt, self).Save()
+
   @flow.StateHandler()
   def RunClient(self, responses):
-    for client_id in responses:
-      self._CollectClientStats(client_id)
+    client_call_list = self._GetCallClientList(responses)
+    self._CallClients(client_call_list)
 
-  def _CollectClientStats(self, client_id):
+  def _GetCallClientList(self, client_ids):
+    """Use self.client_list to determine clients that need calling.
+
+    Batch calls into StatsHunt.ClientBatchSize (or larger) chunks.
+
+    Args:
+      client_ids: list of client ids
+    Returns:
+      list of client IDs that should be called with callclient.
+    """
+    call_list = []
+    with self.client_list_lock:
+      self.client_list.extend(client_ids)
+
+      if len(self.client_list) >= config_lib.CONFIG[
+          "StatsHunt.ClientBatchSize"]:
+        # We have enough clients ready to process, take a copy of the list so we
+        # can release the lock.
+        call_list, self.client_list = self.client_list, []
+    return call_list
+
+  def _CallClients(self, client_id_list):
     now = rdfvalue.RDFDatetime().Now()
     due = now + rdfvalue.Duration(
         config_lib.CONFIG["StatsHunt.CollectionInterval"])
-    for client_action in config_lib.CONFIG["StatsHunt.ClientActions"]:
-      self.CallClient(client_action, next_state="StoreResults",
-                      client_id=client_id, start_time=due)
+
+    for client in aff4.FACTORY.MultiOpen(client_id_list,
+                                         token=self.token):
+
+      if client.Get(client.SchemaCls.SYSTEM) == "Windows":
+        wmi_query = ("Select * from Win32_NetworkAdapterConfiguration where"
+                     " IPEnabled=1")
+        self.CallClient("WmiQuery", query=wmi_query,
+                        next_state="StoreResults", client_id=client.urn,
+                        start_time=due)
+      else:
+        self.CallClient("EnumerateInterfaces", next_state="StoreResults",
+                        client_id=client.urn, start_time=due)
 
   def ProcessInterface(self, response):
     """Filter out localhost interfaces."""
@@ -590,10 +648,16 @@ class StatsHunt(implementation.GRRHunt):
     client_id = responses.request.client_id
     # TODO(user): Should we record client usage stats?
     processed_responses = []
+    wmi_interface_parser = wmi_parser.WMIInterfacesParser()
 
     for response in responses:
       if isinstance(response, rdfvalue.Interface):
-        processed_responses += filter(None, [self.ProcessInterface(response)])
+        processed_responses.extend(
+            filter(None, [self.ProcessInterface(response)]))
+      elif isinstance(response, rdfvalue.Dict):
+        # This is a result from the WMIQuery call
+        processed_responses.extend(list(
+            wmi_interface_parser.Parse(None, response, None)))
 
     new_responses = flow.FakeResponses(processed_responses,
                                        responses.request_data)
@@ -606,7 +670,8 @@ class StatsHunt(implementation.GRRHunt):
     # to be created.
     if self.runner.IsHuntStarted():
       # Re-issue the request to the client for the next collection.
-      self._CollectClientStats(client_id)
+      client_call_list = self._GetCallClientList([client_id])
+      if client_call_list:
+        self._CallClients(client_call_list)
     else:
       self.MarkClientDone(client_id)
-

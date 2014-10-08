@@ -377,6 +377,29 @@ class TemplateRenderer(Renderer):
     return self.RawHTML()
 
 
+class AngularDirectiveRenderer(TemplateRenderer):
+  """Renderers specified Angular directive with given parameters."""
+
+  directive = None
+  directive_args = None
+
+  layout_template = Template("""
+<div id="{{unique|escape}}"></div>
+""")
+
+  def Layout(self, request, response, **kwargs):
+    if self.directive is None:
+      raise ValueError("'directive' attribute has to be specified.")
+
+    self.directive_args = self.directive_args or {}
+
+    response = super(AngularDirectiveRenderer, self).Layout(
+        request, response, **kwargs)
+    return self.CallJavascript(response, "AngularDirectiveRenderer.Layout",
+                               directive=self.directive,
+                               directive_args=self.directive_args)
+
+
 class EscapingRenderer(TemplateRenderer):
   """A simple renderer to escape a string."""
   layout_template = Template("{{this.to_escape|escape}}")

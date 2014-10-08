@@ -69,15 +69,15 @@ class RawIOBaseBridge(io.RawIOBase):
 # pylint: enable=invalid-name
 
 
-class ExportHuntResultsFilesAsZipArgs(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.ExportHuntResultsFilesAsZipArgs
+class ExportHuntResultsFilesAsArchiveArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.ExportHuntResultsFilesAsArchiveArgs
 
 
-class ExportHuntResultFilesAsZip(flow.GRRFlow):
-  """Downloads files found by the hunt to a zip file."""
+class ExportHuntResultFilesAsArchive(flow.GRRFlow):
+  """Downloads files found by the hunt to a zip or tar file."""
 
   ACL_ENFORCED = False
-  args_type = ExportHuntResultsFilesAsZipArgs
+  args_type = ExportHuntResultsFilesAsArchiveArgs
 
   BATCH_SIZE = 1024
 
@@ -88,7 +88,7 @@ class ExportHuntResultFilesAsZip(flow.GRRFlow):
       except ItemNotExportableError:
         pass
 
-  def DownloadCollectionFiles(self, collection, output_zip, prefix):
+  def DownloadCollectionFiles(self, collection, output_writer, prefix):
     """Download all files from the collection and deduplicate along the way."""
 
     hashes = set()
@@ -105,23 +105,21 @@ class ExportHuntResultFilesAsZip(flow.GRRFlow):
           self.state.archived_files += 1
 
           sha256_hash = fd.Get(fd.Schema.HASH, rdfvalue.Hash()).sha256
-          if not sha256_hash or not self.args.deduplicate:
-            self.Log("Written " + archive_path)
-            output_zip.WriteFromFD(fd, archive_path, self.state.compression)
-            continue
-
           content_path = os.path.join(prefix, "hashes", str(sha256_hash))
           if sha256_hash not in hashes:
-            output_zip.WriteFromFD(fd, content_path, self.state.compression)
+            # Make sure size of the original file is passed. It's required
+            # when output_writer is StreamingTarWriter.
+            st = os.stat_result((0644, 0, 0, 0, 0, 0, fd.size, 0, 0, 0))
+            output_writer.WriteFromFD(fd, content_path, st=st)
             hashes.add(sha256_hash)
             self.Log("Written contents: " + content_path)
 
           up_prefix = "../" * len(fd.urn.Split())
-          output_zip.WriteSymlink(up_prefix + content_path, archive_path)
+          output_writer.WriteSymlink(up_prefix + content_path, archive_path)
           self.Log("Written symlink %s -> %s", archive_path,
                    up_prefix + content_path)
 
-  @flow.StateHandler(next_state="CreateZipFile")
+  @flow.StateHandler(next_state="CreateArchive")
   def Start(self):
     """Find a hunt, check permissions and proceed to download the files."""
 
@@ -129,24 +127,33 @@ class ExportHuntResultFilesAsZip(flow.GRRFlow):
     data_store.DB.security_manager.CheckHuntAccess(
         self.token.RealUID(), self.args.hunt_urn)
 
-    self.state.Register("compression", zipfile.ZIP_DEFLATED)
     self.state.Register("total_files", 0)
     self.state.Register("archived_files", 0)
-    self.state.Register("output_zip_urn", None)
+    self.state.Register("output_archive_urn", None)
+    self.state.Register("output_size", 0)
 
     # The actual work is done on the workers.
-    self.CallState(next_state="CreateZipFile")
+    self.CallState(next_state="CreateArchive")
 
   @flow.StateHandler()
-  def CreateZipFile(self, _):
-    # Create an output zip file in the temp space.
+  def CreateArchive(self, _):
+    # Create an output zip or tar file in the temp space.
     with aff4.FACTORY.Create(None, "TempImageFile", token=self.token) as outfd:
       friendly_hunt_name = self.args.hunt_urn.Basename().replace(":", "_")
-      outfd.urn = outfd.urn.Add("hunt_%s_%X%X.zip" % (
-          friendly_hunt_name, utils.PRNG.GetULong(), utils.PRNG.GetULong()))
+
+      if self.args.format == self.args.ArchiveFormat.ZIP:
+        file_extension = "zip"
+      elif self.args.format == self.args.ArchiveFormat.TAR_GZIP:
+        file_extension = "tar.gz"
+      else:
+        raise ValueError("Unknown archive format: %s" % self.args.format)
+
+      outfd.urn = outfd.urn.Add("hunt_%s_%X%X.%s" % (
+          friendly_hunt_name, utils.PRNG.GetULong(),
+          utils.PRNG.GetULong(), file_extension))
 
       self.Log("Will create output on %s" % outfd.urn)
-      self.state.output_zip_urn = outfd.urn
+      self.state.output_archive_urn = outfd.urn
 
       hunt = aff4.FACTORY.Open(self.args.hunt_urn, aff4_type="GRRHunt",
                                token=self.token)
@@ -158,16 +165,27 @@ class ExportHuntResultFilesAsZip(flow.GRRFlow):
 
       buffered_outfd = io.BufferedWriter(RawIOBaseBridge(outfd),
                                          buffer_size=1024 * 1024 * 12)
-      with utils.StreamingZipWriter(buffered_outfd, "w",
-                                    zipfile.ZIP_DEFLATED) as output_zip:
-        self.DownloadCollectionFiles(collection, output_zip, friendly_hunt_name)
+      if self.args.format == self.args.ArchiveFormat.ZIP:
+        streaming_writer = utils.StreamingZipWriter(buffered_outfd, "w",
+                                                    zipfile.ZIP_DEFLATED)
+      elif self.args.format == self.args.ArchiveFormat.TAR_GZIP:
+        streaming_writer = utils.StreamingTarWriter(buffered_outfd, "w:gz")
+      else:
+        raise ValueError("Unknown archive format: %s" % self.args.format)
+
+      with streaming_writer:
+        self.DownloadCollectionFiles(collection, streaming_writer,
+                                     friendly_hunt_name)
+
+      self.state.output_size = rdfvalue.ByteSize(outfd.size)
 
   @flow.StateHandler()
   def End(self):
-    self.Notify("DownloadFile", self.state.output_zip_urn,
+    self.Notify("DownloadFile", self.state.output_archive_urn,
                 "Hunt results ready for download (archived %d out of %d "
-                "results)" % (self.state.archived_files,
-                              self.state.total_files))
+                "results, archive size is %s)" % (self.state.archived_files,
+                                                  self.state.total_files,
+                                                  self.state.output_size))
 
     # TODO(user): it would be better to provide a direct download link in the
     # email here, but it requires more work.  The notifications bar creates and
@@ -175,29 +193,25 @@ class ExportHuntResultFilesAsZip(flow.GRRFlow):
     template = """
   <html><body>
   <p>
-    The zip archive contains %(archived)s of %(total)s files for hunt
+    The archive archive contains %(archived)s of %(total)s files for hunt
     %(hunt_id)s.  Check the <a href='%(admin_ui)s/'>GRR notification bar</a> for
     download links.
   </p>
 
   <p>Thanks,</p>
-  <p>%(signature)s</p>
+  <p>The GRR team.</p>
   </body></html>"""
 
     subject = "Hunt results for %s ready for download." % (
         self.args.hunt_urn.Basename())
 
-    if self.token.username != "GRRWorker":
-
-      email_alerts.SendEmail(
-          "%s@%s" % (
-              self.token.username, config_lib.CONFIG.Get("Logging.domain")),
-          "grr-noreply@%s" % config_lib.CONFIG.Get("Logging.domain"), subject,
-          template % dict(
-              hunt_id=self.args.hunt_urn.Basename(),
-              archived=self.state.archived_files,
-              total=self.state.total_files,
-              admin_ui=config_lib.CONFIG["AdminUI.url"],
-              signature=config_lib.CONFIG["Email.signature"]),
-          is_html=True)
-
+    email_alerts.SendEmail(
+        "%s@%s" % (self.state.context.creator,
+                   config_lib.CONFIG.Get("Logging.domain")),
+        "grr-noreply@%s" % config_lib.CONFIG.Get("Logging.domain"), subject,
+        template % dict(
+            hunt_id=self.args.hunt_urn.Basename(),
+            archived=self.state.archived_files,
+            total=self.state.total_files,
+            admin_ui=config_lib.CONFIG["AdminUI.url"]),
+        is_html=True)

@@ -35,6 +35,7 @@ import unittest
 from grr.client import actions
 from grr.client import comms
 from grr.client import vfs
+from grr.client.client_actions import standard
 
 from grr.lib import access_control
 from grr.lib import action_mocks
@@ -191,13 +192,33 @@ class WellKnownSessionTest(flow.WellKnownFlow):
 
 
 class MockSecurityManager(access_control.BaseAccessControlManager):
-  """A simple in memory ACL manager which only enforces the Admin label.
+  """A simple in memory ACL manager which enforces the Admin label.
 
-  This also guarantees that the correct access token has been passed to the
-  security manager.
+  It also guarantees that the correct access token has been passed to the
+  security manager. It can also optionally limit datastore access for
+  certain access types.
 
   Note: No user management, we assume a single test user.
   """
+
+  def __init__(self, forbidden_datastore_access=""):
+    """Constructor.
+
+    Args:
+      forbidden_datastore_access: String designating datastore
+          permissions. Permissions specified in this argument
+          will not be granted when checking for datastore access.
+
+          Known permissions are:
+            "r" - for reading,
+            "w" - for writing,
+            "q" - for querying.
+          forbidden_datastore_access should be a combination of the above. By
+          default all types of access are permitted.
+    """
+    super(MockSecurityManager, self).__init__()
+
+    self.forbidden_datastore_access = forbidden_datastore_access
 
   def CheckFlowAccess(self, token, flow_name, client_id=None):
     _ = flow_name, client_id
@@ -221,6 +242,12 @@ class MockSecurityManager(access_control.BaseAccessControlManager):
     _ = subjects, requested_access
     if token is None:
       raise RuntimeError("Security Token is not set correctly.")
+
+    for access in requested_access:
+      if access in self.forbidden_datastore_access:
+        raise access_control.UnauthorizedAccess("%s access is is not allowed" %
+                                                access)
+
     return True
 
 
@@ -250,8 +277,10 @@ class GRRBaseTest(unittest.TestCase):
   def setUp(self):
     super(GRRBaseTest, self).setUp()
 
+    tmpdir = os.environ.get("TEST_TMPDIR") or config_lib.CONFIG["Test.tmpdir"]
+
     # Make a temporary directory for test files.
-    self.temp_dir = tempfile.mkdtemp(dir=config_lib.CONFIG["Test.tmpdir"])
+    self.temp_dir = tempfile.mkdtemp(dir=tmpdir)
 
     # Reinitialize the config system each time.
     startup.TestInit()
@@ -378,10 +407,16 @@ class GRRBaseTest(unittest.TestCase):
     finally:
       result.stopTest(self)
 
-  def MakeUserAdmin(self, username):
-    """Makes the test user an admin."""
-    with aff4.FACTORY.Create("aff4:/users/%s" % username, "GRRUser",
-                             token=self.token.SetUID()) as user:
+  def CreateUser(self, username):
+    """Creates a user."""
+    user = aff4.FACTORY.Create("aff4:/users/%s" % username, "GRRUser",
+                               token=self.token.SetUID())
+    user.Flush()
+    return user
+
+  def CreateAdminUser(self, username):
+    """Creates a user and makes it an admin."""
+    with self.CreateUser(username) as user:
       user.SetLabels("admin", owner="GRR")
 
   def GrantClientApproval(self, client_id, token=None):
@@ -395,7 +430,7 @@ class GRRBaseTest(unittest.TestCase):
                            approver="approver",
                            token=token)
 
-    self.MakeUserAdmin("approver")
+    self.CreateAdminUser("approver")
 
     approver_token = access_control.ACLToken(username="approver")
     flow.GRRFlow.StartFlow(client_id=client_id,
@@ -415,7 +450,7 @@ class GRRBaseTest(unittest.TestCase):
                            approver="approver",
                            token=token)
 
-    self.MakeUserAdmin("approver")
+    self.CreateAdminUser("approver")
 
     approver_token = access_control.ACLToken(username="approver")
     flow.GRRFlow.StartFlow(flow_name="GrantHuntApprovalFlow",
@@ -434,7 +469,7 @@ class GRRBaseTest(unittest.TestCase):
                            approver="approver",
                            token=token)
 
-    self.MakeUserAdmin("approver")
+    self.CreateAdminUser("approver")
 
     approver_token = access_control.ACLToken(username="approver")
     flow.GRRFlow.StartFlow(flow_name="GrantCronJobApprovalFlow",
@@ -1394,23 +1429,23 @@ class MockWorker(worker.GRRWorker):
             session_id, token=self.token, blocking=False) as flow_obj:
 
           # Run it
-          with flow_obj.GetRunner() as runner:
-            cpu_used = runner.context.client_resources.cpu_usage
-            user_cpu = self.cpu_user.next()
-            system_cpu = self.cpu_system.next()
-            network_bytes = self.network_bytes.next()
-            cpu_used.user_cpu_time += user_cpu
-            cpu_used.system_cpu_time += system_cpu
-            runner.context.network_bytes_sent += network_bytes
-            runner.ProcessCompletedRequests(notification, self.pool)
+          runner = flow_obj.GetRunner()
+          cpu_used = runner.context.client_resources.cpu_usage
+          user_cpu = self.cpu_user.next()
+          system_cpu = self.cpu_system.next()
+          network_bytes = self.network_bytes.next()
+          cpu_used.user_cpu_time += user_cpu
+          cpu_used.system_cpu_time += system_cpu
+          runner.context.network_bytes_sent += network_bytes
+          runner.ProcessCompletedRequests(notification, self.pool)
 
-            if (self.check_flow_errors and
-                runner.context.state == rdfvalue.Flow.State.ERROR):
-              logging.exception("Flow terminated in state %s with an error: %s",
-                                runner.context.current_state,
-                                runner.context.backtrace)
+          if (self.check_flow_errors and
+              runner.context.state == rdfvalue.Flow.State.ERROR):
+            logging.exception("Flow terminated in state %s with an error: %s",
+                              runner.context.current_state,
+                              runner.context.backtrace)
 
-              raise RuntimeError(runner.context.backtrace)
+            raise RuntimeError(runner.context.backtrace)
 
     return run_sessions
 
@@ -1825,11 +1860,13 @@ class ClientVFSHandlerFixture(vfs.VFSHandler):
     client fixture.
     """
     for dirname, (_, stat) in self.paths.items():
+      pathspec = stat.pathspec
       while 1:
         dirname = os.path.dirname(dirname)
 
-        new_pathspec = stat.pathspec.Copy()
-        new_pathspec.path = dirname
+        new_pathspec = pathspec.Copy()
+        new_pathspec.path = os.path.dirname(pathspec.path)
+        pathspec = new_pathspec
 
         if dirname == "/" or dirname in self.paths: break
 
@@ -1847,7 +1884,7 @@ class ClientVFSHandlerFixture(vfs.VFSHandler):
         yield stat
 
   def Read(self, length):
-    result = self.paths.get(self.path)
+    result = self.paths.get(self._NormalizeCaseForPath(self.path, "VFSFile"))
     if not result:
       raise IOError("File not found")
 
@@ -1894,19 +1931,19 @@ class ClientVFSHandlerFixture(vfs.VFSHandler):
                                 st_dev=1)
 
 
-class ClientRegistryVFSFixture(ClientVFSHandlerFixture):
+class FakeRegistryVFSHandler(ClientVFSHandlerFixture):
   """Special client VFS mock that will emulate the registry."""
   prefix = "/registry"
   supported_pathtype = rdfvalue.PathSpec.PathType.REGISTRY
 
 
-class ClientFullVFSFixture(ClientVFSHandlerFixture):
+class FakeFullVFSHandler(ClientVFSHandlerFixture):
   """Full client VFS mock."""
   prefix = "/"
   supported_pathtype = rdfvalue.PathSpec.PathType.OS
 
 
-class ClientTestDataVFSFixture(ClientVFSHandlerFixture):
+class FakeTestDataVFSHandler(ClientVFSHandlerFixture):
   """Client VFS mock that looks for files in the test_data directory."""
   prefix = "/fs/os"
   supported_pathtype = rdfvalue.PathSpec.PathType.OS
@@ -2015,6 +2052,26 @@ class TestRekallRepositoryProfileServer(rekall_profile_server.ProfileServer):
 
     return rdfvalue.RekallProfile(name=profile_name,
                                   data=profile_data)
+
+
+class OSSpecificClientTests(EmptyActionTest):
+  """OS-specific client action tests.
+
+  We need to temporarily disable the actionplugin class registry to avoid
+  registering actions for other OSes.
+  """
+
+  def setUp(self):
+    super(OSSpecificClientTests, self).setUp()
+    self.old_action_reg = actions.ActionPlugin.classes
+    self.old_standard_reg = standard.ExecuteBinaryCommand.classes
+    actions.ActionPlugin.classes = {}
+    standard.ExecuteBinaryCommand.classes = {}
+
+  def tearDown(self):
+    super(OSSpecificClientTests, self).tearDown()
+    actions.ActionPlugin.classes = self.old_action_reg
+    standard.ExecuteBinaryCommand.classes = self.old_standard_reg
 
 
 def main(argv=None):

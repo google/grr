@@ -448,3 +448,19 @@ message UnixVolume {
 
 }
 
+// Submitted request for addition to CyBox schema:
+// https://github.com/CybOXProject/schemas/issues/329
+message DNSClientConfiguration {
+  option (semantic) = {
+    description: "DNS client configuration information."
+  };
+
+  repeated string dns_server = 1 [(sem_type) = {
+      description: "List of DNS servers appended in search order.",
+    }];
+
+  repeated string dns_suffix = 2 [(sem_type) = {
+      description: "List of DNS suffixes appended in search order.",
+    }];
+
+}

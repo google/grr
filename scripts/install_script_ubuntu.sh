@@ -108,7 +108,7 @@ function run_cmd_confirm()
 header "Updating APT and Installing dependencies"
 run_cmd_confirm sudo apt-get --yes update;
 run_cmd_confirm sudo apt-get --yes upgrade;
-run_cmd_confirm sudo apt-get --force-yes --yes install python-setuptools python-dateutil python-django ipython apache2-utils zip wget python-ipaddr python-support python-matplotlib python-mox python-yaml python-pip dpkg-dev debhelper rpm prelink build-essential python-dev python-pandas;
+run_cmd_confirm sudo apt-get --force-yes --yes install python-setuptools python-dateutil python-django ipython apache2-utils zip wget python-ipaddr python-support python-matplotlib python-mox python-yaml python-pip dpkg-dev debhelper rpm prelink build-essential python-dev python-pandas python-mock;
 
 # Fail silently if python-dev or libpython-dev is not available in the apt repo
 # python-dev is for Ubuntu version < 12.10 and libpython-dev is for > 12.04

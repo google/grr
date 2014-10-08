@@ -5,7 +5,6 @@
 
 
 import os
-import platform
 import stat
 
 
@@ -26,11 +25,6 @@ from grr.lib.aff4_objects import aff4_grr
 
 
 # pylint: mode=test
-
-
-def setUpModule():
-  # Initialize the VFS system
-  vfs.VFSInit()
 
 
 class VFSTest(test_lib.GRRBaseTest):
@@ -446,29 +440,23 @@ class VFSTest(test_lib.GRRBaseTest):
 
   def testRegistryListing(self):
     """Test our ability to list registry keys."""
-    if platform.system() != "Windows":
-      return
+    vfs.VFS_HANDLERS[
+        rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
 
-    # Make a value we can test for
-    import _winreg  # pylint: disable=g-import-not-at-top
+    pathspec = rdfvalue.PathSpec(pathtype=rdfvalue.PathSpec.PathType.REGISTRY,
+                                 path=("/HKEY_USERS/S-1-5-20/Software/Microsoft"
+                                       "/Windows/CurrentVersion/Run"))
 
-    key = _winreg.OpenKey(_winreg.HKEY_CURRENT_USER,
-                          "Software",
-                          0,
-                          _winreg.KEY_CREATE_SUB_KEY)
-    subkey = _winreg.CreateKey(key, "GRR_Test")
-    _winreg.SetValueEx(subkey, "foo", 0, _winreg.REG_SZ, "bar")
+    expected_names = {"MctAdmin": stat.S_IFDIR,
+                      "Sidebar": stat.S_IFDIR}
+    expected_data = [u"%ProgramFiles%\\Windows Sidebar\\Sidebar.exe /autoRun",
+                     u"%TEMP%\\Sidebar.exe"]
 
-    vfs_path = "HKEY_CURRENT_USER/Software/GRR_Test"
-
-    pathspec = rdfvalue.PathSpec(
-        path=vfs_path,
-        pathtype=rdfvalue.PathSpec.PathType.REGISTRY)
     for f in vfs.VFSOpen(pathspec).ListFiles():
-      self.assertEqual(f.pathspec.path, "/" + vfs_path + "/foo")
-      self.assertEqual(f.resident, "bar")
-
-    _winreg.DeleteKey(key, "GRR_Test")
+      base, name = os.path.split(f.pathspec.CollapsePath())
+      self.assertEqual(base, pathspec.CollapsePath())
+      self.assertIn(name, expected_names)
+      self.assertIn(f.registry_data.GetValue(), expected_data)
 
   def CheckDirectoryListing(self, directory, test_file):
     """Check that the directory listing is sensible."""

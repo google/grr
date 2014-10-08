@@ -13,6 +13,7 @@ import shlex
 import socket
 import shutil
 import struct
+import tarfile
 import tempfile
 import threading
 import time
@@ -353,6 +354,9 @@ class FastStore(object):
 
   def __setstate__(self, state):
     self.__init__(max_size=state.get("max_size", 10))
+
+  def __len__(self):
+    return len(self._hash)
 
 
 class TimeBasedCache(FastStore):
@@ -895,7 +899,7 @@ class StreamingZipWriter(object):
     """
     # Fake stat response.
     if st is None:
-      st = os.stat_result((0644, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+      st = os.stat_result((0100644, 0, 0, 0, 0, 0, 0, 0, 0, 0))
 
     mtime = time.localtime(st.st_mtime or time.time())
     date_time = mtime[0:6]
@@ -916,19 +920,37 @@ class StreamingZipWriter(object):
     zinfo.flag_bits = 0x08  # Setting data descriptor flag.
     zinfo.CRC = 0x08074b50  # Predefined CRC for archives using data
                             # descriptors.
-
+    # This fills an empty Info-ZIP Unix extra field.
+    zinfo.extra = struct.pack("<HHIIHH", 0x5855, 12,
+                              0,  # time of last access (UTC/GMT)
+                              0,  # time of last modification (UTC/GMT)
+                              0,  # user ID
+                              0)  # group ID
     return zinfo
 
   def WriteSymlink(self, src_arcname, dst_arcname):
+    """Writes a symlink into the archive."""
     # Inspired by:
     # http://www.mail-archive.com/python-list@python.org/msg34223.html
 
+    src_arcname = SmartStr(src_arcname)
+    dst_arcname = SmartStr(dst_arcname)
+
     zinfo = zipfile.ZipInfo(dst_arcname)
-    # The zipinfo.create_system value describes the host OS. "3" corresponds
-    # to UNIX.
-    zinfo.create_system = 3
     # This marks a symlink.
-    zinfo.external_attr = 2716663808L
+    zinfo.external_attr = (0644 | 0120000) << 16
+    # This marks create_system as UNIX.
+    zinfo.create_system = 3
+
+    # This fills the ASi UNIX extra field, see:
+    # http://www.opensource.apple.com/source/zip/zip-6/unzip/unzip/proginfo/extra.fld
+    zinfo.extra = struct.pack("<HHIHIHHs", 0x756e, len(src_arcname) + 14,
+                              0,        # CRC-32 of the remaining data
+                              0120000,  # file permissions
+                              0,        # target file size
+                              0,        # user ID
+                              0,        # group ID
+                              src_arcname)
 
     self.zip_fd.writestr(zinfo, src_arcname)
 
@@ -1014,6 +1036,69 @@ class StreamingZipWriter(object):
     self.zip_fd.NameToInfo[zinfo.filename] = zinfo
 
 
+class StreamingTarWriter(object):
+  """A streaming tar file writer which can copy from file like objects.
+
+  The streaming writer should be capable of compressing files of arbitrary
+  size without eating all the memory. It's built on top of Python's tarfile
+  module.
+  """
+
+  def __init__(self, fd_or_path, mode="w"):
+    if hasattr(fd_or_path, "write"):
+      self.tar_fd = tarfile.open(mode=mode, fileobj=fd_or_path,
+                                 encoding="utf-8")
+    else:
+      self.tar_fd = tarfile.open(name=fd_or_path, mode=mode, encoding="utf-8")
+
+  def __enter__(self):
+    return self
+
+  def __exit__(self, unused_type, unused_value, unused_traceback):
+    self.Close()
+
+  def Close(self):
+    self.tar_fd.close()
+
+  def WriteSymlink(self, src_arcname, dst_arcname):
+    """Writes a symlink into the archive."""
+
+    info = self.tar_fd.tarinfo()
+    info.tarfile = self.tar_fd
+    info.name = SmartStr(dst_arcname)
+    info.size = 0
+    info.mtime = time.time()
+    info.type = tarfile.SYMTYPE
+    info.linkname = SmartStr(src_arcname)
+
+    self.tar_fd.addfile(info)
+
+  def WriteFromFD(self, src_fd, arcname=None, st=None):
+    """Write an archive member from a file like object.
+
+    Args:
+      src_fd: A file like object, must support seek(), tell(), read().
+      arcname: The name in the archive this should take.
+      st: A stat object to be used for setting headers.
+
+    Raises:
+      ValueError: If st is omitted.
+    """
+
+    if st is None:
+      raise ValueError("Stat object can't be None.")
+
+    info = self.tar_fd.tarinfo()
+    info.tarfile = self.tar_fd
+    info.type = tarfile.REGTYPE
+    info.name = SmartStr(arcname)
+    info.size = st.st_size
+    info.mode = st.st_mode
+    info.mtime = st.st_mtime or time.time()
+
+    self.tar_fd.addfile(info, src_fd)
+
+
 class Stubber(object):
   """A context manager for doing simple stubs."""
 
@@ -1023,6 +1108,12 @@ class Stubber(object):
     self.stub = stub
 
   def __enter__(self):
+    self.Start()
+
+  def Stop(self):
+    setattr(self.module, self.target_name, self.old_target)
+
+  def Start(self):
     self.old_target = getattr(self.module, self.target_name, None)
     try:
       self.stub.old_target = self.old_target
@@ -1031,7 +1122,7 @@ class Stubber(object):
     setattr(self.module, self.target_name, self.stub)
 
   def __exit__(self, unused_type, unused_value, unused_traceback):
-    setattr(self.module, self.target_name, self.old_target)
+    self.Stop()
 
 
 class MultiStubber(object):
@@ -1040,10 +1131,16 @@ class MultiStubber(object):
   def __init__(self, *args):
     self.stubbers = [Stubber(*x) for x in args]
 
-  def __enter__(self):
+  def Start(self):
     for x in self.stubbers:
-      x.__enter__()
+      x.Start()
+
+  def Stop(self):
+    for x in self.stubbers:
+      x.Stop()
+
+  def __enter__(self):
+    self.Start()
 
   def __exit__(self, t, value, traceback):
-    for x in self.stubbers:
-      x.__exit__(t, value, traceback)
+    self.Stop()

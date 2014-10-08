@@ -41,8 +41,6 @@ class AuditEventListener(flow.EventListener):
   @flow.EventHandler(auth_required=False)
   def ProcessMessage(self, message=None, event=None):
     _ = message
-    fd = aff4.FACTORY.Create("aff4:/audit/log", "VersionedCollection",
-                             mode="w", token=self.token)
-
-    fd.Add(event)
-    fd.Close()
+    with aff4.FACTORY.Create("aff4:/audit/log", "PackedVersionedCollection",
+                             mode="w", token=self.token) as fd:
+      fd.Add(event)

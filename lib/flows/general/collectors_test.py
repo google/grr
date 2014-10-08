@@ -126,7 +126,7 @@ class TestArtifactCollectors(artifact_test.ArtifactTestHelper):
     """Test we can get a basic artifact."""
 
     client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
-                                          "HashFile", "HashBuffer")
+                                          "FingerprintFile", "HashBuffer")
     client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
     client.Set(client.Schema.SYSTEM("Linux"))
     client.Flush()
@@ -221,21 +221,21 @@ class TestArtifactCollectors(artifact_test.ArtifactTestHelper):
         conditions=["os == 'Windows'"])
     self.fakeartifact.collectors.append(coll1)
     fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
-    self.assertEquals(fd.__class__.__name__, "AFF4Volume")
+    self.assertEqual(fd.__class__.__name__, "AFF4Volume")
 
     # Now run with matching or condition.
     coll1.conditions = ["os == 'Linux' or os == 'Windows'"]
     self.fakeartifact.collectors = []
     self.fakeartifact.collectors.append(coll1)
     fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
-    self.assertEquals(fd.__class__.__name__, "RDFValueCollection")
+    self.assertEqual(fd.__class__.__name__, "RDFValueCollection")
 
     # Now run with impossible or condition.
     coll1.conditions.append("os == 'NotTrue'")
     self.fakeartifact.collectors = []
     self.fakeartifact.collectors.append(coll1)
     fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
-    self.assertEquals(fd.__class__.__name__, "AFF4Volume")
+    self.assertEqual(fd.__class__.__name__, "AFF4Volume")
 
   def testSupportedOS(self):
     """Test supported_os inside the collector object."""
@@ -246,7 +246,7 @@ class TestArtifactCollectors(artifact_test.ArtifactTestHelper):
         args={"client_action": "ListProcesses"}, supported_os=["Windows"])
     self.fakeartifact.collectors.append(coll1)
     fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
-    self.assertEquals(fd.__class__.__name__, "AFF4Volume")
+    self.assertEqual(fd.__class__.__name__, "AFF4Volume")
 
     # Now run with matching or condition.
     coll1.conditions = []
@@ -254,7 +254,7 @@ class TestArtifactCollectors(artifact_test.ArtifactTestHelper):
     self.fakeartifact.collectors = []
     self.fakeartifact.collectors.append(coll1)
     fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
-    self.assertEquals(fd.__class__.__name__, "RDFValueCollection")
+    self.assertEqual(fd.__class__.__name__, "RDFValueCollection")
 
     # Now run with impossible or condition.
     coll1.conditions = ["os == 'Linux' or os == 'Windows'"]
@@ -262,7 +262,7 @@ class TestArtifactCollectors(artifact_test.ArtifactTestHelper):
     self.fakeartifact.collectors = []
     self.fakeartifact.collectors.append(coll1)
     fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
-    self.assertEquals(fd.__class__.__name__, "AFF4Volume")
+    self.assertEqual(fd.__class__.__name__, "AFF4Volume")
 
   def _RunClientActionArtifact(self, client_mock, artifact_list):
     client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
@@ -309,12 +309,12 @@ class TestArtifactCollectorsInteractions(
     client.Flush()
 
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.ClientRegistryVFSFixture
+        rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.OS] = test_lib.ClientFullVFSFixture
+        rdfvalue.PathSpec.PathType.OS] = test_lib.FakeFullVFSHandler
 
     client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
-                                          "HashBuffer", "HashFile",
+                                          "HashBuffer", "FingerprintFile",
                                           "ListDirectory")
 
     # Get KB initialized
@@ -416,7 +416,7 @@ class TestArtifactCollectorsRealArtifacts(artifact_test.ArtifactTestHelper):
 
     # Registry is present, so this should use the regular artifact collection
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.ClientRegistryVFSFixture
+        rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
     self._CheckDriveAndRoot()
 
   def testRunWMIArtifact(self):
@@ -461,12 +461,12 @@ class TestArtifactCollectorsRealArtifacts(artifact_test.ArtifactTestHelper):
     client.Flush()
 
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.ClientRegistryVFSFixture
+        rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.OS] = test_lib.ClientFullVFSFixture
+        rdfvalue.PathSpec.PathType.OS] = test_lib.FakeFullVFSHandler
 
     client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
-                                          "HashBuffer", "HashFile",
+                                          "HashBuffer", "FingerprintFile",
                                           "ListDirectory")
 
     artifact_list = ["WinDirEnvironmentVariable"]

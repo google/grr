@@ -59,7 +59,7 @@ class AccessControlTest(test_lib.GRRBaseTest):
     approval_request.Close()
 
     if admin:
-      self.MakeUserAdmin("Approver1")
+      self.CreateAdminUser("Approver1")
 
   def CreateSampleHunt(self):
     """Creats SampleHunt, writes it to the data store and returns it's id."""
@@ -142,7 +142,7 @@ class AccessControlTest(test_lib.GRRBaseTest):
     self.assertRaises(access_control.UnauthorizedAccess, aff4.FACTORY.Open, urn,
                       None, "rw", token)
 
-    with test_lib.FakeTime(100.0):
+    with test_lib.FakeTime(100.0, increment=1e-3):
       self.GrantClientApproval(client_id, token)
 
       # This should work now.

@@ -263,40 +263,39 @@ class FileFinder(transfer.MultiGetFileMixin,
 
   def ProcessAction(self, response):
     """Applies action specified by user to responses."""
-    self.state.files_found += 1
-
     action = self.state.args.action.action_type
 
-    # For stat and download we can sendreply now, for hash we need to call
-    # fingerprint file first.
-    if action != rdfvalue.FileFinderAction.Action.HASH:
-      self.SendReply(response)
-
     if action == rdfvalue.FileFinderAction.Action.STAT:
-      # No need to do anything here, we already have StatEntries for all the
-      # files
-      pass
-
+      # If action is STAT, we already have all the data we need to send the
+      # response.
+      self.state.files_found += 1
+      self.SendReply(response)
     elif (self.args.no_file_type_check or
           stat.S_ISREG(response.stat_entry.st_mode)):
-      # Hashing and downloading only makes sense for regular files.
+      # Hashing and downloading only makes sense for regular files. Reply is
+      # sent only when we get file's hash.
+      self.state.files_found += 1
 
       if action == rdfvalue.FileFinderAction.Action.HASH:
         self.FingerprintFile(response.stat_entry.pathspec,
                              request_data=dict(original_result=response))
 
       elif action == rdfvalue.FileFinderAction.Action.DOWNLOAD:
-        # If the binary is too large we just ignore it.
+        # If the binary is too large we don't download it, but take a
+        # fingerprint instead.
         file_size = response.stat_entry.st_size
         if file_size > self.args.action.download.max_size:
           self.Log("%s too large to fetch. Size=%d",
                    response.stat_entry.pathspec.CollapsePath(), file_size)
+          self.FingerprintFile(response.stat_entry.pathspec,
+                               request_data=dict(original_result=response))
         else:
           pathspec = response.stat_entry.pathspec
           vfs_urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
               pathspec, self.client_id)
 
-          self.StartFile(pathspec, vfs_urn)
+          self.StartFileFetch(pathspec, vfs_urn,
+                              request_data=dict(original_result=response))
 
   def ReceiveFileFingerprint(self, urn, hash_obj, request_data=None):
     """Handle hash results from the FingerprintFileMixin."""
@@ -307,6 +306,17 @@ class FileFinder(transfer.MultiGetFileMixin,
     else:
       raise RuntimeError("Got a fingerprintfileresult, but original result "
                          "is missing")
+
+  def ReceiveFetchedFile(self, unused_stat_entry, file_hash,
+                         request_data=None):
+    """Handle downloaded file from MultiGetFileMixin."""
+    if "original_result" not in request_data:
+      raise RuntimeError("Got fetched file data, but original result "
+                         "is missing")
+
+    result = request_data["original_result"]
+    result.hash_entry = file_hash
+    self.SendReply(result)
 
   @flow.StateHandler()
   def End(self, responses):

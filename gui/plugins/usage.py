@@ -20,7 +20,7 @@ class MostActiveUsers(statistics.PieChart):
     try:
       # TODO(user): Replace with Duration().
       now = int(rdfvalue.RDFDatetime().Now())
-      fd = aff4.FACTORY.Open("aff4:/audit/log", aff4_type="VersionedCollection",
+      fd = aff4.FACTORY.Open("aff4:/audit/log", aff4_type="RDFValueCollection",
                              token=request.token)
 
       counts = {}
@@ -79,7 +79,7 @@ class UserActivity(StackChart):
       now = int(rdfvalue.RDFDatetime().Now())
       week_duration = 7 * 24 * 60 * 60 * 1000000
 
-      fd = aff4.FACTORY.Open("aff4:/audit/log", aff4_type="VersionedCollection",
+      fd = aff4.FACTORY.Open("aff4:/audit/log", aff4_type="RDFValueCollection",
                              token=request.token)
 
       self.user_activity = {}
@@ -136,7 +136,7 @@ class SystemFlows(statistics.Report, renderers.TableRenderer):
     try:
       now = rdfvalue.RDFDatetime().Now()
       start = now - self.time_offset
-      fd = aff4.FACTORY.Open("aff4:/audit/log", aff4_type="VersionedCollection",
+      fd = aff4.FACTORY.Open("aff4:/audit/log", aff4_type="RDFValueCollection",
                              token=request.token)
 
       # Store run count total and per-user
@@ -209,7 +209,7 @@ class ClientActivity(StackChart):
       now = int(rdfvalue.RDFDatetime().Now())
       week_duration = 7 * 24 * 60 * 60 * 1000000
 
-      fd = aff4.FACTORY.Open("aff4:/audit/log", aff4_type="VersionedCollection",
+      fd = aff4.FACTORY.Open("aff4:/audit/log", aff4_type="RDFValueCollection",
                              token=request.token)
 
       self.client_activity = {}
@@ -259,7 +259,7 @@ class AuditTable(statistics.Report, renderers.TableRenderer):
     try:
       now = rdfvalue.RDFDatetime().Now()
       start = now - self.time_offset
-      fd = aff4.FACTORY.Open("aff4:/audit/log", aff4_type="VersionedCollection",
+      fd = aff4.FACTORY.Open("aff4:/audit/log", aff4_type="RDFValueCollection",
                              token=request.token)
 
       rows = []

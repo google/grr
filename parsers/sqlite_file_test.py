@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc. All Rights Reserved.
-
 """Tests for grr.parsers.sqlite_file."""
 
 
@@ -13,9 +11,6 @@ from grr.lib import test_lib
 from grr.parsers import sqlite_file
 
 
-# pylint: disable=g-bad-name
-
-
 class SQLiteFileTest(test_lib.GRRBaseTest):
   """Test parsing of sqlite database files."""
 
@@ -25,7 +20,7 @@ class SQLiteFileTest(test_lib.GRRBaseTest):
     """Test empty files don't raise errors."""
     database_file = sqlite_file.SQLiteFile(StringIO.StringIO())
     entries = [x for x in database_file.Query(self.query)]
-    self.assertEquals(len(entries), 0)
+    self.assertEqual(len(entries), 0)
 
   # The places.sqlite contains 92 rows in table moz_places
   def testTmpFiles(self):
@@ -34,10 +29,10 @@ class SQLiteFileTest(test_lib.GRRBaseTest):
     file_stream = StringIO.StringIO(open(filename).read())
     database_file = sqlite_file.SQLiteFile(file_stream)
     entries = [x for x in database_file.Query(self.query)]
-    self.assertEquals(len(entries), 92)
+    self.assertEqual(len(entries), 92)
 
     # Test the tempfile is deleted
-    self.assertEquals(database_file._delete_file, True)
+    self.assertEqual(database_file._delete_file, True)
     filename = database_file.name
     self.assertTrue(os.path.exists(filename))
     del database_file

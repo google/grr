@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
 <head>
 <meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
-<meta name="generator" content="AsciiDoc 8.6.9" />
+<meta name="generator" content="AsciiDoc 8.6.6" />
 <title>The GRR Configuration system</title>
 <style type="text/css">
 /* Shared CSS for AsciiDoc xhtml11 and html5 backends */
@@ -87,15 +87,9 @@ ul, ol, li > p {
 ul > li     { color: #aaa; }
 ul > li > * { color: black; }
 
-.monospaced, code, pre {
-  font-family: "Courier New", Courier, monospace;
-  font-size: inherit;
-  color: navy;
+pre {
   padding: 0;
   margin: 0;
-}
-pre {
-  white-space: pre-wrap;
 }
 
 #author {
@@ -225,7 +219,7 @@ div.exampleblock > div.content {
 }
 
 div.imageblock div.content { padding-left: 0; }
-span.image img { border-style: none; vertical-align: text-bottom; }
+span.image img { border-style: none; }
 a.image:visited { color: white; }
 
 dl {
@@ -355,7 +349,7 @@ div.colist td img {
   margin-bottom: 0.1em;
 }
 
-div.toclevel0, div.toclevel1, div.toclevel2, div.toclevel3, div.toclevel4 {
+div.toclevel1, div.toclevel2, div.toclevel3, div.toclevel4 {
   margin-top: 0;
   margin-bottom: 0;
 }
@@ -413,13 +407,17 @@ span.underline { text-decoration: underline; }
 span.overline { text-decoration: overline; }
 span.line-through { text-decoration: line-through; }
 
-div.unbreakable { page-break-inside: avoid; }
-
 
 /*
  * xhtml11 specific
  *
  * */
+
+tt {
+  font-family: monospace;
+  font-size: inherit;
+  color: navy;
+}
 
 div.tableblock {
   margin-top: 1.0em;
@@ -453,6 +451,12 @@ div.tableblock > table[frame="vsides"] {
  * html5 specific
  *
  * */
+
+.monospaced {
+  font-family: monospace;
+  font-size: inherit;
+  color: navy;
+}
 
 table.tableblock {
   margin-top: 1.0em;
@@ -533,8 +537,6 @@ body.manpage div.sectionbody {
 @media print {
   body.manpage div#toc { display: none; }
 }
-
-
 </style>
 <script type="text/javascript">
 /*<![CDATA[*/
@@ -579,7 +581,7 @@ toc: function (toclevels) {
 
   function tocEntries(el, toclevels) {
     var result = new Array;
-    var re = new RegExp('[hH]([1-'+(toclevels+1)+'])');
+    var re = new RegExp('[hH]([2-'+(toclevels+1)+'])');
     // Function that scans the DOM tree for header elements (the DOM2
     // nodeIterator API would be a better technique but not supported by all
     // browsers).
@@ -608,7 +610,7 @@ toc: function (toclevels) {
   var i;
   for (i = 0; i < toc.childNodes.length; i++) {
     var entry = toc.childNodes[i];
-    if (entry.nodeName.toLowerCase() == 'div'
+    if (entry.nodeName == 'div'
      && entry.getAttribute("class")
      && entry.getAttribute("class").match(/^toclevel/))
       tocEntriesToRemove.push(entry);
@@ -654,7 +656,7 @@ footnotes: function () {
   var entriesToRemove = [];
   for (i = 0; i < noteholder.childNodes.length; i++) {
     var entry = noteholder.childNodes[i];
-    if (entry.nodeName.toLowerCase() == 'div' && entry.getAttribute("class") == "footnote")
+    if (entry.nodeName == 'div' && entry.getAttribute("class") == "footnote")
       entriesToRemove.push(entry);
   }
   for (i = 0; i < entriesToRemove.length; i++) {
@@ -734,6 +736,10 @@ asciidoc.install(2);
 <body class="article">
 <div id="header">
 <h1>The GRR Configuration system</h1>
+<div id="toc">
+  <div id="toctitle">Table of Contents</div>
+  <noscript><p><b>JavaScript must be enabled in your browser to display the table of contents.</b></p></noscript>
+</div>
 </div>
 <div id="content">
 <div id="preamble">
@@ -759,18 +765,16 @@ without clashes.</p></div>
 to assist the user in understanding the purpose of this parameter. Parameters
 are also strongly typed. For example we can find the following code:</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.6
-by Lorenzo Bettini
-http://www.lorenzobettini.it
-http://www.gnu.org/software/src-highlite -->
-<pre><tt>config_lib<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">DEFINE_float</span></span><span style="color: #990000">(</span><span style="color: #FF0000">"Client.rss_max"</span><span style="color: #990000">,</span> <span style="color: #993399">500</span><span style="color: #990000">,</span>
-                        <span style="color: #FF0000">"Maximum memory footprint in MB."</span><span style="color: #990000">)</span>
+<div class="content">
+<pre><tt>config_lib.DEFINE_float("Client.rss_max", 500,
+                        "Maximum memory footprint in MB.")
 
-config_lib<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">DEFINE_option</span></span><span style="color: #990000">(</span>type_info<span style="color: #990000">.</span><span style="font-weight: bold"><span style="color: #000000">PEMPrivateKey</span></span><span style="color: #990000">(</span>
-    name<span style="color: #990000">=</span><span style="color: #FF0000">"Client.private_key"</span><span style="color: #990000">,</span>
-    description<span style="color: #990000">=</span><span style="color: #FF0000">"Client private key in pem format. If not provided this "</span>
-    <span style="color: #FF0000">"will be generated by the enrollment process."</span><span style="color: #990000">,</span>
-    <span style="color: #990000">))</span></tt></pre></div></div>
+config_lib.DEFINE_option(type_info.PEMPrivateKey(
+    name="Client.private_key",
+    description="Client private key in pem format. If not provided this "
+    "will be generated by the enrollment process.",
+    ))</tt></pre>
+</div></div>
 <div class="paragraph"><p>The first definition declares the parameter <em>Client.rss_max</em> to be a float, with
 a default value of 500.</p></div>
 <div class="paragraph"><p>The second definition is more complex. It defines the <em>Client.private_key</em>
@@ -783,7 +787,7 @@ aborts. For example the following happens after removing a random character from
 the <em>CA.certificate</em> PEM string:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>Traceback (most recent call last):
+<pre><tt>Traceback (most recent call last):
   File "grr/client/client.py", line 48, in &lt;module&gt;
     conf.StartMain(main)
   File "grr/client/conf.py", line 93, in StartMain
@@ -795,7 +799,7 @@ the <em>CA.certificate</em> PEM string:</p></div>
     return self.ParseFromString(value)
   File "grr/lib/rdfvalues/crypto.py", line 185, in ParseFromString
     raise type_info.TypeValueError("Certificate %s is invalid." % self.name)
-grr.lib.type_info.TypeValueError: Certificate CA.certificate is invalid.</code></pre>
+grr.lib.type_info.TypeValueError: Certificate CA.certificate is invalid.</tt></pre>
 </div></div>
 <div class="paragraph"><p>Since every parameter is defined in advance and has a default value, the
 configuration file does not need to specify every parameter - only those which
@@ -804,13 +808,13 @@ parameters and their default values, we can issue the <em>--config_help</em> com
 line flag. This is analogous to the <em>--help</em> flag:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>Client.control_urls = ["http://www.example.com/control"]
+<pre><tt>Client.control_urls = ["http://www.example.com/control"]
    List of URLs of the controlling server.
 * Value = ['http://localhost:8080/control']
 
 Client.max_out_queue = 10240000
    Maximum size of the output queue.
-* Value = 10240000</code></pre>
+* Value = 10240000</tt></pre>
 </div></div>
 <div class="paragraph"><p>We can see that <em>Client.control_urls</em> has a default value of
 <a href="http://www.example.com/control">http://www.example.com/control</a>, it is used to specify the URL of the controlling
@@ -876,7 +880,7 @@ of the log file. In a full GRR installation, we wish the admin UI to log to
 <em>/var/log/grr/frontend.log</em>. We can therefore specify in the YAML config file:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>Logging.path: /var/log/grr/grr_server.log
+<pre><tt>Logging.path: /var/log/grr/grr_server.log
 
 AdminUI Context:
   Logging.path: /var/log/grr/adminui.log
@@ -888,7 +892,7 @@ Client Context:
   Logging.path: /var/log/grr/grr_client.log
 
   Platform:Windows:
-    Logging.path: c:\\windows\\system32\\grr.log</code></pre>
+    Logging.path: c:\\windows\\system32\\grr.log</tt></pre>
 </div></div>
 <div class="paragraph"><p>When the <em>adminui.py</em> program starts up, it populates its context with <em>AdminUI
 Context</em>. This forces the configuration system to return the value specific to
@@ -944,17 +948,15 @@ will therefore select <em>c:\windows\system32\grr.log</em>.</p></div>
 parameters inside other parameters. For example consider the following
 configuration file:</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.6
-by Lorenzo Bettini
-http://www.lorenzobettini.it
-http://www.gnu.org/software/src-highlite -->
-<pre><tt>Client<span style="color: #990000">.</span>name<span style="color: #990000">:</span> GRR
+<div class="content">
+<pre><tt>Client.name: GRR
 
-Nanny<span style="color: #990000">.</span>service_name<span style="color: #990000">:</span> <span style="color: #FF0000">"%(Client.name)service.exe"</span>
-Nanny<span style="color: #990000">.</span>service_key_hive<span style="color: #990000">:</span> HKEY_LOCAL_MACHINE
-Nanny<span style="color: #990000">.</span>service_key<span style="color: #990000">:</span> Software<span style="color: #990000">\\%(</span>Client<span style="color: #990000">.</span>name<span style="color: #990000">)</span>
-Nanny<span style="color: #990000">.</span>child_command_line<span style="color: #990000">:</span> <span style="color: #990000">|</span>
-  <span style="color: #990000">%(</span>child_binary<span style="color: #990000">)</span> <span style="color: #990000">--</span>config <span style="color: #FF0000">"%(Client.install_path)</span><span style="color: #CC33CC">\\</span><span style="color: #FF0000">%(Client.binary_name).yaml"</span></tt></pre></div></div>
+Nanny.service_name: "%(Client.name)service.exe"
+Nanny.service_key_hive: HKEY_LOCAL_MACHINE
+Nanny.service_key: Software\\%(Client.name)
+Nanny.child_command_line: |
+  %(child_binary) --config "%(Client.install_path)\\%(Client.binary_name).yaml"</tt></pre>
+</div></div>
 <div class="paragraph"><p>The expansion sequence <em>%(parameter_name)</em> substitutes or expands the parameter
 into the string. This allows us to build values automatically based on other
 values. For example above, the <em>Nanny.service_name</em> will be
@@ -963,12 +965,10 @@ values. For example above, the <em>Nanny.service_name</em> will be
 need to pass literal % escape sequences. Consider the Logging.format parameter
 which is actually a python format string:</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.6
-by Lorenzo Bettini
-http://www.lorenzobettini.it
-http://www.gnu.org/software/src-highlite -->
-<pre><tt>Logging<span style="color: #990000">.</span>format<span style="color: #990000">:</span> <span style="color: #990000">\%(</span>levelname<span style="color: #990000">\)</span>s <span style="color: #990000">\%(</span>module<span style="color: #990000">\)</span>s<span style="color: #990000">:\%(</span>lineno<span style="color: #990000">\)</span>s<span style="color: #990000">]</span> <span style="color: #990000">\%(</span>message<span style="color: #990000">\)</span>s  <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/1.png" alt="1" /></span></span>
-Logging<span style="color: #990000">.</span>format<span style="color: #990000">:</span> <span style="color: #990000">%</span>{<span style="color: #990000">%(</span>levelname<span style="color: #990000">)</span>s <span style="color: #990000">%(</span>module<span style="color: #990000">)</span>s<span style="color: #990000">:%(</span>lineno<span style="color: #990000">)</span>s<span style="color: #990000">]</span> <span style="color: #990000">%(</span>message<span style="color: #990000">)</span>s}       <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/2.png" alt="2" /></span></span></tt></pre></div></div>
+<div class="content">
+<pre><tt>Logging.format: \%(levelname\)s \%(module\)s:\%(lineno\)s] \%(message\)s  # <img src="./images/icons/callouts/1.png" alt="1" />
+Logging.format: %{%(levelname)s %(module)s:%(lineno)s] %(message)s}       # <img src="./images/icons/callouts/2.png" alt="2" /></tt></pre>
+</div></div>
 <div class="colist arabic"><table>
 <tr><td><img src="./images/icons/callouts/1.png" alt="1" /></td><td>
 This form escapes GRR&#8217;s special escaping sequence by preceding both opening
@@ -988,11 +988,9 @@ entire line as a literal string and prevent expansion.
 accessible from the configuration file. For example consider the following
 configuration file:</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.6
-by Lorenzo Bettini
-http://www.lorenzobettini.it
-http://www.gnu.org/software/src-highlite -->
-<pre><tt>Logging<span style="color: #990000">.</span>path<span style="color: #990000">:</span> <span style="color: #FF0000">"%(HOME|env)/grr.log"</span>                             <span style="font-style: italic"><span style="color: #9A1900"># <img src="./images/icons/callouts/1.png" alt="1" /></span></span></tt></pre></div></div>
+<div class="content">
+<pre><tt>Logging.path: "%(HOME|env)/grr.log"                             # <img src="./images/icons/callouts/1.png" alt="1" /></tt></pre>
+</div></div>
 <div class="colist arabic"><table>
 <tr><td><img src="./images/icons/callouts/1.png" alt="1" /></td><td>
 This expansion sequence uses the <em>env</em> filter which expands a value from the
@@ -1005,19 +1003,15 @@ including other files from the filesystem into the configuration file. For
 example, some people prefer to keep their certificates in separate files rather
 than paste them into the config file:</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.6
-by Lorenzo Bettini
-http://www.lorenzobettini.it
-http://www.gnu.org/software/src-highlite -->
-<pre><tt>CA<span style="color: #990000">.</span>certificate<span style="color: #990000">:</span> <span style="color: #FF0000">"%(/etc/certificates/ca.pem|file)"</span></tt></pre></div></div>
+<div class="content">
+<pre><tt>CA.certificate: "%(/etc/certificates/ca.pem|file)"</tt></pre>
+</div></div>
 <div class="paragraph"><p>It is even possible to nest expansion sequences. For example this retrieves the
 client&#8217;s private key from a location which depends on the client name:</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.6
-by Lorenzo Bettini
-http://www.lorenzobettini.it
-http://www.gnu.org/software/src-highlite -->
-<pre><tt>Client<span style="color: #990000">.</span>private_key<span style="color: #990000">:</span> <span style="color: #FF0000">"%(/etc/grr/client/%(Client.name)/private_key.pem|file)"</span></tt></pre></div></div>
+<div class="content">
+<pre><tt>Client.private_key: "%(/etc/grr/client/%(Client.name)/private_key.pem|file)"</tt></pre>
+</div></div>
 </div>
 </div>
 <div class="sect1">
@@ -1031,19 +1025,15 @@ configuration parser implementations but additional ones can be added.</p></div>
 GRR to use the registry instead of a flat file when running on windows. The
 registry base parser is selected by using a URL of the form:</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.6
-by Lorenzo Bettini
-http://www.lorenzobettini.it
-http://www.gnu.org/software/src-highlite -->
-<pre><tt>client<span style="color: #990000">.</span>py --config reg<span style="color: #990000">:</span>//HKEY_LOCAL_MACHINE/Software/GRR</tt></pre></div></div>
+<div class="content">
+<pre><tt>client.py --config reg://HKEY_LOCAL_MACHINE/Software/GRR</tt></pre>
+</div></div>
 <div class="paragraph"><p>Additionally an ini based configuration parser can be selected using a .conf
 extension:</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.6
-by Lorenzo Bettini
-http://www.lorenzobettini.it
-http://www.gnu.org/software/src-highlite -->
-<pre><tt>client<span style="color: #990000">.</span>py --config /etc/grr<span style="color: #990000">.</span>conf</tt></pre></div></div>
+<div class="content">
+<pre><tt>client.py --config /etc/grr.conf</tt></pre>
+</div></div>
 <div class="paragraph"><p>Since ini files can not represent nested sections, it is impossible to specify
 different parameters for different contexts. It is therefore not recommended to
 use ini files for the full system config, but they are sufficient for use as a
@@ -1054,7 +1044,6 @@ write back location.</p></div>
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2014-08-28 18:12:54 CEST
 </div>
 </div>
 </body>

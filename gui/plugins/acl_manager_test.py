@@ -248,7 +248,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "SampleHunt")
     self.WaitUntil(self.IsTextPresent, "Hunt ID")
     self.WaitUntil(self.IsTextPresent, "Hunt URN")
-    self.WaitUntil(self.IsTextPresent, "Client Count")
+    self.WaitUntil(self.IsTextPresent, "Clients Scheduled")
 
     self.Click("css=button:contains('Approve')")
     self.WaitUntil(self.IsTextPresent,
@@ -313,7 +313,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     # Let's make "approver" an admin.
     with self.ACLChecksDisabled():
-      self.MakeUserAdmin("approver")
+      self.CreateAdminUser("approver")
 
     # And try again
     self.Open("/")
@@ -342,7 +342,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
           token=access_control.ACLToken(username="otheruser"))
       hunt2_id = self.CreateSampleHunt(
           token=access_control.ACLToken(username="test"))
-      self.MakeUserAdmin("approver")
+      self.CreateAdminUser("approver")
 
     token = access_control.ACLToken(username="otheruser")
     flow.GRRFlow.StartFlow(flow_name="RequestHuntApprovalFlow",
@@ -400,7 +400,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     # Wait for dialog to disappear.
     self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
     self.WaitUntil(self.IsElementPresent,
-                   "css=button[name=ModifyHunt][!disabled]")
+                   "css=button[name=ModifyHunt]:not([disabled])")
 
     # Modify hunt
 
@@ -436,14 +436,14 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     # Also check that "Proceed" button gets disabled.
     self.Click("css=button[name=Proceed]")
     self.WaitUntil(self.IsTextPresent, "Hunt started successfully")
-    self.assertTrue(self.IsElementPresent,
-                    "css=button[name=Proceed][disabled!='']")
+    self.assertTrue(self.IsElementPresent(
+        "css=button[name=Proceed][disabled!='']"))
 
     # Click on "Cancel" and check that dialog disappears.
     self.Click("css=button[name=Cancel]")
     self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
     self.WaitUntil(self.IsElementPresent,
-                   "css=button[name=PauseHunt][!disabled]")
+                   "css=button[name=PauseHunt]:not([disabled])")
 
     # Pause hunt
 
@@ -456,14 +456,14 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     # Also check that "Proceed" button gets disabled.
     self.Click("css=button[name=Proceed]")
     self.WaitUntil(self.IsTextPresent, "Hunt paused successfully")
-    self.assertTrue(self.IsElementPresent,
-                    "css=button[name=Proceed][disabled!='']")
+    self.assertTrue(self.IsElementPresent(
+        "css=button[name=Proceed][disabled!='']"))
 
     # Click on "Cancel" and check that dialog disappears.
     self.Click("css=button[name=Cancel]")
     self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
     self.WaitUntil(self.IsElementPresent,
-                   "css=button[name=ModifyHunt][!disabled]")
+                   "css=button[name=ModifyHunt]:not([disabled])")
 
     # Modify hunt
 
@@ -476,8 +476,8 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     # Also check that "Proceed" button gets disabled.
     self.Click("css=button[name=Proceed]")
     self.WaitUntil(self.IsTextPresent, "Hunt modified successfully!")
-    self.assertTrue(self.IsElementPresent,
-                    "css=button[name=Proceed][disabled!='']")
+    self.assertTrue(self.IsElementPresent(
+        "css=button[name=Proceed][disabled!='']"))
 
     # Click on "Cancel" and check that dialog disappears.
     self.Click("css=button[name=Cancel]")
@@ -592,7 +592,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     # Let's make "approver" an admin.
     with self.ACLChecksDisabled():
-      self.MakeUserAdmin("approver")
+      self.CreateAdminUser("approver")
 
     # And try again
     self.Open("/")

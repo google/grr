@@ -141,7 +141,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
   def testMultiGetFile(self):
     """Test MultiGetFile."""
 
-    client_mock = action_mocks.ActionMock("TransferBuffer", "HashFile",
+    client_mock = action_mocks.ActionMock("TransferBuffer", "FingerprintFile",
                                           "StatFile", "HashBuffer")
     pathspec = rdfvalue.PathSpec(
         pathtype=rdfvalue.PathSpec.PathType.OS,

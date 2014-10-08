@@ -2,6 +2,8 @@
 """Test client RDFValues."""
 
 
+import socket
+
 from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib.rdfvalues import test_base
@@ -157,4 +159,31 @@ class ClientURNTests(test_base.RDFValueTestCase):
       self.assertRaises(type_info.TypeValueError, rdfvalue.ClientURN, badurn)
 
     self.assertRaises(ValueError, rdfvalue.ClientURN, None)
+
+
+class NetworkAddressTests(test_base.RDFValueTestCase):
+  """Test the NetworkAddress."""
+
+  rdfvalue_class = rdfvalue.NetworkAddress
+
+  def GenerateSample(self, number=0):
+    return rdfvalue.NetworkAddress(
+        human_readable_address="192.168.0.%s" % number)
+
+  def testIPv4(self):
+    sample = rdfvalue.NetworkAddress(human_readable_address="192.168.0.1")
+    self.assertEqual(sample.address_type, rdfvalue.NetworkAddress.Family.INET)
+    self.assertEqual(sample.packed_bytes,
+                     socket.inet_pton(socket.AF_INET, "192.168.0.1"))
+
+    self.CheckRDFValue(self.rdfvalue_class(sample), sample)
+
+  def testIPv6(self):
+    sample = rdfvalue.NetworkAddress(human_readable_address="::1")
+    self.assertEqual(sample.address_type, rdfvalue.NetworkAddress.Family.INET6)
+    self.assertEqual(sample.packed_bytes,
+                     socket.inet_pton(socket.AF_INET6, "::1"))
+
+    self.CheckRDFValue(self.rdfvalue_class(sample), sample)
+
 

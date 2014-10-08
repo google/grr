@@ -7,11 +7,22 @@
 
 import glob
 import os
+import subprocess
 
-try:
-  from setuptools import find_packages, setup
-except ImportError:
-  from distutils.core import find_packages, setup
+from setuptools import find_packages, setup
+from setuptools.command.build_py import build_py
+
+
+class MyBuild(build_py):
+
+  def run(self):
+    # Compile the protobufs.
+    base_dir = os.getcwd()
+    os.chdir("proto")
+    subprocess.check_call(["make"], shell=True)
+    os.chdir(base_dir)
+
+    build_py.run(self)
 
 
 def GRRFind(path, patterns):
@@ -35,14 +46,14 @@ def GRRFind(path, patterns):
 
 def GRRGetPackagePrefix(package_name):
   """Determine the package path prefix from the package name."""
-  package_components = package_name.split('.')
+  package_components = package_name.split(".")
 
   if len(package_components) > 2:
     package_path_prefix = os.path.join(package_components[1:])
   elif len(package_components) == 2:
     package_path_prefix = package_components[1]
   else:
-    package_path_prefix = ''
+    package_path_prefix = ""
 
   return package_path_prefix
 
@@ -111,55 +122,55 @@ def GRRFindPackages():
   Returns:
     A list of package names
   """
-  packages = ['grr']
+  packages = ["grr"]
 
-  for package in find_packages('.'):
-    packages.append('grr.' + package)
+  for package in find_packages("."):
+    packages.append("grr." + package)
 
   return packages
 
 
-grr_artifact_files = ('grr',
-                      ['artifacts'],
-                      ['*.yaml'])
+grr_artifact_files = ("grr",
+                      ["artifacts"],
+                      ["*.yaml"])
 
-grr_gui_data_files = ('grr.gui',
-                      ['static', 'templates'],
-                      ['*.css', '*.js', '*.gif', '*.html',
-                       '*.jpg', '*.MF', '*.png', '*.ico'])
+grr_gui_data_files = ("grr.gui",
+                      ["static", "templates"],
+                      ["*.css", "*.js", "*.gif", "*.html",
+                       "*.jpg", "*.MF", "*.png", "*.ico"])
 
-grr_config_defs = ('grr.config',
-                   ['local'],
-                   ['*.txt'])
+grr_config_defs = ("grr.config",
+                   ["local"],
+                   ["*.txt"])
 
 
-grr_client_data_files = ('grr.client',
-                         ['local'],
-                         ['*.txt'])
+grr_client_data_files = ("grr.client",
+                         ["local"],
+                         ["*.txt"])
 
-grr_client_nanny_files = ('grr.client',
-                          ['nanny'],
-                          ['*'])
+grr_client_nanny_files = ("grr.client",
+                          ["nanny"],
+                          ["*"])
 
-grr_test_data_files = ('grr.test_data',
-                       [''],
-                       ['*'])
+grr_test_data_files = ("grr.test_data",
+                       [""],
+                       ["*"])
 
-grr_docs_files = ('grr',
-                  ['docs'],
-                  ['*'])
+grr_docs_files = ("grr",
+                  ["docs"],
+                  ["*"])
 
-grr_wsgi_conf = ('grr',
-                 ['tools'],
-                 ['wsgi.conf'])
+grr_wsgi_conf = ("grr",
+                 ["tools"],
+                 ["wsgi.conf"])
 
-grr_proto_defs = ('grr',
-                  ['proto'],
-                  ['*.proto'])
+grr_proto_defs = ("grr",
+                  ["proto"],
+                  ["*.proto"])
 
-grr_protobuf_cc = ('grr',
-                   ['lib'],
-                   ['protobuf.cc'])
+grr_protobuf_cc = ("grr",
+                   ["lib"],
+                   ["protobuf.cc"])
 
 
 grr_all_files = [grr_artifact_files,
@@ -174,26 +185,27 @@ grr_all_files = [grr_artifact_files,
                 ]
 
 
-setup(name='grr',
-      version='0.2',
-      description='GRR Rapid Response Framework',
-      license='Apache License, Version 2.0',
-      url='http://code.google.com/p/grr',
+setup(name="grr",
+      version="0.2",
+      description="GRR Rapid Response Framework",
+      license="Apache License, Version 2.0",
+      url="http://code.google.com/p/grr",
       install_requires=[],
       packages=GRRFindPackages(),
-      package_dir={'grr': '../grr'},
+      package_dir={"grr": "../grr"},
       package_data=GRRFindDataFiles(grr_all_files),
       entry_points={
-          'console_scripts': [
-              'grr_console = grr.lib.distro_entry:Console',
-              'grr_config_updater = grr.lib.distro_entry:ConfigUpdater',
-              'grr_server = grr.lib.distro_entry:GrrServer',
-              'grr_end_to_end_tests = grr.lib.distro_entry:EndToEndTests',
-              'grr_export = grr.lib.distro_entry:Export',
-              'grr_client = grr.lib.distro_entry:Client',
-              'grr_worker = grr.lib.distro_entry:Worker',
-              'grr_enroller = grr.lib.distro_entry:Enroller',
-              'grr_admin_ui = grr.lib.distro_entry:AdminUI',
-              'grr_fuse = grr.lib.distro_entry:GRRFuse',
-          ]
-      })
+          "console_scripts": [
+              "grr_console = grr.lib.distro_entry:Console",
+              "grr_config_updater = grr.lib.distro_entry:ConfigUpdater",
+              "grr_server = grr.lib.distro_entry:GrrServer",
+              "grr_end_to_end_tests = grr.lib.distro_entry:EndToEndTests",
+              "grr_export = grr.lib.distro_entry:Export",
+              "grr_client = grr.lib.distro_entry:Client",
+              "grr_worker = grr.lib.distro_entry:Worker",
+              "grr_enroller = grr.lib.distro_entry:Enroller",
+              "grr_admin_ui = grr.lib.distro_entry:AdminUI",
+              "grr_fuse = grr.lib.distro_entry:GRRFuse",
+              ]
+          },
+      cmdclass={"build_py": MyBuild})

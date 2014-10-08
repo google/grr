@@ -27,11 +27,11 @@ user1:x:1000:1000:User1 Name,,,:/home/user1:/bin/bash
 user2:x:1001:1001:User2 Name,,,:/home/user2:/bin/bash
 """
     out = list(parser.Parse(None, StringIO.StringIO(dat), None))
-    self.assertEquals(len(out), 2)
+    self.assertEqual(len(out), 2)
     self.assertTrue(isinstance(out[1], rdfvalue.KnowledgeBaseUser))
     self.assertTrue(isinstance(out[1], rdfvalue.KnowledgeBaseUser))
-    self.assertTrue(out[0].username, "user1")
-    self.assertTrue(out[0].full_name, "User1 Name")
+    self.assertEqual(out[0].username, "user1")
+    self.assertEqual(out[0].full_name, "User1 Name,,,")
     dat = """
 user1:x:1000:1000:User1 Name,,,:/home/user1:/bin/bash
 user2:x:1001:1001:User2 Name,,,:/home/user
@@ -51,11 +51,11 @@ user2:x:1001:1001:User2 Name,,,:/home/user
 
     ff_result = rdfvalue.FileFinderResult(matches=[buf1, buf2])
     out = list(parser.Parse(ff_result, None))
-    self.assertEquals(len(out), 2)
+    self.assertEqual(len(out), 2)
     self.assertTrue(isinstance(out[1], rdfvalue.KnowledgeBaseUser))
     self.assertTrue(isinstance(out[1], rdfvalue.KnowledgeBaseUser))
-    self.assertTrue(out[0].username, "user1")
-    self.assertTrue(out[0].full_name, "User1 Name")
+    self.assertEqual(out[0].username, "user1")
+    self.assertEqual(out[0].full_name, "User1 Name,,,")
 
   def testNetgroupParser(self):
     """Ensure we can extract users from a netgroup file."""

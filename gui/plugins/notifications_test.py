@@ -40,8 +40,7 @@ class TestNotifications(test_lib.GRRSeleniumTest):
       flow_obj.Notify(notification_type, subject, message)
 
       # Generate an error for this flow.
-      with flow_obj.GetRunner() as runner:
-        runner.Error("not a real backtrace")
+      flow_obj.GetRunner().Error("not a real backtrace")
 
   def setUp(self):
     super(TestNotifications, self).setUp()

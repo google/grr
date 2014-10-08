@@ -28,7 +28,7 @@ class GrrMessage(rdfvalue.RDFProtoStruct):
   def __init__(self, initializer=None, age=None, payload=None, **kwarg):
     super(GrrMessage, self).__init__(initializer=initializer, age=age, **kwarg)
 
-    if payload:
+    if payload is not None:
       self.payload = payload
 
       # If the payload has a priority, the GrrMessage inherits it.

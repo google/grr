@@ -190,8 +190,8 @@ class GRRFuseTest(test_lib.FlowTestsBaseclass):
                                        ignore_cache=True)
 
     self.action_mock = action_mocks.ActionMock("TransferBuffer", "StatFile",
-                                               "Find", "HashFile", "HashBuffer",
-                                               "UpdateVFSFile",
+                                               "Find", "FingerprintFile",
+                                               "HashBuffer", "UpdateVFSFile",
                                                "EnumerateInterfaces",
                                                "EnumerateFilesystems",
                                                "GetConfiguration", "GetConfig",

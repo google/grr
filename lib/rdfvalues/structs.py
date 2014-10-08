@@ -1410,7 +1410,7 @@ class AbstractSerlializer(object):
     """Parse the string and set attributes in the value_obj."""
 
 
-class JsonSerlializer(AbstractSerlializer):
+class JsonSerializer(AbstractSerlializer):
   """A serializer based on Json."""
 
   def _SerializedToIntermediateForm(self, data):
@@ -1567,7 +1567,7 @@ class RDFStruct(rdfvalue.RDFValue):
 
   # This is the serializer which will be used by this class. It can be
   # interchanged or overriden as required.
-  _serializer = JsonSerlializer()
+  _serializer = JsonSerializer()
 
   # A list of fields which will be removed from this class's type descriptor
   # set.

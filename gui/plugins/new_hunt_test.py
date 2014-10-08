@@ -256,26 +256,26 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
     with self.ACLChecksDisabled():
       hunt_rules = self.FindForemanRules(hunt, token=self.token)
 
-    self.assertEquals(len(hunt_rules), 1)
+    self.assertEqual(len(hunt_rules), 1)
     self.assertTrue(
         abs(int(hunt_rules[0].expires - hunt_rules[0].created) -
             31 * 24 * 60 * 60) <= 1)
 
-    self.assertEquals(len(hunt_rules[0].regex_rules), 2)
-    self.assertEquals(hunt_rules[0].regex_rules[0].path, "/")
-    self.assertEquals(hunt_rules[0].regex_rules[0].attribute_name, "System")
-    self.assertEquals(hunt_rules[0].regex_rules[0].attribute_regex, "Linux")
+    self.assertEqual(len(hunt_rules[0].regex_rules), 2)
+    self.assertEqual(hunt_rules[0].regex_rules[0].path, "/")
+    self.assertEqual(hunt_rules[0].regex_rules[0].attribute_name, "System")
+    self.assertEqual(hunt_rules[0].regex_rules[0].attribute_regex, "Linux")
 
-    self.assertEquals(hunt_rules[0].regex_rules[1].path, "/")
-    self.assertEquals(hunt_rules[0].regex_rules[1].attribute_name, "System")
-    self.assertEquals(hunt_rules[0].regex_rules[1].attribute_regex, "Darwin")
+    self.assertEqual(hunt_rules[0].regex_rules[1].path, "/")
+    self.assertEqual(hunt_rules[0].regex_rules[1].attribute_name, "System")
+    self.assertEqual(hunt_rules[0].regex_rules[1].attribute_regex, "Darwin")
 
-    self.assertEquals(len(hunt_rules[0].integer_rules), 1)
-    self.assertEquals(hunt_rules[0].integer_rules[0].path, "/")
-    self.assertEquals(hunt_rules[0].integer_rules[0].attribute_name, "Clock")
-    self.assertEquals(hunt_rules[0].integer_rules[0].operator,
-                      rdfvalue.ForemanAttributeInteger.Operator.GREATER_THAN)
-    self.assertEquals(hunt_rules[0].integer_rules[0].value, 1336650631137737)
+    self.assertEqual(len(hunt_rules[0].integer_rules), 1)
+    self.assertEqual(hunt_rules[0].integer_rules[0].path, "/")
+    self.assertEqual(hunt_rules[0].integer_rules[0].attribute_name, "Clock")
+    self.assertEqual(hunt_rules[0].integer_rules[0].operator,
+                     rdfvalue.ForemanAttributeInteger.Operator.GREATER_THAN)
+    self.assertEqual(hunt_rules[0].integer_rules[0].value, 1336650631137737)
 
   def testOutputPluginsListEmptyWhenNoDefaultOutputPluginSet(self):
     self.Open("/#main=ManageHunts")
@@ -377,12 +377,12 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
       hunt.Run()  # Run the hunt so that rules are added to the foreman.
       hunt_rules = self.FindForemanRules(hunt, token=self.token)
 
-    self.assertEquals(len(hunt_rules), 1)
-    self.assertEquals(len(hunt_rules[0].regex_rules), 1)
-    self.assertEquals(hunt_rules[0].regex_rules[0].path, "/")
-    self.assertEquals(hunt_rules[0].regex_rules[0].attribute_name, "Labels")
-    self.assertEquals(hunt_rules[0].regex_rules[0].attribute_regex,
-                      "(.+,|\\A)foo(,.+|\\Z)")
+    self.assertEqual(len(hunt_rules), 1)
+    self.assertEqual(len(hunt_rules[0].regex_rules), 1)
+    self.assertEqual(hunt_rules[0].regex_rules[0].path, "/")
+    self.assertEqual(hunt_rules[0].regex_rules[0].attribute_name, "Labels")
+    self.assertEqual(hunt_rules[0].regex_rules[0].attribute_regex,
+                     "(.+,|\\A)foo(,.+|\\Z)")
 
   def testLabelsHuntRuleMatchesCorrectClients(self):
     with self.ACLChecksDisabled():

@@ -142,6 +142,9 @@ class Responses(object):
           logging.error("De-synchronized messages detected:\n" + "\n".join(
               [utils.SmartUnicode(x) for x in self._dropped_responses]))
 
+        if responses:
+          self._LogFlowState(responses)
+
         raise FlowError("No valid Status message.")
 
     # This is the raw message accessible while going through the iterator
@@ -191,6 +194,22 @@ class Responses(object):
 
   def __nonzero__(self):
     return bool(self._responses)
+
+  def _LogFlowState(self, responses):
+    session_id = responses[0].session_id
+    token = access_control.ACLToken(username="GRRWorker", reason="Logging")
+    token.supervisor = True
+
+    logging.error(
+        "No valid Status message.\nState:\n%s\n%s\n%s",
+        data_store.DB.ResolveRegex(
+            session_id.Add("state"),
+            "flow:.*", token=token),
+        data_store.DB.ResolveRegex(
+            session_id.Add("state/request:%08X" % responses[0].request_id),
+            "flow:.*", token=token),
+        data_store.DB.ResolveRegex(
+            "aff4:/W", "notify:%s" % session_id, token=token))
 
 
 class FakeResponses(Responses):
@@ -406,8 +425,8 @@ class GRRFlow(aff4.AFF4Volume):
   interrogating the flow:
 
 
-  fd = aff4.FACTORY.Open(flow_urn, mode="rw")
-  with fd.GetRunner() as runner:
+  with aff4.FACTORY.Open(flow_urn, mode="rw") as fd:
+    runner = fd.GetRunner()
     runner.ProcessCompletedRequests(messages)
 
   """
@@ -419,10 +438,6 @@ class GRRFlow(aff4.AFF4Volume):
                                 "The current state of this flow.",
                                 "FlowState", versioned=False,
                                 creates_new_object_version=False)
-
-    LOG = aff4.Attribute("aff4:log", rdfvalue.RDFString,
-                         "Log messages related to the progress of this flow.",
-                         creates_new_object_version=False)
 
     NOTIFICATION = aff4.Attribute("aff4:notification", rdfvalue.Notification,
                                   "Notifications for the flow.")
@@ -541,6 +556,10 @@ class GRRFlow(aff4.AFF4Volume):
                       self.urn)
       self.Set(self.Schema.FLOW_STATE(self.state))
 
+  def FlushMessages(self):
+    """Write all the messages queued in the queue manager."""
+    self.GetRunner().FlushMessages()
+
   def Flush(self, sync=True):
     """Flushes the flow and all its requests to the data_store."""
     # Check for Lock expiration first.
@@ -549,6 +568,9 @@ class GRRFlow(aff4.AFF4Volume):
     self.WriteState()
     self.Load()
     super(GRRFlow, self).Flush(sync=sync)
+    # Writing the messages queued in the queue_manager of the runner always has
+    # to be the last thing that happens or we will have a race condition.
+    self.FlushMessages()
 
   def Close(self, sync=True):
     """Flushes the flow and all its requests to the data_store."""
@@ -557,6 +579,9 @@ class GRRFlow(aff4.AFF4Volume):
     self.Save()
     self.WriteState()
     super(GRRFlow, self).Close(sync=sync)
+    # Writing the messages queued in the queue_manager of the runner always has
+    # to be the last thing that happens or we will have a race condition.
+    self.FlushMessages()
 
   def CreateRunner(self, parent_runner=None, runner_args=None, **kw):
     """Make a new runner."""
@@ -623,13 +648,14 @@ class GRRFlow(aff4.AFF4Volume):
       format_str: Format string
       *args: arguments to the format string
     """
-    with self.GetRunner() as runner:
-      runner.Log(format_str, *args)
+    self.GetRunner().Log(format_str, *args)
+
+  def GetLog(self):
+    return self.GetRunner().GetLog()
 
   def Status(self, format_str, *args):
     """Flows can call this method to set a status message visible to users."""
-    with self.GetRunner() as runner:
-      runner.Status(format_str, *args)
+    self.GetRunner().Status(format_str, *args)
 
   def Notify(self, message_type, subject, msg):
     """Send a notification to the originating user.
@@ -640,8 +666,7 @@ class GRRFlow(aff4.AFF4Volume):
        subject: The urn of the AFF4 object of interest in this link.
        msg: A free form textual message.
     """
-    with self.GetRunner() as runner:
-      runner.Notify(message_type, subject, msg)
+    self.GetRunner().Notify(message_type, subject, msg)
 
   def Publish(self, event_name, message=None, session_id=None,
               priority=rdfvalue.GrrMessage.Priority.MEDIUM_PRIORITY):
@@ -784,12 +809,6 @@ class GRRFlow(aff4.AFF4Volume):
     flow_obj = aff4.FACTORY.Create(None, runner_args.flow_name,
                                    token=token)
 
-    # Also check for needed labels.
-    if flow_obj.AUTHORIZED_LABELS:
-      data_store.DB.security_manager.CheckUserLabels(
-          runner_args.token.username, flow_obj.AUTHORIZED_LABELS,
-          runner_args.token)
-
     # Now parse the flow args into the new object from the keywords.
     if args is None:
       args = flow_obj.args_type()
@@ -808,7 +827,8 @@ class GRRFlow(aff4.AFF4Volume):
     # At this point we should exhaust all the keyword args. If any are left
     # over, we do not know what to do with them so raise.
     if kwargs:
-      raise type_info.UnknownArg("Unknown parameters to StartFlow: %s" % kwargs)
+      raise type_info.UnknownArg(
+          "Unknown parameters to StartFlow: %s" % kwargs)
 
     # Create a flow runner to run this flow with.
     if parent_flow:
@@ -816,37 +836,43 @@ class GRRFlow(aff4.AFF4Volume):
     else:
       parent_runner = None
 
-    with flow_obj.CreateRunner(parent_runner=parent_runner,
-                               runner_args=runner_args,
-                               _store=_store or data_store.DB) as runner:
+    runner = flow_obj.CreateRunner(parent_runner=parent_runner,
+                                   runner_args=runner_args,
+                                   _store=_store or data_store.DB)
 
-      logging.info(u"Scheduling %s(%s) on %s", flow_obj.urn,
-                   runner_args.flow_name, runner_args.client_id)
+    # Also check for needed labels.
+    if flow_obj.AUTHORIZED_LABELS:
+      data_store.DB.security_manager.CheckUserLabels(
+          runner.context.creator, flow_obj.AUTHORIZED_LABELS,
+          runner_args.token)
 
-      if sync:
-        # Just run the first state inline. NOTE: Running synchronously means
-        # that this runs on the thread that starts the flow. The advantage is
-        # that that Start method can raise any errors immediately.
-        flow_obj.Start()
-      else:
-        # Running Asynchronously: Schedule the start method on another worker.
-        runner.CallState(next_state="Start", start_time=runner_args.start_time)
+    logging.info(u"Scheduling %s(%s) on %s", flow_obj.urn,
+                 runner_args.flow_name, runner_args.client_id)
 
-      # The flow does not need to actually remain running.
-      if not runner.OutstandingRequests():
-        flow_obj.Terminate()
+    if sync:
+      # Just run the first state inline. NOTE: Running synchronously means
+      # that this runs on the thread that starts the flow. The advantage is
+      # that that Start method can raise any errors immediately.
+      flow_obj.Start()
+    else:
+      # Running Asynchronously: Schedule the start method on another worker.
+      runner.CallState(next_state="Start", start_time=runner_args.start_time)
 
-      flow_obj.Close()
+    # The flow does not need to actually remain running.
+    if not runner.OutstandingRequests():
+      flow_obj.Terminate()
 
-      # Publish an audit event, only for top level flows.
-      if parent_flow is None:
-        Events.PublishEvent("Audit",
-                            rdfvalue.AuditEvent(user=token.username,
-                                                action="RUN_FLOW",
-                                                flow_name=runner_args.flow_name,
-                                                urn=flow_obj.urn,
-                                                client=runner_args.client_id),
-                            token=token)
+    flow_obj.Close()
+
+    # Publish an audit event, only for top level flows.
+    if parent_flow is None:
+      Events.PublishEvent("Audit",
+                          rdfvalue.AuditEvent(user=token.username,
+                                              action="RUN_FLOW",
+                                              flow_name=runner_args.flow_name,
+                                              urn=flow_obj.urn,
+                                              client=runner_args.client_id),
+                          token=token)
 
     return flow_obj.urn
 
@@ -876,37 +902,37 @@ class GRRFlow(aff4.AFF4Volume):
       raise FlowError("Could not terminate flow %s" % flow_id)
 
     with flow_obj:
-      with flow_obj.GetRunner() as runner:
-        if not runner.IsRunning():
-          return
+      runner = flow_obj.GetRunner()
+      if not runner.IsRunning():
+        return
 
-        if token is None:
-          token = access_control.ACLToken()
+      if token is None:
+        token = access_control.ACLToken()
 
-        if reason is None:
-          reason = "Manual termination by console."
+      if reason is None:
+        reason = "Manual termination by console."
 
-        runner.Error(reason, status=status)
-        runner.Terminate()
+      runner.Error(reason, status=status)
+      runner.Terminate()
 
-        flow_obj.Log("Terminated by user {0}. Reason: {1}".format(
-            token.username, reason))
+      flow_obj.Log("Terminated by user {0}. Reason: {1}".format(
+          token.username, reason))
 
-        # Make sure we are only allowed to terminate this flow, if we are
-        # allowed to run it.
-        data_store.DB.security_manager.CheckFlowAccess(
-            token.RealUID(), flow_obj.Name(), client_id=flow_obj.client_id)
+      # Make sure we are only allowed to terminate this flow, if we are
+      # allowed to run it.
+      data_store.DB.security_manager.CheckFlowAccess(
+          token.RealUID(), flow_obj.Name(), client_id=flow_obj.client_id)
 
-        # From now on we run with supervisor access
-        super_token = token.SetUID()
+      # From now on we run with supervisor access
+      super_token = token.SetUID()
 
-        # Also terminate its children
-        children_to_kill = aff4.FACTORY.MultiOpen(
-            flow_obj.ListChildren(), token=super_token, aff4_type="GRRFlow")
+      # Also terminate its children
+      children_to_kill = aff4.FACTORY.MultiOpen(
+          flow_obj.ListChildren(), token=super_token, aff4_type="GRRFlow")
 
-        for child_obj in children_to_kill:
-          cls.TerminateFlow(child_obj.urn, reason="Parent flow terminated.",
-                            token=super_token, force=force)
+      for child_obj in children_to_kill:
+        cls.TerminateFlow(child_obj.urn, reason="Parent flow terminated.",
+                          token=super_token, force=force)
 
   @classmethod
   def PrintArgsHelp(cls):
@@ -1019,14 +1045,6 @@ class WellKnownFlow(GRRFlow):
     except Exception as e:  # pylint: disable=broad-except
       logging.exception("Error in WellKnownFlow.ProcessMessage: %s", e)
 
-  def InitFromArguments(self, **kwargs):
-    super(WellKnownFlow, self).InitFromArguments(**kwargs)
-
-    # Tag this flow as well known
-    self.state.context.state = rdfvalue.Flow.State.WELL_KNOWN
-    # Well known flows are not user initiated so the default is no notification.
-    self.state.context.notify_to_user = False
-
   def CallState(self, messages=None, next_state=None, delay=0):
     """Well known flows have no states to call."""
     pass
@@ -1038,6 +1056,12 @@ class WellKnownFlow(GRRFlow):
   def OutstandingRequests(self):
     # Lie about it to prevent us from being destroyed
     return 1
+
+  def FlushMessages(self):
+    """Write all the queued messages."""
+    # Well known flows do not write anything as they don't issue client calls
+    # and don't have states.
+    pass
 
   def ProcessRequests(self, thread_pool):
     """For WellKnownFlows we receive these messages directly."""
@@ -1361,6 +1385,8 @@ class ServerPubKeyCache(communicator.PubKeyCache):
         raise communicator.UnknownClientCert("Stored cert mismatch")
 
       self.client_cache.Put(common_name, client)
+      stats.STATS.SetGaugeValue("grr_frontendserver_client_cache_size",
+                                len(self.client_cache))
 
       return cert.GetPubKey()
 
@@ -1374,26 +1400,6 @@ class ServerCommunicator(communicator.Communicator):
     super(ServerCommunicator, self).__init__(certificate=certificate,
                                              private_key=private_key)
     self.pub_key_cache = ServerPubKeyCache(self.client_cache, token=token)
-
-  def GetCipher(self, common_name="Server"):
-    # This ensures the client is cached
-    client = self.client_cache.Get(common_name)
-    cipher = client.Get(client.Schema.CIPHER)
-    if cipher:
-      return cipher
-
-    raise KeyError("Cipher not found.")
-
-  def SetCipher(self, common_name, cipher):
-    try:
-      client = self.client_cache.Get(common_name)
-    except KeyError:
-      # Set the client's cert
-      client = aff4.FACTORY.Create(common_name, "VFSGRRClient", mode="w",
-                                   token=self.token, ignore_cache=True)
-      self.client_cache.Put(common_name, client)
-
-    client.Set(client.Schema.CIPHER(cipher))
 
   def _LoadOurCertificate(self):
     """Loads the server certificate."""
@@ -1432,6 +1438,8 @@ class ServerCommunicator(communicator.Communicator):
                                        "VFSGRRClient", mode="rw",
                                        token=self.token)
           self.client_cache.Put(cipher.cipher_metadata.source, client)
+          stats.STATS.SetGaugeValue("grr_frontendserver_client_cache_size",
+                                    len(self.client_cache))
 
         ip = response_comms.orig_request.source_ip
         client.Set(client.Schema.CLIENT_IP(ip))
@@ -1843,6 +1851,7 @@ class FlowInit(registry.InitHook):
     stats.STATS.RegisterCounterMetric("grr_frontendserver_handle_num")
     stats.STATS.RegisterCounterMetric("grr_frontendserver_handle_throttled_num")
     stats.STATS.RegisterGaugeMetric("grr_frontendserver_throttle_setting", str)
+    stats.STATS.RegisterGaugeMetric("grr_frontendserver_client_cache_size", int)
 
     # Flow-aware counters
     stats.STATS.RegisterCounterMetric("flow_starts",

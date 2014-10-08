@@ -1,3 +1,16 @@
+.table-row {
+  display: table-row;
+}
+
+/**
+ * In angular directives templates grr-collection-td and not td should be used.
+ * AngularJS templates are valid DOM trees and browser's behavior is undefined
+ * when it encounters 'td' tag outside of 'tbody' or 'table'.
+ */
+grr-collection-td {
+  display: table-cell;
+}
+
 #main {
     width: 100%;
     height: 100%;

@@ -82,20 +82,20 @@ class IndexTest(test_lib.AFF4ObjectTest):
     index = aff4.FACTORY.Open("aff4:/index/myfirstindex", aff4_type="AFF4Index",
                               token=self.token)
     results = list(index.Query([client_schema.LABELS], "test1"))
-    self.assertEquals(len(results), 1)
+    self.assertEqual(len(results), 1)
 
     results = list(index.Query([client_schema.LABELS], ".*test.*"))
-    self.assertEquals(len(results), 2)
+    self.assertEqual(len(results), 2)
 
     results = list(index.Query([client_schema.LABELS], "^test1.*"))
-    self.assertEquals(len(results), 1)
+    self.assertEqual(len(results), 1)
 
     results = list(index.Query([client_schema.LABELS], ".*test1$"))
-    self.assertEquals(len(results), 1)
+    self.assertEqual(len(results), 1)
 
     # Check limit works.
     results = list(index.Query([client_schema.LABELS], ".*test.*", limit=1))
-    self.assertEquals(len(results), 1)
+    self.assertEqual(len(results), 1)
 
   def testIndexesDeletion(self):
     """Check indexes can be created and queried."""
@@ -122,7 +122,7 @@ class IndexTest(test_lib.AFF4ObjectTest):
     index.Flush(sync=True)
 
     results = list(index.Query([client_schema.LABELS], "test1"))
-    self.assertEquals(len(results), 0)
+    self.assertEqual(len(results), 0)
 
     index = aff4.FACTORY.Create("aff4:/index/myfirstindex", "AFF4Index",
                                 mode="rw", token=self.token)
@@ -130,7 +130,7 @@ class IndexTest(test_lib.AFF4ObjectTest):
                                        client1.urn)
     index.Flush(sync=True)
     results = list(index.Query([client_schema.LABELS], "test2"))
-    self.assertEquals(len(results), 1)
+    self.assertEqual(len(results), 1)
 
 
 class AFF4IndexSetTest(test_lib.GRRBaseTest):

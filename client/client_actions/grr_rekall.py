@@ -164,12 +164,9 @@ class GrrRekallSession(session.Session):
     self.action.Suspend()
 
     # Now the server should have sent the data already. We try to load the
-    # profile one more time, or we die.
-    profile = super(GrrRekallSession, self).LoadProfile(
+    # profile one more time.
+    return super(GrrRekallSession, self).LoadProfile(
         filename, use_cache=False)
-    if profile:
-      return profile
-    raise ValueError("Could not load profile %s" % filename)
 
   def GetRenderer(self):
     # We will use this renderer to push results to the server.

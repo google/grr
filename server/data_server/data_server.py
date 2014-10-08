@@ -44,7 +44,6 @@ flags.DEFINE_bool("master", False,
                   "Mark this data server as the master.")
 
 
-DATASTORE_CLS = None
 # Data store service.
 SERVICE = None
 # MASTER is set if this data server is also running as master.
@@ -68,7 +67,7 @@ def GetStatistics():
   return stat
 
 
-class DataServerHandler(BaseHTTPRequestHandler):
+class DataServerHandler(BaseHTTPRequestHandler, object):
   """Handler for HTTP requests to the data server."""
 
   protocol_version = "HTTP/1.1"
@@ -537,7 +536,7 @@ class DataServerHandler(BaseHTTPRequestHandler):
     if self.data_server:
       logging.warning("Server %s disconnected", self.client_address)
       if not self.data_server.WasRemoved():
-        MASTER.DeregisterSever(self.data_server)
+        MASTER.DeregisterServer(self.data_server)
       self.data_server = None
     elif self.rebalance_id:
       reb = MASTER.IsRebalancing()
@@ -736,18 +735,6 @@ class StandardDataServer(object):
       self.stat_thread.Stop()
 
 
-def AddMapSubjectRouting(routing):
-  map_subject_routing = r"%{(?P<path>" + store.BASE_MAP_SUBJECT + ")}"
-  return [map_subject_routing] + routing
-
-
-def UpdateRouting(new_routing):
-  # We use SetRaw here since the configuration was processsed already
-  # by the data master.
-  config_lib.CONFIG.SetRaw("Dataserver.routing", new_routing)
-  data_store.DB.RecreatePathing(new_routing)
-
-
 def InitMasterServer(port):
   """Initiates master server."""
   global MASTER
@@ -774,46 +761,12 @@ def InitDataServer(port):
   logging.info("Starting Data Server on port %d ...", port)
 
 
-def main(unused_argv):
-  """Main."""
-  # Change the startup sequence in order to set the database path, if needed.
-  startup.AddConfigContext()
-  startup.ConfigInit()
-
-  config_lib.CONFIG.AddContext("DataServer Context")
-  implementation = config_lib.CONFIG["Datastore.implementation"]
-  try:
-    global DATASTORE_CLS
-    DATASTORE_CLS = data_store.DataStore.GetPlugin(implementation)
-    path = flags.FLAGS.path or config_lib.CONFIG["Dataserver.path"]
-    if path:
-      DATASTORE_CLS.SetLocation(flags.FLAGS.path)
-    else:
-      raise errors.DataServerError("No storage location was set.")
-  except KeyError:
-    raise RuntimeError("No Storage System %s found." % implementation)
-  except AttributeError:
-    raise RuntimeError("Storage System %s does not support locations" %
-                       implementation)
-
-  # Need to handle the raw configuration data here.
-  old_routing = config_lib.CONFIG.GetRaw("Dataserver.routing")
-  new_routing = AddMapSubjectRouting(old_routing)
-  config_lib.CONFIG.SetRaw("Dataserver.routing", new_routing)
-  config_lib.CONFIG.SetRaw("Datastore.pathing", new_routing)
-
-  startup.ServerLoggingStartupInit()
-  stats.STATS = stats.StatsCollector()
-
-  # We avoid starting some hooks because they add unneeded things
-  # to the data store.
-  do_not_start = set(["ConfigurationViewInitHook", "FileStoreInit",
-                      "GRRAFF4Init"])
-  registry.Init(skip_set=do_not_start)
-
+def Start(db, port=0, is_master=False, server_cls=ThreadedHTTPServer,
+          reqhandler_cls=DataServerHandler):
+  """Start the data server."""
   # This is the service that will handle requests to the data store.
   global SERVICE
-  SERVICE = store.DataStoreService(data_store.DB)
+  SERVICE = store.DataStoreService(db)
 
   # Create the command table for faster execution of remote calls.
   # Along with a method, each command has the required permissions.
@@ -833,18 +786,15 @@ def main(unused_argv):
   global NONCE_STORE
   NONCE_STORE = auth.NonceStore()
 
-  server_port = flags.FLAGS.port or config_lib.CONFIG["Dataserver.port"]
+  server_port = port or config_lib.CONFIG["Dataserver.port"]
 
-  if flags.FLAGS.master:
+  if is_master:
     InitMasterServer(server_port)
   else:
     InitDataServer(server_port)
 
-  # Force the database to recreate routing information.
-  UpdateRouting(list(MAPPING.routing))
-
   try:
-    server = ThreadedHTTPServer(("", server_port), DataServerHandler)
+    server = server_cls(("", server_port), reqhandler_cls)
     server.serve_forever()
   except KeyboardInterrupt:
     print ("Caught keyboard interrupt, stopping server at port %s" %
@@ -856,6 +806,28 @@ def main(unused_argv):
       MASTER.Stop()
     else:
       DATA_SERVER.Stop()
+
+
+def main(unused_argv):
+  """Main."""
+  # Change the startup sequence in order to set the database path, if needed.
+  startup.AddConfigContext()
+  startup.ConfigInit()
+
+  config_lib.CONFIG.AddContext("DataServer Context")
+  path = flags.FLAGS.path or config_lib.CONFIG["Dataserver.path"]
+  config_lib.CONFIG.Set("Datastore.location", path)
+
+  startup.ServerLoggingStartupInit()
+  stats.STATS = stats.StatsCollector()
+
+  # We avoid starting some hooks because they add unneeded things
+  # to the data store.
+  do_not_start = set(["ConfigurationViewInitHook", "FileStoreInit",
+                      "GRRAFF4Init"])
+  registry.Init(skip_set=do_not_start)
+
+  Start(data_store.DB, port=flags.FLAGS.port, is_master=flags.FLAGS.master)
 
 if __name__ == "__main__":
   flags.StartMain(main)

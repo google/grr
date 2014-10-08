@@ -857,8 +857,7 @@ class UpdateAttribute(renderers.TemplateRenderer):
     # Check if the flow is still in flight.
     try:
       flow_obj = aff4.FACTORY.Open(self.flow_urn, token=request.token)
-      with flow_obj.GetRunner() as runner:
-        complete = not runner.IsRunning()
+      complete = not flow_obj.GetRunner().IsRunning()
 
     except IOError:
       # Something went wrong, stop polling.

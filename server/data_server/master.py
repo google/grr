@@ -125,12 +125,10 @@ class DataMaster(object):
       for server in self.servers:
         server.SetInitialInterval(len(self.servers))
       servers_info = [server.server_info for server in self.servers]
-      routing = config_lib.CONFIG.Get("Dataserver.routing")
       self.mapping = rdfvalue.DataServerMapping(version=0,
                                                 num_servers=len(self.servers),
-                                                servers=servers_info,
-                                                routing=routing)
-      self.service.SaveServerMapping(self.mapping)
+                                                servers=servers_info)
+      self.service.SaveServerMapping(self.mapping, create_pathing=True)
     else:
       # Check mapping and configuration matching.
       if len(self.mapping.servers) != len(self.servers):

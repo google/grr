@@ -54,3 +54,4 @@ class SystemRootSystemDriveFallbackFlow(artifact.ArtifactFallbackCollector):
     if not self.state.success:
       raise flow.FlowError("Couldn't guess the system root and drive location")
 
+    super(SystemRootSystemDriveFallbackFlow, self).End()

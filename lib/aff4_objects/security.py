@@ -362,7 +362,7 @@ Please click <a href='%(admin_ui)s#%(approval_urn)s'>
 </a> to review this request and then grant access.
 
 <p>Thanks,</p>
-<p>%(signature)s</p>
+<p>The GRR team.</p>
 <p>%(image)s</p>
 </body></html>"""
 
@@ -378,8 +378,7 @@ Please click <a href='%(admin_ui)s#%(approval_urn)s'>
           admin_ui=config_lib.CONFIG["AdminUI.url"],
           subject_title=subject_title,
           approval_urn=url,
-          image=image,
-          signature=config_lib.CONFIG["Email.signature"])
+          image=image)
 
       email_alerts.SendEmail(user, self.token.username,
                              u"Please grant %s approval to %s." % (
@@ -453,7 +452,7 @@ purpose of "%(reason)s".
 Please click <a href='%(admin_ui)s#%(subject_urn)s'>here</a> to access it.
 
 <p>Thanks,</p>
-<p>%(signature)s</p>
+<p>The GRR team.
 </body></html>"""
 
     body = template % dict(
@@ -461,8 +460,7 @@ Please click <a href='%(admin_ui)s#%(subject_urn)s'>here</a> to access it.
         username=self.token.username,
         reason=self.args.reason,
         admin_ui=config_lib.CONFIG["AdminUI.url"],
-        subject_urn=access_urn,
-        signature=config_lib.CONFIG["Email.signature"]
+        subject_urn=access_urn
         )
     email_alerts.SendEmail(self.args.delegate, self.token.username,
                            u"Access to %s granted." % subject_title,
@@ -513,15 +511,14 @@ for the purpose of: "%(reason)s".
 This access has been logged and granted for 24 hours.
 
 <p>Thanks,</p>
-<p>%(signature)s</p>
+<p>The GRR team.
 </body></html>"""
 
     body = template % dict(
         client_id=self.client_id,
         username=self.token.username,
         subject_title=subject_title,
-        reason=self.args.reason,
-        signature=config_lib.CONFIG["Email.signature"]),
+        reason=self.args.reason),
 
     email_alerts.SendEmail(
         config_lib.CONFIG["Monitoring.emergency_access_email"],

@@ -3,6 +3,7 @@
 
 
 import importlib
+import json
 import os
 import pdb
 import time
@@ -16,6 +17,7 @@ import psutil
 import logging
 
 from grr import gui
+from grr.gui import api_renderers
 from grr.gui import renderers
 from grr.gui import urls
 from grr.gui import webauth
@@ -122,6 +124,44 @@ def RenderBinaryDownload(request):
   response = http.HttpResponse(content=Generator(),
                                content_type="binary/octet-stream")
   response["Content-Disposition"] = ("attachment; filename=%s" % filename)
+  return response
+
+
+AFF4_RENDERERS_CACHE = {}
+
+
+@webauth.SecurityCheck
+@renderers.ErrorHandler()
+def RenderAFF4Object(request):
+  """Handler for the /api/aff4 requests."""
+  aff4_path = request.path.split("/", 3)[-1].strip("/")
+
+  request.REQ = request.REQUEST
+  token = BuildToken(request, 60)
+
+  aff4_object = aff4.FACTORY.Open(aff4_path, token=token)
+  try:
+    renderer_cls = AFF4_RENDERERS_CACHE[aff4_object.__class__.__name__]
+  except KeyError:
+    candidates = []
+    for candidate in api_renderers.ApiRenderer.classes.values():
+      if candidate.aff4_type and  aff4.issubclass(
+          aff4_object.__class__, aff4.AFF4Object.classes[candidate.aff4_type]):
+        candidates.append(candidate)
+
+    if not candidates:
+      raise RuntimeError("No renderer found for object %s." %
+                         aff4_object.__class__.__name__)
+
+    candidates = sorted(candidates, key=lambda cls: len(cls.mro()))
+    renderer_cls = candidates[-1]
+    AFF4_RENDERERS_CACHE[aff4_object.__class__.__name__] = renderer_cls
+
+  api_renderer = renderer_cls()
+  rendered_data = api_renderer.RenderObject(aff4_object, request.REQ)
+
+  response = http.HttpResponse(content_type="application/json")
+  response.write(json.dumps(rendered_data))
   return response
 
 

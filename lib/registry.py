@@ -47,6 +47,10 @@ class MetaclassRegistry(abc.ABCMeta):
 
       try:
         if cls.classes and cls.__name__ in cls.classes:
+          # TODO(user): this should really raise instead of just logging,
+          # since it can hide serious problems with registration.  Unfortunately
+          # gui/runtests.TestPluginInit relies on being able to re-import and
+          # overwrite the test plugins after django has been initialized.
           logging.warn("Duplicate names for registered classes: %s, %s",
                        cls, cls.classes[cls.__name__])
 

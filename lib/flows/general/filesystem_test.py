@@ -526,8 +526,8 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
         rdfvalue.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
 
     # Mock the client actions FileFinder uses.
-    client_mock = action_mocks.ActionMock("HashFile", "HashBuffer", "StatFile",
-                                          "Find", "TransferBuffer")
+    client_mock = action_mocks.ActionMock("FingerprintFile", "HashBuffer",
+                                          "StatFile", "Find", "TransferBuffer")
 
     for _ in test_lib.TestFlowHelper(
         "FileFinder", client_mock, client_id=self.client_id,
@@ -567,8 +567,8 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
         rdfvalue.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
 
     # Mock the client actions FileFinder uses.
-    client_mock = action_mocks.ActionMock("HashFile", "HashBuffer", "StatFile",
-                                          "Find", "TransferBuffer")
+    client_mock = action_mocks.ActionMock("FingerprintFile", "HashBuffer",
+                                          "StatFile", "Find", "TransferBuffer")
 
     for _ in test_lib.TestFlowHelper(
         "FileFinder", client_mock, client_id=self.client_id,
@@ -629,7 +629,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     fd = self.CreateNewSparseImage()
     urn = fd.urn
 
-    self.client_mock = action_mocks.ActionMock("HashFile", "HashBuffer",
+    self.client_mock = action_mocks.ActionMock("FingerprintFile", "HashBuffer",
                                                "StatFile", "Find",
                                                "TransferBuffer", "ReadBuffer")
     for _ in test_lib.TestFlowHelper(
@@ -709,8 +709,8 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     pathspec = rdfvalue.PathSpec(
         path=path, pathtype=rdfvalue.PathSpec.PathType.OS)
 
-    client_mock = action_mocks.ActionMock("HashFile", "HashBuffer", "StatFile",
-                                          "Find", "TransferBuffer",
+    client_mock = action_mocks.ActionMock("FingerprintFile", "HashBuffer",
+                                          "StatFile", "Find", "TransferBuffer",
                                           "ReadBuffer")
 
     # Get everything as an AFF4SparseImage
@@ -766,7 +766,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     client.Set(client.Schema.SYSTEM("Windows"))
     client.Flush()
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.ClientRegistryVFSFixture
+        rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
 
     client_mock = action_mocks.WindowsVolumeClientMock("StatFile",
                                                        "ListDirectory")

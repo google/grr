@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
 <head>
 <meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
-<meta name="generator" content="AsciiDoc 8.6.9" />
+<meta name="generator" content="AsciiDoc 8.6.6" />
 <title>GRR User manual</title>
 <style type="text/css">
 /* Shared CSS for AsciiDoc xhtml11 and html5 backends */
@@ -87,15 +87,9 @@ ul, ol, li > p {
 ul > li     { color: #aaa; }
 ul > li > * { color: black; }
 
-.monospaced, code, pre {
-  font-family: "Courier New", Courier, monospace;
-  font-size: inherit;
-  color: navy;
+pre {
   padding: 0;
   margin: 0;
-}
-pre {
-  white-space: pre-wrap;
 }
 
 #author {
@@ -225,7 +219,7 @@ div.exampleblock > div.content {
 }
 
 div.imageblock div.content { padding-left: 0; }
-span.image img { border-style: none; vertical-align: text-bottom; }
+span.image img { border-style: none; }
 a.image:visited { color: white; }
 
 dl {
@@ -355,7 +349,7 @@ div.colist td img {
   margin-bottom: 0.1em;
 }
 
-div.toclevel0, div.toclevel1, div.toclevel2, div.toclevel3, div.toclevel4 {
+div.toclevel1, div.toclevel2, div.toclevel3, div.toclevel4 {
   margin-top: 0;
   margin-bottom: 0;
 }
@@ -413,13 +407,17 @@ span.underline { text-decoration: underline; }
 span.overline { text-decoration: overline; }
 span.line-through { text-decoration: line-through; }
 
-div.unbreakable { page-break-inside: avoid; }
-
 
 /*
  * xhtml11 specific
  *
  * */
+
+tt {
+  font-family: monospace;
+  font-size: inherit;
+  color: navy;
+}
 
 div.tableblock {
   margin-top: 1.0em;
@@ -453,6 +451,12 @@ div.tableblock > table[frame="vsides"] {
  * html5 specific
  *
  * */
+
+.monospaced {
+  font-family: monospace;
+  font-size: inherit;
+  color: navy;
+}
 
 table.tableblock {
   margin-top: 1.0em;
@@ -533,8 +537,6 @@ body.manpage div.sectionbody {
 @media print {
   body.manpage div#toc { display: none; }
 }
-
-
 </style>
 <script type="text/javascript">
 /*<![CDATA[*/
@@ -579,7 +581,7 @@ toc: function (toclevels) {
 
   function tocEntries(el, toclevels) {
     var result = new Array;
-    var re = new RegExp('[hH]([1-'+(toclevels+1)+'])');
+    var re = new RegExp('[hH]([2-'+(toclevels+1)+'])');
     // Function that scans the DOM tree for header elements (the DOM2
     // nodeIterator API would be a better technique but not supported by all
     // browsers).
@@ -608,7 +610,7 @@ toc: function (toclevels) {
   var i;
   for (i = 0; i < toc.childNodes.length; i++) {
     var entry = toc.childNodes[i];
-    if (entry.nodeName.toLowerCase() == 'div'
+    if (entry.nodeName == 'div'
      && entry.getAttribute("class")
      && entry.getAttribute("class").match(/^toclevel/))
       tocEntriesToRemove.push(entry);
@@ -654,7 +656,7 @@ footnotes: function () {
   var entriesToRemove = [];
   for (i = 0; i < noteholder.childNodes.length; i++) {
     var entry = noteholder.childNodes[i];
-    if (entry.nodeName.toLowerCase() == 'div' && entry.getAttribute("class") == "footnote")
+    if (entry.nodeName == 'div' && entry.getAttribute("class") == "footnote")
       entriesToRemove.push(entry);
   }
   for (i = 0; i < entriesToRemove.length; i++) {
@@ -734,6 +736,10 @@ asciidoc.install(2);
 <body class="article">
 <div id="header">
 <h1>GRR User manual</h1>
+<div id="toc">
+  <div id="toctitle">Table of Contents</div>
+  <noscript><p><b>JavaScript must be enabled in your browser to display the table of contents.</b></p></noscript>
+</div>
 </div>
 <div id="content">
 <div class="sect1">
@@ -794,7 +800,7 @@ is useful if you want to retrieve the file using command line tools or a browser
 that isn&#8217;t supported (e.g. IE6).</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>wget --user=admin --password=setecastronomy http://example.com:8080/download/windows/installers/grr-installer-2209.exe</code></pre>
+<pre><tt>wget --user=admin --password=setecastronomy http://example.com:8080/download/windows/installers/grr-installer-2209.exe</tt></pre>
 </div></div>
 <div class="paragraph"><p>If your server configuration has changed your agents will need to be repacked
 with an updated config. For details see:
@@ -834,9 +840,9 @@ an Administrator user in the remote system. Once all these requirements are met,
 just start a cmd.exe shell and type:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>cd C:\AGENT_DIRECTORY\
+<pre><tt>cd C:\AGENT_DIRECTORY\
 net use \\MACHINE\IPC$ /USER:USERNAME *
-psexec \\MACHINE -c -f -s agent-version.exe</code></pre>
+psexec \\MACHINE -c -f -s agent-version.exe</tt></pre>
 </div></div>
 <div class="admonitionblock">
 <table><tr>
@@ -873,7 +879,7 @@ it. The installation doesn&#8217;t require user input.</p></div>
 <div class="paragraph"><p>The expected output is something along these lines:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>C:\&gt; cd C:\AGENT_DIRECTORY\
+<pre><tt>C:\&gt; cd C:\AGENT_DIRECTORY\
 C:\&gt; net use \\127.0.0.1\IPC$ /USER:admin *
 Type the password for \\127.0.0.1\IPC$:
 The command completed successfully
@@ -887,15 +893,15 @@ The command completed successfully.
 
 agent.exe exited on 127.0.0.1 with error code 0.
 
-C:\AGENT_DIRECTORY&gt;</code></pre>
+C:\AGENT_DIRECTORY&gt;</tt></pre>
 </div></div>
 <div class="paragraph"><p>For even less footprint on installation you could host the agent on a shared
 folder on the network and use this psexec command instead:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>cd C:\AGENT_DIRECTORY\
+<pre><tt>cd C:\AGENT_DIRECTORY\
 net use \\MACHINE\IPC$ /USER:USERNAME *
-psexec \\MACHINE -s \\SHARE\FOLDER\agent-version.exe</code></pre>
+psexec \\MACHINE -s \\SHARE\FOLDER\agent-version.exe</tt></pre>
 </div></div>
 <div class="paragraph"><p>This requires the USERNAME on the remote MACHINE be able to log into SHARE and
 access the shared folder FOLDER. You can do this either by explicitly allowing
@@ -911,8 +917,8 @@ sense.
 Alternatively you can deploy using ssh:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>scp agent_version.deb host:/tmp/
-ssh host sudo dpkg -i /tmp/agent_version.deb</code></pre>
+<pre><tt>scp agent_version.deb host:/tmp/
+ssh host sudo dpkg -i /tmp/agent_version.deb</tt></pre>
 </div></div>
 <div class="paragraph"><p>On MacOS X, the same process applies, use puppet or equivalent if you have, or
 use ssh.</p></div>
@@ -946,8 +952,8 @@ enabled. This is particularly handy on Windows. To repack with this enabled, on
 the server you can do:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>db@host:~ sudo grr_config_updater --verbose -p ClientBuilder.console=True
-repack_clients</code></pre>
+<pre><tt>db@host:~ sudo grr_config_updater --verbose -p ClientBuilder.console=True
+repack_clients</tt></pre>
 </div></div>
 <div class="paragraph"><p>Alternatively, you can set ClientBuilder.console: False inside your server
 config file to have this setting always applied.</p></div>
@@ -973,20 +979,20 @@ editor as well.</p></div>
   into a pdb debugging shell.</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>C:\Windows\system32&gt;net stop "grr monitor"
+<pre><tt>C:\Windows\system32&gt;net stop "grr monitor"
 The GRR Monitor service is stopping.
 The GRR Monitor service was stopped successfully.
 
-C:\Windows\system32&gt;c:\windows\system32\grr\2.5.0.5\grr.exe --config grr.exe.yaml --verbose</code></pre>
+C:\Windows\system32&gt;c:\windows\system32\grr\2.5.0.5\grr.exe --config grr.exe.yaml --verbose</tt></pre>
 </div></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>test@test0:~$ sudo service grr-single-server stop
+<pre><tt>test@test0:~$ sudo service grr-single-server stop
 [sudo] password for test:
 grr-single-server stop/waiting
 test@test0:~$ sudo /usr/sbin/grrd --config=/usr/lib/grr/grr_2.9.1.1_amd64/grr.yaml --verbose
 INFO:2013-10-02 14:32:07,756 logging:1611] Starting GRR Prelogging buffer.
-INFO:2013-10-02 14:32:07,791 logging:1611] Loading configuration from /usr/lib/grr/grr_2.9.1.1_amd64/grr.yaml</code></pre>
+INFO:2013-10-02 14:32:07,791 logging:1611] Loading configuration from /usr/lib/grr/grr_2.9.1.1_amd64/grr.yaml</tt></pre>
 </div></div>
 <div class="sect4">
 <h5 id="_configuration_changes_to_ease_debugging">Configuration Changes to Ease Debugging</h5>
@@ -996,7 +1002,7 @@ In windows, set the registry key poll_max to 10, then restart the service. You
 can do this with regedit or via the Windows command line:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>C:\Windows\system32&gt;reg add HKLM\Software\GRR /v Client.poll_max /d 10
+<pre><tt>C:\Windows\system32&gt;reg add HKLM\Software\GRR /v Client.poll_max /d 10
 The operation completed successfully.
 
 C:\Windows\system32&gt;net stop "grr monitor"
@@ -1005,7 +1011,7 @@ The GRR Monitor service was stopped successfully.
 
 C:\Windows\system32&gt;net start "grr monitor"
 The GRR Monitor service is starting.
-The GRR Monitor service was started successfully.</code></pre>
+The GRR Monitor service was started successfully.</tt></pre>
 </div></div>
 </div>
 <div class="sect4">
@@ -1034,11 +1040,11 @@ directory, then optionally removing the registry keys and install log if one
 was created, as per below:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>sc stop "grr monitor"
+<pre><tt>sc stop "grr monitor"
 sc delete "grr monitor"
 reg delete HKLM\Software\GRR
 rmdir /Q /S c:\windows\system32\grr
-del /F c:\windows\system32\grr_installer.txt</code></pre>
+del /F c:\windows\system32\grr_installer.txt</tt></pre>
 </div></div>
 <div class="paragraph"><p>On OSX you can also use the Uninstall flow.</p></div>
 <div class="paragraph"><p>On Linux the standard system packaging (deb, pkg) is used by default. Use the
@@ -1055,7 +1061,7 @@ Server Isn&#8217;t Listening
 <dd>
 <p>
 Confirm you can connect to the server and retrieve the server.pem file. E.g.
-  <code>wget http://server:8080/server.pem</code>
+  <tt>wget http://server:8080/server.pem</tt>
 </p>
 </dd>
 <dt class="hdlist1">
@@ -1067,13 +1073,13 @@ If the environment doesn&#8217;t allow direct connections GRR may need to use a
 proxy. GRR currently doesn&#8217;t support Proxy Autoconfig or Proxy Authentication.
 GRR will attempt to guess your proxy configuration, or you can explicitly set
 proxies in the config file, e.g.
-  <code>Client.proxy_servers: ["http://cache.example.com:3128/"]</code>
+  <tt>Client.proxy_servers: ["http://cache.example.com:3128/"]</tt>
 On Windows systems GRR will try a direct connection, and then search for
 configured proxies in all users profiles on the system trying to get a working
 connection.
 On Linux GRR should obey system proxy settings, and it will also obey
 environment variables. e.g.
-  <code>export http_proxy=http://cache.example.com:3128</code>
+  <tt>export http_proxy=http://cache.example.com:3128</tt>
 </p>
 </dd>
 <dt class="hdlist1">
@@ -1087,7 +1093,7 @@ have a restrictive policy you could add this as an installer plugin.
 </dd>
 </dl></div>
 <div class="paragraph"><p>If you look at the running config, the first time the client successfully
-connects to the server a variable <code>Client.server_serial_number</code> will be written
+connects to the server a variable <tt>Client.server_serial_number</tt> will be written
 to the config. If that exists, the client successfully made a connection.</p></div>
 </div>
 </div>
@@ -1244,18 +1250,18 @@ access this client&#8217;s VFS.</p></div>
 </div>
 <div class="paragraph"><p>In order to check contents of the remote filesystem you first need to request a
 directory listing. And before that you need to know which drive or volume you
-want to list. You can find these under the <code>fs</code> (FileSystem) node of the tree
+want to list. You can find these under the <tt>fs</tt> (FileSystem) node of the tree
 view.</p></div>
 <div class="paragraph"><p>Inside you will find two directories:</p></div>
 <div class="olist arabic"><ol class="arabic">
 <li>
 <p>
-<code>os</code> contains the volumes seen by the Operating System.
+<tt>os</tt> contains the volumes seen by the Operating System.
 </p>
 </li>
 <li>
 <p>
-<code>tsk</code> contains volumes seen by sleuthkit when analyzing the partition table
+<tt>tsk</tt> contains volumes seen by sleuthkit when analyzing the partition table
 on the remote system.
 </p>
 </li>
@@ -1345,9 +1351,9 @@ VFS.</p></div>
 </ul></div>
 <div class="paragraph"><p>Now try clicking on any entry in the table view and the details view will
 populate with data from this file.</p></div>
-<div class="paragraph"><p>The details view has four tabs you can use. The default one is <code>Stats</code> and it
+<div class="paragraph"><p>The details view has four tabs you can use. The default one is <tt>Stats</tt> and it
 shows all the attributes for the selected node. It should look familiar to you
-as it&#8217;s pretty much as the <code>Host Information</code> page you see where you can find
+as it&#8217;s pretty much as the <tt>Host Information</tt> page you see where you can find
 information about the client object.</p></div>
 <div class="paragraph"><p>The rest are discussed in the next section.</p></div>
 </div>
@@ -1415,17 +1421,17 @@ consolidated into the File Finder flow, which uses a glob+interpolation syntax.<
 <div class="paragraph"><p>All executables or dlls in the user&#8217;s download directory:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>%%users.homedir%%\Downloads\*.{exe,dll}</code></pre>
+<pre><tt>%%users.homedir%%\Downloads\*.{exe,dll}</tt></pre>
 </div></div>
 <div class="paragraph"><p>All .evtx files found up to three directories under C:\Windows\System32\winevt:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>%%environ_systemroot%%\System32\winevt\**.evtx</code></pre>
+<pre><tt>%%environ_systemroot%%\System32\winevt\**.evtx</tt></pre>
 </div></div>
 <div class="paragraph"><p>"findme.txt" files in user homedirs, up to 10 directories deep:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>%%users.homedir%%/**10/findme.txt</code></pre>
+<pre><tt>%%users.homedir%%/**10/findme.txt</tt></pre>
 </div></div>
 <div class="admonitionblock">
 <table><tr>
@@ -1448,12 +1454,12 @@ Interpolated values are enclosed with %%, and may expand to multiple elements.
 e.g.</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>%%users.homedir%%\blah.txt</code></pre>
+<pre><tt>%%users.homedir%%\blah.txt</tt></pre>
 </div></div>
 <div class="paragraph"><p>Might expand to the following paths:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>C:\Users\alice\blah.txt, C:\Users\bob\blah.txt, C:\Users\eve\blah.txt</code></pre>
+<pre><tt>C:\Users\alice\blah.txt, C:\Users\bob\blah.txt, C:\Users\eve\blah.txt</tt></pre>
 </div></div>
 <div class="paragraph"><p>A full list of possible interpolation values can be found by typing %% in the
 gui.</p></div>
@@ -1463,28 +1469,28 @@ gui.</p></div>
 <div class="paragraph"><p>Curly braces work similarly to bash, e.g:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>{one,two}.{txt,doc}</code></pre>
+<pre><tt>{one,two}.{txt,doc}</tt></pre>
 </div></div>
 <div class="paragraph"><p>Will match: one.txt, two.txt, one.doc, two.doc</p></div>
 <div class="paragraph"><p>Recursive searching of a directory is performed with **.  The default search
 depth is 3 directories.  So:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>/root/**.doc</code></pre>
+<pre><tt>/root/**.doc</tt></pre>
 </div></div>
 <div class="paragraph"><p>Will match:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>/root/blah.doc
+<pre><tt>/root/blah.doc
 /root/1/something.doc
 /root/1/2/other.doc
-/root/1/2/3/another.doc</code></pre>
+/root/1/2/3/another.doc</tt></pre>
 </div></div>
 <div class="paragraph"><p>More depth can be specified by adding a number to the **, e.g. this performs
 the same search 10 levels deep:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>/root/**10.doc</code></pre>
+<pre><tt>/root/**10.doc</tt></pre>
 </div></div>
 </div>
 </div>
@@ -1501,22 +1507,22 @@ There are two types of grep syntax: literal and regex.</p></div>
 Here&#8217;s a simple string example (note no quotes required):</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>allyourbase</code></pre>
+<pre><tt>allyourbase</tt></pre>
 </div></div>
 <div class="paragraph"><p>And a byte string example:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>MZ\x90\x00\x03\x00\x00\x00\x04\x00\x00\x00</code></pre>
+<pre><tt>MZ\x90\x00\x03\x00\x00\x00\x04\x00\x00\x00</tt></pre>
 </div></div>
 <div class="paragraph"><p>To minimise the potential for errors we recommend using python to create byte
 strings for you where possible, e.g.  the above byte string was created in
 ipython like this:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>In [1]: content = open("test.exe","rb").read(12)
+<pre><tt>In [1]: content = open("test.exe","rb").read(12)
 
 In [2]: content
-Out[2]: 'MZ\x90\x00\x03\x00\x00\x00\x04\x00\x00\x00'</code></pre>
+Out[2]: 'MZ\x90\x00\x03\x00\x00\x00\x04\x00\x00\x00'</tt></pre>
 </div></div>
 </div>
 <div class="sect2">
@@ -1526,14 +1532,14 @@ regex (see <a href="http://docs.python.org/2/library/re.html">http://docs.python
 applied automatically:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>re.IGNORECASE | re.DOTALL | re.MULTILINE</code></pre>
+<pre><tt>re.IGNORECASE | re.DOTALL | re.MULTILINE</tt></pre>
 </div></div>
 <div class="paragraph"><p>An example regex is below. The entire match is reported, () groups are not
 broken out separately.  Also note that 10 bytes before and after will be added
 to any matches by default - use the Advanced menu to change this behavior:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>Accepted [^ ]+ for [^ ]+ from [0-9.]+ port [0-9]+ ssh</code></pre>
+<pre><tt>Accepted [^ ]+ for [^ ]+ from [0-9.]+ port [0-9]+ ssh</tt></pre>
 </div></div>
 </div>
 <div class="sect2">
@@ -1704,16 +1710,16 @@ are:
 <li>
 <p>
 <strong>OS</strong>. Uses the OS "open" facility. These are the most straightforward for a
-    first user. Examples of <em>os</em> paths are <code>C:/Windows</code> on Windows or
-    <code>/etc/init.d/</code> on Linux/OSX.
+    first user. Examples of <em>os</em> paths are <tt>C:/Windows</tt> on Windows or
+    <tt>/etc/init.d/</tt> on Linux/OSX.
 </p>
 </li>
 <li>
 <p>
 <strong>TSK</strong>. Use Sleuthkit. Because Sleuthkit is invoked a path to the device is
     needed along the actual directory path. Examples of <em>tsk</em> paths are
-    <code>\\?\Volume{19b4a721-6e90-12d3-fa01-806e6f6e6963}\Windows</code> for Windows or
-    <code>/dev/sda1/init.d/</code> on Linux. The specific path will vary from client to
+    <tt>\\?\Volume{19b4a721-6e90-12d3-fa01-806e6f6e6963}\Windows</tt> for Windows or
+    <tt>/dev/sda1/init.d/</tt> on Linux. The specific path will vary from client to
     client.
 </p>
 </li>
@@ -1721,7 +1727,7 @@ are:
 <p>
 <strong>REGISTRY</strong>. Windows-related. You can open the live Windows registry as if it
     was a virtual filesystem.a So you can specify a <em>path</em> such as
-    <code>HKEY_LOCAL_MACHINE/Select/Current</code>.
+    <tt>HKEY_LOCAL_MACHINE/Select/Current</tt>.
 </p>
 </li>
 <li>
@@ -1845,13 +1851,13 @@ couple of minutes before the first client picks up the flow.
 <li>
 <p>
 Clients only check if there is hunt work to do according to the
-<code>Client.foreman_check_frequency</code> parameter. This should default to every 10
+<tt>Client.foreman_check_frequency</tt> parameter. This should default to every 10
 minutes as of version 0.2-9. Note that when a client issues a foreman check,
 flows are not directly queued on the client. Instead, the process is
 asynchronous, so the check tells the server to check its hunt rules to see if
 there are things for the client to do, if there are, it schedules them. However,
 if the client is in slow poll mode, it may not poll and pick up that work for
-another <code>Client.poll_max period</code> (10 minutes by default).
+another <tt>Client.poll_max period</tt> (10 minutes by default).
 </p>
 </li>
 </ul></div>
@@ -1868,11 +1874,11 @@ provide a tool called file_exporter, and a FUSE layer.</p></div>
 <h3 id="_exporting_a_single_file">Exporting a Single File</h3>
 <div class="listingblock">
 <div class="content">
-<pre><code>db@grrhost: ~$ grr_file_exporter --file=aff4:/C.123456890ABCDEF/fs/os/boot.ini --output=/tmp
+<pre><tt>db@grrhost: ~$ grr_file_exporter --file=aff4:/C.123456890ABCDEF/fs/os/boot.ini --output=/tmp
 Using configuration &lt;ConfigFileParser filename="/etc/grr/grr-server.conf"&gt;
 Downloading: aff4:/C.123456890abcdef/fs/os/boot.ini to: /tmp/C.123456890abcdef/fs/os/boot.ini
 
-db@grrhost: ~$</code></pre>
+db@grrhost: ~$</tt></pre>
 </div></div>
 </div>
 <div class="sect2">
@@ -1880,11 +1886,11 @@ db@grrhost: ~$</code></pre>
 <div class="paragraph"><p>Directories can be exported recursively</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>db@grrhost: ~$ grr_file_exporter --directory=aff4:/C.123456890ABCDEF/fs/os/ --output=/tmp --overwrite --depth=4
+<pre><tt>db@grrhost: ~$ grr_file_exporter --directory=aff4:/C.123456890ABCDEF/fs/os/ --output=/tmp --overwrite --depth=4
 Downloading: aff4:/C.123456890abcdef/fs/os/boot.ini to: /tmp/C.123456890abcdef/fs/os/boot.ini
 Downloading: aff4:/C.123456890abcdef/fs/os/tmp1 to: /tmp/C.123456890abcdef/fs/os/tmp1
 
-db@grrhost: ~$</code></pre>
+db@grrhost: ~$</tt></pre>
 </div></div>
 </div>
 <div class="sect2">
@@ -1903,7 +1909,7 @@ This is useful for identifying which machine the files came from when working on
 the filesystem.</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>db@grrhost: ~$ grr_file_exporter --collection=aff4:/hunts/W:123456/Results --output=/tmp</code></pre>
+<pre><tt>db@grrhost: ~$ grr_file_exporter --collection=aff4:/hunts/W:123456/Results --output=/tmp</tt></pre>
 </div></div>
 </div>
 </div>
@@ -1911,7 +1917,7 @@ the filesystem.</p></div>
 <div class="sect1">
 <h2 id="_the_console">The Console</h2>
 <div class="sectionbody">
-<div class="paragraph"><p>The GRR console <code>grr_console</code> gives you an interactive ipython shell with all
+<div class="paragraph"><p>The GRR console <tt>grr_console</tt> gives you an interactive ipython shell with all
 the right imports to do pretty much whatever you want.</p></div>
 <div class="sect2">
 <h3 id="_running_a_simple_flow_list_processes">Running a Simple Flow - List Processes</h3>
@@ -1927,75 +1933,73 @@ the right imports to do pretty much whatever you want.</p></div>
 </tr></table>
 </div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.6
-by Lorenzo Bettini
-http://www.lorenzobettini.it
-http://www.gnu.org/software/src-highlite -->
+<div class="content">
 <pre><tt>grr_console
 
-In <span style="color: #990000">[</span><span style="color: #993399">31</span><span style="color: #990000">]:</span> flow<span style="color: #990000">.</span>GRRFlow<span style="color: #990000">.</span>ListProcesses<span style="color: #990000">?</span>
-Type<span style="color: #990000">:</span>       MetaclassRegistry
-String Form<span style="color: #990000">:&lt;</span>class <span style="color: #FF0000">'grr.lib.flows.general.processes.ListProcesses'</span><span style="color: #990000">&gt;</span>
-File<span style="color: #990000">:</span>       /usr/lib/python<span style="color: #993399">27</span>/dist-packages/grr/lib/flows/general/processes<span style="color: #990000">.</span>py
-Docstring<span style="color: #990000">:</span>
-List running processes on a system<span style="color: #990000">.</span>
+In [31]: flow.GRRFlow.ListProcesses?
+Type:       MetaclassRegistry
+String Form:&lt;class 'grr.lib.flows.general.processes.ListProcesses'&gt;
+File:       /usr/lib/python27/dist-packages/grr/lib/flows/general/processes.py
+Docstring:
+List running processes on a system.
 
-Call Spec<span style="color: #990000">:</span>
-  flow<span style="color: #990000">.</span>GRRFlow<span style="color: #990000">.</span>StartFlow<span style="color: #990000">(</span><span style="color: #009900">client_id</span><span style="color: #990000">=</span>client_id<span style="color: #990000">,</span> <span style="color: #009900">flow_name</span><span style="color: #990000">=</span><span style="color: #FF0000">"ListProcesses"</span><span style="color: #990000">)</span>
+Call Spec:
+  flow.GRRFlow.StartFlow(client_id=client_id, flow_name="ListProcesses")
 
-Args<span style="color: #990000">:</span> None
+Args: None
 
-In <span style="color: #990000">[</span><span style="color: #993399">32</span><span style="color: #990000">]:</span> flow<span style="color: #990000">.</span>GRRFlow<span style="color: #990000">.</span>StartFlow<span style="color: #990000">(</span><span style="color: #009900">client_id</span><span style="color: #990000">=</span><span style="color: #FF0000">'C.93ce669b1b0c76b6'</span><span style="color: #990000">,</span> <span style="color: #009900">flow_name</span><span style="color: #990000">=</span><span style="color: #FF0000">"ListProcesses"</span><span style="color: #990000">)</span>
-I0814 <span style="color: #993399">17</span><span style="color: #990000">:</span><span style="color: #993399">24</span><span style="color: #990000">:</span><span style="color: #993399">38.813689</span> <span style="color: #993399">24346</span> flow<span style="color: #990000">.</span>py<span style="color: #990000">:</span><span style="color: #993399">810</span><span style="color: #990000">]</span> Scheduling aff4<span style="color: #990000">:</span>/C<span style="color: #990000">.</span>93ce669b1b0c76b6/flows/W<span style="color: #990000">:</span>52EBD0A7<span style="color: #990000">(</span>ListProcesses<span style="color: #990000">)</span> on aff4<span style="color: #990000">:</span>/C<span style="color: #990000">.</span>93ce669b1b0c76b6<span style="color: #990000">:</span> {}
-Out<span style="color: #990000">[</span><span style="color: #993399">32</span><span style="color: #990000">]:</span> <span style="color: #990000">&lt;</span>aff4<span style="color: #990000">:</span>/C<span style="color: #990000">.</span>93ce669b1b0c76b6/flows/W<span style="color: #990000">:</span>52EBD0A7 <span style="color: #009900">age</span><span style="color: #990000">=</span><span style="color: #993399">1970</span>-<span style="color: #993399">01</span>-<span style="color: #993399">01</span> <span style="color: #993399">00</span><span style="color: #990000">:</span><span style="color: #993399">00</span><span style="color: #990000">:</span><span style="color: #993399">00</span><span style="color: #990000">&gt;</span>
+In [32]: flow.GRRFlow.StartFlow(client_id='C.93ce669b1b0c76b6', flow_name="ListProcesses")
+I0814 17:24:38.813689 24346 flow.py:810] Scheduling aff4:/C.93ce669b1b0c76b6/flows/W:52EBD0A7(ListProcesses) on aff4:/C.93ce669b1b0c76b6: {}
+Out[32]: &lt;aff4:/C.93ce669b1b0c76b6/flows/W:52EBD0A7 age=1970-01-01 00:00:00&gt;
 
-<span style="font-style: italic"><span style="color: #9A1900">### Alternatively you could use StartFlowAndWait to do the same thing but block while the flow is running like this:</span></span>
-<span style="font-style: italic"><span style="color: #9A1900"># flow_utils.StartFlowAndWait('C.93ce669b1b0c76b6', "ListProcesses")</span></span>
+### Alternatively you could use StartFlowAndWait to do the same thing but block while the flow is running like this:
+# flow_utils.StartFlowAndWait('C.93ce669b1b0c76b6', "ListProcesses")
 
-In <span style="color: #990000">[</span><span style="color: #993399">33</span><span style="color: #990000">]:</span> processes_fd <span style="color: #990000">=</span> aff4<span style="color: #990000">.</span>FACTORY<span style="color: #990000">.</span>Open<span style="color: #990000">(</span><span style="color: #FF0000">"aff4:/C.93ce669b1b0c76b6/processes"</span><span style="color: #990000">,</span> <span style="color: #009900">mode</span><span style="color: #990000">=</span><span style="color: #FF0000">"r"</span><span style="color: #990000">)</span>
+In [33]: processes_fd = aff4.FACTORY.Open("aff4:/C.93ce669b1b0c76b6/processes", mode="r")
 
-In <span style="color: #990000">[</span><span style="color: #993399">34</span><span style="color: #990000">]:</span> plist <span style="color: #990000">=</span> processes<span style="color: #990000">.</span>Get<span style="color: #990000">(</span>processes<span style="color: #990000">.</span>Schema<span style="color: #990000">.</span>PROCESSES<span style="color: #990000">)</span>
+In [34]: plist = processes.Get(processes.Schema.PROCESSES)
 
-In <span style="color: #990000">[</span><span style="color: #993399">35</span><span style="color: #990000">]:</span> print plist<span style="color: #990000">[</span><span style="color: #993399">0</span><span style="color: #990000">].</span>exe
+In [35]: print plist[0].exe
 /sbin/init
 
-In <span style="color: #990000">[</span><span style="color: #993399">36</span><span style="color: #990000">]:</span> print plist<span style="color: #990000">[</span><span style="color: #993399">0</span><span style="color: #990000">]</span>
+In [36]: print plist[0]
 message Process {
- RSS_size <span style="color: #990000">:</span> <span style="color: #993399">2805760</span>
- VMS_size <span style="color: #990000">:</span> <span style="color: #993399">21372928</span>
- cmdline <span style="color: #990000">:</span> <span style="color: #990000">[</span>
-   u<span style="color: #FF0000">'/sbin/init'</span>
-  <span style="color: #990000">]</span>
- ctime <span style="color: #990000">:</span> <span style="color: #993399">1376328450160000</span>
- effective_gid <span style="color: #990000">:</span> <span style="color: #993399">0</span>
- effective_uid <span style="color: #990000">:</span> <span style="color: #993399">0</span>
- exe <span style="color: #990000">:</span> u<span style="color: #FF0000">'/sbin/init'</span>
- memory_percent <span style="color: #990000">:</span> <span style="color: #993399">0.0110976351425</span>
- name <span style="color: #990000">:</span> u<span style="color: #FF0000">'init'</span>
- nice <span style="color: #990000">:</span> <span style="color: #993399">0</span>
- num_threads <span style="color: #990000">:</span> <span style="color: #993399">1</span>
- pid <span style="color: #990000">:</span> <span style="color: #993399">1</span>
- real_gid <span style="color: #990000">:</span> <span style="color: #993399">0</span>
- real_uid <span style="color: #990000">:</span> <span style="color: #993399">0</span>
- saved_gid <span style="color: #990000">:</span> <span style="color: #993399">0</span>
- saved_uid <span style="color: #990000">:</span> <span style="color: #993399">0</span>
- status <span style="color: #990000">:</span> u<span style="color: #FF0000">'sleeping'</span>
- system_cpu_time <span style="color: #990000">:</span> <span style="color: #993399">6.65999984741</span>
- user_cpu_time <span style="color: #990000">:</span> <span style="color: #993399">2.36999988556</span>
- username <span style="color: #990000">:</span> u<span style="color: #FF0000">'root'</span>
+ RSS_size : 2805760
+ VMS_size : 21372928
+ cmdline : [
+   u'/sbin/init'
+  ]
+ ctime : 1376328450160000
+ effective_gid : 0
+ effective_uid : 0
+ exe : u'/sbin/init'
+ memory_percent : 0.0110976351425
+ name : u'init'
+ nice : 0
+ num_threads : 1
+ pid : 1
+ real_gid : 0
+ real_uid : 0
+ saved_gid : 0
+ saved_uid : 0
+ status : u'sleeping'
+ system_cpu_time : 6.65999984741
+ user_cpu_time : 2.36999988556
+ username : u'root'
 }
 
 
 
-GRR<span style="color: #FF0000">'s FUSE layer</span></tt></pre></div></div>
+GRR's FUSE layer</tt></pre>
+</div></div>
 <div class="paragraph"><p>GRR&#8217;s FUSE layer allows you to mount remote filesystems at directories in your
-machine. Run it by running <code>grr_fuse</code>. For configuration options, see
+machine. Run it by running <tt>grr_fuse</tt>. For configuration options, see
 grr/tools/fuse_mount.py</p></div>
-<div class="paragraph"><p>By default <code>grr_fuse</code> will mount the root AFF4 directory, so you&#8217;ll be able to
+<div class="paragraph"><p>By default <tt>grr_fuse</tt> will mount the root AFF4 directory, so you&#8217;ll be able to
 cd into any client from there. It&#8217;s also possible to mount at arbitrary URNs
 using the --aff4_path flag to fuse_mount.py.</p></div>
 <div class="paragraph"><p>Example invocation:
-<code>grr_fuse</code> --mountpoint=/mnt/aff4</p></div>
+<tt>grr_fuse</tt> --mountpoint=/mnt/aff4</p></div>
 <div class="paragraph"><p>While using the FUSE layer, flows will be run on the client to update
 files/directories, so some commands (e.g. ls) might be slow the first time they
 are run. Results are cached so that subsequent calls (e.g. in tab completion) do
@@ -2005,7 +2009,7 @@ time is 5 minutes, and can be set with the --max_age_before_refresh flag in
 grr/tools/fuse_mount.py</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>Timeline</code></pre>
+<pre><tt>Timeline</tt></pre>
 </div></div>
 <div class="paragraph"><p>GRR currently contains rudimentary support for timelining and timeline
 visualization through the MACTimes flow. When you run this flow it will be
@@ -2019,15 +2023,13 @@ can also do basic filtering in the GUI. Filters work against the objects stored
 as events in timeline.</p></div>
 <div class="paragraph"><p>Below are some example filters that might be of use:</p></div>
 <div class="listingblock">
-<div class="content"><!-- Generator: GNU source-highlight 3.1.6
-by Lorenzo Bettini
-http://www.lorenzobettini.it
-http://www.gnu.org/software/src-highlite -->
-<pre><tt>event<span style="color: #990000">.</span>stat<span style="color: #990000">.</span>st_size <span style="color: #990000">=</span> <span style="color: #993399">403</span>
-event<span style="color: #990000">.</span>timestamp <span style="color: #990000">&gt;</span> <span style="color: #993399">2012</span>
-event<span style="color: #990000">.</span>timestamp <span style="color: #990000">&gt;</span> <span style="color: #993399">2012</span><span style="color: #990000">-</span><span style="color: #993399">03</span><span style="color: #990000">-</span><span style="color: #993399">01</span> <span style="font-weight: bold"><span style="color: #0000FF">and</span></span> event<span style="color: #990000">.</span>timestamp <span style="color: #990000">&lt;</span> <span style="color: #993399">2013</span><span style="color: #990000">-</span><span style="color: #993399">12</span><span style="color: #990000">-</span><span style="color: #993399">01</span><span style="color: #990000">-</span><span style="color: #993399">13</span><span style="color: #990000">:</span><span style="color: #993399">04</span><span style="color: #990000">:</span><span style="color: #993399">23</span>
-event<span style="color: #990000">.</span>subject contains exe
-event<span style="color: #990000">.</span>subject matches ini$</tt></pre></div></div>
+<div class="content">
+<pre><tt>event.stat.st_size = 403
+event.timestamp &gt; 2012
+event.timestamp &gt; 2012-03-01 and event.timestamp &lt; 2013-12-01-13:04:23
+event.subject contains exe
+event.subject matches ini$</tt></pre>
+</div></div>
 </div>
 </div>
 </div>
@@ -2153,7 +2155,6 @@ requested its results and execute it.
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2014-08-28 18:12:54 CEST
 </div>
 </div>
 </body>

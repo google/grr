@@ -12,6 +12,7 @@ from grr.lib.flows import tests
 
 from grr.client import actions
 from grr.client import vfs
+from grr.lib import access_control
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import data_store
@@ -77,7 +78,7 @@ class NoRequestParentFlow(flow.GRRFlow):
 
   @flow.StateHandler(next_state="End")
   def Start(self, unused_message):
-    self.CallFlow(self.child_flow)
+    self.CallFlow(self.child_flow, next_state="End")
 
   @flow.StateHandler()
   def End(self, unused_message):
@@ -86,6 +87,14 @@ class NoRequestParentFlow(flow.GRRFlow):
 
 class CallClientParentFlow(NoRequestParentFlow):
   child_flow = "CallClientChildFlow"
+
+
+class AdminOnlyChildFlow(CallClientChildFlow):
+  AUTHORIZED_LABELS = ["admin"]
+
+
+class AdminOnlyParentFlow(NoRequestParentFlow):
+  child_flow = "AdminOnlyChildFlow"
 
 
 class FlowCreationTest(test_lib.FlowTestsBaseclass):
@@ -156,10 +165,10 @@ class FlowCreationTest(test_lib.FlowTestsBaseclass):
     flow.GRRFlow.TerminateFlow(session_id, token=self.token)
     flow_obj = aff4.FACTORY.Open(session_id, aff4_type="FlowOrderTest",
                                  age=aff4.ALL_TIMES, token=self.token)
-    with flow_obj.GetRunner() as runner:
-      self.assertEqual(runner.IsRunning(), False)
-      self.assertEqual(runner.context.state,
-                       rdfvalue.Flow.State.ERROR)
+    runner = flow_obj.GetRunner()
+    self.assertEqual(runner.IsRunning(), False)
+    self.assertEqual(runner.context.state,
+                     rdfvalue.Flow.State.ERROR)
 
     reason = "no reason"
     session_id = flow.GRRFlow.StartFlow(
@@ -168,11 +177,11 @@ class FlowCreationTest(test_lib.FlowTestsBaseclass):
 
     flow_obj = aff4.FACTORY.Open(session_id, aff4_type="FlowOrderTest",
                                  age=aff4.ALL_TIMES, token=self.token)
-    with flow_obj.GetRunner() as runner:
-      self.assertEqual(runner.IsRunning(), False)
-      self.assertEqual(runner.context.state,
-                       rdfvalue.Flow.State.ERROR)
-      self.assertTrue(reason in runner.context.status)
+    runner = flow_obj.GetRunner()
+    self.assertEqual(runner.IsRunning(), False)
+    self.assertEqual(runner.context.state,
+                     rdfvalue.Flow.State.ERROR)
+    self.assertTrue(reason in runner.context.status)
 
   def testChildTermination(self):
     session_id = flow.GRRFlow.StartFlow(
@@ -193,24 +202,24 @@ class FlowCreationTest(test_lib.FlowTestsBaseclass):
                                  aff4_type="CallClientParentFlow",
                                  token=self.token)
 
-    with flow_obj.GetRunner() as runner:
-      self.assertEqual(runner.IsRunning(), False)
-      self.assertEqual(runner.context.state,
-                       rdfvalue.Flow.State.ERROR)
+    runner = flow_obj.GetRunner()
+    self.assertEqual(runner.IsRunning(), False)
+    self.assertEqual(runner.context.state,
+                     rdfvalue.Flow.State.ERROR)
 
-      self.assertTrue("user test" in runner.context.status)
-      self.assertTrue(reason in runner.context.status)
+    self.assertTrue("user test" in runner.context.status)
+    self.assertTrue(reason in runner.context.status)
 
     child = aff4.FACTORY.Open(children[0],
                               aff4_type="CallClientChildFlow",
                               token=self.token)
-    with child.GetRunner() as runner:
-      self.assertEqual(runner.IsRunning(), False)
-      self.assertEqual(runner.context.state,
-                       rdfvalue.Flow.State.ERROR)
+    runner = child.GetRunner()
+    self.assertEqual(runner.IsRunning(), False)
+    self.assertEqual(runner.context.state,
+                     rdfvalue.Flow.State.ERROR)
 
-      self.assertTrue("user test" in runner.context.status)
-      self.assertTrue("Parent flow terminated." in runner.context.status)
+    self.assertTrue("user test" in runner.context.status)
+    self.assertTrue("Parent flow terminated." in runner.context.status)
 
   def testNotification(self):
     session_id = flow.GRRFlow.StartFlow(
@@ -218,9 +227,8 @@ class FlowCreationTest(test_lib.FlowTestsBaseclass):
     with aff4.FACTORY.Open(session_id, aff4_type="FlowOrderTest",
                            age=aff4.ALL_TIMES, mode="rw",
                            token=self.token) as flow_obj:
-      with flow_obj.GetRunner() as runner:
-        msg = "Flow terminated due to error"
-        runner.Notify("FlowStatus", session_id, msg)
+      msg = "Flow terminated due to error"
+      flow_obj.GetRunner().Notify("FlowStatus", session_id, msg)
 
     user_fd = aff4.FACTORY.Open(rdfvalue.RDFURN("aff4:/users").Add(
         self.token.username), mode="r", token=self.token)
@@ -236,11 +244,11 @@ class FlowCreationTest(test_lib.FlowTestsBaseclass):
     with aff4.FACTORY.Open(session_id, aff4_type="FlowOrderTest",
                            age=aff4.ALL_TIMES, mode="rw",
                            token=self.token) as flow_obj:
-      with flow_obj.GetRunner() as runner:
-        # msg contains %s.
-        msg = "Flow reading %system% terminated due to error"
-        runner.Notify("FlowStatus", session_id, msg)
-        runner.Status(msg)
+      runner = flow_obj.GetRunner()
+      # msg contains %s.
+      msg = "Flow reading %system% terminated due to error"
+      runner.Notify("FlowStatus", session_id, msg)
+      runner.Status(msg)
 
   def testSendRepliesAttribute(self):
     # Run the flow in the simulated way. Child's send_replies is set to False.
@@ -648,6 +656,65 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
 
     self.assertEqual(ParentFlow.success, True)
 
+  def testCreatorPropagation(self):
+
+    # Instantiate the flow using one username.
+    session_id = flow.GRRFlow.StartFlow(
+        client_id=self.client_id, flow_name="ParentFlow", sync=False,
+        token=access_control.ACLToken(username="original_user",
+                                      reason="testing"))
+
+    # Run the flow using another user ("test").
+    for _ in test_lib.TestFlowHelper(session_id, ClientMock(),
+                                     client_id=self.client_id,
+                                     token=self.token):
+      pass
+
+    self.assertEqual(ParentFlow.success, True)
+    subflows = list(aff4.FACTORY.Open(
+        session_id, token=self.token).ListChildren())
+    self.assertEqual(len(subflows), 1)
+    child_flow = aff4.FACTORY.Open(subflows[0], token=self.token)
+    self.assertEqual(child_flow.GetRunner().context.creator, "original_user")
+
+  def testFlowLabelChecking(self):
+
+    self.CreateUser("noadmin")
+    noadmin_token = access_control.ACLToken(username="noadmin",
+                                            reason="testing")
+
+    with self.assertRaises(access_control.UnauthorizedAccess):
+      for _ in test_lib.TestFlowHelper("AdminOnlyChildFlow", ClientMock(),
+                                       client_id=self.client_id,
+                                       token=noadmin_token, sync=False):
+        pass
+
+    with self.assertRaises(RuntimeError):
+      for _ in test_lib.TestFlowHelper("AdminOnlyParentFlow", ClientMock(),
+                                       client_id=self.client_id,
+                                       token=noadmin_token, sync=False):
+        pass
+
+    self.CreateAdminUser("adminuser")
+    admin_token = access_control.ACLToken(username="adminuser",
+                                          reason="testing")
+
+    session_id = flow.GRRFlow.StartFlow(
+        client_id=self.client_id, flow_name="AdminOnlyChildFlow", sync=False,
+        token=admin_token)
+    for _ in test_lib.TestFlowHelper(session_id, ClientMock(),
+                                     client_id=self.client_id,
+                                     token=noadmin_token):
+      pass
+
+    session_id = flow.GRRFlow.StartFlow(
+        client_id=self.client_id, flow_name="AdminOnlyParentFlow", sync=False,
+        token=admin_token)
+    for _ in test_lib.TestFlowHelper(session_id, ClientMock(),
+                                     client_id=self.client_id,
+                                     token=noadmin_token):
+      pass
+
   def testBrokenChainedFlow(self):
     """Test that exceptions are properly handled in chain flows."""
     BrokenParentFlow.success = False
@@ -917,7 +984,7 @@ class FlowLimitTests(test_lib.FlowTestsBaseclass):
     return result
 
   def testNetworkLimit(self):
-    """Tests that the cpu limit works."""
+    """Tests that the network limit works."""
     result = self.RunFlow("NetworkLimitFlow", network_bytes_limit=10000)
     self.assertEqual(result["networklimit"], [10000, 9820, 8820, 8240])
 

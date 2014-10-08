@@ -188,7 +188,8 @@ class HashFileStoreTest(test_lib.GRRBaseTest):
     hashes = list(aff4.HashFileStore.ListHashes(token=self.token,
                                                 age=(41e6, 1e10)))
     self.assertTrue(hashes)
-    hits = list(aff4.HashFileStore.GetHitsForHash(hashes[0], token=self.token))
+    hits = list(aff4.HashFileStore.GetClientsForHash(hashes[0],
+                                                     token=self.token))
     self.assertEqual(len(hits), 1)
 
     latest_time = 42 + config_lib.CONFIG["AFF4.intermediate_cache_age"] - 1
@@ -200,7 +201,8 @@ class HashFileStoreTest(test_lib.GRRBaseTest):
           client_id=self.client_id, token=self.token)
 
     # Check that now we have two hits for the previosly added hash.
-    hits = list(aff4.HashFileStore.GetHitsForHash(hashes[0], token=self.token))
+    hits = list(aff4.HashFileStore.GetClientsForHash(hashes[0],
+                                                     token=self.token))
     self.assertEqual(len(hits), 2)
 
     # Check that new hit doesn't affect hash age.
@@ -223,7 +225,8 @@ class HashFileStoreTest(test_lib.GRRBaseTest):
     hashes = list(aff4.HashFileStore.ListHashes(token=self.token,
                                                 age=(41e6, 1e10)))
     self.assertTrue(hashes)
-    hits = list(aff4.HashFileStore.GetHitsForHash(hashes[0], token=self.token))
+    hits = list(aff4.HashFileStore.GetClientsForHash(hashes[0],
+                                                     token=self.token))
     self.assertEqual(len(hits), 1)
 
     latest_time = 42 + config_lib.CONFIG["AFF4.intermediate_cache_age"] + 1
@@ -235,7 +238,8 @@ class HashFileStoreTest(test_lib.GRRBaseTest):
           client_id=self.client_id, token=self.token)
 
     # Check that now we have two hits for the previosly added hash.
-    hits = list(aff4.HashFileStore.GetHitsForHash(hashes[0], token=self.token))
+    hits = list(aff4.HashFileStore.GetClientsForHash(hashes[0],
+                                                     token=self.token))
     self.assertEqual(len(hits), 2)
 
     # Check that new hit affects hash age.
@@ -243,22 +247,22 @@ class HashFileStoreTest(test_lib.GRRBaseTest):
                                                 age=(43e6, 1e10)))
     self.assertTrue(hashes)
 
-  def testGetHitsForHash(self):
+  def testGetClientsForHash(self):
     self.AddFile("/Ext2IFS_1_10b.exe")
     self.AddFile("/idea.dll")
 
-    hits = list(aff4.HashFileStore.GetHitsForHash(rdfvalue.FileStoreHash(
+    hits = list(aff4.HashFileStore.GetClientsForHash(rdfvalue.FileStoreHash(
         fingerprint_type="generic", hash_type="md5",
         hash_value="bb0a15eefe63fd41f8dc9dee01c5cf9a"), token=self.token))
     self.assertListEqual(hits, [self.client_id.Add(
         "fs/tsk").Add(self.base_path).Add("winexec_img.dd/Ext2IFS_1_10b.exe")])
 
-  def testGetHitsForHashWithAge(self):
+  def testGetClientsForHashWithAge(self):
     with utils.Stubber(time, "time", lambda: 42):
       self.AddFile("/Ext2IFS_1_10b.exe")
       self.AddFile("/idea.dll")
 
-    hits = list(aff4.HashFileStore.GetHitsForHash(
+    hits = list(aff4.HashFileStore.GetClientsForHash(
         rdfvalue.FileStoreHash(
             fingerprint_type="generic", hash_type="md5",
             hash_value="bb0a15eefe63fd41f8dc9dee01c5cf9a"),
@@ -266,7 +270,7 @@ class HashFileStoreTest(test_lib.GRRBaseTest):
         token=self.token))
     self.assertEqual(len(hits), 0)
 
-    hits = list(aff4.HashFileStore.GetHitsForHash(
+    hits = list(aff4.HashFileStore.GetClientsForHash(
         rdfvalue.FileStoreHash(
             fingerprint_type="generic", hash_type="md5",
             hash_value="bb0a15eefe63fd41f8dc9dee01c5cf9a"),
@@ -274,14 +278,14 @@ class HashFileStoreTest(test_lib.GRRBaseTest):
         token=self.token))
     self.assertEqual(len(hits), 1)
 
-    hits = list(aff4.HashFileStore.GetHitsForHash(
+    hits = list(aff4.HashFileStore.GetClientsForHash(
         rdfvalue.FileStoreHash(
             fingerprint_type="generic", hash_type="md5",
             hash_value="bb0a15eefe63fd41f8dc9dee01c5cf9a"),
         token=self.token))
     self.assertEqual(len(hits), 1)
 
-  def testGetHitsForHashes(self):
+  def testGetClientsForHashes(self):
     self.AddFile("/Ext2IFS_1_10b.exe")
     self.AddFile("/idea.dll")
 
@@ -292,15 +296,15 @@ class HashFileStoreTest(test_lib.GRRBaseTest):
         fingerprint_type="generic", hash_type="sha1",
         hash_value="e1f7e62b3909263f3a2518bbae6a9ee36d5b502b")
 
-    hits = dict(aff4.HashFileStore.GetHitsForHashes([hash1, hash2],
-                                                    token=self.token))
+    hits = dict(aff4.HashFileStore.GetClientsForHashes([hash1, hash2],
+                                                       token=self.token))
     self.assertEqual(len(hits), 2)
     self.assertListEqual(hits[hash1], [self.client_id.Add(
         "fs/tsk").Add(self.base_path).Add("winexec_img.dd/Ext2IFS_1_10b.exe")])
     self.assertListEqual(hits[hash2], [self.client_id.Add(
         "fs/tsk").Add(self.base_path).Add("winexec_img.dd/idea.dll")])
 
-  def testGetHitsForHashesWithAge(self):
+  def testGetClientsForHashesWithAge(self):
     with utils.Stubber(time, "time", lambda: 42):
       self.AddFile("/Ext2IFS_1_10b.exe")
       self.AddFile("/idea.dll")
@@ -312,16 +316,16 @@ class HashFileStoreTest(test_lib.GRRBaseTest):
         fingerprint_type="generic", hash_type="sha1",
         hash_value="e1f7e62b3909263f3a2518bbae6a9ee36d5b502b")
 
-    hits = dict(aff4.HashFileStore.GetHitsForHashes([hash1, hash2],
-                                                    age=41e6,
-                                                    token=self.token))
+    hits = dict(aff4.HashFileStore.GetClientsForHashes([hash1, hash2],
+                                                       age=41e6,
+                                                       token=self.token))
     self.assertEqual(len(hits), 0)
 
-    hits = dict(aff4.HashFileStore.GetHitsForHashes([hash1, hash2],
-                                                    age=43e6,
-                                                    token=self.token))
+    hits = dict(aff4.HashFileStore.GetClientsForHashes([hash1, hash2],
+                                                       age=43e6,
+                                                       token=self.token))
     self.assertEqual(len(hits), 2)
 
-    hits = dict(aff4.HashFileStore.GetHitsForHashes([hash1, hash2],
-                                                    token=self.token))
+    hits = dict(aff4.HashFileStore.GetClientsForHashes([hash1, hash2],
+                                                       token=self.token))
     self.assertEqual(len(hits), 2)

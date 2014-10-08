@@ -239,12 +239,12 @@ class ArtifactFlowTest(ArtifactTestHelper):
     urn = self.client_id.Add("info/software")
     fd = aff4.FACTORY.Open(urn, token=self.token)
     packages = fd.Get(fd.Schema.INSTALLED_PACKAGES)
-    self.assertEquals(len(packages), 2)
-    self.assertEquals(packages[0].__class__.__name__, "SoftwarePackage")
+    self.assertEqual(len(packages), 2)
+    self.assertEqual(packages[0].__class__.__name__, "SoftwarePackage")
 
     with aff4.FACTORY.Open(self.client_id.Add("anomalies"),
                            token=self.token) as anomaly_coll:
-      self.assertEquals(len(anomaly_coll), 1)
+      self.assertEqual(len(anomaly_coll), 1)
       self.assertTrue("gremlin" in anomaly_coll[0].symptom)
 
   def testWMIQueryArtifact(self):
@@ -255,8 +255,8 @@ class ArtifactFlowTest(ArtifactTestHelper):
     urn = self.client_id.Add("info/software")
     fd = aff4.FACTORY.Open(urn, token=self.token)
     packages = fd.Get(fd.Schema.INSTALLED_PACKAGES)
-    self.assertEquals(len(packages), 3)
-    self.assertEquals(packages[0].description, "Google Chrome")
+    self.assertEqual(len(packages), 3)
+    self.assertEqual(packages[0].description, "Google Chrome")
 
   def testRekallPsListArtifact(self):
     """Check we can run Rekall based artifacts."""
@@ -266,9 +266,9 @@ class ArtifactFlowTest(ArtifactTestHelper):
         ["RekallPsList"], RekallMock(
             self.client_id, "rekall_pslist_result.dat"))
 
-    self.assertEquals(len(fd), 36)
-    self.assertEquals(fd[0].exe, "System")
-    self.assertEquals(fd[0].pid, 4)
+    self.assertEqual(len(fd), 36)
+    self.assertEqual(fd[0].exe, "System")
+    self.assertEqual(fd[0].pid, 4)
     self.assertIn("DumpIt.exe", [x.exe for x in fd])
 
   def testRekallVadArtifact(self):
@@ -286,10 +286,10 @@ class ArtifactFlowTest(ArtifactTestHelper):
         ["FullVADBinaryList"], RekallMock(
             self.client_id, "rekall_vad_result.dat"))
 
-    self.assertEquals(len(fd), 1986)
-    self.assertEquals(fd[0].path, u"c:\\Windows\\System32\\ntdll.dll")
+    self.assertEqual(len(fd), 1986)
+    self.assertEqual(fd[0].path, u"c:\\Windows\\System32\\ntdll.dll")
     for x in fd:
-      self.assertEquals(x.pathtype, "OS")
+      self.assertEqual(x.pathtype, "OS")
       extension = x.path.lower().split(".")[-1]
       self.assertIn(extension, ["exe", "dll", "pyd", "drv", "mui", "cpl"])
 
@@ -302,7 +302,7 @@ class ArtifactFlowTest(ArtifactTestHelper):
         [os.path.join(self.base_path, "auth.log")])
     client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
                                           "HashBuffer", "ListDirectory",
-                                          "HashFile")
+                                          "FingerprintFile")
     self.RunCollectorAndGetCollection(["TestFilesArtifact"],
                                       client_mock=client_mock)
     urn = self.client_id.Add("fs/os/").Add(self.base_path).Add("auth.log")
@@ -319,7 +319,7 @@ class ArtifactFlowTest(ArtifactTestHelper):
 
     client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
                                           "HashBuffer", "ListDirectory",
-                                          "HashFile", "Grep")
+                                          "FingerprintFile", "Grep")
     fd = self.RunCollectorAndGetCollection(["LinuxPasswdHomedirs"],
                                            client_mock=client_mock)
 
@@ -346,7 +346,7 @@ class ArtifactFlowTest(ArtifactTestHelper):
         os.path.join(self.base_path, "auth.log")])
 
     client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile",
-                                          "HashFile", "HashBuffer",
+                                          "FingerprintFile", "HashBuffer",
                                           "ListDirectory", "Find")
     # Will raise if something goes wrong.
     self.RunCollectorAndGetCollection(["TestFilesArtifact"],
@@ -373,9 +373,9 @@ class GrrKbTest(ArtifactTestHelper):
     self.SetWindowsClient()
 
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.ClientRegistryVFSFixture
+        rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.OS] = test_lib.ClientFullVFSFixture
+        rdfvalue.PathSpec.PathType.OS] = test_lib.FakeFullVFSHandler
 
   def testKnowledgeBaseRetrievalWindows(self):
     """Check we can retrieve a knowledge base from a client."""
@@ -383,7 +383,7 @@ class GrrKbTest(ArtifactTestHelper):
 
     client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
                                           "HashBuffer", "ListDirectory",
-                                          "HashFile")
+                                          "FingerprintFile")
 
     for _ in test_lib.TestFlowHelper(
         "KnowledgeBaseInitializationFlow", client_mock,
@@ -430,7 +430,7 @@ class GrrKbTest(ArtifactTestHelper):
 
     client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
                                           "HashBuffer", "ListDirectory",
-                                          "HashFile")
+                                          "FingerprintFile")
 
     for _ in test_lib.TestFlowHelper(
         "KnowledgeBaseInitializationFlow", client_mock,
@@ -458,11 +458,11 @@ class GrrKbTest(ArtifactTestHelper):
     config_lib.CONFIG.Set("Artifacts.netgroup_user_blacklist", ["isaac"])
 
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.OS] = test_lib.ClientTestDataVFSFixture
+        rdfvalue.PathSpec.PathType.OS] = test_lib.FakeTestDataVFSHandler
 
     client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
                                           "HashBuffer", "ListDirectory",
-                                          "HashFile", "Grep")
+                                          "FingerprintFile", "Grep")
 
     for _ in test_lib.TestFlowHelper(
         "KnowledgeBaseInitializationFlow", client_mock,
@@ -484,10 +484,10 @@ class GrrKbTest(ArtifactTestHelper):
     """Check we can retrieve a Linux kb."""
     test_lib.ClientFixture(self.client_id, token=self.token)
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.OS] = test_lib.ClientTestDataVFSFixture
+        rdfvalue.PathSpec.PathType.OS] = test_lib.FakeTestDataVFSHandler
     client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
                                           "HashBuffer", "ListDirectory",
-                                          "HashFile", "Grep")
+                                          "FingerprintFile", "Grep")
 
     self.SetLinuxClient()
     config_lib.CONFIG.Set("Artifacts.knowledge_base", ["LinuxWtmp",
@@ -529,10 +529,10 @@ class GrrKbTest(ArtifactTestHelper):
                           ["^doesntexist$"])
 
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.OS] = test_lib.ClientTestDataVFSFixture
+        rdfvalue.PathSpec.PathType.OS] = test_lib.FakeTestDataVFSHandler
     client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
                                           "HashBuffer", "ListDirectory",
-                                          "HashFile")
+                                          "FingerprintFile")
 
     for _ in test_lib.TestFlowHelper(
         "KnowledgeBaseInitializationFlow", client_mock,
@@ -551,7 +551,7 @@ class GrrKbTest(ArtifactTestHelper):
         rdfvalue.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
     client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
                                           "HashBuffer", "ListDirectory",
-                                          "HashFile")
+                                          "FingerprintFile")
 
     self.assertRaises(flow.FlowError, list, test_lib.TestFlowHelper(
         "KnowledgeBaseInitializationFlow", client_mock,

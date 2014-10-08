@@ -387,7 +387,7 @@ class TestContentView(test_lib.GRRSeleniumTest):
 
   def testGlobalNotificationIsSetViaGlobalFlow(self):
     with self.ACLChecksDisabled():
-      self.MakeUserAdmin("test")
+      self.CreateAdminUser("test")
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")

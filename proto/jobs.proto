@@ -726,6 +726,7 @@ message PathSpec {
     }];
 
   enum tsk_fs_attr_type {
+    option allow_alias = true;
 
     TSK_FS_ATTR_TYPE_DEFAULT = 0x01;        // 1
     TSK_FS_ATTR_TYPE_NTFS_SI = 0x10;        // 16
@@ -813,6 +814,7 @@ message StatEntry {
 
   // These are used when mapping registry keys to the VFS
   enum RegistryType {
+    option allow_alias = true;
 
     REG_NONE = 0x00;
     REG_SZ = 0x01;
@@ -857,6 +859,7 @@ message WmiRequest {
   optional string query = 1;
   optional string base_object = 2;
 };
+
 
 // A Key Value pair
 message KeyValue {
@@ -968,22 +971,50 @@ message NetworkAddress {
 
 message Interface {
   option (semantic) = {
-    description: "Information about a network interface."
+    description: "Information about a network interface. New fields have been"
+    "named to follow the CyBox NetworkInterfaceType:"
+    "https://cybox.mitre.org/language/version2.1/xsddocs/objects/"
+    "System_Object_xsd.html#NetworkInterfaceType"
   };
 
+  //CyBOX: mac
   optional bytes mac_address = 1 [(sem_type) = {
       type: "MacAddress",
       description: "Interface MAC address."""
     }];
+
   // ip4_addresses is deprecated, use addresses.
   repeated bytes ip4_addresses = 2;
+
+  //CyBOX: adapter
   optional string ifname = 3;
+
   // ip6_addresses is deprecated, use addresses.
   repeated bytes ip6_addresses = 4;
 
+  //CyBOX: ip_list
   repeated NetworkAddress addresses = 5 [(sem_type) = {
       description: "A network address attached to an interface.",
-    }];;
+    }];
+
+  optional uint64 dhcp_lease_expires = 6 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Time when DHCP lease will expire.",
+    }];
+
+  optional uint64 dhcp_lease_obtained = 7 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Time when DHCP lease was obtained.",
+    }];
+
+  repeated NetworkAddress dhcp_server_list = 8 [(sem_type) = {
+      description: "IP addresses of DHCP servers.",
+    }];
+
+  repeated NetworkAddress ip_gateway_list = 9 [(sem_type) = {
+      description: "IP addresses of DHCP servers.",
+    }];
+
 };
 
 message MemoryInformation {
@@ -1878,3 +1909,38 @@ message EndToEndTestResult {
 message EmptyMessage {
 }
 
+
+message NSRLInformation {
+  enum FileType {
+    NORMAL_FILE = 0;
+    MALICIOUS_FILE = 1;
+    SPECIAL_FILE = 2;
+  }
+
+  optional bytes sha1 = 1 [(sem_type) = {
+      type: "HashDigest",
+      description: "SHA1 binary hash digest."
+      }];
+  optional bytes md5 = 2 [(sem_type) = {
+      type: "HashDigest",
+      description: "MD5 binary hash digest."
+      }];
+  optional uint32 crc32 = 3 [(sem_type) = {
+      description: "32 bit Cyclic redundancy check."
+      }];
+  optional uint64 file_size = 4 [(sem_type) = {
+      description: "Size of the file.",
+    }];
+  optional string file_name = 5 [(sem_type) = {
+      description: "Name of the file.",
+    }];
+  repeated uint64 product_code = 6 [(sem_type) = {
+      description: "Code of the product this file is part of."
+    }];
+  repeated string op_system_code = 7 [(sem_type) = {
+      description: "Operating system this file runs on."
+    }];
+  optional FileType file_type = 8 [(sem_type) = {
+      description: "Type of file."
+    }];
+};

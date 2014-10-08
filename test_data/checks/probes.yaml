@@ -1,0 +1,40 @@
+name: 'NO-FILTER'
+probe:
+  - artifact: 'DpkgDb'
+---
+name: 'SERIAL'
+probe:
+  - artifact: 'DpkgDb'
+    filters:
+      - type: 'ObjectFilter'
+        expression: 'filter is 1'
+      - type: 'ObjectFilter'
+        expression: 'filter is 2'
+---
+name: 'PARALLEL'
+probe:
+  - artifact: 'DpkgDb'
+    mode: 'PARALLEL'
+    filters:
+      - type: 'ObjectFilter'
+        expression: 'filter is 1'
+      - type: 'ObjectFilter'
+        expression: 'filter is 2'
+---
+name: 'BASELINE'
+probe:
+  - artifact: 'DpkgDb'
+    baseline:
+      - type: 'ObjectFilter'
+        expression: 'baseline is 1'
+    filters:
+      - type: 'ObjectFilter'
+        expression: 'filter is 1'
+---
+name: 'NO-ARTIFACT'
+probe:
+  - filters:
+      - type: 'ObjectFilter'
+        expression: 'filter is 1'
+      - type: 'ObjectFilter'
+        expression: 'filter is 2'

@@ -5,6 +5,8 @@ Filestore allows for multiple different filestore modules to register URNs
 under aff4:/files to handle new file hash and new file creations.
 """
 
+import hashlib
+
 import logging
 
 from grr.parsers import fingerprint
@@ -30,6 +32,10 @@ class FileStoreInit(registry.InitHook):
                                            mode="rw",
                                            token=aff4.FACTORY.root_token)
       hash_filestore.Close()
+      nsrl_filestore = aff4.FACTORY.Create(NSRLFileStore.PATH, "NSRLFileStore",
+                                           mode="rw",
+                                           token=aff4.FACTORY.root_token)
+      nsrl_filestore.Close()
     except access_control.UnauthorizedAccess:
       # The aff4:/files area is ACL protected, this might not work on components
       # that have ACL enforcement.
@@ -58,7 +64,7 @@ class FileStore(aff4.AFF4Volume):
       if child.Get(child.Schema.ACTIVE):
         yield child
 
-  def CheckHashes(self, hashes, hash_type="sha256", external=True):
+  def CheckHashes(self, hashes, external=True):
     """Checks a list of hashes for presence in the store.
 
     Sub stores need to pass back the original HashDigest objects since they
@@ -69,7 +75,6 @@ class FileStore(aff4.AFF4Volume):
 
     Args:
       hashes: A list of Hash objects to check.
-      hash_type: The type of hash (can be sha256, sha1, md5).
       external: If true, attempt to check stores defined as EXTERNAL.
 
     Yields:
@@ -77,7 +82,7 @@ class FileStore(aff4.AFF4Volume):
     """
     hashes = set(hashes)
     for child in self.GetChildrenByPriority(allow_external=external):
-      for urn, digest in child.CheckHashes(hashes, hash_type=hash_type):
+      for urn, digest in child.CheckHashes(hashes):
         yield urn, digest
 
         hashes.discard(digest)
@@ -86,7 +91,7 @@ class FileStore(aff4.AFF4Volume):
       if not hashes:
         break
 
-  def AddFile(self, blob_fd, sync=False, external=True):
+  def AddFile(self, fd, sync=False, external=True):
     """Create a new file in the file store.
 
     We delegate the actual file addition to our contained
@@ -95,20 +100,20 @@ class FileStore(aff4.AFF4Volume):
     the AddBlobToStore() method which can copy the VFSBlobImage efficiently.
 
     Args:
-      blob_fd: VFSBlobImage open for read/write.
+      fd: An AFF4 object open for read/write.
       sync: Should the file be synced immediately.
       external: If true, attempt to add files to stores defined as EXTERNAL.
     """
     files_for_write = []
     for sub_store in self.GetChildrenByPriority(allow_external=external):
-      new_file = sub_store.AddFile(blob_fd, sync=sync)
+      new_file = sub_store.AddFile(fd, sync=sync)
       if new_file:
         files_for_write.append(new_file)
 
-    blob_fd.Seek(0)
+    fd.Seek(0)
     while files_for_write:
       # If we got filehandles back, send them the data.
-      data = blob_fd.Read(self.CHUNK_SIZE)
+      data = fd.Read(self.CHUNK_SIZE)
       if not data: break
 
       for child in files_for_write:
@@ -117,221 +122,35 @@ class FileStore(aff4.AFF4Volume):
     for child in files_for_write:
       child.Close(sync=sync)
 
+  def FindFile(self, fd, external=True):
+    """Find an AFF4Stream in the file store.
+
+    We delegate the actual file search to our contained
+    implementations. Implementations need to implement the FindFile() method,
+    which will return either a list of RDFURN's or a RDFURN.
+
+    Args:
+      fd: File open for reading.
+      external: If true, attempt to check stores defined as EXTERNAL.
+
+    Returns:
+      A list of RDFURNs returned by the contained implementations.
+    """
+    return_list = []
+    for sub_store in self.GetChildrenByPriority(allow_external=external):
+      found = sub_store.FindFile(fd)
+      if found:
+        if isinstance(found, list):
+          return_list.extend(found)
+        else:
+          return_list.append(found)
+
+    return return_list
+
   class SchemaCls(aff4.AFF4Volume.SchemaCls):
     ACTIVE = aff4.Attribute("aff4:filestore_active", rdfvalue.RDFBool,
                             "If true this filestore is active.",
                             default=True)
-
-
-class HashFileStore(FileStore):
-  """FileStore that stores files referenced by hash."""
-
-  PATH = rdfvalue.RDFURN("aff4:/files/hash")
-  PRIORITY = 1
-  EXTERNAL = False
-  FINGERPRINT_TYPES = ["generic", "pecoff"]
-  HASH_TYPES = ["md5", "sha1", "sha256", "SignedData"]
-
-  def CheckHashes(self, hashes, hash_type="sha256"):
-    """Check hashes against the filestore.
-
-    Blobs use the hash in the schema:
-    aff4:/files/hash/generic/sha256/[sha256hash]
-
-    Args:
-      hashes: A list of HashDigest objects to check.
-      hash_type: The type of hash (can be sha256, sha1, md5).
-
-    Yields:
-      Tuples of (RDFURN, HashDigest) objects that exist in the store.
-    """
-    hash_map = {}
-    for digest in hashes:
-      # The canonical name of the file is where we store the file hash.
-      hash_map[aff4.ROOT_URN.Add("files/hash/generic").Add(hash_type).Add(
-          str(digest))] = digest
-
-    for metadata in aff4.FACTORY.Stat(list(hash_map), token=self.token):
-      yield metadata["urn"], hash_map[metadata["urn"]]
-
-  def AddFile(self, blob_fd, sync=False):
-    """Accept a blobimage, hash the content, and create FileStoreImage objects.
-
-    We take a blobimage in the client space:
-      aff4:/C.123123123/fs/os/usr/local/blah
-
-    Hash it, update the hash in the original blob image if its different to the
-    one calculated on the client, and create FileStoreImages at the following
-    URNs (if they don't already exist):
-
-      aff4:/files/hash/generic/sha256/123123123 (canonical reference)
-      aff4:/files/hash/generic/sha1/345345345
-      aff4:/files/hash/generic/md5/456456456
-      aff4:/files/hash/pecoff/md5/aaaaaaaa (only for PEs)
-      aff4:/files/hash/pecoff/sha1/bbbbbbbb (only for PEs)
-
-    When present in PE files, the signing data (revision, cert_type,
-    certificate) is added to the original client-space blobimage.
-
-    This can't be done simply in the FileStore.Write() method with fixed hash
-    buffer sizes because the authenticode hashes need to track hashing of
-    different-sized regions based on the signature information.
-
-    Args:
-      blob_fd: VFSBlobImage open for reading.
-      sync: Should the file be synced immediately.
-
-    Raises:
-      IOError: If there was an error writing the file.
-    """
-    if not isinstance(blob_fd, aff4.VFSBlobImage):
-      raise IOError("Only adding VFSBlobImage to file store supported.")
-
-    # Currently we only handle blob images.
-    fingerprinter = fingerprint.Fingerprinter(blob_fd)
-    fingerprinter.EvalGeneric()
-    fingerprinter.EvalPecoff()
-
-    hashes = blob_fd.Schema.HASH()
-    signed_data = None
-    file_store_files = []
-
-    for result in fingerprinter.HashIt():
-      fingerprint_type = result["name"]
-      for hash_type in self.HASH_TYPES:
-        if hash_type not in result:
-          continue
-
-        if hash_type == "SignedData":
-          # There can be several certs in the same file.
-          for signed_data in result[hash_type]:
-            hashes.signed_data.Append(revision=signed_data[0],
-                                      cert_type=signed_data[1],
-                                      certificate=signed_data[2])
-          continue
-
-        # Set the hashes in the original object
-        if fingerprint_type == "generic":
-          hashes.Set(hash_type, result[hash_type])
-
-        elif fingerprint_type == "pecoff":
-          hashes.Set("pecoff_%s" % hash_type, result[hash_type])
-
-        else:
-          logging.error("Unknown fingerprint_type %s.", fingerprint_type)
-
-        # These files are all created through async write so they should be
-        # fast.
-        hash_digest = result[hash_type].encode("hex")
-        file_store_urn = self.PATH.Add(fingerprint_type).Add(
-            hash_type).Add(hash_digest)
-
-        file_store_fd = aff4.FACTORY.Create(file_store_urn, "FileStoreImage",
-                                            mode="w", token=self.token)
-        file_store_fd.FromBlobImage(blob_fd)
-        file_store_fd.AddIndex(blob_fd.urn)
-
-        file_store_files.append(file_store_fd)
-
-    # Write the hashes attribute to all the created files..
-    for fd in file_store_files:
-      fd.Set(hashes)
-      fd.Close(sync=sync)
-
-    blob_fd.Set(hashes)
-
-    # We do not want to be externally written here.
-    return None
-
-  @staticmethod
-  def ListHashes(token=None, age=aff4.NEWEST_TIME):
-    """Yields all the hashes in the file store.
-
-    Args:
-      token: Security token, instance of ACLToken.
-      age: AFF4 age specification. Only get hits corresponding to the given
-           age spec. Should be aff4.NEWEST_TIME or a time range given as a
-           tuple (start, end) in microseconds since Jan 1st, 1970. If just
-           a microsends value is given it's treated as the higher end of the
-           range, i.e. (0, age). See aff4.FACTORY.ParseAgeSpecification for
-           details.
-
-    Yields:
-      FileStoreHash instances corresponding to all the hashes in the file store.
-
-    Raises:
-      ValueError: if age was set to aff4.ALL_TIMES.
-    """
-    if age == aff4.ALL_TIMES:
-      raise ValueError("age==aff4.ALL_TIMES is not allowed.")
-
-    urns = []
-    for fingerprint_type in HashFileStore.FINGERPRINT_TYPES:
-      for hash_type in HashFileStore.HASH_TYPES:
-        urns.append(HashFileStore.PATH.Add(fingerprint_type).Add(hash_type))
-
-    for _, values in aff4.FACTORY.MultiListChildren(urns, token=token, age=age):
-      for value in values:
-        yield rdfvalue.FileStoreHash(value)
-
-  @staticmethod
-  def GetHitsForHash(hash_obj, token=None, age=aff4.NEWEST_TIME):
-    """Yields hash_hits for the specified file store hash.
-
-    Args:
-      hash_obj: FileStoreHash instance that we want to get hits for.
-      token: Security token.
-      age: AFF4 age specification. Only get hits corresponding to the given
-           age spec. Should be aff4.NEWEST_TIME or a time range given as a
-           tuple (start, end) in microseconds since Jan 1st, 1970. If just
-           a microsends value is given it's treated as the higher end of the
-           range, i.e. (0, age). See aff4.FACTORY.ParseAgeSpecification for
-           details.
-
-    Yields:
-      RDFURNs corresponding to a file that has the hash.
-
-    Raises:
-      ValueError: if age was set to aff4.ALL_TIMES.
-    """
-
-    if age == aff4.ALL_TIMES:
-      raise ValueError("age==aff4.ALL_TIMES is not allowed.")
-
-    results = HashFileStore.GetHitsForHashes([hash_obj], token=token, age=age)
-    for _, hash_hits in results:
-      for hash_hit in hash_hits:
-        yield hash_hit
-
-  @staticmethod
-  def GetHitsForHashes(hashes, token=None, age=aff4.NEWEST_TIME):
-    """Yields (hash, hash_hit) pairs for all the specified hashes.
-
-    Args:
-      hashes: List of FileStoreHash instances.
-      token: Security token.
-      age: AFF4 age specification. Only get hits corresponding to the given
-           age spec. Should be aff4.NEWEST_TIME or a time range given as a
-           tuple (start, end) in microseconds since Jan 1st, 1970. If just
-           a microsends value is given it's treated as the higher end of the
-           range, i.e. (0, age). See aff4.FACTORY.ParseAgeSpecification for
-           details.
-
-    Yields:
-      (hash, hash_hit) tuples, where hash is FileStoreHash instance and
-      hash_hit is an RDFURN corresponding to a file that has the hash.
-
-    Raises:
-      ValueError: if age was set to aff4.ALL_TIMES.
-    """
-    if age == aff4.ALL_TIMES:
-      raise ValueError("age==aff4.ALL_TIMES is not allowed.")
-    timestamp = aff4.FACTORY.ParseAgeSpecification(age)
-
-    for hash_obj, hash_hits in data_store.DB.MultiResolveRegex(
-        hashes, "index:target:.*", token=token, timestamp=timestamp):
-      yield (rdfvalue.FileStoreHash(hash_obj),
-             [hit_urn for _, hit_urn, _ in hash_hits])
 
 
 class FileStoreImage(aff4.VFSBlobImage):
@@ -361,6 +180,8 @@ class FileStoreImage(aff4.VFSBlobImage):
 
   def AddIndex(self, target):
     """Adds an indexed reference to the target URN."""
+    if "w" not in self.mode:
+      raise IOError("FileStoreImage %s is not in write mode.", self.urn)
     predicate = ("index:target:%s" % target).lower()
     data_store.DB.MultiSet(self.urn, {predicate: target}, token=self.token,
                            replace=True, sync=False)
@@ -381,7 +202,7 @@ class FileStoreImage(aff4.VFSBlobImage):
     # Make the regular expression.
     regex = ["index:target:.*%s.*" % target_regex.lower()]
     if isinstance(limit, (tuple, list)):
-      start, length = limit
+      start, length = limit  # pylint: disable=unpacking-non-sequence
 
     else:
       start = 0
@@ -418,8 +239,8 @@ class FileStoreHash(rdfvalue.RDFURN):
 
     relative_path = relative_name.split("/")
     if (len(relative_path) != 3 or
-        relative_path[0] not in HashFileStore.FINGERPRINT_TYPES or
-        relative_path[1] not in HashFileStore.HASH_TYPES):
+        relative_path[0] not in HashFileStore.HASH_TYPES or
+        relative_path[1] not in HashFileStore.HASH_TYPES[relative_path[0]]):
       raise ValueError(
           "URN %s is not a hash file store urn. Hash file store urn should "
           "look like: "
@@ -427,3 +248,471 @@ class FileStoreHash(rdfvalue.RDFURN):
           str(self))
 
     self.fingerprint_type, self.hash_type, self.hash_value = relative_path
+
+
+class HashFileStore(FileStore):
+  """FileStore that stores files referenced by hash."""
+
+  PATH = rdfvalue.RDFURN("aff4:/files/hash")
+  PRIORITY = 2
+  EXTERNAL = False
+  HASH_TYPES = {"generic": ["md5", "sha1", "sha256", "SignedData"],
+                "pecoff": ["md5", "sha1"]}
+  FILE_HASH_TYPE = rdfvalue.FileStoreHash
+
+  def CheckHashes(self, hashes):
+    """Check hashes against the filestore.
+
+    Blobs use the hash in the schema:
+    aff4:/files/hash/generic/sha256/[sha256hash]
+
+    Args:
+      hashes: A list of Hash objects to check.
+
+    Yields:
+      Tuples of (RDFURN, HashDigest) objects that exist in the store.
+    """
+    hash_map = {}
+    for hsh in hashes:
+      if hsh.HasField("sha256"):
+        # The canonical name of the file is where we store the file hash.
+        digest = hsh.sha256
+        hash_map[aff4.ROOT_URN.Add("files/hash/generic/sha256").Add(
+            str(digest))] = digest
+
+    for metadata in aff4.FACTORY.Stat(list(hash_map), token=self.token):
+      yield metadata["urn"], hash_map[metadata["urn"]]
+
+  def _GetHashers(self, hash_types):
+    return [getattr(hashlib, hash_type) for hash_type in hash_types
+            if hasattr(hashlib, hash_type)]
+
+  def _HashFile(self, fd):
+    """Look for the required hashes in the file."""
+    hashes = fd.Get(fd.Schema.HASH)
+    if hashes:
+      found_all = True
+      for fingerprint_type, hash_types in self.HASH_TYPES.iteritems():
+        for hash_type in hash_types:
+          if fingerprint_type == "pecoff":
+            hash_type = "pecoff_%s" % hash_type
+          if not hashes.HasField(hash_type):
+            found_all = False
+            break
+        if not found_all:
+          break
+      if found_all:
+        return hashes
+
+    fingerprinter = fingerprint.Fingerprinter(fd)
+    if "generic" in self.HASH_TYPES:
+      hashers = self._GetHashers(self.HASH_TYPES["generic"])
+      fingerprinter.EvalGeneric(hashers=hashers)
+    if "pecoff" in self.HASH_TYPES:
+      hashers = self._GetHashers(self.HASH_TYPES["pecoff"])
+      if hashers:
+        fingerprinter.EvalPecoff(hashers=hashers)
+
+    if not hashes:
+      hashes = fd.Schema.HASH()
+
+    for result in fingerprinter.HashIt():
+      fingerprint_type = result["name"]
+      for hash_type in self.HASH_TYPES[fingerprint_type]:
+        if hash_type not in result:
+          continue
+
+        if hash_type == "SignedData":
+          # There can be several certs in the same file.
+          for signed_data in result[hash_type]:
+            hashes.signed_data.Append(revision=signed_data[0],
+                                      cert_type=signed_data[1],
+                                      certificate=signed_data[2])
+          continue
+
+        # Set the hashes in the original object
+        if fingerprint_type == "generic":
+          hashes.Set(hash_type, result[hash_type])
+
+        elif fingerprint_type == "pecoff":
+          hashes.Set("pecoff_%s" % hash_type, result[hash_type])
+
+        else:
+          logging.error("Unknown fingerprint_type %s.", fingerprint_type)
+
+    try:
+      fd.Set(hashes)
+    except IOError:
+      pass
+    return hashes
+
+  def AddFile(self, fd, sync=False):
+    """Hash the content of an AFF4Stream and create FileStoreImage objects.
+
+    We take a file in the client space:
+      aff4:/C.123123123/fs/os/usr/local/blah
+
+    Hash it, update the hash in the original file if its different to the
+    one calculated on the client, and create FileStoreImages at the following
+    URNs (if they don't already exist):
+
+      aff4:/files/hash/generic/sha256/123123123 (canonical reference)
+      aff4:/files/hash/generic/sha1/345345345
+      aff4:/files/hash/generic/md5/456456456
+      aff4:/files/hash/pecoff/md5/aaaaaaaa (only for PEs)
+      aff4:/files/hash/pecoff/sha1/bbbbbbbb (only for PEs)
+
+    When present in PE files, the signing data (revision, cert_type,
+    certificate) is added to the original client-space blobimage.
+
+    This can't be done simply in the FileStore.Write() method with fixed hash
+    buffer sizes because the authenticode hashes need to track hashing of
+    different-sized regions based on the signature information.
+
+    Args:
+      fd: File open for reading.
+      sync: Should the file be synced immediately.
+
+    Raises:
+      IOError: If there was an error writing the file.
+    """
+    file_store_files = []
+    hashes = self._HashFile(fd)
+
+    for hash_type, hash_digest in hashes.ListFields():
+
+      # Determine fingerprint type.
+      hash_digest = str(hash_digest)
+      hash_type = hash_type.name
+      fingerprint_type = "generic"
+      if hash_type.startswith("pecoff_"):
+        fingerprint_type = "pecoff"
+        hash_type = hash_type[len("pecoff_"):]
+      if hash_type not in self.HASH_TYPES[fingerprint_type]:
+        continue
+
+      # These files are all created through async write so they should be
+      # fast.
+      file_store_urn = self.PATH.Add(fingerprint_type).Add(
+          hash_type).Add(hash_digest)
+
+      file_store_fd = aff4.FACTORY.Create(file_store_urn, "FileStoreImage",
+                                          mode="w", token=self.token)
+      file_store_fd.FromBlobImage(fd)
+      file_store_fd.AddIndex(fd.urn)
+
+      file_store_files.append(file_store_fd)
+
+    # Write the hashes attribute to all the created files..
+    for file_store_fd in file_store_files:
+      file_store_fd.Set(hashes)
+      file_store_fd.Close(sync=sync)
+
+    # We do not want to be externally written here.
+    return None
+
+  def FindFile(self, fd):
+    """Find an AFF4Stream in the file store.
+
+    We take a file in the client space:
+      aff4:/C.123123123/fs/os/usr/local/blah
+
+    Hash it and then find the matching RDFURN's:
+
+      aff4:/files/hash/generic/sha256/123123123 (canonical reference)
+      aff4:/files/hash/generic/sha1/345345345
+      aff4:/files/hash/generic/md5/456456456
+      aff4:/files/hash/pecoff/md5/aaaaaaaa (only for PEs)
+      aff4:/files/hash/pecoff/sha1/bbbbbbbb (only for PEs)
+
+    Args:
+      fd: File open for reading.
+
+    Returns:
+      A list of RDFURN's corresponding to the input file.
+    """
+    hashes = self._HashFile(fd)
+
+    urns_to_check = []
+
+    for hash_type, hash_digest in hashes.ListFields():
+      hash_digest = str(hash_digest)
+      hash_type = hash_type.name
+
+      fingerprint_type = "generic"
+      if hash_type.startswith("pecoff_"):
+        fingerprint_type = "pecoff"
+        hash_type = hash_type[len("pecoff_"):]
+      if hash_type not in self.HASH_TYPES[fingerprint_type]:
+        continue
+
+      file_store_urn = self.PATH.Add(fingerprint_type).Add(
+          hash_type).Add(hash_digest)
+
+      urns_to_check.append(file_store_urn)
+
+    return [data["urn"] for data in aff4.FACTORY.Stat(urns_to_check,
+                                                      token=self.token)]
+
+  @staticmethod
+  def ListHashes(token=None, age=aff4.NEWEST_TIME):
+    """Yields all the hashes in the file store.
+
+    Args:
+      token: Security token, instance of ACLToken.
+      age: AFF4 age specification. Only get hits corresponding to the given
+           age spec. Should be aff4.NEWEST_TIME or a time range given as a
+           tuple (start, end) in microseconds since Jan 1st, 1970. If just
+           a microseconds value is given it's treated as the higher end of the
+           range, i.e. (0, age). See aff4.FACTORY.ParseAgeSpecification for
+           details.
+
+    Yields:
+      FileStoreHash instances corresponding to all the hashes in the file store.
+
+    Raises:
+      ValueError: if age was set to aff4.ALL_TIMES.
+    """
+    if age == aff4.ALL_TIMES:
+      raise ValueError("age==aff4.ALL_TIMES is not allowed.")
+
+    urns = []
+    for fingerprint_type, hash_types in HashFileStore.HASH_TYPES.iteritems():
+      for hash_type in hash_types:
+        urns.append(HashFileStore.PATH.Add(fingerprint_type).Add(hash_type))
+
+    for _, values in aff4.FACTORY.MultiListChildren(urns, token=token, age=age):
+      for value in values:
+        yield rdfvalue.FileStoreHash(value)
+
+  @classmethod
+  def GetClientsForHash(cls, hash_obj, token=None, age=aff4.NEWEST_TIME):
+    """Yields client_files for the specified file store hash.
+
+    Args:
+      hash_obj: RDFURN that we want to get hits for.
+      token: Security token.
+      age: AFF4 age specification. Only get hits corresponding to the given
+           age spec. Should be aff4.NEWEST_TIME or a time range given as a
+           tuple (start, end) in microseconds since Jan 1st, 1970. If just
+           a microseconds value is given it's treated as the higher end of the
+           range, i.e. (0, age). See aff4.FACTORY.ParseAgeSpecification for
+           details.
+
+    Yields:
+      RDFURNs corresponding to a client file that has the hash.
+
+    Raises:
+      ValueError: if age was set to aff4.ALL_TIMES.
+    """
+
+    if age == aff4.ALL_TIMES:
+      raise ValueError("age==aff4.ALL_TIMES is not supported.")
+
+    results = cls.GetClientsForHashes([hash_obj], token=token, age=age)
+    for _, client_files in results:
+      for client_file in client_files:
+        yield client_file
+
+  @classmethod
+  def GetClientsForHashes(cls, hashes, token=None, age=aff4.NEWEST_TIME):
+    """Yields (hash, client_files) pairs for all the specified hashes.
+
+    Args:
+      hashes: List of RDFURN's.
+      token: Security token.
+      age: AFF4 age specification. Only get hits corresponding to the given
+           age spec. Should be aff4.NEWEST_TIME or a time range given as a
+           tuple (start, end) in microseconds since Jan 1st, 1970. If just
+           a microseconds value is given it's treated as the higher end of the
+           range, i.e. (0, age). See aff4.FACTORY.ParseAgeSpecification for
+           details.
+
+    Yields:
+      (hash, client_files) tuples, where hash is a FILE_HASH_TYPE instance and
+      client_files is a list of RDFURN's corresponding to client files that
+      have the hash.
+
+    Raises:
+      ValueError: if age was set to aff4.ALL_TIMES.
+    """
+    if age == aff4.ALL_TIMES:
+      raise ValueError("age==aff4.ALL_TIMES is not supported.")
+    timestamp = aff4.FACTORY.ParseAgeSpecification(age)
+
+    for hash_obj, client_files in data_store.DB.MultiResolveRegex(
+        hashes, "index:target:.*", token=token, timestamp=timestamp):
+      yield (cls.FILE_HASH_TYPE(hash_obj),
+             [file_urn for _, file_urn, _ in client_files])
+
+
+class NSRLFileStoreHash(rdfvalue.RDFURN):
+  """Urns returned from NSRLFileStore.GetClientsForHashes()."""
+
+  def __init__(self, initializer=None, hash_value=None, age=None):
+    initializer = NSRLFileStore.PATH.Add(hash_value)
+
+    super(NSRLFileStoreHash, self).__init__(initializer=initializer, age=age)
+
+    relative_name = self.RelativeName(NSRLFileStore.PATH)
+    if not relative_name:
+      raise ValueError("URN %s is not a hash file store urn. Hash file store "
+                       "urn should start with %s." %
+                       (str(self), str(NSRLFileStore.PATH)))
+
+    relative_path = relative_name.split("/")
+    if len(relative_path) != 1:
+      raise ValueError("URN %s is not a NSRL file store urn.", str(self))
+    self.hash_value = relative_path[0]
+    self.fingerprint_type = "generic"
+    self.hash_type = "sha1"
+
+
+class NSRLFile(FileStoreImage):
+  """Represents a file from the NSRL database."""
+
+  class SchemaCls(FileStoreImage.SchemaCls):
+    """Schema class for NSRLFile."""
+
+    # We do not need child indexes since the NSRL database is quite big.
+    ADD_CHILD_INDEX = False
+
+    # Make the default SIZE argument as unversioned.
+    SIZE = aff4.Attribute("aff4:size", rdfvalue.RDFInteger,
+                          "The total size of available data for this stream.",
+                          "size", default=0, versioned=False)
+    TYPE = aff4.Attribute("aff4:type", rdfvalue.RDFString,
+                          "The name of the AFF4Object derived class.", "type",
+                          versioned=False)
+    NSRL = aff4.Attribute("aff4:nsrl", rdfvalue.NSRLInformation,
+                          versioned=False)
+
+
+class NSRLFileStore(HashFileStore):
+  """FileStore with NSRL hashes."""
+
+  PATH = rdfvalue.RDFURN("aff4:/files/nsrl")
+  PRIORITY = 1
+  EXTERNAL = False
+  FILE_HASH_TYPE = rdfvalue.NSRLFileStoreHash
+
+  FILE_TYPES = {"M": rdfvalue.NSRLInformation.FileType.MALICIOUS_FILE,
+                "S": rdfvalue.NSRLInformation.FileType.SPECIAL_FILE,
+                "": rdfvalue.NSRLInformation.FileType.NORMAL_FILE}
+
+  def GetChildrenByPriority(self, allow_external=True):
+    return
+
+  @staticmethod
+  def ListHashes(token=None, age=aff4.NEWEST_TIME):
+    return
+
+  def CheckHashes(self, hashes, unused_external=True):
+    """Checks a list of hashes for presence in the store.
+
+    Only unique sha1 hashes are checked, if there is duplication in the hashes
+    input it is the caller's responsibility to maintain any necessary mappings.
+
+    Args:
+      hashes: A list of Hash objects to check.
+      unused_external: Ignored.
+
+    Yields:
+      Tuples of (RDFURN, HashDigest) objects that exist in the store.
+    """
+    hash_map = {}
+    for hsh in hashes:
+      if hsh.HasField("sha1"):
+        digest = hsh.sha1
+        hash_urn = self.PATH.Add(str(digest))
+        logging.info("Checking URN %s", str(hash_urn))
+        hash_map[hash_urn] = digest
+
+    for metadata in aff4.FACTORY.Stat(list(hash_map), token=self.token):
+      yield metadata["urn"], hash_map[metadata["urn"]]
+
+  def AddHash(self, sha1, md5, crc, file_name, file_size, product_code_list,
+              op_system_code_list, special_code):
+    """Adds a new file from the NSRL hash database.
+
+    We create a new subject in:
+      aff4:/files/nsrl/<sha1>
+    with all the other arguments as attributes.
+
+    Args:
+      sha1: SHA1 digest as a hex encoded string.
+      md5: MD5 digest as a hex encoded string.
+      crc: File CRC as an integer.
+      file_name: Filename.
+      file_size: Size of file.
+      product_code_list: List of products this file is part of.
+      op_system_code_list: List of operating systems this file is part of.
+      special_code: Special code (malicious/special/normal file).
+    """
+    file_store_urn = self.PATH.Add(sha1)
+
+    special_code = self.FILE_TYPES.get(special_code, self.FILE_TYPES[""])
+
+    with aff4.FACTORY.Create(file_store_urn, "NSRLFile",
+                             mode="w", token=self.token) as fd:
+      fd.Set(fd.Schema.NSRL(sha1=sha1.decode("hex"),
+                            md5=md5.decode("hex"), crc32=crc,
+                            file_name=file_name, file_size=file_size,
+                            product_code=product_code_list,
+                            op_system_code=op_system_code_list,
+                            file_type=special_code))
+
+  def FindFile(self, fd):
+    """Hash an AFF4Stream and find the RDFURN with the same hash.
+
+    Args:
+      fd: File open for reading.
+
+    Returns:
+      A RDFURN to the file in file store or False if not found.
+    """
+    hashes = self._HashFile(fd)
+    if not hashes:
+      return False
+
+    hash_urn = self.PATH.Add(str(hashes.sha1))
+
+    for data in aff4.FACTORY.Stat([hash_urn], token=self.token):
+      return data["urn"]
+
+    return False
+
+  def AddFile(self, fd, sync=False):
+    """Hash the AFF4Stream and add it to the NSRLFile's index.
+
+    We take a file in the client space:
+      aff4:/C.123123123/fs/os/usr/local/blah
+
+    Hash it and check if there is a corresponsing
+    NSRLFile at the following URN:
+
+      aff4:/files/nsrl/123123123
+
+    Next, we add the file to the NSRL index, so we know which clients have
+    the file.
+
+    Args:
+      fd: File open for reading.
+      sync: Should the file be synced immediately.
+
+    Returns:
+      The URN of the NSRL file if it was found in the store.
+    """
+    hash_urn = self.FindFile(fd)
+    if not hash_urn:
+      return False
+
+    # Open file and add 'fd' to the index.
+    try:
+      with aff4.FACTORY.Open(hash_urn, "NSRLFile", mode="w",
+                             token=self.token) as hash_fd:
+        hash_fd.AddIndex(fd.urn)
+        return hash_urn
+    except aff4.InstantiationError:
+      pass
+    return False

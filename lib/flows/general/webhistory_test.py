@@ -32,8 +32,8 @@ class TestWebHistory(test_lib.FlowTestsBaseclass):
     self.client.Close()
 
     self.client_mock = action_mocks.ActionMock(
-        "ReadBuffer", "HashFile", "HashBuffer", "TransferBuffer", "StatFile",
-        "Find", "ListDirectory", "Grep")
+        "ReadBuffer", "FingerprintFile", "HashBuffer", "TransferBuffer",
+        "StatFile", "Find", "ListDirectory", "Grep")
 
     # Mock the client to make it look like the root partition is mounted off the
     # test image. This will force all flow access to come off the image.
@@ -97,7 +97,7 @@ class TestWebHistory(test_lib.FlowTestsBaseclass):
                   "test_img.dd"])).Add(fs_path.replace("\\", "/"))
     fd = aff4.FACTORY.Open(output_path, token=self.token)
     self.assertTrue(fd.size > 20000)
-    self.assertEquals(fd.read(15), "SQLite format 3")
+    self.assertEqual(fd.read(15), "SQLite format 3")
 
     # Check for analysis file.
     output_path = self.client_id.Add("analysis/ff_out")
@@ -124,15 +124,15 @@ class TestWebHistory(test_lib.FlowTestsBaseclass):
                            token=self.token)
 
     # There should be one hit.
-    self.assertEquals(len(fd), 1)
+    self.assertEqual(len(fd), 1)
 
     # Get the first hit.
     hits = list(fd)
 
     self.assertIsInstance(hits[0], rdfvalue.StatEntry)
 
-    self.assertEquals(hits[0].pathspec.last.path,
-                      "/home/test/.config/google-chrome/Default/Cache/data_1")
+    self.assertEqual(hits[0].pathspec.last.path,
+                     "/home/test/.config/google-chrome/Default/Cache/data_1")
 
 
 class TestWebHistoryWithArtifacts(artifact_test.ArtifactTestHelper):
@@ -152,8 +152,8 @@ class TestWebHistoryWithArtifacts(artifact_test.ArtifactTestHelper):
     fd.Flush()
 
     self.client_mock = action_mocks.ActionMock(
-        "ReadBuffer", "HashFile", "HashBuffer", "TransferBuffer", "StatFile",
-        "Find", "ListDirectory")
+        "ReadBuffer", "FingerprintFile", "HashBuffer", "TransferBuffer",
+        "StatFile", "Find", "ListDirectory")
 
   def testChrome(self):
     """Check we can run WMI based artifacts."""
@@ -164,7 +164,7 @@ class TestWebHistoryWithArtifacts(artifact_test.ArtifactTestHelper):
           ["ChromeHistory"], client_mock=self.client_mock, use_tsk=True,
           knowledge_base=self.kb)
 
-    self.assertEquals(len(fd), 71)
+    self.assertEqual(len(fd), 71)
     self.assertTrue("/home/john/Downloads/funcats_scr.exe" in
                     [d.download_path for d in fd])
     self.assertTrue("http://www.java.com/" in [d.url for d in fd])
@@ -178,8 +178,8 @@ class TestWebHistoryWithArtifacts(artifact_test.ArtifactTestHelper):
       fd = self.RunCollectorAndGetCollection(
           ["FirefoxHistory"], client_mock=self.client_mock, use_tsk=True)
 
-    self.assertEquals(len(fd), 5)
-    self.assertEquals(fd[0].access_time.AsSecondsFromEpoch(), 1340623334)
+    self.assertEqual(len(fd), 5)
+    self.assertEqual(fd[0].access_time.AsSecondsFromEpoch(), 1340623334)
     self.assertTrue("http://sport.orf.at/" in [d.url for d in fd])
     self.assertTrue(fd[0].source_urn.Path().endswith(
         "/home/test/.mozilla/firefox/adts404t.default/places.sqlite"))

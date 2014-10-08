@@ -157,9 +157,8 @@ def StartFlowAndWorker(client_id, flow_name, **kwargs):
 
     time.sleep(2)
     with aff4.FACTORY.Open(session_id) as flow_obj:
-      with flow_obj.GetRunner() as runner:
-        if not runner.IsRunning():
-          break
+      if not flow_obj.GetRunner().IsRunning():
+        break
 
   # Terminate the worker threads
   worker_thrd.thread_pool.Join()

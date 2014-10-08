@@ -308,3 +308,40 @@ grr.Renderer('ErrorRenderer', {
     grr.publish('messages', value);
   }
 });
+
+grr.Renderer('AngularDirectiveRenderer', {
+  // Compiles Angular code within a div with current unique id. Used by
+  // AngularTestRenderer.
+  Compile: function(state) {
+    var unique = state.unique;
+    var template = $('#' + unique);
+
+    var injector = angular.injector(['ng', 'grr']);
+    var $compile = injector.get('$compile');
+    var $rootScope = injector.get('$rootScope');
+
+    var linkFn = $compile(template);
+    var element = linkFn($rootScope);
+  },
+
+  Layout: function(state) {
+    var unique = state.unique;
+    var directive = state.directive;
+    var directive_args = state.directive_args;
+
+    var template = $(document.createElement(directive));
+    template.attr(directive_args);
+
+    var injector = angular.injector(['ng', 'grr']);
+    var $compile = injector.get('$compile');
+    var $rootScope = injector.get('$rootScope');
+
+    var linkFn = $compile(template);
+    var element = linkFn($rootScope);
+
+    $rootScope.$apply(function() {
+      var parent = $('#' + unique);
+      parent.append(element);
+    });
+  }
+});

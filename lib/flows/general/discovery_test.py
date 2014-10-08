@@ -171,7 +171,7 @@ class TestClientInterrogate(artifact_test.ArtifactTestHelper):
     test_lib.ClientFixture(self.client_id, token=self.token)
 
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.OS] = test_lib.ClientTestDataVFSFixture
+        rdfvalue.PathSpec.PathType.OS] = test_lib.FakeTestDataVFSHandler
 
     config_lib.CONFIG.Set("Artifacts.knowledge_base", ["LinuxWtmp",
                                                        "NetgroupConfiguration"])
@@ -179,7 +179,8 @@ class TestClientInterrogate(artifact_test.ArtifactTestHelper):
     self.SetLinuxClient()
     client_mock = action_mocks.InterrogatedClient("TransferBuffer", "StatFile",
                                                   "Find", "HashBuffer",
-                                                  "ListDirectory", "HashFile")
+                                                  "ListDirectory",
+                                                  "FingerprintFile")
     client_mock.InitializeClient()
 
     for _ in test_lib.TestFlowHelper("Interrogate", client_mock,
@@ -208,13 +209,14 @@ class TestClientInterrogate(artifact_test.ArtifactTestHelper):
     test_lib.ClientFixture(self.client_id, token=self.token)
 
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.ClientRegistryVFSFixture
+        rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.OS] = test_lib.ClientFullVFSFixture
+        rdfvalue.PathSpec.PathType.OS] = test_lib.FakeFullVFSHandler
 
     client_mock = action_mocks.InterrogatedClient("TransferBuffer", "StatFile",
                                                   "Find", "HashBuffer",
-                                                  "ListDirectory", "HashFile")
+                                                  "ListDirectory",
+                                                  "FingerprintFile")
 
     self.SetWindowsClient()
     client_mock.InitializeClient(system="Windows", version="6.1.7600")

@@ -1,0 +1,10 @@
+<grr-collection-table collection-urn="{$ logsUrn $}">
+  <!-- Using 'div' and not 'td' due to problems with the way AngularJS templates
+       are handled. AngularJS templates are valid DOM trees and browser's
+       behavior is undefined when it encounters 'td' tag outside of 'tbody'
+       or 'table'. Therefore have to use 'div' with table-cell class to ensure
+       that browsers handle this template correctly. -->
+  <div class="table-cell proto_key">{$ item.flow_name $}</div>
+  <div class="table-cell proto_key">{$ item.urn $}</div>
+  <div class="table-cell proto_key">{$ item.log_message $}</div>
+</grr-collection-table>

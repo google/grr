@@ -21,7 +21,8 @@ class MockDataStoreService(object):
   def LoadServerMapping(self):
     return self.mapping
 
-  def SaveServerMapping(self, mapping):
+  def SaveServerMapping(self, mapping, create_pathing=False):
+    _ = create_pathing
     self.mapping = mapping
 
   def GetComponentInformation(self):

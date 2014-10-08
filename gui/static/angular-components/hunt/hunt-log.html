@@ -1,0 +1,7 @@
+<grr-collection-table collection-urn="{$ logsUrn $}" transform-items="transformItems(items)" fetch-type-info="true">
+  <grr-collection-td ng-class="{proto_key: item.highlighted}"><grr-client-urn value="item.value.client_id.value" /></grr-collection-td>
+  <grr-collection-td ng-class="{proto_key: item.highlighted}"><nobr>{$ item.age * 1000| date:'medium' $}</nobr></grr-collection-td>
+  <grr-collection-td ng-class="{proto_key: item.highlighted}">{$ item.shortUrn $}</grr-collection-td>
+  <grr-collection-td ng-class="{proto_key: item.highlighted}">{$ item.value.flow_name $}</grr-collection-td>
+  <grr-collection-td ng-class="{proto_key: item.highlighted}">{$ item.value.log_message $}</grr-collection-td>
+</grr-collection-table>

@@ -13,6 +13,7 @@ import logging
 from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
+from grr.lib import access_control
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import config_lib
@@ -144,13 +145,11 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
 
     with aff4.FACTORY.Open(hunt_urn, age=aff4.ALL_TIMES,
                            token=self.token) as hunt_obj:
-      started = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
-      finished = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.FINISHED)
-      errors = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.ERRORS)
 
-      self.assertEqual(len(set(started)), 10)
-      self.assertEqual(len(set(finished)), 10)
-      self.assertEqual(len(set(errors)), 5)
+      started, finished, errors = hunt_obj.GetClientsCounts()
+      self.assertEqual(started, 10)
+      self.assertEqual(finished, 10)
+      self.assertEqual(errors, 5)
 
       # Results collection is always written, even if there are no output
       # plugins.
@@ -383,18 +382,23 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
 
     hunt_obj = aff4.FACTORY.Open(hunt.session_id, age=aff4.ALL_TIMES,
                                  token=self.token)
-
-    started = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
-    finished = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.FINISHED)
-    errors = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.ERRORS)
-
-    self.assertEqual(len(set(started)), 2)
-    self.assertEqual(len(set(finished)), 2)
-    self.assertEqual(len(set(errors)), 0)
+    started, finished, errors = hunt_obj.GetClientsCounts()
+    self.assertEqual(started, 2)
+    # Amazing as it may sound, 3 is actually a correct value as we run 2 flows
+    # on a second client.
+    self.assertEqual(finished, 3)
+    self.assertEqual(errors, 0)
 
   def testStatsHunt(self):
     interval = rdfvalue.Duration(
         config_lib.CONFIG["StatsHunt.CollectionInterval"])
+    batch_size = 3
+    config_lib.CONFIG.Set("StatsHunt.ClientBatchSize", batch_size)
+
+    # Make one of the clients windows
+    with aff4.FACTORY.Open(self.client_ids[3], mode="rw",
+                           token=self.token) as win_client:
+      win_client.Set(win_client.Schema.SYSTEM("Windows"))
 
     with test_lib.FakeTime(0, increment=0.01):
       with hunts.GRRHunt.StartHunt(
@@ -421,7 +425,6 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     with test_lib.FakeTime(10 + interval.seconds, increment=0.01):
       test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
 
-      # All clients were called.
       self.assertEqual(client_mock.response_count, len(self.client_ids))
 
       # Make sure the last message was of LOW_PRIORITY (all messages should be
@@ -435,15 +438,13 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
 
     # Pause the hunt
     with aff4.FACTORY.OpenWithLock(hunt.urn, token=self.token) as hunt:
-      with hunt.GetRunner() as runner:
-        runner.Pause()
+      hunt.GetRunner().Pause()
 
     # Advance time and re-run. We get the results back from last time, but don't
     # schedule any new ones because the hunt is now paused.
     with test_lib.FakeTime(20 + (interval.seconds * 2), increment=0.01):
       test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
 
-      # All clients were called.
       self.assertEqual(client_mock.response_count, len(self.client_ids) * 2)
 
     # Advance time and re-run. We should have the same number of responses
@@ -457,7 +458,10 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     # Check the results got written to the collection
     result_collection = aff4.FACTORY.Open(hunt_urn.Add("Results"),
                                           token=self.token)
-    self.assertEqual(len(result_collection), len(self.client_ids) * 2)
+
+    # The +1 is here because we write 2 responses for the single windows machine
+    # (dnsconfig and interface)
+    self.assertEqual(len(result_collection), (len(self.client_ids) + 1) * 2)
 
   def testStatsHuntFilterLocalhost(self):
     statshunt = aff4.FACTORY.Create("aff4:/temp", "StatsHunt")
@@ -498,13 +502,10 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
       hunt_obj = aff4.FACTORY.Open(hunt.session_id, age=aff4.ALL_TIMES,
                                    token=self.token)
 
-      started = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
-      finished = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.FINISHED)
-      errors = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.ERRORS)
-
-      self.assertEqual(len(set(started)), 5)
-      self.assertEqual(len(set(finished)), 5)
-      self.assertEqual(len(set(errors)), 2)
+      started, finished, errors = hunt_obj.GetClientsCounts()
+      self.assertEqual(started, 5)
+      self.assertEqual(finished, 5)
+      self.assertEqual(errors, 2)
 
       hunt_obj = aff4.FACTORY.Open(hunt.session_id, age=aff4.ALL_TIMES,
                                    token=self.token)
@@ -550,14 +551,11 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
       test_lib.TestHuntHelper(client_mock, self.client_ids,
                               check_flow_errors=False, token=self.token)
 
-      started = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
-      finished = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.FINISHED)
-      errors = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.ERRORS)
-
       # No client should be processed since the hunt is expired.
-      self.assertEqual(len(set(started)), 0)
-      self.assertEqual(len(set(finished)), 0)
-      self.assertEqual(len(set(errors)), 0)
+      started, finished, errors = hunt_obj.GetClientsCounts()
+      self.assertEqual(started, 0)
+      self.assertEqual(finished, 0)
+      self.assertEqual(errors, 0)
 
       hunt_obj = aff4.FACTORY.Open(hunt.session_id, age=aff4.ALL_TIMES,
                                    token=self.token)
@@ -602,19 +600,18 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     hunt_obj = aff4.FACTORY.Open(hunt_session_id, age=aff4.ALL_TIMES,
                                  ignore_cache=True, token=self.token)
 
-    started = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
-
     # There should be only one client, due to the limit
-    self.assertEqual(len(set(started)), 1)
+    started, _, _ = hunt_obj.GetClientsCounts()
+    self.assertEqual(started, 1)
 
     # Check the hunt is paused.
     self.assertEqual(hunt_obj.Get(hunt_obj.Schema.STATE), "PAUSED")
 
     with aff4.FACTORY.Open(
         hunt_session_id, mode="rw", token=self.token) as hunt_obj:
-      with hunt_obj.GetRunner() as runner:
-        runner.args.client_limit = 10
-        runner.Start()
+      runner = hunt_obj.GetRunner()
+      runner.args.client_limit = 10
+      runner.Start()
 
     # Pretend to be the foreman now and dish out hunting jobs to all the
     # clients.
@@ -627,9 +624,9 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
 
     hunt_obj = aff4.FACTORY.Open(hunt_session_id, age=aff4.ALL_TIMES,
                                  token=self.token)
-    started = hunt_obj.GetValuesForAttribute(hunt_obj.Schema.CLIENTS)
     # There should be only one client, due to the limit
-    self.assertEqual(len(set(started)), 10)
+    started, _, _ = hunt_obj.GetClientsCounts()
+    self.assertEqual(started, 10)
 
   def testResourceUsageStats(self):
     client_ids = self.SetupClients(10)
@@ -781,14 +778,44 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
                            token=self.token) as hunt_results:
       self.assertEqual(len(hunt_results), 4)
 
+  def testCreatorPropagation(self):
+    self.CreateAdminUser("adminuser")
+    admin_token = access_control.ACLToken(username="adminuser",
+                                          reason="testing")
+    # Start a flow that requires admin privileges in the hunt. The
+    # parameters are not valid so the flow will error out but it's
+    # enough to check if the flow was actually run (i.e., it passed
+    # the label test).
+    with hunts.GRRHunt.StartHunt(
+        hunt_name="GenericHunt",
+        flow_runner_args=rdfvalue.FlowRunnerArgs(flow_name="UpdateClient"),
+        flow_args=rdfvalue.UpdateClientArgs(),
+        regex_rules=[
+            rdfvalue.ForemanAttributeRegex(attribute_name="GRR client",
+                                           attribute_regex="GRR"),
+            ],
+        client_rate=0, token=admin_token) as hunt:
+      hunt.Run()
 
-class FlowTestLoader(test_lib.GRRTestLoader):
-  base_class = test_lib.FlowTestsBaseclass
+    self.CreateUser("nonadmin")
+    nonadmin_token = access_control.ACLToken(username="nonadmin",
+                                             reason="testing")
+    self.AssignTasksToClients()
+
+    client_mock = test_lib.SampleHuntMock()
+    test_lib.TestHuntHelper(client_mock, self.client_ids, False,
+                            nonadmin_token)
+
+    errors = list(hunt.GetClientsErrors())
+    # Make sure there are errors...
+    self.assertTrue(errors)
+    # but they are not UnauthorizedAccess.
+    for e in errors:
+      self.assertTrue("UnauthorizedAccess" not in e.backtrace)
 
 
-def main(argv):
-  # Run the full test suite
-  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+def main(args):
+  test_lib.main(args)
 
 if __name__ == "__main__":
   flags.StartMain(main)

@@ -303,11 +303,10 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
 
     try:
       with test_lib.FakeTime(initial_time.AsSecondsFromEpoch()):
-        hunt = hunts.GRRHunt.StartHunt(hunt_name="WorkerStuckableHunt",
-                                       client_rate=0,
-                                       token=self.token)
-        with hunt.GetRunner() as runner:
-          runner.Start()
+        with hunts.GRRHunt.StartHunt(hunt_name="WorkerStuckableHunt",
+                                     client_rate=0,
+                                     token=self.token) as hunt:
+          hunt.GetRunner().Start()
 
         hunts.GRRHunt.StartClients(hunt.session_id, [self.client_id])
 

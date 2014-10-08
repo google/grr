@@ -1,0 +1,12 @@
+<table class="proto_table">
+  <tbody>
+    <tr ng-repeat="item in items">
+      <td class="proto_key" ng-if="item.desc">
+        <abbr title="{$ item.desc $}">{$ item.key $}</abbr>
+      </td>
+      <td class="proto_key" ng-if="!item.desc">{$ item.key $}</td>
+
+      <td class="proto_value"><grr-semantic-value value="item.value" /></td>
+    </tr>
+  </tbody>
+</table>

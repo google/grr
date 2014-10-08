@@ -82,7 +82,7 @@ class TestMemoryCollector(test_lib.FlowTestsBaseclass):
     flow.GRRFlow.classes["DiskVolumeInfo"] = DummyDiskVolumeInfo
 
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.MEMORY] = test_lib.ClientTestDataVFSFixture
+        rdfvalue.PathSpec.PathType.MEMORY] = test_lib.FakeTestDataVFSHandler
 
   def tearDown(self):
     super(TestMemoryCollector, self).tearDown()
@@ -486,7 +486,7 @@ class ListVADBinariesActionMock(action_mocks.ActionMock):
 
   def __init__(self, process_list=None):
     super(ListVADBinariesActionMock, self).__init__(
-        "TransferBuffer", "StatFile", "Find", "HashBuffer", "HashFile",
+        "TransferBuffer", "StatFile", "Find", "HashBuffer", "FingerprintFile",
         "ListDirectory")
     self.process_list = process_list or []
 
@@ -529,7 +529,7 @@ class ListVADBinariesTest(test_lib.FlowTestsBaseclass):
     vfs.VFS_HANDLERS[
         rdfvalue.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.ClientRegistryVFSFixture
+        rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
 
     # Add some user accounts to this client.
     fd = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)

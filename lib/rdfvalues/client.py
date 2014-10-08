@@ -317,6 +317,22 @@ class NetworkAddress(rdfvalue.RDFProtoStruct):
       except ValueError as e:
         return str(e)
 
+  @human_readable_address.setter
+  def human_readable_address(self, value):
+    if ":" in value:
+      # IPv6
+      self.address_type = rdfvalue.NetworkAddress.Family.INET6
+      self.packed_bytes = socket.inet_pton(socket.AF_INET6, value)
+    else:
+      # IPv4
+      self.address_type = rdfvalue.NetworkAddress.Family.INET
+      self.packed_bytes = socket.inet_pton(socket.AF_INET, value)
+
+
+class DNSClientConfiguration(rdfvalue.RDFProtoStruct):
+  """DNS client config."""
+  protobuf = sysinfo_pb2.DNSClientConfiguration
+
 
 class MacAddress(rdfvalue.RDFBytes):
   """A MAC address."""

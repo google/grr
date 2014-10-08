@@ -171,6 +171,8 @@ class GetFile(flow.GRRFlow):
       # Notify any parent flows the file is ready to be used now.
       self.SendReply(stat_response)
 
+    super(GetFile, self).End()
+
 
 class HashTracker(object):
 
@@ -184,15 +186,16 @@ class HashTracker(object):
 class FileTracker(object):
   """A Class to track a single file download."""
 
-  def __init__(self, stat_entry, client_id):
+  def __init__(self, stat_entry, client_id, request_data):
     self.fd = None
     self.stat_entry = stat_entry
-    self.digest = None
+    self.hash_obj = None
     self.hash_list = []
     self.pathspec = stat_entry.pathspec
     self.urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
         self.pathspec, client_id)
     self.stat_entry.aff4path = self.urn
+    self.request_data = request_data
 
   def __str__(self):
     return "<Tracker: %s (%s hashes)>" % (self.urn, len(self.hash_list))
@@ -258,7 +261,7 @@ class MultiGetFileMixin(object):
                            token=self.token)
     self.state.Register("filestore", fd)
 
-  def StartFile(self, pathspec, vfs_urn, request_data=None):
+  def StartFileFetch(self, pathspec, vfs_urn, request_data=None):
     """The entry point for this flow mixin - Schedules new file transfer."""
     request_data = request_data or {}
     request_data["vfs_urn"] = vfs_urn
@@ -266,12 +269,25 @@ class MultiGetFileMixin(object):
                     next_state="StoreStat",
                     request_data=request_data)
 
-    self.CallClient("HashFile", pathspec=pathspec,
-                    next_state="ReceiveFileHash",
+    request = rdfvalue.FingerprintRequest(pathspec=pathspec)
+    request.AddRequest(
+        fp_type=rdfvalue.FingerprintTuple.Type.FPT_GENERIC,
+        hashers=[rdfvalue.FingerprintTuple.Hash.MD5,
+                 rdfvalue.FingerprintTuple.Hash.SHA1,
+                 rdfvalue.FingerprintTuple.Hash.SHA256])
+
+    self.CallClient("FingerprintFile", request, next_state="ReceiveFileHash",
                     request_data=request_data)
 
-  def FetchedFile(self, stat_entry):
-    """This method will be called for each new file successfully fetched."""
+  def ReceiveFetchedFile(self, stat_entry, file_hash, request_data=None):
+    """This method will be called for each new file successfully fetched.
+
+    Args:
+      stat_entry: rdfvalue.StatEntry object describing the file.
+      file_hash: rdfvalue.Hash object with file hashes.
+      request_data: Arbitrary dictionary that was passed to the corresponding
+                    StartFileFetch call.
+    """
 
   @flow.StateHandler()
   def StoreStat(self, responses):
@@ -281,7 +297,8 @@ class MultiGetFileMixin(object):
 
     stat_entry = responses.First()
     vfs_urn = responses.request_data["vfs_urn"]
-    self.state.pending_hashes[vfs_urn] = FileTracker(stat_entry, self.client_id)
+    self.state.pending_hashes[vfs_urn] = FileTracker(stat_entry, self.client_id,
+                                                     responses.request_data)
 
   @flow.StateHandler(next_state="CheckHash")
   def ReceiveFileHash(self, responses):
@@ -293,8 +310,26 @@ class MultiGetFileMixin(object):
       return
 
     self.state.files_hashed += 1
-    self.state.pending_hashes[vfs_urn].digest = rdfvalue.HashDigest(
-        responses.First().data)
+    response = responses.First()
+    hash_obj = rdfvalue.Hash()
+
+    if len(response.results) < 1 or response.results[0]["name"] != "generic":
+      self.Log("Failed to hash file: %s", str(vfs_urn))
+      self.state.pending_hashes.pop(vfs_urn, None)
+      return
+
+    result = response.results[0]
+
+    try:
+      for hash_type in ["md5", "sha1", "sha256"]:
+        value = result.GetItem(hash_type)
+        setattr(hash_obj, hash_type, value)
+    except AttributeError:
+      self.Log("Failed to hash file: %s", str(vfs_urn))
+      self.state.pending_hashes.pop(vfs_urn, None)
+      return
+
+    self.state.pending_hashes[vfs_urn].hash_obj = hash_obj
 
     if len(self.state.pending_hashes) >= self.MIN_CALL_TO_FILE_STORE:
       self._CheckHashesWithFileStore()
@@ -321,9 +356,8 @@ class MultiGetFileMixin(object):
     # keys are hashdigest objects, values are arrays of tracker objects.
     hash_to_urn = {}
     for vfs_urn, tracker in self.state.pending_hashes.iteritems():
-      digest = tracker.digest
-      digest.vfs_urn = vfs_urn
-      file_hashes[vfs_urn] = digest
+      digest = tracker.hash_obj.sha256
+      file_hashes[vfs_urn] = tracker.hash_obj
       hash_to_urn.setdefault(digest, []).append(tracker)
 
     # First we get all the files which are present in the file store.
@@ -336,7 +370,7 @@ class MultiGetFileMixin(object):
       # Since checkhashes only returns one digest per unique hash we need to
       # find any other files pending download with the same hash.
       for tracker in hash_to_urn[digest]:
-        vfs_urn = tracker.digest.vfs_urn
+        vfs_urn = tracker.urn
         self.state.files_skipped += 1
         file_hashes.pop(vfs_urn, None)
         files_in_filestore.add(file_store_urn)
@@ -346,7 +380,7 @@ class MultiGetFileMixin(object):
 
     # Now copy all existing files to the client aff4 space.
     for existing_blob in aff4.FACTORY.MultiOpen(files_in_filestore,
-                                                mode="r", token=self.token):
+                                                mode="rw", token=self.token):
 
       hashset = existing_blob.Get(existing_blob.Schema.HASH)
       if hashset is None:
@@ -375,7 +409,8 @@ class MultiGetFileMixin(object):
         file_tracker.fd.Close(sync=False)
 
         # Let the caller know we have this file already.
-        self.FetchedFile(file_tracker.stat_entry)
+        self.ReceiveFetchedFile(file_tracker.stat_entry, tracker.hash_obj,
+                                request_data=tracker.request_data)
 
     # Now we iterate over all the files which are not in the store and arrange
     # for them to be copied.
@@ -515,16 +550,18 @@ class MultiGetFileMixin(object):
   def RemoveInFlightFile(self, vfs_urn):
     file_tracker = self.state.pending_files.pop(vfs_urn)
     if file_tracker:
-      self.FetchedFile(file_tracker.stat_entry)
+      self.ReceiveFetchedFile(file_tracker.stat_entry, file_tracker.hash_obj,
+                              request_data=file_tracker.request_data)
 
   @flow.StateHandler(next_state=["CheckHash", "WriteBuffer"])
   def End(self):
-    super(MultiGetFileMixin, self).End()
-
     # There are some files still in flight.
     if self.state.pending_hashes or self.state.pending_files:
       self._CheckHashesWithFileStore()
       self.FetchFileContent()
+
+    if not self.runner.OutstandingRequests():
+      super(MultiGetFileMixin, self).End()
 
 
 class MultiGetFileArgs(rdfvalue.RDFProtoStruct):
@@ -553,10 +590,12 @@ class MultiGetFile(MultiGetFileMixin, flow.GRRFlow):
         # Only Stat/Hash each path once, input pathspecs can have dups.
         unique_paths.add(vfs_urn)
 
-        self.StartFile(pathspec, vfs_urn)
+        self.StartFileFetch(pathspec, vfs_urn)
 
-  def FetchedFile(self, stat_entry):
+  def ReceiveFetchedFile(self, stat_entry, unused_hash_obj,
+                         request_data=None):
     """This method will be called for each new file successfully fetched."""
+    _ = request_data
     self.SendReply(stat_entry)
 
 

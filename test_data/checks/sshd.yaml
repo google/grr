@@ -1,0 +1,14 @@
+check_id: 'SSHD-CHECK'
+match: 'NONE'
+method:
+  - match: ['NONE']
+    target:
+      os: ['Linux', 'OSX']
+    hint:
+      problem: 'Sshd is running protocol 1. Only use protocol 2'
+    probe:
+      - artifact: 'SshdConfig'
+        match: ['NONE']
+        filters:
+          - type: 'ObjectFilter'
+            expression: 'protocol contains 1'

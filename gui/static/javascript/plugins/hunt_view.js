@@ -255,10 +255,9 @@ grr.Renderer('HuntResultsRenderer', {
     var exportable_results = state.exportable_results;
 
     if (exportable_results) {
-      var button = $('#generate_hunt_results_zip_' + unique).button();
-      button.click(function() {
-        button.attr('disabled', 'disabled');
-
+      var tar_elements_selector = '#generate_archive_' + unique +
+          ' *[name=generate_tar]';
+      $(tar_elements_selector).click(function() {
         // We execute CheckAccess renderer with silent=true. Therefore it
         // searches for an approval and sets correct reason if approval is
         // found. When CheckAccess completes, we execute HuntGenerateResultsZip
@@ -268,11 +267,34 @@ grr.Renderer('HuntResultsRenderer', {
         grr.layout('CheckAccess', 'generate_action_' + unique,
                    {silent: true, subject: hunt_id},
                    function() {
-                     grr.layout('HuntGenerateResultsZip',
+                     grr.layout('HuntGenerateResultsArchive',
                                 'generate_action_' + unique,
-                                {hunt_id: hunt_id});
+                                {hunt_id: hunt_id, format: 'TAR_GZIP'});
                    });
+
+        $('#generate_archive_' + unique + ' button').attr(
+            'disabled', 'disabled');
       });
+
+      var zip_elememnts_selector = '#generate_archive_' + unique +
+          ' *[name=generate_zip]';
+      $(zip_elememnts_selector).click(function() {
+        grr.layout('CheckAccess', 'generate_action_' + unique,
+                   {silent: true, subject: hunt_id},
+                   function() {
+                     grr.layout('HuntGenerateResultsArchive',
+                                'generate_action_' + unique,
+                                {hunt_id: hunt_id, format: 'ZIP'});
+                   });
+        $('#generate_archive_' + unique + ' button').attr(
+            'disabled', 'disabled');
+      });
+
+      if (navigator.appVersion.indexOf('Mac') != -1) {
+        $('#generate_archive_' + unique + ' .export_zip').hide();
+      } else {
+        $('#generate_archive_' + unique + ' .export_tar').hide();
+      }
     }
   }
 });

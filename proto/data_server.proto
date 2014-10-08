@@ -59,8 +59,8 @@ message DataServerMapping {
   // Information about each server.
   repeated DataServerInformation servers = 3;
 
-  // Routing information for subject paths.
-  repeated string routing = 4;
+  // Pathing information for subject paths.
+  repeated string pathing = 4;
 };
 
 message DataServerClientInformation {

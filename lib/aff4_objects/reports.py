@@ -31,7 +31,7 @@ class ClientReport(Report):
   %(report_text)s
   <br/>
   <p>Thanks,</p>
-  <p>%(signature)s</p>
+  <p>The GRR team.
   </body></html>"""
   EMAIL_FROM = "noreply"
 
@@ -112,12 +112,10 @@ class ClientReport(Report):
     dt = rdfvalue.RDFDatetime().Now().Format("%Y-%m-%dT%H-%MZ")
     subject = subject or "%s - %s" % (self.REPORT_NAME, dt)
     report_text = self.AsHtmlTable()
-
     email_alerts.SendEmail(recipient, self.EMAIL_FROM, subject,
                            self.EMAIL_TEMPLATE % dict(
                                report_text=report_text,
-                               report_name=self.REPORT_NAME,
-                               signature=config_lib.CONFIG["Email.signature"]),
+                               report_name=self.REPORT_NAME),
                            is_html=True)
     logging.info("Report %s mailed to %s", self.REPORT_NAME, recipient)
 

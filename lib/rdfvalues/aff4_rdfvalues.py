@@ -27,9 +27,9 @@ class AFF4ObjectLabel(structs.RDFProtoStruct):
   def Validate(self):
     super(AFF4ObjectLabel, self).Validate()
 
-    if not re.match("^[\\w./:]+$", self.name):
+    if not re.match("^[\\w./:\\-]+$", self.name):
       raise type_info.TypeValueError("Label name can only contain: "
-                                     "a-zA-Z0-9_./:")
+                                     "a-zA-Z0-9_./:-, but got: %s" % self.name)
 
     if not self.owner:
       raise type_info.TypeValueError("Label has to have an owner set.")

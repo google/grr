@@ -196,10 +196,13 @@ class FakeDataStore(data_store.DataStore):
   @utils.Synchronized
   def MultiResolveRegex(self, subjects, predicate_regex, token=None,
                         timestamp=None, limit=None):
+    required_access = self.GetRequiredResolveAccess(predicate_regex)
+
     result = {}
     for subject in subjects:
       # If any of the subjects is forbidden we fail the entire request.
-      self.security_manager.CheckDataStoreAccess(token, [subject], "r")
+      self.security_manager.CheckDataStoreAccess(token, [subject],
+                                                 required_access)
 
       values = self.ResolveRegex(subject, predicate_regex, token=token,
                                  timestamp=timestamp, limit=limit)
@@ -213,10 +216,12 @@ class FakeDataStore(data_store.DataStore):
 
   @utils.Synchronized
   def ResolveMulti(self, subject, predicates, token=None, timestamp=None):
-    self.security_manager.CheckDataStoreAccess(token, [subject], "r")
+    self.security_manager.CheckDataStoreAccess(
+        token, [subject], self.GetRequiredResolveAccess(predicates))
+
     # Does timestamp represent a range?
     if isinstance(timestamp, (list, tuple)):
-      start, end = timestamp
+      start, end = timestamp  # pylint: disable=unpacking-non-sequence
     else:
       start, end = -1, 1 << 65
 
@@ -254,17 +259,20 @@ class FakeDataStore(data_store.DataStore):
 
     # Return the results in the same order they requested.
     for predicate in predicates:
-      for v in sorted(results.get(predicate, [])):
+      for v in sorted(results.get(predicate, []), key=lambda x: x[1],
+                      reverse=True):
         yield (predicate, v[2], v[1])
 
   @utils.Synchronized
   def ResolveRegex(self, subject, predicate_regex, token=None,
                    timestamp=None, limit=None):
     """Resolve all predicates for a subject matching a regex."""
-    self.security_manager.CheckDataStoreAccess(token, [subject], "r")
+    self.security_manager.CheckDataStoreAccess(
+        token, [subject], self.GetRequiredResolveAccess(predicate_regex))
+
     # Does timestamp represent a range?
     if isinstance(timestamp, (list, tuple)):
-      start, end = timestamp
+      start, end = timestamp  # pylint: disable=unpacking-non-sequence
     else:
       start, end = 0, (2 ** 63) - 1
 
@@ -310,7 +318,7 @@ class FakeDataStore(data_store.DataStore):
 
     result = []
     for k, values in sorted(results.items()):
-      for v in sorted(values):
+      for v in sorted(values, key=lambda x: x[1], reverse=True):
         result.append((k, v[2], v[1]))
     return result
 
@@ -326,3 +334,9 @@ class FakeDataStore(data_store.DataStore):
           total_size += sys.getsizeof(value)
           total_size += sys.getsizeof(timestamp)
     return total_size
+
+  def PrintSubjects(self, literal=None):
+    for s in sorted(self.subjects):
+      if literal and literal not in s:
+        continue
+      print s

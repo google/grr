@@ -121,7 +121,8 @@ class Factory(object):
 
         yield utils.SmartUnicode(subject), values
 
-  def SetAttributes(self, urn, attributes, to_delete, sync=False, token=None):
+  def SetAttributes(self, urn, attributes, to_delete, add_child_index=True,
+                    sync=False, token=None):
     """Sets the attributes in the data store and update the cache."""
     # Force a data_store lookup next.
     try:
@@ -139,9 +140,9 @@ class Factory(object):
 
     # TODO(user): This can run in the thread pool since its not time
     # critical.
-    self._UpdateIndex(urn, attributes, token)
+    self._UpdateIndex(urn, attributes, add_child_index, token)
 
-  def _UpdateIndex(self, urn, attributes, token):
+  def _UpdateIndex(self, urn, attributes, add_child_index, token):
     """Updates any indexes we need."""
     index = {}
     for attribute, values in attributes.items():
@@ -156,7 +157,8 @@ class Factory(object):
           aff4index.Add(urn, attribute, value)
         aff4index.Close()
 
-    self._UpdateChildIndex(urn, token)
+    if add_child_index:
+      self._UpdateChildIndex(urn, token)
 
   def _UpdateChildIndex(self, urn, token):
     """Update the child indexes.
@@ -669,7 +671,7 @@ class Factory(object):
 
     return result
 
-  def Delete(self, urn, token=None, limit=1000):
+  def Delete(self, urn, token=None, limit=None):
     """Drop all the information about this object.
 
     DANGEROUS! This recursively deletes all objects contained within the
@@ -678,7 +680,8 @@ class Factory(object):
     Args:
       urn: The object to remove.
       token: The Security Token to use for opening this item.
-      limit: The number of objects to remove.
+      limit: The total number of objects to remove. Default is None, which
+             means no limit will be enforced.
     Raises:
       RuntimeError: If the urn is too short. This is a safety check to ensure
       the root is not removed.
@@ -690,28 +693,53 @@ class Factory(object):
     if len(urn.Path()) < 1:
       raise RuntimeError("URN %s too short. Please enter a valid URN" % urn)
 
-    # Get all the children of this URN and delete them all.
-    logging.info(u"Recursively removing AFF4 Object %s", urn)
-    fd = FACTORY.Create(urn, "AFF4Volume", mode="rw", token=token)
-    count = 0
-    for child in fd.ListChildren():
-      logging.info(u"Removing child %s", child)
-      self.Delete(child, token=token)
-      count += 1
+    # Get all the children (not only immediate ones, but the whole subtree)
+    # from the index.
+    all_urns = [urn]
+    subjects_to_check = [urn]
 
-    if count >= limit:
-      logging.warning("Object limit reached, there may be further objects "
-                      "to delete.")
+    # To make the implementation more efficient we first collect urns of all
+    # the children objects in the subtree of the urn to be deleted.
+    while True:
+      found_children = []
+      for _, children in FACTORY.MultiListChildren(
+          subjects_to_check, token=token):
+        found_children.extend(children)
+        all_urns.extend(children)
 
-    # Do not remove the index or deeper objects may become unnavigable.
-    data_store.DB.DeleteAttributesRegex(fd.urn, AFF4_PREFIXES,
-                                        token=token)
-    self._DeleteChildFromIndex(fd.urn, token)
-    count += 1
-    logging.info("Removed %s objects", count)
+      if not found_children:
+        break
+
+      subjects_to_check = found_children
+
+      if limit and len(all_urns) >= limit:
+        logging.warning(u"Removed object has more children than the limit: %s",
+                        urn)
+        all_urns = all_urns[:limit]
+        break
+
+    logging.info(u"Found %d objects to remove when removing %s",
+                 len(all_urns), urn)
+
+    # Only the index of the parent object should be updated. Everything
+    # below the target object (along with indexes) is going to be
+    # deleted.
+    self._DeleteChildFromIndex(urn, token)
+
+    for urn_to_delete in all_urns:
+      logging.debug(u"Removing %s", urn_to_delete)
+
+      try:
+        self.intermediate_cache.ExpireObject(urn_to_delete.Path())
+      except KeyError:
+        pass
+      data_store.DB.DeleteSubject(urn_to_delete, token=token, sync=False)
 
     # Ensure this is removed from the cache as well.
     self.Flush()
+
+    # Do not remove the index or deeper objects may become unnavigable.
+    logging.info("Removed %d objects", len(all_urns))
 
   def RDFValue(self, name):
     return rdfvalue.RDFValue.classes.get(name)
@@ -1133,6 +1161,13 @@ class AFF4Object(object):
   # SchemaCls.
   class SchemaCls(object):
     """The standard AFF4 schema."""
+
+    # We use child indexes to navigate the direct children of an object.
+    # If the additional storage requirements for the indexes are not worth it
+    # then ADD_CHILD_INDEX should be False. Note however that it will no longer
+    # be possible to find all the children of the parent object.
+    ADD_CHILD_INDEX = True
+
     TYPE = Attribute("aff4:type", rdfvalue.RDFString,
                      "The name of the AFF4Object derived class.", "type")
 
@@ -1302,7 +1337,13 @@ class AFF4Object(object):
 
   def _AddAttributeToCache(self, attribute_name, value, cache):
     """Helper to add a new attribute to a cache."""
-    cache.setdefault(attribute_name, []).append(value)
+    # If there's another value in cache with the same timestamp, the last added
+    # one takes precedence. This helps a lot in tests that use FakeTime.
+    attribute_list = cache.setdefault(attribute_name, [])
+    if attribute_list and attribute_list[-1].age == value.age:
+      attribute_list.pop()
+
+    attribute_list.append(value)
 
   def CheckLease(self):
     """Check if our lease has expired, return seconds left.
@@ -1410,8 +1451,9 @@ class AFF4Object(object):
              rdfvalue.RDFDatetime().Now())]
 
       # Write the attributes to the Factory cache.
-      FACTORY.SetAttributes(self.urn, to_set, self._to_delete, sync=sync,
-                            token=self.token)
+      FACTORY.SetAttributes(self.urn, to_set, self._to_delete,
+                            add_child_index=self.Schema.ADD_CHILD_INDEX,
+                            sync=sync, token=self.token)
 
       # Notify the factory that this object got updated.
       FACTORY.NotifyWriteObject(self)

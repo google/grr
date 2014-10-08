@@ -184,7 +184,7 @@ class FlowRunner(object):
     # If we weren't passed a collection urn, create one in our namespace.
     return logs_collection_urn or self.flow_obj.urn.Add("Logs")
 
-  def OpenLogsCollection(self, logs_collection_urn):
+  def OpenLogsCollection(self, logs_collection_urn, mode="w"):
     """Open the parent-flow logs collection for writing or create a new one.
 
     If we receive a logs_collection_urn here it is being passed from the parent
@@ -199,13 +199,14 @@ class FlowRunner(object):
 
     Args:
       logs_collection_urn: RDFURN pointing to parent logs collection
+      mode: Mode to use for opening, "r", "w", or "rw".
     Returns:
-      PackedVersionedCollection open for writing
+      PackedVersionedCollection open for writing.
     Raises:
-      RuntimeError: on parent missing logs_collection
+      RuntimeError: on parent missing logs_collection.
     """
     return aff4.FACTORY.Create(self._GetLogsCollectionURN(logs_collection_urn),
-                               "PackedVersionedCollection", mode="w",
+                               "PackedVersionedCollection", mode=mode,
                                token=self.token)
 
   def InitializeContext(self, args):
@@ -219,7 +220,7 @@ class FlowRunner(object):
         backtrace=None,
         client_resources=rdfvalue.ClientResources(),
         create_time=rdfvalue.RDFDatetime().Now(),
-        creator=self.token.username,
+        creator=args.creator or self.token.username,
         current_state="Start",
         # If not None, kill-stuck-flow notification is scheduled at the given
         # time.
@@ -235,7 +236,6 @@ class FlowRunner(object):
         outstanding_requests=0,
         remaining_cpu_quota=args.cpu_limit,
         state=rdfvalue.Flow.State.RUNNING,
-        user=self.token.username,
 
         # Have we sent a notification to the user.
         user_notified=False,
@@ -317,7 +317,6 @@ class FlowRunner(object):
                                           session_id=self.context.session_id,
                                           client_id=self.args.client_id,
                                           next_state=next_state)
-
     if request_data:
       request_state.data = rdfvalue.Dict().FromDict(request_data)
 
@@ -572,7 +571,7 @@ class FlowRunner(object):
        next_state: The state in this flow, that responses to this
              message should go to.
 
-       client_id: The request is sent to this client.
+       client_id: rdfvalue.ClientURN to send the request to.
 
        request_data: A dict which will be available in the RequestState
              protobuf. The Responses object maintains a reference to this
@@ -597,6 +596,10 @@ class FlowRunner(object):
     if client_id is None:
       raise FlowRunnerError("CallClient() is used on a flow which was not "
                             "started with a client.")
+
+    if not isinstance(client_id, rdfvalue.ClientURN):
+      # Try turning it into a ClientURN
+      client_id = rdfvalue.ClientURN(client_id)
 
     # Retrieve the correct rdfvalue to use for this client action.
     try:
@@ -796,7 +799,7 @@ class FlowRunner(object):
         network_bytes_limit=network_bytes_limit, sync=sync, output=output,
         queue=self.args.queue, cpu_limit=cpu_limit,
         write_intermediate_results=write_intermediate,
-        logs_collection_urn=logs_urn, **kwargs)
+        logs_collection_urn=logs_urn, creator=self.context.creator, **kwargs)
 
     self.QueueRequest(state)
 
@@ -844,13 +847,6 @@ class FlowRunner(object):
       # Only write the reply to the collection if we are the parent flow.  This
       # avoids creating a collection for every intermediate flow result.
       self.context.output.Add(response)
-
-  def __enter__(self):
-    return self
-
-  def __exit__(self, t, value, tb):
-    """Supports 'with' protocol."""
-    self.FlushMessages()
 
   def FlushMessages(self):
     """Flushes the messages that were queued."""
@@ -1038,18 +1034,15 @@ class FlowRunner(object):
 
     self.SetStatus(utils.SmartUnicode(status))
 
-    logs_collection = self.OpenLogsCollection(self.args.logs_collection_urn)
-    logs_collection.Add(
-        rdfvalue.FlowLog(client_id=self.args.client_id, urn=self.session_id,
-                         flow_name=self.flow_obj.__class__.__name__,
-                         log_message=status))
-    logs_collection.Flush()
+    with self.OpenLogsCollection(self.args.logs_collection_urn,
+                                 mode="w") as logs_collection:
+      logs_collection.Add(
+          rdfvalue.FlowLog(client_id=self.args.client_id, urn=self.session_id,
+                           flow_name=self.flow_obj.__class__.__name__,
+                           log_message=status))
 
-    # TODO(user): stop writing to the LOG attribute once we have GUI pieces
-    # to display this sanely for flows and hunts. Write to both for now.
-    data_store.DB.Set(self.session_id,
-                      aff4.AFF4Object.GRRFlow.SchemaCls.LOG,
-                      status, replace=False, sync=False, token=self.token)
+  def GetLog(self):
+    return self.OpenLogsCollection(self.args.logs_collection_urn, mode="r")
 
   def Status(self, format_str, *args):
     """Flows can call this method to set a status message visible to users."""

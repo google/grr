@@ -4,6 +4,10 @@
 
 
 
-# pylint: disable=unused-import
 # These import populate the Action registry
-from grr.client.client_actions.osx import osx
+# pylint: disable=unused-import,g-import-not-at-top
+
+import platform
+
+if platform.system() == "Darwin":
+  from grr.client.client_actions.osx import osx

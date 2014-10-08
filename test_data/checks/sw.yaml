@@ -1,0 +1,44 @@
+check_id: 'SW-CHECK'
+match: 'ANY'
+method:
+  - match: 'NONE'
+    target:
+      os: ['Linux']
+    hint:
+      problem: 'Found the following software'
+    probe:
+      - artifact: 'SoftwarePackage'
+        mode: 'PARALLEL'
+        match: 'NONE'
+        filters:
+          - type: 'ObjectFilter'
+            expression: 'name contains "netcat"'
+          - type: 'ObjectFilter'
+            expression: 'name contains "ncat"'
+  - match: 'NONE'
+    target:
+      os: ['Windows']
+    hint:
+      problem: 'Found the following software'
+    probe:
+      - artifact: 'WMIInstalledSoftware'
+        mode: 'PARALLEL'
+        match: 'NONE'
+        filters:
+          - type: 'ObjectFilter'
+            expression: 'name contains "Google Chrome"'
+        filters:
+          - type: 'ObjectFilter'
+            expression: 'name contains "Microsoft Visual C++ 2005"'
+  - match: 'NONE'
+    target:
+      label: ['foo']
+    hint:
+      problem: 'Found the following software'
+    probe:
+      - artifact: 'SoftwarePackage'
+        mode: 'PARALLEL'
+        match: 'NONE'
+        filters:
+          - type: 'ObjectFilter'
+            expression: 'name contains "ncat"'

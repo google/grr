@@ -266,7 +266,7 @@ class DataServerConnection(object):
   def NumPendingRequests(self):
     return len(self.requests)
 
-  def __del__(self):
+  def Close(self):
     self.conn.close()
 
 
@@ -288,9 +288,13 @@ class DataServer(object):
   def Address(self):
     return self.addr
 
-  def __del__(self):
+  def Close(self):
+    for conn in self.connections:
+      conn.Close()
+    self.connections = []
     if self.conn:
       self.conn.close()
+      self.conn = None
 
   @utils.Synchronized
   def Sync(self):
@@ -375,8 +379,8 @@ class RemoteInquirer(object):
     sid = sutils.MapKeyToServer(self.mapping, key)
     return self.servers[sid]
 
-  def GetRouting(self):
-    return self.GetMapping().routing
+  def GetPathing(self):
+    return self.GetMapping().pathing
 
   def RenewMapping(self):
     self.mapping = self.mapping_server.LoadMapping()
@@ -389,6 +393,10 @@ class RemoteInquirer(object):
     for serv in self.servers:
       serv.Sync()
 
+  def CloseConnections(self):
+    for serv in self.servers:
+      serv.Close()
+
 
 class RemoteMappingCache(utils.FastStore):
   """A local cache for mappings between paths and data servers."""
@@ -396,7 +404,7 @@ class RemoteMappingCache(utils.FastStore):
   def __init__(self, size):
     super(RemoteMappingCache, self).__init__(size)
     self.inquirer = RemoteInquirer()
-    self.route_regexes = [re.compile(x) for x in self.inquirer.GetRouting()]
+    self.path_regexes = [re.compile(x) for x in self.inquirer.GetPathing()]
 
   def KillObject(self, obj):
     pass
@@ -408,7 +416,7 @@ class RemoteMappingCache(utils.FastStore):
   def Get(self, subject):
     """This will create the object if needed so should not fail."""
     filename, directory = common.ResolveSubjectDestination(subject,
-                                                           self.route_regexes)
+                                                           self.path_regexes)
     key = common.MakeDestinationKey(directory, filename)
     try:
       return super(RemoteMappingCache, self).Get(key)
@@ -720,6 +728,10 @@ class HTTPDataStore(data_store.DataStore):
   def Flush(self):
     if self.inquirer:
       self.inquirer.Flush()
+
+  def CloseConnections(self):
+    if self.inquirer:
+      self.inquirer.CloseConnections()
 
   def _ComputeNewSize(self, mapping, new_time):
     self.last_size = 0

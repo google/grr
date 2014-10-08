@@ -240,52 +240,52 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     # According to throttling logic, requests will only be allowed if
     # the interval between them is 10 / 0.3 = 33.3 seconds
     result = self.server.UpdateAndCheckIfShouldThrottle(70)
-    self.assertEquals(result, True)
+    self.assertEqual(result, True)
 
     result = self.server.UpdateAndCheckIfShouldThrottle(80)
-    self.assertEquals(result, True)
+    self.assertEqual(result, True)
 
     result = self.server.UpdateAndCheckIfShouldThrottle(90)
-    self.assertEquals(result, True)
+    self.assertEqual(result, True)
 
     result = self.server.UpdateAndCheckIfShouldThrottle(100)
-    self.assertEquals(result, False)
+    self.assertEqual(result, False)
 
     result = self.server.UpdateAndCheckIfShouldThrottle(110)
-    self.assertEquals(result, True)
+    self.assertEqual(result, True)
 
     result = self.server.UpdateAndCheckIfShouldThrottle(120)
-    self.assertEquals(result, True)
+    self.assertEqual(result, True)
 
     result = self.server.UpdateAndCheckIfShouldThrottle(130)
-    self.assertEquals(result, True)
+    self.assertEqual(result, True)
 
     result = self.server.UpdateAndCheckIfShouldThrottle(140)
-    self.assertEquals(result, False)
+    self.assertEqual(result, False)
 
     # Now we throttle everything
     self.server.SetThrottleBundlesRatio(0)
 
     result = self.server.UpdateAndCheckIfShouldThrottle(141)
-    self.assertEquals(result, True)
+    self.assertEqual(result, True)
 
     result = self.server.UpdateAndCheckIfShouldThrottle(142)
-    self.assertEquals(result, True)
+    self.assertEqual(result, True)
 
     result = self.server.UpdateAndCheckIfShouldThrottle(143)
-    self.assertEquals(result, True)
+    self.assertEqual(result, True)
 
     # Now we turn throttling off
     self.server.SetThrottleBundlesRatio(None)
 
     result = self.server.UpdateAndCheckIfShouldThrottle(144)
-    self.assertEquals(result, False)
+    self.assertEqual(result, False)
 
     result = self.server.UpdateAndCheckIfShouldThrottle(145)
-    self.assertEquals(result, False)
+    self.assertEqual(result, False)
 
     result = self.server.UpdateAndCheckIfShouldThrottle(146)
-    self.assertEquals(result, False)
+    self.assertEqual(result, False)
 
   def testHandleMessageBundle(self):
     """Check that HandleMessageBundles() requeues messages if it failed.

@@ -35,30 +35,30 @@ Windows Context:
 
 """)
 
-    self.assertEquals(conf["Section1.test"], 2)
+    self.assertEqual(conf["Section1.test"], 2)
 
     # Test interpolation works.
-    self.assertEquals(conf["Section2.test"], "32")
-    self.assertEquals(conf["Section1.test_list"], ["x", "y"])
+    self.assertEqual(conf["Section2.test"], "32")
+    self.assertEqual(conf["Section1.test_list"], ["x", "y"])
 
-    self.assertEquals(conf.Get("Section1.test_list",
-                               context=["Client Context", "Windows Context"]),
-                      ["x", "y"])
+    self.assertEqual(conf.Get("Section1.test_list",
+                              context=["Client Context", "Windows Context"]),
+                     ["x", "y"])
 
     # Test that contexts affect option selection.
-    self.assertEquals(
+    self.assertEqual(
         conf.Get("Section1.test", context=["Client Context"]), 6)
 
-    self.assertEquals(
+    self.assertEqual(
         conf.Get("Section1.test", context=["Windows Context"]), 5)
 
     context = ["Client Context", "Windows Context"]
-    self.assertEquals(
+    self.assertEqual(
         conf.Get("Section1.test", context=context), 10)
 
     context = ["Windows Context", "Client Context"]
     # Order of the context parameters should not matter.
-    self.assertEquals(
+    self.assertEqual(
         conf.Get("Section1.test", context=context), 10)
 
   def testConflictingContexts(self):
@@ -81,21 +81,21 @@ Extra Context:
 """)
 
     # Without contexts.
-    self.assertEquals(conf.Get("Section1.test"), 2)
+    self.assertEqual(conf.Get("Section1.test"), 2)
 
     # When running in the client context only.
-    self.assertEquals(conf.Get("Section1.test", context=["Client Context"]), 6)
+    self.assertEqual(conf.Get("Section1.test", context=["Client Context"]), 6)
 
     # Later defined contexts (i.e. with later calls to AddContext()) are
     # stronger than earlier contexts. For example, contexts set the command line
     # --context option are stronger than contexts set by the running binary,
     # since they are added last.
-    self.assertEquals(
+    self.assertEqual(
         conf.Get("Section1.test",
                  context=["Client Context", "Platform:Windows"]),
         10)
 
-    self.assertEquals(
+    self.assertEqual(
         conf.Get("Section1.test",
                  context=["Platform:Windows", "Client Context"]),
         6)
@@ -133,13 +133,13 @@ class ConfigLibTest(test_lib.GRRBaseTest):
 
     # Check that the linux client have a different value from the windows
     # client.
-    self.assertEquals(conf.Get("MemoryDriver.device_path",
-                               context=("Client", "Platform:Linux")),
-                      "/dev/pmem")
+    self.assertEqual(conf.Get("MemoryDriver.device_path",
+                              context=("Client", "Platform:Linux")),
+                     "/dev/pmem")
 
-    self.assertEquals(conf.Get("MemoryDriver.device_path",
-                               context=("Client", "Platform:Windows")),
-                      r"\\.\pmem")
+    self.assertEqual(conf.Get("MemoryDriver.device_path",
+                              context=("Client", "Platform:Windows")),
+                     r"\\.\pmem")
 
   def testSet(self):
     """Test setting options."""
@@ -149,7 +149,7 @@ class ConfigLibTest(test_lib.GRRBaseTest):
 
     conf.Set("NewSection1.new_option1", "New Value1")
 
-    self.assertEquals(conf["NewSection1.new_option1"], "New Value1")
+    self.assertEqual(conf["NewSection1.new_option1"], "New Value1")
 
   def testSave(self):
     """Save the config and ensure it still works."""
@@ -165,7 +165,7 @@ class ConfigLibTest(test_lib.GRRBaseTest):
     new_conf = config_lib.GrrConfigManager()
     new_conf.Initialize(config_file)
 
-    self.assertEquals(new_conf["NewSection1.new_option1"], "New Value1")
+    self.assertEqual(new_conf["NewSection1.new_option1"], "New Value1")
 
   def testErrorDetection(self):
     """Check that invalid config files are detected immediately."""
@@ -259,21 +259,21 @@ interpolated = %(%(Section1.foobar)|lower)Y
     self.assertRaises(config_lib.UnknownOption, conf.__getitem__, "a")
 
     # Test direct access.
-    self.assertEquals(conf["Section1.foobar"], "X")
-    self.assertEquals(conf["Section1.test_list"], ["x", "y"])
-    self.assertEquals(conf["Section1.test_list2"], ["a", "b"])
+    self.assertEqual(conf["Section1.foobar"], "X")
+    self.assertEqual(conf["Section1.test_list"], ["x", "y"])
+    self.assertEqual(conf["Section1.test_list2"], ["a", "b"])
 
     # Test default access.
-    self.assertEquals(conf["Section1.test"], "test")
+    self.assertEqual(conf["Section1.test"], "test")
 
     # Test interpolation with full section name.
-    self.assertEquals(conf["Section2.interpolated"], "XY")
+    self.assertEqual(conf["Section2.interpolated"], "XY")
 
     # Check that default values are typed.
-    self.assertEquals(conf["Section1.test_int"], 54)
+    self.assertEqual(conf["Section1.test_int"], 54)
 
     # Test filter functions.
-    self.assertEquals(conf["Section3.interpolated"], "xY")
+    self.assertEqual(conf["Section3.interpolated"], "xY")
 
   def testUnbalancedParenthesis(self):
     conf = config_lib.GrrConfigManager()
@@ -309,42 +309,42 @@ literal = %{aff4:/C\.(?P<path>.\{1,16\}?)($|/.*)}
 """)
 
     # Test direct access.
-    self.assertEquals(conf["Section1.foo"], "X")
+    self.assertEqual(conf["Section1.foo"], "X")
     self.assertRaises(config_lib.ConfigFormatError,
                       conf.__getitem__, "Section1.foo1")
 
     self.assertRaises(config_lib.ConfigFormatError,
                       conf.__getitem__, "Section1.foo2")
 
-    self.assertEquals(conf["Section1.foo3"], "foo)")
+    self.assertEqual(conf["Section1.foo3"], "foo)")
 
     # Test literal expansion.
-    self.assertEquals(conf["Section1.foo4"], "%(hello)")
+    self.assertEqual(conf["Section1.foo4"], "%(hello)")
 
     self.assertRaises(config_lib.ConfigFormatError,
                       conf.__getitem__, "Section1.foo5")
 
-    self.assertEquals(conf["Section1.foo6"], "foo)")
+    self.assertEqual(conf["Section1.foo6"], "foo)")
 
     # The Env filter forces uppercase on args.
     os.environ["sectionX".upper()] = "1"
     os.environ["section%(Section1.foo)".upper()] = "2"
 
-    self.assertEquals(conf["Section1.interpolation1"], "1")
-    self.assertEquals(conf["Section1.interpolation2"], "2")
+    self.assertEqual(conf["Section1.interpolation1"], "1")
+    self.assertEqual(conf["Section1.interpolation2"], "2")
 
     # Test that Set() escapes - i.e. reading the value back will return exactly
     # the same as we wrote:
     conf.Set("Section1.foo6", "%(Section1.foo3)")
-    self.assertEquals(conf["Section1.foo6"], "%(Section1.foo3)")
-    self.assertEquals(conf.GetRaw("Section1.foo6"), r"\%(Section1.foo3\)")
+    self.assertEqual(conf["Section1.foo6"], "%(Section1.foo3)")
+    self.assertEqual(conf.GetRaw("Section1.foo6"), r"\%(Section1.foo3\)")
 
     # OTOH when we write it raw, reading it back will interpolate:
     conf.SetRaw("Section1.foo6", "%(Section1.foo3)")
-    self.assertEquals(conf["Section1.foo6"], "foo)")
+    self.assertEqual(conf["Section1.foo6"], "foo)")
 
     # A complex regex which gets literally expanded.
-    self.assertEquals(
+    self.assertEqual(
         conf["Section1.literal"], r"aff4:/C\.(?P<path>.{1,16}?)($|/.*)")
 
   def testDataTypes(self):
@@ -359,9 +359,9 @@ literal = %{aff4:/C\.(?P<path>.\{1,16\}?)($|/.*)}
     conf.Initialize(parser=config_lib.YamlParser, data="Section1.float: 2")
 
     # Should have no errors now. Validate should normalize the value to a float.
-    self.assertEquals(conf.Validate("Section1"), {})
+    self.assertEqual(conf.Validate("Section1"), {})
 
-    self.assertEquals(type(conf.Get("Section1.float")), float)
+    self.assertEqual(type(conf.Get("Section1.float")), float)
 
     conf.DEFINE_integer("Section1.int", 0, "An integer")
     conf.Initialize(parser=config_lib.YamlParser, data="Section1.int: 2.0")
@@ -376,15 +376,15 @@ literal = %{aff4:/C\.(?P<path>.\{1,16\}?)($|/.*)}
     conf.Initialize(parser=config_lib.YamlParser, data="Section1.int: '2'")
 
     errors = conf.Validate("Section1")
-    self.assertEquals(type(conf.Get("Section1.int")), long)
+    self.assertEqual(type(conf.Get("Section1.int")), long)
 
     conf.DEFINE_list("Section1.list", default=[], help="A list")
-    self.assertEquals(type(conf.Get("Section1.list")), list)
-    self.assertEquals(conf.Get("Section1.list"), [])
+    self.assertEqual(type(conf.Get("Section1.list")), list)
+    self.assertEqual(conf.Get("Section1.list"), [])
 
     conf.DEFINE_list("Section1.list2", default=["a", "2"], help="A list")
-    self.assertEquals(type(conf.Get("Section1.list2")), list)
-    self.assertEquals(conf.Get("Section1.list2"), ["a", "2"])
+    self.assertEqual(type(conf.Get("Section1.list2")), list)
+    self.assertEqual(conf.Get("Section1.list2"), ["a", "2"])
 
 
 def main(argv):

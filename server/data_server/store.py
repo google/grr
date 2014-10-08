@@ -12,6 +12,7 @@ import uuid
 import logging
 
 from grr.lib import access_control
+from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -21,6 +22,7 @@ from grr.lib.data_stores import common
 
 BASE_MAP_SUBJECT = "servers_map"
 MAP_SUBJECT = "aff4:/" + BASE_MAP_SUBJECT
+MAP_VALUE_PREDICATE = "metadata:value"
 
 
 def RPCWrapper(f):
@@ -93,6 +95,11 @@ class DataStoreService(object):
     self.db = db
     self.transaction_lock = threading.Lock()
     self.transactions = {}
+    old_pathing = config_lib.CONFIG.Get("Datastore.pathing")
+    # Need to add a fixed rule for the file where the server mapping is stored.
+    new_pathing = [r"(?P<path>" + BASE_MAP_SUBJECT + ")"] + old_pathing
+    self.pathing = new_pathing
+    self.db.RecreatePathing(self.pathing)
 
   # Every service method must write to the response argument.
   # The response will then be serialized to a string.
@@ -282,14 +289,39 @@ class DataStoreService(object):
 
   def LoadServerMapping(self):
     """Retrieve server mapping from database."""
-    mapping_str, _ = self.db.Resolve(MAP_SUBJECT, "value")
+    mapping_str, _ = self.db.Resolve(MAP_SUBJECT, MAP_VALUE_PREDICATE)
     if not mapping_str:
       return None
     mapping = rdfvalue.DataServerMapping(mapping_str)
+    # Restore pathing information.
+    if self._DifferentPathing(list(mapping.pathing)):
+      self.pathing = list(mapping.pathing)
+      self.db.RecreatePathing(self.pathing)
     return mapping
 
-  def SaveServerMapping(self, mapping):
-    self.db.MultiSet(MAP_SUBJECT, {"value": mapping})
+  def _DifferentPathing(self, new_pathing):
+    """Check if we have a new pathing."""
+    if len(new_pathing) != len(self.pathing):
+      return True
+    for i, path in enumerate(new_pathing):
+      if path != self.pathing[i]:
+        return True
+    return False
+
+  def SaveServerMapping(self, mapping, create_pathing=False):
+    """Stores the server mapping in the data store."""
+    if create_pathing:
+      # We are going to use our own pathing.
+      mapping.pathing = self.pathing
+    else:
+      # We are going to use the mapping pathing configuration.
+      # Check if its different than the one we use now and then ask the
+      # datastore to use it.
+      new_pathing = list(mapping.pathing)
+      if self._DifferentPathing(new_pathing):
+        self.pathing = new_pathing
+        self.db.RecreatePathing(new_pathing)
+    self.db.MultiSet(MAP_SUBJECT, {MAP_VALUE_PREDICATE: mapping})
 
   def GetLocation(self):
     return self.db.Location()

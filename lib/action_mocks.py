@@ -215,6 +215,19 @@ class InterrogatedClient(ActionMock):
     if query.query == u"SELECT * FROM Win32_LogicalDisk":
       self.response_count += 1
       return client_fixture.WMI_SAMPLE
+    elif query.query.startswith("Select * "
+                                "from Win32_NetworkAdapterConfiguration"):
+      self.response_count += 1
+      rdf_dict = rdfvalue.Dict()
+      wmi_properties = (client_fixture.WMIWin32NetworkAdapterConfigurationMock.
+                        __dict__.iteritems())
+      for key, value in wmi_properties:
+        if not key.startswith("__"):
+          try:
+            rdf_dict[key] = value
+          except TypeError:
+            rdf_dict[key] = "Failed to encode: %s" % value
+      return [rdf_dict]
     else:
       return None
 

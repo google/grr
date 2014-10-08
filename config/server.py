@@ -155,18 +155,24 @@ config_lib.DEFINE_string(
     "Rekall.profile_server", "GRRRekallProfileServer",
     "Which Rekall profile server to use.")
 
-config_lib.DEFINE_list(
-    "StatsHunt.ClientActions", ["EnumerateInterfaces"],
-    "ClientActions that will be run by the StatsHunt every few minutes on all"
-    " clients. These need to be very lightweight.")
-
 config_lib.DEFINE_string(
     "StatsHunt.CollectionInterval", "10m",
     "How often to collect the StatsHunt information from each client. The "
     "minimum bound here is effectively 2 * Client.poll_max, since a new request"
     " is only scheduled after results are received in the previous poll.")
 
-# Email Template Values
-config_lib.DEFINE_string(
-    "Email.signature", "The GRR Team",
-    "The default signature block for template emails")
+config_lib.DEFINE_integer(
+    "StatsHunt.ClientBatchSize", "200",
+    "Batch size for client scheduling. This should be large enough that it "
+    "alleviates the performance impact of database roundtrips to open the "
+    "clients, but small enough that the threshold will be continuously reached "
+    "to keep the hunt running.")
+
+config_lib.DEFINE_integer(
+    "StatsHunt.ClientLimit", "0",
+    "The number of clients to run the StatsHunt on. This is purely to "
+    "allow for testing when the cronjob is enabled, since it can be a "
+    "significant amount of traffic. This should be set to 0 once you know"
+    " that the server can handle it.")
+
+

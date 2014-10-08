@@ -82,7 +82,7 @@ class TDBContextCache(utils.FastStore):
 
   def __init__(self, size):
     super(TDBContextCache, self).__init__(max_size=size)
-    self.root_path = TDBDataStore.GetLocation()
+    self.root_path = config_lib.CONFIG.Get("Datastore.location")
     self.RecreatePathing()
 
   def RecreatePathing(self, pathing=None):
@@ -365,7 +365,8 @@ class TDBDataStore(data_store.DataStore):
   def ResolveRegex(self, subject, predicate_regex, token=None,
                    timestamp=None, limit=None):
     """Resolve all predicates for a subject matching a regex."""
-    self.security_manager.CheckDataStoreAccess(token, [subject], "r")
+    self.security_manager.CheckDataStoreAccess(
+        token, [subject], self.GetRequiredResolveAccess(predicate_regex))
 
     if isinstance(predicate_regex, str):
       predicate_regex = [predicate_regex]
@@ -396,7 +397,8 @@ class TDBDataStore(data_store.DataStore):
   def ResolveMulti(self, subject, predicates, token=None,
                    timestamp=None, limit=None):
     """Resolve all predicates for a subject matching a regex."""
-    self.security_manager.CheckDataStoreAccess(token, [subject], "r")
+    self.security_manager.CheckDataStoreAccess(
+        token, [subject], self.GetRequiredResolveAccess(predicates))
 
     # Holds all the attributes which matched. Keys are attribute names, values
     # are lists of timestamped data.
@@ -443,11 +445,10 @@ class TDBDataStore(data_store.DataStore):
       return [(subject, attribute, value, int(matching_timestamp))]
 
     # Timestamps are a range or ALL_TIMESTAMPS.
-    timestamps = sorted(timestamp_index, reverse=True)
+    timestamps = sorted([int(t) for t in timestamp_index],
+                        reverse=True)
     results = []
     for matching_timestamp in timestamps:
-      matching_timestamp = int(matching_timestamp)
-
       if (timestamp == self.ALL_TIMESTAMPS or
           (matching_timestamp >= timestamp[0] and
            matching_timestamp <= timestamp[1])):
@@ -455,7 +456,7 @@ class TDBDataStore(data_store.DataStore):
         value = self._Decode(
             attribute, tdb_context.Get(subject, attribute, matching_timestamp))
 
-        results.append((subject, attribute, value, int(matching_timestamp)))
+        results.append((subject, attribute, value, matching_timestamp))
 
     return results
 
@@ -469,16 +470,6 @@ class TDBDataStore(data_store.DataStore):
       raise IOError("expected TDB directory %s to be a directory" % root_path)
     size, _ = common.DatabaseDirectorySize(root_path, self.FileExtension())
     return size
-
-  @staticmethod
-  def SetLocation(location):
-    """Change pre-defined location of the data store."""
-    config_lib.CONFIG.Set("TDBDatastore.root_path", location)
-
-  @staticmethod
-  def GetLocation():
-    """Get pre-defined location of the data store."""
-    return config_lib.CONFIG.Get("TDBDatastore.root_path")
 
   @staticmethod
   def FileExtension():

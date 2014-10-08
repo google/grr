@@ -137,6 +137,37 @@ class EnumerateUsers(actions.ActionPlugin):
         pass
     return rdfvalue.FolderInformation(**response)
 
+  def GetWMIAccount(self, result, sid, homedir, known_sids):
+
+    if result["SID"] not in known_sids:
+      # There could be a user in another domain with the same name,
+      # we just ignore this.
+      return None
+
+    response = {"username": result["Name"],
+                "domain": result["Domain"],
+                "sid": result["SID"],
+                "homedir": homedir}
+
+    profile_folders = self.GetSpecialFolders(sid)
+    if not profile_folders:
+      # TODO(user): The user's registry file is not mounted. The right
+      # way would be to open the ntuser.dat and parse the keys from there
+      # but we don't have registry file reading capability yet. For now,
+      # we just try to guess the folders.
+      folders_found = {}
+      for (_, folder, field) in self.special_folders:
+        path = os.path.join(homedir, folder)
+        try:
+          os.stat(path)
+          folders_found[field] = path
+        except exceptions.WindowsError:
+          pass
+      profile_folders = rdfvalue.FolderInformation(**folders_found)
+
+    response["special_folders"] = profile_folders
+    return response
+
   def Run(self, unused_args):
     """Enumerate all users on this machine."""
 
@@ -145,69 +176,42 @@ class EnumerateUsers(actions.ActionPlugin):
     known_sids = [sid for (_, sid, _) in homedirs]
 
     for (user, sid, homedir) in homedirs:
-
       # This query determines if the sid corresponds to a real user account.
-      for acc in RunWMIQuery("SELECT * FROM Win32_UserAccount "
-                             "WHERE name=\"%s\"" % user):
-
-        if acc["SID"] not in known_sids:
-          # There could be a user in another domain with the same name,
-          # we just ignore this.
-          continue
-
-        response = {"username": acc["Name"],
-                    "domain": acc["Domain"],
-                    "sid": acc["SID"],
-                    "homedir": homedir}
-
-        profile_folders = self.GetSpecialFolders(sid)
-        if not profile_folders:
-          # TODO(user): The user's registry file is not mounted. The right
-          # way would be to open the ntuser.dat and parse the keys from there
-          # but we don't have registry file reading capability yet. For now,
-          # we just try to guess the folders.
-          folders_found = {}
-          for (_, folder, field) in self.special_folders:
-            path = os.path.join(homedir, folder)
-            try:
-              os.stat(path)
-              folders_found[field] = path
-            except exceptions.WindowsError:
-              pass
-          profile_folders = rdfvalue.FolderInformation(**folders_found)
-
-        response["special_folders"] = profile_folders
-
-        self.SendReply(**response)
+      for result in RunWMIQuery("SELECT * FROM Win32_UserAccount "
+                                "WHERE name=\"%s\"" % user):
+        response = self.GetWMIAccount(result, sid, homedir, known_sids)
+        if response:
+          self.SendReply(**response)
 
 
 class EnumerateInterfaces(actions.ActionPlugin):
-  """Enumerate all MAC addresses of all NICs."""
+  """Enumerate all MAC addresses of all NICs.
+
+  Win32_NetworkAdapterConfiguration definition:
+    http://msdn.microsoft.com/en-us/library/aa394217(v=vs.85).aspx
+  """
   out_rdfvalue = rdfvalue.Interface
 
-  def Run(self, unused_args):
-    """Enumerate all MAC addresses."""
-
+  def RunNetAdapterWMIQuery(self):
     pythoncom.CoInitialize()
     for interface in wmi.WMI().Win32_NetworkAdapterConfiguration(IPEnabled=1):
       addresses = []
       for ip_address in interface.IPAddress:
-        if ":" in ip_address:
-          # IPv6
-          address_type = rdfvalue.NetworkAddress.Family.INET6
-        else:
-          # IPv4
-          address_type = rdfvalue.NetworkAddress.Family.INET
-
-        addresses.append(rdfvalue.NetworkAddress(human_readable=ip_address,
-                                                 address_type=address_type))
+        addresses.append(rdfvalue.NetworkAddress(
+            human_readable_address=ip_address))
 
       args = {"ifname": interface.Description}
       args["mac_address"] = binascii.unhexlify(
           interface.MACAddress.replace(":", ""))
       if addresses:
         args["addresses"] = addresses
-      self.SendReply(**args)
+
+      yield args
+
+  def Run(self, unused_args):
+    """Enumerate all MAC addresses."""
+    for interface_dict in self.RunNetAdapterWMIQuery():
+      self.SendReply(**interface_dict)
 
 
 class EnumerateFilesystems(actions.ActionPlugin):
@@ -278,9 +282,8 @@ class WmiQuery(actions.ActionPlugin):
     if not query.upper().startswith("SELECT "):
       raise RuntimeError("Only SELECT WMI queries allowed.")
 
-    # Now return the data to the server
     for response_dict in RunWMIQuery(query, baseobj=base_object):
-      self.SendReply(rdfvalue.Dict(response_dict))
+      self.SendReply(response_dict)
 
 
 def RunWMIQuery(query, baseobj=r"winmgmts:\root\cimv2"):
@@ -291,8 +294,7 @@ def RunWMIQuery(query, baseobj=r"winmgmts:\root\cimv2"):
     baseobj: the base object for the WMI query.
 
   Yields:
-    Dicts containing key value pairs from the resulting COM objects.
-    Every value is converted into a Unicode string representation.
+    rdfvalue.Dicts containing key value pairs from the resulting COM objects.
   """
   pythoncom.CoInitialize()   # Needs to be called if using com from a thread.
   wmi_obj = win32com.client.GetObject(baseobj)
@@ -307,25 +309,16 @@ def RunWMIQuery(query, baseobj=r"winmgmts:\root\cimv2"):
     raise RuntimeError("Failed to run WMI query \'%s\' err was %s" %
                        (query, e))
 
-  # Extract results
+  # Extract results from the returned COMObject and return dicts.
   try:
     for result in query_results:
-      response = {}
+      response = rdfvalue.Dict()
       for prop in result.Properties_:
         if prop.Name not in IGNORE_PROPS:
-          if prop.Value is None:
-            response[prop.Name] = u""
-          else:
-            # Values returned by WMI
-            # We always want to return unicode strings.
-            if isinstance(prop.Value, unicode):
-              response[prop.Name] = prop.Value
-            elif isinstance(prop.Value, str):
-              response[prop.Name] = prop.Value.decode("utf8")
-            else:
-              # Int or other, convert it to a unicode string
-              response[prop.Name] = unicode(prop.Value)
-
+          # Protodict can handle most of the types we care about, but we may
+          # get some objects that we don't know how to serialize, so we tell the
+          # dict to set the value to an error message and keep going
+          response.SetItem(prop.Name, prop.Value, raise_on_error=False)
       yield response
 
   except pythoncom.com_error as e:

@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 """Simple parsers for the output of WMI queries."""
 
+import binascii
+import calendar
+
+
 from grr.lib import parsers
 from grr.lib import rdfvalue
 from grr.lib import time_utils
@@ -116,3 +120,76 @@ class WMILogicalDisksParser(parsers.WMIQueryParser):
                              actual_available_allocation_units=free_space)
 
     yield volume
+
+
+class WMIInterfacesParser(parsers.WMIQueryParser):
+  """Parser for WMI output. Yields SoftwarePackage rdfvalues."""
+
+  output_types = ["Interface", "DNSClientConfiguration"]
+  supported_artifacts = []
+
+  def WMITimeStrToRDFDatetime(self, timestr):
+    """Return RDFDatetime from string like 20140825162259.000000-420.
+
+    Args:
+      timestr: WMI time string
+    Returns:
+      rdfvalue.RDFDatetime
+
+    We have some timezone manipulation work to do here because the UTC offset is
+    in minutes rather than +-HHMM
+    """
+    # We use manual parsing here because the time functions provided (datetime,
+    # dateutil) do not properly deal with timezone information.
+    offset_minutes = timestr[21:]
+    year = timestr[:4]
+    month = timestr[4:6]
+    day = timestr[6:8]
+    hours = timestr[8:10]
+    minutes = timestr[10:12]
+    seconds = timestr[12:14]
+    microseconds = timestr[15:21]
+
+    unix_seconds = calendar.timegm(
+        map(int, [year, month, day, hours, minutes, seconds]))
+    unix_seconds -= int(offset_minutes) * 60
+    return rdfvalue.RDFDatetime(unix_seconds * 1e6 + int(microseconds))
+
+  def _ConvertIPs(self, io_tuples, interface, output_dict):
+    for inputkey, outputkey in io_tuples:
+      addresses = []
+      if isinstance(interface[inputkey], list):
+        for ip_address in interface[inputkey]:
+          addresses.append(rdfvalue.NetworkAddress(
+              human_readable_address=ip_address))
+      else:
+        addresses.append(rdfvalue.NetworkAddress(
+            human_readable_address=interface[inputkey]))
+      output_dict[outputkey] = addresses
+    return output_dict
+
+  def Parse(self, query, result, knowledge_base):
+    """Parse the wmi packages output."""
+    _ = query, knowledge_base
+
+    args = {"ifname": result["Description"]}
+    args["mac_address"] = binascii.unhexlify(
+        result["MACAddress"].replace(":", ""))
+
+    self._ConvertIPs([("IPAddress", "addresses"),
+                      ("DefaultIPGateway", "ip_gateway_list"),
+                      ("DHCPServer", "dhcp_server_list")], result, args)
+
+    if "DHCPLeaseExpires" in result:
+      args["dhcp_lease_expires"] = self.WMITimeStrToRDFDatetime(
+          result["DHCPLeaseExpires"])
+
+    if "DHCPLeaseObtained" in result:
+      args["dhcp_lease_obtained"] = self.WMITimeStrToRDFDatetime(
+          result["DHCPLeaseObtained"])
+
+    yield rdfvalue.Interface(**args)
+
+    yield rdfvalue.DNSClientConfiguration(
+        dns_server=result["DNSServerSearchOrder"],
+        dns_suffix=result["DNSDomainSuffixSearchOrder"])

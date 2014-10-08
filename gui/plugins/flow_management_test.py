@@ -142,7 +142,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent,
                    "css=.tab-content td.proto_value:contains(StatFile)")
 
-  def testLogsCanBeOpenedByClickingOnPlusIcon(self):
+  def testLogsCanBeOpenedByClickingOnLogsTab(self):
     client_id = rdfvalue.ClientURN("C.0000000000000001")
 
     # RecursiveTestFlow doesn't send any results back.
@@ -157,15 +157,10 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     self.Open("/#c=C.0000000000000001")
     self.Click("css=a:contains('Manage launched flows')")
     self.Click("css=td:contains('RecursiveTestFlow')")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=td.attribute_opener[attribute=LOG]")
-    self.WaitUntil(self.IsTextPresent,
-                   "Subflow call 1")
-    self.WaitUntilNot(self.IsTextPresent,
-                      "Subflow call 0")
-    self.Click("css=td.attribute_opener[attribute=LOG]")
-    self.WaitUntil(self.IsTextPresent,
-                   "Subflow call 0")
+    self.Click("css=a[renderer=FlowLogView]")
+
+    self.WaitUntil(self.IsTextPresent, "Subflow call 1")
+    self.WaitUntil(self.IsTextPresent, "Subflow call 0")
 
   def testResultsAreDisplayedInResultsTab(self):
     client_id = rdfvalue.ClientURN("C.0000000000000001")
@@ -269,7 +264,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
   def testGlobalFlowManagement(self):
     """Test that scheduling flows works."""
     with self.ACLChecksDisabled():
-      self.MakeUserAdmin("test")
+      self.CreateAdminUser("test")
 
     self.Open("/")
 

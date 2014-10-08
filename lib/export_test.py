@@ -37,6 +37,10 @@ class DummyRDFValue4(rdfvalue.RDFString):
   pass
 
 
+class DummyRDFValue5(rdfvalue.RDFString):
+  pass
+
+
 class DummyRDFValueConverter(export.ExportConverter):
   input_rdf_type = "DummyRDFValue"
 
@@ -61,6 +65,8 @@ class DummyRDFValue3ConverterB(export.ExportConverter):
   def Convert(self, metadata, value, token=None):
     _ = metadata
     _ = token
+    if not isinstance(value, DummyRDFValue3):
+      raise ValueError("Called with the wrong type")
     return [rdfvalue.DummyRDFValue2(str(value) + "B")]
 
 
@@ -71,6 +77,17 @@ class DummyRDFValue4ToMetadataConverter(export.ExportConverter):
     _ = value
     _ = token
     return [metadata]
+
+
+class DummyRDFValue5Converter(export.ExportConverter):
+  input_rdf_type = "DummyRDFValue5"
+
+  def Convert(self, metadata, value, token=None):
+    _ = metadata
+    _ = token
+    if not isinstance(value, DummyRDFValue5):
+      raise ValueError("Called with the wrong type")
+    return [rdfvalue.DummyRDFValue5(str(value) + "C")]
 
 
 class ExportTest(test_lib.GRRBaseTest):
@@ -817,6 +834,48 @@ class ExportTest(test_lib.GRRBaseTest):
     self.assertEqual(results[0].timestamp,
                      rdfvalue.RDFDatetime().FromSecondsFromEpoch(3))
     self.assertEqual(results[0].source_urn, "aff4:/hunts/W:000000/Results")
+
+  def testGrrMessageConverterMultipleTypes(self):
+    payload1 = DummyRDFValue3(
+        "some", age=rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
+    msg1 = rdfvalue.GrrMessage(payload=payload1)
+    msg1.source = rdfvalue.ClientURN("C.0000000000000000")
+    test_lib.ClientFixture(msg1.source, token=self.token)
+
+    payload2 = DummyRDFValue5(
+        "some2", age=rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
+    msg2 = rdfvalue.GrrMessage(payload=payload2)
+    msg2.source = rdfvalue.ClientURN("C.0000000000000000")
+
+    metadata1 = rdfvalue.ExportedMetadata(
+        source_urn=rdfvalue.RDFURN("aff4:/hunts/W:000000/Results"))
+    metadata2 = rdfvalue.ExportedMetadata(
+        source_urn=rdfvalue.RDFURN("aff4:/hunts/W:000001/Results"))
+
+    converter = export.GrrMessageConverter()
+    with test_lib.FakeTime(3):
+      results = list(converter.BatchConvert(
+          [(metadata1, msg1), (metadata2, msg2)], token=self.token))
+
+    self.assertEqual(len(results), 3)
+    # RDFValue3 gets converted to RDFValue2 and RDFValue, RDFValue5 stays at 5.
+    self.assertItemsEqual(["DummyRDFValue2", "DummyRDFValue", "DummyRDFValue5"],
+                          [x.__class__.__name__ for x in results])
+
+  def testDNSClientConfigurationToExportedDNSClientConfiguration(self):
+    dns_servers = ["192.168.1.1", "8.8.8.8"]
+    dns_suffixes = ["internal.company.com", "company.com"]
+    config = rdfvalue.DNSClientConfiguration(
+        dns_server=dns_servers,
+        dns_suffix=dns_suffixes)
+
+    converter = export.DNSClientConfigurationToExportedDNSClientConfiguration()
+    results = list(converter.Convert(rdfvalue.ExportedMetadata(), config,
+                                     token=self.token))
+
+    self.assertEqual(len(results), 1)
+    self.assertEqual(results[0].dns_servers, " ".join(dns_servers))
+    self.assertEqual(results[0].dns_suffixes, " ".join(dns_suffixes))
 
 
 class DataAgnosticConverterTestValue(rdfvalue.RDFProtoStruct):
