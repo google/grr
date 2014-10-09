@@ -9,7 +9,7 @@ import operator
 import StringIO
 import urllib
 
-
+from grr.gui import plot_lib
 import matplotlib.pyplot as plt
 
 import logging
