@@ -1,0 +1,15 @@
+[Unit]
+Description=GRR Single Server
+After=syslog.target network.target
+Environment="MPLCONFIGDIR=/tmp/grr" "PYTHON_EGG_CACHE=/tmp/grr"
+
+[Service]
+Type=simple
+PrivateTmp=true
+Restart=on-failure
+ExecStartPre=mkdir -p /var/log/grr;mkdir -p /tmp/grr
+ExecStart=/usr/bin/grr_server --start_enroller --config=/etc/grr/grr-server.yaml
+ExecStopPost=rm -Rf /tmp/grr
+
+[Install]
+WantedBy=multi-user.target
