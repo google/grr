@@ -161,6 +161,11 @@ config_lib.DEFINE_string(
     "minimum bound here is effectively 2 * Client.poll_max, since a new request"
     " is only scheduled after results are received in the previous poll.")
 
+# For running the server as non-root
+config_lib.DEFINE_string(
+    "Server.username", None,
+    "System account to run as after initialization")
+
 config_lib.DEFINE_integer(
     "StatsHunt.ClientBatchSize", "200",
     "Batch size for client scheduling. This should be large enough that it "

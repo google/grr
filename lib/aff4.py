@@ -68,7 +68,7 @@ class Factory(object):
         max_age=config_lib.CONFIG["AFF4.intermediate_cache_age"])
 
     # Create a token for system level actions:
-    self.root_token = rdfvalue.ACLToken(username="system",
+    self.root_token = rdfvalue.ACLToken(username="GRRSystem",
                                         reason="Maintenance").SetUID()
 
     self.notification_rules = []
