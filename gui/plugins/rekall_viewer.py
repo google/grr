@@ -8,10 +8,13 @@
 import json
 from rekall.ui import json_renderer
 
+import logging
+
 from grr.client.client_actions import grr_rekall
 from grr.gui import renderers
 from grr.gui.plugins import semantic
 from grr.lib import aff4
+from grr.lib import utils
 
 
 class GRREProcessObjectRenderer(grr_rekall.GRRObjectRenderer):
@@ -248,6 +251,14 @@ class RekallResponseCollectionRenderer(semantic.RDFValueRenderer):
         # Add row to current table.
         elif command == "r":
           self._flush_freetext()
+          if not self.current_table:
+            logging.warn("Rekall plugin %s tried to write a "
+                         "table row but no table was defined.",
+                         rekall_response.plugin)
+            # This is pretty bad but at least we can show the data somehow.
+            self.free_text.append(utils.SmartStr(statement[1]))
+            continue
+
           self.current_table.AddRow(statement[1])
 
     self._flush_table()
