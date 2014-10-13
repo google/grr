@@ -4,7 +4,7 @@
 import os
 import StringIO
 
-
+from grr.gui import plot_lib
 import matplotlib.pyplot as plt
 
 from grr.gui import renderers
