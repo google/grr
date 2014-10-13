@@ -827,7 +827,7 @@ class AFF4LabelsIndex(aff4.AFF4Volume):
 
   def MultiFindUrnsByLabel(self, labels, owner=None):
     if owner is None:
-      owner = ".+?"
+      owner = ".+"
     else:
       owner = re.escape(owner)
 
@@ -845,7 +845,7 @@ class AFF4LabelsIndex(aff4.AFF4Volume):
 
   def MultiFindUrnsByLabelNameRegex(self, label_name_regexes, owner=None):
     if owner is None:
-      owner = ".+?"
+      owner = ".+"
     else:
       owner = re.escape(owner)
 
