@@ -562,7 +562,7 @@ Click <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
               admin_ui=config_lib.CONFIG["AdminUI.url"],
               hostname=hostname,
               signature=config_lib.CONFIG["Email.signature"],
-              urn=url, 
+              urn=url,
               message=message),
           is_html=True)
 
@@ -663,7 +663,7 @@ P.S. The state of the failing flow was:
               admin_ui=config_lib.CONFIG["AdminUI.url"],
               hostname=hostname,
               state=renderer.RawHTML(),
-              urn=url, 
+              urn=url,
               nanny_msg=nanny_msg,
               signature=config_lib.CONFIG["Email.signature"]
               ),

@@ -205,16 +205,14 @@ class ExportHuntResultFilesAsArchive(flow.GRRFlow):
     subject = "Hunt results for %s ready for download." % (
         self.args.hunt_urn.Basename())
 
-    if self.token.username != "GRRWorker":
-
-      email_alerts.SendEmail(
-          "%s@%s" % (self.token.username,
-                     config_lib.CONFIG.Get("Logging.domain")),
-          "grr-noreply@%s" % config_lib.CONFIG.Get("Logging.domain"), subject,
-          template % dict(
-              hunt_id=self.args.hunt_urn.Basename(),
-              archived=self.state.archived_files,
-              total=self.state.total_files,
-              admin_ui=config_lib.CONFIG["AdminUI.url"],
-              signature=config_lib.CONFIG["Email.signature"]),
-          is_html=True)
+    creator = self.state.context.creator
+    email_alerts.SendEmail(
+        "%s@%s" % (creator, config_lib.CONFIG.Get("Logging.domain")),
+        "grr-noreply@%s" % config_lib.CONFIG.Get("Logging.domain"), subject,
+        template % dict(
+            hunt_id=self.args.hunt_urn.Basename(),
+            archived=self.state.archived_files,
+            total=self.state.total_files,
+            admin_ui=config_lib.CONFIG["AdminUI.url"],
+            signature=config_lib.CONFIG["Email.signature"]),
+        is_html=True)

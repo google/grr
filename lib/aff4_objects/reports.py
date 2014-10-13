@@ -8,6 +8,7 @@ import time
 
 import logging
 
+from grr.lib import config_lib
 from grr.lib import email_alerts
 from grr.lib import export_utils
 from grr.lib import rdfvalue
