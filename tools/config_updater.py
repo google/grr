@@ -77,17 +77,17 @@ parser_update_user = subparsers.add_parser(
 parser_update_user.add_argument("username", help="Username to update.")
 
 parser_update_user.add_argument(
-    "--password", default=False, action="store_true", help="Reset the password for this user.")
+    "--password", default=False, action="store_true",
+    help="Reset the password for this user.")
 
 parser_update_user.add_argument(
     "--add_labels", default=[], action="append",
-    help=("Add labels to the user object. These are used to control access."
-          ))
+    help="Add labels to the user object. These are used to control access.")
 
 parser_update_user.add_argument(
     "--delete_labels", default=[], action="append",
-    help=("Delete labels from the user object. These are used to control access."
-          ))
+    help="Delete labels from the user object. These are used to control access."
+    )
 
 parser_add_user = subparsers.add_parser(
     "add_user", help="Add a new user.")
@@ -98,9 +98,9 @@ parser_add_user.add_argument(
     "--noadmin", default=False, action="store_true",
     help="Don't create the user as an administrator.")
 
-
-def UpdateUser(username, password, add_labels=[], delete_labels=[]):
+def UpdateUser(username, password, add_labels=None, delete_labels=None):
   """Implementation of the update_user command."""
+  print "Updating user %s" % username
   with aff4.FACTORY.Create("aff4:/users/%s" % username,
                            "GRRUser", mode="rw") as fd:
     # Note this accepts blank passwords as valid.
@@ -117,23 +117,38 @@ def UpdateUser(username, password, add_labels=[], delete_labels=[]):
     expanded_add_labels = []
     if add_labels:
       for label in add_labels:
-        #Split up any space or comma separated labels in the list before extending the list of labels to add
+        #Split up any space or comma separated labels in the list
         labels = re.findall(r'[^,\s]+', label)
         expanded_add_labels.extend(labels)
 
-    #Build a list of labels to be added
+    #Build a list of labels to be removed
     expanded_delete_labels = []
     if delete_labels:
       for label in delete_labels:
-        #Split up any space or comma separated labels in the list before extending the list of labels to add
+        #Split up any space or comma separated labels in the list
         labels = re.findall(r'[^,\s]+', label)
         expanded_delete_labels.extend(labels)
-        
-    #Use sets to dedup both expanded lists and then ensure a label is not being added and removed at the same time   
-    new_labels = list(set(current_labels).union(set(expanded_add_labels)).difference(set(expanded_delete_labels)))
-    fd.SetLabels(*new_labels, owner="GRR")
 
-  print "Updating user %s" % username
+    #Use set to dedup input, subtract to remove crossover,
+    #and difference to only add labels not already applied
+
+    #Use sets to dedup input
+    #Set subtraction to remove labels being added and deleted at the same time
+    clean_add_labels = set(expanded_add_labels) - set(expanded_delete_labels)
+    clean_del_labels = set(expanded_delete_labels) - set(expanded_add_labels)
+
+    #Create final list using difference to only add new labels
+    final_add_labels = list(clean_add_labels.difference(set(current_labels)))
+
+    #create final list using intersection to only remove existing labels
+    final_del_labels = list(clean_del_labels.intersection(set(current_labels)))
+
+    if len(final_add_labels) > 0:
+      fd.AddLabels(*final_add_labels, owner="GRR")
+
+    if len(final_del_labels) > 0:
+      fd.RemoveLabels(*final_del_labels, owner="GRR")
+
   ShowUser(username)
 
 # Delete an existing user.
@@ -537,9 +552,10 @@ def main(unused_argv):
   elif flags.FLAGS.subparser_name == "update_user":
     password = None
     if flags.FLAGS.password:
-      password = getpass.getpass(prompt="Please enter new password for user '%s': " %
-                               flags.FLAGS.username)
-    UpdateUser(flags.FLAGS.username, password, flags.FLAGS.add_labels, flags.FLAGS.delete_labels)
+      password = getpass.getpass(prompt="Please enter new password for '%s': " %
+                                 flags.FLAGS.username)
+    UpdateUser(flags.FLAGS.username, password, flags.FLAGS.add_labels,
+               flags.FLAGS.delete_labels)
 
   elif flags.FLAGS.subparser_name == "delete_user":
     DeleteUser(flags.FLAGS.username)
