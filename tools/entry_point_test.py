@@ -13,7 +13,7 @@ import sys
 # pylint: disable=unused-import
 # Matplotlib has a race condition when creating config file directories. We
 # import it here once and let it create everything.
-import matplotlib.pyplot as plt
+from grr.gui import plot_lib
 # pylint: enable=unused-import
 
 from grr.lib import config_lib

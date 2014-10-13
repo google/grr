@@ -10,10 +10,9 @@ import StringIO
 import urllib
 
 
-import matplotlib.pyplot as plt
-
 import logging
 
+from grr.gui import plot_lib
 from grr.gui import renderers
 from grr.gui.plugins import crash_view
 from grr.gui.plugins import fileview
@@ -880,19 +879,19 @@ class HuntClientCompletionGraphRenderer(renderers.ImageDownloadRenderer):
 
     params = {"backend": "png"}
 
-    plt.rcParams.update(params)
-    plt.figure(1)
-    plt.clf()
+    plot_lib.plt.rcParams.update(params)
+    plot_lib.plt.figure(1)
+    plot_lib.plt.clf()
 
-    plt.plot(times, cl, label="Agents issued.")
-    plt.plot(times, fi, label="Agents completed.")
-    plt.title("Agent Coverage")
-    plt.xlabel("Time (h)")
-    plt.ylabel(r"Agents")
-    plt.grid(True)
-    plt.legend(loc=4)
+    plot_lib.plt.plot(times, cl, label="Agents issued.")
+    plot_lib.plt.plot(times, fi, label="Agents completed.")
+    plot_lib.plt.title("Agent Coverage")
+    plot_lib.plt.xlabel("Time (h)")
+    plot_lib.plt.ylabel(r"Agents")
+    plot_lib.plt.grid(True)
+    plot_lib.plt.legend(loc=4)
     buf = StringIO.StringIO()
-    plt.savefig(buf)
+    plot_lib.plt.savefig(buf)
     buf.seek(0)
 
     return buf.read()
