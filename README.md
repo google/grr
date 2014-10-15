@@ -20,8 +20,14 @@ Links
  * [License Information](https://github.com/google/grr-doc/blob/master/licenses.adoc)
  * [Troubleshooting](https://github.com/google/grr-doc/blob/master/troubleshooting.adoc)
 
-News/Announcements
-------------------
+Mailing Lists
+-------------
+
+ * GRR Users: [grr-users](https://groups.google.com/forum/#!forum/grr-users)
+ * GRR Developers: [grr-dev](https://groups.google.com/forum/#!forum/grr-dev)
+
+Announcements
+-------------
 
 **Oct 15 2014**: We're now fully migrated to github. The code.google.com page
 will just be a redirect here. Open issues, documentation and code have been
