@@ -98,7 +98,8 @@ def Init():
       try:
         os.setuid(pwd.getpwnam(config_lib.CONFIG["Server.username"]).pw_uid)
       except KeyError, OSError:
-        logging.exception("Unable to switch to user %s" % config_lib.CONFIG["Server.username"])
+        logging.exception("Unable to switch to user %s" %
+                          config_lib.CONFIG["Server.username"])
         raise
   
   INIT_RAN = True
