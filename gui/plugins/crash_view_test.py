@@ -134,9 +134,9 @@ class TestCrashView(test_lib.GRRSeleniumTest):
 
     # Open the "Advanced" dropdown.
     self.Click("css=a[href='#HostAdvanced']")
-    self.WaitUntil(self.IsVisible, "css=a[grrtarget=ClientCrashesRenderer]'")
+    self.WaitUntil(self.IsVisible, "css=a[grrtarget=ClientCrashesRenderer]")
     # Select list of crashes.
-    self.Click("css=a[grrtarget=ClientCrashesRenderer]'")
+    self.Click("css=a[grrtarget=ClientCrashesRenderer]")
 
     self.WaitUntil(self.AllTextsPresent, [
         "C.0000000000000001",

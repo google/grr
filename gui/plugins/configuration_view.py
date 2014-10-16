@@ -30,7 +30,7 @@ class ConfigManager(renderers.TemplateRenderer):
 
   layout_template = renderers.Template("""
 <div class="container-fluid">
-<div class="row-fluid">
+<div class="row horizontally-padded">
 
 <h2>Configuration</h2>
 <p>This is a read-only view of the frontend configuration. Purple values have
@@ -228,28 +228,37 @@ class ConfigFileTableToolbar(renderers.TemplateRenderer):
   layout_template = renderers.Template("""
 <ul id="toolbar_{{unique|escape}}" class="breadcrumb">
   <li>
-    <button id='{{unique|escape}}_upload' class="btn" title='Upload Binary'
-      data-toggle="modal" data-target="#upload_dialog_{{unique|escape}}">
+    <button id='{{unique|escape}}_upload' class="btn btn-default"
+      title='Upload Binary' data-toggle="modal"
+      data-target="#upload_dialog_{{unique|escape}}">
       <img src='/static/images/upload.png' class='toolbar_icon'>
     </button>
-  </li>
-  <li>
-    <button id='{{unique|escape}}_download' title='Download Binary' class="btn">
+
+    <button id='{{unique|escape}}_download' title='Download Binary'
+      class="btn btn-default">
       <img src='/static/images/download.png' class='toolbar_icon'>
     </button>
   </li>
 </ul>
 
-<div id="upload_dialog_{{unique|escape}}" class="modal hide" tabindex="-1"
+<div id="upload_dialog_{{unique|escape}}" class="modal" tabindex="-1"
   role="dialog" aria-hidden="true">
-  <div class="modal-header">
-    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
-      x</button>
-    <h3>Upload File</h3>
-  </div>
-  <div class="modal-body" id="upload_dialog_body_{{unique|escape}}"></div>
-  <div class="modal-footer">
-    <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal"
+          aria-hidden="true">
+          x
+        </button>
+        <h3>Upload File</h3>
+      </div>
+      <div class="modal-body" id="upload_dialog_body_{{unique|escape}}"></div>
+      <div class="modal-footer">
+        <button class="btn btn-default" data-dismiss="modal" aria-hidden="true">
+          Close
+        </button>
+      </div>
+    </div>
   </div>
 </div>
 """)

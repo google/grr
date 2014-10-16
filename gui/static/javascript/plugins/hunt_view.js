@@ -174,39 +174,39 @@ grr.Renderer('HuntTable', {
     // We use this dom node to communicate between the different callbacks.
     var dom_node = $('#' + id);
 
-    $('#new_hunt_dialog_' + unique).on('shown', function(event) {
+    $('#new_hunt_dialog_' + unique).on('shown.bs.modal', function(event) {
       if (event.target != this) {
         return;
       }
 
       grr.layout('NewHunt', 'new_hunt_dialog_' + unique);
-    }).on('hidden', function(event) {
+    }).on('hidden.bs.modal', function(event) {
       if (event.target != this) return;
 
       $('#' + unique).trigger('refresh');
       $(this).html('');
     });
 
-    $('#run_hunt_dialog_' + unique).on('show', function() {
+    $('#run_hunt_dialog_' + unique).on('show.bs.modal', function() {
       grr.layout('RunHuntConfirmationDialog',
                  'run_hunt_dialog_' + unique, dom_node.data());
-    }).on('hidden', function() {
+    }).on('hidden.bs.modal', function() {
       $('#' + unique).trigger('refresh');
       $(this).html('');
     });
 
-    $('#pause_hunt_dialog_' + unique).on('show', function() {
+    $('#pause_hunt_dialog_' + unique).on('show.bs.modal', function() {
       grr.layout('PauseHuntConfirmationDialog',
                  'pause_hunt_dialog_' + unique, dom_node.data());
-    }).on('hidden', function() {
+    }).on('hidden.bs.modal', function() {
       $('#' + unique).trigger('refresh');
       $(this).html('');
     });
 
-    $('#modify_hunt_dialog_' + unique).on('show', function() {
+    $('#modify_hunt_dialog_' + unique).on('show.bs.modal', function() {
       grr.layout('ModifyHuntDialog', 'modify_hunt_dialog_' + unique,
                  dom_node.data());
-    }).on('hidden', function() {
+    }).on('hidden.bs.modal', function() {
       $('#' + unique).trigger('refresh');
       $(this).html('');
     });

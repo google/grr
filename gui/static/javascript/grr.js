@@ -470,8 +470,8 @@ grr.table.sortableDialog = function() {
     var tbody = header.parents('table').find('tbody');
     var filter = header.attr('filter');
 
-    tbody.html('<tr><td id="' + tbody.attr('id') +
-        '" class="table_loading">Loading...</td></tr>');
+    tbody.html('<tr><td id="' + tbody.attr('id') + '_loading"' +
+        ' class="table_loading">Loading...</td></tr>');
     tbody.scroll();
     if (filter != null) {
       header.attr('title', 'Filter: ' + filter);
@@ -823,7 +823,7 @@ grr._update = function(renderer, domId, opt_state, on_success, inflight_key,
           } catch (e) {
             // Usually renderers get a <script>...</script> code when error
             // happens. We handle this here.
-            $(document).append(data);
+            $(document.body).append(data);
             data = {
               message: grr._lastError,
               traceback: grr._lastBacktrace

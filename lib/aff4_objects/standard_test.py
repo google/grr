@@ -208,6 +208,10 @@ class AFF4LabelsIndexTest(test_lib.GRRBaseTest):
     return aff4.FACTORY.Open("aff4:/index/labels", aff4_type="AFF4LabelsIndex",
                              token=token)
 
+  def testIndexSeparatorNotAllowedInLabelName(self):
+    self.assertRaises(ValueError, rdfvalue.AFF4ObjectLabel,
+                      name=aff4.AFF4LabelsIndex.SEPARATOR)
+
   def testAddedLabelIsCorrectlyListed(self):
     urn = rdfvalue.RDFURN("aff4:/foo/bar")
 
@@ -367,6 +371,48 @@ class AFF4LabelsIndexTest(test_lib.GRRBaseTest):
 
     index = self.ReadIndex(token=self.token)
     self.assertListEqual(index.ListUsedLabels(), [label])
+
+  def testLabelsWhoseNamesAreSubstringsAreDistinguished1(self):
+    with self.CreateIndex(token=self.token) as index:
+      index.AddLabel(rdfvalue.RDFURN("aff4:/foo/bar1"),
+                     "foo", owner="testuser1")
+      index.AddLabel(rdfvalue.RDFURN("aff4:/foo/bar2"),
+                     "foobar", owner="testuser2")
+
+    index = self.ReadIndex(token=self.token)
+    found_urns = index.FindUrnsByLabel("foo")
+    self.assertEqual(len(found_urns), 1)
+    self.assertListEqual(
+        found_urns,
+        [rdfvalue.RDFURN("aff4:/foo/bar1")])
+
+  def testLabelsWhoseNamesAreSubstringsAreDistinguished2(self):
+    with self.CreateIndex(token=self.token) as index:
+      index.AddLabel(rdfvalue.RDFURN("aff4:/foo/bar1"),
+                     "foo", owner="testuser1")
+      index.AddLabel(rdfvalue.RDFURN("aff4:/foo/bar2"),
+                     "barfoobar", owner="testuser2")
+
+    index = self.ReadIndex(token=self.token)
+    found_urns = index.FindUrnsByLabel("foo")
+    self.assertEqual(len(found_urns), 1)
+    self.assertListEqual(
+        found_urns,
+        [rdfvalue.RDFURN("aff4:/foo/bar1")])
+
+  def testLabelsWhoseNamesAreSubstringsAreDistinguished3(self):
+    with self.CreateIndex(token=self.token) as index:
+      index.AddLabel(rdfvalue.RDFURN("aff4:/foo/bar1"),
+                     "foo", owner="testuser1")
+      index.AddLabel(rdfvalue.RDFURN("aff4:/foo/bar2"),
+                     "barfoo", owner="testuser2")
+
+    index = self.ReadIndex(token=self.token)
+    found_urns = index.FindUrnsByLabel("foo")
+    self.assertEqual(len(found_urns), 1)
+    self.assertListEqual(
+        found_urns,
+        [rdfvalue.RDFURN("aff4:/foo/bar1")])
 
 
 class AFF4SparseImageTest(test_lib.GRRBaseTest):

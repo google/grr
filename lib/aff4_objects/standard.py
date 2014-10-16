@@ -731,7 +731,7 @@ class AFF4IndexSet(aff4.AFF4Object):
 
   def ListValues(self, regex=".*", limit=10000):
     values = data_store.DB.ResolveRegex(self.urn, self.INDEX_PREFIX + regex,
-                                        token=self.token)
+                                        token=self.token, limit=limit)
 
     result = set()
     for v in values:
@@ -767,6 +767,10 @@ class AFF4IndexSet(aff4.AFF4Object):
 class AFF4LabelsIndex(aff4.AFF4Volume):
   """Index for objects' labels with vaiorus querying capabilities."""
 
+  # Separator is a character that's not allowed in labels names.
+  SEPARATOR = "|"
+  ESCAPED_SEPARATOR = re.escape("|")
+
   def Initialize(self):
     super(AFF4LabelsIndex, self).Initialize()
 
@@ -792,10 +796,11 @@ class AFF4LabelsIndex(aff4.AFF4Volume):
     return self._used_labels_index
 
   def IndexNameForLabel(self, label_name, label_owner):
-    return label_owner +  "." + label_name
+    return label_owner +  self.SEPARATOR + label_name
 
   def LabelForIndexName(self, index_name):
-    label_owner, label_name = utils.SmartStr(index_name).split(".", 1)
+    label_owner, label_name = utils.SmartStr(index_name).split(
+        self.SEPARATOR, 1)
     return rdfvalue.AFF4ObjectLabel(name=label_name, owner=label_owner)
 
   def AddLabel(self, urn, label_name, owner=None):
@@ -833,7 +838,7 @@ class AFF4LabelsIndex(aff4.AFF4Volume):
 
     query_results = self.urns_index.MultiQuery(
         [aff4.AFF4Object.SchemaCls.LABELS],
-        [owner + "\\." + re.escape(label) for label in labels])
+        [owner + self.ESCAPED_SEPARATOR + re.escape(label) for label in labels])
 
     results = {}
     for key, value in query_results.iteritems():
@@ -851,7 +856,7 @@ class AFF4LabelsIndex(aff4.AFF4Volume):
 
     query_results = self.urns_index.MultiQuery(
         [aff4.AFF4Object.SchemaCls.LABELS],
-        [owner + "\\." + regex
+        [owner + self.ESCAPED_SEPARATOR + regex
          for regex in label_name_regexes])
 
     results = {}

@@ -2,12 +2,14 @@
 """URL definitions for GRR Admin Server."""
 
 
+import mimetypes
 import os
 
 
 from django.conf import urls
 
 from grr import gui
+from grr.lib import registry
 
 document_root = os.path.join(os.path.dirname(gui.__file__), "static")
 help_root = os.path.join(os.path.dirname(os.path.dirname(gui.__file__)), "docs")
@@ -29,3 +31,11 @@ urlpatterns = urls.patterns(
      {"document_root": document_root}),
     (r"^help/(.*)$", view_base + "RenderHelp")
 )
+
+
+class UrlsInit(registry.InitHook):
+  pre = []
+
+  def RunOnce(self):
+    """Run this once on init."""
+    mimetypes.add_type("application/font-woff", ".woff", True)

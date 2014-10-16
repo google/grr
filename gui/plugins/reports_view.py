@@ -13,7 +13,7 @@ class ReportNameRenderer(forms.StringTypeFormRenderer):
   type_descriptor = rdfvalue.ReportName
   default = "ClientListReport"
 
-  layout_template = ("""<div class="control-group">
+  layout_template = ("""<div class="form-group">
 """ + forms.TypeDescriptorFormRenderer.default_description_view + """
   <div class="controls">
     <select id='{{this.prefix}}' onchange="grr.forms.inputOnChange(this)"

@@ -349,3 +349,54 @@ def MigrateAllHuntsFinishedAndError(token=None):
     index += 1
     print ""
     print "Done %d out of %d hunts." % (index, len(hunts_list))
+
+
+def MigrateLabelsSeparator(token=None):
+  """Migrates labels from '.' to '|' separator."""
+
+  processed_set_labels = 0
+  processed_mapped_labels = 0
+
+  for urn in ["aff4:/index/labels/generic",
+              "aff4:/index/labels/clients",
+              "aff4:/index/labels/users"]:
+    urn = rdfvalue.RDFURN(urn)
+    print "Processing %s" % urn
+
+    urns_index = aff4.FACTORY.Create(urn.Add("urns_index"),
+                                     "AFF4Index", mode="r", token=token)
+    query_results = list(urns_index.MultiQuery(
+        [aff4.AFF4Object.SchemaCls.LABELS], [".+"]).iteritems())
+
+    aff4.FACTORY.Delete(urn.Add("urns_index"), token=token)
+    with aff4.FACTORY.Create(urn.Add("urns_index"),
+                             "AFF4Index", mode="w",
+                             token=token) as new_urns_index:
+      for label, target_urns in query_results:
+        label = label.replace(".", "|", 1)
+        for target_urn in target_urns:
+          print "Remapping: %s -> %s" % (utils.SmartStr(label),
+                                         utils.SmartStr(target_urn))
+          new_urns_index.Add(target_urn,
+                             aff4.AFF4Object.SchemaCls.LABELS, label)
+          processed_mapped_labels += 1
+
+    used_labels_index = aff4.FACTORY.Create(urn.Add("used_labels_index"),
+                                            "AFF4IndexSet", mode="r",
+                                            token=token)
+    used_labels = list(used_labels_index.ListValues(limit=None))
+
+    aff4.FACTORY.Delete(urn.Add("used_labels_index"), token=token)
+    with aff4.FACTORY.Create(urn.Add("used_labels_index"),
+                             "AFF4IndexSet", mode="w",
+                             token=token) as new_used_labels:
+      for value in used_labels:
+        value = value.replace(".", "|", 1)
+        print "Resetting: %s" % (utils.SmartStr(value))
+
+        new_used_labels.Add(value)
+        processed_set_labels += 1
+
+  print "Processed set labels: %d, mapped labels: %d" % (
+      processed_set_labels,
+      processed_mapped_labels)
