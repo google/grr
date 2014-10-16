@@ -1,5 +1,5 @@
 [Unit]
-Description=GRR Single Server
+Description=GRR AdminUI
 After=syslog.target network.target
 Environment="MPLCONFIGDIR=/tmp/grr" "PYTHON_EGG_CACHE=/tmp/grr"
 
