@@ -1797,7 +1797,10 @@ class AFF4Object(object):
 
   def RemoveLabels(self, *labels_names, **kwargs):
     """Remove specified labels from the AFF4Object."""
-    owner = kwargs.get("owner", self.token.username)
+    if not self.token and "owner" not in kwargs:
+      raise RuntimeError("Can't remove label: No owner specified and "
+                         "no access token available.")
+    owner = kwargs.get("owner") or self.token.username
 
     labels_index = self._GetLabelsIndex()
     current_labels = self.Get(self.Schema.LABELS)
