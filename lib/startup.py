@@ -7,7 +7,7 @@ Contains the startup routines and Init functions for initializing GRR.
 import os
 import platform
 import sys
-if os.name != 'nt':
+if platform.system() != "Windows":
   import pwd
 
 from grr.lib import config_lib
@@ -93,13 +93,13 @@ def Init():
   ServerLoggingStartupInit()
   registry.Init()
 
-  if os.name != 'nt':
+  if platform.system() != 'Windows':
     if config_lib.CONFIG["Server.username"]:
       try:
-        uid = pwd.getpwnam(config_lib.CONFIG["Server.username"])[2]
-        os.setuid(uid)
-      except:
-        raise RuntimeError("Unable to switch to user %s" % config_lib.CONFIG["Server.username"])
+        os.setuid(pwd.getpwnam(config_lib.CONFIG["Server.username"]).pw_uid)
+      except KeyError, OSError:
+        logging.exception("Unable to switch to user %s" % config_lib.CONFIG["Server.username"])
+        raise
   
   INIT_RAN = True
 
