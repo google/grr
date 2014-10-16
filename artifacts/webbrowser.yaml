@@ -137,23 +137,23 @@ collectors:
 - collector_type: FILE
   args:
     path_list:
-      - '%%users.localappdata%%\Google\Chrome\User Data\*\Extensions\**'
-      - '%%users.localappdata%%\Chromium\User Data\*\Extensions\**'
-      - '%%users.localappdata%%\Google\Chrome SxS\User Data\*\Extensions\**'
+      - '%%users.localappdata%%\Google\Chrome\User Data\*\Extensions\**10'
+      - '%%users.localappdata%%\Chromium\User Data\*\Extensions\**10'
+      - '%%users.localappdata%%\Google\Chrome SxS\User Data\*\Extensions\**10'
   supported_os: [Windows]
 - collector_type: FILE
   args:
     path_list:
-      - '%%users.homedir%%/Library/Application Support/Google/Chrome/*/Extensions/**'
-      - '%%users.homedir%%/Library/Application Support/Chromium/*/Extensions/**'
-      - '%%users.homedir%%/Library/Application Support/Google/Chrome Canary/*/Extensions/**'
+      - '%%users.homedir%%/Library/Application Support/Google/Chrome/*/Extensions/**10'
+      - '%%users.homedir%%/Library/Application Support/Chromium/*/Extensions/**10'
+      - '%%users.homedir%%/Library/Application Support/Google/Chrome Canary/*/Extensions/**10'
   supported_os: [Darwin]
 - collector_type: FILE
   args:
     path_list:
-      - '%%users.homedir%%/.config/google-chrome/*/Extensions/**'
-      - '%%users.homedir%%/.config/google-chrome-beta/*/Extensions/**'
-      - '%%users.homedir%%/.config/chromium/*/Extensions/**'
+      - '%%users.homedir%%/.config/google-chrome/*/Extensions/**10'
+      - '%%users.homedir%%/.config/google-chrome-beta/*/Extensions/**10'
+      - '%%users.homedir%%/.config/chromium/*/Extensions/**10'
   supported_os: [Linux]
 supported_os: [Windows, Darwin, Linux]
 labels: [Browser]

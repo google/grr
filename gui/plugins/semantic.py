@@ -498,7 +498,10 @@ class RDFValueCollectionRenderer(renderers.TableRenderer):
     except IOError:
       return
 
-    self.size = len(collection)
+    try:
+      self.size = len(collection)
+    except AttributeError:
+      self.show_total_count = False
 
     row_index = start_row
     for value in itertools.islice(collection, start_row, end_row):
@@ -512,9 +515,12 @@ class RDFValueCollectionRenderer(renderers.TableRenderer):
         collection = aff4.FACTORY.Open(aff4_path,
                                        aff4_type="RDFValueCollection",
                                        token=request.token)
-        self.size = len(collection)
       except IOError:
         pass
+      try:
+        self.size = len(collection)
+      except AttributeError:
+        self.show_total_count = False
 
     return super(RDFValueCollectionRenderer, self).Layout(
         request, response)

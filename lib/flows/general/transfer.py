@@ -409,8 +409,8 @@ class MultiGetFileMixin(object):
         file_tracker.fd.Close(sync=False)
 
         # Let the caller know we have this file already.
-        self.ReceiveFetchedFile(file_tracker.stat_entry, tracker.hash_obj,
-                                request_data=tracker.request_data)
+        self.ReceiveFetchedFile(file_tracker.stat_entry, file_tracker.hash_obj,
+                                request_data=file_tracker.request_data)
 
     # Now we iterate over all the files which are not in the store and arrange
     # for them to be copied.

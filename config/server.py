@@ -166,6 +166,11 @@ config_lib.DEFINE_string(
     "System account to run as after initialization for running the server as "
     "non-root.")
 
+# Email Template Values
+config_lib.DEFINE_string(
+    "Email.signature", "The GRR Team",
+    "The default signature block for template emails")
+
 config_lib.DEFINE_integer(
     "StatsHunt.ClientBatchSize", "200",
     "Batch size for client scheduling. This should be large enough that it "

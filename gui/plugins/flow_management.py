@@ -5,8 +5,7 @@ import os
 import StringIO
 
 
-import matplotlib.pyplot as plt
-
+from grr.gui import plot_lib
 from grr.gui import renderers
 from grr.gui.plugins import crash_view
 from grr.gui.plugins import fileview
@@ -856,18 +855,18 @@ class ProgressGraphRenderer(renderers.ImageDownloadRenderer):
 
     params = {"backend": "png"}
 
-    plt.rcParams.update(params)
-    plt.figure(1)
-    plt.clf()
+    plot_lib.plt.rcParams.update(params)
+    plot_lib.plt.figure(1)
+    plot_lib.plt.clf()
 
-    plt.plot(x, y)
-    plt.title("Progress for flow %s" % flow_id)
-    plt.xlabel("Time (s)")
-    plt.ylabel("Bytes downloaded")
-    plt.grid(True)
+    plot_lib.plt.plot(x, y)
+    plot_lib.plt.title("Progress for flow %s" % flow_id)
+    plot_lib.plt.xlabel("Time (s)")
+    plot_lib.plt.ylabel("Bytes downloaded")
+    plot_lib.plt.grid(True)
 
     buf = StringIO.StringIO()
-    plt.savefig(buf)
+    plot_lib.plt.savefig(buf)
     buf.seek(0)
 
     return buf.read()

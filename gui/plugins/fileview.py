@@ -1341,7 +1341,7 @@ class FileViewTabs(renderers.TabLayout):
     self.names = self.FILE_TAB_NAMES
     self.delegated_renderers = self.FILE_DELEGATED_RENDERERS
     try:
-      if not self.fd:
+      if self.fd is not None:
         self.fd = aff4.FACTORY.Open(self.aff4_path, token=request.token)
 
       # If file is actually a collection, then show collections-related tabs.
