@@ -1,15 +1,14 @@
 [Unit]
 Description=GRR Enroller
 After=syslog.target network.target
-Environment="MPLCONFIGDIR=/tmp/grr" "PYTHON_EGG_CACHE=/tmp/grr"
+Environment="MPLCONFIGDIR=/var/run/grr/tmp" "PYTHON_EGG_CACHE=/var/run/grr/tmp"
 
 [Service]
 Type=simple
 PrivateTmp=true
 Restart=on-failure
-ExecStartPre=mkdir -p /var/log/grr;mkdir -p /tmp/grr
+ExecStartPre=mkdir -p /var/log/grr;mkdir -p /var/run/grr/tmp
 ExecStart=/usr/bin/grr_server --start_enroller --config=/etc/grr/grr-server.yaml
-ExecStopPost=rm -Rf /tmp/grr
 
 [Install]
 WantedBy=multi-user.target
