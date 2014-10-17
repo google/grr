@@ -78,7 +78,7 @@ parser_update_user.add_argument("username", help="Username to update.")
 
 parser_update_user.add_argument(
     "--password", default=False, action="store_true",
-    help="Reset the password for this user.")
+    help="Reset the password for this user (will prompt for password).")
 
 parser_update_user.add_argument(
     "--add_labels", default=[], action="append",
@@ -98,55 +98,53 @@ parser_add_user.add_argument(
     "--noadmin", default=False, action="store_true",
     help="Don't create the user as an administrator.")
 
+
 def UpdateUser(username, password, add_labels=None, delete_labels=None):
   """Implementation of the update_user command."""
   print "Updating user %s" % username
   with aff4.FACTORY.Create("aff4:/users/%s" % username,
                            "GRRUser", mode="rw") as fd:
     # Note this accepts blank passwords as valid.
-    if password != None:
+    if password is None:
       fd.SetPassword(password)
 
-    current_labels = []
+    # Use sets to dedup input.
+    current_labels = set()
 
-    #Build a list of existing labels
+    # Build a list of existing labels.
     for label in fd.GetLabels():
-      current_labels.append(label.name)
+      current_labels.add(label.name)
 
-    #Build a list of labels to be added
-    expanded_add_labels = []
+    # Build a list of labels to be added.
+    expanded_add_labels = set()
     if add_labels:
       for label in add_labels:
-        #Split up any space or comma separated labels in the list
-        labels = re.findall(r'[^,\s]+', label)
-        expanded_add_labels.extend(labels)
+        # Split up any space or comma separated labels in the list.
+        labels = label.split(",")
+        expanded_add_labels.update(labels)
 
-    #Build a list of labels to be removed
-    expanded_delete_labels = []
+    # Build a list of labels to be removed.
+    expanded_delete_labels = set()
     if delete_labels:
       for label in delete_labels:
-        #Split up any space or comma separated labels in the list
-        labels = re.findall(r'[^,\s]+', label)
-        expanded_delete_labels.extend(labels)
+        # Split up any space or comma separated labels in the list.
+        labels = label.split(",")
+        expanded_delete_labels.update(labels)
 
-    #Use set to dedup input, subtract to remove crossover,
-    #and difference to only add labels not already applied
+    # Set subtraction to remove labels being added and deleted at the same time.
+    clean_add_labels = expanded_add_labels - expanded_delete_labels
+    clean_del_labels = expanded_delete_labels - expanded_add_labels
 
-    #Use sets to dedup input
-    #Set subtraction to remove labels being added and deleted at the same time
-    clean_add_labels = set(expanded_add_labels) - set(expanded_delete_labels)
-    clean_del_labels = set(expanded_delete_labels) - set(expanded_add_labels)
+    # Create final list using difference to only add new labels.
+    final_add_labels = clean_add_labels - current_labels
 
-    #Create final list using difference to only add new labels
-    final_add_labels = list(clean_add_labels.difference(set(current_labels)))
+    # Create final list using intersection to only remove existing labels.
+    final_del_labels = clean_del_labels & current_labels
 
-    #create final list using intersection to only remove existing labels
-    final_del_labels = list(clean_del_labels.intersection(set(current_labels)))
-
-    if len(final_add_labels) > 0:
+    if final_add_labels:
       fd.AddLabels(*final_add_labels, owner="GRR")
 
-    if len(final_del_labels) > 0:
+    if final_del_labels:
       fd.RemoveLabels(*final_del_labels, owner="GRR")
 
   ShowUser(username)
@@ -184,20 +182,10 @@ def ShowUser(username):
     for user in fd.OpenChildren():
       if isinstance(user, users.GRRUser):
         print user.Describe()
-        current_labels = []
-        for label in user.GetLabels():
-          current_labels.append(label.name)
-        print "Applied Labels: %s" % (",").join(current_labels)
   else:
     user = aff4.FACTORY.Open("aff4:/users/%s" % username)
     if isinstance(user, users.GRRUser):
       print user.Describe()
-
-      current_labels = []
-      for label in user.GetLabels():
-        current_labels.append(label.name)
-      print "Applied Labels: %s" % (",").join(current_labels)
-
     else:
       print "User %s not found" % username
 
