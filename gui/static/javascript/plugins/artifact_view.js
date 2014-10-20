@@ -25,12 +25,12 @@ grr.Renderer('ArtifactManagerToolbar', {
   Layout: function(state) {
     var unique = state.unique;
 
-    $('#upload_dialog_' + unique).on('show', function() {
+    $('#upload_dialog_' + unique).on('show.bs.modal', function() {
       grr.layout('ArtifactJsonUploadView',
                  'upload_dialog_body_' + unique);
     });
 
-    $('#delete_confirm_dialog_' + unique).on('show', function() {
+    $('#delete_confirm_dialog_' + unique).on('show.bs.modal', function() {
       grr.layout('DeleteArtifactsConfirmationDialog',
                  'delete_confirm_dialog_' + unique);
     });

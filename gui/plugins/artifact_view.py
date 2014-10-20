@@ -43,7 +43,7 @@ class ArtifactListRenderer(forms.MultiSelectListRenderer):
           </div>""")
 
   layout_template = (
-      """<div class="control-group">"""
+      """<div class="form-group">"""
       + forms.TypeDescriptorFormRenderer.default_description_view + """
   <div id='{{unique|escape}}_artifact_renderer' class="controls">
   <div>
@@ -202,14 +202,13 @@ class ArtifactManagerToolbar(renderers.TemplateRenderer):
   layout_template = renderers.Template("""
 <ul id="toolbar_{{unique|escape}}" class="breadcrumb">
   <li>
-    <button id='{{unique|escape}}_upload' class="btn"
+    <button id='{{unique|escape}}_upload' class="btn btn-default"
       title="Upload Artifacts as JSON or YAML"
       data-toggle="modal" data-target="#upload_dialog_{{unique|escape}}">
       <img src='/static/images/upload.png' class='toolbar_icon'>
     </button>
-  </li>
-  <li>
-    <button id='{{unique|escape}}_deleteall' class="btn"
+
+    <button id='{{unique|escape}}_deleteall' class="btn btn-default"
       title="Delete all uploaded artifacts" data-toggle="modal"
       data-target="#delete_confirm_dialog_{{unique|escape}}">
       <img src='/static/images/editdelete.png' class='toolbar_icon'>
@@ -218,23 +217,29 @@ class ArtifactManagerToolbar(renderers.TemplateRenderer):
 
 </ul>
 
-<div id="upload_dialog_{{unique|escape}}" class="modal hide" tabindex="-1"
+<div id="upload_dialog_{{unique|escape}}" class="modal" tabindex="-1"
   role="dialog" aria-hidden="true">
-  <div class="modal-header">
-    <button id="upload_artifact_btn_{{unique|escape}}" type="button"
-    class="close" data-dismiss="modal" aria-hidden="true">
-      x</button>
-    <h3>Upload File</h3>
-  </div>
-  <div class="modal-body" id="upload_dialog_body_{{unique|escape}}"></div>
-  <div class="modal-footer">
-    <button id="upload_artifact_close_btn_{{unique|escape}}" class="btn"
-    data-dismiss="modal" aria-hidden="true">Close</button>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button id="upload_artifact_btn_{{unique|escape}}" type="button"
+        class="close" data-dismiss="modal" aria-hidden="true">
+          x</button>
+        <h3>Upload File</h3>
+      </div>
+      <div class="modal-body" id="upload_dialog_body_{{unique|escape}}"></div>
+      <div class="modal-footer">
+        <button id="upload_artifact_close_btn_{{unique|escape}}"
+          class="btn btn-default" data-dismiss="modal" aria-hidden="true">
+          Close
+        </button>
+      </div>
+    </div>
   </div>
 </div>
 
 <div id="delete_confirm_dialog_{{unique|escape}}"
-  class="modal hide" tabindex="-1" role="dialog" aria-hidden="true">
+  class="modal" tabindex="-1" role="dialog" aria-hidden="true">
 </div>
 
 """)

@@ -557,7 +557,7 @@ class ApplyLabelToClientsDialog(renderers.ConfirmationDialogRenderer):
   post_parameters = ["selected_clients"]
 
   content_template = renderers.Template("""
-<div class="control-group">
+<div class="form-group">
   <label class="control-label" for="input_apply_label_to_clients">Label</label>
   <div class="controls">
     <input type="text" onchange="grr.forms.inputOnChange(this)"
@@ -630,7 +630,7 @@ class ClientLabelsRenderer(semantic.RDFValueRenderer):
 {% for label in this.labels %}
 
 {% if label.owner == 'GRR' %}
-<span class="label">{{label.name|escape}}</span>
+<span class="label label-default">{{label.name|escape}}</span>
 {% else %}
 <span class="label label-success">{{label.name|escape}}</span>
 {% endif %}
@@ -653,14 +653,14 @@ class HostTable(renderers.TableRenderer):
 
   layout_template = renderers.Template("""
 <div id="apply_label_dialog_{{unique|escape}}" name="ApplyLabelDialog"
-  class="modal hide" tabindex="-1" role="dialog" aria-hidden="true">
+  class="modal" tabindex="-1" role="dialog" aria-hidden="true">
 </div>
 
 <ul id="client_action_bar_{{unique|escape}}" class="breadcrumb">
 <li>
-  <button id="apply_label_{{unique|escape}}" title="Apply Label" class="btn"
-    data-target="#apply_label_dialog_{{unique|escape}}" disabled="true"
-    data-toggle="modal" name="ApplyLabel">
+  <button id="apply_label_{{unique|escape}}" title="Apply Label"
+    class="btn btn-default" data-target="#apply_label_dialog_{{unique|escape}}"
+    disabled="true" data-toggle="modal" name="ApplyLabel">
     <img src="/static/images/label.png" class="toolbar_icon"></img>
   </button>
 </li>
@@ -737,16 +737,29 @@ class SearchHostView(renderers.Renderer):
 
   context_help_url = "user_manual.html#searching-for-a-client"
   template = renderers.Template("""
-  <form id="search_host" class="navbar-form form-search pull-right">
-    <div class="input-append">
-      <input type="text" id="client_query" name="q" class="span4 search-query" placeholder="Search Box"/>
-      <button type="submit" id="client_query_submit" class="btn search-query">Search</button>
-      {% if this.context_help_url %}
-        <a href="/help/{{this.context_help_url|escape}}" target="_blank">
-        <i class="icon-question-sign input-append"></i></a>
-      {% endif %}
+<abbr title="Type label: to open a list of possible labels completions.">
+  {% if this.context_help_url %}
+    <a href="/help/{{this.context_help_url|escape}}" target="_blank"
+      class="pull-right">
+      <i class="glyphicon glyphicon-question-sign input-append"></i>
+    </a>
+  {% endif %}
+  <form id="search_host" class="navbar-form pull-right no-right-padding">
+    <div class="form-group">
+      <div class="input-group">
+        <input type="text" id="client_query" name="q"
+          class="form-control search-query"
+          placeholder="Search Box"/>
+        <span class="input-group-btn">
+          <button type="submit" id="client_query_submit"
+            class="btn btn-default search-query">
+            <span class="glyphicon glyphicon-search"></span>
+          </button>
+        </span>
+      </div>
     </div>
   </form>
+</abbr>
 """)
 
   def Layout(self, request, response):
@@ -774,7 +787,7 @@ class FrontPage(renderers.TemplateRenderer):
   <div id="main">
 
    <div class="container-fluid">
-     <div class="row-fluid">
+     <div class="row horizontally-padded">
   <div id='front'><h2>Welcome to GRR</h2></div>
   Query for a system to view in the search box above.
 

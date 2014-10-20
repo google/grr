@@ -161,6 +161,11 @@ config_lib.DEFINE_string(
     "minimum bound here is effectively 2 * Client.poll_max, since a new request"
     " is only scheduled after results are received in the previous poll.")
 
+# Email Template Values
+config_lib.DEFINE_string(
+    "Email.signature", "The GRR Team",
+    "The default signature block for template emails")
+
 config_lib.DEFINE_integer(
     "StatsHunt.ClientBatchSize", "200",
     "Batch size for client scheduling. This should be large enough that it "

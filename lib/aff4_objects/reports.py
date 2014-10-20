@@ -8,6 +8,7 @@ import time
 
 import logging
 
+from grr.lib import config_lib
 from grr.lib import email_alerts
 from grr.lib import export_utils
 from grr.lib import rdfvalue
@@ -31,7 +32,7 @@ class ClientReport(Report):
   %(report_text)s
   <br/>
   <p>Thanks,</p>
-  <p>The GRR team.
+  <p>%(signature)s</p>
   </body></html>"""
   EMAIL_FROM = "noreply"
 
@@ -112,10 +113,12 @@ class ClientReport(Report):
     dt = rdfvalue.RDFDatetime().Now().Format("%Y-%m-%dT%H-%MZ")
     subject = subject or "%s - %s" % (self.REPORT_NAME, dt)
     report_text = self.AsHtmlTable()
+
     email_alerts.SendEmail(recipient, self.EMAIL_FROM, subject,
                            self.EMAIL_TEMPLATE % dict(
                                report_text=report_text,
-                               report_name=self.REPORT_NAME),
+                               report_name=self.REPORT_NAME,
+                               signature=config_lib.CONFIG["Email.signature"]),
                            is_html=True)
     logging.info("Report %s mailed to %s", self.REPORT_NAME, recipient)
 

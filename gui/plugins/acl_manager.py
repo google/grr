@@ -34,27 +34,32 @@ class ACLDialog(renderers.TemplateRenderer):
   """Render the ACL dialogbox."""
 
   layout_template = renderers.Template("""
-<div id="acl_dialog" class="modal hide" tabindex="-1" role="dialog"
+<div id="acl_dialog" class="modal" tabindex="-1" role="dialog"
   aria-hidden="true">
-
-  <div class="modal-header">
-    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
-      x
-    </button>
-    <h3>Authorization Required</h3>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal"
+          aria-hidden="true">
+          x
+        </button>
+        <h3>Authorization Required</h3>
+      </div>
+      <div class="modal-body">
+        <p class="text-info">The server requires authorization to access this
+          resource
+        <div id="acl_form"></div>
+      </div>
+      <div class="modal-footer">
+        <button id="acl_dialog_submit" name="Submit" class="btn btn-success">
+          Submit</button>
+        <button class="btn btn-default" data-dismiss="modal" name="Close"
+          aria-hidden="true">
+          Close
+        </button>
+      </div>
+    </div>
   </div>
-  <div class="modal-body">
-    <p class="text-info">The server requires authorization to access this
-      resource
-    <div id="acl_form"></div>
-  </div>
-  <div class="modal-footer">
-    <button id="acl_dialog_submit" name="Submit" class="btn btn-success">
-      Submit</button>
-    <button class="btn" data-dismiss="modal" name="Close" aria-hidden="true">
-      Close</button>
-  </div>
-
 </div>
 """)
 
@@ -332,35 +337,35 @@ class CheckAccess(renderers.TemplateRenderer):
 {% endif %}
 <h3>Create a new approval request.</h3>
 <form id="acl_form_{{unique|escape}}" class="form-horizontal acl-form">
-  <div class="control-group">
+  <div class="form-group">
     <label class="control-label" for="acl_approver">Approvers</label>
     <div class="controls">
-      <input type="text" id="acl_approver"
+      <input type="text" id="acl_approver" class="form-control"
         placeholder="approver1,approver2,approver3" />
     </div>
   </div>
-  <div class="control-group">
+  <div class="form-group">
     <label class="control-label" for="acl_recent_reasons">Reason</label>
     <div class="controls">
-      <select id="acl_recent_reasons">
+      <select id="acl_recent_reasons" class="form-control">
         <option value="new_reason">Enter New Reason...</option>
       </select>
     </div>
   </div>
-  <div class="control-group">
+  <div class="form-group">
     <label class="control-label" for="acl_reason"></label>
     <div class="controls">
-      <input type="text" id="acl_reason" />
+      <input type="text" id="acl_reason" class="form-control" />
     </div>
   </div>
-  <div id="acl_reason_warning" class="alert alert-error hide">
+  <div id="acl_reason_warning" class="alert alert-danger hide">
     Please enter the reason.
   </div>
   {% if this.show_keepalive_option %}
-  <div class="control-group">
+  <div class="form-group">
     <div class="controls">
       <input id="acl_keepalive" type=checkbox class="unset"
-       name="keepalive" value="yesplease"/>
+       name="keepalive" value="yesplease" class="form-control" />
       Keep this client alive as soon as it comes online.
     </div>
   </div>

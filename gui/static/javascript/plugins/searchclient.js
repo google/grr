@@ -72,8 +72,7 @@ grr.labels_completer.Completer = function(dom_id, completions, split_term) {
         return false;
       }
     }
-  }).wrap('<abbr title="Type label: to open a list of possible ' +
-      'labels completions."/>');
+  });
 };
 
 grr.Renderer('GlobExpressionFormRenderer', {
@@ -208,13 +207,13 @@ grr.Renderer('HostTable', {
     }, unique);
 
     // Apply Label renderer
-    $('#apply_label_dialog_' + unique).on('show', function(event) {
+    $('#apply_label_dialog_' + unique).on('show.bs.modal', function(event) {
       if (event.target != this) return;
 
       grr.layout('ApplyLabelToClientsDialog',
                  'apply_label_dialog_' + unique,
                  {'selected_clients': JSON.stringify(selectedClients)});
-    }).on('hidden', function(event) {
+    }).on('hidden.bs.modal', function(event) {
       // Only refresh the view is labels were updated.
       if ($(this).data('updated')) {
         grr.layout('HostTable', 'main', {q: grr.hash['q']});

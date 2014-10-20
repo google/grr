@@ -447,7 +447,7 @@ class AbstractFileTable(renderers.TableRenderer):
 
   layout_template = (renderers.TableRenderer.layout_template + """
 <div id="version_selector_dialog_{{unique|escape}}"
-  class="version-selector-dialog modal wide-modal high-modal hide"></div>
+  class="version-selector-dialog modal wide-modal high-modal"></div>
 """)
 
   toolbar = None    # Toolbar class to render above table.
@@ -731,13 +731,15 @@ class Toolbar(renderers.TemplateRenderer):
 
   layout_template = renderers.Template("""
 
-<ul class="breadcrumb">
-  <li class="pull-right">
-    <button class="btn" id='refresh_{{unique|escape}}' name="Refresh"
-      title='Refresh this directory listing.'>
+<div class="navbar navbar-default">
+<div class="navbar-inner">
+
+<div class="navbar-form pull-right">
+    <button class="btn btn-default" id='refresh_{{unique|escape}}'
+      name="Refresh" title='Refresh this directory listing.'>
       <img src='/static/images/stock_refresh.png' class="toolbar_icon" />
     </button>
-    <button class="btn" id='recursive_refresh_{{unique|escape}}'
+    <button class="btn btn-default" id='recursive_refresh_{{unique|escape}}'
       title='Refresh this directory listing.' style='position: relative'
       name="RecursiveRefresh" data-toggle="modal"
       data-target="#recursive_refresh_dialog_{{unique|escape}}">
@@ -745,29 +747,34 @@ class Toolbar(renderers.TemplateRenderer):
       <span style='position: absolute; left: 23px; top: 5px; font-weight: bold;
        font-size: 18px; -webkit-text-stroke: 1px #000; color: #fff'>R</span>
     </button>
-  </li>
-  <li class="pull-right">
-    <button class="btn" id='rweowned' title='Is this machine pwned?'>
+
+    <button class="btn btn-default" id='rweowned'
+      title='Is this machine pwned?'>
       <img src='/static/images/stock_dialog_question.png'
         class="toolbar_icon" />
     </button>
-  </li>
+</div>
+
+<ul class="breadcrumb">
 {% for path, fullpath, fullpath_id, i, last in this.paths %}
   <li {% if forloop.last %}class="active"{% endif %}>
     {% if forloop.last %}
       {{path|escape}}
     {% else %}
     <a id="path_{{i|escape}}">{{path|escape}}</a>
-    <span class="divider">&gt;</span>
     {% endif %}
   </li>
 {% endfor %}
   <div class="clearfix"></div>
 </ul>
+
+</div>
+</div>
+
 <div id="refresh_action" class="hide"></div>
-<div id="rweowned_dialog" class="modal hide"></div>
+<div id="rweowned_dialog" class="modal"></div>
 <div id="recursive_refresh_dialog_{{unique|escape}}"
-  class="modal hide" tabindex="-1" role="dialog" aria-hidden="true">
+  class="modal" tabindex="-1" role="dialog" aria-hidden="true">
 </div>
 """)
 
@@ -927,7 +934,7 @@ Hash was {{ this.hash|escape }}.
 {% if this.file_exists %}
 As downloaded on {{ this.age|escape }}.<br>
 <p>
-<button id="{{ unique|escape }}_2" class="btn">
+<button id="{{ unique|escape }}_2" class="btn btn-default">
  Download ({{this.size|escape}} bytes)
 </button>
 </p>
@@ -937,12 +944,14 @@ As downloaded on {{ this.age|escape }}.<br>
 </pre>
 <hr/>
 {% endif %}
-<button id="{{ unique|escape }}" class="btn">Get a new Version</button>
+<button id="{{ unique|escape }}" class="btn btn-default">
+  Get a new Version
+</button>
 </div>
 """)
 
   error_template = renderers.Template("""
-<div class="alert alert-error alert-block">
+<div class="alert alert-danger alert-block">
   <h4>Error!</h4> {{this.path|escape}} does not appear to be a file object.
   <p><em>{{this.error_message|escape}}</em></p>
 </div>
@@ -1040,9 +1049,12 @@ class UploadView(renderers.TemplateRenderer):
 <h3>Upload to {{ grr.state.tree_path|escape }}</h3>
 {% endif %}
 <form id="{{unique|escape}}_form" enctype="multipart/form-data">
-<input class="btn btn-file" id="{{ unique|escape }}_file" type="file" name="uploadFile" />
+<input class="btn btn-default btn-file" id="{{ unique|escape }}_file"
+  type="file" name="uploadFile" />
 </form>
-<button class="btn" id="{{ unique|escape }}_upload_button">Upload</button>
+<button class="btn btn-default" id="{{ unique|escape }}_upload_button">
+  Upload
+</button>
 <br/><br/>
 <div id="{{ unique|escape }}_upload_results"/>
 <div id="{{ unique|escape }}_upload_progress"/>
@@ -1125,7 +1137,7 @@ class AFF4Stats(renderers.TemplateRenderer):
 
   layout_template = renderers.Template("""
 <div class="container-fluid">
-<div class="row-fluid">
+<div class="row horizontally-padded">
 
 <div id="{{unique|escape}}" class="{{this.css_class}}">
 <h3>{{ this.path|escape }} @ {{this.age|escape}}</h3>
@@ -1341,7 +1353,7 @@ class FileViewTabs(renderers.TabLayout):
     self.names = self.FILE_TAB_NAMES
     self.delegated_renderers = self.FILE_DELEGATED_RENDERERS
     try:
-      if not self.fd:
+      if self.fd is not None:
         self.fd = aff4.FACTORY.Open(self.aff4_path, token=request.token)
 
       # If file is actually a collection, then show collections-related tabs.
@@ -1420,15 +1432,19 @@ class RWeOwned(renderers.TemplateRenderer):
   """A magic 8 ball reply to the question - Are we Owned?"""
 
   layout_template = renderers.Template("""
-  <div class="modal-header">
-<button type="button" class="close" data-dismiss="modal" aria-hidden="true">
-   x
-</button>
-<h3>Are we owned?</h3>
-</div>
-  <div class="modal-body">
-    <p class="text-info">
-{{this.choice|escape}}
+<div class="modal-dialog">
+  <div class="modal-content">
+    <div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+       x
+    </button>
+    <h3>Are we owned?</h3>
+    </div>
+      <div class="modal-body">
+        <p class="text-info">
+    {{this.choice|escape}}
+    </div>
+  </div>
 </div>
 """)
 
@@ -1518,19 +1534,25 @@ class VersionSelectorDialog(renderers.TableRenderer):
   """Renders the version available for this object."""
 
   layout_template = renderers.Template("""
-<div class="modal-header">
-  <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
-    x</button>
-  <h4>Versions of {{this.state.aff4_path}}</h4>
-</div>
-<div class="modal-body">
-  <div class="padded">
-""") + renderers.TableRenderer.layout_template + """
+<div class="modal-dialog">
+  <div class="modal-content">
+    <div class="modal-header">
+      <button type="button" class="close" data-dismiss="modal"
+        aria-hidden="true">
+        x
+      </button>
+      <h4>Versions of {{this.state.aff4_path}}</h4>
+    </div>
+    <div class="modal-body">
+      <div class="padded">
+  """) + renderers.TableRenderer.layout_template + """
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-default" data-dismiss="modal" name="Ok"
+        aria-hidden="true">Ok</button>
+    </div>
   </div>
-</div>
-<div class="modal-footer">
-  <button class="btn" data-dismiss="modal" name="Ok"
-    aria-hidden="true">Ok</button>
 </div>
 """
 

@@ -90,16 +90,20 @@ class SemanticProtoFormRenderer(renderers.TemplateRenderer):
       {{form_element|safe}}
     {% endfor %}
   {% if this.advanced_elements %}
-  <div class="control-group">
-    <a id="advanced_label_{{unique|escape}}"
-      class="control-label advanced-label">Advanced</a>
-    <div class="controls"><i class="advanced-icon icon-chevron-right"></i></div>
-  </div>
-  <div class="hide advanced-controls" id="advanced_controls_{{unique|escape}}">
-    {% for form_element in this.advanced_elements %}
-      {{form_element|safe}}
-    {% endfor %}
-  </div>
+    <div class="form-group col-sm-12">
+      <label class="control-label">
+        <a id="advanced_label_{{unique|escape}}"
+          class="advanced-label">Advanced</a>
+        <i class="advanced-icon glyphicon glyphicon-chevron-right"></i>
+      </label>
+    </div>
+    <div class="clearfix"></div>
+    <div class="hide advanced-controls"
+      id="advanced_controls_{{unique|escape}}">
+      {% for form_element in this.advanced_elements %}
+        {{form_element|safe}}
+      {% endfor %}
+    </div>
   {% endif %}
 </div>
 """)
@@ -227,7 +231,7 @@ class TypeDescriptorFormRenderer(renderers.TemplateRenderer):
     </abbr>
   {% if this.context_help_url %}
     <a href="/help/{{this.context_help_url|escape}}" target="_blank">
-    <i class="icon-question-sign"></i></a>
+    <i class="glyphicon glyphicon-question-sign"></i></a>
   {% endif %}
   </label>
   {% endif %}
@@ -289,7 +293,7 @@ class StringTypeFormRenderer(TypeDescriptorFormRenderer):
   """String form element renderer."""
   type_descriptor = type_info.ProtoString
 
-  layout_template = ("""<div class="control-group">
+  layout_template = ("""<div class="form-group">
 """ + TypeDescriptorFormRenderer.default_description_view + """
   <div class="controls">
     <input id='{{this.prefix}}'
@@ -298,7 +302,7 @@ class StringTypeFormRenderer(TypeDescriptorFormRenderer):
   value='{{ this.default|escape }}'
 {% endif %}
       onchange="grr.forms.inputOnChange(this)"
-      class="unset"/>
+      class="form-control unset"/>
   </div>
 </div>
 """)
@@ -386,14 +390,14 @@ class EmbeddedProtoFormRenderer(TypeDescriptorFormRenderer):
   """A form renderer for an embedded semantic protobuf."""
   type_descriptor = type_info.ProtoEmbedded
 
-  layout_template = ("""<div class="control-group">
+  layout_template = ("""<div class="form-group">
 """ + TypeDescriptorFormRenderer.default_description_view + """
   <div class="controls">
    <div class='nested_opener'>
 {% if this.opened %}
      {{this.prefetched|safe}}
 {% else %}
-     <i class='nested-icon icon-plus' id='{{unique|escape}}'
+     <i class='nested-icon glyphicon glyphicon-plus' id='{{unique|escape}}'
        data-rdfvalue='{{this.type_name}}' data-prefix='{{this.prefix}}'
       />
      <div id='content_{{unique|escape}}'></div>
@@ -495,13 +499,13 @@ class RepeatedFieldFormRenderer(TypeDescriptorFormRenderer):
   add_element_on_first_show = True
 
   layout_template = renderers.Template("""
-  <div class="control-group">
+  <div class="form-group">
 """ + TypeDescriptorFormRenderer.default_description_view + """
     <div class="controls">
-      <button class="btn form-add" id="add_{{unique|escape}}"
+      <button class="btn btn-default form-add" id="add_{{unique|escape}}"
         data-count="{{this.default_data_count|escape}}"
         data-prefix="{{this.prefix|escape}}">
-        <i class="icon-plus"></i>
+        <i class="glyphicon glyphicon-plus"></i>
       </button>
     </div>
   </div>
@@ -513,7 +517,7 @@ class RepeatedFieldFormRenderer(TypeDescriptorFormRenderer):
   ajax_template = renderers.Template("""
 <button type=button class="control-label close"
   id="remove_{{unique|escapejs}}">x</button>
-<div class="control-group" id="{{unique|escapejs}}"
+<div class="form-group" id="{{unique|escapejs}}"
   data-index="{{this.index}}" data-prefix="{{this.prefix}}">
 
   {{this.delegated|safe}}
@@ -605,11 +609,11 @@ class EnumFormRenderer(TypeDescriptorFormRenderer):
 
   type_descriptor = type_info.ProtoEnum
 
-  layout_template = """<div class="control-group">
+  layout_template = """<div class="form-group">
 """ + TypeDescriptorFormRenderer.default_description_view + """
 <div class="controls">
 
-<select id="{{this.prefix}}" class="unset"
+<select id="{{this.prefix}}" class="form-control unset"
   onchange="grr.forms.inputOnChange(this)"
   >
 {% for enum_name, enum_value in this.items %}
@@ -645,7 +649,7 @@ class ProtoBoolFormRenderer(EnumFormRenderer):
   type_descriptor = type_info.ProtoBoolean
 
   layout_template = renderers.Template("""
-<div class="control-group">
+<div class="form-group">
 <div class="controls">
 
 <label class="checkbox">
@@ -678,16 +682,15 @@ class RDFDatetimeFormRenderer(StringTypeFormRenderer):
   """Allow the user to enter a timestamp using the date and time pickers."""
   type = rdfvalue.RDFDatetime
 
-  layout_template = ("""<div class="control-group">
+  layout_template = ("""<div class="form-group">
 """ + TypeDescriptorFormRenderer.default_description_view + """
   <div class="controls">
-    <input id='{{this.prefix}}_picker' class="pickerIcon"/>
-
     <input id='{{this.prefix}}'
       type=text value='Click to set'
       onchange="grr.forms.inputOnChange(this)"
-      class="unset hasDatepicker"/>
-
+      class="pull-left form-control unset hasDatepicker"
+    />
+    <input id='{{this.prefix}}_picker' class="pickerIcon"/>
   </div>
 </div>
 """)
@@ -724,7 +727,7 @@ class OptionFormRenderer(TypeDescriptorFormRenderer):
   options = []
 
   layout_template = renderers.Template("""
-<div class="control-group">
+<div class="form-group">
 """ + TypeDescriptorFormRenderer.default_description_view + """
   <div class="controls">
     <div class="OptionList well well-large">
@@ -735,8 +738,8 @@ class OptionFormRenderer(TypeDescriptorFormRenderer):
         </abbr>
       </label>
 
-      <div class="controls" style="margin-bottom: 1.5em">
-        <select id="{{this.prefix|escape}}-option" class="unset"
+      <div class="controls" style="margin-bottom: 1em">
+        <select id="{{this.prefix|escape}}-option" class="form-control unset"
           onchange="grr.forms.inputOnChange(this)"
           >
           {% for name, description in this.options %}
@@ -821,7 +824,7 @@ class MultiFormRenderer(renderers.TemplateRenderer):
 <button type=button class=close data-dismiss="alert">x</button>
 {{this.child|safe}}
 {% else %}
-<button class="btn" id="AddButton{{unique}}" data-item_count=0 >
+<button class="btn btn-default" id="AddButton{{unique}}" data-item_count=0 >
  {{this.button_text|escape}}
 </button>
 {% endif %}
@@ -867,7 +870,7 @@ class MultiSelectListRenderer(RepeatedFieldFormRenderer):
   type = None
   values = []
 
-  layout_template = ("""<div class="control-group">
+  layout_template = ("""<div class="form-group">
 """ + TypeDescriptorFormRenderer.default_description_view + """
   <div class="controls">
     <select id='{{this.prefix}}' multiple

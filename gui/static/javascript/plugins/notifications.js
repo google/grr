@@ -26,12 +26,12 @@ grr.Renderer('NotificationBar', {
     $('#notification_dialog').detach().appendTo('body');
     $('#user_settings_dialog').detach().appendTo('body');
 
-    $('#notification_dialog').on('show', function() {
+    $('#notification_dialog').on('show.bs.modal', function() {
       grr.layout('ViewNotifications', 'notification_dialog_body');
       grr.publish('NotificationCount', 0);
     });
 
-    $('#user_settings_dialog').on('show', function() {
+    $('#user_settings_dialog').on('show.bs.modal', function() {
       grr.layout('UserSettingsDialog', 'user_settings_dialog');
     }).on('hidden', function() {
       $(this).html('');

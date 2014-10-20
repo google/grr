@@ -417,10 +417,10 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
 
     # OSBreakDown's row should have an 'error' class
     self.WaitUntil(self.IsElementPresent,
-                   "css=tr.error td:contains('OSBreakDown')")
+                   "css=tr.danger td:contains('OSBreakDown')")
     # Check that only OSBreakDown is highlighted
     self.WaitUntilNot(self.IsElementPresent,
-                      "css=tr.error td:contains('GRRVersionBreakDown')")
+                      "css=tr.danger td:contains('GRRVersionBreakDown')")
 
 
 def main(argv):

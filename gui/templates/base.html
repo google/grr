@@ -7,7 +7,8 @@
 <link rel="stylesheet" type="text/css" href="/static/javascript/jquery_splitter/splitter.css" />
 <link rel="stylesheet" type="text/css" href="/static/javascript/jquery_multiselect/jquery.multiselect.css" />
 
-<script src="/static/javascript/jquery/jquery_1_7_2_readable_do_not_compile.js"></script>
+<script src="/static/javascript/jquery/jquery_2_0_3_readable_do_not_compile.js"></script>
+<script src="/static/javascript/jquery_migrate.js"></script>
 <script src="/static/javascript/jquery_ui/jquery-ui-1.8.1.custom.js"></script>
 <script src="/static/javascript/jquery_timeentry/jquery.timeentry.js"></script>
 <script src="/static/javascript/jquery_template/jquery.tmpl.js"></script>
@@ -55,10 +56,10 @@
 </head>
 <body id="body">
   <div id="ACL"></div>
-  <div class="navbar navbar-fixed-top" id="header">
+  <div class="navbar navbar-default navbar-fixed-top" id="header">
     <div class="navbar-inner">
       <div class="container-fluid">
-        <a class="brand" href="/">{{heading|escape}}</a>
+        <a class="navbar-brand" href="/">{{heading|escape}}</a>
 
         <div id="notifications"></div>
         <div id="search_container"></div>
@@ -69,15 +70,17 @@
   <div id="content">
   </div>
 
-  <div class="navbar navbar-fixed-bottom" id="footer">
+  <div class="navbar navbar-default navbar-fixed-bottom" id="footer">
     <div class="navbar-inner">
       <a class="brand"></a>
-      <ul class="nav pull-left">
+      <ul class="nav navbar-nav pull-left">
         <li>
-          <div id="ajax_spinner" class="ajax_spinner"></div>
-          <button id="show_backtrace" class="nav-btn btn btn-danger" style="display: none">
-            <img src="/static/images/stock_dialog_question.png" class="grr-icon" />
-          </button>
+          <div class="navbar-form">
+            <div id="ajax_spinner" class="ajax_spinner"></div>
+            <button id="show_backtrace" class="nav-btn btn btn-danger" style="display: none">
+              <img src="/static/images/stock_dialog_question.png" class="grr-icon" />
+            </button>
+          </div>
         </li>
         <li class="divider-vertical"></li>
         <li>
@@ -85,7 +88,7 @@
         </li>
       </ul>
 
-      <ul class="nav pull-right">
+      <ul class="nav navbar-nav pull-right">
         <li><a href="{{help_url|escape}}" target="_blank">Help</a></li>
         <li><a href="{{report_url|escape}}" target="_blank">Report a problem</a></li>
       </ul>
@@ -93,14 +96,18 @@
     </div>
   </div>
   <div id="error_action" style="display: none"></div>
-  <div id="backtrace" class="modal wide-modal hide" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-header">
-      <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-      <h3>Modal header</h3>
-    </div>
-    <div class="modal-body"><pre></pre></div>
-    <div class="modal-footer">
-      <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+  <div id="backtrace" class="modal wide-modal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+          <h3>Modal header</h3>
+        </div>
+        <div class="modal-body"><pre></pre></div>
+        <div class="modal-footer">
+          <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+        </div>
+      </div>
     </div>
   </div>
 

@@ -267,7 +267,8 @@ class BinaryExpression(Expression):
 
   def AddOperands(self, lhs, rhs):
     if isinstance(lhs, Expression) and isinstance(rhs, Expression):
-      self.args = [lhs, rhs]
+      self.args.insert(0, lhs)
+      self.args.append(rhs)
     else:
       raise ParseError("Expected expression, got %s %s %s" % (
           lhs, self.operator, rhs))

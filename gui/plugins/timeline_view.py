@@ -51,7 +51,7 @@ class TimelineMain(renderers.TemplateRenderer):
   """
 
   layout_template = renderers.Template("""
-<ul id='toolbar_{{id|escape}}' class="breadcrumb"></ul>
+<div id='toolbar_{{id|escape}}' class="navbar navbar-default"></div>
 <div id='{{unique|escape}}' class="fill-parent no-margins toolbar-margin"></div>
 """)
 
@@ -88,23 +88,40 @@ class TimelineToolbar(renderers.TemplateRenderer):
   """
 
   layout_template = renderers.Template("""
+<div class="navbar-inner">
+
+<ul class="nav navbar-nav pull-left">
 <li>
-  <button id='export_{{unique|escape}}' title="Export to CSV" class="btn">
-    <img src="/static/images/stock-save.png" class="toolbar_icon" />
-  </button>
+  <div class="navbar-form">
+    <button id='export_{{unique|escape}}' title="Export to CSV"
+      class="btn btn-default">
+      <img src="/static/images/stock-save.png" class="toolbar_icon" />
+    </button>
+  </div>
 </li>
-<li class="active">
-  {{this.container|escape}}
+<li>
+  <a>{{this.container|escape}}</a>
 </li>
+</ul>
+
+<ul class="nav navbar-nav pull-right">
 <li class="toolbar-search-box">
-  <form id="form_{{unique|escape}}" name="query_form" class="form-search">
-    <div class="input-append">
-      <input type="text" id="container_query" name="query"
-        value="{{this.query|escape}}" class="input-medium search-query"></input>
-      <button type="submit" class="btn">Filter</button>
-    </div>
-  </form>
+<form id="form_{{unique|escape}}" name="query_form"
+    class="navbar-form form-search">
+
+<div class="input-group">
+<input class="form-control search-query" type="text" id="container_query"
+  name="query" value="{{this.query|escape}}" size=180></input>
+<span class="input-group-btn">
+  <button type="submit" class="btn btn-default">Filter</button>
+</span>
+</div>
+
+</form>
 </li>
+</ul>
+
+</div>
 """) + renderers.TemplateRenderer.help_template
 
   context_help_url = "user_manual.html#_timeline"
@@ -261,7 +278,7 @@ class EventSubjectView(fileview.AFF4Stats):
 
   def GetEvent(self, request):
     event_id = request.REQ.get("event")
-    if event_id is not None and event_id != "null":
+    if event_id:
       event_id = int(event_id)
       container = request.REQ.get("container")
       fd = aff4.FACTORY.Open(container, token=request.token)

@@ -44,6 +44,12 @@ class DjangoInit(registry.InitHook):
     # override every variable we need to set.
     settings.configure(**django_settings)
 
+    try:
+      # This is necessary for Django >= 1.7 but fails for 1.6 and below.
+      django.setup()
+    except AttributeError:
+      pass
+
     if settings.SECRET_KEY == "CHANGE_ME":
       msg = "Please change the secret key in the settings module."
       logging.error(msg)

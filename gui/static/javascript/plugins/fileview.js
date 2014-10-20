@@ -119,10 +119,10 @@ grr.Renderer('Toolbar', {
       });
     });
 
-    $('#recursive_refresh_dialog_' + unique).on('show', function() {
+    $('#recursive_refresh_dialog_' + unique).on('show.bs.modal', function() {
       grr.layout('RecursiveRefreshDialog', 'recursive_refresh_dialog_' + unique,
                  {aff4_path: aff4_path});
-    }).on('hidden', function() {
+    }).on('hidden.bs.modal', function() {
       $(this).html('');
     });
 
@@ -187,7 +187,7 @@ grr.Renderer('UpdateAttribute', {
 
 grr.Renderer('CertificateRenderer', {
   Layout: function(state) {
-    $('#certificate_viewer_{{unique|escape}}').click(function() {
+    $('#certificate_viewer_' + state.unique).click(function() {
       $(this).find('ins').toggleClass('ui-icon-plus ui-icon-minus');
       $(this).find('.contents').toggle();
     }).click();

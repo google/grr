@@ -54,17 +54,24 @@ parser_repack = subparsers.add_parser(
     "repack", help="Repack a zip file into an installer (Only useful when "
     "signing).")
 
-parser_repack.add_argument("--package", default=None,
-                           help="The package zip file to repack.")
+parser_repack.add_argument("--template", default=None,
+                           help="The template zip file to repack.")
 
 parser_repack.add_argument("--output", default=None,
                            help="The path to write the output installer.")
+
+parser_repack.add_argument("--debug_build", action="store_true", default=False,
+                           help="Create a debug client.")
+
+parser_repack.add_argument("-p", "--plugins", default=[], nargs="+",
+                           help="Additional python files that will be loaded "
+                           "as custom plugins.")
 
 parser_deploy = subparsers.add_parser(
     "deploy", help="Build a deployable self installer from a package.")
 
 parser_deploy.add_argument("--template", default=None,
-                           help="The template file to deploy.")
+                           help="The template zip file to deploy.")
 
 parser_deploy.add_argument("--output", default=None,
                            help="The path to write the output installer.")
@@ -154,8 +161,14 @@ def main(_):
     builder_obj.MakeExecutableTemplate()
 
   elif args.subparser_name == "repack":
+    if args.plugins:
+      config_lib.CONFIG.Set("Client.plugins", args.plugins)
+
+    if args.debug_build:
+      context += ["DebugClientBuild Context"]
+
     deployer = GetDeployer(context)
-    deployer.RepackInstaller(open(args.package, "rb").read(), args.output)
+    deployer.RepackInstaller(open(args.template, "rb").read(), args.output)
 
   elif args.subparser_name == "deploy":
     if args.plugins:

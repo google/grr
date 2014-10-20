@@ -255,32 +255,44 @@ class ContainerToolbar(renderers.TemplateRenderer):
   """
 
   layout_template = renderers.Template("""
+<div class="navbar-inner">
+
+<ul class="nav navbar-nav pull-left">
 <li>
 <form id="csv_{{unique|escape}}" action="/render/Download/ContainerFileTable"
-   METHOD=post target='_blank'>
+   METHOD=post target='_blank' class="navbar-form">
 <input type="hidden" name='container' value='{{this.container|escape}}' />
 <input type="hidden" id="csv_query" name="query" />
 <input type="hidden" id="csv_reason" name="reason" />
 <input type="hidden" id="csrfmiddlewaretoken" name="csrfmiddlewaretoken" />
-<button id='export' title="Export to CSV" class="btn">
+<button id='export' title="Export to CSV" class="btn btn-default">
 <img src="/static/images/stock-save.png" class="toolbar_icon" />
 </button>
 </form>
 </li>
-<li class="active">
-{{this.container|escape}}
+<li>
+<a>{{this.container|escape}}</a>
 </li>
+</ul>
 
+<ul class="nav navbar-nav pull-right">
 <li class="toolbar-search-box">
-<form id="form_{{unique|escape}}" name="query_form" class="form-search">
-<div class="input-append">
+<form id="form_{{unique|escape}}" name="query_form"
+    class="navbar-form form-search">
 
-<input class="input-medium search-query" type="text" id="query" name="query"
+<div class="input-group">
+<input class="form-control search-query" type="text" id="query" name="query"
   value="{{this.query|escape}}" size=180></input>
-<button type="submit" class="btn">Query</button>
+<span class="input-group-btn">
+  <button type="submit" class="btn btn-default">Query</button>
+</span>
 </div>
+
 </form>
 </li>
+</ul>
+
+</div>
 """)
 
   def Layout(self, request, response):
@@ -296,7 +308,7 @@ class ContainerViewer(renderers.TemplateRenderer):
   """This is the main view to browse files."""
 
   layout_template = renderers.Template("""
-<div id='toolbar_{{id|escape}}' class="breadcrumb"></div>
+<div id='toolbar_{{id|escape}}' class="navbar navbar-default"></div>
 <div id='{{unique|escape}}' class="fill-parent no-margins toolbar-margin"></div>
 """)
 

@@ -402,7 +402,16 @@ class WindowsClientDeployer(ClientDeployer):
     return self.RepackInstaller(zip_data.getvalue(), output_path)
 
   def RepackInstaller(self, payload_data, output_path=None):
-    """Repack the installer into the payload."""
+    """Repack the installer into the payload.
+
+    Args:
+      payload_data: data payload for zip file
+      output_path: filename for the zip output
+    Raises:
+      RuntimeError: if the ClientBuilder.unzipsfx_stub doesn't require admin.
+    Returns:
+      output_path: filename string of zip output file
+    """
     if output_path is None:
       output_path = config_lib.CONFIG.Get("ClientBuilder.output_path",
                                           context=self.context)
@@ -414,16 +423,20 @@ class WindowsClientDeployer(ClientDeployer):
     output_zip = zipfile.ZipFile(
         zip_data, mode="w", compression=zipfile.ZIP_DEFLATED)
 
+    config_file_name = config_lib.CONFIG.Get("ClientBuilder.config_filename",
+                                             context=context)
     # Copy the rest of the files from the package to the new zip.
     for template_file in src_zip.namelist():
-      CopyFileInZip(src_zip, template_file, output_zip)
+      if template_file != config_file_name:
+        # Avoid writing the config file twice if we're repacking a binary that
+        # has already been run through deployment. We write it in the next step,
+        # so no need to copy over from the original here.
+        CopyFileInZip(src_zip, template_file, output_zip)
 
     client_config_content = self.GetClientConfig(context)
 
-    output_zip.writestr(
-        config_lib.CONFIG.Get(
-            "ClientBuilder.config_filename", context=context),
-        client_config_content, compress_type=zipfile.ZIP_STORED)
+    output_zip.writestr(config_file_name,
+                        client_config_content, compress_type=zipfile.ZIP_STORED)
 
     # The zip file comment is used by the self extractor to run
     # the installation script

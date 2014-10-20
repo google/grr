@@ -600,6 +600,13 @@ class PackedVersionedCollection(RDFValueCollection):
         "Len called on a PackedVersionedCollection, this will not work.")
 
   def __nonzero__(self):
-    raise AttributeError(
-        "__nonzero__ called on a PackedVersionedCollection, this will not "
-        "work.")
+    if "r" not in self.mode:
+      raise AttributeError(
+          "Cannot determine collection length in write only mode.")
+
+    # This checks if there is data in the stream.
+    if super(PackedVersionedCollection, self).__nonzero__():
+      return True
+
+    # if there is not, we might have some uncompacted data.
+    return self.IsAttributeSet(self.Schema.DATA)

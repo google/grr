@@ -11,7 +11,7 @@ grr.Renderer('ConfigFileTableToolbar', {
                           '/render/Download/DownloadView');
     }, 'toolbar_' + unique);
 
-    $('#upload_dialog_' + unique).on('show', function() {
+    $('#upload_dialog_' + unique).on('show.bs.modal', function() {
       grr.layout('ConfigBinaryUploadView',
                  'upload_dialog_body_' + unique);
     });
