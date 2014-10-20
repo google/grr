@@ -631,12 +631,7 @@ class LinuxClientDeployer(ClientDeployer):
 
       os.chdir(template_dir)
       command = [buildpackage_binary, "-d", "-b", "-a%s" % arch]
-      try:
-        subprocess.check_output(command, stderr=subprocess.STDOUT)
-      except subprocess.CalledProcessError as e:
-        if "Failed to sign" not in e.output:
-          logging.error("Error calling %s.", command)
-          logging.error(e.output)
+
       try:
         subprocess.check_output(command, stderr=subprocess.STDOUT)
       except subprocess.CalledProcessError as e:
@@ -693,7 +688,7 @@ class CentosClientDeployer(LinuxClientDeployer):
 
       # Set up a RPM building environment.
 
-      rpm_root_dir = os.path.join(tmp_dir,"rpmbuild")
+      rpm_root_dir = os.path.join(tmp_dir, "rpmbuild")
 
       rpm_build_dir = os.path.join(rpm_root_dir, "BUILD")
       self.EnsureDirExists(rpm_build_dir)
