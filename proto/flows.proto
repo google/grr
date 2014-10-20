@@ -1516,9 +1516,6 @@ message FileReference {
     }];
 }
 
-message Bit9DownloaderArgs {
-  repeated FileReference files = 1;
-}
 
 message RegistryFinderCondition {
   enum Type {
