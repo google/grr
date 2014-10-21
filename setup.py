@@ -137,7 +137,8 @@ grr_artifact_files = ("grr",
 grr_gui_data_files = ("grr.gui",
                       ["static", "templates"],
                       ["*.css", "*.js", "*.gif", "*.html",
-                       "*.jpg", "*.MF", "*.png", "*.ico"])
+                       "*.jpg", "*.MF", "*.png", "*.ico",
+                       "*.eot", "*.ttf", "*.svg", "*.woff"])
 
 grr_config_defs = ("grr.config",
                    ["local"],
