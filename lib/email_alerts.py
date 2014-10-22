@@ -52,7 +52,7 @@ def SendEmail(to_addresses, from_address, subject, message, attachments=None,
     s = smtplib.SMTP(config_lib.CONFIG["Worker.smtp_server"],
                      int(config_lib.CONFIG["Worker.smtp_port"]))
     s.ehlo()
-    if config_lib.CONFIG["Worker.smtp_starttls"] == True:
+    if config_lib.CONFIG["Worker.smtp_starttls"]:
       s.starttls()
       s.ehlo()
     if (config_lib.CONFIG["Worker.smtp_user"] and
