@@ -51,6 +51,14 @@ def SendEmail(to_addresses, from_address, subject, message, attachments=None,
   try:
     s = smtplib.SMTP(config_lib.CONFIG["Worker.smtp_server"],
                      int(config_lib.CONFIG["Worker.smtp_port"]))
+    s.ehlo()
+    if config_lib.CONFIG["Worker.smtp_starttls"]:
+      s.starttls()
+      s.ehlo()
+    if (config_lib.CONFIG["Worker.smtp_user"] and
+        config_lib.CONFIG["Worker.smtp_password"]):
+      s.login(config_lib.CONFIG["Worker.smtp_user"], 
+              config_lib.CONFIG["Worker.smtp_password"])
     s.sendmail(from_address, [to_addresses], msg.as_string())
     s.quit()
   except (socket.error, smtplib.SMTPException) as e:
@@ -58,5 +66,3 @@ def SendEmail(to_addresses, from_address, subject, message, attachments=None,
                        "check config option Worker.smtp_server. Currently set "
                        "to %s. Error: %s" %
                        (config_lib.CONFIG["Worker.smtp_server"], e))
-
-

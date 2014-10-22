@@ -60,7 +60,8 @@ been changed from the default settings.</p>
 <table>
 """)
 
-  redacted_options = ["AdminUI.django_secret_key", "Mysql.database_password"]
+  redacted_options = ["AdminUI.django_secret_key", "Mysql.database_password",
+                      "Worker.smtp_password"]
   redacted_sections = ["PrivateKeys", "Users"]
 
   def ListParametersInSection(self, section):
