@@ -814,8 +814,13 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
       self.assertTrue("UnauthorizedAccess" not in e.backtrace)
 
 
-def main(args):
-  test_lib.main(args)
+class TestLoader(test_lib.GRRTestLoader):
+  base_class = StandardHuntTest
+
+
+def main(argv):
+  test_lib.GrrTestProgram(argv=argv, testLoader=TestLoader())
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

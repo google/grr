@@ -2,7 +2,12 @@
 """Tests for Windows Volume Shadow Copy flow."""
 import stat
 
+# pylint: disable=unused-import, g-bad-import-order
+from grr.lib import server_plugins
+# pylint: enable=unused-import, g-bad-import-order
+
 from grr.lib import aff4
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 
@@ -96,3 +101,15 @@ class TestListVolumeShadowCopies(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(children), 10)
     self.assertEqual([x.Basename() for x in sorted(children)],
                      ["file %s" % i for i in range(10)])
+
+
+class FlowTestLoader(test_lib.GRRTestLoader):
+  base_class = TestListVolumeShadowCopies
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+
+if __name__ == "__main__":
+  flags.StartMain(main)

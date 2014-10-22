@@ -1204,8 +1204,9 @@ message UpdateVFSFileArgs {
     }];
 
   optional string attribute = 2 [(sem_type) = {
-      description: "Attribute to update.",
-    }, default="aff4:contains"];
+      description: "Attribute to update, given as the attribute name "
+      "on the schema class.",
+    }, default="CONTAINS"];
 }
 
 message MultiGetFileArgs {

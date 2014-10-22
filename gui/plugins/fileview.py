@@ -827,8 +827,7 @@ class UpdateAttribute(renderers.TemplateRenderer):
     self.aff4_path = request.REQ.get("aff4_path")
     self.flow_urn = request.REQ.get("flow_urn")
     # Refresh the contains attribute
-    self.attribute_to_refresh = request.REQ.get(
-        "attribute", str(aff4.AFF4Volume.SchemaCls.CONTAINS))
+    self.attribute_to_refresh = request.REQ.get("attribute", "CONTAINS")
 
   def Layout(self, request, response):
     """Render the toolbar."""

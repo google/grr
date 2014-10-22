@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc. All Rights Reserved.
-
 """Some multiclient flows aka hunts."""
 
 
@@ -34,7 +32,7 @@ class CreateGenericHuntFlowArgs(rdfvalue.RDFProtoStruct):
 
 
 class CreateGenericHuntFlow(flow.GRRFlow):
-  """Create and run GenericHunt with given name, args and rules.
+  """Create but don't run a GenericHunt with the given name, args and rules.
 
   As direct write access to the data store is forbidden, we have to use flows to
   perform any kind of modifications. This flow delegates ACL checks to
@@ -57,6 +55,32 @@ class CreateGenericHuntFlow(flow.GRRFlow):
 
       # Nothing really to do here - hunts are always created in the paused
       # state.
+      self.Log("User %s created a new %s hunt",
+               self.token.username, hunt.state.args.flow_runner_args.flow_name)
+
+
+class CreateAndRunGenericHuntFlow(flow.GRRFlow):
+  """Create and run a GenericHunt with the given name, args and rules.
+
+  This flow is different to the CreateGenericHuntFlow in that it
+  immediately runs the hunt it created. This functionality cannot be
+  offered in a SUID flow or every user could run any flow on any
+  client without approval by just running a hunt on just that single
+  client. Thus, this flow must *not* be SUID.
+  """
+
+  args_type = CreateGenericHuntFlowArgs
+
+  @flow.StateHandler()
+  def Start(self):
+    """Create the hunt and run it."""
+    with implementation.GRRHunt.StartHunt(
+        runner_args=self.args.hunt_runner_args,
+        args=self.args.hunt_args,
+        token=self.token) as hunt:
+
+      hunt.Run()
+
       self.Log("User %s created a new %s hunt",
                self.token.username, hunt.state.args.flow_runner_args.flow_name)
 

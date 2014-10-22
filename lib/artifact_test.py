@@ -34,33 +34,6 @@ from grr.lib import utils
 # pylint: mode=test
 
 
-class GRRArtifactTest(test_lib.GRRBaseTest):
-
-  def testRDFMaps(self):
-    """Validate the RDFMaps."""
-    for rdf_name, dat in artifact.GRRArtifactMappings.rdf_map.items():
-      # "info/software", "InstalledSoftwarePackages", "INSTALLED_PACKAGES",
-      # "Append"
-      _, aff4_type, aff4_attribute, operator = dat
-
-      if operator not in ["Set", "Append"]:
-        raise artifact_lib.ArtifactDefinitionError(
-            "Bad RDFMapping, unknown operator %s in %s" %
-            (operator, rdf_name))
-
-      if aff4_type not in aff4.AFF4Object.classes:
-        raise artifact_lib.ArtifactDefinitionError(
-            "Bad RDFMapping, invalid AFF4 Object %s in %s" %
-            (aff4_type, rdf_name))
-
-      attr = getattr(aff4.AFF4Object.classes[aff4_type].SchemaCls,
-                     aff4_attribute)()
-      if not isinstance(attr, rdfvalue.RDFValue):
-        raise artifact_lib.ArtifactDefinitionError(
-            "Bad RDFMapping, bad attribute %s for %s" %
-            (aff4_attribute, rdf_name))
-
-
 WMI_SAMPLE = [
     rdfvalue.Dict({u"Version": u"65.61.49216", u"InstallDate2": u"",
                    u"Name": u"Google Chrome", u"Vendor": u"Google, Inc.",
@@ -126,8 +99,14 @@ class RekallMock(action_mocks.MemoryClientMock):
     return [result, rdfvalue.Iterator(state="FINISHED")]
 
 
-class ArtifactTestHelper(test_lib.FlowTestsBaseclass):
+class ArtifactTest(test_lib.GRRBaseTest):
   """Helper class for tests using artifacts."""
+
+  def setUp(self):
+    super(ArtifactTest, self).setUp()
+    self.client_id = self.SetupClients(1)[0]
+
+    self.client_id = self.SetupClients(1)[0]
 
   @classmethod
   def LoadTestArtifacts(cls):
@@ -197,7 +176,34 @@ class ArtifactTestHelper(test_lib.FlowTestsBaseclass):
                              token=self.token)
 
 
-class ArtifactFlowTest(ArtifactTestHelper):
+class GRRArtifactTest(ArtifactTest):
+
+  def testRDFMaps(self):
+    """Validate the RDFMaps."""
+    for rdf_name, dat in artifact.GRRArtifactMappings.rdf_map.items():
+      # "info/software", "InstalledSoftwarePackages", "INSTALLED_PACKAGES",
+      # "Append"
+      _, aff4_type, aff4_attribute, operator = dat
+
+      if operator not in ["Set", "Append"]:
+        raise artifact_lib.ArtifactDefinitionError(
+            "Bad RDFMapping, unknown operator %s in %s" %
+            (operator, rdf_name))
+
+      if aff4_type not in aff4.AFF4Object.classes:
+        raise artifact_lib.ArtifactDefinitionError(
+            "Bad RDFMapping, invalid AFF4 Object %s in %s" %
+            (aff4_type, rdf_name))
+
+      attr = getattr(aff4.AFF4Object.classes[aff4_type].SchemaCls,
+                     aff4_attribute)()
+      if not isinstance(attr, rdfvalue.RDFValue):
+        raise artifact_lib.ArtifactDefinitionError(
+            "Bad RDFMapping, bad attribute %s for %s" %
+            (aff4_attribute, rdf_name))
+
+
+class ArtifactFlowTest(ArtifactTest):
 
   def setUp(self):
     """Make sure things are initialized."""
@@ -366,7 +372,7 @@ class ArtifactFlowTest(ArtifactTestHelper):
       raise RuntimeError("0 responses should have been returned")
 
 
-class GrrKbTest(ArtifactTestHelper):
+class GrrKbTest(ArtifactTest):
 
   def SetupWindowsMocks(self):
     test_lib.ClientFixture(self.client_id, token=self.token)
@@ -660,8 +666,13 @@ class GrrKbTest(ArtifactTestHelper):
                              "DepsWindirRegex"])
 
 
+class FlowTestLoader(test_lib.GRRTestLoader):
+  base_class = ArtifactTest
+
+
 def main(argv):
-  test_lib.main(argv)
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
 
 if __name__ == "__main__":
   flags.StartMain(main)

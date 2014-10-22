@@ -14,7 +14,7 @@ class TestArtifactRender(test_lib.GRRSeleniumTest):
 
   def setUp(self):
     super(TestArtifactRender, self).setUp()
-    artifact_test.ArtifactTestHelper.LoadTestArtifacts()
+    artifact_test.ArtifactTest.LoadTestArtifacts()
 
   def testArtifactRendering(self):
     self.Open("/")

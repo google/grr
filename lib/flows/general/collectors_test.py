@@ -11,6 +11,7 @@ from grr.lib import aff4
 from grr.lib import artifact
 from grr.lib import artifact_lib
 from grr.lib import artifact_test
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
@@ -21,7 +22,11 @@ from grr.test_data import client_fixture
 # pylint: mode=test
 
 
-class TestArtifactCollectors(artifact_test.ArtifactTestHelper):
+class CollectorTest(artifact_test.ArtifactTest):
+  pass
+
+
+class TestArtifactCollectors(CollectorTest):
   """Test the artifact collection mechanism with fake artifacts."""
 
   def setUp(self):
@@ -283,8 +288,7 @@ class TestArtifactCollectors(artifact_test.ArtifactTestHelper):
     return fd
 
 
-class TestArtifactCollectorsInteractions(
-    artifact_test.ArtifactTestHelper):
+class TestArtifactCollectorsInteractions(CollectorTest):
   """Test the collection of artifacts.
 
   This class loads both real and test artifacts to test the interaction of badly
@@ -355,7 +359,7 @@ class TestArtifactCollectorsInteractions(
       self.assertFalse(getfile_instrument.args)
 
 
-class TestArtifactCollectorsRealArtifacts(artifact_test.ArtifactTestHelper):
+class TestArtifactCollectorsRealArtifacts(CollectorTest):
   """Test the collection of real artifacts."""
 
   def _CheckDriveAndRoot(self):
@@ -481,3 +485,15 @@ class TestArtifactCollectorsRealArtifacts(artifact_test.ArtifactTestHelper):
                                token=self.token)
     self.assertEqual(len(output), 1)
     self.assertEqual(output[0], r"C:\Windows")
+
+
+class FlowTestLoader(test_lib.GRRTestLoader):
+  base_class = CollectorTest
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+
+if __name__ == "__main__":
+  flags.StartMain(main)

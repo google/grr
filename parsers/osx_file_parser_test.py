@@ -2,6 +2,7 @@
 """Tests for grr.parsers.osx_file_parser."""
 
 
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.parsers import osx_file_parser
@@ -35,3 +36,14 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
     self.assertItemsEqual([x.homedir for x in out],
                           ["/Users/user1", "/Users/user2"])
 
+
+class FlowTestLoader(test_lib.GRRTestLoader):
+  base_class = TestOSXFileParsing
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+
+if __name__ == "__main__":
+  flags.StartMain(main)

@@ -8,6 +8,7 @@ import os
 from grr.client.client_actions import standard
 from grr.lib import action_mocks
 from grr.lib import aff4
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
@@ -169,3 +170,15 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
 
     self.assertEqual(fd2.tell(), int(fd1.Get(fd1.Schema.SIZE)))
     self.CompareFDs(fd1, fd2)
+
+
+class FlowTestLoader(test_lib.GRRTestLoader):
+  base_class = TestTransfer
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+
+if __name__ == "__main__":
+  flags.StartMain(main)

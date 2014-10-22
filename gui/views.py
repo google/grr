@@ -39,7 +39,7 @@ config_lib.DEFINE_string("AdminUI.heading",
                          "Dashboard heading displayed in the Admin UI.")
 
 config_lib.DEFINE_string("AdminUI.report_url",
-                         "http://code.google.com/p/grr/issues/list",
+                         "https://github.com/google/grr/issues",
                          "URL of the 'Report a problem' link.")
 
 config_lib.DEFINE_string("AdminUI.help_url",

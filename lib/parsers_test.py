@@ -17,7 +17,7 @@ class ArtifactParserTests(test_lib.GRRBaseTest):
 
   def testValidation(self):
     """Ensure all parsers pass validation."""
-    artifact_test.ArtifactTestHelper.LoadTestArtifacts()
+    artifact_test.ArtifactTest.LoadTestArtifacts()
     for p_cls in parsers.Parser.classes:
       parser = parsers.Parser.classes[p_cls]
       parser.Validate()

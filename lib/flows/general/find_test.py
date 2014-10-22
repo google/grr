@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 
-# Copyright 2011 Google Inc. All Rights Reserved.
 """Tests for the Find flow."""
 from grr.client import vfs
 from grr.lib import action_mocks
 from grr.lib import aff4
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import type_info
@@ -169,3 +169,15 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
     fd = aff4.FACTORY.Open(self.client_id.Add(output_path),
                            token=self.token)
     self.assertEqual(len(fd), 1)
+
+
+class FlowTestLoader(test_lib.GRRTestLoader):
+  base_class = TestFindFlow
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+
+if __name__ == "__main__":
+  flags.StartMain(main)

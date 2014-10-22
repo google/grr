@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 
-# Copyright 2011 Google Inc. All Rights Reserved.
 """Tests for the Timelines flow."""
 
 from grr.client import vfs
 from grr.lib import action_mocks
 from grr.lib import aff4
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 
@@ -53,3 +53,15 @@ class TestTimelines(test_lib.FlowTestsBaseclass):
 
     # 9 files, each having mac times = 27 events.
     self.assertEqual(len(events), 27)
+
+
+class FlowTestLoader(test_lib.GRRTestLoader):
+  base_class = TestTimelines
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+
+if __name__ == "__main__":
+  flags.StartMain(main)

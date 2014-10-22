@@ -1,9 +1,14 @@
 #!/usr/bin/env python
 """Tests for grr.lib.flows.general.endtoend."""
 
+# pylint: disable=unused-import, g-bad-import-order
+from grr.lib import server_plugins
+# pylint: enable=unused-import, g-bad-import-order
+
 from grr.endtoend_tests import base
 from grr.lib import action_mocks
 from grr.lib import aff4
+from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -195,3 +200,15 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
           self.assertTrue("This should be logged" in reply.log)
 
       self.assertEqual(len(results), 1)
+
+
+class FlowTestLoader(test_lib.GRRTestLoader):
+  base_class = TestEndToEndTestFlow
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+
+if __name__ == "__main__":
+  flags.StartMain(main)

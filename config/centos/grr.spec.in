@@ -5,7 +5,7 @@ Summary: %(Client.name) Rapid Response Client
 Group: Applications/System
 License: APL2
 Source: \%{name}-\%{version}.tar.gz
-URL: http://code.google.com/p/grr/
+URL: https://github.com/google/grr
 Buildroot: /usr/local/grr_build/rpmroot
 
 # Disable binary stripping or pyinstaller files won't work.

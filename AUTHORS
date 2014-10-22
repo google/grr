@@ -1,10 +1,17 @@
 GRR Rapid Response Framework
-http://code.google.com/p/grr/
+https://github.com/google/grr
 
-Authors:
-Darren Bilby
-Germano Caronni
-Michael Cohen
-Joachim Metz
-Andreas Moser
+GRR is developed by (in alphabetical order):
 
+* Darren Bilby <darrenbilby@gmail.com>
+* Mikhail Bushkov <realbushman@gmail.com>
+* Greg Castle <github@mailgreg.com>
+* Michael Cohen <scudette@gmail.com>
+* Andreas Moser <grrrrrrrrr@surfsup.at>
+
+To reach the authors, please use the GRR development mailing
+list <grr-dev@googlegroups.com>.
+
+GRR emeriti:
+
+* Germano Caronni <caronni@gmail.com>
