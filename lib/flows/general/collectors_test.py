@@ -3,7 +3,6 @@
 
 
 import os
-import random
 
 from grr.client import vfs
 from grr.lib import action_mocks
@@ -38,6 +37,8 @@ class TestArtifactCollectors(CollectorTest):
     artifact_reg = artifact_lib.ArtifactRegistry.artifacts
     self.fakeartifact = artifact_reg["FakeArtifact"]
     self.fakeartifact2 = artifact_reg["FakeArtifact2"]
+
+    self.output_count = 0
 
     with aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw") as fd:
       fd.Set(fd.Schema.SYSTEM("Linux"))
@@ -273,7 +274,8 @@ class TestArtifactCollectors(CollectorTest):
     client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
     client.Set(client.Schema.SYSTEM("Linux"))
     client.Flush()
-    output = "test_artifact_%s" % random.randrange(1, 1000)
+    self.output_count += 1
+    output = "test_artifact_%d" % self.output_count
     for _ in test_lib.TestFlowHelper("ArtifactCollectorFlow", client_mock,
                                      artifact_list=artifact_list,
                                      token=self.token, client_id=self.client_id,

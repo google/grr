@@ -164,12 +164,10 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
     if not MASTER:
       self._EmptyResponse(constants.RESPONSE_NOT_MASTER_SERVER)
       return
-    port_str = self.rfile.read(sutils.PORT_PACKER.size)
+    port_str = self.post_data[:sutils.PORT_PACKER.size]
     port = sutils.PORT_PACKER.unpack(port_str)[0]
     addr = self.client_address[0]
-    # Read authentication token.
-    token_size = int(self.headers["Content-Length"]) - sutils.PORT_PACKER.size
-    token = self.rfile.read(token_size)
+    token = self.post_data[sutils.PORT_PACKER.size:]
     if not NONCE_STORE.ValidateAuthTokenServer(token):
       self._EmptyResponse(constants.RESPONSE_SERVER_NOT_AUTHORIZED)
       return
@@ -197,9 +195,7 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
                     "is not registered yet", self.client_address)
       self._EmptyResponse(constants.RESPONSE_SERVER_NOT_REGISTERED)
       return
-    size = self.headers["Content-Length"]
-    data = self.rfile.read(int(size))
-    state = rdfvalue.DataServerState(data)
+    state = rdfvalue.DataServerState(self.post_data)
     self.data_server.UpdateState(state)
     logging.info("Received new state from server %s", self.client_address)
     # Response with our mapping.
@@ -237,9 +233,7 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
     sock.setblocking(1)
 
     # But first we need to validate the client by reading the token.
-    size = int(self.headers["Content-Length"])
-    token = self.rfile.read(size)
-    perms = NONCE_STORE.ValidateAuthTokenClient(token)
+    perms = NONCE_STORE.ValidateAuthTokenClient(self.post_data)
     if not perms:
       sock.sendall("IP\n")
       sock.close()
@@ -304,8 +298,7 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
     if MASTER.IsRebalancing():
       self._EmptyResponse(constants.RESPONSE_MASTER_IS_REBALANCING)
       return
-    size = int(self.headers["Content-Length"])
-    new_mapping = rdfvalue.DataServerMapping(self.rfile.read(size))
+    new_mapping = rdfvalue.DataServerMapping(self.post_data)
     rebalance_id = str(uuid.uuid4())
     reb = rdfvalue.DataServerRebalance(id=rebalance_id,
                                        mapping=new_mapping)
@@ -323,8 +316,7 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
 
   def HandleRebalanceStatistics(self):
     """Call data server to count how much data needs to move in rebalancing."""
-    size = int(self.headers["Content-Length"])
-    reb = rdfvalue.DataServerRebalance(self.rfile.read(size))
+    reb = rdfvalue.DataServerRebalance(self.post_data)
     mapping = reb.mapping
     index = 0
     if not MASTER:
@@ -335,8 +327,7 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
     self._Response(constants.RESPONSE_OK, body)
 
   def HandleRebalanceCopy(self):
-    size = self.headers["Content-Length"]
-    reb = rdfvalue.DataServerRebalance(self.rfile.read(int(size)))
+    reb = rdfvalue.DataServerRebalance(self.post_data)
     index = 0
     if not MASTER:
       index = DATA_SERVER.Index()
@@ -353,8 +344,7 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
     if not MASTER:
       self._EmptyResponse(constants.RESPONSE_NOT_MASTER_SERVER)
       return
-    size = int(self.headers["Content-Length"])
-    reb = rdfvalue.DataServerRebalance(self.rfile.read(size))
+    reb = rdfvalue.DataServerRebalance(self.post_data)
     current = MASTER.IsRebalancing()
     if not current or current.id != reb.id:
       # Not the same ID.
@@ -370,8 +360,7 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
     if not MASTER:
       self._EmptyResponse(constants.RESPONSE_NOT_MASTER_SERVER)
       return
-    size = int(self.headers["Content-Length"])
-    reb = rdfvalue.DataServerRebalance(self.rfile.read(size))
+    reb = rdfvalue.DataServerRebalance(self.post_data)
     current = MASTER.IsRebalancing()
     if not current or current.id != reb.id:
       # Not the same ID.
@@ -385,8 +374,7 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
 
   def HandleRebalancePerform(self):
     """Call data server to perform rebalance transaction."""
-    size = int(self.headers["Content-Length"])
-    reb = rdfvalue.DataServerRebalance(self.rfile.read(size))
+    reb = rdfvalue.DataServerRebalance(self.post_data)
     if not rebalance.MoveFiles(reb, MASTER):
       logging.critical("Failed to perform transaction %s", reb.id)
       self._EmptyResponse(constants.RESPONSE_FILES_NOT_MOVED)
@@ -408,8 +396,7 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
     """Call master to recover rebalance transaction."""
     if not MASTER:
       return self._EmptyResponse(constants.RESPONSE_NOT_MASTER_SERVER)
-    size = self.headers["Content-Length"]
-    transid = self.rfile.read(int(size))
+    transid = self.post_data
     logging.info("Attempting to recover transaction %s", transid)
     reb = rebalance.GetCommitInformation(transid)
     if not reb:
@@ -422,10 +409,13 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
     self._Response(constants.RESPONSE_OK, body)
 
   def _UnpackNewServer(self):
-    addrlen_str = self.rfile.read(sutils.SIZE_PACKER.size)
+    data = self.post_data
+    addrlen_str = data[:sutils.SIZE_PACKER.size]
+    data = data[sutils.SIZE_PACKER.size:]
     addrlen = sutils.SIZE_PACKER.unpack(addrlen_str)[0]
-    addr = self.rfile.read(addrlen)
-    port_str = self.rfile.read(sutils.PORT_PACKER.size)
+    addr = data[:addrlen]
+    data = data[addrlen:]
+    port_str = data[:sutils.PORT_PACKER.size]
     port = sutils.PORT_PACKER.unpack(port_str)[0]
     return (addr, port)
 
@@ -446,8 +436,7 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
     """Master wants to send the mapping to us."""
     if MASTER:
       return self._EmptyResponse(constants.RESPONSE_IS_MASTER_SERVER)
-    size = self.headers["Content-Length"]
-    body = self.rfile.read(int(size))
+    body = self.post_data
     mapping = rdfvalue.DataServerMapping(body)
     DATA_SERVER.SetMapping(mapping)
     # Return state server back.
@@ -525,11 +514,22 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
       return self._EmptyResponse(constants.RESPONSE_INCOMPLETE_SYNC)
 
   def do_POST(self):  # pylint: disable=invalid-name
+    self.post_data = None
+
     fun = HTTP_TABLE.get(self.path)
     if fun:
+      size = self.headers.get("Content-Length")
+      if size:
+        self.post_data = self.rfile.read(int(size))
       fun(self)
     else:
-      return self._EmptyResponse(constants.RESPONSE_NOT_FOUND)
+      fun = STREAMING_TABLE.get(self.path)
+      if fun:
+        # Streaming services use the rfile directly, possibly receiving large
+        # amounts of data, so we can't cache the post_data here.
+        fun(self)
+      else:
+        return self._EmptyResponse(constants.RESPONSE_NOT_FOUND)
 
   def finish(self):
     BaseHTTPRequestHandler.finish(self)
@@ -550,30 +550,33 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
 
 
 # Table for HTTP requests.
-HTTP_TABLE = {"/manage": DataServerHandler.HandleManager,
-              "/server/handshake": DataServerHandler.HandleServerHandshake,
-              "/server/register": DataServerHandler.HandleRegister,
-              "/server/state": DataServerHandler.HandleState,
-              "/server/mapping": DataServerHandler.HandleMapping,
-              "/client/start": DataServerHandler.HandleDataStoreService,
-              "/client/handshake": DataServerHandler.HandleClientHandshake,
-              "/client/mapping": DataServerHandler.HandleMapping,
-              "/rebalance/phase1": DataServerHandler.HandleRebalancePhase1,
-              "/rebalance/phase2": DataServerHandler.HandleRebalancePhase2,
-              "/rebalance/statistics":
-              DataServerHandler.HandleRebalanceStatistics,
-              "/rebalance/copy": DataServerHandler.HandleRebalanceCopy,
-              "/rebalance/copy-file":
-              DataServerHandler.HandleRebalanceCopyFile,
-              "/rebalance/commit": DataServerHandler.HandleRebalanceCommit,
-              "/rebalance/perform": DataServerHandler.HandleRebalancePerform,
-              "/rebalance/recover": DataServerHandler.HandleRebalanceRecover,
-              "/servers/add/check": DataServerHandler.HandleServerAddCheck,
-              "/servers/add": DataServerHandler.HandleServerAdd,
-              "/servers/rem/check": DataServerHandler.HandleServerRemCheck,
-              "/servers/rem": DataServerHandler.HandleServerRem,
-              "/servers/sync": DataServerHandler.HandleServerSync,
-              "/servers/sync-all": DataServerHandler.HandleServerSyncAll}
+HTTP_TABLE = {
+    "/manage": DataServerHandler.HandleManager,
+    "/server/handshake": DataServerHandler.HandleServerHandshake,
+    "/server/register": DataServerHandler.HandleRegister,
+    "/server/state": DataServerHandler.HandleState,
+    "/server/mapping": DataServerHandler.HandleMapping,
+    "/client/start": DataServerHandler.HandleDataStoreService,
+    "/client/handshake": DataServerHandler.HandleClientHandshake,
+    "/client/mapping": DataServerHandler.HandleMapping,
+    "/rebalance/phase1": DataServerHandler.HandleRebalancePhase1,
+    "/rebalance/phase2": DataServerHandler.HandleRebalancePhase2,
+    "/rebalance/statistics": DataServerHandler.HandleRebalanceStatistics,
+    "/rebalance/copy": DataServerHandler.HandleRebalanceCopy,
+    "/rebalance/commit": DataServerHandler.HandleRebalanceCommit,
+    "/rebalance/perform": DataServerHandler.HandleRebalancePerform,
+    "/rebalance/recover": DataServerHandler.HandleRebalanceRecover,
+    "/servers/add/check": DataServerHandler.HandleServerAddCheck,
+    "/servers/add": DataServerHandler.HandleServerAdd,
+    "/servers/rem/check": DataServerHandler.HandleServerRemCheck,
+    "/servers/rem": DataServerHandler.HandleServerRem,
+    "/servers/sync": DataServerHandler.HandleServerSync,
+    "/servers/sync-all": DataServerHandler.HandleServerSyncAll
+    }
+
+STREAMING_TABLE = {
+    "/rebalance/copy-file": DataServerHandler.HandleRebalanceCopyFile,
+    }
 
 
 class ThreadedHTTPServer(SocketServer.ThreadingMixIn, HTTPServer):
@@ -686,7 +689,7 @@ class StandardDataServer(object):
       mapping = rdfvalue.DataServerMapping(res.data)
       SERVICE.SaveServerMapping(mapping)
       return True
-    except urllib3.exceptions.MaxRetryError:
+    except (urllib3.exceptions.MaxRetryError, errors.DataServerError):
       logging.warning("Could not send statistics to data master.")
       return False
 
@@ -831,4 +834,3 @@ def main(unused_argv):
 
 if __name__ == "__main__":
   flags.StartMain(main)
-

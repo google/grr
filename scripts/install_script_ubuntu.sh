@@ -124,7 +124,7 @@ run_cmd_confirm tar zxfv ${DEB_DEPENDENCIES_TARBALL};
 run_cmd_confirm sudo dpkg -i ${DEB_DEPENDENCIES_DIR}/${M2CRYPTO_DEB};
 
 header "Installing Protobuf"
-run_cmd_confirm sudo apt-get --yes --force-yes install libprotobuf-dev python-protobuf;
+run_cmd_confirm sudo apt-get --yes --force-yes install libprotobuf-dev python-protobuf protobuf-compiler libprotobuf-dev;
 
 header "Installing Sleuthkit and Pytsk"
 run_cmd_confirm sudo apt-get --yes remove libtsk3* sleuthkit
@@ -135,7 +135,34 @@ run_cmd_confirm sudo apt-get --yes --force-yes install mongodb python-pymongo;
 sudo service mongodb start 2>/dev/null
 
 header "Installing Rekall"
-run_cmd_confirm sudo pip install rekall --upgrade --pre
+# This needs to be broken out because we expect errors sometimes and have to
+# retry without --pre.
+INSTALL_REKALL=0
+if [ ${ALL_YES} = 0 ]; then
+  echo ""
+  read -p "Run sudo pip install rekall --upgrade --pre [Y/n/a]? " REPLY
+  case $REPLY in
+    y|Y|'') INSTALL_REKALL=1;;
+    a|A) echo "Answering yes from now on"; ALL_YES=1; INSTALL_REKALL=1;;
+  esac
+else
+  INSTALL_REKALL=1
+fi
+
+if [ ${INSTALL_REKALL} = 1 ]; then
+  sudo pip install rekall --upgrade --pre
+  RETVAL=$?
+  if [ $RETVAL -ne 0 ]; then
+    # One reason for failure here might be that the --pre flag is not
+    # available because the pip version is too old. In that case we
+    # retry without --pre: https://github.com/google/grr/issues/36
+    sudo pip install rekall --upgrade
+    RETVAL=$?
+    if [ $RETVAL -ne 0 ]; then
+      exit_fail sudo pip install rekall --upgrade --pre;
+    fi
+  fi
+fi
 
 header "Installing psutil via pip"
 run_cmd_confirm sudo apt-get --yes remove python-psutil;

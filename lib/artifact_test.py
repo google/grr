@@ -80,6 +80,18 @@ class TestCmdProcessor(parsers.CommandParser):
                            symptom="could not parse gremlins.")
 
 
+class MultiProvideParser(parsers.RegistryValueParser):
+
+  output_types = ["Dict"]
+  supported_artifacts = ["DepsProvidesMultiple"]
+
+  def Parse(self, stat, knowledge_base):
+    _ = stat, knowledge_base
+    test_dict = {"environ_temp": rdfvalue.RDFString("tempvalue"),
+                 "environ_path": rdfvalue.RDFString("pathvalue")}
+    yield rdfvalue.Dict(test_dict)
+
+
 class RekallMock(action_mocks.MemoryClientMock):
 
   def __init__(self, client_id, result_filename):
@@ -414,6 +426,30 @@ class GrrKbTest(ArtifactTest):
     user = kb.GetUser(username="jim")
     self.assertEqual(user.username, "jim")
     self.assertEqual(user.sid, "S-1-5-21-702227068-2140022151-3110739409-1000")
+
+  def testKnowledgeBaseMultiProvides(self):
+    """Check we can handle multi-provides."""
+    self.SetupWindowsMocks()
+    # Replace some artifacts with test one that will run the MultiProvideParser.
+    self.LoadTestArtifacts()
+    artifacts = config_lib.CONFIG["Artifacts.knowledge_base"]
+    artifacts.append("DepsProvidesMultiple")  # Our test artifact.
+    artifacts.remove("WinPathEnvironmentVariable")
+    artifacts.remove("TempEnvironmentVariable")
+    config_lib.CONFIG.Set("Artifacts.knowledge_base", artifacts)
+    client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
+                                          "HashBuffer", "ListDirectory",
+                                          "FingerprintFile")
+    for _ in test_lib.TestFlowHelper(
+        "KnowledgeBaseInitializationFlow", client_mock,
+        client_id=self.client_id, token=self.token):
+      pass
+
+    # The client should now be populated with the data we care about.
+    client = aff4.FACTORY.Open(self.client_id, token=self.token)
+    kb = artifact.GetArtifactKnowledgeBase(client)
+    self.assertEqual(kb.environ_temp, "tempvalue")
+    self.assertEqual(kb.environ_path, "pathvalue")
 
   def testKnowledgeBaseRetrievalFailures(self):
     """Test kb retrieval failure modes."""

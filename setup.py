@@ -173,10 +173,15 @@ grr_protobuf_cc = ("grr",
                    ["lib"],
                    ["protobuf.cc"])
 
+grr_data_server = ("grr.server",
+                   ["data_server"],
+                   ["*"])
+
 
 grr_all_files = [grr_artifact_files,
                  grr_client_data_files,
                  grr_client_nanny_files,
+                 grr_data_server,
                  grr_docs_files,
                  grr_gui_data_files,
                  grr_proto_defs,
