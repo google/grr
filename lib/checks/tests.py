@@ -9,4 +9,5 @@ This module loads and registers all the check tests.
 
 from grr.lib.checks import checks_test
 from grr.lib.checks import filters_test
+from grr.lib.checks import hints_test
 from grr.lib.checks import triggers_test

@@ -2,6 +2,7 @@
 """Registry for filters and abstract classes for basic filter functionality."""
 import collections
 import itertools
+
 import yaml
 
 import logging
@@ -18,44 +19,113 @@ class DefinitionError(Error):
   """A check was defined badly."""
 
 
+class ProcessingError(Error):
+  """A check generated bad results."""
+
+
 class Matcher(object):
   """Performs comparisons between baseline and result data."""
 
-  def __init__(self, matches):
+  def __init__(self, matches, hint):
     method_map = {"NONE": self.GotNone,
-                  "ONE": self.GotOne,
+                  "ONE": self.GotSingle,
+                  "SOME": self.GotMultiple,
                   "ANY": self.GotAny,
                   "ALL": self.GotAll}
     try:
-      self.detectors = [method_map.get(match) for match in matches]
+      self.detectors = [method_map.get(str(match)) for match in matches]
     except KeyError:
       raise DefinitionError("Match uses undefined check condition: %s" % match)
+    self.hint = hint
 
-  def Detect(self, baseline, results):
-    """Run results through detectors and return them if a detector triggers."""
+  def Detect(self, baseline, host_data):
+    """Run host_data through detectors and return them if a detector triggers.
+
+    Args:
+      baseline: The base set of rdf values used to evaluate whether an issue
+        exists.
+      host_data: The rdf values passed back by the filters.
+
+    Returns:
+      A CheckResult message containing anomalies if any detectors identified an
+      issue, None otherwise.
+    """
+    result = rdfvalue.CheckResult()
     for detector in self.detectors:
-      if detector(baseline, results):
-        pass
+      for finding in detector(baseline, host_data):
+        if finding:
+          result.ExtendAnomalies(finding)
+    if result:
+      return result
 
-  @staticmethod
-  def GotNone():
-    """No baseline data, or zero results."""
-    pass
+  def Issue(self, state, results):
+    """Collect anomalous findings into a CheckResult.
 
-  @staticmethod
-  def GotOne():
-    """Baseline data with exactly one result."""
-    pass
+    Comparisons with anomalous conditions collect anomalies into a single
+    CheckResult message. The contents of the result varies depending on whether
+    the method making the comparison is a Check, Method or Probe.
+    - Probes evaluate raw host data and generate Anomalies. These are condensed
+      into a new CheckResult.
+    - Checks and Methods evaluate the results of probes (i.e. CheckResults). If
+      there are multiple probe results, all probe anomalies are aggregated into
+      a single new CheckResult for the Check or Method.
 
-  @staticmethod
-  def GotAny():
-    """Baseline data with 1+ results."""
-    pass
+    Args:
+      state: A text description of what combination of results were anomalous
+        (e.g. some condition was missing or present.)
+      results: Anomalies or CheckResult messages.
 
-  @staticmethod
-  def GotAll():
-    """Baseline data with an equal number of baseline and result items."""
-    pass
+    Returns:
+      A CheckResult message.
+    """
+    result = rdfvalue.CheckResult()
+    anomaly = rdfvalue.Anomaly(type="ANALYSIS_ANOMALY",
+                               explanation=self.hint.Explanation(state))
+    # If there are CheckResults we're aggregating methods or probes.
+    # Merge all current results into one CheckResult.
+    # Otherwise, the results are raw host data.
+    # Generate a new CheckResult and add the specific findings.
+    if results and all(isinstance(r, rdfvalue.CheckResult) for r in results):
+      result.ExtendAnomalies(results)
+    else:
+      anomaly.finding = self.hint.Render(results)
+      result.anomaly = anomaly
+    return result
+
+  def GotNone(self, _, results):
+    """Anomaly for no results, an empty list otherwise."""
+    if not results:
+      return self.Issue("Missing attribute", [])
+    return []
+
+  def GotSingle(self, _, results):
+    """Anomaly for exactly one result, an empty list otherwise."""
+    if len(results) == 1:
+      return self.Issue("Found one", results)
+    return []
+
+  def GotMultiple(self, _, results):
+    """Anomaly for >1 result, an empty list otherwise."""
+    if len(results) > 1:
+      return self.Issue("Found multiple", results)
+    return []
+
+  def GotAny(self, _, results):
+    """Anomaly for 1+ results, an empty list otherwise."""
+    if results:
+      return self.Issue("Found", results)
+    return []
+
+  def GotAll(self, baseline, results):
+    """Anomaly if baseline vs result counts differ, an empty list otherwise."""
+    num_base = len(baseline)
+    num_rslt = len(results)
+    if num_rslt > num_base:
+      raise ProcessingError("Filter generated more results than base data: "
+                            "%s > %s" % (num_rslt, num_base))
+    if num_rslt == num_base and num_base > 0:
+      return self.Issue("Found all", results)
+    return []
 
 
 class CheckRegistry(object):
@@ -169,8 +239,64 @@ class CheckRegistry(object):
 
   @classmethod
   def Process(cls, host_data, os=None, cpe=None, labels=None):
-    """Runs checks over all host data."""
+    """Runs checks over all host data.
+
+    Args:
+      host_data: The data collected from a host, mapped to artifact name.
+      os: 0+ OS names.
+      cpe: 0+ CPE identifiers.
+      labels: 0+ GRR labels.
+
+    Yields:
+      A CheckResult message for each check that was performed.
+    """
+    # All the conditions that apply to this host.
+    artifacts = host_data.keys()
+    check_ids = cls.FindChecks(artifacts, os, cpe, labels)
+    conditions = list(cls.Conditions(artifacts, os, cpe, labels))
+    for check_id in check_ids:
+      chk = cls.checks[check_id]
+      yield chk.Parse(conditions, host_data)
+
+
+def CheckHost(host_data, os=None, cpe=None, labels=None):
+  """Perform all checks on a host using acquired artifacts.
+
+  Checks are selected based on the artifacts available and the host attributes
+  (e.g. os/cpe/labels) provided as either parameters, or in the knowledgebase
+  artifact.
+
+  A KnowledgeBase artifact should be provided that contains, at a minimum:
+  - OS
+  - Hostname or IP
+  Other knowldegebase attributes may be required for specific checks.
+
+  CPE is currently unused, pending addition of a CPE module in the GRR client.
+
+  Labels are arbitrary string labels attached to a client.
+
+  Args:
+    host_data: A dictionary with artifact names as keys, and rdf data as values.
+    os: An OS name (optional).
+    cpe: A CPE string (optional).
+    labels: An iterable of labels (optional).
+
+  Returns:
+    A CheckResults object that contains results for all checks that were
+      performed on the host.
+  """
+  # Get knowledgebase, os from hostdata
+  kb = host_data.get("KnowledgeBase")
+  if os is None:
+    os = kb.os
+  if cpe is None:
+    # TODO(user): Get CPE (requires new artifact/parser)
     pass
+  if labels is None:
+    # TODO(user): Get labels (see grr/lib/export.py for acquisition
+    # from client)
+    pass
+  return CheckRegistry.Process(host_data, os=os, cpe=cpe, labels=labels)
 
 
 def LoadConfigsFromFile(file_path):
