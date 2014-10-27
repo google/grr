@@ -1,0 +1,5 @@
+# Configuration file for grr-single-server start-up script
+
+# Start the grr-single-server
+START="no";
+

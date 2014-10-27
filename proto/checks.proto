@@ -21,6 +21,7 @@ enum Match {
   ONE = 1;   // Only one tested item matches.
   ANY = 2;   // One or more tested items match.
   ALL = 3;   // All tested items match.
+  SOME = 4;  // More than one tested item matches.
 }
 
 message Check {
@@ -148,6 +149,12 @@ message Hint {
   }];
   optional string format = 3 [(sem_type) = {
     description: "A template expression to format finding for an issue."
+  }];
+  optional string summary = 4 [(sem_type) = {
+    description: "A short name or term used to describe the type of data."
+  }];
+  optional uint64 max_results = 5 [(sem_type) = {
+    description: "Maximum number of findings to include in results."
   }];
 }
 

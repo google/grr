@@ -1,44 +1,45 @@
 check_id: 'SW-CHECK'
 match: 'ANY'
 method:
-  - match: 'NONE'
+  - match: 'ANY'
     target:
       os: ['Linux']
     hint:
-      problem: 'Found the following software'
+      problem: 'l337 software installed'
+      format: '{{ name }} {{ version }} is installed'
     probe:
       - artifact: 'SoftwarePackage'
         mode: 'PARALLEL'
-        match: 'NONE'
         filters:
           - type: 'ObjectFilter'
             expression: 'name contains "netcat"'
           - type: 'ObjectFilter'
             expression: 'name contains "ncat"'
-  - match: 'NONE'
+  - match: 'ANY'
     target:
       os: ['Windows']
     hint:
-      problem: 'Found the following software'
+      problem: 'Malicious software.'
+      format: '{{ name }} {{ version }} is installed'
     probe:
       - artifact: 'WMIInstalledSoftware'
-        mode: 'PARALLEL'
-        match: 'NONE'
         filters:
           - type: 'ObjectFilter'
-            expression: 'name contains "Google Chrome"'
+            expression: 'name contains "Java"'
+        hint:
+          problem: 'Old Java installation.'
+      - artifact: 'WMIInstalledSoftware'
         filters:
           - type: 'ObjectFilter'
-            expression: 'name contains "Microsoft Visual C++ 2005"'
-  - match: 'NONE'
+            expression: 'name contains "Adware"'
+  - match: 'ANY'
     target:
       label: ['foo']
     hint:
-      problem: 'Found the following software'
+      problem: 'Sudo not installed'
     probe:
       - artifact: 'SoftwarePackage'
-        mode: 'PARALLEL'
         match: 'NONE'
         filters:
           - type: 'ObjectFilter'
-            expression: 'name contains "ncat"'
+            expression: 'name contains "sudo"'

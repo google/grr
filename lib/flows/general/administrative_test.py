@@ -15,30 +15,19 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import email_alerts
+from grr.lib import flags
 from grr.lib import flow
 from grr.lib import maintenance_utils
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
-from grr.proto import tests_pb2
 
 
-class ClientActionRunnerArgs(rdfvalue.RDFProtoStruct):
-  protobuf = tests_pb2.ClientActionRunnerArgs
+class AdministrativeFlowTests(test_lib.FlowTestsBaseclass):
+  pass
 
 
-class ClientActionRunner(flow.GRRFlow):
-  """Just call the specified client action directly.
-  """
-  args_type = ClientActionRunnerArgs
-  action_args = {}
-
-  @flow.StateHandler(next_state="End")
-  def Start(self):
-    self.CallClient(self.args.action, next_state="End", **self.action_args)
-
-
-class TestAdministrativeFlows(test_lib.FlowTestsBaseclass):
+class TestAdministrativeFlows(AdministrativeFlowTests):
   """Tests the administrative flows."""
 
   def setUp(self):
@@ -478,7 +467,7 @@ sys.test_code_ran_here = py_args['value']
     self.assertAlmostEqual(sample.cpu_samples[1].system_cpu_time, 31.0)
 
 
-class TestApplyLabelsToClientsFlow(test_lib.FlowTestsBaseclass):
+class TestApplyLabelsToClientsFlow(AdministrativeFlowTests):
   """Tests for ApplyLabelsToClientsFlow."""
 
   def GetClientLabels(self, client_id):
@@ -598,3 +587,15 @@ class TestApplyLabelsToClientsFlow(test_lib.FlowTestsBaseclass):
       self.assertEqual(found_event.flow_name, "ApplyLabelsToClientsFlow")
       self.assertEqual(found_event.user, self.token.username)
       self.assertEqual(found_event.description, "test.drei,test.ein,test.zwei")
+
+
+class FlowTestLoader(test_lib.GRRTestLoader):
+  base_class = AdministrativeFlowTests
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+
+if __name__ == "__main__":
+  flags.StartMain(main)

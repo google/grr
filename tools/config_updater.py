@@ -105,7 +105,7 @@ def UpdateUser(username, password, add_labels=None, delete_labels=None):
   with aff4.FACTORY.Create("aff4:/users/%s" % username,
                            "GRRUser", mode="rw") as fd:
     # Note this accepts blank passwords as valid.
-    if password is None:
+    if password is not None:
       fd.SetPassword(password)
 
     # Use sets to dedup input.

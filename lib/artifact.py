@@ -283,25 +283,41 @@ class CollectArtifactDependencies(flow.GRRFlow):
           self.Log("KnowledgeBaseUser merge conflict in %s. Old value: %s, "
                    "Newly written value: %s", key, old_val, val)
 
-      elif len(artifact_obj.provides) == 1:
-        # This artifact provides a single KB attribute.
-        value = None
-        provides = artifact_obj.provides[0]
-        if isinstance(response, rdfvalue.RDFString):
-          value = str(responses.First())
-        elif artifact_obj.collectors[0].collector_type == (
-            rdfvalue.Collector.CollectorType.REGISTRY_VALUE):
-          value = responses.First().registry_data.GetValue()
-        if value:
-          logging.debug("Set KB %s to %s", provides, value)
-          self.state.knowledge_base.Set(provides, value)
-          provided.add(provides)
-        else:
-          logging.debug("Empty KB return value for %s", provides)
       else:
-        raise RuntimeError("Attempt to set a knowledge base value with "
-                           "multiple provides clauses.  This isn't supported"
-                           ": %s" % artifact_obj)
+        artifact_provides = artifact_obj.provides
+        if isinstance(response, rdfvalue.Dict):
+          # Attempting to fulfil provides with a Dict response means we are
+          # supporting multiple provides based on the keys of the dict.
+          kb_dict = response.ToDict()
+        else:
+          if len(artifact_provides) == 1:
+            # If its not a dict we only support a single value.
+            kb_dict = {artifact_provides[0]: response}
+          else:
+            raise RuntimeError("Attempt to set a knowledge base value with "
+                               "multiple provides clauses without using Dict."
+                               ": %s" % artifact_obj)
+
+        for provides, value in kb_dict.iteritems():
+          if provides not in artifact_provides:
+            raise RuntimeError("Attempt to provide knowledge base value %s "
+                               "without this being set in the artifact "
+                               "provides setting: %s" % (
+                                   provides, artifact_obj))
+
+          if isinstance(value, rdfvalue.RDFString):
+            value = utils.SmartStr(value)
+          elif artifact_obj.collectors[0].collector_type == (
+              # This is fragile due to a lack of defined RegistryValue type.
+              rdfvalue.Collector.CollectorType.REGISTRY_VALUE):
+            value = value.registry_data.GetValue()
+
+          if value:
+            logging.debug("Set KB %s to %s", provides, value)
+            self.state.knowledge_base.Set(provides, value)
+            provided.add(provides)
+          else:
+            logging.debug("Empty KB return value for %s", provides)
 
     return provided
 
@@ -357,6 +373,9 @@ class KnowledgeBaseInitializationFlow(CollectArtifactDependencies):
 
     Returns:
       set of artifact names with no dependencies that should be collected first.
+
+    Raises:
+      RuntimeError: On bad artifact configuration parameters.
     """
     kb_base_set = set(config_lib.CONFIG["Artifacts.knowledge_base"])
     kb_add = set(config_lib.CONFIG["Artifacts.knowledge_base_additions"])
@@ -365,6 +384,12 @@ class KnowledgeBaseInitializationFlow(CollectArtifactDependencies):
       kb_skip.update(
           config_lib.CONFIG["Artifacts.knowledge_base_heavyweight"])
     kb_set = kb_base_set.union(kb_add) - kb_skip
+
+    for artifact_name in kb_set:
+      if artifact_name not in artifact_lib.ArtifactRegistry.artifacts:
+        raise RuntimeError("Attempt to specify unknown artifact %s in "
+                           "artifact configuration parameters: " %
+                           artifact_name)
 
     no_deps_names = artifact_lib.ArtifactRegistry.GetArtifactNames(
         os_name=self.state.knowledge_base.os, name_list=kb_set,

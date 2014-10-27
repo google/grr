@@ -6,6 +6,7 @@
 from grr.config import aff4
 from grr.config import artifacts
 from grr.config import build
+from grr.config import checks
 from grr.config import client
 from grr.config import config
 from grr.config import data_server

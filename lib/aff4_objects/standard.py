@@ -43,7 +43,7 @@ class VFSDirectory(aff4.AFF4Volume):
     # client id is the first path element
     client_id = self.urn.Split()[0]
 
-    if attribute == self.Schema.CONTAINS:
+    if attribute == "CONTAINS":
       # Get the pathspec for this object
       flow_id = flow.GRRFlow.StartFlow(client_id=client_id,
                                        flow_name="ListDirectory",

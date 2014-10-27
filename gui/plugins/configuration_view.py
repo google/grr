@@ -60,7 +60,8 @@ been changed from the default settings.</p>
 <table>
 """)
 
-  redacted_options = ["django_secret_key"]
+  redacted_options = ["AdminUI.django_secret_key", "Mysql.database_password",
+                      "Worker.smtp_password"]
   redacted_sections = ["PrivateKeys", "Users"]
 
   def ListParametersInSection(self, section):
@@ -330,5 +331,6 @@ class ConfigurationViewInitHook(registry.InitHook):
 
   def Run(self):
     """Create the necessary directories."""
-    token = access_control.ACLToken(username="system", reason="Init").SetUID()
+    token = access_control.ACLToken(username="GRRSystem",
+                                    reason="Init").SetUID()
     maintenance_utils.CreateBinaryConfigPaths(token=token)

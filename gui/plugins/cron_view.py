@@ -334,7 +334,7 @@ class CronConfigureSchedule(renderers.TemplateRenderer):
 
   def Layout(self, request, response):
     cron_args = rdfvalue.CreateCronJobFlowArgs()
-    cron_args.flow_runner_args.flow_name = "CreateGenericHuntFlow"
+    cron_args.flow_runner_args.flow_name = "CreateAndRunGenericHuntFlow"
 
     self.cron_form = forms.SemanticProtoFormRenderer(
         cron_args, id=self.id,
@@ -345,12 +345,13 @@ class CronConfigureSchedule(renderers.TemplateRenderer):
 
 
 class CronHuntParser(new_hunt.HuntArgsParser):
+
   def ParseCronParameters(self):
     cron_parmeters = forms.SemanticProtoFormRenderer(
         rdfvalue.CreateCronJobFlowArgs(), prefix="cron").ParseArgs(
             self.request)
 
-    cron_parmeters.flow_runner_args.flow_name = "CreateGenericHuntFlow"
+    cron_parmeters.flow_runner_args.flow_name = "CreateAndRunGenericHuntFlow"
     cron_parmeters.flow_args.hunt_runner_args = self.ParseHuntRunnerArgs()
     cron_parmeters.flow_args.hunt_args = self.ParseHuntArgs()
 

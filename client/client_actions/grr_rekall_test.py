@@ -15,7 +15,7 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 
 
-class RekallTestSuite(test_lib.FlowTestsBaseclass):
+class RekallTestSuite(test_lib.EmptyActionTest):
   """A test suite for testing Rekall plugins.
 
   Note that since the Rekall plugin is a SuspendableAction it is impossible to
@@ -24,6 +24,10 @@ class RekallTestSuite(test_lib.FlowTestsBaseclass):
   tests here instead of simply a client action test (Most other client actions
   are very simple so it is possible to test them in isolation).
   """
+
+  def setUp(self):
+    super(RekallTestSuite, self).setUp()
+    self.client_id = self.SetupClients(1)[0]
 
   def CreateClient(self):
     client = aff4.FACTORY.Create(self.client_id,

@@ -377,10 +377,10 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
     self.Click("css=button.Finish")
 
     # Select newly created cron job.
-    self.Click("css=td:contains('cron/CreateGenericHuntFlow_')")
+    self.Click("css=td:contains('cron/CreateAndRunGenericHuntFlow_')")
 
     # Check that correct details are displayed in cron job details tab.
-    self.WaitUntil(self.IsTextPresent, "CreateGenericHuntFlow")
+    self.WaitUntil(self.IsTextPresent, "CreateAndRunGenericHuntFlow")
     self.WaitUntil(self.IsTextPresent, "Flow args")
 
     self.assertTrue(self.IsTextPresent("Paths"))

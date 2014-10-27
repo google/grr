@@ -6,12 +6,17 @@
 from grr.client import vfs
 from grr.lib import action_mocks
 from grr.lib import aff4
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.flows.general import transfer
 
 
-class TestRegistryFinderFlow(test_lib.FlowTestsBaseclass):
+class RegistryFlowTest(test_lib.FlowTestsBaseclass):
+  pass
+
+
+class TestRegistryFinderFlow(RegistryFlowTest):
   """Tests for the RegistryFinder flow."""
 
   def setUp(self):
@@ -266,7 +271,7 @@ class TestRegistryFinderFlow(test_lib.FlowTestsBaseclass):
     self.assertGreater(results[0].stat_entry.st_size, 50)
 
 
-class TestRegistryFlows(test_lib.FlowTestsBaseclass):
+class TestRegistryFlows(RegistryFlowTest):
   """Test the Run Key and MRU registry flows."""
 
   def testRegistryMRU(self):
@@ -343,3 +348,15 @@ class TestRegistryFlows(test_lib.FlowTestsBaseclass):
         if pathspec.path == u"C:\\Windows\\TEMP\\A.exe":
           download_requested = True
       self.assertTrue(download_requested)
+
+
+class FlowTestLoader(test_lib.GRRTestLoader):
+  base_class = RegistryFlowTest
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+
+if __name__ == "__main__":
+  flags.StartMain(main)

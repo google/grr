@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 """Implementation of check types."""
+from grr.lib import config_lib
+from grr.lib import rdfvalue
 from grr.lib.checks import checks
 from grr.lib.checks import filters
+from grr.lib.checks import hints
 from grr.lib.checks import triggers
 from grr.lib.rdfvalues import structs
 from grr.proto import checks_pb2
@@ -34,6 +37,12 @@ class CheckResult(structs.RDFProtoStruct):
 
   def __nonzero__(self):
     return bool(self.anomaly)
+
+  def ExtendAnomalies(self, other):
+    """Merge anomalies from another CheckResult."""
+    for o in other:
+      if o is not None:
+        self.anomaly.Extend(list(o.anomaly))
 
 
 class CheckResults(structs.RDFProtoStruct):
@@ -89,19 +98,21 @@ class Check(structs.RDFProtoStruct):
     super(Check, self).__init__(initializer=initializer, age=age)
     self.check_id = check_id
     self.match = MatchStrToList(match)
-    self.hint = hint
+    self.hint = Hint(hint, reformat=False)
     self.target = target
     if method is None:
       method = []
     self.triggers = triggers.Triggers()
-    self.matcher = checks.Matcher([str(x) for x in self.match])
-    for method_def in method:
+    self.matcher = checks.Matcher(self.match, self.hint)
+    for cfg in method:
       # Use the value of "target" as a default for each method, if defined.
       # Targets defined in methods or probes override this default value.
+      if hint:
+        cfg["hint"] = hints.Overlay(child=cfg.get("hint", {}), parent=hint)
       if target:
-        method_def.setdefault("target", target)
+        cfg.setdefault("target", target)
       # Create the method and add its triggers to the check.
-      m = Method(**method_def)
+      m = Method(**cfg)
       self.method.append(m)
       self.triggers.Update(m.triggers, callback=m)
     self.artifacts = set([t.artifact for t in self.triggers.conditions])
@@ -120,13 +131,37 @@ class Check(structs.RDFProtoStruct):
     """
     return self.triggers.Calls(conditions)
 
-  def UsesArtifact(self, artifact):
-    """Determines if the check uses the specified artifact."""
-    return artifact in self.artifacts
+  def UsesArtifact(self, artifacts):
+    """Determines if the check uses the specified artifact.
 
-  def Parse(self, unused_conditions, unused_host_data):
-    """Runs methods that evaluate whether collected host_data has an issue."""
-    pass
+    Args:
+      artifacts: Either a single artifact name, or a list of artifact names
+
+    Returns:
+      True if the check uses a specific artifact.
+    """
+    # If artifact is a single string, see if it is in the list of artifacts
+    # as-is. Otherwise, test whether any of the artifacts passed in to this
+    # function exist in the list of artifacts.
+    if isinstance(artifacts, basestring):
+      return artifacts in self.artifacts
+    else:
+      return any(True for artifact in artifacts if artifact in self.artifacts)
+
+  def Parse(self, conditions, host_data):
+    """Runs methods that evaluate whether collected host_data has an issue.
+
+    Args:
+      conditions: A list of conditions to determine which Methods to trigger.
+      host_data: A map of artifacts and rdf data.
+
+    Returns:
+      A CheckResult populated with Anomalies if an issue exists.
+    """
+    result = CheckResult(check_id=self.check_id)
+    methods = self.SelectChecks(conditions)
+    result.ExtendAnomalies([m.Parse(conditions, host_data) for m in methods])
+    return result
 
   def Validate(self):
     """Check the method is well constructed."""
@@ -155,12 +190,16 @@ class Method(structs.RDFProtoStruct):
     resource = conf.get("resource", {})
     hint = conf.get("hint", {})
     target = conf.get("target", {})
-    self.probe = [Probe(**c) for c in probe]
+    if hint:
+      # Add the hint to children.
+      for cfg in probe:
+        cfg["hint"] = hints.Overlay(child=cfg.get("hint", {}), parent=hint)
+    self.probe = [Probe(**cfg) for cfg in probe]
+    self.hint = Hint(hint, reformat=False)
     self.match = MatchStrToList(kwargs.get("match"))
-    self.matcher = checks.Matcher(self.match)
-    self.resource = [Probe(**r) for r in resource]
+    self.matcher = checks.Matcher(self.match, self.hint)
+    self.resource = [rdfvalue.Dict(**r) for r in resource]
     self.target = Target(**target)
-    self.hint = Hint(**hint)
     self.triggers = triggers.Triggers()
     for p in self.probe:
       # If the probe has a target, use it. Otherwise, use the method's target.
@@ -168,8 +207,26 @@ class Method(structs.RDFProtoStruct):
       self.triggers.Add(p.artifact, target, p)
 
   def Parse(self, conditions, host_data):
-    """Runs probes that evaluate whether collected data has an issue."""
-    pass
+    """Runs probes that evaluate whether collected data has an issue.
+
+    Args:
+      conditions: The trigger conditions.
+      host_data: A map of artifacts and rdf data.
+
+    Returns:
+      Anomalies if an issue exists.
+    """
+    processed = []
+    probes = self.triggers.Calls(conditions)
+    for p in probes:
+      # TODO(user): Need to use the (artifact, rdf_data tuple).
+      # Get the data required for the probe.
+      rdf_data = host_data.get(p.artifact)
+      result = p.Parse(rdf_data)
+      if result:
+        processed.append(result)
+    # Matcher compares the number of probes that triggered with results.
+    return self.matcher.Detect(probes, processed)
 
   def Validate(self):
     """Check the Method is well constructed."""
@@ -197,11 +254,31 @@ class Probe(structs.RDFProtoStruct):
       handler = filters.GetHandler()
     self.baseliner = handler(artifact=self.artifact, filters=self.baseline)
     self.handler = handler(artifact=self.artifact, filters=self.filters)
-    self.matcher = checks.Matcher(self.match)
+    hinter = Hint(conf.get("hint", {}), reformat=False)
+    self.matcher = checks.Matcher(conf["match"], hinter)
 
   def Parse(self, rdf_data):
-    """Process rdf data through filters. Test if results match expectations."""
-    pass
+    """Process rdf data through filters. Test if results match expectations.
+
+    Processing of rdf data is staged by a filter handler, which manages the
+    processing of host data. The output of the filters are compared against
+    expected results.
+
+    Args:
+      rdf_data: An iterable containing 0 or more rdf values.
+
+    Returns:
+      An anomaly if data didn't match expectations.
+
+    """
+    # TODO(user): Make sure that the filters are called on collected data.
+    if self.baseline:
+      comparison = self.baseliner.Parse(rdf_data)
+    else:
+      comparison = rdf_data
+    found = self.handler.Parse(comparison)
+    results = self.hint.Render(found)
+    return self.matcher.Detect(comparison, results)
 
   def Validate(self):
     """Check the test set is well constructed."""
@@ -261,19 +338,40 @@ class Filter(structs.RDFProtoStruct):
 
 class Hint(structs.RDFProtoStruct):
   """Human-formatted descriptions of problems, fixes and findings."""
+
   protobuf = checks_pb2.Hint
 
-  def __init__(self, initializer=None, age=None, **kwargs):
+  def __init__(self, initializer=None, age=None, reformat=True, **kwargs):
     if isinstance(initializer, dict):
       conf = initializer
+      initializer = None
     else:
       conf = kwargs
     super(Hint, self).__init__(initializer=initializer, age=age, **conf)
+    if not self.max_results:
+      self.max_results = config_lib.CONFIG.Get("Checks.max_results")
+    if reformat:
+      self.hinter = hints.Hinter(self.format)
+    else:
+      self.hinter = hints.Hinter()
 
-  def Parse(self, rdf_data):
+  def Render(self, rdf_data):
     """Processes data according to formatting rules."""
-    pass
+    report_data = rdf_data[:self.max_results]
+    results = [self.hinter.Render(rdf) for rdf in report_data]
+    extra = len(rdf_data) - len(report_data)
+    if extra > 0:
+      results.append("...plus another %d issues." % extra)
+    return results
+
+  def Explanation(self, state):
+    """Creates an anomaly explanation string."""
+    if self.problem:
+      return "%s: %s" % (state, self.problem)
 
   def Validate(self):
     """Ensures that required values are set and formatting rules compile."""
-    pass
+    # TODO(user): Default format string.
+    if self.problem:
+      pass
+

@@ -5,6 +5,7 @@ import os
 
 from grr.lib import action_mocks
 from grr.lib import aff4
+from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -148,3 +149,15 @@ class ListProcessesTest(test_lib.FlowTestsBaseclass):
     binaries = list(fd)
     self.assertEqual(len(binaries), 1)
     self.assertEqual(binaries[0].pathspec.path, process1.exe)
+
+
+class FlowTestLoader(test_lib.GRRTestLoader):
+  base_class = ListProcessesTest
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+
+if __name__ == "__main__":
+  flags.StartMain(main)

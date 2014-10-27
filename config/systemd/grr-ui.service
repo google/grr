@@ -1,0 +1,14 @@
+[Unit]
+Description=GRR AdminUI
+After=syslog.target network.target
+Environment="MPLCONFIGDIR=/var/run/grr/tmp/ui" "PYTHON_EGG_CACHE=/var/run/grr/tmp/ui"
+
+[Service]
+Type=simple
+PrivateTmp=true
+Restart=on-failure
+ExecStartPre=mkdir -p /var/log/grr;mkdir -p /var/run/grr/tmp/ui
+ExecStart=/usr/bin/grr_server --start_ui --config=/etc/grr/grr-server.yaml
+
+[Install]
+WantedBy=multi-user.target

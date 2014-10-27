@@ -4,10 +4,15 @@
 
 import time
 
+# pylint: disable=unused-import, g-bad-import-order
+from grr.lib import server_plugins
+# pylint: enable=unused-import, g-bad-import-order
+
 from grr.endtoend_tests import base
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import config_lib
+from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -249,3 +254,15 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
                       [self._CreateResult(True, "aff4:/C.6000000000000000"),
                        self._CreateResult(False, "aff4:/C.6000000000000001"),
                        self._CreateResult(False, "aff4:/C.6000000000000002")])
+
+
+class FlowTestLoader(test_lib.GRRTestLoader):
+  base_class = SystemCronFlowTest
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+
+if __name__ == "__main__":
+  flags.StartMain(main)

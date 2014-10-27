@@ -1,10 +1,10 @@
 Source: grr-server
 Section: misc
 Priority: extra
-Maintainer: Joachim Metz <joachim.metz@gmail.com>
+Maintainer: GRR developers <grr-dev@googlegroups.com>
 Build-Depends: debhelper (>= 8), python, python-setuptools
 Standards-Version: 3.8.3
-Homepage: http://code.google.com/p/grr/
+Homepage: https://github.com/google/grr
 
 Package: grr-server
 Section: python

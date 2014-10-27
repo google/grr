@@ -1,7 +1,12 @@
 #!/usr/bin/env python
 """Test the connections listing module."""
 
+# pylint: disable=unused-import, g-bad-import-order
+from grr.lib import server_plugins
+# pylint: enable=unused-import, g-bad-import-order
+
 from grr.lib import aff4
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 
@@ -13,6 +18,7 @@ class NetstatTest(test_lib.FlowTestsBaseclass):
     """Test that the Netstat flow works."""
 
     class ClientMock(object):
+
       def Netstat(self, _):
         """Returns fake connections."""
         conn1 = rdfvalue.NetworkConnection(
@@ -61,3 +67,15 @@ class NetstatTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(conns[1].local_address.ip, "192.168.1.1")
     self.assertEqual(conns[1].pid, 1)
     self.assertEqual(conns[1].remote_address.port, 6667)
+
+
+class FlowTestLoader(test_lib.GRRTestLoader):
+  base_class = NetstatTest
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+
+if __name__ == "__main__":
+  flags.StartMain(main)

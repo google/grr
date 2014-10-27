@@ -4,6 +4,7 @@
 
 
 import codecs
+import datetime
 import functools
 import itertools
 import os
@@ -83,6 +84,21 @@ class Error(Exception):
 
 class TimeoutError(Error):
   """Used when command line invocations time out."""
+
+
+class ClientActionRunnerArgs(rdfvalue.RDFProtoStruct):
+  protobuf = tests_pb2.ClientActionRunnerArgs
+
+
+class ClientActionRunner(flow.GRRFlow):
+  """Just call the specified client action directly.
+  """
+  args_type = ClientActionRunnerArgs
+  action_args = {}
+
+  @flow.StateHandler(next_state="End")
+  def Start(self):
+    self.CallClient(self.args.action, next_state="End", **self.action_args)
 
 
 class FlowWithOneClientRequest(flow.GRRFlow):
@@ -735,6 +751,40 @@ class FakeTime(object):
 
   def __exit__(self, unused_type, unused_value, unused_traceback):
     time.time = self.old_time
+
+
+class FakeDateTimeUTC(object):
+  """A context manager for faking time when using datetime.utcnow."""
+
+  def __init__(self, fake_time, increment=0):
+    self.time = fake_time
+    self.increment = increment
+
+  def __enter__(self):
+    self.old_datetime = datetime.datetime
+
+    class FakeDateTime(object):
+
+      def __init__(self, time_val, increment, orig_datetime):
+        self.time = time_val
+        self.increment = increment
+        self.orig_datetime = orig_datetime
+
+      def __getattribute__(self, name):
+        try:
+          return object.__getattribute__(self, name)
+        except AttributeError:
+          return getattr(self.orig_datetime, name)
+
+      def utcnow(self):  # pylint: disable=invalid-name
+        self.time += self.increment
+        return self.orig_datetime.utcfromtimestamp(self.time)
+
+    datetime.datetime = FakeDateTime(self.time, self.increment,
+                                     self.old_datetime)
+
+  def __exit__(self, unused_type, unused_value, unused_traceback):
+    datetime.datetime = self.old_datetime
 
 
 class Instrument(object):
@@ -1495,7 +1545,6 @@ def TestFlowHelper(flow_urn_or_cls_name, client_mock=None, client_id=None,
     The caller should iterate over the generator to get all the flows
     and subflows executed.
   """
-
   if client_id or client_mock:
     client_mock = MockClient(client_id, client_mock, token=token)
 

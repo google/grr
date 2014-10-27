@@ -5,6 +5,7 @@
 import os
 
 from grr.lib import action_mocks
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 
@@ -26,3 +27,15 @@ class TestDebugFlows(test_lib.FlowTestsBaseclass):
         action="ListDirectory", break_pdb=False,
         action_args=request, token=self.token):
       pass
+
+
+class FlowTestLoader(test_lib.GRRTestLoader):
+  base_class = TestDebugFlows
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+
+if __name__ == "__main__":
+  flags.StartMain(main)

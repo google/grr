@@ -576,7 +576,7 @@ class GRRHunt(flow.GRRFlow):
 
     # Is the required flow a known flow?
     if (runner_args.hunt_name not in cls.classes and
-        not aff4.issubclass(GRRHunt, cls.classes[runner_args.hunt_name])):
+        not aff4.issubclass(cls.classes[runner_args.hunt_name], GRRHunt)):
       raise RuntimeError("Unable to locate hunt %s" % runner_args.hunt_name)
 
     # Make a new hunt object and initialize its runner.

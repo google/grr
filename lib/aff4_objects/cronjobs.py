@@ -160,6 +160,11 @@ class SystemCronFlow(flow.GRRFlow):
 
   __abstract = True  # pylint: disable=g-bad-name
 
+  def WriteState(self):
+    if "w" in self.mode:
+      # For normal flows it's a bug to write an empty state, here it's ok.
+      self.Set(self.Schema.FLOW_STATE(self.state))
+
 
 class StateReadError(Error):
   pass

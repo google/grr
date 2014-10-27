@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 
-# Copyright 2012 Google Inc. All Rights Reserved.
 """Tests for the Fingerprint flow."""
 
 
@@ -10,6 +9,7 @@ import os
 
 from grr.lib import action_mocks
 from grr.lib import aff4
+from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -62,3 +62,15 @@ class TestFingerprintFlow(test_lib.FlowTestsBaseclass):
                      "1f32fa4eedfba023653c094143d90999f6b9bc4f")
 
     self.assertEqual(hash_obj.signed_data[0].revision, 512)
+
+
+class FlowTestLoader(test_lib.GRRTestLoader):
+  base_class = TestFingerprintFlow
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+
+if __name__ == "__main__":
+  flags.StartMain(main)

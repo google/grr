@@ -73,9 +73,9 @@ def _CloseServer():
 def _SetConfig(path):
   config_lib.CONFIG.Set("Dataserver.server_list",
                         ["http://127.0.0.1:" + str(PORT)])
-  config_lib.CONFIG.Set("Dataserver.username", "root")
-  config_lib.CONFIG.Set("Dataserver.password", "root")
-  config_lib.CONFIG.Set("Dataserver.usernames", ["user:rw:user"])
+  config_lib.CONFIG.Set("Dataserver.server_username", "root")
+  config_lib.CONFIG.Set("Dataserver.server_password", "root")
+  config_lib.CONFIG.Set("Dataserver.client_credentials", ["user:user:rw"])
   config_lib.CONFIG.Set("HTTPDataStore.username", "user")
   config_lib.CONFIG.Set("HTTPDataStore.password", "user")
   config_lib.CONFIG.Set("Datastore.location", path)

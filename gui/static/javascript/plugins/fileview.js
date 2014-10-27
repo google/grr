@@ -115,7 +115,7 @@ grr.Renderer('Toolbar', {
       $(refresh_id).attr('disabled', 'disabled');
       grr.layout('UpdateAttribute', 'refresh_action', {
         aff4_path: aff4_path,
-        attribute: 'aff4:contains'
+        attribute: 'CONTAINS'
       });
     });
 
@@ -138,7 +138,7 @@ grr.Renderer('Toolbar', {
     // When the attribute is updated, refresh the views
     grr.subscribe('AttributeUpdated', function(path, attribute) {
       $(refresh_id).attr('disabled', null);
-      if (attribute == 'aff4:contains') {
+      if (attribute == 'CONTAINS') {
         // Update the table
         grr.publish('tree_select', path);
         grr.publish('file_select', path);

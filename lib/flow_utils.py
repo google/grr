@@ -95,7 +95,6 @@ def WaitForFlow(flow_urn, token=None, timeout=DEFAULT_TIMEOUT, max_sleep_time=1,
 
   start_time = time.time()
   sleep_time = max_sleep_time
-
   while True:
     # Reopen the AFF4Object to check if its status has changed, and also make
     # sure it's a flow.

@@ -7,7 +7,6 @@ import time
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
-from grr.lib.flows import tests
 # pylint: enable=unused-import,g-bad-import-order
 
 from grr.client import actions
@@ -97,7 +96,11 @@ class AdminOnlyParentFlow(NoRequestParentFlow):
   child_flow = "AdminOnlyChildFlow"
 
 
-class FlowCreationTest(test_lib.FlowTestsBaseclass):
+class BasicFlowTest(test_lib.FlowTestsBaseclass):
+  pass
+
+
+class FlowCreationTest(BasicFlowTest):
   """Test flow creation."""
 
   def testInvalidClientId(self):
@@ -331,7 +334,7 @@ class FlowCreationTest(test_lib.FlowTestsBaseclass):
       self.assertEqual(count, 8)
 
 
-class FlowTest(test_lib.FlowTestsBaseclass):
+class FlowTest(BasicFlowTest):
   """Tests the Flow."""
 
   def testBrokenFlow(self):
@@ -591,7 +594,7 @@ class FlowDoneListener(flow.EventListener):
     FlowDoneListener.received_events.append(message)
 
 
-class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
+class GeneralFlowsTest(BasicFlowTest):
   """Tests some flows."""
 
   def testCallState(self):
@@ -958,7 +961,7 @@ class ResourcedWorker(test_lib.MockWorker):
   NETWORK_BYTES = [180, 1000, 580, 2000]
 
 
-class FlowLimitTests(test_lib.FlowTestsBaseclass):
+class FlowLimitTests(BasicFlowTest):
 
   def RunFlow(self, flow_name, **kwargs):
     result = {}
@@ -1275,7 +1278,7 @@ class BadArgsFlow1(flow.GRRFlow):
 
 
 class FlowTestLoader(test_lib.GRRTestLoader):
-  base_class = test_lib.FlowTestsBaseclass
+  base_class = BasicFlowTest
 
 
 def main(argv):

@@ -202,6 +202,8 @@ class DataAgnosticExportConverter(ExportConverter):
   are preserved.
   """
 
+  PACKAGE_NAME = "grr_export"
+
   PRIMITIVE_TYPE_MAPPING = {
       "string": descriptor_pb2.FieldDescriptorProto.TYPE_STRING,
       "bytes": descriptor_pb2.FieldDescriptorProto.TYPE_BYTES,
@@ -221,7 +223,7 @@ class DataAgnosticExportConverter(ExportConverter):
   def MakeDescriptor(self, desc_proto, file_desc_proto, descriptors=None):
     """Creates a protobuf descriptor out of DescriptorProto."""
     descriptors = descriptors or dict()
-    full_message_name = [desc_proto.name]
+    full_message_name = [self.PACKAGE_NAME, desc_proto.name]
 
     file_descriptor = descriptor.FileDescriptor(
         file_desc_proto.name, file_desc_proto.package,
@@ -275,6 +277,7 @@ class DataAgnosticExportConverter(ExportConverter):
     file_descriptor = descriptor_pb2.FileDescriptorProto()
     file_descriptor.name = (self.ExportedClassNameForValue(value).lower() +
                             ".proto")
+    file_descriptor.package = self.PACKAGE_NAME
 
     descriptors = dict()
     descriptors[

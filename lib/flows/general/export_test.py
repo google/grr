@@ -8,9 +8,14 @@ import hashlib
 import os
 import subprocess
 
+# pylint: disable=unused-import, g-bad-import-order
+from grr.lib import server_plugins
+# pylint: enable=unused-import, g-bad-import-order
+
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import email_alerts
+from grr.lib import flags
 from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -186,3 +191,15 @@ class TestExportHuntResultsFilesAsArchive(test_lib.FlowTestsBaseclass):
       with open(utils.SmartStr(
           os.path.join(prefix, u"中国新闻网新闻中.txt")), "r") as fd:
         self.assertEqual(fd.read(), "hello2")
+
+
+class FlowTestLoader(test_lib.GRRTestLoader):
+  base_class = TestExportHuntResultsFilesAsArchive
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+
+if __name__ == "__main__":
+  flags.StartMain(main)

@@ -1177,7 +1177,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     # Now we open a path below this aff4 directory.
     fd = aff4.FACTORY.Create(os_urn.Add(additional_path), "VFSDirectory",
                              mode="rw", token=self.token)
-    flow_id = fd.Update(attribute=fd.Schema.CONTAINS)
+    flow_id = fd.Update(attribute="CONTAINS")
 
     flow_obj = aff4.FACTORY.Open(flow_id, token=self.token)
     self.assertEqual(flow_obj.args.pathspec.pathtype, pathspec.pathtype)

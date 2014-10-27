@@ -1,7 +1,12 @@
 #!/usr/bin/env python
 """Tests for grr.lib.flows.cron.filestore_stats."""
 
+# pylint: disable=unused-import, g-bad-import-order
+from grr.lib import server_plugins
+# pylint: enable=unused-import, g-bad-import-order
+
 from grr.lib import aff4
+from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib.flows.cron import filestore_stats
 
@@ -69,3 +74,14 @@ class FilestoreStatsCronFlowTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(clientcount.data[2].x_value, 5)
     self.assertEqual(clientcount.data[2].y_value, 5)
 
+
+class FlowTestLoader(test_lib.GRRTestLoader):
+  base_class = FilestoreStatsCronFlowTest
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+
+if __name__ == "__main__":
+  flags.StartMain(main)

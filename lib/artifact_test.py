@@ -34,33 +34,6 @@ from grr.lib import utils
 # pylint: mode=test
 
 
-class GRRArtifactTest(test_lib.GRRBaseTest):
-
-  def testRDFMaps(self):
-    """Validate the RDFMaps."""
-    for rdf_name, dat in artifact.GRRArtifactMappings.rdf_map.items():
-      # "info/software", "InstalledSoftwarePackages", "INSTALLED_PACKAGES",
-      # "Append"
-      _, aff4_type, aff4_attribute, operator = dat
-
-      if operator not in ["Set", "Append"]:
-        raise artifact_lib.ArtifactDefinitionError(
-            "Bad RDFMapping, unknown operator %s in %s" %
-            (operator, rdf_name))
-
-      if aff4_type not in aff4.AFF4Object.classes:
-        raise artifact_lib.ArtifactDefinitionError(
-            "Bad RDFMapping, invalid AFF4 Object %s in %s" %
-            (aff4_type, rdf_name))
-
-      attr = getattr(aff4.AFF4Object.classes[aff4_type].SchemaCls,
-                     aff4_attribute)()
-      if not isinstance(attr, rdfvalue.RDFValue):
-        raise artifact_lib.ArtifactDefinitionError(
-            "Bad RDFMapping, bad attribute %s for %s" %
-            (aff4_attribute, rdf_name))
-
-
 WMI_SAMPLE = [
     rdfvalue.Dict({u"Version": u"65.61.49216", u"InstallDate2": u"",
                    u"Name": u"Google Chrome", u"Vendor": u"Google, Inc.",
@@ -107,6 +80,18 @@ class TestCmdProcessor(parsers.CommandParser):
                            symptom="could not parse gremlins.")
 
 
+class MultiProvideParser(parsers.RegistryValueParser):
+
+  output_types = ["Dict"]
+  supported_artifacts = ["DepsProvidesMultiple"]
+
+  def Parse(self, stat, knowledge_base):
+    _ = stat, knowledge_base
+    test_dict = {"environ_temp": rdfvalue.RDFString("tempvalue"),
+                 "environ_path": rdfvalue.RDFString("pathvalue")}
+    yield rdfvalue.Dict(test_dict)
+
+
 class RekallMock(action_mocks.MemoryClientMock):
 
   def __init__(self, client_id, result_filename):
@@ -126,8 +111,14 @@ class RekallMock(action_mocks.MemoryClientMock):
     return [result, rdfvalue.Iterator(state="FINISHED")]
 
 
-class ArtifactTestHelper(test_lib.FlowTestsBaseclass):
+class ArtifactTest(test_lib.GRRBaseTest):
   """Helper class for tests using artifacts."""
+
+  def setUp(self):
+    super(ArtifactTest, self).setUp()
+    self.client_id = self.SetupClients(1)[0]
+
+    self.client_id = self.SetupClients(1)[0]
 
   @classmethod
   def LoadTestArtifacts(cls):
@@ -197,7 +188,34 @@ class ArtifactTestHelper(test_lib.FlowTestsBaseclass):
                              token=self.token)
 
 
-class ArtifactFlowTest(ArtifactTestHelper):
+class GRRArtifactTest(ArtifactTest):
+
+  def testRDFMaps(self):
+    """Validate the RDFMaps."""
+    for rdf_name, dat in artifact.GRRArtifactMappings.rdf_map.items():
+      # "info/software", "InstalledSoftwarePackages", "INSTALLED_PACKAGES",
+      # "Append"
+      _, aff4_type, aff4_attribute, operator = dat
+
+      if operator not in ["Set", "Append"]:
+        raise artifact_lib.ArtifactDefinitionError(
+            "Bad RDFMapping, unknown operator %s in %s" %
+            (operator, rdf_name))
+
+      if aff4_type not in aff4.AFF4Object.classes:
+        raise artifact_lib.ArtifactDefinitionError(
+            "Bad RDFMapping, invalid AFF4 Object %s in %s" %
+            (aff4_type, rdf_name))
+
+      attr = getattr(aff4.AFF4Object.classes[aff4_type].SchemaCls,
+                     aff4_attribute)()
+      if not isinstance(attr, rdfvalue.RDFValue):
+        raise artifact_lib.ArtifactDefinitionError(
+            "Bad RDFMapping, bad attribute %s for %s" %
+            (aff4_attribute, rdf_name))
+
+
+class ArtifactFlowTest(ArtifactTest):
 
   def setUp(self):
     """Make sure things are initialized."""
@@ -366,7 +384,7 @@ class ArtifactFlowTest(ArtifactTestHelper):
       raise RuntimeError("0 responses should have been returned")
 
 
-class GrrKbTest(ArtifactTestHelper):
+class GrrKbTest(ArtifactTest):
 
   def SetupWindowsMocks(self):
     test_lib.ClientFixture(self.client_id, token=self.token)
@@ -408,6 +426,30 @@ class GrrKbTest(ArtifactTestHelper):
     user = kb.GetUser(username="jim")
     self.assertEqual(user.username, "jim")
     self.assertEqual(user.sid, "S-1-5-21-702227068-2140022151-3110739409-1000")
+
+  def testKnowledgeBaseMultiProvides(self):
+    """Check we can handle multi-provides."""
+    self.SetupWindowsMocks()
+    # Replace some artifacts with test one that will run the MultiProvideParser.
+    self.LoadTestArtifacts()
+    artifacts = config_lib.CONFIG["Artifacts.knowledge_base"]
+    artifacts.append("DepsProvidesMultiple")  # Our test artifact.
+    artifacts.remove("WinPathEnvironmentVariable")
+    artifacts.remove("TempEnvironmentVariable")
+    config_lib.CONFIG.Set("Artifacts.knowledge_base", artifacts)
+    client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
+                                          "HashBuffer", "ListDirectory",
+                                          "FingerprintFile")
+    for _ in test_lib.TestFlowHelper(
+        "KnowledgeBaseInitializationFlow", client_mock,
+        client_id=self.client_id, token=self.token):
+      pass
+
+    # The client should now be populated with the data we care about.
+    client = aff4.FACTORY.Open(self.client_id, token=self.token)
+    kb = artifact.GetArtifactKnowledgeBase(client)
+    self.assertEqual(kb.environ_temp, "tempvalue")
+    self.assertEqual(kb.environ_path, "pathvalue")
 
   def testKnowledgeBaseRetrievalFailures(self):
     """Test kb retrieval failure modes."""
@@ -660,8 +702,13 @@ class GrrKbTest(ArtifactTestHelper):
                              "DepsWindirRegex"])
 
 
+class FlowTestLoader(test_lib.GRRTestLoader):
+  base_class = ArtifactTest
+
+
 def main(argv):
-  test_lib.main(argv)
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
 
 if __name__ == "__main__":
   flags.StartMain(main)

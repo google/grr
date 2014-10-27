@@ -1,0 +1,5 @@
+# Configuration file for grr-enroller start-up script
+
+# Start the grr-enroller
+START="no";
+

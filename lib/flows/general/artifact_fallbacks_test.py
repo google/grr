@@ -4,6 +4,7 @@
 from grr.client import vfs
 from grr.lib import action_mocks
 from grr.lib import aff4
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 
@@ -26,3 +27,15 @@ class TestSystemRootSystemDriveFallbackFlow(test_lib.FlowTestsBaseclass):
 
     self.assertEqual(len(output_fd), 1)
     self.assertEqual(str(output_fd[0].registry_data.GetValue()), r"C:\WINDOWS")
+
+
+class FlowTestLoader(test_lib.GRRTestLoader):
+  base_class = TestSystemRootSystemDriveFallbackFlow
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+
+if __name__ == "__main__":
+  flags.StartMain(main)

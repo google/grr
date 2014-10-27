@@ -55,6 +55,15 @@ config_lib.DEFINE_string("Worker.smtp_server", "localhost",
 
 config_lib.DEFINE_integer("Worker.smtp_port", 25, "The smtp server port.")
 
+config_lib.DEFINE_bool("Worker.smtp_starttls", False,
+                       "Enable TLS for the smtp connection.")
+
+config_lib.DEFINE_string("Worker.smtp_user", None,
+                         "Username for the smtp connection.")
+
+config_lib.DEFINE_string("Worker.smtp_password", None,
+                         "Password for the smtp connection.")
+
 # Server Cryptographic settings.
 config_lib.DEFINE_semantic(
     rdfvalue.PEMPrivateKey, "PrivateKeys.ca_key",
@@ -160,6 +169,11 @@ config_lib.DEFINE_string(
     "How often to collect the StatsHunt information from each client. The "
     "minimum bound here is effectively 2 * Client.poll_max, since a new request"
     " is only scheduled after results are received in the previous poll.")
+
+config_lib.DEFINE_string(
+    "Server.username", None,
+    "System account to run as after initialization for running the server as "
+    "non-root.")
 
 # Email Template Values
 config_lib.DEFINE_string(

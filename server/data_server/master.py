@@ -120,7 +120,7 @@ class DataMaster(object):
     if not self.mapping:
       # Bootstrap mapping.
       # Each server information is linked to its corresponding object.
-      # Updating the data server object will reflect immediatelly on
+      # Updating the data server object will reflect immediately on
       # the mapping.
       for server in self.servers:
         server.SetInitialInterval(len(self.servers))
@@ -273,7 +273,7 @@ class DataMaster(object):
     self.mapping.servers = newserverlist
     self.mapping.num_servers -= 1
     self.servers.pop(removed_server.Index())
-    self.DeregisterSever(removed_server)
+    self.DeregisterServer(removed_server)
     removed_server.Remove()
     return removed_server
 
@@ -385,4 +385,3 @@ class DataMaster(object):
     rebalance.RemoveDirectory(self.rebalance)
     self.CancelRebalancing()
     return self.mapping
-

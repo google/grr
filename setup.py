@@ -137,7 +137,8 @@ grr_artifact_files = ("grr",
 grr_gui_data_files = ("grr.gui",
                       ["static", "templates"],
                       ["*.css", "*.js", "*.gif", "*.html",
-                       "*.jpg", "*.MF", "*.png", "*.ico"])
+                       "*.jpg", "*.MF", "*.png", "*.ico",
+                       "*.eot", "*.ttf", "*.svg", "*.woff"])
 
 grr_config_defs = ("grr.config",
                    ["local"],
@@ -172,10 +173,15 @@ grr_protobuf_cc = ("grr",
                    ["lib"],
                    ["protobuf.cc"])
 
+grr_data_server = ("grr.server",
+                   ["data_server"],
+                   ["*"])
+
 
 grr_all_files = [grr_artifact_files,
                  grr_client_data_files,
                  grr_client_nanny_files,
+                 grr_data_server,
                  grr_docs_files,
                  grr_gui_data_files,
                  grr_proto_defs,
@@ -189,7 +195,7 @@ setup(name="grr",
       version="0.3.0-2",
       description="GRR Rapid Response Framework",
       license="Apache License, Version 2.0",
-      url="http://code.google.com/p/grr",
+      url="https://github.com/google/grr",
       install_requires=[],
       packages=GRRFindPackages(),
       package_dir={"grr": "../grr"},

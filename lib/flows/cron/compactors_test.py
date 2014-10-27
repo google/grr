@@ -3,8 +3,13 @@
 
 
 
+# pylint: disable=unused-import, g-bad-import-order
+from grr.lib import server_plugins
+# pylint: enable=unused-import, g-bad-import-order
+
 from grr.lib import aff4
 from grr.lib import data_store
+from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -113,3 +118,15 @@ class PackedVersionedCollectionCompactorTest(test_lib.FlowTestsBaseclass):
     flow_fd = aff4.FACTORY.Open(flow_urn, token=self.token)
     self.assertFalse(list(l.log_message for l in flow_fd.GetLog()
                           if "aff4:/tmp/coll" in l.log_message))
+
+
+class FlowTestLoader(test_lib.GRRTestLoader):
+  base_class = PackedVersionedCollectionCompactorTest
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+
+if __name__ == "__main__":
+  flags.StartMain(main)
