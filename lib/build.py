@@ -630,7 +630,8 @@ class LinuxClientDeployer(ClientDeployer):
       arch = config_lib.CONFIG.Get("Client.arch", context=self.context)
 
       os.chdir(template_dir)
-      command = [buildpackage_binary, "-b", "-a%s" % arch]
+      command = [buildpackage_binary, "-d", "-b", "-a%s" % arch]
+
       try:
         subprocess.check_output(command, stderr=subprocess.STDOUT)
       except subprocess.CalledProcessError as e:
@@ -664,7 +665,7 @@ class CentosClientDeployer(LinuxClientDeployer):
   """Repackages Linux RPM templates."""
 
   def MakeDeployableBinary(self, template_path, output_path=None):
-    """This will add the config to the client template and create a .deb."""
+    """This will add the config to the client template and create a .rpm."""
     if output_path is None:
       output_path = config_lib.CONFIG.Get("ClientBuilder.output_path",
                                           context=self.context)
@@ -685,20 +686,24 @@ class CentosClientDeployer(LinuxClientDeployer):
         with open(os.path.join(template_dir, name), "wb") as fd:
           fd.write(zf.read(name))
 
-      homedir = os.path.expanduser("~")
-
       # Set up a RPM building environment.
-      for basename in ["BUILD", "RPMS", "SOURCES", "SPECS", "SRPMS"]:
-        self.EnsureDirExists(os.path.join(homedir, "rpmbuild", basename))
+
+      rpm_root_dir = os.path.join(tmp_dir, "rpmbuild")
+
+      rpm_build_dir = os.path.join(rpm_root_dir, "BUILD")
+      self.EnsureDirExists(rpm_build_dir)
+
+      rpm_rpms_dir = os.path.join(rpm_root_dir, "RPMS")
+      self.EnsureDirExists(rpm_rpms_dir)
+
+      rpm_specs_dir = os.path.join(rpm_root_dir, "SPECS")
+      self.EnsureDirExists(rpm_specs_dir)
 
       template_binary_dir = os.path.join(
           tmp_dir, "dist/rpmbuild/grr-client")
 
-      rpmroot = os.path.join(tmp_dir, "rpmroot")
-      self.EnsureDirExists(rpmroot)
-
       target_binary_dir = "%s%s" % (
-          rpmroot, config_lib.CONFIG.Get("ClientBuilder.target_dir",
+          rpm_build_dir, config_lib.CONFIG.Get("ClientBuilder.target_dir",
                                          context=self.context))
 
       self.EnsureDirExists(os.path.dirname(target_binary_dir))
@@ -714,12 +719,12 @@ class CentosClientDeployer(LinuxClientDeployer):
         shutil.move(os.path.join(target_binary_dir, "grr-client"),
                     os.path.join(target_binary_dir, client_binary_name))
 
-      spec_filename = os.path.join(homedir, "rpmbuild/SPECS", "%s.spec" %
+      spec_filename = os.path.join(rpm_specs_dir, "%s.spec" %
                                    client_name)
       self.GenerateFile(os.path.join(
           tmp_dir, "dist/rpmbuild/grr.spec.in"), spec_filename)
 
-      initd_target_filename = os.path.join(rpmroot, "etc/init.d", client_name)
+      initd_target_filename = os.path.join(rpm_build_dir, "etc/init.d", client_name)
       self.EnsureDirExists(os.path.dirname(initd_target_filename))
       self.GenerateFile(
           os.path.join(tmp_dir, "dist/rpmbuild/grr-client.initd.in"),
@@ -743,7 +748,11 @@ class CentosClientDeployer(LinuxClientDeployer):
       # Set the daemon to executable.
       os.chmod(os.path.join(target_binary_dir, client_binary_name), 0755)
 
-      command = [rpmbuild_binary, "--buildroot", rpmroot, "-bb", spec_filename]
+      client_arch = config_lib.CONFIG.Get("Client.arch",context=self.context)
+      if client_arch == "amd64":
+        client_arch = "x86_64"
+
+      command = [rpmbuild_binary, "--define", "_topdir " + rpm_root_dir, "--target", client_arch, "-bb", spec_filename]
       try:
         subprocess.check_output(command, stderr=subprocess.STDOUT)
       except subprocess.CalledProcessError as e:
@@ -753,10 +762,9 @@ class CentosClientDeployer(LinuxClientDeployer):
 
       client_version = config_lib.CONFIG.Get("Client.version_string",
                                              context=self.context)
-
       rpm_filename = os.path.join(
-          homedir, "rpmbuild/RPMS/x86_64",
-          "%s-%s-1.x86_64.rpm" % (client_name, client_version))
+          rpm_rpms_dir, client_arch,
+          "%s-%s-1.%s.rpm" % (client_name, client_version, client_arch))
 
       self.EnsureDirExists(os.path.dirname(output_path))
       shutil.move(rpm_filename, output_path)

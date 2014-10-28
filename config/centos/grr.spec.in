@@ -20,8 +20,7 @@ Buildroot: /usr/local/grr_build/rpmroot
 # Do nothing here.
 
 %install
-
-%clean
+cp -R \%{_builddir}/* \%{buildroot}
 
 %pre
 
