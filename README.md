@@ -9,6 +9,7 @@ Links
  * [Quickstart: Fast automated installation](https://github.com/google/grr-doc/blob/master/quickstart.adoc)
  * [Downloads](https://googledrive.com/host/0B1wsLqFoT7i2N3hveC1lSEpHUnM/)
  * [User Manual](https://github.com/google/grr-doc/blob/master/user_manual.adoc)
+ * [Blog](http://grr-response.blogspot.com/)
  * [Administration Documentation (Setup and Configuration)](https://github.com/google/grr-doc/blob/master/admin.adoc)
  * [Publications: Papers, Presentations, Workshops etc.](https://github.com/google/grr-doc/blob/master/publications.adoc)
  * [Project FAQ](https://github.com/google/grr-doc/blob/master/faq.adoc)
@@ -28,6 +29,7 @@ Mailing Lists
 
 Announcements
 -------------
+**Oct 28 2014**: We've started a blog as a supplement to the documentation.  Check out the first post on [how to set up the distributed datastore](http://grr-response.blogspot.com/2014/10/using-distributed-data-store-in-grr.html).
 
 **Oct 15 2014**: We're now fully migrated to github. The code.google.com page
 will just be a redirect here. Open issues, documentation and code have been
