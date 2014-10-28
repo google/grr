@@ -172,14 +172,11 @@ header "Installing Selenium test framework for Tests"
 run_cmd_confirm sudo easy_install selenium
 
 
-header "Checking Django version is > 1.4 and fixing up"
-# We need 1.4, 12.04 ships with 1.3
-DJANGO_VERSION=`dpkg-query -W python-django | cut -f 2`
-if [[ "$DJANGO_VERSION" == 1.3* ]]; then
-  echo "Unsupported Django version ${DJANGO_VERSION}. Upgrading with pip."
-  run_cmd_confirm sudo apt-get --yes remove python-django
-  run_cmd_confirm sudo easy_install django
-fi
+header "Installing correct Django version."
+# We support everything from 1.4 to 1.6, 12.04 ships with 1.3. This is only
+# necessary for server 0.3.0-2, remove the requirement for 1.6 once we upgrade.
+run_cmd_confirm sudo apt-get --yes remove python-django
+run_cmd_confirm sudo pip install django==1.6
 
 
 header "Installing GRR from prebuilt package"

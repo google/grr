@@ -106,7 +106,7 @@ class GRRRekallProfileServer(CachingProfileServer,
   def GetAllProfiles(self):
     """This function will download all profiles and cache them locally."""
 
-    inv_profile = self.GetProfileByName("v1.0/inventory")
+    inv_profile = self.GetProfileByName("v1.0/inventory", ignore_cache=True)
     inventory_json = zlib.decompress(inv_profile.data, 16 + zlib.MAX_WBITS)
     inventory = json.loads(inventory_json)
 
@@ -114,6 +114,37 @@ class GRRRekallProfileServer(CachingProfileServer,
       profile = "v1.0/%s" % profile
       logging.info("Getting profile: %s", profile)
       try:
-        self.GetProfileByName(profile)
+        self.GetProfileByName(profile, ignore_cache=True)
       except urllib2.URLError as e:
         logging.info("Exception: %s", e)
+
+  def GetMissingProfiles(self):
+    """This will download all profiles that are not already cached."""
+    inv_profile = self.GetProfileByName("v1.0/inventory", ignore_cache=True)
+    inventory_json = zlib.decompress(inv_profile.data, 16 + zlib.MAX_WBITS)
+    inventory = json.loads(inventory_json)
+
+    cache_urn = rdfvalue.RDFURN(config_lib.CONFIG["Rekall.profile_cache_urn"])
+    profiles = []
+    for profile in inventory["$INVENTORY"].keys():
+      profile = "v1.0/%s" % profile
+      if not profile.endswith(".gz"):
+        profile = "%s.gz" % profile
+      profiles.append(profile)
+
+    profile_urns = [cache_urn.Add(profile) for profile in profiles]
+
+    stats = aff4.FACTORY.Stat(profile_urns)
+    profile_infos = {}
+    for metadata in stats:
+      profile_infos[metadata["urn"]] = metadata["type"][1]
+
+    for profile in sorted(profiles):
+      profile_urn = cache_urn.Add(profile)
+      if (profile_urn not in profile_infos or
+          profile_infos[profile_urn] != u"AFF4RekallProfile"):
+        logging.info("Getting missing profile: %s" % profile)
+        try:
+          self.GetProfileByName(profile, ignore_cache=True)
+        except urllib2.URLError as e:
+          logging.info("Exception: %s", e)

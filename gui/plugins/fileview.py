@@ -1326,7 +1326,7 @@ class FileViewTabs(renderers.TabLayout):
   FILE_DELEGATED_RENDERERS = ["AFF4Stats", "DownloadView", "FileTextViewer",
                               "FileHexViewer"]
 
-  COLLECTION_TAB_NAMES = ["Stats", "Collection", "Export"]
+  COLLECTION_TAB_NAMES = ["Stats", "Results", "Export"]
   COLLECTION_DELEGATED_RENDERERS = ["AFF4Stats", "RDFValueCollectionRenderer",
                                     "CollectionExportView"]
 

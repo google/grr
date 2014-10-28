@@ -211,6 +211,8 @@ class RekallAction(actions.SuspendableAction):
         session_args["profile_path"] = [config_lib.CONFIG[
             "Client.rekall_profile_cache_path"]]
 
+      session_args.update(fhandle.GetMetadata())
+
       rekal_session = GrrRekallSession(action=self, **session_args)
 
       # Wrap GRR's VFS handler for the device in a Rekall FDAddressSpace so we

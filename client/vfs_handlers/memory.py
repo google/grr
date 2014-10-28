@@ -36,10 +36,11 @@ class MemoryVFS(vfs.VFSHandler):
   def __init__(self, base_fd, pathspec=None, progress_callback=None):
     self.fd = base_fd
     self.pathspec = pathspec
+    super(MemoryVFS, self).__init__(None, progress_callback=progress_callback)
 
   @classmethod
   def Open(cls, fd, component, pathspec=None, progress_callback=None):
-    _ = pathspec, progress_callback
+    _ = pathspec
     return cls(fd, pathspec=component, progress_callback=progress_callback)
 
   def IsDirectory(self):
@@ -127,9 +128,8 @@ class LinuxMemory(MemoryVFS):
 
 class WindowsMemory(MemoryVFS):
   """Read the raw memory."""
-  # This is the dtb and kdbg if available
+  # This is the dtb if available.
   cr3 = None
-  kdbg = None
 
   FIELDS = (["CR3", "NtBuildNumber", "KernBase", "KDBG"] +
             ["KPCR%s" % i for i in range(32)] +
@@ -178,7 +178,10 @@ class WindowsMemory(MemoryVFS):
     memory_parameters = dict(zip(self.FIELDS,
                                  struct.unpack_from(fmt_string, result)))
     self.cr3 = memory_parameters["CR3"]
-    self.kdbg = memory_parameters["KDBG"]
+
+    self.metadata["dtb"] = self.cr3
+    if memory_parameters["KernBase"] > 0:
+      self.metadata["kernel_base"] = memory_parameters["KernBase"]
 
     offset = struct.calcsize(fmt_string)
     self.runs = []

@@ -47,7 +47,7 @@ class VFSHandler(object):
       IOError: if this handler can not be instantiated over the
       requested path.
     """
-    _ = pathspec, progress_callback
+    _ = pathspec
     self.base_fd = base_fd
     self.progress_callback = progress_callback
     if base_fd is None:
@@ -55,6 +55,7 @@ class VFSHandler(object):
     else:
       # Make a copy of the base pathspec.
       self.pathspec = base_fd.pathspec.Copy()
+    self.metadata = {}
 
   def __enter__(self):
     return self
@@ -221,6 +222,9 @@ class VFSHandler(object):
         break
 
     return fd
+
+  def GetMetadata(self):
+    return self.metadata
 
 
 # A registry of all VFSHandler registered

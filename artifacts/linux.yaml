@@ -202,6 +202,14 @@ collectors:
 labels: [Authentication, Configuration Files]
 supported_os: [Linux]
 ---
+name: ThumbnailCacheFolder
+doc: Thumbnail cache folder.
+collectors:
+- collector_type: FILE
+  args: {path_list: ['%%users.homedir%%/.thumbnails/**3']}
+labels: [Users]
+supported_os: [Linux]
+---
 name: ZeitgeistDatabase
 doc: Zeitgeist user activity database.
 collectors:

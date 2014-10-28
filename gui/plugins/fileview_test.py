@@ -369,7 +369,7 @@ class TestFileView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent,
                    "css=.tab-content td.proto_value:contains(423)")
 
-  def testFileViewHasCollectionTabForRDFValueCollection(self):
+  def testFileViewHasResultsTabForRDFValueCollection(self):
     collection_urn = "aff4:/C.0000000000000001/analysis/SomeFlow/results"
     with self.ACLChecksDisabled():
       with aff4.FACTORY.Create(
@@ -384,16 +384,16 @@ class TestFileView(test_lib.GRRSeleniumTest):
     self.Click("css=li[path='/analysis/SomeFlow'] > a")
     self.Click("css=tr:contains('results')")
 
-    # Collection tab should appear and there should be no HexView and TextView
+    # The Results tab should appear and there should be no HexView and TextView
     # and Download tabs.
-    self.WaitUntil(self.IsElementPresent, "css=#Collection")
+    self.WaitUntil(self.IsElementPresent, "css=#Results")
     self.WaitUntilNot(self.IsElementPresent, "css=#DownloadView")
     self.WaitUntilNot(self.IsElementPresent, "css=#FileTextViewer")
     self.WaitUntilNot(self.IsElementPresent, "css=#FileHexViewer")
 
-    # Click on Collection tab and check that the StatEntry we added before is
+    # Click on the Results tab and check that the StatEntry we added before is
     # there.
-    self.Click("css=#Collection")
+    self.Click("css=#Results")
     self.WaitUntil(self.IsTextPresent, "aff4:/some/unique/path")
 
   def testFileViewDoesNotHaveExportTabWhenCollectionHasNoFiles(self):
@@ -411,7 +411,7 @@ class TestFileView(test_lib.GRRSeleniumTest):
     self.Click("css=li[path='/analysis/SomeFlow'] > a")
     self.Click("css=tr:contains('results')")
 
-    # Collection tab should appear, but the "Export" tab should be
+    # The Results tab should appear, but the "Export" tab should be
     # disabled since we only display export hint when we have collections of
     # StatEntries or FileFinderResults.
     self.WaitUntil(self.IsElementPresent, "css=#Export.disabled")
