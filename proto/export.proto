@@ -265,3 +265,10 @@ message ExportedMatch {
       description: "The location of this file in the AFF4 space."
     }];
 }
+
+message ExportedBytes {
+  optional ExportedMetadata metadata = 1;
+
+  optional bytes data = 2;
+  optional uint64 length = 3;
+}

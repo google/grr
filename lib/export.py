@@ -7,8 +7,11 @@ easily be written to a relational database or just to a set of files.
 """
 
 import hashlib
+import json
 import stat
 import time
+
+from rekall.ui import json_renderer
 
 from google.protobuf import descriptor_pb2
 from google.protobuf import descriptor
@@ -23,6 +26,7 @@ from grr.lib import registry
 from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.aff4_objects import filestore
+from grr.lib.rdfvalues import structs
 from grr.proto import export_pb2
 
 
@@ -91,6 +95,10 @@ class ExportedSoftware(rdfvalue.RDFProtoStruct):
 
 class ExportedMatch(rdfvalue.RDFProtoStruct):
   protobuf = export_pb2.ExportedMatch
+
+
+class ExportedBytes(rdfvalue.RDFProtoStruct):
+  protobuf = export_pb2.ExportedBytes
 
 
 class ExportConverter(object):
@@ -310,8 +318,12 @@ class DataAgnosticExportConverter(ExportConverter):
         field.type_name = desc.enum_name
 
         enum_type = message_type.enum_type.add()
-        value.protobuf.DESCRIPTOR.enum_types_by_name[
-            desc.enum_name].CopyToProto(enum_type)
+        if value.protobuf:
+          value.protobuf.DESCRIPTOR.enum_types_by_name[
+              desc.enum_name].CopyToProto(enum_type)
+        else:
+          raise NotImplementedError("Enums are not supported in "
+                                    "non-protobuf-based RDF values.")
       elif isinstance(desc, type_info.ProtoEmbedded):
         # We don't support nested protobufs in data agnostic export yet.
         pass
@@ -327,10 +339,11 @@ class DataAgnosticExportConverter(ExportConverter):
         field.number = number + 1
         field.label = descriptor_pb2.FieldDescriptorProto.LABEL_OPTIONAL
 
-        field_options = value.protobuf.DESCRIPTOR.fields_by_name[
-            desc.name].GetOptions()
-        if field_options:
-          field.options.CopyFrom(field_options)
+        if value.protobuf:
+          field_options = value.protobuf.DESCRIPTOR.fields_by_name[
+              desc.name].GetOptions()
+          if field_options:
+            field.options.CopyFrom(field_options)
 
     result_descriptor = self.MakeDescriptor(message_type, file_descriptor,
                                             descriptors=descriptors)
@@ -799,6 +812,17 @@ class VFSFileToExportedFileConverter(ExportConverter):
     return [result]
 
 
+class RDFBytesToExportedBytesConverter(ExportConverter):
+
+  input_rdf_type = "RDFBytes"
+
+  def Convert(self, metadata, data, token=None):
+    result = ExportedBytes(metadata=metadata,
+                           data=data.SerializeToString(),
+                           length=len(data))
+    return [result]
+
+
 class GrrMessageConverter(ExportConverter):
   """Converts GrrMessage's payload into a set of RDFValues.
 
@@ -980,6 +1004,163 @@ class FileStoreHashConverter(ExportConverter):
         results.append(result)
 
     return results
+
+
+class RekallResponseConverter(ExportConverter):
+  """Export converter for RekallResponse objects."""
+
+  input_rdf_type = "RekallResponse"
+
+  OUTPUT_CLASSES = {}
+
+  OBJECT_RENDERERS = {
+      "Address": lambda x: utils.FormatAsHexString(x["value"]),
+      "Pointer": lambda x: utils.FormatAsHexString(x["target"], 14),
+      "PaddedAddress": lambda x: utils.FormatAsHexString(x["value"], 14),
+      "AddressSpace": lambda x: x["name"],
+      "Enumeration": lambda x: "%s (%s)" % (x["enum"], x["value"]),
+      "Literal": lambda x: utils.SmartStr(x["value"]),
+      "NativeType": lambda x: utils.SmartStr(x["value"]),
+      "NoneObject": lambda x: "-",
+      "BaseObject": lambda x: "@%s" % utils.FormatAsHexString(x["offset"]),
+      "Struct": lambda x: utils.FormatAsHexString(x["offset"]),
+      "UnixTimeStamp": lambda x: utils.FormatAsTimestamp(x["epoch"]),
+      "_EPROCESS": lambda x: "%s (%s)" % (x["Cybox"]["Name"], x["Cybox"]["PID"])
+      }
+
+  def _RenderObject(self, obj):
+    """Renders a single object - i.e. a table cell."""
+
+    if not hasattr(obj, "iteritems"):
+      return utils.SmartStr(obj)
+
+    if "string_value" in obj:
+      return obj["string_value"]
+
+    if "mro" in obj:
+      for mro_type in obj["mro"]:
+        if mro_type in self.OBJECT_RENDERERS:
+          return self.OBJECT_RENDERERS[mro_type](obj)
+
+    return utils.SmartStr(obj)
+
+  def _ParseJsonMessages(self, messages):
+    """Parses json messages using Rekall DataExportRenderer."""
+
+    json_data = json.loads(messages)
+    for message in json_data:
+      if len(message) >= 1:
+        object_renderer = json_renderer.JsonObjectRenderer.FromEncoded(
+            message[1], "DataExportRenderer")(renderer="DataExportRenderer")
+        try:
+          message = [object_renderer.DecodeFromJsonSafe(s, {})
+                     for s in message]
+        except AttributeError as e:
+          # Old clients may still return lexicon-encoded data, just ignore them.
+          if "has no attribute 'lexicon'" in str(e):
+            continue
+          else:
+            raise
+
+      yield message
+
+  def _GenerateOutputClass(self, class_name, context_dict):
+    """Generates output class with a given name for a given context."""
+
+    output_class = type(utils.SmartStr(class_name),
+                        (rdfvalue.RDFProtoStruct,),
+                        {})
+
+    if "t" not in context_dict:
+      raise RuntimeError("Can't generate output class without Rekall table "
+                         "definition.")
+
+    field_number = 1
+    output_class.AddDescriptor(structs.ProtoEmbedded(
+        name="metadata", field_number=field_number,
+        nested=rdfvalue.ExportedMetadata))
+
+    field_number += 1
+    output_class.AddDescriptor(structs.ProtoString(name="section_name",
+                                                   field_number=field_number))
+
+    field_number += 1
+    output_class.AddDescriptor(structs.ProtoString(name="text",
+                                                   field_number=field_number))
+
+    for column_header in context_dict["t"]:
+      field_number += 1
+
+      column_name = None
+      try:
+        column_name = column_header["cname"]
+      except KeyError:
+        pass
+
+      if not column_name:
+        column_name = column_header["name"]
+
+      if not column_name:
+        raise RuntimeError("Can't determine column name in table header.")
+
+      output_class.AddDescriptor(structs.ProtoString(name=column_name,
+                                                     field_number=field_number))
+
+    return output_class
+
+  def _GetOutputClass(self, plugin_name, context_dict):
+    output_class_name = "RekallExport_" + plugin_name
+
+    try:
+      return RekallResponseConverter.OUTPUT_CLASSES[output_class_name]
+    except KeyError:
+      output_class = self._GenerateOutputClass(output_class_name, context_dict)
+      RekallResponseConverter.OUTPUT_CLASSES[output_class_name] = output_class
+      return output_class
+
+  def _HandleTableRow(self, metadata, plugin_name, context_dict, message):
+    """Handles a single row in one of the tables in RekallResponse."""
+
+    output_class = self._GetOutputClass(plugin_name, context_dict)
+    attrs = {}
+    for key, value in message[1].iteritems():
+      if hasattr(output_class, key):
+        attrs[key] = self._RenderObject(value)
+
+    result = output_class(**attrs)
+    result.metadata = metadata
+
+    try:
+      result.section_name = context_dict["s"]["name"]
+    except KeyError:
+      pass
+
+    return result
+
+  def Convert(self, metadata, rekall_response, token=None):
+    """Convert a single RekallResponse."""
+    if rekall_response.HasField("json_context_messages"):
+      parsed_context_messages = list(self._ParseJsonMessages(
+          rekall_response.json_context_messages))
+    else:
+      parsed_context_messages = []
+
+    context_dict = dict(parsed_context_messages)
+
+    for message in self._ParseJsonMessages(rekall_response.json_messages):
+      if message[0] in ["s", "t"]:
+        context_dict[message[0]] = message[1]
+
+      if message[0] == "r":
+        yield self._HandleTableRow(metadata, rekall_response.plugin,
+                                   context_dict, message)
+
+  def BatchConvert(self, metadata_value_pairs, token=None):
+    """Convert batch of RekallResponses."""
+
+    for metadata, rekall_response in metadata_value_pairs:
+      for result in  self.Convert(metadata, rekall_response):
+        yield result
 
 
 def GetMetadata(client, token=None):

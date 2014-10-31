@@ -1,4 +1,4 @@
-# Process related artifacts
+# Process-related flow templates.
 
 name: AllRunningProcessBinaryFiles
 doc: Download binaries of all the running processes.

@@ -316,7 +316,7 @@ grr.Renderer('AngularDirectiveRenderer', {
     var unique = state.unique;
     var template = $('#' + unique);
 
-    var injector = angular.injector(['ng', 'grr']);
+    var injector = angular.injector(['ng', 'grrUi']);
     var $compile = injector.get('$compile');
     var $rootScope = injector.get('$rootScope');
 
@@ -332,7 +332,7 @@ grr.Renderer('AngularDirectiveRenderer', {
     var template = $(document.createElement(directive));
     template.attr(directive_args);
 
-    var injector = angular.injector(['ng', 'grr']);
+    var injector = angular.injector(['ng', 'grrUi']);
     var $compile = injector.get('$compile');
     var $rootScope = injector.get('$rootScope');
 

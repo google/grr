@@ -826,7 +826,7 @@ class HuntClientCompletionGraphRenderer(renderers.ImageDownloadRenderer):
     hunt = aff4.FACTORY.Open(hunt_id, aff4_type="GRRHunt", token=request.token)
     clients_by_status = hunt.GetClientsByStatus()
 
-    cl = clients_by_status["COMPLETED"] + clients_by_status["OUTSTANDING"]
+    cl = clients_by_status["STARTED"]
     fi = clients_by_status["COMPLETED"]
 
     cdict = {}

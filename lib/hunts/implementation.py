@@ -953,7 +953,8 @@ class GRRHunt(flow.GRRFlow):
         self.completed_clients_collection_urn))
     outstanding = started - completed
 
-    return {"COMPLETED": sorted(completed),
+    return {"STARTED": sorted(started),
+            "COMPLETED": sorted(completed),
             "OUTSTANDING": sorted(outstanding)}
 
   def GetClientStates(self, client_list, client_chunk=50):

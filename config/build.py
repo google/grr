@@ -226,11 +226,17 @@ config_lib.DEFINE_string(
     default=("grr-client_%(Client.version_string)_%(Client.arch)"),
     help="The template name of the output package.")
 
+config_lib.DEFINE_string(
+    name="PyInstaller.template_filename",
+    default=(
+        "%(PyInstaller.template_basename)%(ClientBuilder.template_extension)"),
+    help="The template file name of the output package.")
+
 config_lib.DEFINE_option(type_info.PathTypeInfo(
     name="ClientBuilder.template_path", must_exist=False,
     default=(
         "%(ClientBuilder.executables_path)/%(Client.platform)/templates/"
-        "%(PyInstaller.template_basename)%(ClientBuilder.template_extension)"),
+        "%(PyInstaller.template_filename)"),
     help="The full path to the executable template file."))
 
 config_lib.DEFINE_option(type_info.PathTypeInfo(
@@ -239,11 +245,16 @@ config_lib.DEFINE_option(type_info.PathTypeInfo(
     help="The path to the grr executables directory."))
 
 config_lib.DEFINE_option(type_info.PathTypeInfo(
+    name="ClientBuilder.output_filename", must_exist=False,
+    default=(
+        "%(ClientBuilder.output_basename)%(ClientBuilder.output_extension)"),
+    help="The filename of the generated installer file."))
+
+config_lib.DEFINE_option(type_info.PathTypeInfo(
     name="ClientBuilder.output_path", must_exist=False,
     default=(
         "%(ClientBuilder.executables_path)/%(Client.platform)"
-        "/installers/%(ClientBuilder.output_basename)"
-        "%(ClientBuilder.output_extension)"),
+        "/installers/%(ClientBuilder.output_filename)"),
     help="The full path to the generated installer file."))
 
 config_lib.DEFINE_option(type_info.PathTypeInfo(

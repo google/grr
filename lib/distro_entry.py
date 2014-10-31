@@ -24,9 +24,10 @@ DISTRO_DEFAULTS = {
 def GetDistro():
   """Return the distro specific config to use."""
   if hasattr(platform, "linux_distribution"):
-    if platform.linux_distribution()[0].lower() in ["ubuntu", "debian"]:
+    distribution = platform.linux_distribution()[0].lower()
+    if distribution in ["ubuntu", "debian"]:
       return "debian"
-    if platform.linux_distribution()[0].lower() in ["red hat enterprise linux server"]:
+    if distribution in ["red hat enterprise linux server"]:
       return "redhat"
   raise RuntimeError("Missing distro specific config. Please update "
                      "distro_entry.py.")

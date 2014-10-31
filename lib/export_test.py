@@ -3,12 +3,15 @@
 
 
 
+import json
 import os
 import socket
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
+
+from grr.client.client_actions import grr_rekall
 
 from grr.lib import action_mocks
 from grr.lib import aff4
@@ -785,6 +788,22 @@ class ExportTest(test_lib.GRRBaseTest):
     self.assertEqual(exported_file.urn,
                      rdfvalue.RDFURN("aff4:/C.00000000000000/some/path"))
 
+  def testRDFBytesConverter(self):
+    data = rdfvalue.RDFBytes("foobar")
+
+    converter = export.RDFBytesToExportedBytesConverter()
+    results = list(converter.Convert(rdfvalue.ExportedMetadata(), data,
+                                     token=self.token))
+
+    self.assertTrue(len(results))
+
+    exported_bytes = [r for r in results
+                      if r.__class__.__name__ == "ExportedBytes"]
+    self.assertEqual(len(exported_bytes), 1)
+
+    self.assertEqual(exported_bytes[0].data, data)
+    self.assertEqual(exported_bytes[0].length, 6)
+
   def testGrrMessageConverter(self):
     payload = DummyRDFValue4(
         "some", age=rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
@@ -976,6 +995,185 @@ class DataAgnosticExportConverterTest(test_lib.GRRBaseTest):
     unserialized_converted_value = converted_value.__class__(serialized)
 
     self.assertEqual(converted_value, unserialized_converted_value)
+
+
+class RekallResponseConverterTest(test_lib.GRRBaseTest):
+
+  def SendReply(self, response_msg):
+    self.messages.append(response_msg)
+
+  def setUp(self):
+    super(RekallResponseConverterTest, self).setUp()
+
+    self.rekall_session = grr_rekall.GrrRekallSession(action=self)
+    self.renderer = self.rekall_session.GetRenderer()
+    self.messages = []
+
+    self.converter = export.RekallResponseConverter()
+
+  def testSingleTableIsExported(self):
+    self.renderer.start(plugin_name="sample")
+    self.renderer.table_header([("Offset", "offset", ""),
+                                ("Hex", "hex", ""),
+                                ("Data", "data", "")])
+
+    self.renderer.table_row(42, "0x0", "data")
+    self.renderer.flush()
+
+    self.assertEqual(len(self.messages), 1)
+
+    converted_values = list(self.converter.Convert(rdfvalue.ExportedMetadata(),
+                                                   self.messages[0],
+                                                   token=self.token))
+
+    self.assertEqual(len(converted_values), 1)
+    self.assertEqual(converted_values[0].__class__.__name__,
+                     "RekallExport_sample")
+    self.assertEqual(converted_values[0].offset, "42")
+    self.assertEqual(converted_values[0].hex, "0x0")
+    self.assertEqual(converted_values[0].data, "data")
+
+  def testCurrentSectionNameIsNotExportedWhenNotPresent(self):
+    self.renderer.start(plugin_name="sample")
+    self.renderer.table_header([("Offset", "offset", ""),
+                                ("Hex", "hex", ""),
+                                ("Data", "data", "")])
+
+    self.renderer.table_row(42, "0x0", "data")
+    self.renderer.flush()
+
+    converted_values = list(self.converter.Convert(rdfvalue.ExportedMetadata(),
+                                                   self.messages[0],
+                                                   token=self.token))
+    self.assertEqual(len(converted_values), 1)
+    self.assertFalse(converted_values[0].HasField("section_name"))
+
+  def testCurrentSectionNameIsExportedWhenPresent(self):
+    self.renderer.start(plugin_name="sample")
+    self.renderer.section(name="some section")
+    self.renderer.table_header([("Offset", "offset", ""),
+                                ("Hex", "hex", ""),
+                                ("Data", "data", "")])
+
+    self.renderer.table_row(42, "0x0", "data")
+    self.renderer.flush()
+
+    converted_values = list(self.converter.Convert(rdfvalue.ExportedMetadata(),
+                                                   self.messages[0],
+                                                   token=self.token))
+    self.assertEqual(len(converted_values), 1)
+    self.assertEqual(converted_values[0].section_name,
+                     "some section")
+
+  def testTwoTablesAreExportedUsingValuesOfTheSameClass(self):
+    self.renderer.start(plugin_name="sample")
+    self.renderer.table_header([("Offset", "offset", ""),
+                                ("Hex", "hex", ""),
+                                ("Data", "data", "")])
+
+    self.renderer.table_row(42, "0x0", "data")
+    self.renderer.table_header([("Offset", "offset", ""),
+                                ("Hex", "hex", ""),
+                                ("Data", "data", "")])
+
+    self.renderer.table_row(43, "0x1", "otherdata")
+    self.renderer.flush()
+
+    converted_values = list(self.converter.Convert(rdfvalue.ExportedMetadata(),
+                                                   self.messages[0],
+                                                   token=self.token))
+    self.assertEqual(len(converted_values), 2)
+    self.assertEqual(converted_values[0].__class__.__name__,
+                     "RekallExport_sample")
+    self.assertEqual(converted_values[0].offset, "42")
+    self.assertEqual(converted_values[0].hex, "0x0")
+    self.assertEqual(converted_values[0].data, "data")
+
+    self.assertEqual(converted_values[1].__class__.__name__,
+                     "RekallExport_sample")
+    self.assertEqual(converted_values[1].offset, "43")
+    self.assertEqual(converted_values[1].hex, "0x1")
+    self.assertEqual(converted_values[1].data, "otherdata")
+
+  def testTwoTablesHaveProperSectionNamesSet(self):
+    self.renderer.start(plugin_name="sample")
+    self.renderer.section(name="some section")
+    self.renderer.table_header([("Offset", "offset", ""),
+                                ("Hex", "hex", ""),
+                                ("Data", "data", "")])
+
+    self.renderer.table_row(42, "0x0", "data")
+
+    self.renderer.section(name="some other section")
+    self.renderer.table_header([("Offset", "offset", ""),
+                                ("Hex", "hex", ""),
+                                ("Data", "data", "")])
+
+    self.renderer.table_row(43, "0x1", "otherdata")
+    self.renderer.flush()
+
+    converted_values = list(self.converter.Convert(rdfvalue.ExportedMetadata(),
+                                                   self.messages[0],
+                                                   token=self.token))
+    self.assertEqual(converted_values[0].section_name, "some section")
+    self.assertEqual(converted_values[1].section_name, "some other section")
+
+  def testObjectRenderersAreAppliedCorrectly(self):
+    messages = [
+        ["t", [{"cname": "Address"},
+               {"cname": "Pointer"},
+               {"cname": "PaddedAddress"},
+               {"cname": "AddressSpace"},
+               {"cname": "Enumeration"},
+               {"cname": "Literal"},
+               {"cname": "NativeType"},
+               {"cname": "NoneObject"},
+               {"cname": "BaseObject"},
+               {"cname": "Struct"},
+               {"cname": "UnixTimeStamp"},
+               {"cname": "_EPROCESS"},
+               {"cname": "int"},
+               {"cname": "str"}], {}],
+        ["r", {"Address": {"mro": ["Address"], "value": 42},
+               "Pointer": {"mro": ["Pointer"], "target": 43},
+               "PaddedAddress": {"mro": ["PaddedAddress"], "value": 44},
+               "AddressSpace": {"mro": ["AddressSpace"],
+                                "name": "some_address_space"},
+               "Enumeration": {"mro": ["Enumeration"], "enum": "ENUM",
+                               "value": 42},
+               "Literal": {"mro": ["Literal"], "value": "some literal"},
+               "NativeType": {"mro": ["NativeType"], "value": "some"},
+               "NoneObject": {"mro": ["NoneObject"]},
+               "BaseObject": {"mro": ["BaseObject"], "offset": 42},
+               "Struct": {"mro": ["Struct"], "offset": 42},
+               "UnixTimeStamp": {"mro": ["UnixTimeStamp"], "epoch": 42},
+               "_EPROCESS": {"mro": ["_EPROCESS"],
+                             "Cybox": {"PID": 4, "Name": "System"}},
+               "int": 42,
+               "str": "some string"}]
+        ]
+
+    rekall_response = rdfvalue.RekallResponse(
+        plugin="object_renderer_sample", json_messages=json.dumps(messages),
+        json_context_messages=json.dumps([]))
+    converted_values = list(self.converter.Convert(rdfvalue.ExportedMetadata(),
+                                                   rekall_response,
+                                                   token=self.token))
+    self.assertEqual(len(converted_values), 1)
+    self.assertEqual(converted_values[0].Address, "0x2a")
+    self.assertEqual(converted_values[0].Pointer, "0x0000000000002b")
+    self.assertEqual(converted_values[0].PaddedAddress, "0x0000000000002c")
+    self.assertEqual(converted_values[0].AddressSpace, "some_address_space")
+    self.assertEqual(converted_values[0].Enumeration, "ENUM (42)")
+    self.assertEqual(converted_values[0].Literal, "some literal")
+    self.assertEqual(converted_values[0].NativeType, "some")
+    self.assertEqual(converted_values[0].NoneObject, "-")
+    self.assertEqual(converted_values[0].BaseObject, "@0x2a")
+    self.assertEqual(converted_values[0].Struct, "0x2a")
+    self.assertEqual(converted_values[0].UnixTimeStamp, "1970-01-01 00:00:42")
+    self.assertEqual(converted_values[0]._EPROCESS, "System (4)")
+    self.assertEqual(converted_values[0].int, "42")
+    self.assertEqual(converted_values[0].str, "some string")
 
 
 def main(argv):

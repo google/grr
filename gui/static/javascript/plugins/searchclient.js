@@ -75,11 +75,6 @@ grr.labels_completer.Completer = function(dom_id, completions, split_term) {
   });
 };
 
-grr.Renderer('GlobExpressionFormRenderer', {
-  Layout: function(state) {
-  }
-});
-
 
 grr.Renderer('ContentView', {
   Layout: function(state) {

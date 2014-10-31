@@ -704,7 +704,7 @@ class CentosClientDeployer(LinuxClientDeployer):
 
       target_binary_dir = "%s%s" % (
           rpm_build_dir, config_lib.CONFIG.Get("ClientBuilder.target_dir",
-                                         context=self.context))
+                                               context=self.context))
 
       self.EnsureDirExists(os.path.dirname(target_binary_dir))
       try:
@@ -724,7 +724,9 @@ class CentosClientDeployer(LinuxClientDeployer):
       self.GenerateFile(os.path.join(
           tmp_dir, "dist/rpmbuild/grr.spec.in"), spec_filename)
 
-      initd_target_filename = os.path.join(rpm_build_dir, "etc/init.d", client_name)
+      initd_target_filename = os.path.join(
+          rpm_build_dir, "etc/init.d", client_name)
+
       self.EnsureDirExists(os.path.dirname(initd_target_filename))
       self.GenerateFile(
           os.path.join(tmp_dir, "dist/rpmbuild/grr-client.initd.in"),
@@ -748,11 +750,15 @@ class CentosClientDeployer(LinuxClientDeployer):
       # Set the daemon to executable.
       os.chmod(os.path.join(target_binary_dir, client_binary_name), 0755)
 
-      client_arch = config_lib.CONFIG.Get("Client.arch",context=self.context)
+      client_arch = config_lib.CONFIG.Get("Client.arch", context=self.context)
       if client_arch == "amd64":
         client_arch = "x86_64"
 
-      command = [rpmbuild_binary, "--define", "_topdir " + rpm_root_dir, "--target", client_arch, "-bb", spec_filename]
+      command = [
+          rpmbuild_binary,
+          "--define", "_topdir " + rpm_root_dir,
+          "--target", client_arch,
+          "-bb", spec_filename]
       try:
         subprocess.check_output(command, stderr=subprocess.STDOUT)
       except subprocess.CalledProcessError as e:

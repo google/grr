@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en" ng-app="grr" ng-controller="GrrAppController">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en" ng-app="grrUi" ng-controller="GrrUiAppController">
 <head>
 
 {% block styles %}
@@ -29,17 +29,13 @@
 <script src="/static/javascript/angular/angular-animate.js"></script>
 <script src="/static/javascript/angular/angular-cookies.js"></script>
 <script src="/static/javascript/angular/angular-resource.js"></script>
+<script src="/static/javascript/bootstrap-ui.js"></script>
 
-<script src="/static/angular-components/core/app-controller.js"></script>
-<script src="/static/angular-components/core/aff4-service.js"></script>
-<script src="/static/angular-components/core/collection-table-directive.js"></script>
-<script src="/static/angular-components/core/inject-directive.js"></script>
-<script src="/static/angular-components/flow/flow-log-directive.js"></script>
-<script src="/static/angular-components/hunt/hunt-errors-directive.js"></script>
-<script src="/static/angular-components/hunt/hunt-log-directive.js"></script>
-<script src="/static/angular-components/semantic/client-urn-directive.js"></script>
-<script src="/static/angular-components/semantic/semantic-proto-directive.js"></script>
-<script src="/static/angular-components/semantic/semantic-value-directive.js"></script>
+<script src="/static/javascript/closure/base.js"></script>
+<script src="/static/javascript/closure/deps.js"></script>
+<script>
+  goog.require('grrUi.appController.module');
+</script>
 
 <link rel="stylesheet" type="text/css" href="/static/css/bootstrap.css" media="screen"/>
 <link rel="stylesheet" type="text/css" href="/static/css/select2.css" media="screen"/>

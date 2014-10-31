@@ -5,6 +5,7 @@ This handles invocations for the build across the supported platforms including
 handling Visual Studio, pyinstaller and other packaging mechanisms.
 """
 
+import os
 import platform
 import sys
 
@@ -60,6 +61,12 @@ parser_repack.add_argument("--template", default=None,
 parser_repack.add_argument("--output", default=None,
                            help="The path to write the output installer.")
 
+parser_repack.add_argument("--outputdir", default="",
+                           help="The directory to which we should write the "
+                           "output installer. Installers will be named "
+                           "automatically from config options. Incompatible"
+                           " with --output")
+
 parser_repack.add_argument("--debug_build", action="store_true", default=False,
                            help="Create a debug client.")
 
@@ -73,9 +80,18 @@ parser_deploy = subparsers.add_parser(
 parser_deploy.add_argument("--template", default=None,
                            help="The template zip file to deploy.")
 
+parser_deploy.add_argument("--templatedir", default="",
+                           help="Directory containing template zip files to "
+                           "repack. Incompatible with --template")
+
 parser_deploy.add_argument("--output", default=None,
                            help="The path to write the output installer.")
 
+parser_deploy.add_argument("--outputdir", default="",
+                           help="The directory to which we should write the "
+                           "output installer. Installers will be named "
+                           "automatically from config options. Incompatible"
+                           " with --output")
 
 parser_deploy.add_argument("-p", "--plugins", default=[], nargs="+",
                            help="Additional python files that will be loaded "
@@ -140,6 +156,15 @@ def GetDeployer(context):
   return deployer_obj(context=context)
 
 
+def TemplateInputFilename(context):
+  """Build template file name from config."""
+  if args.templatedir:
+    filename = config_lib.CONFIG.Get("PyInstaller.template_filename",
+                                     context=context)
+    return os.path.join(args.templatedir, filename)
+  return None
+
+
 def main(_):
   """Launch the appropriate builder."""
   config_lib.CONFIG.AddContext(
@@ -168,7 +193,12 @@ def main(_):
       context += ["DebugClientBuild Context"]
 
     deployer = GetDeployer(context)
-    deployer.RepackInstaller(open(args.template, "rb").read(), args.output)
+    output_filename = os.path.join(
+        args.outputdir, config_lib.CONFIG.Get(
+            "ClientBuilder.output_filename", context=deployer.context))
+
+    deployer.RepackInstaller(open(args.template, "rb").read(), args.output or
+                             output_filename)
 
   elif args.subparser_name == "deploy":
     if args.plugins:
@@ -178,10 +208,18 @@ def main(_):
       context += ["DebugClientBuild Context"]
 
     deployer = GetDeployer(context)
-    template_path = args.template or config_lib.CONFIG.Get(
-        "ClientBuilder.template_path", context=deployer.context)
+    template_path = (args.template or TemplateInputFilename(deployer.context) or
+                     config_lib.CONFIG.Get("ClientBuilder.template_path",
+                                           context=deployer.context))
 
-    deployer.MakeDeployableBinary(template_path, args.output)
+    # If output filename isn't specified, write to args.outputdir with a
+    # .deployed extension so we can distinguish it from repacked binaries.
+    filename = ".".join(
+        (config_lib.CONFIG.Get("ClientBuilder.output_filename",
+                               context=deployer.context), "deployed"))
+
+    deployer.MakeDeployableBinary(template_path, args.output or os.path.join(
+        args.outputdir, filename))
 
 
 if __name__ == "__main__":

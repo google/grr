@@ -6,6 +6,8 @@ import cStringIO
 import json
 import struct
 
+from google.protobuf import descriptor_pb2
+from google.protobuf import descriptor
 from google.protobuf import text_format
 import logging
 
@@ -1924,9 +1926,9 @@ class RDFProtoStruct(RDFStruct):
 
   def AsDict(self):
     result = {}
-    for descriptor in self.type_infos:
-      if self.HasField(descriptor.name):
-        result[descriptor.name] = getattr(self, descriptor.name)
+    for desc in self.type_infos:
+      if self.HasField(desc.name):
+        result[desc.name] = getattr(self, desc.name)
 
     return result
 
@@ -1958,6 +1960,132 @@ class RDFProtoStruct(RDFStruct):
 
     result += "}\n"
     return result
+
+  @classmethod
+  def _MakeDescriptor(cls, package_name, desc_proto, file_desc_proto,
+                      descriptors=None):
+    """Creates a protobuf descriptor out of DescriptorProto."""
+    descriptors = descriptors or dict()
+    full_message_name = [package_name, desc_proto.name]
+
+    file_descriptor = descriptor.FileDescriptor(
+        file_desc_proto.name, file_desc_proto.package,
+        serialized_pb=file_desc_proto.SerializeToString())
+
+    # Create Descriptors for enum types
+    enum_types = {}
+    for enum_proto in desc_proto.enum_type:
+      full_name = ".".join(full_message_name + [enum_proto.name])
+
+      values = []
+      for index, enum_val in enumerate(enum_proto.value):
+        values.append(descriptor.EnumValueDescriptor(
+            enum_val.name, index, enum_val.number))
+
+      enum_desc = descriptor.EnumDescriptor(enum_proto.name, full_name,
+                                            None, values)
+      enum_types[full_name] = enum_desc
+
+    fields = []
+    for field_proto in desc_proto.field:
+      full_name = ".".join(full_message_name + [field_proto.name])
+      enum_desc = None
+      message_desc = None
+      if field_proto.HasField("type_name"):
+        type_name = field_proto.type_name
+        full_type_name = ".".join(full_message_name +
+                                  [type_name[type_name.rfind(".") + 1:]])
+
+        if full_type_name in enum_types:
+          enum_desc = enum_types[full_type_name]
+        elif type_name in descriptors:
+          message_desc = descriptors[type_name]
+
+      # Else type_name references a non-local type, which isn't implemented
+      field = descriptor.FieldDescriptor(
+          field_proto.name, full_name, field_proto.number - 1,
+          field_proto.number, field_proto.type,
+          descriptor.FieldDescriptor.ProtoTypeToCppProtoType(field_proto.type),
+          field_proto.label, None, message_desc, enum_desc, None, False, None,
+          options=field_proto.options, has_default_value=False)
+      fields.append(field)
+
+    desc_name = ".".join(full_message_name)
+    return descriptor.Descriptor(desc_proto.name, desc_name, None, None, fields,
+                                 [], enum_types.values(), [],
+                                 file=file_descriptor)
+
+  PRIMITIVE_TYPE_MAPPING = {
+      "string": descriptor_pb2.FieldDescriptorProto.TYPE_STRING,
+      "bytes": descriptor_pb2.FieldDescriptorProto.TYPE_BYTES,
+      "uint64": descriptor_pb2.FieldDescriptorProto.TYPE_UINT64,
+      "int64": descriptor_pb2.FieldDescriptorProto.TYPE_INT32,
+      "float": descriptor_pb2.FieldDescriptorProto.TYPE_FLOAT,
+      "double": descriptor_pb2.FieldDescriptorProto.TYPE_DOUBLE,
+      "bool": descriptor_pb2.FieldDescriptorProto.TYPE_BOOL
+      }
+
+  @classmethod
+  def EmitProtoDescriptor(cls, package_name):
+    file_descriptor = descriptor_pb2.FileDescriptorProto()
+    file_descriptor.name = cls.__name__.lower() + ".proto"
+    file_descriptor.package = package_name
+
+    descriptors = dict()
+
+    message_type = file_descriptor.message_type.add()
+    message_type.name = cls.__name__
+
+    for number, desc in sorted(cls.type_infos_by_field_number.items()):
+      # Name 'metadata' is reserved to store ExportedMetadata value.
+      field = None
+      if isinstance(desc, type_info.ProtoEnum):
+        field = message_type.field.add()
+        field.type = descriptor_pb2.FieldDescriptorProto.TYPE_ENUM
+        field.type_name = desc.enum_name
+
+        enum_type = message_type.enum_type.add()
+        enum_type.name = desc.name
+        for key, value in desc.enum.iteritems():
+          enum_type.name = key
+          enum_type.number = value
+      elif isinstance(desc, type_info.ProtoEmbedded):
+        field = message_type.field.add()
+        field.type = descriptor_pb2.FieldDescriptorProto.TYPE_MESSAGE
+
+        if hasattr(desc.type, "protobuf"):
+          field.type_name = "." + desc.type.protobuf.DESCRIPTOR.full_name
+          descriptors[field.type_name] = desc.type.protobuf.DESCRIPTOR
+
+          # Register import of a proto file containing embedded protobuf
+          # definition.
+          file_descriptor.dependency.append(
+              desc.type.protobuf.DESCRIPTOR.file.name)
+        else:
+          raise NotImplementedError("Can't emit proto descriptor for values "
+                                    "with nested non-protobuf-based values.")
+      elif isinstance(desc, type_info.ProtoList):
+        field = message_type.field.add()
+        field.type = descriptor_pb2.FieldDescriptorProto.TYPE_MESSAGE
+
+        if hasattr(desc.type, "protobuf"):
+          field.type_name = "." + desc.type.protobuf.DESCRIPTOR.full_name
+        else:
+          raise NotImplementedError("Can't emit proto descriptor for values "
+                                    "with repeated non-protobuf-based values.")
+        field.label = descriptor_pb2.FieldDescriptorProto.LABEL_REPEATED
+      else:
+        field = message_type.field.add()
+        field.type = cls.PRIMITIVE_TYPE_MAPPING[desc.proto_type_name]
+
+      if field:
+        field.name = desc.name
+        field.number = number
+        if not field.HasField("label"):
+          field.label = descriptor_pb2.FieldDescriptorProto.LABEL_OPTIONAL
+
+    return cls._MakeDescriptor(package_name, message_type, file_descriptor,
+                               descriptors=descriptors)
 
   def Validate(self):
     """Validates the semantic protobuf for internal consistency.
