@@ -199,8 +199,7 @@ class GRRUser(aff4.AFF4Object):
   def Describe(self):
     """Return a description of this user."""
     result = ["\nUsername: %s" % self.urn.Basename()]
-    fd = aff4.FACTORY.Open(self.urn.Add("labels"), token=self.token)
-    labels = [str(x) for x in fd.Get(fd.Schema.LABEL, [])]
+    labels = [l.name for l in self.GetLabels()]
     result.append("Labels: %s" % ",".join(labels))
 
     if self.Get(self.Schema.PASSWORD) is None:
