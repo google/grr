@@ -1,7 +1,6 @@
-GRR Rapid Response
-==================
+<img src="https://raw.githubusercontent.com/google/grr/gh-pages/img/grr_logo_real_sm.png" />
 
-GRR is an incident response framework focused on remote live forensics.
+GRR Rapid Response is an incident response framework focused on remote live forensics.
 
 Links
 -----
