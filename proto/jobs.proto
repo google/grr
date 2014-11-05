@@ -5,6 +5,77 @@ syntax = "proto2";
 
 import "grr/proto/semantic.proto";
 
+message PEFunction {
+  optional string name = 1;
+  optional uint64 ordinal = 2;
+  optional string forwarder = 3;
+}
+
+message PELibrary {
+  optional string dll_name = 1;
+  required uint64 count = 2;
+  repeated PEFunction functions = 3;
+}
+
+message PEVersionInfo {
+  optional string CompanyName = 1;
+  optional string FileDescription = 2;
+  optional string FileVersion = 3;
+  optional string InternalName = 4;
+  optional string LegalCopyright = 5;
+  optional string LegalTrademarks1 = 6;
+  optional string LegalTrademarks2 = 7;
+  optional string OriginalFilename = 8;
+  optional string ProductName = 9;
+  optional string ProductVersion = 10;
+}
+
+message PESection {
+  optional string name = 1;
+  optional uint64 virt_addr = 2;
+  optional uint64 virt_size = 3;
+  optional uint64 raw_size = 4;
+  optional float entropy = 5;
+}
+
+message PEResource {
+  optional string name = 1;
+  optional uint64 size = 2;
+  optional string type = 3;
+}
+
+message PEHeader {
+  enum Subsystem {
+  IMAGE_SUBSYSTEM_UNKNOWN = 0;
+  IMAGE_SUBSYSTEM_NATIVE = 1;
+  IMAGE_SUBSYSTEM_WINDOWS_GUI = 2;
+  IMAGE_SUBSYSTEM_WINDOWS_CUI = 3;
+  IMAGE_SUBSYSTEM_OS2_CUI = 5;
+  IMAGE_SUBSYSTEM_POSIX_CUI = 7;
+  IMAGE_SUBSYSTEM_WINDOWS_CE_GUI = 9;
+  IMAGE_SUBSYSTEM_EFI_APPLICATION = 10;
+  IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER = 11;
+  IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER = 12;
+  IMAGE_SUBSYSTEM_EFI_ROM = 13;
+  IMAGE_SUBSYSTEM_XBOX = 14;
+  IMAGE_SUBSYSTEM_WINDOWS_BOOT_APPLICATION = 16;
+  }
+    optional string type = 1;
+  optional Subsystem subsystem = 2;
+    optional uint64 compile_time = 3 [(sem_type) = {
+      type: "RDFDatetimeSeconds",
+      description: "Last inode change time."
+    }];
+    optional uint64 ep = 4;
+    optional uint64 tls = 5;
+    optional bytes signature = 6;
+  optional PEVersionInfo version_info = 7;
+  repeated PELibrary imports = 8;
+  optional PELibrary exports = 9;
+  repeated PESection sections = 10;
+  repeated PEResource resources = 11;
+  repeated string anomalies = 12;
+}
 
 
 message HttpRequest {
@@ -846,6 +917,12 @@ message StatEntry {
       description: "If this entry represents a registry value, this field will "
       "contain that value encoded according to the correct type.";
     }];
+  optional uint64 st_crtime = 20 [(sem_type) = {
+      type: "RDFDatetimeSeconds",
+      description: "Last access time."
+    }];
+  optional string file_magic = 21;
+  optional PEHeader pe_header = 22;
 };
 
 // This stores collection entries.

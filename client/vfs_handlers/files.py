@@ -8,12 +8,16 @@ import platform
 import re
 import sys
 import threading
+import magic
+import pefile
+
+
 
 from grr.client import client_utils
 from grr.client import vfs
 from grr.lib import rdfvalue
 from grr.lib import utils
-
+from grr.lib import config_lib
 
 # File handles are cached here.
 FILE_HANDLE_CACHE = utils.FastStore()
@@ -249,6 +253,21 @@ class File(vfs.VFSHandler):
       st = None
 
     result = MakeStatResponse(st, self.pathspec)
+
+    #Attempt file magic.
+    try:
+      magic_file = config_lib.CONFIG.Get("Client.install_path") + "magic.mgc"
+      mgc = magic.Magic(magic_file=magic_file)
+      result.file_magic = mgc.from_file(local_path)
+    except (IOError, MagicException) as e:
+      logging.info("Failed to Magic %s. Err: %s", path or self.path, e)
+      result.file_magic = None
+
+    #If magic is PE type attempt to parse and add header.  Expand for Mach-O/ELF
+    if result.file_magic.startswith("PE32"):
+      pe_header = rdfvalue.PEHeader()
+      pe_header.ParseFromFile(path=local_path)
+      result.pe_header = pe_header
 
     # Is this a symlink? If so we need to note the real location of the file.
     try:
