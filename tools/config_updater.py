@@ -13,7 +13,6 @@ import readline  # pylint: disable=unused-import
 import sys
 import urlparse
 
-
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
 # pylint: enable=g-bad-import-order,unused-import
@@ -36,6 +35,7 @@ from grr.lib import rdfvalue
 from grr.lib import startup
 from grr.lib import utils
 from grr.lib.aff4_objects import users
+from grr.lib import access_control
 # pylint: enable=g-import-not-at-top,no-name-in-module
 
 
@@ -102,8 +102,9 @@ parser_add_user.add_argument(
 def UpdateUser(username, password, add_labels=None, delete_labels=None):
   """Implementation of the update_user command."""
   print "Updating user %s" % username
+  token = access_control.ACLToken(username="GRRConsole").SetUID()
   with aff4.FACTORY.Create("aff4:/users/%s" % username,
-                           "GRRUser", mode="rw") as fd:
+                           "GRRUser", mode="rw", token=token) as fd:
     # Note this accepts blank passwords as valid.
     if password is not None:
       fd.SetPassword(password)
@@ -157,13 +158,14 @@ parser_update_user.add_argument("username", help="Username to update.")
 
 
 def DeleteUser(username):
+  token = access_control.ACLToken(username="GRRConsole").SetUID()
   try:
-    aff4.FACTORY.Open("aff4:/users/%s" % username, "GRRUser")
+    aff4.FACTORY.Open("aff4:/users/%s" % username, "GRRUser", token=token)
   except aff4.InstantiationError:
     print "User %s not found." % username
     return
 
-  aff4.FACTORY.Delete("aff4:/users/%s" % username)
+  aff4.FACTORY.Delete("aff4:/users/%s" % username, token=token)
   print "User %s has been deleted." % username
 
 # Show user account.
@@ -176,14 +178,15 @@ parser_show_user.add_argument(
 
 
 def ShowUser(username):
-  """Implementation o the show_user command."""
+  """Implementation to the show_user command."""
+  token = access_control.ACLToken(username="GRRConsole").SetUID()
   if username is None:
-    fd = aff4.FACTORY.Open("aff4:/users")
+    fd = aff4.FACTORY.Open("aff4:/users", token=token)
     for user in fd.OpenChildren():
       if isinstance(user, users.GRRUser):
         print user.Describe()
   else:
-    user = aff4.FACTORY.Open("aff4:/users/%s" % username)
+    user = aff4.FACTORY.Open("aff4:/users/%s" % username, token=token)
     if isinstance(user, users.GRRUser):
       print user.Describe()
     else:
@@ -496,8 +499,9 @@ def Initialize(config=None):
 
 def UploadRaw(file_path, aff4_path):
   """Upload a file to the datastore."""
+  token = access_control.ACLToken(username="GRRConsole").SetUID()
   full_path = rdfvalue.RDFURN(aff4_path).Add(os.path.basename(file_path))
-  fd = aff4.FACTORY.Create(full_path, "AFF4Image", mode="w")
+  fd = aff4.FACTORY.Create(full_path, "AFF4Image", mode="w", token=token)
   fd.Write(open(file_path).read(1024*1024*30))
   fd.Close()
   return str(fd.urn)

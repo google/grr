@@ -148,7 +148,7 @@ class BasicAccessControlManager(BaseAccessControlManager):
   """Basic ACL manager that uses the config file for user management."""
 
   SYSTEM_ACCOUNTS = ['GRREnroller', 'GRRCron', 'GRRWorker', 'GRRSystem',
-                     'GRRFrontEnd']
+                     'GRRFrontEnd', 'GRRConsole']
   CLIENT_URN_PATTERN = "aff4:/C." + "[0-9a-fA-F]" * 16
 
   def __init__(self):
