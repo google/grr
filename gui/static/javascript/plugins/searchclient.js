@@ -48,7 +48,13 @@ grr.labels_completer.Completer = function(dom_id, completions, split_term) {
           response(grr.labels_completer.filter(completions, terms.pop()));
         }
       } else {
-        response(grr.labels_completer.filter(completions, request.term));
+        terms = grr.labels_completer.filter(completions, request.term);
+        if ($.inArray(request.term, terms) != -1) {
+          response([]);
+        }
+        else {
+          response(terms);
+        }
       }
     },
     focus: function() {
@@ -69,7 +75,7 @@ grr.labels_completer.Completer = function(dom_id, completions, split_term) {
         grr.forms.inputOnChange(this);
         return false;
       } else {
-        return false;
+        return true;
       }
     }
   });

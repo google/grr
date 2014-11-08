@@ -270,7 +270,8 @@ message HuntRunnerArgs {
   optional bool require_fastpoll = 15 [ default = true, (sem_type) = {
       description: "This value is passed to the client during CallClient, and "
                    "by default will cause the client to enter fastpoll after"
-                   "processing the message."
+                   "processing the message.",
+      label: ADVANCED
     }];
 
 };

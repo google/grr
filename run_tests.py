@@ -19,7 +19,10 @@ from grr.lib import server_plugins
 from grr.client import tests
 # pylint: enable=unused-import,g-bad-import-order
 
-# These need to register plugins so, pylint: disable=unused-import
+# These need to register plugins so, pylint: disable=unused-import,g-bad-import-order
+from grr.gui.api_plugins import tests
+from grr.gui import api_renderers_test
+from grr.gui import api_object_renderers_test
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib import tests

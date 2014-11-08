@@ -69,7 +69,6 @@ from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import stats
 from grr.lib import utils
-from grr.lib.rdfvalues import flows
 
 
 class FlowRunnerError(Exception):
@@ -215,7 +214,7 @@ class FlowRunner(object):
       args = rdfvalue.FlowRunnerArgs()
 
     output_collection = self._CreateOutputCollection(args)
-    context = flows.DataObject(
+    context = utils.DataObject(
         args=args,
         backtrace=None,
         client_resources=rdfvalue.ClientResources(),
@@ -778,9 +777,6 @@ class FlowRunner(object):
         kwargs.pop("logs_collection_urn", None) or
         self.args.logs_collection_urn)
 
-    cpu_limit = self.context.args.cpu_limit
-    network_bytes_limit = self.context.args.network_bytes_limit
-
     # If we were called with write_intermediate_results, propagate down to
     # child flows.  This allows write_intermediate_results to be set to True
     # either at the top level parent, or somewhere in the middle of
@@ -796,8 +792,8 @@ class FlowRunner(object):
         event_id=self.context.get("event_id"),
         request_state=state, token=self.token, notify_to_user=False,
         parent_flow=self.flow_obj, _store=self.data_store,
-        network_bytes_limit=network_bytes_limit, sync=sync, output=output,
-        queue=self.args.queue, cpu_limit=cpu_limit,
+        sync=sync, output=output,
+        queue=self.args.queue,
         write_intermediate_results=write_intermediate,
         logs_collection_urn=logs_urn, creator=self.context.creator, **kwargs)
 

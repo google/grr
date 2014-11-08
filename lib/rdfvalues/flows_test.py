@@ -31,7 +31,7 @@ class FlowStateTest(test_base.RDFValueTestCase):
     state.Register("teststate", 1)
     state.teststate = 100
 
-    state.Register("context", flows.DataObject())
+    state.Register("context", utils.DataObject())
     state.context.testcontext = 50
     s = state.SerializeToString()
 
