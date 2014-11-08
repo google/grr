@@ -69,7 +69,18 @@ class ParallelHandler(BaseHandler):
   """Abstract parser to pass results through parsers in parallel."""
 
   def Parse(self, raw_data):
-    """Take the data and yield results that passed through the filters."""
+    """Take the data and yield results that passed through the filters.
+
+    The output of each filter is added to a result set. So long as the filter
+    selects, but does not modify, raw data, the result count will remain
+    accurate.
+
+    Args:
+      raw_data: An iterable series of rdf values.
+
+    Returns:
+      A list of rdf values that matched at least one filter.
+    """
     self.results = set()
     if not self.filters:
       self.results.update(raw_data)
@@ -130,11 +141,10 @@ class Filter(object):
     return cls.filters.setdefault(filter_name, filt_cls())
 
   def Parse(self, check_object, unused_arg):
-    for result in self._Iterate(check_object):
-      yield result
+    raise NotImplementedError("Filter needs to have a Parse method.")
 
   def Validate(self, _):
-    pass
+    raise NotImplementedError("Filter needs to have a Validate method.")
 
 
 class ObjectFilter(Filter):

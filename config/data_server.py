@@ -23,14 +23,15 @@ config_lib.DEFINE_string("Dataserver.path", "/tmp/grr-store",
                          "Data store path for a specific data server.")
 
 # Login information for clients of the data servers.
-config_lib.DEFINE_list("Dataserver.usernames", ["user:user:rw"],
-                       "List of data server client usernames.")
+config_lib.DEFINE_list("Dataserver.client_credentials", ["user:pass:rw"],
+                       "List of data server client credentials, given as "
+                       "<username>:<password>:<mode> where mode is r or rw.")
 
 # Login information used by data servers when registering with the master.
-config_lib.DEFINE_string("Dataserver.username", "server",
+config_lib.DEFINE_string("Dataserver.server_username", "server",
                          "Username for servers.")
 
-config_lib.DEFINE_string("Dataserver.password", "server",
+config_lib.DEFINE_string("Dataserver.server_password", "server",
                          "Password for servers.")
 
 # HTTP data store configuration.

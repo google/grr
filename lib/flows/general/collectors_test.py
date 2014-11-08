@@ -3,7 +3,6 @@
 
 
 import os
-import random
 
 from grr.client import vfs
 from grr.lib import action_mocks
@@ -11,6 +10,7 @@ from grr.lib import aff4
 from grr.lib import artifact
 from grr.lib import artifact_lib
 from grr.lib import artifact_test
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
@@ -21,7 +21,11 @@ from grr.test_data import client_fixture
 # pylint: mode=test
 
 
-class TestArtifactCollectors(artifact_test.ArtifactTestHelper):
+class CollectorTest(artifact_test.ArtifactTest):
+  pass
+
+
+class TestArtifactCollectors(CollectorTest):
   """Test the artifact collection mechanism with fake artifacts."""
 
   def setUp(self):
@@ -33,6 +37,8 @@ class TestArtifactCollectors(artifact_test.ArtifactTestHelper):
     artifact_reg = artifact_lib.ArtifactRegistry.artifacts
     self.fakeartifact = artifact_reg["FakeArtifact"]
     self.fakeartifact2 = artifact_reg["FakeArtifact2"]
+
+    self.output_count = 0
 
     with aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw") as fd:
       fd.Set(fd.Schema.SYSTEM("Linux"))
@@ -268,7 +274,8 @@ class TestArtifactCollectors(artifact_test.ArtifactTestHelper):
     client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
     client.Set(client.Schema.SYSTEM("Linux"))
     client.Flush()
-    output = "test_artifact_%s" % random.randrange(1, 1000)
+    self.output_count += 1
+    output = "test_artifact_%d" % self.output_count
     for _ in test_lib.TestFlowHelper("ArtifactCollectorFlow", client_mock,
                                      artifact_list=artifact_list,
                                      token=self.token, client_id=self.client_id,
@@ -283,8 +290,7 @@ class TestArtifactCollectors(artifact_test.ArtifactTestHelper):
     return fd
 
 
-class TestArtifactCollectorsInteractions(
-    artifact_test.ArtifactTestHelper):
+class TestArtifactCollectorsInteractions(CollectorTest):
   """Test the collection of artifacts.
 
   This class loads both real and test artifacts to test the interaction of badly
@@ -355,7 +361,7 @@ class TestArtifactCollectorsInteractions(
       self.assertFalse(getfile_instrument.args)
 
 
-class TestArtifactCollectorsRealArtifacts(artifact_test.ArtifactTestHelper):
+class TestArtifactCollectorsRealArtifacts(CollectorTest):
   """Test the collection of real artifacts."""
 
   def _CheckDriveAndRoot(self):
@@ -481,3 +487,15 @@ class TestArtifactCollectorsRealArtifacts(artifact_test.ArtifactTestHelper):
                                token=self.token)
     self.assertEqual(len(output), 1)
     self.assertEqual(output[0], r"C:\Windows")
+
+
+class FlowTestLoader(test_lib.GRRTestLoader):
+  base_class = CollectorTest
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+
+if __name__ == "__main__":
+  flags.StartMain(main)

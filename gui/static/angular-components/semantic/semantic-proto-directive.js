@@ -1,34 +1,73 @@
 'use strict';
-(function() {
-  var module = angular.module('grr.semanticProto.directive', []);
 
-  module.directive('grrSemanticProto', function($compile) {
-    return {
-      scope: {
-        value: '='
-      },
-      restrict: 'E',
-      templateUrl: 'static/angular-components/semantic/semantic-proto.html',
-      controller: function($scope, $element) {
-        $scope.items = [];
+goog.provide('grrUi.semantic.semanticProtoDirective.SemanticProtoDirective');
 
-        $scope.$watch('value', function() {
-          $scope.items = [];
-          for (var key in $scope.value.value) {
-            if ($scope.value.descriptors !== undefined &&
-                $scope.value.descriptors[key] !== undefined) {
-              $scope.items.push({
-                'value': $scope.value.value[key],
-                'key': $scope.value.descriptors[key].friendly_name,
-                'desc': $scope.value.descriptors[key].description
-              });
-            } else {
-              $scope.items.push({'value': $scope.value.value[key],
-                                 'key': key});
-            }
-          }
-        });
-      }
-    };
-  });
-})();
+goog.scope(function() {
+
+
+/**
+ * Builds a list of items to display from the given value. If value
+ * has type descriptors, friendly names will be used as keys and
+ * description will be filled in.
+ *
+ * @param {!Object} value Value to be converted to an array of items.
+ * @private
+ */
+grrUi.semantic.semanticProtoDirective.buildItems_ = function(value) {
+  var items = [];
+
+  for (var key in value.value) {
+    if (value.descriptors !== undefined &&
+        value.descriptors[key] !== undefined) {
+      items.push({
+        'value': value.value[key],
+        'key': value.descriptors[key].friendly_name,
+        'desc': value.descriptors[key].description
+      });
+    } else {
+      items.push({'value': this.scope.value.value[key],
+        'key': key});
+    }
+  }
+
+  return items;
+};
+
+
+
+/**
+ * Directive that displays semantic proto fetched from the server.
+ *
+ * @constructor
+ * @ngInject
+ * @export
+ */
+grrUi.semantic.semanticProtoDirective.SemanticProtoDirective = function() {
+  return {
+    scope: {
+      value: '='
+    },
+    link: function($scope) {
+      $scope['items'] = [];
+      $scope.$watch('value', function() {
+        if (angular.isObject($scope['value'])) {
+          $scope['items'] = grrUi.semantic.semanticProtoDirective.buildItems_(
+              $scope['value']);
+        } else {
+          $scope['items'] = [];
+        }
+      });
+    },
+    restrict: 'E',
+    templateUrl: 'static/angular-components/semantic/semantic-proto.html'
+  };
+};
+
+
+/**
+ * Name of the directive in Angular.
+ */
+grrUi.semantic.semanticProtoDirective.SemanticProtoDirective.directive_name =
+    'grrSemanticProto';
+
+});  // goog.scope

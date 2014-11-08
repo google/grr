@@ -115,14 +115,14 @@ grr.Renderer('Toolbar', {
       $(refresh_id).attr('disabled', 'disabled');
       grr.layout('UpdateAttribute', 'refresh_action', {
         aff4_path: aff4_path,
-        attribute: 'aff4:contains'
+        attribute: 'CONTAINS'
       });
     });
 
-    $('#recursive_refresh_dialog_' + unique).on('show', function() {
+    $('#recursive_refresh_dialog_' + unique).on('show.bs.modal', function() {
       grr.layout('RecursiveRefreshDialog', 'recursive_refresh_dialog_' + unique,
                  {aff4_path: aff4_path});
-    }).on('hidden', function() {
+    }).on('hidden.bs.modal', function() {
       $(this).html('');
     });
 
@@ -138,7 +138,7 @@ grr.Renderer('Toolbar', {
     // When the attribute is updated, refresh the views
     grr.subscribe('AttributeUpdated', function(path, attribute) {
       $(refresh_id).attr('disabled', null);
-      if (attribute == 'aff4:contains') {
+      if (attribute == 'CONTAINS') {
         // Update the table
         grr.publish('tree_select', path);
         grr.publish('file_select', path);
@@ -187,7 +187,7 @@ grr.Renderer('UpdateAttribute', {
 
 grr.Renderer('CertificateRenderer', {
   Layout: function(state) {
-    $('#certificate_viewer_{{unique|escape}}').click(function() {
+    $('#certificate_viewer_' + state.unique).click(function() {
       $(this).find('ins').toggleClass('ui-icon-plus ui-icon-minus');
       $(this).find('.contents').toggle();
     }).click();

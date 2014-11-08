@@ -7,12 +7,11 @@ from grr.lib import test_lib
 from grr.lib.aff4_objects import reports
 
 
-class ReportsTest(test_lib.FlowTestsBaseclass):
+class ReportsTest(test_lib.AFF4ObjectTest):
   """Test the timeline implementation."""
 
   def testClientListReport(self):
     """Check that we can create and run a ClientList Report."""
-
     # Create some clients.
     client_ids = self.SetupClients(10)
     with aff4.FACTORY.Open(client_ids[0], token=self.token,
@@ -47,6 +46,3 @@ class ReportsTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(report.results[-1]["Interfaces"], "1.1.1.1")
 
     self.assertEqual(len(report.broken_clients), 1)
-
-
-

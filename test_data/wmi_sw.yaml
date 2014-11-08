@@ -1,0 +1,12 @@
+- Description: Google Chrome
+  status: 0
+  Name: Google Chrome
+  Version: 1.1.1
+- Description: Adware
+  status: 0
+  Name: Adware
+  Version: 2.1.1
+- Description: Java
+  status: 0
+  Name: Java
+  Version: 6.0.240

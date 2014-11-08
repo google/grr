@@ -2,9 +2,6 @@
 """This is the GRR config management code.
 
 This handles opening and parsing of config files.
-
-Config documentation is at:
-http://grr.googlecode.com/git/docs/configuration.html
 """
 
 import collections
@@ -1225,9 +1222,6 @@ def LoadConfig(config_obj, config_file, secondary_configs=None,
 
   Returns:
     The resulting config object. The one passed in, unless None was specified.
-
-  See the following for extra details on how this works:
-  http://grr.googlecode.com/git/docs/configuration.html
   """
   if config_obj is None or reset:
     # Create a new config object.

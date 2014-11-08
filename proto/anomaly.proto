@@ -58,5 +58,9 @@ message Anomaly {
         "database."
     }];
 
+  repeated string finding = 9 [(sem_type) = {
+      description: "String descriptions of data that triggered the Anomaly."
+    }];
+
 }
 

@@ -15,15 +15,20 @@ DISTRO_DEFAULTS = {
     "debian": {"flag_defaults": {"config": "/etc/grr/grr-server.yaml"},
                "config_opts": {"Config.writeback": "/etc/grr/server.local.yaml"}
               },
+    "redhat": {"flag_defaults": {"config": "/etc/grr/grr-server.yaml"},
+               "config_opts": {"Config.writeback": "/etc/grr/server.local.yaml"}
+              },
 }
 
 
 def GetDistro():
   """Return the distro specific config to use."""
   if hasattr(platform, "linux_distribution"):
-    if platform.linux_distribution()[0].lower() in ["ubuntu", "debian"]:
+    distribution = platform.linux_distribution()[0].lower()
+    if distribution in ["ubuntu", "debian"]:
       return "debian"
-
+    if distribution in ["red hat enterprise linux server"]:
+      return "redhat"
   raise RuntimeError("Missing distro specific config. Please update "
                      "distro_entry.py.")
 

@@ -128,7 +128,7 @@ class TestNotifications(test_lib.GRRSeleniumTest):
     self.Click("css=button[id=notification_button]")
     self.Click("css=td:contains('Look at this awesome collection!')")
     # The collection tab should appear.
-    self.Click("css=#Collection")
+    self.Click("css=#Results")
     # And it should contain the result we've written.
     self.WaitUntil(self.IsTextPresent, "aff4:/some/unique/path")
 

@@ -59,7 +59,7 @@ class SystemHealthIndicatorRenderer(renderers.TemplateRenderer):
 
   layout_template = renderers.Template("""
 <tr>
-<td class="span1">
+<td class="col-md-1">
   {% if this.status != this.NO_DATA %}
   <img class="grr-icon-small" src="/static/images/{{this.status|escape}}" />
   {% else %}

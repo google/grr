@@ -10,7 +10,6 @@ import logging
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
-from grr.lib.hunts import tests
 # pylint: enable=unused-import,g-bad-import-order
 
 from grr.lib import aff4
@@ -525,8 +524,13 @@ class HuntTest(test_lib.FlowTestsBaseclass):
         self.assertEqual(len(DummyHunt.client_ids), i + 1)
 
 
-def main(args):
-  test_lib.main(args)
+class FlowTestLoader(test_lib.GRRTestLoader):
+  base_class = HuntTest
+
+
+def main(argv):
+  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

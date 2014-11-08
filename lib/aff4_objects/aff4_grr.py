@@ -163,7 +163,7 @@ class VFSGRRClient(standard.VFSDirectory):
     self.client_id = rdfvalue.ClientURN(self.urn)
 
   def Update(self, attribute=None, priority=None):
-    if attribute == self.Schema.CONTAINS:
+    if attribute == "CONTAINS":
       flow_id = flow.GRRFlow.StartFlow(client_id=self.client_id,
                                        flow_name="Interrogate",
                                        token=self.token, priority=priority)

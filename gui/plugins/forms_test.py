@@ -38,14 +38,14 @@ class TestForms(test_lib.GRRSeleniumTest):
 
     # Check that shown default values of the controls are just default
     # values of the corresponding types.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=#args-string_value.unset[value=]")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=#args-int_value.unset.[value=0]")
+    self.WaitUntilEqual(
+        "", self.GetValue, "css=#args-string_value.unset")
+    self.WaitUntilEqual(
+        "0", self.GetValue, "css=#args-int_value.unset")
     self.WaitUntil(self.IsElementPresent,
                    "css=#args-bool_value.unset:not(:checked)")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=#args-enum_value.unset[value=0]")
+    self.WaitUntilEqual(
+        "0", self.GetValue, "css=#args-enum_value.unset")
 
   def testControlsWithDefaultValuesAreCorrectlyDisplayed(self):
     # Open the "new hunt" form and select the DefaultArgsTestFlow.
@@ -57,18 +57,18 @@ class TestForms(test_lib.GRRSeleniumTest):
 
     # Check that shown default values of the controls are the default values
     # that we specified in the RDFValue definition.
-    self.WaitUntil(
-        self.IsElementPresent,
-        "css=#args-string_value_with_default.unset[value='default string']")
-    self.WaitUntil(
-        self.IsElementPresent,
-        "css=#args-int_value_with_default.unset.[value=42]")
+    self.WaitUntilEqual(
+        "default string",
+        self.GetValue, "css=#args-string_value_with_default.unset")
+    self.WaitUntilEqual(
+        "42",
+        self.GetValue, "css=#args-int_value_with_default.unset")
     self.WaitUntil(
         self.IsElementPresent,
         "css=#args-bool_value_with_default.unset:checked")
-    self.WaitUntil(
-        self.IsElementPresent,
-        "css=#args-enum_value_with_default.unset[value=1]")
+    self.WaitUntilEqual(
+        "1",
+        self.GetValue, "css=#args-enum_value_with_default.unset")
 
 
 def main(argv):

@@ -1,4 +1,4 @@
-# Artifacts that work with memory.
+# Memory-related flow templates.
 
 name: RekallPsList
 doc: Process listing using Rekall.

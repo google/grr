@@ -2,10 +2,10 @@
   <div class="modal-dialog">
    <div class="modal-content">
     <div class="modal-header">
-     <button type="button" class="close"
-       aria-hidden="true" data-dismiss="modal">
-      &times;
-     </button>
+      <button type="button" class="close" data-dismiss="modal">
+        <span aria-hidden="true">&times;</span>
+        <span class="sr-only">Close</span>
+      </button>
      <h4 class="modal-title">Client {$ value $}</h4>
     </div>
     <div class="modal-body">
@@ -16,9 +16,9 @@
 </div>
 
 <nobr ng-if="value">
-  <a href="#" ng-click="onLinkClick()">{$ value $}</a>
+  <a href="#" ng-click="ctrl.onLinkClick()">{$ value $}</a>
 
-  <button class="btn btn-default btn-mini" ng-click="onButtonClick()">
-    <span class="icon-glyphicon icon-info-sign"></span>
+  <button class="btn btn-default btn-xs" ng-click="ctrl.onInfoClick()">
+    <span class="glyphicon glyphicon-info-sign"></span>
   </button>
 </nobr>

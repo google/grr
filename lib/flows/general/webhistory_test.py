@@ -9,12 +9,17 @@ from grr.client.client_actions import standard
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import artifact_test
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 
 
-class TestWebHistory(test_lib.FlowTestsBaseclass):
+class WebHistoryFlowTest(test_lib.FlowTestsBaseclass):
+  pass
+
+
+class TestWebHistory(WebHistoryFlowTest):
   """Test the browser history flows."""
 
   def setUp(self):
@@ -135,7 +140,8 @@ class TestWebHistory(test_lib.FlowTestsBaseclass):
                      "/home/test/.config/google-chrome/Default/Cache/data_1")
 
 
-class TestWebHistoryWithArtifacts(artifact_test.ArtifactTestHelper):
+class TestWebHistoryWithArtifacts(WebHistoryFlowTest,
+                                  artifact_test.ArtifactTest):
   """Test the browser history flows."""
 
   def setUp(self):
@@ -183,3 +189,15 @@ class TestWebHistoryWithArtifacts(artifact_test.ArtifactTestHelper):
     self.assertTrue("http://sport.orf.at/" in [d.url for d in fd])
     self.assertTrue(fd[0].source_urn.Path().endswith(
         "/home/test/.mozilla/firefox/adts404t.default/places.sqlite"))
+
+
+class FlowTestLoader(test_lib.GRRTestLoader):
+  base_class = WebHistoryFlowTest
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+
+if __name__ == "__main__":
+  flags.StartMain(main)

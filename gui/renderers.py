@@ -152,7 +152,7 @@ class Renderer(object):
 {% if this.context_help_url %}
 <div style="width: 15px; height: 0px; position: absolute; right: 10px; top:0">
   <a href="/help/{{this.context_help_url|escape}}" target="_blank">
-  <i class="icon-question-sign"></i></a>
+  <i class="glyphicon glyphicon-question-sign"></i></a>
 </div>
 {% endif %}
 """)
@@ -1016,7 +1016,7 @@ class Splitter2WayVertical(TemplateRenderer):
 
   def Layout(self, request, response):
     """Layout."""
-    self.id = request.REQ.get("id", hash(self))
+    self.id = self.id or request.REQ.get("id", hash(self))
 
     # Pre-render the top and bottom layout contents to avoid extra round trips.
     self.left_pane = self.classes[self.left_renderer](
@@ -1090,33 +1090,37 @@ class ConfirmationDialogRenderer(TemplateRenderer):
   content_template = Template("")
 
   layout_template = Template("""
-<div class="FormData">
-  {% if this.header %}
-  <div class="modal-header">
-    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
-      x</button>
-    <h3>{{this.header|escape}}</h3>
-  </div>
-  {% endif %}
+<div class="FormData modal-dialog">
+  <div class="modal-content">
+    {% if this.header %}
+    <div class="modal-header">
+      <button type="button" class="close" data-dismiss="modal"
+        aria-hidden="true">
+        x
+      </button>
+      <h3>{{this.header|escape}}</h3>
+    </div>
+    {% endif %}
 
-  <div class="modal-body">
-    <form id="form_{{unique|escape}}" class="form-horizontal">
-      {{this.rendered_content|safe}}
-    </form>
-    <div id="results_{{unique|escape}}"></div>
-    <div id="check_access_results_{{unique|escape}}" class="hide"></div>
-  </div>
-  <div class="modal-footer">
-    <ul class="nav pull-left">
-      <div class="navbar-text" id="footer_message_{{unique}}"></div>
-    </ul>
+    <div class="modal-body">
+      <form id="form_{{unique|escape}}" class="form-horizontal">
+        {{this.rendered_content|safe}}
+      </form>
+      <div id="results_{{unique|escape}}"></div>
+      <div id="check_access_results_{{unique|escape}}" class="hide"></div>
+    </div>
+    <div class="modal-footer">
+      <ul class="nav pull-left">
+        <div class="navbar-text" id="footer_message_{{unique}}"></div>
+      </ul>
 
-    <button class="btn" data-dismiss="modal" name="Cancel"
-      aria-hidden="true">
-      {{this.cancel_button_title|escape}}</button>
-    <button id="proceed_{{unique|escape}}" name="Proceed"
-      class="btn btn-primary">
-      {{this.proceed_button_title|escape}}</button>
+      <button class="btn btn-default" data-dismiss="modal" name="Cancel"
+        aria-hidden="true">
+        {{this.cancel_button_title|escape}}</button>
+      <button id="proceed_{{unique|escape}}" name="Proceed"
+        class="btn btn-primary">
+        {{this.proceed_button_title|escape}}</button>
+    </div>
   </div>
 </div>
 """)

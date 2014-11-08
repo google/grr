@@ -5,8 +5,7 @@ import os
 import StringIO
 
 
-import matplotlib.pyplot as plt
-
+from grr.gui import plot_lib
 from grr.gui import renderers
 from grr.gui.plugins import crash_view
 from grr.gui.plugins import fileview
@@ -226,11 +225,11 @@ class SemanticProtoFlowForm(renderers.TemplateRenderer):
     <hr/>
     {{this.runner_form|safe}}
 
-    <div class="control-group">
-      <div class="controls">
-        <button id='submit_{{unique|escape}}' class="btn btn-success Launch" >
-          Launch
-        </button>
+    <div class="form-group">
+      <div class="col-sm-offset-2 col-sm-3" style="padding-top: 1em">
+      <button id='submit_{{unique|escape}}' class="btn btn-success Launch" >
+        Launch
+      </button>
       </div>
     </div>
   </form>
@@ -596,7 +595,7 @@ class ListFlowsTable(renderers.TableRenderer):
 <div id="toolbar_{{unique|escape}}" class="breadcrumb">
   <li>
     <button id="cancel_flow_{{unique|escape}}" title="Cancel Selected Flows"
-      class="btn" name="cancel_flow">
+      class="btn btn-default" name="cancel_flow">
       <img src="/static/images/editdelete.png" class="toolbar_icon">
     </button>
   </li>
@@ -713,7 +712,7 @@ class ShowFlowInformation(fileview.AFF4Stats):
 
   # Embed the regular AFF4Stats inside a container to allow scrolling
   layout_template = renderers.Template("""
-<div id="container_{{unique|escapejs}}" class="FormBody">
+<div id="container_{{unique|escapejs}}">
 {% if this.path %}
 """ + str(fileview.AFF4Stats.layout_template) + """
 <br/>
@@ -856,18 +855,18 @@ class ProgressGraphRenderer(renderers.ImageDownloadRenderer):
 
     params = {"backend": "png"}
 
-    plt.rcParams.update(params)
-    plt.figure(1)
-    plt.clf()
+    plot_lib.plt.rcParams.update(params)
+    plot_lib.plt.figure(1)
+    plot_lib.plt.clf()
 
-    plt.plot(x, y)
-    plt.title("Progress for flow %s" % flow_id)
-    plt.xlabel("Time (s)")
-    plt.ylabel("Bytes downloaded")
-    plt.grid(True)
+    plot_lib.plt.plot(x, y)
+    plot_lib.plt.title("Progress for flow %s" % flow_id)
+    plot_lib.plt.xlabel("Time (s)")
+    plot_lib.plt.ylabel("Bytes downloaded")
+    plot_lib.plt.grid(True)
 
     buf = StringIO.StringIO()
-    plt.savefig(buf)
+    plot_lib.plt.savefig(buf)
     buf.seek(0)
 
     return buf.read()
@@ -899,7 +898,7 @@ class GlobExpressionFormRenderer(forms.ProtoRDFValueFormRenderer):
   """A renderer for glob expressions with autocomplete."""
   type = rdfvalue.GlobExpression
 
-  layout_template = ("""<div class="control-group">
+  layout_template = ("""<div class="form-group">
 """ + forms.TypeDescriptorFormRenderer.default_description_view + """
   <div class="controls">
     <input id='{{this.prefix}}'
@@ -908,7 +907,7 @@ class GlobExpressionFormRenderer(forms.ProtoRDFValueFormRenderer):
   value='{{ this.default|escape }}'
 {% endif %}
       onchange="grr.forms.inputOnChange(this)"
-      class="unset input-xxlarge"/>
+      class="form-control unset input-xxlarge"/>
   </div>
 </div>
 """)

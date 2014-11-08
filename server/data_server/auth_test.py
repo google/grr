@@ -16,9 +16,9 @@ class AuthTest(test_lib.GRRBaseTest):
 
   def setUp(self):
     super(AuthTest, self).setUp()
-    config_lib.CONFIG.Set("Dataserver.username", "root")
-    config_lib.CONFIG.Set("Dataserver.password", "root")
-    config_lib.CONFIG.Set("Dataserver.usernames", ["user:rw:user"])
+    config_lib.CONFIG.Set("Dataserver.server_username", "root")
+    config_lib.CONFIG.Set("Dataserver.server_password", "root")
+    config_lib.CONFIG.Set("Dataserver.client_credentials", ["user:user:rw"])
 
   def testNonceStoreSimple(self):
     # Test creation and deletion of nonces.
@@ -75,8 +75,8 @@ class AuthTest(test_lib.GRRBaseTest):
       self.assertEqual(nonce1, store.GetNonce(nonce1))
 
   def testServerCredentials(self):
-    user = config_lib.CONFIG["Dataserver.username"]
-    pwd = config_lib.CONFIG["Dataserver.password"]
+    user = config_lib.CONFIG["Dataserver.server_username"]
+    pwd = config_lib.CONFIG["Dataserver.server_password"]
 
     # Use correct credentials.
     store = auth.NonceStore()
@@ -98,8 +98,8 @@ class AuthTest(test_lib.GRRBaseTest):
     self.assertFalse(store.ValidateAuthTokenServer(token))
 
   def testClientCredentials(self):
-    user = config_lib.CONFIG["Dataserver.username"]
-    pwd = config_lib.CONFIG["Dataserver.password"]
+    user = config_lib.CONFIG["Dataserver.server_username"]
+    pwd = config_lib.CONFIG["Dataserver.server_password"]
 
     # Check credentials.
     creds = auth.ClientCredentials()

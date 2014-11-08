@@ -1,0 +1,5 @@
+# Configuration file for grr-http-server start-up script
+
+# Start the grr-http-server
+START="no";
+

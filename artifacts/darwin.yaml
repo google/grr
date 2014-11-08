@@ -1,25 +1,5 @@
 # Mac OS X (Darwin) specific artifacts.
 
-name: DarwinPersistenceMechanismFiles
-doc: Files that are run by Darwin persistence mechanisms.
-collectors:
-- collector_type: ARTIFACT_FILES
-  args:
-    artifact_list: [DarwinPersistenceMechanisms]
-  returned_types: [StatEntry]
-labels: [System]
-supported_os: [Darwin]
----
-name: DarwinPersistenceMechanisms
-doc: Persistence mechanisms on Darwin.
-collectors:
-- collector_type: ARTIFACT
-  args:
-    artifact_list: [OSXServices]
-  returned_types: [PersistenceFile]
-labels: [System]
-supported_os: [Darwin]
----
 name: OSXLaunchAgents
 doc: Mac OS X Launch Agent files.
 collectors:
@@ -53,14 +33,6 @@ labels: [Software]
 supported_os: [Darwin]
 urls: ['http://www.forensicswiki.org/wiki/Mac_OS_X']
 ---
-name: OSXServices
-doc: Running services from the Max OS X service management framework.
-collectors:
-- collector_type: GRR_CLIENT_ACTION
-  args: {client_action: OSXEnumerateRunningServices}
-labels: [System]
-supported_os: [Darwin]
----
 name: OSXStartupItems
 doc: Mac OS X Startup Items files.
 collectors:
@@ -88,16 +60,6 @@ collectors:
   args: {path_list: ['/Library/Preferences/*']}
 labels: [System]
 supported_os: [Darwin]
----
-name: OSXUsers
-doc: User directories in /Users.
-collectors:
-- collector_type: LIST_FILES
-  args: {path_list: ['/Users/*']}
-  returned_types: [KnowledgeBaseUser]
-labels: [Users]
-supported_os: [Darwin]
-provides: [users.username]
 ---
 name: OSXUserLogs
 doc: Mac OS X user log files.

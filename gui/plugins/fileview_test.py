@@ -83,11 +83,11 @@ class TestFileView(test_lib.GRRSeleniumTest):
     self.Click("css=a:contains('Browse Virtual Filesystem')")
 
     # Test the historical view for AFF4 elements.
-    self.Click("css=#[attribute=HOSTNAME] > ins")
+    self.Click("css=*[attribute=HOSTNAME] > ins")
     self.WaitUntil(self.AllTextsPresent,
                    ["HostnameV1", "HostnameV2", "HostnameV3"])
 
-    self.Click("css=#[attribute=HOSTNAME] > ins")
+    self.Click("css=*[attribute=HOSTNAME] > ins")
     self.WaitUntilNot(self.IsTextPresent, "HostnameV1")
     self.WaitUntilNot(self.IsTextPresent, "HostnameV2")
 
@@ -298,14 +298,14 @@ class TestFileView(test_lib.GRRSeleniumTest):
 
     # Ensure that refresh button is enabled
     self.WaitUntilNot(self.IsElementPresent,
-                      "css=button[id=^refresh][disabled]")
+                      "css=button[id^=refresh][disabled]")
 
     # Grab the root directory again - should produce an Interrogate flow.
     self.Click("css=button[id^=refresh]")
 
     # Check that the button got disabled
     self.WaitUntil(self.IsElementPresent,
-                   "css=button[id=^refresh][disabled]")
+                   "css=button[id^=refresh][disabled]")
 
     # Get the flows that should have been started and finish them.
     with self.ACLChecksDisabled():
@@ -326,7 +326,7 @@ class TestFileView(test_lib.GRRSeleniumTest):
     # TODO(user): ideally, we should also check that something got
     # updated, not only that button got enabled back.
     self.WaitUntilNot(self.IsElementPresent,
-                      "css=button[id=^refresh][disabled]")
+                      "css=button[id^=refresh][disabled]")
 
   def testRecursiveListDirectory(self):
     """Tests that Recursive Refresh button triggers correct flow."""
@@ -365,11 +365,11 @@ class TestFileView(test_lib.GRRSeleniumTest):
     self.Click("css=td:contains('RecursiveListDirectory')")
 
     self.WaitUntil(self.IsElementPresent,
-                   "css=.tab-content td.proto_value=/c")
+                   "css=.tab-content td.proto_value:contains('/c')")
     self.WaitUntil(self.IsElementPresent,
-                   "css=.tab-content td.proto_value=423")
+                   "css=.tab-content td.proto_value:contains(423)")
 
-  def testFileViewHasCollectionTabForRDFValueCollection(self):
+  def testFileViewHasResultsTabForRDFValueCollection(self):
     collection_urn = "aff4:/C.0000000000000001/analysis/SomeFlow/results"
     with self.ACLChecksDisabled():
       with aff4.FACTORY.Create(
@@ -384,16 +384,16 @@ class TestFileView(test_lib.GRRSeleniumTest):
     self.Click("css=li[path='/analysis/SomeFlow'] > a")
     self.Click("css=tr:contains('results')")
 
-    # Collection tab should appear and there should be no HexView and TextView
+    # The Results tab should appear and there should be no HexView and TextView
     # and Download tabs.
-    self.WaitUntil(self.IsElementPresent, "css=#Collection")
+    self.WaitUntil(self.IsElementPresent, "css=#Results")
     self.WaitUntilNot(self.IsElementPresent, "css=#DownloadView")
     self.WaitUntilNot(self.IsElementPresent, "css=#FileTextViewer")
     self.WaitUntilNot(self.IsElementPresent, "css=#FileHexViewer")
 
-    # Click on Collection tab and check that the StatEntry we added before is
+    # Click on the Results tab and check that the StatEntry we added before is
     # there.
-    self.Click("css=#Collection")
+    self.Click("css=#Results")
     self.WaitUntil(self.IsTextPresent, "aff4:/some/unique/path")
 
   def testFileViewDoesNotHaveExportTabWhenCollectionHasNoFiles(self):
@@ -411,7 +411,7 @@ class TestFileView(test_lib.GRRSeleniumTest):
     self.Click("css=li[path='/analysis/SomeFlow'] > a")
     self.Click("css=tr:contains('results')")
 
-    # Collection tab should appear, but the "Export" tab should be
+    # The Results tab should appear, but the "Export" tab should be
     # disabled since we only display export hint when we have collections of
     # StatEntries or FileFinderResults.
     self.WaitUntil(self.IsElementPresent, "css=#Export.disabled")
@@ -481,6 +481,34 @@ class TestFileView(test_lib.GRRSeleniumTest):
     # Check that breadcrumbs got updated.
     self.WaitUntil(self.IsElementPresent,
                    "css=#main_rightTopPane .breadcrumb li:contains('fs')")
+
+
+class TestHostInformation(test_lib.GRRSeleniumTest):
+  """Test the host information interface."""
+
+  def setUp(self):
+    super(TestHostInformation, self).setUp()
+    self.client_id = "C.0000000000000001"
+
+    with self.ACLChecksDisabled():
+      self.GrantClientApproval(self.client_id)
+      with aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token) as fd:
+        fd.Set(fd.Schema.USER, rdfvalue.Users())
+
+  def testClickingOnPlusOpensHistoricalAttributes(self):
+    """Test the fileview interface."""
+
+    self.Open("/#c=" + self.client_id)
+    self.WaitUntil(self.IsTextPresent, "VFSGRRClient")
+
+    # We removed all the users, so no 'Eric Jacobson' should be visible.
+    self.WaitUntilNot(self.IsTextPresent, "Eric Jacobson")
+
+    # We click on '+' in USER cell and should see historical values of the
+    # USER attribute. "Eric Jacobson" was full name of the user that we've
+    # deleted.
+    self.Click("css=td.attribute_opener[attribute=USER]")
+    self.WaitUntil(self.IsTextPresent, "Eric Jacobson")
 
 
 def main(argv):

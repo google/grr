@@ -498,7 +498,10 @@ class RDFValueCollectionRenderer(renderers.TableRenderer):
     except IOError:
       return
 
-    self.size = len(collection)
+    try:
+      self.size = len(collection)
+    except AttributeError:
+      self.show_total_count = False
 
     row_index = start_row
     for value in itertools.islice(collection, start_row, end_row):
@@ -508,13 +511,14 @@ class RDFValueCollectionRenderer(renderers.TableRenderer):
   def Layout(self, request, response, aff4_path=None):
     if aff4_path:
       self.state["aff4_path"] = str(aff4_path)
-      try:
-        collection = aff4.FACTORY.Open(aff4_path,
+      collection = aff4.FACTORY.Create(aff4_path, mode="r",
                                        aff4_type="RDFValueCollection",
                                        token=request.token)
+
+      try:
         self.size = len(collection)
-      except IOError:
-        pass
+      except AttributeError:
+        self.show_total_count = False
 
     return super(RDFValueCollectionRenderer, self).Layout(
         request, response)
@@ -556,7 +560,7 @@ class AES128KeyFormRenderer(forms.StringTypeFormRenderer):
   type = rdfvalue.AES128Key
 
   layout_template = """
-<div class="control-group">
+<div class="form-group">
 """ + forms.TypeDescriptorFormRenderer.default_description_view + """
   <div class="controls">
     <input id='{{this.prefix}}'
@@ -602,8 +606,8 @@ class ClientURNRenderer(RDFValueRenderer):
 </div>
 
 <button
- class="btn btn-default btn-mini" id="ClientInfoButton_{{unique}}">
- <span class="icon-glyphicon icon-info-sign"></span>
+ class="btn btn-default btn-xs" id="ClientInfoButton_{{unique}}">
+ <span class="glyphicon glyphicon-info-sign"></span>
 </button>
 """)
 
@@ -631,7 +635,7 @@ class KeyValueFormRenderer(forms.TypeDescriptorFormRenderer):
   """A renderer for a Dict's KeyValue protobuf."""
   type = rdfvalue.KeyValue
 
-  layout_template = renderers.Template("""<div class="control-group">
+  layout_template = renderers.Template("""<div class="form-group">
 <div id="{{unique}}" class="control input-append">
  <input id='{{this.prefix}}_key'
   type=text
@@ -649,7 +653,7 @@ class KeyValueFormRenderer(forms.TypeDescriptorFormRenderer):
   class="unset"/>
 
  <div class="btn-group">
-  <button class="btn dropdown-toggle" data-toggle="dropdown">
+  <button class="btn btn-default dropdown-toggle" data-toggle="dropdown">
     <span class="Type">Auto</span>  <span class="caret"></span>
   </button>
 

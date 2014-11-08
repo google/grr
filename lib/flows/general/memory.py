@@ -7,6 +7,10 @@ performing basic analysis.
 
 
 
+import json
+
+from rekall.ui import json_renderer
+
 import logging
 from grr.lib import aff4
 from grr.lib import config_lib
@@ -635,6 +639,8 @@ class AnalyzeClientMemory(flow.GRRFlow):
           self.runner.output.urn, "RekallResponseCollection",
           mode="rw", token=self.token)
 
+    self.state.Register("rekall_context_messages", {})
+
     self.CallFlow("LoadMemoryDriver", next_state="RunPlugins",
                   driver_installer=self.args.driver_installer)
 
@@ -678,6 +684,31 @@ class AnalyzeClientMemory(flow.GRRFlow):
 
       if response.json_messages:
         response.client_urn = self.client_id
+        if self.state.rekall_context_messages:
+          response.json_context_messages = json.dumps(
+              self.state.rekall_context_messages.items(),
+              separators=(",", ":"))
+
+        json_data = json.loads(response.json_messages)
+        for message in json_data:
+          if len(message) >= 1:
+            object_renderer = json_renderer.JsonObjectRenderer.FromEncoded(
+                message[1], "DataExportRenderer")(renderer="DataExportRenderer")
+
+            try:
+              message = [object_renderer.DecodeFromJsonSafe(s, {})
+                         for s in message]
+            except AttributeError as e:
+              # Old clients may still return lexicon-encoded data, just ignore
+              # them.
+              if "has no attribute 'lexicon'" in str(e):
+                continue
+              else:
+                raise
+
+            if message[0] in ["t", "s"]:
+              self.state.rekall_context_messages[message[0]] = message[1]
+
         self.SendReply(response)
 
     if responses.iterator.state != rdfvalue.Iterator.State.FINISHED:

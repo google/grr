@@ -22,7 +22,11 @@ from grr.lib import test_lib
 from grr.lib import utils
 
 
-class EmailPluginTest(test_lib.FlowTestsBaseclass):
+class OutputpluginsTest(test_lib.FlowTestsBaseclass):
+  pass
+
+
+class EmailPluginTest(OutputpluginsTest):
   """Tests email hunt output plugins."""
 
   def RunHunt(self, plugin_name, plugin_args):
@@ -121,7 +125,7 @@ class EmailPluginTest(test_lib.FlowTestsBaseclass):
                       in self.email_messages[-1]["message"])
 
 
-class CSVOutputPluginTest(test_lib.FlowTestsBaseclass):
+class CSVOutputPluginTest(OutputpluginsTest):
   """Tests CSV hunt output plugins."""
 
   def RunHunt(self, plugin_args=None, responses=None,
@@ -279,13 +283,12 @@ class CSVOutputPluginTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(parsed_output), 1)
 
 
-class FlowTestLoader(test_lib.GRRTestLoader):
-  base_class = test_lib.FlowTestsBaseclass
+class TestLoader(test_lib.GRRTestLoader):
+  base_class = OutputpluginsTest
 
 
 def main(argv):
-  # Run the full test suite
-  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+  test_lib.GrrTestProgram(argv=argv, testLoader=TestLoader())
 
 if __name__ == "__main__":
   flags.StartMain(main)

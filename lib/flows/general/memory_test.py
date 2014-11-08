@@ -15,6 +15,7 @@ from grr.client.client_actions import grr_rekall_test
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import config_lib
+from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -53,7 +54,11 @@ class DummyDiskVolumeInfo(flow.GRRFlow):
                                      total_allocation_units=78416500))
 
 
-class TestMemoryCollector(test_lib.FlowTestsBaseclass):
+class MemoryTest(test_lib.FlowTestsBaseclass):
+  pass
+
+
+class TestMemoryCollector(MemoryTest):
   """Tests the MemoryCollector flow."""
 
   def setUp(self):
@@ -416,7 +421,7 @@ class TestMemoryCollector(test_lib.FlowTestsBaseclass):
     self.assertEqual(decrypted, self.memory_dump)
 
 
-class TestMemoryAnalysis(grr_rekall_test.RekallTestSuite):
+class TestMemoryAnalysis(MemoryTest, grr_rekall_test.RekallTestSuite):
   """Tests the memory analysis flows."""
 
   def testLoadDriverWindows(self):
@@ -515,7 +520,7 @@ class ListVADBinariesActionMock(action_mocks.ActionMock):
     return [response, rdfvalue.Iterator(state="FINISHED")]
 
 
-class ListVADBinariesTest(test_lib.FlowTestsBaseclass):
+class ListVADBinariesTest(MemoryTest):
   """Tests the Rekall-powered "get processes binaries" flow."""
 
   def setUp(self):
@@ -678,3 +683,15 @@ class ListVADBinariesTest(test_lib.FlowTestsBaseclass):
                      "/C:/WINDOWS/bar.exe")
     fd = aff4.FACTORY.Open(binaries[0].aff4path, token=self.token)
     self.assertEqual(fd.Read(1024), "just bar")
+
+
+class FlowTestLoader(test_lib.GRRTestLoader):
+  base_class = MemoryTest
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+
+if __name__ == "__main__":
+  flags.StartMain(main)

@@ -4,8 +4,6 @@
 
 import datetime
 import os
-import threading
-import time
 
 
 # pylint: disable=unused-import, g-bad-import-order
@@ -14,9 +12,11 @@ from grr.lib import server_plugins
 
 from grr.lib import action_mocks
 from grr.lib import aff4
+from grr.lib import flags
 from grr.lib import flow_utils
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib import utils
 
 from grr.lib.aff4_objects import standard
 
@@ -53,7 +53,11 @@ else:
 # pylint: enable=invalid-name
 
 
-class GRRFuseDatastoreOnlyTest(test_lib.GRRBaseTest):
+class GRRFuseTestBase(test_lib.GRRBaseTest):
+  pass
+
+
+class GRRFuseDatastoreOnlyTest(GRRFuseTestBase):
 
   def setUp(self):
 
@@ -166,17 +170,15 @@ class GRRFuseDatastoreOnlyTest(test_lib.GRRBaseTest):
       self.passthrough.Read(existing_dir)
 
 
-class GRRFuseTest(test_lib.FlowTestsBaseclass):
+class GRRFuseTest(GRRFuseTestBase):
 
   # Whether the tests are done and the fake server can stop running.
   done = False
 
-  def __init__(self, method_name=None):
-    super(GRRFuseTest, self).__init__(method_name)
-
-    # Set up just once for the whole test suite, since we don't have any
-    # per-test setup to do.
+  def setUp(self):
     super(GRRFuseTest, self).setUp()
+
+    self.client_id = self.SetupClients(1)[0]
 
     self.client_name = str(self.client_id)[len("aff4:/"):]
 
@@ -184,6 +186,10 @@ class GRRFuseTest(test_lib.FlowTestsBaseclass):
       fd.Set(fd.Schema.SYSTEM("Linux"))
       kb = fd.Schema.KNOWLEDGE_BASE()
       fd.Set(kb)
+
+    with aff4.FACTORY.Create(self.client_id.Add("fs/os"), "VFSDirectory",
+                             mode="rw", token=self.token) as fd:
+      fd.Set(fd.Schema.PATHSPEC(path="/", pathtype="OS"))
 
     # Ignore cache so our tests always get client side updates.
     self.grr_fuse = fuse_mount.GRRFuse(root="/", token=self.token,
@@ -201,35 +207,39 @@ class GRRFuseTest(test_lib.FlowTestsBaseclass):
                                                "EnumerateUsers",
                                                "ListDirectory")
 
-    client_mock = test_lib.MockClient(self.client_id, self.action_mock,
-                                      token=self.token)
+    self.client_mock = test_lib.MockClient(self.client_id, self.action_mock,
+                                           token=self.token)
 
-    worker_mock = test_lib.MockWorker(check_flow_errors=True, token=self.token)
+    self.update_stubber = utils.Stubber(
+        self.grr_fuse, "_RunAndWaitForVFSFileUpdate",
+        self._RunAndWaitForVFSFileUpdate)
+    self.update_stubber.Start()
 
-    # All the flows we've run so far. We'll check them for errors at the end of
-    # each test.
-    self.total_flows = set()
-
-    # We add the thread as a class variable since we'll be referring to it in
-    # the tearDownClass method, and we want all tests to share it.
-    self.__class__.fake_server_thread = threading.Thread(
-        target=self.RunFakeWorkerAndClient,
-        args=(client_mock,
-              worker_mock))
-    self.fake_server_thread.start()
-
-  @classmethod
-  def tearDownClass(cls):
-    cls.done = True
-    cls.fake_server_thread.join()
+    self.start_flow_stubber = utils.Stubber(
+        flow_utils, "StartFlowAndWait",
+        self.StartFlowAndWait)
+    self.start_flow_stubber.Start()
 
   def tearDown(self):
     super(GRRFuseTest, self).tearDown()
-    # Make sure all the flows finished.
-    test_lib.CheckFlowErrors(self.total_flows, token=self.token)
+    self.update_stubber.Stop()
+    self.update_stubber.Stop()
+
+  def _RunAndWaitForVFSFileUpdate(self, path):
+    for _ in test_lib.TestFlowHelper("UpdateVFSFile", self.action_mock,
+                                     token=self.token, client_id=self.client_id,
+                                     vfs_file_urn=path):
+      pass
 
   def ClientPathToAFF4Path(self, client_side_path):
     return "/%s/fs/os%s" % (self.client_name, client_side_path)
+
+  def StartFlowAndWait(self, client_id, token=None,
+                       timeout=None, **flow_args):
+    for _ in test_lib.TestFlowHelper(
+        flow_args.pop("flow_name"), self.action_mock, token=self.token,
+        client_id=self.client_id, **flow_args):
+      pass
 
   def ListDirectoryOnClient(self, path):
     # NOTE: Path is a client side path, so does not have a leading
@@ -237,11 +247,10 @@ class GRRFuseTest(test_lib.FlowTestsBaseclass):
 
     pathspec = rdfvalue.PathSpec(path=path, pathtype="OS")
 
-    # Decrease the max sleep time since the test flows are pretty fast.
-
-    flow_utils.StartFlowAndWait(self.client_id, token=self.token,
-                                flow_name="ListDirectory",
-                                pathspec=pathspec)
+    for _ in test_lib.TestFlowHelper("ListDirectory", self.action_mock,
+                                     pathspec=pathspec, token=self.token,
+                                     client_id=self.client_id):
+      pass
 
   def testReadDoesNotTimeOut(self):
 
@@ -344,34 +353,31 @@ class GRRFuseTest(test_lib.FlowTestsBaseclass):
     self.grr_fuse.max_age_before_refresh = old_max_age
 
   def testCacheExpiry(self):
+    with test_lib.FakeDateTimeUTC(1000):
+      with test_lib.FakeTime(1000):
+        max_age_before_refresh_seconds = 5
+        # For this test only, actually set a cache expiry.
+        self.grr_fuse.max_age_before_refresh = datetime.timedelta(
+            seconds=max_age_before_refresh_seconds)
 
-    max_age_before_refresh_seconds = 5
-    # For this test only, actually set a cache expiry.
-    self.grr_fuse.max_age_before_refresh = datetime.timedelta(
-        seconds=max_age_before_refresh_seconds)
+        # Make a new, uncached directory.
+        new_dir = os.path.join(self.temp_dir, "new_caching_dir")
+        os.mkdir(new_dir)
+        aff4_path = self.ClientPathToAFF4Path(new_dir)
 
-    # Make a new, uncached directory.
-    new_dir = os.path.join(self.temp_dir, "new_caching_dir")
-    os.mkdir(new_dir)
+        # Access it, caching it.
+        self.grr_fuse.readdir(aff4_path)
 
-    start_time = time.time()
-    # Access it, caching it.
-    self.grr_fuse.readdir(new_dir)
+    with test_lib.FakeDateTimeUTC(1004):
+      self.assertFalse(self.grr_fuse.DataRefreshRequired(aff4_path))
 
-    # If we took too long to read the directory, make sure it expired.
-    if time.time() - start_time > max_age_before_refresh_seconds:
-      self.assertTrue(self.grr_fuse.DataRefreshRequired(new_dir))
-    else:
-      # Wait for the cache to expire.
-      time.sleep(max_age_before_refresh_seconds - (time.time() - start_time))
-      # Make sure it really expired.
-      self.assertTrue(self.grr_fuse.DataRefreshRequired(new_dir))
+    with test_lib.FakeDateTimeUTC(1006):
+      self.assertTrue(self.grr_fuse.DataRefreshRequired(aff4_path))
 
     # Remove the temp cache expiry we set earlier.
     self.grr_fuse.max_age_before_refresh = datetime.timedelta(seconds=0)
 
   def testClientSideUpdateDirectoryContents(self):
-
     self.ListDirectoryOnClient(self.temp_dir)
     contents = self.grr_fuse.Readdir(self.ClientPathToAFF4Path(self.temp_dir))
     self.assertNotIn("password.txt", contents)
@@ -427,3 +433,15 @@ class GRRFuseTest(test_lib.FlowTestsBaseclass):
         # running if we've more tests to do.
         if self.done:
           break
+
+
+class FlowTestLoader(test_lib.GRRTestLoader):
+  base_class = GRRFuseTestBase
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+
+if __name__ == "__main__":
+  flags.StartMain(main)

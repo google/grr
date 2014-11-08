@@ -6,6 +6,7 @@ method:
       os: ['Linux', 'OSX']
     hint:
       problem: 'Sshd is running protocol 1. Only use protocol 2'
+      summary: 'sshd parameter'
     probe:
       - artifact: 'SshdConfig'
         match: ['NONE']

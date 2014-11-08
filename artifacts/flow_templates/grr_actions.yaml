@@ -1,4 +1,4 @@
-# Artifacts that run GRR client actions
+# GRR client action flow templates.
 
 name: NetstatGrr
 doc: List open network connections using the GRR netstat client action.

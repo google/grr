@@ -7,6 +7,7 @@ from grr.client import client_utils_linux
 from grr.client import client_utils_osx
 from grr.lib import action_mocks
 from grr.lib import aff4
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 
@@ -101,3 +102,15 @@ class TestChromePlugins(test_lib.FlowTestsBaseclass):
     finally:
       client_utils_linux.GetMountpoints = orig_linux_mp
       client_utils_osx.GetMountpoints = orig_osx_mp
+
+
+class FlowTestLoader(test_lib.GRRTestLoader):
+  base_class = TestChromePlugins
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+
+if __name__ == "__main__":
+  flags.StartMain(main)

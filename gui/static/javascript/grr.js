@@ -470,8 +470,8 @@ grr.table.sortableDialog = function() {
     var tbody = header.parents('table').find('tbody');
     var filter = header.attr('filter');
 
-    tbody.html('<tr><td id="' + tbody.attr('id') +
-        '" class="table_loading">Loading...</td></tr>');
+    tbody.html('<tr><td id="' + tbody.attr('id') + '_loading"' +
+        ' class="table_loading">Loading...</td></tr>');
     tbody.scroll();
     if (filter != null) {
       header.attr('title', 'Filter: ' + filter);
@@ -823,7 +823,7 @@ grr._update = function(renderer, domId, opt_state, on_success, inflight_key,
           } catch (e) {
             // Usually renderers get a <script>...</script> code when error
             // happens. We handle this here.
-            $(document).append(data);
+            $(document.body).append(data);
             data = {
               message: grr._lastError,
               traceback: grr._lastBacktrace
@@ -1681,10 +1681,10 @@ grr.init();
  *  Initialize Angular GRR app. AngularJS has no problems coexisting with
  *  existing set of GRR renderers.
  */
-var grrApp = angular.module('grr', ['ngCookies',
-                                    'grr.app.controller']);
+var grrUiApp = angular.module('grrUi', ['ngCookies',
+                                        'grrUi.appController']);
 
-grrApp.config(function($httpProvider, $interpolateProvider) {
+grrUiApp.config(function($httpProvider, $interpolateProvider) {
   // Set templating braces to be '{$' and '$}' to avoid conflicts with Django
   // templates.
   $interpolateProvider.startSymbol('{$');
@@ -1698,7 +1698,7 @@ grrApp.config(function($httpProvider, $interpolateProvider) {
   $httpProvider.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 });
 
-grrApp.run(function($http, $cookies) {
+grrUiApp.run(function($http, $cookies) {
   // Ensure CSRF token is in place for Angular-initiated HTTP requests.
   $http.defaults.headers.post['X-CSRFToken'] = $cookies.csrftoken;
 });

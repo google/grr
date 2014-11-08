@@ -180,6 +180,21 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
 
     self.WaitUntil(self.IsTextPresent, "aff4:/some/unique/path")
 
+  def testEmptyTableIsDisplayedInResultsWhenNoResults(self):
+    client_id = "C.0000000000000001"
+    with self.ACLChecksDisabled():
+      flow.GRRFlow.StartFlow(flow_name="FlowWithOneStatEntryResult",
+                             client_id=client_id, sync=False, token=self.token)
+      self.GrantClientApproval(client_id)
+
+    self.Open("/#c=" + client_id)
+    self.Click("css=a:contains('Manage launched flows')")
+    self.Click("css=td:contains('FlowWithOneStatEntryResult')")
+    self.Click("css=#Results")
+
+    self.WaitUntil(self.IsElementPresent, "css=#main_bottomPane table thead "
+                   "th:contains('Value')")
+
   def testExportTabIsEnabledForStatEntryResults(self):
     client_id = rdfvalue.ClientURN("C.0000000000000001")
 

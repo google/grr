@@ -1,188 +1,198 @@
 'use strict';
-(function() {
-  var module = angular.module('grr.collectionTable.directive',
-                              ['grr.aff4.service',
-                               'grr.inject.directive']);
 
-  module.directive('grrCollectionTable', function(grrAff4Service) {
-    return {
-      scope: {
-        collectionUrn: '@',
-        fetchTypeInfo: '@',
-        transformItems: '&',
-        pageSize: '=?'
-      },
-      restrict: 'E',
-      transclude: true,
-      templateUrl: 'static/angular-components/core/collection-table.html',
-      compile: function(element, attrs) {
-        // This seems to be a traditional way of assigning default values
-        // to directive's attributes.
-        if (!attrs.pageSize) {
-          attrs.pageSize = '100';
+goog.provide('grrUi.core.collectionTableDirective.CollectionTableDirective');
+
+goog.scope(function() {
+
+
+
+/**
+ * Controller for the CollectionTableDirective.
+ *
+ * @param {angular.Scope} $scope
+ * @param {grrUi.core.aff4Service.Aff4Service} grrAff4Service
+ * @constructor
+ * @ngInject
+ * @export
+ */
+var CollectionTableController = function($scope, grrAff4Service) {
+  /** @private {angular.Scope} */
+  this.scope_ = $scope;
+
+  /** @private {grrUi.core.aff4Service.Aff4Service} */
+  this.grrAff4Service_ = grrAff4Service;
+
+  this.scope_.currentPage = 0;
+  this.scope_.showLoading = true;
+
+  this.scope_.filter = {
+    // We need 'editedValue' and 'value' so that we don't apply
+    // the filter every time a user types new character into
+    // the filter edit box.
+    editedValue: '',
+    value: '',
+    applied: false,
+    finished: false
+  };
+
+  this.scope_.totalCount = undefined;
+
+  // Fetch initial batch of data along with a total count of all the
+  // elements in the collection.
+  this.fetchUnfilteredContent_(true);
+};
+
+
+/**
+ * Fetches unfiltered records from AFF4 service.
+ *
+ * @param {boolean} withTotalCount If True, total count of elements in the
+ *                                 collection will be fetched.
+ * @private
+ */
+CollectionTableController.prototype.fetchUnfilteredContent_ = function(
+    withTotalCount) {
+  this.scope_.showLoading = true;
+  this.scope_.collectionItems = [];
+
+  var params = {
+    'offset': this.scope_.currentPage * this.scope_.pageSize,
+    'count': this.scope_.pageSize,
+    'with_total_count': withTotalCount
+  };
+  if (this.scope_.fetchTypeInfo) {
+    params['with_type_info'] = true;
+  }
+
+  var self = this;
+  this.grrAff4Service_.get(this.scope_.collectionUrn, params).then(
+      function(response) {
+        self.scope_.showLoading = false;
+
+        if (response['data']['items'] === undefined) {
+          self.scope_.collectionItems = [];
+          self.scope_.totalCount = 0;
+        } else {
+          self.scope_.collectionItems = response['data']['items'];
+          self.scope_.totalCount = response['data']['total_count'];
         }
-      },
-      controller: function($scope, $element) {
-        $scope.currentPage = 0;
-        $scope.showLoading = true;
+        if (self.scope_.transformItems) {
+          self.scope_.transformItems({items: self.scope_.collectionItems});
+        }
+      });
+};
 
-        $scope.filter = {
-          // We need 'editedValue' and 'value' so that we don't apply
-          // the filter every time a user types new character into
-          // the filter edit box.
-          editedValue: '',
-          value: '',
-          applied: false,
-          finished: false
-        };
 
-        $scope.totalCount = undefined;
+/**
+ * Updates filter-related UI variables and fetches filtered records from AFF4
+ * service.
+ */
+CollectionTableController.prototype.applyFilter = function() {
+  this.scope_.filter.value = this.scope_.filter.editedValue;
+  this.scope_.filter.applied = (this.scope_.filter.value !== '');
+  this.scope_.filter.finished = false;
+  this.scope_.currentPage = 0;
+  this.scope_.collectionItems = [];
 
-        // Updates visible page numbers (stored in $scope.pageNumbers)
-        // according to the currently selected page and total number
-        // of pages.
-        var updatePagesNumbers = function() {
-          $scope.pageNumbers = [];
-          if ($scope.currentPage > 5) {
-            $scope.pageNumbers.push(1);
-            $scope.pageNumbers.push(-1);
-            for (var i = $scope.currentPage - 4; i <= $scope.currentPage; ++i) {
-              $scope.pageNumbers.push(i);
-            }
-          } else {
-            for (var i = 1; i <= $scope.currentPage; ++i) {
-              $scope.pageNumbers.push(i);
-            }
-          }
+  if (this.scope_.filter.applied) {
+    this.fetchFiltered();
+  } else {
+    this.fetchUnfilteredContent_(false);
+  }
+};
 
-          if ($scope.currentPage + 5 >= $scope.totalPages) {
-            for (var i = $scope.currentPage + 1; i <= $scope.totalPages; ++i) {
-              $scope.pageNumbers.push(i);
-            }
-          } else {
-            for (var i = $scope.currentPage + 1; i <= $scope.currentPage + 5;
-                 ++i) {
-              $scope.pageNumbers.push(i);
-            }
-            if ($scope.currentPage + 5 < $scope.totalPages) {
-              $scope.pageNumbers.push(-1);
-              $scope.pageNumbers.push($scope.totalPages);
-            }
-          }
-        };
 
-        // Fetches unfiltered collection elements and updates paging controls.
-        // Paging controls are only shown when filter is not applied, as it's
-        // hard to predict how many filtered collection elements we're going
-        // to get.
-        var fetchUnfilteredContent = function(withTotalCount) {
-          $scope.showLoading = true;
-          $scope.collectionItems = [];
+/**
+ * Fetches filtered records from AFF4 service.
+ *
+ * @param {boolean} fetchAll If True, fetch all the elements.
+ */
+CollectionTableController.prototype.fetchFiltered = function(fetchAll) {
+  this.scope_.showLoading = true;
 
-          var params = {
-            'offset': $scope.currentPage * $scope.pageSize,
-            'count': $scope.pageSize,
-            'with_total_count': withTotalCount
-          };
-          if ($scope.fetchTypeInfo) {
-            params['with_type_info'] = true;
-          }
-          grrAff4Service.get($scope.collectionUrn, params).then(
-              function(response) {
-                $scope.showLoading = false;
+  var numElements = this.scope_.pageSize;
+  if (fetchAll) {
+    numElements = 1e6;
+  }
 
-                if (response.data.items === undefined) {
-                  $scope.collectionItems = [];
-                  $scope.totalCount = 0;
-                } else {
-                  $scope.collectionItems = response.data.items;
-                  $scope.totalCount = response.data.total_count;
-                }
-                if ($scope.transformItems) {
-                  $scope.transformItems({items: $scope.collectionItems});
-                }
+  var params = {
+    'offset': this.scope_.currentPage * this.scope_.pageSize,
+    'count': numElements,
+    'filter': this.scope_.filter.value
+  };
 
-                if (withTotalCount) {
-                  $scope.totalPages = Math.ceil(
-                      $scope.totalCount / $scope.pageSize);
-                }
-                updatePagesNumbers();
-              });
-        };
+  if (this.scope_.fetchTypeInfo) {
+    params['with_type_info'] = true;
+  }
 
-        // This functions is called when user clicks on a 'Filter' button or
-        // presses Enter in the filter edit box.
-        $scope.applyFilter = function() {
-          $scope.filter.value = $scope.filter.editedValue;
-          $scope.filter.applied = ($scope.filter.value !== '');
-          $scope.filter.finished = false;
-          $scope.currentPage = 0;
-          $scope.collectionItems = [];
+  var self = this;
+  this.grrAff4Service_.get(this.scope_.collectionUrn, params).then(
+      function(response) {
+        self.scope_.showLoading = false;
 
-          if ($scope.filter.applied) {
-            $scope.fetchFiltered();
-          } else {
-            fetchUnfilteredContent(false);
-          }
-        };
+        self.scope_.collectionItems = self.scope_.collectionItems.concat(
+            response.data.items);
+        if (self.scope_.transformItems) {
+          self.scope_.transformItems({items: self.scope_.collectionItems});
+        }
 
-        // Fetches filtered values and increments current page.
-        $scope.fetchFiltered = function(fetchAll) {
-          $scope.showLoading = true;
+        if (response.data.items.length < numElements) {
+          self.scope_.filter.finished = true;
+        }
+      });
+  this.scope_.currentPage += 1;
+};
 
-          var numElements = $scope.pageSize;
-          if (fetchAll) {
-            numElements = 1e6;
-          }
 
-          var params = {
-            'offset': $scope.currentPage * $scope.pageSize,
-            'count': numElements,
-            'filter': $scope.filter.value
-          };
-          if ($scope.fetchTypeInfo) {
-            params['with_type_info'] = true;
-          }
-          grrAff4Service.get($scope.collectionUrn, params).then(
-              function(response) {
-                $scope.showLoading = false;
+/**
+ * Change currently shown page and fetches appropriate records from AFF4
+ * service.
+ *
+ * @param {number} pageNumber Page number.
+ */
+CollectionTableController.prototype.selectPage = function(pageNumber) {
+  this.scope_.currentPage = pageNumber - 1;
+  this.fetchUnfilteredContent_(false);
+};
 
-                $scope.collectionItems = $scope.collectionItems.concat(
-                    response.data.items);
-                if ($scope.transformItems) {
-                  $scope.transformItems({items: $scope.collectionItems});
-                }
 
-                if (response.data.items.length < numElements) {
-                  $scope.filter.finished = true;
-                }
-              });
-          $scope.currentPage += 1;
-        };
 
-        $scope.selectPage = function(pageNumber) {
-          $scope.currentPage = pageNumber - 1;
-          fetchUnfilteredContent(false);
-        };
-
-        $scope.prevPage = function() {
-          if ($scope.currentPage > 0) {
-            $scope.currentPage -= 1;
-            fetchUnfilteredContent(false);
-          }
-        };
-
-        $scope.nextPage = function() {
-          if ($scope.currentPage < $scope.totalPages - 1) {
-            $scope.currentPage += 1;
-            fetchUnfilteredContent(false);
-          }
-        };
-
-        // Fetch initial batch of data along with a total count of all the
-        // elements in the collection.
-        fetchUnfilteredContent(true);
+/**
+ * CollectionTableDirective displays given RDFValueCollection with a
+ * user-supplied template applied to every record.
+ *
+ * @constructor
+ * @ngInject
+ * @export
+ */
+grrUi.core.collectionTableDirective.CollectionTableDirective = function() {
+  return {
+    scope: {
+      collectionUrn: '@',
+      fetchTypeInfo: '@',
+      transformItems: '&',
+      pageSize: '=?'
+    },
+    restrict: 'E',
+    transclude: true,
+    templateUrl: '/static/angular-components/core/collection-table.html',
+    compile: function(element, attrs) {
+      // This seems to be a traditional way of assigning default values
+      // to directive's attributes.
+      if (!attrs.pageSize) {
+        attrs.pageSize = '100';
       }
-    };
-  });
-})();
+    },
+    controller: CollectionTableController,
+    controllerAs: 'controller'
+  };
+};
+
+
+/**
+ * Name of the directive as regisered in Angular.
+ */
+grrUi.core.collectionTableDirective.CollectionTableDirective.
+    directive_name = 'grrCollectionTable';
+
+});  // goog.scope

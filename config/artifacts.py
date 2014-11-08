@@ -9,6 +9,8 @@ from grr.lib import config_lib
 config_lib.DEFINE_list(
     "Artifacts.artifact_dirs",
     [os.path.normpath(os.path.dirname(__file__) + "/../../grr/artifacts"),
+     os.path.normpath(os.path.dirname(__file__) + "/../../grr/artifacts/"
+                      + "flow_templates"),
      os.path.normpath(os.path.dirname(__file__) + "/../../grr/artifacts/local")
     ], "A list directories to load artifacts from.")
 

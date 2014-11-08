@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc. All Rights Reserved.
-
 """Tests for grr.lib.flows.general.grep."""
 
 
@@ -11,11 +9,16 @@ from grr.client.client_actions import searching
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import data_store
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 
 
-class TestSearchFileContentWithFixture(test_lib.FlowTestsBaseclass):
+class GrepTests(test_lib.FlowTestsBaseclass):
+  pass
+
+
+class TestSearchFileContentWithFixture(GrepTests):
 
   def FlushVFSCache(self):
     test_lib.ClientVFSHandlerFixture.cache = {}
@@ -148,7 +151,7 @@ class TestSearchFileContentWithFixture(test_lib.FlowTestsBaseclass):
       searching.Grep.BUFF_SIZE = old_size
 
 
-class TestSearchFileContent(test_lib.FlowTestsBaseclass):
+class TestSearchFileContent(GrepTests):
 
   def testSearchFileContents(self):
     pattern = "test_data/*.log"
@@ -234,3 +237,15 @@ class TestSearchFileContent(test_lib.FlowTestsBaseclass):
       self.assertTrue(isinstance(log, aff4.VFSBlobImage))
       # Make sure there is some data.
       self.assertGreater(len(log), 0)
+
+
+class FlowTestLoader(test_lib.GRRTestLoader):
+  base_class = GrepTests
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+
+if __name__ == "__main__":
+  flags.StartMain(main)

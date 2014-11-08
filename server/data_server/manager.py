@@ -116,7 +116,7 @@ class Manager(object):
     servers = list(mapping.servers)
     new_mapping = rdfvalue.DataServerMapping(version=self.mapping.version + 1,
                                              num_servers=n_servers,
-                                             routing=self.mapping.routing)
+                                             pathing=self.mapping.pathing)
     for i, perc in enumerate(newperc):
       quant = int(perc * constants.MAX_RANGE)
       interval = rdfvalue.DataServerInterval(start=newstart)

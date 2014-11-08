@@ -4,6 +4,7 @@
 Contains the startup routines and Init functions for initializing GRR.
 """
 
+import logging
 import os
 import platform
 import sys
@@ -14,9 +15,12 @@ from grr.lib import log
 from grr.lib import registry
 from grr.lib import stats
 
-
 # Disable this warning for this section, we import dynamically a lot in here.
 # pylint: disable=g-import-not-at-top
+if platform.system() != "Windows":
+  import pwd
+
+
 def AddConfigContext():
   """Add the running contexts to the config system."""
   # Initialize the running platform context:
@@ -90,6 +94,16 @@ def Init():
 
   ServerLoggingStartupInit()
   registry.Init()
+
+  if platform.system() != "Windows":
+    if config_lib.CONFIG["Server.username"]:
+      try:
+        os.setuid(pwd.getpwnam(config_lib.CONFIG["Server.username"]).pw_uid)
+      except (KeyError, OSError):
+        logging.exception("Unable to switch to user %s",
+                          config_lib.CONFIG["Server.username"])
+        raise
+
   INIT_RAN = True
 
 

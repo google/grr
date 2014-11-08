@@ -6,6 +6,7 @@ import os
 
 from grr.lib import action_mocks
 from grr.lib import aff4
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 
@@ -30,3 +31,15 @@ class TestAuditSystem(test_lib.FlowTestsBaseclass):
     self.assertEqual(event.action, rdfvalue.AuditEvent.Action.RUN_FLOW)
     self.assertEqual(event.flow_name, "ListDirectory")
     self.assertEqual(event.user, self.token.username)
+
+
+class FlowTestLoader(test_lib.GRRTestLoader):
+  base_class = TestAuditSystem
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+
+if __name__ == "__main__":
+  flags.StartMain(main)

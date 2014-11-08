@@ -179,5 +179,17 @@
     "doc": "Test files artifact.",
     "labels": ["Logs", "Authentication"],
     "supported_os": [ "Windows" ]
+  },
+
+  { "name": "DepsProvidesMultiple",
+    "collectors": [
+      { "collector_type": "REGISTRY_VALUE",
+        "args": { "path_list": ['HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRoot'] }
+      }
+    ],
+    "provides": ["environ_path", "environ_temp"],
+    "doc": "Test multiple provide values.",
+    "labels": ["Logs", "Authentication"],
+    "supported_os": [ "Windows" ]
   }
 ]

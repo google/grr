@@ -5,7 +5,7 @@ Summary: %(Client.name) Rapid Response Client
 Group: Applications/System
 License: APL2
 Source: \%{name}-\%{version}.tar.gz
-URL: http://code.google.com/p/grr/
+URL: https://github.com/google/grr
 Buildroot: /usr/local/grr_build/rpmroot
 
 # Disable binary stripping or pyinstaller files won't work.
@@ -20,24 +20,40 @@ Buildroot: /usr/local/grr_build/rpmroot
 # Do nothing here.
 
 %install
+cp -R \%{_builddir}/* \%{buildroot}
 
-%clean
+%pre
+
+# Here, $1 == 1 means first install of this package. We need to stop the agent
+# from a previous install if this is not an initial install.
+if [ "$1" -ne 1 ]; then
+  if [ -e "/etc/init.d/%(Client.name)" ]; then
+    /etc/init.d/%(Client.name) stop
+  fi
+fi
 
 %post
 
 %(ClientBuilder.target_dir)/%(Client.binary_name) --config=%(ClientBuilder.target_dir)/%(ClientBuilder.config_filename) --install
 
 if [ -e "/etc/init.d/%(Client.name)" ]; then
-  /etc/init.d/%(Client.name) restart || exit $?
+  /etc/init.d/%(Client.name) start || exit $?
 fi
+
+# Make it start on boot.
+/sbin/chkconfig %(Client.name) on
 
 %preun
 
-if [ "$1" -le 1 ]; then
+# Here, $1 == 0 means that the package is removed completely. Only in that case
+# we can stop the service. Otherwise, we'll stop the newly installed agent
+# instead!
+if [ "$1" -eq 0 ]; then
   if [ -e "/etc/init.d/%(Client.name)" ]; then
-    /etc/init.d/%(Client.name) stop || exit $?
+    /etc/init.d/%(Client.name) stop
   fi
 fi
+
 
 %files
 \%attr\(755,root,root\)

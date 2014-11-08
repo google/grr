@@ -1160,8 +1160,11 @@ message RekallRequest {
     }];
 }
 
+// Next field: 6
 message RekallResponse {
   optional string json_messages = 1;
+  optional string json_context_messages = 5;
+
   optional string plugin = 2;
 
   optional string client_urn = 3 [(sem_type) = {

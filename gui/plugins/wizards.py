@@ -19,10 +19,11 @@ class WizardRenderer(renderers.TemplateRenderer):
   wizard_name = "wizard"
 
   layout_template = renderers.Template("""
-<div id="Wizard_{{unique|escape}}" class="Wizard FormData"
+<div id="Wizard_{{unique|escape}}" class="Wizard modal-dialog FormData"
   data-current='{{this.current_page|escape}}'
   data-max_page='{{this.max_pages|escape}}'
   >
+<div class="modal-content">
 
 {% for i, page, page_cls, page_renderer in this.raw_pages %}
   <div id="Page_{{i|escape}}" class="WizardPage"
@@ -39,7 +40,7 @@ class WizardRenderer(renderers.TemplateRenderer):
     </div>
 
     <div class="modal-body">
-    {{page|safe}}
+     {{page|safe}}
     </div>
   </div>
 {% endfor %}
@@ -50,7 +51,7 @@ class WizardRenderer(renderers.TemplateRenderer):
       <div class="navbar-text" id="footer_message_{{unique}}"></div>
     </ul>
     <ul class="nav nav pull-right">
-      <button class="btn Back" style='display: none'>Back</button>
+      <button class="btn btn-default Back" style='display: none'>Back</button>
       <button class="btn btn-primary Next">Next</button>
       <button class="btn btn-primary Finish" style='display: none'
         data-dismiss="modal"
@@ -59,6 +60,8 @@ class WizardRenderer(renderers.TemplateRenderer):
       </button>
     </ul>
   </div>
+
+</div>
 </div>
 """)
 
@@ -67,7 +70,7 @@ class WizardRenderer(renderers.TemplateRenderer):
     self.raw_pages = []
     for i, page_cls in enumerate(self.pages):
       # Make the page renderers dump all their data to the wizard DOM node.
-      page_renderer = page_cls(id=self.id)
+      page_renderer = page_cls(id="Page_%d" % i)
       self.raw_pages.append((i, page_renderer.RawHTML(request),
                              page_cls, page_cls.__name__))
 
@@ -82,7 +85,7 @@ class AFF4AttributeFormRenderer(forms.TypeDescriptorFormRenderer):
 
   type = rdfvalue.AFF4Attribute
 
-  layout_template = """<div class="control-group">
+  layout_template = """<div class="form-group">
 """ + forms.TypeDescriptorFormRenderer.default_description_view + """
 <div class="controls">
 

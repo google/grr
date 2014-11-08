@@ -4,7 +4,7 @@ Priority: extra
 Maintainer: %(ClientBuilder.maintainer)
 Build-Depends: debhelper \(>= 7.0.0\)
 Standards-Version: 3.9.2
-Homepage: http://code.google.com/p/grr/
+Homepage: https://github.com/google/grr
 
 Package: %(ClientBuilder.package_name)
 Architecture: any

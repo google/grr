@@ -6,6 +6,7 @@ import os
 
 from grr.lib import action_mocks
 from grr.lib import aff4
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 
@@ -35,3 +36,15 @@ class TestPlistFlows(test_lib.FlowTestsBaseclass):
     self._RunFlow("PlistValueFilter", context="", query="",
                   output=output)
     self._CheckOutputAFF4Type(output)
+
+
+class FlowTestLoader(test_lib.GRRTestLoader):
+  base_class = TestPlistFlows
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+
+if __name__ == "__main__":
+  flags.StartMain(main)

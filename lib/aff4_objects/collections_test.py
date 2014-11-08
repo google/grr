@@ -299,6 +299,36 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
     for i in range(10):
       self.assertEqual(i, results[i].request_id)
 
+  def testBooleanBehavior(self):
+    collection_urn = rdfvalue.RDFURN("aff4:/bool_test/packed_collection")
+    with aff4.FACTORY.Create(collection_urn,
+                             "PackedVersionedCollection",
+                             mode="rw", token=self.token) as fd:
+      self.assertFalse(fd)
+
+      fd.AddAll([rdfvalue.GrrMessage(request_id=i) for i in range(3)])
+
+      self.assertTrue(fd)
+
+    with aff4.FACTORY.Create(collection_urn,
+                             "PackedVersionedCollection",
+                             mode="rw", token=self.token) as fd:
+      num_compacted = fd.Compact()
+      self.assertEqual(num_compacted, 3)
+
+      self.assertTrue(fd)
+
+    # Check that no items are stored in the versions.
+    items = list(data_store.DB.ResolveRegex(
+        fd.urn, fd.Schema.DATA.predicate, token=self.token,
+        timestamp=data_store.DB.ALL_TIMESTAMPS))
+    self.assertEqual(len(items), 0)
+
+    with aff4.FACTORY.Create(collection_urn,
+                             "PackedVersionedCollection",
+                             mode="rw", token=self.token) as fd:
+      self.assertTrue(fd)
+
   def _testCompactsCollectionSuccessfully(self, num_elements):
     with aff4.FACTORY.Create(self.collection_urn,
                              "PackedVersionedCollection",

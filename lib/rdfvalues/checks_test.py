@@ -7,13 +7,32 @@ from grr.lib import config_lib
 from grr.lib import test_lib
 from grr.lib.checks import checks as checks_lib
 from grr.lib.checks import filters
+from grr.lib.rdfvalues import anomaly
 from grr.lib.rdfvalues import checks
+from grr.parsers import linux_cmd_parser
+from grr.parsers import wmi_parser
 
 
 CONFIGS = os.path.join(config_lib.CONFIG["Test.data_dir"], "checks")
 TRIGGER_1 = ("SoftwarePackage", "Linux", None, None)
 TRIGGER_2 = ("WMIInstalledSoftware", "Windows", None, None)
 TRIGGER_3 = ("SoftwarePackage", None, None, "foo")
+
+# Load some dpkg data
+parser = linux_cmd_parser.DpkgCmdParser()
+test_data = os.path.join(config_lib.CONFIG["Test.data_dir"], "dpkg.out")
+with open(test_data) as f:
+  DPKG_SW = list(parser.Parse(
+      "/usr/bin/dpkg", ["-l"], f.read(), "", 0, 5, None))
+
+# Load some wmi data
+parser = wmi_parser.WMIInstalledSoftwareParser()
+test_data = os.path.join(config_lib.CONFIG["Test.data_dir"], "wmi_sw.yaml")
+WMI_SW = []
+with open(test_data) as f:
+  wmi = yaml.safe_load(f)
+  for sw in wmi:
+    WMI_SW.extend(parser.Parse(None, sw, None))
 
 
 class ProbeTest(test_lib.GRRBaseTest):
@@ -59,6 +78,7 @@ class ProbeTest(test_lib.GRRBaseTest):
 
 
 class MethodTest(test_lib.GRRBaseTest):
+  """Test 'Method' operations."""
 
   configs = {}
 
@@ -85,9 +105,6 @@ class MethodTest(test_lib.GRRBaseTest):
   def testMethodRoutesDataToProbes(self):
     pass
 
-  def testHintGeneration(self):
-    pass
-
   def testValidate(self):
     pass
 
@@ -103,6 +120,8 @@ class CheckTest(test_lib.GRRBaseTest):
       config_file = os.path.join(CONFIGS, "sw.yaml")
       with open(config_file) as data:
         self.cfg = yaml.safe_load(data)
+      self.host_data = {"SoftwarePackage": DPKG_SW,
+                        "WMIInstalledSoftware": WMI_SW}
 
   def testInitializeCheck(self):
     chk = checks.Check(**self.cfg)
@@ -118,9 +137,86 @@ class CheckTest(test_lib.GRRBaseTest):
     result = [c.attr for c in chk.triggers.Search("WMIInstalledSoftware")]
     self.assertItemsEqual(expect, result)
 
-  def testParse(self):
-    pass
+  def testParseCheckFromConfig(self):
+    chk = checks.Check(**self.cfg)
+    # Triggers 1 (linux packages) & 2 (windows software) should return results.
+    # Trigger 3 should not return results as no host data has the label 'foo'.
+    result_1 = chk.Parse([TRIGGER_1], self.host_data)
+    result_2 = chk.Parse([TRIGGER_2], self.host_data)
+    result_3 = chk.Parse([TRIGGER_3], self.host_data)
+    self.assertTrue(result_1)
+    self.assertTrue(result_2)
+    self.assertFalse(result_3)
 
   def testValidate(self):
     pass
+
+
+class CheckResultsTest(test_lib.GRRBaseTest):
+  """Test 'CheckResult' operations."""
+
+  def testExtendAnomalies(self):
+    anomaly1 = {"finding": ["Adware 2.1.1 is installed"],
+                "explanation": "Found: Malicious software.",
+                "type": 1}
+    anomaly2 = {"finding": ["Java 6.0.240 is installed"],
+                "explanation": "Found: Old Java installation.",
+                "type": 1}
+    result = checks.CheckResult(check_id="SW-CHECK",
+                                anomaly=anomaly.Anomaly(**anomaly1))
+    other = checks.CheckResult(check_id="SW-CHECK",
+                               anomaly=anomaly.Anomaly(**anomaly2))
+    result.ExtendAnomalies(other)
+    expect = {"check_id": "SW-CHECK", "anomaly": [anomaly1, anomaly2]}
+    self.assertDictEqual(expect, result.ToPrimitiveDict())
+
+
+class HintDefinitionTests(test_lib.GRRBaseTest):
+  """Test 'Hint' operations."""
+
+  configs = {}
+
+  def setUp(self, **kwargs):
+    super(HintDefinitionTests, self).setUp(**kwargs)
+    if not self.configs:
+      config_file = os.path.join(CONFIGS, "sw.yaml")
+      with open(config_file) as data:
+        cfg = yaml.safe_load(data)
+    chk = checks.Check(**cfg)
+    self.lin_method, self.win_method, self.foo_method = list(chk.method)
+
+  def testInheritHintConfig(self):
+    lin_problem = "l337 software installed"
+    lin_format = "{{ name }} {{ version }} is installed"
+    # Methods should not have a hint template.
+    self.assertEqual(lin_problem, self.lin_method.hint.problem)
+    self.assertFalse(self.lin_method.hint.hinter.template)
+    # Formatting should be present in probes, if defined.
+    for probe in self.lin_method.probe:
+      self.assertEqual(lin_problem, probe.hint.problem)
+      self.assertEqual(lin_format, probe.hint.format)
+
+    foo_problem = "Sudo not installed"
+    # Methods should not have a hint template.
+    self.assertEqual(foo_problem, self.foo_method.hint.problem)
+    self.assertFalse(self.foo_method.hint.hinter.template)
+    # Formatting should be missing in probes, if undefined.
+    for probe in self.foo_method.probe:
+      self.assertEqual(foo_problem, probe.hint.problem)
+      self.assertFalse(probe.hint.format)
+
+  def testOverlayHintConfig(self):
+    generic_problem = "Malicious software."
+    java_problem = "Old Java installation."
+    generic_format = "{{ name }} {{ version }} is installed"
+    # Methods should not have a hint template.
+    self.assertEqual(generic_problem, self.win_method.hint.problem)
+    self.assertFalse(self.win_method.hint.hinter.template)
+    # Formatting should be present in probes.
+    probe_1, probe_2 = list(self.win_method.probe)
+    self.assertEqual(java_problem, probe_1.hint.problem)
+    self.assertEqual(generic_format, probe_1.hint.format)
+    self.assertEqual(generic_problem, probe_2.hint.problem)
+    self.assertEqual(generic_format, probe_2.hint.format)
+
 

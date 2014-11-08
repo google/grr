@@ -5,6 +5,8 @@
 
 
 
+from google.protobuf import message_factory
+
 from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib.rdfvalues import structs
@@ -82,6 +84,9 @@ class DynamicTypeTest(structs.RDFProtoStruct):
           dynamic_cb=lambda x: structs.RDFProtoStruct.classes.get(x.type),
           field_number=2,
           description="A dynamic value based on another field."),
+
+      type_info.ProtoEmbedded(name="nested", field_number=3,
+                              nested=rdfvalue.User)
       )
 
 
@@ -121,6 +126,21 @@ class RDFStructsTest(test_base.RDFValueTestCase):
     # Can assign a nested field.
     test_pb.dynamic.foobar = "Hello"
     self.assertTrue(isinstance(test_pb.dynamic, TestStruct))
+
+  def testProtoDescriptorIsGeneratedForDynamicType(self):
+    test_pb_descriptor = DynamicTypeTest.EmitProtoDescriptor("grr_export")
+    factory = message_factory.MessageFactory()
+    proto_class = factory.GetPrototype(test_pb_descriptor)
+
+    # Now let's define an RDFProtoStruct for the dynamically generated
+    # proto_class.
+    new_dynamic_class = type("DynamicTypeTestReversed",
+                             (rdfvalue.RDFProtoStruct,),
+                             dict(protobuf=proto_class))
+    new_dynamic_instance = new_dynamic_class(
+        type="foo", nested=rdfvalue.User(username="bar"))
+    self.assertEqual(new_dynamic_instance.type, "foo")
+    self.assertEqual(new_dynamic_instance.nested.username, "bar")
 
   def testStructDefinition(self):
     """Ensure that errors in struct definitions are raised."""

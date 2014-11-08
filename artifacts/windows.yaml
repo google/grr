@@ -1,15 +1,5 @@
 # Windows specific artifacts.
 
-name: AllVADBinaryFiles
-doc: Download all currently running binaries on Windows.
-collectors:
-- collector_type: ARTIFACT_FILES
-  args:
-    artifact_list: [FullVADBinaryList]
-  returned_types: [PathSpec]
-labels: [Rekall, Processes, Software]
-supported_os: [Windows]
----
 name: ApplicationEventLog
 doc: Windows Application Event log.
 collectors:
@@ -38,15 +28,6 @@ collectors:
     path_list: ['HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Time Zones\*\*']
 supported_os: [Windows]
 urls: ['https://code.google.com/p/winreg-kb/wiki/TimeZoneKeys']
----
-name: FullVADBinaryList
-doc: Extract list of currently running binaries on Windows.
-collectors:
-- collector_type: REKALL_PLUGIN
-  args:
-    plugin: vad
-labels: [Rekall, Processes]
-supported_os: [Windows]
 ---
 name: EventLogs
 doc: Windows Event logs.
@@ -196,16 +177,6 @@ collectors:
   args:
     artifact_list: [WindowsRunKeys, WindowsServices]
   returned_types: [PersistenceFile]
-labels: [Software]
-supported_os: [Windows]
----
-name: WindowsPersistenceMechanismFiles
-doc: Files that are run by Windows persistence mechanisms.
-collectors:
-- collector_type: ARTIFACT_FILES
-  args:
-    artifact_list: [WindowsPersistenceMechanisms]
-  returned_types: [StatEntry]
 labels: [Software]
 supported_os: [Windows]
 ---

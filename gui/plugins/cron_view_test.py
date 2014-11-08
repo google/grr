@@ -377,10 +377,10 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
     self.Click("css=button.Finish")
 
     # Select newly created cron job.
-    self.Click("css=td:contains('cron/CreateGenericHuntFlow_')")
+    self.Click("css=td:contains('cron/CreateAndRunGenericHuntFlow_')")
 
     # Check that correct details are displayed in cron job details tab.
-    self.WaitUntil(self.IsTextPresent, "CreateGenericHuntFlow")
+    self.WaitUntil(self.IsTextPresent, "CreateAndRunGenericHuntFlow")
     self.WaitUntil(self.IsTextPresent, "Flow args")
 
     self.assertTrue(self.IsTextPresent("Paths"))
@@ -417,10 +417,10 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
 
     # OSBreakDown's row should have an 'error' class
     self.WaitUntil(self.IsElementPresent,
-                   "css=tr.error td:contains('OSBreakDown')")
+                   "css=tr.danger td:contains('OSBreakDown')")
     # Check that only OSBreakDown is highlighted
     self.WaitUntilNot(self.IsElementPresent,
-                      "css=tr.error td:contains('GRRVersionBreakDown')")
+                      "css=tr.danger td:contains('GRRVersionBreakDown')")
 
 
 def main(argv):

@@ -1,0 +1,5 @@
+These 'artifacts' are separate from the main repository because they don't
+describe digital forensic artifacts, instead they provide a way to call
+pre-defined GRR flows from YAML, the working name for which is 'flow templates'.
+We will be changing how this pre-defined flow calling works, starting with
+separating these out from the regular artifacts.
