@@ -6,6 +6,7 @@
 
 
 # pylint: disable=unused-import
+from grr.gui import api_object_renderers_test
 from grr.gui import api_renderers_test
 from grr.gui.plugins import acl_manager_test
 from grr.gui.plugins import artifact_manager_test

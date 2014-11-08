@@ -384,7 +384,7 @@ class AngularDirectiveRenderer(TemplateRenderer):
   directive_args = None
 
   layout_template = Template("""
-<div id="{{unique|escape}}"></div>
+<div class="full-width-height" id="{{unique|escape}}"></div>
 """)
 
   def Layout(self, request, response, **kwargs):

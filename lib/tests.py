@@ -22,6 +22,7 @@ from grr.lib import flow_utils_test
 from grr.lib import front_end_test
 from grr.lib import fuse_mount_test
 from grr.lib import hunt_test
+from grr.lib import ipv6_utils_test
 from grr.lib import lexer_test
 from grr.lib import objectfilter_test
 from grr.lib import parsers_test

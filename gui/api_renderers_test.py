@@ -1,273 +1,134 @@
 #!/usr/bin/env python
-"""This modules contains tests for RESTful API renderers."""
+"""Tests for API renderers."""
 
 
+
+# pylint: disable=unused-import,g-bad-import-order
+from grr.lib import server_plugins
+# pylint: enable=unused-import,g-bad-import-order
 
 import json
 
-from grr.gui import runtests_test
+from grr.gui import api_renderers
 
-from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib import utils
 
 
-class ApiRendererTest(test_lib.GRRSeleniumTest):
-  """Base class for API renderers test."""
+class SampleGetRenderer(api_renderers.ApiRenderer):
 
-  def setUp(self):
-    super(ApiRendererTest, self).setUp()
+  method = "GET"
+  route = "/test_sample/<path:path>"
 
-    # Request root page to get CSRF cookie.
-    self.Open("/")
-
-  def GetJsonData(self, url):
-    """Parses JSON data returned when querying given url."""
-
-    self.Open(url)
-    data = self.driver.find_element_by_tag_name("body").text
-    return json.loads(data)
+  def Render(self, request):
+    return {
+        "method": "GET",
+        "path": request.path,
+        "foo": request.get("foo", "")
+        }
 
 
-class AFF4ObjectApiRendererTest(ApiRendererTest):
-  """Test for AFF4ObjectApiRendererTest."""
+class SamplePostRenderer(api_renderers.ApiRenderer):
 
-  def setUp(self):
-    super(AFF4ObjectApiRendererTest, self).setUp()
+  method = "POST"
+  route = "/test_sample/<path:path>"
 
-    # Create empty AFF4Volume object.
-    with test_lib.FakeTime(42):
-      with aff4.FACTORY.Create("aff4:/tmp/foo/bar", "AFF4Volume",
-                               token=self.token) as _:
-        pass
-
-  def testRendersAff4Volume(self):
-    data = self.GetJsonData("/api/aff4/tmp/foo/bar")
-    self.assertEqual(data,
-                     {"age_policy": "NEWEST_TIME",
-                      "attributes": {"aff4:type": "AFF4Volume",
-                                     "metadata:last": 42000000},
-                      "urn": "aff4:/tmp/foo/bar",
-                      "aff4_class": "AFF4Volume"})
-
-  def testRendersAff4VolumeWithTypeInfo(self):
-    data = self.GetJsonData("/api/aff4/tmp/foo/bar?with_type_info=1")
-    self.assertEqual(data,
-                     {"age_policy": "NEWEST_TIME",
-                      "attributes": {
-                          "aff4:type": {
-                              "age": 42,
-                              "mro": ["RDFString",
-                                      "RDFBytes",
-                                      "RDFValue",
-                                      "object"],
-                              "type": "RDFString",
-                              "value": "AFF4Volume"},
-                          "metadata:last": {
-                              "age": 42,
-                              "mro": ["RDFDatetime",
-                                      "RDFInteger",
-                                      "RDFString",
-                                      "RDFBytes",
-                                      "RDFValue",
-                                      "object"],
-                              "type": "RDFDatetime",
-                              "value": 42000000}
-                          },
-                      "urn": "aff4:/tmp/foo/bar",
-                      "aff4_class": "AFF4Volume"})
-
-  def testRenderersAff4VolumeWithTypeInfoAndDescriptions(self):
-    data = self.GetJsonData("/api/aff4/tmp/foo/bar?with_type_info=1"
-                            "&with_descriptors=1")
-    self.assertEqual(data,
-                     {
-                         "age_policy": "NEWEST_TIME",
-                         "attributes": {
-                             "aff4:type": {
-                                 "age": 42,
-                                 "mro": ["RDFString",
-                                         "RDFBytes",
-                                         "RDFValue",
-                                         "object"],
-                                 "type": "RDFString",
-                                 "value": "AFF4Volume"},
-                             "metadata:last": {
-                                 "age": 42,
-                                 "mro": ["RDFDatetime",
-                                         "RDFInteger",
-                                         "RDFString",
-                                         "RDFBytes",
-                                         "RDFValue",
-                                         "object"],
-                                 "type": "RDFDatetime",
-                                 "value": 42000000}
-                             },
-                         "urn": "aff4:/tmp/foo/bar",
-                         "aff4_class": "AFF4Volume",
-                         "descriptors": {
-                             "aff4:type": {
-                                 "description": "The name of the "
-                                                "AFF4Object derived class."},
-                             "metadata:last": {
-                                 "description": "The last time any "
-                                                "attribute of this "
-                                                "object was written."}
-                             }
-                         })
+  def Render(self, request):
+    return {
+        "method": "POST",
+        "path": request.path,
+        "foo": request.get("foo", "")
+    }
 
 
-class RDFValueCollectionApiRendererTest(ApiRendererTest):
-  """Test for RDFValueCollectionApiRenderer."""
+class ApiRenderersTest(test_lib.GRRBaseTest):
+  """Test for generic API renderers logic."""
 
-  def setUp(self):
-    super(RDFValueCollectionApiRendererTest, self).setUp()
+  def _CreateRequest(self, method, path, query_params=None):
+    if not query_params:
+      query_params = {}
 
-    with test_lib.FakeTime(42):
-      with aff4.FACTORY.Create("aff4:/tmp/foo/bar", "RDFValueCollection",
-                               token=self.token) as fd:
-        for i in range(10):
-          fd.Add(rdfvalue.PathSpec(path="/var/os/tmp-%d" % i,
-                                   pathtype="OS"))
+    request = utils.DataObject()
+    request.method = method
+    request.path = path
+    request.scheme = "http"
+    request.environ = {
+        "SERVER_NAME": "foo.bar",
+        "SERVER_PORT": 1234
+        }
+    request.user = "test"
+    if method == "GET":
+      request.GET = query_params
+    else:
+      request.POST = query_params
+    request.META = {}
 
-  def testRendersSampleCollection(self):
-    data = self.GetJsonData("/api/aff4/tmp/foo/bar")
+    return request
 
-    self.assertEqual(data["aff4_class"], "RDFValueCollection")
-    self.assertEqual(data["urn"], "aff4:/tmp/foo/bar")
-    self.assertEqual(data["offset"], 0)
-    self.assertEqual(data["age_policy"], "NEWEST_TIME")
-    self.assertEqual(data["attributes"],
-                     {"aff4:type": "RDFValueCollection",
-                      "aff4:size": 10,
-                      "metadata:last": 42000000})
+  def testReturnsRendererMatchingUrlAndMethod(self):
+    renderer, _ = api_renderers.GetRendererForRequest(
+        self._CreateRequest("GET", "/test_sample/some/path"))
+    self.assertTrue(isinstance(renderer, SampleGetRenderer))
 
-    self.assertEqual(len(data["items"]), 10)
-    for i in range(10):
-      self.assertEqual(data["items"][i],
-                       {"path": "/var/os/tmp-%d" % i,
-                        "pathtype": "OS"})
+    renderer, _ = api_renderers.GetRendererForRequest(
+        self._CreateRequest("POST", "/test_sample/some/path"))
+    self.assertTrue(isinstance(renderer, SamplePostRenderer))
 
-  def testRendersSampleCollectionWithCountParameter(self):
-    data = self.GetJsonData("/api/aff4/tmp/foo/bar?count=2")
+  def testPathParamsAreReturnedWithMatchingRenderer(self):
+    _, path_params = api_renderers.GetRendererForRequest(
+        self._CreateRequest("GET", "/test_sample/some/path"))
+    self.assertEqual(path_params, {"path": "some/path"})
 
-    self.assertEqual(data["aff4_class"], "RDFValueCollection")
-    self.assertEqual(data["urn"], "aff4:/tmp/foo/bar")
-    self.assertEqual(data["offset"], 0)
-    self.assertEqual(data["age_policy"], "NEWEST_TIME")
-    self.assertEqual(data["attributes"],
-                     {"aff4:type": "RDFValueCollection",
-                      "aff4:size": 10,
-                      "metadata:last": 42000000})
+  def testRaisesIfNoRendererMatchesUrl(self):
+    self.assertRaises(api_renderers.ApiRendererNotFoundError,
+                      api_renderers.GetRendererForRequest,
+                      self._CreateRequest("GET",
+                                          "/some/missing/path"))
 
-    self.assertEqual(len(data["items"]), 2)
-    self.assertEqual(data["items"][0],
-                     {"path": "/var/os/tmp-0",
-                      "pathtype": "OS"})
-    self.assertEqual(data["items"][1],
-                     {"path": "/var/os/tmp-1",
-                      "pathtype": "OS"})
+  def testRendersGetRendererCorrectly(self):
+    response = api_renderers.RenderResponse(
+        self._CreateRequest("GET", "/test_sample/some/path"))
+    self.assertEqual(
+        json.loads(response.content),
+        {"method": "GET",
+         "path": "some/path",
+         "foo": ""})
+    self.assertEqual(response.status_code, 200)
 
-  def testRendersSampleCollectionWithOffsetParameter(self):
-    data = self.GetJsonData("/api/aff4/tmp/foo/bar?offset=8")
+  def testRendersPostRendererCorrectly(self):
+    response = api_renderers.RenderResponse(
+        self._CreateRequest("POST", "/test_sample/some/path"))
+    self.assertEqual(
+        json.loads(response.content),
+        {"method": "POST",
+         "path": "some/path",
+         "foo": ""})
+    self.assertEqual(response.status_code, 200)
 
-    self.assertEqual(data["aff4_class"], "RDFValueCollection")
-    self.assertEqual(data["urn"], "aff4:/tmp/foo/bar")
-    self.assertEqual(data["offset"], 8)
-    self.assertEqual(data["age_policy"], "NEWEST_TIME")
-    self.assertEqual(data["attributes"],
-                     {"aff4:type": "RDFValueCollection",
-                      "aff4:size": 10,
-                      "metadata:last": 42000000})
+  def testQueryParamsArePassedWithRequestObject(self):
+    response = api_renderers.RenderResponse(
+        self._CreateRequest("GET", "/test_sample/some/path",
+                            query_params={"foo": "bar"}))
+    self.assertEqual(
+        json.loads(response.content),
+        {"method": "GET",
+         "path": "some/path",
+         "foo": "bar"})
 
-    self.assertEqual(len(data["items"]), 2)
-    self.assertEqual(data["items"][0],
-                     {"path": "/var/os/tmp-8",
-                      "pathtype": "OS"})
-    self.assertEqual(data["items"][1],
-                     {"path": "/var/os/tmp-9",
-                      "pathtype": "OS"})
-
-  def testRendersSampleCollectionWithCountAndOffsetParameters(self):
-    data = self.GetJsonData("/api/aff4/tmp/foo/bar?offset=3&count=2")
-
-    self.assertEqual(data["aff4_class"], "RDFValueCollection")
-    self.assertEqual(data["urn"], "aff4:/tmp/foo/bar")
-    self.assertEqual(data["offset"], 3)
-    self.assertEqual(data["age_policy"], "NEWEST_TIME")
-    self.assertEqual(data["attributes"],
-                     {"aff4:type": "RDFValueCollection",
-                      "aff4:size": 10,
-                      "metadata:last": 42000000})
-
-    self.assertEqual(len(data["items"]), 2)
-    self.assertEqual(data["items"][0],
-                     {"path": "/var/os/tmp-3",
-                      "pathtype": "OS"})
-    self.assertEqual(data["items"][1],
-                     {"path": "/var/os/tmp-4",
-                      "pathtype": "OS"})
-
-  def testRendersSampleCollectionWithTotalCountParameter(self):
-    data = self.GetJsonData("/api/aff4/tmp/foo/bar?"
-                            "count=2&with_total_count=1")
-
-    self.assertEqual(data["aff4_class"], "RDFValueCollection")
-    self.assertEqual(len(data["items"]), 2)
-    self.assertEqual(data["total_count"], 10)
-
-  def testRendersSampleCollectionWithFilter(self):
-    data = self.GetJsonData("/api/aff4/tmp/foo/bar?filter=/var/os/tmp-9")
-
-    self.assertEqual(data["aff4_class"], "RDFValueCollection")
-    self.assertEqual(len(data["items"]), 1)
-    self.assertEqual(data["items"][0],
-                     {"path": "/var/os/tmp-9",
-                      "pathtype": "OS"})
-
-  def testRendersSampleCollectionWithFilterAndOffsetAndCount(self):
-    data = self.GetJsonData("/api/aff4/tmp/foo/bar?"
-                            "filter=/var/os/tmp&offset=2&count=2")
-
-    self.assertEqual(data["aff4_class"], "RDFValueCollection")
-    self.assertEqual(len(data["items"]), 2)
-    self.assertEqual(data["items"][0],
-                     {"path": "/var/os/tmp-2",
-                      "pathtype": "OS"})
-    self.assertEqual(data["items"][1],
-                     {"path": "/var/os/tmp-3",
-                      "pathtype": "OS"})
-
-
-class VFSGRRClientApiRendererTest(ApiRendererTest):
-
-  def setUp(self):
-    super(VFSGRRClientApiRendererTest, self).setUp()
-
-    with self.ACLChecksDisabled():
-      self.client_id = self.SetupClients(1)[0]
-
-  def testRendersClientSummaryInAdditionToClientObject(self):
-    data = self.GetJsonData("/api/aff4/" + self.client_id.Basename())
-
-    self.assertEqual(data["aff4_class"], "VFSGRRClient")
-    self.assertEqual(data["summary"], {
-        "system_info": {
-            "node": "Host-0",
-            "version": "",
-            "fqdn": "Host-0.example.com"
-            },
-        "client_id": "aff4:/C.1000000000000000",
-        "client_info": {
-            "client_name": "GRR Monitor"
-            }
-        })
+  def testRouteArgumentTakesPrecedenceOverQueryParams(self):
+    response = api_renderers.RenderResponse(
+        self._CreateRequest("GET", "/test_sample/some/path",
+                            query_params={"path": "foobar"}))
+    self.assertEqual(
+        json.loads(response.content),
+        {"method": "GET",
+         "path": "some/path",
+         "foo": ""})
 
 
 def main(argv):
-  # Run the full test suite
-  runtests_test.SeleniumTestProgram(argv=argv)
+  test_lib.main(argv)
 
 
 if __name__ == "__main__":

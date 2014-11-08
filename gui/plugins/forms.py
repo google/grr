@@ -821,7 +821,8 @@ class MultiFormRenderer(renderers.TemplateRenderer):
   layout_template = renderers.Template("""
 {% if this.item %}
 
-<button type=button class=close data-dismiss="alert">x</button>
+<button id="RemoveButton{{unique}}" type=button class=close
+  data-dismiss="alert">x</button>
 {{this.child|safe}}
 {% else %}
 <button class="btn btn-default" id="AddButton{{unique}}" data-item_count=0 >
@@ -853,6 +854,9 @@ class MultiFormRenderer(renderers.TemplateRenderer):
           prefix="%s_%s" % (self.option_name, self.item),
           item=self.item,
           default_item_type=default_item_type).RawHTML(request)
+
+      self.CallJavascript(response, "MultiFormRenderer.LayoutItem",
+                          option=self.option_name)
     else:
       self.CallJavascript(response, "MultiFormRenderer.Layout",
                           option=self.option_name,

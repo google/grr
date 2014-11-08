@@ -1144,3 +1144,39 @@ class MultiStubber(object):
 
   def __exit__(self, t, value, traceback):
     self.Stop()
+
+
+class DataObject(dict):
+  """This class wraps a dict and provides easier access functions."""
+
+  def Register(self, item, value=None):
+    if item in self:
+      raise AttributeError("Item %s already registered." % item)
+
+    self[item] = value
+
+  def __setattr__(self, item, value):
+    self[item] = value
+
+  def __getattr__(self, item):
+    try:
+      return self[item]
+    except KeyError as e:
+      raise AttributeError(e)
+
+  def __dir__(self):
+    return sorted(self.keys()) + dir(self.__class__)
+
+  def __str__(self):
+    result = []
+    for k, v in self.items():
+      tmp = "  %s = " % k
+      try:
+        for line in SmartUnicode(v).splitlines():
+          tmp += "    %s\n" % line
+      except Exception as e:  # pylint: disable=broad-except
+        tmp += "Error: %s\n" % e
+
+      result.append(tmp)
+
+    return "{\n%s}\n" % "".join(result)

@@ -1,5 +1,5 @@
 /**
- * @license AngularJS v1.3.1-local+sha.ce20dd0
+ * @license AngularJS v1.3.2-local+sha.b477058
  * (c) 2010-2014 Google, Inc. http://angularjs.org
  * License: MIT
  */
@@ -72,7 +72,7 @@ function minErr(module, ErrorConstructor) {
       return match;
     });
 
-    message = message + '\nhttp://errors.angularjs.org/1.3.1-local+sha.ce20dd0/' +
+    message = message + '\nhttp://errors.angularjs.org/1.3.2-local+sha.b477058/' +
       (module ? module + '/' : '') + code;
     for (i = 2; i < arguments.length; i++) {
       message = message + (i == 2 ? '?' : '&') + 'p' + (i-2) + '=' +
@@ -2093,7 +2093,7 @@ function setupModuleLoader(window) {
  * - `codeName` – `{string}` – Code name of the release, such as "jiggling-armfat".
  */
 var version = {
-  full: '1.3.1-local+sha.ce20dd0',    // all of these placeholder strings will be replaced by grunt's
+  full: '1.3.2-local+sha.b477058',    // all of these placeholder strings will be replaced by grunt's
   major: 1,    // package task
   minor: 3,
   dot: undefined,
@@ -2715,7 +2715,7 @@ var JQLitePrototype = JQLite.prototype = {
     }
 
     // check if document is already loaded
-    if (document.readyState === 'complete'){
+    if (document.readyState === 'complete') {
       setTimeout(trigger);
     } else {
       this.on('DOMContentLoaded', trigger); // works for modern browsers and IE9
@@ -3036,7 +3036,7 @@ forEach({
             var target = this, related = event.relatedTarget;
             // For mousenter/leave call the handler if related is outside the target.
             // NB: No relatedTarget if the mouse left/entered the browser window
-            if (!related || (related !== target && !target.contains(related))){
+            if (!related || (related !== target && !target.contains(related))) {
               handle(event, type);
             }
           });
@@ -9527,7 +9527,7 @@ function $HttpProvider() {
 
         forEach(value, function(v) {
           if (isObject(v)) {
-            if (isDate(v)){
+            if (isDate(v)) {
               v = v.toISOString();
             } else {
               v = toJson(v);

@@ -48,7 +48,6 @@ class ClientTestBase(unittest.TestCase):
   platforms = []
   flow = None
   args = {}
-  cpu_limit = None
   network_bytes_limit = None
   timeout = flow_utils.DEFAULT_TIMEOUT
   delete_urns = set()
@@ -102,14 +101,11 @@ class ClientTestBase(unittest.TestCase):
   def runTest(self):
     if self.local_worker:
       self.session_id = debugging.StartFlowAndWorker(
-          self.client_id, self.flow, cpu_limit=self.cpu_limit,
-          network_bytes_limit=self.network_bytes_limit, **self.args)
+          self.client_id, self.flow, **self.args)
     else:
       self.session_id = flow_utils.StartFlowAndWait(
           self.client_id, flow_name=self.flow,
-          cpu_limit=self.cpu_limit, timeout=self.timeout,
-          network_bytes_limit=self.network_bytes_limit, token=self.token,
-          **self.args)
+          timeout=self.timeout, token=self.token, **self.args)
 
     self.CheckFlow()
 

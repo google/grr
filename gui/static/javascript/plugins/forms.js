@@ -231,11 +231,6 @@ grr.Renderer('MultiFormRenderer', {
       var new_div = $('<div class="alert fade in" id="' +
           new_id + '" data-item="' + count + '" >');
 
-      new_div.on('close', function() {
-        var item = $(this).data('item');
-        grr.forms.clearPrefix(this, option + '_' + item);
-      });
-
       new_div.insertBefore(this);
 
       grr.layout(state.renderer, new_id, data);
@@ -249,6 +244,18 @@ grr.Renderer('MultiFormRenderer', {
       // click it to make at least one option available.
       addButton.click();
     }
+  },
+
+  LayoutItem: function(state) {
+    var unique = state.unique;
+    var option = state.option || 'option';
+
+    // This button is pressed when current form is removed.
+    var removeButton = $('#RemoveButton' + unique);
+    removeButton.click(function() {
+      var item = $(this).parent().data('item');
+      grr.forms.clearPrefix(this, option + '_' + item);
+    });
   }
 });
 
