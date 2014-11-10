@@ -20,12 +20,6 @@ from grr.lib.hunts import implementation
 from grr.lib.hunts import output_plugins
 
 
-config_lib.DEFINE_string("AdminUI.new_hunt_wizard.default_output_plugin",
-                         None,
-                         "Output plugin that will be added by default in the "
-                         "'New Hunt' wizard output plugins selection page.")
-
-
 class HuntArgsParser(object):
   """A utility class for parsing the hunt parameters."""
 
