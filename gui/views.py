@@ -29,25 +29,6 @@ from grr.lib import registry
 from grr.lib import stats
 
 
-config_lib.DEFINE_string("AdminUI.page_title",
-                         "GRR Admin Console",
-                         "Page title of the Admin UI.")
-
-config_lib.DEFINE_string("AdminUI.heading", "",
-                         "Dashboard heading displayed in the Admin UI.")
-
-config_lib.DEFINE_string("AdminUI.report_url",
-                         "https://github.com/google/grr/issues",
-                         "URL of the 'Report a problem' link.")
-
-config_lib.DEFINE_string("AdminUI.help_url",
-                         "/help/index.html",
-                         "URL of the 'Help' link.")
-
-config_lib.DEFINE_string("AdminUI.github_docs_location",
-                         "https://github.com/google/grr-doc/blob/master",
-                         "Base path for GitHub-hosted GRR documentation. ")
-
 DOCUMENT_ROOT = os.path.join(os.path.dirname(gui.__file__), "static")
 
 
