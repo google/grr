@@ -212,6 +212,16 @@ config_lib.DEFINE_string(
     "Email.signature", "The GRR Team",
     "The default signature block for template emails")
 
+config_lib.DEFINE_string(
+    "Email.approval_cc_address", None,
+    "An email address to CC on all approval emails")
+
+config_lib.DEFINE_string(
+    "Email.default_domain", None,
+    "A default domain to add to email addresses for notifications if they "
+    "don't contain an @")
+
+
 config_lib.DEFINE_integer(
     "StatsHunt.ClientBatchSize", "200",
     "Batch size for client scheduling. This should be large enough that it "
