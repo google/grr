@@ -151,6 +151,25 @@ class Interrogate(flow.GRRFlow):
       self.state.summary.users.Append(
           rdfvalue.User().FromKnowledgeBaseUser(kbuser))
 
+    # If the knowledge base came back with values for these collected via
+    # artifacts, we trust those more than the values returned via the
+    # GetPlatformInfo client action so we override them here.
+    if knowledge_base.os_release:
+      os_release = knowledge_base.os_release
+      self.client.Set(self.client.Schema.OS_RELEASE(os_release))
+
+      # Override OS version field too.
+      # TODO(user): this actually results in incorrect versions for things
+      #                like Ubuntu (14.4 instead of 14.04). I don't think zero-
+      #                padding is always correct, however.
+      os_version = "%d.%d" % (knowledge_base.os_major_version,
+                              knowledge_base.os_minor_version)
+      self.client.Set(self.client.Schema.OS_VERSION(os_version))
+
+      # Update client summary accordingly.
+      self.state.summary.system_info.release = os_release
+      self.state.summary.system_info.version = os_version
+
     # Collect any non-knowledgebase artifacts that will be stored in aff4.
     artifact_list = self._GetExtraArtifactsForCollection()
     if artifact_list:

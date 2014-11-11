@@ -6,6 +6,8 @@
 
 
 import json
+import sets
+
 from rekall.ui import json_renderer
 
 import logging
@@ -14,6 +16,7 @@ from grr.client.client_actions import grr_rekall
 from grr.gui import renderers
 from grr.gui.plugins import semantic
 from grr.lib import aff4
+from grr.lib import rdfvalue
 from grr.lib import utils
 
 
@@ -199,6 +202,8 @@ class RekallResponseCollectionRenderer(semantic.RDFValueRenderer):
       except IOError:
         return
 
+    output_directories = sets.Set()
+
     for rekall_response in collection:
       for statement in json.loads(rekall_response.json_messages):
 
@@ -261,8 +266,20 @@ class RekallResponseCollectionRenderer(semantic.RDFValueRenderer):
 
           self.current_table.AddRow(statement[1])
 
+        # File that was output by rekall and extracted.
+        elif command == "file":
+          # Currently, when we render a client URN the link leads the user to
+          # the directory in the virtual file system, not the particular
+          # file. So we just render one link for each output directory.
+          file_urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
+              rdfvalue.PathSpec(**statement[1]),
+              rekall_response.client_urn)
+          output_directories.add(rdfvalue.RDFURN(file_urn.Dirname()))
+
     self._flush_table()
     self._flush_freetext()
+    for directory in output_directories:
+      self.elements.append(semantic.RDFURNRenderer(directory))
 
     return super(RekallResponseCollectionRenderer, self).Layout(
         request, response)

@@ -1050,8 +1050,8 @@ class RekallResponseConverter(ExportConverter):
     json_data = json.loads(messages)
     for message in json_data:
       if len(message) >= 1:
-        object_renderer = json_renderer.JsonObjectRenderer.FromEncoded(
-            message[1], "DataExportRenderer")(renderer="DataExportRenderer")
+        object_renderer = json_renderer.JsonObjectRenderer(
+            renderer="DataExportRenderer")
         try:
           message = [object_renderer.DecodeFromJsonSafe(s, {})
                      for s in message]

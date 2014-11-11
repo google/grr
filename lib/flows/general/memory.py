@@ -640,6 +640,7 @@ class AnalyzeClientMemory(flow.GRRFlow):
           mode="rw", token=self.token)
 
     self.state.Register("rekall_context_messages", {})
+    self.state.Register("output_files", [])
 
     self.CallFlow("LoadMemoryDriver", next_state="RunPlugins",
                   driver_installer=self.args.driver_installer)
@@ -661,7 +662,8 @@ class AnalyzeClientMemory(flow.GRRFlow):
     if not responses.success:
       self.Log(responses.status)
 
-  @flow.StateHandler(next_state=["StoreResults", "UpdateProfile"])
+  @flow.StateHandler(next_state=["StoreResults", "UpdateProfile",
+                                 "DeleteFiles"])
   def StoreResults(self, responses):
     """Stores the results."""
     if not responses.success:
@@ -692,9 +694,8 @@ class AnalyzeClientMemory(flow.GRRFlow):
         json_data = json.loads(response.json_messages)
         for message in json_data:
           if len(message) >= 1:
-            object_renderer = json_renderer.JsonObjectRenderer.FromEncoded(
-                message[1], "DataExportRenderer")(renderer="DataExportRenderer")
-
+            object_renderer = json_renderer.JsonObjectRenderer(
+                renderer="DataExportRenderer")
             try:
               message = [object_renderer.DecodeFromJsonSafe(s, {})
                          for s in message]
@@ -709,12 +710,36 @@ class AnalyzeClientMemory(flow.GRRFlow):
             if message[0] in ["t", "s"]:
               self.state.rekall_context_messages[message[0]] = message[1]
 
+            if message[0] == "file":
+              pathspec = rdfvalue.PathSpec(**message[1])
+              self.state.output_files.append(pathspec)
+
         self.SendReply(response)
 
     if responses.iterator.state != rdfvalue.Iterator.State.FINISHED:
       self.args.request.iterator = responses.iterator
       self.CallClient("RekallAction", self.args.request,
                       next_state="StoreResults")
+    else:
+      if self.state.output_files:
+        self.Log("Getting %i files.", len(self.state.output_files))
+        self.CallFlow("MultiGetFile", pathspecs=self.state.output_files,
+                      next_state="DeleteFiles")
+
+  @flow.StateHandler(next_state="LogDeleteFiles")
+  def DeleteFiles(self, responses):
+    # Check that the GetFiles flow worked.
+    if not responses.success:
+      raise flow.FlowError("Could not get files: %s" % responses.status)
+    for output_file in self.state.output_files:
+      self.CallClient("DeleteGRRTempFiles", output_file,
+                      next_state="LogDeleteFiles")
+
+  @flow.StateHandler()
+  def LogDeleteFiles(self, responses):
+    # Check that the DeleteFiles flow worked.
+    if not responses.success:
+      raise flow.FlowError("Could not delete file: %s" % responses.status)
 
   @flow.StateHandler()
   def End(self):

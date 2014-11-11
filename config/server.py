@@ -51,7 +51,7 @@ config_lib.DEFINE_list("Frontend.well_known_flows",
 
 # Smtp settings.
 config_lib.DEFINE_string("Worker.smtp_server", "localhost",
-                         "The smpt server for sending email alerts.")
+                         "The smtp server for sending email alerts.")
 
 config_lib.DEFINE_integer("Worker.smtp_port", 25, "The smtp server port.")
 
@@ -240,4 +240,3 @@ config_lib.DEFINE_integer("StatsStore.write_interval", default=60,
 config_lib.DEFINE_integer("StatsStore.ttl", default=60 * 60 * 24 * 7,
                           help="Maximum lifetime (in seconds) of data in the "
                           "stats store. Default is one week.")
-

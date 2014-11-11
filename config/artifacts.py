@@ -33,7 +33,8 @@ config_lib.DEFINE_list("Artifacts.knowledge_base",
                         "WMIProfileUsersHomeDir",
                         "WMIAccountUsersDomain",
                         "OSXUsers",
-                        "LinuxUserProfiles"],
+                        "LinuxUserProfiles",
+                        "LinuxRelease"],
                        "List of artifacts that are collected regularly by"
                        " interrogate and used for interpolation of client-side"
                        " variables. Includes artifacts for all supported OSes. "

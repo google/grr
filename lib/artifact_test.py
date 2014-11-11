@@ -138,6 +138,13 @@ class ArtifactTest(test_lib.GRRBaseTest):
     fd.Set(fd.Schema.ARCH("AMD64"))
     fd.Flush()
 
+  def UpdateCoreKBAttributes(self):
+    fd = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
+    kb = fd.Get(fd.Schema.KNOWLEDGE_BASE)
+    artifact.SetCoreGRRKnowledgeBaseValues(kb, fd)
+    fd.Set(fd.Schema.KNOWLEDGE_BASE, kb)
+    fd.Flush()
+
   def SetLinuxClient(self):
     fd = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
     fd.Set(fd.Schema.SYSTEM("Linux"))
@@ -268,6 +275,7 @@ class ArtifactFlowTest(ArtifactTest):
   def testWMIQueryArtifact(self):
     """Check we can run WMI based artifacts."""
     self.SetWindowsClient()
+    self.UpdateCoreKBAttributes()
     self.RunCollectorAndGetCollection(["WMIInstalledSoftware"],
                                       store_results_in_aff4=True)
     urn = self.client_id.Add("info/software")
@@ -495,7 +503,8 @@ class GrrKbTest(ArtifactTest):
     self.SetLinuxClient()
     config_lib.CONFIG.Set("Artifacts.knowledge_base", ["LinuxWtmp",
                                                        "NetgroupConfiguration",
-                                                       "LinuxPasswdHomedirs"])
+                                                       "LinuxPasswdHomedirs",
+                                                       "LinuxRelease"])
     config_lib.CONFIG.Set("Artifacts.netgroup_filter_regexes", ["^login$"])
     config_lib.CONFIG.Set("Artifacts.netgroup_user_blacklist", ["isaac"])
 
@@ -512,7 +521,7 @@ class GrrKbTest(ArtifactTest):
       pass
     client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
     kb = artifact.GetArtifactKnowledgeBase(client)
-    self.assertEqual(kb.os_major_version, 12)
+    self.assertEqual(kb.os_major_version, 14)
     self.assertEqual(kb.os_minor_version, 4)
     # user 1,2,3 from wtmp. yagharek from netgroup.
     # Bert and Ernie not present (Users fixture overriden by kb).
@@ -533,7 +542,8 @@ class GrrKbTest(ArtifactTest):
 
     self.SetLinuxClient()
     config_lib.CONFIG.Set("Artifacts.knowledge_base", ["LinuxWtmp",
-                                                       "LinuxPasswdHomedirs"])
+                                                       "LinuxPasswdHomedirs",
+                                                       "LinuxRelease"])
     config_lib.CONFIG.Set("Artifacts.knowledge_base_additions", [])
     config_lib.CONFIG.Set("Artifacts.knowledge_base_skip", [])
 
@@ -544,7 +554,7 @@ class GrrKbTest(ArtifactTest):
 
     client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
     kb = artifact.GetArtifactKnowledgeBase(client)
-    self.assertEqual(kb.os_major_version, 12)
+    self.assertEqual(kb.os_major_version, 14)
     self.assertEqual(kb.os_minor_version, 4)
     # user 1,2,3 from wtmp.
     # Bert and Ernie not present (Users fixture overriden by kb).
@@ -566,7 +576,8 @@ class GrrKbTest(ArtifactTest):
     self.SetLinuxClient()
     config_lib.CONFIG.Set("Artifacts.knowledge_base",
                           ["NetgroupConfiguration",
-                           "NssCacheLinuxPasswdHomedirs"])
+                           "NssCacheLinuxPasswdHomedirs",
+                           "LinuxRelease"])
     config_lib.CONFIG.Set("Artifacts.netgroup_filter_regexes",
                           ["^doesntexist$"])
 
@@ -583,7 +594,7 @@ class GrrKbTest(ArtifactTest):
       pass
     client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
     kb = artifact.GetArtifactKnowledgeBase(client)
-    self.assertEqual(kb.os_major_version, 12)
+    self.assertEqual(kb.os_major_version, 14)
     self.assertEqual(kb.os_minor_version, 4)
     self.assertItemsEqual([x.username for x in kb.users], [])
 

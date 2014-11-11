@@ -3137,6 +3137,19 @@ pathspec {
 }
 """
 })),
+(u"/fs/os/etc/lsb-release", ("VFSMemoryFile", {
+"aff4:content": "DISTRIB_ID=Ubuntu\nDISTRIB_RELEASE=14.04\n",
+"aff4:stat":
+"""
+st_mode: 33261
+st_size: 40
+resident: "DISTRIB_ID=Ubuntu\\nDISTRIB_RELEASE=14.04\\n"
+pathspec {
+  pathtype: OS
+  path: "/etc/lsb-release"
+}
+"""
+})),
 (u"/fs/os/c/bin %(client_id)s/bzgrep", ("VFSFile", {
 "aff4:stat":
 """
@@ -4158,8 +4171,9 @@ WMI_SAMPLE = [
       rdfvalue.Dict(
           {u"QuotasDisabled": u"True", u"ProviderName": u"",
            u"PowerManagementSupported": u"", u"PowerManagementCapabilities":
-           u"", u"Access": u"0", u"SystemName": u"myhost", u"DriveType": u"3",
-           u"Status": u"", u"VolumeDirty": u"False", u"PNPDeviceID": u"",
+           u"", u"Access": u"0", u"SystemName": u"myhost",
+           u"DriveType": u"DRIVE_FIXED", u"Status": u"",
+           u"VolumeDirty": u"False", u"PNPDeviceID": u"",
            u"Description": u"Local Fixed Disk", u"VolumeName": u"",
            u"ConfigManagerUserConfig": u"", u"ErrorCleared": u"", u"Compressed":
            u"False", u"FileSystem": u"NTFS", u"Purpose": u"",
@@ -4177,8 +4191,8 @@ WMI_SAMPLE = [
             {u"QuotasDisabled": u"", u"ProviderName":
              u"\\\\homefileshare\\home\\user", u"PowerManagementSupported": u"",
              u"PowerManagementCapabilities": u"", u"Access": u"0",
-             u"SystemName": u"myhost", u"DriveType": u"4", u"Status": u"",
-             u"VolumeDirty": u"", u"PNPDeviceID": u"",
+             u"SystemName": u"myhost", u"DriveType": u"DRIVE_REMOTE",
+             u"Status": u"", u"VolumeDirty": u"", u"PNPDeviceID": u"",
              u"Description": u"Network Connection",
              u"VolumeName": u"homefileshare$",
              u"ConfigManagerUserConfig": u"", u"ErrorCleared": u"",

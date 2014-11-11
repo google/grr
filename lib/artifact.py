@@ -59,8 +59,7 @@ def GetArtifactKnowledgeBase(client_obj, allow_uninitialized=False):
           (client_obj.urn, kb))
   if not kb:
     kb = client_schema.KNOWLEDGE_BASE()
-
-  SetCoreGRRKnowledgeBaseValues(kb, client_obj)
+    SetCoreGRRKnowledgeBaseValues(kb, client_obj)
 
   if kb.os == "Windows":
     # Add fallback values.
