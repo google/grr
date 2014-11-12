@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Data master specific classes."""
 
-
+import socket
 import threading
 import urlparse
 
@@ -53,10 +53,9 @@ class DataServer(object):
       if self.Address() not in addr:
         return False
     else:
-      if self.Address() != addr:
-        # Handle different ways to express localhost
-        if not(self.Address() == "localhost" and addr == "127.0.0.1"):
-          return False
+      # Handle hostnames and IPs
+      if socket.gethostbyname(self.Address()) != socket.gethostbyname(addr):
+        return False
     return self.Port() == port
 
   def Register(self):
