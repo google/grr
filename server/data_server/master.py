@@ -54,7 +54,9 @@ class DataServer(object):
         return False
     else:
       if self.Address() != addr:
-        return False
+        # Handle different ways to express localhost
+        if not(self.Address() == "localhost" and addr == "127.0.0.1"):
+          return False
     return self.Port() == port
 
   def Register(self):

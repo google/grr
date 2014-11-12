@@ -818,8 +818,9 @@ def main(unused_argv):
   startup.ConfigInit()
 
   config_lib.CONFIG.AddContext("DataServer Context")
-  path = flags.FLAGS.path or config_lib.CONFIG["Dataserver.path"]
-  config_lib.CONFIG.Set("Datastore.location", path)
+  if not config_lib.CONFIG.Set("Datastore.location", None):
+    path = flags.FLAGS.path or config_lib.CONFIG["Dataserver.path"]
+    config_lib.CONFIG.Set("Datastore.location", path)
 
   startup.ServerLoggingStartupInit()
   stats.STATS = stats.StatsCollector()

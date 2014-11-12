@@ -34,7 +34,7 @@ config_lib.DEFINE_list("Datastore.pathing", DATASTORE_PATHING,
                        ("Path selection for subjects in the file-based data "
                         "stores (by priority)."))
 
-config_lib.DEFINE_string("Datastore.location", default="/tmp/grr-datastore",
+config_lib.DEFINE_string("Datastore.location", default="/var/grr-datastore",
                          help=("Location of the data store (usually a "
                                "filesystem directory)"))
 

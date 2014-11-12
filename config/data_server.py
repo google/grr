@@ -19,7 +19,7 @@ config_lib.DEFINE_integer("Dataserver.max_connections", 5,
 config_lib.DEFINE_integer("Dataserver.port", 7000,
                           "Port for a specific data server.")
 
-config_lib.DEFINE_string("Dataserver.path", "/tmp/grr-store",
+config_lib.DEFINE_string("Dataserver.path", "/var/grr-dataserver",
                          "Data store path for a specific data server.")
 
 # Login information for clients of the data servers.
