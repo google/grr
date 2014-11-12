@@ -88,7 +88,6 @@ def SendEmail(to_addresses, from_address, subject, message, attachments=None,
   msg["To"] = ",".join(to_addresses)
   if cc_addresses:
     msg["CC"] = ",".join(cc_addresses)
-    to_addresses.extend(cc_addresses)
 
   if message_id:
     msg.add_header("Message-ID", message_id)

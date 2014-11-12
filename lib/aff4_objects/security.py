@@ -482,8 +482,8 @@ Please click <a href='%(admin_ui)s#%(subject_urn)s'>here</a> to access it.
 
     # Email subject should match approval request, and we add message id
     # references so they are grouped together in a thread by gmail.
-    subject = u"Approval for %s to access %s." % (self.token.username,
-                                                  subject_title)
+    subject = u"Approval for %s to access %s." % (
+        utils.SmartStr(self.args.delegate), subject_title)
     headers = {"In-Reply-To": email_msg_id, "References": email_msg_id}
     email_alerts.SendEmail(utils.SmartStr(self.args.delegate),
                            utils.SmartStr(self.token.username), subject,
