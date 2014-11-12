@@ -131,10 +131,6 @@ def DeleteGRRTempFile(path):
   if not os.path.isabs(path):
     raise ErrorBadPath("Path must be absolute")
 
-  # Normalize the path, so that we can correctly check if it is within
-  # Client.tempdir.
-  path = utils.NormalizePath(path)
-
   prefix = config_lib.CONFIG["Client.tempfile_prefix"]
   directory = config_lib.CONFIG["Client.tempdir"]
   if not (os.path.basename(path).startswith(prefix) or
@@ -169,8 +165,12 @@ class DeleteGRRTempFiles(actions.ActionPlugin):
     Raises:
       ErrorBadPath: if path doesn't exist or is not a regular file or directory
     """
+
+    # Normalize the path, so DeleteGRRTempFile can correctly check if
+    # it is within Client.tempdir.
     if args.path:
-      path = args.path
+      path = client_utils.CanonicalPathToLocalPath(
+          utils.NormalizePath(args.path))
     else:
       path = config_lib.CONFIG["Client.tempdir"]
 
