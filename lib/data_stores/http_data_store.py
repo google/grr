@@ -365,6 +365,7 @@ class RemoteInquirer(object):
       self.servers.append(DataServer(addr, port))
     self.mapping_server = random.choice(self.servers)
     self.mapping = self.mapping_server.LoadMapping()
+
     if len(self.mapping.servers) != len(server_list):
       raise HTTPDataStoreError("There is a mismatch between the data "
                                "servers and the configuration file.")

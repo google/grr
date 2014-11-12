@@ -63,6 +63,7 @@ class ClientCredentials(object):
     key = self._MakeEncryptKey(username, password)
     # We encrypt the credentials object.
     string = creds.SerializeToString()
+
     if len(string) % 16:
       string += " " * (16 - len(string) % 16)  # Must be in 16 byte blocks.
     init_vector = self._MakeInitVector()
@@ -87,6 +88,10 @@ class ClientCredentials(object):
     try:
       plain = decryptor.Update(ciphertext)
       plain += decryptor.Final()
+
+      # Remove padding
+      plain = plain.strip(" ")
+
       creds = rdfvalue.DataServerClientCredentials(plain)
       # Create client credentials.
       self.client_users = {}

@@ -30,6 +30,7 @@ from grr.gui import admin_ui
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import startup
+from grr.server.data_server import data_server
 from grr.tools import http_server
 from grr.worker import enroller
 from grr.worker import worker
@@ -47,14 +48,18 @@ flags.DEFINE_bool("start_http_server", False,
 flags.DEFINE_bool("start_ui", False,
                   "Start the server as user interface.")
 
+flags.DEFINE_bool("start_dataserver", False,
+                  "Start the dataserver.")
+
 
 def main(argv):
   """Sets up all the component in their own threads."""
   flag_list = [flags.FLAGS.start_worker, flags.FLAGS.start_ui,
-               flags.FLAGS.start_http_server, flags.FLAGS.start_enroller]
+               flags.FLAGS.start_http_server, flags.FLAGS.start_enroller,
+               flags.FLAGS.start_dataserver]
   enabled_flags = [f for f in flag_list if f]
 
-  # If no start preferences were provided start everything.
+  # If no start preferences were provided start everything
   if not enabled_flags:
     flags.FLAGS.start_worker = True
     flags.FLAGS.start_enroller = True
@@ -95,6 +100,13 @@ def main(argv):
   if flags.FLAGS.start_ui:
     ui_thread = threading.Thread(target=admin_ui.main, args=[argv],
                                  name="GUI")
+    ui_thread.daemon = True
+    ui_thread.start()
+
+  # Start the data server thread if necessary.
+  if flags.FLAGS.start_dataserver:
+    ui_thread = threading.Thread(target=data_server.main, args=[argv],
+                                 name="Dataserver")
     ui_thread.daemon = True
     ui_thread.start()
 
