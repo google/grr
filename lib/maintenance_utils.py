@@ -215,7 +215,7 @@ def _RepackBinary(context, builder_cls):
     print "Template %s missing - will not repack." % template_path
 
 
-def RepackAllBinaries(upload=False, debug_build=False):
+def RepackAllBinaries(upload=False, debug_build=False, token=None):
   """Repack binaries based on the configuration.
 
   NOTE: The configuration file specifies the location of the binaries
@@ -291,56 +291,9 @@ def RepackAllBinaries(upload=False, debug_build=False):
         dest = config_lib.CONFIG.Get("Executables.installer",
                                      context=context)
         UploadSignedConfigBlob(open(output_path).read(100*1024*1024),
-                               dest, client_context=context)
+                               dest, client_context=context, token=token)
     else:
       print "Failed to repack %s." % template_path
 
   return built
 
-
-def RebuildIndex(urn, primary_attribute, indexed_attributes, token):
-  """Rebuild the Label Indexes."""
-  index_urn = rdfvalue.RDFURN(urn)
-
-  logging.info("Deleting index %s", urn)
-  data_store.DB.DeleteSubject(index_urn, sync=True)
-  attribute_predicates = [a.predicate for a in indexed_attributes]
-  filter_obj = data_store.DB.filter.HasPredicateFilter(
-      primary_attribute.predicate)
-
-  index = aff4.FACTORY.Create(index_urn, "AFF4Index",
-                              token=token, mode="w")
-
-  for row in data_store.DB.Query(attributes=attribute_predicates,
-                                 filter_obj=filter_obj, limit=1000000):
-    try:
-      subject = row["subject"][0][0]
-      urn = rdfvalue.RDFURN(subject)
-    except ValueError:
-      continue
-    for attribute in indexed_attributes:
-      value = row.get(attribute.predicate)
-      if value:
-        value = value[0][0]
-      if value:
-        logging.debug("Adding: %s %s %s", str(urn), attribute.predicate, value)
-        index.Add(urn, attribute, value)
-  logging.info("Flushing index %s", urn)
-  index.Flush(sync=True)
-
-
-def RebuildLabelIndexes(token):
-  """Rebuild the Label Indexes."""
-  RebuildIndex("/index/label",
-               primary_attribute=aff4.AFF4Object.SchemaCls.LABEL,
-               indexed_attributes=[aff4.AFF4Object.SchemaCls.LABEL],
-               token=token)
-
-
-def RebuildClientIndexes(token=None):
-  """Rebuild the Client Indexes."""
-  indexed_attributes = [a for a in aff4.VFSGRRClient.SchemaCls.ListAttributes()
-                        if a.index]
-  RebuildIndex("/index/client",
-               primary_attribute=aff4.VFSGRRClient.SchemaCls.HOSTNAME,
-               indexed_attributes=indexed_attributes, token=token)
