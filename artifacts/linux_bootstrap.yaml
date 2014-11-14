@@ -1,0 +1,19 @@
+# Linux bootstrap artifacts.
+
+# Linux specific distribution information.
+# See: lsb_release(1) man page, or the LSB Specification under the 'Command
+# Behaviour' section.
+name: LinuxRelease
+doc: Linux distribution name.
+collectors:
+- collector_type: FILE
+  args:
+    path_list:
+      - '/etc/oracle-release'
+      - '/etc/redhat-release'
+      - '/etc/enterprise-release'
+      - '/etc/lsb-release'
+provides: [os_release, os_major_version, os_minor_version]
+labels: [Software]
+supported_os: [Linux]
+

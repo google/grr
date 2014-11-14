@@ -176,14 +176,23 @@ class NetworkAddressTests(test_base.RDFValueTestCase):
     self.assertEqual(sample.packed_bytes,
                      socket.inet_pton(socket.AF_INET, "192.168.0.1"))
 
+    self.assertEqual(sample.human_readable_address,
+                     "192.168.0.1")
+
     self.CheckRDFValue(self.rdfvalue_class(sample), sample)
 
   def testIPv6(self):
-    sample = rdfvalue.NetworkAddress(human_readable_address="::1")
-    self.assertEqual(sample.address_type, rdfvalue.NetworkAddress.Family.INET6)
-    self.assertEqual(sample.packed_bytes,
-                     socket.inet_pton(socket.AF_INET6, "::1"))
+    ipv6_addresses = ["fe80::202:b3ff:fe1e:8329", "::1"]
+    for address in ipv6_addresses:
+      sample = rdfvalue.NetworkAddress(human_readable_address=address)
+      self.assertEqual(sample.address_type,
+                       rdfvalue.NetworkAddress.Family.INET6)
+      self.assertEqual(sample.packed_bytes,
+                       socket.inet_pton(socket.AF_INET6, address))
 
-    self.CheckRDFValue(self.rdfvalue_class(sample), sample)
+      self.assertEqual(sample.human_readable_address,
+                       address)
+
+      self.CheckRDFValue(self.rdfvalue_class(sample), sample)
 
 

@@ -1,5 +1,5 @@
 /**
- * @license AngularJS v1.3.1-local+sha.ce20dd0
+ * @license AngularJS v1.3.3-local+sha.9cc6835
  * (c) 2010-2014 Google, Inc. http://angularjs.org
  * License: MIT
  */
@@ -570,7 +570,7 @@ angular.module('ngAnimate', ['ng'])
         });
 
         var toAdd = [], toRemove = [];
-        forEach(cache.classes, function(status, className) {
+        forEach((cache && cache.classes) || [], function(status, className) {
           var hasClass = hasClasses[className];
           var matchingAnimation = lookup[className] || {};
 
@@ -1889,7 +1889,7 @@ angular.module('ngAnimate', ['ng'])
           //the jqLite object, so we're safe to use a single variable to house
           //the styles since there is always only one element being animated
           var oldStyle = node.getAttribute('style') || '';
-          if (oldStyle.charAt(oldStyle.length-1) !== ';') {
+          if (oldStyle.charAt(oldStyle.length - 1) !== ';') {
             oldStyle += ';';
           }
           node.setAttribute('style', oldStyle + ' ' + style);

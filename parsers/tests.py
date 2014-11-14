@@ -8,6 +8,7 @@ from grr.parsers import chrome_history_test
 from grr.parsers import firefox3_history_test
 from grr.parsers import ie_history_test
 from grr.parsers import linux_file_parser_test
+from grr.parsers import linux_release_parser_test
 from grr.parsers import osx_file_parser_test
 from grr.parsers import osx_launchd_test
 from grr.parsers import osx_quarantine_test

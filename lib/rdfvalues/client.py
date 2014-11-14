@@ -11,6 +11,7 @@ import re
 import socket
 import stat
 
+from grr.lib import ipv6_utils
 from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
@@ -301,7 +302,12 @@ class Connections(protodict.RDFValueArray):
 
 
 class NetworkAddress(rdfvalue.RDFProtoStruct):
-  """A network address."""
+  """A network address.
+
+  We'd prefer to use socket.inet_pton and  inet_ntop here, but they aren't
+  available on windows before python 3.4. So we use the older IPv4 functions for
+  v4 addresses and our own pure python implementations for IPv6.
+  """
   protobuf = jobs_pb2.NetworkAddress
 
   @property
@@ -311,9 +317,9 @@ class NetworkAddress(rdfvalue.RDFProtoStruct):
     else:
       try:
         if self.address_type == rdfvalue.NetworkAddress.Family.INET:
-          return socket.inet_ntop(socket.AF_INET, self.packed_bytes)
+          return socket.inet_ntoa(self.packed_bytes)
         else:
-          return socket.inet_ntop(socket.AF_INET6, self.packed_bytes)
+          return ipv6_utils.InetNtoA(self.packed_bytes)
       except ValueError as e:
         return str(e)
 
@@ -322,11 +328,11 @@ class NetworkAddress(rdfvalue.RDFProtoStruct):
     if ":" in value:
       # IPv6
       self.address_type = rdfvalue.NetworkAddress.Family.INET6
-      self.packed_bytes = socket.inet_pton(socket.AF_INET6, value)
+      self.packed_bytes = ipv6_utils.InetAtoN(value)
     else:
       # IPv4
       self.address_type = rdfvalue.NetworkAddress.Family.INET
-      self.packed_bytes = socket.inet_pton(socket.AF_INET, value)
+      self.packed_bytes = socket.inet_aton(value)
 
 
 class DNSClientConfiguration(rdfvalue.RDFProtoStruct):

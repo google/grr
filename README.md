@@ -1,7 +1,6 @@
-GRR Rapid Response
-==================
+<img src="https://raw.githubusercontent.com/google/grr/gh-pages/img/grr_logo_real_sm.png" />
 
-GRR is an incident response framework focused on remote live forensics.
+GRR Rapid Response is an incident response framework focused on remote live forensics.
 
 Links
 -----
@@ -29,6 +28,9 @@ Mailing Lists
 
 Announcements
 -------------
+
+**Nov 5 2014**: We've got a great new logo, which you will see turning up in the admin UI soon.  It replaces [our long-standing unofficial logo](https://raw.githubusercontent.com/google/grr/gh-pages/img/grr_logo.png) :)
+
 **Oct 28 2014**: We've started a blog as a supplement to the documentation.  Check out the first post on [how to set up the distributed datastore](http://grr-response.blogspot.com/2014/10/using-distributed-data-store-in-grr.html).
 
 **Oct 15 2014**: We're now fully migrated to github. The code.google.com page

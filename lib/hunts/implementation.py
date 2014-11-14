@@ -31,7 +31,6 @@ from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
-from grr.lib.rdfvalues import flows
 from grr.proto import flows_pb2
 
 
@@ -178,7 +177,7 @@ class HuntRunner(flow_runner.FlowRunner):
     if args.client_limit > 1000:
       raise RuntimeError("Please specify client_limit <= 1000.")
 
-    context = flows.DataObject(
+    context = utils.DataObject(
         args=args,
         backtrace=None,
         client_resources=rdfvalue.ClientResources(),

@@ -15,6 +15,7 @@ from grr.lib import communicator_test
 from grr.lib import config_lib_test
 from grr.lib import config_validation_test
 from grr.lib import data_store_test
+from grr.lib import email_alerts_test
 from grr.lib import export_test
 from grr.lib import export_utils_test
 from grr.lib import flow_test
@@ -22,6 +23,7 @@ from grr.lib import flow_utils_test
 from grr.lib import front_end_test
 from grr.lib import fuse_mount_test
 from grr.lib import hunt_test
+from grr.lib import ipv6_utils_test
 from grr.lib import lexer_test
 from grr.lib import objectfilter_test
 from grr.lib import parsers_test

@@ -55,22 +55,6 @@ from grr.lib import stats
 from grr.proto import jobs_pb2
 
 
-config_lib.DEFINE_string("StatsStore.process_id", default="",
-                         help="Id used to identify stats data of the current "
-                         "process. This should be different for different GRR "
-                         "processes. I.e. if you have 4 workers, for every "
-                         "worker the subject should be different. For example: "
-                         "worker_1, worker_2, worker_3, worker_4.")
-
-config_lib.DEFINE_integer("StatsStore.write_interval", default=60,
-                          help="Time in seconds between the dumps of stats "
-                          "data into the stats store.")
-
-config_lib.DEFINE_integer("StatsStore.ttl", default=60 * 60 * 24 * 7,
-                          help="Maximum lifetime (in seconds) of data in the "
-                          "stats store. Default is one week.")
-
-
 class StatsStoreFieldValue(rdfvalue.RDFProtoStruct):
   """RDFValue definition for fields values to be stored in the data store."""
 

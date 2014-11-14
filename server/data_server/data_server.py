@@ -38,8 +38,10 @@ from grr.server.data_server import utils as sutils
 
 flags.DEFINE_integer("port", None,
                      "Specify the data server port.")
+
 flags.DEFINE_string("path", None,
                     "Specify the data store path.")
+
 flags.DEFINE_bool("master", False,
                   "Mark this data server as the master.")
 
@@ -817,9 +819,8 @@ def main(unused_argv):
   startup.AddConfigContext()
   startup.ConfigInit()
 
-  config_lib.CONFIG.AddContext("DataServer Context")
-  path = flags.FLAGS.path or config_lib.CONFIG["Dataserver.path"]
-  config_lib.CONFIG.Set("Datastore.location", path)
+  if flags.FLAGS.path:
+    config_lib.CONFIG.Set("Datastore.location", path)
 
   startup.ServerLoggingStartupInit()
   stats.STATS = stats.StatsCollector()

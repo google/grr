@@ -9,7 +9,10 @@ modules that have been customized for your deployment.
 """
 
 # pylint: disable=unused-import
+# pylint: disable=g-bad-import-order
+# pylint: enable=g-bad-import-order
 
+from grr.gui import api_plugins
 from grr.gui import plugins
 from grr.gui import renderers
 from grr.gui import urls

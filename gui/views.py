@@ -3,7 +3,6 @@
 
 
 import importlib
-import json
 import os
 import pdb
 import time
@@ -29,26 +28,6 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 
-
-config_lib.DEFINE_string("AdminUI.page_title",
-                         "GRR Admin Console",
-                         "Page title of the Admin UI.")
-
-config_lib.DEFINE_string("AdminUI.heading",
-                         "GRR Rapid Response",
-                         "Dashboard heading displayed in the Admin UI.")
-
-config_lib.DEFINE_string("AdminUI.report_url",
-                         "https://github.com/google/grr/issues",
-                         "URL of the 'Report a problem' link.")
-
-config_lib.DEFINE_string("AdminUI.help_url",
-                         "/help/index.html",
-                         "URL of the 'Help' link.")
-
-config_lib.DEFINE_string("AdminUI.github_docs_location",
-                         "https://github.com/google/grr-doc/blob/master",
-                         "Base path for GitHub-hosted GRR documentation. ")
 
 DOCUMENT_ROOT = os.path.join(os.path.dirname(gui.__file__), "static")
 
@@ -127,42 +106,11 @@ def RenderBinaryDownload(request):
   return response
 
 
-AFF4_RENDERERS_CACHE = {}
-
-
 @webauth.SecurityCheck
 @renderers.ErrorHandler()
-def RenderAFF4Object(request):
-  """Handler for the /api/aff4 requests."""
-  aff4_path = request.path.split("/", 3)[-1].strip("/")
-
-  request.REQ = request.REQUEST
-  token = BuildToken(request, 60)
-
-  aff4_object = aff4.FACTORY.Open(aff4_path, token=token)
-  try:
-    renderer_cls = AFF4_RENDERERS_CACHE[aff4_object.__class__.__name__]
-  except KeyError:
-    candidates = []
-    for candidate in api_renderers.ApiRenderer.classes.values():
-      if candidate.aff4_type and  aff4.issubclass(
-          aff4_object.__class__, aff4.AFF4Object.classes[candidate.aff4_type]):
-        candidates.append(candidate)
-
-    if not candidates:
-      raise RuntimeError("No renderer found for object %s." %
-                         aff4_object.__class__.__name__)
-
-    candidates = sorted(candidates, key=lambda cls: len(cls.mro()))
-    renderer_cls = candidates[-1]
-    AFF4_RENDERERS_CACHE[aff4_object.__class__.__name__] = renderer_cls
-
-  api_renderer = renderer_cls()
-  rendered_data = api_renderer.RenderObject(aff4_object, request.REQ)
-
-  response = http.HttpResponse(content_type="application/json")
-  response.write(json.dumps(rendered_data))
-  return response
+def RenderApi(request):
+  """Handler for the /api/ requests."""
+  return api_renderers.RenderResponse(request)
 
 
 @webauth.SecurityCheck

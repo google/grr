@@ -64,9 +64,7 @@ class CPULimitTestFlow(flow.GRRFlow):
 class TestCPULimit(base.AutomatedTest):
   platforms = ["Linux", "Windows", "Darwin"]
   flow = "CPULimitTestFlow"
-
-  # TODO(user): need to move these limits into the args dictionary.
-  cpu_limit = 7
+  args = {"cpu_limit": 3}
 
   def CheckFlow(self):
     # Reopen the object to check the state.  We use OpenWithLock to avoid
@@ -88,9 +86,9 @@ class TestNetworkFlowLimit(base.AutomatedTest):
   """Test limit on bytes transferred for a flow."""
   platforms = ["Linux", "Darwin"]
   flow = "GetFile"
-  network_bytes_limit = 500 * 1024
   args = {"pathspec": rdfvalue.PathSpec(path="/bin/bash",
-                                        pathtype=rdfvalue.PathSpec.PathType.OS)}
+                                        pathtype=rdfvalue.PathSpec.PathType.OS),
+          "network_bytes_limit": 500 * 1024}
 
   test_output_path = "/fs/os/bin/bash"
 
@@ -101,7 +99,7 @@ class TestNetworkFlowLimit(base.AutomatedTest):
         self.session_id, token=self.token) as flow_obj:
       # Make sure we transferred approximately the right amount of data.
       self.assertAlmostEqual(flow_obj.state.context.network_bytes_sent,
-                             self.network_bytes_limit, delta=30000)
+                             500 * 1024, delta=30000)
       backtrace = flow_obj.state.context.get("backtrace", "")
       self.assertTrue("Network bytes limit exceeded." in backtrace)
 

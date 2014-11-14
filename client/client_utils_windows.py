@@ -49,7 +49,7 @@ def CanonicalPathToLocalPath(path):
   path = path.replace("/", "\\")
   m = re.match(r"\\([a-zA-Z]):(.*)$", path)
   if m:
-    path = "%s:\\%s" % (m.group(1), m.group(2))
+    path = "%s:\\%s" % (m.group(1), m.group(2).lstrip("\\"))
 
   return path
 

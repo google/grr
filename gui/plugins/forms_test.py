@@ -45,7 +45,7 @@ class TestForms(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent,
                    "css=#args-bool_value.unset:not(:checked)")
     self.WaitUntilEqual(
-        "0", self.GetValue, "css=#args-enum_value.unset")
+        "OPTION_1", self.GetValue, "css=#args-enum_value.unset")
 
   def testControlsWithDefaultValuesAreCorrectlyDisplayed(self):
     # Open the "new hunt" form and select the DefaultArgsTestFlow.
@@ -67,7 +67,7 @@ class TestForms(test_lib.GRRSeleniumTest):
         self.IsElementPresent,
         "css=#args-bool_value_with_default.unset:checked")
     self.WaitUntilEqual(
-        "1",
+        "OPTION_2",
         self.GetValue, "css=#args-enum_value_with_default.unset")
 
 

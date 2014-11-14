@@ -1,5 +1,5 @@
 /**
- * @license AngularJS v1.3.1-local+sha.ce20dd0
+ * @license AngularJS v1.3.3-local+sha.9cc6835
  * (c) 2010-2014 Google, Inc. http://angularjs.org
  * License: MIT
  */
@@ -109,7 +109,7 @@ angular.module('ngCookies', ['ng']).
         }
 
         //verify what was actually stored
-        if (updated){
+        if (updated) {
           updated = false;
           browserCookies = $browser.cookies();
 

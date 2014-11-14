@@ -339,8 +339,8 @@ class RDFValueArrayRenderer(RDFValueRenderer):
 {% endfor %}
 {% if this.next_start %}
 <tr class="proto_separator"></tr>
-<tr id="{{unique}}">
- <td> (<a>Additional data available</a>) </td>
+<tr>
+ <td><div id="{{unique}}"> (<a>Additional data available</a>) </div></td>
 </tr>
 {% endif %}
 </tbody>

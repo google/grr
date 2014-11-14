@@ -14,6 +14,8 @@ from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 
+from grr.lib.flows.general import transfer
+
 
 class RekallTestSuite(test_lib.EmptyActionTest):
   """A test suite for testing Rekall plugins.
@@ -69,7 +71,7 @@ class RekallTestSuite(test_lib.EmptyActionTest):
     for _ in test_lib.TestFlowHelper(
         "AnalyzeClientMemory",
         ClientMock(
-            "RekallAction", "WriteRekallProfile"
+            "RekallAction", "WriteRekallProfile", "DeleteGRRTempFiles"
             ),
         token=self.token, client_id=self.client_id,
         request=request, output="analysis/memory"):
@@ -150,6 +152,21 @@ class RekallTests(RekallTestSuite):
 
     # And should include the DumpIt kernel driver.
     self.assertTrue("DumpIt.sys" in output)
+
+  @RequireTestImage
+  def testFileOutput(self):
+    """Tests that a file can be written by a plugin and retrieved."""
+    request = rdfvalue.RekallRequest()
+    request.plugins = [
+        # Run procdump to create one file.
+        rdfvalue.PluginRequest(
+            plugin="procdump", args=dict(pid=2860))]
+
+    with test_lib.Instrument(transfer.MultiGetFile,
+                             "StoreStat") as storestat_instrument:
+      self.LaunchRekallPlugin(request)
+      # Expect one file to be downloaded.
+      self.assertEqual(storestat_instrument.call_count, 1)
 
   @RequireTestImage
   def testParameters(self):

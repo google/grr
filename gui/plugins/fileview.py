@@ -24,7 +24,6 @@ from grr.lib import utils
 from grr.lib.flows.general import export
 
 
-# pylint: disable=g-bad-name
 class BufferReferenceRenderer(semantic.RDFProtoRenderer):
   """Render the buffer reference."""
   classname = "BufferReference"

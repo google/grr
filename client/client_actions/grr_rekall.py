@@ -136,7 +136,15 @@ class GRRRekallRenderer(data_export.DataExportRenderer):
       self.flush()
 
   def open(self, directory=None, filename=None, mode="rb"):
-    return tempfiles.CreateGRRTempFile(filename=filename, mode=mode)
+    result = tempfiles.CreateGRRTempFile(filename=filename, mode=mode)
+    # The tempfile library created an os path, we pass it through vfs to
+    # normalize it.
+    with vfs.VFSOpen(rdfvalue.PathSpec(
+        path=result.name,
+        pathtype=rdfvalue.PathSpec.PathType.OS)) as vfs_fd:
+      dict_pathspec = vfs_fd.pathspec.ToPrimitiveDict()
+      self.SendMessage(["file", dict_pathspec])
+    return result
 
   def report_error(self, message):
     super(GRRRekallRenderer, self).report_error(message)

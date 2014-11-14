@@ -242,14 +242,11 @@ Please Select a flow to launch from the tree on the left.
 """) + renderers.TemplateRenderer.help_template
 
   ajax_template = renderers.Template("""
-<pre>
-{{this.args}}
-</pre>
-<pre>
-{{this.runner_args}}
-</pre>
-
-Launched Flow {{this.flow_name}}.
+Launched Flow {{this.flow_name}} with the following args:<br>
+<div>
+  {{this.args_html|safe}}
+  {{this.runner_args_html|safe}}
+</div>
 """)
 
   context_help_url = "user_manual.html#_flows"
@@ -306,6 +303,9 @@ Launched Flow {{this.flow_name}}.
                                             args=self.args,
                                             runner_args=self.runner_args)
 
+    self.args_html = semantic.FindRendererForObject(self.args).RawHTML(request)
+    self.runner_args_html = semantic.FindRendererForObject(
+        self.runner_args).RawHTML(request)
     response = renderers.TemplateRenderer.Layout(
         self, request, response, apply_template=self.ajax_template)
     return self.CallJavascript(response, "SemanticProtoFlowForm.RenderAjax",

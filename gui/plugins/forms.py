@@ -616,10 +616,10 @@ class EnumFormRenderer(TypeDescriptorFormRenderer):
 <select id="{{this.prefix}}" class="form-control unset"
   onchange="grr.forms.inputOnChange(this)"
   >
-{% for enum_name, enum_value in this.items %}
- <option {% ifequal enum_value this.default %}selected{% endifequal %}
-   value="{{enum_value|escape}}">
-   {{enum_name|escape}}{% ifequal enum_value this.default %} (default)
+{% for enum_name in this.items %}
+ <option {% ifequal enum_name this.default %}selected{% endifequal %}
+   value="{{enum_name|escape}}">
+   {{enum_name|escape}}{% ifequal enum_name this.default %} (default)
                        {% endifequal %}
  </option>
 {% endfor %}
@@ -629,22 +629,15 @@ class EnumFormRenderer(TypeDescriptorFormRenderer):
 """
 
   def Layout(self, request, response):
-    self.items = sorted([(k, int(v)) for k, v in self.descriptor.enum.items()],
-                        key=lambda x: x[1])
+    enum_dict = dict(self.descriptor.enum.items())
+    self.items = sorted(enum_dict.keys(), key=lambda k: enum_dict[k])
     super(EnumFormRenderer, self).Layout(request, response)
-
-    if self.value is not None:
-      self.value = int(self.value)
-
-    if self.default is not None:
-      self.default = int(self.default)
-
     return self.CallJavascript(response, "Layout",
                                default=self.default, value=self.value,
                                prefix=self.prefix)
 
 
-class ProtoBoolFormRenderer(EnumFormRenderer):
+class ProtoBoolFormRenderer(TypeDescriptorFormRenderer):
   """Render a checkbox for boolean values."""
   type_descriptor = type_info.ProtoBoolean
 
@@ -666,6 +659,18 @@ class ProtoBoolFormRenderer(EnumFormRenderer):
 </div>
 </div>
 """)
+
+  def Layout(self, request, response):
+    super(ProtoBoolFormRenderer, self).Layout(request, response)
+    if self.default is not None:
+      self.default = bool(self.default)
+    if self.value is not None:
+      self.value = bool(self.default)
+
+    return self.CallJavascript(response, "Layout",
+                               default=self.default,
+                               value=self.value,
+                               prefix=self.prefix)
 
   def ParseArgs(self, request):
     value = request.REQ.get(self.prefix)
@@ -821,7 +826,8 @@ class MultiFormRenderer(renderers.TemplateRenderer):
   layout_template = renderers.Template("""
 {% if this.item %}
 
-<button type=button class=close data-dismiss="alert">x</button>
+<button id="RemoveButton{{unique}}" type=button class=close
+  data-dismiss="alert">x</button>
 {{this.child|safe}}
 {% else %}
 <button class="btn btn-default" id="AddButton{{unique}}" data-item_count=0 >
@@ -853,6 +859,9 @@ class MultiFormRenderer(renderers.TemplateRenderer):
           prefix="%s_%s" % (self.option_name, self.item),
           item=self.item,
           default_item_type=default_item_type).RawHTML(request)
+
+      self.CallJavascript(response, "MultiFormRenderer.LayoutItem",
+                          option=self.option_name)
     else:
       self.CallJavascript(response, "MultiFormRenderer.Layout",
                           option=self.option_name,

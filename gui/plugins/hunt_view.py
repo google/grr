@@ -1145,7 +1145,7 @@ class HuntStatsRenderer(renderers.TemplateRenderer):
   <tbody>
   {% for r in this.stats.worst_performers %}
     <tr>
-      <td><a client_id="{{r.client_id|escape}}">{{r.client_id|escape}}</a></td>
+      <td>{{r.client_html|safe}}</td>
       <td>{{r.cpu_usage.user_cpu_time|floatformat}}</td>
       <td>{{r.cpu_usage.system_cpu_time|floatformat}}</td>
       <td>{{r.network_bytes_sent|escape}}</td>
@@ -1176,6 +1176,9 @@ class HuntStatsRenderer(renderers.TemplateRenderer):
           raise IOError("No valid state could be found.")
 
         self.stats = hunt.state.context.usage_stats
+        for item in self.stats.worst_performers:
+          renderer = semantic.FindRendererForObject(item.client_id)
+          item.client_html = renderer.RawHTML()
 
         self.user_cpu_json_data = self._HistogramToJSON(
             self.stats.user_cpu_stats.histogram)
