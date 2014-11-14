@@ -1276,7 +1276,6 @@ def ParseConfigCommandLine():
   # initialized so the user can examine what we think the value of all the
   # parameters are.
   if flags.FLAGS.config_help:
-
     print "Configuration overview."
 
     CONFIG.PrintHelp()

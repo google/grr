@@ -820,7 +820,7 @@ def main(unused_argv):
   startup.ConfigInit()
 
   if flags.FLAGS.path:
-    config_lib.CONFIG.Set("Datastore.location", path)
+    config_lib.CONFIG.Set("Datastore.location", flags.FLAGS.path)
 
   startup.ServerLoggingStartupInit()
   stats.STATS = stats.StatsCollector()

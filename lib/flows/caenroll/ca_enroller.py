@@ -40,14 +40,16 @@ class CAEnroler(flow.GRRFlow):
 
     # Verify the CSR. This is not strictly necessary but doesn't harm either.
     if req.verify(req.get_pubkey()) != 1:
-      raise flow.FlowError("CSR did not verify: %s", req.as_pem())
+      raise flow.FlowError("CSR for client %s did not verify: %s" %
+                           (self.client_id, req.as_pem()))
 
     # Verify that the CN is of the correct form. The common name should refer to
     # a client URN.
     public_key = req.get_pubkey().get_rsa().pub()[1]
     self.cn = rdfvalue.ClientURN.FromPublicKey(public_key)
     if self.cn != rdfvalue.ClientURN(req.get_subject().CN):
-      raise IOError("CSR CN does not match public key.")
+      raise IOError("CSR CN %s does not match public key %s." %
+                    (rdfvalue.ClientURN(req.get_subject().CN), self.cn))
 
     logging.info("Will sign CSR for: %s", self.cn)
 

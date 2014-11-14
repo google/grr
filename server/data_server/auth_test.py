@@ -18,7 +18,8 @@ class AuthTest(test_lib.GRRBaseTest):
     super(AuthTest, self).setUp()
     config_lib.CONFIG.Set("Dataserver.server_username", "rootuser1")
     config_lib.CONFIG.Set("Dataserver.server_password", "somelongpasswordaabb")
-    config_lib.CONFIG.Set("Dataserver.client_credentials", ["rootuser1:somelongpasswordaabb:rw"])
+    config_lib.CONFIG.Set("Dataserver.client_credentials",
+                          ["rootuser1:somelongpasswordaabb:rw"])
 
   def testNonceStoreSimple(self):
     # Test creation and deletion of nonces.
