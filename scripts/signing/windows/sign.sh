@@ -4,6 +4,7 @@
 # Requires osslsigncode from http://sourceforge.net/projects/osslsigncode/
 # Tested with osslsigncode-1.7.1
 #
+# TODO(user): this should be replaced with python code in client_build.
 
 BUILD_COMMAND=grr/client/client_build.py
 E_DIR_MISSING=1
@@ -52,7 +53,6 @@ EOD
 
     chk_cmd osslsigncode verify -in ${filename}
 
-
   done
 }
 
@@ -64,6 +64,7 @@ rebuild_zips() {
   chk_cmd rm -f ${zipfile}
 
   chk_cmd cd "${zipfile}.temp"
+
   echo Making new zipfile ${zipfile}
   chk_cmd zip -r ../${zipfile_base} *
   cd -
@@ -136,7 +137,7 @@ function build_and_sign() {
 
 
 function usage() {
- echo -e "\nUsage: sign.sh [template_file_dir] [certfile.spc] [keyfile.pvk] [application name] [config file] [context names ...]\n\n\ne.g. PYTHONPATH=. ./grr/scripts/signing/windows/sign.sh ~/templates/ mycerts.spc mykey.pvk MyCompany grr_server.yaml Corp Prod Special" >&2
+  echo -e "\nUsage: sign.sh [template_file_dir] [certfile.spc] [keyfile.pvk] [application name] [config file] [context names ...]\n\n\ne.g. PYTHONPATH=. ./grr/scripts/signing/windows/sign.sh ~/templates/ mycerts.spc mykey.pvk MyCompany grr_server.yaml Corp Prod Special" >&2
 }
 
 while getopts "h?" opt; do

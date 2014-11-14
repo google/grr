@@ -1,5 +1,5 @@
 # Configuration file for dataserver slave start-up script
 
 # Start the dataserver slave
-START="yes";
+START="no";
 
