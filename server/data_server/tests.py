@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """Data Server tests."""
 
 # These need to register plugins so, pylint: disable=unused-import
