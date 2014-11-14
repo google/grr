@@ -57,13 +57,13 @@ def StringifyJSON(item):
 
     return result
 
-  elif isinstance(item, (int, long, float)):
+  elif type(item) in (int, long, float):
     return item
 
   elif item is None:
     return None
 
-  elif item in (True, False):
+  elif type(item) is bool:
     return item
 
   else:

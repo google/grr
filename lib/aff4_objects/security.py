@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """AFF4 Objects to enforce ACL policies."""
 
+
+import email
 import urllib
 
 from grr.lib import access_control
@@ -33,6 +35,12 @@ class Approval(aff4.AFF4Object):
     REASON = aff4.Attribute("aff4:approval/reason",
                             rdfvalue.RDFString,
                             "The reason for requesting access to this client.")
+
+    EMAIL_MSG_ID = aff4.Attribute("aff4:approval/email_msg_id",
+                                  rdfvalue.RDFString,
+                                  "The email thread message ID for this"
+                                  "approval. Storing this allows for "
+                                  "conversation threading.")
 
   def CheckAccess(self, token):
     """Check that this approval applies to the given token.
@@ -329,10 +337,12 @@ class RequestApprovalWithReasonFlow(flow.GRRFlow):
     """Create the Approval object and notify the Approval Granter."""
     approval_urn = self.BuildApprovalUrn()
     subject_title = self.BuildSubjectTitle()
+    email_msg_id = email.utils.make_msgid()
 
     approval_request = aff4.FACTORY.Create(approval_urn, self.approval_type,
                                            mode="w", token=self.token)
     approval_request.Set(approval_request.Schema.REASON(self.args.reason))
+    approval_request.Set(approval_request.Schema.EMAIL_MSG_ID(email_msg_id))
 
     # We add ourselves as an approver as well (The requirement is that we have 2
     # approvers, so the requester is automatically an approver).
@@ -381,10 +391,13 @@ Please click <a href='%(admin_ui)s#%(approval_urn)s'>
           image=image,
           signature=config_lib.CONFIG["Email.signature"])
 
-      email_alerts.SendEmail(user, self.token.username,
-                             u"Please grant %s approval to %s." % (
+      email_alerts.SendEmail(user, utils.SmartStr(self.token.username),
+                             u"Approval for %s to access %s." % (
                                  self.token.username, subject_title),
-                             utils.SmartStr(body), is_html=True)
+                             utils.SmartStr(body), is_html=True,
+                             cc_addresses=config_lib.CONFIG[
+                                 "Email.approval_cc_address"],
+                             message_id=email_msg_id)
 
 
 class GrantApprovalWithReasonFlowArgs(rdfvalue.RDFProtoStruct):
@@ -432,6 +445,8 @@ class GrantApprovalWithReasonFlow(flow.GRRFlow):
     # We are now an approver for this request.
     approval_request.AddAttribute(
         approval_request.Schema.APPROVER(self.token.username))
+    email_msg_id = utils.SmartStr(approval_request.Get(
+        approval_request.Schema.EMAIL_MSG_ID))
     approval_request.Close(sync=True)
 
     # Notify to the user.
@@ -464,9 +479,18 @@ Please click <a href='%(admin_ui)s#%(subject_urn)s'>here</a> to access it.
         subject_urn=access_urn,
         signature=config_lib.CONFIG["Email.signature"]
         )
-    email_alerts.SendEmail(self.args.delegate, self.token.username,
-                           u"Access to %s granted." % subject_title,
-                           utils.SmartStr(body), is_html=True)
+
+    # Email subject should match approval request, and we add message id
+    # references so they are grouped together in a thread by gmail.
+    subject = u"Approval for %s to access %s." % (
+        utils.SmartStr(self.args.delegate), subject_title)
+    headers = {"In-Reply-To": email_msg_id, "References": email_msg_id}
+    email_alerts.SendEmail(utils.SmartStr(self.args.delegate),
+                           utils.SmartStr(self.token.username), subject,
+                           utils.SmartStr(body), is_html=True,
+                           cc_addresses=config_lib.CONFIG[
+                               "Email.approval_cc_address"],
+                           headers=headers)
 
 
 class BreakGlassGrantApprovalWithReasonFlow(GrantApprovalWithReasonFlow):
@@ -527,7 +551,8 @@ This access has been logged and granted for 24 hours.
         config_lib.CONFIG["Monitoring.emergency_access_email"],
         self.token.username,
         u"Emergency approval granted for %s." % subject_title,
-        utils.SmartStr(body), is_html=True)
+        utils.SmartStr(body), is_html=True,
+        cc_addresses=config_lib.CONFIG["Email.approval_cc_address"])
 
 
 class RequestClientApprovalFlow(RequestApprovalWithReasonFlow):

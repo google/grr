@@ -629,7 +629,7 @@ class ProtoEnum(ProtoSignedInteger):
 
     # If the value is a string we need to try to convert it to an integer.
     checked_value = value
-    if value.__class__ is str:
+    if isinstance(value, basestring):
       checked_value = self.enum.get(value)
       if checked_value is None:
         raise type_info.TypeValueError(
@@ -1724,7 +1724,7 @@ class RDFStruct(rdfvalue.RDFValue):
 
       # Skip printing of unknown fields.
       if isinstance(k, basestring):
-        prefix = k + " :"
+        prefix = utils.SmartStr(k) + " :"
         for line in type_descriptor.Format(python_format):
           yield " %s %s" % (prefix, line)
           prefix = ""
@@ -1742,8 +1742,9 @@ class RDFStruct(rdfvalue.RDFValue):
     return (dir(super(RDFStruct, self)) +
             [x.name for x in self.type_infos])
 
-  def _Set(self, attr, value, type_descriptor):
+  def _Set(self, value, type_descriptor):
     """Validate the value and set the attribute with it."""
+    attr = type_descriptor.name
     # A value of None means we clear the field.
     if value is None:
       self._data.pop(attr, None)
@@ -1767,7 +1768,7 @@ class RDFStruct(rdfvalue.RDFValue):
     if type_info_obj is None:
       raise AttributeError("Field %s is not known." % attr)
 
-    return self._Set(attr, value, type_info_obj)
+    return self._Set(value, type_info_obj)
 
   def SetWireFormat(self, attr, value):
     """Sets the attribute providing the serialized representation."""
@@ -1945,6 +1946,8 @@ class RDFProtoStruct(RDFStruct):
       return dict((k, self._ToPrimitive(v)) for k, v in value.items())
     elif isinstance(value, RDFProtoStruct):
       return self._ToPrimitive(value.AsDict())
+    elif isinstance(value, Enum):
+      return str(value)
     else:
       return value
 
@@ -2146,7 +2149,7 @@ class RDFProtoStruct(RDFStruct):
       # This is much faster than __setattr__/__getattr__
       setattr(cls, field_desc.name, property(
           lambda self: self.Get(field_desc.name),
-          lambda self, x: self._Set(field_desc.name, x, field_desc),
+          lambda self, x: self._Set(x, field_desc),
           None, field_desc.description))
 
 

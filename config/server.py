@@ -51,7 +51,7 @@ config_lib.DEFINE_list("Frontend.well_known_flows",
 
 # Smtp settings.
 config_lib.DEFINE_string("Worker.smtp_server", "localhost",
-                         "The smpt server for sending email alerts.")
+                         "The smtp server for sending email alerts.")
 
 config_lib.DEFINE_integer("Worker.smtp_port", 25, "The smtp server port.")
 
@@ -84,12 +84,17 @@ config_lib.DEFINE_integer("ACL.cache_age", 600, "The number of seconds "
 config_lib.DEFINE_bool("Cron.active", False,
                        "Set to true to run a cron thread on this binary.")
 
+config_lib.DEFINE_list("Cron.enabled_system_jobs", [],
+                       "List of system cron jobs that will be "
+                       "automatically scheduled on worker startup. "
+                       "If cron jobs from this list were disabled "
+                       "before, they will be enabled on worker "
+                       "startup. Vice versa, if they were enabled "
+                       "but are not specified in the list, they "
+                       "will be disabled.")
 
 config_lib.DEFINE_integer("ACL.approvers_required", 2,
                           "The number of approvers required for access.")
-
-config_lib.DEFINE_string("AdminUI.url", "http://localhost:8000/",
-                         "The direct external URL for the user interface.")
 
 config_lib.DEFINE_string("Frontend.bind_address", "::",
                          "The ip address to bind.")
@@ -143,10 +148,37 @@ config_lib.DEFINE_string(
     "The SSL key to use. The key may also be part of the cert file, in which "
     "case this can be omitted.")
 
+config_lib.DEFINE_string("AdminUI.url", "http://localhost:8000/",
+                         "The direct external URL for the user interface.")
+
 config_lib.DEFINE_string("AdminUI.export_command",
                          "/usr/bin/grr_export",
                          "Command to show in the fileview for downloading the "
                          "files from the command line.")
+
+config_lib.DEFINE_string("AdminUI.page_title",
+                         "GRR Admin Console",
+                         "Page title of the Admin UI.")
+
+config_lib.DEFINE_string("AdminUI.heading", "",
+                         "Dashboard heading displayed in the Admin UI.")
+
+config_lib.DEFINE_string("AdminUI.report_url",
+                         "https://github.com/google/grr/issues",
+                         "URL of the 'Report a problem' link.")
+
+config_lib.DEFINE_string("AdminUI.help_url",
+                         "/help/index.html",
+                         "URL of the 'Help' link.")
+
+config_lib.DEFINE_string("AdminUI.github_docs_location",
+                         "https://github.com/google/grr-doc/blob/master",
+                         "Base path for GitHub-hosted GRR documentation. ")
+
+config_lib.DEFINE_string("AdminUI.new_hunt_wizard.default_output_plugin",
+                         None,
+                         "Output plugin that will be added by default in the "
+                         "'New Hunt' wizard output plugins selection page.")
 
 config_lib.DEFINE_string("Server.master_watcher_class", "DefaultMasterWatcher",
                          "The master watcher class to use.")
@@ -180,6 +212,16 @@ config_lib.DEFINE_string(
     "Email.signature", "The GRR Team",
     "The default signature block for template emails")
 
+config_lib.DEFINE_string(
+    "Email.approval_cc_address", None,
+    "An email address to CC on all approval emails")
+
+config_lib.DEFINE_string(
+    "Email.default_domain", None,
+    "A default domain to add to email addresses for notifications if they "
+    "don't contain an @")
+
+
 config_lib.DEFINE_integer(
     "StatsHunt.ClientBatchSize", "200",
     "Batch size for client scheduling. This should be large enough that it "
@@ -194,4 +236,17 @@ config_lib.DEFINE_integer(
     "significant amount of traffic. This should be set to 0 once you know"
     " that the server can handle it.")
 
+config_lib.DEFINE_string("StatsStore.process_id", default="",
+                         help="Id used to identify stats data of the current "
+                         "process. This should be different for different GRR "
+                         "processes. I.e. if you have 4 workers, for every "
+                         "worker the subject should be different. For example: "
+                         "worker_1, worker_2, worker_3, worker_4.")
 
+config_lib.DEFINE_integer("StatsStore.write_interval", default=60,
+                          help="Time in seconds between the dumps of stats "
+                          "data into the stats store.")
+
+config_lib.DEFINE_integer("StatsStore.ttl", default=60 * 60 * 24 * 7,
+                          help="Maximum lifetime (in seconds) of data in the "
+                          "stats store. Default is one week.")

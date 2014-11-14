@@ -18,6 +18,7 @@ from grr.client import client_utils
 from grr.client.vfs_handlers import files
 from grr.lib import config_lib
 from grr.lib import rdfvalue
+from grr.lib import utils
 
 
 class Error(Exception):
@@ -116,8 +117,8 @@ def CreateGRRTempFile(directory=None, filename=None, lifetime=0, mode="w+b",
 def DeleteGRRTempFile(path):
   """Delete a GRR temp file.
 
-  To limit possible damage the path must be absolute and only files beginning
-  with Client.tempfile_prefix can be deleted.
+  To limit possible damage the path must be absolute and either the file must be
+  within Client.tempdir or the file name must begin with Client.tempfile_prefix.
 
   Args:
     path: path string to file to be deleted.
@@ -130,8 +131,10 @@ def DeleteGRRTempFile(path):
   if not os.path.isabs(path):
     raise ErrorBadPath("Path must be absolute")
 
-  prefix = config_lib.CONFIG.Get("Client.tempfile_prefix")
-  if not os.path.basename(path).startswith(prefix):
+  prefix = config_lib.CONFIG["Client.tempfile_prefix"]
+  directory = config_lib.CONFIG["Client.tempdir"]
+  if not (os.path.basename(path).startswith(prefix) or
+          os.path.commonprefix([directory, path]) == directory):
     msg = "Can't delete %s, filename must start with %s"
     raise ErrorNotTempFile(msg % (path, prefix))
 
@@ -162,8 +165,12 @@ class DeleteGRRTempFiles(actions.ActionPlugin):
     Raises:
       ErrorBadPath: if path doesn't exist or is not a regular file or directory
     """
+
+    # Normalize the path, so DeleteGRRTempFile can correctly check if
+    # it is within Client.tempdir.
     if args.path:
-      path = args.path
+      path = client_utils.CanonicalPathToLocalPath(
+          utils.NormalizePath(args.path))
     else:
       path = config_lib.CONFIG["Client.tempdir"]
 

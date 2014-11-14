@@ -42,7 +42,7 @@ grr.Renderer('RDFValueArrayRenderer', {
     var array_length = state.array_length;
 
     $('#' + unique + ' a').click(function() {
-      grr.layout('RDFValueArrayRenderer', '{{unique}}', {
+      grr.layout('RDFValueArrayRenderer', unique, {
         start: next_start,
         cache: cache_urn,
         length: array_length

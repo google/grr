@@ -28,6 +28,7 @@ from grr.lib import test_lib
 from grr.lib import tests
 from grr.lib import utils
 from grr.parsers import tests
+from grr.server.data_server import tests
 from grr.tools.export_plugins import tests
 from grr.worker import worker_test
 

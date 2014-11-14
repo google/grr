@@ -185,7 +185,7 @@ class CheckRegistryTests(test_lib.GRRBaseTest):
               "anomaly": [
                   {"finding": ["netcat-traditional 1.10-40 is installed"],
                    "explanation": "Found: l337 software installed",
-                   "type": 1}]}
+                   "type": "ANALYSIS_ANOMALY"}]}
     results = [r for r in checks.CheckHost(self.host_data)]
     self.assertEqual(1, len(results))
     result = results[0].ToPrimitiveDict()
@@ -197,10 +197,10 @@ class CheckRegistryTests(test_lib.GRRBaseTest):
     self.kb.os = "Windows"
     win_java = {"finding": ["Java 6.0.240 is installed"],
                 "explanation": "Found: Old Java installation.",
-                "type": 1}
+                "type": "ANALYSIS_ANOMALY"}
     win_adware = {"finding": ["Adware 2.1.1 is installed"],
                   "explanation": "Found: Malicious software.",
-                  "type": 1}
+                  "type": "ANALYSIS_ANOMALY"}
     expect = [win_java, win_adware]
     results = [r for r in checks.CheckHost(self.host_data)]
     self.assertEqual(1, len(results))

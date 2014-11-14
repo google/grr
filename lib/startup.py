@@ -37,9 +37,6 @@ def ConfigInit():
   # Initialize the config system from the command line options.
   config_lib.ParseConfigCommandLine()
 
-  if config_lib.CONFIG["Config.writeback"]:
-    config_lib.CONFIG.SetWriteBack(config_lib.CONFIG["Config.writeback"])
-
 
 def ClientPluginInit():
   """If we are running as a Client, initialize any client plugins.

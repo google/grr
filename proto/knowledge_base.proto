@@ -177,6 +177,15 @@ message KnowledgeBase {
     }];
 
   //
+  // Linux specific distribution information.
+  // See: lsb_release(1) man page, or the LSB Specification under the 'Command
+  // Behaviour' section.
+  //
+  optional string os_release = 9 [(sem_type) = {
+      description: "Linux distribution name.",
+    }];
+
+  //
   // Windows specific system level parameters.
   //
   optional string environ_systemroot = 20 [(sem_type) = {
