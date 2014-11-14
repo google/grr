@@ -81,12 +81,14 @@ class MySQLConnection(object):
   def Execute(self, *args):
     try:
       self.cursor.execute(*args)
-
       return self.cursor.fetchall()
-    except MySQLdb.Error:
-      # If the connection becomes stale we reconnect.
+    except MySQLdb.Error:  
       self._MakeConnection(database=config_lib.CONFIG["Mysql.database_name"])
-      raise
+      try:
+        self.cursor.execute(*args)
+        return self.cursor.fetchall()
+      except MySQLdb.Error:
+        raise
 
 
 class ConnectionPool(object):
