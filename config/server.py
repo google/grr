@@ -151,6 +151,10 @@ config_lib.DEFINE_string(
 config_lib.DEFINE_string("AdminUI.url", "http://localhost:8000/",
                          "The direct external URL for the user interface.")
 
+config_lib.DEFINE_string("AdminUI.use_precompiled_js", False,
+                         "If True - use Closure-compiled JS bundle. This flag "
+                         "is experimental and is not properly supported yet.")
+
 config_lib.DEFINE_string("AdminUI.export_command",
                          "/usr/bin/grr_export",
                          "Command to show in the fileview for downloading the "
@@ -214,13 +218,20 @@ config_lib.DEFINE_string(
 
 config_lib.DEFINE_string(
     "Email.approval_cc_address", None,
-    "An email address to CC on all approval emails")
+    "A single email address or comma separated list of addresses to CC on all "
+    "approval emails. Will be added"
+    " to all emails and can't be changed or removed by the user.")
+
+config_lib.DEFINE_string(
+    "Email.approval_optional_cc_address", None,
+    "A single email address or comma separated list of addresses to CC on all "
+    "approval emails. The user has the option to"
+    " remove this CC address .")
 
 config_lib.DEFINE_string(
     "Email.default_domain", None,
     "A default domain to add to email addresses for notifications if they "
     "don't contain an @")
-
 
 config_lib.DEFINE_integer(
     "StatsHunt.ClientBatchSize", "200",

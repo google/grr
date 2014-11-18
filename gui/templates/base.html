@@ -31,7 +31,15 @@
 <script src="/static/javascript/angular/angular-resource.js"></script>
 <script src="/static/javascript/bootstrap-ui.js"></script>
 
+{% if use_precompiled_js %}
+<script type="text/javascript">
+  var CLOSURE_NO_DEPS = true;
+</script>
+<script src="/static/javascript/grr-ui.js"></script>
+{% else %}
 <script src="/static/javascript/closure/base.js"></script>
+{% endif %}
+
 <script src="/static/javascript/closure/deps.js"></script>
 <script>
   goog.require('grrUi.appController.module');
