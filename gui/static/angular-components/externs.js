@@ -14,5 +14,41 @@ var startingTag = function(element) { return ''; };
 
 /**
  * @type {Object}
+ * @const
  */
 var grr = {};
+
+
+/**
+ * @param {string} hash
+ */
+grr.loadFromHash = function(hash) {};
+
+
+/**
+ * Angular UI definitions.
+ */
+
+
+/**
+ * @type {Object}
+ * @const
+ */
+var angularUi = {};
+
+
+/**
+ * @typedef {{
+ *   close: function(string),
+ *   dismiss: function(string)
+ *   }}
+ */
+angularUi.$modalInstance;
+
+
+/**
+ * @typedef {{
+ *   open: function(Object): angularUi.$modalInstance
+ *   }}
+ */
+angularUi.$modal;

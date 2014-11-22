@@ -341,7 +341,7 @@ grr.subscribe = function(name, handle, domId) {
   grr.queue_[queue_name] = new_queue;
 
   if (new_queue.length > 5) {
-    alert('Queue ' + queue_name + 'seems full');
+    alert('Queue ' + queue_name + ' seems full');
   }
 };
 

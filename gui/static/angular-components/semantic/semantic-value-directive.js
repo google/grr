@@ -2,7 +2,23 @@
 
 goog.provide('grrUi.semantic.semanticValueDirective.SemanticValueDirective');
 
+goog.require('grrUi.semantic.SemanticDirectivesRegistry');
+
 goog.scope(function() {
+
+var SemanticDirectivesRegistry = grrUi.semantic.SemanticDirectivesRegistry;
+
+
+/**
+ * Converts camelCaseStrings to dash-delimited-strings.
+ *
+ * @param {string} directiveName String to be converted.
+ * @return {string} Converted string.
+ */
+var camelCaseToDashDelimited = function(directiveName) {
+  return directiveName.replace(/\W+/g, '-')
+      .replace(/([a-z\d])([A-Z])/g, '$1-$2').toLowerCase();
+};
 
 
 
@@ -25,23 +41,44 @@ grrUi.semantic.semanticValueDirective.SemanticValueDirective = function(
     restrict: 'E',
     link: function(scope, element, attrs) {
       scope.$watch('value', function() {
-        $(element).html('');
-        if (scope.value == null) {
+        if (scope.value === undefined || scope.value === null) {
           return;
         }
 
-        if (scope.value.mro !== undefined) {
-          if (scope.value.mro.indexOf('RDFProtoStruct') != -1) {
-            $(element).append('<grr-semantic-proto value="value" />');
-          } else if (scope.value.mro.indexOf('ClientURN') != -1) {
-            $(element).append('<grr-client-urn value="value.value" />');
+        if (angular.isArray(scope.value['mro'])) {
+          var directive = SemanticDirectivesRegistry.findDirectiveForMro(
+              scope.value['mro']);
+
+          if (angular.isDefined(directive)) {
+            element.append('<' +
+                camelCaseToDashDelimited(directive.directive_name) +
+                ' value="value" />');
           } else {
-            element.append(scope.value.value.toString());
+            element.text(scope.value.value.toString());
           }
+        } else if (angular.isArray(scope.value)) {
+          angular.forEach(scope.value, function(value, index) {
+            if (angular.isArray(value['mro'])) {
+              var directive = SemanticDirectivesRegistry.findDirectiveForMro(
+                  value['mro']);
+              if (angular.isDefined(directive)) {
+                element.append('<' +
+                    camelCaseToDashDelimited(directive.directive_name) +
+                    ' value="value[' + index + ']" />');
+              } else {
+                element.text(value.value.toString());
+              }
+            } else {
+              if (index > 0) {
+                element.append(document.createTextNode(', '));
+              }
+              element.append(document.createTextNode(value.toString()));
+            }
+          });
         } else {
-          element.append(scope.value.toString());
+          element.text(scope.value.toString());
         }
-        $compile($(element).contents())(scope);
+        $compile(element.contents())(scope);
       });
     }
   };

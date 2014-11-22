@@ -22,10 +22,11 @@ var CollectionTableController = function($scope, grrAff4Service) {
   /** @private {grrUi.core.aff4Service.Aff4Service} */
   this.grrAff4Service_ = grrAff4Service;
 
-  this.scope_.currentPage = 0;
-  this.scope_.showLoading = true;
+  this.scope_['currentPage'] = 0;
 
-  this.scope_.filter = {
+  this.scope_['showLoading'] = true;
+
+  this.scope_['filter'] = {
     // We need 'editedValue' and 'value' so that we don't apply
     // the filter every time a user types new character into
     // the filter edit box.
@@ -35,7 +36,7 @@ var CollectionTableController = function($scope, grrAff4Service) {
     finished: false
   };
 
-  this.scope_.totalCount = undefined;
+  this.scope_['totalCount'] = undefined;
 
   // Fetch initial batch of data along with a total count of all the
   // elements in the collection.
@@ -47,37 +48,38 @@ var CollectionTableController = function($scope, grrAff4Service) {
  * Fetches unfiltered records from AFF4 service.
  *
  * @param {boolean} withTotalCount If True, total count of elements in the
- *                                 collection will be fetched.
+ *     collection will be fetched.
  * @private
  */
 CollectionTableController.prototype.fetchUnfilteredContent_ = function(
     withTotalCount) {
-  this.scope_.showLoading = true;
-  this.scope_.collectionItems = [];
+  this.scope_['showLoading'] = true;
+  this.scope_['collectionItems'] = [];
 
   var params = {
-    'offset': this.scope_.currentPage * this.scope_.pageSize,
-    'count': this.scope_.pageSize,
+    'offset': this.scope_['currentPage'] * this.scope_['pageSize'],
+    'count': this.scope_['pageSize'],
     'with_total_count': withTotalCount
   };
-  if (this.scope_.fetchTypeInfo) {
+  if (this.scope_['fetchTypeInfo']) {
     params['with_type_info'] = true;
   }
 
   var self = this;
-  this.grrAff4Service_.get(this.scope_.collectionUrn, params).then(
+  this.grrAff4Service_.get(this.scope_['collectionUrn'], params).then(
       function(response) {
-        self.scope_.showLoading = false;
+        self.scope_['showLoading'] = false;
 
         if (response['data']['items'] === undefined) {
-          self.scope_.collectionItems = [];
-          self.scope_.totalCount = 0;
+          self.scope_['collectionItems'] = [];
+          self.scope_['totalCount'] = 0;
         } else {
-          self.scope_.collectionItems = response['data']['items'];
-          self.scope_.totalCount = response['data']['total_count'];
+          self.scope_['collectionItems'] = response['data']['items'];
+          self.scope_['totalCount'] = response['data']['total_count'];
         }
-        if (self.scope_.transformItems) {
-          self.scope_.transformItems({items: self.scope_.collectionItems});
+        if (self.scope_['transformItems']) {
+          self.scope_['transformItems'](
+              {items: self.scope_['collectionItems']});
         }
       });
 };
@@ -88,14 +90,14 @@ CollectionTableController.prototype.fetchUnfilteredContent_ = function(
  * service.
  */
 CollectionTableController.prototype.applyFilter = function() {
-  this.scope_.filter.value = this.scope_.filter.editedValue;
-  this.scope_.filter.applied = (this.scope_.filter.value !== '');
-  this.scope_.filter.finished = false;
-  this.scope_.currentPage = 0;
-  this.scope_.collectionItems = [];
+  this.scope_['filter'].value = this.scope_['filter'].editedValue;
+  this.scope_['filter'].applied = (this.scope_['filter'].value !== '');
+  this.scope_['filter'].finished = false;
+  this.scope_['currentPage'] = 0;
+  this.scope_['collectionItems'] = [];
 
-  if (this.scope_.filter.applied) {
-    this.fetchFiltered();
+  if (this.scope_['filter'].applied) {
+    this.fetchFiltered(false);
   } else {
     this.fetchUnfilteredContent_(false);
   }
@@ -108,39 +110,40 @@ CollectionTableController.prototype.applyFilter = function() {
  * @param {boolean} fetchAll If True, fetch all the elements.
  */
 CollectionTableController.prototype.fetchFiltered = function(fetchAll) {
-  this.scope_.showLoading = true;
+  this.scope_['showLoading'] = true;
 
-  var numElements = this.scope_.pageSize;
+  var numElements = this.scope_['pageSize'];
   if (fetchAll) {
     numElements = 1e6;
   }
 
   var params = {
-    'offset': this.scope_.currentPage * this.scope_.pageSize,
+    'offset': this.scope_['currentPage'] * this.scope_['pageSize'],
     'count': numElements,
-    'filter': this.scope_.filter.value
+    'filter': this.scope_['filter'].value
   };
 
-  if (this.scope_.fetchTypeInfo) {
+  if (this.scope_['fetchTypeInfo']) {
     params['with_type_info'] = true;
   }
 
   var self = this;
-  this.grrAff4Service_.get(this.scope_.collectionUrn, params).then(
+  this.grrAff4Service_.get(this.scope_['collectionUrn'], params).then(
       function(response) {
-        self.scope_.showLoading = false;
+        self.scope_['showLoading'] = false;
 
-        self.scope_.collectionItems = self.scope_.collectionItems.concat(
+        self.scope_['collectionItems'] = self.scope_['collectionItems'].concat(
             response.data.items);
-        if (self.scope_.transformItems) {
-          self.scope_.transformItems({items: self.scope_.collectionItems});
+        if (self.scope_['transformItems']) {
+          self.scope_['transformItems'](
+              {items: self.scope_['collectionItems']});
         }
 
         if (response.data.items.length < numElements) {
-          self.scope_.filter.finished = true;
+          self.scope_['filter'].finished = true;
         }
       });
-  this.scope_.currentPage += 1;
+  this.scope_['currentPage'] += 1;
 };
 
 
@@ -151,7 +154,7 @@ CollectionTableController.prototype.fetchFiltered = function(fetchAll) {
  * @param {number} pageNumber Page number.
  */
 CollectionTableController.prototype.selectPage = function(pageNumber) {
-  this.scope_.currentPage = pageNumber - 1;
+  this.scope_['currentPage'] = pageNumber - 1;
   this.fetchUnfilteredContent_(false);
 };
 

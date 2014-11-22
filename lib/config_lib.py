@@ -948,6 +948,7 @@ class GrrConfigManager(object):
     """
     calc_context = context
     # Use a default global context if context is not provided.
+
     if context is None:
       # Only use the cache when no special context is specified.
       if default is utils.NotAValue and name in self.cache:

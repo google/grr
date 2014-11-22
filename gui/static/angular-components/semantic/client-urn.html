@@ -1,22 +1,5 @@
-<div class="modal fade" role="dialog" aria-hidden="true" ng-if="value">
-  <div class="modal-dialog">
-   <div class="modal-content">
-    <div class="modal-header">
-      <button type="button" class="close" data-dismiss="modal">
-        <span aria-hidden="true">&times;</span>
-        <span class="sr-only">Close</span>
-      </button>
-     <h4 class="modal-title">Client {$ value $}</h4>
-    </div>
-    <div class="modal-body">
-      <grr-semantic-value value="client.summary" />
-    </div>
-   </div>
-  </div>
-</div>
-
 <nobr ng-if="value">
-  <a href="#" ng-click="ctrl.onLinkClick()">{$ value $}</a>
+  <a href="#" ng-click="ctrl.onLinkClick()">{$ clientUrn $}</a>
 
   <button class="btn btn-default btn-xs" ng-click="ctrl.onInfoClick()">
     <span class="glyphicon glyphicon-info-sign"></span>

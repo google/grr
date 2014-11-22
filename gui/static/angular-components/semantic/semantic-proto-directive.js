@@ -2,6 +2,8 @@
 
 goog.provide('grrUi.semantic.semanticProtoDirective.SemanticProtoDirective');
 
+goog.require('grrUi.semantic.SemanticDirectivesRegistry');
+
 goog.scope(function() {
 
 
@@ -16,19 +18,19 @@ goog.scope(function() {
 grrUi.semantic.semanticProtoDirective.buildItems_ = function(value) {
   var items = [];
 
-  for (var key in value.value) {
-    if (value.descriptors !== undefined &&
-        value.descriptors[key] !== undefined) {
+  angular.forEach(value['fields_order'], function(key) {
+    if (value['descriptors'] !== undefined &&
+        value['descriptors'][key] !== undefined) {
       items.push({
-        'value': value.value[key],
-        'key': value.descriptors[key].friendly_name,
-        'desc': value.descriptors[key].description
+        'value': value['value'][key],
+        'key': value['descriptors'][key]['friendly_name'],
+        'desc': value['descriptors'][key]['description']
       });
     } else {
-      items.push({'value': this.scope.value.value[key],
+      items.push({'value': value['value'][key],
         'key': key});
     }
-  }
+  });
 
   return items;
 };
@@ -59,7 +61,7 @@ grrUi.semantic.semanticProtoDirective.SemanticProtoDirective = function() {
       });
     },
     restrict: 'E',
-    templateUrl: 'static/angular-components/semantic/semantic-proto.html'
+    templateUrl: '/static/angular-components/semantic/semantic-proto.html'
   };
 };
 
@@ -69,5 +71,10 @@ grrUi.semantic.semanticProtoDirective.SemanticProtoDirective = function() {
  */
 grrUi.semantic.semanticProtoDirective.SemanticProtoDirective.directive_name =
     'grrSemanticProto';
+
+grrUi.semantic.SemanticDirectivesRegistry.registerDirective(
+    'RDFProtoStruct',
+    grrUi.semantic.semanticProtoDirective.SemanticProtoDirective);
+
 
 });  // goog.scope

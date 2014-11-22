@@ -73,6 +73,8 @@ def Homepage(request):
              "heading": config_lib.CONFIG["AdminUI.heading"],
              "report_url": config_lib.CONFIG["AdminUI.report_url"],
              "help_url": config_lib.CONFIG["AdminUI.help_url"],
+             "use_precompiled_js": config_lib.CONFIG[
+                 "AdminUI.use_precompiled_js"],
              "renderers_js": renderers_js_files,
              "timestamp": create_time}
   return shortcuts.render_to_response(

@@ -42,6 +42,11 @@ class Approval(aff4.AFF4Object):
                                   "approval. Storing this allows for "
                                   "conversation threading.")
 
+    EMAIL_CC = aff4.Attribute("aff4:approval/email_cc",
+                              rdfvalue.RDFString,
+                              "Comma separated list of email addresses to "
+                              "CC on approval emails.")
+
   def CheckAccess(self, token):
     """Check that this approval applies to the given token.
 
@@ -344,6 +349,12 @@ class RequestApprovalWithReasonFlow(flow.GRRFlow):
     approval_request.Set(approval_request.Schema.REASON(self.args.reason))
     approval_request.Set(approval_request.Schema.EMAIL_MSG_ID(email_msg_id))
 
+    cc_addresses = (self.args.email_cc_address,
+                    config_lib.CONFIG.Get("Email.approval_cc_address"))
+    email_cc = ",".join(filter(None, cc_addresses))
+
+    approval_request.Set(approval_request.Schema.EMAIL_CC(email_cc))
+
     # We add ourselves as an approver as well (The requirement is that we have 2
     # approvers, so the requester is automatically an approver).
     approval_request.AddAttribute(
@@ -361,14 +372,14 @@ class RequestApprovalWithReasonFlow(flow.GRRFlow):
                 "Please grant access to %s" % subject_title, self.session_id)
       fd.Close()
 
-      template = u"""
+    template = u"""
 <html><body><h1>Approval to access %(subject_title)s requested.</h1>
 
 The user "%(username)s" has requested access to %(subject_title)s
 for the purpose of "%(reason)s".
 
 Please click <a href='%(admin_ui)s#%(approval_urn)s'>
-  here
+here
 </a> to review this request and then grant access.
 
 <p>Thanks,</p>
@@ -376,28 +387,28 @@ Please click <a href='%(admin_ui)s#%(approval_urn)s'>
 <p>%(image)s</p>
 </body></html>"""
 
-      # If you feel like it, add a funny cat picture here :)
-      image = ""
+    # If you feel like it, add a funny cat picture here :)
+    image = ""
 
-      url = urllib.urlencode((("acl", utils.SmartStr(approval_urn)),
-                              ("main", "GrantAccess")))
+    url = urllib.urlencode((("acl", utils.SmartStr(approval_urn)),
+                            ("main", "GrantAccess")))
 
-      body = template % dict(
-          username=self.token.username,
-          reason=self.args.reason,
-          admin_ui=config_lib.CONFIG["AdminUI.url"],
-          subject_title=subject_title,
-          approval_urn=url,
-          image=image,
-          signature=config_lib.CONFIG["Email.signature"])
+    body = template % dict(
+        username=self.token.username,
+        reason=self.args.reason,
+        admin_ui=config_lib.CONFIG["AdminUI.url"],
+        subject_title=subject_title,
+        approval_urn=url,
+        image=image,
+        signature=config_lib.CONFIG["Email.signature"])
 
-      email_alerts.SendEmail(user, utils.SmartStr(self.token.username),
-                             u"Approval for %s to access %s." % (
-                                 self.token.username, subject_title),
-                             utils.SmartStr(body), is_html=True,
-                             cc_addresses=config_lib.CONFIG[
-                                 "Email.approval_cc_address"],
-                             message_id=email_msg_id)
+    email_alerts.SendEmail(self.args.approver,
+                           utils.SmartStr(self.token.username),
+                           u"Approval for %s to access %s." % (
+                               self.token.username, subject_title),
+                           utils.SmartStr(body), is_html=True,
+                           cc_addresses=email_cc,
+                           message_id=email_msg_id)
 
 
 class GrantApprovalWithReasonFlowArgs(rdfvalue.RDFProtoStruct):
@@ -447,6 +458,9 @@ class GrantApprovalWithReasonFlow(flow.GRRFlow):
         approval_request.Schema.APPROVER(self.token.username))
     email_msg_id = utils.SmartStr(approval_request.Get(
         approval_request.Schema.EMAIL_MSG_ID))
+    email_cc = utils.SmartStr(approval_request.Get(
+        approval_request.Schema.EMAIL_CC))
+
     approval_request.Close(sync=True)
 
     # Notify to the user.
@@ -488,8 +502,7 @@ Please click <a href='%(admin_ui)s#%(subject_urn)s'>here</a> to access it.
     email_alerts.SendEmail(utils.SmartStr(self.args.delegate),
                            utils.SmartStr(self.token.username), subject,
                            utils.SmartStr(body), is_html=True,
-                           cc_addresses=config_lib.CONFIG[
-                               "Email.approval_cc_address"],
+                           cc_addresses=email_cc,
                            headers=headers)
 
 

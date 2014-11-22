@@ -82,7 +82,7 @@ class MySQLConnection(object):
     try:
       self.cursor.execute(*args)
       return self.cursor.fetchall()
-    except MySQLdb.Error:  
+    except MySQLdb.Error:
       self._MakeConnection(database=config_lib.CONFIG["Mysql.database_name"])
       try:
         self.cursor.execute(*args)

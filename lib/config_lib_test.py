@@ -218,6 +218,23 @@ certificate =
                           ["Client.driver_signing_public_key",
                            "Client.executable_signing_public_key"])
 
+  def testGet(self):
+    conf = config_lib.GrrConfigManager()
+    conf.DEFINE_string("Section1.foobar", "test", "A test string.")
+    conf.DEFINE_string("Section1.foobaz", None, "An empty default string.")
+    conf.DEFINE_string("Section1.foobin", "", "An empty default string.")
+    self.assertEqual(conf.Get("Section1.foobar"), "test")
+    self.assertEqual(conf.Get("Section1.foobar", default=None), None)
+    conf.Initialize(data="""
+[Section1]
+foobar = X
+""")
+    self.assertEqual(conf.Get("Section1.foobar", default=None), "X")
+
+    # This not being None is a little surprising, but probably not a big deal
+    self.assertEqual(conf.Get("Section1.foobaz"), "")
+    self.assertEqual(conf.Get("Section1.foobin"), "")
+
   def testAddOption(self):
     """Test that we can add options."""
     conf = config_lib.GrrConfigManager()
