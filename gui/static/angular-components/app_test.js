@@ -23,6 +23,7 @@ beforeEach(function() {
  * the coordinates will be 0, 0 and the related target element is null.
  * @param {angular.jqLite} element
  * @param {string} eventType
+ * @export
  */
 grrUi.tests.browserTrigger = function(element, eventType) {
   if (element.injector) {

@@ -9,6 +9,7 @@ from grr.gui.plugins import hunt_view
 
 from grr.lib import access_control
 from grr.lib import aff4
+from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -82,6 +83,11 @@ Client Access Request created. Please try again once an approval is granted.
     approver = request.REQ.get("approver")
     keepalive = bool(request.REQ.get("keepalive"))
 
+    if request.REQ.get("cc_approval"):
+      cc_address = config_lib.CONFIG.Get("Email.approval_optional_cc_address")
+    else:
+      cc_address = None
+
     client_id, _ = rdfvalue.RDFURN(subject).Split(2)
 
     # TODO(user): If something goes wrong here (or in similar renderers below)
@@ -92,6 +98,7 @@ Client Access Request created. Please try again once an approval is granted.
                              flow_name="RequestClientApprovalFlow",
                              reason=reason, approver=approver,
                              token=request.token,
+                             email_cc_address=cc_address,
                              subject_urn=rdfvalue.ClientURN(client_id))
 
     if keepalive:
@@ -344,6 +351,15 @@ class CheckAccess(renderers.TemplateRenderer):
         placeholder="approver1,approver2,approver3" />
     </div>
   </div>
+  {% if this.cc_address %}
+  <div class="form-group">
+    <div class="controls">
+      <input id="acl_cc_approval" type=checkbox class="unset"
+       name="cc_approval" value="yesplease" class="form-control" checked />
+      <label for="acl_cc_approval">CC {{this.cc_address}}</label>
+    </div>
+  </div>
+  {% endif %}
   <div class="form-group">
     <label class="control-label" for="acl_recent_reasons">Reason</label>
     <div class="controls">
@@ -366,7 +382,7 @@ class CheckAccess(renderers.TemplateRenderer):
     <div class="controls">
       <input id="acl_keepalive" type=checkbox class="unset"
        name="keepalive" value="yesplease" class="form-control" />
-      Keep this client alive as soon as it comes online.
+      <label for="acl_keepalive">Keep this client alive as soon as it comes online.</label>
     </div>
   </div>
   {% endif %}
@@ -418,6 +434,8 @@ Authorization request ({{this.reason|escape}}) failed:
       return self.CallJavascript(response, "CheckAccess.AccessOk",
                                  reason=self.reason,
                                  silent=self.silent)
+
+    self.cc_address = config_lib.CONFIG["Email.approval_optional_cc_address"]
 
     if namespace == "hunts":
       self.approval_renderer = "HuntApprovalRequestRenderer"

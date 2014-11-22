@@ -44,9 +44,9 @@ Aff4Service.prototype.processAff4Path_ = function(aff4Path) {
  * Fetches data for object at the given AFF4 path using given params.
  *
  * @param {string} aff4Path AFF4 path to the object.
- * @param {Object?} params Dictionary with query parameters.
+ * @param {?Object.<string, string>} params Dictionary with query parameters.
  * @return {angular.$q.Promise} Angular's promise that will resolve to
- *                             server's response.
+ *     server's response.
  */
 Aff4Service.prototype.get = function(aff4Path, params) {
   var requestParams = angular.extend({}, params);

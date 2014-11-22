@@ -2,6 +2,7 @@
 """This module contains RESTful API renderers for AFF4 objects and RDFValues."""
 
 
+import base64
 import itertools
 import numbers
 import re
@@ -119,6 +120,63 @@ class RDFValueApiObjectRenderer(ApiObjectRenderer):
       result = dict(type=value.__class__.__name__,
                     mro=self.GetTypeList(value),
                     value=result,
+                    age=value.age.AsSecondsFromEpoch())
+
+    return result
+
+
+class RDFBytesApiObjectRenderer(RDFValueApiObjectRenderer):
+  """Renderer for RDFBytes."""
+
+  rdfvalue_type = "RDFBytes"
+
+  def RenderObject(self, value, request):
+    with_type_info = request.get("with_type_info", False)
+
+    result = base64.b64encode(value.SerializeToString())
+
+    if with_type_info:
+      result = dict(type=value.__class__.__name__,
+                    mro=self.GetTypeList(value),
+                    value=result,
+                    age=value.age.AsSecondsFromEpoch())
+
+    return result
+
+
+class RDFStringApiObjectRenderer(RDFValueApiObjectRenderer):
+  """Renderer for RDFString."""
+
+  rdfvalue_type = "RDFString"
+
+  def RenderObject(self, value, request):
+    with_type_info = request.get("with_type_info", False)
+
+    result = unicode(value)
+
+    if with_type_info:
+      result = dict(type=value.__class__.__name__,
+                    mro=self.GetTypeList(value),
+                    value=result,
+                    age=value.age.AsSecondsFromEpoch())
+
+    return result
+
+
+class RDFIntegerApiObjectRenderer(RDFValueApiObjectRenderer):
+  """Renderer for RDFInteger."""
+
+  rdfvalue_type = "RDFInteger"
+
+  def RenderObject(self, value, request):
+    with_type_info = request.get("with_type_info", False)
+
+    result = int(value)
+
+    if with_type_info:
+      result = dict(type=value.__class__.__name__,
+                    mro=self.GetTypeList(value),
+                    value=int(value),
                     age=value.age.AsSecondsFromEpoch())
 
     return result

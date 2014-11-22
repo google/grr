@@ -1160,6 +1160,10 @@ message RequestApprovalWithReasonFlowArgs {
       type: "RDFURN",
       description: "URN of the object that approval is required for.",
     }];
+
+  optional string email_cc_address = 4 [(sem_type) = {
+      description: "Email address string to CC on this approval.",
+    }];
 }
 
 message GrantApprovalWithReasonFlowArgs {

@@ -1,9 +1,9 @@
 <div class="modal-header">
-  <button type="button" class="close" data-dismiss="modal">
+  <button type="button" class="close" ng-click="$dismiss()">
     <span aria-hidden="true">&times;</span>
     <span class="sr-only">Close</span>
   </button>
-  <h4 class="modal-title">Client {$ value $}</h4>
+  <h4 class="modal-title">Client {$ clientUrn $}</h4>
 </div>
 <div class="modal-body">
   <grr-semantic-value value="client.summary" />

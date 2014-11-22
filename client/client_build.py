@@ -212,14 +212,20 @@ def main(_):
                      config_lib.CONFIG.Get("ClientBuilder.template_path",
                                            context=deployer.context))
 
-    # If output filename isn't specified, write to args.outputdir with a
-    # .deployed extension so we can distinguish it from repacked binaries.
-    filename = ".".join(
-        (config_lib.CONFIG.Get("ClientBuilder.output_filename",
-                               context=deployer.context), "deployed"))
+    # If neither output filename or output directory is specified,
+    # use the default location from the config file.
+    output = None
+    if args.output:
+      output = args.output
+    elif args.outputdir:
+      # If output filename isn't specified, write to args.outputdir with a
+      # .deployed extension so we can distinguish it from repacked binaries.
+      filename = ".".join(
+          (config_lib.CONFIG.Get("ClientBuilder.output_filename",
+                                 context=deployer.context), "deployed"))
+      output = os.path.join(args.outputdir, filename)
 
-    deployer.MakeDeployableBinary(template_path, args.output or os.path.join(
-        args.outputdir, filename))
+    deployer.MakeDeployableBinary(template_path, output)
 
 
 if __name__ == "__main__":

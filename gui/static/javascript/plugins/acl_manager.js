@@ -80,6 +80,9 @@ grr.Renderer('CheckAccess', {
       if ($('#acl_keepalive').is(':checked')) {
         state['keepalive'] = 'yesplease';
       }
+      if ($('#acl_cc_approval').is(':checked')) {
+        state['cc_approval'] = 'yesplease';
+      }
 
       // When we complete the request refresh to the main screen.
       grr.layout(approval_renderer, 'acl_server_message', state,

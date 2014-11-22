@@ -11,6 +11,7 @@ describe('collection table', function() {
 
   beforeEach(module('/static/angular-components/core/collection-table.html'));
   beforeEach(module(grrUi.core.module.name));
+  beforeEach(module(grrUi.tests.module.name));
 
   beforeEach(inject(function($injector) {
     $q = $injector.get('$q');
