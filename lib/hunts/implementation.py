@@ -18,7 +18,6 @@ For this reason a hunt has its own runner - the HuntRunner.
 
 import re
 import threading
-import traceback
 
 import logging
 
@@ -451,7 +450,9 @@ class GRRHunt(flow.GRRFlow):
   MATCH_DARWIN = rdfvalue.ForemanAttributeRegex(attribute_name="System",
                                                 attribute_regex="Darwin")
 
-  RESULTS_QUEUE = rdfvalue.RDFURN("HR")
+  # TODO(user): this is deprecated (see ResultsOutputCollection, which
+  # is now used to work with hunt results).
+  DEPRECATED_RESULTS_QUEUE = rdfvalue.RDFURN("HR")
 
   class SchemaCls(flow.GRRFlow.SchemaCls):
     """The schema for hunts.
@@ -526,6 +527,10 @@ class GRRHunt(flow.GRRFlow):
   @property
   def clients_errors_collection_urn(self):
     return self.urn.Add("ErrorClients")
+
+  @property
+  def creator(self):
+    return self.state.context.creator
 
   def _AddObjectToCollection(self, obj, collection_urn):
     with aff4.FACTORY.Create(collection_urn, "PackedVersionedCollection",
@@ -691,35 +696,13 @@ class GRRHunt(flow.GRRFlow):
   def Save(self):
     if self.state and self.processed_responses:
       with self.lock:
-        fresh_collection = aff4.FACTORY.Open(
-            self.state.context.results_collection_urn, mode="rw",
-            ignore_cache=True, token=self.token)
+        self.state.context.results_collection.Flush(sync=True)
 
-        # This is a "defensive programming" approach. Hunt's results collection
-        # should never be changed outside of the hunt. But if this happens,
-        # it means something is seriously wrong with the system, so we'd better
-        # detect it, log it and work around it.
-        if len(fresh_collection) != self.state.context.results_collection_len:
-          logging.error("Results collection was changed outside of hunt %s. "
-                        "Expected %d results, got %d. Will reopen collection "
-                        "again, which will lead to %d results being dropped. "
-                        "Trace: %s",
-                        self.urn,
-                        self.state.context.results_collection_len,
-                        len(fresh_collection),
-                        len(fresh_collection) -
-                        self.state.context.results_collection_len,
-                        traceback.format_stack())
-
-          self.state.context.results_collection = fresh_collection
-          self.state.context.results_collection_len = len(fresh_collection)
-        else:
-          self.state.context.results_collection.Flush(sync=True)
-          self.state.context.results_collection_len = len(
-              self.state.context.results_collection)
-
-          # Notify ProcessHuntResultsCronFlow that we got new results.
-          data_store.DB.Set(self.RESULTS_QUEUE, self.urn,
+        # TODO(user): remove when old-style hunt results are no longer
+        # supported.
+        if not isinstance(self.state.context.results_collection,
+                          aff4.ResultsOutputCollection):
+          data_store.DB.Set(self.DEPRECATED_RESULTS_QUEUE, self.urn,
                             rdfvalue.RDFDatetime().Now(),
                             replace=True, token=self.token)
 
@@ -858,7 +841,6 @@ class GRRHunt(flow.GRRFlow):
                                 self.urn.Add("ResultsMetadata"))
     self.state.context.Register("results_collection_urn",
                                 self.urn.Add("Results"))
-    self.state.context.Register("results_collection_len", 0)
 
     with aff4.FACTORY.Create(
         self.state.context.results_metadata_urn, "HuntResultsMetadata",
@@ -878,9 +860,10 @@ class GRRHunt(flow.GRRFlow):
       results_metadata.Set(results_metadata.Schema.OUTPUT_PLUGINS(state))
 
     with aff4.FACTORY.Create(
-        self.state.context.results_collection_urn, "RDFValueCollection",
+        self.state.context.results_collection_urn, "ResultsOutputCollection",
         mode="rw", token=self.token) as results_collection:
-      results_collection.SetChunksize(1024 * 1024)
+      results_collection.Set(results_collection.Schema.RESULTS_SOURCE,
+                             self.urn)
       self.state.context.Register("results_collection", results_collection)
 
     if not self.state.context.args.description:

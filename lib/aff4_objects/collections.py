@@ -142,9 +142,11 @@ class RDFValueCollection(aff4.AFF4Object):
     return self.GenerateItems()
 
   @property
-  def current_offset(self):
+  def deprecated_current_offset(self):
     return self.fd.Tell()
 
+  # TODO(user): remove support for offset argument as soon as old-style hunt
+  # results are gone.
   def GenerateItems(self, offset=0):
     """Iterate over all contained RDFValues.
 
@@ -374,6 +376,32 @@ class PackedVersionedCollection(RDFValueCollection):
   VersionedCollectionCompactor cron job.
   """
 
+  notification_queue = "aff4:/cron/versioned_collection_compactor"
+  index_format = "index:changed/%s"
+
+  @classmethod
+  def QueryNotifications(cls, timestamp=None, token=None):
+    if token is None:
+      raise ValueError("token can't be None")
+
+    if timestamp is None:
+      timestamp = rdfvalue.RDFDatetime().Now()
+
+    index_predicate = cls.index_format % ".+"
+    for _, urn, urn_timestamp in data_store.DB.ResolveRegex(
+        cls.notification_queue, index_predicate,
+        timestamp=(0, timestamp), token=token):
+      yield rdfvalue.RDFURN(urn, age=urn_timestamp)
+
+  @classmethod
+  def DeleteNotifications(cls, urns, end=None, token=None):
+    if token is None:
+      raise ValueError("token can't be None")
+
+    predicates = [cls.index_format % urn for urn in urns]
+    data_store.DB.DeleteAttributes(cls.notification_queue, predicates,
+                                   end=end, token=token)
+
   class SchemaCls(RDFValueCollection.SchemaCls):
     DATA = aff4.Attribute("aff4:data", rdfvalue.EmbeddedRDFValue,
                           "The embedded semantic value.", versioned=True)
@@ -392,9 +420,8 @@ class PackedVersionedCollection(RDFValueCollection):
     self.Set(self.Schema.DATA(payload=rdf_value))
 
     # Let the compactor know we need compacting.
-    data_store.DB.Set("aff4:/cron/versioned_collection_compactor",
-                      "index:changed/%s" % self.urn, self.urn,
-                      replace=True, token=self.token, sync=False)
+    data_store.DB.Set(self.notification_queue, self.index_format % self.urn,
+                      self.urn, replace=True, token=self.token, sync=False)
 
   def AddAll(self, rdf_values, callback=None):
     """Adds a list of rdfvalues to the collection."""
@@ -415,9 +442,28 @@ class PackedVersionedCollection(RDFValueCollection):
         callback(index, rdf_value)
 
     # Let the compactor know we need compacting.
-    data_store.DB.Set("aff4:/cron/versioned_collection_compactor",
-                      "index:changed/%s" % self.urn, self.urn,
-                      replace=True, token=self.token, sync=False)
+    data_store.DB.Set(self.notification_queue, self.index_format % self.urn,
+                      self.urn, replace=True, token=self.token, sync=False)
+
+  def GenerateUncompactedItems(self, max_reversed_results=0):
+    if self.IsAttributeSet(self.Schema.DATA):
+      results = []
+      for _, value, _ in data_store.DB.ResolveRegex(
+          self.urn, self.Schema.DATA.predicate, token=self.token,
+          timestamp=data_store.DB.ALL_TIMESTAMPS):
+
+        if results is not None:
+          results.append(self.Schema.DATA(value).payload)
+          if max_reversed_results and len(results) > max_reversed_results:
+            for result in results:
+              yield result
+            results = None
+        else:
+          yield self.Schema.DATA(value).payload
+
+      if results is not None:
+        for result in reversed(results):
+          yield result
 
   def GenerateItems(self, offset=0):
     """First iterate over the versions, and then iterate over the stream."""
@@ -428,29 +474,14 @@ class PackedVersionedCollection(RDFValueCollection):
         yield x
       index += 1
 
-    if self.IsAttributeSet(self.Schema.DATA):
-      results = []
-      for _, value, _ in data_store.DB.ResolveRegex(
-          self.urn, self.Schema.DATA.predicate, token=self.token,
-          timestamp=data_store.DB.ALL_TIMESTAMPS):
-        if index >= offset:
-          if results is not None:
-            results.append(self.Schema.DATA(value).payload)
-            if len(results) > self.MAX_REVERSED_RESULTS:
-              for result in results:
-                yield result
-              results = None
-          else:
-            yield self.Schema.DATA(value).payload
-
-        index += 1
-
-      if results is not None:
-        for result in reversed(results):
-          yield result
+    for x in self.GenerateUncompactedItems(
+        max_reversed_results=self.MAX_REVERSED_RESULTS):
+      if index >= offset:
+        yield x
+      index += 1
 
   @utils.Synchronized
-  def Compact(self, callback=None):
+  def Compact(self, callback=None, timestamp=None):
     """Compacts versioned attributes into the collection stream.
 
     Versioned attributes come from the datastore sorted by the timestamp
@@ -467,6 +498,7 @@ class PackedVersionedCollection(RDFValueCollection):
       callback: An optional function without arguments that gets called
                 periodically while processing is done. Useful in flows
                 that have to heartbeat.
+      timestamp: Only items added before this timestamp will be compacted.
 
     Raises:
       RuntimeError: if problems are encountered when reading back temporary
@@ -482,7 +514,7 @@ class PackedVersionedCollection(RDFValueCollection):
 
     # This timestamp will be used to delete attributes. We don't want
     # to delete anything that was added after we started the compaction.
-    freeze_timestamp = rdfvalue.RDFDatetime().Now()
+    freeze_timestamp = timestamp or rdfvalue.RDFDatetime().Now()
 
     def DeleteVersionedDataAndFlush():
       """Removes versioned attributes and flushes the stream."""
@@ -590,14 +622,8 @@ class PackedVersionedCollection(RDFValueCollection):
 
     return length
 
-  @property
-  def current_offset(self):
-    raise AttributeError("current_offset is called on a "
-                         "PackedVersionedCollection, this will not work.")
-
   def __len__(self):
-    raise AttributeError(
-        "Len called on a PackedVersionedCollection, this will not work.")
+    return self.CalculateLength()
 
   def __nonzero__(self):
     if "r" not in self.mode:
@@ -610,3 +636,25 @@ class PackedVersionedCollection(RDFValueCollection):
 
     # if there is not, we might have some uncompacted data.
     return self.IsAttributeSet(self.Schema.DATA)
+
+
+class ResultsOutputCollection(PackedVersionedCollection):
+  """Collection for hunt results storage.
+
+  This collection is essentially a PackedVersionedCollection with a
+  separate notification queue. Therefore, all new results are written
+  as versioned attributes. ProcessHuntResultsCronFlow reads notifications,
+  processes new results, and then writes them to the main collection stream.
+  """
+
+  notification_queue = "aff4:/_notifications/results_output"
+
+  class SchemaCls(PackedVersionedCollection.SchemaCls):
+    RESULTS_SOURCE = aff4.Attribute("aff4:results_source", rdfvalue.RDFURN,
+                                    "URN of a hunt where results came from.")
+
+  def Initialize(self):
+    super(ResultsOutputCollection, self).Initialize()
+    if "w" in self.mode and self.fd.size == 0:
+      # We want bigger chunks as we usually expect large number of results.
+      self.fd.SetChunksize(1024 * 1024)

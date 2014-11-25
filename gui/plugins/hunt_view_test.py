@@ -9,6 +9,7 @@ import traceback
 
 from grr.gui import runtests_test
 
+from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
@@ -23,7 +24,8 @@ class TestHuntView(test_lib.GRRSeleniumTest):
   reason = "Felt like it!"
 
   def CreateSampleHunt(self, flow_runner_args=None, flow_args=None,
-                       stopped=False, output_plugins=None):
+                       stopped=False, output_plugins=None, token=None):
+    token = token or self.token
     self.client_ids = self.SetupClients(10)
 
     with hunts.GRRHunt.StartHunt(
@@ -40,18 +42,18 @@ class TestHuntView(test_lib.GRRSeleniumTest):
             attribute_name="GRR client",
             attribute_regex="GRR")],
         output_plugins=output_plugins or [],
-        client_rate=0, token=self.token) as hunt:
+        client_rate=0, token=token) as hunt:
       if not stopped:
         hunt.Run()
 
     with aff4.FACTORY.Open("aff4:/foreman", mode="rw",
-                           token=self.token) as foreman:
+                           token=token) as foreman:
 
       for client_id in self.client_ids:
         foreman.AssignTasksToClient(client_id)
 
     self.hunt_urn = hunt.urn
-    return aff4.FACTORY.Open(hunt.urn, mode="rw", token=self.token,
+    return aff4.FACTORY.Open(hunt.urn, mode="rw", token=token,
                              age=aff4.ALL_TIMES)
 
   def CreateGenericHuntWithCollection(self, values=None):
@@ -345,6 +347,54 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     # View should be refreshed automatically.
     self.WaitUntil(self.IsTextPresent, "GenericHunt")
     self.WaitUntil(self.IsTextPresent, "4483")
+
+  def testDeleteHunt(self):
+    with self.ACLChecksDisabled():
+      # This needs to be created by a different user so we can test the
+      # approval dialog.
+      hunt = self.CreateSampleHunt(
+          stopped=True, token=access_control.ACLToken(
+              username="random user", reason="test"))
+
+    self.Open("/")
+    self.WaitUntil(self.IsElementPresent, "client_query")
+    self.Click("css=a[grrtarget=ManageHunts]")
+    self.WaitUntil(self.IsTextPresent, "GenericHunt")
+
+    # Select a Hunt.
+    self.Click("css=td:contains('GenericHunt')")
+
+    # Click on Modify button and check that dialog appears.
+    self.Click("css=button[name=DeleteHunt]")
+    self.WaitUntil(self.IsTextPresent, "Delete a hunt")
+
+    # Click on Proceed.
+    self.Click("css=button[name=Proceed]")
+
+    # This should be rejected now and a form request is made.
+    self.WaitUntil(self.IsTextPresent, "Create a new approval")
+    self.Click("css=#acl_dialog button[name=Close]")
+    # Wait for dialog to disappear.
+    self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
+
+    # Now create an approval.
+    with self.ACLChecksDisabled():
+      self.GrantHuntApproval(hunt.session_id)
+
+    # Click on Delete button and check that dialog appears.
+    self.Click("css=button[name=DeleteHunt]")
+    self.WaitUntil(self.IsTextPresent, "Delete a hunt")
+
+    # Click on "Proceed" and wait for success label to appear.
+    # Also check that "Proceed" button gets disabled.
+    self.Click("css=button[name=Proceed]")
+
+    self.WaitUntil(self.IsTextPresent, "Hunt Deleted!")
+    self.assertTrue(self.IsElementPresent("css=button[name=Proceed][disabled]"))
+
+    # Click on "Cancel" and check that dialog disappears.
+    self.Click("css=button[name=Cancel]")
+    self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
 
   def SetupHuntDetailView(self, failrate=2):
     """Create some clients and a hunt to view."""

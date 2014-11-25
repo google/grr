@@ -5,6 +5,7 @@
 # pylint: disable=unused-import
 # These import populate the test registry
 from grr.lib.aff4_objects import aff4_grr_test
+from grr.lib.aff4_objects import aff4_rekall_test
 from grr.lib.aff4_objects import benchmark_test
 from grr.lib.aff4_objects import collections_test
 from grr.lib.aff4_objects import cronjobs_test

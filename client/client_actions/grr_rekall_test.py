@@ -4,7 +4,6 @@
 
 import functools
 import os
-import re
 
 import logging
 
@@ -129,29 +128,15 @@ class RekallTests(RekallTestSuite):
     # Ensure that the client_id is set on each message. This helps us demux
     # messages from different clients, when analyzing the collection from a
     # hunt.
+    json_blobs = []
     for x in fd:
       self.assertEqual(x.client_urn, self.client_id)
+      json_blobs.append(x.json_messages)
 
-    # The output is merged and separated by ***.
-    module_output = re.split("^[*]{5}.+$", fd.RenderAsText(), flags=re.M)
+    json_blobs = "".join(json_blobs)
 
-    # First output pslist.
-    output = module_output[1].strip()
-
-    # 34 processes and headers.
-    self.assertEqual(len(output.splitlines()), 34)
-
-    # And should include the DumpIt binary.
-    self.assertTrue("DumpIt.exe" in output)
-
-    # Next output modules plugin.
-    output = module_output[2].strip()
-
-    # 105 modules and headers.
-    self.assertEqual(len(output.splitlines()), 105)
-
-    # And should include the DumpIt kernel driver.
-    self.assertTrue("DumpIt.sys" in output)
+    for knownresult in ["DumpIt.exe", "DumpIt.sys"]:
+      self.assertTrue(knownresult in json_blobs)
 
   @RequireTestImage
   def testFileOutput(self):
@@ -186,12 +171,11 @@ class RekallTests(RekallTestSuite):
     fd = aff4.FACTORY.Open(self.client_id.Add("analysis/memory"),
                            token=self.token)
 
-    result = fd.RenderAsText().splitlines()[4:]  # Drop the column headers.
+    json_blobs = [x.json_messages for x in fd]
+    json_blobs = "".join(json_blobs)
 
-    # There should be 2 results back.
-    self.assertEqual(len(result), 2)
-    self.assertTrue("System" in result[0])
-    self.assertTrue("DumpIt.exe" in result[1])
+    for knownresult in ["System", "DumpIt.exe"]:
+      self.assertTrue(knownresult in json_blobs)
 
   @RequireTestImage
   def testDLLList(self):
@@ -212,15 +196,11 @@ class RekallTests(RekallTestSuite):
     fd = aff4.FACTORY.Open(self.client_id.Add("analysis/memory"),
                            token=self.token)
 
-    # Get the result but drop the column headers.
-    result = [x for x in fd.RenderAsText().splitlines() if x.startswith("0x")]
+    json_blobs = [x.json_messages for x in fd]
+    json_blobs = "".join(json_blobs)
 
-    # There should be 5 results back.
-    self.assertEqual(len(result), 5)
-    for item, line in zip(
-        ["DumpIt", "wow64win", "wow64", "wow64cpu", "ntdll"],
-        sorted(result)):
-      self.assertTrue(item in line)
+    for knownresult in ["DumpIt", "wow64win", "wow64", "wow64cpu", "ntdll"]:
+      self.assertTrue(knownresult in json_blobs)
 
   @RequireTestImage
   def DisabledTestAllPlugins(self):

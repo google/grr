@@ -145,6 +145,11 @@ class DataMaster(object):
     if self.myself.Port() == myport:
       self._DoRegisterServer(self.myself)
     else:
+      logging.warning("First server in Dataserver.server_list is not the "
+                      "master. Found port '%i' but my port is '%i'. If you"
+                      " really are running master, you may want to specify"
+                      " flag --port %i."
+                      % (self.myself.Port(), myport, myport))
       raise DataMasterError("First server in Dataserver.server_list must be "
                             "the master.")
     # Start database measuring thread.
