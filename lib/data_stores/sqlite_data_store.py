@@ -16,6 +16,8 @@ import time
 
 import sqlite3
 
+import logging
+
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import data_store
@@ -120,9 +122,14 @@ class SqliteConnectionCache(utils.FastStore):
         target_file.write(self.template)
       os.chmod(target_path, write_permissions | read_permissions)
     except OSError:
-      # File is already created.
-      # Wait until file can be read.
-      self._WaitUntilReadable(target_path)
+      # Failed to create file
+      if os.path.exists(target_path):
+        # Failed because file was created in the meantime (race condition)
+        self._WaitUntilReadable(target_path)
+      else:
+        logging.error("Could not create database file. Make sure the "
+                      "data_server has write access to the target_path "
+                      "directory to create the file '%s'" % target_path)
     finally:
       os.umask(umask_original)
 
@@ -418,6 +425,9 @@ class SqliteConnection(object):
       except sqlite3.OperationalError:
         # Transaction not active.
         pass
+
+    logging.debug("Flushing database")
+
     if self.deleted >= self.next_vacuum_check:
       if self._NeedsVacuum() and not self._HasRecentVacuum():
         self.Vacuum()
@@ -460,6 +470,9 @@ class SqliteConnection(object):
   def Vacuum(self):
     """Vacuum the database."""
     now = time.time()
+
+    logging.debug("Vacuuming database.")
+
     self.cursor.execute("VACUUM")
     # Write time of the vacuum operation.
     query = "INSERT OR REPLACE INTO statistics VALUES('vacuum_time', ?)"

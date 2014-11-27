@@ -173,6 +173,36 @@ class ModifyHuntDialog(renderers.ConfirmationDialogRenderer):
                                    unique=self.unique)
 
 
+class DeleteHuntDialog(renderers.ConfirmationDialogRenderer):
+  """Dialog that confirms deletion of a hunt."""
+  post_parameters = ["hunt_id"]
+
+  header = "Delete a hunt"
+  proceed_button_title = "Delete!"
+
+  content_template = renderers.Template("""
+<p>Are you sure you want to <strong>delete</strong> this hunt? Note that
+hunts can only be deleted if there are no results. </p>
+""")
+
+  ajax_template = renderers.Template("""
+<p class="text-info">Hunt Deleted!</p>
+""")
+
+  def Layout(self, request, response):
+    """Layout handler."""
+    # TODO(user) Switch from requiring approval to requiring ownership.
+    self.check_access_subject = rdfvalue.RDFURN(request.REQ.get("hunt_id"))
+    return super(DeleteHuntDialog, self).Layout(request, response)
+
+  def RenderAjax(self, request, response):
+    """Starts DeleteHuntFlow that actually modifies a hunt."""
+    flow.GRRFlow.StartFlow(flow_name="DeleteHuntFlow", token=request.token,
+                           hunt_urn=rdfvalue.RDFURN(request.REQ.get("hunt_id")))
+    return self.RenderFromTemplate(self.ajax_template, response,
+                                   unique=self.unique)
+
+
 class HuntTable(fileview.AbstractFileTable):
   """Show all hunts."""
   selection_publish_queue = "hunt_select"
@@ -192,6 +222,10 @@ class HuntTable(fileview.AbstractFileTable):
 </div>
 
 <div id="modify_hunt_dialog_{{unique|escape}}"
+  class="modal" tabindex="-1" role="dialog" aria-hidden="true">
+</div>
+
+<div id="delete_hunt_dialog_{{unique|escape}}"
   class="modal" tabindex="-1" role="dialog" aria-hidden="true">
 </div>
 
@@ -227,6 +261,12 @@ class HuntTable(fileview.AbstractFileTable):
     title='Show/Hide Automated hunts'
     class="btn btn-default" name="ToggleRobotHuntDisplay">
     <img src='/static/images/robot.png' class='toolbar_icon'>
+  </button>
+
+  <button id='delete_hunt_{{unique|escape}}' title='Delete Hunt'
+    class="btn btn-default" disabled="yes" name="DeleteHunt" data-toggle="modal"
+    data-target="#delete_hunt_dialog_{{unique|escape}}">
+    <img src='/static/images/editdelete.png' class='toolbar_icon'>
   </button>
 
   </div>

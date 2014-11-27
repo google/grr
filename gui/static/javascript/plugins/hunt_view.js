@@ -219,6 +219,14 @@ grr.Renderer('HuntTable', {
       });
     });
 
+    $('#delete_hunt_dialog_' + unique).on('show.bs.modal', function() {
+      grr.layout('DeleteHuntDialog', 'delete_hunt_dialog_' + unique,
+                 dom_node.data());
+    }).on('hidden.bs.modal', function() {
+      $('#' + unique).trigger('refresh');
+      $(this).html('');
+    });
+
     grr.subscribe('WizardComplete', function(wizardStateName) {
       $('#new_hunt_dialog_' + unique).modal('hide');
     }, 'new_hunt_dialog_' + unique);
@@ -235,12 +243,14 @@ grr.Renderer('HuntTable', {
           $('#run_hunt_' + unique).attr('disabled', 'true');
           $('#modify_hunt_' + unique).attr('disabled', 'true');
           $('#pause_hunt_' + unique).removeAttr('disabled');
+          $('#delete_hunt_' + unique).attr('disabled', 'true');
 
           // Hunt is paused, can be run again.
         } else if (state == 'PAUSED' || state == 'STOPPED') {
           $('#run_hunt_' + unique).removeAttr('disabled');
           $('#modify_hunt_' + unique).removeAttr('disabled');
           $('#pause_hunt_' + unique).attr('disabled', 'true');
+          $('#delete_hunt_' + unique).removeAttr('disabled');
         }
       });
     }, 'run_hunt_' + unique);

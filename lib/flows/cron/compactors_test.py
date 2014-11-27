@@ -8,11 +8,11 @@ from grr.lib import server_plugins
 # pylint: enable=unused-import, g-bad-import-order
 
 from grr.lib import aff4
-from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib import utils
 
 
 class PackedVersionedCollectionCompactorTest(test_lib.FlowTestsBaseclass):
@@ -42,12 +42,10 @@ class PackedVersionedCollectionCompactorTest(test_lib.FlowTestsBaseclass):
       fd.Add(rdfvalue.GrrMessage(request_id=1))
 
     # Check that there's 1 compaction notification for our collection.
-    notifications = data_store.DB.ResolveRegex(
-        flow.GRRFlow.PackedVersionedCollectionCompactor.INDEX_URN,
-        flow.GRRFlow.PackedVersionedCollectionCompactor.INDEX_PREDICATE,
+    notifications = aff4.PackedVersionedCollection.QueryNotifications(
         token=self.token)
     notifications = [n for n in notifications
-                     if n[1] == "aff4:/tmp/coll"]
+                     if n == "aff4:/tmp/coll"]
     self.assertEqual(len(list(notifications)), 1)
 
     # Run the compactor.
@@ -56,13 +54,46 @@ class PackedVersionedCollectionCompactorTest(test_lib.FlowTestsBaseclass):
       pass
 
     # Check that notification for our collection is deleted after compaction.
-    notifications = data_store.DB.ResolveRegex(
-        flow.GRRFlow.PackedVersionedCollectionCompactor.INDEX_URN,
-        flow.GRRFlow.PackedVersionedCollectionCompactor.INDEX_PREDICATE,
+    notifications = aff4.PackedVersionedCollection.QueryNotifications(
         token=self.token)
     notifications = [n for n in notifications
-                     if n[1] == "aff4:/tmp/coll"]
+                     if n == "aff4:/tmp/coll"]
     self.assertEqual(len(list(notifications)), 0)
+
+  def testNewNotificationsAreNotRemovedAfterCompaction(self):
+    def AddNewElementToCollection(*unused_args, **unused_kwargs):
+      with aff4.FACTORY.Create("aff4:/tmp/coll", "PackedVersionedCollection",
+                               mode="w", token=self.token) as fd:
+        fd.Add(rdfvalue.GrrMessage(request_id=1))
+
+    AddNewElementToCollection()
+
+    # Check that there's 1 compaction notification for our collection.
+    notifications = aff4.PackedVersionedCollection.QueryNotifications(
+        token=self.token)
+    notifications = [n for n in notifications
+                     if n == "aff4:/tmp/coll"]
+    self.assertEqual(len(list(notifications)), 1)
+
+    # When Compact() is called on collection, we add additional element to
+    # the collection and notification gets written to the data store.
+    # This notification shouldn't be deleted after compaction, because
+    # it was written during the compaction, and therefore there are
+    # probably some uncompacted elements that should be compacted during
+    # then next compaction round.
+    with utils.Stubber(aff4.PackedVersionedCollection, "Compact",
+                       AddNewElementToCollection):
+      # Run the compactor.
+      for _ in test_lib.TestFlowHelper("PackedVersionedCollectionCompactor",
+                                       token=self.token):
+        pass
+
+    # Check that notification for our collection is deleted after compaction.
+    notifications = aff4.PackedVersionedCollection.QueryNotifications(
+        token=self.token)
+    notifications = [n for n in notifications
+                     if n == "aff4:/tmp/coll"]
+    self.assertEqual(len(list(notifications)), 1)
 
   def testCompactsTwoCollections(self):
     with aff4.FACTORY.Create("aff4:/tmp/coll1", "PackedVersionedCollection",

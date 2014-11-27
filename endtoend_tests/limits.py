@@ -107,8 +107,7 @@ class TestNetworkFlowLimit(base.AutomatedTest):
 class TestMultiGetFileNetworkLimitExceeded(base.AutomatedTest):
   platforms = ["Linux", "Darwin"]
   flow = "NetworkLimitTestFlow"
-  args = {}
-  network_bytes_limit = 3 * 512 * 1024
+  args = {"network_bytes_limit": 3 * 512 * 1024}
 
   def CheckFlow(self):
     # Reopen the object to check the state.  We use OpenWithLock to avoid

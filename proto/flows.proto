@@ -1188,6 +1188,13 @@ message StartHuntFlowArgs {
     }];
 }
 
+message DeleteHuntFlowArgs {
+  optional string hunt_urn = 1 [(sem_type) = {
+      type: "RDFURN",
+      description: "The URN of the hunt to delete.",
+    }];
+}
+
 message PauseHuntFlowArgs {
   optional string hunt_urn = 1 [(sem_type) = {
       type: "RDFURN",
