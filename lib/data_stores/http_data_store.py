@@ -367,11 +367,19 @@ class RemoteInquirer(object):
     self.mapping = self.mapping_server.LoadMapping()
 
     if len(self.mapping.servers) != len(server_list):
+      logging.warning("There is a mismatch between the data "
+                      "servers and the configuration file. '%s' != '%s'",
+                      self.mapping.servers,
+                      server_list)
       raise HTTPDataStoreError("There is a mismatch between the data "
                                "servers and the configuration file.")
     for i, serv in enumerate(self.mapping.servers):
       target = self.servers[i]
       if target.Port() != serv.port:
+        logging.warning("There is a mismatch between the data "
+                        "servers and the configuration file. '%s' != '%s'",
+                        self.mapping.servers,
+                        server_list)
         raise HTTPDataStoreError("There is a mismatch between the data "
                                  "servers and the configuration file.")
 

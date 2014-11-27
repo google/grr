@@ -4,18 +4,15 @@
 
 
 from grr.lib import aff4
-from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import rdfvalue
 
+from grr.lib.aff4_objects import collections
 from grr.lib.aff4_objects import cronjobs
 
 
 class PackedVersionedCollectionCompactor(cronjobs.SystemCronFlow):
   """A Compactor which runs over all versioned collections."""
-
-  INDEX_URN = "aff4:/cron/versioned_collection_compactor"
-  INDEX_PREDICATE = "index:changed/.+"
 
   frequency = rdfvalue.Duration("5m")
   lifetime = rdfvalue.Duration("40m")
@@ -28,12 +25,10 @@ class PackedVersionedCollectionCompactor(cronjobs.SystemCronFlow):
     errors_count = 0
 
     freeze_timestamp = rdfvalue.RDFDatetime().Now()
-    for predicate, urn, _ in data_store.DB.ResolveRegex(
-        self.INDEX_URN, self.INDEX_PREDICATE,
-        timestamp=(0, freeze_timestamp), token=self.token):
-      data_store.DB.DeleteAttributes(self.INDEX_URN, [predicate],
-                                     end=freeze_timestamp,
-                                     token=self.token)
+    for urn in collections.PackedVersionedCollection.QueryNotifications(
+        timestamp=freeze_timestamp, token=self.token):
+      collections.PackedVersionedCollection.DeleteNotifications(
+          [urn], end=freeze_timestamp, token=self.token)
 
       self.HeartBeat()
       try:

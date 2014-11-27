@@ -5,6 +5,7 @@
 # These need to register plugins so, pylint: disable=unused-import
 
 from grr.parsers import chrome_history_test
+from grr.parsers import config_file_test
 from grr.parsers import firefox3_history_test
 from grr.parsers import ie_history_test
 from grr.parsers import linux_file_parser_test

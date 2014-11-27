@@ -791,11 +791,20 @@ def Start(db, port=0, is_master=False, server_cls=ThreadedHTTPServer,
   global NONCE_STORE
   NONCE_STORE = auth.NonceStore()
 
+  if port == 0 or port is None:
+    logging.debug("No port was specified as a parameter. Expecting to find "
+                  "port in configuration file.")
+  else:
+    logging.debug("Port specified was '%i'. Ignoring configuration directive "
+                  "Dataserver.port." % port)
+
   server_port = port or config_lib.CONFIG["Dataserver.port"]
 
   if is_master:
+    logging.debug("Master server running on port '%i'" % server_port)
     InitMasterServer(server_port)
   else:
+    logging.debug("Non-master data server running on port '%i'" % server_port)
     InitDataServer(server_port)
 
   try:

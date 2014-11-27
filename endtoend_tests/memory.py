@@ -31,8 +31,14 @@ class TestGrepMemory(base.AutomatedTest):
     self.assertEqual(reference.data[10:10+3], "grr")
 
 
-class TestAnalyzeClientMemory(base.AutomatedTest):
-  """Test AnalyzeClientMemory (Rekall)."""
+class TestAnalyzeClientMemoryWindows(base.AutomatedTest):
+  """Test AnalyzeClientMemory (Rekall).
+
+  We use the rekall caching profile server for these tests, since we may not
+  have direct internet access. It may be necessary to manually populate the
+  cache with lib.rekall_profile_server.GRRRekallProfileServer.GetMissingProfiles
+  on the console to make these tests pass.
+  """
   platforms = ["Windows"]
   flow = "AnalyzeClientMemory"
   test_output_path = "analysis/memory"
@@ -40,61 +46,68 @@ class TestAnalyzeClientMemory(base.AutomatedTest):
           "output": test_output_path}
 
   def setUp(self):
-    # We are running a test but we want to use the real profile server.
-    config_lib.CONFIG.Set("Rekall.profile_server", "GRRRekallProfileServer")
-
     self.setUpRequest()
+
+    self.old_config = config_lib.CONFIG.Get("Rekall.profile_server")
+    if "Test Context" in config_lib.CONFIG.context:
+      # We're running in a test context, where the rekall repository server is
+      # set to TestRekallRepositoryProfileServer, which won't actually work for
+      # an end to end test. We change it temporarily to allow the test to pass.
+      config_lib.CONFIG.Set("Rekall.profile_server", "GRRRekallProfileServer")
 
     # RDFValueCollections need to be deleted recursively.
     aff4.FACTORY.Delete(self.client_id.Add(self.test_output_path),
                         token=self.token)
-    super(TestAnalyzeClientMemory, self).setUp()
-
-  def setUpRequest(self):
-    windows_binary_name = config_lib.CONFIG.Get(
-        "Client.binary_name", context=["Client context", "Platform:Windows"])
-    self.args["request"].plugins = [
-        rdfvalue.PluginRequest(plugin="pslist"),
-        rdfvalue.PluginRequest(plugin="dlllist",
-                               args=dict(
-                                   proc_regex=windows_binary_name,
-                                   method="PsActiveProcessHead"
-                                   )),
-        rdfvalue.PluginRequest(plugin="modules"),
-        ]
+    super(TestAnalyzeClientMemoryWindows, self).setUp()
 
   def tearDown(self):
     # RDFValueCollections need to be deleted recursively.
     aff4.FACTORY.Delete(self.client_id.Add(self.test_output_path),
                         token=self.token)
-    super(TestAnalyzeClientMemory, self).tearDown()
+    config_lib.CONFIG.Set("Rekall.profile_server", self.old_config)
+    super(TestAnalyzeClientMemoryWindows, self).tearDown()
 
   def CheckFlow(self):
-    response = aff4.FACTORY.Open(self.client_id.Add(self.test_output_path),
-                                 token=self.token)
-    self.assertIsInstance(response, aff4.RDFValueCollection)
-    self.assertTrue(len(response) >= 1)
+    self.response = aff4.FACTORY.Open(self.client_id.Add(self.test_output_path),
+                                      token=self.token)
+    self.assertIsInstance(self.response, aff4.RDFValueCollection)
+    self.assertTrue(len(self.response) >= 1)
 
-    result_str = unicode(response)
 
-    for plugin in ["pslist", "dlllist", "modules"]:
-      self.assertTrue("Plugin %s" % plugin in result_str)
+class TestAnalyzeClientMemoryWindowsPSList(TestAnalyzeClientMemoryWindows):
 
-    # Split into results per plugin, strip the first half line.
-    parts = result_str.split("********* Plugin ")[1:]
+  def setUpRequest(self):
+    self.args["request"].plugins = [rdfvalue.PluginRequest(plugin="pslist")]
 
-    self.assertEqual(len(parts), 3)
+
+class TestAnalyzeClientMemoryWindowsModules(TestAnalyzeClientMemoryWindows):
+
+  def setUpRequest(self):
+    self.args["request"].plugins = [rdfvalue.PluginRequest(plugin="modules")]
+
+
+class TestAnalyzeClientMemoryWindowsDLLList(TestAnalyzeClientMemoryWindows):
+  """Run rekall DLL list and look for the GRR process."""
+
+  def setUpRequest(self):
+    self.binaryname = "svchost.exe"
+
+    self.args["request"].plugins = [
+        rdfvalue.PluginRequest(plugin="dlllist",
+                               args=dict(
+                                   proc_regex=self.binaryname,
+                                   method="PsActiveProcessHead"
+                                   ))
+        ]
+
+  def CheckFlow(self):
+    super(TestAnalyzeClientMemoryWindowsDLLList, self).CheckFlow()
 
     # Make sure the dlllist found our process by regex:
-    expected_name = self.GetGRRBinaryName()
-    self.assertTrue("%s" % expected_name in parts[1])
-
-    for part in parts:
-      # There should be some result per plugin.
-      self.assertTrue(len(part.split("\n")) > 10)
+    self.assertTrue(self.binaryname in unicode(self.response))
 
 
-class TestAnalyzeClientMemoryMac(TestAnalyzeClientMemory):
+class TestAnalyzeClientMemoryMac(TestAnalyzeClientMemoryWindows):
   """Runs Rekall on Macs."""
 
   platforms = ["Darwin"]

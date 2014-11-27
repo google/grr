@@ -1,15 +1,16 @@
 check_id: 'SSHD-CHECK'
 match: 'NONE'
 method:
-  - match: ['NONE']
+  - match: ['ANY']
     target:
       os: ['Linux', 'OSX']
     hint:
-      problem: 'Sshd is running protocol 1. Only use protocol 2'
+      problem: 'Sshd allows protocol 1.'
       summary: 'sshd parameter'
+      format: 'Configured protocols: {{ config.protocol }}'
     probe:
       - artifact: 'SshdConfig'
-        match: ['NONE']
+        match: ['ANY']
         filters:
           - type: 'ObjectFilter'
-            expression: 'protocol contains 1'
+            expression: 'config.protocol contains 1'

@@ -11,6 +11,7 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.checks import checks
 from grr.lib.rdfvalues import checks as checks_rdf
+from grr.parsers import config_file
 from grr.parsers import linux_cmd_parser
 from grr.parsers import wmi_parser
 
@@ -32,6 +33,12 @@ with open(test_data) as f:
   wmi = yaml.safe_load(f)
   for sw in wmi:
     WMI_SW.extend(parser.Parse(None, sw, None))
+
+# Load an sshd config
+parser = config_file.SshdConfigParser()
+test_data = os.path.join(config_lib.CONFIG["Test.data_dir"], "sshd_config")
+with open(test_data) as f:
+  SSHD_CFG = list(parser.Parse(None, f, None))
 
 
 def _LoadCheck(cfg_file, check_id):
@@ -133,13 +140,16 @@ class CheckRegistryTests(test_lib.GRRBaseTest):
     self.kb.hostname = "test.example.com"
     self.host_data = {"KnowledgeBase": self.kb,
                       "WMIInstalledSoftware": WMI_SW,
-                      "SoftwarePackage": DPKG_SW}
+                      "SoftwarePackage": DPKG_SW,
+                      "SshdConfig": SSHD_CFG}
 
   def testRegisterChecks(self):
+    """Defined checks are present in the check registry."""
     self.assertEqual(self.sw_chk, checks.CheckRegistry.checks["SW-CHECK"])
     self.assertEqual(self.sshd_chk, checks.CheckRegistry.checks["SSHD-CHECK"])
 
   def testMapChecksToTriggers(self):
+    """Checks are identified and run when their prerequisites are met."""
     expect = ["SW-CHECK"]
     result = checks.CheckRegistry.FindChecks(
         artifact="WMIInstalledSoftware", os="Windows")
@@ -166,6 +176,7 @@ class CheckRegistryTests(test_lib.GRRBaseTest):
     self.assertItemsEqual(expect, result)
 
   def testMapArtifactsToTriggers(self):
+    """Identify the artifacts that should be collected based on criteria."""
     expect = ["SoftwarePackage", "SshdConfig"]
     result = checks.CheckRegistry.SelectArtifacts(os="Linux")
     self.assertItemsEqual(expect, result)
@@ -180,41 +191,51 @@ class CheckRegistryTests(test_lib.GRRBaseTest):
     self.assertItemsEqual(expect, result)
 
   def testProcessHostData(self):
+    """Checks detect issues and return anomalies as check results."""
+    netcat = {"check_id": u"SW-CHECK",
+              "anomaly": [{
+                  "finding": [u"netcat-traditional 1.10-40 is installed"],
+                  "explanation": u"Found: l337 software installed",
+                  "type": "ANALYSIS_ANOMALY"}]}
+    sshd = {"check_id": u"SSHD-CHECK",
+            "anomaly": [{
+                "finding": [u"Configured protocols: [2, 1]"],
+                "explanation": u"Found: Sshd allows protocol 1.",
+                "type": "ANALYSIS_ANOMALY"}]}
+    windows = {"check_id": u"SW-CHECK",
+               "anomaly": [{"finding": [u"Adware 2.1.1 is installed"],
+                            "explanation": u"Found: Malicious software.",
+                            "type": "ANALYSIS_ANOMALY"},
+                           {"finding": [u"Java 6.0.240 is installed"],
+                            "explanation": u"Found: Old Java installation.",
+                            "type": "ANALYSIS_ANOMALY"}]}
+
     self.kb.os = "Linux"
-    expect = {"check_id": "SW-CHECK",
-              "anomaly": [
-                  {"finding": ["netcat-traditional 1.10-40 is installed"],
-                   "explanation": "Found: l337 software installed",
-                   "type": "ANALYSIS_ANOMALY"}]}
     results = [r for r in checks.CheckHost(self.host_data)]
-    self.assertEqual(1, len(results))
-    result = results[0].ToPrimitiveDict()
-    self.assertDictEqual(expect, result)
+    results = {r.check_id: r.ToPrimitiveDict() for r in results}
+    self.assertItemsEqual(["SW-CHECK", "SSHD-CHECK"], results.keys())
+    self.assertEqual(netcat, results["SW-CHECK"])
+    self.assertEqual(sshd, results["SSHD-CHECK"])
 
     # Windows checks return multiple anomalies, ensure that all are correct.
     # Need to specify individual entries to accommodate variable dictionary
     # ordering effects.
     self.kb.os = "Windows"
-    win_java = {"finding": ["Java 6.0.240 is installed"],
-                "explanation": "Found: Old Java installation.",
-                "type": "ANALYSIS_ANOMALY"}
-    win_adware = {"finding": ["Adware 2.1.1 is installed"],
-                  "explanation": "Found: Malicious software.",
-                  "type": "ANALYSIS_ANOMALY"}
-    expect = [win_java, win_adware]
     results = [r for r in checks.CheckHost(self.host_data)]
-    self.assertEqual(1, len(results))
-    result = results[0]
-    result = result.ToPrimitiveDict()
-    self.assertEqual("SW-CHECK", result["check_id"])
-    self.assertEqual(2, len(result["anomaly"]))
-    self.assertTrue(win_java in result["anomaly"])
-    self.assertTrue(win_adware in result["anomaly"])
+    results = {r.check_id: r.ToPrimitiveDict() for r in results}
+    self.assertItemsEqual(["SW-CHECK"], results.keys())
+    result = results["SW-CHECK"]
+    anomalies = result["anomaly"]
+    expected_anomalies = windows["anomaly"]
+    self.assertEqual(2, len(anomalies))
+    for expected in expected_anomalies:
+      self.assertTrue(expected in anomalies)
 
     self.kb.os = "OSX"
-    results = [r.ToPrimitiveDict() for r in checks.CheckHost(self.host_data)]
-    expect = []
-    self.assertItemsEqual(expect, results)
+    results = [r for r in checks.CheckHost(self.host_data)]
+    results = {r.check_id: r.ToPrimitiveDict() for r in results}
+    self.assertItemsEqual(["SSHD-CHECK"], results.keys())
+    self.assertDictEqual(sshd, results["SSHD-CHECK"])
 
 
 def main(argv):

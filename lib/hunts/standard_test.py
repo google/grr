@@ -17,13 +17,16 @@ from grr.lib import access_control
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import config_lib
+from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.aff4_objects import user_managers
 from grr.lib.hunts import output_plugins
+from grr.lib.hunts import standard
 
 
 class DummyHuntOutputPlugin(output_plugins.HuntOutputPlugin):
@@ -222,12 +225,42 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
 
     # We shouldn't get any more calls after the first call to
     # ProcessHuntResultsCronFlow.
-    self.assertRaises(RuntimeError, self.ProcessHuntOutputPlugins)
+    self.assertRaises(standard.ResultsProcessingError,
+                      self.ProcessHuntOutputPlugins)
     for _ in range(5):
       self.ProcessHuntOutputPlugins()
 
     self.assertEqual(DummyHuntOutputPlugin.num_calls, 1)
     self.assertEqual(DummyHuntOutputPlugin.num_responses, 10)
+
+  def testResultsProcessingErrorContainsDetailedFailureData(self):
+    hunt_urn = self.StartHunt(output_plugins=[
+        rdfvalue.OutputPlugin(plugin_name="FailingDummyHuntOutputPlugin"),
+        rdfvalue.OutputPlugin(plugin_name="DummyHuntOutputPlugin")
+        ])
+
+    # Process hunt results.
+    self.ProcessHuntOutputPlugins()
+
+    self.assertEqual(DummyHuntOutputPlugin.num_calls, 0)
+    self.assertEqual(DummyHuntOutputPlugin.num_responses, 0)
+
+    self.AssignTasksToClients()
+    self.RunHunt(failrate=-1)
+
+    # We shouldn't get any more calls after the first call to
+    # ProcessHuntResultsCronFlow.
+    try:
+      self.ProcessHuntOutputPlugins()
+    except standard.ResultsProcessingError as e:
+      self.assertEqual(len(e.exceptions_by_hunt), 1)
+      self.assertTrue(hunt_urn in e.exceptions_by_hunt)
+      self.assertEqual(len(e.exceptions_by_hunt[hunt_urn]), 1)
+      self.assertTrue("FailingDummyHuntOutputPlugin_0" in
+                      e.exceptions_by_hunt[hunt_urn])
+      self.assertEqual(e.exceptions_by_hunt[hunt_urn][
+          "FailingDummyHuntOutputPlugin_0"].message,
+                       "Oh no!")
 
   def testOutputPluginsMaintainState(self):
     self.StartHunt(output_plugins=[rdfvalue.OutputPlugin(
@@ -336,9 +369,15 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
       self.RunHunt(failrate=-1)
       self.ProcessHuntOutputPlugins()
 
+    # Stub was running instead of actual plugin, so counters couldn't be
+    # updated. Assert that they're 0 indeed.
+    self.assertEqual(DummyHuntOutputPlugin.num_calls, 0)
+    self.assertEqual(DummyHuntOutputPlugin.num_responses, 0)
+
+    # Run another round of results processing.
     self.ProcessHuntOutputPlugins()
-    # New results should get processed, even though they were added to the
-    # collection while plugin was processing previous results.
+    # New results (the ones that arrived while the old were being processed)
+    # should get processed now.
     self.assertEqual(DummyHuntOutputPlugin.num_calls, 1)
     self.assertEqual(DummyHuntOutputPlugin.num_responses, 5)
 
@@ -732,52 +771,6 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
       # 4 logs for each flow, 2 flow run.  One hunt-level log.
       self.assertEqual(count, 8 * len(self.client_ids) + 1)
 
-  def testHuntCollectionCorruptionIsProperlyDetected(self):
-    corruption_found = []
-
-    def CheckCorruption(message, *args, **kwargs):
-      if "Results collection was changed outside of hunt" in message:
-        corruption_found.append(True)
-      self.old_logging_error(message, *args, **kwargs)
-
-    logging.error = CheckCorruption
-
-    # Run hunt on a client. There should be no collection corruption detected.
-    hunt_urn = self.StartHunt()
-    self.AssignTasksToClients(client_ids=[self.client_ids[0]])
-    self.RunHunt(client_ids=[self.client_ids[0]], failrate=0)
-    self.assertFalse(corruption_found)
-    # We expect 1 result in the collection.
-    with aff4.FACTORY.Open(hunt_urn.Add("Results"),
-                           token=self.token) as hunt_results:
-      self.assertEqual(len(hunt_results), 1)
-
-    # Change the results collection (i.e. corrupt it).
-    with aff4.FACTORY.Open(hunt_urn.Add("Results"), token=self.token,
-                           mode="rw") as hunt_results:
-      hunt_results.Add(rdfvalue.GrrMessage(name="foo"))
-
-    # Run hunt on another client. Corrupption should be detected now.
-    self.AssignTasksToClients(client_ids=[self.client_ids[1]])
-    self.RunHunt(client_ids=[self.client_ids[1]], failrate=0)
-    self.assertTrue(corruption_found)
-    corruption_found = []
-    # We expect to have 2 results in the collection (if corruption detection
-    # didn't work, we'd have 3).
-    with aff4.FACTORY.Open(hunt_urn.Add("Results"),
-                           token=self.token) as hunt_results:
-      self.assertEqual(len(hunt_results), 2)
-
-    # Run hunt on yet another client. Now, again, there should be no
-    # corruption detected.
-    self.AssignTasksToClients(client_ids=self.client_ids[2:4])
-    self.RunHunt(client_ids=self.client_ids[2:4], failrate=0)
-    self.assertFalse(corruption_found)
-    # We expect to have 3 results in the collection.
-    with aff4.FACTORY.Open(hunt_urn.Add("Results"),
-                           token=self.token) as hunt_results:
-      self.assertEqual(len(hunt_results), 4)
-
   def testCreatorPropagation(self):
     self.CreateAdminUser("adminuser")
     admin_token = access_control.ACLToken(username="adminuser",
@@ -812,6 +805,83 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     # but they are not UnauthorizedAccess.
     for e in errors:
       self.assertTrue("UnauthorizedAccess" not in e.backtrace)
+
+  def _CreateHunt(self, token):
+    return hunts.GRRHunt.StartHunt(
+        hunt_name="GenericHunt",
+        flow_runner_args=rdfvalue.FlowRunnerArgs(flow_name="GetFile"),
+        flow_args=rdfvalue.GetFileArgs(pathspec=rdfvalue.PathSpec(
+            path="/tmp/evil.txt", pathtype=rdfvalue.PathSpec.PathType.OS)),
+        regex_rules=[
+            rdfvalue.ForemanAttributeRegex(attribute_name="GRR client",
+                                           attribute_regex="GRR"),
+            ],
+        client_rate=0, token=token)
+
+  def _CheckHuntIsDeleted(self, hunt_urn, token=None):
+    with self.assertRaises(aff4.InstantiationError):
+      aff4.FACTORY.Open(hunt_urn, aff4_type="GRRHunt",
+                        token=token or self.token)
+
+  def testDeleteHuntFlow(self):
+    # We'll need two users for this test.
+    self.CreateUser("user1")
+    token1 = access_control.ACLToken(username="user1",
+                                     reason="testing")
+    self.CreateUser("user2")
+    token2 = access_control.ACLToken(username="user2",
+                                     reason="testing")
+
+    manager = user_managers.FullAccessControlManager()
+    with utils.Stubber(data_store.DB, "security_manager", manager):
+
+      # Let user1 create a hunt and delete it, this should work.
+      hunt = self._CreateHunt(token1.SetUID())
+      aff4.FACTORY.Open(hunt.urn, aff4_type="GRRHunt", token=token1)
+
+      flow.GRRFlow.StartFlow(flow_name="DeleteHuntFlow",
+                             token=token1, hunt_urn=hunt.urn)
+      self._CheckHuntIsDeleted(hunt.urn)
+
+      # Let user1 create a hunt and user2 delete it, this should fail.
+      hunt = self._CreateHunt(token1.SetUID())
+      aff4.FACTORY.Open(hunt.urn, aff4_type="GRRHunt", token=token1)
+
+      with self.assertRaises(access_control.UnauthorizedAccess):
+        flow.GRRFlow.StartFlow(flow_name="DeleteHuntFlow",
+                               token=token2, hunt_urn=hunt.urn)
+      # Hunt is still there.
+      aff4.FACTORY.Open(hunt.urn, aff4_type="GRRHunt", token=token1)
+
+      # If user2 gets an approval, deletion is ok though.
+      self.GrantHuntApproval(hunt.urn, token=token2)
+      flow.GRRFlow.StartFlow(flow_name="DeleteHuntFlow",
+                             token=token2, hunt_urn=hunt.urn)
+
+      self._CheckHuntIsDeleted(hunt.urn)
+
+      # Let user1 create a hunt and run it. We are not allowed to delete
+      # running hunts.
+      hunt = self._CreateHunt(token1.SetUID())
+      hunt.Run()
+      hunt.Flush()
+
+      aff4.FACTORY.Open(hunt.urn, aff4_type="GRRHunt", token=token1)
+
+      with self.assertRaises(RuntimeError):
+        flow.GRRFlow.StartFlow(flow_name="DeleteHuntFlow",
+                               token=token1, hunt_urn=hunt.urn)
+
+      # The same is true if the hunt was scheduled on at least one client.
+      hunt = self._CreateHunt(token1.SetUID())
+      hunt.Set(hunt.Schema.CLIENT_COUNT(1))
+      hunt.Flush()
+
+      aff4.FACTORY.Open(hunt.urn, aff4_type="GRRHunt", token=token1)
+
+      with self.assertRaises(RuntimeError):
+        flow.GRRFlow.StartFlow(flow_name="DeleteHuntFlow",
+                               token=token1, hunt_urn=hunt.urn)
 
 
 class TestLoader(test_lib.GRRTestLoader):
