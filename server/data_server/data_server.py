@@ -150,26 +150,25 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
     if perm in permissions:
       response = method(request)
     else:
-      resp = rdfvalue.DataStoreResponse()
-      resp.request = cmd.request
-      resp.status = rdfvalue.DataStoreResponse.Status.AUTHORIZATION_DENIED
-      resp.status_desc = ("Operation not allowed: required %s but only have "
-                          "%s permissions" % (perm, permissions))
+      status_desc = ("Operation not allowed: required %s but only have "
+                     "%s permissions" % (perm, permissions))
+      resp = rdfvalue.DataStoreResponse(
+          request=cmd.request, status_desc=status_desc,
+          status=rdfvalue.DataStoreResponse.Status.AUTHORIZATION_DENIED)
       response = resp.SerializeToString()
 
-    replybody = sutils.SIZE_PACKER.pack(len(response)) + response
-
-    return replybody
+    return sutils.SIZE_PACKER.pack(len(response)) + response
 
   def HandleRegister(self):
     """Registers a data server in the master."""
     if not MASTER:
       self._EmptyResponse(constants.RESPONSE_NOT_MASTER_SERVER)
       return
-    port_str = self.post_data[:sutils.PORT_PACKER.size]
-    port = sutils.PORT_PACKER.unpack(port_str)[0]
+    request = rdfvalue.DataStoreRegistrationRequest(self.post_data)
+
+    port = request.port
     addr = self.client_address[0]
-    token = self.post_data[sutils.PORT_PACKER.size:]
+    token = request.token
     if not NONCE_STORE.ValidateAuthTokenServer(token):
       self._EmptyResponse(constants.RESPONSE_SERVER_NOT_AUTHORIZED)
       return
@@ -235,7 +234,8 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
     sock.setblocking(1)
 
     # But first we need to validate the client by reading the token.
-    perms = NONCE_STORE.ValidateAuthTokenClient(self.post_data)
+    token = rdfvalue.DataStoreAuthToken(self.post_data)
+    perms = NONCE_STORE.ValidateAuthTokenClient(token)
     if not perms:
       sock.sendall("IP\n")
       sock.close()
@@ -438,8 +438,7 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
     """Master wants to send the mapping to us."""
     if MASTER:
       return self._EmptyResponse(constants.RESPONSE_IS_MASTER_SERVER)
-    body = self.post_data
-    mapping = rdfvalue.DataServerMapping(body)
+    mapping = rdfvalue.DataServerMapping(self.post_data)
     DATA_SERVER.SetMapping(mapping)
     # Return state server back.
     body = GetStatistics().SerializeToString()
@@ -617,8 +616,10 @@ class StandardDataServer(object):
         raise errors.DataServerError("Could not register data server at "
                                      "data master.")
       nonce = res.data
-      token = auth.GenerateAuthToken(nonce, username, password)
-      body = sutils.PORT_PACKER.pack(self.my_port) + token
+      token = NONCE_STORE.GenerateServerAuthToken(nonce)
+      request = rdfvalue.DataStoreRegistrationRequest(token=token,
+                                                      port=self.my_port)
+      body = request.SerializeToString()
       headers = {"Content-Length": len(body)}
       res = self.pool.urlopen("POST", "/server/register", headers=headers,
                               body=body)

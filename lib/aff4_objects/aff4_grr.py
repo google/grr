@@ -119,6 +119,9 @@ class VFSGRRClient(standard.VFSDirectory):
                                  "A hex encoded MAC address.", "MAC",
                                  index=client_index)
 
+    KERNEL = aff4.Attribute("aff4:kernel_version", rdfvalue.RDFString,
+                            "Kernel version string.", "KernelVersion")
+
     # Same for IP addresses.
     HOST_IPS = aff4.Attribute("aff4:host_ips", rdfvalue.RDFString,
                               "An IP address.", "Host_ip",
@@ -142,9 +145,11 @@ class VFSGRRClient(standard.VFSDirectory):
         "aff4:last_foreman_time", rdfvalue.RDFDatetime,
         "The last time the foreman checked us.", versioned=False)
 
-    SUMMARY = aff4.Attribute(
-        "aff4:summary", rdfvalue.ClientSummary,
-        "A summary of this client", versioned=False)
+    LAST_INTERFACES = aff4.Attribute(
+        "aff4:last_interfaces", rdfvalue.Interfaces,
+        "Last seen network interfaces. Full history is maintained in the "
+        "clientid/network object. Separated for performance reasons.",
+        versioned=False)
 
     LAST_CRASH = aff4.Attribute(
         "aff4:last_crash", rdfvalue.ClientCrash,
@@ -154,6 +159,10 @@ class VFSGRRClient(standard.VFSDirectory):
     VOLUMES = aff4.Attribute(
         "aff4:volumes", rdfvalue.Volumes,
         "Client disk volumes.")
+
+    HARDWARE_INFO = aff4.Attribute(
+        "aff4:hardware_info", rdfvalue.HardwareInfo,
+        "Various hardware information.", default="")
 
   # Valid client ids
   CLIENT_ID_RE = re.compile(r"^C\.[0-9a-fA-F]{16}$")
@@ -249,21 +258,27 @@ class VFSGRRClient(standard.VFSDirectory):
     return client_urn.Add("/".join(result))
 
   def GetSummary(self):
-    """Gets a client summary object."""
-    summary = self.Get(self.Schema.SUMMARY)
-    if summary is None:
-      summary = rdfvalue.ClientSummary(client_id=self.urn)
-      summary.system_info.node = self.Get(self.Schema.HOSTNAME)
-      summary.system_info.system = self.Get(self.Schema.SYSTEM)
-      summary.system_info.release = self.Get(self.Schema.OS_RELEASE)
-      summary.system_info.version = str(self.Get(self.Schema.OS_VERSION, ""))
-      summary.system_info.fqdn = self.Get(self.Schema.FQDN)
-      summary.system_info.machine = self.Get(self.Schema.ARCH)
-      summary.system_info.install_date = self.Get(self.Schema.INSTALL_DATE)
+    """Gets a client summary object.
 
-      summary.users = self.Get(self.Schema.USER)
-      summary.interfaces = self.Get(self.Schema.INTERFACES)
-      summary.client_info = self.Get(self.Schema.CLIENT_INFO)
+    Returns:
+      rdfvalue.ClientSummary
+    """
+    self.max_age = 0
+    summary = rdfvalue.ClientSummary(client_id=self.urn)
+    summary.system_info.node = self.Get(self.Schema.HOSTNAME)
+    summary.system_info.system = self.Get(self.Schema.SYSTEM)
+    summary.system_info.release = self.Get(self.Schema.OS_RELEASE)
+    summary.system_info.version = str(self.Get(self.Schema.OS_VERSION, ""))
+    summary.system_info.kernel = self.Get(self.Schema.KERNEL)
+    summary.system_info.fqdn = self.Get(self.Schema.FQDN)
+    summary.system_info.machine = self.Get(self.Schema.ARCH)
+    summary.system_info.install_date = self.Get(
+        self.Schema.INSTALL_DATE)
+    summary.users = self.Get(self.Schema.USER)
+    summary.interfaces = self.Get(self.Schema.LAST_INTERFACES)
+    summary.client_info = self.Get(self.Schema.CLIENT_INFO)
+    summary.serial_number = self.Get(self.Schema.HARDWARE_INFO).serial_number
+    summary.timestamp = self.age
 
     return summary
 

@@ -31,8 +31,8 @@ class SendEmailTests(test_lib.GRRBaseTest):
 
       # Multiple unqualified to addresses, one cc
       to_address = "testto,abc,def"
-      to_address_expected = [x + testdomain for x in ["testto@", "abc@", "def@",
-                                                      "testcc@"]]
+      to_address_expected = [
+          x + testdomain for x in ["testto@", "abc@", "def@"]]
       cc_address = "testcc"
       email_alerts.SendEmail(to_address, from_address, subject, message,
                              cc_addresses=cc_address)
@@ -42,8 +42,8 @@ class SendEmailTests(test_lib.GRRBaseTest):
       self.assertTrue("CC: testcc@%s" % testdomain in message)
 
       # Multiple unqualified to addresses, two cc, message_id set
-      to_address_expected = [x + testdomain for x in ["testto@", "abc@", "def@",
-                                                      "testcc@", "testcc2@"]]
+      to_address_expected = [
+          x + testdomain for x in ["testto@", "abc@", "def@"]]
       cc_address = "testcc,testcc2"
       email_msg_id = "123123"
       email_alerts.SendEmail(to_address, from_address, subject, message,
@@ -56,7 +56,7 @@ class SendEmailTests(test_lib.GRRBaseTest):
       self.assertTrue("Message-ID: %s" % email_msg_id)
 
       # Multiple unqualified to addresses, two cc, no default domain
-      to_address_expected = ["testto", "abc", "def", "testcc", "testcc2"]
+      to_address_expected = ["testto", "abc", "def"]
       config_lib.CONFIG.Set("Email.default_domain", None)
       email_alerts.SendEmail(to_address, from_address, subject, message,
                              cc_addresses=cc_address)
@@ -73,5 +73,3 @@ def main(argv):
 
 if __name__ == "__main__":
   flags.StartMain(main)
-
-

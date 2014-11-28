@@ -69,13 +69,9 @@ class NetstatTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(conns[1].remote_address.port, 6667)
 
 
-class FlowTestLoader(test_lib.GRRTestLoader):
-  base_class = NetstatTest
-
-
 def main(argv):
   # Run the full test suite
-  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+  test_lib.GrrTestProgram(argv=argv)
 
 if __name__ == "__main__":
   flags.StartMain(main)

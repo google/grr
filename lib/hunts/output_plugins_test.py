@@ -283,12 +283,8 @@ class CSVOutputPluginTest(OutputpluginsTest):
     self.assertEqual(len(parsed_output), 1)
 
 
-class TestLoader(test_lib.GRRTestLoader):
-  base_class = OutputpluginsTest
-
-
 def main(argv):
-  test_lib.GrrTestProgram(argv=argv, testLoader=TestLoader())
+  test_lib.GrrTestProgram(argv=argv)
 
 if __name__ == "__main__":
   flags.StartMain(main)

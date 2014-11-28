@@ -697,25 +697,29 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     if result_type not in self.aff4_output_map:
       aff4_obj, aff4_attr, operator = (
           self.GetAFF4PathForArtifactResponses(result_type))
+      cache_entry = (aff4_obj, aff4_attr, operator, [])
       # Cache the opened object.
-      self.aff4_output_map[result_type] = (aff4_obj, aff4_attr, operator)
+      self.aff4_output_map[result_type] = cache_entry
     else:
-      aff4_obj, aff4_attr, operator = self.aff4_output_map[result_type]
+      cache_entry = self.aff4_output_map[result_type]
+
+    aff4_obj, aff4_attr, operator, result_list = cache_entry
 
     if operator == "Append":
-      aff4_attr.Append(result)
+      result_list.append(result)
     elif operator == "Overwrite":
       # We set for each new value, overwriting older ones.
-      aff4_obj.Set(aff4_attr)
+      aff4_obj.Set(aff4_attr(result))
     else:
       raise RuntimeError("Bad RDFMap writing method")
 
   def _FinalizeMappedAFF4Locations(self, artifact_name):
-    for aff4_obj, aff4_attr, operator in self.aff4_output_map.values():
+    for cache_entry in self.aff4_output_map.values():
+      aff4_obj, aff4_attr, operator, result_list = cache_entry
       if operator == "Append":
         # For any objects we appended to, we need to do the set now as the new
         # attributes aren't assigned to the AFF4 object yet.
-        aff4_obj.Set(aff4_attr)
+        aff4_obj.Set(aff4_attr(result_list))
       aff4_obj.Flush()
       self.Log("Wrote Artifact %s results to %s on %s", artifact_name,
                aff4_obj.urn, aff4_attr.__class__.__name__)
@@ -753,8 +757,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       raise artifact_lib.ArtifactProcessingError(
           "Failed to open result object for type %s. %s" % (output_type, e))
 
-    result_attr = getattr(result_object.Schema, aff4_attribute)()
-    if not isinstance(result_attr, rdfvalue.RDFValue):
+    result_attr = getattr(result_object.Schema, aff4_attribute, None)
+    if result_attr is None:
       raise artifact_lib.ArtifactProcessingError(
           "Failed to get attribute %s for output type %s" %
           (aff4_attribute, output_type))

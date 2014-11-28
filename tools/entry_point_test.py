@@ -33,6 +33,9 @@ class EntryPointTest(test_lib.GRRBaseTest):
     new_config = config_lib.CONFIG.MakeNewConfig()
     new_config.SetWriteBack(self.config_file)
     for info in config_lib.CONFIG.type_infos:
+      if info.name in config_lib.CONFIG.constants:
+        continue
+
       try:
         new_value = config_lib.CONFIG.GetRaw(info.name, None)
       except type_info.TypeValueError:

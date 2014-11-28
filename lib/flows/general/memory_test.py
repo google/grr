@@ -685,13 +685,9 @@ class ListVADBinariesTest(MemoryTest):
     self.assertEqual(fd.Read(1024), "just bar")
 
 
-class FlowTestLoader(test_lib.GRRTestLoader):
-  base_class = MemoryTest
-
-
 def main(argv):
   # Run the full test suite
-  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+  test_lib.GrrTestProgram(argv=argv)
 
 if __name__ == "__main__":
   flags.StartMain(main)

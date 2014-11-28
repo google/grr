@@ -4,6 +4,7 @@ import os
 import yaml
 
 from grr.lib import config_lib
+from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib.checks import checks as checks_lib
 from grr.lib.checks import filters
@@ -35,7 +36,11 @@ with open(test_data) as f:
     WMI_SW.extend(parser.Parse(None, sw, None))
 
 
-class ProbeTest(test_lib.GRRBaseTest):
+class ChecksTestBase(test_lib.GRRBaseTest):
+  pass
+
+
+class ProbeTest(ChecksTestBase):
   """Test 'Probe' operations."""
 
   configs = {}
@@ -77,7 +82,7 @@ class ProbeTest(test_lib.GRRBaseTest):
     self.assertRaises(filters.DefinitionError, checks.Probe, cfg)
 
 
-class MethodTest(test_lib.GRRBaseTest):
+class MethodTest(ChecksTestBase):
   """Test 'Method' operations."""
 
   configs = {}
@@ -109,7 +114,7 @@ class MethodTest(test_lib.GRRBaseTest):
     pass
 
 
-class CheckTest(test_lib.GRRBaseTest):
+class CheckTest(ChecksTestBase):
   """Test 'Check' operations."""
 
   cfg = {}
@@ -152,16 +157,16 @@ class CheckTest(test_lib.GRRBaseTest):
     pass
 
 
-class CheckResultsTest(test_lib.GRRBaseTest):
+class CheckResultsTest(ChecksTestBase):
   """Test 'CheckResult' operations."""
 
   def testExtendAnomalies(self):
     anomaly1 = {"finding": ["Adware 2.1.1 is installed"],
                 "explanation": "Found: Malicious software.",
-                "type": 1}
+                "type": "ANALYSIS_ANOMALY"}
     anomaly2 = {"finding": ["Java 6.0.240 is installed"],
                 "explanation": "Found: Old Java installation.",
-                "type": 1}
+                "type": "ANALYSIS_ANOMALY"}
     result = checks.CheckResult(check_id="SW-CHECK",
                                 anomaly=anomaly.Anomaly(**anomaly1))
     other = checks.CheckResult(check_id="SW-CHECK",
@@ -171,7 +176,7 @@ class CheckResultsTest(test_lib.GRRBaseTest):
     self.assertDictEqual(expect, result.ToPrimitiveDict())
 
 
-class HintDefinitionTests(test_lib.GRRBaseTest):
+class HintDefinitionTests(ChecksTestBase):
   """Test 'Hint' operations."""
 
   configs = {}
@@ -220,3 +225,9 @@ class HintDefinitionTests(test_lib.GRRBaseTest):
     self.assertEqual(generic_format, probe_2.hint.format)
 
 
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv)
+
+if __name__ == "__main__":
+  flags.StartMain(main)

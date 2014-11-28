@@ -62,17 +62,25 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
 
   def setUp(self):
     super(TestEndToEndTestFlow, self).setUp()
-    summary = rdfvalue.ClientSummary(system_info=rdfvalue.Uname(
-        system="Linux",
-        node="hostname",
-        release="debian",
-        version="14.04",
-        machine="x86_64",
-        kernel="3.15-rc2",
-        fqdn="hostname.example.com"))
-    self.client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
-    self.client.Set(self.client.SchemaCls.SUMMARY(summary))
+    install_time = rdfvalue.RDFDatetime().Now()
+    user = "testuser"
+    userobj = rdfvalue.User(username=user)
+    interface = rdfvalue.Interface(ifname="eth0")
+    self.client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient", mode="rw",
+                                      token=self.token, age=aff4.ALL_TIMES)
+    self.client.Set(self.client.Schema.HOSTNAME("hostname"))
+    self.client.Set(self.client.Schema.SYSTEM("Linux"))
+    self.client.Set(self.client.Schema.OS_RELEASE("debian"))
+    self.client.Set(self.client.Schema.OS_VERSION("14.04"))
+    self.client.Set(self.client.Schema.KERNEL("3.15-rc2"))
+    self.client.Set(self.client.Schema.FQDN("hostname.example.com"))
+    self.client.Set(self.client.Schema.ARCH("x86_64"))
+    self.client.Set(self.client.Schema.INSTALL_DATE(install_time))
+    self.client.Set(self.client.Schema.USER([userobj]))
+    self.client.Set(self.client.Schema.USERNAMES([user]))
+    self.client.Set(self.client.Schema.LAST_INTERFACES([interface]))
     self.client.Flush()
+
     self.client_mock = action_mocks.ActionMock("ListDirectory", "StatFile")
 
   def testRunSuccess(self):
@@ -101,16 +109,24 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
 
   def testNoApplicableTests(self):
     """Try to run linux tests on windows."""
-    summary = rdfvalue.ClientSummary(system_info=rdfvalue.Uname(
-        system="Windows",
-        node="hostname",
-        release="7",
-        version="6.1.7601SP1",
-        machine="AMD64",
-        kernel="6.1.7601",
-        fqdn="hostname.example.com"))
-    self.client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
-    self.client.Set(self.client.SchemaCls.SUMMARY(summary))
+    install_time = rdfvalue.RDFDatetime().Now()
+    user = "testuser"
+    userobj = rdfvalue.User(username=user)
+    interface = rdfvalue.Interface(ifname="eth0")
+    self.client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient", mode="rw",
+                                      token=self.token, age=aff4.ALL_TIMES)
+
+    self.client.Set(self.client.Schema.HOSTNAME("hostname"))
+    self.client.Set(self.client.Schema.SYSTEM("Windows"))
+    self.client.Set(self.client.Schema.OS_RELEASE("7"))
+    self.client.Set(self.client.Schema.OS_VERSION("6.1.7601SP1"))
+    self.client.Set(self.client.Schema.KERNEL("6.1.7601"))
+    self.client.Set(self.client.Schema.FQDN("hostname.example.com"))
+    self.client.Set(self.client.Schema.ARCH("AMD64"))
+    self.client.Set(self.client.Schema.INSTALL_DATE(install_time))
+    self.client.Set(self.client.Schema.USER([userobj]))
+    self.client.Set(self.client.Schema.USERNAMES([user]))
+    self.client.Set(self.client.Schema.LAST_INTERFACES([interface]))
     self.client.Flush()
 
     args = rdfvalue.EndToEndTestFlowArgs(

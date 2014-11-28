@@ -20,10 +20,6 @@ class SeleniumTestLoader(test_lib.GRRTestLoader):
 
 class SeleniumTestProgram(test_lib.GrrTestProgram):
 
-  def __init__(self, argv=None):
-    super(SeleniumTestProgram, self).__init__(
-        argv=argv, testLoader=SeleniumTestLoader())
-
   def SetupSelenium(self):
     os.environ.pop("http_proxy", None)
 

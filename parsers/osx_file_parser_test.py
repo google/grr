@@ -37,13 +37,9 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
                           ["/Users/user1", "/Users/user2"])
 
 
-class FlowTestLoader(test_lib.GRRTestLoader):
-  base_class = TestOSXFileParsing
-
-
 def main(argv):
   # Run the full test suite
-  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+  test_lib.GrrTestProgram(argv=argv)
 
 if __name__ == "__main__":
   flags.StartMain(main)

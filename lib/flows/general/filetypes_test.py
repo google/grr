@@ -38,13 +38,9 @@ class TestPlistFlows(test_lib.FlowTestsBaseclass):
     self._CheckOutputAFF4Type(output)
 
 
-class FlowTestLoader(test_lib.GRRTestLoader):
-  base_class = TestPlistFlows
-
-
 def main(argv):
   # Run the full test suite
-  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+  test_lib.GrrTestProgram(argv=argv)
 
 if __name__ == "__main__":
   flags.StartMain(main)

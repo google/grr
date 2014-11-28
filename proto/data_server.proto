@@ -103,3 +103,13 @@ message DataServerFileCopy {
   optional uint64 size = 4;
 }
 
+message DataStoreAuthToken {
+  optional string username = 1;
+  optional string nonce = 2;
+  optional string hash = 3;
+};
+
+message DataStoreRegistrationRequest {
+  optional uint32 port = 1;
+  optional DataStoreAuthToken token = 2;
+};

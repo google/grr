@@ -239,13 +239,9 @@ class TestSearchFileContent(GrepTests):
       self.assertGreater(len(log), 0)
 
 
-class FlowTestLoader(test_lib.GRRTestLoader):
-  base_class = GrepTests
-
-
 def main(argv):
   # Run the full test suite
-  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+  test_lib.GrrTestProgram(argv=argv)
 
 if __name__ == "__main__":
   flags.StartMain(main)

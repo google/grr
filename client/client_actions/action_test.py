@@ -31,8 +31,6 @@ from grr.lib import worker_mocks
 # pylint: mode=test
 # pylint: disable=g-bad-name
 
-# pylint: mode=test
-
 
 class MockWindowsProcess(object):
   """A mock windows process."""

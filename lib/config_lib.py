@@ -68,6 +68,14 @@ class FilterError(Error):
   """Raised when a filter fails to perform its function."""
 
 
+class ConstModificationError(Error):
+  """Raised when the config tries to change a constant option."""
+
+
+class AlreadyInitializedError(Error):
+  """Raised when an option is defined after initialization."""
+
+
 class ConfigFilter(object):
   """A configuration filter can transform a configuration parameter."""
 
@@ -564,6 +572,7 @@ class GrrConfigManager(object):
     self.writeback_data = OrderedYamlDict()
     self.global_override = dict()
     self.context_descriptions = {}
+    self.constants = set()
 
     # This is the type info set describing all configuration
     # parameters.
@@ -574,6 +583,8 @@ class GrrConfigManager(object):
 
     # A cache of validated and interpolated results.
     self.FlushCache()
+
+    self.initialized = False
 
   def FlushCache(self):
     self.cache = {}
@@ -693,6 +704,9 @@ class GrrConfigManager(object):
     """Set the raw string without verification or escaping."""
     if self.writeback is None:
       logging.warn("Attempting to modify a read only config object.")
+    if name in self.constants:
+      raise ConstModificationError(
+          "Attempting to modify constant value %s" % name)
 
     self.writeback_data[name] = value
     self.FlushCache()
@@ -707,6 +721,8 @@ class GrrConfigManager(object):
       name: The name of the parameter to set.
       value: The value to set it to. The value will be validated against the
         option's type descriptor.
+    Raises:
+      ConstModificationError: When attempting to change a constant option.
     """
 
     # If the configuration system has a write back location we use it,
@@ -714,6 +730,9 @@ class GrrConfigManager(object):
     if self.writeback is None:
       logging.warn("Attempting to modify a read only config object for %s.",
                    name)
+    if name in self.constants:
+      raise ConstModificationError(
+          "Attempting to modify constant value %s" % name)
 
     writeback_data = self.writeback_data
 
@@ -747,21 +766,32 @@ class GrrConfigManager(object):
       raise RuntimeError("Attempting to write a configuration without a "
                          "writeback location.")
 
-  def AddOption(self, descriptor):
+  def AddOption(self, descriptor, constant=False):
     """Registers an option with the configuration system.
 
     Args:
       descriptor: A TypeInfoObject instance describing the option.
+      constant: If this is set, the option is treated as a constant - it can be
+                read at any time (before parsing the configuration) and it's an
+                error to try to override it in a config file.
 
     Raises:
       RuntimeError: The descriptor's name must contain a . to denote the section
          name, otherwise we raise.
+      AlreadyInitializedError: If the config has already been read it's too late
+         to define new options.
     """
+    if self.initialized:
+      raise AlreadyInitializedError(
+          "Config was already initialized when defining %s" % descriptor.name)
+
     descriptor.section = descriptor.name.split(".")[0]
     if descriptor.name in self.type_infos:
       logging.warning("Config Option %s multiply defined!", descriptor.name)
 
     self.type_infos.Append(descriptor)
+    if constant:
+      self.constants.add(descriptor.name)
 
     # Register this option's default value.
     self.defaults[descriptor.name] = descriptor.GetDefault()
@@ -812,6 +842,10 @@ class GrrConfigManager(object):
 
         if isinstance(v, basestring):
           v = v.strip()
+
+        if k in self.constants:
+          raise ConstModificationError(
+              "Attempting to modify constant value %s" % k)
 
         raw_data[k] = v
 
@@ -891,6 +925,7 @@ class GrrConfigManager(object):
       self.raw_data = OrderedYamlDict()
       self.writeback_data = OrderedYamlDict()
       self.writeback = None
+      self.initialized = False
 
     if fd is not None:
       self.parser = parser(fd=fd)
@@ -908,6 +943,8 @@ class GrrConfigManager(object):
 
     else:
       raise RuntimeError("Registry path not provided.")
+
+    self.initialized = True
 
   def __getitem__(self, name):
     """Retrieve a configuration value after suitable interpolations."""
@@ -945,7 +982,12 @@ class GrrConfigManager(object):
       The value of the parameter.
     Raises:
       ConfigFormatError: if verify=True and the config doesn't validate.
+      RuntimeError: if a value is retrieved before the config is initialized.
     """
+    if not self.initialized:
+      if name not in self.constants:
+        raise RuntimeError("Error while retrieving %s: "
+                           "Configuration hasn't been initialized yet." % name)
     calc_context = context
     # Use a default global context if context is not provided.
 
@@ -1139,6 +1181,11 @@ class GrrConfigManager(object):
                                   description=help,
                                   validator=type_info.String()))
 
+  def DEFINE_constant_string(self, name, default, help):
+    """A helper for defining constant strings."""
+    self.AddOption(type_info.String(name=name, default=default or "",
+                                    description=help), constant=True)
+
   # pylint: enable=g-bad-name
 
 
@@ -1204,6 +1251,12 @@ def DEFINE_semantic(semantic_type, name, default=None, description=""):
 
 def DEFINE_option(type_descriptor):
   CONFIG.AddOption(type_descriptor)
+
+
+def DEFINE_constant_string(name, default, help):
+  """A helper for defining constant strings."""
+  CONFIG.AddOption(type_info.String(name=name, default=default or "",
+                                    description=help), constant=True)
 
 # pylint: enable=g-bad-name
 

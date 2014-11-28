@@ -55,6 +55,10 @@ class ChunkNotFoundError(IOError):
   pass
 
 
+class BadGetAttributeError(Exception):
+  pass
+
+
 class Factory(object):
   """A central factory for AFF4 objects."""
 
@@ -482,9 +486,11 @@ class Factory(object):
 
     # Read the row from the table.
     result = AFF4Object(urn, mode=mode, token=token, local_cache=local_cache,
-                        age=age, follow_symlinks=follow_symlinks)
+                        age=age, follow_symlinks=follow_symlinks,
+                        aff4_type=aff4_type)
 
-    # Get the correct type.
+    # Now we have a AFF4Object, turn it into the type it is currently supposed
+    # to be as specified by Schema.TYPE.
     existing_type = result.Get(result.Schema.TYPE, default="AFF4Volume")
     if existing_type:
       result = result.Upgrade(existing_type)
@@ -506,15 +512,18 @@ class Factory(object):
     if mode not in ["w", "r", "rw"]:
       raise RuntimeError("Invalid mode %s" % mode)
 
+    self.aff4_type = aff4_type
+
     symlinks = []
     for urn, values in self.GetAttributes(urns, token=token, age=age):
       try:
         obj = self.Open(urn, mode=mode, ignore_cache=ignore_cache, token=token,
                         local_cache={urn: values}, aff4_type=aff4_type, age=age,
                         follow_symlinks=False)
-        target = obj.Get(obj.Schema.SYMLINK_TARGET)
-        if target is not None:
-          symlinks.append(target)
+        if isinstance(obj, AFF4Symlink):
+          target = obj.Get(obj.Schema.SYMLINK_TARGET)
+          if target is not None:
+            symlinks.append(target)
         else:
           yield obj
       except IOError:
@@ -655,7 +664,15 @@ class Factory(object):
         existing = self.Open(
             urn, mode=mode, token=token, age=age,
             ignore_cache=ignore_cache)
+
         result = existing.Upgrade(aff4_type)
+
+        # We can't pass aff4_type into the Open call since it will raise with a
+        # type mismatch. We set it like this so BadGetAttributeError checking
+        # works.
+        if aff4_type:
+          result.aff4_type = aff4_type
+
         if force_new_version and existing.Get(result.Schema.TYPE) != aff4_type:
           result.ForceNewVersion()
         return result
@@ -664,7 +681,7 @@ class Factory(object):
 
     # Object does not exist, just make it.
     cls = AFF4Object.classes[str(aff4_type)]
-    result = cls(urn, mode=mode, token=token, age=age)
+    result = cls(urn, mode=mode, token=token, age=age, aff4_type=aff4_type)
     result.Initialize()
     if force_new_version:
       result.ForceNewVersion()
@@ -1147,6 +1164,18 @@ class AFF4Object(object):
     """Is this object currently locked?"""
     return self.transaction is not None
 
+  @property
+  def age(self):
+    """RDFDatetime at which the object was created."""
+    aff4_type = self.Get(self.Schema.TYPE)
+
+    if aff4_type:
+      return aff4_type.age
+    else:
+      # If there is no type attribute yet, we have only just been created and
+      # not flushed yet, so just set timestamp to now.
+      return rdfvalue.RDFDatetime().Now()
+
   @ClassProperty
   @classmethod
   def behaviours(cls):  # pylint: disable=g-bad-name
@@ -1201,6 +1230,15 @@ class AFF4Object(object):
                            "The owner of the lease.", versioned=False,
                            creates_new_object_version=False)
 
+    def __init__(self, aff4_type=None):
+      """Init.
+
+      Args:
+        aff4_type: aff4 type string e.g. "VFSGRRClient" if specified by the user
+          when the aff4 object was created. Or None.
+      """
+      self.aff4_type = aff4_type
+
     @classmethod
     def ListAttributes(cls):
       for attr in dir(cls):
@@ -1216,30 +1254,45 @@ class AFF4Object(object):
           return i
 
     def __getattr__(self, attr):
-      """For unknown attributes just return None.
+      """Handle unknown attributes.
 
       Often the actual object returned is not the object that is expected. In
-      those cases attempting to retrieve a specific named attribute will raise,
-      e.g.:
+      those cases attempting to retrieve a specific named attribute would
+      normally raise, e.g.:
 
       fd = aff4.FACTORY.Open(urn)
-      fd.Get(fd.Schema.SOME_ATTRIBUTE, default_value)
+      fd.Get(fd.Schema.DOESNTEXIST, default_value)
 
-      This simply ensures that the default is chosen.
+      In this case we return None to ensure that the default is chosen.
+
+      However, if the caller specifies a specific aff4_type, they expect the
+      attributes of that object. If they are referencing a non-existent
+      attribute this is an error and we should raise, e.g.:
+
+      fd = aff4.FACTORY.Open(urn, aff4_type="something")
+      fd.Get(fd.Schema.DOESNTEXIST, default_value)
 
       Args:
         attr: Some ignored attribute.
+      Raises:
+        BadGetAttributeError: if the object was opened with a specific type
       """
+      if self.aff4_type:
+        raise BadGetAttributeError(
+            "Attribute does not exist on object opened with aff4_type %s" %
+            self.aff4_type)
+
       return None
 
   # Make sure that when someone references the schema, they receive an instance
   # of the class.
   @property
   def Schema(self):   # pylint: disable=g-bad-name
-    return self.SchemaCls()
+    return self.SchemaCls(self.aff4_type)
 
   def __init__(self, urn, mode="r", parent=None, clone=None, token=None,
-               local_cache=None, age=NEWEST_TIME, follow_symlinks=True):
+               local_cache=None, age=NEWEST_TIME, follow_symlinks=True,
+               aff4_type=None):
     if urn is not None:
       urn = rdfvalue.RDFURN(urn)
     self.urn = urn
@@ -1259,6 +1312,10 @@ class AFF4Object(object):
 
     # Cached index object for Label handling.
     self._labels_index = None
+
+    # If an explicit aff4 type is requested we store it here so we know to
+    # verify aff4 attributes exist in the schema at Get() time.
+    self.aff4_type = aff4_type
 
     # We maintain two attribute caches - self.synced_attributes reflects the
     # attributes which are synced with the data_store, while self.new_attributes
@@ -1724,7 +1781,7 @@ class AFF4Object(object):
     # Instantiate the class
     result = cls(self.urn, mode=self.mode, clone=self, parent=self.parent,
                  token=self.token, age=self.age_policy,
-                 follow_symlinks=self.follow_symlinks)
+                 follow_symlinks=self.follow_symlinks, aff4_type=self.aff4_type)
     result.Initialize()
 
     return result

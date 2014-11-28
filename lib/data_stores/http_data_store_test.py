@@ -66,8 +66,8 @@ def _StartServer(temp_dir):
 def _CloseServer():
   # Send an exit request.
   conn = httplib.HTTPConnection("127.0.0.1", PORT)
-  unused_req = conn.request("POST", "/exit")
-  unused_response = conn.getresponse()
+  conn.request("POST", "/exit")
+  conn.getresponse()
 
 
 def _SetConfig(path):

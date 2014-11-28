@@ -268,7 +268,8 @@ class KnowledgeBaseUserMergeTest(test_lib.GRRBaseTest):
 
 
 def main(argv):
-  test_lib.main(argv)
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv)
 
 if __name__ == "__main__":
   flags.StartMain(main)

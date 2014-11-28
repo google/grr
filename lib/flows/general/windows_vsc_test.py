@@ -103,13 +103,9 @@ class TestListVolumeShadowCopies(test_lib.FlowTestsBaseclass):
                      ["file %s" % i for i in range(10)])
 
 
-class FlowTestLoader(test_lib.GRRTestLoader):
-  base_class = TestListVolumeShadowCopies
-
-
 def main(argv):
   # Run the full test suite
-  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+  test_lib.GrrTestProgram(argv=argv)
 
 if __name__ == "__main__":
   flags.StartMain(main)
