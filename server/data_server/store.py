@@ -289,7 +289,8 @@ class DataStoreService(object):
 
   def LoadServerMapping(self):
     """Retrieve server mapping from database."""
-    mapping_str, _ = self.db.Resolve(MAP_SUBJECT, MAP_VALUE_PREDICATE)
+    token = access_control.ACLToken(username="GRRSystem").SetUID()
+    mapping_str, _ = self.db.Resolve(MAP_SUBJECT, MAP_VALUE_PREDICATE, token=token)
     if not mapping_str:
       return None
     mapping = rdfvalue.DataServerMapping(mapping_str)
@@ -321,7 +322,8 @@ class DataStoreService(object):
       if self._DifferentPathing(new_pathing):
         self.pathing = new_pathing
         self.db.RecreatePathing(new_pathing)
-    self.db.MultiSet(MAP_SUBJECT, {MAP_VALUE_PREDICATE: mapping})
+    token = access_control.ACLToken(username="GRRSystem").SetUID()
+    self.db.MultiSet(MAP_SUBJECT, {MAP_VALUE_PREDICATE: mapping}, token=token)
 
   def GetLocation(self):
     return self.db.Location()
