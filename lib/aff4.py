@@ -1164,18 +1164,6 @@ class AFF4Object(object):
     """Is this object currently locked?"""
     return self.transaction is not None
 
-  @property
-  def age(self):
-    """RDFDatetime at which the object was created."""
-    aff4_type = self.Get(self.Schema.TYPE)
-
-    if aff4_type:
-      return aff4_type.age
-    else:
-      # If there is no type attribute yet, we have only just been created and
-      # not flushed yet, so just set timestamp to now.
-      return rdfvalue.RDFDatetime().Now()
-
   @ClassProperty
   @classmethod
   def behaviours(cls):  # pylint: disable=g-bad-name

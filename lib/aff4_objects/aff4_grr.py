@@ -167,6 +167,20 @@ class VFSGRRClient(standard.VFSDirectory):
   # Valid client ids
   CLIENT_ID_RE = re.compile(r"^C\.[0-9a-fA-F]{16}$")
 
+  @property
+  def age(self):
+    """RDFDatetime at which the object was created."""
+    # TODO(user) move up to AFF4Object after some analysis of how .age is
+    # used in the codebase.
+    aff4_type = self.Get(self.Schema.TYPE)
+
+    if aff4_type:
+      return aff4_type.age
+    else:
+      # If there is no type attribute yet, we have only just been created and
+      # not flushed yet, so just set timestamp to now.
+      return rdfvalue.RDFDatetime().Now()
+
   def Initialize(self):
     # Our URN must be a valid client.id.
     self.client_id = rdfvalue.ClientURN(self.urn)

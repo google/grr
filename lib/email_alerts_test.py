@@ -13,6 +13,9 @@ from grr.lib import test_lib
 
 class SendEmailTests(test_lib.GRRBaseTest):
 
+  def testSplitEmailsAndAppendEmailDomain(self):
+    self.assertEqual(email_alerts.SplitEmailsAndAppendEmailDomain(""), [])
+
   def testSendEmail(self):
     testdomain = "test.com"
     config_lib.CONFIG.Set("Email.default_domain", testdomain)
@@ -25,9 +28,10 @@ class SendEmailTests(test_lib.GRRBaseTest):
       subject = "test"
       message = ""
       email_alerts.SendEmail(to_address, from_address, subject, message)
-      c_from, c_to, _ = smtp_conn.sendmail.call_args[0]
+      c_from, c_to, msg = smtp_conn.sendmail.call_args[0]
       self.assertEqual(from_address, c_from)
       self.assertEqual([to_address], c_to)
+      self.assertFalse("CC:" in msg)
 
       # Multiple unqualified to addresses, one cc
       to_address = "testto,abc,def"

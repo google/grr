@@ -168,6 +168,21 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
 
       self.assertEqual(i, 4)
 
+  def testProcessHunResultsCronFlowDoesNothingWhenThereAreNoResults(self):
+    # There's no hunt, nothing. Just assert that cron job completes
+    # successfully.
+    self.ProcessHuntOutputPlugins()
+
+  def testProcessHuntResultCronFlowDoesNothingOnFalseNotifications(self):
+    # There may be cases when we've got the notification, but for some reason
+    # there are no new results in the corresponding hunt. Assert that cron
+    # job handles this scenario gracefully.
+    hunt_urn = self.StartHunt()
+    hunt_obj = aff4.FACTORY.Open(hunt_urn, token=self.token)
+    aff4.ResultsOutputCollection.ScheduleNotification(
+        hunt_obj.state.context.results_collection_urn, token=self.token)
+    self.ProcessHuntOutputPlugins()
+
   def testOutputPluginsProcessOnlyNewResultsOnEveryRun(self):
     self.StartHunt(output_plugins=[rdfvalue.OutputPlugin(
         plugin_name="DummyHuntOutputPlugin")])
