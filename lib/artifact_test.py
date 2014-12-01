@@ -204,7 +204,7 @@ class GRRArtifactTest(ArtifactTest):
       # "Append"
       _, aff4_type, aff4_attribute, operator = dat
 
-      if operator not in ["Set", "Append"]:
+      if operator not in ["Append", "Overwrite"]:
         raise artifact_lib.ArtifactDefinitionError(
             "Bad RDFMapping, unknown operator %s in %s" %
             (operator, rdf_name))
@@ -713,13 +713,9 @@ class GrrKbTest(ArtifactTest):
                              "DepsWindirRegex"])
 
 
-class FlowTestLoader(test_lib.GRRTestLoader):
-  base_class = ArtifactTest
-
-
 def main(argv):
   # Run the full test suite
-  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+  test_lib.GrrTestProgram(argv=argv)
 
 if __name__ == "__main__":
   flags.StartMain(main)

@@ -34,7 +34,7 @@ class FakeStore(object):
     ACTIVE = "unused"
 
 
-class FileStoreTest(test_lib.GRRBaseTest):
+class FileStoreTest(test_lib.AFF4ObjectTest):
   """Tests for file store functionality."""
 
   def testFileAdd(self):
@@ -93,7 +93,7 @@ class FileStoreTest(test_lib.GRRBaseTest):
       self.assertEqual(child_list[0].PRIORITY, 2)
 
 
-class HashFileStoreTest(test_lib.GRRBaseTest):
+class HashFileStoreTest(test_lib.AFF4ObjectTest):
   """Tests for hash file store functionality."""
 
   def setUp(self):

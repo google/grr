@@ -63,7 +63,7 @@ def RunEndToEndTests():
            "options, or pass them as parameters.")
 
   for client in aff4.FACTORY.MultiOpen(client_id_set, token=token):
-    client = client.Get(client.SchemaCls.SUMMARY)
+    client = client.GetSummary()
 
     if hasattr(client, "system_info"):
       sysinfo = client.system_info

@@ -425,6 +425,32 @@ class TestArtifactCollectorsRealArtifacts(CollectorTest):
         rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
     self._CheckDriveAndRoot()
 
+  def testRunWMIComputerSystemProductArtifact(self):
+
+    class WMIActionMock(action_mocks.ActionMock):
+
+      def WmiQuery(self, _):
+        return client_fixture.WMI_CMP_SYS_PRD
+
+    client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
+    client.Set(client.Schema.SYSTEM("Windows"))
+    client.Set(client.Schema.OS_VERSION("6.2"))
+    client.Flush()
+
+    client_mock = WMIActionMock()
+    for _ in test_lib.TestFlowHelper(
+        "ArtifactCollectorFlow", client_mock,
+        artifact_list=["WMIComputerSystemProduct"], token=self.token,
+        client_id=self.client_id,
+        dependencies=rdfvalue.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS,
+        store_results_in_aff4=True):
+      pass
+
+    client = aff4.FACTORY.Open(self.client_id, token=self.token,)
+    hardware = client.Get(client.Schema.HARDWARE_INFO)
+    self.assertTrue(isinstance(hardware, rdfvalue.HardwareInfo))
+    self.assertEqual(str(hardware.serial_number), "2RXYYZ1")
+
   def testRunWMIArtifact(self):
 
     class WMIActionMock(action_mocks.ActionMock):
@@ -489,13 +515,9 @@ class TestArtifactCollectorsRealArtifacts(CollectorTest):
     self.assertEqual(output[0], r"C:\Windows")
 
 
-class FlowTestLoader(test_lib.GRRTestLoader):
-  base_class = CollectorTest
-
-
 def main(argv):
   # Run the full test suite
-  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+  test_lib.GrrTestProgram(argv=argv)
 
 if __name__ == "__main__":
   flags.StartMain(main)

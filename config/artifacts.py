@@ -59,7 +59,9 @@ config_lib.DEFINE_list("Artifacts.knowledge_base_heavyweight",
                        " or slow to collect regularly from all machines.")
 
 config_lib.DEFINE_list("Artifacts.interrogate_store_in_aff4",
-                       ["WMILogicalDisks", "RootDiskVolumeUsage"],
+                       ["WMILogicalDisks",
+                        "RootDiskVolumeUsage",
+                        "WMIComputerSystemProduct"],
                        "Artifacts to collect during interrogate that don't"
                        " populate the knowledgebase, but store results "
                        "elsewhere in aff4.")

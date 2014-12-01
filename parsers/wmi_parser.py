@@ -122,6 +122,23 @@ class WMILogicalDisksParser(parsers.WMIQueryParser):
     yield volume
 
 
+class WMIComputerSystemProductParser(parsers.WMIQueryParser):
+  """Parser for WMI Output. Yeilds Identifying Number."""
+
+  output_types = ["HardwareInfo"]
+  supported_artifacts = ["WMIComputerSystemProduct"]
+
+  def Parse(self, query, result, knowledge_base):
+    """Parse the WMI output to get Identifying Number."""
+    # Currently we are only grabbing the Identifying Number
+    # as the serial number (catches the unique number for VMs).
+    # This could be changed to include more information from
+    # Win32_ComputerSystemProduct.
+    _ = query, knowledge_base
+
+    yield rdfvalue.HardwareInfo(serial_number=result["IdentifyingNumber"])
+
+
 class WMIInterfacesParser(parsers.WMIQueryParser):
   """Parser for WMI output. Yields SoftwarePackage rdfvalues."""
 

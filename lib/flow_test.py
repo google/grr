@@ -1277,13 +1277,9 @@ class BadArgsFlow1(flow.GRRFlow):
   args_type = BadArgsFlow1Args
 
 
-class FlowTestLoader(test_lib.GRRTestLoader):
-  base_class = BasicFlowTest
-
-
 def main(argv):
   # Run the full test suite
-  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+  test_lib.GrrTestProgram(argv=argv)
 
 if __name__ == "__main__":
   flags.StartMain(main)

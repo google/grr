@@ -354,3 +354,12 @@ collectors:
 labels: [System]
 supported_os: [Windows]
 urls: ['http://msdn.microsoft.com/en-us/library/aa394173(v=vs.85).aspx']
+---
+name: WMIComputerSystemProduct
+doc: Computer System Product including Identifiying number queried from WMI.
+collectors:
+- collector_type: WMI
+  args: {query: SELECT * FROM Win32_ComputerSystemProduct}
+labels: [System]
+supported_os: [Windows]
+urls: ['http://msdn.microsoft.com/en-us/library/aa394105(v=vs.85).aspx']

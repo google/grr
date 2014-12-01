@@ -424,6 +424,11 @@ class UnixVolume(structs.RDFProtoStruct):
   protobuf = sysinfo_pb2.UnixVolume
 
 
+class HardwareInfo(rdfvalue.RDFProtoStruct):
+  """Various hardware information."""
+  protobuf = sysinfo_pb2.HardwareInfo
+
+
 class ClientInformation(rdfvalue.RDFProtoStruct):
   """The GRR client information."""
   protobuf = jobs_pb2.ClientInformation

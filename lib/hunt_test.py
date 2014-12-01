@@ -524,12 +524,8 @@ class HuntTest(test_lib.FlowTestsBaseclass):
         self.assertEqual(len(DummyHunt.client_ids), i + 1)
 
 
-class FlowTestLoader(test_lib.GRRTestLoader):
-  base_class = HuntTest
-
-
 def main(argv):
-  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+  test_lib.GrrTestProgram(argv=argv)
 
 
 if __name__ == "__main__":

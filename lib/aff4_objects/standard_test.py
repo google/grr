@@ -11,7 +11,7 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 
 
-class BlobImageTest(test_lib.GRRBaseTest):
+class BlobImageTest(test_lib.AFF4ObjectTest):
   """Tests for cron functionality."""
 
   def testAppendContentError(self):
@@ -133,7 +133,7 @@ class IndexTest(test_lib.AFF4ObjectTest):
     self.assertEqual(len(results), 1)
 
 
-class AFF4IndexSetTest(test_lib.GRRBaseTest):
+class AFF4IndexSetTest(test_lib.AFF4ObjectTest):
 
   def CreateIndex(self, token=None):
     return aff4.FACTORY.Create("aff4:/index/foo", "AFF4IndexSet",
@@ -198,7 +198,7 @@ class AFF4IndexSetTest(test_lib.GRRBaseTest):
       self.assertListEqual(["wow", "wow3"], sorted(index.ListValues()))
 
 
-class AFF4LabelsIndexTest(test_lib.GRRBaseTest):
+class AFF4LabelsIndexTest(test_lib.AFF4ObjectTest):
 
   def CreateIndex(self, token=None):
     return aff4.FACTORY.Create("aff4:/index/labels", "AFF4LabelsIndex",
@@ -231,11 +231,11 @@ class AFF4LabelsIndexTest(test_lib.GRRBaseTest):
       index.AddLabel(urn, "foo", owner="testuser2")
 
     index = self.ReadIndex(token=self.token)
-    self.assertListEqual(index.ListUsedLabels(),
-                         [rdfvalue.AFF4ObjectLabel(name="foo",
-                                                   owner="testuser1"),
-                          rdfvalue.AFF4ObjectLabel(name="foo",
-                                                   owner="testuser2")])
+    self.assertItemsEqual(index.ListUsedLabels(),
+                          [rdfvalue.AFF4ObjectLabel(name="foo",
+                                                    owner="testuser1"),
+                           rdfvalue.AFF4ObjectLabel(name="foo",
+                                                    owner="testuser2")])
 
   def testUrnWithAddedLabelCanBeFound(self):
     urn = rdfvalue.RDFURN("aff4:/foo/bar")
@@ -415,7 +415,7 @@ class AFF4LabelsIndexTest(test_lib.GRRBaseTest):
         [rdfvalue.RDFURN("aff4:/foo/bar1")])
 
 
-class AFF4SparseImageTest(test_lib.GRRBaseTest):
+class AFF4SparseImageTest(test_lib.AFF4ObjectTest):
 
   def AddBlobToBlobStore(self, blob_contents):
 
@@ -549,7 +549,7 @@ class AFF4SparseImageTest(test_lib.GRRBaseTest):
       fd.Read(fd.chunksize)
 
 
-class VFSDirectoryTest(test_lib.GRRBaseTest):
+class VFSDirectoryTest(test_lib.AFF4ObjectTest):
 
   def testRealPathspec(self):
 

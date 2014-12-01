@@ -56,6 +56,10 @@ config_lib.DEFINE_integer("SqliteDatastore.vacuum_ratio", default=50,
                           help=("Percentage of pages that are free before "
                                 "vacuuming a sqlite file."))
 
+config_lib.DEFINE_integer("SqliteDatastore.connection_cache_size", default=1000,
+                          help=("Number of file handles kept in the SQLite "
+                                "data_store cache."))
+
 # Mongo data store.
 config_lib.DEFINE_string("Mongo.server", "localhost",
                          "The mongo server hostname.")

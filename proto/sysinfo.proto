@@ -2,6 +2,8 @@
 
 // Protobufs for information about a system
 
+// LINT: LEGACY_NAMES
+
 syntax = "proto2";
 
 import "grr/proto/jobs.proto";
@@ -461,6 +463,15 @@ message DNSClientConfiguration {
 
   repeated string dns_suffix = 2 [(sem_type) = {
       description: "List of DNS suffixes appended in search order.",
+    }];
+
+}
+
+// Various System Hardware
+message HardwareInfo {
+
+  optional string serial_number = 1 [(sem_type) ={
+      description: "Identifying/Serial Number."
     }];
 
 }

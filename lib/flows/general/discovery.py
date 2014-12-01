@@ -3,7 +3,6 @@
 
 
 from grr.lib import aff4
-from grr.lib import artifact
 from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
@@ -49,8 +48,6 @@ class Interrogate(flow.GRRFlow):
                                  "ClientConfiguration"])
   def Start(self):
     """Start off all the tests."""
-    self.state.Register("summary", rdfvalue.ClientSummary(
-        client_id=self.client_id))
 
     # Create the objects we need to exist.
     self.Load()
@@ -82,14 +79,13 @@ class Interrogate(flow.GRRFlow):
     if responses.success:
       response = responses.First()
 
-      self.state.summary.system_info = response
-
       # These need to be in separate attributes because they get searched on in
       # the GUI
       self.client.Set(self.client.Schema.HOSTNAME(response.node))
       self.client.Set(self.client.Schema.SYSTEM(response.system))
       self.client.Set(self.client.Schema.OS_RELEASE(response.release))
       self.client.Set(self.client.Schema.OS_VERSION(response.version))
+      self.client.Set(self.client.Schema.KERNEL(response.kernel))
       self.client.Set(self.client.Schema.FQDN(response.fqdn))
 
       # response.machine is the machine value of platform.uname()
@@ -128,7 +124,6 @@ class Interrogate(flow.GRRFlow):
       install_date = self.client.Schema.INSTALL_DATE(
           response.integer * 1000000)
       self.client.Set(install_date)
-      self.state.summary.install_date = install_date
     else:
       self.Log("Could not get InstallDate")
 
@@ -142,33 +137,9 @@ class Interrogate(flow.GRRFlow):
 
   @flow.StateHandler(next_state=["ProcessArtifactResponses"])
   def ProcessKnowledgeBase(self, responses):
-    """Update the SUMMARY from the knowledgebase data."""
+    """Collect and store any extra non-kb artifacts."""
     if not responses.success:
       raise flow.FlowError("Error collecting artifacts: %s" % responses.status)
-
-    knowledge_base = artifact.GetArtifactKnowledgeBase(self.client)
-    for kbuser in knowledge_base.users:
-      self.state.summary.users.Append(
-          rdfvalue.User().FromKnowledgeBaseUser(kbuser))
-
-    # If the knowledge base came back with values for these collected via
-    # artifacts, we trust those more than the values returned via the
-    # GetPlatformInfo client action so we override them here.
-    if knowledge_base.os_release:
-      os_release = knowledge_base.os_release
-      self.client.Set(self.client.Schema.OS_RELEASE(os_release))
-
-      # Override OS version field too.
-      # TODO(user): this actually results in incorrect versions for things
-      #                like Ubuntu (14.4 instead of 14.04). I don't think zero-
-      #                padding is always correct, however.
-      os_version = "%d.%d" % (knowledge_base.os_major_version,
-                              knowledge_base.os_minor_version)
-      self.client.Set(self.client.Schema.OS_VERSION(os_version))
-
-      # Update client summary accordingly.
-      self.state.summary.system_info.release = os_release
-      self.state.summary.system_info.version = os_version
 
     # Collect any non-knowledgebase artifacts that will be stored in aff4.
     artifact_list = self._GetExtraArtifactsForCollection()
@@ -210,10 +181,10 @@ class Interrogate(flow.GRRFlow):
       self.client.Set(self.client.Schema.HOST_IPS(
           "\n".join(ip_addresses)))
 
-      net_fd.Set(net_fd.Schema.INTERFACES, interface_list)
+      net_fd.Set(net_fd.Schema.INTERFACES(interface_list))
       net_fd.Close()
+      self.client.Set(self.client.Schema.LAST_INTERFACES(interface_list))
 
-      self.state.summary.interfaces = interface_list
     else:
       self.Log("Could not enumerate interfaces.")
 
@@ -284,10 +255,8 @@ class Interrogate(flow.GRRFlow):
     """Obtain some information about the GRR client running."""
     if responses.success:
       response = responses.First()
-      self.state.summary.client_info = response
       self.client.Set(self.client.Schema.CLIENT_INFO(response))
       self.client.AddLabels(*response.labels, owner="GRR")
-      self.state.summary.client_info = response
     else:
       self.Log("Could not get ClientInfo.")
 
@@ -310,11 +279,10 @@ class Interrogate(flow.GRRFlow):
     """Finalize client registration."""
     self.Notify("Discovery", self.client.urn, "Client Discovery Complete")
 
-    # Publish this client to the Discovery queue.
-    self.state.summary.timestamp = rdfvalue.RDFDatetime().Now()
-    self.Publish("Discovery", self.state.summary)
-    self.SendReply(self.state.summary)
-    self.client.Set(self.client.Schema.SUMMARY, self.state.summary)
+    # Update summary and publish to the Discovery queue.
+    summary = self.client.GetSummary()
+    self.Publish("Discovery", summary)
+    self.SendReply(summary)
 
     # Flush the data to the data store.
     self.client.Close()

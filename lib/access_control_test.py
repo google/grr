@@ -379,13 +379,9 @@ class AccessControlTest(test_lib.GRRBaseTest):
     self.assertEqual(self.token.is_emergency, True)
 
 
-class AccessControlTestLoader(test_lib.GRRTestLoader):
-  base_class = AccessControlTest
-
-
 def main(argv):
   # Run the full test suite
-  test_lib.GrrTestProgram(argv=argv, testLoader=AccessControlTestLoader())
+  test_lib.GrrTestProgram(argv=argv)
 
 if __name__ == "__main__":
   flags.StartMain(main)

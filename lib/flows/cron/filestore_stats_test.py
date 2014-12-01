@@ -75,13 +75,9 @@ class FilestoreStatsCronFlowTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(clientcount.data[2].y_value, 5)
 
 
-class FlowTestLoader(test_lib.GRRTestLoader):
-  base_class = FilestoreStatsCronFlowTest
-
-
 def main(argv):
   # Run the full test suite
-  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+  test_lib.GrrTestProgram(argv=argv)
 
 if __name__ == "__main__":
   flags.StartMain(main)

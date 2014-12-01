@@ -18,7 +18,11 @@ from grr.lib import test_lib
 from grr.lib import utils
 
 
-class TestNavigatorView(test_lib.GRRSeleniumTest):
+class SearchClientTestBase(test_lib.GRRSeleniumTest):
+  pass
+
+
+class TestNavigatorView(SearchClientTestBase):
   """Tests for NavigatorView (left side bar)."""
 
   def CreateClient(self, last_ping=None):
@@ -83,8 +87,8 @@ class TestNavigatorView(test_lib.GRRSeleniumTest):
     self.Click("client_query_submit")
 
     self.WaitUntil(self.IsElementPresent,
-                   "css=tr:contains('%s') > "
-                   "td:first img[src$='online.png']" % client_id.Basename())
+                   "css=tr:contains('%s') "
+                   "img[src$='online.png']" % client_id.Basename())
 
   def testOneDayClientStatusInClientSearch(self):
     client_id = self.CreateClient(
@@ -95,8 +99,8 @@ class TestNavigatorView(test_lib.GRRSeleniumTest):
     self.Click("client_query_submit")
 
     self.WaitUntil(self.IsElementPresent,
-                   "css=tr:contains('%s') > "
-                   "td:first img[src$='online-1d.png']" % client_id.Basename())
+                   "css=tr:contains('%s') "
+                   "img[src$='online-1d.png']" % client_id.Basename())
 
   def testOfflineClientStatusInClientSearch(self):
     client_id = self.CreateClient(
@@ -107,8 +111,8 @@ class TestNavigatorView(test_lib.GRRSeleniumTest):
     self.Click("client_query_submit")
 
     self.WaitUntil(self.IsElementPresent,
-                   "css=tr:contains('%s') > "
-                   "td:first img[src$='offline.png']" % client_id.Basename())
+                   "css=tr:contains('%s') "
+                   "img[src$='offline.png']" % client_id.Basename())
 
   def testLatestCrashesStatusIsNotDisplayedWhenThereAreNoCrashes(self):
     client_id = self.CreateClient()
@@ -173,8 +177,8 @@ class TestNavigatorView(test_lib.GRRSeleniumTest):
     # But it shouldn't have the skull.
     self.WaitUntilNot(
         self.IsElementPresent,
-        "css=tr:contains('%s') > "
-        "td:first img[src$='skull-icon.png']" % client_id.Basename())
+        "css=tr:contains('%s') "
+        "img[src$='skull-icon.png']" % client_id.Basename())
 
   def testCrashIconDoesNotAppearInClientSearchIfClientCrashedLongTimeAgo(self):
     client_id = self.CreateClient()
@@ -192,8 +196,8 @@ class TestNavigatorView(test_lib.GRRSeleniumTest):
     # But it shouldn't have the skull.
     self.WaitUntilNot(
         self.IsElementPresent,
-        "css=tr:contains('%s') > "
-        "td:first img[src$='skull-icon.png']" % client_id.Basename())
+        "css=tr:contains('%s') "
+        "img[src$='skull-icon.png']" % client_id.Basename())
 
   def testCrashIconAppearsInClientSearchIfClientCrashedRecently(self):
     timestamp = rdfvalue.RDFDatetime().Now()
@@ -208,11 +212,11 @@ class TestNavigatorView(test_lib.GRRSeleniumTest):
     # There should be a result row with the client id.
     self.WaitUntil(self.IsElementPresent,
                    "css=tr:contains('%s')" % client_id.Basename())
-    # But it shouldn't have the skull.
+    # And it should have the skull.
     self.WaitUntil(
         self.IsElementPresent,
-        "css=tr:contains('%s') > "
-        "td:first img[src$='skull-icon.png']" % client_id.Basename())
+        "css=tr:contains('%s') "
+        "img[src$='skull-icon.png']" % client_id.Basename())
 
   def testDiskIconDoesNotAppearInClientSearchIfDiskIsNotFull(self):
     client_id = self.CreateClientWithVolumes()
@@ -227,8 +231,8 @@ class TestNavigatorView(test_lib.GRRSeleniumTest):
     # But it shouldn't have the disk icon.
     self.WaitUntilNot(
         self.IsElementPresent,
-        "css=tr:contains('%s') > "
-        "td:first img[src$='hdd-bang-icon.png']" % client_id.Basename())
+        "css=tr:contains('%s') "
+        "img[src$='hdd-bang-icon.png']" % client_id.Basename())
 
   def testDiskIconDoesAppearsInClientSearchIfDiskIsFull(self):
     client_id = self.CreateClientWithVolumes(available=1)
@@ -243,8 +247,8 @@ class TestNavigatorView(test_lib.GRRSeleniumTest):
     # With the disk icon.
     self.WaitUntil(
         self.IsElementPresent,
-        "css=tr:contains('%s') > "
-        "td:first img[src$='hdd-bang-icon.png']" % client_id.Basename())
+        "css=tr:contains('%s') "
+        "img[src$='hdd-bang-icon.png']" % client_id.Basename())
 
   def testDiskWarningIsNotDisplayed(self):
     client_id = self.CreateClientWithVolumes()
@@ -259,7 +263,7 @@ class TestNavigatorView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Disk free space")
 
 
-class TestContentView(test_lib.GRRSeleniumTest):
+class TestContentView(SearchClientTestBase):
   """Tests the main content view."""
 
   def testGlobalNotificationIsShownWhenSet(self):
@@ -443,7 +447,7 @@ class TestContentView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "CANARY MODE IS OFF")
 
 
-class TestHostTable(test_lib.GRRSeleniumTest):
+class TestHostTable(SearchClientTestBase):
   """Tests the main content view."""
 
   def testUserLabelIsShownAsBootstrapSuccessLabel(self):
@@ -453,6 +457,7 @@ class TestHostTable(test_lib.GRRSeleniumTest):
         client.AddLabels("foo", owner="test")
 
     self.Open("/#main=HostTable&q=.*")
+
     self.WaitUntil(self.IsVisible,
                    "css=tr:contains('C.0000000000000001') "
                    "span.label-success:contains('foo')")
@@ -517,7 +522,7 @@ class TestHostTable(test_lib.GRRSeleniumTest):
     # Click proceed and check that error message is displayed and that
     # dialog is not going away.
     self.Click("css=div[name=ApplyLabelDialog] button[name=Proceed]")
-    self.WaitUntil(self.IsTextPresent, "Label name can only contain")
+    self.WaitUntil(self.IsTextPresent, "Label name cannot be empty.")
     self.WaitUntil(self.IsVisible, "css=div[name=ApplyLabelDialog]")
 
   def testApplyLabelDialogShowsErrorWhenAddingLabelWithComma(self):
@@ -599,7 +604,7 @@ class TestHostTable(test_lib.GRRSeleniumTest):
     self.Click("css=div[name=ApplyLabelDialog] button[name=Proceed]")
     self.Click("css=div[name=ApplyLabelDialog] button[name=Cancel]")
 
-    # Ensure that checkbox is still checked
+    # Ensure that checkbox is not checked anymore.
     self.WaitUntil(self.IsVisible,
                    "css=input.client-checkbox["
                    "client_urn='aff4:/C.0000000000000001']:not(:checked)")

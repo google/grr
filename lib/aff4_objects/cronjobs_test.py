@@ -69,7 +69,7 @@ class DummyStatefulSystemCronJob(cronjobs.StatefulSystemCronFlow):
     self.WriteCronState(state)
 
 
-class CronTest(test_lib.GRRBaseTest):
+class CronTest(test_lib.AFF4ObjectTest):
   """Tests for cron functionality."""
 
   def testCronJobPreservesFlowNameAndArguments(self):

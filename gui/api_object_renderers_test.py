@@ -245,6 +245,14 @@ class VFSGRRClientApiObjectRendererTest(test_lib.GRRBaseTest):
     data = self.renderer.RenderObject(self.fd, {})
 
     self.assertEqual(data["aff4_class"], "VFSGRRClient")
+
+    # Check timestamp separately since it will be approx current time, allow 60s
+    # fudge factor.
+    self.assertAlmostEqual(
+        data["summary"]["timestamp"],
+        rdfvalue.RDFDatetime().Now().AsMicroSecondsFromEpoch(), delta=60000000)
+    data["summary"].pop("timestamp")
+
     self.assertEqual(data["summary"], {
         "system_info": {
             "node": "Host-0",
@@ -254,7 +262,8 @@ class VFSGRRClientApiObjectRendererTest(test_lib.GRRBaseTest):
         "client_id": "aff4:/C.1000000000000000",
         "client_info": {
             "client_name": "GRR Monitor"
-            }
+            },
+        "serial_number": ""
         })
 
 

@@ -16,7 +16,11 @@ from grr.lib import test_lib
 from grr.lib import utils
 
 
-class TestFileView(test_lib.GRRSeleniumTest):
+class FileViewTestBase(test_lib.GRRSeleniumTest):
+  pass
+
+
+class TestFileView(FileViewTestBase):
   """Test the fileview interface."""
 
   def setUp(self):
@@ -483,7 +487,7 @@ class TestFileView(test_lib.GRRSeleniumTest):
                    "css=#main_rightTopPane .breadcrumb li:contains('fs')")
 
 
-class TestHostInformation(test_lib.GRRSeleniumTest):
+class TestHostInformation(FileViewTestBase):
   """Test the host information interface."""
 
   def setUp(self):

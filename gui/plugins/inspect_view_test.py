@@ -15,7 +15,11 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 
 
-class TestClientLoadView(test_lib.GRRSeleniumTest):
+class TestInspectViewBase(test_lib.GRRSeleniumTest):
+  pass
+
+
+class TestClientLoadView(TestInspectViewBase):
   """Tests for ClientLoadView."""
 
   @staticmethod
@@ -79,7 +83,7 @@ class TestClientLoadView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "MEDIUM_PRIORITY")
 
 
-class TestDebugClientRequestsView(test_lib.GRRSeleniumTest):
+class TestDebugClientRequestsView(TestInspectViewBase):
   """Test the inspect interface."""
 
   def testInspect(self):

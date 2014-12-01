@@ -41,3 +41,10 @@ class DataServerFileCopy(rdfvalue.RDFProtoStruct):
 class DataServerRebalance(rdfvalue.RDFProtoStruct):
   protobuf = data_server_pb2.DataServerRebalance
 
+
+class DataStoreRegistrationRequest(rdfvalue.RDFProtoStruct):
+  protobuf = data_server_pb2.DataStoreRegistrationRequest
+
+
+class DataStoreAuthToken(rdfvalue.RDFProtoStruct):
+  protobuf = data_server_pb2.DataStoreAuthToken

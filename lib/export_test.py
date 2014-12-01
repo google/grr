@@ -920,22 +920,26 @@ class DataAgnosticExportConverterTest(test_lib.GRRBaseTest):
     converted_value = self.ConvertOriginalValue(original_value)
 
     # No 'metadata' field in the original value.
-    self.assertListEqual(sorted([t.name for t in original_value.type_infos]),
-                         sorted(["string_value",
-                                 "int_value",
-                                 "repeated_string_value",
-                                 "message_value",
-                                 "enum_value",
-                                 "urn_value",
-                                 "datetime_value"]))
+    self.assertItemsEqual([t.name for t in original_value.type_infos],
+                          ["string_value",
+                           "int_value",
+                           "bool_value",
+                           "repeated_string_value",
+                           "message_value",
+                           "enum_value",
+                           "another_enum_value",
+                           "urn_value",
+                           "datetime_value"])
     # But there's one in the converted value.
-    self.assertListEqual(sorted([t.name for t in converted_value.type_infos]),
-                         sorted(["metadata",
-                                 "string_value",
-                                 "int_value",
-                                 "enum_value",
-                                 "urn_value",
-                                 "datetime_value"]))
+    self.assertItemsEqual([t.name for t in converted_value.type_infos],
+                          ["metadata",
+                           "string_value",
+                           "int_value",
+                           "bool_value",
+                           "enum_value",
+                           "another_enum_value",
+                           "urn_value",
+                           "datetime_value"])
 
     # Metadata value is correctly initialized from user-supplied metadata.
     self.assertEqual(converted_value.metadata.source_urn,
@@ -946,8 +950,8 @@ class DataAgnosticExportConverterTest(test_lib.GRRBaseTest):
         metadata=42, value="value")
     converted_value = self.ConvertOriginalValue(original_value)
 
-    self.assertListEqual(sorted([t.name for t in converted_value.type_infos]),
-                         ["metadata", "value"])
+    self.assertItemsEqual([t.name for t in converted_value.type_infos],
+                          ["metadata", "value"])
     self.assertEqual(converted_value.metadata.source_urn,
                      rdfvalue.RDFURN("aff4:/foo"))
     self.assertEqual(converted_value.value, "value")
@@ -956,6 +960,7 @@ class DataAgnosticExportConverterTest(test_lib.GRRBaseTest):
     original_value = rdfvalue.DataAgnosticConverterTestValue(
         string_value="string value",
         int_value=42,
+        bool_value=True,
         enum_value=rdfvalue.DataAgnosticConverterTestValue.EnumOption.OPTION_2,
         urn_value=rdfvalue.RDFURN("aff4:/bar"),
         datetime_value=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))
@@ -968,6 +973,10 @@ class DataAgnosticExportConverterTest(test_lib.GRRBaseTest):
     self.assertEqual(converted_value.int_value.__class__,
                      original_value.int_value.__class__)
     self.assertEqual(converted_value.int_value, 42)
+
+    self.assertEqual(converted_value.bool_value.__class__,
+                     original_value.bool_value.__class__)
+    self.assertEqual(converted_value.bool_value, True)
 
     self.assertEqual(converted_value.enum_value.__class__,
                      original_value.enum_value.__class__)
@@ -986,6 +995,7 @@ class DataAgnosticExportConverterTest(test_lib.GRRBaseTest):
     original_value = rdfvalue.DataAgnosticConverterTestValue(
         string_value="string value",
         int_value=42,
+        bool_value=True,
         enum_value=rdfvalue.DataAgnosticConverterTestValue.EnumOption.OPTION_2,
         urn_value=rdfvalue.RDFURN("aff4:/bar"),
         datetime_value=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))

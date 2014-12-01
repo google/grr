@@ -380,7 +380,15 @@ class PackedVersionedCollection(RDFValueCollection):
   index_format = "index:changed/%s"
 
   @classmethod
+  def ScheduleNotification(cls, urn, sync=False, token=None):
+    """Schedule notification for a given urn."""
+    data_store.DB.Set(cls.notification_queue, cls.index_format % urn,
+                      urn, replace=True, token=token, sync=sync)
+
+  @classmethod
   def QueryNotifications(cls, timestamp=None, token=None):
+    """Query all the notifications for the given type of collections."""
+
     if token is None:
       raise ValueError("token can't be None")
 
@@ -395,6 +403,8 @@ class PackedVersionedCollection(RDFValueCollection):
 
   @classmethod
   def DeleteNotifications(cls, urns, end=None, token=None):
+    """Delete notifications for given urns."""
+
     if token is None:
       raise ValueError("token can't be None")
 
@@ -420,8 +430,7 @@ class PackedVersionedCollection(RDFValueCollection):
     self.Set(self.Schema.DATA(payload=rdf_value))
 
     # Let the compactor know we need compacting.
-    data_store.DB.Set(self.notification_queue, self.index_format % self.urn,
-                      self.urn, replace=True, token=self.token, sync=False)
+    self.ScheduleNotification(self.urn, token=self.token)
 
   def AddAll(self, rdf_values, callback=None):
     """Adds a list of rdfvalues to the collection."""
@@ -442,8 +451,7 @@ class PackedVersionedCollection(RDFValueCollection):
         callback(index, rdf_value)
 
     # Let the compactor know we need compacting.
-    data_store.DB.Set(self.notification_queue, self.index_format % self.urn,
-                      self.urn, replace=True, token=self.token, sync=False)
+    self.ScheduleNotification(self.urn, token=self.token)
 
   def GenerateUncompactedItems(self, max_reversed_results=0):
     if self.IsAttributeSet(self.Schema.DATA):

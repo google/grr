@@ -165,7 +165,8 @@ class DataServerConnection(object):
       # Generate the authentication token.
       size_nonce = int(response.getheader("Content-Length"))
       nonce = response.read(size_nonce)
-      token = auth.GenerateAuthToken(nonce, username, password)
+      rdf_token = auth.NonceStore.GenerateAuthToken(nonce, username, password)
+      token = rdf_token.SerializeToString()
       # We trick HTTP here and use the underlying socket to pipeline requests.
       headers = {"Content-Length": len(token)}
       self.conn.request("POST", "/client/start", token, headers)

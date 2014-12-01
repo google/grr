@@ -82,7 +82,7 @@ class EndToEndTestFlow(flow.GRRFlow):
     self.state.Register("fail_count", 0)
 
     self.client = aff4.FACTORY.Open(self.client_id, token=self.token)
-    self.state.client_summary = self.client.Get(self.client.SchemaCls.SUMMARY)
+    self.state.client_summary = self.client.GetSummary()
     system = self.state.client_summary.system_info.system
 
     for test_name in self.args.test_names:

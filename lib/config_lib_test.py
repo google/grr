@@ -146,6 +146,7 @@ class ConfigLibTest(test_lib.GRRBaseTest):
     # Test access methods.
     conf = config_lib.GrrConfigManager()
     conf.DEFINE_string("NewSection1.new_option1", "Default Value", "Help")
+    conf.initialized = True
 
     conf.Set("NewSection1.new_option1", "New Value1")
 
@@ -223,6 +224,7 @@ certificate =
     conf.DEFINE_string("Section1.foobar", "test", "A test string.")
     conf.DEFINE_string("Section1.foobaz", None, "An empty default string.")
     conf.DEFINE_string("Section1.foobin", "", "An empty default string.")
+    conf.initialized = True
     self.assertEqual(conf.Get("Section1.foobar"), "test")
     self.assertEqual(conf.Get("Section1.foobar", default=None), None)
     conf.Initialize(data="""
@@ -245,12 +247,7 @@ foobar = X
     conf.DEFINE_string("Section1.interpolated", "", "An interpolated string.")
 
     # This entry is not correct - the default is invalid.
-    conf.DEFINE_integer("Section1.test_int", "string", "A test integer.")
-
-    # The default value is invalid.
-    errors = conf.Validate("Section1")
-    self.assertTrue(
-        "Invalid value string for Integer" in str(errors["Section1.test_int"]))
+    conf.DEFINE_integer("Section1.broken_int", "string", "A test integer.")
 
     conf.DEFINE_string("Section1.system", None, "The basic operating system.")
     conf.DEFINE_integer("Section1.test_int", 54, "A test integer.")
@@ -272,6 +269,11 @@ interpolated = %(%(Section1.foobar)|lower)Y
 
 """)
 
+    # The default value is invalid.
+    errors = conf.Validate("Section1")
+    self.assertIn("Invalid value string for Integer",
+                  str(errors["Section1.broken_int"]))
+
     # Section not specified:
     self.assertRaises(config_lib.UnknownOption, conf.__getitem__, "a")
 
@@ -291,6 +293,29 @@ interpolated = %(%(Section1.foobar)|lower)Y
 
     # Test filter functions.
     self.assertEqual(conf["Section3.interpolated"], "xY")
+
+  def testConstants(self):
+    """Test that we can add options."""
+    conf = config_lib.GrrConfigManager()
+    conf.initialized = False
+
+    conf.DEFINE_constant_string("Section1.const", "test", "A test string.")
+
+    # We should be able to read this while the config is not initialized.
+    self.assertEqual(conf["Section1.const"], "test")
+
+    data = """
+[Section1]
+const = New string
+"""
+
+    # Modification of constant values is an error.
+    self.assertRaises(config_lib.ConstModificationError, conf.Set,
+                      "Section1.const", "New string")
+    self.assertRaises(config_lib.ConstModificationError, conf.SetRaw,
+                      "Section1.const", "New string")
+    self.assertRaises(config_lib.ConstModificationError, conf.Initialize,
+                      data=data)
 
   def testUnbalancedParenthesis(self):
     conf = config_lib.GrrConfigManager()
@@ -380,7 +405,10 @@ literal = %{aff4:/C\.(?P<path>.\{1,16\}?)($|/.*)}
 
     self.assertEqual(type(conf.Get("Section1.float")), float)
 
+    conf = config_lib.GrrConfigManager()
     conf.DEFINE_integer("Section1.int", 0, "An integer")
+    conf.DEFINE_list("Section1.list", default=[], help="A list")
+    conf.DEFINE_list("Section1.list2", default=["a", "2"], help="A list")
     conf.Initialize(parser=config_lib.YamlParser, data="Section1.int: 2.0")
 
     errors = conf.Validate("Section1")
@@ -395,11 +423,9 @@ literal = %{aff4:/C\.(?P<path>.\{1,16\}?)($|/.*)}
     errors = conf.Validate("Section1")
     self.assertEqual(type(conf.Get("Section1.int")), long)
 
-    conf.DEFINE_list("Section1.list", default=[], help="A list")
     self.assertEqual(type(conf.Get("Section1.list")), list)
     self.assertEqual(conf.Get("Section1.list"), [])
 
-    conf.DEFINE_list("Section1.list2", default=["a", "2"], help="A list")
     self.assertEqual(type(conf.Get("Section1.list2")), list)
     self.assertEqual(conf.Get("Section1.list2"), ["a", "2"])
 

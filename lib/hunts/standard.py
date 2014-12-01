@@ -517,7 +517,7 @@ class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
     return flush_exceptions
 
   def ProcessHuntResults(self, results):
-    plugins_exceptions = None
+    plugins_exceptions = {}
 
     hunt_urn = results.Get(results.Schema.RESULTS_SOURCE)
     metadata_urn = hunt_urn.Add("ResultsMetadata")
@@ -553,6 +553,10 @@ class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
           self.Log("Running for too long, skipping rest of batches for %s",
                    hunt_urn)
           break
+
+      if not used_plugins:
+        logging.debug("Got notification, but no results were processed for %s.",
+                      hunt_urn)
 
       flush_exceptions = self.FlushPlugins(hunt_urn, used_plugins)
       plugins_exceptions.update(flush_exceptions)

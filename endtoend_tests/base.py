@@ -50,7 +50,6 @@ class ClientTestBase(unittest.TestCase):
   args = {}
   network_bytes_limit = None
   timeout = flow_utils.DEFAULT_TIMEOUT
-  delete_urns = set()
   test_output_path = None
 
   __metaclass__ = registry.MetaclassRegistry
@@ -80,6 +79,7 @@ class ClientTestBase(unittest.TestCase):
     self.token = token
     self.local_worker = local_worker
     self.local_client = local_client
+    self.delete_urns = set()
     super(ClientTestBase, self).__init__(methodName="runTest")
 
   def _CleanState(self):

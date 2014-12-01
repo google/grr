@@ -17,6 +17,7 @@ from grr.lib.rdfvalues import checks_test
 from grr.lib.rdfvalues import client_test
 from grr.lib.rdfvalues import config_file_test
 from grr.lib.rdfvalues import crypto_test
+from grr.lib.rdfvalues import data_store_test
 from grr.lib.rdfvalues import filestore_test
 from grr.lib.rdfvalues import flows_test
 from grr.lib.rdfvalues import paths_test

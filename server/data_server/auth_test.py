@@ -82,20 +82,20 @@ class AuthTest(test_lib.GRRBaseTest):
     # Use correct credentials.
     store = auth.NonceStore()
     nonce = store.NewNonce()
-    token = auth.GenerateAuthToken(nonce, user, pwd)
+    token = auth.NonceStore.GenerateAuthToken(nonce, user, pwd)
     # Credentials must validate.
     self.assertTrue(store.ValidateAuthTokenServer(token))
     self.assertEqual(store.GetNonce(nonce), None)
 
     # Use bad password.
     nonce = store.NewNonce()
-    token = auth.GenerateAuthToken(nonce, user, "badpassword")
+    token = auth.NonceStore.GenerateAuthToken(nonce, user, "badpassword")
     # Credentials must fail.
     self.assertFalse(store.ValidateAuthTokenServer(token))
     self.assertEqual(store.GetNonce(nonce), None)
 
     # Use bad nonce.
-    token = auth.GenerateAuthToken("x" * auth.NONCE_SIZE, user, pwd)
+    token = auth.NonceStore.GenerateAuthToken("x" * auth.NONCE_SIZE, user, pwd)
     self.assertFalse(store.ValidateAuthTokenServer(token))
 
   def testClientCredentials(self):

@@ -512,13 +512,9 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
                        "session): session opened for user dearjohn by (uid=0")
 
 
-class FlowTestLoader(test_lib.GRRTestLoader):
-  base_class = TestFileFinderFlow
-
-
 def main(argv):
   # Run the full test suite
-  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+  test_lib.GrrTestProgram(argv=argv)
 
 if __name__ == "__main__":
   flags.StartMain(main)

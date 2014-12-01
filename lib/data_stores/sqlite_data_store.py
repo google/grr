@@ -27,18 +27,10 @@ from grr.lib.data_stores import common
 SQLITE_EXTENSION = "sqlite"
 SQLITE_TIMEOUT = 600.0
 SQLITE_ISOLATION = "DEFERRED"
-SQLITE_SUBJECT_SPEC = "VARCHAR(512)"
+SQLITE_SUBJECT_SPEC = "TEXT"
 SQLITE_DETECT_TYPES = 0
 SQLITE_FACTORY = sqlite3.Connection
 SQLITE_CACHED_STATEMENTS = 20
-# How many records need to be deleted before attempting to vacuum.
-SQLITE_VACUUM_CHECK = config_lib.CONFIG["SqliteDatastore.vacuum_check"]
-# Minimum amount of time between vacuum operations.
-SQLITE_VACUUM_FREQUENCY = config_lib.CONFIG["SqliteDatastore.vacuum_frequency"]
-# Minimum size of file before vacuuming.
-SQLITE_VACUUM_MINSIZE = config_lib.CONFIG["SqliteDatastore.vacuum_minsize"]
-# Ratio of free pages for vacuuming.
-SQLITE_VACUUM_RATIO = config_lib.CONFIG["SqliteDatastore.vacuum_ratio"]
 SQLITE_PAGE_SIZE = 1024
 
 
@@ -70,7 +62,7 @@ class SqliteConnectionCache(utils.FastStore):
     cursor.execute("PRAGMA page_size = %d" % SQLITE_PAGE_SIZE)
     query = """CREATE TABLE IF NOT EXISTS tbl (
               subject %(subject)s NOT NULL,
-              predicate VARCHAR(512) NOT NULL,
+              predicate TEXT NOT NULL,
               timestamp BIG INTEGER NOT NULL,
               value BLOB)""" % {"subject": SQLITE_SUBJECT_SPEC}
     cursor.execute(query)
@@ -80,7 +72,7 @@ class SqliteConnectionCache(utils.FastStore):
                token BIG INTEGER NOT NULL)""" % {"subject": SQLITE_SUBJECT_SPEC}
     cursor.execute(query)
     query = """CREATE TABLE IF NOT EXISTS statistics (
-               name VARCHAR(512) PRIMARY KEY NOT NULL,
+               name TEXT PRIMARY KEY NOT NULL,
                value BLOB)"""
     cursor.execute(query)
     query = """CREATE INDEX IF NOT EXISTS tbl_index
@@ -209,7 +201,7 @@ class SqliteConnection(object):
     self.dirty = False
     # Counter for vacuuming purposes.
     self.deleted = 0
-    self.next_vacuum_check = SQLITE_VACUUM_CHECK
+    self.next_vacuum_check = config_lib.CONFIG["SqliteDatastore.vacuum_check"]
 
   def Filename(self):
     return self.filename
@@ -426,14 +418,13 @@ class SqliteConnection(object):
         # Transaction not active.
         pass
 
-    logging.debug("Flushing database")
-
     if self.deleted >= self.next_vacuum_check:
       if self._NeedsVacuum() and not self._HasRecentVacuum():
         self.Vacuum()
         self.deleted = 0
-        self.next_vacuum_check = max(SQLITE_VACUUM_CHECK,
-                                     self.next_vacuum_check/2)
+        self.next_vacuum_check = max(
+            config_lib.CONFIG["SqliteDatastore.vacuum_check"],
+            self.next_vacuum_check/2)
       else:
         # Back-off a bit.
         self.next_vacuum_check *= 2
@@ -444,7 +435,8 @@ class SqliteConnection(object):
     if not pages_result:
       return False
     pages = int(pages_result[0])
-    if pages * SQLITE_PAGE_SIZE < SQLITE_VACUUM_MINSIZE:
+    vacuum_minsize = config_lib.CONFIG["SqliteDatastore.vacuum_minsize"]
+    if pages * SQLITE_PAGE_SIZE < vacuum_minsize:
       # Too few pages to worry about.
       return False
     free_pages_result = self.cursor.execute("PRAGMA freelist_count").fetchone()
@@ -452,7 +444,8 @@ class SqliteConnection(object):
       return False
     free_pages = int(free_pages_result[0])
     # Return true if ratio of free pages is high enough.
-    return float(free_pages)/float(pages) * 100 >= SQLITE_VACUUM_RATIO
+    vacuum_ratio = config_lib.CONFIG["SqliteDatastore.vacuum_ratio"]
+    return float(free_pages)/float(pages) * 100 >= vacuum_ratio
 
   def _HasRecentVacuum(self):
     """Check if a vacuum operation has been performed recently."""
@@ -462,7 +455,8 @@ class SqliteConnection(object):
       return False
     try:
       last_vacuum = int(str(data[0]))
-      return time.time() - last_vacuum < SQLITE_VACUUM_FREQUENCY
+      vacuum_frequency = config_lib.CONFIG["SqliteDatastore.vacuum_frequency"]
+      return time.time() - last_vacuum < vacuum_frequency
     except ValueError:
       # Should not happen.
       return False
@@ -503,7 +497,8 @@ class SqliteDataStore(data_store.DataStore):
   def __init__(self, path=None):
     self._CalculateAttributeStorageTypes()
     super(SqliteDataStore, self).__init__()
-    self.cache = SqliteConnectionCache(1000, path)
+    self.cache = SqliteConnectionCache(
+        config_lib.CONFIG["SqliteDatastore.connection_cache_size"], path)
 
   def RecreatePathing(self, pathing):
     self.cache.RecreatePathing(pathing)

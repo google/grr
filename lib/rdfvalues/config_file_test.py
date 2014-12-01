@@ -1,12 +1,17 @@
 #!/usr/bin/env python
 """Tests for grr.lib.rdfvalues.config_files."""
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib.rdfvalues import config_file
+from grr.lib.rdfvalues import test_base
 
 
-class ConfigFileTest(test_lib.GRRBaseTest):
+class ConfigFileTest(test_base.RDFValueTestCase):
   """Test ConfigFile operations."""
+
+  rdfvalue_class = rdfvalue.Config
+
+  def GenerateSample(self, number=0):
+    return rdfvalue.Config({"number": number})
 
   def testInitialize(self):
     arnie = {"target": "Sarah Connor", "mission": "Protect"}
@@ -26,7 +31,3 @@ class ConfigFileTest(test_lib.GRRBaseTest):
     terminator = config_file.Config(t800)
     self.assertEquals(terminator.target, "Sarah Connor")
     self.assertEquals(terminator.mission, "Terminate")
-
-
-
-

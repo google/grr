@@ -6,7 +6,6 @@
 
 
 import json
-import sets
 
 from rekall.ui import json_renderer
 
@@ -202,7 +201,7 @@ class RekallResponseCollectionRenderer(semantic.RDFValueRenderer):
       except IOError:
         return
 
-    output_directories = sets.Set()
+    output_directories = set()
 
     for rekall_response in collection:
       for statement in json.loads(rekall_response.json_messages):

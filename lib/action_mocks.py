@@ -149,9 +149,11 @@ class MemoryClientMock(ActionMock):
 class InterrogatedClient(ActionMock):
   """A mock of client state."""
 
-  def InitializeClient(self, system="Linux", version="12.04"):
+  def InitializeClient(self, system="Linux", version="12.04",
+                       kernel="3.13.0-39-generic"):
     self.system = system
     self.version = version
+    self.kernel = kernel
     self.response_count = 0
     self.recorded_messages = []
 
@@ -167,6 +169,7 @@ class InterrogatedClient(ActionMock):
         node="test_node",
         release="5",
         version=self.version,
+        kernel=self.kernel,
         machine="i386")]
 
   def GetInstallDate(self, _):

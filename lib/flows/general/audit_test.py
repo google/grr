@@ -33,13 +33,9 @@ class TestAuditSystem(test_lib.FlowTestsBaseclass):
     self.assertEqual(event.user, self.token.username)
 
 
-class FlowTestLoader(test_lib.GRRTestLoader):
-  base_class = TestAuditSystem
-
-
 def main(argv):
   # Run the full test suite
-  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+  test_lib.GrrTestProgram(argv=argv)
 
 if __name__ == "__main__":
   flags.StartMain(main)
