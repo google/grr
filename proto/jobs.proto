@@ -1,4 +1,5 @@
 // Copyright 2011 Google Inc. All Rights Reserved
+// LINT: LEGACY_NAMES
 
 // These are the messages used in GRR
 syntax = "proto2";
@@ -1826,6 +1827,10 @@ message ClientSummary {
   repeated Interface interfaces = 7 [(sem_type) = {
       description: "All interfaces on the system.",
     }];
+
+  optional string serial_number = 8 [(sem_type) = {
+      description: "Serial Number from HW info.",
+   }];
 }
 
 

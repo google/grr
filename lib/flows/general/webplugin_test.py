@@ -104,13 +104,9 @@ class TestChromePlugins(test_lib.FlowTestsBaseclass):
       client_utils_osx.GetMountpoints = orig_osx_mp
 
 
-class FlowTestLoader(test_lib.GRRTestLoader):
-  base_class = TestChromePlugins
-
-
 def main(argv):
   # Run the full test suite
-  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+  test_lib.GrrTestProgram(argv=argv)
 
 if __name__ == "__main__":
   flags.StartMain(main)

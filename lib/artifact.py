@@ -341,12 +341,27 @@ class CollectArtifactDependencies(flow.GRRFlow):
     client.AddAttribute(client.Schema.USERNAMES(
         " ".join(usernames)))
 
+  def CopyOSReleaseFromKnowledgeBase(self, client):
+    """Copy os release and version from KB to client object."""
+    if self.state.knowledge_base.os_release:
+      os_release = self.state.knowledge_base.os_release
+      client.Set(client.Schema.OS_RELEASE(os_release))
+
+      # Override OS version field too.
+      # TODO(user): this actually results in incorrect versions for things
+      #                like Ubuntu (14.4 instead of 14.04). I don't think zero-
+      #                padding is always correct, however.
+      os_version = "%d.%d" % (self.state.knowledge_base.os_major_version,
+                              self.state.knowledge_base.os_minor_version)
+      client.Set(client.Schema.OS_VERSION(os_version))
+
   @flow.StateHandler()
   def End(self, unused_responses):
     """Finish up and write the results."""
     client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
     client.Set(client.Schema.KNOWLEDGE_BASE, self.state.knowledge_base)
     self.CopyUsersFromKnowledgeBase(client)
+    self.CopyOSReleaseFromKnowledgeBase(client)
     client.Flush()
     self.Notify("ViewObject", client.urn, "Knowledge Base Updated.")
     self.SendReply(self.state.knowledge_base)
@@ -500,7 +515,8 @@ class GRRArtifactMappings(object):
   rdf_map = {
       "SoftwarePackage": ("info/software", "InstalledSoftwarePackages",
                           "INSTALLED_PACKAGES", "Append"),
-      "Volume": ("", "VFSGRRClient", "VOLUMES", "Append")
+      "Volume": ("", "VFSGRRClient", "VOLUMES", "Append"),
+      "HardwareInfo": ("", "VFSGRRClient", "HARDWARE_INFO", "Overwrite")
       }
 
 

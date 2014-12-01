@@ -172,13 +172,9 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
     self.CompareFDs(fd1, fd2)
 
 
-class FlowTestLoader(test_lib.GRRTestLoader):
-  base_class = TestTransfer
-
-
 def main(argv):
   # Run the full test suite
-  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+  test_lib.GrrTestProgram(argv=argv)
 
 if __name__ == "__main__":
   flags.StartMain(main)

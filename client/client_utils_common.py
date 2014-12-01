@@ -71,6 +71,7 @@ def Execute(cmd, args, time_limit=-1, bypass_whitelist=False, daemon=False):
 
 
 def _Execute(cmd, args, time_limit=-1):
+  """Executes cmd."""
   run = [cmd]
   run.extend(args)
   logging.info("Executing %s", " ".join(run))
@@ -134,6 +135,7 @@ def IsExecutionWhitelisted(cmd, args):
         ("/sbin/auditctl", ["-l"]),
         ("/sbin/ifconfig", ["-a"]),
         ("/bin/df", []),
+        ("/sbin/dmidecode", ["-q"]),
         ]
   elif platform.system() == "Darwin":
     whitelist = [

@@ -898,8 +898,9 @@ class ApplyLabelsToClientsFlow(flow.GRRGlobalFlow):
 
   @flow.StateHandler()
   def Start(self):
-    audit_description = ",".join([self.token.username + "." + name
-                                  for name in self.args.labels])
+    audit_description = ",".join(
+        [self.token.username + u"." + utils.SmartUnicode(name)
+         for name in self.args.labels])
     audit_events = []
     try:
       client_objs = aff4.FACTORY.MultiOpen(

@@ -151,13 +151,9 @@ class PackedVersionedCollectionCompactorTest(test_lib.FlowTestsBaseclass):
                           if "aff4:/tmp/coll" in l.log_message))
 
 
-class FlowTestLoader(test_lib.GRRTestLoader):
-  base_class = PackedVersionedCollectionCompactorTest
-
-
 def main(argv):
   # Run the full test suite
-  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+  test_lib.GrrTestProgram(argv=argv)
 
 if __name__ == "__main__":
   flags.StartMain(main)

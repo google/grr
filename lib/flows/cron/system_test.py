@@ -159,17 +159,15 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
     self.assertTrue(max_age not in [e.RSS_size for e in stat_entries])
 
   def _SetSummaries(self, client_id):
-    summary = rdfvalue.ClientSummary(system_info=rdfvalue.Uname(
-        system="Darwin",
-        node=client_id,
-        release="OSX",
-        version="10.9.2",
-        machine="AMD64",
-        kernel="13.1.0",
-        fqdn="%s.example.com" % client_id))
     client = aff4.FACTORY.Create(client_id, "VFSGRRClient", mode="rw",
                                  token=self.token)
-    client.Set(client.SchemaCls.SUMMARY(summary))
+    client.Set(client.Schema.HOSTNAME(client_id))
+    client.Set(client.Schema.SYSTEM("Darwin"))
+    client.Set(client.Schema.OS_RELEASE("OSX"))
+    client.Set(client.Schema.OS_VERSION("10.9.2"))
+    client.Set(client.Schema.KERNEL("13.1.0"))
+    client.Set(client.Schema.FQDN("%s.example.com" % client_id))
+    client.Set(client.Schema.ARCH("AMD64"))
     client.Flush()
 
   def testEndToEndTests(self):
@@ -256,13 +254,9 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
                        self._CreateResult(False, "aff4:/C.6000000000000002")])
 
 
-class FlowTestLoader(test_lib.GRRTestLoader):
-  base_class = SystemCronFlowTest
-
-
 def main(argv):
   # Run the full test suite
-  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+  test_lib.GrrTestProgram(argv=argv)
 
 if __name__ == "__main__":
   flags.StartMain(main)

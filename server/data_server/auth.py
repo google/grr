@@ -35,7 +35,8 @@ class ClientCredentials(object):
     for user_spec in usernames:
       try:
         user, pwd, perm = user_spec.split(":", 2)
-        self.client_users[user] = (perm, pwd)
+        self.client_users[user] = rdfvalue.DataServerClientInformation(
+            username=user, password=pwd, permissions=perm)
       except ValueError:
         raise errors.DataServerError(
             "User %s from Dataserver.client_credentials is not"
@@ -54,12 +55,8 @@ class ClientCredentials(object):
     """Encrypt the client credentials to other data servers."""
     # We use the servers username and password to encrypt
     # the client credentials.
-    creds = rdfvalue.DataServerClientCredentials()
-    for client_user, (perm, pwd) in self.client_users.iteritems():
-      client = rdfvalue.DataServerClientInformation(username=client_user,
-                                                    password=pwd,
-                                                    permissions=perm)
-      creds.users.Append(client)
+    creds = rdfvalue.DataServerClientCredentials(
+        users=self.client_users.values())
     key = self._MakeEncryptKey(username, password)
     # We encrypt the credentials object.
     string = creds.SerializeToString()
@@ -95,37 +92,30 @@ class ClientCredentials(object):
       creds = rdfvalue.DataServerClientCredentials(plain)
       # Create client credentials.
       self.client_users = {}
-      for client in list(creds.users):
-        username = client.username
-        self.client_users[username] = (client.permissions, client.password)
+      for client in creds.users:
+        self.client_users[client.username] = client
       return self
     except EVP.EVPError:
       return None
 
   def HasUser(self, username):
-    try:
-      unused_cred = self.client_users[username]
-      return True
-    except KeyError:
-      return False
+    return username in self.client_users
 
   def GetPassword(self, username):
     try:
-      cred = self.client_users[username]
-      return cred[1]
+      return self.client_users[username].password
     except KeyError:
       return None
 
   def GetPermissions(self, username):
     try:
-      cred = self.client_users[username]
-      return cred[0]
+      return self.client_users[username].permissions
     except KeyError:
       return None
 
 
 class NonceStore(object):
-  """Stores nonce's requested by clients."""
+  """Stores nonces requested by clients."""
 
   # We defined a limit of nonces that we can store
   # because we want to avoid denial of service.
@@ -153,8 +143,7 @@ class NonceStore(object):
     if self.client_creds:
       return self.client_creds.Encrypt(self.server_username,
                                        self.server_password)
-    else:
-      return None
+    return None
 
   def GetServerCredentials(self):
     return self.server_username, self.server_password
@@ -193,57 +182,51 @@ class NonceStore(object):
   @utils.Synchronized
   def GetNonce(self, nonce):
     """Return and remove nonce if in the store."""
-    if nonce in self.nonces:
-      del self.nonces[nonce]
+    if self.nonces.pop(nonce, None):
       return nonce
-    else:
-      return None
+    return None
 
   def ValidateAuthTokenServer(self, token):
     """Check if a given token has valid server credentials."""
-    nonce, hsh1, user = _SplitToken(token)
-    if not self.GetNonce(nonce):
+    if not self.GetNonce(token.nonce):
       # Nonce was not generated before!
       return False
-    if user != self.server_username:
+    if token.username != self.server_username:
       # Invalid username.
       return False
-    hsh2 = _GenerateAuthHash(nonce, self.server_username, self.server_password)
-    return hsh1 == hsh2
+    generated_hash = self._GenerateAuthHash(token.nonce, self.server_username,
+                                            self.server_password)
+    return token.hash == generated_hash
 
   def ValidateAuthTokenClient(self, token):
     """Check if a given token has valid permissions and return them."""
     if not self.client_creds:
       return None
-    nonce, hsh1, user = _SplitToken(token)
-    if not self.GetNonce(nonce):
+    if not self.GetNonce(token.nonce):
       # Nonce was not generated before!
       return None
-    if not self.client_creds.HasUser(user):
+    if not self.client_creds.HasUser(token.username):
       # No such user.
       return None
-    password = self.client_creds.GetPassword(user)
-    hsh2 = _GenerateAuthHash(nonce, user, password)
-    if hsh1 != hsh2:
+    password = self.client_creds.GetPassword(token.username)
+    generated_hash = self._GenerateAuthHash(token.nonce, token.username,
+                                            password)
+    if token.hash != generated_hash:
       return None
-    return self.client_creds.GetPermissions(user)
+    return self.client_creds.GetPermissions(token.username)
 
+  def GenerateServerAuthToken(self, nonce):
+    """Generate a new token based on the nonce and username/password."""
+    return self.GenerateAuthToken(nonce, self.server_username,
+                                  self.server_password)
 
-def _GenerateAuthHash(nonce, username, password):
-  full = nonce + username + password
-  return hashlib.sha256(full).hexdigest()
+  @classmethod
+  def GenerateAuthToken(cls, nonce, username, password):
+    hsh = cls._GenerateAuthHash(nonce, username, password)
+    return rdfvalue.DataStoreAuthToken(nonce=nonce, hash=hsh,
+                                       username=username)
 
-
-def _SplitToken(token):
-  nonce = token[:NONCE_SIZE]
-  token = token[NONCE_SIZE:]
-  hsh = token[:HASH_SIZE]
-  token = token[HASH_SIZE:]
-  username = token
-  return nonce, hsh, username
-
-
-def GenerateAuthToken(nonce, username, password):
-  """Generate a new token based on the nonce and username/password."""
-  hsh = _GenerateAuthHash(nonce, username, password)
-  return nonce + hsh + username
+  @classmethod
+  def _GenerateAuthHash(cls, nonce, username, password):
+    full = nonce + username + password
+    return hashlib.sha256(full).hexdigest()

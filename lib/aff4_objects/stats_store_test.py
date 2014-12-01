@@ -20,7 +20,7 @@ from grr.lib import test_lib
 from grr.lib.aff4_objects import stats_store
 
 
-class StatsStoreTest(test_lib.GRRBaseTest):
+class StatsStoreTest(test_lib.AFF4ObjectTest):
 
   def setUp(self):
     super(StatsStoreTest, self).setUp()
@@ -471,7 +471,7 @@ class StatsStoreTest(test_lib.GRRBaseTest):
     self.assertTrue("counter" in metadata_by_id["pid2"])
 
 
-class StatsStoreDataQueryTest(test_lib.GRRBaseTest):
+class StatsStoreDataQueryTest(test_lib.AFF4ObjectTest):
   """Tests for StatsStoreDataQuery class."""
 
   def setUp(self):

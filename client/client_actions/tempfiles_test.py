@@ -2,6 +2,7 @@
 """Tests for grr.client.client_actions.tempfiles."""
 
 import os
+import tempfile
 import time
 
 from grr.client.client_actions import tempfiles
@@ -70,11 +71,19 @@ class GRRTempFileTestFilename(test_lib.GRRBaseTest):
     """Create fake filesystem."""
     super(GRRTempFileTestFilename, self).setUp()
     # This is where temp files go if a directory is not provided.
-    # it is separate from self.temp_dir.
-    self.client_tempdir = config_lib.CONFIG.Get("Client.tmpdir")
+    # For this test it has to be different from the temp firectory
+    # so we create a new one.
+    self.old_client_tempdir = config_lib.CONFIG.Get("Client.tempdir")
+    self.client_tempdir = tempfile.mkdtemp(
+        dir=config_lib.CONFIG.Get("Client.tempdir"))
+    config_lib.CONFIG.Set("Client.tempdir", self.client_tempdir)
+
+  def tearDown(self):
+    os.rmdir(config_lib.CONFIG.Get("Client.tempdir"))
+    config_lib.CONFIG.Set("Client.tempdir", self.old_client_tempdir)
 
   def testCreateAndDelete(self):
-    fd = tempfiles.CreateGRRTempFile(filename="process.42.exe", mode="rb")
+    fd = tempfiles.CreateGRRTempFile(filename="process.42.exe", mode="wb")
     fd.close()
     self.assertTrue(os.path.exists(fd.name))
     self.assertTrue(os.path.basename(fd.name) == "process.42.exe")
@@ -85,9 +94,9 @@ class GRRTempFileTestFilename(test_lib.GRRBaseTest):
     fd.write("something")
     fd.close()
     self.assertTrue(os.path.exists(fd.name))
-    self.assertRaise(tempfiles.ErrorBadPath,
-                     tempfiles.DeleteGRRTempFile,
-                     fd.name)
+    self.assertRaises(tempfiles.ErrorNotTempFile,
+                      tempfiles.DeleteGRRTempFile,
+                      fd.name)
     self.assertTrue(os.path.exists(fd.name))
 
 

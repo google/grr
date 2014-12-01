@@ -174,6 +174,15 @@ class ProtoType(type_info.TypeInfoObject):
 
     self.CalculateTags()
 
+  def Copy(self, field_number=None):
+    """Returns a copy of descriptor, optionally changing the field number."""
+    result = copy.copy(self)
+    if field_number is not None:
+      result.field_number = field_number
+      result.CalculateTags()
+
+    return result
+
   def CalculateTags(self):
     # In python Varint encoding is expensive so we want to move as much of the
     # hard work from the Write() methods which are called frequently to the type
@@ -718,6 +727,9 @@ class ProtoNested(ProtoType):
       raise type_info.TypeValueError(
           "Only RDFProtoStructs can be nested, not %s" % nested.__name__)
 
+  def CalculateTags(self):
+    super(ProtoNested, self).CalculateTags()
+
     # Pre-calculate the closing tag data.
     self.closing_tag = ((self.field_number << 3) | WIRETYPE_END_GROUP)
     tmp = cStringIO.StringIO()
@@ -1067,12 +1079,14 @@ class RepeatedFieldHelper(object):
     return RepeatedFieldHelper(wrapped_list=self.wrapped_list[:],
                                type_descriptor=self.type_descriptor)
 
-  def Append(self, rdf_value=None, wire_format=None, **kwargs):
+  def Append(self, rdf_value=utils.NotAValue, wire_format=None, **kwargs):
     """Append the value to our internal list."""
-    if rdf_value is None and wire_format is None:
-      rdf_value = self.type_descriptor.type(**kwargs)
-
-    elif rdf_value is not None:
+    if rdf_value is utils.NotAValue:
+      if wire_format is None:
+        rdf_value = self.type_descriptor.type(**kwargs)
+      else:
+        rdf_value = None
+    else:
       # Coerce the value to the required type.
       try:
         rdf_value = self.type_descriptor.Validate(rdf_value, **kwargs)
@@ -1291,7 +1305,7 @@ class ProtoRDFValue(ProtoBinary):
     self._kwargs = kwargs
 
     if isinstance(rdf_type, basestring):
-      self.proto_type_name = rdf_type
+      self.original_proto_type_name = self.proto_type_name = rdf_type
 
       # Try to resolve the type it names
       self.type = getattr(rdfvalue, rdf_type, None)
@@ -1310,7 +1324,7 @@ class ProtoRDFValue(ProtoBinary):
     # Or it can be an subclass of RDFValue.
     elif issubclass(rdf_type, rdfvalue.RDFValue):
       self.type = rdf_type
-      self.proto_type_name = rdf_type.__name__
+      self.original_proto_type_name = self.proto_type_name = rdf_type.__name__
       self._GetPrimitiveEncoder()
 
     else:
@@ -1385,6 +1399,16 @@ class ProtoRDFValue(ProtoBinary):
 
   def ConvertToWireFormat(self, value):
     return self.primitive_desc.ConvertToWireFormat(value.SerializeToDataStore())
+
+  def Copy(self, field_number=None):
+    """Returns descriptor copy, optionally changing field number."""
+    new_args = self._kwargs.copy()
+    if field_number is not None:
+      new_args["field_number"] = field_number
+
+    return ProtoRDFValue(rdf_type=self.original_proto_type_name,
+                         default=getattr(self, "default", None),
+                         **new_args)
 
   def _FormatField(self):
     result = "  optional %s %s = %s" % (self.proto_type_name,
@@ -2042,16 +2066,20 @@ class RDFProtoStruct(RDFStruct):
     for number, desc in sorted(cls.type_infos_by_field_number.items()):
       # Name 'metadata' is reserved to store ExportedMetadata value.
       field = None
-      if isinstance(desc, type_info.ProtoEnum):
+      if (isinstance(desc, type_info.ProtoEnum) and
+          not isinstance(desc, type_info.ProtoBoolean)):
         field = message_type.field.add()
         field.type = descriptor_pb2.FieldDescriptorProto.TYPE_ENUM
         field.type_name = desc.enum_name
 
-        enum_type = message_type.enum_type.add()
-        enum_type.name = desc.name
-        for key, value in desc.enum.iteritems():
-          enum_type.name = key
-          enum_type.number = value
+        if desc.enum_name not in [x.name for x in message_type.enum_type]:
+          enum_type = message_type.enum_type.add()
+          enum_type.name = desc.enum_name
+          for key, value in desc.enum.iteritems():
+            enum_type_value = enum_type.value.add()
+            enum_type_value.name = key
+            enum_type_value.number = value
+
       elif isinstance(desc, type_info.ProtoEmbedded):
         field = message_type.field.add()
         field.type = descriptor_pb2.FieldDescriptorProto.TYPE_MESSAGE
@@ -2062,8 +2090,10 @@ class RDFProtoStruct(RDFStruct):
 
           # Register import of a proto file containing embedded protobuf
           # definition.
-          file_descriptor.dependency.append(
-              desc.type.protobuf.DESCRIPTOR.file.name)
+          if (desc.type.protobuf.DESCRIPTOR.file.name not in
+              file_descriptor.dependency):
+            file_descriptor.dependency.append(
+                desc.type.protobuf.DESCRIPTOR.file.name)
         else:
           raise NotImplementedError("Can't emit proto descriptor for values "
                                     "with nested non-protobuf-based values.")

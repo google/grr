@@ -36,7 +36,7 @@ class TestClientInterrogate(artifact_test.ArtifactTest):
 
   def _CheckUsers(self, all_users):
     """Check all user stores."""
-    summary = self.fd.Get(self.fd.Schema.SUMMARY)
+    summary = self.fd.GetSummary()
     self.assertItemsEqual([x.username for x in summary.users], all_users)
 
     users = [x.username for x in self.fd.Get(self.fd.Schema.USER)]
@@ -85,8 +85,9 @@ class TestClientInterrogate(artifact_test.ArtifactTest):
 
     self.assertEqual(notification.subject, rdfvalue.RDFURN(self.client_id))
 
-  def _CheckClientSummary(self, osname, version, release="5"):
-    summary = self.fd.Get(self.fd.Schema.SUMMARY)
+  def _CheckClientSummary(self, osname, version, kernel="3.13.0-39-generic",
+                          release="5"):
+    summary = self.fd.GetSummary()
     self.assertEqual(summary.client_info.client_name,
                      config_lib.CONFIG["Client.name"])
     self.assertEqual(summary.client_info.client_version,
@@ -99,6 +100,7 @@ class TestClientInterrogate(artifact_test.ArtifactTest):
     self.assertEqual(summary.system_info.release, release)
     self.assertEqual(summary.system_info.version, version)
     self.assertEqual(summary.system_info.machine, "i386")
+    self.assertEqual(summary.system_info.kernel, kernel)
 
     self.assertEqual(len(summary.interfaces), 1)
     self.assertEqual(summary.interfaces[0].mac_address, "123456")
@@ -206,7 +208,8 @@ class TestClientInterrogate(artifact_test.ArtifactTest):
     self._CheckClientIndex(".*test.*")
     self._CheckGRRConfig()
     self._CheckNotificationsCreated()
-    self._CheckClientSummary("Linux", "14.4", "Ubuntu")
+    self._CheckClientSummary("Linux", "14.4", release="Ubuntu",
+                             kernel="3.13.0-39-generic")
     self._CheckRelease("Ubuntu", "14.4")
 
     # users 1,2,3 from wtmp
@@ -232,7 +235,8 @@ class TestClientInterrogate(artifact_test.ArtifactTest):
                                                   "FingerprintFile")
 
     self.SetWindowsClient()
-    client_mock.InitializeClient(system="Windows", version="6.1.7600")
+    client_mock.InitializeClient(system="Windows", version="6.1.7600",
+                                 kernel="6.1.7601")
 
     # Run the flow in the simulated way
     for _ in test_lib.TestFlowHelper("Interrogate", client_mock,
@@ -246,7 +250,7 @@ class TestClientInterrogate(artifact_test.ArtifactTest):
     self._CheckClientIndex(".*Host.*")
     self._CheckGRRConfig()
     self._CheckNotificationsCreated()
-    self._CheckClientSummary("Windows", "6.1.7600")
+    self._CheckClientSummary("Windows", "6.1.7600", kernel="6.1.7601")
 
     # users Bert and Ernie added by the fixture should not be present (USERS
     # overriden by kb)
@@ -259,13 +263,9 @@ class TestClientInterrogate(artifact_test.ArtifactTest):
     self._CheckRegistryPathspec()
 
 
-class FlowTestLoader(test_lib.GRRTestLoader):
-  base_class = TestClientInterrogate
-
-
 def main(argv):
   # Run the full test suite
-  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+  test_lib.GrrTestProgram(argv=argv)
 
 if __name__ == "__main__":
   flags.StartMain(main)

@@ -4166,7 +4166,6 @@ pathspec {
 
 ]
 
-
 WMI_SAMPLE = [
       rdfvalue.Dict(
           {u"QuotasDisabled": u"True", u"ProviderName": u"",
@@ -4274,3 +4273,8 @@ USR_ACCOUNT_WMI = {"Status": "Degraded", "Domain": "MYHOST-WIN",
 USR_ACCOUNT_WMI_SIDS = ["S-1-5-18", "S-1-5-19", "S-1-5-20",
                         "S-1-5-21-3067777777-777777777-7777777774-500",
                         "S-1-5-21-8888888888-888888888-8888888884-500"]
+
+WMI_CMP_SYS_PRD = [rdfvalue.Dict(
+    {u"IdentifyingNumber": u"2RXYYZ1", u"Name": u"Latitude E7440",
+     u"Vendor": u"Dell Inc.", u"Version": u"01",
+     u"Caption": u"Computer System Product"})]

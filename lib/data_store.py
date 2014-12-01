@@ -173,6 +173,7 @@ class DataStore(object):
       replace: Bool whether or not to overwrite current records.
       sync: If true we ensure the new values are committed before returning.
     """
+    # TODO(user) don't allow subject = None
     self.MultiSet(subject, {predicate: [value]}, timestamp=timestamp,
                   token=token, replace=replace, sync=sync)
 

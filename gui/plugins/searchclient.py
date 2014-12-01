@@ -612,7 +612,7 @@ class ApplyLabelToClientsDialog(renderers.ConfirmationDialogRenderer):
     for client_urn_str in json.loads(request.REQ["selected_clients"]):
       client_urns.append(rdfvalue.ClientURN(client_urn_str))
 
-    self.label = request.REQ.get("input_apply_label_to_clients")
+    self.label = request.REQ.get("input_apply_label_to_clients", "")
 
     flow.GRRFlow.StartFlow(
         flow_name="ApplyLabelsToClientsFlow", clients=client_urns,

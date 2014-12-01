@@ -130,6 +130,69 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     self.assertEqual(v2.Get(v2.Schema.TYPE), "VFSGRRClient")
     self.assertEqual(str(v2.Get(v2.Schema.HOSTNAME)), "client2")
 
+  def _CheckAFF4AttributeDefaults(self, client):
+    self.assertEqual(client.Get(client.Schema.HOSTNAME), "client1")
+    self.assertEqual(client.Get(client.Schema.DOESNOTEXIST, "mydefault"),
+                     "mydefault")
+    self.assertEqual(client.Get(client.Schema.DOESNOTEXIST,
+                                default="mydefault"), "mydefault")
+    self.assertEqual(client.Get(client.Schema.DOESNOTEXIST,
+                                None), None)
+    self.assertEqual(client.Get(client.Schema.DOESNOTEXIST,
+                                default=None), None)
+
+  def testGetBadAttribute(self):
+    """Test checking of non-existent attributes."""
+    # Check behaviour when we specify a type
+    client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient", mode="w",
+                                 token=self.token)
+    client.Set(client.Schema.HOSTNAME("client1"))
+    client.Flush()
+
+    self.assertEqual(client.Get(client.Schema.HOSTNAME), "client1")
+
+    # This should raise since we specified a aff4_type in Create
+    self.assertRaises(aff4.BadGetAttributeError, getattr, client.Schema,
+                      "DOESNOTEXIST")
+
+    # Check we get the same result from the existing object code path in create
+    client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient", mode="rw",
+                                 token=self.token)
+
+    self.assertEqual(client.Get(client.Schema.HOSTNAME), "client1")
+    self.assertRaises(aff4.BadGetAttributeError, getattr, client.Schema,
+                      "DOESNOTEXIST")
+
+    # Check we get the same result from Open
+    client = aff4.FACTORY.Open(self.client_id, "VFSGRRClient", mode="rw",
+                               token=self.token)
+
+    self.assertEqual(client.Get(client.Schema.HOSTNAME), "client1")
+    self.assertRaises(aff4.BadGetAttributeError, getattr, client.Schema,
+                      "DOESNOTEXIST")
+
+    # Check we get the same result from MultiOpen
+    clients = aff4.FACTORY.MultiOpen([self.client_id], aff4_type="VFSGRRClient",
+                                     mode="rw", token=self.token)
+    for client in clients:
+      self.assertEqual(client.Get(client.Schema.HOSTNAME), "client1")
+      self.assertRaises(aff4.BadGetAttributeError, getattr, client.Schema,
+                        "DOESNOTEXIST")
+
+    # Make sure we don't raise if no type specified. No need to check create,
+    # since a type must always be specified.
+    client = aff4.FACTORY.Open(self.client_id, mode="rw",
+                               token=self.token)
+    self.assertEqual(client.Get(client.Schema.HOSTNAME), "client1")
+    self.assertEqual(client.Get(client.Schema.DOESNOTEXIST), None)
+
+    # Check we get the same result from MultiOpen
+    clients = aff4.FACTORY.MultiOpen([self.client_id], mode="rw",
+                                     token=self.token)
+    for client in clients:
+      self.assertEqual(client.Get(client.Schema.HOSTNAME), "client1")
+      self.assertEqual(client.Get(client.Schema.DOESNOTEXIST), None)
+
   def testAppendAttribute(self):
     """Test that append attribute works."""
     # Create an object to carry attributes
@@ -246,6 +309,38 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
       fd = aff4.FACTORY.Open(path, token=self.token)
       last = fd.Get(fd.Schema.LAST)
       self.assert_(int(last) > 1330354592221974)
+
+  def testObjectUpgrade(self):
+    """Test that we can create a new object of a different type."""
+    path = "C.0123456789abcdef"
+
+    # Write the first object
+    with aff4.FACTORY.Create(path, "VFSGRRClient", token=self.token) as fd:
+      fd.Set(fd.Schema.HOSTNAME("blah"))
+      original_fd = fd
+
+    # Check it got created
+    with aff4.FACTORY.Open(path, "VFSGRRClient", token=self.token) as fd:
+      self.assertEqual(fd.Get(fd.Schema.HOSTNAME), "blah")
+      self.assertEqual(fd.Get(fd.Schema.TYPE), "VFSGRRClient")
+
+    # Overwrite with a new object of different type
+    with aff4.FACTORY.Create(path, "AFF4MemoryStream",
+                             token=self.token) as fd:
+      fd.Write("hello")
+
+    # Check that the object is now an AFF4MemoryStream
+    with aff4.FACTORY.Open(path, "AFF4MemoryStream", token=self.token) as fd:
+      self.assertEqual(fd.Read(100), "hello")
+      self.assertEqual(fd.Get(fd.Schema.TYPE), "AFF4MemoryStream")
+      self.assertRaises(aff4.BadGetAttributeError, getattr, fd.Schema,
+                        "HOSTNAME")
+
+    # Attributes of previous objects are actually still accessible. Some code
+    # relies on this behaviour so we verify it here.
+    with aff4.FACTORY.Open(path, token=self.token) as fd:
+      self.assertEqual(fd.Read(100), "hello")
+      self.assertEqual(fd.Get(original_fd.Schema.HOSTNAME), "blah")
 
   def testDelete(self):
     """Check that deleting the object works."""
@@ -491,26 +586,6 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
     fd = aff4.FACTORY.Open(path, token=self.token)
     self.assertEqual(int(fd.GetContentAge()), 102000000)
-
-  def testAFF4ImageContentLastNotUpdated(self):
-    """Make sure CONTENT_LAST does not update when only STAT is written.."""
-    path = "/C.12345/contentlastchecker"
-
-    self.WriteImage(path, timestamp=1)
-
-    fd = aff4.FACTORY.Open(path, token=self.token)
-    # Make sure the attribute was written when the write occured.
-    self.assertEqual(int(fd.GetContentAge()), 101000000)
-
-    # Write the stat (to be the same as before, but this still counts
-    # as a write).
-    fd.Set(fd.Schema.STAT, fd.Get(fd.Schema.STAT))
-    fd.Flush()
-
-    fd = aff4.FACTORY.Open(path, token=self.token)
-
-    # The age of the content should still be the same.
-    self.assertEqual(int(fd.GetContentAge()), 101000000)
 
   def testAFF4FlowObject(self):
     """Test the AFF4 Flow object."""
@@ -1225,6 +1300,27 @@ class AFF4SymlinkTest(test_lib.AFF4ObjectTest):
     fd, symlink_obj = self.CreateAndOpenObjectAndSymlink()
 
     self.assertEqual(symlink_obj.urn, fd.urn)
+
+  def testMultiOpenMixedObjects(self):
+    """Test symlinks are correct when using multiopen with other objects."""
+    fd, symlink_obj = self.CreateAndOpenObjectAndSymlink()
+    symlink_urn = symlink_obj.urn
+    fd_urn1 = fd.urn
+    fd.Close()
+    symlink_obj.Close()
+
+    fd_urn2 = rdfvalue.RDFURN("aff4:/C.0000000000000002")
+    fd = aff4.FACTORY.Create(fd_urn2, "AFF4Image",
+                             token=self.token)
+    fd.Close()
+
+    for fd in aff4.FACTORY.MultiOpen([symlink_urn, fd_urn2], token=self.token):
+      if fd.urn == fd_urn2:
+        self.assertTrue(isinstance(fd, aff4.AFF4Image))
+      elif fd.urn == fd_urn1:
+        self.assertTrue(isinstance(fd, AFF4SymlinkTestSubject))
+      else:
+        raise ValueError("Unexpected URN: %s" % fd.urn)
 
   def testOpenedSymlinkAFF4AttributesAreEqualToTarget(self):
     fd, symlink_obj = self.CreateAndOpenObjectAndSymlink()

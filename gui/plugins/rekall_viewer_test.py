@@ -5,6 +5,8 @@
 
 
 from grr.client.client_actions import grr_rekall_test
+from grr.gui import runtests_test
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 
@@ -44,11 +46,11 @@ class TestRekallViewer(test_lib.GRRSeleniumTest,
     # Go to Browse VFS
     self.Click("css=a:contains('Browse Virtual Filesystem')")
 
-    self.Click("css=#_analysis ins.jstree-icon")
-    self.Click("link=memory")
+    self.Click("css=#_analysis")
+    self.Click("css=tr:contains(\"memory\")")
 
-    self.WaitUntil(self.IsTextPresent, "Collection")
-    self.Click("css=#Collection")
+    self.WaitUntil(self.IsTextPresent, "Results")
+    self.Click("css=#Results")
 
     self.WaitUntilContains("pslist", self.GetText,
                            "css=div#main_rightBottomPane")
@@ -56,5 +58,13 @@ class TestRekallViewer(test_lib.GRRSeleniumTest,
     self.WaitUntilContains("DumpIt.exe", self.GetText,
                            "css=div#main_rightBottomPane")
 
-    self.WaitUntilContains("wow64", self.GetText,
+    self.WaitUntilContains("Wow64", self.GetText,
                            "css=div#main_rightBottomPane")
+
+
+def main(argv):
+  # Run the full test suite
+  runtests_test.SeleniumTestProgram(argv=argv)
+
+if __name__ == "__main__":
+  flags.StartMain(main)

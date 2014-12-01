@@ -9,7 +9,7 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 
 
-class UsersTest(test_lib.GRRBaseTest):
+class UsersTest(test_lib.AFF4ObjectTest):
 
   def setUp(self):
     super(UsersTest, self).setUp()

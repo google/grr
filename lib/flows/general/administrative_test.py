@@ -589,13 +589,9 @@ class TestApplyLabelsToClientsFlow(AdministrativeFlowTests):
       self.assertEqual(found_event.description, "test.drei,test.ein,test.zwei")
 
 
-class FlowTestLoader(test_lib.GRRTestLoader):
-  base_class = AdministrativeFlowTests
-
-
 def main(argv):
   # Run the full test suite
-  test_lib.GrrTestProgram(argv=argv, testLoader=FlowTestLoader())
+  test_lib.GrrTestProgram(argv=argv)
 
 if __name__ == "__main__":
   flags.StartMain(main)
