@@ -289,8 +289,7 @@ class BasicAccessControlManager(BaseAccessControlManager):
     """Creates a CheckAccessHelper for controlling write access."""
     h = CheckAccessHelper("write")
 
-    h.Allow("aff4:/")
-    h.Allow("aff4:/*")
+    h.Allow("*")
 
     return h
 
@@ -306,8 +305,7 @@ class BasicAccessControlManager(BaseAccessControlManager):
     """
     h = CheckAccessHelper("read")
 
-    h.Allow("aff4:/")
-    h.Allow("aff4:/*")
+    h.Allow("*")
 
     return h
 
@@ -323,8 +321,7 @@ class BasicAccessControlManager(BaseAccessControlManager):
     """
     h = CheckAccessHelper("query")
 
-    h.Allow("aff4:/")
-    h.Allow("aff4:/*")
+    h.Allow("*")
 
     return h
 

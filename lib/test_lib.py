@@ -208,7 +208,7 @@ class WellKnownSessionTest(flow.WellKnownFlow):
     self.messages.append(int(message.args))
 
 
-class MockSecurityManager(access_control.BaseAccessControlManager):
+class MockSecurityManager(access_control.BasicAccessControlManager):
   """A simple in memory ACL manager which enforces the Admin label.
 
   It also guarantees that the correct access token has been passed to the
@@ -736,7 +736,7 @@ class ACLChecksDisabledContextManager(object):
 
   def __enter__(self):
     self.old_security_manager = data_store.DB.security_manager
-    data_store.DB.security_manager = access_control.NullAccessControlManager()
+    data_store.DB.security_manager = access_control.BaseAccessControlManager()
     return None
 
   def __exit__(self, unused_type, unused_value, unused_traceback):
