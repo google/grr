@@ -40,7 +40,7 @@ Config.writeback: /etc/grr/server.local.yaml
 
 Datastore.implementation: MongoDataStore
 
-Datastore.security_manager: BasicAccessControlManager
+Datastore.security_manager: BaseAccessControlManager
 
 Installer.old_writeback: /usr/lib/grr/grrd.conf
 
