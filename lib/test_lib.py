@@ -7,6 +7,7 @@ import codecs
 import datetime
 import functools
 import itertools
+import mock
 import os
 import pdb
 import re
@@ -320,7 +321,12 @@ class GRRBaseTest(unittest.TestCase):
     if "test" in aff4.GRRUser.SYSTEM_USERS:
       aff4.GRRUser.SYSTEM_USERS.remove("test")
 
+    # We don't want to send actual email in our tests
+    self.smtp_patcher = mock.patch('smtplib.SMTP')
+    self.mock_smtp = self.smtp_patcher.start()
+
   def tearDown(self):
+    self.smtp_patcher.stop()
     logging.info("Completed test: %s.%s",
                  self.__class__.__name__, self._testMethodName)
 
@@ -375,6 +381,10 @@ class GRRBaseTest(unittest.TestCase):
     try:
       try:
         self.setUp()
+      except unittest.SkipTest:
+        result.addSkip(self, sys.exc_info())
+        result.stopTest(self)
+        return
       except:
         # Break into interactive debugger on test failure.
         if flags.FLAGS.debug:
