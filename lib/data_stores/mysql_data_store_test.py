@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """Tests the mysql data store."""
-
+import unittest
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
@@ -18,6 +18,9 @@ from grr.lib.data_stores import mysql_data_store
 class MysqlTestMixin(object):
 
   def InitDatastore(self):
+    if config_lib.CONFIG.Get("Mysql.port") == 0:
+      raise unittest.SkipTest("Skipping since Mysql.port is set to 0.")
+
     self.token = access_control.ACLToken(username="test",
                                          reason="Running tests")
     # Use separate tables for benchmarks / tests so they can be run in parallel.
