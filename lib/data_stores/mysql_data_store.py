@@ -194,7 +194,7 @@ class MySQLDataStore(data_store.DataStore):
 
     for regex in regexes:
       action = "delete "
-      query, args = self._BuildQuery(action, subject, regex, timestamp, is_regex=True)
+      query, args = self._BuildQuery(action, subject, regex, is_regex=True)
       self._ExecuteQuery(query, args)
 
   def DeleteSubject(self, subject, token=None):
