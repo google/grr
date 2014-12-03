@@ -156,7 +156,7 @@ class DataStore(object):
     """Initialization of the datastore."""
 
   @abc.abstractmethod
-  def DeleteSubject(self, subject, token=None):
+  def DeleteSubject(self, subject, token=None, sync=False):
     """Completely deletes all information about this subject."""
 
   def Set(self, subject, predicate, value, timestamp=None, token=None,

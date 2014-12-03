@@ -3,11 +3,18 @@
 
 
 
+from urllib3 import connectionpool
+
 from grr.lib import config_lib
 from grr.lib import flags
+from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib import utils as libutils
 
+from grr.server.data_server import auth
 from grr.server.data_server import constants
+from grr.server.data_server import data_server
+from grr.server.data_server import errors
 from grr.server.data_server import master
 from grr.server.data_server import utils
 
@@ -32,14 +39,57 @@ class MockDataStoreService(object):
     return 0
 
 
+class MockResponse(object):
+
+  def __init__(self, status):
+    self.status = status
+    self.data = ""
+
+
+def GetMockHTTPConnectionPoolClass(responses_class_value):
+  class MockHTTPConnectionPool(object):
+
+    responses = responses_class_value
+    requests = []
+
+    def __init__(self, addr, port=0, maxsize=0):
+      _ = addr, port, maxsize
+
+    # pylint: disable=invalid-name
+    def urlopen(self, method, url, body=None, headers=None):
+      _ = method, url, headers
+      self.__class__.requests.append({"method": method,
+                                      "url": url,
+                                      "body": body})
+
+      return self.responses.pop(0)
+    # pylint: enable=invalid-name
+
+  return MockHTTPConnectionPool
+
+
 class MasterTest(test_lib.GRRBaseTest):
   """Tests the master server code."""
 
   def setUp(self):
     super(MasterTest, self).setUp()
     self.mock_service = MockDataStoreService()
-    server_list = ["http://127.0.0.1:7000", "http://127.0.0.1:7001",
-                   "http://127.0.0.1:7002", "http://127.0.0.1:7003"]
+
+    self.host = "127.0.0.1"
+
+    # Ports 7000+ are typically used for GRR data servers, so they are tested
+    # here for illustration and documentation purposes.
+    # We're also testing port 3000 as it is unique in that it encodes
+    # differently to binary. pack_int(3000) returns a byte sequence which is
+    # invalid utf8 and can cause problems in certain code. This has caused
+    # bugs in the past, so this constitues a regression test.
+
+    self.ports = [7000, 7001, 7002, 3000]
+
+    server_list = []
+    for port in self.ports:
+      server_list.append("http://%s:%i" % (self.host, port))
+
     config_lib.CONFIG.Set("Dataserver.server_list", server_list)
 
   def testInvalidMaster(self):
@@ -50,39 +100,75 @@ class MasterTest(test_lib.GRRBaseTest):
 
   def testRegister(self):
     """Create master and register other servers."""
-    m = master.DataMaster(7000, self.mock_service)
+    m = master.DataMaster(self.ports[0], self.mock_service)
     self.assertNotEqual(m, None)
     self.assertFalse(m.AllRegistered())
 
-    server1 = m.RegisterServer("127.0.0.1", 7001)
-    self.assertNotEqual(server1, None)
-    self.assertEqual(server1.Address(), "127.0.0.1")
-    self.assertEqual(server1.Port(), 7001)
-    self.assertEqual(server1.Index(), 1)
-    self.assertFalse(m.AllRegistered())
-    server2 = m.RegisterServer("127.0.0.1", 7002)
-    self.assertNotEqual(server2, None)
-    self.assertEqual(server2.Address(), "127.0.0.1")
-    self.assertEqual(server2.Port(), 7002)
-    self.assertEqual(server2.Index(), 2)
-    self.assertFalse(m.AllRegistered())
-    server3 = m.RegisterServer("127.0.0.1", 7003)
-    self.assertNotEqual(server3, None)
-    self.assertEqual(server3.Address(), "127.0.0.1")
-    self.assertEqual(server3.Port(), 7003)
-    self.assertEqual(server3.Index(), 3)
+    servers = [None]
+
+    for (i, port) in enumerate(self.ports):
+      if i == 0:
+        # Skip master server.
+        continue
+      self.assertFalse(m.AllRegistered())
+      server = m.RegisterServer(self.host, port)
+      servers.append(server)
+      self.assertNotEqual(server, None)
+      self.assertEqual(server.Address(), self.host)
+      self.assertEqual(server.Port(), port)
+      self.assertEqual(server.Index(), i)
+
     self.assertTrue(m.AllRegistered())
 
     # Try to register something that does not exist.
-    self.assertFalse(m.RegisterServer("127.0.0.1", 7004))
+    self.assertFalse(m.RegisterServer(self.host, 7004))
 
     # Deregister a server.
-    m.DeregisterServer(server1)
+    m.DeregisterServer(servers[1])
     self.assertFalse(m.AllRegistered())
 
     # Register again.
-    m.RegisterServer(server1.Address(), server1.Port())
+    m.RegisterServer(servers[1].Address(), servers[1].Port())
     self.assertTrue(m.AllRegistered())
+
+    for port in self.ports:
+      for response_sequence in [[constants.RESPONSE_OK,
+                                 constants.RESPONSE_SERVER_NOT_AUTHORIZED],
+                                [constants.RESPONSE_OK,
+                                 constants.RESPONSE_SERVER_NOT_ALLOWED],
+                                [constants.RESPONSE_OK,
+                                 constants.RESPONSE_NOT_MASTER_SERVER]]:
+
+        response_mocks = []
+        for response_status in response_sequence:
+          response_mocks.append(MockResponse(response_status))
+
+        pool_class = GetMockHTTPConnectionPoolClass(response_mocks)
+
+        with libutils.Stubber(connectionpool,
+                              "HTTPConnectionPool",
+                              pool_class):
+          m = data_server.StandardDataServer(port)
+          data_server.NONCE_STORE = auth.NonceStore()
+
+          self.assertRaises(errors.DataServerError, m._DoRegister)
+
+          # Ensure two requests have been made.
+          self.assertEqual(len(pool_class.requests), 2)
+
+          # Ensure the register body is non-empty.
+          self.assertTrue(pool_class.requests[1]["body"])
+
+          # Ensure that the register body is a valid rdfvalue.
+          rdfvalue.DataStoreRegistrationRequest(pool_class.requests[1]["body"])
+
+          # Ensure the requests are POST requests.
+          self.assertEqual(pool_class.requests[0]["method"], "POST")
+          self.assertEqual(pool_class.requests[1]["method"], "POST")
+
+          # Ensure the correct URLs are hit according to the API.
+          self.assertEqual(pool_class.requests[0]["url"], "/server/handshake")
+          self.assertEqual(pool_class.requests[1]["url"], "/server/register")
 
   def testMapping(self):
     """Check that the mapping is valid."""
@@ -90,7 +176,7 @@ class MasterTest(test_lib.GRRBaseTest):
     self.assertNotEqual(m, None)
     server1 = m.RegisterServer("127.0.0.1", 7001)
     server2 = m.RegisterServer("127.0.0.1", 7002)
-    server3 = m.RegisterServer("127.0.0.1", 7003)
+    server3 = m.RegisterServer("127.0.0.1", 3000)
     self.assertTrue(m.AllRegistered())
     mapping = m.LoadMapping()
     self.assertNotEqual(mapping, None)

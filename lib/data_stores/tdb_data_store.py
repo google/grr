@@ -325,7 +325,8 @@ class TDBDataStore(data_store.DataStore):
 
     self.DeleteAttributes(subject, matching_attributes, token=token)
 
-  def DeleteSubject(self, subject, token=None):
+  def DeleteSubject(self, subject, token=None, sync=False):
+    _ = sync
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
 
     with self.cache.Get(subject) as tdb_context:

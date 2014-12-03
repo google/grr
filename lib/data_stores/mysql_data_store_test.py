@@ -1,10 +1,15 @@
 #!/usr/bin/env python
 """Tests the mysql data store."""
+
+
+
 import unittest
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
+
+import logging
 
 from grr.lib import access_control
 from grr.lib import config_lib
@@ -18,9 +23,6 @@ from grr.lib.data_stores import mysql_data_store
 class MysqlTestMixin(object):
 
   def InitDatastore(self):
-    if config_lib.CONFIG.Get("Mysql.port") == 0:
-      raise unittest.SkipTest("Skipping since Mysql.port is set to 0.")
-
     self.token = access_control.ACLToken(username="test",
                                          reason="Running tests")
     # Use separate tables for benchmarks / tests so they can be run in parallel.
@@ -28,9 +30,13 @@ class MysqlTestMixin(object):
                           self.__class__.__name__)
     config_lib.CONFIG.Set("Mysql.table_name", "aff4_test")
 
-    data_store.DB = mysql_data_store.MySQLDataStore()
-    data_store.DB.security_manager = test_lib.MockSecurityManager()
-    data_store.DB.RecreateDataBase()
+    try:
+      data_store.DB = mysql_data_store.MySQLDataStore()
+      data_store.DB.security_manager = test_lib.MockSecurityManager()
+      data_store.DB.RecreateDataBase()
+    except Exception as e:
+      logging.debug("Error while connecting to MySQL db: %s." % e)
+      raise unittest.SkipTest("Skipping since Mysql db is not reachable.")
 
   def DestroyDatastore(self):
     data_store.DB.DropDatabase()
