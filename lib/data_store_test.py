@@ -348,6 +348,22 @@ class DataStoreTest(test_lib.GRRBaseTest):
     self.CheckLast(predicate, None, 0)
     self.CheckLength(predicate, 0)
 
+  @DeletionTest
+  def testDeleteSubjects(self):
+    predicate = "metadata:tspredicate"
+
+    data_store.DB.Set(self.test_row, predicate, "hello100", timestamp=100,
+                      replace=False, token=self.token)
+    data_store.DB.DeleteSubject(self.test_row, token=self.token)
+    data_store.DB.Flush()
+    self.CheckLength(predicate, 0)
+
+    # This should work with the sync argument too.
+    data_store.DB.Set(self.test_row, predicate, "hello100", timestamp=100,
+                      replace=False, token=self.token)
+    data_store.DB.DeleteSubject(self.test_row, token=self.token, sync=True)
+    self.CheckLength(predicate, 0)
+
   def testMultiResolveRegex(self):
     """tests MultiResolveRegex."""
     rows = self._MakeTimestampedRows()

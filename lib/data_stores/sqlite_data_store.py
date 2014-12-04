@@ -593,7 +593,8 @@ class SqliteDataStore(data_store.DataStore):
       for regex in regexes:
         sqlite_connection.DeleteAttributesRegex(subject, regex)
 
-  def DeleteSubject(self, subject, token=None):
+  def DeleteSubject(self, subject, token=None, sync=False):
+    _ = sync
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
 
     with self.cache.Get(subject) as sqlite_connection:

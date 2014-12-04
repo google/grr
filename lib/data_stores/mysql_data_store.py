@@ -19,6 +19,7 @@ from grr.lib import utils
 # pylint: disable=nonstandard-exception
 class Error(data_store.Error):
   """Base class for all exceptions in this module."""
+# pylint: enable=nonstandard-exception
 
 
 class MySQLConnection(object):
@@ -202,7 +203,8 @@ class MySQLDataStore(data_store.DataStore):
       args = [subject, subject] + list(regexes)
       cursor.Execute(query, args)
 
-  def DeleteSubject(self, subject, token=None):
+  def DeleteSubject(self, subject, token=None, sync=False):
+    _ = sync
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
     with self.pool.GetConnection() as cursor:
       query = ("delete from `%s` where hash=md5(%%s) and subject=%%s  " %

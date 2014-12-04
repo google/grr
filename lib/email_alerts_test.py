@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 """Tests for grr.lib.email_alerts."""
 
-import smtplib
-
-import mock
 
 from grr.lib import config_lib
 from grr.lib import email_alerts
@@ -38,7 +35,7 @@ class SendEmailTests(test_lib.GRRBaseTest):
         x + testdomain for x in ["testto@", "abc@", "def@"]]
     cc_address = "testcc"
     email_alerts.SendEmail(to_address, from_address, subject, message,
-                            cc_addresses=cc_address)
+                           addresses=cc_address)
     c_from, c_to, message = smtp_conn.sendmail.call_args[0]
     self.assertEqual(from_address, c_from)
     self.assertEqual(to_address_expected, c_to)
@@ -50,7 +47,7 @@ class SendEmailTests(test_lib.GRRBaseTest):
     cc_address = "testcc,testcc2"
     email_msg_id = "123123"
     email_alerts.SendEmail(to_address, from_address, subject, message,
-                            cc_addresses=cc_address, message_id=email_msg_id)
+                           addresses=cc_address, message_id=email_msg_id)
     c_from, c_to, message = smtp_conn.sendmail.call_args[0]
     self.assertEqual(from_address, c_from)
     self.assertEqual(to_address_expected, c_to)
@@ -62,7 +59,7 @@ class SendEmailTests(test_lib.GRRBaseTest):
     to_address_expected = ["testto", "abc", "def"]
     config_lib.CONFIG.Set("Email.default_domain", None)
     email_alerts.SendEmail(to_address, from_address, subject, message,
-                            cc_addresses=cc_address)
+                           cc_addresses=cc_address)
     c_from, c_to, message = smtp_conn.sendmail.call_args[0]
     self.assertEqual(from_address, c_from)
     self.assertEqual(to_address_expected, c_to)
