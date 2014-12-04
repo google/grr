@@ -24,6 +24,7 @@ from collections import defaultdict
 # pylint: disable=nonstandard-exception
 class Error(data_store.Error):
   """Base class for all exceptions in this module."""
+# pylint: enable=nonstandard-exception
 
 
 class MySQLConnection(object):
@@ -197,7 +198,8 @@ class MySQLDataStore(data_store.DataStore):
       query, args = self._BuildQuery(action, subject, regex, is_regex=True)
       self._ExecuteQuery(query, args)
 
-  def DeleteSubject(self, subject, token=None):
+  def DeleteSubject(self, subject, token=None, sync=False):
+    _ = sync
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
 
     action = "delete "

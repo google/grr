@@ -250,6 +250,7 @@ Test Context:
   # Increase the client memory limit to 4GB.
   Client.rss_max: 4000
   Client.control_urls: ["http://localhost:8080/control"]
+  Client.foreman_check_frequency: 5
   Client.poll_max: 5
   Frontend.bind_address: 127.0.0.1
   Frontend.bind_port: 8080
@@ -260,11 +261,22 @@ Test Context:
 
   Logging.verbose: true
 
-  Client.tempdir: |
-    /tmp/
+  Client.tempdir: /tmp/
 
-  Client.rekall_profile_cache_path: |
-    /tmp/rekall_profiles
+  Rekall.profile_server: TestRekallRepositoryProfileServer
+  Client.rekall_profile_cache_path: /tmp/rekall_profiles
 
   # Disable write back
   Config.writeback: ""
+
+  HTTPDataStore.reconnect_timeout: 30
+
+  Platform:Linux:
+    Logging.engines: stderr
+
+  Platform:Windows:
+    Client.tempdir: "%(TEMP|env)"
+
+    # When debugging it helps to be able to see all output on the console.
+    ClientBuilder.console: True
+

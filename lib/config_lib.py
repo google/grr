@@ -401,7 +401,7 @@ class YamlParser(GRRConfigParser):
     Returns:
       a dict in common format. Any keys in the raw data which have a "." in them
       are separated into their own sections. This allows the config to be
-      written explicitely in dot notation instead of using a section.
+      written explicitly in dot notation instead of using a section.
     """
     if not isinstance(data, dict):
       return data

@@ -79,6 +79,9 @@ def RunEndToEndTests():
       if not aff4.issubclass(cls, base.ClientTestBase):
         continue
 
+      if cls.__name__.startswith("Abstract"):
+        continue
+
       # Fix the call method so we can use the test runner.  See doco in
       # base.ClientTestBase
       def _RealCall(testcase, *args, **kwds):

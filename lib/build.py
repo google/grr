@@ -194,6 +194,7 @@ class ClientDeployer(BuilderBase):
               "ClientBuilder.config_filename", context=context))
 
       new_config = config_lib.CONFIG.MakeNewConfig()
+      new_config.Initialize(reset=True, data="")
       new_config.SetWriteBack(filename)
 
       # Only copy certain sections to the client. We enumerate all

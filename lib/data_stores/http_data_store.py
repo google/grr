@@ -26,15 +26,6 @@ from grr.server.data_server import constants
 from grr.server.data_server import utils as sutils
 
 
-READ_TIMEOUT = 5
-REPLAY_TIMEOUT = 5
-SEND_TIMEOUT = 5
-LOGIN_TIMEOUT = 5
-RECONNECTION_TIMEOUT = 10 * 60  # 10 minutes.
-# How often to connect when unable to connect.
-RETRY_TIME = 5
-
-
 def CheckResponseStatus(response):
   """Catch error conditions from the response and raise them."""
   # Common case exit early.
@@ -109,7 +100,7 @@ class DataServerConnection(object):
 
   def _Sync(self):
     """Read responses from the pending requests."""
-    self.sock.settimeout(READ_TIMEOUT)
+    self.sock.settimeout(config_lib.CONFIG["HTTPDataStore.read_timeout"])
     while self.requests:
       response = self._ReadReply()
       if not response:
@@ -124,7 +115,7 @@ class DataServerConnection(object):
   def _SendRequest(self, command):
     request_str = command.SerializeToString()
     request_body = sutils.SIZE_PACKER.pack(len(request_str)) + request_str
-    self.sock.settimeout(SEND_TIMEOUT)
+    self.sock.settimeout(config_lib.CONFIG["HTTPDataStore.send_timeout"])
     try:
       self.sock.sendall(request_body)
       return True
@@ -173,7 +164,7 @@ class DataServerConnection(object):
       self.sock = self.conn.sock
       # Confirm handshake.
       self.sock.setblocking(1)
-      self.sock.settimeout(LOGIN_TIMEOUT)
+      self.sock.settimeout(config_lib.CONFIG["HTTPDataStore.login_timeout"])
       ack = self._ReadExactly(3)
       if ack == "IP\n":
         raise HTTPDataStoreError("Invalid data server username/password.")
@@ -200,7 +191,7 @@ class DataServerConnection(object):
       req = self.requests[-1]
       if not self._SendRequest(req):
         return False
-      self.sock.settimeout(REPLAY_TIMEOUT)
+      self.sock.settimeout(config_lib.CONFIG["HTTPDataStore.replay_timeout"])
       response = self._ReadReply()
       if not response:
         # Could not read response. Let's exit and force a reconnection
@@ -220,8 +211,10 @@ class DataServerConnection(object):
       else:
         logging.warning("Had to connect to %s:%d but failed. Trying again...",
                         self.Address(), self.Port())
-        time.sleep(RETRY_TIME)  # Sleep for some time before trying again.
-      if time.time() - started >= RECONNECTION_TIMEOUT:
+        # Sleep for some time before trying again.
+        time.sleep(config_lib.CONFIG["HTTPDataStore.retry_time"])
+      if time.time() - started >= config_lib.CONFIG[
+          "HTTPDataStore.reconnect_timeout"]:
         raise HTTPDataStoreError("Could not connect to %s:%d. Giving up." %
                                  (self.Address(), self.Port()))
 
@@ -247,7 +240,7 @@ class DataServerConnection(object):
     # At this point, we have a synchronized connection.
     while not self._SendRequest(command):
       self._RedoConnection()
-    self.sock.settimeout(READ_TIMEOUT)
+    self.sock.settimeout(config_lib.CONFIG["HTTPDataStore.read_timeout"])
     response = self._ReadReply()
     if not response:
       # Must reconnect and resend the request.
@@ -341,11 +334,12 @@ class DataServer(object):
         mapping = rdfvalue.DataServerMapping(data)
         return mapping
 
-      if time.time() - started > RECONNECTION_TIMEOUT:
+      if time.time() - started > config_lib.CONFIG[
+          "HTTPDataStore.reconnect_timeout"]:
         raise HTTPDataStoreError("Could not get server mapping from data "
                                  "server at %s:%d." %
                                  (self.Address(), self.Port()))
-      time.sleep(RETRY_TIME)
+      time.sleep(config_lib.CONFIG["HTTPDataStore.retry_time"])
 
 
 class RemoteInquirer(object):
@@ -486,9 +480,6 @@ class HTTPDataStore(data_store.DataStore):
         start=timestamp,
         type=rdfvalue.TimestampSpec.Type.SPECIFIC_TIME)
 
-  def _MakeAsyncRequest(self, request, typ):
-    return self._MakeRequestSyncOrAsync(request, typ, False)
-
   def _MakeSyncRequest(self, request, typ):
     return self._MakeRequestSyncOrAsync(request, typ, True)
 
@@ -538,13 +529,13 @@ class HTTPDataStore(data_store.DataStore):
     typ = rdfvalue.DataStoreCommand.Command.DELETE_ATTRIBUTES_REGEX
     self._MakeSyncRequest(request, typ)
 
-  def DeleteSubject(self, subject, token=None):
+  def DeleteSubject(self, subject, sync=False, token=None):
     request = rdfvalue.DataStoreRequest(subject=[subject])
     if token:
       request.token = token
 
     typ = rdfvalue.DataStoreCommand.Command.DELETE_SUBJECT
-    self._MakeAsyncRequest(request, typ)
+    self._MakeRequestSyncOrAsync(request, typ, sync)
 
   def _MakeRequest(self, subjects, predicates, timestamp=None, token=None,
                    limit=None):
