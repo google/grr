@@ -363,14 +363,7 @@ Worker Context:
 
   Worker.worker_process_count: 1
 
-Test Context:
-  Platform:Linux:
-
-    Client.tempdir: /tmp/
-
-    Logging.engines: stderr
-
-  Rekall.profile_server: TestRekallRepositoryProfileServer
+# For Test Context, see test_data/grr_test.yaml
 
 DataServer Context:
 # By default use an sqlite backend.

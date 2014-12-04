@@ -31,7 +31,7 @@ class TestGrepMemory(base.AutomatedTest):
     self.assertEqual(reference.data[10:10+3], "grr")
 
 
-class TestAnalyzeClientMemoryWindows(base.AutomatedTest):
+class AbstractTestAnalyzeClientMemoryWindows(base.AutomatedTest):
   """Test AnalyzeClientMemory (Rekall).
 
   We use the rekall caching profile server for these tests, since we may not
@@ -44,6 +44,9 @@ class TestAnalyzeClientMemoryWindows(base.AutomatedTest):
   test_output_path = "analysis/memory"
   args = {"request": rdfvalue.RekallRequest(),
           "output": test_output_path}
+
+  def setUpRequest(self):
+    raise NotImplementedError("Implemented by subclasses")
 
   def setUp(self):
     self.setUpRequest()
@@ -58,14 +61,14 @@ class TestAnalyzeClientMemoryWindows(base.AutomatedTest):
     # RDFValueCollections need to be deleted recursively.
     aff4.FACTORY.Delete(self.client_id.Add(self.test_output_path),
                         token=self.token)
-    super(TestAnalyzeClientMemoryWindows, self).setUp()
+    super(AbstractTestAnalyzeClientMemoryWindows, self).setUp()
 
   def tearDown(self):
     # RDFValueCollections need to be deleted recursively.
     aff4.FACTORY.Delete(self.client_id.Add(self.test_output_path),
                         token=self.token)
     config_lib.CONFIG.Set("Rekall.profile_server", self.old_config)
-    super(TestAnalyzeClientMemoryWindows, self).tearDown()
+    super(AbstractTestAnalyzeClientMemoryWindows, self).tearDown()
 
   def CheckFlow(self):
     self.response = aff4.FACTORY.Open(self.client_id.Add(self.test_output_path),
@@ -74,19 +77,22 @@ class TestAnalyzeClientMemoryWindows(base.AutomatedTest):
     self.assertTrue(len(self.response) >= 1)
 
 
-class TestAnalyzeClientMemoryWindowsPSList(TestAnalyzeClientMemoryWindows):
+class TestAnalyzeClientMemoryWindowsPSList(
+    AbstractTestAnalyzeClientMemoryWindows):
 
   def setUpRequest(self):
     self.args["request"].plugins = [rdfvalue.PluginRequest(plugin="pslist")]
 
 
-class TestAnalyzeClientMemoryWindowsModules(TestAnalyzeClientMemoryWindows):
+class TestAnalyzeClientMemoryWindowsModules(
+    AbstractTestAnalyzeClientMemoryWindows):
 
   def setUpRequest(self):
     self.args["request"].plugins = [rdfvalue.PluginRequest(plugin="modules")]
 
 
-class TestAnalyzeClientMemoryWindowsDLLList(TestAnalyzeClientMemoryWindows):
+class TestAnalyzeClientMemoryWindowsDLLList(
+    AbstractTestAnalyzeClientMemoryWindows):
   """Run rekall DLL list and look for the GRR process."""
 
   def setUpRequest(self):
@@ -107,7 +113,7 @@ class TestAnalyzeClientMemoryWindowsDLLList(TestAnalyzeClientMemoryWindows):
     self.assertTrue(self.binaryname in unicode(self.response))
 
 
-class TestAnalyzeClientMemoryMac(TestAnalyzeClientMemoryWindows):
+class TestAnalyzeClientMemoryMac(AbstractTestAnalyzeClientMemoryWindows):
   """Runs Rekall on Macs."""
 
   platforms = ["Darwin"]
