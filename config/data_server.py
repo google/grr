@@ -30,10 +30,3 @@ config_lib.DEFINE_string("Dataserver.server_username", "server",
 
 config_lib.DEFINE_string("Dataserver.server_password", "server",
                          "Password for servers.")
-
-# HTTP data store configuration.
-config_lib.DEFINE_string("HTTPDataStore.username", "user",
-                         "Username for using the distributed data store.")
-
-config_lib.DEFINE_string("HTTPDataStore.password", "user",
-                         "Password for using the distributed data store.")

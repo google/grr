@@ -7,7 +7,6 @@ import codecs
 import datetime
 import functools
 import itertools
-import mock
 import os
 import pdb
 import re
@@ -25,6 +24,8 @@ import urlparse
 
 
 from M2Crypto import X509
+
+import mock
 
 from selenium.common import exceptions
 from selenium.webdriver.common import action_chains
@@ -322,7 +323,7 @@ class GRRBaseTest(unittest.TestCase):
       aff4.GRRUser.SYSTEM_USERS.remove("test")
 
     # We don't want to send actual email in our tests
-    self.smtp_patcher = mock.patch('smtplib.SMTP')
+    self.smtp_patcher = mock.patch("smtplib.SMTP")
     self.mock_smtp = self.smtp_patcher.start()
 
   def tearDown(self):

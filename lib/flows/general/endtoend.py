@@ -71,7 +71,8 @@ class EndToEndTestFlow(flow.GRRFlow):
 
   def _AddTest(self, cls, system):
     if aff4.issubclass(cls, base.AutomatedTest) and system in cls.platforms:
-      self.state.test_set.add(cls)
+      if not cls.__name__.startswith("Abstract"):
+        self.state.test_set.add(cls)
 
   @flow.StateHandler(next_state="RunFirstTest")
   def Start(self):

@@ -87,8 +87,32 @@ config_lib.DEFINE_string("Mysql.database_password", default="",
                          help="The password to connect to the database.")
 
 # HTTP data store.
-config_lib.DEFINE_string("HTTPDataStore.username", default="",
+config_lib.DEFINE_string("HTTPDataStore.username", default="httpuser",
                          help="The username to connect to the http data store.")
 
-config_lib.DEFINE_string("HTTPDataStore.password", default="",
+config_lib.DEFINE_string("HTTPDataStore.password", default="httppass",
                          help="The password to connect to the http data store.")
+
+config_lib.DEFINE_integer("HTTPDataStore.read_timeout", 5,
+                          help="HTTP socket read timeout in seconds.")
+
+config_lib.DEFINE_integer("HTTPDataStore.replay_timeout", 5,
+                          help=("HTTP socket read timeout when replaying "
+                                "requests, in seconds."))
+
+config_lib.DEFINE_integer("HTTPDataStore.send_timeout", 5,
+                          help="HTTP socket send timeout in seconds.")
+
+config_lib.DEFINE_integer("HTTPDataStore.login_timeout", 5,
+                          help=("HTTP socket timeout when remote servers are "
+                                "logging in."))
+
+config_lib.DEFINE_integer("HTTPDataStore.reconnect_timeout", 10 * 60,
+                          help=("Number of seconds to spend attempting to "
+                                "reconnect to the database. Attempt every "
+                                "retry_timeout seconds."))
+
+config_lib.DEFINE_integer("HTTPDataStore.retry_time", 5,
+                          help=("Number of seconds to wait in-between attempts"
+                                "to reconnect to the database."))
+
