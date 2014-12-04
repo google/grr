@@ -11,8 +11,6 @@ import json
 import stat
 import time
 
-from rekall.ui import json_renderer
-
 import logging
 
 
@@ -908,6 +906,7 @@ class RekallResponseConverter(ExportConverter):
   OUTPUT_CLASSES = {}
 
   OBJECT_RENDERERS = {
+      "str": lambda x: "str" in x and x["str"] or x["b64"],
       "Address": lambda x: utils.FormatAsHexString(x["value"]),
       "Pointer": lambda x: utils.FormatAsHexString(x["target"], 14),
       "PaddedAddress": lambda x: utils.FormatAsHexString(x["value"], 14),
@@ -926,13 +925,23 @@ class RekallResponseConverter(ExportConverter):
     """Renders a single object - i.e. a table cell."""
 
     if not hasattr(obj, "iteritems"):
+      # Maybe we have to deal with legacy strings, ecnoded as lists with first
+      # element being "+" for base64 strings and "*" for unicode strings -
+      # check it.
+      if isinstance(obj, list) and len(obj) == 2 and obj[0] in ["*", "+"]:
+        return utils.SmartStr(obj[1])
+
       return utils.SmartStr(obj)
 
     if "string_value" in obj:
       return obj["string_value"]
 
     if "mro" in obj:
-      for mro_type in obj["mro"]:
+      obj_mro = obj["mro"]
+      if isinstance(obj_mro, basestring):
+        obj_mro = obj_mro.split(":")
+
+      for mro_type in obj_mro:
         if mro_type in self.OBJECT_RENDERERS:
           return self.OBJECT_RENDERERS[mro_type](obj)
 
@@ -943,19 +952,6 @@ class RekallResponseConverter(ExportConverter):
 
     json_data = json.loads(messages)
     for message in json_data:
-      if len(message) >= 1:
-        object_renderer = json_renderer.JsonObjectRenderer(
-            renderer="DataExportRenderer")
-        try:
-          message = [object_renderer.DecodeFromJsonSafe(s, {})
-                     for s in message]
-        except AttributeError as e:
-          # Old clients may still return lexicon-encoded data, just ignore them.
-          if "has no attribute 'lexicon'" in str(e):
-            continue
-          else:
-            raise
-
       yield message
 
   def _GenerateOutputClass(self, class_name, context_dict):
@@ -1025,7 +1021,7 @@ class RekallResponseConverter(ExportConverter):
     result.metadata = metadata
 
     try:
-      result.section_name = context_dict["s"]["name"]
+      result.section_name = self._RenderObject(context_dict["s"]["name"])
     except KeyError:
       pass
 
