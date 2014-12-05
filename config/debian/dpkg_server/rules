@@ -36,6 +36,7 @@ override_dh_installinit:
 	rm debian/grr-server/etc/init/grr-client.conf
 	# Set up grr-server shared directories and files
 	mkdir -p debian/grr-server/usr/share/grr/scripts
+	mkdir -p debian/grr-server/usr/share/grr/scripts/signing/windows
 	mkdir -p debian/grr-server/usr/share/grr/binaries
 	mkdir -p debian/grr-server/usr/share/grr/executables/linux/installers/
 	mkdir -p debian/grr-server/usr/share/grr/executables/darwin/installers/
@@ -48,7 +49,9 @@ override_dh_installinit:
 	# Generate all the template directories.
 	mkdir -p $(shell ls -d executables/*/templates/ |sed 's/executables/debian\/grr-server\/usr\/share\/grr\/executables/g')
 
-	install -p -m755 scripts/* debian/grr-server/usr/share/grr/scripts
+	install -p -m755 scripts/*sh debian/grr-server/usr/share/grr/scripts/
+	install -p -m755 scripts/signing/windows/*sh debian/grr-server/usr/share/grr/scripts/signing/windows/
+
 	# Make a copy of the default config so users can refer to it.
 	install -p -m644 -T config/grr-server.yaml debian/grr-server/usr/share/grr/grr-server.yaml.default
 

@@ -398,7 +398,7 @@ class TimeBasedCache(FastStore):
             self._age.Unlink(node)
             self._hash.pop(node.key, None)
 
-    # This thread is designed to never finish
+    # This thread is designed to never finish.
     self.house_keeper_thread = InterruptableThread(target=HouseKeeper)
     self.house_keeper_thread.start()
 

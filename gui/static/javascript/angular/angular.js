@@ -1,5 +1,5 @@
 /**
- * @license AngularJS v1.3.6-local+sha.32806ca
+ * @license AngularJS v1.3.6-local+sha.96e7897
  * (c) 2010-2014 Google, Inc. http://angularjs.org
  * License: MIT
  */
@@ -55,7 +55,7 @@ function minErr(module, ErrorConstructor) {
       return match;
     });
 
-    message = message + '\nhttp://errors.angularjs.org/1.3.6-local+sha.32806ca/' +
+    message = message + '\nhttp://errors.angularjs.org/1.3.6-local+sha.96e7897/' +
       (module ? module + '/' : '') + code;
     for (i = 2; i < arguments.length; i++) {
       message = message + (i == 2 ? '?' : '&') + 'p' + (i - 2) + '=' +
@@ -2109,7 +2109,7 @@ function toDebugString(obj) {
  * - `codeName` – `{string}` – Code name of the release, such as "jiggling-armfat".
  */
 var version = {
-  full: '1.3.6-local+sha.32806ca',    // all of these placeholder strings will be replaced by grunt's
+  full: '1.3.6-local+sha.96e7897',    // all of these placeholder strings will be replaced by grunt's
   major: 1,    // package task
   minor: 3,
   dot: undefined,
@@ -4890,6 +4890,11 @@ function Browser(window, document, $log, $sniffer) {
     }
   }
 
+  function getHash(url) {
+    var index = url.indexOf('#');
+    return index === -1 ? '' : url.substr(index + 1);
+  }
+
   /**
    * @private
    * Note: this method is used only by scenario runner
@@ -5019,8 +5024,10 @@ function Browser(window, document, $log, $sniffer) {
         }
         if (replace) {
           location.replace(url);
-        } else {
+        } else if (!sameBase) {
           location.href = url;
+        } else {
+          location.hash = getHash(url);
         }
       }
       return self;
@@ -5802,7 +5809,7 @@ function $TemplateCacheProvider() {
  * #### `multiElement`
  * When this property is set to true, the HTML compiler will collect DOM nodes between
  * nodes with the attributes `directive-name-start` and `directive-name-end`, and group them
- * together as the directive elements. It is recomended that this feature be used on directives
+ * together as the directive elements. It is recommended that this feature be used on directives
  * which are not strictly behavioural (such as {@link ngClick}), and which
  * do not manipulate or replace child nodes (such as {@link ngInclude}).
  *
@@ -10616,16 +10623,25 @@ function LocationHashbangUrl(appBase, hashPrefix) {
    */
   this.$$parse = function(url) {
     var withoutBaseUrl = beginsWith(appBase, url) || beginsWith(appBaseNoFile, url);
-    var withoutHashUrl = withoutBaseUrl.charAt(0) == '#'
-        ? beginsWith(hashPrefix, withoutBaseUrl)
-        : (this.$$html5)
-          ? withoutBaseUrl
-          : '';
+    var withoutHashUrl;
 
-    if (!isString(withoutHashUrl)) {
-      throw $locationMinErr('ihshprfx', 'Invalid url "{0}", missing hash prefix "{1}".', url,
-          hashPrefix);
+    if (withoutBaseUrl.charAt(0) === '#') {
+
+      // The rest of the url starts with a hash so we have
+      // got either a hashbang path or a plain hash fragment
+      withoutHashUrl = beginsWith(hashPrefix, withoutBaseUrl);
+      if (isUndefined(withoutHashUrl)) {
+        // There was no hashbang prefix so we just have a hash fragment
+        withoutHashUrl = withoutBaseUrl;
+      }
+
+    } else {
+      // There was no hashbang path nor hash fragment:
+      // If we are in HTML5 mode we use what is left as the path;
+      // Otherwise we ignore what is left
+      withoutHashUrl = this.$$html5 ? withoutBaseUrl : '';
     }
+
     parseAppUrl(withoutHashUrl, this);
 
     this.$$path = removeWindowsDriveName(this.$$path, withoutHashUrl, appBase);
@@ -10988,7 +11004,7 @@ var locationPrototype = {
    *
    *
    * ```js
-   * // given url http://example.com/some/path?foo=bar&baz=xoxo#hashValue
+   * // given url http://example.com/#/some/path?foo=bar&baz=xoxo#hashValue
    * var hash = $location.hash();
    * // => "hashValue"
    * ```
@@ -12149,8 +12165,8 @@ Parser.prototype = {
   logicalAND: function() {
     var left = this.equality();
     var token;
-    if ((token = this.expect('&&'))) {
-      left = this.binaryFn(left, token.text, this.logicalAND(), true);
+    while ((token = this.expect('&&'))) {
+      left = this.binaryFn(left, token.text, this.equality(), true);
     }
     return left;
   },
@@ -12158,8 +12174,8 @@ Parser.prototype = {
   equality: function() {
     var left = this.relational();
     var token;
-    if ((token = this.expect('==','!=','===','!=='))) {
-      left = this.binaryFn(left, token.text, this.equality());
+    while ((token = this.expect('==','!=','===','!=='))) {
+      left = this.binaryFn(left, token.text, this.relational());
     }
     return left;
   },
@@ -12167,8 +12183,8 @@ Parser.prototype = {
   relational: function() {
     var left = this.additive();
     var token;
-    if ((token = this.expect('<', '>', '<=', '>='))) {
-      left = this.binaryFn(left, token.text, this.relational());
+    while ((token = this.expect('<', '>', '<=', '>='))) {
+      left = this.binaryFn(left, token.text, this.additive());
     }
     return left;
   },
@@ -15921,7 +15937,9 @@ function $SnifferProvider() {
         // IE9 implements 'input' event it's so fubared that we rather pretend that it doesn't have
         // it. In particular the event is not fired when backspace or delete key are pressed or
         // when cut operation is performed.
-        if (event == 'input' && msie == 9) return false;
+        // IE10+ implements 'input' event but it erroneously fires under various situations,
+        // e.g. when placeholder changes, or a form is focused.
+        if (event === 'input' && msie <= 11) return false;
 
         if (isUndefined(eventSupport[event])) {
           var divElm = document.createElement('div');
@@ -17570,12 +17588,29 @@ function orderByFilter($parse) {
     function compare(v1, v2) {
       var t1 = typeof v1;
       var t2 = typeof v2;
-      if (t1 == t2) {
-        if (isDate(v1) && isDate(v2)) {
-          v1 = v1.valueOf();
-          v2 = v2.valueOf();
+      // Prepare values for Abstract Relational Comparison
+      // (http://www.ecma-international.org/ecma-262/5.1/#sec-11.8.5):
+      // If the resulting values are identical, return 0 to prevent
+      // incorrect re-ordering.
+      if (t1 === t2 && t1 === "object") {
+        // If types are both numbers, emulate abstract ToPrimitive() operation
+        // in order to get primitive values suitable for comparison
+        t1 = typeof (v1.valueOf ? v1 = v1.valueOf() : v1);
+        t2 = typeof (v2.valueOf ? v2 = v2.valueOf() : v2);
+        if (t1 === t2 && t1 === "object") {
+          // Object.prototype.valueOf will return the original object, by
+          // default. If we do not receive a primitive value, use ToString()
+          // instead.
+          t1 = typeof (v1.toString ? v1 = v1.toString() : v1);
+          t2 = typeof (v2.toString ? v2 = v2.toString() : v2);
+
+          // If the end result of toString() for each item is the same, do not
+          // perform relational comparison, and do not re-order objects.
+          if (t1 === t2 && v1 === v2 || t1 === "object") return 0;
         }
-        if (t1 == "string") {
+      }
+      if (t1 === t2) {
+        if (t1 === "string") {
            v1 = v1.toLowerCase();
            v2 = v2.toLowerCase();
         }
@@ -19529,7 +19564,6 @@ function textInputType(scope, element, attr, ctrl, $sniffer, $browser) {
 }
 
 function baseInputType(scope, element, attr, ctrl, $sniffer, $browser) {
-  var placeholder = element[0].placeholder, noevent = {};
   var type = lowercase(element[0].type);
 
   // In composition mode, users are still inputing intermediate text buffer,
@@ -19549,18 +19583,13 @@ function baseInputType(scope, element, attr, ctrl, $sniffer, $browser) {
   }
 
   var listener = function(ev) {
+    if (timeout) {
+      $browser.defer.cancel(timeout);
+      timeout = null;
+    }
     if (composing) return;
     var value = element.val(),
         event = ev && ev.type;
-
-    // IE (11 and under) seem to emit an 'input' event if the placeholder value changes.
-    // We don't want to dirty the value when this happens, so we abort here. Unfortunately,
-    // IE also sends input events for other non-input-related things, (such as focusing on a
-    // form control), so this change is not entirely enough to solve this.
-    if (msie && (ev || noevent).type === 'input' && element[0].placeholder !== placeholder) {
-      placeholder = element[0].placeholder;
-      return;
-    }
 
     // By default we will trim the value
     // If the attribute ng-trim exists we will avoid trimming
@@ -19584,11 +19613,13 @@ function baseInputType(scope, element, attr, ctrl, $sniffer, $browser) {
   } else {
     var timeout;
 
-    var deferListener = function(ev) {
+    var deferListener = function(ev, input, origValue) {
       if (!timeout) {
         timeout = $browser.defer(function() {
-          listener(ev);
           timeout = null;
+          if (!input || input.value !== origValue) {
+            listener(ev);
+          }
         });
       }
     };
@@ -19600,7 +19631,7 @@ function baseInputType(scope, element, attr, ctrl, $sniffer, $browser) {
       //    command            modifiers                   arrows
       if (key === 91 || (15 < key && key < 19) || (37 <= key && key <= 40)) return;
 
-      deferListener(event);
+      deferListener(event, this, this.value);
     });
 
     // if user modifies input value using context menu in IE, we need "paste" and "cut" events to catch it
@@ -25138,7 +25169,7 @@ var ngSwitchDefaultDirective = ngDirective({
          }]);
        </script>
        <div ng-controller="ExampleController">
-         <input ng-model="title"><br>
+         <input ng-model="title"> <br/>
          <textarea ng-model="text"></textarea> <br/>
          <pane title="{{title}}">{{text}}</pane>
        </div>
@@ -25268,9 +25299,9 @@ var ngOptionsMinErr = minErr('ngOptions');
  * or property name (for object data sources) of the value within the collection. If a `track by` expression
  * is used, the result of that expression will be set as the value of the `option` and `select` elements.
  *
- * ### `select as` with `trackexpr`
+ * ### `select as` with `track by`
  *
- * Using `select as` together with `trackexpr` is not recommended. Reasoning:
+ * Using `select as` together with `track by` is not recommended. Reasoning:
  *
  * - Example: &lt;select ng-options="item.subItem as item.label for item in values track by item.id" ng-model="selected"&gt;
  *   values: [{id: 1, label: 'aLabel', subItem: {name: 'aSubItem'}}, {id: 2, label: 'bLabel', subItem: {name: 'bSubItem'}}],
@@ -25295,8 +25326,10 @@ var ngOptionsMinErr = minErr('ngOptions');
  *   * for array data sources:
  *     * `label` **`for`** `value` **`in`** `array`
  *     * `select` **`as`** `label` **`for`** `value` **`in`** `array`
- *     * `label`  **`group by`** `group` **`for`** `value` **`in`** `array`
- *     * `select` **`as`** `label` **`group by`** `group` **`for`** `value` **`in`** `array` **`track by`** `trackexpr`
+ *     * `label` **`group by`** `group` **`for`** `value` **`in`** `array`
+ *     * `label` **`group by`** `group` **`for`** `value` **`in`** `array` **`track by`** `trackexpr`
+ *     * `label` **`for`** `value` **`in`** `array` | orderBy:`orderexpr` **`track by`** `trackexpr`
+ *        (for including a filter with `track by`)
  *   * for object data sources:
  *     * `label` **`for (`**`key` **`,`** `value`**`) in`** `object`
  *     * `select` **`as`** `label` **`for (`**`key` **`,`** `value`**`) in`** `object`
