@@ -62,6 +62,16 @@ config_lib.DEFINE_string(
              "%(ClientBuilder.output_extension)"),
     help="The location of the generated installer in the config directory.")
 
+config_lib.DEFINE_string(
+    name="ClientBuilder.output_extension",
+    default=None,
+    help="The file extension for the client (OS dependent).")
+
+config_lib.DEFINE_string(
+    name="ClientBuilder.package_dir",
+    default=None,
+    help="OSX package name.")
+
 
 class PathTypeInfo(type_info.String):
   """A path to a file or a directory."""
@@ -189,6 +199,16 @@ config_lib.DEFINE_string(
     "PyInstaller.build_dir",
     "./build",
     "The path to the build directory.")
+
+config_lib.DEFINE_string(
+    "PyInstaller.dpkg_root",
+    default=None,
+    help="Pyinstaller dpkg root.")
+
+config_lib.DEFINE_string(
+    "PyInstaller.build_root_dir",
+    default=None,
+    help="Pyinstaller build root.")
 
 config_lib.DEFINE_string(
     name="Client.prefix", default="",
@@ -373,3 +393,64 @@ config_lib.DEFINE_string(
     default=("/Developer/Applications/Utilities/PackageMaker.app/Contents"
              "/MacOS/PackageMaker"),
     help="Location of the PackageMaker executable.")
+
+config_lib.DEFINE_string(
+    "ClientBuilder.vs_arch",
+    default=None,
+    help="Visual studio architecture string.")
+
+config_lib.DEFINE_string(
+    "ClientBuilder.vs_env_script",
+    default=None,
+    help="Path to visual studio environment variables bat file.")
+
+config_lib.DEFINE_string(
+    "ClientBuilder.vs_dir",
+    default=None,
+    help="Path to visual studio installation dir.")
+
+config_lib.DEFINE_string(
+    "ClientBuilder.build_root_dir",
+    default=None,
+    help="Root directory for client builds.")
+
+config_lib.DEFINE_string(
+    "ClientBuilder.build_src_dir",
+    default=None,
+    help="Location of the grr src for building.")
+
+config_lib.DEFINE_string(
+    "ClientBuilder.build_dest",
+    default=None,
+    help="Output directory for client building.")
+
+config_lib.DEFINE_string(
+    "ClientBuilder.install_dir",
+    default=None,
+    help="Target installation directory for client builds.")
+
+config_lib.DEFINE_string(
+    "ClientBuilder.mangled_output_basename",
+    default=None,
+    help="OS X package maker mangled name.")
+
+config_lib.DEFINE_string(
+    "ClientBuilder.package_maker_organization",
+    default=None,
+    help="OS X package maker organization name.")
+
+config_lib.DEFINE_string(
+    "ClientBuilder.package_maker_path",
+    default=None,
+    help="Path to OS X package maker binary.")
+
+config_lib.DEFINE_string(
+    "ClientBuilder.target_dir",
+    default=None,
+    help="ClientBuilder target directory.")
+
+config_lib.DEFINE_string(
+    "ClientBuilder.daemon_link",
+    default=None,
+    help="ClientBuilder daemon link.")
+

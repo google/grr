@@ -86,8 +86,19 @@ def Init():
 
   stats.STATS = stats.StatsCollector()
 
-  AddConfigContext()
-  ConfigInit()
+  # Set up a temporary syslog handler so we have somewhere to log problems with
+  # ConfigInit() which needs to happen before we can start our create our proper
+  # logging setup.
+  syslog_logger = logging.getLogger('TempLogger')
+  handler = logging.handlers.SysLogHandler(address = '/dev/log')
+  syslog_logger.addHandler(handler)
+
+  try:
+    AddConfigContext()
+    ConfigInit()
+  except config_lib.Error:
+    syslog_logger.exception("Died during config initialization")
+    raise
 
   ServerLoggingStartupInit()
   registry.Init()
