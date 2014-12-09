@@ -103,6 +103,7 @@ class MySQLConnection(object):
     except MySQLdb.Error:
       raise
 
+
 class ConnectionPool(object):
   """A pool of connections to the mysql server.
 
@@ -134,6 +135,7 @@ class MySQLDataStore(data_store.DataStore):
       MySQLDataStore.POOL = ConnectionPool()
     self.pool = self.POOL
 
+    self.to_set = defaultdict(list)
     self._CalculateAttributeStorageTypes()
     self.database_name = config_lib.CONFIG["Mysql.database_name"]
     self.lock = threading.Lock()
@@ -245,8 +247,6 @@ class MySQLDataStore(data_store.DataStore):
 
   def MultiSet(self, subject, values, timestamp=None, token=None, replace=True, sync=True, to_delete=None):
     """Set multiple predicates' values for this subject in one operation."""
-    _ = sync  # Unused
-
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
     to_delete = set(to_delete or [])
 
@@ -255,7 +255,7 @@ class MySQLDataStore(data_store.DataStore):
 
     # Prepare a bulk insert operation.
     subject = utils.SmartUnicode(subject)
-    to_set = []
+    to_set = defaultdict(list)
 
     # Build a document for each unique timestamp.
     for attribute, sequence in values.items():
@@ -276,37 +276,65 @@ class MySQLDataStore(data_store.DataStore):
           to_delete.add(attribute)
 
         data = self._EncodeValue(value)
-        to_set.extend(
+        to_set[subject].extend(
             [subject, int(entry_timestamp), predicate, prefix, data])
 
     if to_delete:
       self.DeleteAttributes(subject, to_delete, token=token)
 
     if to_set:
-      self._ResolveInsert(subject, to_set)
+      if sync:
+        self._ResolveInsert(to_set)
+      else:
+        with self.lock:
+          self.to_set[subject].extend(to_set[subject])      
 
-  def _ResolveInsert(self, subject, values):
-      #Insert subject into locks table for tracking if not present
-      query, args = self._BuildInsert(subject)
-      self._ExecuteQuery(query, args)
+  def Flush(self):
+    with self.lock:
+      to_set = self.to_set
+      self.to_set = defaultdict(list)
 
-      #Insert new data
-      query, args = self._BuildInsert(subject, values)
-      self._ExecuteQuery(query, args)
+    if to_set:
+      self._ResolveInsert(to_set)
 
-  def _BuildInsert(self, subject, values=None):
+  def _ResolveInsert(self, insert_data):
+
+    locks_values = []
+    data_values = []
+
+    for subject in insert_data:
+      locks_values.extend([subject] * 2)
+      data_values.extend(insert_data[subject])
+
+    #Insert subject into locks table for tracking if not present
+    query, args = self._BuildLocksInsert(locks_values)
+    self._ExecuteQuery(query, args)
+
+    #Insert new data
+    query, args = self._BuildDataInsert(data_values)
+    self._ExecuteQuery(query, args)
+
+  def _BuildDataInsert(self, values):
     args = []
-    if values:
-      query = ("insert into `%s` (hash, timestamp, attribute, prefix, "
-             "value) values " %
-             self.SYSTEM_TABLE)
 
-      nr_items = len(values) / 5
-      query += ", ".join(["(md5(%s), %s, %s, %s, %s)"] * nr_items)
-      args = values
-    else:
-      query = "insert ignore into `%s` (hash, subject, lock_expiration, lock_owner) values (md5(%%s), %%s, 0, 0)" % self.LOCKS_TABLE
-      args = [subject, subject]
+    query = ("insert into `%s` (hash, timestamp, attribute, prefix, "
+           "value) values " %
+           self.SYSTEM_TABLE)
+
+    nr_items = len(values) / 5
+    query += ", ".join(["(md5(%s), %s, %s, %s, %s)"] * nr_items)
+    args = values
+
+    return (query, args)
+
+  def _BuildLocksInsert(self, values):
+    args = []
+
+    query = "insert ignore into `%s` (hash, subject, lock_expiration, lock_owner) values " % self.LOCKS_TABLE
+
+    nr_items = len(values) / 2
+    query += ", ".join(["(md5(%s), %s, 0, 0)"] * nr_items)
+    args = values
 
     return (query, args)
 
