@@ -15,8 +15,9 @@ from grr.lib import rdfvalue
 from grr.lib import utils
 
 
-# File handles are cached here.
-FILE_HANDLE_CACHE = utils.FastStore()
+# File handles are cached here. They expire after a couple minutes so
+# we don't keep files locked on the client.
+FILE_HANDLE_CACHE = utils.TimeBasedCache(max_age=300)
 
 
 class LockedFileHandle(object):
@@ -212,6 +213,8 @@ class File(vfs.VFSHandler):
 
   def Read(self, length):
     """Read from the file."""
+    if self.progress_callback:
+      self.progress_callback()
     with FileHandleManager(self.filename) as fd:
       offset = self.file_offset + self.offset
       pre_padding = offset % self.alignment
@@ -317,4 +320,3 @@ class File(vfs.VFSHandler):
       path = os.path.dirname(path)
 
     return path
-
