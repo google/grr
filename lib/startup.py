@@ -79,7 +79,11 @@ INIT_RAN = False
 
 
 def Init():
-  """Run all required startup routines and initialization hooks."""
+  """Server init sequence, run startup routines and initialization hooks.
+
+  This code assumes linux, running the server on other operating systems is
+  unsupported.
+  """
   global INIT_RAN
   if INIT_RAN:
     return
@@ -103,14 +107,13 @@ def Init():
   ServerLoggingStartupInit()
   registry.Init()
 
-  if platform.system() != "Windows":
-    if config_lib.CONFIG["Server.username"]:
-      try:
-        os.setuid(pwd.getpwnam(config_lib.CONFIG["Server.username"]).pw_uid)
-      except (KeyError, OSError):
-        logging.exception("Unable to switch to user %s",
-                          config_lib.CONFIG["Server.username"])
-        raise
+  if config_lib.CONFIG["Server.username"]:
+    try:
+      os.setuid(pwd.getpwnam(config_lib.CONFIG["Server.username"]).pw_uid)
+    except (KeyError, OSError):
+      logging.exception("Unable to switch to user %s",
+                        config_lib.CONFIG["Server.username"])
+      raise
 
   INIT_RAN = True
 
