@@ -42,7 +42,6 @@ message PESection {
 message PEResource {
   optional string name = 1;
   optional uint64 size = 2;
-  optional string type = 3;
 }
 
 message PEHeader {
@@ -61,21 +60,20 @@ message PEHeader {
   IMAGE_SUBSYSTEM_XBOX = 14;
   IMAGE_SUBSYSTEM_WINDOWS_BOOT_APPLICATION = 16;
   }
-    optional string type = 1;
+  optional string type = 1;
   optional Subsystem subsystem = 2;
-    optional uint64 compile_time = 3 [(sem_type) = {
+  optional uint64 compile_time = 3 [(sem_type) = {
       type: "RDFDatetimeSeconds",
       description: "Last inode change time."
     }];
-    optional uint64 ep = 4;
-    optional uint64 tls = 5;
-    optional bytes signature = 6;
-  optional PEVersionInfo version_info = 7;
-  repeated PELibrary imports = 8;
-  optional PELibrary exports = 9;
-  repeated PESection sections = 10;
-  repeated PEResource resources = 11;
-  repeated string anomalies = 12;
+  optional uint64 ep = 4;
+  optional uint64 tls = 5;
+  optional PEVersionInfo version_info = 6;
+  repeated PELibrary imports = 7;
+  optional PELibrary exports = 8;
+  repeated PESection sections = 9;
+  repeated PEResource resources = 10;
+  repeated string anomalies = 11;
 }
 
 
@@ -923,7 +921,6 @@ message StatEntry {
       description: "Last access time."
     }];
   optional string file_magic = 21;
-  optional PEHeader pe_header = 22;
 };
 
 // This stores collection entries.
@@ -1142,7 +1139,13 @@ message FingerprintResponse {
   repeated FingerprintTuple.Type matching_types = 1;
   repeated Dict results = 2;
   optional PathSpec pathspec = 3;
+  optional FileMeta filemeta = 4;
+  
 };
+
+message FileMeta {
+  optional PEHeader pe_header = 1;
+}
 
 message Hash {
   optional bytes sha256 = 1 [(sem_type) = {

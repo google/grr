@@ -23,6 +23,7 @@ from grr.lib import config_lib
 # we don't keep files locked on the client.
 FILE_HANDLE_CACHE = utils.TimeBasedCache(max_age=300)
 
+FILE_MAGIC = None
 
 class LockedFileHandle(object):
   """An object which encapsulates access to a file."""
@@ -182,6 +183,17 @@ class File(vfs.VFSHandler):
     if error is not None:
       raise error  # pylint: disable=raising-bad-type
 
+    self.InitializeMagic()
+
+  def InitializeMagic(self, reinit=False):
+    global FILE_MAGIC
+    if not FILE_MAGIC or reinit:
+      magic_file = config_lib.CONFIG.Get("Client.install_path") + "magic.mgc"
+      try:
+        FILE_MAGIC = magic.Magic(magic_file=magic_file)
+      except magic.MagicException as e:
+        logging.info("Failed to Load Magic. Err: %s", e)
+
   def WindowsHacks(self):
     """Windows specific hacks to make the filesystem look normal."""
     if sys.platform == "win32":
@@ -258,20 +270,18 @@ class File(vfs.VFSHandler):
     result = MakeStatResponse(st, self.pathspec)
 
     #Attempt file magic.
-    try:
-      magic_file = config_lib.CONFIG.Get("Client.install_path") + "magic.mgc"
-      mgc = magic.Magic(magic_file=magic_file)
-      result.file_magic = mgc.from_file(local_path)
-    except (IOError, MagicException) as e:
-      logging.info("Failed to Magic %s. Err: %s", path or self.path, e)
+    if FILE_MAGIC:
+      try:
+        result.file_magic = FILE_MAGIC.from_file(local_path)
+      except Exception as e:
+        if "libmagic on multiple threads" in str(e):
+          #Magic object must be reinitialized if thread has changed
+          self.InitializeMagic(reinit=True)
+          result.file_magic = FILE_MAGIC.from_file(local_path)
+        else:
+          raise
+    else:
       result.file_magic = None
-
-    #If magic is PE type attempt to parse and add header.  Expand for Mach-O/ELF
-    if result.file_magic.startswith("PE32"):
-      pe_header = rdfvalue.PEHeader()
-      pe_header.ParseFromFile(path=local_path)
-      result.pe_header = pe_header
-
     # Is this a symlink? If so we need to note the real location of the file.
     try:
       result.symlink = utils.SmartUnicode(os.readlink(local_path))

@@ -3,8 +3,12 @@ from grr.lib import config_lib
 from grr.proto import jobs_pb2
 import pefile
 import string
-import magic
+import logging
 import re
+
+class FileMeta(rdfvalue.RDFProtoStruct):
+  """Container for file metadata"""
+  protobuf = jobs_pb2.FileMeta
 
 class PEFunction(rdfvalue.RDFProtoStruct):
   """Represent a PE function for import/export"""
@@ -55,13 +59,6 @@ class PEHeader(rdfvalue.RDFProtoStruct):
       pe_type = None
     self.type = pe_type
 
-  def ParseSig(self, pe):
-    #PE Signature
-    address = pe.OPTIONAL_HEADER.DATA_DIRECTORY[pefile.DIRECTORY_ENTRY['IMAGE_DIRECTORY_ENTRY_SECURITY']].VirtualAddress
-    size = pe.OPTIONAL_HEADER.DATA_DIRECTORY[pefile.DIRECTORY_ENTRY['IMAGE_DIRECTORY_ENTRY_SECURITY']].Size
-    if address != 0:
-      self.signature = pe.write()[address+8:address+size]
-
   def ParseExports(self, pe):
     #PE Exports
     if hasattr(pe, 'DIRECTORY_ENTRY_EXPORT'):
@@ -105,8 +102,6 @@ class PEHeader(rdfvalue.RDFProtoStruct):
   def ParseResources(self, pe):
     #PE Resources
     if hasattr(pe, 'DIRECTORY_ENTRY_RESOURCE'):
-      magic_file = config_lib.CONFIG.Get("Client.install_path") + "magic.mgc"
-      mgc = magic.Magic(magic_file=magic_file)
       for entry in pe.DIRECTORY_ENTRY_RESOURCE.entries:
         resource_type = entry.name
         if resource_type is None:
@@ -120,8 +115,6 @@ class PEHeader(rdfvalue.RDFProtoStruct):
                 resource_entry = PEResource()
                 resource_entry.name = str(resource_type)
                 resource_entry.size = resource.data.struct.Size
-                magic_type = mgc.from_buffer(pe.get_data(resource.data.struct.OffsetToData, resource.data.struct.Size))
-                resource_entry.type = magic_type
                 self.resources.append(resource_entry)
 
   def ParseSections(self, pe):
@@ -159,12 +152,9 @@ class PEHeader(rdfvalue.RDFProtoStruct):
       if hasattr(pe, 'DIRECTORY_ENTRY_TLS'):
         self.tls = pe.DIRECTORY_ENTRY_TLS.struct.AddressOfCallBacks
       self.ParseType(pe)
-      self.ParseSig(pe)
       self.ParseExports(pe)
       self.ParseImports(pe)
       self.ParseVersionInfo(pe)
       self.ParseResources(pe)
       self.ParseSections(pe)
       self.ParseAnomalies(pe)
-      
-      
