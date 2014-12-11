@@ -36,7 +36,7 @@ Client.foreman_check_frequency: 600
 Client.poll_max: 600
 
 # Writeback for server components.
-Config.writeback: /etc/grr/server.local.yaml
+Config.writeback: "%(Config.directory)/server.local.yaml"
 
 Datastore.implementation: MongoDataStore
 
