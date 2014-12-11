@@ -36,8 +36,8 @@ class TestHuntView(test_lib.GRRSeleniumTest):
             pathspec=rdfvalue.PathSpec(
                 path="/tmp/evil.txt",
                 pathtype=rdfvalue.PathSpec.PathType.OS,
-                )
-            ),
+            )
+        ),
         regex_rules=[rdfvalue.ForemanAttributeRegex(
             attribute_name="GRR client",
             attribute_regex="GRR")],

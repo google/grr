@@ -919,7 +919,7 @@ class RekallResponseConverter(ExportConverter):
       "Struct": lambda x: utils.FormatAsHexString(x["offset"]),
       "UnixTimeStamp": lambda x: utils.FormatAsTimestamp(x["epoch"]),
       "_EPROCESS": lambda x: "%s (%s)" % (x["Cybox"]["Name"], x["Cybox"]["PID"])
-      }
+  }
 
   def _RenderObject(self, obj):
     """Renders a single object - i.e. a table cell."""
@@ -1049,7 +1049,7 @@ class RekallResponseConverter(ExportConverter):
     """Convert batch of RekallResponses."""
 
     for metadata, rekall_response in metadata_value_pairs:
-      for result in  self.Convert(metadata, rekall_response):
+      for result in self.Convert(metadata, rekall_response):
         yield result
 
 

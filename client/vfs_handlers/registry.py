@@ -272,7 +272,7 @@ class RegistryFile(vfs.VFSHandler):
           rdfvalue.StatEntry.RegistryType.REG_DWORD_BIG_ENDIAN),
       _winreg.REG_LINK: rdfvalue.StatEntry.RegistryType.REG_LINK,
       _winreg.REG_MULTI_SZ: rdfvalue.StatEntry.RegistryType.REG_MULTI_SZ,
-      }
+  }
 
   def __init__(self, base_fd, pathspec=None, progress_callback=None):
     super(RegistryFile, self).__init__(base_fd, pathspec=pathspec,

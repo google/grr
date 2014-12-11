@@ -53,7 +53,7 @@ _SEMANTIC_PRIMITIVE_TO_FIELD_TYPE = dict(
     string=TYPE_STRING,
     integer=TYPE_INT64,
     unsigned_integer=TYPE_UINT64,
-    )
+)
 
 
 def DefineFromProtobuf(cls, protobuf):
@@ -190,7 +190,7 @@ def DefineFromProtobuf(cls, protobuf):
         if semantic_protobuf_primitive != field.message_type.name:
           raise rdfvalue.InitializeError(
               ("%s.%s: Conflicting primitive (%s) and semantic protobuf %s "
-               "which implements primitive protobuf (%s)") %(
+               "which implements primitive protobuf (%s)") % (
                    cls.__name__, field.name, field.message_type.name,
                    type_descriptor.type.__name__, semantic_protobuf_primitive))
 

@@ -53,7 +53,7 @@ class SearchTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(results), 1)
 
     # Check we handle mac addresses in : format.
-    mac_addr = ":".join(mac_addr[i:i+2] for i in range(0, len(mac_addr), 2))
+    mac_addr = ":".join(mac_addr[i:i + 2] for i in range(0, len(mac_addr), 2))
     results = list(search.SearchClients(mac_addr.upper(), token=self.token))
     self.assertEqual(len(results), 1)
     # Check we handle mac addresses in : format with prefix.

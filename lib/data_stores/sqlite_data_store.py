@@ -121,7 +121,7 @@ class SqliteConnectionCache(utils.FastStore):
       else:
         logging.error("Could not create database file. Make sure the "
                       "data_server has write access to the target_path "
-                      "directory to create the file '%s'" % target_path)
+                      "directory to create the file '%s'", target_path)
     finally:
       os.umask(umask_original)
 
@@ -424,7 +424,7 @@ class SqliteConnection(object):
         self.deleted = 0
         self.next_vacuum_check = max(
             config_lib.CONFIG["SqliteDatastore.vacuum_check"],
-            self.next_vacuum_check/2)
+            self.next_vacuum_check / 2)
       else:
         # Back-off a bit.
         self.next_vacuum_check *= 2
@@ -445,7 +445,7 @@ class SqliteConnection(object):
     free_pages = int(free_pages_result[0])
     # Return true if ratio of free pages is high enough.
     vacuum_ratio = config_lib.CONFIG["SqliteDatastore.vacuum_ratio"]
-    return float(free_pages)/float(pages) * 100 >= vacuum_ratio
+    return 100.0 * float(free_pages) / float(pages) >= vacuum_ratio
 
   def _HasRecentVacuum(self):
     """Check if a vacuum operation has been performed recently."""

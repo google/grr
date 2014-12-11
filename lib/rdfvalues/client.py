@@ -386,7 +386,7 @@ class Volume(structs.RDFProtoStruct):
 
   def FreeSpacePercent(self):
     try:
-      return (self.actual_available_allocation_units/
+      return (self.actual_available_allocation_units /
               float(self.total_allocation_units)) * 100.0
     except ZeroDivisionError:
       return 100
@@ -401,7 +401,7 @@ class Volume(structs.RDFProtoStruct):
 
   def AUToGBytes(self, allocation_units):
     """Convert a number of allocation units to GigaBytes."""
-    return self.AUToBytes(allocation_units) / 1000.0**3
+    return self.AUToBytes(allocation_units) / 1000.0 ** 3
 
   def Name(self):
     """Return the best available name for this volume."""
@@ -455,7 +455,7 @@ class CpuSample(rdfvalue.RDFProtoStruct):
 
     # Update the average from the new sample point.
     self.cpu_percent = (
-        self.cpu_percent * self._total_samples + sample.cpu_percent)/(
+        self.cpu_percent * self._total_samples + sample.cpu_percent) / (
             self._total_samples + 1)
 
     self._total_samples += 1
@@ -590,7 +590,7 @@ class StatMode(rdfvalue.RDFInteger):
     # Strip the "0b"
     bin_mode = bin(int(self))[2:]
     bin_mode = bin_mode[-9:]
-    bin_mode = "0" * (9-len(bin_mode)) + bin_mode
+    bin_mode = "0" * (9 - len(bin_mode)) + bin_mode
 
     bits = []
     for i in range(len(mode_template)):

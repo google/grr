@@ -92,7 +92,7 @@ class EntryPointTest(test_lib.GRRBaseTest):
     self.RunForTimeWithNoExceptions(self.interpreter,
                                     [run_bin] + self.extra_opts,
                                     should_exit=True, check_exit_code=True,
-                                    timeout=self.default_timeout*2)
+                                    timeout=self.default_timeout * 2)
 
   @test_lib.SetLabel("large")
   def testGrrSingleServer(self):
@@ -100,7 +100,7 @@ class EntryPointTest(test_lib.GRRBaseTest):
                            "grr_server" + self.bin_ext)
     self.RunForTimeWithNoExceptions(self.interpreter,
                                     [run_bin] + self.extra_opts,
-                                    timeout=self.default_timeout*2)
+                                    timeout=self.default_timeout * 2)
 
   @test_lib.SetLabel("large")
   def testFileExporter(self):
@@ -109,7 +109,7 @@ class EntryPointTest(test_lib.GRRBaseTest):
     self.RunForTimeWithNoExceptions(self.interpreter,
                                     [run_bin] + self.extra_opts,
                                     should_exit=True,
-                                    timeout=self.default_timeout*2)
+                                    timeout=self.default_timeout * 2)
 
   @test_lib.SetLabel("large")
   def testClient(self):
@@ -127,7 +127,7 @@ class EntryPointTest(test_lib.GRRBaseTest):
     self.RunForTimeWithNoExceptions(self.interpreter,
                                     [run_bin] + self.extra_opts,
                                     should_exit=True, check_exit_code=True,
-                                    timeout=self.default_timeout*2)
+                                    timeout=self.default_timeout * 2)
 
 
 

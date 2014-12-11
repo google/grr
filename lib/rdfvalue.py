@@ -540,9 +540,9 @@ class Duration(RDFInteger):
   data_store_type = "unsigned_integer"
 
   DIVIDERS = collections.OrderedDict((
-      ("w", 60*60*24*7),
-      ("d", 60*60*24),
-      ("h", 60*60),
+      ("w", 60 * 60 * 24 * 7),
+      ("d", 60 * 60 * 24),
+      ("h", 60 * 60),
       ("m", 60),
       ("s", 1)))
 
@@ -680,12 +680,12 @@ class ByteSize(RDFInteger):
   DIVIDERS = dict((
       ("", 1),
       ("k", 1000),
-      ("m", 1000**2),
-      ("g", 1000**3),
+      ("m", 1000 ** 2),
+      ("g", 1000 ** 3),
       ("ki", 1024),
-      ("mi", 1024**2),
-      ("gi", 1024**3),
-      ))
+      ("mi", 1024 ** 2),
+      ("gi", 1024 ** 3),
+  ))
 
   REGEX = re.compile("^([0-9.]+)([kmgi]*)b?$")
 
@@ -707,12 +707,12 @@ class ByteSize(RDFInteger):
 
   def __str__(self):
     size_token = ""
-    if self._value > 1024**3:
+    if self._value > 1024 ** 3:
       size_token = "Gb"
-      value = float(self._value) / 1024**3
-    elif self._value > 1024**2:
+      value = float(self._value) / 1024 ** 3
+    elif self._value > 1024 ** 2:
       size_token = "Mb"
-      value = float(self._value) / 1024**2
+      value = float(self._value) / 1024 ** 2
     elif self._value > 1024:
       size_token = "Kb"
       value = float(self._value) / 1024
@@ -1016,6 +1016,7 @@ class FlowSessionID(SessionID):
 
   # TODO(user): This is code to fix some legacy issues. Remove this when all
   # clients are built after Jan, 2013.
+
   def ParseFromString(self, initializer=None):
     # Old clients sometimes send bare well known flow ids e.g., CA:Enrol.
     if not utils.SmartStr(initializer).startswith("aff4"):

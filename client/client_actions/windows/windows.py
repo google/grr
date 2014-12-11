@@ -328,7 +328,7 @@ def RunWMIQuery(query, baseobj=r"winmgmts:\root\cimv2"):
 
 def CtlCode(device_type, function, method, access):
   """Prepare an IO control code."""
-  return (device_type<<16) | (access << 14) | (function << 2) | method
+  return (device_type << 16) | (access << 14) | (function << 2) | method
 
 
 # IOCTLS for interacting with the driver.

@@ -104,5 +104,3 @@ def MakeCACert(common_name="grr", issuer_cn="grr_test", issuer_c="US"):
                                   cert.get_fingerprint()))
   cert.sign(pk, "sha256")
   return cert, pk, pkey
-
-

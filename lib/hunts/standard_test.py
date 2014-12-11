@@ -106,7 +106,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
         regex_rules=[
             rdfvalue.ForemanAttributeRegex(attribute_name="GRR client",
                                            attribute_regex="GRR"),
-            ],
+        ],
         client_rate=0, token=self.token, **kwargs) as hunt:
       hunt.Run()
 
@@ -227,7 +227,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     self.StartHunt(output_plugins=[
         rdfvalue.OutputPlugin(plugin_name="FailingDummyHuntOutputPlugin"),
         rdfvalue.OutputPlugin(plugin_name="DummyHuntOutputPlugin")
-        ])
+    ])
 
     # Process hunt results.
     self.ProcessHuntOutputPlugins()
@@ -252,7 +252,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     hunt_urn = self.StartHunt(output_plugins=[
         rdfvalue.OutputPlugin(plugin_name="FailingDummyHuntOutputPlugin"),
         rdfvalue.OutputPlugin(plugin_name="DummyHuntOutputPlugin")
-        ])
+    ])
 
     # Process hunt results.
     self.ProcessHuntOutputPlugins()
@@ -316,6 +316,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(LongRunningDummyHuntOutputPlugin.num_calls, 0)
 
     test = [0]
+
     def TimeStub():
       test[0] += 1e-6
       return test[0]
@@ -341,6 +342,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(LongRunningDummyHuntOutputPlugin.num_calls, 0)
 
     test = [0]
+
     def TimeStub():
       test[0] += 1e-6
       return test[0]
@@ -404,8 +406,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
             pathspec=rdfvalue.PathSpec(
                 path="/tmp/evil%s.txt" % file_id,
                 pathtype=rdfvalue.PathSpec.PathType.OS),
-            )
         )
+    )
 
   def RunVariableGenericHunt(self):
     args = rdfvalue.VariableGenericHuntArgs()
@@ -459,7 +461,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
           hunt_name="StatsHunt", client_rate=0, token=self.token,
           output_plugins=[
               rdfvalue.OutputPlugin(plugin_name="DummyHuntOutputPlugin")
-              ]) as hunt:
+          ]) as hunt:
         hunt.Run()
 
       hunt_urn = hunt.urn
@@ -534,7 +536,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
               pathspec=rdfvalue.PathSpec(
                   path="/tmp/evil.txt",
                   pathtype=rdfvalue.PathSpec.PathType.OS)
-              ),
+          ),
           regex_rules=[rdfvalue.ForemanAttributeRegex(
               attribute_name="GRR client",
               attribute_regex="GRR")],
@@ -577,7 +579,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
               pathspec=rdfvalue.PathSpec(
                   path="/tmp/evil.txt",
                   pathtype=rdfvalue.PathSpec.PathType.OS)
-              ),
+          ),
           regex_rules=[rdfvalue.ForemanAttributeRegex(
               attribute_name="GRR client",
               attribute_regex="GRR")],
@@ -626,7 +628,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
             pathspec=rdfvalue.PathSpec(
                 path="/tmp/evil.txt",
                 pathtype=rdfvalue.PathSpec.PathType.OS),
-            ),
+        ),
         regex_rules=[rdfvalue.ForemanAttributeRegex(
             attribute_name="GRR client",
             attribute_regex="GRR")],
@@ -693,8 +695,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
             pathspec=rdfvalue.PathSpec(
                 path="/tmp/evil.txt",
                 pathtype=rdfvalue.PathSpec.PathType.OS,
-                )
-            ),
+            )
+        ),
         regex_rules=[rdfvalue.ForemanAttributeRegex(
             attribute_name="GRR client",
             attribute_regex="GRR")],
@@ -801,7 +803,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
         regex_rules=[
             rdfvalue.ForemanAttributeRegex(attribute_name="GRR client",
                                            attribute_regex="GRR"),
-            ],
+        ],
         client_rate=0, token=admin_token) as hunt:
       hunt.Run()
 
@@ -830,7 +832,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
         regex_rules=[
             rdfvalue.ForemanAttributeRegex(attribute_name="GRR client",
                                            attribute_regex="GRR"),
-            ],
+        ],
         client_rate=0, token=token)
 
   def _CheckHuntIsDeleted(self, hunt_urn, token=None):

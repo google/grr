@@ -124,7 +124,7 @@ def IsExecutionWhitelisted(cmd, args):
         ("tasklist.exe", ["/SVC"]),
         ("tasklist.exe", ["/v"]),
         ("driverquery.exe", ["/v"]),
-        ]
+    ]
   elif platform.system() == "Linux":
     whitelist = [
         ("/bin/sleep", ["10"]),
@@ -136,7 +136,7 @@ def IsExecutionWhitelisted(cmd, args):
         ("/sbin/ifconfig", ["-a"]),
         ("/bin/df", []),
         ("/sbin/dmidecode", ["-q"]),
-        ]
+    ]
   elif platform.system() == "Darwin":
     whitelist = [
         ("/bin/launchctl", ["unload",
@@ -144,7 +144,7 @@ def IsExecutionWhitelisted(cmd, args):
         ("/bin/echo", ["1"]),
         ("/usr/sbin/screencapture", ["-x", "-t", "jpg", "/tmp/ss.dat"]),
         ("/bin/rm", ["-f", "/tmp/ss.dat"])
-        ]
+    ]
   else:
     whitelist = []
 
@@ -155,7 +155,7 @@ def IsExecutionWhitelisted(cmd, args):
   return False
 
 
-LOG_THROTTLE_CACHE = utils.TimeBasedCache(max_size=10, max_age=60*60)
+LOG_THROTTLE_CACHE = utils.TimeBasedCache(max_size=10, max_age=60 * 60)
 
 
 def ErrorOnceAnHour(msg, *args, **kwargs):

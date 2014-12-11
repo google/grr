@@ -65,7 +65,7 @@ ARTIFACT_LABELS = {
     "System": "Core system artifacts.",
     "Users": "Information about users.",
     "Rekall": "Artifacts using the Rekall memory forensics framework.",
-    }
+}
 
 OUTPUT_UNDEFINED = "Undefined"
 
@@ -91,8 +91,7 @@ TYPE_MAP = {"GRR_CLIENT_ACTION": {"required_args": ["client_action"],
             "ARTIFACT": {"required_args": ["artifact_list"],
                          "output_type": OUTPUT_UNDEFINED},
             "ARTIFACT_FILES": {"required_args": ["artifact_list"],
-                               "output_type": "StatEntry"},
-           }
+                               "output_type": "StatEntry"}}
 
 
 SUPPORTED_OS_LIST = ["Windows", "Linux", "Darwin"]

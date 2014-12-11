@@ -54,6 +54,7 @@ class BasicAccessControlManager(BaseAccessControlManager):
   """Basic ACL manager that uses the config file for user management."""
 
   # pylint: disable=unused-argument
+
   def CheckHuntAccess(self, token, hunt_urn):
     """Allow all access."""
     return True
@@ -76,6 +77,7 @@ class NullAccessControlManager(BasicAccessControlManager):
   """An ACL manager which does not enforce any ACLs."""
 
   # pylint: disable=unused-argument
+
   def CheckUserLabels(self, username, authorized_labels, token=None):
     """Allow all access."""
     return True

@@ -23,7 +23,7 @@ class RekallPsListParser(parsers.RekallPluginParser):
         ppid=cybox.get("Parent_PID"),
         num_threads=item.get("thread_count"),
         ctime=item.get("process_create_time", {}).get("epoch"),
-        )
+    )
 
     return result
 

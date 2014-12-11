@@ -28,4 +28,3 @@ class TestProcessListing(base.AutomatedTest):
       if expected_name in p.exe:
         return
     self.fail("Process listing does not contain %s." % expected_name)
-

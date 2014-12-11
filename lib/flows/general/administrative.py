@@ -480,7 +480,7 @@ class UpdateClient(flow.GRRFlow):
     write_path = "%d" % time.time()
     for i, blob in enumerate(aff4_blobs):
       self.CallClient(
-          "UpdateAgent", executable=blob, more_data=i < aff4_blobs.chunks-1,
+          "UpdateAgent", executable=blob, more_data=i < aff4_blobs.chunks - 1,
           offset=offset, write_path=write_path, next_state="Interrogate")
 
       offset += len(blob.data)
@@ -666,7 +666,7 @@ P.S. The state of the failing flow was:
               urn=url,
               nanny_msg=nanny_msg,
               signature=config_lib.CONFIG["Email.signature"]
-              ),
+          ),
           is_html=True)
 
     if nanny_msg:
@@ -826,7 +826,7 @@ class LaunchBinary(flow.GRRFlow):
     write_path = "%d" % time.time()
     for i, blob in enumerate(fd):
       self.CallClient(
-          "ExecuteBinaryCommand", executable=blob, more_data=i < fd.chunks-1,
+          "ExecuteBinaryCommand", executable=blob, more_data=i < fd.chunks - 1,
           args=shlex.split(self.args.command_line), offset=offset,
           write_path=write_path, next_state="End")
 

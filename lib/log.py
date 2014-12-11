@@ -80,14 +80,14 @@ BASE_LOG_LEVELS = {
     "NTEventLogHandler": logging.CRITICAL,
     "StreamHandler": logging.ERROR,
     "RobustSysLogHandler": logging.CRITICAL,
-    }
+}
 
 VERBOSE_LOG_LEVELS = {
     "FileHandler": logging.DEBUG,
     "NTEventLogHandler": logging.INFO,
     "StreamHandler": logging.DEBUG,
     "RobustSysLogHandler": logging.INFO,
-    }
+}
 
 
 def SetLogLevels():
@@ -156,7 +156,7 @@ def LogInit():
   logging.debug("Initializing Logging subsystem.")
 
   if flags.FLAGS.verbose:
-  # verbose flag just sets the logging verbosity level.
+    # verbose flag just sets the logging verbosity level.
     config_lib.CONFIG.AddContext(
         "Debug Context",
         "This context is to allow verbose and debug output from "

@@ -58,7 +58,7 @@ class GetFile(flow.GRRFlow):
   def Start(self):
     """Get information about the file from the client."""
     self.state.Register("max_chunk_number",
-                        max(2, self.args.read_length/self.CHUNK_SIZE))
+                        max(2, self.args.read_length / self.CHUNK_SIZE))
 
     self.state.Register("current_chunk_number", 0)
     self.state.Register("file_size", 0)
@@ -160,7 +160,7 @@ class GetFile(flow.GRRFlow):
 
       self.Log("Finished reading %s", fd.urn)
       self.Log("Flow Completed in %s seconds",
-               time.time() - self.state.context.create_time/1e6)
+               time.time() - self.state.context.create_time / 1e6)
 
       stat_response = self.state.fd.Get(self.state.fd.Schema.STAT)
 

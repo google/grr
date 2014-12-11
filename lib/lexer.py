@@ -345,7 +345,7 @@ class SearchParser(Lexer):
 
       # Skip whitespace.
       Token(".", r"\s+", None, None),
-      ]
+  ]
 
   def __init__(self, data):
     # Holds expression
@@ -422,26 +422,26 @@ class SearchParser(Lexer):
       return self.PopState()
 
   def _CombineBinaryExpressions(self, operator):
-    for i in range(1, len(self.stack)-1):
+    for i in range(1, len(self.stack) - 1):
       item = self.stack[i]
       if (isinstance(item, BinaryExpression) and item.operator == operator and
-          isinstance(self.stack[i-1], Expression) and
-          isinstance(self.stack[i+1], Expression)):
-        lhs = self.stack[i-1]
-        rhs = self.stack[i+1]
+          isinstance(self.stack[i - 1], Expression) and
+          isinstance(self.stack[i + 1], Expression)):
+        lhs = self.stack[i - 1]
+        rhs = self.stack[i + 1]
 
         self.stack[i].AddOperands(lhs, rhs)
-        self.stack[i-1] = None
-        self.stack[i+1] = None
+        self.stack[i - 1] = None
+        self.stack[i + 1] = None
 
     self.stack = filter(None, self.stack)
 
   def _CombineParenthesis(self):
-    for i in range(len(self.stack)-2):
-      if (self.stack[i] == "(" and self.stack[i+2] == ")" and
-          isinstance(self.stack[i+1], Expression)):
+    for i in range(len(self.stack) - 2):
+      if (self.stack[i] == "(" and self.stack[i + 2] == ")" and
+          isinstance(self.stack[i + 1], Expression)):
         self.stack[i] = None
-        self.stack[i+2] = None
+        self.stack[i + 2] = None
 
     self.stack = filter(None, self.stack)
 

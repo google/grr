@@ -378,7 +378,8 @@ class GRRBaseTest(unittest.TestCase):
     """
     if result is None: result = self.defaultTestResult()
     result.startTest(self)
-    testMethod = getattr(self, self._testMethodName)  # pylint: disable=g-bad-name
+    testMethod = getattr(  # pylint: disable=g-bad-name
+        self, self._testMethodName)
     try:
       try:
         self.setUp()
@@ -1228,7 +1229,7 @@ class AverageMicroBenchmarks(MicroBenchmarks):
     for _ in xrange(repetitions):
       return_value = callback(**kwargs)
 
-    time_taken = (time.time() - start)/repetitions
+    time_taken = (time.time() - start) / repetitions
     self.AddResult(name, time_taken, repetitions, return_value)
 
 
@@ -2104,14 +2105,17 @@ class TestRekallRepositoryProfileServer(rekall_profile_server.ProfileServer):
     if not profile_name.endswith(".gz"):
       profile_name = "%s.gz" % profile_name
 
-    profile_data = open(os.path.join(
-        config_lib.CONFIG["Test.data_dir"], "profiles",
-        profile_name), "rb").read()
+    try:
+      profile_data = open(os.path.join(
+          config_lib.CONFIG["Test.data_dir"], "profiles",
+          profile_name), "rb").read()
 
-    self.profiles_served += 1
+      self.profiles_served += 1
 
-    return rdfvalue.RekallProfile(name=profile_name,
-                                  data=profile_data)
+      return rdfvalue.RekallProfile(name=profile_name,
+                                    data=profile_data)
+    except IOError:
+      return None
 
 
 class OSSpecificClientTests(EmptyActionTest):

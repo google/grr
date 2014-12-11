@@ -85,7 +85,7 @@ class MongoDataStore(data_store.DataStore):
         # Subject matches any of the requested subjects.
         dict(subject=utils.SmartUnicode(subject)),
         {"$or": [dict(predicate=utils.SmartUnicode(x)) for x in predicates]},
-        ]}
+    ]}
 
     for document in self._GetCursor(spec, timestamp, 0):
       subject = document["subject"]
@@ -171,7 +171,7 @@ class MongoDataStore(data_store.DataStore):
     spec = {"$and": [
         dict(subject=subject),
         {"$or": [dict(predicate=utils.SmartUnicode(x)) for x in attributes]},
-        ]}
+    ]}
 
     if not start and not end:
       # Just delete all the versions.
@@ -182,7 +182,7 @@ class MongoDataStore(data_store.DataStore):
     unversioned_spec = {"$and": [
         dict(subject=subject),
         {"$or": [dict(predicate=utils.SmartUnicode(x)) for x in attributes]},
-        ]}
+    ]}
 
     if start:
       spec["$and"].append(dict(timestamp={"$gte": int(start)}))
@@ -215,7 +215,7 @@ class MongoDataStore(data_store.DataStore):
       delete_spec = {"$and": [
           dict(subject=subject),
           {"$or": [dict(predicate=utils.SmartUnicode(x)) for x in attributes]},
-          ]}
+      ]}
       self.latest_collection.remove(delete_spec)
 
     if to_set:
@@ -232,7 +232,7 @@ class MongoDataStore(data_store.DataStore):
     spec = {"$and": [
         dict(subject=utils.SmartUnicode(subject)),
         {"$or": [{"predicate": {"$regex": regex}} for regex in regexes]},
-        ]}
+    ]}
 
     self.versioned_collection.remove(spec)
     self.latest_collection.remove(spec)
@@ -262,7 +262,7 @@ class MongoDataStore(data_store.DataStore):
       spec = {"$and": [
           spec,
           {"$or": [dict(predicate={"$regex": x}) for x in predicate_regex]},
-          ]}
+      ]}
 
     for document in self._GetCursor(spec, timestamp, limit):
       subject = document["subject"]
@@ -301,7 +301,7 @@ class MongoDataStore(data_store.DataStore):
     spec = {"$and": [
         dict(subject={"$in": [utils.SmartUnicode(x) for x in subjects]}),
         dict(predicate={"$in": [utils.SmartUnicode(x) for x in predicates]}),
-        ]}
+    ]}
 
     for document in self._GetCursor(spec, timestamp, limit):
       subject = document["subject"]

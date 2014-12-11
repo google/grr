@@ -25,7 +25,7 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
           "aff4:/C.0000000000000001/fs/os/c/bin C.0000000000000001/bash",
           "aff4:/C.0000000000000001/fs/os/c/bin/bash",
           "aff4:/C.0000000000000001/fs/os/c/bin/rbash",
-          ]:
+      ]:
         fd = aff4.FACTORY.Open(urn, token=self.token)
         out_fd.Add(urn=urn, stat=fd.Get(fd.Schema.STAT))
 

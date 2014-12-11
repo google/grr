@@ -5,6 +5,8 @@
 import functools
 import os
 
+from rekall import addrspace
+
 import logging
 
 from grr.lib import action_mocks
@@ -71,7 +73,7 @@ class RekallTestSuite(test_lib.EmptyActionTest):
         "AnalyzeClientMemory",
         ClientMock(
             "RekallAction", "WriteRekallProfile", "DeleteGRRTempFiles"
-            ),
+        ),
         token=self.token, client_id=self.client_id,
         request=request, output="analysis/memory"):
       pass
@@ -104,6 +106,44 @@ def RequireTestImage(f):
   return Decorator
 
 
+class DelegatingMixin(object):
+  """A mixin to delgate address space ops to the base attribute."""
+
+  def read(self, *args, **kwargs):
+    return self.base.read(*args, **kwargs)
+
+  def get_available_addresses(self):
+    return self.base.get_available_address()
+
+  def get_address_ranges(self, *args, **kwargs):
+    return self.base.get_address_ranges(*args, **kwargs)
+
+  def is_valid_address(self, *args, **kwargs):
+    return self.base.is_valid_address(*args, **kwargs)
+
+  def write(self, *args, **kwargs):
+    return self.base.write(*args, **kwargs)
+
+  def vtop(self, *args, **kwargs):
+    return self.base.vtop(*args, **kwargs)
+
+read_count = 0
+
+
+class ReadCountingAddressSpace(DelegatingMixin, addrspace.BaseAddressSpace):
+  """AddressSpace which counts reads.
+
+  Useful to verify that an instance of this addresspace as been created and
+  used.
+
+  """
+
+  def read(self, *args, **kwargs):
+    global read_count
+    read_count += 1
+    return super(ReadCountingAddressSpace, self).read(*args, **kwargs)
+
+
 class RekallTests(RekallTestSuite):
   """Test some core Rekall modules."""
 
@@ -116,10 +156,47 @@ class RekallTests(RekallTestSuite):
         rdfvalue.PluginRequest(
             plugin="pslist", args=dict(
                 method=["PsActiveProcessHead", "CSRSS"]
-                )),
+            )),
         rdfvalue.PluginRequest(plugin="modules")]
 
     self.LaunchRekallPlugin(request)
+
+    # Get the result collection - it should be a RekallResponseCollection.
+    fd = aff4.FACTORY.Open(self.client_id.Add("analysis/memory"),
+                           token=self.token)
+
+    # Ensure that the client_id is set on each message. This helps us demux
+    # messages from different clients, when analyzing the collection from a
+    # hunt.
+    json_blobs = []
+    for x in fd:
+      self.assertEqual(x.client_urn, self.client_id)
+      json_blobs.append(x.json_messages)
+
+    json_blobs = "".join(json_blobs)
+
+    for knownresult in ["DumpIt.exe", "DumpIt.sys"]:
+      self.assertTrue(knownresult in json_blobs)
+
+  @RequireTestImage
+  def testRekallAddressSpace(self):
+    """Tests memory analysis with a custom address space."""
+    request = rdfvalue.RekallRequest()
+    request.plugins = [
+        # Only use these methods for listing processes.
+        rdfvalue.PluginRequest(
+            plugin="pslist", args=dict(
+                method=["PsActiveProcessHead", "CSRSS"]
+                )),
+        rdfvalue.PluginRequest(plugin="modules")]
+    request.address_space = "ReadCountingAddressSpace"
+
+    global read_count
+    read_count = 0
+
+    self.LaunchRekallPlugin(request)
+
+    self.assertTrue(read_count > 0)
 
     # Get the result collection - it should be a RekallResponseCollection.
     fd = aff4.FACTORY.Open(self.client_id.Add("analysis/memory"),
@@ -162,8 +239,8 @@ class RekallTests(RekallTestSuite):
             plugin="pslist", args=dict(
                 pid=[4, 2860],
                 method="PsActiveProcessHead"
-                )),
-        ]
+            )),
+    ]
 
     self.LaunchRekallPlugin(request)
 
@@ -187,8 +264,8 @@ class RekallTests(RekallTestSuite):
             plugin="dlllist", args=dict(
                 proc_regex="dumpit",
                 method="PsActiveProcessHead"
-                )),
-        ]
+            )),
+    ]
 
     self.LaunchRekallPlugin(request)
 
@@ -241,7 +318,7 @@ class RekallTests(RekallTestSuite):
         request = rdfvalue.RekallRequest()
         request.plugins = [
             rdfvalue.PluginRequest(plugin=plugin)
-            ]
+        ]
 
         self.LaunchRekallPlugin(request)
 

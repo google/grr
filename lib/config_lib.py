@@ -467,7 +467,7 @@ class StringInterpolator(lexer.Lexer):
 
       # Empty input is also ok.
       lexer.Token(None, "^$", None, None)
-      ]
+  ]
 
   STRING_ESCAPES = {"\\\\": "\\",
                     "\\(": "(",
@@ -816,7 +816,7 @@ class GrrConfigManager(object):
       unicode: type_info.String,
       int: type_info.Integer,
       list: type_info.List,
-      }
+  }
 
   def MergeData(self, merge_data, raw_data=None):
     self.FlushCache()

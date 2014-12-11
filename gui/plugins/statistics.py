@@ -194,11 +194,11 @@ evolves over time.
     for graph in graph_series:
       for sample in graph:
         # Provide the time in js timestamps (millisecond since the epoch)
-        days = sample.x_value/1000000/24/60/60
+        days = sample.x_value / 1000000 / 24 / 60 / 60
         if days in self.active_days_display:
           label = "%s day active" % days
           self.categories.setdefault(label, []).append(
-              (graph_series.age/1000, sample.y_value))
+              (graph_series.age / 1000, sample.y_value))
 
   def Layout(self, request, response):
     """Show how the last active breakdown evolves over time."""
@@ -239,7 +239,7 @@ on the GRR version.
       if "%s day" % self.active_day in graph.title:
         for sample in graph:
           self.categories.setdefault(sample.label, []).append(
-              (graph_series.age/1000, sample.y_value))
+              (graph_series.age / 1000, sample.y_value))
         break
 
 
@@ -350,7 +350,7 @@ class AFF4ClientStats(Report):
     series = dict()
     for stat_entry in stats:
       for s in stat_entry.cpu_samples:
-        series[int(s.timestamp/1e3)] = s.cpu_percent
+        series[int(s.timestamp / 1e3)] = s.cpu_percent
     graph = StatGraph(name="CPU Usage", graph_id="cpu",
                       click_text="CPU usage on %date: %value")
     graph.AddSeries(series, "CPU Usage in %", max_samples)
@@ -360,7 +360,7 @@ class AFF4ClientStats(Report):
     series = dict()
     for stat_entry in stats:
       for s in stat_entry.io_samples:
-        series[int(s.timestamp/1e3)] = int(s.read_bytes/1024/1024)
+        series[int(s.timestamp / 1e3)] = int(s.read_bytes / 1024 / 1024)
     graph = StatGraph(
         name="IO Bytes Read", graph_id="io_read",
         click_text="Number of bytes received (IO) until %date: %value")
@@ -370,7 +370,7 @@ class AFF4ClientStats(Report):
     series = dict()
     for stat_entry in stats:
       for s in stat_entry.io_samples:
-        series[int(s.timestamp/1e3)] = int(s.write_bytes/1024/1024)
+        series[int(s.timestamp / 1e3)] = int(s.write_bytes / 1024 / 1024)
     graph = StatGraph(
         name="IO Bytes Written", graph_id="io_write",
         click_text="Number of bytes written (IO) until %date: %value")
@@ -383,11 +383,11 @@ class AFF4ClientStats(Report):
         click_text="Memory usage on %date: %value")
     series = dict()
     for stat_entry in stats:
-      series[int(stat_entry.age/1e3)] = int(stat_entry.RSS_size/1024/1024)
+      series[int(stat_entry.age / 1e3)] = int(stat_entry.RSS_size / 1024 / 1024)
     graph.AddSeries(series, "RSS size in MB", max_samples)
     series = dict()
     for stat_entry in stats:
-      series[int(stat_entry.age/1e3)] = int(stat_entry.VMS_size/1024/1024)
+      series[int(stat_entry.age / 1e3)] = int(stat_entry.VMS_size / 1024 / 1024)
     graph.AddSeries(series, "VMS size in MB", max_samples)
     self.graphs.append(graph)
 
@@ -397,8 +397,8 @@ class AFF4ClientStats(Report):
         click_text="Network bytes received until %date: %value")
     series = dict()
     for stat_entry in stats:
-      series[int(stat_entry.age/1e3)] = int(
-          stat_entry.bytes_received/1024/1024)
+      series[int(stat_entry.age / 1e3)] = int(
+          stat_entry.bytes_received / 1024 / 1024)
     graph.AddSeries(series, "Network Bytes Received in MB", max_samples)
     self.graphs.append(graph)
 
@@ -407,7 +407,8 @@ class AFF4ClientStats(Report):
         click_text="Network bytes sent until %date: %value")
     series = dict()
     for stat_entry in stats:
-      series[int(stat_entry.age/1e3)] = int(stat_entry.bytes_sent/1024/1024)
+      series[
+          int(stat_entry.age / 1e3)] = int(stat_entry.bytes_sent / 1024 / 1024)
     graph.AddSeries(series, "Network Bytes Sent in MB", max_samples)
     self.graphs.append(graph)
 
@@ -419,7 +420,7 @@ class AFF4ClientStats(Report):
 def GetAgeTupleFromRequest(request, default_days=90):
   """Check the request for start/end times and return aff4 age tuple."""
   now = int(time.time() * 1e6)
-  default_start = now - (60*60*24*1e6*default_days)
+  default_start = now - (60 * 60 * 24 * 1e6 * default_days)
   start_time = int(request.REQ.get("start_time", default_start))
   end_time = int(request.REQ.get("end_time", now))
   return (start_time, end_time)

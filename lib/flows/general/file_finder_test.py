@@ -31,7 +31,7 @@ class FileFinderActionMock(action_mocks.ActionMock):
         "auth.log": (1333333330, 1333333332, 1333333334),
         "dpkg.log": (1444444440, 1444444442, 1444444444),
         "dpkg_false.log": (1555555550, 1555555552, 1555555554)
-        }
+    }
 
     processed_responses = []
 
@@ -73,7 +73,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
                            "ab48f3548f311c77e75ac69ac4e696df",
                            "a35aface4b45e3f1a95b0df24efc50e14fbedcaa6a7"
                            "50ba32358eaaffe3c4fb0")
-        }
+    }
 
     for fname in fnames:
       try:
@@ -223,8 +223,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
 
     literal_condition = rdfvalue.FileFinderCondition(
         condition_type=rdfvalue.FileFinderCondition.Type.CONTENTS_LITERAL_MATCH,
-        contents_literal_match=
-        rdfvalue.FileFinderContentsLiteralMatchCondition(
+        contents_literal_match=rdfvalue.FileFinderContentsLiteralMatchCondition(
             mode=rdfvalue.FileFinderContentsLiteralMatchCondition.Mode.ALL_HITS,
             literal="session opened for user dearjohn"))
 
@@ -307,14 +306,12 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
 
     regex_condition1 = rdfvalue.FileFinderCondition(
         condition_type=rdfvalue.FileFinderCondition.Type.CONTENTS_REGEX_MATCH,
-        contents_regex_match=
-        rdfvalue.FileFinderContentsRegexMatchCondition(
+        contents_regex_match=rdfvalue.FileFinderContentsRegexMatchCondition(
             mode=rdfvalue.FileFinderContentsRegexMatchCondition.Mode.ALL_HITS,
             regex="session opened for user .*?john"))
     regex_condition2 = rdfvalue.FileFinderCondition(
         condition_type=rdfvalue.FileFinderCondition.Type.CONTENTS_REGEX_MATCH,
-        contents_regex_match=
-        rdfvalue.FileFinderContentsRegexMatchCondition(
+        contents_regex_match=rdfvalue.FileFinderContentsRegexMatchCondition(
             mode=rdfvalue.FileFinderContentsRegexMatchCondition.Mode.FIRST_HIT,
             regex=".*"))
 
@@ -411,11 +408,11 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     expected_files = ["dpkg.log", "dpkg_false.log"]
     non_expected_files = ["auth.log"]
 
+    change_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(1444444440)
     modification_time_condition = rdfvalue.FileFinderCondition(
         condition_type=rdfvalue.FileFinderCondition.Type.MODIFICATION_TIME,
         modification_time=rdfvalue.FileFinderModificationTimeCondition(
-            min_last_modified_time=rdfvalue.RDFDatetime().FromSecondsFromEpoch(
-                1444444440)))
+            min_last_modified_time=change_time))
 
     for action in sorted(rdfvalue.FileFinderAction.Action.enum_dict.values()):
       self.RunFlowAndCheckResults(
@@ -426,11 +423,11 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     expected_files = ["dpkg.log", "dpkg_false.log"]
     non_expected_files = ["auth.log"]
 
+    change_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(1444444440)
     access_time_condition = rdfvalue.FileFinderCondition(
         condition_type=rdfvalue.FileFinderCondition.Type.ACCESS_TIME,
         access_time=rdfvalue.FileFinderAccessTimeCondition(
-            min_last_access_time=rdfvalue.RDFDatetime().FromSecondsFromEpoch(
-                1444444440)))
+            min_last_access_time=change_time))
 
     for action in sorted(rdfvalue.FileFinderAction.Action.enum_dict.values()):
       self.RunFlowAndCheckResults(
@@ -441,12 +438,11 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     expected_files = ["dpkg.log", "dpkg_false.log"]
     non_expected_files = ["auth.log"]
 
+    change_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(1444444440)
     inode_change_time_condition = rdfvalue.FileFinderCondition(
         condition_type=rdfvalue.FileFinderCondition.Type.INODE_CHANGE_TIME,
-        inode_change_time=
-        rdfvalue.FileFinderInodeChangeTimeCondition(
-            min_last_inode_change_time=
-            rdfvalue.RDFDatetime().FromSecondsFromEpoch(1444444440)))
+        inode_change_time=rdfvalue.FileFinderInodeChangeTimeCondition(
+            min_last_inode_change_time=change_time))
 
     for action in sorted(rdfvalue.FileFinderAction.Action.enum_dict.values()):
       self.RunFlowAndCheckResults(
@@ -483,8 +479,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
 
     literal_condition = rdfvalue.FileFinderCondition(
         condition_type=rdfvalue.FileFinderCondition.Type.CONTENTS_LITERAL_MATCH,
-        contents_literal_match=
-        rdfvalue.FileFinderContentsLiteralMatchCondition(
+        contents_literal_match=rdfvalue.FileFinderContentsLiteralMatchCondition(
             mode=rdfvalue.FileFinderContentsLiteralMatchCondition.Mode.ALL_HITS,
             literal="session opened for user dearjohn"))
 

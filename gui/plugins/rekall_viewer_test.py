@@ -26,7 +26,7 @@ class TestRekallViewer(test_lib.GRRSeleniumTest,
         rdfvalue.PluginRequest(
             plugin="pslist", args=dict(
                 method=["PsActiveProcessHead", "CSRSS"]
-                )),
+            )),
         rdfvalue.PluginRequest(plugin="modules")]
 
     self.LaunchRekallPlugin(request)

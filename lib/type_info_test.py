@@ -73,19 +73,19 @@ class TypeInfoTest(test_lib.GRRBaseTest):
         type_infos[0],
         type_infos[1],
         type_infos[2],
-        )
+    )
 
     new_info = type_info.TypeDescriptorSet(
         type_infos[0],
-        )
+    )
 
     updated_info = new_info + type_info.TypeDescriptorSet(
         type_infos[1],
-        )
+    )
 
     updated_info += type_info.TypeDescriptorSet(
         type_infos[2],
-        )
+    )
 
     self.assertEqual(info.descriptor_map, updated_info.descriptor_map)
     self.assertEqual(sorted(info.descriptors), sorted(updated_info.descriptors))

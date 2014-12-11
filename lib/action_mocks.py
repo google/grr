@@ -17,7 +17,7 @@ class ActionMock(object):
 
   It is possible to mix mocked actions with real actions. Simple extend this
   class and add methods for the mocked actions, while instantiating with the
-  list of read actions to run:
+  list of real actions to run:
 
   class MixedActionMock(ActionMock):
     def __init__(self):
@@ -185,8 +185,8 @@ class InterrogatedClient(ActionMock):
                 address_type=rdfvalue.NetworkAddress.Family.INET,
                 human_readable="100.100.100.1",
                 packed_bytes=socket.inet_aton("100.100.100.1"),
-                )]
-        )]
+            )]
+    )]
 
   def EnumerateFilesystems(self, _):
     self.response_count += 1
@@ -200,7 +200,7 @@ class InterrogatedClient(ActionMock):
         client_version=int(config_lib.CONFIG["Client.version_numeric"]),
         build_time=config_lib.CONFIG["Client.build_time"],
         labels=["GRRLabel1", "Label2"],
-        )]
+    )]
 
   def GetUserInfo(self, user):
     self.response_count += 1
@@ -233,4 +233,3 @@ class InterrogatedClient(ActionMock):
       return [rdf_dict]
     else:
       return None
-

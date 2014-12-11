@@ -61,7 +61,7 @@ class DictTest(test_base.RDFProtoTestCase):
         key5=rdfvalue.RDFDatetime("2012/12/11"),  # RDFValue.
         key6=None,             # Support None Encoding.
         key7=structs.Enum(5, name="Test"),  # Integer like objects.
-        )
+    )
 
     # Initialize through keywords.
     sample = rdfvalue.Dict(**test_dict)
@@ -85,7 +85,7 @@ class DictTest(test_base.RDFProtoTestCase):
     test_dict = dict(
         key1={"A": 1},
         key2=rdfvalue.Dict({"A": 1}),
-        )
+    )
 
     sample = rdfvalue.Dict(**test_dict)
     self.CheckTestDict(test_dict, sample)
@@ -97,7 +97,7 @@ class DictTest(test_base.RDFProtoTestCase):
         key2=rdfvalue.Dict({"A": 1}),
         key3=[1, 2, 3, [1, 2, [3]]],
         key4=[[], None, ["abc"]]
-        )
+    )
 
     sample = rdfvalue.Dict(**test_dict)
     self.CheckTestDict(test_dict, sample)
@@ -115,7 +115,7 @@ class DictTest(test_base.RDFProtoTestCase):
         key4=[[], None, ["abc"]],
         key5=UnSerializable(),
         key6=["a", UnSerializable(), "b"]
-        )
+    )
 
     self.assertRaises(TypeError, rdfvalue.Dict, **test_dict)
 
@@ -242,4 +242,3 @@ class EmbeddedRDFValueTest(test_base.RDFProtoTestCase):
     self.assertEqual(new_log.age, original_age, "Age not preserved: %s != %s" %
                      (new_log.age.AsMicroSecondsFromEpoch(),
                       original_age.AsMicroSecondsFromEpoch()))
-

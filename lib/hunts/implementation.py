@@ -199,7 +199,7 @@ class HuntRunner(flow_runner.FlowRunner):
         state=rdfvalue.Flow.State.RUNNING,
         usage_stats=rdfvalue.ClientResourcesStats(),
         remaining_cpu_quota=args.cpu_limit,
-        )
+    )
 
     # Store the context in the flow_obj for next time.
     self.flow_obj.state.Register("context", context)

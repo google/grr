@@ -27,7 +27,7 @@ class RecursiveTestFlow(flow.GRRFlow):
     if self.args.depth < 2:
       for i in range(2):
         self.Log("Subflow call %d", i)
-        self.CallFlow("RecursiveTestFlow", depth=self.args.depth+1,
+        self.CallFlow("RecursiveTestFlow", depth=self.args.depth + 1,
                       next_state="End")
 
 

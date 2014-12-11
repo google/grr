@@ -45,7 +45,7 @@ class TestWebHistory(WebHistoryFlowTest):
     def MockGetMountpoints():
       return {
           "/": (os.path.join(self.base_path, "test_img.dd"), "ext2")
-          }
+      }
     self.orig_linux_mp = client_utils_linux.GetMountpoints
     self.orig_osx_mp = client_utils_osx.GetMountpoints
     client_utils_linux.GetMountpoints = MockGetMountpoints

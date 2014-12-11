@@ -55,7 +55,7 @@ class IterateAllClientUrns(object):
     self.thread_pool.Start()
     self.token = token
     self.func = func
-    self.broken_subjects = []  #  Entries that are broken or fail to run.
+    self.broken_subjects = []  # Entries that are broken or fail to run.
 
     self.out_queue = Queue.Queue()
 
@@ -145,7 +145,7 @@ def DownloadFile(file_obj, target_path, buffer_size=BUFFER_SIZE):
     count += 1
     if not count % 3:
       logging.debug(u"Downloading: %s: %s done", file_obj.urn,
-                    utils.FormatNumberAsString(count*buffer_size))
+                    utils.FormatNumberAsString(count * buffer_size))
   target_file.close()
 
 
@@ -187,7 +187,7 @@ def RecursiveDownload(dir_obj, target_dir, max_depth=10, depth=1,
         except OSError:
           pass
         RecursiveDownload(sub_file_entry, sub_target_dir, overwrite=overwrite,
-                          depth=depth+1)
+                          depth=depth + 1)
     except IOError:
       logging.exception("Unable to download %s", sub_file_entry.urn)
     finally:

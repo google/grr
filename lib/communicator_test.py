@@ -39,6 +39,7 @@ class ServerCommunicatorFake(flow.ServerCommunicator):
   """A fake communicator to initialize the ServerCommunicator."""
 
   # For tests we bypass loading of the server certificate.
+
   def _LoadOurCertificate(self):
     return communicator.Communicator._LoadOurCertificate(self)
 
@@ -204,8 +205,8 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     for x in range(0, len(cipher_text), 50):
       # Futz with the cipher text (Make sure it's really changed)
       mod_cipher_text = (cipher_text[:x] +
-                         chr((ord(cipher_text[x]) % 250)+1) +
-                         cipher_text[x+1:])
+                         chr((ord(cipher_text[x]) % 250) + 1) +
+                         cipher_text[x + 1:])
 
       try:
         decoded, client_id, _ = self.server_communicator.DecryptMessage(
@@ -566,7 +567,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
         modified_data = array.array("c", field_data)
 
         offset = len(field_data) / 2
-        modified_data[offset] = chr((ord(field_data[offset]) % 250)+1)
+        modified_data[offset] = chr((ord(field_data[offset]) % 250) + 1)
         setattr(self.client_communication, self.corruptor_field,
                 str(modified_data))
 

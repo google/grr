@@ -187,8 +187,7 @@ grr_all_files = [grr_artifact_files,
                  grr_proto_defs,
                  grr_protobuf_cc,
                  grr_test_data_files,
-                 grr_wsgi_conf,
-                ]
+                 grr_wsgi_conf]
 
 
 setup(name="grr",
@@ -212,6 +211,6 @@ setup(name="grr",
               "grr_enroller = grr.lib.distro_entry:Enroller",
               "grr_admin_ui = grr.lib.distro_entry:AdminUI",
               "grr_fuse = grr.lib.distro_entry:GRRFuse",
-              ]
-          },
+          ]
+      },
       cmdclass={"build_py": MyBuild})

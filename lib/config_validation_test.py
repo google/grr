@@ -42,7 +42,7 @@ class BuildConfigTests(test_lib.GRRBaseTest):
                 "PrivateKeys.driver_signing_private_key"]
 
   disabled_filters = [
-      ]
+  ]
 
   def testAllConfigs(self):
     """Go through all our config files looking for errors."""

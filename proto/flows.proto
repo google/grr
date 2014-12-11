@@ -682,7 +682,7 @@ message DownloadMemoryImageArgs {
 
   optional DriverInstallTemplate driver_installer = 5 [(sem_type) = {
       description: "An optional DriverInstallTemplate proto to control "
-      "driver installation. If not set, the default  installation proto will "
+      "driver installation. If not set, the default installation proto will "
       "be used.",
       label: HIDDEN
     }];
@@ -696,7 +696,7 @@ message DownloadMemoryImageArgs {
 message LoadMemoryDriverArgs {
   optional DriverInstallTemplate driver_installer = 1 [(sem_type) = {
       description: "An optional DriverInstallTemplate proto to control "
-      "driver installation. If not set, the default  installation proto will "
+      "driver installation. If not set, the default installation proto will "
       "be used.",
       label: HIDDEN,
     }];
@@ -710,7 +710,7 @@ message LoadMemoryDriverArgs {
 message AnalyzeClientMemoryArgs {
   optional DriverInstallTemplate driver_installer = 1 [(sem_type) = {
       description: "An optional DriverInstallTemplate proto to control "
-      "driver installation. If not set, the default  installation proto will "
+      "driver installation. If not set, the default installation proto will "
       "be used.",
       label: HIDDEN,
     }];
@@ -718,6 +718,10 @@ message AnalyzeClientMemoryArgs {
   optional RekallRequest request = 2 [(sem_type) = {
       description: "A request for the client's Rekall subsystem.",
     }];
+  optional bool use_kcore_if_present = 3 [(sem_type) = {
+      description: "Use /proc/kcore if present. Only affects linux clients.",
+      friendly_name: "Enable kcore scanning."
+    }, default=true];
 }
 
 message ScanMemoryArgs {

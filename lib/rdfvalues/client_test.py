@@ -88,7 +88,7 @@ class UserTests(test_base.RDFValueTestCase):
         (33791, "-rwxrwxrwt"),
         # Sticky, not x
         (33784, "-rwxrwx--T"),
-        ]:
+    ]:
       value = rdfvalue.StatMode(mode)
       self.assertEqual(unicode(value), result)
 
@@ -194,5 +194,3 @@ class NetworkAddressTests(test_base.RDFValueTestCase):
                        address)
 
       self.CheckRDFValue(self.rdfvalue_class(sample), sample)
-
-

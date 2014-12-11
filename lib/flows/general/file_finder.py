@@ -97,7 +97,7 @@ class FileFinder(transfer.MultiGetFileMixin,
         type_enum.CONTENTS_REGEX_MATCH: (self.ContentsRegexMatchCondition, 1),
         type_enum.CONTENTS_LITERAL_MATCH: (
             self.ContentsLiteralMatchCondition, 1)
-        }
+    }
 
   def _ConditionWeight(self, condition_options):
     _, condition_weight = self.condition_handlers[

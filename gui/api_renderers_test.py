@@ -26,7 +26,7 @@ class SampleGetRenderer(api_renderers.ApiRenderer):
         "method": "GET",
         "path": request.path,
         "foo": request.get("foo", "")
-        }
+    }
 
 
 class SamplePostRenderer(api_renderers.ApiRenderer):
@@ -56,7 +56,7 @@ class ApiRenderersTest(test_lib.GRRBaseTest):
     request.environ = {
         "SERVER_NAME": "foo.bar",
         "SERVER_PORT": 1234
-        }
+    }
     request.user = "test"
     if method == "GET":
       request.GET = query_params

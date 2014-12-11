@@ -126,8 +126,8 @@ class BasicContextTests(test_lib.GRRBaseTest):
           session_id=self.session_id.Basename() + str(i),
           auth_state=rdfvalue.GrrMessage.AuthorizationState.UNAUTHENTICATED,
           request_id=1,
-          priority=i%3,
-          require_fastpoll=i%2)
+          priority=i % 3,
+          require_fastpoll=i % 2)
       self.context.HandleMessage(message)
     message_list = self.context.Drain(max_size=1000000).job
     self.assertEqual(len(message_list), 10)
