@@ -79,27 +79,41 @@ INIT_RAN = False
 
 
 def Init():
-  """Run all required startup routines and initialization hooks."""
+  """Server init sequence, run startup routines and initialization hooks.
+
+  This code assumes linux, running the server on other operating systems is
+  unsupported.
+  """
   global INIT_RAN
   if INIT_RAN:
     return
 
   stats.STATS = stats.StatsCollector()
 
-  AddConfigContext()
-  ConfigInit()
+  # Set up a temporary syslog handler so we have somewhere to log problems with
+  # ConfigInit() which needs to happen before we can start our create our proper
+  # logging setup.
+  syslog_logger = logging.getLogger('TempLogger')
+  handler = logging.handlers.SysLogHandler(address = '/dev/log')
+  syslog_logger.addHandler(handler)
+
+  try:
+    AddConfigContext()
+    ConfigInit()
+  except config_lib.Error:
+    syslog_logger.exception("Died during config initialization")
+    raise
 
   ServerLoggingStartupInit()
   registry.Init()
 
-  if platform.system() != "Windows":
-    if config_lib.CONFIG["Server.username"]:
-      try:
-        os.setuid(pwd.getpwnam(config_lib.CONFIG["Server.username"]).pw_uid)
-      except (KeyError, OSError):
-        logging.exception("Unable to switch to user %s",
-                          config_lib.CONFIG["Server.username"])
-        raise
+  if config_lib.CONFIG["Server.username"]:
+    try:
+      os.setuid(pwd.getpwnam(config_lib.CONFIG["Server.username"]).pw_uid)
+    except (KeyError, OSError):
+      logging.exception("Unable to switch to user %s",
+                        config_lib.CONFIG["Server.username"])
+      raise
 
   INIT_RAN = True
 

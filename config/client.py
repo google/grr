@@ -52,6 +52,16 @@ config_lib.DEFINE_string("Client.plist_path",
                          "/Library/LaunchDaemons/com.google.code.grrd.plist",
                          "Location of our launchctl plist.")
 
+config_lib.DEFINE_string("Client.plist_filename", None,
+                         "Filename of launchctl plist.")
+
+config_lib.DEFINE_string("Client.plist_label",
+                         None,
+                         "Identifier label for launchd")
+
+config_lib.DEFINE_string("Client.plist_label_prefix", None,
+                         "Domain for launchd label.")
+
 config_lib.DEFINE_float("Client.poll_min", 0.2,
                         "Minimum time between polls in seconds.")
 
@@ -240,3 +250,8 @@ For example:
 
   HKEY_LOCAL_MACHINE\\Software\\GRR\\certificate -> Client.private_key
 """)
+
+config_lib.DEFINE_string("Installer.old_writeback", "/usr/lib/grr/grrd.conf",
+                         "OS X and linux client installers will check this "
+                         "location for old config data that should be "
+                         "preserved.")

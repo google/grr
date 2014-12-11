@@ -164,6 +164,8 @@ class ConfigLibTest(test_lib.GRRBaseTest):
     conf.Write()
 
     new_conf = config_lib.GrrConfigManager()
+    new_conf.DEFINE_string("NewSection1.new_option1", "Default Value", "Help")
+
     new_conf.Initialize(config_file)
 
     self.assertEqual(new_conf["NewSection1.new_option1"], "New Value1")
@@ -212,6 +214,8 @@ executable_signing_public_key = -----BEGIN PUBLIC KEY-----
 private_key =
 driver_signing_public_key =
 executable_signing_public_key =
+
+[CA]
 certificate =
 """)
     errors = conf.Validate(["Client"])
@@ -254,6 +258,11 @@ foobar = X
     conf.DEFINE_list("Section1.test_list", ["a", "b"], "A test integer.")
     conf.DEFINE_list("Section1.test_list2", ["a", "b"], "A test integer.")
 
+    conf.DEFINE_integer("Section2.test_int", None, "A test integer.")
+    conf.DEFINE_string("Section2.interpolated", "", "An interpolated string.")
+
+    conf.DEFINE_integer("Section3.test_int", None, "A test integer.")
+    conf.DEFINE_string("Section3.interpolated", "", "An interpolated string.")
     conf.Initialize(data="""
 [Section1]
 foobar = X
@@ -317,8 +326,39 @@ const = New string
     self.assertRaises(config_lib.ConstModificationError, conf.Initialize,
                       data=data)
 
+  def testBadConfigRaises(self):
+    conf = config_lib.GrrConfigManager()
+    conf.initialized = False
+    data="""
+Section1.test: 2
+"""
+    # This config option isn't defined, so it should raise
+    with self.assertRaises(config_lib.MissingConfigDefinitionError):
+      conf.Initialize(parser=config_lib.YamlParser, data=data)
+
+  def testConfigOptionsDefined(self):
+    """Test that all config options in use are defined."""
+    # We need to use the actual config_lib.CONFIG variable since that is where
+    # all the variables are already defined.
+    conf = config_lib.CONFIG.MakeNewConfig()
+
+    # Check our actual config validates
+    configpath = os.path.normpath(
+        os.path.dirname(__file__) + "/../config/grr-server.yaml")
+    conf.Initialize(filename=configpath)
+
+  def _DefineStringName(self, conf, name):
+    conf.DEFINE_string(name, "", "A test.")
+
   def testUnbalancedParenthesis(self):
     conf = config_lib.GrrConfigManager()
+    name_list = ["Section1.foobar", "Section1.foo", "Section1.foo1",
+                 "Section1.foo2","Section1.foo3", "Section1.foo4",
+                 "Section1.foo5", "Section1.foo6", "Section1.interpolation1",
+                 "Section1.interpolation2", "Section1.literal"]
+    for name in name_list:
+      self._DefineStringName(conf, name)
+
     conf.Initialize(data=r"""
 [Section1]
 foobar = X

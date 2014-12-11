@@ -42,8 +42,6 @@ Datastore.implementation: MongoDataStore
 
 Datastore.security_manager: BasicAccessControlManager
 
-Installer.old_writeback: /usr/lib/grr/grrd.conf
-
 # Logging.domain: example.com
 
 Logging.engines: "stderr,file"
@@ -236,10 +234,6 @@ HTTPServer Context:
 Platform:Darwin:
   Client.name: grr
 
-  Client.config_file_name: grr.yaml
-
-  Client.package_maker_organization: com.google.code
-
   Client.platform: darwin
 
   Client.plist_filename: "%(Client.plist_label).plist"
@@ -279,8 +273,6 @@ Platform:Linux:
 
 Platform:Windows:
   Client.binary_name: "%(Client.name).exe"
-
-  Client.config: reg://%(Client.config_hive)/%(Client.config_key)
 
   Client.config_hive: HKEY_LOCAL_MACHINE
 

@@ -66,6 +66,7 @@ def main(argv):
     flags.FLAGS.start_http_server = True
     flags.FLAGS.start_ui = True
 
+  threads = []
   if len(enabled_flags) != 1:
     # If we only have one flag, we are running in single component mode and we
     # want the component to do the initialization. Otherwise we initialize as
@@ -80,6 +81,7 @@ def main(argv):
     worker_thread = threading.Thread(target=worker.main, args=[argv],
                                      name="Worker")
     worker_thread.daemon = True
+    threads.append(worker_thread)
     worker_thread.start()
 
   # Start the enroller thread if necessary.
@@ -87,6 +89,7 @@ def main(argv):
     enroller_thread = threading.Thread(target=enroller.main, args=[argv],
                                        name="Enroller")
     enroller_thread.daemon = True
+    threads.append(enroller_thread)
     enroller_thread.start()
 
   # Start the HTTP server thread, that clients communicate with, if necessary.
@@ -94,6 +97,7 @@ def main(argv):
     http_thread = threading.Thread(target=http_server.main, args=[argv],
                                    name="HTTP Server")
     http_thread.daemon = True
+    threads.append(http_thread)
     http_thread.start()
 
   # Start the UI thread if necessary.
@@ -101,18 +105,26 @@ def main(argv):
     ui_thread = threading.Thread(target=admin_ui.main, args=[argv],
                                  name="GUI")
     ui_thread.daemon = True
+    threads.append(ui_thread)
     ui_thread.start()
 
   # Start the data server thread if necessary.
   if flags.FLAGS.start_dataserver:
-    ui_thread = threading.Thread(target=data_server.main, args=[argv],
-                                 name="Dataserver")
-    ui_thread.daemon = True
-    ui_thread.start()
+    dataserver_thread = threading.Thread(target=data_server.main, args=[argv],
+                                         name="Dataserver")
+    dataserver_thread.daemon = True
+    threads.append(dataserver_thread)
+    dataserver_thread.start()
 
   try:
     while True:
-      time.sleep(100)
+      time.sleep(5)
+
+      # If any threads die GRR will not work, so if there is a dead one we exit
+      for thread in threads:
+        if not thread.is_alive():
+          raise RuntimeError("Child thread %s has died, exiting" % thread.name)
+
   except KeyboardInterrupt:
     pass
 
