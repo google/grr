@@ -386,6 +386,10 @@ class FullAccessControlManager(BaseAccessControlManager):
     h.Allow("aff4:/stats_store")
     h.Allow("aff4:/stats_store/*")
 
+    # Users are allowed to query the artifact store.
+    h.Allow("aff4:/artifact_store")
+    h.Allow("aff4:/artifact_store/*")
+
     return h
 
   def RejectWriteAccess(self, unused_subject, unused_token):

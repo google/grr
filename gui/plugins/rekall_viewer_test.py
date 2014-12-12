@@ -31,7 +31,7 @@ class TestRekallViewer(test_lib.GRRSeleniumTest,
 
     self.LaunchRekallPlugin(request)
 
-  def testRekallView(self):
+  def Disabled_testRekallView(self):
     self.Open("/")
 
     self.Type("client_query", "Host-0")
@@ -39,7 +39,6 @@ class TestRekallViewer(test_lib.GRRSeleniumTest,
 
     self.WaitUntilEqual(u"C.1000000000000000",
                         self.GetText, "css=span[type=subject]")
-
     # Choose client 1
     self.Click("css=td:contains('1000')")
 
