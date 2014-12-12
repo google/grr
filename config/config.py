@@ -3,6 +3,9 @@
 
 from grr.lib import config_lib
 
+config_lib.DEFINE_string("Config.directory", "/etc/grr",
+                         "Directory for grr server config files.")
+
 config_lib.DEFINE_string("Config.writeback", "",
                          "Location for writing back the configuration.")
 
