@@ -79,11 +79,7 @@ INIT_RAN = False
 
 
 def Init():
-  """Server init sequence, run startup routines and initialization hooks.
-
-  This code assumes linux, running the server on other operating systems is
-  unsupported.
-  """
+  """Run all required startup routines and initialization hooks."""
   global INIT_RAN
   if INIT_RAN:
     return
@@ -93,8 +89,8 @@ def Init():
   # Set up a temporary syslog handler so we have somewhere to log problems with
   # ConfigInit() which needs to happen before we can start our create our proper
   # logging setup.
-  syslog_logger = logging.getLogger('TempLogger')
-  handler = logging.handlers.SysLogHandler(address = '/dev/log')
+  syslog_logger = logging.getLogger("TempLogger")
+  handler = logging.handlers.SysLogHandler(address="/dev/log")
   syslog_logger.addHandler(handler)
 
   try:

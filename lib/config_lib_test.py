@@ -15,6 +15,8 @@ class YamlConfigTest(test_lib.GRRBaseTest):
 
     conf.DEFINE_list("Section1.test_list", ["a", "b"], "A test integer.")
     conf.DEFINE_integer("Section1.test", 0, "An integer")
+    conf.DEFINE_integer("Section1.test2", 0, "An integer")
+    conf.DEFINE_string("Section2.test", None, "String")
     conf.Initialize(parser=config_lib.YamlParser, data="""
 
 # Configuration options can be written as long hand, dot separated parameters.
@@ -329,7 +331,7 @@ const = New string
   def testBadConfigRaises(self):
     conf = config_lib.GrrConfigManager()
     conf.initialized = False
-    data="""
+    data = """
 Section1.test: 2
 """
     # This config option isn't defined, so it should raise
@@ -353,7 +355,7 @@ Section1.test: 2
   def testUnbalancedParenthesis(self):
     conf = config_lib.GrrConfigManager()
     name_list = ["Section1.foobar", "Section1.foo", "Section1.foo1",
-                 "Section1.foo2","Section1.foo3", "Section1.foo4",
+                 "Section1.foo2", "Section1.foo3", "Section1.foo4",
                  "Section1.foo5", "Section1.foo6", "Section1.interpolation1",
                  "Section1.interpolation2", "Section1.literal"]
     for name in name_list:

@@ -53,3 +53,10 @@ class UsersTest(test_lib.AFF4ObjectTest):
     with test_lib.FakeTime(100 + 3600 + 1):
       notifications = self.user.GetPendingGlobalNotifications()
       self.assertFalse(notifications)
+
+  def testDescribe(self):
+    self.user.AddLabels("test1", "test2")
+    describe_str = self.user.Describe()
+    self.assertTrue("test1" in describe_str)
+    self.assertTrue("test2" in describe_str)
+

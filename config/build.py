@@ -317,7 +317,7 @@ config_lib.DEFINE_list(
 
 config_lib.DEFINE_string(
     name="ClientBuilder.client_logging_filename",
-    default="%(Logging.path)/GRRlog.txt",
+    default="%(Logging.path)/%(Client.name)_log.txt",
     help="Filename for logging, to be copied to Client section in the client "
     "that gets built.")
 
