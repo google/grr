@@ -531,6 +531,10 @@ class FullAccessControlManager(BasicAccessControlManager):
     # clients which have this file.
     h.Allow("aff4:/files/hash/generic/sha256/" + "[a-z0-9]" * 64)
 
+    # Allow everyone to query the artifact store.
+    h.Allow("aff4:/artifact_store")
+    h.Allow("aff4:/artifact_store/*")
+
     # Allow everyone to query monitoring data from stats store.
     h.Allow("aff4:/stats_store")
     h.Allow("aff4:/stats_store/*")
