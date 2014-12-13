@@ -35,4 +35,3 @@ class FakeClientWorker(comms.GRRClientWorker):
     result = self.responses
     self.responses = []
     return result
-

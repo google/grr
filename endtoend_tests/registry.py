@@ -93,4 +93,3 @@ class TestClientRegistry(base.AutomatedTest):
     urn = self.client_id.Add(self.output_path)
     data_store.DB.DeleteSubject(str(urn.Add("SYSTEM")), token=self.token)
     data_store.DB.DeleteSubject(str(urn), token=self.token)
-

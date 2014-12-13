@@ -39,7 +39,7 @@ class WindowsActionTests(test_lib.OSSpecificClientTests):
         "win32serviceutil": mock.MagicMock(),
         "winerror": mock.MagicMock(),
         "wmi": mock.MagicMock()
-        }
+    }
 
     self.module_patcher = mock.patch.dict("sys.modules", modules)
     self.module_patcher.start()
@@ -179,7 +179,7 @@ class RegistryFake(test_lib.FakeRegistryVFSHandler):
     for path in self.cache[self.prefix]:
       if os.path.dirname(path) == key.value:
         sub_type, stat_entry = self.cache[self.prefix][path]
-        if  sub_type == "VFSDirectory":
+        if sub_type == "VFSDirectory":
           res.append(os.path.basename(stat_entry.pathspec.path))
     return sorted(res)
 
@@ -196,7 +196,7 @@ class RegistryFake(test_lib.FakeRegistryVFSHandler):
     for path in self.cache[self.prefix]:
       if os.path.dirname(path) == key.value:
         sub_type, stat_entry = self.cache[self.prefix][path]
-        if  sub_type == "VFSFile":
+        if sub_type == "VFSFile":
           res.append(os.path.basename(stat_entry.pathspec.path))
     return sorted(res)
 
@@ -211,7 +211,7 @@ class RegistryVFSTests(test_lib.EmptyActionTest):
         "ctypes.wintypes": mock.MagicMock(),
         # Requires mocking because exceptions.WindowsError does not exist
         "exceptions": mock.MagicMock(),
-        }
+    }
 
     self.module_patcher = mock.patch.dict("sys.modules", modules)
     self.module_patcher.start()

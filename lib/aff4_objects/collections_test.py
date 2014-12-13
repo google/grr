@@ -49,7 +49,7 @@ class TestCollections(test_lib.AFF4ObjectTest):
                            mode="rw", token=self.token)
 
     for i in range(5):
-      fd.Add(rdfvalue.GrrMessage(request_id=i+5))
+      fd.Add(rdfvalue.GrrMessage(request_id=i + 5))
 
     fd.Close()
 
@@ -77,7 +77,7 @@ class TestCollections(test_lib.AFF4ObjectTest):
 
     fd.AddAll([rdfvalue.GrrMessage(request_id=i) for i in xrange(n)])
 
-    self.assertEqual(fd.fd.Get(fd.fd.Schema._CHUNKSIZE), 1024*1024)
+    self.assertEqual(fd.fd.Get(fd.fd.Schema._CHUNKSIZE), 1024 * 1024)
     # There should be 500K of data.
     self.assertGreater(fd.fd.size, 400 * 1024)
     # and there should only be one chunk since 500K is less than the chunk size.

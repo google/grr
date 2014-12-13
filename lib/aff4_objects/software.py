@@ -13,4 +13,3 @@ class InstalledSoftwarePackages(aff4.AFF4Object):
     INSTALLED_PACKAGES = aff4.Attribute(
         "aff4:info/packages", rdfvalue.SoftwarePackages,
         "Installed software packages.", default="")
-

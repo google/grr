@@ -77,7 +77,7 @@ class PlistFilterParser(objectfilter.Parser):
 
       # Skip whitespace.
       lexer.Token(".", r"\s+", None, None),
-      ]
+  ]
 
   def StringFinish(self, **_):
     """StringFinish doesn't act on ATTRIBUTEs here."""
@@ -146,5 +146,5 @@ def PlistValueToPlainValue(plist):
         or isinstance(plist, binplist.UnknownObject)):
     return None
   elif isinstance(plist, datetime.datetime):
-    return (calendar.timegm(plist.utctimetuple())*1000000) + plist.microsecond
+    return (calendar.timegm(plist.utctimetuple()) * 1000000) + plist.microsecond
   return plist

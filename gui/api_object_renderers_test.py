@@ -62,7 +62,7 @@ class AFF4ObjectApiObjectRendererTest(test_lib.GRRBaseTest):
                                       "object"],
                               "type": "RDFDatetime",
                               "value": 42000000}
-                          },
+                      },
                       "urn": "aff4:/tmp/foo/bar",
                       "aff4_class": "AFF4Volume"})
 
@@ -91,7 +91,7 @@ class AFF4ObjectApiObjectRendererTest(test_lib.GRRBaseTest):
                                          "object"],
                                  "type": "RDFDatetime",
                                  "value": 42000000}
-                             },
+                         },
                          "urn": "aff4:/tmp/foo/bar",
                          "aff4_class": "AFF4Volume",
                          "descriptors": {
@@ -102,8 +102,8 @@ class AFF4ObjectApiObjectRendererTest(test_lib.GRRBaseTest):
                                  "description": "The last time any "
                                                 "attribute of this "
                                                 "object was written."}
-                             }
-                         })
+                         }
+                     })
 
 
 class RDFValueCollectionApiObjectRendererTest(test_lib.GRRBaseTest):
@@ -258,13 +258,13 @@ class VFSGRRClientApiObjectRendererTest(test_lib.GRRBaseTest):
             "node": "Host-0",
             "version": "",
             "fqdn": "Host-0.example.com"
-            },
+        },
         "client_id": "aff4:/C.1000000000000000",
         "client_info": {
             "client_name": "GRR Monitor"
-            },
+        },
         "serial_number": ""
-        })
+    })
 
 
 def main(argv):

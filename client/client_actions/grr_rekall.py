@@ -152,7 +152,10 @@ class GRRRekallRenderer(data_export.DataExportRenderer):
       pdb.post_mortem()
 
 
-class GrrRekallSession(session.Session):
+# We need to use the Rekall InteractiveSession here so we get sensible default
+# values. This should be fixed in Rekall directly at some point by merging
+# InteractiveSession into Session.
+class GrrRekallSession(session.InteractiveSession):
   """A GRR Specific Rekall session."""
 
   def __init__(self, fhandle=None, action=None, **session_args):
@@ -172,7 +175,7 @@ class GrrRekallSession(session.Session):
 
     # Cant load the profile, we need to ask the server for it.
 
-    logging.debug("Asking server for profile %s" % filename)
+    logging.debug("Asking server for profile %s", filename)
     self.action.SendReply(
         rdfvalue.RekallResponse(
             missing_profile="%s/%s" % (
@@ -239,8 +242,14 @@ class RekallAction(actions.SuspendableAction):
       # space. This avoids the AS voting mechanism for Rekall's image format
       # detection.
       with rekal_session:
-        rekal_session.physical_address_space = standard.FDAddressSpace(
-            session=rekal_session, fhandle=fhandle)
+        fd_address_space = standard.FDAddressSpace(session=rekal_session,
+                                                   fhandle=fhandle)
+        if self.request.address_space:
+          rekal_session.physical_address_space = (
+              addrspace.BaseAddressSpace.classes[self.request.address_space]
+              (base=fd_address_space, session=rekal_session))
+        else:
+          rekal_session.physical_address_space = fd_address_space
 
         # Autodetect the profile. Valid plugins for this profile will become
         # available now.

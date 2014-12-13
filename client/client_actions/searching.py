@@ -293,7 +293,7 @@ class Grep(actions.ActionPlugin):
           continue
 
         # Ignore hits in the postscript.
-        if end > preamble_size+data_size:
+        if end > preamble_size + data_size:
           continue
 
         # Offset of file in the end after length.

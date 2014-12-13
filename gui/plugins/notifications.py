@@ -206,8 +206,7 @@ class ViewNotifications(renderers.TableRenderer):
                  hash=self.BuildHashFromNotification(notification),
                  notification_type=notification.type,
                  target=notification.subject),
-             "Timestamp": rdfvalue.RDFDatetime(notification.timestamp),
-            }
+             "Timestamp": rdfvalue.RDFDatetime(notification.timestamp)}
       self.AddRow(row, row_index)
       row_index += 1
 

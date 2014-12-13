@@ -112,7 +112,7 @@ def main(unused_argv):
       "StartFlowAndWait": flow_utils.StartFlowAndWait,
       "StartFlowAndWorker": debugging.StartFlowAndWorker,
       "RunEndToEndTests": end_to_end_tests.RunEndToEndTests,
-      }
+  }
 
   locals_vars.update(globals())   # add global variables to console
   if flags.FLAGS.client is not None:

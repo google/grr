@@ -41,15 +41,25 @@ class BuildConfigTests(test_lib.GRRBaseTest):
                 "PrivateKeys.server_key", "PrivateKeys.ca_key",
                 "PrivateKeys.driver_signing_private_key"]
 
+  # The executables dir may be missing
+  exceptions.append("ClientBuilder.executables_dir")
+
   disabled_filters = [
-      ]
+  ]
 
   def testAllConfigs(self):
     """Go through all our config files looking for errors."""
-    configs = []
-
     # Test the current loaded configuration.
-    configs.append(config_lib.CONFIG)
+    configs = [config_lib.CONFIG]
+
+    # Test all the other configs in the server config dir (/etc/grr by default)
+    glob_path = os.path.join(config_lib.CONFIG["Config.directory"], "*.yaml")
+    for cfg_file in glob.glob(glob_path):
+      if os.access(cfg_file, os.R_OK):
+        configs.append(cfg_file)
+      else:
+        logging.info(
+            "Skipping checking %s, you probably need to be root" % cfg_file)
 
     test_filter_map = config_lib.ConfigFilter.classes_by_name
     for filter_name in self.disabled_filters:

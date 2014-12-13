@@ -89,8 +89,7 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
 
     testdata = [(r"C:\Windows", "\\\\?\\Volume{11111}", "/Windows"),
                 (r"C:\\Windows\\", "\\\\?\\Volume{11111}", "/Windows"),
-                (r"C:\\", "\\\\?\\Volume{11111}", "/"),
-               ]
+                (r"C:\\", "\\\\?\\Volume{11111}", "/")]
 
     for filename, expected_device, expected_path in testdata:
       raw_pathspec, path = client_utils_windows.WinGetRawDevice(filename)

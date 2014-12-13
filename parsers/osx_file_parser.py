@@ -26,5 +26,3 @@ class OSXUsersParser(parsers.ArtifactFilesParser):
         if username not in self.blacklist:
           yield rdfvalue.KnowledgeBaseUser(username=username,
                                            homedir=homedir)
-
-

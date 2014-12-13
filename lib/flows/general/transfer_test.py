@@ -110,14 +110,14 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
 
     for _ in test_lib.TestFlowHelper("GetFile", client_mock, token=self.token,
                                      client_id=self.client_id,
-                                     read_length=2*1024*1024 + 5,
+                                     read_length=2 * 1024 * 1024 + 5,
                                      pathspec=pathspec):
       pass
 
     # When we explicitly pass the read_length parameter we read more of the
     # file.
     fd = aff4.FACTORY.Open(urn, token=self.token)
-    self.assertEqual(fd.size, 2*1024*1024 + 5)
+    self.assertEqual(fd.size, 2 * 1024 * 1024 + 5)
 
   def CompareFDs(self, fd1, fd2):
     ranges = [
@@ -129,7 +129,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
         (fd2.tell() - 100, 300),
         # Zero length reads
         (100, 0),
-        ]
+    ]
 
     for offset, length in ranges:
       fd1.Seek(offset)

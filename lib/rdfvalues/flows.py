@@ -359,7 +359,7 @@ class Task(rdfvalue.RDFProtoStruct):
 
     self.eta = 0
 
-     # self.value now contains a serialized RDFValue protobuf.
+    # self.value now contains a serialized RDFValue protobuf.
     self.payload = rdfvalue.RDFValueObject(self.value).Payload()
 
     # If the payload has a priority, the task inherits it.
@@ -396,7 +396,7 @@ class Task(rdfvalue.RDFProtoStruct):
   def ParseFromString(self, string):
     super(Task, self).ParseFromString(string)
 
-     # self.value now contains a serialized RDFValue protobuf.
+    # self.value now contains a serialized RDFValue protobuf.
     self.payload = rdfvalue.RDFValueObject(self.value).Payload()
 
   def __str__(self):

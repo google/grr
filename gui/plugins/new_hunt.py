@@ -473,4 +473,4 @@ class NewHunt(wizards.WizardRenderer):
       ConfigureHuntRules,
       HuntInformation,
       HuntRunStatus,
-      ]
+  ]

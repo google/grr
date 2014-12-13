@@ -186,6 +186,7 @@ class Operator(Filter):
 
 
 class IdentityFilter(Operator):
+
   def Matches(self, _):
     return True
 
@@ -448,8 +449,7 @@ OP2FN = {"equals": Equals,
          "<=": LessEqual,
          "inset": InSet,
          "notinset": NotInSet,
-         "regexp": Regexp,
-        }
+         "regexp": Regexp}
 
 
 class ValueExpander(object):
@@ -544,8 +544,9 @@ class DictValueExpander(ValueExpander):
     return obj.get(attr_name, None)
 
 
-### PARSER DEFINITION
+# PARSER DEFINITION
 class BasicExpression(lexer.Expression):
+
   def Compile(self, filter_implementation):
     arguments = [self.attribute]
     op_str = self.operator.lower()
@@ -587,6 +588,7 @@ class ContextExpression(lexer.Expression):
 
 
 class BinaryExpression(lexer.BinaryExpression):
+
   def Compile(self, filter_implemention):
     """Compile the binary expression into a filter object."""
     operator = self.operator.lower()
@@ -602,6 +604,7 @@ class BinaryExpression(lexer.BinaryExpression):
 
 
 class IdentityExpression(lexer.Expression):
+
   def Compile(self, filter_implementation):
     return filter_implementation.FILTERS["IdentityFilter"]()
 
@@ -662,7 +665,7 @@ class Parser(lexer.SearchParser):
 
       # Skip whitespace.
       lexer.Token(".", r"\s+", None, None),
-      ]
+  ]
 
   def InsertArg(self, string="", **_):
     """Insert an arg to the current expression."""
@@ -764,35 +767,35 @@ class Parser(lexer.SearchParser):
         self.buffer))
 
   def _CombineBinaryExpressions(self, operator):
-    for i in range(1, len(self.stack)-1):
+    for i in range(1, len(self.stack) - 1):
       item = self.stack[i]
       if (isinstance(item, lexer.BinaryExpression) and
           item.operator.lower() == operator.lower() and
-          isinstance(self.stack[i-1], lexer.Expression) and
-          isinstance(self.stack[i+1], lexer.Expression)):
-        lhs = self.stack[i-1]
-        rhs = self.stack[i+1]
+          isinstance(self.stack[i - 1], lexer.Expression) and
+          isinstance(self.stack[i + 1], lexer.Expression)):
+        lhs = self.stack[i - 1]
+        rhs = self.stack[i + 1]
 
         self.stack[i].AddOperands(lhs, rhs)
-        self.stack[i-1] = None
-        self.stack[i+1] = None
+        self.stack[i - 1] = None
+        self.stack[i + 1] = None
 
     self.stack = filter(None, self.stack)
 
   def _CombineContext(self):
     # Context can merge from item 0
-    for i in range(len(self.stack)-1, 0, -1):
-      item = self.stack[i-1]
+    for i in range(len(self.stack) - 1, 0, -1):
+      item = self.stack[i - 1]
       if (isinstance(item, ContextExpression) and
           isinstance(self.stack[i], lexer.Expression)):
         expression = self.stack[i]
-        self.stack[i-1].SetExpression(expression)
+        self.stack[i - 1].SetExpression(expression)
         self.stack[i] = None
 
     self.stack = filter(None, self.stack)
 
 
-### FILTER IMPLEMENTATIONS
+# FILTER IMPLEMENTATIONS
 
 
 class BaseFilterImplementation(object):

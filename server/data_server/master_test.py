@@ -209,15 +209,15 @@ class MasterTest(test_lib.GRRBaseTest):
     # Check that mapping to a server works.
     self.assertEqual(utils._FindServerInMapping(mapping, 0x0), 0)
     self.assertEqual(utils._FindServerInMapping(mapping,
-                                                constants.MAX_RANGE/4), 1)
+                                                constants.MAX_RANGE / 4), 1)
     self.assertEqual(utils._FindServerInMapping(mapping,
-                                                constants.MAX_RANGE/4 + 1), 1)
+                                                constants.MAX_RANGE / 4 + 1), 1)
     self.assertEqual(utils._FindServerInMapping(mapping,
-                                                constants.MAX_RANGE/2), 2)
-    half_fifth = constants.MAX_RANGE/2 + constants.MAX_RANGE/5
+                                                constants.MAX_RANGE / 2), 2)
+    half_fifth = constants.MAX_RANGE / 2 + constants.MAX_RANGE / 5
     self.assertEqual(utils._FindServerInMapping(mapping, half_fifth), 2)
     self.assertEqual(utils._FindServerInMapping(mapping,
-                                                constants.MAX_RANGE/4 * 3), 3)
+                                                constants.MAX_RANGE / 4 * 3), 3)
     self.assertEqual(utils._FindServerInMapping(mapping,
                                                 constants.MAX_RANGE), 3)
 

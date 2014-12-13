@@ -132,7 +132,7 @@ def InetNtoA(packed_bytes):
     return "::" + socket.inet_ntoa(packed_bytes[-4:])
 
   # Split into quads
-  chunked = [hex_encoded[i:i+4] for i in xrange(0, len(hex_encoded), 4)]
+  chunked = [hex_encoded[i:i + 4] for i in xrange(0, len(hex_encoded), 4)]
 
   output = []
   for chunk in chunked:
@@ -156,4 +156,3 @@ def InetNtoA(packed_bytes):
       result_str = result_str.replace(largest_zero_str, "::", 1)
 
   return result_str
-

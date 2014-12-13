@@ -238,7 +238,7 @@ class FlowRunner(object):
 
         # Have we sent a notification to the user.
         user_notified=False,
-        )
+    )
 
     # Store the context in the flow_obj for next time.
     self.flow_obj.state.Register("context", context)
@@ -330,7 +330,7 @@ class FlowRunner(object):
       if isinstance(payload, rdfvalue.RDFValue):
         msg = rdfvalue.GrrMessage(
             session_id=self.session_id, request_id=request_state.id,
-            response_id=1+i,
+            response_id=1 + i,
             auth_state=rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED,
             payload=payload,
             type=rdfvalue.GrrMessage.Type.MESSAGE)
@@ -431,7 +431,8 @@ class FlowRunner(object):
                           events=processing)
 
           # Quit early if we are no longer alive.
-          else: break
+          else:
+            break
 
           # At this point we have processed this request - we can remove it and
           # its responses from the queue.

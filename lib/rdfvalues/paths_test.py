@@ -182,4 +182,3 @@ class GlobExpressionTest(test_base.RDFValueTestCase):
     glob_expression = rdfvalue.GlobExpression(
         "/home/**/**")
     self.assertRaises(ValueError, glob_expression.Validate)
-

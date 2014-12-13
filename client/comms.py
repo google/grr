@@ -358,7 +358,7 @@ class GRRClientWorker(object):
   def MemoryExceeded(self):
     """Returns True if our memory footprint is too large."""
     rss_size, _ = self.proc.memory_info()
-    return rss_size/1024/1024 > config_lib.CONFIG["Client.rss_max"]
+    return rss_size / 1024 / 1024 > config_lib.CONFIG["Client.rss_max"]
 
   def InQueueSize(self):
     """Returns the number of protobufs ready to be sent in the queue."""
@@ -964,7 +964,7 @@ class GRRHTTPClient(object):
 
     except Exception:  # pylint: disable=broad-except
       # Catch everything, yes, this is terrible but necessary
-      logging.warn("Uncaught exception caught: %s" % traceback.format_exc())
+      logging.warn("Uncaught exception caught: %s", traceback.format_exc())
       if status:
         status.code = 500
       if flags.FLAGS.debug:
@@ -1244,5 +1244,5 @@ class ClientCommunicator(communicator.Communicator):
   def EncodeMessages(self, message_list, result, **kwargs):
     # Force the right API to be used
     kwargs["api_version"] = config_lib.CONFIG["Network.api"]
-    return  super(ClientCommunicator, self).EncodeMessages(
+    return super(ClientCommunicator, self).EncodeMessages(
         message_list, result, **kwargs)

@@ -272,4 +272,3 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
         self.assertFalse(summary.client_info)
 
         self.assertEqual(summary.timestamp.AsSecondsFromEpoch(), 101)
-

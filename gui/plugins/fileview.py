@@ -299,7 +299,7 @@ class ConnectionsRenderer(semantic.RDFValueArrayRenderer):
       (10, 2): "udp6",
       (23, 2): "udp6",
       (30, 2): "udp6",
-      }
+  }
 
   def Layout(self, request, response):
     """Render the connection as a table."""

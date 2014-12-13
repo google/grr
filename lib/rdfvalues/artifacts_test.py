@@ -21,14 +21,18 @@ class ArtifactTests(test_base.RDFValueTestCase):
     return result
 
   def testGetArtifactPathDependencies(self):
-    # pylint: disable=g-line-too-long
     collectors = [
-        {"collector_type": rdfvalue.Collector.CollectorType.REGISTRY_VALUE, "args": {
-            "path": r"%%current_control_set%%\Control\Session Manager\Environment\Path"}},
-        {"collector_type": rdfvalue.Collector.CollectorType.WMI, "args": {
-            "query": "SELECT * FROM Win32_UserProfile WHERE SID='%%users.sid%%'"}},
-        {"collector_type": rdfvalue.Collector.CollectorType.GREP, "args": {"content_regex_list": ["^%%users.username%%:"]}}]
-    # pylint: enable=g-line-too-long
+        {"collector_type": rdfvalue.Collector.CollectorType.REGISTRY_VALUE,
+         "args": {
+             "path": r"%%current_control_set%%\Control\Session "
+                     r"Manager\Environment\Path"}},
+        {"collector_type": rdfvalue.Collector.CollectorType.WMI,
+         "args": {
+             "query": "SELECT * FROM Win32_UserProfile "
+                      "WHERE SID='%%users.sid%%'"}},
+        {"collector_type": rdfvalue.Collector.CollectorType.GREP,
+         "args": {
+             "content_regex_list": ["^%%users.username%%:"]}}]
 
     artifact = rdfvalue.Artifact(name="artifact", doc="Doco",
                                  provides=["environ_windir"],

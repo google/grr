@@ -68,7 +68,7 @@ def WmiTimeToEpoch(cimdatetime_str):
 
 def WinFileTimeToDateTime(filetime):
   """Take a Windows FILETIME as integer and convert to DateTime."""
-  return NULL_FILETIME + datetime.timedelta(microseconds=filetime/10)
+  return NULL_FILETIME + datetime.timedelta(microseconds=filetime / 10)
 
 
 def AmericanDateToEpoch(date_str):

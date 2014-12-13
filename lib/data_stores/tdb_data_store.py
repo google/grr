@@ -134,7 +134,7 @@ class TDBContext(object):
   def __init__(self, filename):
     self.filename = filename
     self.context = tdb.open(utils.SmartStr(filename),
-                            flags=os.O_CREAT|os.O_RDWR)
+                            flags=os.O_CREAT | os.O_RDWR)
     self.lock = threading.RLock()
 
   def _MakeKey(self, parts):

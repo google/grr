@@ -530,7 +530,7 @@ class MySQLTransaction(data_store.CommonTransaction):
     self.store._ExecuteQuery(query, args)
 
   def CheckLease(self):
-    return max(0, self.expires_lock/1e6 - time.time())
+    return max(0, self.expires_lock / 1e6 - time.time())
 
   def CheckForLock(self):
     """Checks that the lock has stuck."""

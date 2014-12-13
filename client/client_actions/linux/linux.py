@@ -42,7 +42,7 @@ class Sockaddrll(ctypes.Structure):
       ("sll_pkttype", ctypes.c_ubyte),
       ("sll_halen", ctypes.c_ubyte),
       ("sll_addr", ctypes.c_ubyte * 8),
-      ]
+  ]
 
 # struct sockaddr_in {
 #   sa_family_t           sin_family;     /* Address family               */
@@ -61,7 +61,7 @@ class Sockaddrin(ctypes.Structure):
       ("sin_port", ctypes.c_ushort),
       ("sin_addr", ctypes.c_ubyte * 4),
       ("sin_zero", ctypes.c_char * 8)
-      ]
+  ]
 
 # struct sockaddr_in6 {
 #         unsigned short int      sin6_family;    /* AF_INET6 */
@@ -80,7 +80,7 @@ class Sockaddrin6(ctypes.Structure):
       ("sin6_flowinfo", ctypes.c_ubyte * 4),
       ("sin6_addr", ctypes.c_ubyte * 16),
       ("sin6_scope_id", ctypes.c_ubyte * 4)
-      ]
+  ]
 
 
 # struct ifaddrs   *ifa_next;         /* Pointer to next struct */
@@ -105,7 +105,7 @@ Ifaddrs._fields_ = [  # pylint: disable=protected-access
     ("ifa_broadaddr", ctypes.POINTER(ctypes.c_char)),
     ("ifa_destaddr", ctypes.POINTER(ctypes.c_char)),
     ("ifa_data", ctypes.POINTER(ctypes.c_char))
-    ]
+]
 
 
 class EnumerateInterfaces(actions.ActionPlugin):
@@ -192,7 +192,7 @@ class UtmpStruct(utils.Struct):
       ("i", "tv_usec"),
       ("4i", "ut_addr_v6"),
       ("20s", "unused"),
-      ]
+  ]
 
 
 class EnumerateUsers(actions.ActionPlugin):
@@ -223,7 +223,7 @@ class EnumerateUsers(actions.ActionPlugin):
 
         for offset in xrange(0, len(wtmp), wtmp_struct_size):
           try:
-            record = UtmpStruct(wtmp[offset:offset+wtmp_struct_size])
+            record = UtmpStruct(wtmp[offset:offset + wtmp_struct_size])
           except RuntimeError:
             break
 
@@ -264,7 +264,7 @@ class EnumerateUsers(actions.ActionPlugin):
         self.SendReply(username=utils.SmartUnicode(username),
                        homedir=utils.SmartUnicode(homedir),
                        full_name=utils.SmartUnicode(full_name),
-                       last_logon=last_login*1000000)
+                       last_logon=last_login * 1000000)
 
 
 class EnumerateFilesystems(actions.ActionPlugin):

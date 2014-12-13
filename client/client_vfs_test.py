@@ -233,7 +233,7 @@ class VFSTest(test_lib.GRRBaseTest):
 
     ps = rdfvalue.PathSpec(path=path,
                            pathtype=rdfvalue.PathSpec.PathType.OS,
-                           offset=63*512)
+                           offset=63 * 512)
     ps.Append(ps2)
     fd = vfs.VFSOpen(ps)
 
@@ -243,7 +243,7 @@ class VFSTest(test_lib.GRRBaseTest):
                             pathtype=rdfvalue.PathSpec.PathType.TSK)
     ps = rdfvalue.PathSpec(path=path,
                            pathtype=rdfvalue.PathSpec.PathType.OS,
-                           offset=63*512)
+                           offset=63 * 512)
     ps.Append(ps2)
     fd = vfs.VFSOpen(ps)
 
@@ -262,7 +262,7 @@ class VFSTest(test_lib.GRRBaseTest):
 
     ps = rdfvalue.PathSpec(path=path,
                            pathtype=rdfvalue.PathSpec.PathType.OS,
-                           offset=63*512)
+                           offset=63 * 512)
     ps.Append(ps2)
     fd = vfs.VFSOpen(ps)
 
@@ -339,7 +339,7 @@ class VFSTest(test_lib.GRRBaseTest):
 
     ps = rdfvalue.PathSpec(path=path,
                            pathtype=rdfvalue.PathSpec.PathType.OS,
-                           offset=63*512)
+                           offset=63 * 512)
     ps.Append(ps2)
 
     vfs.VFSOpen(ps, progress_callback=Progress)

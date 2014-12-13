@@ -68,7 +68,7 @@ config_lib.DEFINE_string("Worker.smtp_password", None,
 config_lib.DEFINE_semantic(
     rdfvalue.PEMPrivateKey, "PrivateKeys.ca_key",
     description="CA private key. Used to sign for client enrollment.",
-    )
+)
 
 config_lib.DEFINE_semantic(
     rdfvalue.PEMPrivateKey, "PrivateKeys.server_key",

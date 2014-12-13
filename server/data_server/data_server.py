@@ -573,11 +573,11 @@ HTTP_TABLE = {
     "/servers/rem": DataServerHandler.HandleServerRem,
     "/servers/sync": DataServerHandler.HandleServerSync,
     "/servers/sync-all": DataServerHandler.HandleServerSyncAll
-    }
+}
 
 STREAMING_TABLE = {
     "/rebalance/copy-file": DataServerHandler.HandleRebalanceCopyFile,
-    }
+}
 
 
 class ThreadedHTTPServer(SocketServer.ThreadingMixIn, HTTPServer):
@@ -654,8 +654,8 @@ class StandardDataServer(object):
     while True:
       if self._DoRegister():
         break
-      logging.warning("Failed to connect with master on %s:%d" %
-                      (self.master_addr, self.master_port))
+      logging.warning("Failed to connect with master on %s:%d",
+                      self.master_addr, self.master_port)
       if time.time() - started > self.MASTER_RECONNECTION_TIME:
         raise errors.DataServerError("Could not connect to data master at "
                                      "%s:%d" % (self.master_addr,
@@ -797,15 +797,15 @@ def Start(db, port=0, is_master=False, server_cls=ThreadedHTTPServer,
                   "port in configuration file.")
   else:
     logging.debug("Port specified was '%i'. Ignoring configuration directive "
-                  "Dataserver.port." % port)
+                  "Dataserver.port.", port)
 
   server_port = port or config_lib.CONFIG["Dataserver.port"]
 
   if is_master:
-    logging.debug("Master server running on port '%i'" % server_port)
+    logging.debug("Master server running on port '%i'", server_port)
     InitMasterServer(server_port)
   else:
-    logging.debug("Non-master data server running on port '%i'" % server_port)
+    logging.debug("Non-master data server running on port '%i'", server_port)
     InitDataServer(server_port)
 
   try:

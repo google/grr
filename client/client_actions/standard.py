@@ -30,7 +30,7 @@ from grr.lib.rdfvalues import crypto
 
 
 # We do not send larger buffers than this:
-MAX_BUFFER_SIZE = 640*1024
+MAX_BUFFER_SIZE = 640 * 1024
 
 
 class ReadBuffer(actions.ActionPlugin):
@@ -223,7 +223,7 @@ class IteratedListDirectory(actions.IteratedAction):
 
     index = client_state.get("index", 0)
     length = request.iterator.number
-    for response in files[index:index+length]:
+    for response in files[index:index + length]:
       self.SendReply(response)
 
     # Update the state

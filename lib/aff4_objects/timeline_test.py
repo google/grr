@@ -26,7 +26,7 @@ class TimelineTest(test_lib.AFF4ObjectTest):
     for t in times:
       event = rdfvalue.Event(timestamp=t)
       event.stat.st_mtime = t / 1000000
-      event.stat.pathspec.path = time.ctime(t/1000000)
+      event.stat.pathspec.path = time.ctime(t / 1000000)
       fd.AddEvent(event)
 
     fd.Close()
@@ -53,7 +53,7 @@ class TimelineTest(test_lib.AFF4ObjectTest):
       event = rdfvalue.Event(timestamp=t)
       event.stat.st_mtime = t / 1000000
       event.stat.pathspec.path = time.strftime("Path @ %a %b %d %T %Y",
-                                               time.gmtime(t/1000000))
+                                               time.gmtime(t / 1000000))
       fd.AddEvent(event)
 
     fd.Close()
@@ -78,7 +78,7 @@ class TimelineTest(test_lib.AFF4ObjectTest):
     # Match within the embedded stat protobuf
     results = list(fd.Query(
         "event.stat.st_mtime >= 2011/11/18 and event.stat.st_mtime < 2011/11/19"
-        ))
+    ))
     self.assertEqual(len(results), 1)
     self.assertEqual(results[0].event.timestamp, 1321633293629468)
 

@@ -14,7 +14,8 @@ import unittest
 
 import psutil
 
-# These need to register plugins so, pylint: disable=unused-import,g-bad-import-order
+# These need to register plugins so,
+# pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
 from grr.client import tests
 

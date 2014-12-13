@@ -87,7 +87,7 @@ parser_update_user.add_argument(
 parser_update_user.add_argument(
     "--delete_labels", default=[], action="append",
     help="Delete labels from the user object. These are used to control access."
-    )
+)
 
 parser_add_user = subparsers.add_parser(
     "add_user", help="Add a new user.")
@@ -498,7 +498,7 @@ def UploadRaw(file_path, aff4_path):
   """Upload a file to the datastore."""
   full_path = rdfvalue.RDFURN(aff4_path).Add(os.path.basename(file_path))
   fd = aff4.FACTORY.Create(full_path, "AFF4Image", mode="w")
-  fd.Write(open(file_path).read(1024*1024*30))
+  fd.Write(open(file_path).read(1024 * 1024 * 30))
   fd.Close()
   return str(fd.urn)
 
@@ -557,7 +557,7 @@ def main(unused_argv):
     UpdateUser(flags.FLAGS.username, password, labels)
 
   elif flags.FLAGS.subparser_name == "upload_python":
-    content = open(flags.FLAGS.file).read(1024*1024*30)
+    content = open(flags.FLAGS.file).read(1024 * 1024 * 30)
     aff4_path = flags.FLAGS.dest_path
     if not aff4_path:
       python_hack_root_urn = config_lib.CONFIG.Get("Config.python_hack_root")
@@ -568,7 +568,7 @@ def main(unused_argv):
                                              client_context=context)
 
   elif flags.FLAGS.subparser_name == "upload_exe":
-    content = open(flags.FLAGS.file).read(1024*1024*30)
+    content = open(flags.FLAGS.file).read(1024 * 1024 * 30)
     context = ["Platform:%s" % flags.FLAGS.platform.title(),
                "Client"]
 
@@ -588,7 +588,7 @@ def main(unused_argv):
   elif flags.FLAGS.subparser_name == "upload_memory_driver":
     client_context = ["Platform:%s" % flags.FLAGS.platform.title(),
                       "Arch:%s" % flags.FLAGS.arch]
-    content = open(flags.FLAGS.file).read(1024*1024*30)
+    content = open(flags.FLAGS.file).read(1024 * 1024 * 30)
 
     if flags.FLAGS.dest_path:
       uploaded = maintenance_utils.UploadSignedDriverBlob(

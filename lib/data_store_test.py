@@ -385,10 +385,12 @@ class DataStoreTest(test_lib.GRRBaseTest):
     rows = []
     for i in range(10):
       row_name = "aff4:/row:%s" % i
-      data_store.DB.Set(row_name, "metadata:%s" % i, "v%d" % i, timestamp=i+10,
-                        replace=False, token=self.token)
-      data_store.DB.Set(row_name, "metadata:%s" % i, "v%d" % i, timestamp=i+20,
-                        replace=False, token=self.token)
+      data_store.DB.Set(
+          row_name, "metadata:%s" % i, "v%d" % i, timestamp=i + 10,
+          replace=False, token=self.token)
+      data_store.DB.Set(
+          row_name, "metadata:%s" % i, "v%d" % i, timestamp=i + 20,
+          replace=False, token=self.token)
       rows.append(row_name)
 
     # Query for newest ts.
@@ -1009,7 +1011,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
     # Now create the image containing the blob.
     fd = aff4.FACTORY.Create("aff4:/C.1235/image", "HashImage",
                              token=self.token)
-    fd.SetChunksize(512*1024)
+    fd.SetChunksize(512 * 1024)
     fd.Set(fd.Schema.STAT())
 
     fd.AddBlob(digest, len(data))
@@ -1338,7 +1340,7 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
       self.last_time = this_time
       self.steps += 1
       self.AddResult(self.test_name, this_time - self.start_time, self.steps,
-                     data_store.DB.Size()/1024, queries_diff, self.subjects,
+                     data_store.DB.Size() / 1024, queries_diff, self.subjects,
                      self.predicates, self.values)
 
   def WriteCSV(self, remove=False):
@@ -1386,7 +1388,7 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
     """Randomly read the database."""
     if change_test:
       self.test_name = "read random %d%%" % fraction
-    for _ in range(0, int(float(len(subjects)) * float(fraction)/100.0)):
+    for _ in range(0, int(float(len(subjects)) * float(fraction) / 100.0)):
       i = self.rand.choice(subjects.keys())
       subject = subjects[i]["name"]
       predicates = subjects[i]["attrs"]
@@ -1490,14 +1492,14 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
     """Adds new clients/subjects to the database."""
     if change_test:
       self.test_name = "add %d%%" % fraction
-    how_many = int(float(len(subjects)) * float(fraction)/100)
+    how_many = int(float(len(subjects)) * float(fraction) / 100)
     new_value = os.urandom(100)
     new_subject = max(subjects.iteritems(),
                       key=operator.itemgetter(0))[0] + 1
     # Generate client names.
     clients = [self._GenerateRandomClient() for _ in xrange(nclients)]
     for i in xrange(new_subject, new_subject + how_many):
-      client = clients[self.rand.randint(0, nclients-1)]
+      client = clients[self.rand.randint(0, nclients - 1)]
       self._AddNewSubject(client, subjects, i, new_value)
     data_store.DB.Flush()
 
@@ -1563,7 +1565,7 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
   def _RemoveManyAttributes(self, subjects, fraction):
     """Delete all predicates (except 1) from subjects with many predicates."""
     self.test_name = "del +attrs %d%%" % fraction
-    often = 100/fraction
+    often = 100 / fraction
     count = 0
     for i in subjects:
       subject = subjects[i]["name"]
@@ -1607,7 +1609,7 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
   def _DoMix(self, subjects):
     """Do a mix of database operations."""
     self.test_name = "mix"
-    for _ in xrange(0, len(subjects)/2000):
+    for _ in xrange(0, len(subjects) / 2000):
       # Do random operations.
       op = self.rand.randint(0, 3)
       if op == 0:
@@ -1620,7 +1622,7 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
         self._DeleteRandom(subjects, 4, False)
 
   def _GenerateRandomClient(self):
-    return rdfvalue.ClientURN("C.%016d" % self.rand.randint(0, (10 ** 16)-1))
+    return rdfvalue.ClientURN("C.%016d" % self.rand.randint(0, (10 ** 16) - 1))
 
   def _FillDatabase(self, nsubjects, nclients,
                     max_attributes=3):
@@ -1800,7 +1802,7 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
                                      pathspec=rdfvalue.PathSpec(
                                          path="/",
                                          pathtype="OS",
-                                         ),
+                                     ),
                                      token=self.token)
     self.flow_ids.append(flow_id)
 
@@ -1815,7 +1817,7 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
       for i, payload in enumerate(messages):
         msg = rdfvalue.GrrMessage(
             session_id=flow_id,
-            request_id=1, response_id=1+i,
+            request_id=1, response_id=1 + i,
             auth_state=rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED,
             payload=payload)
         if isinstance(payload, rdfvalue.GrrStatus):

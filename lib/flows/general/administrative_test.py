@@ -459,9 +459,9 @@ sys.test_code_ran_here = py_args['value']
     self.assertAlmostEqual(sample.io_samples[1].read_bytes, 21.0)
 
     self.assertAlmostEqual(sample.cpu_samples[0].cpu_percent,
-                           sum(range(10, 16))/6.0)
+                           sum(range(10, 16)) / 6.0)
     self.assertAlmostEqual(sample.cpu_samples[1].cpu_percent,
-                           sum(range(16, 22))/6.0)
+                           sum(range(16, 22)) / 6.0)
 
     self.assertAlmostEqual(sample.cpu_samples[0].user_cpu_time, 15.0)
     self.assertAlmostEqual(sample.cpu_samples[1].system_cpu_time, 31.0)

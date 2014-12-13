@@ -66,7 +66,7 @@ whitelist = [
     "./LICENSE",
     "./README",
     "./.*pyc",
-    ]
+]
 for filename in sorted(walk_files - setup_files):
   if any([re.match(regex, filename) for regex in whitelist]):
     continue

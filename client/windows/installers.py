@@ -140,7 +140,7 @@ class WindowsInstaller(installer.Installer):
   nanny_options = (
       "Nanny.child_binary", "Nanny.child_command_line",
       "Nanny.service_name", "Nanny.service_description",
-      )
+  )
 
   def InstallNanny(self):
     """Install the nanny program."""

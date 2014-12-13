@@ -314,4 +314,3 @@ def LoadChecksFromFiles(file_paths, overwrite_if_exists=True):
       CheckRegistry.RegisterCheck(check, source="file:%s" % file_path,
                                   overwrite_if_exists=overwrite_if_exists)
       logging.debug("Loaded check %s from %s", check.check_id, file_path)
-

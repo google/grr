@@ -38,7 +38,7 @@ class OSXLaunchdJobDict(object):
     self.blacklist_regex = [
         re.compile(r"^0x[a-z0-9]+\.anonymous\..+$"),
         re.compile(r"^0x[a-z0-9]+\.mach_init\.(crash_inspector|Inspector)$"),
-        ]
+    ]
 
   def Parse(self):
     """Parse the list of jobs and yield the good ones."""
@@ -79,5 +79,3 @@ class DarwinPersistenceMechanismsParser(parsers.ArtifactFilesParser):
 
     for pathspec in pathspecs:
       yield rdfvalue.PersistenceFile(pathspec=pathspec)
-
-

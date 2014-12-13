@@ -225,7 +225,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
             session_id=session_id,
             payload=rdfvalue.GrrStatus(
                 status=rdfvalue.GrrStatus.ReturnedStatus.OK),
-            request_id=request_id, response_id=response_id+1,
+            request_id=request_id, response_id=response_id + 1,
             type=rdfvalue.GrrMessage.Type.STATUS))
 
       flow_manager.QueueNotification(session_id=session_id)
@@ -690,7 +690,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
         session_id=session_id,
         payload=rdfvalue.GrrStatus(
             status=rdfvalue.GrrStatus.ReturnedStatus.OK),
-        request_id=request_id, response_id=response_id+1,
+        request_id=request_id, response_id=response_id + 1,
         type=rdfvalue.GrrMessage.Type.STATUS)
 
     # Now we write half the status information.

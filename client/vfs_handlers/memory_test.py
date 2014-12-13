@@ -76,7 +76,7 @@ class OSXMemoryTest(test_lib.GRRBaseTest):
         (12 * self.page_size, 1000, 0),
         # Read over the invalid region.
         (0, 17 * self.page_size, 13 * self.page_size),
-        ]:
+    ]:
       handler.Seek(start)
       data = handler.Read(length)
       self.assertEqual(len(data), length)

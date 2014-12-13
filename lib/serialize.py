@@ -27,7 +27,7 @@ def YamlDumper(aff4object):
       _urn=aff4object.urn.SerializeToString(),
       attributes=result,
       age_policy=aff4object.age_policy,
-      ))
+  ))
 
 
 def YamlLoader(string):

@@ -47,7 +47,7 @@ def EnumMissingModules():
 
   # The size of a handle is pointer size (i.e. 64 bit of amd64 and 32 bit on
   # i386).
-  if sys.maxsize > 2**32:
+  if sys.maxsize > 2 ** 32:
     handle_type = ctypes.c_ulonglong
   else:
     handle_type = ctypes.c_ulong

@@ -4,7 +4,7 @@
 from grr.lib import config_lib
 
 config_lib.DEFINE_integer("Datastore.maximum_blob_size",
-                          15*1024*1024,
+                          15 * 1024 * 1024,
                           "Maximum blob size we may store in the datastore.")
 
 config_lib.DEFINE_string("Datastore.security_manager",
@@ -48,7 +48,7 @@ config_lib.DEFINE_integer("SqliteDatastore.vacuum_frequency", default=60,
                           help=("Minimum interval (in seconds) between vacuum"
                                 "operations on the same sqlite file."))
 
-config_lib.DEFINE_integer("SqliteDatastore.vacuum_minsize", default=10*1024,
+config_lib.DEFINE_integer("SqliteDatastore.vacuum_minsize", default=10 * 1024,
                           help=("Minimum size of sqlite file in bytes required"
                                 " for vacuuming"))
 
@@ -112,4 +112,3 @@ config_lib.DEFINE_integer("HTTPDataStore.reconnect_timeout", 10 * 60,
 config_lib.DEFINE_integer("HTTPDataStore.retry_time", 5,
                           help=("Number of seconds to wait in-between attempts"
                                 "to reconnect to the database."))
-

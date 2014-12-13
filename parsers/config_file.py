@@ -198,4 +198,3 @@ class SshdConfigParser(parsers.FileParser):
       block = rdfvalue.SshdMatchBlock(criterion=criterion, config=config)
       matches.append(block)
     yield rdfvalue.SshdConfig(config=self.config, matches=matches)
-

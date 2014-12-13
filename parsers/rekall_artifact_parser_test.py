@@ -23,7 +23,7 @@ class RekallVADParserTest(test_lib.GRRBaseTest):
     result = rdfvalue.RekallResponse(
         json_messages=open(ps_list_file).read(10000000),
         plugin="pslist",
-        )
+    )
 
     knowledge_base = rdfvalue.KnowledgeBase()
     knowledge_base.environ_systemdrive = "C:"
