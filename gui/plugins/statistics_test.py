@@ -27,12 +27,12 @@ class TestStats(test_lib.GRRSeleniumTest):
 
       for i in range(10, 15):
         histogram = fd.Schema.OS_HISTOGRAM(
-            age=int((now + i*60*60*24) * 1e6))
+            age=int((now + i * 60 * 60 * 24) * 1e6))
 
         for number in [1, 7, 14, 30]:
           graph = rdfvalue.Graph(title="%s day actives" % number)
-          graph.Append(label="Windows", y_value=i+number)
-          graph.Append(label="Linux", y_value=i*2+number)
+          graph.Append(label="Windows", y_value=i + number)
+          graph.Append(label="Linux", y_value=i * 2 + number)
 
           histogram.Append(graph)
 

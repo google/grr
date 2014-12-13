@@ -88,6 +88,7 @@ def RenderBinaryDownload(request):
   if not path or not filename:
     return AccessDenied("Error: Invalid path.")
   request.REQ = request.REQUEST
+
   def Generator():
     with aff4.FACTORY.Open(aff4_path, aff4_type="GRRSignedBlob",
                            token=BuildToken(request, 60)) as fd:

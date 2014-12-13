@@ -35,7 +35,7 @@ class MysqlTestMixin(object):
       data_store.DB.security_manager = test_lib.MockSecurityManager()
       data_store.DB.RecreateDataBase()
     except Exception as e:
-      logging.debug("Error while connecting to MySQL db: %s." % e)
+      logging.debug("Error while connecting to MySQL db: %s.", e)
       raise unittest.SkipTest("Skipping since Mysql db is not reachable.")
 
   def DestroyDatastore(self):

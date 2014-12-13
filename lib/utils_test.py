@@ -117,7 +117,7 @@ class UtilsTest(test_lib.GRRBaseTest):
         ("../foo/bar", "/foo/bar"),
         ("./foo/bar", "/foo/bar"),
         ("/", "/"),
-        ]
+    ]
 
     for test, expected in data:
       self.assertEqual(expected, utils.NormalizePath(test))

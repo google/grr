@@ -220,7 +220,7 @@ class TestFileView(FileViewTestBase):
     self.WaitUntilContains(
         "aff4:/C.0000000000000001/fs/os/c/bin C.0000000000000001/cat",
         self.GetText, "css=.tab-content h3")
-    self.WaitUntil(self.IsTextPresent, "1026267")  ## st_inode.
+    self.WaitUntil(self.IsTextPresent, "1026267")  # st_inode.
 
     # Lets download it.
     self.Click("Download")

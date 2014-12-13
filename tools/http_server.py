@@ -99,7 +99,7 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       # are the active instance.
       stats.STATS.IncrementCounter("frontend_inactive_request_count",
                                    fields=["http"])
-      logging.info("Request sent to inactive frontend from %s" %
+      logging.info("Request sent to inactive frontend from %s",
                    self.client_address[0])
 
     # Get the api version

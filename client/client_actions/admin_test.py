@@ -46,6 +46,7 @@ class ConfigActionTest(test_lib.EmptyActionTest):
 
     self.urls = []
     # Now test that our location was actually updated.
+
     def FakeUrlOpen(req, timeout=10):
       _ = timeout
       self.urls.append(req.get_full_url())

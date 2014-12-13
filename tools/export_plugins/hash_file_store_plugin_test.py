@@ -71,7 +71,7 @@ class HashFileStoreExportPluginTest(test_lib.GRRBaseTest):
         "--threads",
         "0",
         "dummy"
-        ]))
+    ]))
 
     responses = DummyOutputPlugin.responses
 

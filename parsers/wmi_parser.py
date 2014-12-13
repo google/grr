@@ -67,7 +67,7 @@ class WMIUserParser(parsers.WMIQueryParser):
       "SID": "sid",
       # Win32_UserProfile
       "LocalPath": "homedir"
-      }
+  }
 
   def Parse(self, query, result, knowledge_base):
     """Parse the wmi Win32_UserAccount output."""

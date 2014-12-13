@@ -76,6 +76,10 @@ class AlreadyInitializedError(Error):
   """Raised when an option is defined after initialization."""
 
 
+class MissingConfigDefinitionError(Error):
+  """Raised when a config contains an undefined config option."""
+
+
 class ConfigFilter(object):
   """A configuration filter can transform a configuration parameter."""
 
@@ -467,7 +471,7 @@ class StringInterpolator(lexer.Lexer):
 
       # Empty input is also ok.
       lexer.Token(None, "^$", None, None)
-      ]
+  ]
 
   STRING_ESCAPES = {"\\\\": "\\",
                     "\\(": "(",
@@ -816,7 +820,7 @@ class GrrConfigManager(object):
       unicode: type_info.String,
       int: type_info.Integer,
       list: type_info.List,
-      }
+  }
 
   def MergeData(self, merge_data, raw_data=None):
     self.FlushCache()
@@ -833,12 +837,9 @@ class GrrConfigManager(object):
         # Find the descriptor for this field.
         descriptor = self.type_infos.get(k)
         if descriptor is None:
-          descriptor_cls = self.default_descriptors.get(type(v),
-                                                        type_info.String)
-          descriptor = descriptor_cls(name=k)
-          logging.debug("Parameter %s in config file not known, assuming %s",
-                        k, type(descriptor))
-          self.AddOption(descriptor)
+          raise MissingConfigDefinitionError(
+              "Missing config definition for %s. This option is likely "
+              "deprecated or renamed. Check the release notes." % k)
 
         if isinstance(v, basestring):
           v = v.strip()

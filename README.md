@@ -61,7 +61,7 @@ Server Features:
    forensics tasks.
  * OS-level and raw file system access, using the SleuthKit (TSK).
  * Enterprise hunting (searching across a fleet of machines) support.
- * Fully scaleable back-end to handle very large deployments.
+ * Fully scalable back-end to handle very large deployments.
  * Automated scheduling for recurring tasks.
  * Fast and simple collection of hundreds of digital forensic artifacts.
  * Asynchronous design allows future task scheduling for clients, designed to

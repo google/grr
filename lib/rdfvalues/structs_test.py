@@ -43,7 +43,7 @@ class TestStruct(structs.RDFProtoStruct):
 
       type_info.ProtoFloat(name="float", field_number=8,
                            description="A float number", default=1.1),
-      )
+  )
 
 
 # In order to define a recursive structure we must add it manually after the
@@ -52,20 +52,20 @@ TestStruct.AddDescriptor(
     type_info.ProtoNested(
         name="nested", field_number=4,
         nested=TestStruct),
-    )
+)
 
 TestStruct.AddDescriptor(
     type_info.ProtoList(type_info.ProtoNested(
         name="repeat_nested", field_number=5,
         nested=TestStruct)),
-    )
+)
 
 
 class PartialTest1(structs.RDFProtoStruct):
   """This is a protobuf with fewer fields than TestStruct."""
   type_description = type_info.TypeDescriptorSet(
       type_info.ProtoUnsignedInteger(name="int", field_number=2),
-      )
+  )
 
 
 class DynamicTypeTest(structs.RDFProtoStruct):
@@ -87,7 +87,7 @@ class DynamicTypeTest(structs.RDFProtoStruct):
 
       type_info.ProtoEmbedded(name="nested", field_number=3,
                               nested=rdfvalue.User)
-      )
+  )
 
 
 class LateBindingTest(structs.RDFProtoStruct):
@@ -105,7 +105,7 @@ class LateBindingTest(structs.RDFProtoStruct):
           type_info.ProtoRDFValue(name="repeated", field_number=7,
                                   rdf_type="UndefinedRDFValue2",
                                   description="An undefined RDFValue field.")),
-      )
+  )
 
 
 class RDFStructsTest(test_base.RDFValueTestCase):
@@ -116,7 +116,7 @@ class RDFStructsTest(test_base.RDFValueTestCase):
   def GenerateSample(self, number=1):
     return self.rdfvalue_class(int=number, foobar="foo%s" % number,
                                urn="http://www.example.com",
-                               float=2.3+number)
+                               float=2.3 + number)
 
   def testDynamicType(self):
     test_pb = DynamicTypeTest()
@@ -158,8 +158,6 @@ class RDFStructsTest(test_base.RDFValueTestCase):
     self.assertRaises(
         type_info.TypeValueError, TestStruct.AddDescriptor,
         type_info.String(name="int"))
-
-    print TestStruct.EmitProto()
 
   def testRepeatedMember(self):
     tested = TestStruct(int=5)
@@ -262,7 +260,19 @@ class RDFStructsTest(test_base.RDFValueTestCase):
     # Non-valid types are rejected.
     self.assertRaises(type_info.TypeValueError, setattr, tested, "type", "Foo")
 
-    print tested
+    # Strings of digits should be accepted.
+    tested.type = "2"
+    self.assertEqual(tested.type, 2)
+    # unicode strings should be treated the same way.
+    tested.type = u"2"
+    self.assertEqual(tested.type, 2)
+    # Out of range values are permitted and preserved through serialization.
+    tested.type = 4
+    self.assertEqual(tested.type, 4)
+    serialized_type = str(tested.type)
+    tested.type = 1
+    tested.type = serialized_type
+    self.assertEqual(tested.type, 4)
 
   def testCacheInvalidation(self):
     path = rdfvalue.PathSpec(path="/", pathtype=rdfvalue.PathSpec.PathType.OS)
@@ -322,7 +332,7 @@ class RDFStructsTest(test_base.RDFValueTestCase):
       type_description = type_info.TypeDescriptorSet(
           type_info.ProtoString(name="foobar", field_number=1,
                                 description="A string value"),
-          )
+      )
 
     # The field is now resolved.
     self.assertFalse("UndefinedYet" in rdfvalue._LATE_BINDING_STORE)

@@ -173,7 +173,7 @@ class NonceStore(object):
       # This shouldn't really happen.
       return None
 
-    if len(self.nonces) >= self.MAX_NONCES/10:
+    if len(self.nonces) >= self.MAX_NONCES / 10:
       self._InvalidateOldNonces(now)
     self.nonces[nonce] = now
 

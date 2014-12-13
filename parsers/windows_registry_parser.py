@@ -192,13 +192,13 @@ class WinUserSpecialDirs(parsers.RegistryParser):
           "Recent": "recent",
           "Startup": "startup",
           "Personal": "personal",
-          },
+      },
       "Environment": {
           "TEMP": "temp",
-          },
+      },
       "Volatile Environment": {
           "USERDOMAIN": "userdomain",
-          },
+      },
   }
 
   def ParseMultiple(self, stats, knowledge_base):

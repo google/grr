@@ -60,7 +60,7 @@ class TSKFile(vfs.VFSHandler):
       pytsk3.TSK_FS_NAME_TYPE_REG: stat.S_IFREG,
       pytsk3.TSK_FS_NAME_TYPE_LNK: stat.S_IFLNK,
       pytsk3.TSK_FS_NAME_TYPE_SOCK: stat.S_IFSOCK,
-      }
+  }
 
   META_TYPE_LOOKUP = {
       pytsk3.TSK_FS_META_TYPE_BLK: 0,
@@ -70,7 +70,7 @@ class TSKFile(vfs.VFSHandler):
       pytsk3.TSK_FS_META_TYPE_LNK: stat.S_IFLNK,
       pytsk3.TSK_FS_META_TYPE_REG: stat.S_IFREG,
       pytsk3.TSK_FS_META_TYPE_SOCK: stat.S_IFSOCK,
-      }
+  }
 
   # Files we won't return in directories.
   BLACKLIST_FILES = ["$OrphanFiles"  # Special TSK dir that invokes processing.

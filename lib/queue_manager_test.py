@@ -75,7 +75,7 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
 
         # And a status message.
         manager.QueueResponse(session_id, rdfvalue.GrrMessage(
-            request_id=request_id, response_id=response_id+1,
+            request_id=request_id, response_id=response_id + 1,
             type=rdfvalue.GrrMessage.Type.STATUS))
 
     completed_requests = list(manager.FetchCompletedRequests(session_id))
@@ -352,7 +352,7 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
     for i in range(10):
       msg = rdfvalue.GrrMessage(
           session_id="Test%d" % i,
-          priority=i%3,
+          priority=i % 3,
           queue=test_queue)
 
       tasks.append(msg)

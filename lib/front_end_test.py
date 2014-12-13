@@ -100,7 +100,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     # Now add the status message
     status = rdfvalue.GrrStatus(status=rdfvalue.GrrStatus.ReturnedStatus.OK)
     messages.append(rdfvalue.GrrMessage(
-        request_id=1, response_id=len(messages)+1, task_id=15,
+        request_id=1, response_id=len(messages) + 1, task_id=15,
         session_id=messages[0].session_id, payload=status,
         type=rdfvalue.GrrMessage.Type.STATUS))
 
@@ -328,7 +328,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
 
     # The different in eta times reflect the lease that the server took on the
     # client messages.
-    lease_time = (new_tasks[0].eta - tasks[0].eta)/1e6
+    lease_time = (new_tasks[0].eta - tasks[0].eta) / 1e6
 
     # This lease time must be small, as the HandleMessageBundles() call failed,
     # the pending client messages must be put back on the queue.

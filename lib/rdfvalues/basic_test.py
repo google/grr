@@ -75,8 +75,8 @@ class ByteSizeTest(test_base.RDFValueTestCase):
     return rdfvalue.ByteSize("%sKib" % number)
 
   def testParsing(self):
-    for string, expected in [("100gb", 100 * 1000**3),
-                             ("10kib", 10*1024),
+    for string, expected in [("100gb", 100 * 1000 ** 3),
+                             ("10kib", 10 * 1024),
                              ("2.5kb", 2500)]:
       self.assertEqual(expected, rdfvalue.ByteSize(string))
 
@@ -131,7 +131,7 @@ class RDFDatetimeTest(test_base.RDFValueTestCase):
 
   def GenerateSample(self, number=0):
     result = self.rdfvalue_class()
-    result.ParseFromHumanReadable("2011/11/%02d" % (number+1))
+    result.ParseFromHumanReadable("2011/11/%02d" % (number + 1))
     return result
 
   def testTimeZoneConversions(self):

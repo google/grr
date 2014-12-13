@@ -37,8 +37,7 @@ def SearchClients(query_str, token=None, limit=1000):
     results.append((result,
                     str(result.Get(client_schema.HOSTNAME)),
                     str(result.Get(client_schema.OS_VERSION)),
-                    str(result.Get(client_schema.PING)),
-                   ))
+                    str(result.Get(client_schema.PING))))
   return results
 
 
@@ -166,7 +165,7 @@ def ApprovalFind(object_id, token=None):
     print "No token available for access to %s" % object_id
 
 
-def ApprovalCreateRaw(aff4_path, reason="", expire_in=60*60*24*7,
+def ApprovalCreateRaw(aff4_path, reason="", expire_in=60 * 60 * 24 * 7,
                       token=None, approval_type="ClientApproval"):
   """Creates an approval with raw access.
 

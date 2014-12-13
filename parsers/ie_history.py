@@ -105,8 +105,8 @@ class IEParser(object):
       A dict containing a single browser history record.
     """
     record_header = "<4sLQQL"
-    get4 = lambda x: struct.unpack("<L", self.input_dat[x:x+4])[0]
-    url_offset = struct.unpack("B", self.input_dat[offset+52:offset+53])[0]
+    get4 = lambda x: struct.unpack("<L", self.input_dat[x:x + 4])[0]
+    url_offset = struct.unpack("B", self.input_dat[offset + 52:offset + 53])[0]
     if url_offset in [0xFF, 0xFE]:
       return None
     data_offset = get4(offset + 68)
@@ -118,7 +118,7 @@ class IEParser(object):
     unknown_size = url_offset - struct.calcsize(fmt)
     fmt += "{0}s".format(unknown_size)
     fmt += "{0}s".format(record_size - struct.calcsize(fmt))
-    dat = struct.unpack(fmt, self.input_dat[offset:offset+record_size])
+    dat = struct.unpack(fmt, self.input_dat[offset:offset + record_size])
     header, blocks, mtime, ctime, ftime, _, url = dat
     url = url.split(chr(0x00))[0]
     if mtime: mtime = mtime/10 - WIN_UNIX_DIFF_MSECS
@@ -141,7 +141,7 @@ class IEParser(object):
     Yields:
       Dicts containing browser history
     """
-    get4 = lambda x: struct.unpack("<L", self.input_dat[x:x+4])[0]
+    get4 = lambda x: struct.unpack("<L", self.input_dat[x:x + 4])[0]
     filesize = get4(0x1c)
     offset = get4(0x20)
     coffset = offset
@@ -166,7 +166,7 @@ def main(argv):
     for input_file in files_to_process:
       ie = IEParser(open(input_file))
       for dat in ie.Parse():
-        dat["ctime"] = datetime.datetime.utcfromtimestamp(dat["ctime"]/1e6)
+        dat["ctime"] = datetime.datetime.utcfromtimestamp(dat["ctime"] / 1e6)
         print "{ctime} {header} {url}".format(**dat)
 
 if __name__ == "__main__":

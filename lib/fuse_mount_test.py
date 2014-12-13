@@ -159,7 +159,7 @@ class GRRFuseDatastoreOnlyTest(GRRFuseTestBase):
         "st_uid": 0,
         "st_mode": rdfvalue.StatMode(33261),
         "st_atime": rdfvalue.RDFDatetimeSeconds(1299502220)
-        }
+    }
 
     bash_path = os.path.join("/", self.client_name, "fs/os/c/bin/bash")
     self.assertItemsEqual(self.passthrough.getattr(bash_path), bash_stat)
@@ -273,7 +273,7 @@ class GRRFuseTest(GRRFuseTestBase):
     """Make sure the right chunks get updated when we read a sparse file."""
     filename = "bigfile.txt"
     path = os.path.join(self.temp_dir, filename)
-    contents = "bigdata!"* 1024 * 8 * 20
+    contents = "bigdata!" * 1024 * 8 * 20
     start_point = 1024 * 64 * 10
 
     with open(path, "w") as f:

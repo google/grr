@@ -210,10 +210,10 @@ class EncryptionKey(rdfvalue.RDFBytes):
 
   def Generate(self):
     self._value = ""
-    while len(self._value) < self.length/8:
+    while len(self._value) < self.length / 8:
       self._value += struct.pack("=L", utils.PRNG.GetULong())
 
-    self._value = self._value[:self.length/8]
+    self._value = self._value[:self.length / 8]
     return self
 
   def RawBytes(self):

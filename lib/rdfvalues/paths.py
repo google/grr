@@ -114,7 +114,7 @@ class PathSpec(structs.RDFProtoStruct):
       # Append the temp copy to the end.
       self.last.nested_path = nested_proto
     else:
-      previous = self[index-1]
+      previous = self[index - 1]
       rdfpathspec.last.nested_path = previous.nested_path
       previous.nested_path = rdfpathspec
 
@@ -149,7 +149,7 @@ class PathSpec(structs.RDFProtoStruct):
 
     else:
       # Get the raw protobufs for the previous member.
-      previous = self[index-1]
+      previous = self[index - 1]
 
       result = previous.nested_path
 
@@ -191,7 +191,8 @@ class PathSpec(structs.RDFProtoStruct):
   def Basename(self):
     for component in reversed(self):
       basename = posixpath.basename(component.path)
-      if basename: return basename
+      if basename:
+        return basename
 
     return ""
 
@@ -276,7 +277,7 @@ class GlobExpression(rdfvalue.RDFString):
       # Only get the newest attribute that matches the pattern.
       for rdf_value in attr_accessor(match.group(1)):
 
-      # Treat string as special because its an iterable :-(
+        # Treat string as special because its an iterable :-(
         if isinstance(rdf_value, basestring):
           alternatives.append(rdf_value)
         else:

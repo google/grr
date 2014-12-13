@@ -517,7 +517,7 @@ class GRRArtifactMappings(object):
                           "INSTALLED_PACKAGES", "Append"),
       "Volume": ("", "VFSGRRClient", "VOLUMES", "Append"),
       "HardwareInfo": ("", "VFSGRRClient", "HARDWARE_INFO", "Overwrite")
-      }
+  }
 
 
 class ArtifactLoader(registry.InitHook):

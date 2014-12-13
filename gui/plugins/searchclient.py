@@ -707,7 +707,7 @@ class HostTable(renderers.TableRenderer):
 
     try:
       result_urns = search.SearchClients(query_string, start=start,
-                                         max_results=end-start,
+                                         max_results=end - start,
                                          token=request.token)
       result_set = aff4.FACTORY.MultiOpen(result_urns, token=request.token)
 

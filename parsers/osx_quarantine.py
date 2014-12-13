@@ -1,7 +1,4 @@
 #!/usr/bin/env python
-#
-# Copyright 2012 Google Inc. All Rights Reserved.
-
 """Parser for OSX quarantine sqlite files."""
 
 
@@ -32,8 +29,7 @@ class OSXQuarantineEvents(sqlite_file.SQLiteFile):
                   "LSQuarantineOriginTitle,  LSQuarantineOriginURLString,"
                   "LSQuarantineOriginAlias "
                   "from LSQuarantineEvent "
-                  "ORDER BY LSQuarantineTimeStamp"
-                 )
+                  "ORDER BY LSQuarantineTimeStamp")
 
   def Parse(self):
     """Iterator returning dict for each entry in history."""

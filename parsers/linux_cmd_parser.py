@@ -32,7 +32,7 @@ class DpkgCmdParser(parsers.CommandParser):
         break
 
     if column_lengths:
-      remaining_lines = stdout.splitlines()[i+1:]
+      remaining_lines = stdout.splitlines()[i + 1:]
       for i, line in enumerate(remaining_lines):
         cols = line.split(None, len(column_lengths))
         # Installed, Name, Version, Architecture, Description

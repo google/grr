@@ -200,11 +200,11 @@ class CronTable(renderers.TableRenderer):
         self.AddCell(i + start_row, "State",
                      cron_job.Get(cron_job.Schema.DISABLED, False))
 
-        self.AddCell(i+start_row, "Name", cron_job.urn)
-        self.AddCell(i+start_row, "Last Run",
+        self.AddCell(i + start_row, "Name", cron_job.urn)
+        self.AddCell(i + start_row, "Last Run",
                      cron_job.Get(cron_job.Schema.LAST_RUN_TIME))
-        self.AddCell(i+start_row, "Frequency", cron_args.periodicity)
-        self.AddCell(i+start_row, "Description", cron_args.description)
+        self.AddCell(i + start_row, "Frequency", cron_args.periodicity)
+        self.AddCell(i + start_row, "Description", cron_args.description)
 
 
 class CronJobManagementTabs(renderers.TabLayout):
@@ -427,7 +427,7 @@ class ScheduleHuntCronJobDialog(wizards.WizardRenderer):
       CronConfigureSchedule,
       CronReview,
       CronSchedule,
-      ]
+  ]
 
   def Layout(self, request, response):
     response = super(ScheduleHuntCronJobDialog, self).Layout(request, response)

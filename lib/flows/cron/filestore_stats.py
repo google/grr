@@ -40,7 +40,7 @@ class ClassFileSizeCounter(ClassCounter):
 
   def Save(self, fd):
     for classname, count in self.value_dict.items():
-      self.graph.Append(label=classname, y_value=count/float(self.GB))
+      self.graph.Append(label=classname, y_value=count / float(self.GB))
     fd.Set(self.attribute, self.graph)
 
 

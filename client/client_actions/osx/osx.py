@@ -66,7 +66,7 @@ class Sockaddrdl(ctypes.Structure):
       ("sdl_alen", ctypes.c_ubyte),
       ("sdl_slen", ctypes.c_ubyte),
       ("sdl_data", ctypes.c_ubyte * 24),
-      ]
+  ]
 
 # struct sockaddr_in {
 #         __uint8_t       sin_len;
@@ -85,7 +85,7 @@ class Sockaddrin(ctypes.Structure):
       ("sin_port", ctypes.c_ushort),
       ("sin_addr", ctypes.c_ubyte * 4),
       ("sin_zero", ctypes.c_char * 8)
-      ]
+  ]
 
 # struct sockaddr_in6 {
 #         __uint8_t       sin6_len;       /* length of this struct */
@@ -106,7 +106,7 @@ class Sockaddrin6(ctypes.Structure):
       ("sin6_flowinfo", ctypes.c_ubyte * 4),
       ("sin6_addr", ctypes.c_ubyte * 16),
       ("sin6_scope_id", ctypes.c_ubyte * 4)
-      ]
+  ]
 
 
 # struct ifaddrs   *ifa_next;         /* Pointer to next struct */
@@ -131,7 +131,7 @@ setattr(Ifaddrs, "_fields_", [
     ("ifa_broadaddr", ctypes.POINTER(ctypes.c_char)),
     ("ifa_destaddr", ctypes.POINTER(ctypes.c_char)),
     ("ifa_data", ctypes.POINTER(ctypes.c_char))
-    ])
+])
 
 
 class EnumerateInterfaces(actions.ActionPlugin):
@@ -168,7 +168,7 @@ class EnumerateInterfaces(actions.ActionPlugin):
           iflen = data.contents.sdl_nlen
           addlen = data.contents.sdl_alen
           macs[ifname] = "".join(
-              map(chr, data.contents.sdl_data[iflen:iflen+addlen]))
+              map(chr, data.contents.sdl_data[iflen:iflen + addlen]))
 
         if iffamily == 0x1E:     # AF_INET6
           data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin6))

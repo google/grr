@@ -45,7 +45,7 @@ class RunningStats(rdfvalue.RDFProtoStruct):
   def RegisterValue(self, value):
     self.num += 1
     self.sum += value
-    self.sum_sq += value**2
+    self.sum_sq += value ** 2
 
     self.histogram.RegisterValue(value)
 
@@ -61,7 +61,7 @@ class RunningStats(rdfvalue.RDFProtoStruct):
     if self.num == 0:
       return 0
     else:
-      return math.sqrt(self.sum_sq / float(self.num) - self.mean**2)
+      return math.sqrt(self.sum_sq / float(self.num) - self.mean ** 2)
 
 
 class ClientResourcesStats(rdfvalue.RDFProtoStruct):

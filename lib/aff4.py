@@ -197,7 +197,7 @@ class Factory(object):
 
               # This updates the directory index.
               "index:dir/%s" % utils.SmartStr(basename): [EMPTY_DATA],
-              },
+          },
                                  token=token, replace=True, sync=False)
 
           self.intermediate_cache.Put(urn.Path(), 1)
@@ -224,7 +224,7 @@ class Factory(object):
       data_store.DB.MultiSet(dirname, {
           AFF4Object.SchemaCls.LAST: [
               rdfvalue.RDFDatetime().Now().SerializeToDataStore()],
-          }, token=token, replace=True, sync=False)
+      }, token=token, replace=True, sync=False)
 
     except access_control.UnauthorizedAccess:
       pass
@@ -582,8 +582,8 @@ class Factory(object):
     version_list = [(t.age, str(t)) for t in type_iter]
     version_list.append((oldest_age, None))
 
-    for i in range(0, len(version_list)-1):
-      age_range = (version_list[i+1][0], version_list[i][0])
+    for i in range(0, len(version_list) - 1):
+      age_range = (version_list[i + 1][0], version_list[i][0])
       # Create a subset of attributes for use in the new object that represents
       # this version.
       clone_attrs = {}
@@ -942,7 +942,7 @@ class Attribute(object):
     return self.predicate
 
   def __repr__(self):
-    return "<Attribute(%s, %s)>" %(self.name, self.predicate)
+    return "<Attribute(%s, %s)>" % (self.name, self.predicate)
 
   def __hash__(self):
     return hash(self.predicate)
@@ -2326,7 +2326,7 @@ class AFF4Image(AFF4Stream):
 
   class SchemaCls(AFF4Stream.SchemaCls):
     _CHUNKSIZE = Attribute("aff4:chunksize", rdfvalue.RDFInteger,
-                           "Total size of each chunk.", default=64*1024)
+                           "Total size of each chunk.", default=64 * 1024)
 
     # Note that we can't use CONTENT.age in place of this, since some types
     # (specifically, AFF4Image) do not have a CONTENT attribute, since they're

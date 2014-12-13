@@ -1,12 +1,10 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc. All Rights Reserved.
-
 """Flows for collecting Sophos related information.
 
 Collects Logs and Infected files.
 """
 
-## DISABLED for now until it gets converted to artifacts.
+# DISABLED for now until it gets converted to artifacts.
 
 
 

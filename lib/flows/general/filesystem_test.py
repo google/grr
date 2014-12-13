@@ -467,7 +467,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
         ("test_data/a/**.txt", 1, None, False),
         ("test_data/a/**5*.txt", 1, None, False),
         ("test_data/a/**{.json,.txt}", 1, 0, False),
-        ]:
+    ]:
 
       path = os.path.join(os.path.dirname(self.base_path), pattern)
       client_mock = action_mocks.RecordingActionMock("Find", "StatFile")
@@ -647,8 +647,8 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
   def testFetchBufferForSparseImageReadAlignedToChunks(self):
     # From a 2MiB offset, read 5MiB.
-    length = 1024*1024*5
-    offset = 1024*1024*2
+    length = 1024 * 1024 * 5
+    offset = 1024 * 1024 * 2
     fd = self.ReadFromSparseImage(length=length, offset=offset)
     size_after = fd.Get(fd.Schema.SIZE)
 
@@ -678,10 +678,10 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
     # Read a non-whole number of chunks.
     # (This should be rounded up to 5Mib + 1 chunk)
-    length = 1024*1024*5 + 42
+    length = 1024 * 1024 * 5 + 42
     # Make sure we're not reading from exactly the beginning of a chunk.
     # (This should get rounded down to 2Mib)
-    offset = 1024*1024*2 + 1
+    offset = 1024 * 1024 * 2 + 1
 
     fd = self.ReadFromSparseImage(length=length, offset=offset)
     size_after = fd.Get(fd.Schema.SIZE)
@@ -737,7 +737,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
   def testNewSparseImageFileNotBigEnough(self):
 
     # Bigger than the size of the file.
-    fd = self.ReadTestImage(size_threshold=2**32)
+    fd = self.ReadTestImage(size_threshold=2 ** 32)
     # We shouldn't be a sparse image in this case.
     self.assertFalse(isinstance(fd, aff4.AFF4SparseImage))
     self.assertTrue(isinstance(fd, aff4.AFF4Image))

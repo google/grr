@@ -69,4 +69,3 @@ from grr.proto import anomaly_pb2
 class Anomaly(structs.RDFProtoStruct):
   """An RDFValue representation of an artifact."""
   protobuf = anomaly_pb2.Anomaly
-

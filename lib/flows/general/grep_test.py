@@ -51,8 +51,7 @@ class TestSearchFileContentWithFixture(GrepTests):
               "  path: '%s'\n"
               "}\n"
               "resident: '%s'\n" % (filename, data)),
-           "aff4:size": len(data),
-          })))
+           "aff4:size": len(data)})))
 
   def DeleteFile(self, filename):
 

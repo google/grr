@@ -617,6 +617,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
       client_id = self.SetupClients(1)[0]
 
     messages_sent = []
+
     def SendEmailStub(unused_from_user, unused_to_user, unused_subject,
                       message, **unused_kwargs):
       messages_sent.append(message)

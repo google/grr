@@ -1427,7 +1427,7 @@ class ForemanTests(test_lib.AFF4ObjectTest):
                              token=self.token)
     fd.Set(fd.Schema.SYSTEM, rdfvalue.RDFString("Windows 7"))
     # This one was installed one week earlier.
-    fd.Set(fd.Schema.INSTALL_DATE(1336480583077736 - 7*24*3600*1e6))
+    fd.Set(fd.Schema.INSTALL_DATE(1336480583077736 - 7 * 24 * 3600 * 1e6))
     fd.Close()
 
     fd = aff4.FACTORY.Create("C.0000000000000014", "VFSGRRClient",
@@ -1450,7 +1450,7 @@ class ForemanTests(test_lib.AFF4ObjectTest):
       rule.integer_rules.Append(
           attribute_name=fd.Schema.INSTALL_DATE.name,
           operator=rdfvalue.ForemanAttributeInteger.Operator.LESS_THAN,
-          value=int(1336480583077736-3600*1e6))
+          value=int(1336480583077736 - 3600 * 1e6))
 
       old_flow = "Test flow for old clients"
       # Will run Test Flow
@@ -1469,7 +1469,7 @@ class ForemanTests(test_lib.AFF4ObjectTest):
       rule.integer_rules.Append(
           attribute_name=fd.Schema.INSTALL_DATE.name,
           operator=rdfvalue.ForemanAttributeInteger.Operator.GREATER_THAN,
-          value=int(1336480583077736-3600*1e6))
+          value=int(1336480583077736 - 3600 * 1e6))
 
       new_flow = "Test flow for newer clients"
 

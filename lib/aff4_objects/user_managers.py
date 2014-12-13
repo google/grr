@@ -539,6 +539,10 @@ class FullAccessControlManager(BasicAccessControlManager):
     h.Allow("aff4:/stats_store")
     h.Allow("aff4:/stats_store/*")
 
+    # Users are allowed to query the artifact store.
+    h.Allow("aff4:/artifact_store")
+    h.Allow("aff4:/artifact_store/*")
+
     return h
 
   def CheckACL(self, token, target):

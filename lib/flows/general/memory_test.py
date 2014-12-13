@@ -110,7 +110,7 @@ class TestMemoryCollector(MemoryTest):
         action=rdfvalue.MemoryCollectorAction(
             action_type=rdfvalue.MemoryCollectorAction.Action.DOWNLOAD,
             download=download_action
-            ), token=self.token, output=self.output_path)
+        ), token=self.token, output=self.output_path)
 
     for _ in test_lib.TestFlowHelper(
         flow_urn, self.client_mock,
@@ -175,8 +175,7 @@ class TestMemoryCollector(MemoryTest):
 
   def testMemoryImageWithoutLocalCopyDownload(self):
     dump_option = rdfvalue.MemoryCollectorDumpOption(
-        option_type=
-        rdfvalue.MemoryCollectorDumpOption.Option.WITHOUT_LOCAL_COPY)
+        option_type="WITHOUT_LOCAL_COPY")
 
     flow_obj = self.RunWithDownload(dump_option)
     self.assertEqual(flow_obj.state.memory_src_path.path, self.memory_file)
@@ -208,6 +207,7 @@ class TestMemoryCollector(MemoryTest):
         token=self.token, output=self.output_path)
 
     socket_data = []
+
     def ReadFromSocket():
       sock.listen(1)
       client_socket, _ = sock.accept()
@@ -270,8 +270,7 @@ class TestMemoryCollector(MemoryTest):
 
   def testMemoryImageWithoutLocalCopySendToSocket(self):
     dump_option = rdfvalue.MemoryCollectorDumpOption(
-        option_type=
-        rdfvalue.MemoryCollectorDumpOption.Option.WITHOUT_LOCAL_COPY)
+        option_type="WITHOUT_LOCAL_COPY")
     (flow_urn, encrypted, decrypted) = self.RunWithSendToSocket(dump_option)
 
     flow_obj = aff4.FACTORY.Open(flow_urn, token=self.token)
@@ -469,7 +468,7 @@ class TestMemoryAnalysis(MemoryTest, grr_rekall_test.RekallTestSuite):
     args = dict(grep=rdfvalue.BareGrepSpec(
         literal="88",
         mode="ALL_HITS",
-        ),
+    ),
                 output="analysis/grep/testing")
 
     # Run the flow.
@@ -484,6 +483,54 @@ class TestMemoryAnalysis(MemoryTest, grr_rekall_test.RekallTestSuite):
     self.assertEqual(len(fd), 20)
     self.assertEqual(fd[0].offset, 252)
     self.assertEqual(fd[0].data, "\n85\n86\n87\n88\n89\n90\n91\n")
+
+
+class LinuxKcoreMemoryMock(action_mocks.ActionMock):
+  """Mock a linux client with kcore available.
+
+  Validates that the kcore is used.
+  """
+
+  def StatFile(self, list_dir_req):
+    if list_dir_req.pathspec.path == "/proc/kcore":
+      result = rdfvalue.StatEntry(pathspec=list_dir_req.pathspec,
+                                  st_mode=400)
+      status = rdfvalue.GrrStatus(status=rdfvalue.GrrStatus.ReturnedStatus.OK)
+      return [result, status]
+    raise IOError("Not found.")
+
+  def RekallAction(self, rekall_request):
+    if rekall_request.device.path != "/proc/kcore":
+      return [rdfvalue.GrrStatus(
+          status=rdfvalue.GrrStatus.ReturnedStatus.GENERIC_ERROR,
+          error_message="Should use kcore device when present.")]
+    if rekall_request.address_space != "KCoreAddressSpace":
+      return [rdfvalue.GrrStatus(
+          status=rdfvalue.GrrStatus.ReturnedStatus.GENERIC_ERROR,
+          error_message="Should use kcore address space when present.")]
+    response = rdfvalue.RekallResponse(json_messages="{}")
+    return [response, rdfvalue.Iterator(state="FINISHED")]
+
+
+class TestLinuxMemoryAnalysis(MemoryTest, grr_rekall_test.RekallTestSuite):
+  """Tests the memory analysis flow using kcore."""
+
+  def CreateClient(self):
+    client = aff4.FACTORY.Create(self.client_id,
+                                 "VFSGRRClient", token=self.token)
+    client.Set(client.Schema.SYSTEM("Linux"))
+    client.Close()
+
+  def testAnalyzeClientMemmoryKcore(self):
+    """Tests the selection of /proc/kcore."""
+    self.CreateClient()
+
+    # Run the flow in the simulated way, with kcore present.
+    for _ in test_lib.TestFlowHelper("AnalyzeClientMemory",
+                                     LinuxKcoreMemoryMock(),
+                                     token=self.token,
+                                     client_id=self.client_id):
+      pass
 
 
 class ListVADBinariesActionMock(action_mocks.ActionMock):

@@ -451,6 +451,7 @@ class FlowTest(BasicFlowTest):
     self.assertEqual(message.name, "GetClientStats")
 
     messages = []
+
     def StoreMessage(_, msg):
       messages.append(msg)
 

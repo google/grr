@@ -232,7 +232,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         request_data={"artifact_name": self.current_artifact_name,
                       "collector": collector.ToPrimitiveDict()},
         next_state="ProcessCollected"
-        )
+    )
 
   def _CombineRegex(self, regex_list):
     if len(regex_list) == 1:
@@ -291,7 +291,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
           request_data={"artifact_name": self.current_artifact_name,
                         "collector": collector.ToPrimitiveDict()},
           next_state="ProcessCollected"
-          )
+      )
 
   def CollectArtifacts(self, collector):
     self.CallFlow(
@@ -301,7 +301,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         request_data={"artifact_name": self.current_artifact_name,
                       "collector": collector.ToPrimitiveDict()},
         next_state="ProcessCollected"
-        )
+    )
 
   def CollectArtifactFiles(self, collector):
     """Collect files from artifact pathspecs."""
@@ -312,7 +312,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         request_data={"artifact_name": self.current_artifact_name,
                       "collector": collector.ToPrimitiveDict()},
         next_state="ProcessCollectedArtifactFiles"
-        )
+    )
 
   def RunCommand(self, collector):
     """Run a command."""
@@ -333,7 +333,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
           request_data={"artifact_name": self.current_artifact_name,
                         "collector": collector.ToPrimitiveDict()},
           next_state="ProcessCollected"
-          )
+      )
 
   def RekallPlugin(self, collector):
     request = rdfvalue.RekallRequest()
@@ -349,7 +349,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
                       "rekall_plugin": collector.args["plugin"],
                       "collector": collector.ToPrimitiveDict()},
         next_state="ProcessCollected"
-        )
+    )
 
   def _GetSingleExpansion(self, value):
     results = list(artifact_lib.InterpolateKbAttributes(

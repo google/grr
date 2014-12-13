@@ -267,7 +267,7 @@ class ProtoType(type_info.TypeInfoObject):
     return value
 
   def _FormatDescriptionComment(self):
-    result = "".join(["\n  // %s\n"%x for x in self.description.splitlines()])
+    result = "".join(["\n  // %s\n" % x for x in self.description.splitlines()])
     return result
 
   def _FormatDefault(self):
@@ -359,7 +359,7 @@ class ProtoString(ProtoType):
 
   def Read(self, buff, index):
     length, index = VarintReader(buff, index)
-    return buff[index:index+length], index+length
+    return buff[index:index + length], index + length
 
   def ConvertFromWireFormat(self, value, container=None):
     """Internally strings are utf8 encoded."""
@@ -417,7 +417,7 @@ class ProtoBinary(ProtoType):
 
   def Read(self, buff, index):
     length, index = VarintReader(buff, index)
-    return buff[index:index+length], index+length
+    return buff[index:index + length], index + length
 
   def Definition(self):
     """Return a string with the definition of this field."""
@@ -497,7 +497,7 @@ class ProtoFixed32(ProtoUnsignedInteger):
     stream.write(value)
 
   def Read(self, buff, index):
-    return buff[index:index+self._size], index+self._size
+    return buff[index:index + self._size], index + self._size
 
   def ConvertToWireFormat(self, value):
     return struct.pack("<L", long(value))
@@ -640,6 +640,8 @@ class ProtoEnum(ProtoSignedInteger):
     checked_value = value
     if isinstance(value, basestring):
       checked_value = self.enum.get(value)
+      if checked_value is None and value.isdigit():
+        checked_value = int(value)
       if checked_value is None:
         raise type_info.TypeValueError(
             "Value %s is not a valid enum value for field %s" % (
@@ -959,7 +961,7 @@ class ProtoEmbedded(ProtoNested):
 
   def Read(self, buff, index):
     length, index = VarintReader(buff, index)
-    return buff[index:index+length], index+length
+    return buff[index:index + length], index + length
 
 
 class ProtoDynamicEmbedded(ProtoType):
@@ -1000,7 +1002,7 @@ class ProtoDynamicEmbedded(ProtoType):
 
   def Read(self, buff, index):
     length, index = VarintReader(buff, index)
-    return buff[index:index+length], index+length
+    return buff[index:index + length], index + length
 
   def Validate(self, value, container=None):
     required_type = self._type(container)
@@ -2050,7 +2052,7 @@ class RDFProtoStruct(RDFStruct):
       "float": descriptor_pb2.FieldDescriptorProto.TYPE_FLOAT,
       "double": descriptor_pb2.FieldDescriptorProto.TYPE_DOUBLE,
       "bool": descriptor_pb2.FieldDescriptorProto.TYPE_BOOL
-      }
+  }
 
   @classmethod
   def EmitProtoDescriptor(cls, package_name):

@@ -95,7 +95,7 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
 
     test_list = []
     for i in range(self.NUMBER_OF_TASKS):
-      self.test_pool.AddTask(Insert, (test_list, i,))
+      self.test_pool.AddTask(Insert, (test_list, i))
 
     self.test_pool.Join()
     test_list.sort()
@@ -113,6 +113,7 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
         some_obj.process()
 
     self.exception_args = []
+
     def MockException(*args):
       self.exception_args = args
 

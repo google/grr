@@ -254,7 +254,7 @@ class RDFProtoStructApiObjectRenderer(ApiObjectRenderer):
             descriptors[descriptor.name] = {
                 "friendly_name": descriptor.friendly_name,
                 "description": descriptor.description
-                }
+            }
 
           self.descriptors_cache[value.__class__.__name__] = (descriptors,
                                                               order)
@@ -310,7 +310,7 @@ class AFF4ObjectApiObjectRenderer(ApiObjectRenderer):
       for attribute, _ in aff4_object.synced_attributes.items():
         descriptors[attribute.predicate] = {
             "description": attribute.description
-            }
+        }
 
       result["descriptors"] = descriptors
 

@@ -290,7 +290,7 @@ def RepackAllBinaries(upload=False, debug_build=False, token=None):
       if upload:
         dest = config_lib.CONFIG.Get("Executables.installer",
                                      context=context)
-        UploadSignedConfigBlob(open(output_path).read(100*1024*1024),
+        UploadSignedConfigBlob(open(output_path).read(100 * 1024 * 1024),
                                dest, client_context=context, token=token)
     else:
       print "Failed to repack %s." % template_path

@@ -596,7 +596,7 @@ class AFF4Index(aff4.AFF4Object):
     self.to_delete = self.to_delete.difference(self.to_set)
 
     # Convert sets into dicts that MultiSet handles.
-    to_set = dict(zip(self.to_set, self.PLACEHOLDER_VALUE*len(self.to_set)))
+    to_set = dict(zip(self.to_set, self.PLACEHOLDER_VALUE * len(self.to_set)))
 
     data_store.DB.MultiSet(self.urn, to_set, to_delete=list(self.to_delete),
                            token=self.token, replace=True, sync=sync)
@@ -796,7 +796,7 @@ class AFF4LabelsIndex(aff4.AFF4Volume):
     return self._used_labels_index
 
   def IndexNameForLabel(self, label_name, label_owner):
-    return label_owner +  self.SEPARATOR + label_name
+    return label_owner + self.SEPARATOR + label_name
 
   def LabelForIndexName(self, index_name):
     label_owner, label_name = utils.SmartStr(index_name).split(

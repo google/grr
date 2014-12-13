@@ -29,8 +29,8 @@ class ApiHuntsListRendererTest(test_lib.GRRBaseTest):
             pathspec=rdfvalue.PathSpec(
                 path="/tmp/evil.txt",
                 pathtype=rdfvalue.PathSpec.PathType.OS,
-                )
-            ),
+            )
+        ),
         regex_rules=[], output_plugins=[], client_rate=0, token=self.token)
 
   def setUp(self):

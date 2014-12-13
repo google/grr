@@ -331,12 +331,9 @@ class DataStoreService(object):
   def GetComponentInformation(self):
     """Return number of components and average size per component."""
     loc = self.GetLocation()
-    if not os.path.exists(loc):
-      return 0, 0
-    if not os.path.isdir(loc):
+    if not os.path.exists(loc) or not os.path.isdir(loc):
       return 0, 0
     size, files = common.DatabaseDirectorySize(loc, self.db.FileExtension())
     if files:
-      return files, int(float(size)/float(files))
-    else:
-      return 0, 0
+      return files, int(float(size) / float(files))
+    return 0, 0

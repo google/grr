@@ -261,7 +261,6 @@ def StateHandler(next_state="End", auth_required=True):
 
     @functools.wraps(f)
     def Decorated(self, responses=None, request=None, direct_response=None):
-
       """A decorator that defines allowed follow up states for a method.
 
       Args:
@@ -399,7 +398,7 @@ class FlowBehaviour(Behaviour):
       "OSX": "This flow works on OSX operating systems.",
       "Windows": "This flow works on Windows operating systems.",
       "Linux": "This flow works on Linux operating systems.",
-      }
+  }
 
 
 class GRRFlow(aff4.AFF4Volume):
@@ -541,7 +540,7 @@ class GRRFlow(aff4.AFF4Volume):
   def HeartBeat(self):
     if self.locked:
       lease_time = config_lib.CONFIG["Worker.flow_lease_time"]
-      if self.CheckLease() < lease_time/2:
+      if self.CheckLease() < lease_time / 2:
         logging.info("%s: Extending Lease", self.session_id)
         self.UpdateLease(lease_time)
 
@@ -969,7 +968,7 @@ class GRRFlow(aff4.AFF4Volume):
               "description": type_descriptor.description,
               "default": type_descriptor.default,
               "type": "",
-              }
+          }
           if type_descriptor.type:
             args[type_descriptor.name]["type"] = type_descriptor.type.__name__
     return args
