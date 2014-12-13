@@ -97,45 +97,45 @@ class WinSystemActivityInvestigation(flow.GRRFlow):
           name="list_processes",
           description="Call the ListProcesses flow.",
           default=True,
-          ),
+      ),
       type_info.Bool(
           name="list_network_connections",
           description="Call the Netstat flow.",
           default=True,
-          ),
+      ),
       type_info.MultiSelectList(
           name="artifact_list",
           description="A list of Artifact names.",
           default=["ApplicationEventLog", "SystemEventLog", "SecurityEventLog",
                    "TerminalServicesEventLogEvtx", "ApplicationEventLogEvtx",
                    "SystemEventLogEvtx", "SecurityEventLogEvtx"],
-          ),
+      ),
       type_info.Bool(
           name="collect_av_data",
           description="Call the Antivirus flows to collect quarantine/logs.",
           default=True,
-          ),
+      ),
       type_info.Bool(
           name="collect_prefetch",
           description="List the prefetch directory.",
           default=True,
-          ),
+      ),
       type_info.Bool(
           name="list_common_dirs",
           description="List common system directories.",
           default=True,
-          ),
+      ),
       type_info.Bool(
           name="use_tsk",
           description="Use raw filesystem access where possible.",
           default=True
-          ),
+      ),
       type_info.Bool(
           name="timeline_collected_data",
           description="Once complete create a timeline for the host.",
           default=True
-          ),
-      )
+      ),
+  )
 
   common_dirs = ["c:\\",
                  "c:\\users",
@@ -209,28 +209,28 @@ class LinSystemActivityInvestigation(flow.GRRFlow):
           name="list_processes",
           description="Call the ListProcesses flow.",
           default=True,
-          ),
+      ),
       type_info.Bool(
           name="list_network_connections",
           description="Call the Netstat flow.",
           default=True,
-          ),
+      ),
       type_info.MultiSelectList(
           name="artifact_list",
           description="A list of Artifact names.",
           default=["AuthLog", "LinuxWtmp"],
-          ),
+      ),
       type_info.Bool(
           name="use_tsk",
           description="Use raw filesystem access where possible.",
           default=True
-          ),
+      ),
       type_info.Bool(
           name="timeline_collected_data",
           description="Once complete create a timeline for the host.",
           default=True
-          ),
-      )
+      ),
+  )
 
   @flow.StateHandler(next_state="FinishFlow")
   def Start(self):
@@ -271,8 +271,8 @@ class LinSystemActivityInvestigation(flow.GRRFlow):
         self.CallFlow("MACTimes", path="/", next_state="End")
 
 
-### Placeholder classes below to attempt to define how we break down our
-### automation tasks and maintain a list of things to be implemented.
+# Placeholder classes below to attempt to define how we break down our
+# automation tasks and maintain a list of things to be implemented.
 
 
 class WindowsExecutionActivity(flow.GRRFlow):

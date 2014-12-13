@@ -178,7 +178,7 @@ class EmailPlugin(HuntOutputPlugin):
             response=response_htm,
             additional_message=additional_message,
             signature=config_lib.CONFIG["Email.signature"]
-            ),
+        ),
         is_html=True)
 
   @utils.Synchronized

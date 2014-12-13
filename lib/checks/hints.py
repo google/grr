@@ -41,4 +41,3 @@ class Hinter(object):
     else:
       result = utils.SmartStr(rdf_data)
     return result
-

@@ -74,7 +74,6 @@ def UpdateVFSFileAndWait(client_id, vfs_file_urn, token=None,
 
 def WaitForFlow(flow_urn, token=None, timeout=DEFAULT_TIMEOUT, max_sleep_time=1,
                 min_sleep_time=0.2, dampening_multiplier=0.9):
-
   """Waits for a flow to finish, polling while we wait.
 
   Args:
@@ -159,7 +158,7 @@ def InterpolatePath(path, client, users=None, path_args=None, depth=0):
       # HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\
       # Value: SystemRoot
       "systemroot": "c:\\Windows"
-      }
+  }
 
   # Override any system formatters with path_args.
   if path_args:
@@ -190,5 +189,5 @@ def InterpolatePath(path, client, users=None, path_args=None, depth=0):
       return ""
     if "{" in path and depth < 10:
       path = InterpolatePath(path, client=client, users=users,
-                             path_args=path_args, depth=depth+1)
+                             path_args=path_args, depth=depth + 1)
     return path

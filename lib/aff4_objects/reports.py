@@ -49,7 +49,7 @@ class ClientReport(Report):
     self.fields = [f.name for f in self.REPORT_ATTRS]
     self.fields += [f[1].name for f in self.EXTENDED_REPORT_ATTRS]
     self.thread_num = thread_num
-    self.broken_clients = []     #  Clients that are broken or fail to run.
+    self.broken_clients = []  # Clients that are broken or fail to run.
 
   def AsDict(self):
     """Give the report as a list of dicts."""
@@ -122,7 +122,7 @@ class ClientReport(Report):
                            is_html=True)
     logging.info("Report %s mailed to %s", self.REPORT_NAME, recipient)
 
-  def Run(self, max_age=60*60*24*7):
+  def Run(self, max_age=60 * 60 * 24 * 7):
     """Run the report.
 
     Args:
@@ -158,7 +158,7 @@ class ClientListReport(ClientReport):
 
   REPORT_NAME = "GRR Client List Report"
 
-  def Run(self, max_age=60*60*24*7):
+  def Run(self, max_age=60 * 60 * 24 * 7):
     """Collect all the data for the report."""
     start_time = time.time()
     self.results = []
@@ -178,7 +178,7 @@ class VersionBreakdownReport(ClientReport):
   ]
   REPORT_NAME = "GRR Client Version Breakdown Report"
 
-  def Run(self, max_age=60*60*24*7):
+  def Run(self, max_age=60 * 60 * 24 * 7):
     """Run the report."""
     counts = {}
     self.fields.append("count")

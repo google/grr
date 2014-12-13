@@ -47,5 +47,3 @@ class WindowsPersistenceMechanismsParserTest(test_lib.FlowTestsBaseclass):
                                   rdfvalue.PathSpec.PathType.OS))
       self.assertEqual(results[0].pathspec.path, expected[index])
       self.assertEqual(len(results), 1)
-
-

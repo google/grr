@@ -26,7 +26,7 @@ class CollectionExportPlugin(plugin.HuntOutputExportPlugin):
     parser.add_argument("--batch", type=int, default=1000,
                         help="Size of batches processed by each thread.")
 
-    parser.add_argument("--checkpoint_every", type=int, default=1000*1000,
+    parser.add_argument("--checkpoint_every", type=int, default=1000 * 1000,
                         help="Flush the results every time after processing "
                         "this number of values.")
 

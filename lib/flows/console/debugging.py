@@ -68,7 +68,8 @@ class ClientAction(flow.GRRFlow):
         pickle.dump(responses, fd)
         self.Log("Wrote %d responses to %s", len(responses), fname)
       finally:
-        if fd: fd.close()
+        if fd:
+          fd.close()
 
 
 class ConsoleDebugFlowArgs(rdfvalue.RDFProtoStruct):
@@ -122,7 +123,8 @@ class ConsoleDebugFlow(flow.GRRFlow):
         pickle.dump(responses, fd)
         self.Log("Wrote %d responses to %s", len(responses), fname)
       finally:
-        if fd: fd.close()
+        if fd:
+          fd.close()
 
 
 def StartFlowAndWorker(client_id, flow_name, **kwargs):

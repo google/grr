@@ -15,10 +15,10 @@ class TestGrepMemory(base.AutomatedTest):
   test_output_path = "analysis/grep/testing"
   args = {"also_download": False,
           "grep": rdfvalue.BareGrepSpec(
-              literal="grr", length=4*1024*1024*1024,
+              literal="grr", length=4 * 1024 * 1024 * 1024,
               mode=rdfvalue.GrepSpec.Mode.FIRST_HIT,
               bytes_before=10, bytes_after=10),
-          "output": test_output_path,}
+          "output": test_output_path}
 
   def CheckFlow(self):
     collection = aff4.FACTORY.Open(self.client_id.Add(self.test_output_path),
@@ -28,7 +28,7 @@ class TestGrepMemory(base.AutomatedTest):
     reference = collection[0]
 
     self.assertEqual(reference.length, 23)
-    self.assertEqual(reference.data[10:10+3], "grr")
+    self.assertEqual(reference.data[10:10 + 3], "grr")
 
 
 class AbstractTestAnalyzeClientMemoryWindows(base.AutomatedTest):
@@ -103,8 +103,8 @@ class TestAnalyzeClientMemoryWindowsDLLList(
                                args=dict(
                                    proc_regex=self.binaryname,
                                    method="PsActiveProcessHead"
-                                   ))
-        ]
+                               ))
+    ]
 
   def CheckFlow(self):
     super(TestAnalyzeClientMemoryWindowsDLLList, self).CheckFlow()

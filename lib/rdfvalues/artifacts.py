@@ -84,6 +84,7 @@ class Artifact(structs.RDFProtoStruct):
     # Now tidy up the json for better display. Unfortunately json gives us very
     # little control over output format, so we manually tidy it up given that
     # we have a defined format.
+
     def CompressBraces(name, in_str):
       return re.sub(r"%s\": \[\n\s+(.*)\n\s+" % name,
                     "%s\": [ \\g<1> " % name, in_str)
@@ -97,6 +98,7 @@ class Artifact(structs.RDFProtoStruct):
   def ToYaml(self):
     artifact_dict = self.ToPrimitiveDict()
     # Remove redundant empty defaults.
+
     def ReduceDict(in_dict):
       return dict((k, v) for (k, v) in in_dict.items() if v)
     artifact_dict = ReduceDict(artifact_dict)
@@ -136,7 +138,7 @@ class Artifact(structs.RDFProtoStruct):
     if recursive:
       for dep in deps:
         artifact_obj = artifact_lib.ArtifactRegistry.artifacts[dep]
-        new_dep = artifact_obj.GetArtifactDependencies(True, depth=depth+1)
+        new_dep = artifact_obj.GetArtifactDependencies(True, depth=depth + 1)
         if new_dep:
           deps_set.update(new_dep)
 
@@ -282,4 +284,3 @@ class Collector(structs.RDFProtoStruct):
 
 class ArtifactName(rdfvalue.RDFString):
   type = "ArtifactName"
-

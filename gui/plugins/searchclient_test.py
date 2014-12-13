@@ -277,7 +277,7 @@ class TestContentView(SearchClientTestBase):
                 header="Oh no, we're doomed!",
                 content="Houston, Houston, we have a prob...",
                 link="http://www.google.com"
-                ))
+            ))
 
     self.Open("/")
     self.WaitUntil(self.IsTextPresent, "Houston, Houston, we have a prob...")
@@ -293,13 +293,13 @@ class TestContentView(SearchClientTestBase):
                 header="Oh no, we're doomed!",
                 content="Houston, Houston, we have a prob...",
                 link="http://www.google.com"
-                ))
+            ))
         storage.AddNotification(
             rdfvalue.GlobalNotification(
                 type=rdfvalue.GlobalNotification.Type.INFO,
                 header="Nothing to worry about!",
                 link="http://www.google.com"
-                ))
+            ))
 
     self.Open("/")
     self.WaitUntil(self.IsTextPresent, "Houston, Houston, we have a prob...")
@@ -316,7 +316,7 @@ class TestContentView(SearchClientTestBase):
                 header="Oh no, we're doomed!",
                 content="Houston, Houston, we have a prob...",
                 link="http://www.google.com"
-                ))
+            ))
 
     self.Open("/")
     self.WaitUntil(self.IsTextPresent, "Houston, Houston, we have a prob...")
@@ -330,7 +330,7 @@ class TestContentView(SearchClientTestBase):
                 type=rdfvalue.GlobalNotification.Type.ERROR,
                 content="Too late to do anything!",
                 link="http://www.google.com"
-                ))
+            ))
 
     self.Open("/")
     self.WaitUntil(self.IsTextPresent, "Too late to do anything!")
@@ -347,7 +347,7 @@ class TestContentView(SearchClientTestBase):
                 header="Oh no, we're doomed!",
                 content="Houston, Houston, we have a prob...",
                 link="http://www.google.com"
-                ))
+            ))
 
     self.Open("/")
     self.WaitUntil(self.IsTextPresent, "Houston, Houston, we have a prob...")
@@ -370,13 +370,13 @@ class TestContentView(SearchClientTestBase):
                 header="Oh no, we're doomed!",
                 content="Houston, Houston, we have a prob...",
                 link="http://www.google.com"
-                ))
+            ))
         storage.AddNotification(
             rdfvalue.GlobalNotification(
                 type=rdfvalue.GlobalNotification.Type.INFO,
                 header="Nothing to worry about!",
                 link="http://www.google.com"
-                ))
+            ))
 
     self.Open("/")
     self.WaitUntil(self.IsTextPresent, "Houston, Houston, we have a prob...")

@@ -2,7 +2,7 @@
 """Flow to recover history files."""
 
 
-## DISABLED for now until it gets converted to artifacts.
+# DISABLED for now until it gets converted to artifacts.
 
 import datetime
 import os
@@ -93,7 +93,7 @@ class ChromeHistory(flow.GRRFlow):
         for epoch64, dtype, url, dat1, dat2, dat3 in hist.Parse():
           count += 1
           str_entry = "%s %s %s %s %s %s" % (
-              datetime.datetime.utcfromtimestamp(epoch64/1e6), url,
+              datetime.datetime.utcfromtimestamp(epoch64 / 1e6), url,
               dat1, dat2, dat3, dtype)
 
           if self.runner.output is not None:
@@ -211,7 +211,7 @@ class FirefoxHistory(flow.GRRFlow):
         for epoch64, dtype, url, dat1, in hist.Parse():
           count += 1
           str_entry = "%s %s %s %s" % (
-              datetime.datetime.utcfromtimestamp(epoch64/1e6), url,
+              datetime.datetime.utcfromtimestamp(epoch64 / 1e6), url,
               dat1, dtype)
           if self.runner.output is not None:
             self.runner.output.write(utils.SmartStr(str_entry) + "\n")
@@ -267,8 +267,7 @@ BROWSER_PATHS = {
         "Firefox": ["{local_app_data}\\Mozilla\\Firefox\\Profiles\\"],
         "IE": ["{cache}\\",
                "{cache}\\Low\\",
-               "{app_data}\\Microsoft\\Windows\\",
-              ]
+               "{app_data}\\Microsoft\\Windows\\"]
     },
     "Darwin": {
         "Firefox": ["{homedir}/Library/Application Support/Firefox/Profiles/"],

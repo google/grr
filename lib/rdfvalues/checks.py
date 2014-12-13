@@ -374,4 +374,3 @@ class Hint(structs.RDFProtoStruct):
     # TODO(user): Default format string.
     if self.problem:
       pass
-

@@ -15,6 +15,7 @@ flags.PARSER.add_argument("filename", type=str,
 
 
 class Option(object):
+
   def __init__(self):
     self.comments = []
     self.name = ""
@@ -101,7 +102,7 @@ class YamlConfigLexer(lexer.Lexer):
                   "OPTION"),
 
       lexer.Token(None, "---\n", "StartDocument", None),
-      ]
+  ]
 
   def __init__(self, data):
     super(YamlConfigLexer, self).__init__(data)

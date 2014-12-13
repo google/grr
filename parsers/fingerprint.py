@@ -346,8 +346,8 @@ class Fingerprinter(object):
       if dw_length < 8:
         # If the entire blob is smaller than its header, bail out.
         return signed_data
-      b_cert = buf[8 : dw_length]
-      buf = buf[(dw_length + 7) & 0x7ffffff8 :]
+      b_cert = buf[8: dw_length]
+      buf = buf[(dw_length + 7) & 0x7ffffff8:]
       signed_data.append((w_revision, w_cert_type, b_cert))
     return signed_data
 

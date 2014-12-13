@@ -39,7 +39,7 @@ class StructGrrMessage(rdfvalue.RDFProtoStruct):
           name="source", field_number=6,
           description=("Client name where the message came from (This is "
                        "copied from the MessageList)")),
-      )
+  )
 
 
 class FastGrrMessageList(rdfvalue.RDFProtoStruct):
@@ -49,7 +49,7 @@ class FastGrrMessageList(rdfvalue.RDFProtoStruct):
       type_info.ProtoList(type_info.ProtoEmbedded(
           name="job", field_number=1,
           nested=StructGrrMessage))
-      )
+  )
 
 
 class RDFValueBenchmark(test_lib.AverageMicroBenchmarks):

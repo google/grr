@@ -81,8 +81,8 @@ class Manager(object):
       ncomp = serv.state.num_components
       avgcomp = serv.state.avg_component
       print "Server %d %s:%d (Size: %dKB, Load: %d)" % (i, addr, port,
-                                                        size/1024, load)
-      print "\t\t%d components %dKB average size" % (ncomp, avgcomp/1024)
+                                                        size / 1024, load)
+      print "\t\t%d components %dKB average size" % (ncomp, avgcomp / 1024)
 
   def _ShowRanges(self):
     if not self.mapping:
@@ -177,7 +177,7 @@ class Manager(object):
     print
     print "The following servers will need to move data:"
     for i, move in enumerate(list(rebalance.moving)):
-      print "Server %d moves %dKB" % (i, move/1024)
+      print "Server %d moves %dKB" % (i, move / 1024)
     answer = raw_input("Proceed with re-sharding? (y/n) ")
     if answer != "y":
       return
@@ -401,7 +401,7 @@ class Manager(object):
     servers = list(self.mapping.servers)
     num_servers = len(servers)
     # Simply set everyone else with 1/(N-1).
-    target = 1.0 / float(num_servers-1)
+    target = 1.0 / float(num_servers - 1)
     newperc = [target] * num_servers
     # Our server gets 0.
     newperc[index] = 0

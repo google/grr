@@ -155,7 +155,7 @@ Event of type {{this.type|escape}}
 
       "file.ctime": renderers.Template(
           "<div><pre class='inline'>--C</pre> File metadata changed.</div>"),
-      }
+  }
 
   def Layout(self, request, response):
     self.type = self.proxy.type

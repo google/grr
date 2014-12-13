@@ -30,7 +30,7 @@ def CreateStartInterval(index, total):
 def _FindServerInMapping(mapping, hashed):
   """Find the corresponding data server id given an hashed subject."""
   server_list = list(mapping.servers)
-  val = _BisectHashList(server_list, 0, len(server_list)-1, hashed).index
+  val = _BisectHashList(server_list, 0, len(server_list) - 1, hashed).index
   return val
 
 
@@ -56,4 +56,3 @@ def MapKeyToServer(mapping, key):
   """Takes some key and returns the ID of the server."""
   hsh = int(hashlib.sha1(key).hexdigest()[:16], 16)
   return _FindServerInMapping(mapping, hsh)
-

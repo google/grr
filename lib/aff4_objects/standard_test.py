@@ -52,7 +52,7 @@ class BlobImageTest(test_lib.AFF4ObjectTest):
     self.assertEqual(int(dest_fd.Get(dest_fd.Schema.SIZE)),
                      2 * len(src_content))
     dest_fd.Seek(0)
-    self.assertEqual(dest_fd.Read(5000), src_content+src_content)
+    self.assertEqual(dest_fd.Read(5000), src_content + src_content)
 
 
 class IndexTest(test_lib.AFF4ObjectTest):
@@ -488,7 +488,7 @@ class AFF4SparseImageTest(test_lib.AFF4ObjectTest):
     num_chunks = 5
     for chunk in xrange(start_chunk, start_chunk + num_chunks):
       # Make sure the blobs have unique content.
-      blob_contents = str(chunk % 10)*64*1024
+      blob_contents = str(chunk % 10) * 64 * 1024
       blobs.append(blob_contents)
       blob_hash = self.AddBlobToBlobStore(blob_contents)
       fd.AddBlob(blob_hash=blob_hash, length=len(blob_contents),
@@ -527,7 +527,7 @@ class AFF4SparseImageTest(test_lib.AFF4ObjectTest):
     num_chunks = 5
     for chunk in xrange(start_chunk, start_chunk + num_chunks):
       # Make sure the blobs have unique content.
-      blob_contents = str(chunk % 10)*64*1024
+      blob_contents = str(chunk % 10) * 64 * 1024
       blob_hash = self.AddBlobToBlobStore(blob_contents)
       fd.AddBlob(blob_hash=blob_hash, length=len(blob_contents),
                  chunk_number=chunk)

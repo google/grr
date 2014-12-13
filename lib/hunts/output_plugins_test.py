@@ -141,7 +141,7 @@ class CSVOutputPluginTest(OutputpluginsTest):
         regex_rules=[
             rdfvalue.ForemanAttributeRegex(attribute_name="GRR client",
                                            attribute_regex="GRR"),
-            ],
+        ],
         client_rate=0, token=self.token) as hunt:
 
       hunt_urn = hunt.urn

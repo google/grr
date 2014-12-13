@@ -549,15 +549,15 @@ class ExportTest(test_lib.GRRBaseTest):
                 rdfvalue.NetworkAddress(
                     address_type=rdfvalue.NetworkAddress.Family.INET,
                     packed_bytes=socket.inet_aton("10.0.0.1"),
-                    ),
+                ),
                 rdfvalue.NetworkAddress(
                     address_type=rdfvalue.NetworkAddress.Family.INET6,
                     packed_bytes=socket.inet_pton(socket.AF_INET6,
                                                   "2001:720:1500:1::a100"),
-                    )
-                ]
-            )]
-        )
+                )
+            ]
+        )]
+    )
 
     converter = export.ClientSummaryToExportedNetworkInterfaceConverter()
     results = list(converter.Convert(rdfvalue.ExportedMetadata(),
@@ -581,14 +581,14 @@ class ExportTest(test_lib.GRRBaseTest):
             rdfvalue.NetworkAddress(
                 address_type=rdfvalue.NetworkAddress.Family.INET,
                 packed_bytes=socket.inet_aton("10.0.0.1"),
-                ),
+            ),
             rdfvalue.NetworkAddress(
                 address_type=rdfvalue.NetworkAddress.Family.INET6,
                 packed_bytes=socket.inet_pton(socket.AF_INET6,
                                               "2001:720:1500:1::a100"),
-                )
-            ]
-        )
+            )
+        ]
+    )
 
     converter = export.InterfaceToExportedNetworkInterfaceConverter()
     results = list(converter.Convert(rdfvalue.ExportedMetadata(),
@@ -1161,7 +1161,7 @@ class RekallResponseConverterTest(test_lib.GRRBaseTest):
                              "Cybox": {"PID": 4, "Name": "System"}},
                "int": 42,
                "str": "some string"}]
-        ]
+    ]
 
     rekall_response = rdfvalue.RekallResponse(
         plugin="object_renderer_sample", json_messages=json.dumps(messages),

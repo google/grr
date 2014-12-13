@@ -219,7 +219,7 @@ def ScheduleSystemCronFlows(token=None):
 class CronWorker(object):
   """CronWorker runs a thread that periodically executes cron jobs."""
 
-  def __init__(self, thread_name="grr_cron", sleep=60*5):
+  def __init__(self, thread_name="grr_cron", sleep=60 * 5):
     self.thread_name = thread_name
     self.sleep = sleep
 

@@ -154,7 +154,7 @@ class OSBreakDown(AbstractClientStatsCronFlow):
     self.counters = [
         _ActiveCounter(self.stats.Schema.OS_HISTOGRAM),
         _ActiveCounter(self.stats.Schema.RELEASE_HISTOGRAM),
-        ]
+    ]
 
   def FinishProcessing(self):
     # Write all the counter attributes.
@@ -183,7 +183,7 @@ class LastAccessStats(AbstractClientStatsCronFlow):
   _bins = [1, 2, 3, 7, 14, 30, 60]
 
   def BeginProcessing(self):
-    self._bins = [long(x*1e6*24*60*60) for x in self._bins]
+    self._bins = [long(x * 1e6 * 24 * 60 * 60) for x in self._bins]
 
     # We will count them in this bin
     self._value = [0] * len(self._bins)

@@ -71,4 +71,3 @@ class WindowsPersistenceMechanismsParser(parsers.ArtifactFilesParser):
     for pathspec in pathspecs:
       yield rdfvalue.PersistenceFile(pathspec=pathspec,
                                      source_urn=source_urn)
-

@@ -27,5 +27,3 @@ class TestNetstat(base.AutomatedTest):
     # This is a known issue on CentOS so we just warn about it.
     if len(num_states) <= 1:
       logging.warning("Only received one distinct connection state!")
-
-

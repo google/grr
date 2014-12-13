@@ -116,7 +116,7 @@ class LinuxWtmpParser(parsers.FileParser):
 
     for user, last_login in users.iteritems():
       yield rdfvalue.KnowledgeBaseUser(username=utils.SmartUnicode(user),
-                                       last_logon=last_login*1000000)
+                                       last_logon=last_login * 1000000)
 
 
 class NetgroupParser(parsers.FileParser):
@@ -200,4 +200,3 @@ class NetgroupBufferParser(parsers.GrepParser):
     _ = knowledge_base
     return NetgroupParser.ParseLines(
         [x.data.strip() for x in filefinderresult.matches])
-

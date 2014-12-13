@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc. All Rights Reserved.
 """Windows specific utils."""
 
 
@@ -158,7 +157,7 @@ def WinFindProxies():
           # Per-protocol settings
           for p in proxy_server.split(";"):
             protocol, address = p.split("=", 1)
-                  # See if address has a type:// prefix
+            # See if address has a type:// prefix
 
             if not re.match("^([^/:]+)://", address):
               address = "%s://%s" % (protocol, address)

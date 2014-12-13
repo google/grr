@@ -143,7 +143,7 @@ class GRRRekallProfileServer(CachingProfileServer,
       profile_urn = cache_urn.Add(profile)
       if (profile_urn not in profile_infos or
           profile_infos[profile_urn] != u"AFF4RekallProfile"):
-        logging.info("Getting missing profile: %s" % profile)
+        logging.info("Getting missing profile: %s", profile)
         try:
           self.GetProfileByName(profile, ignore_cache=True)
         except urllib2.URLError as e:

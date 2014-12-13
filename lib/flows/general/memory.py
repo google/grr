@@ -108,11 +108,12 @@ class MemoryCollector(flow.GRRFlow):
                   next_state="StoreMemoryInformation")
 
   def _DiskFreeCheckRequired(self):
-    # pylint: disable=line-too-long
-    return (self.args.action.action_type == rdfvalue.MemoryCollectorAction.Action.DOWNLOAD
-            and self.args.action.download.dump_option.option_type == rdfvalue.MemoryCollectorDumpOption.Option.WITH_LOCAL_COPY
-            and self.args.action.download.dump_option.with_local_copy.check_disk_free_space)
-    # pylint: enable=line-too-long
+    ac = self.args.action
+    dump_option = ac.download.dump_option
+    return all([
+        ac.action_type == "DOWNLOAD",
+        dump_option.option_type == "WITH_LOCAL_COPY",
+        dump_option.with_local_copy.check_disk_free_space])
 
   @flow.StateHandler(next_state=["Filter", "StoreTmpDir", "CheckDiskFree"])
   def StoreMemoryInformation(self, responses):
@@ -629,7 +630,8 @@ class AnalyzeClientMemory(flow.GRRFlow):
   args_type = AnalyzeClientMemoryArgs
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
-  @flow.StateHandler(next_state=["RunPlugins"])
+  @flow.StateHandler(next_state=["RunPlugins", "KcoreStatResult",
+                                 "StoreResults"])
   def Start(self, _):
     # Our output collection is a RekallResultCollection.
     if self.runner.output is not None:
@@ -640,8 +642,35 @@ class AnalyzeClientMemory(flow.GRRFlow):
     self.state.Register("rekall_context_messages", {})
     self.state.Register("output_files", [])
 
+    # If a device is already provided, just us it.
+    if self.args.request.device:
+      self.CallClient("RekallAction", self.args.request,
+                      next_state="StoreResults")
+      return
+
+    # If it is a linux client, check for kcore.
+    client = aff4.FACTORY.Open(self.client_id, token=self.token)
+    system = client.Get(client.Schema.SYSTEM)
+    if self.args.use_kcore_if_present and system == "Linux":
+      kcore_pathspec = rdfvalue.PathSpec(path="/proc/kcore",
+                                         pathtype=rdfvalue.PathSpec.PathType.OS)
+      self.CallClient("StatFile", pathspec=kcore_pathspec,
+                      next_state="KcoreStatResult")
+      return
+
     self.CallFlow("LoadMemoryDriver", next_state="RunPlugins",
                   driver_installer=self.args.driver_installer)
+
+  @flow.StateHandler(next_state=["StoreResults", "RunPlugins"])
+  def KcoreStatResult(self, responses):
+    if responses.success:
+      self.args.request.device = responses.First().pathspec
+      self.args.request.address_space = "KCoreAddressSpace"
+      self.CallClient("RekallAction", self.args.request,
+                      next_state="StoreResults")
+    else:
+      self.CallFlow("LoadMemoryDriver", next_state="RunPlugins",
+                    driver_installer=self.args.driver_installer)
 
   @flow.StateHandler(next_state=["StoreResults"])
   def RunPlugins(self, responses):

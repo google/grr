@@ -19,6 +19,7 @@ class Firefox3HistoryTest(test_lib.GRRBaseTest):
   # places.sqlite contains a single history entry:
   # 2011-07-01 11:16:21.371935, FIREFOX3_VISIT,
   # http://news.google.com/, Google News
+
   def testBasicParsing(self):
     """Test we can parse a standard file."""
     history_file = os.path.join(self.base_path, "places.sqlite")

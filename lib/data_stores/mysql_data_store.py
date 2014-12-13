@@ -249,7 +249,7 @@ class MySQLDataStore(data_store.DataStore):
                "subject = %%s  and attribute in (%s) " % (
                    self.table_name,
                    ",".join(["%s"] * len(predicates)),
-                   ))
+               ))
 
       args = [subject, subject] + predicates[:]
 
@@ -288,7 +288,7 @@ class MySQLDataStore(data_store.DataStore):
       query = "select * from `%s` where hash in (%s) and subject in (%s) " % (
           self.table_name, ",".join(["md5(%s)"] * len(subjects)),
           ",".join(["%s"] * len(subjects)),
-          )
+      )
 
       # Allow users to specify a single string here.
       if isinstance(predicate_regex, basestring):
@@ -484,7 +484,7 @@ class MySQLTransaction(data_store.CommonTransaction):
           self.table_name, (self.expires_lock, self.subject, self.subject))
 
   def CheckLease(self):
-    return max(0, self.expires_lock/1e6 - time.time())
+    return max(0, self.expires_lock / 1e6 - time.time())
 
   def CheckForLock(self, connection, subject):
     """Checks that the lock has stuck."""

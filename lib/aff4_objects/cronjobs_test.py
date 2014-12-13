@@ -276,7 +276,7 @@ class CronTest(test_lib.AFF4ObjectTest):
       # supposed to be started every hour), so the new flow should be started
       # by RunOnce(). However, as allow_overruns is False, and previous
       # iteration flow hasn't finished yet, no flow will be started.
-      time.time = lambda: 60*60 + 1
+      time.time = lambda: 60 * 60 + 1
 
       cron_manager.RunOnce(token=self.token)
 
@@ -307,7 +307,7 @@ class CronTest(test_lib.AFF4ObjectTest):
       # supposed to be started every hour), so the new flow should be started
       # by RunOnce(). Previous iteration flow hasn't finished yet, but
       # allow_overruns is True, so it's ok to start new iteration.
-      time.time = lambda: 60*60 + 1
+      time.time = lambda: 60 * 60 + 1
 
       cron_manager.RunOnce(token=self.token)
 
@@ -359,7 +359,7 @@ class CronTest(test_lib.AFF4ObjectTest):
         "cron_job_latency", fields=[cron_job_urn.Basename()])
 
     # Fast foward one day
-    with test_lib.FakeTime(24*60*60 + 1):
+    with test_lib.FakeTime(24 * 60 * 60 + 1):
       flow_urn = cron_job.Get(cron_job.Schema.CURRENT_FLOW_URN)
 
       cron_manager.RunOnce(token=self.token)
@@ -386,7 +386,7 @@ class CronTest(test_lib.AFF4ObjectTest):
       self.assertEqual(current_latency_value.count - prev_latency_value.count,
                        1)
       self.assertEqual(current_latency_value.sum - prev_latency_value.sum,
-                       24*60*60 + 1)
+                       24 * 60 * 60 + 1)
 
   def testFailedFlowUpdatesStats(self):
     cron_manager = cronjobs.CronManager()

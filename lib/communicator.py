@@ -148,7 +148,7 @@ class Cipher(object):
         metadata_iv=os.urandom(self.iv_size / 8),
         hmac_key=os.urandom(self.key_size / 8),
         hmac_type="FULL_HMAC"
-        )
+    )
 
     self.pub_key_cache = pub_key_cache
     serialized_cipher = self.cipher.SerializeToString()
@@ -295,7 +295,7 @@ class ReceivedCipher(Cipher):
                        response_comms.packet_iv,
                        struct.pack("<I", response_comms.api_version))
 
-      if  not self.IsEqual(hmac, response_comms.full_hmac):
+      if not self.IsEqual(hmac, response_comms.full_hmac):
         raise DecryptionError("HMAC verification failed.")
 
     else:
@@ -335,7 +335,7 @@ class Communicator(object):
        private_key: Our own private key in string form (as PEM).
     """
     # A cache of cipher objects.
-    self.cipher_cache = utils.TimeBasedCache(max_age=24*3600)
+    self.cipher_cache = utils.TimeBasedCache(max_age=24 * 3600)
     self.private_key = private_key
     self.certificate = certificate
 

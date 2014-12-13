@@ -34,16 +34,16 @@ class KernelObjectPatcher(object):
     if file_data[:4] != self.ELF_MAGIC:
       raise RuntimeError("Not an elf file.")
 
-    section_header_offset = struct.unpack("<Q", file_data[40:40+8])[0]
+    section_header_offset = struct.unpack("<Q", file_data[40:40 + 8])[0]
     (section_header_size, num_section_headers,
-     string_table) = struct.unpack("<HHH", file_data[58:58+6])
+     string_table) = struct.unpack("<HHH", file_data[58:58 + 6])
 
     # Read the string table first.
     start = section_header_offset + string_table * section_header_size
     header_data = file_data[start:start + section_header_size]
     offset, size = struct.unpack("<IIQQQQIIQQ", header_data)[4:6]
 
-    string_data = file_data[offset:offset+size]
+    string_data = file_data[offset:offset + size]
 
     sections = {}
 
@@ -78,7 +78,7 @@ class KernelObjectPatcher(object):
     if "__versions" not in sections:
       return {}
     start, length = sections["__versions"]
-    version_data = file_data[start:start+length]
+    version_data = file_data[start:start + length]
     return self.ParseVersionSection(version_data)
 
   def GetModuleVersion(self, file_data, sections):

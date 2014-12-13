@@ -34,7 +34,7 @@ class BuildTests(test_lib.GRRBaseTest):
       for root, dirs, _ in os.walk(new_dir):
         for this_dir in dirs:
           os.chmod(os.path.join(root, this_dir),
-                   stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR)
+                   stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
 
       config_lib.CONFIG.Set("ClientBuilder.source", tmp_dir)
 

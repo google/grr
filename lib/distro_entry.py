@@ -13,11 +13,11 @@ from grr.lib import flags
 # Set custom options for each distro here.
 DISTRO_DEFAULTS = {
     "debian": {"flag_defaults": {"config": "/etc/grr/grr-server.yaml"},
-               "config_opts": {"Config.writeback": "/etc/grr/server.local.yaml"}
-              },
+               "config_opts": {"Config.writeback":
+                               "/etc/grr/server.local.yaml"}},
     "redhat": {"flag_defaults": {"config": "/etc/grr/grr-server.yaml"},
-               "config_opts": {"Config.writeback": "/etc/grr/server.local.yaml"}
-              },
+               "config_opts": {"Config.writeback":
+                               "/etc/grr/server.local.yaml"}},
 }
 
 

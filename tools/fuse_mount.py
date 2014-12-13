@@ -53,7 +53,7 @@ flags.DEFINE_bool("background", False,
 flags.DEFINE_float("timeout", 30,
                    "How long to poll a flow for before giving up.")
 
-flags.DEFINE_integer("max_age_before_refresh", 60*5,
+flags.DEFINE_integer("max_age_before_refresh", 60 * 5,
                      "Measured in seconds. Do a client-side update if it's"
                      " been this long since we last did one.")
 
@@ -72,7 +72,7 @@ flags.DEFINE_bool("force_sparse_image", False,
                   "Whether to convert existing files bigger than the"
                   " size threshold to new, empty AFF4SparseImages.")
 
-flags.DEFINE_integer("sparse_image_threshold", 1024*1024*1024,
+flags.DEFINE_integer("sparse_image_threshold", 1024 * 1024 * 1024,
                      "If a client side file that's not in the datastore yet"
                      " is >= than this size, then store it as a sparse image.")
 
@@ -98,7 +98,7 @@ class GRRFuseDatastoreOnly(object):
   ignored_dirs = [
       # We don't want to show AFF4Index objects.
       "/index/client"
-      ]
+  ]
 
   def __init__(self, root="/", token=None):
     self.root = rdfvalue.RDFURN(root)
@@ -179,7 +179,7 @@ class GRRFuseDatastoreOnly(object):
 
     # ListChildren returns a generator, so we do the same.
     for child in children:
-    # Filter out any directories we've chosen to ignore.
+      # Filter out any directories we've chosen to ignore.
       if child.Path() not in self.ignored_dirs:
         yield child.Basename()
 
@@ -330,7 +330,7 @@ class GRRFuse(GRRFuseDatastoreOnly):
 
   def __init__(self, root="/", token=None, max_age_before_refresh=None,
                ignore_cache=False, force_sparse_image=False,
-               sparse_image_threshold=1024**3,
+               sparse_image_threshold=1024 ** 3,
                timeout=flow_utils.DEFAULT_TIMEOUT):
     """Create a new FUSE layer at the specified aff4 path.
 

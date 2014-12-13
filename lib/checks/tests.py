@@ -5,7 +5,8 @@ This module loads and registers all the check tests.
 """
 
 
-# These need to register plugins so, pylint: disable=unused-import,g-import-not-at-top
+# These need to register plugins so,
+# pylint: disable=unused-import,g-import-not-at-top
 
 from grr.lib.checks import checks_test
 from grr.lib.checks import filters_test

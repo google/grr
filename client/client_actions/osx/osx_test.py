@@ -34,7 +34,7 @@ class OSXClientTests(test_lib.OSSpecificClientTests):
         # actions.ActionPlugin.classes
         ("grr.client.client_actions"
          ".standard"): mock.MagicMock(),
-        }
+    }
 
     self.module_patcher = mock.patch.dict("sys.modules", modules)
     self.module_patcher.start()

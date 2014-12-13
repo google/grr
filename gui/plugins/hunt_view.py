@@ -129,7 +129,8 @@ class ModifyHuntDialog(renderers.ConfirmationDialogRenderer):
   header = "Modify a hunt"
   proceed_button_title = "Modify!"
 
-  expiry_time_dividers = ((60*60*24, "d"), (60*60, "h"), (60, "m"), (1, "s"))
+  expiry_time_dividers = (
+      (60 * 60 * 24, "d"), (60 * 60, "h"), (60, "m"), (1, "s"))
 
   content_template = renderers.Template("""
 {{this.hunt_params_form|safe}}
@@ -150,7 +151,7 @@ class ModifyHuntDialog(renderers.ConfirmationDialogRenderer):
       hunt_args = rdfvalue.ModifyHuntFlowArgs(
           client_limit=runner.args.client_limit,
           expiry_time=runner.context.expires,
-          )
+      )
 
       self.hunt_params_form = forms.SemanticProtoFormRenderer(
           hunt_args, supressions=["hunt_urn"]).RawHTML(request)
@@ -524,8 +525,7 @@ back to hunt view</a>
              "Hostname": cdict.get("hostname"),
              "Status": results[c_urn],
              "Last Checkin": searchclient.FormatLastSeenTime(
-                 cdict.get("age") or 0),
-            }
+                 cdict.get("age") or 0)}
 
       client_id = c_urn.Basename()
       if client_id in resource_usage:
@@ -704,7 +704,7 @@ class HuntOverviewRenderer(AbstractLogRenderer):
           raise IOError("No valid state could be found.")
 
         hunt_stats = self.hunt.state.context.usage_stats
-        self.cpu_sum = "%.2f" %  hunt_stats.user_cpu_stats.sum
+        self.cpu_sum = "%.2f" % hunt_stats.user_cpu_stats.sum
         self.net_sum = hunt_stats.network_bytes_sent_stats.sum
 
         (self.all_clients_count,
@@ -877,8 +877,8 @@ class HuntClientCompletionGraphRenderer(renderers.ImageDownloadRenderer):
     for c in fi:
       fdict.setdefault(c, []).append(c.age)
 
-    cl_age = [int(min(x)/1e6) for x in cdict.values()]
-    fi_age = [int(min(x)/1e6) for x in fdict.values()]
+    cl_age = [int(min(x) / 1e6) for x in cdict.values()]
+    fi_age = [int(min(x) / 1e6) for x in fdict.values()]
 
     cl_hist = {}
     fi_hist = {}
@@ -902,7 +902,7 @@ class HuntClientCompletionGraphRenderer(renderers.ImageDownloadRenderer):
 
     for time in sorted(all_times):
       # Check if there is a datapoint one second earlier, add one if not.
-      if times[-1] != time-1:
+      if times[-1] != time - 1:
         times.append(time)
         cl.append(cl_count)
         fi.append(fi_count)
@@ -915,7 +915,7 @@ class HuntClientCompletionGraphRenderer(renderers.ImageDownloadRenderer):
       fi.append(fi_count)
 
     # Convert to hours, starting from 0.
-    times = [(t-t0)/3600.0 for t in times]
+    times = [(t - t0) / 3600.0 for t in times]
 
     params = {"backend": "png"}
 
@@ -1273,7 +1273,7 @@ class HuntOutstandingRenderer(renderers.TableRenderer):
 
     client_requests = {}
     for client_urn, requests in client_requests_raw:
-      client_id = str(client_urn)[6:6+18]
+      client_id = str(client_urn)[6:6 + 18]
 
       client_requests.setdefault(client_id, [])
 

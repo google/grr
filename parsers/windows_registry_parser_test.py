@@ -53,7 +53,7 @@ class WindowsRegistryParserTest(test_lib.FlowTestsBaseclass):
          rdfvalue.StatEntry.RegistryType.REG_MULTI_SZ),
         (u"%s/中国日报/DisplayName" % hklm, u"中国日报", reg_str),
         (u"%s/中国日报/Parameters/ServiceDLL" % hklm, "blah.dll", reg_str)
-        ]
+    ]
 
     stats = [self._MakeRegStat(*x) for x in service_keys]
     parser = windows_registry_parser.WinServicesParser()
@@ -88,7 +88,7 @@ class WindowsRegistryParserTest(test_lib.FlowTestsBaseclass):
     service_keys = [
         ("%s/Environment/TEMP" % hk_u, r"temp\path", reg_str),
         ("%s/Volatile Environment/USERDOMAIN" % hk_u, "GEVULOT", reg_str)
-        ]
+    ]
 
     stats = [self._MakeRegStat(*x) for x in service_keys]
     parser = windows_registry_parser.WinUserSpecialDirs()
@@ -102,5 +102,3 @@ class WindowsRegistryParserTest(test_lib.FlowTestsBaseclass):
     stat = self._MakeRegStat(sysroot, r"C:\Windows", None)
     parser = windows_registry_parser.WinSystemDriveParser()
     self.assertEqual(r"C:", parser.Parse(stat, None).next())
-
-

@@ -91,13 +91,13 @@ class HuntTest(test_lib.FlowTestsBaseclass):
             rdfvalue.ForemanAttributeRegex(
                 attribute_name="GRR client",
                 attribute_regex="HUNT")
-            ],
+        ],
         integer_rules=[
             rdfvalue.ForemanAttributeInteger(
                 attribute_name="Clock",
                 operator=rdfvalue.ForemanAttributeInteger.Operator.GREATER_THAN,
                 value=1336650631137737)
-            ],
+        ],
         client_rate=0,
         token=self.token)
 
@@ -166,13 +166,13 @@ class HuntTest(test_lib.FlowTestsBaseclass):
             rdfvalue.ForemanAttributeRegex(
                 attribute_name="GRR client",
                 attribute_regex="HUNT")
-            ],
+        ],
         integer_rules=[
             rdfvalue.ForemanAttributeInteger(
                 attribute_name="Clock",
                 operator=rdfvalue.ForemanAttributeInteger.Operator.GREATER_THAN,
                 value=1336650631137737)
-            ],
+        ],
         client_rate=0,
         token=self.token)
 
@@ -490,7 +490,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
           regex_rules=[
               rdfvalue.ForemanAttributeRegex(attribute_name="GRR client",
                                              attribute_regex="GRR"),
-              ],
+          ],
           client_rate=1, token=self.token) as hunt:
         hunt.Run()
 

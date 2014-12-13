@@ -492,7 +492,7 @@ Please click <a href='%(admin_ui)s#%(subject_urn)s'>here</a> to access it.
         admin_ui=config_lib.CONFIG["AdminUI.url"],
         subject_urn=access_urn,
         signature=config_lib.CONFIG["Email.signature"]
-        )
+    )
 
     # Email subject should match approval request, and we add message id
     # references so they are grouped together in a thread by gmail.

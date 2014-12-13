@@ -36,7 +36,7 @@ class PlistQuery(actions.ActionPlugin):
 
   in_rdfvalue = rdfvalue.PlistRequest
   out_rdfvalue = rdfvalue.RDFValueArray
-  MAX_PLIST_SIZE = 1024*1024*100  # 100 MB
+  MAX_PLIST_SIZE = 1024 * 1024 * 100  # 100 MB
 
   def Run(self, args):
     self.context = args.context

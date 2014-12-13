@@ -145,10 +145,9 @@ class TestArtifactCollectors(CollectorTest):
     self.fakeartifact.collectors.append(coll1)
 
     artifact_list = ["FakeArtifact"]
-    for _ in test_lib.TestFlowHelper("ArtifactCollectorFlow", client_mock,
-                                     artifact_list=artifact_list, use_tsk=False,
-                                     token=self.token, client_id=self.client_id
-                                    ):
+    for _ in test_lib.TestFlowHelper(
+        "ArtifactCollectorFlow", client_mock, artifact_list=artifact_list,
+        use_tsk=False, token=self.token, client_id=self.client_id):
       pass
 
     # Test the AFF4 file that was created.
@@ -174,8 +173,7 @@ class TestArtifactCollectors(CollectorTest):
     for _ in test_lib.TestFlowHelper("ArtifactCollectorFlow", client_mock,
                                      artifact_list=artifact_list,
                                      token=self.token, client_id=self.client_id,
-                                     output="test_artifact"
-                                    ):
+                                     output="test_artifact"):
       pass
 
     # Test the AFF4 file that was created.
@@ -279,8 +277,7 @@ class TestArtifactCollectors(CollectorTest):
     for _ in test_lib.TestFlowHelper("ArtifactCollectorFlow", client_mock,
                                      artifact_list=artifact_list,
                                      token=self.token, client_id=self.client_id,
-                                     output=output
-                                    ):
+                                     output=output):
       pass
 
     # Test the AFF4 file was not created, as flow should not have run due to

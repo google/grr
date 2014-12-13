@@ -25,44 +25,43 @@ from grr.lib import test_lib
 test_plist_dict = {
     "date": 978307200000000,
     "nested1":
-    {
-        "nested11":
         {
-            "data113": "\xde\xad\xbe\xef",
-            "key111": "value111",
-            "key112": "value112"
-        }
-    },
+            "nested11":
+                {
+                    "data113": "\xde\xad\xbe\xef",
+                    "key111": "value111",
+                    "key112": "value112"
+                }
+        },
     "numbers": [1, "2", "3"]
 }
 
 # y Safari History plist
 safari_plist_dict = {
     "WebHistoryDates":
-    [
-        {"": "http://www.google.com",
-         "title": "Google",
-         "lastVisited": "374606652.9",
-         "visitCount": 2,
-        },
-        {"": "http://www.apple.com",
-         "title": "Apple",
-         "lastVisited": "374606652.9",
-         "visitCount": 1,
-        },
-    ],
+        [
+            {"": "http://www.google.com",
+             "title": "Google",
+             "lastVisited": "374606652.9",
+             "visitCount": 2},
+            {"": "http://www.apple.com",
+             "title": "Apple",
+             "lastVisited": "374606652.9",
+             "visitCount": 1},
+        ],
     "WebHistoryFileVersion": 1,
-    }
+}
 
 
 class PlistTest(test_lib.EmptyActionTest):
+
   def testParseFilter(self):
     queries = [
         ('bla is "red"', True),
         ('bla.bla is "red"', True),
         ('bla."bla bliek" is "red"', True),
         ('bla.bla bliek is "red"', False),
-        ]
+    ]
     for query, result in queries:
       if result:
         plist_lib.PlistFilterParser(query).Parse()

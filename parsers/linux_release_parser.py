@@ -186,4 +186,3 @@ class LinuxReleaseParser(parsers.FileParser):
       # No successful parse.
       yield rdfvalue.Anomaly(type='PARSER_ANOMALY',
                              symptom='Unable to determine distribution.')
-

@@ -8,11 +8,15 @@ from grr.lib import config_lib
 
 config_lib.DEFINE_list(
     "Artifacts.artifact_dirs",
-    [os.path.normpath(os.path.dirname(__file__) + "/../../grr/artifacts"),
-     os.path.normpath(os.path.dirname(__file__) + "/../../grr/artifacts/"
-                      + "flow_templates"),
-     os.path.normpath(os.path.dirname(__file__) + "/../../grr/artifacts/local")
-    ], "A list directories to load artifacts from.")
+    [
+        os.path.normpath(os.path.dirname(__file__) + "/../../grr/artifacts"),
+        os.path.normpath(
+            os.path.dirname(__file__) + "/../../grr/artifacts/" +
+            "flow_templates"),
+        os.path.normpath(
+            os.path.dirname(__file__) +
+            "/../../grr/artifacts/local")],
+    "A list directories to load artifacts from.")
 
 config_lib.DEFINE_list("Artifacts.knowledge_base",
                        ["AllUsersAppDataEnvironmentVariable",
@@ -87,4 +91,3 @@ config_lib.DEFINE_list("Artifacts.netgroup_filter_regexes", [],
 config_lib.DEFINE_list("Artifacts.netgroup_user_blacklist", [],
                        help="Exclude these users when parsing /etc/netgroup "
                        "files.")
-
