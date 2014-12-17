@@ -85,13 +85,14 @@ class MySQLConnection(object):
     self.dbh.commit()
 
   def Execute(self, *args):
-    retries = 5
+    retries = 50
 
     for i in range(1, retries):
       try:
         self.cursor.execute(*args)
         return self.cursor.fetchall()
       except MySQLdb.Error:
+        time.sleep(.1)
         try:
           self._MakeConnection(database=config_lib.CONFIG["Mysql.database_name"])
         except MySQLdb.OperationalError:
