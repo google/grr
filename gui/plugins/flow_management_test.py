@@ -157,7 +157,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     self.Open("/#c=C.0000000000000001")
     self.Click("css=a:contains('Manage launched flows')")
     self.Click("css=td:contains('RecursiveTestFlow')")
-    self.Click("css=a[renderer=FlowLogView]")
+    self.Click("css=li[renderer=FlowLogView]")
 
     self.WaitUntil(self.IsTextPresent, "Subflow call 1")
     self.WaitUntil(self.IsTextPresent, "Subflow call 0")

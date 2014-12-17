@@ -5,6 +5,7 @@
 import itertools
 
 from grr.lib import aff4
+from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -213,8 +214,9 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
       for i in range(5):
         fd.Add(rdfvalue.GrrMessage(request_id=i))
 
-    with aff4.FACTORY.Open(self.collection_urn, "PackedVersionedCollection",
-                           mode="rw", token=self.token) as fd:
+    with aff4.FACTORY.OpenWithLock(self.collection_urn,
+                                   "PackedVersionedCollection",
+                                   token=self.token) as fd:
       num_compacted = fd.Compact()
       self.assertEqual(num_compacted, 5)
 
@@ -235,8 +237,9 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
       for i in range(5):
         fd.Add(rdfvalue.GrrMessage(request_id=i))
 
-    with aff4.FACTORY.Open(self.collection_urn, "PackedVersionedCollection",
-                           mode="rw", token=self.token) as fd:
+    with aff4.FACTORY.OpenWithLock(
+        self.collection_urn, "PackedVersionedCollection",
+        token=self.token) as fd:
       num_compacted = fd.Compact()
       self.assertEqual(num_compacted, 5)
 
@@ -265,8 +268,9 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
       for i in range(5):
         fd.Add(rdfvalue.GrrMessage(request_id=i))
 
-    with aff4.FACTORY.Open(self.collection_urn, "PackedVersionedCollection",
-                           mode="rw", token=self.token) as fd:
+    with aff4.FACTORY.OpenWithLock(
+        self.collection_urn, "PackedVersionedCollection",
+        token=self.token) as fd:
       num_compacted = fd.Compact()
       self.assertEqual(num_compacted, 5)
 
@@ -285,8 +289,9 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
       self.assertEqual(i, results[i].request_id)
 
     # Check that compaction works on items added in write-only mode.
-    with aff4.FACTORY.Open(self.collection_urn, "PackedVersionedCollection",
-                           mode="rw", token=self.token) as fd:
+    with aff4.FACTORY.OpenWithLock(
+        self.collection_urn, "PackedVersionedCollection",
+        token=self.token) as fd:
       num_compacted = fd.Compact()
       self.assertEqual(num_compacted, 5)
 
@@ -310,9 +315,9 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
 
       self.assertTrue(fd)
 
-    with aff4.FACTORY.Create(collection_urn,
-                             "PackedVersionedCollection",
-                             mode="rw", token=self.token) as fd:
+    with aff4.FACTORY.OpenWithLock(collection_urn,
+                                   "PackedVersionedCollection",
+                                   token=self.token) as fd:
       num_compacted = fd.Compact()
       self.assertEqual(num_compacted, 3)
 
@@ -344,8 +349,9 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
         timestamp=data_store.DB.ALL_TIMESTAMPS))
     self.assertEqual(len(items), num_elements)
 
-    with aff4.FACTORY.Open(self.collection_urn, "PackedVersionedCollection",
-                           mode="rw", token=self.token) as fd:
+    with aff4.FACTORY.OpenWithLock(self.collection_urn,
+                                   "PackedVersionedCollection",
+                                   token=self.token) as fd:
       num_compacted = fd.Compact()
       self.assertEqual(num_compacted, num_elements)
 
@@ -383,14 +389,16 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
       for i in range(5):
         fd.Add(rdfvalue.GrrMessage(request_id=i))
 
-    with aff4.FACTORY.Open(self.collection_urn, "PackedVersionedCollection",
-                           mode="rw", token=self.token) as fd:
+    with aff4.FACTORY.OpenWithLock(self.collection_urn,
+                                   "PackedVersionedCollection",
+                                   token=self.token) as fd:
       num_compacted = fd.Compact()
       self.assertEqual(num_compacted, 5)
 
     # On second attempt, nothing should get compacted.
-    with aff4.FACTORY.Open(self.collection_urn, "PackedVersionedCollection",
-                           mode="rw", token=self.token) as fd:
+    with aff4.FACTORY.OpenWithLock(self.collection_urn,
+                                   "PackedVersionedCollection",
+                                   token=self.token) as fd:
       num_compacted = fd.Compact()
       self.assertEqual(num_compacted, 0)
 
@@ -401,14 +409,16 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
       for i in range(fd.COMPACTION_BATCH_SIZE + 1):
         fd.Add(rdfvalue.GrrMessage(request_id=i))
 
-    with aff4.FACTORY.Open(self.collection_urn, "PackedVersionedCollection",
-                           mode="rw", token=self.token) as fd:
+    with aff4.FACTORY.OpenWithLock(self.collection_urn,
+                                   "PackedVersionedCollection",
+                                   token=self.token) as fd:
       num_compacted = fd.Compact()
       self.assertEqual(num_compacted, fd.COMPACTION_BATCH_SIZE + 1)
 
     # On second attempt, nothing should get compacted.
-    with aff4.FACTORY.Open(self.collection_urn, "PackedVersionedCollection",
-                           mode="rw", token=self.token) as fd:
+    with aff4.FACTORY.OpenWithLock(self.collection_urn,
+                                   "PackedVersionedCollection",
+                                   token=self.token) as fd:
       num_compacted = fd.Compact()
       self.assertEqual(num_compacted, 0)
 
@@ -424,8 +434,9 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
     for index, item in enumerate(fd):
       self.assertEqual(int(item.age.AsSecondsFromEpoch()), 1000 * index)
 
-    with aff4.FACTORY.Open(self.collection_urn, "PackedVersionedCollection",
-                           mode="rw", token=self.token) as fd:
+    with aff4.FACTORY.OpenWithLock(
+        self.collection_urn, "PackedVersionedCollection",
+        token=self.token) as fd:
       num_compacted = fd.Compact()
       self.assertEqual(num_compacted, 5)
 
@@ -446,8 +457,9 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
       fd.Close()
 
     with test_lib.FakeTime(3500):
-      fd = aff4.FACTORY.Open(self.collection_urn, "PackedVersionedCollection",
-                             mode="rw", token=self.token)
+      fd = aff4.FACTORY.OpenWithLock(self.collection_urn,
+                                     "PackedVersionedCollection",
+                                     token=self.token)
 
     # Imitating that another element was added in parallel while compaction
     # is in progress.
@@ -477,3 +489,30 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
     self.assertEqual(fd.CalculateLength(), 5)
     for index, item in enumerate(fd):
       self.assertEqual(int(item.age.AsSecondsFromEpoch()), 1000 * index)
+
+  def testExtendsLeaseIfCompactionTakesTooLong(self):
+    with aff4.FACTORY.Create(self.collection_urn,
+                             "PackedVersionedCollection",
+                             mode="w", token=self.token) as fd:
+      elements = []
+      for i in range(10):
+        elements.append(rdfvalue.GrrMessage(request_id=i))
+      fd.AddAll(elements)
+
+    config_lib.CONFIG.Set("Worker.compaction_lease_time", 42)
+
+    with test_lib.FakeTime(20):
+      # Lease time here is much less than compaction_lease_time,
+      # collection will have to extend the lease immediately
+      # when compaction starts.
+      fd = aff4.FACTORY.OpenWithLock(self.collection_urn,
+                                     "PackedVersionedCollection",
+                                     lease_time=10, token=self.token)
+
+      # This is the expected lease time: time.time() + lease_time
+      self.assertEqual(fd.CheckLease(), 10)
+
+    with test_lib.FakeTime(29):
+      fd.Compact()
+      # Compaction should have updated the lease.
+      self.assertEqual(fd.CheckLease(), 42)

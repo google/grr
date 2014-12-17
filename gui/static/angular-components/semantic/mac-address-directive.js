@@ -44,7 +44,7 @@ grrUi.semantic.macAddressDirective.MacAddressDirective = function() {
       value: '='
     },
     restrict: 'E',
-    template: '<nobr ng-if="value">{{ convertedAddress }}</nobr>',
+    template: '<nobr ng-if="::value">{{ ::convertedAddress }}</nobr>',
     link: function(scope, element) {
       scope.$watch('value', function() {
         var address;

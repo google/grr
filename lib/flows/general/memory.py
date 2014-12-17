@@ -665,7 +665,6 @@ class AnalyzeClientMemory(flow.GRRFlow):
   def KcoreStatResult(self, responses):
     if responses.success:
       self.args.request.device = responses.First().pathspec
-      self.args.request.address_space = "KCoreAddressSpace"
       self.CallClient("RekallAction", self.args.request,
                       next_state="StoreResults")
     else:

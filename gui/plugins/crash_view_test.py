@@ -114,7 +114,7 @@ class TestCrashView(test_lib.GRRSeleniumTest):
     self.Click("css=td:contains('SampleHunt')")
 
     # Click on "Crashes" tab.
-    self.Click("css=a[renderer=HuntCrashesRenderer]")
+    self.Click("css=li[heading=Crashes]")
 
     # Check that all crashes were registered for this hunt.
     self.WaitUntil(self.AllTextsPresent,

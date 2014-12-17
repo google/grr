@@ -14,6 +14,7 @@ import sys
 
 # Initialize the Rekall plugins, so pylint: disable=unused-import
 from rekall import addrspace
+from rekall import config
 from rekall import constants
 from rekall import io_manager
 from rekall import obj
@@ -162,6 +163,14 @@ class GrrRekallSession(session.InteractiveSession):
     super(GrrRekallSession, self).__init__(**session_args)
     self.action = action
 
+    # Apply default configuration options to the session state.
+    with self.state:
+      for name, options in config.OPTIONS.args.iteritems():
+        # We don't want to override configuration options passed via
+        # **session_args.
+        if name not in self.state:
+          self.state.Set(name, options.get("default"))
+
     # Ensure the action's Progress() method is called when Rekall reports
     # progress.
     self.progress.Register(id(self), lambda *_, **__: self.action.Progress())
@@ -220,48 +229,26 @@ class RekallAction(actions.SuspendableAction):
 
   def Iterate(self):
     """Run a Rekall plugin and return the result."""
-    # Open the device pathspec as requested by the server.
-    with vfs.VFSOpen(self.request.device,
-                     progress_callback=self.Progress) as fhandle:
+    # Create a session and run all the plugins with it.
+    session_args = self.request.session.ToDict()
 
-      # Create a session and run all the plugins with it.
-      session_args = self.request.session.ToDict()
+    if "filename" not in session_args and self.request.device:
+      session_args["filename"] = self.request.device.path
 
-      # If the user has not specified a special profile path, we use the local
-      # cache directory.
-      if "profile_path" not in session_args:
-        session_args["profile_path"] = [config_lib.CONFIG[
-            "Client.rekall_profile_cache_path"]]
+    # If the user has not specified a special profile path, we use the local
+    # cache directory.
+    if "profile_path" not in session_args:
+      session_args["profile_path"] = [config_lib.CONFIG[
+          "Client.rekall_profile_cache_path"]]
 
-      session_args.update(fhandle.GetMetadata())
+    rekal_session = GrrRekallSession(action=self, **session_args)
 
-      rekal_session = GrrRekallSession(action=self, **session_args)
+    for plugin_request in self.request.plugins:
+      # Get the keyword args to this plugin.
+      plugin_args = plugin_request.args.ToDict()
+      try:
+        rekal_session.RunPlugin(plugin_request.plugin, **plugin_args)
 
-      # Wrap GRR's VFS handler for the device in a Rekall FDAddressSpace so we
-      # can pass it directly to the Rekall session as the physical address
-      # space. This avoids the AS voting mechanism for Rekall's image format
-      # detection.
-      with rekal_session:
-        fd_address_space = standard.FDAddressSpace(session=rekal_session,
-                                                   fhandle=fhandle)
-        if self.request.address_space:
-          rekal_session.physical_address_space = (
-              addrspace.BaseAddressSpace.classes[self.request.address_space]
-              (base=fd_address_space, session=rekal_session))
-        else:
-          rekal_session.physical_address_space = fd_address_space
-
-        # Autodetect the profile. Valid plugins for this profile will become
-        # available now.
-        rekal_session.GetParameter("profile")
-
-      for plugin_request in self.request.plugins:
-        # Get the keyword args to this plugin.
-        plugin_args = plugin_request.args.ToDict()
-        try:
-          rekal_session.RunPlugin(plugin_request.plugin, **plugin_args)
-
-        except Exception:  # pylint: disable=broad-except
-          # Just ignore errors, and run the next plugin. Errors will be reported
-          # through the renderer.
-          pass
+      except Exception as e:  # pylint: disable=broad-except
+        rekal_session.report_error(
+            "Error for plugin %s: %s", plugin_request.plugin, e)

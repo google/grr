@@ -1,7 +1,7 @@
-<nobr ng-if="value">
-  <a href="#" ng-click="ctrl.onLinkClick()">{$ clientUrn $}</a>
+<nobr ng-if="::value">
+  <a href="#" ng-click="controller.onLinkClick()">{$ ::controller.clientUrn $}</a>
 
-  <button class="btn btn-default btn-xs" ng-click="ctrl.onInfoClick()">
+  <button class="btn btn-default btn-xs" ng-click="controller.onInfoClick()">
     <span class="glyphicon glyphicon-info-sign"></span>
   </button>
 </nobr>

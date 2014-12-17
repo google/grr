@@ -329,12 +329,20 @@ grr.Renderer('AngularDirectiveRenderer', {
     var directive = state.directive;
     var directive_args = state.directive_args;
 
-    var template = $(document.createElement(directive));
-    template.attr(directive_args);
-
     var injector = angular.injector(['ng', 'grrUi']);
     var $compile = injector.get('$compile');
     var $rootScope = injector.get('$rootScope');
+
+    var template = $(document.createElement(directive));
+    if (angular.isDefined(directive_args)) {
+      var index = 0;
+      for (var key in directive_args) {
+        var value = directive_args[key];
+        var valueName = 'var' + index.toString();
+        $rootScope[valueName] = value;
+        template.attr(key, valueName);
+      }
+    }
 
     var linkFn = $compile(template);
     var element = linkFn($rootScope);

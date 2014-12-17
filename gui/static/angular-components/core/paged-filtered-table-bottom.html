@@ -1,0 +1,25 @@
+<h5 ng-if="parentController.showLoading">Loading...</h5>
+
+<div ng-if="!parentController.showLoading && parentController.totalCount > 0 && !parentController.filterApplied">
+  <pagination total-items="parentController.totalCount" items-per-page="parentController.pageSize"
+              max-size="15" rotate="false" boundary-links="true"
+              ng-model="parentController.paginationSelectedPage"
+              ng-change="parentController.onPageChange(parentController.paginationSelectedPage - 1)" />
+</div>
+
+<div ng-if="!parentController.showLoading && parentController.totalCount > 0 &&
+            parentController.filterApplied && !parentController.filterFinished">
+  <div class="btn-group">
+    <button class="btn btn-default" ng-click="parentController.fetchFilteredItems(this.parentController.pageSize)">
+      Fetch More
+    </button>
+    <button class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+      <span class="caret"></span>
+    </button>
+    <ul class="dropdown-menu">
+      <li><a ng-click="parentController.fetchFilteredItems(2)">Fetch {$ parentController.pageSize * 2 $} items</a></li>
+      <li><a ng-click="parentController.fetchFilteredItems(5)">Fetch {$ parentController.pageSize * 5 $} items</a></li>
+      <li><a ng-click="parentController.fetchFilteredItems(10)">Fetch {$ parentController.pageSize * 10 $} items</a></li>
+    </ul>
+  </div>
+</div>
