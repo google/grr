@@ -535,9 +535,8 @@ class GRRHunt(flow.GRRFlow):
     return self.state.context.creator
 
   def _AddObjectToCollection(self, obj, collection_urn):
-    with aff4.FACTORY.Create(collection_urn, "PackedVersionedCollection",
-                             mode="w", token=self.token) as collection:
-      collection.Add(obj)
+    aff4.PackedVersionedCollection.AddToCollection(
+        collection_urn, [obj], sync=False, token=self.token)
 
   def _GetCollectionItems(self, collection_urn):
     collection = aff4.FACTORY.Create(collection_urn,
@@ -684,12 +683,12 @@ class GRRHunt(flow.GRRFlow):
     if responses.success:
       with self.lock:
         self.processed_responses = True
+
         msgs = [rdfvalue.GrrMessage(payload=response, source=client_id)
                 for response in responses]
-        # Pass the callback to ensure we heartbeat while writing the
-        # results.
-        self.state.context.results_collection.AddAll(
-            msgs, callback=lambda index, rdf_value: self.HeartBeat())
+        aff4.ResultsOutputCollection.AddToCollection(
+            self.state.context.results_collection_urn, msgs,
+            sync=True, token=self.token)
 
         # Update stats.
         stats.STATS.IncrementCounter("hunt_results_added",
@@ -701,12 +700,11 @@ class GRRHunt(flow.GRRFlow):
   def Save(self):
     if self.state and self.processed_responses:
       with self.lock:
-        self.state.context.results_collection.Flush(sync=True)
-
         # TODO(user): remove when old-style hunt results are no longer
         # supported.
-        if not isinstance(self.state.context.results_collection,
-                          aff4.ResultsOutputCollection):
+        if (self.state.context.results_collection is not None and
+            not isinstance(self.state.context.results_collection,
+                           aff4.ResultsOutputCollection)):
           data_store.DB.Set(self.DEPRECATED_RESULTS_QUEUE, self.urn,
                             rdfvalue.RDFDatetime().Now(),
                             replace=True, token=self.token)
@@ -846,6 +844,9 @@ class GRRHunt(flow.GRRFlow):
                                 self.urn.Add("ResultsMetadata"))
     self.state.context.Register("results_collection_urn",
                                 self.urn.Add("Results"))
+    # TODO(user): Remove as soon as old style hunts (ones that use
+    # RDFValueCollection) are removed.
+    self.state.context.Register("results_collection", None)
 
     with aff4.FACTORY.Create(
         self.state.context.results_metadata_urn, "HuntResultsMetadata",
@@ -864,12 +865,21 @@ class GRRHunt(flow.GRRFlow):
 
       results_metadata.Set(results_metadata.Schema.OUTPUT_PLUGINS(state))
 
-    results_collection = aff4.FACTORY.Create(
+    # Create results collection.
+    with aff4.FACTORY.Create(
         self.state.context.results_collection_urn, "ResultsOutputCollection",
-        mode="rw", token=self.token)
-    results_collection.Set(results_collection.Schema.RESULTS_SOURCE,
-                           self.urn)
-    self.state.context.Register("results_collection", results_collection)
+        mode="w", token=self.token) as results_collection:
+      results_collection.Set(results_collection.Schema.RESULTS_SOURCE,
+                             self.urn)
+
+    # Create all other hunt-related collections.
+    for urn in [self.logs_collection_urn,
+                self.all_clients_collection_urn,
+                self.completed_clients_collection_urn,
+                self.clients_errors_collection_urn]:
+      with aff4.FACTORY.Create(urn, "PackedVersionedCollection", mode="w",
+                               token=self.token):
+        pass
 
     if not self.state.context.args.description:
       self.SetDescription()

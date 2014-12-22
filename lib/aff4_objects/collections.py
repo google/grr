@@ -419,6 +419,38 @@ class PackedVersionedCollection(RDFValueCollection):
     data_store.DB.DeleteAttributes(cls.notification_queue, predicates,
                                    end=end, token=token)
 
+  @classmethod
+  def AddToCollection(cls, collection_urn, rdf_values, sync=True,
+                      token=None):
+    """Adds RDFValues to the collection with a given urn."""
+    if token is None:
+      raise ValueError("Token can't be None.")
+
+    attrs_to_set = []
+    for rdf_value in rdf_values:
+      if rdf_value is None:
+        raise ValueError("Can't add None to the collection.")
+
+      if cls._rdf_type and not isinstance(rdf_value, cls._rdf_type):
+        raise ValueError("This collection only accepts values of type %s" %
+                         cls._rdf_type.__name__)
+
+      if not rdf_value.age:
+        rdf_value.age.Now()
+
+      attrs_to_set.append(cls.SchemaCls.DATA(
+          rdfvalue.EmbeddedRDFValue(payload=rdf_value)))
+
+    aff4.FACTORY.SetAttributes(collection_urn,
+                               {cls.SchemaCls.DATA: attrs_to_set}, set(),
+                               add_child_index=False, sync=sync,
+                               token=token)
+    cls.ScheduleNotification(collection_urn, token=token)
+
+    # Update system-wide stats.
+    stats.STATS.IncrementCounter("packed_collection_added",
+                                 delta=len(rdf_values))
+
   class SchemaCls(RDFValueCollection.SchemaCls):
     DATA = aff4.Attribute("aff4:data", rdfvalue.EmbeddedRDFValue,
                           "The embedded semantic value.", versioned=True)
@@ -711,6 +743,11 @@ class ResultsOutputCollection(PackedVersionedCollection):
     if "w" in self.mode and self.fd.size == 0:
       # We want bigger chunks as we usually expect large number of results.
       self.fd.SetChunksize(1024 * 1024)
+
+
+class CheckResultsCollection(RDFValueCollection):
+  """A collection of check results."""
+  _rdf_type = rdfvalue.CheckResult
 
 
 class CollectionsInitHook(registry.InitHook):

@@ -13,6 +13,7 @@ from grr.lib.flows.cron import system_test
 from grr.lib.flows.general import administrative_test
 from grr.lib.flows.general import artifact_fallbacks_test
 from grr.lib.flows.general import audit_test
+from grr.lib.flows.general import checks_test
 from grr.lib.flows.general import collectors_test
 from grr.lib.flows.general import discovery_test
 from grr.lib.flows.general import endtoend_test
@@ -30,5 +31,4 @@ from grr.lib.flows.general import registry_test
 from grr.lib.flows.general import timelines_test
 from grr.lib.flows.general import transfer_test
 from grr.lib.flows.general import webhistory_test
-from grr.lib.flows.general import webplugin_test
 from grr.lib.flows.general import windows_vsc_test

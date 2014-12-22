@@ -27,7 +27,7 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
       art_obj = artifact_lib.ArtifactRegistry.artifacts[artifact_name]
       art_obj.Validate()
 
-    art_obj = artifact_lib.ArtifactRegistry.artifacts["ApplicationEventLog"]
+    art_obj = artifact_lib.ArtifactRegistry.artifacts["TestCmdArtifact"]
     art_obj.labels.append("BadLabel")
 
     self.assertRaises(artifact_lib.ArtifactDefinitionError, art_obj.Validate)
@@ -55,8 +55,8 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
     results = artifact_lib.ArtifactRegistry.GetArtifacts(
         os_name="Windows",
         collector_type=rdfvalue.Collector.CollectorType.REGISTRY_VALUE,
-        name_list=["SystemRoot"])
-    self.assertEqual(results.pop().name, "SystemRoot")
+        name_list=["DepsProvidesMultiple"])
+    self.assertEqual(results.pop().name, "DepsProvidesMultiple")
 
     # Check supported_os = [] matches any OS
     results = artifact_lib.ArtifactRegistry.GetArtifacts(

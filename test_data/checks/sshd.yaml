@@ -7,9 +7,9 @@ method:
     hint:
       problem: 'Sshd allows protocol 1.'
       summary: 'sshd parameter'
-      format: 'Configured protocols: {{ config.protocol }}'
+      format: 'Configured protocols: {config.protocol}'
     probe:
-      - artifact: 'SshdConfig'
+      - artifact: 'SshdConfigFile'
         match: ['ANY']
         filters:
           - type: 'ObjectFilter'

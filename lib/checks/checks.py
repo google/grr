@@ -7,7 +7,9 @@ import yaml
 
 import logging
 
+from grr.lib import config_lib
 from grr.lib import rdfvalue
+from grr.lib import registry
 from grr.lib.checks import triggers as triggers_lib
 
 
@@ -307,10 +309,20 @@ def LoadConfigsFromFile(file_path):
 
 def LoadChecksFromFiles(file_paths, overwrite_if_exists=True):
   for file_path in file_paths:
-    configs = LoadConfigsFromFile(file_paths)
+    configs = LoadConfigsFromFile(file_path)
     for conf in configs.values():
       check = rdfvalue.Check(**conf)
       check.Validate()
       CheckRegistry.RegisterCheck(check, source="file:%s" % file_path,
                                   overwrite_if_exists=overwrite_if_exists)
       logging.debug("Loaded check %s from %s", check.check_id, file_path)
+
+
+class CheckLoader(registry.InitHook):
+  """Loads checks from the filesystem."""
+
+  # TODO(user): Add check loading from datastore.
+
+  def RunOnce(self):
+    LoadChecksFromFiles(config_lib.CONFIG["Checks.config_files"])
+

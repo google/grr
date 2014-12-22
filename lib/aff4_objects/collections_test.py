@@ -180,6 +180,35 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
                              mode="rw", token=self.token)
     self.assertEqual(fd.Get(fd.Schema.SIZE), 0)
 
+  def testAddToCollectionClassMethodAddsVersionedAttributes(self):
+    with aff4.FACTORY.Create(self.collection_urn, "PackedVersionedCollection",
+                             mode="w", token=self.token) as _:
+      pass
+
+    aff4.PackedVersionedCollection.AddToCollection(
+        self.collection_urn,
+        [rdfvalue.GrrMessage(request_id=1), rdfvalue.GrrMessage(request_id=2)],
+        token=self.token)
+
+    # Check that items are stored in the versions.
+    items = list(data_store.DB.ResolveRegex(
+        self.collection_urn,
+        aff4.PackedVersionedCollection.SchemaCls.DATA.predicate,
+        token=self.token, timestamp=data_store.DB.ALL_TIMESTAMPS))
+    self.assertEqual(len(items), 2)
+
+    # Check that no items are stored in the stream
+    fd = aff4.FACTORY.Create(self.collection_urn.Add("Stream"), "AFF4Image",
+                             mode="rw", token=self.token)
+    self.assertEqual(fd.Get(fd.Schema.SIZE), 0)
+
+    # Check that collection reports correct size.
+    fd = aff4.FACTORY.Open(self.collection_urn,
+                           aff4_type="PackedVersionedCollection",
+                           token=self.token)
+    self.assertEqual(len(fd), 2)
+    self.assertEqual(len(list(fd.GenerateUncompactedItems())), 2)
+
   def testUncompactedCollectionIteratesInRightOrderWhenSmall(self):
     with aff4.FACTORY.Create(self.collection_urn, "PackedVersionedCollection",
                              mode="w", token=self.token) as fd:

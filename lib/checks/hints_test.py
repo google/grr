@@ -6,21 +6,18 @@ from grr.lib import test_lib
 from grr.lib.checks import hints
 
 
-# http://en.wikipedia.org/wiki/Paranoia_(role-playing_game)
-
-
-class Troubleshooter(object):
+class Terminator(object):
   """Simple stub of RDF data."""
 
-  def __init__(self, allegiance):
-    self.commie = allegiance.get("commie")
-    self.mutant = allegiance.get("mutant")
+  def __init__(self, tasking):
+    self.target = tasking.get("target")
+    self.mission = tasking.get("mission")
 
   def AsDict(self):
-    return {"commie": self.commie, "mutant": self.mutant}
+    return {"target": self.target, "mission": self.mission}
 
   def __str__(self):
-    return "commie:%s mutant:%s" % (self.commie, self.mutant)
+    return "target:%s mission:%s" % (self.target, self.mission)
 
 
 class HintsTests(test_lib.GRRBaseTest):
@@ -29,20 +26,20 @@ class HintsTests(test_lib.GRRBaseTest):
   def setUp(self):
     super(HintsTests, self).setUp()
     # Fully populated hint.
-    self.full = {"problem": "Commies and mutants are enemies of The Computer.",
-                 "fix": "Assign Troubleshooters.",
-                 "format": "{{ mutant }}, {{ commie }}",
-                 "summary": "Traitor found."}
+    self.full = {"problem": "Terminator needs trousers.",
+                 "fix": "Give me your clothes.",
+                 "format": "{mission}, {target}",
+                 "summary": "I'll be back."}
     # Partial hint
-    self.partial = {"problem": "Troubleshooter clone is a Traitor.",
-                    "fix": "Terminate clone.",
+    self.partial = {"problem": "Terminator needs to go shopping.",
+                    "fix": "Phased plasma rifle in the 40-watt range.",
                     "format": "",
                     "summary": ""}
     # Partial overlaid with full.
-    self.overlay = {"problem": "Troubleshooter clone is a Traitor.",
-                    "fix": "Terminate clone.",
-                    "format": "{{ mutant }}, {{ commie }}",
-                    "summary": "Traitor found."}
+    self.overlay = {"problem": "Terminator needs to go shopping.",
+                    "fix": "Phased plasma rifle in the 40-watt range.",
+                    "format": "{mission}, {target}",
+                    "summary": "I'll be back."}
     # Empty hint.
     self.empty = {"problem": "", "fix": "", "format": "", "summary": ""}
 
@@ -68,22 +65,18 @@ class HintsTests(test_lib.GRRBaseTest):
     self.assertDictEqual(self.overlay, starts_partial)
 
   def testProcessRdfData(self):
-    roy_g_biv = Troubleshooter({"mutant": "Machine Empathy",
-                                "commie": "Computer Phreaks"})
-    rik_r_oll = Troubleshooter({"mutant": "Ventriloquist",
-                                "commie": "Romantics"})
+    arnie = Terminator({"mission": "Protect", "target": "John Connor"})
+    t800 = Terminator({"mission": "Terminate", "target": "Sarah Connor"})
     # This Hinter doesn't modify the default string output of an rdfvalue.
     unformatted = hints.Hinter()
-    self.assertEqual(unformatted.Render(rik_r_oll),
-                     "commie:Romantics mutant:Ventriloquist")
-    self.assertEqual(unformatted.Render(roy_g_biv),
-                     "commie:Computer Phreaks mutant:Machine Empathy")
-    # This Hinter uses a django template to specify presentation.
-    formatted = hints.Hinter(template="{{ mutant }}, {{ commie }}")
-    self.assertEqual(formatted.Render(rik_r_oll),
-                     "Ventriloquist, Romantics")
-    self.assertEqual(formatted.Render(roy_g_biv),
-                     "Machine Empathy, Computer Phreaks")
+    self.assertEqual(unformatted.Render(t800),
+                     "target:Sarah Connor mission:Terminate")
+    self.assertEqual(unformatted.Render(arnie),
+                     "target:John Connor mission:Protect")
+    # This Hinter uses python format to specify presentation.
+    formatted = hints.Hinter(template="{mission}, {target}")
+    self.assertEqual(formatted.Render(t800), "Terminate, Sarah Connor")
+    self.assertEqual(formatted.Render(arnie), "Protect, John Connor")
 
 
 def main(argv):

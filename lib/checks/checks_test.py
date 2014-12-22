@@ -119,6 +119,54 @@ class MatchMethodTests(test_lib.GRRBaseTest):
       self.assertFalse(matcher.Detect(baseline, self.some))
 
 
+class CheckLoaderTests(test_lib.GRRBaseTest):
+  """Check definitions can be loaded."""
+
+  def testLoadToDict(self):
+    expect = {
+        "SSHD-CHECK": {
+            "check_id": "SSHD-CHECK",
+            "method": [{
+                "probe": [{"artifact": "SshdConfigFile", "match": ["ANY"],
+                           "filters": [
+                               {"type": "ObjectFilter",
+                                "expression": "config.protocol contains 1"}]}],
+                "target": {"os": ["Linux", "OSX"]},
+                "match": ["ANY"],
+                "hint": {"problem": "Sshd allows protocol 1.",
+                         "summary": "sshd parameter",
+                         "format": "Configured protocols: {config.protocol}"}}],
+            "match": "NONE"}}
+
+    result = checks.LoadConfigsFromFile(os.path.join(CHECKS_DIR, "sshd.yaml"))
+    self.assertEqual(expect.keys(), result.keys())
+    # Start with basic check attributes.
+    expect_check = expect["SSHD-CHECK"]
+    result_check = result["SSHD-CHECK"]
+    self.assertEqual(expect_check["check_id"], result_check["check_id"])
+    self.assertEqual(expect_check["match"], result_check["match"])
+    # Now dive into the method.
+    expect_method = expect_check["method"][0]
+    result_method = result_check["method"][0]
+    self.assertEqual(expect_method["target"], result_method["target"])
+    self.assertEqual(expect_method["match"], result_method["match"])
+    self.assertDictEqual(expect_method["hint"], result_method["hint"])
+    # Now dive into the probe.
+    expect_probe = expect_method["probe"][0]
+    result_probe = result_method["probe"][0]
+    self.assertEqual(expect_probe["artifact"], result_probe["artifact"])
+    self.assertEqual(expect_probe["match"], result_probe["match"])
+    # Now dive into the filters.
+    expect_filters = expect_probe["filters"][0]
+    result_filters = result_probe["filters"][0]
+    self.assertDictEqual(expect_filters, result_filters)
+
+  def testLoadFromFiles(self):
+    check_defs = [os.path.join(CHECKS_DIR, "sshd.yaml")]
+    checks.LoadChecksFromFiles(check_defs)
+    self.assertTrue(checks.CheckRegistry.checks.get("SSHD-CHECK"))
+
+
 class CheckRegistryTests(test_lib.GRRBaseTest):
 
   sw_chk = None
@@ -140,8 +188,8 @@ class CheckRegistryTests(test_lib.GRRBaseTest):
     self.kb.hostname = "test.example.com"
     self.host_data = {"KnowledgeBase": self.kb,
                       "WMIInstalledSoftware": WMI_SW,
-                      "SoftwarePackage": DPKG_SW,
-                      "SshdConfig": SSHD_CFG}
+                      "DebianPackagesStatus": DPKG_SW,
+                      "SshdConfigFile": SSHD_CFG}
 
   def testRegisterChecks(self):
     """Defined checks are present in the check registry."""
@@ -155,29 +203,31 @@ class CheckRegistryTests(test_lib.GRRBaseTest):
         artifact="WMIInstalledSoftware", os="Windows")
     self.assertItemsEqual(expect, result)
     result = checks.CheckRegistry.FindChecks(
-        artifact="SoftwarePackage", os="Linux")
+        artifact="DebianPackagesStatus", os="Linux")
     self.assertItemsEqual(expect, result)
     result = checks.CheckRegistry.FindChecks(
-        artifact="SoftwarePackage", labels="foo")
+        artifact="DebianPackagesStatus", labels="foo")
     self.assertItemsEqual(expect, result)
 
     expect = ["SSHD-CHECK"]
-    result = checks.CheckRegistry.FindChecks(artifact="SshdConfig", os="OSX")
+    result = checks.CheckRegistry.FindChecks(artifact="SshdConfigFile",
+                                             os="OSX")
     self.assertItemsEqual(expect, result)
-    result = checks.CheckRegistry.FindChecks(artifact="SshdConfig", os="Linux")
+    result = checks.CheckRegistry.FindChecks(artifact="SshdConfigFile",
+                                             os="Linux")
     self.assertItemsEqual(expect, result)
 
     # All sshd config checks specify an OS, so should get no results.
     expect = []
-    result = checks.CheckRegistry.FindChecks(artifact="SshdConfig")
+    result = checks.CheckRegistry.FindChecks(artifact="SshdConfigFile")
     self.assertItemsEqual(expect, result)
     result = checks.CheckRegistry.FindChecks(
-        artifact="SshdConfig", os="Windows")
+        artifact="SshdConfigFile", os="Windows")
     self.assertItemsEqual(expect, result)
 
   def testMapArtifactsToTriggers(self):
     """Identify the artifacts that should be collected based on criteria."""
-    expect = ["SoftwarePackage", "SshdConfig"]
+    expect = ["DebianPackagesStatus", "SshdConfigFile"]
     result = checks.CheckRegistry.SelectArtifacts(os="Linux")
     self.assertItemsEqual(expect, result)
 
@@ -185,7 +235,7 @@ class CheckRegistryTests(test_lib.GRRBaseTest):
     result = checks.CheckRegistry.SelectArtifacts(os="Windows")
     self.assertItemsEqual(expect, result)
 
-    expect = ["SoftwarePackage"]
+    expect = ["DebianPackagesStatus"]
     result = checks.CheckRegistry.SelectArtifacts(
         os=None, cpe=None, labels="foo")
     self.assertItemsEqual(expect, result)

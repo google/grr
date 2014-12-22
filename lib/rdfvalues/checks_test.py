@@ -15,9 +15,9 @@ from grr.parsers import wmi_parser
 
 
 CONFIGS = os.path.join(config_lib.CONFIG["Test.data_dir"], "checks")
-TRIGGER_1 = ("SoftwarePackage", "Linux", None, None)
+TRIGGER_1 = ("DebianPackagesStatus", "Linux", None, None)
 TRIGGER_2 = ("WMIInstalledSoftware", "Windows", None, None)
-TRIGGER_3 = ("SoftwarePackage", None, None, "foo")
+TRIGGER_3 = ("DebianPackagesStatus", None, None, "foo")
 
 # Load some dpkg data
 parser = linux_cmd_parser.DpkgCmdParser()
@@ -125,7 +125,7 @@ class CheckTest(ChecksTestBase):
       config_file = os.path.join(CONFIGS, "sw.yaml")
       with open(config_file) as data:
         self.cfg = yaml.safe_load(data)
-      self.host_data = {"SoftwarePackage": DPKG_SW,
+      self.host_data = {"DebianPackagesStatus": DPKG_SW,
                         "WMIInstalledSoftware": WMI_SW}
 
   def testInitializeCheck(self):
@@ -136,7 +136,7 @@ class CheckTest(ChecksTestBase):
   def testGenerateTriggerMap(self):
     chk = checks.Check(**self.cfg)
     expect = [TRIGGER_1, TRIGGER_3]
-    result = [c.attr for c in chk.triggers.Search("SoftwarePackage")]
+    result = [c.attr for c in chk.triggers.Search("DebianPackagesStatus")]
     self.assertItemsEqual(expect, result)
     expect = [TRIGGER_2]
     result = [c.attr for c in chk.triggers.Search("WMIInstalledSoftware")]
@@ -192,7 +192,7 @@ class HintDefinitionTests(ChecksTestBase):
 
   def testInheritHintConfig(self):
     lin_problem = "l337 software installed"
-    lin_format = "{{ name }} {{ version }} is installed"
+    lin_format = "{name} {version} is installed"
     # Methods should not have a hint template.
     self.assertEqual(lin_problem, self.lin_method.hint.problem)
     self.assertFalse(self.lin_method.hint.hinter.template)
@@ -213,7 +213,7 @@ class HintDefinitionTests(ChecksTestBase):
   def testOverlayHintConfig(self):
     generic_problem = "Malicious software."
     java_problem = "Old Java installation."
-    generic_format = "{{ name }} {{ version }} is installed"
+    generic_format = "{name} {version} is installed"
     # Methods should not have a hint template.
     self.assertEqual(generic_problem, self.win_method.hint.problem)
     self.assertFalse(self.win_method.hint.hinter.template)

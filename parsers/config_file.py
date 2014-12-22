@@ -12,9 +12,6 @@ class SshdConfigParser(parsers.FileParser):
   supported_artifacts = ["SshdConfigFile", "SshdConfigCmd"]
   # Specify the values that are boolean or integer. Anything else is a string.
   _integers = ["clientalivecountmax",
-               "clientaliveinterval",
-               "keyregenerationinterval",
-               "logingracetime",
                "magicudsport",
                "maxauthtries",
                "maxsessions",
@@ -187,7 +184,9 @@ class SshdConfigParser(parsers.FileParser):
     _, _ = stat, knowledge_base
     # Clean out any residual state.
     self.Flush()
-    for line in file_object:
+    # for line in file_object:
+    lines = [l.strip() for l in file_object.read(100000).splitlines()]
+    for line in lines:
       # Remove comments (will break if it includes a quoted/escaped #)
       line = line.split("#")[0].strip()
       if line:
