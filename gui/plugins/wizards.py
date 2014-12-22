@@ -9,6 +9,7 @@ from grr.lib import rdfvalue
 class WizardRenderer(renderers.TemplateRenderer):
   """This renderer creates a wizard."""
 
+  render_as_modal = True
   current_page = 0
 
   # WizardPage objects that defined this wizard's behaviour.
@@ -19,11 +20,12 @@ class WizardRenderer(renderers.TemplateRenderer):
   wizard_name = "wizard"
 
   layout_template = renderers.Template("""
-<div id="Wizard_{{unique|escape}}" class="Wizard modal-dialog FormData"
+<div id="Wizard_{{unique|escape}}"
+  class="Wizard{% if this.render_as_modal %} modal-dialog{% endif %} FormData"
   data-current='{{this.current_page|escape}}'
   data-max_page='{{this.max_pages|escape}}'
   >
-<div class="modal-content">
+{% if this.render_as_modal %}<div class="modal-content">{% endif %}
 
 {% for i, page, page_cls, page_renderer in this.raw_pages %}
   <div id="Page_{{i|escape}}" class="WizardPage"
@@ -61,7 +63,7 @@ class WizardRenderer(renderers.TemplateRenderer):
     </ul>
   </div>
 
-</div>
+{% if this.render_as_modal %}</div>{% endif %}
 </div>
 """)
 

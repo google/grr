@@ -1,12 +1,17 @@
 <table class="proto_table">
   <tbody>
-    <tr ng-repeat="item in items">
-      <td class="proto_key" ng-if="item.desc">
-        <abbr title="{$ item.desc $}">{$ item.key $}</abbr>
+    <tr ng-repeat="item in ::controller.items">
+      <td class="proto_key" ng-if="::item.desc !== undefined">
+        <abbr title="{$ ::item.desc $}">{$ ::item.key $}</abbr>
       </td>
-      <td class="proto_key" ng-if="!item.desc">{$ item.key $}</td>
+      <td class="proto_key" ng-if="::item.desc === undefined">{$ ::item.key $}</td>
 
-      <td class="proto_value"><grr-semantic-value value="item.value" /></td>
+      <td ng-if="::item.fetch_more_url !== undefined" class="proto_value">
+        List was truncated. More data actually available...
+      </td>
+      <td ng-if="::item.fetch_more_url === undefined" class="proto_value">
+        <grr-semantic-value ng-if="::item.value !== undefined" value="::item.value" />
+      </td>
     </tr>
   </tbody>
 </table>

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""This modules contains tests for AFF4 API renderers."""
+"""This modules contains tests for hunts API renderers."""
 
 
 
@@ -42,7 +42,7 @@ class ApiHuntsListRendererTest(test_lib.GRRBaseTest):
       self.CreateSampleHunt("hunt_%d" % i)
 
     result = self.renderer.Render(utils.DataObject(token=self.token))
-    descriptions = set(r["description"] for r in result)
+    descriptions = set(r["summary"]["description"] for r in result)
 
     self.assertEqual(len(descriptions), 10)
     for i in range(10):
@@ -54,7 +54,7 @@ class ApiHuntsListRendererTest(test_lib.GRRBaseTest):
         self.CreateSampleHunt("hunt_%d" % i)
 
     result = self.renderer.Render(utils.DataObject(token=self.token))
-    create_times = [r["create_time"] for r in result]
+    create_times = [r["summary"]["create_time"] for r in result]
 
     self.assertEqual(len(create_times), 10)
     for index, expected_time in enumerate(reversed(range(10))):
@@ -67,7 +67,7 @@ class ApiHuntsListRendererTest(test_lib.GRRBaseTest):
 
     result = self.renderer.Render(utils.DataObject(
         offset=2, count=2, token=self.token))
-    create_times = [r["create_time"] for r in result]
+    create_times = [r["summary"]["create_time"] for r in result]
 
     self.assertEqual(len(create_times), 2)
     self.assertEqual(create_times[0], 7 * 1000000000)

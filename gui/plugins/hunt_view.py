@@ -5,7 +5,6 @@
 
 
 import collections as py_collections
-import operator
 import StringIO
 import urllib
 
@@ -14,7 +13,6 @@ import logging
 
 from grr.gui import plot_lib
 from grr.gui import renderers
-from grr.gui.plugins import crash_view
 from grr.gui.plugins import fileview
 from grr.gui.plugins import foreman
 from grr.gui.plugins import forms
@@ -24,58 +22,22 @@ from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flow
-from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import utils
 
 
-class ManageHunts(renderers.Splitter2Way):
-  """Manages Hunts GUI Screen."""
+class ManageHunts(renderers.AngularDirectiveRenderer):
   description = "Hunt Manager"
   behaviours = frozenset(["General"])
-  top_renderer = "HuntTable"
-  bottom_renderer = "HuntViewTabs"
 
-  context_help_url = "user_manual.html#_creating_a_hunt"
-
-  layout_template = (renderers.Splitter2Way.layout_template +
-                     renderers.TemplateRenderer.help_template)
-
-  def Layout(self, request, response):
-    response = super(ManageHunts, self).Layout(request, response)
-    return self.CallJavascript(response, "ManageHunts.Layout")
-
-
-class HuntStateIcon(semantic.RDFValueRenderer):
-  """Render the hunt state by using an icon.
-
-  This class is similar to FlowStateIcon, but it also adds STATE_STOPPED
-  state for hunts that were created but not yet started (because of lack of
-  approval, for example).
-  """
-
-  layout_template = renderers.Template("""
-<div class="centered hunt-state-icon" state="{{this.state_str|escape}}">
-<img class='grr-icon grr-flow-icon'
-  src='/static/images/{{this.icon|escape}}' />
-</div>
-""")
-
-  # Maps the flow states to icons we can show
-  state_map = {"STOPPED": "stock_yes.png",
-               "STARTED": "clock.png",
-               "PAUSED": "pause.png"}
-
-  def Layout(self, request, response):
-    self.state_str = str(self.proxy)
-    self.icon = self.state_map.get(self.proxy, "question-red.png")
-    return super(HuntStateIcon, self).Layout(request, response)
+  directive = "grr-hunts-view"
 
 
 class RunHuntConfirmationDialog(renderers.ConfirmationDialogRenderer):
   """Dialog that asks confirmation to run a hunt and actually runs it."""
   post_parameters = ["hunt_id"]
 
+  inner_dialog_only = True
   header = "Run a hunt?"
 
   content_template = renderers.Template("""
@@ -101,6 +63,7 @@ class PauseHuntConfirmationDialog(renderers.ConfirmationDialogRenderer):
   """Dialog that asks confirmation to pause a hunt and actually runs it."""
   post_parameters = ["hunt_id"]
 
+  inner_dialog_only = True
   header = "Pause a hunt?"
 
   content_template = renderers.Template("""
@@ -126,6 +89,7 @@ class ModifyHuntDialog(renderers.ConfirmationDialogRenderer):
   """Dialog that allows user to modify certain hunt parameters."""
   post_parameters = ["hunt_id"]
 
+  inner_dialog_only = True
   header = "Modify a hunt"
   proceed_button_title = "Modify!"
 
@@ -178,6 +142,7 @@ class DeleteHuntDialog(renderers.ConfirmationDialogRenderer):
   """Dialog that confirms deletion of a hunt."""
   post_parameters = ["hunt_id"]
 
+  inner_dialog_only = True
   header = "Delete a hunt"
   proceed_button_title = "Delete!"
 
@@ -202,204 +167,6 @@ hunts can only be deleted if there are no results. </p>
                            hunt_urn=rdfvalue.RDFURN(request.REQ.get("hunt_id")))
     return self.RenderFromTemplate(self.ajax_template, response,
                                    unique=self.unique)
-
-
-class HuntTable(fileview.AbstractFileTable):
-  """Show all hunts."""
-  selection_publish_queue = "hunt_select"
-  custom_class = "HuntTable"
-  layout_template = """
-<div id="new_hunt_dialog_{{unique|escape}}"
-  class="modal wide-modal high-modal" update_on_show="true"
-  tabindex="-1" role="dialog" aria-hidden="true">
-</div>
-
-<div id="run_hunt_dialog_{{unique|escape}}"
-  class="modal" tabindex="-1" role="dialog" aria-hidden="true">
-</div>
-
-<div id="pause_hunt_dialog_{{unique|escape}}"
-  class="modal" tabindex="-1" role="dialog" aria-hidden="true">
-</div>
-
-<div id="modify_hunt_dialog_{{unique|escape}}"
-  class="modal" tabindex="-1" role="dialog" aria-hidden="true">
-</div>
-
-<div id="delete_hunt_dialog_{{unique|escape}}"
-  class="modal" tabindex="-1" role="dialog" aria-hidden="true">
-</div>
-
-<ul class="breadcrumb">
-  <li>
-  <button id='new_hunt_{{unique|escape}}' title='New Hunt'
-    class="btn btn-default" name="NewHunt" data-toggle="modal"
-    data-target="#new_hunt_dialog_{{unique|escape}}">
-    <img src='/static/images/new.png' class='toolbar_icon'>
-  </button>
-
-  <div class="btn-group">
-
-  <button id='run_hunt_{{unique|escape}}' title='Run Hunt'
-    class="btn btn-default" disabled="yes" name="RunHunt" data-toggle="modal"
-    data-target="#run_hunt_dialog_{{unique|escape}}">
-    <img src='/static/images/play_button.png' class='toolbar_icon'>
-  </button>
-
-  <button id='pause_hunt_{{unique|escape}}' title='Pause Hunt'
-    class="btn btn-default" disabled="yes" name="PauseHunt" data-toggle="modal"
-    data-target="#pause_hunt_dialog_{{unique|escape}}">
-    <img src='/static/images/pause_button.png' class='toolbar_icon'>
-  </button>
-
-  <button id='modify_hunt_{{unique|escape}}' title='Modify Hunt'
-    class="btn btn-default" disabled="yes" name="ModifyHunt" data-toggle="modal"
-    data-target="#modify_hunt_dialog_{{unique|escape}}">
-    <img src='/static/images/modify.png' class='toolbar_icon'>
-  </button>
-
-  <button id='toggle_robot_hunt_display_{{unique|escape}}'
-    title='Show/Hide Automated hunts'
-    class="btn btn-default" name="ToggleRobotHuntDisplay">
-    <img src='/static/images/robot.png' class='toolbar_icon'>
-  </button>
-
-  <button id='delete_hunt_{{unique|escape}}' title='Delete Hunt'
-    class="btn btn-default" disabled="yes" name="DeleteHunt" data-toggle="modal"
-    data-target="#delete_hunt_dialog_{{unique|escape}}">
-    <img src='/static/images/editdelete.png' class='toolbar_icon'>
-  </button>
-
-  </div>
-
-  <div class="new_hunt_dialog" id="new_hunt_dialog_{{unique|escape}}"
-    class="hide" />
-  </li>
-</ul>
-""" + fileview.AbstractFileTable.layout_template
-
-  root_path = "aff4:/hunts"
-
-  def __init__(self, **kwargs):
-    super(HuntTable, self).__init__(**kwargs)
-    self.AddColumn(semantic.RDFValueColumn(
-        "Status", renderer=HuntStateIcon, width="40px"))
-
-    # The hunt id is the AFF4 URN for the hunt object.
-    self.AddColumn(semantic.RDFValueColumn(
-        "Hunt ID", renderer=semantic.SubjectRenderer))
-    self.AddColumn(semantic.RDFValueColumn("Name"))
-    self.AddColumn(semantic.RDFValueColumn("Start Time", width="16em"))
-    self.AddColumn(semantic.RDFValueColumn("Expires", width="16em"))
-    self.AddColumn(semantic.RDFValueColumn("Client Limit"))
-    self.AddColumn(semantic.RDFValueColumn("Creator"))
-    self.AddColumn(semantic.RDFValueColumn("Description", width="100%"))
-
-  def Layout(self, request, response):
-    response = super(HuntTable, self).Layout(request, response)
-    return self.CallJavascript(response, "HuntTable.Layout")
-
-  def BuildTable(self, start_row, end_row, request):
-    fd = aff4.FACTORY.Open("aff4:/hunts", mode="r", token=request.token)
-    try:
-      children = list(fd.ListChildren())
-      nr_hunts = len(children)
-
-      children.sort(key=operator.attrgetter("age"), reverse=True)
-      children = children[start_row:end_row]
-
-      hunt_list = []
-
-      for hunt in fd.OpenChildren(children=children):
-        # Skip hunts that could not be unpickled.
-        if not isinstance(hunt, hunts.GRRHunt) or not hunt.state:
-          continue
-
-        hunt.create_time = hunt.GetRunner().context.create_time
-        hunt_list.append(hunt)
-
-      hunt_list.sort(key=lambda x: x.create_time, reverse=True)
-
-      could_not_display = []
-      row_index = start_row
-      for hunt_obj in hunt_list:
-        if not isinstance(hunt_obj, hunts.GRRHunt):
-          could_not_display.append((hunt_obj, "Object is not a valid hunt."))
-          continue
-
-        if hunt_obj.state.Empty():
-          logging.error("Hunt without a valid state found: %s", hunt_obj)
-          could_not_display.append((hunt_obj,
-                                    "Hunt doesn't have a valid state."))
-          continue
-
-        runner = hunt_obj.GetRunner()
-        description = (runner.args.description or
-                       hunt_obj.__class__.__doc__.split("\n", 1)[0])
-
-        self.AddRow({"Hunt ID": hunt_obj.urn,
-                     "Name": hunt_obj.__class__.__name__,
-                     "Status": hunt_obj.Get(hunt_obj.Schema.STATE),
-                     "Start Time": runner.context.start_time,
-                     "Expires": runner.context.expires,
-                     "Client Limit": runner.args.client_limit,
-                     "Creator": runner.context.creator,
-                     "Description": description},
-                    row_index=row_index)
-
-        # Hide automated hunts by default
-        if runner.context.creator == "GRRWorker":
-          self.SetRowClass(row_index, "robot-hunt hide")
-
-        row_index += 1
-
-      for hunt_obj, reason in could_not_display:
-        self.AddRow({"Hunt ID": hunt_obj.urn,
-                     "Description": reason},
-                    row_index=row_index)
-        row_index += 1
-
-    except IOError as e:
-      logging.error("Bad hunt %s", e)
-
-    return nr_hunts >= end_row
-
-
-class HuntViewTabs(renderers.TabLayout):
-  """Show a tabset to inspect the selected hunt.
-
-  Listening Javascript Events:
-    - file_select(aff4_path, age) - A selection event on the hunt table
-      informing us of a new hunt to show. We redraw the entire bottom right
-      side using a new renderer.
-
-  """
-
-  names = ["Overview", "Log", "Errors", "Graph", "Results", "Stats",
-           "Crashes", "Outstanding", "Context Detail"]
-  delegated_renderers = ["HuntOverviewRenderer", "HuntLogRenderer",
-                         "HuntErrorRenderer",
-                         "HuntClientGraphRenderer", "HuntResultsRenderer",
-                         "HuntStatsRenderer", "HuntCrashesRenderer",
-                         "HuntOutstandingRenderer", "HuntContextView"]
-
-  empty_template = renderers.Template("""
-<div class="padded" id="{{unique|escape}}">
-<p>Please select a hunt to see its details here.</p>
-</div>
-""")
-
-  post_parameters = ["hunt_id"]
-
-  def Layout(self, request, response):
-    hunt_id = request.REQ.get("hunt_id")
-    if hunt_id:
-      response = super(HuntViewTabs, self).Layout(request, response)
-    else:
-      response = super(HuntViewTabs, self).Layout(
-          request, response, apply_template=self.empty_template)
-
-    return self.CallJavascript(response, "HuntViewTabs.Layout")
 
 
 class ManageHuntsClientView(renderers.Splitter2Way):
@@ -1185,7 +952,7 @@ class HuntStatsRenderer(renderers.TemplateRenderer):
   <tbody>
   {% for r in this.stats.worst_performers %}
     <tr>
-      <td>{{r.client_html|safe}}</td>
+      <td><a client_id="{{r.client_id|escape}}">{{r.client_id|escape}}</a></td>
       <td>{{r.cpu_usage.user_cpu_time|floatformat}}</td>
       <td>{{r.cpu_usage.system_cpu_time|floatformat}}</td>
       <td>{{r.network_bytes_sent|escape}}</td>
@@ -1216,9 +983,6 @@ class HuntStatsRenderer(renderers.TemplateRenderer):
           raise IOError("No valid state could be found.")
 
         self.stats = hunt.state.context.usage_stats
-        for item in self.stats.worst_performers:
-          renderer = semantic.FindRendererForObject(item.client_id)
-          item.client_html = renderer.RawHTML()
 
         self.user_cpu_json_data = self._HistogramToJSON(
             self.stats.user_cpu_stats.histogram)
@@ -1236,15 +1000,6 @@ class HuntStatsRenderer(renderers.TemplateRenderer):
       except IOError:
         self.layout_template = self.error_template
         return super(HuntStatsRenderer, self).Layout(request, response)
-
-
-class HuntCrashesRenderer(crash_view.ClientCrashCollectionRenderer):
-  """View launched flows in a tree."""
-
-  def Layout(self, request, response):
-    hunt_id = request.REQ.get("hunt_id")
-    self.crashes_urn = rdfvalue.RDFURN(hunt_id).Add("crashes")
-    super(HuntCrashesRenderer, self).Layout(request, response)
 
 
 class HuntOutstandingRenderer(renderers.TableRenderer):

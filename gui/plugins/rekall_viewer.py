@@ -206,7 +206,7 @@ class RekallResponseCollectionRenderer(semantic.RDFValueRenderer):
     for rekall_response in collection:
       for statement in json.loads(rekall_response.json_messages):
 
-        if len(statement) >= 1:
+        if len(statement) > 1:
           object_renderer = json_renderer.JsonObjectRenderer.FromEncoded(
               statement[1], "DataExportRenderer")(renderer="DataExportRenderer")
           statement = [object_renderer.DecodeFromJsonSafe(s, {})

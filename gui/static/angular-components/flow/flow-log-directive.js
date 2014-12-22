@@ -1,8 +1,40 @@
 'use strict';
 
+goog.provide('grrUi.flow.flowLogDirective.FlowLogController');
 goog.provide('grrUi.flow.flowLogDirective.FlowLogDirective');
 
 goog.scope(function() {
+
+
+
+/**
+ * Controller for FlowLogDirective.
+ *
+ * @constructor
+ * @param {!angular.Scope} $scope
+ * @ngInject
+ */
+grrUi.flow.flowLogDirective.FlowLogController = function($scope) {
+  /** @private {!angular.Scope} */
+  this.scope_ = $scope;
+
+  /** @type {string} */
+  this.scope_.flowUrn;
+
+  this.scope_.$watch('flowUrn', this.onFlowUrnChange.bind(this));
+};
+
+var FlowLogController =
+    grrUi.flow.flowLogDirective.FlowLogController;
+
+
+/**
+ * Handles flowUrn attribute changes.
+ * @export
+ */
+FlowLogController.prototype.onFlowUrnChange = function() {
+  this.logsUrn = this.scope_.flowUrn + '/Logs';
+};
 
 
 
@@ -16,21 +48,21 @@ goog.scope(function() {
 grrUi.flow.flowLogDirective.FlowLogDirective = function() {
   return {
     scope: {
-      flowUrn: '@'
+      flowUrn: '='
     },
     restrict: 'E',
     templateUrl: 'static/angular-components/flow/flow-log.html',
-    link: function(scope, element) {
-      scope.$watch('flowUrn', function() {
-        scope.logsUrn = scope.flowUrn + '/Logs';
-      });
-    }
+    controller: FlowLogController,
+    controllerAs: 'controller'
   };
 };
 
 
 /**
  * Directive's name in Angular.
+ *
+ * @const
+ * @export
  */
 grrUi.flow.flowLogDirective.FlowLogDirective.directive_name = 'grrFlowLog';
 

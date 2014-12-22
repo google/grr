@@ -1,8 +1,43 @@
 'use strict';
 
+goog.provide('grrUi.hunt.huntErrorsDirective.HuntErrorsController');
 goog.provide('grrUi.hunt.huntErrorsDirective.HuntErrorsDirective');
 
 goog.scope(function() {
+
+
+
+/**
+ * Controller for HuntErrorsDirective.
+ *
+ * @constructor
+ * @param {!angular.Scope} $scope
+ * @ngInject
+ */
+grrUi.hunt.huntErrorsDirective.HuntErrorsController = function($scope) {
+  /** @private {!angular.Scope} */
+  this.scope_ = $scope;
+
+  /** @type {string} */
+  this.scope_.huntUrn;
+
+  /** @export {string} */
+  this.errorsUrn;
+
+  this.scope_.$watch('huntUrn', this.onHuntUrnChange_.bind(this));
+};
+
+var HuntErrorsController = grrUi.hunt.huntErrorsDirective.HuntErrorsController;
+
+
+/**
+ * Handles huntUrn attribute changes.
+ *
+ * @private
+ */
+HuntErrorsController.prototype.onHuntUrnChange_ = function() {
+  this.errorsUrn = this.scope_.huntUrn + '/ErrorClients';
+};
 
 
 
@@ -16,21 +51,21 @@ goog.scope(function() {
 grrUi.hunt.huntErrorsDirective.HuntErrorsDirective = function() {
   return {
     scope: {
-      huntUrn: '@'
+      huntUrn: '='
     },
     restrict: 'E',
     templateUrl: 'static/angular-components/hunt/hunt-errors.html',
-    link: function(scope, element) {
-      scope.$watch('huntUrn', function() {
-        scope.errorsUrn = scope.huntUrn + '/ErrorClients';
-      });
-    }
+    controller: HuntErrorsController,
+    controllerAs: 'controller'
   };
 };
 
 
 /**
  * Directive's name in Angular.
+ *
+ * @const
+ * @export
  */
 grrUi.hunt.huntErrorsDirective.HuntErrorsDirective.directive_name =
     'grrHuntErrors';
