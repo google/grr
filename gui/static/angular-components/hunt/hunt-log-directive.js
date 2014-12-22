@@ -1,8 +1,40 @@
 'use strict';
 
+goog.provide('grrUi.hunt.huntLogDirective.HuntLogController');
 goog.provide('grrUi.hunt.huntLogDirective.HuntLogDirective');
 
 goog.scope(function() {
+
+
+
+/**
+ * Controller for HuntLogDirective.
+ *
+ * @constructor
+ * @param {!angular.Scope} $scope
+ * @ngInject
+ */
+grrUi.hunt.huntLogDirective.HuntLogController = function($scope) {
+  /** @private {!angular.Scope} */
+  this.scope_ = $scope;
+
+  /** @type {string} */
+  this.scope_.huntUrn;
+
+  this.scope_.$watch('huntUrn', this.onHuntUrnChange.bind(this));
+};
+
+var HuntLogController =
+    grrUi.hunt.huntLogDirective.HuntLogController;
+
+
+/**
+ * Handles huntUrn attribute changes.
+ * @export
+ */
+HuntLogController.prototype.onHuntUrnChange = function() {
+  this.logsUrn = this.scope_.huntUrn + '/Logs';
+};
 
 
 /**
@@ -11,20 +43,21 @@ goog.scope(function() {
  * Fills short_urn attribute of every item with a last component of
  * a full item's URN.
  *
- * @param {Array} items Array of log items.
- * @private
+ * @param {Array.<Object>} items Array of log items.
+ * @export
+ * @suppress {missingProperties} as we're working with JSON data.
  */
-grrUi.hunt.huntLogDirective.transformItems_ = function(items) {
+HuntLogController.prototype.transformItems = function(items) {
   var clientId = null;
   var highlighted = false;
   for (var i = 0; i < items.length; ++i) {
     var item = items[i];
 
     // Truncate full URN to just the last component.
-    if (item['value']['urn'] !== undefined) {
-      var components = item['value']['urn']['value'].split('/');
+    if (item.value.urn !== undefined) {
+      var components = item.value.urn.value.split('/');
       if (components.length > 0) {
-        item['shortUrn'] = components[components.length - 1];
+        item.shortUrn = components[components.length - 1];
       }
     }
 
@@ -32,8 +65,8 @@ grrUi.hunt.huntLogDirective.transformItems_ = function(items) {
     // highlight. Also show the client id only once per group
     // of messages.
     var itemClientId = null;
-    if (item['value']['client_id'] !== undefined) {
-      itemClientId = item['value']['client_id']['value'];
+    if (item.value.client_id !== undefined) {
+      itemClientId = item.value.client_id.value;
     }
 
     if (clientId !== itemClientId) {
@@ -45,6 +78,8 @@ grrUi.hunt.huntLogDirective.transformItems_ = function(items) {
 
     item.highlighted = highlighted;
   }
+
+  return items;
 };
 
 
@@ -59,23 +94,21 @@ grrUi.hunt.huntLogDirective.transformItems_ = function(items) {
 grrUi.hunt.huntLogDirective.HuntLogDirective = function() {
   return {
     scope: {
-      huntUrn: '@'
+      huntUrn: '='
     },
     restrict: 'E',
     templateUrl: 'static/angular-components/hunt/hunt-log.html',
-    link: function(scope, element) {
-      scope.$watch('huntUrn', function() {
-        scope.logsUrn = scope.huntUrn + '/Logs';
-      });
-
-      scope.transformItems = grrUi.hunt.huntLogDirective.transformItems_;
-    }
+    controller: HuntLogController,
+    controllerAs: 'controller'
   };
 };
 
 
 /**
  * Directive's name in Angular.
+ *
+ * @const
+ * @export
  */
 grrUi.hunt.huntLogDirective.HuntLogDirective.directive_name = 'grrHuntLog';
 

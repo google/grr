@@ -16,7 +16,12 @@ class YamlConfigTest(test_lib.GRRBaseTest):
     conf.DEFINE_list("Section1.test_list", ["a", "b"], "A test integer.")
     conf.DEFINE_integer("Section1.test", 0, "An integer")
     conf.DEFINE_integer("Section1.test2", 0, "An integer")
-    conf.DEFINE_string("Section2.test", None, "String")
+    self.assertRaises(config_lib.MissingConfigDefinitionError, conf.Initialize,
+                      parser=config_lib.YamlParser, data="""
+                      Section2.test: 2
+                      """)
+
+    conf.DEFINE_string("Section2.test", "", "A string")
     conf.Initialize(parser=config_lib.YamlParser, data="""
 
 # Configuration options can be written as long hand, dot separated parameters.

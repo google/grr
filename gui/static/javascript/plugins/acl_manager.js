@@ -123,6 +123,11 @@ grr.Renderer('CheckAccess', {
       openedModal.attr('update_on_show', 'false');
       openedModal.modal('hide');
 
+      // Also handle AngularJS modals.
+      $('.modal-dialog[ng-class]').each(function() {
+        $(this).scope().$parent.$dismiss();
+      });
+
       // Allow the user to request access through the dialog.
       $('#acl_dialog').modal('toggle');
     }

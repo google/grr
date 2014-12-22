@@ -1,0 +1,93 @@
+<ul class="breadcrumb">
+  <li>
+    <button class="btn btn-default" name="NewHunt"
+            title="New Hunt" ng-click="ctrl.newHunt()">
+      <img src="/static/images/new.png" class="toolbar-icon" />
+    </button>
+
+    <div class="btn-group">
+      <button class="btn btn-default" name="RunHunt"
+              title="Run Hunt" ng-disabled="ctrl.huntsByUrn[ctrl.selectedHuntUrn].summary.state != 'PAUSED' &&
+                                            ctrl.huntsByUrn[ctrl.selectedHuntUrn].summary.state != 'STOPPED'"
+              ng-click="ctrl.runHunt()">
+        <img src="/static/images/play_button.png" class="toolbar-icon" />
+      </button>
+
+      <button class="btn btn-default" name="PauseHunt"
+              title="Pause Hunt" ng-disabled="ctrl.huntsByUrn[ctrl.selectedHuntUrn].summary.state != 'STARTED'"
+              ng-click="ctrl.pauseHunt()">
+        <img src="/static/images/pause_button.png" class='toolbar-icon' />
+      </button>
+
+      <button class="btn btn-default" name="ModifyHunt"
+              title="Modify Hunt" ng-disabled="ctrl.huntsByUrn[ctrl.selectedHuntUrn].summary.state != 'PAUSED' &&
+                                               ctrl.huntsByUrn[ctrl.selectedHuntUrn].summary.state != 'STOPPED'"
+              ng-click="ctrl.modifyHunt()">
+        <img src="/static/images/modify.png" class="toolbar-icon" />
+      </button>
+
+      <button class="btn btn-default" name="DeleteHunt"
+              title="Delete Hunt" ng-disabled="ctrl.huntsByUrn[ctrl.selectedHuntUrn].summary.state != 'PAUSED' &&
+                                               ctrl.huntsByUrn[ctrl.selectedHuntUrn].summary.state != 'STOPPED'"
+              ng-click="ctrl.deleteHunt()">
+        <img src="/static/images/editdelete.png" class="toolbar-icon" />
+      </button>
+
+      <button class="btn btn-default" name="ToggleRobotHuntDisplay"
+              title="Show/Hide Automated hunts" btn-checkbox
+              ng-model="ctrl.showRobotHunts">
+        <img src="/static/images/robot.png" class="toolbar-icon" />
+      </button>
+    </div>
+  </li>
+</ul>
+<table class="table table-striped table-condensed table-hover table-bordered full-width">
+  <colgroup>
+    <col style="width: 40px"></col>
+    <col></col>
+    <col></col>
+    <col style="width: 16em"></col>
+    <col style="width: 16em"></col>
+    <col></col>
+    <col></col>
+    <col width="100%"></col>
+  </colgroup>
+  <thead>
+    <tr>
+      <th>Status</th>
+      <th>Hunt ID</th>
+      <th>Name</th>
+      <th>Start Time</th>
+      <th>Expires</th>
+      <th>Client Limit</th>
+      <th>Creator</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr grr-infinite-table grr-api-items-provider url="ctrl.huntsUrl"
+        transform-items="ctrl.transformItems(items)" trigger-update="ctrl.triggerUpdate"
+        ng-click="ctrl.selectItem(item)"
+        ng-class="{'row-selected': item.urn == ctrl.selectedHuntUrn, 'warning': item.isRobot}"
+        ng-show="ctrl.showRobotHunts || !item.isRobot">
+
+      <td>
+        <div class="centered hunt-state-icon" state="{$ ::item.summary.state $}">
+          <img ng-if="::item.summary.state == 'STOPPED'"
+               class="grr-icon grr-flow-icon" src="/static/images/stock_yes.png" />
+          <img ng-if="::item.summary.state == 'STARTED'"
+               class="grr-icon grr-flow-icon" src="/static/images/clock.png" />
+          <img ng-if="::item.summary.state == 'PAUSED'"
+               class="grr-icon grr-flow-icon" src="/static/images/pause.png" />
+        </div>
+      </td>
+      <td>{$ ::item.shortUrn $}</td>
+      <td>{$ ::item.summary.hunt_name $}</td>
+      <td><grr-timestamp value="::item.summary.create_time" /></td>
+      <td><grr-timestamp value="::item.summary.expires" /></td>
+      <td>{$ ::item.summary.client_limit $}</td>
+      <td>{$ ::item.summary.creator $}</td>
+      <td>{$ ::item.summary.description $}</td>
+    </tr>
+  </tbody>
+</table>

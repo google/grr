@@ -215,9 +215,6 @@ class Interrogate(flow.GRRFlow):
           continue
 
         if response.device:
-          # Create the raw device
-          urn = "devices/%s" % response.device
-
           pathspec = rdfvalue.PathSpec(
               path=response.device,
               pathtype=rdfvalue.PathSpec.PathType.OS)
@@ -225,11 +222,6 @@ class Interrogate(flow.GRRFlow):
           pathspec.Append(path="/",
                           pathtype=rdfvalue.PathSpec.PathType.TSK)
 
-          fd = aff4.FACTORY.Create(urn, "VFSDirectory", token=self.token)
-          fd.Set(fd.Schema.PATHSPEC(pathspec))
-          fd.Close()
-
-          # Create the TSK device
           urn = self.client.PathspecToURN(pathspec, self.client.urn)
           fd = aff4.FACTORY.Create(urn, "VFSDirectory", token=self.token)
           fd.Set(fd.Schema.PATHSPEC(pathspec))

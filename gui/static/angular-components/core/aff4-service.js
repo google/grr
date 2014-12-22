@@ -43,12 +43,16 @@ Aff4Service.prototype.processAff4Path_ = function(aff4Path) {
 /**
  * Fetches data for object at the given AFF4 path using given params.
  *
- * @param {string} aff4Path AFF4 path to the object.
+ * @param {?string} aff4Path AFF4 path to the object.
  * @param {?Object.<string, string>} params Dictionary with query parameters.
  * @return {angular.$q.Promise} Angular's promise that will resolve to
  *     server's response.
  */
 Aff4Service.prototype.get = function(aff4Path, params) {
+  if (aff4Path === null || aff4Path === undefined) {
+    throw new Error('Aff4 path can\'t be null/undefined.');
+  }
+
   var requestParams = angular.extend({}, params);
   if (grr.state.reason) {
     requestParams.reason = grr.state.reason;

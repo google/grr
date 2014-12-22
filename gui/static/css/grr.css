@@ -292,7 +292,7 @@ dd.histogram > div {
 }
 
 /* Commonly used styles */
-.toolbar_icon {
+.toolbar_icon, .toolbar-icon {
     height: 20px;
 }
 
@@ -401,7 +401,7 @@ table td {
     vertical-align: middle !important;
 }
 
-table tr.row_selected td {
+table tr.row_selected td, table tr.row-selected td {
     background-color: #d9edf7 !important;
 }
 
@@ -567,19 +567,22 @@ td.lease_available {
     width: 20ex;
 }
 
-.proto_table {
+.proto_table, .proto-table {
     width: 100%;
     border: 1px;
     border-color: #C9C9C9;;
     border-style: solid;
 }
 
-.proto_table td {
-    padding: 0px 0px;
+.proto_table td, .proto-table td {
     border: 1px solid #ddd;
 }
 
-.proto_table tr:odd {
+.proto-table.no-cell-border td {
+    border: 0;
+}
+
+.proto_table tr:odd, .proto-table tr:odd {
     background-color: #9FAFD1;
 }
 
@@ -706,4 +709,15 @@ abbr[title] {
  */
 * html .ui-autocomplete {
     height: 100px;
+}
+
+/* Turn off Angular UI modal animations */
+.modal.fade {
+  opacity: 1;
+}
+
+.modal.fade .modal-dialog, .modal.in .modal-dialog {
+  -webkit-transform: translate(0, 0);
+  -ms-transform: translate(0, 0);
+  transform: translate(0, 0);
 }

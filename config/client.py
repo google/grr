@@ -204,6 +204,9 @@ config_lib.DEFINE_string("Nanny.service_key_hive", r"%(Client.config_hive)",
 config_lib.DEFINE_string("Nanny.statusfile", "%(Logging.path)/nanny.status",
                          "The file where we write the nanny status.")
 
+config_lib.DEFINE_string("Nanny.status", "",
+                         "The regkey where we write the nanny status.")
+
 config_lib.DEFINE_string("Nanny.binary",
                          r"%(Client.install_path)\\%(service_binary_name)",
                          help="The full location to the nanny binary.")

@@ -128,13 +128,11 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Integer Rules")
 
     # Click the Log Tab.
-    self.Click("css=a[renderer=HuntLogRenderer]")
-    self.WaitUntil(self.IsElementPresent, "css=div[id^=HuntLogRenderer_]")
+    self.Click("css=li[heading=Log]")
     self.WaitUntil(self.IsTextPresent, "TestLogLine")
 
     # Click the Error Tab.
-    self.Click("css=a[renderer=HuntErrorRenderer]")
-    self.WaitUntil(self.IsElementPresent, "css=div[id^=HuntErrorRenderer_]")
+    self.Click("css=li[heading=Errors]")
     self.WaitUntil(self.IsTextPresent, "Client Error 1")
 
   def testToolbarStateForStoppedHunt(self):
@@ -364,7 +362,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     # Select a Hunt.
     self.Click("css=td:contains('GenericHunt')")
 
-    # Click on Modify button and check that dialog appears.
+    # Click on delete button.
     self.Click("css=button[name=DeleteHunt]")
     self.WaitUntil(self.IsTextPresent, "Delete a hunt")
 
@@ -380,6 +378,10 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     # Now create an approval.
     with self.ACLChecksDisabled():
       self.GrantHuntApproval(hunt.session_id)
+
+    # Select a hunt again, as it's deselected after approval dialog
+    # disappears. TODO(user): if this behavior is not convenient, fix it.
+    self.Click("css=td:contains('GenericHunt')")
 
     # Click on Delete button and check that dialog appears.
     self.Click("css=button[name=DeleteHunt]")
@@ -420,32 +422,24 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.Click("css=td:contains('GenericHunt')")
 
     # Click the Overview Tab then the Details Link.
-    self.Click("css=a[renderer=HuntOverviewRenderer]")
-    self.WaitUntil(self.IsElementPresent, "css=div[id^=HuntOverviewRenderer_]")
+    self.Click("css=li[heading=Overview]")
     self.WaitUntil(self.IsTextPresent, "Hunt URN")
-    self.Click("css=a[id^=ViewHuntDetails_]")
+    self.Click("css=button[name=ViewHuntDetails]")
     self.WaitUntil(self.IsTextPresent, "Viewing Hunt aff4:/hunts/")
 
     self.WaitUntil(self.IsTextPresent, "COMPLETED")
 
     # Select the first client which should have errors.
     self.Click("css=td:contains('%s')" % self.client_ids[1].Basename())
-    self.WaitUntil(self.IsElementPresent,
-                   "css=div[id^=HuntClientOverviewRenderer_]")
     self.WaitUntil(self.IsTextPresent, "Last Checkin")
 
     self.Click("css=a[renderer=HuntLogRenderer]")
-    self.WaitUntil(self.IsElementPresent, "css=div[id^=HuntLogRenderer_]")
     self.WaitUntil(self.IsTextPresent, "GetFile Flow Completed")
 
     self.Click("css=a[renderer=HuntErrorRenderer]")
-    self.WaitUntil(self.IsElementPresent, "css=div[id^=HuntErrorRenderer_]")
     self.WaitUntil(self.IsTextPresent, "Client Error 1")
 
     self.Click("css=a[renderer=HuntHostInformationRenderer]")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=div[id^=HuntHostInformationRenderer_]")
-
     self.WaitUntil(self.IsTextPresent, "CLIENT_INFO")
     self.WaitUntil(self.IsTextPresent, "VFSGRRClient")
 
@@ -461,7 +455,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.Click("css=td:contains('GenericHunt')")
 
     # Click the Results tab.
-    self.Click("css=a[renderer=HuntResultsRenderer]")
+    self.Click("css=li[heading=Results]")
 
     self.WaitUntil(self.IsTextPresent, "aff4:/sample/1")
     self.WaitUntil(self.IsTextPresent,
@@ -486,32 +480,29 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "GenericHunt")
     self.Click("css=td:contains('GenericHunt')")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=a[renderer=HuntStatsRenderer]")
     # Click the Stats tab.
-    self.Click("css=a[renderer=HuntStatsRenderer]")
-    self.WaitUntil(self.IsElementPresent, "css=div[id^=HuntStatsRenderer_]")
+    self.Click("css=li[heading=Stats]")
 
-    self.assertTrue(self.IsTextPresent("Total number of clients"))
-    self.assertTrue(self.IsTextPresent("10"))
+    self.WaitUntil(self.IsTextPresent, "Total number of clients")
+    self.WaitUntil(self.IsTextPresent, "10")
 
-    self.assertTrue(self.IsTextPresent("User CPU mean"))
-    self.assertTrue(self.IsTextPresent("5.5"))
+    self.WaitUntil(self.IsTextPresent, "User CPU mean")
+    self.WaitUntil(self.IsTextPresent, "5.5")
 
-    self.assertTrue(self.IsTextPresent("User CPU stdev"))
-    self.assertTrue(self.IsTextPresent("2.9"))
+    self.WaitUntil(self.IsTextPresent, "User CPU stdev")
+    self.WaitUntil(self.IsTextPresent, "2.9")
 
-    self.assertTrue(self.IsTextPresent("System CPU mean"))
-    self.assertTrue(self.IsTextPresent("11"))
+    self.WaitUntil(self.IsTextPresent, "System CPU mean")
+    self.WaitUntil(self.IsTextPresent, "11")
 
-    self.assertTrue(self.IsTextPresent("System CPU stdev"))
-    self.assertTrue(self.IsTextPresent("5.7"))
+    self.WaitUntil(self.IsTextPresent, "System CPU stdev")
+    self.WaitUntil(self.IsTextPresent, "5.7")
 
-    self.assertTrue(self.IsTextPresent("Network bytes sent mean"))
-    self.assertTrue(self.IsTextPresent("16.5"))
+    self.WaitUntil(self.IsTextPresent, "Network bytes sent mean")
+    self.WaitUntil(self.IsTextPresent, "16.5")
 
-    self.assertTrue(self.IsTextPresent("Network bytes sent stdev"))
-    self.assertTrue(self.IsTextPresent("8.6"))
+    self.WaitUntil(self.IsTextPresent, "Network bytes sent stdev")
+    self.WaitUntil(self.IsTextPresent, "8.6")
 
   def testDoesNotShowGenerateArchiveButtonForNonExportableRDFValues(self):
     values = [rdfvalue.Process(pid=1),
@@ -523,7 +514,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.Open("/")
     self.Click("css=a[grrtarget=ManageHunts]")
     self.Click("css=td:contains('GenericHunt')")
-    self.Click("css=a[renderer=HuntResultsRenderer]")
+    self.Click("css=li[heading=Results]")
 
     self.WaitUntil(self.IsTextPresent, "42423")
     self.WaitUntilNot(self.IsTextPresent,
@@ -536,7 +527,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.Open("/")
     self.Click("css=a[grrtarget=ManageHunts]")
     self.Click("css=td:contains('GenericHunt')")
-    self.Click("css=a[renderer=HuntResultsRenderer]")
+    self.Click("css=li[heading=Results]")
 
     self.WaitUntil(self.IsTextPresent, "Value")
     self.WaitUntilNot(self.IsTextPresent,
@@ -552,7 +543,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.Open("/")
     self.Click("css=a[grrtarget=ManageHunts]")
     self.Click("css=td:contains('GenericHunt')")
-    self.Click("css=a[renderer=HuntResultsRenderer]")
+    self.Click("css=li[heading=Results]")
 
     self.WaitUntil(self.IsTextPresent,
                    "Results of this hunt can be downloaded as an archive")
@@ -567,7 +558,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.Open("/")
     self.Click("css=a[grrtarget=ManageHunts]")
     self.Click("css=td:contains('GenericHunt')")
-    self.Click("css=a[renderer=HuntResultsRenderer]")
+    self.Click("css=li[heading=Results]")
     # Using :visible selector as we don't know which button (ZIP or TAR.GZ) will
     # be shown - it depends on the platform.
     self.Click("css=button.DownloadButton:visible")
@@ -585,7 +576,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.Open("/")
     self.Click("css=a[grrtarget=ManageHunts]")
     self.Click("css=td:contains('GenericHunt')")
-    self.Click("css=a[renderer=HuntResultsRenderer]")
+    self.Click("css=li[heading=Results]")
     # Using :visible selector as we don't know which button (ZIP or TAR.GZ) will
     # be shown - it depends on the platform.
     self.Click("css=button.DownloadButton:visible")
@@ -605,7 +596,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.Open("/")
     self.Click("css=a[grrtarget=ManageHunts]")
     self.Click("css=td:contains('GenericHunt')")
-    self.Click("css=a[renderer=HuntResultsRenderer]")
+    self.Click("css=li[heading=Results]")
     # Using :visible selector as we don't know which button (ZIP or TAR.GZ) will
     # be shown - it depends on the platform.
     self.Click("css=button.DownloadButton:visible")
@@ -632,7 +623,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.Click("css=td:contains('GenericHunt')")
 
     # Click the Results tab.
-    self.Click("css=a[renderer=HuntResultsRenderer]")
+    self.Click("css=li[heading=Results]")
     self.WaitUntil(self.IsElementPresent, "css=table[aff4_path]")
     self.WaitUntilNot(self.IsTextPresent,
                       "CSV output plugin writes to following files")
@@ -659,7 +650,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.Click("css=td:contains('GenericHunt')")
 
     # Click the Results tab.
-    self.Click("css=a[renderer=HuntResultsRenderer]")
+    self.Click("css=li[heading=Results]")
     self.WaitUntil(self.IsTextPresent,
                    "CSV output plugin writes to following files")
 
@@ -673,7 +664,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     self.Open("/#main=ManageHunts")
     self.Click("css=td:contains('GenericHunt')")
-    self.Click("css=a[renderer=HuntLogRenderer]")
+    self.Click("css=li[heading=Log]")
 
     for client_id in self.client_ids:
       self.WaitUntil(self.IsTextPresent, str(client_id))
@@ -686,7 +677,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     self.Open("/#main=ManageHunts")
     self.Click("css=td:contains('GenericHunt')")
-    self.Click("css=a[renderer=HuntLogRenderer]")
+    self.Click("css=li[heading=Log]")
 
     self.Type("css=grr-hunt-log input.search-query",
               self.client_ids[-1].Basename())
@@ -707,7 +698,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     self.Open("/#main=ManageHunts")
     self.Click("css=td:contains('GenericHunt')")
-    self.Click("css=a[renderer=HuntErrorRenderer]")
+    self.Click("css=li[heading=Errors]")
 
     for client_id in self.client_ids:
       self.WaitUntil(self.IsTextPresent, str(client_id))
@@ -718,7 +709,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     self.Open("/#main=ManageHunts")
     self.Click("css=td:contains('GenericHunt')")
-    self.Click("css=a[renderer=HuntErrorRenderer]")
+    self.Click("css=li[heading=Errors]")
 
     self.Type("css=grr-hunt-errors input.search-query",
               self.client_ids[-1].Basename())

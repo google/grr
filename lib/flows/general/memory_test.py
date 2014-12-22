@@ -504,10 +504,6 @@ class LinuxKcoreMemoryMock(action_mocks.ActionMock):
       return [rdfvalue.GrrStatus(
           status=rdfvalue.GrrStatus.ReturnedStatus.GENERIC_ERROR,
           error_message="Should use kcore device when present.")]
-    if rekall_request.address_space != "KCoreAddressSpace":
-      return [rdfvalue.GrrStatus(
-          status=rdfvalue.GrrStatus.ReturnedStatus.GENERIC_ERROR,
-          error_message="Should use kcore address space when present.")]
     response = rdfvalue.RekallResponse(json_messages="{}")
     return [response, rdfvalue.Iterator(state="FINISHED")]
 

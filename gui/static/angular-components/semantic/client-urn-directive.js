@@ -18,58 +18,76 @@ goog.scope(function() {
  * @constructor
  * @ngInject
  */
-var ClientUrnDirectiveController = function(
+var ClientUrnController = function(
     $scope, $element, $modal, grrAff4Service) {
-  this.scope = $scope;
-  this.element = $element;
-  this.modal = $modal;
-  this.grrAff4Service = grrAff4Service;
+  /** @private {!angular.Scope} */
+  this.scope_ = $scope;
 
-  this.scope.client = {
-    summary: null
-  };
+  /** @type {?} */
+  this.scope_.value;
 
-  var scope = this.scope;
-  $scope.$watch('value', function() {
-    if (angular.isObject(scope.value)) {
-      $scope.clientUrn = $scope.value.value;
-    } else {
-      $scope.clientUrn = $scope.value;
-    }
-  });
+  /** @private {!angular.JQLite} */
+  this.element_ = $element;
+
+  /** @private {!angularUi.$modal} */
+  this.modal_ = $modal;
+
+  /** @private {!grrUi.core.aff4Service.Aff4Service} */
+  this.grrAff4Service_ = grrAff4Service;
+
+  /** @export {Object} */
+  this.clientSummary;
+
+  /** @export {?string} */
+  this.clientUrn;
+
+  this.scope_.$watch('::value', this.onValueChange.bind(this));
 };
 
 
 /**
- * Called when "info" button is clicked. Shows a modal with information
- * about the client.
+ * Handles value changes.
+ *
+ * @export
  */
-ClientUrnDirectiveController.prototype.onInfoClick = function() {
-  this.scope.client.summary = null;
+ClientUrnController.prototype.onValueChange = function() {
+  if (angular.isObject(this.scope_.value)) {
+    this.clientUrn = this.scope_.value.value;
+  } else {
+    this.clientUrn = this.scope_.value;
+  }
+};
 
-  this.modal.open({
+
+/**
+ * Shows a modal with information about the client. Called when "info"
+ * button is clicked.
+ *
+ * @export
+ */
+ClientUrnController.prototype.onInfoClick = function() {
+  this.modal_.open({
     templateUrl: '/static/angular-components/semantic/client-urn-modal.html',
-    scope: this.scope
+    scope: this.scope_
   });
 
-  var scope = this.scope;
-  this.grrAff4Service.get(this.scope.clientUrn, {
-    'with_type_info': true,
-    'with_descriptors': true}).then(function(response) {
-    scope.client.summary = response.data.summary;
-  });
+  this.grrAff4Service_.get(this.clientUrn, {
+    'with_type_info': true, 'with_descriptors': true}).then(function(response) {
+      this.clientSummary = response.data.summary;
+    }.bind(this));
 };
 
 
 /**
  * Called when the link is clicked. Opens corresponding client.
+ *
+ * @export
  */
-ClientUrnDirectiveController.prototype.onLinkClick = function() {
+ClientUrnController.prototype.onLinkClick = function() {
   var hash = $.param({'main': 'HostInformation',
-    'c': this.scope.clientUrn});
+    'c': this.clientUrn});
   grr.loadFromHash(hash);
 };
-
 
 
 /**
@@ -77,27 +95,26 @@ ClientUrnDirectiveController.prototype.onLinkClick = function() {
  * opens corresponding client. There's also a little "info" button next to
  * the link that opens a modal with information about the client.
  *
- * @constructor
- * @param {!grrUi.core.aff4Service.Aff4Service} grrAff4Service
- * @ngInject
- * @export
+ * @return {!angular.Directive} Directive definition object.
  */
-grrUi.semantic.clientUrnDirective.ClientUrnDirective = function(
-    grrAff4Service) {
+grrUi.semantic.clientUrnDirective.ClientUrnDirective = function() {
   return {
     scope: {
       value: '='
     },
     restrict: 'E',
     templateUrl: '/static/angular-components/semantic/client-urn.html',
-    controller: ClientUrnDirectiveController,
-    controllerAs: 'ctrl'
+    controller: ClientUrnController,
+    controllerAs: 'controller'
   };
 };
 
 
 /**
  * Name of the directive in Angular.
+ *
+ * @const
+ * @export
  */
 grrUi.semantic.clientUrnDirective.ClientUrnDirective.directive_name =
     'grrClientUrn';

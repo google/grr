@@ -1,0 +1,45 @@
+<div class="padded">
+
+  <div ng-if="!huntUrn">
+    Please select a hunt to see its details here.
+  </div>
+
+  <tabset ng-if="huntUrn && huntUrn == controller.shownHuntUrn">
+    <tab heading="Overview">
+      <grr-hunt-overview hunt-urn="huntUrn" />
+    </tab>
+
+    <tab heading="Log" select="logTabShown = true">
+      <grr-hunt-log hunt-urn="huntUrn" ng-if="logTabShown"/>
+    </tab>
+
+    <tab heading="Errors" select="errorTabShown = true">
+      <grr-hunt-errors hunt-urn="huntUrn" ng-if="errorTabShown" />
+    </tab>
+
+    <tab heading="Graph">
+      <grr-legacy-renderer renderer="HuntClientGraphRenderer" query-params="{hunt_id: huntUrn}" />
+    </tab>
+
+    <tab heading="Results" select="resultsTabShown = true">
+      <grr-legacy-renderer renderer="HuntResultsRenderer" query-params="{hunt_id: huntUrn}" />
+    </tab>
+
+    <tab heading="Stats" select="statsTabShown = true">
+      <grr-legacy-renderer ng-if="statsTabShown" renderer="HuntStatsRenderer" query-params="{hunt_id: huntUrn}" />
+    </tab>
+
+    <tab heading="Crashes" select="crashesTabShown = true" >
+      <grr-hunt-crashes hunt-urn="huntUrn" ng-if="crashesTabShown" />
+    </tab>
+
+    <tab heading="Outstanding" select="outstandingTabShown = true">
+      <grr-legacy-renderer ng-if="outstandingTabShown" renderer="HuntOutstandingRenderer" query-params="{hunt_id: huntUrn}" />
+    </tab>
+
+    <tab heading="Context Detail" select="contextDetailTabShown = true">
+      <grr-legacy-renderer ng-if="contextDetailTabShown" renderer="HuntContextView" query-params="{hunt_id: huntUrn}" />
+    </tab>
+  </tabset>
+
+</div>

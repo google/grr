@@ -110,7 +110,8 @@ class TestAnalyzeClientMemoryWindowsDLLList(
     super(TestAnalyzeClientMemoryWindowsDLLList, self).CheckFlow()
 
     # Make sure the dlllist found our process by regex:
-    self.assertTrue(self.binaryname in unicode(self.response))
+    response_str = "".join([unicode(x) for x in self.response])
+    self.assertIn(self.binaryname, response_str)
 
 
 class TestAnalyzeClientMemoryMac(AbstractTestAnalyzeClientMemoryWindows):

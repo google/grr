@@ -527,8 +527,8 @@ grr.table.scrollHandler = function(renderer, tbody, opt_state) {
   $('.table_loading', tbody).each(function() {
     loading_offset = $(this).offset();
     elem = document.elementFromPoint(
-        loading_offset.left - $(window).scrollLeft(),
-        loading_offset.top - $(window).scrollTop());
+        loading_offset.left - $(window).scrollLeft() + 1,
+        loading_offset.top - $(window).scrollTop() + 1);
     if ($(elem).hasClass('table_loading')) {
       // Prevent scrollHandler from being called again for this "Loading..."
       // row.

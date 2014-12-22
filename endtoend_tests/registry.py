@@ -43,13 +43,10 @@ class TestFindWindowsRegistry(base.ClientTestBase):
 
       if self.local_worker:
         self.session_id = debugging.StartFlowAndWorker(
-            self.client_id, flow, cpu_limit=self.cpu_limit,
-            network_bytes_limit=self.network_bytes_limit, **args)
+            self.client_id, flow, **args)
       else:
         self.session_id = flow_utils.StartFlowAndWait(
-            self.client_id, flow_name=flow, cpu_limit=self.cpu_limit,
-            network_bytes_limit=self.network_bytes_limit, token=self.token,
-            **args)
+            self.client_id, flow_name=flow, token=self.token, **args)
 
     self.CheckFlow()
 
