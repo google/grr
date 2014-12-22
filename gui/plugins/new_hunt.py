@@ -465,6 +465,7 @@ class HuntRunStatus(HuntInformation):
 
 class NewHunt(wizards.WizardRenderer):
   """A wizard to create a new hunt."""
+  render_as_modal = False
   wizard_name = "hunt_run"
   title = "New Hunt"
   pages = [

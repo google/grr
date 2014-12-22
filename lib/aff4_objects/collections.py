@@ -9,8 +9,11 @@ import struct
 import logging
 
 from grr.lib import aff4
+from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import rdfvalue
+from grr.lib import registry
+from grr.lib import stats
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 
@@ -72,7 +75,11 @@ class RDFValueCollection(aff4.AFF4Object):
     super(RDFValueCollection, self).Flush(sync=sync)
 
   def Close(self, sync=False):
+    if self.locked:
+      sync = True
+
     self.Flush(sync=sync)
+    super(RDFValueCollection, self).Close(sync=sync)
 
   def Add(self, rdf_value=None, **kwargs):
     """Add the rdf value to the collection."""
@@ -419,6 +426,18 @@ class PackedVersionedCollection(RDFValueCollection):
   COMPACTION_BATCH_SIZE = 10000
   MAX_REVERSED_RESULTS = 10000
 
+  def Flush(self, sync=True):
+    send_notification = self._dirty
+    super(PackedVersionedCollection, self).Flush(sync=sync)
+    if send_notification:
+      self.ScheduleNotification(self.urn, token=self.token)
+
+  def Close(self, sync=True):
+    send_notification = self._dirty
+    super(PackedVersionedCollection, self).Close(sync=sync)
+    if send_notification:
+      self.ScheduleNotification(self.urn, token=self.token)
+
   def Add(self, rdf_value=None, **kwargs):
     """Add the rdf value to the collection."""
     if rdf_value is None and self._rdf_type:
@@ -429,8 +448,10 @@ class PackedVersionedCollection(RDFValueCollection):
 
     self.Set(self.Schema.DATA(payload=rdf_value))
 
-    # Let the compactor know we need compacting.
-    self.ScheduleNotification(self.urn, token=self.token)
+    self.new_items_added = True
+
+    # Update system-wide stats.
+    stats.STATS.IncrementCounter("packed_collection_added")
 
   def AddAll(self, rdf_values, callback=None):
     """Adds a list of rdfvalues to the collection."""
@@ -450,15 +471,20 @@ class PackedVersionedCollection(RDFValueCollection):
       if callback:
         callback(index, rdf_value)
 
-    # Let the compactor know we need compacting.
-    self.ScheduleNotification(self.urn, token=self.token)
+    self.new_items_added = True
 
-  def GenerateUncompactedItems(self, max_reversed_results=0):
+    # Update system-wide stats.
+    stats.STATS.IncrementCounter("packed_collection_added",
+                                 delta=len(rdf_values))
+
+  def GenerateUncompactedItems(self, max_reversed_results=0,
+                               timestamp=None):
     if self.IsAttributeSet(self.Schema.DATA):
+      freeze_timestamp = timestamp or rdfvalue.RDFDatetime().Now()
       results = []
       for _, value, _ in data_store.DB.ResolveRegex(
           self.urn, self.Schema.DATA.predicate, token=self.token,
-          timestamp=data_store.DB.ALL_TIMESTAMPS):
+          timestamp=(0, freeze_timestamp)):
 
         if results is not None:
           results.append(self.Schema.DATA(value).payload)
@@ -515,6 +541,9 @@ class PackedVersionedCollection(RDFValueCollection):
     Returns:
       Number of compacted results.
     """
+    if not self.locked:
+      raise aff4.LockError("Collection must be locked before compaction.")
+
     compacted_count = 0
 
     batches_urns = []
@@ -536,6 +565,19 @@ class PackedVersionedCollection(RDFValueCollection):
       self.size += compacted_count
       self.Flush(sync=True)
 
+    def HeartBeat():
+      """Update the lock lease if needed and call the callback."""
+      lease_time = config_lib.CONFIG["Worker.compaction_lease_time"]
+      if self.CheckLease() < lease_time / 2:
+        logging.info("%s: Extending compaction lease.", self.urn)
+        self.UpdateLease(lease_time)
+        stats.STATS.IncrementCounter("packed_collection_lease_extended")
+
+      if callback:
+        callback()
+
+    HeartBeat()
+
     # We over all versioned attributes. If we get more than
     # self.COMPACTION_BATCH_SIZE, we write the data to temporary
     # stream in the reversed order.
@@ -543,8 +585,7 @@ class PackedVersionedCollection(RDFValueCollection):
         self.urn, self.Schema.DATA.predicate, token=self.token,
         timestamp=(0, freeze_timestamp)):
 
-      if callback:
-        callback()
+      HeartBeat()
 
       current_batch.append(value)
       compacted_count += 1
@@ -605,8 +646,7 @@ class PackedVersionedCollection(RDFValueCollection):
     for batch_urn in reversed(batches_urns):
       batch = batches[batch_urn]
 
-      if callback:
-        callback()
+      HeartBeat()
 
       data = batch.Read(len(batch))
       self.fd.Write(data)
@@ -615,6 +655,11 @@ class PackedVersionedCollection(RDFValueCollection):
       aff4.FACTORY.Delete(batch_urn, token=self.token)
 
     DeleteVersionedDataAndFlush()
+
+    # Update system-wide stats.
+    stats.STATS.IncrementCounter("packed_collection_compacted",
+                                 delta=compacted_count)
+
     return compacted_count
 
   def CalculateLength(self):
@@ -666,3 +711,14 @@ class ResultsOutputCollection(PackedVersionedCollection):
     if "w" in self.mode and self.fd.size == 0:
       # We want bigger chunks as we usually expect large number of results.
       self.fd.SetChunksize(1024 * 1024)
+
+
+class CollectionsInitHook(registry.InitHook):
+
+  pre = ["StatsInit"]
+
+  def RunOnce(self):
+    """Register collections-related metrics."""
+    stats.STATS.RegisterCounterMetric("packed_collection_added")
+    stats.STATS.RegisterCounterMetric("packed_collection_compacted")
+    stats.STATS.RegisterCounterMetric("packed_collection_lease_extended")

@@ -5,8 +5,6 @@
 import functools
 import os
 
-from rekall import addrspace
-
 import logging
 
 from grr.lib import action_mocks
@@ -51,6 +49,7 @@ class RekallTestSuite(test_lib.EmptyActionTest):
     # server (since each test run gets a new temp directory).
     config_lib.CONFIG.Set("Client.rekall_profile_cache_path", self.temp_dir)
     image_path = os.path.join(self.base_path, "win7_trial_64bit.raw")
+
     self.CreateClient()
     self.CreateSignedDriver()
 
@@ -78,18 +77,6 @@ class RekallTestSuite(test_lib.EmptyActionTest):
         request=request, output="analysis/memory"):
       pass
 
-    # Check that the profiles are also cached locally.
-    test_profile_dir = os.path.join(config_lib.CONFIG["Test.data_dir"],
-                                    "profiles")
-    self.assertEqual(
-        os.stat(os.path.join(self.temp_dir, "v1.0/pe.gz")).st_size,
-        os.stat(os.path.join(test_profile_dir, "v1.0/pe.gz")).st_size)
-
-    p_name = "v1.0/nt/GUID/F8E2A8B5C9B74BF4A6E4A48F180099942.gz"
-    self.assertEqual(
-        os.stat(os.path.join(self.temp_dir, p_name)).st_size,
-        os.stat(os.path.join(test_profile_dir, p_name)).st_size)
-
 
 def RequireTestImage(f):
   """Decorator that skips tests if we don't have the memory image."""
@@ -104,44 +91,6 @@ def RequireTestImage(f):
                                    "skipping test. Download it here: "
                                    "goo.gl/19AJGl and put it in test_data.")
   return Decorator
-
-
-class DelegatingMixin(object):
-  """A mixin to delgate address space ops to the base attribute."""
-
-  def read(self, *args, **kwargs):
-    return self.base.read(*args, **kwargs)
-
-  def get_available_addresses(self):
-    return self.base.get_available_address()
-
-  def get_address_ranges(self, *args, **kwargs):
-    return self.base.get_address_ranges(*args, **kwargs)
-
-  def is_valid_address(self, *args, **kwargs):
-    return self.base.is_valid_address(*args, **kwargs)
-
-  def write(self, *args, **kwargs):
-    return self.base.write(*args, **kwargs)
-
-  def vtop(self, *args, **kwargs):
-    return self.base.vtop(*args, **kwargs)
-
-read_count = 0
-
-
-class ReadCountingAddressSpace(DelegatingMixin, addrspace.BaseAddressSpace):
-  """AddressSpace which counts reads.
-
-  Useful to verify that an instance of this addresspace as been created and
-  used.
-
-  """
-
-  def read(self, *args, **kwargs):
-    global read_count
-    read_count += 1
-    return super(ReadCountingAddressSpace, self).read(*args, **kwargs)
 
 
 class RekallTests(RekallTestSuite):
@@ -160,43 +109,6 @@ class RekallTests(RekallTestSuite):
         rdfvalue.PluginRequest(plugin="modules")]
 
     self.LaunchRekallPlugin(request)
-
-    # Get the result collection - it should be a RekallResponseCollection.
-    fd = aff4.FACTORY.Open(self.client_id.Add("analysis/memory"),
-                           token=self.token)
-
-    # Ensure that the client_id is set on each message. This helps us demux
-    # messages from different clients, when analyzing the collection from a
-    # hunt.
-    json_blobs = []
-    for x in fd:
-      self.assertEqual(x.client_urn, self.client_id)
-      json_blobs.append(x.json_messages)
-
-    json_blobs = "".join(json_blobs)
-
-    for knownresult in ["DumpIt.exe", "DumpIt.sys"]:
-      self.assertTrue(knownresult in json_blobs)
-
-  @RequireTestImage
-  def testRekallAddressSpace(self):
-    """Tests memory analysis with a custom address space."""
-    request = rdfvalue.RekallRequest()
-    request.plugins = [
-        # Only use these methods for listing processes.
-        rdfvalue.PluginRequest(
-            plugin="pslist", args=dict(
-                method=["PsActiveProcessHead", "CSRSS"]
-                )),
-        rdfvalue.PluginRequest(plugin="modules")]
-    request.address_space = "ReadCountingAddressSpace"
-
-    global read_count
-    read_count = 0
-
-    self.LaunchRekallPlugin(request)
-
-    self.assertTrue(read_count > 0)
 
     # Get the result collection - it should be a RekallResponseCollection.
     fd = aff4.FACTORY.Open(self.client_id.Add("analysis/memory"),

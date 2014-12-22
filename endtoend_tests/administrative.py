@@ -92,7 +92,7 @@ class TestLaunchBinaries(base.ClientTestBase):
     fd = aff4.FACTORY.Open(self.session_id, age=aff4.ALL_TIMES,
                            token=self.token)
     logs = "\n".join(
-        [str(x) for x in fd.GetValuesForAttribute(fd.Schema.LOG)])
+        [x.log_message for x in fd.GetLog()])
 
     self.assertTrue("Hello world" in logs)
 

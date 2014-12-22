@@ -1074,6 +1074,12 @@ class EmptyRenderer(TemplateRenderer):
 class ConfirmationDialogRenderer(TemplateRenderer):
   """Renderer used to render confirmation dialogs."""
 
+  # If this is True, the container div won't have "modal-dialog" class. This is
+  # useful when we want to render the dialog inside existing modal dialog,
+  # because having 2 nested divs both having "modal-dialog" class confuses
+  # Bootstrap.
+  inner_dialog_only = False
+
   header = None
   cancel_button_title = "Close"
   proceed_button_title = "Proceed"
@@ -1090,12 +1096,12 @@ class ConfirmationDialogRenderer(TemplateRenderer):
   content_template = Template("")
 
   layout_template = Template("""
-<div class="FormData modal-dialog">
+<div class="FormData {% if not this.inner_dialog_only %}modal-dialog{% endif %}">
   <div class="modal-content">
     {% if this.header %}
     <div class="modal-header">
       <button type="button" class="close" data-dismiss="modal"
-        aria-hidden="true">
+        aria-hidden="true" ng-click="$dismiss()">
         x
       </button>
       <h3>{{this.header|escape}}</h3>
@@ -1115,7 +1121,7 @@ class ConfirmationDialogRenderer(TemplateRenderer):
       </ul>
 
       <button class="btn btn-default" data-dismiss="modal" name="Cancel"
-        aria-hidden="true">
+        aria-hidden="true" ng-click="$dismiss()">
         {{this.cancel_button_title|escape}}</button>
       <button id="proceed_{{unique|escape}}" name="Proceed"
         class="btn btn-primary">

@@ -28,6 +28,8 @@ from grr.lib import flow
 from grr.lib import flow_runner
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
+from grr.lib import registry
+from grr.lib import stats
 from grr.lib import type_info
 from grr.lib import utils
 from grr.proto import flows_pb2
@@ -689,6 +691,9 @@ class GRRHunt(flow.GRRFlow):
         self.state.context.results_collection.AddAll(
             msgs, callback=lambda index, rdf_value: self.HeartBeat())
 
+        # Update stats.
+        stats.STATS.IncrementCounter("hunt_results_added",
+                                     delta=len(msgs))
     else:
       self.LogClientError(client_id, log_message=utils.SmartStr(
           responses.status))
@@ -859,12 +864,12 @@ class GRRHunt(flow.GRRFlow):
 
       results_metadata.Set(results_metadata.Schema.OUTPUT_PLUGINS(state))
 
-    with aff4.FACTORY.Create(
+    results_collection = aff4.FACTORY.Create(
         self.state.context.results_collection_urn, "ResultsOutputCollection",
-        mode="rw", token=self.token) as results_collection:
-      results_collection.Set(results_collection.Schema.RESULTS_SOURCE,
-                             self.urn)
-      self.state.context.Register("results_collection", results_collection)
+        mode="rw", token=self.token)
+    results_collection.Set(results_collection.Schema.RESULTS_SOURCE,
+                           self.urn)
+    self.state.context.Register("results_collection", results_collection)
 
     if not self.state.context.args.description:
       self.SetDescription()
@@ -958,3 +963,12 @@ class GRRHunt(flow.GRRFlow):
       return log_vals
     else:
       return [val for val in log_vals if val.client_id == client_id]
+
+
+class HuntInitHook(registry.InitHook):
+
+  pre = ["StatsInit"]
+
+  def RunOnce(self):
+    """Register standard hunt-related stats."""
+    stats.STATS.RegisterCounterMetric("hunt_results_added")

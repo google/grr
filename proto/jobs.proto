@@ -1239,11 +1239,6 @@ message RekallRequest {
   optional RekallProfile profile_data = 8 [(sem_type) = {
       description: "Profiles sent by the server to store on the client.",
     }];
-
-  optional string address_space = 9 [(sem_type) = {
-      description: "An address space to insert between rekall and the raw "
-      "device.",
-    }];
 }
 
 // Next field: 6

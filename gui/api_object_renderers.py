@@ -380,18 +380,36 @@ RENDERERS_CACHE = {}
 def RenderObject(obj, request=None):
   """Handler for the /api/aff4 requests."""
 
+  if obj is None:
+    return None
+
   if request is None:
     request = {}
 
-  if isinstance(obj, aff4.AFF4Object):
+  if isinstance(obj, (basestring, int, long, float)):
+    return obj
+  elif isinstance(obj, aff4.AFF4Object):
     is_aff4 = True
     key = "aff4." + obj.__class__.__name__
   elif isinstance(obj, rdfvalue.RDFValue):
     is_aff4 = False
     key = "rdfvalue." + obj.__class__.__name__
   else:
-    raise ValueError("Can't render object that's neither AFF4Object nor "
-                     "RDFValue: %s." % utils.SmartStr(obj))
+    items = getattr(obj, "items", None)
+    if items is not None:
+      result = {}
+      for k, v in items:
+        result[k] = RenderObject(v, request=request)
+      return result
+    elif hasattr(obj, "count"):
+      result = []
+      for v in obj:
+        result.append(RenderObject(v, request=request))
+      return result
+    else:
+      raise ValueError("Can't render object that's neither AFF4Object nor "
+                       "RDFValue nor list nor dict of RDFValues/AFF4Objects: "
+                       "%s." % utils.SmartStr(obj))
 
   try:
     renderer_cls = RENDERERS_CACHE[key]

@@ -1,0 +1,68 @@
+<div ng-if="huntUrn && !controller.hunt">
+  Loading...
+</div>
+
+<div ng-if="controller.hunt">
+  <button name="ViewHuntDetails" class="btn btn-info"
+          ng-click="controller.showHuntDetails()" >
+    View hunt details
+  </button><br/>
+
+  <dl class="dl-horizontal dl-hunt">
+    <dt>Name</dt>
+    <dd>{$ controller.huntSummary.hunt_name $}</dd>
+
+    <dt>Hunt ID</dt>
+    <dd>{$ controller.huntId $}</dd>
+
+    <dt>Hunt URN</dt>
+    <dd>{$ controller.hunt.urn $}</dd>
+
+    <dt>Creator</dt>
+    <dd>{$ controller.huntSummary.creator $}</dd>
+
+    <dt>Start Time</dt>
+    <dd><grr-timestamp value="controller.huntSummary.create_time" /></dd>
+
+    <dt>Expiry Time</dt>
+    <dd><grr-timestamp value="controller.huntSummary.expires" /></dd>
+
+    <dt>Status</dt>
+    <dd>{$ controller.huntSummary.state $}</dd>
+
+    <dt>Client Limit</dt>
+    <dd ng-if="!controller.huntSummary.client_limit">-</dd>
+    <dd ng-if="controller.huntSummary.client_limit">{$ controller.huntSummary.client_limit $}</dd>
+
+    <dt>Client Rate (clients/min)</dt>
+    <dd ng-if="!controller.huntSummary.client_rate">-</dd>
+    <dd ng-if="controller.huntSummary.client_rate">{$ controller.huntSummary.client_rate $}</dd>
+
+    <dt>Clients Scheduled</dt>
+    <dd>{$ controller.huntSummary.all_clients_count $}</dd>
+
+    <dt>Outstanding</dt>
+    <dd>{$ controller.huntSummary.outstanding_clients_count $}</dd>
+
+    <dt>Completed</dt>
+    <dd>{$ controller.huntSummary.completed_clients_count $}</dd>
+
+    <dt>Total CPU seconds used</dt>
+    <dd>{$ controller.huntSummary.stats.user_cpu_stats.sum | number:0 $}s</dd>
+
+    <dt>Total network traffic</dt>
+    <dd>{$ controller.huntSummary.stats.network_bytes_sent_stats.sum | number:0 $}b</dd>
+
+    <dt>Regex Rules</dt>
+    <dd ng-if="!controller.huntSummary.regex_rules.length">-</dd>
+    <dd ng-if="controller.huntSummary.regex_rules.length"><grr-semantic-value value="controller.huntSummary.regex_rules" /></dd>
+
+    <dt>Integer Rules</dt>
+    <dd ng-if="!controller.huntSummary.integer_rules.length">-</dd>
+    <dd ng-if="controller.huntSummary.integer_rules.length"><grr-semantic-value value="controller.huntSummary.integer_rules" /></dd>
+
+    <dt>Arguments</dt>
+    <dd><grr-semantic-value value="controller.huntSummary.args" /></dd>
+  </dl>
+
+</div>

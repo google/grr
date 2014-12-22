@@ -1,10 +1,19 @@
-<grr-collection-table collection-urn="{$ logsUrn $}">
-  <!-- Using 'div' and not 'td' due to problems with the way AngularJS templates
-       are handled. AngularJS templates are valid DOM trees and browser's
-       behavior is undefined when it encounters 'td' tag outside of 'tbody'
-       or 'table'. Therefore have to use 'div' with table-cell class to ensure
-       that browsers handle this template correctly. -->
-  <div class="table-cell proto_key">{$ item.flow_name $}</div>
-  <div class="table-cell proto_key">{$ item.urn $}</div>
-  <div class="table-cell proto_key">{$ item.log_message $}</div>
-</grr-collection-table>
+<table class="proto-table no-cell-border full-width">
+  <thead>
+    <tr>
+      <th>Age</th>
+      <th>Flow Name</th>
+      <th>Flow URN</th>
+      <th>Message</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr grr-paged-filtered-table grr-aff4-items-provider aff4-path="::controller.logsUrn"
+        query-params="{with_type_info: 1}">
+      <td class="table-cell proto_key"><nobr>{$ ::item.age * 1000 | date:'medium' $}</nobr></td>
+      <td class="table-cell proto_key">{$ ::item.value.flow_name $}</td>
+      <td class="table-cell proto_key">{$ ::item.urn $}</td>
+      <td class="table-cell proto_key">{$ ::item.value.log_message $}</td>
+    </tr>
+  </tbody>
+</table>

@@ -12,6 +12,8 @@ from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import rdfvalue
+from grr.lib import registry
+from grr.lib import stats
 from grr.lib import utils
 from grr.lib.aff4_objects import cronjobs
 from grr.lib.hunts import implementation
@@ -491,7 +493,13 @@ class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
 
       try:
         plugin.ProcessResponses(batch)
+
+        stats.STATS.IncrementCounter("hunt_results_ran_through_plugin",
+                                     delta=len(batch), fields=[plugin_name])
       except Exception as e:  # pylint: disable=broad-except
+        stats.STATS.IncrementCounter("hunt_output_plugin_errors",
+                                     fields=[plugin_name])
+
         logging.exception("Error processing hunt results: hunt %s, "
                           "plugin %s, batch %d", hunt_urn, plugin_name,
                           batch_index)
@@ -516,7 +524,7 @@ class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
 
     return flush_exceptions
 
-  def ProcessHuntResults(self, results):
+  def ProcessHuntResults(self, results, freeze_timestamp):
     plugins_exceptions = {}
 
     hunt_urn = results.Get(results.Schema.RESULTS_SOURCE)
@@ -524,7 +532,8 @@ class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
 
     batch_size = self.state.args.batch_size or self.DEFAULT_BATCH_SIZE
     batches = utils.Grouper(results.GenerateUncompactedItems(
-        max_reversed_results=self.MAX_REVERSED_RESULTS), batch_size)
+        max_reversed_results=self.MAX_REVERSED_RESULTS,
+        timestamp=freeze_timestamp), batch_size)
 
     with aff4.FACTORY.Open(
         metadata_urn, mode="rw", token=self.token) as metadata_obj:
@@ -596,19 +605,34 @@ class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
       aff4.ResultsOutputCollection.DeleteNotifications(
           [results_urn], end=freeze_timestamp, token=self.token)
 
-      with aff4.FACTORY.Open(results_urn,
-                             aff4_type="ResultsOutputCollection",
-                             mode="rw", token=self.token) as results:
+      # Feed the results to output plugins
+      try:
+        results = aff4.FACTORY.Open(
+            results_urn, aff4_type="ResultsOutputCollection", token=self.token)
+      except aff4.InstantiationError:  # Collection does not exist.
+        continue
 
-        exceptions_by_plugin = self.ProcessHuntResults(results)
-        if exceptions_by_plugin:
-          hunt_urn = results.Get(results.Schema.RESULTS_SOURCE)
-          exceptions_by_hunt[hunt_urn] = exceptions_by_plugin
+      exceptions_by_plugin = self.ProcessHuntResults(results, freeze_timestamp)
+      if exceptions_by_plugin:
+        hunt_urn = results.Get(results.Schema.RESULTS_SOURCE)
+        exceptions_by_hunt[hunt_urn] = exceptions_by_plugin
 
-        num_compacted = results.Compact(callback=self.HeartBeat,
-                                        timestamp=freeze_timestamp)
-        logging.debug("Compacted %d results in %s.", num_compacted,
-                      results_urn)
+      lease_time = config_lib.CONFIG["Worker.compaction_lease_time"]
+      try:
+        with aff4.FACTORY.OpenWithLock(results_urn, blocking=False,
+                                       aff4_type="ResultsOutputCollection",
+                                       lease_time=lease_time,
+                                       token=self.token) as results:
+          num_compacted = results.Compact(callback=self.HeartBeat,
+                                          timestamp=freeze_timestamp)
+          stats.STATS.IncrementCounter("hunt_results_compacted",
+                                       delta=num_compacted)
+          logging.debug("Compacted %d results in %s.", num_compacted,
+                        results_urn)
+      except aff4.LockError:
+        logging.error("Trying to compact a collection that's already "
+                      "locked: %s", results_urn)
+        stats.STATS.IncrementCounter("hunt_results_compaction_locking_errors")
 
       if self.CheckIfRunningTooLong():
         self.Log("Running for too long, skipping rest of hunts.")
@@ -886,3 +910,17 @@ class StatsHunt(implementation.GRRHunt):
         self._CallClients(client_call_list)
     else:
       self.MarkClientDone(client_id)
+
+
+class StandardHuntInitHook(registry.InitHook):
+
+  pre = ["StatsInit"]
+
+  def RunOnce(self):
+    """Register standard hunt-related stats."""
+    stats.STATS.RegisterCounterMetric("hunt_output_plugin_errors",
+                                      fields=[("plugin", str)])
+    stats.STATS.RegisterCounterMetric("hunt_results_ran_through_plugin",
+                                      fields=[("plugin", str)])
+    stats.STATS.RegisterCounterMetric("hunt_results_compacted")
+    stats.STATS.RegisterCounterMetric("hunt_results_compaction_locking_errors")
