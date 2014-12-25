@@ -190,7 +190,7 @@ class MySQLDataStore(data_store.DataStore):
     for attribute in attributes:
       timestamp = self._MakeTimestamp(start, end)
       action = "delete "
-      query, args = self._BuildQuery(action, subject, str(attribute), timestamp)
+      query, args = self._BuildQuery(action, subject, attribute, timestamp)
       self._ExecuteQuery(query, args)
 
   def DeleteAttributesRegex(self, subject, regexes, token=None):
@@ -403,6 +403,10 @@ class MySQLDataStore(data_store.DataStore):
     """Build the query to be executed"""
     args = []
     query = action
+
+    subject = utils.SmartUnicode(subject)
+    if predicate:
+      predicate = utils.SmartUnicode(predicate)
 
     #Select table
     query += "from `%s` " % self.SYSTEM_TABLE
