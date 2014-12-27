@@ -62,21 +62,16 @@ grr.labels_completer.Completer = function(dom_id, completions, split_term) {
       return false;
     },
     select: function(event, ui) {
-      if (split_term) {
-        var terms = this.value.split(split_term);
+      var terms = this.value.split(split_term);
 
-        // remove the current input
-        terms.pop();
+      // remove the current input
+      terms.pop();
 
-        // add the selected item
-        terms.push(ui.item.value);
+      // add the selected item
+      terms.push(ui.item.value);
 
-        this.value = terms.join('label:');
-        grr.forms.inputOnChange(this);
-        return false;
-      } else {
-        return true;
-      }
+      this.value = terms.join('label:');
+      grr.forms.inputOnChange(this);
     }
   });
 };

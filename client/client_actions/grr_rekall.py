@@ -64,7 +64,7 @@ class GRRObjectRenderer(data_export.NativeDataExportObjectRenderer):
         value, options)
 
   def RawHTML(self, item, **options):
-    return self._GetDelegateObjectRenderer(item).Summary(item, **options)
+    raise NotImplementedError("Not producing HTML on the client.")
 
   def Summary(self, item, **options):
     return self._GetDelegateObjectRenderer(item).Summary(item, **options)

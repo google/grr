@@ -1291,7 +1291,15 @@ class DataStoreTest(test_lib.GRRBaseTest):
 
 
 class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
-  """Long running benchmarks where the results are dumped to a CSV file."""
+  """Long running benchmarks where the results are dumped to a CSV file.
+
+  These tests are deliberately not named with the test prefix, since they need
+  to be run individually to get true performance data. Run by specifying the
+  testname with --test and setting --labels=benchmark.
+
+  The CSV output filename will be printed in a log message at the end of the
+  test.
+  """
 
   # What we consider as a big number of attributes.
   BIG_NUM_ATTRIBUTES = 1000
@@ -1752,7 +1760,10 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
 
 
 class DataStoreBenchmarks(test_lib.MicroBenchmarks):
+  """Datastore micro benchmarks.
 
+  These tests should be run with --labels=benchmark
+  """
   queue = rdfvalue.RDFURN("BENCHMARK")
   units = "s"
 

@@ -1753,3 +1753,18 @@ message ApplyLabelsToClientsFlowArgs {
     }];
   repeated string labels = 2;
 }
+
+message CheckFlowArgs {
+  repeated string only_os = 1 [(sem_type) = {
+      description: "Limit checks to hosts of OS type(s) [Linux|OSX|Windows]",
+    }];
+  repeated string only_cpe = 2 [(sem_type) = {
+      description: "Limit checks to hosts with cpe strings.",
+    }];
+  repeated string only_label = 3 [(sem_type) = {
+      description: "Limit checks to hosts with label strings.",
+    }];
+  repeated uint64 max_findings = 4 [(sem_type) = {
+      description: "Summarize checks with more than N individual findings.",
+    }];
+}

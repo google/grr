@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 """Hint processing."""
 import collections
+import string
 
-from django.template import Context
-from django.template import Template
 from grr.lib import utils
 
 
@@ -27,17 +26,29 @@ def Overlay(child, parent):
   return child
 
 
+class FormatWrapper(object):
+  """Wrapper that ensures RDF values can be queried by string format."""
+
+  def __init__(self, item):
+    self.proxy = item
+
+  def __getattr__(self, item):
+    return self.get(item)
+
+  def __getitem__(self, item):
+    return getattr(self.proxy, item)
+
+
 class Hinter(object):
+  """Applies template filters to host data."""
 
   def __init__(self, template=None):
-    self.template = None
-    if template:
-      self.template = Template(template)
+    self.template = template
 
   def Render(self, rdf_data):
     if self.template:
-      c = Context(rdf_data.AsDict())
-      result = self.template.render(c)
+      formatable = FormatWrapper(rdf_data)
+      result = string.Formatter().vformat(self.template, [], formatable)
     else:
       result = utils.SmartStr(rdf_data)
     return result

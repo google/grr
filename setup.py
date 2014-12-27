@@ -22,6 +22,22 @@ class MyBuild(build_py):
     subprocess.check_call(["make"], shell=True)
     os.chdir(base_dir)
 
+    # Sync the artifact repo with upstream. While grr can function with no
+    # artifacts, for interrogate to work we need the core artifacts to be
+    # present. Retrieving the artifacts requires internet access.
+    os.chdir("artifacts")
+    returncode = subprocess.call(["make"], shell=True)
+
+    if returncode != 0:
+      if glob.glob("*.yaml"):
+        print("\n\n!!! Couldn't retrieve artifact repository from github !!!\n"
+              "Proceeding anyway, since some artifacts are present.\n")
+      else:
+        raise RuntimeError("Couldn't retrieve artifact repository from github, "
+                           "and there are no local artifacts present.")
+
+    os.chdir(base_dir)
+
     build_py.run(self)
 
 

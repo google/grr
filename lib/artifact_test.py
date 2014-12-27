@@ -221,6 +221,39 @@ class GRRArtifactTest(ArtifactTest):
             "Bad RDFMapping, bad attribute %s for %s" %
             (aff4_attribute, rdf_name))
 
+  def testUploadArtifactYamlFile(self):
+    test_artifacts_file = os.path.join(
+        config_lib.CONFIG["Test.data_dir"], "test_artifacts.json")
+    filecontent = open(test_artifacts_file).read()
+    artifact.UploadArtifactYamlFile(filecontent, token=self.token)
+
+  def testUploadArtifactYamlFileMissingDoc(self):
+    content = """name: Nodoc
+collectors:
+- collector_type: GREP
+  args:
+    path_list: [/etc/blah]
+    content_regex_list: ["stuff"]
+supported_os: [Linux]
+"""
+
+    with self.assertRaises(artifact_lib.ArtifactDefinitionError):
+      artifact.UploadArtifactYamlFile(content, token=self.token)
+
+  def testUploadArtifactYamlFileBadList(self):
+    content = """name: BadList
+doc: here's the doc
+collectors:
+- collector_type: GREP
+  args:
+    path_list: /etc/blah
+    content_regex_list: ["stuff"]
+supported_os: [Linux]
+"""
+
+    with self.assertRaises(artifact_lib.ArtifactDefinitionError):
+      artifact.UploadArtifactYamlFile(content, token=self.token)
+
 
 class ArtifactFlowTest(ArtifactTest):
 
@@ -440,11 +473,7 @@ class GrrKbTest(ArtifactTest):
     self.SetupWindowsMocks()
     # Replace some artifacts with test one that will run the MultiProvideParser.
     self.LoadTestArtifacts()
-    artifacts = config_lib.CONFIG["Artifacts.knowledge_base"]
-    artifacts.append("DepsProvidesMultiple")  # Our test artifact.
-    artifacts.remove("WinPathEnvironmentVariable")
-    artifacts.remove("TempEnvironmentVariable")
-    config_lib.CONFIG.Set("Artifacts.knowledge_base", artifacts)
+    config_lib.CONFIG.Set("Artifacts.knowledge_base", ["DepsProvidesMultiple"])
     client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
                                           "HashBuffer", "ListDirectory",
                                           "FingerprintFile")
@@ -475,6 +504,7 @@ class GrrKbTest(ArtifactTest):
     """Check we can retrieve a Darwin kb."""
     test_lib.ClientFixture(self.client_id, token=self.token)
     self.SetDarwinClient()
+    config_lib.CONFIG.Set("Artifacts.knowledge_base", ["OSXUsers"])
     vfs.VFS_HANDLERS[
         rdfvalue.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
 

@@ -1,5 +1,5 @@
 /**
- * @license AngularJS v1.3.8-local+sha.9e6161e
+ * @license AngularJS v1.3.8-local+sha.3d78bf3
  * (c) 2010-2014 Google, Inc. http://angularjs.org
  * License: MIT
  */
@@ -839,7 +839,8 @@ angular.module('ngAnimate', ['ng'])
        * promise that was returned when the animation was started.
        *
        * ```js
-       * var promise = $animate.addClass(element, 'super-long-animation').then(function() {
+       * var promise = $animate.addClass(element, 'super-long-animation');
+       * promise.then(function() {
        *   //this will still be called even if cancelled
        * });
        *

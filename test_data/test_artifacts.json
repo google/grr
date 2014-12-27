@@ -48,7 +48,7 @@
     "collectors": [
       { "collector_type": "GRR_CLIENT_ACTION",
         "args": { "client_action": {"GetHostname"}}
-      },
+      }
     ],
     "doc": "Test no OS means all OSes.",
     "labels": [ "Software" ],

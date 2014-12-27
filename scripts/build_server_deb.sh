@@ -9,4 +9,10 @@ fi
 
 sudo rm -rf ./debian
 sudo cp -r config/debian/dpkg_server ./debian
+cd proto && make
+cd -
+
+# Internet access is required to download the latest artifacts
+cd artifacts && make
+cd -
 sudo dpkg-buildpackage -rfakeroot

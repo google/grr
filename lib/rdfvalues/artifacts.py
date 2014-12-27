@@ -178,14 +178,14 @@ class Artifact(structs.RDFProtoStruct):
     deps.update(self.GetArtifactParserDependencies())
     return deps
 
-  def Validate(self):
-    """Attempt to validate the artifact has been well defined.
+  def ValidateSyntax(self):
+    """Validate artifact syntax.
 
-    This is used to enforce Artifact rules.
+    This method can be used to validate individual artifacts as they are loaded,
+    without needing all artifacts to be loaded first, as for Validate().
 
     Raises:
       ArtifactDefinitionError: If artifact is invalid.
-
     """
     cls_name = self.name
     if not self.doc:
@@ -212,6 +212,32 @@ class Artifact(structs.RDFProtoStruct):
             "Artifact %s has an invalid label %s. Please use one from "
             "ARTIFACT_LABELS." % (cls_name, label))
 
+    for kb_var in self.provides:
+      if len(kb_var) < 3:   # Someone probably interpreted string as list.
+        raise artifact_lib.ArtifactDefinitionError(
+            "Artifact %s has broken provides. %s" % (cls_name, self.provides))
+
+    for collector in self.collectors:
+      try:
+        collector.Validate()
+      except artifact_lib.Error as e:
+        raise artifact_lib.ArtifactDefinitionError(
+            "Artifact %s has bad collector. %s" % (cls_name, e))
+
+  def Validate(self):
+    """Attempt to validate the artifact has been well defined.
+
+    This is used to enforce Artifact rules. Since it checks all dependencies are
+    present, this method can only be called once all artifacts have been loaded
+    into the registry. Use ValidateSyntax to check syntax for each artifact on
+    import.
+
+    Raises:
+      ArtifactDefinitionError: If artifact is invalid.
+    """
+    cls_name = self.name
+    self.ValidateSyntax()
+
     # Check all path dependencies exist in the knowledge base.
     valid_fields = rdfvalue.KnowledgeBase().GetKbFieldNames()
     for dependency in self.GetArtifactPathDependencies():
@@ -226,18 +252,6 @@ class Artifact(structs.RDFProtoStruct):
         raise artifact_lib.ArtifactDefinitionError(
             "Artifact %s has an invalid dependency %s . Could not find artifact"
             " definition." % (cls_name, dependency))
-
-    for collector in self.collectors:
-      try:
-        collector.Validate()
-      except artifact_lib.Error as e:
-        raise artifact_lib.ArtifactDefinitionError(
-            "Artifact %s has bad collector. %s" % (cls_name, e))
-
-    for kb_var in self.provides:
-      if len(kb_var) < 3:   # Someone probably interpreted string as list.
-        raise artifact_lib.ArtifactDefinitionError(
-            "Artifact %s has broken provides. %s" % (cls_name, self.provides))
 
 
 class Collector(structs.RDFProtoStruct):
@@ -258,6 +272,7 @@ class Collector(structs.RDFProtoStruct):
       if not isinstance(self.args.GetItem("path_list"), list):
         raise artifact_lib.ArtifactDefinitionError(
             "Arg 'path_list' that is not a list.")
+
     if self.args.GetItem("path"):
       if not isinstance(self.args.GetItem("path"), basestring):
         raise artifact_lib.ArtifactDefinitionError(
