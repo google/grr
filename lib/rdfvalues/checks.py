@@ -282,10 +282,10 @@ class Probe(structs.RDFProtoStruct):
 
   def Validate(self):
     """Check the test set is well constructed."""
-    ValidateMultiple(self.baseliner, "Probe has invalid baseline filters")
-    ValidateMultiple(self.handler, "Probe has invalid filters")
     ValidateMultiple(self.target, "Probe has invalid target")
-    ValidateMultiple(self.hint, "Probe has invalid hint")
+    self.baseliner.Validate()
+    self.handler.Validate()
+    self.hint.Validate()
 
 
 class Filter(structs.RDFProtoStruct):

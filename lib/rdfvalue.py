@@ -1013,4 +1013,12 @@ class SessionID(RDFURN):
 
 
 class FlowSessionID(SessionID):
-  pass
+
+  # TODO(user): This is code to fix some legacy issues. Remove this when all
+  # clients are built after Jan, 2013.
+
+  def ParseFromString(self, initializer=None):
+    # Old clients sometimes send bare well known flow ids e.g., CA:Enrol.
+    if not utils.SmartStr(initializer).startswith("aff4"):
+      initializer = "aff4:/flows/" + initializer
+    super(FlowSessionID, self).ParseFromString(initializer)

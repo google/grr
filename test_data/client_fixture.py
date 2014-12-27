@@ -544,6 +544,30 @@ pathspec {
 }
 """
     })),
+    (u"/fs/os/etc/ssh/sshd_config", ("VFSFile", {
+        "aff4:size": 168,
+        "aff4:stat":
+            """
+st_mode: 33261
+st_ino: 1026280
+st_dev: 51713
+st_nlink: 1
+st_uid: 0
+st_gid: 0
+st_size: 168
+st_atime: 1309034899
+st_mtime: 1285093976
+st_ctime: 1299502221
+st_blocks: 80
+st_blksize: 4096
+st_rdev: 0
+resident: "# A comment\\nProtocol 2,1\\n"
+pathspec {
+  pathtype: OS
+  path: "/etc/ssh/sshd_config"
+}
+"""
+    })),
     (u"/fs/os/etc/passwd", ("VFSFile", {
         "aff4:size": 261,
         "aff4:stat":

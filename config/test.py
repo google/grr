@@ -19,6 +19,11 @@ config_lib.DEFINE_constant_string(
     default="%(Test.srcdir)/grr/config/grr-server.yaml",
     help="The path where the test configuration file exists.")
 
+config_lib.DEFINE_constant_string(
+    "Test.additional_test_config",
+    default="%(Test.data_dir)/localtest.yaml",
+    help="The path to a test config with local customizations.")
+
 config_lib.DEFINE_string("Test.tmpdir", "/tmp/",
                          help="Somewhere to write temporary files.")
 
@@ -44,3 +49,7 @@ config_lib.DEFINE_string("Test.end_to_end_result_check_wait", "50m",
                          "check the results. Should be long enough that all "
                          "clients will have picked up the hunt, but not so "
                          "long that the flow gets timed out.")
+
+config_lib.DEFINE_string("PrivateKeys.ca_key_raw_data", "",
+                         "For testing purposes.")
+

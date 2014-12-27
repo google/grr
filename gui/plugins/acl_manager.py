@@ -69,6 +69,13 @@ class ACLDialog(renderers.TemplateRenderer):
     return self.CallJavascript(response, "ACLDialog.Layout")
 
 
+def _GetEmailCCAddress(request):
+  if request.REQ.get("cc_approval"):
+    return config_lib.CONFIG.Get("Email.approval_optional_cc_address")
+  else:
+    return None
+
+
 class ClientApprovalRequestRenderer(renderers.TemplateRenderer):
   """Make a new client authorization approval request."""
 
@@ -83,11 +90,6 @@ Client Access Request created. Please try again once an approval is granted.
     approver = request.REQ.get("approver")
     keepalive = bool(request.REQ.get("keepalive"))
 
-    if request.REQ.get("cc_approval"):
-      cc_address = config_lib.CONFIG.Get("Email.approval_optional_cc_address")
-    else:
-      cc_address = None
-
     client_id, _ = rdfvalue.RDFURN(subject).Split(2)
 
     # TODO(user): If something goes wrong here (or in similar renderers below)
@@ -98,7 +100,7 @@ Client Access Request created. Please try again once an approval is granted.
                              flow_name="RequestClientApprovalFlow",
                              reason=reason, approver=approver,
                              token=request.token,
-                             email_cc_address=cc_address,
+                             email_cc_address=_GetEmailCCAddress(request),
                              subject_urn=rdfvalue.ClientURN(client_id))
 
     if keepalive:
@@ -126,6 +128,7 @@ Hunt Access Request created. Please try again once an approval is granted.
       flow.GRRFlow.StartFlow(flow_name="RequestHuntApprovalFlow",
                              reason=reason, approver=approver,
                              token=request.token,
+                             email_cc_address=_GetEmailCCAddress(request),
                              subject_urn=rdfvalue.RDFURN(subject))
     super(HuntApprovalRequestRenderer, self).Layout(request, response)
 
@@ -148,6 +151,7 @@ Cron Job Access Request created. Please try again once an approval is granted.
       flow.GRRFlow.StartFlow(flow_name="RequestCronJobApprovalFlow",
                              reason=reason, approver=approver,
                              token=request.token,
+                             email_cc_address=_GetEmailCCAddress(request),
                              subject_urn=rdfvalue.RDFURN(subject))
     super(CronJobApprovalRequestRenderer, self).Layout(request, response)
 

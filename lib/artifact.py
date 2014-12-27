@@ -402,8 +402,9 @@ class KnowledgeBaseInitializationFlow(CollectArtifactDependencies):
     for artifact_name in kb_set:
       if artifact_name not in artifact_lib.ArtifactRegistry.artifacts:
         raise RuntimeError("Attempt to specify unknown artifact %s in "
-                           "artifact configuration parameters: " %
-                           artifact_name)
+                           "artifact configuration parameters. You may need"
+                           " to sync the artifact repo by running make in the"
+                           " artifacts directory." % artifact_name)
 
     no_deps_names = artifact_lib.ArtifactRegistry.GetArtifactNames(
         os_name=self.state.knowledge_base.os, name_list=kb_set,
@@ -440,15 +441,27 @@ def UploadArtifactYamlFile(file_content, base_urn=None, token=None,
                            overwrite=True):
   """Upload a yaml or json file as an artifact to the datastore."""
   _ = overwrite
+  loaded_artifacts = []
   if not base_urn:
     base_urn = aff4.ROOT_URN.Add("artifact_store")
+
   with aff4.FACTORY.Create(base_urn, aff4_type="RDFValueCollection",
                            token=token, mode="rw") as artifact_coll:
 
     # Iterate through each artifact adding it to the collection.
     for artifact_value in artifact_lib.ArtifactsFromYaml(file_content):
+      artifact_value.ValidateSyntax()
       artifact_coll.Add(artifact_value)
+      artifact_lib.ArtifactRegistry.RegisterArtifact(
+          artifact_value, source="datastore:%s" % base_urn,
+          overwrite_if_exists=overwrite)
+      loaded_artifacts.append(artifact_value)
       logging.info("Uploaded artifact %s to %s", artifact_value.name, base_urn)
+
+  # Once all artifacts are loaded we can validate, as validation of dependencies
+  # requires the group are all loaded before doing the validation.
+  for artifact_value in loaded_artifacts:
+    artifact_value.Validate()
 
   return base_urn
 
@@ -459,6 +472,7 @@ def LoadArtifactsFromDatastore(artifact_coll_urn=None, token=None,
   loaded_artifacts = []
   if not artifact_coll_urn:
     artifact_coll_urn = aff4.ROOT_URN.Add("artifact_store")
+
   with aff4.FACTORY.Create(artifact_coll_urn, aff4_type="RDFValueCollection",
                            token=token, mode="rw") as artifact_coll:
     for artifact_value in artifact_coll:

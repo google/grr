@@ -6,6 +6,9 @@
 
 
 import json
+import re
+
+from django.utils import html as django_html
 
 from rekall.ui import json_renderer
 
@@ -19,7 +22,23 @@ from grr.lib import rdfvalue
 from grr.lib import utils
 
 
-class GRREProcessObjectRenderer(grr_rekall.GRRObjectRenderer):
+class GRRRekallViewerRenderer(grr_rekall.GRRRekallRenderer):
+  """Spawning new renderers hierarchy for HTML rendering."""
+
+
+class GRRRekallViewerObjectRenderer(grr_rekall.GRRObjectRenderer):
+  """Spawning new hierarchy of object renderers capable of HTML rendering."""
+
+  renderers = ["GRRRekallViewerRenderer"]
+
+  def RawHTML(self, item, **options):
+    """Returns escaped object's summary."""
+    return django_html.escape(
+        utils.SmartStr(
+            self._GetDelegateObjectRenderer(item).Summary(item, **options)))
+
+
+class GRREProcessObjectRenderer(GRRRekallViewerObjectRenderer):
   """Special rendering for _EPROCESS objects."""
   renders_type = "_EPROCESS"
 
@@ -69,6 +88,31 @@ class GRREProcessObjectRenderer(grr_rekall.GRRObjectRenderer):
     return self.layout.RawHTML(this=item, data=self._Flatten("", item))
 
 
+class GRRPointerObjectRenderer(GRRRekallViewerObjectRenderer):
+  """Special rendering for Pointer objects."""
+  renders_type = "Pointer"
+
+  def RawHTML(self, item, **_):
+    """Renders the object the pointer points to."""
+    return RenderRekallObject(item["target_obj"])
+
+
+def RenderRekallObject(obj, **options):
+  """Renders encoded Rekall object with an appropriate renderer."""
+
+  renderer = json_renderer.JsonObjectRenderer.FromEncoded(
+      obj, "GRRRekallViewerRenderer")("GRRRekallViewerRenderer")
+  return renderer.RawHTML(obj, **options)
+
+
+def GetRekallObjectSummary(obj):
+  """Returns summary string for a given encoded Rekall object."""
+
+  renderer = json_renderer.JsonObjectRenderer.FromEncoded(
+      obj, "GRRRekallViewerRenderer")("GRRRekallViewerRenderer")
+  return utils.SmartStr(renderer.Summary(obj))
+
+
 class RekallTable(renderers.TemplateRenderer):
   """Renders a single Rekall Table."""
 
@@ -86,7 +130,7 @@ class RekallTable(renderers.TemplateRenderer):
       <tr>
     {% for value in row %}
         <td class="proto_value">
-          {{value|escape}}
+          {{value|safe}}
         </td>
     {% endfor %}
       </tr>
@@ -105,10 +149,7 @@ class RekallTable(renderers.TemplateRenderer):
     for column in self.column_specs:
       column_name = column.get("cname", column.get("name"))
       item = data.get(column_name)
-      object_renderer = json_renderer.JsonObjectRenderer.FromEncoded(
-          item, "GRRRekallRenderer")("GRRRekallRenderer")
-
-      row.append(object_renderer.RawHTML(item, **column))
+      row.append(RenderRekallObject(item, **column))
 
     self.rows.append(row)
 
@@ -206,12 +247,6 @@ class RekallResponseCollectionRenderer(semantic.RDFValueRenderer):
     for rekall_response in collection:
       for statement in json.loads(rekall_response.json_messages):
 
-        if len(statement) > 1:
-          object_renderer = json_renderer.JsonObjectRenderer.FromEncoded(
-              statement[1], "DataExportRenderer")(renderer="DataExportRenderer")
-          statement = [object_renderer.DecodeFromJsonSafe(s, {})
-                       for s in statement]
-
         command = statement[0]
 
         # Metadata about currently running plugin.
@@ -236,7 +271,16 @@ class RekallResponseCollectionRenderer(semantic.RDFValueRenderer):
           except IndexError:
             args = []
 
-          self.free_text.append(format_string.format(*args))
+          def FormatCallback(match):
+            arg_pos = int(match.group(1))
+            # It's ok to reference args[arg_pos] as FormatCallback is only
+            # used in the next re.sub() call and nowhere else.
+            arg = args[arg_pos]  # pylint: disable=cell-var-from-loop
+            return GetRekallObjectSummary(arg)
+
+          rendered_free_text = re.sub(r"\{(\d+)(?:\:.+?\}|\})", FormatCallback,
+                                      format_string)
+          self.free_text.append(rendered_free_text)
 
         # Errors reported from Rekall.
         elif command == "e":
@@ -274,6 +318,10 @@ class RekallResponseCollectionRenderer(semantic.RDFValueRenderer):
               rdfvalue.PathSpec(**statement[1]),
               rekall_response.client_urn)
           output_directories.add(rdfvalue.RDFURN(file_urn.Dirname()))
+
+        elif command == "p":
+          # "p" command indicates progress, we don't render it.
+          pass
 
     self._flush_table()
     self._flush_freetext()

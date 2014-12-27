@@ -6,9 +6,9 @@ method:
       os: ['Linux']
     hint:
       problem: 'l337 software installed'
-      format: '{{ name }} {{ version }} is installed'
+      format: '{name} {version} is installed'
     probe:
-      - artifact: 'SoftwarePackage'
+      - artifact: 'DebianPackagesStatus'
         mode: 'PARALLEL'
         filters:
           - type: 'ObjectFilter'
@@ -20,7 +20,7 @@ method:
       os: ['Windows']
     hint:
       problem: 'Malicious software.'
-      format: '{{ name }} {{ version }} is installed'
+      format: '{name} {version} is installed'
     probe:
       - artifact: 'WMIInstalledSoftware'
         filters:
@@ -38,7 +38,7 @@ method:
     hint:
       problem: 'Sudo not installed'
     probe:
-      - artifact: 'SoftwarePackage'
+      - artifact: 'DebianPackagesStatus'
         match: 'NONE'
         filters:
           - type: 'ObjectFilter'

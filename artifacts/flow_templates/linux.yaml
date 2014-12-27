@@ -55,4 +55,13 @@ collectors:
     cmd: /usr/bin/dpkg
 labels: [Software]
 supported_os: [Linux]
-
+---
+name: SshdConfigCmd
+doc: Output of sshd -T.
+collectors:
+- collector_type: COMMAND
+  args:
+    args: [-T]
+    cmd: /usr/sbin/sshd
+labels: [Configuration Files]
+supported_os: [Linux]
