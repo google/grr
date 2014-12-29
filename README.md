@@ -71,7 +71,7 @@ Server Features:
  * Basic system timelining features.
  * Basic reporting infrastructure.
 
-See [quickstart](https://github.com/google/grr-doc/blob/master/quickstart.adoc Quickstart) to start using it.
+See [quickstart](https://github.com/google/grr-doc/blob/master/quickstart.adoc) to start using it.
 
 Screenshots
 -----------
