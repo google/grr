@@ -77,9 +77,6 @@ config_lib.DEFINE_integer("Mysql.port", 0, "The MySQL server port.")
 config_lib.DEFINE_string("Mysql.database_name", default="grr",
                          help="Name of the database to use.")
 
-config_lib.DEFINE_string("Mysql.table_name", default="aff4",
-                         help="Name of the table to use.")
-
 config_lib.DEFINE_string("Mysql.database_username", default="root",
                          help="The user to connect to the database.")
 
