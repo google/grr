@@ -5,4 +5,4 @@ python:
   - "2.7"
 before_install: /bin/bash before_install.sh
 install: /bin/bash install.sh
-script: cd ..; PYTHONPATH=. python grr/run_tests.py --processes=1
+script: /bin/bash run_tests.sh
