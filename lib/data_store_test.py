@@ -1371,26 +1371,32 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
       which = self.rand.randint(0, 2)
       if which == 0:
         # Read all timestamps.
-        data_store.DB.ResolveRegex(subject, self.predicate_template % j,
+        data_store.DB.ResolveMulti(subject, [self.predicate_template % j],
                                    timestamp=data_store.DB.ALL_TIMESTAMPS,
                                    token=self.token)
       elif which == 1:
         # Read a specific timestamp.
         if timestamps:
           ts = self.rand.choice(timestamps)
-          data_store.DB.ResolveRegex(subject, self.predicate_template % j,
+          data_store.DB.ResolveMulti(subject, [self.predicate_template % j],
                                      timestamp=(ts, ts), token=self.token)
       elif which == 2:
         # Read latest.
         data_store.DB.Resolve(subject, self.predicate_template % j,
                               token=self.token)
       self.Register()
-    if self.rand.randint(0, 1) == 0:
+    which = self.rand.randint(0, 1)
+    if which == 0:
       # Find all attributes.
       data_store.DB.ResolveRegex(subject, "task:flow.*",
                                  timestamp=data_store.DB.NEWEST_TIMESTAMP,
                                  token=self.token)
-      self.Register()
+    elif which == 1:
+      # Find all attributes with a prefix reducable regex.
+      data_store.DB.ResolveRegex(subject, "task:.*",
+                                 timestamp=data_store.DB.NEWEST_TIMESTAMP,
+                                 token=self.token)
+    self.Register()
 
   def _ReadRandom(self, subjects, fraction, change_test=True):
     """Randomly read the database."""
@@ -1425,7 +1431,7 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
             # Add another timestamp.
             timestamp_info.append(100 * number_timestamps + 1)
             data_store.DB.Set(subject, self.predicate_template % j, new_value,
-                              timestamp=timestamp_info[-1], token=self.token)
+                              replace=False, timestamp=timestamp_info[-1], token=self.token)
             self.values += 1
             self.Register()
       elif which == 2:
@@ -1438,7 +1444,7 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
         self.predicates += 1
         values = [(new_value, t) for t in ts]
         data_store.DB.MultiSet(subject, {self.predicate_template % j: values},
-                               timestamp=100, token=self.token)
+                               replace=False, timestamp=100, token=self.token)
         self.Register()
     data_store.DB.Flush()
 
@@ -1531,7 +1537,7 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
       predicates[j] = ts
       values = [(value, t) for t in ts]
       data_store.DB.MultiSet(subject, {self.predicate_template % j: values},
-                             timestamp=100, sync=False, token=self.token)
+                             timestamp=100, replace=False, sync=False, token=self.token)
       self.Register()
     info = {"name": subject, "attrs": predicates}
     subjects[i] = info
@@ -1566,7 +1572,7 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
         values = [(new_value, t) for t in ts]
         predicates[j] = ts
         data_store.DB.MultiSet(subject, {self.predicate_template % j: values},
-                               timestamp=100, sync=False, token=self.token)
+                               replace=False, timestamp=100, sync=False, token=self.token)
         self.Register()
     data_store.DB.Flush()
 
