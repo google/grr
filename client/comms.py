@@ -408,14 +408,16 @@ class GRRClientWorker(object):
     msg = self.nanny_controller.GetNannyMessage()
     if msg:
       self.SendReply(
-          rdfvalue.DataBlob(string=msg), session_id="W:NannyMessage",
+          rdfvalue.DataBlob(string=msg),
+          session_id=rdfvalue.FlowSessionID("aff4:/flows/W:NannyMessage"),
           priority=rdfvalue.GrrMessage.Priority.LOW_PRIORITY,
           require_fastpoll=False)
       self.nanny_controller.ClearNannyMessage()
 
   def SendClientAlert(self, msg):
     self.SendReply(
-        rdfvalue.DataBlob(string=msg), session_id="W:ClientAlert",
+        rdfvalue.DataBlob(string=msg),
+        session_id=rdfvalue.FlowSessionID("aff4:/flows/W:ClientAlert"),
         priority=rdfvalue.GrrMessage.Priority.LOW_PRIORITY,
         require_fastpoll=False)
 
@@ -974,7 +976,8 @@ class GRRHTTPClient(object):
 
   def SendForemanRequest(self):
     self.client_worker.SendReply(
-        rdfvalue.DataBlob(), session_id="W:Foreman",
+        rdfvalue.DataBlob(),
+        session_id=rdfvalue.FlowSessionID("aff4:/flows/W:Foreman"),
         priority=rdfvalue.GrrMessage.Priority.LOW_PRIORITY,
         require_fastpoll=False)
 
@@ -1024,7 +1027,8 @@ class GRRHTTPClient(object):
         # more work from the foreman anyways so it's ok to drop the message.
         try:
           self.client_worker.SendReply(
-              rdfvalue.DataBlob(), session_id="W:Foreman",
+              rdfvalue.DataBlob(),
+              session_id=rdfvalue.FlowSessionID("aff4:/flows/W:Foreman"),
               priority=rdfvalue.GrrMessage.Priority.LOW_PRIORITY,
               require_fastpoll=False, blocking=False)
           self.last_foreman_check = now

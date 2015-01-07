@@ -135,12 +135,10 @@ run_cmd_confirm sudo apt-get --yes --force-yes install mongodb python-pymongo;
 sudo service mongodb start 2>/dev/null
 
 header "Installing Rekall"
-# This needs to be broken out because we expect errors sometimes and have to
-# retry without --pre.
 INSTALL_REKALL=0
 if [ ${ALL_YES} = 0 ]; then
   echo ""
-  read -p "Run sudo pip install rekall --upgrade --pre [Y/n/a]? " REPLY
+  read -p "Run sudo pip install rekall --upgrade [Y/n/a]? " REPLY
   case $REPLY in
     y|Y|'') INSTALL_REKALL=1;;
     a|A) echo "Answering yes from now on"; ALL_YES=1; INSTALL_REKALL=1;;
@@ -150,17 +148,10 @@ else
 fi
 
 if [ ${INSTALL_REKALL} = 1 ]; then
-  sudo pip install rekall --upgrade --pre
+  sudo pip install rekall --upgrade
   RETVAL=$?
   if [ $RETVAL -ne 0 ]; then
-    # One reason for failure here might be that the --pre flag is not
-    # available because the pip version is too old. In that case we
-    # retry without --pre: https://github.com/google/grr/issues/36
-    sudo pip install rekall --upgrade
-    RETVAL=$?
-    if [ $RETVAL -ne 0 ]; then
-      exit_fail sudo pip install rekall --upgrade --pre;
-    fi
+    exit_fail sudo pip install rekall --upgrade;
   fi
 fi
 

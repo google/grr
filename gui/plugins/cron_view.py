@@ -347,15 +347,17 @@ class CronConfigureSchedule(renderers.TemplateRenderer):
 class CronHuntParser(new_hunt.HuntArgsParser):
 
   def ParseCronParameters(self):
-    cron_parmeters = forms.SemanticProtoFormRenderer(
+    params = forms.SemanticProtoFormRenderer(
         rdfvalue.CreateCronJobFlowArgs(), prefix="cron").ParseArgs(
             self.request)
 
-    cron_parmeters.flow_runner_args.flow_name = "CreateAndRunGenericHuntFlow"
-    cron_parmeters.flow_args.hunt_runner_args = self.ParseHuntRunnerArgs()
-    cron_parmeters.flow_args.hunt_args = self.ParseHuntArgs()
+    params.flow_runner_args.flow_name = "CreateAndRunGenericHuntFlow"
+    params.flow_args.hunt_runner_args = self.ParseHuntRunnerArgs()
+    params.flow_args.hunt_runner_args.description = ("%s Cron" %
+                                                     params.description)
+    params.flow_args.hunt_args = self.ParseHuntArgs()
 
-    return cron_parmeters
+    return params
 
 
 class CronReview(new_hunt.HuntInformation):

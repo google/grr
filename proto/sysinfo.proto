@@ -470,8 +470,12 @@ message DNSClientConfiguration {
 // Various System Hardware
 message HardwareInfo {
 
-  optional string serial_number = 1 [(sem_type) ={
+  optional string serial_number = 1 [(sem_type) = {
       description: "Identifying/Serial Number."
+    }];
+
+  optional string system_manufacturer = 2 [(sem_type) = {
+      description: "System Manufacturer."
     }];
 
 }
