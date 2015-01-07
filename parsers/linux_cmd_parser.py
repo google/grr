@@ -48,6 +48,45 @@ class DpkgCmdParser(parsers.CommandParser):
                                        install_state=status)
 
 
+class DmidecodeCmdParser(parsers.CommandParser):
+  """Parser for dmidecode output. Yields HardwareInfo rdfvalues."""
+
+  output_types = ["HardwareInfo"]
+  supported_artifacts = ["LinuxHardwareInfo"]
+
+  def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
+            knowledge_base):
+    """Parse the dmidecode output. All data is parsed into a dictionary."""
+    _ = stderr, time_taken, args, knowledge_base  # Unused.
+    self.CheckReturn(cmd, return_val)
+    output = iter(stdout.splitlines())
+    system_information = []
+    serial_number = ""
+    system_manufacturer = ""
+
+    system_info = re.compile(r"\s*System Information")
+    for line in output:
+      if system_info.match(line):
+        # Collect all System Information until we hit a blank line.
+        while line:
+          system_information.append(line)
+          line = output.next()
+        break
+
+    system_re = re.compile(r"\s*Manufacturer: ([0-9a-zA-Z-]*)")
+    serial_re = re.compile(r"\s*Serial Number: ([0-9a-zA-Z-]*)")
+    for line in system_information:
+      match_sn = serial_re.match(line)
+      match_manf = system_re.match(line)
+      if match_sn:
+        serial_number = match_sn.groups()[0].strip()
+      elif match_manf:
+        system_manufacturer = match_manf.groups()[0].strip()
+
+    return rdfvalue.HardwareInfo(serial_number=serial_number,
+                                 system_manufacturer=system_manufacturer)
+
+
 class UserParser(parsers.GenericResponseParser):
   """Convert User to KnowledgeBaseUser for backwards compatibility."""
 

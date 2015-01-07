@@ -293,6 +293,8 @@ class VFSGRRClient(standard.VFSDirectory):
     summary.client_info = self.Get(self.Schema.CLIENT_INFO)
     summary.serial_number = self.Get(self.Schema.HARDWARE_INFO).serial_number
     summary.timestamp = self.age
+    summary.system_manufacturer = self.Get(
+        self.Schema.HARDWARE_INFO).system_manufacturer
 
     return summary
 

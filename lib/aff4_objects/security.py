@@ -353,7 +353,15 @@ class RequestApprovalWithReasonFlow(flow.GRRFlow):
                     config_lib.CONFIG.Get("Email.approval_cc_address"))
     email_cc = ",".join(filter(None, cc_addresses))
 
-    approval_request.Set(approval_request.Schema.EMAIL_CC(email_cc))
+    # When we reply with the approval we want to cc all the people to whom the
+    # original approval was sent, to avoid people approving stuff that was
+    # already approved.
+    if email_cc:
+      reply_cc = ",".join((self.args.approver, email_cc))
+    else:
+      reply_cc = self.args.approver
+
+    approval_request.Set(approval_request.Schema.EMAIL_CC(reply_cc))
 
     # We add ourselves as an approver as well (The requirement is that we have 2
     # approvers, so the requester is automatically an approver).

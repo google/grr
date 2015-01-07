@@ -447,6 +447,7 @@ class TestArtifactCollectorsRealArtifacts(CollectorTest):
     hardware = client.Get(client.Schema.HARDWARE_INFO)
     self.assertTrue(isinstance(hardware, rdfvalue.HardwareInfo))
     self.assertEqual(str(hardware.serial_number), "2RXYYZ1")
+    self.assertEqual(str(hardware.system_manufacturer), "Dell Inc.")
 
   def testRunWMIArtifact(self):
 

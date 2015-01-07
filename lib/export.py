@@ -385,8 +385,6 @@ class StatEntryToExportedFileConverter(ExportConverter):
         except KeyError:
           pass
 
-      result.metadata.annotations = u",".join(self.options.annotations)
-
       yield result
 
 
@@ -796,10 +794,11 @@ class GrrMessageConverter(ExportConverter):
     for metadata in metadata_objects:
       try:
         for original_metadata, message in msg_dict[metadata.client_urn]:
-          # Get source_urn from the original metadata provided and
-          # original_timestamp from the payload age.
+          # Get source_urn and annotations from the original metadata
+          # provided and original_timestamp from the payload age.
           new_metadata = rdfvalue.ExportedMetadata(metadata)
           new_metadata.source_urn = original_metadata.source_urn
+          new_metadata.annotations = original_metadata.annotations
           new_metadata.original_timestamp = message.payload.age
           cls_name = message.payload.__class__.__name__
 
@@ -1015,7 +1014,9 @@ class RekallResponseConverter(ExportConverter):
     attrs = {}
     for key, value in message[1].iteritems():
       if hasattr(output_class, key):
-        attrs[key] = self._RenderObject(value)
+        # ProtoString expects a unicode object, so let's convert
+        # everything to unicode strings.
+        attrs[key] = utils.SmartUnicode(self._RenderObject(value))
 
     result = output_class(**attrs)
     result.metadata = metadata
@@ -1038,6 +1039,13 @@ class RekallResponseConverter(ExportConverter):
     context_dict = dict(parsed_context_messages)
 
     for message in self._ParseJsonMessages(rekall_response.json_messages):
+      # We do not decode lexicon-based responses. If there's non empty
+      # lexicon in the message, we ignore the whole response altogether.
+      if message[0] == "l" and message[1]:
+        logging.warn("Non-empty lexicon found. Client %s is too old.",
+                     rekall_response.client_urn)
+        break
+
       if message[0] in ["s", "t"]:
         context_dict[message[0]] = message[1]
 
