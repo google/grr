@@ -101,12 +101,12 @@ class WMILogicalDisksParser(parsers.WMIQueryParser):
 
     try:
       size = int(result.get("Size"))
-    except ValueError:
+    except (ValueError, TypeError):
       size = None
 
     try:
       free_space = int(result.get("FreeSpace"))
-    except ValueError:
+    except (ValueError, TypeError):
       free_space = None
 
     # Since we don't get the sector sizes from WMI, we just set them at 1 byte
@@ -136,7 +136,8 @@ class WMIComputerSystemProductParser(parsers.WMIQueryParser):
     # Win32_ComputerSystemProduct.
     _ = query, knowledge_base
 
-    yield rdfvalue.HardwareInfo(serial_number=result["IdentifyingNumber"])
+    yield rdfvalue.HardwareInfo(serial_number=result["IdentifyingNumber"],
+                                system_manufacturer=result["Vendor"])
 
 
 class WMIInterfacesParser(parsers.WMIQueryParser):

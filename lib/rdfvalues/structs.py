@@ -345,10 +345,16 @@ class ProtoString(ProtoType):
             value.__class__ is rdfvalue.RDFString):
       raise type_info.TypeValueError("%s not a valid string" % value)
 
+    if value.__class__ is unicode:
+      return value
+
     # A String means a unicode String. We must be dealing with unicode strings
     # here and the input must be encodable as a unicode object.
     try:
-      return unicode(value)
+      try:
+        return value.__unicode__()
+      except AttributeError:
+        return unicode(value, "utf8")
     except UnicodeError:
       raise type_info.TypeValueError("Not a valid unicode string")
 

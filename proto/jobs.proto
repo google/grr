@@ -1834,6 +1834,10 @@ message ClientSummary {
   optional string serial_number = 8 [(sem_type) = {
       description: "Serial Number from HW info.",
    }];
+
+  optional string system_manufacturer = 9 [(sem_type) = {
+      description: "System Manufacturer from HW info."
+   }];
 }
 
 
