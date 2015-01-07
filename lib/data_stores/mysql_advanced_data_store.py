@@ -472,9 +472,8 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
       #Modify fields and sorting for timestamps
       if timestamp is None or timestamp == self.NEWEST_TIMESTAMP:
-        tables += " JOIN (SELECT attribute_hash, MAX(timestamp) timestamp " + tables + " " + criteria + " GROUP BY attribute_hash) maxtime on aff4.attribute_hash=maxtime.attribute_hash and aff4.timestamp=maxtime.timestamp"
-        criteria = "WHERE aff4.subject_hash=unhex(md5(%s))"
-        args.append(subject)
+        tables += " LEFT JOIN aff4 AS enf ON enf.subject_hash=aff4.subject_hash AND enf.attribute_hash=aff4.attribute_hash AND enf.timestamp>aff4.timestamp"
+        criteria += " AND enf.subject_hash is NULL"
       else:
         #Always order results
         sorting = "ORDER BY aff4.timestamp DESC"
