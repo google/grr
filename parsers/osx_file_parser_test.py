@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Tests for grr.parsers.osx_file_parser."""
 
+import os
+
 
 from grr.lib import flags
 from grr.lib import rdfvalue
@@ -35,6 +37,14 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
     self.assertItemsEqual([x.username for x in out], ["user1", "user2"])
     self.assertItemsEqual([x.homedir for x in out],
                           ["/Users/user1", "/Users/user2"])
+
+  def testOSXSPHardwareDataTypeParser(self):
+    parser = osx_file_parser.OSXSPHardwareDataTypeParser()
+    content = open(os.path.join(self.base_path, "system_profiler.xml")).read()
+    result = list(parser.Parse("/usr/sbin/system_profiler",
+                               ["SPHardwareDataType -xml"],
+                               content, "", 0, 5, None))
+    self.assertEqual(result[0].serial_number, "C02JQ0F5F6L9")
 
 
 def main(argv):

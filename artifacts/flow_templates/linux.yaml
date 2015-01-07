@@ -65,3 +65,13 @@ collectors:
     cmd: /usr/sbin/sshd
 labels: [Configuration Files]
 supported_os: [Linux]
+---
+name: LinuxHardwareInfo
+doc: dmidecode Baseboard Serial Number
+collectors:
+- collector_type: COMMAND
+  args:
+    args: [-q]
+    cmd: /usr/sbin/demidecode
+labels: [System]
+supported_os: [Linux]

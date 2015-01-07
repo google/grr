@@ -65,7 +65,9 @@ config_lib.DEFINE_list("Artifacts.knowledge_base_heavyweight",
 config_lib.DEFINE_list("Artifacts.interrogate_store_in_aff4",
                        ["WMILogicalDisks",
                         "RootDiskVolumeUsage",
-                        "WMIComputerSystemProduct"],
+                        "WMIComputerSystemProduct",
+                        "LinuxHardwareInfo",
+                        "OSXSPHardwareDataType"],
                        "Artifacts to collect during interrogate that don't"
                        " populate the knowledgebase, but store results "
                        "elsewhere in aff4.")

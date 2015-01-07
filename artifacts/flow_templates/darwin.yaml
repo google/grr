@@ -37,3 +37,14 @@ collectors:
 labels: [Users]
 supported_os: [Darwin]
 provides: [users.username]
+---
+name: OSXSPHardwareDataType
+doc: Mac OS X system profiler.
+collectors:
+- collector_type: COMMAND
+  args:
+    args: [SPHardwareDataType -xml]
+    cmd: /usr/sbin/system_profiler
+  returned_types: [HardwareInfo]
+labels: [System]
+supported_os: [Darwin]
