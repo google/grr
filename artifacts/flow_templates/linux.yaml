@@ -72,6 +72,6 @@ collectors:
 - collector_type: COMMAND
   args:
     args: [-q]
-    cmd: /usr/sbin/demidecode
+    cmd: /usr/sbin/dmidecode
 labels: [System]
 supported_os: [Linux]
