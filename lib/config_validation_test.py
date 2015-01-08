@@ -12,10 +12,6 @@ from grr.lib import test_lib
 from grr.lib import utils
 
 
-flags.PARSER.add_argument("config", nargs="?",
-                          help="Config file to parse")
-
-
 def ValidateConfig(config_file=None):
   """Iterate over all the sections in the config file and validate them."""
   logging.debug("Processing %s", config_file)
@@ -79,16 +75,7 @@ class BuildConfigTests(test_lib.GRRBaseTest):
 
 
 def main(argv):
-  config_lib.CONFIG.context = flags.FLAGS.context
-
-  if flags.FLAGS.config:
-    print "Evaluating config using the context: %s\n" % (
-        config_lib.CONFIG.context)
-
-    for error, description in ValidateConfig(flags.FLAGS.config).items():
-      print "%s: %s" % (error, description)
-  else:
-    test_lib.GrrTestProgram(argv=argv)
+  test_lib.GrrTestProgram(argv=argv)
 
 
 if __name__ == "__main__":
