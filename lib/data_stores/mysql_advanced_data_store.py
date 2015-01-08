@@ -9,6 +9,7 @@ import threading
 import thread
 import time
 import MySQLdb
+import re
 
 from MySQLdb import cursors
 
@@ -432,7 +433,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     args = []
 
     fields = ""
-    criteria = "WHERE "
+    criteria = "WHERE"
     sorting = ""
     tables = "FROM aff4"
     
@@ -441,22 +442,39 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     #Set fields, tables, and criteria and append args
     if is_regex:
       tables += " JOIN attributes ON aff4.attribute_hash=attributes.hash" 
-      parts = predicate.split(":", 1)
-      if len(parts) > 1 and (parts[1] == ".*" or parts[1] == ".+"):
-          criteria += "aff4.subject_hash=unhex(md5(%s)) AND attributes.prefix=(%s)"
-          args.append(subject)
-          args.append(parts[0])
+      regex = re.match(r'(^[a-zA-Z0-9_]+:[a-zA-Z0-9_:]*)(.*)', predicate)
+      if regex:
+        #If predicate has prefix then break down for query optimizations
+        parts = predicate.split(":", 1)
+        
+        #Add prefix usage for all regex queries
+        criteria += " aff4.subject_hash=unhex(md5(%s)) AND attributes.prefix=(%s)"
+        args.append(subject)
+        args.append(parts[0])
+        #If the remainder after prefix is not a match all regex then break it down into like and rlike components
+        if not (parts[1] == ".*" or parts[1] == ".+"):
+          like = regex.groups()[0] + "%"
+          rlike = regex.groups()[1]
+          #Add like if available
+          if like:
+            criteria += " AND attributes.attribute like %s"
+            args.append(like)
+          #add rlike if available
+          if rlike:
+            criteria += " AND attributes.attribute rlike %s"
+            args.append(rlike)
       else:
-        criteria += "aff4.subject_hash=unhex(md5(%s)) AND attributes.attribute rlike %s"
+        #If predicate has no prefix just rlike
+        criteria += " aff4.subject_hash=unhex(md5(%s)) AND attributes.attribute rlike %s"
         args.append(subject)
         args.append(predicate)
     else:
       if predicate:
-        criteria += "aff4.subject_hash=unhex(md5(%s)) AND aff4.attribute_hash=unhex(md5(%s))"
+        criteria += " aff4.subject_hash=unhex(md5(%s)) AND aff4.attribute_hash=unhex(md5(%s))"
         args.append(subject)
         args.append(predicate)
       else:
-        criteria += "aff4.subject_hash=unhex(md5(%s))"
+        criteria += " aff4.subject_hash=unhex(md5(%s))"
         args.append(subject)
 
     #Limit to time range if specified
