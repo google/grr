@@ -135,7 +135,8 @@ def IsExecutionWhitelisted(cmd, args):
         ("/sbin/auditctl", ["-l"]),
         ("/sbin/ifconfig", ["-a"]),
         ("/bin/df", []),
-        ("/sbin/dmidecode", ["-q"]),
+        ("/usr/sbin/dmidecode", ["-q"]),
+        ("/usr/sbin/sshd", ["-T"]),
     ]
   elif platform.system() == "Darwin":
     whitelist = [
