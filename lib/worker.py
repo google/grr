@@ -124,6 +124,8 @@ class GRRWorker(object):
     notifications_by_priority = queue_manager.GetNotificationsByPriority(
         self.queue)
     time_to_fetch_messages = time.time() - now
+    stats.STATS.RecordEvent("worker_time_to_retrieve_notifications",
+                            time_to_fetch_messages)
 
     # Process stuck flows first
     stuck_flows = notifications_by_priority.pop(
@@ -158,6 +160,7 @@ class GRRWorker(object):
       logging.error("Error processing message %s. %s.", e,
                     traceback.format_exc())
 
+      stats.STATS.IncrementCounter("grr_worker_exceptions")
       if flags.FLAGS.debug:
         pdb.post_mortem()
 
@@ -254,6 +257,9 @@ class GRRWorker(object):
           if not isinstance(flow_obj, flow.GRRFlow):
             logging.warn("%s is not a proper flow object (got %s)", session_id,
                          type(flow_obj))
+
+            stats.STATS.IncrementCounter("worker_bad_flow_objects",
+                                         fields=[type(flow_obj)])
             return
 
           runner = flow_obj.GetRunner()
@@ -284,7 +290,6 @@ class GRRWorker(object):
           except Exception as e:  # pylint: disable=broad-except
             runner.context.state = rdfvalue.Flow.State.ERROR
             runner.context.backtrace = traceback.format_exc()
-
             logging.error("Flow %s: %s", flow_obj, e)
             return
 
@@ -311,20 +316,31 @@ class GRRWorker(object):
                 manager.QueueNotification(
                     notification, timestamp=notification.timestamp + delay)
 
-        logging.debug("Done processing %s: %s sec", session_id,
-                      time.time() - now)
+        elapsed = time.time() - now
+        logging.debug("Done processing %s: %s sec", session_id, elapsed)
+        stats.STATS.RecordEvent("worker_flow_processing_time", elapsed,
+                                fields=[flow_obj.Name()])
 
       # Everything went well -> session can be run again.
       self.queued_flows.ExpireObject(session_id)
 
     except aff4.LockError:
       # Another worker is dealing with this flow right now, we just skip it.
+      # We expect lots of these when there are few messages (the system isn't
+      # highly loaded) but it is interesting when the system is under load to
+      # know if we are pulling the optimal number of messages off the queue.
+      # A high number of lock fails when there is plenty of work to do would
+      # indicate we are wasting time trying to process work that has already
+      # been completed by other workers.
+      stats.STATS.IncrementCounter("worker_flow_lock_error")
       return
 
     except Exception as e:    # pylint: disable=broad-except
       # Something went wrong when processing this session. In order not to spin
       # here, we just remove the notification.
       logging.exception("Error processing session %s: %s", session_id, e)
+      stats.STATS.IncrementCounter("worker_session_errors",
+                                   fields=[type(e)])
       queue_manager.DeleteNotification(session_id)
 
 
@@ -343,3 +359,14 @@ class WorkerInit(registry.InitHook):
   def RunOnce(self):
     """Exports the vars.."""
     stats.STATS.RegisterCounterMetric("grr_flows_stuck")
+    stats.STATS.RegisterCounterMetric("worker_bad_flow_objects",
+                                      fields=[("type", str)])
+    stats.STATS.RegisterCounterMetric("worker_session_errors",
+                                      fields=[("type", str)])
+    stats.STATS.RegisterCounterMetric(
+        "worker_flow_lock_error", docstring=("Worker lock failures. We expect "
+                                             "these to be high when the system"
+                                             "is idle."))
+    stats.STATS.RegisterEventMetric("worker_flow_processing_time",
+                                    fields=[("flow", str)])
+    stats.STATS.RegisterEventMetric("worker_time_to_retrieve_notifications")

@@ -1015,7 +1015,7 @@ class SessionID(RDFURN):
 class FlowSessionID(SessionID):
 
   # TODO(user): This is code to fix some legacy issues. Remove this when all
-  # clients are built after Jan, 2013.
+  # clients are built after Dec 2014.
 
   def ParseFromString(self, initializer=None):
     # Old clients sometimes send bare well known flow ids e.g., CA:Enrol.

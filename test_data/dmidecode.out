@@ -1,0 +1,1040 @@
+BIOS Information
+    Vendor: Hewlett-Packard
+    Version: J61 v02.08
+    Release Date: 10/17/2012
+    Address: 0xF0000
+    Runtime Size: 64 kB
+    ROM Size: 16384 kB
+    Characteristics:
+        PCI is supported
+        PNP is supported
+        BIOS is upgradeable
+        BIOS shadowing is allowed
+        Boot from CD is supported
+        Selectable boot is supported
+        EDD is supported
+        Print screen service is supported (int 5h)
+        8042 keyboard services are supported (int 9h)
+        Serial services are supported (int 14h)
+        Printer services are supported (int 17h)
+        ACPI is supported
+        USB legacy is supported
+        BIOS boot specification is supported
+        Function key-initiated network boot is supported
+        Targeted content distribution is supported
+        UEFI is supported
+    BIOS Revision: 2.8
+
+System Information
+    Manufacturer: Hewlett-Packard
+    Product Name: HP Z420 Workstation
+    Version: Not Specified
+    Serial Number: 2UA25107BB
+    UUID: 4596BF80-41F0-11E2-A3B4-10604B5C7F38
+    Wake-up Type: Power Switch
+    SKU Number: C2R51UC#ABA
+    Family: 103C_53335X G=D
+
+Base Board Information
+    Manufacturer: Hewlett-Packard
+    Product Name: 1589
+    Version: 0.00
+    Serial Number: 2UA25107BB
+    Asset Tag: 2UA25107BB
+    Features:
+        Board is a hosting board
+        Board is removable
+        Board is replaceable
+    Location In Chassis: Not Specified
+    Type: Motherboard
+
+Chassis Information
+    Manufacturer: Hewlett-Packard
+    Type: Mini Tower
+    Lock: Not Present
+    Version: Not Specified
+    Serial Number: 2UA25107BB
+    Asset Tag: 2UA25107BB
+    Boot-up State: Safe
+    Power Supply State: Safe
+    Thermal State: Safe
+    Security Status: Unknown
+    OEM Information: 0x00000000
+    Height: Unspecified
+    Number Of Power Cords: 1
+    Contained Elements: 0
+    SKU Number: Not Specified
+
+Processor Information
+    Socket Designation: CPU0
+    Type: Central Processor
+    Family: Xeon
+    Manufacturer: Intel
+    ID: D7 06 02 00 FF FB EB BF
+    Signature: Type 0, Family 6, Model 45, Stepping 7
+    Flags:
+        FPU (Floating-point unit on-chip)
+        VME (Virtual mode extension)
+        DE (Debugging extension)
+        PSE (Page size extension)
+        TSC (Time stamp counter)
+        MSR (Model specific registers)
+        PAE (Physical address extension)
+        MCE (Machine check exception)
+        CX8 (CMPXCHG8 instruction supported)
+        APIC (On-chip APIC hardware supported)
+        SEP (Fast system call)
+        MTRR (Memory type range registers)
+        PGE (Page global enable)
+        MCA (Machine check architecture)
+        CMOV (Conditional move instruction supported)
+        PAT (Page attribute table)
+        PSE-36 (36-bit page size extension)
+        CLFSH (CLFLUSH instruction supported)
+        DS (Debug store)
+        ACPI (ACPI supported)
+        MMX (MMX technology supported)
+        FXSR (FXSAVE and FXSTOR instructions supported)
+        SSE (Streaming SIMD extensions)
+        SSE2 (Streaming SIMD extensions 2)
+        SS (Self-snoop)
+        HTT (Multi-threading)
+        TM (Thermal monitor supported)
+        PBE (Pending break enabled)
+    Version: Intel(R) Xeon(R) CPU E5-1650 @ 3.20GHz
+    Voltage: 1.2 V
+    External Clock: 100 MHz
+    Max Speed: 3800 MHz
+    Current Speed: 3200 MHz
+    Status: Populated, Enabled
+    Upgrade: Socket LGA2011
+    Serial Number: Not Specified
+    Asset Tag: Not Specified
+    Part Number: Not Specified
+    Core Count: 6
+    Core Enabled: 6
+    Thread Count: 12
+    Characteristics:
+        64-bit capable
+        Multi-Core
+        Hardware Thread
+        Execute Protection
+        Enhanced Virtualization
+        Power/Performance Control
+
+Cache Information
+    Socket Designation: L1-Cache
+    Configuration: Enabled, Not Socketed, Level 1
+    Operational Mode: Write Back
+    Location: Internal
+    Installed Size: 384 kB
+    Maximum Size: 384 kB
+    Supported SRAM Types:
+        Unknown
+    Installed SRAM Type: Unknown
+    Speed: Unknown
+    Error Correction Type: Parity
+    System Type: Unified
+    Associativity: 8-way Set-associative
+
+Cache Information
+    Socket Designation: L2-Cache
+    Configuration: Enabled, Not Socketed, Level 2
+    Operational Mode: Write Back
+    Location: Internal
+    Installed Size: 1536 kB
+    Maximum Size: 1536 kB
+    Supported SRAM Types:
+        Unknown
+    Installed SRAM Type: Unknown
+    Speed: Unknown
+    Error Correction Type: Single-bit ECC
+    System Type: Unified
+    Associativity: 8-way Set-associative
+
+Cache Information
+    Socket Designation: L3-Cache
+    Configuration: Enabled, Not Socketed, Level 3
+    Operational Mode: Write Back
+    Location: Internal
+    Installed Size: 12288 kB
+    Maximum Size: 12288 kB
+    Supported SRAM Types:
+        Unknown
+    Installed SRAM Type: Unknown
+    Speed: Unknown
+    Error Correction Type: Single-bit ECC
+    System Type: Unified
+    Associativity: 16-way Set-associative
+
+Port Connector Information
+    Internal Reference Designator: J68 PS2
+    Internal Connector Type: None
+    External Reference Designator: PS2Mouse
+    External Connector Type: PS/2
+    Port Type: Mouse Port
+
+Port Connector Information
+    Internal Reference Designator: J68 PS2
+    Internal Connector Type: None
+    External Reference Designator: Keyboard
+    External Connector Type: PS/2
+    Port Type: Keyboard Port
+
+Port Connector Information
+    Internal Reference Designator: J7 RJ45
+    Internal Connector Type: None
+    External Reference Designator: LAN1
+    External Connector Type: RJ-45
+    Port Type: Network Port
+
+Port Connector Information
+    Internal Reference Designator: J8 RJ45
+    Internal Connector Type: None
+    External Reference Designator: LAN2
+    External Connector Type: RJ-45
+    Port Type: Network Port
+
+Port Connector Information
+    Internal Reference Designator: P52 COM
+    Internal Connector Type: None
+    External Reference Designator: |0|0|
+    External Connector Type: DB-9 male
+    Port Type: Serial Port 16550A Compatible
+
+Port Connector Information
+    Internal Reference Designator: J13 1394
+    Internal Connector Type: None
+    External Reference Designator: Rear 1394
+    External Connector Type: IEEE 1394
+    Port Type: Firewire (IEEE P1394)
+
+Port Connector Information
+    Internal Reference Designator: J12 1394
+    Internal Connector Type: Proprietary
+    External Reference Designator: Front 1394
+    External Connector Type: IEEE 1394
+    Port Type: Firewire (IEEE P1394)
+
+Port Connector Information
+    Internal Reference Designator: J83 AUDIO
+    Internal Connector Type: None
+    External Reference Designator: Rear mic in
+    External Connector Type: Mini DIN
+    Port Type: Audio Port
+
+Port Connector Information
+    Internal Reference Designator: J83 AUDIO
+    Internal Connector Type: None
+    External Reference Designator: Rear headphone/line out
+    External Connector Type: Mini DIN
+    Port Type: Audio Port
+
+Port Connector Information
+    Internal Reference Designator: J83 AUDIO
+    Internal Connector Type: None
+    External Reference Designator: Rear line in
+    External Connector Type: Mini DIN
+    Port Type: Audio Port
+
+Port Connector Information
+    Internal Reference Designator: P28 FRONT AUD
+    Internal Connector Type: Proprietary
+    External Reference Designator: Front mic in
+    External Connector Type: Mini DIN
+    Port Type: Audio Port
+
+Port Connector Information
+    Internal Reference Designator: P28 FRONT AUD
+    Internal Connector Type: Proprietary
+    External Reference Designator: Front headphone/line out
+    External Connector Type: Mini DIN
+    Port Type: Audio Port
+
+Port Connector Information
+    Internal Reference Designator: J81 USB
+    Internal Connector Type: None
+    External Reference Designator: Rear USB 3.0(1)
+    External Connector Type: Access Bus (USB)
+    Port Type: USB
+
+Port Connector Information
+    Internal Reference Designator: J81 USB
+    Internal Connector Type: None
+    External Reference Designator: Rear USB 3.0(2)
+    External Connector Type: Access Bus (USB)
+    Port Type: USB
+
+Port Connector Information
+    Internal Reference Designator: P29 1394
+    Internal Connector Type: None
+    External Reference Designator: Front USB 3.0(3)
+    External Connector Type: Access Bus (USB)
+    Port Type: USB
+
+Port Connector Information
+    Internal Reference Designator: P29 1394
+    Internal Connector Type: None
+    External Reference Designator: Front USB 3.0(4)
+    External Connector Type: Access Bus (USB)
+    Port Type: USB
+
+Port Connector Information
+    Internal Reference Designator: J10 QUADUSB
+    Internal Connector Type: None
+    External Reference Designator: Rear USB(0)
+    External Connector Type: Access Bus (USB)
+    Port Type: USB
+
+Port Connector Information
+    Internal Reference Designator: J10 QUADUSB
+    Internal Connector Type: None
+    External Reference Designator: Rear USB(1)
+    External Connector Type: Access Bus (USB)
+    Port Type: USB
+
+Port Connector Information
+    Internal Reference Designator: J11 QUADUSB
+    Internal Connector Type: None
+    External Reference Designator: Rear USB(2)
+    External Connector Type: Access Bus (USB)
+    Port Type: USB
+
+Port Connector Information
+    Internal Reference Designator: J11 QUADUSB
+    Internal Connector Type: None
+    External Reference Designator: Rear USB(3)
+    External Connector Type: Access Bus (USB)
+    Port Type: USB
+
+Port Connector Information
+    Internal Reference Designator: P24 FRONT USB
+    Internal Connector Type: Proprietary
+    External Reference Designator: Front USB(8)
+    External Connector Type: Access Bus (USB)
+    Port Type: USB
+
+Port Connector Information
+    Internal Reference Designator: P24 FRONT USB
+    Internal Connector Type: Proprietary
+    External Reference Designator: Front USB(9)
+    External Connector Type: Access Bus (USB)
+    Port Type: USB
+
+Port Connector Information
+    Internal Reference Designator: P27 FRONT USB
+    Internal Connector Type: Proprietary
+    External Reference Designator: Front USB(10)
+    External Connector Type: Access Bus (USB)
+    Port Type: USB
+
+Port Connector Information
+    Internal Reference Designator: P24 FRONT USB
+    Internal Connector Type: Proprietary
+    External Reference Designator: Front USB(13)
+    External Connector Type: Access Bus (USB)
+    Port Type: USB
+
+Port Connector Information
+    Internal Reference Designator: P26 I-USB1 (4)
+    Internal Connector Type: Proprietary
+    External Reference Designator: Not Specified
+    External Connector Type: None
+    Port Type: USB
+
+Port Connector Information
+    Internal Reference Designator: P26 I-USB1 (5)
+    Internal Connector Type: Proprietary
+    External Reference Designator: Not Specified
+    External Connector Type: None
+    Port Type: USB
+
+Port Connector Information
+    Internal Reference Designator: P25 I-USB2 (11)
+    Internal Connector Type: Proprietary
+    External Reference Designator: Not Specified
+    External Connector Type: None
+    Port Type: USB
+
+Port Connector Information
+    Internal Reference Designator: P25 I-USB2 (12)
+    Internal Connector Type: Proprietary
+    External Reference Designator: Not Specified
+    External Connector Type: None
+    Port Type: USB
+
+Port Connector Information
+    Internal Reference Designator: P60 SATA0
+    Internal Connector Type: SAS/SATA Plug Receptacle
+    External Reference Designator: Not Specified
+    External Connector Type: None
+    Port Type: SATA
+
+Port Connector Information
+    Internal Reference Designator: P61 SATA1
+    Internal Connector Type: SAS/SATA Plug Receptacle
+    External Reference Designator: Not Specified
+    External Connector Type: None
+    Port Type: SATA
+
+Port Connector Information
+    Internal Reference Designator: P62 SATA2
+    Internal Connector Type: SAS/SATA Plug Receptacle
+    External Reference Designator: Not Specified
+    External Connector Type: None
+    Port Type: SATA
+
+Port Connector Information
+    Internal Reference Designator: P63 SATA3
+    Internal Connector Type: SAS/SATA Plug Receptacle
+    External Reference Designator: Not Specified
+    External Connector Type: None
+    Port Type: SATA
+
+Port Connector Information
+    Internal Reference Designator: P64 SATA4
+    Internal Connector Type: SAS/SATA Plug Receptacle
+    External Reference Designator: Not Specified
+    External Connector Type: None
+    Port Type: SATA
+
+Port Connector Information
+    Internal Reference Designator: P65 SATA5
+    Internal Connector Type: SAS/SATA Plug Receptacle
+    External Reference Designator: Not Specified
+    External Connector Type: None
+    Port Type: SATA
+
+Port Connector Information
+    Internal Reference Designator: P80 SCU0
+    Internal Connector Type: SAS/SATA Plug Receptacle
+    External Reference Designator: Not Specified
+    External Connector Type: None
+    Port Type: SAS
+
+Port Connector Information
+    Internal Reference Designator: P81 SCU1
+    Internal Connector Type: SAS/SATA Plug Receptacle
+    External Reference Designator: Not Specified
+    External Connector Type: None
+    Port Type: SAS
+
+Port Connector Information
+    Internal Reference Designator: P82 SCU2
+    Internal Connector Type: SAS/SATA Plug Receptacle
+    External Reference Designator: Not Specified
+    External Connector Type: None
+    Port Type: SAS
+
+Port Connector Information
+    Internal Reference Designator: P83 SCU3
+    Internal Connector Type: SAS/SATA Plug Receptacle
+    External Reference Designator: Not Specified
+    External Connector Type: None
+    Port Type: SAS
+
+Port Connector Information
+    Internal Reference Designator: J50-J53 (riser)
+    Internal Connector Type: Other
+    External Reference Designator: Not Specified
+    External Connector Type: None
+    Port Type: Other
+
+Port Connector Information
+    Internal Reference Designator: P1 PWR MAIN
+    Internal Connector Type: Other
+    External Reference Designator: Not Specified
+    External Connector Type: None
+    Port Type: Other
+
+Port Connector Information
+    Internal Reference Designator: P2 PWR MEM
+    Internal Connector Type: Other
+    External Reference Designator: Not Specified
+    External Connector Type: None
+    Port Type: Other
+
+Port Connector Information
+    Internal Reference Designator: P5 PB/LED (Front panel)
+    Internal Connector Type: Proprietary
+    External Reference Designator: Not Specified
+    External Connector Type: None
+    Port Type: Other
+
+Port Connector Information
+    Internal Reference Designator: P8 CPU0 FAN
+    Internal Connector Type: Other
+    External Reference Designator: Not Specified
+    External Connector Type: None
+    Port Type: Other
+
+Port Connector Information
+    Internal Reference Designator: P9 FRNTFAN
+    Internal Connector Type: Other
+    External Reference Designator: Not Specified
+    External Connector Type: None
+    Port Type: Other
+
+Port Connector Information
+    Internal Reference Designator: P11 REAR FANS
+    Internal Connector Type: Other
+    External Reference Designator: Not Specified
+    External Connector Type: None
+    Port Type: Other
+
+Port Connector Information
+    Internal Reference Designator: P91 MEMFAN
+    Internal Connector Type: Other
+    External Reference Designator: Not Specified
+    External Connector Type: None
+    Port Type: Other
+
+Port Connector Information
+    Internal Reference Designator: P8 CPU1 FAN
+    Internal Connector Type: Other
+    External Reference Designator: Not Specified
+    External Connector Type: None
+    Port Type: Other
+
+Port Connector Information
+    Internal Reference Designator: P9 MEM FAN
+    Internal Connector Type: Other
+    External Reference Designator: Not Specified
+    External Connector Type: None
+    Port Type: Other
+
+Port Connector Information
+    Internal Reference Designator: E49 (Password enable)
+    Internal Connector Type: Other
+    External Reference Designator: Not Specified
+    External Connector Type: None
+    Port Type: Other
+
+System Slot Information
+    Designation: SLOT 1
+    Type: x1 PCI Express 2 x4
+    Current Usage: Available
+    Length: Long
+    ID: 0
+    Characteristics:
+        3.3 V is provided
+        PME signal is supported
+        SMBus signal is supported
+    Bus Address: 0000:07:00.0
+
+System Slot Information
+    Designation: SLOT 2
+    Type: x16 PCI Express 3
+    Current Usage: In Use
+    Length: Long
+    Characteristics:
+        3.3 V is provided
+        PME signal is supported
+        SMBus signal is supported
+    Bus Address: 0000:05:00.0
+
+System Slot Information
+    Designation: SLOT 3
+    Type: x4 PCI Express 2 x8
+    Current Usage: Available
+    Length: Long
+    ID: 2
+    Characteristics:
+        3.3 V is provided
+        PME signal is supported
+        SMBus signal is supported
+    Bus Address: 0000:06:00.0
+
+System Slot Information
+    Designation: SLOT 4
+    Type: x8 PCI Express 3
+    Current Usage: Available
+    Length: Long
+    Characteristics:
+        3.3 V is provided
+        PME signal is supported
+        SMBus signal is supported
+    Bus Address: 0000:03:00.0
+
+System Slot Information
+    Designation: SLOT 5
+    Type: x16 PCI Express 3
+    Current Usage: Available
+    Length: Long
+    Characteristics:
+        3.3 V is provided
+        PME signal is supported
+        SMBus signal is supported
+    Bus Address: 0000:04:00.0
+
+System Slot Information
+    Designation: SLOT 6
+    Type: 32-bit PCI
+    Current Usage: Available
+    Length: Long
+    ID: 5
+    Characteristics:
+        5.0 V is provided
+        3.3 V is provided
+        PME signal is supported
+        SMBus signal is supported
+    Bus Address: 0000:09:00.0
+
+OEM Strings
+    String 1: ABS 70/71 60 61 62 63;
+    String 2: FBYTE#3X47676J6S6b7N7Q7T7U7W7a8H8h9Y.2d;
+    String 3: BUILDID#11WWVAEW601#SABA#DABA;
+
+Physical Memory Array
+    Location: System Board Or Motherboard
+    Use: System Memory
+    Error Correction Type: Multi-bit ECC
+    Maximum Capacity: 256 GB
+    Number Of Devices: 8
+
+32-bit Memory Error Information
+    Type: OK
+    Granularity: Unknown
+    Operation: Unknown
+    Vendor Syndrome: Unknown
+    Memory Array Address: Unknown
+    Device Address: Unknown
+    Resolution: Unknown
+
+Memory Array Mapped Address
+    Starting Address: 0x00000000000
+    Ending Address: 0x000DFFFFFFF
+    Range Size: 3584 MB
+    Partition Width: 1
+
+Memory Array Mapped Address
+    Starting Address: 0x00100000000
+    Ending Address: 0x0081FFFFFFF
+    Range Size: 29184 MB
+    Partition Width: 1
+
+Memory Device
+    Total Width: 72 bits
+    Data Width: 64 bits
+    Size: 8192 MB
+    Form Factor: DIMM
+    Set: None
+    Locator: CPU0-DIMM1
+    Bank Locator: CPU0
+    Type: DDR3
+    Type Detail: Synchronous Unbuffered (Unregistered)
+    Speed: 1600 MHz
+    Manufacturer: Kingston
+    Serial Number: 2D3888C9
+    Asset Tag: Not Specified
+    Part Number: 9965525-024.A00LF
+    Rank: 2
+    Configured Clock Speed: 1600 MHz
+
+32-bit Memory Error Information
+    Type: OK
+    Granularity: Unknown
+    Operation: Unknown
+    Vendor Syndrome: Unknown
+    Memory Array Address: Unknown
+    Device Address: Unknown
+    Resolution: Unknown
+
+Memory Device
+    Total Width: 72 bits
+    Data Width: 64 bits
+    Size: No Module Installed
+    Form Factor: DIMM
+    Set: None
+    Locator: CPU0-DIMM2
+    Bank Locator: CPU0
+    Type: Unknown
+    Type Detail: Synchronous
+    Speed: Unknown
+    Manufacturer:
+    Serial Number:
+    Asset Tag: Not Specified
+    Part Number:
+    Rank: Unknown
+    Configured Clock Speed: Unknown
+
+32-bit Memory Error Information
+    Type: OK
+    Granularity: Unknown
+    Operation: Unknown
+    Vendor Syndrome: Unknown
+    Memory Array Address: Unknown
+    Device Address: Unknown
+    Resolution: Unknown
+
+Memory Device
+    Total Width: 72 bits
+    Data Width: 64 bits
+    Size: 8192 MB
+    Form Factor: DIMM
+    Set: None
+    Locator: CPU0-DIMM3
+    Bank Locator: CPU0
+    Type: DDR3
+    Type Detail: Synchronous Unbuffered (Unregistered)
+    Speed: 1600 MHz
+    Manufacturer: Kingston
+    Serial Number: 2D381FF1
+    Asset Tag: Not Specified
+    Part Number: 9965525-024.A00LF
+    Rank: 2
+    Configured Clock Speed: 1600 MHz
+
+32-bit Memory Error Information
+    Type: OK
+    Granularity: Unknown
+    Operation: Unknown
+    Vendor Syndrome: Unknown
+    Memory Array Address: Unknown
+    Device Address: Unknown
+    Resolution: Unknown
+
+Memory Device
+    Total Width: 72 bits
+    Data Width: 64 bits
+    Size: No Module Installed
+    Form Factor: DIMM
+    Set: None
+    Locator: CPU0-DIMM4
+    Bank Locator: CPU0
+    Type: Unknown
+    Type Detail: Synchronous
+    Speed: Unknown
+    Manufacturer:
+    Serial Number:
+    Asset Tag: Not Specified
+    Part Number:
+    Rank: Unknown
+    Configured Clock Speed: Unknown
+
+32-bit Memory Error Information
+    Type: OK
+    Granularity: Unknown
+    Operation: Unknown
+    Vendor Syndrome: Unknown
+    Memory Array Address: Unknown
+    Device Address: Unknown
+    Resolution: Unknown
+
+Memory Device
+    Total Width: 72 bits
+    Data Width: 64 bits
+    Size: No Module Installed
+    Form Factor: DIMM
+    Set: None
+    Locator: CPU0-DIMM5
+    Bank Locator: CPU0
+    Type: Unknown
+    Type Detail: Synchronous
+    Speed: Unknown
+    Manufacturer:
+    Serial Number:
+    Asset Tag: Not Specified
+    Part Number:
+    Rank: Unknown
+    Configured Clock Speed: Unknown
+
+32-bit Memory Error Information
+    Type: OK
+    Granularity: Unknown
+    Operation: Unknown
+    Vendor Syndrome: Unknown
+    Memory Array Address: Unknown
+    Device Address: Unknown
+    Resolution: Unknown
+
+Memory Device
+    Total Width: 72 bits
+    Data Width: 64 bits
+    Size: 8192 MB
+    Form Factor: DIMM
+    Set: None
+    Locator: CPU0-DIMM6
+    Bank Locator: CPU0
+    Type: DDR3
+    Type Detail: Synchronous Unbuffered (Unregistered)
+    Speed: 1600 MHz
+    Manufacturer: Kingston
+    Serial Number: 2D38ABD6
+    Asset Tag: Not Specified
+    Part Number: 9965525-024.A00LF
+    Rank: 2
+    Configured Clock Speed: 1600 MHz
+
+32-bit Memory Error Information
+    Type: OK
+    Granularity: Unknown
+    Operation: Unknown
+    Vendor Syndrome: Unknown
+    Memory Array Address: Unknown
+    Device Address: Unknown
+    Resolution: Unknown
+
+Memory Device
+    Total Width: 72 bits
+    Data Width: 64 bits
+    Size: No Module Installed
+    Form Factor: DIMM
+    Set: None
+    Locator: CPU0-DIMM7
+    Bank Locator: CPU0
+    Type: Unknown
+    Type Detail: Synchronous
+    Speed: Unknown
+    Manufacturer:
+    Serial Number:
+    Asset Tag: Not Specified
+    Part Number:
+    Rank: Unknown
+    Configured Clock Speed: Unknown
+
+32-bit Memory Error Information
+    Type: OK
+    Granularity: Unknown
+    Operation: Unknown
+    Vendor Syndrome: Unknown
+    Memory Array Address: Unknown
+    Device Address: Unknown
+    Resolution: Unknown
+
+Memory Device
+    Total Width: 72 bits
+    Data Width: 64 bits
+    Size: 8192 MB
+    Form Factor: DIMM
+    Set: None
+    Locator: CPU0-DIMM8
+    Bank Locator: CPU0
+    Type: DDR3
+    Type Detail: Synchronous Unbuffered (Unregistered)
+    Speed: 1600 MHz
+    Manufacturer: Kingston
+    Serial Number: 2E3874F1
+    Asset Tag: Not Specified
+    Part Number: 9965525-024.A00LF
+    Rank: 2
+    Configured Clock Speed: 1600 MHz
+
+32-bit Memory Error Information
+    Type: OK
+    Granularity: Unknown
+    Operation: Unknown
+    Vendor Syndrome: Unknown
+    Memory Array Address: Unknown
+    Device Address: Unknown
+    Resolution: Unknown
+
+System Boot Information
+    Status: No errors detected
+
+Management Device
+    Description: LM78-1
+    Type: LM78
+    Address: 0x00000000
+    Address Type: I/O Port
+
+Voltage Probe
+    Description: LM78A
+    Location: <OUT OF SPEC>
+    Status: <OUT OF SPEC>
+    Maximum Value: Unknown
+    Minimum Value: Unknown
+    Resolution: Unknown
+    Tolerance: Unknown
+    Accuracy: Unknown
+    OEM-specific Information: 0x00000000
+    Nominal Value: Unknown
+
+Management Device Threshold Data
+    Lower Non-critical Threshold: 1
+    Upper Non-critical Threshold: 2
+    Lower Critical Threshold: 3
+    Upper Critical Threshold: 4
+    Lower Non-recoverable Threshold: 5
+    Upper Non-recoverable Threshold: 6
+
+Management Device Component
+    Description: To Be Filled By O.E.M.
+
+Temperature Probe
+    Description: LM78A
+    Location: <OUT OF SPEC>
+    Status: <OUT OF SPEC>
+    Maximum Value: Unknown
+    Minimum Value: Unknown
+    Resolution: Unknown
+    Tolerance: Unknown
+    Accuracy: Unknown
+    OEM-specific Information: 0x00000000
+    Nominal Value: Unknown
+
+Management Device Threshold Data
+    Lower Non-critical Threshold: 1
+    Upper Non-critical Threshold: 2
+    Lower Critical Threshold: 3
+    Upper Critical Threshold: 4
+    Lower Non-recoverable Threshold: 5
+    Upper Non-recoverable Threshold: 6
+
+Management Device Component
+    Description: To Be Filled By O.E.M.
+
+Cooling Device
+    Type: <OUT OF SPEC>
+    Status: <OUT OF SPEC>
+    Cooling Unit Group: 1
+    OEM-specific Information: 0x00000000
+    Nominal Speed: Unknown Or Non-rotating
+    Description: Cooling Dev 1
+
+Management Device Threshold Data
+    Lower Non-critical Threshold: 1
+    Upper Non-critical Threshold: 2
+    Lower Critical Threshold: 3
+    Upper Critical Threshold: 4
+    Lower Non-recoverable Threshold: 5
+    Upper Non-recoverable Threshold: 6
+
+Management Device Component
+    Description: To Be Filled By O.E.M.
+
+Cooling Device
+    Type: <OUT OF SPEC>
+    Status: <OUT OF SPEC>
+    Cooling Unit Group: 1
+    OEM-specific Information: 0x00000000
+    Nominal Speed: Unknown Or Non-rotating
+    Description: Not Specified
+
+Management Device Threshold Data
+    Lower Non-critical Threshold: 1
+    Upper Non-critical Threshold: 2
+    Lower Critical Threshold: 3
+    Upper Critical Threshold: 4
+    Lower Non-recoverable Threshold: 5
+    Upper Non-recoverable Threshold: 6
+
+Management Device Component
+    Description: To Be Filled By O.E.M.
+
+Electrical Current Probe
+    Description: ABC
+    Location: <OUT OF SPEC>
+    Status: <OUT OF SPEC>
+    Maximum Value: Unknown
+    Minimum Value: Unknown
+    Resolution: Unknown
+    Tolerance: Unknown
+    Accuracy: Unknown
+    OEM-specific Information: 0x00000000
+    Nominal Value: Unknown
+
+Management Device Threshold Data
+
+Management Device Component
+    Description: To Be Filled By O.E.M.
+
+Voltage Probe
+    Description: LM78A
+    Location: Power Unit
+    Status: OK
+    Maximum Value: Unknown
+    Minimum Value: Unknown
+    Resolution: Unknown
+    Tolerance: Unknown
+    Accuracy: Unknown
+    OEM-specific Information: 0x00000000
+    Nominal Value: Unknown
+
+Temperature Probe
+    Description: LM78A
+    Location: Power Unit
+    Status: OK
+    Maximum Value: Unknown
+    Minimum Value: Unknown
+    Resolution: Unknown
+    Tolerance: Unknown
+    Accuracy: Unknown
+    OEM-specific Information: 0x00000000
+    Nominal Value: Unknown
+
+Cooling Device
+    Type: Power Supply Fan
+    Status: OK
+    Cooling Unit Group: 1
+    OEM-specific Information: 0x00000000
+    Nominal Speed: Unknown Or Non-rotating
+    Description: Cooling Dev 1
+
+Electrical Current Probe
+    Description: ABC
+    Location: Power Unit
+    Status: OK
+    Maximum Value: Unknown
+    Minimum Value: Unknown
+    Resolution: Unknown
+    Tolerance: Unknown
+    Accuracy: Unknown
+    OEM-specific Information: 0x00000000
+    Nominal Value: Unknown
+
+System Power Supply
+    Power Unit Group: 1
+    Location:
+    Name:
+    Manufacturer:
+    Serial Number:
+    Asset Tag:
+    Model Part Number: Standard Efficiency
+    Revision:
+    Max Power Capacity: Unknown
+    Status: Present, OK
+    Type: Switching
+    Input Voltage Range Switching: Auto-switch
+    Plugged: Yes
+    Hot Replaceable: No
+
+IPMI Device Information
+    Interface Type: KCS (Keyboard Control Style)
+    Specification Version: 2.0
+    I2C Slave Address: 0x10
+    NV Storage Device: Not Present
+    Base Address: 0x0000000000000000 (Memory-mapped)
+    Register Spacing: Successive Byte Boundaries
+
+BIOS Language Information
+    Language Description Format: Long
+    Installable Languages: 12
+        en|US|iso8859-1
+        fr|FR|iso8859-1
+        es|ES|iso8859-1
+        de|DE|iso8859-1
+        it|IT|iso8859-1
+        da|DK|iso8859-1
+        fi|FI|iso8859-1
+        nl|NL|iso8859-1
+        nb|NO|iso8859-1
+        pt|BR|iso8859-1
+        sv|FI|iso8859-1
+        ja|JP|unicode
+    Currently Installed Language: en|US|iso8859-1
+
+Port Connector Information
+    Internal Reference Designator: HLCK
+    Internal Connector Type: Other
+    External Reference Designator: Not Specified
+    External Connector Type: Other
+    Port Type: Other
+
+Port Connector Information
+    Internal Reference Designator: HSNR
+    Internal Connector Type: Other
+    External Reference Designator: Not Specified
+    External Connector Type: Other
+    Port Type: Other
+

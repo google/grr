@@ -263,7 +263,8 @@ class VFSGRRClientApiObjectRendererTest(test_lib.GRRBaseTest):
         "client_info": {
             "client_name": "GRR Monitor"
         },
-        "serial_number": ""
+        "serial_number": "",
+        "system_manufacturer": ""
     })
 
 

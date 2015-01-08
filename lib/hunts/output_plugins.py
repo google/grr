@@ -213,6 +213,7 @@ class CSVOutputPlugin(HuntOutputPlugin):
 
   def ProcessResponses(self, responses):
     default_metadata = rdfvalue.ExportedMetadata(
+        annotations=u",".join(self.state.args.export_options.annotations),
         source_urn=self.state.collection_urn)
 
     if self.state.args.convert_values:

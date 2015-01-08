@@ -303,8 +303,7 @@ class ExportTest(test_lib.GRRBaseTest):
     self.assertTrue(hash_value)
 
     converter = export.StatEntryToExportedFileConverter(
-        options=rdfvalue.ExportOptions(export_files_hashes=True,
-                                       annotations=["test1", "test2"]))
+        options=rdfvalue.ExportOptions(export_files_hashes=True))
     results = list(converter.Convert(rdfvalue.ExportedMetadata(),
                                      rdfvalue.StatEntry(aff4path=urn,
                                                         pathspec=pathspec),
@@ -317,9 +316,6 @@ class ExportTest(test_lib.GRRBaseTest):
     self.assertEqual(
         results[0].hash_sha256,
         "0e8dc93e150021bb4752029ebbff51394aa36f069cf19901578e4f06017acdb5")
-    for result in results:
-      self.assertItemsEqual(["test1", "test2"],
-                            result.metadata.annotations.split(","))
 
   def testExportedFileConverterIgnoresRegistryKeys(self):
     stat = rdfvalue.StatEntry(
