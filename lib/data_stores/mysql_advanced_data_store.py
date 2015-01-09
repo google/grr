@@ -134,7 +134,6 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     self.pool = self.POOL
 
     self.to_insert = []
-    self.to_replace = []
     self._CalculateAttributeStorageTypes()
     self.database_name = config_lib.CONFIG["Mysql.database_name"]
     self.lock = threading.Lock()
@@ -271,7 +270,6 @@ class MySQLAdvancedDataStore(data_store.DataStore):
           else:
             if attribute in to_delete:
               to_delete.remove(attribute)
-
             if duplicates == 0:
               to_insert.extend(
                   [subject, predicate, data, int(entry_timestamp)])
@@ -285,46 +283,35 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     if to_delete:
       self.DeleteAttributes(subject, to_delete, token=token)
 
-    if to_insert:
-      if sync:
+    if to_replace:
+      transaction = self._BuildReplaces(to_replace)
+      self._ExecuteInsert(transaction)
+
+    if sync:
+      if to_insert:
         transaction = self._BuildInserts(to_insert)
         self._ExecuteInsert(transaction)
-      else:
-        with self.lock:
-          self.to_insert.extend(to_insert)
-
-    if to_replace:
-      if sync:
-        transaction = self._BuildReplaces(to_replace)
-        self._ExecuteInsert(transaction)
-      else:
-        with self.lock:
-          self.to_replace.extend(to_replace) 
+    else:
+      with self.lock:
+        self.to_insert.extend(to_insert)
 
   def Flush(self):
     with self.lock:
       to_insert = self.to_insert
-      to_replace = self.to_replace
       self.to_insert = []
-      self.to_replace = []
 
     if to_insert:
       transaction = self._BuildInserts(to_insert)
       self._ExecuteInsert(transaction)
-
-    if to_replace:
-      transaction = self._BuildReplaces(to_insert)
-      self._ExecuteInsert(transaction)
     
-  def _CountDuplicateAttributes(self, subject, attribute):
-    query = "SELECT count(attribute_hash) AS total FROM aff4 WHERE subject_hash=unhex(md5(%s)) AND attribute_hash=unhex(md5(%s))"
-    args = [subject, attribute]
+  def _CountDuplicateAttributes(self, subject, predicate):
+    query = "SELECT count(*) AS total FROM aff4 WHERE subject_hash=unhex(md5(%s)) AND attribute_hash=unhex(md5(%s))"
+    args = [subject, predicate]
     result = self._ExecuteQuery(query, args)
-    return result[0]["total"]
+    return int(result[0]["total"])
 
   def _BuildReplaces(self, values):
     transaction = []
-
     value_sets = zip(values[0::4], values[1::4], values[2::4], values[3::4])
 
     for (subject, predicate, value, timestamp) in value_sets:
@@ -332,7 +319,6 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       aff4["query"] = "UPDATE aff4 SET value=%s, timestamp=%s WHERE subject_hash=unhex(md5(%s)) AND attribute_hash=unhex(md5(%s))"
       aff4["args"] = [value, timestamp, subject, predicate]
       transaction.append(aff4)
-
     return transaction
 
   def _BuildInserts(self, values):
