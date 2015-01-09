@@ -327,8 +327,8 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     aff4 = {}
 
     subjects["query"] = "INSERT IGNORE INTO subjects (hash, subject) VALUES"
-    attributes["query"] = "INSERT IGNORE INTO attributes (hash, prefix, attribute) VALUES"
-    aff4["query"] = "INSERT IGNORE INTO aff4 (subject_hash, attribute_hash, timestamp, value) VALUES"
+    attributes["query"] = "INSERT IGNORE INTO attributes (hash, attribute) VALUES"
+    aff4["query"] = "INSERT IGNORE INTO aff4 (subject_hash, attribute_hash, prefix, timestamp, value) VALUES"
     
     subjects["args"] = []
     attributes["args"] = []
@@ -345,14 +345,14 @@ class MySQLAdvancedDataStore(data_store.DataStore):
         subjects["args"].extend([subject, subject])
         seen["subjects"].append(subject)
       if predicate not in seen["attributes"]:
-        prefix = predicate.split(":", 1)[0]
-        attributes["args"].extend([predicate, prefix, predicate])
+        attributes["args"].extend([predicate, predicate])
         seen["attributes"].append(predicate)
-      aff4["args"].extend([subject, predicate, timestamp, value])
+      prefix = predicate.split(":", 1)[0]
+      aff4["args"].extend([subject, predicate, prefix, timestamp, value])
 
     subjects["query"] += ", ".join(["(unhex(md5(%s)), %s)"] * (len(subjects["args"]) / 2))
-    attributes["query"] += ", ".join(["(unhex(md5(%s)), %s, %s)"] * (len(attributes["args"]) / 3))
-    aff4["query"] += ", ".join(["(unhex(md5(%s)), unhex(md5(%s)), %s, %s)"] * (len(aff4["args"]) / 4))
+    attributes["query"] += ", ".join(["(unhex(md5(%s)), %s)"] * (len(attributes["args"]) / 2))
+    aff4["query"] += ", ".join(["(unhex(md5(%s)), unhex(md5(%s)), %s, %s, %s)"] * (len(aff4["args"]) / 5))
 
     return [subjects, attributes, aff4]
 
@@ -434,7 +434,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
         parts = predicate.split(":", 1)
         
         #Add prefix usage for all regex queries
-        criteria += " aff4.subject_hash=unhex(md5(%s)) AND attributes.prefix=(%s)"
+        criteria += " aff4.subject_hash=unhex(md5(%s)) AND aff4.prefix=(%s)"
         args.append(subject)
         args.append(parts[0])
         #If the remainder after prefix is not a match all regex then break it down into like and rlike components
@@ -521,9 +521,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     self._ExecuteQuery("""
     CREATE TABLE IF NOT EXISTS `attributes` (
       hash BINARY(16) PRIMARY KEY NOT NULL,
-      prefix VARCHAR(16) CHARACTER SET utf8 DEFAULT NULL,
-      attribute VARCHAR(2048) CHARACTER SET utf8 DEFAULT NULL,
-      KEY `prefix` (`prefix`)
+      attribute VARCHAR(2048) CHARACTER SET utf8 DEFAULT NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT ='Table storing attributes';
     """)
 
@@ -531,9 +529,11 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     CREATE TABLE IF NOT EXISTS `aff4` (
       subject_hash BINARY(16) NOT NULL,
       attribute_hash BINARY(16) NOT NULL,
+      prefix VARCHAR(16) CHARACTER SET utf8 DEFAULT NULL,
       timestamp BIGINT(22) UNSIGNED DEFAULT NULL,
       value LONGBLOB NULL,
-      KEY `master` (`subject_hash`,`attribute_hash`,`timestamp`)
+      KEY `master` (`subject_hash`,`attribute_hash`,`timestamp`),
+      KEY `alternate` (`subject_hash`,`prefix`,`timestamp`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT ='Table representing AFF4 objects';
     """)
 
