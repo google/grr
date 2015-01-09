@@ -287,13 +287,14 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       transaction = self._BuildReplaces(to_replace)
       self._ExecuteInsert(transaction)
 
-    if sync:
-      if to_insert:
+    
+    if to_insert:
+      if sync:
         transaction = self._BuildInserts(to_insert)
         self._ExecuteInsert(transaction)
-    else:
-      with self.lock:
-        self.to_insert.extend(to_insert)
+      else:
+        with self.lock:
+          self.to_insert.extend(to_insert)
 
   def Flush(self):
     with self.lock:
