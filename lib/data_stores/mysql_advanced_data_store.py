@@ -329,7 +329,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
     subjects["query"] = "INSERT IGNORE INTO subjects (hash, subject) VALUES"
     attributes["query"] = "INSERT IGNORE INTO attributes (hash, attribute) VALUES"
-    aff4["query"] = "INSERT IGNORE INTO aff4 (subject_hash, attribute_hash, prefix, timestamp, value) VALUES"
+    aff4["query"] = "INSERT INTO aff4 (subject_hash, attribute_hash, prefix, timestamp, value) VALUES"
     
     subjects["args"] = []
     attributes["args"] = []
