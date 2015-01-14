@@ -40,7 +40,6 @@ class MySQLConnection(object):
         cursor = dbh.cursor()
         cursor.execute("Create database `%s`" %
                        config_lib.CONFIG["Mysql.database_name"])
-        dbh.commit()
 
         self._MakeConnection(database=config_lib.CONFIG["Mysql.database_name"])
       else:
@@ -60,7 +59,7 @@ class MySQLConnection(object):
 
       self.dbh = MySQLdb.connect(**connection_args)
       self.cursor = self.dbh.cursor()
-      self.cursor.connection.autocommit(False)
+      self.cursor.connection.autocommit(True)
 
       return self.dbh
     except MySQLdb.OperationalError as e:
@@ -73,15 +72,8 @@ class MySQLConnection(object):
     return self
 
   def __exit__(self, unused_type, unused_value, unused_traceback):
-    try:
-      self.Commit()
-    finally:
-      # Return ourselves to the pool queue.
-      if self.queue:
-        self.queue.put(self)
-
-  def Commit(self):
-    self.dbh.commit()
+    if self.queue:
+      self.queue.put(self)
 
   def Execute(self, *args):
     retries = 50
@@ -359,9 +351,9 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
   def _ExecuteInsert(self, transaction):
     """Get connection from pool and execute query"""
-    with self.pool.GetConnection() as cursor:
-      for table in transaction:
-        cursor.Execute(table["query"],table["args"])
+    for query in transaction:
+      with self.pool.GetConnection() as cursor:
+        cursor.Execute(query["query"],query["args"])
 
   def _ResolveRegex(self, subject, predicate_regex, token=None, timestamp=None, limit=None):
     if limit and limit == 0:
