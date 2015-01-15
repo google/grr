@@ -975,7 +975,7 @@ class Attribute(object):
 
       return cls.NAMES[name]
     except KeyError:
-      raise AttributeError("Invalid attribute")
+      raise AttributeError("Invalid attribute %s" % name)
 
   def GetRDFValueType(self):
     """Returns this attribute's RDFValue class."""

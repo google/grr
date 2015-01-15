@@ -304,7 +304,7 @@ class StatsCollector(object):
 
   def __init__(self):
     self._metrics = {}
-    self.lock = threading.Lock()
+    self.lock = threading.RLock()
     self._metrics_metadata = {}
 
   @staticmethod

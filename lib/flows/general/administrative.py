@@ -335,7 +335,7 @@ class Foreman(flow.WellKnownFlow):
   # How often we refresh the rule set from the data store.
   cache_refresh_time = 60
 
-  lock = threading.Lock()
+  lock = threading.RLock()
 
   def ProcessMessage(self, message):
     """Run the foreman on the client."""
