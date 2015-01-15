@@ -25,11 +25,16 @@ override_dh_auto_install:
 	dh_auto_install
 
 override_dh_installinit:
-	dh_installinit --upstart-only
+	dh_installinit
 	# On newer systems, dh_installinit adds an unneeded dependency
 	# here that makes the client fail to install on older OS
 	# versions. We just patch it out.
 	sed -i '/sysv-rc/d' debian/*.substvars
+	# We don't actually need upstart, we include init.d scripts as well, but
+	# this gets automatically added by older versions of debhelper whenever
+	# an upstart script is present as part of ${misc:Depends} see control
+	# file.
+	sed -i '/upstart-job/d' debian/*.substvars
 
 override_dh_link:
 	dh_link "%(ClientBuilder.target_dir)/%(Client.binary_name)" "%(ClientBuilder.daemon_link)"

@@ -567,9 +567,16 @@ class LinuxClientDeployer(ClientDeployer):
         os.path.join(template_path, "dist/debian/upstart.in/grr-client.conf"),
         os.path.join(template_path, "dist/debian/%s.upstart" % package_name))
 
+    # Generate the initd template. The init will not run if it detects upstart
+    # is present.
+    self.GenerateFile(
+        os.path.join(template_path, "dist/debian/initd.in/grr-client"),
+        os.path.join(template_path, "dist/debian/%s.init" % package_name))
+
     # Clean up the template dirs.
     shutil.rmtree(deb_in_dir)
     shutil.rmtree(os.path.join(template_path, "dist/debian/upstart.in"))
+    shutil.rmtree(os.path.join(template_path, "dist/debian/initd.in"))
 
   def MakeDeployableBinary(self, template_path, output_path=None):
     """This will add the config to the client template and create a .deb."""
@@ -615,18 +622,13 @@ class LinuxClientDeployer(ClientDeployer):
                                 context=self.context),
           target_dir)
 
-      with open(os.path.join(agent_dir,
-                             config_lib.CONFIG.Get(
-                                 "ClientBuilder.config_filename",
-                                 context=self.context)),
-                "wb") as fd:
+      with open(os.path.join(agent_dir, config_lib.CONFIG.Get(
+          "ClientBuilder.config_filename", context=self.context)), "wb") as fd:
         fd.write(client_config_content)
 
       # Set the daemon to executable.
-      os.chmod(os.path.join(
-          agent_dir, config_lib.CONFIG.Get(
-              "Client.binary_name", context=self.context)),
-               0755)
+      os.chmod(os.path.join(agent_dir, config_lib.CONFIG.Get(
+          "Client.binary_name", context=self.context)), 0755)
 
       arch = config_lib.CONFIG.Get("Client.arch", context=self.context)
 

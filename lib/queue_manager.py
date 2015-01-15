@@ -487,7 +487,16 @@ class QueueManager(object):
 
       notifications_by_priority.setdefault(priority, []).append(notification)
 
+    # Register the queue count metric if we don't have it already
+    stat_name = "%s_notification_queue_count" % queue.Basename()
+    if not stats.STATS.HasMetric(stat_name):
+      stats.STATS.RegisterGaugeMetric(stat_name,
+                                      int, fields=[("priority", str)])
+
     for priority in notifications_by_priority:
+      stats.STATS.SetGaugeValue(
+          "%s_notification_queue_count" % queue.Basename(),
+          len(notifications_by_priority[priority]), fields=[str(priority)])
       random.shuffle(notifications_by_priority[priority])
 
     return notifications_by_priority

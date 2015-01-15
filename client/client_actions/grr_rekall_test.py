@@ -77,6 +77,18 @@ class RekallTestSuite(test_lib.EmptyActionTest):
         request=request, output="analysis/memory"):
       pass
 
+    # Check that the profiles are also cached locally.
+    test_profile_dir = os.path.join(config_lib.CONFIG["Test.data_dir"],
+                                    "profiles")
+    self.assertEqual(
+        os.stat(os.path.join(self.temp_dir, "v1.0/pe.gz")).st_size,
+        os.stat(os.path.join(test_profile_dir, "v1.0/pe.gz")).st_size)
+
+    p_name = "v1.0/nt/GUID/F8E2A8B5C9B74BF4A6E4A48F180099942.gz"
+    self.assertEqual(
+        os.stat(os.path.join(self.temp_dir, p_name)).st_size,
+        os.stat(os.path.join(test_profile_dir, p_name)).st_size)
+
 
 def RequireTestImage(f):
   """Decorator that skips tests if we don't have the memory image."""

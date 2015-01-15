@@ -45,18 +45,31 @@ class RDFValueCollection(aff4.AFF4Object):
     self.stream_dirty = False
 
     try:
+      self.fd = aff4.FACTORY.Open(self.urn.Add("UnversionedStream"),
+                                  aff4_type="AFF4UnversionedImage",
+                                  mode=self.mode,
+                                  token=self.token)
+      self.size = int(self.Get(self.Schema.SIZE))
+      return
+    except IOError:
+      pass
+
+    # We still have many collections which were created with a versioned stream,
+    # which wastes space. Check if this is such a collection and revert to the
+    # old behavior if necessary.
+    try:
       self.fd = aff4.FACTORY.Open(self.urn.Add("Stream"),
                                   aff4_type="AFF4Image", mode=self.mode,
                                   token=self.token)
       self.size = int(self.Get(self.Schema.SIZE))
-
       return
     except IOError:
       pass
 
     # If we get here, the stream does not already exist - we create a new
     # stream.
-    self.fd = aff4.FACTORY.Create(self.urn.Add("Stream"), "AFF4Image",
+    self.fd = aff4.FACTORY.Create(self.urn.Add("UnversionedStream"),
+                                  "AFF4UnversionedImage",
                                   mode=self.mode, token=self.token)
     self.fd.seek(0, 2)
     self.size = 0
@@ -426,7 +439,7 @@ class PackedVersionedCollection(RDFValueCollection):
     if token is None:
       raise ValueError("Token can't be None.")
 
-    attrs_to_set = []
+    data_attrs = []
     for rdf_value in rdf_values:
       if rdf_value is None:
         raise ValueError("Can't add None to the collection.")
@@ -438,11 +451,15 @@ class PackedVersionedCollection(RDFValueCollection):
       if not rdf_value.age:
         rdf_value.age.Now()
 
-      attrs_to_set.append(cls.SchemaCls.DATA(
+      data_attrs.append(cls.SchemaCls.DATA(
           rdfvalue.EmbeddedRDFValue(payload=rdf_value)))
 
-    aff4.FACTORY.SetAttributes(collection_urn,
-                               {cls.SchemaCls.DATA: attrs_to_set}, set(),
+    attrs_to_set = {cls.SchemaCls.DATA: data_attrs}
+    if cls.IsJournalingEnabled():
+      journal_entry = cls.SchemaCls.ADDITION_JOURNAL(len(rdf_values))
+      attrs_to_set[cls.SchemaCls.ADDITION_JOURNAL] = [journal_entry]
+
+    aff4.FACTORY.SetAttributes(collection_urn, attrs_to_set, set(),
                                add_child_index=False, sync=sync,
                                token=token)
     cls.ScheduleNotification(collection_urn, token=token)
@@ -452,11 +469,33 @@ class PackedVersionedCollection(RDFValueCollection):
                                  delta=len(rdf_values))
 
   class SchemaCls(RDFValueCollection.SchemaCls):
+    """Schema for PackedVersionedCollection."""
+
     DATA = aff4.Attribute("aff4:data", rdfvalue.EmbeddedRDFValue,
                           "The embedded semantic value.", versioned=True)
 
+    ADDITION_JOURNAL = aff4.Attribute("aff4:addition_journal",
+                                      rdfvalue.RDFInteger,
+                                      "Journal of Add(), AddAll(), and "
+                                      "AddToCollection() operations. Every "
+                                      "element in the journal is the number of "
+                                      "items added to collection when Add*() "
+                                      "was called.", versioned=True)
+
+    COMPACTION_JOURNAL = aff4.Attribute("aff4:compaction_journal",
+                                        rdfvalue.RDFInteger,
+                                        "Journal of compactions. Every item in "
+                                        "the journal is number of elements "
+                                        "that were compacted during particular "
+                                        "compaction.")
+
   COMPACTION_BATCH_SIZE = 10000
   MAX_REVERSED_RESULTS = 10000
+
+  @staticmethod
+  def IsJournalingEnabled():
+    return config_lib.CONFIG[
+        "Worker.enable_packed_versioned_collection_journaling"]
 
   def Flush(self, sync=True):
     send_notification = self._dirty
@@ -480,7 +519,8 @@ class PackedVersionedCollection(RDFValueCollection):
 
     self.Set(self.Schema.DATA(payload=rdf_value))
 
-    self.new_items_added = True
+    if self.IsJournalingEnabled():
+      self.Set(self.Schema.ADDITION_JOURNAL(1))
 
     # Update system-wide stats.
     stats.STATS.IncrementCounter("packed_collection_added")
@@ -503,7 +543,8 @@ class PackedVersionedCollection(RDFValueCollection):
       if callback:
         callback(index, rdf_value)
 
-    self.new_items_added = True
+    if self.IsJournalingEnabled():
+      self.Set(self.Schema.ADDITION_JOURNAL(len(rdf_values)))
 
     # Update system-wide stats.
     stats.STATS.IncrementCounter("packed_collection_added",
@@ -590,6 +631,13 @@ class PackedVersionedCollection(RDFValueCollection):
       data_store.DB.DeleteAttributes(self.urn, [self.Schema.DATA.predicate],
                                      end=freeze_timestamp,
                                      token=self.token, sync=True)
+      if self.IsJournalingEnabled():
+        journal_entry = self.Schema.COMPACTION_JOURNAL(compacted_count,
+                                                       age=freeze_timestamp)
+        attrs_to_set = {self.Schema.COMPACTION_JOURNAL: [journal_entry]}
+        aff4.FACTORY.SetAttributes(self.urn, attrs_to_set, set(),
+                                   add_child_index=False, sync=True,
+                                   token=self.token)
 
       if self.Schema.DATA in self.synced_attributes:
         del self.synced_attributes[self.Schema.DATA]
@@ -610,7 +658,7 @@ class PackedVersionedCollection(RDFValueCollection):
 
     HeartBeat()
 
-    # We over all versioned attributes. If we get more than
+    # We iterate over all versioned attributes. If we get more than
     # self.COMPACTION_BATCH_SIZE, we write the data to temporary
     # stream in the reversed order.
     for _, value, _ in data_store.DB.ResolveRegex(

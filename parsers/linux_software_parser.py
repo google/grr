@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Simple parsers for Linux files."""
 import re
-from debian_bundle import deb822
+from debian import deb822
 
 from grr.lib import parsers
 from grr.lib import rdfvalue
