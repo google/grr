@@ -259,7 +259,7 @@ class GRRWorker(object):
                          type(flow_obj))
 
             stats.STATS.IncrementCounter("worker_bad_flow_objects",
-                                         fields=[type(flow_obj)])
+                                         fields=[str(type(flow_obj))])
             return
 
           runner = flow_obj.GetRunner()
@@ -340,7 +340,7 @@ class GRRWorker(object):
       # here, we just remove the notification.
       logging.exception("Error processing session %s: %s", session_id, e)
       stats.STATS.IncrementCounter("worker_session_errors",
-                                   fields=[type(e)])
+                                   fields=[str(type(e))])
       queue_manager.DeleteNotification(session_id)
 
 

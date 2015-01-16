@@ -431,11 +431,11 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     self.assertTrue("Hello World!" in data)
     fd.Close()
 
-  def testAFF4Image(self):
-    """Test the AFF4Image object."""
+  def ExerciseAFF4ImageBase(self, classname):
+    """Run basic tests on a subclass of AFF4ImageBase."""
     path = "/C.12345/aff4image"
 
-    fd = aff4.FACTORY.Create(path, "AFF4Image", token=self.token)
+    fd = aff4.FACTORY.Create(path, classname, token=self.token)
     fd.SetChunksize(10)
 
     # Make lots of small writes - The length of this string and the chunk size
@@ -451,7 +451,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
     fd.Close()
 
-    fd = aff4.FACTORY.Create(path, "AFF4Image", mode="rw", token=self.token)
+    fd = aff4.FACTORY.Create(path, classname, mode="rw", token=self.token)
     fd.Set(fd.Schema._CHUNKSIZE(10))
 
     # Overflow the cache.
@@ -471,6 +471,12 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     self.assertEqual(len(data), 300)
     self.assertTrue("XXXHello WorldXXX" in data)
     self.assertTrue("XXXYYY" in data)
+
+  def testAFF4Image(self):
+    self.ExerciseAFF4ImageBase("AFF4Image")
+
+  def testAFF4UnversionedImage(self):
+    self.ExerciseAFF4ImageBase("AFF4UnversionedImage")
 
   def testAFF4ImageSize(self):
     path = "/C.12345/aff4imagesize"
@@ -531,9 +537,9 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     for i in range(100):
       self.assertEqual(fd.Read(13), "Test%08X\n" % i)
 
-  def WriteImage(self, path, prefix="Test", timestamp=0):
+  def WriteImage(self, path, prefix="Test", timestamp=0, classname="AFF4Image"):
     with utils.Stubber(time, "time", lambda: timestamp):
-      fd = aff4.FACTORY.Create(path, "AFF4Image", mode="w", token=self.token)
+      fd = aff4.FACTORY.Create(path, classname, mode="w", token=self.token)
 
       timestamp += 1
       fd.SetChunksize(10)
@@ -564,6 +570,28 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
     for i in range(100):
       s = "Time1%08X\n" % i
+      self.assertEqual(fd.Read(len(s)), s)
+
+    fd = aff4.FACTORY.Open(path, token=self.token, age=(0, 2250 * 1e6))
+    for i in range(100):
+      s = "Time2%08X\n" % i
+      self.assertEqual(fd.Read(len(s)), s)
+
+  def testAFF4ImageWithoutVersioning(self):
+    """Make sure the AFF4UnversionedImage does not do multiple versions."""
+    path = "/C.12345/foowithtime"
+
+    self.WriteImage(path, "Time1", timestamp=1000,
+                    classname="AFF4UnversionedImage")
+
+    # Write a newer version.
+    self.WriteImage(path, "Time2", timestamp=2000,
+                    classname="AFF4UnversionedImage")
+
+    fd = aff4.FACTORY.Open(path, token=self.token, age=(0, 1150 * 1e6))
+
+    for i in range(100):
+      s = "Time2%08X\n" % i
       self.assertEqual(fd.Read(len(s)), s)
 
     fd = aff4.FACTORY.Open(path, token=self.token, age=(0, 2250 * 1e6))

@@ -713,13 +713,9 @@ class TransferStore(flow.WellKnownFlow):
       digest = hashlib.sha256(data).digest()
       urn = rdfvalue.RDFURN("aff4:/blobs").Add(digest.encode("hex"))
 
-      # Write the blob to the data store. We cheat here and just store the
-      # compressed data to avoid recompressing it.
       fd = aff4.FACTORY.Create(urn, "AFF4MemoryStream", mode="w",
                                token=self.token)
-      fd.Set(fd.Schema.CONTENT(cdata))
-      fd.Set(fd.Schema.SIZE(len(data)))
-      super(aff4.AFF4MemoryStream, fd).Close(sync=True)
+      fd.OverwriteAndClose(cdata, len(data), sync=True)
 
       logging.debug("Got blob %s (length %s)", digest.encode("hex"),
                     len(cdata))

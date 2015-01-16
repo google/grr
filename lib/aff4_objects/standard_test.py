@@ -429,9 +429,7 @@ class AFF4SparseImageTest(test_lib.AFF4ObjectTest):
     # compressed data to avoid recompressing it.
     blob_fd = aff4.FACTORY.Create(urn, "AFF4MemoryStream", mode="w",
                                   token=self.token)
-    blob_fd.Set(blob_fd.Schema.CONTENT(cdata))
-    blob_fd.Set(blob_fd.Schema.SIZE(len(blob_contents)))
-    super(aff4.AFF4MemoryStream, blob_fd).Close(sync=True)
+    blob_fd.OverwriteAndClose(cdata, len(blob_contents), sync=True)
 
     return blob_hash
 

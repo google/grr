@@ -314,6 +314,33 @@ message OutputPlugin {
     }];
 }
 
+message OutputPluginBatchProcessingStatus {
+  enum Status {
+    SUCCESS = 0; // Batch was succesffully processed.
+    ERROR = 1;  // Batch wasn't processed due to an error.
+  }
+
+  optional Status status = 1 [(sem_type) = {
+      description: "Was this batch successfully processed or not?"
+    }, default = SUCCESS];
+
+  optional string plugin_name = 2 [(sem_type) = {
+      description: "Name of the output plugin responsible for this result."
+    }];
+
+  optional string summary = 3 [(sem_type) = {
+      description: "Summary message."
+    }];
+
+  optional uint64 batch_index = 4 [(sem_type) = {
+      description: "Number of the batch being processed."
+    }];
+
+  optional uint64 batch_size = 5 [(sem_type) = {
+      description: "Size of the batch beting processed."
+    }];
+}
+
 message EmailPluginArgs {
   optional string email = 1 [(sem_type) = {
       type: "DomainEmailAddress",
