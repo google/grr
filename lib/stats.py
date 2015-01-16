@@ -538,17 +538,6 @@ class StatsCollector(object):
     """
     return self._metrics[varname].Get(fields)
 
-  def HasMetric(self, varname):
-    """Returns true if the metric is registered.
-
-    Args:
-      varname: Metric name
-
-    Returns:
-      bool, true if the metric with varname is registered
-    """
-    return varname in self._metrics
-
 
 # A global store of statistics.
 STATS = None

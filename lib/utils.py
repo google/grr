@@ -432,22 +432,19 @@ class PickleableLock(object):
 
   lock = None
 
+  def __init__(self):
+    self.lock = threading.RLock()
+
   def __getstate__(self):
-    return {}
+    return True
 
   def __setstate__(self, _):
-    pass
+    self.lock = threading.RLock()
 
   def __enter__(self):
-    if self.lock is None:
-      self.lock = threading.RLock()
-
     return self.lock.__enter__()
 
   def __exit__(self, exc_type, exc_value, traceback):
-    if self.lock is None:
-      self.lock = threading.RLock()
-
     return self.lock.__exit__(exc_type, exc_value, traceback)
 
 
