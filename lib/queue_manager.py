@@ -488,6 +488,9 @@ class QueueManager(object):
       notifications_by_priority.setdefault(priority, []).append(notification)
 
     for priority in notifications_by_priority:
+      stats.STATS.SetGaugeValue("notification_queue_count",
+                                len(notifications_by_priority[priority]),
+                                fields=[queue.Basename(), str(priority)])
       random.shuffle(notifications_by_priority[priority])
 
     return notifications_by_priority
@@ -757,3 +760,6 @@ class QueueManagerInit(registry.InitHook):
     # Counters used by the QueueManager.
     stats.STATS.RegisterCounterMetric("grr_task_retransmission_count")
     stats.STATS.RegisterCounterMetric("grr_task_ttl_expired_count")
+    stats.STATS.RegisterGaugeMetric("notification_queue_count", int,
+                                    fields=[("queue_name", str),
+                                            ("priority", str)])

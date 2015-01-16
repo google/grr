@@ -21,6 +21,11 @@ from grr.parsers import wmi_parser
 from grr.proto import flows_pb2
 
 
+class OutputPluginBatchProcessingStatus(rdfvalue.RDFProtoStruct):
+  """Describes processing status of a single batch by a hunt output plugin."""
+  protobuf = flows_pb2.OutputPluginBatchProcessingStatus
+
+
 class Error(Exception):
   pass
 
@@ -37,14 +42,15 @@ class ResultsProcessingError(Error):
     super(ResultsProcessingError, self).__init__()
 
   def RegisterSubException(self, hunt_urn, plugin_name, exception):
-    self.exceptions_by_hunt.setdefault(hunt_urn, {})[plugin_name] = exception
+    self.exceptions_by_hunt.setdefault(hunt_urn, {}).setdefault(
+        plugin_name, []).append(exception)
 
   def __repr__(self):
     messages = []
     for hunt_urn, exceptions_by_plugin in self.exceptions_by_hunt.items():
       for plugin_name, exception in exceptions_by_plugin.items():
-        messages.append("Exception for hunt %s (plugin %s): %s",
-                        hunt_urn, plugin_name, exception)
+        messages.append("Exception for hunt %s (plugin %s): %s" %
+                        (hunt_urn, plugin_name, exception))
 
     return "\n".join(messages)
 
@@ -485,6 +491,12 @@ class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
 
     return False
 
+  def StatusCollectionUrn(self, hunt_urn):
+    return hunt_urn.Add("OutputPluginsStatus")
+
+  def ErrorsCollectionUrn(self, hunt_urn):
+    return hunt_urn.Add("OutputPluginsErrors")
+
   def ApplyPluginsToBatch(self, hunt_urn, plugins, batch, batch_index):
     exceptions_by_plugin = {}
     for plugin_name, plugin in plugins.items():
@@ -496,9 +508,22 @@ class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
 
         stats.STATS.IncrementCounter("hunt_results_ran_through_plugin",
                                      delta=len(batch), fields=[plugin_name])
+
+        plugin_status = rdfvalue.OutputPluginBatchProcessingStatus(
+            plugin_name=plugin_name,
+            status="SUCCESS",
+            batch_index=batch_index,
+            batch_size=len(batch))
       except Exception as e:  # pylint: disable=broad-except
         stats.STATS.IncrementCounter("hunt_output_plugin_errors",
                                      fields=[plugin_name])
+
+        plugin_status = rdfvalue.OutputPluginBatchProcessingStatus(
+            plugin_name=plugin_name,
+            status="ERROR",
+            summary=utils.SmartStr(e),
+            batch_index=batch_index,
+            batch_size=len(batch))
 
         logging.exception("Error processing hunt results: hunt %s, "
                           "plugin %s, batch %d", hunt_urn, plugin_name,
@@ -507,6 +532,14 @@ class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
                  "plugin %s, batch %d): %s" %
                  (hunt_urn, plugin_name, batch_index, e))
         exceptions_by_plugin[plugin_name] = e
+
+      aff4.PackedVersionedCollection.AddToCollection(
+          self.StatusCollectionUrn(hunt_urn),
+          [plugin_status], sync=False, token=self.token)
+      if plugin_status.status == plugin_status.Status.ERROR:
+        aff4.PackedVersionedCollection.AddToCollection(
+            self.ErrorsCollectionUrn(hunt_urn),
+            [plugin_status], sync=False, token=self.token)
 
     return exceptions_by_plugin
 
@@ -552,8 +585,12 @@ class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
                             state) in output_plugins.data.iteritems():
             used_plugins[plugin_name] = plugin_def.GetPluginForState(state)
 
-        plugins_exceptions = self.ApplyPluginsToBatch(hunt_urn, used_plugins,
-                                                      batch, batch_index)
+        batch_exceptions = self.ApplyPluginsToBatch(hunt_urn, used_plugins,
+                                                    batch, batch_index)
+        if batch_exceptions:
+          for key, value in batch_exceptions.items():
+            plugins_exceptions.setdefault(key, []).append(value)
+
         self.HeartBeat()
 
         # If this flow is working for more than max_running_time - stop
@@ -641,8 +678,9 @@ class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
     if exceptions_by_hunt:
       e = ResultsProcessingError()
       for hunt_urn, exceptions_by_plugin in exceptions_by_hunt.items():
-        for plugin_name, exception in exceptions_by_plugin.items():
-          e.RegisterSubException(hunt_urn, plugin_name, exception)
+        for plugin_name, exceptions in exceptions_by_plugin.items():
+          for exception in exceptions:
+            e.RegisterSubException(hunt_urn, plugin_name, exception)
       raise e
 
 

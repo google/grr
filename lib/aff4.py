@@ -1374,8 +1374,11 @@ class AFF4Object(object):
       self._AddAttributeToCache(attribute, LazyDecoder(cls, value, ts),
                                 self.synced_attributes)
     except KeyError:
-      if not attribute_name.startswith("index:"):
-        logging.debug("Attribute %s not defined, skipping.", attribute_name)
+      pass
+    # TODO(user): uncomment as soon as some messages-flood protection
+    # mechanisms are implemented in logging.debug().
+    # if not attribute_name.startswith("index:"):
+    #   logging.debug("Attribute %s not defined, skipping.", attribute_name)
     except (ValueError, rdfvalue.DecodeError):
       logging.debug("%s: %s invalid encoding. Skipping.",
                     self.urn, attribute_name)
@@ -2237,12 +2240,12 @@ class AFF4Stream(AFF4Object):
   flush = utils.Proxy("Flush")
 
 
-class AFF4MemoryStream(AFF4Stream):
-  """A stream which keeps all data in memory."""
+class AFF4MemoryStreamBase(AFF4Stream):
+  """A stream which keeps all data in memory.
 
-  class SchemaCls(AFF4Stream.SchemaCls):
-    CONTENT = Attribute("aff4:content", rdfvalue.RDFBytes,
-                        "Total content of this file.", default="")
+  This is an abstract class, subclasses must define the CONTENT attribute
+  in the Schema to be versioned or unversioned.
+  """
 
   def Initialize(self):
     """Try to load the data from the store."""
@@ -2289,7 +2292,7 @@ class AFF4MemoryStream(AFF4Stream):
       self.Set(self.Schema.CONTENT(compressed_content))
       self.Set(self.Schema.SIZE(self.size))
 
-    super(AFF4MemoryStream, self).Flush(sync=sync)
+    super(AFF4MemoryStreamBase, self).Flush(sync=sync)
 
   def Close(self, sync=True):
     if self._dirty:
@@ -2297,10 +2300,42 @@ class AFF4MemoryStream(AFF4Stream):
       self.Set(self.Schema.CONTENT(compressed_content))
       self.Set(self.Schema.SIZE(self.size))
 
-    super(AFF4MemoryStream, self).Close(sync=sync)
+    super(AFF4MemoryStreamBase, self).Close(sync=sync)
+
+  def OverwriteAndClose(self, compressed_data, size, sync=True):
+    """Directly overwrite the current contents.
+
+    Replaces the data currently in the stream with compressed_data,
+    and closes the object. Makes it possible to avoid recompressing
+    the data.
+    Args:
+      compressed_data: The data to write, must be zlib compressed.
+      size: The uncompressed size of the data.
+      sync: Whether the close should be synchronous.
+    """
+    self.Set(self.Schema.CONTENT(compressed_data))
+    self.Set(self.Schema.SIZE(size))
+    super(AFF4MemoryStreamBase, self).Close(sync=sync)
 
   def GetContentAge(self):
     return self.Get(self.Schema.CONTENT).age
+
+
+class AFF4MemoryStream(AFF4MemoryStreamBase):
+  """A versioned stream which keeps all data in memory."""
+
+  class SchemaCls(AFF4MemoryStreamBase.SchemaCls):
+    CONTENT = Attribute("aff4:content", rdfvalue.RDFBytes,
+                        "Total content of this file.", default="")
+
+
+class AFF4UnversionedMemoryStream(AFF4MemoryStreamBase):
+  """An unversioned stream which keeps all data in memory."""
+
+  class SchemaCls(AFF4MemoryStreamBase.SchemaCls):
+    CONTENT = Attribute("aff4:content", rdfvalue.RDFBytes,
+                        "Total content of this file.", default="",
+                        versioned=False)
 
 
 class AFF4ObjectCache(utils.FastStore):
@@ -2310,11 +2345,11 @@ class AFF4ObjectCache(utils.FastStore):
     obj.Close(sync=True)
 
 
-class AFF4Image(AFF4Stream):
+class AFF4ImageBase(AFF4Stream):
   """An AFF4 Image is stored in segments.
 
   We are both an Image here and a volume (since we store the segments inside
-  us).
+  us). This is an abstract class, subclasses choose the type to use for chunks.
   """
 
   NUM_RETRIES = 10
@@ -2323,6 +2358,9 @@ class AFF4Image(AFF4Stream):
   # This is the chunk size of each chunk. The chunksize can not be changed once
   # the object is created.
   chunksize = 64 * 1024
+
+  # Subclasses should set the name of the type of stream to use for chunks.
+  STREAM_TYPE = None
 
   class SchemaCls(AFF4Stream.SchemaCls):
     _CHUNKSIZE = Attribute("aff4:chunksize", rdfvalue.RDFInteger,
@@ -2338,7 +2376,7 @@ class AFF4Image(AFF4Stream):
 
   def Initialize(self):
     """Build a cache for our chunks."""
-    super(AFF4Image, self).Initialize()
+    super(AFF4ImageBase, self).Initialize()
 
     self.offset = 0
     # A cache for segments - When we get pickled we want to discard them.
@@ -2392,7 +2430,7 @@ class AFF4Image(AFF4Stream):
     try:
       fd = self.chunk_cache.Get(chunk_name)
     except KeyError:
-      fd = FACTORY.Create(chunk_name, "AFF4MemoryStream", mode="rw",
+      fd = FACTORY.Create(chunk_name, self.STREAM_TYPE, mode="rw",
                           token=self.token)
       self.chunk_cache.Put(chunk_name, fd)
 
@@ -2510,7 +2548,7 @@ class AFF4Image(AFF4Stream):
 
     # Flushing the cache will call Close() on all the chunks.
     self.chunk_cache.Flush()
-    super(AFF4Image, self).Flush(sync=sync)
+    super(AFF4ImageBase, self).Flush(sync=sync)
 
   def Close(self, sync=True):
     """This method is called to sync our data into storage.
@@ -2522,6 +2560,16 @@ class AFF4Image(AFF4Stream):
 
   def GetContentAge(self):
     return self.content_last
+
+
+class AFF4Image(AFF4ImageBase):
+  """An AFF4 Image containing a versioned stream."""
+  STREAM_TYPE = "AFF4MemoryStream"
+
+
+class AFF4UnversionedImage(AFF4ImageBase):
+  """An AFF4 Image containing an unversioned stream."""
+  STREAM_TYPE = "AFF4UnversionedMemoryStream"
 
 
 class AFF4NotificationRule(AFF4Object):

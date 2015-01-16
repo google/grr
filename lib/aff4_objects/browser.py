@@ -35,7 +35,7 @@ class VFSBrowserExtension(aff4_grr.VFSMemoryFile):
                                   "The directory where the extension resides.")
 
   def __init__(self, urn, mode="r", **kwargs):
-    super(aff4.AFF4MemoryStream, self).__init__(urn, mode=mode, **kwargs)
+    super(VFSBrowserExtension, self).__init__(urn, mode=mode, **kwargs)
 
     # The client_id is the first element of the URN
     self.client_id = self.urn.Path().split("/")[1]
