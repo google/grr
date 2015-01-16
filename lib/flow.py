@@ -1843,8 +1843,6 @@ class FlowInit(registry.InitHook):
     stats.STATS.RegisterCounterMetric("grr_unique_clients")
     stats.STATS.RegisterCounterMetric("grr_unknown_clients")
     stats.STATS.RegisterCounterMetric("grr_well_known_flow_requests")
-    stats.STATS.RegisterCounterMetric("grr_worker_requests_complete")
-    stats.STATS.RegisterCounterMetric("grr_worker_requests_issued")
     stats.STATS.RegisterCounterMetric("grr_worker_states_run")
     stats.STATS.RegisterCounterMetric("grr_worker_well_known_flow_requests")
     stats.STATS.RegisterCounterMetric("grr_frontendserver_handle_num")

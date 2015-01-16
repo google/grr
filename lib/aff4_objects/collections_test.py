@@ -545,3 +545,242 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
       fd.Compact()
       # Compaction should have updated the lease.
       self.assertEqual(fd.CheckLease(), 42)
+
+  def testNoJournalEntriesAreAddedWhenJournalingIsDisabled(self):
+    config_lib.CONFIG.Set(
+        "Worker.enable_packed_versioned_collection_journaling", False)
+
+    with aff4.FACTORY.Create(self.collection_urn,
+                             "PackedVersionedCollection",
+                             mode="w", token=self.token) as fd:
+      fd.Add(rdfvalue.GrrMessage(request_id=42))
+      fd.AddAll([rdfvalue.GrrMessage(request_id=43),
+                 rdfvalue.GrrMessage(request_id=44)])
+
+    aff4.PackedVersionedCollection.AddToCollection(
+        self.collection_urn,
+        [rdfvalue.GrrMessage(request_id=1), rdfvalue.GrrMessage(request_id=2)],
+        token=self.token)
+
+    with aff4.FACTORY.OpenWithLock(self.collection_urn, token=self.token) as fd:
+      fd.Compact()
+
+    fd = aff4.FACTORY.Open(self.collection_urn, age=aff4.ALL_TIMES,
+                           token=self.token)
+    self.assertFalse(fd.IsAttributeSet(fd.Schema.ADDITION_JOURNAL))
+    self.assertFalse(fd.IsAttributeSet(fd.Schema.COMPACTION_JOURNAL))
+
+  def _EnableJournaling(self):
+    config_lib.CONFIG.Set(
+        "Worker.enable_packed_versioned_collection_journaling", True)
+
+  def testJournalEntryIsAddedAfterSingeAddCall(self):
+    self._EnableJournaling()
+
+    with aff4.FACTORY.Create(self.collection_urn,
+                             "PackedVersionedCollection",
+                             mode="w", token=self.token) as fd:
+      fd.Add(rdfvalue.GrrMessage(request_id=42))
+
+    fd = aff4.FACTORY.Open(self.collection_urn, age=aff4.ALL_TIMES,
+                           token=self.token)
+    addition_journal = list(
+        fd.GetValuesForAttribute(fd.Schema.ADDITION_JOURNAL))
+    self.assertEqual(len(addition_journal), 1)
+    self.assertEqual(addition_journal[0], 1)
+
+  def testTwoJournalEntriesAreAddedAfterTwoConsecutiveAddCalls(self):
+    self._EnableJournaling()
+
+    with aff4.FACTORY.Create(self.collection_urn,
+                             "PackedVersionedCollection",
+                             mode="w", token=self.token) as fd:
+      fd.Add(rdfvalue.GrrMessage(request_id=42))
+      fd.Add(rdfvalue.GrrMessage(request_id=43))
+
+    fd = aff4.FACTORY.Open(self.collection_urn, age=aff4.ALL_TIMES,
+                           token=self.token)
+    addition_journal = sorted(
+        fd.GetValuesForAttribute(fd.Schema.ADDITION_JOURNAL),
+        key=lambda x: x.age)
+    self.assertEqual(len(addition_journal), 2)
+    self.assertEqual(addition_journal[0], 1)
+    self.assertEqual(addition_journal[1], 1)
+
+  def testTwoJournalEntriesAreAddedAfterAddCallsSeparatedByFlush(self):
+    self._EnableJournaling()
+
+    with aff4.FACTORY.Create(self.collection_urn,
+                             "PackedVersionedCollection",
+                             mode="w", token=self.token) as fd:
+      fd.Add(rdfvalue.GrrMessage(request_id=42))
+
+    with aff4.FACTORY.Create(self.collection_urn,
+                             "PackedVersionedCollection",
+                             mode="w", token=self.token) as fd:
+      fd.Add(rdfvalue.GrrMessage(request_id=43))
+
+    fd = aff4.FACTORY.Open(self.collection_urn, age=aff4.ALL_TIMES,
+                           token=self.token)
+    addition_journal = sorted(
+        fd.GetValuesForAttribute(fd.Schema.ADDITION_JOURNAL),
+        key=lambda x: x.age)
+    self.assertEqual(len(addition_journal), 2)
+    self.assertEqual(addition_journal[0], 1)
+    self.assertEqual(addition_journal[1], 1)
+
+  def testJournalEntryIsAddedAfterSingleAddAllCall(self):
+    self._EnableJournaling()
+
+    with aff4.FACTORY.Create(self.collection_urn,
+                             "PackedVersionedCollection",
+                             mode="w", token=self.token) as fd:
+      elements = []
+      for i in range(10):
+        elements.append(rdfvalue.GrrMessage(request_id=i))
+      fd.AddAll(elements)
+
+    fd = aff4.FACTORY.Open(self.collection_urn, age=aff4.ALL_TIMES,
+                           token=self.token)
+    addition_journal = list(
+        fd.GetValuesForAttribute(fd.Schema.ADDITION_JOURNAL))
+    self.assertEqual(len(addition_journal), 1)
+    self.assertEqual(addition_journal[0], 10)
+
+  def testTwoJournalEntriesAreAddedAfterTwoConsecutiveAddAllCall(self):
+    self._EnableJournaling()
+
+    with aff4.FACTORY.Create(self.collection_urn,
+                             "PackedVersionedCollection",
+                             mode="w", token=self.token) as fd:
+      elements = []
+      for i in range(10):
+        elements.append(rdfvalue.GrrMessage(request_id=i))
+      fd.AddAll(elements)
+      fd.AddAll(elements[:5])
+
+    fd = aff4.FACTORY.Open(self.collection_urn, age=aff4.ALL_TIMES,
+                           token=self.token)
+    addition_journal = sorted(
+        fd.GetValuesForAttribute(fd.Schema.ADDITION_JOURNAL),
+        key=lambda x: x.age)
+    self.assertEqual(len(addition_journal), 2)
+    self.assertEqual(addition_journal[0], 10)
+    self.assertEqual(addition_journal[1], 5)
+
+  def testTwoJournalEntriesAreAddedAfterTwoAddAllCallsSeparatedByFlush(self):
+    self._EnableJournaling()
+
+    elements = []
+    for i in range(10):
+      elements.append(rdfvalue.GrrMessage(request_id=i))
+
+    with aff4.FACTORY.Create(self.collection_urn,
+                             "PackedVersionedCollection",
+                             mode="w", token=self.token) as fd:
+      fd.AddAll(elements)
+
+    with aff4.FACTORY.Create(self.collection_urn,
+                             "PackedVersionedCollection",
+                             mode="w", token=self.token) as fd:
+      fd.AddAll(elements[:5])
+
+    fd = aff4.FACTORY.Open(self.collection_urn, age=aff4.ALL_TIMES,
+                           token=self.token)
+    addition_journal = sorted(
+        fd.GetValuesForAttribute(fd.Schema.ADDITION_JOURNAL),
+        key=lambda x: x.age)
+    self.assertEqual(len(addition_journal), 2)
+    self.assertEqual(addition_journal[0], 10)
+    self.assertEqual(addition_journal[1], 5)
+
+  def testJournalEntryIsAddedAfterSingleAddToCollectionCall(self):
+    self._EnableJournaling()
+
+    with aff4.FACTORY.Create(self.collection_urn, "PackedVersionedCollection",
+                             mode="w", token=self.token) as _:
+      pass
+
+    aff4.PackedVersionedCollection.AddToCollection(
+        self.collection_urn,
+        [rdfvalue.GrrMessage(request_id=1), rdfvalue.GrrMessage(request_id=2)],
+        token=self.token)
+    fd = aff4.FACTORY.Open(self.collection_urn, age=aff4.ALL_TIMES,
+                           token=self.token)
+    addition_journal = list(
+        fd.GetValuesForAttribute(fd.Schema.ADDITION_JOURNAL))
+    self.assertEqual(len(addition_journal), 1)
+    self.assertEqual(addition_journal[0], 2)
+
+  def testTwoJournalEntriesAreAddedAfterTwoAddToCollectionCalls(self):
+    self._EnableJournaling()
+
+    with aff4.FACTORY.Create(self.collection_urn, "PackedVersionedCollection",
+                             mode="w", token=self.token) as _:
+      pass
+
+    aff4.PackedVersionedCollection.AddToCollection(
+        self.collection_urn,
+        [rdfvalue.GrrMessage(request_id=1), rdfvalue.GrrMessage(request_id=2)],
+        token=self.token)
+    aff4.PackedVersionedCollection.AddToCollection(
+        self.collection_urn,
+        [rdfvalue.GrrMessage(request_id=3)],
+        token=self.token)
+
+    fd = aff4.FACTORY.Open(self.collection_urn, age=aff4.ALL_TIMES,
+                           token=self.token)
+    addition_journal = sorted(
+        fd.GetValuesForAttribute(fd.Schema.ADDITION_JOURNAL),
+        key=lambda x: x.age)
+    self.assertEqual(len(addition_journal), 2)
+    self.assertEqual(addition_journal[0], 2)
+    self.assertEqual(addition_journal[1], 1)
+
+  def testJournalEntryIsAddedAfterSingleCompaction(self):
+    self._EnableJournaling()
+
+    with aff4.FACTORY.Create(self.collection_urn,
+                             "PackedVersionedCollection",
+                             mode="w", token=self.token) as fd:
+      fd.AddAll([rdfvalue.GrrMessage(request_id=42),
+                 rdfvalue.GrrMessage(request_id=42)])
+
+    with aff4.FACTORY.OpenWithLock(self.collection_urn, token=self.token) as fd:
+      fd.Compact()
+
+    fd = aff4.FACTORY.Open(self.collection_urn, age=aff4.ALL_TIMES,
+                           token=self.token)
+    compaction_journal = list(
+        fd.GetValuesForAttribute(fd.Schema.COMPACTION_JOURNAL))
+    self.assertEqual(len(compaction_journal), 1)
+    self.assertEqual(compaction_journal[0], 2)
+
+  def testTwoJournalEntriesAreAddedAfterTwoCompactions(self):
+    self._EnableJournaling()
+
+    with aff4.FACTORY.Create(self.collection_urn,
+                             "PackedVersionedCollection",
+                             mode="w", token=self.token) as fd:
+      fd.AddAll([rdfvalue.GrrMessage(request_id=42),
+                 rdfvalue.GrrMessage(request_id=42)])
+
+    with aff4.FACTORY.OpenWithLock(self.collection_urn, token=self.token) as fd:
+      fd.Compact()
+
+    with aff4.FACTORY.Create(self.collection_urn,
+                             "PackedVersionedCollection",
+                             mode="w", token=self.token) as fd:
+      fd.AddAll([rdfvalue.GrrMessage(request_id=42)])
+
+    with aff4.FACTORY.OpenWithLock(self.collection_urn, token=self.token) as fd:
+      fd.Compact()
+
+    fd = aff4.FACTORY.Open(self.collection_urn, age=aff4.ALL_TIMES,
+                           token=self.token)
+    compaction_journal = sorted(
+        fd.GetValuesForAttribute(fd.Schema.COMPACTION_JOURNAL),
+        key=lambda x: x.age)
+    self.assertEqual(len(compaction_journal), 2)
+    self.assertEqual(compaction_journal[0], 2)
+    self.assertEqual(compaction_journal[1], 1)

@@ -6,7 +6,7 @@
 # Should-Start:
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
-# Description:       GRR Rapid Response client
+# Description:       %(Client.description)
 ### END INIT INFO
 
 PATH="/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin"
@@ -17,11 +17,25 @@ DAEMON_ARGS="--config=%(ClientBuilder.target_dir)/%(ClientBuilder.config_filenam
 PIDFILE="/var/run/${NAME}.pid"
 SCRIPTNAME="/etc/init.d/${NAME}"
 
-[ -x "${DAEMON}" ] \|\| exit 0
+[ -x "${DAEMON}" ] || exit 0
 
 . /lib/init/vars.sh
 
+# Define various helper functions, needs lsb-base >= 3.2-14
 . /lib/lsb/init-functions
+
+# If upstart is here, exit and let it handle everything.
+# The init_is_upstart requires lsb-base >= 4.1+Debian3, but we want to be able
+# to run on older systems, so if it isn't present we do the check ourselves.
+if type init_is_upstart >/dev/null 2>&1; then
+  init_is_upstart && exit 0
+else
+  if [ -x /sbin/initctl ] && /sbin/initctl version | /bin/grep -q upstart; then
+    exit 0
+  fi
+fi
+
+# Parentheses are escaped since they confuse config_lib.InterpolateValue
 
 do_start\(\) {
 	start-stop-daemon --start \
@@ -29,14 +43,14 @@ do_start\(\) {
 	--test \
 	--make-pidfile \
 	--pidfile ${PIDFILE} \
-	--startas ${DAEMON} -- ${DAEMON_ARGS} \|\| return 1
+	--startas ${DAEMON} -- ${DAEMON_ARGS} || return 1
 
 	start-stop-daemon --start \
 	--quiet \
 	--background \
 	--make-pidfile \
 	--pidfile ${PIDFILE} \
-	--startas ${DAEMON} -- ${DAEMON_ARGS} \|\| return 2
+	--startas ${DAEMON} -- ${DAEMON_ARGS} || return 2
 }
 
 do_stop\(\) {
@@ -71,7 +85,7 @@ case "$1" in
 		do_start
 
 		case "$?" in
-			0\|1\)
+			0|1\)
 				[ "${VERBOSE}" != no ] && log_end_msg 0
 				;;
 
@@ -87,7 +101,7 @@ case "$1" in
 		do_stop
 
 		case "$?" in
-			0\|1\)
+			0|1\)
 				[ "${VERBOSE}" != no ] && log_end_msg 0
 				;;
 
@@ -98,10 +112,10 @@ case "$1" in
 		;;
 
 	status\)
-		status_of_proc -p "${PIDFILE}" "${DAEMON}" "${NAME}" && exit 0 \|\| exit $?
+		status_of_proc -p "${PIDFILE}" "${DAEMON}" "${NAME}" && exit 0 || exit $?
 		;;
 
-	reload\|force-reload\)
+	reload|force-reload\)
 		log_daemon_msg "Reloading ${DESC}" "${NAME}"
 
 		do_reload
@@ -110,12 +124,12 @@ case "$1" in
 		;;
 
 	restart\)
-		log_daemon_msg "Restaring ${DESC}" "${NAME}"
+		log_daemon_msg "Restarting ${DESC}" "${NAME}"
 
 		do_stop
 
 		case "$?" in
-			0\|1\)
+			0|1\)
 				sleep 1
 
 				do_start
@@ -125,7 +139,7 @@ case "$1" in
 						log_end_msg 0
 						;;
 
-					1\|2\)
+					1|2\)
 						log_end_msg 1
 						;;
 				esac
@@ -138,7 +152,7 @@ case "$1" in
 		;;
 
 	*\)
-		echo "Usage: ${SCRIPTNAME} {start\|stop\|status\|restart\|force-reload\|reload}" >&2
+		echo "Usage: ${SCRIPTNAME} {start|stop|status|restart|force-reload|reload}" >&2
 
 		exit 3
 		;;

@@ -223,6 +223,115 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(DummyHuntOutputPlugin.num_calls, 2)
     self.assertEqual(DummyHuntOutputPlugin.num_responses, 10)
 
+  def testOutputPluginsProcessingStatusIsWrittenToStatusCollection(self):
+    hunt_urn = self.StartHunt(output_plugins=[rdfvalue.OutputPlugin(
+        plugin_name="DummyHuntOutputPlugin")])
+
+    # Run the hunt and process output plugins.
+    self.AssignTasksToClients(self.client_ids)
+    self.RunHunt(failrate=-1)
+    self.ProcessHuntOutputPlugins()
+
+    hunt = aff4.FACTORY.Open(hunt_urn, token=self.token)
+    status_collection = aff4.FACTORY.Open(
+        hunt.output_plugins_status_collection_urn,
+        token=self.token)
+    errors_collection = aff4.FACTORY.Open(
+        hunt.output_plugins_errors_collection_urn,
+        token=self.token)
+
+    self.assertEqual(len(errors_collection), 0)
+    self.assertEqual(len(status_collection), 1)
+
+    self.assertEqual(status_collection[0].status, "SUCCESS")
+    self.assertEqual(status_collection[0].batch_index, 0)
+    self.assertEqual(status_collection[0].batch_size, 10)
+    self.assertEqual(status_collection[0].plugin_name,
+                     "DummyHuntOutputPlugin_0")
+
+  def testMultipleOutputPluginsProcessingStatusAreWrittenToStatusCollection(
+      self):
+    hunt_urn = self.StartHunt(output_plugins=[rdfvalue.OutputPlugin(
+        plugin_name="DummyHuntOutputPlugin")])
+
+    # Run the hunt on first 4 clients and process output plugins.
+    self.AssignTasksToClients(self.client_ids[:4])
+    self.RunHunt(failrate=-1)
+    self.ProcessHuntOutputPlugins()
+
+    # Run the hunt on last 6 clients and process output plugins.
+    self.AssignTasksToClients(self.client_ids[4:])
+    self.RunHunt(failrate=-1)
+    self.ProcessHuntOutputPlugins()
+
+    hunt = aff4.FACTORY.Open(hunt_urn, token=self.token)
+    status_collection = aff4.FACTORY.Open(
+        hunt.output_plugins_status_collection_urn,
+        token=self.token)
+    errors_collection = aff4.FACTORY.Open(
+        hunt.output_plugins_errors_collection_urn,
+        token=self.token)
+
+    self.assertEqual(len(errors_collection), 0)
+    self.assertEqual(len(status_collection), 2)
+
+    items = sorted(status_collection, key=lambda x: x.age)
+    self.assertEqual(items[0].status, "SUCCESS")
+    self.assertEqual(items[0].batch_index, 0)
+    self.assertEqual(items[0].batch_size, 4)
+    self.assertEqual(items[0].plugin_name, "DummyHuntOutputPlugin_0")
+
+    self.assertEqual(items[1].status, "SUCCESS")
+    self.assertEqual(items[1].batch_index, 0)
+    self.assertEqual(items[1].batch_size, 6)
+    self.assertEqual(items[1].plugin_name, "DummyHuntOutputPlugin_0")
+
+  def testErrorOutputPluginStatusIsAlsoWrittenToErrorsCollection(self):
+    hunt_urn = self.StartHunt(output_plugins=[
+        rdfvalue.OutputPlugin(plugin_name="FailingDummyHuntOutputPlugin"),
+        rdfvalue.OutputPlugin(plugin_name="DummyHuntOutputPlugin")
+    ])
+
+    # Run the hunt and process output plugins.
+    self.AssignTasksToClients(self.client_ids)
+    self.RunHunt(failrate=-1)
+    try:
+      self.ProcessHuntOutputPlugins()
+    except standard.ResultsProcessingError:
+      pass
+
+    hunt = aff4.FACTORY.Open(hunt_urn, token=self.token)
+    status_collection = aff4.FACTORY.Open(
+        hunt.output_plugins_status_collection_urn,
+        token=self.token)
+    errors_collection = aff4.FACTORY.Open(
+        hunt.output_plugins_errors_collection_urn,
+        token=self.token)
+
+    self.assertEqual(len(errors_collection), 1)
+    self.assertEqual(len(status_collection), 2)
+
+    self.assertEqual(errors_collection[0].status, "ERROR")
+    self.assertEqual(errors_collection[0].batch_index, 0)
+    self.assertEqual(errors_collection[0].batch_size, 10)
+    self.assertEqual(errors_collection[0].plugin_name,
+                     "FailingDummyHuntOutputPlugin_0")
+    self.assertEqual(errors_collection[0].summary, "Oh no!")
+
+    items = sorted(status_collection, key=lambda x: x.plugin_name)
+    self.assertEqual(items[0].status, "SUCCESS")
+    self.assertEqual(items[0].batch_index, 0)
+    self.assertEqual(items[0].batch_size, 10)
+    self.assertEqual(items[0].plugin_name,
+                     "DummyHuntOutputPlugin_1")
+
+    self.assertEqual(items[1].status, "ERROR")
+    self.assertEqual(items[1].batch_index, 0)
+    self.assertEqual(items[1].batch_size, 10)
+    self.assertEqual(items[1].plugin_name,
+                     "FailingDummyHuntOutputPlugin_0")
+    self.assertEqual(items[1].summary, "Oh no!")
+
   def testFailingOutputPluginDoesNotAffectOtherOutputPlugins(self):
     self.StartHunt(output_plugins=[
         rdfvalue.OutputPlugin(plugin_name="FailingDummyHuntOutputPlugin"),
@@ -273,8 +382,10 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
       self.assertEqual(len(e.exceptions_by_hunt[hunt_urn]), 1)
       self.assertTrue("FailingDummyHuntOutputPlugin_0" in
                       e.exceptions_by_hunt[hunt_urn])
+      self.assertEqual(len(e.exceptions_by_hunt[hunt_urn][
+          "FailingDummyHuntOutputPlugin_0"]), 1)
       self.assertEqual(e.exceptions_by_hunt[hunt_urn][
-          "FailingDummyHuntOutputPlugin_0"].message,
+          "FailingDummyHuntOutputPlugin_0"][0].message,
                        "Oh no!")
 
   def testOutputPluginsMaintainState(self):

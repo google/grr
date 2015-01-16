@@ -531,6 +531,14 @@ class GRRHunt(flow.GRRFlow):
     return self.urn.Add("ErrorClients")
 
   @property
+  def output_plugins_status_collection_urn(self):
+    return self.urn.Add("OutputPluginsStatus")
+
+  @property
+  def output_plugins_errors_collection_urn(self):
+    return self.urn.Add("OutputPluginsErrors")
+
+  @property
   def creator(self):
     return self.state.context.creator
 
@@ -876,7 +884,9 @@ class GRRHunt(flow.GRRFlow):
     for urn in [self.logs_collection_urn,
                 self.all_clients_collection_urn,
                 self.completed_clients_collection_urn,
-                self.clients_errors_collection_urn]:
+                self.clients_errors_collection_urn,
+                self.output_plugins_status_collection_urn,
+                self.output_plugins_errors_collection_urn]:
       with aff4.FACTORY.Create(urn, "PackedVersionedCollection", mode="w",
                                token=self.token):
         pass

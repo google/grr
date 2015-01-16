@@ -81,10 +81,18 @@ class LinuxClientBuilder(build.ClientBuilder):
         os.path.join(src_dir, "grr/config/debian/dpkg_client/debian"),
         os.path.join(dpkg_dir, "debian/debian.in"))
 
+    # Copy upstart files
     outdir = os.path.join(dpkg_dir, "debian/upstart.in")
     self.EnsureDirExists(outdir)
     shutil.copy(
         os.path.join(src_dir, "grr/config/debian/upstart/grr-client.conf"),
+        outdir)
+
+    # Copy init files
+    outdir = os.path.join(dpkg_dir, "debian/initd.in")
+    self.EnsureDirExists(outdir)
+    shutil.copy(
+        os.path.join(src_dir, "grr/config/debian/initd/grr-client"),
         outdir)
 
   def MakeZip(self):
