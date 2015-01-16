@@ -36,8 +36,8 @@ def SplitEmailsAndAppendEmailDomain(address_list):
   result = []
   # Process email addresses, and build up a list.
   if isinstance(address_list, rdfvalue.DomainEmailAddress):
-    address_list = str(address_list)
-  if isinstance(address_list, basestring):
+    address_list = [str(address_list)]
+  elif isinstance(address_list, basestring):
     address_list = [address for address in address_list.split(",") if address]
   for address in address_list:
     result.append(AddEmailDomain(address))
