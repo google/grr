@@ -175,6 +175,7 @@ def main(argv=None):
 
     suites = flags.FLAGS.tests or test_lib.GRRBaseTest.classes
     for test_suite in suites:
+      print "Running test %s" % test_suite
       RunTest(test_suite, stream=stream)
 
   else:
