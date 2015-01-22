@@ -1062,30 +1062,23 @@ class WellKnownFlow(GRRFlow):
     # and don't have states.
     pass
 
-  def ProcessRequests(self, thread_pool):
+  def FetchAndRemoveRequestsAndResponses(self):
+    """Removes WellKnownFlow messages from the queue and returns them."""
+    messages = []
+    with queue_manager.WellKnownQueueManager(
+        token=self.token) as manager:
+      for _, responses in manager.FetchRequestsAndResponses(
+          self.session_id):
+        messages.extend(responses)
+        manager.DeleteWellKnownFlowResponses(self.session_id, responses)
+
+    return messages
+
+  def ProcessResponses(self, responses, thread_pool):
     """For WellKnownFlows we receive these messages directly."""
-    try:
-      priority = rdfvalue.GrrMessage.Priority.MEDIUM_PRIORITY
-      with queue_manager.WellKnownQueueManager(
-          token=self.token) as manager:
-        for request, responses in manager.FetchRequestsAndResponses(
-            self.session_id):
-          for msg in responses:
-            # Even though we use the thread pool here, it may be exhausted so we
-            # end up running inline. We still need to heartbeat here so the
-            # lease on the well known flow does not expire.
-            self.HeartBeat()
-            priority = msg.priority
-            thread_pool.AddTask(target=self._SafeProcessMessage,
-                                args=(msg,), name=self.__class__.__name__)
-
-          manager.DeleteFlowRequestStates(self.session_id, request)
-
-    except queue_manager.MoreDataException:
-      # There is more data for this flow so we have to tell the worker to
-      # fetch more messages later.
-      queue_manager.QueueManager(token=self.token).NotifyQueue(
-          self.state.context.session_id, priority=priority)
+    for response in responses:
+      thread_pool.AddTask(target=self._SafeProcessMessage,
+                          args=(response,), name=self.__class__.__name__)
 
   def ProcessMessage(self, msg):
     """This is where messages get processed.

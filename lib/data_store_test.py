@@ -254,6 +254,37 @@ class DataStoreTest(test_lib.GRRBaseTest):
 
     self.assertEqual(count, 0)
 
+  def testMultiSetSetsTimestapWhenReplacing(self):
+    data_store.DB.MultiSet(self.test_row,
+                           {"aff4:size": [(1, 100)]},
+                           replace=True,
+                           token=self.token)
+
+    (stored, ts) = data_store.DB.Resolve(self.test_row, "aff4:size",
+                                         token=self.token)
+    self.assertEqual(stored, 1)
+    self.assertEqual(ts, 100)
+
+  def testMultiSetRemovesOtherValuesWhenReplacing(self):
+    data_store.DB.MultiSet(self.test_row,
+                           {"aff4:stored": [("2", 100), ("3", 200)]},
+                           replace=False, token=self.token)
+
+    values = data_store.DB.ResolveRegex(self.test_row, "aff4:stored",
+                                        timestamp=data_store.DB.ALL_TIMESTAMPS,
+                                        token=self.token)
+    self.assertListEqual(
+        values, [("aff4:stored", "3", 200), ("aff4:stored", "2", 100)])
+
+    data_store.DB.MultiSet(self.test_row,
+                           {"aff4:stored": [("4", 150)]},
+                           replace=True, token=self.token)
+    values = data_store.DB.ResolveRegex(self.test_row, "aff4:stored",
+                                        timestamp=data_store.DB.ALL_TIMESTAMPS,
+                                        token=self.token)
+    self.assertListEqual(
+        values, [("aff4:stored", "4", 150)])
+
   @DeletionTest
   def testDeleteAttributes(self):
     """Test we can delete an attribute."""
