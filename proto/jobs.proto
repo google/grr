@@ -1161,7 +1161,7 @@ message RekallRequest {
     }];
 }
 
-// Next field: 6
+// Next field: 7
 message RekallResponse {
   optional string json_messages = 1;
   optional string json_context_messages = 5;
@@ -1177,14 +1177,24 @@ message RekallResponse {
       description: "Missing profiles that should be retrieved from "
       "the server."
     }];
+
+  optional string repository_version = 6 [(sem_type) = {
+      description: "The version of the repository we want to use."
+    }, default="v1.0"];
 }
 
 message RekallProfile {
-  // The profile name to use.
-  optional string name = 1;
+  optional string name = 1 [(sem_type) = {
+      description: "The name of this profile."
+    }];
 
-  // A Rekall profile as a data blob.
-  optional bytes data = 2;
+  optional bytes data = 2 [(sem_type) = {
+      description: "A Rekall profile as a data blob."
+    }];
+
+  optional string version = 3 [(sem_type) = {
+      description: "The version of this profile."
+    }];
 }
 
 // Requests and responses to allow for executing an arbitrary binary.

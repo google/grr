@@ -1483,8 +1483,10 @@ class MockWorker(worker.GRRWorker):
 
         # Handle well known flows here.
         if session_id in self.well_known_flows:
-          self.well_known_flows[session_id].ProcessRequests(
-              self.pool)
+          well_known_flow = self.well_known_flows[session_id]
+          with well_known_flow:
+            responses = well_known_flow.FetchAndRemoveRequestsAndResponses()
+          well_known_flow.ProcessResponses(responses, self.pool)
           continue
 
         with aff4.FACTORY.OpenWithLock(
@@ -2101,18 +2103,16 @@ class TestRekallRepositoryProfileServer(rekall_profile_server.ProfileServer):
     super(TestRekallRepositoryProfileServer, self).__init__(*args, **kw)
     self.profiles_served = 0
 
-  def GetProfileByName(self, profile_name):
-    if not profile_name.endswith(".gz"):
-      profile_name = "%s.gz" % profile_name
-
+  def GetProfileByName(self, profile_name, version="v1.0"):
     try:
       profile_data = open(os.path.join(
-          config_lib.CONFIG["Test.data_dir"], "profiles",
-          profile_name), "rb").read()
+          config_lib.CONFIG["Test.data_dir"], "profiles", version,
+          profile_name + ".gz"), "rb").read()
 
       self.profiles_served += 1
 
       return rdfvalue.RekallProfile(name=profile_name,
+                                    version=version,
                                     data=profile_data)
     except IOError:
       return None

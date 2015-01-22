@@ -557,6 +557,35 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     notifications = user.Get(user.Schema.PENDING_NOTIFICATIONS)
     self.assertIsNone(notifications)
 
+  def testWellKnownFlowResponsesAreProcessedOnlyOnce(self):
+    worker_obj = worker.GRRWorker(worker.DEFAULT_WORKER_QUEUE,
+                                  token=self.token)
+
+    # Send a message to a WellKnownFlow - ClientStatsAuto.
+    client_id = rdfvalue.ClientURN("C.1100110011001100")
+    self.SendResponse(rdfvalue.SessionID("aff4:/flows/W:Stats"),
+                      data=rdfvalue.ClientStats(RSS_size=1234),
+                      client_id=client_id, well_known=True)
+
+    # Process all messages
+    worker_obj.RunOnce()
+    worker_obj.thread_pool.Join()
+
+    client = aff4.FACTORY.Open(client_id.Add("stats"), token=self.token)
+    stats = client.Get(client.Schema.STATS)
+    self.assertEqual(stats.RSS_size, 1234)
+
+    aff4.FACTORY.Delete(client_id.Add("stats"), token=self.token)
+
+    # Process all messages once again - there should be no actual processing
+    # done, as all the responses were processed last time.
+    worker_obj.RunOnce()
+    worker_obj.thread_pool.Join()
+
+    # Check that stats haven't changed as no new responses were processed.
+    client = aff4.FACTORY.Open(client_id.Add("stats"), token=self.token)
+    self.assertIsNone(client.Get(client.Schema.STATS))
+
   def CheckNotificationsDisappear(self, session_id):
     worker_obj = worker.GRRWorker(worker.DEFAULT_WORKER_QUEUE,
                                   token=self.token)

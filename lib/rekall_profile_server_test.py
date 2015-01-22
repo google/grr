@@ -4,6 +4,9 @@
 import urllib2
 import zlib
 
+
+from rekall import constants
+
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
@@ -24,18 +27,19 @@ class FakeHandle(object):
   read_count = 0
 
   def __init__(self, url):
-    self.url = url
+    # Convert the url back into a profile canonical name.
+    profile = url.split(constants.PROFILE_REPOSITORY_VERSION + "/")[1]
+    profile = profile.split(".")[0]
+    self.profile = profile
 
   def read(self):
     FakeHandle.read_count += 1
 
-    if "v1.0" not in self.url:
-      return ""
-
-    profile_name = self.url[self.url.find("v1.0"):]
-
+    profile_name = self.profile
     server = test_lib.TestRekallRepositoryProfileServer()
-    profile = server.GetProfileByName(profile_name)
+    profile = server.GetProfileByName(
+        profile_name,
+        version=constants.PROFILE_REPOSITORY_VERSION)
 
     return profile.data
 
@@ -53,12 +57,14 @@ class ProfileServerTest(test_lib.GRRBaseTest):
 
   def testProfileFetching(self):
 
-    profile_name = "v1.0/nt/GUID/F8E2A8B5C9B74BF4A6E4A48F180099942"
+    profile_name = "nt/GUID/F8E2A8B5C9B74BF4A6E4A48F180099942"
 
     FakeHandle.read_count = 0
 
     with utils.Stubber(urllib2, "urlopen", FakeOpen):
-      profile = self.server.GetProfileByName(profile_name)
+      profile = self.server.GetProfileByName(
+          profile_name,
+          version=constants.PROFILE_REPOSITORY_VERSION)
       uncompressed = zlib.decompress(profile.data, 16 + zlib.MAX_WBITS)
       self.assertTrue("BusQueryDeviceID" in uncompressed)
 
@@ -66,38 +72,39 @@ class ProfileServerTest(test_lib.GRRBaseTest):
     self.assertEqual(FakeHandle.read_count, 1)
 
     with utils.Stubber(urllib2, "urlopen", FakeOpen):
-      profile = self.server.GetProfileByName(profile_name)
+      profile = self.server.GetProfileByName(
+          profile_name, version=constants.PROFILE_REPOSITORY_VERSION)
 
     # This time it should have been cached.
     self.assertEqual(FakeHandle.read_count, 1)
 
   def testGzExtension(self):
     with utils.Stubber(urllib2, "urlopen", FakeOpen):
-      profile = self.server.GetProfileByName("v1.0/pe")
+      profile = self.server.GetProfileByName("pe")
       # We received compressed data.
       zlib.decompress(profile.data, 16 + zlib.MAX_WBITS)
 
       # We issued one http request.
       self.assertEqual(FakeHandle.read_count, 1)
 
-      self.server.GetProfileByName("v1.0/pe")
+      self.server.GetProfileByName("pe")
 
       # This time it should have been cached.
       self.assertEqual(FakeHandle.read_count, 1)
 
-      self.server.GetProfileByName("v1.0/pe.gz")
+      self.server.GetProfileByName("pe")
 
       # This is the same profile.
       self.assertEqual(FakeHandle.read_count, 1)
 
     cache_urn = rdfvalue.RDFURN(config_lib.CONFIG["Rekall.profile_cache_urn"])
-    cache_urn = cache_urn.Add("v1.0")
-    cached_items = list(aff4.FACTORY.Open(cache_urn,
-                                          token=self.token).ListChildren())
+    cached_items = list(aff4.FACTORY.Open(
+        cache_urn.Add(constants.PROFILE_REPOSITORY_VERSION),
+        token=self.token).ListChildren())
 
     # We cache the .gz only.
     self.assertEqual(len(cached_items), 1)
-    self.assertEqual(cached_items[0].Basename(), "pe.gz")
+    self.assertEqual(cached_items[0].Basename(), "pe")
 
 
 def main(args):

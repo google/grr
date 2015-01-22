@@ -85,7 +85,7 @@ class GetClientStatsProcessResponseMixin(object):
     with aff4.FACTORY.Create(urn, "ClientStats", token=self.token,
                              mode="w") as stats_fd:
       # Only keep the average of all values that fall within one minute.
-      stats_fd.AddAttribute(stats_fd.Schema.STATS(response.DownSample()))
+      stats_fd.AddAttribute(stats_fd.Schema.STATS, response.DownSample())
 
 
 class GetClientStats(flow.GRRFlow, GetClientStatsProcessResponseMixin):
