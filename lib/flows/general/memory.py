@@ -703,7 +703,11 @@ class AnalyzeClientMemory(flow.GRRFlow):
         logging.debug("Getting missing Rekall profile from %s", server_type)
         profile_server = rekall_profile_server.ProfileServer.classes[
             server_type]()
-        profile = profile_server.GetProfileByName(response.missing_profile)
+        profile = profile_server.GetProfileByName(
+            response.missing_profile,
+            version=response.repository_version
+        )
+
         if profile:
           self.CallClient("WriteRekallProfile", profile,
                           next_state="UpdateProfile")
