@@ -175,20 +175,20 @@ class GrrRekallSession(session.InteractiveSession):
     # progress.
     self.progress.Register(id(self), lambda *_, **__: self.action.Progress())
 
-  def LoadProfile(self, filename):
+  def LoadProfile(self, name):
     """Wraps the Rekall profile's LoadProfile to fetch profiles from GRR."""
     # If the user specified a special profile path we use their choice.
-    profile = super(GrrRekallSession, self).LoadProfile(filename)
+    profile = super(GrrRekallSession, self).LoadProfile(name)
     if profile:
       return profile
 
     # Cant load the profile, we need to ask the server for it.
-
-    logging.debug("Asking server for profile %s", filename)
+    logging.debug("Asking server for profile %s", name)
     self.action.SendReply(
         rdfvalue.RekallResponse(
-            missing_profile="%s/%s" % (
-                constants.PROFILE_REPOSITORY_VERSION, filename)))
+            missing_profile=name,
+            repository_version=constants.PROFILE_REPOSITORY_VERSION,
+        ))
 
     # Wait for the server to wake us up. When we wake up the server should
     # have sent the profile over by calling the WriteRekallProfile.
@@ -197,7 +197,7 @@ class GrrRekallSession(session.InteractiveSession):
     # Now the server should have sent the data already. We try to load the
     # profile one more time.
     return super(GrrRekallSession, self).LoadProfile(
-        filename, use_cache=False)
+        name, use_cache=False)
 
   def GetRenderer(self):
     # We will use this renderer to push results to the server.
@@ -211,15 +211,27 @@ class WriteRekallProfile(actions.ActionPlugin):
 
   def Run(self, args):
     output_filename = utils.JoinPath(
-        config_lib.CONFIG["Client.rekall_profile_cache_path"], args.name)
+        config_lib.CONFIG["Client.rekall_profile_cache_path"],
+        args.version, args.name)
 
     try:
       os.makedirs(os.path.dirname(output_filename))
     except OSError:
       pass
 
-    with open(output_filename, "wb") as fd:
+    with open(output_filename + ".gz", "wb") as fd:
       fd.write(args.data)
+
+
+class RekallCachingIOManager(io_manager.DirectoryIOManager):
+  order = io_manager.DirectoryIOManager.order - 1
+
+  def CheckInventory(self, name):
+    path = self._GetAbsolutePathName(name)
+    result = (os.access(path + ".gz", os.F_OK) or
+              os.access(path, os.F_OK))
+
+    return result
 
 
 class RekallAction(actions.SuspendableAction):

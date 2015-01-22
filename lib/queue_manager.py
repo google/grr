@@ -724,6 +724,19 @@ class QueueManager(object):
 class WellKnownQueueManager(QueueManager):
   """A flow manager for well known flows."""
 
+  response_limit = 10000
+
+  def DeleteWellKnownFlowResponses(self, session_id, responses):
+    """Deletes given responses from the flow state queue."""
+    subject = session_id.Add("state/request:00000000")
+    predicates = []
+    for response in responses:
+      predicates.append(QueueManager.FLOW_RESPONSE_TEMPLATE % (
+          response.request_id, response.response_id))
+
+    data_store.DB.DeleteAttributes(
+        subject, predicates, sync=True, start=0, token=self.token)
+
   def FetchRequestsAndResponses(self, session_id):
     """Well known flows do not have real requests.
 
@@ -741,7 +754,7 @@ class WellKnownQueueManager(QueueManager):
     # Get some requests
     for _, serialized, _ in sorted(self.data_store.ResolveRegex(
         subject, self.FLOW_RESPONSE_REGEX, token=self.token,
-        limit=self.request_limit,
+        limit=self.response_limit,
         timestamp=(0, self.frozen_timestamp or rdfvalue.RDFDatetime().Now()))):
 
       # The predicate format is flow:response:REQUEST_ID:RESPONSE_ID. For well

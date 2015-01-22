@@ -25,6 +25,14 @@ from grr.lib import threadpool
 from grr.lib import utils
 
 
+class Error(Exception):
+  """Base error class."""
+
+
+class FlowProcessingError(Error):
+  """Raised when flow requests/responses can't be processed."""
+
+
 DEFAULT_WORKER_QUEUE = rdfvalue.RDFURN("W")
 DEFAULT_ENROLLER_QUEUE = rdfvalue.RDFURN("CA")
 
@@ -79,7 +87,9 @@ class GRRWorker(object):
 
     # Well known flows are just instantiated.
     self.well_known_flows = flow.WellKnownFlow.GetAllWellKnownFlows(token=token)
-    self.lease_time = config_lib.CONFIG["Worker.flow_lease_time"]
+    self.flow_lease_time = config_lib.CONFIG["Worker.flow_lease_time"]
+    self.well_known_flow_lease_time = config_lib.CONFIG[
+        "Worker.well_known_flow_lease_time"]
 
   def Run(self):
     """Event loop."""
@@ -217,6 +227,72 @@ class GRRWorker(object):
 
     return processed
 
+  def _ProcessRegularFlowMessages(self, flow_obj, notification):
+    """Processes messages for a given flow."""
+    session_id = notification.session_id
+
+    if not isinstance(flow_obj, flow.GRRFlow):
+      logging.warn("%s is not a proper flow object (got %s)", session_id,
+                   type(flow_obj))
+
+      stats.STATS.IncrementCounter("worker_bad_flow_objects",
+                                   fields=[str(type(flow_obj))])
+      raise FlowProcessingError("Not a GRRFlow.")
+
+    runner = flow_obj.GetRunner()
+    if runner.schedule_kill_notifications:
+      # Create a notification for the flow in the future that
+      # indicates that this flow is in progess. We'll delete this
+      # notification when we're done with processing completed
+      # requests. If we're stuck for some reason, the notification
+      # will be delivered later and the stuck flow will get
+      # terminated.
+      stuck_flows_timeout = rdfvalue.Duration(
+          config_lib.CONFIG["Worker.stuck_flows_timeout"])
+      kill_timestamp = (rdfvalue.RDFDatetime().Now() +
+                        stuck_flows_timeout)
+      with queue_manager_lib.QueueManager(token=self.token) as manager:
+        manager.QueueNotification(session_id=session_id,
+                                  in_progress=True,
+                                  timestamp=kill_timestamp)
+
+      # kill_timestamp may get updated via flow.HeartBeat() calls, so we
+      # have to store it in the runner context.
+      runner.context.kill_timestamp = kill_timestamp
+
+    try:
+      runner.ProcessCompletedRequests(notification, self.thread_pool)
+
+    # Something went wrong - log it in the flow.
+    except Exception as e:  # pylint: disable=broad-except
+      runner.context.state = rdfvalue.Flow.State.ERROR
+      runner.context.backtrace = traceback.format_exc()
+      logging.error("Flow %s: %s", flow_obj, e)
+      raise FlowProcessingError(e)
+
+    finally:
+      # Delete kill notification as the flow got processed and is not
+      # stuck.
+      with queue_manager_lib.QueueManager(token=self.token) as manager:
+        if runner.schedule_kill_notifications:
+          manager.DeleteNotification(
+              session_id, start=runner.context.kill_timestamp,
+              end=runner.context.kill_timestamp)
+          runner.context.kill_timestamp = None
+
+        if (runner.process_requests_in_order and
+            notification.last_status and
+            (runner.context.next_processed_request <=
+             notification.last_status)):
+          # We are processing requests in order and have received a
+          # notification for a specific request but could not process
+          # that request. This might be a race condition in the data
+          # store so we reschedule the notification in the future.
+          delay = config_lib.CONFIG[
+              "Worker.notification_retry_interval"]
+          manager.QueueNotification(
+              notification, timestamp=notification.timestamp + delay)
+
   def _ProcessMessages(self, notification, queue_manager):
     """Does the real work with a single flow."""
     flow_obj = None
@@ -229,97 +305,44 @@ class GRRWorker(object):
         # we need to create them instead of opening.
         expected_flow = self.well_known_flows[session_id].__class__.__name__
         flow_obj = aff4.FACTORY.CreateWithLock(
-            session_id, expected_flow, lease_time=self.lease_time,
+            session_id, expected_flow,
+            lease_time=self.well_known_flow_lease_time,
             blocking=False, token=self.token)
       else:
         flow_obj = aff4.FACTORY.OpenWithLock(
-            session_id, lease_time=self.lease_time,
+            session_id, lease_time=self.flow_lease_time,
             blocking=False, token=self.token)
 
-      with flow_obj:
+      now = time.time()
+      logging.debug("Got lock on %s", session_id)
 
-        now = time.time()
-        logging.debug("Got lock on %s", session_id)
+      # If we get here, we now own the flow. We can delete the notifications
+      # we just retrieved but we need to make sure we don't delete any that
+      # came in later.
+      queue_manager.DeleteNotification(session_id, end=notification.timestamp)
 
-        # If we get here, we now own the flow. We can delete the notifications
-        # we just retrieved but we need to make sure we don't delete any that
-        # came in later.
-        queue_manager.DeleteNotification(session_id, end=notification.timestamp)
+      if session_id in self.well_known_flows:
+        stats.STATS.IncrementCounter("well_known_flow_requests",
+                                     fields=[str(session_id)])
 
-        # We still need to take a lock on the well known flow in the datastore,
-        # but we can run a local instance.
-        if session_id in self.well_known_flows:
-          stats.STATS.IncrementCounter("well_known_flow_requests",
-                                       fields=[str(session_id)])
-          flow_obj.ProcessRequests(self.thread_pool)
+        # We remove requests first and then process them in the thread pool.
+        # On one hand this approach increases the risk of losing requests in
+        # case the worker process dies. On the other hand, it doesn't hold
+        # the lock while requests are processed, so other workers can
+        # process well known flows requests as well.
+        with flow_obj:
+          responses = flow_obj.FetchAndRemoveRequestsAndResponses()
 
-        else:
-          if not isinstance(flow_obj, flow.GRRFlow):
-            logging.warn("%s is not a proper flow object (got %s)", session_id,
-                         type(flow_obj))
+        flow_obj.ProcessResponses(responses, self.thread_pool)
 
-            stats.STATS.IncrementCounter("worker_bad_flow_objects",
-                                         fields=[str(type(flow_obj))])
-            return
+      else:
+        with flow_obj:
+          self._ProcessRegularFlowMessages(flow_obj, notification)
 
-          runner = flow_obj.GetRunner()
-          if runner.schedule_kill_notifications:
-            # Create a notification for the flow in the future that
-            # indicates that this flow is in progess. We'll delete this
-            # notification when we're done with processing completed
-            # requests. If we're stuck for some reason, the notification
-            # will be delivered later and the stuck flow will get
-            # terminated.
-            stuck_flows_timeout = rdfvalue.Duration(
-                config_lib.CONFIG["Worker.stuck_flows_timeout"])
-            kill_timestamp = (rdfvalue.RDFDatetime().Now() +
-                              stuck_flows_timeout)
-            with queue_manager_lib.QueueManager(token=self.token) as manager:
-              manager.QueueNotification(session_id=session_id,
-                                        in_progress=True,
-                                        timestamp=kill_timestamp)
-
-            # kill_timestamp may get updated via flow.HeartBeat() calls, so we
-            # have to store it in the runner context.
-            runner.context.kill_timestamp = kill_timestamp
-
-          try:
-            runner.ProcessCompletedRequests(notification, self.thread_pool)
-
-          # Something went wrong - log it in the flow.
-          except Exception as e:  # pylint: disable=broad-except
-            runner.context.state = rdfvalue.Flow.State.ERROR
-            runner.context.backtrace = traceback.format_exc()
-            logging.error("Flow %s: %s", flow_obj, e)
-            return
-
-          finally:
-            # Delete kill notification as the flow got processed and is not
-            # stuck.
-            with queue_manager_lib.QueueManager(token=self.token) as manager:
-              if runner.schedule_kill_notifications:
-                manager.DeleteNotification(
-                    session_id, start=runner.context.kill_timestamp,
-                    end=runner.context.kill_timestamp)
-                runner.context.kill_timestamp = None
-
-              if (runner.process_requests_in_order and
-                  notification.last_status and
-                  (runner.context.next_processed_request <=
-                   notification.last_status)):
-                # We are processing requests in order and have received a
-                # notification for a specific request but could not process
-                # that request. This might be a race condition in the data
-                # store so we reschedule the notification in the future.
-                delay = config_lib.CONFIG[
-                    "Worker.notification_retry_interval"]
-                manager.QueueNotification(
-                    notification, timestamp=notification.timestamp + delay)
-
-        elapsed = time.time() - now
-        logging.debug("Done processing %s: %s sec", session_id, elapsed)
-        stats.STATS.RecordEvent("worker_flow_processing_time", elapsed,
-                                fields=[flow_obj.Name()])
+      elapsed = time.time() - now
+      logging.debug("Done processing %s: %s sec", session_id, elapsed)
+      stats.STATS.RecordEvent("worker_flow_processing_time", elapsed,
+                              fields=[flow_obj.Name()])
 
       # Everything went well -> session can be run again.
       self.queued_flows.ExpireObject(session_id)
@@ -333,7 +356,11 @@ class GRRWorker(object):
       # indicate we are wasting time trying to process work that has already
       # been completed by other workers.
       stats.STATS.IncrementCounter("worker_flow_lock_error")
-      return
+
+    except FlowProcessingError:
+      # Do nothing as we expect the error to be correctly logged and accounted
+      # already.
+      pass
 
     except Exception as e:    # pylint: disable=broad-except
       # Something went wrong when processing this session. In order not to spin

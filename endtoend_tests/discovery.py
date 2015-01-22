@@ -32,7 +32,7 @@ class TestClientInterrogateEndToEnd(base.AutomatedTest):
                        "environ_programfiles", "environ_programfilesx86",
                        "environ_systemdrive", "environ_allusersprofile",
                        "environ_allusersappdata", "current_control_set",
-                       "code_page", "domain"]
+                       "code_page"]
 
   # Intentionally excluded:
   # userdomain: too slow to collect, not in lightweight interrogate

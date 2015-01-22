@@ -5,6 +5,9 @@ import json
 import urllib2
 import zlib
 
+
+from rekall import constants
+
 import logging
 
 from grr.lib import access_control
@@ -23,7 +26,8 @@ class ProfileServer(object):
                                          reason="Implied.")
     self.token.supervisor = True
 
-  def GetProfileByName(self, profile_name):
+  def GetProfileByName(self, profile_name,
+                       version=constants.PROFILE_REPOSITORY_VERSION):
     """Retrieves a profile by name."""
     pass
 
@@ -31,39 +35,42 @@ class ProfileServer(object):
 class CachingProfileServer(ProfileServer):
   """A ProfileServer that caches profiles in the AFF4 space."""
 
-  def _GetProfileFromCache(self, profile_name):
+  def _GetProfileFromCache(self, profile_name,
+                           version=constants.PROFILE_REPOSITORY_VERSION):
 
     cache_urn = rdfvalue.RDFURN(config_lib.CONFIG["Rekall.profile_cache_urn"])
 
     try:
       aff4_profile = aff4.FACTORY.Open(
-          cache_urn.Add(profile_name), aff4_type="AFF4RekallProfile",
+          cache_urn.Add(version).Add(profile_name),
+          aff4_type="AFF4RekallProfile",
           token=self.token)
       return aff4_profile.Get(aff4_profile.Schema.PROFILE)
     except IOError:
       pass
 
-  def _StoreProfile(self, profile):
+  def _StoreProfile(self, profile,
+                    version=constants.PROFILE_REPOSITORY_VERSION):
     cache_urn = rdfvalue.RDFURN(config_lib.CONFIG["Rekall.profile_cache_urn"])
     aff4_profile = aff4.FACTORY.Create(
-        cache_urn.Add(profile.name), "AFF4RekallProfile",
+        cache_urn.Add(version).Add(profile.name), "AFF4RekallProfile",
         token=self.token)
     aff4_profile.Set(aff4_profile.Schema.PROFILE(profile))
     aff4_profile.Close()
 
-  def GetProfileByName(self, profile_name, ignore_cache=False):
+  def GetProfileByName(self, profile_name,
+                       version=constants.PROFILE_REPOSITORY_VERSION,
+                       ignore_cache=False):
     """Retrieves a profile by name."""
-    if not profile_name.endswith(".gz"):
-      profile_name = "%s.gz" % profile_name
-
     if not ignore_cache:
-      profile = self._GetProfileFromCache(profile_name)
+      profile = self._GetProfileFromCache(profile_name, version=version)
       if profile:
         return profile
 
-    profile = super(CachingProfileServer, self).GetProfileByName(profile_name)
+    profile = super(CachingProfileServer, self).GetProfileByName(
+        profile_name, version=version)
     if profile:
-      self._StoreProfile(profile)
+      self._StoreProfile(profile, version=version)
 
     return profile
 
@@ -71,12 +78,12 @@ class CachingProfileServer(ProfileServer):
 class RekallRepositoryProfileServer(ProfileServer):
   """This server gets the profiles from the official Rekall repository."""
 
-  def GetProfileByName(self, profile_name):
-    if not profile_name.endswith(".gz"):
-      profile_name = "%s.gz" % profile_name
+  def GetProfileByName(self, profile_name,
+                       version=constants.PROFILE_REPOSITORY_VERSION):
     try:
-      url = "%s/%s" % (config_lib.CONFIG["Rekall.profile_repository"],
-                       profile_name)
+      url = "%s/%s/%s.gz" % (
+          config_lib.CONFIG["Rekall.profile_repository"],
+          version, profile_name)
       handle = urllib2.urlopen(url, timeout=10)
 
     except urllib2.HTTPError as e:
@@ -96,6 +103,7 @@ class RekallRepositoryProfileServer(ProfileServer):
       raise ValueError("Downloaded file does not look like gzipped data: %s",
                        profile_data[:100])
     return rdfvalue.RekallProfile(name=profile_name,
+                                  version=version,
                                   data=profile_data)
 
 
@@ -103,48 +111,44 @@ class GRRRekallProfileServer(CachingProfileServer,
                              RekallRepositoryProfileServer):
   """A caching Rekall profile server."""
 
-  def GetAllProfiles(self):
+  def GetAllProfiles(self, version=constants.PROFILE_REPOSITORY_VERSION):
     """This function will download all profiles and cache them locally."""
 
-    inv_profile = self.GetProfileByName("v1.0/inventory", ignore_cache=True)
+    inv_profile = self.GetProfileByName(
+        "inventory", ignore_cache=True, version=version)
     inventory_json = zlib.decompress(inv_profile.data, 16 + zlib.MAX_WBITS)
     inventory = json.loads(inventory_json)
 
     for profile in inventory["$INVENTORY"].keys():
-      profile = "v1.0/%s" % profile
       logging.info("Getting profile: %s", profile)
       try:
-        self.GetProfileByName(profile, ignore_cache=True)
+        self.GetProfileByName(profile, ignore_cache=True, version=version)
       except urllib2.URLError as e:
         logging.info("Exception: %s", e)
 
-  def GetMissingProfiles(self):
+  def GetMissingProfiles(self, version=constants.PROFILE_REPOSITORY_VERSION):
     """This will download all profiles that are not already cached."""
-    inv_profile = self.GetProfileByName("v1.0/inventory", ignore_cache=True)
+    inv_profile = self.GetProfileByName(
+        "inventory", ignore_cache=True, version=version)
     inventory_json = zlib.decompress(inv_profile.data, 16 + zlib.MAX_WBITS)
     inventory = json.loads(inventory_json)
 
     cache_urn = rdfvalue.RDFURN(config_lib.CONFIG["Rekall.profile_cache_urn"])
-    profiles = []
-    for profile in inventory["$INVENTORY"].keys():
-      profile = "v1.0/%s" % profile
-      if not profile.endswith(".gz"):
-        profile = "%s.gz" % profile
-      profiles.append(profile)
-
-    profile_urns = [cache_urn.Add(profile) for profile in profiles]
+    profile_urns = []
+    for profile in inventory["$INVENTORY"]:
+      profile_urns.append((profile, cache_urn.Add(version).Add(profile)))
 
     stats = aff4.FACTORY.Stat(profile_urns)
     profile_infos = {}
     for metadata in stats:
       profile_infos[metadata["urn"]] = metadata["type"][1]
 
-    for profile in sorted(profiles):
-      profile_urn = cache_urn.Add(profile)
+    for profile, profile_urn in sorted(profile_urns):
       if (profile_urn not in profile_infos or
           profile_infos[profile_urn] != u"AFF4RekallProfile"):
         logging.info("Getting missing profile: %s", profile)
         try:
-          self.GetProfileByName(profile, ignore_cache=True)
+          self.GetProfileByName(
+              profile, ignore_cache=True, version=version)
         except urllib2.URLError as e:
           logging.info("Exception: %s", e)

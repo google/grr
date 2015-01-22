@@ -14,7 +14,11 @@ config_lib.DEFINE_integer("Worker.task_limit", 2000,
                           "every poll")
 
 config_lib.DEFINE_integer("Worker.flow_lease_time", 600,
-                          "Duration of flow lease time in seconds.")
+                          "Duration of a flow lease time in seconds.")
+
+config_lib.DEFINE_integer("Worker.well_known_flow_lease_time", 600,
+                          "Duration of a well known flow lease time in "
+                          "seconds.")
 
 config_lib.DEFINE_integer("Worker.compaction_lease_time", 3600,
                           "Duration of collections lease time for compaction "
