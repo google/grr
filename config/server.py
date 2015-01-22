@@ -26,11 +26,6 @@ config_lib.DEFINE_bool("Worker.enable_packed_versioned_collection_journaling",
                        "journaled so that these collections can be later "
                        "checked for integrity.")
 
-config_lib.DEFINE_integer("Worker.worker_process_count", 1,
-                          "Number of worker processes to run. Each worker can "
-                          "only use a single CPU, so scaling this up on "
-                          "multiprocessor systems may make sense.")
-
 config_lib.DEFINE_integer("Worker.queue_shards", 1,
                           "Queue notifications will be sharded across "
                           "this number of datastore subjects.")
@@ -110,9 +105,6 @@ config_lib.DEFINE_string("Frontend.bind_address", "::",
                          "The ip address to bind.")
 
 config_lib.DEFINE_integer("Frontend.bind_port", 8080, "The port to bind.")
-
-config_lib.DEFINE_integer("Frontend.processes", 1,
-                          "Number of processes to use for the HTTP server")
 
 config_lib.DEFINE_integer("Frontend.max_queue_size", 500,
                           "Maximum number of messages to queue for the client.")
