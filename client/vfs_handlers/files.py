@@ -8,17 +8,22 @@ import platform
 import re
 import sys
 import threading
+import magic
+import pefile
+
+
 
 from grr.client import client_utils
 from grr.client import vfs
 from grr.lib import rdfvalue
 from grr.lib import utils
-
+from grr.lib import config_lib
 
 # File handles are cached here. They expire after a couple minutes so
 # we don't keep files locked on the client.
 FILE_HANDLE_CACHE = utils.TimeBasedCache(max_age=300)
 
+FILE_MAGIC = None
 
 class LockedFileHandle(object):
   """An object which encapsulates access to a file."""
@@ -178,6 +183,17 @@ class File(vfs.VFSHandler):
     if error is not None:
       raise error  # pylint: disable=raising-bad-type
 
+    self.InitializeMagic()
+
+  def InitializeMagic(self, reinit=False):
+    global FILE_MAGIC
+    if not FILE_MAGIC or reinit:
+      magic_file = config_lib.CONFIG.Get("Client.install_path") + "magic.mgc"
+      try:
+        FILE_MAGIC = magic.Magic(magic_file=magic_file)
+      except magic.MagicException as e:
+        logging.info("Failed to Load Magic. Err: %s", e)
+
   def WindowsHacks(self):
     """Windows specific hacks to make the filesystem look normal."""
     if sys.platform == "win32":
@@ -253,6 +269,19 @@ class File(vfs.VFSHandler):
 
     result = MakeStatResponse(st, self.pathspec)
 
+    #Attempt file magic.
+    if FILE_MAGIC:
+      try:
+        result.file_magic = FILE_MAGIC.from_file(local_path)
+      except Exception as e:
+        if "libmagic on multiple threads" in str(e):
+          #Magic object must be reinitialized if thread has changed
+          self.InitializeMagic(reinit=True)
+          result.file_magic = FILE_MAGIC.from_file(local_path)
+        else:
+          raise
+    else:
+      result.file_magic = None
     # Is this a symlink? If so we need to note the real location of the file.
     try:
       result.symlink = utils.SmartUnicode(os.readlink(local_path))

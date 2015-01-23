@@ -4,6 +4,7 @@
 
 
 import hashlib
+import platform
 
 from grr.parsers import fingerprint
 from grr.client import vfs
@@ -60,4 +61,14 @@ class FingerprintFile(standard.ReadBuffer):
       # and auxilliary data where present (e.g. signature blobs).
       # Also see Fingerprint:HashIt()
       response.results = fingerprinter.HashIt()
+      filemeta = rdfvalue.FileMeta()
+      for result in response.results:
+        if result["name"] == "pecoff":
+          if file_obj.pathspec.pathtype == "OS":
+            if platform.system() == "Windows":
+              filemeta.pe_header.ParseFromFile(path=file_obj.pathspec.path[1:])
+            else:
+              filemeta.pe_header.ParseFromFile(path=file_obj.pathspec.path)
+              
+      response.filemeta = filemeta
       self.SendReply(response)

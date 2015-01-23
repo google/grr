@@ -297,11 +297,12 @@ class FileFinder(transfer.MultiGetFileMixin,
           self.StartFileFetch(pathspec, vfs_urn,
                               request_data=dict(original_result=response))
 
-  def ReceiveFileFingerprint(self, urn, hash_obj, request_data=None):
+  def ReceiveFileFingerprint(self, urn, hash_obj, meta_obj, request_data=None):
     """Handle hash results from the FingerprintFileMixin."""
     if "original_result" in request_data:
       result = request_data["original_result"]
       result.hash_entry = hash_obj
+      result.meta_entry = meta_obj
       self.SendReply(result)
     else:
       raise RuntimeError("Got a fingerprintfileresult, but original result "

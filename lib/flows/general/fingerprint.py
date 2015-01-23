@@ -61,6 +61,7 @@ class FingerprintFileMixin(object):
     fd = aff4.FACTORY.Create(urn, "VFSFile", mode="w", token=self.token)
 
     hash_obj = fd.Schema.HASH()
+    meta_obj = fd.Schema.META()
 
     for result in response.results:
       if result["name"] == "generic":
@@ -79,8 +80,10 @@ class FingerprintFileMixin(object):
         for data in signed_data:
           hash_obj.signed_data.Append(
               revision=data[0], cert_type=data[1], certificate=data[2])
+        meta_obj.pe_header = response.filemeta.pe_header
 
     fd.Set(hash_obj)
+    fd.Set(meta_obj)
 
     # TODO(user): This attribute will be deprecated in the future. Do not
     # use.
@@ -88,9 +91,9 @@ class FingerprintFileMixin(object):
     fd.Close(sync=False)
 
     self.ReceiveFileFingerprint(
-        urn, hash_obj, request_data=responses.request_data)
+        urn, hash_obj, meta_obj, request_data=responses.request_data)
 
-  def ReceiveFileFingerprint(self, urn, hash_obj, request_data=None):
+  def ReceiveFileFingerprint(self, urn, hash_obj, meta_obj, request_data=None):
     """This method will be called with the new urn and the received hash."""
 
 
@@ -106,9 +109,9 @@ class FingerprintFile(FingerprintFileMixin, flow.GRRFlow):
     """Issue the fingerprinting request."""
     self.FingerprintFile(self.args.pathspec)
 
-  def ReceiveFileFingerprint(self, urn, hash_obj, request_data=None):
+  def ReceiveFileFingerprint(self, urn, hash_obj, meta_obj, request_data=None):
     # Notify any parent flows.
-    self.SendReply(FingerprintFileResult(file_urn=urn, hash_entry=hash_obj))
+    self.SendReply(FingerprintFileResult(file_urn=urn, hash_entry=hash_obj, meta_entry=meta_obj))
 
   @flow.StateHandler()
   def End(self):

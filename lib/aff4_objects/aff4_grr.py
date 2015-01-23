@@ -348,6 +348,10 @@ class VFSFile(aff4.AFF4Image):
                                  "DEPRECATED protodict containing arrays of "
                                  " hashes. Use AFF4Stream.HASH instead.")
 
+    META = aff4.Attribute(
+        "aff4:filemeta", rdfvalue.FileMeta,
+        "Metadata about this file such as imports and exports for binaries.")
+
   def Update(self, attribute=None, priority=None):
     """Update an attribute from the client."""
     if attribute == self.Schema.CONTENT:

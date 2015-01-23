@@ -679,6 +679,9 @@ message FingerprintFileResult {
   optional Hash hash_entry = 2 [(sem_type) = {
       description: "File hash object.",
     }];
+  optional FileMeta meta_entry = 3 [(sem_type) = {
+      description: "File metadata object.",
+    }];
 }
 
 
@@ -1544,6 +1547,7 @@ message FileFinderResult {
   optional StatEntry stat_entry = 1;
   repeated BufferReference matches = 2;
   optional Hash hash_entry = 3;
+  optional FileMeta meta_entry = 4;
 }
 
 message FileReference {

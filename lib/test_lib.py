@@ -326,6 +326,9 @@ class GRRBaseTest(unittest.TestCase):
     self.smtp_patcher = mock.patch("smtplib.SMTP")
     self.mock_smtp = self.smtp_patcher.start()
 
+    #Set install_path for loading magic.mgc
+    config_lib.CONFIG.Set("Client.install_path", "/usr/share/misc/")
+
   def tearDown(self):
     self.smtp_patcher.stop()
     logging.info("Completed test: %s.%s",
