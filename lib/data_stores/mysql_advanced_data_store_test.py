@@ -49,12 +49,12 @@ class MysqlAdvancedDataStoreTest(MysqlAdvancedTestMixin, data_store_test.DataSto
 
 
 class MysqlAdvancedDataStoreBenchmarks(MysqlAdvancedTestMixin,
-                               data_store_test.DataStoreBenchmarks):
+                                       data_store_test.DataStoreBenchmarks):
   """Benchmark the mysql data store abstraction."""
 
 
 class MysqlAdvancedDataStoreCSVBenchmarks(MysqlAdvancedTestMixin,
-                                  data_store_test.DataStoreCSVBenchmarks):
+                                          data_store_test.DataStoreCSVBenchmarks):
   """Benchmark the mysql data store abstraction."""
 
 

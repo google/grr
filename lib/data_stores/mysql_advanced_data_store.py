@@ -140,7 +140,8 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
   def DropTables(self):
     #Drop all existing tables
-    rows = self._ExecuteQuery("select table_name from information_schema.tables where table_schema='%s'" % self.database_name)
+    rows = self._ExecuteQuery("select table_name from information_schema.tables "
+                              "where table_schema='%s'" % self.database_name)
     for row in rows:
       self._ExecuteQuery("drop table `%s`" % row["table_name"])
 
@@ -214,7 +215,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
     for subject in subjects:
       values = self._ResolveRegex(subject, predicate_regex, token=token,
-                                 timestamp=timestamp, limit=limit)
+                                  timestamp=timestamp, limit=limit)
 
       if values:
         result[subject] = values
@@ -226,7 +227,8 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
     return result.iteritems()
 
-  def MultiSet(self, subject, values, timestamp=None, token=None, replace=True, sync=True, to_delete=None):
+  def MultiSet(self, subject, values, timestamp=None, token=None, replace=True,
+               sync=True, to_delete=None):
     """Set multiple predicates' values for this subject in one operation."""
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
     to_delete = set(to_delete or [])
@@ -248,7 +250,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
         if entry_timestamp is None:
           entry_timestamp = timestamp
-        
+
         predicate = utils.SmartUnicode(attribute)
         data = self._EncodeValue(value)
 
@@ -267,7 +269,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
                   [subject, predicate, data, int(entry_timestamp)])
             elif duplicates == 1:
               to_replace.extend(
-                [subject, predicate, data, int(entry_timestamp)])
+                  [subject, predicate, data, int(entry_timestamp)])
         else:
           to_insert.extend(
               [subject, predicate, data, int(entry_timestamp)])
@@ -279,7 +281,6 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       transaction = self._BuildReplaces(to_replace)
       self._ExecuteInsert(transaction)
 
-    
     if to_insert:
       if sync:
         transaction = self._BuildInserts(to_insert)
@@ -296,9 +297,10 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     if to_insert:
       transaction = self._BuildInserts(to_insert)
       self._ExecuteInsert(transaction)
-    
+
   def _CountDuplicateAttributes(self, subject, predicate):
-    query = "SELECT count(*) AS total FROM aff4 WHERE subject_hash=unhex(md5(%s)) AND attribute_hash=unhex(md5(%s))"
+    query = "SELECT count(*) AS total FROM aff4 WHERE \
+subject_hash=unhex(md5(%s)) AND attribute_hash=unhex(md5(%s))"
     args = [subject, predicate]
     result = self._ExecuteQuery(query, args)
     return int(result[0]["total"])
@@ -309,7 +311,8 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
     for (subject, predicate, value, timestamp) in value_sets:
       aff4 = {}
-      aff4["query"] = "UPDATE aff4 SET value=%s, timestamp=%s WHERE subject_hash=unhex(md5(%s)) AND attribute_hash=unhex(md5(%s))"
+      aff4["query"] = "UPDATE aff4 SET value=%s, timestamp=%s WHERE \
+subject_hash=unhex(md5(%s)) AND attribute_hash=unhex(md5(%s))"
       aff4["args"] = [value, timestamp, subject, predicate]
       transaction.append(aff4)
     return transaction
@@ -321,14 +324,15 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
     subjects["query"] = "INSERT IGNORE INTO subjects (hash, subject) VALUES"
     attributes["query"] = "INSERT IGNORE INTO attributes (hash, attribute) VALUES"
-    aff4["query"] = "INSERT INTO aff4 (subject_hash, attribute_hash, prefix, timestamp, value) VALUES"
-    
+    aff4["query"] = "INSERT INTO aff4 (subject_hash, attribute_hash, prefix, \
+timestamp, value) VALUES"
+
     subjects["args"] = []
     attributes["args"] = []
     aff4["args"] = []
 
     value_sets = zip(values[0::4], values[1::4], values[2::4], values[3::4])
-  
+
     seen = {}
     seen["subjects"] = []
     seen["attributes"] = []
@@ -345,7 +349,9 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
     subjects["query"] += ", ".join(["(unhex(md5(%s)), %s)"] * (len(subjects["args"]) / 2))
     attributes["query"] += ", ".join(["(unhex(md5(%s)), %s)"] * (len(attributes["args"]) / 2))
-    aff4["query"] += ", ".join(["(unhex(md5(%s)), unhex(md5(%s)), %s, %s, %s)"] * (len(aff4["args"]) / 5))
+    aff4["query"] += ", ".join(
+        ["(unhex(md5(%s)), unhex(md5(%s)), %s, %s, %s)"] * (
+            len(aff4["args"]) / 5))
 
     return [subjects, attributes, aff4]
 
@@ -353,7 +359,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     """Get connection from pool and execute query"""
     for query in transaction:
       with self.pool.GetConnection() as cursor:
-        cursor.Execute(query["query"],query["args"])
+        cursor.Execute(query["query"], query["args"])
 
   def _ResolveRegex(self, subject, predicate_regex, token=None, timestamp=None, limit=None):
     if limit and limit == 0:
@@ -407,7 +413,8 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     else:
       return value
 
-  def _BuildQuery(self, action, subject, predicate=None, timestamp=None, limit=None, is_regex=False):
+  def _BuildQuery(self, action, subject, predicate=None, timestamp=None,
+                  limit=None, is_regex=False):
     """Build the SELECT query to be executed"""
     args = []
 
@@ -415,22 +422,23 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     criteria = "WHERE"
     sorting = ""
     tables = "FROM aff4"
-    
+
     subject = utils.SmartUnicode(subject)
 
     #Set fields, tables, and criteria and append args
     if is_regex:
-      tables += " JOIN attributes ON aff4.attribute_hash=attributes.hash" 
+      tables += " JOIN attributes ON aff4.attribute_hash=attributes.hash"
       regex = re.match(r'(^[a-zA-Z0-9_]+:[a-zA-Z0-9_:]*)(.*)', predicate)
       if regex:
         #If predicate has prefix then break down for query optimizations
         parts = predicate.split(":", 1)
-        
+
         #Add prefix usage for all regex queries
         criteria += " aff4.subject_hash=unhex(md5(%s)) AND aff4.prefix=(%s)"
         args.append(subject)
         args.append(parts[0])
-        #If the remainder after prefix is not a match all regex then break it down into like and rlike components
+        #If the remainder after prefix is not a match all regex then break it
+        #down into like and rlike components
         if not (parts[1] == ".*" or parts[1] == ".+"):
           like = regex.groups()[0] + "%"
           rlike = regex.groups()[1]
@@ -469,7 +477,10 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
       #Modify fields and sorting for timestamps
       if timestamp is None or timestamp == self.NEWEST_TIMESTAMP:
-        tables += " JOIN (SELECT attribute_hash, MAX(timestamp) timestamp " + tables + " " + criteria + " GROUP BY attribute_hash) maxtime on aff4.attribute_hash=maxtime.attribute_hash and aff4.timestamp=maxtime.timestamp"
+        tables += " JOIN (SELECT attribute_hash, MAX(timestamp) timestamp \
+" + tables + " " + criteria + " GROUP BY attribute_hash) maxtime on \
+aff4.attribute_hash=maxtime.attribute_hash and \
+aff4.timestamp=maxtime.timestamp"
         criteria = "WHERE aff4.subject_hash=unhex(md5(%s))"
         args.append(subject)
       else:
@@ -565,7 +576,8 @@ class MySQLTransaction(data_store.CommonTransaction):
     self.expires_lock = int((time.time() + self.lock_time) * 1e6)
 
     # This will take over the lock if the lock is too old.
-    query = "UPDATE locks SET lock_expiration=%s, lock_owner=%s WHERE subject_hash=unhex(md5(%s)) AND (lock_expiration < %s)"
+    query = "UPDATE locks SET lock_expiration=%s, lock_owner=%s WHERE \
+subject_hash=unhex(md5(%s)) AND (lock_expiration < %s)"
     args = [self.expires_lock, self.lock_token, subject, time.time() * 1e6]
     store._ExecuteQuery(query, args)
 
@@ -599,7 +611,8 @@ class MySQLTransaction(data_store.CommonTransaction):
         raise data_store.TransactionError("Subject %s is locked" % self.subject)
 
     # If we get here the row does not exist:
-    query = "INSERT IGNORE INTO locks SET lock_expiration=%s, lock_owner=%s, subject_hash=unhex(md5(%s))"
+    query = "INSERT IGNORE INTO locks SET lock_expiration=%s, lock_owner=%s, \
+subject_hash=unhex(md5(%s))"
     args = [self.expires_lock, self.lock_token, self.subject]
     self.store._ExecuteQuery(query, args)
 
@@ -616,7 +629,8 @@ class MySQLTransaction(data_store.CommonTransaction):
     # Remove the lock on the document. Note that this only resets the lock if
     # we actually hold it (lock_expiration == self.expires_lock and lock_owner = self.lock_token).
 
-    query = "UPDATE locks SET lock_expiration=0, lock_owner=0 WHERE lock_expiration=%s AND lock_owner=%s AND subject_hash=unhex(md5(%s))"
+    query = "UPDATE locks SET lock_expiration=0, lock_owner=0 WHERE \
+lock_expiration=%s AND lock_owner=%s AND subject_hash=unhex(md5(%s))"
     args = [self.expires_lock, self.lock_token, self.subject]
     self.store._ExecuteQuery(query, args)
 
