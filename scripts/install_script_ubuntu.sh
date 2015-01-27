@@ -25,6 +25,12 @@ GRR_TEST_VERSION=0.3.1-1
 SERVER_DEB_STABLE_BASE_URL=https://googledrive.com/host/0B1wsLqFoT7i2c3F0ZmI1RDJlUEU/grr-server_
 SERVER_DEB_TEST_BASE_URL=https://googledrive.com/host/0B1wsLqFoT7i2c3F0ZmI1RDJlUEU/test-grr-server_
 
+# Variable to store if the user has answered "Yes to All"
+ALL_YES=0;
+
+# If true only install build dependencies. GRR itself and the database won't be
+# installed.
+BUILD_DEPS_ONLY=0;
 
 # Take command line parameters as these are easier for users than shell
 # variables.
@@ -36,6 +42,14 @@ elif [ "$1" == "--test" ]
 then
   GRR_LOCAL_TEST=0;
   GRR_TESTING=1;
+fi
+
+if [ "$1" == "--build-deps" ] || [ "$2" == "--build-deps" ]; then
+  echo "############################################"
+  echo "#### Installing build dependencies only ####"
+  echo "############################################"
+  BUILD_DEPS_ONLY=1;
+  ALL_YES=1;
 fi
 
 
@@ -55,10 +69,6 @@ if [ -z "${GRR_LOCAL_TEST}" ];
 then
   GRR_LOCAL_TEST=0;
 fi
-
-
-# Variable to store if the user has answered "Yes to All"
-ALL_YES=0;
 
 
 function header()
@@ -130,10 +140,6 @@ header "Installing Sleuthkit and Pytsk"
 run_cmd_confirm sudo apt-get --yes remove libtsk3* sleuthkit
 run_cmd_confirm sudo dpkg -i ${DEB_DEPENDENCIES_DIR}/${SLEUTHKIT_DEB} ${DEB_DEPENDENCIES_DIR}/${PYTSK_DEB};
 
-header "Installing Mongodb"
-run_cmd_confirm sudo apt-get --yes --force-yes install mongodb python-pymongo;
-sudo service mongodb start 2>/dev/null
-
 header "Installing Rekall"
 INSTALL_REKALL=0
 if [ ${ALL_YES} = 0 ]; then
@@ -162,13 +168,22 @@ run_cmd_confirm sudo pip install psutil --upgrade
 header "Installing Selenium test framework for Tests"
 run_cmd_confirm sudo easy_install selenium
 
-
 header "Installing correct Django version."
 # We support everything from 1.4 to 1.6, 12.04 ships with 1.3. This is only
 # necessary for server 0.3.0-2, remove the requirement for 1.6 once we upgrade.
 run_cmd_confirm sudo apt-get --yes remove python-django
 run_cmd_confirm sudo pip install django==1.6
 
+if [ $BUILD_DEPS_ONLY = 1 ]; then
+  echo "#######################################"
+  echo "Finished installing build dependencies."
+  echo "#######################################"
+  exit 0
+fi
+
+header "Installing Mongodb"
+run_cmd_confirm sudo apt-get --yes --force-yes install mongodb python-pymongo;
+sudo service mongodb start 2>/dev/null
 
 header "Installing GRR from prebuilt package"
 SERVER_DEB=$(basename ${SERVER_DEB_URL});
