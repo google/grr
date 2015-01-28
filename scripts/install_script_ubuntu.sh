@@ -160,7 +160,7 @@ run_cmd_confirm sudo apt-get --yes remove python-psutil;
 run_cmd_confirm sudo pip install psutil --upgrade
 
 header "Installing Selenium test framework for Tests"
-run_cmd_confirm sudo easy_install selenium
+run_cmd_confirm sudo -E easy_install selenium
 
 
 header "Installing correct Django version."
