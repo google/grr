@@ -190,8 +190,6 @@ class ServerLoadView(renderers.TemplateRenderer):
 
     frontend_stats = self.ReadStatsStoreData("frontend.*", time_range,
                                              token=request.token)
-    enroller_stats = self.ReadStatsStoreData("enroller.*", time_range,
-                                             token=request.token)
     worker_stats = self.ReadStatsStoreData("worker.*", time_range,
                                            token=request.token)
 
@@ -332,41 +330,24 @@ class ServerLoadView(renderers.TemplateRenderer):
         title="Time")
     self.graphs.append(graph.RawHTML(request))
 
-    #
-    # Enrollers graphs
-    # -------------
-    #
-    self.graphs.append("<br/><br/><hr/><p class=lead>Enrollers "
-                       "(%d instances)</p>" % len(enroller_stats.keys()))
+    # TODO(user): Export this data specifically and reenable this graph.
 
-    # Successful vs failed enrollments
-    graph = ScalarGraphRenderer(name="enroller_success_vs_failures",
-                                title="Successful vs failed enrollments rate",
-                                y_axis_label="Count")
-    graph.AddTimeSeries(
-        self.QueryValue(enroller_stats,
-                        ["enroller.*", "grr_flow_completed_count"]).
-        AggregateViaSum().Rate(self.RATE_WINDOW).ts,
-        title="Successes")
-    graph.AddTimeSeries(
-        self.QueryValue(enroller_stats,
-                        ["enroller.*", "grr_flow_errors"]).
-        AggregateViaSum().Rate(self.RATE_WINDOW).ts,
-        title="Failures")
-    self.graphs.append(graph.RawHTML(request))
+    # # Successful vs failed enrollments
+    # graph = ScalarGraphRenderer(name="enroller_success_vs_failures",
+    #                             title="Successful vs failed enrollments rate",
+    #                             y_axis_label="Count")
+    # graph.AddTimeSeries(
+    #     self.QueryValue(enroller_stats,
+    #                     ["worker.*", "grr_flow_completed_count"]).
+    #     AggregateViaSum().Rate(self.RATE_WINDOW).ts,
+    #     title="Successes")
 
-    # Enrollments latency
-    graph = ScalarGraphRenderer(name="enroller_enrollment_latency",
-                                title="Enroller enrollment latency rate",
-                                y_axis_label="Latency")
-    graph.AddTimeSeries(
-        self.QueryDistributionSum(enroller_stats,
-                                  ["enroller.*",
-                                   "frontend_request_latency",
-                                   ":all"]).
-        AggregateViaSum().Rate(self.RATE_WINDOW).ts,
-        title="Latency")
-    self.graphs.append(graph.RawHTML(request))
+    # graph.AddTimeSeries(
+    #     self.QueryValue(enroller_stats,
+    #                     ["enroller.*", "grr_flow_errors"]).
+    #     AggregateViaSum().Rate(self.RATE_WINDOW).ts,
+    #     title="Failures")
+    # self.graphs.append(graph.RawHTML(request))
 
     response = super(ServerLoadView, self).Layout(request, response)
     return self.CallJavascript(response, "ServerLoadView.Layout",

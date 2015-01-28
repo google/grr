@@ -1,7 +1,7 @@
 #!/bin/bash
 # Some basic functions to help with enabling and disabling GRR services.
 
-GRR_SERVICES="grr-single-server grr-http-server grr-ui grr-enroller grr-worker"
+GRR_SERVICES="grr-single-server grr-http-server grr-ui grr-worker"
 
 alias grr_stop_all='stop_services "$GRR_SERVICES"'
 alias grr_start_all='start_services "$GRR_SERVICES"'

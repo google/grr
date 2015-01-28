@@ -66,9 +66,6 @@ from grr.lib import stats
 from grr.lib import utils
 from grr.lib import worker
 from grr.lib import worker_mocks
-# pylint: disable=unused-import
-from grr.lib.flows.caenroll import ca_enroller
-# pylint: enable=unused-import
 from grr.proto import tests_pb2
 
 from grr.test_data import client_fixture
@@ -1286,6 +1283,12 @@ class GRRTestLoader(unittest.TestLoader):
 
 
 class MockClient(object):
+  """Simple emulation of the client.
+
+  This implementation operates directly on the server's queue of client
+  messages, bypassing the need to actually send the messages through the comms
+  library.
+  """
 
   def __init__(self, client_id, client_mock, token=None):
     if not isinstance(client_id, rdfvalue.ClientURN):
@@ -1332,7 +1335,7 @@ class MockClient(object):
     manager.QueueResponse(message.session_id, message)
 
   def Next(self):
-    # Grab tasks for us from the queue.
+    # Grab tasks for us from the server's queue.
     with queue_manager.QueueManager(token=self.token) as manager:
       request_tasks = manager.QueryAndOwn(self.client_id.Queue(),
                                           limit=1,
@@ -1470,7 +1473,8 @@ class MockWorker(worker.GRRWorker):
       RuntimeError: if the flow terminates with an error.
     """
     with queue_manager.QueueManager(token=self.token) as manager:
-      notifications_available = manager.GetNotifications(self.queue)
+      notifications_available = manager.GetNotificationsForAllShards(self.queue)
+
       # Run all the flows until they are finished
       run_sessions = []
 
@@ -1478,7 +1482,7 @@ class MockWorker(worker.GRRWorker):
       # after each state run - this helps to catch unpickleable objects.
       for notification in notifications_available[:1]:
         session_id = notification.session_id
-        manager.DeleteNotification(session_id)
+        manager.DeleteNotification(session_id, end=notification.timestamp)
         run_sessions.append(session_id)
 
         # Handle well known flows here.
@@ -1689,6 +1693,7 @@ def TestHuntHelperWithMultipleMocks(client_mocks, check_flow_errors=False,
   # Run the clients and worker until nothing changes any more.
   while True:
     client_processed = 0
+
     for client_mock in client_mocks:
       client_processed += client_mock.Next()
 

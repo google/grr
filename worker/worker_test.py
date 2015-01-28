@@ -5,6 +5,8 @@
 import threading
 import time
 
+import mock
+
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
@@ -194,15 +196,37 @@ class WorkerStuckableTestFlow(flow.GRRFlow):
     cls.WAIT_FOR_TEST_SEMAPHORE.acquire()
 
 
+class ShardedQueueManager(queue_manager.QueueManager):
+  """Operate on all shards at once.
+
+  These tests call the worker's RunOnce and expect to see all notifications.
+  This doesn't work when shards are enabled, since each worker is only looking
+  at its own shard. This class gives the worker visibility across all shards.
+  """
+
+  def GetNotificationsByPriority(self, queue):
+    return self.GetNotificationsByPriorityForAllShards(queue)
+
+  def GetNotifications(self, queue):
+    return self.GetNotificationsForAllShards(queue)
+
+
 class GrrWorkerTest(test_lib.FlowTestsBaseclass):
   """Tests the GRR Worker."""
 
   def setUp(self):
     super(GrrWorkerTest, self).setUp()
     WorkerStuckableTestFlow.Reset()
+    self.patch_get_notifications = mock.patch.object(
+        queue_manager, "QueueManager", ShardedQueueManager)
+    self.patch_get_notifications.start()
 
     # Clear the results global
     del RESULTS[:]
+
+  def tearDown(self):
+    super(GrrWorkerTest, self).tearDown()
+    self.patch_get_notifications.stop()
 
   def SendResponse(self, session_id, data, client_id=None, well_known=False):
     if not isinstance(data, rdfvalue.RDFValue):
@@ -230,12 +254,16 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
 
       flow_manager.QueueNotification(session_id=session_id)
       timestamp = flow_manager.frozen_timestamp
+
+      # Remember which worker queue shard we sent this to so that tests can
+      # check it later.
+      self.sent_to_queue = flow_manager.GetNotificationShard(
+          worker.DEFAULT_WORKER_QUEUE)
+
     return timestamp
 
   def testProcessMessages(self):
     """Test processing of several inbound messages."""
-    worker_obj = worker.GRRWorker(worker.DEFAULT_WORKER_QUEUE,
-                                  token=self.token)
 
     # Create a couple of flows
     flow_obj = self.FlowSetup("WorkerSendingTestFlow")
@@ -259,6 +287,9 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     self.SendResponse(session_id_2, "Hello2")
     self.SendResponse(session_id_1, "Hello1")
     self.SendResponse(session_id_2, "Hello2")
+
+    worker_obj = worker.GRRWorker([worker.DEFAULT_WORKER_QUEUE],
+                                  token=self.token)
 
     # Process all messages
     worker_obj.RunOnce()
@@ -297,7 +328,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
                      "End")
 
   def testNoKillNotificationsScheduledForHunts(self):
-    worker_obj = worker.GRRWorker(worker.DEFAULT_WORKER_QUEUE,
+    worker_obj = worker.GRRWorker([worker.DEFAULT_WORKER_QUEUE],
                                   token=self.token)
     initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(0)
 
@@ -317,9 +348,9 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
 
       # Assert that there are no stuck notifications in the worker's queue.
       with queue_manager.QueueManager(token=self.token) as manager:
-        notifications = manager.GetNotificationsByPriority(
-            worker_obj.queue)
-        self.assertFalse(manager.STUCK_PRIORITY in notifications)
+        for queue in worker_obj.queues:
+          notifications = manager.GetNotificationsByPriority(queue)
+          self.assertFalse(manager.STUCK_PRIORITY in notifications)
 
     finally:
       # Release the semaphore so that worker thread unblocks and finishes
@@ -328,15 +359,14 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
       worker_obj.thread_pool.Join()
 
   def testKillNotificationsScheduledForFlows(self):
-    worker_obj = worker.GRRWorker(worker.DEFAULT_WORKER_QUEUE,
+    worker_obj = worker.GRRWorker([worker.DEFAULT_WORKER_QUEUE],
                                   token=self.token)
     initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(0)
 
     try:
       with test_lib.FakeTime(initial_time.AsSecondsFromEpoch()):
         flow.GRRFlow.StartFlow(flow_name="WorkerStuckableTestFlow",
-                               client_id=self.client_id,
-                               token=self.token,
+                               client_id=self.client_id, token=self.token,
                                sync=False)
 
         # Process all messages
@@ -347,9 +377,9 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
       # Assert that there are no stuck notifications in the worker's
       # queue.
       with queue_manager.QueueManager(token=self.token) as manager:
-        notifications = manager.GetNotificationsByPriority(
-            worker_obj.queue)
-        self.assertTrue(manager.STUCK_PRIORITY in notifications)
+        for queue in worker_obj.queues:
+          notifications = manager.GetNotificationsByPriority(queue)
+          self.assertTrue(manager.STUCK_PRIORITY in notifications)
 
     finally:
       # Release the semaphore so that worker thread unblocks and finishes
@@ -358,7 +388,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
       worker_obj.thread_pool.Join()
 
   def testStuckFlowGetsTerminated(self):
-    worker_obj = worker.GRRWorker(worker.DEFAULT_WORKER_QUEUE,
+    worker_obj = worker.GRRWorker([worker.DEFAULT_WORKER_QUEUE],
                                   token=self.token)
     initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(0)
     stuck_flows_timeout = rdfvalue.Duration(
@@ -397,7 +427,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
                      "Terminated by user test. Reason: Stuck in the worker")
 
   def testStuckNotificationGetsDeletedAfterTheFlowIsTerminated(self):
-    worker_obj = worker.GRRWorker(worker.DEFAULT_WORKER_QUEUE,
+    worker_obj = worker.GRRWorker([worker.DEFAULT_WORKER_QUEUE],
                                   token=self.token)
     initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(0)
     stuck_flows_timeout = rdfvalue.Duration(
@@ -441,7 +471,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
       worker_obj.thread_pool.Join()
 
   def testHeartBeatingFlowIsNotTreatedAsStuck(self):
-    worker_obj = worker.GRRWorker(worker.DEFAULT_WORKER_QUEUE,
+    worker_obj = worker.GRRWorker([worker.DEFAULT_WORKER_QUEUE],
                                   token=self.token)
     initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(0)
 
@@ -501,7 +531,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
                      rdfvalue.Flow.State.TERMINATED)
 
   def testNonStuckFlowDoesNotGetTerminated(self):
-    worker_obj = worker.GRRWorker(worker.DEFAULT_WORKER_QUEUE,
+    worker_obj = worker.GRRWorker([worker.DEFAULT_WORKER_QUEUE],
                                   token=self.token)
     initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(0)
     stuck_flows_timeout = rdfvalue.Duration(
@@ -534,7 +564,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
                      rdfvalue.Flow.State.RUNNING)
 
   def testProcessMessagesWellKnown(self):
-    worker_obj = worker.GRRWorker(worker.DEFAULT_WORKER_QUEUE,
+    worker_obj = worker.GRRWorker([worker.DEFAULT_WORKER_QUEUE],
                                   token=self.token)
 
     # Send a message to a WellKnownFlow - ClientStatsAuto.
@@ -558,7 +588,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     self.assertIsNone(notifications)
 
   def testWellKnownFlowResponsesAreProcessedOnlyOnce(self):
-    worker_obj = worker.GRRWorker(worker.DEFAULT_WORKER_QUEUE,
+    worker_obj = worker.GRRWorker([worker.DEFAULT_WORKER_QUEUE],
                                   token=self.token)
 
     # Send a message to a WellKnownFlow - ClientStatsAuto.
@@ -587,7 +617,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     self.assertIsNone(client.Get(client.Schema.STATS))
 
   def CheckNotificationsDisappear(self, session_id):
-    worker_obj = worker.GRRWorker(worker.DEFAULT_WORKER_QUEUE,
+    worker_obj = worker.GRRWorker([worker.DEFAULT_WORKER_QUEUE],
                                   token=self.token)
     manager = queue_manager.QueueManager(token=self.token)
     notification = rdfvalue.GrrNotification(session_id=session_id)
@@ -596,9 +626,11 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     notifications = manager.GetNotificationsByPriority(
         worker.DEFAULT_WORKER_QUEUE).get(notification.priority, [])
 
-    # Check the notification is there.
+    # Check the notification is there. With multiple worker queue shards we can
+    # get other notifications such as for audit event listeners, so we need to
+    # filter out ours.
+    notifications = [x for x in notifications if x.session_id == session_id]
     self.assertEqual(len(notifications), 1)
-    self.assertEqual(notifications[0].session_id, session_id)
 
     # Process all messages
     worker_obj.RunOnce()
@@ -606,6 +638,8 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
 
     notifications = manager.GetNotificationsByPriority(
         worker.DEFAULT_WORKER_QUEUE).get(notification.priority, [])
+    notifications = [x for x in notifications if x.session_id == session_id]
+
     # Check the notification is now gone.
     self.assertEqual(len(notifications), 0)
 
@@ -641,7 +675,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     session_id = flow.GRRFlow.StartFlow(client_id=self.client_id,
                                         flow_name="WorkerSendingTestFlow",
                                         token=self.token)
-    worker_obj = worker.GRRWorker(worker.DEFAULT_WORKER_QUEUE,
+    worker_obj = worker.GRRWorker([worker.DEFAULT_WORKER_QUEUE],
                                   token=self.token)
     manager = queue_manager.QueueManager(token=self.token)
     manager.DeleteNotification(session_id)
@@ -688,9 +722,10 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     session_id = flow.GRRFlow.StartFlow(client_id=self.client_id,
                                         flow_name="WorkerSendingTestFlow",
                                         token=self.token)
-    worker_obj = worker.GRRWorker(worker.DEFAULT_WORKER_QUEUE,
+    worker_obj = worker.GRRWorker([worker.DEFAULT_WORKER_QUEUE],
                                   token=self.token)
     manager = queue_manager.QueueManager(token=self.token)
+
     manager.DeleteNotification(session_id)
     manager.Flush()
 
@@ -808,11 +843,10 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
       for (_, _, timestamp) in res:
         self.assertEqual(timestamp, frozen_timestamp)
 
-      notification_urn = worker.DEFAULT_WORKER_QUEUE
-
       res = data_store.DB.ResolveRegex(
-          notification_urn, "notify:%s" % session_id, token=self.token)
+          self.sent_to_queue, "notify:%s" % session_id, token=self.token)
       self.assertTrue(res)
+
       for (_, _, timestamp) in res:
         self.assertEqual(timestamp, frozen_timestamp)
 

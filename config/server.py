@@ -9,10 +9,6 @@ from grr.lib import rdfvalue
 config_lib.DEFINE_integer("Threadpool.size", 50,
                           "Number of threads in the shared thread pool.")
 
-config_lib.DEFINE_integer("Worker.task_limit", 2000,
-                          "Limits the number of tasks a worker retrieves "
-                          "every poll")
-
 config_lib.DEFINE_integer("Worker.flow_lease_time", 600,
                           "Duration of a flow lease time in seconds.")
 
@@ -35,7 +31,7 @@ config_lib.DEFINE_integer("Worker.worker_process_count", 1,
                           "only use a single CPU, so scaling this up on "
                           "multiprocessor systems may make sense.")
 
-config_lib.DEFINE_integer("Worker.queue_shards", 1,
+config_lib.DEFINE_integer("Worker.queue_shards", 5,
                           "Queue notifications will be sharded across "
                           "this number of datastore subjects.")
 

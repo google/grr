@@ -1018,7 +1018,7 @@ class FlowSessionID(SessionID):
   # clients are built after Dec 2014.
 
   def ParseFromString(self, initializer=None):
-    # Old clients sometimes send bare well known flow ids e.g., CA:Enrol.
+    # Old clients sometimes send bare well known flow ids.
     if not utils.SmartStr(initializer).startswith("aff4"):
       initializer = "aff4:/flows/" + initializer
     super(FlowSessionID, self).ParseFromString(initializer)

@@ -17,7 +17,6 @@ from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import startup
 from grr.tools import http_server
-from grr.worker import enroller
 from grr.worker import worker
 
 BASE_DIR = "grr/"
@@ -50,12 +49,6 @@ def main(argv):
                                    name="Worker")
   worker_thread.daemon = True
   worker_thread.start()
-
-  # This is the enroller thread.
-  enroller_thread = threading.Thread(target=enroller.main, args=[argv],
-                                     name="Enroller")
-  enroller_thread.daemon = True
-  enroller_thread.start()
 
   # This is the http server Frontend that clients communicate with.
   http_thread = threading.Thread(target=http_server.main, args=[argv],

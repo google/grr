@@ -160,9 +160,13 @@ class ArtifactKBTest(test_lib.GRRBaseTest):
   def testInterpolation(self):
     """Check we can interpolate values from the knowledge base."""
     kb = rdfvalue.KnowledgeBase()
+
+    # No users yet, this should raise
     self.assertRaises(artifact_lib.KnowledgeBaseInterpolationError, list,
                       artifact_lib.InterpolateKbAttributes(
                           "test%%users.username%%test", kb))
+
+    # Now we have two users
     kb.users.Append(rdfvalue.KnowledgeBaseUser(username="joe", uid=1))
     kb.users.Append(rdfvalue.KnowledgeBaseUser(username="jim", uid=2))
     kb.Set("environ_allusersprofile", "c:\\programdata")
@@ -177,15 +181,32 @@ class ArtifactKBTest(test_lib.GRRBaseTest):
         "%%environ_allusersprofile%%\\a", kb)
     self.assertEqual(list(paths), ["c:\\programdata\\a"])
 
+    # Check a bad attribute raises
     self.assertRaises(
         artifact_lib.KnowledgeBaseInterpolationError, list,
         artifact_lib.InterpolateKbAttributes("%%nonexistent%%\\a", kb))
 
+    # Empty values should also raise
     kb.Set("environ_allusersprofile", "")
     self.assertRaises(
         artifact_lib.KnowledgeBaseInterpolationError, list,
         artifact_lib.InterpolateKbAttributes(
             "%%environ_allusersprofile%%\\a", kb))
+
+    # No users have temp defined, so this should raise
+    self.assertRaises(artifact_lib.KnowledgeBaseInterpolationError, list,
+                      artifact_lib.InterpolateKbAttributes(
+                          "%%users.temp%%\\a", kb))
+
+    # One user has users.temp defined, the others do not.  This is common on
+    # windows where users have been created but have never logged in. We should
+    # get just one value back.
+    kb.users.Append(rdfvalue.KnowledgeBaseUser(
+        username="jason", uid=1, temp="C:\\Users\\jason\\AppData\\Local\\Temp"))
+    paths = artifact_lib.InterpolateKbAttributes(
+        r"%%users.temp%%\abcd", kb)
+    self.assertItemsEqual(paths,
+                          ["C:\\Users\\jason\\AppData\\Local\\Temp\\abcd"])
 
 
 class ArtifactParserTest(test_lib.GRRBaseTest):

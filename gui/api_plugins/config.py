@@ -67,21 +67,18 @@ class ApiConfigRenderer(api_renderers.ApiRenderer):
               option_value = api_object_renderers.RenderObject(option_value,
                                                                render_options)
             else:
-              option_value = utils.SmartStr(option_value)
-
-              # TODO(user): config_lib.CONFIG shouldn't return untyped
-              # ByteStrings. It should wrap them into RDFBytes.
-              # Problematic directive is:
-              # %(%(ClientBuilder.source)/grr/gui/static/images/grr.ico|file)
-
-              try:
-                option_value = option_value.encode("utf8")
-              except UnicodeError:
+              if isinstance(option_value, str):
                 raw_value = option_value = None
                 value_type = "binary"
+              else:
+                option_value = utils.SmartUnicode(option_value)
+
+            interpolated_value = config_lib.CONFIG.InterpolateValue(raw_value)
+            is_expanded = option_value != interpolated_value
 
             parameter_data = {"raw_value": raw_value,
                               "option_value": option_value,
+                              "is_expanded": is_expanded,
                               "is_default": is_default,
                               "type": value_type}
 

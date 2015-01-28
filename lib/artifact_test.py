@@ -111,7 +111,16 @@ class RekallMock(action_mocks.MemoryClientMock):
     return [result, rdfvalue.Iterator(state="FINISHED")]
 
 
-class ArtifactTest(test_lib.GRRBaseTest):
+class ArtifactBaseTest(test_lib.GRRBaseTest):
+
+  @classmethod
+  def LoadTestArtifacts(cls):
+    test_artifacts_file = os.path.join(
+        config_lib.CONFIG["Test.data_dir"], "test_artifacts.json")
+    artifact_lib.LoadArtifactsFromFiles([test_artifacts_file])
+
+
+class ArtifactTest(ArtifactBaseTest):
   """Helper class for tests using artifacts."""
 
   def setUp(self):
@@ -119,12 +128,6 @@ class ArtifactTest(test_lib.GRRBaseTest):
     self.client_id = self.SetupClients(1)[0]
 
     self.client_id = self.SetupClients(1)[0]
-
-  @classmethod
-  def LoadTestArtifacts(cls):
-    test_artifacts_file = os.path.join(
-        config_lib.CONFIG["Test.data_dir"], "test_artifacts.json")
-    artifact_lib.LoadArtifactsFromFiles([test_artifacts_file])
 
   class MockClient(action_mocks.MemoryClientMock):
 

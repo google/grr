@@ -523,6 +523,35 @@ class MultiShardedQueueManagerTest(QueueManagerTest):
     shard2_sessions = manager2.GetNotifications(rdfvalue.RDFURN("aff4:/W"))
     self.assertFalse(shard2_sessions)
 
+  def testGetNotificationsForAllShards(self):
+    manager1 = queue_manager.QueueManager(token=self.token)
+    manager2 = queue_manager.QueueManager(token=self.token)
+    # Check that created managers actually use different shards.
+    self.assertNotEqual(manager1.notification_shard_index,
+                        manager2.notification_shard_index)
+
+    manager1.QueueNotification(
+        session_id=rdfvalue.SessionID("aff4:/hunts/W:42"))
+    manager1.Flush()
+
+    manager2.QueueNotification(
+        session_id=rdfvalue.SessionID("aff4:/hunts/W:43"))
+    manager2.Flush()
+
+    manager2.QueueNotification(
+        session_id=rdfvalue.SessionID("aff4:/hunts/W:43"))
+    manager2.Flush()
+
+    shard1_sessions = manager1.GetNotifications(rdfvalue.RDFURN("aff4:/W"))
+    self.assertEqual(len(shard1_sessions), 1)
+
+    shard2_sessions = manager2.GetNotifications(rdfvalue.RDFURN("aff4:/W"))
+    self.assertEqual(len(shard2_sessions), 1)
+
+    notifications = manager1.GetNotificationsForAllShards(
+        rdfvalue.RDFURN("aff4:/W"))
+    self.assertEqual(len(notifications), 2)
+
   def testNotificationRequeueing(self):
     config_lib.CONFIG.Set("Worker.queue_shards", 1)
     session_id = rdfvalue.SessionID("aff4:/testflows/W:123")

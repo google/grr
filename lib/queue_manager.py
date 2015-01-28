@@ -474,37 +474,94 @@ class QueueManager(object):
             queue, to_schedule, timestamp=timestamp, sync=sync,
             token=self.token)
 
-  def GetNotificationsByPriority(self, queue):
-    """Retrieves session ids for processing grouped by priority."""
-    # Check which sessions have new data.
-    # Read all the sessions that have notifications.
-    notifications_by_priority = {}
+  def _SortByPriority(self, notifications, queue, output_dict=None):
+    """Sort notifications by priority into output_dict."""
+    if not output_dict:
+      output_dict = {}
 
-    for notification in self._GetUnsortedNotifications(queue):
+    for notification in notifications:
       priority = notification.priority
       if notification.in_progress:
         priority = self.STUCK_PRIORITY
 
-      notifications_by_priority.setdefault(priority, []).append(notification)
+      output_dict.setdefault(priority, []).append(notification)
 
-    for priority in notifications_by_priority:
+    for priority in output_dict:
       stats.STATS.SetGaugeValue("notification_queue_count",
-                                len(notifications_by_priority[priority]),
+                                len(output_dict[priority]),
                                 fields=[queue.Basename(), str(priority)])
-      random.shuffle(notifications_by_priority[priority])
+      random.shuffle(output_dict[priority])
 
-    return notifications_by_priority
+    return output_dict
+
+  def GetNotificationsByPriority(self, queue):
+    """Retrieves session ids for processing grouped by priority."""
+    # Check which sessions have new data.
+    # Read all the sessions that have notifications.
+    queue_shard = self.GetNotificationShard(queue)
+    return self._SortByPriority(
+        self._GetUnsortedNotifications(queue_shard).values(), queue)
+
+  def GetNotificationsByPriorityForAllShards(self, queue):
+    """Same as GetNotificationsByPriority but for all shards.
+
+    Used by worker_test to cover all shards with a single worker.
+
+    Args:
+      queue: usually rdfvalue.RDFURN("aff4:/W")
+    Returns:
+      dict of notifications objects keyed by priority.
+    """
+    output_dict = {}
+    for queue_shard in self.GetAllNotificationShards(queue):
+      output_dict = self._GetUnsortedNotifications(
+          queue_shard, notifications_by_session_id=output_dict)
+
+    output_dict = self._SortByPriority(output_dict.values(), queue)
+    return output_dict
 
   def GetNotifications(self, queue):
-    notifications = self._GetUnsortedNotifications(queue)
+    """Returns all queue notifications sorted by priority."""
+    queue_shard = self.GetNotificationShard(queue)
+    notifications = self._GetUnsortedNotifications(queue_shard).values()
     notifications.sort(key=lambda notification: notification.priority,
                        reverse=True)
     return notifications
 
-  def _GetUnsortedNotifications(self, queue):
-    """Returns all the available notifications for a queue."""
+  def GetNotificationsForAllShards(self, queue):
+    """Returns notifications for all shards of a queue at once.
+
+    Used by test_lib.MockWorker to cover all shards with a single worker.
+
+    Args:
+      queue: usually rdfvalue.RDFURN("aff4:/W")
+    Returns:
+      List of rdfvalue.GrrNotification objects
+    """
     notifications_by_session_id = {}
-    queue_shard = self.GetNotificationShard(queue)
+    for queue_shard in self.GetAllNotificationShards(queue):
+      notifications_by_session_id = self._GetUnsortedNotifications(
+          queue_shard, notifications_by_session_id=notifications_by_session_id)
+
+    notifications = notifications_by_session_id.values()
+    notifications.sort(key=lambda notification: notification.priority,
+                       reverse=True)
+    return notifications
+
+  def _GetUnsortedNotifications(self, queue_shard,
+                                notifications_by_session_id=None):
+    """Returns all the available notifications for a queue_shard.
+
+    Args:
+      queue_shard: urn of queue shard
+      notifications_by_session_id: store notifications in this dict rather than
+        creating a new one
+
+    Returns:
+      dict of notifications. keys are session ids.
+    """
+    if not notifications_by_session_id:
+      notifications_by_session_id = {}
     end_time = self.frozen_timestamp or rdfvalue.RDFDatetime().Now()
     for predicate, serialized_notification, ts in data_store.DB.ResolveRegex(
         queue_shard, self.NOTIFY_PREDICATE_PREFIX % ".*",
@@ -538,7 +595,7 @@ class QueueManager(object):
       else:
         notifications_by_session_id[notification.session_id] = notification
 
-    return notifications_by_session_id.values()
+    return notifications_by_session_id
 
   def NotifyQueue(self, notification, **kwargs):
     """This signals that there are new messages available in a queue."""
