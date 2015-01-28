@@ -238,11 +238,6 @@ config_lib.DEFINE_string(
     "approval emails. The user has the option to"
     " remove this CC address .")
 
-config_lib.DEFINE_string(
-    "Email.default_domain", None,
-    "A default domain to add to email addresses for notifications if they "
-    "don't contain an @")
-
 config_lib.DEFINE_integer(
     "StatsHunt.ClientBatchSize", "200",
     "Batch size for client scheduling. This should be large enough that it "
