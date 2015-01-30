@@ -18,6 +18,11 @@ class EnrolmentInterrogateEvent(flow.EventListener):
                                              flow_name="Interrogate")
 
   def CheckSource(self, source):
+    if not isinstance(source, rdfvalue.SessionID):
+      try:
+        source = rdfvalue.SessionID(source)
+      except rdfvalue.InitializeError:
+        return False
     return source.Queue() == queues.ENROLLMENT
 
   @flow.EventHandler(source_restriction=True)

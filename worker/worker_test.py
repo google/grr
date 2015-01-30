@@ -66,7 +66,9 @@ class WorkerSendingTestFlow2(WorkerSendingTestFlow):
 class WorkerSendingWKTestFlow(flow.WellKnownFlow):
 
   well_known_session_id = rdfvalue.SessionID(
-      "aff4:/flows/WorkerSendingWKTestFlow")
+      base="aff4:/flows",
+      queue=queues.FLOWS,
+      flow_name="WorkerSendingWKTestFlow")
 
   def ProcessMessage(self, message):
     RESULTS.append(message)

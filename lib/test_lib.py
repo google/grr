@@ -1493,7 +1493,8 @@ class MockWorker(worker.GRRWorker):
           if session_id in self.well_known_flows:
             well_known_flow = self.well_known_flows[session_id]
             with well_known_flow:
-              responses = well_known_flow.FetchAndRemoveRequestsAndResponses()
+              responses = well_known_flow.FetchAndRemoveRequestsAndResponses(
+                  session_id)
             well_known_flow.ProcessResponses(responses, self.pool)
             continue
 
