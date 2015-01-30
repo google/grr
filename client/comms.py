@@ -1121,7 +1121,8 @@ class GRRHTTPClient(object):
       self.client_worker.SendReply(
           rdfvalue.Certificate(type=rdfvalue.Certificate.Type.CSR,
                                pem=self.communicator.GetCSR()),
-          session_id=rdfvalue.SessionID("aff4:/flows/CA:Enrol"))
+          session_id=rdfvalue.SessionID(
+              base="aff4:/flows", queue=queues.ENROLLMENT, flow_name="Enrol"))
 
   def Sleep(self, timeout, heartbeat=False):
     if not heartbeat:

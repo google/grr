@@ -1009,6 +1009,9 @@ class SessionID(RDFURN):
   def Queue(self):
     return RDFURN(self.Basename().split(":")[0])
 
+  def FlowName(self):
+    return self.Basename().split(":")[1]
+
   def Add(self, path, age=None):
     # Adding to a SessionID results in a normal RDFURN.
     return RDFURN(self).Add(path, age=age)
