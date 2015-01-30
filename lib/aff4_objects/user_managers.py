@@ -147,7 +147,7 @@ class BaseAccessControlManager(access_control.AccessControlManager):
 class BasicAccessControlManager(BaseAccessControlManager):
   """Basic ACL manager that uses the config file for user management."""
 
-  SYSTEM_ACCOUNTS = ['GRREnroller', 'GRRCron', 'GRRWorker', 'GRRSystem',
+  SYSTEM_ACCOUNTS = ['GRRCron', 'GRRWorker', 'GRRSystem',
                      'GRRFrontEnd', 'GRRConsole']
   CLIENT_URN_PATTERN = "aff4:/C." + "[0-9a-fA-F]" * 16
 
