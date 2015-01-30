@@ -417,7 +417,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     # Client should generate enrollment message by itself.
     self.assertEqual(len(self.messages), 1)
     self.assertEqual(self.messages[0].session_id,
-                     rdfvalue.SessionID("aff4:/flows/CA:Enrol"))
+                     ca_enroller.Enroler.well_known_session_id)
 
   def testEnrollment(self):
     """Test the http response to unknown clients."""
@@ -446,7 +446,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
     self.assertEqual(len(self.messages), 11)
     self.assertEqual(self.messages[-1].session_id,
-                     rdfvalue.SessionID("aff4:/flows/CA:Enrol"))
+                     ca_enroller.Enroler.well_known_session_id)
 
     # Now we manually run the enroll well known flow with the enrollment
     # request. This will start a new flow for enrolling the client, sign the

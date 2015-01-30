@@ -13,6 +13,7 @@ import logging
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flow
+from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.proto import flows_pb2
@@ -116,7 +117,9 @@ enrolment_cache = utils.FastStore(5000)
 
 class Enroler(flow.WellKnownFlow):
   """Manage enrolment requests."""
-  well_known_session_id = rdfvalue.SessionID("aff4:/flows/CA:Enrol")
+  well_known_session_id = rdfvalue.SessionID(base="aff4:/flows",
+                                             queue=queues.ENROLLMENT,
+                                             flow_name="Enrol")
 
   def ProcessMessage(self, message):
     """Begins an enrollment flow for this client.

@@ -1064,15 +1064,14 @@ class WellKnownFlow(GRRFlow):
     # and don't have states.
     pass
 
-  def FetchAndRemoveRequestsAndResponses(self):
+  def FetchAndRemoveRequestsAndResponses(self, session_id):
     """Removes WellKnownFlow messages from the queue and returns them."""
     messages = []
     with queue_manager.WellKnownQueueManager(
         token=self.token) as manager:
-      for _, responses in manager.FetchRequestsAndResponses(
-          self.session_id):
+      for _, responses in manager.FetchRequestsAndResponses(session_id):
         messages.extend(responses)
-        manager.DeleteWellKnownFlowResponses(self.session_id, responses)
+        manager.DeleteWellKnownFlowResponses(session_id, responses)
 
     return messages
 
@@ -1513,7 +1512,9 @@ class FrontEndServer(object):
     self.thread_pool.Start()
 
     # Well known flows are run on the front end.
-    self.well_known_flows = WellKnownFlow.GetAllWellKnownFlows(token=self.token)
+    self.well_known_flows = {
+        x.FlowName(): y for (x, y) in
+        WellKnownFlow.GetAllWellKnownFlows(token=self.token).iteritems()}
     well_known_flow_names = self.well_known_flows.keys()
     for well_known_flow in well_known_flow_names:
       if well_known_flow not in config_lib.CONFIG["Frontend.well_known_flows"]:
@@ -1771,9 +1772,9 @@ class FrontEndServer(object):
 
       # Well known flows:
       else:
-        if msg.session_id in self.well_known_flows:
+        if msg.session_id.FlowName() in self.well_known_flows:
           # This message should be processed directly on the front end.
-          flow = self.well_known_flows[msg.session_id]
+          flow = self.well_known_flows[msg.session_id.FlowName()]
           flow.ProcessMessage(msg)
           flow.HeartBeat()
 

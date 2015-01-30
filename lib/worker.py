@@ -88,7 +88,9 @@ class GRRWorker(object):
     self.last_active = 0
 
     # Well known flows are just instantiated.
-    self.well_known_flows = flow.WellKnownFlow.GetAllWellKnownFlows(token=token)
+    self.well_known_flows = {
+        x.FlowName(): y for (x, y) in
+        flow.WellKnownFlow.GetAllWellKnownFlows(token=token).iteritems()}
     self.flow_lease_time = config_lib.CONFIG["Worker.flow_lease_time"]
     self.well_known_flow_lease_time = config_lib.CONFIG[
         "Worker.well_known_flow_lease_time"]
@@ -309,10 +311,11 @@ class GRRWorker(object):
 
     try:
       # Take a lease on the flow:
-      if session_id in self.well_known_flows:
+      flow_name = session_id.FlowName()
+      if flow_name in self.well_known_flows:
         # Well known flows are not necessarily present in the data store so
         # we need to create them instead of opening.
-        expected_flow = self.well_known_flows[session_id].__class__.__name__
+        expected_flow = self.well_known_flows[flow_name].__class__.__name__
         flow_obj = aff4.FACTORY.CreateWithLock(
             session_id, expected_flow,
             lease_time=self.well_known_flow_lease_time,
@@ -330,7 +333,7 @@ class GRRWorker(object):
       # came in later.
       queue_manager.DeleteNotification(session_id, end=notification.timestamp)
 
-      if session_id in self.well_known_flows:
+      if flow_name in self.well_known_flows:
         stats.STATS.IncrementCounter("well_known_flow_requests",
                                      fields=[str(session_id)])
 
@@ -340,7 +343,7 @@ class GRRWorker(object):
         # the lock while requests are processed, so other workers can
         # process well known flows requests as well.
         with flow_obj:
-          responses = flow_obj.FetchAndRemoveRequestsAndResponses()
+          responses = flow_obj.FetchAndRemoveRequestsAndResponses(session_id)
 
         flow_obj.ProcessResponses(responses, self.thread_pool)
 
