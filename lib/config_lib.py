@@ -41,8 +41,8 @@ flags.DEFINE_list("context", [],
 flags.DEFINE_list("plugins", [],
                   "Load these files as additional plugins.")
 
-flags.DEFINE_bool("allow_missing_config_definitions", False,
-                  "If true we ignore undefined config options.")
+flags.DEFINE_bool("disallow_missing_config_definitions", False,
+                  "If true, we raise an error on undefined config options.")
 
 
 flags.PARSER.add_argument(
@@ -840,11 +840,13 @@ class GrrConfigManager(object):
       else:
         # Find the descriptor for this field.
         descriptor = self.type_infos.get(k)
-        if (descriptor is None and
-            not flags.FLAGS.allow_missing_config_definitions):
-          raise MissingConfigDefinitionError(
-              "Missing config definition for %s. This option is likely "
-              "deprecated or renamed. Check the release notes." % k)
+        if descriptor is None:
+          msg = ("Missing config definition for %s. This option is likely "
+                 "deprecated or renamed. Check the release notes." % k)
+          if flags.FLAGS.disallow_missing_config_definitions:
+            raise MissingConfigDefinitionError(msg)
+          else:
+            logging.warning(msg)
 
         if isinstance(v, basestring):
           v = v.strip()

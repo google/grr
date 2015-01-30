@@ -3,8 +3,6 @@
 
 
 
-import time
-
 
 import logging
 
@@ -18,13 +16,16 @@ from grr.lib import flow
 
 # These imports populate the GRRHunt registry.
 from grr.lib import hunts
+from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 
 
 class TestHuntListener(flow.EventListener):
-  well_known_session_id = rdfvalue.SessionID("aff4:/flows/W:TestHuntDone")
+  well_known_session_id = rdfvalue.SessionID(base="aff4:/flows",
+                                             queue=queues.FLOWS,
+                                             flow_name="TestHuntDone")
   EVENTS = ["TestHuntDone"]
 
   received_events = []
@@ -42,7 +43,6 @@ class BrokenSampleHunt(hunts.SampleHunt):
   def StoreResults(self, responses):
     """Stores the responses."""
     client_id = responses.request.client_id
-
     if not responses.success:
       logging.info("Client %s has no file /tmp/evil.txt", client_id)
       # Raise on one of the code paths.
@@ -477,6 +477,41 @@ class HuntTest(test_lib.FlowTestsBaseclass):
 
     self.assertEqual(len(TestHuntListener.received_events), 5)
 
+  def _RunRateLimitedHunt(self, client_ids, start_time):
+    with hunts.GRRHunt.StartHunt(
+        hunt_name="DummyHunt",
+        regex_rules=[
+            rdfvalue.ForemanAttributeRegex(attribute_name="GRR client",
+                                           attribute_regex="GRR"),
+        ],
+        client_rate=1, token=self.token) as hunt:
+      hunt.Run()
+
+    # Pretend to be the foreman now and dish out hunting jobs to all the
+    # clients..
+    foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
+    for client_id in client_ids:
+      foreman.AssignTasksToClient(client_id)
+
+    self.assertEqual(len(DummyHunt.client_ids), 0)
+
+    # Run the hunt.
+    worker_mock = test_lib.MockWorker(check_flow_errors=True,
+                                      queues=queues.HUNTS,
+                                      token=self.token)
+
+    # One client is scheduled in the first minute.
+    with test_lib.FakeTime(start_time + 2):
+      worker_mock.Simulate()
+    self.assertEqual(len(DummyHunt.client_ids), 1)
+
+    # No further clients will be scheduled until the end of the first minute.
+    with test_lib.FakeTime(start_time + 59):
+      worker_mock.Simulate()
+    self.assertEqual(len(DummyHunt.client_ids), 1)
+
+    return worker_mock, hunt.urn
+
   def testHuntClientRate(self):
     """Check that clients are scheduled slowly by the hunt."""
     start_time = 10
@@ -485,43 +520,33 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     client_ids = self.SetupClients(10)
 
     with test_lib.FakeTime(start_time):
-      with hunts.GRRHunt.StartHunt(
-          hunt_name="DummyHunt",
-          regex_rules=[
-              rdfvalue.ForemanAttributeRegex(attribute_name="GRR client",
-                                             attribute_regex="GRR"),
-          ],
-          client_rate=1, token=self.token) as hunt:
-        hunt.Run()
-
-      # Pretend to be the foreman now and dish out hunting jobs to all the
-      # clients..
-      foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
-      for client_id in client_ids:
-        foreman.AssignTasksToClient(client_id)
-
-      self.assertEqual(len(DummyHunt.client_ids), 0)
-
-      # Run the hunt.
-      worker_mock = test_lib.MockWorker(check_flow_errors=True,
-                                        token=self.token)
-
-      time.time = lambda: start_time + 2
-
-      # One client is scheduled in the first minute.
-      worker_mock.Simulate()
-      self.assertEqual(len(DummyHunt.client_ids), 1)
-
-      # No further clients will be scheduled until the end of the first minute.
-      time.time = lambda: start_time + 59
-      worker_mock.Simulate()
-      self.assertEqual(len(DummyHunt.client_ids), 1)
-
+      worker_mock, _ = self._RunRateLimitedHunt(client_ids, start_time)
       # One client will be processed every minute.
       for i in range(len(client_ids)):
-        time.time = lambda: start_time + 1 + 60 * i
-        worker_mock.Simulate()
-        self.assertEqual(len(DummyHunt.client_ids), i + 1)
+        with test_lib.FakeTime(start_time + 1 + 60 * i):
+          worker_mock.Simulate()
+          self.assertEqual(len(DummyHunt.client_ids), i + 1)
+
+  def testHuntClientRateWithPause(self):
+    """Check that clients are scheduled only if the hunt is running."""
+    start_time = 10
+
+    # Set up 10 clients.
+    client_ids = self.SetupClients(10)
+
+    with test_lib.FakeTime(start_time):
+      worker_mock, hunt_urn = self._RunRateLimitedHunt(client_ids, start_time)
+
+      # Now pause the hunt
+      with aff4.FACTORY.Open(hunt_urn, age=aff4.ALL_TIMES, mode="rw",
+                             token=self.token) as hunt_obj:
+        hunt_obj.Pause()
+
+      # No more clients should be processed.
+      for i in range(len(client_ids)):
+        with test_lib.FakeTime(start_time + 1 + 60 * i):
+          worker_mock.Simulate()
+      self.assertEqual(len(DummyHunt.client_ids), 1)
 
 
 def main(argv):

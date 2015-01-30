@@ -6,7 +6,7 @@
 
 SWITCHDIR=$1;
 
-MULTI_SERVICES="grr-http-server grr-ui grr-enroller grr-worker"
+MULTI_SERVICES="grr-http-server grr-ui grr-worker"
 SINGLE_SERVICES="grr-single-server"
 
 if [ "$SWITCHDIR" = "" ] || [ "$SWITCHDIR" = "multi" ]; then

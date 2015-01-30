@@ -35,8 +35,7 @@ def main(unused_argv):
   start_time = time.time()
 
   token = access_control.ACLToken(username="GRRWorker")
-  worker_obj = worker.GRRWorker(queue=worker.DEFAULT_WORKER_QUEUE,
-                                token=token)
+  worker_obj = worker.GRRWorker(token=token)
   worker_obj.Run()
 
 if __name__ == "__main__":

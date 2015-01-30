@@ -7,7 +7,6 @@
 import StringIO
 
 from google.protobuf import message
-import logging
 
 from grr.gui import renderers
 from grr.gui.plugins import fileview
@@ -15,98 +14,16 @@ from grr.gui.plugins import semantic
 
 from grr.lib import access_control
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import maintenance_utils
 from grr.lib import rdfvalue
 from grr.lib import registry
-from grr.lib import type_info
 
 
-class ConfigManager(renderers.TemplateRenderer):
-  """Show the configuration of the GRR system."""
-
+class ConfigManager(renderers.AngularDirectiveRenderer):
   description = "Settings"
   behaviours = frozenset(["Configuration"])
 
-  layout_template = renderers.Template("""
-<div class="container-fluid">
-<div class="row horizontally-padded">
-
-<h2>Configuration</h2>
-<p>This is a read-only view of the frontend configuration. Purple values have
-been changed from the default settings.</p>
-<table class="table table-condensed table-bordered table-striped full-width">
-<colgroup>
-  <col style="width: 30%" />
-  <col style="width: 10%" />
-  <col style="width: 60%" />
-</colgroup>
-
-<tbody class="TableBody">
-{% for section, data in this.sections %}
-  <tr><th colspan=2 class="config">{{ section|escape }}</th></tr>
-  {% for key, value, interpolated, row_class in data %}
-    <tr class={{ row_class }}><td>{{ key|escape }}</td>
-    {% if value|escape != interpolated|escape %}
-      <td>{{ interpolated|escape }}
-      (<i>expanded from: {{ value|escape}}</i>)</td>
-    {% else %}
-      <td>{{ interpolated|escape }}</td>
-    {% endif %}
-    </tr>
-  {% endfor %}
-{% endfor %}
-</tbody>
-<table>
-""")
-
-  redacted_options = ["AdminUI.django_secret_key", "Mysql.database_password",
-                      "Worker.smtp_password"]
-  redacted_sections = ["PrivateKeys", "Users"]
-
-  def ListParametersInSection(self, section):
-    for descriptor in sorted(config_lib.CONFIG.type_infos,
-                             key=lambda x: x.name):
-      if descriptor.section == section:
-        yield descriptor.name
-
-  def Layout(self, request, response):
-    """Fill in the form with the specific fields for the flow requested."""
-
-    def IsBadSection(section):
-      for bad_section in self.redacted_sections:
-        if section.lower().startswith(bad_section.lower()):
-          return True
-
-    sections = {}
-    for descriptor in config_lib.CONFIG.type_infos:
-      if descriptor.section in sections:
-        continue
-
-      is_bad_section = IsBadSection(descriptor.section)
-      sections[descriptor.section] = info = []
-      for parameter in self.ListParametersInSection(descriptor.section):
-        try:
-          if parameter in self.redacted_options or is_bad_section:
-            option_value = raw_value = "<REDACTED>"
-          else:
-            option_value = config_lib.CONFIG.Get(parameter, default=None)
-            raw_value = config_lib.CONFIG.GetRaw(parameter, default=None)
-            if option_value is None or raw_value is None:
-              row_class = "config_default"
-              option_value = config_lib.CONFIG.Get(parameter)
-              raw_value = config_lib.CONFIG.GetRaw(parameter)
-            else:
-              row_class = "config_modified"
-
-          info.append((parameter, raw_value, option_value, row_class))
-
-        except (config_lib.Error, type_info.TypeValueError) as e:
-          logging.warn("Bad config option in ConfigManager View %s", e)
-
-    self.sections = sorted(sections.items())
-
-    return super(ConfigManager, self).Layout(request, response)
+  directive = "grr-config-view"
 
 
 class BinaryConfigurationView(renderers.Splitter2WayVertical):

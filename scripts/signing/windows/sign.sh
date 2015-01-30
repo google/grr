@@ -76,6 +76,7 @@ rebuild_zips() {
 function build_and_sign() {
   arch=${1}
   contextname=${2}
+  outputdir=${directory}/${contextname}
 
   echo -e "\nRunning deploy for ${contextname} ${arch}"
   ${BUILD_COMMAND} \
@@ -84,16 +85,16 @@ function build_and_sign() {
     --context "${contextname} Context" \
     --arch ${arch} deploy \
     --templatedir ${inputdir} \
-    --outputdir ${directory}
+    --outputdir ${outputdir}
 
   # We don't know what name the client_build script chose for the output file,
   # but we know it's the only .deployed file in the directory since we delete
   # them once repacking is finished.
-  client=( ${directory}/*${arch}.exe.deployed )
+  client=( ${outputdir}/*${arch}.exe.deployed )
   unzip "${client}" -d "${client}.temp"
 
   chk_cmd sign_exes "${client}.temp" ${password}
-  chk_cmd rebuild_zips "${client}" ${directory}
+  chk_cmd rebuild_zips "${client}" ${outputdir}
 
   echo -e "\nRepacking ${client}"
   ${BUILD_COMMAND} \
@@ -102,7 +103,7 @@ function build_and_sign() {
     --context "${contextname} Context" \
     --arch ${arch} repack \
     --template ${client} \
-    --outputdir ${directory}
+    --outputdir ${outputdir}
 
   chk_cmd rm ${client}
 
@@ -115,8 +116,8 @@ function build_and_sign() {
     --arch ${arch} deploy \
     --debug_build \
     --templatedir ${inputdir} \
-    --outputdir ${directory}
-  dbg_client=( ${directory}/*${arch}.exe.deployed )
+    --outputdir ${outputdir}
+  dbg_client=( ${outputdir}/*${arch}.exe.deployed )
   unzip "${dbg_client}" -d "${dbg_client}.temp"
 
   chk_cmd sign_exes "${dbg_client}.temp" ${password}
@@ -130,9 +131,12 @@ function build_and_sign() {
     --arch ${arch} repack \
     --debug_build \
     --template ${dbg_client} \
-    --outputdir ${directory}
+    --outputdir ${outputdir}
 
   chk_cmd rm ${dbg_client}
+
+  echo -e "\n\nSigning installers in ${outputdir}\n"
+  chk_cmd sign_exes "${outputdir}" ${password}
 }
 
 
@@ -190,10 +194,6 @@ for contextname in ${context_names}; do
   chk_cmd build_and_sign i386 ${contextname}
 done
 
-# Sign all of the installers
-echo -e "\n\nSigning all installers in ${directory}\n"
-chk_cmd sign_exes "${directory}" ${password}
-
 password="nothing"
 
-echo -e "Done.\nSigned installers in ${directory}\n"
+echo -e "Done.\n"

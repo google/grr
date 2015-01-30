@@ -19,6 +19,7 @@ from grr.lib import flags
 from grr.lib import flow
 from grr.lib import flow_runner
 from grr.lib import queue_manager
+from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import type_info
@@ -560,7 +561,9 @@ class FlowTest(BasicFlowTest):
 
 
 class NoClientListener(flow.EventListener):  # pylint: disable=unused-variable
-  well_known_session_id = rdfvalue.SessionID("aff4:/flows/W:test2")
+  well_known_session_id = rdfvalue.SessionID(base="aff4:/flows",
+                                             queue=queues.FLOWS,
+                                             flow_name="test2")
   EVENTS = ["TestEvent"]
 
   received_events = []
@@ -572,7 +575,9 @@ class NoClientListener(flow.EventListener):  # pylint: disable=unused-variable
 
 
 class ClientListener(flow.EventListener):
-  well_known_session_id = rdfvalue.SessionID("aff4:/flows/W:test3")
+  well_known_session_id = rdfvalue.SessionID(base="aff4:/flows",
+                                             queue=queues.FLOWS,
+                                             flow_name="test3")
   EVENTS = ["TestEvent"]
 
   received_events = []
@@ -584,7 +589,9 @@ class ClientListener(flow.EventListener):
 
 
 class FlowDoneListener(flow.EventListener):
-  well_known_session_id = rdfvalue.SessionID("aff4:/flows/EV:FlowDone")
+  well_known_session_id = rdfvalue.SessionID(base="aff4:/flows",
+                                             queue=rdfvalue.RDFURN("EV"),
+                                             flow_name="FlowDone")
   EVENTS = ["Not used"]
   received_events = []
 
@@ -794,12 +801,15 @@ class GeneralFlowsTest(BasicFlowTest):
     client_mock = action_mocks.ActionMock("IteratedListDirectory")
     for _ in test_lib.TestFlowHelper(
         "IteratedListDirectory", client_mock, client_id=self.client_id,
-        notification_urn=rdfvalue.SessionID("aff4:/flows/EV:FlowDone"),
+        notification_urn=rdfvalue.SessionID(base="aff4:/flows",
+                                            queue=rdfvalue.RDFURN("EV"),
+                                            flow_name="FlowDone"),
         pathspec=path, token=self.token):
       pass
 
     # The event goes to an external queue so we need another worker.
-    worker = test_lib.MockWorker(queue=rdfvalue.RDFURN("EV"), token=self.token)
+    worker = test_lib.MockWorker(queues=[rdfvalue.RDFURN("EV")],
+                                 token=self.token)
     worker.Simulate()
 
     self.assertEqual(len(FlowDoneListener.received_events), 1)

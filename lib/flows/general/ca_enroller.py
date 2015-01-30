@@ -43,8 +43,8 @@ class CAEnroler(flow.GRRFlow):
       raise flow.FlowError("CSR for client %s did not verify: %s" %
                            (self.client_id, req.as_pem()))
 
-    # Verify that the CN is of the correct form. The common name should refer to
-    # a client URN.
+    # Verify that the CN is of the correct form. The common name should refer
+    # to a client URN.
     public_key = req.get_pubkey().get_rsa().pub()[1]
     self.cn = rdfvalue.ClientURN.FromPublicKey(public_key)
     if self.cn != rdfvalue.ClientURN(req.get_subject().CN):
@@ -133,7 +133,7 @@ class Enroler(flow.WellKnownFlow):
 
     # It makes no sense to enrol the same client multiple times, so we
     # eliminate duplicates. Note, that we can still enroll clients multiple
-    # times due to cache expiration or using multiple enrollers.
+    # times due to cache expiration.
     try:
       enrolment_cache.Get(client_id)
       return

@@ -207,7 +207,7 @@ grr_all_files = [grr_artifact_files,
 
 
 setup(name="grr",
-      version="0.3.0-2",
+      version="0.3.0-5",
       description="GRR Rapid Response Framework",
       license="Apache License, Version 2.0",
       url="https://github.com/google/grr",
@@ -224,7 +224,6 @@ setup(name="grr",
               "grr_export = grr.lib.distro_entry:Export",
               "grr_client = grr.lib.distro_entry:Client",
               "grr_worker = grr.lib.distro_entry:Worker",
-              "grr_enroller = grr.lib.distro_entry:Enroller",
               "grr_admin_ui = grr.lib.distro_entry:AdminUI",
               "grr_fuse = grr.lib.distro_entry:GRRFuse",
           ]

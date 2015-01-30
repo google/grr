@@ -9,6 +9,7 @@ import zlib
 import logging
 from grr.lib import aff4
 from grr.lib import flow
+from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib.aff4_objects import filestore
 from grr.proto import flows_pb2
@@ -613,7 +614,8 @@ class FileStoreCreateFile(flow.EventListener):
   EVENTS = ["FileStore.AddFileToStore"]
 
   well_known_session_id = rdfvalue.SessionID(
-      "aff4:/flows/W:FileStoreCreateFile")
+      base="aff4:/flows", queue=queues.FLOWS,
+      flow_name="FileStoreCreateFile")
 
   CHUNK_SIZE = 512 * 1024
 
@@ -682,7 +684,9 @@ class GetMBR(flow.GRRFlow):
 
 class TransferStore(flow.WellKnownFlow):
   """Store a buffer into a determined location."""
-  well_known_session_id = rdfvalue.SessionID("aff4:/flows/W:TransferStore")
+  well_known_session_id = rdfvalue.SessionID(base="aff4:/flows",
+                                             queue=queues.FLOWS,
+                                             flow_name="TransferStore")
 
   def ProcessMessage(self, message):
     """Write the blob into the AFF4 blob storage area."""

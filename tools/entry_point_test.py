@@ -62,14 +62,6 @@ class EntryPointTest(test_lib.GRRBaseTest):
                                     timeout=self.default_timeout)
 
   @test_lib.SetLabel("large")
-  def testEnroller(self):
-    run_bin = os.path.join(self.bin_dir, "worker",
-                           "enroller" + self.bin_ext)
-    self.RunForTimeWithNoExceptions(self.interpreter,
-                                    [run_bin] + self.extra_opts,
-                                    timeout=self.default_timeout)
-
-  @test_lib.SetLabel("large")
   def testHttpServer(self):
     run_bin = os.path.join(self.bin_dir, "tools",
                            "http_server" + self.bin_ext)

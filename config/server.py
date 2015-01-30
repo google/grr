@@ -9,10 +9,6 @@ from grr.lib import rdfvalue
 config_lib.DEFINE_integer("Threadpool.size", 50,
                           "Number of threads in the shared thread pool.")
 
-config_lib.DEFINE_integer("Worker.task_limit", 2000,
-                          "Limits the number of tasks a worker retrieves "
-                          "every poll")
-
 config_lib.DEFINE_integer("Worker.flow_lease_time", 600,
                           "Duration of a flow lease time in seconds.")
 
@@ -30,7 +26,7 @@ config_lib.DEFINE_bool("Worker.enable_packed_versioned_collection_journaling",
                        "journaled so that these collections can be later "
                        "checked for integrity.")
 
-config_lib.DEFINE_integer("Worker.queue_shards", 1,
+config_lib.DEFINE_integer("Worker.queue_shards", 5,
                           "Queue notifications will be sharded across "
                           "this number of datastore subjects.")
 
@@ -233,11 +229,6 @@ config_lib.DEFINE_string(
     "A single email address or comma separated list of addresses to CC on all "
     "approval emails. The user has the option to"
     " remove this CC address .")
-
-config_lib.DEFINE_string(
-    "Email.default_domain", None,
-    "A default domain to add to email addresses for notifications if they "
-    "don't contain an @")
 
 config_lib.DEFINE_integer(
     "StatsHunt.ClientBatchSize", "200",
