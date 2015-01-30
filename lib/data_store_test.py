@@ -1899,7 +1899,7 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
     self.AddResult("Generate Messages (%d clients, %d files)" % (
         self.nr_clients, self.nr_dirs * self.files_per_dir), time_used, 1)
 
-    my_worker = worker.GRRWorker(queue=self.queue, token=self.token)
+    my_worker = worker.GRRWorker(queues=[self.queue], token=self.token)
 
     start_time = time.time()
 

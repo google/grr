@@ -14,6 +14,7 @@ import logging
 
 from grr.client import actions
 from grr.lib import config_lib
+from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import stats
 
@@ -264,7 +265,9 @@ class GetClientStatsAuto(GetClientStats):
   def Send(self, response):
     self.grr_worker.SendReply(
         response,
-        session_id=rdfvalue.SessionID("aff4:/flows/W:Stats"),
+        session_id=rdfvalue.SessionID(base="aff4:/flows",
+                                      queue=queues.STATS,
+                                      flow_name="Stats"),
         response_id=0,
         request_id=0,
         priority=rdfvalue.GrrMessage.Priority.LOW_PRIORITY,
@@ -277,7 +280,9 @@ class SendStartupInfo(actions.ActionPlugin):
   in_rdfvalue = None
   out_rdfvalue = rdfvalue.StartupInfo
 
-  well_known_session_id = rdfvalue.SessionID("aff4:/flows/W:Startup")
+  well_known_session_id = rdfvalue.SessionID(base="aff4:/flows",
+                                             queue=queues.FLOWS,
+                                             flow_name="Startup")
 
   def Run(self, unused_arg, ttl=None):
     """Returns the startup information."""

@@ -29,8 +29,7 @@ from grr.lib import stats
 from grr.lib import test_lib
 from grr.lib import utils
 
-
-from grr.lib.flows.caenroll import ca_enroller
+from grr.lib.flows.general import ca_enroller
 
 # pylint: mode=test
 
@@ -449,10 +448,9 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     self.assertEqual(self.messages[-1].session_id,
                      rdfvalue.SessionID("aff4:/flows/CA:Enrol"))
 
-    # Now we manually run the enroll well known flow with the enrollment request
-    # - in reality this will be run on the Enroller.
-    # This will start a new flow for enrolling the client, sign the cert and
-    # add it to the data store.
+    # Now we manually run the enroll well known flow with the enrollment
+    # request. This will start a new flow for enrolling the client, sign the
+    # cert and add it to the data store.
     flow_obj = aff4.Enroler(aff4.Enroler.well_known_session_id, mode="rw",
                             token=self.token)
     flow_obj.ProcessMessage(self.messages[-1])

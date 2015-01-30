@@ -51,7 +51,7 @@ class TestCrashView(test_lib.GRRSeleniumTest):
 
     # Check that "Flow Information" tab displays crash data.
     self.WaitUntil(self.AllTextsPresent, [
-        "CLIENT_CRASH", "aff4:/flows/W:CrashHandler",
+        "CLIENT_CRASH", "aff4:/flows/", ":CrashHandler",
         "Client killed during transaction"])
 
     # Check that client crash is present in global crashes list.
@@ -64,7 +64,7 @@ class TestCrashView(test_lib.GRRSeleniumTest):
     # Check that needed data are displayed.
     self.Click("css=a:contains('All Clients Crashes')")
     self.WaitUntil(self.AllTextsPresent, [
-        "Crash Details", "aff4:/flows/W:CrashHandler",
+        "Crash Details", "aff4:/flows/", ":CrashHandler",
         "Client killed during transaction"])
 
     # Click on a session id link and check that we're redirected to a flow.
@@ -141,7 +141,7 @@ class TestCrashView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.AllTextsPresent, [
         "C.0000000000000001",
         "Crash Type",
-        "aff4:/flows/W:CrashHandler",
+        "aff4:/flows/", "CrashHandler",
         "Crash Message",
         "Client killed during transaction"])
 

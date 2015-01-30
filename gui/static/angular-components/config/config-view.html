@@ -1,0 +1,31 @@
+<div class="container-fluid">
+<div class="row horizontally-padded">
+
+<h2>Configuration</h2>
+<p>This is a read-only view of the frontend configuration. Blue values have
+been changed from the default settings.</p>
+
+<section ng-repeat="(section_name, section) in ::ctrl.items">
+  <h3>{$ ::section_name $}</h3>
+
+  <table class="table table-condensed table-bordered table-striped full-width fixed-layout">
+  <colgroup>
+    <col style="width: 40%" />
+    <col style="width: 60%" />
+  </colgroup>
+
+  <tbody class="TableBody">
+    <tr ng-repeat="(name, config) in ::section"
+        ng-class="::{info: !config.is_default, warning: config.type == 'redacted'}">
+      <td>{$ name $}</td>
+      <td>
+        <div ng-if="::(config.type == 'redacted')">(redacted)</div>
+        {$ config.option_value $}
+        <div ng-if="::config.is_expanded">
+          <em>(expanded from {$ ::config.raw_value $})</em>
+        </div>
+      </td>
+    </tr>
+  </tbody>
+  <table>
+</section>

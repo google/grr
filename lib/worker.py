@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Module with GRRWorker/GRREnroller implementation."""
+"""Module with GRRWorker implementation."""
 
 
 import pdb
@@ -15,6 +15,7 @@ from grr.lib import flags
 from grr.lib import flow
 from grr.lib import master
 from grr.lib import queue_manager as queue_manager_lib
+from grr.lib import queues as queues_config
 from grr.lib import rdfvalue
 from grr.lib import registry
 # pylint: disable=unused-import
@@ -33,10 +34,6 @@ class FlowProcessingError(Error):
   """Raised when flow requests/responses can't be processed."""
 
 
-DEFAULT_WORKER_QUEUE = rdfvalue.RDFURN("W")
-DEFAULT_ENROLLER_QUEUE = rdfvalue.RDFURN("CA")
-
-
 class GRRWorker(object):
   """A GRR worker."""
 
@@ -46,6 +43,9 @@ class GRRWorker(object):
   SHORT_POLLING_INTERVAL = 0.3
   SHORT_POLL_TIME = 30
 
+  # target maximum time to spend on RunOnce
+  RUN_ONCE_MAX_SECONDS = 300
+
   # A class global threadpool to be used for all workers.
   thread_pool = None
 
@@ -53,12 +53,13 @@ class GRRWorker(object):
   # failure on a flow, it will not attempt to grab this flow until the timeout.
   queued_flows = None
 
-  def __init__(self, queue=None, threadpool_prefix="grr_threadpool",
+  def __init__(self, queues=queues_config.WORKER_LIST,
+               threadpool_prefix="grr_threadpool",
                threadpool_size=None, token=None):
     """Constructor.
 
     Args:
-      queue: The queue we use to fetch new messages from.
+      queues: The queues we use to fetch new messages from.
       threadpool_prefix: A name for the thread pool used by this worker.
       threadpool_size: The number of workers to start in this thread pool.
       token: The token to use for the worker.
@@ -66,7 +67,8 @@ class GRRWorker(object):
     Raises:
       RuntimeError: If the token is not provided.
     """
-    self.queue = queue
+    logging.info("started worker with queues: " + str(queues))
+    self.queues = queues
     self.queued_flows = utils.TimeBasedCache(max_size=10, max_age=60)
 
     if token is None:
@@ -124,57 +126,64 @@ class GRRWorker(object):
     Returns:
         Total number of messages processed by this call.
     """
-    now = time.time()
+    start_time = time.time()
+    processed = 0
 
     queue_manager = queue_manager_lib.QueueManager(token=self.token)
-    # Freezeing the timestamp used by queue manager to query/delete
-    # notifications to avoid possible race conditions.
-    queue_manager.FreezeTimestamp()
+    for _ in range(0, queue_manager.num_notification_shards):
+      for queue in self.queues:
+        # Freezeing the timestamp used by queue manager to query/delete
+        # notifications to avoid possible race conditions.
+        queue_manager.FreezeTimestamp()
 
-    notifications_by_priority = queue_manager.GetNotificationsByPriority(
-        self.queue)
-    time_to_fetch_messages = time.time() - now
-    stats.STATS.RecordEvent("worker_time_to_retrieve_notifications",
-                            time_to_fetch_messages)
+        fetch_messages_start = time.time()
+        notifications_by_priority = queue_manager.GetNotificationsByPriority(
+            queue)
+        stats.STATS.RecordEvent("worker_time_to_retrieve_notifications",
+                                time.time() - fetch_messages_start)
 
-    # Process stuck flows first
-    stuck_flows = notifications_by_priority.pop(
-        queue_manager.STUCK_PRIORITY, [])
+        # Process stuck flows first
+        stuck_flows = notifications_by_priority.pop(
+            queue_manager.STUCK_PRIORITY, [])
 
-    if stuck_flows:
-      self.ProcessStuckFlows(stuck_flows, queue_manager)
+        if stuck_flows:
+          self.ProcessStuckFlows(stuck_flows, queue_manager)
 
-    notifications_available = []
-    for priority in sorted(notifications_by_priority, reverse=True):
-      for notification in notifications_by_priority[priority]:
-        # Filter out session ids we already tried to lock but failed.
-        if notification.session_id not in self.queued_flows:
-          notifications_available.append(notification)
+        notifications_available = []
+        for priority in sorted(notifications_by_priority, reverse=True):
+          for notification in notifications_by_priority[priority]:
+            # Filter out session ids we already tried to lock but failed.
+            if notification.session_id not in self.queued_flows:
+              notifications_available.append(notification)
 
-    try:
-      # If we spent too much time processing what we have so far, the
-      # active_sessions list might not be current. We therefore break here so
-      # we can re-fetch a more up to date version of the list, and try again
-      # later. The risk with running with an old active_sessions list is that
-      # another worker could have already processed this message, and when we
-      # try to process it, there is nothing to do - costing us a lot of
-      # processing time. This is a tradeoff between checking the data store
-      # for current information and processing out of date information.
-      processed = self.ProcessMessages(
-          notifications_available, queue_manager,
-          min(time_to_fetch_messages * 100, 300))
-      return processed
+        try:
+          # If we spent too much time processing what we have so far, the
+          # active_sessions list might not be current. We therefore break here
+          # so we can re-fetch a more up to date version of the list, and try
+          # again later. The risk with running with an old active_sessions list
+          # is that another worker could have already processed this message,
+          # and when we try to process it, there is nothing to do - costing us a
+          # lot of processing time. This is a tradeoff between checking the data
+          # store for current information and processing out of date
+          # information.
+          processed += self.ProcessMessages(notifications_available,
+                                            queue_manager,
+                                            self.RUN_ONCE_MAX_SECONDS -
+                                            (time.time() - start_time))
 
-    # We need to keep going no matter what.
-    except Exception as e:    # pylint: disable=broad-except
-      logging.error("Error processing message %s. %s.", e,
-                    traceback.format_exc())
+        # We need to keep going no matter what.
+        except Exception as e:    # pylint: disable=broad-except
+          logging.error("Error processing message %s. %s.", e,
+                        traceback.format_exc())
+          stats.STATS.IncrementCounter("grr_worker_exceptions")
+          if flags.FLAGS.debug:
+            pdb.post_mortem()
 
-      stats.STATS.IncrementCounter("grr_worker_exceptions")
-      if flags.FLAGS.debug:
-        pdb.post_mortem()
-
-      return 0
+        queue_manager.UnfreezeTimestamp()
+        # If we have spent too much time, stop.
+        if (time.time() - start_time) > self.RUN_ONCE_MAX_SECONDS:
+          return processed
+    return processed
 
   def ProcessStuckFlows(self, stuck_flows, queue_manager):
     stats.STATS.IncrementCounter("grr_flows_stuck", len(stuck_flows))
@@ -195,7 +204,7 @@ class GRRWorker(object):
   def ProcessMessages(self, active_notifications, queue_manager, time_limit=0):
     """Processes all the flows in the messages.
 
-    Precondition: All tasks come from the same queue (self.queue).
+    Precondition: All tasks come from the same queue.
 
     Note that the server actually completes the requests in the
     flow when receiving the messages from the client. We do not really
@@ -369,13 +378,6 @@ class GRRWorker(object):
       stats.STATS.IncrementCounter("worker_session_errors",
                                    fields=[str(type(e))])
       queue_manager.DeleteNotification(session_id)
-
-
-class GRREnroler(GRRWorker):
-  """A GRR enroler.
-
-  Subclassed here so that log messages arrive from the right class.
-  """
 
 
 class WorkerInit(registry.InitHook):

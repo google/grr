@@ -27,7 +27,7 @@ Client.version_major: 3
 
 Client.version_minor: 0
 
-Client.version_release: 4
+Client.version_release: 5
 
 Client.version_revision: 0
 
@@ -222,11 +222,6 @@ Demo Context:
   Frontend.bind_port: 8080
 
   Logging.filename: "%(Logging.path)/grr-demo.log"
-
-Enroller Context:
-  Logging.filename: "%(Logging.path)/grr-enroller.log"
-
-  Monitoring.http_port: 44442
 
 HTTPServer Context:
   Logging.filename: "%(Logging.path)/grr-http-server.log"

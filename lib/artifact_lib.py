@@ -248,9 +248,21 @@ def InterpolateKbAttributes(pattern, knowledge_base):
         elif isinstance(kb_value, basestring):
           alternatives.append(kb_value)
         else:
+          # Iterate over repeated fields (e.g. users)
+          sub_attrs = []
           for value in kb_value:
             sub_attr = value.Get(attr_name)
-            alternatives.append(unicode(sub_attr))
+            # Ignore empty results
+            if sub_attr:
+              sub_attrs.append(unicode(sub_attr))
+
+          # If we got some results we use them. On Windows it is common for
+          # users.temp to be defined for some users, but not all users.
+          if sub_attrs:
+            alternatives.extend(sub_attrs)
+          else:
+            # If there were no results we raise
+            raise AttributeError(match.group(1).lower())
       else:
         kb_value = knowledge_base.Get(match.group(1).lower())
         if not kb_value:

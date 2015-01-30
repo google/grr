@@ -10,6 +10,7 @@ from grr.lib import test_lib
 class YamlConfigTest(test_lib.GRRBaseTest):
   """Test the Yaml config file support."""
 
+  @flags.FlagOverrider(disallow_missing_config_definitions=True)
   def testParsing(self):
     conf = config_lib.GrrConfigManager()
 
@@ -333,6 +334,7 @@ const = New string
     self.assertRaises(config_lib.ConstModificationError, conf.Initialize,
                       data=data)
 
+  @flags.FlagOverrider(disallow_missing_config_definitions=True)
   def testBadConfigRaises(self):
     conf = config_lib.GrrConfigManager()
     conf.initialized = False
@@ -343,6 +345,7 @@ Section1.test: 2
     with self.assertRaises(config_lib.MissingConfigDefinitionError):
       conf.Initialize(parser=config_lib.YamlParser, data=data)
 
+  @flags.FlagOverrider(disallow_missing_config_definitions=True)
   def testConfigOptionsDefined(self):
     """Test that all config options in use are defined."""
     # We need to use the actual config_lib.CONFIG variable since that is where
