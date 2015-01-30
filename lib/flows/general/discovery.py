@@ -5,28 +5,26 @@
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flow
+from grr.lib import queues
 from grr.lib import rdfvalue
-from grr.lib import worker
 from grr.proto import flows_pb2
 
 
 class EnrolmentInterrogateEvent(flow.EventListener):
   """An event handler which will schedule interrogation on client enrollment."""
   EVENTS = ["ClientEnrollment"]
-  well_known_session_id = rdfvalue.SessionID("aff4:/flows/W:Interrogate")
+  well_known_session_id = rdfvalue.SessionID(base="aff4:/flows",
+                                             queue=queues.ENROLLMENT,
+                                             flow_name="Interrogate")
 
   def CheckSource(self, source):
-    try:
-      aff4.FACTORY.Open(source, "CAEnroler")
-      return True
-    except aff4.InstantiationError:
-      return False
+    return source.Queue() == queues.ENROLLMENT
 
   @flow.EventHandler(source_restriction=True)
   def ProcessMessage(self, message=None, event=None):
     _ = message
     flow.GRRFlow.StartFlow(client_id=event, flow_name="Interrogate",
-                           queue=worker.DEFAULT_WORKER_QUEUE,
+                           queue=queues.ENROLLMENT,
                            token=self.token)
 
 

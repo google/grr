@@ -1,5 +1,5 @@
 /**
- * @license AngularJS v1.3.11-local+sha.ef6fed3
+ * @license AngularJS v1.3.12-build.7+sha.6ec5946
  * (c) 2010-2014 Google, Inc. http://angularjs.org
  * License: MIT
  */
@@ -55,7 +55,7 @@ function minErr(module, ErrorConstructor) {
       return match;
     });
 
-    message = message + '\nhttp://errors.angularjs.org/1.3.11-local+sha.ef6fed3/' +
+    message = message + '\nhttp://errors.angularjs.org/1.3.12-build.7+sha.6ec5946/' +
       (module ? module + '/' : '') + code;
     for (i = 2; i < arguments.length; i++) {
       message = message + (i == 2 ? '?' : '&') + 'p' + (i - 2) + '=' +
@@ -2123,7 +2123,7 @@ function toDebugString(obj) {
  * - `codeName` – `{string}` – Code name of the release, such as "jiggling-armfat".
  */
 var version = {
-  full: '1.3.11-local+sha.ef6fed3',    // all of these placeholder strings will be replaced by grunt's
+  full: '1.3.12-build.7+sha.6ec5946',    // all of these placeholder strings will be replaced by grunt's
   major: 1,    // package task
   minor: 3,
   dot: undefined,
@@ -4166,7 +4166,7 @@ function createInjector(modulesToLoad, strictDi) {
       }
 
       var args = [],
-          $inject = annotate(fn, strictDi, serviceName),
+          $inject = createInjector.$$annotate(fn, strictDi, serviceName),
           length, i,
           key;
 
@@ -4205,7 +4205,7 @@ function createInjector(modulesToLoad, strictDi) {
       invoke: invoke,
       instantiate: instantiate,
       get: getService,
-      annotate: annotate,
+      annotate: createInjector.$$annotate,
       has: function(name) {
         return providerCache.hasOwnProperty(name + providerSuffix) || cache.hasOwnProperty(name);
       }

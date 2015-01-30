@@ -110,7 +110,7 @@ message FlowRunnerArgs {
       type: "RDFURN",
       description: "The queue to use for the flow.",
       label: HIDDEN,
-    }, default="W"];
+    }, default="F"];
 
   optional string event_id = 7 [(sem_type) = {
       description: "A logging event id for issuing further logs."
@@ -222,10 +222,10 @@ message HuntRunnerArgs {
     }];
 
   optional string queue = 7 [(sem_type) = {
-      description: "The queue to use for the flow.",
+      description: "The queue to use for the hunt.",
       type: "RDFURN",
       label: HIDDEN,
-    }, default="W"];
+    }, default="H"];
 
   optional ACLToken token = 8 [(sem_type) = {
       description: "The access token to be used for this request.",

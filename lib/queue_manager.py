@@ -88,7 +88,7 @@ class QueueManager(object):
   request_limit = 1000000
   response_limit = 1000000
 
-  notification_shard_counter = 0
+  notification_shard_counters = {}
 
   def __init__(self, store=None, sync=True, token=None):
     self.sync = sync
@@ -113,13 +113,15 @@ class QueueManager(object):
 
     self.num_notification_shards = config_lib.CONFIG["Worker.queue_shards"]
 
-    QueueManager.notification_shard_counter += 1
-    self.notification_shard_index = (
-        QueueManager.notification_shard_counter % self.num_notification_shards)
-
   def GetNotificationShard(self, queue):
-    if self.notification_shard_index > 0:
-      return queue.Add(str(self.notification_shard_index))
+    queue_name = str(queue)
+    QueueManager.notification_shard_counters.setdefault(queue_name, 0)
+    QueueManager.notification_shard_counters[queue_name] += 1
+    notification_shard_index = (
+        QueueManager.notification_shard_counters[queue_name] %
+        self.num_notification_shards)
+    if notification_shard_index > 0:
+      return queue.Add(str(notification_shard_index))
     else:
       return queue
 

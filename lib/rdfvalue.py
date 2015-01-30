@@ -997,11 +997,13 @@ class SessionID(RDFURN):
       if not flow_name:
         flow_name = utils.PRNG.GetULong()
 
-      initializer = RDFURN(base).Add("%s:%X" % (queue.Basename(), flow_name))
+      if isinstance(flow_name, int):
+        initializer = RDFURN(base).Add("%s:%X" % (queue.Basename(), flow_name))
+      else:
+        initializer = RDFURN(base).Add("%s:%s" % (queue.Basename(), flow_name))
     elif isinstance(initializer, RDFURN):
       if initializer.Basename().count(":") != 1:
         raise InitializeError("Invalid URN for SessionID: %s" % initializer)
-
     super(SessionID, self).__init__(initializer=initializer, age=age)
 
   def Queue(self):

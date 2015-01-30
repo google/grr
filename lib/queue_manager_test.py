@@ -13,6 +13,7 @@ from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import queue_manager
+from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import stats
 from grr.lib import test_lib
@@ -39,7 +40,9 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
 
   def testQueueing(self):
     """Tests that queueing and fetching of requests and responses work."""
-    session_id = rdfvalue.SessionID("aff4:/flows/W:test")
+    session_id = rdfvalue.SessionID(base="aff4:/flows",
+                                    queue=queues.FLOWS,
+                                    flow_name="test")
 
     request = rdfvalue.RequestState(
         id=1, client_id=self.client_id,
@@ -119,7 +122,9 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
 
   def testDeleteFlowRequestStates(self):
     """Check that we can efficiently destroy a single flow request."""
-    session_id = rdfvalue.SessionID("aff4:/flows/W:test3")
+    session_id = rdfvalue.SessionID(base="aff4:/flows",
+                                    queue=queues.FLOWS,
+                                    flow_name="test3")
 
     request = rdfvalue.RequestState(
         id=1, client_id=self.client_id,
@@ -144,7 +149,9 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
 
   def testDestroyFlowStates(self):
     """Check that we can efficiently destroy the flow's request queues."""
-    session_id = rdfvalue.SessionID("aff4:/flows/W:test2")
+    session_id = rdfvalue.SessionID(base="aff4:/flows",
+                                    queue=queues.FLOWS,
+                                    flow_name="test2")
 
     request = rdfvalue.RequestState(
         id=1, client_id=self.client_id,
@@ -393,61 +400,79 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
     # "see" both.
     with queue_manager.QueueManager(token=self.token) as manager1:
       manager1.QueueNotification(
-          session_id=rdfvalue.SessionID("aff4:/hunts/W:123456"))
+          session_id=rdfvalue.SessionID(base="aff4:/hunts",
+                                        queue=queues.HUNTS,
+                                        flow_name="123456"))
       manager1.Flush()
 
       self._current_mock_time += 10
       with queue_manager.QueueManager(token=self.token) as manager2:
         manager2.QueueNotification(
-            session_id=rdfvalue.SessionID("aff4:/hunts/W:123456"))
+            session_id=rdfvalue.SessionID(base="aff4:/hunts",
+                                          queue=queues.HUNTS,
+                                          flow_name="123456"))
         manager2.Flush()
 
         self.assertEqual(
-            len(manager1.GetNotifications(rdfvalue.RDFURN("aff4:/W"))), 1)
+            len(manager1.GetNotificationsForAllShards(queues.HUNTS)), 1)
         self.assertEqual(
-            len(manager2.GetNotifications(rdfvalue.RDFURN("aff4:/W"))), 1)
+            len(manager2.GetNotificationsForAllShards(queues.HUNTS)), 1)
 
-        manager1.DeleteNotification(rdfvalue.SessionID("aff4:/hunts/W:123456"))
+        manager1.DeleteNotification(rdfvalue.SessionID(base="aff4:/hunts",
+                                                       queue=queues.HUNTS,
+                                                       flow_name="123456"))
 
         self.assertEqual(
-            len(manager1.GetNotifications(rdfvalue.RDFURN("aff4:/W"))), 0)
+            len(manager1.GetNotificationsForAllShards(queues.HUNTS)), 0)
         self.assertEqual(
-            len(manager2.GetNotifications(rdfvalue.RDFURN("aff4:/W"))), 1)
+            len(manager2.GetNotificationsForAllShards(queues.HUNTS)), 1)
 
   def testMultipleNotificationsForTheSameSessionId(self):
     manager = queue_manager.QueueManager(token=self.token)
     manager.QueueNotification(
-        session_id=rdfvalue.SessionID("aff4:/hunts/W:123456"),
+        session_id=rdfvalue.SessionID(base="aff4:/hunts",
+                                      queue=queues.HUNTS,
+                                      flow_name="123456"),
         timestamp=(self._current_mock_time + 10) * 1e6)
     manager.QueueNotification(
-        session_id=rdfvalue.SessionID("aff4:/hunts/W:123456"),
+        session_id=rdfvalue.SessionID(base="aff4:/hunts",
+                                      queue=queues.HUNTS,
+                                      flow_name="123456"),
         timestamp=(self._current_mock_time + 20) * 1e6)
     manager.QueueNotification(
-        session_id=rdfvalue.SessionID("aff4:/hunts/W:123456"),
+        session_id=rdfvalue.SessionID(base="aff4:/hunts",
+                                      queue=queues.HUNTS,
+                                      flow_name="123456"),
         timestamp=(self._current_mock_time + 30) * 1e6)
     manager.Flush()
 
     self.assertEqual(
-        len(manager.GetNotifications(rdfvalue.RDFURN("aff4:/W"))), 0)
+        len(manager.GetNotificationsForAllShards(queues.HUNTS)), 0)
 
     self._current_mock_time += 10
     self.assertEqual(
-        len(manager.GetNotifications(rdfvalue.RDFURN("aff4:/W"))), 1)
-    manager.DeleteNotification(rdfvalue.SessionID("aff4:/hunts/W:123456"))
+        len(manager.GetNotificationsForAllShards(queues.HUNTS)), 1)
+    manager.DeleteNotification(rdfvalue.SessionID(base="aff4:/hunts",
+                                                  queue=queues.HUNTS,
+                                                  flow_name="123456"))
 
     self._current_mock_time += 10
     self.assertEqual(
-        len(manager.GetNotifications(rdfvalue.RDFURN("aff4:/W"))), 1)
-    manager.DeleteNotification(rdfvalue.SessionID("aff4:/hunts/W:123456"))
+        len(manager.GetNotificationsForAllShards(queues.HUNTS)), 1)
+    manager.DeleteNotification(rdfvalue.SessionID(base="aff4:/hunts",
+                                                  queue=queues.HUNTS,
+                                                  flow_name="123456"))
 
     self._current_mock_time += 10
     self.assertEqual(
-        len(manager.GetNotifications(rdfvalue.RDFURN("aff4:/W"))), 1)
-    manager.DeleteNotification(rdfvalue.SessionID("aff4:/hunts/W:123456"))
+        len(manager.GetNotificationsForAllShards(queues.HUNTS)), 1)
+    manager.DeleteNotification(rdfvalue.SessionID(base="aff4:/hunts",
+                                                  queue=queues.HUNTS,
+                                                  flow_name="123456"))
 
     self._current_mock_time += 10
     self.assertEqual(
-        len(manager.GetNotifications(rdfvalue.RDFURN("aff4:/W"))), 0)
+        len(manager.GetNotificationsForAllShards(queues.HUNTS)), 0)
 
 
 class MultiShardedQueueManagerTest(QueueManagerTest):
@@ -459,102 +484,87 @@ class MultiShardedQueueManagerTest(QueueManagerTest):
     config_lib.CONFIG.Set("Worker.queue_shards", 2)
 
   def testFirstShardNameIsEqualToTheQueue(self):
+    manager = queue_manager.QueueManager(token=self.token)
     while True:
-      manager = queue_manager.QueueManager(token=self.token)
-      if manager.notification_shard_index == 0:
+      shard = manager.GetNotificationShard(queues.HUNTS)
+      if (manager.notification_shard_counters[str(queues.HUNTS)] %
+          manager.num_notification_shards) == 0:
         break
 
-    self.assertEqual(manager.GetNotificationShard(rdfvalue.RDFURN("aff4:/W")),
-                     rdfvalue.RDFURN("aff4:/W"))
+    self.assertEqual(shard, queues.HUNTS)
 
   def testNotFirstShardNameHasIndexSuffix(self):
+    manager = queue_manager.QueueManager(token=self.token)
     while True:
-      manager = queue_manager.QueueManager(token=self.token)
-      if manager.notification_shard_index == 1:
+      shard = manager.GetNotificationShard(queues.HUNTS)
+      if (manager.notification_shard_counters[str(queues.HUNTS)] %
+          manager.num_notification_shards) == 1:
         break
 
-    self.assertEqual(manager.GetNotificationShard(rdfvalue.RDFURN("aff4:/W")),
-                     rdfvalue.RDFURN("aff4:/W/1"))
-
-  def testShardIndexesAreRotated(self):
-    manager1 = queue_manager.QueueManager(token=self.token)
-    manager2 = queue_manager.QueueManager(token=self.token)
-    manager3 = queue_manager.QueueManager(token=self.token)
-
-    # We have QueueManagernum_notification_shards = 2, so manager1
-    # and manager2 should have different shard indexes. Still, as shard
-    # indexes are rotated, manager3 should have same shard index manager1
-    # has.
-    self.assertNotEqual(manager1.notification_shard_index,
-                        manager2.notification_shard_index)
-    self.assertNotEqual(manager2.notification_shard_index,
-                        manager3.notification_shard_index)
-    self.assertEqual(manager1.notification_shard_index,
-                     manager3.notification_shard_index)
+    self.assertEqual(shard, queues.HUNTS.Add("1"))
 
   def testNotificationsAreDeletedFromAllShards(self):
-    manager1 = queue_manager.QueueManager(token=self.token)
-    manager2 = queue_manager.QueueManager(token=self.token)
-    # Check that created managers actually use different shards.
-    self.assertNotEqual(manager1.notification_shard_index,
-                        manager2.notification_shard_index)
-
-    manager1.QueueNotification(
-        session_id=rdfvalue.SessionID("aff4:/hunts/W:42"))
-    manager1.Flush()
-
-    manager2.QueueNotification(
-        session_id=rdfvalue.SessionID("aff4:/hunts/W:43"))
-    manager2.Flush()
-
-    shard1_sessions = manager1.GetNotifications(rdfvalue.RDFURN("aff4:/W"))
-    self.assertEqual(len(shard1_sessions), 1)
-
-    shard2_sessions = manager2.GetNotifications(rdfvalue.RDFURN("aff4:/W"))
-    self.assertEqual(len(shard2_sessions), 1)
+    manager = queue_manager.QueueManager(token=self.token)
+    manager.QueueNotification(
+        session_id=rdfvalue.SessionID(base="aff4:/hunts",
+                                      queue=queues.HUNTS,
+                                      flow_name="42"))
+    manager.Flush()
+    manager.QueueNotification(
+        session_id=rdfvalue.SessionID(base="aff4:/hunts",
+                                      queue=queues.HUNTS,
+                                      flow_name="43"))
+    manager.Flush()
+    # There should be two notifications in two different shards.
+    shards_with_data = 0
+    for _ in range(manager.num_notification_shards):
+      shard_sessions = manager.GetNotifications(queues.HUNTS)
+      if shard_sessions:
+        shards_with_data += 1
+        self.assertEqual(len(shard_sessions), 1)
+    self.assertEqual(shards_with_data, 2)
 
     # This should still work, as we delete notifications from all shards.
-    manager1.DeleteNotification(rdfvalue.SessionID("aff4:/hunts/W:43"))
-    manager2.DeleteNotification(rdfvalue.SessionID("aff4:/hunts/W:42"))
-
-    shard1_sessions = manager1.GetNotifications(rdfvalue.RDFURN("aff4:/w"))
-    self.assertFalse(shard1_sessions)
-
-    shard2_sessions = manager2.GetNotifications(rdfvalue.RDFURN("aff4:/W"))
-    self.assertFalse(shard2_sessions)
+    manager.DeleteNotification(rdfvalue.SessionID(base="aff4:/hunts",
+                                                  queue=queues.HUNTS,
+                                                  flow_name="43"))
+    manager.DeleteNotification(rdfvalue.SessionID(base="aff4:/hunts",
+                                                  queue=queues.HUNTS,
+                                                  flow_name="42"))
+    for _ in range(manager.num_notification_shards):
+      shard_sessions = manager.GetNotifications(queues.HUNTS)
+      self.assertFalse(shard_sessions)
 
   def testGetNotificationsForAllShards(self):
-    manager1 = queue_manager.QueueManager(token=self.token)
-    manager2 = queue_manager.QueueManager(token=self.token)
-    # Check that created managers actually use different shards.
-    self.assertNotEqual(manager1.notification_shard_index,
-                        manager2.notification_shard_index)
+    manager = queue_manager.QueueManager(token=self.token)
+    print "notification shards:" + str(manager.num_notification_shards)
+    manager.QueueNotification(session_id=rdfvalue.SessionID(base="aff4:/hunts",
+                                                            queue=queues.HUNTS,
+                                                            flow_name="42"))
+    manager.Flush()
 
-    manager1.QueueNotification(
-        session_id=rdfvalue.SessionID("aff4:/hunts/W:42"))
-    manager1.Flush()
+    manager.QueueNotification(session_id=rdfvalue.SessionID(base="aff4:/hunts",
+                                                            queue=queues.HUNTS,
+                                                            flow_name="43"))
+    manager.Flush()
 
-    manager2.QueueNotification(
-        session_id=rdfvalue.SessionID("aff4:/hunts/W:43"))
-    manager2.Flush()
+    live_shard_count = 0
+    for _ in range(manager.num_notification_shards):
+      shard_sessions = manager.GetNotifications(queues.HUNTS)
+      print "retrieved sessions:" + str(shard_sessions)
+      self.assertLess(len(shard_sessions), 2)
+      if len(shard_sessions) == 1:
+        live_shard_count += 1
+    self.assertEqual(live_shard_count, 2)
 
-    manager2.QueueNotification(
-        session_id=rdfvalue.SessionID("aff4:/hunts/W:43"))
-    manager2.Flush()
-
-    shard1_sessions = manager1.GetNotifications(rdfvalue.RDFURN("aff4:/W"))
-    self.assertEqual(len(shard1_sessions), 1)
-
-    shard2_sessions = manager2.GetNotifications(rdfvalue.RDFURN("aff4:/W"))
-    self.assertEqual(len(shard2_sessions), 1)
-
-    notifications = manager1.GetNotificationsForAllShards(
-        rdfvalue.RDFURN("aff4:/W"))
+    notifications = manager.GetNotificationsForAllShards(queues.HUNTS)
     self.assertEqual(len(notifications), 2)
 
   def testNotificationRequeueing(self):
     config_lib.CONFIG.Set("Worker.queue_shards", 1)
-    session_id = rdfvalue.SessionID("aff4:/testflows/W:123")
+    session_id = rdfvalue.SessionID(base="aff4:/testflows",
+                                    queue=queues.HUNTS,
+                                    flow_name="123")
     with test_lib.FakeTime(1000):
       # Schedule a notification.
       with queue_manager.QueueManager(token=self.token) as manager:
@@ -562,7 +572,7 @@ class MultiShardedQueueManagerTest(QueueManagerTest):
 
     with test_lib.FakeTime(1100):
       with queue_manager.QueueManager(token=self.token) as manager:
-        notifications = manager.GetNotifications(rdfvalue.RDFURN("aff4:/W"))
+        notifications = manager.GetNotifications(queues.HUNTS)
         self.assertEqual(len(notifications), 1)
         # This notification was first queued and last queued at time 1000.
         notification = notifications[0]
@@ -574,7 +584,7 @@ class MultiShardedQueueManagerTest(QueueManagerTest):
 
     with test_lib.FakeTime(1200):
       with queue_manager.QueueManager(token=self.token) as manager:
-        notifications = manager.GetNotifications(rdfvalue.RDFURN("aff4:/W"))
+        notifications = manager.GetNotifications(queues.HUNTS)
         self.assertEqual(len(notifications), 1)
         notification = notifications[0]
         # Now the last queue time is 1100, the first queue time is still 1000.
@@ -587,14 +597,14 @@ class MultiShardedQueueManagerTest(QueueManagerTest):
     expired = 1000 + config_lib.CONFIG["Worker.notification_expiry_time"]
     with test_lib.FakeTime(expired):
       with queue_manager.QueueManager(token=self.token) as manager:
-        notifications = manager.GetNotifications(rdfvalue.RDFURN("aff4:/W"))
+        notifications = manager.GetNotifications(queues.HUNTS)
         self.assertEqual(len(notifications), 1)
         # Again requeue the notification, this time it should be dropped.
         manager.DeleteNotification(session_id)
         manager.QueueNotification(notifications[0])
 
       with queue_manager.QueueManager(token=self.token) as manager:
-        notifications = manager.GetNotifications(rdfvalue.RDFURN("aff4:/W"))
+        notifications = manager.GetNotifications(queues.HUNTS)
         self.assertEqual(len(notifications), 0)
 
 

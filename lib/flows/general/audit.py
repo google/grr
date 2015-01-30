@@ -15,6 +15,7 @@ activities are maintained.
 
 from grr.lib import aff4
 from grr.lib import flow
+from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.proto import jobs_pb2
@@ -35,7 +36,9 @@ class AuditEvent(rdfvalue.RDFProtoStruct):
 
 class AuditEventListener(flow.EventListener):
   """Receive the audit events."""
-  well_known_session_id = rdfvalue.SessionID("aff4:/audit/W:listener")
+  well_known_session_id = rdfvalue.SessionID(base="aff4:/audit",
+                                             queue=queues.FLOWS,
+                                             flow_name="listener")
   EVENTS = ["Audit"]
 
   @flow.EventHandler(auth_required=False)
