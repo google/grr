@@ -55,7 +55,7 @@ config_lib.DEFINE_integer("Frontend.throttle_average_interval", 60,
                           "calculated when throttling is enabled.")
 
 config_lib.DEFINE_list("Frontend.well_known_flows",
-                       ["aff4:/flows/W:TransferStore", "aff4:/flows/W:Stats"],
+                       ["TransferStore", "Stats"],
                        "Allow these well known flows to run directly on the "
                        "frontend. Other flows are scheduled as normal.")
 
