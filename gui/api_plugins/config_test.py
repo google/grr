@@ -32,45 +32,43 @@ def GetConfigMockClass(sections=None):
 
   missing = object()
 
-  class ConfigMock(object):
-    type_infos = []
-    option_values = {}
-    raw_values = {}
-    default_values = {}
+  type_infos = []
+  option_values = {}
+  raw_values = {}
+  default_values = {}
 
-    def __init__(self):
-      for section_name, section in sections.iteritems():
-        for parameter_name, parameter_data in section.iteritems():
-          name = "%s.%s" % (section_name, parameter_name)
-          descriptor = utils.DataObject(section=section_name, name=name)
-          self.type_infos.append(descriptor)
+  for section_name, section in sections.iteritems():
+    for parameter_name, parameter_data in section.iteritems():
+      name = "%s.%s" % (section_name, parameter_name)
+      descriptor = utils.DataObject(section=section_name, name=name)
+      type_infos.append(descriptor)
 
-          if "option_value" in parameter_data:
-            self.option_values[name] = parameter_data["option_value"]
+      if "option_value" in parameter_data:
+        option_values[name] = parameter_data["option_value"]
 
-          if "raw_value" in parameter_data:
-            self.raw_values[name] = parameter_data["raw_value"]
+      if "raw_value" in parameter_data:
+        raw_values[name] = parameter_data["raw_value"]
 
-          if "default_value" in parameter_data:
-            self.default_values[name] = parameter_data["default_value"]
+      if "default_value" in parameter_data:
+        default_values[name] = parameter_data["default_value"]
 
-    def Get(self, parameter, default=missing):
-      try:
-        return self.option_values[parameter]
-      except KeyError:
-        if default is missing:
-          return self.default_values[parameter]
-        return default
+  def Get(parameter, default=missing):
+    try:
+      return option_values[parameter]
+    except KeyError:
+      if default is missing:
+        return default_values[parameter]
+      return default
 
-    def GetRaw(self, parameter, default=missing):
-      try:
-        return self.raw_values[parameter]
-      except KeyError:
-        if default is missing:
-          return self.default_values[parameter]
-        return default
+  def GetRaw(parameter, default=missing):
+    try:
+      return raw_values[parameter]
+    except KeyError:
+      if default is missing:
+        return default_values[parameter]
+      return default
 
-  return ConfigMock()
+  return {"Get": Get, "GetRaw": GetRaw, "type_infos": type_infos}
 
 
 class ApiConfigRendererTest(test_lib.GRRBaseTest):
@@ -81,9 +79,11 @@ class ApiConfigRendererTest(test_lib.GRRBaseTest):
     self.renderer = config_plugin.ApiConfigRenderer()
 
   def _ConfigStub(self, sections=None):
-    return utils.Stubber(config_lib,
-                         "CONFIG",
-                         GetConfigMockClass(sections))
+    mock = GetConfigMockClass(sections)
+    config = config_lib.CONFIG
+    return utils.MultiStubber((config, "GetRaw", mock["GetRaw"]),
+                              (config, "Get", mock["Get"]),
+                              (config, "type_infos", mock["type_infos"]))
 
   def _RenderConfig(self, sections):
     with self._ConfigStub(sections):
@@ -103,16 +103,17 @@ class ApiConfigRendererTest(test_lib.GRRBaseTest):
     self._assertRendersConfig({"section": {}}, {})
 
   def testRendersSetting(self):
-    input_dict = {"section": {"parameter": {"option_value": "value",
-                                            "raw_value": "value"}}}
-    output_dict = {"section": {"section.parameter": {"option_value": "value",
+    input_dict = {"section": {"parameter": {"option_value": u"value",
+                                            "raw_value": u"value"}}}
+    output_dict = {"section": {"section.parameter": {"option_value": u"value",
                                                      "is_default": False,
-                                                     "raw_value": "value",
+                                                     "is_expanded": False,
+                                                     "raw_value": u"value",
                                                      "type": "plain"}}}
     self._assertRendersConfig(input_dict, output_dict)
 
   def testRendersDefault(self):
-    input_dict = {"section": {"parameter": {"default_value": "value"}}}
+    input_dict = {"section": {"parameter": {"default_value": u"value"}}}
     rendering = self._RenderConfig(input_dict)
     self.assertTrue(rendering["section"]["section.parameter"]["is_default"])
 
@@ -124,11 +125,24 @@ class ApiConfigRendererTest(test_lib.GRRBaseTest):
                       "binary")
 
   def testRendersRedacted(self):
-    input_dict = {"Mysql": {"database_password": {"option_value": "secret",
-                                                  "raw_value": "secret"}}}
+    input_dict = {"Mysql": {"database_password": {"option_value": u"secret",
+                                                  "raw_value": u"secret"}}}
     rendering = self._RenderConfig(input_dict)
     self.assertEquals(rendering["Mysql"]["Mysql.database_password"]["type"],
                       "redacted")
+
+  def testExpansion(self):
+    input_dict = {"section": {"parameter": {"option_value": u"%(answer)",
+                                            "raw_value": u"fourty-two"}}}
+    rendering = self._RenderConfig(input_dict)
+    self.assertEquals(rendering["section"]["section.parameter"]["is_expanded"],
+                      True)
+
+    input_dict = {"section": {"parameter": {"option_value": u"fourty-two",
+                                            "raw_value": u"fourty-two"}}}
+    rendering = self._RenderConfig(input_dict)
+    self.assertEquals(rendering["section"]["section.parameter"]["is_expanded"],
+                      False)
 
 
 def main(argv):

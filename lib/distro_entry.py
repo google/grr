@@ -72,12 +72,6 @@ def Export():
   flags.StartMain(export.main)
 
 
-def Enroller():
-  from grr.worker import enroller
-  SetConfigOptions()
-  flags.StartMain(enroller.main)
-
-
 def Worker():
   from grr.worker import worker
   SetConfigOptions()

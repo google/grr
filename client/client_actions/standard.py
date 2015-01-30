@@ -24,6 +24,7 @@ from grr.client import vfs
 from grr.client.client_actions import tempfiles
 from grr.lib import config_lib
 from grr.lib import flags
+from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import crypto
@@ -90,7 +91,9 @@ class TransferBuffer(actions.ActionPlugin):
     # Now return the data to the server into the special TransferStore well
     # known flow.
     self.grr_worker.SendReply(
-        result, session_id=rdfvalue.SessionID("aff4:/flows/W:TransferStore"))
+        result, session_id=rdfvalue.SessionID(base="aff4:/flows",
+                                              queue=queues.FLOWS,
+                                              flow_name="TransferStore"))
 
     # Now report the hash of this blob to our flow as well as the offset and
     # length.

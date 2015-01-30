@@ -628,6 +628,14 @@ table .offset {
  padding-right: 1ex;
 }
 
+table.fixed-layout {
+  table-layout: fixed;
+}
+
+table.fixed-layout td {
+  word-wrap: break-word;
+}
+
 td.data_area {
  padding-left: 2ex;
 }

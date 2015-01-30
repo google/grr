@@ -32,12 +32,8 @@ from grr.lib import flags
 from grr.lib import startup
 from grr.server.data_server import data_server
 from grr.tools import http_server
-from grr.worker import enroller
 from grr.worker import worker
 
-
-flags.DEFINE_bool("start_enroller", False,
-                  "Start the server as enroller.")
 
 flags.DEFINE_bool("start_worker", False,
                   "Start the server as worker.")
@@ -55,14 +51,12 @@ flags.DEFINE_bool("start_dataserver", False,
 def main(argv):
   """Sets up all the component in their own threads."""
   flag_list = [flags.FLAGS.start_worker, flags.FLAGS.start_ui,
-               flags.FLAGS.start_http_server, flags.FLAGS.start_enroller,
-               flags.FLAGS.start_dataserver]
+               flags.FLAGS.start_http_server, flags.FLAGS.start_dataserver]
   enabled_flags = [f for f in flag_list if f]
 
   # If no start preferences were provided start everything
   if not enabled_flags:
     flags.FLAGS.start_worker = True
-    flags.FLAGS.start_enroller = True
     flags.FLAGS.start_http_server = True
     flags.FLAGS.start_ui = True
 
@@ -83,14 +77,6 @@ def main(argv):
     worker_thread.daemon = True
     threads.append(worker_thread)
     worker_thread.start()
-
-  # Start the enroller thread if necessary.
-  if flags.FLAGS.start_enroller:
-    enroller_thread = threading.Thread(target=enroller.main, args=[argv],
-                                       name="Enroller")
-    enroller_thread.daemon = True
-    threads.append(enroller_thread)
-    enroller_thread.start()
 
   # Start the HTTP server thread, that clients communicate with, if necessary.
   if flags.FLAGS.start_http_server:

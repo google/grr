@@ -5,7 +5,7 @@ It often makes sense to have a backup instance of the GRR server
 environment running. If you decide to do so, override this class with
 functionality to determine if this instance is currently active
 ("Master") or not and store the result using the SetMaster
-function. Note that you can have multiple Workers, Enrollers, and
+function. Note that you can have multiple Workers and
 Frontend Servers running without any problems as long as you don't use
 data store replication. Only if you work on a replicated database you
 will run into race conditions and have to disable the backup instances.

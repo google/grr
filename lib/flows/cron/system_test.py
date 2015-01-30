@@ -194,6 +194,8 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
                                        token=self.token):
         pass
 
+    test_lib.TestHuntHelperWithMultipleMocks({}, check_flow_errors=False,
+                                             token=self.token)
     hunt_ids = list(aff4.FACTORY.Open("aff4:/hunts",
                                       token=self.token).ListChildren())
     # We have only created one hunt, and we should have started with clean aff4

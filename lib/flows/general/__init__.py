@@ -11,6 +11,7 @@ from grr.lib.flows.general import audit
 
 # Disable these flows since they have no tests and are broken.
 # from grr.lib.flows.general import automation
+from grr.lib.flows.general import ca_enroller
 from grr.lib.flows.general import checks
 from grr.lib.flows.general import collectors
 from grr.lib.flows.general import discovery

@@ -8,7 +8,6 @@ from grr.lib import flags
 from grr.lib import test_lib
 
 # pylint: disable=unused-import
-from grr.lib.flows.caenroll import ca_enroller
 from grr.lib.rdfvalues import test_base
 from grr.lib.rdfvalues import tests
 # pylint: enable=unused-import

@@ -111,7 +111,13 @@ class HuntRunner(flow_runner.FlowRunner):
       return
 
     if request.next_state == "RegisterClient":
-      self._RegisterAndRunClient(request.client_id)
+      if self.IsHuntStarted():
+        self._RegisterAndRunClient(request.client_id)
+      else:
+        logging.debug(
+            "Not starting client %s on hunt %s which is not running: %s",
+            request.client_id, self.session_id,
+            self.flow_obj.Get(self.flow_obj.Schema.STATE))
       return
 
     event = threading.Event()
