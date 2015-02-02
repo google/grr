@@ -17,6 +17,7 @@ function install_openssl() {
   cd openssl-1.0.1l
   ./config
   make -j4
+  make test
   sudo make install
   sudo ldconfig
   cd -
@@ -26,7 +27,7 @@ function install_openssl() {
 # lots of the downloads https://savannah.gnu.org/bugs/index.php?20421
 WGET=/usr/local/bin/wget
 function install_wget() {
-  wget https://ftp.gnu.org/gnu/wget/wget-1.16.tar.gz
+  wget --quiet https://ftp.gnu.org/gnu/wget/wget-1.16.tar.gz
   tar zxvf wget-1.16.tar.gz
   cd wget-1.16
   ./configure --with-ssl=openssl
