@@ -30,6 +30,13 @@ if [ "$EUID" -ne 0 ]
   exit
 fi
 
+# Variable to store if the user has answered "Yes to All"
+ALL_YES=0;
+
+# If true only install build dependencies. GRR itself and the database won't be
+# installed.
+BUILD_DEPS_ONLY=0;
+
 # Take command line parameters as these are easier for users than shell
 # variables.
 if [ "$1" == "--localtest" ]
@@ -40,6 +47,14 @@ elif [ "$1" == "--test" ]
 then
   GRR_LOCAL_TEST=0;
   GRR_TESTING=1;
+fi
+
+if [ "$1" == "--build-deps" ] || [ "$2" == "--build-deps" ]; then
+  echo "############################################"
+  echo "#### Installing build dependencies only ####"
+  echo "############################################"
+  BUILD_DEPS_ONLY=1;
+  ALL_YES=1;
 fi
 
 
@@ -59,10 +74,6 @@ if [ -z "${GRR_LOCAL_TEST}" ];
 then
   GRR_LOCAL_TEST=0;
 fi
-
-
-# Variable to store if the user has answered "Yes to All"
-ALL_YES=0;
 
 
 function header()
@@ -134,10 +145,6 @@ header "Installing Sleuthkit and Pytsk"
 run_cmd_confirm apt-get --yes remove libtsk3* sleuthkit
 run_cmd_confirm dpkg -i ${DEB_DEPENDENCIES_DIR}/${SLEUTHKIT_DEB} ${DEB_DEPENDENCIES_DIR}/${PYTSK_DEB};
 
-header "Installing Mongodb"
-run_cmd_confirm apt-get --yes --force-yes install mongodb python-pymongo;
-service mongodb start 2>/dev/null
-
 header "Installing Rekall"
 INSTALL_REKALL=0
 if [ ${ALL_YES} = 0 ]; then
@@ -166,13 +173,22 @@ run_cmd_confirm pip install psutil --upgrade
 header "Installing Selenium test framework for Tests"
 run_cmd_confirm easy_install selenium
 
-
 header "Installing correct Django version."
 # We support everything from 1.4 to 1.6, 12.04 ships with 1.3. This is only
 # necessary for server 0.3.0-2, remove the requirement for 1.6 once we upgrade.
 run_cmd_confirm apt-get --yes remove python-django
 run_cmd_confirm pip install django==1.6
 
+if [ $BUILD_DEPS_ONLY = 1 ]; then
+  echo "#######################################"
+  echo "Finished installing build dependencies."
+  echo "#######################################"
+  exit 0
+fi
+
+header "Installing Mongodb"
+run_cmd_confirm apt-get --yes --force-yes install mongodb python-pymongo;
+run_cmd_confirm service mongodb start 2>/dev/null
 
 header "Installing GRR from prebuilt package"
 SERVER_DEB=$(basename ${SERVER_DEB_URL});
