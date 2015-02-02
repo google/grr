@@ -53,6 +53,7 @@ from grr.lib import flow
 
 from grr.lib import maintenance_utils
 from grr.lib import queue_manager
+from grr.lib import queues as queue_config
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import rekall_profile_server
@@ -66,9 +67,6 @@ from grr.lib import stats
 from grr.lib import utils
 from grr.lib import worker
 from grr.lib import worker_mocks
-# pylint: disable=unused-import
-from grr.lib.flows.caenroll import ca_enroller
-# pylint: enable=unused-import
 from grr.proto import tests_pb2
 
 from grr.test_data import client_fixture
@@ -198,7 +196,10 @@ class DummyLogFlowChild(flow.GRRFlow):
 
 class WellKnownSessionTest(flow.WellKnownFlow):
   """Tests the well known flow implementation."""
-  well_known_session_id = rdfvalue.SessionID("aff4:/flows/test:TestSessionId")
+  well_known_session_id = rdfvalue.SessionID(base="aff4:/flows",
+                                             queue=rdfvalue.RDFURN("test"),
+                                             flow_name="TestSessionId")
+
   messages = []
 
   def __init__(self, *args, **kwargs):
@@ -1286,6 +1287,12 @@ class GRRTestLoader(unittest.TestLoader):
 
 
 class MockClient(object):
+  """Simple emulation of the client.
+
+  This implementation operates directly on the server's queue of client
+  messages, bypassing the need to actually send the messages through the comms
+  library.
+  """
 
   def __init__(self, client_id, client_mock, token=None):
     if not isinstance(client_id, rdfvalue.ClientURN):
@@ -1332,7 +1339,7 @@ class MockClient(object):
     manager.QueueResponse(message.session_id, message)
 
   def Next(self):
-    # Grab tasks for us from the queue.
+    # Grab tasks for us from the server's queue.
     with queue_manager.QueueManager(token=self.token) as manager:
       request_tasks = manager.QueryAndOwn(self.client_id.Queue(),
                                           limit=1,
@@ -1436,9 +1443,9 @@ class MockWorker(worker.GRRWorker):
   SYSTEM_CPU = [0]
   NETWORK_BYTES = [0]
 
-  def __init__(self, queue=worker.DEFAULT_WORKER_QUEUE,
+  def __init__(self, queues=queue_config.WORKER_LIST,
                check_flow_errors=True, token=None):
-    self.queue = queue
+    self.queues = queues
     self.check_flow_errors = check_flow_errors
     self.token = token
 
@@ -1470,46 +1477,47 @@ class MockWorker(worker.GRRWorker):
       RuntimeError: if the flow terminates with an error.
     """
     with queue_manager.QueueManager(token=self.token) as manager:
-      notifications_available = manager.GetNotifications(self.queue)
-      # Run all the flows until they are finished
       run_sessions = []
+      for queue in self.queues:
+        notifications_available = manager.GetNotificationsForAllShards(queue)
+        # Run all the flows until they are finished
 
-      # Only sample one session at the time to force serialization of flows
-      # after each state run - this helps to catch unpickleable objects.
-      for notification in notifications_available[:1]:
-        session_id = notification.session_id
-        manager.DeleteNotification(session_id)
-        run_sessions.append(session_id)
+        # Only sample one session at the time to force serialization of flows
+        # after each state run - this helps to catch unpickleable objects.
+        for notification in notifications_available[:1]:
+          session_id = notification.session_id
+          manager.DeleteNotification(session_id, end=notification.timestamp)
+          run_sessions.append(session_id)
 
-        # Handle well known flows here.
-        if session_id in self.well_known_flows:
-          well_known_flow = self.well_known_flows[session_id]
-          with well_known_flow:
-            responses = well_known_flow.FetchAndRemoveRequestsAndResponses()
-          well_known_flow.ProcessResponses(responses, self.pool)
-          continue
+          # Handle well known flows here.
+          if session_id in self.well_known_flows:
+            well_known_flow = self.well_known_flows[session_id]
+            with well_known_flow:
+              responses = well_known_flow.FetchAndRemoveRequestsAndResponses(
+                  session_id)
+            well_known_flow.ProcessResponses(responses, self.pool)
+            continue
 
-        with aff4.FACTORY.OpenWithLock(
-            session_id, token=self.token, blocking=False) as flow_obj:
+          with aff4.FACTORY.OpenWithLock(
+              session_id, token=self.token, blocking=False) as flow_obj:
 
-          # Run it
-          runner = flow_obj.GetRunner()
-          cpu_used = runner.context.client_resources.cpu_usage
-          user_cpu = self.cpu_user.next()
-          system_cpu = self.cpu_system.next()
-          network_bytes = self.network_bytes.next()
-          cpu_used.user_cpu_time += user_cpu
-          cpu_used.system_cpu_time += system_cpu
-          runner.context.network_bytes_sent += network_bytes
-          runner.ProcessCompletedRequests(notification, self.pool)
+            # Run it
+            runner = flow_obj.GetRunner()
+            cpu_used = runner.context.client_resources.cpu_usage
+            user_cpu = self.cpu_user.next()
+            system_cpu = self.cpu_system.next()
+            network_bytes = self.network_bytes.next()
+            cpu_used.user_cpu_time += user_cpu
+            cpu_used.system_cpu_time += system_cpu
+            runner.context.network_bytes_sent += network_bytes
+            runner.ProcessCompletedRequests(notification, self.pool)
 
-          if (self.check_flow_errors and
-              runner.context.state == rdfvalue.Flow.State.ERROR):
-            logging.exception("Flow terminated in state %s with an error: %s",
-                              runner.context.current_state,
-                              runner.context.backtrace)
-
-            raise RuntimeError(runner.context.backtrace)
+            if (self.check_flow_errors and
+                runner.context.state == rdfvalue.Flow.State.ERROR):
+              logging.exception("Flow terminated in state %s with an error: %s",
+                                runner.context.current_state,
+                                runner.context.backtrace)
+              raise RuntimeError(runner.context.backtrace)
 
     return run_sessions
 
@@ -1689,6 +1697,7 @@ def TestHuntHelperWithMultipleMocks(client_mocks, check_flow_errors=False,
   # Run the clients and worker until nothing changes any more.
   while True:
     client_processed = 0
+
     for client_mock in client_mocks:
       client_processed += client_mock.Next()
 

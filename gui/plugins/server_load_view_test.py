@@ -66,7 +66,6 @@ class TestServerLoadView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Frontends load")
     self.WaitUntil(self.IsTextPresent, "Frontend handled vs throttled rate")
     self.WaitUntil(self.IsTextPresent, "Worker successful vs failed flows rate")
-    self.WaitUntil(self.IsTextPresent, "Successful vs failed enrollments rate")
 
   def testServerLoadPageShowsCorrectNumberOfInstances(self):
     with self.ACLChecksDisabled():

@@ -43,7 +43,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
 
     # Whitelist test flow.
     config_lib.CONFIG.Set("Frontend.well_known_flows", [utils.SmartStr(
-        test_lib.WellKnownSessionTest.well_known_session_id)])
+        test_lib.WellKnownSessionTest.well_known_session_id.FlowName())])
 
     # For tests, small pools are ok.
     config_lib.CONFIG.Set("Threadpool.size", 10)

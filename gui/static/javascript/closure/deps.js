@@ -3,9 +3,10 @@
 goog.addDependency('../../angular-components/core/paged-filtered-table-directive.js', ['grrUi.core.pagedFilteredTableDirective.PagedFilteredTableController', 'grrUi.core.pagedFilteredTableDirective.PagedFilteredTableDirective', 'grrUi.core.pagedFilteredTableDirective.TableBottomDirective', 'grrUi.core.pagedFilteredTableDirective.TableTopDirective'], []);
 goog.addDependency('../../angular-components/hunt/hunt.js', ['grrUi.hunt.module'], ['grrUi.core.module', 'grrUi.hunt.huntCrashesDirective.HuntCrashesDirective', 'grrUi.hunt.huntErrorsDirective.HuntErrorsDirective', 'grrUi.hunt.huntInspectorDirective.HuntInspectorDirective', 'grrUi.hunt.huntLogDirective.HuntLogDirective', 'grrUi.hunt.huntOverviewDirective.HuntOverviewDirective', 'grrUi.hunt.huntResultsDirective.HuntResultsDirective', 'grrUi.hunt.huntsListDirective.HuntsListDirective', 'grrUi.hunt.huntsViewDirective.HuntsViewDirective']);
 goog.addDependency('../../angular-components/core/aff4-items-provider-directive.js', ['grrUi.core.aff4ItemsProviderDirective.Aff4ItemsProviderController', 'grrUi.core.aff4ItemsProviderDirective.Aff4ItemsProviderDirective'], ['grrUi.core.itemsProviderController.ItemsProviderController']);
-goog.addDependency('../../angular-components/hunt/hunt-errors-directive.js', ['grrUi.hunt.huntErrorsDirective.HuntErrorsController', 'grrUi.hunt.huntErrorsDirective.HuntErrorsDirective'], []);
 goog.addDependency('../../angular-components/hunt/hunt-inspector-directive.js', ['grrUi.hunt.huntInspectorDirective', 'grrUi.hunt.huntInspectorDirective.HuntInspectorDirective', 'grrUi.hunt.huntInspectorDirective.huntInspectorController'], []);
+goog.addDependency('../../angular-components/hunt/hunt-errors-directive.js', ['grrUi.hunt.huntErrorsDirective.HuntErrorsController', 'grrUi.hunt.huntErrorsDirective.HuntErrorsDirective'], []);
 goog.addDependency('../../angular-components/core/aff4-service.js', ['grrUi.core.aff4Service.Aff4Service'], []);
+goog.addDependency('../../angular-components/config/config.js', ['grrUi.config.module'], ['grrUi.config.configViewDirective.ConfigViewDirective', 'grrUi.core.module']);
 goog.addDependency('../../angular-components/core/infinite-table-directive.js', ['grrUi.core.infiniteTableDirective.InfiniteTableController', 'grrUi.core.infiniteTableDirective.InfiniteTableDirective'], []);
 goog.addDependency('../../angular-components/hunt/hunt-log-directive.js', ['grrUi.hunt.huntLogDirective.HuntLogController', 'grrUi.hunt.huntLogDirective.HuntLogDirective'], []);
 goog.addDependency('../../angular-components/core/api-service.js', ['grrUi.core.apiService.ApiService'], []);
@@ -29,5 +30,6 @@ goog.addDependency('../../angular-components/semantic/semantic-proto-directive.j
 goog.addDependency('../../angular-components/hunt/hunts-list-directive.js', ['grrUi.hunt.huntsListDirective.HuntsListController', 'grrUi.hunt.huntsListDirective.HuntsListDirective'], []);
 goog.addDependency('../../angular-components/hunt/hunt-crashes-directive.js', ['grrUi.hunt.huntCrashesDirective.HuntCrashesController', 'grrUi.hunt.huntCrashesDirective.HuntCrashesDirective'], []);
 goog.addDependency('../../angular-components/core/legacy-renderer-directive.js', ['grrUi.core.legacyRendererDirective.LegacyRendererController', 'grrUi.core.legacyRendererDirective.LegacyRendererDirective'], []);
+goog.addDependency('../../angular-components/config/config-view-directive.js', ['grrUi.config.configViewDirective.ConfigViewDirective'], []);
 goog.addDependency('../../angular-components/externs.js', [], []);
-goog.addDependency('../../angular-components/app-controller.js', ['grrUi.appController.module'], ['grrUi.core.module', 'grrUi.flow.module', 'grrUi.hunt.module', 'grrUi.semantic.module']);
+goog.addDependency('../../angular-components/app-controller.js', ['grrUi.appController.module'], ['grrUi.config.module', 'grrUi.core.module', 'grrUi.flow.module', 'grrUi.hunt.module', 'grrUi.semantic.module']);

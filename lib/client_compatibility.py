@@ -3,6 +3,7 @@
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flow
+from grr.lib import queues
 from grr.lib import rdfvalue
 
 
@@ -18,7 +19,9 @@ class ClientCompatibility(flow.EventListener):
 
   EVENTS = ["ClientStartup"]
 
-  well_known_session_id = rdfvalue.SessionID("aff4:/flows/W:TemporaryFix")
+  well_known_session_id = rdfvalue.SessionID(base="aff4:/flows",
+                                             queue=queues.FLOWS,
+                                             flow_name="TemporaryFix")
 
   @flow.EventHandler(allow_client_access=True, auth_required=False)
   def ProcessMessage(self, message=None, event=None):

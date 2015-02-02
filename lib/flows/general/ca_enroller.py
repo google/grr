@@ -13,6 +13,7 @@ import logging
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flow
+from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.proto import flows_pb2
@@ -43,8 +44,8 @@ class CAEnroler(flow.GRRFlow):
       raise flow.FlowError("CSR for client %s did not verify: %s" %
                            (self.client_id, req.as_pem()))
 
-    # Verify that the CN is of the correct form. The common name should refer to
-    # a client URN.
+    # Verify that the CN is of the correct form. The common name should refer
+    # to a client URN.
     public_key = req.get_pubkey().get_rsa().pub()[1]
     self.cn = rdfvalue.ClientURN.FromPublicKey(public_key)
     if self.cn != rdfvalue.ClientURN(req.get_subject().CN):
@@ -116,7 +117,9 @@ enrolment_cache = utils.FastStore(5000)
 
 class Enroler(flow.WellKnownFlow):
   """Manage enrolment requests."""
-  well_known_session_id = rdfvalue.SessionID("aff4:/flows/CA:Enrol")
+  well_known_session_id = rdfvalue.SessionID(base="aff4:/flows",
+                                             queue=queues.ENROLLMENT,
+                                             flow_name="Enrol")
 
   def ProcessMessage(self, message):
     """Begins an enrollment flow for this client.
@@ -133,7 +136,7 @@ class Enroler(flow.WellKnownFlow):
 
     # It makes no sense to enrol the same client multiple times, so we
     # eliminate duplicates. Note, that we can still enroll clients multiple
-    # times due to cache expiration or using multiple enrollers.
+    # times due to cache expiration.
     try:
       enrolment_cache.Get(client_id)
       return

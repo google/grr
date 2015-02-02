@@ -80,8 +80,9 @@ class TestArtifactCollectors(CollectorTest):
                       {"bad": "%%users.username%%"})
 
     list_args = collect_flow.InterpolateList(["%%users.username%%",
-                                              "%%users.username%%aa"])
-    self.assertItemsEqual(list_args, ["test1", "test2", "test1aa", "test2aa"])
+                                              r"%%users.username%%\aa"])
+    self.assertItemsEqual(list_args, ["test1", "test2", r"test1\aa",
+                                      r"test2\aa"])
 
     list_args = collect_flow.InterpolateList(["one"])
     self.assertEqual(list_args, ["one"])

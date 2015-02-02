@@ -18,6 +18,7 @@ from grr.lib import email_alerts
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import maintenance_utils
+from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
@@ -74,7 +75,9 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     self.assertEqual(crash.client_id, self.client_id)
     self.assertEqual(crash.session_id, expected_session_id)
     self.assertEqual(crash.client_info.client_name, "GRR Monitor")
-    self.assertEqual(crash.crash_type, "aff4:/flows/W:CrashHandler")
+    self.assertEqual(
+        crash.crash_type,
+        "aff4:/flows/" + queues.FLOWS.Basename() + ":CrashHandler")
     self.assertEqual(crash.crash_message,
                      "Client killed during transaction")
 
@@ -153,7 +156,9 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
 
     with utils.Stubber(email_alerts, "SendEmail", SendEmail):
       msg = rdfvalue.GrrMessage(
-          session_id=rdfvalue.SessionID("aff4:/flows/W:NannyMessage"),
+          session_id=rdfvalue.SessionID(base="aff4:/flows",
+                                        queue=queues.FLOWS,
+                                        flow_name="NannyMessage"),
           args=rdfvalue.DataBlob(string=nanny_message).SerializeToString(),
           source=self.client_id,
           auth_state=rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED)
@@ -186,7 +191,8 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
       crash = client_crashes[0]
       self.assertEqual(crash.client_id, self.client_id)
       self.assertEqual(crash.client_info.client_name, "GRR Monitor")
-      self.assertEqual(crash.crash_type, "aff4:/flows/W:NannyMessage")
+      self.assertEqual(crash.crash_type, "aff4:/flows/" +
+                       queues.FLOWS.Basename() + ":NannyMessage")
       self.assertEqual(crash.crash_message, nanny_message)
 
       # Check global crash collection. Check that crash written there is

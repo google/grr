@@ -18,6 +18,7 @@ from grr.lib import aff4
 from grr.lib import export
 from grr.lib import flags
 from grr.lib import flow
+from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 
@@ -808,7 +809,8 @@ class ExportTest(test_lib.GRRBaseTest):
     test_lib.ClientFixture(msg.source, token=self.token)
 
     metadata = rdfvalue.ExportedMetadata(
-        source_urn=rdfvalue.RDFURN("aff4:/hunts/W:000000/Results"))
+        source_urn=rdfvalue.RDFURN("aff4:/hunts/" + str(queues.HUNTS) +
+                                   ":000000/Results"))
 
     converter = export.GrrMessageConverter()
     with test_lib.FakeTime(2):
@@ -819,7 +821,8 @@ class ExportTest(test_lib.GRRBaseTest):
                      rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
     self.assertEqual(results[0].timestamp,
                      rdfvalue.RDFDatetime().FromSecondsFromEpoch(2))
-    self.assertEqual(results[0].source_urn, "aff4:/hunts/W:000000/Results")
+    self.assertEqual(results[0].source_urn,
+                     "aff4:/hunts/"+ str(queues.HUNTS) + ":000000/Results")
 
   def testGrrMessageConverterWithOneMissingClient(self):
     payload1 = DummyRDFValue4(
@@ -834,9 +837,11 @@ class ExportTest(test_lib.GRRBaseTest):
     msg2.source = rdfvalue.ClientURN("C.0000000000000001")
 
     metadata1 = rdfvalue.ExportedMetadata(
-        source_urn=rdfvalue.RDFURN("aff4:/hunts/W:000000/Results"))
+        source_urn=rdfvalue.RDFURN("aff4:/hunts/" + str(queues.HUNTS) +
+                                   ":000000/Results"))
     metadata2 = rdfvalue.ExportedMetadata(
-        source_urn=rdfvalue.RDFURN("aff4:/hunts/W:000001/Results"))
+        source_urn=rdfvalue.RDFURN("aff4:/hunts/" + str(queues.HUNTS) +
+                                   ":000001/Results"))
 
     converter = export.GrrMessageConverter()
     with test_lib.FakeTime(3):
@@ -848,7 +853,8 @@ class ExportTest(test_lib.GRRBaseTest):
                      rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
     self.assertEqual(results[0].timestamp,
                      rdfvalue.RDFDatetime().FromSecondsFromEpoch(3))
-    self.assertEqual(results[0].source_urn, "aff4:/hunts/W:000000/Results")
+    self.assertEqual(results[0].source_urn, "aff4:/hunts/" + str(queues.HUNTS) +
+                     ":000000/Results")
 
   def testGrrMessageConverterMultipleTypes(self):
     payload1 = DummyRDFValue3(
@@ -863,9 +869,11 @@ class ExportTest(test_lib.GRRBaseTest):
     msg2.source = rdfvalue.ClientURN("C.0000000000000000")
 
     metadata1 = rdfvalue.ExportedMetadata(
-        source_urn=rdfvalue.RDFURN("aff4:/hunts/W:000000/Results"))
+        source_urn=rdfvalue.RDFURN("aff4:/hunts/" + str(queues.HUNTS) +
+                                   ":000000/Results"))
     metadata2 = rdfvalue.ExportedMetadata(
-        source_urn=rdfvalue.RDFURN("aff4:/hunts/W:000001/Results"))
+        source_urn=rdfvalue.RDFURN("aff4:/hunts/" + str(queues.HUNTS) +
+                                   ":000001/Results"))
 
     converter = export.GrrMessageConverter()
     with test_lib.FakeTime(3):

@@ -1043,6 +1043,8 @@ class WellKnownFlow(GRRFlow):
       self.ProcessMessage(*args, **kwargs)
     except Exception as e:  # pylint: disable=broad-except
       logging.exception("Error in WellKnownFlow.ProcessMessage: %s", e)
+      stats.STATS.IncrementCounter("well_known_flow_errors",
+                                   fields=[str(self.session_id)])
 
   def CallState(self, messages=None, next_state=None, delay=0):
     """Well known flows have no states to call."""
@@ -1062,15 +1064,14 @@ class WellKnownFlow(GRRFlow):
     # and don't have states.
     pass
 
-  def FetchAndRemoveRequestsAndResponses(self):
+  def FetchAndRemoveRequestsAndResponses(self, session_id):
     """Removes WellKnownFlow messages from the queue and returns them."""
     messages = []
     with queue_manager.WellKnownQueueManager(
         token=self.token) as manager:
-      for _, responses in manager.FetchRequestsAndResponses(
-          self.session_id):
+      for _, responses in manager.FetchRequestsAndResponses(session_id):
         messages.extend(responses)
-        manager.DeleteWellKnownFlowResponses(self.session_id, responses)
+        manager.DeleteWellKnownFlowResponses(session_id, responses)
 
     return messages
 
@@ -1140,14 +1141,16 @@ class WellKnownFlow(GRRFlow):
     pass
 
 
-def EventHandler(source_restriction=None, auth_required=True,
+def EventHandler(source_restriction=False, auth_required=True,
                  allow_client_access=False):
   """A convenience decorator for Event Handlers.
 
   Args:
-    source_restriction: A function which will be passed the message's source. If
-      the function returns True we permit processing, otherwise the message is
-      rejected.
+
+    source_restriction: If this is set to True, each time a message is
+      received, its source is passed to the method "CheckSource" of
+      the event listener. If that method returns True, processing is
+      permitted. Otherwise, the message is rejected.
 
     auth_required: Do we require messages to be authenticated? If the
                 message is not authenticated we raise.
@@ -1161,6 +1164,7 @@ def EventHandler(source_restriction=None, auth_required=True,
      message: The original raw message RDFValue (useful for checking the
        source).
      event: The decoded RDFValue.
+
   """
 
   def Decorator(f):
@@ -1177,8 +1181,12 @@ def EventHandler(source_restriction=None, auth_required=True,
           rdfvalue.ClientURN.Validate(msg.source)):
         raise RuntimeError("Event does not support clients.")
 
-      if source_restriction and not source_restriction(msg.source):
-        raise RuntimeError("Message source invalid.")
+      if source_restriction:
+        source_check_method = getattr(self, "CheckSource")
+        if not source_check_method:
+          raise RuntimeError("CheckSource method not found.")
+        if not source_check_method(msg.source):
+          raise RuntimeError("Message source invalid.")
 
       stats.STATS.IncrementCounter("grr_worker_states_run")
       rdf_msg = rdfvalue.GrrMessage(msg)
@@ -1504,7 +1512,9 @@ class FrontEndServer(object):
     self.thread_pool.Start()
 
     # Well known flows are run on the front end.
-    self.well_known_flows = WellKnownFlow.GetAllWellKnownFlows(token=self.token)
+    self.well_known_flows = {
+        x.FlowName(): y for (x, y) in
+        WellKnownFlow.GetAllWellKnownFlows(token=self.token).iteritems()}
     well_known_flow_names = self.well_known_flows.keys()
     for well_known_flow in well_known_flow_names:
       if well_known_flow not in config_lib.CONFIG["Frontend.well_known_flows"]:
@@ -1762,9 +1772,9 @@ class FrontEndServer(object):
 
       # Well known flows:
       else:
-        if msg.session_id in self.well_known_flows:
+        if msg.session_id.FlowName() in self.well_known_flows:
           # This message should be processed directly on the front end.
-          flow = self.well_known_flows[msg.session_id]
+          flow = self.well_known_flows[msg.session_id.FlowName()]
           flow.ProcessMessage(msg)
           flow.HeartBeat()
 
@@ -1851,4 +1861,6 @@ class FlowInit(registry.InitHook):
     stats.STATS.RegisterCounterMetric("flow_completions",
                                       fields=[("flow", str)])
     stats.STATS.RegisterCounterMetric("well_known_flow_requests",
+                                      fields=[("flow", str)])
+    stats.STATS.RegisterCounterMetric("well_known_flow_errors",
                                       fields=[("flow", str)])

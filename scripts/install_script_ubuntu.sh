@@ -25,6 +25,11 @@ GRR_TEST_VERSION=0.3.1-1
 SERVER_DEB_STABLE_BASE_URL=https://googledrive.com/host/0B1wsLqFoT7i2c3F0ZmI1RDJlUEU/grr-server_
 SERVER_DEB_TEST_BASE_URL=https://googledrive.com/host/0B1wsLqFoT7i2c3F0ZmI1RDJlUEU/test-grr-server_
 
+if [ "$EUID" -ne 0 ]
+  then echo "Please run as root"
+  exit
+fi
+
 # Variable to store if the user has answered "Yes to All"
 ALL_YES=0;
 
@@ -116,35 +121,35 @@ function run_cmd_confirm()
 
 
 header "Updating APT and Installing dependencies"
-run_cmd_confirm sudo apt-get --yes update;
-run_cmd_confirm sudo apt-get --yes upgrade;
-run_cmd_confirm sudo apt-get --force-yes --yes install python-setuptools python-dateutil python-django ipython apache2-utils zip wget python-ipaddr python-support python-matplotlib python-mox python-yaml python-pip dpkg-dev debhelper rpm prelink build-essential python-dev python-pandas python-mock python-werkzeug;
+run_cmd_confirm apt-get --yes update;
+run_cmd_confirm apt-get --yes upgrade;
+run_cmd_confirm apt-get --force-yes --yes install python-setuptools python-dateutil python-django ipython apache2-utils zip wget python-ipaddr python-support python-matplotlib python-mox python-yaml python-pip dpkg-dev debhelper rpm prelink build-essential python-dev python-pandas python-mock python-werkzeug;
 
 # Fail silently if python-dev or libpython-dev is not available in the apt repo
 # python-dev is for Ubuntu version < 12.10 and libpython-dev is for > 12.04
-sudo apt-get --force-yes --yes install python-dev 2>/dev/null
-sudo apt-get --force-yes --yes install libpython-dev 2>/dev/null
+apt-get --force-yes --yes install python-dev 2>/dev/null
+apt-get --force-yes --yes install libpython-dev 2>/dev/null
 
 header "Getting the right version of M2Crypto installed"
-run_cmd_confirm sudo apt-get --yes remove python-m2crypto;
+run_cmd_confirm apt-get --yes remove python-m2crypto;
 
 DEB_DEPENDENCIES_TARBALL=$(basename ${DEB_DEPENDENCIES_URL});
 run_cmd_confirm wget --no-verbose ${DEB_DEPENDENCIES_URL} -O ${DEB_DEPENDENCIES_TARBALL};
 run_cmd_confirm tar zxfv ${DEB_DEPENDENCIES_TARBALL};
-run_cmd_confirm sudo dpkg -i ${DEB_DEPENDENCIES_DIR}/${M2CRYPTO_DEB};
+run_cmd_confirm dpkg -i ${DEB_DEPENDENCIES_DIR}/${M2CRYPTO_DEB};
 
 header "Installing Protobuf"
-run_cmd_confirm sudo apt-get --yes --force-yes install libprotobuf-dev python-protobuf protobuf-compiler libprotobuf-dev;
+run_cmd_confirm apt-get --yes --force-yes install libprotobuf-dev python-protobuf protobuf-compiler libprotobuf-dev;
 
 header "Installing Sleuthkit and Pytsk"
-run_cmd_confirm sudo apt-get --yes remove libtsk3* sleuthkit
-run_cmd_confirm sudo dpkg -i ${DEB_DEPENDENCIES_DIR}/${SLEUTHKIT_DEB} ${DEB_DEPENDENCIES_DIR}/${PYTSK_DEB};
+run_cmd_confirm apt-get --yes remove libtsk3* sleuthkit
+run_cmd_confirm dpkg -i ${DEB_DEPENDENCIES_DIR}/${SLEUTHKIT_DEB} ${DEB_DEPENDENCIES_DIR}/${PYTSK_DEB};
 
 header "Installing Rekall"
 INSTALL_REKALL=0
 if [ ${ALL_YES} = 0 ]; then
   echo ""
-  read -p "Run sudo pip install rekall --upgrade [Y/n/a]? " REPLY
+  read -p "Run pip install rekall --upgrade [Y/n/a]? " REPLY
   case $REPLY in
     y|Y|'') INSTALL_REKALL=1;;
     a|A) echo "Answering yes from now on"; ALL_YES=1; INSTALL_REKALL=1;;
@@ -154,25 +159,25 @@ else
 fi
 
 if [ ${INSTALL_REKALL} = 1 ]; then
-  sudo pip install rekall --upgrade
+  pip install rekall --upgrade
   RETVAL=$?
   if [ $RETVAL -ne 0 ]; then
-    exit_fail sudo pip install rekall --upgrade;
+    exit_fail pip install rekall --upgrade;
   fi
 fi
 
 header "Installing psutil via pip"
-run_cmd_confirm sudo apt-get --yes remove python-psutil;
-run_cmd_confirm sudo pip install psutil --upgrade
+run_cmd_confirm apt-get --yes remove python-psutil;
+run_cmd_confirm pip install psutil --upgrade
 
 header "Installing Selenium test framework for Tests"
-run_cmd_confirm sudo easy_install selenium
+run_cmd_confirm easy_install selenium
 
 header "Installing correct Django version."
 # We support everything from 1.4 to 1.6, 12.04 ships with 1.3. This is only
 # necessary for server 0.3.0-2, remove the requirement for 1.6 once we upgrade.
-run_cmd_confirm sudo apt-get --yes remove python-django
-run_cmd_confirm sudo pip install django==1.6
+run_cmd_confirm apt-get --yes remove python-django
+run_cmd_confirm pip install django==1.6
 
 if [ $BUILD_DEPS_ONLY = 1 ]; then
   echo "#######################################"
@@ -182,32 +187,32 @@ if [ $BUILD_DEPS_ONLY = 1 ]; then
 fi
 
 header "Installing Mongodb"
-run_cmd_confirm sudo apt-get --yes --force-yes install mongodb python-pymongo;
-sudo service mongodb start 2>/dev/null
+run_cmd_confirm apt-get --yes --force-yes install mongodb python-pymongo;
+run_cmd_confirm service mongodb start 2>/dev/null
 
 header "Installing GRR from prebuilt package"
 SERVER_DEB=$(basename ${SERVER_DEB_URL});
 if [ $GRR_LOCAL_TEST = 0 ]; then
   run_cmd_confirm wget --no-verbose ${SERVER_DEB_URL} -O ${SERVER_DEB};
-  run_cmd_confirm sudo dpkg -i ${SERVER_DEB};
+  run_cmd_confirm dpkg -i ${SERVER_DEB};
 else
-  run_cmd_confirm sudo dpkg -i ${SERVER_DEB};
+  run_cmd_confirm dpkg -i ${SERVER_DEB};
 fi
 
 header "Initialize the configuration, building clients and setting options."
-run_cmd_confirm sudo grr_config_updater initialize
+run_cmd_confirm grr_config_updater initialize
 
 header "Enable grr-single-server to start automatically on boot"
 SERVER_DEFAULT=/etc/default/grr-single-server
-run_cmd_confirm sudo sed -i 's/START=\"no\"/START=\"yes\"/' ${SERVER_DEFAULT};
+run_cmd_confirm sed -i 's/START=\"no\"/START=\"yes\"/' ${SERVER_DEFAULT};
 
 header "Starting up the service"
-sudo initctl status grr-single-server | grep "running"
+initctl status grr-single-server | grep "running"
 IS_RUNNING=$?
 if [ $IS_RUNNING = 0 ]; then
-  run_cmd_confirm sudo service grr-single-server stop
+  run_cmd_confirm service grr-single-server stop
 fi
-run_cmd_confirm sudo service grr-single-server start
+run_cmd_confirm service grr-single-server start
 
 HOSTNAME=`hostname`
 echo "############################################################################################"

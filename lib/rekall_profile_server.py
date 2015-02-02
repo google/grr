@@ -134,16 +134,16 @@ class GRRRekallProfileServer(CachingProfileServer,
     inventory = json.loads(inventory_json)
 
     cache_urn = rdfvalue.RDFURN(config_lib.CONFIG["Rekall.profile_cache_urn"])
-    profile_urns = []
+    profile_urns = {}
     for profile in inventory["$INVENTORY"]:
-      profile_urns.append((profile, cache_urn.Add(version).Add(profile)))
+      profile_urns[profile] = cache_urn.Add(version).Add(profile)
 
-    stats = aff4.FACTORY.Stat(profile_urns)
+    stats = aff4.FACTORY.Stat(profile_urns.values())
     profile_infos = {}
     for metadata in stats:
       profile_infos[metadata["urn"]] = metadata["type"][1]
 
-    for profile, profile_urn in sorted(profile_urns):
+    for profile, profile_urn in sorted(profile_urns.items()):
       if (profile_urn not in profile_infos or
           profile_infos[profile_urn] != u"AFF4RekallProfile"):
         logging.info("Getting missing profile: %s", profile)

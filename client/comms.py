@@ -35,6 +35,7 @@ from grr.client import client_utils
 from grr.lib import communicator
 from grr.lib import config_lib
 from grr.lib import flags
+from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
@@ -409,7 +410,9 @@ class GRRClientWorker(object):
     if msg:
       self.SendReply(
           rdfvalue.DataBlob(string=msg),
-          session_id=rdfvalue.FlowSessionID("aff4:/flows/W:NannyMessage"),
+          session_id=rdfvalue.FlowSessionID(base="aff4:/flows",
+                                            queue=queues.FLOWS,
+                                            flow_name="NannyMessage"),
           priority=rdfvalue.GrrMessage.Priority.LOW_PRIORITY,
           require_fastpoll=False)
       self.nanny_controller.ClearNannyMessage()
@@ -417,7 +420,9 @@ class GRRClientWorker(object):
   def SendClientAlert(self, msg):
     self.SendReply(
         rdfvalue.DataBlob(string=msg),
-        session_id=rdfvalue.FlowSessionID("aff4:/flows/W:ClientAlert"),
+        session_id=rdfvalue.FlowSessionID(base="aff4:/flows",
+                                          queue=queues.FLOWS,
+                                          flow_name="ClientAlert"),
         priority=rdfvalue.GrrMessage.Priority.LOW_PRIORITY,
         require_fastpoll=False)
 
@@ -1116,7 +1121,8 @@ class GRRHTTPClient(object):
       self.client_worker.SendReply(
           rdfvalue.Certificate(type=rdfvalue.Certificate.Type.CSR,
                                pem=self.communicator.GetCSR()),
-          session_id=rdfvalue.SessionID("aff4:/flows/CA:Enrol"))
+          session_id=rdfvalue.SessionID(
+              base="aff4:/flows", queue=queues.ENROLLMENT, flow_name="Enrol"))
 
   def Sleep(self, timeout, heartbeat=False):
     if not heartbeat:
