@@ -37,26 +37,38 @@ ALL_YES=0;
 # installed.
 BUILD_DEPS_ONLY=0;
 
-# Take command line parameters as these are easier for users than shell
-# variables.
-if [ "$1" == "--localtest" ]
-then
-  GRR_LOCAL_TEST=1;
-  GRR_TESTING=1;
-elif [ "$1" == "--test" ]
-then
-  GRR_LOCAL_TEST=0;
-  GRR_TESTING=1;
-fi
+# Use local deb, for testing
+GRR_LOCAL_TEST=0
 
-if [ "$1" == "--build-deps" ] || [ "$2" == "--build-deps" ]; then
-  echo "############################################"
-  echo "#### Installing build dependencies only ####"
-  echo "############################################"
-  BUILD_DEPS_ONLY=1;
-  ALL_YES=1;
-fi
+# Use the GRR test version
+GRR_TESTING=0;
 
+OPTIND=1
+while getopts "h?ltdy" opt; do
+    case "$opt" in
+    h|\?)
+        echo "Usage: ./install_script_ubuntu.sh [OPTIONS]"
+        echo " -l Test locally (no download), get deb from current path"
+        echo " -t Install the GRR beta testing version"
+        echo " -d Only install build dependencies"
+        echo " -y Don't prompt, i.e. answer yes to everything"
+        exit 0
+        ;;
+    l)  GRR_LOCAL_TEST=1
+        ;;
+    t)  GRR_TESTING=1;
+        ;;
+    d)  BUILD_DEPS_ONLY=1;
+        ;;
+    y)  ALL_YES=1;
+        ;;
+    esac
+done
+
+shift $((OPTIND-1))
+[ "$1" = "--" ] && shift
+
+echo "Running with GRR_LOCAL_TEST=${GRR_LOCAL_TEST}, GRR_TESTING=${GRR_TESTING}, BUILD_DEPS_ONLY=${BUILD_DEPS_ONLY}, ALL_YES=${ALL_YES}"
 
 if [ -z "${GRR_TESTING}" ];
 then
@@ -67,14 +79,6 @@ else
   echo "#########################################"
   SERVER_DEB_URL=${SERVER_DEB_TEST_BASE_URL}${GRR_TEST_VERSION}_${PLAT}.deb
 fi
-
-# Used for local testing, if set it will assume the deb is in the current path
-# instead of attempting wget for it.
-if [ -z "${GRR_LOCAL_TEST}" ];
-then
-  GRR_LOCAL_TEST=0;
-fi
-
 
 function header()
 {

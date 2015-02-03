@@ -14,7 +14,7 @@ Vagrant.configure(2) do |config|
     box.vm.box = "ubuntu/trusty64"
     box.vm.provision "shell" do |s|
       s.path = "../scripts/install_script_ubuntu.sh"
-      s.args = ["--build-deps"]
+      s.args = ["-dy"]
     end
   end
 

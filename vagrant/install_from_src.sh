@@ -4,6 +4,8 @@
 # ubuntu systems as old as ubuntu lucid (10.04.4). We choose lucid so that GRR
 # will run on ubuntu linux machines at least as old as this.
 
+set -e
+
 # Update the system
 function apt_get_update() {
   sudo apt-get --yes update
@@ -15,17 +17,20 @@ function install_openssl() {
   wget --quiet https://www.openssl.org/source/openssl-1.0.1l.tar.gz
   tar zxf openssl-1.0.1l.tar.gz
   cd openssl-1.0.1l
-  ./config
-  make -j4
-  make test
+  ./config -fPIC
+  # make -j4 fails, don't use the jobserver
+  make
   sudo make install
-  sudo ldconfig
   cd -
+  sudo -s 'echo /usr/local/ssl/lib > /etc/ld.so.conf.d/ssl.conf'
+  sudo ldconfig
+  export LDFLAGS='-L/usr/local/ssl/lib'
+  export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/ssl/lib
 }
 
 # The wget shipped with lucid doesn't support SANs in SSL certs which breaks
 # lots of the downloads https://savannah.gnu.org/bugs/index.php?20421
-WGET=/usr/local/bin/wget
+WGET="/usr/local/bin/wget --ca-directory=/etc/ssl/certs"
 function install_wget() {
   wget --quiet https://ftp.gnu.org/gnu/wget/wget-1.16.tar.gz
   tar zxvf wget-1.16.tar.gz
@@ -35,6 +40,11 @@ function install_wget() {
   sudo make install
   sudo ldconfig
   cd -
+  # New OpenSSL uses a different hashing scheme, if we don't do this wget will
+  # fail to find the right certificate, but we have to wait until after we use
+  # the existing wget above.
+  # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=611102
+  sudo /usr/local/ssl/bin/c_rehash /etc/ssl/certs/
 }
 
 # We need a newer version of python that what lucid ships with.
