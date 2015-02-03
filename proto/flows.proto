@@ -1074,6 +1074,14 @@ message CreateCronJobFlowArgs {
       " different to periodicity e.g. it allows us to run jobs weekly that"
       " should be killed if they take more than a few hours.",
     }, default=0];
+
+  optional uint64 start_time = 7 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Time at which this cron should run for the first time."
+      "Specifying this allows us to stagger or randomize cron start times so"
+      " they don't all start at once. Default is to start immediately.",
+    }, default=0];
+
 }
 
 message ModifyHuntFlowArgs {

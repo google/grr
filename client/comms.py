@@ -982,7 +982,9 @@ class GRRHTTPClient(object):
   def SendForemanRequest(self):
     self.client_worker.SendReply(
         rdfvalue.DataBlob(),
-        session_id=rdfvalue.FlowSessionID("aff4:/flows/W:Foreman"),
+        session_id=rdfvalue.FlowSessionID(base="aff4:/flows",
+                                          queue=queues.FLOWS,
+                                          flow_name="Foreman"),
         priority=rdfvalue.GrrMessage.Priority.LOW_PRIORITY,
         require_fastpoll=False)
 
@@ -1033,7 +1035,9 @@ class GRRHTTPClient(object):
         try:
           self.client_worker.SendReply(
               rdfvalue.DataBlob(),
-              session_id=rdfvalue.FlowSessionID("aff4:/flows/W:Foreman"),
+              session_id=rdfvalue.FlowSessionID(base="aff4:/flows",
+                                                queue=queues.FLOWS,
+                                                flow_name="Foreman"),
               priority=rdfvalue.GrrMessage.Priority.LOW_PRIORITY,
               require_fastpoll=False, blocking=False)
           self.last_foreman_check = now

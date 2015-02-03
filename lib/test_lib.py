@@ -1332,7 +1332,7 @@ class MockClient(object):
         session_id = message.session_id
 
         logging.info("Running well known flow: %s", session_id)
-        self.well_known_flows[str(session_id)].ProcessMessage(message)
+        self.well_known_flows[session_id.FlowName()].ProcessMessage(message)
 
       return
 
@@ -1490,11 +1490,12 @@ class MockWorker(worker.GRRWorker):
           run_sessions.append(session_id)
 
           # Handle well known flows here.
-          if session_id in self.well_known_flows:
-            well_known_flow = self.well_known_flows[session_id]
+          flow_name = session_id.FlowName()
+          if flow_name in self.well_known_flows:
+            well_known_flow = self.well_known_flows[flow_name]
             with well_known_flow:
               responses = well_known_flow.FetchAndRemoveRequestsAndResponses(
-                  session_id)
+                  well_known_flow.well_known_session_id)
             well_known_flow.ProcessResponses(responses, self.pool)
             continue
 

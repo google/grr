@@ -1034,7 +1034,7 @@ class WellKnownFlow(GRRFlow):
       if aff4.issubclass(cls, WellKnownFlow) and cls.well_known_session_id:
         well_known_flow = cls(cls.well_known_session_id,
                               mode="rw", token=token)
-        well_known_flows[cls.well_known_session_id] = well_known_flow
+        well_known_flows[cls.well_known_session_id.FlowName()] = well_known_flow
 
     return well_known_flows
 
@@ -1512,9 +1512,8 @@ class FrontEndServer(object):
     self.thread_pool.Start()
 
     # Well known flows are run on the front end.
-    self.well_known_flows = {
-        x.FlowName(): y for (x, y) in
-        WellKnownFlow.GetAllWellKnownFlows(token=self.token).iteritems()}
+    self.well_known_flows = (
+        WellKnownFlow.GetAllWellKnownFlows(token=self.token))
     well_known_flow_names = self.well_known_flows.keys()
     for well_known_flow in well_known_flow_names:
       if well_known_flow not in config_lib.CONFIG["Frontend.well_known_flows"]:

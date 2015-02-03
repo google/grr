@@ -322,6 +322,11 @@ class PurgeClientStats(cronjobs.SystemCronFlow):
     data_store.DB.Flush()
 
 
+def GetSystemForemanRule(os_string):
+  return rdfvalue.ForemanAttributeRegex(
+      attribute_name="System", attribute_regex=os_string)
+
+
 class EndToEndTests(cronjobs.SystemCronFlow):
   """Runs end-to-end tests on designated clients.
 

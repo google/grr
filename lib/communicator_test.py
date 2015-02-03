@@ -21,6 +21,7 @@ from grr.lib import communicator
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import flow
+from grr.lib import queues
 from grr.lib import rdfvalue
 # pylint: disable=unused-import
 from grr.lib import server_plugins
@@ -72,9 +73,11 @@ class ClientCommsTest(test_lib.GRRBaseTest):
   def ClientServerCommunicate(self, timestamp=None):
     """Tests the end to end encrypted communicators."""
     message_list = rdfvalue.MessageList()
-    for i in range(0, 10):
+    for i in range(1, 11):
       message_list.job.Append(
-          session_id=rdfvalue.SessionID("aff4:/flows/W:%d" % i),
+          session_id=rdfvalue.SessionID(base="aff4:/flows",
+                                        queue=queues.FLOWS,
+                                        flow_name=i),
           name="OMG it's a string")
 
     result = rdfvalue.ClientCommunication()
@@ -88,9 +91,11 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     self.assertEqual(source, self.client_communicator.common_name)
     self.assertEqual(client_timestamp, timestamp)
     self.assertEqual(len(decoded_messages), 10)
-    for i in range(0, 10):
-      self.assertEqual(decoded_messages[i].session_id,
-                       rdfvalue.SessionID("aff4:/flows/W:%d" % i))
+    for i in range(1, 11):
+      self.assertEqual(decoded_messages[i-1].session_id,
+                       rdfvalue.SessionID(base="aff4:/flows",
+                                          queue=queues.FLOWS,
+                                          flow_name=i))
 
     return decoded_messages
 

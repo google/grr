@@ -1,6 +1,10 @@
 #!/usr/bin/env python
+
+import random
 import time
 
+
+import mock
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
@@ -47,6 +51,14 @@ class DummySystemCronJob(cronjobs.SystemCronFlow):
 
   lifetime = rdfvalue.Duration("42h")
   frequency = rdfvalue.Duration("42d")
+
+  @flow.StateHandler(next_state="End")
+  def Start(self):
+    self.CallState(next_state="End")
+
+
+class DummySystemCronJobStartNow(DummySystemCronJob):
+  start_time_randomization_window = None
 
   @flow.StateHandler(next_state="End")
   def Start(self):
@@ -155,6 +167,112 @@ class CronTest(test_lib.AFF4ObjectTest):
     # as usual.
     self.assertFalse(cron_job1.IsRunning())
     self.assertTrue(cron_job2.IsRunning())
+
+  def testCronJobRespectsStartTime(self):
+    with test_lib.FakeTime(0):
+      cron_manager = cronjobs.CronManager()
+      start_time1 = rdfvalue.RDFDatetime(100 * 1000 * 1000)
+      cron_args1 = rdfvalue.CreateCronJobFlowArgs(start_time=start_time1)
+      cron_args1.flow_runner_args.flow_name = "FakeCronJob"
+
+      cron_args2 = rdfvalue.CreateCronJobFlowArgs()
+      cron_args2.flow_runner_args.flow_name = "FakeCronJob"
+
+      cron_job_urn1 = cron_manager.ScheduleFlow(cron_args1, token=self.token)
+      cron_job_urn2 = cron_manager.ScheduleFlow(cron_args2, token=self.token)
+
+      cron_manager.RunOnce(token=self.token)
+
+      cron_job1 = aff4.FACTORY.Open(cron_job_urn1, aff4_type="CronJob",
+                                    token=self.token)
+      cron_job2 = aff4.FACTORY.Open(cron_job_urn2, aff4_type="CronJob",
+                                    token=self.token)
+
+      self.assertEqual(cron_job1.Get(cron_job1.Schema.CRON_ARGS).start_time,
+                       start_time1)
+
+      # Flow without a start time should now be running
+      self.assertFalse(cron_job1.IsRunning())
+      self.assertTrue(cron_job2.IsRunning())
+
+    # Move the clock past the start time
+    with test_lib.FakeTime(500):
+
+      cron_manager.RunOnce(token=self.token)
+
+      cron_job1 = aff4.FACTORY.Open(cron_job_urn1, aff4_type="CronJob",
+                                    token=self.token)
+      cron_job2 = aff4.FACTORY.Open(cron_job_urn2, aff4_type="CronJob",
+                                    token=self.token)
+
+      # Start time should be the same
+      self.assertEqual(cron_job1.Get(cron_job1.Schema.CRON_ARGS).start_time,
+                       start_time1)
+
+      # Now both should be running
+      self.assertTrue(cron_job1.IsRunning())
+      self.assertTrue(cron_job2.IsRunning())
+
+  def testGetStartTime(self):
+    class TestSystemCron(cronjobs.SystemCronFlow):
+      frequency = rdfvalue.Duration("1d")
+      lifetime = rdfvalue.Duration("12h")
+
+    class NoRandom(cronjobs.SystemCronFlow):
+      frequency = rdfvalue.Duration("1d")
+      lifetime = rdfvalue.Duration("12h")
+      start_time_randomization_window = None
+
+    with test_lib.FakeTime(100):
+      now = rdfvalue.RDFDatetime().Now()
+
+      with mock.patch.object(
+          random, "randint",
+          side_effect=[100 * 1000 * 1000, 123 * 1000 * 1000]):
+        start1 = cronjobs.GetStartTime(TestSystemCron)
+        start2 = cronjobs.GetStartTime(TestSystemCron)
+
+      self.assertEqual(start1.AsSecondsFromEpoch(), 100)
+      self.assertEqual(start2.AsSecondsFromEpoch(), 123)
+
+      self.assertTrue(now <= start1 <= (now + TestSystemCron.frequency))
+      self.assertTrue(now <= start2 <= (now + TestSystemCron.frequency))
+
+      # Check disabling gives us a start time of now()
+      now = rdfvalue.RDFDatetime().Now()
+      start1 = cronjobs.GetStartTime(NoRandom)
+      start2 = cronjobs.GetStartTime(NoRandom)
+
+      self.assertEqual(start1.AsSecondsFromEpoch(),
+                       now.AsSecondsFromEpoch())
+      self.assertEqual(start1.AsSecondsFromEpoch(), start2.AsSecondsFromEpoch())
+
+  def testSystemCronJobSetsStartTime(self):
+    config_lib.CONFIG.Set("Cron.enabled_system_jobs",
+                          ["DummySystemCronJob",
+                           "DummySystemCronJobStartNow"])
+    with test_lib.FakeTime(100):
+      now = rdfvalue.RDFDatetime().Now()
+      cronjobs.ScheduleSystemCronFlows(token=self.token)
+      random_time = "aff4:/cron/DummySystemCronJob"
+      no_random_time = "aff4:/cron/DummySystemCronJobStartNow"
+
+      random_time_job = aff4.FACTORY.Open(random_time,
+                                          aff4_type="CronJob",
+                                          token=self.token)
+
+      no_random_time_job = aff4.FACTORY.Open(no_random_time,
+                                             aff4_type="CronJob",
+                                             token=self.token)
+
+      start_time_now = no_random_time_job.Get(
+          no_random_time_job.Schema.CRON_ARGS).start_time
+      self.assertEqual(start_time_now, now)
+
+      random_start_time = random_time_job.Get(
+          random_time_job.Schema.CRON_ARGS).start_time
+      self.assertTrue(now < random_start_time < (
+          now + DummySystemCronJob.frequency))
 
   def testCronJobRunMonitorsRunningFlowState(self):
     cron_manager = cronjobs.CronManager()
