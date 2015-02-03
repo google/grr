@@ -13,7 +13,6 @@ import readline  # pylint: disable=unused-import
 import sys
 import urlparse
 
-
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
 # pylint: enable=g-bad-import-order,unused-import
@@ -36,6 +35,7 @@ from grr.lib import rdfvalue
 from grr.lib import startup
 from grr.lib import utils
 from grr.lib.aff4_objects import users
+
 # pylint: enable=g-import-not-at-top,no-name-in-module
 
 
@@ -99,11 +99,11 @@ parser_add_user.add_argument(
     help="Don't create the user as an administrator.")
 
 
-def UpdateUser(username, password, add_labels=None, delete_labels=None):
+def UpdateUser(username, password, add_labels=None, delete_labels=None, token=None):
   """Implementation of the update_user command."""
   print "Updating user %s" % username
   with aff4.FACTORY.Create("aff4:/users/%s" % username,
-                           "GRRUser", mode="rw") as fd:
+                           "GRRUser", mode="rw", token=token) as fd:
     # Note this accepts blank passwords as valid.
     if password is not None:
       fd.SetPassword(password)
@@ -147,7 +147,7 @@ def UpdateUser(username, password, add_labels=None, delete_labels=None):
     if final_del_labels:
       fd.RemoveLabels(*final_del_labels, owner="GRR")
 
-  ShowUser(username)
+  ShowUser(username, token=token)
 
 # Delete an existing user.
 parser_update_user = subparsers.add_parser(
@@ -156,14 +156,14 @@ parser_update_user = subparsers.add_parser(
 parser_update_user.add_argument("username", help="Username to update.")
 
 
-def DeleteUser(username):
+def DeleteUser(username, token=None):
   try:
-    aff4.FACTORY.Open("aff4:/users/%s" % username, "GRRUser")
+    aff4.FACTORY.Open("aff4:/users/%s" % username, "GRRUser", token=token)
   except aff4.InstantiationError:
     print "User %s not found." % username
     return
 
-  aff4.FACTORY.Delete("aff4:/users/%s" % username)
+  aff4.FACTORY.Delete("aff4:/users/%s" % username, token=token)
   print "User %s has been deleted." % username
 
 # Show user account.
@@ -175,15 +175,15 @@ parser_show_user.add_argument(
     help="Username to display. If not specified, list all users.")
 
 
-def ShowUser(username):
-  """Implementation o the show_user command."""
+def ShowUser(username, token=None):
+  """Implementation to the show_user command."""
   if username is None:
-    fd = aff4.FACTORY.Open("aff4:/users")
+    fd = aff4.FACTORY.Open("aff4:/users", token=token)
     for user in fd.OpenChildren():
       if isinstance(user, users.GRRUser):
         print user.Describe()
   else:
-    user = aff4.FACTORY.Open("aff4:/users/%s" % username)
+    user = aff4.FACTORY.Open("aff4:/users/%s" % username, token=token)
     if isinstance(user, users.GRRUser):
       print user.Describe()
     else:
@@ -256,7 +256,7 @@ parser_upload_memory_driver = subparsers.add_parser(
     help="Sign and upload a memory driver for a specific platform.")
 
 
-def LoadMemoryDrivers(grr_dir):
+def LoadMemoryDrivers(grr_dir, token=None):
   """Load memory drivers from disk to database."""
   for client_context in [["Platform:Darwin", "Arch:amd64"],
                          ["Platform:Windows", "Arch:i386"],
@@ -276,7 +276,7 @@ def LoadMemoryDrivers(grr_dir):
       print "Signing and uploading %s to %s" % (f_path, aff4_path)
       up_path = maintenance_utils.UploadSignedDriverBlob(
           open(f_path).read(), aff4_path=aff4_path,
-          client_context=client_context)
+          client_context=client_context, token=token)
       print "uploaded %s" % up_path
 
 
@@ -436,7 +436,7 @@ Address where high priority events such as an emergency ACL bypass are sent.
          config.parser)
 
 
-def Initialize(config=None):
+def Initialize(config=None, token=None):
   """Initialize or update a GRR configuration."""
 
   print "Checking write access on config %s" % config.parser
@@ -474,11 +474,11 @@ def Initialize(config=None):
 
   print "\nStep 3: Adding Admin User"
   password = getpass.getpass(prompt="Please enter password for user 'admin': ")
-  UpdateUser("admin", password, ["admin"])
+  UpdateUser("admin", password, ["admin"], token=token)
   print "User admin added."
 
   print "\nStep 4: Uploading Memory Drivers to the Database"
-  LoadMemoryDrivers(flags.FLAGS.share_dir)
+  LoadMemoryDrivers(flags.FLAGS.share_dir, token=token)
 
   print "\nStep 5: Repackaging clients with new configuration."
   # We need to update the config to point to the installed templates now.
@@ -486,25 +486,29 @@ def Initialize(config=None):
       flags.FLAGS.share_dir, "executables"))
 
   # Build debug binaries, then build release binaries.
-  maintenance_utils.RepackAllBinaries(upload=True, debug_build=True)
-  maintenance_utils.RepackAllBinaries(upload=True)
+  maintenance_utils.RepackAllBinaries(upload=True, debug_build=True, token=token)
+  maintenance_utils.RepackAllBinaries(upload=True, token=token)
 
   print "\nInitialization complete, writing configuration."
   config.Write()
   print "Please restart the service for it to take effect.\n\n"
 
 
-def UploadRaw(file_path, aff4_path):
+def UploadRaw(file_path, aff4_path, token=None):
   """Upload a file to the datastore."""
   full_path = rdfvalue.RDFURN(aff4_path).Add(os.path.basename(file_path))
-  fd = aff4.FACTORY.Create(full_path, "AFF4Image", mode="w")
+  fd = aff4.FACTORY.Create(full_path, "AFF4Image", mode="w", token=token)
   fd.Write(open(file_path).read(1024 * 1024 * 30))
   fd.Close()
   return str(fd.urn)
 
+def GetToken():
+  #Extend for user authorization
+  return rdfvalue.ACLToken(username="GRRConsole").SetUID()
 
 def main(unused_argv):
   """Main."""
+  token = GetToken()
   config_lib.CONFIG.AddContext("Commandline Context")
   config_lib.CONFIG.AddContext("ConfigUpdater Context")
   startup.Init()
@@ -515,7 +519,7 @@ def main(unused_argv):
     raise RuntimeError("No valid config specified.")
 
   if flags.FLAGS.subparser_name == "load_memory_drivers":
-    LoadMemoryDrivers(flags.FLAGS.share_dir)
+    LoadMemoryDrivers(flags.FLAGS.share_dir, token=token)
 
   elif flags.FLAGS.subparser_name == "generate_keys":
     try:
@@ -527,15 +531,17 @@ def main(unused_argv):
     config_lib.CONFIG.Write()
 
   elif flags.FLAGS.subparser_name == "repack_clients":
-    maintenance_utils.RepackAllBinaries(upload=flags.FLAGS.upload)
     maintenance_utils.RepackAllBinaries(upload=flags.FLAGS.upload,
-                                        debug_build=True)
+                                        token=token)
+    maintenance_utils.RepackAllBinaries(upload=flags.FLAGS.upload,
+                                        debug_build=True,
+                                        token=token)
 
   elif flags.FLAGS.subparser_name == "initialize":
-    Initialize(config_lib.CONFIG)
+    Initialize(config_lib.CONFIG, token=token)
 
   elif flags.FLAGS.subparser_name == "show_user":
-    ShowUser(flags.FLAGS.username)
+    ShowUser(flags.FLAGS.username, token=token)
 
   elif flags.FLAGS.subparser_name == "update_user":
     password = None
@@ -543,10 +549,10 @@ def main(unused_argv):
       password = getpass.getpass(prompt="Please enter new password for '%s': " %
                                  flags.FLAGS.username)
     UpdateUser(flags.FLAGS.username, password, flags.FLAGS.add_labels,
-               flags.FLAGS.delete_labels)
+               flags.FLAGS.delete_labels, token=token)
 
   elif flags.FLAGS.subparser_name == "delete_user":
-    DeleteUser(flags.FLAGS.username)
+    DeleteUser(flags.FLAGS.username, token=token)
 
   elif flags.FLAGS.subparser_name == "add_user":
     password = getpass.getpass(prompt="Please enter password for user '%s': " %
@@ -554,7 +560,7 @@ def main(unused_argv):
     labels = []
     if not flags.FLAGS.noadmin:
       labels.append("admin")
-    UpdateUser(flags.FLAGS.username, password, labels)
+    UpdateUser(flags.FLAGS.username, password, labels, token=token)
 
   elif flags.FLAGS.subparser_name == "upload_python":
     content = open(flags.FLAGS.file).read(1024 * 1024 * 30)
@@ -565,7 +571,8 @@ def main(unused_argv):
     context = ["Platform:%s" % flags.FLAGS.platform.title(),
                "Client"]
     maintenance_utils.UploadSignedConfigBlob(content, aff4_path=aff4_path,
-                                             client_context=context)
+                                             client_context=context,
+                                             token=token)
 
   elif flags.FLAGS.subparser_name == "upload_exe":
     content = open(flags.FLAGS.file).read(1024 * 1024 * 30)
@@ -581,7 +588,7 @@ def main(unused_argv):
 
     # Now upload to the destination.
     uploaded = maintenance_utils.UploadSignedConfigBlob(
-        content, aff4_path=dest_path, client_context=context)
+        content, aff4_path=dest_path, client_context=context, token=token)
 
     print "Uploaded to %s" % dest_path
 
@@ -593,18 +600,18 @@ def main(unused_argv):
     if flags.FLAGS.dest_path:
       uploaded = maintenance_utils.UploadSignedDriverBlob(
           content, aff4_path=flags.FLAGS.dest_path,
-          client_context=client_context)
+          client_context=client_context, token=token)
 
     else:
       uploaded = maintenance_utils.UploadSignedDriverBlob(
-          content, client_context=client_context)
+          content, client_context=client_context, token=token)
 
     print "Uploaded to %s" % uploaded
 
   elif flags.FLAGS.subparser_name == "upload_raw":
     if not flags.FLAGS.dest_path:
       flags.FLAGS.dest_path = aff4.ROOT_URN.Add("config").Add("raw")
-    uploaded = UploadRaw(flags.FLAGS.file, flags.FLAGS.dest_path)
+    uploaded = UploadRaw(flags.FLAGS.file, flags.FLAGS.dest_path, token=token)
     print "Uploaded to %s" % uploaded
 
   elif flags.FLAGS.subparser_name == "upload_artifact":

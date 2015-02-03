@@ -4,11 +4,10 @@
 These are concrete implementations of the classes defined in access_control.py:
 
 AccessControlManager Classes:
-  NullAccessControlManager: Gives everyone full access to everything.
-  TestAccessControlManager: In memory, very basic functionality for tests.
-  FullAccessControlManager: Provides for multiparty authorization.
+  BaseAccessControlManager: Gives everyone full access to everything.
   BasicAccessControlManager: Provides basic Admin/Non-Admin distinction based on
     labels.
+  FullAccessControlManager: Provides for multiparty authorization.
 """
 
 
@@ -26,63 +25,6 @@ from grr.lib import stats
 from grr.lib import utils
 
 from grr.lib.aff4_objects import aff4_grr
-
-
-class BaseAccessControlManager(access_control.AccessControlManager):
-
-  def CheckUserLabels(self, username, authorized_labels, token=None):
-    """Verify that the username has all the authorized_labels set."""
-    authorized_labels = set(authorized_labels)
-
-    try:
-      user = aff4.FACTORY.Open("aff4:/users/%s" % username, aff4_type="GRRUser",
-                               token=token)
-
-      # Only return if all the authorized_labels are found in the user's
-      # label list, otherwise raise UnauthorizedAccess.
-      if (authorized_labels.intersection(user.GetLabelsNames()) ==
-          authorized_labels):
-        return
-      raise access_control.UnauthorizedAccess(
-          "User %s is missing labels (required: %s)." % (username,
-                                                         authorized_labels))
-    except IOError:
-      raise access_control.UnauthorizedAccess("User %s not found." % username)
-
-
-class BasicAccessControlManager(BaseAccessControlManager):
-  """Basic ACL manager that uses the config file for user management."""
-
-  # pylint: disable=unused-argument
-
-  def CheckHuntAccess(self, token, hunt_urn):
-    """Allow all access."""
-    return True
-
-  def CheckFlowAccess(self, token, flow_name, client_id=None):
-    """Allow all access."""
-    return True
-
-  def CheckCronJobAccess(self, token, cron_job_urn):
-    """Allow all access."""
-    return True
-
-  def CheckDataStoreAccess(self, token, subjects, requested_access="r"):
-    """Allow all access."""
-    return True
-  # pylint: enable=unused-argument
-
-
-class NullAccessControlManager(BasicAccessControlManager):
-  """An ACL manager which does not enforce any ACLs."""
-
-  # pylint: disable=unused-argument
-
-  def CheckUserLabels(self, username, authorized_labels, token=None):
-    """Allow all access."""
-    return True
-  # pylint: enable=unused-argument
-
 
 class CheckAccessHelper(object):
   """Helps with access checks (See FullAccessControlManager for details)."""
@@ -163,27 +105,50 @@ class CheckAccessHelper(object):
         # If require() fails, it raises access_control.UnauthorizedAccess.
         require(subject, token, *require_args, **require_kwargs)
 
-      logging.debug("Allowing access to %s by pattern: %s "
+      logging.debug("Datastore access granted to %s on %s by pattern: %s "
                     "(require=%s, require_args=%s, require_kwargs=%s, "
                     "helper_name=%s)",
-                    subject_str, regex_text, require, require_args,
-                    require_kwargs, self.helper_name)
+                    token.username, subject_str, regex_text, require,
+                    require_args, require_kwargs, self.helper_name)
       return True
 
-    logging.debug("Rejecting access to %s (no matched rules)", subject_str)
+    logging.warn("Datastore access denied to %s (no matched rules)",
+                  subject_str)
     raise access_control.UnauthorizedAccess(
         "Access to %s rejected: (no matched rules)." % subject, subject=subject)
 
 
-class FullAccessControlManager(BaseAccessControlManager):
-  """An access control manager that handles multi-party authorization.
+class BaseAccessControlManager(access_control.AccessControlManager):
+  """An ACL manager which does not enforce any ACLs."""
 
-  Write access to the data store is forbidden. Data store read- and query-access
-  policies are defined in _CreateReadAccessHelper and _CreateQueryAccessHelper
-  functions. Please refer to these functions to review or modify GRR's data
-  store access policies.
-  """
+  # pylint: disable=unused-argument
+  def CheckUserLabels(self, username, authorized_labels, token=None):
+    """Allow all access."""
+    return True
 
+  def CheckHuntAccess(self, token, hunt_urn):
+    """Allow all access."""
+    return True
+
+  def CheckFlowAccess(self, token, flow_name, client_id=None):
+    """Allow all access."""
+    return True
+
+  def CheckCronJobAccess(self, token, cron_job_urn):
+    """Allow all access."""
+    return True
+
+  def CheckDataStoreAccess(self, token, subjects, requested_access="r"):
+    """Allow all access."""
+    return True
+  # pylint: enable=unused-argument
+
+
+class BasicAccessControlManager(BaseAccessControlManager):
+  """Basic ACL manager that uses the config file for user management."""
+
+  SYSTEM_ACCOUNTS = ['GRRCron', 'GRRWorker', 'GRRSystem',
+                     'GRRFrontEnd', 'GRRConsole']
   CLIENT_URN_PATTERN = "aff4:/C." + "[0-9a-fA-F]" * 16
 
   def __init__(self):
@@ -192,13 +157,197 @@ class FullAccessControlManager(BaseAccessControlManager):
         max_size=10000, max_age=config_lib.CONFIG["ACL.cache_age"])
 
     self.flow_cache = utils.FastStore(max_size=10000)
-    self.super_token = access_control.ACLToken(username="test").SetUID()
+    self.super_token = access_control.ACLToken(username="GRRSystem").SetUID()
 
     self.write_access_helper = self._CreateWriteAccessHelper()
     self.read_access_helper = self._CreateReadAccessHelper()
     self.query_access_helper = self._CreateQueryAccessHelper()
 
-    super(FullAccessControlManager, self).__init__()
+    super(BasicAccessControlManager, self).__init__()
+
+  def CheckUserLabels(self, username, authorized_labels, token=None):
+    """Verify that the username has all the authorized_labels set."""
+    authorized_labels = set(authorized_labels)
+
+    try:
+      user = aff4.FACTORY.Open("aff4:/users/%s" % username, aff4_type="GRRUser",
+                               token=token)
+
+      # Only return if all the authorized_labels are found in the user's
+      # label list, otherwise raise UnauthorizedAccess.
+      if (authorized_labels.intersection(user.GetLabelsNames()) ==
+              authorized_labels):
+        return
+      raise access_control.UnauthorizedAccess(
+          "User %s is missing labels (required: %s)." % (username,
+                                                         authorized_labels))
+    except IOError:
+      raise access_control.UnauthorizedAccess("User %s not found." % username)
+
+
+  @stats.Timed("acl_check_time")
+  def CheckFlowAccess(self, token, flow_name, client_id=None):
+    # Flows which are not enforced can run all the time.
+
+    client_urn = None
+    if client_id:
+      client_urn = rdfvalue.ClientURN(client_id)
+
+    self.ValidateToken(token, client_urn)
+
+    flow_cls = flow.GRRFlow.GetPlugin(flow_name)
+
+    if not flow_cls.ACL_ENFORCED:
+      logging.debug("ACL access granted by ACL_ENFORCED bypass for %s.",
+                    flow_name)
+      return True
+
+    return self.CheckACL(token, client_urn)
+
+  @stats.Timed("acl_check_time")
+  def CheckHuntAccess(self, token, hunt_urn):
+    self.ValidateToken(token, hunt_urn)
+    return self.CheckACL(token, hunt_urn)
+
+  @stats.Timed("acl_check_time")
+  def CheckCronJobAccess(self, token, cron_job_urn):
+    self.ValidateToken(token, cron_job_urn)
+    return self.CheckACL(token, cron_job_urn)
+
+  def CheckClientAccess(self, subject, token):
+    client_id, _ = rdfvalue.RDFURN(subject).Split(2)
+    client_urn = rdfvalue.ClientURN(client_id)
+    return self.CheckACL(token, client_urn)
+
+
+  @stats.Timed("acl_check_time")
+  def CheckDataStoreAccess(self, token, subjects, requested_access="r"):
+    """Allow all access."""
+
+    self.ValidateToken(token, subjects)
+    self.ValidateRequestedAccess(requested_access)
+
+    # The supervisor may bypass all ACL checks.
+    if token.supervisor:
+      logging.debug("Datastore access granted to %s on %s. Mode: %s "
+                    "Supervisor: %s", token.username, subjects,
+                    requested_access, token.supervisor)
+      return True
+
+    # Direct writes are not allowed. Specialised flows (with ACL_ENFORCED=False)
+    # have to be used instead.
+    access_checkers = {"w": self.write_access_helper.CheckAccess,
+                       "r": self.read_access_helper.CheckAccess,
+                       "q": self.query_access_helper.CheckAccess}
+
+    for subject in subjects:
+      for access in requested_access:
+        try:
+          access_checkers[access](subject, token)
+
+        except KeyError:
+          raise access_control.UnauthorizedAccess(
+              "Invalid access requested for %s" % subject, subject=subject,
+              requested_access=requested_access)
+        except access_control.UnauthorizedAccess as e:
+          logging.warn("Datastore access denied to %s on %s. Mode: %s "
+                       "Error: %s", token.username, subjects,
+                       requested_access, e)
+          e.requested_access = requested_access
+          raise
+
+    return True
+
+  def ValidateToken(self, token, target):
+    """Validate Basic Token Issues"""
+    # All accesses need a token.
+    if not token:
+      raise access_control.UnauthorizedAccess(
+          "Must give an authorization token for %s" % target, subject=target
+          )
+
+    # Token must not be expired here.
+    token.CheckExpiry()
+
+    # Token must have identity
+    if not token.username:
+      raise access_control.UnauthorizedAccess(
+          "Must specify a username for access to %s." % target, subject=target
+          )
+
+  def ValidateRequestedAccess(self, requested_access):
+    if not requested_access:
+      raise access_control.UnauthorizedAccess(
+          "Must specify requested access type for %s" % subjects)
+
+    if "q" in requested_access and "r" not in requested_access:
+      raise access_control.UnauthorizedAccess(
+          "Invalid access request: query permissions require read permissions "
+          "for %s" % subjects, requested_access=requested_access)
+
+  def _CreateWriteAccessHelper(self):
+    """Creates a CheckAccessHelper for controlling write access."""
+    h = CheckAccessHelper("write")
+
+    h.Allow("*")
+
+    return h
+
+  def _CreateReadAccessHelper(self):
+    """Creates a CheckAccessHelper for controlling read access.
+
+    This function and _CreateQueryAccessHelper essentially define GRR's ACL
+    policy. Please refer to these 2 functions to either review or modify
+    GRR's ACLs.
+
+    Returns:
+      CheckAccessHelper for controlling read access.
+    """
+    h = CheckAccessHelper("read")
+
+    h.Allow("*")
+
+    return h
+
+  def _CreateQueryAccessHelper(self):
+    """Creates a CheckAccessHelper for controlling query access.
+
+    This function and _CreateReadAccessHelper essentially define GRR's ACL
+    policy. Please refer to these 2 functions to either review or modify
+    GRR's ACLs.
+
+    Returns:
+      CheckAccessHelper for controlling query access.
+    """
+    h = CheckAccessHelper("query")
+
+    h.Allow("*")
+
+    return h
+
+  def CheckACL(self, token, target):
+    logging.debug("ACL access granted to %s on %s. Supervisor: %s",
+                  token.username, target, token.supervisor)
+    return True
+
+
+class FullAccessControlManager(BasicAccessControlManager):
+
+  def UserHasAdminLabel(self, subject, token):
+    """Checks whether a user has admin label. Used by CheckAccessHelper."""
+    self.CheckUserLabels(token.username, ["admin"], token=token)
+
+  def IsHomeDir(self, subject, token):
+    """Checks user access permissions for paths under aff4:/users."""
+    h = CheckAccessHelper("IsHomeDir")
+    h.Allow("aff4:/users/%s" % token.username)
+    h.Allow("aff4:/users/%s/*" % token.username)
+    try:
+      return h.CheckAccess(subject, token)
+    except access_control.UnauthorizedAccess:
+      raise access_control.UnauthorizedAccess("User can only access his "
+                                              "home directory.",
+                                              subject=subject)
 
   def _CreateWriteAccessHelper(self):
     """Creates a CheckAccessHelper for controlling write access."""
@@ -303,7 +452,7 @@ class FullAccessControlManager(BaseAccessControlManager):
 
     # Namespace for clients.
     h.Allow(self.CLIENT_URN_PATTERN)
-    h.Allow(self.CLIENT_URN_PATTERN + "/*", self.UserHasClientApproval)
+    h.Allow(self.CLIENT_URN_PATTERN + "/*", self.CheckClientAccess)
 
     # Namespace for temporary scratch space. Note that Querying this area is not
     # allowed. Users should create files with random names if they want to
@@ -382,6 +531,10 @@ class FullAccessControlManager(BaseAccessControlManager):
     # clients which have this file.
     h.Allow("aff4:/files/hash/generic/sha256/" + "[a-z0-9]" * 64)
 
+    # Allow everyone to query the artifact store.
+    h.Allow("aff4:/artifact_store")
+    h.Allow("aff4:/artifact_store/*")
+
     # Allow everyone to query monitoring data from stats store.
     h.Allow("aff4:/stats_store")
     h.Allow("aff4:/stats_store/*")
@@ -392,261 +545,34 @@ class FullAccessControlManager(BaseAccessControlManager):
 
     return h
 
-  def RejectWriteAccess(self, unused_subject, unused_token):
-    """Write access to data store is forbidden. Use flows instead."""
-    raise access_control.UnauthorizedAccess("Write access to data store is "
-                                            "forbidden.")
-
-  @stats.Timed("acl_check_time")
-  def CheckFlowAccess(self, token, flow_name, client_id=None):
-    """Checks access to the given flow.
-
-    Args:
-      token: User credentials token.
-      flow_name: Name of the flow to check.
-      client_id: Client id of the client where the flow is going to be
-                 started. Defaults to None.
-
-    Returns:
-      True if access is allowed, raises otherwise.
-
-    Raises:
-      access_control.UnauthorizedAccess if access is rejected.
-    """
-    client_urn = None
-    if client_id:
-      client_urn = rdfvalue.ClientURN(client_id)
-
-    if not token:
-      raise access_control.UnauthorizedAccess(
-          "Must give an authorization token for flow %s" % flow_name)
-
-    # Token must not be expired here.
-    token.CheckExpiry()
-
+  def CheckACL(self, token, target):
     # The supervisor may bypass all ACL checks.
     if token.supervisor:
+      logging.debug("ACL access granted to %s on %s. Supervisor: %s",
+                    token.username, target, token.supervisor)
       return True
 
-    flow_cls = flow.GRRFlow.GetPlugin(flow_name)
-
-    # Flows which are not enforced can run all the time.
-    if not flow_cls.ACL_ENFORCED:
-      return True
-
-    if not client_urn:
-      raise access_control.UnauthorizedAccess(
-          "Mortals are only allowed to run flows on the client.")
-
-    # This should raise in case of failure.
-    return self.UserHasClientApproval(client_urn, token)
-
-  @stats.Timed("acl_check_time")
-  def CheckHuntAccess(self, token, hunt_urn):
-    """Checks access to the given hunt.
-
-    Args:
-      token: User credentials token.
-      hunt_urn: URN of the hunt to check.
-
-    Returns:
-      True if access is allowed, raises otherwise.
-
-    Raises:
-      access_control.UnauthorizedAccess if access is rejected.
-    """
-    logging.debug("Checking approval for hunt %s, %s", hunt_urn, token)
-    if token.supervisor:
-      return True
-
-    if not token.username:
-      raise access_control.UnauthorizedAccess(
-          "Must specify a username for access.",
-          subject=hunt_urn)
+    # Target may be None for flows not specifying a client.
+    # Only SYSTEM_ACCOUNTS can run these flows.
+    if not target:
+      if token.username not in self.SYSTEM_ACCOUNTS:
+        raise access_control.UnauthorizedAccess(
+            "ACL access denied for flow without client_urn for %s",
+            token.username)
 
     if not token.reason:
       raise access_control.UnauthorizedAccess(
           "Must specify a reason for access.",
-          subject=hunt_urn)
-
-     # Build the approval URN.
-    approval_urn = aff4.ROOT_URN.Add("ACL").Add(hunt_urn.Path()).Add(
-        token.username).Add(utils.EncodeReasonString(token.reason))
-
-    try:
-      approval_request = aff4.FACTORY.Open(
-          approval_urn, aff4_type="Approval", mode="r",
-          token=token, age=aff4.ALL_TIMES)
-    except IOError:
-      # No Approval found, reject this request.
-      raise access_control.UnauthorizedAccess(
-          "No approval found for hunt %s." % hunt_urn, subject=hunt_urn)
-
-    if approval_request.CheckAccess(token):
-      return True
-    else:
-      raise access_control.UnauthorizedAccess(
-          "Approval %s was rejected." % approval_urn, subject=hunt_urn)
-
-  @stats.Timed("acl_check_time")
-  def CheckCronJobAccess(self, token, cron_job_urn):
-    """Checks access to a given cron job.
-
-    Args:
-      token: User credentials token.
-      cron_job_urn: URN of cron job to check.
-
-    Returns:
-      True if access is allowed, raises otherwise.
-
-    Raises:
-      access_control.UnauthorizedAccess if access is rejected.
-    """
-    logging.debug("Checking approval for cron job %s, %s", cron_job_urn, token)
-
-    if not token.username:
-      raise access_control.UnauthorizedAccess(
-          "Must specify a username for access.", subject=cron_job_urn)
-
-    if not token.reason:
-      raise access_control.UnauthorizedAccess(
-          "Must specify a reason for access.",
-          subject=cron_job_urn)
-
-     # Build the approval URN.
-    approval_urn = aff4.ROOT_URN.Add("ACL").Add(cron_job_urn.Path()).Add(
-        token.username).Add(utils.EncodeReasonString(token.reason))
-
-    try:
-      approval_request = aff4.FACTORY.Open(approval_urn, aff4_type="Approval",
-                                           mode="r", token=token,
-                                           age=aff4.ALL_TIMES)
-    except IOError:
-      # No Approval found, reject this request.
-      raise access_control.UnauthorizedAccess(
-          "No approval found for cron job %s." % cron_job_urn,
-          subject=cron_job_urn)
-
-    if approval_request.CheckAccess(token):
-      return True
-    else:
-      raise access_control.UnauthorizedAccess(
-          "Approval %s was rejected." % approval_urn, subject=cron_job_urn)
-
-  @stats.Timed("acl_check_time")
-  def CheckDataStoreAccess(self, token, subjects, requested_access="r"):
-    """The main entry point for checking access to data store resources.
-
-    Args:
-      token: An instance of ACLToken security token.
-
-      subjects: The list of subject URNs which the user is requesting access
-         to. If any of these fail, the whole request is denied.
-
-      requested_access: A string specifying the desired level of access ("r" for
-         read and "w" for write, "q" for query).
-
-    Returns:
-       True: If the access is allowed.
-
-    Raises:
-       UnauthorizedAccess: If the user is not authorized to perform
-       the action on any of the subject URNs.
-
-       ExpiryError: If the token is expired.
-    """
-    # All accesses need a token.
-    if not token:
-      raise access_control.UnauthorizedAccess(
-          "Must give an authorization token for %s" % subjects,
-          requested_access=requested_access)
-
-    if not requested_access:
-      raise access_control.UnauthorizedAccess(
-          "Must specify requested access type for %s" % subjects)
-
-    if "q" in requested_access and "r" not in requested_access:
-      raise access_control.UnauthorizedAccess(
-          "Invalid access request: query permissions require read permissions "
-          "for %s" % subjects, requested_access=requested_access)
-
-    # Token must not be expired here.
-    token.CheckExpiry()
-
-    # The supervisor may bypass all ACL checks.
-    if token.supervisor:
-      return True
-
-    logging.debug("Checking %s: %s for %s", token, subjects, requested_access)
-
-    # Direct writes are not allowed. Specialised flows (with ACL_ENFORCED=False)
-    # have to be used instead.
-    access_checkers = {"w": self.write_access_helper.CheckAccess,
-                       "r": self.read_access_helper.CheckAccess,
-                       "q": self.query_access_helper.CheckAccess}
-
-    for subject in subjects:
-      for access in requested_access:
-        try:
-          access_checkers[access](subject, token)
-
-        except KeyError:
-          raise access_control.UnauthorizedAccess(
-              "Invalid access requested for %s" % subject, subject=subject,
-              requested_access=requested_access)
-        except access_control.UnauthorizedAccess as e:
-          logging.info("%s access rejected for %s: %s", requested_access,
-                       subject, e)
-          e.requested_access = requested_access
-          raise
-
-    return True
-
-  def UserHasAdminLabel(self, subject, token):
-    """Checks whether a user has admin label. Used by CheckAccessHelper."""
-    self.CheckUserLabels(token.username, ["admin"], token=token)
-
-  def IsHomeDir(self, subject, token):
-    """Checks user access permissions for paths under aff4:/users."""
-    h = CheckAccessHelper("IsHomeDir")
-    h.Allow("aff4:/users/%s" % token.username)
-    h.Allow("aff4:/users/%s/*" % token.username)
-    try:
-      return h.CheckAccess(subject, token)
-    except access_control.UnauthorizedAccess:
-      raise access_control.UnauthorizedAccess("User can only access his "
-                                              "home directory.",
-                                              subject=subject)
-
-  def UserHasClientApproval(self, subject, token):
-    """Checks if read access for this client is allowed using the given token.
-
-    Args:
-      subject: Subject below the client level which triggered the check.
-      token: The token to check with.
-
-    Returns:
-      True if the access is allowed.
-
-    Raises:
-      UnauthorizedAccess: if the access is rejected.
-    """
-    client_id, _ = rdfvalue.RDFURN(subject).Split(2)
-    client_urn = rdfvalue.ClientURN(client_id)
-
-    logging.debug("Checking client approval for %s, %s", client_urn, token)
-
-    if not token.reason:
-      raise access_control.UnauthorizedAccess(
-          "Must specify a reason for access.",
-          subject=client_urn)
+          subject=target)
 
     # Build the approval URN.
-    approval_urn = aff4.ROOT_URN.Add("ACL").Add(client_urn.Path()).Add(
+    approval_urn = aff4.ROOT_URN.Add("ACL").Add(target.Path()).Add(
         token.username).Add(utils.EncodeReasonString(token.reason))
 
     try:
       token.is_emergency = self.acl_cache.Get(approval_urn)
+      logging.debug("ACL access granted to %s on %s. Supervisor: %s",
+                   token.username, target, token.supervisor)
       return True
     except KeyError:
       try:
@@ -659,14 +585,16 @@ class FullAccessControlManager(BaseAccessControlManager):
         if approval_request.CheckAccess(token):
           # Cache this approval for fast path checking.
           self.acl_cache.Put(approval_urn, token.is_emergency)
+          logging.debug("ACL access granted to %s on %s. Supervisor: %s",
+                       token.username, target, token.supervisor)
           return True
 
         raise access_control.UnauthorizedAccess(
             "Approval %s was rejected." % approval_urn,
-            subject=client_urn)
+            subject=target)
 
       except IOError:
         # No Approval found, reject this request.
         raise access_control.UnauthorizedAccess(
-            "No approval found for client %s." % client_urn,
-            subject=client_urn)
+            "No approval found for %s." % target,
+            subject=target)

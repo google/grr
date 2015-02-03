@@ -189,7 +189,7 @@ class AccessControlTest(test_lib.GRRBaseTest):
     hunt_urn = self.CreateSampleHunt()
     self.assertRaisesRegexp(
         access_control.UnauthorizedAccess,
-        "No approval found for hunt",
+        "No approval found for",
         flow.GRRFlow.StartFlow,
         flow_name="StartHuntFlow", token=token, hunt_urn=hunt_urn)
 

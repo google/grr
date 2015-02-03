@@ -40,7 +40,7 @@ Config.writeback: "%(Config.directory)/server.local.yaml"
 
 Datastore.implementation: MongoDataStore
 
-Datastore.security_manager: BasicAccessControlManager
+Datastore.security_manager: BaseAccessControlManager
 
 # Logging.domain: example.com
 

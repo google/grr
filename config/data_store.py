@@ -8,7 +8,7 @@ config_lib.DEFINE_integer("Datastore.maximum_blob_size",
                           "Maximum blob size we may store in the datastore.")
 
 config_lib.DEFINE_string("Datastore.security_manager",
-                         "NullAccessControlManager",
+                         "BaseAccessControlManager",
                          "The ACL manager for controlling access to data.")
 
 config_lib.DEFINE_string("Datastore.implementation", "FakeDataStore",
