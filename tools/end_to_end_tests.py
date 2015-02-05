@@ -44,7 +44,7 @@ def RunEndToEndTests():
       "Test Context", "Context applied when we run tests.")
   startup.Init()
 
-  token = access_control.ACLToken(username="test",
+  token = access_control.ACLToken(username="GRREndToEndTest",
                                   reason="Running end to end client tests.")
 
   client_id_set = base.GetClientTestTargets(

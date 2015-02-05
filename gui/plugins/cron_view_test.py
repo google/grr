@@ -4,6 +4,8 @@
 """Test the cron_view interface."""
 
 
+import mock
+
 from grr.gui import runtests_test
 from grr.lib import aff4
 from grr.lib import config_lib
@@ -27,8 +29,10 @@ class TestCronView(test_lib.GRRSeleniumTest):
     super(TestCronView, self).setUp()
 
     with self.ACLChecksDisabled():
-      cronjobs.ScheduleSystemCronFlows(token=self.token)
-      cronjobs.CRON_MANAGER.RunOnce(token=self.token)
+      with mock.patch.object(cronjobs, "GetStartTime", autospec=True,
+                             return_value=rdfvalue.RDFDatetime().Now()):
+        cronjobs.ScheduleSystemCronFlows(token=self.token)
+        cronjobs.CRON_MANAGER.RunOnce(token=self.token)
 
   def testCronView(self):
     self.Open("/")
@@ -401,6 +405,7 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
     # OSBreakDown's row should have a 'warn' class
     self.WaitUntil(self.IsElementPresent,
                    "css=tr.warning td:contains('OSBreakDown')")
+
     # Check that only OSBreakDown is highlighted
     self.WaitUntilNot(self.IsElementPresent,
                       "css=tr.warning td:contains('GRRVersionBreakDown')")

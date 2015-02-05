@@ -119,7 +119,8 @@ class GRRUser(aff4.AFF4Object):
   # URN of the index for labels for users.
   labels_index_urn = rdfvalue.RDFURN("aff4:/index/labels/users")
 
-  SYSTEM_USERS = set(["GRRWorker", "GRRCron", "test"])
+  SYSTEM_USERS = set(["GRRWorker", "GRRCron", "GRRSystem", "GRRFrontEnd",
+                      "GRRConsole"])
 
   class SchemaCls(aff4.AFF4Object.SchemaCls):
     """Schema for GRRUser."""

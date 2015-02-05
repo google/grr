@@ -741,3 +741,27 @@ class AFF4RekallProfile(aff4.AFF4MemoryStream):
   class SchemaCls(aff4.AFF4MemoryStream.SchemaCls):
     PROFILE = aff4.Attribute("aff4:profile", rdfvalue.RekallProfile,
                              "A Rekall profile.")
+
+
+# The catchall client label used when compiling server-side stats about clients
+# by label.
+ALL_CLIENTS_LABEL = "All"
+
+
+def GetAllClientLabels(token, include_catchall=False):
+  """Get the set of all label names applied to all clients.
+
+  Args:
+    token: token to use when opening the index.
+    include_catchall: If true, we include ALL_CLIENTS_LABEL in the results.
+
+  Returns:
+    set of label name strings, including the catchall "All"
+  """
+  labels_index = aff4.FACTORY.Create(VFSGRRClient.labels_index_urn,
+                                     "AFF4LabelsIndex", mode="rw", token=token)
+  labels = set(labels_index.ListUsedLabelNames(owner="GRR"))
+  if include_catchall:
+    labels.add(ALL_CLIENTS_LABEL)
+  return labels
+

@@ -414,6 +414,18 @@ class AFF4LabelsIndexTest(test_lib.AFF4ObjectTest):
         found_urns,
         [rdfvalue.RDFURN("aff4:/foo/bar1")])
 
+  def testListUsedLabelNames(self):
+    with self.CreateIndex(token=self.token) as index:
+      index.AddLabel(rdfvalue.RDFURN("aff4:/foo/bar1"),
+                     "foo", owner="testuser1")
+      index.AddLabel(rdfvalue.RDFURN("aff4:/foo/bar2"),
+                     "barfoo", owner="testuser2")
+
+    index = self.ReadIndex(token=self.token)
+    self.assertItemsEqual(index.ListUsedLabelNames(), ["foo", "barfoo"])
+    self.assertItemsEqual(index.ListUsedLabelNames(
+        owner="testuser2"), ["barfoo"])
+
 
 class AFF4SparseImageTest(test_lib.AFF4ObjectTest):
 

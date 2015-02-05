@@ -881,6 +881,9 @@ class FlowRunner(object):
           "FlowStatus", client_id,
           "Flow (%s) terminated due to error" % self.session_id)
 
+  def GetState(self):
+    return self.context.state
+
   def IsRunning(self):
     return self.context.state == rdfvalue.Flow.State.RUNNING
 

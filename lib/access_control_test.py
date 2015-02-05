@@ -189,7 +189,7 @@ class AccessControlTest(test_lib.GRRBaseTest):
     hunt_urn = self.CreateSampleHunt()
     self.assertRaisesRegexp(
         access_control.UnauthorizedAccess,
-        "No approval found for hunt",
+        "No approval found for",
         flow.GRRFlow.StartFlow,
         flow_name="StartHuntFlow", token=token, hunt_urn=hunt_urn)
 
@@ -377,6 +377,49 @@ class AccessControlTest(test_lib.GRRBaseTest):
 
     # Make sure the token is tagged as an emergency token:
     self.assertEqual(self.token.is_emergency, True)
+
+  def testValidateToken(self):
+    token = access_control.ACLToken(username="test", reason="For testing")
+    access_manager = access_control.BasicAccessControlManager()
+    access_manager.ValidateToken(token, "aff4:/C.0000000000000001")
+
+    with self.assertRaises(access_control.UnauthorizedAccess):
+      access_manager.ValidateToken(None, "aff4:/C.0000000000000001")
+
+    token = access_control.ACLToken(reason="For testing")
+    with self.assertRaises(access_control.UnauthorizedAccess):
+      access_manager.ValidateToken(token, "aff4:/C.0000000000000001")
+
+  def testValidateRequestedAccess(self):
+    access_manager = access_control.BasicAccessControlManager()
+    access_manager.ValidateRequestedAccess("r", "aff4:/C.0000000000000001")
+
+    with self.assertRaises(access_control.UnauthorizedAccess):
+      access_manager.ValidateRequestedAccess("", "aff4:/C.0000000000000001")
+
+    with self.assertRaises(access_control.UnauthorizedAccess):
+      access_manager.ValidateRequestedAccess("q", "aff4:/C.0000000000000001")
+
+  def testCheckACL(self):
+    access_manager = access_control.FullAccessControlManager()
+
+    # Supervisor can do anything
+    token = access_control.ACLToken(username="unknown", supervisor=True)
+    self.assertTrue(access_manager.CheckACL(token, "aff4:/C.0000000000000001"))
+
+    # No target should raise
+    token = access_control.ACLToken(username="unknown")
+    with self.assertRaises(access_control.UnauthorizedAccess):
+      access_manager.CheckACL(token, "")
+
+    # Unless it is a system user
+    token = access_control.ACLToken(username="GRRSystem", reason="bcause")
+    self.assertTrue(access_manager.CheckACL(token, None))
+
+    # No reason should raise
+    token = access_control.ACLToken(username="unknown")
+    with self.assertRaises(access_control.UnauthorizedAccess):
+      access_manager.CheckACL(token, "aff4:/C.0000000000000001")
 
 
 def main(argv):

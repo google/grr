@@ -215,7 +215,7 @@ def _RepackBinary(context, builder_cls):
     print "Template %s missing - will not repack." % template_path
 
 
-def RepackAllBinaries(upload=False, debug_build=False):
+def RepackAllBinaries(upload=False, debug_build=False, token=None):
   """Repack binaries based on the configuration.
 
   NOTE: The configuration file specifies the location of the binaries
@@ -231,6 +231,7 @@ def RepackAllBinaries(upload=False, debug_build=False):
   Args:
     upload: If specified we also upload the repacked binary into the datastore.
     debug_build: Repack as a debug build.
+    token: Token to use when uploading
 
   Returns:
     A list of output installers generated.
@@ -291,7 +292,7 @@ def RepackAllBinaries(upload=False, debug_build=False):
         dest = config_lib.CONFIG.Get("Executables.installer",
                                      context=context)
         UploadSignedConfigBlob(open(output_path).read(100 * 1024 * 1024),
-                               dest, client_context=context)
+                               dest, client_context=context, token=token)
     else:
       print "Failed to repack %s." % template_path
 

@@ -54,7 +54,7 @@ class TestClientLoadView(TestInspectViewBase):
       message = rdfvalue.GrrMessage(source=client_id,
                                     args=stats.SerializeToString())
       flow.WellKnownFlow.GetAllWellKnownFlows(
-          token=token)["aff4:/flows/W:Stats"].ProcessMessage(message)
+          token=token)["Stats"].ProcessMessage(message)
 
   def testNoClientActionIsDisplayed(self):
     with self.ACLChecksDisabled():

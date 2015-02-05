@@ -156,9 +156,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
 
     with utils.Stubber(email_alerts, "SendEmail", SendEmail):
       msg = rdfvalue.GrrMessage(
-          session_id=rdfvalue.SessionID(base="aff4:/flows",
-                                        queue=queues.FLOWS,
-                                        flow_name="NannyMessage"),
+          session_id=rdfvalue.SessionID(flow_name="NannyMessage"),
           args=rdfvalue.DataBlob(string=nanny_message).SerializeToString(),
           source=self.client_id,
           auth_state=rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED)

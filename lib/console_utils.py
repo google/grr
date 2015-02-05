@@ -13,13 +13,13 @@ import logging
 
 from grr.lib import access_control
 from grr.lib import aff4
+from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import search
 from grr.lib import type_info
 from grr.lib import utils
-from grr.lib.flows.general import memory
 
 
 def FormatISOTime(t):
@@ -81,24 +81,31 @@ def DownloadDir(aff4_path, output_dir, bufsize=8192, preserve_path=True):
 
 
 def ListDrivers():
-  urn = aff4.ROOT_URN.Add(memory.DRIVER_BASE)
-  token = access_control.ACLToken(username="test")
-  fd = aff4.FACTORY.Open(urn, mode="r", token=token)
+  """Print a list of drivers in the datastore."""
+  aff4_paths = set()
+  user = getpass.getuser()
+  token = access_control.ACLToken(username=user)
+  for client_context in [["Platform:Darwin", "Arch:amd64"],
+                         ["Platform:Windows", "Arch:i386"],
+                         ["Platform:Windows", "Arch:amd64"]]:
+    aff4_paths.update(config_lib.CONFIG.Get(
+        "MemoryDriver.aff4_paths", context=client_context))
 
-  return list(fd.Query())
+  for driver in aff4.FACTORY.MultiOpen(aff4_paths, mode="r", token=token):
+    print driver
 
 
-def OpenClient(client_id=None):
+def OpenClient(client_id=None, token=None):
   """Opens the client, getting potential approval tokens.
 
   Args:
     client_id: The client id the approval should be revoked for.
+    token: Token to use to open the client
 
   Returns:
     tuple containing (client, token) objects or (None, None) on if
     no appropriate aproval tokens were found.
   """
-  token = access_control.ACLToken(username="test")
   try:
     token = ApprovalFind(client_id, token=token)
   except access_control.UnauthorizedAccess as e:
@@ -236,7 +243,7 @@ def ApprovalRevokeRaw(aff4_path, token, remove_from_cache=False):
   approval_urn = aff4.ROOT_URN.Add("ACL").Add(urn.Path()).Add(
       token.username).Add(utils.EncodeReasonString(token.reason))
 
-  super_token = access_control.ACLToken(username="test")
+  super_token = access_control.ACLToken(username="raw-approval-superuser")
   super_token.supervisor = True
 
   approval_request = aff4.FACTORY.Open(approval_urn, mode="rw",

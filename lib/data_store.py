@@ -94,7 +94,7 @@ class DataStore(object):
   monitor_thread = None
 
   def __init__(self):
-    security_manager = access_control.BaseAccessControlManager.GetPlugin(
+    security_manager = access_control.BasicAccessControlManager.GetPlugin(
         config_lib.CONFIG["Datastore.security_manager"])()
     self.security_manager = security_manager
     logging.info("Using security manager %s", security_manager)

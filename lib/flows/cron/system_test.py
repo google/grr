@@ -40,6 +40,11 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
     for i in range(0, 10):
       test_lib.ClientFixture("C.0%015X" % i, token=self.token, fixture=fixture)
 
+      with aff4.FACTORY.Open(
+          "C.0%015X" % i, mode="rw", token=self.token) as client:
+        client.AddLabels("Label1", "Label2", owner="GRR")
+        client.AddLabels("UserLabel", owner="jim")
+
     # Make 10 linux clients 12 hours apart.
     for i in range(0, 10):
       test_lib.ClientFixture("C.1%015X" % i, token=self.token,
@@ -48,69 +53,97 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
   def tearDown(self):
     time.time = self.old_time
 
+  def _CheckVersionStats(self, label, attribute, counts):
+
+    fd = aff4.FACTORY.Open("aff4:/stats/ClientFleetStats/%s" % label,
+                           token=self.token)
+    histogram = fd.Get(attribute)
+
+    # There should be counts[0] instances in 1 day actives.
+    self.assertEqual(histogram[0].title, "1 day actives for %s label" % label)
+    self.assertEqual(len(histogram[0]), counts[0])
+
+    # There should be counts[1] instances in 7 day actives.
+    self.assertEqual(histogram[1].title, "7 day actives for %s label" % label)
+    self.assertEqual(len(histogram[1]), counts[1])
+
+    # There should be counts[2] instances in 14 day actives.
+    self.assertEqual(histogram[2].title, "14 day actives for %s label" % label)
+    self.assertEqual(histogram[2][0].label, "GRR Monitor 1")
+    self.assertEqual(histogram[2][0].y_value, counts[2])
+
+    # There should be counts[3] instances in 30 day actives.
+    self.assertEqual(histogram[3].title, "30 day actives for %s label" % label)
+    self.assertEqual(histogram[3][0].label, "GRR Monitor 1")
+    self.assertEqual(histogram[3][0].y_value, counts[3])
+
   def testGRRVersionBreakDown(self):
-    """Check that all client stats cron jobs are run."""
+    """Check that all client stats cron jobs are run.
+
+    All machines should be in All once.
+    Windows machines should be in Label1 and Label2.
+    There should be no stats for UserLabel.
+    """
     for _ in test_lib.TestFlowHelper("GRRVersionBreakDown", token=self.token):
       pass
 
-    fd = aff4.FACTORY.Open("aff4:/stats/ClientFleetStats", token=self.token)
-    histogram = fd.Get(fd.Schema.GRRVERSION_HISTOGRAM)
+    histogram = aff4.ClientFleetStats.SchemaCls.GRRVERSION_HISTOGRAM
+    self._CheckVersionStats("All", histogram, [0, 0, 20, 20])
+    self._CheckVersionStats("Label1", histogram, [0, 0, 10, 10])
+    self._CheckVersionStats("Label2", histogram, [0, 0, 10, 10])
 
-    # There should be 0 instances in 1 day actives.
-    self.assertEqual(histogram[0].title, "1 day actives")
-    self.assertEqual(len(histogram[0]), 0)
+    # This shouldn't exist since it isn't a system label
+    aff4.FACTORY.Open("aff4:/stats/ClientFleetStats/UserLabel", "AFF4Volume",
+                      token=self.token)
 
-    # There should be 0 instances in 7 day actives.
-    self.assertEqual(histogram[1].title, "7 day actives")
-    self.assertEqual(len(histogram[1]), 0)
+  def _CheckOSStats(self, label, attribute, counts):
 
-    # There should be 10 of each (Linux, Windows) instances in 14 day actives.
-    self.assertEqual(histogram[2].title, "14 day actives")
-    self.assertEqual(histogram[2][0].label, "GRR Monitor 1")
-    self.assertEqual(histogram[2][0].y_value, 20)
+    fd = aff4.FACTORY.Open("aff4:/stats/ClientFleetStats/%s" % label,
+                           token=self.token)
+    histogram = fd.Get(attribute)
 
-    # There should be 10 of each (Linux, Windows) instances in 30 day actives.
-    self.assertEqual(histogram[3].title, "30 day actives")
-    self.assertEqual(histogram[3][0].label, "GRR Monitor 1")
-    self.assertEqual(histogram[3][0].y_value, 20)
+    # There should be counts[0] instances in 1 day actives.
+    self.assertEqual(histogram[0].title, "1 day actives for %s label" % label)
+    self.assertEqual(len(histogram[0]), counts[0])
+
+    # There should be counts[1] instances in 7 day actives.
+    self.assertEqual(histogram[1].title, "7 day actives for %s label" % label)
+    self.assertEqual(len(histogram[1]), counts[1])
+
+    # There should be counts[2] instances in 14 day actives for linux and
+    # windows.
+    self.assertEqual(histogram[2].title, "14 day actives for %s label" % label)
+    all_labels = []
+    for item in histogram[2]:
+      all_labels.append(item.label)
+      self.assertEqual(item.y_value, counts[2][item.label])
+    self.assertItemsEqual(all_labels, counts[2].keys())
+
+    # There should be counts[3] instances in 30 day actives for linux and
+    # windows.
+    self.assertEqual(histogram[3].title, "30 day actives for %s label" % label)
+    all_labels = []
+    for item in histogram[3]:
+      all_labels.append(item.label)
+      self.assertEqual(item.y_value, counts[3][item.label])
+    self.assertItemsEqual(all_labels, counts[3].keys())
 
   def testOSBreakdown(self):
     """Check that all client stats cron jobs are run."""
     for _ in test_lib.TestFlowHelper("OSBreakDown", token=self.token):
       pass
 
-    fd = aff4.FACTORY.Open("aff4:/stats/ClientFleetStats", token=self.token)
+    histogram = aff4.ClientFleetStats.SchemaCls.OS_HISTOGRAM
+    self._CheckOSStats("All", histogram, [0, 0, {"Linux": 10, "Windows": 10},
+                                          {"Linux": 10, "Windows": 10}])
+    self._CheckOSStats("Label1", histogram,
+                       [0, 0, {"Windows": 10}, {"Windows": 10}])
+    self._CheckOSStats("Label2", histogram,
+                       [0, 0, {"Windows": 10}, {"Windows": 10}])
 
-    histogram = fd.Get(fd.Schema.OS_HISTOGRAM)
-
-    # There should be a 0 instances in 1 day actives.
-    self.assertEqual(histogram[0].title, "1 day actives")
-    self.assertEqual(len(histogram[0]), 0)
-
-    # There should be a 0 instances in 7 day actives.
-    self.assertEqual(histogram[1].title, "7 day actives")
-    self.assertEqual(len(histogram[1]), 0)
-
-    # There should be 10 of each (Linux, Windows) instances in 14 day actives.
-    self.assertEqual(histogram[2].title, "14 day actives")
-    self.assertEqual(histogram[2][0].label, "Linux")
-    self.assertEqual(histogram[2][0].y_value, 10)
-    self.assertEqual(histogram[2][1].label, "Windows")
-    self.assertEqual(histogram[2][1].y_value, 10)
-
-    # There should be 10 of each (Linux, Windows) instances in 30 day actives.
-    self.assertEqual(histogram[3].title, "30 day actives")
-    self.assertEqual(histogram[3][0].label, "Linux")
-    self.assertEqual(histogram[3][0].y_value, 10)
-    self.assertEqual(histogram[3][1].label, "Windows")
-    self.assertEqual(histogram[3][1].y_value, 10)
-
-  def testLastAccessStats(self):
-    """Check that all client stats cron jobs are run."""
-    for _ in test_lib.TestFlowHelper("LastAccessStats", token=self.token):
-      pass
-
-    fd = aff4.FACTORY.Open("aff4:/stats/ClientFleetStats", token=self.token)
+  def _CheckAccessStats(self, label, count):
+    fd = aff4.FACTORY.Open("aff4:/stats/ClientFleetStats/%s" % label,
+                           token=self.token)
 
     histogram = fd.Get(fd.Schema.LAST_CONTACTED_HISTOGRAM)
 
@@ -122,10 +155,23 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
         (259200000000L, 0L),
         (604800000000L, 0L),
 
-        # All our clients appeared at the same time (and did not appear since).
-        (1209600000000L, 20L),
-        (2592000000000L, 20L),
-        (5184000000000L, 20L)])
+        (1209600000000L, count),
+        (2592000000000L, count),
+        (5184000000000L, count)])
+
+  def testLastAccessStats(self):
+    """Check that all client stats cron jobs are run."""
+    for _ in test_lib.TestFlowHelper("LastAccessStats", token=self.token):
+      pass
+
+    # All our clients appeared at the same time (and did not appear since).
+    self._CheckAccessStats("All", count=20L)
+
+    # All our clients appeared at the same time but this label is only half.
+    self._CheckAccessStats("Label1", count=10L)
+
+    # All our clients appeared at the same time but this label is only half.
+    self._CheckAccessStats("Label2", count=10L)
 
   def testPurgeClientStats(self):
     max_age = system.PurgeClientStats.MAX_AGE

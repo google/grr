@@ -23,9 +23,7 @@ from grr.lib import utils
 
 
 class TestHuntListener(flow.EventListener):
-  well_known_session_id = rdfvalue.SessionID(base="aff4:/flows",
-                                             queue=queues.FLOWS,
-                                             flow_name="TestHuntDone")
+  well_known_session_id = rdfvalue.SessionID(flow_name="TestHuntDone")
   EVENTS = ["TestHuntDone"]
 
   received_events = []

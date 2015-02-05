@@ -18,7 +18,6 @@ from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import email_alerts
 from grr.lib import flow
-from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import rendering
@@ -116,9 +115,7 @@ class GetClientStatsAuto(flow.WellKnownFlow,
 
   category = None
 
-  well_known_session_id = rdfvalue.SessionID(base="aff4:/flows",
-                                             queue=queues.FLOWS,
-                                             flow_name="Stats")
+  well_known_session_id = rdfvalue.SessionID(flow_name="Stats")
 
   def ProcessMessage(self, message):
     """Processes a stats response from the client."""
@@ -332,9 +329,7 @@ class Foreman(flow.WellKnownFlow):
   scheduled for them based on their types. This allows the server to schedule
   flows for entire classes of machines based on certain criteria.
   """
-  well_known_session_id = rdfvalue.SessionID(base="aff4:/flows",
-                                             queue=queues.FLOWS,
-                                             flow_name="Foreman")
+  well_known_session_id = rdfvalue.SessionID(flow_name="Foreman")
   foreman_cache = None
 
   # How often we refresh the rule set from the data store.
@@ -510,9 +505,7 @@ class NannyMessageHandler(ClientCrashEventListener):
   """A listener for nanny messages."""
   EVENTS = ["NannyMessage"]
 
-  well_known_session_id = rdfvalue.SessionID(base="aff4:/flows",
-                                             queue=queues.FLOWS,
-                                             flow_name="NannyMessage")
+  well_known_session_id = rdfvalue.SessionID(flow_name="NannyMessage")
 
   mail_template = """
 <html><body><h1>GRR nanny message received.</h1>
@@ -578,9 +571,7 @@ class ClientAlertHandler(NannyMessageHandler):
   """A listener for client messages."""
   EVENTS = ["ClientAlert"]
 
-  well_known_session_id = rdfvalue.SessionID(base="aff4:/flows",
-                                             queue=queues.FLOWS,
-                                             flow_name="ClientAlert")
+  well_known_session_id = rdfvalue.SessionID(flow_name="ClientAlert")
 
   mail_template = """
 <html><body><h1>GRR client message received.</h1>
@@ -604,9 +595,7 @@ class ClientCrashHandler(ClientCrashEventListener):
   """A listener for client crashes."""
   EVENTS = ["ClientCrash"]
 
-  well_known_session_id = rdfvalue.SessionID(base="aff4:/flows",
-                                             queue=queues.FLOWS,
-                                             flow_name="CrashHandler")
+  well_known_session_id = rdfvalue.SessionID(flow_name="CrashHandler")
 
   mail_template = """
 <html><body><h1>GRR client crash report.</h1>
@@ -692,9 +681,7 @@ P.S. The state of the failing flow was:
 
 class ClientStartupHandler(flow.EventListener):
 
-  well_known_session_id = rdfvalue.SessionID(base="aff4:/flows",
-                                             queue=queues.FLOWS,
-                                             flow_name="Startup")
+  well_known_session_id = rdfvalue.SessionID(flow_name="Startup")
 
   @flow.EventHandler(allow_client_access=True, auth_required=False)
   def ProcessMessage(self, message=None, event=None):
@@ -741,9 +728,7 @@ class IgnoreResponses(flow.WellKnownFlow):
 
   category = None
 
-  well_known_session_id = rdfvalue.SessionID(base="aff4:/flows",
-                                             queue=queues.FLOWS,
-                                             flow_name="DevNull")
+  well_known_session_id = rdfvalue.SessionID(flow_name="DevNull")
 
   def ProcessMessage(self, message):
     pass

@@ -6,7 +6,6 @@ This module implements the Rekall enabled client actions.
 
 
 
-import json
 import os
 import pdb
 import sys
@@ -22,6 +21,7 @@ from rekall import plugins
 from rekall import session
 from rekall.plugins.addrspaces import standard
 from rekall.plugins.renderers import data_export
+from rekall.ui import json_renderer
 # pylint: enable=unused-import
 
 import logging
@@ -106,6 +106,7 @@ class GRRRekallRenderer(data_export.DataExportRenderer):
 
     self.context_messages = {}
     self.new_context_messages = {}
+    self.robust_encoder = json_renderer.RobustEncoder()
 
   def start(self, plugin_name=None, kwargs=None):
     self.plugin = plugin_name
@@ -115,10 +116,11 @@ class GRRRekallRenderer(data_export.DataExportRenderer):
   def write_data_stream(self):
     """Prepares a RekallResponse and send to the server."""
     if self.data:
+
       response_msg = rdfvalue.RekallResponse(
-          json_messages=json.dumps(self.data, separators=(",", ":")),
-          json_context_messages=json.dumps(self.context_messages.items(),
-                                           separators=(",", ":")),
+          json_messages=self.robust_encoder.encode(self.data),
+          json_context_messages=self.robust_encoder.encode(
+              self.context_messages.items()),
           plugin=self.plugin)
 
       self.context_messages = self.new_context_messages
@@ -262,5 +264,5 @@ class RekallAction(actions.SuspendableAction):
         rekal_session.RunPlugin(plugin_request.plugin, **plugin_args)
 
       except Exception as e:  # pylint: disable=broad-except
-        rekal_session.report_error(
-            "Error for plugin %s: %s", plugin_request.plugin, e)
+        # The exception has already been logged at this point in the renderer.
+        logging.info(str(e))

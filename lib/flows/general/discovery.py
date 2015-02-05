@@ -13,8 +13,7 @@ from grr.proto import flows_pb2
 class EnrolmentInterrogateEvent(flow.EventListener):
   """An event handler which will schedule interrogation on client enrollment."""
   EVENTS = ["ClientEnrollment"]
-  well_known_session_id = rdfvalue.SessionID(base="aff4:/flows",
-                                             queue=queues.ENROLLMENT,
+  well_known_session_id = rdfvalue.SessionID(queue=queues.ENROLLMENT,
                                              flow_name="Interrogate")
 
   def CheckSource(self, source):

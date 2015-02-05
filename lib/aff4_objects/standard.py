@@ -819,9 +819,19 @@ class AFF4LabelsIndex(aff4.AFF4Volume):
         aff4.AFF4Object.SchemaCls.LABELS,
         self.IndexNameForLabel(label_name, owner), urn)
 
-  def ListUsedLabels(self):
+  def ListUsedLabels(self, owner=None):
+    results = []
     index_results = self.used_labels_index.ListValues()
-    return [self.LabelForIndexName(name) for name in index_results]
+    for name in index_results:
+      label = self.LabelForIndexName(name)
+      if label:
+        if owner and label.owner != owner:
+          continue
+        results.append(label)
+    return results
+
+  def ListUsedLabelNames(self, owner=None):
+    return [x.name for x in self.ListUsedLabels(owner=owner)]
 
   def FindUrnsByLabel(self, label, owner=None):
     results = self.MultiFindUrnsByLabel([label], owner=owner).values()

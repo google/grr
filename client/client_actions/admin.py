@@ -265,8 +265,7 @@ class GetClientStatsAuto(GetClientStats):
   def Send(self, response):
     self.grr_worker.SendReply(
         response,
-        session_id=rdfvalue.SessionID(base="aff4:/flows",
-                                      queue=queues.STATS,
+        session_id=rdfvalue.SessionID(queue=queues.STATS,
                                       flow_name="Stats"),
         response_id=0,
         request_id=0,
@@ -280,9 +279,7 @@ class SendStartupInfo(actions.ActionPlugin):
   in_rdfvalue = None
   out_rdfvalue = rdfvalue.StartupInfo
 
-  well_known_session_id = rdfvalue.SessionID(base="aff4:/flows",
-                                             queue=queues.FLOWS,
-                                             flow_name="Startup")
+  well_known_session_id = rdfvalue.SessionID(flow_name="Startup")
 
   def Run(self, unused_arg, ttl=None):
     """Returns the startup information."""
