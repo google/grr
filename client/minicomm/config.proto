@@ -1,0 +1,27 @@
+syntax = "proto2";
+
+option cc_api_version = 2;
+package grr;
+
+message ClientConfiguration {
+  repeated string control_url = 1;
+  repeated string proxy_server = 2;
+
+  // The ca certificate which is used to validate server certs.
+  optional string ca_cert_pem = 3;
+
+  // The RSA private key of the client.
+  optional string client_private_key_pem = 4;
+
+  optional int32 last_server_cert_serial_number = 5;
+
+  // The file to write configuration updates.
+  optional string writeback_filename = 6;
+
+  message SubprocessConfig {
+    optional string filename = 1;
+    repeated string argv = 2;
+    repeated string env = 3;
+  }
+  optional SubprocessConfig subprocess_config = 7;
+}
