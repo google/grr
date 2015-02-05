@@ -182,7 +182,7 @@ def main(argv=None):
     processes = {}
     print "Running tests with labels %s" % ",".join(flags.FLAGS.labels)
 
-    with utils.TempDirectory() as flags.FLAGS.temp_dir:
+    with utils.TempDirectory() as temp_dir:
       start = time.time()
       labels = set(flags.FLAGS.labels)
 
@@ -190,7 +190,7 @@ def main(argv=None):
         if labels and not DoesTestHaveLabels(cls, labels):
           continue
 
-        result_filename = os.path.join(flags.FLAGS.temp_dir, name)
+        result_filename = os.path.join(temp_dir, name)
 
         argv = [sys.executable] + sys.argv[:]
         if "--output" not in argv:
