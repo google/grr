@@ -13,6 +13,7 @@ import readline  # pylint: disable=unused-import
 import sys
 import urlparse
 
+
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
 # pylint: enable=g-bad-import-order,unused-import
@@ -35,7 +36,6 @@ from grr.lib import rdfvalue
 from grr.lib import startup
 from grr.lib import utils
 from grr.lib.aff4_objects import users
-
 # pylint: enable=g-import-not-at-top,no-name-in-module
 
 
@@ -99,7 +99,8 @@ parser_add_user.add_argument(
     help="Don't create the user as an administrator.")
 
 
-def UpdateUser(username, password, add_labels=None, delete_labels=None, token=None):
+def UpdateUser(username, password, add_labels=None, delete_labels=None,
+               token=None):
   """Implementation of the update_user command."""
   print "Updating user %s" % username
   with aff4.FACTORY.Create("aff4:/users/%s" % username,
@@ -176,7 +177,7 @@ parser_show_user.add_argument(
 
 
 def ShowUser(username, token=None):
-  """Implementation to the show_user command."""
+  """Implementation of the show_user command."""
   if username is None:
     fd = aff4.FACTORY.Open("aff4:/users", token=token)
     for user in fd.OpenChildren():
@@ -486,7 +487,8 @@ def Initialize(config=None, token=None):
       flags.FLAGS.share_dir, "executables"))
 
   # Build debug binaries, then build release binaries.
-  maintenance_utils.RepackAllBinaries(upload=True, debug_build=True, token=token)
+  maintenance_utils.RepackAllBinaries(upload=True, debug_build=True,
+                                      token=token)
   maintenance_utils.RepackAllBinaries(upload=True, token=token)
 
   print "\nInitialization complete, writing configuration."
@@ -502,9 +504,11 @@ def UploadRaw(file_path, aff4_path, token=None):
   fd.Close()
   return str(fd.urn)
 
+
 def GetToken():
-  #Extend for user authorization
+  # Extend for user authorization
   return rdfvalue.ACLToken(username="GRRConsole").SetUID()
+
 
 def main(unused_argv):
   """Main."""

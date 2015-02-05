@@ -17,8 +17,9 @@ from grr.lib import flow
 from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import cronjobs
-from grr.lib.rdfvalues import stats
+from grr.lib.rdfvalues import stats as rdfstats
 
 
 class _ActiveCounter(object):
@@ -41,7 +42,7 @@ class _ActiveCounter(object):
     self.attribute = attribute
     self.categories = dict([(x, {}) for x in self.active_days])
 
-  def Add(self, category, age):
+  def Add(self, category, label, age):
     """Adds another instance of this category into the active_days counter.
 
     We automatically count the event towards all relevant active_days. For
@@ -51,29 +52,35 @@ class _ActiveCounter(object):
 
     Args:
       category: The category name to account this instance against.
+      label: Client label to which this should be applied.
       age: When this instance occurred.
     """
     now = rdfvalue.RDFDatetime().Now()
     category = utils.SmartUnicode(category)
 
     for active_time in self.active_days:
+      self.categories[active_time].setdefault(label, {})
       if (now - age).seconds < active_time * 24 * 60 * 60:
-        self.categories[active_time][category] = self.categories[
-            active_time].get(category, 0) + 1
+        self.categories[active_time][label][category] = self.categories[
+            active_time][label].get(category, 0) + 1
 
-  def Save(self, fd):
+  def Save(self, fds_by_label):
     """Generate a histogram object and store in the specified attribute."""
-    histogram = self.attribute()
+    histograms = {}
     for active_time in self.active_days:
-      graph = stats.Graph(title="%s day actives" % active_time)
-      for k, v in sorted(self.categories[active_time].items()):
-        graph.Append(label=k, y_value=v)
+      for label in self.categories[active_time].keys():
+        histograms.setdefault(label, self.attribute())
+        graph = rdfstats.Graph(
+            title="%s day actives for %s label" % (active_time, label))
+        for k, v in sorted(self.categories[active_time][label].items()):
+          graph.Append(label=k, y_value=v)
 
-      histogram.Append(graph)
+        histograms[label].Append(graph)
 
-    # Add an additional instance of this histogram (without removing previous
-    # instances).
-    fd.AddAttribute(histogram)
+    for label, histogram in histograms.items():
+      # Add an additional instance of this histogram (without removing previous
+      # instances).
+      fds_by_label[label].AddAttribute(histogram)
 
 
 class AbstractClientStatsCronFlow(cronjobs.SystemCronFlow):
@@ -93,13 +100,27 @@ class AbstractClientStatsCronFlow(cronjobs.SystemCronFlow):
   def FinishProcessing(self):
     pass
 
+  def GetClientLabelsList(self, client):
+    """Get set of labels applied to this client."""
+    client_labels = [aff4_grr.ALL_CLIENTS_LABEL]
+    label_set = client.GetLabelsNames(owner="GRR")
+    client_labels.extend(label_set)
+    return client_labels
+
   @flow.StateHandler()
   def Start(self):
     """Retrieve all the clients for the AbstractClientStatsCollectors."""
     try:
-      self.stats = aff4.FACTORY.Create(self.CLIENT_STATS_URN,
-                                       "ClientFleetStats",
-                                       mode="w", token=self.token)
+
+      # Get a list of all the client labels in the db
+      self.labels = aff4_grr.GetAllClientLabels(self.token,
+                                                include_catchall=True)
+      self.stats = {}
+      for label in self.labels:
+        self.stats[label] = aff4.FACTORY.Create(
+            self.CLIENT_STATS_URN.Add(label), "ClientFleetStats",
+            mode="w", token=self.token)
+
       self.BeginProcessing()
 
       root = aff4.FACTORY.Open(aff4.ROOT_URN, token=self.token)
@@ -117,7 +138,8 @@ class AbstractClientStatsCronFlow(cronjobs.SystemCronFlow):
         self.HeartBeat()
 
       self.FinishProcessing()
-      self.stats.Close()
+      for fd in self.stats.values():
+        fd.Close()
 
       logging.info("%s: processed %d clients.", self.__class__.__name__,
                    processed_count)
@@ -132,7 +154,8 @@ class GRRVersionBreakDown(AbstractClientStatsCronFlow):
   frequency = rdfvalue.Duration("4h")
 
   def BeginProcessing(self):
-    self.counter = _ActiveCounter(self.stats.Schema.GRRVERSION_HISTOGRAM)
+    self.counter = _ActiveCounter(
+        aff4.ClientFleetStats.SchemaCls.GRRVERSION_HISTOGRAM)
 
   def FinishProcessing(self):
     self.counter.Save(self.stats)
@@ -140,11 +163,13 @@ class GRRVersionBreakDown(AbstractClientStatsCronFlow):
   def ProcessClient(self, client):
     ping = client.Get(client.Schema.PING)
     c_info = client.Get(client.Schema.CLIENT_INFO)
+
     if c_info and ping:
       category = " ".join([c_info.client_description or c_info.client_name,
                            str(c_info.client_version)])
 
-      self.counter.Add(category, ping)
+      for label in self.GetClientLabelsList(client):
+        self.counter.Add(category, label, ping)
 
 
 class OSBreakDown(AbstractClientStatsCronFlow):
@@ -152,8 +177,8 @@ class OSBreakDown(AbstractClientStatsCronFlow):
 
   def BeginProcessing(self):
     self.counters = [
-        _ActiveCounter(self.stats.Schema.OS_HISTOGRAM),
-        _ActiveCounter(self.stats.Schema.RELEASE_HISTOGRAM),
+        _ActiveCounter(aff4.ClientFleetStats.SchemaCls.OS_HISTOGRAM),
+        _ActiveCounter(aff4.ClientFleetStats.SchemaCls.RELEASE_HISTOGRAM),
     ]
 
   def FinishProcessing(self):
@@ -167,13 +192,15 @@ class OSBreakDown(AbstractClientStatsCronFlow):
     if not ping:
       return
     system = client.Get(client.Schema.SYSTEM, "Unknown")
-    # Windows, Linux, Darwin
-    self.counters[0].Add(system, ping)
-
     uname = client.Get(client.Schema.UNAME, "Unknown")
-    # Windows-2008ServerR2-6.1.7601SP1, Linux-Ubuntu-12.04,
-    # Darwin-OSX-10.9.3
-    self.counters[1].Add(uname, ping)
+
+    for label in self.GetClientLabelsList(client):
+      # Windows, Linux, Darwin
+      self.counters[0].Add(system, label, ping)
+
+      # Windows-2008ServerR2-6.1.7601SP1, Linux-Ubuntu-12.04,
+      # Darwin-OSX-10.9.3
+      self.counters[1].Add(uname, label, ping)
 
 
 class LastAccessStats(AbstractClientStatsCronFlow):
@@ -185,32 +212,36 @@ class LastAccessStats(AbstractClientStatsCronFlow):
   def BeginProcessing(self):
     self._bins = [long(x * 1e6 * 24 * 60 * 60) for x in self._bins]
 
-    # We will count them in this bin
-    self._value = [0] * len(self._bins)
+    self.values = {}
+    for label in self.labels:
+      # We will count them in this bin
+      self.values[label] = [0] * len(self._bins)
 
   def FinishProcessing(self):
     # Build and store the graph now. Day actives are cumulative.
-    cumulative_count = 0
-    graph = self.stats.Schema.LAST_CONTACTED_HISTOGRAM()
-    for x, y in zip(self._bins, self._value):
-      cumulative_count += y
-      graph.Append(x_value=x, y_value=cumulative_count)
+    for label in self.labels:
+      cumulative_count = 0
+      graph = aff4.ClientFleetStats.SchemaCls.LAST_CONTACTED_HISTOGRAM()
+      for x, y in zip(self._bins, self.values[label]):
+        cumulative_count += y
+        graph.Append(x_value=x, y_value=cumulative_count)
 
-    self.stats.AddAttribute(graph)
+      self.stats[label].AddAttribute(graph)
 
   def ProcessClient(self, client):
     now = rdfvalue.RDFDatetime().Now()
 
     ping = client.Get(client.Schema.PING)
     if ping:
-      time_ago = now - ping
-      pos = bisect.bisect(self._bins, time_ago.microseconds)
+      for label in self.GetClientLabelsList(client):
+        time_ago = now - ping
+        pos = bisect.bisect(self._bins, time_ago.microseconds)
 
-      # If clients are older than the last bin forget them.
-      try:
-        self._value[pos] += 1
-      except IndexError:
-        pass
+        # If clients are older than the last bin forget them.
+        try:
+          self.values[label][pos] += 1
+        except IndexError:
+          pass
 
 
 class InterrogateClientsCronFlow(cronjobs.SystemCronFlow):

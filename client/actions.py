@@ -132,6 +132,9 @@ class ActionPlugin(object):
       self.cpu_limit = self.message.cpu_limit
       self.network_bytes_limit = self.message.network_bytes_limit
 
+      if getattr(flags.FLAGS, "debug_client_actions", False):
+        pdb.set_trace()
+
       try:
         self.Run(args)
 

@@ -290,7 +290,8 @@ class DataStoreService(object):
   def LoadServerMapping(self):
     """Retrieve server mapping from database."""
     token = access_control.ACLToken(username="GRRSystem").SetUID()
-    mapping_str, _ = self.db.Resolve(MAP_SUBJECT, MAP_VALUE_PREDICATE, token=token)
+    mapping_str, _ = self.db.Resolve(MAP_SUBJECT, MAP_VALUE_PREDICATE,
+                                     token=token)
     if not mapping_str:
       return None
     mapping = rdfvalue.DataServerMapping(mapping_str)

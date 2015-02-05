@@ -24,6 +24,10 @@ flags.DEFINE_bool("break_on_start", False,
                   "If True break into a pdb shell immediately on startup. This"
                   " can be used for debugging the client manually.")
 
+flags.DEFINE_bool("debug_client_actions", False,
+                  "If True break into a pdb shell before executing any client"
+                  " action.")
+
 
 class GRRClient(object):
   """A stand alone GRR client, which uses the HTTP mechanism."""

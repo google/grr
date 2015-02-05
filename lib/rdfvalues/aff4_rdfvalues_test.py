@@ -171,3 +171,19 @@ class AFF4ObjectLabelsListTest(test_base.RDFValueTestCase):
     self.assertFalse(re.match(
         rdfvalue.AFF4ObjectLabelsList.RegexForStringifiedValueMatch("ein."),
         str(labels_list)))
+
+  def testGetSortedLabelSet(self):
+    labels_list = rdfvalue.AFF4ObjectLabelsList()
+
+    labels_list.AddLabel(rdfvalue.AFF4ObjectLabel(name="foo",
+                                                  owner="test"))
+    labels_list.AddLabel(rdfvalue.AFF4ObjectLabel(name="foo2",
+                                                  owner="test2"))
+    labels_list.AddLabel(rdfvalue.AFF4ObjectLabel(name="foo3",
+                                                  owner="test2"))
+
+    self.assertItemsEqual(labels_list.GetLabelNames(), ["foo", "foo2", "foo3"])
+    self.assertItemsEqual(labels_list.GetLabelNames(owner="test2"),
+                          ["foo2", "foo3"])
+    self.assertEqual(labels_list.GetLabelNames(owner="test4"), [])
+

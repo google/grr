@@ -3,6 +3,7 @@
 import collections
 import string
 
+from grr.lib import objectfilter
 from grr.lib import utils
 
 
@@ -26,29 +27,52 @@ def Overlay(child, parent):
   return child
 
 
-class FormatWrapper(object):
-  """Wrapper that ensures RDF values can be queried by string format."""
+class RdfFormatter(string.Formatter):
+  """A string formatter implementation that handles rdf data."""
 
-  def __init__(self, item):
-    self.proxy = item
+  expander = objectfilter.AttributeValueExpander().Expand
 
-  def __getattr__(self, item):
-    return self.get(item)
+  def Format(self, format_string, rdf):
+    """Apply string formatting templates to rdf data.
 
-  def __getitem__(self, item):
-    return getattr(self.proxy, item)
+    Uses some heuristics to coerce rdf values into a form compatible with string
+    formatter rules. Repeated items are condensed into a single comma separated
+    list. Unlike regular string.Formatter operations, we use objectfilter
+    expansion to fully acquire the target attribute in one pass, rather than
+    recursing down each element of the attribute tree.
+
+    Args:
+      format_string: A format string specification.
+      rdf: The rdf value to be formatted.
+
+    Returns:
+      A string of formatted data.
+    """
+
+    result = []
+    for literal_text, field_name, _, _ in self.parse(format_string):
+      # output the literal text
+      if literal_text:
+        result.append(literal_text)
+      # if there's a field, output it
+      if field_name is not None:
+        rslts = [utils.SmartStr(r) for r in self.expander(rdf, field_name)]
+        # format the object and append to the result
+        result.append(",".join(rslts))
+    return "".join(result)
 
 
 class Hinter(object):
   """Applies template filters to host data."""
+
+  formatter = RdfFormatter().Format
 
   def __init__(self, template=None):
     self.template = template
 
   def Render(self, rdf_data):
     if self.template:
-      formatable = FormatWrapper(rdf_data)
-      result = string.Formatter().vformat(self.template, [], formatable)
+      result = self.formatter(self.template, rdf_data)
     else:
       result = utils.SmartStr(rdf_data)
     return result

@@ -6,7 +6,6 @@ import time
 
 from grr.lib import aff4
 from grr.lib import flow
-from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
@@ -16,8 +15,6 @@ class MockChangeEvent(flow.EventListener):
   EVENTS = ["MockChangeEvent"]
 
   well_known_session_id = rdfvalue.SessionID(
-      base="aff4:/flows",
-      queue=queues.FLOWS,
       flow_name="MockChangeEventHandler")
 
   CHANGED_URNS = []

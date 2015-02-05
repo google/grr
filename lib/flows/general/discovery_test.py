@@ -12,7 +12,6 @@ from grr.lib import artifact_test
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import search
 from grr.lib import test_lib
@@ -20,9 +19,7 @@ from grr.lib import test_lib
 
 class DiscoveryTestEventListener(flow.EventListener):
   """A test listener to receive new client discoveries."""
-  well_known_session_id = rdfvalue.SessionID(base="aff4:/flows",
-                                             queue=queues.FLOWS,
-                                             flow_name="discovery_test")
+  well_known_session_id = rdfvalue.SessionID(flow_name="discovery_test")
   EVENTS = ["Discovery"]
 
   # For this test we just write the event as a class attribute.

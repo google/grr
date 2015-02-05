@@ -4,7 +4,7 @@
 These are concrete implementations of the classes defined in access_control.py:
 
 AccessControlManager Classes:
-  BaseAccessControlManager: Gives everyone full access to everything.
+  NullAccessControlManager: Gives everyone full access to everything.
   BasicAccessControlManager: Provides basic Admin/Non-Admin distinction based on
     labels.
   FullAccessControlManager: Provides for multiparty authorization.
@@ -25,6 +25,7 @@ from grr.lib import stats
 from grr.lib import utils
 
 from grr.lib.aff4_objects import aff4_grr
+
 
 class CheckAccessHelper(object):
   """Helps with access checks (See FullAccessControlManager for details)."""
@@ -113,13 +114,13 @@ class CheckAccessHelper(object):
       return True
 
     logging.warn("Datastore access denied to %s (no matched rules)",
-                  subject_str)
+                 subject_str)
     raise access_control.UnauthorizedAccess(
         "Access to %s rejected: (no matched rules)." % subject, subject=subject)
 
 
-class BaseAccessControlManager(access_control.AccessControlManager):
-  """An ACL manager which does not enforce any ACLs."""
+class NullAccessControlManager(access_control.AccessControlManager):
+  """An ACL manager which does not enforce any ACLs or check user privilege."""
 
   # pylint: disable=unused-argument
   def CheckUserLabels(self, username, authorized_labels, token=None):
@@ -144,11 +145,13 @@ class BaseAccessControlManager(access_control.AccessControlManager):
   # pylint: enable=unused-argument
 
 
-class BasicAccessControlManager(BaseAccessControlManager):
-  """Basic ACL manager that uses the config file for user management."""
+class BasicAccessControlManager(NullAccessControlManager):
+  """Basic ACL manager that uses the config file for user management.
 
-  SYSTEM_ACCOUNTS = ['GRRCron', 'GRRWorker', 'GRRSystem',
-                     'GRRFrontEnd', 'GRRConsole']
+  This access control manager enforces valid identity but that is all.  Users
+  are allowed to read/write/query everywhere.
+  """
+
   CLIENT_URN_PATTERN = "aff4:/C." + "[0-9a-fA-F]" * 16
 
   def __init__(self):
@@ -175,8 +178,8 @@ class BasicAccessControlManager(BaseAccessControlManager):
 
       # Only return if all the authorized_labels are found in the user's
       # label list, otherwise raise UnauthorizedAccess.
-      if (authorized_labels.intersection(user.GetLabelsNames()) ==
-              authorized_labels):
+      if (authorized_labels.intersection(
+          user.GetLabelsNames()) == authorized_labels):
         return
       raise access_control.UnauthorizedAccess(
           "User %s is missing labels (required: %s)." % (username,
@@ -184,11 +187,8 @@ class BasicAccessControlManager(BaseAccessControlManager):
     except IOError:
       raise access_control.UnauthorizedAccess("User %s not found." % username)
 
-
   @stats.Timed("acl_check_time")
   def CheckFlowAccess(self, token, flow_name, client_id=None):
-    # Flows which are not enforced can run all the time.
-
     client_urn = None
     if client_id:
       client_urn = rdfvalue.ClientURN(client_id)
@@ -197,6 +197,7 @@ class BasicAccessControlManager(BaseAccessControlManager):
 
     flow_cls = flow.GRRFlow.GetPlugin(flow_name)
 
+    # Flows which are not enforced can run all the time.
     if not flow_cls.ACL_ENFORCED:
       logging.debug("ACL access granted by ACL_ENFORCED bypass for %s.",
                     flow_name)
@@ -219,13 +220,12 @@ class BasicAccessControlManager(BaseAccessControlManager):
     client_urn = rdfvalue.ClientURN(client_id)
     return self.CheckACL(token, client_urn)
 
-
   @stats.Timed("acl_check_time")
   def CheckDataStoreAccess(self, token, subjects, requested_access="r"):
     """Allow all access."""
 
     self.ValidateToken(token, subjects)
-    self.ValidateRequestedAccess(requested_access)
+    self.ValidateRequestedAccess(requested_access, subjects)
 
     # The supervisor may bypass all ACL checks.
     if token.supervisor:
@@ -259,7 +259,7 @@ class BasicAccessControlManager(BaseAccessControlManager):
     return True
 
   def ValidateToken(self, token, target):
-    """Validate Basic Token Issues"""
+    """Validate Basic Token Issues."""
     # All accesses need a token.
     if not token:
       raise access_control.UnauthorizedAccess(
@@ -275,7 +275,7 @@ class BasicAccessControlManager(BaseAccessControlManager):
           "Must specify a username for access to %s." % target, subject=target
           )
 
-  def ValidateRequestedAccess(self, requested_access):
+  def ValidateRequestedAccess(self, requested_access, subjects):
     if not requested_access:
       raise access_control.UnauthorizedAccess(
           "Must specify requested access type for %s" % subjects)
@@ -332,6 +332,11 @@ class BasicAccessControlManager(BaseAccessControlManager):
 
 
 class FullAccessControlManager(BasicAccessControlManager):
+  """Control read/write/query access for multi-party authorization system.
+
+  This access control manager enforces valid identity and a scheme of
+  read/write/query access that works with the GRR approval system.
+  """
 
   def UserHasAdminLabel(self, subject, token):
     """Checks whether a user has admin label. Used by CheckAccessHelper."""
@@ -553,12 +558,13 @@ class FullAccessControlManager(BasicAccessControlManager):
       return True
 
     # Target may be None for flows not specifying a client.
-    # Only SYSTEM_ACCOUNTS can run these flows.
+    # Only aff4.GRRUser.SYSTEM_USERS can run these flows.
     if not target:
-      if token.username not in self.SYSTEM_ACCOUNTS:
+      if token.username not in aff4.GRRUser.SYSTEM_USERS:
         raise access_control.UnauthorizedAccess(
             "ACL access denied for flow without client_urn for %s",
             token.username)
+      return True
 
     if not token.reason:
       raise access_control.UnauthorizedAccess(
@@ -572,7 +578,7 @@ class FullAccessControlManager(BasicAccessControlManager):
     try:
       token.is_emergency = self.acl_cache.Get(approval_urn)
       logging.debug("ACL access granted to %s on %s. Supervisor: %s",
-                   token.username, target, token.supervisor)
+                    token.username, target, token.supervisor)
       return True
     except KeyError:
       try:
@@ -586,7 +592,7 @@ class FullAccessControlManager(BasicAccessControlManager):
           # Cache this approval for fast path checking.
           self.acl_cache.Put(approval_urn, token.is_emergency)
           logging.debug("ACL access granted to %s on %s. Supervisor: %s",
-                       token.username, target, token.supervisor)
+                        token.username, target, token.supervisor)
           return True
 
         raise access_control.UnauthorizedAccess(

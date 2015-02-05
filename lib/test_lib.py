@@ -196,8 +196,7 @@ class DummyLogFlowChild(flow.GRRFlow):
 
 class WellKnownSessionTest(flow.WellKnownFlow):
   """Tests the well known flow implementation."""
-  well_known_session_id = rdfvalue.SessionID(base="aff4:/flows",
-                                             queue=rdfvalue.RDFURN("test"),
+  well_known_session_id = rdfvalue.SessionID(queue=rdfvalue.RDFURN("test"),
                                              flow_name="TestSessionId")
 
   messages = []
@@ -739,7 +738,7 @@ class ACLChecksDisabledContextManager(object):
 
   def __enter__(self):
     self.old_security_manager = data_store.DB.security_manager
-    data_store.DB.security_manager = access_control.BaseAccessControlManager()
+    data_store.DB.security_manager = access_control.NullAccessControlManager()
     return None
 
   def __exit__(self, unused_type, unused_value, unused_traceback):

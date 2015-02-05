@@ -22,7 +22,8 @@ class TestStats(test_lib.GRRSeleniumTest):
     token = access_control.ACLToken(username="test", reason="fixture")
 
     with aff4.FACTORY.Create(
-        "aff4:/stats/ClientFleetStats", "ClientFleetStats", token=token) as fd:
+        "aff4:/stats/ClientFleetStats/All", "ClientFleetStats",
+        token=token) as fd:
       now = 1321057655
 
       for i in range(10, 15):
@@ -69,11 +70,13 @@ class TestStats(test_lib.GRRSeleniumTest):
 
     self.Click("css=#_Clients ins.jstree-icon")
 
-    self.Click("css=#_Clients-OS_20Breakdown ins.jstree-icon")
+    self.Click("css=#_Clients-All ins.jstree-icon")
+
+    self.Click("css=#_Clients-All-OS_20Breakdown ins.jstree-icon")
 
     self.WaitUntil(self.IsElementPresent,
-                   "css=#_Clients-OS_20Breakdown-_207_20Day_20Active")
-    self.Click("css=li[path='/Clients/OS Breakdown/ 7 Day Active'] a")
+                   "css=#_Clients-All-OS_20Breakdown-_207_20Day_20Active")
+    self.Click("css=li[path='/Clients/All/OS Breakdown/ 7 Day Active'] a")
 
     self.WaitUntilEqual(u"No data Available",
                         self.GetText, "css=#main_rightPane h3")
@@ -81,7 +84,7 @@ class TestStats(test_lib.GRRSeleniumTest):
     with self.ACLChecksDisabled():
       self.PopulateData()
 
-    self.Click("css=li[path='/Clients/OS Breakdown/ 7 Day Active'] a")
+    self.Click("css=li[path='/Clients/All/OS Breakdown/ 7 Day Active'] a")
 
     self.WaitUntilEqual(u"Operating system break down.",
                         self.GetText, "css=#main_rightPane h3")

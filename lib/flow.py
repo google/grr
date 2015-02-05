@@ -57,6 +57,7 @@ from grr.lib import communicator
 from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flow_runner
+from grr.lib import queues
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import registry
@@ -209,7 +210,7 @@ class Responses(object):
             session_id.Add("state/request:%08X" % responses[0].request_id),
             "flow:.*", token=token),
         data_store.DB.ResolveRegex(
-            "aff4:/W", "notify:%s" % session_id, token=token))
+            queues.FLOWS, "notify:%s" % session_id, token=token))
 
 
 class FakeResponses(Responses):

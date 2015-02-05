@@ -6,7 +6,6 @@ from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import email_alerts
 from grr.lib import flow
-from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import utils
 
@@ -16,8 +15,7 @@ class AFF4NotificationEmailListener(flow.EventListener):
   EVENTS = ["AFF4ChangeNotifyByEmail"]
 
   well_known_session_id = rdfvalue.SessionID(
-      base="aff4:/flows",
-      queue=queues.FLOWS, flow_name="AFF4ChangeNotifyByEmailHandler")
+      flow_name="AFF4ChangeNotifyByEmailHandler")
 
   mail_template = """<html><body><h1>AFF4 change notification</h1>
 Following path got modified: %(path)s"
