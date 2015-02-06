@@ -70,7 +70,7 @@ shift $((OPTIND-1))
 
 echo "Running with GRR_LOCAL_TEST=${GRR_LOCAL_TEST}, GRR_TESTING=${GRR_TESTING}, BUILD_DEPS_ONLY=${BUILD_DEPS_ONLY}, ALL_YES=${ALL_YES}"
 
-if [ -z "${GRR_TESTING}" ];
+if [ ${GRR_TESTING} = 0 ];
 then
   SERVER_DEB_URL=${SERVER_DEB_STABLE_BASE_URL}${GRR_STABLE_VERSION}_${PLAT}.deb
 else
@@ -192,6 +192,7 @@ fi
 
 header "Installing Mongodb"
 run_cmd_confirm apt-get --yes --force-yes install mongodb python-pymongo;
+run_cmd_confirm service mongodb stop 2>/dev/null || true
 run_cmd_confirm service mongodb start 2>/dev/null
 
 header "Installing GRR from prebuilt package"
