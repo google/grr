@@ -348,8 +348,6 @@ Worker Context:
 
   Monitoring.http_port: 44441
 
-  Worker.worker_process_count: 1
-
 # For Test Context, see test_data/grr_test.yaml
 
 DataServer Context:
