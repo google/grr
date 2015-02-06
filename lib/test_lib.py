@@ -7,6 +7,8 @@ import codecs
 import datetime
 import functools
 import itertools
+import logging
+import mock
 import os
 import pdb
 import re
@@ -25,15 +27,10 @@ import urlparse
 
 from M2Crypto import X509
 
-import mock
-
 from selenium.common import exceptions
 from selenium.webdriver.common import action_chains
 from selenium.webdriver.common import keys
 from selenium.webdriver.support import select
-
-import logging
-import unittest
 
 from grr.client import actions
 from grr.client import comms
