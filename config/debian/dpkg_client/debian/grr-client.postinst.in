@@ -9,8 +9,12 @@ case "$1" in
   configure\)
     ${DAEMON} ${DAEMON_ARGS} "--install"
 
+    # Early versions of upstart didn't support restarting a service that wasn't
+    # already running:
+    # https://bugs.launchpad.net/ubuntu/+source/upstart/+bug/430883
     if test -e "/etc/init/%(ClientBuilder.package_name).conf"; then
-      /usr/sbin/service %(ClientBuilder.package_name) restart 2>/dev/null
+      /usr/sbin/service %(ClientBuilder.package_name) stop 2>/dev/null || true
+      /usr/sbin/service %(ClientBuilder.package_name) start 2>/dev/null
     elif test -e "/etc/init.d/%(ClientBuilder.package_name)"; then
       /etc/init.d/%(ClientBuilder.package_name) restart 2>/dev/null
     fi

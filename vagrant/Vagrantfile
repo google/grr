@@ -1,0 +1,28 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure(2) do |config|
+
+  config.vm.synced_folder "../", "/grr"
+
+  config.vm.provider "virtualbox" do |vb|
+    vb.memory = "2048"
+    vb.cpus = "2"
+  end
+
+  config.vm.define "ubuntu_trusty64" do |box|
+    box.vm.box = "ubuntu/trusty64"
+    box.vm.provision "shell" do |s|
+      s.path = "../scripts/install_script_ubuntu.sh"
+      s.args = ["-dy"]
+    end
+  end
+
+  config.vm.define "ubuntu_lucid64" do |box|
+    box.vm.box = "mrgcastle/ubuntu-lucid64"
+    box.vm.provision "shell" do |s|
+      s.path = "install_from_src.sh"
+    end
+  end
+
+end
