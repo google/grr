@@ -3,8 +3,5 @@ virtualenv:
 language: python
 python:
   - "2.7"
-install:
-  - "pip install -r requirements.txt"
-  - "cd proto; make"
-  - "cd artifacts; make"
+install: /bin/bash install.sh
 script: cd ..; PYTHONPATH=. python grr/run_tests.py
