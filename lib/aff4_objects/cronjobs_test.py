@@ -58,7 +58,7 @@ class DummySystemCronJob(cronjobs.SystemCronFlow):
 
 
 class DummySystemCronJobStartNow(DummySystemCronJob):
-  start_time_randomization_window = None
+  start_time_randomization = False
 
   @flow.StateHandler(next_state="End")
   def Start(self):
@@ -213,15 +213,26 @@ class CronTest(test_lib.AFF4ObjectTest):
       self.assertTrue(cron_job1.IsRunning())
       self.assertTrue(cron_job2.IsRunning())
 
+      # Check setting a bad flow urn is handled and removed
+      with aff4.FACTORY.OpenWithLock(cron_job_urn2, aff4_type="CronJob",
+                                     token=self.token) as cron_job2:
+
+        cron_job2.Set(cron_job2.Schema.CURRENT_FLOW_URN("aff4:/does/not/exist"))
+        self.assertFalse(cron_job2.IsRunning())
+
+      cron_job2 = aff4.FACTORY.Open(cron_job_urn2, aff4_type="CronJob",
+                                    token=self.token)
+      self.assertFalse(cron_job2.Get(cron_job2.Schema.CURRENT_FLOW_URN))
+
   def testGetStartTime(self):
     class TestSystemCron(cronjobs.SystemCronFlow):
-      frequency = rdfvalue.Duration("1d")
+      frequency = rdfvalue.Duration("10m")
       lifetime = rdfvalue.Duration("12h")
 
     class NoRandom(cronjobs.SystemCronFlow):
       frequency = rdfvalue.Duration("1d")
       lifetime = rdfvalue.Duration("12h")
-      start_time_randomization_window = None
+      start_time_randomization = False
 
     with test_lib.FakeTime(100):
       now = rdfvalue.RDFDatetime().Now()

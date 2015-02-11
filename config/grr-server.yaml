@@ -346,8 +346,6 @@ Worker Context:
 
   Logging.filename: "%(Logging.path)/grr-worker.log"
 
-  Monitoring.http_port: 44441
-
 # For Test Context, see test_data/grr_test.yaml
 
 DataServer Context:

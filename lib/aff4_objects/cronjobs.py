@@ -158,8 +158,8 @@ class SystemCronFlow(flow.GRRFlow):
   # By default we randomize the start time of system cron flows between 0 and
   # 'frequency' seconds after it is first created. This only affects the very
   # first run, after which they will run at 'frequency' intervals. Disable this
-  # behaviour by setting start_time_randomization_window = None
-  start_time_randomization_window = frequency
+  # behaviour by setting start_time_randomization = False.
+  start_time_randomization = True
 
   __abstract = True  # pylint: disable=g-bad-name
 
@@ -206,19 +206,19 @@ class StatefulSystemCronFlow(SystemCronFlow):
 def GetStartTime(cron_cls):
   """Get start time for a SystemCronFlow class.
 
-  If start_time_randomization_window is set in the class, randomise the start
-  time to be between now and (now + start_time_randomization_window)
+  If start_time_randomization is True in the class, randomise the start
+  time to be between now and (now + frequency)
 
   Args:
     cron_cls: SystemCronFlow class
   Returns:
     rdfvalue.RDFDatetime
   """
-  if not cron_cls.start_time_randomization_window:
+  if not cron_cls.start_time_randomization:
     return rdfvalue.RDFDatetime().Now()
 
   now = rdfvalue.RDFDatetime().Now()
-  window_ms = cron_cls.start_time_randomization_window.microseconds
+  window_ms = cron_cls.frequency.microseconds
 
   start_time_ms = random.randint(now.AsMicroSecondsFromEpoch(),
                                  now.AsMicroSecondsFromEpoch() + window_ms)
@@ -366,8 +366,15 @@ class CronJob(aff4.AFF4Volume):
     """Returns True if there's a currently running iteration of this job."""
     current_urn = self.Get(self.Schema.CURRENT_FLOW_URN)
     if current_urn:
-      current_flow = aff4.FACTORY.Open(urn=current_urn,
-                                       token=self.token, mode="r")
+      try:
+        current_flow = aff4.FACTORY.Open(urn=current_urn, aff4_type="GRRFlow",
+                                         token=self.token, mode="r")
+      except aff4.InstantiationError:
+        # This isn't a flow, something went really wrong, clear it out.
+        self.DeleteAttribute(self.Schema.CURRENT_FLOW_URN)
+        self.Flush()
+        return False
+
       runner = current_flow.GetRunner()
       return runner.context.state == rdfvalue.Flow.State.RUNNING
     return False

@@ -6,10 +6,6 @@ it specifies.
 """
 
 
-import time
-
-import logging
-
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
@@ -29,11 +25,6 @@ def main(unused_argv):
 
   # Initialise flows
   startup.Init()
-
-  workers = {}
-  dead_count = 0
-  start_time = time.time()
-
   token = access_control.ACLToken(username="GRRWorker")
   worker_obj = worker.GRRWorker(token=token)
   worker_obj.Run()

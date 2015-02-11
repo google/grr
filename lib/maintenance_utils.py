@@ -299,6 +299,8 @@ def RepackAllBinaries(upload=False, debug_build=False, token=None):
   return built
 
 
+# TODO(user): remove once people have had a chance to migrate their labels
+# from the older format.
 def RebuildIndex(urn, primary_attribute, indexed_attributes, token):
   """Rebuild the Label Indexes."""
   index_urn = rdfvalue.RDFURN(urn)
