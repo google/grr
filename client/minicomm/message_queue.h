@@ -45,7 +45,7 @@ class MessageQueue {
   const int max_args_size_;
 
   int args_size_;
-  deque<GrrMessage> messages_;
+  std::deque<GrrMessage> messages_;
 
   mutable std::mutex lock_;
 
