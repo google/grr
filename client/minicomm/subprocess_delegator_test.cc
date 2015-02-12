@@ -35,9 +35,9 @@ class SubprocessDelegatorTest : public ClientTestBase {
     ClientConfiguration::SubprocessConfig* subprocess_config =
         config_proto.mutable_subprocess_config();
     subprocess_config->set_filename(filename);
-    *subprocess_config->mutable_argv() = proto2::RepeatedPtrField<std::string>(
+    *subprocess_config->mutable_argv() = google::protobuf::RepeatedPtrField<std::string>(
         argv.begin(), argv.end());
-    *subprocess_config->mutable_env() = proto2::RepeatedPtrField<std::string>(
+    *subprocess_config->mutable_env() = google::protobuf::RepeatedPtrField<std::string>(
         env.begin(), env.end());
 
     WriteConfigFile(config_proto.DebugString());

@@ -70,8 +70,8 @@ class ClientConfig {
 
   int last_server_cert_serial_number_;
 
-  proto2::RepeatedPtrField<std::string> control_urls_;
-  proto2::RepeatedPtrField<std::string> proxy_servers_;
+  google::protobuf::RepeatedPtrField<std::string> control_urls_;
+  google::protobuf::RepeatedPtrField<std::string> proxy_servers_;
 
   ClientConfiguration::SubprocessConfig subprocess_config_;
 

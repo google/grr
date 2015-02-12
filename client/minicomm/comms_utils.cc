@@ -105,7 +105,7 @@ SecureSession::SignedMessageList SecureSession::PackMessages(
     const std::vector<Message>& messages) {
   MessageList list;
   *list.mutable_job() =
-      proto2::RepeatedPtrField<Message>(messages.begin(), messages.end());
+      google::protobuf::RepeatedPtrField<Message>(messages.begin(), messages.end());
   SignedMessageList result;
   std::string serialized_result = list.SerializeAsString();
   std::string compressed_result = ZLib::Deflate(serialized_result);
