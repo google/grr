@@ -49,8 +49,8 @@ class ClientConfig {
     return ca_cert_;
   }
 
-  vector<std::string> ControlUrls() const;
-  vector<std::string> ProxyServers() const;
+  std::vector<std::string> ControlUrls() const;
+  std::vector<std::string> ProxyServers() const;
 
   ClientConfiguration::SubprocessConfig SubprocessConfig() const;
  private:

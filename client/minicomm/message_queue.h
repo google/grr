@@ -34,7 +34,7 @@ class MessageQueue {
   // the queue. If blocking is true, will block until there is at least one
   // message. Will return at least one message, even if it is larger than
   // max_args_size.
-  vector<Message> GetMessages(int max_message_count, int max_args_bytes,
+  std::vector<Message> GetMessages(int max_message_count, int max_args_bytes,
                               bool blocking);
 
   int current_message_count() const;

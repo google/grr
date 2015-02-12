@@ -29,16 +29,16 @@ class SecureSession {
                 std::unique_ptr<Certificate> target_cert);
 
   // Encrypts, signs and packages a set of messages into a ClientCommunitation.
-  ClientCommunication EncodeMessages(const vector<Message>& messages,
+  ClientCommunication EncodeMessages(const std::vector<Message>& messages,
                                      int64 nonce);
 
   // Attempt to decode and verify a ClientCommunication created for us.
   // Returns true on success. GrrMessage records are appended to output.
   bool DecodeMessages(const ClientCommunication& messages,
-                      vector<Message>* output,  int64 nonce);
+                      std::vector<Message>* output, int64 nonce);
 
  private:
-  SignedMessageList PackMessages(const vector<Message>& messages);
+  SignedMessageList PackMessages(const std::vector<Message>& messages);
 
   std::string encrypted_cipher_properties_;
   std::string encrypted_cipher_metadata_;

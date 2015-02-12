@@ -114,8 +114,8 @@ class HttpConnectionManager::Connection {
 HttpConnectionManager::Connection*
 HttpConnectionManager::TryEstablishConnection() {
   GOOGLE_LOG(INFO) << "Trying to make a connection.";
-  vector<std::string> control_urls(config_->ControlUrls());
-  vector<std::string> proxy_servers(config_->ProxyServers());
+  std::vector<std::string> control_urls(config_->ControlUrls());
+  std::vector<std::string> proxy_servers(config_->ProxyServers());
   // Also try direct connection.
   proxy_servers.push_back("");
   for (const std::string& url : control_urls) {
@@ -150,7 +150,7 @@ void HttpConnectionManager::Run() {
 
   // Messages that we've removed from the queue, but haven't yet managed to send
   // to the server.
-  vector<Message> to_send;
+  std::vector<Message> to_send;
 
   GOOGLE_LOG(INFO) << "Entering cm loop.";
   while (true) {
@@ -213,7 +213,7 @@ void HttpConnectionManager::Run() {
       failed = true;
       continue;
     }
-    vector<Message> messages;
+    std::vector<Message> messages;
     if (!current_connection_->secure_session().DecodeMessages(result, &messages,
                                                               nonce)) {
       GOOGLE_LOG(ERROR) << "Failed to decode response.";

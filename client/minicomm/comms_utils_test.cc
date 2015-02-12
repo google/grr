@@ -69,9 +69,9 @@ TEST_F(SecureSessionTest, EncodeDecodeMessage) {
                                       std::move(server_cert));
 
   // client -> server
-  vector<SecureSession::Message> messages_in;
+  std::vector<SecureSession::Message> messages_in;
   auto encoded = session_client.EncodeMessages(messages_in, nonce);
-  vector<SecureSession::Message> messages_out;
+  std::vector<SecureSession::Message> messages_out;
   EXPECT_TRUE(session_server.DecodeMessages(encoded, &messages_out, nonce));
   EXPECT_TRUE(messages_out.empty());
 

@@ -68,7 +68,7 @@ void SubprocessDelegator::StartChildProcess() {
     close(stdout_fd[0]);
     close(stderr_fd[0]);
 
-    vector<const char*> newargv;
+    std::vector<const char*> newargv;
     newargv.reserve(config_proto.argv_size() + 2);
     newargv.push_back(config_proto.filename().c_str());
     for (const std::string& arg : config_proto.argv()) {
@@ -76,7 +76,7 @@ void SubprocessDelegator::StartChildProcess() {
     }
     newargv.push_back(NULL);
 
-    vector<const char*> newenv;
+    std::vector<const char*> newenv;
     newenv.reserve(config_proto.env_size() + 1);
     for (const std::string& v : config_proto.env()) {
       newenv.push_back(v.c_str());
@@ -172,7 +172,7 @@ void SubprocessDelegator::KillChildProcess() {
 
 void SubprocessDelegator::WriteLoop() {
   while (true) {
-    vector<MessageQueue::Message> messages =
+    std::vector<MessageQueue::Message> messages =
         inbox_->GetMessages(100, 100000, true);
     GOOGLE_DCHECK_GT(messages.size(), 0);
     std::unique_lock<std::mutex> pid_lock(child_pid_mutex_);

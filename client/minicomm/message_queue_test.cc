@@ -30,7 +30,7 @@ TEST(MessageQueueTest, AddMessageNonBlocking) {
   EXPECT_EQ(3, queue.current_message_count());
   EXPECT_EQ(20, queue.current_args_size());
 
-  vector<MessageQueue::Message> messages = queue.GetMessages(5, 20000, false);
+  std::vector<MessageQueue::Message> messages = queue.GetMessages(5, 20000, false);
   ASSERT_EQ(3, messages.size());
   EXPECT_EQ("SESSION 0", messages[0].session_id());
   EXPECT_EQ("SESSION 1", messages[1].session_id());
@@ -54,7 +54,7 @@ TEST(MessageQueueTest, AddMessageBlocks) {
   // Pause so that blocked_add is likely to run if it can.
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
   // Should only get m1 back, because blocked_add should be blocked.
-  vector<MessageQueue::Message> messages = queue.GetMessages(5, 20000, false);
+  std::vector<MessageQueue::Message> messages = queue.GetMessages(5, 20000, false);
   ASSERT_EQ(1, messages.size());
   EXPECT_EQ("SESSION 0", messages[0].session_id());
 
@@ -80,7 +80,7 @@ TEST(MessageQueueTest, AddPriorityMessage) {
   m1.set_args(string("0987654321", 10));
   queue.AddPriorityMessage(m1);
 
-  vector<MessageQueue::Message> messages = queue.GetMessages(5, 20000, false);
+  std::vector<MessageQueue::Message> messages = queue.GetMessages(5, 20000, false);
   ASSERT_EQ(2, messages.size());
   // High priority message should be first.
   EXPECT_EQ("SESSION 1", messages[0].session_id());
@@ -91,7 +91,7 @@ TEST(MessageQueueTest, GetMessageBlocking) {
   MessageQueue queue(5, 15);
 
   // Non-blocking mode should return immediatly, even when the queue is empty.
-  vector<MessageQueue::Message> messages = queue.GetMessages(5, 20000, false);
+  std::vector<MessageQueue::Message> messages = queue.GetMessages(5, 20000, false);
 
   std::thread blocked_get(
       [&messages, &queue]() { messages = queue.GetMessages(2, 20000, true); });
@@ -116,7 +116,7 @@ TEST(MessageQueueTest, GetMessageSize) {
     m.set_args(string("123457890", 10));
     queue.AddMessage(m);
   }
-  vector<MessageQueue::Message> messages = queue.GetMessages(5, 20000, false);
+  std::vector<MessageQueue::Message> messages = queue.GetMessages(5, 20000, false);
   ASSERT_EQ(5, messages.size());
   EXPECT_EQ("SESSION 0", messages[0].session_id());
   EXPECT_EQ("SESSION 4", messages[4].session_id());
