@@ -7,7 +7,7 @@
 
 #include "config.pb.h"
 #include "crypto.h"
-#include "google/proto/repeated_field.h"
+#include "google/protobuf/repeated_field.h"
 
 // Represents the configuration of a client. Thread safe.
 namespace grr {
