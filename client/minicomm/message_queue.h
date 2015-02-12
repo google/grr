@@ -12,7 +12,6 @@ namespace grr {
 
 class MessageQueue {
  public:
-  typedef google3::ops::security::grr::GrrMessage Message;
 
   // Create a queue which normally limits itself to max_count records with a
   // total data (args) size of max_args_bytes.

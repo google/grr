@@ -9,11 +9,6 @@
 #include "base.h"
 #include "compression.h"
 
-using google3::ops::security::grr::CipherProperties;
-using google3::ops::security::grr::CipherMetadata;
-using google3::ops::security::grr::MessageList;
-using google3::ops::security::grr::GrrMessage;
-
 namespace grr {
 // *** MessageBuilder ***
 void MessageBuilder::InitiateEnrollment(ClientConfig* config,

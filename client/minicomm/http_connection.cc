@@ -18,7 +18,6 @@
 #include "crypto.h"
 #include "util.h"
 
-typedef google3::ops::security::grr::GrrMessage Message;
 
 namespace grr {
 namespace {

@@ -15,15 +15,11 @@ namespace grr {
 
 class MessageBuilder {
  public:
-  typedef google3::ops::security::grr::GrrMessage Message;
   static void InitiateEnrollment(ClientConfig* config, MessageQueue* outbox);
 };
 
 class SecureSession {
  public:
-  typedef google3::ops::security::grr::GrrMessage Message;
-  typedef google3::ops::security::grr::ClientCommunication ClientCommunication;
-  typedef google3::ops::security::grr::SignedMessageList SignedMessageList;
 
   SecureSession(const std::string& client_id, RSAKey* our_key,
                 std::unique_ptr<Certificate> target_cert);
