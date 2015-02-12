@@ -9,7 +9,7 @@
 
 namespace grr {
 namespace {
-z_stream MakeZS(const string& input) {
+z_stream MakeZS(const std::string& input) {
   z_stream zs;
   zs.zalloc = Z_NULL;
   zs.zfree = Z_NULL;
@@ -22,7 +22,7 @@ z_stream MakeZS(const string& input) {
 }
 }  // namespace
 
-string ZLib::Inflate(const string& input) {
+std::string ZLib::Inflate(const std::string& input) {
   const auto block_size = std::max(input.size(), 1024UL);
   vector<std::unique_ptr<unsigned char[]>> output_blocks;
   output_blocks.emplace_back(new unsigned char[block_size]());
@@ -45,7 +45,7 @@ string ZLib::Inflate(const string& input) {
     LOG(ERROR) << "Unexpected ZLIB result:" << result;
     return "";
   }
-  string r;
+  std::string r;
   r.reserve(zs.total_out);
   for (int i = 0; i < output_blocks.size() - 1; i++) {
     r.append(reinterpret_cast<char*>(output_blocks[i].get()), block_size);
@@ -56,7 +56,7 @@ string ZLib::Inflate(const string& input) {
   return r;
 }
 
-string ZLib::Deflate(const string& input) {
+std::string ZLib::Deflate(const std::string& input) {
   z_stream zs = MakeZS(input);
 
   deflateInit(&zs, Z_DEFAULT_COMPRESSION);
@@ -66,6 +66,6 @@ string ZLib::Deflate(const string& input) {
   zs.avail_out = max_out;
   deflate(&zs, Z_FINISH);
   deflateEnd(&zs);
-  return string(reinterpret_cast<char*>(output.get()), zs.total_out);
+  return std::string(reinterpret_cast<char*>(output.get()), zs.total_out);
 }
 }  // namespace grr

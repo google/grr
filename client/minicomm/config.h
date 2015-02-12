@@ -14,7 +14,7 @@ namespace grr {
 class ClientConfig {
  public:
   // Create a ClientConfig read from the provided filename.
-  explicit ClientConfig(const string& filename);
+  explicit ClientConfig(const std::string& filename);
 
   // Attempt to initialize/update ClientConfig from the filesystem. Returns true
   // on success.
@@ -31,7 +31,7 @@ class ClientConfig {
 
   // A client id based on our rsa key. Returns the empty string if we do not
   // have a private rsa key.
-  string ClientId() const {
+  std::string ClientId() const {
     std::unique_lock<std::mutex> l(lock_);
     return client_id_;
   }
@@ -49,29 +49,29 @@ class ClientConfig {
     return ca_cert_;
   }
 
-  vector<string> ControlUrls() const;
-  vector<string> ProxyServers() const;
+  vector<std::string> ControlUrls() const;
+  vector<std::string> ProxyServers() const;
 
   ClientConfiguration::SubprocessConfig SubprocessConfig() const;
  private:
   // Attempt to save the current ClientConfig to the filesystem.
   bool WriteBackConfig();
 
-  string MakeClientId();
+  std::string MakeClientId();
 
   // Read the file named config_file and merge its content into *config_proto.
   // return true on success.
-  static bool MergeConfigFile(const string& config_file,
+  static bool MergeConfigFile(const std::string& config_file,
                               ClientConfiguration* config_proto);
 
-  const string configuration_filename_;
-  string writeback_filename_;
-  string client_id_;
+  const std::string configuration_filename_;
+  std::string writeback_filename_;
+  std::string client_id_;
 
   int last_server_cert_serial_number_;
 
-  proto2::RepeatedPtrField<string> control_urls_;
-  proto2::RepeatedPtrField<string> proxy_servers_;
+  proto2::RepeatedPtrField<std::string> control_urls_;
+  proto2::RepeatedPtrField<std::string> proxy_servers_;
 
   ClientConfiguration::SubprocessConfig subprocess_config_;
 

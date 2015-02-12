@@ -34,7 +34,7 @@ TEST_F(ConfigTest, Writeback) {
   ClientConfiguration config_proto;
 
   config_.ResetKey();
-  const string client_id = config_.ClientId();
+  const std::string client_id = config_.ClientId();
   EXPECT_FALSE(client_id.empty());
   ASSERT_TRUE(proto2::TextFormat::ParseFromString(ReadWritebackFile(),
                                                   &config_proto));

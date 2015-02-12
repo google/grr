@@ -46,7 +46,7 @@ void MessageBuilder::InitiateEnrollment(ClientConfig* config,
 // *** SecureSession ***
 
 namespace {
-string ComputeHMAC(const string& key,
+std::string ComputeHMAC(const std::string& key,
                    const SecureSession::ClientCommunication& input) {
   Sha1HMAC hmac(key);
   hmac.Update(input.encrypted());
@@ -55,13 +55,13 @@ string ComputeHMAC(const string& key,
   hmac.Update(input.packet_iv());
   // Need the bytes for api_version as a 32 bit little endian value.
   uint32_t converted_version = htole32(input.api_version());
-  string version_string(reinterpret_cast<char*>(&converted_version), 4);
+  std::string version_string(reinterpret_cast<char*>(&converted_version), 4);
   hmac.Update(version_string);
   return hmac.Final();
 }
 }  // namespace
 
-SecureSession::SecureSession(const string& client_id, RSAKey* our_key,
+SecureSession::SecureSession(const std::string& client_id, RSAKey* our_key,
                              std::unique_ptr<Certificate> target_cert)
     : our_key_(our_key), target_cert_(std::move(target_cert)) {
   CipherProperties properties;
@@ -70,7 +70,7 @@ SecureSession::SecureSession(const string& client_id, RSAKey* our_key,
   properties.set_metadata_iv(CryptoRand::RandBytes(16));
   properties.set_hmac_key(CryptoRand::RandBytes(16));
   properties.set_hmac_type(CipherProperties::FULL_HMAC);
-  string serialized_properties = properties.SerializeAsString();
+  std::string serialized_properties = properties.SerializeAsString();
   encrypted_cipher_properties_ = target_cert_->Encrypt(serialized_properties);
 
   session_key_ = properties.key();
@@ -107,8 +107,8 @@ SecureSession::SignedMessageList SecureSession::PackMessages(
   *list.mutable_job() =
       proto2::RepeatedPtrField<Message>(messages.begin(), messages.end());
   SignedMessageList result;
-  string serialized_result = list.SerializeAsString();
-  string compressed_result = ZLib::Deflate(serialized_result);
+  std::string serialized_result = list.SerializeAsString();
+  std::string compressed_result = ZLib::Deflate(serialized_result);
   if (serialized_result.length() <= compressed_result.length()) {
     result.mutable_message_list()->swap(serialized_result);
   } else {
@@ -120,7 +120,7 @@ SecureSession::SignedMessageList SecureSession::PackMessages(
 
 bool SecureSession::DecodeMessages(const ClientCommunication& input,
                                    vector<Message>* output, int64 nonce) {
-  const string serialized_cipher = our_key_->Decrypt(input.encrypted_cipher());
+  const std::string serialized_cipher = our_key_->Decrypt(input.encrypted_cipher());
   if (serialized_cipher.empty()) {
     LOG(ERROR) << "Could not decrypt cipher.";
     return false;
@@ -131,13 +131,13 @@ bool SecureSession::DecodeMessages(const ClientCommunication& input,
     return false;
   }
 
-  const string expected_hmac = ComputeHMAC(cipher_props.hmac_key(), input);
+  const std::string expected_hmac = ComputeHMAC(cipher_props.hmac_key(), input);
   if (expected_hmac != input.full_hmac()) {
     LOG(ERROR) << "HMAC mismatch.";
     return false;
   }
 
-  string decrypted_packet = AES128CBCCipher::Decrypt(
+  std::string decrypted_packet = AES128CBCCipher::Decrypt(
       cipher_props.key(), input.packet_iv(), input.encrypted());
   if (decrypted_packet.empty()) {
     LOG(ERROR) << "Could not decrypt packet.";

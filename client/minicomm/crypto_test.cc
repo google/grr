@@ -5,13 +5,13 @@
 namespace grr {
 
 TEST(CryptoTest, Digest) {
-  static const string plaintext(
+  static const std::string plaintext(
     "Machines take me by surprise with great frequency");
-  static const string hash(
+  static const std::string hash(
     "\xd2\x54\x33\xd0\xd9\x80\xeb\x5d\xc4\x7e\xcd\x71\x74\xa0\x1c\xa4\x41\xad"
     "\xe6\x46\x08\x35\x07\x4a\x46\x7e\x77\xd9\x83\x43\xc9\x0b",
     256 / 8);
-  static const string empty_hash(
+  static const std::string empty_hash(
     "\xe3\xb0\xc4\x42\x98\xfc\x1c\x14\x9a\xfb\xf4\xc8\x99\x6f\xb9\x24\x27\xae"
     "\x41\xe4\x64\x9b\x93\x4c\xa4\x95\x99\x1b\x78\x52\xb8\x55",
     256 / 8);
@@ -20,8 +20,8 @@ TEST(CryptoTest, Digest) {
 }
 
 TEST(CryptoText, HMAC) {
-  static const string key("secret");
-  static const string hash(
+  static const std::string key("secret");
+  static const std::string hash(
     "\x69\x4a\xbd\x10\x84\x2d\x16\x1d\xdb\xc5\x4d\xf8\xa0\xd5\x7c\xf6\x4d\x0d"
     "\xbc\xc9",
     160 / 8);
@@ -31,7 +31,7 @@ TEST(CryptoText, HMAC) {
   hmac.Update("c");
   EXPECT_EQ(hmac.Final(), hash);
 
-  static const string empty_hash(
+  static const std::string empty_hash(
     "\x25\xaf\x61\x74\xa0\xfc\xec\xc4\xd3\x46\x68\x0a\x72\xb7\xce\x64\x4b\x9a"
     "\x88\xe8",
     160 / 8);
@@ -47,26 +47,26 @@ TEST(CryptoTest, RSAKey) {
   EXPECT_EQ(key.ToStringPEM(), "");
 
   key.Generate();
-  string pem = key.ToStringPEM();
+  std::string pem = key.ToStringPEM();
   LOG(INFO) << pem;
   ASSERT_FALSE(pem.empty());
 
   RSAKey another_key;
   another_key.Generate();
-  string another_pem = another_key.ToStringPEM();
+  std::string another_pem = another_key.ToStringPEM();
   // Generate function must generate new keys every time.
   EXPECT_NE(pem, another_pem);
 
   RSAKey key2;
   ASSERT_TRUE(key2.FromPEM(pem));
-  string pem2 = key2.ToStringPEM();
+  std::string pem2 = key2.ToStringPEM();
   EXPECT_EQ(pem2, pem);
 
-  string signature = key.SignSha256("A message worthy of a John Handcock.");
+  std::string signature = key.SignSha256("A message worthy of a John Handcock.");
   EXPECT_FALSE(signature.empty());
 
   RSAKey key3(key);
-  string pem3(key3.ToStringPEM());
+  std::string pem3(key3.ToStringPEM());
   EXPECT_EQ(pem3, pem);
 
   RSAKey key_copy;
@@ -127,7 +127,7 @@ TEST(CryptoTest, CertificateFromRSA) {
   Certificate cert(rsa_key);
   EXPECT_FALSE(cert.ToStringPEM().empty());
 
-  const static string kSecret = "secret";
+  const static std::string kSecret = "secret";
   // TODO(dionyziz): Refactor the code to make it clear from
   // its types whether an RSAKey contains a private key or not.
   // Add appropriate testcases making sure we don't expose private
@@ -137,17 +137,17 @@ TEST(CryptoTest, CertificateFromRSA) {
 }
 
 TEST(CryptoTest, AES128CBCCipher) {
-  string key("abcdefghijklmnopqrst", 16);
-  string iv("tsrqponmlkjihgfedcba", 16);
-  const string test_string("The quick brown fox jumped over the lazy dogs.");
-  const string encrypted = AES128CBCCipher::Encrypt(key, iv, test_string);
+  std::string key("abcdefghijklmnopqrst", 16);
+  std::string iv("tsrqponmlkjihgfedcba", 16);
+  const std::string test_string("The quick brown fox jumped over the lazy dogs.");
+  const std::string encrypted = AES128CBCCipher::Encrypt(key, iv, test_string);
   ASSERT_FALSE(encrypted.empty());
-  const string decrypted = AES128CBCCipher::Decrypt(key, iv, encrypted);
+  const std::string decrypted = AES128CBCCipher::Decrypt(key, iv, encrypted);
   EXPECT_EQ(test_string, decrypted);
 }
 
 TEST(CryptoTest, CryptoRand) {
-  string bytes = CryptoRand::RandBytes(32);
+  std::string bytes = CryptoRand::RandBytes(32);
   EXPECT_EQ(bytes.length(), 32);
   const uint64 r = CryptoRand::RandInt64();
   EXPECT_NE(r, 0UL);

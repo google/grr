@@ -20,20 +20,20 @@ class ClientTestBase : public ::testing::Test {
   // Methods to write a config file, providing more control over the resulting
   // configuration. Be sure to call config_.ReadConfig after using.
   void WriteValidConfigFile(bool include_private_key, bool use_writeback);
-  void WriteConfigFile(const string& data);
+  void WriteConfigFile(const std::string& data);
 
   // Retrieve current writeback file.
-  string ReadWritebackFile();
+  std::string ReadWritebackFile();
 
   // Resets the log capture buffer and begins copying logged messages to it.
   void BeginLogCapture(const std::set<LogSeverity>& severities);
   // Stops capturing log messages.
   void EndLogCapture();
   // Check if the buffer contains a log line which ends in string.
-  bool CapturedLogContainsSuffix(const string& string);
+  bool CapturedLogContainsSuffix(const std::string& string);
 
-  const string config_filename_;
-  const string writeback_filename_;
+  const std::string config_filename_;
+  const std::string writeback_filename_;
   ClientConfig config_;
 
   // A valid CA certificate.

@@ -5,7 +5,7 @@
 #include "base.h"
 
 namespace grr {
-Client::Client(const string& filename)
+Client::Client(const std::string& filename)
     : config_(filename),
       inbox_(5000, 1000000),
       outbox_(5000, 1000000),

@@ -24,20 +24,20 @@ namespace grr {
 namespace {
 struct HttpResponse {
   long http_response_code;
-  string headers;
-  string body;
+  std::string headers;
+  std::string body;
 };
 
 size_t write_ostringstream(char* ptr, size_t size, size_t nmemb,
                            void* userdata) {
-  *reinterpret_cast<ostringstream*>(userdata) << string(ptr, size * nmemb);
+  *reinterpret_cast<ostringstream*>(userdata) << std::string(ptr, size * nmemb);
   return size * nmemb;
 }
 
 // Make a request to url. If proxy is non-empty, use it as a proxy server.
 // If post_data is non-empty, make a post request.
-HttpResponse RequestURL(const string& url, const string& proxy,
-                        const string& post_data) {
+HttpResponse RequestURL(const std::string& url, const std::string& proxy,
+                        const std::string& post_data) {
   ostringstream headers;
   ostringstream body;
   struct curl_slist* added_headers = NULL;
@@ -92,40 +92,40 @@ HttpConnectionManager::~HttpConnectionManager() {}
 
 class HttpConnectionManager::Connection {
  public:
-  Connection(const string& client_id, RSAKey our_key,
-             std::unique_ptr<Certificate> target_cert_, const string& url,
-             const string& proxy)
+  Connection(const std::string& client_id, RSAKey our_key,
+             std::unique_ptr<Certificate> target_cert_, const std::string& url,
+             const std::string& proxy)
       : our_key_(our_key),
         secure_session_(client_id, &our_key_, std::move(target_cert_)),
         url_(url),
         proxy_(proxy) {}
 
   SecureSession& secure_session() { return secure_session_; }
-  const string& url() { return url_; }
-  const string& proxy() { return proxy_; }
+  const std::string& url() { return url_; }
+  const std::string& proxy() { return proxy_; }
 
  private:
   RSAKey our_key_;
   SecureSession secure_session_;
-  const string url_;
-  const string proxy_;
+  const std::string url_;
+  const std::string proxy_;
 };
 
 HttpConnectionManager::Connection*
 HttpConnectionManager::TryEstablishConnection() {
   LOG(INFO) << "Trying to make a connection.";
-  vector<string> control_urls(config_->ControlUrls());
-  vector<string> proxy_servers(config_->ProxyServers());
+  vector<std::string> control_urls(config_->ControlUrls());
+  vector<std::string> proxy_servers(config_->ProxyServers());
   // Also try direct connection.
   proxy_servers.push_back("");
-  for (const string& url : control_urls) {
-    for (const string& proxy : proxy_servers) {
+  for (const std::string& url : control_urls) {
+    for (const std::string& proxy : proxy_servers) {
       const HttpResponse r =
           RequestURL(UrlDirname(url) + "/server.pem", proxy, "");
       if (r.http_response_code != 200L) {
         return nullptr;
       }
-      const string& server_pem = r.body;
+      const std::string& server_pem = r.body;
       if (server_pem.find("BEGIN CERTIFICATE") == string::npos) {
         return nullptr;
       }

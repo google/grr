@@ -10,7 +10,7 @@ ClientTestBase::ClientTestBase() :
 
 ClientTestBase::~ClientTestBase() {}
 
-void ClientTestBase::WriteConfigFile(const string& data) {
+void ClientTestBase::WriteConfigFile(const std::string& data) {
   ofstream file;
   file.open(config_filename_);
   file << data;
@@ -35,10 +35,10 @@ void ClientTestBase::WriteValidConfigFile(bool include_private_key,
   WriteConfigFile(config_proto.DebugString());
 }
 
-string ClientTestBase::ReadWritebackFile() {
+std::string ClientTestBase::ReadWritebackFile() {
   ifstream file;
   file.open(writeback_filename_);
-  const string r((std::istreambuf_iterator<char>(file)),
+  const std::string r((std::istreambuf_iterator<char>(file)),
                  std::istreambuf_iterator<char>());
   file.close();
   return r;
@@ -137,7 +137,7 @@ class ClientTestBase::LogCaptureSink : public LogSink {
     }
   }
 
-  bool ContainsMessageWithSuffix(const string& suffix) {
+  bool ContainsMessageWithSuffix(const std::string& suffix) {
     std::unique_lock<std::mutex> l(mutex_);
     for (const auto& m : messages_) {
       if (m.size() >= suffix.size() &&
@@ -151,7 +151,7 @@ class ClientTestBase::LogCaptureSink : public LogSink {
  private:
   std::mutex mutex_;
   bool logging_;
-  vector<string> messages_;
+  vector<std::string> messages_;
   const std::set<LogSeverity> severities_to_log_;
 };
 
@@ -164,7 +164,7 @@ void ClientTestBase::EndLogCapture() {
   log_capture_sink_->StopLogging();
 }
 
-bool ClientTestBase::CapturedLogContainsSuffix(const string& message) {
+bool ClientTestBase::CapturedLogContainsSuffix(const std::string& message) {
   GOOGLE_CHECK(log_capture_sink_ != nullptr);
   return log_capture_sink_->ContainsMessageWithSuffix(message);
 }

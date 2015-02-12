@@ -51,7 +51,7 @@ class SecureSessionTest : public ::testing::Test {
 };
 
 TEST_F(SecureSessionTest, EncodeDecodeMessage) {
-  const string client_id = "grr";
+  const std::string client_id = "grr";
   RSAKey server_key, client_key;
   int64 nonce = 4;
 
@@ -76,7 +76,7 @@ TEST_F(SecureSessionTest, EncodeDecodeMessage) {
   EXPECT_TRUE(messages_out.empty());
 
   SecureSession::Message message;
-  string plaintext = "Hello encryption!";
+  std::string plaintext = "Hello encryption!";
   message.set_session_id(plaintext);
   messages_in.push_back(message);
   encoded = session_client.EncodeMessages(messages_in, nonce);

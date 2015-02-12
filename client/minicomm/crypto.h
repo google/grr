@@ -19,16 +19,16 @@ namespace grr {
 // Hashing/digest functions.
 class Digest {
  public:
-  static string Sha256(const string& input);
+  static std::string Sha256(const std::string& input);
 };
 
 // Incremental HMAC computation.
 class Sha1HMAC {
  public:
-  Sha1HMAC(const string& key);
+  Sha1HMAC(const std::string& key);
   ~Sha1HMAC();
-  void Update(const string& input);
-  string Final();
+  void Update(const std::string& input);
+  std::string Final();
 
  private:
   HMAC_CTX ctx_;
@@ -45,21 +45,21 @@ class RSAKey {
   bool Generate();
 
   // Initialize the key from a PEM format string. Returns true on success.
-  bool FromPEM(const string& pem);
+  bool FromPEM(const std::string& pem);
 
   // Attempt to produce a PEM string containing the current key. Returns the
   // empty string on failure.
-  string ToStringPEM() const;
+  std::string ToStringPEM() const;
 
   // Returns the value n of the public key, in the big endian binary format
   // produced by the openssl bn2mpi function.
-  string PublicKeyN() const;
+  std::string PublicKeyN() const;
 
   // Produce a signature for the sha256 digest of input.
-  string SignSha256(const string& input);
+  std::string SignSha256(const std::string& input);
 
   // Decrypt input using our private key.
-  string Decrypt(const string& input);
+  std::string Decrypt(const std::string& input);
 
   // For low level access to the underlying openssl struct. Does not pass
   // ownership.  Returns NULL if we do not have a valid key.
@@ -83,11 +83,11 @@ class Certificate {
   ~Certificate() {}
 
   // Initialize the cert from a PEM format string. Returns true on success.
-  bool FromPEM(const string& pem);
+  bool FromPEM(const std::string& pem);
 
   // Attempt to produce a PEM string containing the current cert. Returns the
   // empty string on failure.
-  string ToStringPEM() const;
+  std::string ToStringPEM() const;
 
   // Verify that candidate has been signed by this. Returns true if verification
   // succedes.
@@ -95,13 +95,13 @@ class Certificate {
 
   // Encrypt input using the public key embedded in this cert.
   // This directly uses the RSA math and allows inputs within the group size.
-  string Encrypt(const string& input);
+  std::string Encrypt(const std::string& input);
 
   // Return the serial number embedded in this certificate.
   int GetSerialNumber();
 
   // Verify the signature of a sha256 digest of the input string.
-  bool VerifySha256(const string& input);
+  bool VerifySha256(const std::string& input);
 
   // For low level access to the underlying openssl struct. Does not pass
   // ownership.
@@ -125,14 +125,14 @@ class CertificateSR {
   bool SetPublicKey(RSAKey* key);
 
   // Set the subject name associated with the CSR.
-  bool SetSubject(const string& subject);
+  bool SetSubject(const std::string& subject);
 
   // Sign the request with the client key.
   bool Sign(RSAKey* key);
 
   // Attempt to produce a PEM string containing the current cert. Returns the
   // empty string on failure.
-  string ToStringPEM() const;
+  std::string ToStringPEM() const;
 
   // For low level access to the underlying openssl struct. Does not pass
   // ownership.
@@ -148,10 +148,10 @@ class CertificateSR {
 
 class AES128CBCCipher {
  public:
-  static string Encrypt(const string& key, const string& iv,
-                        const string& input);
-  static string Decrypt(const string& key, const string& iv,
-                        const string& input);
+  static std::string Encrypt(const std::string& key, const std::string& iv,
+                        const std::string& input);
+  static std::string Decrypt(const std::string& key, const std::string& iv,
+                        const std::string& input);
 
  private:
   AES128CBCCipher();
@@ -159,7 +159,6 @@ class AES128CBCCipher {
 
 class CryptoRand {
  public:
-
   static std::string RandBytes(int num_bytes);
   static uint64 RandInt64();
 };

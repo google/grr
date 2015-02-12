@@ -15,7 +15,7 @@ namespace grr {
 class Client {
  public:
   // Create a client configured by the config file referenced by filename.
-  Client(const string& filename);
+  Client(const std::string& filename);
   void Run();
 
   // Performs necessary static initialization. Must be called before any threads

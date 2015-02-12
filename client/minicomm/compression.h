@@ -6,8 +6,8 @@
 namespace grr {
 class ZLib {
  public:
-  static string Inflate(const string& input);
-  static string Deflate(const string& input);
+  static std::string Inflate(const std::string& input);
+  static std::string Deflate(const std::string& input);
 };
 }
 

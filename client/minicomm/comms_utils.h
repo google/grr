@@ -25,7 +25,7 @@ class SecureSession {
   typedef google3::ops::security::grr::ClientCommunication ClientCommunication;
   typedef google3::ops::security::grr::SignedMessageList SignedMessageList;
 
-  SecureSession(const string& client_id, RSAKey* our_key,
+  SecureSession(const std::string& client_id, RSAKey* our_key,
                 std::unique_ptr<Certificate> target_cert);
 
   // Encrypts, signs and packages a set of messages into a ClientCommunitation.
@@ -40,11 +40,11 @@ class SecureSession {
  private:
   SignedMessageList PackMessages(const vector<Message>& messages);
 
-  string encrypted_cipher_properties_;
-  string encrypted_cipher_metadata_;
+  std::string encrypted_cipher_properties_;
+  std::string encrypted_cipher_metadata_;
 
-  string session_key_;
-  string hmac_key_;
+  std::string session_key_;
+  std::string hmac_key_;
 
   // External components.
   RSAKey* our_key_;

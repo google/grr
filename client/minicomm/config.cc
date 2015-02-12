@@ -13,7 +13,7 @@
 #include "google/protobuf/text_format.h"
 
 namespace grr {
-ClientConfig::ClientConfig(const string& configuration_file) :
+ClientConfig::ClientConfig(const std::string& configuration_file) :
     configuration_filename_(configuration_file) {}
 
 bool ClientConfig::ReadConfig() {
@@ -75,14 +75,14 @@ bool ClientConfig::ResetKey() {
   return WriteBackConfig();
 }
 
-vector<string> ClientConfig::ControlUrls() const {
+vector<std::string> ClientConfig::ControlUrls() const {
   std::unique_lock<std::mutex> l(lock_);
-  return vector<string>(control_urls_.begin(), control_urls_.end());
+  return vector<std::string>(control_urls_.begin(), control_urls_.end());
 }
 
-vector<string> ClientConfig::ProxyServers() const {
+vector<std::string> ClientConfig::ProxyServers() const {
   std::unique_lock<std::mutex> l(lock_);
-  return vector<string>(proxy_servers_.begin(), proxy_servers_.end());
+  return vector<std::string>(proxy_servers_.begin(), proxy_servers_.end());
 }
 
 ClientConfiguration::SubprocessConfig ClientConfig::SubprocessConfig() const {
@@ -111,7 +111,7 @@ bool ClientConfig::WriteBackConfig() {
       last_server_cert_serial_number_) {
     proto.set_last_server_cert_serial_number(last_server_cert_serial_number_);
   }
-  string key_pem = key_.ToStringPEM();
+  std::string key_pem = key_.ToStringPEM();
   if (base_config.client_private_key_pem() != key_pem) {
     proto.set_client_private_key_pem(key_pem);
   }
@@ -122,14 +122,14 @@ bool ClientConfig::WriteBackConfig() {
   return result;
 }
 
-string ClientConfig::MakeClientId() {
+std::string ClientConfig::MakeClientId() {
   if (!key_.get()) {
     return "";
   }
   return "C." + BytesToHex(Digest::Sha256(key_.PublicKeyN()).substr(0, 8));
 }
 
-bool ClientConfig::MergeConfigFile(const string& config_file,
+bool ClientConfig::MergeConfigFile(const std::string& config_file,
                                    ClientConfiguration* config) {
   int fd = open(config_file.c_str(), O_RDONLY);
   if (fd < 0) {

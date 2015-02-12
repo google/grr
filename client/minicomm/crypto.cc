@@ -10,48 +10,48 @@
 
 namespace grr {
 namespace {
-inline string BIOToString(BIO* bio) {
+inline std::string BIOToString(BIO* bio) {
   char* data;
   const long len = BIO_get_mem_data(bio, &data);
   if (len <= 0 || !data) {
     return "";
   }
-  return string(data, len);
+  return std::string(data, len);
 }
 
-inline const unsigned char* StringToBytes(const string& input) {
+inline const unsigned char* StringToBytes(const std::string& input) {
   return reinterpret_cast<const unsigned char*>(input.data());
 }
 
 }  // namespace
 
 // *** Digest ***
-string Digest::Sha256(const string& input) {
+std::string Digest::Sha256(const std::string& input) {
   SHA256_CTX context;
   SHA256_Init(&context);
   SHA256_Update(&context, StringToBytes(input), input.length());
   unsigned char digest[SHA256_DIGEST_LENGTH];
   SHA256_Final(digest, &context);
-  return string(reinterpret_cast<char*>(digest), SHA256_DIGEST_LENGTH);
+  return std::string(reinterpret_cast<char*>(digest), SHA256_DIGEST_LENGTH);
 }
 
 // *** Sha1HMAC ***
-Sha1HMAC::Sha1HMAC(const string& key) {
+Sha1HMAC::Sha1HMAC(const std::string& key) {
   HMAC_CTX_init(&ctx_);
   HMAC_Init_ex(&ctx_, StringToBytes(key), key.length(), EVP_sha1(), NULL);
 }
 
 Sha1HMAC::~Sha1HMAC() { HMAC_CTX_cleanup(&ctx_); }
 
-void Sha1HMAC::Update(const string& input) {
+void Sha1HMAC::Update(const std::string& input) {
   HMAC_Update(&ctx_, StringToBytes(input), input.length());
 }
 
-string Sha1HMAC::Final() {
+std::string Sha1HMAC::Final() {
   unsigned char digest[EVP_MAX_MD_SIZE];
   unsigned int length;
   HMAC_Final(&ctx_, digest, &length);
-  return string(reinterpret_cast<char*>(digest), length);
+  return std::string(reinterpret_cast<char*>(digest), length);
 }
 
 // *** RSAKey ***
@@ -76,14 +76,14 @@ bool RSAKey::Generate() {
   return RSA_generate_key_ex(key_.get(), 2048, e.get(), NULL);
 }
 
-bool RSAKey::FromPEM(const string& pem) {
+bool RSAKey::FromPEM(const std::string& pem) {
   scoped_ptr_openssl_int<BIO, BIO_free> bio(
       BIO_new_mem_buf(const_cast<char*>(pem.data()), pem.size()));
   key_.reset(PEM_read_bio_RSAPrivateKey(bio.get(), NULL, NULL, NULL));
   return key_.get() != nullptr;
 }
 
-string RSAKey::ToStringPEM() const {
+std::string RSAKey::ToStringPEM() const {
   if (key_.get() == NULL) {
     return "";
   }
@@ -95,7 +95,7 @@ string RSAKey::ToStringPEM() const {
   return BIOToString(bio.get());
 }
 
-string RSAKey::PublicKeyN() const {
+std::string RSAKey::PublicKeyN() const {
   if (key_.get() == NULL || key_.get()->n == NULL) {
     return "";
   }
@@ -103,10 +103,10 @@ string RSAKey::PublicKeyN() const {
   const int len = BN_bn2mpi(bn, nullptr);
   std::unique_ptr<char[]> buf(new char[len]);
   BN_bn2mpi(bn, reinterpret_cast<unsigned char*>(buf.get()));
-  return string(buf.get(), len);
+  return std::string(buf.get(), len);
 }
 
-string RSAKey::SignSha256(const string& input) {
+std::string RSAKey::SignSha256(const std::string& input) {
   if (key_.get() == NULL) {
     return "";
   }
@@ -121,10 +121,10 @@ string RSAKey::SignSha256(const string& input) {
   RSA_sign(NID_sha256, digest, SHA256_DIGEST_LENGTH, output.get(),
            &output_length, key_.get());
 
-  return string(reinterpret_cast<const char*>(output.get()), output_length);
+  return std::string(reinterpret_cast<const char*>(output.get()), output_length);
 }
 
-string RSAKey::Decrypt(const string& input) {
+std::string RSAKey::Decrypt(const std::string& input) {
   std::unique_ptr<unsigned char[]> output(
       new unsigned char[RSA_size(key_.get())]);
   int output_length =
@@ -133,7 +133,7 @@ string RSAKey::Decrypt(const string& input) {
   if (output_length <= 0) {
     return "";
   }
-  return string(reinterpret_cast<const char*>(output.get()), output_length);
+  return std::string(reinterpret_cast<const char*>(output.get()), output_length);
 }
 
 // *** Certificate ***
@@ -149,14 +149,14 @@ Certificate::Certificate(RSAKey& key) {
 Certificate::Certificate(const Certificate& other)
     : cert_(X509_dup(other.cert_.get())) {}
 
-bool Certificate::FromPEM(const string& pem) {
+bool Certificate::FromPEM(const std::string& pem) {
   scoped_ptr_openssl_int<BIO, BIO_free> bio(
       BIO_new_mem_buf(const_cast<char*>(pem.data()), pem.size()));
   cert_.reset(PEM_read_bio_X509(bio.get(), NULL, NULL, NULL));
   return cert_.get() != NULL;
 }
 
-string Certificate::ToStringPEM() const {
+std::string Certificate::ToStringPEM() const {
   if (cert_.get() == NULL) {
     return "";
   }
@@ -176,7 +176,7 @@ bool Certificate::Verify(const Certificate& candidate) {
   return X509_verify(candidate.cert_.get(), pkey.get());
 }
 
-string Certificate::Encrypt(const string& input) {
+std::string Certificate::Encrypt(const std::string& input) {
   scoped_ptr_openssl_void<EVP_PKEY, EVP_PKEY_free> pkey(
       X509_get_pubkey(cert_.get()));
   if (!pkey.get()) {
@@ -200,14 +200,14 @@ string Certificate::Encrypt(const string& input) {
   std::unique_ptr<unsigned char[]> output(new unsigned char[rsa_size]);
   RSA_public_encrypt(input.length(), StringToBytes(input), output.get(),
                      key.get(), RSA_PKCS1_OAEP_PADDING);
-  return string(reinterpret_cast<const char*>(output.get()), rsa_size);
+  return std::string(reinterpret_cast<const char*>(output.get()), rsa_size);
 }
 
 int Certificate::GetSerialNumber() {
   return ASN1_INTEGER_get(X509_get_serialNumber(cert_.get()));
 }
 
-bool Certificate::VerifySha256(const string& input) {
+bool Certificate::VerifySha256(const std::string& input) {
   SHA256_CTX context;
   SHA256_Init(&context);
   SHA256_Update(&context, input.data(), input.length());
@@ -237,7 +237,7 @@ bool CertificateSR::SetPublicKey(RSAKey* key) {
   return X509_REQ_set_pubkey(request_.get(), pkey.get());
 }
 
-bool CertificateSR::SetSubject(const string& subject) {
+bool CertificateSR::SetSubject(const std::string& subject) {
   scoped_ptr_openssl_void<X509_NAME, X509_NAME_free> name(X509_NAME_new());
   X509_NAME_add_entry_by_NID(
       name.get(), NID_commonName, MBSTRING_ASC,
@@ -246,7 +246,7 @@ bool CertificateSR::SetSubject(const string& subject) {
   return X509_REQ_set_subject_name(request_.get(), name.get());
 }
 
-string CertificateSR::ToStringPEM() const {
+std::string CertificateSR::ToStringPEM() const {
   if (request_.get() == NULL) {
     return "";
   }
@@ -264,8 +264,8 @@ bool CertificateSR::Sign(RSAKey* key) {
 }
 
 // *** AES128CBCCipher ***
-string AES128CBCCipher::Encrypt(const string& key, const string& iv,
-                                const string& input) {
+std::string AES128CBCCipher::Encrypt(const std::string& key, const std::string& iv,
+                                const std::string& input) {
   const EVP_CIPHER* cipher = EVP_aes_128_cbc();
   if (input.empty() || key.size() != EVP_CIPHER_key_length(cipher) ||
       iv.size() != EVP_CIPHER_iv_length(cipher)) {
@@ -283,12 +283,12 @@ string AES128CBCCipher::Encrypt(const string& key, const string& iv,
   int final_length;
   EVP_EncryptFinal(&context, output.get() + update_length, &final_length);
   EVP_CIPHER_CTX_cleanup(&context);
-  return string(reinterpret_cast<const char*>(output.get()),
+  return std::string(reinterpret_cast<const char*>(output.get()),
                 update_length + final_length);
 }
 
-string AES128CBCCipher::Decrypt(const string& key, const string& iv,
-                                const string& input) {
+std::string AES128CBCCipher::Decrypt(const std::string& key, const std::string& iv,
+                                const std::string& input) {
   const EVP_CIPHER* cipher = EVP_aes_128_cbc();
   if (input.empty() || key.size() != EVP_CIPHER_key_length(cipher) ||
       iv.size() != EVP_CIPHER_iv_length(cipher)) {
@@ -306,17 +306,17 @@ string AES128CBCCipher::Decrypt(const string& key, const string& iv,
   int final_length;
   EVP_DecryptFinal(&context, output.get() + update_length, &final_length);
   EVP_CIPHER_CTX_cleanup(&context);
-  return string(reinterpret_cast<const char*>(output.get()),
+  return std::string(reinterpret_cast<const char*>(output.get()),
                 update_length + final_length);
 }
 
 //  *** CryptoRand ***
-string CryptoRand::RandBytes(int num_bytes) {
+std::string CryptoRand::RandBytes(int num_bytes) {
   std::unique_ptr<unsigned char[]> output(new unsigned char[num_bytes]);
   if (!RAND_bytes(output.get(), num_bytes)) {
     return "";
   }
-  return string(reinterpret_cast<const char*>(output.get()), num_bytes);
+  return std::string(reinterpret_cast<const char*>(output.get()), num_bytes);
 }
 
 uint64 CryptoRand::RandInt64() {
