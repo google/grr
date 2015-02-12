@@ -4,6 +4,7 @@
 #include <chrono>
 #include <memory>
 
+#include "base.h"
 #include "comms_utils.h"
 #include "config.h"
 #include "message_queue.h"

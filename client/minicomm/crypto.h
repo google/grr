@@ -7,6 +7,8 @@
 #include "openssl/pem.h"
 #include "openssl/rsa.h"
 #include "openssl/x509.h"
+
+#include "base.h"
 #include "scoped_ptr_ssl.h"
 
 // Thin C++ wrappers around openssl data structures, providing the limited
@@ -157,7 +159,8 @@ class AES128CBCCipher {
 
 class CryptoRand {
  public:
-  static string RandBytes(int num_bytes);
+
+  static std::string RandBytes(int num_bytes);
   static uint64 RandInt64();
 };
 

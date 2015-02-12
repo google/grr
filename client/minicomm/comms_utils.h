@@ -5,10 +5,11 @@
 #include <string>
 #include <vector>
 
+#include "../../proto/jobs.pb.h"
+#include "base.h"
 #include "config.h"
 #include "crypto.h"
 #include "message_queue.h"
-#include "../../proto/jobs.pb.h"
 
 namespace grr {
 
@@ -34,7 +35,7 @@ class SecureSession {
   // Attempt to decode and verify a ClientCommunication created for us.
   // Returns true on success. GrrMessage records are appended to output.
   bool DecodeMessages(const ClientCommunication& messages,
-                      vector<Message>* output, int64 nonce);
+                      vector<Message>* output,  int64 nonce);
 
  private:
   SignedMessageList PackMessages(const vector<Message>& messages);

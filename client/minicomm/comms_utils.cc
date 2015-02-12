@@ -4,9 +4,10 @@
 #include <stdint.h>
 #include <algorithm>
 
-#include "google/protobuf/stubs/common.h"
-#include "compression.h"
 #include "google/protobuf/repeated_field.h"
+
+#include "base.h"
+#include "compression.h"
 
 using google3::ops::security::grr::CipherProperties;
 using google3::ops::security::grr::CipherMetadata;

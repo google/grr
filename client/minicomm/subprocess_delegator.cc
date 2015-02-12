@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 
-#include "google/protobuf/stubs/common.h"
+#include "base.h"
 #include "config.pb.h"
 #include "ops/security/grr/proto/jobs.pb.h"
 
@@ -229,7 +229,7 @@ void SubprocessDelegator::ReadLoop() {
     std::unique_lock<std::mutex> read_lock(read_mutex_);
     pid_lock.unlock();
 
-    uint32 message_size;
+    google::protobuf::uint32 message_size;
     proto2::io::CodedInputStream coded_stream(read_stream_.get());
     if (!coded_stream.ReadLittleEndian32(&message_size)) {
       LOG(ERROR) << "Unable to read size, resetting the subprocess.";

@@ -5,13 +5,14 @@
 #include <string>
 #include <vector>
 
-#include "google/protobuf/stubs/common.h"
+#include "google/protobuf/repeated_field.h"
+#include "gtest/gtest.h"
+
+#include "base.h"
 #include "client_test_base.h"
 #include "config.h"
 #include "config.pb.h"
 #include "message_queue.h"
-#include "google/protobuf/repeated_field.h"
-#include "gtest/gtest.h"
 
 namespace grr {
 

@@ -4,7 +4,7 @@
 #include <memory>
 #include <vector>
 
-#include "google/protobuf/stubs/common.h"
+#include "base.h"
 #include "zlib/zlib.h"
 
 namespace grr {

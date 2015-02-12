@@ -2,7 +2,7 @@
 
 #include <array>
 
-#include "google/protobuf/stubs/common.h"
+#include "base.h"
 
 namespace grr {
 namespace {

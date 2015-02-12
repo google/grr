@@ -2,7 +2,7 @@
 
 #include <thread>
 
-#include "google/protobuf/stubs/common.h"
+#include "base.h"
 
 namespace grr {
 Client::Client(const string& filename)

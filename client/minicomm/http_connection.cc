@@ -11,11 +11,12 @@
 #include <thread>
 #include <vector>
 
+#include "curl/curl.h"
+
+#include "../../proto/jobs.pb.h"
 #include "comms_utils.h"
 #include "crypto.h"
 #include "util.h"
-#include "../../proto/jobs.pb.h"
-#include "curl/curl.h"
 
 typedef google3::ops::security::grr::GrrMessage Message;
 
