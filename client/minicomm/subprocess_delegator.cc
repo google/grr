@@ -12,7 +12,7 @@
 
 #include "base.h"
 #include "config.pb.h"
-#include "ops/security/grr/proto/jobs.pb.h"
+#include "grr/proto/jobs.pb.h"
 
 namespace grr {
 SubprocessDelegator::SubprocessDelegator(ClientConfig* config,
