@@ -41,7 +41,7 @@ class SubprocessDelegatorTest : public ClientTestBase {
 
     WriteConfigFile(config_proto.DebugString());
 
-    CHECK(config_.ReadConfig());
+    GOOGLE_CHECK(config_.ReadConfig());
   }
 
   void StartDelegator() {

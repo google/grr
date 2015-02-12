@@ -19,7 +19,7 @@
 // Supports move, but not copy, as copies require specific knowledge about the
 // openssl type.
 
-#include "google/protobuf/stubs/common.h"  // CHECK
+#include "google/protobuf/stubs/common.h"  // GOOGLE_CHECK
 
 template<typename OpenSSLType, void (*deallocator)(OpenSSLType *)>
 class scoped_ptr_openssl_void {
@@ -29,7 +29,7 @@ class scoped_ptr_openssl_void {
     ;
     // we do not do
     //
-    //  CHECK(NULL != p) << ": scoped_ptr_openssl_int"
+    //  GOOGLE_CHECK(NULL != p) << ": scoped_ptr_openssl_int"
     //                   << " constructed with NULL pointer";
     //
     // here, since OpenSSL constructor-like allocators/transformers returns a
@@ -38,7 +38,7 @@ class scoped_ptr_openssl_void {
     // PEM_read_bio_X509_AUX which transforms a string representation of an X509
     // cert to an X509 object will return a NULL; in such a case a server
     // application program would want to check this->get() and handle the error
-    // (e.g., by rejecting the client) rather than aborting in a CHECK.
+    // (e.g., by rejecting the client) rather than aborting in a GOOGLE_CHECK.
   }
   ~scoped_ptr_openssl_void() {
     if (NULL != ptr_) {
@@ -114,7 +114,7 @@ class scoped_ptr_openssl_int {
 
       int deallocation_status = (*deallocator)(ptr_);
       // Fail fast on any error.
-      CHECK(deallocation_status == 1)
+      GOOGLE_CHECK(deallocation_status == 1)
                                  << ": OpenSSL object deallocator returned "
                                  << deallocation_status
                                  << ", expected 1.";

@@ -174,7 +174,7 @@ void SubprocessDelegator::WriteLoop() {
   while (true) {
     vector<MessageQueue::Message> messages =
         inbox_->GetMessages(100, 100000, true);
-    DCHECK_GT(messages.size(), 0);
+    GOOGLE_DCHECK_GT(messages.size(), 0);
     std::unique_lock<std::mutex> pid_lock(child_pid_mutex_);
     // If there isn't a working child process, try to make one, repeatedly if
     // necessary, but don't spin too hard in case we have a config error or
@@ -192,7 +192,7 @@ void SubprocessDelegator::WriteLoop() {
     if (child_pid_ == -1) {
       return;
     }
-    DCHECK(write_stream_ != nullptr);
+    GOOGLE_DCHECK(write_stream_ != nullptr);
     std::unique_lock<std::mutex> write_lock(write_mutex_);
     pid_lock.unlock();
     {
@@ -225,7 +225,7 @@ void SubprocessDelegator::ReadLoop() {
     // while we hold read_mutex_. It is important to release the pid lock so
     // that KillChildProcess can start (and signal) while we are blocked
     // reading.
-    DCHECK(read_stream_ != nullptr);
+    GOOGLE_DCHECK(read_stream_ != nullptr);
     std::unique_lock<std::mutex> read_lock(read_mutex_);
     pid_lock.unlock();
 
@@ -266,7 +266,7 @@ void SubprocessDelegator::ErrorLoop() {
     if (child_pid_ == -1) {
       return;
     }
-    DCHECK(error_stream_ != nullptr);
+    GOOGLE_DCHECK(error_stream_ != nullptr);
     std::unique_lock<std::mutex> error_lock(error_mutex_);
     pid_lock.unlock();
 

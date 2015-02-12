@@ -160,12 +160,12 @@ void ClientTestBase::BeginLogCapture(const std::set<LogSeverity>& severities) {
 }
 
 void ClientTestBase::EndLogCapture() {
-  CHECK(log_capture_sink_ != nullptr);
+  GOOGLE_CHECK(log_capture_sink_ != nullptr);
   log_capture_sink_->StopLogging();
 }
 
 bool ClientTestBase::CapturedLogContainsSuffix(const string& message) {
-  CHECK(log_capture_sink_ != nullptr);
+  GOOGLE_CHECK(log_capture_sink_ != nullptr);
   return log_capture_sink_->ContainsMessageWithSuffix(message);
 }
 }  // namespace grr
