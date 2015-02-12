@@ -42,7 +42,7 @@ void MessageBuilder::InitiateEnrollment(ClientConfig* config,
 
 namespace {
 std::string ComputeHMAC(const std::string& key,
-                   const SecureSession::ClientCommunication& input) {
+                   const ClientCommunication& input) {
   Sha1HMAC hmac(key);
   hmac.Update(input.encrypted());
   hmac.Update(input.encrypted_cipher());
@@ -79,7 +79,7 @@ SecureSession::SecureSession(const std::string& client_id, RSAKey* our_key,
       properties.key(), properties.metadata_iv(), metadata.SerializeAsString());
 }
 
-SecureSession::ClientCommunication SecureSession::EncodeMessages(
+ClientCommunication SecureSession::EncodeMessages(
     const std::vector<GrrMessage>& messages, int64 nonce) {
   ClientCommunication result;
   result.set_encrypted_cipher(encrypted_cipher_properties_);
@@ -96,7 +96,7 @@ SecureSession::ClientCommunication SecureSession::EncodeMessages(
   return result;
 }
 
-SecureSession::SignedMessageList SecureSession::PackMessages(
+SignedMessageList SecureSession::PackMessages(
     const std::vector<GrrMessage>& messages) {
   MessageList list;
   *list.mutable_job() =

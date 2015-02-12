@@ -207,7 +207,7 @@ void HttpConnectionManager::Run() {
     // We succeeded in sending to_send.
     to_send.clear();
 
-    SecureSession::ClientCommunication result;
+    ClientCommunication result;
     if (!result.ParseFromString(response.body)) {
       failed = true;
       continue;
