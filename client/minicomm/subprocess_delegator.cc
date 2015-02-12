@@ -38,7 +38,7 @@ SubprocessDelegator::~SubprocessDelegator() {
   child_spawned_.notify_all();
   // Writer thread might now be waiting to read from the inbox. Add an empty
   // message to unstick it.
-  inbox_->AddMessage(MessageQueue::Message());
+  inbox_->AddMessage(GrrMessage());
   writer_thread_.join();
   reader_thread_.join();
   error_thread_.join();
@@ -172,7 +172,7 @@ void SubprocessDelegator::KillChildProcess() {
 
 void SubprocessDelegator::WriteLoop() {
   while (true) {
-    std::vector<MessageQueue::Message> messages =
+    std::vector<GrrMessage> messages =
         inbox_->GetMessages(100, 100000, true);
     GOOGLE_DCHECK_GT(messages.size(), 0);
     std::unique_lock<std::mutex> pid_lock(child_pid_mutex_);
@@ -245,7 +245,7 @@ void SubprocessDelegator::ReadLoop() {
     if (message_size == 0) {
       continue;
     }
-    MessageQueue::Message message;
+    GrrMessage message;
     coded_stream.PushLimit(message_size);
     if (!message.ParseFromCodedStream(&coded_stream)) {
       GOOGLE_LOG(ERROR) << "Unable to read message, resetting the subprocess.";

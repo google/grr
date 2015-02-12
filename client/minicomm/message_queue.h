@@ -23,17 +23,17 @@ class MessageQueue {
   // Adds message to the back of the queue. Will block if there isn't space in
   // the queue, but will add a message to an empty queue, even if args is larger
   // than max_args_size_.
-  void AddMessage(const Message& message);
+  void AddMessage(const GrrMessage& message);
 
   // Adds a message to the front of the queue. Will add even if there isn't
   // space in the queue (queue can become oversized).
-  void AddPriorityMessage(const Message& message);
+  void AddPriorityMessage(const GrrMessage& message);
 
   // Get some messages, up to the listed max count and size, from the front of
   // the queue. If blocking is true, will block until there is at least one
   // message. Will return at least one message, even if it is larger than
   // max_args_size.
-  std::vector<Message> GetMessages(int max_message_count, int max_args_bytes,
+  std::vector<GrrMessage> GetMessages(int max_message_count, int max_args_bytes,
                               bool blocking);
 
   int current_message_count() const;
@@ -45,7 +45,7 @@ class MessageQueue {
   const int max_args_size_;
 
   int args_size_;
-  deque<Message> messages_;
+  deque<GrrMessage> messages_;
 
   mutable std::mutex lock_;
 

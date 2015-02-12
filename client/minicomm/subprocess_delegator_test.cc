@@ -70,7 +70,7 @@ TEST_F(SubprocessDelegatorTest, BadConfig) {
                    std::vector<std::string>());
   StartDelegator();
   BeginLogCapture({ERROR});
-  inbox_.AddMessage(MessageQueue::Message());
+  inbox_.AddMessage(GrrMessage());
   std::this_thread::sleep_for(std::chrono::seconds(2));
   // With a bad filename, execve should fail, and we should be told.
   EXPECT_TRUE(
@@ -81,7 +81,7 @@ TEST_F(SubprocessDelegatorTest, SubprocessError) {
   SetConfiguration(mock_delegate_, argv, std::vector<std::string>());
   StartDelegator();
   BeginLogCapture({ERROR});
-  inbox_.AddMessage(MessageQueue::Message());
+  inbox_.AddMessage(GrrMessage());
   std::this_thread::sleep_for(std::chrono::seconds(2));
   // We should get a startup error message from the subprocess.
   EXPECT_TRUE(CapturedLogContainsSuffix("From subprocess: Subprocess Error"));
@@ -92,7 +92,7 @@ TEST_F(SubprocessDelegatorTest, SubprocessGarbage) {
   SetConfiguration(mock_delegate_, argv, std::vector<std::string>());
   StartDelegator();
   BeginLogCapture({ERROR});
-  inbox_.AddMessage(MessageQueue::Message());
+  inbox_.AddMessage(GrrMessage());
   std::this_thread::sleep_for(std::chrono::seconds(5));
   // We should not be able to process the garbage, and so should reset the
   // subprocess.
@@ -111,11 +111,11 @@ TEST_F(SubprocessDelegatorTest, SimpleLoopback) {
   std::vector<std::string> argv = {"loop-back"};
   SetConfiguration(mock_delegate_, argv, std::vector<std::string>());
   StartDelegator();
-  MessageQueue::Message message;
+  GrrMessage message;
   message.set_session_id("SESSION_ID1");
   message.set_args("ASDFASDFASDF");
   inbox_.AddMessage(message);
-  const std::vector<MessageQueue::Message> result =
+  const std::vector<GrrMessage> result =
       outbox_.GetMessages(5, 100000, true);
   ASSERT_EQ(1, result.size());
   EXPECT_EQ(result[0].session_id(), message.session_id());

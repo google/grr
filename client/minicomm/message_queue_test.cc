@@ -13,24 +13,24 @@ namespace grr {
 TEST(MessageQueueTest, AddMessageNonBlocking) {
   MessageQueue queue(5, 20000);
 
-  MessageQueue::Message m0;
+  GrrMessage m0;
   m0.set_session_id("SESSION 0");
   m0.set_args(string("123457890", 10));
   queue.AddMessage(m0);
 
-  MessageQueue::Message m1;
+  GrrMessage m1;
   m1.set_session_id("SESSION 1");
   m1.set_args(string("0987654321", 10));
   queue.AddMessage(m1);
 
-  MessageQueue::Message m2;
+  GrrMessage m2;
   m2.set_session_id("SESSION 2");
   queue.AddMessage(m2);
 
   EXPECT_EQ(3, queue.current_message_count());
   EXPECT_EQ(20, queue.current_args_size());
 
-  std::vector<MessageQueue::Message> messages = queue.GetMessages(5, 20000, false);
+  std::vector<GrrMessage> messages = queue.GetMessages(5, 20000, false);
   ASSERT_EQ(3, messages.size());
   EXPECT_EQ("SESSION 0", messages[0].session_id());
   EXPECT_EQ("SESSION 1", messages[1].session_id());
@@ -40,13 +40,13 @@ TEST(MessageQueueTest, AddMessageNonBlocking) {
 TEST(MessageQueueTest, AddMessageBlocks) {
   MessageQueue queue(5, 15);
 
-  MessageQueue::Message m0;
+  GrrMessage m0;
   m0.set_session_id("SESSION 0");
   m0.set_args(string("123457890", 10));
   queue.AddMessage(m0);
 
   // Will only fit in the queue when the queue is empty.
-  MessageQueue::Message m1;
+  GrrMessage m1;
   m1.set_session_id("SESSION 1");
   m1.set_args(string("09876543210987654321", 20));
   std::thread blocked_add([&m1, &queue]() { queue.AddMessage(m1); });
@@ -54,7 +54,7 @@ TEST(MessageQueueTest, AddMessageBlocks) {
   // Pause so that blocked_add is likely to run if it can.
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
   // Should only get m1 back, because blocked_add should be blocked.
-  std::vector<MessageQueue::Message> messages = queue.GetMessages(5, 20000, false);
+  std::vector<GrrMessage> messages = queue.GetMessages(5, 20000, false);
   ASSERT_EQ(1, messages.size());
   EXPECT_EQ("SESSION 0", messages[0].session_id());
 
@@ -69,18 +69,18 @@ TEST(MessageQueueTest, AddPriorityMessage) {
   MessageQueue queue(5, 15);
 
   // Overfill the queue:
-  MessageQueue::Message m0;
+  GrrMessage m0;
   m0.set_session_id("SESSION 0");
   m0.set_args(string("1234578901234567890", 20));
   queue.AddMessage(m0);
 
   // A priority message should still go in, and go to the front of the queue.
-  MessageQueue::Message m1;
+  GrrMessage m1;
   m1.set_session_id("SESSION 1");
   m1.set_args(string("0987654321", 10));
   queue.AddPriorityMessage(m1);
 
-  std::vector<MessageQueue::Message> messages = queue.GetMessages(5, 20000, false);
+  std::vector<GrrMessage> messages = queue.GetMessages(5, 20000, false);
   ASSERT_EQ(2, messages.size());
   // High priority message should be first.
   EXPECT_EQ("SESSION 1", messages[0].session_id());
@@ -91,13 +91,13 @@ TEST(MessageQueueTest, GetMessageBlocking) {
   MessageQueue queue(5, 15);
 
   // Non-blocking mode should return immediatly, even when the queue is empty.
-  std::vector<MessageQueue::Message> messages = queue.GetMessages(5, 20000, false);
+  std::vector<GrrMessage> messages = queue.GetMessages(5, 20000, false);
 
   std::thread blocked_get(
       [&messages, &queue]() { messages = queue.GetMessages(2, 20000, true); });
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-  MessageQueue::Message m0;
+  GrrMessage m0;
   m0.set_session_id("SESSION 0");
   m0.set_args(string("123457890", 10));
   queue.AddMessage(m0);
@@ -111,12 +111,12 @@ TEST(MessageQueueTest, GetMessageBlocking) {
 TEST(MessageQueueTest, GetMessageSize) {
   MessageQueue queue(100, 10000);
   for (int i =0; i < 10; i++) {
-    MessageQueue::Message m;
+    GrrMessage m;
     m.set_session_id("SESSION " + std::to_string(i));
     m.set_args(string("123457890", 10));
     queue.AddMessage(m);
   }
-  std::vector<MessageQueue::Message> messages = queue.GetMessages(5, 20000, false);
+  std::vector<GrrMessage> messages = queue.GetMessages(5, 20000, false);
   ASSERT_EQ(5, messages.size());
   EXPECT_EQ("SESSION 0", messages[0].session_id());
   EXPECT_EQ("SESSION 4", messages[4].session_id());

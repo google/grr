@@ -69,13 +69,13 @@ TEST_F(SecureSessionTest, EncodeDecodeMessage) {
                                       std::move(server_cert));
 
   // client -> server
-  std::vector<SecureSession::Message> messages_in;
+  std::vector<GrrMessage> messages_in;
   auto encoded = session_client.EncodeMessages(messages_in, nonce);
-  std::vector<SecureSession::Message> messages_out;
+  std::vector<GrrMessage> messages_out;
   EXPECT_TRUE(session_server.DecodeMessages(encoded, &messages_out, nonce));
   EXPECT_TRUE(messages_out.empty());
 
-  SecureSession::Message message;
+  GrrMessage message;
   std::string plaintext = "Hello encryption!";
   message.set_session_id(plaintext);
   messages_in.push_back(message);

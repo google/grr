@@ -4,7 +4,7 @@
 #include <string>
 
 namespace grr {
-void MessageQueue::AddMessage(const Message& message) {
+void MessageQueue::AddMessage(const GrrMessage& message) {
   std::unique_lock<std::mutex> l(lock_);
   const int arg_size = message.args().size();
   if (!CanAddMessage(arg_size)) {
@@ -17,7 +17,7 @@ void MessageQueue::AddMessage(const Message& message) {
   queue_grew_.notify_all();
 }
 
-void MessageQueue::AddPriorityMessage(const Message& message) {
+void MessageQueue::AddPriorityMessage(const GrrMessage& message) {
   std::unique_lock<std::mutex> l(lock_);
   args_size_ += message.args().size();
   messages_.emplace_front(message);
@@ -25,7 +25,7 @@ void MessageQueue::AddPriorityMessage(const Message& message) {
   queue_grew_.notify_all();
 }
 
- std::vector<MessageQueue::Message> MessageQueue::GetMessages(int max_message_count,
+ std::vector<GrrMessage> MessageQueue::GetMessages(int max_message_count,
                                                         int max_args_size,
                                                         bool blocking) {
   std::unique_lock<std::mutex> l(lock_);
@@ -34,7 +34,7 @@ void MessageQueue::AddPriorityMessage(const Message& message) {
   }
   int count = 0;
   int args_size = 0;
-  for (const Message& m : messages_) {
+  for (const GrrMessage& m : messages_) {
     const int new_count = count + 1;
     const int new_args_size = args_size + m.args().size();
     if (count == 0 || (new_count <= max_message_count &&
@@ -46,7 +46,7 @@ void MessageQueue::AddPriorityMessage(const Message& message) {
       break;
     }
   }
-  std::vector<Message> result;
+  std::vector<GrrMessage> result;
   result.reserve(count);
   for (int i = 0; i < count; i++) {
     result.emplace_back(messages_.front());

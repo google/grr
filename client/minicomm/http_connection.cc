@@ -149,7 +149,7 @@ void HttpConnectionManager::Run() {
 
   // Messages that we've removed from the queue, but haven't yet managed to send
   // to the server.
-  std::vector<Message> to_send;
+  std::vector<GrrMessage> to_send;
 
   GOOGLE_LOG(INFO) << "Entering cm loop.";
   while (true) {
@@ -212,7 +212,7 @@ void HttpConnectionManager::Run() {
       failed = true;
       continue;
     }
-    std::vector<Message> messages;
+    std::vector<GrrMessage> messages;
     if (!current_connection_->secure_session().DecodeMessages(result, &messages,
                                                               nonce)) {
       GOOGLE_LOG(ERROR) << "Failed to decode response.";
