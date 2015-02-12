@@ -29,8 +29,8 @@ void MessageBuilder::InitiateEnrollment(ClientConfig* config,
   GrrMessage enrollment_message;
   enrollment_message.set_session_id("aff4:/flows/CA:Enrol");
 
-  google3::ops::security::grr::Certificate cert_pb;
-  cert_pb.set_type(google3::ops::security::grr::Certificate::CSR);
+  ::Certificate cert_pb;
+  cert_pb.set_type(::Certificate::CSR);
   cert_pb.set_pem(csr.ToStringPEM());
   enrollment_message.set_args(cert_pb.SerializeAsString());
   enrollment_message.set_args_rdf_name("Certificate");

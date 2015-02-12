@@ -39,11 +39,11 @@ TEST_F(MessageBuilderTest, InitiateEnrollment) {
   EXPECT_EQ(m[0].session_id(), "aff4:/flows/CA:Enrol");
   EXPECT_EQ(m[0].args_rdf_name(), "Certificate");
 
-  google3::ops::security::grr::Certificate cert_pb;
+  Certificate cert_pb;
 
   ASSERT_TRUE(cert_pb.ParseFromString(m[0].args()));
 
-  EXPECT_EQ(cert_pb.type(), google3::ops::security::grr::Certificate::CSR);
+  EXPECT_EQ(cert_pb.type(), Certificate::CSR);
   EXPECT_FALSE(cert_pb.pem().empty());
 }
 
