@@ -180,21 +180,21 @@ std::string Certificate::Encrypt(const std::string& input) {
   scoped_ptr_openssl_void<EVP_PKEY, EVP_PKEY_free> pkey(
       X509_get_pubkey(cert_.get()));
   if (!pkey.get()) {
-    LOG(ERROR) << "Unable to make pkey.";
+    GOOGLE_LOG(ERROR) << "Unable to make pkey.";
     return "";
   }
   if (EVP_PKEY_type(pkey->type) != EVP_PKEY_RSA) {
-    LOG(ERROR) << "pkey not RSA";
+    GOOGLE_LOG(ERROR) << "pkey not RSA";
     return "";
   }
   scoped_ptr_openssl_void<RSA, RSA_free> key(EVP_PKEY_get1_RSA(pkey.get()));
   if (!key.get()) {
-    LOG(ERROR) << "Unable to get RSA out of pkey.";
+    GOOGLE_LOG(ERROR) << "Unable to get RSA out of pkey.";
     return "";
   }
   const int rsa_size = RSA_size(key.get());
   if (input.length() >= rsa_size - 41) {
-    LOG(ERROR) << "Input too long for RSA key size.";
+    GOOGLE_LOG(ERROR) << "Input too long for RSA key size.";
     return "";
   }
   std::unique_ptr<unsigned char[]> output(new unsigned char[rsa_size]);

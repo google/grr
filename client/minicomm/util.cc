@@ -21,7 +21,7 @@ std::string BytesToHex(const std::string& input) {
 std::string UrlDirname(const std::string& input) {
   size_t end_slash = input.rfind('/');
   if (end_slash == std::string::npos) {
-    LOG(ERROR) << "Invalid URL:" << input;
+    GOOGLE_LOG(ERROR) << "Invalid URL:" << input;
     return "";
   }
   return input.substr(0, end_slash);

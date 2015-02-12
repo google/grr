@@ -48,7 +48,7 @@ TEST(CryptoTest, RSAKey) {
 
   key.Generate();
   std::string pem = key.ToStringPEM();
-  LOG(INFO) << pem;
+  GOOGLE_LOG(INFO) << pem;
   ASSERT_FALSE(pem.empty());
 
   RSAKey another_key;

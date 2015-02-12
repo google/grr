@@ -34,7 +34,7 @@ std::string ZLib::Inflate(const std::string& input) {
   int result;
   while ((result = inflate(&zs, Z_SYNC_FLUSH)) == Z_OK) {
     if (zs.avail_out != 0) {
-      LOG(ERROR) << "ZLIB didn't fill block.";
+      GOOGLE_LOG(ERROR) << "ZLIB didn't fill block.";
       return "";
     }
     output_blocks.emplace_back(new unsigned char[block_size]());
@@ -42,7 +42,7 @@ std::string ZLib::Inflate(const std::string& input) {
     zs.avail_out = block_size;
   }
   if (result != Z_STREAM_END) {
-    LOG(ERROR) << "Unexpected ZLIB result:" << result;
+    GOOGLE_LOG(ERROR) << "Unexpected ZLIB result:" << result;
     return "";
   }
   std::string r;

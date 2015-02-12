@@ -122,35 +122,35 @@ bool SecureSession::DecodeMessages(const ClientCommunication& input,
                                    vector<Message>* output, int64 nonce) {
   const std::string serialized_cipher = our_key_->Decrypt(input.encrypted_cipher());
   if (serialized_cipher.empty()) {
-    LOG(ERROR) << "Could not decrypt cipher.";
+    GOOGLE_LOG(ERROR) << "Could not decrypt cipher.";
     return false;
   }
   CipherProperties cipher_props;
   if (!cipher_props.ParseFromString(serialized_cipher)) {
-    LOG(ERROR) << "Could not parse cipher.";
+    GOOGLE_LOG(ERROR) << "Could not parse cipher.";
     return false;
   }
 
   const std::string expected_hmac = ComputeHMAC(cipher_props.hmac_key(), input);
   if (expected_hmac != input.full_hmac()) {
-    LOG(ERROR) << "HMAC mismatch.";
+    GOOGLE_LOG(ERROR) << "HMAC mismatch.";
     return false;
   }
 
   std::string decrypted_packet = AES128CBCCipher::Decrypt(
       cipher_props.key(), input.packet_iv(), input.encrypted());
   if (decrypted_packet.empty()) {
-    LOG(ERROR) << "Could not decrypt packet.";
+    GOOGLE_LOG(ERROR) << "Could not decrypt packet.";
     return false;
   }
   SignedMessageList s_message_list;
   if (!s_message_list.ParseFromString(decrypted_packet)) {
-    LOG(ERROR) << "Could not parse packet:" << decrypted_packet;
-    LOG(ERROR) << "Found:" << s_message_list.DebugString();
+    GOOGLE_LOG(ERROR) << "Could not parse packet:" << decrypted_packet;
+    GOOGLE_LOG(ERROR) << "Found:" << s_message_list.DebugString();
     return false;
   }
   if (s_message_list.timestamp() != nonce) {
-    LOG(ERROR) << "Nonce mismatch.";
+    GOOGLE_LOG(ERROR) << "Nonce mismatch.";
     return false;
   }
 
@@ -166,11 +166,11 @@ bool SecureSession::DecodeMessages(const ClientCommunication& input,
           ZLib::Inflate(s_message_list.message_list()));
       break;
     default:
-      LOG(ERROR) << "Unknown compression option:"
+      GOOGLE_LOG(ERROR) << "Unknown compression option:"
                  << s_message_list.compression();
   }
   if (!parse_result) {
-    LOG(ERROR) << "Could not parse message list.";
+    GOOGLE_LOG(ERROR) << "Could not parse message list.";
     return false;
   }
   for (const auto& message : message_list.job()) {

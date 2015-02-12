@@ -48,7 +48,7 @@ void SubprocessDelegator::StartChildProcess() {
   const ClientConfiguration::SubprocessConfig config_proto =
       config_->SubprocessConfig();
   if (config_proto.filename().empty()) {
-    LOG(ERROR) << "Subprocess not configured.";
+    GOOGLE_LOG(ERROR) << "Subprocess not configured.";
     return;
   }
   std::unique_lock<std::mutex> pid_lock(child_pid_mutex_);
@@ -232,13 +232,13 @@ void SubprocessDelegator::ReadLoop() {
     google::protobuf::uint32 message_size;
     proto2::io::CodedInputStream coded_stream(read_stream_.get());
     if (!coded_stream.ReadLittleEndian32(&message_size)) {
-      LOG(ERROR) << "Unable to read size, resetting the subprocess.";
+      GOOGLE_LOG(ERROR) << "Unable to read size, resetting the subprocess.";
       read_failed = true;
       continue;
     }
     // Assume messages are less that 2MB.
     if (message_size > 2 * 1024 * 1024) {
-      LOG(ERROR) << "Read bad size, resetting the subprocess.";
+      GOOGLE_LOG(ERROR) << "Read bad size, resetting the subprocess.";
       read_failed = true;
       continue;
     }
@@ -248,7 +248,7 @@ void SubprocessDelegator::ReadLoop() {
     MessageQueue::Message message;
     coded_stream.PushLimit(message_size);
     if (!message.ParseFromCodedStream(&coded_stream)) {
-      LOG(ERROR) << "Unable to read message, resetting the subprocess.";
+      GOOGLE_LOG(ERROR) << "Unable to read message, resetting the subprocess.";
       read_failed = true;
       continue;
     }
@@ -281,7 +281,7 @@ void SubprocessDelegator::ErrorLoop() {
       while (eol_pos != buffer + read_size) {
         line += std::string(start_pos, eol_pos - start_pos);
         if (!line.empty()) {
-          LOG(ERROR) << "From subprocess: " << line;
+          GOOGLE_LOG(ERROR) << "From subprocess: " << line;
         }
         line.clear();
         start_pos = eol_pos + 1;
@@ -290,7 +290,7 @@ void SubprocessDelegator::ErrorLoop() {
       line += std::string(start_pos, eol_pos - start_pos);
     }
     if (!line.empty()) {
-      LOG(ERROR) << "From subprocess: " << line;
+      GOOGLE_LOG(ERROR) << "From subprocess: " << line;
     }
   }
 }

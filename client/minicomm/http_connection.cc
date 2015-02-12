@@ -113,7 +113,7 @@ class HttpConnectionManager::Connection {
 
 HttpConnectionManager::Connection*
 HttpConnectionManager::TryEstablishConnection() {
-  LOG(INFO) << "Trying to make a connection.";
+  GOOGLE_LOG(INFO) << "Trying to make a connection.";
   vector<std::string> control_urls(config_->ControlUrls());
   vector<std::string> proxy_servers(config_->ProxyServers());
   // Also try direct connection.
@@ -152,7 +152,7 @@ void HttpConnectionManager::Run() {
   // to the server.
   vector<Message> to_send;
 
-  LOG(INFO) << "Entering cm loop.";
+  GOOGLE_LOG(INFO) << "Entering cm loop.";
   while (true) {
     // If the last try was a failure, wait 5 seconds before retrying. Otherwise
     // wait depending on how long it has been since there was some activity.
@@ -194,7 +194,7 @@ void HttpConnectionManager::Run() {
     if (response.http_response_code == 406) {
       if ((std::chrono::system_clock::now() - last_enrollment_) >
           10 * std::chrono::minutes()) {
-        LOG(INFO) << "Initiating enrollment!";
+        GOOGLE_LOG(INFO) << "Initiating enrollment!";
         MessageBuilder::InitiateEnrollment(config_, outbox_);
         last_enrollment_ = std::chrono::system_clock::now();
       }
@@ -216,11 +216,11 @@ void HttpConnectionManager::Run() {
     vector<Message> messages;
     if (!current_connection_->secure_session().DecodeMessages(result, &messages,
                                                               nonce)) {
-      LOG(ERROR) << "Failed to decode response.";
+      GOOGLE_LOG(ERROR) << "Failed to decode response.";
       failed = true;
       continue;
     }
-    LOG(INFO) << "Decoded response with " << messages.size() << " messages.";
+    GOOGLE_LOG(INFO) << "Decoded response with " << messages.size() << " messages.";
     if (messages.size() == 0 && to_send.size() == 0) {
       no_activity_count += 1;
     } else {

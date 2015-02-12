@@ -12,7 +12,7 @@ Client::Client(const std::string& filename)
       connection_manager_(&config_, &inbox_, &outbox_),
       subprocess_delegator_(&config_, &inbox_, &outbox_) {
   if (!config_.ReadConfig()) {
-    LOG(FATAL) << "Unable to read config.";
+    GOOGLE_LOG(FATAL) << "Unable to read config.";
   }
   if (config_.ClientId().empty()) {
     config_.ResetKey();

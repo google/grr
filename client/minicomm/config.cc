@@ -19,7 +19,7 @@ ClientConfig::ClientConfig(const std::string& configuration_file) :
 bool ClientConfig::ReadConfig() {
   ClientConfiguration proto;
   if (!MergeConfigFile(configuration_filename_, &proto)) {
-    LOG(ERROR) << "Unable to read config:" << configuration_filename_;
+    GOOGLE_LOG(ERROR) << "Unable to read config:" << configuration_filename_;
     return false;
   }
   std::unique_lock<std::mutex> l(lock_);
@@ -27,10 +27,10 @@ bool ClientConfig::ReadConfig() {
   writeback_filename_ = proto.writeback_filename();
   if (!writeback_filename_.empty()) {
     if (!MergeConfigFile(writeback_filename_, &proto)) {
-      LOG(ERROR) << "Unable to read writeback:" << writeback_filename_;
+      GOOGLE_LOG(ERROR) << "Unable to read writeback:" << writeback_filename_;
     }
   } else {
-    LOG(WARNING) << "No writeback filename. Writeback disabled.";
+    GOOGLE_LOG(WARNING) << "No writeback filename. Writeback disabled.";
   }
 
   subprocess_config_ = proto.subprocess_config();
@@ -44,11 +44,11 @@ bool ClientConfig::ReadConfig() {
 
   client_id_ = MakeClientId();
   if (control_urls_.empty()) {
-    LOG(ERROR) << "No control URLs.";
+    GOOGLE_LOG(ERROR) << "No control URLs.";
     return false;
   }
   if (ca_cert_.get() == NULL) {
-    LOG(ERROR) << "Missing or bad ca cert.";
+    GOOGLE_LOG(ERROR) << "Missing or bad ca cert.";
     return false;
   }
   return true;
@@ -97,13 +97,13 @@ bool ClientConfig::WriteBackConfig() {
   int fd = open(writeback_filename_.c_str(), O_WRONLY | O_TRUNC | O_CREAT,
                 S_IWUSR | S_IRUSR);
   if (fd < 0) {
-    LOG(ERROR) << "Unable to open writeback: " << writeback_filename_;
+    GOOGLE_LOG(ERROR) << "Unable to open writeback: " << writeback_filename_;
     return false;
   }
   // Re-read the original configuration file, so we can tell what has changed.
   ClientConfiguration base_config;
   if (!MergeConfigFile(configuration_filename_, &base_config)) {
-    LOG(ERROR) << "Unable to read config: " << configuration_filename_;
+    GOOGLE_LOG(ERROR) << "Unable to read config: " << configuration_filename_;
   }
   // Currently only 2 fields can be changed through the config interface.
   ClientConfiguration proto;
@@ -133,13 +133,13 @@ bool ClientConfig::MergeConfigFile(const std::string& config_file,
                                    ClientConfiguration* config) {
   int fd = open(config_file.c_str(), O_RDONLY);
   if (fd < 0) {
-    LOG(ERROR) << "Failed to open:" << config_file;
+    GOOGLE_LOG(ERROR) << "Failed to open:" << config_file;
     return false;
   }
 
   proto2::io::FileInputStream input(fd);
   if (!proto2::TextFormat::Merge(&input, config)) {
-    LOG(ERROR) << "Failed to parse:" << config_file;
+    GOOGLE_LOG(ERROR) << "Failed to parse:" << config_file;
     input.Close();
     return false;
   }
