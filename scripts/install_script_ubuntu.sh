@@ -30,20 +30,47 @@ if [ "$EUID" -ne 0 ]
   exit
 fi
 
-# Take command line parameters as these are easier for users than shell
-# variables.
-if [ "$1" == "--localtest" ]
-then
-  GRR_LOCAL_TEST=1;
-  GRR_TESTING=1;
-elif [ "$1" == "--test" ]
-then
-  GRR_LOCAL_TEST=0;
-  GRR_TESTING=1;
-fi
+# Variable to store if the user has answered "Yes to All"
+ALL_YES=0;
 
+# If true only install build dependencies. GRR itself and the database won't be
+# installed.
+BUILD_DEPS_ONLY=0;
 
-if [ -z "${GRR_TESTING}" ];
+# Use local deb, for testing
+GRR_LOCAL_TEST=0
+
+# Use the GRR test version
+GRR_TESTING=0;
+
+OPTIND=1
+while getopts "h?ltdy" opt; do
+    case "$opt" in
+    h|\?)
+        echo "Usage: ./install_script_ubuntu.sh [OPTIONS]"
+        echo " -l Test locally (no download), get deb from current path"
+        echo " -t Install the GRR beta testing version"
+        echo " -d Only install build dependencies"
+        echo " -y Don't prompt, i.e. answer yes to everything"
+        exit 0
+        ;;
+    l)  GRR_LOCAL_TEST=1
+        ;;
+    t)  GRR_TESTING=1;
+        ;;
+    d)  BUILD_DEPS_ONLY=1;
+        ;;
+    y)  ALL_YES=1;
+        ;;
+    esac
+done
+
+shift $((OPTIND-1))
+[ "$1" = "--" ] && shift
+
+echo "Running with GRR_LOCAL_TEST=${GRR_LOCAL_TEST}, GRR_TESTING=${GRR_TESTING}, BUILD_DEPS_ONLY=${BUILD_DEPS_ONLY}, ALL_YES=${ALL_YES}"
+
+if [ ${GRR_TESTING} = 0 ];
 then
   SERVER_DEB_URL=${SERVER_DEB_STABLE_BASE_URL}${GRR_STABLE_VERSION}_${PLAT}.deb
 else
@@ -52,18 +79,6 @@ else
   echo "#########################################"
   SERVER_DEB_URL=${SERVER_DEB_TEST_BASE_URL}${GRR_TEST_VERSION}_${PLAT}.deb
 fi
-
-# Used for local testing, if set it will assume the deb is in the current path
-# instead of attempting wget for it.
-if [ -z "${GRR_LOCAL_TEST}" ];
-then
-  GRR_LOCAL_TEST=0;
-fi
-
-
-# Variable to store if the user has answered "Yes to All"
-ALL_YES=0;
-
 
 function header()
 {
@@ -134,10 +149,6 @@ header "Installing Sleuthkit and Pytsk"
 run_cmd_confirm apt-get --yes remove libtsk3* sleuthkit
 run_cmd_confirm dpkg -i ${DEB_DEPENDENCIES_DIR}/${SLEUTHKIT_DEB} ${DEB_DEPENDENCIES_DIR}/${PYTSK_DEB};
 
-header "Installing Mongodb"
-run_cmd_confirm apt-get --yes --force-yes install mongodb python-pymongo;
-service mongodb start 2>/dev/null
-
 header "Installing Rekall"
 INSTALL_REKALL=0
 if [ ${ALL_YES} = 0 ]; then
@@ -166,13 +177,23 @@ run_cmd_confirm pip install psutil --upgrade
 header "Installing Selenium test framework for Tests"
 run_cmd_confirm easy_install selenium
 
-
 header "Installing correct Django version."
 # We support everything from 1.4 to 1.6, 12.04 ships with 1.3. This is only
 # necessary for server 0.3.0-2, remove the requirement for 1.6 once we upgrade.
 run_cmd_confirm apt-get --yes remove python-django
 run_cmd_confirm pip install django==1.6
 
+if [ $BUILD_DEPS_ONLY = 1 ]; then
+  echo "#######################################"
+  echo "Finished installing build dependencies."
+  echo "#######################################"
+  exit 0
+fi
+
+header "Installing Mongodb"
+run_cmd_confirm apt-get --yes --force-yes install mongodb python-pymongo;
+run_cmd_confirm service mongodb stop 2>/dev/null || true
+run_cmd_confirm service mongodb start 2>/dev/null
 
 header "Installing GRR from prebuilt package"
 SERVER_DEB=$(basename ${SERVER_DEB_URL});

@@ -8,6 +8,7 @@ import time
 from grr.gui import renderers
 from grr.lib import aff4
 from grr.lib import rdfvalue
+from grr.lib.aff4_objects import aff4_grr
 
 
 class ShowStatistics(renderers.Splitter2WayVertical):
@@ -18,6 +19,42 @@ class ShowStatistics(renderers.Splitter2WayVertical):
 
   left_renderer = "StatsTree"
   right_renderer = "ReportRenderer"
+
+
+def InterpolatePaths(path, labels):
+  """Interpolate paths with %%LABEL%% markers.
+
+  Args:
+    path: path string to interpolate
+    labels: list of label strings
+  Returns:
+    list of path strings for each label supplied
+  """
+  if "%%LABEL%%" not in path:
+    return dict([(path, None)])
+  else:
+    paths = {}
+    for label in labels:
+      paths[path.replace("%%LABEL%%", label)] = label
+    return paths
+
+
+def GetClassLookupDict(classes, labels):
+  """Build a path->class lookup dict.
+
+  Args:
+    classes: list of class objects
+    labels: list of label strings
+  Returns:
+    Dict of (class object, label string) tuples keyed by path
+  """
+  paths = {}
+  for cls in classes:
+    category = getattr(cls, "category", None)
+    if category:
+      for path, label in InterpolatePaths(category, labels).items():
+        paths[path] = (cls, label)
+  return paths
 
 
 class ReportRenderer(renderers.TemplateRenderer):
@@ -36,14 +73,17 @@ class ReportRenderer(renderers.TemplateRenderer):
     """Delegate to a stats renderer if needed."""
     path = request.REQ.get("path", "")
 
+    labels = aff4_grr.GetAllClientLabels(request.token, include_catchall=True)
     # Try and find the correct renderer to use.
-    for cls in self.classes.values():
-      if getattr(cls, "category", None) == path:
-        self.delegated_renderer = cls()
+    lookup_dict = GetClassLookupDict(self.classes.values(), labels)
+    if path in lookup_dict:
+      self.delegated_renderer = lookup_dict[path][0]()
 
-        # Render the renderer directly here
-        self.delegated_renderer.Layout(request, response)
-        break
+      # Tell the renderer which label it should be using
+      request.label = lookup_dict[path][1]
+
+      # Render the renderer directly here
+      self.delegated_renderer.Layout(request, response)
 
     response = super(ReportRenderer, self).Layout(request, response)
     return self.CallJavascript(response, "ReportRenderer.Layout",
@@ -53,19 +93,18 @@ class ReportRenderer(renderers.TemplateRenderer):
 class StatsTree(renderers.TreeRenderer):
   """Show all the available reports."""
 
-  def GetStatsClasses(self):
-    classes = []
-
+  def GetStatsPaths(self, request):
+    paths = []
+    labels = aff4_grr.GetAllClientLabels(request.token, include_catchall=True)
     for cls in self.classes.values():
       if aff4.issubclass(cls, Report) and cls.category:
-        classes.append(cls.category)
+        paths.extend(InterpolatePaths(cls.category, labels).keys())
+    paths.sort()
+    return paths
 
-    classes.sort()
-    return classes
-
-  def RenderBranch(self, path, _):
+  def RenderBranch(self, path, request):
     """Show all the stats available."""
-    for category_name in self.GetStatsClasses():
+    for category_name in self.GetStatsPaths(request):
       if category_name.startswith(path):
         elements = filter(None, category_name[len(path):].split("/"))
 
@@ -108,16 +147,17 @@ class PieChart(Report):
 
 
 class OSBreakdown(PieChart):
-  category = "/Clients/OS Breakdown/ 1 Day Active"
+  category = "/Clients/%%LABEL%%/OS Breakdown/ 1 Day Active"
   title = "Operating system break down."
   description = "OS breakdown for clients that were active in the last day."
   active_day = 1
   attribute = aff4.ClientFleetStats.SchemaCls.OS_HISTOGRAM
+  data_urn = rdfvalue.RDFURN("aff4:/stats/ClientFleetStats")
 
   def Layout(self, request, response):
     """Extract only the operating system type from the active histogram."""
     try:
-      fd = aff4.FACTORY.Open("aff4:/stats/ClientFleetStats",
+      fd = aff4.FACTORY.Open(self.data_urn.Add(request.label),
                              token=request.token)
       self.data = []
       for graph in fd.Get(self.attribute):
@@ -133,19 +173,19 @@ class OSBreakdown(PieChart):
 
 
 class OSBreakdown7(OSBreakdown):
-  category = "/Clients/OS Breakdown/ 7 Day Active"
+  category = "/Clients/%%LABEL%%/OS Breakdown/ 7 Day Active"
   description = "OS breakdown for clients that were active in the last week."
   active_day = 7
 
 
 class OSBreakdown30(OSBreakdown):
-  category = "/Clients/OS Breakdown/30 Day Active"
+  category = "/Clients/%%LABEL%%/OS Breakdown/30 Day Active"
   description = "OS breakdown for clients that were active in the last month."
   active_day = 30
 
 
 class ReleaseBreakdown(OSBreakdown):
-  category = "/Clients/OS Release Breakdown/ 1 Day Active"
+  category = "/Clients/%%LABEL%%/OS Release Breakdown/ 1 Day Active"
   title = "Operating system version break down."
   description = "This plot shows what OS clients active within the last day."
   active_day = 1
@@ -153,20 +193,20 @@ class ReleaseBreakdown(OSBreakdown):
 
 
 class ReleaseBreakdown7(ReleaseBreakdown):
-  category = "/Clients/OS Release Breakdown/ 7 Day Active"
+  category = "/Clients/%%LABEL%%/OS Release Breakdown/ 7 Day Active"
   description = "What OS Version clients were active within the last week."
   active_day = 7
 
 
 class ReleaseBreakdown30(ReleaseBreakdown):
-  category = "/Clients/OS Release Breakdown/30 Day Active"
+  category = "/Clients/%%LABEL%%/OS Release Breakdown/30 Day Active"
   description = "What OS Version clients were active within the last month."
   active_day = 30
 
 
 class LastActiveReport(Report):
   """Display a histogram of last actives."""
-  category = "/Clients/Last Active/Count of last activity time"
+  category = "/Clients/%%LABEL%%/Last Active/Count of last activity time"
   title = "Breakdown of Client Count Based on Last Activity of the Client."
   description = """
 This plot shows the number of clients active in the last day and how that number
@@ -174,7 +214,7 @@ evolves over time.
 """
   active_days_display = [1, 3, 7, 30, 60]
   attribute = aff4.ClientFleetStats.SchemaCls.LAST_CONTACTED_HISTOGRAM
-  DATA_URN = "aff4:/stats/ClientFleetStats"
+  data_urn = rdfvalue.RDFURN("aff4:/stats/ClientFleetStats")
 
   layout_template = renderers.Template("""
 <div class="padded">
@@ -204,7 +244,8 @@ evolves over time.
     """Show how the last active breakdown evolves over time."""
     try:
       self.start_time, self.end_time = GetAgeTupleFromRequest(request, 180)
-      fd = aff4.FACTORY.Open(self.DATA_URN, token=request.token,
+      fd = aff4.FACTORY.Open(self.data_urn.Add(request.label),
+                             token=request.token,
                              age=(self.start_time, self.end_time))
       self.categories = {}
       for graph_series in fd.GetValuesForAttribute(self.attribute):
@@ -224,12 +265,11 @@ evolves over time.
 
 class LastDayGRRVersionReport(LastActiveReport):
   """Display a histogram of last actives based on GRR Version."""
-  category = "/Clients/GRR Version/ 1 Day"
+  category = "/Clients/%%LABEL%%/GRR Version/ 1 Day"
   title = "1 day Active Clients."
   description = """This shows the number of clients active in the last day based
 on the GRR version.
 """
-  DATA_URN = "aff4:/stats/ClientFleetStats"
   active_day = 1
   attribute = aff4.ClientFleetStats.SchemaCls.GRRVERSION_HISTOGRAM
 
@@ -245,7 +285,7 @@ on the GRR version.
 
 class Last7DaysGRRVersionReport(LastDayGRRVersionReport):
   """Display a histogram of last actives based on GRR Version."""
-  category = "/Clients/GRR Version/ 7 Day"
+  category = "/Clients/%%LABEL%%/GRR Version/ 7 Day"
   title = "7 day Active Clients."
   description = """This shows the number of clients active in the last 7 days
 based on the GRR version.
@@ -255,7 +295,7 @@ based on the GRR version.
 
 class Last30DaysGRRVersionReport(LastDayGRRVersionReport):
   """Display a histogram of last actives based on GRR Version."""
-  category = "/Clients/GRR Version/ 30 Day"
+  category = "/Clients/%%LABEL%%/GRR Version/ 30 Day"
   title = "30 day Active Clients."
   description = """This shows the number of clients active in the last 30 days
 based on the GRR version.

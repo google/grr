@@ -117,8 +117,7 @@ enrolment_cache = utils.FastStore(5000)
 
 class Enroler(flow.WellKnownFlow):
   """Manage enrolment requests."""
-  well_known_session_id = rdfvalue.SessionID(base="aff4:/flows",
-                                             queue=queues.ENROLLMENT,
+  well_known_session_id = rdfvalue.SessionID(queue=queues.ENROLLMENT,
                                              flow_name="Enrol")
 
   def ProcessMessage(self, message):

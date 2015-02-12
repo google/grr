@@ -65,10 +65,18 @@ class AFF4ObjectLabelsList(structs.RDFProtoStruct):
 
   @property
   def names(self):
-    return sorted(set([label.name for label in self.labels]))
+    return self.GetLabelNames()
 
   def HasLabelWithName(self, name):
     return name in self.names
+
+  def GetLabelNames(self, owner=None):
+    result = set()
+    for label in self.labels:
+      if owner and label.owner != owner:
+        continue
+      result.add(label.name)
+    return sorted(result)
 
   def AddLabel(self, label):
     if not self.HasLabelWithNameAndOwner(label.name, label.owner):

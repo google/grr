@@ -132,6 +132,9 @@ class ActionPlugin(object):
       self.cpu_limit = self.message.cpu_limit
       self.network_bytes_limit = self.message.network_bytes_limit
 
+      if getattr(flags.FLAGS, "debug_client_actions", False):
+        pdb.set_trace()
+
       try:
         self.Run(args)
 
@@ -154,6 +157,7 @@ class ActionPlugin(object):
                      traceback.format_exc())
 
       if flags.FLAGS.debug:
+        self.DisableNanny()
         pdb.post_mortem()
 
     if self.status.status != rdfvalue.GrrStatus.ReturnedStatus.OK:
@@ -263,6 +267,12 @@ class ActionPlugin(object):
   def ChargeBytesToSession(self, length):
     self.grr_worker.ChargeBytesToSession(self.message.session_id, length,
                                          limit=self.network_bytes_limit)
+
+  def DisableNanny(self):
+    try:
+      self.nanny_controller.nanny.Stop()
+    except AttributeError:
+      logging.info("Can't disable Nanny on this OS.")
 
 
 class IteratedAction(ActionPlugin):

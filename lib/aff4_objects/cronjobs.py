@@ -2,6 +2,7 @@
 """Cron management classes."""
 
 
+import random
 import threading
 import time
 
@@ -80,7 +81,13 @@ class CronManager(object):
     cron_job = aff4.FACTORY.Create(cron_job_urn, aff4_type="CronJob", mode="rw",
                                    token=token, force_new_version=False)
 
-    if cron_args != cron_job.Get(cron_job.Schema.CRON_ARGS):
+    # If the cronjob was already present we don't want to overwrite the original
+    # start_time
+    existing_cron_args = cron_job.Get(cron_job.Schema.CRON_ARGS)
+    if existing_cron_args and existing_cron_args.start_time:
+      cron_args.start_time = existing_cron_args.start_time
+
+    if cron_args != existing_cron_args:
       cron_job.Set(cron_job.Schema.CRON_ARGS(cron_args))
 
     if disabled != cron_job.Get(cron_job.Schema.DISABLED):
@@ -148,6 +155,12 @@ class SystemCronFlow(flow.GRRFlow):
   frequency = rdfvalue.Duration("1d")
   lifetime = rdfvalue.Duration("20h")
 
+  # By default we randomize the start time of system cron flows between 0 and
+  # 'frequency' seconds after it is first created. This only affects the very
+  # first run, after which they will run at 'frequency' intervals. Disable this
+  # behaviour by setting start_time_randomization = False.
+  start_time_randomization = True
+
   __abstract = True  # pylint: disable=g-bad-name
 
   def WriteState(self):
@@ -190,6 +203,28 @@ class StatefulSystemCronFlow(SystemCronFlow):
       raise StateWriteError(e)
 
 
+def GetStartTime(cron_cls):
+  """Get start time for a SystemCronFlow class.
+
+  If start_time_randomization is True in the class, randomise the start
+  time to be between now and (now + frequency)
+
+  Args:
+    cron_cls: SystemCronFlow class
+  Returns:
+    rdfvalue.RDFDatetime
+  """
+  if not cron_cls.start_time_randomization:
+    return rdfvalue.RDFDatetime().Now()
+
+  now = rdfvalue.RDFDatetime().Now()
+  window_ms = cron_cls.frequency.microseconds
+
+  start_time_ms = random.randint(now.AsMicroSecondsFromEpoch(),
+                                 now.AsMicroSecondsFromEpoch() + window_ms)
+  return rdfvalue.RDFDatetime(start_time_ms)
+
+
 def ScheduleSystemCronFlows(token=None):
   """Schedule all the SystemCronFlows found."""
 
@@ -209,6 +244,7 @@ def ScheduleSystemCronFlows(token=None):
       cron_args = CreateCronJobFlowArgs(periodicity=cls.frequency)
       cron_args.flow_runner_args.flow_name = name
       cron_args.lifetime = cls.lifetime
+      cron_args.start_time = GetStartTime(cls)
 
       disabled = name not in config_lib.CONFIG["Cron.enabled_system_jobs"]
       CRON_MANAGER.ScheduleFlow(cron_args=cron_args,
@@ -330,8 +366,15 @@ class CronJob(aff4.AFF4Volume):
     """Returns True if there's a currently running iteration of this job."""
     current_urn = self.Get(self.Schema.CURRENT_FLOW_URN)
     if current_urn:
-      current_flow = aff4.FACTORY.Open(urn=current_urn,
-                                       token=self.token, mode="r")
+      try:
+        current_flow = aff4.FACTORY.Open(urn=current_urn, aff4_type="GRRFlow",
+                                         token=self.token, mode="r")
+      except aff4.InstantiationError:
+        # This isn't a flow, something went really wrong, clear it out.
+        self.DeleteAttribute(self.Schema.CURRENT_FLOW_URN)
+        self.Flush()
+        return False
+
       runner = current_flow.GetRunner()
       return runner.context.state == rdfvalue.Flow.State.RUNNING
     return False
@@ -352,6 +395,10 @@ class CronJob(aff4.AFF4Volume):
     # Its time to run.
     if (last_run_time is None or
         now > cron_args.periodicity.Expiry(last_run_time)):
+
+      # Not due to start yet.
+      if now < cron_args.start_time:
+        return False
 
       # Do we allow overruns?
       if cron_args.allow_overruns:

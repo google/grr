@@ -1,0 +1,44 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure(2) do |config|
+
+  config.vm.synced_folder "../", "/grr"
+
+  config.vm.provider "virtualbox" do |vb|
+    vb.memory = "2048"
+    vb.cpus = "2"
+  end
+
+  config.vm.define "ubuntu_trusty64" do |box|
+    box.vm.box = "ubuntu/trusty64"
+    box.vm.provision "shell" do |s|
+      s.path = "../scripts/install_script_ubuntu.sh"
+      s.args = ["-dy"]
+    end
+  end
+
+  config.vm.define "ubuntu_lucid64" do |box|
+    box.vm.box = "mrgcastle/ubuntu-lucid64"
+    box.vm.provision "shell" do |s|
+      s.path = "install_ubuntu.sh"
+    end
+  end
+
+  # OS X licensing doesn't allow distribution of VMs, you'll need to build your
+  # own base VM, see:
+  # https://github.com/google/grr-doc/blob/master/osxclient.adoc
+  config.vm.define "OS_X_10.8.5" do |box|
+    box.vm.box = "OS_X_10.8.5"
+    # Random keypair generation and insertion doesn't work on OS X
+    box.ssh.insert_key = false
+    box.vm.provider "vmware_fusion" do |v|
+      v.vmx["memsize"] = "4096"
+      v.vmx["numvcpus"] = "2"
+    end
+    box.vm.provision "shell" do |s|
+      s.path = "install_darwin.sh"
+    end
+  end
+
+end

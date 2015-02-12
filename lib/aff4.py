@@ -1870,8 +1870,9 @@ class AFF4Object(object):
   def GetLabels(self):
     return self.Get(self.Schema.LABELS, rdfvalue.AFF4ObjectLabelsList()).labels
 
-  def GetLabelsNames(self):
-    return self.Get(self.Schema.LABELS, rdfvalue.AFF4ObjectLabelsList()).names
+  def GetLabelsNames(self, owner=None):
+    labels = self.Get(self.Schema.LABELS, rdfvalue.AFF4ObjectLabelsList())
+    return labels.GetLabelNames(owner=owner)
 
 
 # This will register all classes into this modules's namespace regardless of
@@ -2643,3 +2644,4 @@ def issubclass(obj, cls):    # pylint: disable=redefined-builtin,g-bad-name
     True if obj is a subclass of cls and False otherwise.
   """
   return isinstance(obj, type) and __builtin__.issubclass(obj, cls)
+

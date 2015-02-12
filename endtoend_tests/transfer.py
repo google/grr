@@ -93,12 +93,15 @@ class TestMultiGetFile(base.AutomatedTest):
 
   def CheckFlow(self):
     # Reopen the object to update the state.
-    flow_obj = aff4.FACTORY.Open(self.session_id, token=self.token)
+    flow_obj = aff4.FACTORY.Open(self.session_id, token=self.token,
+                                 aff4_type="MultiGetFileTestFlow")
 
     # Check flow completed normally, checking is done inside the flow
-    self.assertFalse(flow_obj.state.context.get("backtrace", ""))
+    runner = flow_obj.GetRunner()
+    self.assertFalse(runner.context.get("backtrace", ""))
     self.assertEqual(
-        flow_obj.state.context.state, rdfvalue.Flow.State.TERMINATED)
+        runner.GetState(), rdfvalue.Flow.State.TERMINATED,
+        "Expected TERMINATED state, got %s" % flow_obj.state.context.state)
 
 
 #########

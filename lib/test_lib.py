@@ -196,8 +196,7 @@ class DummyLogFlowChild(flow.GRRFlow):
 
 class WellKnownSessionTest(flow.WellKnownFlow):
   """Tests the well known flow implementation."""
-  well_known_session_id = rdfvalue.SessionID(base="aff4:/flows",
-                                             queue=rdfvalue.RDFURN("test"),
+  well_known_session_id = rdfvalue.SessionID(queue=rdfvalue.RDFURN("test"),
                                              flow_name="TestSessionId")
 
   messages = []
@@ -210,7 +209,7 @@ class WellKnownSessionTest(flow.WellKnownFlow):
     self.messages.append(int(message.args))
 
 
-class MockSecurityManager(access_control.BaseAccessControlManager):
+class MockSecurityManager(access_control.BasicAccessControlManager):
   """A simple in memory ACL manager which enforces the Admin label.
 
   It also guarantees that the correct access token has been passed to the
@@ -1332,7 +1331,7 @@ class MockClient(object):
         session_id = message.session_id
 
         logging.info("Running well known flow: %s", session_id)
-        self.well_known_flows[str(session_id)].ProcessMessage(message)
+        self.well_known_flows[session_id.FlowName()].ProcessMessage(message)
 
       return
 
@@ -1490,11 +1489,12 @@ class MockWorker(worker.GRRWorker):
           run_sessions.append(session_id)
 
           # Handle well known flows here.
-          if session_id in self.well_known_flows:
-            well_known_flow = self.well_known_flows[session_id]
+          flow_name = session_id.FlowName()
+          if flow_name in self.well_known_flows:
+            well_known_flow = self.well_known_flows[flow_name]
             with well_known_flow:
               responses = well_known_flow.FetchAndRemoveRequestsAndResponses(
-                  session_id)
+                  well_known_flow.well_known_session_id)
             well_known_flow.ProcessResponses(responses, self.pool)
             continue
 

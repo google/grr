@@ -88,9 +88,7 @@ class GRRWorker(object):
     self.last_active = 0
 
     # Well known flows are just instantiated.
-    self.well_known_flows = {
-        x.FlowName(): y for (x, y) in
-        flow.WellKnownFlow.GetAllWellKnownFlows(token=token).iteritems()}
+    self.well_known_flows = flow.WellKnownFlow.GetAllWellKnownFlows(token=token)
     self.flow_lease_time = config_lib.CONFIG["Worker.flow_lease_time"]
     self.well_known_flow_lease_time = config_lib.CONFIG[
         "Worker.well_known_flow_lease_time"]

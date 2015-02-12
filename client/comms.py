@@ -410,9 +410,7 @@ class GRRClientWorker(object):
     if msg:
       self.SendReply(
           rdfvalue.DataBlob(string=msg),
-          session_id=rdfvalue.FlowSessionID(base="aff4:/flows",
-                                            queue=queues.FLOWS,
-                                            flow_name="NannyMessage"),
+          session_id=rdfvalue.FlowSessionID(flow_name="NannyMessage"),
           priority=rdfvalue.GrrMessage.Priority.LOW_PRIORITY,
           require_fastpoll=False)
       self.nanny_controller.ClearNannyMessage()
@@ -420,9 +418,7 @@ class GRRClientWorker(object):
   def SendClientAlert(self, msg):
     self.SendReply(
         rdfvalue.DataBlob(string=msg),
-        session_id=rdfvalue.FlowSessionID(base="aff4:/flows",
-                                          queue=queues.FLOWS,
-                                          flow_name="ClientAlert"),
+        session_id=rdfvalue.FlowSessionID(flow_name="ClientAlert"),
         priority=rdfvalue.GrrMessage.Priority.LOW_PRIORITY,
         require_fastpoll=False)
 
@@ -982,7 +978,7 @@ class GRRHTTPClient(object):
   def SendForemanRequest(self):
     self.client_worker.SendReply(
         rdfvalue.DataBlob(),
-        session_id=rdfvalue.FlowSessionID("aff4:/flows/W:Foreman"),
+        session_id=rdfvalue.FlowSessionID(flow_name="Foreman"),
         priority=rdfvalue.GrrMessage.Priority.LOW_PRIORITY,
         require_fastpoll=False)
 
@@ -1033,7 +1029,7 @@ class GRRHTTPClient(object):
         try:
           self.client_worker.SendReply(
               rdfvalue.DataBlob(),
-              session_id=rdfvalue.FlowSessionID("aff4:/flows/W:Foreman"),
+              session_id=rdfvalue.FlowSessionID(flow_name="Foreman"),
               priority=rdfvalue.GrrMessage.Priority.LOW_PRIORITY,
               require_fastpoll=False, blocking=False)
           self.last_foreman_check = now
@@ -1122,7 +1118,7 @@ class GRRHTTPClient(object):
           rdfvalue.Certificate(type=rdfvalue.Certificate.Type.CSR,
                                pem=self.communicator.GetCSR()),
           session_id=rdfvalue.SessionID(
-              base="aff4:/flows", queue=queues.ENROLLMENT, flow_name="Enrol"))
+              queue=queues.ENROLLMENT, flow_name="Enrol"))
 
   def Sleep(self, timeout, heartbeat=False):
     if not heartbeat:

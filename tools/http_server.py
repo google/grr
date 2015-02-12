@@ -6,9 +6,6 @@
 import BaseHTTPServer
 import cgi
 import cStringIO
-
-from multiprocessing import freeze_support
-from multiprocessing import Process
 import pdb
 import socket
 import SocketServer
@@ -227,10 +224,6 @@ def main(unused_argv):
   startup.Init()
 
   httpd = CreateServer()
-  if config_lib.CONFIG["Frontend.processes"] > 1:
-    # Multiprocessing
-    for _ in range(config_lib.CONFIG["Frontend.processes"] - 1):
-      Process(target=Serve, args=(httpd,)).start()
 
   try:
     httpd.serve_forever()
@@ -238,5 +231,4 @@ def main(unused_argv):
     print "Caught keyboard interrupt, stopping"
 
 if __name__ == "__main__":
-  freeze_support()
   flags.StartMain(main)

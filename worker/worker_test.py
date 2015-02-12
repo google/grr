@@ -66,8 +66,6 @@ class WorkerSendingTestFlow2(WorkerSendingTestFlow):
 class WorkerSendingWKTestFlow(flow.WellKnownFlow):
 
   well_known_session_id = rdfvalue.SessionID(
-      base="aff4:/flows",
-      queue=queues.FLOWS,
       flow_name="WorkerSendingWKTestFlow")
 
   def ProcessMessage(self, message):
@@ -557,8 +555,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
 
     # Send a message to a WellKnownFlow - ClientStatsAuto.
     client_id = rdfvalue.ClientURN("C.1100110011001100")
-    self.SendResponse(rdfvalue.SessionID(base="aff4:/flows",
-                                         queue=queues.FLOWS,
+    self.SendResponse(rdfvalue.SessionID(queue=queues.STATS,
                                          flow_name="Stats"),
                       data=rdfvalue.ClientStats(RSS_size=1234),
                       client_id=client_id, well_known=True)
@@ -582,8 +579,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
 
     # Send a message to a WellKnownFlow - ClientStatsAuto.
     client_id = rdfvalue.ClientURN("C.1100110011001100")
-    self.SendResponse(rdfvalue.SessionID(base="aff4:/flows",
-                                         queue=queues.FLOWS,
+    self.SendResponse(rdfvalue.SessionID(queue=queues.STATS,
                                          flow_name="Stats"),
                       data=rdfvalue.ClientStats(RSS_size=1234),
                       client_id=client_id, well_known=True)
@@ -635,8 +631,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
 
   def testWorkerDeletesNotificationsForBrokenObjects(self):
     # Test notifications for objects that don't exist.
-    session_id = rdfvalue.SessionID(base="aff4:/flows",
-                                    queue=queues.FLOWS,
+    session_id = rdfvalue.SessionID(queue=queues.FLOWS,
                                     flow_name="123456")
 
     self.CheckNotificationsDisappear(session_id)

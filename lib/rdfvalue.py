@@ -975,12 +975,15 @@ class Subject(RDFURN):
                    startswith=(1, "Startswith"),
                    has=(1, "HasAttribute"))
 
+DEFAULT_FLOW_QUEUE = RDFURN("F")
+
 
 class SessionID(RDFURN):
   """An rdfvalue object that represents a session_id."""
 
-  def __init__(self, initializer=None, age=None, base=None, queue=None,
-               flow_name=None):
+  def __init__(
+      self, initializer=None, age=None, base="aff4:/flows",
+      queue=DEFAULT_FLOW_QUEUE, flow_name=None):
     """Constructor.
 
     Args:
@@ -992,9 +995,9 @@ class SessionID(RDFURN):
     Raises:
       InitializeError: The given URN cannot be converted to a SessionID.
     """
-    if base:
+    if initializer is None:
       # This SessionID is being constructed from scratch.
-      if not flow_name:
+      if flow_name is None:
         flow_name = utils.PRNG.GetULong()
 
       if isinstance(flow_name, int):
