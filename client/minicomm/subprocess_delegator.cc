@@ -113,15 +113,15 @@ void SubprocessDelegator::StartChildProcess() {
   close(stderr_fd[1]);
   {
     std::unique_lock<std::mutex> write_lock(write_mutex_);
-    write_stream_.reset(new proto2::io::FileOutputStream(stdin_fd[1]));
+    write_stream_.reset(new google::protobuf::io::FileOutputStream(stdin_fd[1]));
   }
   {
     std::unique_lock<std::mutex> read_lock(read_mutex_);
-    read_stream_.reset(new proto2::io::FileInputStream(stdout_fd[0]));
+    read_stream_.reset(new google::protobuf::io::FileInputStream(stdout_fd[0]));
   }
   {
     std::unique_lock<std::mutex> error_lock(error_mutex_);
-    error_stream_.reset(new proto2::io::FileInputStream(stderr_fd[0]));
+    error_stream_.reset(new google::protobuf::io::FileInputStream(stderr_fd[0]));
   }
   pid_lock.unlock();
   child_spawned_.notify_all();

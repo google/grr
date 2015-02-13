@@ -116,7 +116,7 @@ bool ClientConfig::WriteBackConfig() {
     proto.set_client_private_key_pem(key_pem);
   }
 
-  proto2::io::FileOutputStream output(fd);
+  google::protobuf::io::FileOutputStream output(fd);
   bool result = proto2::TextFormat::Print(proto, &output);
   output.Close();
   return result;
@@ -137,7 +137,7 @@ bool ClientConfig::MergeConfigFile(const std::string& config_file,
     return false;
   }
 
-  proto2::io::FileInputStream input(fd);
+  google::protobuf::io::FileInputStream input(fd);
   if (!proto2::TextFormat::Merge(&input, config)) {
     GOOGLE_LOG(ERROR) << "Failed to parse:" << config_file;
     input.Close();

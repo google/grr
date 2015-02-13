@@ -49,17 +49,17 @@ class SubprocessDelegator {
   // Components to write commands to the subprocess.
   std::thread writer_thread_;
   std::mutex write_mutex_;
-  std::unique_ptr<proto2::io::FileOutputStream> write_stream_;
+  std::unique_ptr<google::protobuf::io::FileOutputStream> write_stream_;
 
   // Components to read data from the subprocess.
   std::thread reader_thread_;
   std::mutex read_mutex_;
-  std::unique_ptr<proto2::io::FileInputStream> read_stream_;
+  std::unique_ptr<google::protobuf::io::FileInputStream> read_stream_;
 
   // Components to read errors from the subprocess.
   std::thread error_thread_;
   std::mutex error_mutex_;
-  std::unique_ptr<proto2::io::FileInputStream> error_stream_;
+  std::unique_ptr<google::protobuf::io::FileInputStream> error_stream_;
 
   void StartChildProcess();
   void KillChildProcess();
