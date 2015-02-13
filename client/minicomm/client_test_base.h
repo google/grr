@@ -4,8 +4,8 @@
 #include <memory>
 #include <string>
 
-#include "config.h"
 #include "gtest/gtest.h"
+#include "config.h"
 
 namespace grr {
 class ClientTestBase : public ::testing::Test {
