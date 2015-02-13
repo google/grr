@@ -196,7 +196,7 @@ void SubprocessDelegator::WriteLoop() {
     std::unique_lock<std::mutex> write_lock(write_mutex_);
     pid_lock.unlock();
     {
-      proto2::io::CodedOutputStream coded_stream(write_stream_.get());
+      google::protobuf::io::CodedOutputStream coded_stream(write_stream_.get());
       for (const auto& message : messages) {
         const int size = message.ByteSize();
         coded_stream.WriteLittleEndian32(size);
@@ -230,7 +230,7 @@ void SubprocessDelegator::ReadLoop() {
     pid_lock.unlock();
 
     google::protobuf::uint32 message_size;
-    proto2::io::CodedInputStream coded_stream(read_stream_.get());
+    google::protobuf::io::CodedInputStream coded_stream(read_stream_.get());
     if (!coded_stream.ReadLittleEndian32(&message_size)) {
       GOOGLE_LOG(ERROR) << "Unable to read size, resetting the subprocess.";
       read_failed = true;

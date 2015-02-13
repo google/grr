@@ -36,7 +36,7 @@ TEST_F(ConfigTest, Writeback) {
   config_.ResetKey();
   const std::string client_id = config_.ClientId();
   EXPECT_FALSE(client_id.empty());
-  ASSERT_TRUE(proto2::TextFormat::ParseFromString(ReadWritebackFile(),
+  ASSERT_TRUE(google::protobuf::TextFormat::ParseFromString(ReadWritebackFile(),
                                                   &config_proto));
   EXPECT_FALSE(config_proto.client_private_key_pem().empty());
   EXPECT_FALSE(config_proto.has_last_server_cert_serial_number());
@@ -46,7 +46,7 @@ TEST_F(ConfigTest, Writeback) {
   EXPECT_FALSE(config_.CheckUpdateServerSerial(150));
   EXPECT_TRUE(config_.CheckUpdateServerSerial(200));
 
-  ASSERT_TRUE(proto2::TextFormat::ParseFromString(ReadWritebackFile(),
+  ASSERT_TRUE(google::protobuf::TextFormat::ParseFromString(ReadWritebackFile(),
                                                   &config_proto));
   EXPECT_EQ(200, config_proto.last_server_cert_serial_number());
 

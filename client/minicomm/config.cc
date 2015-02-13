@@ -117,7 +117,7 @@ bool ClientConfig::WriteBackConfig() {
   }
 
   google::protobuf::io::FileOutputStream output(fd);
-  bool result = proto2::TextFormat::Print(proto, &output);
+  bool result = google::protobuf::TextFormat::Print(proto, &output);
   output.Close();
   return result;
 }
@@ -138,7 +138,7 @@ bool ClientConfig::MergeConfigFile(const std::string& config_file,
   }
 
   google::protobuf::io::FileInputStream input(fd);
-  if (!proto2::TextFormat::Merge(&input, config)) {
+  if (!google::protobuf::TextFormat::Merge(&input, config)) {
     GOOGLE_LOG(ERROR) << "Failed to parse:" << config_file;
     input.Close();
     return false;
