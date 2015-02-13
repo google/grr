@@ -355,7 +355,7 @@ class DataStore(object):
     """
 
   def ResolveRegex(self, subject, predicate_regex, token=None,
-                   timestamp=None, limit=1000):
+                   timestamp=None, limit=None):
     """Retrieve a set of value matching for this subject's predicate.
 
     Args:

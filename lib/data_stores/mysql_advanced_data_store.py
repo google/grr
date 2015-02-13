@@ -20,6 +20,7 @@ from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.data_stores import common
 
+
 # pylint: disable=nonstandard-exception
 class Error(data_store.Error):
   """Base class for all exceptions in this module."""
@@ -76,13 +77,13 @@ class MySQLConnection(object):
       self.queue.put(self)
 
   def Execute(self, *args):
-    retries = 50
+    retries = 10
     for i in range(1, retries):
       try:
         self.cursor.execute(*args)
         return self.cursor.fetchall()
       except MySQLdb.Error:
-        time.sleep(.1)
+        time.sleep(.2)
         try:
           self._MakeConnection(database=config_lib.CONFIG["Mysql.database_name"])
         except MySQLdb.OperationalError:
@@ -202,19 +203,16 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       result = self._ExecuteQuery(query, args)
 
       for row in result:
-        value = self._DecodeValue(predicate, row["value"])
+        value = self._Decode(predicate, row["value"])
 
         yield predicate, value, rdfvalue.RDFDatetime(row["timestamp"])
 
   def MultiResolveRegex(self, subjects, predicate_regex, token=None, timestamp=None, limit=None):
     """Result multiple subjects using one or more predicate regexps."""
-    self.security_manager.CheckDataStoreAccess(
-        token, subjects, self.GetRequiredResolveAccess(predicate_regex))
-
     result = {}
 
     for subject in subjects:
-      values = self._ResolveRegex(subject, predicate_regex, token=token,
+      values = self.ResolveRegex(subject, predicate_regex, token=token,
                                   timestamp=timestamp, limit=limit)
 
       if values:
@@ -222,10 +220,35 @@ class MySQLAdvancedDataStore(data_store.DataStore):
         if limit:
           limit -= len(values)
 
-      if limit and limit <= 0:
+      if limit <= 0:
         break
 
     return result.iteritems()
+
+  def ResolveRegex(self, subject, predicate_regex, token=None, timestamp=None, limit=None):
+    self.security_manager.CheckDataStoreAccess(
+        token, subject, self.GetRequiredResolveAccess(predicate_regex))
+
+    if isinstance(predicate_regex, basestring):
+      predicate_regex = [predicate_regex]
+
+    results = []
+    seen = set()
+
+    for regex in predicate_regex:
+      query, args = self._BuildQuery("SELECT", subject, regex, timestamp, limit, is_regex=True)
+      rows = self._ExecuteQuery(query, args)
+
+      for row in rows:
+        attribute = row["attribute"]
+        value = self._Decode(attribute, row["value"])
+        results.append((attribute, value, row["timestamp"]))
+        if limit:
+          limit -= 1
+          if limit == 0:
+            return results
+
+    return results
 
   def MultiSet(self, subject, values, timestamp=None, token=None, replace=True,
                sync=True, to_delete=None):
@@ -252,7 +275,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
           entry_timestamp = timestamp
 
         predicate = utils.SmartUnicode(attribute)
-        data = self._EncodeValue(value)
+        data = self._Encode(value)
 
         # Replacing means to delete all versions of the attribute first.
         if replace or attribute in to_delete:
@@ -265,13 +288,13 @@ class MySQLAdvancedDataStore(data_store.DataStore):
             if attribute in to_delete:
               to_delete.remove(attribute)
             if duplicates == 0:
-              to_insert.extend(
+              to_insert.append(
                   [subject, predicate, data, int(entry_timestamp)])
             elif duplicates == 1:
-              to_replace.extend(
+              to_replace.append(
                   [subject, predicate, data, int(entry_timestamp)])
         else:
-          to_insert.extend(
+          to_insert.append(
               [subject, predicate, data, int(entry_timestamp)])
 
     if to_delete:
@@ -307,9 +330,8 @@ subject_hash=unhex(md5(%s)) AND attribute_hash=unhex(md5(%s))"
 
   def _BuildReplaces(self, values):
     transaction = []
-    value_sets = zip(values[0::4], values[1::4], values[2::4], values[3::4])
 
-    for (subject, predicate, value, timestamp) in value_sets:
+    for (subject, predicate, value, timestamp) in values:
       aff4 = {}
       aff4["query"] = "UPDATE aff4 SET value=%s, timestamp=%s WHERE \
 subject_hash=unhex(md5(%s)) AND attribute_hash=unhex(md5(%s))"
@@ -331,13 +353,11 @@ timestamp, value) VALUES"
     attributes["args"] = []
     aff4["args"] = []
 
-    value_sets = zip(values[0::4], values[1::4], values[2::4], values[3::4])
-
     seen = {}
     seen["subjects"] = []
     seen["attributes"] = []
 
-    for (subject, predicate, value, timestamp) in value_sets:
+    for (subject, predicate, value, timestamp) in values:
       if subject not in seen["subjects"]:
         subjects["args"].extend([subject, subject])
         seen["subjects"].append(subject)
@@ -361,31 +381,6 @@ timestamp, value) VALUES"
       with self.pool.GetConnection() as cursor:
         cursor.Execute(query["query"], query["args"])
 
-  def _ResolveRegex(self, subject, predicate_regex, token=None, timestamp=None, limit=None):
-    if limit and limit == 0:
-      return []
-
-    if isinstance(predicate_regex, str):
-      predicate_regex = [predicate_regex]
-
-    results = []
-    seen = set()
-
-    for regex in predicate_regex:
-      query, args = self._BuildQuery("SELECT", subject, regex, timestamp, limit, is_regex=True)
-      rows = self._ExecuteQuery(query, args)
-
-      for row in rows:
-        attribute = row["attribute"]
-        value = self._DecodeValue(attribute, row["value"])
-        results.append((attribute, value, row["timestamp"]))
-        if limit:
-          limit -= 1
-          if limit == 0:
-            return results
-
-    return results
-
   def _CalculateAttributeStorageTypes(self):
     """Build a mapping between column names and types."""
     self.attribute_types = {}
@@ -394,15 +389,15 @@ timestamp, value) VALUES"
       self.attribute_types[attribute.predicate] = (
           attribute.attribute_type.data_store_type)
 
-  def _EncodeValue(self, value):
+  def _Encode(self, value):
     """Encode the value for the attribute."""
-    if hasattr(value, "SerializeToString"):
+    try:
       return buffer(value.SerializeToString())
-    else:
+    except AttributeError:
       # Types "string" and "bytes" are stored as strings here.
       return buffer(utils.SmartStr(value))
 
-  def _DecodeValue(self, attribute, value):
+  def _Decode(self, attribute, value):
     required_type = self.attribute_types.get(attribute, "bytes")
     if isinstance(value, buffer):
       value = str(value)
@@ -419,7 +414,7 @@ timestamp, value) VALUES"
     args = []
 
     fields = ""
-    criteria = "WHERE"
+    criteria = "WHERE aff4.subject_hash=unhex(md5(%s))"
     sorting = ""
     tables = "FROM aff4"
 
@@ -434,7 +429,7 @@ timestamp, value) VALUES"
         parts = predicate.split(":", 1)
 
         #Add prefix usage for all regex queries
-        criteria += " aff4.subject_hash=unhex(md5(%s)) AND aff4.prefix=(%s)"
+        criteria += " AND aff4.prefix=(%s)"
         args.append(subject)
         args.append(parts[0])
         #If the remainder after prefix is not a match all regex then break it
@@ -452,16 +447,15 @@ timestamp, value) VALUES"
             args.append(rlike)
       else:
         #If predicate has no prefix just rlike
-        criteria += " aff4.subject_hash=unhex(md5(%s)) AND attributes.attribute rlike %s"
+        criteria += " AND attributes.attribute rlike %s"
         args.append(subject)
         args.append(predicate)
     else:
       if predicate:
-        criteria += " aff4.subject_hash=unhex(md5(%s)) AND aff4.attribute_hash=unhex(md5(%s))"
+        criteria += " AND aff4.attribute_hash=unhex(md5(%s))"
         args.append(subject)
         args.append(predicate)
       else:
-        criteria += " aff4.subject_hash=unhex(md5(%s))"
         args.append(subject)
 
     #Limit to time range if specified
@@ -492,7 +486,7 @@ aff4.timestamp=maxtime.timestamp"
     else:
       fields = "aff4"
 
-    query = action + " " + fields + " " + tables + " " + criteria + " " + sorting
+    query = " ".join([action, fields, tables, criteria, sorting])
 
     return (query, args)
 
