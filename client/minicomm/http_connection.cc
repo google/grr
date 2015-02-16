@@ -1,6 +1,7 @@
 #include "http_connection.h"
 
 #include <math.h>
+#include <sstream>
 #include <stddef.h>
 #include <time.h>
 #include <algorithm>
@@ -29,7 +30,7 @@ struct HttpResponse {
 
 size_t write_ostringstream(char* ptr, size_t size, size_t nmemb,
                            void* userdata) {
-  *reinterpret_cast<ostringstream*>(userdata) << std::string(ptr, size * nmemb);
+  *reinterpret_cast<std::ostringstream*>(userdata) << std::string(ptr, size * nmemb);
   return size * nmemb;
 }
 
@@ -37,8 +38,8 @@ size_t write_ostringstream(char* ptr, size_t size, size_t nmemb,
 // If post_data is non-empty, make a post request.
 HttpResponse RequestURL(const std::string& url, const std::string& proxy,
                         const std::string& post_data) {
-  ostringstream headers;
-  ostringstream body;
+  std::ostringstream headers;
+  std::ostringstream body;
   struct curl_slist* added_headers = NULL;
   added_headers = curl_slist_append(added_headers, "Cache-Control: no-cache");
 
@@ -125,7 +126,7 @@ HttpConnectionManager::TryEstablishConnection() {
         return nullptr;
       }
       const std::string& server_pem = r.body;
-      if (server_pem.find("BEGIN CERTIFICATE") == string::npos) {
+      if (server_pem.find("BEGIN CERTIFICATE") == std::string::npos) {
         return nullptr;
       }
       std::unique_ptr<Certificate> cert(new Certificate());
@@ -158,7 +159,7 @@ void HttpConnectionManager::Run() {
     if (failed) {
       std::this_thread::sleep_for(std::chrono::seconds(5));
     } else {
-      const int delay_millis = min(
+      const int delay_millis = std::min(
           600000, static_cast<int>(1000 * 0.2 * pow(1.05, no_activity_count)));
       std::this_thread::sleep_for(std::chrono::milliseconds(delay_millis));
     }
