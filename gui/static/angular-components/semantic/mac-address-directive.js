@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.semantic.macAddressDirective.MacAddressController');
 goog.provide('grrUi.semantic.macAddressDirective.MacAddressDirective');
 goog.provide('grrUi.semantic.macAddressDirective.convertMacAddressToString');
 
@@ -32,6 +33,51 @@ var convertMacAddressToString =
 
 
 /**
+ * Controller for MacAddressDirective.
+ *
+ * @param {!angular.Scope} $scope
+ * @constructor
+ * @ngInject
+ */
+grrUi.semantic.macAddressDirective.MacAddressController = function($scope) {
+  /** @private {!angular.Scope} */
+  this.scope_ = $scope;
+
+  /** @type {string} */
+  this.convertedAddress;
+
+  this.scope_.$watch('::value', this.onValueChange.bind(this));
+};
+
+var MacAddressController =
+    grrUi.semantic.macAddressDirective.MacAddressController;
+
+
+/**
+ * Handles changes of scope.value attribute.
+ *
+ * @param {number} newValue Timestamp value in microseconds.
+ * @suppress {missingProperties} as value can be anything.
+ */
+MacAddressController.prototype.onValueChange = function(newValue) {
+  var address;
+  if (angular.isObject(newValue)) {
+    address = newValue.value;
+  } else {
+    address = newValue;
+  }
+
+  if (angular.isString(address)) {
+    this.convertedAddress = convertMacAddressToString(
+        window.atob(address));
+  } else {
+    this.convertedAddress = '-';
+  }
+};
+
+
+
+/**
  * Directive that displays MacAddress values.
  *
  * @constructor
@@ -44,24 +90,10 @@ grrUi.semantic.macAddressDirective.MacAddressDirective = function() {
       value: '='
     },
     restrict: 'E',
-    template: '<nobr ng-if="::value">{{ ::convertedAddress }}</nobr>',
-    link: function(scope, element) {
-      scope.$watch('value', function() {
-        var address;
-        if (angular.isObject(scope.value)) {
-          address = scope.value.value;
-        } else {
-          address = scope.value;
-        }
-
-        if (angular.isUndefined(address)) {
-          scope.convertedAddress = '-';
-        } else {
-          scope.convertedAddress = convertMacAddressToString(
-              window.atob(address));
-        }
-      });
-    }
+    template: '<nobr ng-if="::controller.convertedAddress !== undefined">' +
+        '{$ ::controller.convertedAddress $}</nobr>',
+    controller: MacAddressController,
+    controllerAs: 'controller'
   };
 };
 

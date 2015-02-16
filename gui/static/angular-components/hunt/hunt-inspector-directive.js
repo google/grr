@@ -46,11 +46,10 @@ HuntInspectorController.prototype.onHuntUrnChange = function() {
 
 /**
  * HuntInspectorDirective definition.
- * @param {grrUi.core.apiService.ApiService} grrApiService API service.
+
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.hunt.huntInspectorDirective.HuntInspectorDirective = function(
-    grrApiService) {
+grrUi.hunt.huntInspectorDirective.HuntInspectorDirective = function() {
   return {
     scope: {
       huntUrn: '='

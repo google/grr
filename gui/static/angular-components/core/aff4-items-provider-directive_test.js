@@ -57,7 +57,12 @@ describe('AFF4 items provider directive', function() {
 
     controller.fetchItems(0, 10);
     expect(grrAff4ServiceMock.get).toHaveBeenCalledWith(
-        'aff4:/foo/bar', {offset: 0, count: 10, with_total_count: false});
+        'aff4:/foo/bar',
+        {
+          'RDFValueCollection.offset': 0,
+          'RDFValueCollection.count': 10,
+          'RDFValueCollection.with_total_count': 0
+        });
   });
 
   it('does not fetch/return total count when !opt_withTotalCount', function() {
@@ -74,7 +79,12 @@ describe('AFF4 items provider directive', function() {
       items = resultItems;
     });
     expect(grrAff4ServiceMock.get).toHaveBeenCalledWith(
-        'aff4:/foo/bar', {offset: 0, count: 10, with_total_count: false});
+        'aff4:/foo/bar',
+        {
+          'RDFValueCollection.offset': 0,
+          'RDFValueCollection.count': 10,
+          'RDFValueCollection.with_total_count': 0
+        });
 
     $rootScope.$apply();
     expect(items.totalCount).toBeUndefined();
@@ -95,7 +105,12 @@ describe('AFF4 items provider directive', function() {
       items = resultItems;
     });
     expect(grrAff4ServiceMock.get).toHaveBeenCalledWith(
-        'aff4:/foo/bar', {offset: 0, count: 10, with_total_count: true});
+        'aff4:/foo/bar',
+        {
+          'RDFValueCollection.offset': 0,
+          'RDFValueCollection.count': 10,
+          'RDFValueCollection.with_total_count': 1
+        });
 
     $rootScope.$apply();
     expect(items.totalCount).toEqual(42);
@@ -107,7 +122,12 @@ describe('AFF4 items provider directive', function() {
 
     controller.fetchFilteredItems('foo', 0, 10);
     expect(grrAff4ServiceMock.get).toHaveBeenCalledWith(
-        'aff4:/foo/bar', {filter: 'foo', offset: 0, count: 10});
+        'aff4:/foo/bar',
+        {
+          'RDFValueCollection.offset': 0,
+          'RDFValueCollection.count': 10,
+          'RDFValueCollection.filter': 'foo'
+        });
   });
 
   it('passes additional parameters as query params when fetching', function() {
@@ -117,7 +137,13 @@ describe('AFF4 items provider directive', function() {
     controller.fetchItems(0, 10);
     expect(grrAff4ServiceMock.get).toHaveBeenCalledWith(
         'aff4:/foo/bar',
-        {foo: 'bar', num: 42, offset: 0, count: 10, with_total_count: false});
+        {
+          'RDFValueCollection.offset': 0,
+          'RDFValueCollection.count': 10,
+          'RDFValueCollection.with_total_count': 0,
+          num: 42,
+          foo: 'bar'
+        });
   });
 
   it('passes additional parameters when fetching filtered', function() {
@@ -127,7 +153,13 @@ describe('AFF4 items provider directive', function() {
     controller.fetchFilteredItems('foo', 0, 10);
     expect(grrAff4ServiceMock.get).toHaveBeenCalledWith(
         'aff4:/foo/bar',
-        {filter: 'foo', foo: 'bar', num: 42, offset: 0, count: 10});
+        {
+          'RDFValueCollection.offset': 0,
+          'RDFValueCollection.count': 10,
+          'RDFValueCollection.filter': 'foo',
+          num: 42,
+          foo: 'bar'
+        });
   });
 
   it('offset/count/withTotalCount override queryParams attributes', function() {
@@ -136,16 +168,22 @@ describe('AFF4 items provider directive', function() {
         {
           foo: 'bar',
           num: 42,
-          offset: 2,
-          count: 3,
-          with_total_count: false
+          'RDFValueCollection.offset': 2,
+          'RDFValueCollection.count': 3,
+          'RDFValueCollection.with_total_count': 0
         },
         undefined);
 
     controller.fetchItems(0, 10, true);
     expect(grrAff4ServiceMock.get).toHaveBeenCalledWith(
         'aff4:/foo/bar',
-        {foo: 'bar', num: 42, offset: 0, count: 10, with_total_count: true});
+        {
+          'RDFValueCollection.offset': 0,
+          'RDFValueCollection.count': 10,
+          'RDFValueCollection.with_total_count': 1,
+          num: 42,
+          foo: 'bar'
+        });
   });
 
   it('transforms resulting data with transform function', function() {

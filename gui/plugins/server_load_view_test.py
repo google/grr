@@ -65,20 +65,23 @@ class TestServerLoadView(test_lib.GRRSeleniumTest):
     self.Open("/#main=ServerLoadView")
     self.WaitUntil(self.IsTextPresent, "Frontends load")
     self.WaitUntil(self.IsTextPresent, "Frontend handled vs throttled rate")
+
+    self.Click("css=li[heading=Worker]")
     self.WaitUntil(self.IsTextPresent, "Worker successful vs failed flows rate")
 
-  def testServerLoadPageShowsCorrectNumberOfInstances(self):
-    with self.ACLChecksDisabled():
-      self.SetupSampleMetrics(token=self.token)
+  # TODO(user): uncomment as soon as number of instances is back.
+  # def testServerLoadPageShowsCorrectNumberOfInstances(self):
+  #   with self.ACLChecksDisabled():
+  #     self.SetupSampleMetrics(token=self.token)
 
-    self.Open("/#main=ServerLoadView")
-    self.WaitUntil(self.IsTextPresent, "Frontend (1 instances)")
+  #   self.Open("/#main=ServerLoadView")
+  #   self.WaitUntil(self.IsTextPresent, "Frontend (1 instances)")
 
   def testTimeRangeButtonsAreClickable(self):
     self.Open("/#main=ServerLoadView")
     self.WaitUntil(self.IsTextPresent, "Frontends load")
 
-    self.Click("css=button[name=3h]")
+    self.Click("css=label[btn-radio=72]")
     self.WaitUntil(self.IsTextPresent, "Frontends load")
 
 

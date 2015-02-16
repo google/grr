@@ -4,7 +4,9 @@ goog.provide('grrUi.semantic.module');
 
 goog.require('grrUi.core.module');
 goog.require('grrUi.semantic.clientUrnDirective.ClientUrnDirective');
+goog.require('grrUi.semantic.fetchMoreLinkDirective.FetchMoreLinkDirective');
 goog.require('grrUi.semantic.macAddressDirective.MacAddressDirective');
+goog.require('grrUi.semantic.networkAddressDirective.NetworkAddressDirective');
 goog.require('grrUi.semantic.semanticProtoDirective.SemanticProtoDirective');
 goog.require('grrUi.semantic.semanticValueDirective.SemanticValueDirective');
 goog.require('grrUi.semantic.timestampDirective.TimestampDirective');
@@ -23,8 +25,15 @@ grrUi.semantic.module.directive(
     grrUi.semantic.clientUrnDirective.ClientUrnDirective.directive_name,
     grrUi.semantic.clientUrnDirective.ClientUrnDirective);
 grrUi.semantic.module.directive(
+    grrUi.semantic.fetchMoreLinkDirective.FetchMoreLinkDirective.directive_name,
+    grrUi.semantic.fetchMoreLinkDirective.FetchMoreLinkDirective);
+grrUi.semantic.module.directive(
     grrUi.semantic.macAddressDirective.MacAddressDirective.directive_name,
     grrUi.semantic.macAddressDirective.MacAddressDirective);
+grrUi.semantic.module.directive(
+    grrUi.semantic.networkAddressDirective.
+        NetworkAddressDirective.directive_name,
+    grrUi.semantic.networkAddressDirective.NetworkAddressDirective);
 grrUi.semantic.module.directive(
     grrUi.semantic.semanticProtoDirective.SemanticProtoDirective.directive_name,
     grrUi.semantic.semanticProtoDirective.SemanticProtoDirective);

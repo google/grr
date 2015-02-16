@@ -1,20 +1,18 @@
 #!/usr/bin/env python
 """API renderers for accessing config."""
 
-from grr.gui import api_object_renderers
-from grr.gui import api_renderers
+from grr.gui import api_call_renderers
+from grr.gui import api_value_renderers
 
 from grr.lib import config_lib
 from grr.lib import rdfvalue
+from grr.lib import registry
 from grr.lib import type_info
 from grr.lib import utils
 
 
-class ApiConfigRenderer(api_renderers.ApiRenderer):
-  """Renders the configuration listing."""
-
-  method = "GET"
-  route = "/api/config"
+class ApiConfigRenderer(api_call_renderers.ApiCallRenderer):
+  """Renders GRR's server configuration."""
 
   redacted_options = ["AdminUI.django_secret_key", "Mysql.database_password",
                       "Worker.smtp_password"]
@@ -31,7 +29,7 @@ class ApiConfigRenderer(api_renderers.ApiRenderer):
       if descriptor.section == section:
         yield descriptor.name
 
-  def Render(self, request):
+  def Render(self, unused_args, token=None):
     """Build the data structure representing the config."""
 
     sections = {}
@@ -62,10 +60,8 @@ class ApiConfigRenderer(api_renderers.ApiRenderer):
             value_type = "plain"
 
             if isinstance(option_value, rdfvalue.RDFValue):
-              render_options = {"with_type_info": True,
-                                "with_descriptors": True}
-              option_value = api_object_renderers.RenderObject(option_value,
-                                                               render_options)
+              option_value = api_value_renderers.RenderValue(
+                  option_value, with_types=True, with_metadata=True)
             else:
               if isinstance(option_value, str):
                 raw_value = option_value = None
@@ -91,3 +87,10 @@ class ApiConfigRenderer(api_renderers.ApiRenderer):
       sections[descriptor.section] = section_data
 
     return sections
+
+
+class ApiConfigInitHook(registry.InitHook):
+
+  def RunOnce(self):
+    api_call_renderers.RegisterHttpRouteHandler(
+        "GET", "/api/config", ApiConfigRenderer)

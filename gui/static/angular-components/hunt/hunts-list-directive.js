@@ -31,7 +31,7 @@ grrUi.hunt.huntsListDirective.HuntsListController = function($scope, $modal) {
 
   /**
    * Selected item in the list.
-   * @export {string}
+   * @export {?string}
    */
   this.selectedHuntUrn;
 
@@ -216,6 +216,7 @@ HuntsListController.prototype.deleteHunt = function() {
  * component of hunt's URN and sets isRobot attribute based on hunt's creator.
  *
  * @param {Object} items Items to be transformed.
+ * @return {Object} Transformed items.
  * @export
  * @suppress {missingProperties} For items, as they crom from JSON response.
  */
@@ -227,6 +228,7 @@ HuntsListController.prototype.transformItems = function(items) {
 
     this.huntsByUrn[item.urn] = item;
   }.bind(this));
+
   return items;
 };
 

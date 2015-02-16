@@ -8,3 +8,4 @@ from grr.gui.api_plugins import aff4_test
 from grr.gui.api_plugins import artifact_test
 from grr.gui.api_plugins import config_test
 from grr.gui.api_plugins import hunt_test
+from grr.gui.api_plugins import stats_test

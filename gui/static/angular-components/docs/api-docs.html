@@ -1,0 +1,31 @@
+<div class="container">
+  <div class="row">
+    <div class="col-md-9">
+      <div class="doc-item">
+        <h1>GRR API</h1>
+      </div>
+
+      <div class="doc-item" ng-repeat="apiCallRenderer in ::controller.apiCallRenderers">
+        <h4>
+          <small>{$ ::apiCallRenderer.methods.join(', ') $}</small>
+          <grr-api-route value="::apiCallRenderer.route"></grr-api-route>
+        </h4>
+
+        <p class="preserve-linebreaks">{$ ::apiCallRenderer.doc $}</p>
+        <grr-api-query-spec value="::apiCallRenderer.args"></grr-api-query-spec>
+      </div>
+
+      <div class="doc-item">
+        <h2>AFF4 object renderers</h2>
+        <p>When using /api/aff4 API, set of accepted query parameters changes
+          depending on the type of the accessed objects.</p>
+      </div>
+
+      <div class="doc-item" ng-repeat="(name, apiObjectRenderer) in ::controller.apiObjectRenderers">
+        <h4>{$ ::name $}</h4>
+        <p class="preserve-linebreaks">{$ ::apiObjectRenderer.doc $}</p>
+        <grr-api-query-spec value="::apiObjectRenderer.args" />
+      </div>
+    </div>
+  </div>
+</div>

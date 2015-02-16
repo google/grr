@@ -1,0 +1,11 @@
+<div ng-if="::controller.value != null">
+  <dl class="dl-horizontal">
+    <div ng-repeat="paramSpec in ::controller.value">
+      <dt>{$ ::paramSpec.name $}</dt>
+      <dd class="preserve-linebreaks"><em>{$ ::paramSpec.type $}</em> {$ ::paramSpec.doc $}</dd>
+    </div>
+  </dl>
+</div>
+<div ng-if="::controller.value == null">
+  <p>No query parameters.</p>
+</div>

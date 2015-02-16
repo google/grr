@@ -7,8 +7,8 @@ from grr.gui.api_plugins import aff4 as aff4_plugin
 
 from grr.lib import aff4
 from grr.lib import flags
+from grr.lib import rdfvalue
 from grr.lib import test_lib
-from grr.lib import utils
 
 
 class ApiAff4RendererTest(test_lib.GRRBaseTest):
@@ -24,8 +24,9 @@ class ApiAff4RendererTest(test_lib.GRRBaseTest):
                                token=self.token) as _:
         pass
 
-    result = self.renderer.Render(utils.DataObject(aff4_path="tmp/foo/bar",
-                                                   token=self.token))
+    result = self.renderer.Render(
+        rdfvalue.ApiAff4RendererArgs(aff4_path="tmp/foo/bar"),
+        token=self.token)
     self.assertEqual(result["urn"], "aff4:/tmp/foo/bar")
     self.assertEqual(result["aff4_class"], "AFF4Volume")
     self.assertEqual(result["age_policy"], "NEWEST_TIME")
@@ -50,8 +51,9 @@ class ApiAff4IndexRendererTest(test_lib.GRRBaseTest):
                                token=self.token) as _:
         pass
 
-    result = self.renderer.Render(utils.DataObject(aff4_path="tmp/foo",
-                                                   token=self.token))
+    result = self.renderer.Render(
+        rdfvalue.ApiAff4IndexRendererArgs(aff4_path="tmp/foo"),
+        token=self.token)
     result = sorted(result, key=lambda x: x[0])
     self.assertEqual(result,
                      [["aff4:/tmp/foo/bar1", 42000000],

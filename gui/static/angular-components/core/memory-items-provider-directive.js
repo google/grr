@@ -38,7 +38,7 @@ grrUi.core.memoryItemsProviderDirective.MemoryItemsProviderController =
 
   // aff4Path is a traditional double-way binding.
   $scope.$watch($attrs.items, function() {
-    this.items_ = $scope.$eval($attrs.items);
+    this.items_ = /** @type {Array<?>} */ ($scope.$eval($attrs.items));
   }.bind(this));
 };
 

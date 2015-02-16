@@ -1,16 +1,20 @@
 'use strict';
 
+goog.provide('grrUi.config.configViewDirective.ConfigViewController');
 goog.provide('grrUi.config.configViewDirective.ConfigViewDirective');
 
 goog.scope(function() {
 
 var directive = grrUi.config.configViewDirective;
+
+
+
 /**
  * Controller for ConfigViewDirective.
  *
  * @constructor
  * @param {!angular.Scope} $scope
- * @param {!angularUi.$http} $http Angular HTTP service.
+ * @param {!angular.$http} $http Angular HTTP service.
  * @ngInject
  */
 directive.ConfigViewController = function($scope, $http) {
@@ -22,6 +26,7 @@ directive.ConfigViewController = function($scope, $http) {
 };
 
 var ConfigViewController = directive.ConfigViewController;
+
 
 /**
  * ConfigViewDirective definition.

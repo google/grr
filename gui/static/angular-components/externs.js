@@ -78,3 +78,11 @@ angularUi.$modalInstance;
  *   }}
  */
 angularUi.$modal;
+
+
+/**
+ * @param {(jQuerySelector|Element|jQuery|string)} placeholder
+ * @param {Array} data
+ * @param {Object=} options
+ */
+$.plot = function(placeholder, data, options) {};

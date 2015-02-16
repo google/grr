@@ -1,0 +1,184 @@
+
+
+// The following messages are used in GRR's web API.
+
+syntax = "proto2";
+
+import "grr/proto/semantic.proto";
+
+
+//
+// API call renderers arguments (see gui/api_call_renderers.py).
+//
+
+message ApiCallAdditionalArgs {
+  optional string name = 1;
+  optional string type = 2;
+  optional bytes args = 3 [(sem_type) = {
+      dynamic_type: "GetArgsClass"
+    }];
+}
+
+message ApiAff4RendererArgs {
+  optional string aff4_path = 1 [(sem_type) = {
+      type: "RDFURN",
+      description: "Path of the object to be rendered."
+    }];
+
+  repeated ApiCallAdditionalArgs additional_args = 2;
+}
+
+message ApiAff4IndexRendererArgs {
+  optional string aff4_path = 1 [(sem_type) = {
+      type: "RDFURN",
+      description: "Path of the object to be rendered."
+    }];
+}
+
+message ApiHuntsListRendererArgs {
+  optional int64 offset = 1 [(sem_type) = {
+      description: "Starting offset."
+    }];
+  optional int64 count = 2 [(sem_type) = {
+      description: "Max number of items to fetch."
+    }];
+}
+
+message ApiHuntSummaryRendererArgs {
+  optional string hunt_id = 1 [(sem_type) = {
+      description: "Hunt id."
+    }];
+}
+
+message ApiHuntLogRendererArgs {
+  optional string hunt_id = 1 [(sem_type) = {
+      description: "Hunt id."
+    }];
+  optional int64 offset = 2 [(sem_type) = {
+      description: "Log items starting offset."
+    }];
+  optional int64 count = 3 [(sem_type) = {
+      description: "Max number of log items to fetch."
+    }];
+};
+
+message ApiHuntErrorsRendererArgs {
+  optional string hunt_id = 1 [(sem_type) = {
+      description: "Hunt id."
+    }];
+  optional int64 offset = 2 [(sem_type) = {
+      description: "Hunt errors starting offset."
+    }];
+  optional int64 count = 3 [(sem_type) = {
+      description: "Max number of errors to fetch."
+    }];
+};
+
+message ApiStatsStoreMetricsMetadataRendererArgs {
+  enum Component {
+    WORKER = 0;
+    FRONTEND = 1;
+  }
+  optional Component component = 1;
+}
+
+message ApiStatsStoreMetricRendererArgs {
+  enum Component {
+    WORKER = 0;
+    FRONTEND = 1;
+  }
+  optional Component component = 1;
+  optional string metric_name = 2;
+
+  optional uint64 start = 3 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Fetch metrics data starting from this timestamp. If "
+      "not set, will default to 1 hour ago."
+    }];
+  optional uint64 end = 4 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Fetch metrics data from the interval ending with "
+      "this timestamp. If not set, will default to the current time."
+    }];
+
+  enum DistributionHandlingMode {
+    DH_SUM = 0 [(description) = "Sum of all values recorded in a distribution "
+             "will be fetched."];
+    DH_COUNT = 1 [(description) = "Number of all values recorded in a distribution "
+               "will be fetched."];
+  };
+  optional DistributionHandlingMode distribution_handling_mode = 5 [(sem_type) = {
+      description: "Determines which values to fetch when dealing with distributions."
+    }];
+
+  enum AggregationMode {
+    AGG_SUM = 0 [(description) = "Values will be summed."];
+    AGG_MEAN = 1 [(description) = "Mean value will be calculated."];
+    AGG_NONE = 2 [(description) = "No aggregation will be performed."];
+  };
+  optional AggregationMode aggregation_mode = 6 [(sem_type) = {
+      description: "Aggregation method. As metrics are usually collected across "
+        "multiple processes, most of the time they have to be aggregated."
+    }];
+}
+
+//
+// AFF4 object renderers arguments (see gui/api_aff4_object_renderers.py).
+//
+message ApiAFF4ObjectRendererArgs {
+  optional int64 limit_lists = 1 [(sem_type) = {
+      description: "If >0, lists of values in the response will contain "
+      "no more than specified number of items. This is an effective way to "
+      "protect the UI from fetching and presenting enormously big datasets. "
+      "If 0, no lists will be rendered at all. If -1, lists will be rendered "
+      "in their entirety."
+    }, default = -1];
+
+  enum TypeInformation {
+    NONE = 0 [(description) = "Do not include type information."];
+    WITH_TYPES = 1 [(description) = "Include type names and "
+                    "MROs for all values."];
+    WITH_TYPES_AND_METADATA = 2 [(description) = "Include type names, "
+                                 "descriptions, friendly names, suggested "
+                                 "fields order, etc."];
+  };
+  optional TypeInformation type_info = 2 [(sem_type) = {
+      description: "Which type information to include into the output."
+    }];
+}
+
+message ApiGRRHuntRendererArgs {
+  optional bool with_full_summary = 1 [(sem_type) = {
+      description: "If True, render stats, clients counts, rules and args."
+    }];
+}
+
+message ApiRDFValueCollectionRendererArgs {
+  optional int64 offset = 1 [(sem_type) = {
+      description: "Fetch items starting from this offset."
+    }];
+  optional int64 count = 2 [(sem_type) = {
+      description: "Fetch this number of elements."
+    }];
+  optional bool with_total_count = 3 [(sem_type) = {
+      description: "Include total number of elements in the collection into the "
+        "response. NOTE: for some collections this may be expensive."
+    }];
+  optional string filter = 4 [(sem_type) = {
+      description: "Return only collection items whose string representation "
+      "contains given substring."
+    }];
+
+  optional int64 items_limit_lists = 5 [(sem_type) = {
+      description: "If >0, lists of values in the response will contain "
+      "no more than specified number of items. This is an effective way to "
+      "protect the UI from fetching and presenting enormously big datasets. "
+      "If 0, no lists will be rendered at all. If -1, lists will be rendered "
+      "in their entirety."
+    }, default = -1];
+
+  optional ApiAFF4ObjectRendererArgs.TypeInformation items_type_info = 6 [(sem_type) = {
+      description: "Which type information to include when rendering "
+      "collection items."
+    }];
+}

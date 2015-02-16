@@ -3,6 +3,7 @@
 
 syntax = "proto2";
 
+import "grr/proto/api.proto";
 import "grr/proto/export.proto";
 import "grr/proto/jobs.proto";
 import "grr/proto/semantic.proto";
@@ -87,4 +88,25 @@ message DefaultArgsTestFlowArgs {
   optional uint64 int_value_with_default = 6 [default = 42];
   optional bool bool_value_with_default = 7 [default = true];
   optional EnumOption enum_value_with_default = 8 [default = OPTION_2];
+}
+
+// For gui/api_call_renderers_test.py.
+message SampleGetRendererArgs {
+  optional string path = 1;
+  optional string foo = 2;
+}
+
+message SampleGetRendererWithAdditionalArgsArgs {
+  optional string path = 1;
+  optional string foo = 2;
+  repeated ApiCallAdditionalArgs additional_args = 3;
+}
+
+message ApiRDFProtoStructRendererSample {
+  optional uint64 index = 1 [(sem_type) = {
+      description: "Sample index."
+    }];
+  repeated string values = 2 [(sem_type) = {
+      description: "Sample values."
+    }];
 }

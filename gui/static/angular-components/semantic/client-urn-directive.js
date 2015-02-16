@@ -71,10 +71,12 @@ ClientUrnController.prototype.onInfoClick = function() {
     scope: this.scope_
   });
 
-  this.grrAff4Service_.get(this.clientUrn, {
-    'with_type_info': true, 'with_descriptors': true}).then(function(response) {
-      this.clientSummary = response.data.summary;
-    }.bind(this));
+  this.grrAff4Service_.get(
+      this.clientUrn,
+      {'AFF4Object.type_info': 'WITH_TYPES_AND_METADATA'}).then(
+          function(response) {
+            this.clientSummary = response.data.summary;
+          }.bind(this));
 };
 
 
@@ -84,8 +86,10 @@ ClientUrnController.prototype.onInfoClick = function() {
  * @export
  */
 ClientUrnController.prototype.onLinkClick = function() {
-  var hash = $.param({'main': 'HostInformation',
-    'c': this.clientUrn});
+  var hash = $.param({
+    'main': 'HostInformation',
+    'c': this.clientUrn
+  });
   grr.loadFromHash(hash);
 };
 
