@@ -1,9 +1,9 @@
 syntax = "proto2";
 
-import "grr/proto/anomaly.proto";
-import "grr/proto/jobs.proto";
-import "grr/proto/knowledge_base.proto";
-import "grr/proto/semantic.proto";
+import "anomaly.proto";
+import "jobs.proto";
+import "knowledge_base.proto";
+import "semantic.proto";
 
 
 // SECTION: Defining checks.

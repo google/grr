@@ -1,6 +1,6 @@
 
 syntax = "proto2";
-import "grr/proto/data_store.proto";
+import "data_store.proto";
 
 
 

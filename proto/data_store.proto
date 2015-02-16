@@ -3,9 +3,9 @@
 // These are protobufs used in various analysis jobs.
 
 syntax = "proto2";
-import "grr/proto/flows.proto";
-import "grr/proto/jobs.proto";
-import "grr/proto/semantic.proto";
+import "flows.proto";
+import "jobs.proto";
+import "semantic.proto";
 
 
 

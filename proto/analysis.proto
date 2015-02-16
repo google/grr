@@ -4,8 +4,8 @@
 
 syntax = "proto2";
 
-import "grr/proto/jobs.proto";
-import "grr/proto/semantic.proto";
+import "jobs.proto";
+import "semantic.proto";
 
 
 // A graph is a way to represent data.

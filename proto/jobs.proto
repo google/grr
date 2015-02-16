@@ -4,7 +4,7 @@
 // These are the messages used in GRR
 syntax = "proto2";
 
-import "grr/proto/semantic.proto";
+import "semantic.proto";
 
 
 

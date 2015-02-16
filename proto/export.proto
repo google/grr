@@ -2,9 +2,9 @@
 
 syntax = "proto2";
 
-import "grr/proto/jobs.proto";
-import "grr/proto/sysinfo.proto";
-import "grr/proto/semantic.proto";
+import "jobs.proto";
+import "sysinfo.proto";
+import "semantic.proto";
 
 
 message ExportOptions {
