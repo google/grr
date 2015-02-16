@@ -43,7 +43,7 @@ bool ClientConfig::ReadConfig() {
   ca_cert_.FromPEM(proto.ca_cert_pem());
 
   client_id_ = MakeClientId();
-  if (control_urls_.empty()) {
+  if (!control_urls_.size()) {
     GOOGLE_LOG(ERROR) << "No control URLs.";
     return false;
   }
