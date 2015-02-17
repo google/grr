@@ -31,15 +31,10 @@ grrUi.docs.apiDocsDirective.ApiObjectRendererDescriptor;
  * Controller for ApiDocsDirective.
  *
  * @constructor
- * @param {!angular.Scope} $scope
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
-grrUi.docs.apiDocsDirective.ApiDocsController = function($scope,
-                                                         grrApiService) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
-
+grrUi.docs.apiDocsDirective.ApiDocsController = function(grrApiService) {
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
 

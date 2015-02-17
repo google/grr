@@ -23,8 +23,6 @@ goog.scope(function() {
  */
 grrUi.core.memoryItemsProviderDirective.MemoryItemsProviderController =
     function($scope, $q, $attrs, $parse) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
 
   /** @private {!angular.$q} */
   this.q_ = $q;

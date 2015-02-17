@@ -66,9 +66,9 @@ class AFF4KeywordIndex(aff4.AFF4Object):
 
     Args:
       name: A name which should be associated with some keywords.
-      keywords: A collection of keywords whichs should be associated with name.
+      keywords: A collection of keywords to associate with name.
     """
-    for keyword in keywords:
+    for keyword in set(keywords):
       data_store.DB.Set(
           self._KeywordToURN(keyword),
           self.INDEX_COLUMN_FORMAT % name, "", token=self.token)

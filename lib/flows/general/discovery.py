@@ -3,6 +3,7 @@
 
 
 from grr.lib import aff4
+from grr.lib import client_index
 from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import queues
@@ -281,6 +282,12 @@ class Interrogate(flow.GRRFlow):
     summary = self.client.GetSummary()
     self.Publish("Discovery", summary)
     self.SendReply(summary)
+
+    # Update the client index.
+    aff4.FACTORY.Create(client_index.MAIN_INDEX,
+                        aff4_type="ClientIndex",
+                        mode="rw",
+                        token=self.token).AddClient(self.client)
 
     # Flush the data to the data store.
     self.client.Close()

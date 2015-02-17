@@ -12,22 +12,18 @@ goog.scope(function() {
  * Controller for the ClientUrnDirective.
  *
  * @param {!angular.Scope} $scope Directive's scope.
- * @param {!angular.JQLite} $element Element this directive operates on.
  * @param {!angularUi.$modal} $modal Bootstrap UI modal service.
  * @param {!grrUi.core.aff4Service.Aff4Service} grrAff4Service GRR Aff4 service.
  * @constructor
  * @ngInject
  */
 var ClientUrnController = function(
-    $scope, $element, $modal, grrAff4Service) {
+    $scope, $modal, grrAff4Service) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
   /** @type {?} */
   this.scope_.value;
-
-  /** @private {!angular.JQLite} */
-  this.element_ = $element;
 
   /** @private {!angularUi.$modal} */
   this.modal_ = $modal;

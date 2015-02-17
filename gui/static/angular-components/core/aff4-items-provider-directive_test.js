@@ -224,9 +224,7 @@ describe('AFF4 items provider directive', function() {
         });
 
     expect(function() {
-      var items;
-      controller.fetchItems(0, 10, true).then(function(resultItems) {
-        items = resultItems;
+      controller.fetchItems(0, 10, true).then(function(unusedResultItems) {
       });
       $rootScope.$apply();
     }).toThrow('transform-items function returned undefined');

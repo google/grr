@@ -83,6 +83,6 @@ angularUi.$modal;
 /**
  * @param {(jQuerySelector|Element|jQuery|string)} placeholder
  * @param {Array} data
- * @param {Object=} options
+ * @param {Object=} opt_options
  */
-$.plot = function(placeholder, data, options) {};
+$.plot = function(placeholder, data, opt_options) {};

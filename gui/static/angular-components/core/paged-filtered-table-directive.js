@@ -77,7 +77,6 @@ grrUi.core.pagedFilteredTableDirective.TableBottomDirective.
  *
  * @constructor
  * @param {!angular.Scope} $scope
- * @param {!angular.Attributes} $attrs
  * @param {!angular.JQLite} $element
  * @param {function(function(angular.JQLite, angular.Scope), angular.JQLite)}
  *     $transclude
@@ -85,7 +84,7 @@ grrUi.core.pagedFilteredTableDirective.TableBottomDirective.
  * @ngInject
  */
 grrUi.core.pagedFilteredTableDirective.PagedFilteredTableController = function(
-    $scope, $attrs, $element, $transclude, $compile) {
+    $scope, $element, $transclude, $compile) {
   // Injected dependencies.
 
   /** @private {!angular.Scope} */
@@ -93,9 +92,6 @@ grrUi.core.pagedFilteredTableDirective.PagedFilteredTableController = function(
 
   /** @type {number} */
   this.scope_.pageSize;
-
-  /** @private {!angular.Attributes} */
-  this.attrs_ = $attrs;
 
   /** @private {!angular.JQLite} */
   this.element_ = $element;
@@ -341,7 +337,7 @@ PagedFilteredTableController.prototype.onItemsChange_ = function(
     this.element_.siblings().remove();
   }
 
-  for (var i = 0; i < this.items.length; ++i) {
+  for (var i = 0; i < itemsToRender.length; ++i) {
     var self = this;
     this.transclude_(function(clone, scope) {
       scope.item = self.items[i];
