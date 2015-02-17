@@ -13,5 +13,6 @@ typedef google::protobuf::int16 int16;
 typedef google::protobuf::int32 int32;
 typedef google::protobuf::int64 int64;
 
+typedef google::protobuf::LogLevel LogLevel;
 
 #endif  // GRR_CPP_CLIENT_BASE_H_

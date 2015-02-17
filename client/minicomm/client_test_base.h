@@ -26,12 +26,13 @@ class ClientTestBase : public ::testing::Test {
   std::string ReadWritebackFile();
 
   // Resets the log capture buffer and begins copying logged messages to it.
-  void BeginLogCapture(const std::set<LogSeverity>& severities);
+  void BeginLogCapture(const std::set<LogLevel>& levels);
   // Stops capturing log messages.
   void EndLogCapture();
   // Check if the buffer contains a log line which ends in string.
   bool CapturedLogContainsSuffix(const std::string& string);
 
+  const std::string tmp_dir_;
   const std::string config_filename_;
   const std::string writeback_filename_;
   ClientConfig config_;

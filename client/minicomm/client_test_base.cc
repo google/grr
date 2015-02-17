@@ -1,17 +1,34 @@
 #include "client_test_base.h"
 
 #include <fstream>
+#include <stdlib.h>
+
+#include "logging_control.h"
 
 namespace grr {
+namespace {
+std::string MakeTempDir() {
+  static const std::string t = "/tmp/client-test-XXXXXX";
+  std::unique_ptr<char[]> writeable(new char[t.size()]);
+  std::copy(t.begin(), t.end(), writeable.get());
+  const char* result = mkdtemp(writeable.get());
+  GOOGLE_CHECK(result != nullptr) << "Unable to make temp directory, errno:" << errno;
+  return std::string(result);
+}
+}  // namespace
+
 ClientTestBase::ClientTestBase() :
-    config_filename_(FLAGS_test_tmpdir + "/config"),
-    writeback_filename_(FLAGS_test_tmpdir + "/writeback"),
-    config_(config_filename_) {}
+  tmp_dir_(MakeTempDir()),
+  config_filename_(tmp_dir_ + "/config"),
+  writeback_filename_(tmp_dir_ + "/writeback"),
+  config_(config_filename_) {
+  GOOGLE_LOG(INFO) << "Using temporary directory: " << tmp_dir_;
+}
 
 ClientTestBase::~ClientTestBase() {}
 
 void ClientTestBase::WriteConfigFile(const std::string& data) {
-  ofstream file;
+  std::ofstream file;
   file.open(config_filename_);
   file << data;
   file.close();
@@ -36,7 +53,7 @@ void ClientTestBase::WriteValidConfigFile(bool include_private_key,
 }
 
 std::string ClientTestBase::ReadWritebackFile() {
-  ifstream file;
+  std::ifstream file;
   file.open(writeback_filename_);
   const std::string r((std::istreambuf_iterator<char>(file)),
                  std::istreambuf_iterator<char>());
@@ -115,25 +132,23 @@ Ez6jWXu/xkywXaxZ5SqHIGPqvhdG4eOercH6iKOEdmyK0+7AxraXGaQ=
 
 class ClientTestBase::LogCaptureSink : public LogSink {
  public:
-  LogCaptureSink(const std::set<LogSeverity>& severities)
-      : logging_(true), severities_to_log_(severities) {
-    AddLogSink(this);
+  LogCaptureSink(const std::set<LogLevel>& severities)
+      : severities_to_log_(severities) {
+    LogControl::AddLogSink(this);
   }
 
   ~LogCaptureSink() { StopLogging(); }
 
   void StopLogging() {
     std::unique_lock<std::mutex> l(mutex_);
-    if (logging_) {
-      RemoveLogSink(this);
-      logging_ = false;
-    }
+    LogControl::RemoveLogSink(this);
   }
 
-  void Send(const Entry& e) override {
-    if (severities_to_log_.count(e.severity)) {
-      std::unique_lock<std::mutex> l(mutex_);
-      messages_.push_back(e.ToString());
+  void Log(LogLevel level, const char* filename, int line,
+           const std::string& message) {
+    std::unique_lock<std::mutex> l(mutex_);
+    if (severities_to_log_.count(level)) {
+      messages_.push_back(message);
     }
   }
 
@@ -150,12 +165,11 @@ class ClientTestBase::LogCaptureSink : public LogSink {
 
  private:
   std::mutex mutex_;
-  bool logging_;
   std::vector<std::string> messages_;
-  const std::set<LogSeverity> severities_to_log_;
+  const std::set<LogLevel> severities_to_log_;
 };
 
-void ClientTestBase::BeginLogCapture(const std::set<LogSeverity>& severities) {
+void ClientTestBase::BeginLogCapture(const std::set<LogLevel>& severities) {
   log_capture_sink_.reset(new LogCaptureSink(severities));
 }
 
