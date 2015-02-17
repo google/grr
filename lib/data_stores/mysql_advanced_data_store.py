@@ -243,10 +243,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
         attribute = row["attribute"]
         value = self._Decode(attribute, row["value"])
         results.append((attribute, value, row["timestamp"]))
-        if limit:
-          limit -= 1
-          if limit == 0:
-            return results
+
 
     return results
 

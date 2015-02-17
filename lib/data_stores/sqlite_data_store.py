@@ -611,11 +611,6 @@ class SqliteDataStore(data_store.DataStore):
 
       if values:
         result[subject] = values
-        if limit:
-          limit -= len(values)
-
-      if limit <= 0:
-        break
 
     return result.iteritems()
 
