@@ -9,8 +9,9 @@ namespace grr {
 namespace {
 std::string MakeTempDir() {
   static const std::string t = "/tmp/client-test-XXXXXX";
-  std::unique_ptr<char[]> writeable(new char[t.size()]);
+  std::unique_ptr<char[]> writeable(new char[t.size()+1]);
   std::copy(t.begin(), t.end(), writeable.get());
+  writeable[t.size()] = '\0';
   const char* result = mkdtemp(writeable.get());
   GOOGLE_CHECK(result != nullptr) << "Unable to make temp directory, errno:" << errno;
   return std::string(result);
