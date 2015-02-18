@@ -19,9 +19,7 @@ namespace grr {
 class SubprocessDelegatorTest : public ClientTestBase {
  protected:
   SubprocessDelegatorTest() :
-      mock_delegate_(FLAGS_test_srcdir +
-      "/google3/"
-      "mock_delegate.sh"),
+      mock_delegate_("mock_delegate.sh"),
       inbox_(100, 100000),
       outbox_(100, 100000) {}
 
@@ -69,7 +67,7 @@ TEST_F(SubprocessDelegatorTest, BadConfig) {
   SetConfiguration("/bad/filename/", std::vector<std::string>(),
                    std::vector<std::string>());
   StartDelegator();
-  BeginLogCapture({ERROR});
+  BeginLogCapture({LOGLEVEL_ERROR});
   inbox_.AddMessage(GrrMessage());
   std::this_thread::sleep_for(std::chrono::seconds(2));
   // With a bad filename, execve should fail, and we should be told.
@@ -80,7 +78,7 @@ TEST_F(SubprocessDelegatorTest, SubprocessError) {
   std::vector<std::string> argv = {"startup-error"};
   SetConfiguration(mock_delegate_, argv, std::vector<std::string>());
   StartDelegator();
-  BeginLogCapture({ERROR});
+  BeginLogCapture({LOGLEVEL_ERROR});
   inbox_.AddMessage(GrrMessage());
   std::this_thread::sleep_for(std::chrono::seconds(2));
   // We should get a startup error message from the subprocess.
@@ -91,7 +89,7 @@ TEST_F(SubprocessDelegatorTest, SubprocessGarbage) {
   std::vector<std::string> argv = {"garbage-out"};
   SetConfiguration(mock_delegate_, argv, std::vector<std::string>());
   StartDelegator();
-  BeginLogCapture({ERROR});
+  BeginLogCapture({LOGLEVEL_ERROR});
   inbox_.AddMessage(GrrMessage());
   std::this_thread::sleep_for(std::chrono::seconds(5));
   // We should not be able to process the garbage, and so should reset the

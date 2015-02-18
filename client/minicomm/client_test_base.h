@@ -8,6 +8,12 @@
 #include "config.h"
 
 namespace grr {
+  
+using google::protobuf::LOGLEVEL_INFO;
+using google::protobuf::LOGLEVEL_WARNING;
+using google::protobuf::LOGLEVEL_ERROR;
+using google::protobuf::LOGLEVEL_FATAL;
+
 class ClientTestBase : public ::testing::Test {
  public:
   ClientTestBase();
