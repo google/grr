@@ -60,6 +60,10 @@ class LogManager {
 };
 }  // namespace
 
+void LogControl::Initialize() {
+  LogManager::Singleton();
+}
+
 void LogControl::AddLogSink(LogSink* sink) {
   LogManager::Singleton()->AddLogSink(sink);
 }

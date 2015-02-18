@@ -16,6 +16,10 @@ class LogSink {
 // Provides static global methods to control logging.
 class LogControl {
  public:
+  // Initialize the grr client logging system. Should be called before
+  // any threads are created.
+  static void Initialize();
+
   // Add sink to the system so that it will see all log messages.
   static void AddLogSink(LogSink* sink);
 
