@@ -76,9 +76,7 @@ TEST(CryptoTest, RSAKey) {
 // TODO(dionyziz): Test verify
 // TODO(dionyziz): Test RSAKey::Decrypt
 
-TEST(CryptoTest, CertificateFromPEM) {
-  Certificate cert;
-  ASSERT_TRUE(cert.FromPEM(R"(
+const char kPEMString[] = R"(
 -----BEGIN CERTIFICATE-----
 MIIGSzCCBDOgAwIBAgIJANuxiXoZSEeoMA0GCSqGSIb3DQEBBQUAMFYxCzAJBgNV
 BAYTAlVTMRQwEgYDVQQDEwtHUlIgVGVzdCBDQTExMC8GCSqGSIb3DQEJARYic2Vj
@@ -114,7 +112,11 @@ XZqymiwNhJwBmHwZf9B5joigACOKgs3CkWpwu3S57mR9XEfDJynJi8kZEL1QgVU/
 nuxV6Jjx7uKOUpyyKJQn9qCtFSUGqs1nj8ZmcSHR1epKOqFYdNB2MFEkVnLhi7a5
 rGpa2OCau5VObCfY25ldCr0lAa2HiJjbIjA1upxho6/TBtaV6E01ez9c5WI4uo+U
 ZApQ9jiqXUt8XvHtAM1rWXECV6beFXpZbqKmbQ+yxg==
------END CERTIFICATE-----)"));
+-----END CERTIFICATE-----)";
+
+TEST(CryptoTest, CertificateFromPEM) {
+  Certificate cert;
+  ASSERT_TRUE(cert.FromPEM(kPEMString));
   EXPECT_FALSE(cert.Encrypt("A key.").empty());
   Certificate cert2(cert);
   EXPECT_FALSE(cert2.Encrypt("A key.").empty());
