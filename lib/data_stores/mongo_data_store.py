@@ -286,31 +286,6 @@ class MongoDataStore(data_store.DataStore):
 
     return result.iteritems()
 
-  def MultiResolveLiteral(self, subjects, predicates, token=None,
-                          timestamp=None, limit=None):
-    """Retrieves a bunch of subjects in one round trip."""
-    self.security_manager.CheckDataStoreAccess(
-        token, subjects, self.GetRequiredResolveAccess(predicates))
-
-    if not subjects:
-      return {}
-
-    result = {}
-
-    # Build a query spec.
-    spec = {"$and": [
-        dict(subject={"$in": [utils.SmartUnicode(x) for x in subjects]}),
-        dict(predicate={"$in": [utils.SmartUnicode(x) for x in predicates]}),
-    ]}
-
-    for document in self._GetCursor(spec, timestamp, limit):
-      subject = document["subject"]
-      value = Decode(document)
-      result.setdefault(subject, []).append(
-          (document["predicate"], value, document["timestamp"]))
-
-    return result
-
   def Size(self):
     info = self.db_handle.command("dbStats")
     return info["storageSize"]

@@ -219,8 +219,8 @@ class MySQLAdvancedDataStore(data_store.DataStore):
         result[subject] = values
         if limit:
           limit -= len(values)
-
-      if limit <= 0:
+      
+      if limit is not None and limit <= 0:
         break
 
     return result.iteritems()
@@ -243,7 +243,6 @@ class MySQLAdvancedDataStore(data_store.DataStore):
         attribute = row["attribute"]
         value = self._Decode(attribute, row["value"])
         results.append((attribute, value, row["timestamp"]))
-
 
     return results
 
@@ -279,7 +278,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
           duplicates = self._CountDuplicateAttributes(subject, predicate)
           if duplicates > 1:
             to_delete.add(attribute)
-            to_insert.extend(
+            to_insert.append(
                 [subject, predicate, data, int(entry_timestamp)])
           else:
             if attribute in to_delete:
@@ -412,48 +411,50 @@ timestamp, value) VALUES"
 
     fields = ""
     criteria = "WHERE aff4.subject_hash=unhex(md5(%s))"
+    args.append(subject)
     sorting = ""
     tables = "FROM aff4"
 
     subject = utils.SmartUnicode(subject)
 
     #Set fields, tables, and criteria and append args
-    if is_regex:
-      tables += " JOIN attributes ON aff4.attribute_hash=attributes.hash"
-      regex = re.match(r'(^[a-zA-Z0-9_]+:[a-zA-Z0-9_:]*)(.*)', predicate)
-      if regex:
-        #If predicate has prefix then break down for query optimizations
-        parts = predicate.split(":", 1)
-
-        #Add prefix usage for all regex queries
-        criteria += " AND aff4.prefix=(%s)"
-        args.append(subject)
-        args.append(parts[0])
-        #If the remainder after prefix is not a match all regex then break it
-        #down into like and rlike components
-        if not (parts[1] == ".*" or parts[1] == ".+"):
+    if predicate:
+      if is_regex:
+        tables += " JOIN attributes ON aff4.attribute_hash=attributes.hash"
+        regex = re.match(r'(^[a-zA-Z0-9_]+:[a-zA-Z0-9_:]*)(.*)', predicate)
+        #regex = re.match(r'(^[a-zA-Z0-9_:]+:)(.*)', predicate)
+        if not regex:
+          #If predicate has no prefix just rlike
+          criteria += " AND attributes.attribute rlike %s"
+          args.append(predicate)
+        elif regex.groups()[1]:
+          prefix = predicate.split(":", 1)[0]
           like = regex.groups()[0] + "%"
           rlike = regex.groups()[1]
-          #Add like if available
-          if like:
+          
+          #If predicate has prefix then use for query optimizations
+          criteria += " AND aff4.prefix=(%s)"
+          args.append(prefix)
+
+          #If like component extends past prefix then include it
+          #accounting for % and trailing :
+          if len(like) > len(prefix) + 2:
             criteria += " AND attributes.attribute like %s"
             args.append(like)
-          #add rlike if available
-          if rlike:
+
+          #If the regex portion is not a match all regex then break it
+          #down into like and rlike components
+
+          if not (rlike == ".*" or rlike == ".+"):
             criteria += " AND attributes.attribute rlike %s"
-            args.append(rlike)
+            args.append(regex.groups()[1])
+        else:
+          criteria += " AND aff4.attribute_hash=unhex(md5(%s))"
+          args.append(predicate)        
       else:
-        #If predicate has no prefix just rlike
-        criteria += " AND attributes.attribute rlike %s"
-        args.append(subject)
-        args.append(predicate)
-    else:
-      if predicate:
-        criteria += " AND aff4.attribute_hash=unhex(md5(%s))"
-        args.append(subject)
-        args.append(predicate)
-      else:
-        args.append(subject)
+          criteria += " AND aff4.attribute_hash=unhex(md5(%s))"
+          args.append(predicate)
+        
 
     #Limit to time range if specified
     if isinstance(timestamp, (tuple, list)):

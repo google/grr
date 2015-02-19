@@ -611,6 +611,11 @@ class SqliteDataStore(data_store.DataStore):
 
       if values:
         result[subject] = values
+        if limit:
+          limit -= len(values)
+
+      if limit is not None and limit <= 0:
+          break
 
     return result.iteritems()
 
@@ -666,7 +671,7 @@ class SqliteDataStore(data_store.DataStore):
       return results
 
   def ResolveMulti(self, subject, predicates, token=None,
-                   timestamp=None, limit=None):
+                   timestamp=None):
     """Resolve all predicates for a subject matching a regex."""
     self.security_manager.CheckDataStoreAccess(
         token, [subject], self.GetRequiredResolveAccess(predicates))
@@ -684,19 +689,11 @@ class SqliteDataStore(data_store.DataStore):
             value, ts = ret
             value = self._Decode(predicate, value)
             results.append((predicate, value, ts))
-            if limit and len(results) >= limit:
-              break
         else:
-          new_limit = limit
-          if new_limit:
-            new_limit = limit - len(results)
-          values = sqlite_connection.GetValues(subject, predicate, start, end,
-                                               new_limit)
+          values = sqlite_connection.GetValues(subject, predicate, start, end)
           for value, ts in values:
             value = self._Decode(predicate, value)
             results.append((predicate, value, ts))
-        if limit and len(results) >= limit:
-          break
 
     return results
 

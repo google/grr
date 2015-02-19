@@ -386,9 +386,6 @@ class DataStore(object):
 
     return []
 
-  def ResolveRow(self, subject, **kw):
-    return self.ResolveRegex(subject, ".*", **kw)
-
   def Flush(self):
     """Flushes the DataStore."""
 
