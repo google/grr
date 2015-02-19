@@ -36,8 +36,7 @@ class ArtifactRendererTest(artifact_test.ArtifactBaseTest):
 
   def _renderEmptyArtifacts(self):
     with utils.Stubber(artifact_lib, "ArtifactRegistry", ArtifactRegistryMock):
-      mock_request = utils.DataObject(token="")
-      rendering = self.renderer.Render(mock_request)
+      rendering = self.renderer.Render(None, token=self.token)
     return rendering
 
   def testNoArtifacts(self):
@@ -46,8 +45,7 @@ class ArtifactRendererTest(artifact_test.ArtifactBaseTest):
     self.assertFalse(rendering)
 
   def _renderTestArtifacts(self):
-    mock_request = utils.DataObject(token="")
-    rendering = self.renderer.Render(mock_request)
+    rendering = self.renderer.Render(None, token=self.token)
     return rendering
 
   def testPrepackagedArtifacts(self):

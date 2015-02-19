@@ -1,0 +1,153 @@
+<div class="padded">
+  <div class="well">
+
+    <table class="table table-condensed no-bottom-margin">
+      <thead>
+        <th colspan="2">System Health</th>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="col-md-4">
+            <grr-server-load-indicator
+               status="controller.indicators['frontendLoad']">
+            </grr-server-load-indicator>
+            <span class="indicator-label">Frontends load</span>
+          </td>
+
+          <td class="col-md-4">
+            <grr-server-load-indicator
+               status="controller.indicators['workerLoad']">
+            </grr-server-load-indicator>
+            <span class="indicator-label">Workers load</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+  </div>
+</div>
+
+<div class="pull-right horizontally-padded">
+  <div class="btn-group">
+    <label class="btn btn-primary" ng-model="controller.duration" btn-radio="1">1h</label>
+    <label class="btn btn-primary" ng-model="controller.duration" btn-radio="6">6h</label>
+    <label class="btn btn-primary" ng-model="controller.duration" btn-radio="12">12h</label>
+    <label class="btn btn-primary" ng-model="controller.duration" btn-radio="24">1d</label>
+    <label class="btn btn-primary" ng-model="controller.duration" btn-radio="72">3d</label>
+  </div>
+</div>
+
+<div class="padded">
+
+  <tabset>
+    <tab heading="Frontend" select="frontendTabShown = true">
+      <div ng-if="frontendTabShown">
+        <p class="lead">Frontend
+          <span ng-if="controller.frontendCount">
+            ({$ controller.frontendCount $} instances)
+          </span>
+        </p>
+
+        <h4>Frontend handled vs throttled rate</h4>
+        <grr-server-load-graph start-time="controller.startTime"
+                               end-time="controller.endTime">
+          <grr-server-load-graph-serie component="frontend"
+                                       metric="frontend_request_latency"
+                                       distribution-handling="count"
+                                       label="Requests">
+          </grr-server-load-graph-serie>
+          <grr-server-load-graph-serie component="frontend"
+                                       metric="grr_frontendserver_handle_throttled_num"
+                                       label="Throttled requests">
+          </grr-server-load-graph-serie>
+        </grr-server-load-graph>
+
+        <h4>Frontend request latency rate</h4>
+        <grr-server-load-graph start-time="controller.startTime"
+                               end-time="controller.endTime">
+          <grr-server-load-graph-serie component="frontend"
+                                       metric="frontend_request_latency"
+                                       distribution-handling="sum"
+                                       label="Latency">
+          </grr-server-load-graph-serie>
+        </grr-server-load-graph>
+
+
+        <h4>Frontend active tasks count</h4>
+        <grr-server-load-graph start-time="controller.startTime"
+                               end-time="controller.endTime">
+          <grr-server-load-graph-serie component="frontend"
+                                       metric="frontend_active_count"
+                                       label="Active tasks">
+          </grr-server-load-graph-serie>
+        </grr-server-load-graph>
+      </div>
+    </tab>
+
+    <tab heading="Worker" select="workerTabShown = true">
+      <div ng-if="workerTabShown">
+
+        <p class="lead">Worker
+          <span ng-if="controller.workerCount">
+            ({$ controller.workerCount $} instances)
+          </span>
+        </p>
+
+        <h4>Worker successful vs failed flows rate</h4>
+        <grr-server-load-graph start-time="controller.startTime"
+                               end-time="controller.endTime">
+          <grr-server-load-graph-serie component="worker"
+                                       metric="grr_flow_completed_count"
+                                       label="Successes">
+          </grr-server-load-graph-serie>
+          <grr-server-load-graph-serie component="worker"
+                                       metric="grr_flow_errors"
+                                       label="Failures">
+          </grr-server-load-graph-serie>
+        </grr-server-load-graph>
+
+        <h4>Worker threadpool latency vs queuing time rate</h4>
+        <grr-server-load-graph start-time="controller.startTime"
+                               end-time="controller.endTime">
+          <grr-server-load-graph-serie component="worker"
+                                       metric="grr_threadpool_working_time"
+                                       distribution-handling="sum"
+                                       label="Latency">
+          </grr-server-load-graph-serie>
+          <grr-server-load-graph-serie component="worker"
+                                       metric="grr_threadpool_queueing_time"
+                                       distribution-handling="sum"
+                                       label="Queueing time">
+          </grr-server-load-graph-serie>
+        </grr-server-load-graph>
+
+        <h4>Worker outstanding tasks vs number of threads</h4>
+        <grr-server-load-graph start-time="controller.startTime"
+                               end-time="controller.endTime">
+          <grr-server-load-graph-serie component="worker"
+                                       metric="grr_threadpool_outstanding_tasks"
+                                       aggregation="mean"
+                                       label="Outstanding tasks">
+          </grr-server-load-graph-serie>
+          <grr-server-load-graph-serie component="worker"
+                                       metric="grr_threadpool_threads"
+                                       aggregation="mean"
+                                       label="Threads">
+          </grr-server-load-graph-serie>
+        </grr-server-load-graph>
+
+        <h4>Client crashes rate</h4>
+        <grr-server-load-graph start-time="controller.startTime"
+                               end-time="controller.endTime">
+          <grr-server-load-graph-serie component="worker"
+                                       metric="grr_client_crashes"
+                                       label="Crashes">
+          </grr-server-load-graph-serie>
+        </grr-server-load-graph>
+
+      </div>
+    </tab>
+  </tabset>
+
+
+</div>

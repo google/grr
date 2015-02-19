@@ -59,19 +59,21 @@ grrUi.core.aff4ItemsProviderDirective.Aff4ItemsProviderController = function(
 
   // aff4Path is a traditional double-way binding.
   $scope.$watch($attrs.aff4Path, function() {
-    this.aff4Path = $scope.$eval($attrs.aff4Path);
+    this.aff4Path = /** @type {string} */ ($scope.$eval($attrs.aff4Path));
   }.bind(this));
 
   // queryParams is a traditional double-way binding.
   if ($attrs.queryParams) {
     $scope.$watch($attrs.queryParams, function() {
-      this.queryParams = $scope.$eval($attrs.queryParams);
+      this.queryParams = /** @type {Object<string, string|number|boolean>} */ (
+          $scope.$eval($attrs.queryParams));
     }.bind(this));
   }
 
   // transformItems is a bound function call.
   if ($attrs.transformItems) {
-    this.transformItems = $parse($attrs.transformItems);
+    this.transformItems = /** @type {?function(!angular.Scope, !Object)} */ (
+        $parse($attrs.transformItems));
   }
 };
 
@@ -102,9 +104,9 @@ Aff4ItemsProviderController.prototype.fetchItems = function(
   }
 
   var params = angular.extend(this.queryParams || {}, {
-    'offset': offset,
-    'count': count,
-    'with_total_count': opt_withTotalCount
+    'RDFValueCollection.offset': offset,
+    'RDFValueCollection.count': count,
+    'RDFValueCollection.with_total_count': opt_withTotalCount ? 1 : 0
   });
 
   return this.grrAff4Service_.get(this.aff4Path, params).then(
@@ -128,9 +130,9 @@ Aff4ItemsProviderController.prototype.fetchFilteredItems = function(
   }
 
   var params = angular.extend(this.queryParams || {}, {
-    'filter': filter,
-    'offset': offset,
-    'count': count
+    'RDFValueCollection.filter': filter,
+    'RDFValueCollection.offset': offset,
+    'RDFValueCollection.count': count
   });
 
   return this.grrAff4Service_.get(this.aff4Path, params).then(

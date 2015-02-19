@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('grrUi.semantic.semanticValueDirective');
 goog.provide('grrUi.semantic.semanticValueDirective.SemanticValueController');
 goog.provide('grrUi.semantic.semanticValueDirective.SemanticValueDirective');
 goog.provide('grrUi.semantic.semanticValueDirective.clearCaches');
@@ -85,6 +86,7 @@ SemanticValueController.prototype.camelCaseToDashDelimited = function(
  * Compiles a template for a given single value.
  *
  * @param {Object} value Value to compile the template for.
+ * @return {Function|angular.LinkingFunctions|undefined} Compiled template.
  * @private
  * @suppress {missingProperties} as value can have arbitrary data.
  */
@@ -108,6 +110,7 @@ SemanticValueController.prototype.compileSingleTypedValueTemplate_ = function(
 /**
  * Compiles a template for repeated values.
  *
+ * @return {Function|angular.LinkingFunctions|undefined} Compiled template.
  * @private
  */
 SemanticValueController.prototype.compileRepeatedValueTemplate_ = function() {

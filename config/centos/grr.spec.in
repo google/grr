@@ -6,7 +6,6 @@ Group: Applications/System
 License: APL2
 Source: \%{name}-\%{version}.tar.gz
 URL: https://github.com/google/grr
-Buildroot: /usr/local/grr_build/rpmroot
 
 # Disable binary stripping or pyinstaller files won't work.
 %global __os_install_post \%{nil}
@@ -20,6 +19,7 @@ Buildroot: /usr/local/grr_build/rpmroot
 # Do nothing here.
 
 %install
+mkdir -p \%{buildroot}
 cp -R \%{_builddir}/* \%{buildroot}
 
 %pre

@@ -3,29 +3,33 @@
 
 import operator
 
-from grr.gui import api_object_renderers
-from grr.gui import api_renderers
+from grr.gui import api_aff4_object_renderers
+from grr.gui import api_call_renderers
+from grr.gui import api_value_renderers
 
 from grr.lib import aff4
 from grr.lib import hunts
 from grr.lib import rdfvalue
+from grr.lib import registry
+
+from grr.proto import api_pb2
 
 
 HUNTS_ROOT_PATH = rdfvalue.RDFURN("aff4:/hunts")
 
 
-class GRRHuntApiObjectRenderer(
-    api_object_renderers.AFF4ObjectApiObjectRenderer):
+class ApiGRRHuntRendererArgs(rdfvalue.RDFProtoStruct):
+  protobuf = api_pb2.ApiGRRHuntRendererArgs
+
+
+class ApiGRRHuntRenderer(
+    api_aff4_object_renderers.ApiAFF4ObjectRendererBase):
   """Renderer for GRRHunt objects."""
 
   aff4_type = "GRRHunt"
+  args_type = ApiGRRHuntRendererArgs
 
-  def RenderObject(self, hunt, request):
-    with_full_summary = request.get("with_full_summary", False)
-
-    rendered_object = super(GRRHuntApiObjectRenderer, self).RenderObject(
-        hunt, request)
-
+  def RenderObject(self, hunt, args):
     runner = hunt.GetRunner()
     context = runner.context
 
@@ -40,7 +44,7 @@ class GRRHuntApiObjectRenderer(
         description=context.args.description)
     typed_summary_part = {}
 
-    if with_full_summary:
+    if args.with_full_summary:
       all_clients_count, completed_clients_count, _ = hunt.GetClientsCounts()
 
       untyped_summary_part.update(dict(
@@ -56,34 +60,38 @@ class GRRHuntApiObjectRenderer(
           args=hunt.state.args)
 
     for k, v in untyped_summary_part.items():
-      untyped_summary_part[k] = api_object_renderers.RenderObject(v)
+      untyped_summary_part[k] = api_value_renderers.RenderValue(
+          v, limit_lists=10)
 
     for k, v in typed_summary_part.items():
-      typed_summary_part[k] = api_object_renderers.RenderObject(
-          v, dict(with_type_info=True, with_descriptors=True,
-                  limit_lists=10))
+      typed_summary_part[k] = api_value_renderers.RenderValue(
+          v, with_types=True, with_metadata=True, limit_lists=10)
 
-    rendered_object["summary"] = dict(untyped_summary_part.items() +
-                                      typed_summary_part.items())
-
+    rendered_object = {
+        "summary": dict(untyped_summary_part.items() +
+                        typed_summary_part.items())
+        }
     return rendered_object
 
 
-class ApiHuntsListRenderer(api_renderers.ApiRenderer):
+class ApiHuntsListRendererArgs(rdfvalue.RDFProtoStruct):
+  protobuf = api_pb2.ApiHuntsListRendererArgs
+
+
+class ApiHuntsListRenderer(api_call_renderers.ApiCallRenderer):
   """Renders list of available hunts."""
 
-  method = "GET"
-  route = "/api/hunts"
+  args_type = ApiHuntsListRendererArgs
 
-  def Render(self, request):
-    offset = int(request.get("offset", 0))
-    count = int(request.get("count", 10000))
-
-    fd = aff4.FACTORY.Open("aff4:/hunts", mode="r", token=request.token)
+  def Render(self, args, token=None):
+    fd = aff4.FACTORY.Open("aff4:/hunts", mode="r", token=token)
 
     children = list(fd.ListChildren())
     children.sort(key=operator.attrgetter("age"), reverse=True)
-    children = children[offset:offset + count]
+    if args.count:
+      children = children[args.offset:args.offset + args.count]
+    else:
+      children = children[args.offset:]
 
     hunt_list = []
     for hunt in fd.OpenChildren(children=children):
@@ -97,50 +105,82 @@ class ApiHuntsListRenderer(api_renderers.ApiRenderer):
 
     encoded_hunt_list = []
     for hunt in hunt_list:
-      encoded_hunt = api_object_renderers.RenderObject(
-          hunt, {"no_lists": True})
+      encoded_hunt = api_aff4_object_renderers.RenderAFF4Object(
+          hunt, [rdfvalue.ApiAFF4ObjectRendererArgs(limit_lists=0)])
       encoded_hunt_list.append(encoded_hunt)
 
     return encoded_hunt_list
 
 
-class ApiHuntSummaryRenderer(api_renderers.ApiRenderer):
+class ApiHuntSummaryRendererArgs(rdfvalue.RDFProtoStruct):
+  protobuf = api_pb2.ApiHuntSummaryRendererArgs
+
+
+class ApiHuntSummaryRenderer(api_call_renderers.ApiCallRenderer):
   """Renders hunt's summary."""
 
-  method = "GET"
-  route = "/api/hunts/<hunt_id>"
+  args_type = ApiHuntSummaryRendererArgs
 
-  def Render(self, request):
+  def Render(self, args, token=None):
     hunt = aff4.FACTORY.Open(
-        HUNTS_ROOT_PATH.Add(request["hunt_id"]),
+        HUNTS_ROOT_PATH.Add(args.hunt_id),
         aff4_type="GRRHunt",
-        token=request.token)
-    return api_object_renderers.RenderObject(
-        hunt, {"limit_lists": True, "with_full_summary": True})
+        token=token)
+    return api_aff4_object_renderers.RenderAFF4Object(
+        hunt, [ApiGRRHuntRendererArgs(with_full_summary=True),
+               rdfvalue.ApiAFF4ObjectRendererArgs(limit_lists=10)])
 
 
-class ApiHuntLogRenderer(api_renderers.ApiRenderer):
+class ApiHuntLogRendererArgs(rdfvalue.RDFProtoStruct):
+  protobuf = api_pb2.ApiHuntLogRendererArgs
+
+
+class ApiHuntLogRenderer(api_call_renderers.ApiCallRenderer):
   """Renders hunt's log."""
 
-  method = "GET"
-  route = "/api/hunts/<hunt_id>/log"
+  args_type = ApiHuntLogRendererArgs
 
-  def Render(self, request):
+  def Render(self, args, token=None):
     logs_collection = aff4.FACTORY.Create(
-        HUNTS_ROOT_PATH.Add(request["hunt_id"]).Add("log"),
-        aff4_type="RDFValueCollection", mode="r", token=request.token)
-    return api_object_renderers.RenderObject(
-        logs_collection, {})
+        HUNTS_ROOT_PATH.Add(args.hunt_id).Add("log"),
+        aff4_type="RDFValueCollection", mode="r", token=token)
+
+    return api_aff4_object_renderers.RenderAFF4Object(
+        logs_collection,
+        [rdfvalue.ApiRDFValueCollectionRendererArgs(
+            offset=args.offset, count=args.count, with_total_count=True,
+            items_type_info="WITH_TYPES_AND_METADATA")])
 
 
-class ApiHuntErrorsRenderer(api_renderers.ApiRenderer):
+class ApiHuntErrorsRendererArgs(rdfvalue.RDFProtoStruct):
+  protobuf = api_pb2.ApiHuntErrorsRendererArgs
+
+
+class ApiHuntErrorsRenderer(api_call_renderers.ApiCallRenderer):
   """Renders hunt's errors."""
 
-  method = "GET"
-  route = "/api/hunts/<hunt_id>/errors"
+  args_type = ApiHuntErrorsRendererArgs
 
-  def Render(self, request):
+  def Render(self, args, token=None):
     errors_collection = aff4.FACTORY.Create(
-        HUNTS_ROOT_PATH.Add(request["hunt_id"]).Add("errors"),
-        aff4_type="RDFValueCollection", mode="r", token=request.token)
-    return api_object_renderers.RenderObject(errors_collection, {})
+        HUNTS_ROOT_PATH.Add(args.hunt_id).Add("errors"),
+        aff4_type="RDFValueCollection", mode="r", token=token)
+
+    return api_aff4_object_renderers.RenderAFF4Object(
+        errors_collection,
+        [rdfvalue.ApiRDFValueCollectionRendererArgs(
+            offset=args.offset, count=args.count, with_total_count=True,
+            items_type_info="WITH_TYPES_AND_METADATA")])
+
+
+class ApiHuntsInitHook(registry.InitHook):
+
+  def RunOnce(self):
+    api_call_renderers.RegisterHttpRouteHandler(
+        "GET", "/api/hunts", ApiHuntsListRenderer)
+    api_call_renderers.RegisterHttpRouteHandler(
+        "GET", "/api/hunts/<hunt_id>", ApiHuntSummaryRenderer)
+    api_call_renderers.RegisterHttpRouteHandler(
+        "GET", "/api/hunts/<hunt_id>/errors", ApiHuntErrorsRenderer)
+    api_call_renderers.RegisterHttpRouteHandler(
+        "GET", "/api/hunts/<hunt_id>/log", ApiHuntLogRenderer)

@@ -13,7 +13,6 @@ from grr.lib import flags
 from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import test_lib
-from grr.lib import utils
 
 
 class ApiHuntsListRendererTest(test_lib.GRRBaseTest):
@@ -37,11 +36,17 @@ class ApiHuntsListRendererTest(test_lib.GRRBaseTest):
     super(ApiHuntsListRendererTest, self).setUp()
     self.renderer = hunt_plugin.ApiHuntsListRenderer()
 
+  def QueryParams(self, **kwargs):
+    result = self.renderer.QuerySpec.HandleQueryParams(kwargs)
+    result.token = self.token
+    return result
+
   def testRendersListOfHuntObjects(self):
     for i in range(10):
       self.CreateSampleHunt("hunt_%d" % i)
 
-    result = self.renderer.Render(utils.DataObject(token=self.token))
+    result = self.renderer.Render(rdfvalue.ApiHuntsListRendererArgs(),
+                                  token=self.token)
     descriptions = set(r["summary"]["description"] for r in result)
 
     self.assertEqual(len(descriptions), 10)
@@ -53,7 +58,8 @@ class ApiHuntsListRendererTest(test_lib.GRRBaseTest):
       with test_lib.FakeTime(i * 1000):
         self.CreateSampleHunt("hunt_%d" % i)
 
-    result = self.renderer.Render(utils.DataObject(token=self.token))
+    result = self.renderer.Render(rdfvalue.ApiHuntsListRendererArgs(),
+                                  token=self.token)
     create_times = [r["summary"]["create_time"] for r in result]
 
     self.assertEqual(len(create_times), 10)
@@ -65,8 +71,8 @@ class ApiHuntsListRendererTest(test_lib.GRRBaseTest):
       with test_lib.FakeTime(i * 1000):
         self.CreateSampleHunt("hunt_%d" % i)
 
-    result = self.renderer.Render(utils.DataObject(
-        offset=2, count=2, token=self.token))
+    result = self.renderer.Render(rdfvalue.ApiHuntsListRendererArgs(
+        offset=2, count=2), token=self.token)
     create_times = [r["summary"]["create_time"] for r in result]
 
     self.assertEqual(len(create_times), 2)

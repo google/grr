@@ -712,7 +712,10 @@ class AnalyzeClientMemory(flow.GRRFlow):
           self.CallClient("WriteRekallProfile", profile,
                           next_state="UpdateProfile")
         else:
-          self.Log("Needed profile %s not found!", response.missing_profile)
+          self.Log("Needed profile %s not found! See "
+                   "https://github.com/google/grr-doc/blob/master/"
+                   "troubleshooting.adoc#missing-rekall-profiles",
+                   response.missing_profile)
 
       if response.json_messages:
         response.client_urn = self.client_id

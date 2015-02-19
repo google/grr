@@ -57,21 +57,23 @@ grrUi.core.apiItemsProviderDirective.ApiItemsProviderController = function(
   // rely on $attrs, $eval and $parse to initialize the internal
   // state.
 
-  // aff4Path is a traditional double-way binding.
+  // url is a traditional double-way binding.
   $scope.$watch($attrs.url, function() {
-    this.url = $scope.$eval($attrs.url);
+    this.url = /** @type {string} */ ($scope.$eval($attrs.url));
   }.bind(this));
 
   // queryParams is a traditional double-way binding.
   if ($attrs.queryParams) {
     $scope.$watch($attrs.queryParams, function() {
-      this.queryParams = $scope.$eval($attrs.queryParams);
+      this.queryParams = /** @type {Object<string, string|number|boolean>} */ (
+          $scope.$eval($attrs.queryParams));
     }.bind(this));
   }
 
   // transformItems is a bound function call.
   if ($attrs.transformItems) {
-    this.transformItems = $parse($attrs.transformItems);
+    this.transformItems = /** @type {?function(!angular.Scope, !Object)} */ (
+        $parse($attrs.transformItems));
   }
 };
 

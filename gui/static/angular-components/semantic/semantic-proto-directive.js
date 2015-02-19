@@ -49,6 +49,7 @@ SemanticProtoController.prototype.onValueChange = function() {
  * description will be filled in.
  *
  * @param {!Object} value Value to be converted to an array of items.
+ * @return {Array.<Object>} List of items to display.
  * @export
  * @suppress {missingProperties} as value can have arbitrary data.
  */
@@ -56,23 +57,15 @@ SemanticProtoController.prototype.buildItems = function(value) {
   var items = [];
 
   angular.forEach(value.fields_order, function(key) {
-    if (value.descriptors !== undefined &&
-        value.descriptors[key] !== undefined) {
+    if (value.metadata !== undefined &&
+        value.metadata[key] !== undefined) {
       items.push({
         'value': value.value[key],
-        'key': value.descriptors[key].friendly_name,
-        'desc': value.descriptors[key].description
+        'key': value.metadata[key].friendly_name,
+        'desc': value.metadata[key].description
       });
     } else {
       items.push({'value': value.value[key], 'key': key});
-    }
-
-    if (angular.isDefined(value.value[key + '_fetch_more_url'])) {
-      items.push({
-        'key': '',
-        'fetch_more_url': true,
-        'value': value[key + 'fetch_more_url']
-      });
     }
   });
 

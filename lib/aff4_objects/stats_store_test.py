@@ -796,7 +796,7 @@ class StatsStoreDataQueryTest(test_lib.AFF4ObjectTest):
     self.assertAlmostEqual(ts[0], 1.0)
     self.assertAlmostEqual(ts[1], 1.0)
     self.assertAlmostEqual(ts[2], 1.0)
-    self.assertTrue(math.isnan(ts[3]))
+    self.assertAlmostEqual(ts[3], 2.0)
     self.assertAlmostEqual(ts[4], 2.0)
     self.assertListEqual(list(ts.index), [pandas.Timestamp(0 * 1e9),
                                           pandas.Timestamp(30 * 1e9),
@@ -828,6 +828,12 @@ class StatsStoreDataQueryTest(test_lib.AFF4ObjectTest):
 
     stats.STATS.IncrementCounter("counter")
     self.stats_store.WriteStats(
+        process_id="pid2",
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(0),
+        sync=True)
+
+    stats.STATS.IncrementCounter("counter")
+    self.stats_store.WriteStats(
         process_id="pid1",
         timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(90),
         sync=True)
@@ -847,24 +853,153 @@ class StatsStoreDataQueryTest(test_lib.AFF4ObjectTest):
     # 1970-01-01 00:00:00    1
     # 1970-01-01 00:00:30    1
     # 1970-01-01 00:01:00    1
-    # 1970-01-01 00:01:30    2
+    # 1970-01-01 00:01:30    3
     #
     # and:
-    # 1970-01-01 00:01:30    2
+    # 1970-01-01 00:00:00    2
+    # 1970-01-01 00:00:30    2
+    # 1970-01-01 00:01:00    2
+    # 1970-01-01 00:01:30    3
     #
     # Therefore we expect the sum to look like:
-    # 1970-01-01 00:00:00    1
-    # 1970-01-01 00:00:30    1
-    # 1970-01-01 00:01:00    1
-    # 1970-01-01 00:01:30    4
-    self.assertAlmostEqual(ts[0], 1)
-    self.assertAlmostEqual(ts[1], 1)
-    self.assertAlmostEqual(ts[2], 1)
-    self.assertAlmostEqual(ts[3], 4)
+    # 1970-01-01 00:00:00    3
+    # 1970-01-01 00:00:30    3
+    # 1970-01-01 00:01:00    3
+    # 1970-01-01 00:01:30    6
+    self.assertAlmostEqual(ts[0], 3)
+    self.assertAlmostEqual(ts[1], 3)
+    self.assertAlmostEqual(ts[2], 3)
+    self.assertAlmostEqual(ts[3], 6)
     self.assertListEqual(list(ts.index), [pandas.Timestamp(0 * 1e9),
                                           pandas.Timestamp(30 * 1e9),
                                           pandas.Timestamp(60 * 1e9),
                                           pandas.Timestamp(90 * 1e9)])
+
+  def testAggregateViaSumAlignsMultipleTimeSeriesBeforeAggregation(self):
+    # Initialize and write test data.
+    stats.STATS.RegisterCounterMetric("counter")
+
+    stats.STATS.IncrementCounter("counter")
+    self.stats_store.WriteStats(
+        process_id="pid1",
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(0),
+        sync=True)
+    self.stats_store.WriteStats(
+        process_id="pid1",
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(50),
+        sync=True)
+    self.stats_store.WriteStats(
+        process_id="pid2",
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(0),
+        sync=True)
+    self.stats_store.WriteStats(
+        process_id="pid2",
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(50),
+        sync=True)
+
+    self.stats_store.WriteStats(
+        process_id="pid2",
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(150),
+        sync=True)
+
+    # After Resample and FillMissing call we end up with 2 time series:
+    # 1970-01-01 00:00:00    1
+    # 1970-01-01 00:00:30    1
+    #
+    # And:
+    # 1970-01-01 00:00:30    1
+    # 1970-01-01 00:01:00    1
+    # 1970-01-01 00:01:30    1
+    # 1970-01-01 00:02:00    1
+    # 1970-01-01 00:02:30    1
+    #
+    # Before they're agrregated, first time series should be interpolated
+    # to contain all the timestamps that the second one contains.
+    # Otherwise we'll get incorrect aggregation results.
+
+    stats_data = self.stats_store.MultiReadStats(process_ids=["pid1", "pid2"])
+    query = stats_store.StatsStoreDataQuery(stats_data)
+
+    ts = query.In("pid.*").In("counter").TakeValue().Resample(
+        rdfvalue.Duration("30s")).FillMissing(
+            rdfvalue.Duration("10m")).AggregateViaSum().ts
+
+    # Therefore we expect the sum to look like:
+    # 1970-01-01 00:00:00    2
+    # 1970-01-01 00:00:30    2
+    # 1970-01-01 00:01:00    2
+    # 1970-01-01 00:01:30    2
+    # 1970-01-01 00:02:00    2
+    # 1970-01-01 00:02:30    2
+    self.assertAlmostEqual(ts[0], 2)
+    self.assertAlmostEqual(ts[1], 2)
+    self.assertAlmostEqual(ts[2], 2)
+    self.assertAlmostEqual(ts[3], 2)
+    self.assertAlmostEqual(ts[4], 2)
+    self.assertAlmostEqual(ts[5], 2)
+    self.assertListEqual(list(ts.index), [pandas.Timestamp(0 * 1e9),
+                                          pandas.Timestamp(30 * 1e9),
+                                          pandas.Timestamp(60 * 1e9),
+                                          pandas.Timestamp(90 * 1e9),
+                                          pandas.Timestamp(120 * 1e9),
+                                          pandas.Timestamp(150 * 1e9)])
+
+  def testEnsureIsIncrementalHandlesValuesResets(self):
+    # Initialize and write test data.
+    stats.STATS.RegisterCounterMetric("counter")
+
+    self.stats_store.WriteStats(
+        process_id="pid1",
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(0),
+        sync=True)
+
+    stats.STATS.IncrementCounter("counter")
+    self.stats_store.WriteStats(
+        process_id="pid1",
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(30),
+        sync=True)
+
+    stats.STATS.IncrementCounter("counter")
+    self.stats_store.WriteStats(
+        process_id="pid1",
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(60),
+        sync=True)
+
+    stats.STATS.RegisterCounterMetric("counter")
+    self.stats_store.WriteStats(
+        process_id="pid1",
+        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(90),
+        sync=True)
+
+    # We've reset the counter on 60th second, so we get following time series:
+    # 1970-01-01 00:00:00    0
+    # 1970-01-01 00:00:30    1
+    # 1970-01-01 00:01:00    2
+    # 1970-01-01 00:01:30    0
+    stats_data = self.stats_store.ReadStats(process_id="pid1")
+    query = stats_store.StatsStoreDataQuery(stats_data)
+
+    ts = query.In("counter").TakeValue().Resample(
+        rdfvalue.Duration("30s")).FillMissing(
+            rdfvalue.Duration("10m")).ts
+
+    self.assertAlmostEqual(ts[0], 0)
+    self.assertAlmostEqual(ts[1], 1)
+    self.assertAlmostEqual(ts[2], 2)
+    self.assertAlmostEqual(ts[3], 0)
+
+    # EnsureIsIncremental detects the reset and increments values that follow
+    # the reset point:
+    # 1970-01-01 00:00:00    0
+    # 1970-01-01 00:00:30    1
+    # 1970-01-01 00:01:00    2
+    # 1970-01-01 00:01:30    2
+    ts = query.EnsureIsIncremental().ts
+
+    self.assertAlmostEqual(ts[0], 0)
+    self.assertAlmostEqual(ts[1], 1)
+    self.assertAlmostEqual(ts[2], 2)
+    self.assertAlmostEqual(ts[3], 2)
 
   def testSeriesCountReturnsNumberOfDataSeriesInCurrentQuery(self):
     # Initialize and write test data.

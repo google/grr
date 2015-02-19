@@ -11,13 +11,13 @@
   <tbody>
     <tr grr-paged-filtered-table page-size="100"
         grr-aff4-items-provider aff4-path="::controller.logsUrn"
-        query-params="{with_type_info: 1}"
+        query-params="{'RDFValueCollection.items_type_info': 'WITH_TYPES_AND_METADATA'}"
         transform-items="controller.transformItems(items)">
       <td ng-class="::{proto_key: item.highlighted}"><nobr>{$ ::item.age * 1000 | date:'medium' $}</nobr></td>
       <td ng-class="::{proto_key: item.highlighted}"><grr-client-urn value="::item.value.client_id.value" /></td>
-      <td ng-class="::{proto_key: item.highlighted}">{$ ::item.shortUrn $}</td>
-      <td ng-class="::{proto_key: item.highlighted}">{$ ::item.value.flow_name $}</td>
-      <td ng-class="::{proto_key: item.highlighted}">{$ ::item.value.log_message $}</td>
+      <td ng-class="::{proto_key: item.highlighted}">{$ ::item.shortUrn.value $}</td>
+      <td ng-class="::{proto_key: item.highlighted}">{$ ::item.value.flow_name.value $}</td>
+      <td ng-class="::{proto_key: item.highlighted}">{$ ::item.value.log_message.value $}</td>
     </tr>
   </tbody>
 </table>

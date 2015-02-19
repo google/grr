@@ -130,6 +130,23 @@ grr-collection-td {
   width: 0;
 }
 
+grr-server-load-graph .server-load-graph {
+  width: 100%;
+  height: 300px;
+  padding: 0;
+  position: relative;
+  display: block;
+}
+
+grr-server-load-graph {
+  width: 100%;
+  height: 300px;
+  padding: 0;
+  position: relative;
+  display: block;
+  margin-bottom: 4em;
+}
+
 /* Bootstrap tweaks */
 .navbar {
   margin-bottom: 0;
@@ -292,6 +309,11 @@ dd.histogram > div {
 }
 
 /* Commonly used styles */
+.indicator-label {
+    padding-left: 1em;
+    vertical-align: middle;
+}
+
 .toolbar_icon, .toolbar-icon {
     height: 20px;
 }
@@ -606,6 +628,18 @@ td.lease_available {
 
 .non-breaking {
   white-space: nowrap;
+}
+
+.preserve-linebreaks {
+  white-space: pre-line;
+}
+
+.doc-item {
+  margin-bottom: 2em;
+}
+
+.doc-item h4 {
+  margin-bottom: 0.25em;
 }
 
 .grr_aff4_type_header {

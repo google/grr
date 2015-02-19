@@ -24,9 +24,9 @@ describe('mac address directive', function() {
     return element;
   };
 
-  it('does not show anything when value is empty', function() {
+  it('shows "-" when value is empty', function() {
     var element = renderTestTemplate(null);
-    expect(element.text().trim()).toBe('');
+    expect(element.text().trim()).toBe('-');
   });
 
   it('shows string value', function() {

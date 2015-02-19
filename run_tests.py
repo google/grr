@@ -20,8 +20,9 @@ from grr.lib import server_plugins
 from grr.client import tests
 
 from grr.gui.api_plugins import tests
-from grr.gui import api_renderers_test
-from grr.gui import api_object_renderers_test
+from grr.gui import api_call_renderers_test
+from grr.gui import api_aff4_object_renderers_test
+from grr.gui import api_value_renderers_test
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib import tests

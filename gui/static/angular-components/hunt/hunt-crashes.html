@@ -7,7 +7,7 @@
   </thead>
   <tbody>
     <tr grr-paged-filtered-table grr-aff4-items-provider aff4-path="::controller.crashesUrn"
-        query-params="{with_type_info: 1, with_descriptors: 1}">
+        query-params="{'RDFValueCollection.items_type_info': 'WITH_TYPES_AND_METADATA'}">
 
       <td ng-class="::{proto_key: $index % 2 == 0}"><grr-client-urn value="::item.value.client_id.value" /></td>
 

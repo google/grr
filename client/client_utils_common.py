@@ -137,6 +137,8 @@ def IsExecutionWhitelisted(cmd, args):
         ("/bin/df", []),
         ("/usr/sbin/dmidecode", ["-q"]),
         ("/usr/sbin/sshd", ["-T"]),
+        ("/usr/bin/who", []),
+        ("/usr/bin/last", []),
     ]
   elif platform.system() == "Darwin":
     whitelist = [
@@ -145,7 +147,9 @@ def IsExecutionWhitelisted(cmd, args):
         ("/bin/echo", ["1"]),
         ("/usr/sbin/screencapture", ["-x", "-t", "jpg", "/tmp/ss.dat"]),
         ("/bin/rm", ["-f", "/tmp/ss.dat"]),
-        ("/usr/sbin/system_profiler", ["-xml", "SPHardwareDataType"])
+        ("/usr/sbin/system_profiler", ["-xml", "SPHardwareDataType"]),
+        ("/usr/bin/who", []),
+        ("/usr/bin/last", []),
     ]
   else:
     whitelist = []
