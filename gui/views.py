@@ -16,7 +16,7 @@ import psutil
 import logging
 
 from grr import gui
-from grr.gui import api_renderers
+from grr.gui import api_call_renderers
 from grr.gui import renderers
 from grr.gui import urls
 from grr.gui import webauth
@@ -113,7 +113,7 @@ def RenderBinaryDownload(request):
 @renderers.ErrorHandler()
 def RenderApi(request):
   """Handler for the /api/ requests."""
-  return api_renderers.RenderResponse(request)
+  return api_call_renderers.RenderHttpResponse(request)
 
 
 @webauth.SecurityCheck

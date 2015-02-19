@@ -7,7 +7,7 @@
 from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
-from grr.gui import api_object_renderers
+from grr.gui import api_aff4_object_renderers
 
 from grr.lib import aff4
 from grr.lib import flags
@@ -15,11 +15,11 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 
 
-class AFF4ObjectApiObjectRendererTest(test_lib.GRRBaseTest):
-  """Test for AFF4ObjectApiRendererTest."""
+class ApiAFF4ObjectRendererTest(test_lib.GRRBaseTest):
+  """Test for ApiAFF4ObjectRenderer."""
 
   def setUp(self):
-    super(AFF4ObjectApiObjectRendererTest, self).setUp()
+    super(ApiAFF4ObjectRendererTest, self).setUp()
 
     # Create empty AFF4Volume object.
     with test_lib.FakeTime(42):
@@ -28,10 +28,12 @@ class AFF4ObjectApiObjectRendererTest(test_lib.GRRBaseTest):
         pass
 
     self.fd = aff4.FACTORY.Open("aff4:/tmp/foo/bar", token=self.token)
-    self.renderer = api_object_renderers.AFF4ObjectApiObjectRenderer()
+    self.renderer = api_aff4_object_renderers.ApiAFF4ObjectRenderer()
 
   def testRendersAff4Volume(self):
-    data = self.renderer.RenderObject(self.fd, {})
+    data = self.renderer.RenderObject(self.fd,
+                                      rdfvalue.ApiAFF4ObjectRendererArgs())
+
     self.assertEqual(data,
                      {"age_policy": "NEWEST_TIME",
                       "attributes": {"aff4:type": "AFF4Volume",
@@ -40,7 +42,9 @@ class AFF4ObjectApiObjectRendererTest(test_lib.GRRBaseTest):
                       "aff4_class": "AFF4Volume"})
 
   def testRendersAff4VolumeWithTypeInfo(self):
-    data = self.renderer.RenderObject(self.fd, {"with_type_info": True})
+    data = self.renderer.RenderObject(
+        self.fd, rdfvalue.ApiAFF4ObjectRendererArgs(type_info="WITH_TYPES"))
+
     self.assertEqual(data,
                      {"age_policy": "NEWEST_TIME",
                       "attributes": {
@@ -67,8 +71,10 @@ class AFF4ObjectApiObjectRendererTest(test_lib.GRRBaseTest):
                       "aff4_class": "AFF4Volume"})
 
   def testRenderersAff4VolumeWithTypeInfoAndDescriptions(self):
-    data = self.renderer.RenderObject(self.fd, {"with_type_info": True,
-                                                "with_descriptors": True})
+    data = self.renderer.RenderObject(
+        self.fd,
+        rdfvalue.ApiAFF4ObjectRendererArgs(type_info="WITH_TYPES_AND_METADATA"))
+
     self.assertEqual(data,
                      {
                          "age_policy": "NEWEST_TIME",
@@ -94,7 +100,7 @@ class AFF4ObjectApiObjectRendererTest(test_lib.GRRBaseTest):
                          },
                          "urn": "aff4:/tmp/foo/bar",
                          "aff4_class": "AFF4Volume",
-                         "descriptors": {
+                         "metadata": {
                              "aff4:type": {
                                  "description": "The name of the "
                                                 "AFF4Object derived class."},
@@ -106,11 +112,11 @@ class AFF4ObjectApiObjectRendererTest(test_lib.GRRBaseTest):
                      })
 
 
-class RDFValueCollectionApiObjectRendererTest(test_lib.GRRBaseTest):
-  """Test for RDFValueCollectionApiRenderer."""
+class ApiRDFValueCollectionRendererTest(test_lib.GRRBaseTest):
+  """Test for ApiRDFValueCollectionRenderer."""
 
   def setUp(self):
-    super(RDFValueCollectionApiObjectRendererTest, self).setUp()
+    super(ApiRDFValueCollectionRendererTest, self).setUp()
 
     with test_lib.FakeTime(42):
       with aff4.FACTORY.Create("aff4:/tmp/foo/bar", "RDFValueCollection",
@@ -120,19 +126,14 @@ class RDFValueCollectionApiObjectRendererTest(test_lib.GRRBaseTest):
                                    pathtype="OS"))
 
     self.fd = aff4.FACTORY.Open("aff4:/tmp/foo/bar", token=self.token)
-    self.renderer = api_object_renderers.RDFValueCollectionApiObjectRenderer()
+    self.renderer = api_aff4_object_renderers.ApiRDFValueCollectionRenderer()
 
   def testRendersSampleCollection(self):
-    data = self.renderer.RenderObject(self.fd, {})
+    data = self.renderer.RenderObject(
+        self.fd, rdfvalue.ApiRDFValueCollectionRendererArgs())
 
-    self.assertEqual(data["aff4_class"], "RDFValueCollection")
-    self.assertEqual(data["urn"], "aff4:/tmp/foo/bar")
     self.assertEqual(data["offset"], 0)
-    self.assertEqual(data["age_policy"], "NEWEST_TIME")
-    self.assertEqual(data["attributes"],
-                     {"aff4:type": "RDFValueCollection",
-                      "aff4:size": 10,
-                      "metadata:last": 42000000})
+    self.assertEqual(data["count"], 10)
 
     self.assertEqual(len(data["items"]), 10)
     for i in range(10):
@@ -141,16 +142,11 @@ class RDFValueCollectionApiObjectRendererTest(test_lib.GRRBaseTest):
                         "pathtype": "OS"})
 
   def testRendersSampleCollectionWithCountParameter(self):
-    data = self.renderer.RenderObject(self.fd, {"count": 2})
+    data = self.renderer.RenderObject(
+        self.fd, rdfvalue.ApiRDFValueCollectionRendererArgs(count=2))
 
-    self.assertEqual(data["aff4_class"], "RDFValueCollection")
-    self.assertEqual(data["urn"], "aff4:/tmp/foo/bar")
     self.assertEqual(data["offset"], 0)
-    self.assertEqual(data["age_policy"], "NEWEST_TIME")
-    self.assertEqual(data["attributes"],
-                     {"aff4:type": "RDFValueCollection",
-                      "aff4:size": 10,
-                      "metadata:last": 42000000})
+    self.assertEqual(data["count"], 2)
 
     self.assertEqual(len(data["items"]), 2)
     self.assertEqual(data["items"][0],
@@ -161,16 +157,11 @@ class RDFValueCollectionApiObjectRendererTest(test_lib.GRRBaseTest):
                       "pathtype": "OS"})
 
   def testRendersSampleCollectionWithOffsetParameter(self):
-    data = self.renderer.RenderObject(self.fd, {"offset": 8})
+    data = self.renderer.RenderObject(
+        self.fd, rdfvalue.ApiRDFValueCollectionRendererArgs(offset=8))
 
-    self.assertEqual(data["aff4_class"], "RDFValueCollection")
-    self.assertEqual(data["urn"], "aff4:/tmp/foo/bar")
     self.assertEqual(data["offset"], 8)
-    self.assertEqual(data["age_policy"], "NEWEST_TIME")
-    self.assertEqual(data["attributes"],
-                     {"aff4:type": "RDFValueCollection",
-                      "aff4:size": 10,
-                      "metadata:last": 42000000})
+    self.assertEqual(data["count"], 2)
 
     self.assertEqual(len(data["items"]), 2)
     self.assertEqual(data["items"][0],
@@ -181,16 +172,12 @@ class RDFValueCollectionApiObjectRendererTest(test_lib.GRRBaseTest):
                       "pathtype": "OS"})
 
   def testRendersSampleCollectionWithCountAndOffsetParameters(self):
-    data = self.renderer.RenderObject(self.fd, {"offset": 3, "count": 2})
+    data = self.renderer.RenderObject(
+        self.fd, rdfvalue.ApiRDFValueCollectionRendererArgs(offset=3,
+                                                            count=2))
 
-    self.assertEqual(data["aff4_class"], "RDFValueCollection")
-    self.assertEqual(data["urn"], "aff4:/tmp/foo/bar")
     self.assertEqual(data["offset"], 3)
-    self.assertEqual(data["age_policy"], "NEWEST_TIME")
-    self.assertEqual(data["attributes"],
-                     {"aff4:type": "RDFValueCollection",
-                      "aff4:size": 10,
-                      "metadata:last": 42000000})
+    self.assertEqual(data["count"], 2)
 
     self.assertEqual(len(data["items"]), 2)
     self.assertEqual(data["items"][0],
@@ -201,27 +188,28 @@ class RDFValueCollectionApiObjectRendererTest(test_lib.GRRBaseTest):
                       "pathtype": "OS"})
 
   def testRendersSampleCollectionWithTotalCountParameter(self):
-    data = self.renderer.RenderObject(self.fd, {"count": 2,
-                                                "with_total_count": True})
+    data = self.renderer.RenderObject(
+        self.fd, rdfvalue.ApiRDFValueCollectionRendererArgs(
+            count=2, with_total_count=True))
 
-    self.assertEqual(data["aff4_class"], "RDFValueCollection")
     self.assertEqual(len(data["items"]), 2)
     self.assertEqual(data["total_count"], 10)
 
   def testRendersSampleCollectionWithFilter(self):
-    data = self.renderer.RenderObject(self.fd, {"filter": "/var/os/tmp-9"})
+    data = self.renderer.RenderObject(
+        self.fd, rdfvalue.ApiRDFValueCollectionRendererArgs(
+            filter="/var/os/tmp-9"))
 
-    self.assertEqual(data["aff4_class"], "RDFValueCollection")
     self.assertEqual(len(data["items"]), 1)
     self.assertEqual(data["items"][0],
                      {"path": "/var/os/tmp-9",
                       "pathtype": "OS"})
 
   def testRendersSampleCollectionWithFilterAndOffsetAndCount(self):
-    data = self.renderer.RenderObject(self.fd, {"filter": "/var/os/tmp",
-                                                "offset": 2, "count": 2})
+    data = self.renderer.RenderObject(
+        self.fd, rdfvalue.ApiRDFValueCollectionRendererArgs(
+            offset=2, count=2, filter="/var/os/tmp"))
 
-    self.assertEqual(data["aff4_class"], "RDFValueCollection")
     self.assertEqual(len(data["items"]), 2)
     self.assertEqual(data["items"][0],
                      {"path": "/var/os/tmp-2",
@@ -239,33 +227,33 @@ class VFSGRRClientApiObjectRendererTest(test_lib.GRRBaseTest):
     self.client_id = self.SetupClients(1)[0]
 
     self.fd = aff4.FACTORY.Open(self.client_id, token=self.token)
-    self.renderer = api_object_renderers.VFSGRRClientApiObjectRenderer()
+    self.renderer = api_aff4_object_renderers.VFSGRRClientApiObjectRenderer()
 
-  def testRendersClientSummaryInAdditionToClientObject(self):
-    data = self.renderer.RenderObject(self.fd, {})
+  def testRendersClientSummaryInWithTypeMetadata(self):
+    data = self.renderer.RenderObject(self.fd, None)
 
-    self.assertEqual(data["aff4_class"], "VFSGRRClient")
-
-    # Check timestamp separately since it will be approx current time, allow 60s
-    # fudge factor.
-    self.assertAlmostEqual(
-        data["summary"]["timestamp"],
-        rdfvalue.RDFDatetime().Now().AsMicroSecondsFromEpoch(), delta=60000000)
-    data["summary"].pop("timestamp")
-
-    self.assertEqual(data["summary"], {
-        "system_info": {
-            "node": "Host-0",
-            "version": "",
-            "fqdn": "Host-0.example.com"
-        },
-        "client_id": "aff4:/C.1000000000000000",
-        "client_info": {
-            "client_name": "GRR Monitor"
-        },
-        "serial_number": "",
-        "system_manufacturer": ""
-    })
+    self.assertEqual(
+        data["summary"]["value"]["system_info"]["value"]["node"]["value"],
+        "Host-0")
+    self.assertEqual(
+        data["summary"]["value"]["system_info"]["value"]["version"]["value"],
+        "")
+    self.assertEqual(
+        data["summary"]["value"]["system_info"]["value"]["fqdn"]["value"],
+        "Host-0.example.com")
+    self.assertEqual(
+        data["summary"]["value"]["client_id"]["value"],
+        "aff4:/C.1000000000000000")
+    self.assertEqual(
+        data["summary"]["value"]["client_info"]["value"]["client_name"][
+            "value"],
+        "GRR Monitor")
+    self.assertEqual(
+        data["summary"]["value"]["serial_number"]["value"],
+        "")
+    self.assertEqual(
+        data["summary"]["value"]["system_manufacturer"]["value"],
+        "")
 
 
 def main(argv):

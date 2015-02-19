@@ -307,6 +307,7 @@ class StatsStore(aff4.AFF4Volume):
 
     subjects = [self.DATA_STORE_ROOT.Add(process_id)
                 for process_id in process_ids]
+
     multi_query_results = data_store.DB.MultiResolveRegex(
         subjects, StatsStoreProcessData.STATS_STORE_PREFIX + predicate_regex,
         token=self.token, timestamp=timestamp, limit=limit)
@@ -484,6 +485,30 @@ class StatsStoreDataQuery(object):
 
     return self
 
+  def EnsureIsIncremental(self):
+    """Fixes the time series so that it does not decrement."""
+    if self.time_series is None:
+      raise RuntimeError("EnsureIsIncremental must be called after Take*().")
+
+    state = dict()
+    def FixIncremention(value):
+      if state["prev_value"] is None:
+        state["prev_value"] = value
+      elif state["prev_value"] > value:
+        state["increment"] += state["prev_value"]
+
+      state["prev_value"] = value
+      return value + state["increment"]
+
+    new_time_series = []
+    for time_serie in self.time_series:
+      state["prev_value"] = None
+      state["increment"] = 0
+      new_time_series.append(time_serie.apply(FixIncremention))
+
+    self.time_series = new_time_series
+    return self
+
   def Resample(self, interval):
     """Resample the query with given sampling interval."""
 
@@ -515,12 +540,23 @@ class StatsStoreDataQuery(object):
 
     limit = time_window.seconds / self.sample_interval.seconds
 
+    # Calculate joint index.
+    joint_index = self.time_series[0].index
+    for time_serie in self.time_series[1:]:
+      joint_index = joint_index.union(time_serie.index)
+
     new_time_series = []
+    # Backfill beginnings of time series so that they are properly aligned.
+    # Forward-fill ends of time series so that they are properly aligned.
     for time_serie in self.time_series:
-      new_time_series.append(
-          time_serie.fillna(method="ffill", limit=limit))
+      new_time_serie = time_serie.reindex(joint_index, method="ffill",
+                                          limit=limit)
+      new_time_serie = new_time_serie.fillna(method="ffill", limit=limit)
+      new_time_serie = new_time_serie.fillna(method="bfill", limit=limit)
+      new_time_series.append(new_time_serie)
 
     self.time_series = new_time_series
+
     return self
 
   def InTimeRange(self, range_start, range_end):
@@ -598,10 +634,18 @@ class StatsStoreDataQuery(object):
 
     current_serie = self.time_series[0]
     for serie in self.time_series[1:]:
-      current_serie = current_serie.combine(serie, func=lambda x, y: x + y,
-                                            fill_value=0)
+      current_serie = current_serie.add(serie, fill_value=0)
 
     self.time_series = [current_serie]
+    return self
+
+  def AggregateViaMean(self):
+    """Aggregate multiple time series into one by calculating mean value."""
+
+    num_time_series = len(self.time_series)
+    self.AggregateViaSum()
+    self.ts.div(num_time_series)
+
     return self
 
   def SeriesCount(self):

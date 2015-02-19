@@ -12,22 +12,18 @@ goog.scope(function() {
  * Controller for the ClientUrnDirective.
  *
  * @param {!angular.Scope} $scope Directive's scope.
- * @param {!angular.JQLite} $element Element this directive operates on.
  * @param {!angularUi.$modal} $modal Bootstrap UI modal service.
  * @param {!grrUi.core.aff4Service.Aff4Service} grrAff4Service GRR Aff4 service.
  * @constructor
  * @ngInject
  */
 var ClientUrnController = function(
-    $scope, $element, $modal, grrAff4Service) {
+    $scope, $modal, grrAff4Service) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
   /** @type {?} */
   this.scope_.value;
-
-  /** @private {!angular.JQLite} */
-  this.element_ = $element;
 
   /** @private {!angularUi.$modal} */
   this.modal_ = $modal;
@@ -71,10 +67,12 @@ ClientUrnController.prototype.onInfoClick = function() {
     scope: this.scope_
   });
 
-  this.grrAff4Service_.get(this.clientUrn, {
-    'with_type_info': true, 'with_descriptors': true}).then(function(response) {
-      this.clientSummary = response.data.summary;
-    }.bind(this));
+  this.grrAff4Service_.get(
+      this.clientUrn,
+      {'AFF4Object.type_info': 'WITH_TYPES_AND_METADATA'}).then(
+          function(response) {
+            this.clientSummary = response.data.summary;
+          }.bind(this));
 };
 
 
@@ -84,8 +82,10 @@ ClientUrnController.prototype.onInfoClick = function() {
  * @export
  */
 ClientUrnController.prototype.onLinkClick = function() {
-  var hash = $.param({'main': 'HostInformation',
-    'c': this.clientUrn});
+  var hash = $.param({
+    'main': 'HostInformation',
+    'c': this.clientUrn
+  });
   grr.loadFromHash(hash);
 };
 

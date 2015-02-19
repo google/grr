@@ -602,7 +602,7 @@ class ExportTest(test_lib.GRRBaseTest):
     test_lib.ClientFixture(client_urn, token=self.token)
     metadata = export.GetMetadata(client_urn, token=self.token)
     self.assertEqual(metadata.os, u"Windows")
-    self.assertEqual(metadata.labels, u"")
+    self.assertEqual(metadata.labels, u"client-label-23")
 
     # Now set CLIENT_INFO with labels
     client_info = rdfvalue.ClientInformation(client_name="grr",

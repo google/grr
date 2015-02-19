@@ -4,7 +4,7 @@ goog.require('grrUi.core.memoryItemsProviderDirective.MemoryItemsProviderControl
 
 
 describe('memory items provider directive', function() {
-  var $q, $rootScope;
+  var $rootScope;
 
   beforeEach(inject(function($injector) {
     $rootScope = $injector.get('$rootScope');

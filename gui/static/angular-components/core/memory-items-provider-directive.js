@@ -23,8 +23,6 @@ goog.scope(function() {
  */
 grrUi.core.memoryItemsProviderDirective.MemoryItemsProviderController =
     function($scope, $q, $attrs, $parse) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
 
   /** @private {!angular.$q} */
   this.q_ = $q;
@@ -38,7 +36,7 @@ grrUi.core.memoryItemsProviderDirective.MemoryItemsProviderController =
 
   // aff4Path is a traditional double-way binding.
   $scope.$watch($attrs.items, function() {
-    this.items_ = $scope.$eval($attrs.items);
+    this.items_ = /** @type {Array<?>} */ ($scope.$eval($attrs.items));
   }.bind(this));
 };
 

@@ -13,12 +13,11 @@ goog.scope(function() {
  *
  * @constructor
  * @param {!angular.Scope} $scope
- * @param {!angular.$timeout} $timeout
  * @param {!angular.JQLite} $element
  * @ngInject
  */
 grrUi.core.splitterDirective.SplitterController = function(
-    $scope, $timeout, $element) {
+    $scope, $element) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
@@ -27,9 +26,6 @@ grrUi.core.splitterDirective.SplitterController = function(
 
   /** @private {!angular.JQLite} */
   this.element_ = $element;
-
-  /** @private {!angular.$timeout} */
-  this.timeout_ = $timeout;
 
   /** @export {!Array<angular.Scope>} */
   this.panes = [];

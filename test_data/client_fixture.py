@@ -49,6 +49,7 @@ client_name: "GRR Monitor"
 client_version: 1
 revision: 0
 build_time: "unknown"
+labels: "client-label-23"
 """,
         "aff4:users":
             [u"""

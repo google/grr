@@ -9,6 +9,7 @@ from grr.client import vfs
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import artifact_test
+from grr.lib import client_index
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import flow
@@ -75,6 +76,16 @@ class TestClientInterrogate(artifact_test.ArtifactTest):
     self.assertEqual(
         [self.fd.urn],
         [x for x in index_fd.Query([self.fd.Schema.HOSTNAME], host_pattern)])
+
+  def _CheckClientKwIndex(self, keywords, expected_count):
+    # Tests that the client index has expected_count results when
+    # searched for keywords.
+    index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
+                                aff4_type="ClientIndex",
+                                mode="rw",
+                                token=self.token)
+    self.assertEqual(len(index.LookupClients(keywords)),
+                     expected_count)
 
   def _CheckNotificationsCreated(self):
     user_fd = aff4.FACTORY.Open("aff4:/users/test", token=self.token)
@@ -218,6 +229,9 @@ class TestClientInterrogate(artifact_test.ArtifactTest):
     self._CheckNetworkInfo()
     self._CheckVFS()
     self._CheckLabelIndex()
+    self._CheckClientKwIndex(["Linux"], 1)
+    self._CheckClientKwIndex(["Windows"], 0)
+    self._CheckClientKwIndex(["Label2"], 1)
 
   def testInterrogateWindows(self):
     """Test the Interrogate flow."""
@@ -261,6 +275,9 @@ class TestClientInterrogate(artifact_test.ArtifactTest):
     self._CheckLabelIndex()
     self._CheckWindowsDiskInfo()
     self._CheckRegistryPathspec()
+    self._CheckClientKwIndex(["Linux"], 0)
+    self._CheckClientKwIndex(["Windows"], 1)
+    self._CheckClientKwIndex(["Label2"], 1)
 
 
 def main(argv):

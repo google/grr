@@ -41,9 +41,6 @@ grrUi.core.infiniteTableDirective.InfiniteTableController = function(
       angular.JQLite)} */
   this.transclude_ = $transclude;
 
-  /** @private {!angular.$parse} */
-  this.parse_ = $parse;
-
   // Internal state.
 
   /**

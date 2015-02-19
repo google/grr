@@ -1,22 +1,20 @@
 #!/usr/bin/env python
 """API renderers for accessing artifacts."""
 
-from grr.gui import api_renderers
+from grr.gui import api_call_renderers
 
 from grr.lib import aff4
 from grr.lib import artifact
 from grr.lib import artifact_lib
 from grr.lib import parsers
 from grr.lib import rdfvalue
+from grr.lib import registry
 
 
-class ApiArtifactRenderer(api_renderers.ApiRenderer):
-  """Renders the configuration listing."""
+class ApiArtifactRenderer(api_call_renderers.ApiCallRenderer):
+  """Renders available artifacts definitions."""
 
-  method = "GET"
-  route = "/api/artifacts"
-
-  def Render(self, request):
+  def Render(self, unused_args, token):
     """Get available artifact information for rendering."""
 
     # get custom artifacts from data store
@@ -24,7 +22,7 @@ class ApiArtifactRenderer(api_renderers.ApiRenderer):
     try:
       collection = aff4.FACTORY.Open(artifact_urn,
                                      aff4_type="RDFValueCollection",
-                                     token=request.token)
+                                     token=token)
     except IOError:
       collection = {}
 
@@ -34,7 +32,7 @@ class ApiArtifactRenderer(api_renderers.ApiRenderer):
 
     # Get all artifacts that aren't Bootstrap and aren't the base class.
     artifacts = {}
-    artifact.LoadArtifactsFromDatastore(token=request.token)
+    artifact.LoadArtifactsFromDatastore(token=token)
 
     for name, artifact_val in artifact_lib.ArtifactRegistry.artifacts.items():
       artifacts[name] = artifact_val
@@ -53,3 +51,10 @@ class ApiArtifactRenderer(api_renderers.ApiRenderer):
                                       "custom": is_custom}
 
     return artifact_dict
+
+
+class ApiArtifactInitHook(registry.InitHook):
+
+  def RunOnce(self):
+    api_call_renderers.RegisterHttpRouteHandler(
+        "GET", "/api/artifacts", ApiArtifactRenderer)
