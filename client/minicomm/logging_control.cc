@@ -1,24 +1,36 @@
 #include "logging_control.h"
 
-#include <vector>
 #include <algorithm>
+#include <chrono>
+#include <iostream>
 #include <mutex>
+#include <vector>
 
 using google::protobuf::LogHandler;
 
 namespace grr {
 namespace {
 
+using namespace std::chrono;
+
 class DefaultLogSink : public LogSink {
  public:
   void Log(LogLevel level, const char* filename, int line,
-           const std::string& message) override {
-    static const char* level_names[] = { "I", "W", "E", "F" };
-
-    // We use fprintf() instead of cerr because we want this to work at static
-    // initialization time.
-    fprintf(stderr, "[%s %s:%d] %s\n",
-            level_names[level], filename, line, message.c_str());
+             const std::string& message) override {
+    const auto current_time = system_clock::now();
+    const time_t current_time_t = system_clock::to_time_t(current_time);
+    struct tm time;
+    gmtime_r(&current_time_t, &time);
+    const int usec = duration_cast<microseconds>(
+        current_time.time_since_epoch()).count() % 1000000;
+    static const char level_names[] = { 'I', 'W', 'E', 'F' };
+    fprintf(stderr, "[%c %02d.%02d %02d:%02d:%02d.%06d %s:%d] %s\n",
+            level_names[level],
+            time.tm_mon, time.tm_mday,
+            time.tm_hour, time.tm_min, time.tm_sec,
+            usec,
+            filename, line,
+            message.c_str());
   }
 };
 
