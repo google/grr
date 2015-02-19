@@ -8,7 +8,14 @@
 namespace grr {
 namespace {
 std::string MakeTempDir() {
-  static const std::string t = "/tmp/client-test-XXXXXX";
+  const ::testing::TestInfo* const test_info =
+      ::testing::UnitTest::GetInstance()->current_test_info();
+  std::string t = "/tmp/GrrTest.";
+  t.append(test_info->test_case_name());
+  t.append(".");
+  t.append(test_info->name());
+  t.append(".XXXXXX");
+
   std::unique_ptr<char[]> writeable(new char[t.size()+1]);
   std::copy(t.begin(), t.end(), writeable.get());
   writeable[t.size()] = '\0';

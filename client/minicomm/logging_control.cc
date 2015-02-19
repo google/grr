@@ -9,17 +9,17 @@ using google::protobuf::LogHandler;
 namespace grr {
 namespace {
 
-class PassThroughLogSink : public LogSink {
+class DefaultLogSink : public LogSink {
  public:
-  explicit PassThroughLogSink(LogHandler* handler) :
-    handler_(handler) {}
-
   void Log(LogLevel level, const char* filename, int line,
-      const std::string& message) override {
-    handler_(level, filename, line, message);
+           const std::string& message) override {
+    static const char* level_names[] = { "I", "W", "E", "F" };
+
+    // We use fprintf() instead of cerr because we want this to work at static
+    // initialization time.
+    fprintf(stderr, "[%s %s:%d] %s\n",
+            level_names[level], filename, line, message.c_str());
   }
- private:
-  const LogHandler* handler_;
 };
 
 class LogManager {
@@ -52,7 +52,8 @@ class LogManager {
   }
   LogManager() {
     std::unique_lock<std::mutex> l(mutex_);
-    sinks_.push_back(new PassThroughLogSink(google::protobuf::SetLogHandler(&LogToSingleton)));
+    google::protobuf::SetLogHandler(&LogToSingleton);
+    sinks_.push_back(new DefaultLogSink());
   }
 
   std::mutex mutex_;
