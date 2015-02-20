@@ -176,22 +176,15 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     for attribute in attributes:
       timestamp = self._MakeTimestamp(start, end)
       predicate = utils.SmartUnicode(attribute)
-      query, args = self._BuildQuery("DELETE", subject, predicate, timestamp)
-      self._ExecuteQuery(query, args)
-
-  def DeleteAttributesRegex(self, subject, regexes, token=None):
-    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
-
-    for regex in regexes:
-      query, args = self._BuildQuery("DELETE", subject, regex, is_regex=True)
-      self._ExecuteQuery(query, args)
+      transaction = self._BuildDelete(subject, predicate, timestamp)
+      self._ExecuteTransaction(transaction)
 
   def DeleteSubject(self, subject, token=None, sync=False):
     _ = sync
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
 
-    query, args = self._BuildQuery("DELETE", subject)
-    self._ExecuteQuery(query, args)
+    transaction = self._BuildDelete(subject)
+    self._ExecuteTransaction(transaction)
 
   def ResolveMulti(self, subject, predicates, token=None, timestamp=None):
     """Resolves multiple predicates at once for one subject."""
@@ -199,7 +192,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
         token, [subject], self.GetRequiredResolveAccess(predicates))
 
     for predicate in predicates:
-      query, args = self._BuildQuery("SELECT", subject, predicate, timestamp)
+      query, args = self._BuildQuery(subject, predicate, timestamp)
       result = self._ExecuteQuery(query, args)
 
       for row in result:
@@ -213,13 +206,13 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
     for subject in subjects:
       values = self.ResolveRegex(subject, predicate_regex, token=token,
-                                  timestamp=timestamp, limit=limit)
+                                 timestamp=timestamp, limit=limit)
 
       if values:
         result[subject] = values
         if limit:
           limit -= len(values)
-      
+
       if limit is not None and limit <= 0:
         break
 
@@ -236,7 +229,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     seen = set()
 
     for regex in predicate_regex:
-      query, args = self._BuildQuery("SELECT", subject, regex, timestamp, limit, is_regex=True)
+      query, args = self._BuildQuery(subject, regex, timestamp, limit, is_regex=True)
       rows = self._ExecuteQuery(query, args)
 
       for row in rows:
@@ -298,12 +291,12 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
     if to_replace:
       transaction = self._BuildReplaces(to_replace)
-      self._ExecuteInsert(transaction)
+      self._ExecuteTransaction(transaction)
 
     if to_insert:
       if sync:
         transaction = self._BuildInserts(to_insert)
-        self._ExecuteInsert(transaction)
+        self._ExecuteTransaction(transaction)
       else:
         with self.lock:
           self.to_insert.extend(to_insert)
@@ -315,7 +308,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
     if to_insert:
       transaction = self._BuildInserts(to_insert)
-      self._ExecuteInsert(transaction)
+      self._ExecuteTransaction(transaction)
 
   def _CountDuplicateAttributes(self, subject, predicate):
     query = "SELECT count(*) AS total FROM aff4 WHERE \
@@ -371,7 +364,7 @@ timestamp, value) VALUES"
 
     return [subjects, attributes, aff4]
 
-  def _ExecuteInsert(self, transaction):
+  def _ExecuteTransaction(self, transaction):
     """Get connection from pool and execute query"""
     for query in transaction:
       with self.pool.GetConnection() as cursor:
@@ -404,11 +397,10 @@ timestamp, value) VALUES"
     else:
       return value
 
-  def _BuildQuery(self, action, subject, predicate=None, timestamp=None,
+  def _BuildQuery(self, subject, predicate=None, timestamp=None,
                   limit=None, is_regex=False):
     """Build the SELECT query to be executed"""
     args = []
-
     fields = ""
     criteria = "WHERE aff4.subject_hash=unhex(md5(%s))"
     args.append(subject)
@@ -418,20 +410,20 @@ timestamp, value) VALUES"
     subject = utils.SmartUnicode(subject)
 
     #Set fields, tables, and criteria and append args
-    if predicate:
+    if predicate is not None:
       if is_regex:
         tables += " JOIN attributes ON aff4.attribute_hash=attributes.hash"
-        regex = re.match(r'(^[a-zA-Z0-9_]+:[a-zA-Z0-9_:]*)(.*)', predicate)
-        #regex = re.match(r'(^[a-zA-Z0-9_:]+:)(.*)', predicate)
+        regex = re.match(r'(^[a-zA-Z0-9_]+:([a-zA-Z0-9_\-\. /:]*[a-zA-Z0-9_\- /:]+|[a-zA-Z0-9_\- /:]*))(.*)',
+                         predicate)
         if not regex:
           #If predicate has no prefix just rlike
           criteria += " AND attributes.attribute rlike %s"
           args.append(predicate)
-        elif regex.groups()[1]:
+        elif regex.groups()[2]:
           prefix = predicate.split(":", 1)[0]
           like = regex.groups()[0] + "%"
-          rlike = regex.groups()[1]
-          
+          rlike = regex.groups()[2]
+
           #If predicate has prefix then use for query optimizations
           criteria += " AND aff4.prefix=(%s)"
           args.append(prefix)
@@ -447,14 +439,13 @@ timestamp, value) VALUES"
 
           if not (rlike == ".*" or rlike == ".+"):
             criteria += " AND attributes.attribute rlike %s"
-            args.append(regex.groups()[1])
+            args.append(rlike)
         else:
           criteria += " AND aff4.attribute_hash=unhex(md5(%s))"
-          args.append(predicate)        
+          args.append(predicate)
       else:
           criteria += " AND aff4.attribute_hash=unhex(md5(%s))"
           args.append(predicate)
-        
 
     #Limit to time range if specified
     if isinstance(timestamp, (tuple, list)):
@@ -462,31 +453,65 @@ timestamp, value) VALUES"
       args.append(int(timestamp[0]))
       args.append(int(timestamp[1]))
 
-    if action == "SELECT":
-      fields = "aff4.value, aff4.timestamp"
-      if is_regex:
-        fields += ", attributes.attribute"
+    fields = "aff4.value, aff4.timestamp"
+    if is_regex:
+      fields += ", attributes.attribute"
 
-      #Modify fields and sorting for timestamps
-      if timestamp is None or timestamp == self.NEWEST_TIMESTAMP:
-        tables += " JOIN (SELECT attribute_hash, MAX(timestamp) timestamp \
+    #Modify fields and sorting for timestamps
+    if timestamp is None or timestamp == self.NEWEST_TIMESTAMP:
+      tables += " JOIN (SELECT attribute_hash, MAX(timestamp) timestamp \
 " + tables + " " + criteria + " GROUP BY attribute_hash) maxtime on \
 aff4.attribute_hash=maxtime.attribute_hash and \
 aff4.timestamp=maxtime.timestamp"
-        criteria = "WHERE aff4.subject_hash=unhex(md5(%s))"
-        args.append(subject)
-      else:
-        #Always order results
-        sorting = "ORDER BY aff4.timestamp DESC"
-      #Add limit if set
-      if limit:
-        sorting += " LIMIT %s" % int(limit)
+      criteria = "WHERE aff4.subject_hash=unhex(md5(%s))"
+      args.append(subject)
     else:
-      fields = "aff4"
+      #Always order results
+      sorting = "ORDER BY aff4.timestamp DESC"
+    #Add limit if set
+    if limit:
+      sorting += " LIMIT %s" % int(limit)
 
-    query = " ".join([action, fields, tables, criteria, sorting])
+    query = " ".join(["SELECT", fields, tables, criteria, sorting])
 
     return (query, args)
+
+  def _BuildDelete(self, subject, predicate=None, timestamp=None):
+    """Build the DELETE query to be executed"""
+    subjects = {}
+    attributes = {}
+    aff4 = {}
+
+    subjects["query"] = "DELETE subjects FROM subjects WHERE hash=unhex(md5(%s))"
+    subjects["args"] = [subject]
+
+    aff4["query"] = "DELETE aff4 FROM aff4 WHERE subject_hash=unhex(md5(%s))"
+    aff4["args"] = [subject]
+
+    attributes["query"] = ""
+    attributes["args"] = []
+
+    if predicate:
+      aff4["query"] += " AND attribute_hash=unhex(md5(%s))"
+      aff4["args"].append(predicate)
+
+      if isinstance(timestamp, (tuple, list)):
+        aff4["query"] += " AND aff4.timestamp >= %s AND aff4.timestamp <= %s"
+        aff4["args"].append(int(timestamp[0]))
+        aff4["args"].append(int(timestamp[1]))
+
+      subjects["query"] = "DELETE subjects FROM subjects LEFT JOIN aff4 ON \
+aff4.subject_hash=subjects.hash WHERE subjects.hash=unhex(md5(%s)) AND \
+aff4.subject_hash IS NULL"
+
+      attributes["query"] = "DELETE attributes FROM attributes LEFT JOIN aff4 \
+ON aff4.attribute_hash=attributes.hash WHERE attributes.hash=unhex(md5(%s)) \
+AND aff4.attribute_hash IS NULL"
+      attributes["args"].append(predicate)
+
+      return [aff4, subjects, attributes]
+
+    return [aff4, subjects]
 
   def _ExecuteQuery(self, *args):
     """Get connection from pool and execute query"""
@@ -529,7 +554,8 @@ aff4.timestamp=maxtime.timestamp"
       timestamp BIGINT(22) UNSIGNED DEFAULT NULL,
       value LONGBLOB NULL,
       KEY `master` (`subject_hash`,`attribute_hash`,`timestamp`),
-      KEY `alternate` (`subject_hash`,`prefix`,`timestamp`)
+      KEY `alternate` (`subject_hash`,`prefix`,`timestamp`),
+      KEY `attribute` (`attribute_hash`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT ='Table representing AFF4 objects';
     """)
 
