@@ -847,6 +847,10 @@ message StatEntry {
       description: "If this entry represents a registry value, this field will "
       "contain that value encoded according to the correct type.";
     }];
+  optional uint64 st_crtime = 20 [(sem_type) = {
+      type: "RDFDatetimeSeconds",
+      description: "Creation time."
+    }];
 };
 
 // This stores collection entries.
