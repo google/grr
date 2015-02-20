@@ -109,8 +109,8 @@ class CheckAccessHelper(object):
       logging.debug("Datastore access granted to %s on %s by pattern: %s "
                     "(require=%s, require_args=%s, require_kwargs=%s, "
                     "helper_name=%s)",
-                    token.username, subject_str, regex_text, require,
-                    require_args, require_kwargs, self.helper_name)
+                    utils.SmartStr(token.username), subject_str, regex_text,
+                    require, require_args, require_kwargs, self.helper_name)
       return True
 
     logging.warn("Datastore access denied to %s (no matched rules)",
@@ -230,7 +230,7 @@ class BasicAccessControlManager(NullAccessControlManager):
     # The supervisor may bypass all ACL checks.
     if token.supervisor:
       logging.debug("Datastore access granted to %s on %s. Mode: %s "
-                    "Supervisor: %s", token.username, subjects,
+                    "Supervisor: %s", utils.SmartStr(token.username), subjects,
                     requested_access, token.supervisor)
       return True
 
@@ -251,7 +251,7 @@ class BasicAccessControlManager(NullAccessControlManager):
               requested_access=requested_access)
         except access_control.UnauthorizedAccess as e:
           logging.warn("Datastore access denied to %s on %s. Mode: %s "
-                       "Error: %s", token.username, subjects,
+                       "Error: %s", utils.SmartStr(token.username), subjects,
                        requested_access, e)
           e.requested_access = requested_access
           raise
@@ -327,7 +327,7 @@ class BasicAccessControlManager(NullAccessControlManager):
 
   def CheckACL(self, token, target):
     logging.debug("ACL access granted to %s on %s. Supervisor: %s",
-                  token.username, target, token.supervisor)
+                  utils.SmartStr(token.username), target, token.supervisor)
     return True
 
 
@@ -554,7 +554,7 @@ class FullAccessControlManager(BasicAccessControlManager):
     # The supervisor may bypass all ACL checks.
     if token.supervisor:
       logging.debug("ACL access granted to %s on %s. Supervisor: %s",
-                    token.username, target, token.supervisor)
+                    utils.SmartStr(token.username), target, token.supervisor)
       return True
 
     # Target may be None for flows not specifying a client.
@@ -578,7 +578,7 @@ class FullAccessControlManager(BasicAccessControlManager):
     try:
       token.is_emergency = self.acl_cache.Get(approval_urn)
       logging.debug("ACL access granted to %s on %s. Supervisor: %s",
-                    token.username, target, token.supervisor)
+                    utils.SmartStr(token.username), target, token.supervisor)
       return True
     except KeyError:
       try:
@@ -591,8 +591,9 @@ class FullAccessControlManager(BasicAccessControlManager):
         if approval_request.CheckAccess(token):
           # Cache this approval for fast path checking.
           self.acl_cache.Put(approval_urn, token.is_emergency)
-          logging.debug("ACL access granted to %s on %s. Supervisor: %s",
-                        token.username, target, token.supervisor)
+          logging.debug(
+              "ACL access granted to %s on %s. Supervisor: %s",
+              utils.SmartStr(token.username), target, token.supervisor)
           return True
 
         raise access_control.UnauthorizedAccess(

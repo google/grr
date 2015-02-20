@@ -131,7 +131,7 @@ class HTTPDataStoreMixin(object):
 
 
 class HTTPDataStoreTest(HTTPDataStoreMixin,
-                        data_store_test.DataStoreTest):
+                        data_store_test._DataStoreTest):
   """Test the remote data store."""
 
   def testRDFDatetimeTimestamps(self):

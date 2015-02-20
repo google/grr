@@ -238,15 +238,15 @@ class SqliteConnection(object):
     self.dirty = True
 
   @utils.Synchronized
-  def GetNewestValue(self, subject, predicate):
-    """Returns the newest value for subject/predicate."""
+  def GetNewestValue(self, subject, attribute):
+    """Returns the newest value for subject/attribute."""
     subject = utils.SmartStr(subject)
-    predicate = utils.SmartStr(predicate)
+    attribute = utils.SmartStr(attribute)
     query = """SELECT value, timestamp FROM tbl
                WHERE subject = ? AND predicate = ?
                ORDER BY timestamp DESC
                LIMIT 1"""
-    args = (subject, predicate)
+    args = (subject, attribute)
     data = self.cursor.execute(query, args).fetchone()
 
     if data:
@@ -256,15 +256,15 @@ class SqliteConnection(object):
 
   @utils.Synchronized
   def GetNewestFromRegex(self, subject, regex, limit=None):
-    """Returns the newest values for predicates that match 'regex'.
+    """Returns the newest values for attributes that match 'regex'.
 
     Args:
      subject: The subject.
-     regex: The predicate regex.
+     regex: The attribute regex.
      limit: The maximum number of records to return.
 
     Returns:
-     A list of the form (predicate, value, timestamp).
+     A list of the form (attribute, value, timestamp).
     """
     subject = utils.SmartStr(subject)
     query = """SELECT predicate, MAX(timestamp), value FROM tbl
@@ -283,17 +283,17 @@ class SqliteConnection(object):
 
   @utils.Synchronized
   def GetValuesFromRegex(self, subject, regex, start, end, limit=None):
-    """Returns the values of the predicates that match 'regex'.
+    """Returns the values of the attributes that match 'regex'.
 
     Args:
      subject: The subject.
-     regex: The predicate regex.
+     regex: The attribute regex.
      start: The start timestamp.
      end: The end timestamp.
      limit: The maximum number of values to return.
 
     Returns:
-     A list of the form (predicate, value, timestamp).
+     A list of the form (attribute, value, timestamp).
     """
     subject = utils.SmartStr(subject)
     query = """SELECT predicate, value, timestamp FROM tbl
@@ -310,12 +310,12 @@ class SqliteConnection(object):
     return data
 
   @utils.Synchronized
-  def GetValues(self, subject, predicate, start, end, limit=None):
-    """Returns the values of the predicate between 'start' and 'end'.
+  def GetValues(self, subject, attribute, start, end, limit=None):
+    """Returns the values of the attribute between 'start' and 'end'.
 
     Args:
      subject: The subject.
-     predicate: The predicate.
+     attribute: The attribute.
      start: The start timestamp.
      end: The end timestamp.
      limit: The maximum number of values to return.
@@ -324,59 +324,49 @@ class SqliteConnection(object):
      A list of the form (value, timestamp).
     """
     subject = utils.SmartStr(subject)
-    predicate = utils.SmartStr(predicate)
+    attribute = utils.SmartStr(attribute)
     query = """SELECT value, timestamp FROM tbl
                WHERE subject = ? AND predicate = ? AND
                      timestamp >= ? AND timestamp <= ?
                ORDER BY timestamp"""
     if limit:
       query += " LIMIT ?"
-      args = (subject, predicate, start, end, limit)
+      args = (subject, attribute, start, end, limit)
     else:
-      args = (subject, predicate, start, end)
+      args = (subject, attribute, start, end)
     data = self.cursor.execute(query, args).fetchall()
     return data
 
   @utils.Synchronized
-  def DeleteAttribute(self, subject, predicate):
-    """Deletes all values for the given subject/predicate."""
+  def DeleteAttribute(self, subject, attribute):
+    """Deletes all values for the given subject/attribute."""
     subject = utils.SmartStr(subject)
-    predicate = utils.SmartStr(predicate)
+    attribute = utils.SmartStr(attribute)
     query = "DELETE FROM tbl WHERE subject = ? AND predicate = ?"
-    args = (subject, predicate)
+    args = (subject, attribute)
     self.cursor.execute(query, args)
     self.dirty = True
     self.deleted += self.cursor.rowcount
 
   @utils.Synchronized
-  def SetAttribute(self, subject, predicate, value, timestamp):
-    """Sets subject's predicate value with the given timestamp."""
+  def SetAttribute(self, subject, attribute, value, timestamp):
+    """Sets subject's attribute value with the given timestamp."""
     subject = utils.SmartStr(subject)
-    predicate = utils.SmartStr(predicate)
+    attribute = utils.SmartStr(attribute)
     query = "INSERT INTO tbl VALUES (?, ?, ?, ?)"
-    args = (subject, predicate, timestamp, value)
+    args = (subject, attribute, timestamp, value)
     self.cursor.execute(query, args)
     self.dirty = True
     self.deleted = max(0, self.deleted - self.cursor.rowcount)
 
   @utils.Synchronized
-  def DeleteAttributeRange(self, subject, predicate, start, end):
-    """Deletes all values of a predicate within the range [start, end]."""
+  def DeleteAttributeRange(self, subject, attribute, start, end):
+    """Deletes all values of a attribute within the range [start, end]."""
     subject = utils.SmartStr(subject)
-    predicate = utils.SmartStr(predicate)
+    attribute = utils.SmartStr(attribute)
     query = """DELETE FROM tbl WHERE subject = ? AND predicate = ?
                AND timestamp >= ? AND timestamp <= ?"""
-    args = (subject, predicate, int(start), int(end))
-    self.cursor.execute(query, args)
-    self.dirty = True
-    self.deleted += self.cursor.rowcount
-
-  @utils.Synchronized
-  def DeleteAttributesRegex(self, subject, regex):
-    """Deletes all predicates that match 'regex'."""
-    subject = utils.SmartStr(subject)
-    query = "DELETE FROM tbl WHERE subject = ? AND predicate REGEXP ?"
-    args = (subject, regex)
+    args = (subject, attribute, int(start), int(end))
     self.cursor.execute(query, args)
     self.dirty = True
     self.deleted += self.cursor.rowcount
@@ -530,8 +520,8 @@ class SqliteDataStore(data_store.DataStore):
     else:
       return value
 
-  def MultiSet(self, subject, values, timestamp=None, token=None,
-               replace=True, sync=True, to_delete=None):
+  def MultiSet(self, subject, values, timestamp=None, replace=True,
+               sync=True, to_delete=None, token=None):
     """Set multiple values at once."""
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
     # All operations are synchronized.
@@ -565,7 +555,7 @@ class SqliteDataStore(data_store.DataStore):
                                          element_timestamp)
 
   def DeleteAttributes(self, subject, attributes, start=None, end=None,
-                       sync=None, token=None):
+                       sync=True, token=None):
     """Remove some attributes from a subject."""
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
     _ = sync
@@ -585,39 +575,30 @@ class SqliteDataStore(data_store.DataStore):
           sqlite_connection.DeleteAttributeRange(subject, attribute, start,
                                                  end)
 
-  def DeleteAttributesRegex(self, subject, regexes, token=None):
-    """Deletes attributes using one or more regular expressions."""
-    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
-
-    with self.cache.Get(subject) as sqlite_connection:
-      for regex in regexes:
-        sqlite_connection.DeleteAttributesRegex(subject, regex)
-
-  def DeleteSubject(self, subject, token=None, sync=False):
+  def DeleteSubject(self, subject, sync=False, token=None):
     _ = sync
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
 
     with self.cache.Get(subject) as sqlite_connection:
       sqlite_connection.DeleteSubject(subject)
 
-  def MultiResolveRegex(self, subjects, predicate_regex, token=None,
-                        timestamp=None, limit=None):
-    """Result multiple subjects using one or more predicate regexps."""
+  def MultiResolveRegex(self, subjects, attribute_regex, timestamp=None,
+                        limit=None, token=None):
+    """Result multiple subjects using one or more attribute regexps."""
     result = {}
-    nr_results = 0
 
+    remaining_limit = limit
     for subject in subjects:
-      values = self.ResolveRegex(subject, predicate_regex, token=token,
-                                 timestamp=timestamp, limit=limit)
+      values = self.ResolveRegex(subject, attribute_regex, token=token,
+                                 timestamp=timestamp, limit=remaining_limit)
 
       if values:
-        result[subject] = values
-        nr_results += len(values)
         if limit:
-          limit -= len(values)
-
-      if limit and nr_results < 0:
-        break
+          if len(values) >= remaining_limit:
+            result[subject] = values[:remaining_limit]
+            return result.iteritems()
+          remaining_limit -= len(values)
+        result[subject] = values
 
     return result.iteritems()
 
@@ -635,17 +616,17 @@ class SqliteDataStore(data_store.DataStore):
       except ValueError:
         return timestamp, timestamp
 
-  def ResolveRegex(self, subject, predicate_regex, token=None,
-                   timestamp=None, limit=None):
-    """Resolve all predicates for a subject matching a regex."""
+  def ResolveRegex(self, subject, attribute_regex, timestamp=None,
+                   limit=None, token=None):
+    """Resolve all attributes for a subject matching a regex."""
     self.security_manager.CheckDataStoreAccess(
-        token, [subject], self.GetRequiredResolveAccess(predicate_regex))
+        token, [subject], self.GetRequiredResolveAccess(attribute_regex))
 
     if limit and limit == 0:
       return []
 
-    if isinstance(predicate_regex, str):
-      predicate_regex = [predicate_regex]
+    if isinstance(attribute_regex, str):
+      attribute_regex = [attribute_regex]
 
     start, end = self._GetStartEndTimestamp(timestamp)
 
@@ -654,7 +635,7 @@ class SqliteDataStore(data_store.DataStore):
     results = []
 
     with self.cache.Get(subject) as sqlite_connection:
-      for regex in predicate_regex:
+      for regex in attribute_regex:
         nr_results = len(results)
         if limit and nr_results >= limit:
           break
@@ -663,23 +644,23 @@ class SqliteDataStore(data_store.DataStore):
           new_limit -= nr_results
         if timestamp == self.NEWEST_TIMESTAMP:
           data = sqlite_connection.GetNewestFromRegex(subject, regex, new_limit)
-          for predicate, value, ts in data:
-            value = self._Decode(predicate, value)
-            results.append((predicate, value, ts))
+          for attribute, value, ts in data:
+            value = self._Decode(attribute, value)
+            results.append((attribute, value, ts))
         else:
           data = sqlite_connection.GetValuesFromRegex(subject, regex, start,
                                                       end, new_limit)
-          for predicate, value, ts in data:
-            value = self._Decode(predicate, value)
-            results.append((predicate, value, ts))
+          for attribute, value, ts in data:
+            value = self._Decode(attribute, value)
+            results.append((attribute, value, ts))
 
       return results
 
-  def ResolveMulti(self, subject, predicates, token=None,
-                   timestamp=None, limit=None):
-    """Resolve all predicates for a subject matching a regex."""
+  def ResolveMulti(self, subject, attributes, timestamp=None,
+                   limit=None, token=None):
+    """Resolve multiple attributes for a subject."""
     self.security_manager.CheckDataStoreAccess(
-        token, [subject], self.GetRequiredResolveAccess(predicates))
+        token, [subject], self.GetRequiredResolveAccess(attributes))
 
     if limit and limit == 0:
       return []
@@ -690,24 +671,24 @@ class SqliteDataStore(data_store.DataStore):
     start, end = self._GetStartEndTimestamp(timestamp)
 
     with self.cache.Get(subject) as sqlite_connection:
-      for predicate in predicates:
+      for attribute in attributes:
         if timestamp == self.NEWEST_TIMESTAMP:
-          ret = sqlite_connection.GetNewestValue(subject, predicate)
+          ret = sqlite_connection.GetNewestValue(subject, attribute)
           if ret:
             value, ts = ret
-            value = self._Decode(predicate, value)
-            results.append((predicate, value, ts))
+            value = self._Decode(attribute, value)
+            results.append((attribute, value, ts))
             if limit and len(results) >= limit:
               break
         else:
           new_limit = limit
           if new_limit:
             new_limit = limit - len(results)
-          values = sqlite_connection.GetValues(subject, predicate, start, end,
+          values = sqlite_connection.GetValues(subject, attribute, start, end,
                                                new_limit)
           for value, ts in values:
-            value = self._Decode(predicate, value)
-            results.append((predicate, value, ts))
+            value = self._Decode(attribute, value)
+            results.append((attribute, value, ts))
         if limit and len(results) >= limit:
           break
 

@@ -10,6 +10,7 @@ Implementations should be able to pass these tests to be conformant.
 import csv
 import functools
 import hashlib
+import inspect
 import logging
 import operator
 import os
@@ -64,7 +65,7 @@ def TransactionTest(f):
   return Decorator
 
 
-class DataStoreTest(test_lib.GRRBaseTest):
+class _DataStoreTest(test_lib.GRRBaseTest):
   """Test the data store abstraction."""
   test_row = "aff4:/row:foo"
 
@@ -75,7 +76,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
   TEST_TRANSACTIONS = True
 
   def setUp(self):
-    super(DataStoreTest, self).setUp()
+    super(_DataStoreTest, self).setUp()
     self.InitDatastore()
 
     data_store.DB.DeleteSubject(self.test_row, token=self.token)
@@ -87,7 +88,7 @@ class DataStoreTest(test_lib.GRRBaseTest):
     self.acls_installed = False
 
   def tearDown(self):
-    super(DataStoreTest, self).tearDown()
+    super(_DataStoreTest, self).tearDown()
     self.DestroyDatastore()
 
   def InitDatastore(self):
@@ -300,26 +301,6 @@ class DataStoreTest(test_lib.GRRBaseTest):
 
     data_store.DB.DeleteAttributes(self.test_row, [predicate], sync=True,
                                    token=self.token)
-    (stored, _) = data_store.DB.Resolve(self.test_row, predicate,
-                                        token=self.token)
-
-    self.assertEqual(stored, None)
-
-  @DeletionTest
-  def testDeleteAttributesRegex(self):
-    """Test we can delete an attribute."""
-    predicate = "metadata:predicate"
-
-    data_store.DB.Set(self.test_row, predicate, "hello", token=self.token)
-
-    # Check its there
-    (stored, _) = data_store.DB.Resolve(self.test_row, predicate,
-                                        token=self.token)
-
-    self.assertEqual(stored, "hello")
-
-    data_store.DB.DeleteAttributesRegex(self.test_row, ["metadata:.+"],
-                                        token=self.token)
     (stored, _) = data_store.DB.Resolve(self.test_row, predicate,
                                         token=self.token)
 
@@ -1173,12 +1154,6 @@ class DataStoreTest(test_lib.GRRBaseTest):
   def _ListedResolveRegex(self, *args, **kwargs):
     return list(data_store.DB.ResolveRegex(*args, **kwargs))
 
-  def _FlushedDeleteAttributesRegex(self, *args, **kwargs):
-    # DeleteAttributesRegex is not guaranteed to be synchronous. Make sure that
-    # we flush data store when testing it.
-    data_store.DB.DeleteAttributesRegex(*args, **kwargs)
-    data_store.DB.Flush()
-
   def _FlushedDeleteSubject(self, *args, **kwargs):
     # DeleteSubject is not guaranteed to be synchronous. Make sure that
     # we flush data store when testing it.
@@ -1220,15 +1195,6 @@ class DataStoreTest(test_lib.GRRBaseTest):
         access_control.UnauthorizedAccess,
         data_store.DB.DeleteAttributes,
         self.test_row, ["metadata:predicate"], sync=True, token=self.token)
-
-  @DeletionTest
-  def testDeleteAttributesRegexChecksWriteAccess(self):
-    self._InstallACLChecks("w")
-
-    self.assertRaises(
-        access_control.UnauthorizedAccess,
-        self._FlushedDeleteAttributesRegex,
-        self.test_row, ["metadata:.+"], token=self.token)
 
   def testMultiResolveRegexChecksReadAccess(self):
     self._InstallACLChecks("r")
@@ -1319,6 +1285,73 @@ class DataStoreTest(test_lib.GRRBaseTest):
     # Check that simple resolve doesn't require query access.
     data_store.DB.Resolve(
         self.test_row, "task:00000001", token=self.token)
+
+  def testLimits(self):
+
+    # Create 10 rows with 10 attributes each.
+    subjects = ["aff4:limittest_%d" % i for i in xrange(10)]
+    attributes = ["metadata:limittest_%d" % i for i in xrange(10)]
+
+    value_idx = 0
+    for subject in subjects:
+      for attribute in attributes:
+        value = "value_%d" % value_idx
+        value_idx += 1
+        data_store.DB.Set(subject, attribute, value, token=self.token)
+
+    # ResolveRegex.
+    for limit in [1, 2, 5, 10, 100]:
+      results = data_store.DB.ResolveRegex(
+          subjects[0], "metadata:.*", limit=limit, token=self.token)
+      self.assertEqual(len(results), min(limit, 10))
+
+    # MultiResolveRegex.
+    for limit in [1, 2, 5, 9, 10, 11, 25, 100, 120]:
+      results = dict(data_store.DB.MultiResolveRegex(
+          subjects, "metadata:.*", limit=limit, token=self.token))
+      all_results = []
+      for subect_res in results.itervalues():
+        all_results.extend(subect_res)
+
+      self.assertEqual(len(all_results), min(limit, 100))
+
+    for limit in [1, 2, 5, 9, 10, 11, 25]:
+      results = dict(data_store.DB.MultiResolveRegex(
+          subjects, "metadata:limittest_7", limit=limit, token=self.token))
+      all_results = []
+      for subect_res in results.itervalues():
+        all_results.extend(subect_res)
+
+      self.assertEqual(len(all_results), min(limit, 10))
+
+    # ResolveMulti.
+    for limit in [1, 2, 5, 9, 10, 11, 25]:
+      results = list(data_store.DB.ResolveMulti(
+          subjects[2], attributes, limit=limit, token=self.token))
+
+      self.assertEqual(len(results), min(limit, 10))
+
+  def testApi(self):
+    api = ["DeleteAttributes",
+           "DeleteSubject",
+           "MultiResolveRegex",
+           "MultiSet",
+           "Resolve",
+           "ResolveMulti",
+           "ResolveRegex",
+           "Set",
+           "Transaction"]
+
+    implementation = data_store.DB
+    reference = data_store.DataStore
+
+    for f in api:
+      implementation_spec = inspect.getargspec(getattr(implementation, f))
+      reference_spec = inspect.getargspec(getattr(reference, f))
+      self.assertEqual(
+          implementation_spec, reference_spec,
+          "Signatures for function %s not matching: \n%s !=\n%s" %(
+              f, implementation_spec, reference_spec))
 
 
 class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):

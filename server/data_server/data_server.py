@@ -780,7 +780,6 @@ def Start(db, port=0, is_master=False, server_cls=ThreadedHTTPServer,
   cmd = rdfvalue.DataStoreCommand.Command
   CMDTABLE = {cmd.DELETE_ATTRIBUTES: (SERVICE.DeleteAttributes, "w"),
               cmd.DELETE_SUBJECT: (SERVICE.DeleteSubject, "w"),
-              cmd.DELETE_ATTRIBUTES_REGEX: (SERVICE.DeleteAttributesRegex, "w"),
               cmd.MULTI_SET: (SERVICE.MultiSet, "w"),
               cmd.MULTI_RESOLVE_REGEX: (SERVICE.MultiResolveRegex, "r"),
               cmd.RESOLVE_MULTI: (SERVICE.ResolveMulti, "r"),

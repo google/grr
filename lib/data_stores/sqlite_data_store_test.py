@@ -47,7 +47,7 @@ class SqliteTestMixin(object):
       pass
 
 
-class SqliteDataStoreTest(SqliteTestMixin, data_store_test.DataStoreTest):
+class SqliteDataStoreTest(SqliteTestMixin, data_store_test._DataStoreTest):
   """Test the sqlite data store."""
 
 

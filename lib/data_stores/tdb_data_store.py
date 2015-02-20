@@ -230,8 +230,8 @@ class TDBDataStore(data_store.DataStore):
     else:
       return value
 
-  def MultiSet(self, subject, values, timestamp=None, token=None,
-               replace=True, sync=True, to_delete=None):
+  def MultiSet(self, subject, values, timestamp=None,
+               replace=True, sync=True, to_delete=None, token=None):
     """Set multiple values at once."""
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
     # All operations are synchronized.
@@ -274,7 +274,7 @@ class TDBDataStore(data_store.DataStore):
                               subject, attribute, element_timestamp)
 
   def DeleteAttributes(self, subject, attributes, start=None, end=None,
-                       sync=None, token=None):
+                       sync=True, token=None):
     """Remove some attributes from a subject."""
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
     _ = sync
@@ -311,21 +311,7 @@ class TDBDataStore(data_store.DataStore):
               # Also delete the timestamp index.
               tdb_context.Delete(subject, attribute, self.INDEX_SUFFIX)
 
-  def DeleteAttributesRegex(self, subject, regexes, token=None):
-    """Deletes attributes using one or more regular expressions."""
-    matching_attributes = []
-
-    with self.cache.Get(subject) as tdb_context:
-      with TDBIndex(subject, self.INDEX_SUFFIX,
-                    context=tdb_context) as attribute_index:
-        for regex in regexes:
-          for attribute in attribute_index:
-            if re.match(regex, attribute):
-              matching_attributes.append(attribute)
-
-    self.DeleteAttributes(subject, matching_attributes, token=token)
-
-  def DeleteSubject(self, subject, token=None, sync=False):
+  def DeleteSubject(self, subject, sync=False, token=None):
     _ = sync
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
 
@@ -337,24 +323,25 @@ class TDBDataStore(data_store.DataStore):
         # Delete attribute index.
         tdb_context.Delete(subject, self.INDEX_SUFFIX)
 
-  def MultiResolveRegex(self, subjects, predicate_regex, token=None,
-                        timestamp=None, limit=None):
-    """Result multiple subjects using one or more predicate regexps."""
+  def MultiResolveRegex(self, subjects, attribute_regex,
+                        timestamp=None, limit=None, token=None):
+    """Result multiple subjects using one or more attribute regexps."""
     result = {}
-    nr_results = 0
 
+    remaining_limit = limit
     for subject in subjects:
-      values = self.ResolveRegex(subject, predicate_regex, token=token,
-                                 timestamp=timestamp, limit=limit)
+      values = self.ResolveRegex(subject, attribute_regex, token=token,
+                                 timestamp=timestamp, limit=remaining_limit)
 
       if values:
-        result[subject] = values
-        nr_results += len(values)
-        if limit:
-          limit -= len(values)
+        if remaining_limit:
+          if len(values) >= remaining_limit:
+            result[subject] = values[:remaining_limit]
+            return result.iteritems()
+          else:
+            remaining_limit -= len(values)
 
-      if limit and nr_results < 0:
-        break
+        result[subject] = values
 
     return result.iteritems()
 
@@ -363,43 +350,45 @@ class TDBDataStore(data_store.DataStore):
     with self.cache.Get(subject) as tdb_context:
       tdb_context.PrettyPrint()
 
-  def ResolveRegex(self, subject, predicate_regex, token=None,
-                   timestamp=None, limit=None):
-    """Resolve all predicates for a subject matching a regex."""
+  def ResolveRegex(self, subject, attribute_regex,
+                   timestamp=None, limit=None, token=None):
+    """Resolve all attributes for a subject matching a regex."""
     self.security_manager.CheckDataStoreAccess(
-        token, [subject], self.GetRequiredResolveAccess(predicate_regex))
+        token, [subject], self.GetRequiredResolveAccess(attribute_regex))
 
-    if isinstance(predicate_regex, str):
-      predicate_regex = [predicate_regex]
+    if isinstance(attribute_regex, str):
+      attribute_regex = [attribute_regex]
 
     # Holds all the attributes which matched. Keys are attribute names, values
     # are lists of timestamped data.
     results = []
 
     with self.cache.Get(subject) as tdb_context:
-      nr_results = 0
-      for regex in predicate_regex:
+      remaining_limit = limit
+      for regex in attribute_regex:
         regex = re.compile(regex)
 
         attribute_index = TDBIndex(subject, self.INDEX_SUFFIX,
                                    context=tdb_context)
 
         for attribute in attribute_index:
-          if limit and nr_results >= limit:
-            break
 
           if regex.match(utils.SmartUnicode(attribute)):
             for result in self._GetTimestampsForAttribute(
                 subject, attribute, timestamp, tdb_context):
               results.append(result[1:])
+              if remaining_limit:
+                remaining_limit -= 1
+                if remaining_limit == 0:
+                  return results
 
       return results
 
-  def ResolveMulti(self, subject, predicates, token=None,
-                   timestamp=None, limit=None):
-    """Resolve all predicates for a subject matching a regex."""
+  def ResolveMulti(self, subject, attributes,
+                   timestamp=None, limit=None, token=None):
+    """Resolve all attributes for a subject matching a regex."""
     self.security_manager.CheckDataStoreAccess(
-        token, [subject], self.GetRequiredResolveAccess(predicates))
+        token, [subject], self.GetRequiredResolveAccess(attributes))
 
     # Holds all the attributes which matched. Keys are attribute names, values
     # are lists of timestamped data.
@@ -408,11 +397,11 @@ class TDBDataStore(data_store.DataStore):
     with self.cache.Get(subject) as tdb_context:
       attribute_index = TDBIndex(subject, self.INDEX_SUFFIX,
                                  context=tdb_context)
-      for predicate in predicates:
-        if predicate in attribute_index:
-          for _, predicate, value, ts in self._GetTimestampsForAttribute(
-              subject, predicate, timestamp, tdb_context):
-            results.append((predicate, value, ts))
+      for attribute in attributes:
+        if attribute in attribute_index:
+          for _, attribute, value, ts in self._GetTimestampsForAttribute(
+              subject, attribute, timestamp, tdb_context):
+            results.append((attribute, value, ts))
 
         if limit and len(results) >= limit:
           break

@@ -104,12 +104,12 @@ class DataStore(object):
     self.flusher_thread.start()
     self.monitor_thread = None
 
-  def GetRequiredResolveAccess(self, predicate_regex):
+  def GetRequiredResolveAccess(self, attribute_regex):
     """Returns required level of access for resolve operations.
 
     Args:
-      predicate_regex: A string (single predicate) or a list of
-                       strings (multiple predicates).
+      attribute_regex: A string (single attribute) or a list of
+                       strings (multiple attributes).
 
     Returns:
       "r" when only read access is needed for resolve operation to succeed.
@@ -119,11 +119,12 @@ class DataStore(object):
       trees of objects (see AFF4Volume.ListChildren for details).
     """
 
-    if isinstance(predicate_regex, basestring):
-      predicate_regex = [predicate_regex]
-    predicate_regex = [utils.SmartStr(x) for x in predicate_regex]
+    if isinstance(attribute_regex, basestring):
+      attribute_regex = [utils.SmartStr(attribute_regex)]
+    else:
+      attribute_regex = [utils.SmartStr(x) for x in attribute_regex]
 
-    for regex in predicate_regex:
+    for regex in attribute_regex:
       if regex == ".*":
         continue
 
@@ -156,16 +157,16 @@ class DataStore(object):
     """Initialization of the datastore."""
 
   @abc.abstractmethod
-  def DeleteSubject(self, subject, token=None, sync=False):
+  def DeleteSubject(self, subject, sync=False, token=None):
     """Completely deletes all information about this subject."""
 
-  def Set(self, subject, predicate, value, timestamp=None, token=None,
+  def Set(self, subject, attribute, value, timestamp=None, token=None,
           replace=True, sync=True):
-    """Set a single value for this subject's predicate.
+    """Set a single value for this subject's attribute.
 
     Args:
       subject: The subject this applies to.
-      predicate: Predicate name.
+      attribute: Attribute name.
       value: serialized value into one of the supported types.
       timestamp: The timestamp for this entry in microseconds since the
               epoch. If None means now.
@@ -174,7 +175,7 @@ class DataStore(object):
       sync: If true we ensure the new values are committed before returning.
     """
     # TODO(user) don't allow subject = None
-    self.MultiSet(subject, {predicate: [value]}, timestamp=timestamp,
+    self.MultiSet(subject, {attribute: [value]}, timestamp=timestamp,
                   token=token, replace=replace, sync=sync)
 
   def RetryWrapper(self, subject, callback, retrywrap_timeout=1, token=None,
@@ -238,8 +239,8 @@ class DataStore(object):
     you want to guarantee that the object is not modified during the
     transaction, it must always be accessed with a transaction. Non
     transactioned writes will be visible to transactions. This makes it possible
-    to update predicates both under transaction and without a transaction, if
-    these predicates are independent.
+    to update attributes both under transaction and without a transaction, if
+    these attributes are independent.
 
     Users should almost always call RetryWrapper() to rety the transaction if it
     fails to commit.
@@ -256,50 +257,39 @@ class DataStore(object):
     """
 
   @abc.abstractmethod
-  def MultiSet(self, subject, values, timestamp=None, token=None,
-               replace=True, sync=True, to_delete=None):
-    """Set multiple predicates' values for this subject in one operation.
+  def MultiSet(self, subject, values, timestamp=None, replace=True, sync=True,
+               to_delete=None, token=None):
+    """Set multiple attributes' values for this subject in one operation.
 
     Args:
       subject: The subject this applies to.
-      values: A dict with keys containing predicates and values, serializations
+      values: A dict with keys containing attributes and values, serializations
               to be set. values can be a tuple of (value, timestamp). Value must
               be one of the supported types.
       timestamp: The timestamp for this entry in microseconds since the
               epoch. None means now.
-      token: An ACL token.
       replace: Bool whether or not to overwrite current records.
       sync: If true we block until the operation completes.
-      to_delete: An array of predicates to clear prior to setting.
+      to_delete: An array of attributes to clear prior to setting.
+      token: An ACL token.
     """
 
   @abc.abstractmethod
-  def DeleteAttributes(self, subject, predicates, start=None, end=None,
-                       sync=False, token=None):
-    """Remove all specified predicates.
+  def DeleteAttributes(self, subject, attributes, start=None, end=None,
+                       sync=True, token=None):
+    """Remove all specified attributes.
 
     Args:
       subject: The subject that will have these attributes removed.
-      predicates: A list of predicate URN.
+      attributes: A list of attributes.
       start: A timestamp, attributes older than start will not be deleted.
       end: A timestamp, attributes newer than end will not be deleted.
       sync: If true we block until the operation completes.
       token: An ACL token.
     """
 
-  @abc.abstractmethod
-  def DeleteAttributesRegex(self, subject, regexes, token=None):
-    """Remove all predicates according to a regex.
-
-    Args:
-      subject: The subject that will have these attributes removed.
-      regexes: A list of regular expressions to match the attributes to be
-        removed.
-      token: An ACL token.
-    """
-
-  def Resolve(self, subject, predicate, token=None):
-    """Retrieve a value set for a subject's predicate.
+  def Resolve(self, subject, attribute, token=None):
+    """Retrieve a value set for a subject's attribute.
 
     This method is easy to use but always gets the latest version of the
     attribute. It is more flexible and efficient to use the other Resolve
@@ -307,19 +297,18 @@ class DataStore(object):
 
     Args:
       subject: The subject URN.
-      predicate: The predicate URN.
+      attribute: The attribute.
       token: An ACL token.
 
     Returns:
       A (value, timestamp in microseconds) stored in the datastore cell, or
-      (None, 0) or a (decoded protobuf, timestamp) if protobuf was
-      specified. Value will be the same type as originally stored with Set().
+      (None, 0). Value will be the same type as originally stored with Set().
 
     Raises:
       AccessError: if anything goes wrong.
     """
     for _, value, timestamp in self.ResolveMulti(
-        subject, [predicate], token=token, timestamp=self.NEWEST_TIMESTAMP):
+        subject, [attribute], token=token, timestamp=self.NEWEST_TIMESTAMP):
 
       # Just return the first one.
       return value, timestamp
@@ -327,26 +316,26 @@ class DataStore(object):
     return (None, 0)
 
   @abc.abstractmethod
-  def MultiResolveRegex(self, subjects, predicate_regex, token=None,
-                        timestamp=None, limit=None):
-    """Generate a set of values matching for subjects' predicate.
+  def MultiResolveRegex(self, subjects, attribute_regex, timestamp=None,
+                        limit=None, token=None):
+    """Generate a set of values matching for subjects' attribute.
 
     Args:
       subjects: A list of subjects.
-      predicate_regex: The predicate URN regex.
-      token: An ACL token.
+      attribute_regex: The attribute regex.
 
       timestamp: A range of times for consideration (In
           microseconds). Can be a constant such as ALL_TIMESTAMPS or
           NEWEST_TIMESTAMP or a tuple of ints (start, end).
 
       limit: The number of subjects to return.
+      token: An ACL token.
 
     Returns:
-       A dict keyed by subjects, with values being a list of (predicate, value
+       A dict keyed by subjects, with values being a list of (attribute, value
        string, timestamp).
 
-       Values with the same predicate (happens when timestamp is not
+       Values with the same attribute (happens when timestamp is not
        NEWEST_TIMESTAMP, but ALL_TIMESTAMPS or time range) are guaranteed
        to be ordered in the decreasing timestamp order.
 
@@ -354,24 +343,25 @@ class DataStore(object):
       AccessError: if anything goes wrong.
     """
 
-  def ResolveRegex(self, subject, predicate_regex, token=None,
-                   timestamp=None, limit=1000):
-    """Retrieve a set of value matching for this subject's predicate.
+  def ResolveRegex(self, subject, attribute_regex, timestamp=None,
+                   limit=None, token=None):
+    """Retrieve a set of value matching for this subject's attribute.
 
     Args:
       subject: The subject that we will search.
-      predicate_regex: The predicate URN regex.
-      token: An ACL token.
+      attribute_regex: The attribute regex.
 
       timestamp: A range of times for consideration (In
           microseconds). Can be a constant such as ALL_TIMESTAMPS or
           NEWEST_TIMESTAMP or a tuple of ints (start, end).
 
-      limit: The number of predicates to fetch.
-    Returns:
-       A list of (predicate, value string, timestamp).
+      limit: The number of results to fetch.
+      token: An ACL token.
 
-       Values with the same predicate (happens when timestamp is not
+    Returns:
+       A list of (attribute, value string, timestamp).
+
+       Values with the same attribute (happens when timestamp is not
        NEWEST_TIMESTAMP, but ALL_TIMESTAMPS or time range) are guaranteed
        to be ordered in the decreasing timestamp order.
 
@@ -379,12 +369,16 @@ class DataStore(object):
       AccessError: if anything goes wrong.
     """
     for _, values in self.MultiResolveRegex(
-        [subject], predicate_regex, timestamp=timestamp, token=token,
+        [subject], attribute_regex, timestamp=timestamp, token=token,
         limit=limit):
       values.sort(key=lambda a: a[0])
       return values
 
     return []
+
+  def ResolveMulti(self, subject, attributes, timestamp=None, limit=None,
+                   token=None):
+    """Resolve multiple attributes for a subject."""
 
   def ResolveRow(self, subject, **kw):
     return self.ResolveRegex(subject, ".*", **kw)
@@ -435,42 +429,40 @@ class Transaction(object):
     """
 
   @abc.abstractmethod
-  def DeleteAttribute(self, predicate):
-    """Remove a predicate.
+  def DeleteAttribute(self, attribute):
+    """Remove an attribute.
 
     Args:
-      predicate: The predicate URN.
+      attribute: The attribute to delete.
     """
 
   @abc.abstractmethod
-  def Resolve(self, predicate):
-    """Retrieve a value set for this subject's predicate.
+  def Resolve(self, attribute):
+    """Retrieve a value set for this subject's attribute.
 
     Args:
-      predicate: The predicate URN.
+      attribute: The attribute to retrieve.
 
     Returns:
-       A (string, timestamp), or (None, 0) or a (decoded protobuf, timestamp) if
-       protobuf was specified.
+       A (string, timestamp), or (None, 0).
 
     Raises:
       AccessError: if anything goes wrong.
     """
 
   @abc.abstractmethod
-  def ResolveRegex(self, predicate_regex, timestamp=None):
-    """Retrieve a set of values matching for this subject's predicate.
+  def ResolveRegex(self, attribute_regex, timestamp=None):
+    """Retrieve a set of values matching for this subject's attribute.
 
     Args:
-      predicate_regex: The predicate URN regex.
+      attribute_regex: The attribute regex.
 
       timestamp: A range of times for consideration (In
           microseconds). Can be a constant such as ALL_TIMESTAMPS or
           NEWEST_TIMESTAMP or a tuple of ints (start, end).
 
     Yields:
-       A (predicate, value string, timestamp), or a (predicate, decoded
-       protobuf, timestamp) if protobuf was specified.
+       Tuples of the form (attribute, value string, timestamp).
 
     Raises:
       AccessError: if anything goes wrong.
@@ -492,14 +484,14 @@ class Transaction(object):
     return True
 
   @abc.abstractmethod
-  def Set(self, predicate, value, timestamp=None, replace=True):
-    """Set a new value for this subject's predicate.
+  def Set(self, attribute, value, timestamp=None, replace=True):
+    """Set a new value for this subject's attribute.
 
     Note that the value will only be set when this transaction is
     committed.
 
     Args:
-      predicate: The attribute to be set.
+      attribute: The attribute to be set.
       value:  The value to be set (Can be a protobuf).
       timestamp: (In microseconds). If specified it overrides the update
                  time of this attribute.
@@ -536,10 +528,10 @@ class CommonTransaction(Transaction):
       return 0
     return max(0, self.expires - time.time())
 
-  def DeleteAttribute(self, predicate):
-    self.to_delete.add(predicate)
+  def DeleteAttribute(self, attribute):
+    self.to_delete.add(attribute)
 
-  def ResolveRegex(self, predicate_regex, timestamp=None):
+  def ResolveRegex(self, attribute_regex, timestamp=None):
     # Break up the timestamp argument.
     if isinstance(timestamp, (list, tuple)):
       start, end = timestamp  # pylint: disable=unpacking-non-sequence
@@ -560,54 +552,62 @@ class CommonTransaction(Transaction):
     end = int(end)
 
     # Compile the regular expression.
-    regex = re.compile(predicate_regex)
+    regex = re.compile(attribute_regex)
 
     # Get all results from to_set.
     results = []
     if self.to_set:
-      for predicate, values in self.to_set.items():
-        if regex.match(utils.SmartStr(predicate)):
-          results.extend([(predicate, value, ts) for value, ts in values
+      for attribute, values in self.to_set.items():
+        if regex.match(utils.SmartStr(attribute)):
+          results.extend([(attribute, value, ts) for value, ts in values
                           if start <= ts <= end])
 
     # And also the results from the database.
-    ds_results = self.store.ResolveRegex(self.subject, predicate_regex,
+    ds_results = self.store.ResolveRegex(self.subject, attribute_regex,
                                          timestamp=timestamp,
                                          token=self.token)
 
     # Must filter 'to_delete' from 'ds_results'.
     if self.to_delete:
       for val in ds_results:
-        predicate, value, ts = val
-        if predicate not in self.to_delete:
+        attribute, value, ts = val
+        if attribute not in self.to_delete:
           results.append(val)
     else:
       results.extend(ds_results)
 
     if timestamp == DataStore.NEWEST_TIMESTAMP:
-      # For each predicate, select the value with the newest timestamp.
-      predicates = {predicate for predicate, value, ts in results}
-      results = [max(results, key=lambda (p, val, ts): 0 if p != pred else ts)
-                 for pred in predicates]
+      # For each attribute, select the value with the newest timestamp.
+      newest_results = {}
+      for attribute, value, ts in results:
+        current = newest_results.get(attribute, None)
+        if current:
+          _, _, current_ts = current
+          if ts > current_ts:
+            newest_results[attribute] = (attribute, value, ts)
+        else:
+          newest_results[attribute] = (attribute, value, ts)
 
-    return sorted(results, key=lambda (p, val, ts): (p, ts, val))
+      results = newest_results.values()
 
-  def Set(self, predicate, value, timestamp=None, replace=True):
+    return sorted(results, key=lambda (a, val, ts): (a, ts, val))
+
+  def Set(self, attribute, value, timestamp=None, replace=True):
     if replace:
-      self.to_delete.add(predicate)
+      self.to_delete.add(attribute)
 
     if timestamp is None:
       timestamp = int(time.time() * 1e6)
 
-    self.to_set.setdefault(predicate, []).append((value, int(timestamp)))
+    self.to_set.setdefault(attribute, []).append((value, int(timestamp)))
 
-  def Resolve(self, predicate):
-    if predicate in self.to_set:
-      return max(self.to_set[predicate], key=lambda vt: vt[1])
-    if predicate in self.to_delete:
+  def Resolve(self, attribute):
+    if attribute in self.to_set:
+      return max(self.to_set[attribute], key=lambda vt: vt[1])
+    if attribute in self.to_delete:
       return (None, 0)
 
-    return self.store.Resolve(self.subject, predicate, token=self.token)
+    return self.store.Resolve(self.subject, attribute, token=self.token)
 
   def Commit(self):
     if not self.CheckLease():

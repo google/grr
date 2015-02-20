@@ -1785,14 +1785,14 @@ class ClientFixture(object):
 
   def CreateClientObject(self, vfs_fixture):
     """Make a new client object."""
+
+    # First remove the old fixture just in case its still there.
+    aff4.FACTORY.Delete(self.client_id, token=self.token)
+
     # Create the fixture at a fixed time.
     with FakeTime(self.age):
       for path, (aff4_type, attributes) in vfs_fixture:
         path %= self.args
-
-        # First remove the old fixture just in case its still there.
-        data_store.DB.DeleteAttributesRegex(
-            self.client_id.Add(path), aff4.AFF4_PREFIXES, token=self.token)
 
         aff4_object = aff4.FACTORY.Create(self.client_id.Add(path),
                                           aff4_type, mode="rw",

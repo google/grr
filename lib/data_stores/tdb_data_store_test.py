@@ -41,7 +41,7 @@ class TDBTestMixin(object):
       pass
 
 
-class TDBDataStoreTest(TDBTestMixin, data_store_test.DataStoreTest):
+class TDBDataStoreTest(TDBTestMixin, data_store_test._DataStoreTest):
   """Test the tdb data store."""
 
 

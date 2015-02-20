@@ -580,7 +580,7 @@ class QueueManager(object):
             queue_shard, [predicate], token=self.token,
             # Make the time range narrow, but be sure to include the needed
             # notification.
-            start=ts, end=ts)
+            start=ts, end=ts, sync=True)
         continue
 
       # Strip the prefix from the predicate to get the session_id.
@@ -665,7 +665,7 @@ class QueueManager(object):
     for queue_shard in self.GetAllNotificationShards(session_id.Queue()):
       data_store.DB.DeleteAttributes(
           queue_shard, [self.NOTIFY_PREDICATE_PREFIX % session_id],
-          token=self.token, start=start, end=end)
+          token=self.token, start=start, end=end, sync=True)
 
   def Query(self, queue, limit=1, task_id=None):
     """Retrieves tasks from a queue without leasing them.
