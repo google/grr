@@ -11,7 +11,8 @@ message DataStoreCommand {
     RESOLVE_MULTI = 2;
     DELETE_SUBJECT = 3;
     DELETE_ATTRIBUTES = 4;
-    DELETE_ATTRIBUTES_REGEX = 5;
+    // Deprecated.
+    // DELETE_ATTRIBUTES_REGEX = 5;
     LOCK_SUBJECT = 6;
     UNLOCK_SUBJECT = 7;
     EXTEND_SUBJECT = 8;

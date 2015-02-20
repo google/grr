@@ -187,6 +187,9 @@ def main(argv=None):
       labels = set(flags.FLAGS.labels)
 
       for name, cls in test_lib.GRRBaseTest.classes.items():
+        if name.startswith("_"):
+          continue
+
         if labels and not DoesTestHaveLabels(cls, labels):
           continue
 

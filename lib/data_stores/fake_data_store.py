@@ -178,25 +178,9 @@ class FakeDataStore(data_store.DataStore):
       pass
 
   @utils.Synchronized
-  def DeleteAttributesRegex(self, subject, regexes, token=None):
-    self.security_manager.CheckDataStoreAccess(token, [subject], "w")
-    for regex in regexes:
-      regex_compiled = re.compile(regex)
-      subject = utils.SmartUnicode(subject)
-      try:
-        record = self.subjects[subject]
-
-        for attribute in list(record):
-          if regex_compiled.match(utils.SmartStr(attribute)):
-            record.pop(attribute)
-
-      except KeyError:
-        pass
-
-  @utils.Synchronized
-  def MultiResolveRegex(self, subjects, predicate_regex, token=None,
+  def MultiResolveRegex(self, subjects, attribute_regex, token=None,
                         timestamp=None, limit=None):
-    required_access = self.GetRequiredResolveAccess(predicate_regex)
+    required_access = self.GetRequiredResolveAccess(attribute_regex)
 
     result = {}
     for subject in subjects:
@@ -204,20 +188,29 @@ class FakeDataStore(data_store.DataStore):
       self.security_manager.CheckDataStoreAccess(token, [subject],
                                                  required_access)
 
-      values = self.ResolveRegex(subject, predicate_regex, token=token,
+      values = self.ResolveRegex(subject, attribute_regex, token=token,
                                  timestamp=timestamp, limit=limit)
 
-      if values:
+      if not values:
+        continue
+
+      if limit:
+        if limit < len(values):
+          values = values[:limit]
         result[subject] = values
-        if limit:
-          limit -= len(values)
+        limit -= len(values)
+        if limit <= 0:
+          return result.iteritems()
+      else:
+        result[subject] = values
 
     return result.iteritems()
 
   @utils.Synchronized
-  def ResolveMulti(self, subject, predicates, token=None, timestamp=None):
+  def ResolveMulti(self, subject, attributes, timestamp=None, limit=None,
+                   token=None):
     self.security_manager.CheckDataStoreAccess(
-        token, [subject], self.GetRequiredResolveAccess(predicates))
+        token, [subject], self.GetRequiredResolveAccess(attributes))
 
     # Does timestamp represent a range?
     if isinstance(timestamp, (list, tuple)):
@@ -228,8 +221,8 @@ class FakeDataStore(data_store.DataStore):
     start = int(start)
     end = int(end)
 
-    if isinstance(predicates, str):
-      predicates = [predicates]
+    if isinstance(attributes, str):
+      attributes = [attributes]
 
     subject = utils.SmartUnicode(subject)
     try:
@@ -240,9 +233,9 @@ class FakeDataStore(data_store.DataStore):
     # Holds all the attributes which matched. Keys are attribute names, values
     # are lists of timestamped data.
     results = {}
-    for predicate in predicates:
-      for attribute, values in record.iteritems():
-        if predicate == attribute:
+    for attribute in attributes:
+      for attr, values in record.iteritems():
+        if attr == attribute:
           for value, ts in values:
             results_list = results.setdefault(attribute, [])
             # If we are always after the latest ts we clear older ones.
@@ -258,17 +251,24 @@ class FakeDataStore(data_store.DataStore):
             results_list.append((attribute, ts, value))
 
     # Return the results in the same order they requested.
-    for predicate in predicates:
-      for v in sorted(results.get(predicate, []), key=lambda x: x[1],
+    remaining_limit = limit
+    for attribute in attributes:
+      for v in sorted(results.get(attribute, []), key=lambda x: x[1],
                       reverse=True):
-        yield (predicate, v[2], v[1])
+        if remaining_limit:
+          remaining_limit -= 1
+          if remaining_limit == 0:
+            yield (attribute, v[2], v[1])
+            return
+
+        yield (attribute, v[2], v[1])
 
   @utils.Synchronized
-  def ResolveRegex(self, subject, predicate_regex, token=None,
+  def ResolveRegex(self, subject, attribute_regex, token=None,
                    timestamp=None, limit=None):
-    """Resolve all predicates for a subject matching a regex."""
+    """Resolve all attributes for a subject matching a regex."""
     self.security_manager.CheckDataStoreAccess(
-        token, [subject], self.GetRequiredResolveAccess(predicate_regex))
+        token, [subject], self.GetRequiredResolveAccess(attribute_regex))
 
     # Does timestamp represent a range?
     if isinstance(timestamp, (list, tuple)):
@@ -279,8 +279,8 @@ class FakeDataStore(data_store.DataStore):
     start = int(start)
     end = int(end)
 
-    if isinstance(predicate_regex, str):
-      predicate_regex = [predicate_regex]
+    if isinstance(attribute_regex, str):
+      attribute_regex = [attribute_regex]
 
     subject = utils.SmartUnicode(subject)
     try:
@@ -292,7 +292,7 @@ class FakeDataStore(data_store.DataStore):
     # are lists of timestamped data.
     results = {}
     nr_results = 0
-    for regex in predicate_regex:
+    for regex in attribute_regex:
       regex = re.compile(regex)
 
       for attribute, values in record.iteritems():

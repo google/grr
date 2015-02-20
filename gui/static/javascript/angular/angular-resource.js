@@ -1,5 +1,5 @@
 /**
- * @license AngularJS v1.3.13-local+sha.ce49d4d
+ * @license AngularJS v1.3.14-build.14+sha.5fbac74
  * (c) 2010-2014 Google, Inc. http://angularjs.org
  * License: MIT
  */
@@ -213,6 +213,7 @@ function shallowClearAndCopy(src, dst) {
  *   - HTTP GET "class" actions: `Resource.action([parameters], [success], [error])`
  *   - non-GET "class" actions: `Resource.action([parameters], postData, [success], [error])`
  *   - non-GET instance actions:  `instance.$action([parameters], [success], [error])`
+ *
  *
  *   Success callback is called with (value, responseHeaders) arguments. Error callback is called
  *   with (httpResponse) argument.

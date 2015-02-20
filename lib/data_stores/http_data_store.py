@@ -493,7 +493,7 @@ class HTTPDataStore(data_store.DataStore):
       return server.MakeRequestAndContinue(cmd, subject)
 
   def DeleteAttributes(self, subject, attributes, start=None, end=None,
-                       token=None, sync=None):
+                       sync=True, token=None):
     request = rdfvalue.DataStoreRequest(subject=[subject])
 
     # Set timestamp.
@@ -510,24 +510,10 @@ class HTTPDataStore(data_store.DataStore):
       request.sync = sync
 
     for attr in attributes:
-      request.values.Append(predicate=attr)
+      request.values.Append(attribute=attr)
 
     typ = rdfvalue.DataStoreCommand.Command.DELETE_ATTRIBUTES
     self._MakeRequestSyncOrAsync(request, typ, sync)
-
-  def DeleteAttributesRegex(self, subject, regexes, token=None):
-    """Implement the DeleteAttributesRegex interface."""
-    request = rdfvalue.DataStoreRequest(subject=[subject])
-    if token:
-      request.token = token
-
-    if isinstance(regexes, basestring):
-      regexes = [regexes]
-    for regex in regexes:
-      request.values.Append(predicate=regex)
-
-    typ = rdfvalue.DataStoreCommand.Command.DELETE_ATTRIBUTES_REGEX
-    self._MakeSyncRequest(request, typ)
 
   def DeleteSubject(self, subject, sync=False, token=None):
     request = rdfvalue.DataStoreRequest(subject=[subject])
@@ -537,10 +523,10 @@ class HTTPDataStore(data_store.DataStore):
     typ = rdfvalue.DataStoreCommand.Command.DELETE_SUBJECT
     self._MakeRequestSyncOrAsync(request, typ, sync)
 
-  def _MakeRequest(self, subjects, predicates, timestamp=None, token=None,
+  def _MakeRequest(self, subjects, attributes, timestamp=None, token=None,
                    limit=None):
-    if isinstance(predicates, basestring):
-      predicates = [predicates]
+    if isinstance(attributes, basestring):
+      attributes = [attributes]
 
     request = rdfvalue.DataStoreRequest(subject=subjects)
     if limit:
@@ -553,20 +539,21 @@ class HTTPDataStore(data_store.DataStore):
     if timestamp is not None:
       request.timestamp = self.TimestampSpecFromTimestamp(timestamp)
 
-    for predicate in predicates:
-      request.values.Append(predicate=predicate)
+    for attribute in attributes:
+      request.values.Append(attribute=attribute)
 
     return request
 
-  def MultiResolveRegex(self, subjects, predicate_regex,
-                        timestamp=None, token=None, limit=None):
+  def MultiResolveRegex(self, subjects, attribute_regex,
+                        timestamp=None, limit=None, token=None):
     """MultiResolveRegex."""
     typ = rdfvalue.DataStoreCommand.Command.MULTI_RESOLVE_REGEX
     results = {}
+    remaining_limit = limit
     for subject in subjects:
-      request = self._MakeRequest([subject], predicate_regex,
+      request = self._MakeRequest([subject], attribute_regex,
                                   timestamp=timestamp, token=token,
-                                  limit=limit)
+                                  limit=remaining_limit)
 
       response = self._MakeSyncRequest(request, typ)
 
@@ -574,12 +561,18 @@ class HTTPDataStore(data_store.DataStore):
         result_set = response.results[0]
         values = [(pred, self._Decode(value), ts)
                   for (pred, value, ts) in result_set.payload]
+        if limit:
+          if len(values) >= remaining_limit:
+            results[result_set.subject] = values[:remaining_limit]
+            return results.iteritems()
+          remaining_limit -= len(values)
+
         results[result_set.subject] = values
 
     return results.iteritems()
 
-  def MultiSet(self, subject, values, timestamp=None, token=None,
-               replace=True, to_delete=None, sync=True):
+  def MultiSet(self, subject, values, timestamp=None, replace=True,
+               sync=True, to_delete=None, token=None):
     """MultiSet."""
     request = rdfvalue.DataStoreRequest(sync=sync)
     token = token or data_store.default_token
@@ -593,9 +586,9 @@ class HTTPDataStore(data_store.DataStore):
       timestamp = now
 
     to_delete = set(to_delete or [])
-    for predicate in to_delete:
-      if predicate not in values:
-        values[predicate] = [(None, 0)]
+    for attribute in to_delete:
+      if attribute not in values:
+        values[attribute] = [(None, 0)]
 
     for k, seq in values.items():
       for v in seq:
@@ -612,7 +605,7 @@ class HTTPDataStore(data_store.DataStore):
           option = rdfvalue.DataStoreValue.Option.REPLACE
 
         new_value = request.values.Append(
-            predicate=utils.SmartUnicode(k),
+            attribute=utils.SmartUnicode(k),
             option=option)
 
         if element_timestamp is None:
@@ -627,28 +620,19 @@ class HTTPDataStore(data_store.DataStore):
     typ = rdfvalue.DataStoreCommand.Command.MULTI_SET
     self._MakeRequestSyncOrAsync(request, typ, sync)
 
-  def ResolveMulti(self, subject, attributes, token=None,
-                   timestamp=None):
+  def ResolveMulti(self, subject, attributes, timestamp=None, limit=None,
+                   token=None):
     """ResolveMulti."""
-    request = rdfvalue.DataStoreRequest()
-    if timestamp is not None:
-      request.timestamp = self.TimestampSpecFromTimestamp(timestamp)
-
-    token = token or data_store.default_token
-    if token:
-      request.token = token
-
-    request.subject.Append(subject)
-    for attribute in attributes:
-      request.values.Append(predicate=attribute)
+    request = self._MakeRequest([subject], attributes, timestamp=timestamp,
+                                limit=limit, token=token)
 
     typ = rdfvalue.DataStoreCommand.Command.RESOLVE_MULTI
     response = self._MakeSyncRequest(request, typ)
 
     results = []
     for result in response.results:
-      for (predicate, value, timestamp) in result.payload:
-        results.append((predicate, self._Decode(value), timestamp))
+      for (attribute, value, timestamp) in result.payload:
+        results.append((attribute, self._Decode(value), timestamp))
     return results
 
   def _Decode(self, value):

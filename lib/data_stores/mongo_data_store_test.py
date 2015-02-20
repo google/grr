@@ -42,7 +42,7 @@ class MongoTestMixin(object):
     self.assertTrue(isinstance(data_store.DB, mongo_data_store.MongoDataStore))
 
 
-class MongoDataStoreTest(MongoTestMixin, data_store_test.DataStoreTest):
+class MongoDataStoreTest(MongoTestMixin, data_store_test._DataStoreTest):
   """Test the mongo data store abstraction."""
 
 

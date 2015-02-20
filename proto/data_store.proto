@@ -33,7 +33,7 @@ message TimestampSpec {
 
 
 message DataStoreValue {
-  optional string predicate = 1;
+  optional string attribute = 1;
   optional DataBlob value = 2;
 
   optional TimestampSpec timestamp = 5;

@@ -199,7 +199,15 @@ class TSKFile(vfs.VFSHandler):
     meta = info.meta
     if meta:
       response.st_ino = meta.addr
-      for attribute in "mode nlink uid gid size atime mtime ctime".split():
+      for attribute in ["mode",
+                        "nlink",
+                        "uid",
+                        "gid",
+                        "size",
+                        "atime",
+                        "mtime",
+                        "ctime",
+                        "crtime"]:
         try:
           value = int(getattr(meta, attribute))
           if value < 0: value &= 0xFFFFFFFF

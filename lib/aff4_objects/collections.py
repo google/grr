@@ -430,7 +430,7 @@ class PackedVersionedCollection(RDFValueCollection):
 
     predicates = [cls.index_format % urn for urn in urns]
     data_store.DB.DeleteAttributes(cls.notification_queue, predicates,
-                                   end=end, token=token)
+                                   end=end, token=token, sync=True)
 
   @classmethod
   def AddToCollection(cls, collection_urn, rdf_values, sync=True,

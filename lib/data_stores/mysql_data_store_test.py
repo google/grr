@@ -45,7 +45,7 @@ class MysqlTestMixin(object):
     self.assertTrue(isinstance(data_store.DB, mysql_data_store.MySQLDataStore))
 
 
-class MysqlDataStoreTest(MysqlTestMixin, data_store_test.DataStoreTest):
+class MysqlDataStoreTest(MysqlTestMixin, data_store_test._DataStoreTest):
   """Test the mysql data store abstraction."""
 
 

@@ -2,6 +2,7 @@
 """This plugin renders the client search page."""
 
 import json
+import shlex
 import time
 
 from django.utils import datastructures
@@ -10,6 +11,7 @@ from grr.gui import renderers
 from grr.gui.plugins import semantic
 from grr.lib import access_control
 from grr.lib import aff4
+from grr.lib import client_index
 from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import rdfvalue
@@ -706,9 +708,24 @@ class HostTable(renderers.TableRenderer):
       return False
 
     try:
-      result_urns = search.SearchClients(query_string, start=start,
-                                         max_results=end - start,
-                                         token=request.token)
+      # If the string begins with the token k, we treat the remaining tokens as
+      # a keyword search. This is to allow people to try the keyword
+      # functionality.
+      #
+      # TODO(user): Migrate fully to keyword index when it is sufficiently
+      # tuned and tested.
+      if query_string[:2] == "k ":
+        keywords = shlex.split(query_string)[1:]
+        index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
+                                    aff4_type="ClientIndex",
+                                    mode="rw",
+                                    token=self.token)
+        result_urns = index.LookupClients(keywords)
+      else:
+        result_urns = search.SearchClients(query_string,
+                                           start=start,
+                                           max_results=end - start,
+                                           token=request.token)
       result_set = aff4.FACTORY.MultiOpen(result_urns, token=request.token)
 
       self.message = "Searched for %s" % query_string

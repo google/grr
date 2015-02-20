@@ -113,14 +113,14 @@ class DataStoreService(object):
 
     for value in request.values:
       if value.option == rdfvalue.DataStoreValue.Option.REPLACE:
-        to_delete.add(value.predicate)
+        to_delete.add(value.attribute)
 
       timestamp = self.FromTimestampSpec(request.timestamp)
       if value.HasField("value"):
         if value.HasField("timestamp"):
           timestamp = self.FromTimestampSpec(value.timestamp)
 
-        values.setdefault(value.predicate, []).append(
+        values.setdefault(value.attribute, []).append(
             (value.value.GetValue(), timestamp))
 
     self.db.MultiSet(request.subject[0], values, to_delete=to_delete,
@@ -130,39 +130,39 @@ class DataStoreService(object):
   @RPCWrapper
   def ResolveMulti(self, request, response):
     """Resolve multiple attributes for a given subject at once."""
-    predicate_regex = []
+    attribute_regex = []
 
     for v in request.values:
-      predicate_regex.append(v.predicate)
+      attribute_regex.append(v.attribute)
 
     timestamp = self.FromTimestampSpec(request.timestamp)
     subject = request.subject[0]
 
     values = self.db.ResolveMulti(
-        subject, predicate_regex, timestamp=timestamp,
-        token=request.token)
+        subject, attribute_regex, timestamp=timestamp,
+        limit=request.limit, token=request.token)
 
     response.results.Append(
         subject=subject,
-        payload=[(predicate, self._Encode(value), int(ts))
-                 for (predicate, value, ts) in values if value])
+        payload=[(attribute, self._Encode(value), int(ts))
+                 for (attribute, value, ts) in values if value])
 
   @RPCWrapper
   def MultiResolveRegex(self, request, response):
     """Resolve multiple attributes for a given subject at once."""
-    predicate_regex = [utils.SmartUnicode(v.predicate) for v in request.values]
+    attribute_regex = [utils.SmartUnicode(v.attribute) for v in request.values]
 
     timestamp = self.FromTimestampSpec(request.timestamp)
     subjects = list(request.subject)
 
     for subject, values in self.db.MultiResolveRegex(
-        subjects, predicate_regex, timestamp=timestamp,
+        subjects, attribute_regex, timestamp=timestamp,
         token=request.token,
         limit=request.limit):
       response.results.Append(
           subject=subject,
-          payload=[(utils.SmartStr(predicate), self._Encode(value), int(ts))
-                   for (predicate, value, ts) in values])
+          payload=[(utils.SmartStr(attribute), self._Encode(value), int(ts))
+                   for (attribute, value, ts) in values])
 
   @RPCWrapper
   def DeleteAttributes(self, request, unused_response):
@@ -171,17 +171,10 @@ class DataStoreService(object):
     subject = request.subject[0]
     sync = request.sync
     token = request.token
-    attributes = [v.predicate for v in request.values]
+    attributes = [v.attribute for v in request.values]
     start, end = timestamp  # pylint: disable=unpacking-non-sequence
     self.db.DeleteAttributes(subject, attributes, start=start, end=end,
                              token=token, sync=sync)
-
-  @RPCWrapper
-  def DeleteAttributesRegex(self, request, unused_response):
-    subject = request.subject[0]
-    token = request.token
-    attr_regexes = [v.predicate for v in request.values]
-    self.db.DeleteAttributesRegex(subject, attr_regexes, token=token)
 
   @RPCWrapper
   def DeleteSubject(self, request, unused_response):
