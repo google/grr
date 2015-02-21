@@ -380,9 +380,6 @@ class DataStore(object):
                    token=None):
     """Resolve multiple attributes for a subject."""
 
-  def ResolveRow(self, subject, **kw):
-    return self.ResolveRegex(subject, ".*", **kw)
-
   def Flush(self):
     """Flushes the DataStore."""
 

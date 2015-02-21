@@ -166,7 +166,8 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       return -1
     return int(result[0]["size"])
 
-  def DeleteAttributes(self, subject, attributes, start=None, end=None, sync=None, token=None):
+  def DeleteAttributes(self, subject, attributes, start=None, end=None,
+                       sync=True, token=None):
     """Remove some attributes from a subject."""
     _ = sync  # Unused
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
@@ -175,37 +176,44 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
     for attribute in attributes:
       timestamp = self._MakeTimestamp(start, end)
-      predicate = utils.SmartUnicode(attribute)
-      transaction = self._BuildDelete(subject, predicate, timestamp)
+      attribute = utils.SmartUnicode(attribute)
+      transaction = self._BuildDelete(subject, attribute, timestamp)
       self._ExecuteTransaction(transaction)
 
-  def DeleteSubject(self, subject, token=None, sync=False):
+  def DeleteSubject(self, subject, sync=False, token=None):
     _ = sync
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
 
     transaction = self._BuildDelete(subject)
     self._ExecuteTransaction(transaction)
 
-  def ResolveMulti(self, subject, predicates, token=None, timestamp=None):
-    """Resolves multiple predicates at once for one subject."""
+  def ResolveMulti(self, subject, attributes, timestamp=None, limit=None,
+                   token=None):
+    """Resolves multiple attributes at once for one subject."""
     self.security_manager.CheckDataStoreAccess(
-        token, [subject], self.GetRequiredResolveAccess(predicates))
+        token, [subject], self.GetRequiredResolveAccess(attributes))
 
-    for predicate in predicates:
-      query, args = self._BuildQuery(subject, predicate, timestamp)
+    for attribute in attributes:
+      query, args = self._BuildQuery(subject, attribute, timestamp, limit)
       result = self._ExecuteQuery(query, args)
 
       for row in result:
-        value = self._Decode(predicate, row["value"])
+        value = self._Decode(attribute, row["value"])
 
-        yield predicate, value, rdfvalue.RDFDatetime(row["timestamp"])
+        yield attribute, value, rdfvalue.RDFDatetime(row["timestamp"])
 
-  def MultiResolveRegex(self, subjects, predicate_regex, token=None, timestamp=None, limit=None):
-    """Result multiple subjects using one or more predicate regexps."""
+      if limit:
+        limit -= len(result)
+
+      if limit is not None and limit <= 0:
+        break
+
+  def MultiResolveRegex(self, subjects, attribute_regex, timestamp=None, limit=None, token=None):
+    """Result multiple subjects using one or more attribute regexps."""
     result = {}
 
     for subject in subjects:
-      values = self.ResolveRegex(subject, predicate_regex, token=token,
+      values = self.ResolveRegex(subject, attribute_regex, token=token,
                                  timestamp=timestamp, limit=limit)
 
       if values:
@@ -218,17 +226,17 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
     return result.iteritems()
 
-  def ResolveRegex(self, subject, predicate_regex, token=None, timestamp=None, limit=None):
+  def ResolveRegex(self, subject, attribute_regex, timestamp=None, limit=None, token=None):
     self.security_manager.CheckDataStoreAccess(
-        token, subject, self.GetRequiredResolveAccess(predicate_regex))
+        token, subject, self.GetRequiredResolveAccess(attribute_regex))
 
-    if isinstance(predicate_regex, basestring):
-      predicate_regex = [predicate_regex]
+    if isinstance(attribute_regex, basestring):
+      attribute_regex = [attribute_regex]
 
     results = []
     seen = set()
 
-    for regex in predicate_regex:
+    for regex in attribute_regex:
       query, args = self._BuildQuery(subject, regex, timestamp, limit, is_regex=True)
       rows = self._ExecuteQuery(query, args)
 
@@ -239,9 +247,9 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
     return results
 
-  def MultiSet(self, subject, values, timestamp=None, token=None, replace=True,
-               sync=True, to_delete=None):
-    """Set multiple predicates' values for this subject in one operation."""
+  def MultiSet(self, subject, values, timestamp=None, replace=True, sync=True,
+               to_delete=None, token=None):
+    """Set multiple attributes' values for this subject in one operation."""
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
     to_delete = set(to_delete or [])
     if timestamp is None:
@@ -263,28 +271,28 @@ class MySQLAdvancedDataStore(data_store.DataStore):
         if entry_timestamp is None:
           entry_timestamp = timestamp
 
-        predicate = utils.SmartUnicode(attribute)
+        attribute = utils.SmartUnicode(attribute)
         data = self._Encode(value)
 
         # Replacing means to delete all versions of the attribute first.
         if replace or attribute in to_delete:
-          duplicates = self._CountDuplicateAttributes(subject, predicate)
+          duplicates = self._CountDuplicateAttributes(subject, attribute)
           if duplicates > 1:
             to_delete.add(attribute)
             to_insert.append(
-                [subject, predicate, data, int(entry_timestamp)])
+                [subject, attribute, data, int(entry_timestamp)])
           else:
             if attribute in to_delete:
               to_delete.remove(attribute)
             if duplicates == 0:
               to_insert.append(
-                  [subject, predicate, data, int(entry_timestamp)])
+                  [subject, attribute, data, int(entry_timestamp)])
             elif duplicates == 1:
               to_replace.append(
-                  [subject, predicate, data, int(entry_timestamp)])
+                  [subject, attribute, data, int(entry_timestamp)])
         else:
           to_insert.append(
-              [subject, predicate, data, int(entry_timestamp)])
+              [subject, attribute, data, int(entry_timestamp)])
 
     if to_delete:
       self.DeleteAttributes(subject, to_delete, token=token)
@@ -310,21 +318,21 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       transaction = self._BuildInserts(to_insert)
       self._ExecuteTransaction(transaction)
 
-  def _CountDuplicateAttributes(self, subject, predicate):
+  def _CountDuplicateAttributes(self, subject, attribute):
     query = "SELECT count(*) AS total FROM aff4 WHERE \
 subject_hash=unhex(md5(%s)) AND attribute_hash=unhex(md5(%s))"
-    args = [subject, predicate]
+    args = [subject, attribute]
     result = self._ExecuteQuery(query, args)
     return int(result[0]["total"])
 
   def _BuildReplaces(self, values):
     transaction = []
 
-    for (subject, predicate, value, timestamp) in values:
+    for (subject, attribute, value, timestamp) in values:
       aff4 = {}
       aff4["query"] = "UPDATE aff4 SET value=%s, timestamp=%s WHERE \
 subject_hash=unhex(md5(%s)) AND attribute_hash=unhex(md5(%s))"
-      aff4["args"] = [value, timestamp, subject, predicate]
+      aff4["args"] = [value, timestamp, subject, attribute]
       transaction.append(aff4)
     return transaction
 
@@ -346,15 +354,15 @@ timestamp, value) VALUES"
     seen["subjects"] = []
     seen["attributes"] = []
 
-    for (subject, predicate, value, timestamp) in values:
+    for (subject, attribute, value, timestamp) in values:
       if subject not in seen["subjects"]:
         subjects["args"].extend([subject, subject])
         seen["subjects"].append(subject)
-      if predicate not in seen["attributes"]:
-        attributes["args"].extend([predicate, predicate])
-        seen["attributes"].append(predicate)
-      prefix = predicate.split(":", 1)[0]
-      aff4["args"].extend([subject, predicate, prefix, timestamp, value])
+      if attribute not in seen["attributes"]:
+        attributes["args"].extend([attribute, attribute])
+        seen["attributes"].append(attribute)
+      prefix = attribute.split(":", 1)[0]
+      aff4["args"].extend([subject, attribute, prefix, timestamp, value])
 
     subjects["query"] += ", ".join(["(unhex(md5(%s)), %s)"] * (len(subjects["args"]) / 2))
     attributes["query"] += ", ".join(["(unhex(md5(%s)), %s)"] * (len(attributes["args"]) / 2))
@@ -397,7 +405,7 @@ timestamp, value) VALUES"
     else:
       return value
 
-  def _BuildQuery(self, subject, predicate=None, timestamp=None,
+  def _BuildQuery(self, subject, attribute=None, timestamp=None,
                   limit=None, is_regex=False):
     """Build the SELECT query to be executed"""
     args = []
@@ -410,21 +418,21 @@ timestamp, value) VALUES"
     subject = utils.SmartUnicode(subject)
 
     #Set fields, tables, and criteria and append args
-    if predicate is not None:
+    if attribute is not None:
       if is_regex:
         tables += " JOIN attributes ON aff4.attribute_hash=attributes.hash"
         regex = re.match(r'(^[a-zA-Z0-9_]+:([a-zA-Z0-9_\-\. /:]*[a-zA-Z0-9_\- /:]+|[a-zA-Z0-9_\- /:]*))(.*)',
-                         predicate)
+                         attribute)
         if not regex:
-          #If predicate has no prefix just rlike
+          #If attribute has no prefix just rlike
           criteria += " AND attributes.attribute rlike %s"
-          args.append(predicate)
+          args.append(attribute)
         elif regex.groups()[2]:
-          prefix = predicate.split(":", 1)[0]
+          prefix = attribute.split(":", 1)[0]
           like = regex.groups()[0] + "%"
           rlike = regex.groups()[2]
 
-          #If predicate has prefix then use for query optimizations
+          #If attribute has prefix then use for query optimizations
           criteria += " AND aff4.prefix=(%s)"
           args.append(prefix)
 
@@ -442,10 +450,10 @@ timestamp, value) VALUES"
             args.append(rlike)
         else:
           criteria += " AND aff4.attribute_hash=unhex(md5(%s))"
-          args.append(predicate)
+          args.append(attribute)
       else:
           criteria += " AND aff4.attribute_hash=unhex(md5(%s))"
-          args.append(predicate)
+          args.append(attribute)
 
     #Limit to time range if specified
     if isinstance(timestamp, (tuple, list)):
@@ -476,7 +484,7 @@ aff4.timestamp=maxtime.timestamp"
 
     return (query, args)
 
-  def _BuildDelete(self, subject, predicate=None, timestamp=None):
+  def _BuildDelete(self, subject, attribute=None, timestamp=None):
     """Build the DELETE query to be executed"""
     subjects = {}
     attributes = {}
@@ -491,9 +499,9 @@ aff4.timestamp=maxtime.timestamp"
     attributes["query"] = ""
     attributes["args"] = []
 
-    if predicate:
+    if attribute:
       aff4["query"] += " AND attribute_hash=unhex(md5(%s))"
-      aff4["args"].append(predicate)
+      aff4["args"].append(attribute)
 
       if isinstance(timestamp, (tuple, list)):
         aff4["query"] += " AND aff4.timestamp >= %s AND aff4.timestamp <= %s"
@@ -507,7 +515,7 @@ aff4.subject_hash IS NULL"
       attributes["query"] = "DELETE attributes FROM attributes LEFT JOIN aff4 \
 ON aff4.attribute_hash=attributes.hash WHERE attributes.hash=unhex(md5(%s)) \
 AND aff4.attribute_hash IS NULL"
-      attributes["args"].append(predicate)
+      attributes["args"].append(attribute)
 
       return [aff4, subjects, attributes]
 

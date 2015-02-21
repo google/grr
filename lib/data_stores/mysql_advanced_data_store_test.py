@@ -44,7 +44,7 @@ class MysqlAdvancedTestMixin(object):
     self.assertTrue(isinstance(data_store.DB, mysql_advanced_data_store.MySQLAdvancedDataStore))
 
 
-class MysqlAdvancedDataStoreTest(MysqlAdvancedTestMixin, data_store_test.DataStoreTest):
+class MysqlAdvancedDataStoreTest(MysqlAdvancedTestMixin, data_store_test._DataStoreTest):
   """Test the mysql data store abstraction."""
 
 

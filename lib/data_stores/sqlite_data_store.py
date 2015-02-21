@@ -622,8 +622,8 @@ class SqliteDataStore(data_store.DataStore):
     self.security_manager.CheckDataStoreAccess(
         token, [subject], self.GetRequiredResolveAccess(attribute_regex))
 
-    if isinstance(predicate_regex, str):
-      predicate_regex = [predicate_regex]
+    if isinstance(attribute_regex, str):
+      attribute_regex = [attribute_regex]
 
     start, end = self._GetStartEndTimestamp(timestamp)
 
@@ -685,7 +685,7 @@ class SqliteDataStore(data_store.DataStore):
             results.append((attribute, value, ts))
         if limit and len(results) >= limit:
           break
-1
+
     return results
 
   def DumpDatabase(self, token=None):
