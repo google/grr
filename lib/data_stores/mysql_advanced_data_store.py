@@ -228,7 +228,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
   def ResolveRegex(self, subject, attribute_regex, timestamp=None, limit=None, token=None):
     self.security_manager.CheckDataStoreAccess(
-        token, subject, self.GetRequiredResolveAccess(attribute_regex))
+        token, [subject], self.GetRequiredResolveAccess(attribute_regex))
 
     if isinstance(attribute_regex, basestring):
       attribute_regex = [attribute_regex]
