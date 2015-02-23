@@ -107,10 +107,11 @@ class CheckAccessHelper(object):
         require(subject, token, *require_args, **require_kwargs)
 
       logging.debug("Datastore access granted to %s on %s by pattern: %s "
-                    "(require=%s, require_args=%s, require_kwargs=%s, "
-                    "helper_name=%s)",
+                    "with reason: %s (require=%s, require_args=%s, "
+                    "require_kwargs=%s, helper_name=%s)",
                     utils.SmartStr(token.username), subject_str, regex_text,
-                    require, require_args, require_kwargs, self.helper_name)
+                    utils.SmartStr(token.reason), require, require_args,
+                    require_kwargs, self.helper_name)
       return True
 
     logging.warn("Datastore access denied to %s (no matched rules)",
