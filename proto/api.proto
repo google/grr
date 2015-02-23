@@ -4,7 +4,7 @@
 
 syntax = "proto2";
 
-import "grr/proto/semantic.proto";
+import "semantic.proto";
 
 
 //
