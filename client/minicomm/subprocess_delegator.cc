@@ -127,21 +127,51 @@ void SubprocessDelegator::StartChildProcess() {
   child_spawned_.notify_all();
 }
 
+namespace {
+bool TryWaitPID(pid_t pid) {
+  const int result = waitpid(pid, nullptr, WNOHANG);
+  if (result == pid) {
+    return true;
+  }
+  if (result == 0) {
+    return false;
+  }
+  GOOGLE_LOG(ERROR) << "Returned [" << result << "] waiting for pid [" << pid
+                    << "]";
+  return false;
+}
+}
+
 void SubprocessDelegator::KillChildProcess() {
   std::unique_lock<std::mutex> pid_lock(child_pid_mutex_);
-  // If there is no child, or if we are in the process of shutting down,
-  // do nothing.
+  undead_children_.erase(std::remove_if(undead_children_.begin(),
+                                        undead_children_.end(),
+                                        &TryWaitPID), 
+                         undead_children_.end());
+
+  // If there is no child, or if we are in the process of shutting down, do
+  // nothing.
   if (child_pid_ <= 0) {
     return;
   }
 
   kill(child_pid_, SIGTERM);
-  // Give it time to end gracefully, then make sure it is really dead.
-  std::this_thread::sleep_for(std::chrono::seconds(5));
+  // Give it time to end gracefully, then be more definitive.
+  std::this_thread::sleep_for(std::chrono::seconds(4));
   kill(child_pid_, SIGKILL);
-  int child_status;
-  // Don't let it become a zombie.
-  waitpid(child_pid_, &child_status, 0);
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+  
+  if (!TryWaitPID(child_pid_)) {
+    GOOGLE_LOG(WARNING) << "Unable to fully kill subprocess:" << child_pid_;
+
+    // Refuse to raise too many zombies. Returning here means we failed and will
+    // start over the next time a problem with the child process is noted.
+    if (undead_children_.size() > 5) {
+      GOOGLE_LOG(ERROR) << "Too many undead children.";
+      return;
+    }
+    undead_children_.push_back(child_pid_);
+  }
   child_pid_ = 0;
 
   // With a dead child, all the threads should get a broken pipe error, and

@@ -28,11 +28,15 @@ class SubprocessDelegator {
 
   // PID of the child process. 0 indicates that no child process currently
   // exists. -1 indicates that the class is being destructed and that internal
-  // threads need to exit.
+  // threads need to exit. 
 
   std::mutex child_pid_mutex_;
   pid_t child_pid_;
   std::condition_variable child_spawned_;
+
+  // Vector of child pids which we have killed, but are so far unable
+  // to reap.  Also protected by child_pit_mutex_.
+  std::vector<pid_t> undead_children_;
 
   // Each of the following blocks contain structures used to manage a
   // communication channel with the subprocess. The *Loop methods access these
