@@ -1,2 +1,3 @@
 *.pyc
 proto/*_pb2.py
+*.swp
