@@ -84,6 +84,20 @@ class GRREverythingTestLoader(test_lib.GRRTestLoader):
 
 
 def RunTest(test_suite, stream=None):
+  """Run an individual test.
+
+     Ignore the argument test_suite passed to this function, then
+     magically acquire an individual test name as specified by the --tests
+     flag, run it, and then exit the whole Python program completely.
+
+     Args:
+       test_suite (string): Ignored.
+       stream: The stream to print results to.
+
+      Returns:
+        This function does not return; it causes a program exit.
+     """
+
   out_fd = stream
   if stream:
     out_fd = StringIO.StringIO()
