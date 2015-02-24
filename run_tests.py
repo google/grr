@@ -198,10 +198,10 @@ def main(argv=None):
                               "processing mode, but %i were specified" %
                               len(suites))
 
-    for test_suite in suites:
-      print "Running test %s" % test_suite
-      sys.stdout.flush()
-      RunTest(test_suite, stream=stream)
+    test_suite = suites[0]
+    print "Running test %s" % test_suite
+    sys.stdout.flush()
+    RunTest(test_suite, stream=stream)
 
   else:
     processes = {}
