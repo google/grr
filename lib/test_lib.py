@@ -2030,7 +2030,15 @@ class FakeTestDataVFSHandler(ClientVFSHandlerFixture):
 
 
 class GrrTestProgram(unittest.TestProgram):
-  """A Unit test program which is compatible with conf based args parsing."""
+  """A Unit test program which is compatible with conf based args parsing.
+
+  This program ignores the testLoader passed to it and implements its
+  own test loading behavior in case the --tests argument was specified
+  when the program is ran. It magically reads from the --tests argument.
+
+  In case no --tests argument was specified, the program uses the test
+  loader to load the tests.
+  """
 
   def __init__(self, labels=None, **kw):
     self.labels = labels

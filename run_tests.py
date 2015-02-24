@@ -103,12 +103,23 @@ def RunTest(test_suite, stream=None):
     out_fd = StringIO.StringIO()
 
   try:
+    # Here we use a GRREverythingTestLoader to load tests from.
+    # However, the fact that GRREverythingTestLoader loads all
+    # tests is irrelevant, because GrrTestProgram simply reads
+    # from the --tests flag passed to the program, so not all
+    # tests are ran. Only the test specified via --tests will
+    # be ran. Because --tests supports only one test at a time
+    # this will cause only an individual test to be ran.
+    # GrrTestProgram then terminates the execution of the whole
+    # python program using sys.exit() so this function does not
+    # return.
     test_lib.GrrTestProgram(argv=[sys.argv[0], test_suite],
                             testLoader=GRREverythingTestLoader(
                                 labels=flags.FLAGS.labels),
                             testRunner=unittest.TextTestRunner(
                                 stream=out_fd))
   finally:
+    # Clean up before the program exits.
     if stream:
       stream.write("Test name: %s\n" % test_suite)
       stream.write(out_fd.getvalue())
