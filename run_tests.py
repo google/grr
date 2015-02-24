@@ -36,6 +36,9 @@ from grr.worker import worker_test
 flags.DEFINE_string("output", None,
                     "The name of the file we write on (default stderr).")
 
+flags.DEFINE_string("exclude_tests", None,
+                    "A comma-separated list of tests to exclude form running.")
+
 flags.DEFINE_integer("processes", 0,
                      "Total number of simultaneous tests to run.")
 
@@ -157,6 +160,8 @@ def DoesTestHaveLabels(cls, labels):
 
 def main(argv=None):
   if flags.FLAGS.tests or flags.FLAGS.processes == 1:
+    print "Running test in single process mode..."
+
     stream = sys.stderr
 
     if flags.FLAGS.output:
@@ -174,13 +179,19 @@ def main(argv=None):
       sys.argv.append("--debug")
 
     suites = flags.FLAGS.tests or test_lib.GRRBaseTest.classes
+
     for test_suite in suites:
       print "Running test %s" % test_suite
+      sys.stdout.flush()
       RunTest(test_suite, stream=stream)
 
   else:
     processes = {}
     print "Running tests with labels %s" % ",".join(flags.FLAGS.labels)
+
+    exclude_tests = []
+    if flags.FLAGS.exclude_tests:
+      exclude_tests = flags.FLAGS.exclude_tests.split(",")
 
     with utils.TempDirectory() as temp_dir:
       start = time.time()
@@ -188,6 +199,10 @@ def main(argv=None):
 
       for name, cls in test_lib.GRRBaseTest.classes.items():
         if labels and not DoesTestHaveLabels(cls, labels):
+          continue
+
+        if name in exclude_tests:
+          print "Skipping test %s" % name
           continue
 
         result_filename = os.path.join(temp_dir, name)
