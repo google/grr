@@ -14,6 +14,9 @@ done
 cd ..
 echo "Protobuf debs installed"
 
+sudo apt-get install python-software-properties
+sudo add-apt-repository ppa:kristinn-l/plaso-dev -y
+sudo apt-get update -q
 sudo apt-get install m2crypto python-support libdistorm64-1 libdistorm64-dev python-psutil pytsk3 ncurses-dev python-pip
 
 PLAT=amd64
