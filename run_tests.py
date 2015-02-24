@@ -194,6 +194,10 @@ def main(argv=None):
 
     suites = flags.FLAGS.tests or test_lib.GRRBaseTest.classes
 
+    assert len(suites) == 1, ("Only a single test is supported in single "
+                              "processing mode, but %i were specified" %
+                              len(suites))
+
     for test_suite in suites:
       print "Running test %s" % test_suite
       sys.stdout.flush()
