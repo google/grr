@@ -1,0 +1,18 @@
+{
+
+  "provisioners": [
+    {
+        "type": "shell",
+        "scripts": [
+            "scripts/docker.sh"
+        ]
+    }
+],
+  "builders": [
+    {
+        "type": "docker",
+        "image": "ubuntu:trusty",
+        "commit": true
+    }
+  ]
+}
