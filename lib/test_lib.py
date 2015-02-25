@@ -7,6 +7,8 @@ import codecs
 import datetime
 import functools
 import itertools
+import logging
+import mock
 import os
 import pdb
 import re
@@ -25,15 +27,10 @@ import urlparse
 
 from M2Crypto import X509
 
-import mock
-
 from selenium.common import exceptions
 from selenium.webdriver.common import action_chains
 from selenium.webdriver.common import keys
 from selenium.webdriver.support import select
-
-import logging
-import unittest
 
 from grr.client import actions
 from grr.client import comms
@@ -2033,7 +2030,15 @@ class FakeTestDataVFSHandler(ClientVFSHandlerFixture):
 
 
 class GrrTestProgram(unittest.TestProgram):
-  """A Unit test program which is compatible with conf based args parsing."""
+  """A Unit test program which is compatible with conf based args parsing.
+
+  This program ignores the testLoader passed to it and implements its
+  own test loading behavior in case the --tests argument was specified
+  when the program is ran. It magically reads from the --tests argument.
+
+  In case no --tests argument was specified, the program uses the test
+  loader to load the tests.
+  """
 
   def __init__(self, labels=None, **kw):
     self.labels = labels

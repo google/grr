@@ -37,6 +37,9 @@ from grr.worker import worker_test
 flags.DEFINE_string("output", None,
                     "The name of the file we write on (default stderr).")
 
+flags.DEFINE_string("exclude_tests", None,
+                    "A comma-separated list of tests to exclude form running.")
+
 flags.DEFINE_integer("processes", 0,
                      "Total number of simultaneous tests to run.")
 
@@ -82,17 +85,42 @@ class GRREverythingTestLoader(test_lib.GRRTestLoader):
 
 
 def RunTest(test_suite, stream=None):
+  """Run an individual test.
+
+     Ignore the argument test_suite passed to this function, then
+     magically acquire an individual test name as specified by the --tests
+     flag, run it, and then exit the whole Python program completely.
+
+     Args:
+       test_suite (string): Ignored.
+       stream: The stream to print results to.
+
+      Returns:
+        This function does not return; it causes a program exit.
+     """
+
   out_fd = stream
   if stream:
     out_fd = StringIO.StringIO()
 
   try:
+    # Here we use a GRREverythingTestLoader to load tests from.
+    # However, the fact that GRREverythingTestLoader loads all
+    # tests is irrelevant, because GrrTestProgram simply reads
+    # from the --tests flag passed to the program, so not all
+    # tests are ran. Only the test specified via --tests will
+    # be ran. Because --tests supports only one test at a time
+    # this will cause only an individual test to be ran.
+    # GrrTestProgram then terminates the execution of the whole
+    # python program using sys.exit() so this function does not
+    # return.
     test_lib.GrrTestProgram(argv=[sys.argv[0], test_suite],
                             testLoader=GRREverythingTestLoader(
                                 labels=flags.FLAGS.labels),
                             testRunner=unittest.TextTestRunner(
                                 stream=out_fd))
   finally:
+    # Clean up before the program exits.
     if stream:
       stream.write("Test name: %s\n" % test_suite)
       stream.write(out_fd.getvalue())
@@ -157,7 +185,9 @@ def DoesTestHaveLabels(cls, labels):
 
 
 def main(argv=None):
-  if flags.FLAGS.tests or flags.FLAGS.processes == 1:
+  if flags.FLAGS.tests:
+    print "Running test in single process mode..."
+
     stream = sys.stderr
 
     if flags.FLAGS.output:
@@ -175,14 +205,25 @@ def main(argv=None):
       sys.argv.append("--debug")
 
     suites = flags.FLAGS.tests or test_lib.GRRBaseTest.classes
-    for test_suite in suites:
-      RunTest(test_suite, stream=stream)
+
+    assert len(suites) == 1, ("Only a single test is supported in single "
+                              "processing mode, but %i were specified" %
+                              len(suites))
+
+    test_suite = suites[0]
+    print "Running test %s" % test_suite
+    sys.stdout.flush()
+    RunTest(test_suite, stream=stream)
 
   else:
     processes = {}
     print "Running tests with labels %s" % ",".join(flags.FLAGS.labels)
 
-    with utils.TempDirectory() as flags.FLAGS.temp_dir:
+    exclude_tests = []
+    if flags.FLAGS.exclude_tests:
+      exclude_tests = flags.FLAGS.exclude_tests.split(",")
+
+    with utils.TempDirectory() as temp_dir:
       start = time.time()
       labels = set(flags.FLAGS.labels)
 
@@ -193,7 +234,11 @@ def main(argv=None):
         if labels and not DoesTestHaveLabels(cls, labels):
           continue
 
-        result_filename = os.path.join(flags.FLAGS.temp_dir, name)
+        if name in exclude_tests:
+          print "Skipping test %s" % name
+          continue
+
+        result_filename = os.path.join(temp_dir, name)
 
         argv = [sys.executable] + sys.argv[:]
         if "--output" not in argv:
