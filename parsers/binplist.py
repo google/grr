@@ -164,7 +164,7 @@ class BinaryPlist(object):
     return self._ParseObjectByIndex(self.top_level_index, self.object_offsets)
 
   def Open(self, file_obj):
-    data = file_obj.read()
+    data = file_obj.read(-1)
     self.fd = cStringIO.StringIO(data)
     self._file_size = len(data)
     logging.debug("File size is: %d.", self._file_size)

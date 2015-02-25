@@ -479,3 +479,27 @@ message HardwareInfo {
     }];
 
 }
+
+// OSX Plist Start Calendar Interval
+
+message LaunchdStartCalendarInterval {
+  optional int32 minute = 1;
+  optional int32 hour = 2;
+  optional int32 day = 3;
+  optional int32 weekday = 4;
+  optional int32 month = 5;
+}
+
+// OSX Plist Files
+message LaunchdPlist {
+  optional string label = 1;
+  optional bool disabled = 2;
+  optional string username = 3;
+  optional string groupname = 4;
+  optional string program = 5;
+  optional string program_arguments = 6;
+  optional LaunchdStartCalendarInterval start_calendar_interval = 7;
+  optional string standard_in_path = 8;
+  optional string standard_out_path = 9;
+  optional string standard_error_path = 10;
+}

@@ -5,8 +5,9 @@ from grr.lib import lexer
 from grr.lib import plist
 from grr.lib import rdfvalue
 from grr.lib import type_info
+from grr.lib.rdfvalues import structs
 from grr.proto import jobs_pb2
-
+from grr.proto import sysinfo_pb2
 
 class PlistRequest(rdfvalue.RDFProtoStruct):
   protobuf = jobs_pb2.PlistRequest
@@ -30,3 +31,7 @@ class FilterString(rdfvalue.RDFString):
 
 class PlistQuery(FilterString):
   query_parser_cls = plist.PlistFilterParser
+
+
+class LaunchdPlist(structs.RDFProtoStruct):
+  protobuf = sysinfo_pb2.LaunchdPlist

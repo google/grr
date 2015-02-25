@@ -11,6 +11,7 @@ from grr.lib import rdfvalue
 from grr.parsers import binplist
 
 
+
 class OSXUsersParser(parsers.ArtifactFilesParser):
   """Parser for Glob of /Users/*."""
 
@@ -53,3 +54,68 @@ class OSXSPHardwareDataTypeParser(parsers.CommandParser):
     serial_number = hardware_list["serial_number"]
 
     yield rdfvalue.HardwareInfo(serial_number=serial_number)
+
+class OSXLaunchdPlistParser(parsers.FileParser):
+  """Parse Launchd plist files into LaunchdPlist objects."""
+
+  output_types = ["LaunchdPlist"]
+  supported_artifacts = ["OSXLaunchAgents", "OSXLaunchDaemons"]
+
+  def Parse(self, stat, file_object, knowledge_base):
+    """Parse the History file."""
+    _, _ = stat, knowledge_base
+
+    plist = binplist.readPlist(file_object)
+
+    try:
+      username = plist["UserName"]
+    except KeyError:
+      username = None
+
+    try:
+      label = plist["Label"]
+    except KeyError:
+      label = None
+
+    try:
+      disabled = plist["Disabled"]
+    except KeyError:
+      disabled = None
+
+    try:
+      groupname = plist["GroupName"]
+    except KeyError:
+      groupname = None
+
+    try:
+      program = plist["Program"]
+    except KeyError:
+      program = None
+
+    try:
+      program_arguments = " ".join(plist["ProgramArguments"])
+    except KeyError:
+      program_arguments = None
+
+
+    try:
+      standard_in_path = plist["StandardInPath"]
+    except KeyError:
+      standard_in_path = None
+
+    try:
+      standard_out_path = plist["StandardOutPath"]
+    except KeyError:
+      standard_out_path = None
+
+    try:
+      standard_error_path = plist["StandardErrorPath"]
+    except KeyError:
+      standard_error_path = None
+
+    yield rdfvalue.LaunchdPlist(username=username, label=label, disabled=disabled,
+                             groupname=groupname, program=program,
+                             program_arguments=program_arguments,
+                             standard_in_path=standard_in_path,
+                             standard_out_path=standard_out_path,
+                             standard_error_path=standard_error_path)
