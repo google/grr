@@ -51,66 +51,72 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
     client_id = self._ClientIdFromURN(client.urn)
     keywords = [client_id]
 
-    def TryAppend(keyword):
+    def TryAppend(prefix, keyword):
       if keyword:
-        keywords.append(utils.SmartStr(keyword))
+        keyword_string = utils.SmartStr(keyword)
+        keywords.append(keyword_string)
+        if prefix:
+          keywords.append(prefix + ":" + keyword_string)
 
     def TryAppendIP(ip):
-      TryAppend(ip)
+      TryAppend("ip", ip)
       # IP4v?
       octets = str(ip).split(".")
       if len(octets) == 4:
-        TryAppend(octets[0])
-        TryAppend(".".join(octets[0:2]))
-        TryAppend(".".join(octets[0:3]))
+        TryAppend("ip", octets[0])
+        TryAppend("ip", ".".join(octets[0:2]))
+        TryAppend("ip", ".".join(octets[0:3]))
         return
       # IP6v?
       groups = str(ip).split(":")
       if len(groups) > 1:
-        TryAppend(groups[0])
+        TryAppend("ip", groups[0])
       if len(groups) > 2:
-        TryAppend(":".join(groups[0:2]))
+        TryAppend("ip", ":".join(groups[0:2]))
       if len(groups) > 3:
-        TryAppend(":".join(groups[0:3]))
+        TryAppend("ip", ":".join(groups[0:3]))
 
     s = client.Schema
-    TryAppend(client.Get(s.HOSTNAME))
-    TryAppend(client.Get(s.FQDN))
-    TryAppend(client.Get(s.SYSTEM))
-    TryAppend(client.Get(s.UNAME))
-    TryAppend(client.Get(s.OS_RELEASE))
-    TryAppend(client.Get(s.OS_VERSION))
-    TryAppend(client.Get(s.KERNEL))
-    TryAppend(client.Get(s.ARCH))
+    TryAppend("host", client.Get(s.HOSTNAME))
+    TryAppend("fdqn", client.Get(s.FQDN))
+    TryAppend("", client.Get(s.SYSTEM))
+    TryAppend("", client.Get(s.UNAME))
+    TryAppend("", client.Get(s.OS_RELEASE))
+    TryAppend("", client.Get(s.OS_VERSION))
+    TryAppend("", client.Get(s.KERNEL))
+    TryAppend("", client.Get(s.ARCH))
 
     for user in client.Get(s.USER, []):
-      TryAppend(user.username)
-      TryAppend(user.full_name)
+      TryAppend("user", user.username)
+      TryAppend("", user.full_name)
       if user.full_name:
         for name in user.full_name.split():
-          TryAppend(name)
+          TryAppend("", name)
 
     for username in client.Get(s.USERNAMES, []):
-      TryAppend(username)
+      TryAppend("user", username)
 
     for interface in client.Get(s.LAST_INTERFACES, []):
       if interface.mac_address:
-        TryAppend(interface.mac_address.human_readable_address)
+        TryAppend("mac", interface.mac_address.human_readable_address)
       for ip in interface.GetIPAddresses():
         TryAppendIP(ip)
 
     # We should have all mac and ip addresses already, but some test data only
     # has it attached directly, so just in case we look there also.
-    TryAppend(client.Get(s.MAC_ADDRESS))
-    for ip in client.Get(s.HOST_IPS, []):
-      TryAppendIP(ip)
+    if client.Get(s.MAC_ADDRESS):
+      for mac in str(client.Get(s.MAC_ADDRESS)).split("\n"):
+        TryAppend("mac", mac)
+    for ip_list in client.Get(s.HOST_IPS, []):
+      for ip in str(ip_list).split("\n"):
+        TryAppendIP(ip)
 
     client_info = client.Get(s.CLIENT_INFO)
     if client_info:
-      TryAppend(client_info.client_name)
+      TryAppend("client", client_info.client_name)
       if client_info.labels:
         for label in client_info.labels:
-          TryAppend(label)
+          TryAppend("label", label)
 
     return (client_id, keywords)
 

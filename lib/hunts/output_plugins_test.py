@@ -207,7 +207,8 @@ class CSVOutputPluginTest(OutputpluginsTest):
     for i in range(10):
       self.assertEqual(parsed_output[i]["metadata.client_urn"], self.client_id)
       self.assertEqual(parsed_output[i]["metadata.hostname"], "Host-0")
-      self.assertEqual(parsed_output[i]["metadata.mac_address"], "aabbccddee00")
+      self.assertEqual(parsed_output[i]["metadata.mac_address"],
+                       "aabbccddee00\nbbccddeeff00")
       self.assertEqual(parsed_output[i]["metadata.source_urn"],
                        hunt_urn.Add("Results"))
 
@@ -252,7 +253,8 @@ class CSVOutputPluginTest(OutputpluginsTest):
 
     self.assertEqual(parsed_output[0]["metadata.client_urn"], self.client_id)
     self.assertEqual(parsed_output[0]["metadata.hostname"], "Host-0")
-    self.assertEqual(parsed_output[0]["metadata.mac_address"], "aabbccddee00")
+    self.assertEqual(parsed_output[0]["metadata.mac_address"],
+                     "aabbccddee00\nbbccddeeff00")
     self.assertEqual(parsed_output[0]["metadata.source_urn"],
                      hunt_urn.Add("Results"))
     self.assertEqual(parsed_output[0]["urn"],
@@ -266,7 +268,8 @@ class CSVOutputPluginTest(OutputpluginsTest):
 
     self.assertEqual(parsed_output[0]["metadata.client_urn"], self.client_id)
     self.assertEqual(parsed_output[0]["metadata.hostname"], "Host-0")
-    self.assertEqual(parsed_output[0]["metadata.mac_address"], "aabbccddee00")
+    self.assertEqual(parsed_output[0]["metadata.mac_address"],
+                     "aabbccddee00\nbbccddeeff00")
     self.assertEqual(parsed_output[0]["metadata.source_urn"],
                      hunt_urn.Add("Results"))
     self.assertEqual(parsed_output[0]["pid"], "42")

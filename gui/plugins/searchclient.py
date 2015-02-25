@@ -719,8 +719,8 @@ class HostTable(renderers.TableRenderer):
         index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
                                     aff4_type="ClientIndex",
                                     mode="rw",
-                                    token=self.token)
-        result_urns = index.LookupClients(keywords)
+                                    token=request.token)
+        result_urns = sorted(index.LookupClients(keywords), key=str)[start:end]
       else:
         result_urns = search.SearchClients(query_string,
                                            start=start,

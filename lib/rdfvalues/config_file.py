@@ -34,11 +34,21 @@ class Config(rdfvalue.RDFProtoStruct):
       return self.settings.GetItem(item)
 
 
+class NfsClient(rdfvalue.RDFProtoStruct):
+  """An RDFValue representation of an NFS Client configuration."""
+  protobuf = config_file_pb2.NfsClient
+
+
+class NfsExport(rdfvalue.RDFProtoStruct):
+  """An RDFValue representation of an NFS Export entry."""
+  protobuf = config_file_pb2.NfsExport
+
+
 class SshdMatchBlock(rdfvalue.RDFProtoStruct):
-  """An RDFValue representation of a generic key/val configuration file."""
+  """An RDFValue representation of an sshd config match block."""
   protobuf = config_file_pb2.SshdMatchBlock
 
 
 class SshdConfig(rdfvalue.RDFProtoStruct):
-  """An RDFValue representation of a generic key/val configuration file."""
+  """An RDFValue representation of a sshd config file."""
   protobuf = config_file_pb2.SshdConfig

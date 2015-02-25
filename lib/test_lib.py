@@ -525,8 +525,8 @@ class GRRBaseTest(unittest.TestCase):
         fd.Set(fd.Schema.PING, rdfvalue.RDFDatetime().Now())
         fd.Set(fd.Schema.HOSTNAME("Host-%s" % i))
         fd.Set(fd.Schema.FQDN("Host-%s.example.com" % i))
-        fd.Set(fd.Schema.MAC_ADDRESS("aabbccddee%02x" % i))
-        fd.Set(fd.Schema.HOST_IPS("192.168.0.%d" % i))
+        fd.Set(fd.Schema.MAC_ADDRESS("aabbccddee%02x\nbbccddeeff%02x" % (i, i)))
+        fd.Set(fd.Schema.HOST_IPS("192.168.0.%d\n2001:abcd::%x" % (i, i)))
 
     return client_ids
 

@@ -54,30 +54,36 @@ class Lexer(object):
   """A generic feed lexer."""
   # A list of Token() instances.
   tokens = []
-
-  # The first state
-  state = "INITIAL"
-
-  # The buffer we are parsing now
-  buffer = ""
-  error = 0
-  verbose = 0
-
-  # The index into the buffer where we are currently pointing
-  processed = 0
-  processed_buffer = ""
-
   # Regex flags
   flags = 0
 
   def __init__(self, data=""):
+    # Set the lexer up to process a new data feed.
+    self.Reset()
+    # Populate internal token list with class tokens, if defined.
+    self._tokens = self.tokens[:]
+    # Populate the lexer with any data we got.
     self.buffer = utils.SmartStr(data)
+
+  def Reset(self):
+    """Reset the lexer to process a new data feed."""
+    # The first state
+    self.state = "INITIAL"
     self.state_stack = []
+
+    # The buffer we are parsing now
+    self.buffer = ""
+    self.error = 0
+    self.verbose = 0
+
+    # The index into the buffer where we are currently pointing
+    self.processed = 0
+    self.processed_buffer = ""
 
   def NextToken(self):
     """Fetch the next token by trying to match any of the regexes in order."""
     current_state = self.state
-    for token in self.tokens:
+    for token in self._tokens:
       # Does the rule apply to us?
       if token.state_regex and not token.state_regex.match(current_state):
         continue

@@ -16,6 +16,19 @@ message Config {
 };
 
 
+// NFS configuration files.
+message NfsClient {
+  optional string host = 1;
+  repeated string options = 2;
+}
+
+message NfsExport {
+  optional string share = 1;
+  repeated string defaults = 2;
+  repeated NfsClient clients = 3;
+}
+
+
 // An sshd match block configuration. This is a subcomponent of an sshd config.
 message SshdMatchBlock {
   optional string criterion = 1 [(sem_type) = {

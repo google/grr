@@ -83,6 +83,15 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
         index.LookupClients(["192.168.0.1"]),
         [rdfvalue.ClientURN("aff4:/C.1000000000000001")])
     self.assertEqual(
+        index.LookupClients(["2001:abcd::1"]),
+        [rdfvalue.ClientURN("aff4:/C.1000000000000001")])
+    self.assertEqual(
+        index.LookupClients(["ip:192.168.0.1"]),
+        [rdfvalue.ClientURN("aff4:/C.1000000000000001")])
+    self.assertEqual(
+        index.LookupClients(["ip:2001:abcd::1"]),
+        [rdfvalue.ClientURN("aff4:/C.1000000000000001")])
+    self.assertEqual(
         index.LookupClients(["Host-2"]),
         [rdfvalue.ClientURN("aff4:/C.1000000000000002")])
 
