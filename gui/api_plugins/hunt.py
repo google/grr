@@ -55,8 +55,8 @@ class ApiGRRHuntRenderer(
               all_clients_count - completed_clients_count)))
 
       typed_summary_part = dict(
-          regex_rules=list(runner.args.regex_rules),
-          integer_rules=list(runner.args.integer_rules),
+          regex_rules=runner.args.regex_rules or [],
+          integer_rules=runner.args.integer_rules or [],
           args=hunt.state.args)
 
     for k, v in untyped_summary_part.items():
@@ -83,6 +83,18 @@ class ApiHuntsListRenderer(api_call_renderers.ApiCallRenderer):
 
   args_type = ApiHuntsListRendererArgs
 
+  def _RenderHuntList(self, hunt_list):
+    hunts_list = sorted(hunt_list, reverse=True,
+                        key=lambda hunt: hunt.GetRunner().context.create_time)
+
+    encoded_hunt_list = []
+    for hunt in hunts_list:
+      encoded_hunt = api_aff4_object_renderers.RenderAFF4Object(
+          hunt, [rdfvalue.ApiAFF4ObjectRendererArgs(limit_lists=0)])
+      encoded_hunt_list.append(encoded_hunt)
+
+    return encoded_hunt_list
+
   def Render(self, args, token=None):
     fd = aff4.FACTORY.Open("aff4:/hunts", mode="r", token=token)
 
@@ -100,16 +112,10 @@ class ApiHuntsListRenderer(api_call_renderers.ApiCallRenderer):
 
       hunt_list.append(hunt)
 
-    hunt_list.sort(key=lambda hunt: hunt.GetRunner().context.create_time,
-                   reverse=True)
-
-    encoded_hunt_list = []
-    for hunt in hunt_list:
-      encoded_hunt = api_aff4_object_renderers.RenderAFF4Object(
-          hunt, [rdfvalue.ApiAFF4ObjectRendererArgs(limit_lists=0)])
-      encoded_hunt_list.append(encoded_hunt)
-
-    return encoded_hunt_list
+    return dict(total_count=len(children),
+                offset=args.offset,
+                count=len(hunt_list),
+                items=self._RenderHuntList(hunt_list))
 
 
 class ApiHuntSummaryRendererArgs(rdfvalue.RDFProtoStruct):
@@ -122,10 +128,9 @@ class ApiHuntSummaryRenderer(api_call_renderers.ApiCallRenderer):
   args_type = ApiHuntSummaryRendererArgs
 
   def Render(self, args, token=None):
-    hunt = aff4.FACTORY.Open(
-        HUNTS_ROOT_PATH.Add(args.hunt_id),
-        aff4_type="GRRHunt",
-        token=token)
+    hunt = aff4.FACTORY.Open(HUNTS_ROOT_PATH.Add(args.hunt_id),
+                             aff4_type="GRRHunt", token=token)
+
     return api_aff4_object_renderers.RenderAFF4Object(
         hunt, [ApiGRRHuntRendererArgs(with_full_summary=True),
                rdfvalue.ApiAFF4ObjectRendererArgs(limit_lists=10)])
@@ -141,8 +146,10 @@ class ApiHuntLogRenderer(api_call_renderers.ApiCallRenderer):
   args_type = ApiHuntLogRendererArgs
 
   def Render(self, args, token=None):
+    # TODO(user): handle cases when hunt doesn't exists.
+    # TODO(user): Use hunt's logs_collection_urn to open logs collection.
     logs_collection = aff4.FACTORY.Create(
-        HUNTS_ROOT_PATH.Add(args.hunt_id).Add("log"),
+        HUNTS_ROOT_PATH.Add(args.hunt_id).Add("Logs"),
         aff4_type="RDFValueCollection", mode="r", token=token)
 
     return api_aff4_object_renderers.RenderAFF4Object(
@@ -162,8 +169,10 @@ class ApiHuntErrorsRenderer(api_call_renderers.ApiCallRenderer):
   args_type = ApiHuntErrorsRendererArgs
 
   def Render(self, args, token=None):
+    # TODO(user): handle cases when hunt doesn't exists.
+    # TODO(user): Use hunt's logs_collection_urn to open errors collection.
     errors_collection = aff4.FACTORY.Create(
-        HUNTS_ROOT_PATH.Add(args.hunt_id).Add("errors"),
+        HUNTS_ROOT_PATH.Add(args.hunt_id).Add("ErrorClients"),
         aff4_type="RDFValueCollection", mode="r", token=token)
 
     return api_aff4_object_renderers.RenderAFF4Object(

@@ -255,13 +255,13 @@ class InterrogateClientsCronFlow(cronjobs.SystemCronFlow):
   lifetime = rdfvalue.Duration("30m")
 
   def GetOutputPlugins(self):
-    """Returns list of rdfvalue.OutputPlugin objects to be used in the hunt.
+    """Returns list of OutputPluginDescriptor objects to be used in the hunt.
 
     This method can be overridden in a subclass in the server/local directory to
     apply plugins specific to the local installation.
 
     Returns:
-      list of rdfvalue.OutputPlugin objects
+      list of rdfvalue.OutputPluginDescriptor objects
     """
     return []
 
@@ -296,13 +296,13 @@ class StatsHuntCronFlow(cronjobs.SystemCronFlow):
   lifetime = rdfvalue.Duration("30m")
 
   def GetOutputPlugins(self):
-    """Returns list of rdfvalue.OutputPlugin objects to be used in the hunt.
+    """Returns list of OutputPluginDescriptor objects to be used in the hunt.
 
     This method can be overridden in a subclass in the server/local directory to
     apply plugins specific to the local installation.
 
     Returns:
-      list of rdfvalue.OutputPlugin objects
+      list of rdfvalue.OutputPluginDescriptor objects
     """
     return []
 
@@ -368,7 +368,7 @@ class EndToEndTests(cronjobs.SystemCronFlow):
   lifetime = rdfvalue.Duration("2h")
 
   def GetOutputPlugins(self):
-    """Returns list of rdfvalue.OutputPlugin objects to be used in the hunt."""
+    """Returns list of OutputPluginDescriptor objects to be used in the hunt."""
     return []
 
   @flow.StateHandler(next_state="CheckResults")

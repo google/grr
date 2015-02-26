@@ -27,6 +27,9 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
   def _URNFromClientID(self, client_id):
     return rdfvalue.ClientURN(client_id)
 
+  def _NormalizeKeyword(self, keyword):
+    return keyword.lower()
+
   def LookupClients(self, keywords):
     """Returns a list of client URNs associated with keywords.
 
@@ -36,7 +39,8 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
     Returns:
       A list of client URNs.
     """
-    return map(self._URNFromClientID, self.Lookup(keywords))
+    return map(self._URNFromClientID,
+               self.Lookup(map(self._NormalizeKeyword, keywords)))
 
   def AnalyzeClient(self, client):
     """Finds the client_id and keywords for a client.
@@ -53,7 +57,7 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
 
     def TryAppend(prefix, keyword):
       if keyword:
-        keyword_string = utils.SmartStr(keyword)
+        keyword_string = self._NormalizeKeyword(utils.SmartStr(keyword))
         keywords.append(keyword_string)
         if prefix:
           keywords.append(prefix + ":" + keyword_string)
@@ -91,7 +95,10 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
       TryAppend("", user.full_name)
       if user.full_name:
         for name in user.full_name.split():
-          TryAppend("", name)
+          # full_name often includes nicknames and similar, wrapped in
+          # punctuation, e.g. "Thomas 'TJ' Jones". We remove the most common
+          # wrapping characters.
+          TryAppend("", name.strip("\"'()"))
 
     for username in client.Get(s.USERNAMES, []):
       TryAppend("user", username)

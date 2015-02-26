@@ -218,7 +218,9 @@ def DefineFromProtobuf(cls, protobuf):
     if type_descriptor is not None:
       # If the field is repeated, wrap it in a ProtoList.
       if field.label == LABEL_REPEATED:
-        type_descriptor = type_info.ProtoList(type_descriptor)
+        options = field.GetOptions().Extensions[semantic_pb2.sem_type]
+        type_descriptor = type_info.ProtoList(type_descriptor,
+                                              labels=list(options.label))
 
       try:
         cls.AddDescriptor(type_descriptor)

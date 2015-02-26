@@ -22,8 +22,7 @@ class ApiStatsStoreMetricsMetadataRendererArgs(rdfvalue.RDFProtoStruct):
 class ApiStatsStoreMetricsMetadataRenderer(api_call_renderers.ApiCallRenderer):
   """Renders available metrics descriptors for a given system component."""
 
-  method = "GET"
-  route = "/api/stats/store/<any(worker,frontend):component>/metadata"
+  args_type = ApiStatsStoreMetricsMetadataRendererArgs
 
   def Render(self, args, token=None):
     stats_store = aff4.FACTORY.Create(None, aff4_type="StatsStore",
@@ -47,8 +46,6 @@ class ApiStatsStoreMetricRenderer(api_call_renderers.ApiCallRenderer):
 
   args_type = ApiStatsStoreMetricRendererArgs
 
-  RATE_WINDOW = rdfvalue.Duration("10m")
-
   def Render(self, args, token):
     stats_store = aff4.FACTORY.Create(
         stats_store_lib.StatsStore.DATA_STORE_ROOT,
@@ -61,10 +58,10 @@ class ApiStatsStoreMetricRenderer(api_call_renderers.ApiCallRenderer):
     start_time = args.start
     end_time = args.end
 
-    if end_time == 0:
+    if not end_time:
       end_time = rdfvalue.RDFDatetime().Now()
 
-    if start_time == 0:
+    if not start_time:
       start_time = end_time - rdfvalue.Duration("1h")
 
     if end_time <= start_time:
@@ -123,16 +120,17 @@ class ApiStatsStoreMetricRenderer(api_call_renderers.ApiCallRenderer):
 
     if args.aggregation_mode == "AGG_SUM":
       query.AggregateViaSum()
-    elif args.aggregation == "AGG_MEAN":
+    elif args.aggregation_mode == "AGG_MEAN":
       query.AggregateViaMean()
-    elif args.aggregation == "AGG_NONE":
+    elif args.aggregation_mode == "AGG_NONE":
       pass
     else:
       raise ValueError("Unexpected request.aggregation value: %s." %
                        args.aggregation)
 
-    if metric_metadata.metric_type != metric_metadata.MetricType.GAUGE:
-      query.Rate(self.RATE_WINDOW)
+    if (args.rate and
+        metric_metadata.metric_type != metric_metadata.MetricType.GAUGE):
+      query.Rate(args.rate)
 
     timeseries = []
     for timestamp, value in query.ts.iteritems():

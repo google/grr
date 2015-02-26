@@ -162,7 +162,7 @@ class ApiListRenderer(ApiValueRenderer):
     elif self.limit_lists == -1:
       return [self._PassThrough(v) for v in value]
     else:
-      result = [self._PassThrough(v) for v in value[:self.limit_lists]]
+      result = [self._PassThrough(v) for v in list(value)[:self.limit_lists]]
       if len(value) > self.limit_lists:
         if self.with_types:
           result.append(dict(age=0,
@@ -185,6 +185,15 @@ class ApiRDFValueArrayRenderer(ApiListRenderer):
   """Renderer for RDFValueArray."""
 
   value_class = rdfvalue.RDFValueArray
+
+
+class ApiRDFBoolRenderer(ApiValueRenderer):
+  """Renderer for RDFBool."""
+
+  value_class = rdfvalue.RDFBool
+
+  def RenderValue(self, value):
+    return self._IncludeTypeInfoIfNeeded(value != 0, value)
 
 
 class ApiRDFBytesRenderer(ApiValueRenderer):

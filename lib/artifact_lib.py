@@ -119,8 +119,10 @@ class ArtifactRegistry(object):
     cls.artifacts[artifact_rdfvalue.name] = artifact_rdfvalue
 
   @classmethod
-  def ClearRegistry(cls):
-    cls.artifacts = {}
+  def ClearRegistry(cls, replace_with=None):
+    prev_artifacts = cls.artifacts
+    cls.artifacts = replace_with or {}
+    return prev_artifacts
 
   @classmethod
   def GetArtifacts(cls, os_name=None, name_list=None,

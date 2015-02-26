@@ -74,6 +74,12 @@ message ApiHuntErrorsRendererArgs {
     }];
 };
 
+message ApiRDFValueReflectionRendererArgs {
+  optional string type = 1 [(sem_type) = {
+      description: "RDFValue type name."
+    }];
+}
+
 message ApiStatsStoreMetricsMetadataRendererArgs {
   enum Component {
     WORKER = 0;
@@ -82,6 +88,7 @@ message ApiStatsStoreMetricsMetadataRendererArgs {
   optional Component component = 1;
 }
 
+// Next field number: 8
 message ApiStatsStoreMetricRendererArgs {
   enum Component {
     WORKER = 0;
@@ -99,6 +106,12 @@ message ApiStatsStoreMetricRendererArgs {
       type: "RDFDatetime",
       description: "Fetch metrics data from the interval ending with "
       "this timestamp. If not set, will default to the current time."
+    }];
+
+  optional uint64 rate = 7 [(sem_type) = {
+      type: "Duration",
+      description: "If set, metric's rate over given window will be returned "
+      "instead of plain values."
     }];
 
   enum DistributionHandlingMode {

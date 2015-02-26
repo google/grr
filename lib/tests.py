@@ -41,6 +41,7 @@ from grr.lib.checks import tests
 from grr.lib.data_stores import tests
 from grr.lib.flows import tests
 from grr.lib.hunts import tests
+from grr.lib.output_plugins import tests
 from grr.lib.rdfvalues import tests
 from grr.tools import entry_point_test
 # pylint: enable=unused-import

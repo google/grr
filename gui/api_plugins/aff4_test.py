@@ -3,6 +3,7 @@
 
 
 
+from grr.gui import api_test_lib
 from grr.gui.api_plugins import aff4 as aff4_plugin
 
 from grr.lib import aff4
@@ -33,6 +34,25 @@ class ApiAff4RendererTest(test_lib.GRRBaseTest):
     self.assertEqual(result["attributes"]["metadata:last"], 42000000)
 
 
+class ApiAff4RendererRegressionTest(
+    api_test_lib.ApiCallRendererRegressionTest):
+
+  renderer = "ApiAff4Renderer"
+
+  def Run(self):
+    with test_lib.FakeTime(42):
+      with aff4.FACTORY.Create("aff4:/foo/bar", "AFF4Object",
+                               mode="rw", token=self.token) as sample_object:
+        # Add labels to have some attributes filled in.
+        sample_object.AddLabels("label1", "label2")
+
+    self.Check("GET", "/api/aff4/foo/bar")
+    self.Check("GET", "/api/aff4/foo/bar?"
+               "AFF4Object.type_info=WITH_TYPES")
+    self.Check("GET", "/api/aff4/foo/bar?"
+               "AFF4Object.type_info=WITH_TYPES_AND_METADATA")
+
+
 class ApiAff4IndexRendererTest(test_lib.GRRBaseTest):
   """Test for ApiAff4IndexRendererTest."""
 
@@ -58,6 +78,27 @@ class ApiAff4IndexRendererTest(test_lib.GRRBaseTest):
     self.assertEqual(result,
                      [["aff4:/tmp/foo/bar1", 42000000],
                       ["aff4:/tmp/foo/bar2", 43000000]])
+
+
+class ApiAff4IndexRendererRegressionTest(
+    api_test_lib.ApiCallRendererRegressionTest):
+
+  renderer = "ApiAff4IndexRenderer"
+
+  def Run(self):
+    with test_lib.FakeTime(42):
+      with aff4.FACTORY.Create("some/path", "AFF4Volume", token=self.token):
+        pass
+
+    with test_lib.FakeTime(43):
+      with aff4.FACTORY.Create("some/path/foo", "AFF4Volume", token=self.token):
+        pass
+
+    with test_lib.FakeTime(44):
+      with aff4.FACTORY.Create("some/path/bar", "AFF4Volume", token=self.token):
+        pass
+
+    self.Check("GET", "/api/aff4-index/some/path")
 
 
 def main(argv):

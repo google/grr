@@ -56,17 +56,18 @@ class CollectionExportPluginTest(test_lib.GRRBaseTest):
           "--path",
           "aff4:/testcoll",
           "email",
-          "--email",
+          "--email_address",
           email_address,
-          "--email_limit",
+          "--emails_limit",
           "100"]))
 
     self.assertEqual(len(self.email_messages), 1)
     for msg in self.email_messages:
       self.assertEqual(msg["address"], email_address)
-      self.assertEqual("GRR Hunt results collection aff4:/testcoll got a new "
-                       "result.", msg["title"])
-      self.assertTrue("testfile" in msg["message"])
+      self.assertEqual("GRR got a new result in aff4:/testcoll.", msg["title"])
+      self.assertTrue("GRR got a new result in aff4:/testcoll" in
+                      msg["message"])
+      self.assertTrue("(Host-0)" in msg["message"])
 
 
 def main(argv):

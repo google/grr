@@ -10,12 +10,12 @@ from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flags
+from grr.lib import output_plugin
 from grr.lib import rdfvalue
 from grr.lib import test_lib
-from grr.lib.hunts import output_plugins
 
 
-class DummyOutputPlugin(output_plugins.HuntOutputPlugin):
+class DummyOutputPlugin(output_plugin.OutputPlugin):
   """An output plugin that sends an email for each response received."""
 
   name = "dummy"
@@ -128,7 +128,7 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     # Configure the hunt to send an email on results.
     self.Select("css=.Wizard select[id=output_1-option]",
                 "Send an email for each result.")
-    self.Type("css=.Wizard input[id=output_1-email]",
+    self.Type("css=.Wizard input[id=output_1-email_address]",
               "test@%s" % config_lib.CONFIG["Logging.domain"])
 
     # Click on "Next" button
@@ -193,7 +193,7 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
     self.WaitUntil(self.IsTextPresent, "/tmp")
 
     # Check that output plugins are shown.
-    self.assertTrue(self.IsTextPresent("EmailPlugin"))
+    self.assertTrue(self.IsTextPresent("EmailOutputPlugin"))
     self.assertTrue(self.IsTextPresent("test@%s" %
                                        config_lib.CONFIG["Logging.domain"]))
 
@@ -219,7 +219,7 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
     self.assertTrue(self.IsTextPresent("Paths"))
     self.assertTrue(self.IsTextPresent("/tmp"))
 
-    self.assertTrue(self.IsTextPresent("EmailPlugin"))
+    self.assertTrue(self.IsTextPresent("EmailOutputPlugin"))
     self.assertTrue(self.IsTextPresent("test@%s" %
                                        config_lib.CONFIG["Logging.domain"]))
 
@@ -237,7 +237,7 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
                      rdfvalue.PathSpec.PathType.TSK)
     # self.assertEqual(hunt.state.args.flow_args.ignore_errors, True)
     self.assertTrue(hunt.state.args.output_plugins[0].plugin_name,
-                    "EmailPlugin")
+                    "EmailOutputPlugin")
 
     # Check that hunt was not started
     self.assertEqual(hunt.Get(hunt.Schema.STATE), "PAUSED")

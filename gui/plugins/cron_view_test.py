@@ -296,7 +296,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
 
     self.Select("css=.Wizard select[id=output_1-option]",
                 "Send an email for each result.")
-    self.Type("css=.Wizard input[id=output_1-email]",
+    self.Type("css=.Wizard input[id=output_1-email_address]",
               "test@%s" % config_lib.CONFIG["Logging.domain"])
 
     # Click on "Next" button
@@ -359,7 +359,7 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
     self.assertTrue(self.IsTextPresent("/tmp"))
 
     # Check that output plugins are shown.
-    self.assertTrue(self.IsTextPresent("EmailPlugin"))
+    self.assertTrue(self.IsTextPresent("EmailOutputPlugin"))
     self.assertTrue(self.IsTextPresent("test@%s" %
                                        config_lib.CONFIG["Logging.domain"]))
 

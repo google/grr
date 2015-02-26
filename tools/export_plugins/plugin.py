@@ -8,11 +8,11 @@ import threading
 import logging
 
 from grr.lib import data_store
+from grr.lib import output_plugin as output_plugin_lib
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import threadpool
 from grr.lib import utils
-from grr.lib.hunts import output_plugins
 
 
 class ExportPlugin(object):
@@ -28,15 +28,15 @@ class ExportPlugin(object):
     raise NotImplementedError()
 
 
-class HuntOutputPluginBatchConverter(threadpool.BatchConverter):
-  """BatchConverter that applies HuntOutputPlugin to values.
+class OutputPluginBatchConverter(threadpool.BatchConverter):
+  """BatchConverter that applies OutputPlugin to values.
 
-  This class applies specific HuntOutputPlugin to the given set of values
-  using in either multi-threaded or a single-threaded fashion. See
+  This class applies specific OutputPlugin to the given set of values
+  using it in either multi-threaded or a single-threaded fashion. See
   BatchConverter implementation for details.
 
   Args:
-      output_plugin: HuntOutputPlugin that will be applied to the values.
+      output_plugin: OutputPlugin that will be applied to the values.
       kwargs: Arguments that will be passed to threadpool.BatchConverter()
               constructor.
   """
@@ -51,7 +51,7 @@ class HuntOutputPluginBatchConverter(threadpool.BatchConverter):
     self.batches_count = 0
     self.lock = threading.RLock()
 
-    super(HuntOutputPluginBatchConverter, self).__init__(**kwargs)
+    super(OutputPluginBatchConverter, self).__init__(**kwargs)
 
   @utils.Synchronized
   def UpdateBatchCount(self):
@@ -70,8 +70,8 @@ class HuntOutputPluginBatchConverter(threadpool.BatchConverter):
     self.UpdateBatchCount()
 
 
-class HuntOutputExportPlugin(ExportPlugin):
-  """Base class for ExportPlugins that use HuntOutputPlugins."""
+class OutputPluginBasedExportPlugin(ExportPlugin):
+  """Base class for ExportPlugins that use OutputPlugins."""
 
   def _ConfigureArgParserForRdfValue(self, parser, value_class):
     """Configures arguments parser with fields of the rdf value class.
@@ -126,16 +126,16 @@ class HuntOutputExportPlugin(ExportPlugin):
 
   def _FindOutputPluginByName(self, plugin_name):
     """Finds output plugin with a given name."""
-    for cls in output_plugins.HuntOutputPlugin.classes.itervalues():
+    for cls in output_plugin_lib.OutputPlugin.classes.itervalues():
       if cls.name == plugin_name:
         return cls
 
     raise KeyError(plugin_name)
 
   def _CreateOutputPluginFromArgs(self, collection_urn, args):
-    """Creates HuntOutputPlugin using given args as constructor arguments.
+    """Creates OutputPlugin using given args as constructor arguments.
 
-    If HuntOutputPlugin args has "export_options" attribute, we add
+    If OutputPlugin args has "export_options" attribute, we add
     arguments corresponding to rdfvalue.ExportOptions.
 
     Args:
@@ -143,7 +143,7 @@ class HuntOutputExportPlugin(ExportPlugin):
       args: argparse.Namespace-compatible object with parsed command
             line arguments.
     Returns:
-      HuntOutputPlugin instance.
+      OutputPlugin instance.
     """
 
     output_plugin_class = self._FindOutputPluginByName(args.plugin)
@@ -157,7 +157,8 @@ class HuntOutputExportPlugin(ExportPlugin):
     else:
       output_plugin_args = None
 
-    return output_plugin_class(collection_urn, args=output_plugin_args,
+    return output_plugin_class(source_urn=collection_urn,
+                               args=output_plugin_args,
                                token=data_store.default_token)
 
   def _ProcessValuesWithOutputPlugin(self, values, output_plugin, args):
@@ -166,7 +167,7 @@ class HuntOutputExportPlugin(ExportPlugin):
     checkpoints = utils.Grouper(values, args.checkpoint_every)
     for index, checkpoint in enumerate(checkpoints):
       logging.info("Starting checkpoint %d.", index)
-      batch_converter = HuntOutputPluginBatchConverter(
+      batch_converter = OutputPluginBatchConverter(
           batch_size=args.batch, threadpool_size=args.threads,
           output_plugin=output_plugin)
       batch_converter.Convert(checkpoint)
@@ -181,7 +182,7 @@ class HuntOutputExportPlugin(ExportPlugin):
     raise NotImplementedError()
 
   def GetValuesForExport(self, args):
-    """Returns values that should be processed with the HuntOutputPlugin."""
+    """Returns values that should be processed with the OutputPlugin."""
     _ = args
     raise NotImplementedError()
 
@@ -191,7 +192,7 @@ class HuntOutputExportPlugin(ExportPlugin):
     self._ConfigureArgParserForRdfValue(parser, rdfvalue.ExportOptions)
 
     subparsers = parser.add_subparsers(title="Output plugins")
-    for cls in output_plugins.HuntOutputPlugin.classes.itervalues():
+    for cls in output_plugin_lib.OutputPlugin.classes.itervalues():
       if not cls.name:
         continue
 
@@ -202,7 +203,7 @@ class HuntOutputExportPlugin(ExportPlugin):
         self._ConfigureArgParserForRdfValue(subparser, cls.args_type)
 
   def Run(self, args):
-    """Applies hunt output plugin to the given collection."""
+    """Applies output plugin to the given collection."""
 
     output_plugin = self._CreateOutputPluginFromArgs(
         self.GetValuesSourceURN(args), args)

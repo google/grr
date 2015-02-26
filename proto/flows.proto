@@ -4,9 +4,9 @@
 
 syntax = "proto2";
 
-import "grr/proto/export.proto";
 import "grr/proto/jobs.proto";
 import "grr/proto/knowledge_base.proto";
+import "grr/proto/output_plugin.proto";
 import "grr/proto/semantic.proto";
 
 
@@ -68,7 +68,7 @@ message GUISettings {
 
 
 message FlowRunnerArgs {
-  // Next field ID: 21
+  // Next field ID: 22
 
   optional GrrMessage.Priority priority = 1 [(sem_type) = {
       description: "The priority used for this flow.",
@@ -187,6 +187,13 @@ message FlowRunnerArgs {
                    "creator of the parent.",
       label: HIDDEN,
     }];
+
+  repeated OutputPluginDescriptor output_plugins = 21 [(sem_type) = {
+      description: "Output plugins used for this flow. These plugins will be "
+                   "applied to flow results as soon as the flow is completed."
+      friendly_name: "Output Plugins",
+      label: HIDDEN,
+    }];
 }
 
 
@@ -301,89 +308,12 @@ message FlowRequest {
     }];
 }
 
-
-message OutputPlugin {
-  optional string plugin_name = 1 [(sem_type) = {
-      description: "The name of the output plugin."
-    }];
-
-  optional bytes plugin_args = 2 [(sem_type) = {
-      dynamic_type: "GetPluginArgsClass",
-      description: "The parameters for this plugin. Must be an instance "
-      "of the named plugin's args_type."
-    }];
-}
-
-message OutputPluginBatchProcessingStatus {
-  enum Status {
-    SUCCESS = 0; // Batch was succesffully processed.
-    ERROR = 1;  // Batch wasn't processed due to an error.
-  }
-
-  optional Status status = 1 [(sem_type) = {
-      description: "Was this batch successfully processed or not?"
-    }, default = SUCCESS];
-
-  optional string plugin_name = 2 [(sem_type) = {
-      description: "Name of the output plugin responsible for this result."
-    }];
-
-  optional string summary = 3 [(sem_type) = {
-      description: "Summary message."
-    }];
-
-  optional uint64 batch_index = 4 [(sem_type) = {
-      description: "Number of the batch being processed."
-    }];
-
-  optional uint64 batch_size = 5 [(sem_type) = {
-      description: "Size of the batch beting processed."
-    }];
-}
-
-message EmailPluginArgs {
-  optional string email = 1 [(sem_type) = {
-      type: "DomainEmailAddress",
-      description: "The email address that messages will be sent to.",
-    }];
-  optional uint64 email_limit = 2 [default=100];
-}
-
-
-message CSVOutputPluginArgs {
-  optional string output_dir = 1 [(sem_type) = {
-      type: "RDFURN",
-      description: "AFF4 directory where resulting CSV files will be written "
-      "to. If unset, results will be written to a file with a unique "
-      "identifier under aff4:/tmp.",
-      label: ADVANCED
-    }];
-  optional ExportOptions export_options = 2 [(sem_type) = {
-      description: "Export options.",
-      label: ADVANCED
-    }];
-  optional bool convert_values = 3 [(sem_type) = {
-      description: "If true, convert values for export-friendly format.",
-      label: HIDDEN
-    }, default=true];
-}
-
-
-message CollectionPluginArgs {
-  optional string collection_name = 1 [(sem_type) = {
-      friendly_name: "Collection Name",
-      description: "The name of the collection within the hunt.",
-      label: ADVANCED
-    }, default="Results"];
-}
-
-
 message VariableGenericHuntArgs {
   repeated FlowRequest flows = 1 [(sem_type) = {
       description: "A list of requests for starting flows on certain clients.",
     }];
 
-  repeated OutputPlugin output_plugins = 2 [(sem_type) = {
+  repeated OutputPluginDescriptor output_plugins = 2 [(sem_type) = {
       description: "The output plugins to use for this hunt.",
     }];
 }
@@ -400,7 +330,7 @@ message GenericHuntArgs {
       description: "The runner args for launching each flow."
     }];
 
-  repeated OutputPlugin output_plugins = 4 [(sem_type) = {
+  repeated OutputPluginDescriptor output_plugins = 4 [(sem_type) = {
       description: "The output plugins to use for this hunt.",
     }];
 
@@ -1118,24 +1048,6 @@ message ManageCronJobFlowArgs {
     }];
 
   optional Action action = 2 [default=NOOP];
-}
-
-message CronHuntOutputFlowArgs {
-  optional string hunt_urn = 1 [(sem_type) = {
-      type: "RDFURN",
-      description: "URN of a hunt."
-    }];
-  optional string metadata_urn = 2 [(sem_type) = {
-      type: "RDFURN",
-      description: "URN of a cron hunt output module metadata."
-    }];
-  optional string output_plugin_name = 3 [(sem_type) = {
-      description: "Name of an output plugin."
-    }];
-  optional bytes output_plugin_args = 4 [(sem_type) = {
-      dynamic_type: "GetOutputPluginArgsClass",
-      description: "Args passed to the output plugin."
-    }];
 }
 
 message PlistValueFilterArgs {

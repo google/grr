@@ -131,9 +131,12 @@ server.
  * @suppress {missingProperties} As response can be anything.
  */
 ApiItemsProviderController.prototype.onFetchedItems_ = function(response) {
-  var result = response.data;
-  if (angular.isUndefined(result)) {
+  var result;
+  if (angular.isUndefined(response.data) ||
+      angular.isUndefined(response.data.items)) {
     result = [];
+  } else {
+    result = response.data.items;
   }
 
   if (angular.isDefined(this.transformItems)) {

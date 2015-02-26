@@ -3,80 +3,49 @@
 
 from grr.gui import api_aff4_object_renderers
 from grr.gui import api_call_renderers
-from grr.gui import api_value_renderers
 from grr.lib import registry
 
 
 class ApiDocsRenderer(api_call_renderers.ApiCallRenderer):
   """Renders HTTP API docs sources."""
 
-  def RenderArgs(self, args_type):
-    if args_type is None:
-      return []
-
-    result = []
-    for field_number in sorted(args_type.type_infos_by_field_number.keys()):
-      descriptor = args_type.type_infos_by_field_number[field_number]
-      if descriptor.name == "additional_args":
-        continue
-
-      if descriptor.proto_type_name == "bool":
-        result.append(dict(name=descriptor.name,
-                           type="bool",
-                           doc=descriptor.description + "\nPossibe values: " +
-                           "1 or 0.",
-                           default=descriptor.default and "1" or "0"))
-      elif hasattr(descriptor, "enum"):
-        possible_values = "\n Possible values: " + ", ".join(
-            descriptor.reverse_enum.values())
-        result.append(dict(name=descriptor.name,
-                           type="Enum",
-                           doc=descriptor.description + possible_values,
-                           default=descriptor.reverse_enum[descriptor.default]))
-      else:
-        rendered_default = api_value_renderers.RenderValue(
-            descriptor.default, with_types=True, with_metadata=True)
-        if descriptor.type:
-          type_name = descriptor.type.__name__
-        else:
-          type_name = descriptor.proto_type
-          result.append(dict(name=descriptor.name,
-                             type=type_name,
-                             doc=descriptor.description,
-                             default=rendered_default))
-
-    return result
-
-  def RenderApiCallRenderers(self):
-    rules = sorted(api_call_renderers.HTTP_ROUTING_MAP.iter_rules(),
-                   key=lambda x: x.rule)
-
+  def RenderApiCallRenderers(self, routing_rules):
     result = {}
-    for rule in rules:
+    for rule in routing_rules:
       result[rule.rule] = dict(route=rule.rule,
-                               methods=list(rule.methods),
+                               renderer=rule.endpoint.__name__,
+                               methods=list(rule.methods - set(["HEAD"])),
                                doc=rule.endpoint.__doc__,
-                               args=self.RenderArgs(rule.endpoint.args_type))
+                               args_type=(rule.endpoint.args_type and
+                                          rule.endpoint.args_type.__name__))
 
     return result
 
-  def RenderApiObjectRenderers(self):
-    renderers = api_aff4_object_renderers.ApiAFF4ObjectRenderer.classes.values()
-
+  def RenderApiObjectRenderers(self, renderers):
     result = {}
     for renderer in renderers:
       if not renderer.aff4_type:
         continue
 
       result[renderer.aff4_type] = dict(
+          name=renderer.__name__,
           doc=renderer.__doc__,
-          args=self.RenderArgs(renderer.args_type))
+          args_type=renderer.args_type and renderer.args_type.__name__)
 
     return result
 
   def Render(self, unused_args, token=None):
-    return dict(api_call_renderers=self.RenderApiCallRenderers(),
-                api_object_renderers=self.RenderApiObjectRenderers())
+    routing_rules = sorted(
+        api_call_renderers.HTTP_ROUTING_MAP.iter_rules(),
+        key=lambda x: x.rule)
+
+    object_renderers = (api_aff4_object_renderers.ApiAFF4ObjectRenderer.
+                        classes.values())
+
+    return dict(
+        api_call_renderers=self.RenderApiCallRenderers(routing_rules),
+        api_object_renderers=self.RenderApiObjectRenderers(object_renderers)
+        )
 
 
 class ApiDocsInitHook(registry.InitHook):

@@ -617,7 +617,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
       # Create hunt without results.
       self.CreateSampleHunt(output_plugins=[
-          rdfvalue.OutputPlugin(plugin_name="CSVOutputPlugin")])
+          rdfvalue.OutputPluginDescriptor(plugin_name="CSVOutputPlugin")])
 
     self.Open("/#main=ManageHunts")
     self.Click("css=td:contains('GenericHunt')")
@@ -634,7 +634,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
       # Create hunt.
       self.CreateSampleHunt(output_plugins=[
-          rdfvalue.OutputPlugin(plugin_name="CSVOutputPlugin")])
+          rdfvalue.OutputPluginDescriptor(plugin_name="CSVOutputPlugin")])
 
       # Actually run created hunt.
       client_mock = test_lib.SampleHuntMock()

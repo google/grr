@@ -7,10 +7,14 @@
 from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
+import os
+
+from grr.gui import api_test_lib
 from grr.gui.api_plugins import artifact as artifact_plugin
 
 from grr.lib import artifact_lib
 from grr.lib import artifact_test
+from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib import utils
@@ -64,6 +68,20 @@ class ArtifactRendererTest(artifact_test.ArtifactBaseTest):
                          "labels",
                          "supported_os"):
       self.assertIn(required_key, rendering["FakeArtifact"]["artifact"])
+
+
+class ArtifactRendererRegressionTest(
+    api_test_lib.ApiCallRendererRegressionTest):
+
+  renderer = "ApiArtifactRenderer"
+
+  def Run(self):
+    artifact_lib.ArtifactRegistry.ClearRegistry()
+    test_artifacts_file = os.path.join(
+        config_lib.CONFIG["Test.data_dir"], "test_artifact.json")
+    artifact_lib.LoadArtifactsFromFiles([test_artifacts_file])
+
+    self.Check("GET", "/api/artifacts")
 
 
 def main(argv):

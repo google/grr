@@ -8,7 +8,7 @@ from grr.lib import rdfvalue
 from grr.tools.export_plugins import plugin
 
 
-class CollectionExportPlugin(plugin.HuntOutputExportPlugin):
+class CollectionExportPlugin(plugin.OutputPluginBasedExportPlugin):
   """ExportPlugin that exports RDFValueCollections."""
 
   name = "collection"

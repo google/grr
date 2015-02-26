@@ -638,8 +638,22 @@ td.lease_available {
   margin-bottom: 2em;
 }
 
-.doc-item h4 {
+.doc-item p.lead {
   margin-bottom: 0.25em;
+}
+
+.doc-item .query-parameters {
+  margin-top: 1em;
+}
+
+.doc-item .json {
+  white-space: pre-wrap;
+  font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+  background-color: #f5f5f5;
+}
+
+.doc-item .example th {
+  font-weight: normal;
 }
 
 .grr_aff4_type_header {

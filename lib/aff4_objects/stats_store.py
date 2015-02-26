@@ -518,7 +518,7 @@ class StatsStoreDataQuery(object):
     new_time_series = []
     for time_serie in self.time_series:
       new_time_series.append(
-          time_serie.resample("%ds" % interval.seconds))
+          time_serie.resample("%ds" % interval.seconds, how="mean"))
 
     self.time_series = new_time_series
     self.sample_interval = interval

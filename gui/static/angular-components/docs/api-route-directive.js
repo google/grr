@@ -30,7 +30,13 @@ grrUi.docs.apiRouteDirective.ApiRouteController = function($scope) {
   /** @export {Array.<grrUi.docs.apiRouteDirective.RouteComponent>} */
   this.routeComponents;
 
-  this.scope_.$watch('value', this.onValueChange.bind(this));
+  /** @export {Object.<string, Object>} */
+  this.queryParameters;
+
+  /** @export {boolean} */
+  this.hasQueryParameters;
+
+  this.scope_.$watch('::value', this.onValueChange.bind(this));
 };
 
 var ApiRouteController =
@@ -40,32 +46,56 @@ var ApiRouteController =
 /**
  * Handles value attribute changes.
  *
- * @param {string} newValue New route value.
  * @export
  */
-ApiRouteController.prototype.onValueChange = function(newValue) {
+ApiRouteController.prototype.onValueChange = function() {
   var routeComponents = this.routeComponents = [];
+  var queryParameters = this.queryParameters = {};
 
-  if (angular.isString(newValue)) {
-    var components = newValue.split('/');
+  if (angular.isString(this.scope_.value)) {
+    var route = this.scope_.value;
+
+    var questionMarkIndex = route.indexOf('?');
+    if (questionMarkIndex != -1) {
+      var queryParamString = route.substring(questionMarkIndex + 1,
+                                             route.length);
+      route = route.substring(0, questionMarkIndex);
+
+      var vars = queryParamString.split('&');
+      angular.forEach(vars, function(variable) {
+        var pair = variable.split('=');
+        if (pair.length == 2) {
+          queryParameters[pair[0]] = pair[1];
+        } else {
+          queryParameters[pair[0]] = null;
+        }
+      });
+    }
+
+    var components = route.split('/');
     angular.forEach(components, function(component) {
       if (component.length > 0) {
         if (component[0] === '<') {
           component = component.substring(1, component.length - 1);
           var componentParts = component.split(':');
-          var componentType;
+          var componentType, componentValue;
           if (componentParts.length === 1) {
             componentType = 'string';
+            componentValue = componentParts[0];
           } else {
             componentType = componentParts[0];
+            componentValue = componentParts[1];
           }
-          routeComponents.push({type: componentType, value: component});
+
+          routeComponents.push({type: componentType, value: componentValue});
         } else {
           routeComponents.push({value: component});
         }
       }
-    });
+    }.bind(this));
   }
+
+  this.hasQueryParameters = Object.keys(queryParameters).length > 0;
 };
 
 

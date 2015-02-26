@@ -21,15 +21,15 @@ from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import hunts
+from grr.lib import output_plugin
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import user_managers
-from grr.lib.hunts import output_plugins
 from grr.lib.hunts import standard
 
 
-class DummyHuntOutputPlugin(output_plugins.HuntOutputPlugin):
+class DummyHuntOutputPlugin(output_plugin.OutputPlugin):
   num_calls = 0
   num_responses = 0
 
@@ -38,13 +38,13 @@ class DummyHuntOutputPlugin(output_plugins.HuntOutputPlugin):
     DummyHuntOutputPlugin.num_responses += len(list(responses))
 
 
-class FailingDummyHuntOutputPlugin(output_plugins.HuntOutputPlugin):
+class FailingDummyHuntOutputPlugin(output_plugin.OutputPlugin):
 
   def ProcessResponses(self, unused_responses):
     raise RuntimeError("Oh no!")
 
 
-class StatefulDummyHuntOutputPlugin(output_plugins.HuntOutputPlugin):
+class StatefulDummyHuntOutputPlugin(output_plugin.OutputPlugin):
   data = []
 
   def Initialize(self):
@@ -56,7 +56,7 @@ class StatefulDummyHuntOutputPlugin(output_plugins.HuntOutputPlugin):
     self.state.index += 1
 
 
-class LongRunningDummyHuntOutputPlugin(output_plugins.HuntOutputPlugin):
+class LongRunningDummyHuntOutputPlugin(output_plugin.OutputPlugin):
   num_calls = 0
 
   def ProcessResponses(self, unused_responses):
@@ -184,7 +184,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     self.ProcessHuntOutputPlugins()
 
   def testOutputPluginsProcessOnlyNewResultsOnEveryRun(self):
-    self.StartHunt(output_plugins=[rdfvalue.OutputPlugin(
+    self.StartHunt(output_plugins=[rdfvalue.OutputPluginDescriptor(
         plugin_name="DummyHuntOutputPlugin")])
 
     # Process hunt results.
@@ -224,8 +224,9 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(DummyHuntOutputPlugin.num_responses, 10)
 
   def testOutputPluginsProcessingStatusIsWrittenToStatusCollection(self):
-    hunt_urn = self.StartHunt(output_plugins=[rdfvalue.OutputPlugin(
-        plugin_name="DummyHuntOutputPlugin")])
+    plugin_descriptor = rdfvalue.OutputPluginDescriptor(
+        plugin_name="DummyHuntOutputPlugin")
+    hunt_urn = self.StartHunt(output_plugins=[plugin_descriptor])
 
     # Run the hunt and process output plugins.
     self.AssignTasksToClients(self.client_ids)
@@ -246,13 +247,14 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(status_collection[0].status, "SUCCESS")
     self.assertEqual(status_collection[0].batch_index, 0)
     self.assertEqual(status_collection[0].batch_size, 10)
-    self.assertEqual(status_collection[0].plugin_name,
-                     "DummyHuntOutputPlugin_0")
+    self.assertEqual(status_collection[0].plugin_descriptor,
+                     plugin_descriptor)
 
   def testMultipleOutputPluginsProcessingStatusAreWrittenToStatusCollection(
       self):
-    hunt_urn = self.StartHunt(output_plugins=[rdfvalue.OutputPlugin(
-        plugin_name="DummyHuntOutputPlugin")])
+    plugin_descriptor = rdfvalue.OutputPluginDescriptor(
+        plugin_name="DummyHuntOutputPlugin")
+    hunt_urn = self.StartHunt(output_plugins=[plugin_descriptor])
 
     # Run the hunt on first 4 clients and process output plugins.
     self.AssignTasksToClients(self.client_ids[:4])
@@ -279,18 +281,21 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(items[0].status, "SUCCESS")
     self.assertEqual(items[0].batch_index, 0)
     self.assertEqual(items[0].batch_size, 4)
-    self.assertEqual(items[0].plugin_name, "DummyHuntOutputPlugin_0")
+    self.assertEqual(items[0].plugin_descriptor, plugin_descriptor)
 
     self.assertEqual(items[1].status, "SUCCESS")
     self.assertEqual(items[1].batch_index, 0)
     self.assertEqual(items[1].batch_size, 6)
-    self.assertEqual(items[1].plugin_name, "DummyHuntOutputPlugin_0")
+    self.assertEqual(items[1].plugin_descriptor, plugin_descriptor)
 
   def testErrorOutputPluginStatusIsAlsoWrittenToErrorsCollection(self):
+    failing_plugin_descriptor = rdfvalue.OutputPluginDescriptor(
+        plugin_name="FailingDummyHuntOutputPlugin")
+    plugin_descriptor = rdfvalue.OutputPluginDescriptor(
+        plugin_name="DummyHuntOutputPlugin")
     hunt_urn = self.StartHunt(output_plugins=[
-        rdfvalue.OutputPlugin(plugin_name="FailingDummyHuntOutputPlugin"),
-        rdfvalue.OutputPlugin(plugin_name="DummyHuntOutputPlugin")
-    ])
+        failing_plugin_descriptor, plugin_descriptor
+        ])
 
     # Run the hunt and process output plugins.
     self.AssignTasksToClients(self.client_ids)
@@ -314,28 +319,29 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(errors_collection[0].status, "ERROR")
     self.assertEqual(errors_collection[0].batch_index, 0)
     self.assertEqual(errors_collection[0].batch_size, 10)
-    self.assertEqual(errors_collection[0].plugin_name,
-                     "FailingDummyHuntOutputPlugin_0")
+    self.assertEqual(errors_collection[0].plugin_descriptor,
+                     failing_plugin_descriptor)
     self.assertEqual(errors_collection[0].summary, "Oh no!")
 
-    items = sorted(status_collection, key=lambda x: x.plugin_name)
+    items = sorted(status_collection,
+                   key=lambda x: x.plugin_descriptor.plugin_name)
     self.assertEqual(items[0].status, "SUCCESS")
     self.assertEqual(items[0].batch_index, 0)
     self.assertEqual(items[0].batch_size, 10)
-    self.assertEqual(items[0].plugin_name,
-                     "DummyHuntOutputPlugin_1")
+    self.assertEqual(items[0].plugin_descriptor, plugin_descriptor)
 
     self.assertEqual(items[1].status, "ERROR")
     self.assertEqual(items[1].batch_index, 0)
     self.assertEqual(items[1].batch_size, 10)
-    self.assertEqual(items[1].plugin_name,
-                     "FailingDummyHuntOutputPlugin_0")
+    self.assertEqual(items[1].plugin_descriptor, failing_plugin_descriptor)
     self.assertEqual(items[1].summary, "Oh no!")
 
   def testFailingOutputPluginDoesNotAffectOtherOutputPlugins(self):
     self.StartHunt(output_plugins=[
-        rdfvalue.OutputPlugin(plugin_name="FailingDummyHuntOutputPlugin"),
-        rdfvalue.OutputPlugin(plugin_name="DummyHuntOutputPlugin")
+        rdfvalue.OutputPluginDescriptor(
+            plugin_name="FailingDummyHuntOutputPlugin"),
+        rdfvalue.OutputPluginDescriptor(
+            plugin_name="DummyHuntOutputPlugin")
     ])
 
     # Process hunt results.
@@ -358,10 +364,13 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(DummyHuntOutputPlugin.num_responses, 10)
 
   def testResultsProcessingErrorContainsDetailedFailureData(self):
+    failing_plugin_descriptor = rdfvalue.OutputPluginDescriptor(
+        plugin_name="FailingDummyHuntOutputPlugin")
+    plugin_descriptor = rdfvalue.OutputPluginDescriptor(
+        plugin_name="DummyHuntOutputPlugin")
     hunt_urn = self.StartHunt(output_plugins=[
-        rdfvalue.OutputPlugin(plugin_name="FailingDummyHuntOutputPlugin"),
-        rdfvalue.OutputPlugin(plugin_name="DummyHuntOutputPlugin")
-    ])
+        failing_plugin_descriptor, plugin_descriptor
+        ])
 
     # Process hunt results.
     self.ProcessHuntOutputPlugins()
@@ -380,16 +389,16 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
       self.assertEqual(len(e.exceptions_by_hunt), 1)
       self.assertTrue(hunt_urn in e.exceptions_by_hunt)
       self.assertEqual(len(e.exceptions_by_hunt[hunt_urn]), 1)
-      self.assertTrue("FailingDummyHuntOutputPlugin_0" in
+      self.assertTrue(failing_plugin_descriptor in
                       e.exceptions_by_hunt[hunt_urn])
       self.assertEqual(len(e.exceptions_by_hunt[hunt_urn][
-          "FailingDummyHuntOutputPlugin_0"]), 1)
+          failing_plugin_descriptor]), 1)
       self.assertEqual(e.exceptions_by_hunt[hunt_urn][
-          "FailingDummyHuntOutputPlugin_0"][0].message,
+          failing_plugin_descriptor][0].message,
                        "Oh no!")
 
   def testOutputPluginsMaintainState(self):
-    self.StartHunt(output_plugins=[rdfvalue.OutputPlugin(
+    self.StartHunt(output_plugins=[rdfvalue.OutputPluginDescriptor(
         plugin_name="StatefulDummyHuntOutputPlugin")])
 
     self.assertListEqual(StatefulDummyHuntOutputPlugin.data, [])
@@ -410,9 +419,9 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
                          [0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
 
   def testMultipleHuntsOutputIsProcessedCorrectly(self):
-    self.StartHunt(output_plugins=[rdfvalue.OutputPlugin(
+    self.StartHunt(output_plugins=[rdfvalue.OutputPluginDescriptor(
         plugin_name="DummyHuntOutputPlugin")])
-    self.StartHunt(output_plugins=[rdfvalue.OutputPlugin(
+    self.StartHunt(output_plugins=[rdfvalue.OutputPluginDescriptor(
         plugin_name="StatefulDummyHuntOutputPlugin")])
 
     self.AssignTasksToClients()
@@ -433,7 +442,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
       return test[0]
 
     with utils.Stubber(time, "time", TimeStub):
-      self.StartHunt(output_plugins=[rdfvalue.OutputPlugin(
+      self.StartHunt(output_plugins=[rdfvalue.OutputPluginDescriptor(
           plugin_name="LongRunningDummyHuntOutputPlugin")])
       self.AssignTasksToClients()
       self.RunHunt(failrate=-1)
@@ -459,7 +468,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
       return test[0]
 
     with utils.Stubber(time, "time", TimeStub):
-      self.StartHunt(output_plugins=[rdfvalue.OutputPlugin(
+      self.StartHunt(output_plugins=[rdfvalue.OutputPluginDescriptor(
           plugin_name="LongRunningDummyHuntOutputPlugin")])
       self.AssignTasksToClients()
       self.RunHunt(failrate=-1)
@@ -473,7 +482,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
       self.assertEqual(LongRunningDummyHuntOutputPlugin.num_calls, 10)
 
   def testHuntResultsArrivingWhileOldResultsAreProcessedAreHandled(self):
-    self.StartHunt(output_plugins=[rdfvalue.OutputPlugin(
+    self.StartHunt(output_plugins=[rdfvalue.OutputPluginDescriptor(
         plugin_name="DummyHuntOutputPlugin")])
 
     # Process hunt results.
@@ -571,7 +580,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
       with hunts.GRRHunt.StartHunt(
           hunt_name="StatsHunt", client_rate=0, token=self.token,
           output_plugins=[
-              rdfvalue.OutputPlugin(plugin_name="DummyHuntOutputPlugin")
+              rdfvalue.OutputPluginDescriptor(
+                  plugin_name="DummyHuntOutputPlugin")
           ]) as hunt:
         hunt.Run()
 

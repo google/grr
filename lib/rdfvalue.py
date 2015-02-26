@@ -315,8 +315,22 @@ class RDFInteger(RDFString):
   def __and__(self, other):
     return self._value & other
 
+  def __rand__(self, other):
+    return self._value & other
+
+  def __iand__(self, other):
+    self._value &= other
+    return self
+
   def __or__(self, other):
     return self._value | other
+
+  def __ror__(self, other):
+    return self._value | other
+
+  def __ior__(self, other):
+    self._value |= other
+    return self
 
   def __add__(self, other):
     return self._value + other
@@ -341,8 +355,14 @@ class RDFInteger(RDFString):
   def __mul__(self, other):
     return self._value * other
 
+  def __rmul__(self, other):
+    return self._value * other
+
   def __div__(self, other):
     return self._value / other
+
+  def __rdiv__(self, other):
+    return other / self._value
 
   @staticmethod
   def LessThan(attribute, filter_implemention, value):

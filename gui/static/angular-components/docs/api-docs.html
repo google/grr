@@ -1,30 +1,80 @@
-<div class="container">
+<div class="container-fluid">
   <div class="row">
     <div class="col-md-9">
       <div class="doc-item">
         <h1>GRR API</h1>
       </div>
 
-      <div class="doc-item" ng-repeat="apiCallRenderer in ::controller.apiCallRenderers">
-        <h4>
-          <small>{$ ::apiCallRenderer.methods.join(', ') $}</small>
-          <grr-api-route value="::apiCallRenderer.route"></grr-api-route>
-        </h4>
+      <p>
+        Below is the list of HTTP calls that GRR frontend can handler. For
+        every supported route you'll find a list of supported query parameters
+        (if any). These parameters are passed either as URL query parameters or
+        as parts of URL path.<br/>
+        For example:
+      </p>
+      <p>
+        <samp>/api/hunts?<strong>offset=100&amp;count=20</strong></samp><br>
+        <samp>/api/aff4/<strong>foo/bar/collection</strong>?<strong>RDFValueCollection.filter=blah</strong></samp>
+      </p>
+      <p>
+        If special permissions are required to access certain resources,
+        &quot;reason&quot; query parameter may be specified.
+        For example:</p>
+      <p>
+        <samp>/api/aff4/foo/bar/collection?RDFValueCollection.filter=blah&amp;<strong>reason=testreason</strong></samp>
+      </p><br/>
 
-        <p class="preserve-linebreaks">{$ ::apiCallRenderer.doc $}</p>
-        <grr-api-query-spec value="::apiCallRenderer.args"></grr-api-query-spec>
+      <div class="doc-item"
+           ng-repeat="apiCallRenderer in ::controller.apiCallRenderers">
+        <p class="lead">
+          {$ ::apiCallRenderer.methods.join(', ') $}
+          <grr-api-route value="::apiCallRenderer.route"></grr-api-route>
+        </p>
+
+        <grr-api-description value="::apiCallRenderer.doc"></grr-api-description>
+        <grr-api-query-spec args-type="::apiCallRenderer.args_type"></grr-api-query-spec>
+
+        <div ng-if="controller.examplesByRenderer[apiCallRenderer.renderer].length > 0">
+          <h4>Examples:</h4>
+
+          <table class="example table table-condensed"
+                 ng-repeat="example in ::controller.examplesByRenderer[apiCallRenderer.renderer]">
+            <thead>
+              <th>
+                <grr-api-route value="::example.url" />
+              </th>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <div class="json pre-scrollable">{$ ::example.response | json:2 $}</div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
       </div>
 
       <div class="doc-item">
-        <h2>AFF4 object renderers</h2>
-        <p>When using /api/aff4 API, set of accepted query parameters changes
-          depending on the type of the accessed objects.</p>
+        <h1>AFF4 object renderers</h2>
+        <p>
+          When using <strong>/api/aff4/...</strong> API, set of accepted query parameters changes
+          depending on the type of the accessed objects.
+        </p>
+        <p>
+          You can influence the output by providing object-type-specific query parameters.
+          Below is the list of such parameters, grouped by object types.
+        </p>
       </div>
 
-      <div class="doc-item" ng-repeat="(name, apiObjectRenderer) in ::controller.apiObjectRenderers">
-        <h4>{$ ::name $}</h4>
-        <p class="preserve-linebreaks">{$ ::apiObjectRenderer.doc $}</p>
-        <grr-api-query-spec value="::apiObjectRenderer.args" />
+      <div class="doc-item"
+           ng-repeat="(name, apiObjectRenderer) in ::controller.apiObjectRenderers"
+           ng-if="::apiObjectRenderer.args_type.length > 0">
+        <p class="lead">{$ ::name $}</p>
+        <grr-api-query-spec prefix="::name + '.'"
+                            args-type="::apiObjectRenderer.args_type"
+                            no-header />
       </div>
     </div>
   </div>

@@ -140,6 +140,10 @@ class FlowRunner(object):
     # Populate the flow object's urn with the new session id.
     self.flow_obj.urn = self.session_id = self.context.session_id
 
+    # Sent replies are cached so that they can be processed by output plugins
+    # when the flow is saved.
+    self.sent_replies = []
+
   @property
   def output(self):
     return self.context.output
@@ -214,6 +218,22 @@ class FlowRunner(object):
       args = rdfvalue.FlowRunnerArgs()
 
     output_collection = self._CreateOutputCollection(args)
+    # Output collection is nullified when flow is terminated, so we're
+    # keeping the urn separately for further reference.
+    output_urn = (output_collection is not None) and output_collection.urn
+
+    output_plugins_states = []
+    for plugin_descriptor in args.output_plugins:
+      plugin_class = plugin_descriptor.GetPluginClass()
+      plugin = plugin_class(output_urn, args=plugin_descriptor.plugin_args,
+                            token=self.token)
+      try:
+        plugin.Initialize()
+        output_plugins_states.append((plugin_descriptor, plugin.state))
+      except Exception as e:  # pylint: disable=broad-except
+        self.Log("Plugin %s failed to initialize (%s), ignoring it." %
+                 (plugin, e))
+
     context = utils.DataObject(
         args=args,
         backtrace=None,
@@ -229,9 +249,8 @@ class FlowRunner(object):
         next_processed_request=1,
         next_states=set(),
         output=output_collection,
-        # Output collection is nullified when flow is terminated, so we're
-        # keeping the urn separately for further reference.
-        output_urn=(output_collection is not None) and output_collection.urn,
+        output_plugins_states=output_plugins_states,
+        output_urn=output_urn,
         outstanding_requests=0,
         remaining_cpu_quota=args.cpu_limit,
         state=rdfvalue.Flow.State.RUNNING,
@@ -527,6 +546,10 @@ class FlowRunner(object):
       method(direct_response=direct_response,
              request=request,
              responses=responses)
+
+      if self.sent_replies:
+        self.ProcessRepliesWithOutputPlugins(self.sent_replies)
+        self.sent_replies = []
 
     # We don't know here what exceptions can be thrown in the flow but we have
     # to continue. Thus, we catch everything.
@@ -845,6 +868,8 @@ class FlowRunner(object):
       # avoids creating a collection for every intermediate flow result.
       self.context.output.Add(response)
 
+    self.sent_replies.append(response)
+
   def FlushMessages(self):
     """Flushes the messages that were queued."""
     # Only flush queues if we are the top level runner.
@@ -887,6 +912,25 @@ class FlowRunner(object):
   def IsRunning(self):
     return self.context.state == rdfvalue.Flow.State.RUNNING
 
+  def ProcessRepliesWithOutputPlugins(self, replies):
+    if not self.args.output_plugins or not replies:
+      return
+
+    for plugin_descriptor, plugin_state in self.context.output_plugins_states:
+      output_plugin = plugin_descriptor.GetPluginForState(plugin_state)
+
+      # Extend our lease if needed.
+      self.flow_obj.HeartBeat()
+      try:
+        output_plugin.ProcessResponses(replies)
+        output_plugin.Flush()
+
+        self.Log("Plugin %s sucessfully processed %d flow replies.",
+                 plugin_descriptor, len(replies))
+      except Exception as e:  # pylint: disable=broad-except
+        self.Log("Plugin %s failed to process %d replies due to: %s",
+                 plugin_descriptor, len(replies), e)
+
   def Terminate(self, status=None):
     """Terminates this flow."""
     try:
@@ -905,6 +949,7 @@ class FlowRunner(object):
         logging.info("%s flow results written to %s", len(self.output),
                      self.output.urn)
         self.output = None
+
     except access_control.UnauthorizedAccess:
       # This might fail if the output has a pickled token.
       pass

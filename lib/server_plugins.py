@@ -26,6 +26,8 @@ from grr.lib import flow
 from grr.lib import hunts
 from grr.lib import local
 from grr.lib import master
+from grr.lib import output_plugin
+from grr.lib import output_plugins
 from grr.lib import stats
 from grr.lib.flows import cron
 from grr.lib.flows import general

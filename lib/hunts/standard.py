@@ -19,11 +19,12 @@ from grr.lib.aff4_objects import cronjobs
 from grr.lib.hunts import implementation
 from grr.parsers import wmi_parser
 from grr.proto import flows_pb2
+from grr.proto import output_plugin_pb2
 
 
 class OutputPluginBatchProcessingStatus(rdfvalue.RDFProtoStruct):
   """Describes processing status of a single batch by a hunt output plugin."""
-  protobuf = flows_pb2.OutputPluginBatchProcessingStatus
+  protobuf = output_plugin_pb2.OutputPluginBatchProcessingStatus
 
 
 class Error(Exception):
@@ -499,39 +500,40 @@ class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
 
   def ApplyPluginsToBatch(self, hunt_urn, plugins, batch, batch_index):
     exceptions_by_plugin = {}
-    for plugin_name, plugin in plugins.items():
+    for plugin_def, plugin in plugins:
       logging.debug("Processing hunt %s with %s, batch %d", hunt_urn,
-                    plugin_name, batch_index)
+                    plugin_def.plugin_name, batch_index)
 
       try:
         plugin.ProcessResponses(batch)
 
         stats.STATS.IncrementCounter("hunt_results_ran_through_plugin",
-                                     delta=len(batch), fields=[plugin_name])
+                                     delta=len(batch),
+                                     fields=[plugin_def.plugin_name])
 
         plugin_status = rdfvalue.OutputPluginBatchProcessingStatus(
-            plugin_name=plugin_name,
+            plugin_descriptor=plugin_def,
             status="SUCCESS",
             batch_index=batch_index,
             batch_size=len(batch))
       except Exception as e:  # pylint: disable=broad-except
         stats.STATS.IncrementCounter("hunt_output_plugin_errors",
-                                     fields=[plugin_name])
+                                     fields=[plugin_def.plugin_name])
 
         plugin_status = rdfvalue.OutputPluginBatchProcessingStatus(
-            plugin_name=plugin_name,
+            plugin_descriptor=plugin_def,
             status="ERROR",
             summary=utils.SmartStr(e),
             batch_index=batch_index,
             batch_size=len(batch))
 
         logging.exception("Error processing hunt results: hunt %s, "
-                          "plugin %s, batch %d", hunt_urn, plugin_name,
-                          batch_index)
+                          "plugin %s, batch %d", hunt_urn,
+                          plugin_def.plugin_name, batch_index)
         self.Log("Error processing hunt results (hunt %s, "
                  "plugin %s, batch %d): %s" %
-                 (hunt_urn, plugin_name, batch_index, e))
-        exceptions_by_plugin[plugin_name] = e
+                 (hunt_urn, plugin_def.plugin_name, batch_index, e))
+        exceptions_by_plugin[plugin_def] = e
 
       aff4.PackedVersionedCollection.AddToCollection(
           self.StatusCollectionUrn(hunt_urn),
@@ -545,7 +547,7 @@ class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
 
   def FlushPlugins(self, hunt_urn, plugins):
     flush_exceptions = {}
-    for plugin_name, plugin in plugins.items():
+    for plugin_def, plugin in plugins:
       try:
         plugin.Flush()
       except Exception as e:  # pylint: disable=broad-except
@@ -553,7 +555,7 @@ class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
                           "plugin %s", hunt_urn, str(plugin))
         self.Log("Error processing hunt results (hunt %s, "
                  "plugin %s): %s" % (hunt_urn, str(plugin), e))
-        flush_exceptions[plugin_name] = e
+        flush_exceptions[plugin_def] = e
 
     return flush_exceptions
 
@@ -575,15 +577,15 @@ class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
       num_processed = int(metadata_obj.Get(
           metadata_obj.Schema.NUM_PROCESSED_RESULTS))
 
-      used_plugins = {}
+      used_plugins = []
       for batch_index, batch in enumerate(batches):
         batch = list(batch)
         num_processed += len(batch)
 
         if not used_plugins:
-          for plugin_name, (plugin_def,
-                            state) in output_plugins.data.iteritems():
-            used_plugins[plugin_name] = plugin_def.GetPluginForState(state)
+          for _, (plugin_def, state) in output_plugins.data.iteritems():
+            used_plugins.append((plugin_def,
+                                 plugin_def.GetPluginForState(state)))
 
         batch_exceptions = self.ApplyPluginsToBatch(hunt_urn, used_plugins,
                                                     batch, batch_index)

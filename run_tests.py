@@ -37,8 +37,8 @@ from grr.worker import worker_test
 flags.DEFINE_string("output", None,
                     "The name of the file we write on (default stderr).")
 
-flags.DEFINE_string("exclude_tests", None,
-                    "A comma-separated list of tests to exclude form running.")
+flags.DEFINE_list("exclude_tests", None,
+                  "A comma-separated list of tests to exclude form running.")
 
 flags.DEFINE_integer("processes", 0,
                      "Total number of simultaneous tests to run.")
@@ -87,17 +87,17 @@ class GRREverythingTestLoader(test_lib.GRRTestLoader):
 def RunTest(test_suite, stream=None):
   """Run an individual test.
 
-     Ignore the argument test_suite passed to this function, then
-     magically acquire an individual test name as specified by the --tests
-     flag, run it, and then exit the whole Python program completely.
+  Ignore the argument test_suite passed to this function, then
+  magically acquire an individual test name as specified by the --tests
+  flag, run it, and then exit the whole Python program completely.
 
-     Args:
-       test_suite (string): Ignored.
-       stream: The stream to print results to.
+  Args:
+    test_suite: Ignored.
+    stream: The stream to print results to.
 
-      Returns:
-        This function does not return; it causes a program exit.
-     """
+  Returns:
+    This function does not return; it causes a program exit.
+  """
 
   out_fd = stream
   if stream:
@@ -206,9 +206,10 @@ def main(argv=None):
 
     suites = flags.FLAGS.tests or test_lib.GRRBaseTest.classes
 
-    assert len(suites) == 1, ("Only a single test is supported in single "
-                              "processing mode, but %i were specified" %
-                              len(suites))
+    if len(suites) != 1:
+      raise ValueError("Only a single test is supported in single "
+                       "processing mode, but %i were specified" %
+                       len(suites))
 
     test_suite = suites[0]
     print "Running test %s" % test_suite
@@ -218,10 +219,6 @@ def main(argv=None):
   else:
     processes = {}
     print "Running tests with labels %s" % ",".join(flags.FLAGS.labels)
-
-    exclude_tests = []
-    if flags.FLAGS.exclude_tests:
-      exclude_tests = flags.FLAGS.exclude_tests.split(",")
 
     with utils.TempDirectory() as temp_dir:
       start = time.time()
@@ -234,7 +231,7 @@ def main(argv=None):
         if labels and not DoesTestHaveLabels(cls, labels):
           continue
 
-        if name in exclude_tests:
+        if name in flags.FLAGS.exclude_tests:
           print "Skipping test %s" % name
           continue
 

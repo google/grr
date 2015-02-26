@@ -13,11 +13,11 @@ from grr.gui.plugins import wizards
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flow
+from grr.lib import output_plugin
 from grr.lib import rdfvalue
 from grr.lib import type_info
 
 from grr.lib.hunts import implementation
-from grr.lib.hunts import output_plugins
 
 
 class HuntArgsParser(object):
@@ -188,17 +188,17 @@ class OutputPluginsForm(forms.OptionFormRenderer):
   @property
   def options(self):
     """Only include output plugins with descriptions."""
-    for name in sorted(output_plugins.HuntOutputPlugin.classes.keys()):
-      cls = output_plugins.HuntOutputPlugin.classes[name]
+    for name in sorted(output_plugin.OutputPlugin.classes.keys()):
+      cls = output_plugin.OutputPlugin.classes[name]
       if cls.description:
         yield name, cls.description
 
   def ParseOption(self, option, request):
     # Depending on the plugin we parse a different protobuf.
-    plugin = output_plugins.HuntOutputPlugin.classes.get(option)
+    plugin = output_plugin.OutputPlugin.classes.get(option)
 
     if plugin and plugin.description:
-      result = output_plugins.OutputPlugin(plugin_name=option)
+      result = output_plugin.OutputPluginDescriptor(plugin_name=option)
       result.plugin_args = forms.SemanticProtoFormRenderer(
           plugin.args_type(), id=self.id, prefix=self.prefix).ParseArgs(request)
       result.plugin_args.Validate()
@@ -207,7 +207,7 @@ class OutputPluginsForm(forms.OptionFormRenderer):
 
   def RenderOption(self, option, request, response):
     # Depending on the plugin we render a different protobuf.
-    plugin = output_plugins.HuntOutputPlugin.classes.get(option)
+    plugin = output_plugin.OutputPlugin.classes.get(option)
 
     if plugin and plugin.description:
       return forms.SemanticProtoFormRenderer(
