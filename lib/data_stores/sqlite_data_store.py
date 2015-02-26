@@ -501,11 +501,11 @@ class SqliteDataStore(data_store.DataStore):
       self._attribute_types[attribute.predicate] = (
           attribute.attribute_type.data_store_type)
 
-  def _Encode(self, attr, value):
+  def _Encode(self, value):
     """Encode the value for the attribute."""
-    if hasattr(value, "SerializeToString"):
+    try:
       return buffer(value.SerializeToString())
-    else:
+    except AttributeError:
       # Types "string" and "bytes" are stored as strings here.
       return buffer(utils.SmartStr(value))
 
@@ -550,7 +550,7 @@ class SqliteDataStore(data_store.DataStore):
             element_timestamp = timestamp
 
           element_timestamp = long(element_timestamp)
-          value = self._Encode(attribute, v)
+          value = self._Encode(v)
           sqlite_connection.SetAttribute(subject, attribute, value,
                                          element_timestamp)
 
@@ -622,9 +622,6 @@ class SqliteDataStore(data_store.DataStore):
     self.security_manager.CheckDataStoreAccess(
         token, [subject], self.GetRequiredResolveAccess(attribute_regex))
 
-    if limit and limit == 0:
-      return []
-
     if isinstance(attribute_regex, str):
       attribute_regex = [attribute_regex]
 
@@ -661,9 +658,6 @@ class SqliteDataStore(data_store.DataStore):
     """Resolve multiple attributes for a subject."""
     self.security_manager.CheckDataStoreAccess(
         token, [subject], self.GetRequiredResolveAccess(attributes))
-
-    if limit and limit == 0:
-      return []
 
     # Holds all the attributes which matched. Keys are attribute names, values
     # are lists of timestamped data.
