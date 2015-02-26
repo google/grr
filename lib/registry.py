@@ -74,6 +74,22 @@ class MetaclassRegistry(abc.ABCMeta):
 
       except AttributeError:
         pass
+    else:
+      # Abstract classes should still have all the metadata attributes
+      # registered.
+      for base in bases:
+        try:
+          cls.classes = base.classes
+          cls.classes_by_name = base.classes_by_name
+          break
+        except AttributeError:
+          pass
+
+      if not hasattr(cls, "classes"):
+        cls.classes = {}
+
+      if not hasattr(cls, "classes_by_name"):
+        cls.classes_by_name = {}
 
   def GetPlugin(cls, name):
     """Return the class of the implementation that carries that name.

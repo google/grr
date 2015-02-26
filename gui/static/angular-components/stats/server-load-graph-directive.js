@@ -97,10 +97,13 @@ ServerLoadGraphController.prototype.onTimeRangeChange_ = function() {
       end: this.timeRange[1]
     };
     if (item.distributionHandling) {
-      options['dh'] = item.distributionHandling;
+      options['distribution_handling_mode'] = item.distributionHandling;
     }
     if (item.aggregation) {
-      options['aggregation'] = item.aggregation;
+      options['aggregation_mode'] = item.aggregation;
+    }
+    if (item.rate) {
+      options['rate'] = item.rate;
     }
 
     var prevTimeRange = this.timeRange.slice();
@@ -219,6 +222,7 @@ grrUi.stats.serverLoadGraphDirective.ServerLoadGraphSerieDirective =
         scope: {
           component: '@',
           metric: '@',
+          rate: '@',
           aggregation: '@',
           distributionHandling: '@',
           label: '@'

@@ -18,6 +18,7 @@ from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import flow_runner
+from grr.lib import output_plugin
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -557,6 +558,118 @@ class FlowTest(BasicFlowTest):
     flow.GRRFlow.StartFlow(
         client_id=self.client_id, flow_name="BadArgsFlow1",
         arg1=rdfvalue.PathSpec(), token=self.token)
+
+
+class DummyFlowOutputPlugin(output_plugin.OutputPlugin):
+  num_calls = 0
+  num_responses = 0
+
+  def ProcessResponses(self, responses):
+    DummyFlowOutputPlugin.num_calls += 1
+    DummyFlowOutputPlugin.num_responses += len(list(responses))
+
+
+class FailingDummyFlowOutputPlugin(output_plugin.OutputPlugin):
+
+  def ProcessResponses(self, unused_responses):
+    raise RuntimeError("Oh no!")
+
+
+class LongRunningDummyFlowOutputPlugin(output_plugin.OutputPlugin):
+  num_calls = 0
+
+  def ProcessResponses(self, unused_responses):
+    LongRunningDummyFlowOutputPlugin.num_calls += 1
+    time.time = lambda: 100
+
+
+class FlowOutputPluginsTest(BasicFlowTest):
+
+  def setUp(self):
+    super(FlowOutputPluginsTest, self).setUp()
+    DummyFlowOutputPlugin.num_calls = 0
+    DummyFlowOutputPlugin.num_responses = 0
+
+  def RunFlow(self, flow_name=None, plugins=None, flow_args=None,
+              client_mock=None):
+    runner_args = rdfvalue.FlowRunnerArgs(flow_name=flow_name or "GetFile",
+                                          output_plugins=plugins)
+
+    if flow_args is None:
+      flow_args = rdfvalue.GetFileArgs(
+          pathspec=rdfvalue.PathSpec(
+              path="/tmp/evil.txt",
+              pathtype=rdfvalue.PathSpec.PathType.OS))
+
+    if client_mock is None:
+      client_mock = test_lib.SampleHuntMock()
+
+    flow_urn = flow.GRRFlow.StartFlow(client_id=self.client_id,
+                                      args=flow_args,
+                                      runner_args=runner_args,
+                                      token=self.token)
+
+    for _ in test_lib.TestFlowHelper(flow_urn, client_mock=client_mock,
+                                     client_id=self.client_id,
+                                     token=self.token):
+      pass
+
+    return flow_urn
+
+  def testFlowWithoutOutputPluginsCompletes(self):
+    self.RunFlow()
+
+  def testFlowWithOutputPluginButWithoutResultsCompletes(self):
+    self.RunFlow(
+        flow_name="NoRequestParentFlow",
+        plugins=rdfvalue.OutputPluginDescriptor(
+            plugin_name="DummyFlowOutputPlugin"))
+    self.assertEqual(DummyFlowOutputPlugin.num_calls, 0)
+
+  def testFlowWithOutputPluginProcessesResultsSuccessfully(self):
+    self.RunFlow(
+        plugins=rdfvalue.OutputPluginDescriptor(
+            plugin_name="DummyFlowOutputPlugin"))
+    self.assertEqual(DummyFlowOutputPlugin.num_calls, 1)
+    self.assertEqual(DummyFlowOutputPlugin.num_responses, 1)
+
+  def testFlowLogsSuccessfulOutputPluginProcessing(self):
+    flow_urn = self.RunFlow(
+        plugins=rdfvalue.OutputPluginDescriptor(
+            plugin_name="DummyFlowOutputPlugin"))
+    flow_obj = aff4.FACTORY.Open(flow_urn, token=self.token)
+    log_messages = [item.log_message for item in flow_obj.GetLog()]
+    self.assertTrue(
+        "Plugin DummyFlowOutputPlugin sucessfully processed 1 flow replies."
+        in log_messages)
+
+  def testFlowLogsFailedOutputPluginProcessing(self):
+    flow_urn = self.RunFlow(
+        plugins=rdfvalue.OutputPluginDescriptor(
+            plugin_name="FailingDummyFlowOutputPlugin"))
+    flow_obj = aff4.FACTORY.Open(flow_urn, token=self.token)
+    log_messages = [item.log_message for item in flow_obj.GetLog()]
+    self.assertTrue(
+        "Plugin FailingDummyFlowOutputPlugin failed to process 1 replies "
+        "due to: Oh no!" in log_messages)
+
+  def testFlowDoesNotFailWhenOutputPluginFails(self):
+    flow_urn = self.RunFlow(
+        plugins=rdfvalue.OutputPluginDescriptor(
+            plugin_name="FailingDummyFlowOutputPlugin"))
+    flow_obj = aff4.FACTORY.Open(flow_urn, token=self.token)
+    self.assertEqual(flow_obj.state.context.state, "TERMINATED")
+
+  def testFailingPluginDoesNotImpactOtherPlugins(self):
+    self.RunFlow(
+        plugins=[
+            rdfvalue.OutputPluginDescriptor(
+                plugin_name="FailingDummyFlowOutputPlugin"),
+            rdfvalue.OutputPluginDescriptor(
+                plugin_name="DummyFlowOutputPlugin")])
+
+    self.assertEqual(DummyFlowOutputPlugin.num_calls, 1)
+    self.assertEqual(DummyFlowOutputPlugin.num_responses, 1)
 
 
 class NoClientListener(flow.EventListener):  # pylint: disable=unused-variable

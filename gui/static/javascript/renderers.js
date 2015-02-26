@@ -309,14 +309,26 @@ grr.Renderer('ErrorRenderer', {
   }
 });
 
+
+// There should be only one injector instance per app, otherwise
+// Angular services which are meant to be singletos, will be created
+// multiple times.
+var getAngularInjector = function() {
+  if (!grr.angularInjector) {
+    grr.angularInjector = angular.injector(['ng', 'grrUi']);
+  }
+  return grr.angularInjector;
+};
+
 grr.Renderer('AngularDirectiveRenderer', {
+
   // Compiles Angular code within a div with current unique id. Used by
   // AngularTestRenderer.
   Compile: function(state) {
     var unique = state.unique;
     var template = $('#' + unique);
 
-    var injector = angular.injector(['ng', 'grrUi']);
+    var injector = getAngularInjector();
     var $compile = injector.get('$compile');
     var $rootScope = injector.get('$rootScope');
 
@@ -329,7 +341,7 @@ grr.Renderer('AngularDirectiveRenderer', {
     var directive = state.directive;
     var directive_args = state.directive_args;
 
-    var injector = angular.injector(['ng', 'grrUi']);
+    var injector = getAngularInjector();
     var $compile = injector.get('$compile');
     var $rootScope = injector.get('$rootScope');
 

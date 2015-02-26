@@ -67,6 +67,74 @@ class SshdConfigTest(test_lib.GRRBaseTest):
     self.assertFalse(block_1.config.protocol)
 
 
+class FieldParserTests(test_lib.GRRBaseTest):
+  """Test the field parser."""
+
+  def testParser(self):
+    test_data = r"""
+    each of these words:should;be \
+        fields # but not these ones \n, or \ these.
+    this  should be     another entry "with this quoted text as one field"
+    'an entry'with" only two" fields ;; and not this comment.
+    """
+    expected = [["each", "of", "these", "words", "should", "be", "fields"],
+                ["this", "should", "be", "another", "entry",
+                 "with this quoted text as one field"],
+                ["an entrywith only two", "fields"]]
+    cfg = config_file.FieldParser(sep=[r"\s+", ":", ";"], comments=["#", ";;"])
+    results = cfg.ParseEntries(test_data)
+    for i, expect in enumerate(expected):
+      self.assertItemsEqual(expect, results[i])
+
+
+class KeyValueParserTests(test_lib.GRRBaseTest):
+  """Test the field parser."""
+
+  def testParser(self):
+    test_data = r"""
+    key1 = a list of \
+      fields # but not \n this, or \ this.
+
+    # Nothing here.
+    key 2:another entry
+    = # Bad line
+    'a key'with" no" value field ;; and not this comment.
+    """
+    expected = [{"key1": ["a", "list", "of", "fields"]},
+                {"key 2": ["another", "entry"]},
+                {"a keywith no value field": []}]
+    cfg = config_file.KeyValueParser(kv_sep=["=", ":"], comments=["#", ";;"])
+    results = cfg.ParseEntries(test_data)
+    for i, expect in enumerate(expected):
+      self.assertDictEqual(expect, results[i])
+
+
+class NfsExportParserTests(test_lib.GRRBaseTest):
+  """Test the NFS exports parser."""
+
+  def testParseNfsExportFile(self):
+    test_data = r"""
+    /path/to/foo -rw,sync host1(ro) host2
+    /path/to/bar *.example.org(all_squash,ro) \
+        192.168.1.0/24 (rw) # Mistake here - space makes this default.
+    """
+    exports = StringIO.StringIO(test_data)
+    config = config_file.NfsExportsParser()
+    results = list(config.Parse(None, exports, None))
+    self.assertEqual("/path/to/foo", results[0].share)
+    self.assertItemsEqual(["rw", "sync"], results[0].defaults)
+    self.assertEqual("host1", results[0].clients[0].host)
+    self.assertItemsEqual(["ro"], results[0].clients[0].options)
+    self.assertEqual("host2", results[0].clients[1].host)
+    self.assertItemsEqual([], results[0].clients[1].options)
+    self.assertEqual("/path/to/bar", results[1].share)
+    self.assertItemsEqual(["rw"], results[1].defaults)
+    self.assertEqual("*.example.org", results[1].clients[0].host)
+    self.assertItemsEqual(["all_squash", "ro"], results[1].clients[0].options)
+    self.assertEqual("192.168.1.0/24", results[1].clients[1].host)
+    self.assertItemsEqual([], results[1].clients[1].options)
+
+
 def main(args):
   test_lib.main(args)
 

@@ -51,18 +51,22 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
     self.assertNotIn("", keywords)
 
     # OS of the client
-    self.assertIn("Windows", keywords)
+    self.assertIn("windows", keywords)
 
     # Users of the client.
-    self.assertIn("Bert", keywords)
-    self.assertIn("Ernie", keywords)
-    self.assertIn("Eric Jacobson", keywords)
-    self.assertIn("Eric", keywords)
-    self.assertIn("Jacobson", keywords)
-    self.assertIn("Steve Whitmire", keywords)
+    self.assertIn("bert", keywords)
+    self.assertIn("bertrand", keywords)
+    self.assertNotIn(")", keywords)
+    self.assertIn("russell", keywords)
+    self.assertIn("logician", keywords)
+    self.assertIn("ernie", keywords)
+    self.assertIn("eric", keywords)
+    self.assertIn("jacobson", keywords)
+    self.assertIn("steve o'bryan", keywords)
+    self.assertIn("o'bryan", keywords)
 
     # Client information.
-    self.assertIn("GRR Monitor", keywords)
+    self.assertIn("grr monitor", keywords)
     self.assertIn("client-label-23", keywords)
 
   def testAddLookupClients(self):
@@ -83,7 +87,16 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
         index.LookupClients(["192.168.0.1"]),
         [rdfvalue.ClientURN("aff4:/C.1000000000000001")])
     self.assertEqual(
-        index.LookupClients(["Host-2"]),
+        index.LookupClients(["2001:aBcd::1"]),
+        [rdfvalue.ClientURN("aff4:/C.1000000000000001")])
+    self.assertEqual(
+        index.LookupClients(["ip:192.168.0.1"]),
+        [rdfvalue.ClientURN("aff4:/C.1000000000000001")])
+    self.assertEqual(
+        index.LookupClients(["ip:2001:abcd::1"]),
+        [rdfvalue.ClientURN("aff4:/C.1000000000000001")])
+    self.assertEqual(
+        index.LookupClients(["host-2"]),
         [rdfvalue.ClientURN("aff4:/C.1000000000000002")])
 
     # IP prefixes of octets should work:

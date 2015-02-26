@@ -53,11 +53,13 @@
                                end-time="controller.endTime">
           <grr-server-load-graph-serie component="frontend"
                                        metric="frontend_request_latency"
-                                       distribution-handling="count"
+                                       rate="10m"
+                                       distribution-handling="DH_COUNT"
                                        label="Requests">
           </grr-server-load-graph-serie>
           <grr-server-load-graph-serie component="frontend"
                                        metric="grr_frontendserver_handle_throttled_num"
+                                       rate="10m"
                                        label="Throttled requests">
           </grr-server-load-graph-serie>
         </grr-server-load-graph>
@@ -67,7 +69,8 @@
                                end-time="controller.endTime">
           <grr-server-load-graph-serie component="frontend"
                                        metric="frontend_request_latency"
-                                       distribution-handling="sum"
+                                       rate="10m"
+                                       distribution-handling="DH_SUM"
                                        label="Latency">
           </grr-server-load-graph-serie>
         </grr-server-load-graph>
@@ -78,6 +81,7 @@
                                end-time="controller.endTime">
           <grr-server-load-graph-serie component="frontend"
                                        metric="frontend_active_count"
+                                       rate="10m"
                                        label="Active tasks">
           </grr-server-load-graph-serie>
         </grr-server-load-graph>
@@ -98,10 +102,12 @@
                                end-time="controller.endTime">
           <grr-server-load-graph-serie component="worker"
                                        metric="grr_flow_completed_count"
+                                       rate="10m"
                                        label="Successes">
           </grr-server-load-graph-serie>
           <grr-server-load-graph-serie component="worker"
                                        metric="grr_flow_errors"
+                                       rate="10m"
                                        label="Failures">
           </grr-server-load-graph-serie>
         </grr-server-load-graph>
@@ -111,12 +117,14 @@
                                end-time="controller.endTime">
           <grr-server-load-graph-serie component="worker"
                                        metric="grr_threadpool_working_time"
-                                       distribution-handling="sum"
+                                       rate="10m"
+                                       distribution-handling="DH_SUM"
                                        label="Latency">
           </grr-server-load-graph-serie>
           <grr-server-load-graph-serie component="worker"
                                        metric="grr_threadpool_queueing_time"
-                                       distribution-handling="sum"
+                                       rate="10m"
+                                       distribution-handling="DH_SUM"
                                        label="Queueing time">
           </grr-server-load-graph-serie>
         </grr-server-load-graph>
@@ -126,12 +134,14 @@
                                end-time="controller.endTime">
           <grr-server-load-graph-serie component="worker"
                                        metric="grr_threadpool_outstanding_tasks"
-                                       aggregation="mean"
+                                       rate="10m"
+                                       aggregation="AGG_MEAN"
                                        label="Outstanding tasks">
           </grr-server-load-graph-serie>
           <grr-server-load-graph-serie component="worker"
                                        metric="grr_threadpool_threads"
-                                       aggregation="mean"
+                                       rate="10m"
+                                       aggregation="AGG_MEAN"
                                        label="Threads">
           </grr-server-load-graph-serie>
         </grr-server-load-graph>
@@ -141,6 +151,7 @@
                                end-time="controller.endTime">
           <grr-server-load-graph-serie component="worker"
                                        metric="grr_client_crashes"
+                                       rate="10m"
                                        label="Crashes">
           </grr-server-load-graph-serie>
         </grr-server-load-graph>

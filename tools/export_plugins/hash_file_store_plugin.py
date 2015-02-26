@@ -9,7 +9,7 @@ from grr.lib.aff4_objects import filestore
 from grr.tools.export_plugins import plugin
 
 
-class HashFileStoreExportPlugin(plugin.HuntOutputExportPlugin):
+class HashFileStoreExportPlugin(plugin.OutputPluginBasedExportPlugin):
   """Exports hashes from HashFileStore via given hunt output plugin."""
 
   name = "hash_file_store"

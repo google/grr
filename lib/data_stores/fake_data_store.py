@@ -293,7 +293,7 @@ class FakeDataStore(data_store.DataStore):
     results = {}
     nr_results = 0
     for regex in attribute_regex:
-      regex = re.compile(regex)
+      regex = re.compile(regex, re.DOTALL)
 
       for attribute, values in record.iteritems():
         if limit and nr_results >= limit:

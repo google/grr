@@ -505,14 +505,14 @@ class TestHostInformation(FileViewTestBase):
     self.Open("/#c=" + self.client_id)
     self.WaitUntil(self.IsTextPresent, "VFSGRRClient")
 
-    # We removed all the users, so no 'Eric Jacobson' should be visible.
-    self.WaitUntilNot(self.IsTextPresent, "Eric Jacobson")
+    # We removed all the users, so no 'Steve O'Bryan' should be visible.
+    self.WaitUntilNot(self.IsTextPresent, "Steve O'Bryan")
 
     # We click on '+' in USER cell and should see historical values of the
-    # USER attribute. "Eric Jacobson" was full name of the user that we've
+    # USER attribute. "Steve O'Bryan" was full name of a user that we've
     # deleted.
     self.Click("css=td.attribute_opener[attribute=USER]")
-    self.WaitUntil(self.IsTextPresent, "Eric Jacobson")
+    self.WaitUntil(self.IsTextPresent, "Steve O'Bryan")
 
 
 def main(argv):

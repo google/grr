@@ -3,37 +3,42 @@
 goog.provide('grrUi.docs.apiQuerySpecDirective.ApiQuerySpecController');
 goog.provide('grrUi.docs.apiQuerySpecDirective.ApiQuerySpecDirective');
 
-goog.provide('grrUi.docs.apiQuerySpecDirective.QueryParamSpec');
-
 goog.scope(function() {
-
-
-/** @typedef {{
- *             type:string,
- *             required:boolean,
- *             doc:string,
- *             default:*
- *           }}
- */
-grrUi.docs.apiQuerySpecDirective.QueryParamSpec;
 
 
 
 /**
- * Controller for ApiQuerySpecDirective..
+ * Controller for ApiQuerySpecDirective.
  *
  * @constructor
  * @param {!angular.Scope} $scope
+ * @param {!grrUi.core.reflectionService.ReflectionService} grrReflectionService
  * @ngInject
  */
-grrUi.docs.apiQuerySpecDirective.ApiQuerySpecController = function($scope) {
+grrUi.docs.apiQuerySpecDirective.ApiQuerySpecController = function(
+    $scope, grrReflectionService) {
+
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @export {grrUi.docs.apiQuerySpecDirective.QueryParamSpec} */
-  this.value;
+  /** @private {!grrUi.core.reflectionService.ReflectionService} */
+  this.grrReflectionService_ = grrReflectionService;
 
-  this.scope_.$watch('value', this.onValueChange.bind(this));
+  /** @export {Array.<Object>} */
+  this.descriptorFields;
+
+  /** @export {Object.<string, Object>} */
+  this.descriptorsCache;
+
+  /** @export {Object.<string, string>} */
+  this.typeHints = {
+    'RDFDatetime': 'Time since epoch in microseconds.',
+    'RDFBool': 'Either 1 or 0.',
+    'RDFURN': 'Path string with components separated by "/", i.e. ' +
+        '"foo/bar/blah".'
+  };
+
+  this.scope_.$watch('argsType', this.onArgsTypeChange.bind(this));
 };
 
 var ApiQuerySpecController =
@@ -43,12 +48,24 @@ var ApiQuerySpecController =
 /**
  * Handles value attribute changes.
  *
- * @param {grrUi.docs.apiQuerySpecDirective.QueryParamSpec} newValue New
- *     query spec value.
+ * @param {string} newValue New args type value.
  * @export
  */
-ApiQuerySpecController.prototype.onValueChange = function(newValue) {
-  this.value = newValue;
+ApiQuerySpecController.prototype.onArgsTypeChange = function(newValue) {
+  this.argsDescriptor = null;
+  if (angular.isString(newValue)) {
+    this.grrReflectionService_.getRDFValueDescriptor(newValue, true).then(
+        function(result) {
+          this.descriptorFields = [];
+          angular.forEach(result[newValue]['fields'], function(field) {
+            if (field.name !== 'additional_args') {
+              this.descriptorFields.push(field);
+            }
+          }.bind(this));
+
+          this.descriptorsCache = result;
+        }.bind(this));
+  }
 };
 
 
@@ -63,7 +80,9 @@ ApiQuerySpecController.prototype.onValueChange = function(newValue) {
 grrUi.docs.apiQuerySpecDirective.ApiQuerySpecDirective = function() {
   return {
     scope: {
-      value: '='
+      argsType: '=',
+      prefix: '=',
+      noHeader: '@'
     },
     restrict: 'E',
     templateUrl: 'static/angular-components/docs/api-query-spec.html',

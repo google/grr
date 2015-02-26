@@ -31,10 +31,14 @@ grrUi.docs.apiDocsDirective.ApiObjectRendererDescriptor;
  * Controller for ApiDocsDirective.
  *
  * @constructor
+ * @param {angular.$http} $http The Angular http service.
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
-grrUi.docs.apiDocsDirective.ApiDocsController = function(grrApiService) {
+grrUi.docs.apiDocsDirective.ApiDocsController = function($http, grrApiService) {
+  /** @private {angular.$http} */
+  this.http_ = $http;
+
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
 
@@ -46,7 +50,12 @@ grrUi.docs.apiDocsDirective.ApiDocsController = function(grrApiService) {
     */
   this.apiObjectRenderers;
 
+  /** @export {Object.<string, *>} */
+  this.examplesByRenderer;
+
   this.grrApiService_.get('docs').then(this.onDocsFetched_.bind(this));
+  this.http_.get('static/angular-components/docs/api-docs-examples.json').then(
+      this.onExamplesFetched_.bind(this));
 };
 
 var ApiDocsController = grrUi.docs.apiDocsDirective.ApiDocsController;
@@ -61,6 +70,17 @@ var ApiDocsController = grrUi.docs.apiDocsDirective.ApiDocsController;
 ApiDocsController.prototype.onDocsFetched_ = function(response) {
   this.apiCallRenderers = response.data['api_call_renderers'];
   this.apiObjectRenderers = response.data['api_object_renderers'];
+};
+
+
+/**
+ * Handles response to the api-docs-examples.json request.
+ *
+ * @param {!Object} response
+ * @private
+ */
+ApiDocsController.prototype.onExamplesFetched_ = function(response) {
+  this.examplesByRenderer = response.data;
 };
 
 

@@ -37,6 +37,106 @@ class RDFIntegerTest(test_base.RDFValueTestCase):
   def GenerateSample(self, number=0):
     return rdfvalue.RDFInteger(number)
 
+  def testComparableToPrimiviteInts(self):
+    self.assertEqual(rdfvalue.RDFInteger(10), 10)
+    self.assertTrue(rdfvalue.RDFInteger(10) > 5)
+    self.assertTrue(15 > rdfvalue.RDFInteger(10))
+    self.assertTrue(rdfvalue.RDFInteger(10) < 15)
+    self.assertTrue(5 < rdfvalue.RDFInteger(10))
+
+  def testDividesAndIsDividableByPrimitiveInts(self):
+    self.assertEqual(rdfvalue.RDFInteger(10) / 5, 2)
+    self.assertEqual(100 / rdfvalue.RDFInteger(10), 10)
+
+  def testMultipliesAndIsMultipliedByByPrimitive(self):
+    self.assertEqual(rdfvalue.RDFInteger(10) * 10, 100)
+    self.assertEqual(10 * rdfvalue.RDFInteger(10), 100)
+
+  def testUsableInBitwiseOr(self):
+    def TestOr(val1, val2, expected):
+      self.assertEqual(rdfvalue.RDFInteger(val1) | val2, expected)
+      self.assertEqual(val1 | rdfvalue.RDFInteger(val2), expected)
+
+      value = rdfvalue.RDFInteger(val1)
+      value |= val2
+      self.assertEqual(value, expected)
+
+      value = val1
+      value |= rdfvalue.RDFInteger(val2)
+      self.assertEqual(value, expected)
+
+    TestOr(True, False, True)
+    TestOr(False, True, True)
+    TestOr(False, False, False)
+    TestOr(True, True, True)
+
+  def testUsableInBitwiseAnd(self):
+    def TestAnd(val1, val2, expected):
+      self.assertEqual(rdfvalue.RDFInteger(val1) & val2, expected)
+      self.assertEqual(val1 & rdfvalue.RDFInteger(val2), expected)
+
+      value = rdfvalue.RDFInteger(val1)
+      value &= val2
+      self.assertEqual(value, expected)
+
+      value = val1
+      value &= rdfvalue.RDFInteger(val2)
+      self.assertEqual(value, expected)
+
+    TestAnd(True, False, False)
+    TestAnd(False, True, False)
+    TestAnd(False, False, False)
+    TestAnd(True, True, True)
+
+
+class RDFBoolTest(test_base.RDFValueTestCase):
+  rdfvalue_class = rdfvalue.RDFBool
+
+  def GenerateSample(self, number=0):
+    return rdfvalue.RDFBool(number % 2)
+
+  def testComparableToPrimitiveBooleans(self):
+    self.assertEqual(rdfvalue.RDFBool(True), True)
+    self.assertNotEqual(rdfvalue.RDFBool(True), False)
+    self.assertEqual(rdfvalue.RDFBool(False), False)
+    self.assertNotEqual(rdfvalue.RDFBool(False), True)
+
+  def testUsableInBitwiseOr(self):
+    def TestOr(val1, val2, expected):
+      self.assertEqual(rdfvalue.RDFBool(val1) | val2, expected)
+      self.assertEqual(val1 | rdfvalue.RDFBool(val2), expected)
+
+      value = rdfvalue.RDFBool(val1)
+      value |= val2
+      self.assertEqual(value, expected)
+
+      value = val1
+      value |= rdfvalue.RDFBool(val2)
+      self.assertEqual(value, expected)
+
+    TestOr(True, False, True)
+    TestOr(False, True, True)
+    TestOr(False, False, False)
+    TestOr(True, True, True)
+
+  def testUsableInBitwiseAnd(self):
+    def TestAnd(val1, val2, expected):
+      self.assertEqual(rdfvalue.RDFBool(val1) & val2, expected)
+      self.assertEqual(val1 & rdfvalue.RDFBool(val2), expected)
+
+      value = rdfvalue.RDFBool(val1)
+      value &= val2
+      self.assertEqual(value, expected)
+
+      value = val1
+      value &= rdfvalue.RDFBool(val2)
+      self.assertEqual(value, expected)
+
+    TestAnd(True, False, False)
+    TestAnd(False, True, False)
+    TestAnd(False, False, False)
+    TestAnd(True, True, True)
+
 
 class DurationTest(test_base.RDFValueTestCase):
   rdfvalue_class = rdfvalue.Duration

@@ -119,8 +119,10 @@ class ArtifactRegistry(object):
     cls.artifacts[artifact_rdfvalue.name] = artifact_rdfvalue
 
   @classmethod
-  def ClearRegistry(cls):
-    cls.artifacts = {}
+  def ClearRegistry(cls, replace_with=None):
+    prev_artifacts = cls.artifacts
+    cls.artifacts = replace_with or {}
+    return prev_artifacts
 
   @classmethod
   def GetArtifacts(cls, os_name=None, name_list=None,
@@ -421,17 +423,18 @@ def LoadArtifactsFromFiles(file_paths, overwrite_if_exists=True):
   return loaded_files
 
 
-def LoadArtifactsFromDir(dir_path):
-  """Load artifacts from all .json or .yaml files in a directory."""
+def LoadArtifactsFromDirs(directories):
+  """Load artifacts from all .json or .yaml files in a list of directories."""
   try:
     files_to_load = []
-    for file_name in os.listdir(dir_path):
-      if (file_name.endswith(".json") or file_name.endswith(".yaml") and
-          not file_name.startswith("test")):
-        files_to_load.append(os.path.join(dir_path, file_name))
+    for directory in directories:
+      for file_name in os.listdir(directory):
+        if (file_name.endswith(".json") or file_name.endswith(".yaml") and
+            not file_name.startswith("test")):
+          files_to_load.append(os.path.join(directory, file_name))
     return LoadArtifactsFromFiles(files_to_load)
   except (IOError, OSError):
-    logging.warn("Artifact directory not found: %s", dir_path)
+    logging.warn("Error loading artifacts: %s", ",".join(directories))
     return []
 
 

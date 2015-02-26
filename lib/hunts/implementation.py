@@ -858,6 +858,8 @@ class GRRHunt(flow.GRRFlow):
                                 self.urn.Add("ResultsMetadata"))
     self.state.context.Register("results_collection_urn",
                                 self.urn.Add("Results"))
+    self.state.context.Register("output_plugins_base_urn",
+                                self.urn.Add("Results"))
     # TODO(user): Remove as soon as old style hunts (ones that use
     # RDFValueCollection) are removed.
     self.state.context.Register("results_collection", None)
@@ -868,14 +870,22 @@ class GRRHunt(flow.GRRFlow):
 
       state = rdfvalue.FlowState()
       try:
-        plugins = self.state.args.output_plugins
+        plugins_descriptors = self.state.args.output_plugins
       except AttributeError:
-        plugins = []
+        plugins_descriptors = []
 
-      for index, plugin in enumerate(plugins):
-        plugin_obj = plugin.GetPluginForHunt(self)
-        state.Register("%s_%d" % (plugin.plugin_name, index),
-                       (plugin, plugin_obj.state))
+      for index, plugin_descriptor in enumerate(plugins_descriptors):
+        output_base_urn = self.state.context.output_plugins_base_urn.Add(
+            plugin_descriptor.plugin_name)
+
+        plugin_class = plugin_descriptor.GetPluginClass()
+        plugin_obj = plugin_class(self.state.context.results_collection_urn,
+                                  output_base_urn=output_base_urn,
+                                  args=plugin_descriptor.plugin_args,
+                                  token=self.token)
+
+        state.Register("%s_%d" % (plugin_descriptor.plugin_name, index),
+                       (plugin_descriptor, plugin_obj.state))
 
       results_metadata.Set(results_metadata.Schema.OUTPUT_PLUGINS(state))
 

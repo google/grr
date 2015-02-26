@@ -1,0 +1,2512 @@
+{
+  "ApiAff4IndexRenderer": [
+    {
+      "method": "GET",
+      "response": [
+        [
+          "aff4:/some/path/bar",
+          44000000
+        ],
+        [
+          "aff4:/some/path/foo",
+          43000000
+        ]
+      ],
+      "test_class": "ApiAff4IndexRendererRegressionTest",
+      "url": "/api/aff4-index/some/path"
+    }
+  ],
+  "ApiAff4Renderer": [
+    {
+      "method": "GET",
+      "response": {
+        "aff4_class": "AFF4Volume",
+        "age_policy": "NEWEST_TIME",
+        "attributes": {
+          "aff4:labels_list": {
+            "labels": [
+              {
+                "name": "label1",
+                "owner": "test",
+                "timestamp": 42000000
+              },
+              {
+                "name": "label2",
+                "owner": "test",
+                "timestamp": 42000000
+              }
+            ]
+          },
+          "aff4:type": "AFF4Volume",
+          "metadata:last": 42000000
+        },
+        "urn": "aff4:/foo/bar"
+      },
+      "test_class": "ApiAff4RendererRegressionTest",
+      "url": "/api/aff4/foo/bar"
+    },
+    {
+      "method": "GET",
+      "response": {
+        "aff4_class": "AFF4Volume",
+        "age_policy": "NEWEST_TIME",
+        "attributes": {
+          "aff4:labels_list": {
+            "age": 0,
+            "mro": [
+              "AFF4ObjectLabelsList",
+              "RDFProtoStruct",
+              "RDFStruct",
+              "RDFValue",
+              "object"
+            ],
+            "type": "AFF4ObjectLabelsList",
+            "value": {
+              "labels": [
+                {
+                  "age": 0,
+                  "mro": [
+                    "AFF4ObjectLabel",
+                    "RDFProtoStruct",
+                    "RDFStruct",
+                    "RDFValue",
+                    "object"
+                  ],
+                  "type": "AFF4ObjectLabel",
+                  "value": {
+                    "name": {
+                      "age": 0,
+                      "mro": [
+                        "unicode",
+                        "basestring",
+                        "object"
+                      ],
+                      "type": "unicode",
+                      "value": "label1"
+                    },
+                    "owner": {
+                      "age": 0,
+                      "mro": [
+                        "unicode",
+                        "basestring",
+                        "object"
+                      ],
+                      "type": "unicode",
+                      "value": "test"
+                    },
+                    "timestamp": {
+                      "age": 0,
+                      "mro": [
+                        "RDFDatetime",
+                        "RDFInteger",
+                        "RDFString",
+                        "RDFBytes",
+                        "RDFValue",
+                        "object"
+                      ],
+                      "type": "RDFDatetime",
+                      "value": 42000000
+                    }
+                  }
+                },
+                {
+                  "age": 0,
+                  "mro": [
+                    "AFF4ObjectLabel",
+                    "RDFProtoStruct",
+                    "RDFStruct",
+                    "RDFValue",
+                    "object"
+                  ],
+                  "type": "AFF4ObjectLabel",
+                  "value": {
+                    "name": {
+                      "age": 0,
+                      "mro": [
+                        "unicode",
+                        "basestring",
+                        "object"
+                      ],
+                      "type": "unicode",
+                      "value": "label2"
+                    },
+                    "owner": {
+                      "age": 0,
+                      "mro": [
+                        "unicode",
+                        "basestring",
+                        "object"
+                      ],
+                      "type": "unicode",
+                      "value": "test"
+                    },
+                    "timestamp": {
+                      "age": 0,
+                      "mro": [
+                        "RDFDatetime",
+                        "RDFInteger",
+                        "RDFString",
+                        "RDFBytes",
+                        "RDFValue",
+                        "object"
+                      ],
+                      "type": "RDFDatetime",
+                      "value": 42000000
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "aff4:type": {
+            "age": 42,
+            "mro": [
+              "RDFString",
+              "RDFBytes",
+              "RDFValue",
+              "object"
+            ],
+            "type": "RDFString",
+            "value": "AFF4Volume"
+          },
+          "metadata:last": {
+            "age": 42,
+            "mro": [
+              "RDFDatetime",
+              "RDFInteger",
+              "RDFString",
+              "RDFBytes",
+              "RDFValue",
+              "object"
+            ],
+            "type": "RDFDatetime",
+            "value": 42000000
+          }
+        },
+        "urn": "aff4:/foo/bar"
+      },
+      "test_class": "ApiAff4RendererRegressionTest",
+      "url": "/api/aff4/foo/bar?AFF4Object.type_info=WITH_TYPES"
+    },
+    {
+      "method": "GET",
+      "response": {
+        "aff4_class": "AFF4Volume",
+        "age_policy": "NEWEST_TIME",
+        "attributes": {
+          "aff4:labels_list": {
+            "age": 0,
+            "fields_order": [
+              "labels"
+            ],
+            "metadata": {
+              "labels": {
+                "description": "",
+                "friendly_name": "Labels"
+              }
+            },
+            "mro": [
+              "AFF4ObjectLabelsList",
+              "RDFProtoStruct",
+              "RDFStruct",
+              "RDFValue",
+              "object"
+            ],
+            "type": "AFF4ObjectLabelsList",
+            "value": {
+              "labels": [
+                {
+                  "age": 0,
+                  "fields_order": [
+                    "name",
+                    "owner",
+                    "timestamp"
+                  ],
+                  "metadata": {
+                    "name": {
+                      "description": "",
+                      "friendly_name": "Name"
+                    },
+                    "owner": {
+                      "description": "Username of the user who added the label.",
+                      "friendly_name": "Owner"
+                    },
+                    "timestamp": {
+                      "description": "Timestamp for when the label was added.",
+                      "friendly_name": "Timestamp"
+                    }
+                  },
+                  "mro": [
+                    "AFF4ObjectLabel",
+                    "RDFProtoStruct",
+                    "RDFStruct",
+                    "RDFValue",
+                    "object"
+                  ],
+                  "type": "AFF4ObjectLabel",
+                  "value": {
+                    "name": {
+                      "age": 0,
+                      "mro": [
+                        "unicode",
+                        "basestring",
+                        "object"
+                      ],
+                      "type": "unicode",
+                      "value": "label1"
+                    },
+                    "owner": {
+                      "age": 0,
+                      "mro": [
+                        "unicode",
+                        "basestring",
+                        "object"
+                      ],
+                      "type": "unicode",
+                      "value": "test"
+                    },
+                    "timestamp": {
+                      "age": 0,
+                      "mro": [
+                        "RDFDatetime",
+                        "RDFInteger",
+                        "RDFString",
+                        "RDFBytes",
+                        "RDFValue",
+                        "object"
+                      ],
+                      "type": "RDFDatetime",
+                      "value": 42000000
+                    }
+                  }
+                },
+                {
+                  "age": 0,
+                  "fields_order": [
+                    "name",
+                    "owner",
+                    "timestamp"
+                  ],
+                  "metadata": {
+                    "name": {
+                      "description": "",
+                      "friendly_name": "Name"
+                    },
+                    "owner": {
+                      "description": "Username of the user who added the label.",
+                      "friendly_name": "Owner"
+                    },
+                    "timestamp": {
+                      "description": "Timestamp for when the label was added.",
+                      "friendly_name": "Timestamp"
+                    }
+                  },
+                  "mro": [
+                    "AFF4ObjectLabel",
+                    "RDFProtoStruct",
+                    "RDFStruct",
+                    "RDFValue",
+                    "object"
+                  ],
+                  "type": "AFF4ObjectLabel",
+                  "value": {
+                    "name": {
+                      "age": 0,
+                      "mro": [
+                        "unicode",
+                        "basestring",
+                        "object"
+                      ],
+                      "type": "unicode",
+                      "value": "label2"
+                    },
+                    "owner": {
+                      "age": 0,
+                      "mro": [
+                        "unicode",
+                        "basestring",
+                        "object"
+                      ],
+                      "type": "unicode",
+                      "value": "test"
+                    },
+                    "timestamp": {
+                      "age": 0,
+                      "mro": [
+                        "RDFDatetime",
+                        "RDFInteger",
+                        "RDFString",
+                        "RDFBytes",
+                        "RDFValue",
+                        "object"
+                      ],
+                      "type": "RDFDatetime",
+                      "value": 42000000
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "aff4:type": {
+            "age": 42,
+            "mro": [
+              "RDFString",
+              "RDFBytes",
+              "RDFValue",
+              "object"
+            ],
+            "type": "RDFString",
+            "value": "AFF4Volume"
+          },
+          "metadata:last": {
+            "age": 42,
+            "mro": [
+              "RDFDatetime",
+              "RDFInteger",
+              "RDFString",
+              "RDFBytes",
+              "RDFValue",
+              "object"
+            ],
+            "type": "RDFDatetime",
+            "value": 42000000
+          }
+        },
+        "metadata": {
+          "aff4:labels_list": {
+            "description": "Any object can have labels applied to it."
+          },
+          "aff4:type": {
+            "description": "The name of the AFF4Object derived class."
+          },
+          "metadata:last": {
+            "description": "The last time any attribute of this object was written."
+          }
+        },
+        "urn": "aff4:/foo/bar"
+      },
+      "test_class": "ApiAff4RendererRegressionTest",
+      "url": "/api/aff4/foo/bar?AFF4Object.type_info=WITH_TYPES_AND_METADATA"
+    }
+  ],
+  "ApiArtifactRenderer": [
+    {
+      "method": "GET",
+      "response": {
+        "TestDrivers": {
+          "artifact": {
+            "collectors": [
+              {
+                "args": {
+                  "query": "SELECT * from Win32_SystemDriver"
+                },
+                "collector_type": "WMI",
+                "conditions": [],
+                "returned_types": []
+              }
+            ],
+            "conditions": [
+              "os_major_version >= 6"
+            ],
+            "dependencies": [],
+            "doc": "Extract the installed drivers on Windows via WMI.",
+            "labels": [
+              "Software"
+            ],
+            "name": "TestDrivers",
+            "provides": [],
+            "supported_os": [
+              "Windows"
+            ],
+            "urls": [
+              "http://www.example.com"
+            ]
+          },
+          "custom": false,
+          "processors": []
+        }
+      },
+      "test_class": "ArtifactRendererRegressionTest",
+      "url": "/api/artifacts"
+    }
+  ],
+  "ApiConfigRenderer": [
+    {
+      "method": "GET",
+      "response": {
+        "SectionBar": {
+          "SectionBar.sample_list_option": {
+            "is_default": true,
+            "is_expanded": true,
+            "option_value": "[]",
+            "raw_value": [],
+            "type": "plain"
+          },
+          "SectionBar.sample_string_option": {
+            "is_default": false,
+            "is_expanded": false,
+            "option_value": "sample",
+            "raw_value": "%(sAmPlE|lower)",
+            "type": "plain"
+          }
+        },
+        "SectionFoo": {
+          "SectionFoo.sample_boolean_option": {
+            "is_default": false,
+            "is_expanded": true,
+            "option_value": "True",
+            "raw_value": true,
+            "type": "plain"
+          },
+          "SectionFoo.sample_integer_option": {
+            "is_default": true,
+            "is_expanded": true,
+            "option_value": "42",
+            "raw_value": 42,
+            "type": "plain"
+          }
+        }
+      },
+      "test_class": "ApiConfigRendererRegressionTest",
+      "url": "/api/config"
+    }
+  ],
+  "ApiHuntErrorsRenderer": [
+    {
+      "method": "GET",
+      "response": {
+        "aff4_class": "PackedVersionedCollection",
+        "age_policy": "NEWEST_TIME",
+        "attributes": {
+          "aff4:data": {
+            "backtrace": "<some backtrace>",
+            "client_id": "aff4:/C.1111222233334444",
+            "log_message": "Error bar."
+          },
+          "aff4:type": "PackedVersionedCollection",
+          "metadata:last": 55000000
+        },
+        "count": 2,
+        "items": [
+          {
+            "age": 52,
+            "fields_order": [
+              "client_id",
+              "log_message"
+            ],
+            "metadata": {
+              "client_id": {
+                "description": "",
+                "friendly_name": "Client id"
+              },
+              "log_message": {
+                "description": "",
+                "friendly_name": "Log message"
+              }
+            },
+            "mro": [
+              "HuntError",
+              "RDFProtoStruct",
+              "RDFStruct",
+              "RDFValue",
+              "object"
+            ],
+            "type": "HuntError",
+            "value": {
+              "client_id": {
+                "age": 0,
+                "mro": [
+                  "ClientURN",
+                  "RDFURN",
+                  "RDFValue",
+                  "object"
+                ],
+                "type": "ClientURN",
+                "value": "aff4:/C.0000111122223333"
+              },
+              "log_message": {
+                "age": 0,
+                "mro": [
+                  "unicode",
+                  "basestring",
+                  "object"
+                ],
+                "type": "unicode",
+                "value": "Error foo."
+              }
+            }
+          },
+          {
+            "age": 55,
+            "fields_order": [
+              "client_id",
+              "log_message"
+            ],
+            "metadata": {
+              "client_id": {
+                "description": "",
+                "friendly_name": "Client id"
+              },
+              "log_message": {
+                "description": "",
+                "friendly_name": "Log message"
+              }
+            },
+            "mro": [
+              "HuntError",
+              "RDFProtoStruct",
+              "RDFStruct",
+              "RDFValue",
+              "object"
+            ],
+            "type": "HuntError",
+            "value": {
+              "backtrace": {
+                "age": 0,
+                "mro": [
+                  "unicode",
+                  "basestring",
+                  "object"
+                ],
+                "type": "unicode",
+                "value": "<some backtrace>"
+              },
+              "client_id": {
+                "age": 0,
+                "mro": [
+                  "ClientURN",
+                  "RDFURN",
+                  "RDFValue",
+                  "object"
+                ],
+                "type": "ClientURN",
+                "value": "aff4:/C.1111222233334444"
+              },
+              "log_message": {
+                "age": 0,
+                "mro": [
+                  "unicode",
+                  "basestring",
+                  "object"
+                ],
+                "type": "unicode",
+                "value": "Error bar."
+              }
+            }
+          }
+        ],
+        "offset": 0,
+        "total_count": 2,
+        "urn": "aff4:/hunts/H:123456/ErrorClients"
+      },
+      "test_class": "ApiHuntErrorsRendererRegressionTest",
+      "url": "/api/hunts/H:123456/errors"
+    },
+    {
+      "method": "GET",
+      "response": {
+        "aff4_class": "PackedVersionedCollection",
+        "age_policy": "NEWEST_TIME",
+        "attributes": {
+          "aff4:data": {
+            "backtrace": "<some backtrace>",
+            "client_id": "aff4:/C.1111222233334444",
+            "log_message": "Error bar."
+          },
+          "aff4:type": "PackedVersionedCollection",
+          "metadata:last": 55000000
+        },
+        "count": 1,
+        "items": [
+          {
+            "age": 52,
+            "fields_order": [
+              "client_id",
+              "log_message"
+            ],
+            "metadata": {
+              "client_id": {
+                "description": "",
+                "friendly_name": "Client id"
+              },
+              "log_message": {
+                "description": "",
+                "friendly_name": "Log message"
+              }
+            },
+            "mro": [
+              "HuntError",
+              "RDFProtoStruct",
+              "RDFStruct",
+              "RDFValue",
+              "object"
+            ],
+            "type": "HuntError",
+            "value": {
+              "client_id": {
+                "age": 0,
+                "mro": [
+                  "ClientURN",
+                  "RDFURN",
+                  "RDFValue",
+                  "object"
+                ],
+                "type": "ClientURN",
+                "value": "aff4:/C.0000111122223333"
+              },
+              "log_message": {
+                "age": 0,
+                "mro": [
+                  "unicode",
+                  "basestring",
+                  "object"
+                ],
+                "type": "unicode",
+                "value": "Error foo."
+              }
+            }
+          }
+        ],
+        "offset": 0,
+        "total_count": 2,
+        "urn": "aff4:/hunts/H:123456/ErrorClients"
+      },
+      "test_class": "ApiHuntErrorsRendererRegressionTest",
+      "url": "/api/hunts/H:123456/errors?count=1"
+    },
+    {
+      "method": "GET",
+      "response": {
+        "aff4_class": "PackedVersionedCollection",
+        "age_policy": "NEWEST_TIME",
+        "attributes": {
+          "aff4:data": {
+            "backtrace": "<some backtrace>",
+            "client_id": "aff4:/C.1111222233334444",
+            "log_message": "Error bar."
+          },
+          "aff4:type": "PackedVersionedCollection",
+          "metadata:last": 55000000
+        },
+        "count": 1,
+        "items": [
+          {
+            "age": 55,
+            "fields_order": [
+              "client_id",
+              "log_message"
+            ],
+            "metadata": {
+              "client_id": {
+                "description": "",
+                "friendly_name": "Client id"
+              },
+              "log_message": {
+                "description": "",
+                "friendly_name": "Log message"
+              }
+            },
+            "mro": [
+              "HuntError",
+              "RDFProtoStruct",
+              "RDFStruct",
+              "RDFValue",
+              "object"
+            ],
+            "type": "HuntError",
+            "value": {
+              "backtrace": {
+                "age": 0,
+                "mro": [
+                  "unicode",
+                  "basestring",
+                  "object"
+                ],
+                "type": "unicode",
+                "value": "<some backtrace>"
+              },
+              "client_id": {
+                "age": 0,
+                "mro": [
+                  "ClientURN",
+                  "RDFURN",
+                  "RDFValue",
+                  "object"
+                ],
+                "type": "ClientURN",
+                "value": "aff4:/C.1111222233334444"
+              },
+              "log_message": {
+                "age": 0,
+                "mro": [
+                  "unicode",
+                  "basestring",
+                  "object"
+                ],
+                "type": "unicode",
+                "value": "Error bar."
+              }
+            }
+          }
+        ],
+        "offset": 1,
+        "total_count": 2,
+        "urn": "aff4:/hunts/H:123456/ErrorClients"
+      },
+      "test_class": "ApiHuntErrorsRendererRegressionTest",
+      "url": "/api/hunts/H:123456/errors?offset=1&count=1"
+    }
+  ],
+  "ApiHuntLogRenderer": [
+    {
+      "method": "GET",
+      "response": {
+        "aff4_class": "PackedVersionedCollection",
+        "age_policy": "NEWEST_TIME",
+        "attributes": {
+          "aff4:data": {
+            "flow_name": "GenericHunt",
+            "log_message": "Sample message: bar.",
+            "urn": "aff4:/hunts/H:123456"
+          },
+          "aff4:type": "PackedVersionedCollection",
+          "metadata:last": 55000000
+        },
+        "count": 2,
+        "items": [
+          {
+            "age": 52,
+            "fields_order": [
+              "log_message",
+              "urn",
+              "flow_name"
+            ],
+            "metadata": {
+              "flow_name": {
+                "description": "Human readable name for the session ID.",
+                "friendly_name": "Flow name"
+              },
+              "log_message": {
+                "description": "",
+                "friendly_name": "Log message"
+              },
+              "urn": {
+                "description": "Session ID that generated the log.",
+                "friendly_name": "Urn"
+              }
+            },
+            "mro": [
+              "FlowLog",
+              "RDFProtoStruct",
+              "RDFStruct",
+              "RDFValue",
+              "object"
+            ],
+            "type": "FlowLog",
+            "value": {
+              "flow_name": {
+                "age": 0,
+                "mro": [
+                  "unicode",
+                  "basestring",
+                  "object"
+                ],
+                "type": "unicode",
+                "value": "GenericHunt"
+              },
+              "log_message": {
+                "age": 0,
+                "mro": [
+                  "unicode",
+                  "basestring",
+                  "object"
+                ],
+                "type": "unicode",
+                "value": "Sample message: foo."
+              },
+              "urn": {
+                "age": 0,
+                "mro": [
+                  "RDFURN",
+                  "RDFValue",
+                  "object"
+                ],
+                "type": "RDFURN",
+                "value": "aff4:/hunts/H:123456"
+              }
+            }
+          },
+          {
+            "age": 55,
+            "fields_order": [
+              "log_message",
+              "urn",
+              "flow_name"
+            ],
+            "metadata": {
+              "flow_name": {
+                "description": "Human readable name for the session ID.",
+                "friendly_name": "Flow name"
+              },
+              "log_message": {
+                "description": "",
+                "friendly_name": "Log message"
+              },
+              "urn": {
+                "description": "Session ID that generated the log.",
+                "friendly_name": "Urn"
+              }
+            },
+            "mro": [
+              "FlowLog",
+              "RDFProtoStruct",
+              "RDFStruct",
+              "RDFValue",
+              "object"
+            ],
+            "type": "FlowLog",
+            "value": {
+              "flow_name": {
+                "age": 0,
+                "mro": [
+                  "unicode",
+                  "basestring",
+                  "object"
+                ],
+                "type": "unicode",
+                "value": "GenericHunt"
+              },
+              "log_message": {
+                "age": 0,
+                "mro": [
+                  "unicode",
+                  "basestring",
+                  "object"
+                ],
+                "type": "unicode",
+                "value": "Sample message: bar."
+              },
+              "urn": {
+                "age": 0,
+                "mro": [
+                  "RDFURN",
+                  "RDFValue",
+                  "object"
+                ],
+                "type": "RDFURN",
+                "value": "aff4:/hunts/H:123456"
+              }
+            }
+          }
+        ],
+        "offset": 0,
+        "total_count": 2,
+        "urn": "aff4:/hunts/H:123456/Logs"
+      },
+      "test_class": "ApiHuntLogRendererRegressionTest",
+      "url": "/api/hunts/H:123456/log"
+    },
+    {
+      "method": "GET",
+      "response": {
+        "aff4_class": "PackedVersionedCollection",
+        "age_policy": "NEWEST_TIME",
+        "attributes": {
+          "aff4:data": {
+            "flow_name": "GenericHunt",
+            "log_message": "Sample message: bar.",
+            "urn": "aff4:/hunts/H:123456"
+          },
+          "aff4:type": "PackedVersionedCollection",
+          "metadata:last": 55000000
+        },
+        "count": 1,
+        "items": [
+          {
+            "age": 52,
+            "fields_order": [
+              "log_message",
+              "urn",
+              "flow_name"
+            ],
+            "metadata": {
+              "flow_name": {
+                "description": "Human readable name for the session ID.",
+                "friendly_name": "Flow name"
+              },
+              "log_message": {
+                "description": "",
+                "friendly_name": "Log message"
+              },
+              "urn": {
+                "description": "Session ID that generated the log.",
+                "friendly_name": "Urn"
+              }
+            },
+            "mro": [
+              "FlowLog",
+              "RDFProtoStruct",
+              "RDFStruct",
+              "RDFValue",
+              "object"
+            ],
+            "type": "FlowLog",
+            "value": {
+              "flow_name": {
+                "age": 0,
+                "mro": [
+                  "unicode",
+                  "basestring",
+                  "object"
+                ],
+                "type": "unicode",
+                "value": "GenericHunt"
+              },
+              "log_message": {
+                "age": 0,
+                "mro": [
+                  "unicode",
+                  "basestring",
+                  "object"
+                ],
+                "type": "unicode",
+                "value": "Sample message: foo."
+              },
+              "urn": {
+                "age": 0,
+                "mro": [
+                  "RDFURN",
+                  "RDFValue",
+                  "object"
+                ],
+                "type": "RDFURN",
+                "value": "aff4:/hunts/H:123456"
+              }
+            }
+          }
+        ],
+        "offset": 0,
+        "total_count": 2,
+        "urn": "aff4:/hunts/H:123456/Logs"
+      },
+      "test_class": "ApiHuntLogRendererRegressionTest",
+      "url": "/api/hunts/H:123456/log?count=1"
+    },
+    {
+      "method": "GET",
+      "response": {
+        "aff4_class": "PackedVersionedCollection",
+        "age_policy": "NEWEST_TIME",
+        "attributes": {
+          "aff4:data": {
+            "flow_name": "GenericHunt",
+            "log_message": "Sample message: bar.",
+            "urn": "aff4:/hunts/H:123456"
+          },
+          "aff4:type": "PackedVersionedCollection",
+          "metadata:last": 55000000
+        },
+        "count": 1,
+        "items": [
+          {
+            "age": 55,
+            "fields_order": [
+              "log_message",
+              "urn",
+              "flow_name"
+            ],
+            "metadata": {
+              "flow_name": {
+                "description": "Human readable name for the session ID.",
+                "friendly_name": "Flow name"
+              },
+              "log_message": {
+                "description": "",
+                "friendly_name": "Log message"
+              },
+              "urn": {
+                "description": "Session ID that generated the log.",
+                "friendly_name": "Urn"
+              }
+            },
+            "mro": [
+              "FlowLog",
+              "RDFProtoStruct",
+              "RDFStruct",
+              "RDFValue",
+              "object"
+            ],
+            "type": "FlowLog",
+            "value": {
+              "flow_name": {
+                "age": 0,
+                "mro": [
+                  "unicode",
+                  "basestring",
+                  "object"
+                ],
+                "type": "unicode",
+                "value": "GenericHunt"
+              },
+              "log_message": {
+                "age": 0,
+                "mro": [
+                  "unicode",
+                  "basestring",
+                  "object"
+                ],
+                "type": "unicode",
+                "value": "Sample message: bar."
+              },
+              "urn": {
+                "age": 0,
+                "mro": [
+                  "RDFURN",
+                  "RDFValue",
+                  "object"
+                ],
+                "type": "RDFURN",
+                "value": "aff4:/hunts/H:123456"
+              }
+            }
+          }
+        ],
+        "offset": 1,
+        "total_count": 2,
+        "urn": "aff4:/hunts/H:123456/Logs"
+      },
+      "test_class": "ApiHuntLogRendererRegressionTest",
+      "url": "/api/hunts/H:123456/log?offset=1&count=1"
+    }
+  ],
+  "ApiHuntSummaryRenderer": [
+    {
+      "method": "GET",
+      "response": {
+        "aff4_class": "GenericHunt",
+        "age_policy": "NEWEST_TIME",
+        "attributes": {
+          "aff4:hunt_state": "PAUSED",
+          "aff4:type": "GenericHunt",
+          "aff4:flow_state": {
+            "args": {
+              "flow_args": {
+                "pathspec": {
+                  "path": "/tmp/evil.txt",
+                  "pathtype": "OS"
+                }
+              },
+              "flow_runner_args": {
+                "flow_name": "GetFile"
+              }
+            },
+            "context": {
+              "args": {
+                "client_rate": 0.0,
+                "description": "the hunt",
+                "hunt_name": "GenericHunt",
+                "token": {
+                  "reason": "Running tests",
+                  "username": "test"
+                }
+              },
+              "backtrace": "None",
+              "client_resources": {},
+              "create_time": 42000000,
+              "creator": "test",
+              "current_state": "U3RhcnQ=",
+              "expires": 42000000,
+              "kill_timestamp": "None",
+              "network_bytes_sent": 0,
+              "next_client_due": 0,
+              "next_outbound_id": 1,
+              "next_processed_request": 1,
+              "next_states": "set([])",
+              "output_plugins_base_urn": "aff4:/hunts/H:123456/Results",
+              "outstanding_requests": 0,
+              "remaining_cpu_quota": 0,
+              "results_collection": "None",
+              "results_collection_urn": "aff4:/hunts/H:123456/Results",
+              "results_metadata_urn": "aff4:/hunts/H:123456/ResultsMetadata",
+              "session_id": "aff4:/hunts/H:123456",
+              "start_time": 42000000,
+              "state": "RUNNING",
+              "usage_stats": {
+                "network_bytes_sent_stats": {
+                  "histogram": {
+                    "bins": [
+                      {
+                        "range_max_value": 16.0
+                      },
+                      {
+                        "range_max_value": 32.0
+                      },
+                      {
+                        "range_max_value": 64.0
+                      },
+                      {
+                        "range_max_value": 128.0
+                      },
+                      {
+                        "range_max_value": 256.0
+                      },
+                      {
+                        "range_max_value": 512.0
+                      },
+                      {
+                        "range_max_value": 1024.0
+                      },
+                      {
+                        "range_max_value": 2048.0
+                      },
+                      {
+                        "range_max_value": 4096.0
+                      },
+                      {
+                        "range_max_value": 8192.0
+                      },
+                      "<more items available>"
+                    ]
+                  }
+                },
+                "system_cpu_stats": {
+                  "histogram": {
+                    "bins": [
+                      {
+                        "range_max_value": 0.10000000149011612
+                      },
+                      {
+                        "range_max_value": 0.20000000298023224
+                      },
+                      {
+                        "range_max_value": 0.30000001192092896
+                      },
+                      {
+                        "range_max_value": 0.4000000059604645
+                      },
+                      {
+                        "range_max_value": 0.5
+                      },
+                      {
+                        "range_max_value": 0.75
+                      },
+                      {
+                        "range_max_value": 1.0
+                      },
+                      {
+                        "range_max_value": 1.5
+                      },
+                      {
+                        "range_max_value": 2.0
+                      },
+                      {
+                        "range_max_value": 2.5
+                      },
+                      "<more items available>"
+                    ]
+                  }
+                },
+                "user_cpu_stats": {
+                  "histogram": {
+                    "bins": [
+                      {
+                        "range_max_value": 0.10000000149011612
+                      },
+                      {
+                        "range_max_value": 0.20000000298023224
+                      },
+                      {
+                        "range_max_value": 0.30000001192092896
+                      },
+                      {
+                        "range_max_value": 0.4000000059604645
+                      },
+                      {
+                        "range_max_value": 0.5
+                      },
+                      {
+                        "range_max_value": 0.75
+                      },
+                      {
+                        "range_max_value": 1.0
+                      },
+                      {
+                        "range_max_value": 1.5
+                      },
+                      {
+                        "range_max_value": 2.0
+                      },
+                      {
+                        "range_max_value": 2.5
+                      },
+                      "<more items available>"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "metadata:last": 42000000
+        },
+        "summary": {
+          "all_clients_count": 0,
+          "args": {
+            "age": 0,
+            "fields_order": [
+              "flow_args",
+              "flow_runner_args"
+            ],
+            "metadata": {
+              "flow_args": {
+                "description": "Arguments to the flow to run. This should be an instance of flow.args_type proto.",
+                "friendly_name": "Flow args"
+              },
+              "flow_runner_args": {
+                "description": "The runner args for launching each flow.",
+                "friendly_name": "Flow runner args"
+              }
+            },
+            "mro": [
+              "GenericHuntArgs",
+              "RDFProtoStruct",
+              "RDFStruct",
+              "RDFValue",
+              "object"
+            ],
+            "type": "GenericHuntArgs",
+            "value": {
+              "flow_args": {
+                "age": 0,
+                "fields_order": [
+                  "pathspec"
+                ],
+                "metadata": {
+                  "pathspec": {
+                    "description": "The pathspec for the file to retrieve.",
+                    "friendly_name": "Pathspec"
+                  }
+                },
+                "mro": [
+                  "GetFileArgs",
+                  "RDFProtoStruct",
+                  "RDFStruct",
+                  "RDFValue",
+                  "object"
+                ],
+                "type": "GetFileArgs",
+                "value": {
+                  "pathspec": {
+                    "age": 0,
+                    "fields_order": [
+                      "pathtype",
+                      "path"
+                    ],
+                    "metadata": {
+                      "path": {
+                        "description": "",
+                        "friendly_name": "Path"
+                      },
+                      "pathtype": {
+                        "description": "",
+                        "friendly_name": "Pathtype"
+                      }
+                    },
+                    "mro": [
+                      "PathSpec",
+                      "RDFProtoStruct",
+                      "RDFStruct",
+                      "RDFValue",
+                      "object"
+                    ],
+                    "type": "PathSpec",
+                    "value": {
+                      "path": {
+                        "age": 0,
+                        "mro": [
+                          "unicode",
+                          "basestring",
+                          "object"
+                        ],
+                        "type": "unicode",
+                        "value": "/tmp/evil.txt"
+                      },
+                      "pathtype": {
+                        "age": 0,
+                        "mro": [
+                          "Enum",
+                          "RDFInteger",
+                          "RDFString",
+                          "RDFBytes",
+                          "RDFValue",
+                          "object"
+                        ],
+                        "type": "Enum",
+                        "value": "OS"
+                      }
+                    }
+                  }
+                }
+              },
+              "flow_runner_args": {
+                "age": 0,
+                "fields_order": [
+                  "flow_name"
+                ],
+                "metadata": {
+                  "flow_name": {
+                    "description": "The name of the class implementing the flow to run.",
+                    "friendly_name": "Flow name"
+                  }
+                },
+                "mro": [
+                  "FlowRunnerArgs",
+                  "RDFProtoStruct",
+                  "RDFStruct",
+                  "RDFValue",
+                  "object"
+                ],
+                "type": "FlowRunnerArgs",
+                "value": {
+                  "flow_name": {
+                    "age": 0,
+                    "mro": [
+                      "unicode",
+                      "basestring",
+                      "object"
+                    ],
+                    "type": "unicode",
+                    "value": "GetFile"
+                  }
+                }
+              }
+            }
+          },
+          "client_limit": 0,
+          "client_rate": 0.0,
+          "completed_clients_count": 0,
+          "create_time": 42000000,
+          "creator": "test",
+          "description": "the hunt",
+          "expires": 42000000,
+          "hunt_name": "GenericHunt",
+          "integer_rules": [],
+          "outstanding_clients_count": 0,
+          "regex_rules": [],
+          "state": "PAUSED",
+          "stats": {
+            "network_bytes_sent_stats": {
+              "histogram": {
+                "bins": [
+                  {
+                    "range_max_value": 16.0
+                  },
+                  {
+                    "range_max_value": 32.0
+                  },
+                  {
+                    "range_max_value": 64.0
+                  },
+                  {
+                    "range_max_value": 128.0
+                  },
+                  {
+                    "range_max_value": 256.0
+                  },
+                  {
+                    "range_max_value": 512.0
+                  },
+                  {
+                    "range_max_value": 1024.0
+                  },
+                  {
+                    "range_max_value": 2048.0
+                  },
+                  {
+                    "range_max_value": 4096.0
+                  },
+                  {
+                    "range_max_value": 8192.0
+                  },
+                  "<more items available>"
+                ]
+              }
+            },
+            "system_cpu_stats": {
+              "histogram": {
+                "bins": [
+                  {
+                    "range_max_value": 0.10000000149011612
+                  },
+                  {
+                    "range_max_value": 0.20000000298023224
+                  },
+                  {
+                    "range_max_value": 0.30000001192092896
+                  },
+                  {
+                    "range_max_value": 0.4000000059604645
+                  },
+                  {
+                    "range_max_value": 0.5
+                  },
+                  {
+                    "range_max_value": 0.75
+                  },
+                  {
+                    "range_max_value": 1.0
+                  },
+                  {
+                    "range_max_value": 1.5
+                  },
+                  {
+                    "range_max_value": 2.0
+                  },
+                  {
+                    "range_max_value": 2.5
+                  },
+                  "<more items available>"
+                ]
+              }
+            },
+            "user_cpu_stats": {
+              "histogram": {
+                "bins": [
+                  {
+                    "range_max_value": 0.10000000149011612
+                  },
+                  {
+                    "range_max_value": 0.20000000298023224
+                  },
+                  {
+                    "range_max_value": 0.30000001192092896
+                  },
+                  {
+                    "range_max_value": 0.4000000059604645
+                  },
+                  {
+                    "range_max_value": 0.5
+                  },
+                  {
+                    "range_max_value": 0.75
+                  },
+                  {
+                    "range_max_value": 1.0
+                  },
+                  {
+                    "range_max_value": 1.5
+                  },
+                  {
+                    "range_max_value": 2.0
+                  },
+                  {
+                    "range_max_value": 2.5
+                  },
+                  "<more items available>"
+                ]
+              }
+            }
+          }
+        },
+        "urn": "aff4:/hunts/H:123456"
+      },
+      "test_class": "ApiHuntSummaryRendererRegressionTest",
+      "url": "/api/hunts/H:123456"
+    }
+  ],
+  "ApiHuntsListRenderer": [
+    {
+      "method": "GET",
+      "response": {
+        "count": 2,
+        "items": [
+          {
+            "aff4_class": "GenericHunt",
+            "age_policy": "NEWEST_TIME",
+            "attributes": {
+              "aff4:hunt_state": "STOPPED",
+              "aff4:type": "GenericHunt",
+              "aff4:flow_state": {
+                "args": {
+                  "flow_args": {
+                    "pathspec": {
+                      "path": "/tmp/evil.txt",
+                      "pathtype": "OS"
+                    }
+                  },
+                  "flow_runner_args": {
+                    "flow_name": "GetFile"
+                  }
+                },
+                "context": {
+                  "args": {
+                    "client_rate": 0.0,
+                    "description": "hunt_1",
+                    "hunt_name": "GenericHunt",
+                    "token": {
+                      "reason": "Running tests",
+                      "username": "test"
+                    }
+                  },
+                  "backtrace": "None",
+                  "client_resources": {},
+                  "create_time": 1000000000,
+                  "creator": "test",
+                  "current_state": "U3RhcnQ=",
+                  "expires": 1000000000,
+                  "kill_timestamp": "None",
+                  "network_bytes_sent": 0,
+                  "next_client_due": 0,
+                  "next_outbound_id": 1,
+                  "next_processed_request": 1,
+                  "next_states": "set([])",
+                  "output_plugins_base_urn": "aff4:/hunts/H:000001/Results",
+                  "outstanding_requests": 0,
+                  "remaining_cpu_quota": 0,
+                  "results_collection": "None",
+                  "results_collection_urn": "aff4:/hunts/H:000001/Results",
+                  "results_metadata_urn": "aff4:/hunts/H:000001/ResultsMetadata",
+                  "session_id": "aff4:/hunts/H:000001",
+                  "start_time": 1000000000,
+                  "state": "RUNNING",
+                  "usage_stats": {
+                    "network_bytes_sent_stats": {
+                      "histogram": {
+                        "bins": "<lists are omitted>"
+                      }
+                    },
+                    "system_cpu_stats": {
+                      "histogram": {
+                        "bins": "<lists are omitted>"
+                      }
+                    },
+                    "user_cpu_stats": {
+                      "histogram": {
+                        "bins": "<lists are omitted>"
+                      }
+                    }
+                  }
+                }
+              },
+              "metadata:last": 1000000000
+            },
+            "summary": {
+              "client_limit": 0,
+              "client_rate": 0.0,
+              "create_time": 1000000000,
+              "creator": "test",
+              "description": "hunt_1",
+              "expires": 1000000000,
+              "hunt_name": "GenericHunt",
+              "state": "STOPPED"
+            },
+            "urn": "aff4:/hunts/H:000001"
+          },
+          {
+            "aff4_class": "GenericHunt",
+            "age_policy": "NEWEST_TIME",
+            "attributes": {
+              "aff4:hunt_state": "PAUSED",
+              "aff4:type": "GenericHunt",
+              "aff4:flow_state": {
+                "args": {
+                  "flow_args": {
+                    "pathspec": {
+                      "path": "/tmp/evil.txt",
+                      "pathtype": "OS"
+                    }
+                  },
+                  "flow_runner_args": {
+                    "flow_name": "GetFile"
+                  }
+                },
+                "context": {
+                  "args": {
+                    "client_rate": 0.0,
+                    "description": "hunt_0",
+                    "hunt_name": "GenericHunt",
+                    "token": {
+                      "reason": "Running tests",
+                      "username": "test"
+                    }
+                  },
+                  "backtrace": "None",
+                  "client_resources": {},
+                  "create_time": 0,
+                  "creator": "test",
+                  "current_state": "U3RhcnQ=",
+                  "expires": 0,
+                  "kill_timestamp": "None",
+                  "network_bytes_sent": 0,
+                  "next_client_due": 0,
+                  "next_outbound_id": 1,
+                  "next_processed_request": 1,
+                  "next_states": "set([])",
+                  "output_plugins_base_urn": "aff4:/hunts/H:000000/Results",
+                  "outstanding_requests": 0,
+                  "remaining_cpu_quota": 0,
+                  "results_collection": "None",
+                  "results_collection_urn": "aff4:/hunts/H:000000/Results",
+                  "results_metadata_urn": "aff4:/hunts/H:000000/ResultsMetadata",
+                  "session_id": "aff4:/hunts/H:000000",
+                  "start_time": 0,
+                  "state": "RUNNING",
+                  "usage_stats": {
+                    "network_bytes_sent_stats": {
+                      "histogram": {
+                        "bins": "<lists are omitted>"
+                      }
+                    },
+                    "system_cpu_stats": {
+                      "histogram": {
+                        "bins": "<lists are omitted>"
+                      }
+                    },
+                    "user_cpu_stats": {
+                      "histogram": {
+                        "bins": "<lists are omitted>"
+                      }
+                    }
+                  }
+                }
+              },
+              "metadata:last": 0
+            },
+            "summary": {
+              "client_limit": 0,
+              "client_rate": 0.0,
+              "create_time": 0,
+              "creator": "test",
+              "description": "hunt_0",
+              "expires": 0,
+              "hunt_name": "GenericHunt",
+              "state": "PAUSED"
+            },
+            "urn": "aff4:/hunts/H:000000"
+          }
+        ],
+        "offset": 0,
+        "total_count": 2
+      },
+      "test_class": "ApiHuntsListRendererRegressionTest",
+      "url": "/api/hunts"
+    },
+    {
+      "method": "GET",
+      "response": {
+        "count": 1,
+        "items": [
+          {
+            "aff4_class": "GenericHunt",
+            "age_policy": "NEWEST_TIME",
+            "attributes": {
+              "aff4:hunt_state": "STOPPED",
+              "aff4:type": "GenericHunt",
+              "aff4:flow_state": {
+                "args": {
+                  "flow_args": {
+                    "pathspec": {
+                      "path": "/tmp/evil.txt",
+                      "pathtype": "OS"
+                    }
+                  },
+                  "flow_runner_args": {
+                    "flow_name": "GetFile"
+                  }
+                },
+                "context": {
+                  "args": {
+                    "client_rate": 0.0,
+                    "description": "hunt_1",
+                    "hunt_name": "GenericHunt",
+                    "token": {
+                      "reason": "Running tests",
+                      "username": "test"
+                    }
+                  },
+                  "backtrace": "None",
+                  "client_resources": {},
+                  "create_time": 1000000000,
+                  "creator": "test",
+                  "current_state": "U3RhcnQ=",
+                  "expires": 1000000000,
+                  "kill_timestamp": "None",
+                  "network_bytes_sent": 0,
+                  "next_client_due": 0,
+                  "next_outbound_id": 1,
+                  "next_processed_request": 1,
+                  "next_states": "set([])",
+                  "output_plugins_base_urn": "aff4:/hunts/H:000001/Results",
+                  "outstanding_requests": 0,
+                  "remaining_cpu_quota": 0,
+                  "results_collection": "None",
+                  "results_collection_urn": "aff4:/hunts/H:000001/Results",
+                  "results_metadata_urn": "aff4:/hunts/H:000001/ResultsMetadata",
+                  "session_id": "aff4:/hunts/H:000001",
+                  "start_time": 1000000000,
+                  "state": "RUNNING",
+                  "usage_stats": {
+                    "network_bytes_sent_stats": {
+                      "histogram": {
+                        "bins": "<lists are omitted>"
+                      }
+                    },
+                    "system_cpu_stats": {
+                      "histogram": {
+                        "bins": "<lists are omitted>"
+                      }
+                    },
+                    "user_cpu_stats": {
+                      "histogram": {
+                        "bins": "<lists are omitted>"
+                      }
+                    }
+                  }
+                }
+              },
+              "metadata:last": 1000000000
+            },
+            "summary": {
+              "client_limit": 0,
+              "client_rate": 0.0,
+              "create_time": 1000000000,
+              "creator": "test",
+              "description": "hunt_1",
+              "expires": 1000000000,
+              "hunt_name": "GenericHunt",
+              "state": "STOPPED"
+            },
+            "urn": "aff4:/hunts/H:000001"
+          }
+        ],
+        "offset": 0,
+        "total_count": 1
+      },
+      "test_class": "ApiHuntsListRendererRegressionTest",
+      "url": "/api/hunts?count=1"
+    },
+    {
+      "method": "GET",
+      "response": {
+        "count": 1,
+        "items": [
+          {
+            "aff4_class": "GenericHunt",
+            "age_policy": "NEWEST_TIME",
+            "attributes": {
+              "aff4:hunt_state": "PAUSED",
+              "aff4:type": "GenericHunt",
+              "aff4:flow_state": {
+                "args": {
+                  "flow_args": {
+                    "pathspec": {
+                      "path": "/tmp/evil.txt",
+                      "pathtype": "OS"
+                    }
+                  },
+                  "flow_runner_args": {
+                    "flow_name": "GetFile"
+                  }
+                },
+                "context": {
+                  "args": {
+                    "client_rate": 0.0,
+                    "description": "hunt_0",
+                    "hunt_name": "GenericHunt",
+                    "token": {
+                      "reason": "Running tests",
+                      "username": "test"
+                    }
+                  },
+                  "backtrace": "None",
+                  "client_resources": {},
+                  "create_time": 0,
+                  "creator": "test",
+                  "current_state": "U3RhcnQ=",
+                  "expires": 0,
+                  "kill_timestamp": "None",
+                  "network_bytes_sent": 0,
+                  "next_client_due": 0,
+                  "next_outbound_id": 1,
+                  "next_processed_request": 1,
+                  "next_states": "set([])",
+                  "output_plugins_base_urn": "aff4:/hunts/H:000000/Results",
+                  "outstanding_requests": 0,
+                  "remaining_cpu_quota": 0,
+                  "results_collection": "None",
+                  "results_collection_urn": "aff4:/hunts/H:000000/Results",
+                  "results_metadata_urn": "aff4:/hunts/H:000000/ResultsMetadata",
+                  "session_id": "aff4:/hunts/H:000000",
+                  "start_time": 0,
+                  "state": "RUNNING",
+                  "usage_stats": {
+                    "network_bytes_sent_stats": {
+                      "histogram": {
+                        "bins": "<lists are omitted>"
+                      }
+                    },
+                    "system_cpu_stats": {
+                      "histogram": {
+                        "bins": "<lists are omitted>"
+                      }
+                    },
+                    "user_cpu_stats": {
+                      "histogram": {
+                        "bins": "<lists are omitted>"
+                      }
+                    }
+                  }
+                }
+              },
+              "metadata:last": 0
+            },
+            "summary": {
+              "client_limit": 0,
+              "client_rate": 0.0,
+              "create_time": 0,
+              "creator": "test",
+              "description": "hunt_0",
+              "expires": 0,
+              "hunt_name": "GenericHunt",
+              "state": "PAUSED"
+            },
+            "urn": "aff4:/hunts/H:000000"
+          }
+        ],
+        "offset": 1,
+        "total_count": 1
+      },
+      "test_class": "ApiHuntsListRendererRegressionTest",
+      "url": "/api/hunts?offset=1&count=1"
+    }
+  ],
+  "ApiRDFValueReflectionRenderer": [
+    {
+      "method": "GET",
+      "response": {
+        "doc": "Duration value stored in seconds internally.",
+        "kind": "primitive",
+        "name": "Duration"
+      },
+      "test_class": "ApiRDFValueReflectionRendererRegressionTest",
+      "url": "/api/reflection/rdfvalue/Duration"
+    },
+    {
+      "method": "GET",
+      "response": {
+        "doc": "",
+        "fields": [
+          {
+            "default": {
+              "age": 0,
+              "mro": [
+                "RDFInteger",
+                "RDFString",
+                "RDFBytes",
+                "RDFValue",
+                "object"
+              ],
+              "type": "RDFInteger",
+              "value": 0
+            },
+            "doc": "Fetch items starting from this offset.",
+            "dynamic": false,
+            "friendly_name": "Offset",
+            "index": 1,
+            "name": "offset",
+            "repeated": false,
+            "type": "RDFInteger"
+          },
+          {
+            "default": {
+              "age": 0,
+              "mro": [
+                "RDFInteger",
+                "RDFString",
+                "RDFBytes",
+                "RDFValue",
+                "object"
+              ],
+              "type": "RDFInteger",
+              "value": 0
+            },
+            "doc": "Fetch this number of elements.",
+            "dynamic": false,
+            "friendly_name": "Count",
+            "index": 2,
+            "name": "count",
+            "repeated": false,
+            "type": "RDFInteger"
+          },
+          {
+            "default": {
+              "age": 0,
+              "mro": [
+                "RDFBool",
+                "RDFInteger",
+                "RDFString",
+                "RDFBytes",
+                "RDFValue",
+                "object"
+              ],
+              "type": "RDFBool",
+              "value": false
+            },
+            "doc": "Include total number of elements in the collection into the response. NOTE: for some collections this may be expensive.",
+            "dynamic": false,
+            "friendly_name": "With total count",
+            "index": 3,
+            "name": "with_total_count",
+            "repeated": false,
+            "type": "RDFBool"
+          },
+          {
+            "default": {
+              "age": 0,
+              "mro": [
+                "RDFString",
+                "RDFBytes",
+                "RDFValue",
+                "object"
+              ],
+              "type": "RDFString",
+              "value": ""
+            },
+            "doc": "Return only collection items whose string representation contains given substring.",
+            "dynamic": false,
+            "friendly_name": "Filter",
+            "index": 4,
+            "name": "filter",
+            "repeated": false,
+            "type": "RDFString"
+          },
+          {
+            "default": {
+              "age": 0,
+              "mro": [
+                "RDFInteger",
+                "RDFString",
+                "RDFBytes",
+                "RDFValue",
+                "object"
+              ],
+              "type": "RDFInteger",
+              "value": -1
+            },
+            "doc": "If >0, lists of values in the response will contain no more than specified number of items. This is an effective way to protect the UI from fetching and presenting enormously big datasets. If 0, no lists will be rendered at all. If -1, lists will be rendered in their entirety.",
+            "dynamic": false,
+            "friendly_name": "Items limit lists",
+            "index": 5,
+            "name": "items_limit_lists",
+            "repeated": false,
+            "type": "RDFInteger"
+          },
+          {
+            "allowed_values": [
+              {
+                "doc": "Do not include type information.",
+                "name": "NONE",
+                "value": 0
+              },
+              {
+                "doc": "Include type names and MROs for all values.",
+                "name": "WITH_TYPES",
+                "value": 1
+              },
+              {
+                "doc": "Include type names, descriptions, friendly names, suggested fields order, etc.",
+                "name": "WITH_TYPES_AND_METADATA",
+                "value": 2
+              }
+            ],
+            "default": {
+              "age": 0,
+              "mro": [
+                "Enum",
+                "RDFInteger",
+                "RDFString",
+                "RDFBytes",
+                "RDFValue",
+                "object"
+              ],
+              "type": "Enum",
+              "value": "0"
+            },
+            "doc": "Which type information to include when rendering collection items.",
+            "dynamic": false,
+            "friendly_name": "Items type info",
+            "index": 6,
+            "name": "items_type_info",
+            "repeated": false,
+            "type": "Enum"
+          }
+        ],
+        "kind": "struct",
+        "name": "ApiRDFValueCollectionRendererArgs"
+      },
+      "test_class": "ApiRDFValueReflectionRendererRegressionTest",
+      "url": "/api/reflection/rdfvalue/ApiRDFValueCollectionRendererArgs"
+    }
+  ],
+  "ApiStatsStoreMetricRenderer": [
+    {
+      "method": "GET",
+      "response": {
+        "end": 3600000000,
+        "metric_name": "sample_counter",
+        "start": 42000000,
+        "timeseries": [
+          [
+            30000.0,
+            1.0
+          ],
+          [
+            60000.0,
+            1.0
+          ],
+          [
+            90000.0,
+            2.0
+          ],
+          [
+            120000.0,
+            2.0
+          ],
+          [
+            150000.0,
+            3.0
+          ],
+          [
+            180000.0,
+            3.0
+          ],
+          [
+            210000.0,
+            4.0
+          ],
+          [
+            240000.0,
+            4.0
+          ],
+          [
+            270000.0,
+            5.0
+          ],
+          [
+            300000.0,
+            5.0
+          ],
+          [
+            330000.0,
+            6.0
+          ],
+          [
+            360000.0,
+            6.0
+          ],
+          [
+            390000.0,
+            7.0
+          ],
+          [
+            420000.0,
+            7.0
+          ],
+          [
+            450000.0,
+            8.0
+          ],
+          [
+            480000.0,
+            8.0
+          ],
+          [
+            510000.0,
+            9.0
+          ],
+          [
+            540000.0,
+            9.0
+          ],
+          [
+            570000.0,
+            10.0
+          ]
+        ]
+      },
+      "test_class": "ApiStatsStoreMetricRendererRegressionTest",
+      "url": "/api/stats/store/WORKER/metrics/sample_counter?start=42000000&end=3600000000"
+    },
+    {
+      "method": "GET",
+      "response": {
+        "end": 3600000000,
+        "metric_name": "sample_counter",
+        "start": 42000000,
+        "timeseries": [
+          [
+            90000.0,
+            0.016666666666666666
+          ],
+          [
+            120000.0,
+            0.016666666666666666
+          ],
+          [
+            150000.0,
+            0.016666666666666666
+          ],
+          [
+            180000.0,
+            0.016666666666666666
+          ],
+          [
+            210000.0,
+            0.016666666666666666
+          ],
+          [
+            240000.0,
+            0.016666666666666666
+          ],
+          [
+            270000.0,
+            0.016666666666666666
+          ],
+          [
+            300000.0,
+            0.016666666666666666
+          ],
+          [
+            330000.0,
+            0.016666666666666666
+          ],
+          [
+            360000.0,
+            0.016666666666666666
+          ],
+          [
+            390000.0,
+            0.016666666666666666
+          ],
+          [
+            420000.0,
+            0.016666666666666666
+          ],
+          [
+            450000.0,
+            0.016666666666666666
+          ],
+          [
+            480000.0,
+            0.016666666666666666
+          ],
+          [
+            510000.0,
+            0.016666666666666666
+          ],
+          [
+            540000.0,
+            0.016666666666666666
+          ],
+          [
+            570000.0,
+            0.016666666666666666
+          ]
+        ]
+      },
+      "test_class": "ApiStatsStoreMetricRendererRegressionTest",
+      "url": "/api/stats/store/WORKER/metrics/sample_counter?start=42000000&end=3600000000&rate=1m"
+    },
+    {
+      "method": "GET",
+      "response": {
+        "end": 3600000000,
+        "metric_name": "sample_gauge_value",
+        "start": 42000000,
+        "timeseries": [
+          [
+            30000.0,
+            0.0
+          ],
+          [
+            60000.0,
+            0.0
+          ],
+          [
+            90000.0,
+            0.5
+          ],
+          [
+            120000.0,
+            0.5
+          ],
+          [
+            150000.0,
+            1.0
+          ],
+          [
+            180000.0,
+            1.0
+          ],
+          [
+            210000.0,
+            1.5
+          ],
+          [
+            240000.0,
+            1.5
+          ],
+          [
+            270000.0,
+            2.0
+          ],
+          [
+            300000.0,
+            2.0
+          ],
+          [
+            330000.0,
+            2.5
+          ],
+          [
+            360000.0,
+            2.5
+          ],
+          [
+            390000.0,
+            3.0
+          ],
+          [
+            420000.0,
+            3.0
+          ],
+          [
+            450000.0,
+            3.5
+          ],
+          [
+            480000.0,
+            3.5
+          ],
+          [
+            510000.0,
+            4.0
+          ],
+          [
+            540000.0,
+            4.0
+          ],
+          [
+            570000.0,
+            4.5
+          ]
+        ]
+      },
+      "test_class": "ApiStatsStoreMetricRendererRegressionTest",
+      "url": "/api/stats/store/WORKER/metrics/sample_gauge_value?start=42000000&end=3600000000"
+    },
+    {
+      "method": "GET",
+      "response": {
+        "end": 3600000000,
+        "metric_name": "sample_event",
+        "start": 42000000,
+        "timeseries": [
+          [
+            30000.0,
+            0.41999998688697815
+          ],
+          [
+            60000.0,
+            0.41999998688697815
+          ],
+          [
+            90000.0,
+            1.340000033378601
+          ],
+          [
+            120000.0,
+            1.340000033378601
+          ],
+          [
+            150000.0,
+            2.759999990463257
+          ],
+          [
+            180000.0,
+            2.759999990463257
+          ],
+          [
+            210000.0,
+            4.679999828338623
+          ],
+          [
+            240000.0,
+            4.679999828338623
+          ],
+          [
+            270000.0,
+            7.099999904632568
+          ],
+          [
+            300000.0,
+            7.099999904632568
+          ],
+          [
+            330000.0,
+            10.020000457763672
+          ],
+          [
+            360000.0,
+            10.020000457763672
+          ],
+          [
+            390000.0,
+            13.4399995803833
+          ],
+          [
+            420000.0,
+            13.4399995803833
+          ],
+          [
+            450000.0,
+            17.360000610351562
+          ],
+          [
+            480000.0,
+            17.360000610351562
+          ],
+          [
+            510000.0,
+            21.780000686645508
+          ],
+          [
+            540000.0,
+            21.780000686645508
+          ],
+          [
+            570000.0,
+            26.700000762939453
+          ]
+        ]
+      },
+      "test_class": "ApiStatsStoreMetricRendererRegressionTest",
+      "url": "/api/stats/store/WORKER/metrics/sample_event?start=42000000&end=3600000000"
+    },
+    {
+      "method": "GET",
+      "response": {
+        "end": 3600000000,
+        "metric_name": "sample_event",
+        "start": 42000000,
+        "timeseries": [
+          [
+            30000.0,
+            1.0
+          ],
+          [
+            60000.0,
+            1.0
+          ],
+          [
+            90000.0,
+            2.0
+          ],
+          [
+            120000.0,
+            2.0
+          ],
+          [
+            150000.0,
+            3.0
+          ],
+          [
+            180000.0,
+            3.0
+          ],
+          [
+            210000.0,
+            4.0
+          ],
+          [
+            240000.0,
+            4.0
+          ],
+          [
+            270000.0,
+            5.0
+          ],
+          [
+            300000.0,
+            5.0
+          ],
+          [
+            330000.0,
+            6.0
+          ],
+          [
+            360000.0,
+            6.0
+          ],
+          [
+            390000.0,
+            7.0
+          ],
+          [
+            420000.0,
+            7.0
+          ],
+          [
+            450000.0,
+            8.0
+          ],
+          [
+            480000.0,
+            8.0
+          ],
+          [
+            510000.0,
+            9.0
+          ],
+          [
+            540000.0,
+            9.0
+          ],
+          [
+            570000.0,
+            10.0
+          ]
+        ]
+      },
+      "test_class": "ApiStatsStoreMetricRendererRegressionTest",
+      "url": "/api/stats/store/WORKER/metrics/sample_event?start=42000000&end=3600000000&distribution_handling_mode=DH_COUNT"
+    }
+  ],
+  "ApiStatsStoreMetricsMetadataRenderer": [
+    {
+      "method": "GET",
+      "response": {
+        "sample_counter": {
+          "docstring": "Sample counter metric.",
+          "metric_type": "COUNTER",
+          "value_type": "INT",
+          "varname": "sample_counter"
+        },
+        "sample_event": {
+          "docstring": "Sample event metric.",
+          "metric_type": "EVENT",
+          "value_type": "DISTRIBUTION",
+          "varname": "sample_event"
+        },
+        "sample_gauge_value": {
+          "docstring": "Sample gauge metric.",
+          "metric_type": "GAUGE",
+          "value_type": "STR",
+          "varname": "sample_gauge_value"
+        }
+      },
+      "test_class": "ApiStatsStoreMetricsMetadataRendererRegressionTest",
+      "url": "/api/stats/store/WORKER/metadata"
+    }
+  ]
+}

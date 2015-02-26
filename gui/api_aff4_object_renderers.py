@@ -47,13 +47,18 @@ class ApiAFF4ObjectRenderer(ApiAFF4ObjectRendererBase):
       render_value_args["with_types"] = True
       render_value_args["with_metadata"] = True
 
+    object_attributes = aff4_object.synced_attributes.copy()
+    for key, value in aff4_object.new_attributes.items():
+      object_attributes[key] = value
+
     attributes = {}
-    for attribute, values in aff4_object.synced_attributes.items():
+    for attribute, values in object_attributes.items():
       attributes[attribute.predicate] = []
       for value in values:
         # This value is really a LazyDecoder() instance. We need to get at the
         # real data here.
-        value = value.ToRDFValue()
+        if hasattr(value, "ToRDFValue"):
+          value = value.ToRDFValue()
 
         if aff4_object.age_policy != aff4.NEWEST_TIME:
           attributes[attribute.predicate].append(
@@ -165,6 +170,9 @@ def RenderAFF4Object(obj, args):
     if not candidates:
       raise RuntimeError("No renderer found for object %s." %
                          obj.__class__.__name__)
+
+    # Ensure that the renderers order is stable.
+    candidates = sorted(candidates, key=lambda cls: cls.__name__)
 
     RENDERERS_CACHE[cache_key] = candidates
 

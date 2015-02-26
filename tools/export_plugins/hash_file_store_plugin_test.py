@@ -14,13 +14,13 @@ from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import flow
+from grr.lib import output_plugin
 from grr.lib import rdfvalue
 from grr.lib import test_lib
-from grr.lib.hunts import output_plugins
 from grr.tools.export_plugins import hash_file_store_plugin
 
 
-class DummyOutputPlugin(output_plugins.HuntOutputPlugin):
+class DummyOutputPlugin(output_plugin.OutputPlugin):
   name = "dummy"
 
   responses = []

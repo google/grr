@@ -3,6 +3,7 @@
 goog.provide('grrUi.docs.module');
 
 goog.require('grrUi.core.module');
+goog.require('grrUi.docs.apiDescriptionDirective.ApiDescriptionDirective');
 goog.require('grrUi.docs.apiDocsDirective.ApiDocsDirective');
 goog.require('grrUi.docs.apiQuerySpecDirective.ApiQuerySpecDirective');
 goog.require('grrUi.docs.apiRouteDirective.ApiRouteDirective');
@@ -13,6 +14,9 @@ goog.require('grrUi.docs.apiRouteDirective.ApiRouteDirective');
  */
 grrUi.docs.module = angular.module('grrUi.docs', [grrUi.core.module.name]);
 
+grrUi.docs.module.directive(
+    grrUi.docs.apiDescriptionDirective.ApiDescriptionDirective.directive_name,
+    grrUi.docs.apiDescriptionDirective.ApiDescriptionDirective);
 grrUi.docs.module.directive(
     grrUi.docs.apiDocsDirective.ApiDocsDirective.directive_name,
     grrUi.docs.apiDocsDirective.ApiDocsDirective);

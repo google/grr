@@ -32,7 +32,7 @@ ApiService.service_name = 'grrApiService';
 
  * @param {string} apiPath API path to triigger/
  * @param {Object<string, string>=} opt_params Query parameters.
- * @return {!angular.$q.Promise} Promise that resolves to the result.x
+ * @return {!angular.$q.Promise} Promise that resolves to the result.
  */
 ApiService.prototype.get = function(apiPath, opt_params) {
   var requestParams = angular.extend({}, opt_params);

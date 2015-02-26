@@ -543,5 +543,5 @@ class ArtifactLoader(registry.InitHook):
   pre = ["AFF4InitHook"]
 
   def RunOnce(self):
-    for path in config_lib.CONFIG["Artifacts.artifact_dirs"]:
-      artifact_lib.LoadArtifactsFromDir(path)
+    artifact_lib.LoadArtifactsFromDirs(
+        config_lib.CONFIG["Artifacts.artifact_dirs"])

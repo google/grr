@@ -398,7 +398,7 @@ class ProtoBinary(ProtoType):
   wire_type = WIRETYPE_LENGTH_DELIMITED
 
   # This descriptor describes strings.
-  type = rdfvalue.RDFString
+  type = rdfvalue.RDFBytes
 
   proto_type_name = "bytes"
 
@@ -579,18 +579,16 @@ class ProtoDouble(ProtoFixed64):
     return struct.unpack("<d", value)[0]
 
 
-class Enum(int):
+class Enum(rdfvalue.RDFInteger):
   """A class that wraps enums.
 
   Enums are just integers, except when printed they have a name.
   """
 
-  def __new__(cls, val, name=None, description=None):
-    instance = super(Enum, cls).__new__(cls, val)
-    instance.name = name or str(val)
-    instance.description = description
-
-    return instance
+  def __init__(self, initializer=None, name=None, description=None, age=None):
+    super(Enum, self).__init__(initializer)
+    self.name = name or str(initializer)
+    self.description = description
 
   def __eq__(self, other):
     return int(self) == other or self.name == other
@@ -607,6 +605,8 @@ class ProtoEnum(ProtoSignedInteger):
 
   This is really encoded as an integer but only certain values are allowed.
   """
+
+  type = Enum
 
   def __init__(self, default=None, enum_name=None, enum=None,
                enum_descriptions=None, **kwargs):
@@ -690,6 +690,8 @@ class EnumValue(Enum):
 
 class ProtoBoolean(ProtoEnum):
   """A Boolean."""
+
+  type = rdfvalue.RDFBool
 
   def __init__(self, **kwargs):
     super(ProtoBoolean, self).__init__(
@@ -1177,7 +1179,7 @@ class ProtoList(ProtoType):
 
   set_default_on_access = True
 
-  def __init__(self, delegate, **kwargs):
+  def __init__(self, delegate, labels=None, **kwargs):
     self.delegate = delegate
     if not isinstance(delegate, ProtoType):
       raise AttributeError(
@@ -1197,7 +1199,8 @@ class ProtoList(ProtoType):
     super(ProtoList, self).__init__(name=delegate.name,
                                     description=delegate.description,
                                     field_number=delegate.field_number,
-                                    friendly_name=delegate.friendly_name)
+                                    friendly_name=delegate.friendly_name,
+                                    labels=labels)
 
   def IsDirty(self, value):
     return value.IsDirty()
@@ -2086,7 +2089,7 @@ class RDFProtoStruct(RDFStruct):
           for key, value in desc.enum.iteritems():
             enum_type_value = enum_type.value.add()
             enum_type_value.name = key
-            enum_type_value.number = value
+            enum_type_value.number = int(value)
 
       elif isinstance(desc, type_info.ProtoEmbedded):
         field = message_type.field.add()

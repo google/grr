@@ -7,6 +7,9 @@
 from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
+import StringIO
+
+from grr.gui import api_test_lib
 from grr.gui.api_plugins import config as config_plugin
 
 from grr.lib import config_lib
@@ -143,6 +146,34 @@ class ApiConfigRendererTest(test_lib.GRRBaseTest):
     rendering = self._RenderConfig(input_dict)
     self.assertEquals(rendering["section"]["section.parameter"]["is_expanded"],
                       False)
+
+
+class ApiConfigRendererRegressionTest(
+    api_test_lib.ApiCallRendererRegressionTest):
+
+  renderer = "ApiConfigRenderer"
+
+  def Run(self):
+    config_obj = config_lib.GrrConfigManager()
+    config_obj.DEFINE_bool("SectionFoo.sample_boolean_option", True,
+                           "Regression test sample boolean option.")
+    config_obj.DEFINE_integer("SectionFoo.sample_integer_option", 42,
+                              "Sample integer option.")
+    config_obj.DEFINE_string("SectionBar.sample_string_option", "",
+                             "Sample string option.")
+    config_obj.DEFINE_list("SectionBar.sample_list_option", [],
+                           "Sample list option.")
+
+    config = """
+SectionFoo.sample_boolean_option: True
+SectionBar.sample_string_option: "%(sAmPlE|lower)"
+"""
+
+    config_lib.LoadConfig(config_obj, StringIO.StringIO(config),
+                          parser=config_lib.YamlParser)
+
+    with utils.Stubber(config_lib, "CONFIG", config_obj):
+      self.Check("GET", "/api/config")
 
 
 def main(argv):

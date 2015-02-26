@@ -8,7 +8,7 @@ all: sync
 
 sync:
 	git clone https://github.com/ForensicArtifacts/artifacts.git $(TEMPDIR)
-	-rm *.yaml
+	-rm -f *.yaml
 
 	cp $(TEMPDIR)/definitions/*.yaml .
 
@@ -17,4 +17,4 @@ sync:
 .PHONY: sync clean
 
 clean:
-	-rm *.yaml
+	-rm -f *.yaml

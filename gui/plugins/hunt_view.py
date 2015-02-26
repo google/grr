@@ -761,7 +761,7 @@ class CSVOutputPluginNoteRenderer(OutputPluginNoteRenderer):
 
   def Layout(self, request, response):
     self.output_urns = []
-    for output_file in self.plugin_state.files_by_type.values():
+    for output_file in self.plugin_state.output_streams.values():
       self.output_urns.append(output_file.urn)
 
     response = super(CSVOutputPluginNoteRenderer, self).Layout(request,
