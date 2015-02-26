@@ -9,7 +9,7 @@ from grr.lib import rdfvalue
 config_lib.DEFINE_integer("Threadpool.size", 50,
                           "Number of threads in the shared thread pool.")
 
-config_lib.DEFINE_integer("Worker.flow_lease_time", 600,
+config_lib.DEFINE_integer("Worker.flow_lease_time", 7200,
                           "Duration of a flow lease time in seconds.")
 
 config_lib.DEFINE_integer("Worker.well_known_flow_lease_time", 600,
