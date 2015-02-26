@@ -11,6 +11,7 @@ from grr.lib import rdfvalue
 from grr.parsers import binplist
 
 
+
 class OSXUsersParser(parsers.ArtifactFilesParser):
   """Parser for Glob of /Users/*."""
 
@@ -53,3 +54,50 @@ class OSXSPHardwareDataTypeParser(parsers.CommandParser):
     serial_number = hardware_list["serial_number"]
 
     yield rdfvalue.HardwareInfo(serial_number=serial_number)
+
+class OSXLaunchdPlistParser(parsers.FileParser):
+  """Parse Launchd plist files into LaunchdPlist objects."""
+
+  output_types = ["LaunchdPlist"]
+  supported_artifacts = ["OSXLaunchAgents", "OSXLaunchDaemons"]
+
+  def Parse(self, stat, file_object, knowledge_base):
+    """Parse the Plist file."""
+    _ = knowledge_base
+
+    try:
+      plist = binplist.readPlist(file_object)
+    except:
+      plist = {}
+      plist["Label"] = "ERROR"
+
+    direct_copy_items = ["Label", "Disabled", "UserName", "GroupName",
+                         "Program", "StandardInPath", "StandardOutPath",
+                         "StandardErrorPath", "LimitLoadToSessionType",
+                         "EnableGlobbing", "EnableTransactions", "OnDemand",
+                         "RunAtLoad", "RootDirectory", "WorkingDirectory",
+                         "Umask", "TimeOut", "ExitTimeOut", "ThrottleInterval",
+                         "InitGroups", "StartOnMount", "StartInterval",
+                         "Debug", "WaitForDebugger", "Nice", "ProcessType",
+                         "AbandonProcessGroup", "LowPriorityIO",
+                         "LaunchOnlyOnce"]
+
+    string_array_items = ["LimitLoadToHosts", "LimitLoadFromHosts",
+                          "LimitLoadToSessionType", "ProgramArguments",
+                          "WatchPaths", "QueueDirectories"]
+
+    kwargs = {}
+
+    #direct copy items
+    for key in direct_copy_items:
+      kwargs[key] = plist.get(key)
+
+    #array of string items
+    for key in string_array_items:
+      elements = plist.get(key)
+      if isinstance(elements, list):
+        kwargs[key] = " ".join(elements)
+      else:
+        kwargs[key] = elements
+
+    yield rdfvalue.LaunchdPlist(**kwargs)

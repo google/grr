@@ -479,3 +479,52 @@ message HardwareInfo {
     }];
 
 }
+
+// OSX Plist Start Calendar Interval
+
+message LaunchdStartCalendarInterval {
+  optional int32 Minute = 1;
+  optional int32 Hour = 2;
+  optional int32 Day = 3;
+  optional int32 Weekday = 4;
+  optional int32 Month = 5;
+}
+
+// OSX Plist Files
+message LaunchdPlist {
+  optional string Label = 1;
+  optional bool Disabled = 2;
+  optional string UserName = 3;
+  optional string GroupName = 4;
+  optional string Program = 5;
+  optional string ProgramArguments = 6;
+  optional LaunchdStartCalendarInterval StartCalendarInterval = 7;
+  optional string StandardInPath = 8;
+  optional string StandardOutPath = 9;
+  optional string StandardErrorPath = 10;
+  optional string LimitLoadToHosts = 11;
+  optional string LimitLoadFromHosts = 12;
+  optional string LimitLoadToSessionType = 13;
+  optional bool EnableGlobbing = 14;
+  optional bool EnableTransactions = 15;
+  optional bool OnDemand = 16;
+  optional bool RunAtLoad = 17;
+  optional string RootDirectory = 18;
+  optional string WorkingDirectory = 19;
+  optional int32 Umask = 20;
+  optional int32 TimeOut = 21;
+  optional int32 ExitTimeOut = 22;
+  optional int32 ThrottleInterval = 23;
+  optional bool InitGroups = 24;
+  optional string WatchPaths = 25;
+  optional string QueueDirectories = 26;
+  optional bool StartOnMount = 27;
+  optional int32 StartInterval = 28;
+  optional bool Debug = 29;
+  optional bool WaitForDebugger = 30;
+  optional int32 Nice = 31;
+  optional string ProcessType = 32;
+  optional bool AbandonProcessGroup = 33;
+  optional bool LowPriorityIO = 34;
+  optional bool LaunchOnlyOnce = 35;
+}
