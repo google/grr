@@ -420,6 +420,10 @@ class FullAccessControlManager(BasicAccessControlManager):
     h.Allow("aff4:/index")
     h.Allow("aff4:/index/*")
 
+    # Keyword-based Client index.
+    h.Allow("aff4:/client_index")
+    h.Allow("aff4:/client_index/*")
+
     # ACL namespace contains approval objects for accessing clients and hunts.
     h.Allow("aff4:/ACL")
     h.Allow("aff4:/ACL/*")
