@@ -79,7 +79,8 @@ class OSXLaunchdPlistParser(parsers.FileParser):
                          "LaunchOnlyOnce"]
 
     string_array_items = ["LimitLoadToHosts", "LimitLoadFromHosts",
-                          "ProgramArguments", "WatchPaths", "QueueDirectories"]
+                          "LimitLoadToSessionType", "ProgramArguments",
+                          "WatchPaths", "QueueDirectories"]
 
     kwargs = {}
 
