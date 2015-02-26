@@ -5,12 +5,12 @@
 
 
 import Queue
-import threading
-import thread
-import time
-import MySQLdb
 import re
+import thread
+import threading
+import time
 
+import MySQLdb
 from MySQLdb import cursors
 
 from grr.lib import aff4
@@ -18,7 +18,6 @@ from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.lib.data_stores import common
 
 
 # pylint: disable=nonstandard-exception
@@ -77,23 +76,23 @@ class MySQLConnection(object):
       self.queue.put(self)
 
   def Execute(self, *args):
+    """Executes a query."""
     retries = 10
-    for i in range(1, retries):
+    for _ in range(1, retries):
       try:
         self.cursor.execute(*args)
         return self.cursor.fetchall()
       except MySQLdb.Error:
         time.sleep(.2)
         try:
-          self._MakeConnection(database=config_lib.CONFIG["Mysql.database_name"])
+          database = config_lib.CONFIG["Mysql.database_name"]
+          self._MakeConnection(database=database)
         except MySQLdb.OperationalError:
           pass
 
-    try:
-      self.cursor.execute(*args)
-      return self.cursor.fetchall()
-    except MySQLdb.Error:
-      raise
+    # If something goes wrong at this point, we just let it raise.
+    self.cursor.execute(*args)
+    return self.cursor.fetchall()
 
 
 class ConnectionPool(object):
@@ -140,11 +139,13 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       self.RecreateTables()
 
   def DropTables(self):
-    #Drop all existing tables
-    rows = self._ExecuteQuery("select table_name from information_schema.tables "
-                              "where table_schema='%s'" % self.database_name)
+    """Drop all existing tables."""
+
+    rows = self._ExecuteQuery(
+        "SELECT table_name FROM information_schema.tables "
+        "WHERE table_schema='%s'" % self.database_name)
     for row in rows:
-      self._ExecuteQuery("drop table `%s`" % row["table_name"])
+      self._ExecuteQuery("DROP TABLE `%s`" % row["table_name"])
 
   def RecreateTables(self):
     """Drops the tables and creates a new ones."""
@@ -208,7 +209,8 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       if limit is not None and limit <= 0:
         break
 
-  def MultiResolveRegex(self, subjects, attribute_regex, timestamp=None, limit=None, token=None):
+  def MultiResolveRegex(self, subjects, attribute_regex, timestamp=None,
+                        limit=None, token=None):
     """Result multiple subjects using one or more attribute regexps."""
     result = {}
 
@@ -226,7 +228,9 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
     return result.iteritems()
 
-  def ResolveRegex(self, subject, attribute_regex, timestamp=None, limit=None, token=None):
+  def ResolveRegex(self, subject, attribute_regex, timestamp=None, limit=None,
+                   token=None):
+    """ResolveRegex."""
     self.security_manager.CheckDataStoreAccess(
         token, [subject], self.GetRequiredResolveAccess(attribute_regex))
 
@@ -234,10 +238,10 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       attribute_regex = [attribute_regex]
 
     results = []
-    seen = set()
 
     for regex in attribute_regex:
-      query, args = self._BuildQuery(subject, regex, timestamp, limit, is_regex=True)
+      query, args = self._BuildQuery(subject, regex, timestamp, limit,
+                                     is_regex=True)
       rows = self._ExecuteQuery(query, args)
 
       for row in rows:
@@ -319,8 +323,9 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       self._ExecuteTransaction(transaction)
 
   def _CountDuplicateAttributes(self, subject, attribute):
-    query = "SELECT count(*) AS total FROM aff4 WHERE \
-subject_hash=unhex(md5(%s)) AND attribute_hash=unhex(md5(%s))"
+    query = ("SELECT count(*) AS total FROM aff4 "
+             "WHERE subject_hash=unhex(md5(%s)) "
+             "AND attribute_hash=unhex(md5(%s))")
     args = [subject, attribute]
     result = self._ExecuteQuery(query, args)
     return int(result[0]["total"])
@@ -329,26 +334,30 @@ subject_hash=unhex(md5(%s)) AND attribute_hash=unhex(md5(%s))"
     transaction = []
 
     for (subject, attribute, value, timestamp) in values:
-      aff4 = {}
-      aff4["query"] = "UPDATE aff4 SET value=%s, timestamp=%s WHERE \
-subject_hash=unhex(md5(%s)) AND attribute_hash=unhex(md5(%s))"
-      aff4["args"] = [value, timestamp, subject, attribute]
-      transaction.append(aff4)
+      aff4_q = {}
+      aff4_q["query"] = (
+          "UPDATE aff4 SET value=%s, timestamp=%s "
+          "WHERE subject_hash=unhex(md5(%s)) "
+          "AND attribute_hash=unhex(md5(%s))")
+      aff4_q["args"] = [value, timestamp, subject, attribute]
+      transaction.append(aff4_q)
     return transaction
 
   def _BuildInserts(self, values):
     subjects = {}
     attributes = {}
-    aff4 = {}
+    aff4_q = {}
 
     subjects["query"] = "INSERT IGNORE INTO subjects (hash, subject) VALUES"
-    attributes["query"] = "INSERT IGNORE INTO attributes (hash, attribute) VALUES"
-    aff4["query"] = "INSERT INTO aff4 (subject_hash, attribute_hash, prefix, \
-timestamp, value) VALUES"
+    attributes["query"] = (
+        "INSERT IGNORE INTO attributes (hash, attribute) VALUES")
+    aff4_q["query"] = (
+        "INSERT INTO aff4 (subject_hash, attribute_hash, prefix, "
+        "timestamp, value) VALUES")
 
     subjects["args"] = []
     attributes["args"] = []
-    aff4["args"] = []
+    aff4_q["args"] = []
 
     seen = {}
     seen["subjects"] = []
@@ -362,18 +371,20 @@ timestamp, value) VALUES"
         attributes["args"].extend([attribute, attribute])
         seen["attributes"].append(attribute)
       prefix = attribute.split(":", 1)[0]
-      aff4["args"].extend([subject, attribute, prefix, timestamp, value])
+      aff4_q["args"].extend([subject, attribute, prefix, timestamp, value])
 
-    subjects["query"] += ", ".join(["(unhex(md5(%s)), %s)"] * (len(subjects["args"]) / 2))
-    attributes["query"] += ", ".join(["(unhex(md5(%s)), %s)"] * (len(attributes["args"]) / 2))
-    aff4["query"] += ", ".join(
+    subjects["query"] += ", ".join(
+        ["(unhex(md5(%s)), %s)"] * (len(subjects["args"]) / 2))
+    attributes["query"] += ", ".join(
+        ["(unhex(md5(%s)), %s)"] * (len(attributes["args"]) / 2))
+    aff4_q["query"] += ", ".join(
         ["(unhex(md5(%s)), unhex(md5(%s)), %s, %s, %s)"] * (
-            len(aff4["args"]) / 5))
+            len(aff4_q["args"]) / 5))
 
-    return [subjects, attributes, aff4]
+    return [subjects, attributes, aff4_q]
 
   def _ExecuteTransaction(self, transaction):
-    """Get connection from pool and execute query"""
+    """Get connection from pool and execute query."""
     for query in transaction:
       with self.pool.GetConnection() as cursor:
         cursor.Execute(query["query"], query["args"])
@@ -407,7 +418,7 @@ timestamp, value) VALUES"
 
   def _BuildQuery(self, subject, attribute=None, timestamp=None,
                   limit=None, is_regex=False):
-    """Build the SELECT query to be executed"""
+    """Build the SELECT query to be executed."""
     args = []
     fields = ""
     criteria = "WHERE aff4.subject_hash=unhex(md5(%s))"
@@ -417,14 +428,15 @@ timestamp, value) VALUES"
 
     subject = utils.SmartUnicode(subject)
 
-    #Set fields, tables, and criteria and append args
+    # Set fields, tables, and criteria and append args
     if attribute is not None:
       if is_regex:
         tables += " JOIN attributes ON aff4.attribute_hash=attributes.hash"
-        regex = re.match(r'(^[a-zA-Z0-9_]+:([a-zA-Z0-9_\-\. /:]*[a-zA-Z0-9_\- /:]+|[a-zA-Z0-9_\- /:]*))(.*)',
+        regex = re.match(r"(^[a-zA-Z0-9_]+:([a-zA-Z0-9_\-\. /:]*"
+                         r"[a-zA-Z0-9_\- /:]+|[a-zA-Z0-9_\- /:]*))(.*)",
                          attribute)
         if not regex:
-          #If attribute has no prefix just rlike
+          # If attribute has no prefix just rlike
           criteria += " AND attributes.attribute rlike %s"
           args.append(attribute)
         elif regex.groups()[2]:
@@ -432,18 +444,18 @@ timestamp, value) VALUES"
           like = regex.groups()[0] + "%"
           rlike = regex.groups()[2]
 
-          #If attribute has prefix then use for query optimizations
+          # If attribute has prefix then use for query optimizations
           criteria += " AND aff4.prefix=(%s)"
           args.append(prefix)
 
-          #If like component extends past prefix then include it
-          #accounting for % and trailing :
+          # If like component extends past prefix then include it
+          # accounting for % and trailing :
           if len(like) > len(prefix) + 2:
             criteria += " AND attributes.attribute like %s"
             args.append(like)
 
-          #If the regex portion is not a match all regex then break it
-          #down into like and rlike components
+          # If the regex portion is not a match all regex then break it
+          # down into like and rlike components
 
           if not (rlike == ".*" or rlike == ".+"):
             criteria += " AND attributes.attribute rlike %s"
@@ -452,10 +464,10 @@ timestamp, value) VALUES"
           criteria += " AND aff4.attribute_hash=unhex(md5(%s))"
           args.append(attribute)
       else:
-          criteria += " AND aff4.attribute_hash=unhex(md5(%s))"
-          args.append(attribute)
+        criteria += " AND aff4.attribute_hash=unhex(md5(%s))"
+        args.append(attribute)
 
-    #Limit to time range if specified
+    # Limit to time range if specified
     if isinstance(timestamp, (tuple, list)):
       criteria += " AND aff4.timestamp >= %s AND aff4.timestamp <= %s"
       args.append(int(timestamp[0]))
@@ -465,18 +477,18 @@ timestamp, value) VALUES"
     if is_regex:
       fields += ", attributes.attribute"
 
-    #Modify fields and sorting for timestamps
+    # Modify fields and sorting for timestamps.
     if timestamp is None or timestamp == self.NEWEST_TIMESTAMP:
-      tables += " JOIN (SELECT attribute_hash, MAX(timestamp) timestamp \
-" + tables + " " + criteria + " GROUP BY attribute_hash) maxtime on \
-aff4.attribute_hash=maxtime.attribute_hash and \
-aff4.timestamp=maxtime.timestamp"
+      tables += (" JOIN (SELECT attribute_hash, MAX(timestamp) timestamp "
+                 "%s %s GROUP BY attribute_hash) maxtime ON "
+                 "aff4.attribute_hash=maxtime.attribute_hash AND "
+                 "aff4.timestamp=maxtime.timestamp") % (tables, criteria)
       criteria = "WHERE aff4.subject_hash=unhex(md5(%s))"
       args.append(subject)
     else:
-      #Always order results
+      # Always order results.
       sorting = "ORDER BY aff4.timestamp DESC"
-    #Add limit if set
+    # Add limit if set.
     if limit:
       sorting += " LIMIT %s" % int(limit)
 
@@ -485,51 +497,62 @@ aff4.timestamp=maxtime.timestamp"
     return (query, args)
 
   def _BuildDelete(self, subject, attribute=None, timestamp=None):
-    """Build the DELETE query to be executed"""
+    """Build the DELETE query to be executed."""
     subjects = {}
     attributes = {}
-    aff4 = {}
+    aff4_q = {}
 
-    subjects["query"] = "DELETE subjects FROM subjects WHERE hash=unhex(md5(%s))"
+    subjects["query"] = (
+        "DELETE subjects FROM subjects WHERE hash=unhex(md5(%s))")
     subjects["args"] = [subject]
 
-    aff4["query"] = "DELETE aff4 FROM aff4 WHERE subject_hash=unhex(md5(%s))"
-    aff4["args"] = [subject]
+    aff4_q["query"] = "DELETE aff4 FROM aff4 WHERE subject_hash=unhex(md5(%s))"
+    aff4_q["args"] = [subject]
 
     attributes["query"] = ""
     attributes["args"] = []
 
     if attribute:
-      aff4["query"] += " AND attribute_hash=unhex(md5(%s))"
-      aff4["args"].append(attribute)
+      aff4_q["query"] += " AND attribute_hash=unhex(md5(%s))"
+      aff4_q["args"].append(attribute)
 
       if isinstance(timestamp, (tuple, list)):
-        aff4["query"] += " AND aff4.timestamp >= %s AND aff4.timestamp <= %s"
-        aff4["args"].append(int(timestamp[0]))
-        aff4["args"].append(int(timestamp[1]))
+        aff4_q["query"] += " AND aff4.timestamp >= %s AND aff4.timestamp <= %s"
+        aff4_q["args"].append(int(timestamp[0]))
+        aff4_q["args"].append(int(timestamp[1]))
 
-      subjects["query"] = "DELETE subjects FROM subjects LEFT JOIN aff4 ON \
-aff4.subject_hash=subjects.hash WHERE subjects.hash=unhex(md5(%s)) AND \
-aff4.subject_hash IS NULL"
+      subjects["query"] = (
+          "DELETE subjects FROM subjects "
+          "LEFT JOIN aff4 ON aff4.subject_hash=subjects.hash "
+          "WHERE subjects.hash=unhex(md5(%s)) "
+          "AND aff4.subject_hash IS NULL")
 
-      attributes["query"] = "DELETE attributes FROM attributes LEFT JOIN aff4 \
-ON aff4.attribute_hash=attributes.hash WHERE attributes.hash=unhex(md5(%s)) \
-AND aff4.attribute_hash IS NULL"
+      attributes["query"] = (
+          "DELETE attributes FROM attributes "
+          "LEFT JOIN aff4 ON aff4.attribute_hash=attributes.hash "
+          "WHERE attributes.hash=unhex(md5(%s)) "
+          "AND aff4.attribute_hash IS NULL")
       attributes["args"].append(attribute)
 
-      return [aff4, subjects, attributes]
+      return [aff4_q, subjects, attributes]
 
-    return [aff4, subjects]
+    return [aff4_q, subjects]
 
   def _ExecuteQuery(self, *args):
-    """Get connection from pool and execute query"""
+    """Get connection from pool and execute query."""
     with self.pool.GetConnection() as cursor:
       result = cursor.Execute(*args)
     return result
 
   def _MakeTimestamp(self, start, end):
     """Create a timestamp using a start and end time.
-    This will return None rather than creating a timestamp for all time"""
+
+    Args:
+      start: Start timestamp.
+      end: End timestamp.
+    Returns:
+      A tuple (start, end) of converted timestamps or None for all time.
+    """
     if start or end:
       mysql_unsigned_bigint_max = 18446744073709551615
       start = int(start or 0)
@@ -564,7 +587,8 @@ AND aff4.attribute_hash IS NULL"
       KEY `master` (`subject_hash`,`attribute_hash`,`timestamp`),
       KEY `alternate` (`subject_hash`,`prefix`,`timestamp`),
       KEY `attribute` (`attribute_hash`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT ='Table representing AFF4 objects';
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8
+    COMMENT ='Table representing AFF4 objects';
     """)
 
     self._ExecuteQuery("""
@@ -572,9 +596,9 @@ AND aff4.attribute_hash IS NULL"
       subject_hash BINARY(16) PRIMARY KEY NOT NULL,
       lock_owner BIGINT(22) UNSIGNED DEFAULT NULL,
       lock_expiration BIGINT(22) UNSIGNED DEFAULT NULL
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT ='Table representing locks on subjects';
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8
+    COMMENT ='Table representing locks on subjects';
     """)
-
 
 
 class MySQLTransaction(data_store.CommonTransaction):
@@ -602,20 +626,27 @@ class MySQLTransaction(data_store.CommonTransaction):
     self.expires_lock = int((time.time() + self.lock_time) * 1e6)
 
     # This will take over the lock if the lock is too old.
-    query = "UPDATE locks SET lock_expiration=%s, lock_owner=%s WHERE \
-subject_hash=unhex(md5(%s)) AND (lock_expiration < %s)"
+    query = (
+        "UPDATE locks SET lock_expiration=%s, lock_owner=%s "
+        "WHERE subject_hash=unhex(md5(%s)) "
+        "AND (lock_expiration < %s)")
     args = [self.expires_lock, self.lock_token, subject, time.time() * 1e6]
-    store._ExecuteQuery(query, args)
+    self.ExecuteQuery(query, args)
 
     self.CheckForLock()
+
+  def ExecuteQuery(self, query, args):
+    return self.store._ExecuteQuery(query, args)  # pylint: disable=protected-access
 
   def UpdateLease(self, lease_time):
     self.expires_lock = int((time.time() + lease_time) * 1e6)
 
     # This will take over the lock if the lock is too old.
-    query = "UPDATE locks SET lock_expiration=%s, lock_owner=%s WHERE subject_hash=unhex(md5(%s))"
+    query = (
+        "UPDATE locks SET lock_expiration=%s, lock_owner=%s "
+        "WHERE subject_hash=unhex(md5(%s))")
     args = [self.expires_lock, self.lock_token, self.subject]
-    self.store._ExecuteQuery(query, args)
+    self.ExecuteQuery(query, args)
 
   def CheckLease(self):
     return max(0, self.expires_lock / 1e6 - time.time())
@@ -623,24 +654,27 @@ subject_hash=unhex(md5(%s)) AND (lock_expiration < %s)"
   def CheckForLock(self):
     """Checks that the lock has stuck."""
 
-    query = "SELECT lock_expiration, lock_owner FROM locks WHERE subject_hash=unhex(md5(%s))"
+    query = ("SELECT lock_expiration, lock_owner FROM locks "
+             "WHERE subject_hash=unhex(md5(%s))")
     args = [self.subject]
-    rows = self.store._ExecuteQuery(query, args)
+    rows = self.ExecuteQuery(query, args)
     for row in rows:
 
       # We own this lock now.
-      if row["lock_expiration"] == self.expires_lock and row["lock_owner"] == self.lock_token:
+      if (row["lock_expiration"] == self.expires_lock and
+          row["lock_owner"] == self.lock_token):
         return
 
-      # Someone else owns this lock.
       else:
+        # Someone else owns this lock.
         raise data_store.TransactionError("Subject %s is locked" % self.subject)
 
     # If we get here the row does not exist:
-    query = "INSERT IGNORE INTO locks SET lock_expiration=%s, lock_owner=%s, \
-subject_hash=unhex(md5(%s))"
+    query = ("INSERT IGNORE INTO locks "
+             "SET lock_expiration=%s, lock_owner=%s, "
+             "subject_hash=unhex(md5(%s))")
     args = [self.expires_lock, self.lock_token, self.subject]
-    self.store._ExecuteQuery(query, args)
+    self.ExecuteQuery(query, args)
 
     self.CheckForLock()
 
@@ -653,10 +687,12 @@ subject_hash=unhex(md5(%s))"
 
   def _RemoveLock(self):
     # Remove the lock on the document. Note that this only resets the lock if
-    # we actually hold it (lock_expiration == self.expires_lock and lock_owner = self.lock_token).
+    # We actually hold it since lock_expiration == self.expires_lock and
+    # lock_owner = self.lock_token.
 
-    query = "UPDATE locks SET lock_expiration=0, lock_owner=0 WHERE \
-lock_expiration=%s AND lock_owner=%s AND subject_hash=unhex(md5(%s))"
+    query = ("UPDATE locks SET lock_expiration=0, lock_owner=0 "
+             "WHERE lock_expiration=%s "
+             "AND lock_owner=%s "
+             "AND subject_hash=unhex(md5(%s))")
     args = [self.expires_lock, self.lock_token, self.subject]
-    self.store._ExecuteQuery(query, args)
-
+    self.ExecuteQuery(query, args)

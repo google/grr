@@ -1494,8 +1494,9 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
           elif which == 1:
             # Add another timestamp.
             timestamp_info.append(100 * number_timestamps + 1)
-            data_store.DB.Set(subject, self.predicate_template % j, new_value,
-                              replace=False, timestamp=timestamp_info[-1], token=self.token)
+            data_store.DB.Set(
+                subject, self.predicate_template % j, new_value,
+                replace=False, timestamp=timestamp_info[-1], token=self.token)
             self.values += 1
             self.Register()
       elif which == 2:
@@ -1600,8 +1601,9 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
       ts = [100 * (ts + 1) for ts in xrange(number_timestamps)]
       predicates[j] = ts
       values = [(value, t) for t in ts]
-      data_store.DB.MultiSet(subject, {self.predicate_template % j: values},
-                             timestamp=100, replace=False, sync=False, token=self.token)
+      data_store.DB.MultiSet(
+          subject, {self.predicate_template % j: values},
+          timestamp=100, replace=False, sync=False, token=self.token)
       self.Register()
     info = {"name": subject, "attrs": predicates}
     subjects[i] = info
@@ -1635,8 +1637,9 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
         self.values += number_timestamps
         values = [(new_value, t) for t in ts]
         predicates[j] = ts
-        data_store.DB.MultiSet(subject, {self.predicate_template % j: values},
-                               replace=False, timestamp=100, sync=False, token=self.token)
+        data_store.DB.MultiSet(
+            subject, {self.predicate_template % j: values},
+            replace=False, timestamp=100, sync=False, token=self.token)
         self.Register()
     data_store.DB.Flush()
 

@@ -72,23 +72,23 @@ class MySQLConnection(object):
       self.queue.put(self)
 
   def Execute(self, *args):
+    """Executes a query."""
     retries = 10
-    for i in range(1, retries):
+    for _ in range(1, retries):
       try:
         self.cursor.execute(*args)
         return self.cursor.fetchall()
       except MySQLdb.Error:
         time.sleep(.2)
         try:
-          self._MakeConnection(database=config_lib.CONFIG["Mysql.database_name"])
+          database = config_lib.CONFIG["Mysql.database_name"]
+          self._MakeConnection(database=database)
         except MySQLdb.OperationalError:
           pass
 
-    try:
-      self.cursor.execute(*args)
-      return self.cursor.fetchall()
-    except MySQLdb.Error:
-      raise
+    # If something goes wrong at this point, we just let it raise.
+    self.cursor.execute(*args)
+    return self.cursor.fetchall()
 
 
 class ConnectionPool(object):

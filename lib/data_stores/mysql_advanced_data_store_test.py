@@ -2,14 +2,11 @@
 """Tests the mysql data store."""
 
 
-
 import unittest
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
-
-import logging
 
 from grr.lib import access_control
 from grr.lib import config_lib
@@ -18,6 +15,8 @@ from grr.lib import data_store_test
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib.data_stores import mysql_advanced_data_store
+
+import logging
 
 
 class MysqlAdvancedTestMixin(object):
@@ -41,20 +40,23 @@ class MysqlAdvancedTestMixin(object):
     data_store.DB.DropTables()
 
   def testCorrectDataStore(self):
-    self.assertTrue(isinstance(data_store.DB, mysql_advanced_data_store.MySQLAdvancedDataStore))
+    self.assertTrue(
+        isinstance(data_store.DB,
+                   mysql_advanced_data_store.MySQLAdvancedDataStore))
 
 
-class MysqlAdvancedDataStoreTest(MysqlAdvancedTestMixin, data_store_test._DataStoreTest):
+class MysqlAdvancedDataStoreTest(
+    MysqlAdvancedTestMixin, data_store_test._DataStoreTest):
   """Test the mysql data store abstraction."""
 
 
-class MysqlAdvancedDataStoreBenchmarks(MysqlAdvancedTestMixin,
-                                       data_store_test.DataStoreBenchmarks):
+class MysqlAdvancedDataStoreBenchmarks(
+    MysqlAdvancedTestMixin, data_store_test.DataStoreBenchmarks):
   """Benchmark the mysql data store abstraction."""
 
 
-class MysqlAdvancedDataStoreCSVBenchmarks(MysqlAdvancedTestMixin,
-                                          data_store_test.DataStoreCSVBenchmarks):
+class MysqlAdvancedDataStoreCSVBenchmarks(
+    MysqlAdvancedTestMixin, data_store_test.DataStoreCSVBenchmarks):
   """Benchmark the mysql data store abstraction."""
 
 
