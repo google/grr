@@ -62,60 +62,37 @@ class OSXLaunchdPlistParser(parsers.FileParser):
   supported_artifacts = ["OSXLaunchAgents", "OSXLaunchDaemons"]
 
   def Parse(self, stat, file_object, knowledge_base):
-    """Parse the History file."""
+    """Parse the Plist file."""
     _, _ = stat, knowledge_base
 
     plist = binplist.readPlist(file_object)
 
-    try:
-      username = plist["UserName"]
-    except KeyError:
-      username = None
+    direct_copy_items = ["Label", "Disabled", "UserName", "GroupName",
+                         "Program", "StandardInPath", "StandardOutPath",
+                         "StandardErrorPath", "LimitLoadToSessionType",
+                         "EnableGlobbing", "EnableTransactions", "OnDemand",
+                         "RunAtLoad", "RootDirectory", "WorkingDirectory",
+                         "Umask", "TimeOut", "ExitTimeOut", "ThrottleInterval",
+                         "InitGroups", "StartOnMount", "StartInterval",
+                         "Debug", "WaitForDebugger", "Nice", "ProcessType",
+                         "AbandonProcessGroup", "LowPriorityIO",
+                         "LaunchOnlyOnce"]
 
-    try:
-      label = plist["Label"]
-    except KeyError:
-      label = None
+    string_array_items = ["LimitLoadToHosts", "LimitLoadFromHosts",
+                          "ProgramArguments", "WatchPaths", "QueueDirectories"]
 
-    try:
-      disabled = plist["Disabled"]
-    except KeyError:
-      disabled = None
+    kwargs = {}
 
-    try:
-      groupname = plist["GroupName"]
-    except KeyError:
-      groupname = None
+    #direct copy items
+    for key in direct_copy_items:
+      kwargs[key] = plist.get(key)
 
-    try:
-      program = plist["Program"]
-    except KeyError:
-      program = None
+    #array of string items
+    for key in string_array_items:
+      elements = plist.get(key)
+      if isinstance(elements, list):
+        kwargs[key] = " ".join(elements)
+      else:
+        kwargs[key] = elements
 
-    try:
-      program_arguments = " ".join(plist["ProgramArguments"])
-    except KeyError:
-      program_arguments = None
-
-
-    try:
-      standard_in_path = plist["StandardInPath"]
-    except KeyError:
-      standard_in_path = None
-
-    try:
-      standard_out_path = plist["StandardOutPath"]
-    except KeyError:
-      standard_out_path = None
-
-    try:
-      standard_error_path = plist["StandardErrorPath"]
-    except KeyError:
-      standard_error_path = None
-
-    yield rdfvalue.LaunchdPlist(username=username, label=label, disabled=disabled,
-                             groupname=groupname, program=program,
-                             program_arguments=program_arguments,
-                             standard_in_path=standard_in_path,
-                             standard_out_path=standard_out_path,
-                             standard_error_path=standard_error_path)
+    yield rdfvalue.LaunchdPlist(**kwargs)
