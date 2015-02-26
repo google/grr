@@ -63,9 +63,13 @@ class OSXLaunchdPlistParser(parsers.FileParser):
 
   def Parse(self, stat, file_object, knowledge_base):
     """Parse the Plist file."""
-    _, _ = stat, knowledge_base
+    _ = knowledge_base
 
-    plist = binplist.readPlist(file_object)
+    try:
+      plist = binplist.readPlist(file_object)
+    except:
+      plist = {}
+      plist["Label"] = "ERROR"
 
     direct_copy_items = ["Label", "Disabled", "UserName", "GroupName",
                          "Program", "StandardInPath", "StandardOutPath",
