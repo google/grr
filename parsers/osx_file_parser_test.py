@@ -46,6 +46,27 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
                                content, "", 0, 5, None))
     self.assertEqual(result[0].serial_number, "C02JQ0F5F6L9")
 
+  def testOSXLaunchdPlistParser(self):
+    parser = osx_file_parser.OSXLaunchdPlistParser()
+    client = "C.1000000000000000"
+    plists = ["com.google.code.grr.plist", "com.google.code.grr.bplist"]
+    plist_entries = []
+    results = []
+    for plist in plists:
+      path = os.path.join(self.base_path, plist)
+      plist_file = open(path)
+      stat = rdfvalue.StatEntry(
+          aff4path=rdfvalue.ClientURN(client).Add("fs/os").Add(path),
+          pathspec=rdfvalue.PathSpec(path=path,
+                                     pathtype=rdfvalue.PathSpec.PathType.OS),
+          st_mode=16877)
+      results.extend(list(parser.Parse(stat, plist_file, None)))
+
+    for result in results:
+      self.assertItemsEqual(result.Label, "com.google.code.grr")
+      self.assertItemsEqual(result.ProgramArguments,
+                            "/usr/lib/grr/grr_3.0.0.5_amd64/grr "
+                            "--config=/usr/lib/grr/grr_3.0.0.5_amd64/grr.yaml")
 
 def main(argv):
   # Run the full test suite

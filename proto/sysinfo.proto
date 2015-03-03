@@ -479,3 +479,86 @@ message HardwareInfo {
     }];
 
 }
+
+// OSX Plist dictionary of strings entry
+
+message PlistStringDictEntry {
+  optional string name = 1;
+  optional string value = 2;
+}
+
+// OSX plist dictionary of booleans entry
+
+message PlistBoolDictEntry {
+  optional string name = 1;
+  optional bool value = 2;
+}
+
+// OSX Launchd plist StartCalendarInteveral entry
+
+message LaunchdStartCalendarIntervalEntry {
+  optional int32 Minute = 1;
+  optional int32 Hour = 2;
+  optional int32 Day = 3;
+  optional int32 Weekday = 4;
+  optional int32 Month = 5;
+}
+
+// OSX Launchd plist Keep Alive
+
+message LaunchdKeepAlive {
+  optional bool SuccessfulExit = 1;
+  optional bool NetworkState = 2;
+  repeated PlistBoolDictEntry PathState = 3;
+  repeated PlistBoolDictEntry OtherJobEnabled = 4;
+}
+
+// OSX Launchd plist
+message LaunchdPlist {
+  optional string aff4path = 1[(sem_type) = {
+    type: "RDFURN",
+    description: "The location of this file in the AFF4 space."
+  }];
+  optional string Label = 2;
+  optional bool Disabled = 3;
+  optional string UserName = 4;
+  optional string GroupName = 5;
+  optional string Program = 6;
+  optional string ProgramArguments = 7;
+  optional string RootDirectory = 8;
+  optional string WorkingDirectory = 9;
+  optional bool OnDemand = 10;
+  optional bool RunAtLoad = 11;
+  repeated LaunchdStartCalendarIntervalEntry StartCalendarInterval = 12;
+  repeated PlistStringDictEntry EnvironmentVariables = 13;
+  optional bool KeepAlive = 14;
+  optional LaunchdKeepAlive KeepAliveDict = 15;
+  optional string StandardInPath = 16;
+  optional string StandardOutPath = 17;
+  optional string StandardErrorPath = 18;
+  optional string LimitLoadToHosts = 19;
+  optional string LimitLoadFromHosts = 20;
+  optional string LimitLoadToSessionType = 21;
+  optional bool EnableGlobbing = 22;
+  optional bool EnableTransactions = 23;
+  optional int32 Umask = 24;
+  optional int32 TimeOut = 25;
+  optional int32 ExitTimeOut = 26;
+  optional int32 ThrottleInterval = 27;
+  optional bool InitGroups = 28;
+  optional string WatchPaths = 29;
+  optional string QueueDirectories = 30;
+  optional bool StartOnMount = 31;
+  optional int32 StartInterval = 32;
+  optional bool Debug = 33;
+  optional bool WaitForDebugger = 34;
+  optional int32 Nice = 35;
+  optional string ProcessType = 36;
+  optional bool AbandonProcessGroup = 37;
+  optional bool LowPriorityIO = 38;
+  optional bool LaunchOnlyOnce = 39;
+  optional bool inetdCompatabilityWait = 40;
+  optional bool SoftResourceLimits = 41;
+  optional bool HardResourceLimits = 42;
+  optional bool Sockets = 43;
+}
