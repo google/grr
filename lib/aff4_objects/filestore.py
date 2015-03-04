@@ -200,7 +200,7 @@ class FileStoreImage(aff4.VFSBlobImage):
       index.
     """
     # Make the regular expression.
-    regex = ["index:target:.*%s.*" % target_regex.lower()]
+    regex = ["index:target:%s" % target_regex.lower()]
     if isinstance(limit, (tuple, list)):
       start, length = limit  # pylint: disable=unpacking-non-sequence
 
