@@ -139,6 +139,7 @@ def IsExecutionWhitelisted(cmd, args):
         ("/usr/sbin/sshd", ["-T"]),
         ("/usr/bin/who", []),
         ("/usr/bin/last", []),
+        ("/sbin/lsmod", []),
     ]
   elif platform.system() == "Darwin":
     whitelist = [
@@ -150,6 +151,7 @@ def IsExecutionWhitelisted(cmd, args):
         ("/usr/sbin/system_profiler", ["-xml", "SPHardwareDataType"]),
         ("/usr/bin/who", []),
         ("/usr/bin/last", []),
+        ("/usr/sbin/kextstat", []),
     ]
   else:
     whitelist = []
