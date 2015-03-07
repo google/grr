@@ -48,7 +48,7 @@ grrUi.core.apiItemsProviderDirective.ApiItemsProviderController = function(
 
   /**
    * If provided, all the fetched items will be passed through this function.
-   * @export {?function(!angular.Scope, !Object)}
+   * @export {?function(!angular.Scope, !Object):Array<?>}
    */
   this.transformItems;
 
@@ -89,8 +89,9 @@ var ApiItemsProviderController =
  * @param {number} count Number of items to be fetched.
  * @param {boolean=} opt_withTotalCount if true, total number of elements in
  *     the collection will be returned along with fetched items.
- * @return {!angular.$q.Promise} Fetched items promise. If opt_withTotalCount
- *     was set to true, resulting array will have totalCount attribute
+ * @return {!angular.$q.Promise} Fetched items promise. Resolves to
+ *     grrUi.core.itemsProviderController.Items. If opt_withTotalCount
+ *     was set to true, resulting object will have totalCount attribute
  *     containing total number of items in the collection on the server.
  */
 ApiItemsProviderController.prototype.fetchItems = function(
@@ -112,7 +113,8 @@ ApiItemsProviderController.prototype.fetchItems = function(
  * @param {string} filter Token to be used for filtering.
  * @param {number} offset Number of items to skip in the resulting set.
  * @param {number} count Maximum number of items to be returned.
- * @return {!angular.$q.Promise} Fetched items.
+ * @return {!angular.$q.Promise} Fetched items. Resolves to
+ *     grrUi.core.itemsProviderController.Items.
  */
 ApiItemsProviderController.prototype.fetchFilteredItems = function(
     filter, offset, count) {
@@ -123,25 +125,29 @@ ApiItemsProviderController.prototype.fetchFilteredItems = function(
 /**
  * Gets called as success callback of the AFF4 service promise.
  *
- * @param {Object} response Response object returned from the
-server.
- * @return {!Array<Object>} Fetched collection items processed through
- *     tranformItems functions (if it was specified).
+ * @param {Object} response Response object returned from the server.
+ * @return {*} Fetched items object processed through tranformItems
+ *     function (if it was specified).
  * @private
  * @suppress {missingProperties} As response can be anything.
  */
 ApiItemsProviderController.prototype.onFetchedItems_ = function(response) {
-  var result;
-  if (angular.isUndefined(response.data) ||
-      angular.isUndefined(response.data.items)) {
-    result = [];
-  } else {
-    result = response.data.items;
+  /** @type {!grrUi.core.itemsProviderController.Items} */
+  var result = {
+    items: response.data['items'] || [],
+    offset: response.data['offset']
+  };
+
+  if (angular.isDefined(response.data['total_count'])) {
+    result.totalCount = response.data['total_count'];
   }
 
-  if (angular.isDefined(this.transformItems)) {
-    result = this.transformItems(this.scope_, {'items': result});
-    if (angular.isUndefined(result)) {
+  if (angular.isDefined(result.items) &&
+      angular.isDefined(this.transformItems)) {
+
+    result.items = this.transformItems(this.scope_,
+                                       {'items': result.items});
+    if (angular.isUndefined(result.items)) {
       throw new Error('transform-items function returned undefined');
     }
   }

@@ -307,6 +307,17 @@ def LoadConfigsFromFile(file_path):
     return {d["check_id"]: d for d in yaml.safe_load_all(data)}
 
 
+def LoadCheckFromFile(file_path, check_id, overwrite_if_exists=True):
+  """Load a single check from a file."""
+  configs = LoadConfigsFromFile(file_path)
+  conf = configs.get(check_id)
+  check = rdfvalue.Check(**conf)
+  check.Validate()
+  CheckRegistry.RegisterCheck(check, source="file:%s" % file_path,
+                              overwrite_if_exists=overwrite_if_exists)
+  logging.debug("Loaded check %s from %s", check.check_id, file_path)
+
+
 def LoadChecksFromFiles(file_paths, overwrite_if_exists=True):
   for file_path in file_paths:
     configs = LoadConfigsFromFile(file_path)

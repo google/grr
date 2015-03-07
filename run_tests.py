@@ -17,6 +17,7 @@ import psutil
 # These need to register plugins so,
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
+from grr.checks import tests
 from grr.client import tests
 
 from grr.gui.api_plugins import tests

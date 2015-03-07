@@ -25,7 +25,7 @@ goog.addDependency('../../angular-components/stats/server-load-directive.js', ['
 goog.addDependency('../../angular-components/core/memory-items-provider-directive.js', ['grrUi.core.memoryItemsProviderDirective.MemoryItemsProviderController', 'grrUi.core.memoryItemsProviderDirective.MemoryItemsProviderDirective'], ['grrUi.core.itemsProviderController.ItemsProviderController']);
 goog.addDependency('../../angular-components/hunt/hunts-view-directive.js', ['grrUi.hunt.huntsViewDirective.HuntsViewDirective'], []);
 goog.addDependency('../../angular-components/hunt/hunt-results-directive.js', ['grrUi.hunt.huntResultsDirective.HuntResultsController', 'grrUi.hunt.huntResultsDirective.HuntResultsDirective'], []);
-goog.addDependency('../../angular-components/core/items-provider-controller.js', ['grrUi.core.itemsProviderController.ItemsProviderController'], []);
+goog.addDependency('../../angular-components/core/items-provider-controller.js', ['grrUi.core.itemsProviderController.Items', 'grrUi.core.itemsProviderController.ItemsProviderController'], []);
 goog.addDependency('../../angular-components/core/splitter-directive.js', ['grrUi.core.splitterDirective.SplitterController', 'grrUi.core.splitterDirective.SplitterDirective', 'grrUi.core.splitterDirective.SplitterPaneDirective'], []);
 goog.addDependency('../../angular-components/core/api-items-provider-directive.js', ['grrUi.core.apiItemsProviderDirective.ApiItemsProviderController', 'grrUi.core.apiItemsProviderDirective.ApiItemsProviderDirective'], ['grrUi.core.itemsProviderController.ItemsProviderController']);
 goog.addDependency('../../angular-components/flow/flow-log-directive.js', ['grrUi.flow.flowLogDirective.FlowLogController', 'grrUi.flow.flowLogDirective.FlowLogDirective'], []);

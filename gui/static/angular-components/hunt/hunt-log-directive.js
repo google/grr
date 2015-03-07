@@ -43,8 +43,8 @@ HuntLogController.prototype.onHuntUrnChange = function() {
  * Fills short_urn attribute of every item with a last component of
  * a full item's URN.
  *
- * @param {Array.<Object>} items Array of log items.
- * @return {Array.<Object>} Transformed items.
+ * @param {!Array<Object>} items Array of log items.
+ * @return {!Array<Object>} Transformed items.
  * @export
  * @suppress {missingProperties} as we're working with JSON data.
  */

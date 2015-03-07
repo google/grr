@@ -613,6 +613,15 @@ class _DataStoreTest(test_lib.GRRBaseTest):
       self.assertEqual(predicate2_results[result_index],
                        (predicate2, str(i), i * 1000))
 
+  def testResolveRegexMatchesNewLinesInAttributeNames(self):
+    subject = "aff4:/test_resolve_regex_matches_new_lines_in_attr_names"
+
+    data_store.DB.Set(subject, "metadata:foo\nbar", "value", token=self.token)
+
+    result = list(data_store.DB.ResolveRegex(
+        subject, "metadata:foo.*bar", token=self.token))
+    self.assertTrue(result)
+
   def testRDFDatetimeTimestamps(self):
 
     test_rows = self._MakeTimestampedRows()

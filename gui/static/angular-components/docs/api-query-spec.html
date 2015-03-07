@@ -21,7 +21,7 @@
         </td>
         <td>
           <grr-api-description value="::field.doc"></grr-api-description>
-          <span ng-if="::field.type == 'Enum'">
+          <span ng-if="::field.type == 'EnumNamedValue'">
             Possible values:
             <ul>
               <li ng-repeat="allowedValue in ::field.allowed_values">

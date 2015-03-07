@@ -130,9 +130,18 @@ class ApiBytesRenderer(ApiValueRenderer):
 
 
 class ApiEnumRenderer(ApiValueRenderer):
-  """Renderer for enums."""
+  """Renderer for deprecated (old-style) enums."""
 
   value_class = structs.Enum
+
+  def RenderValue(self, value):
+    return self._IncludeTypeInfoIfNeeded(value.name, value)
+
+
+class ApiEnumNamedValueRenderer(ApiValueRenderer):
+  """Renderer for new-style enums."""
+
+  value_class = structs.EnumNamedValue
 
   def RenderValue(self, value):
     return self._IncludeTypeInfoIfNeeded(value.name, value)

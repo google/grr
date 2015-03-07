@@ -650,7 +650,7 @@ class AFF4Index(aff4.AFF4Object):
     # Get all the hits
     index_hits = set()
     for col, _, _ in data_store.DB.ResolveRegex(
-        self.urn, regexes, token=self.token,
+        self.urn, regexes, token=self.token, limit=start + length,
         timestamp=data_store.DB.ALL_TIMESTAMPS):
       # Extract URN from the column_name.
       index_hits.add(rdfvalue.RDFURN(col.rsplit("aff4:/", 1)[1]))

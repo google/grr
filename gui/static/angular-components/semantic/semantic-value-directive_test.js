@@ -85,57 +85,55 @@ describe('semantic value directive', function() {
     expect($('the-test-directive[value="::value"]', element).length).toBe(1);
   });
 
-  it('renders list of richly typed values with registered directives',
-     function() {
-       // These directives does not exist and Angular won't process it,
-       // but it still will be inserted into DOM and we can check
-       // that it's inserted correctly.
-       var directiveMock1 = {
-         directive_name: 'theTestDirective1'
-       };
-       SemanticDirectivesRegistry.registerDirective('NonExistentType1',
-                                                    directiveMock1);
+  it('renders list of typed values with registered directives', function() {
+    // These directives do not exist and Angular won't process them,
+    // but they still will be inserted into DOM and we can check
+    // that they're inserted correctly.
+    var directiveMock1 = {
+      directive_name: 'theTestDirective1'
+    };
+    SemanticDirectivesRegistry.registerDirective('NonExistentType1',
+                                                 directiveMock1);
 
-       var directiveMock2 = {
-         directive_name: 'theTestDirective2'
-       };
-       SemanticDirectivesRegistry.registerDirective('NonExistentType2',
-                                                    directiveMock2);
+    var directiveMock2 = {
+      directive_name: 'theTestDirective2'
+    };
+    SemanticDirectivesRegistry.registerDirective('NonExistentType2',
+                                                 directiveMock2);
 
-       var directiveMock3 = {
-         directive_name: 'theTestDirective3'
-       };
-       SemanticDirectivesRegistry.registerDirective('NonExistentType3',
-                                                    directiveMock3);
+    var directiveMock3 = {
+      directive_name: 'theTestDirective3'
+    };
+    SemanticDirectivesRegistry.registerDirective('NonExistentType3',
+                                                 directiveMock3);
 
-       var element = renderTestTemplate([
-         {
-           mro: ['NonExistentType1'],
-           value: 41
-         },
-         {
-           mro: ['NonExistentType2'],
-           value: 42
-         },
-         {
-           mro: ['NonExistentType3'],
-           value: 43
-         }
-       ]);
+    var element = renderTestTemplate([
+      {
+        mro: ['NonExistentType1'],
+        value: 41
+      },
+      {
+        mro: ['NonExistentType2'],
+        value: 42
+      },
+      {
+        mro: ['NonExistentType3'],
+        value: 43
+      }
+    ]);
 
-       expect($('the-test-directive1', element).length).toBe(1);
-       expect($('the-test-directive2', element).length).toBe(1);
-       expect($('the-test-directive3', element).length).toBe(1);
-     });
+    expect($('the-test-directive1', element).length).toBe(1);
+    expect($('the-test-directive2', element).length).toBe(1);
+    expect($('the-test-directive3', element).length).toBe(1);
+  });
 
-  it('renders richly typed values as strings if there\'s no ' +
-      'corresponding registered directive', function() {
-        var element = renderTestTemplate({
-          mro: ['NonExistentType'],
-          value: 42
-        });
-        expect(element.text().trim()).toBe('42');
-      });
+  it('renders typed values as strings when there\'s no handler', function() {
+    var element = renderTestTemplate({
+      mro: ['NonExistentType'],
+      value: 42
+    });
+    expect(element.text().trim()).toBe('42');
+  });
 });
 
 });  // goog.scope

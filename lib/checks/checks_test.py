@@ -10,6 +10,7 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.checks import checks
+from grr.lib.checks import checks_test_lib
 from grr.lib.rdfvalues import checks as checks_rdf
 from grr.parsers import config_file
 from grr.parsers import linux_cmd_parser
@@ -131,7 +132,7 @@ class CheckLoaderTests(test_lib.GRRBaseTest):
                            "filters": [
                                {"type": "ObjectFilter",
                                 "expression": "config.protocol contains 1"}]}],
-                "target": {"os": ["Linux", "OSX"]},
+                "target": {"os": ["Linux", "Darwin"]},
                 "match": ["ANY"],
                 "hint": {"problem": "Sshd allows protocol 1.",
                          "summary": "sshd parameter",
@@ -211,7 +212,7 @@ class CheckRegistryTests(test_lib.GRRBaseTest):
 
     expect = ["SSHD-CHECK"]
     result = checks.CheckRegistry.FindChecks(artifact="SshdConfigFile",
-                                             os="OSX")
+                                             os="Darwin")
     self.assertItemsEqual(expect, result)
     result = checks.CheckRegistry.FindChecks(artifact="SshdConfigFile",
                                              os="Linux")
@@ -240,52 +241,60 @@ class CheckRegistryTests(test_lib.GRRBaseTest):
         os=None, cpe=None, labels="foo")
     self.assertItemsEqual(expect, result)
 
-  def testProcessHostData(self):
+
+class ProcessHostDataTests(checks_test_lib.HostCheckTest):
+
+  def setUp(self):
+    super(ProcessHostDataTests, self).setUp()
+    self.netcat = rdfvalue.CheckResult(
+        check_id="SW-CHECK",
+        anomaly=[
+            rdfvalue.Anomaly(
+                finding=["netcat-traditional 1.10-40 is installed"],
+                explanation="Found: l337 software installed",
+                type="ANALYSIS_ANOMALY")])
+    self.sshd = rdfvalue.CheckResult(
+        check_id="SSHD-CHECK",
+        anomaly=[
+            rdfvalue.Anomaly(
+                finding=["Configured protocols: [2, 1]"],
+                explanation="Found: Sshd allows protocol 1.",
+                type="ANALYSIS_ANOMALY")])
+    self.windows = rdfvalue.CheckResult(
+        check_id="SW-CHECK",
+        anomaly=[
+            rdfvalue.Anomaly(
+                finding=["Java 6.0.240 is installed"],
+                explanation="Found: Old Java installation.",
+                type="ANALYSIS_ANOMALY"),
+            rdfvalue.Anomaly(
+                finding=["Adware 2.1.1 is installed"],
+                explanation="Found: Malicious software.",
+                type="ANALYSIS_ANOMALY")])
+
+    self.host_data = {"WMIInstalledSoftware": WMI_SW,
+                      "DebianPackagesStatus": DPKG_SW,
+                      "SshdConfigFile": SSHD_CFG}
+
+  def testProcessLinuxHost(self):
     """Checks detect issues and return anomalies as check results."""
-    netcat = {"check_id": u"SW-CHECK",
-              "anomaly": [{
-                  "finding": [u"netcat-traditional 1.10-40 is installed"],
-                  "explanation": u"Found: l337 software installed",
-                  "type": "ANALYSIS_ANOMALY"}]}
-    sshd = {"check_id": u"SSHD-CHECK",
-            "anomaly": [{
-                "finding": [u"Configured protocols: [2, 1]"],
-                "explanation": u"Found: Sshd allows protocol 1.",
-                "type": "ANALYSIS_ANOMALY"}]}
-    windows = {"check_id": u"SW-CHECK",
-               "anomaly": [{"finding": [u"Adware 2.1.1 is installed"],
-                            "explanation": u"Found: Malicious software.",
-                            "type": "ANALYSIS_ANOMALY"},
-                           {"finding": [u"Java 6.0.240 is installed"],
-                            "explanation": u"Found: Old Java installation.",
-                            "type": "ANALYSIS_ANOMALY"}]}
+    self.SetKnowledgeBase("host.example.org", "Linux", self.host_data)
+    results = self.RunChecks(self.host_data)
+    self.assertRanChecks(["SW-CHECK", "SSHD-CHECK"], results)
+    self.assertResultEqual(self.netcat, results["SW-CHECK"])
+    self.assertResultEqual(self.sshd, results["SSHD-CHECK"])
 
-    self.kb.os = "Linux"
-    results = [r for r in checks.CheckHost(self.host_data)]
-    results = {r.check_id: r.ToPrimitiveDict() for r in results}
-    self.assertItemsEqual(["SW-CHECK", "SSHD-CHECK"], results.keys())
-    self.assertEqual(netcat, results["SW-CHECK"])
-    self.assertEqual(sshd, results["SSHD-CHECK"])
+  def testProcessWindowsHost(self):
+    self.SetKnowledgeBase("host.example.org", "Windows", self.host_data)
+    results = self.RunChecks(self.host_data)
+    self.assertRanChecks(["SW-CHECK"], results)
+    self.assertResultEqual(self.windows, results["SW-CHECK"])
 
-    # Windows checks return multiple anomalies, ensure that all are correct.
-    # Need to specify individual entries to accommodate variable dictionary
-    # ordering effects.
-    self.kb.os = "Windows"
-    results = [r for r in checks.CheckHost(self.host_data)]
-    results = {r.check_id: r.ToPrimitiveDict() for r in results}
-    self.assertItemsEqual(["SW-CHECK"], results.keys())
-    result = results["SW-CHECK"]
-    anomalies = result["anomaly"]
-    expected_anomalies = windows["anomaly"]
-    self.assertEqual(2, len(anomalies))
-    for expected in expected_anomalies:
-      self.assertTrue(expected in anomalies)
-
-    self.kb.os = "OSX"
-    results = [r for r in checks.CheckHost(self.host_data)]
-    results = {r.check_id: r.ToPrimitiveDict() for r in results}
-    self.assertItemsEqual(["SSHD-CHECK"], results.keys())
-    self.assertDictEqual(sshd, results["SSHD-CHECK"])
+  def testProcessDarwinHost(self):
+    self.SetKnowledgeBase("host.example.org", "Darwin", self.host_data)
+    results = self.RunChecks(self.host_data)
+    self.assertRanChecks(["SSHD-CHECK"], results)
+    self.assertResultEqual(self.sshd, results["SSHD-CHECK"])
 
 
 def main(argv):

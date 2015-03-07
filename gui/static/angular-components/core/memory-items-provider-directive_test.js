@@ -37,19 +37,19 @@ describe('memory items provider directive', function() {
       items = resultItems;
     });
     $rootScope.$apply();  // process promises
-    expect(items).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    expect(items).toEqual({items: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], offset: 0});
 
     controller.fetchItems(9, 1).then(function(resultItems) {
       items = resultItems;
     });
     $rootScope.$apply();  // process promises
-    expect(items).toEqual([9]);
+    expect(items).toEqual({items: [9], offset: 9});
 
     controller.fetchItems(9, 2).then(function(resultItems) {
       items = resultItems;
     });
     $rootScope.$apply();  // process promises
-    expect(items).toEqual([9]);
+    expect(items).toEqual({items: [9], offset: 9});
   });
 
   it('does not return total count when !opt_withTotalCount', function() {
@@ -82,19 +82,19 @@ describe('memory items provider directive', function() {
       items = resultItems;
     });
     $rootScope.$apply();  // process promises
-    expect(items).toEqual(['foo', 'foobar', 'barfoo']);
+    expect(items).toEqual({items: ['foo', 'foobar', 'barfoo'], offset: 0});
 
     controller.fetchFilteredItems('foo', 0, 1).then(function(resultItems) {
       items = resultItems;
     });
     $rootScope.$apply();  // process promises
-    expect(items).toEqual(['foo']);
+    expect(items).toEqual({items: ['foo'], offset: 0});
 
     controller.fetchFilteredItems('foo', 2, 1).then(function(resultItems) {
       items = resultItems;
     });
     $rootScope.$apply();  // process promises
-    expect(items).toEqual(['barfoo']);
+    expect(items).toEqual({items: ['barfoo'], offset: 2});
   });
 
   it('fetches ranges of filtered dictionaries', function() {
@@ -108,20 +108,23 @@ describe('memory items provider directive', function() {
       items = resultItems;
     });
     $rootScope.$apply();  // process promises
-    expect(items).toEqual([{message: 'foo'},
-                           {message: 'foobar'},
-                           {message: 'barfoo'}]);
+    expect(items).toEqual({
+      items: [{message: 'foo'},
+              {message: 'foobar'},
+              {message: 'barfoo'}],
+      offset: 0
+    });
 
     controller.fetchFilteredItems('foo', 0, 1).then(function(resultItems) {
       items = resultItems;
     });
     $rootScope.$apply();  // process promises
-    expect(items).toEqual([{message: 'foo'}]);
+    expect(items).toEqual({items: [{message: 'foo'}], offset: 0});
 
     controller.fetchFilteredItems('foo', 2, 1).then(function(resultItems) {
       items = resultItems;
     });
     $rootScope.$apply();  // process promises
-    expect(items).toEqual([{message: 'barfoo'}]);
+    expect(items).toEqual({items: [{message: 'barfoo'}], offset: 2});
   });
 });

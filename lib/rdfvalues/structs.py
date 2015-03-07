@@ -579,14 +579,49 @@ class ProtoDouble(ProtoFixed64):
     return struct.unpack("<d", value)[0]
 
 
-class Enum(rdfvalue.RDFInteger):
+# TODO(user): This is deprecated in favor of EnumNamedValue. Remove as soon
+# as there are no hunts with old-style Enum pickled in the state.
+class Enum(int):
+  """A class that wraps enums.
+
+  Enums are just integers, except when printed they have a name.
+  """
+
+  def __new__(cls, val, name=None, description=None):
+    instance = super(Enum, cls).__new__(cls, val)
+    instance.name = name or str(val)
+    instance.description = description
+
+    return instance
+
+  def __eq__(self, other):
+    return int(self) == other or self.name == other
+
+  def __str__(self):
+    return self.name
+
+  def __unicode__(self):
+    return unicode(self.name)
+
+
+class EnumValue(Enum):
+  """Backwards compatibility for stored data.
+
+  This class is necessary for reading data created with GRR server version
+  0.2.9-1 and earlier.  It can be removed when we can drop support for this old
+  data.
+  """
+  pass
+
+
+class EnumNamedValue(rdfvalue.RDFInteger):
   """A class that wraps enums.
 
   Enums are just integers, except when printed they have a name.
   """
 
   def __init__(self, initializer=None, name=None, description=None, age=None):
-    super(Enum, self).__init__(initializer)
+    super(EnumNamedValue, self).__init__(initializer)
     self.name = name or str(initializer)
     self.description = description
 
@@ -606,7 +641,7 @@ class ProtoEnum(ProtoSignedInteger):
   This is really encoded as an integer but only certain values are allowed.
   """
 
-  type = Enum
+  type = EnumNamedValue
 
   def __init__(self, default=None, enum_name=None, enum=None,
                enum_descriptions=None, **kwargs):
@@ -634,7 +669,8 @@ class ProtoEnum(ProtoSignedInteger):
 
   def GetDefault(self, container=None):
     _ = container
-    return Enum(self.default, name=self.reverse_enum.get(self.default))
+    return EnumNamedValue(self.default,
+                          name=self.reverse_enum.get(self.default))
 
   def Validate(self, value, **_):
     """Check that value is a valid enum."""
@@ -653,7 +689,7 @@ class ProtoEnum(ProtoSignedInteger):
             "Value %s is not a valid enum value for field %s" % (
                 value, self.name))
 
-    return Enum(checked_value, name=self.reverse_enum.get(value))
+    return EnumNamedValue(checked_value, name=self.reverse_enum.get(value))
 
   def Definition(self):
     """Return a string with the definition of this field."""
@@ -675,17 +711,7 @@ class ProtoEnum(ProtoSignedInteger):
     return int(value)
 
   def ConvertFromWireFormat(self, value, container=None):
-    return Enum(value, name=self.reverse_enum.get(value))
-
-
-class EnumValue(Enum):
-  """Backwards compatibility for stored data.
-
-  This class is necessary for reading data created with GRR server version
-  0.2.9-1 and earlier.  It can be removed when we can drop support for this old
-  data.
-  """
-  pass
+    return EnumNamedValue(value, name=self.reverse_enum.get(value))
 
 
 class ProtoBoolean(ProtoEnum):
@@ -1919,7 +1945,7 @@ class EnumContainer(object):
     self.name = name
 
     for k, v in kwargs.items():
-      v = Enum(v, name=k, description=descriptions.get(k, None))
+      v = EnumNamedValue(v, name=k, description=descriptions.get(k, None))
       self.enum_dict[k] = v
       self.reverse_enum[v] = k
       setattr(self, k, v)
@@ -1981,7 +2007,7 @@ class RDFProtoStruct(RDFStruct):
       return dict((k, self._ToPrimitive(v)) for k, v in value.items())
     elif isinstance(value, RDFProtoStruct):
       return self._ToPrimitive(value.AsDict())
-    elif isinstance(value, Enum):
+    elif isinstance(value, (Enum, EnumValue, EnumNamedValue)):
       return str(value)
     else:
       return value
