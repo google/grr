@@ -38,7 +38,7 @@ from grr.worker import worker_test
 flags.DEFINE_string("output", None,
                     "The name of the file we write on (default stderr).")
 
-flags.DEFINE_list("exclude_tests", None,
+flags.DEFINE_list("exclude_tests", [],
                   "A comma-separated list of tests to exclude form running.")
 
 flags.DEFINE_integer("processes", 0,
