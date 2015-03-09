@@ -257,4 +257,4 @@ config_lib.DEFINE_integer("StatsStore.write_interval", default=60,
 
 config_lib.DEFINE_integer("StatsStore.ttl", default=60 * 60 * 24 * 3,
                           help="Maximum lifetime (in seconds) of data in the "
-                          "stats store. Default is one week.")
+                          "stats store. Default is three days.")
