@@ -36,8 +36,8 @@ grrUi.core.pagedFilteredTableDirective.TableTopDirective = function() {
  * @const
  * @export
  */
-grrUi.core.pagedFilteredTableDirective.TableTopDirective.
-    directive_name = 'grrPagedFilteredTableTop';
+grrUi.core.pagedFilteredTableDirective.TableTopDirective
+    .directive_name = 'grrPagedFilteredTableTop';
 
 
 
@@ -67,8 +67,8 @@ grrUi.core.pagedFilteredTableDirective.TableBottomDirective = function() {
  * @const
  * @export
  */
-grrUi.core.pagedFilteredTableDirective.TableBottomDirective.
-    directive_name = 'grrPagedFilteredTableBottom';
+grrUi.core.pagedFilteredTableDirective.TableBottomDirective
+    .directive_name = 'grrPagedFilteredTableBottom';
 
 
 
@@ -90,14 +90,16 @@ grrUi.core.pagedFilteredTableDirective.PagedFilteredTableController = function(
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @type {number} */
+  /** @type {?number} */
   this.scope_.pageSize;
 
   /** @private {!angular.JQLite} */
   this.element_ = $element;
 
-  /** @private {function(function(angular.JQLite, angular.Scope),
-      angular.JQLite)} */
+  /**
+   * @private {function(function(angular.JQLite, angular.Scope),
+   *     angular.JQLite)}
+   */
   this.transclude_ = $transclude;
 
   /** @private {!angular.$compile} */
@@ -107,7 +109,7 @@ grrUi.core.pagedFilteredTableDirective.PagedFilteredTableController = function(
 
   /**
    * Items provider to be used for fetching items to be displayed.
-   * @export {!grrUi.core.itemsProviderController.ItemsProviderController}
+   * @export {grrUi.core.itemsProviderController.ItemsProviderController}
    */
   this.itemsProvider;
 
@@ -140,7 +142,7 @@ grrUi.core.pagedFilteredTableDirective.PagedFilteredTableController = function(
   /**
    * Total count of all items - not only the ones that are shown, but the
    * ones on the server.
-   * @export {number}
+   * @export {?number}
    */
   this.totalCount;
 
@@ -148,7 +150,8 @@ grrUi.core.pagedFilteredTableDirective.PagedFilteredTableController = function(
    * Number of elements shown on a single page.
    * @export {number}
    */
-  this.pageSize = this.scope_.pageSize || this.DEFAULT_PAGE_SIZE;
+  this.pageSize = this.scope_.pageSize ||
+      PagedFilteredTableController.DEFAULT_PAGE_SIZE;
 
   /**
    * Used for UI binding with a filter edit field.
@@ -177,9 +180,6 @@ grrUi.core.pagedFilteredTableDirective.PagedFilteredTableController = function(
   this.addTopDirective_();
   this.addBottomDirective_();
 
-  this.scope_.$watchCollection('controller.items',
-                               this.onItemsChange_.bind(this));
-
   this.scope_.$watch('::controller.itemsProvider', function() {
     this.fetchUnfilteredItems(true);
   }.bind(this));
@@ -190,7 +190,7 @@ var PagedFilteredTableController =
 
 
 /** @const */
-PagedFilteredTableController.prototype.DEFAULT_PAGE_SIZE = 50;
+PagedFilteredTableController.DEFAULT_PAGE_SIZE = 50;
 
 
 /**
@@ -231,7 +231,7 @@ PagedFilteredTableController.prototype.addBottomDirective_ = function() {
 PagedFilteredTableController.prototype.fetchUnfilteredItems = function(
     withTotalCount) {
   this.showLoading = true;
-  this.items = [];
+  this.setItems_([]);
 
   this.itemsProvider.fetchItems(
       this.currentPage * this.pageSize, this.pageSize, withTotalCount).then(
@@ -242,13 +242,13 @@ PagedFilteredTableController.prototype.fetchUnfilteredItems = function(
 /**
  * Handles fetched unfiltered items.
  *
- * @param {!Array<Object>} items
+ * @param {!grrUi.core.itemsProviderController.Items} items
  * @private
  */
 PagedFilteredTableController.prototype.onFetchedUnfilteredItems_ = function(
     items) {
   this.showLoading = false;
-  this.items = items;
+  this.setItems_(items.items);
 
   if (angular.isDefined(items.totalCount)) {
     this.totalCount = items.totalCount;
@@ -264,11 +264,11 @@ PagedFilteredTableController.prototype.onFetchedUnfilteredItems_ = function(
  */
 PagedFilteredTableController.prototype.applyFilter = function() {
   this.filterValue = this.filterEditedValue;
-  this.filterApplied = (this.filterValue !== '');
+  this.filterApplied = (this.filterValue != '');
   this.filterFinished = false;
   this.currentPage = 0;
   this.paginationSelectedPage = 1;
-  this.items = [];
+  this.setItems_([]);
 
   if (this.filterApplied) {
     this.fetchFilteredItems();
@@ -300,50 +300,53 @@ PagedFilteredTableController.prototype.fetchFilteredItems = function(
 /**
  * Handles fetched filtered items.
  *
- * @param {!Array<Object>} items
+ * @param {!grrUi.core.itemsProviderController.Items} items
  * @private
  */
 PagedFilteredTableController.prototype.onFetchedFilteredItems_ = function(
     items) {
   this.showLoading = false;
-  this.items = this.items.concat(items);
-  if (items.length % this.pageSize !== 0) {
+  this.setItems_(this.items.concat(items.items));
+
+  if (items.items.length == 0 || items.items.length % this.pageSize != 0) {
     this.filterFinished = true;
   }
-  this.currentPage += Math.ceil(items.length / this.pageSize);
 };
 
 
 /**
- * Handles changes in the items list, updating the presentation accordingly.
+ * Changes the items list, updating the presentation accordingly.
  *
- * @param {Array<Object>} newItems
- * @param {Array<Object>} oldItems
+ * @param {!Array<Object>} newItems
  * @private
  */
-PagedFilteredTableController.prototype.onItemsChange_ = function(
-    newItems, oldItems) {
-
+PagedFilteredTableController.prototype.setItems_ = function(newItems) {
   var itemsToRender;
   if (this.filterApplied) {
-    if (oldItems != newItems.slice(0, oldItems.length)) {
+    if (this.items != newItems.slice(0, this.items.length)) {
+      /**
+       * this.element_ is a <tr> (because the directive is expected to be
+       * applied to a <tr> tag), therefore removing siblings means removing
+       * all the rows.
+       */
       this.element_.siblings().remove();
       itemsToRender = newItems;
     } else {
-      itemsToRender = newItems.slice(oldItems.length, newItems.length);
+      itemsToRender = newItems.slice(this.items.length, newItems.length);
     }
   } else {
     itemsToRender = newItems;
     this.element_.siblings().remove();
   }
 
+  this.items = newItems;
+
   for (var i = 0; i < itemsToRender.length; ++i) {
-    var self = this;
     this.transclude_(function(clone, scope) {
-      scope.item = self.items[i];
+      scope.item = this.items[i];
       scope.$index = i;
-      self.element_.parent().append(clone);
-    }, this.element_.parent());
+      this.element_.parent().append(clone);
+    }.bind(this), this.element_.parent());
   }
 };
 

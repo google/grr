@@ -2,7 +2,7 @@
 # existing artifacts are deleted in the process. Local (non-public) artifacts
 # should live in the local/ subdirectory and will remain untouched.
 
-TEMPDIR := $(shell mktemp -d)
+TEMPDIR := $(shell mktemp -d artifact.XXXXXX)
 
 all: sync
 

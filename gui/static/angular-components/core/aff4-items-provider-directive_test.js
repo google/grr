@@ -208,7 +208,7 @@ describe('AFF4 items provider directive', function() {
       items = resultItems;
     });
     $rootScope.$apply();
-    expect(items).toEqual([2, 3, 4, 5, 6]);
+    expect(items).toEqual({items: [2, 3, 4, 5, 6]});
   });
 
   it('throws if transform function returns nothing', function() {

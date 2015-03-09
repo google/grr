@@ -51,6 +51,28 @@ class TypeInfoTest(test_lib.GRRBaseTest):
         rdfvalue.PathSpec()])
     a.Validate([1, 2, 3])
 
+  def testTypeInfoMultiChoiceObjects(self):
+    """Test MultiChoice objects."""
+    a = type_info.MultiChoice(choices=["a", "b"])
+    self.assertRaises(type_info.TypeValueError, a.Validate, "a")
+    self.assertRaises(type_info.TypeValueError, a.Validate, ["test"])
+    self.assertRaises(type_info.TypeValueError, a.Validate, ["a", "test"])
+    self.assertRaises(type_info.TypeValueError, a.Validate, ["a", "a"])
+    self.assertRaises(type_info.TypeValueError, a.Validate, None)
+    self.assertRaises(type_info.TypeValueError, a.Validate, [1])
+    self.assertRaises(type_info.TypeValueError, a.Validate, 1)
+    a.Validate(["a"])
+    a.Validate(["a", "b"])
+
+    with self.assertRaises(type_info.TypeValueError):
+      type_info.MultiChoice(choices=[1, 2])
+
+    a = type_info.MultiChoice(choices=[1, 2], validator=type_info.Integer())
+    self.assertRaises(type_info.TypeValueError, a.Validate, "a")
+    self.assertRaises(type_info.TypeValueError, a.Validate, ["test"])
+    a.Validate([2])
+    a.Validate([1, 2])
+
   def testTypeDescriptorSet(self):
 
     type_infos = [

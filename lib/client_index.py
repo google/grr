@@ -53,7 +53,7 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
     keywords is a list of keywords related to client.
     """
     client_id = self._ClientIdFromURN(client.urn)
-    keywords = [client_id]
+    keywords = [self._NormalizeKeyword(client_id)]
 
     def TryAppend(prefix, keyword):
       if keyword:
@@ -62,27 +62,25 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
         if prefix:
           keywords.append(prefix + ":" + keyword_string)
 
+    def TryAppendPrefixes(prefix, keyword, delimiter):
+      TryAppend(prefix, keyword)
+      segments = str(keyword).split(delimiter)
+      for i in range(1, len(segments)):
+        TryAppend(prefix, delimiter.join(segments[0:i]))
+      return len(segments)
+
     def TryAppendIP(ip):
       TryAppend("ip", ip)
       # IP4v?
-      octets = str(ip).split(".")
-      if len(octets) == 4:
-        TryAppend("ip", octets[0])
-        TryAppend("ip", ".".join(octets[0:2]))
-        TryAppend("ip", ".".join(octets[0:3]))
+      if TryAppendPrefixes("ip", str(ip), ".") == 4:
         return
       # IP6v?
-      groups = str(ip).split(":")
-      if len(groups) > 1:
-        TryAppend("ip", groups[0])
-      if len(groups) > 2:
-        TryAppend("ip", ":".join(groups[0:2]))
-      if len(groups) > 3:
-        TryAppend("ip", ":".join(groups[0:3]))
+      TryAppendPrefixes("ip", str(ip), ":")
 
     s = client.Schema
     TryAppend("host", client.Get(s.HOSTNAME))
     TryAppend("fdqn", client.Get(s.FQDN))
+    TryAppendPrefixes("host", client.Get(s.FQDN), ".")
     TryAppend("", client.Get(s.SYSTEM))
     TryAppend("", client.Get(s.UNAME))
     TryAppend("", client.Get(s.OS_RELEASE))

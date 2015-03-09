@@ -584,6 +584,12 @@ class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
 
         if not used_plugins:
           for _, (plugin_def, state) in output_plugins.data.iteritems():
+            # TODO(user): Remove as soon as migration to new-style
+            # output plugins is completed.
+            if not hasattr(plugin_def, "GetPluginForState"):
+              logging.error("Invalid plugin_def: %s", plugin_def)
+              continue
+
             used_plugins.append((plugin_def,
                                  plugin_def.GetPluginForState(state)))
 

@@ -9,11 +9,11 @@ import "grr/proto/semantic.proto";
 
 
 message OutputPluginDescriptor {
-  optional string plugin_name = 2 [(sem_type) = {
+  optional string plugin_name = 1 [(sem_type) = {
       description: "The name of the output plugin."
     }];
 
-  optional bytes plugin_args = 3 [(sem_type) = {
+  optional bytes plugin_args = 2 [(sem_type) = {
       dynamic_type: "GetPluginArgsClass",
       description: "The parameters for this plugin. Must be an instance "
       "of the named plugin's args_type."

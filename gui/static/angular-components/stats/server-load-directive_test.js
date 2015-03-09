@@ -1,7 +1,6 @@
 'use strict';
 
 goog.require('grrUi.stats.module');
-
 goog.require('grrUi.stats.serverLoadDirective.ServerLoadIndicatorService');
 
 describe('server load indicator service', function() {

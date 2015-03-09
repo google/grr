@@ -211,6 +211,11 @@ config_lib.DEFINE_string(
     help="Pyinstaller build root.")
 
 config_lib.DEFINE_string(
+    "PyInstaller.workpath_dir",
+    default=None,
+    help="Pyinstaller working directory.")
+
+config_lib.DEFINE_string(
     name="Client.prefix", default="",
     help="A prefix for the client name, usually dbg_ for debug builds.")
 
@@ -454,3 +459,16 @@ config_lib.DEFINE_string(
     default=None,
     help="ClientBuilder daemon link.")
 
+# These options will be used by client.client_build when running buildanddeploy
+# and can be used to customize what is built for each client label.
+config_lib.DEFINE_multichoice(
+    name="ClientBuilder.target_platforms",
+    default=[],
+    choices=["darwin_amd64_dmg", "linux_amd64_deb", "linux_i386_deb",
+             "linux_amd64_rpm", "linux_i386_rpm", "windows_amd64_exe",
+             "windows_i386_exe"],
+    help="Platforms that will be built by client_build buildanddeploy")
+
+config_lib.DEFINE_list(name="ClientBuilder.BuildTargets", default=[],
+                       help="List of context names that should be built by "
+                       "buildanddeploy")

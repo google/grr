@@ -78,7 +78,14 @@ function build_and_sign() {
   contextname=${2}
   outputdir=${directory}/${contextname}
 
-  echo -e "\nRunning deploy for ${contextname} ${arch}"
+  echo -e "${BUILD_COMMAND} \
+    --config ${configfile} \
+    --platform windows \
+    --context "${contextname} Context" \
+    --arch ${arch} deploy \
+    --templatedir ${inputdir} \
+    --outputdir ${outputdir}"
+
   ${BUILD_COMMAND} \
     --config ${configfile} \
     --platform windows \
@@ -162,6 +169,8 @@ inputdir=${@:$OPTIND:1}
 certfile=${@:$OPTIND+1:1}
 keyfile=${@:$OPTIND+2:1}
 application=${@:$OPTIND+3:1}
+
+# e.g. configs/grr-server.yaml
 configfile=${@:$OPTIND+4:1}
 
 shift $((OPTIND+4))

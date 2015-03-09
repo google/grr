@@ -37,21 +37,23 @@ grrUi.core.infiniteTableDirective.InfiniteTableController = function(
   /** @private {!angular.$interval} */
   this.interval_ = $interval;
 
-  /** @private {function(function(angular.JQLite, angular.Scope),
-      angular.JQLite)} */
+  /**
+   * @private {function(function(angular.JQLite, angular.Scope),
+   *     angular.JQLite)}
+   */
   this.transclude_ = $transclude;
 
   // Internal state.
 
   /**
    * Items provider to be used for fetching items to be displayed.
-   * @export {!grrUi.core.itemsProviderController.ItemsProviderController}
+   * @export {grrUi.core.itemsProviderController.ItemsProviderController}
    */
   this.itemsProvider;
 
   /**
    * List of currently fetched items.
-   * @export {!Array.<Object>}
+   * @export {!Array<Object>}
    */
   this.fetchedItems = [];
 
@@ -63,7 +65,9 @@ grrUi.core.infiniteTableDirective.InfiniteTableController = function(
 
   /**
    * If this is bigger than currentPage, new pages of data will be fetched
-   * until currentPage == showUntilPage.
+   * until currentPage == showUntilPage (currentPage gets incremented every
+   * time a new page is fetched). This mechanism is used when triggerUpdate
+   * is called, so that same amount of data is displayed after the update.
    * @export {number}
    */
   this.showUntilPage = 0;
@@ -85,22 +89,10 @@ grrUi.core.infiniteTableDirective.InfiniteTableController = function(
    * @export {number}
    */
   this.pageSize = Number($scope.$eval(this.attrs_.pageSize)) ||
-      this.DEFAULT_PAGE_SIZE;
-
-  /**
-   * This directive does not have an isolated scope, but it creates an inner
-   * scope (in order not to polute the shared one) to register watchers.
-   * @export {!angular.Scope}
-   */
-  this.innerScope = this.scope_.$new(true);
-
-  this.innerScope.controller = this;
-  this.innerScope.$watchCollection('controller.fetchedItems',
-                                   this.onFetchedItemsChange_.bind(this));
+      InfiniteTableController.DEFAULT_PAGE_SIZE;
 
   // Replace the directive's element with table-loading row.
-  var template = angular.element('<tr ' +
-      '><td class="table-loading">Loading...</td></tr>');
+  var template = angular.element(InfiniteTableController.LOADING_TEMPLATE);
   this.element_.replaceWith(template);
 
   // If triggerUpdate attribute is defined, assign own triggerUpdate function
@@ -111,23 +103,13 @@ grrUi.core.infiniteTableDirective.InfiniteTableController = function(
   }
 
   // Initialize timer used to check whether table-loading element is visible.
-
-  // TODO(user): JSCompiler type checking thinks that timer may become
-  // null for some reason, although $interval definition clearly states
-  // that it can't. Turning off the type checking here to prevent
-  // compiler from complaining.
-  /** @type {?} */
+  /** @type {!angular.$q.Promise} */
   var timer = this.interval_(this.checkIfTableLoadingIsVisible_.bind(this),
                              100);
 
-  // Destroy the timer when inner scope is destroyed.
-  this.innerScope.$on('$destroy', function() {
-    this.interval_.cancel(timer);
-  }.bind(this));
-
-  // Destroy the inner scope when the shared directive's scope is destroyed.
+  // Destroy the timer when the shared directive's scope is destroyed.
   this.scope_.$on('$destroy', function() {
-    this.innerScope.$destroy();
+    this.interval_.cancel(timer);
   }.bind(this));
 };
 
@@ -136,28 +118,24 @@ var InfiniteTableController =
 
 
 /** @const */
-InfiniteTableController.prototype.DEFAULT_PAGE_SIZE = 50;
+InfiniteTableController.DEFAULT_PAGE_SIZE = 50;
+
+
+/** @const */
+InfiniteTableController.LOADING_TEMPLATE = '<tr><td class="table-loading">' +
+    'Loading...</td></tr>';
 
 
 /**
- * Handles fetchedItems changes.
+ * Changes fetched items list, updating the presentation accordingly.
  *
  * @param {Array<Object>} newValue New version of fetched items.
- * @param {Array<Object>} oldValue Old version of fetched items.
  * @private
  */
-InfiniteTableController.prototype.onFetchedItemsChange_ = function(
-    newValue, oldValue) {
-  var oldLength;
-  if (angular.isUndefined(oldValue)) {
-    oldLength = 0;
-  } else {
-    oldLength = oldValue.length;
-  }
-
-  if (newValue.length !== oldLength) {
+InfiniteTableController.prototype.setFetchedItems_ = function(newValue) {
+  if (newValue.length != this.fetchedItems.length) {
     var loadingElement = $(this.rootElement).find('tr:has(td.table-loading)');
-    for (var i = oldLength; i < newValue.length; ++i) {
+    for (var i = this.fetchedItems.length; i < newValue.length; ++i) {
       this.transclude_(
           function(clone, scope) {
             scope.item = newValue[i];
@@ -165,6 +143,8 @@ InfiniteTableController.prototype.onFetchedItemsChange_ = function(
           }, this.rootElement);
     }
   }
+
+  this.fetchedItems = newValue;
 };
 
 
@@ -176,10 +156,9 @@ InfiniteTableController.prototype.onFetchedItemsChange_ = function(
  * @export
  */
 InfiniteTableController.prototype.triggerUpdate = function() {
-  this.fetchedItems = [];
+  this.setFetchedItems_([]);
   this.currentPage = 0;
-  this.rootElement.html('<tr ' +
-      '><td class="table-loading">Loading...</td></tr>');
+  this.rootElement.html(InfiniteTableController.LOADING_TEMPLATE);
 };
 
 
@@ -202,7 +181,7 @@ InfiniteTableController.prototype.checkIfTableLoadingIsVisible_ = function() {
             loadingOffset.top - $(window).scrollTop() + 1);
         if ($(elem).hasClass('table-loading')) {
           this.tableLoadingElementWasShown_();
-        } else if (this.showUntilPage > self.currentPage) {
+        } else if (this.showUntilPage > this.currentPage) {
           this.tableLoadingElementWasShown_();
         }
       }.bind(this));
@@ -227,13 +206,13 @@ InfiniteTableController.prototype.tableLoadingElementWasShown_ = function() {
  * Adds freshly fetched items to the fetchedItems list and updates internal
  * state. Called when new data arrive from items provider.
  *
- * @param {Array<Object>} newlyFetchedItems
+ * @param {!grrUi.core.itemsProviderController.Items} newlyFetchedItems
  * @private
  */
 InfiniteTableController.prototype.onItemsFetched_ = function(
     newlyFetchedItems) {
-  this.fetchedItems = this.fetchedItems.concat(newlyFetchedItems);
-  if (newlyFetchedItems.length === 0) {
+  this.setFetchedItems_(this.fetchedItems.concat(newlyFetchedItems.items));
+  if (newlyFetchedItems.items.length == 0) {
     $(this.rootElement).find('tr:has(.table-loading)').remove();
   }
 
@@ -291,7 +270,7 @@ grrUi.core.infiniteTableDirective.InfiniteTableDirective = function() {
  * @const
  * @export
  */
-grrUi.core.infiniteTableDirective.InfiniteTableDirective.
-    directive_name = 'grrInfiniteTable';
+grrUi.core.infiniteTableDirective.InfiniteTableDirective
+    .directive_name = 'grrInfiniteTable';
 
 });  // goog.scope

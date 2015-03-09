@@ -147,7 +147,7 @@ def StartFlowAndWorker(client_id, flow_name, **kwargs):
                                       flow_name=flow_name, queue=queue,
                                       token=token, **kwargs)
   worker_thrd = worker.GRRWorker(
-      queue=queue, token=token,
+      queues=[queue], token=token,
       threadpool_size=1)
   while True:
     try:

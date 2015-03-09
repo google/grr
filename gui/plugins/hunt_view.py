@@ -843,6 +843,11 @@ class HuntResultsRenderer(semantic.RDFValueCollectionRenderer):
 
     self.output_plugins_notes = []
     for _, (plugin_def, plugin_state) in output_plugins.iteritems():
+      # TODO(user): Remove as soon as migration to new-style
+      # output plugins is completed.
+      if not hasattr(plugin_def, "plugin_name"):
+        continue
+
       plugin_name = plugin_def.plugin_name
       for renderer_class in renderers.Renderer.classes.values():
         if getattr(renderer_class, "for_output_plugin", None) == plugin_name:

@@ -5,4 +5,5 @@
 # pylint: disable=g-import-not-at-top,unused-import
 
 from grr.lib.checks import checks
+from grr.lib.checks import hints
 from grr.lib.checks import triggers
