@@ -29,7 +29,7 @@
 
 syntax = "proto2";
 
-import "semantic.proto";
+import "grr/proto/semantic.proto";
 
 
 

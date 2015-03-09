@@ -4,10 +4,10 @@
 
 syntax = "proto2";
 
-import "jobs.proto";
-import "knowledge_base.proto";
-import "output_plugin.proto";
-import "semantic.proto";
+import "grr/proto/jobs.proto";
+import "grr/proto/knowledge_base.proto";
+import "grr/proto/output_plugin.proto";
+import "grr/proto/semantic.proto";
 
 
 // This is the user's access token.

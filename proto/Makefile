@@ -11,9 +11,9 @@ PROTOC=protoc
 PROTOPATH=--proto_path=.
 
 ifeq ($(OS),Windows_NT)
-	PROTOPATH += --proto_path=..\\.. --proto_path=c:\\grr_build\\protobuf\\src
+	PROTOPATH = --proto_path=..\\.. --proto_path=c:\\grr_build\\protobuf\\src
 else
-	PROTOPATH += --proto_path=../.. --proto_path=/usr/include
+	PROTOPATH += --proto_path=/usr/include
 	PROTOPATH += --proto_path=/usr/local/include
 endif
 
@@ -21,10 +21,10 @@ endif
 all: $(py_files) $(cc_files)
 
 %_pb2.py: %.proto
-	$(PROTOC) --python_out=. $(PROTOPATH) $(<F)
+	(cd ../..; $(PROTOC) --python_out=. $(PROTOPATH) grr/proto/$(<F) )
 
 %.pb.cc: %.proto
-	$(PROTOC) --cpp_out=. $(PROTOPATH) $(<F)
+	(cd ../..; $(PROTOC) --cpp_out=. $(PROTOPATH) grr/proto/$(<F) )
 
 .PHONY: sync clean
 clean:

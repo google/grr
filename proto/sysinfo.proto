@@ -6,8 +6,8 @@
 
 syntax = "proto2";
 
-import "jobs.proto";
-import "semantic.proto";
+import "grr/proto/jobs.proto";
+import "grr/proto/semantic.proto";
 
 
 // A Process record describing a system process.
