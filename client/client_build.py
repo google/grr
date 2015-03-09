@@ -8,7 +8,6 @@ handling Visual Studio, pyinstaller and other packaging mechanisms.
 import logging
 import os
 import platform
-import sys
 import time
 
 
@@ -25,14 +24,15 @@ from grr.lib import startup
 parser = flags.PARSER
 
 # Guess which arch we should be building based on where we are running.
-if "32 bit" in sys.version:
+if platform.architecture()[0] == "32bit":
   default_arch = "i386"
 else:
   default_arch = "amd64"
 
+default_platform = platform.system().lower()
 parser.add_argument(
     "--platform", choices=["darwin", "linux", "windows"],
-    default=platform.system().lower(),
+    default=default_platform,
     help="The platform to build or repack for. This will default to "
     "the current platform: %s." % platform.system())
 
@@ -43,13 +43,18 @@ parser.add_argument(
 
 # Guess which package format we should be building based on where we are
 # running.
-distro = platform.linux_distribution()[0]
-if distro in ["Ubuntu", "debian"]:
-  default_package = "deb"
-elif distro in ["CentOS Linux", "centos", "redhat", "fedora"]:
-  default_package = "rpm"
-else:
-  default_package = None
+if default_platform == "linux":
+  distro = platform.linux_distribution()[0]
+  if distro in ["Ubuntu", "debian"]:
+    default_package = "deb"
+  elif distro in ["CentOS Linux", "CentOS", "centos", "redhat", "fedora"]:
+    default_package = "rpm"
+  else:
+    default_package = None
+elif default_platform == "darwin":
+  default_package = "dmg"
+elif default_platform == "windows":
+  default_package = "exe"
 
 parser.add_argument(
     "--package_format", choices=["deb", "rpm"],
@@ -196,10 +201,10 @@ def BuildAndDeploy(context):
   if args.plugins:
     config_lib.CONFIG.Set("Client.plugins", args.plugins)
 
-  # Output directory like: 2015-02-13T21:48:47-0800/linux/
+  # Output directory like: 2015-02-13T21:48:47-0800/linux_amd64_deb/
+  spec = "_".join((args.platform, args.arch, args.package_format))
   output_dir = os.path.join(config_lib.CONFIG.Get(
-      "ClientBuilder.executables_path", context=context), timestamp,
-                            args.platform)
+      "ClientBuilder.executables_path", context=context), timestamp, spec)
 
   # If we weren't passed a template, build one
   if args.template:

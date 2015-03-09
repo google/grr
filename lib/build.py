@@ -88,15 +88,14 @@ class ClientBuilder(BuilderBase):
     """Copy GRR from current grr directory."""
     curr_path = os.path.abspath(os.path.join(__file__, "../../"))
     dest = os.path.dirname(grr_path)
-    logging.info("Missing GRR, will attempt cp -r %s %s", curr_path, dest)
-    cmd = ["cp", "-r", curr_path, dest]
+    logging.info("Missing GRR, will attempt rsync -a --exclude=.vagrant %s %s",
+                 curr_path, dest)
+    cmd = ["rsync", "-a", "--exclude=.vagrant", curr_path, dest]
     subprocess.check_call(cmd)
 
     cmd = ["make"]
     logging.info("Compiling protos")
     subprocess.check_call(cmd, cwd=os.path.join(grr_path, "proto"))
-    logging.info("Checking artifacts")
-    subprocess.check_call(cmd, cwd=os.path.join(grr_path, "artifacts"))
 
   def MakeBuildDirectory(self):
     """Prepares the build directory."""
@@ -768,11 +767,8 @@ class CentosClientDeployer(LinuxClientDeployer):
       client_context = ["Client Context"] + self.context
       client_config_content = self.GetClientConfig(client_context)
 
-      with open(os.path.join(target_binary_dir,
-                             config_lib.CONFIG.Get(
-                                 "ClientBuilder.config_filename",
-                                 context=self.context)),
-                "wb") as fd:
+      with open(os.path.join(target_binary_dir, config_lib.CONFIG.Get(
+          "ClientBuilder.config_filename", context=self.context)), "wb") as fd:
         fd.write(client_config_content)
 
       # Undo all prelinking for libs or the rpm will have checksum mismatches.
@@ -790,6 +786,7 @@ class CentosClientDeployer(LinuxClientDeployer):
           rpmbuild_binary,
           "--define", "_topdir " + rpm_root_dir,
           "--target", client_arch,
+          "--buildroot", rpm_build_dir,
           "-bb", spec_filename]
       try:
         subprocess.check_output(command, stderr=subprocess.STDOUT)
