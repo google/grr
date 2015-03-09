@@ -5,9 +5,11 @@ This handles invocations for the build across the supported platforms including
 handling Visual Studio, pyinstaller and other packaging mechanisms.
 """
 
+import logging
 import os
 import platform
 import sys
+import time
 
 
 # pylint: disable=unused-import
@@ -22,6 +24,7 @@ from grr.lib import startup
 
 parser = flags.PARSER
 
+# Guess which arch we should be building based on where we are running.
 if "32 bit" in sys.version:
   default_arch = "i386"
 else:
@@ -38,9 +41,19 @@ parser.add_argument(
     default=default_arch,
     help="The architecture to build or repack for.")
 
+# Guess which package format we should be building based on where we are
+# running.
+distro = platform.linux_distribution()[0]
+if distro in ["Ubuntu", "debian"]:
+  default_package = "deb"
+elif distro in ["CentOS Linux", "centos", "redhat", "fedora"]:
+  default_package = "rpm"
+else:
+  default_package = None
+
 parser.add_argument(
     "--package_format", choices=["deb", "rpm"],
-    default="deb",
+    default=default_package,
     help="The packaging format to use when building a Linux client.")
 
 # Initialize sub parsers and their arguments.
@@ -100,6 +113,14 @@ parser_deploy.add_argument("-p", "--plugins", default=[], nargs="+",
 parser_deploy.add_argument("--debug_build", action="store_true", default=False,
                            help="Create a debug client.")
 
+parser_buildanddeploy = subparsers.add_parser(
+    "buildanddeploy",
+    help="Build and deploy clients for multiple labels and architectures.")
+
+parser_buildanddeploy.add_argument("--template", default=None,
+                                   help="The template zip file to repack, if "
+                                   "none is specified we will build it.")
+
 args = parser.parse_args()
 
 
@@ -118,10 +139,12 @@ def GetBuilder(context):
       if args.package_format == "deb":
         context = ["Platform:Linux"] + context
         builder_obj = builders.LinuxClientBuilder
-      else:
+      elif args.package_format == "rpm":
         context = ["Platform:Linux", "Target:LinuxRpm"] + context
         builder_obj = builders.CentosClientBuilder
-
+      else:
+        parser.error("Couldn't guess packaging format for: %s" %
+                     platform.linux_distribution()[0])
     else:
       parser.error("Unsupported build platform: %s" % args.platform)
 
@@ -165,6 +188,76 @@ def TemplateInputFilename(context):
   return None
 
 
+def BuildAndDeploy(context):
+  """Run build and deploy to create installers."""
+  # ISO 8601 date
+  timestamp = time.strftime("%Y-%m-%dT%H:%M:%S%z")
+
+  if args.plugins:
+    config_lib.CONFIG.Set("Client.plugins", args.plugins)
+
+  # Output directory like: 2015-02-13T21:48:47-0800/linux/
+  output_dir = os.path.join(config_lib.CONFIG.Get(
+      "ClientBuilder.executables_path", context=context), timestamp,
+                            args.platform)
+
+  # If we weren't passed a template, build one
+  if args.template:
+    template_path = args.template
+  else:
+    template_path = os.path.join(output_dir, config_lib.CONFIG.Get(
+        "PyInstaller.template_filename", context=context))
+    builder_obj = GetBuilder(context)
+    builder_obj.MakeExecutableTemplate(output_file=template_path)
+
+  # Get the list of contexts which we should be building.
+  context_list = config_lib.CONFIG.Get("ClientBuilder.BuildTargets")
+
+  logging.info("Building installers for: %s", context_list)
+  config_orig = config_lib.CONFIG.ExportState()
+  deployed_list = []
+  for deploycontext in context_list:
+
+    # Add the settings for this context
+    for newcontext in deploycontext.split(","):
+      config_lib.CONFIG.AddContext(newcontext)
+      context.append(newcontext)
+
+    try:
+      # If the ClientBuilder.target_platforms doesn't match our environment,
+      # skip.
+      if not config_lib.CONFIG.MatchBuildContext(args.platform, args.arch,
+                                                 args.package_format):
+        continue
+
+      deployer = GetDeployer(context)
+      # Make a nicer filename out of the context string.
+      context_filename = deploycontext.replace(
+          "AllPlatforms Context,", "").replace(",", "_").replace(" ", "_")
+      deployed_list.append(context_filename)
+
+      output_filename = os.path.join(
+          output_dir, context_filename,
+          config_lib.CONFIG.Get("ClientBuilder.output_filename",
+                                context=deployer.context))
+
+      logging.info("Deploying %s as %s with labels: %s", deploycontext,
+                   config_lib.CONFIG.Get(
+                       "Client.name", context=deployer.context),
+                   config_lib.CONFIG.Get(
+                       "Client.labels", context=deployer.context))
+
+      deployer.MakeDeployableBinary(template_path, output_filename)
+    finally:
+      # Remove the custom settings for the next deploy
+      for newcontext in deploycontext.split(","):
+        context.remove(newcontext)
+      config_lib.ImportConfigManger(config_orig)
+
+  logging.info("Complete, installers for %s are in %s", deployed_list,
+               output_dir)
+
+
 def main(_):
   """Launch the appropriate builder."""
   config_lib.CONFIG.AddContext(
@@ -172,6 +265,12 @@ def main(_):
       "Context applied when we run the client builder script.")
 
   startup.ClientInit()
+
+  # Use basic console output logging so we can see what is happening.
+  logger = logging.getLogger()
+  handler = logging.StreamHandler()
+  handler.setLevel(logging.INFO)
+  logger.handlers = [handler]
 
   # The following is used to change the identity of the builder based on the
   # target platform.
@@ -226,6 +325,9 @@ def main(_):
       output = os.path.join(args.outputdir, filename)
 
     deployer.MakeDeployableBinary(template_path, output)
+
+  elif args.subparser_name == "buildanddeploy":
+    BuildAndDeploy(context)
 
 
 if __name__ == "__main__":

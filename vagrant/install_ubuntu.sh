@@ -152,6 +152,10 @@ function install_debhelper() {
   cd -
 }
 
+function install_git() {
+  apt-get --force-yes --yes install git-cvs
+}
+
 if [ "$EUID" -ne 0 ]
   then echo "Please run as root"
   exit
@@ -167,3 +171,4 @@ install_m2crypto
 install_sleuthkit
 install_pytsk
 install_debhelper
+install_git

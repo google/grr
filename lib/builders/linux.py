@@ -17,7 +17,9 @@ class LinuxClientBuilder(build.ClientBuilder):
     super(LinuxClientBuilder, self).__init__(context=context)
     self.context.append("Target:Linux")
 
-  def MakeExecutableTemplate(self):
+  def MakeExecutableTemplate(self, output_file=None):
+    super(LinuxClientBuilder, self).MakeExecutableTemplate(
+        output_file=output_file)
     self.MakeBuildDirectory()
     self.CleanDirectory(config_lib.CONFIG.Get("PyInstaller.dpkg_root",
                                               context=self.context))
@@ -25,7 +27,9 @@ class LinuxClientBuilder(build.ClientBuilder):
     self.CopyMissingModules()
     self.PatchUpPyinstaller()
     self.CopyFiles()
-    self.MakeZip()
+    self.MakeZip(
+        config_lib.CONFIG.Get("PyInstaller.dpkg_root", context=self.context),
+        self.template_file)
 
   def PatchUpPyinstaller(self):
     """PyInstaller binaries need to be repaired.
@@ -95,24 +99,24 @@ class LinuxClientBuilder(build.ClientBuilder):
         os.path.join(src_dir, "grr/config/debian/initd/grr-client"),
         outdir)
 
-  def MakeZip(self):
-    """This builds the template."""
+  def MakeZip(self, input_dir, output_file):
+    """Creates a ZIP archive of the files in the input directory.
 
-    template_path = config_lib.CONFIG.Get("ClientBuilder.template_path",
-                                          context=self.context)
-    self.EnsureDirExists(os.path.dirname(template_path))
-    zf = zipfile.ZipFile(template_path, "w")
+    Args:
+      input_dir: the name of the input directory.
+      output_file: the name of the output ZIP archive without extension.
+    """
+
+    logging.info("Generating zip template file at %s", output_file)
+    zf = zipfile.ZipFile(output_file, "w")
     oldwd = os.getcwd()
-    os.chdir(config_lib.CONFIG.Get("PyInstaller.dpkg_root",
-                                   context=self.context))
+    os.chdir(input_dir)
     for path in ["debian", "rpmbuild"]:
       for root, _, files in os.walk(path):
         for f in files:
           zf.write(os.path.join(root, f))
     zf.close()
     os.chdir(oldwd)
-
-    logging.info("Generating zip template file at %s", template_path)
 
 
 class CentosClientBuilder(LinuxClientBuilder):

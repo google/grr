@@ -108,8 +108,11 @@ class WindowsClientBuilder(build.ClientBuilder):
         os.path.join(self.nanny_dir, vs_arch, build_type, "GRRNanny.exe"),
         os.path.join(self.output_dir, "GRRservice.exe"))
 
-  def MakeExecutableTemplate(self):
+  def MakeExecutableTemplate(self, output_file=None):
     """Windows templates also include the nanny."""
+    super(WindowsClientBuilder, self).MakeExecutableTemplate(
+        output_file=output_file)
+
     self.MakeBuildDirectory()
     self.BuildWithPyInstaller()
 
@@ -119,15 +122,7 @@ class WindowsClientBuilder(build.ClientBuilder):
       shutil.copy(module, self.output_dir)
 
     self.BuildNanny()
-
-    self.EnsureDirExists(os.path.dirname(
-        config_lib.CONFIG.Get("ClientBuilder.template_path",
-                              context=self.context)))
-
-    output_file = config_lib.CONFIG.Get("ClientBuilder.template_path",
-                                        context=self.context)
-    logging.info("Generating zip template file at %s", output_file)
-    self.MakeZip(self.output_dir, output_file)
+    self.MakeZip(self.output_dir, self.template_path)
 
 
 def CopyFileInZip(from_zip, from_name, to_zip, to_name=None):

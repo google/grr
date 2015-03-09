@@ -18,13 +18,10 @@ class DarwinClientBuilder(build.ClientBuilder):
     self.build_src_dir = config_lib.CONFIG.Get("ClientBuilder.build_src_dir",
                                                context=self.context)
 
-  def MakeExecutableTemplate(self):
-    """Create the executable template.
-
-    This technique allows the client build to be carried out once on the
-    supported platform (e.g. windows with MSVS), but the deployable installer
-    can be build on any platform which supports python.
-    """
+  def MakeExecutableTemplate(self, output_file=None):
+    """Create the executable template."""
+    super(DarwinClientBuilder, self).MakeExecutableTemplate(
+        output_file=output_file)
     self.MakeBuildDirectory()
     self.BuildWithPyInstaller()
     self.CopyMissingModules()

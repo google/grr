@@ -143,20 +143,20 @@ class ApiGrrMessageRendererTest(test_lib.GRRBaseTest):
 
   def testRendersGrrMessagePayloadAsStructuredData(self):
     sample = rdfvalue.GrrMessage(
-      task_id=42,
-      payload=ApiRDFProtoStructRendererSample(
-        index=0, values=["foo", "bar"]))
+        task_id=42,
+        payload=ApiRDFProtoStructRendererSample(
+            index=0, values=["foo", "bar"]))
 
     renderer = api_value_renderers.ApiGrrMessageRenderer()
     data = renderer.RenderValue(sample)
     self.assertEqual(data, {
-      "payload_type": "ApiRDFProtoStructRendererSample",
-      "payload": {
-        "index": 0,
-        "values": ["foo", "bar"]
-        },
-      "task_id": 42
-    })
+        "payload_type": "ApiRDFProtoStructRendererSample",
+        "payload": {
+            "index": 0,
+            "values": ["foo", "bar"]
+            },
+        "task_id": 42
+        })
 
 
 def main(argv):

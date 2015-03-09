@@ -311,13 +311,13 @@ class ApiGrrMessageRenderer(ApiRDFProtoStructRenderer):
   def RenderPayload(self, result, value):
     """Renders GrrMessage payload and renames args_rdf_name field."""
     if "args_rdf_name" in result:
-      result["payload_type"] = result["args_rdf_name"]    
+      result["payload_type"] = result["args_rdf_name"]
       del result["args_rdf_name"]
 
     if "args" in result:
       result["payload"] = self._PassThrough(value.payload)
       del result["args"]
-    
+
     return result
 
   processors = [RenderPayload]

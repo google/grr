@@ -8,6 +8,7 @@ import collections
 import ConfigParser
 import errno
 import os
+import pickle
 import re
 import StringIO
 import sys
@@ -329,21 +330,36 @@ class YamlParser(GRRConfigParser):
 
   name = "yaml"
 
+  def _ParseYaml(self, filename="", fd=None):
+    """Recursively parse included configs."""
+    if not filename and not fd:
+      raise IOError("Neither filename nor fd specified")
+
+    if fd:
+      data = yaml.safe_load(fd) or OrderedYamlDict()
+    elif filename:
+      data = yaml.safe_load(open(filename, "rb")) or OrderedYamlDict()
+    for include in data.pop("ConfigIncludes", []):
+      path = os.path.join(os.path.dirname(filename), include)
+      data.update(self._ParseYaml(filename=path))
+
+    return data
+
   def __init__(self, filename=None, data=None, fd=None):
     super(YamlParser, self).__init__()
 
     if fd:
-      self.parsed = yaml.safe_load(fd)
       self.fd = fd
       try:
         self.filename = fd.name
       except AttributeError:
         self.filename = None
+      self.parsed = self._ParseYaml(fd=fd, filename=(self.filename or ""))
 
     elif filename:
+      self.filename = filename
       try:
-        self.parsed = yaml.safe_load(open(filename, "rb")) or OrderedYamlDict()
-
+        self.parsed = self._ParseYaml(filename=filename) or OrderedYamlDict()
       except IOError as e:
         if e.errno == errno.EACCES:
           # Specifically catch access denied errors, this usually indicates the
@@ -355,12 +371,10 @@ class YamlParser(GRRConfigParser):
       except OSError:
         self.parsed = OrderedYamlDict()
 
-      self.filename = filename
-
     elif data is not None:
-      fd = StringIO.StringIO(data)
-      self.parsed = yaml.safe_load(fd)
       self.filename = filename
+      fd = StringIO.StringIO(data)
+      self.parsed = self._ParseYaml(fd=fd)
     else:
       raise Error("Filename not specified.")
 
@@ -526,7 +540,7 @@ class StringInterpolator(lexer.Lexer):
       if filter_object is None:
         raise FilterError("Unknown filter function %r" % filter_name)
 
-      logging.info("Applying filter %s for %s.", filter_name, arg)
+      logging.debug("Applying filter %s for %s.", filter_name, arg)
       arg = filter_object().Filter(arg)
 
     self.stack[-1] += arg
@@ -707,6 +721,16 @@ class GrrConfigManager(object):
       self.context_descriptions[context_string] = description
 
     self.FlushCache()
+
+  def RemoveContext(self, context_string):
+    if context_string in self.context:
+      self.context.remove(context_string)
+      self.context_descriptions.pop(context_string)
+
+    self.FlushCache()
+
+  def ExportState(self):
+    return pickle.dumps(self)
 
   def SetRaw(self, name, value):
     """Set the raw string without verification or escaping."""
@@ -982,20 +1006,28 @@ class GrrConfigManager(object):
 
       default: If retrieving the value results in an error, return this default.
 
-      context: A context to resolve the configuration. This is a set of roles
-        the caller is current executing with. For example (client, windows). If
-        not specified we take the context from the current thread's TLS stack.
+      context: A list of context strings to resolve the configuration. This is a
+      set of roles the caller is current executing with. For example (client,
+      windows). If not specified we take the context from the current thread's
+      TLS stack.
 
     Returns:
       The value of the parameter.
     Raises:
       ConfigFormatError: if verify=True and the config doesn't validate.
       RuntimeError: if a value is retrieved before the config is initialized.
+      ValueError: if a bad context is passed.
     """
     if not self.initialized:
       if name not in self.constants:
         raise RuntimeError("Error while retrieving %s: "
                            "Configuration hasn't been initialized yet." % name)
+    if context:
+      # Make sure it's not just a string and is iterable.
+      if (isinstance(context, basestring) or
+          not isinstance(context, collections.Iterable)):
+        raise ValueError("context should be a list, got %s" % str(context))
+
     calc_context = context
     # Use a default global context if context is not provided.
 
@@ -1162,6 +1194,27 @@ class GrrConfigManager(object):
 
     return result
 
+  def MatchBuildContext(self, target_os, target_arch, target_package):
+    """Return true if target_platforms matches the supplied parameters.
+
+    Used by buildanddeploy to determine what clients need to be built.
+
+    Args:
+      target_os: which os we are building for in this run (linux, windows,
+                 darwin)
+      target_arch: which arch we are building for in this run (i386, amd64)
+      target_package: which package type we are building (exe, dmg, deb, rpm)
+
+    Returns:
+      bool: True if target_platforms spec matches parameters.
+    """
+    for spec in self.Get("ClientBuilder.target_platforms"):
+      platform, arch, package = spec.split("_")
+      if (platform == target_os and arch == target_arch and
+          package == target_package):
+        return True
+    return False
+
   # pylint: disable=g-bad-name,redefined-builtin
   def DEFINE_bool(self, name, default, help):
     """A helper for defining boolean options."""
@@ -1199,6 +1252,14 @@ class GrrConfigManager(object):
 
 # Global for storing the config.
 CONFIG = GrrConfigManager()
+
+
+def ImportConfigManger(pickled_manager):
+  """Import a config manager exported with GrrConfigManager.ExportState()."""
+  global CONFIG
+  CONFIG = pickle.loads(pickled_manager)
+  CONFIG.FlushCache()
+  return CONFIG
 
 
 # pylint: disable=g-bad-name,redefined-builtin
@@ -1241,6 +1302,13 @@ def DEFINE_bytes(name, default, help):
 def DEFINE_choice(name, default, choices, help):
   """A helper for defining choice string options."""
   CONFIG.AddOption(type_info.Choice(
+      name=name, default=default, choices=choices,
+      description=help))
+
+
+def DEFINE_multichoice(name, default, choices, help):
+  """Choose multiple options from a list."""
+  CONFIG.AddOption(type_info.MultiChoice(
       name=name, default=default, choices=choices,
       description=help))
 

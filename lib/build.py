@@ -5,20 +5,29 @@ This handles invocations for the build across the supported platforms including
 handling Visual Studio, pyinstaller and other packaging mechanisms.
 """
 import cStringIO
+import errno
 import logging
 import os
 import shutil
 import struct
 import subprocess
-import sys
 import zipfile
 
 
 import distorm3
 
+# pylint: disable=g-import-not-at-top
+# This is a workaround so we don't need to maintain the whole PyInstaller
+# codebase as a full-fledged dependency.
+try:
+  from PyInstaller import main as PyInstallerMain
+except ImportError:
+  logging.error("PyInstaller missing")
+
 from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import utils
+# pylint: enable=g-import-not-at-top
 
 
 class BuilderBase(object):
@@ -29,10 +38,15 @@ class BuilderBase(object):
     self.context = ["ClientBuilder Context"] + self.context
 
   def EnsureDirExists(self, path):
+    """Equivalent of makedir -p."""
     try:
       os.makedirs(path)
-    except OSError:
-      pass
+    except OSError as exc:
+      # Necessary so we don't hide other errors such as permission denied.
+      if exc.errno == errno.EEXIST and os.path.isdir(path):
+        pass
+      else:
+        raise
 
   def GenerateDirectory(self, input_dir=None, output_dir=None,
                         replacements=None):
@@ -70,12 +84,35 @@ class ClientBuilder(BuilderBase):
   operating system.
   """
 
+  def CopyGRR(self, grr_path):
+    """Copy GRR from current grr directory."""
+    curr_path = os.path.abspath(os.path.join(__file__, "../../"))
+    dest = os.path.dirname(grr_path)
+    logging.info("Missing GRR, will attempt cp -r %s %s", curr_path, dest)
+    cmd = ["cp", "-r", curr_path, dest]
+    subprocess.check_call(cmd)
+
+    cmd = ["make"]
+    logging.info("Compiling protos")
+    subprocess.check_call(cmd, cwd=os.path.join(grr_path, "proto"))
+    logging.info("Checking artifacts")
+    subprocess.check_call(cmd, cwd=os.path.join(grr_path, "artifacts"))
+
   def MakeBuildDirectory(self):
     """Prepares the build directory."""
     # Create the build directory and let pyinstaller loose on it.
     self.build_dir = config_lib.CONFIG.Get("PyInstaller.build_dir",
                                            context=self.context)
+    self.work_path = config_lib.CONFIG.Get(
+        "PyInstaller.workpath_dir", context=self.context)
+
+    self.grr_path = os.path.join(config_lib.CONFIG.Get(
+        "PyInstaller.build_root_dir", context=self.context), "grr")
+
     self.CleanDirectory(self.build_dir)
+    self.CleanDirectory(self.work_path)
+    self.CleanDirectory(self.grr_path)
+    self.CopyGRR(self.grr_path)
 
   def CleanDirectory(self, directory):
     logging.info("Clearing directory %s", directory)
@@ -109,13 +146,14 @@ class ClientBuilder(BuilderBase):
         config_lib.CONFIG.Get("PyInstaller.distpath", context=self.context),
         "grr-client")
 
-    cmd = [sys.executable, config_lib.CONFIG.Get("PyInstaller.path",
-                                                 context=self.context),
-           "--distpath", config_lib.CONFIG.Get("PyInstaller.distpath",
-                                               context=self.context),
-           self.spec_file]
-    logging.info("Running pyinstaller: %s", cmd)
-    subprocess.check_call(cmd)
+    # Pyinstaller doesn't handle unicode strings.
+    args = ["--distpath", str(config_lib.CONFIG.Get("PyInstaller.distpath",
+                                                    context=self.context)),
+            "--workpath", str(config_lib.CONFIG.Get("PyInstaller.workpath_dir",
+                                                    context=self.context)),
+            str(self.spec_file)]
+    logging.info("Running pyinstaller: %s", args)
+    PyInstallerMain.run(pyi_args=[utils.SmartStr(x) for x in args])
 
   def CopyMissingModules(self):
     # Distorm has a stupid way of importing its library that PyInstaller cannot
@@ -133,8 +171,11 @@ class ClientBuilder(BuilderBase):
       except IOError:
         pass
 
-  def MakeExecutableTemplate(self):
+  def MakeExecutableTemplate(self, output_file=None):
     """Create the executable template.
+
+    Args:
+      output_file: string filename where we will write the template.
 
     The client is build in two phases. First an executable template is created
     with the client binaries contained inside a zip file. Then the installation
@@ -144,18 +185,13 @@ class ClientBuilder(BuilderBase):
     This technique allows the client build to be carried out once on the
     supported platform (e.g. windows with MSVS), but the deployable installer
     can be build on any platform which supports python.
+
+    Subclasses for each OS do the actual work, we just make sure the output
+    directory is set up correctly here.
     """
-    self.MakeBuildDirectory()
-    self.BuildWithPyInstaller()
-
-    self.EnsureDirExists(os.path.dirname(
-        config_lib.CONFIG.Get("ClientBuilder.template_path",
-                              context=self.context)))
-
-    output_file = config_lib.CONFIG.Get("ClientBuilder.template_path",
-                                        context=self.context)
-    logging.info("Generating zip template file at %s", output_file)
-    self.MakeZip(self.output_dir, output_file)
+    self.template_file = output_file or config_lib.CONFIG.Get(
+        "ClientBuilder.template_path", context=self.context)
+    self.EnsureDirExists(os.path.dirname(self.template_file))
 
   def MakeZip(self, input_dir, output_file):
     """Creates a ZIP archive of the files in the input directory.
@@ -164,6 +200,7 @@ class ClientBuilder(BuilderBase):
       input_dir: the name of the input directory.
       output_file: the name of the output ZIP archive without extension.
     """
+    logging.info("Generating zip template file at %s", output_file)
     basename, _ = os.path.splitext(output_file)
     shutil.make_archive(basename, "zip",
                         base_dir=".",
@@ -580,11 +617,6 @@ class LinuxClientDeployer(ClientDeployer):
 
   def MakeDeployableBinary(self, template_path, output_path=None):
     """This will add the config to the client template and create a .deb."""
-
-    # Linux only supports lower case names.
-    old_name = config_lib.CONFIG.Get("Client.name")
-    config_lib.CONFIG.Set("Client.name", old_name.lower())
-
     if output_path is None:
       output_path = config_lib.CONFIG.Get("ClientBuilder.output_path",
                                           context=self.context)
@@ -658,9 +690,6 @@ class LinuxClientDeployer(ClientDeployer):
                     os.path.join(os.path.dirname(output_path), output_name))
 
       logging.info("Created package %s", output_path)
-
-      # Restore old name.
-      config_lib.CONFIG.Set("Client.name", old_name)
       return output_path
 
 
@@ -803,3 +832,4 @@ def SetPeSubsystem(fd, console=True):
   else:
     fd.write("\x02")
   fd.seek(current_pos)
+
