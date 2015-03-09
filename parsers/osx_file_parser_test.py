@@ -65,8 +65,8 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
     for result in results:
       self.assertItemsEqual(result.Label, "com.google.code.grr")
       self.assertItemsEqual(result.ProgramArguments,
-                            "/usr/lib/grr/grr_3.0.0.5_amd64/grr "
-                            "--config=/usr/lib/grr/grr_3.0.0.5_amd64/grr.yaml")
+                            ["/usr/lib/grr/grr_3.0.0.5_amd64/grr",
+                            "--config=/usr/lib/grr/grr_3.0.0.5_amd64/grr.yaml"])
 
 def main(argv):
   # Run the full test suite

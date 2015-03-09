@@ -524,7 +524,7 @@ message LaunchdPlist {
   optional string UserName = 4;
   optional string GroupName = 5;
   optional string Program = 6;
-  optional string ProgramArguments = 7;
+  repeated string ProgramArguments = 7;
   optional string RootDirectory = 8;
   optional string WorkingDirectory = 9;
   optional bool OnDemand = 10;
@@ -536,9 +536,9 @@ message LaunchdPlist {
   optional string StandardInPath = 16;
   optional string StandardOutPath = 17;
   optional string StandardErrorPath = 18;
-  optional string LimitLoadToHosts = 19;
-  optional string LimitLoadFromHosts = 20;
-  optional string LimitLoadToSessionType = 21;
+  repeated string LimitLoadToHosts = 19;
+  repeated string LimitLoadFromHosts = 20;
+  repeated string LimitLoadToSessionType = 21;
   optional bool EnableGlobbing = 22;
   optional bool EnableTransactions = 23;
   optional int32 Umask = 24;
@@ -546,8 +546,8 @@ message LaunchdPlist {
   optional int32 ExitTimeOut = 26;
   optional int32 ThrottleInterval = 27;
   optional bool InitGroups = 28;
-  optional string WatchPaths = 29;
-  optional string QueueDirectories = 30;
+  repeated string WatchPaths = 29;
+  repeated string QueueDirectories = 30;
   optional bool StartOnMount = 31;
   optional int32 StartInterval = 32;
   optional bool Debug = 33;

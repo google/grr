@@ -76,11 +76,9 @@ class OSXLaunchdPlistParser(parsers.FileParser):
                          "InitGroups", "StartOnMount", "StartInterval",
                          "Debug", "WaitForDebugger", "Nice", "ProcessType",
                          "AbandonProcessGroup", "LowPriorityIO",
-                         "LaunchOnlyOnce"]
-
-    string_array_items = ["LimitLoadToHosts", "LimitLoadFromHosts",
-                          "LimitLoadToSessionType", "ProgramArguments",
-                          "WatchPaths", "QueueDirectories"]
+                         "LaunchOnlyOnce", "LimitLoadToHosts",
+                         "LimitLoadFromHosts", "LimitLoadToSessionType",
+                         "ProgramArguments", "WatchPaths", "QueueDirectories"]
 
     flag_only_items = ["SoftResourceLimits", "HardResourceLimits", "Sockets"]
 
@@ -94,14 +92,6 @@ class OSXLaunchdPlistParser(parsers.FileParser):
     # These are items that can be directly copied
     for key in direct_copy_items:
       kwargs[key] = plist.get(key)
-
-    # These are arrays of strings that need to be combined
-    for key in string_array_items:
-      elements = plist.get(key)
-      if isinstance(elements, list):
-        kwargs[key] = " ".join(elements)
-      else:
-        kwargs[key] = elements
 
     # These are complex items that can appear in multiple data structures
     # so we only flag on their existence
