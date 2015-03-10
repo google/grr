@@ -2,6 +2,11 @@
 # This is the template used in deployment of GRR. It contains the basic
 # elements and test configurations to run the system.
 
+# Include other config files like this. An example buildconfig.yaml is supplied
+# for separating out build configuration.
+#ConfigIncludes:
+#  - buildconfig.yaml
+
 AdminUI.bind: "::"
 
 AdminUI.django_debug: True
@@ -147,7 +152,7 @@ ClientBuilder Context:
     PyInstaller.build_dir: |
       %(PyInstaller.build_root_dir)/build
 
-    PyInstaller.build_root_dir: /usr/local/grr_build
+    PyInstaller.build_root_dir: /home/%(USER|env)/grr-build
 
     PyInstaller.distpath: |
       %(PyInstaller.dpkg_root)/debian/

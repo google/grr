@@ -14,14 +14,16 @@ var SemanticDirectivesRegistry = grrUi.semantic.SemanticDirectivesRegistry;
 
 
 /**
- * @type {Object<string, function(angular.Scope)>}
+ * @type {Object<string,
+ *     function(!angular.Scope, function(Object, !angular.Scope=)=):Object>}
  * Cache for templates used by semantic value directive.
  */
 grrUi.semantic.semanticValueDirective.singleValueTemplateCache = {};
 
 
 /**
- * @type {function(angular.Scope)|undefined}
+ * @type {(function(!angular.Scope, function(Object,
+ *     !angular.Scope=)=):Object|undefined)}
  * Precached template for lists of values.
  */
 grrUi.semantic.semanticValueDirective.repeatedValuesTemplate;
@@ -86,14 +88,14 @@ SemanticValueController.prototype.camelCaseToDashDelimited = function(
  * Compiles a template for a given single value.
  *
  * @param {Object} value Value to compile the template for.
- * @return {Function|angular.LinkingFunctions|undefined} Compiled template.
+ * @return {function(!angular.Scope, function(Object,
+ *     !angular.Scope=)=):Object} Compiled template.
  * @private
- * @suppress {missingProperties} as value can have arbitrary data.
  */
 SemanticValueController.prototype.compileSingleTypedValueTemplate_ = function(
     value) {
   var element = angular.element('<span />');
-  var directive = SemanticDirectivesRegistry.findDirectiveForMro(value.mro);
+  var directive = SemanticDirectivesRegistry.findDirectiveForMro(value['mro']);
 
   if (angular.isDefined(directive)) {
     element.html('<' +
@@ -110,7 +112,8 @@ SemanticValueController.prototype.compileSingleTypedValueTemplate_ = function(
 /**
  * Compiles a template for repeated values.
  *
- * @return {Function|angular.LinkingFunctions|undefined} Compiled template.
+ * @return {function(!angular.Scope, function(Object,
+ *     !angular.Scope=)=):Object} Compiled template.
  * @private
  */
 SemanticValueController.prototype.compileRepeatedValueTemplate_ = function() {
@@ -124,23 +127,27 @@ SemanticValueController.prototype.compileRepeatedValueTemplate_ = function() {
  * Handles value changes.
  *
  * @export
- * @suppress {missingProperties} as value can have arbitrary data.
  */
 SemanticValueController.prototype.onValueChange = function() {
   var value = this.scope_.value;
 
-  if (value === undefined || value === null) {
+  if (value == null) {
     return;
   }
 
+  /**
+   * @type {(function(!angular.Scope, function(Object,
+   *     !angular.Scope=)=):Object|undefined)}
+   */
   var template;
-  if (angular.isArray(value.mro)) {
+
+  if (angular.isArray(value['mro'])) {
     template = grrUi.semantic.semanticValueDirective.singleValueTemplateCache[
-        value.mro];
+        value['mro']];
     if (angular.isUndefined(template)) {
       template = this.compileSingleTypedValueTemplate_(value);
       grrUi.semantic.semanticValueDirective.singleValueTemplateCache[
-          value.mro] = template;
+          value['mro']] = template;
     }
   } else if (angular.isArray(value)) {
     if (angular.isUndefined(
@@ -152,7 +159,7 @@ SemanticValueController.prototype.onValueChange = function() {
   }
 
   if (angular.isDefined(template)) {
-    template(this.scope_, function(cloned, scope) {
+    template(this.scope_, function(cloned, opt_scope) {
       this.element_.html('');
       this.element_.append(cloned);
     }.bind(this));

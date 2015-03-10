@@ -1,10 +1,15 @@
 #!/usr/bin/env python
 """Tests for config_lib classes."""
+
+import copy
 import os
+import StringIO
 
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import test_lib
+from grr.lib import type_info
+from grr.lib import utils
 
 
 class YamlConfigTest(test_lib.GRRBaseTest):
@@ -107,6 +112,51 @@ Extra Context:
         conf.Get("Section1.test",
                  context=["Platform:Windows", "Client Context"]),
         6)
+
+  def testRemoveContext(self):
+    """Test that conflicting contexts are resolved by precedence."""
+    conf = config_lib.GrrConfigManager()
+
+    conf.DEFINE_integer("Section1.test", 0, "An integer")
+    conf.DEFINE_integer("Section1.test2", 9, "An integer")
+    conf.Initialize(parser=config_lib.YamlParser, data="""
+
+Section1.test: 2
+
+Client Context:
+  Section1.test: 6
+  Section1.test2: 8
+
+Platform:Windows:
+  Section1.test: 10
+
+Extra Context:
+  Section1.test: 15
+""")
+
+    # Should be defaults, no contexts added
+    self.assertEqual(conf.Get("Section1.test"), 2)
+    self.assertEqual(conf.Get("Section1.test2"), 9)
+
+    # Now with Client Context
+    conf.AddContext("Client Context")
+    self.assertEqual(conf.Get("Section1.test"), 6)
+    self.assertEqual(conf.Get("Section1.test2"), 8)
+
+    # Should be back to defaults
+    conf.RemoveContext("Client Context")
+    self.assertEqual(conf.Get("Section1.test"), 2)
+    self.assertEqual(conf.Get("Section1.test2"), 9)
+
+    # Now with Windows Context, test2 is still default
+    conf.AddContext("Platform:Windows")
+    self.assertEqual(conf.Get("Section1.test"), 10)
+    self.assertEqual(conf.Get("Section1.test2"), 9)
+
+    # Should be back to defaults
+    conf.RemoveContext("Platform:Windows")
+    self.assertEqual(conf.Get("Section1.test"), 2)
+    self.assertEqual(conf.Get("Section1.test2"), 9)
 
   def testBackslashes(self):
     conf = config_lib.GrrConfigManager()
@@ -478,6 +528,136 @@ literal = %{aff4:/C\.(?P<path>.\{1,16\}?)($|/.*)}
 
     self.assertEqual(type(conf.Get("Section1.list2")), list)
     self.assertEqual(conf.Get("Section1.list2"), ["a", "2"])
+
+  def _GetNewConf(self):
+    conf = config_lib.GrrConfigManager()
+    conf.DEFINE_bool("SecondaryFileIncluded", False, "A string")
+    conf.DEFINE_bool("TertiaryFileIncluded", False, "A string")
+    conf.DEFINE_integer("Section1.int", 0, "An integer")
+    return conf
+
+  def _CheckConf(self, conf):
+    self.assertTrue(conf.Get("SecondaryFileIncluded"))
+    self.assertTrue(conf.Get("TertiaryFileIncluded"))
+    self.assertEqual(conf.Get("Section1.int"), 3)
+
+  def testConfigFileInclusion(self):
+    one = r"""
+ConfigIncludes:
+  - 2.yaml
+
+Section1.int: 1
+"""
+    two = r"""
+SecondaryFileIncluded: true
+Section1.int: 2
+ConfigIncludes:
+  - subdir/3.yaml
+"""
+    three = r"""
+TertiaryFileIncluded: true
+Section1.int: 3
+"""
+
+    with utils.TempDirectory() as temp_dir:
+      configone = os.path.join(temp_dir, "1.yaml")
+      configtwo = os.path.join(temp_dir, "2.yaml")
+      subdir = os.path.join(temp_dir, "subdir")
+      os.makedirs(subdir)
+      configthree = os.path.join(subdir, "3.yaml")
+      with open(configone, "w") as fd:
+        fd.write(one)
+
+      with open(configtwo, "w") as fd:
+        fd.write(two)
+
+      with open(configthree, "w") as fd:
+        fd.write(three)
+
+      # Using filename
+      conf = self._GetNewConf()
+      conf.Initialize(parser=config_lib.YamlParser, filename=configone)
+      self._CheckConf(conf)
+
+      # If we don't get a filename or a handle with a .name we look in the cwd
+      # for the specified path, check this works.
+      olddir = os.getcwd()
+      os.chdir(temp_dir)
+
+      # Using fd with no fd.name
+      conf = self._GetNewConf()
+      fd = StringIO.StringIO(one)
+      conf.Initialize(parser=config_lib.YamlParser, fd=fd)
+      self._CheckConf(conf)
+
+      # Using data
+      conf = self._GetNewConf()
+      conf.Initialize(parser=config_lib.YamlParser, data=one)
+      self._CheckConf(conf)
+      os.chdir(olddir)
+
+  def testMatchBuildContext(self):
+    context = """
+Test1 Context:
+  Client.labels: [Test1]
+  ClientBuilder.target_platforms:
+    - linux_amd64_deb
+    - linux_i386_deb
+    - windows_amd64_exe
+
+Test2 Context:
+  Client.labels: [Test2]
+
+Test3 Context:
+  Client.labels: [Test3]
+  ClientBuilder.target_platforms:
+    - linux_amd64_deb
+    - windows_i386_exe
+"""
+    conf = config_lib.CONFIG.MakeNewConfig()
+    conf.Initialize(parser=config_lib.YamlParser, data=context)
+    orig_context = copy.deepcopy(conf.context)
+    config_orig = conf.ExportState()
+    conf.AddContext("Test1 Context")
+    result_map = [(("linux", "amd64", "deb"), True),
+                  (("linux", "i386", "deb"), True),
+                  (("windows", "amd64", "exe"), True),
+                  (("windows", "i386", "exe"), False)]
+    for result in result_map:
+      self.assertEqual(conf.MatchBuildContext(*result[0]), result[1])
+
+    conf = config_lib.ImportConfigManger(config_orig)
+    self.assertItemsEqual(conf.context, orig_context)
+    self.assertFalse("Test1 Context" in conf.context)
+    conf.AddContext("Test3 Context")
+    result_map = [(("linux", "amd64", "deb"), True),
+                  (("linux", "i386", "deb"), False),
+                  (("windows", "amd64", "exe"), False),
+                  (("windows", "i386", "exe"), True)]
+    for result in result_map:
+      self.assertEqual(conf.MatchBuildContext(*result[0]), result[1])
+
+    conf = config_lib.ImportConfigManger(config_orig)
+    self.assertItemsEqual(conf.context, orig_context)
+    self.assertFalse("Test1 Context" in conf.context)
+    self.assertFalse("Test3 Context" in conf.context)
+
+  def testMatchBuildContextError(self):
+    """Raise because the same target was listed twice."""
+    context = """
+Test1 Context:
+  Client.labels: [Test1]
+  ClientBuilder.target_platforms:
+    - linux_amd64_deb
+    - linux_i386_deb
+    - linux_amd64_deb
+    - windows_amd64_exe
+"""
+    conf = config_lib.CONFIG.MakeNewConfig()
+    conf.Initialize(parser=config_lib.YamlParser, data=context)
+    conf.AddContext("Test1 Context")
+    with self.assertRaises(type_info.TypeValueError):
+      conf.MatchBuildContext("linux", "amd64", "deb")
 
 
 def main(argv):

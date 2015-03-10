@@ -17,6 +17,7 @@ import psutil
 # These need to register plugins so,
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
+from grr.checks import tests
 from grr.client import tests
 
 from grr.gui.api_plugins import tests
@@ -37,7 +38,7 @@ from grr.worker import worker_test
 flags.DEFINE_string("output", None,
                     "The name of the file we write on (default stderr).")
 
-flags.DEFINE_list("exclude_tests", None,
+flags.DEFINE_list("exclude_tests", [],
                   "A comma-separated list of tests to exclude form running.")
 
 flags.DEFINE_integer("processes", 0,

@@ -215,8 +215,8 @@ HuntsListController.prototype.deleteHunt = function() {
  * Transforms table items before they get shown. Sets shortUrn to the last
  * component of hunt's URN and sets isRobot attribute based on hunt's creator.
  *
- * @param {Object} items Items to be transformed.
- * @return {Object} Transformed items.
+ * @param {!Array<Object>} items Items to be transformed.
+ * @return {!Array<Object>} Transformed items.
  * @export
  * @suppress {missingProperties} For items, as they crom from JSON response.
  */

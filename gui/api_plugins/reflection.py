@@ -39,7 +39,7 @@ class ApiRDFValueReflectionRenderer(api_call_renderers.ApiCallRenderer):
       if field_type is not None:
         field["type"] = field_type.__name__
 
-      if field_type == rdfvalue.Enum:
+      if field_type == rdfvalue.EnumNamedValue:
         allowed_values = []
         for enum_label in sorted(field_desc.enum):
           enum_value = field_desc.enum[enum_label]

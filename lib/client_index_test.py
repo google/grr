@@ -41,11 +41,7 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
                                  aff4_type="VFSGRRClient",
                                  mode="rw",
                                  token=self.token)
-    client_id, keywords = index.AnalyzeClient(client)
-
-    # Should contain the client id.
-    self.assertEqual(client_id, CLIENT_ID)
-    self.assertIn(CLIENT_ID, keywords)
+    _, keywords = index.AnalyzeClient(client)
 
     # Should not contain an empty string.
     self.assertNotIn("", keywords)
@@ -98,10 +94,18 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
     self.assertEqual(
         index.LookupClients(["host-2"]),
         [rdfvalue.ClientURN("aff4:/C.1000000000000002")])
+    self.assertEqual(
+        index.LookupClients(["C.1000000000000002"]),
+        [rdfvalue.ClientURN("aff4:/C.1000000000000002")])
 
     # IP prefixes of octets should work:
     self.assertEqual(
         sorted(index.LookupClients(["192.168.0"])), sorted(client_urns))
+
+    # Hostname prefixes of tokens should work.
+    self.assertEqual(
+        index.LookupClients(["host-5.example"]),
+        [rdfvalue.ClientURN("aff4:/C.1000000000000005")])
 
     # Intersections should work.
     self.assertEqual(index.LookupClients(["192.168.0", "Host-2"]),

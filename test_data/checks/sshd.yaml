@@ -3,7 +3,7 @@ match: 'NONE'
 method:
   - match: ['ANY']
     target:
-      os: ['Linux', 'OSX']
+      os: ['Linux', 'Darwin']
     hint:
       problem: 'Sshd allows protocol 1.'
       summary: 'sshd parameter'

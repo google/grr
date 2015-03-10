@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """An implementation of an OSX client builder."""
+import getpass
 import os
 import shutil
 import subprocess
@@ -18,20 +19,17 @@ class DarwinClientBuilder(build.ClientBuilder):
     self.build_src_dir = config_lib.CONFIG.Get("ClientBuilder.build_src_dir",
                                                context=self.context)
 
-  def MakeExecutableTemplate(self):
-    """Create the executable template.
-
-    This technique allows the client build to be carried out once on the
-    supported platform (e.g. windows with MSVS), but the deployable installer
-    can be build on any platform which supports python.
-    """
+  def MakeExecutableTemplate(self, output_file=None):
+    """Create the executable template."""
+    super(DarwinClientBuilder, self).MakeExecutableTemplate(
+        output_file=output_file)
     self.MakeBuildDirectory()
     self.BuildWithPyInstaller()
     self.CopyMissingModules()
-    self.BuildInstallerPkg()
+    self.BuildInstallerPkg(self.template_file)
 
   # WARNING: change with care since the PackageMaker files are fragile!
-  def BuildInstallerPkg(self):
+  def BuildInstallerPkg(self, output_file):
     """Builds a package (.pkg) using PackageMaker."""
     build_files_dir = os.path.join(self.build_src_dir,
                                    "config", "macosx", "client")
@@ -130,15 +128,13 @@ class DarwinClientBuilder(build.ClientBuilder):
     print "Running: %s " % " ".join(command)
     subprocess.call(command)
 
-    output_tmpl_path = config_lib.CONFIG.Get("ClientBuilder.template_path",
-                                             context=self.context)
     print "Copying output to templates location: %s -> %s" % (output_pkg_path,
-                                                              output_tmpl_path)
-    self.EnsureDirExists(os.path.dirname(output_tmpl_path))
-    shutil.copyfile(output_pkg_path, output_tmpl_path)
+                                                              output_file)
+    self.EnsureDirExists(os.path.dirname(output_file))
+    shutil.copyfile(output_pkg_path, output_file)
 
     # Change the owner, group and permissions of the binaries back.
     command = ["sudo", "/usr/sbin/chown", "-R",
-               "grr-build:staff", self.build_dir]
+               "%s:staff" % getpass.getuser(), self.build_dir]
     print "Running: %s" % " ".join(command)
     subprocess.call(command)

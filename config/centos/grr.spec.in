@@ -19,8 +19,8 @@ URL: https://github.com/google/grr
 # Do nothing here.
 
 %install
-mkdir -p \%{buildroot}
-cp -R \%{_builddir}/* \%{buildroot}
+
+%clean
 
 %pre
 

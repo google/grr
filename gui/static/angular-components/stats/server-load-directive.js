@@ -40,20 +40,28 @@ ServerLoadIndicatorService.service_name = 'grrServerLoadIndicatorService';
 /**
  * Calculates mean value of the response time series.
  *
- * @param {!Array.<Array.<number>>} timeseries Timeseries used to calculate
- *                                             mean value.
+ * @param {!Array<Array<number>>} timeseries Timeseries used to calculate
+ *      mean value. Timeseries is a sequence of (timestamp, value) pairs.
  * @return {number} Mean value of the timeseries.
  *
  * @private
  */
 ServerLoadIndicatorService.prototype.calculateMean_ = function(timeseries) {
-  if (timeseries.length === 0) {
+  if (timeseries.length == 0) {
     return 0;
   }
 
   var result = 0;
   for (var i = 0; i < timeseries.length; ++i) {
-    result += timeseries[i][1];
+    var dataPoint = timeseries[i];
+
+    // Every data point should be a (timestamp, value) pair.
+    if (dataPoint.length != 2) {
+      throw new Error('Invalid data: timeseries data point is not an array ' +
+          'with 2 numbers.');
+    }
+
+    result += dataPoint[1];
   }
 
   return result / timeseries.length;
@@ -67,17 +75,16 @@ ServerLoadIndicatorService.prototype.calculateMean_ = function(timeseries) {
  * @param {string} numeratorMetric Numerator metric.
  * @param {string} denominatorMetric Denominator metric.
  * @param {number} warningRatio If ratio value is above that and below danger
- *                              level, status will be set to warning.
+ *     level, status will be set to warning.
  * @param {number} dangerRatio If ratio value is above that, status will be set
- *                             to danger.
+ *     to danger.
  * @return {!angular.$q.Promise} Angular's promise that will resolve to a string
- *                               with indicator's status.
+ *     with indicator's status.
  *
  * @export
  */
 ServerLoadIndicatorService.prototype.fetchRatioIndicator = function(
-    component, numeratorMetric, denominatorMetric,
-    warningRatio, dangerRatio) {
+    component, numeratorMetric, denominatorMetric, warningRatio, dangerRatio) {
 
   var endTime = Math.round(new Date().getTime() * 1000);
   var startTime = endTime - 10 * 60 * 1000000;
@@ -95,10 +102,10 @@ ServerLoadIndicatorService.prototype.fetchRatioIndicator = function(
   var deferred = this.q_.defer();
 
   var responseHandler = function(response) {
-    if (response.data['metric_name'] === numeratorMetric) {
+    if (response.data['metric_name'] == numeratorMetric) {
       metricsCache.numerator = this.calculateMean_(
           response.data['timeseries']);
-    } else if (response.data['metric_name'] === denominatorMetric) {
+    } else if (response.data['metric_name'] == denominatorMetric) {
       metricsCache.denominator = this.calculateMean_(
           response.data['timeseries']);
     } else {
@@ -108,7 +115,7 @@ ServerLoadIndicatorService.prototype.fetchRatioIndicator = function(
 
     if (angular.isDefined(metricsCache.numerator) &&
         angular.isDefined(metricsCache.denominator)) {
-      if (metricsCache.denominator === 0) {
+      if (metricsCache.denominator == 0) {
         deferred.resolve('unknown');
       } else {
         var ratio = metricsCache.numerator / metricsCache.denominator;
@@ -155,13 +162,13 @@ grrUi.stats.serverLoadDirective.ServerLoadController = function(
   /** @private {!grrUi.stats.serverLoadDirective.ServerLoadIndicatorService} */
   this.grrServerLoadIndicatorService_ = grrServerLoadIndicatorService;
 
-  /** @private {number} Queries start time. */
+  /** @export {number} Queries start time. */
   this.startTime;
 
-  /** @private {number} Queries end time. */
+  /** @export {number} Queries end time. */
   this.endTime;
 
-  /** export {Object.<string, string|angular.$q.Promise>} */
+  /** export {Object<string, string|angular.$q.Promise>} */
   this.indicators = {};
 
   /** @export {number} Max duration of graphs to show (in hours). */

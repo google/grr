@@ -1334,14 +1334,14 @@
                       "pathtype": {
                         "age": 0,
                         "mro": [
-                          "Enum",
+                          "EnumNamedValue",
                           "RDFInteger",
                           "RDFString",
                           "RDFBytes",
                           "RDFValue",
                           "object"
                         ],
-                        "type": "Enum",
+                        "type": "EnumNamedValue",
                         "value": "OS"
                       }
                     }
@@ -2022,14 +2022,14 @@
             "default": {
               "age": 0,
               "mro": [
-                "Enum",
+                "EnumNamedValue",
                 "RDFInteger",
                 "RDFString",
                 "RDFBytes",
                 "RDFValue",
                 "object"
               ],
-              "type": "Enum",
+              "type": "EnumNamedValue",
               "value": "0"
             },
             "doc": "Which type information to include when rendering collection items.",
@@ -2038,7 +2038,7 @@
             "index": 6,
             "name": "items_type_info",
             "repeated": false,
-            "type": "Enum"
+            "type": "EnumNamedValue"
           }
         ],
         "kind": "struct",

@@ -413,3 +413,35 @@ class Choice(TypeInfoObject):
       raise TypeValueError("%s not a valid instance string." % value)
 
     return value
+
+
+class MultiChoice(TypeInfoObject):
+  """Choose a list of values from a set of allowed values."""
+
+  def __init__(self, choices=None, validator=None, **kwargs):
+    """Create a multichoice object and validate choices.
+
+    Args:
+      choices: list of available choices
+      validator: validator to use for each of the list *items* the validator for
+                 the top level is a list.
+      **kwargs: passed through to parent class.
+    """
+    self.choices = choices
+    subvalidator = validator or String()
+    self.validator = List(validator=subvalidator)
+
+    # Check the choices match the validator
+    for choice in self.choices:
+      subvalidator.Validate(choice)
+    super(MultiChoice, self).__init__(**kwargs)
+
+  def Validate(self, values):
+    self.validator.Validate(values)
+
+    for value in values:
+      if value not in self.choices:
+        raise TypeValueError("%s not a valid instance string." % value)
+    if len(values) != len(set(values)):
+      raise TypeValueError("Duplicate choice in: %s." % values)
+    return values

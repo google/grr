@@ -178,7 +178,7 @@ class SqliteConnectionCache(utils.FastStore):
 
 
 def SqliteRegexpFunction(expr, item):
-  reg = re.compile(expr)
+  reg = re.compile(expr, flags=re.DOTALL)
   return reg.search(item) is not None
 
 

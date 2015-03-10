@@ -16,6 +16,16 @@ function install_homebrew() {
   brew install makedepend
 }
 
+# To make rekall work we need a newer version that what is available in a
+# release.  TODO: remove this and update requirements.txt once there is a
+# release we can use.
+function install_rekall_HEAD() {
+  git clone https://github.com/google/rekall.git
+  cd rekall
+  python setup.py install
+  cd -
+}
+
 # Install our python dependencies into a virtualenv that uses the new python
 # version
 function install_python_deps() {
@@ -30,6 +40,14 @@ function install_python_deps() {
   virtualenv -p /usr/local/bin/python2.7 PYTHON_ENV
   source PYTHON_ENV/bin/activate
   pip install -r /grr/requirements.txt
+
+  # protobuf uses a fancy egg format which seems to mess up PyInstaller,
+  # resulting in missing the library entirely. I believe the issue is this:
+  # https://github.com/pypa/pip/issues/3#issuecomment-1659959
+  # Using --egg installs it in a way that PyInstaller understands
+  pip install --egg protobuf==2.6.0
+
+  install_rekall_HEAD
 }
 
 # Install patched m2crypto, hopefully this patch will eventually be accepted so
@@ -78,6 +96,7 @@ case $EUID in
     brew install wget
     brew install python
     brew install protobuf
+    brew install git
     install_python_deps
     install_m2crypto
     install_sleuthkit

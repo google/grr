@@ -52,8 +52,9 @@ var MemoryItemsProviderController =
  * @param {number} count Number of items to be fetched.
  * @param {boolean=} opt_withTotalCount if true, total number of elements in
  *     the collection will be returned along with fetched items.
- * @return {!angular.$q.Promise} Fetched items promise. If opt_withTotalCount
- *     was set to true, resulting array will have totalCount attribute
+ * @return {!angular.$q.Promise} Fetched items promise. Resolves to
+ *     grrUi.core.itemsProviderController.Items. If opt_withTotalCount
+ *     was set to true, resulting object will have totalCount attribute
  *     containing total number of items in the collection on the server.
  */
 MemoryItemsProviderController.prototype.fetchItems = function(
@@ -65,7 +66,13 @@ MemoryItemsProviderController.prototype.fetchItems = function(
   var items = this.items_;
   var deferred = this.q_.defer();
 
-  var result = items.slice(offset, offset + count);
+  var resultItems = items.slice(offset, offset + count);
+
+  /** @type {grrUi.core.itemsProviderController.Items} */
+  var result = {
+    offset: offset,
+    items: resultItems
+  };
   if (opt_withTotalCount) {
     result.totalCount = items.length;
   }
@@ -82,7 +89,8 @@ MemoryItemsProviderController.prototype.fetchItems = function(
  * @param {string} filter Token to be used for filtering.
  * @param {number} offset Number of items to skip in the resulting set.
  * @param {number} count Maximum number of items to be returned.
- * @return {!angular.$q.Promise} Fetched items.
+ * @return {!angular.$q.Promise} Fetched items. Resolves to
+ *     grrUi.core.itemsProviderController.Items.
  */
 MemoryItemsProviderController.prototype.fetchFilteredItems = function(
     filter, offset, count) {
@@ -97,7 +105,16 @@ MemoryItemsProviderController.prototype.fetchFilteredItems = function(
     }
   });
 
-  deferred.resolve(filteredItems.slice(offset, offset + count));
+  filteredItems = filteredItems.slice(offset, offset + count);
+
+  /** @type {grrUi.core.itemsProviderController.Items} */
+  var result = {
+    offset: offset,
+    items: filteredItems
+  };
+
+
+  deferred.resolve(result);
   return deferred.promise;
 };
 
