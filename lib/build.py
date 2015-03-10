@@ -786,7 +786,6 @@ class CentosClientDeployer(LinuxClientDeployer):
           rpmbuild_binary,
           "--define", "_topdir " + rpm_root_dir,
           "--target", client_arch,
-          "--buildroot", rpm_build_dir,
           "-bb", spec_filename]
       try:
         subprocess.check_output(command, stderr=subprocess.STDOUT)
