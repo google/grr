@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 2.8)
+SET(CMAKE_VERBOSE_MAKEFILE on)
+project(grr_minicomm)
+include_directories(../../..)
+list(APPEND CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
+add_executable(minicomm client.cc client_main.cc comms_utils.cc compression.cc http_connection.cc subprocess_delegator.cc config.cc config.pb.cc crypto.cc client_test_base.cc util.cc logging_control.cc message_queue.cc ../../proto/jobs.pb.cc ../../proto/semantic.pb.cc)
+target_link_libraries(minicomm gtest_main gtest pthread crypto protobuf curl z) 
+install(TARGETS minicomm DESTINATION bin)
