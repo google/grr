@@ -7,6 +7,8 @@ import time
 
 from django.utils import datastructures
 
+import logging
+
 from grr.gui import renderers
 from grr.gui.plugins import semantic
 from grr.lib import access_control
@@ -706,6 +708,8 @@ class HostTable(renderers.TableRenderer):
     if not query_string:
       self.message = "A query string must be provided."
       return False
+
+    logging.info("Processing Client Query [%s]" % query_string)
 
     try:
       # If the string begins with the token k, we treat the remaining tokens as

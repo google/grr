@@ -86,6 +86,14 @@ class FieldParserTests(test_lib.GRRBaseTest):
     for i, expect in enumerate(expected):
       self.assertItemsEqual(expect, results[i])
 
+  def testNoFinalTerminator(self):
+    test_data = "you forgot a newline"
+    expected = [["you", "forgot", "a", "newline"]]
+    cfg = config_file.FieldParser()
+    results = cfg.ParseEntries(test_data)
+    for i, expect in enumerate(expected):
+      self.assertItemsEqual(expect, results[i])
+
 
 class KeyValueParserTests(test_lib.GRRBaseTest):
   """Test the field parser."""

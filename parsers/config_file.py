@@ -168,6 +168,8 @@ class FieldParser(lexer.Lexer):
     self.Reset()
     self.Feed(utils.SmartStr(data))
     self.Close()
+    # In case there isn't a terminating field at the end of the feed, e.g. \n
+    self.EndEntry()
     return self.entries
 
 

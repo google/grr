@@ -133,7 +133,7 @@ function install_python_deps() {
   python2.7 get-pip.py
   pip2.7 install --upgrade pip
 
-  # lucid packaged version of virtualenv is too old for the next line to work,
+  # lucid packaged version of virtualenv is too old for the next part to work,
   # get a newer version
   pip2.7 install virtualenv
 

@@ -40,6 +40,29 @@ class ChecksTestBase(test_lib.GRRBaseTest):
   pass
 
 
+class FilterTests(ChecksTestBase):
+  """Test 'Filter' setup and operations."""
+
+  def setUp(self, *args, **kwargs):
+    super(FilterTests, self).setUp(*args, **kwargs)
+    filters.Filter.filters = {}
+
+  def tearDown(self, *args, **kwargs):
+    filters.Filter.filters = {}
+    super(FilterTests, self).tearDown(*args, **kwargs)
+
+  def testNonexistentFilterIsError(self):
+    self.assertRaises(filters.DefinitionError, checks.Filter, type="NoFilter")
+
+  def testAddFilters(self):
+    base_filt = checks.Filter(type="Filter", expression="do nothing")
+    self.assertIsInstance(filters.Filter, base_filt._filter)
+    obj_filt = checks.Filter(type="ObjectFilter", expression="test is 'ok'")
+    self.assertIsInstance(filters.ObjectFilter, obj_filt._filter)
+    rdf_filt = checks.Filter(type="RDFFilter", expression="Config,SSHConfig")
+    self.assertIsInstance(filters.RDFFilter, rdf_filt._filter)
+
+
 class ProbeTest(ChecksTestBase):
   """Test 'Probe' operations."""
 

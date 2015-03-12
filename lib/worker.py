@@ -130,59 +130,58 @@ class GRRWorker(object):
     processed = 0
 
     queue_manager = queue_manager_lib.QueueManager(token=self.token)
-    for _ in range(0, queue_manager.num_notification_shards):
-      for queue in self.queues:
-        # Freezeing the timestamp used by queue manager to query/delete
-        # notifications to avoid possible race conditions.
-        queue_manager.FreezeTimestamp()
+    for queue in self.queues:
+      # Freezeing the timestamp used by queue manager to query/delete
+      # notifications to avoid possible race conditions.
+      queue_manager.FreezeTimestamp()
 
-        fetch_messages_start = time.time()
-        notifications_by_priority = queue_manager.GetNotificationsByPriority(
-            queue)
-        stats.STATS.RecordEvent("worker_time_to_retrieve_notifications",
-                                time.time() - fetch_messages_start)
+      fetch_messages_start = time.time()
+      notifications_by_priority = queue_manager.GetNotificationsByPriority(
+          queue)
+      stats.STATS.RecordEvent("worker_time_to_retrieve_notifications",
+                              time.time() - fetch_messages_start)
 
-        # Process stuck flows first
-        stuck_flows = notifications_by_priority.pop(
-            queue_manager.STUCK_PRIORITY, [])
+      # Process stuck flows first
+      stuck_flows = notifications_by_priority.pop(
+          queue_manager.STUCK_PRIORITY, [])
 
-        if stuck_flows:
-          self.ProcessStuckFlows(stuck_flows, queue_manager)
+      if stuck_flows:
+        self.ProcessStuckFlows(stuck_flows, queue_manager)
 
-        notifications_available = []
-        for priority in sorted(notifications_by_priority, reverse=True):
-          for notification in notifications_by_priority[priority]:
-            # Filter out session ids we already tried to lock but failed.
-            if notification.session_id not in self.queued_flows:
-              notifications_available.append(notification)
+      notifications_available = []
+      for priority in sorted(notifications_by_priority, reverse=True):
+        for notification in notifications_by_priority[priority]:
+          # Filter out session ids we already tried to lock but failed.
+          if notification.session_id not in self.queued_flows:
+            notifications_available.append(notification)
 
-        try:
-          # If we spent too much time processing what we have so far, the
-          # active_sessions list might not be current. We therefore break here
-          # so we can re-fetch a more up to date version of the list, and try
-          # again later. The risk with running with an old active_sessions list
-          # is that another worker could have already processed this message,
-          # and when we try to process it, there is nothing to do - costing us a
-          # lot of processing time. This is a tradeoff between checking the data
-          # store for current information and processing out of date
-          # information.
-          processed += self.ProcessMessages(notifications_available,
-                                            queue_manager,
-                                            self.RUN_ONCE_MAX_SECONDS -
-                                            (time.time() - start_time))
+      try:
+        # If we spent too much time processing what we have so far, the
+        # active_sessions list might not be current. We therefore break here
+        # so we can re-fetch a more up to date version of the list, and try
+        # again later. The risk with running with an old active_sessions list
+        # is that another worker could have already processed this message,
+        # and when we try to process it, there is nothing to do - costing us a
+        # lot of processing time. This is a tradeoff between checking the data
+        # store for current information and processing out of date
+        # information.
+        processed += self.ProcessMessages(notifications_available,
+                                          queue_manager,
+                                          self.RUN_ONCE_MAX_SECONDS -
+                                          (time.time() - start_time))
 
-        # We need to keep going no matter what.
-        except Exception as e:    # pylint: disable=broad-except
-          logging.error("Error processing message %s. %s.", e,
-                        traceback.format_exc())
-          stats.STATS.IncrementCounter("grr_worker_exceptions")
-          if flags.FLAGS.debug:
-            pdb.post_mortem()
+      # We need to keep going no matter what.
+      except Exception as e:    # pylint: disable=broad-except
+        logging.error("Error processing message %s. %s.", e,
+                      traceback.format_exc())
+        stats.STATS.IncrementCounter("grr_worker_exceptions")
+        if flags.FLAGS.debug:
+          pdb.post_mortem()
 
-        queue_manager.UnfreezeTimestamp()
-        # If we have spent too much time, stop.
-        if (time.time() - start_time) > self.RUN_ONCE_MAX_SECONDS:
-          return processed
+      queue_manager.UnfreezeTimestamp()
+      # If we have spent too much time, stop.
+      if (time.time() - start_time) > self.RUN_ONCE_MAX_SECONDS:
+        return processed
     return processed
 
   def ProcessStuckFlows(self, stuck_flows, queue_manager):

@@ -79,6 +79,7 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
 
     s = client.Schema
     TryAppend("host", client.Get(s.HOSTNAME))
+    TryAppendPrefixes("host", client.Get(s.HOSTNAME), "-")
     TryAppend("fdqn", client.Get(s.FQDN))
     TryAppendPrefixes("host", client.Get(s.FQDN), ".")
     TryAppend("", client.Get(s.SYSTEM))
@@ -122,6 +123,9 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
       if client_info.labels:
         for label in client_info.labels:
           TryAppend("label", label)
+
+    for label in client.GetLabelsNames():
+      TryAppend("label", label)
 
     return (client_id, keywords)
 

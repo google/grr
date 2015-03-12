@@ -374,7 +374,7 @@ class VFSFile(aff4.AFF4Image):
     return flow_urn
 
 
-class MemoryImage(VFSFile):
+class MemoryImage(standard.VFSDirectory):
   """The server representation of the client's memory device."""
 
   class SchemaCls(VFSFile.SchemaCls):
@@ -764,4 +764,3 @@ def GetAllClientLabels(token, include_catchall=False):
   if include_catchall:
     labels.add(ALL_CLIENTS_LABEL)
   return labels
-
