@@ -34,9 +34,9 @@ class MemoryVFS(vfs.VFSHandler):
   page_size = 0x1000
 
   def __init__(self, base_fd, pathspec=None, progress_callback=None):
+    super(MemoryVFS, self).__init__(None, progress_callback=progress_callback)
     self.fd = base_fd
     self.pathspec = pathspec
-    super(MemoryVFS, self).__init__(None, progress_callback=progress_callback)
 
   @classmethod
   def Open(cls, fd, component, pathspec=None, progress_callback=None):

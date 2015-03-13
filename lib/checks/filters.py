@@ -3,6 +3,7 @@
 import collections
 
 from grr.lib import objectfilter
+from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib.rdfvalues import structs
 
@@ -147,6 +148,47 @@ class Filter(object):
     raise NotImplementedError("Filter needs to have a Validate method.")
 
 
+class AttrFilter(Filter):
+  """A filter that extracts target attributes into key/value fields.
+
+  Accepts one or more attributes to collect. Optionally accepts an objectfilter
+  expression to select objects from which attributes are collected.
+  This filter is a convenient way to normalize the names of collected items to
+  use with a generic hint.
+
+  Args:
+    expression: One or more attributes to fetch as comma separated items.
+
+  Yields:
+    Config RDF values. k is the attribute name, v is the attribute value.
+  """
+
+  def _Attrs(self, expression):
+    attrs = [a.strip() for a in expression.strip().split() if a]
+    if not attrs:
+      raise DefinitionError("AttrFilter sets no attributes: %s" % expression)
+    return attrs
+
+  def _GetVal(self, obj, key):
+    """Recurse down an attribute chain to the actual result data."""
+    if "." in key:
+      lhs, rhs = key.split(".", 1)
+      obj2 = getattr(obj, lhs, None)
+      if obj2 is None:
+        return None
+      return self._GetVal(obj2, rhs)
+    else:
+      return getattr(obj, key, None)
+
+  def Parse(self, obj, expression):
+    for key in self._Attrs(expression):
+      val = self._GetVal(obj, key)
+      yield rdfvalue.Config({"k": key, "v": val})
+
+  def Validate(self, expression):
+    self._Attrs(expression)
+
+
 class ObjectFilter(Filter):
   """An objectfilter result processor that accepts runtime parameters."""
 
@@ -165,3 +207,55 @@ class ObjectFilter(Filter):
 
   def Validate(self, expression):
     self._Compile(expression)
+
+
+class ItemFilter(ObjectFilter):
+  """A filter that extracts the first match item from a objectfilter expression.
+
+  Applies an objectfilter expression to an object. The first attribute named in
+  the expression is returned as a key/value item.`
+  This filter is a convenient way to cherry pick selected items from an object
+  for reporting or further filters.
+
+  Args:
+    expression: An objectfilter expression..
+
+  Yields:
+     Config RDF values for matching items, where k is the attribute name, and
+     v is the attribute value.
+  """
+
+  def Parse(self, obj, expression):
+    filt = self._Compile(expression)
+    key = expression.split(None, 1)[0]
+    for result in filt.Filter(obj):
+      val = getattr(result, key)
+      # Use a Config. KeyValueRDF values don't support attribute or dict
+      # expansion for objectfilter expressions, and Dict RDF values require
+      # a DictExpander. Using Config keeps the interface to objects consistent.
+      yield rdfvalue.Config({"k": key, "v": val})
+
+
+class RDFFilter(Filter):
+  """Filter results to specified rdf types."""
+
+  def _RDFTypes(self, names):
+    for type_name in names.split(","):
+      yield type_name
+
+  def _GetClass(self, type_name):
+    return rdfvalue.RDFValue.classes.get(type_name)
+
+  def Parse(self, objs, type_names):
+    """Parse one or more objects by testing if it is a known RDF class."""
+    for obj in self._Iterate(objs):
+      for type_name in self._RDFTypes(type_names):
+        if isinstance(obj, self._GetClass(type_name)):
+          yield obj
+
+  def Validate(self, type_names):
+    """Filtered types need to be RDFValues."""
+    errs = [n for n in self._RDFTypes(type_names) if not self._GetClass(n)]
+    if errs:
+      raise DefinitionError("Undefined RDF Types: %s" % ",".join(errs))
+

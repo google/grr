@@ -341,7 +341,9 @@ class YamlParser(GRRConfigParser):
       data = yaml.safe_load(open(filename, "rb")) or OrderedYamlDict()
     for include in data.pop("ConfigIncludes", []):
       path = os.path.join(os.path.dirname(filename), include)
-      data.update(self._ParseYaml(filename=path))
+      parser_cls = GrrConfigManager.GetParserFromFilename(path)
+      parser = parser_cls(filename=path)
+      data.update(parser.RawData())
 
     return data
 
@@ -881,7 +883,8 @@ class GrrConfigManager(object):
 
         raw_data[k] = v
 
-  def _GetParserFromFilename(self, path):
+  @classmethod
+  def GetParserFromFilename(cls, path):
     """Returns the appropriate parser class from the filename url."""
     # Find the configuration parser.
     url = urlparse.urlparse(path, scheme="file")
@@ -915,7 +918,7 @@ class GrrConfigManager(object):
     Returns:
       The parser used to parse this configuration source.
     """
-    parser_cls = self._GetParserFromFilename(url)
+    parser_cls = self.GetParserFromFilename(url)
     parser = parser_cls(filename=url)
     logging.info("Loading configuration from %s", url)
 

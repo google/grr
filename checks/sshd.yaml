@@ -1,0 +1,72 @@
+check_id: 'CIS-SSH-PROTOCOL'
+method:
+  - target: {os: ['Linux', 'Darwin']}
+    probe:
+      - artifact: 'SshdConfigFile'
+        hint:
+          problem: 'Sshd configuration supports protocol 1.'
+          format: 'Protocol = {config.protocol}'
+        filters:
+          - type: 'ObjectFilter'
+            expression: 'config.protocol contains 1'
+---
+check_id: 'CIS-SSH-PERMIT-ROOT-LOGIN'
+method:
+  - target: {os: ['Linux', 'Darwin']}
+    probe:
+      - artifact: 'SshdConfigFile'
+        hint:
+          problem: 'Sshd configuration permits direct root login.'
+          format: 'PermitRootLogin = {config.permitrootlogin}'
+        filters:
+          - type: 'ObjectFilter'
+            expression: 'config.permitrootlogin is 1'
+---
+check_id: 'CIS-SSH-IGNORE-RHOSTS'
+method:
+  - target: {os: ['Linux', 'Darwin']}
+    probe:
+      - artifact: 'SshdConfigFile'
+        hint:
+          problem: 'Sshd configuration allows rhosts based login.'
+          format: 'IgnoreRhosts = {config.ignorerhosts}'
+        filters:
+          - type: 'ObjectFilter'
+            expression: 'config.ignorerhosts is 0'
+---
+check_id: 'CIS-SSH-HOST-BASED-AUTH'
+method:
+  - target: {os: ['Linux', 'Darwin']}
+    probe:
+      - artifact: 'SshdConfigFile'
+        hint:
+          problem: 'Sshd configuration allows host based authentication.'
+          format: 'HostBasedAuthentication = {config.hostbasedauthentication}'
+        filters:
+          - type: 'ObjectFilter'
+            expression: 'config.hostbasedauthentication is 1'
+---
+check_id: 'CIS-SSH-RHOSTS-RSA-AUTH'
+method:
+  - target: {os: ['Linux', 'Darwin']}
+    probe:
+      - artifact: 'SshdConfigFile'
+        hint:
+          problem: 'Sshd configuration allows RSA host based authentication.'
+          format: 'RhostsRSAAuthentication = {config.rhostsrsaauthentication}'
+        filters:
+          - type: 'ObjectFilter'
+            expression: 'config.rhostsrsaauthentication is 1'
+---
+check_id: 'CIS-SSH-PERMIT-EMPTY-PASSWORDS'
+method:
+  - target: {os: ['Linux', 'Darwin']}
+    probe:
+      - artifact: 'SshdConfigFile'
+        hint:
+          problem: 'Sshd configuration allows accounts with empty passwords
+            to log in.'
+          format: 'PermitEmptyPasswords = {config.permitemptypasswords}'
+        filters:
+          - type: 'ObjectFilter'
+            expression: 'config.permitemptypasswords is 1'

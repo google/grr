@@ -14,6 +14,7 @@ from grr.gui import django_lib
 # pylint: enable=unused-import
 from grr.lib import access_control
 from grr.lib import aff4
+from grr.lib import client_index
 from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import email_alerts
@@ -903,11 +904,16 @@ class ApplyLabelsToClientsFlow(flow.GRRGlobalFlow):
          for name in self.args.labels])
     audit_events = []
     try:
+      index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
+                                  aff4_type="ClientIndex",
+                                  mode="rw",
+                                  token=self.token)
       client_objs = aff4.FACTORY.MultiOpen(
           self.args.clients, aff4_type="VFSGRRClient", mode="rw",
           token=self.token)
       for client_obj in client_objs:
         client_obj.AddLabels(*self.args.labels)
+        index.AddClient(client_obj)
         client_obj.Close()
 
         audit_events.append(

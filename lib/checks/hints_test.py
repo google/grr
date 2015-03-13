@@ -71,6 +71,17 @@ class HintsTests(test_lib.GRRBaseTest):
     result = hinter.Render(rdf)
     self.assertEqual(expected, result)
 
+  def testRdfFormatterHandlesKeyValuePair(self):
+    """rdfvalue.KeyValue items need special handling to expand k and v."""
+    key = rdfvalue.DataBlob().SetValue("skynet")
+    value = rdfvalue.DataBlob().SetValue([1997])
+    rdf = rdfvalue.KeyValue(k=key, v=value)
+    template = "{k}: {v}"
+    hinter = hints.Hinter(template=template)
+    expected = "skynet: 1997"
+    result = hinter.Render(rdf)
+    self.assertEqual(expected, result)
+
 
 def main(argv):
   test_lib.main(argv)

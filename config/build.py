@@ -102,6 +102,9 @@ config_lib.DEFINE_string(
     name="PyInstaller.spec",
     help="The spec file contents to use for building the client.",
     default=r"""
+import os
+import distorm3
+
 # By default build in one dir mode.
 a = Analysis\(
     ["%(%(ClientBuilder.source)|unixpath)/grr/client/client.py"],
@@ -114,6 +117,9 @@ for prefix in ["IPython"]:
     for item in collection[:]:
       if item[0].startswith\(prefix\):
         collection.remove\(item\)
+
+# Workaround for distorm conditional imports
+LIBDISTORM3 = os.path.join\(distorm3.__path__[0], 'libdistorm3.so'\)
 
 pyz = PYZ\(
     a.pure\)
@@ -131,7 +137,7 @@ exe = EXE\(
 
 coll = COLLECT\(
     exe,
-    a.binaries,
+    a.binaries + [\('distorm3/libdistorm3.so', LIBDISTORM3, 'BINARY'\)],
     a.zipfiles,
     a.datas,
     strip=False,

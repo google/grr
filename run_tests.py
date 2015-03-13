@@ -187,8 +187,6 @@ def DoesTestHaveLabels(cls, labels):
 
 def main(argv=None):
   if flags.FLAGS.tests:
-    print "Running test in single process mode..."
-
     stream = sys.stderr
 
     if flags.FLAGS.output:
@@ -213,7 +211,7 @@ def main(argv=None):
                        len(suites))
 
     test_suite = suites[0]
-    print "Running test %s" % test_suite
+    print "Running test %s in single process mode" % test_suite
     sys.stdout.flush()
     RunTest(test_suite, stream=stream)
 

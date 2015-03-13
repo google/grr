@@ -4,6 +4,7 @@ import collections
 import string
 
 from grr.lib import objectfilter
+from grr.lib import rdfvalue
 from grr.lib import utils
 
 
@@ -32,6 +33,14 @@ class RdfFormatter(string.Formatter):
 
   expander = objectfilter.AttributeValueExpander().Expand
 
+  def KVExpander(self, obj, attr):
+    """KeyValue entries return the values of the DataBlob structures."""
+
+    attr_val = getattr(obj, attr).GetValue()
+    if attr_val and isinstance(attr_val, basestring):
+      return [attr_val]
+    return attr_val
+
   def Format(self, format_string, rdf):
     """Apply string formatting templates to rdf data.
 
@@ -56,7 +65,10 @@ class RdfFormatter(string.Formatter):
         result.append(literal_text)
       # if there's a field, output it
       if field_name is not None:
-        rslts = [utils.SmartStr(r) for r in self.expander(rdf, field_name)]
+        if isinstance(rdf, rdfvalue.KeyValue):
+          rslts = [utils.SmartStr(r) for r in self.KVExpander(rdf, field_name)]
+        else:
+          rslts = [utils.SmartStr(r) for r in self.expander(rdf, field_name)]
         # format the object and append to the result
         result.append(",".join(rslts))
     return "".join(result)
