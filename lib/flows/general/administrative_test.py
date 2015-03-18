@@ -583,7 +583,9 @@ class TestApplyLabelsToClientsFlow(AdministrativeFlowTests):
     mock_worker = test_lib.MockWorker(token=self.token)
     mock_worker.Simulate()
 
-    fd = aff4.FACTORY.Open("aff4:/audit/log", token=self.token)
+    parentdir = aff4.FACTORY.Open("aff4:/audit/logs", token=self.token)
+    log = list(parentdir.ListChildren())[0]
+    fd = aff4.FACTORY.Open(log, token=self.token)
 
     for client_id in client_ids:
       found_event = None

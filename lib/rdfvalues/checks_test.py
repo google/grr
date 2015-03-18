@@ -56,11 +56,11 @@ class FilterTests(ChecksTestBase):
 
   def testAddFilters(self):
     base_filt = checks.Filter(type="Filter", expression="do nothing")
-    self.assertIsInstance(filters.Filter, base_filt._filter)
+    self.assertIsInstance(base_filt._filter, filters.Filter)
     obj_filt = checks.Filter(type="ObjectFilter", expression="test is 'ok'")
-    self.assertIsInstance(filters.ObjectFilter, obj_filt._filter)
+    self.assertIsInstance(obj_filt._filter, filters.ObjectFilter)
     rdf_filt = checks.Filter(type="RDFFilter", expression="Config,SSHConfig")
-    self.assertIsInstance(filters.RDFFilter, rdf_filt._filter)
+    self.assertIsInstance(rdf_filt._filter, filters.RDFFilter)
 
 
 class ProbeTest(ChecksTestBase):

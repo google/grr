@@ -370,7 +370,7 @@ def ArtifactsFromYaml(yaml_content):
   """Get a list of Artifacts from json."""
   try:
     raw_list = list(yaml.safe_load_all(yaml_content))
-  except ValueError as e:
+  except (ValueError, yaml.YAMLError) as e:
     raise ArtifactDefinitionError("Invalid json for artifact: %s" % e)
 
   # Try to do the right thing with json/yaml formatted as a list.

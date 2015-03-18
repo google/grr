@@ -85,7 +85,7 @@ class FingerprintFileMixin(object):
     # TODO(user): This attribute will be deprecated in the future. Do not
     # use.
     fd.Set(fd.Schema.FINGERPRINT(response))
-    fd.Close(sync=False)
+    fd.Close(sync=True)
 
     self.ReceiveFileFingerprint(
         urn, hash_obj, request_data=responses.request_data)

@@ -271,6 +271,11 @@ def main(_):
 
   startup.ClientInit()
 
+  # Make sure we have all the secondary configs since they may be set under the
+  # ClientBuilder Context
+  for secondconfig in config_lib.CONFIG["ConfigIncludes"]:
+    config_lib.CONFIG.LoadSecondaryConfig(secondconfig)
+
   # Use basic console output logging so we can see what is happening.
   logger = logging.getLogger()
   handler = logging.StreamHandler()

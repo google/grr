@@ -158,7 +158,7 @@ def StartFlowAndWorker(client_id, flow_name, **kwargs):
       break
 
     time.sleep(2)
-    with aff4.FACTORY.Open(session_id) as flow_obj:
+    with aff4.FACTORY.Open(session_id, token=token) as flow_obj:
       if not flow_obj.GetRunner().IsRunning():
         break
 

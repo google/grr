@@ -201,51 +201,65 @@ class CheckRegistryTests(test_lib.GRRBaseTest):
     """Checks are identified and run when their prerequisites are met."""
     expect = ["SW-CHECK"]
     result = checks.CheckRegistry.FindChecks(
-        artifact="WMIInstalledSoftware", os="Windows")
+        artifact="WMIInstalledSoftware", os_type="Windows")
     self.assertItemsEqual(expect, result)
     result = checks.CheckRegistry.FindChecks(
-        artifact="DebianPackagesStatus", os="Linux")
+        artifact="DebianPackagesStatus", os_type="Linux")
     self.assertItemsEqual(expect, result)
     result = checks.CheckRegistry.FindChecks(
         artifact="DebianPackagesStatus", labels="foo")
     self.assertItemsEqual(expect, result)
 
-    expect = ["SSHD-CHECK"]
-    result = checks.CheckRegistry.FindChecks(artifact="SshdConfigFile",
-                                             os="Darwin")
-    self.assertItemsEqual(expect, result)
-    result = checks.CheckRegistry.FindChecks(artifact="SshdConfigFile",
-                                             os="Linux")
-    self.assertItemsEqual(expect, result)
+    expect = set(["SSHD-CHECK"])
+    result = set(checks.CheckRegistry.FindChecks(
+        artifact="SshdConfigFile", os_type="Darwin"))
+    residual = expect - result
+    self.assertFalse(residual)
+
+    result = set(checks.CheckRegistry.FindChecks(
+        artifact="SshdConfigFile", os_type="Linux"))
+    residual = expect - result
+    self.assertFalse(residual)
 
     # All sshd config checks specify an OS, so should get no results.
-    expect = []
-    result = checks.CheckRegistry.FindChecks(artifact="SshdConfigFile")
-    self.assertItemsEqual(expect, result)
-    result = checks.CheckRegistry.FindChecks(
-        artifact="SshdConfigFile", os="Windows")
-    self.assertItemsEqual(expect, result)
+    expect = set([])
+    result = set(checks.CheckRegistry.FindChecks(artifact="SshdConfigFile"))
+    residual = expect - result
+    self.assertFalse(residual)
+    result = set(checks.CheckRegistry.FindChecks(
+        artifact="SshdConfigFile", os_type="Windows"))
+    residual = expect - result
+    self.assertFalse(residual)
 
   def testMapArtifactsToTriggers(self):
     """Identify the artifacts that should be collected based on criteria."""
-    expect = ["DebianPackagesStatus", "SshdConfigFile"]
-    result = checks.CheckRegistry.SelectArtifacts(os="Linux")
-    self.assertItemsEqual(expect, result)
+    # Test whether all expected checks were mapped.
+    expect = set(["DebianPackagesStatus", "SshdConfigFile"])
+    result = set(checks.CheckRegistry.SelectArtifacts(os_type="Linux"))
+    residual = expect - result
+    self.assertFalse(residual)
 
-    expect = ["WMIInstalledSoftware"]
-    result = checks.CheckRegistry.SelectArtifacts(os="Windows")
-    self.assertItemsEqual(expect, result)
+    expect = set(["WMIInstalledSoftware"])
+    result = set(checks.CheckRegistry.SelectArtifacts(os_type="Windows"))
+    residual = expect - result
+    self.assertFalse(residual)
 
-    expect = ["DebianPackagesStatus"]
-    result = checks.CheckRegistry.SelectArtifacts(
-        os=None, cpe=None, labels="foo")
-    self.assertItemsEqual(expect, result)
+    expect = set(["DebianPackagesStatus"])
+    result = set(checks.CheckRegistry.SelectArtifacts(
+        os_type=None, cpe=None, labels="foo"))
+    residual = expect - result
+    self.assertFalse(residual)
 
 
 class ProcessHostDataTests(checks_test_lib.HostCheckTest):
 
   def setUp(self):
     super(ProcessHostDataTests, self).setUp()
+    registered = checks.CheckRegistry.checks.keys()
+    if "SW-CHECK" not in registered:
+      checks.LoadChecksFromFiles([os.path.join(CHECKS_DIR, "sw.yaml")])
+    if "SSHD-CHECK" not in registered:
+      checks.LoadChecksFromFiles([os.path.join(CHECKS_DIR, "sshd.yaml")])
     self.netcat = rdfvalue.CheckResult(
         check_id="SW-CHECK",
         anomaly=[

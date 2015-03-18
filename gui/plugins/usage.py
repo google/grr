@@ -8,7 +8,51 @@ from grr.gui import renderers
 from grr.gui.plugins import semantic
 from grr.gui.plugins import statistics
 from grr.lib import aff4
+from grr.lib import config_lib
 from grr.lib import rdfvalue
+
+
+def GetAuditLogFiles(offset, now, token):
+  """Get fds for audit log files created between now-offset and now.
+
+  Args:
+    offset: rdfvalue.Duration how far back to look in time
+    now: rdfvalue.RDFDatetime for current time
+    token: GRR access token
+  Returns:
+    Open handles to all audit logs collections that match the time range
+  Raises:
+    ValueError: if no matching logs were found
+  """
+  # Go back offset seconds, and another rollover period to make sure we get
+  # all the events
+  oldest_time = now - offset - rdfvalue.Duration(
+      config_lib.CONFIG["Logging.aff4_audit_log_rollover"])
+  parentdir = aff4.FACTORY.Open("aff4:/audit/logs", token=token)
+  logs = list(parentdir.ListChildren(age=(oldest_time.AsMicroSecondsFromEpoch(),
+                                          now.AsMicroSecondsFromEpoch())))
+  if not logs:
+    raise ValueError("Couldn't find any logs in aff4:/audit/logs "
+                     "between %s and %s" % (oldest_time, now))
+
+  return aff4.FACTORY.MultiOpen(logs, aff4_type="RDFValueCollection",
+                                token=token)
+
+
+def GetAuditLogEntries(offset, now, token):
+  """Return all audit log entries between now-offset and now.
+
+  Args:
+    offset: rdfvalue.Duration how far back to look in time
+    now: rdfvalue.RDFDatetime for current time
+    token: GRR access token
+  Yields:
+    AuditEvents created during the time range
+  """
+  for fd in GetAuditLogFiles(offset, now, token):
+    for event in fd.GenerateItems():
+      if (now - offset) < event.timestamp < now:
+        yield event
 
 
 class MostActiveUsers(statistics.PieChart):
@@ -18,14 +62,10 @@ class MostActiveUsers(statistics.PieChart):
   def Layout(self, request, response):
     """Filter the last week of user actions."""
     try:
-      # TODO(user): Replace with Duration().
-      now = int(rdfvalue.RDFDatetime().Now())
-      fd = aff4.FACTORY.Open("aff4:/audit/log", aff4_type="RDFValueCollection",
-                             token=request.token)
-
+      offset = rdfvalue.Duration("7d")
+      now = rdfvalue.RDFDatetime().Now()
       counts = {}
-      for event in fd.GenerateItems(
-          timestamp=(now - 7 * 24 * 60 * 60 * 1000000, now)):
+      for event in GetAuditLogEntries(offset, now, request.token):
         counts.setdefault(event.user, 0)
         counts[event.user] += 1
 
@@ -75,29 +115,24 @@ class UserActivity(StackChart):
   def Layout(self, request, response):
     """Filter the last week of user actions."""
     try:
-      # TODO(user): Replace with Duration().
-      now = int(rdfvalue.RDFDatetime().Now())
-      week_duration = 7 * 24 * 60 * 60 * 1000000
-
-      fd = aff4.FACTORY.Open("aff4:/audit/log", aff4_type="RDFValueCollection",
-                             token=request.token)
-
       self.user_activity = {}
+      week_duration = rdfvalue.Duration("7d")
+      offset = rdfvalue.Duration(7 * 24 * 60 * 60 * self.WEEKS)
+      now = rdfvalue.RDFDatetime().Now()
+      for fd in GetAuditLogFiles(offset, now, request.token):
+        for week in range(self.WEEKS):
+          start = now - week * week_duration
 
-      for week in range(self.WEEKS):
-        start = now - week * week_duration
-
-        for event in fd.GenerateItems(timestamp=(start, start + week_duration)):
-          self.weekly_activity = self.user_activity.setdefault(
-              event.user, [[x, 0] for x in range(-self.WEEKS, 0, 1)])
-          self.weekly_activity[-week][1] += 1
+          for event in fd.GenerateItems():
+            if start < event.timestamp < (start + week_duration):
+              self.weekly_activity = self.user_activity.setdefault(
+                  event.user, [[x, 0] for x in range(-self.WEEKS, 0, 1)])
+              self.weekly_activity[-week][1] += 1
 
       self.data = []
       for user, data in self.user_activity.items():
         if user not in aff4.GRRUser.SYSTEM_USERS:
           self.data.append(dict(label=user, data=data))
-
-      self.data = renderers.JsonDumpForScriptContext(self.data)
 
     except IOError:
       pass
@@ -135,14 +170,9 @@ class SystemFlows(statistics.Report, renderers.TableRenderer):
     # AFF4.
     try:
       now = rdfvalue.RDFDatetime().Now()
-      start = now - self.time_offset
-      fd = aff4.FACTORY.Open("aff4:/audit/log", aff4_type="RDFValueCollection",
-                             token=request.token)
-
       # Store run count total and per-user
       counts = {}
-      for event in fd.GenerateItems(timestamp=(start.AsMicroSecondsFromEpoch(),
-                                               now.AsMicroSecondsFromEpoch())):
+      for event in GetAuditLogEntries(self.time_offset, now, request.token):
         if (event.action == rdfvalue.AuditEvent.Action.RUN_FLOW and
             self.UserFilter(event.user)):
           counts.setdefault(event.flow_name, {"total": 0, event.user: 0})
@@ -205,29 +235,24 @@ class ClientActivity(StackChart):
   def Layout(self, request, response):
     """Filter the last week of flows."""
     try:
-      # TODO(user): Replace with Duration().
-      now = int(rdfvalue.RDFDatetime().Now())
-      week_duration = 7 * 24 * 60 * 60 * 1000000
-
-      fd = aff4.FACTORY.Open("aff4:/audit/log", aff4_type="RDFValueCollection",
-                             token=request.token)
-
+      now = rdfvalue.RDFDatetime().Now()
+      week_duration = rdfvalue.Duration("7d")
+      offset = rdfvalue.Duration(7 * 24 * 60 * 60 * self.WEEKS)
       self.client_activity = {}
 
-      for week in range(self.WEEKS):
-        start = now - week * week_duration
-
-        for event in fd.GenerateItems(timestamp=(start, start + week_duration)):
-          self.weekly_activity = self.client_activity.setdefault(
-              event.client, [[x, 0] for x in range(-self.WEEKS, 0, 1)])
-          self.weekly_activity[-week][1] += 1
+      for fd in GetAuditLogFiles(offset, now, request.token):
+        for week in range(self.WEEKS):
+          start = now - week * week_duration
+          for event in fd.GenerateItems():
+            if start < event.timestamp < (start + week_duration):
+              self.weekly_activity = self.client_activity.setdefault(
+                  event.client, [[x, 0] for x in range(-self.WEEKS, 0, 1)])
+              self.weekly_activity[-week][1] += 1
 
       self.data = []
       for client, data in self.client_activity.items():
         if client:
           self.data.append(dict(label=str(client), data=data))
-
-      self.data = renderers.JsonDumpForScriptContext(self.data)
 
     except IOError:
       pass
@@ -258,13 +283,8 @@ class AuditTable(statistics.Report, renderers.TableRenderer):
   def BuildTable(self, start_row, end_row, request):
     try:
       now = rdfvalue.RDFDatetime().Now()
-      start = now - self.time_offset
-      fd = aff4.FACTORY.Open("aff4:/audit/log", aff4_type="RDFValueCollection",
-                             token=request.token)
-
       rows = []
-      for event in fd.GenerateItems(timestamp=(start.AsMicroSecondsFromEpoch(),
-                                               now.AsMicroSecondsFromEpoch())):
+      for event in GetAuditLogEntries(self.time_offset, now, request.token):
         if event.action in self.TYPES:
           row_dict = {}
           for column_name, attribute in self.column_map.iteritems():

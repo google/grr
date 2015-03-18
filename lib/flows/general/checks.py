@@ -44,7 +44,7 @@ class CheckRunner(flow.GRRFlow):
   def MapArtifactData(self, responses):
     """Get processed data, mapped to artifacts."""
     self.state.artifacts_wanted = checks.CheckRegistry.SelectArtifacts(
-        os=self.state.knowledge_base.os)
+        os_type=self.state.knowledge_base.os)
     # Fetch Artifacts and map results to the artifacts that generated them.
     # This is an inefficient collection, but necessary because results need to
     # be mapped to the originating artifact. An alternative would be to have
@@ -68,7 +68,7 @@ class CheckRunner(flow.GRRFlow):
     # Hand host data across to checks. Do this after all data has been collected
     # in case some checks require multiple artifacts/results.
     for finding in checks.CheckHost(self.state.host_data,
-                                    os=self.state.knowledge_base.os):
+                                    os_type=self.state.knowledge_base.os):
       self.state.checks_run.append(finding.check_id)
       if finding.anomaly:
         self.state.checks_with_findings.append(finding.check_id)

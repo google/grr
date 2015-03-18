@@ -459,6 +459,8 @@ class FullAccessControlManager(BasicAccessControlManager):
     # Namespace for audit data.
     h.Allow("aff4:/audit")
     h.Allow("aff4:/audit/*")
+    h.Allow("aff4:/audit/logs")
+    h.Allow("aff4:/audit/logs/*")
 
     # Namespace for clients.
     h.Allow(self.CLIENT_URN_PATTERN)

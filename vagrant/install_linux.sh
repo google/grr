@@ -174,10 +174,14 @@ function install_m2crypto() {
 }
 
 function install_sleuthkit() {
-  ${WGET} -O sleuthkit-3.2.3.tar.gz https://sourceforge.net/projects/sleuthkit/files/sleuthkit/3.2.3/sleuthkit-3.2.3.tar.gz/download
-  tar zxf sleuthkit-3.2.3.tar.gz
-  cd sleuthkit-3.2.3
-  ./configure
+  ${WGET} -O sleuthkit-4.1.3.tar.gz https://sourceforge.net/projects/sleuthkit/files/sleuthkit/4.1.3/sleuthkit-4.1.3.tar.gz/download
+  # Segfault fix: https://github.com/py4n6/pytsk/wiki/Building-SleuthKit
+  ${WGET} https://googledrive.com/host/0B3fBvzttpiiScUxsUm54cG02RDA/tsk4.1.3_external_type.patch
+  tar zxf sleuthkit-4.1.3.tar.gz
+  cd sleuthkit-4.1.3
+  patch -u -p0 < ../tsk4.1.3_external_type.patch
+  # Exclude some pieces of sleuthkit we don't use
+  ./configure --disable-java --without-libewf --without-afflib
   make -j4
   make install
   ldconfig

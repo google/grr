@@ -80,33 +80,30 @@ class TestCheckFlows(test_lib.FlowTestsBaseclass):
 
   def testSelectArtifactsForChecks(self):
     self.SetLinuxKB()
-    expected = ["DebianPackagesStatus", "SshdConfigFile"]
     results, _ = self.RunFlow()
-    self.assertItemsEqual(expected, results.state.artifacts_wanted)
+    self.assertTrue("DebianPackagesStatus" in results.state.artifacts_wanted)
+    self.assertTrue("SshdConfigFile" in results.state.artifacts_wanted)
 
     self.SetWindowsKB()
-    expected = ["WMIInstalledSoftware"]
     results, _ = self.RunFlow()
-    self.assertItemsEqual(expected, results.state.artifacts_wanted)
+    self.assertTrue("WMIInstalledSoftware" in results.state.artifacts_wanted)
 
   def testCheckHostDataReturnsFindings(self):
     """Test the flow returns results."""
     self.SetLinuxKB()
-    expected = {"DebianPackagesStatus": ["Should have data, but doesn't"],
-                "SshdConfigFile": ["Ditto"]}
     _, replies = self.RunFlow()
     checks_run = []
-    anomalies_found = []
     for _, rslt in replies.args:
       if isinstance(rslt, rdfvalue.CheckResult):
         checks_run.append(rslt.check_id)
-        if rslt:  # True if there are anomalies
-          anomalies_found.extend([a.ToPrimitiveDict() for a in rslt.anomaly])
-    self.assertItemsEqual(["SSHD-CHECK", "SW-CHECK"], checks_run)
-    expected = [{"finding": [u"Configured protocols: [2, 1]"],
-                 "explanation": u"Found: Sshd allows protocol 1.",
-                 "type": "ANALYSIS_ANOMALY"}]
-    self.assertEqual(expected, anomalies_found)
+        if rslt.check_id == "SSHD-CHECK":  # True if there are anomalies
+          results = [a.ToPrimitiveDict() for a in rslt.anomaly]
+    self.assertTrue("SSHD-CHECK" in checks_run)
+    self.assertTrue("SW-CHECK" in checks_run)
+    expected = {"explanation": "Found: Sshd allows protocol 1.",
+                "finding": ["Configured protocols: [2, 1]"],
+                "type": "ANALYSIS_ANOMALY"}
+    self.assertTrue(expected in results)
 
 
 def main(argv):

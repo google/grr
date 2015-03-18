@@ -2,11 +2,6 @@
 # This is the template used in deployment of GRR. It contains the basic
 # elements and test configurations to run the system.
 
-# Include other config files like this. An example buildconfig.yaml is supplied
-# for separating out build configuration.
-#ConfigIncludes:
-#  - buildconfig.yaml
-
 AdminUI.bind: "::"
 
 AdminUI.django_debug: True
@@ -88,6 +83,12 @@ Client Context:
   Config.writeback: /etc/grr/client.local.yaml
 
 ClientBuilder Context:
+
+# Include other config files like this. An example buildconfig.yaml is supplied
+# for separating out build configuration.
+# ConfigIncludes:
+#   - grr/config/buildconfig.yaml
+
   ClientBuilder.executables_path: |
     %(ClientBuilder.source)/grr/executables
 
@@ -186,6 +187,8 @@ ClientBuilder Context:
       %{C:\Program Files (x86)\Microsoft Visual Studio 10.0}
 
     PyInstaller.path: C:\\grr_build\\pyinstaller\\pyinstaller.py
+
+    PyInstaller.distorm_lib: distorm3.dll
 
   # This indicates that we are building a client for debugging.
   DebugClientBuild Context:

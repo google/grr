@@ -122,7 +122,7 @@ class WindowsClientBuilder(build.ClientBuilder):
       shutil.copy(module, self.output_dir)
 
     self.BuildNanny()
-    self.MakeZip(self.output_dir, self.template_path)
+    self.MakeZip(self.output_dir, self.template_file)
 
 
 def CopyFileInZip(from_zip, from_name, to_zip, to_name=None):

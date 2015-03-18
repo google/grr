@@ -52,3 +52,8 @@ config_lib.DEFINE_option(type_info.RDFValueType(
 
 config_lib.DEFINE_integer("Monitoring.http_port", 0,
                           "Port for stats monitoring server.")
+
+config_lib.DEFINE_integer("Logging.aff4_audit_log_rollover", 60 * 60 * 24 * 14,
+                          "Audit log rollover interval in seconds. "
+                          "Default is 2 weeks")
+

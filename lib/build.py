@@ -109,6 +109,7 @@ class ClientBuilder(BuilderBase):
         "PyInstaller.build_root_dir", context=self.context), "grr")
 
     self.CleanDirectory(self.build_dir)
+    # TODO(user): This should not be necessary.
     self.CleanDirectory(self.work_path)
     self.CleanDirectory(self.grr_path)
     self.CopyGRR(self.grr_path)
@@ -772,8 +773,9 @@ class CentosClientDeployer(LinuxClientDeployer):
         fd.write(client_config_content)
 
       # Undo all prelinking for libs or the rpm will have checksum mismatches.
+      logging.info("Undoing prelinking.")
       libs = os.path.join(target_binary_dir, "lib*")
-      subprocess.call("/usr/sbin/prelink -u %s" % libs, shell=True)
+      subprocess.call("/usr/sbin/prelink -u %s 2>/dev/null" % libs, shell=True)
 
       # Set the daemon to executable.
       os.chmod(os.path.join(target_binary_dir, client_binary_name), 0755)
@@ -829,4 +831,3 @@ def SetPeSubsystem(fd, console=True):
   else:
     fd.write("\x02")
   fd.seek(current_pos)
-
