@@ -88,7 +88,7 @@ class OSXLaunchdPlistParser(parsers.FileParser):
 
     try:
       plist = binplist.readPlist(file_object)
-    except binplist.FormatError:
+    except (binplist.FormatError, ValueError):
       plist["Label"] = "Could not parse plist."
 
     # These are items that can be directly copied
