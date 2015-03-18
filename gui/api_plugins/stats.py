@@ -75,7 +75,7 @@ class ApiStatsStoreMetricRenderer(api_call_renderers.ApiCallRenderer):
 
     data = stats_store.MultiReadStats(
         process_ids=filtered_ids,
-        predicate_regex=re.escape(utils.SmartStr(args.metric_name)),
+        predicate_regex=utils.SmartStr(args.metric_name),
         timestamp=(start_time, end_time))
 
     if not data:
