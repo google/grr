@@ -725,6 +725,9 @@ class CentosClientDeployer(LinuxClientDeployer):
       rpm_build_dir = os.path.join(rpm_root_dir, "BUILD")
       self.EnsureDirExists(rpm_build_dir)
 
+      rpm_buildroot_dir = os.path.join(rpm_root_dir, "BUILDROOT")
+      self.EnsureDirExists(rpm_buildroot_dir)
+
       rpm_rpms_dir = os.path.join(rpm_root_dir, "RPMS")
       self.EnsureDirExists(rpm_rpms_dir)
 
@@ -788,7 +791,7 @@ class CentosClientDeployer(LinuxClientDeployer):
           rpmbuild_binary,
           "--define", "_topdir " + rpm_root_dir,
           "--target", client_arch,
-          "--buildroot", rpm_build_dir,
+          "--buildroot", rpm_buildroot_dir,
           "-bb", spec_filename]
       try:
         subprocess.check_output(command, stderr=subprocess.STDOUT)
