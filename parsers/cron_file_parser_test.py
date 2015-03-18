@@ -28,6 +28,11 @@ class TestCronTabParsing(test_lib.GRRBaseTest):
     results.extend(list(parser.Parse(stat, plist_file, None)))
 
     for result in results:
+      self.assertItemsEqual(result.jobs[0].minute, '1')
+      self.assertItemsEqual(result.jobs[0].hour, '2')
+      self.assertItemsEqual(result.jobs[0].dayofmonth, '3')
+      self.assertItemsEqual(result.jobs[0].month, '4')
+      self.assertItemsEqual(result.jobs[0].dayofweek, '5')
       self.assertItemsEqual(result.jobs[0].command, '/usr/bin/echo "test"')
 
 def main(argv):

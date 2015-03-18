@@ -23,17 +23,13 @@ class CronTabParser(parsers.FileParser):
     jobs = CronTab(tab=crondata)
 
     for job in jobs:
-      minute = utils.SmartStr(job.minute)
-      hour = utils.SmartStr(job.hour)
-      dayofmonth = utils.SmartStr(job.dom)
-      month = utils.SmartStr(job.month)
-      dayofweek = utils.SmartStr(job.dow)
-      command = utils.SmartStr(job.command)
-      comment = utils.SmartStr(job.comment)
-      entries.append(rdfvalue.CronTabEntry(minute=minute, hour=hour,
-                                           dayofmonth=dayofmonth, month=month,
-                                           dayofweek=dayofweek,
-                                           command=command, comment=comment))
+      entries.append(rdfvalue.CronTabEntry(minute=utils.SmartStr(job.minute),
+                                           hour=utils.SmartStr(job.hour),
+                                           dayofmonth=utils.SmartStr(job.dom),
+                                           month=utils.SmartStr(job.month),
+                                           dayofweek=utils.SmartStr(job.dow),
+                                           command=utils.SmartStr(job.command),
+                                           comment=utils.SmartStr(job.comment)))
 
     yield rdfvalue.CronTabFile(aff4path=stat.aff4path, jobs=entries)
 
