@@ -10,6 +10,7 @@ import thread
 import threading
 import time
 
+
 import MySQLdb
 from MySQLdb import cursors
 
@@ -431,7 +432,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     if attribute is not None:
       if is_regex:
         tables += " JOIN attributes ON aff4.attribute_hash=attributes.hash"
-        regex = re.match(r'(^[a-zA-Z0-9_\- /:]+)(.*)', attribute)
+        regex = re.match(r"(^[a-zA-Z0-9_\- /:]+)(.*)", attribute)
         if not regex:
           # If attribute has no prefix just rlike
           criteria += " AND attributes.attribute rlike %s"

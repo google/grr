@@ -23,20 +23,12 @@ from grr.lib import artifact
 from grr.lib import artifact_lib
 from grr.lib import config_lib
 from grr.lib import flags
-
-# pylint: disable=g-import-not-at-top,no-name-in-module
-try:
-  # FIXME(dbilby): Temporary hack until key_utils is deprecated.
-  from grr.lib import key_utils
-except ImportError:
-  pass
-
+from grr.lib import key_utils
 from grr.lib import maintenance_utils
 from grr.lib import rdfvalue
 from grr.lib import startup
 from grr.lib import utils
 from grr.lib.aff4_objects import users
-# pylint: enable=g-import-not-at-top,no-name-in-module
 
 
 parser = flags.PARSER
@@ -69,6 +61,8 @@ parser_initialize = subparsers.add_parser(
     "initialize",
     help="Interactively run all the required steps to setup a new GRR install.")
 
+parser_set_var = subparsers.add_parser(
+    "set_var", help="Set a config variable.")
 
 # Update an existing user.
 parser_update_user = subparsers.add_parser(
@@ -93,10 +87,18 @@ parser_add_user = subparsers.add_parser(
     "add_user", help="Add a new user.")
 
 parser_add_user.add_argument("username", help="Username to update.")
+parser_add_user.add_argument("password", help="Set password.")
 
 parser_add_user.add_argument(
     "--noadmin", default=False, action="store_true",
     help="Don't create the user as an administrator.")
+
+parser_initialize.add_argument(
+    "--external_hostname", default=None,
+    help="External hostname to use.")
+
+parser_set_var.add_argument("var", help="Variable to set.")
+parser_set_var.add_argument("val", help="Value to set.")
 
 
 def UpdateUser(username, password, add_labels=None, delete_labels=None,
@@ -378,15 +380,18 @@ def ConfigureBaseOptions(config):
 server. To do this we normally need a public dns name or IP address to
 communicate with. In the standard configuration this will be used to host both
 the client facing server and the admin user interface.\n"""
-  print "Guessing public hostname of your server..."
-  try:
-    hostname = maintenance_utils.GuessPublicHostname()
-    print "Using %s as public hostname" % hostname
-  except (OSError, IOError):
-    print "Sorry, we couldn't guess your public hostname"
+  if flags.FLAGS.external_hostname:
+    hostname = flags.FLAGS.external_hostname
+  else:
+    print "Guessing public hostname of your server..."
+    try:
+      hostname = maintenance_utils.GuessPublicHostname()
+      print "Using %s as public hostname" % hostname
+    except (OSError, IOError):
+      print "Sorry, we couldn't guess your public hostname"
 
-  hostname = RetryQuestion("Please enter your public hostname e.g. "
-                           "grr.example.com", "^([\\.A-Za-z0-9-]+)*$")
+    hostname = RetryQuestion("Please enter your public hostname e.g. "
+                             "grr.example.com", "^([\\.A-Za-z0-9-]+)*$")
 
   print """\n\nServer URL
 The Server URL specifies the URL that the clients will connect to
@@ -559,8 +564,11 @@ def main(unused_argv):
     DeleteUser(flags.FLAGS.username, token=token)
 
   elif flags.FLAGS.subparser_name == "add_user":
-    password = getpass.getpass(prompt="Please enter password for user '%s': " %
-                               flags.FLAGS.username)
+    if flags.FLAGS.password:
+      password = flags.FLAGS.password
+    else:
+      password = getpass.getpass(
+          prompt="Please enter password for user '%s': " % flags.FLAGS.username)
     labels = []
     if not flags.FLAGS.noadmin:
       labels.append("admin")
@@ -611,6 +619,14 @@ def main(unused_argv):
           content, client_context=client_context, token=token)
 
     print "Uploaded to %s" % uploaded
+
+  elif flags.FLAGS.subparser_name == "set_var":
+    config = config_lib.CONFIG
+    print "Setting %s to %s" % (flags.FLAGS.var, flags.FLAGS.val)
+    if flags.FLAGS.val.startswith("["):   # Allow setting of basic lists.
+      flags.FLAGS.val = flags.FLAGS.val[1:-1].split(",")
+    config.Set(flags.FLAGS.var, flags.FLAGS.val)
+    config.Write()
 
   elif flags.FLAGS.subparser_name == "upload_raw":
     if not flags.FLAGS.dest_path:

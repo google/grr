@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 """API renderers for stats."""
 
-import re
-
 from grr.gui import api_call_renderers
 from grr.gui import api_value_renderers
 
