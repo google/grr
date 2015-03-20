@@ -4,7 +4,7 @@
 <p align="center">
 GRR Rapid Response is an incident response framework focused on remote live forensics.
 
-Links  [![Build Status](https://api.travis-ci.org/google/grr.png)](https://travis-ci.org/google/grr)
+Links  [![Build Status](https://travis-ci.org/google/grr.svg?branch=master)](https://travis-ci.org/google/grr)
 -----
 
  * [Quickstart: Fast automated installation](https://github.com/google/grr-doc/blob/master/quickstart.adoc)
