@@ -4,7 +4,7 @@
 <p align="center">
 GRR Rapid Response is an incident response framework focused on remote live forensics.
 
-Links
+Links  [![Build Status](https://api.travis-ci.org/google/grr.png)](https://travis-ci.org/google/grr)
 -----
 
  * [Quickstart: Fast automated installation](https://github.com/google/grr-doc/blob/master/quickstart.adoc)
@@ -27,17 +27,6 @@ Mailing Lists
 
  * GRR Users: [grr-users](https://groups.google.com/forum/#!forum/grr-users)
  * GRR Developers: [grr-dev](https://groups.google.com/forum/#!forum/grr-dev)
-
-Announcements
--------------
-
-**Nov 5 2014**: We've got a great new logo, which you will see turning up in the admin UI soon.  It replaces [our long-standing unofficial logo](https://raw.githubusercontent.com/google/grr/gh-pages/img/grr_logo.png) :)
-
-**Oct 28 2014**: We've started a blog as a supplement to the documentation.  Check out the first post on [how to set up the distributed datastore](http://grr-response.blogspot.com/2014/10/using-distributed-data-store-in-grr.html).
-
-**Oct 15 2014**: We're now fully migrated to github. The code.google.com page
-will just be a redirect here. Open issues, documentation and code have been
-moved over, and we will only update this repository in the future.
 
 Overview
 --------
