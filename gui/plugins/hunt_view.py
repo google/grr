@@ -59,27 +59,28 @@ class RunHuntConfirmationDialog(renderers.ConfirmationDialogRenderer):
                                    unique=self.unique)
 
 
-class PauseHuntConfirmationDialog(renderers.ConfirmationDialogRenderer):
-  """Dialog that asks confirmation to pause a hunt and actually runs it."""
+class StopHuntConfirmationDialog(renderers.ConfirmationDialogRenderer):
+  """Dialog that asks confirmation to stop a hunt."""
   post_parameters = ["hunt_id"]
 
   inner_dialog_only = True
-  header = "Pause a hunt?"
+  header = "Stop a hunt?"
 
   content_template = renderers.Template("""
-<p>Are you sure you want to <strong>pause</strong> this hunt?</p>
+<p>Are you sure you want to <strong>stop</strong> this hunt? Once a hunt is
+stopped, restarting it will run it on all clients again.</p>
 """)
 
   ajax_template = renderers.Template("""
-<p class="text-info">Hunt paused successfully!</p>
+<p class="text-info">Hunt stopped successfully!</p>
 """)
 
   def Layout(self, request, response):
     self.check_access_subject = rdfvalue.RDFURN(request.REQ.get("hunt_id"))
-    return super(PauseHuntConfirmationDialog, self).Layout(request, response)
+    return super(StopHuntConfirmationDialog, self).Layout(request, response)
 
   def RenderAjax(self, request, response):
-    flow.GRRFlow.StartFlow(flow_name="PauseHuntFlow", token=request.token,
+    flow.GRRFlow.StartFlow(flow_name="StopHuntFlow", token=request.token,
                            hunt_urn=rdfvalue.RDFURN(request.REQ.get("hunt_id")))
     return self.RenderFromTemplate(self.ajax_template, response,
                                    unique=self.unique)

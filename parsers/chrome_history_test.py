@@ -25,17 +25,13 @@ class ChromeHistoryTest(test_lib.GRRBaseTest):
     try:
       dt1 = datetime.datetime(1970, 1, 1)
       dt1 += datetime.timedelta(microseconds=entries[0][0])
-    except TypeError:
-      dt1 = entries[0][0]
-    except ValueError:
+    except (TypeError, ValueError):
       dt1 = entries[0][0]
 
     try:
       dt2 = datetime.datetime(1970, 1, 1)
       dt2 += datetime.timedelta(microseconds=entries[-1][0])
-    except TypeError:
-      dt2 = entries[-1][0]
-    except ValueError:
+    except (TypeError, ValueError):
       dt2 = entries[-1][0]
 
     # Check that our results are properly time ordered
@@ -71,17 +67,13 @@ class ChromeHistoryTest(test_lib.GRRBaseTest):
     try:
       dt1 = datetime.datetime(1970, 1, 1)
       dt1 += datetime.timedelta(microseconds=entries[0][0])
-    except TypeError:
-      dt1 = entries[0][0]
-    except ValueError:
+    except (TypeError, ValueError):
       dt1 = entries[0][0]
 
     try:
       dt2 = datetime.datetime(1970, 1, 1)
       dt2 += datetime.timedelta(microseconds=entries[-1][0])
-    except TypeError:
-      dt2 = entries[-1][0]
-    except ValueError:
+    except (TypeError, ValueError):
       dt2 = entries[-1][0]
 
     # Check that our results are properly time ordered

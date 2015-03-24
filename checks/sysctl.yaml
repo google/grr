@@ -1,4 +1,4 @@
-check_id: KERNOPT-NET-ICMP-BROADCAST
+check_id: CIS-NET-ICMP-BROADCAST
 method:
   - target: {os:['Linux']}
     hint:
@@ -16,7 +16,7 @@ method:
           - type: 'ItemFilter'
             expression: net_ipv4_icmp_echo_ignore_broadcasts is "0"
 ---
-check_id: KERNOPT-NET-SEND-REDIRECT
+check_id: CIS-NET-SEND-REDIRECT
 method:
   - target: {os:['Linux']}
     hint:
@@ -34,7 +34,7 @@ method:
           - type: 'ItemFilter'
             expression: net_ipv4_conf_all_send_redirects is "1"
 ---
-check_id: KERNOPT-NET-RP-FILTER
+check_id: CIS-NET-RP-FILTER
 method:
   - target: {os:['Linux']}
     hint:
@@ -53,7 +53,7 @@ method:
           - type: 'ItemFilter'
             expression: net_ipv4_conf_default_rp_filter is "0"
 ---
-check_id: KERNOPT-NET-FORWARD-IP
+check_id: CIS-NET-FORWARD-IP
 method:
   - target: {os:['Linux']}
     hint:
@@ -85,7 +85,7 @@ method:
           - type: 'ItemFilter'
             expression: net_ipv4_conf_all_mc_forwarding is "1"
 ---
-check_id: KERNOPT-NET-SYNCOOKIES
+check_id: CIS-NET-SYNCOOKIES
 method:
   - target: {os:['Linux']}
     hint:
@@ -103,7 +103,7 @@ method:
           - type: 'ItemFilter'
             expression: net_ipv4_tcp_syncookies is "0"
 ---
-check_id: KERNOPT-NET-REDIRECT
+check_id: CIS-NET-REDIRECT
 method:
   - target: {os:['Linux']}
     hint:
@@ -130,7 +130,7 @@ method:
           - type: 'ItemFilter'
             expression: net_ipv6_conf_all_accept_redirects is "1"
 ---
-check_id: KERNOPT-NET-LOGMART
+check_id: CIS-NET-LOGMART
 method:
   - target: {os:['Linux']}
     hint:
@@ -142,12 +142,13 @@ method:
             Enable martian logging.
               - sysctl -w net.ipv4.conf.all.log_martians 1
               - add "net.ipv4.conf.all.log_martians = 1" to sysctl.conf
+              (ref) CIS Debian Benchmark v1.0-13.9
           format: "{k}: {v}"
         filters:
           - type: 'ItemFilter'
             expression: net_ipv4_conf_all_log_martians is "0"
 ---
-check_id: KERNOPT-NET-SRCRT-ACCEPT
+check_id: CIS-NET-SRCRT-ACCEPT
 method:
   - target: {os:['Linux']}
     hint:

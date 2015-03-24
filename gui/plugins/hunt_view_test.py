@@ -24,9 +24,10 @@ class TestHuntView(test_lib.GRRSeleniumTest):
   reason = "Felt like it!"
 
   def CreateSampleHunt(self, flow_runner_args=None, flow_args=None,
-                       stopped=False, output_plugins=None, token=None):
+                       stopped=False, output_plugins=None, client_limit=0,
+                       client_count=10, token=None):
     token = token or self.token
-    self.client_ids = self.SetupClients(10)
+    self.client_ids = self.SetupClients(client_count)
 
     with hunts.GRRHunt.StartHunt(
         hunt_name="GenericHunt",
@@ -42,7 +43,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
             attribute_name="GRR client",
             attribute_regex="GRR")],
         output_plugins=output_plugins or [],
-        client_rate=0, token=token) as hunt:
+        client_rate=0, client_limit=client_limit, token=token) as hunt:
       if not stopped:
         hunt.Run()
 
@@ -85,9 +86,10 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
       return hunt.urn
 
-  def SetupTestHuntView(self):
+  def SetupTestHuntView(self, client_limit=0, client_count=10):
     # Create some clients and a hunt to view.
-    with self.CreateSampleHunt() as hunt:
+    with self.CreateSampleHunt(client_limit=client_limit,
+                               client_count=client_count) as hunt:
       hunt.Log("TestLogLine")
 
       # Log an error just with some random traceback.
@@ -101,7 +103,11 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     hunt = aff4.FACTORY.Open(hunt.urn, token=self.token)
     all_count, _, _ = hunt.GetClientsCounts()
-    self.assertEqual(all_count, 10)
+    if client_limit == 0:
+      # No limit, so we should have all the clients
+      self.assertEqual(all_count, client_count)
+    else:
+      self.assertEqual(all_count, min(client_count, client_limit))
 
   def CheckState(self, state):
     self.WaitUntil(self.IsElementPresent, "css=div[state=\"%s\"]" % state)
@@ -155,7 +161,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent,
                    "css=button[name=RunHunt]:not([disabled])")
     self.WaitUntil(self.IsElementPresent,
-                   "css=button[name=PauseHunt][disabled]")
+                   "css=button[name=StopHunt][disabled]")
     self.WaitUntil(self.IsElementPresent,
                    "css=button[name=ModifyHunt]:not([disabled])")
 
@@ -179,7 +185,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent,
                    "css=button[name=RunHunt][disabled]")
     self.WaitUntil(self.IsElementPresent,
-                   "css=button[name=PauseHunt]:not([disabled])")
+                   "css=button[name=StopHunt]:not([disabled])")
     self.WaitUntil(self.IsElementPresent,
                    "css=button[name=ModifyHunt][disabled]")
 
@@ -236,7 +242,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     # Check the hunt is in a running state.
     self.CheckState("STARTED")
 
-  def testPauseHunt(self):
+  def testStopHunt(self):
     with self.ACLChecksDisabled():
       hunt = self.CreateSampleHunt(stopped=False)
 
@@ -248,10 +254,10 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     # Select a Hunt.
     self.Click("css=td:contains('GenericHunt')")
 
-    # Click on Pause button and check that dialog appears.
-    self.Click("css=button[name=PauseHunt]")
+    # Click on Stop button and check that dialog appears.
+    self.Click("css=button[name=StopHunt]")
     self.WaitUntil(self.IsTextPresent,
-                   "Are you sure you want to pause this hunt?")
+                   "Are you sure you want to stop this hunt?")
 
     # Click on "Proceed" and wait for authorization dialog to appear.
     self.Click("css=button[name=Proceed]")
@@ -268,15 +274,15 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     with self.ACLChecksDisabled():
       self.GrantHuntApproval(hunt.session_id)
 
-    # Click on Pause and wait for dialog again.
-    self.Click("css=button[name=PauseHunt]")
+    # Click on Stop and wait for dialog again.
+    self.Click("css=button[name=StopHunt]")
     self.WaitUntil(self.IsTextPresent,
-                   "Are you sure you want to pause this hunt?")
+                   "Are you sure you want to stop this hunt?")
 
     # Click on "Proceed" and wait for success label to appear.
     # Also check that "Proceed" button gets disabled.
     self.Click("css=button[name=Proceed]")
-    self.WaitUntil(self.IsTextPresent, "Hunt paused successfully")
+    self.WaitUntil(self.IsTextPresent, "Hunt stopped successfully")
     self.assertTrue(self.IsElementPresent("css=button[name=Proceed][disabled]"))
 
     # Click on "Cancel" and check that dialog disappears.
@@ -288,7 +294,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "GenericHunt")
 
     # Check the hunt is not in a running state.
-    self.CheckState("PAUSED")
+    self.CheckState("STOPPED")
 
   def testModifyHunt(self):
     with self.ACLChecksDisabled():

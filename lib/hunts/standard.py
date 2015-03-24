@@ -168,15 +168,15 @@ class DeleteHuntFlow(flow.GRRFlow):
     aff4.FACTORY.Delete(self.args.hunt_urn, token=self.token)
 
 
-class PauseHuntFlowArgs(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.PauseHuntFlowArgs
+class StopHuntFlowArgs(rdfvalue.RDFProtoStruct):
+  protobuf = flows_pb2.StopHuntFlowArgs
 
 
-class PauseHuntFlow(flow.GRRFlow):
+class StopHuntFlow(flow.GRRFlow):
   """Run already created hunt with given id."""
   # This flow can run on any client without ACL enforcement (an SUID flow).
   ACL_ENFORCED = False
-  args_type = PauseHuntFlowArgs
+  args_type = StopHuntFlowArgs
 
   @flow.StateHandler()
   def Start(self):
@@ -189,7 +189,7 @@ class PauseHuntFlow(flow.GRRFlow):
         self.args.hunt_urn, aff4_type="GRRHunt", mode="rw",
         token=self.token) as hunt:
 
-      hunt.GetRunner().Pause()
+      hunt.GetRunner().Stop()
 
 
 class ModifyHuntFlowArgs(rdfvalue.RDFProtoStruct):
@@ -221,7 +221,7 @@ class ModifyHuntFlow(flow.GRRFlow):
 
       # Make sure the hunt is not running:
       if runner.IsHuntStarted():
-        raise RuntimeError("Unable to modify a running hunt. Pause it first.")
+        raise RuntimeError("Unable to modify a running hunt.")
 
       # Record changes in the audit event
       changes = []

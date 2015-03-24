@@ -78,7 +78,7 @@ grr.init = function() {
     }
   }, 'body');
 
-  $('#backtrace').on('hidden', function() {
+  $('#backtrace').on('hidden.bs.modal', function() {
     grr.publish('grr_messages', ' ');
   });
   $('#show_backtrace').unbind('click').click(function() {

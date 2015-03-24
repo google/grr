@@ -613,9 +613,9 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
       self.assertFalse(any([x.require_fastpoll for x in
                             client_mock.recorded_messages]))
 
-    # Pause the hunt
-    with aff4.FACTORY.OpenWithLock(hunt.urn, token=self.token) as hunt:
-      hunt.GetRunner().Pause()
+      # Pause the hunt
+      with aff4.FACTORY.OpenWithLock(hunt.urn, token=self.token) as hunt:
+        hunt.GetRunner().Pause()
 
     # Advance time and re-run. We get the results back from last time, but don't
     # schedule any new ones because the hunt is now paused.
@@ -738,7 +738,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
                                    token=self.token)
 
       # Hunts are automatically stopped when they expire.
-      self.assertEqual(hunt_obj.Get(hunt_obj.Schema.STATE), "STOPPED")
+      self.assertEqual(hunt_obj.Get(hunt_obj.Schema.STATE), "COMPLETED")
 
   def testHuntModificationWorksCorrectly(self):
     """This tests running the hunt on some clients."""
