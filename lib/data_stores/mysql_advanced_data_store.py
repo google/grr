@@ -575,7 +575,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       subject_hash BINARY(16) NOT NULL,
       attribute_hash BINARY(16) NOT NULL,
       timestamp BIGINT UNSIGNED DEFAULT NULL,
-      value LONGBLOB NULL,
+      value MEDIUMBLOB NULL,
       KEY `master` (`subject_hash`,`attribute_hash`,`timestamp`),
       KEY `attribute` (`attribute_hash`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8
