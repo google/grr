@@ -750,6 +750,11 @@ class OSXServiceInformation(rdfvalue.RDFProtoStruct):
   protobuf = sysinfo_pb2.OSXServiceInformation
 
 
+class LinuxServiceInformation(rdfvalue.RDFProtoStruct):
+  """Linux Service (init/upstart/systemd)."""
+  protobuf = sysinfo_pb2.LinuxServiceInformation
+
+
 class ClientResources(rdfvalue.RDFProtoStruct):
   """An RDFValue class representing the client resource usage."""
   protobuf = jobs_pb2.ClientResources

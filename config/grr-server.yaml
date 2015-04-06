@@ -80,7 +80,8 @@ Arch:i386:
   Client.arch: i386
 
 Client Context:
-  Config.writeback: /etc/grr/client.local.yaml
+  # Only the client writes to a writeback location.
+  Config.writeback: /etc/%(Client.name).local.yaml
 
 ClientBuilder Context:
 
@@ -88,9 +89,6 @@ ClientBuilder Context:
 # for separating out build configuration.
 # ConfigIncludes:
 #   - grr/config/buildconfig.yaml
-
-  ClientBuilder.executables_path: |
-    %(ClientBuilder.source)/grr/executables
 
   Target:Darwin:
 
@@ -104,8 +102,6 @@ ClientBuilder Context:
 
    ClientBuilder.build_root_dir: /Users/%(USER|env)/mac-build
 
-   ClientBuilder.build_src_dir: "%(ClientBuilder.build_root_dir)/grr"
-
    ClientBuilder.install_dir: "/usr/lib/%(Client.name)/%(ClientBuilder.output_basename)"
 
    # Needed for package maker. Do not touch.
@@ -118,16 +114,14 @@ ClientBuilder Context:
 
    ClientBuilder.package_maker_organization: com.google.code
 
-   ClientBuilder.template_extension: .template
-
    ClientBuilder.package_maker_path: |
        /Applications/PackageMaker.app/Contents/MacOS/PackageMaker
 
-   PyInstaller.build_dir: |
-       %(ClientBuilder.build_root_dir)/%(ClientBuilder.build_dest)
-
    PyInstaller.path: |
        /Users/%(USER|env)/mac-build/pyinstaller/pyinstaller.py
+
+   PyInstaller.distpath: |
+     /Users/%(USER|env)/mac-dist
 
   Target:Linux:
     Client.binary_name: grrd
@@ -150,23 +144,15 @@ ClientBuilder Context:
 
     Logging.engines: stderr
 
-    PyInstaller.build_dir: |
-      %(PyInstaller.build_root_dir)/build
-
-    PyInstaller.build_root_dir: /home/%(USER|env)/grr-build
+    ClientBuilder.build_root_dir: /home/%(USER|env)/grr-build
 
     PyInstaller.distpath: |
       %(PyInstaller.dpkg_root)/debian/
 
-    PyInstaller.dpkg_root: |
-      %(PyInstaller.build_root_dir)/dist
-
     PyInstaller.path: |
-      %(PyInstaller.build_root_dir)/pyinstaller/pyinstaller.py
+      %(ClientBuilder.build_root_dir)/pyinstaller/pyinstaller.py
 
     Target:LinuxRpm:
-      ClientBuilder.template_extension: .rpm.zip
-
       ClientBuilder.output_extension: .rpm
 
       ClientBuilder.target_dir: |
@@ -179,16 +165,28 @@ ClientBuilder Context:
         %(Client.install_path)/rekall_profiles
 
   Target:Windows:
-    ClientBuilder.output_extension: .exe
+    ClientBuilder.build_root_dir: C:\\grr-build-root
 
-    ClientBuilder.template_extension: .zip
+    PyInstaller.build_dir: |
+      %(ClientBuilder.build_root_dir)\\%(ClientBuilder.build_dest)
+
+    PyInstaller.distpath: |
+      C:\\grr-distpath
+
+    PyInstaller.workpath_dir: |
+      %(ClientBuilder.build_root_dir)\\workpath
+
+    ClientBuilder.output_extension: .exe
 
     ClientBuilder.vs_dir: |
       %{C:\Program Files (x86)\Microsoft Visual Studio 10.0}
 
+    # This is where the pyinstaller svn checkout lives on the build server.
     PyInstaller.path: C:\\grr_build\\pyinstaller\\pyinstaller.py
 
     PyInstaller.distorm_lib: distorm3.dll
+
+    ClientBuilder.make_command: C:\\cygwin64\\bin\\make.exe
 
   # This indicates that we are building a client for debugging.
   DebugClientBuild Context:
@@ -221,8 +219,10 @@ Demo Context:
 
   Client.poll_max: 5
 
+  # Increase the client memory limit to 4GB.
   Client.rss_max: 4000
 
+  # Use the FakeDataStore in the demo.
   Datastore.implementation: FakeDataStore
 
   Frontend.bind_address: 127.0.0.1
@@ -275,7 +275,8 @@ Platform:Linux:
   MemoryDriver.device_path: /dev/pmem
 
 Platform:Windows:
-  Client.binary_name: "%(Client.name).exe"
+  Client.binary_name: |
+      %(Client.name).exe
 
   Client.config_hive: HKEY_LOCAL_MACHINE
 
@@ -284,11 +285,23 @@ Platform:Windows:
   Client.install_path: |
     %(SystemRoot|env)\\System32\\%(Client.name)\\%(Client.version_string)
 
-  Client.tempdir: "%(TEMP|env)"
-
   Client.platform: windows
 
-  Logging.engines: "stderr,file,event_log"
+  # Windows services has an insecure temp directory so we use our installation
+  # path.
+  Client.tempdir: |
+    %(install_path)\\Temp
+
+  # Older clients have keys in different places.
+  Installer.old_key_map: >
+      %(Client.config_hive)\\%(Client.config_key)\\certificate->Client.private_key,
+      %(Client.config_hive)\\%(Client.config_key)\\Client\\private_key->Client.private_key,
+      %(Client.config_hive)\\%(Client.config_key)\\server_serial_number->Client.server_serial_number
+
+  Logging.engines: file,stderr,event_log
+
+  Logging.filename: |
+    %(path)\\%(Client.name).log
 
   Logging.path: |
     %(WINDIR|env)\\System32\\logfiles\\
@@ -302,26 +315,26 @@ Platform:Windows:
   Nanny.child_binary: |
     %(Client.install_path)\\%(Client.binary_name)
 
+  # The nanny is responsible for launching the client with the configuration file.
   Nanny.child_command_line: |
     %(child_binary) --config "%(Client.install_path)\\%(Client.binary_name).yaml"
-
-  Nanny.binary: |
-    %(Client.install_path)\\%(Nanny.service_binary_name)
 
   Nanny.service_binary_name: "%(Client.name)service.exe"
 
   Nanny.service_description: "%(Client.name) Monitor Service"
 
-  Nanny.service_key: "%(Client.config_key)"
+  Nanny.service_key: |
+    %(Client.config_key)
 
-  Nanny.service_key_hive: "%(Client.config_hive)"
+  Nanny.service_key_hive: |
+    %(Client.config_hive)
 
   Nanny.service_name: "%(Client.name) Monitor"
 
   Arch:amd64:
     ClientBuilder.vs_arch: x64
 
-    ClientBuilder.vs_env_script: "%(ClientBuilder.vs_dir)/VC/bin/amd64/vcvars64.bat"
+    ClientBuilder.vs_env_script: "%(vs_dir)\\VC\\bin\\amd64\\vcvars64.bat"
 
     MemoryDriver.aff4_paths:
       - "%(Config.aff4_root)/drivers/windows/memory/winpmem.amd64.sys"
@@ -329,10 +342,11 @@ Platform:Windows:
     MemoryDriver.driver_files:
       - binaries/winpmem_amd64_1.6.1.sys
 
+  # For windows 32 bit clients.
   Arch:i386:
     ClientBuilder.vs_arch: Win32
 
-    ClientBuilder.vs_env_script: "%(ClientBuilder.vs_dir)/VC/bin/vcvars32.bat"
+    ClientBuilder.vs_env_script: "%(vs_dir)\\VC\\bin\\vcvars32.bat"
 
     MemoryDriver.aff4_paths:
       - "%(Config.aff4_root)/drivers/windows/memory/winpmem.x86.sys"
@@ -341,7 +355,8 @@ Platform:Windows:
       - binaries/winpmem_i386_1.6.1.sys
 
   Client Context:
-    # This is where the client will write back volatile configuration data.
+    # This is where the client will write back volatile configuration data. On
+    # windows we write configuration into the registry.
     Config.writeback: reg://%(Client.config_hive)/%(Client.config_key)
 
 SingleServer Context:

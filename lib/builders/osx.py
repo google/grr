@@ -16,8 +16,8 @@ class DarwinClientBuilder(build.ClientBuilder):
     """Initialize the Mac OS X client builder."""
     super(DarwinClientBuilder, self).__init__(context=context)
     self.context.append("Target:Darwin")
-    self.build_src_dir = config_lib.CONFIG.Get("ClientBuilder.build_src_dir",
-                                               context=self.context)
+    self.build_src_dir = os.path.join(config_lib.CONFIG.Get(
+        "ClientBuilder.source", context=self.context), "grr")
 
   def MakeExecutableTemplate(self, output_file=None):
     """Create the executable template."""

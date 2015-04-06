@@ -22,7 +22,7 @@ class TestArtifactRender(test_lib.GRRSeleniumTest):
       self.GrantClientApproval("C.0000000000000001")
     self.Open("/")
 
-    self.Type("client_query", "0001")
+    self.Type("client_query", "C.0000000000000001")
     self.Click("client_query_submit")
 
     self.WaitUntilEqual(u"C.0000000000000001",

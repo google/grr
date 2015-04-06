@@ -456,7 +456,7 @@ class TestHostTable(SearchClientTestBase):
                              token=self.token) as client:
         client.AddLabels("foo", owner="test")
 
-    self.Open("/#main=HostTable&q=.*")
+    self.Open("/#main=HostTable&q=Windows")
 
     self.WaitUntil(self.IsVisible,
                    "css=tr:contains('C.0000000000000001') "
@@ -468,18 +468,18 @@ class TestHostTable(SearchClientTestBase):
                              token=self.token) as client:
         client.AddLabels("bar", owner="GRR")
 
-    self.Open("/#main=HostTable&q=.*")
+    self.Open("/#main=HostTable&q=Windows")
     self.WaitUntil(self.IsVisible,
                    "css=tr:contains('C.0000000000000001') "
                    "span.label:not(.label-success):contains('bar')")
 
   def testLabelButtonIsDisabledByDefault(self):
-    self.Open("/#main=HostTable&q=.*")
+    self.Open("/#main=HostTable&q=Windows")
     self.WaitUntil(self.IsVisible,
                    "css=button[name=ApplyLabel][disabled]")
 
   def testLabelButtonIsEnabledWhenClientIsSelected(self):
-    self.Open("/#main=HostTable&q=.*")
+    self.Open("/#main=HostTable&q=Windows")
 
     self.WaitUntil(self.IsVisible,
                    "css=button[name=ApplyLabel][disabled]")
@@ -489,7 +489,7 @@ class TestHostTable(SearchClientTestBase):
                       "css=button[name=ApplyLabel][disabled]")
 
   def testApplyLabelDialogShowsListOfSelectedClients(self):
-    self.Open("/#main=HostTable&q=.*")
+    self.Open("/#main=HostTable&q=Windows")
 
     # Select 3 clients and click 'Add Label' button.
     self.Click("css=input.client-checkbox["
@@ -512,7 +512,7 @@ class TestHostTable(SearchClientTestBase):
                    "contains('C.0000000000000007')")
 
   def testApplyLabelDialogShowsErrorWhenLabelNameIsEmpty(self):
-    self.Open("/#main=HostTable&q=.*")
+    self.Open("/#main=HostTable&q=Windows")
 
     # Select 1 client and click 'Add Label' button.
     self.Click("css=input.client-checkbox["
@@ -526,7 +526,7 @@ class TestHostTable(SearchClientTestBase):
     self.WaitUntil(self.IsVisible, "css=div[name=ApplyLabelDialog]")
 
   def testApplyLabelDialogShowsErrorWhenAddingLabelWithComma(self):
-    self.Open("/#main=HostTable&q=.*")
+    self.Open("/#main=HostTable&q=Windows")
 
     # Select 1 client and click 'Add Label' button.
     self.Click("css=input.client-checkbox["
@@ -544,7 +544,7 @@ class TestHostTable(SearchClientTestBase):
     self.WaitUntil(self.IsVisible, "css=div[name=ApplyLabelDialog]")
 
   def testLabelIsAppliedCorrectlyViaApplyLabelDialog(self):
-    self.Open("/#main=HostTable&q=.*")
+    self.Open("/#main=HostTable&q=Windows")
 
     # Select 1 client and click 'Add Label' button.
     self.Click("css=input.client-checkbox["
@@ -573,7 +573,7 @@ class TestHostTable(SearchClientTestBase):
                    "span.label-success:contains('issue 42')")
 
   def testSelectionIsPreservedWhenApplyLabelDialogIsCancelled(self):
-    self.Open("/#main=HostTable&q=.*")
+    self.Open("/#main=HostTable&q=Windows")
 
     # Select 1 client and click 'Add Label' button.
     self.Click("css=input.client-checkbox["
@@ -591,7 +591,7 @@ class TestHostTable(SearchClientTestBase):
                    "client_urn='aff4:/C.0000000000000001']:checked")
 
   def testSelectionIsResetWhenLabelIsAppliedViaApplyLabelDialog(self):
-    self.Open("/#main=HostTable&q=.*")
+    self.Open("/#main=HostTable&q=Windows")
 
     # Select 1 client and click 'Add Label' button.
     self.Click("css=input.client-checkbox["
@@ -610,7 +610,7 @@ class TestHostTable(SearchClientTestBase):
                    "client_urn='aff4:/C.0000000000000001']:not(:checked)")
 
   def testCheckAllCheckboxSelectsAllClients(self):
-    self.Open("/#main=HostTable&q=.*")
+    self.Open("/#main=HostTable&q=Windows")
 
     # Check that checkboxes for certain clients are unchecked.
     self.WaitUntil(self.IsVisible,
@@ -652,7 +652,7 @@ class TestHostTable(SearchClientTestBase):
                    "client_urn='aff4:/C.0000000000000007']:not(:checked)")
 
   def testClientsSelectedWithSelectAllAreShownInApplyLabelDialog(self):
-    self.Open("/#main=HostTable&q=.*")
+    self.Open("/#main=HostTable&q=Windows")
 
     # Click on 'check all checkbox'.
     self.Click("css=input.client-checkbox[select_all_client_urns]")

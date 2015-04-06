@@ -57,7 +57,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
   def testClientACLWorkflow(self):
     self.Open("/")
 
-    self.Type("client_query", "0001")
+    self.Type("client_query", "C.0000000000000001")
     self.Click("client_query_submit")
 
     self.WaitUntilEqual(u"C.0000000000000001",
@@ -142,7 +142,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
           reason=test_reason)
       self.GrantClientApproval("C.0000000000000006", token=token)
 
-    self.Type("client_query", "0006")
+    self.Type("client_query", "C.0000000000000006")
     self.Click("client_query_submit")
 
     self.WaitUntilEqual(u"C.0000000000000006",
@@ -156,7 +156,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     # By now we should have a recent reason set, let's see if it shows up in the
     # ACL dialog.
 
-    self.Type("client_query", "0001")
+    self.Type("client_query", "C.0000000000000001")
     self.Click("client_query_submit")
 
     self.WaitUntilEqual(u"C.0000000000000001",

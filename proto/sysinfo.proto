@@ -258,6 +258,58 @@ message OSXServiceInformation {
     }];
 }
 
+message LinuxServiceInformation {
+  option (semantic) = {
+    description: "Describe an Linux service (init/upstart/systemd).",
+  };
+
+  optional string name = 1 [(sem_type) = {
+      description: "The name of the service.",
+    }];
+
+  optional string description = 2 [(sem_type) = {
+      description: "The description string of the service.",
+    }];
+
+  optional StatEntry binary = 3 [(sem_type) = {
+      description: "The binary on the client. This may also contain an AFF4 "
+      "urn to the server copy of the same file.",
+    }];
+
+  optional SoftwarePackage software = 4 [(sem_type) = {
+      description: "Software package that deployed the service.",
+    }];
+
+  enum StartMode {
+    UNKNOWN = 0;
+    INIT = 1;
+    UPSTART = 2;
+    SYSTEMD = 3;
+    INETD = 4;
+    XINETD = 5;
+  }
+
+  optional StartMode start_mode = 5 [(sem_type) = {
+      description: "Service start options",
+    }];
+
+  repeated uint32 start_on = 6 [(sem_type) = {
+      description: "Specifies the runlevels where this service runs.",
+    }];
+
+  repeated uint32 stop_on = 7 [(sem_type) = {
+      description: "Specifies the runlevels where this service is stopped.",
+    }];
+
+  repeated string start_after = 8 [(sem_type) = {
+      description: "Specifies services required before this service runs.",
+    }];
+
+  repeated string stop_after = 9 [(sem_type) = {
+      description: "Specifies service required before this service is stopped.",
+    }];
+}
+
 // Describe an installed software package. Cross platform.
 message SoftwarePackage {
   optional string name = 1;

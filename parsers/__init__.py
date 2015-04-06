@@ -8,6 +8,7 @@ from grr.parsers import ie_history
 from grr.parsers import linux_cmd_parser
 from grr.parsers import linux_file_parser
 from grr.parsers import linux_release_parser
+from grr.parsers import linux_service_parser
 from grr.parsers import linux_sysctl_parser
 from grr.parsers import local
 from grr.parsers import osx_file_parser

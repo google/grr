@@ -1569,6 +1569,7 @@
                   "session_id": "aff4:/hunts/H:000001",
                   "start_time": 1000000000,
                   "state": "RUNNING",
+                  "status": "0 flows terminated.",
                   "usage_stats": {
                     "network_bytes_sent_stats": {
                       "histogram": {
@@ -1745,6 +1746,7 @@
                   "session_id": "aff4:/hunts/H:000001",
                   "start_time": 1000000000,
                   "state": "RUNNING",
+                  "status": "0 flows terminated.",
                   "usage_stats": {
                     "network_bytes_sent_stats": {
                       "histogram": {

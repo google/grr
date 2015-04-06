@@ -18,7 +18,6 @@ from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import registry
-from grr.lib import search
 from grr.lib import stats
 from grr.lib import utils
 
@@ -712,24 +711,12 @@ class HostTable(renderers.TableRenderer):
     logging.info("Processing Client Query [%s]" % query_string)
 
     try:
-      # If the string begins with the token k, we treat the remaining tokens as
-      # a keyword search. This is to allow people to try the keyword
-      # functionality.
-      #
-      # TODO(user): Migrate fully to keyword index when it is sufficiently
-      # tuned and tested.
-      if query_string[:2] == "k ":
-        keywords = shlex.split(query_string)[1:]
-        index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                                    aff4_type="ClientIndex",
-                                    mode="rw",
-                                    token=request.token)
-        result_urns = sorted(index.LookupClients(keywords), key=str)[start:end]
-      else:
-        result_urns = search.SearchClients(query_string,
-                                           start=start,
-                                           max_results=end - start,
-                                           token=request.token)
+      keywords = shlex.split(query_string)
+      index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
+                                  aff4_type="ClientIndex",
+                                  mode="rw",
+                                  token=request.token)
+      result_urns = sorted(index.LookupClients(keywords), key=str)[start:end]
       result_set = aff4.FACTORY.MultiOpen(result_urns, token=request.token)
 
       self.message = "Searched for %s" % query_string

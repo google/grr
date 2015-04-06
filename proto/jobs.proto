@@ -1970,3 +1970,7 @@ message NSRLInformation {
       description: "Type of file."
     }];
 };
+
+message PendingFlowTermination {
+  optional string reason = 1;
+}

@@ -74,4 +74,24 @@ Vagrant.configure(2) do |config|
     end
   end
 
+  # TODO: create a windows vm based off the trial images that we can distribute.
+  # The build code assumes ssh access into a Cygwin environment.
+  config.vm.define "windows_7_64" do |box|
+    # We map one level up so 'net use x: \\VBOXSVR\host will give us a x:\grr
+    # subdirectory so python imports work.
+    box.vm.synced_folder "../../", "/host"
+    box.vm.box = "windows_7_64"
+    box.vm.guest = :windows
+    # Random keypair generation and insertion doesn't work on Windows
+    box.ssh.insert_key = false
+    # msbuild doesn't work properly unless you have a real user session, which
+    # key-based auth doesn't give you.  But we can't just use passwd auth,
+    # because vagrant doesn't let you do 'vagrant ssh -c' when using password
+    # auth. Fall back on using winrm, which is only available for use at
+    # provisioning time, so we need to use vagrant --provision reload and wait
+    # for a reboot. Ugh.
+    box.vm.communicator = "winrm"
+    config.vm.provision "shell", path: "build_windows_templates.bat"
+  end
+
 end

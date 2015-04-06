@@ -64,6 +64,18 @@ class LongRunningDummyHuntOutputPlugin(output_plugin.OutputPlugin):
     time.time = lambda: 100
 
 
+class InfiniteFlow(flow.GRRFlow):
+  """Flow that never ends."""
+
+  @flow.StateHandler(next_state="NextState")
+  def Start(self):
+    self.CallState(next_state="NextState")
+
+  @flow.StateHandler(next_state="Start")
+  def NextState(self):
+    self.CallState(next_state="Start")
+
+
 class StandardHuntTest(test_lib.FlowTestsBaseclass):
   """Tests the Hunt."""
 
@@ -120,10 +132,12 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     for client_id in client_ids:
       foreman.AssignTasksToClient(client_id)
 
-  def RunHunt(self, client_ids=None, **mock_kwargs):
+  def RunHunt(self, client_ids=None, iteration_limit=None, **mock_kwargs):
     client_mock = test_lib.SampleHuntMock(**mock_kwargs)
-    test_lib.TestHuntHelper(client_mock, client_ids or self.client_ids, False,
-                            self.token)
+    test_lib.TestHuntHelper(client_mock, client_ids or self.client_ids,
+                            check_flow_errors=False,
+                            iteration_limit=iteration_limit,
+                            token=self.token)
 
   def StopHunt(self, hunt_urn):
     # Stop the hunt now.
@@ -137,6 +151,40 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     for _ in test_lib.TestFlowHelper(flow_urn, token=self.token):
       pass
     return flow_urn
+
+  def testStoppingHuntMarksAllStartedFlowsAsPendingForTermination(self):
+    with hunts.GRRHunt.StartHunt(
+        hunt_name="GenericHunt",
+        flow_runner_args=rdfvalue.FlowRunnerArgs(flow_name="InfiniteFlow"),
+        regex_rules=[
+            rdfvalue.ForemanAttributeRegex(attribute_name="GRR client",
+                                           attribute_regex="GRR"),
+        ],
+        client_rate=0, token=self.token) as hunt:
+      hunt.Run()
+
+    self.AssignTasksToClients()
+
+    # Run long enough for InfiniteFlows to start.
+    self.RunHunt(iteration_limit=len(self.client_ids) * 2)
+    self.StopHunt(hunt.urn)
+
+    # All flows should be marked for termination now. RunHunt should raise.
+    # If something is wrong with GRRFlow.MarkForTermination mechanism, then
+    # this will run forever.
+    self.RunHunt()
+
+    for client_id in self.client_ids:
+      flows_root = aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
+      flows_list = list(flows_root.ListChildren())
+      # Only one flow (issued by the hunt) is expected.
+      self.assertEqual(len(flows_list), 1)
+
+      flow_obj = aff4.FACTORY.Open(flows_list[0], aff4_type="InfiniteFlow",
+                                   token=self.token)
+      self.assertEqual(flow_obj.state.context.state, "ERROR")
+      self.assertEqual(flow_obj.state.context.backtrace,
+                       "Parent hunt stopped.")
 
   def testGenericHuntWithoutOutputPlugins(self):
     """This tests running the hunt on some clients."""
@@ -545,7 +593,6 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     client_mock = test_lib.SampleHuntMock(failrate=100)
     test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
 
-    # Stop the hunt now.
     with aff4.FACTORY.Open(hunt.session_id, mode="rw",
                            token=self.token) as hunt:
       hunt.Stop()
@@ -883,7 +930,6 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
 
     self.AssignTasksToClients()
     self.RunHunt()
-    self.StopHunt(hunt_urn)
 
     # Check logs were written to the hunt collection
     with aff4.FACTORY.Open(hunt_urn.Add("Logs"), token=self.token,

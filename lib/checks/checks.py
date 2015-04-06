@@ -169,43 +169,43 @@ class CheckRegistry(object):
       return list(arg)
 
   @classmethod
-  def Conditions(cls, artifact=None, os_type=None, cpe=None, labels=None):
+  def Conditions(cls, artifact=None, os_name=None, cpe=None, labels=None):
     """Provide a series of condition tuples.
 
-    A Target can specify multiple artifact, os_type, cpe or label entries. These
+    A Target can specify multiple artifact, os_name, cpe or label entries. These
     are expanded to all distinct tuples. When an entry is undefined or None, it
     is treated as a single definition of None, meaning that the condition does
     not apply.
 
     Args:
       artifact: Names of artifacts that should trigger an action.
-      os_type: Names of OS' that should trigger an action.
+      os_name: Names of OS' that should trigger an action.
       cpe: CPE strings that should trigger an action.
       labels: Host labels that should trigger an action.
 
     Yields:
-      a permuted series of (artifact, os_type, cpe, label) tuples.
+      a permuted series of (artifact, os_name, cpe, label) tuples.
     """
     artifact = cls._AsList(artifact)
-    os_type = cls._AsList(os_type)
+    os_name = cls._AsList(os_name)
     cpe = cls._AsList(cpe)
     labels = cls._AsList(labels)
-    for condition in itertools.product(artifact, os_type, cpe, labels):
+    for condition in itertools.product(artifact, os_name, cpe, labels):
       yield condition
 
   @classmethod
-  def FindChecks(cls, artifact=None, os_type=None, cpe=None, labels=None):
+  def FindChecks(cls, artifact=None, os_name=None, cpe=None, labels=None):
     """Takes targeting info, identifies relevant checks.
 
     FindChecks will return results when a host has the conditions necessary for
     a check to occur. Conditions with partial results are not returned. For
     example, FindChecks will not return checks that if a check targets
-    os_type=["Linux"], labels=["foo"] and a host only has the os_type=["Linux"]
+    os_name=["Linux"], labels=["foo"] and a host only has the os_name=["Linux"]
     attribute.
 
     Args:
       artifact: 0+ artifact names.
-      os_type: 0+ OS names.
+      os_name: 0+ OS names.
       cpe: 0+ CPE identifiers.
       labels: 0+ GRR labels.
 
@@ -213,7 +213,7 @@ class CheckRegistry(object):
       the check_ids that apply.
     """
     check_ids = set()
-    conditions = list(cls.Conditions(artifact, os_type, cpe, labels))
+    conditions = list(cls.Conditions(artifact, os_name, cpe, labels))
     for chk_id, chk in cls.checks.iteritems():
       # A quick test to determine whether to dive into the checks.
       if chk.UsesArtifact(artifact):
@@ -224,11 +224,11 @@ class CheckRegistry(object):
     return check_ids
 
   @classmethod
-  def SelectArtifacts(cls, os_type=None, cpe=None, labels=None):
+  def SelectArtifacts(cls, os_name=None, cpe=None, labels=None):
     """Takes targeting info, identifies artifacts to fetch.
 
     Args:
-      os_type: 0+ OS names.
+      os_name: 0+ OS names.
       cpe: 0+ CPE identifiers.
       labels: 0+ GRR labels.
 
@@ -236,19 +236,19 @@ class CheckRegistry(object):
       the artifacts that should be collected.
     """
     results = set()
-    for condition in cls.Conditions(None, os_type, cpe, labels):
+    for condition in cls.Conditions(None, os_name, cpe, labels):
       trigger = condition[1:]
       for chk in cls.checks.values():
         results.update(chk.triggers.Artifacts(*trigger))
     return results
 
   @classmethod
-  def Process(cls, host_data, os_type=None, cpe=None, labels=None):
+  def Process(cls, host_data, os_name=None, cpe=None, labels=None):
     """Runs checks over all host data.
 
     Args:
       host_data: The data collected from a host, mapped to artifact name.
-      os_type: 0+ OS names.
+      os_name: 0+ OS names.
       cpe: 0+ CPE identifiers.
       labels: 0+ GRR labels.
 
@@ -257,18 +257,18 @@ class CheckRegistry(object):
     """
     # All the conditions that apply to this host.
     artifacts = host_data.keys()
-    check_ids = cls.FindChecks(artifacts, os_type, cpe, labels)
-    conditions = list(cls.Conditions(artifacts, os_type, cpe, labels))
+    check_ids = cls.FindChecks(artifacts, os_name, cpe, labels)
+    conditions = list(cls.Conditions(artifacts, os_name, cpe, labels))
     for check_id in check_ids:
       chk = cls.checks[check_id]
       yield chk.Parse(conditions, host_data)
 
 
-def CheckHost(host_data, os_type=None, cpe=None, labels=None):
+def CheckHost(host_data, os_name=None, cpe=None, labels=None):
   """Perform all checks on a host using acquired artifacts.
 
   Checks are selected based on the artifacts available and the host attributes
-  (e.g. os_type/cpe/labels) provided as either parameters, or in the
+  (e.g. os_name/cpe/labels) provided as either parameters, or in the
   knowledgebase artifact.
 
   A KnowledgeBase artifact should be provided that contains, at a minimum:
@@ -282,7 +282,7 @@ def CheckHost(host_data, os_type=None, cpe=None, labels=None):
 
   Args:
     host_data: A dictionary with artifact names as keys, and rdf data as values.
-    os_type: An OS name (optional).
+    os_name: An OS name (optional).
     cpe: A CPE string (optional).
     labels: An iterable of labels (optional).
 
@@ -290,10 +290,10 @@ def CheckHost(host_data, os_type=None, cpe=None, labels=None):
     A CheckResults object that contains results for all checks that were
       performed on the host.
   """
-  # Get knowledgebase, os_type from hostdata
+  # Get knowledgebase, os_name from hostdata
   kb = host_data.get("KnowledgeBase")
-  if os_type is None:
-    os_type = kb.os
+  if os_name is None:
+    os_name = kb.os
   if cpe is None:
     # TODO(user): Get CPE (requires new artifact/parser)
     pass
@@ -301,7 +301,7 @@ def CheckHost(host_data, os_type=None, cpe=None, labels=None):
     # TODO(user): Get labels (see grr/lib/export.py for acquisition
     # from client)
     pass
-  return CheckRegistry.Process(host_data, os_type=os_type, cpe=cpe,
+  return CheckRegistry.Process(host_data, os_name=os_name, cpe=cpe,
                                labels=labels)
 
 

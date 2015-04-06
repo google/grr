@@ -1,0 +1,32 @@
+# GRR GNU screen config
+# Use this to reprovision all build vms at once to update after a dependency
+# change:
+# screen -c reprovision_screenrc
+#
+# We tear down the vms and rebuild since this way we don't need to worry about
+# old versions hanging around, and creating a fresh VM is cheap.
+#
+# This can be run on linux and OS X, the available configured vagrant images
+# will be brought up, and the others will error out.
+#
+
+defscrollback 32768
+startup_message off
+autodetach on
+caption always "%{= kw}%-w%{= BW}%n %t%{-}%+w %-= @%H - %LD %d %LM - %c"
+vbell off
+
+source ~/.screenrc
+
+# When a process dies, if it was non-zero exit then keep the window until you
+# hit 'q', if you hit 'r', run the same command again.
+zombie qr
+
+screen -t centos_5.11_32 bash -c 'export SSH_AUTH_SOCK=""; vagrant destroy -f centos_5.11_32; vagrant up centos_5.11_32'
+screen -t centos_5.11_64 bash -c 'export SSH_AUTH_SOCK=""; vagrant destroy -f centos_5.11_64; vagrant up centos_5.11_64'
+screen -t ubuntu_lucid_32 bash -c 'export SSH_AUTH_SOCK=""; vagrant destroy -f ubuntu_lucid32; vagrant up ubuntu_lucid32'
+screen -t ubuntu_lucid_64 bash -c 'export SSH_AUTH_SOCK=""; vagrant destroy -f ubuntu_lucid64; vagrant up ubuntu_lucid64'
+screen -t osx_64 bash -c 'export SSH_AUTH_SOCK=""; vagrant destroy -f OS_X_10.8.5; vagrant up OS_X_10.8.5'
+# Until windows does automatic provisioning there isn't much point in
+# restarting.
+#screen -t windows bash -c 'export SSH_AUTH_SOCK=""; vagrant destroy -f windows_7_64; vagrant up windows_7_64'
