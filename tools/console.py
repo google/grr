@@ -75,7 +75,7 @@ flags.DEFINE_string("code_to_execute", None,
 
 flags.DEFINE_string("command_file", None,
                     "If present, no console is started but the code given in "
-                    "command file is supplied as input ")
+                    "command file is supplied as input instead ")
 
 def Help():
   """Print out help information."""
