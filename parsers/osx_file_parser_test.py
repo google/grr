@@ -50,7 +50,6 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
     parser = osx_file_parser.OSXLaunchdPlistParser()
     client = "C.1000000000000000"
     plists = ["com.google.code.grr.plist", "com.google.code.grr.bplist"]
-    plist_entries = []
     results = []
     for plist in plists:
       path = os.path.join(self.base_path, plist)
@@ -66,11 +65,14 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
       self.assertEqual(result.Label, "com.google.code.grr")
       self.assertItemsEqual(result.ProgramArguments,
                             ["/usr/lib/grr/grr_3.0.0.5_amd64/grr",
-                            "--config=/usr/lib/grr/grr_3.0.0.5_amd64/grr.yaml"])
+                             "--config=/usr/lib/grr/grr_3.0.0.5_amd64/grr.yaml"]
+                           )
+
 
 def main(argv):
   # Run the full test suite
   test_lib.GrrTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

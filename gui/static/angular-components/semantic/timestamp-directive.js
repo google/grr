@@ -57,7 +57,7 @@ TimestampController.prototype.onValueChange = function(newValue) {
       }
 
       this.formattedTimestamp = this.filter_('date')(
-          timestamp, 'yyyy-MM-dd HH:mm:ss', 'UTC');
+          timestamp, 'yyyy-MM-dd HH:mm:ss', 'UTC') + ' UTC';
     }
   }
 };

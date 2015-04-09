@@ -122,8 +122,8 @@ InfiniteTableController.DEFAULT_PAGE_SIZE = 50;
 
 
 /** @const */
-InfiniteTableController.LOADING_TEMPLATE = '<tr><td class="table-loading">' +
-    'Loading...</td></tr>';
+InfiniteTableController.LOADING_TEMPLATE = '<tr><td colspan="100" ' +
+    'class="table-loading">Loading...</td></tr>';
 
 
 /**
@@ -212,7 +212,8 @@ InfiniteTableController.prototype.tableLoadingElementWasShown_ = function() {
 InfiniteTableController.prototype.onItemsFetched_ = function(
     newlyFetchedItems) {
   this.setFetchedItems_(this.fetchedItems.concat(newlyFetchedItems.items));
-  if (newlyFetchedItems.items.length == 0) {
+  if (newlyFetchedItems.items.length == 0 ||
+      newlyFetchedItems.items.length < this.pageSize) {
     $(this.rootElement).find('tr:has(.table-loading)').remove();
   }
 

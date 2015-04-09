@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for grr.lib.rdfvalues.artifacts."""
 
+from grr.lib import artifact_lib
 from grr.lib import parsers
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -58,3 +59,46 @@ class ArtifactTests(test_base.RDFValueTestCase):
       self.assertItemsEqual(artifact.GetArtifactPathDependencies(),
                             ["appdata", "sid", "desktop", "current_control_set",
                              "users.sid", "users.username"])
+
+  def testValidateSyntax(self):
+    collectors = [
+        {"collector_type": rdfvalue.Collector.CollectorType.REGISTRY_VALUE,
+         "args": {
+             "path_list": [r"%%current_control_set%%\Control\Session "
+                           r"Manager\Environment\Path"]}},
+        {"collector_type": rdfvalue.Collector.CollectorType.FILE,
+         "args": {
+             "path_list": [r"%%environ_systemdrive%%\Temp"]}}]
+
+    artifact = rdfvalue.Artifact(name="good", doc="Doco",
+                                 provides=["environ_windir"],
+                                 supported_os=["Windows"], urls=["http://blah"],
+                                 collectors=collectors)
+    artifact.ValidateSyntax()
+
+  def testValidateSyntaxBadProvides(self):
+    collectors = [
+        {"collector_type": rdfvalue.Collector.CollectorType.FILE,
+         "args": {
+             "path_list": [r"%%environ_systemdrive%%\Temp"]}}]
+
+    artifact = rdfvalue.Artifact(name="bad", doc="Doco",
+                                 provides=["windir"],
+                                 supported_os=["Windows"], urls=["http://blah"],
+                                 collectors=collectors)
+    with self.assertRaises(artifact_lib.ArtifactDefinitionError):
+      artifact.ValidateSyntax()
+
+  def testValidateSyntaxBadPathDependency(self):
+    collectors = [
+        {"collector_type": rdfvalue.Collector.CollectorType.FILE,
+         "args": {
+             "path_list": [r"%%systemdrive%%\Temp"]}}]
+
+    artifact = rdfvalue.Artifact(name="bad", doc="Doco",
+                                 provides=["environ_windir"],
+                                 supported_os=["Windows"], urls=["http://blah"],
+                                 collectors=collectors)
+    with self.assertRaises(artifact_lib.ArtifactDefinitionError):
+      artifact.ValidateSyntax()
+

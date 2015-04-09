@@ -11,7 +11,6 @@ from grr.lib import rdfvalue
 from grr.parsers import binplist
 
 
-
 class OSXUsersParser(parsers.ArtifactFilesParser):
   """Parser for Glob of /Users/*."""
 
@@ -55,17 +54,18 @@ class OSXSPHardwareDataTypeParser(parsers.CommandParser):
 
     yield rdfvalue.HardwareInfo(serial_number=serial_number)
 
+
 class OSXLaunchdPlistParser(parsers.FileParser):
   """Parse Launchd plist files into LaunchdPlist objects."""
 
   output_types = ["LaunchdPlist"]
   supported_artifacts = ["OSXLaunchAgents", "OSXLaunchDaemons"]
 
-  def Parse(self, stat, file_object, knowledge_base):
+  def Parse(self, statentry, file_object, knowledge_base):
     """Parse the Plist file."""
     _ = knowledge_base
     kwargs = {}
-    kwargs["aff4path"] = stat.aff4path
+    kwargs["aff4path"] = statentry.aff4path
 
     direct_copy_items = ["Label", "Disabled", "UserName", "GroupName",
                          "Program", "StandardInPath", "StandardOutPath",
@@ -95,7 +95,8 @@ class OSXLaunchdPlistParser(parsers.FileParser):
     for key in direct_copy_items:
       kwargs[key] = plist.get(key)
 
-    # These could be a string, they could be an array, we don't know and neither does Apple so we check.
+    # These could be a string, they could be an array, we don't know and neither
+    # does Apple so we check.
     for key in string_array_items:
       elements = plist.get(key)
       if isinstance(elements, basestring):
@@ -110,7 +111,8 @@ class OSXLaunchdPlistParser(parsers.FileParser):
         kwargs[key] = True
 
     if plist.get("inetdCompatability") is not None:
-      kwargs["inetdCompatabilityWait"] = plist.get("inetdCompatability").get("Wait")
+      kwargs["inetdCompatabilityWait"] = plist.get(
+          "inetdCompatability").get("Wait")
 
     keepalive = plist.get("KeepAlive")
     if isinstance(keepalive, bool) or keepalive is None:
@@ -148,12 +150,13 @@ class OSXLaunchdPlistParser(parsers.FileParser):
     startcalendarinterval = plist.get("StartCalendarInterval")
     if startcalendarinterval is not None:
       if isinstance(startcalendarinterval, dict):
-        kwargs["StartCalendarInterval"] = [rdfvalue.LaunchdStartCalendarIntervalEntry(
-            Minute=startcalendarinterval.get("Minute"),
-            Hour=startcalendarinterval.get("Hour"),
-            Day=startcalendarinterval.get("Day"),
-            Weekday=startcalendarinterval.get("Weekday"),
-            Month=startcalendarinterval.get("Month"))]
+        kwargs["StartCalendarInterval"] = [
+            rdfvalue.LaunchdStartCalendarIntervalEntry(
+                Minute=startcalendarinterval.get("Minute"),
+                Hour=startcalendarinterval.get("Hour"),
+                Day=startcalendarinterval.get("Day"),
+                Weekday=startcalendarinterval.get("Weekday"),
+                Month=startcalendarinterval.get("Month"))]
       else:
         kwargs["StartCalendarInterval"] = []
         for entry in startcalendarinterval:

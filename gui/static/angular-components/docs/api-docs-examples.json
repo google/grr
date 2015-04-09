@@ -431,6 +431,710 @@
       "url": "/api/artifacts"
     }
   ],
+  "ApiClientSearchRenderer": [
+    {
+      "method": "GET",
+      "response": {
+        "count": 1,
+        "items": [
+          {
+            "aff4_class": "VFSGRRClient",
+            "age_policy": "NEWEST_TIME",
+            "attributes": {
+              "aff4:host_ips": {
+                "age": 42,
+                "mro": [
+                  "RDFString",
+                  "RDFBytes",
+                  "RDFValue",
+                  "object"
+                ],
+                "type": "RDFString",
+                "value": "192.168.0.0\n2001:abcd::0"
+              },
+              "aff4:mac_addresses": {
+                "age": 42,
+                "mro": [
+                  "RDFString",
+                  "RDFBytes",
+                  "RDFValue",
+                  "object"
+                ],
+                "type": "RDFString",
+                "value": "aabbccddee00\nbbccddeeff00"
+              },
+              "aff4:type": {
+                "age": 42,
+                "mro": [
+                  "RDFString",
+                  "RDFBytes",
+                  "RDFValue",
+                  "object"
+                ],
+                "type": "RDFString",
+                "value": "VFSGRRClient"
+              },
+              "metadata:ClientInfo": {
+                "age": 42,
+                "fields_order": [
+                  "client_name"
+                ],
+                "metadata": {
+                  "client_name": {
+                    "description": "",
+                    "friendly_name": "Client name"
+                  }
+                },
+                "mro": [
+                  "ClientInformation",
+                  "RDFProtoStruct",
+                  "RDFStruct",
+                  "RDFValue",
+                  "object"
+                ],
+                "type": "ClientInformation",
+                "value": {
+                  "client_name": {
+                    "age": 0,
+                    "mro": [
+                      "unicode",
+                      "basestring",
+                      "object"
+                    ],
+                    "type": "unicode",
+                    "value": "GRR Monitor"
+                  }
+                }
+              },
+              "metadata:fqdn": {
+                "age": 42,
+                "mro": [
+                  "RDFString",
+                  "RDFBytes",
+                  "RDFValue",
+                  "object"
+                ],
+                "type": "RDFString",
+                "value": "Host-0.example.com"
+              },
+              "metadata:hostname": {
+                "age": 42,
+                "mro": [
+                  "RDFString",
+                  "RDFBytes",
+                  "RDFValue",
+                  "object"
+                ],
+                "type": "RDFString",
+                "value": "Host-0"
+              },
+              "metadata:last": {
+                "age": 42,
+                "mro": [
+                  "RDFDatetime",
+                  "RDFInteger",
+                  "RDFString",
+                  "RDFBytes",
+                  "RDFValue",
+                  "object"
+                ],
+                "type": "RDFDatetime",
+                "value": 42000000
+              },
+              "metadata:ping": {
+                "age": 0,
+                "mro": [
+                  "RDFDatetime",
+                  "RDFInteger",
+                  "RDFString",
+                  "RDFBytes",
+                  "RDFValue",
+                  "object"
+                ],
+                "type": "RDFDatetime",
+                "value": 42000000
+              }
+            },
+            "disk_warnings": [],
+            "metadata": {
+              "aff4:host_ips": {
+                "description": "An IP address."
+              },
+              "aff4:mac_addresses": {
+                "description": "A hex encoded MAC address."
+              },
+              "aff4:type": {
+                "description": "The name of the AFF4Object derived class."
+              },
+              "metadata:ClientInfo": {
+                "description": "GRR client information"
+              },
+              "metadata:fqdn": {
+                "description": "Fully qualified hostname of the host."
+              },
+              "metadata:hostname": {
+                "description": "Hostname of the host."
+              },
+              "metadata:last": {
+                "description": "The last time any attribute of this object was written."
+              },
+              "metadata:ping": {
+                "description": "The last time the server heard from this client."
+              }
+            },
+            "summary": {
+              "age": 0,
+              "fields_order": [
+                "client_id",
+                "timestamp",
+                "system_info",
+                "client_info",
+                "serial_number",
+                "system_manufacturer"
+              ],
+              "metadata": {
+                "client_id": {
+                  "description": "The Client's URN.",
+                  "friendly_name": "Client id"
+                },
+                "client_info": {
+                  "description": "Basic information about the GRR client.",
+                  "friendly_name": "Client info"
+                },
+                "serial_number": {
+                  "description": "Serial Number from HW info.",
+                  "friendly_name": "Serial number"
+                },
+                "system_info": {
+                  "description": "Client's system info.",
+                  "friendly_name": "System info"
+                },
+                "system_manufacturer": {
+                  "description": "System Manufacturer from HW info.",
+                  "friendly_name": "System manufacturer"
+                },
+                "timestamp": {
+                  "description": "Timestamp for the creation of the record.",
+                  "friendly_name": "Timestamp"
+                }
+              },
+              "mro": [
+                "ClientSummary",
+                "RDFProtoStruct",
+                "RDFStruct",
+                "RDFValue",
+                "object"
+              ],
+              "type": "ClientSummary",
+              "value": {
+                "client_id": {
+                  "age": 0,
+                  "mro": [
+                    "ClientURN",
+                    "RDFURN",
+                    "RDFValue",
+                    "object"
+                  ],
+                  "type": "ClientURN",
+                  "value": "aff4:/C.1000000000000000"
+                },
+                "client_info": {
+                  "age": 42,
+                  "fields_order": [
+                    "client_name"
+                  ],
+                  "metadata": {
+                    "client_name": {
+                      "description": "",
+                      "friendly_name": "Client name"
+                    }
+                  },
+                  "mro": [
+                    "ClientInformation",
+                    "RDFProtoStruct",
+                    "RDFStruct",
+                    "RDFValue",
+                    "object"
+                  ],
+                  "type": "ClientInformation",
+                  "value": {
+                    "client_name": {
+                      "age": 0,
+                      "mro": [
+                        "unicode",
+                        "basestring",
+                        "object"
+                      ],
+                      "type": "unicode",
+                      "value": "GRR Monitor"
+                    }
+                  }
+                },
+                "serial_number": {
+                  "age": 0,
+                  "mro": [
+                    "unicode",
+                    "basestring",
+                    "object"
+                  ],
+                  "type": "unicode",
+                  "value": ""
+                },
+                "system_info": {
+                  "age": 0,
+                  "fields_order": [
+                    "node",
+                    "version",
+                    "fqdn"
+                  ],
+                  "metadata": {
+                    "fqdn": {
+                      "description": "The system's fully qualified domain name.",
+                      "friendly_name": "Fqdn"
+                    },
+                    "node": {
+                      "description": "The hostname of this system.",
+                      "friendly_name": "Node"
+                    },
+                    "version": {
+                      "description": "The OS version ID e.g. 6.1.7601SP1, 10.9.2, 14.04.",
+                      "friendly_name": "Version"
+                    }
+                  },
+                  "mro": [
+                    "Uname",
+                    "RDFProtoStruct",
+                    "RDFStruct",
+                    "RDFValue",
+                    "object"
+                  ],
+                  "type": "Uname",
+                  "value": {
+                    "fqdn": {
+                      "age": 0,
+                      "mro": [
+                        "unicode",
+                        "basestring",
+                        "object"
+                      ],
+                      "type": "unicode",
+                      "value": "Host-0.example.com"
+                    },
+                    "node": {
+                      "age": 0,
+                      "mro": [
+                        "unicode",
+                        "basestring",
+                        "object"
+                      ],
+                      "type": "unicode",
+                      "value": "Host-0"
+                    },
+                    "version": {
+                      "age": 0,
+                      "mro": [
+                        "unicode",
+                        "basestring",
+                        "object"
+                      ],
+                      "type": "unicode",
+                      "value": ""
+                    }
+                  }
+                },
+                "system_manufacturer": {
+                  "age": 0,
+                  "mro": [
+                    "unicode",
+                    "basestring",
+                    "object"
+                  ],
+                  "type": "unicode",
+                  "value": ""
+                },
+                "timestamp": {
+                  "age": 0,
+                  "mro": [
+                    "RDFDatetime",
+                    "RDFInteger",
+                    "RDFString",
+                    "RDFBytes",
+                    "RDFValue",
+                    "object"
+                  ],
+                  "type": "RDFDatetime",
+                  "value": 42000000
+                }
+              }
+            },
+            "urn": "aff4:/C.1000000000000000"
+          }
+        ],
+        "offset": 0,
+        "query": "C.1000000000000000"
+      },
+      "test_class": "ApiClientSearchRendererRegressionTest",
+      "url": "/api/clients?query=C.1000000000000000"
+    }
+  ],
+  "ApiClientSummaryRenderer": [
+    {
+      "method": "GET",
+      "response": {
+        "aff4_class": "VFSGRRClient",
+        "age_policy": "NEWEST_TIME",
+        "attributes": {
+          "aff4:host_ips": {
+            "age": 42,
+            "mro": [
+              "RDFString",
+              "RDFBytes",
+              "RDFValue",
+              "object"
+            ],
+            "type": "RDFString",
+            "value": "192.168.0.0\n2001:abcd::0"
+          },
+          "aff4:mac_addresses": {
+            "age": 42,
+            "mro": [
+              "RDFString",
+              "RDFBytes",
+              "RDFValue",
+              "object"
+            ],
+            "type": "RDFString",
+            "value": "aabbccddee00\nbbccddeeff00"
+          },
+          "aff4:type": {
+            "age": 42,
+            "mro": [
+              "RDFString",
+              "RDFBytes",
+              "RDFValue",
+              "object"
+            ],
+            "type": "RDFString",
+            "value": "VFSGRRClient"
+          },
+          "metadata:ClientInfo": {
+            "age": 42,
+            "fields_order": [
+              "client_name"
+            ],
+            "metadata": {
+              "client_name": {
+                "description": "",
+                "friendly_name": "Client name"
+              }
+            },
+            "mro": [
+              "ClientInformation",
+              "RDFProtoStruct",
+              "RDFStruct",
+              "RDFValue",
+              "object"
+            ],
+            "type": "ClientInformation",
+            "value": {
+              "client_name": {
+                "age": 0,
+                "mro": [
+                  "unicode",
+                  "basestring",
+                  "object"
+                ],
+                "type": "unicode",
+                "value": "GRR Monitor"
+              }
+            }
+          },
+          "metadata:fqdn": {
+            "age": 42,
+            "mro": [
+              "RDFString",
+              "RDFBytes",
+              "RDFValue",
+              "object"
+            ],
+            "type": "RDFString",
+            "value": "Host-0.example.com"
+          },
+          "metadata:hostname": {
+            "age": 42,
+            "mro": [
+              "RDFString",
+              "RDFBytes",
+              "RDFValue",
+              "object"
+            ],
+            "type": "RDFString",
+            "value": "Host-0"
+          },
+          "metadata:last": {
+            "age": 42,
+            "mro": [
+              "RDFDatetime",
+              "RDFInteger",
+              "RDFString",
+              "RDFBytes",
+              "RDFValue",
+              "object"
+            ],
+            "type": "RDFDatetime",
+            "value": 42000000
+          },
+          "metadata:ping": {
+            "age": 0,
+            "mro": [
+              "RDFDatetime",
+              "RDFInteger",
+              "RDFString",
+              "RDFBytes",
+              "RDFValue",
+              "object"
+            ],
+            "type": "RDFDatetime",
+            "value": 42000000
+          }
+        },
+        "disk_warnings": [],
+        "metadata": {
+          "aff4:host_ips": {
+            "description": "An IP address."
+          },
+          "aff4:mac_addresses": {
+            "description": "A hex encoded MAC address."
+          },
+          "aff4:type": {
+            "description": "The name of the AFF4Object derived class."
+          },
+          "metadata:ClientInfo": {
+            "description": "GRR client information"
+          },
+          "metadata:fqdn": {
+            "description": "Fully qualified hostname of the host."
+          },
+          "metadata:hostname": {
+            "description": "Hostname of the host."
+          },
+          "metadata:last": {
+            "description": "The last time any attribute of this object was written."
+          },
+          "metadata:ping": {
+            "description": "The last time the server heard from this client."
+          }
+        },
+        "summary": {
+          "age": 0,
+          "fields_order": [
+            "client_id",
+            "timestamp",
+            "system_info",
+            "client_info",
+            "serial_number",
+            "system_manufacturer"
+          ],
+          "metadata": {
+            "client_id": {
+              "description": "The Client's URN.",
+              "friendly_name": "Client id"
+            },
+            "client_info": {
+              "description": "Basic information about the GRR client.",
+              "friendly_name": "Client info"
+            },
+            "serial_number": {
+              "description": "Serial Number from HW info.",
+              "friendly_name": "Serial number"
+            },
+            "system_info": {
+              "description": "Client's system info.",
+              "friendly_name": "System info"
+            },
+            "system_manufacturer": {
+              "description": "System Manufacturer from HW info.",
+              "friendly_name": "System manufacturer"
+            },
+            "timestamp": {
+              "description": "Timestamp for the creation of the record.",
+              "friendly_name": "Timestamp"
+            }
+          },
+          "mro": [
+            "ClientSummary",
+            "RDFProtoStruct",
+            "RDFStruct",
+            "RDFValue",
+            "object"
+          ],
+          "type": "ClientSummary",
+          "value": {
+            "client_id": {
+              "age": 0,
+              "mro": [
+                "ClientURN",
+                "RDFURN",
+                "RDFValue",
+                "object"
+              ],
+              "type": "ClientURN",
+              "value": "aff4:/C.1000000000000000"
+            },
+            "client_info": {
+              "age": 42,
+              "fields_order": [
+                "client_name"
+              ],
+              "metadata": {
+                "client_name": {
+                  "description": "",
+                  "friendly_name": "Client name"
+                }
+              },
+              "mro": [
+                "ClientInformation",
+                "RDFProtoStruct",
+                "RDFStruct",
+                "RDFValue",
+                "object"
+              ],
+              "type": "ClientInformation",
+              "value": {
+                "client_name": {
+                  "age": 0,
+                  "mro": [
+                    "unicode",
+                    "basestring",
+                    "object"
+                  ],
+                  "type": "unicode",
+                  "value": "GRR Monitor"
+                }
+              }
+            },
+            "serial_number": {
+              "age": 0,
+              "mro": [
+                "unicode",
+                "basestring",
+                "object"
+              ],
+              "type": "unicode",
+              "value": ""
+            },
+            "system_info": {
+              "age": 0,
+              "fields_order": [
+                "node",
+                "version",
+                "fqdn"
+              ],
+              "metadata": {
+                "fqdn": {
+                  "description": "The system's fully qualified domain name.",
+                  "friendly_name": "Fqdn"
+                },
+                "node": {
+                  "description": "The hostname of this system.",
+                  "friendly_name": "Node"
+                },
+                "version": {
+                  "description": "The OS version ID e.g. 6.1.7601SP1, 10.9.2, 14.04.",
+                  "friendly_name": "Version"
+                }
+              },
+              "mro": [
+                "Uname",
+                "RDFProtoStruct",
+                "RDFStruct",
+                "RDFValue",
+                "object"
+              ],
+              "type": "Uname",
+              "value": {
+                "fqdn": {
+                  "age": 0,
+                  "mro": [
+                    "unicode",
+                    "basestring",
+                    "object"
+                  ],
+                  "type": "unicode",
+                  "value": "Host-0.example.com"
+                },
+                "node": {
+                  "age": 0,
+                  "mro": [
+                    "unicode",
+                    "basestring",
+                    "object"
+                  ],
+                  "type": "unicode",
+                  "value": "Host-0"
+                },
+                "version": {
+                  "age": 0,
+                  "mro": [
+                    "unicode",
+                    "basestring",
+                    "object"
+                  ],
+                  "type": "unicode",
+                  "value": ""
+                }
+              }
+            },
+            "system_manufacturer": {
+              "age": 0,
+              "mro": [
+                "unicode",
+                "basestring",
+                "object"
+              ],
+              "type": "unicode",
+              "value": ""
+            },
+            "timestamp": {
+              "age": 0,
+              "mro": [
+                "RDFDatetime",
+                "RDFInteger",
+                "RDFString",
+                "RDFBytes",
+                "RDFValue",
+                "object"
+              ],
+              "type": "RDFDatetime",
+              "value": 42000000
+            }
+          }
+        },
+        "urn": "aff4:/C.1000000000000000"
+      },
+      "test_class": "ApiClientSummaryRendererRegressionTest",
+      "url": "/api/clients/C.1000000000000000"
+    }
+  ],
+  "ApiClientsLabelsListRenderer": [
+    {
+      "method": "GET",
+      "response": {
+        "labels": [
+          {
+            "name": "bar",
+            "owner": "test"
+          },
+          {
+            "name": "foo",
+            "owner": "test"
+          }
+        ]
+      },
+      "test_class": "ApiClientsLabelsListRendererRegressionTest",
+      "url": "/api/clients/labels"
+    }
+  ],
   "ApiConfigRenderer": [
     {
       "method": "GET",

@@ -212,10 +212,20 @@ class Artifact(structs.RDFProtoStruct):
             "Artifact %s has an invalid label %s. Please use one from "
             "ARTIFACT_LABELS." % (cls_name, label))
 
+    # Anything listed in provides must be defined in the KnowledgeBase
+    valid_provides = rdfvalue.KnowledgeBase().GetKbFieldNames()
     for kb_var in self.provides:
-      if len(kb_var) < 3:   # Someone probably interpreted string as list.
+      if kb_var not in valid_provides:
         raise artifact_lib.ArtifactDefinitionError(
-            "Artifact %s has broken provides. %s" % (cls_name, self.provides))
+            "Artifact %s has broken provides: '%s' not in KB fields: %s" % (
+                cls_name, kb_var, valid_provides))
+
+    # Any %%blah%% path dependencies must be defined in the KnowledgeBase
+    for dep in self.GetArtifactPathDependencies():
+      if dep not in valid_provides:
+        raise artifact_lib.ArtifactDefinitionError(
+            "Artifact %s has an invalid path dependency: '%s', not in KB "
+            "fields: %s" % (cls_name, dep, valid_provides))
 
     for collector in self.collectors:
       try:
@@ -237,14 +247,6 @@ class Artifact(structs.RDFProtoStruct):
     """
     cls_name = self.name
     self.ValidateSyntax()
-
-    # Check all path dependencies exist in the knowledge base.
-    valid_fields = rdfvalue.KnowledgeBase().GetKbFieldNames()
-    for dependency in self.GetArtifactPathDependencies():
-      if dependency not in valid_fields:
-        raise artifact_lib.ArtifactDefinitionError(
-            "Artifact %s has an invalid path dependency %s. Artifacts must use "
-            "defined knowledge attributes." % (cls_name, dependency))
 
     # Check all artifact dependencies exist.
     for dependency in self.GetArtifactDependencies():

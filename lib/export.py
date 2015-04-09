@@ -897,6 +897,19 @@ class FileStoreHashConverter(ExportConverter):
     return results
 
 
+def RekallStringRenderer(x):
+  """Function used to render Rekall 'str' objects."""
+  try:
+    return x["str"]
+  except KeyError:
+    return x["b64"]
+
+
+def RekallEProcessRenderer(x):
+  """Function used to render Rekall '_EPROCESS' objects."""
+  return"%s (%s)" % (x["Cybox"]["Name"], x["Cybox"]["PID"])
+
+
 class RekallResponseConverter(ExportConverter):
   """Export converter for RekallResponse objects."""
 
@@ -905,19 +918,20 @@ class RekallResponseConverter(ExportConverter):
   OUTPUT_CLASSES = {}
 
   OBJECT_RENDERERS = {
-      "str": lambda x: "str" in x and x["str"] or x["b64"],
+      "_EPROCESS": RekallEProcessRenderer,
       "Address": lambda x: utils.FormatAsHexString(x["value"]),
-      "Pointer": lambda x: utils.FormatAsHexString(x["target"], 14),
-      "PaddedAddress": lambda x: utils.FormatAsHexString(x["value"], 14),
       "AddressSpace": lambda x: x["name"],
+      "BaseObject": lambda x: "@%s" % utils.FormatAsHexString(x["offset"]),
       "Enumeration": lambda x: "%s (%s)" % (x["enum"], x["value"]),
+      "Instruction": lambda x: utils.SmartStr(x["value"]),
       "Literal": lambda x: utils.SmartStr(x["value"]),
       "NativeType": lambda x: utils.SmartStr(x["value"]),
       "NoneObject": lambda x: "-",
-      "BaseObject": lambda x: "@%s" % utils.FormatAsHexString(x["offset"]),
+      "Pointer": lambda x: utils.FormatAsHexString(x["target"], 14),
+      "PaddedAddress": lambda x: utils.FormatAsHexString(x["value"], 14),
+      "str": RekallStringRenderer,
       "Struct": lambda x: utils.FormatAsHexString(x["offset"]),
-      "UnixTimeStamp": lambda x: utils.FormatAsTimestamp(x["epoch"]),
-      "_EPROCESS": lambda x: "%s (%s)" % (x["Cybox"]["Name"], x["Cybox"]["PID"])
+      "UnixTimeStamp": lambda x: utils.FormatAsTimestamp(x["epoch"])
   }
 
   def _RenderObject(self, obj):
@@ -946,21 +960,14 @@ class RekallResponseConverter(ExportConverter):
 
     return utils.SmartStr(obj)
 
-  def _ParseJsonMessages(self, messages):
-    """Parses json messages using Rekall DataExportRenderer."""
-
-    json_data = json.loads(messages)
-    for message in json_data:
-      yield message
-
-  def _GenerateOutputClass(self, class_name, context_dict):
-    """Generates output class with a given name for a given context."""
+  def _GenerateOutputClass(self, class_name, tables):
+    """Generates output class with a given name for a given set of tables."""
 
     output_class = type(utils.SmartStr(class_name),
                         (rdfvalue.RDFProtoStruct,),
                         {})
 
-    if "t" not in context_dict:
+    if not tables:
       raise RuntimeError("Can't generate output class without Rekall table "
                          "definition.")
 
@@ -977,40 +984,47 @@ class RekallResponseConverter(ExportConverter):
     output_class.AddDescriptor(structs.ProtoString(name="text",
                                                    field_number=field_number))
 
-    for column_header in context_dict["t"]:
-      field_number += 1
+    # All the tables are merged into one. This is done so that if plugin
+    # outputs multiple tables, we get all possible columns in the output
+    # RDFValue.
+    used_names = set()
+    for table in tables:
+      for column_header in table:
+        column_name = None
+        try:
+          column_name = column_header["cname"]
+        except KeyError:
+          pass
 
-      column_name = None
-      try:
-        column_name = column_header["cname"]
-      except KeyError:
-        pass
+        if not column_name:
+          column_name = column_header["name"]
 
-      if not column_name:
-        column_name = column_header["name"]
+        if not column_name:
+          raise RuntimeError("Can't determine column name in table header.")
 
-      if not column_name:
-        raise RuntimeError("Can't determine column name in table header.")
+        if column_name in used_names:
+          continue
 
-      output_class.AddDescriptor(structs.ProtoString(name=column_name,
-                                                     field_number=field_number))
+        field_number += 1
+        used_names.add(column_name)
+        output_class.AddDescriptor(
+            structs.ProtoString(name=column_name,
+                                field_number=field_number))
 
     return output_class
 
-  def _GetOutputClass(self, plugin_name, context_dict):
+  def _GetOutputClass(self, plugin_name, tables):
     output_class_name = "RekallExport_" + plugin_name
 
     try:
       return RekallResponseConverter.OUTPUT_CLASSES[output_class_name]
     except KeyError:
-      output_class = self._GenerateOutputClass(output_class_name, context_dict)
+      output_class = self._GenerateOutputClass(output_class_name, tables)
       RekallResponseConverter.OUTPUT_CLASSES[output_class_name] = output_class
       return output_class
 
-  def _HandleTableRow(self, metadata, plugin_name, context_dict, message):
+  def _HandleTableRow(self, metadata, context_dict, message, output_class):
     """Handles a single row in one of the tables in RekallResponse."""
-
-    output_class = self._GetOutputClass(plugin_name, context_dict)
     attrs = {}
     for key, value in message[1].iteritems():
       if hasattr(output_class, key):
@@ -1031,14 +1045,21 @@ class RekallResponseConverter(ExportConverter):
   def Convert(self, metadata, rekall_response, token=None):
     """Convert a single RekallResponse."""
     if rekall_response.HasField("json_context_messages"):
-      parsed_context_messages = list(self._ParseJsonMessages(
-          rekall_response.json_context_messages))
+      parsed_context_messages = json.loads(
+          rekall_response.json_context_messages)
     else:
       parsed_context_messages = []
 
     context_dict = dict(parsed_context_messages)
+    if "t" in context_dict:
+      tables = [context_dict["t"]]
+    else:
+      tables = []
 
-    for message in self._ParseJsonMessages(rekall_response.json_messages):
+    parsed_messages = json.loads(rekall_response.json_messages)
+
+    # First scan all the messages and find all table definitions there.
+    for message in parsed_messages:
       # We do not decode lexicon-based responses. If there's non empty
       # lexicon in the message, we ignore the whole response altogether.
       if message[0] == "l" and message[1]:
@@ -1046,12 +1067,20 @@ class RekallResponseConverter(ExportConverter):
                      rekall_response.client_urn)
         break
 
+      if message[0] == "t":
+        tables.append(message[1])
+
+    # Generate output class based on all table definitions.
+    output_class = self._GetOutputClass(rekall_response.plugin, tables)
+
+    # Fill generated output class instances with values from every row.
+    for message in parsed_messages:
       if message[0] in ["s", "t"]:
         context_dict[message[0]] = message[1]
 
       if message[0] == "r":
-        yield self._HandleTableRow(metadata, rekall_response.plugin,
-                                   context_dict, message)
+        yield self._HandleTableRow(metadata, context_dict, message,
+                                   output_class)
 
   def BatchConvert(self, metadata_value_pairs, token=None):
     """Convert batch of RekallResponses."""

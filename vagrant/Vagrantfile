@@ -10,24 +10,24 @@ Vagrant.configure(2) do |config|
     vb.cpus = "2"
   end
 
-  # $ sha256sum centos_5.11_32-v1.0.0.box
-  # f142605ff94da152af13b5f5c34868da0f841cf3ab65e89943cc7a650fc00829
   config.vm.define "centos_5.11_32" do |box|
     box.vm.box = "mrgcastle/centos_5.11_32"
     box.vm.provision "shell" do |s|
       s.path = "install_linux.sh"
       s.args = ["CentOS"]
     end
+    config.vm.box_download_checksum_type = "sha256"
+    config.vm.box_download_checksum = "f142605ff94da152af13b5f5c34868da0f841cf3ab65e89943cc7a650fc00829"
   end
 
-  # $ sha256sum centos_5.11_64-v1.0.0.box
-  # d367c306dee30678e512f1d5e8c0717497a60fea846d024b53641318c304af19
   config.vm.define "centos_5.11_64" do |box|
     box.vm.box = "mrgcastle/centos_5.11_64"
     box.vm.provision "shell" do |s|
       s.path = "install_linux.sh"
       s.args = ["CentOS"]
     end
+    config.vm.box_download_checksum_type = "sha256"
+    config.vm.box_download_checksum = "d367c306dee30678e512f1d5e8c0717497a60fea846d024b53641318c304af19"
   end
 
   config.vm.define "ubuntu_trusty64" do |box|
@@ -38,24 +38,24 @@ Vagrant.configure(2) do |config|
     end
   end
 
-  # $ sha256sum ubuntu-lucid32-v1.0.0.box
-  # 15a36cfe264f3eb58bb9c540d9de5a5a945b8c5162d6fd66b59925ed0a832e86
   config.vm.define "ubuntu_lucid32" do |box|
     box.vm.box = "mrgcastle/ubuntu-lucid32"
     box.vm.provision "shell" do |s|
       s.path = "install_linux.sh"
       s.args = ["Ubuntu"]
     end
+    config.vm.box_download_checksum_type = "sha256"
+    config.vm.box_download_checksum = "15a36cfe264f3eb58bb9c540d9de5a5a945b8c5162d6fd66b59925ed0a832e86"
   end
 
-  # $ sha256sum ubuntu-lucid64-v1.0.0.box
-  # f7d6b78fa492fe964f5ba89702f890b309d97fd0a23aa717f6e138752d2e7a69
   config.vm.define "ubuntu_lucid64" do |box|
     box.vm.box = "mrgcastle/ubuntu-lucid64"
     box.vm.provision "shell" do |s|
       s.path = "install_linux.sh"
       s.args = ["Ubuntu"]
     end
+    config.vm.box_download_checksum_type = "sha256"
+    config.vm.box_download_checksum = "f7d6b78fa492fe964f5ba89702f890b309d97fd0a23aa717f6e138752d2e7a69"
   end
 
   # OS X licensing doesn't allow distribution of VMs, you'll need to build your

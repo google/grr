@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Tests for API call renderers."""
+"""Tests for HTTP API."""
 
 
 
@@ -11,6 +11,7 @@ import json
 
 from grr.gui import api_aff4_object_renderers
 from grr.gui import api_call_renderers
+from grr.gui import http_api
 
 from grr.lib import flags
 from grr.lib import rdfvalue
@@ -68,9 +69,9 @@ class SampleGetRendererWithAdditionalArgs(api_call_renderers.ApiCallRenderer):
 class TestHttpRoutingInit(registry.InitHook):
 
   def RunOnce(self):
-    api_call_renderers.RegisterHttpRouteHandler(
+    http_api.RegisterHttpRouteHandler(
         "GET", "/test_sample/<path:path>", SampleGetRenderer)
-    api_call_renderers.RegisterHttpRouteHandler(
+    http_api.RegisterHttpRouteHandler(
         "GET", "/test_sample_with_additional_args/<path:path>",
         SampleGetRendererWithAdditionalArgs)
 
@@ -98,7 +99,7 @@ class RenderHttpResponseTest(test_lib.GRRBaseTest):
     return request
 
   def _RenderResponse(self, request):
-    response = api_call_renderers.RenderHttpResponse(request)
+    response = http_api.RenderHttpResponse(request)
 
     if response.content.startswith(")]}'\n"):
       response.content = response.content[5:]
@@ -106,18 +107,18 @@ class RenderHttpResponseTest(test_lib.GRRBaseTest):
     return response
 
   def testReturnsRendererMatchingUrlAndMethod(self):
-    renderer, _ = api_call_renderers.GetRendererForHttpRequest(
+    renderer, _ = http_api.GetRendererForHttpRequest(
         self._CreateRequest("GET", "/test_sample/some/path"))
     self.assertTrue(isinstance(renderer, SampleGetRenderer))
 
   def testPathParamsAreReturnedWithMatchingRenderer(self):
-    _, path_params = api_call_renderers.GetRendererForHttpRequest(
+    _, path_params = http_api.GetRendererForHttpRequest(
         self._CreateRequest("GET", "/test_sample/some/path"))
     self.assertEqual(path_params, {"path": "some/path"})
 
   def testRaisesIfNoRendererMatchesUrl(self):
     self.assertRaises(api_call_renderers.ApiCallRendererNotFoundError,
-                      api_call_renderers.GetRendererForHttpRequest,
+                      http_api.GetRendererForHttpRequest,
                       self._CreateRequest("GET",
                                           "/some/missing/path"))
 
@@ -153,7 +154,7 @@ class RenderHttpResponseTest(test_lib.GRRBaseTest):
          "foo": ""})
 
   def testAdditionalArgumentsAreParsedCorrectly(self):
-    additional_args = api_call_renderers.FillAdditionalArgsFromRequest(
+    additional_args = http_api.FillAdditionalArgsFromRequest(
         {"AFF4Object.limit_lists": "10",
          "RDFValueCollection.with_total_count": "1"},
         {"AFF4Object": rdfvalue.ApiAFF4ObjectRendererArgs,

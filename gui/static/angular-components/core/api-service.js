@@ -28,8 +28,8 @@ ApiService.service_name = 'grrApiService';
 
 
 /**
- * Fetches data for a given API url.
-
+ * Fetches data for a given API url via HTTP GET method.
+ *
  * @param {string} apiPath API path to triigger/
  * @param {Object<string, string>=} opt_params Query parameters.
  * @return {!angular.$q.Promise} Promise that resolves to the result.
@@ -53,5 +53,32 @@ ApiService.prototype.get = function(apiPath, opt_params) {
     return response;
   });
 };
+
+
+/**
+ * Sends POST request to the server.
+ *
+ * @param {string} apiPath API path to triigger/
+ * @param {Object<string, string>=} opt_params Query parameters.
+ * @return {!angular.$q.Promise} Promise that resolves to the server response.
+ */
+ApiService.prototype.post = function(apiPath, opt_params) {
+  var requestParams = angular.extend({}, opt_params);
+  if (grr.state.reason) {
+    requestParams.reason = grr.state.reason;
+  }
+
+  // TODO(user): implement this in angular way (i.e. - make a service).
+  angular.element('#ajax_spinner').html(
+      '<img src="/static/images/ajax-loader.gif">');
+
+  var url = '/api/' + apiPath.replace(/^\//, '');
+  var promise = this.http_.post(url, requestParams);
+  return promise.then(function(response) {
+    angular.element('#ajax_spinner').html('');
+    return response;
+  });
+};
+
 
 });  // goog.scope
