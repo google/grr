@@ -600,7 +600,7 @@ Try:
     max_age_before_refresh = datetime.timedelta(0)
   elif refresh_policy == "never":
     # Set the max age to be the maximum possible time difference.
-    max_age_before_refresh = datetime.timedelta(datetime.timedelta.max)
+    max_age_before_refresh = datetime.timedelta.max
   elif refresh_policy == "if_older_than_max_age":
     max_age_before_refresh = datetime.timedelta(
         seconds=flags.FLAGS.max_age_before_refresh)
