@@ -22,19 +22,19 @@ all: $(py_files) $(cc_files)
 
 %_pb2.py: %.proto
 ifeq ($(OS), Windows_NT)
-  $(PROTOC) --python_out=. $(PROTOPATH) $(<F)
+	$(PROTOC) --python_out=. $(PROTOPATH) $(<F)
 else
-  (cd ../..; $(PROTOC) --python_out=. $(PROTOPATH) grr/proto/$(<F) )
+	(cd ../..; $(PROTOC) --python_out=. $(PROTOPATH) grr/proto/$(<F) )
 endif
 
 %.pb.cc: %.proto
 ifeq ($(OS), Windows_NT)
-  $(PROTOC) --python_out=. $(PROTOPATH) $(<F)
+	$(PROTOC) --python_out=. $(PROTOPATH) $(<F)
 else
-  (cd ../..; $(PROTOC) --cpp_out=. $(PROTOPATH) grr/proto/$(<F) )
+	(cd ../..; $(PROTOC) --cpp_out=. $(PROTOPATH) grr/proto/$(<F) )
 endif
 
 .PHONY: sync clean
 clean:
-  rm -fv *_pb2.py
-  rm -fv *.pb.{cc,h}
+	rm -fv *_pb2.py
+	rm -fv *.pb.{cc,h}
