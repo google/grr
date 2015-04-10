@@ -2,19 +2,19 @@
 
 name: DarwinPersistenceMechanisms
 doc: Persistence mechanisms on Darwin.
-collectors:
-- collector_type: ARTIFACT
-  args:
-    artifact_list: [OSXServices]
+sources:
+- type: ARTIFACT
+  attributes:
+    names: [OSXServices]
   returned_types: [PersistenceFile]
 labels: [System]
 supported_os: [Darwin]
 ---
 name: DarwinPersistenceMechanismFiles
 doc: Files that are run by Darwin persistence mechanisms.
-collectors:
-- collector_type: ARTIFACT_FILES
-  args:
+sources:
+- type: ARTIFACT_FILES
+  attributes:
     artifact_list: [DarwinPersistenceMechanisms]
   returned_types: [StatEntry]
 labels: [System]
@@ -22,17 +22,17 @@ supported_os: [Darwin]
 ---
 name: OSXServices
 doc: Running services from the Max OS X service management framework.
-collectors:
-- collector_type: GRR_CLIENT_ACTION
-  args: {client_action: OSXEnumerateRunningServices}
+sources:
+- type: GRR_CLIENT_ACTION
+  attributes: {client_action: OSXEnumerateRunningServices}
 labels: [System]
 supported_os: [Darwin]
 ---
 name: OSXUsers
 doc: User directories in /Users.
-collectors:
-- collector_type: LIST_FILES
-  args: {path_list: ['/Users/*']}
+sources:
+- type: LIST_FILES
+  attributes: {paths: ['/Users/*']}
   returned_types: [KnowledgeBaseUser]
 labels: [Users]
 supported_os: [Darwin]
@@ -40,10 +40,10 @@ provides: [users.username]
 ---
 name: OSXSPHardwareDataType
 doc: Mac OS X system profiler.
-collectors:
-- collector_type: COMMAND
-  args:
-    args: [SPHardwareDataType -xml]
+sources:
+- type: COMMAND
+  attributes:
+    args: [-xml SPHardwareDataType]
     cmd: /usr/sbin/system_profiler
   returned_types: [HardwareInfo]
 labels: [System]

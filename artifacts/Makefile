@@ -7,7 +7,7 @@ TEMPDIR := $(shell mktemp -d artifact.XXXXXX)
 all: sync
 
 sync:
-	git clone --branch 20150408 https://github.com/ForensicArtifacts/artifacts.git $(TEMPDIR)
+	git clone https://github.com/ForensicArtifacts/artifacts.git $(TEMPDIR)
 	-rm -f *.yaml
 
 	cp $(TEMPDIR)/definitions/*.yaml .

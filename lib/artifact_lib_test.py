@@ -54,7 +54,7 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
 
     results = artifact_lib.ArtifactRegistry.GetArtifacts(
         os_name="Windows",
-        collector_type=rdfvalue.Collector.CollectorType.REGISTRY_VALUE,
+        source_type=rdfvalue.ArtifactSource.SourceType.REGISTRY_VALUE,
         name_list=["DepsProvidesMultiple"])
     self.assertEqual(results.pop().name, "DepsProvidesMultiple")
 
@@ -146,13 +146,13 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
     # Test recursive loop.
     # Make sure we use the registry registered version of the class.
     art_obj = artifact_reg["TestAggregationArtifactDeps"]
-    coll = art_obj.collectors[0]
-    backup = coll.args["artifact_list"]
-    coll.args["artifact_list"] = ["TestAggregationArtifactDeps"]
+    source = art_obj.sources[0]
+    backup = source.attributes["names"]
+    source.attributes["names"] = ["TestAggregationArtifactDeps"]
     with self.assertRaises(RuntimeError) as e:
       deps = art_obj.GetArtifactDependencies(recursive=True)
     self.assertTrue("artifact recursion depth" in e.exception.message)
-    coll.args["artifact_list"] = backup   # Restore old collector.
+    source.attributes["names"] = backup   # Restore old source.
 
 
 class ArtifactKBTest(test_lib.GRRBaseTest):

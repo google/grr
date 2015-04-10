@@ -396,12 +396,12 @@
       "response": {
         "TestDrivers": {
           "artifact": {
-            "collectors": [
+            "sources": [
               {
-                "args": {
+                "attributes": {
                   "query": "SELECT * from Win32_SystemDriver"
                 },
-                "collector_type": "WMI",
+                "type": "WMI",
                 "conditions": [],
                 "returned_types": []
               }

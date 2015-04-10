@@ -232,10 +232,10 @@ class GRRArtifactTest(ArtifactTest):
 
   def testUploadArtifactYamlFileMissingDoc(self):
     content = """name: Nodoc
-collectors:
-- collector_type: GREP
-  args:
-    path_list: [/etc/blah]
+sources:
+- type: GREP
+  attributes:
+    paths: [/etc/blah]
     content_regex_list: ["stuff"]
 supported_os: [Linux]
 """
@@ -246,10 +246,10 @@ supported_os: [Linux]
   def testUploadArtifactYamlFileBadList(self):
     content = """name: BadList
 doc: here's the doc
-collectors:
-- collector_type: GREP
-  args:
-    path_list: /etc/blah
+sources:
+- type: GREP
+  attributes:
+    paths: /etc/blah
     content_regex_list: ["stuff"]
 supported_os: [Linux]
 """
@@ -359,8 +359,8 @@ class ArtifactFlowTest(ArtifactTest):
     """Check GetFiles artifacts."""
     # Update the artifact path to point to the test directory.
     art_reg = artifact_lib.ArtifactRegistry.artifacts
-    orig_path = art_reg["TestFilesArtifact"].collectors[0].args["path_list"]
-    art_reg["TestFilesArtifact"].collectors[0].args["path_list"] = (
+    orig_path = art_reg["TestFilesArtifact"].sources[0].attributes["paths"]
+    art_reg["TestFilesArtifact"].sources[0].attributes["paths"] = (
         [os.path.join(self.base_path, "auth.log")])
     client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
                                           "HashBuffer", "ListDirectory",
@@ -369,14 +369,14 @@ class ArtifactFlowTest(ArtifactTest):
                                       client_mock=client_mock)
     urn = self.client_id.Add("fs/os/").Add(self.base_path).Add("auth.log")
     aff4.FACTORY.Open(urn, aff4_type="VFSBlobImage", token=self.token)
-    art_reg["TestFilesArtifact"].collectors[0].args["path_list"] = orig_path
+    art_reg["TestFilesArtifact"].sources[0].attributes["paths"] = orig_path
 
   def testLinuxPasswdHomedirsArtifact(self):
     """Check LinuxPasswdHomedirs artifacts."""
     # Update the artifact path to point to the test directory.
     art_reg = artifact_lib.ArtifactRegistry.artifacts
-    orig_path = art_reg["LinuxPasswdHomedirs"].collectors[0].args["path_list"]
-    art_reg["LinuxPasswdHomedirs"].collectors[0].args["path_list"] = [
+    orig_path = art_reg["LinuxPasswdHomedirs"].sources[0].attributes["paths"]
+    art_reg["LinuxPasswdHomedirs"].sources[0].attributes["paths"] = [
         os.path.join(self.base_path, "passwd")]
 
     client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
@@ -396,7 +396,7 @@ class ArtifactFlowTest(ArtifactTest):
         self.assertEqual(user.shell, u"/bin/sh")
         self.assertEqual(user.uid, 46)
 
-    art_reg["LinuxPasswdHomedirs"].collectors[0].args["path_list"] = orig_path
+    art_reg["LinuxPasswdHomedirs"].sources[0].attributes["paths"] = orig_path
 
   def testArtifactOutput(self):
     """Check we can run command based artifacts."""
@@ -404,7 +404,7 @@ class ArtifactFlowTest(ArtifactTest):
 
     # Update the artifact path to point to the test directory.
     art_reg = artifact_lib.ArtifactRegistry.artifacts
-    art_reg["TestFilesArtifact"].collectors[0].args["path_list"] = ([
+    art_reg["TestFilesArtifact"].sources[0].attributes["paths"] = ([
         os.path.join(self.base_path, "auth.log")])
 
     client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile",

@@ -224,23 +224,23 @@ grr.artifact_view.renderArtifactFromObject = function(artifact, element) {
     $(processor_element).append('<tr><td>None</td></tr>');
   }
 
-  var collector_element = '#' + element + ' table[name=artifact_collectors]';
-  $(collector_element + ' tr').remove();
-  if (artifact.collectors.length > 0) {
-    $.each(artifact.collectors, function(index, collector) {
-      collector_row = '<tr><td>Collector_Type<td>' + collector.collector_type +
+  var source_element = '#' + element + ' table[name=artifact_sources]';
+  $(source_element + ' tr').remove();
+  if (artifact.sources.length > 0) {
+    $.each(artifact.sources, function(index, source) {
+      source_row = '<tr><td>Type<td>' + source.type +
         '</tr>';
-      $.each(collector.args, function(name, value) {
+      $.each(source.attributes, function(name, value) {
         if ($.isArray(value)) {
           value = value.join('<br>');
         }
-        collector_row += '<tr><td>arg:' + name + '<td>' + value + '</tr>';
+        source_row += '<tr><td>arg:' + name + '<td>' + value + '</tr>';
       });
-      collector_row += '<tr><td></tr>';
-      $(collector_element).append(collector_row);
+      source_row += '<tr><td></tr>';
+      $(source_element).append(source_row);
     });
   } else {
-    $(collector_element).append('<tr><td>None</tr>');
+    $(source_element).append('<tr><td>None</tr>');
   }
 
   $('#' + element + ' td:first-child').addClass('proto_key');

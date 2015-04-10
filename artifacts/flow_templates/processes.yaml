@@ -2,9 +2,9 @@
 
 name: AllRunningProcessBinaryFiles
 doc: Download binaries of all the running processes.
-collectors:
-- collector_type: ARTIFACT_FILES
-  args:
+sources:
+- type: ARTIFACT_FILES
+  attributes:
     artifact_list: [ListProcessesGrr]
     pathspec_attribute: exe
   returned_types: [Process]

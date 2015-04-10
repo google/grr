@@ -6,19 +6,19 @@ doc: |
 
   * recent logins in wtmp;
   * user metadata in the output of getpwnam.
-collectors:
-- collector_type: GRR_CLIENT_ACTION
-  args: {client_action: EnumerateUsers}
+sources:
+- type: GRR_CLIENT_ACTION
+  attributes: {client_action: EnumerateUsers}
 labels: [Users]
 provides: [users.homedir, users.username, users.last_logon, users.full_name]
 supported_os: [Linux]
 ---
 name: LinuxPasswdHomedirs
 doc: Grep passwd file for user homedirs.
-collectors:
-- collector_type: GREP
-  args:
-    path_list: ['/etc/passwd']
+sources:
+- type: GREP
+  attributes:
+    paths: ['/etc/passwd']
     content_regex_list: ["^%%users.username%%:[^:]*:[^:]*:[^:]*:[^:]*:[^:]+:[^:]*\n"]
 provides: [users.homedir, users.full_name]
 labels: [Authentication]
@@ -26,10 +26,10 @@ supported_os: [Linux]
 ---
 name: NssCacheLinuxPasswdHomedirs
 doc: Grep /etc/passwd.cache file for user homedirs.
-collectors:
-- collector_type: GREP
-  args:
-    path_list: ['/etc/passwd.cache']
+sources:
+- type: GREP
+  attributes:
+    paths: ['/etc/passwd.cache']
     content_regex_list: ["^%%users.username%%:[^:]*:[^:]*:[^:]*:[^:]*:[^:]+:[^:]*\n"]
 provides: [users.homedir, users.full_name]
 labels: [Authentication]
@@ -38,9 +38,9 @@ urls: ['https://code.google.com/p/nsscache/']
 ---
 name: RedhatPackagesList
 doc: Linux output of rpm -qa.
-collectors:
-- collector_type: COMMAND
-  args:
+sources:
+- type: COMMAND
+  attributes:
     args: [-qa]
     cmd: /bin/rpm
 labels: [Software]
@@ -48,9 +48,9 @@ supported_os: [Linux]
 ---
 name: DebianPackagesList
 doc: Linux output of dpkg --list.
-collectors:
-- collector_type: COMMAND
-  args:
+sources:
+- type: COMMAND
+  attributes:
     args: [--list]
     cmd: /usr/bin/dpkg
 labels: [Software]
@@ -58,9 +58,9 @@ supported_os: [Linux]
 ---
 name: SshdConfigCmd
 doc: Output of sshd -T.
-collectors:
-- collector_type: COMMAND
-  args:
+sources:
+- type: COMMAND
+  attributes:
     args: [-T]
     cmd: /usr/sbin/sshd
 labels: [Configuration Files]
@@ -68,9 +68,9 @@ supported_os: [Linux]
 ---
 name: LinuxHardwareInfo
 doc: dmidecode Baseboard Serial Number
-collectors:
-- collector_type: COMMAND
-  args:
+sources:
+- type: COMMAND
+  attributes:
     args: [-q]
     cmd: /usr/sbin/dmidecode
 labels: [System]
