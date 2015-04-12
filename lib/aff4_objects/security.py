@@ -4,8 +4,6 @@
 
 import email
 import urllib
-import sys
-import traceback
 
 from grr.lib import access_control
 from grr.lib import aff4
