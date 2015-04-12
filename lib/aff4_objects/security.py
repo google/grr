@@ -4,6 +4,8 @@
 
 import email
 import urllib
+import sys
+import traceback
 
 from grr.lib import access_control
 from grr.lib import aff4
@@ -151,10 +153,11 @@ class ApprovalWithApproversAndReason(Approval):
 
   class SchemaCls(Approval.SchemaCls):
     """The Schema for the ClientAccessApproval class."""
+
     LIFETIME = aff4.Attribute(
         "aff4:approval/lifetime", rdfvalue.RDFInteger,
-        "The number of microseconds an approval is valid for.",
-        default=4 * 7 * 24 * 60 * 60 * 1000000)  # 4 weeks
+        "The number of seconds an approval is valid for.",
+        default=7 * 24 * 60 * 60) # one week in seconds
     BREAK_GLASS = aff4.Attribute(
         "aff4:approval/breakglass", rdfvalue.RDFDatetime,
         "The date when this break glass approval will expire.")
@@ -192,7 +195,13 @@ class ApprovalWithApproversAndReason(Approval):
       return True
 
     # Check that there are enough approvers.
-    lifetime = self.Get(self.Schema.LIFETIME)
+    lifetime = self.Get(self.Schema.LIFETIME) 
+    try: # override if configured
+      lifetime = config_lib.CONFIG["ACL.token_expiry"] 
+      lifetime *= 60  # convert to seconds
+    except Exception, err:
+      pass
+
     approvers = set()
     for approver in self.GetValuesForAttribute(self.Schema.APPROVER):
       if approver.age + lifetime > now:
