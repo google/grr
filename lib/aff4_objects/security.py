@@ -193,12 +193,8 @@ class ApprovalWithApproversAndReason(Approval):
       return True
 
     # Check that there are enough approvers.
-    lifetime = self.Get(self.Schema.LIFETIME) 
-    try: # override if configured
-      lifetime = config_lib.CONFIG["ACL.token_expiry"] 
-      lifetime *= 60  # convert to seconds
-    except Exception, err:
-      pass
+    lifetime = config_lib.CONFIG["ACL.token_expiry"] 
+    lifetime *= 60  # convert to seconds
 
     approvers = set()
     for approver in self.GetValuesForAttribute(self.Schema.APPROVER):
