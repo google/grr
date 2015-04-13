@@ -30,7 +30,7 @@ class TestCrashView(test_lib.GRRSeleniumTest):
 
     self.Open("/")
 
-    self.Type("client_query", "0001")
+    self.Type("client_query", "C.0000000000000001")
     self.Click("client_query_submit")
 
     self.WaitUntilEqual(u"C.0000000000000001",
@@ -121,7 +121,7 @@ class TestCrashView(test_lib.GRRSeleniumTest):
                    [client_id for client_id in client_ids])
 
     # Search for the C.0000000000000001 and select it.
-    self.Type("client_query", "0001")
+    self.Type("client_query", "C.0000000000000001")
     self.Click("client_query_submit")
 
     with self.ACLChecksDisabled():

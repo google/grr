@@ -5,6 +5,7 @@ This handles invocations for the build across the supported platforms including
 handling Visual Studio, pyinstaller and other packaging mechanisms.
 """
 
+import getpass
 import logging
 import os
 import platform
@@ -20,6 +21,7 @@ from grr.lib import builders
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import startup
+from grr.lib.builders import signing
 
 parser = flags.PARSER
 
@@ -40,6 +42,9 @@ parser.add_argument(
     "--arch", choices=["amd64", "i386"],
     default=default_arch,
     help="The architecture to build or repack for.")
+
+parser.add_argument("--sign", action="store_true", default=False,
+                    help="Sign executables.")
 
 # Guess which package format we should be building based on where we are
 # running.
@@ -92,6 +97,7 @@ parser_repack.add_argument("-p", "--plugins", default=[], nargs="+",
                            help="Additional python files that will be loaded "
                            "as custom plugins.")
 
+
 parser_deploy = subparsers.add_parser(
     "deploy", help="Build a deployable self installer from a package.")
 
@@ -122,10 +128,11 @@ parser_buildanddeploy = subparsers.add_parser(
     "buildanddeploy",
     help="Build and deploy clients for multiple labels and architectures.")
 
-parser_buildanddeploy.add_argument("--template", default=None,
-                                   help="The template zip file to repack, if "
-                                   "none is specified we will build it.")
+parser_buildanddeploy.add_argument("--templatedir", default="", help="Directory"
+                                   "containing template zip files to repack.")
 
+parser_buildanddeploy.add_argument("--debug_build", action="store_true",
+                                   default=False, help="Create a debug client.")
 args = parser.parse_args()
 
 
@@ -160,13 +167,14 @@ def GetBuilder(context):
   return builder_obj(context=context)
 
 
-def GetDeployer(context):
+def GetDeployer(context, signer=None):
   """Get the appropriate client deployer based on the selected flags."""
   if args.platform == "darwin":
     context = ["Platform:Darwin"] + context
     deployer_obj = build.DarwinClientDeployer
 
   elif args.platform == "windows":
+    args.package_format = "exe"
     context = ["Platform:Windows"] + context
     deployer_obj = build.WindowsClientDeployer
 
@@ -181,7 +189,23 @@ def GetDeployer(context):
   else:
     parser.error("Unsupported build platform: %s" % args.platform)
 
-  return deployer_obj(context=context)
+  return deployer_obj(context=context, signer=signer)
+
+
+def GetSigner(context):
+  if args.platform == "windows" and args.subparser_name in ["deploy", "repack",
+                                                            "buildanddeploy"]:
+    passwd = getpass.getpass()
+    cert = config_lib.CONFIG.Get(
+        "ClientBuilder.windows_signing_cert", context=context)
+    key = config_lib.CONFIG.Get(
+        "ClientBuilder.windows_signing_key", context=context)
+    app_name = config_lib.CONFIG.Get(
+        "ClientBuilder.windows_signing_application_name", context=context)
+    return signing.WindowsCodeSigner(cert, key, passwd, app_name)
+  else:
+    parser.error("Signing only supported on windows for deploy, repack,"
+                 " buildanddeploy")
 
 
 def TemplateInputFilename(context):
@@ -193,13 +217,39 @@ def TemplateInputFilename(context):
   return None
 
 
-def BuildAndDeploy(context):
+def BuildAndDeployWindows(context, signer=None):
+  """Run buildanddeploy for 32/64 dbg/prod."""
+  build_combos = [
+      {"arch": "amd64", "debug_build": True},
+      {"arch": "amd64", "debug_build": False},
+      {"arch": "i386", "debug_build": True},
+      {"arch": "i386", "debug_build": False}]
+  timestamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+  args.package_format = "exe"
+
+  # Set the relevant context values so we can export and import to reset context
+  # state between each buildanddeploy run
+  for context_str in context:
+    config_lib.CONFIG.AddContext(context_str)
+  config_orig = config_lib.CONFIG.ExportState()
+
+  for argset in build_combos:
+    for key, value in argset.items():
+      setattr(args, key, value)
+    print "Building for: %s" % argset
+    BuildAndDeploy([], timestamp=timestamp, signer=signer)
+    config_lib.ImportConfigManger(config_orig)
+
+
+def BuildAndDeploy(context, signer=None, timestamp=None):
   """Run build and deploy to create installers."""
   # ISO 8601 date
-  timestamp = time.strftime("%Y-%m-%dT%H:%M:%S%z")
+  timestamp = timestamp or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
   if args.plugins:
     config_lib.CONFIG.Set("Client.plugins", args.plugins)
+
+  context = SetContextFromArgs(context)
 
   # Output directory like: 2015-02-13T21:48:47-0800/linux_amd64_deb/
   spec = "_".join((args.platform, args.arch, args.package_format))
@@ -207,8 +257,8 @@ def BuildAndDeploy(context):
       "ClientBuilder.executables_path", context=context), timestamp, spec)
 
   # If we weren't passed a template, build one
-  if args.template:
-    template_path = args.template
+  if args.templatedir:
+    template_path = TemplateInputFilename(context)
   else:
     template_path = os.path.join(output_dir, config_lib.CONFIG.Get(
         "PyInstaller.template_filename", context=context))
@@ -229,13 +279,15 @@ def BuildAndDeploy(context):
       context.append(newcontext)
 
     try:
+      deployer = GetDeployer(context, signer=signer)
+
       # If the ClientBuilder.target_platforms doesn't match our environment,
       # skip.
       if not config_lib.CONFIG.MatchBuildContext(args.platform, args.arch,
-                                                 args.package_format):
+                                                 args.package_format,
+                                                 context=deployer.context):
         continue
 
-      deployer = GetDeployer(context)
       # Make a nicer filename out of the context string.
       context_filename = deploycontext.replace(
           "AllPlatforms Context,", "").replace(",", "_").replace(" ", "_")
@@ -263,6 +315,72 @@ def BuildAndDeploy(context):
                output_dir)
 
 
+def Deploy(context, signer=None):
+  """Reconfigure a client template to match config.
+
+  Args:
+    context: config_lib context
+    signer: lib.builders.signing.CodeSigner object
+  """
+  if args.plugins:
+    config_lib.CONFIG.Set("Client.plugins", args.plugins)
+
+  context = SetContextFromArgs(context)
+
+  deployer = GetDeployer(context, signer=signer)
+  template_path = (args.template or TemplateInputFilename(deployer.context) or
+                   config_lib.CONFIG.Get("ClientBuilder.template_path",
+                                         context=deployer.context))
+
+  # If neither output filename or output directory is specified,
+  # use the default location from the config file.
+  output = None
+  if args.output:
+    output = args.output
+  elif args.outputdir:
+    # If output filename isn't specified, write to args.outputdir with a
+    # .deployed extension so we can distinguish it from repacked binaries.
+    filename = ".".join(
+        (config_lib.CONFIG.Get("ClientBuilder.output_filename",
+                               context=deployer.context), "deployed"))
+    output = os.path.join(args.outputdir, filename)
+
+  deployer.MakeDeployableBinary(template_path, output)
+
+
+def Repack(context, signer=None):
+  """Turn a template into an installer.
+
+  Args:
+    context: config_lib context
+    signer: lib.builders.signing.CodeSigner object
+  """
+  context = SetContextFromArgs(context)
+
+  if args.plugins:
+    config_lib.CONFIG.Set("Client.plugins", args.plugins)
+
+  deployer = GetDeployer(context, signer=signer)
+  output_filename = os.path.join(
+      args.outputdir, config_lib.CONFIG.Get(
+          "ClientBuilder.output_filename", context=deployer.context))
+
+  deployer.RepackInstaller(open(args.template, "rb").read(), args.output or
+                           output_filename)
+
+
+def SetContextFromArgs(context):
+  if args.arch == "amd64":
+    context.append("Arch:amd64")
+  else:
+    context.append("Arch:i386")
+
+  if args.subparser_name != "build" and args.debug_build:
+    context += ["DebugClientBuild Context"]
+
+  return context
+
+
 def main(_):
   """Launch the appropriate builder."""
   config_lib.CONFIG.AddContext(
@@ -271,68 +389,39 @@ def main(_):
 
   startup.ClientInit()
 
+  # Make sure we have all the secondary configs since they may be set under the
+  # ClientBuilder Context
+  for secondconfig in config_lib.CONFIG["ConfigIncludes"]:
+    config_lib.CONFIG.LoadSecondaryConfig(secondconfig)
+
   # Use basic console output logging so we can see what is happening.
   logger = logging.getLogger()
   handler = logging.StreamHandler()
   handler.setLevel(logging.INFO)
   logger.handlers = [handler]
 
-  # The following is used to change the identity of the builder based on the
-  # target platform.
   context = flags.FLAGS.context
-  if args.arch == "amd64":
-    context.append("Arch:amd64")
-  else:
-    context.append("Arch:i386")
+  context.append("ClientBuilder Context")
+
+  signer = None
+  if args.sign:
+    signer = GetSigner(context)
 
   if args.subparser_name == "build":
+    context = SetContextFromArgs(context)
     builder_obj = GetBuilder(context)
     builder_obj.MakeExecutableTemplate()
-
   elif args.subparser_name == "repack":
-    if args.plugins:
-      config_lib.CONFIG.Set("Client.plugins", args.plugins)
-
-    if args.debug_build:
-      context += ["DebugClientBuild Context"]
-
-    deployer = GetDeployer(context)
-    output_filename = os.path.join(
-        args.outputdir, config_lib.CONFIG.Get(
-            "ClientBuilder.output_filename", context=deployer.context))
-
-    deployer.RepackInstaller(open(args.template, "rb").read(), args.output or
-                             output_filename)
-
+    Repack(context, signer=signer)
   elif args.subparser_name == "deploy":
-    if args.plugins:
-      config_lib.CONFIG.Set("Client.plugins", args.plugins)
-
-    if args.debug_build:
-      context += ["DebugClientBuild Context"]
-
-    deployer = GetDeployer(context)
-    template_path = (args.template or TemplateInputFilename(deployer.context) or
-                     config_lib.CONFIG.Get("ClientBuilder.template_path",
-                                           context=deployer.context))
-
-    # If neither output filename or output directory is specified,
-    # use the default location from the config file.
-    output = None
-    if args.output:
-      output = args.output
-    elif args.outputdir:
-      # If output filename isn't specified, write to args.outputdir with a
-      # .deployed extension so we can distinguish it from repacked binaries.
-      filename = ".".join(
-          (config_lib.CONFIG.Get("ClientBuilder.output_filename",
-                                 context=deployer.context), "deployed"))
-      output = os.path.join(args.outputdir, filename)
-
-    deployer.MakeDeployableBinary(template_path, output)
-
+    Deploy(context, signer=signer)
   elif args.subparser_name == "buildanddeploy":
-    BuildAndDeploy(context)
+    if args.platform == "windows":
+      # Handle windows differently because we do 32, 64, and debug builds all at
+      # once
+      BuildAndDeployWindows(context, signer=signer)
+    else:
+      BuildAndDeploy(context, signer=signer)
 
 
 if __name__ == "__main__":

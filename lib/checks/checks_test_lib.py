@@ -61,7 +61,9 @@ class HostCheckTest(test_lib.GRRBaseTest):
     return errors
 
   def assertRanChecks(self, check_ids, results):
-    self.assertItemsEqual(check_ids, results.keys())
+    """Check that the specified checks were run."""
+    residual = set(check_ids) - set(results.keys())
+    self.assertFalse(residual)
 
   def assertResultEqual(self, rslt1, rslt2):
     # Build a map of anomaly explanations to findings.

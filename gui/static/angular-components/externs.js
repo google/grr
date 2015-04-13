@@ -37,18 +37,38 @@ grr.layout = function(renderer, domId, opt_state, opt_onSuccess) {};
 
 
 /**
+ * @type {Object}
+ */
+grr.labels_completer = {};
+
+
+/**
+ * @param {(jQuerySelector|Element|jQuery|string)} element
+ * @param {Array<string>} completions
+ * @param {RegExp} regex
+ */
+grr.labels_completer.Completer = function(element, completions, regex) {};
+
+
+/**
  * @type {Object<string, string>}
  */
 grr.hash;
 
 
 /**
+ * @type {Object<string, string>}
+ */
+grr.state;
+
+
+/**
  * @param {string} name
  * @param {string} value
- * @param {?} event
+ * @param {?} opt_event
  * @param {Object=} opt_data
  */
-grr.publish = function(name, value, event, opt_data) {};
+grr.publish = function(name, value, opt_event, opt_data) {};
 
 /**
  * Angular UI definitions.

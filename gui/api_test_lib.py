@@ -12,7 +12,7 @@ import json
 import os
 import urlparse
 
-from grr.gui import api_call_renderers
+from grr.gui import http_api
 
 from grr.lib import flags
 from grr.lib import test_lib
@@ -80,7 +80,7 @@ class ApiCallRendererRegressionTest(test_lib.GRRBaseTest):
       request.GET = dict(urlparse.parse_qsl(parsed_url.query))
       request.META = {}
 
-      http_response = api_call_renderers.RenderHttpResponse(request)
+      http_response = http_api.RenderHttpResponse(request)
       content = http_response.content
 
       xssi_token = ")]}'\n"

@@ -256,6 +256,12 @@ class KeyValueParser(FieldParser):
     self.field = ""
 
   def EndEntry(self, **_):
+    # Finalize processing for non-terminated entries. Key first, then fields.
+    if self.field and not self.key_field:
+      self.EndKeyField()
+    else:
+      self.EndField()
+    # Set up the entry.
     key_field = self.key_field.strip()
     if key_field:
       self.entries.append({key_field: self.fields})

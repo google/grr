@@ -111,7 +111,13 @@ class HuntRunner(flow_runner.FlowRunner):
       return
 
     if request.next_state == "RegisterClient":
-      if self.IsHuntStarted():
+      state = self.flow_obj.Get(self.flow_obj.Schema.STATE)
+      # This allows the client limit to operate with a client rate. We still
+      # want clients to get registered for the hunt at times in the future.
+      # After they have been run, hunts only ever go into the paused state by
+      # hitting the client limit. If a user stops a hunt, it will go into the
+      # "STOPPED" state.
+      if state in ["STARTED", "PAUSED"]:
         self._RegisterAndRunClient(request.client_id)
       else:
         logging.debug(
@@ -299,6 +305,12 @@ class HuntRunner(flow_runner.FlowRunner):
           [r for r in aff4_rules if r.hunt_id != self.session_id])
       foreman.Set(aff4_rules)
 
+  def _Complete(self):
+    """Marks the hunt as completed."""
+    self._RemoveForemanRule()
+    self.flow_obj.Set(self.flow_obj.Schema.STATE("COMPLETED"))
+    self.flow_obj.Flush()
+
   def Pause(self):
     """Pauses the hunt (removes Foreman rules, does not touch expiry time)."""
     if not self.IsHuntStarted():
@@ -354,15 +366,14 @@ class HuntRunner(flow_runner.FlowRunner):
     Returns:
       If a new client is allowed to be scheduled on this hunt.
     """
-    # Hunt is considered running in PAUSED or STARTED states.
     state = self.flow_obj.Get(self.flow_obj.Schema.STATE)
-    if state in ["STOPPED", "PAUSED"]:
+    if state != "STARTED":
       return False
 
     # Hunt has expired.
     if self.context.expires < rdfvalue.RDFDatetime().Now():
       # Stop the hunt due to expiry.
-      self.Stop()
+      self._Complete()
       return False
 
     return True
@@ -504,7 +515,12 @@ class GRRHunt(flow.GRRFlow):
     # without taking a lock on the hunt object.
     STATE = aff4.Attribute(
         "aff4:hunt_state", rdfvalue.RDFString,
-        "The state of this hunt Can be 'STOPPED', 'STARTED' or 'PAUSED'.",
+        "The state of a hunt can be "
+        "'STARTED': running, "
+        "'STOPPED': stopped by the user, "
+        "'PAUSED': paused due to client limit, "
+        "'COMPLETED': hunt has met its expiry time. New hunts are created in"
+        " the PAUSED state.",
         versioned=False, lock_protected=False, default="PAUSED")
 
   args_type = None

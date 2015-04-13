@@ -145,7 +145,10 @@ class ClientTestBase(unittest.TestCase):
         self.fail("No valid configuration found, interrogate the client before "
                   "running this test.")
     else:
-      self.binary_name = config["Client.binary_name"]
+      try:
+        self.binary_name = config["Client.binary_name"]
+      except KeyError:
+        self.binary_name = config["Client.name"]
       return self.binary_name
 
   def CheckMacMagic(self, fd):

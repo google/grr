@@ -17,7 +17,7 @@ from grr.lib import flags
 from grr.lib import startup
 
 
-def GroupRegreesionTestsByRenderer():
+def GroupRegressionTestsByRenderer():
   result = {}
   for cls in api_test_lib.ApiCallRendererRegressionTest.classes.values():
     if getattr(cls, "renderer", None):
@@ -29,7 +29,7 @@ def GroupRegreesionTestsByRenderer():
 def main(unused_argv):
   sample_data = {}
 
-  tests = GroupRegreesionTestsByRenderer()
+  tests = GroupRegressionTestsByRenderer()
   for renderer, test_classes in tests.items():
 
     for test_class in sorted(test_classes, key=lambda cls: cls.__name__):

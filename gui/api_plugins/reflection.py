@@ -6,7 +6,6 @@ from grr.gui import api_value_renderers
 
 from grr.lib import aff4
 from grr.lib import rdfvalue
-from grr.lib import registry
 from grr.lib import type_info
 
 from grr.proto import api_pb2
@@ -104,15 +103,3 @@ class ApiAllRDFValuesReflectionRenderer(ApiRDFValueReflectionRenderer):
   """Renders descriptors of all available RDFValues."""
 
   args_type = None
-
-
-class ApiReflectionInitHook(registry.InitHook):
-
-  def RunOnce(self):
-    api_call_renderers.RegisterHttpRouteHandler(
-        "GET", "/api/reflection/rdfvalue/<type>",
-        ApiRDFValueReflectionRenderer)
-
-    api_call_renderers.RegisterHttpRouteHandler(
-        "GET", "/api/reflection/rdfvalue/all",
-        ApiAllRDFValuesReflectionRenderer)

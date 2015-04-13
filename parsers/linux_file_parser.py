@@ -13,7 +13,7 @@ class PasswdParser(parsers.FileParser):
   """Parser for passwd files. Yields KnowledgeBaseUser semantic values."""
 
   output_types = ["KnowledgeBaseUser"]
-  supported_artifacts = ["LinuxPasswd"]
+  supported_artifacts = ["UnixPasswd"]
 
   @classmethod
   def ParseLine(cls, index, line):

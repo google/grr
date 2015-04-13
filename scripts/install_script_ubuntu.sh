@@ -21,7 +21,7 @@ PYTSK_DEB=pytsk3_3.2.3-1_${PLAT}.deb
 M2CRYPTO_DEB=m2crypto_0.21.1-1_${PLAT}.deb
 
 GRR_STABLE_VERSION=0.3.0-2
-GRR_TEST_VERSION=0.3.1-1
+GRR_TEST_VERSION=0.3.0-6
 SERVER_DEB_STABLE_BASE_URL=https://googledrive.com/host/0B1wsLqFoT7i2c3F0ZmI1RDJlUEU/grr-server_
 SERVER_DEB_TEST_BASE_URL=https://googledrive.com/host/0B1wsLqFoT7i2c3F0ZmI1RDJlUEU/test-grr-server_
 
@@ -123,6 +123,12 @@ function run_cmd_confirm()
   fi
 };
 
+function install_mongo()
+{
+  apt-get --yes --force-yes install mongodb python-pymongo;
+  service mongodb stop 2>/dev/null || true
+  service mongodb start 2>/dev/null
+}
 
 header "Updating APT and Installing dependencies"
 run_cmd_confirm apt-get --yes update;
@@ -191,9 +197,7 @@ if [ $BUILD_DEPS_ONLY = 1 ]; then
 fi
 
 header "Installing Mongodb"
-run_cmd_confirm apt-get --yes --force-yes install mongodb python-pymongo;
-run_cmd_confirm service mongodb stop 2>/dev/null || true
-run_cmd_confirm service mongodb start 2>/dev/null
+run_cmd_confirm install_mongo
 
 header "Installing GRR from prebuilt package"
 SERVER_DEB=$(basename ${SERVER_DEB_URL});

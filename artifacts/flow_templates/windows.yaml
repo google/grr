@@ -2,9 +2,9 @@
 
 name: AllVADBinaryFiles
 doc: Download all currently running binaries on Windows.
-collectors:
-- collector_type: ARTIFACT_FILES
-  args:
+sources:
+- type: ARTIFACT_FILES
+  attributes:
     artifact_list: [FullVADBinaryList]
   returned_types: [PathSpec]
 labels: [Rekall, Processes, Software]
@@ -12,18 +12,18 @@ supported_os: [Windows]
 ---
 name: FullVADBinaryList
 doc: Extract list of currently running binaries on Windows.
-collectors:
-- collector_type: REKALL_PLUGIN
-  args:
+sources:
+- type: REKALL_PLUGIN
+  attributes:
     plugin: vad
 labels: [Rekall, Processes]
 supported_os: [Windows]
 ---
 name: WindowsPersistenceMechanismFiles
 doc: Files that are run by Windows persistence mechanisms.
-collectors:
-- collector_type: ARTIFACT_FILES
-  args:
+sources:
+- type: ARTIFACT_FILES
+  attributes:
     artifact_list: [WindowsPersistenceMechanisms]
   returned_types: [StatEntry]
 labels: [Software]

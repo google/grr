@@ -141,13 +141,13 @@ HuntsListController.prototype.runHunt = function() {
 
 
 /**
- * Shows 'Pause Hunt' confirmation dialog.
+ * Shows 'Stop Hunt' confirmation dialog.
  *
  * @export
  */
-HuntsListController.prototype.pauseHunt = function() {
+HuntsListController.prototype.stopHunt = function() {
   var modalInstance = this.modal_.open({
-    template: '<grr-legacy-renderer renderer="PauseHuntConfirmationDialog" ' +
+    template: '<grr-legacy-renderer renderer="StopHuntConfirmationDialog" ' +
         'query-params="{hunt_id: ctrl.selectedHuntUrn}" />',
     scope: this.scope_
   });

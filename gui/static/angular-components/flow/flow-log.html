@@ -11,9 +11,9 @@
     <tr grr-paged-filtered-table grr-aff4-items-provider aff4-path="::controller.logsUrn"
         query-params="{'RDFValueCollection.items_type_info': 'WITH_TYPES'}">
       <td class="table-cell proto_key"><nobr>{$ ::item.age * 1000 | date:'medium' $}</nobr></td>
-      <td class="table-cell proto_key">{$ ::item.value.flow_name $}</td>
-      <td class="table-cell proto_key">{$ ::item.value.urn $}</td>
-      <td class="table-cell proto_key">{$ ::item.value.log_message $}</td>
+      <td class="table-cell proto_key"><grr-semantic-value value="::item.value.flow_name" /></td>
+      <td class="table-cell proto_key"><grr-semantic-value value="::item.value.urn" /></td>
+      <td class="table-cell proto_key"><grr-semantic-value value="::item.value.log_message" /></td>
     </tr>
   </tbody>
 </table>

@@ -1,14 +1,11 @@
 #!/usr/bin/env python
 """API renderers for stats."""
 
-import re
-
 from grr.gui import api_call_renderers
 from grr.gui import api_value_renderers
 
 from grr.lib import aff4
 from grr.lib import rdfvalue
-from grr.lib import registry
 from grr.lib import utils
 from grr.lib.aff4_objects import stats_store as stats_store_lib
 
@@ -75,7 +72,7 @@ class ApiStatsStoreMetricRenderer(api_call_renderers.ApiCallRenderer):
 
     data = stats_store.MultiReadStats(
         process_ids=filtered_ids,
-        predicate_regex=re.escape(utils.SmartStr(args.metric_name)),
+        predicate_regex=utils.SmartStr(args.metric_name),
         timestamp=(start_time, end_time))
 
     if not data:
@@ -138,14 +135,3 @@ class ApiStatsStoreMetricRenderer(api_call_renderers.ApiCallRenderer):
 
     result["timeseries"] = timeseries
     return result
-
-
-class ApiStatsInitHook(registry.InitHook):
-
-  def RunOnce(self):
-    api_call_renderers.RegisterHttpRouteHandler(
-        "GET", "/api/stats/store/<component>/metadata",
-        ApiStatsStoreMetricsMetadataRenderer)
-    api_call_renderers.RegisterHttpRouteHandler(
-        "GET", "/api/stats/store/<component>/metrics/<metric_name>",
-        ApiStatsStoreMetricRenderer)

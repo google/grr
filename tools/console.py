@@ -73,6 +73,10 @@ flags.DEFINE_string("code_to_execute", None,
                     "the flag is run instead (comparable to the -c option of "
                     "IPython).")
 
+flags.DEFINE_string("command_file", None,
+                    "If present, no console is started but the code given in "
+                    "command file is supplied as input instead.")
+
 
 def Help():
   """Print out help information."""
@@ -122,6 +126,9 @@ def main(unused_argv):
   if flags.FLAGS.code_to_execute:
     logging.info("Running code from flag: %s", flags.FLAGS.code_to_execute)
     exec(flags.FLAGS.code_to_execute)  # pylint: disable=exec-used
+  elif flags.FLAGS.command_file:
+    logging.info("Running code from file: %s", flags.FLAGS.command_file)
+    execfile(flags.FLAGS.command_file)
   else:
     ipshell.IPShell(argv=[], user_ns=locals_vars, banner=banner)
 

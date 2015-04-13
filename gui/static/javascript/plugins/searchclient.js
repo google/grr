@@ -23,12 +23,16 @@ grr.labels_completer.filter = function(completions, term) {
 /**
  * Build a completer on top of a text input.
  *
- * @param {string} dom_id is the DOM id of the text input field.
+ * @param {string|Element} element is the DOM id of the text input field or the
+ *     DOM element itself.
  * @param {Array} completions are possible completions.
  * @param {string} split_term is the term which triggers the completion.
  */
-grr.labels_completer.Completer = function(dom_id, completions, split_term) {
-  $('#' + dom_id).bind('keydown', function(event) {
+grr.labels_completer.Completer = function(element, completions, split_term) {
+  if (angular.isString(element)) {
+    element = $('#' + dom_id);
+  }
+  element.bind('keydown', function(event) {
     if (event.keyCode === $.ui.keyCode.TAB &&
         $(this).data('ui-autocomplete').menu.active) {
       event.preventDefault();
@@ -71,7 +75,17 @@ grr.labels_completer.Completer = function(dom_id, completions, split_term) {
       terms.push(ui.item.value);
 
       this.value = terms.join('label:');
-      grr.forms.inputOnChange(this);
+
+      // Angular code has to be notificed of the change.
+      $(this).change();
+
+      // Id will only be set in legacy code.
+      if ($(this).attr('id')) {
+        grr.forms.inputOnChange(this);
+      }
+
+      event.preventDefault();
+      return false;
     }
   });
 };

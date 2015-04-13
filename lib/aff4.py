@@ -2645,3 +2645,13 @@ def issubclass(obj, cls):    # pylint: disable=redefined-builtin,g-bad-name
   """
   return isinstance(obj, type) and __builtin__.issubclass(obj, cls)
 
+
+def CurrentAuditLog():
+  """Get the rdfurn of the current audit log."""
+  now_sec = rdfvalue.RDFDatetime().Now().AsSecondsFromEpoch()
+  rollover = config_lib.CONFIG["Logging.aff4_audit_log_rollover"]
+  # This gives us a filename that only changes every
+  # Logging.aff4_audit_log_rollover seconds, but is still a valid timestamp.
+  current_log = (now_sec // rollover) * rollover
+  return ROOT_URN.Add("audit").Add("logs").Add(str(current_log))
+

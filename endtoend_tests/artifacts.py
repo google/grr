@@ -61,7 +61,7 @@ class TestParserDependency(base.AutomatedTest):
 
   def setUp(self):
     # Set the KB to an empty object
-    client = aff4.FACTORY.Open(self.client_id, mode="rw")
+    client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
     self.old_kb = client.Get(client.Schema.KNOWLEDGE_BASE)
     client.Set(client.Schema.KNOWLEDGE_BASE, rdfvalue.KnowledgeBase())
     client.Flush()
@@ -77,7 +77,7 @@ class TestParserDependency(base.AutomatedTest):
 
   def tearDown(self):
     # Set the KB to an empty object
-    client = aff4.FACTORY.Open(self.client_id, mode="rw")
+    client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
     client.Set(client.Schema.KNOWLEDGE_BASE, self.old_kb)
     client.Flush()
     super(TestParserDependency, self).tearDown()

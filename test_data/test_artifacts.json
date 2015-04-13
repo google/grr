@@ -1,13 +1,13 @@
 [
   {
    "name": "TestAggregationArtifact",
-    "collectors": [
-      { "collector_type": "ARTIFACT",
-        "args": { "artifact_list": ["TestOSAgnostic"] },
+    "sources": [
+      { "type": "ARTIFACT",
+        "attributes": { "names": ["TestOSAgnostic"] },
         "returned_types": ["Process"]
       },
-      { "collector_type": "ARTIFACT",
-        "args": { "artifact_list": [ "TestCmdArtifact" ]
+      { "type": "ARTIFACT",
+        "attributes": { "names": [ "TestCmdArtifact" ]
         },
         "returned_types": [ "SoftwarePackage" ]
       }
@@ -18,9 +18,9 @@
   },
 
   { "name": "TestAggregationArtifactDeps",
-    "collectors": [
-      { "collector_type": "ARTIFACT",
-        "args": { "artifact_list": [ "TestAggregationArtifact" ]
+    "sources": [
+      { "type": "ARTIFACT",
+        "attributes": { "names": [ "TestAggregationArtifact" ]
         },
         "returned_types": [ "Process" ]
       }
@@ -31,9 +31,9 @@
   },
 
   { "name": "TestCmdArtifact",
-    "collectors": [
-      { "collector_type": "COMMAND",
-        "args": { "cmd": "/usr/bin/dpkg",
+    "sources": [
+      { "type": "COMMAND",
+        "attributes": { "cmd": "/usr/bin/dpkg",
                   "args": ["--list"]
         },
         "returned_types": [ "SoftwarePackage" ]
@@ -45,9 +45,9 @@
   },
 
   { "name": "TestOSAgnostic",
-    "collectors": [
-      { "collector_type": "GRR_CLIENT_ACTION",
-        "args": { "client_action": {"GetHostname"}}
+    "sources": [
+      { "type": "GRR_CLIENT_ACTION",
+        "attributes": { "client_action": {"GetHostname"}}
       }
     ],
     "doc": "Test no OS means all OSes.",
@@ -56,9 +56,9 @@
   },
 
   { "name": "TestFilesArtifact",
-    "collectors": [
-      { "collector_type": "FILE",
-        "args": { "path_list": ["/var/log/auth.log"] }
+    "sources": [
+      { "type": "FILE",
+        "attributes": { "paths": ["/var/log/auth.log"] }
       }
     ],
     "doc": "Test files artifact.",
@@ -84,9 +84,9 @@
 
 
   { "name": "BadPathspecArtifact",
-    "collectors": [
-      { "collector_type": "ARTIFACT_FILES",
-        "args": { "artifact_list": [ "WindowsPersistenceMechanisms" ],
+    "sources": [
+      { "type": "ARTIFACT_FILES",
+        "attributes": { "artifact_list": [ "WindowsPersistenceMechanisms" ],
           "pathspec_attribute": "broken"
         },
         "returned_types": ["StatEntry"]
@@ -98,9 +98,9 @@
   },
 
   { "name": "DepsParent",
-    "collectors": [
-      { "collector_type": "FILE",
-        "args": { "path_list": ["/test/%%users.desktop%%"] }
+    "sources": [
+      { "type": "FILE",
+        "attributes": { "paths": ["/test/%%users.desktop%%"] }
       }
     ],
     "doc": "Test files artifact.",
@@ -109,9 +109,9 @@
   },
 
   { "name": "DepsDesktop",
-    "collectors": [
-      { "collector_type": "FILE",
-        "args": { "path_list": ["/test/%%users.homedir%%"] }
+    "sources": [
+      { "type": "FILE",
+        "attributes": { "paths": ["/test/%%users.homedir%%"] }
       }
     ],
     "provides": ["users.desktop"],
@@ -121,9 +121,9 @@
   },
 
   { "name": "DepsHomedir",
-    "collectors": [
-      { "collector_type": "FILE",
-        "args": { "path_list": ["/test/%%environ_windir%%/%%current_control_set%%"] }
+    "sources": [
+      { "type": "FILE",
+        "attributes": { "paths": ["/test/%%environ_windir%%/%%current_control_set%%"] }
       }
     ],
     "provides": ["users.homedir"],
@@ -133,9 +133,9 @@
   },
 
   { "name": "DepsHomedir2",
-    "collectors": [
-      { "collector_type": "FILE",
-        "args": { "path_list": ["/test/blah"] }
+    "sources": [
+      { "type": "FILE",
+        "attributes": { "paths": ["/test/blah"] }
       }
     ],
     "provides": ["users.homedir"],
@@ -145,9 +145,9 @@
   },
 
   { "name": "DepsWindir",
-    "collectors": [
-      { "collector_type": "FILE",
-        "args": { "path_list": ["/test/%%current_control_set%%"] }
+    "sources": [
+      { "type": "FILE",
+        "attributes": { "paths": ["/test/%%current_control_set%%"] }
       }
     ],
     "provides": ["environ_windir"],
@@ -157,9 +157,9 @@
   },
 
   { "name": "DepsWindirRegex",
-    "collectors": [
-      { "collector_type": "GREP",
-        "args": { "path_list": ["/test/%%current_control_set%%"],
+    "sources": [
+      { "type": "GREP",
+        "attributes": { "paths": ["/test/%%current_control_set%%"],
                   "content_regex_list": ["%%users.username%%"]}
       }
     ],
@@ -170,9 +170,9 @@
   },
 
   { "name": "DepsControlSet",
-    "collectors": [
-      { "collector_type": "FILE",
-        "args": { "path_list": ["/test/controlset"] }
+    "sources": [
+      { "type": "FILE",
+        "attributes": { "paths": ["/test/controlset"] }
       }
     ],
     "provides": ["current_control_set"],
@@ -182,9 +182,9 @@
   },
 
   { "name": "DepsProvidesMultiple",
-    "collectors": [
-      { "collector_type": "REGISTRY_VALUE",
-        "args": { "path_list": ['HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRoot'] }
+    "sources": [
+      { "type": "REGISTRY_VALUE",
+        "attributes": { "key_value_pairs": [{"key": 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion', "value": 'SystemRoot'}]}
       }
     ],
     "provides": ["environ_path", "environ_temp"],

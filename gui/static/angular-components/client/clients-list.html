@@ -1,0 +1,118 @@
+<ul  class="breadcrumb">
+  <li>
+    <button title="Add Labels" class="btn btn-default"
+            ng-disabled="controller.numSelectedClients == 0"
+            ng-click="controller.showLabelsDialog('add')"
+            name="AddLabels">
+      <img src="/static/images/label-add.png" class="toolbar_icon"></img>
+    </button>
+    <button title="Remove Labels" class="btn btn-default"
+            ng-disabled="controller.numSelectedClients == 0"
+            ng-click="controller.showLabelsDialog('remove')"
+            name="RemoveLabels">
+      <img src="/static/images/label-remove.png" class="toolbar_icon"></img>
+    </button>
+  </li>
+</ul>
+
+<table class="table table-striped table-condensed table-hover table-bordered full-width">
+  <colgroup>
+    <col style="width: 40px">
+    <col style="width: 40px">
+    <col style="width: 13em">
+    <col style="width: 13em">
+    <col style="width: 20%">
+    <col style="width: 10%">
+    <col style="width: 20%">
+    <col style="width: 15%">
+    <col style="width: 15%">
+    <col style="width: 8%">
+    <col style="width: 15%">
+  </colgroup>
+  <thead>
+    <tr>
+      <th><input type="checkbox" class="client-checkbox select-all"
+                 ng-model="controller.allClientsSelected"
+                 ng-change="controller.selectAll()" />
+      </th>
+      <th>Online</th>
+      <th>Subject</th>
+      <th>Host</th>
+      <th>OS Version</th>
+      <th>MAC</th>
+      <th>Usernames</th>
+      <th>First Seen</th>
+      <th>OS Install Date</th>
+      <th>Labels</th>
+      <th>Last Checkin</th>
+    </tr>
+  </thead>
+  <tbody ng-if="query">
+    <tr grr-infinite-table grr-api-items-provider
+        query-params="{query: query}"
+        url="controller.clientsQueryUrl"
+        transform-items="controller.onClientsFetched(items)"
+        trigger-update="controller.triggerUpdate"
+        ng-click="controller.onClientClick(item)">
+      <!-- Selection checkbox -->
+      <td>
+        <input type="checkbox" class="client-checkbox"
+               client_urn="{$ item.urn $}"
+               ng-model="controller.selectedClients[item.urn]"
+               ng-change="controller.updateNumSelectedClients()"
+               ng-click="$event.stopPropagation()"
+               />
+      </td>
+
+      <!-- Online status -->
+      <td>
+        <grr-client-status-icons client="::item" />
+      </td>
+
+      <!-- Subject -->
+      <td>
+        <span type="subject">{$ ::item.urn | grrBasename $}</span>
+      </td>
+
+      <!-- Host -->
+      <td>
+        <grr-semantic-value value="::item.attributes['metadata:hostname']" />
+      </td>
+
+      <!-- OS Version -->
+      <td>
+        <grr-semantic-value value="::item.attributes['metadata:os_version']" />
+      </td>
+
+      <!-- MAC -->
+      <td>
+        <grr-semantic-value value="::item.attributes['aff4:mac_addresses']" />
+      </td>
+
+      <!-- Usernames -->
+      <td>
+        <grr-semantic-value value="::item.attributes['aff4:user_names']" />
+      </td>
+
+      <!-- First seen -->
+      <td>
+        <grr-semantic-value value="::item.attributes['metadata:FirstSeen']" />
+      </td>
+
+      <!-- OS install date -->
+      <td>
+        <grr-semantic-value value="::item.attributes['metadata:install_date']" />
+      </td>
+
+      <!-- Labels -->
+      <td>
+        <grr-semantic-value value="item.attributes['aff4:labels_list']" />
+      </td>
+
+      <!-- Latest checkin -->
+      <td>
+        <grr-semantic-value value="::item.attributes['metadata:clock']" />
+      </td>
+    </tr>
+  </tbody>
+</table>

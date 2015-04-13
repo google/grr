@@ -6,7 +6,6 @@ from grr.gui import api_value_renderers
 
 from grr.lib import config_lib
 from grr.lib import rdfvalue
-from grr.lib import registry
 from grr.lib import type_info
 from grr.lib import utils
 
@@ -87,10 +86,3 @@ class ApiConfigRenderer(api_call_renderers.ApiCallRenderer):
       sections[descriptor.section] = section_data
 
     return sections
-
-
-class ApiConfigInitHook(registry.InitHook):
-
-  def RunOnce(self):
-    api_call_renderers.RegisterHttpRouteHandler(
-        "GET", "/api/config", ApiConfigRenderer)

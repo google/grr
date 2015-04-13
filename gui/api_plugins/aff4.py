@@ -13,7 +13,6 @@ from grr.gui import api_value_renderers
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import rdfvalue
-from grr.lib import registry
 from grr.proto import api_pb2
 
 
@@ -72,14 +71,3 @@ class ApiAff4IndexRenderer(api_call_renderers.ApiCallRenderer):
                            timestamp])
 
     return encoded_urns
-
-
-class ApiAff4InitHook(registry.InitHook):
-
-  def RunOnce(self):
-    api_call_renderers.RegisterHttpRouteHandler(
-        "GET", "/api/aff4/<path:aff4_path>",
-        ApiAff4Renderer)
-    api_call_renderers.RegisterHttpRouteHandler(
-        "GET", "/api/aff4-index/<path:aff4_path>",
-        ApiAff4IndexRenderer)

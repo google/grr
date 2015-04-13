@@ -58,9 +58,14 @@ class Artifact(structs.RDFProtoStruct):
 
     # Convert proto enum to simple strings so they get rendered in the GUI
     # properly
-    for collector in artifact_dict["collectors"]:
-      if "collector_type" in collector:
-        collector["collector_type"] = str(collector["collector_type"])
+    for source in artifact_dict["sources"]:
+      if "type" in source:
+        source["type"] = str(source["type"])
+      if "key_value_pairs" in source["attributes"]:
+        outarray = []
+        for indict in source["attributes"]["key_value_pairs"]:
+          outarray.append(dict(indict.items()))
+        source["attributes"]["key_value_pairs"] = outarray
 
     # Repeated fields that have not been set should return as empty lists.
     for field in self.required_repeated_fields:
@@ -102,8 +107,8 @@ class Artifact(structs.RDFProtoStruct):
     def ReduceDict(in_dict):
       return dict((k, v) for (k, v) in in_dict.items() if v)
     artifact_dict = ReduceDict(artifact_dict)
-    artifact_dict["collectors"] = [ReduceDict(c) for c in
-                                   artifact_dict["collectors"]]
+    artifact_dict["sources"] = [ReduceDict(c) for c in
+                                artifact_dict["sources"]]
     # Do some clunky stuff to put the name and doc first in the YAML.
     # Unfortunatley PYYaml makes doing this difficult in other ways.
     name = artifact_dict.pop("name")
@@ -126,10 +131,10 @@ class Artifact(structs.RDFProtoStruct):
       RuntimeError: If maximum recursion depth reached.
     """
     deps = set()
-    for collector in self.collectors:
-      if collector.collector_type == rdfvalue.Collector.CollectorType.ARTIFACT:
-        if collector.args.GetItem("artifact_list"):
-          deps.update(collector.args.GetItem("artifact_list"))
+    for source in self.sources:
+      if source.type == rdfvalue.ArtifactSource.SourceType.ARTIFACT:
+        if source.attributes.GetItem("names"):
+          deps.update(source.attributes.GetItem("names"))
 
     if depth > 10:
       raise RuntimeError("Max artifact recursion depth reached.")
@@ -165,12 +170,15 @@ class Artifact(structs.RDFProtoStruct):
       ["users.appdata", "systemroot"]
     """
     deps = set()
-    for collector in self.collectors:
-      for arg, value in collector.args.items():
+    for source in self.sources:
+      for arg, value in source.attributes.items():
         paths = []
         if arg in ["path", "query"]:
           paths.append(value)
-        if arg in ["paths", "path_list", "content_regex_list"]:
+        if arg == "key_value_pairs":
+          # This is a REGISTRY_VALUE {key:blah, value:blah} dict.
+          paths.extend([x["key"] for x in value])
+        if arg in ["keys", "paths", "path_list", "content_regex_list"]:
           paths.extend(value)
         for path in paths:
           for match in artifact_lib.INTERPOLATED_REGEX.finditer(path):
@@ -212,17 +220,27 @@ class Artifact(structs.RDFProtoStruct):
             "Artifact %s has an invalid label %s. Please use one from "
             "ARTIFACT_LABELS." % (cls_name, label))
 
+    # Anything listed in provides must be defined in the KnowledgeBase
+    valid_provides = rdfvalue.KnowledgeBase().GetKbFieldNames()
     for kb_var in self.provides:
-      if len(kb_var) < 3:   # Someone probably interpreted string as list.
+      if kb_var not in valid_provides:
         raise artifact_lib.ArtifactDefinitionError(
-            "Artifact %s has broken provides. %s" % (cls_name, self.provides))
+            "Artifact %s has broken provides: '%s' not in KB fields: %s" % (
+                cls_name, kb_var, valid_provides))
 
-    for collector in self.collectors:
+    # Any %%blah%% path dependencies must be defined in the KnowledgeBase
+    for dep in self.GetArtifactPathDependencies():
+      if dep not in valid_provides:
+        raise artifact_lib.ArtifactDefinitionError(
+            "Artifact %s has an invalid path dependency: '%s', not in KB "
+            "fields: %s" % (cls_name, dep, valid_provides))
+
+    for source in self.sources:
       try:
-        collector.Validate()
+        source.Validate()
       except artifact_lib.Error as e:
         raise artifact_lib.ArtifactDefinitionError(
-            "Artifact %s has bad collector. %s" % (cls_name, e))
+            "Artifact %s has bad source. %s" % (cls_name, e))
 
   def Validate(self):
     """Attempt to validate the artifact has been well defined.
@@ -238,14 +256,6 @@ class Artifact(structs.RDFProtoStruct):
     cls_name = self.name
     self.ValidateSyntax()
 
-    # Check all path dependencies exist in the knowledge base.
-    valid_fields = rdfvalue.KnowledgeBase().GetKbFieldNames()
-    for dependency in self.GetArtifactPathDependencies():
-      if dependency not in valid_fields:
-        raise artifact_lib.ArtifactDefinitionError(
-            "Artifact %s has an invalid path dependency %s. Artifacts must use "
-            "defined knowledge attributes." % (cls_name, dependency))
-
     # Check all artifact dependencies exist.
     for dependency in self.GetArtifactDependencies():
       if dependency not in artifact_lib.ArtifactRegistry.artifacts:
@@ -254,27 +264,28 @@ class Artifact(structs.RDFProtoStruct):
             " definition." % (cls_name, dependency))
 
 
-class Collector(structs.RDFProtoStruct):
-  """An Artifact Collector."""
-  protobuf = artifact_pb2.Collector
+class ArtifactSource(structs.RDFProtoStruct):
+  """An ArtifactSource."""
+  protobuf = artifact_pb2.ArtifactSource
 
   def __init__(self, initializer=None, age=None, **kwarg):
     # Support initializing from a mapping
     if isinstance(initializer, dict):
-      super(Collector, self).__init__(age=age, **initializer)
+      super(ArtifactSource, self).__init__(age=age, **initializer)
     else:
-      super(Collector, self).__init__(initializer=initializer, age=age, **kwarg)
+      super(ArtifactSource, self).__init__(initializer=initializer, age=age,
+                                           **kwarg)
 
   def Validate(self):
-    """Check the collector is well constructed."""
+    """Check the source is well constructed."""
     # Catch common mistake of path vs paths.
-    if self.args.GetItem("path_list"):
-      if not isinstance(self.args.GetItem("path_list"), list):
+    if self.attributes.GetItem("paths"):
+      if not isinstance(self.attributes.GetItem("paths"), list):
         raise artifact_lib.ArtifactDefinitionError(
-            "Arg 'path_list' that is not a list.")
+            "Arg 'paths' that is not a list.")
 
-    if self.args.GetItem("path"):
-      if not isinstance(self.args.GetItem("path"), basestring):
+    if self.attributes.GetItem("path"):
+      if not isinstance(self.attributes.GetItem("path"), basestring):
         raise artifact_lib.ArtifactDefinitionError(
             "Arg 'path' is not a string.")
 
@@ -285,16 +296,17 @@ class Collector(structs.RDFProtoStruct):
           raise artifact_lib.ArtifactDefinitionError(
               "Invalid return type %s" % rdf_type)
 
-    if str(self.collector_type) not in artifact_lib.TYPE_MAP:
+    if str(self.type) not in artifact_lib.TYPE_MAP:
       raise artifact_lib.ArtifactDefinitionError(
-          "Invalid collector_type %s." % self.collector_type)
+          "Invalid type %s." % self.type)
 
-    collector_type = artifact_lib.TYPE_MAP[str(self.collector_type)]
-    required_args = collector_type.get("required_args", [])
-    missing_args = set(required_args).difference(self.args.keys())
-    if missing_args:
+    src_type = artifact_lib.TYPE_MAP[str(self.type)]
+    required_attributes = src_type.get("required_attributes", [])
+    missing_attributes = set(
+        required_attributes).difference(self.attributes.keys())
+    if missing_attributes:
       raise artifact_lib.ArtifactDefinitionError(
-          "Missing required args: %s." % missing_args)
+          "Missing required attributes: %s." % missing_attributes)
 
 
 class ArtifactName(rdfvalue.RDFString):

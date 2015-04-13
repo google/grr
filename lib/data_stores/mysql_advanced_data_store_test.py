@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 """Tests the mysql data store."""
 
-
 import unittest
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
+
+import logging
 
 from grr.lib import access_control
 from grr.lib import config_lib
@@ -15,8 +16,6 @@ from grr.lib import data_store_test
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib.data_stores import mysql_advanced_data_store
-
-import logging
 
 
 class MysqlAdvancedTestMixin(object):

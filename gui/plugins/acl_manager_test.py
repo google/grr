@@ -57,7 +57,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
   def testClientACLWorkflow(self):
     self.Open("/")
 
-    self.Type("client_query", "0001")
+    self.Type("client_query", "C.0000000000000001")
     self.Click("client_query_submit")
 
     self.WaitUntilEqual(u"C.0000000000000001",
@@ -142,7 +142,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
           reason=test_reason)
       self.GrantClientApproval("C.0000000000000006", token=token)
 
-    self.Type("client_query", "0006")
+    self.Type("client_query", "C.0000000000000006")
     self.Click("client_query_submit")
 
     self.WaitUntilEqual(u"C.0000000000000006",
@@ -156,7 +156,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     # By now we should have a recent reason set, let's see if it shows up in the
     # ACL dialog.
 
-    self.Type("client_query", "0001")
+    self.Type("client_query", "C.0000000000000001")
     self.Click("client_query_submit")
 
     self.WaitUntilEqual(u"C.0000000000000001",
@@ -378,7 +378,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "SampleHunt")
 
     #
-    # Check that test user can't start/pause/modify hunt1.
+    # Check that test user can't start/stop/modify hunt1.
     #
     self.Click("css=tr:contains('SampleHunt') td:contains('otheruser')")
 
@@ -421,7 +421,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
 
     #
-    # Check that test user can start/pause/modify hunt2.
+    # Check that test user can start/stop/modify hunt2.
     #
     self.Click("css=tr:contains('SampleHunt') td:contains('test')")
 
@@ -443,19 +443,19 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.Click("css=button[name=Cancel]")
     self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
     self.WaitUntil(self.IsElementPresent,
-                   "css=button[name=PauseHunt]:not([disabled])")
+                   "css=button[name=StopHunt]:not([disabled])")
 
-    # Pause hunt
+    # Stop hunt
 
-    # Click on Pause and wait for dialog again.
-    self.Click("css=button[name=PauseHunt]")
+    # Click on Stop and wait for dialog again.
+    self.Click("css=button[name=StopHunt]")
     self.WaitUntil(self.IsTextPresent,
-                   "Are you sure you want to pause this hunt?")
+                   "Are you sure you want to stop this hunt?")
 
     # Click on "Proceed" and wait for success label to appear.
     # Also check that "Proceed" button gets disabled.
     self.Click("css=button[name=Proceed]")
-    self.WaitUntil(self.IsTextPresent, "Hunt paused successfully")
+    self.WaitUntil(self.IsTextPresent, "Hunt stopped successfully")
     self.assertTrue(self.IsElementPresent(
         "css=button[name=Proceed][disabled!='']"))
 

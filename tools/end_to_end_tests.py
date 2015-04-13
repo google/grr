@@ -50,7 +50,8 @@ def RunEndToEndTests():
   client_id_set = base.GetClientTestTargets(
       client_ids=flags.FLAGS.client_ids,
       hostnames=flags.FLAGS.hostnames,
-      checkin_duration_threshold="1h")
+      checkin_duration_threshold="1h",
+      token=token)
 
   for cls in base.ClientTestBase.classes.values():
     for p in cls.platforms:

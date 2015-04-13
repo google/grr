@@ -536,7 +536,7 @@ class MultiGetFileMixin(object):
         self.RemoveInFlightFile(vfs_urn)
 
         # Close and write the file to the data store.
-        file_tracker.fd.Close(sync=False)
+        file_tracker.fd.Close(sync=True)
 
         # Publish the new file event to cause the file to be added to the
         # filestore. This is not time critical so do it when we have spare
@@ -630,11 +630,12 @@ class FileStoreCreateFile(flow.EventListener):
     """Process the new file and add to the file store."""
     _ = event
     vfs_urn = message.payload
-    with aff4.FACTORY.Open(vfs_urn, mode="rw", token=self.token) as vfs_fd:
-      filestore_fd = aff4.FACTORY.Create(filestore.FileStore.PATH, "FileStore",
-                                         mode="w", token=self.token)
-      filestore_fd.AddFile(vfs_fd)
-      vfs_fd.Flush(sync=False)
+
+    vfs_fd = aff4.FACTORY.Open(vfs_urn, mode="rw", token=self.token)
+    filestore_fd = aff4.FACTORY.Create(filestore.FileStore.PATH, "FileStore",
+                                       mode="w", token=self.token)
+    filestore_fd.AddFile(vfs_fd)
+    vfs_fd.Flush(sync=False)
 
 
 class GetMBRArgs(rdfvalue.RDFProtoStruct):

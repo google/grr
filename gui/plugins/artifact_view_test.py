@@ -22,7 +22,7 @@ class TestArtifactRender(test_lib.GRRSeleniumTest):
       self.GrantClientApproval("C.0000000000000001")
     self.Open("/")
 
-    self.Type("client_query", "0001")
+    self.Type("client_query", "C.0000000000000001")
     self.Click("client_query_submit")
 
     self.WaitUntilEqual(u"C.0000000000000001",
@@ -43,21 +43,21 @@ class TestArtifactRender(test_lib.GRRSeleniumTest):
     self.Select("css=select[id$=_os_filter]", "Linux")
 
     # Check search works.
-    self.Type("css=input[id$=_search]", u"Lin")
-    self.WaitUntil(self.IsTextPresent, "LinuxPasswd")
+    self.Type("css=input[id$=_search]", u"Uni")
+    self.WaitUntil(self.IsTextPresent, "UnixPasswd")
 
     # Check we can add to the list.
-    self.Click("css=option[value=LinuxPasswd]")
+    self.Click("css=option[value=UnixPasswd]")
     self.Click("css=a[id$=_artifact_add]")
 
-    self.Select("css=#args-artifact_list", "LinuxPasswd")
-    self.Click("css=option[value=LinuxPasswd]")
+    self.Select("css=#args-artifact_list", "UnixPasswd")
+    self.Click("css=option[value=UnixPasswd]")
 
     # Force selection due to selenium not propagating change correctly.
     self.driver.execute_script("return $('#args-artifact_list').change()")
 
     # Check the artifact description loaded.
-    self.WaitUntil(self.IsTextPresent, "Linux passwd file.")
+    self.WaitUntil(self.IsTextPresent, "Unix /etc/passwd file")
     self.WaitUntil(self.IsTextPresent, "PasswdParser")
 
 

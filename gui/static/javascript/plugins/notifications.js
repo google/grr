@@ -33,7 +33,7 @@ grr.Renderer('NotificationBar', {
 
     $('#user_settings_dialog').on('show.bs.modal', function() {
       grr.layout('UserSettingsDialog', 'user_settings_dialog');
-    }).on('hidden', function() {
+    }).on('hidden.bs.modal', function() {
       $(this).html('');
     });
   }

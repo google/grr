@@ -3,11 +3,11 @@
 name: RootDiskVolumeUsage
 doc: |
   Volume info for disk mounted at "/".  Includes size and free space.
-collectors:
-- collector_type: GRR_CLIENT_ACTION
-  args:
+sources:
+- type: GRR_CLIENT_ACTION
+  attributes:
     client_action: StatFS
-    action_args: {path_list: ["/"]}
+    action_attributes: {paths: ["/"]}
 labels: [System]
 supported_os: [Linux, Darwin]
 

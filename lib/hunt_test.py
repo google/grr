@@ -193,7 +193,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
       self.assertTrue(runner.IsHuntStarted())
 
       # Now we stop the hunt.
-      runner.Stop()
+      hunt.Stop()
 
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
     rules = foreman.Get(foreman.Schema.RULES)
@@ -538,7 +538,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
       # Now pause the hunt
       with aff4.FACTORY.Open(hunt_urn, age=aff4.ALL_TIMES, mode="rw",
                              token=self.token) as hunt_obj:
-        hunt_obj.Pause()
+        hunt_obj.Stop()
 
       # No more clients should be processed.
       for i in range(len(client_ids)):

@@ -84,18 +84,15 @@ class ClientBuilder(BuilderBase):
   operating system.
   """
 
-  def CopyGRR(self, grr_path):
-    """Copy GRR from current grr directory."""
-    curr_path = os.path.abspath(os.path.join(__file__, "../../"))
-    dest = os.path.dirname(grr_path)
-    logging.info("Missing GRR, will attempt rsync -a --exclude=.vagrant %s %s",
-                 curr_path, dest)
-    cmd = ["rsync", "-a", "--exclude=.vagrant", curr_path, dest]
-    subprocess.check_call(cmd)
-
-    cmd = ["make"]
-    logging.info("Compiling protos")
-    subprocess.check_call(cmd, cwd=os.path.join(grr_path, "proto"))
+  def MakeProto(self):
+    """Make sure our protos have been compiled to python libraries."""
+    cmd = [config_lib.CONFIG.Get("ClientBuilder.make_command",
+                                 context=self.context)]
+    cwd = os.path.join(
+        config_lib.CONFIG.Get("ClientBuilder.source", context=self.context),
+        "grr", "proto")
+    logging.info("Compiling protos with %s in dir: %s", cmd, cwd)
+    subprocess.check_call(cmd, cwd=cwd)
 
   def MakeBuildDirectory(self):
     """Prepares the build directory."""
@@ -105,13 +102,9 @@ class ClientBuilder(BuilderBase):
     self.work_path = config_lib.CONFIG.Get(
         "PyInstaller.workpath_dir", context=self.context)
 
-    self.grr_path = os.path.join(config_lib.CONFIG.Get(
-        "PyInstaller.build_root_dir", context=self.context), "grr")
-
     self.CleanDirectory(self.build_dir)
     self.CleanDirectory(self.work_path)
-    self.CleanDirectory(self.grr_path)
-    self.CopyGRR(self.grr_path)
+    self.MakeProto()
 
   def CleanDirectory(self, directory):
     logging.info("Clearing directory %s", directory)
@@ -221,6 +214,10 @@ class ClientDeployer(BuilderBase):
   # Config options that should never make it to a deployable binary.
   SKIP_OPTION_LIST = ["Client.private_key"]
 
+  def __init__(self, context=None, signer=None):
+    super(ClientDeployer, self).__init__(context=context)
+    self.signer = signer
+
   def GetClientConfig(self, context, validate=True):
     """Generates the client config file for inclusion in deployable binaries."""
     with utils.TempDirectory() as tmp_dir:
@@ -317,8 +314,8 @@ class ClientDeployer(BuilderBase):
 class WindowsClientDeployer(ClientDeployer):
   """Repackages windows installers."""
 
-  def __init__(self, context=None):
-    super(WindowsClientDeployer, self).__init__(context=context)
+  def __init__(self, context=None, signer=None):
+    super(WindowsClientDeployer, self).__init__(context=context, signer=signer)
     self.context.append("Target:Windows")
 
   def ValidateEndConfig(self, config, errors_fatal=True):
@@ -369,6 +366,11 @@ class WindowsClientDeployer(ClientDeployer):
       stream.seek(offset)
       stream.write(replacement)
 
+  def Sign(self, inbuf):
+    if self.signer:
+      return self.signer.SignBuffer(inbuf)
+    return inbuf
+
   def MakeDeployableBinary(self, template_path, output_path=None):
     """Repackage the template zip with the installer."""
     context = self.context + ["Client Context"]
@@ -400,7 +402,7 @@ class WindowsClientDeployer(ClientDeployer):
                       "Client.version_string", "ClientBuilder.package_name"]:
       self.InterpolateVariableInBinary(bin_dat, parameter)
 
-    output_zip.writestr(client_bin_name, bin_dat.getvalue())
+    output_zip.writestr(client_bin_name, self.Sign(bin_dat.getvalue()))
 
     CopyFileInZip(z_template, "%s.manifest" % bin_name.filename, output_zip,
                   "%s.manifest" % client_bin_name)
@@ -420,10 +422,12 @@ class WindowsClientDeployer(ClientDeployer):
 
     service_bin_name = config_lib.CONFIG.Get("Nanny.service_binary_name",
                                              context=context)
-    output_zip.writestr(service_bin_name, service_bin_dat.getvalue())
+    output_zip.writestr(service_bin_name, self.Sign(service_bin_dat.getvalue()))
     completed_files.append(service_template.filename)
 
-    # Copy the rest of the files from the template to the new zip.
+    # Copy the rest of the files from the template to the new zip.  Current
+    # practice is to only sign the grr client and nanny executables, not the
+    # dlls.
     for template_file in z_template.namelist():
       if template_file not in completed_files:
         CopyFileInZip(z_template, template_file, output_zip)
@@ -520,11 +524,13 @@ class WindowsClientDeployer(ClientDeployer):
       stub_data.seek(offset_to_rsrc + 16)
       stub_data.write(struct.pack("<I", end_of_file - start_of_rsrc_section))
 
-      # Now write the file out. Stub data first.
-      fd.write(stub_data.getvalue())
+      # Concatenate stub and zip file.
+      out_data = cStringIO.StringIO()
+      out_data.write(stub_data.getvalue())
+      out_data.write(zip_data.getvalue())
 
-      # Then append the payload zip file.
-      fd.write(zip_data.getvalue())
+      # Then write the actual output file.
+      fd.write(self.Sign(out_data.getvalue()))
 
     logging.info("Deployable binary generated at %s", output_path)
 
@@ -534,8 +540,8 @@ class WindowsClientDeployer(ClientDeployer):
 class DarwinClientDeployer(ClientDeployer):
   """Repackage OSX clients."""
 
-  def __init__(self, context=None):
-    super(DarwinClientDeployer, self).__init__(context=context)
+  def __init__(self, context=None, signer=None):
+    super(DarwinClientDeployer, self).__init__(context=context, signer=signer)
     self.context.append("Target:Darwin")
 
   def MakeDeployableBinary(self, template_path, output_path=None):
@@ -558,8 +564,8 @@ class DarwinClientDeployer(ClientDeployer):
 class LinuxClientDeployer(ClientDeployer):
   """Repackage Linux templates."""
 
-  def __init__(self, context=None):
-    super(LinuxClientDeployer, self).__init__(context=context)
+  def __init__(self, context=None, signer=None):
+    super(LinuxClientDeployer, self).__init__(context=context, signer=signer)
     self.context.append("Target:Linux")
 
   def GenerateDPKGFiles(self, template_path):
@@ -724,6 +730,9 @@ class CentosClientDeployer(LinuxClientDeployer):
       rpm_build_dir = os.path.join(rpm_root_dir, "BUILD")
       self.EnsureDirExists(rpm_build_dir)
 
+      rpm_buildroot_dir = os.path.join(rpm_root_dir, "BUILDROOT")
+      self.EnsureDirExists(rpm_buildroot_dir)
+
       rpm_rpms_dir = os.path.join(rpm_root_dir, "RPMS")
       self.EnsureDirExists(rpm_rpms_dir)
 
@@ -772,8 +781,9 @@ class CentosClientDeployer(LinuxClientDeployer):
         fd.write(client_config_content)
 
       # Undo all prelinking for libs or the rpm will have checksum mismatches.
+      logging.info("Undoing prelinking.")
       libs = os.path.join(target_binary_dir, "lib*")
-      subprocess.call("/usr/sbin/prelink -u %s" % libs, shell=True)
+      subprocess.call("/usr/sbin/prelink -u %s 2>/dev/null" % libs, shell=True)
 
       # Set the daemon to executable.
       os.chmod(os.path.join(target_binary_dir, client_binary_name), 0755)
@@ -786,7 +796,7 @@ class CentosClientDeployer(LinuxClientDeployer):
           rpmbuild_binary,
           "--define", "_topdir " + rpm_root_dir,
           "--target", client_arch,
-          "--buildroot", rpm_build_dir,
+          "--buildroot", rpm_buildroot_dir,
           "-bb", spec_filename]
       try:
         subprocess.check_output(command, stderr=subprocess.STDOUT)
@@ -808,11 +818,13 @@ class CentosClientDeployer(LinuxClientDeployer):
       return output_path
 
 
-def CopyFileInZip(from_zip, from_name, to_zip, to_name=None):
+def CopyFileInZip(from_zip, from_name, to_zip, to_name=None, signer=None):
   """Read a file from a ZipFile and write it to a new ZipFile."""
   data = from_zip.read(from_name)
   if to_name is None:
     to_name = from_name
+  if signer:
+    data = signer.SignBuffer(data)
   to_zip.writestr(to_name, data)
 
 
@@ -829,4 +841,3 @@ def SetPeSubsystem(fd, console=True):
   else:
     fd.write("\x02")
   fd.seek(current_pos)
-

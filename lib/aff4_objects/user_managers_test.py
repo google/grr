@@ -156,6 +156,7 @@ class CheckAccessHelperTest(test_lib.AFF4ObjectTest):
 
     self.Ok("aff4:/audit", access)
     self.Ok("aff4:/audit/log", access)
+    self.Ok("aff4:/audit/logs", access)
 
     self.Ok("aff4:/C.0000000000000001", access)
     self.NotOk("aff4:/C.0000000000000001/fs/os", access)
@@ -202,6 +203,7 @@ class CheckAccessHelperTest(test_lib.AFF4ObjectTest):
     self.NotOk("aff4:/crashes", access)
 
     self.NotOk("aff4:/audit", access)
+    self.NotOk("aff4:/audit/logs", access)
 
     self.Ok("aff4:/C.0000000000000001", access)
     self.NotOk("aff4:/C.0000000000000001/fs/os", access)

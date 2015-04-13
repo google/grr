@@ -1,6 +1,6 @@
 var grr = window.grr || {};
 
-grr.Renderer('StockChart', {
+grr.Renderer('StackChart', {
   Layout: function(state) {
     var unique = state.unique;
     var specs = state.specs;

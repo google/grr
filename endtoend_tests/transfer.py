@@ -124,7 +124,7 @@ class TestGetFileTSKLinux(base.AutomatedTest):
     pos = self.test_output_path.find("*")
     if pos > 0:
       prefix = self.client_id.Add(self.test_output_path[:pos])
-      for urn in base.RecursiveListChildren(prefix=prefix):
+      for urn in base.RecursiveListChildren(prefix=prefix, token=self.token):
         if re.search(self.test_output_path + "$", str(urn)):
           self.delete_urns.add(urn)
           return self.CheckFile(aff4.FACTORY.Open(urn, token=self.token))
@@ -244,7 +244,7 @@ class TestMultiGetFileTSKMac(TestGetFileTSKLinux):
     # that we can get at least one result.
     pathspecs = []
     tsk_dirs = aff4.FACTORY.Open(
-        self.client_id.Add("fs/tsk/dev")).OpenChildren()
+        self.client_id.Add("fs/tsk/dev"), token=self.token).OpenChildren()
 
     for d in tsk_dirs:
       pathspec = d.Get(d.Schema.PATHSPEC)

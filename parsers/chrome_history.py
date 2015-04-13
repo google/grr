@@ -76,6 +76,16 @@ class ChromeParser(sqlite_file.SQLiteFile):
   # microseconds since Jan 1, 1970 00:00:00
   TIME_CONV_CONST = 11644473600000000
 
+  def ConvertTimestamp(self, timestamp):
+    if not isinstance(timestamp, (long, int)):
+      timestamp = 0
+    elif timestamp > 11644473600000000:
+      timestamp -= self.TIME_CONV_CONST
+    elif timestamp < 631152000000000:  # 01-01-1900 00:00:00
+      # This means we got seconds since Jan 1, 1970, we need microseconds.
+      timestamp *= 1000000
+    return timestamp
+
   def Parse(self):
     """Iterator returning a list for each entry in history.
 
@@ -90,39 +100,19 @@ class ChromeParser(sqlite_file.SQLiteFile):
     query_iter = itertools.chain(self.Query(self.DOWNLOADS_QUERY),
                                  self.Query(self.DOWNLOADS_QUERY_2))
 
-    downloads = []
+    results = []
     for timestamp, url, path, received_bytes, total_bytes in query_iter:
-
-      if isinstance(timestamp, int):
-        # convert seconds since Jan 1, 1970 00:00:00 to
-        # microseconds since Jan 1, 1970 00:00:00
-        timestamp *= 1000000
-      elif isinstance(timestamp, long):
-        timestamp -= self.TIME_CONV_CONST
-      else:
-        timestamp = 0
-
-      downloads.append((timestamp, "CHROME_DOWNLOAD", url, path, received_bytes,
-                        total_bytes))
+      timestamp = self.ConvertTimestamp(timestamp)
+      results.append((timestamp, "CHROME_DOWNLOAD", url, path, received_bytes,
+                      total_bytes))
 
     for timestamp, url, title, typed_count in self.Query(self.VISITS_QUERY):
-      if (not isinstance(timestamp, (long, int)) or
-          timestamp < 11644473600000000):
-        timestamp = 0
-      else:
+      timestamp = self.ConvertTimestamp(timestamp)
+      results.append((timestamp, "CHROME_VISIT", url, title, typed_count, ""))
 
-        timestamp -= self.TIME_CONV_CONST
-
-      # If the most recent element from the downloads list occurred before this
-      # visit, it should be reported first to maintain time order.
-      if downloads and downloads[-1][0] < timestamp:
-        yield downloads.pop()
-
-      yield [timestamp, "CHROME_VISIT", url, title, typed_count, ""]
-
-    # Yield any remaining download records
-    while downloads:
-      yield downloads.pop()
+    results.sort(key=lambda it: it[0])
+    for it in results:
+      yield it
 
 
 def main(argv):

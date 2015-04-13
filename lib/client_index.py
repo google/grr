@@ -129,10 +129,11 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
 
     return (client_id, keywords)
 
-  def AddClient(self, client):
+  def AddClient(self, client, **kwargs):
     """Adds a client to the index.
 
     Args:
       client: A VFSGRRClient record to add or update.
+      **kwargs: Additional arguments to pass to the datastore.
     """
-    self.AddKeywordsForName(*self.AnalyzeClient(client))
+    self.AddKeywordsForName(*self.AnalyzeClient(client), **kwargs)

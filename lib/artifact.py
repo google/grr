@@ -306,9 +306,7 @@ class CollectArtifactDependencies(flow.GRRFlow):
 
           if isinstance(value, rdfvalue.RDFString):
             value = utils.SmartStr(value)
-          elif artifact_obj.collectors[0].collector_type == (
-              # This is fragile due to a lack of defined RegistryValue type.
-              rdfvalue.Collector.CollectorType.REGISTRY_VALUE):
+          elif hasattr(value, "registry_data"):
             value = value.registry_data.GetValue()
 
           if value:

@@ -141,10 +141,33 @@ class VFSGRRClientApiObjectRenderer(ApiAFF4ObjectRendererBase):
 
   aff4_type = "VFSGRRClient"
 
-  def RenderObject(self, aff4_object, unused_args):
+  def _GetDiskWarnings(self, client):
+    """Returns list of disk warning for a given client object."""
+
+    warnings = []
+    volumes = client.Get(client.Schema.VOLUMES)
+
+    # Avoid showing warnings for the CDROM.  This is isn't a problem for linux
+    # and OS X since we only check usage on the disk mounted at "/".
+    exclude_windows_types = [
+        rdfvalue.WindowsVolume.WindowsDriveTypeEnum.DRIVE_CDROM]
+
+    if volumes:
+      for volume in volumes:
+        if volume.windows.drive_type not in exclude_windows_types:
+          freespace = volume.FreeSpacePercent()
+          if freespace < 5.0:
+            warnings.append([volume.Name(), freespace])
+
+    return warnings
+
+  def RenderObject(self, client, unused_args):
     """Renders VFSGRRClient as plain JSON-friendly data structure."""
-    return dict(summary=api_value_renderers.RenderValue(
-        aff4_object.GetSummary(), with_types=True, with_metadata=True))
+    return dict(disk_warnings=self._GetDiskWarnings(client),
+                summary=api_value_renderers.RenderValue(
+                    client.GetSummary(),
+                    with_types=True,
+                    with_metadata=True))
 
 
 RENDERERS_CACHE = {}

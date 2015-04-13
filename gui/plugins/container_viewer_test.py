@@ -40,7 +40,7 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
   def testContainerViewer(self):
     self.Open("/")
 
-    self.Type("client_query", "0001")
+    self.Type("client_query", "C.0000000000000001")
     self.Click("client_query_submit")
 
     self.WaitUntilEqual(u"C.0000000000000001",
@@ -60,7 +60,7 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent, "css=td:contains(\"VIEW\")")
     self.assert_("View details" in self.GetText(
         "css=a[href=\"#"
-        "c=C.0000000000000001&"
+        "c=aff4%3A%2FC.0000000000000001&"
         "container=aff4%3A%2FC.0000000000000001%2Fanalysis%2FFindFlowTest&"
         "main=ContainerViewer&"
         "reason=Running+tests\"]"))

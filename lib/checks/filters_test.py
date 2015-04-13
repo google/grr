@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Tests for grr.lib.rdfvalues.checks."""
+"""Tests for grr.lib.checks.filters."""
 import collections
 from grr.lib import flags
 from grr.lib import rdfvalue
@@ -108,7 +108,7 @@ class ObjectFilterTests(test_lib.GRRBaseTest):
 
 
 class RDFFilterTests(test_lib.GRRBaseTest):
-  """Test objectfilter methods and operations."""
+  """Test rdffilter methods and operations."""
 
   def testValidate(self):
     filt = filters.RDFFilter()
@@ -123,6 +123,177 @@ class RDFFilterTests(test_lib.GRRBaseTest):
     self.assertFalse(results)
     results = list(filt.Parse(cfg, "KnowledgeBase,Config"))
     self.assertItemsEqual([cfg], results)
+
+
+class StatFilterTests(test_lib.GRRBaseTest):
+  """Test statfilter methods and operations."""
+
+  bad_null = ["", " :"]
+  bad_file = ["file_re:[[["]
+  bad_gids = ["gid: ", "gid 0", "gid:0", "gid:=", "gid:gid:"]
+  bad_mode = ["mode 755", "mode:755", "mode:0999", "mode:0777,0775"]
+  bad_mask = ["mask 755", "mask:755", "mask:0999", "mask:0777,0775"]
+  bad_path = ["path_re:[[["]
+  bad_type = ["file_type: ", "file_type foo", "file_type:foo",
+              "file_type:directory,regular"]
+  bad_uids = ["uid: ", "uid 0", "uid:0", "uid:=", "uid:gid:"]
+  badness = [bad_null, bad_file, bad_gids, bad_mask, bad_mode, bad_path,
+             bad_type, bad_uids]
+
+  ok_file = ["file_re:/etc/passwd"]
+  ok_gids = ["gid:=0", "gid:=1,>1,<1,>=1,<=1,!1"]
+  ok_mode = ["mode:0002"]
+  ok_mask = ["mode:1002"]
+  ok_path = ["path_re:/home/*"]
+  ok_type = ["file_type:REGULAR", "file_type:directory"]
+  ok_uids = ["uid:=0", "uid:=1,>1,<1,>=1,<=1,!1"]
+  just_fine = [ok_file, ok_gids, ok_mask, ok_mode, ok_path, ok_type, ok_uids]
+
+  def _GenStat(self, path="/etc/passwd", st_mode=33184, st_ino=1063090,
+               st_dev=64512L, st_nlink=1, st_uid=1001, st_gid=5000,
+               st_size=1024, st_atime=1336469177, st_mtime=1336129892,
+               st_ctime=1336129892):
+    """Generate a StatEntry RDF value."""
+    pathspec = rdfvalue.PathSpec(
+        path=path, pathtype=rdfvalue.PathSpec.PathType.OS)
+    return rdfvalue.StatEntry(pathspec=pathspec, st_mode=st_mode, st_ino=st_ino,
+                              st_dev=st_dev, st_nlink=st_nlink, st_uid=st_uid,
+                              st_gid=st_gid, st_size=st_size, st_atime=st_atime,
+                              st_mtime=st_mtime, st_ctime=st_ctime)
+
+  def testValidate(self):
+    filt = filters.StatFilter()
+    for params in self.badness:
+      for bad in params:
+        self.assertRaises(filters.DefinitionError, filt.Validate, bad)
+    for params in self.just_fine:
+      for ok in params:
+        self.assertTrue(filt.Validate(ok), "Rejected valid expression: %s" % ok)
+
+  def testFileTypeParse(self):
+    """FileType filters restrict results to specified file types."""
+    all_types = {"BLOCK": self._GenStat(st_mode=24992),        # 0060640
+                 "Character": self._GenStat(st_mode=8608),     # 0020640
+                 "directory": self._GenStat(st_mode=16873),    # 0040751
+                 "fiFO": self._GenStat(st_mode=4534),          # 0010666
+                 "REGULAR": self._GenStat(st_mode=33204),      # 0100664
+                 "socket": self._GenStat(st_mode=49568),       # 0140640
+                 "SymLink": self._GenStat(st_mode=41471)}      # 0120777
+    filt = filters.StatFilter()
+    for file_type, expected in all_types.iteritems():
+      filt._Flush()
+      results = list(filt.Parse(all_types.values(), "file_type:%s" % file_type))
+      self.assertEqual(1, len(results), "Expected exactly 1 %s" % file_type)
+      self.assertEqual(expected, results[0],
+                       "Expected stat %s, got %s" % (expected, results[0]))
+
+  def testFileREParse(self):
+    """File regexes operate successfully."""
+    filt = filters.StatFilter()
+    obj1 = self._GenStat(path="/etc/passwd")
+    obj2 = self._GenStat(path="/etc/alternatives/ssh-askpass")
+    obj3 = self._GenStat(path="/etc/alternatives/ssh-askpass.1.gz")
+    objs = [obj1, obj2, obj3]
+    results = list(filt.Parse(objs, "file_re:pass"))
+    self.assertItemsEqual(objs, results)
+    results = list(filt.Parse(objs, "file_re:pass$"))
+    self.assertItemsEqual([obj2], results)
+    results = list(filt.Parse(objs, "file_re:^pass"))
+    self.assertItemsEqual([obj1], results)
+
+  def testPathREParse(self):
+    """Path regexes operate successfully."""
+    filt = filters.StatFilter()
+    obj1 = self._GenStat(path="/etc/passwd")
+    obj2 = self._GenStat(path="/etc/alternatives/ssh-askpass")
+    obj3 = self._GenStat(path="/etc/alternatives/ssh-askpass.1.gz")
+    objs = [obj1, obj2, obj3]
+    results = list(filt.Parse(objs, "path_re:/etc/*"))
+    self.assertItemsEqual(objs, results)
+    results = list(filt.Parse(objs, "path_re:alternatives"))
+    self.assertItemsEqual([obj2, obj3], results)
+    results = list(filt.Parse(objs, "path_re:alternatives file_re:pass$"))
+    self.assertItemsEqual([obj2], results)
+
+  def testGIDParse(self):
+    """GID comparisons operate successfully."""
+    filt = filters.StatFilter()
+    obj1 = self._GenStat(st_gid=0)
+    obj2 = self._GenStat(st_gid=500)
+    obj3 = self._GenStat(st_gid=5000)
+    objs = [obj1, obj2, obj3]
+    results = list(filt.Parse(objs, "gid:=0"))
+    self.assertItemsEqual([obj1], results)
+    results = list(filt.Parse(objs, "gid:>=0"))
+    self.assertItemsEqual(objs, results)
+    results = list(filt.Parse(objs, "gid:>0"))
+    self.assertItemsEqual([obj2, obj3], results)
+    results = list(filt.Parse(objs, "gid:>0,<=5000"))
+    self.assertItemsEqual([obj2, obj3], results)
+    results = list(filt.Parse(objs, "gid:>0,<5000"))
+    self.assertItemsEqual([obj2], results)
+    results = list(filt.Parse(objs, "gid:!5000"))
+    self.assertItemsEqual([obj1, obj2], results)
+
+  def testUIDParse(self):
+    """UID comparisons operate successfully."""
+    filt = filters.StatFilter()
+    obj1 = self._GenStat(st_uid=1001)
+    obj2 = self._GenStat(st_uid=5000)
+    objs = [obj1, obj2]
+    results = list(filt.Parse(objs, "uid:=0"))
+    self.assertFalse(results)
+    results = list(filt.Parse(objs, "uid:=1001"))
+    self.assertItemsEqual([obj1], results)
+    results = list(filt.Parse(objs, "uid:>=0"))
+    self.assertItemsEqual(objs, results)
+    results = list(filt.Parse(objs, "uid:>0"))
+    self.assertItemsEqual(objs, results)
+    results = list(filt.Parse(objs, "uid:>0,<=5000"))
+    self.assertItemsEqual(objs, results)
+    results = list(filt.Parse(objs, "uid:>0,<5000"))
+    self.assertItemsEqual([obj1], results)
+    results = list(filt.Parse(objs, "uid:!5000"))
+    self.assertItemsEqual([obj1], results)
+
+  def testPermissionsParse(self):
+    """Permissions comparisons operate successfully."""
+    filt = filters.StatFilter()
+    obj1 = self._GenStat(st_mode=0100740)
+    obj2 = self._GenStat(st_mode=0100755)
+    objs = [obj1, obj2]
+    results = list(filt.Parse(objs, "mode:0644"))
+    self.assertFalse(results)
+    results = list(filt.Parse(objs, "mode:0740"))
+    self.assertItemsEqual([obj1], results)
+    results = list(filt.Parse(objs, "mode:0640 mask:0640"))
+    self.assertItemsEqual(objs, results)
+    results = list(filt.Parse(objs, "mode:0014 mask:0014"))
+    self.assertItemsEqual([obj2], results)
+
+  def testParseFileObjs(self):
+    """Multiple file types are parsed successfully."""
+    filt = filters.StatFilter()
+    ok = self._GenStat(
+        path="/etc/shadow", st_uid=0, st_gid=0, st_mode=0100640)
+    link = self._GenStat(
+        path="/etc/shadow", st_uid=0, st_gid=0, st_mode=0120640)
+    user = self._GenStat(
+        path="/etc/shadow", st_uid=1000, st_gid=1000, st_mode=0100640)
+    writable = self._GenStat(
+        path="/etc/shadow", st_uid=0, st_gid=0, st_mode=0100666)
+    cfg = {"path": "/etc/shadow", "st_uid": 0, "st_gid": 0, "st_mode": 0100640}
+    invalid = rdfvalue.Config(**cfg)
+    objs = [ok, link, user, writable, invalid]
+    results = list(filt.Parse(objs, "uid:>=0 gid:>=0"))
+    self.assertItemsEqual([ok, link, user, writable], results)
+    results = list(filt.Parse(objs, "uid:=0 mode:0440 mask:0440"))
+    self.assertItemsEqual([ok, link, writable], results)
+    results = list(filt.Parse(objs, "uid:=0 mode:0440 mask:0444"))
+    self.assertItemsEqual([ok, link], results)
+    results = list(
+        filt.Parse(objs, "uid:=0 mode:0440 mask:0444 file_type:regular"))
+    self.assertItemsEqual([ok], results)
 
 
 class FilterRegistryTests(test_lib.GRRBaseTest):

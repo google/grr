@@ -18,7 +18,8 @@ class TestFingerprintFileOSLinux(base.AutomatedTest):
 
   def CheckFlow(self):
     """Check results of flow."""
-    fd = aff4.FACTORY.Open(self.client_id.Add(self.test_output_path))
+    fd = aff4.FACTORY.Open(self.client_id.Add(self.test_output_path),
+                           token=self.token)
     hash_obj = fd.Get(fd.Schema.HASH)
     self.assertNotEqual(hash_obj, None)
     self.assertEqual(len(hash_obj.md5), 16)

@@ -49,10 +49,10 @@ class TestArtifactCollectors(CollectorTest):
   def tearDown(self):
     super(TestArtifactCollectors, self).tearDown()
     artifact_lib.ArtifactRegistry.artifacts = self.original_artifact_reg
-    self.fakeartifact.collectors = []  # Reset any Collectors
+    self.fakeartifact.sources = []  # Reset any ArtifactSources
     self.fakeartifact.conditions = []  # Reset any Conditions
 
-    self.fakeartifact2.collectors = []  # Reset any Collectors
+    self.fakeartifact2.sources = []  # Reset any ArtifactSources
     self.fakeartifact2.conditions = []  # Reset any Conditions
 
   def testInterpolateArgs(self):
@@ -117,10 +117,10 @@ class TestArtifactCollectors(CollectorTest):
       collect_flow.state.knowledge_base.MergeOrAddUser(
           rdfvalue.KnowledgeBaseUser(username="test2"))
 
-      collector = rdfvalue.Collector(
-          collector_type=rdfvalue.Collector.CollectorType.GREP,
-          args={"path_list": ["/etc/passwd"],
-                "content_regex_list": [r"^a%%users.username%%b$"]})
+      collector = rdfvalue.ArtifactSource(
+          type=rdfvalue.ArtifactSource.SourceType.GREP,
+          attributes={"paths": ["/etc/passwd"],
+                      "content_regex_list": [r"^a%%users.username%%b$"]})
       collect_flow.Grep(collector, rdfvalue.PathSpec.PathType.TSK)
 
     conditions = mock_call_flow.kwargs["conditions"]
@@ -138,12 +138,12 @@ class TestArtifactCollectors(CollectorTest):
     client.Set(client.Schema.SYSTEM("Linux"))
     client.Flush()
 
-    # Dynamically add a Collector specifying the base path.
+    # Dynamically add a ArtifactSource specifying the base path.
     file_path = os.path.join(self.base_path, "test_img.dd")
-    coll1 = rdfvalue.Collector(
-        collector_type=rdfvalue.Collector.CollectorType.FILE,
-        args={"path_list": [file_path]})
-    self.fakeartifact.collectors.append(coll1)
+    coll1 = rdfvalue.ArtifactSource(
+        type=rdfvalue.ArtifactSource.SourceType.FILE,
+        attributes={"paths": [file_path]})
+    self.fakeartifact.sources.append(coll1)
 
     artifact_list = ["FakeArtifact"]
     for _ in test_lib.TestFlowHelper(
@@ -166,10 +166,10 @@ class TestArtifactCollectors(CollectorTest):
     client.Set(client.Schema.SYSTEM("Linux"))
     client.Flush()
 
-    coll1 = rdfvalue.Collector(
-        collector_type=rdfvalue.Collector.CollectorType.GRR_CLIENT_ACTION,
-        args={"client_action": r"ListProcesses"})
-    self.fakeartifact.collectors.append(coll1)
+    coll1 = rdfvalue.ArtifactSource(
+        type=rdfvalue.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
+        attributes={"client_action": r"ListProcesses"})
+    self.fakeartifact.sources.append(coll1)
     artifact_list = ["FakeArtifact"]
     for _ in test_lib.TestFlowHelper("ArtifactCollectorFlow", client_mock,
                                      artifact_list=artifact_list,
@@ -190,11 +190,11 @@ class TestArtifactCollectors(CollectorTest):
     client.Set(client.Schema.SYSTEM("Linux"))
     client.Flush()
 
-    coll1 = rdfvalue.Collector(
-        collector_type=rdfvalue.Collector.CollectorType.GRR_CLIENT_ACTION,
-        args={"client_action": r"ListProcesses"})
-    self.fakeartifact.collectors.append(coll1)
-    self.fakeartifact2.collectors.append(coll1)
+    coll1 = rdfvalue.ArtifactSource(
+        type=rdfvalue.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
+        attributes={"client_action": r"ListProcesses"})
+    self.fakeartifact.sources.append(coll1)
+    self.fakeartifact2.sources.append(coll1)
     artifact_list = ["FakeArtifact", "FakeArtifact2"]
     for _ in test_lib.TestFlowHelper("ArtifactCollectorFlow", client_mock,
                                      artifact_list=artifact_list,
@@ -220,25 +220,25 @@ class TestArtifactCollectors(CollectorTest):
     """Test we can get a GRR client artifact with conditions."""
     # Run with false condition.
     client_mock = action_mocks.ActionMock("ListProcesses")
-    coll1 = rdfvalue.Collector(
-        collector_type=rdfvalue.Collector.CollectorType.GRR_CLIENT_ACTION,
-        args={"client_action": "ListProcesses"},
+    coll1 = rdfvalue.ArtifactSource(
+        type=rdfvalue.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
+        attributes={"client_action": "ListProcesses"},
         conditions=["os == 'Windows'"])
-    self.fakeartifact.collectors.append(coll1)
+    self.fakeartifact.sources.append(coll1)
     fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
     self.assertEqual(fd.__class__.__name__, "AFF4Volume")
 
     # Now run with matching or condition.
     coll1.conditions = ["os == 'Linux' or os == 'Windows'"]
-    self.fakeartifact.collectors = []
-    self.fakeartifact.collectors.append(coll1)
+    self.fakeartifact.sources = []
+    self.fakeartifact.sources.append(coll1)
     fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
     self.assertEqual(fd.__class__.__name__, "RDFValueCollection")
 
     # Now run with impossible or condition.
     coll1.conditions.append("os == 'NotTrue'")
-    self.fakeartifact.collectors = []
-    self.fakeartifact.collectors.append(coll1)
+    self.fakeartifact.sources = []
+    self.fakeartifact.sources.append(coll1)
     fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
     self.assertEqual(fd.__class__.__name__, "AFF4Volume")
 
@@ -246,26 +246,26 @@ class TestArtifactCollectors(CollectorTest):
     """Test supported_os inside the collector object."""
     # Run with false condition.
     client_mock = action_mocks.ActionMock("ListProcesses")
-    coll1 = rdfvalue.Collector(
-        collector_type=rdfvalue.Collector.CollectorType.GRR_CLIENT_ACTION,
-        args={"client_action": "ListProcesses"}, supported_os=["Windows"])
-    self.fakeartifact.collectors.append(coll1)
+    coll1 = rdfvalue.ArtifactSource(
+        type=rdfvalue.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
+        attributes={"client_action": "ListProcesses"}, supported_os=["Windows"])
+    self.fakeartifact.sources.append(coll1)
     fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
     self.assertEqual(fd.__class__.__name__, "AFF4Volume")
 
     # Now run with matching or condition.
     coll1.conditions = []
     coll1.supported_os = ["Linux", "Windows"]
-    self.fakeartifact.collectors = []
-    self.fakeartifact.collectors.append(coll1)
+    self.fakeartifact.sources = []
+    self.fakeartifact.sources.append(coll1)
     fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
     self.assertEqual(fd.__class__.__name__, "RDFValueCollection")
 
     # Now run with impossible or condition.
     coll1.conditions = ["os == 'Linux' or os == 'Windows'"]
     coll1.supported_os = ["NotTrue"]
-    self.fakeartifact.collectors = []
-    self.fakeartifact.collectors.append(coll1)
+    self.fakeartifact.sources = []
+    self.fakeartifact.sources.append(coll1)
     fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
     self.assertEqual(fd.__class__.__name__, "AFF4Volume")
 

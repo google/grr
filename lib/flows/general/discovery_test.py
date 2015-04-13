@@ -230,7 +230,6 @@ class TestClientInterrogate(artifact_test.ArtifactTest):
     self._CheckVFS()
     self._CheckLabelIndex()
     self._CheckClientKwIndex(["Linux"], 1)
-    self._CheckClientKwIndex(["Windows"], 0)
     self._CheckClientKwIndex(["Label2"], 1)
 
   def testInterrogateWindows(self):

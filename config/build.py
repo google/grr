@@ -99,6 +99,11 @@ config_lib.DEFINE_option(PathTypeInfo(
     help="Path to the main pyinstaller.py file."))
 
 config_lib.DEFINE_string(
+    name="PyInstaller.distorm_lib",
+    help="The name of the distorm library in this system.",
+    default="libdistorm3.so")
+
+config_lib.DEFINE_string(
     name="PyInstaller.spec",
     help="The spec file contents to use for building the client.",
     default=r"""
@@ -106,8 +111,9 @@ import os
 import distorm3
 
 # By default build in one dir mode.
+client_path = os.path.join\(r"%(%(ClientBuilder.source)|fixpathsep)", "grr", "client", "client.py"\)
 a = Analysis\(
-    ["%(%(ClientBuilder.source)|unixpath)/grr/client/client.py"],
+    [client_path],
     hiddenimports=[],
     hookspath=None\)
 
@@ -119,7 +125,7 @@ for prefix in ["IPython"]:
         collection.remove\(item\)
 
 # Workaround for distorm conditional imports
-LIBDISTORM3 = os.path.join\(distorm3.__path__[0], 'libdistorm3.so'\)
+    LIBDISTORM3 = os.path.join\(distorm3.__path__[0], r"%(PyInstaller.distorm_lib)"\)
 
 pyz = PYZ\(
     a.pure\)
@@ -127,22 +133,22 @@ exe = EXE\(
     pyz,
     a.scripts,
     exclude_binaries=1,
-    name='build/grr-client',
+    name=os.path.join\("build", "grr-client"\),
     debug=False,
     strip=False,
     upx=False,
     console=True,
-    version='%(PyInstaller.build_dir)/version.txt',
-    icon='%(PyInstaller.build_dir)/grr.ico'\)
+    version=os.path.join\(r"%(PyInstaller.build_dir)", "version.txt"\),
+    icon=os.path.join\(r"%(PyInstaller.build_dir)", "grr.ico"\)\)
 
 coll = COLLECT\(
     exe,
-    a.binaries + [\('distorm3/libdistorm3.so', LIBDISTORM3, 'BINARY'\)],
+    a.binaries + [\(os.path.join\("distorm3", r"%(PyInstaller.distorm_lib)"\), LIBDISTORM3, "BINARY"\)],
     a.zipfiles,
     a.datas,
     strip=False,
     upx=False,
-    name='grr-client'
+    name="grr-client"
 \)
 """)
 
@@ -203,22 +209,17 @@ config_lib.DEFINE_bytes(
 
 config_lib.DEFINE_string(
     "PyInstaller.build_dir",
-    "./build",
-    "The path to the build directory.")
+    default="%(ClientBuilder.build_root_dir)/%(ClientBuilder.build_dest)",
+    help="The path to the build directory.")
 
 config_lib.DEFINE_string(
     "PyInstaller.dpkg_root",
-    default=None,
+    default="%(ClientBuilder.build_root_dir)/dist",
     help="Pyinstaller dpkg root.")
 
 config_lib.DEFINE_string(
-    "PyInstaller.build_root_dir",
-    default=None,
-    help="Pyinstaller build root.")
-
-config_lib.DEFINE_string(
     "PyInstaller.workpath_dir",
-    default=None,
+    default="%(ClientBuilder.build_root_dir)/workpath",
     help="Pyinstaller working directory.")
 
 config_lib.DEFINE_string(
@@ -251,6 +252,11 @@ config_lib.DEFINE_choice(
 config_lib.DEFINE_string(name="ClientBuilder.template_extension",
                          default=".zip",
                          help="The extension to appear on templates.")
+
+config_lib.DEFINE_string(
+    "ClientBuilder.make_command",
+    default="make",
+    help="The make command.")
 
 config_lib.DEFINE_string(
     name="PyInstaller.template_basename",
@@ -426,13 +432,8 @@ config_lib.DEFINE_string(
     help="Root directory for client builds.")
 
 config_lib.DEFINE_string(
-    "ClientBuilder.build_src_dir",
-    default=None,
-    help="Location of the grr src for building.")
-
-config_lib.DEFINE_string(
     "ClientBuilder.build_dest",
-    default=None,
+    default="%(Client.name)-build",
     help="Output directory for client building.")
 
 config_lib.DEFINE_string(
@@ -478,3 +479,17 @@ config_lib.DEFINE_multichoice(
 config_lib.DEFINE_list(name="ClientBuilder.BuildTargets", default=[],
                        help="List of context names that should be built by "
                        "buildanddeploy")
+
+config_lib.DEFINE_string("ClientBuilder.windows_signing_key",
+                         default="/etc/alternatives/grr_windows_signing_key",
+                         help="Path to GRR signing key. Should symlink "
+                         "to actual key.")
+
+config_lib.DEFINE_string("ClientBuilder.windows_signing_cert",
+                         default="/etc/alternatives/grr_windows_signing_cert",
+                         help="Path to GRR signing cert. Should symlink "
+                         "to actual cert.")
+
+config_lib.DEFINE_string("ClientBuilder.windows_signing_application_name",
+                         default="GRR",
+                         help="Signing cert application name.")

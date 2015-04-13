@@ -9,6 +9,7 @@ import ConfigParser
 import errno
 import os
 import pickle
+import platform
 import re
 import StringIO
 import sys
@@ -125,11 +126,16 @@ class Filename(ConfigFilter):
       raise FilterError("%s: %s" % (data, e))
 
 
-class UnixPath(ConfigFilter):
-  name = "unixpath"
+class FixPathSeparator(ConfigFilter):
+  name = "fixpathsep"
 
   def Filter(self, data):
-    return data.replace("\\", "/")
+    if platform.system() == "Windows":
+      # This will fix "X:\", and might add extra slashes to other paths, but
+      # this is OK.
+      return data.replace("\\", "\\\\")
+    else:
+      return data.replace("\\", "/")
 
 
 class Base64(ConfigFilter):
@@ -1197,7 +1203,8 @@ class GrrConfigManager(object):
 
     return result
 
-  def MatchBuildContext(self, target_os, target_arch, target_package):
+  def MatchBuildContext(self, target_os, target_arch, target_package,
+                        context=None):
     """Return true if target_platforms matches the supplied parameters.
 
     Used by buildanddeploy to determine what clients need to be built.
@@ -1207,13 +1214,14 @@ class GrrConfigManager(object):
                  darwin)
       target_arch: which arch we are building for in this run (i386, amd64)
       target_package: which package type we are building (exe, dmg, deb, rpm)
+      context: config_lib context
 
     Returns:
       bool: True if target_platforms spec matches parameters.
     """
-    for spec in self.Get("ClientBuilder.target_platforms"):
-      platform, arch, package = spec.split("_")
-      if (platform == target_os and arch == target_arch and
+    for spec in self.Get("ClientBuilder.target_platforms", context=context):
+      spec_os, arch, package = spec.split("_")
+      if (spec_os == target_os and arch == target_arch and
           package == target_package):
         return True
     return False

@@ -10,6 +10,7 @@ import thread
 import threading
 import time
 
+
 import MySQLdb
 from MySQLdb import cursors
 
@@ -344,19 +345,19 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     return transaction
 
   def _BuildInserts(self, values):
-    subjects = {}
-    attributes = {}
+    subjects_q = {}
+    attributes_q = {}
     aff4_q = {}
 
-    subjects["query"] = "INSERT IGNORE INTO subjects (hash, subject) VALUES"
-    attributes["query"] = (
+    subjects_q["query"] = "INSERT IGNORE INTO subjects (hash, subject) VALUES"
+    attributes_q["query"] = (
         "INSERT IGNORE INTO attributes (hash, attribute) VALUES")
     aff4_q["query"] = (
-        "INSERT INTO aff4 (subject_hash, attribute_hash, prefix, "
+        "INSERT INTO aff4 (subject_hash, attribute_hash, "
         "timestamp, value) VALUES")
 
-    subjects["args"] = []
-    attributes["args"] = []
+    subjects_q["args"] = []
+    attributes_q["args"] = []
     aff4_q["args"] = []
 
     seen = {}
@@ -365,23 +366,22 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
     for (subject, attribute, value, timestamp) in values:
       if subject not in seen["subjects"]:
-        subjects["args"].extend([subject, subject])
+        subjects_q["args"].extend([subject, subject])
         seen["subjects"].append(subject)
       if attribute not in seen["attributes"]:
-        attributes["args"].extend([attribute, attribute])
+        attributes_q["args"].extend([attribute, attribute])
         seen["attributes"].append(attribute)
-      prefix = attribute.split(":", 1)[0]
-      aff4_q["args"].extend([subject, attribute, prefix, timestamp, value])
+      aff4_q["args"].extend([subject, attribute, timestamp, value])
 
-    subjects["query"] += ", ".join(
-        ["(unhex(md5(%s)), %s)"] * (len(subjects["args"]) / 2))
-    attributes["query"] += ", ".join(
-        ["(unhex(md5(%s)), %s)"] * (len(attributes["args"]) / 2))
+    subjects_q["query"] += ", ".join(
+        ["(unhex(md5(%s)), %s)"] * (len(subjects_q["args"]) / 2))
+    attributes_q["query"] += ", ".join(
+        ["(unhex(md5(%s)), %s)"] * (len(attributes_q["args"]) / 2))
     aff4_q["query"] += ", ".join(
-        ["(unhex(md5(%s)), unhex(md5(%s)), %s, %s, %s)"] * (
-            len(aff4_q["args"]) / 5))
+        ["(unhex(md5(%s)), unhex(md5(%s)), %s, %s)"] * (
+            len(aff4_q["args"]) / 4))
 
-    return [subjects, attributes, aff4_q]
+    return [aff4_q, subjects_q, attributes_q]
 
   def _ExecuteTransaction(self, transaction):
     """Get connection from pool and execute query."""
@@ -432,37 +432,28 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     if attribute is not None:
       if is_regex:
         tables += " JOIN attributes ON aff4.attribute_hash=attributes.hash"
-        regex = re.match(r"(^[a-zA-Z0-9_]+:([a-zA-Z0-9_\-\. /:]*"
-                         r"[a-zA-Z0-9_\- /:]+|[a-zA-Z0-9_\- /:]*))(.*)",
-                         attribute)
+        regex = re.match(r"(^[a-zA-Z0-9_\- /:]+)(.*)", attribute)
         if not regex:
           # If attribute has no prefix just rlike
           criteria += " AND attributes.attribute rlike %s"
           args.append(attribute)
-        elif regex.groups()[2]:
-          prefix = attribute.split(":", 1)[0]
-          like = regex.groups()[0] + "%"
-          rlike = regex.groups()[2]
+        else:
+          rlike = regex.groups()[1]
 
-          # If attribute has prefix then use for query optimizations
-          criteria += " AND aff4.prefix=(%s)"
-          args.append(prefix)
-
-          # If like component extends past prefix then include it
-          # accounting for % and trailing :
-          if len(like) > len(prefix) + 2:
+          if rlike:
+             # If there is a regex component attempt to replace with like
+            like = regex.groups()[0] + "%"
             criteria += " AND attributes.attribute like %s"
             args.append(like)
 
-          # If the regex portion is not a match all regex then break it
-          # down into like and rlike components
-
-          if not (rlike == ".*" or rlike == ".+"):
-            criteria += " AND attributes.attribute rlike %s"
-            args.append(rlike)
-        else:
-          criteria += " AND aff4.attribute_hash=unhex(md5(%s))"
-          args.append(attribute)
+            # If the regex portion is not a match all regex then add rlike
+            if not (rlike == ".*" or rlike == ".+"):
+              criteria += " AND attributes.attribute rlike %s"
+              args.append(rlike)
+          else:
+            # If no regex component then treat as full attribute
+            criteria += " AND aff4.attribute_hash=unhex(md5(%s))"
+            args.append(attribute)
       else:
         criteria += " AND aff4.attribute_hash=unhex(md5(%s))"
         args.append(attribute)
@@ -498,19 +489,19 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
   def _BuildDelete(self, subject, attribute=None, timestamp=None):
     """Build the DELETE query to be executed."""
-    subjects = {}
-    attributes = {}
+    subjects_q = {}
+    attributes_q = {}
     aff4_q = {}
 
-    subjects["query"] = (
+    subjects_q["query"] = (
         "DELETE subjects FROM subjects WHERE hash=unhex(md5(%s))")
-    subjects["args"] = [subject]
+    subjects_q["args"] = [subject]
 
     aff4_q["query"] = "DELETE aff4 FROM aff4 WHERE subject_hash=unhex(md5(%s))"
     aff4_q["args"] = [subject]
 
-    attributes["query"] = ""
-    attributes["args"] = []
+    attributes_q["query"] = ""
+    attributes_q["args"] = []
 
     if attribute:
       aff4_q["query"] += " AND attribute_hash=unhex(md5(%s))"
@@ -521,22 +512,22 @@ class MySQLAdvancedDataStore(data_store.DataStore):
         aff4_q["args"].append(int(timestamp[0]))
         aff4_q["args"].append(int(timestamp[1]))
 
-      subjects["query"] = (
+      subjects_q["query"] = (
           "DELETE subjects FROM subjects "
           "LEFT JOIN aff4 ON aff4.subject_hash=subjects.hash "
           "WHERE subjects.hash=unhex(md5(%s)) "
           "AND aff4.subject_hash IS NULL")
 
-      attributes["query"] = (
+      attributes_q["query"] = (
           "DELETE attributes FROM attributes "
           "LEFT JOIN aff4 ON aff4.attribute_hash=attributes.hash "
           "WHERE attributes.hash=unhex(md5(%s)) "
           "AND aff4.attribute_hash IS NULL")
-      attributes["args"].append(attribute)
+      attributes_q["args"].append(attribute)
 
-      return [aff4_q, subjects, attributes]
+      return [aff4_q, subjects_q, attributes_q]
 
-    return [aff4_q, subjects]
+    return [aff4_q, subjects_q]
 
   def _ExecuteQuery(self, *args):
     """Get connection from pool and execute query."""
@@ -573,19 +564,19 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     self._ExecuteQuery("""
     CREATE TABLE IF NOT EXISTS `attributes` (
       hash BINARY(16) PRIMARY KEY NOT NULL,
-      attribute VARCHAR(2048) CHARACTER SET utf8 DEFAULT NULL
+      attribute VARCHAR(2048) CHARACTER SET utf8 DEFAULT NULL,
+      KEY `attribute` (`attribute`(32))
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT ='Table storing attributes';
     """)
 
     self._ExecuteQuery("""
     CREATE TABLE IF NOT EXISTS `aff4` (
+      id BIGINT UNSIGNED PRIMARY KEY NOT NULL AUTO_INCREMENT,
       subject_hash BINARY(16) NOT NULL,
       attribute_hash BINARY(16) NOT NULL,
-      prefix VARCHAR(16) CHARACTER SET utf8 DEFAULT NULL,
-      timestamp BIGINT(22) UNSIGNED DEFAULT NULL,
-      value LONGBLOB NULL,
+      timestamp BIGINT UNSIGNED DEFAULT NULL,
+      value MEDIUMBLOB NULL,
       KEY `master` (`subject_hash`,`attribute_hash`,`timestamp`),
-      KEY `alternate` (`subject_hash`,`prefix`,`timestamp`),
       KEY `attribute` (`attribute_hash`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8
     COMMENT ='Table representing AFF4 objects';
@@ -594,8 +585,8 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     self._ExecuteQuery("""
     CREATE TABLE IF NOT EXISTS `locks` (
       subject_hash BINARY(16) PRIMARY KEY NOT NULL,
-      lock_owner BIGINT(22) UNSIGNED DEFAULT NULL,
-      lock_expiration BIGINT(22) UNSIGNED DEFAULT NULL
+      lock_owner BIGINT UNSIGNED DEFAULT NULL,
+      lock_expiration BIGINT UNSIGNED DEFAULT NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8
     COMMENT ='Table representing locks on subjects';
     """)

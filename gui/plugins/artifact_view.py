@@ -32,8 +32,8 @@ class ArtifactListRenderer(forms.MultiSelectListRenderer):
               <tr><td>Links<td><div name='artifact_links'/></tr>
               <tr><td>Output Type<td><div name='artifact_output_type'/></tr>
             </table>
-            <h5>Artifact Collectors</h5>
-            <table name='artifact_collectors'>
+            <h5>Artifact Sources</h5>
+            <table name='artifact_sources'>
               <tbody></tbody>
             </table>
             <h5>Artifact Processors</h5>
