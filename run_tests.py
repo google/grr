@@ -21,7 +21,7 @@ from grr.checks import tests
 from grr.client import tests
 
 from grr.gui.api_plugins import tests
-from grr.gui import api_call_renderers_test
+from grr.gui import http_api_test
 from grr.gui import api_aff4_object_renderers_test
 from grr.gui import api_value_renderers_test
 from grr.lib import flags

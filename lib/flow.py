@@ -277,6 +277,12 @@ def StateHandler(next_state="End", auth_required=True):
       Returns:
         This calls the state and returns the obtained result.
       """
+      if "r" in self.mode:
+        pending_termination = self.Get(self.Schema.PENDING_TERMINATION)
+        if pending_termination:
+          self.Error(pending_termination.reason)
+          return
+
       runner = self.GetRunner()
       next_states = Decorated.next_states
 
@@ -320,6 +326,11 @@ def StateHandler(next_state="End", auth_required=True):
     return Decorated
 
   return Decorator
+
+
+class PendingFlowTermination(rdfvalue.RDFProtoStruct):
+  """Descriptor of a pending flow termination."""
+  protobuf = jobs_pb2.PendingFlowTermination
 
 
 class EmptyFlowArgs(rdfvalue.RDFProtoStruct):
@@ -446,6 +457,13 @@ class GRRFlow(aff4.AFF4Volume):
                                   "Client crash details in case of a crash.",
                                   default=None,
                                   creates_new_object_version=False)
+
+    PENDING_TERMINATION = aff4.Attribute("aff4:pending_termination",
+                                         PendingFlowTermination,
+                                         "If true, this flow will be "
+                                         "terminated as soon as any of its "
+                                         "states are called.",
+                                         creates_new_object_version=False)
 
   # This is used to arrange flows into a tree view
   category = ""
@@ -875,6 +893,17 @@ class GRRFlow(aff4.AFF4Volume):
                           token=token)
 
     return flow_obj.urn
+
+  @classmethod
+  def MarkForTermination(cls, flow_urn, reason=None, sync=False, token=None):
+    """Mark the flow for termination as soon as any of its states are called."""
+    # Doing a blind write here using low-level data store API. Accessing
+    # the flow via AFF4 is not really possible here, because it forces a state
+    # to be written in Close() method.
+    data_store.DB.Set(flow_urn,
+                      cls.SchemaCls.PENDING_TERMINATION.predicate,
+                      rdfvalue.PendingFlowTermination(reason=reason),
+                      replace=False, sync=sync, token=token)
 
   @classmethod
   def TerminateFlow(cls, flow_id, reason=None, status=None, token=None,

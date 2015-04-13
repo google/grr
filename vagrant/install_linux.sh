@@ -19,14 +19,20 @@ function system_update() {
     echo /usr/local/lib > /etc/ld.so.conf.d/libc.conf
     echo 'PATH=$PATH:/usr/local/bin:/sbin; export PATH' > /etc/profile.d/localbin.sh
     source /etc/profile.d/localbin.sh
+
+    # SElinux gets in the way of python building properly, error is "cannot
+    # restore segment prot after reloc: Permission denied".  Disable it.
+    /usr/sbin/setenforce 0
+    sed -i s/SELINUX=enforcing/SELINUX=disabled/g /etc/selinux/config
   fi
 }
 
 # Get a more modern version of openssl than is available on lucid
 function install_openssl() {
-  wget --quiet https://www.openssl.org/source/openssl-1.0.2.tar.gz
-  tar zxf openssl-1.0.2.tar.gz
-  cd openssl-1.0.2
+  SSL_VERSION=1.0.2a
+  wget --quiet https://www.openssl.org/source/openssl-${SSL_VERSION}.tar.gz || ${WGET} https://www.openssl.org/source/openssl-${SSL_VERSION}.tar.gz
+  tar zxf openssl-${SSL_VERSION}.tar.gz
+  cd openssl-${SSL_VERSION}
   ./config -fPIC
   # openssl doesn't play nice with jobserver so no -j4
   make
@@ -42,9 +48,10 @@ function install_openssl() {
 # The wget shipped with lucid doesn't support SANs in SSL certs which breaks
 # lots of the downloads https://savannah.gnu.org/bugs/index.php?20421
 function install_wget() {
-  wget --quiet https://ftp.gnu.org/gnu/wget/wget-1.16.tar.gz
-  tar zxvf wget-1.16.tar.gz
-  cd wget-1.16
+  WGET_VERSION=1.16
+  wget --quiet https://ftp.gnu.org/gnu/wget/wget-${WGET_VERSION}.tar.gz || ${WGET} https://ftp.gnu.org/gnu/wget/wget-${WGET_VERSION}.tar.gz
+  tar zxvf wget-${WGET_VERSION}.tar.gz
+  cd wget-${WGET_VERSION}
   ./configure --with-ssl=openssl
   make -j4
   make install
@@ -66,9 +73,6 @@ function install_python_from_source() {
     apt-get --force-yes --yes install build-essential autoconf automake autotools-dev blt blt-dev cvs debhelper fontconfig-config gdb gettext html2text intltool-debian libbluetooth-dev libbluetooth3 libbz2-dev libcroco3 libdb4.8-dev libexpat1-dev libffi-dev libfile-copy-recursive-perl libfontconfig1 libfontconfig1-dev libfontenc1 libfreetype6-dev libgl1-mesa-dri libgl1-mesa-glx libice6 libjpeg62 liblcms1 libmail-sendmail-perl libncurses5-dev libncursesw5-dev libpaper-utils libpaper1 libpthread-stubs0 libpthread-stubs0-dev libreadline-dev libreadline6-dev libsm6 libsqlite3-dev libsys-hostname-long-perl libxext-dev libxfixes3 libxft-dev libxft2 libxi6 libxinerama1 libxmu6 libxpm4 libxrender-dev libxrender1 libxslt1.1 libxss-dev libxss1 libxt6 libxtst6 libxv1 libxxf86dga1 libxxf86vm1 m4 pkg-config po-debconf python-docutils python-imaging python-jinja2 python-lxml python-pygments python-roman python-sphinx sharutils tcl8.5 tcl8.5-dev tk8.5 tk8.5-dev ttf-dejavu-core update-inetd x11-common x11-utils x11proto-core-dev x11proto-input-dev x11proto-kb-dev x11proto-render-dev x11proto-scrnsaver-dev x11proto-xext-dev xbitmaps xterm xtrans-dev zlib1g-dev libx11-dev libxau-dev libxaw7 libxcb1-dev libxdamage1 libxdmcp-dev zlib1g-dev bzip2 libncurses-dev sqlite3 libgdbm-dev libdb-dev readline-common libpcap-dev
   elif [ $DISTRO == "CentOS" ]; then
     yum install -y zlib-devel bzip2-devel ncurses-devel sqlite-devel readline-devel tk-devel gdbm-devel db4-devel libpcap-devel xz-devel
-    # SElinux gets in the way of this building properly, error is "cannot
-    # restore segment prot after reloc: Permission denied".  Disable it.
-    /usr/sbin/setenforce 0
   fi
 
   ${WGET} https://www.python.org/ftp/python/2.7.9/Python-2.7.9.tgz
@@ -118,6 +122,7 @@ function install_protobuf_libs() {
 # release.  TODO: remove this and update requirements.txt once there is a
 # release we can use.
 function install_rekall_HEAD() {
+  rm -r rekall || true
   git clone https://github.com/google/rekall.git
   cd rekall
   python setup.py install

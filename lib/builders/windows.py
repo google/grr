@@ -78,8 +78,11 @@ class WindowsClientBuilder(build.ClientBuilder):
     # (since they contain invalid chars). Visual Studio requires these or it
     # will fail.
     os.environ["ProgramFiles(x86)"] = r"C:\Program Files (x86)"
-    logging.info("Copying Nanny build files.")
-    self.nanny_dir = os.path.join(self.build_dir, "grr/client/nanny")
+    self.nanny_dir = os.path.join(self.build_dir, "grr", "client", "nanny")
+    nanny_src_dir = config_lib.CONFIG.Get("ClientBuilder.nanny_source_dir",
+                                          context=self.context)
+    logging.info("Copying Nanny build files from %s to %s", nanny_src_dir,
+                 self.nanny_dir)
 
     shutil.copytree(config_lib.CONFIG.Get("ClientBuilder.nanny_source_dir",
                                           context=self.context), self.nanny_dir)
@@ -99,8 +102,8 @@ class WindowsClientBuilder(build.ClientBuilder):
       raise RuntimeError("no such Visual Studio script: %s" % env_script)
 
     subprocess.check_call(
-        "cmd /c \"\"%s\" && cd \"%s\" && msbuild /p:Configuration=%s\"" % (
-            env_script, self.nanny_dir, build_type))
+        "cmd /c \"\"%s\" && msbuild /p:Configuration=%s;Platform=%s\"" % (
+            env_script, build_type, vs_arch), cwd=self.nanny_dir)
 
     # The templates always contain the same filenames - the deploy step might
     # rename them later.

@@ -1,11 +1,15 @@
 #!/usr/bin/env python
 """Implementation of filters, which run host data through a chain of parsers."""
 import collections
+import os
+import re
+import stat
 
 from grr.lib import objectfilter
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib.rdfvalues import structs
+from grr.parsers import config_file
 
 
 class Error(Exception):
@@ -234,6 +238,245 @@ class ItemFilter(ObjectFilter):
       # expansion for objectfilter expressions, and Dict RDF values require
       # a DictExpander. Using Config keeps the interface to objects consistent.
       yield rdfvalue.Config({"k": key, "v": val})
+
+
+class StatFilter(Filter):
+  """Filters StatResult RDF Values based on file attributes.
+
+  Filters are added as expressions that include one or more key:value inputs
+  separated by spaced.
+
+  StatResult RDF values can be filtered on several fields:
+  - path_re: A regex search on the pathname attribute.
+  - file_re: A regex search on the filename attribute.
+  - file_type: One of BLOCK,CHARACTER,DIRECTORY,FIFO,REGULAR,SOCKET,SYMLINK
+  - gid: A numeric comparison of gid values: (!|>|>=|<=|<|=)uid
+  - uid: A numeric comparison of uid values: (!|>|>=|<=|<|=)uid
+  - mask: The permissions bits that should be checked. Defaults to 7777.
+  - mode: The permissions bits the StatResult should have after the mask is
+    applied.
+
+  Args:
+    expression: A statfilter expression
+
+  Yields:
+    StatResult objets that match the filter term.
+  """
+  _KEYS = {"path_re", "file_re", "file_type", "uid", "gid", "mode", "mask"}
+  _UID_GID_RE = re.compile(r"\A(!|>|>=|<=|<|=)([0-9]+)\Z")
+  _PERM_RE = re.compile(r"\A[0-7]{4}\Z")
+  _TYPES = {"BLOCK": stat.S_ISBLK, "CHARACTER": stat.S_ISCHR,
+            "DIRECTORY": stat.S_ISDIR, "FIFO": stat.S_ISFIFO,
+            "REGULAR": stat.S_ISREG, "SOCKET": stat.S_ISSOCK,
+            "SYMLINK": stat.S_ISLNK}
+
+  def _MatchFile(self, stat_entry):
+    filename = os.path.basename(stat_entry.pathspec.path)
+    return self.file_re.search(filename)
+
+  def _MatchGid(self, stat_entry):
+    for matcher, value in self.gid_matchers:
+      if not matcher(stat_entry.st_gid, value):
+        return False
+    return True
+
+  def _MatchMode(self, stat_entry):
+    return stat_entry.st_mode & self.mask == self.mode
+
+  def _MatchPath(self, stat_entry):
+    return self.path_re.search(stat_entry.pathspec.path)
+
+  def _MatchType(self, stat_entry):
+    return self.file_type(stat_entry.st_mode)
+
+  def _MatchUid(self, stat_entry):
+    for matcher, value in self.uid_matchers:
+      if not matcher(stat_entry.st_uid, value):
+        return False
+    return True
+
+  def _Comparator(self, operator):
+    """Generate lambdas for uid and gid comparison."""
+    if operator == "=":
+      return lambda x, y: x == y
+    elif operator == ">=":
+      return lambda x, y: x >= y
+    elif operator == ">":
+      return lambda x, y: x > y
+    elif operator == "<=":
+      return lambda x, y: x <= y
+    elif operator == "<":
+      return lambda x, y: x < y
+    elif operator == "!":
+      return lambda x, y: x != y
+    raise DefinitionError("Invalid comparison operator %s" % operator)
+
+  def _Flush(self):
+    self.cfg = {}
+    self.matchers = []
+    self.mask = 0
+    self.mode = 0
+    self.uid_matchers = []
+    self.gid_matchers = []
+    self.file_type = ""
+    self.file_re = ""
+    self.path_re = ""
+
+  def _Load(self, expression):
+    self._Flush()
+    parser = config_file.KeyValueParser(kv_sep=":", sep=",",
+                                        term=(r"\s+", r"\n"))
+    parsed = {}
+    for entry in parser.ParseEntries(expression):
+      parsed.update(entry)
+    self.cfg = rdfvalue.Config(parsed)
+    return parsed
+
+  def _Initialize(self):
+    """Initialize the filter configuration from a validated configuration.
+
+    The configuration is read. Active filters are added to the matcher list,
+    which is used to process the Stat values.
+    """
+
+    if self.cfg.mask:
+      self.mask = int(self.cfg.mask[0], 8)
+    else:
+      self.mask = 07777
+    if self.cfg.mode:
+      self.mode = int(self.cfg.mode[0], 8)
+      self.matchers.append(self._MatchMode)
+
+    if self.cfg.gid:
+      for gid in self.cfg.gid:
+        matched = self._UID_GID_RE.match(gid)
+        if matched:
+          o, v = matched.groups()
+          self.gid_matchers.append((self._Comparator(o), int(v)))
+      self.matchers.append(self._MatchGid)
+
+    if self.cfg.uid:
+      for uid in self.cfg.uid:
+        matched = self._UID_GID_RE.match(uid)
+        if matched:
+          o, v = matched.groups()
+          self.uid_matchers.append((self._Comparator(o), int(v)))
+      self.matchers.append(self._MatchUid)
+
+    if self.cfg.file_re:
+      self.file_re = re.compile(self.cfg.file_re[0])
+      self.matchers.append(self._MatchFile)
+
+    if self.cfg.path_re:
+      self.path_re = re.compile(self.cfg.path_re[0])
+      self.matchers.append(self._MatchPath)
+
+    if self.cfg.file_type:
+      self.file_type = self._TYPES.get(self.cfg.file_type[0].upper())
+      self.matchers.append(self._MatchType)
+
+  def Parse(self, objs, expression):
+    """Parse one or more objects by testing if it has matching stat results.
+
+    Args:
+      objs: An iterable of objects that should be checked.
+      expression: A StatFilter expression, e.g.:
+        "uid:>0 gid:=0 file_type:link"
+
+    Yields:
+      matching objects.
+    """
+    self.Validate(expression)
+    for obj in objs:
+      if not isinstance(obj, rdfvalue.StatEntry):
+        continue
+      # If all match conditions pass, yield the object.
+      for match in self.matchers:
+        if not match(obj):
+          break
+      else:
+        yield obj
+
+  def Validate(self, expression):
+    """Validates that a parsed rule entry is valid for fschecker.
+
+    Args:
+      expression: A rule expression.
+
+    Raises:
+      DefinitionError: If the filter definition could not be validated.
+
+    Returns:
+      True if the expression validated OK.
+    """
+    parsed = self._Load(expression)
+
+    if not parsed:
+      raise DefinitionError("Empty StatFilter expression.")
+
+    bad_keys = set(parsed) - self._KEYS
+    if bad_keys:
+      raise DefinitionError("Invalid parameters: %s" % ",".join(bad_keys))
+
+    if self.cfg.mask and not self.cfg.mode:
+      raise DefinitionError("mode can only be set when mask is also defined.")
+
+    if self.cfg.mask:
+      if len(self.cfg.mask) > 1:
+        raise DefinitionError("Too many mask values defined.")
+      if not self._PERM_RE.match(self.cfg.mask[0]):
+        raise DefinitionError("mask=%s is not octal, e.g. 0600" % self.cfg.mask)
+
+    if self.cfg.mode:
+      if len(self.cfg.mode) > 1:
+        raise DefinitionError("Too many mode values defined.")
+      if not self._PERM_RE.match(self.cfg.mode[0]):
+        raise DefinitionError("mode=%s is not octal, e.g. 0600" % self.cfg.mode)
+
+    if self.cfg.gid:
+      for gid in self.cfg.gid:
+        matched = self._UID_GID_RE.match(gid)
+        if not matched:
+          raise DefinitionError("gid: %s is not an integer preceded by "
+                                "!, >, < or =." % gid)
+
+    if self.cfg.uid:
+      for uid in self.cfg.uid:
+        matched = self._UID_GID_RE.match(uid)
+        if not matched:
+          raise DefinitionError("uid: %s is not an integer preceded by "
+                                "!, >, < or =." % uid)
+
+    if self.cfg.file_re:
+      if len(self.cfg.file_re) > 1:
+        raise DefinitionError(
+            "Too many regexes defined: %s" % self.cfg.file_re)
+      try:
+        self.file_re = re.compile(self.cfg.file_re[0])
+      except (re.error, TypeError) as e:
+        raise DefinitionError("Invalid file regex: %s" % e)
+
+    if self.cfg.path_re:
+      if len(self.cfg.path_re) > 1:
+        raise DefinitionError(
+            "Too many regexes defined: %s" % self.cfg.path_re)
+      try:
+        self.path_re = re.compile(self.cfg.path_re[0])
+      except (re.error, TypeError) as e:
+        raise DefinitionError("Invalid path regex: %s" % e)
+
+    if self.cfg.file_type:
+      if len(self.cfg.file_type) > 1:
+        raise DefinitionError(
+            "Too many file types defined: %s" % self.cfg.file_type)
+      file_type = self.cfg.file_type[0].upper()
+      if file_type not in self._TYPES:
+        raise DefinitionError("Unsupported file type %s" % file_type)
+
+    self._Initialize()
+    if not self.matchers:
+      raise DefinitionError("StatFilter has no actions: %s" % expression)
+    return True
 
 
 class RDFFilter(Filter):

@@ -2,8 +2,10 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Tests for grr.parsers.windows_registry_parser."""
 
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib import utils
 from grr.parsers import windows_registry_parser
 
 
@@ -59,28 +61,32 @@ class WindowsRegistryParserTest(test_lib.FlowTestsBaseclass):
     parser = windows_registry_parser.WinServicesParser()
     results = parser.ParseMultiple(stats, None)
 
-    non_ascii = results.next()
-    self.assertEqual(non_ascii.display_name, u"中国日报")
-    self.assertEqual(non_ascii.service_dll, "blah.dll")
-
-    acpipmi = results.next()
-    self.assertEqual(acpipmi.name, "AcpiPmi")
-    self.assertEqual(acpipmi.startup_type, 3)
-    self.assertEqual(acpipmi.display_name, "[u'AcpiPmi']")
-    self.assertEqual(acpipmi.registry_key.Path(),
-                     "/C.1000000000000000/registry/%s/AcpiPmi" % hklm_set01)
-
-    acpi = results.next()
-    self.assertEqual(acpi.name, "ACPI")
-    self.assertEqual(acpi.service_type, 1)
-    self.assertEqual(acpi.startup_type, 0)
-    self.assertEqual(acpi.error_control, 3)
-    self.assertEqual(acpi.image_path, "system32\\drivers\\ACPI.sys")
-    self.assertEqual(acpi.display_name, "Microsoft ACPI Driver")
-    self.assertEqual(acpi.group_name, "Boot Bus Extender")
-    self.assertEqual(acpi.driver_package_id,
-                     "acpi.inf_amd64_neutral_99aaaaabcccccccc")
-    self.assertRaises(StopIteration, results.next)
+    names = []
+    for result in results:
+      if result.display_name == u"中国日报":
+        self.assertEqual(result.display_name, u"中国日报")
+        self.assertEqual(result.service_dll, "blah.dll")
+        names.append(result.display_name)
+      elif utils.SmartStr(result.registry_key).endswith("AcpiPmi"):
+        self.assertEqual(result.name, "AcpiPmi")
+        self.assertEqual(result.startup_type, 3)
+        self.assertEqual(result.display_name, "[u'AcpiPmi']")
+        self.assertEqual(result.registry_key.Path(),
+                         "/C.1000000000000000/registry/%s/AcpiPmi" % hklm_set01)
+        names.append(result.display_name)
+      elif utils.SmartStr(result.registry_key).endswith("ACPI"):
+        self.assertEqual(result.name, "ACPI")
+        self.assertEqual(result.service_type, 1)
+        self.assertEqual(result.startup_type, 0)
+        self.assertEqual(result.error_control, 3)
+        self.assertEqual(result.image_path, "system32\\drivers\\ACPI.sys")
+        self.assertEqual(result.display_name, "Microsoft ACPI Driver")
+        self.assertEqual(result.group_name, "Boot Bus Extender")
+        self.assertEqual(result.driver_package_id,
+                         "acpi.inf_amd64_neutral_99aaaaabcccccccc")
+        names.append(result.display_name)
+    self.assertItemsEqual(names, [u"中国日报", "[u'AcpiPmi']",
+                                  "Microsoft ACPI Driver"])
 
   def testWinUserSpecialDirs(self):
     reg_str = rdfvalue.StatEntry.RegistryType.REG_SZ
@@ -102,3 +108,11 @@ class WindowsRegistryParserTest(test_lib.FlowTestsBaseclass):
     stat = self._MakeRegStat(sysroot, r"C:\Windows", None)
     parser = windows_registry_parser.WinSystemDriveParser()
     self.assertEqual(r"C:", parser.Parse(stat, None).next())
+
+
+def main(argv):
+  test_lib.main(argv)
+
+
+if __name__ == "__main__":
+  flags.StartMain(main)

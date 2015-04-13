@@ -16,7 +16,8 @@ goog.require('grrUi.hunt.huntsViewDirective.HuntsViewDirective');
 /**
  * Angular module for hunts-related UI.
  */
-grrUi.hunt.module = angular.module('grrUi.hunt', [grrUi.core.module.name]);
+grrUi.hunt.module = angular.module('grrUi.hunt', ['ui.bootstrap',
+                                                  grrUi.core.module.name]);
 
 
 grrUi.hunt.module.directive(

@@ -193,7 +193,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
       self.assertTrue(runner.IsHuntStarted())
 
       # Now we stop the hunt.
-      runner.Stop()
+      hunt.Stop()
 
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
     rules = foreman.Get(foreman.Schema.RULES)

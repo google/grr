@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for grr.parsers.windows_persistence."""
 
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.parsers import windows_persistence
@@ -47,3 +48,11 @@ class WindowsPersistenceMechanismsParserTest(test_lib.FlowTestsBaseclass):
                                   rdfvalue.PathSpec.PathType.OS))
       self.assertEqual(results[0].pathspec.path, expected[index])
       self.assertEqual(len(results), 1)
+
+
+def main(argv):
+  test_lib.main(argv)
+
+
+if __name__ == "__main__":
+  flags.StartMain(main)

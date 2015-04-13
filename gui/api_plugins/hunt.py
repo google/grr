@@ -10,7 +10,6 @@ from grr.gui import api_value_renderers
 from grr.lib import aff4
 from grr.lib import hunts
 from grr.lib import rdfvalue
-from grr.lib import registry
 
 from grr.proto import api_pb2
 
@@ -180,16 +179,3 @@ class ApiHuntErrorsRenderer(api_call_renderers.ApiCallRenderer):
         [rdfvalue.ApiRDFValueCollectionRendererArgs(
             offset=args.offset, count=args.count, with_total_count=True,
             items_type_info="WITH_TYPES_AND_METADATA")])
-
-
-class ApiHuntsInitHook(registry.InitHook):
-
-  def RunOnce(self):
-    api_call_renderers.RegisterHttpRouteHandler(
-        "GET", "/api/hunts", ApiHuntsListRenderer)
-    api_call_renderers.RegisterHttpRouteHandler(
-        "GET", "/api/hunts/<hunt_id>", ApiHuntSummaryRenderer)
-    api_call_renderers.RegisterHttpRouteHandler(
-        "GET", "/api/hunts/<hunt_id>/errors", ApiHuntErrorsRenderer)
-    api_call_renderers.RegisterHttpRouteHandler(
-        "GET", "/api/hunts/<hunt_id>/log", ApiHuntLogRenderer)

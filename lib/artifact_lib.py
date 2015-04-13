@@ -70,27 +70,29 @@ ARTIFACT_LABELS = {
 OUTPUT_UNDEFINED = "Undefined"
 
 
-TYPE_MAP = {"GRR_CLIENT_ACTION": {"required_args": ["client_action"],
+TYPE_MAP = {"GRR_CLIENT_ACTION": {"required_attributes": ["client_action"],
                                   "output_type": OUTPUT_UNDEFINED},
-            "FILE": {"required_args": ["path_list"],
+            "FILE": {"required_attributes": ["paths"],
                      "output_type": "StatEntry"},
-            "GREP": {"required_args": ["path_list", "content_regex_list"],
+            "GREP": {"required_attributes": ["paths", "content_regex_list"],
                      "output_type": "BufferReference"},
-            "LIST_FILES": {"required_args": ["path_list"],
+            "LIST_FILES": {"required_attributes": ["paths"],
                            "output_type": "StatEntry"},
-            "REGISTRY_KEY": {"required_args": ["path_list"],
+            "PATH": {"required_attributes": ["paths"],
+                     "output_type": "StatEntry"},
+            "REGISTRY_KEY": {"required_attributes": ["keys"],
                              "output_type": "StatEntry"},
-            "REGISTRY_VALUE": {"required_args": ["path_list"],
+            "REGISTRY_VALUE": {"required_attributes": ["key_value_pairs"],
                                "output_type": "RDFString"},
-            "WMI": {"required_args": ["query"],
+            "WMI": {"required_attributes": ["query"],
                     "output_type": "Dict"},
-            "COMMAND": {"required_args": ["cmd", "args"],
+            "COMMAND": {"required_attributes": ["cmd", "args"],
                         "output_type": "ExecuteResponse"},
-            "REKALL_PLUGIN": {"required_args": ["plugin"],
+            "REKALL_PLUGIN": {"required_attributes": ["plugin"],
                               "output_type": "RekallResponse"},
-            "ARTIFACT": {"required_args": ["artifact_list"],
+            "ARTIFACT": {"required_attributes": ["names"],
                          "output_type": OUTPUT_UNDEFINED},
-            "ARTIFACT_FILES": {"required_args": ["artifact_list"],
+            "ARTIFACT_FILES": {"required_attributes": ["artifact_list"],
                                "output_type": "StatEntry"}}
 
 
@@ -126,7 +128,7 @@ class ArtifactRegistry(object):
 
   @classmethod
   def GetArtifacts(cls, os_name=None, name_list=None,
-                   collector_type=None, exclude_dependents=False,
+                   source_type=None, exclude_dependents=False,
                    provides=None):
     """Retrieve artifact classes with optional filtering.
 
@@ -135,8 +137,8 @@ class ArtifactRegistry(object):
     Args:
       os_name: string to match against supported_os
       name_list: list of strings to match against artifact names
-      collector_type: rdfvalue.Collector.CollectorType to match against
-                      collector_type
+      source_type: rdfvalue.ArtifactSource.SourceType to match against
+                      source_type
       exclude_dependents: if true only artifacts with no dependencies will be
                           returned
       provides: return the artifacts that provide these dependencies
@@ -152,9 +154,9 @@ class ArtifactRegistry(object):
         continue
       if name_list and artifact.name not in name_list:
         continue
-      if collector_type:
-        collector_types = [c.collector_type for c in artifact.collectors]
-        if collector_type not in collector_types:
+      if source_type:
+        source_types = [c.type for c in artifact.sources]
+        if source_type not in source_types:
           continue
       if exclude_dependents and artifact.GetArtifactPathDependencies():
         continue
@@ -371,7 +373,7 @@ def ArtifactsFromYaml(yaml_content):
   try:
     raw_list = list(yaml.safe_load_all(yaml_content))
   except (ValueError, yaml.YAMLError) as e:
-    raise ArtifactDefinitionError("Invalid json for artifact: %s" % e)
+    raise ArtifactDefinitionError("Invalid YAML for artifact: %s" % e)
 
   # Try to do the right thing with json/yaml formatted as a list.
   if (isinstance(raw_list, list) and len(raw_list) == 1 and

@@ -3,15 +3,7 @@
 
 
 
-import json
 
-
-from django import http
-
-from werkzeug import exceptions as werkzeug_exceptions
-from werkzeug import routing
-
-from grr.lib import access_control
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.proto import api_pb2
@@ -68,132 +60,26 @@ class ApiCallRenderer(object):
   # maximum, but will be used as a guide).
   max_execution_time = 60
 
+  # privileged=True means that the renderer was designed to run in a privileged
+  # context when no ACL checks are made. It means that this renderer makes
+  # all the necessary ACL-related checks itself.
+  #
+  # NOTE: renderers with privileged=True have to be designed with extra caution
+  # as they run without any ACL checks in place and can therefore cause the
+  # system to be compromised.
+  privileged = False
+
   def Render(self, args, token=None):
     raise NotImplementedError()
 
 
-def BuildToken(request, execution_time):
-  """Build an ACLToken from the request."""
+def HandleApiCall(renderer, args, token=None):
+  """Handles API call to a given renderers with given args and token."""
 
-  if request.method == "GET":
-    reason = request.GET.get("reason", "")
-  elif request.method == "POST":
-    reason = request.POST.get("reason", "")
+  if not hasattr(renderer, "Render"):
+    renderer = ApiCallRenderer.classes[renderer]
 
-  token = access_control.ACLToken(
-      username=request.user,
-      reason=reason,
-      process="GRRAdminUI",
-      expiry=rdfvalue.RDFDatetime().Now() + execution_time)
+  if renderer.privileged:
+    token = token.SetUID()
 
-  for field in ["REMOTE_ADDR", "HTTP_X_FORWARDED_FOR"]:
-    remote_addr = request.META.get(field, "")
-    if remote_addr:
-      token.source_ips.append(remote_addr)
-  return token
-
-
-HTTP_ROUTING_MAP = routing.Map()
-
-
-def RegisterHttpRouteHandler(method, route, renderer_cls):
-  """Registers given ApiCallRenderer for given method and route."""
-  HTTP_ROUTING_MAP.add(routing.Rule(
-      route, methods=[method],
-      endpoint=renderer_cls))
-
-
-def GetRendererForHttpRequest(request):
-  """Returns a renderer to handle given HTTP request."""
-
-  matcher = HTTP_ROUTING_MAP.bind("%s:%s" % (request.environ["SERVER_NAME"],
-                                             request.environ["SERVER_PORT"]))
-  try:
-    match = matcher.match(request.path, request.method)
-  except werkzeug_exceptions.NotFound:
-    raise ApiCallRendererNotFoundError("No API renderer was "
-                                       "found for (%s) %s" % (
-                                           request.path,
-                                           request.method))
-
-  renderer_cls, route_args = match
-  return (renderer_cls(), route_args)
-
-
-def FillAdditionalArgsFromRequest(request, supported_types):
-  """Creates arguments objects from a given request dictionary."""
-
-  results = {}
-  for key, value in request.items():
-    try:
-      request_arg_type, request_attr = key.split(".", 1)
-    except ValueError:
-      continue
-
-    arg_class = None
-    for key, supported_type in supported_types.items():
-      if key == request_arg_type:
-        arg_class = supported_type
-
-    if arg_class:
-      if request_arg_type not in results:
-        results[request_arg_type] = arg_class()
-
-      results[request_arg_type].Set(request_attr, value)
-
-  results_list = []
-  for name, arg_obj in results.items():
-    additional_args = ApiCallAdditionalArgs(
-        name=name, type=supported_types[name].__name__)
-    additional_args.args = arg_obj
-    results_list.append(additional_args)
-
-  return results_list
-
-
-def RenderHttpResponse(request):
-  """Handles given HTTP request with one of the available API renderers."""
-
-  renderer, route_args = GetRendererForHttpRequest(request)
-
-  if request.method == "GET":
-
-    if renderer.args_type:
-      unprocessed_request = request.GET
-      if hasattr(unprocessed_request, "dict"):
-        unprocessed_request = unprocessed_request.dict()
-
-      args = renderer.args_type()
-      for type_info in args.type_infos:
-        if type_info.name in route_args:
-          args.Set(type_info.name, route_args[type_info.name])
-        elif type_info.name in unprocessed_request:
-          args.Set(type_info.name, unprocessed_request[type_info.name])
-
-      if renderer.additional_args_types:
-        if not hasattr(args, "additional_args"):
-          raise RuntimeError("Renderer %s defines additional arguments types "
-                             "but its arguments object does not have "
-                             "'additional_args' field." % renderer)
-
-        if hasattr(renderer.additional_args_types, "__call__"):
-          additional_args_types = renderer.additional_args_types()
-        else:
-          additional_args_types = renderer.additional_args_types
-
-        args.additional_args = FillAdditionalArgsFromRequest(
-            unprocessed_request, additional_args_types)
-
-    else:
-      args = None
-  else:
-    raise RuntimeError("Unsupported method: %s." % renderer.method)
-
-  token = BuildToken(request, renderer.max_execution_time)
-  rendered_data = renderer.Render(args, token=token)
-
-  response = http.HttpResponse(content_type="application/json")
-  response.write(")]}'\n")  # XSSI protection
-  response.write(json.dumps(rendered_data))
-
-  return response
+  return renderer.Render(args, token=token)

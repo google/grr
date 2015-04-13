@@ -201,10 +201,10 @@ class CheckRegistryTests(test_lib.GRRBaseTest):
     """Checks are identified and run when their prerequisites are met."""
     expect = ["SW-CHECK"]
     result = checks.CheckRegistry.FindChecks(
-        artifact="WMIInstalledSoftware", os_type="Windows")
+        artifact="WMIInstalledSoftware", os_name="Windows")
     self.assertItemsEqual(expect, result)
     result = checks.CheckRegistry.FindChecks(
-        artifact="DebianPackagesStatus", os_type="Linux")
+        artifact="DebianPackagesStatus", os_name="Linux")
     self.assertItemsEqual(expect, result)
     result = checks.CheckRegistry.FindChecks(
         artifact="DebianPackagesStatus", labels="foo")
@@ -212,12 +212,12 @@ class CheckRegistryTests(test_lib.GRRBaseTest):
 
     expect = set(["SSHD-CHECK"])
     result = set(checks.CheckRegistry.FindChecks(
-        artifact="SshdConfigFile", os_type="Darwin"))
+        artifact="SshdConfigFile", os_name="Darwin"))
     residual = expect - result
     self.assertFalse(residual)
 
     result = set(checks.CheckRegistry.FindChecks(
-        artifact="SshdConfigFile", os_type="Linux"))
+        artifact="SshdConfigFile", os_name="Linux"))
     residual = expect - result
     self.assertFalse(residual)
 
@@ -227,7 +227,7 @@ class CheckRegistryTests(test_lib.GRRBaseTest):
     residual = expect - result
     self.assertFalse(residual)
     result = set(checks.CheckRegistry.FindChecks(
-        artifact="SshdConfigFile", os_type="Windows"))
+        artifact="SshdConfigFile", os_name="Windows"))
     residual = expect - result
     self.assertFalse(residual)
 
@@ -235,18 +235,18 @@ class CheckRegistryTests(test_lib.GRRBaseTest):
     """Identify the artifacts that should be collected based on criteria."""
     # Test whether all expected checks were mapped.
     expect = set(["DebianPackagesStatus", "SshdConfigFile"])
-    result = set(checks.CheckRegistry.SelectArtifacts(os_type="Linux"))
+    result = set(checks.CheckRegistry.SelectArtifacts(os_name="Linux"))
     residual = expect - result
     self.assertFalse(residual)
 
     expect = set(["WMIInstalledSoftware"])
-    result = set(checks.CheckRegistry.SelectArtifacts(os_type="Windows"))
+    result = set(checks.CheckRegistry.SelectArtifacts(os_name="Windows"))
     residual = expect - result
     self.assertFalse(residual)
 
     expect = set(["DebianPackagesStatus"])
     result = set(checks.CheckRegistry.SelectArtifacts(
-        os_type=None, cpe=None, labels="foo"))
+        os_name=None, cpe=None, labels="foo"))
     residual = expect - result
     self.assertFalse(residual)
 

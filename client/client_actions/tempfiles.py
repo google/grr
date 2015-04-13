@@ -135,8 +135,8 @@ def DeleteGRRTempFile(path):
   directory = config_lib.CONFIG["Client.tempdir"]
   if not (os.path.basename(path).startswith(prefix) or
           os.path.commonprefix([directory, path]) == directory):
-    msg = "Can't delete %s, filename must start with %s"
-    raise ErrorNotTempFile(msg % (path, prefix))
+    msg = "Can't delete %s. Filename must start with %s or lie within %s."
+    raise ErrorNotTempFile(msg % (path, prefix, directory))
 
   if os.path.exists(path):
     # Clear our file handle cache so the file can be deleted.

@@ -42,6 +42,7 @@ from grr.client.client_actions import standard
 from grr.lib import access_control
 from grr.lib import action_mocks
 from grr.lib import aff4
+from grr.lib import client_index
 from grr.lib import config_lib
 
 from grr.lib import data_store
@@ -507,11 +508,17 @@ class GRRBaseTest(unittest.TestCase):
 
   def SetupClients(self, nr_clients):
     client_ids = []
+    index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
+                                aff4_type="ClientIndex",
+                                mode="rw",
+                                token=self.token)
+
     for i in range(nr_clients):
       client_id = rdfvalue.ClientURN("C.1%015d" % i)
       client_ids.append(client_id)
 
       with aff4.FACTORY.Create(client_id, "VFSGRRClient",
+                               mode="rw",
                                token=self.token) as fd:
         cert = rdfvalue.RDFX509Cert(
             self.ClientCertFromPrivateKey(
@@ -526,6 +533,9 @@ class GRRBaseTest(unittest.TestCase):
         fd.Set(fd.Schema.FQDN("Host-%s.example.com" % i))
         fd.Set(fd.Schema.MAC_ADDRESS("aabbccddee%02x\nbbccddeeff%02x" % (i, i)))
         fd.Set(fd.Schema.HOST_IPS("192.168.0.%d\n2001:abcd::%x" % (i, i)))
+        fd.Flush()
+
+        index.AddClient(fd)
 
     return client_ids
 
@@ -1686,7 +1696,23 @@ class SampleHuntMock(object):
 
 
 def TestHuntHelperWithMultipleMocks(client_mocks, check_flow_errors=False,
-                                    token=None):
+                                    token=None, iteration_limit=None):
+  """Runs a hunt with a given set of clients mocks.
+
+  Args:
+    client_mocks: Dictionary of (client_id->client_mock) pairs. Client mock
+        objects are used to handle client actions. Methods names of a client
+        mock object correspond to client actions names. For an example of a
+        client mock object, see SampleHuntMock.
+    check_flow_errors: If True, raises when one of hunt-initiated flows fails.
+    token: An instance of access_control.ACLToken security token.
+    iteration_limit: If None, hunt will run until it's finished. Otherwise,
+        worker_mock.Next() will be called iteration_limit number of tiems.
+        Every iteration processes worker's message queue. If new messages
+        are sent to the queue during the iteration processing, they will
+        be processed on next iteration,
+  """
+
   total_flows = set()
 
   client_mocks = [MockClient(client_id, client_mock, token=token)
@@ -1694,7 +1720,7 @@ def TestHuntHelperWithMultipleMocks(client_mocks, check_flow_errors=False,
   worker_mock = MockWorker(check_flow_errors=check_flow_errors, token=token)
 
   # Run the clients and worker until nothing changes any more.
-  while True:
+  while iteration_limit is None or iteration_limit > 0:
     client_processed = 0
 
     for client_mock in client_mocks:
@@ -1709,15 +1735,35 @@ def TestHuntHelperWithMultipleMocks(client_mocks, check_flow_errors=False,
     if client_processed == 0 and not flows_run:
       break
 
+    if iteration_limit:
+      iteration_limit -= 1
+
   if check_flow_errors:
     CheckFlowErrors(total_flows, token=token)
 
 
 def TestHuntHelper(client_mock, client_ids, check_flow_errors=False,
-                   token=None):
-  return TestHuntHelperWithMultipleMocks(
+                   token=None, iteration_limit=None):
+  """Runs a hunt with a given client mock on given clients.
+
+  Args:
+    client_mock: Client mock objects are used to handle client actions.
+        Methods names of a client mock object correspond to client actions
+        names. For an example of a client mock object, see SampleHuntMock.
+    client_ids: List of clients ids. Hunt will run on these clients.
+        client_mock will be used for every client id.
+    check_flow_errors: If True, raises when one of hunt-initiated flows fails.
+    token: An instance of access_control.ACLToken security token.
+    iteration_limit: If None, hunt will run until it's finished. Otherwise,
+        worker_mock.Next() will be called iteration_limit number of tiems.
+        Every iteration processes worker's message queue. If new messages
+        are sent to the queue during the iteration processing, they will
+        be processed on next iteration.
+  """
+  TestHuntHelperWithMultipleMocks(
       dict([(client_id, client_mock) for client_id in client_ids]),
-      check_flow_errors=check_flow_errors, token=token)
+      check_flow_errors=check_flow_errors, iteration_limit=iteration_limit,
+      token=token)
 
 
 # Default fixture age is (Mon Mar 26 14:07:13 2012).
@@ -1847,6 +1893,11 @@ class ClientFixture(object):
         # Make sure we do not actually close the object here - we only want to
         # sync back its attributes, not run any finalization code.
         aff4_object.Flush()
+        if aff4_type == "VFSGRRClient":
+          aff4.FACTORY.Create(client_index.MAIN_INDEX,
+                              aff4_type="ClientIndex",
+                              mode="rw",
+                              token=self.token).AddClient(aff4_object)
 
 
 class ClientVFSHandlerFixture(vfs.VFSHandler):

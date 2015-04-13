@@ -8,7 +8,6 @@ from grr.lib import artifact
 from grr.lib import artifact_lib
 from grr.lib import parsers
 from grr.lib import rdfvalue
-from grr.lib import registry
 
 
 class ApiArtifactRenderer(api_call_renderers.ApiCallRenderer):
@@ -57,10 +56,3 @@ class ApiArtifactRenderer(api_call_renderers.ApiCallRenderer):
       artifacts[name] = artifact_val
 
     return self.RenderArtifacts(artifacts, custom_artifacts=custom_artifacts)
-
-
-class ApiArtifactInitHook(registry.InitHook):
-
-  def RunOnce(self):
-    api_call_renderers.RegisterHttpRouteHandler(
-        "GET", "/api/artifacts", ApiArtifactRenderer)

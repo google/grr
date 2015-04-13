@@ -20,17 +20,18 @@ class ArtifactCollectorFlow(flow.GRRFlow):
   how to process the things collected. This flow takes that data driven format
   and makes it useful.
 
-  The core functionality of Artifacts is split into Collectors and Processors.
+  The core functionality of Artifacts is split into ArtifactSources and
+  Processors.
 
-  An Artifact defines a set of Collectors that are used to retrieve data from
-  the client. These can specify collection of files, registry keys, command
+  An Artifact defines a set of ArtifactSources that are used to retrieve data
+  from the client. These can specify collection of files, registry keys, command
   output and others. The first part of this flow "Collect" handles running those
   collections by issuing GRR flows and client actions.
 
   The results of those are then collected and GRR searches for Processors that
-  know how to process the output of the Collectors. The Processors all inherit
-  from the Parser class, and each Parser specifies which Artifacts it knows how
-  to process.
+  know how to process the output of the ArtifactSources. The Processors all
+  inherit from the Parser class, and each Parser specifies which Artifacts it
+  knows how to process.
 
   So this flow hands off the collected rdfvalue results to the Processors which
   then return modified or different rdfvalues. These final results are then
@@ -142,51 +143,55 @@ class ArtifactCollectorFlow(flow.GRRFlow):
             (artifact_name, condition))
         return
 
-    # Call the collector defined action for each collector.
-    for collector in artifact_obj.collectors:
+    # Call the source defined action for each source.
+    for source in artifact_obj.sources:
 
-      # Check conditions on the collector.
-      collector_conditions_met = True
-      self.ConvertSupportedOSToConditions(collector, collector.conditions)
-      if collector.conditions:
-        for condition in collector.conditions:
+      # Check conditions on the source.
+      source_conditions_met = True
+      self.ConvertSupportedOSToConditions(source, source.conditions)
+      if source.conditions:
+        for condition in source.conditions:
           if not artifact_lib.CheckCondition(condition,
                                              self.state.knowledge_base):
-            collector_conditions_met = False
+            source_conditions_met = False
 
-      if collector_conditions_met:
-        type_name = collector.collector_type
+      if source_conditions_met:
+        type_name = source.type
         self.current_artifact_name = artifact_name
-        if type_name == rdfvalue.Collector.CollectorType.COMMAND:
-          self.RunCommand(collector)
-        elif type_name == rdfvalue.Collector.CollectorType.FILE:
-          self.GetFiles(collector, self.state.path_type,
+        if type_name == rdfvalue.ArtifactSource.SourceType.COMMAND:
+          self.RunCommand(source)
+        elif type_name == rdfvalue.ArtifactSource.SourceType.FILE:
+          self.GetFiles(source, self.state.path_type,
                         self.args.max_file_size)
-        elif type_name == rdfvalue.Collector.CollectorType.GREP:
-          self.Grep(collector, self.state.path_type)
-        elif type_name == rdfvalue.Collector.CollectorType.LIST_FILES:
-          self.Glob(collector, self.state.path_type)
-        elif type_name == rdfvalue.Collector.CollectorType.REGISTRY_KEY:
-          self.Glob(collector, rdfvalue.PathSpec.PathType.REGISTRY)
-        elif type_name == rdfvalue.Collector.CollectorType.REGISTRY_VALUE:
-          self.GetRegistryValue(collector)
-        elif type_name == rdfvalue.Collector.CollectorType.WMI:
-          self.WMIQuery(collector)
-        elif type_name == rdfvalue.Collector.CollectorType.REKALL_PLUGIN:
-          self.RekallPlugin(collector)
-        elif type_name == rdfvalue.Collector.CollectorType.ARTIFACT:
-          self.CollectArtifacts(collector)
-        elif type_name == rdfvalue.Collector.CollectorType.ARTIFACT_FILES:
-          self.CollectArtifactFiles(collector)
-        elif type_name == rdfvalue.Collector.CollectorType.GRR_CLIENT_ACTION:
-          self.RunGrrClientAction(collector)
+        elif type_name == rdfvalue.ArtifactSource.SourceType.GREP:
+          self.Grep(source, self.state.path_type)
+        elif type_name == rdfvalue.ArtifactSource.SourceType.LIST_FILES:
+          self.Glob(source, self.state.path_type)
+        elif type_name == rdfvalue.ArtifactSource.SourceType.PATH:
+          # GRR currently ignores PATH types, they are currently only useful
+          # to plaso during bootstrapping when the registry is unavailable.
+          pass
+        elif type_name == rdfvalue.ArtifactSource.SourceType.REGISTRY_KEY:
+          self.GetRegistryKey(source)
+        elif type_name == rdfvalue.ArtifactSource.SourceType.REGISTRY_VALUE:
+          self.GetRegistryValue(source)
+        elif type_name == rdfvalue.ArtifactSource.SourceType.WMI:
+          self.WMIQuery(source)
+        elif type_name == rdfvalue.ArtifactSource.SourceType.REKALL_PLUGIN:
+          self.RekallPlugin(source)
+        elif type_name == rdfvalue.ArtifactSource.SourceType.ARTIFACT:
+          self.CollectArtifacts(source)
+        elif type_name == rdfvalue.ArtifactSource.SourceType.ARTIFACT_FILES:
+          self.CollectArtifactFiles(source)
+        elif type_name == rdfvalue.ArtifactSource.SourceType.GRR_CLIENT_ACTION:
+          self.RunGrrClientAction(source)
         else:
           raise RuntimeError("Invalid type %s in %s" % (type_name,
                                                         artifact_name))
 
       else:
-        logging.debug("Artifact %s no collectors run due to all collectors "
-                      "having failing conditons on %s", artifact_name,
+        logging.debug("Artifact %s no sources run due to all sources "
+                      "having failing conditions on %s", artifact_name,
                       self.client_id)
 
   def _AreArtifactsKnowledgeBaseArtifacts(self):
@@ -196,10 +201,10 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         return False
     return True
 
-  def GetFiles(self, collector, path_type, max_size):
+  def GetFiles(self, source, path_type, max_size):
     """Get a set of files."""
     new_path_list = []
-    for path in collector.args["path_list"]:
+    for path in source.attributes["paths"]:
       # Interpolate any attributes from the knowledgebase.
       new_path_list.extend(artifact_lib.InterpolateKbAttributes(
           path, self.state.knowledge_base))
@@ -211,7 +216,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     self.CallFlow(
         "FileFinder", paths=new_path_list, pathtype=path_type, action=action,
         request_data={"artifact_name": self.current_artifact_name,
-                      "collector": collector.ToPrimitiveDict()},
+                      "source": source.ToPrimitiveDict()},
         next_state="ProcessFileFinderResults")
 
   @flow.StateHandler(next_state=["ProcessCollected"])
@@ -224,13 +229,14 @@ class ArtifactCollectorFlow(flow.GRRFlow):
                            request_data=responses.request_data,
                            messages=[r.stat_entry for r in responses])
 
-  def Glob(self, collector, pathtype):
+  def Glob(self, source, pathtype):
     """Glob paths, return StatEntry objects."""
     self.CallFlow(
-        "Glob", paths=self.InterpolateList(collector.args.get("path_list", [])),
+        "Glob",
+        paths=self.InterpolateList(source.attributes.get("paths", [])),
         pathtype=pathtype,
         request_data={"artifact_name": self.current_artifact_name,
-                      "collector": collector.ToPrimitiveDict()},
+                      "source": source.ToPrimitiveDict()},
         next_state="ProcessCollected"
     )
 
@@ -246,19 +252,19 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         regex_combined = "(%s)" % regex
     return regex_combined
 
-  def Grep(self, collector, pathtype):
-    """Grep files in path_list for any matches to content_regex_list.
+  def Grep(self, source, pathtype):
+    """Grep files in paths for any matches to content_regex_list.
 
     Args:
-      collector: artifact collector
+      source: artifact source
       pathtype: pathspec path type
 
     When multiple regexes are supplied, combine them into a single regex as an
     OR match so that we check all regexes at once.
     """
-    path_list = self.InterpolateList(collector.args.get("path_list", []))
+    path_list = self.InterpolateList(source.attributes.get("paths", []))
     content_regex_list = self.InterpolateList(
-        collector.args.get("content_regex_list", []))
+        source.attributes.get("content_regex_list", []))
 
     regex_condition = rdfvalue.FileFinderContentsRegexMatchCondition(
         regex=self._CombineRegex(content_regex_list), bytes_before=0,
@@ -272,13 +278,27 @@ class ArtifactCollectorFlow(flow.GRRFlow):
                   conditions=[file_finder_condition],
                   action=rdfvalue.FileFinderAction(), pathtype=pathtype,
                   request_data={"artifact_name": self.current_artifact_name,
-                                "collector": collector.ToPrimitiveDict()},
+                                "source": source.ToPrimitiveDict()},
                   next_state="ProcessCollected")
 
-  def GetRegistryValue(self, collector):
+  def GetRegistryKey(self, source):
+    self.CallFlow(
+        "Glob",
+        paths=self.InterpolateList(source.attributes.get("keys", [])),
+        pathtype=rdfvalue.PathSpec.PathType.REGISTRY,
+        request_data={"artifact_name": self.current_artifact_name,
+                      "source": source.ToPrimitiveDict()},
+        next_state="ProcessCollected"
+    )
+
+  def GetRegistryValue(self, source):
     """Retrieve directly specified registry values, returning Stat objects."""
     new_paths = set()
-    for path in collector.args["path_list"]:
+    for kvdict in source.attributes["key_value_pairs"]:
+      # TODO(user): this needs to be improved to support globbing for both
+      # key and value, and possibly also support forward slash.
+      path = "\\".join((kvdict["key"], kvdict["value"]))
+
       expanded_paths = artifact_lib.InterpolateKbAttributes(
           path, self.state.knowledge_base)
       new_paths.update(expanded_paths)
@@ -289,65 +309,67 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       self.CallClient(
           "StatFile", pathspec=pathspec,
           request_data={"artifact_name": self.current_artifact_name,
-                        "collector": collector.ToPrimitiveDict()},
+                        "source": source.ToPrimitiveDict()},
           next_state="ProcessCollected"
       )
 
-  def CollectArtifacts(self, collector):
+  def CollectArtifacts(self, source):
     self.CallFlow(
-        "ArtifactCollectorFlow", artifact_list=collector.args["artifact_list"],
+        "ArtifactCollectorFlow",
+        artifact_list=source.attributes["names"],
         use_tsk=self.args.use_tsk,
         store_results_in_aff4=False,
         request_data={"artifact_name": self.current_artifact_name,
-                      "collector": collector.ToPrimitiveDict()},
+                      "source": source.ToPrimitiveDict()},
         next_state="ProcessCollected"
     )
 
-  def CollectArtifactFiles(self, collector):
+  def CollectArtifactFiles(self, source):
     """Collect files from artifact pathspecs."""
     self.CallFlow(
-        "ArtifactCollectorFlow", artifact_list=collector.args["artifact_list"],
+        "ArtifactCollectorFlow",
+        artifact_list=source.attributes["artifact_list"],
         use_tsk=self.args.use_tsk,
         store_results_in_aff4=False,
         request_data={"artifact_name": self.current_artifact_name,
-                      "collector": collector.ToPrimitiveDict()},
+                      "source": source.ToPrimitiveDict()},
         next_state="ProcessCollectedArtifactFiles"
     )
 
-  def RunCommand(self, collector):
+  def RunCommand(self, source):
     """Run a command."""
-    self.CallClient("ExecuteCommand", cmd=collector.args["cmd"],
-                    args=collector.args.get("args", {}),
+    self.CallClient("ExecuteCommand", cmd=source.attributes["cmd"],
+                    args=source.attributes.get("args", {}),
                     request_data={"artifact_name": self.current_artifact_name,
-                                  "collector": collector.ToPrimitiveDict()},
+                                  "source": source.ToPrimitiveDict()},
                     next_state="ProcessCollected")
 
-  def WMIQuery(self, collector):
+  def WMIQuery(self, source):
     """Run a Windows WMI Query."""
-    query = collector.args["query"]
+    query = source.attributes["query"]
     queries = artifact_lib.InterpolateKbAttributes(query,
                                                    self.state.knowledge_base)
     for query in queries:
       self.CallClient(
           "WmiQuery", query=query,
           request_data={"artifact_name": self.current_artifact_name,
-                        "collector": collector.ToPrimitiveDict()},
+                        "source": source.ToPrimitiveDict()},
           next_state="ProcessCollected"
       )
 
-  def RekallPlugin(self, collector):
+  def RekallPlugin(self, source):
     request = rdfvalue.RekallRequest()
     request.plugins = [
         # Only use these methods for listing processes.
         rdfvalue.PluginRequest(
-            plugin=collector.args["plugin"],
-            args=collector.args.get("args", {}))]
+            plugin=source.attributes["plugin"],
+            args=source.attributes.get("args", {}))]
 
     self.CallFlow(
         "AnalyzeClientMemory", request=request,
         request_data={"artifact_name": self.current_artifact_name,
-                      "rekall_plugin": collector.args["plugin"],
-                      "collector": collector.ToPrimitiveDict()},
+                      "rekall_plugin": source.attributes["plugin"],
+                      "source": source.ToPrimitiveDict()},
         next_state="ProcessCollected"
     )
 
@@ -379,7 +401,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     return new_args
 
   def InterpolateList(self, input_list):
-    """Interpolate all items from a given collector array.
+    """Interpolate all items from a given source array.
 
     Args:
       input_list: list of values to interpolate
@@ -396,14 +418,14 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         new_args.extend(value)
     return new_args
 
-  def RunGrrClientAction(self, collector):
+  def RunGrrClientAction(self, source):
     """Call a GRR Client Action."""
     self.CallClient(
-        collector.args["client_action"],
+        source.attributes["client_action"],
         request_data={"artifact_name": self.current_artifact_name,
-                      "collector": collector.ToPrimitiveDict()},
+                      "source": source.ToPrimitiveDict()},
         next_state="ProcessCollected",
-        **self.InterpolateDict(collector.args.get("action_args", {})))
+        **self.InterpolateDict(source.attributes.get("action_args", {})))
 
   def CallFallback(self, artifact_name, request_data):
     classes = artifact.ArtifactFallbackCollector.classes.items()
@@ -443,7 +465,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     """
     flow_name = self.__class__.__name__
     artifact_name = responses.request_data["artifact_name"]
-    collector = responses.request_data.GetItem("collector", None)
+    source = responses.request_data.GetItem("source", None)
 
     if responses.success:
       self.Log("Artifact data collection %s completed successfully in flow %s "
@@ -476,17 +498,17 @@ class ArtifactCollectorFlow(flow.GRRFlow):
           else:
             # Process the response immediately
             self._ParseResponses(processor_obj, response, responses,
-                                 artifact_name, collector)
+                                 artifact_name, source)
       else:
         # We don't have any defined processors for this artifact.
         self._ParseResponses(None, response, responses, artifact_name,
-                             collector)
+                             source)
 
     # If we were saving responses, process them now:
     for processor_name, responses_list in saved_responses.items():
       processor_obj = parsers.Parser.classes[processor_name]()
       self._ParseResponses(processor_obj, responses_list, responses,
-                           artifact_name, collector)
+                           artifact_name, source)
 
     # Flush the results to the objects.
     if self.args.split_output_by_artifact:
@@ -501,14 +523,14 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     """Schedule files for download based on pathspec attribute.
 
     Args:
-      responses: Response objects from the artifact collector.
+      responses: Response objects from the artifact source.
     Raises:
       RuntimeError: if pathspec value is not a PathSpec instance and not
                     a basestring.
     """
     self.download_list = []
-    collector = responses.request_data.GetItem("collector")
-    pathspec_attribute = collector["args"].get("pathspec_attribute", None)
+    source = responses.request_data.GetItem("source")
+    pathspec_attribute = source["attributes"].get("pathspec_attribute", None)
 
     for response in responses:
       if pathspec_attribute:
@@ -552,10 +574,10 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     else:
       self.Log("No files to download")
 
-  def _GetArtifactReturnTypes(self, collector):
+  def _GetArtifactReturnTypes(self, source):
     """Get a list of types we expect to handle from our responses."""
-    if collector:
-      return collector["returned_types"]
+    if source:
+      return source["returned_types"]
 
   def _ProcessAnomaly(self, anomaly_value):
     """Write anomalies to the client in the data store."""
@@ -566,7 +588,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     self.state.client_anomaly_store.Add(anomaly_value)
 
   def _ParseResponses(self, processor_obj, responses, responses_obj,
-                      artifact_name, collector):
+                      artifact_name, source):
     """Create a result parser sending different arguments for diff parsers.
 
     Args:
@@ -575,7 +597,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
          process_together setting.
       responses_obj: The responses object itself.
       artifact_name: Name of the artifact that generated the responses.
-      collector: The collector responsible for producing the responses.
+      source: The source responsible for producing the responses.
 
     Raises:
       RuntimeError: On bad parser.
@@ -613,7 +635,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
             knowledge_base=self.state.knowledge_base)
 
       elif isinstance(processor_obj, parsers.WMIQueryParser):
-        query = collector["args"]["query"]
+        query = source["attributes"]["query"]
         result_iterator = parse_method(query, responses,
                                        self.state.knowledge_base)
 
@@ -643,7 +665,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       else:
         raise RuntimeError("Unsupported parser detected %s" % processor_obj)
 
-    artifact_return_types = self._GetArtifactReturnTypes(collector)
+    artifact_return_types = self._GetArtifactReturnTypes(source)
 
     if result_iterator:
       # If we have a parser, do something with the results it produces.

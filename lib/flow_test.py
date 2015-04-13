@@ -560,6 +560,22 @@ class FlowTest(BasicFlowTest):
         arg1=rdfvalue.PathSpec(), token=self.token)
 
 
+class FlowTerminationTest(BasicFlowTest):
+  """Flow termination-related tests."""
+
+  def testFlowMarkedForTerminationTerminatesInStateHandler(self):
+    flow_obj = self.FlowSetup("FlowOrderTest")
+    flow.GRRFlow.MarkForTermination(flow_obj.urn, reason="because i can",
+                                    token=self.token)
+
+    def ProcessFlow():
+      for _ in test_lib.TestFlowHelper(
+          flow_obj.urn, client_id=self.client_id, token=self.token):
+        pass
+
+    self.assertRaisesRegexp(RuntimeError, "because i can", ProcessFlow)
+
+
 class DummyFlowOutputPlugin(output_plugin.OutputPlugin):
   num_calls = 0
   num_responses = 0

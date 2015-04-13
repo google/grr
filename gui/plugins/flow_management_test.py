@@ -57,7 +57,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
 
     self.Open("/")
 
-    self.Type("client_query", "0001")
+    self.Type("client_query", "C.0000000000000001")
     self.Click("client_query_submit")
 
     self.WaitUntilEqual(u"C.0000000000000001",
@@ -262,7 +262,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     # Open client and find the flow
     self.Open("/")
 
-    self.Type("client_query", "0001")
+    self.Type("client_query", "C.0000000000000001")
     self.Click("client_query_submit")
 
     self.WaitUntilEqual(u"C.0000000000000001",

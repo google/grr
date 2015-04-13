@@ -1705,6 +1705,7 @@ message AuditEvent {
     HUNT_STARTED = 12;
     HUNT_STOPPED = 13;
     CLIENT_ADD_LABEL = 14;
+    CLIENT_REMOVE_LABEL = 15;
   };
 
   optional Action action = 3 [default=UNKNOWN];
@@ -1970,3 +1971,7 @@ message NSRLInformation {
       description: "Type of file."
     }];
 };
+
+message PendingFlowTermination {
+  optional string reason = 1;
+}

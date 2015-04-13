@@ -2,46 +2,46 @@
 
 name: NetstatGrr
 doc: List open network connections using the GRR netstat client action.
-collectors:
-- collector_type: GRR_CLIENT_ACTION
-  args: {client_action: Netstat}
+sources:
+- type: GRR_CLIENT_ACTION
+  attributes: {client_action: Netstat}
   returned_types: [NetworkConnection]
 labels: [Network]
 ---
 name: EnumerateUsersGrr
 doc: List users using the GRR EnumerateUsers client action.
-collectors:
-- collector_type: GRR_CLIENT_ACTION
-  args: {client_action: EnumerateUsers}
+sources:
+- type: GRR_CLIENT_ACTION
+  attributes: {client_action: EnumerateUsers}
   returned_types: [User]
 labels: [Users]
 ---
 name: EnumerateFilesystemsGrr
 doc: List mounted file systems using GRR EnumerateFilesystems client action.
-collectors:
-- collector_type: GRR_CLIENT_ACTION
-  args: {client_action: EnumerateFilesystems}
+sources:
+- type: GRR_CLIENT_ACTION
+  attributes: {client_action: EnumerateFilesystems}
   returned_types: [Filesystem]
 labels: [System]
 ---
 name: HostnameGrr
 doc: Get Hostname using the GRR GetHostname client action.
-collectors:
-- collector_type: GRR_CLIENT_ACTION
-  args: {client_action: GetHostname}
+sources:
+- type: GRR_CLIENT_ACTION
+  attributes: {client_action: GetHostname}
   returned_types: [DataBlob]
 labels: [System]
 ---
 name: EnumerateInterfacesGrr
 doc: List network interfaces using the GRR EnumerateInterfaces client action.
-collectors:
-- collector_type: GRR_CLIENT_ACTION
-  args: {client_action: EnumerateInterfaces}
+sources:
+- type: GRR_CLIENT_ACTION
+  attributes: {client_action: EnumerateInterfaces}
 labels: [Network]
 ---
 name: ListProcessesGrr
 doc: List system processes using the GRR ListProcesses client action.
-collectors:
-- collector_type: GRR_CLIENT_ACTION
-  args: {client_action: ListProcesses}
+sources:
+- type: GRR_CLIENT_ACTION
+  attributes: {client_action: ListProcesses}
 labels: [Processes]

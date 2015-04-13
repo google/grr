@@ -90,7 +90,7 @@ message DefaultArgsTestFlowArgs {
   optional EnumOption enum_value_with_default = 8 [default = OPTION_2];
 }
 
-// For gui/api_call_renderers_test.py.
+// For gui/http_api_test.py.
 message SampleGetRendererArgs {
   optional string path = 1;
   optional string foo = 2;

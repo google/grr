@@ -3,7 +3,7 @@
 
 from grr.gui import api_aff4_object_renderers
 from grr.gui import api_call_renderers
-from grr.lib import registry
+from grr.gui import http_api
 
 
 class ApiDocsRenderer(api_call_renderers.ApiCallRenderer):
@@ -36,7 +36,7 @@ class ApiDocsRenderer(api_call_renderers.ApiCallRenderer):
 
   def Render(self, unused_args, token=None):
     routing_rules = sorted(
-        api_call_renderers.HTTP_ROUTING_MAP.iter_rules(),
+        http_api.HTTP_ROUTING_MAP.iter_rules(),
         key=lambda x: x.rule)
 
     object_renderers = (api_aff4_object_renderers.ApiAFF4ObjectRenderer.
@@ -46,10 +46,3 @@ class ApiDocsRenderer(api_call_renderers.ApiCallRenderer):
         api_call_renderers=self.RenderApiCallRenderers(routing_rules),
         api_object_renderers=self.RenderApiObjectRenderers(object_renderers)
         )
-
-
-class ApiDocsInitHook(registry.InitHook):
-
-  def RunOnce(self):
-    api_call_renderers.RegisterHttpRouteHandler(
-        "GET", "/api/docs", ApiDocsRenderer)

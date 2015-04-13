@@ -15,14 +15,14 @@ class DefinitionError(Error):
 class Condition(object):
   """Conditions specify match criteria for a check."""
 
-  def __init__(self, artifact, os_type=None, cpe=None, label=None):
+  def __init__(self, artifact, os_name=None, cpe=None, label=None):
     if not artifact:
       raise DefinitionError("Trigger condition needs artifact")
     self.artifact = artifact
-    self.os_type = os_type
+    self.os_name = os_name
     self.cpe = cpe
     self.label = label
-    self.attr = (artifact, os_type, cpe, label)
+    self.attr = (artifact, os_name, cpe, label)
 
   def __hash__(self):
     return hash(self.attr)
@@ -30,12 +30,12 @@ class Condition(object):
   def __eq__(self, other):
     return isinstance(other, Condition) and self.attr == other.attr
 
-  def Match(self, artifact, os_type=None, cpe=None, label=None):
+  def Match(self, artifact, os_name=None, cpe=None, label=None):
     """Whether the condition applies to external data.
 
     Args:
       artifact: A string identifier for the artifact.
-      os_type: An OS string.
+      os_name: An OS string.
       cpe: A CPE string.
       label: A label string.
 
@@ -44,31 +44,31 @@ class Condition(object):
       are ignored in the comparison.
     """
     hit = lambda x: x[0] == x[1] or not x[0]
-    seq = [(self.artifact, artifact), (self.os_type, os_type), (self.cpe, cpe),
+    seq = [(self.artifact, artifact), (self.os_name, os_name), (self.cpe, cpe),
            (self.label, label)]
     return all(map(hit, seq))
 
-  def Artifacts(self, os_type=None, cpe=None, label=None):
+  def Artifacts(self, os_name=None, cpe=None, label=None):
     """Whether the conditions applies, modulo host data.
 
     Args:
-      os_type: An OS string.
+      os_name: An OS string.
       cpe: A CPE string.
       label: A label string.
 
     Returns:
-      True if os_type, cpe or labels match. Empty values are ignored.
+      True if os_name, cpe or labels match. Empty values are ignored.
     """
     hit = lambda x: x[0] == x[1] or not x[0]
-    seq = [(self.os_type, os_type), (self.cpe, cpe), (self.label, label)]
+    seq = [(self.os_name, os_name), (self.cpe, cpe), (self.label, label)]
     return all(map(hit, seq))
 
-  def Search(self, artifact, os_type=None, cpe=None, label=None):
+  def Search(self, artifact, os_name=None, cpe=None, label=None):
     """Whether the condition contains the specified values.
 
     Args:
       artifact: A string identifier for the artifact.
-      os_type: An OS string.
+      os_name: An OS string.
       cpe: A CPE string.
       label: A label string.
 
@@ -77,7 +77,7 @@ class Condition(object):
       Empty query attributes are ignored in the comparison.
     """
     hit = lambda x: x[0] == x[1] or not x[0]
-    seq = [(artifact, self.artifact), (os_type, self.os_type), (cpe, self.cpe),
+    seq = [(artifact, self.artifact), (os_name, self.os_name), (cpe, self.cpe),
            (label, self.label)]
     return all(map(hit, seq))
 
@@ -114,10 +114,10 @@ class Triggers(object):
     # None value.
     if target is None:
       target = rdfvalue.Target()
-    os_type = target.Get("os") or [None]
+    os_name = target.Get("os") or [None]
     cpe = target.Get("cpe") or [None]
     label = target.Get("label") or [None]
-    attributes = itertools.product(os_type, cpe, label)
+    attributes = itertools.product(os_name, cpe, label)
     new_conditions = [Condition(artifact, *attr) for attr in attributes]
     self.conditions.update(new_conditions)
     self._Register(new_conditions, callback)
@@ -134,12 +134,12 @@ class Triggers(object):
     self.conditions.update(other.conditions)
     self._Register(other.conditions, callback)
 
-  def Match(self, artifact=None, os_type=None, cpe=None, label=None):
+  def Match(self, artifact=None, os_name=None, cpe=None, label=None):
     """Test if host data should trigger a check.
 
     Args:
       artifact: An artifact name.
-      os_type: An OS string.
+      os_name: An OS string.
       cpe: A CPE string.
       label: A label string.
 
@@ -147,14 +147,14 @@ class Triggers(object):
       A list of conditions that match.
     """
     return [c for c in self.conditions if c.Match(
-        artifact, os_type, cpe, label)]
+        artifact, os_name, cpe, label)]
 
-  def Search(self, artifact=None, os_type=None, cpe=None, label=None):
+  def Search(self, artifact=None, os_name=None, cpe=None, label=None):
     """Find the host attributes that trigger data collection.
 
     Args:
       artifact: An artifact name.
-      os_type: An OS string.
+      os_name: An OS string.
       cpe: A CPE string.
       label: A label string.
 
@@ -162,13 +162,13 @@ class Triggers(object):
       A list of conditions that contain the specified attributes.
     """
     return [c for c in self.conditions if c.Search(
-        artifact, os_type, cpe, label)]
+        artifact, os_name, cpe, label)]
 
-  def Artifacts(self, os_type=None, cpe=None, label=None):
+  def Artifacts(self, os_name=None, cpe=None, label=None):
     """Find the artifacts that correspond with other trigger conditions.
 
     Args:
-      os_type: An OS string.
+      os_name: An OS string.
       cpe: A CPE string.
       label: A label string.
 
@@ -176,13 +176,13 @@ class Triggers(object):
       A list of artifacts to be processed.
     """
     return [c.artifact for c in self.conditions if c.Artifacts(
-        os_type, cpe, label)]
+        os_name, cpe, label)]
 
   def Calls(self, conditions=None):
     """Find the methods that evaluate data that meets this condition.
 
     Args:
-      conditions: A tuple of (artifact, os_type, cpe, label)
+      conditions: A tuple of (artifact, os_name, cpe, label)
 
     Returns:
       A list of methods that evaluate the data.

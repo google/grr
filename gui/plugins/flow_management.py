@@ -913,9 +913,7 @@ class GlobExpressionFormRenderer(forms.ProtoRDFValueFormRenderer):
 """)
 
   def Layout(self, request, response):
-    # TODO(user): check why GetkbFieldNames() returns a lot of
-    # duplicated field names.
-    self.completions = sorted(set(rdfvalue.KnowledgeBase().GetKbFieldNames()))
+    self.completions = rdfvalue.KnowledgeBase().GetKbFieldNames()
 
     response = super(GlobExpressionFormRenderer, self).Layout(request, response)
     return self.CallJavascript(

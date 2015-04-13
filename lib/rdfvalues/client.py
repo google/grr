@@ -276,10 +276,11 @@ class KnowledgeBase(rdfvalue.RDFProtoStruct):
             return user
 
   def GetKbFieldNames(self):
-    fields = self.type_infos.descriptor_names
+    fields = set(self.type_infos.descriptor_names)
+    fields.remove("users")
     for field in self.users.type_descriptor.type.type_infos.descriptor_names:
-      fields.append("users.%s" % field)
-    return fields
+      fields.add("users.%s" % field)
+    return sorted(fields)
 
 
 class KnowledgeBaseUser(rdfvalue.RDFProtoStruct):
@@ -748,6 +749,11 @@ class WindowsServiceInformation(rdfvalue.RDFProtoStruct):
 class OSXServiceInformation(rdfvalue.RDFProtoStruct):
   """OSX Service (launchagent/daemon)."""
   protobuf = sysinfo_pb2.OSXServiceInformation
+
+
+class LinuxServiceInformation(rdfvalue.RDFProtoStruct):
+  """Linux Service (init/upstart/systemd)."""
+  protobuf = sysinfo_pb2.LinuxServiceInformation
 
 
 class ClientResources(rdfvalue.RDFProtoStruct):

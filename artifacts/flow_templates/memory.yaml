@@ -2,10 +2,10 @@
 
 name: RekallPsList
 doc: Process listing using Rekall.
-collectors:
-- collector_type: REKALL_PLUGIN
-  args:
-    args: {}
+sources:
+- type: REKALL_PLUGIN
+  attributes:
+    attributes: {}
     plugin: pslist
 labels: [Rekall, Processes]
 urls: ['http://www.rekall-forensic.com/docs/Manual/Plugins/Windows/WinPsList.html']

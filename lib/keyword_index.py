@@ -59,7 +59,7 @@ class AFF4KeywordIndex(aff4.AFF4Object):
 
     return relevant_set
 
-  def AddKeywordsForName(self, name, keywords):
+  def AddKeywordsForName(self, name, keywords, sync=True, **kwargs):
     """Associates keywords with name.
 
     Records that keywords are associated with name.
@@ -67,8 +67,12 @@ class AFF4KeywordIndex(aff4.AFF4Object):
     Args:
       name: A name which should be associated with some keywords.
       keywords: A collection of keywords to associate with name.
+      **kwargs: Additional arguments to pass to the datastore.
     """
     for keyword in set(keywords):
       data_store.DB.Set(
           self._KeywordToURN(keyword),
-          self.INDEX_COLUMN_FORMAT % name, "", token=self.token)
+          self.INDEX_COLUMN_FORMAT % name, "",
+          token=self.token, sync=False, **kwargs)
+    if sync:
+      data_store.DB.Flush()

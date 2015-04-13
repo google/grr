@@ -2,23 +2,18 @@
 """This plugin renders the client search page."""
 
 import json
-import shlex
 import time
 
 from django.utils import datastructures
-
-import logging
 
 from grr.gui import renderers
 from grr.gui.plugins import semantic
 from grr.lib import access_control
 from grr.lib import aff4
-from grr.lib import client_index
 from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import registry
-from grr.lib import search
 from grr.lib import stats
 from grr.lib import utils
 
@@ -652,153 +647,17 @@ class ClientLabelsRenderer(semantic.RDFValueRenderer):
     return super(ClientLabelsRenderer, self).Layout(request, response)
 
 
-class HostTable(renderers.TableRenderer):
-  """Render a table for searching hosts."""
-
-  layout_template = renderers.Template("""
-<div id="apply_label_dialog_{{unique|escape}}" name="ApplyLabelDialog"
-  class="modal" tabindex="-1" role="dialog" aria-hidden="true">
-</div>
-
-<ul id="client_action_bar_{{unique|escape}}" class="breadcrumb">
-<li>
-  <button id="apply_label_{{unique|escape}}" title="Apply Label"
-    class="btn btn-default" data-target="#apply_label_dialog_{{unique|escape}}"
-    disabled="true" data-toggle="modal" name="ApplyLabel">
-    <img src="/static/images/label.png" class="toolbar_icon"></img>
-  </button>
-</li>
-</ul>
-""") + renderers.TableRenderer.layout_template
-
-  fixed_columns = False
-
-  def __init__(self, **kwargs):
-    super(HostTable, self).__init__(**kwargs)
-    self.AddColumn(semantic.RDFValueColumn(
-        "", width="40px", header=ClientCheckboxHeaderRenderer(),
-        renderer=ClientCheckboxRenderer))
-    self.AddColumn(semantic.RDFValueColumn("Online", width="40px",
-                                           renderer=ClientStatusIconsRenderer))
-    self.AddColumn(semantic.AttributeColumn("subject", width="13em"))
-    self.AddColumn(semantic.AttributeColumn("Host", width="13em"))
-    self.AddColumn(semantic.AttributeColumn("Version", width="20%"))
-    self.AddColumn(semantic.AttributeColumn("MAC", width="10%"))
-    self.AddColumn(semantic.AttributeColumn("Usernames", width="20%"))
-    self.AddColumn(semantic.AttributeColumn("FirstSeen", width="15%",
-                                            header="First Seen"))
-    self.AddColumn(semantic.AttributeColumn("Install", width="15%",
-                                            header="OS Install Date"))
-    self.AddColumn(semantic.RDFValueColumn("Labels", width="8%",
-                                           renderer=ClientLabelsRenderer))
-    self.AddColumn(semantic.AttributeColumn("Clock", width="15%",
-                                            header="Last Checkin"))
-
-  @renderers.ErrorHandler()
-  def Layout(self, request, response):
-    response = super(HostTable, self).Layout(request, response)
-    return self.CallJavascript(response, "HostTable.Layout")
-
-  @stats.Timed("grr_gui_search_host_time")
-  def BuildTable(self, start, end, request):
-    """Draw table cells."""
-    row_count = 0
-
-    query_string = request.REQ.get("q", "")
-    if not query_string:
-      self.message = "A query string must be provided."
-      return False
-
-    logging.info("Processing Client Query [%s]" % query_string)
-
-    try:
-      # If the string begins with the token k, we treat the remaining tokens as
-      # a keyword search. This is to allow people to try the keyword
-      # functionality.
-      #
-      # TODO(user): Migrate fully to keyword index when it is sufficiently
-      # tuned and tested.
-      if query_string[:2] == "k ":
-        keywords = shlex.split(query_string)[1:]
-        index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                                    aff4_type="ClientIndex",
-                                    mode="rw",
-                                    token=request.token)
-        result_urns = sorted(index.LookupClients(keywords), key=str)[start:end]
-      else:
-        result_urns = search.SearchClients(query_string,
-                                           start=start,
-                                           max_results=end - start,
-                                           token=request.token)
-      result_set = aff4.FACTORY.MultiOpen(result_urns, token=request.token)
-
-      self.message = "Searched for %s" % query_string
-
-      for child in result_set:
-        # Add the fd to all the columns
-        self.AddRowFromFd(row_count + start, child)
-
-        # Also update the checkbox and online/crash status.
-        for column in (self.columns[0], self.columns[1], self.columns[9]):
-          column.AddElement(row_count + start, child)
-
-        row_count += 1
-
-    except Exception as e:  # pylint: disable=broad-except
-      self.message = str(e)
-
-    # We only show 50 hits here.
-    return False
-
-
-class SearchHostView(renderers.Renderer):
-  """Show a search screen for the host."""
-
-  title = "Search Client"
-
-  context_help_url = "user_manual.html#searching-for-a-client"
-  template = renderers.Template("""
-<abbr title="Type label: to open a list of possible labels completions.">
-  {% if this.context_help_url %}
-    <a href="/help/{{this.context_help_url|escape}}" target="_blank"
-      class="pull-right">
-      <i class="glyphicon glyphicon-question-sign input-append"></i>
-    </a>
-  {% endif %}
-  <form id="search_host" class="navbar-form pull-right no-right-padding">
-    <div class="form-group">
-      <div class="input-group">
-        <input type="text" id="client_query" name="q"
-          class="form-control search-query"
-          placeholder="Search Box"/>
-        <span class="input-group-btn">
-          <button type="submit" id="client_query_submit"
-            class="btn btn-default search-query">
-            <span class="glyphicon glyphicon-search"></span>
-          </button>
-        </span>
-      </div>
-    </div>
-  </form>
-</abbr>
-""")
+class HostTable(renderers.AngularDirectiveRenderer):
+  directive = "grr-clients-list"
 
   def Layout(self, request, response):
-    """Display a search screen for the host."""
-    response = super(SearchHostView, self).Layout(request, response)
+    self.directive_args = {}
+    self.directive_args["query"] = request.REQ.get("q")
+    return super(HostTable, self).Layout(request, response)
 
-    response = self.RenderFromTemplate(
-        self.template, response, title=self.title,
-        id=self.id)
 
-    labels_index = aff4.FACTORY.Create(
-        aff4.VFSGRRClient.labels_index_urn, "AFF4LabelsIndex",
-        mode="rw", token=request.token)
-    used_labels = sorted(list(
-        set([label.name for label in labels_index.ListUsedLabels()])))
-
-    return self.CallJavascript(response, "SearchHostView.Layout",
-                               labels=used_labels)
+class SearchHostView(renderers.AngularDirectiveRenderer):
+  directive = "grr-client-search-box"
 
 
 class FrontPage(renderers.TemplateRenderer):

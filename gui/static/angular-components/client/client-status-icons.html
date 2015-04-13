@@ -1,0 +1,21 @@
+<div ng-cloak class="centered" ng-if="::controller.iconName != null">
+  <img class="grr-icon-small" name="clientStatusIcon"
+       ng-src="/static/images/{$ ::controller.iconName $}.png"
+       title="{$ ::controller.lastPing | grrTimeSince $}" />
+
+  <img ng-if="::controller.crashTime != null" class="grr-icon"
+       ng-src="/static/images/skull-icon.png" name="clientCrashIcon"
+       title="{$ ::controller.crashTime | grrTimeSince $}" />
+  <img ng-if="::controller.diskFull != null" class="grr-icon"
+       ng-src="/static/images/hdd-bang-icon.png"
+       title="{$ ::controller.diskFull $}" />
+
+  <span ng-if="::client.disk_warnings.length > 0"
+        name="clientDiskWarnings">
+    <img class="grr-icon" ng-src="/static/images/hdd-bang-icon.png" />
+    <strong>Disk free space low:</strong><br/>
+    <span ng-repeat="warning in ::client.disk_warnings">
+      {$ ::warning[0] $} {$ warning[1] | number:0 $}% free<br/>
+    </span>
+  </span>
+</div>
