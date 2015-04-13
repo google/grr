@@ -264,3 +264,6 @@ config_lib.DEFINE_list("ConfigIncludes", [],
                        "processed recursively depth-first, later values "
                        "override earlier ones.")
 
+config_lib.DEFINE_bool("AdminUI.protect_hunt_results", default=True,
+                       help="If True, hunts with results will not be deleted "
+                       "when the delete hunt button is used.")
