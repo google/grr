@@ -87,7 +87,7 @@ parser_add_user = subparsers.add_parser(
     "add_user", help="Add a new user.")
 
 parser_add_user.add_argument("username", help="Username to update.")
-parser_add_user.add_argument("password", help="Set password.")
+parser_add_user.add_argument("--password", help="Set password.")
 
 parser_add_user.add_argument(
     "--noadmin", default=False, action="store_true",
