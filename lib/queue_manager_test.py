@@ -209,7 +209,7 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
         token=self.token)
 
     decoded = rdfvalue.GrrMessage(value)
-    self.assertProtoEqual(decoded, task)
+    self.assertRDFValueEqual(decoded, task)
     self.assert_(ts > 0)
 
     # Get a lease on the task

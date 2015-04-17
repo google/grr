@@ -40,8 +40,8 @@ class UserTests(test_base.RDFValueTestCase):
     self.assertEqual(fast_proto.special_folders.desktop,
                      proto.special_folders.desktop)
 
-    # Serialized form of both should be the same.
-    self.assertProtoEqual(fast_proto, proto)
+    # Serialized RDFValue and protobuf have same fields.
+    self.assertRDFValueEqualToProto(fast_proto, proto)
 
   def testTimeEncoding(self):
     fast_proto = rdfvalue.User(username="user")

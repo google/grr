@@ -26,7 +26,7 @@ describe('server load indicator service', function() {
             grrUi.stats.serverLoadDirective.ServerLoadIndicatorService,
             {
               '$q': $q,
-              'grrApiService': grrApiServiceMock,
+              'grrApiService': grrApiServiceMock
             });
       });
 

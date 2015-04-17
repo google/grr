@@ -207,7 +207,8 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
       grr_message = rdfvalue.GrrMessage(session_id="W:test")
 
       nanny_controller.WriteTransactionLog(grr_message)
-      self.assertProtoEqual(grr_message, nanny_controller.GetTransactionLog())
+      self.assertRDFValueEqual(grr_message,
+                               nanny_controller.GetTransactionLog())
       nanny_controller.CleanTransactionLog()
 
       self.assert_(nanny_controller.GetTransactionLog() is None)
