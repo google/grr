@@ -207,7 +207,11 @@ class TSKFile(vfs.VFSHandler):
                         "atime",
                         "mtime",
                         "ctime",
-                        "crtime"]:
+                        "crtime",
+                        "fn_atime",
+                        "fn_mtime",
+                        "fn_ctime",
+                        "fn_crtime"]:
         try:
           value = int(getattr(meta, attribute))
           if value < 0: value &= 0xFFFFFFFF

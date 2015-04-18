@@ -851,6 +851,26 @@ message StatEntry {
       type: "RDFDatetimeSeconds",
       description: "Creation time."
     }];
+
+  optional uint64 fn_atime = 21 [(sem_type) = {
+      type: "RDFDatetimeSeconds",
+      description: "NTFS access time."
+    }];
+
+  optional uint64 fn_mtime = 22 [(sem_type) = {
+      type: "RDFDatetimeSeconds",
+      description: "NTFS modified time."
+    }];
+
+  optional uint64 fn_ctime = 23 [(sem_type) = {
+      type: "RDFDatetimeSeconds",
+      description: "NTFS change time."
+    }];
+
+  optional uint64 fn_crtime = 24 [(sem_type) = {
+      type: "RDFDatetimeSeconds",
+      description: "NTFS created time."
+    }];
 };
 
 // This stores collection entries.
