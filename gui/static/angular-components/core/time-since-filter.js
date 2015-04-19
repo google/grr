@@ -25,7 +25,7 @@ grrUi.core.timeSinceFilter.filterImplementation = function(
     return '<invalid time value>';
   }
 
-  var differenceSec = (currentTimeMs - inputTimeMs) / 1000;
+  var differenceSec = Math.round((currentTimeMs - inputTimeMs) / 1000);
   var measureUnit;
   var measureValue;
   if (differenceSec < 60) {
@@ -43,7 +43,7 @@ grrUi.core.timeSinceFilter.filterImplementation = function(
   }
 
   if (measureValue >= 0) {
-    return measureUnit.toString() + ' ' + measureValue + ' ago';
+    return measureValue + ' ' + measureUnit.toString() + ' ago';
   } else {
     return 'in ' + measureUnit.toString() + ' ' + measureValue;
   }
@@ -55,6 +55,7 @@ grrUi.core.timeSinceFilter.filterImplementation = function(
  * @param {grrUi.core.timeService.TimeService} grrTimeService
  * @return {!Function}
  * @export
+ * @ngInject
  */
 grrUi.core.timeSinceFilter.TimeSinceFilter = function(grrTimeService) {
   return function(input) {

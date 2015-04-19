@@ -1736,7 +1736,7 @@ class RDFStruct(rdfvalue.RDFValue):
     """
     return self._data
 
-  def ListFields(self):
+  def ListSetFields(self):
     """Iterates over the fields which are actually set.
 
     Yields:

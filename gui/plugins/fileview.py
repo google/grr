@@ -106,7 +106,7 @@ class VolumeRenderer(semantic.RDFProtoRenderer):
   def Layout(self, request, response):
     """Render the protobuf as a table."""
     self.result = []
-    for descriptor, value in self.proxy.ListFields():
+    for descriptor, value in self.proxy.ListSetFields():
       name = descriptor.name
       friendly_name = descriptor.friendly_name or name
 

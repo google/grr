@@ -396,16 +396,6 @@
       "response": {
         "TestDrivers": {
           "artifact": {
-            "sources": [
-              {
-                "attributes": {
-                  "query": "SELECT * from Win32_SystemDriver"
-                },
-                "type": "WMI",
-                "conditions": [],
-                "returned_types": []
-              }
-            ],
             "conditions": [
               "os_major_version >= 6"
             ],
@@ -416,6 +406,16 @@
             ],
             "name": "TestDrivers",
             "provides": [],
+            "sources": [
+              {
+                "attributes": {
+                  "query": "SELECT * from Win32_SystemDriver"
+                },
+                "conditions": [],
+                "returned_types": [],
+                "type": "WMI"
+              }
+            ],
             "supported_os": [
               "Windows"
             ],
@@ -1245,9 +1245,14 @@
             "age": 55,
             "fields_order": [
               "client_id",
-              "log_message"
+              "log_message",
+              "backtrace"
             ],
             "metadata": {
+              "backtrace": {
+                "description": "",
+                "friendly_name": "Backtrace"
+              },
               "client_id": {
                 "description": "",
                 "friendly_name": "Client id"
@@ -1399,9 +1404,14 @@
             "age": 55,
             "fields_order": [
               "client_id",
-              "log_message"
+              "log_message",
+              "backtrace"
             ],
             "metadata": {
+              "backtrace": {
+                "description": "",
+                "friendly_name": "Backtrace"
+              },
               "client_id": {
                 "description": "",
                 "friendly_name": "Client id"

@@ -159,9 +159,9 @@ describe('clients list', function() {
                         'type': 'unicode',
                         'age': 0
                       }
-                    },
+                    }
                   },
-                  ]
+                ]
               }
             },
             'metadata:clock': {
