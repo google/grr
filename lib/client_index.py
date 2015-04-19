@@ -5,7 +5,6 @@ An index of client machines, associating likely identifiers to client IDs.
 """
 
 
-
 from grr.lib import keyword_index
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -39,6 +38,7 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
     Returns:
       A list of client URNs.
     """
+
     return map(self._URNFromClientID,
                self.Lookup(map(self._NormalizeKeyword, keywords)))
 
@@ -52,8 +52,17 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
       A tuple (client_id, keywords) where client_id is the client identifier and
     keywords is a list of keywords related to client.
     """
+
     client_id = self._ClientIdFromURN(client.urn)
-    keywords = [self._NormalizeKeyword(client_id)]
+
+    # Start with both the client id itself, and a universal keyword, used to
+    # find all clients.
+    #
+    # TODO(user): Remove the universal keyword once we have a better way
+    # to do this, i.e., once we have a storage library which can list all
+    # clients directly.
+
+    keywords = [self._NormalizeKeyword(client_id), "."]
 
     def TryAppend(prefix, keyword):
       if keyword:
@@ -76,6 +85,13 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
         return
       # IP6v?
       TryAppendPrefixes("ip", str(ip), ":")
+
+    def TryAppendMac(mac):
+      TryAppend("mac", mac)
+      if len(mac) == 12:
+        # If looks like a mac address without ":" symbols, also add the keyword
+        # with them.
+        TryAppend("mac", ":".join([mac[i:i + 2] for i in range(0, 12, 2)]))
 
     s = client.Schema
     TryAppend("host", client.Get(s.HOSTNAME))
@@ -104,7 +120,7 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
 
     for interface in client.Get(s.LAST_INTERFACES, []):
       if interface.mac_address:
-        TryAppend("mac", interface.mac_address.human_readable_address)
+        TryAppendMac(interface.mac_address.human_readable_address)
       for ip in interface.GetIPAddresses():
         TryAppendIP(ip)
 
@@ -112,7 +128,7 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
     # has it attached directly, so just in case we look there also.
     if client.Get(s.MAC_ADDRESS):
       for mac in str(client.Get(s.MAC_ADDRESS)).split("\n"):
-        TryAppend("mac", mac)
+        TryAppendMac(mac)
     for ip_list in client.Get(s.HOST_IPS, []):
       for ip in str(ip_list).split("\n"):
         TryAppendIP(ip)
@@ -136,4 +152,5 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
       client: A VFSGRRClient record to add or update.
       **kwargs: Additional arguments to pass to the datastore.
     """
+
     self.AddKeywordsForName(*self.AnalyzeClient(client), **kwargs)

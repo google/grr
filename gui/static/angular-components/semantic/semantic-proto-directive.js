@@ -56,18 +56,22 @@ SemanticProtoController.prototype.onValueChange = function() {
 SemanticProtoController.prototype.buildItems = function(value) {
   var items = [];
 
-  angular.forEach(value.fields_order, function(key) {
+  var fieldsOrderLength = value.fields_order.length;
+  for (var i = 0; i < fieldsOrderLength; ++i) {
+    var key = value.fields_order[i];
+    var keyValue = value.value[key];
+
     if (value.metadata !== undefined &&
         value.metadata[key] !== undefined) {
       items.push({
-        'value': value.value[key],
+        'value': keyValue,
         'key': value.metadata[key].friendly_name,
         'desc': value.metadata[key].description
       });
     } else {
-      items.push({'value': value.value[key], 'key': key});
+      items.push({'value': keyValue, 'key': key});
     }
-  });
+  }
 
   return items;
 };

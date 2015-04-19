@@ -228,7 +228,7 @@ parser_upload_signed_args.add_argument(
     " keys to use, and the path on the server the file will be uploaded to.")
 
 parser_upload_signed_args.add_argument(
-    "--arch", required=True, choices=maintenance_utils.SUPPORTED_ARCHICTECTURES,
+    "--arch", required=True, choices=maintenance_utils.SUPPORTED_ARCHITECTURES,
     default="amd64",
     help="The architecture the file will be used on. This determines "
     " the path on the server the file will be uploaded to.")

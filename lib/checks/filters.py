@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 """Implementation of filters, which run host data through a chain of parsers."""
-import collections
 import os
 import re
 import stat
@@ -17,7 +16,11 @@ class Error(Exception):
 
 
 class DefinitionError(Error):
-  """A check was defined badly."""
+  """A filter was defined badly."""
+
+
+class ProcessingError(Error):
+  """A filter encountered errors processing results."""
 
 
 def GetHandler(mode=""):
@@ -99,7 +102,16 @@ class SerialHandler(BaseHandler):
   """Abstract parser to pass results through parsers serially."""
 
   def Parse(self, raw_data):
-    """Take the results and yield results that passed through the filters."""
+    """Take the results and yield results that passed through the filters.
+
+    The output of each filter is used as the input for successive filters.
+
+    Args:
+      raw_data: An iterable series of rdf values.
+
+    Returns:
+      A list of rdf values that matched all filters.
+    """
     self.results = raw_data
     for f in self.filters:
       self.results = f.Parse(self.results)
@@ -115,13 +127,6 @@ class Filter(object):
   __metaclass__ = registry.MetaclassRegistry
 
   filters = {}
-
-  @classmethod
-  def _Iterate(cls, obj):
-    if isinstance(obj, basestring) or not isinstance(obj, collections.Iterable):
-      obj = [obj]
-    for o in obj:
-      yield o
 
   @classmethod
   def GetFilter(cls, filter_name):
@@ -145,8 +150,17 @@ class Filter(object):
     # doesn't exist.
     return cls.filters.setdefault(filter_name, filt_cls())
 
-  def Parse(self, check_object, unused_arg):
-    raise NotImplementedError("Filter needs to have a Parse method.")
+  def ParseObjs(self, *args):
+    raise NotImplementedError("Filter needs to have a ParseObjs method.")
+
+  def Parse(self, objs, expression):
+    # Filters should process collections of rdfvalues. Require lists or sets of
+    # rdfvalues so that we don't pass in one (iterable) rdfvalue and get back a
+    # list of it's attributes.
+    if not isinstance(objs, (list, set)):
+      raise ProcessingError("Filter '%s' requires a list or set, got %s" %
+                            (expression, type(objs)))
+    return list(self.ParseObjs(objs, expression))
 
   def Validate(self, _):
     raise NotImplementedError("Filter needs to have a Validate method.")
@@ -184,10 +198,12 @@ class AttrFilter(Filter):
     else:
       return getattr(obj, key, None)
 
-  def Parse(self, obj, expression):
+  def ParseObjs(self, objs, expression):
     for key in self._Attrs(expression):
-      val = self._GetVal(obj, key)
-      yield rdfvalue.Config({"k": key, "v": val})
+      for obj in objs:
+        val = self._GetVal(obj, key)
+        if val:
+          yield rdfvalue.Config({"k": key, "v": val})
 
   def Validate(self, expression):
     self._Attrs(expression)
@@ -203,10 +219,10 @@ class ObjectFilter(Filter):
     except objectfilter.Error as e:
       raise DefinitionError(e)
 
-  def Parse(self, obj, expression):
+  def ParseObjs(self, objs, expression):
     """Parse one or more objects using an objectfilter expression."""
     filt = self._Compile(expression)
-    for result in filt.Filter(obj):
+    for result in filt.Filter(objs):
       yield result
 
   def Validate(self, expression):
@@ -222,6 +238,7 @@ class ItemFilter(ObjectFilter):
   for reporting or further filters.
 
   Args:
+    objs: One or more objects.
     expression: An objectfilter expression..
 
   Yields:
@@ -229,15 +246,13 @@ class ItemFilter(ObjectFilter):
      v is the attribute value.
   """
 
-  def Parse(self, obj, expression):
+  def ParseObjs(self, objs, expression):
     filt = self._Compile(expression)
     key = expression.split(None, 1)[0]
-    for result in filt.Filter(obj):
-      val = getattr(result, key)
-      # Use a Config. KeyValueRDF values don't support attribute or dict
-      # expansion for objectfilter expressions, and Dict RDF values require
-      # a DictExpander. Using Config keeps the interface to objects consistent.
-      yield rdfvalue.Config({"k": key, "v": val})
+    for obj in objs:
+      for result in filt.Filter(obj):
+        val = getattr(result, key)
+        yield rdfvalue.Config({"k": key, "v": val})
 
 
 class StatFilter(Filter):
@@ -375,7 +390,7 @@ class StatFilter(Filter):
       self.file_type = self._TYPES.get(self.cfg.file_type[0].upper())
       self.matchers.append(self._MatchType)
 
-  def Parse(self, objs, expression):
+  def ParseObjs(self, objs, expression):
     """Parse one or more objects by testing if it has matching stat results.
 
     Args:
@@ -489,9 +504,9 @@ class RDFFilter(Filter):
   def _GetClass(self, type_name):
     return rdfvalue.RDFValue.classes.get(type_name)
 
-  def Parse(self, objs, type_names):
+  def ParseObjs(self, objs, type_names):
     """Parse one or more objects by testing if it is a known RDF class."""
-    for obj in self._Iterate(objs):
+    for obj in objs:
       for type_name in self._RDFTypes(type_names):
         if isinstance(obj, self._GetClass(type_name)):
           yield obj

@@ -132,7 +132,7 @@ def RenderHttpResponse(request):
     else:
       args = None
   elif request.method == "POST":
-    payload = json.loads(request.raw_post_data)
+    payload = json.loads(request.body)
     args = renderer.args_type(**payload)
   else:
     raise RuntimeError("Unsupported method: %s." % request.method)

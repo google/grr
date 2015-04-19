@@ -65,18 +65,18 @@ class PathSpecTest(test_base.RDFProtoTestCase):
     pathspec.pathtype = 1
     pathspec.Append(path="foo", pathtype=2)
 
-    self.assertProtoEqual(pathspec_pb, pathspec)
+    self.assertRDFValueEqualToProto(pathspec, pathspec_pb)
 
     # Create a new RDFPathspec from keywords.
     pathspec = rdfvalue.PathSpec(path="/", pathtype=1)
     pathspec.Append(path="foo", pathtype=2)
 
-    self.assertProtoEqual(pathspec_pb, pathspec)
+    self.assertRDFValueEqualToProto(pathspec, pathspec_pb)
 
     # Check that copies are ok
     pathspec = pathspec.Copy()
 
-    self.assertProtoEqual(pathspec_pb, pathspec)
+    self.assertRDFValueEqualToProto(pathspec, pathspec_pb)
 
     # Accessors:
     self.assertEqual(pathspec.path, "/")
@@ -87,7 +87,7 @@ class PathSpecTest(test_base.RDFProtoTestCase):
     pathspec_pb_copy.CopyFrom(pathspec_pb)
 
     pathspec = rdfvalue.PathSpec(pathspec_pb_copy)
-    self.assertProtoEqual(pathspec_pb, pathspec)
+    self.assertRDFValueEqualToProto(pathspec, pathspec_pb)
 
     pathspec.first.path = "test"
     self.assertEqual(pathspec.last.path, "foo")

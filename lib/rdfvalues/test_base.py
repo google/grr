@@ -184,8 +184,7 @@ class RDFValueTestCase(RDFValueBaseTest):
     self.assertIsInstance(sample, self.rdfvalue_class)
     self.assertIsInstance(value, self.rdfvalue_class)
 
-    if hasattr(value, "ListFields"):
-      self.assertProtoEqual(value, sample)
+    self.assertRDFValueEqual(value, sample)
 
   def testComparisons(self):
     """Checks that object comparisons work."""
@@ -254,11 +253,6 @@ class RDFProtoTestCase(RDFValueTestCase):
   """A harness for testing RDFProto implementations."""
 
   __abstract = True  # Do not register this class so pylint: disable=g-bad-name
-
-  def CheckRDFValue(self, rdfproto, sample):
-    """Check that the rdfproto is the same as the sample."""
-    super(RDFProtoTestCase, self).CheckRDFValue(rdfproto, sample)
-    self.assertProtoEqual(rdfproto, sample)
 
   def testInitializationEx(self):
     """Check we can initialize from additional parts."""
