@@ -97,6 +97,18 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
     self.assertEqual(
         index.LookupClients(["C.1000000000000002"]),
         [rdfvalue.ClientURN("aff4:/C.1000000000000002")])
+    self.assertEqual(
+        index.LookupClients(["aabbccddee01"]),
+        [rdfvalue.ClientURN("aff4:/C.1000000000000001")])
+    self.assertEqual(
+        index.LookupClients(["mac:aabbccddee01"]),
+        [rdfvalue.ClientURN("aff4:/C.1000000000000001")])
+    self.assertEqual(
+        index.LookupClients(["aa:bb:cc:dd:ee:01"]),
+        [rdfvalue.ClientURN("aff4:/C.1000000000000001")])
+    self.assertEqual(
+        index.LookupClients(["mac:aa:bb:cc:dd:ee:01"]),
+        [rdfvalue.ClientURN("aff4:/C.1000000000000001")])
 
     # IP prefixes of octets should work:
     self.assertEqual(
@@ -110,6 +122,9 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
     # Intersections should work.
     self.assertEqual(index.LookupClients(["192.168.0", "Host-2"]),
                      [rdfvalue.ClientURN("aff4:/C.1000000000000002")])
+
+    # Universal keyword should find everything.
+    self.assertEqual(len(index.LookupClients(["."])), 42)
 
 
 def main(argv):

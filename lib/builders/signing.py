@@ -3,12 +3,18 @@
 
 import cStringIO
 import os
+import platform
 import subprocess
 import tempfile
 
-import pexpect
+# pexpect cannot be installed on windows, and this code is only designed to run
+# on linux anyway
+# pylint: disable=g-import-not-at-top
+if platform.system() == "Linux":
+  import pexpect
 
 import logging
+# pylint: enable=g-import-not-at-top
 
 
 class Error(Exception):

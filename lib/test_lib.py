@@ -345,15 +345,18 @@ class GRRBaseTest(unittest.TestCase):
     return "\n%s.%s - %s\n" % (
         self.__class__.__name__, self._testMethodName, doc)
 
-  def _EnumerateProto(self, protobuf):
-    """Return a sorted list of tuples for the protobuf."""
+  def _EnumerateStruct(self, struct_value, iterate_method=None):
+    """Return a sorted list of tuples for the value using given method."""
+    if not iterate_method:
+      raise ValueError("Method name for listing set fields is not set.")
+
     result = []
-    for desc, value in protobuf.ListFields():
+    for desc, value in getattr(struct_value, iterate_method)():
       if isinstance(value, float):
         value = round(value, 2)
 
       try:
-        value = self._EnumerateProto(value)
+        value = self._EnumerateStruct(value, iterate_method=iterate_method)
       except AttributeError:
         pass
 
@@ -362,9 +365,23 @@ class GRRBaseTest(unittest.TestCase):
     result.sort()
     return result
 
-  def assertProtoEqual(self, x, y):
+  def _EnumerateProto(self, protobuf):
+    return self._EnumerateStruct(protobuf, iterate_method="ListFields")
+
+  def _EnumerateRDFValue(self, value):
+    # If we can't enumerate the value (i.e. if it's a primitive value),
+    # just take it as it is.
+    if not hasattr(value, "ListSetFields"):
+      return [("__value__", value)]
+    else:
+      return self._EnumerateStruct(value, iterate_method="ListSetFields")
+
+  def assertRDFValueEqual(self, x, y):
     """Check that an RDFStruct is equal to a protobuf."""
-    self.assertEqual(self._EnumerateProto(x), self._EnumerateProto(y))
+    self.assertEqual(self._EnumerateRDFValue(x), self._EnumerateRDFValue(y))
+
+  def assertRDFValueEqualToProto(self, x, y):
+    self.assertEqual(self._EnumerateRDFValue(x), self._EnumerateProto(y))
 
   def run(self, result=None):  # pylint: disable=g-bad-name
     """Run the test case.

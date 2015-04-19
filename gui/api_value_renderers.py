@@ -269,8 +269,6 @@ class ApiRDFProtoStructRenderer(ApiValueRenderer):
 
   processors = []
 
-  descriptors_cache = {}
-
   def RenderValue(self, value):
     result = value.AsDict()
     for k, v in value.AsDict().items():
@@ -282,20 +280,14 @@ class ApiRDFProtoStructRenderer(ApiValueRenderer):
     result = self._IncludeTypeInfoIfNeeded(result, value)
 
     if self.with_metadata:
-      try:
-        descriptors, order = self.descriptors_cache[value.__class__.__name__]
-      except KeyError:
-        descriptors = {}
-        order = []
-        for descriptor, _ in value.ListFields():
-          order.append(descriptor.name)
-          descriptors[descriptor.name] = {
-              "friendly_name": descriptor.friendly_name,
-              "description": descriptor.description
-          }
-
-        self.descriptors_cache[value.__class__.__name__] = (descriptors,
-                                                            order)
+      descriptors = {}
+      order = []
+      for descriptor, _ in value.ListSetFields():
+        order.append(descriptor.name)
+        descriptors[descriptor.name] = {
+            "friendly_name": descriptor.friendly_name,
+            "description": descriptor.description
+        }
 
       result["metadata"] = descriptors
       result["fields_order"] = order

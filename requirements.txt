@@ -1,3 +1,20 @@
+# This is the main requirements.txt file that includes all python dependencies
+# for the entire project. There are also client requirements files that are
+# maintained independently to minimise the installs required to build the
+# respective clients:
+#
+# - client/windows/requirements.txt
+# - client/linux/requirements.txt (also used for OS X)
+#
+# Ideally *this* file would just contain server dependencies and use '-r' to
+# import client dependencies. This is impossible since the same dependency
+# cannot be listed more than once:
+# https://github.com/pypa/pip/issues/56
+#
+# and we have multiple packages that are required in both the server and the
+# client. So until pip can handle proper dependency resolution we'll maintain
+# these separately. Please check if the client files need to be updated if you
+# update this one.
 Django==1.7.1
 Flask-Sockets==0.1
 Flask==0.10.1

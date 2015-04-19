@@ -456,7 +456,7 @@ class TestHostTable(SearchClientTestBase):
                              token=self.token) as client:
         client.AddLabels("foo", owner="test")
 
-    self.Open("/#main=HostTable&q=Windows")
+    self.Open("/#main=HostTable")
 
     self.WaitUntil(self.IsVisible,
                    "css=tr:contains('C.0000000000000001') "
@@ -468,18 +468,18 @@ class TestHostTable(SearchClientTestBase):
                              token=self.token) as client:
         client.AddLabels("bar", owner="GRR")
 
-    self.Open("/#main=HostTable&q=Windows")
+    self.Open("/#main=HostTable")
     self.WaitUntil(self.IsVisible,
                    "css=tr:contains('C.0000000000000001') "
                    "span.label:not(.label-success):contains('bar')")
 
   def testLabelButtonIsDisabledByDefault(self):
-    self.Open("/#main=HostTable&q=Windows")
+    self.Open("/#main=HostTable")
     self.WaitUntil(self.IsVisible,
                    "css=button[name=AddLabels][disabled]")
 
   def testLabelButtonIsEnabledWhenClientIsSelected(self):
-    self.Open("/#main=HostTable&q=Windows")
+    self.Open("/#main=HostTable")
 
     self.WaitUntil(self.IsVisible,
                    "css=button[name=AddLabels][disabled]")
@@ -489,7 +489,7 @@ class TestHostTable(SearchClientTestBase):
                       "css=button[name=AddLabels][disabled]")
 
   def testAddClientsLabelsDialogShowsListOfSelectedClients(self):
-    self.Open("/#main=HostTable&q=Windows")
+    self.Open("/#main=HostTable")
 
     # Select 3 clients and click 'Add Label' button.
     self.Click("css=input.client-checkbox["
@@ -512,7 +512,7 @@ class TestHostTable(SearchClientTestBase):
                    "contains('C.0000000000000007')")
 
   def testAddClientsLabelsDialogShowsErrorWhenAddingLabelWithComma(self):
-    self.Open("/#main=HostTable&q=Windows")
+    self.Open("/#main=HostTable")
 
     # Select 1 client and click 'Add Label' button.
     self.Click("css=input.client-checkbox["
@@ -530,7 +530,7 @@ class TestHostTable(SearchClientTestBase):
     self.WaitUntil(self.IsVisible, "css=div[name=AddClientsLabelsDialog]")
 
   def testLabelIsAppliedCorrectlyViaAddClientsLabelsDialog(self):
-    self.Open("/#main=HostTable&q=Windows")
+    self.Open("/#main=HostTable")
 
     # Select 1 client and click 'Add Label' button.
     self.Click("css=input.client-checkbox["
@@ -560,7 +560,7 @@ class TestHostTable(SearchClientTestBase):
                    "span.label-success:contains('issue 42')")
 
   def testAppliedLabelBecomesSearchableImmediately(self):
-    self.Open("/#main=HostTable&q=Windows")
+    self.Open("/#main=HostTable")
 
     # Select 1 client and click 'Add Label' button.
     self.Click("css=input.client-checkbox["
@@ -589,7 +589,7 @@ class TestHostTable(SearchClientTestBase):
     self.WaitUntil(self.IsTextPresent, "C.0000000000000001")
 
   def testSelectionIsPreservedWhenAddClientsLabelsDialogIsCancelled(self):
-    self.Open("/#main=HostTable&q=Windows")
+    self.Open("/#main=HostTable")
 
     # Select 1 client and click 'Add Label' button.
     self.Click("css=input.client-checkbox["
@@ -607,7 +607,7 @@ class TestHostTable(SearchClientTestBase):
                    "client_urn='aff4:/C.0000000000000001']:checked")
 
   def testSelectionIsResetWhenLabelIsAppliedViaAddClientsLabelsDialog(self):
-    self.Open("/#main=HostTable&q=Windows")
+    self.Open("/#main=HostTable")
 
     # Select 1 client and click 'Add Label' button.
     self.Click("css=input.client-checkbox["
@@ -626,7 +626,7 @@ class TestHostTable(SearchClientTestBase):
                    "client_urn='aff4:/C.0000000000000001']:not(:checked)")
 
   def testCheckAllCheckboxSelectsAllClients(self):
-    self.Open("/#main=HostTable&q=Windows")
+    self.Open("/#main=HostTable")
 
     self.WaitUntil(self.IsTextPresent, "C.0000000000000001")
 
@@ -670,7 +670,7 @@ class TestHostTable(SearchClientTestBase):
                    "client_urn='aff4:/C.0000000000000007']:not(:checked)")
 
   def testClientsSelectedWithSelectAllAreShownInAddClientsLabelsDialog(self):
-    self.Open("/#main=HostTable&q=Windows")
+    self.Open("/#main=HostTable")
 
     self.WaitUntil(self.IsTextPresent, "C.0000000000000001")
 
