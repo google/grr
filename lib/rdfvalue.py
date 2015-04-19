@@ -202,13 +202,25 @@ class RDFBytes(RDFValue):
     return utils.SmartStr(self._value)
 
   def __lt__(self, other):
-    return self._value < other
+    if isinstance(other, self.__class__):
+      return self._value < other._value  # pylint: disable=protected-access
+    else:
+      return self._value < other
+
+  def __gt__(self, other):
+    if isinstance(other, self.__class__):
+      return self._value > other._value  # pylint: disable=protected-access
+    else:
+      return self._value > other
 
   def __eq__(self, other):
-    return self._value == other
+    if isinstance(other, self.__class__):
+      return self._value == other._value  # pylint: disable=protected-access
+    else:
+      return self._value == other
 
   def __ne__(self, other):
-    return self._value != other
+    return not self.__eq__(other)
 
   def __hash__(self):
     return hash(self._value)
@@ -246,6 +258,10 @@ class RDFString(RDFBytes):
   def __getitem__(self, value):
     return self._value.__getitem__(value)
 
+  def ParseFromString(self, string):
+    # This handles the cases when we're initialized from Unicode strings.
+    self._value = utils.SmartStr(string)
+
   def SerializeToString(self):
     return utils.SmartStr(self._value)
 
@@ -266,7 +282,7 @@ class HashDigest(RDFBytes):
             self._value.encode("hex") == other)
 
   def __ne__(self, other):
-    return not self == other  # pylint: disable=g-comparison-negation
+    return not self.__eq__(other)
 
 
 @functools.total_ordering

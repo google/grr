@@ -260,8 +260,11 @@ class CheckRegistry(object):
     check_ids = cls.FindChecks(artifacts, os_name, cpe, labels)
     conditions = list(cls.Conditions(artifacts, os_name, cpe, labels))
     for check_id in check_ids:
-      chk = cls.checks[check_id]
-      yield chk.Parse(conditions, host_data)
+      try:
+        chk = cls.checks[check_id]
+        yield chk.Parse(conditions, host_data)
+      except ProcessingError as e:
+        logging.warn("Check ID %s raised: %s" % (check_id, e))
 
 
 def CheckHost(host_data, os_name=None, cpe=None, labels=None):

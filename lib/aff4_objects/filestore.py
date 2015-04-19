@@ -379,7 +379,7 @@ class HashFileStore(FileStore):
     file_store_files = []
     hashes = self._HashFile(fd)
 
-    for hash_type, hash_digest in hashes.ListFields():
+    for hash_type, hash_digest in hashes.ListSetFields():
 
       # Determine fingerprint type.
       hash_digest = str(hash_digest)
@@ -435,7 +435,7 @@ class HashFileStore(FileStore):
 
     urns_to_check = []
 
-    for hash_type, hash_digest in hashes.ListFields():
+    for hash_type, hash_digest in hashes.ListSetFields():
       hash_digest = str(hash_digest)
       hash_type = hash_type.name
 

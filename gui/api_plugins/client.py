@@ -30,16 +30,18 @@ class ApiClientSearchRenderer(api_call_renderers.ApiCallRenderer):
     end = args.count or sys.maxint
     rendered_clients = []
 
-    keywords = shlex.split(args.query)
+    # An empty query matches all clients, use the universal keyword ".".
+    query = args.query or "."
+    keywords = shlex.split(query)
     if not keywords:
-      raise ValueError("Can't search with empty query string.")
+      raise ValueError("Couldn't parse query string.")
 
     index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
                                 aff4_type="ClientIndex",
                                 mode="rw",
                                 token=token)
     result_urns = sorted(index.LookupClients(keywords),
-                         key=str)[args.offset:end]
+                         key=str)[args.offset:args.offset + end]
     result_set = aff4.FACTORY.MultiOpen(result_urns, token=token)
 
     for child in result_set:

@@ -669,33 +669,44 @@ class LinuxClientDeployer(ClientDeployer):
 
       arch = config_lib.CONFIG.Get("Client.arch", context=self.context)
 
-      os.chdir(template_dir)
-      command = [buildpackage_binary, "-d", "-b", "-a%s" % arch]
+      try:
+        old_working_dir = os.getcwd()
+      except OSError:
+        old_working_dir = os.environ.get("HOME", "/tmp")
 
       try:
-        subprocess.check_output(command, stderr=subprocess.STDOUT)
-      except subprocess.CalledProcessError as e:
-        if "Failed to sign" not in e.output:
-          logging.error("Error calling %s.", command)
-          logging.error(e.output)
-          raise
+        os.chdir(template_dir)
+        command = [buildpackage_binary, "-d", "-b", "-a%s" % arch]
 
-      filename_base = config_lib.CONFIG.Get("ClientBuilder.debian_package_base",
+        try:
+          subprocess.check_output(command, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as e:
+          if "Failed to sign" not in e.output:
+            logging.error("Error calling %s.", command)
+            logging.error(e.output)
+            raise
+
+        filename_base = config_lib.CONFIG.Get(
+            "ClientBuilder.debian_package_base", context=self.context)
+        output_base = config_lib.CONFIG.Get("ClientBuilder.output_basename",
                                             context=self.context)
-      output_base = config_lib.CONFIG.Get("ClientBuilder.output_basename",
-                                          context=self.context)
-      self.EnsureDirExists(os.path.dirname(output_path))
+        self.EnsureDirExists(os.path.dirname(output_path))
 
-      for extension in [".changes", config_lib.CONFIG.Get(
-          "ClientBuilder.output_extension", context=self.context)]:
-        input_name = "%s%s" % (filename_base, extension)
-        output_name = "%s%s" % (output_base, extension)
+        for extension in [".changes", config_lib.CONFIG.Get(
+            "ClientBuilder.output_extension", context=self.context)]:
+          input_name = "%s%s" % (filename_base, extension)
+          output_name = "%s%s" % (output_base, extension)
 
-        shutil.move(os.path.join(tmp_dir, input_name),
-                    os.path.join(os.path.dirname(output_path), output_name))
+          shutil.move(os.path.join(tmp_dir, input_name),
+                      os.path.join(os.path.dirname(output_path), output_name))
 
-      logging.info("Created package %s", output_path)
-      return output_path
+        logging.info("Created package %s", output_path)
+        return output_path
+      finally:
+        try:
+          os.chdir(old_working_dir)
+        except OSError:
+          pass
 
 
 class CentosClientDeployer(LinuxClientDeployer):
@@ -780,10 +791,14 @@ class CentosClientDeployer(LinuxClientDeployer):
           "ClientBuilder.config_filename", context=self.context)), "wb") as fd:
         fd.write(client_config_content)
 
-      # Undo all prelinking for libs or the rpm will have checksum mismatches.
+      # Undo all prelinking for libs or the rpm might have checksum mismatches.
       logging.info("Undoing prelinking.")
-      libs = os.path.join(target_binary_dir, "lib*")
-      subprocess.call("/usr/sbin/prelink -u %s 2>/dev/null" % libs, shell=True)
+      prelink = "/usr/sbin/prelink"
+      if os.access(prelink, os.X_OK):
+        libs = os.path.join(target_binary_dir, "lib*")
+        subprocess.call("%s -u %s 2>/dev/null" % (prelink, libs), shell=True)
+      else:
+        logging.info("Can't execute %s, skipping.", prelink)
 
       # Set the daemon to executable.
       os.chmod(os.path.join(target_binary_dir, client_binary_name), 0755)

@@ -158,6 +158,8 @@ ClientBuilder Context:
       ClientBuilder.target_dir: |
         /usr/lib64/%(Client.name)/%(ClientBuilder.output_basename)
 
+      ClientBuilder.template_extension: .rpm.zip
+
       Client.install_path: |
         /usr/lib64/%(Client.name)/%(ClientBuilder.output_basename)
 

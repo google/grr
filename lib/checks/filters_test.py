@@ -13,12 +13,11 @@ Sample = collections.namedtuple("Sample", ["x", "y"])
 
 
 class BaseFilterTests(test_lib.GRRBaseTest):
-  """Test objectfilter methods and operations."""
+  """Test base filter methods and operations."""
 
-  def testIterate(self):
+  def testEnforceList(self):
     filt = filters.Filter()
-    result = list(filt._Iterate("basestr"))
-    self.assertEqual(["basestr"], result)
+    self.assertRaises(filters.ProcessingError, filt.Parse, "not_a_list", False)
 
   def testValidate(self):
     filt = filters.Filter()
@@ -26,11 +25,11 @@ class BaseFilterTests(test_lib.GRRBaseTest):
 
   def testParse(self):
     filt = filters.Filter()
-    self.assertRaises(NotImplementedError, filt.Parse, None, "do nothing")
+    self.assertRaises(NotImplementedError, filt.Parse, [], "do nothing")
 
 
 class AttrFilterTests(test_lib.GRRBaseTest):
-  """Test objectfilter methods and operations."""
+  """Test attribute filter methods and operations."""
 
   def testValidate(self):
     filt = filters.AttrFilter()
@@ -41,54 +40,65 @@ class AttrFilterTests(test_lib.GRRBaseTest):
   def testParse(self):
     filt = filters.AttrFilter()
 
-    hit = rdfvalue.Config(test1="1", test2=2, test3=[3, 4])
-    miss = rdfvalue.Config(test1="5", test2=6, test3=[7, 8])
-    metacfg = rdfvalue.Config(hit=hit, miss=miss)
+    hit1 = rdfvalue.Config(k1="hit1", k2="found1", k3=[3, 4])
+    hit2 = rdfvalue.Config(k1="hit2", k2="found2")
+    meta = rdfvalue.Config(one=hit1, two=hit2)
+    objs = [hit1, hit2, meta]
 
-    result = list(filt.Parse(hit, "test1 test2"))
-    self.assertEqual(2, len(result))
-    self.assertEqual("test1", result[0].k)
-    self.assertEqual("1", result[0].v)
-    self.assertEqual("test2", result[1].k)
-    self.assertEqual(2, result[1].v)
-
-    result = list(filt.Parse(metacfg, "hit.test3"))
-    self.assertEqual(1, len(result))
-    self.assertEqual("hit.test3", result[0].k)
-    self.assertEqual([3, 4], result[0].v)
+    results = filt.Parse(objs, "k1 k2 one.k3")
+    self.assertEqual(5, len(results))
+    r1, r2, r3, r4, r5 = results
+    self.assertEqual("k1", r1.k)
+    self.assertEqual("hit1", r1.v)
+    self.assertEqual("k1", r2.k)
+    self.assertEqual("hit2", r2.v)
+    self.assertEqual("k2", r3.k)
+    self.assertEqual("found1", r3.v)
+    self.assertEqual("k2", r4.k)
+    self.assertEqual("found2", r4.v)
+    self.assertEqual("one.k3", r5.k)
+    self.assertEqual([3, 4], r5.v)
 
 
 class ItemFilterTests(test_lib.GRRBaseTest):
-  """Test itemfilter methods and operations."""
+  """Test item filter methods and operations."""
 
   def testParse(self):
     filt = filters.ItemFilter()
 
-    cfg = rdfvalue.Config(test1="1", test2=[2, 3])
+    one = rdfvalue.Config(test1="1", test2=[2, 3])
+    foo = rdfvalue.Config(test1="foo", test2=["bar", "baz"])
+    fs = rdfvalue.Filesystem(device="/dev/sda1", mount_point="/root")
+    objs = [one, foo, fs]
 
-    result = list(filt.Parse(cfg, "test1 is '1'"))
-    self.assertEqual(1, len(result))
-    self.assertEqual("test1", result[0].k)
-    self.assertEqual("1", result[0].v)
+    results = filt.Parse(objs, "test1 is '1'")
+    self.assertEqual(1, len(results))
+    self.assertEqual("test1", results[0].k)
+    self.assertEqual("1", results[0].v)
 
-    result = list(filt.Parse(cfg, "test1 is '2'"))
-    self.assertFalse(result)
+    results = filt.Parse(objs, "test1 is '2'")
+    self.assertFalse(results)
 
-    result = list(filt.Parse(cfg, "test2 contains 3"))
-    self.assertEqual(1, len(result))
-    self.assertEqual("test2", result[0].k)
-    self.assertEqual([2, 3], result[0].v)
+    results = filt.Parse(objs, "test2 contains 3")
+    self.assertEqual(1, len(results))
+    self.assertEqual("test2", results[0].k)
+    self.assertEqual([2, 3], results[0].v)
 
-    # Ensure this works on other RDF types, not just Configs.
-    cfg = rdfvalue.Filesystem(device="/dev/sda1", mount_point="/root")
-    result = list(filt.Parse(cfg, "mount_point is '/root'"))
-    self.assertEqual(1, len(result))
-    self.assertEqual("mount_point", result[0].k)
-    self.assertEqual("/root", result[0].v)
+    results = filt.Parse(objs, "test1 is '1' or test1 contains 'foo'")
+    self.assertEqual(2, len(results))
+    self.assertEqual("test1", results[0].k)
+    self.assertEqual("1", results[0].v)
+    self.assertEqual("test1", results[1].k)
+    self.assertEqual("foo", results[1].v)
+
+    results = filt.Parse(objs, "mount_point is '/root'")
+    self.assertEqual(1, len(results))
+    self.assertEqual("mount_point", results[0].k)
+    self.assertEqual("/root", results[0].v)
 
 
 class ObjectFilterTests(test_lib.GRRBaseTest):
-  """Test objectfilter methods and operations."""
+  """Test object filter methods and operations."""
 
   def testValidate(self):
     filt = filters.ObjectFilter()
@@ -98,17 +108,20 @@ class ObjectFilterTests(test_lib.GRRBaseTest):
   def testParse(self):
     filt = filters.ObjectFilter()
 
-    cfg = rdfvalue.Config(test="ok")
-    results = list(filt.Parse(cfg, "test is 'ok'"))
-    self.assertEqual([cfg], results)
-
-    cfg = rdfvalue.Config(test="miss")
-    results = list(filt.Parse(cfg, "test is 'ok'"))
-    self.assertEqual([], results)
+    hit1 = rdfvalue.Config(test="hit1")
+    hit2 = rdfvalue.Config(test="hit2")
+    miss = rdfvalue.Config(test="miss")
+    objs = [hit1, hit2, miss]
+    results = filt.Parse(objs, "test is 'hit1'")
+    self.assertItemsEqual([hit1], results)
+    results = filt.Parse(objs, "test is 'hit2'")
+    self.assertItemsEqual([hit2], results)
+    results = filt.Parse(objs, "test inset 'hit1,hit2'")
+    self.assertItemsEqual([hit1, hit2], results)
 
 
 class RDFFilterTests(test_lib.GRRBaseTest):
-  """Test rdffilter methods and operations."""
+  """Test rdf filter methods and operations."""
 
   def testValidate(self):
     filt = filters.RDFFilter()
@@ -119,14 +132,18 @@ class RDFFilterTests(test_lib.GRRBaseTest):
   def testParse(self):
     filt = filters.RDFFilter()
     cfg = rdfvalue.Config()
-    results = list(filt.Parse(cfg, "KnowledgeBase"))
+    anom = rdfvalue.Anomaly()
+    objs = [cfg, anom]
+    results = filt.Parse(objs, "KnowledgeBase")
     self.assertFalse(results)
-    results = list(filt.Parse(cfg, "KnowledgeBase,Config"))
+    results = filt.Parse(objs, "Config,KnowledgeBase")
     self.assertItemsEqual([cfg], results)
+    results = filt.Parse(objs, "Anomaly,Config,KnowledgeBase")
+    self.assertItemsEqual(objs, results)
 
 
 class StatFilterTests(test_lib.GRRBaseTest):
-  """Test statfilter methods and operations."""
+  """Test stat filter methods and operations."""
 
   bad_null = ["", " :"]
   bad_file = ["file_re:[[["]
@@ -182,7 +199,7 @@ class StatFilterTests(test_lib.GRRBaseTest):
     filt = filters.StatFilter()
     for file_type, expected in all_types.iteritems():
       filt._Flush()
-      results = list(filt.Parse(all_types.values(), "file_type:%s" % file_type))
+      results = filt.Parse(all_types.values(), "file_type:%s" % file_type)
       self.assertEqual(1, len(results), "Expected exactly 1 %s" % file_type)
       self.assertEqual(expected, results[0],
                        "Expected stat %s, got %s" % (expected, results[0]))
@@ -194,11 +211,11 @@ class StatFilterTests(test_lib.GRRBaseTest):
     obj2 = self._GenStat(path="/etc/alternatives/ssh-askpass")
     obj3 = self._GenStat(path="/etc/alternatives/ssh-askpass.1.gz")
     objs = [obj1, obj2, obj3]
-    results = list(filt.Parse(objs, "file_re:pass"))
+    results = filt.Parse(objs, "file_re:pass")
     self.assertItemsEqual(objs, results)
-    results = list(filt.Parse(objs, "file_re:pass$"))
+    results = filt.Parse(objs, "file_re:pass$")
     self.assertItemsEqual([obj2], results)
-    results = list(filt.Parse(objs, "file_re:^pass"))
+    results = filt.Parse(objs, "file_re:^pass")
     self.assertItemsEqual([obj1], results)
 
   def testPathREParse(self):
@@ -208,11 +225,11 @@ class StatFilterTests(test_lib.GRRBaseTest):
     obj2 = self._GenStat(path="/etc/alternatives/ssh-askpass")
     obj3 = self._GenStat(path="/etc/alternatives/ssh-askpass.1.gz")
     objs = [obj1, obj2, obj3]
-    results = list(filt.Parse(objs, "path_re:/etc/*"))
+    results = filt.Parse(objs, "path_re:/etc/*")
     self.assertItemsEqual(objs, results)
-    results = list(filt.Parse(objs, "path_re:alternatives"))
+    results = filt.Parse(objs, "path_re:alternatives")
     self.assertItemsEqual([obj2, obj3], results)
-    results = list(filt.Parse(objs, "path_re:alternatives file_re:pass$"))
+    results = filt.Parse(objs, "path_re:alternatives file_re:pass$")
     self.assertItemsEqual([obj2], results)
 
   def testGIDParse(self):
@@ -222,17 +239,17 @@ class StatFilterTests(test_lib.GRRBaseTest):
     obj2 = self._GenStat(st_gid=500)
     obj3 = self._GenStat(st_gid=5000)
     objs = [obj1, obj2, obj3]
-    results = list(filt.Parse(objs, "gid:=0"))
+    results = filt.Parse(objs, "gid:=0")
     self.assertItemsEqual([obj1], results)
-    results = list(filt.Parse(objs, "gid:>=0"))
+    results = filt.Parse(objs, "gid:>=0")
     self.assertItemsEqual(objs, results)
-    results = list(filt.Parse(objs, "gid:>0"))
+    results = filt.Parse(objs, "gid:>0")
     self.assertItemsEqual([obj2, obj3], results)
-    results = list(filt.Parse(objs, "gid:>0,<=5000"))
+    results = filt.Parse(objs, "gid:>0,<=5000")
     self.assertItemsEqual([obj2, obj3], results)
-    results = list(filt.Parse(objs, "gid:>0,<5000"))
+    results = filt.Parse(objs, "gid:>0,<5000")
     self.assertItemsEqual([obj2], results)
-    results = list(filt.Parse(objs, "gid:!5000"))
+    results = filt.Parse(objs, "gid:!5000")
     self.assertItemsEqual([obj1, obj2], results)
 
   def testUIDParse(self):
@@ -241,19 +258,19 @@ class StatFilterTests(test_lib.GRRBaseTest):
     obj1 = self._GenStat(st_uid=1001)
     obj2 = self._GenStat(st_uid=5000)
     objs = [obj1, obj2]
-    results = list(filt.Parse(objs, "uid:=0"))
+    results = filt.Parse(objs, "uid:=0")
     self.assertFalse(results)
-    results = list(filt.Parse(objs, "uid:=1001"))
+    results = filt.Parse(objs, "uid:=1001")
     self.assertItemsEqual([obj1], results)
-    results = list(filt.Parse(objs, "uid:>=0"))
+    results = filt.Parse(objs, "uid:>=0")
     self.assertItemsEqual(objs, results)
-    results = list(filt.Parse(objs, "uid:>0"))
+    results = filt.Parse(objs, "uid:>0")
     self.assertItemsEqual(objs, results)
-    results = list(filt.Parse(objs, "uid:>0,<=5000"))
+    results = filt.Parse(objs, "uid:>0,<=5000")
     self.assertItemsEqual(objs, results)
-    results = list(filt.Parse(objs, "uid:>0,<5000"))
+    results = filt.Parse(objs, "uid:>0,<5000")
     self.assertItemsEqual([obj1], results)
-    results = list(filt.Parse(objs, "uid:!5000"))
+    results = filt.Parse(objs, "uid:!5000")
     self.assertItemsEqual([obj1], results)
 
   def testPermissionsParse(self):
@@ -262,13 +279,13 @@ class StatFilterTests(test_lib.GRRBaseTest):
     obj1 = self._GenStat(st_mode=0100740)
     obj2 = self._GenStat(st_mode=0100755)
     objs = [obj1, obj2]
-    results = list(filt.Parse(objs, "mode:0644"))
+    results = filt.Parse(objs, "mode:0644")
     self.assertFalse(results)
-    results = list(filt.Parse(objs, "mode:0740"))
+    results = filt.Parse(objs, "mode:0740")
     self.assertItemsEqual([obj1], results)
-    results = list(filt.Parse(objs, "mode:0640 mask:0640"))
+    results = filt.Parse(objs, "mode:0640 mask:0640")
     self.assertItemsEqual(objs, results)
-    results = list(filt.Parse(objs, "mode:0014 mask:0014"))
+    results = filt.Parse(objs, "mode:0014 mask:0014")
     self.assertItemsEqual([obj2], results)
 
   def testParseFileObjs(self):
@@ -285,11 +302,11 @@ class StatFilterTests(test_lib.GRRBaseTest):
     cfg = {"path": "/etc/shadow", "st_uid": 0, "st_gid": 0, "st_mode": 0100640}
     invalid = rdfvalue.Config(**cfg)
     objs = [ok, link, user, writable, invalid]
-    results = list(filt.Parse(objs, "uid:>=0 gid:>=0"))
+    results = filt.Parse(objs, "uid:>=0 gid:>=0")
     self.assertItemsEqual([ok, link, user, writable], results)
-    results = list(filt.Parse(objs, "uid:=0 mode:0440 mask:0440"))
+    results = filt.Parse(objs, "uid:=0 mode:0440 mask:0440")
     self.assertItemsEqual([ok, link, writable], results)
-    results = list(filt.Parse(objs, "uid:=0 mode:0440 mask:0444"))
+    results = filt.Parse(objs, "uid:=0 mode:0440 mask:0444")
     self.assertItemsEqual([ok, link], results)
     results = list(
         filt.Parse(objs, "uid:=0 mode:0440 mask:0444 file_type:regular"))

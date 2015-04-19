@@ -152,7 +152,7 @@ function install_python_deps() {
 
   /usr/local/bin/virtualenv -p /usr/local/bin/python2.7 PYTHON_ENV
   source PYTHON_ENV/bin/activate
-  pip2.7 install -r /grr/requirements.txt
+  pip2.7 install -r /grr/client/linux/requirements.txt
 
   # protobuf uses a fancy egg format which seems to mess up PyInstaller,
   # resulting in missing the library entirely. I believe the issue is this:
