@@ -170,9 +170,9 @@ def InterpolatePath(path, client, users=None, path_args=None, depth=0):
       # Extract and interpolate user specific formatters.
       user = GetUserInfo(client, user)
       if user:
-        formatters = dict((x.name, y) for x, y in user.ListFields())
+        formatters = dict((x.name, y) for x, y in user.ListSetFields())
         special_folders = dict(
-            (x.name, y) for x, y in user.special_folders.ListFields())
+            (x.name, y) for x, y in user.special_folders.ListSetFields())
 
         formatters.update(special_folders)
         formatters.update(sys_formatters)

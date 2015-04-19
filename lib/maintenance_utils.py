@@ -23,7 +23,7 @@ DIGEST_ALGORITHM = hashlib.sha256  # pylint: disable=invalid-name
 DIGEST_ALGORITHM_STR = "sha256"
 
 SUPPORTED_PLATFORMS = ["windows", "linux", "darwin"]
-SUPPORTED_ARCHICTECTURES = ["i386", "amd64"]
+SUPPORTED_ARCHITECTURES = ["i386", "amd64"]
 
 
 def UploadSignedConfigBlob(content, aff4_path, client_context=None,
@@ -162,14 +162,14 @@ def CreateBinaryConfigPaths(token=None):
   try:
     # We weren't already initialized, create all directories we will need.
     for platform in SUPPORTED_PLATFORMS:
-      for arch in SUPPORTED_ARCHICTECTURES:
+      for arch in SUPPORTED_ARCHITECTURES:
         client_context = ["Platform:%s" % platform.title(),
                           "Arch:%s" % arch]
 
         aff4_paths = config_lib.CONFIG.Get("MemoryDriver.aff4_paths",
                                            context=client_context)
         for aff4_path in aff4_paths:
-          required_urns.add(rdfvalue.RDFURN(aff4_path).Basename())
+          required_urns.add(rdfvalue.RDFURN(aff4_path).Dirname())
 
       required_urns.add("aff4:/config/executables/%s/agentupdates" % platform)
       required_urns.add("aff4:/config/executables/%s/installers" % platform)

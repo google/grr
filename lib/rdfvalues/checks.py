@@ -219,10 +219,12 @@ class Method(structs.RDFProtoStruct):
     processed = []
     probes = self.triggers.Calls(conditions)
     for p in probes:
-      # TODO(user): Need to use the (artifact, rdf_data tuple).
       # Get the data required for the probe.
       rdf_data = host_data.get(p.artifact)
-      result = p.Parse(rdf_data)
+      try:
+        result = p.Parse(rdf_data)
+      except checks.ProcessingError as e:
+        raise checks.ProcessingError("Bad artifact %s: %s" % (p.artifact, e))
       if result:
         processed.append(result)
     # Matcher compares the number of probes that triggered with results.
@@ -265,13 +267,14 @@ class Probe(structs.RDFProtoStruct):
     expected results.
 
     Args:
-      rdf_data: An iterable containing 0 or more rdf values.
+      rdf_data: An list containing 0 or more rdf values.
 
     Returns:
       An anomaly if data didn't match expectations.
 
     """
-    # TODO(user): Make sure that the filters are called on collected data.
+    if not isinstance(rdf_data, (list, set)):
+      raise checks.ProcessingError("Bad host data format: %s" % type(rdf_data))
     if self.baseline:
       comparison = self.baseliner.Parse(rdf_data)
     else:
@@ -312,21 +315,17 @@ class Filter(structs.RDFProtoStruct):
     rule is kept, other data is dropped.
 
     If no filter method is provided, the data is returned as a list.
-    Otherwise, a list of parsed data items are returned.
+    Otherwise, a items that meet filter conditions are returned in a list.
 
     Args:
       rdf_data: Host data that has already been processed by a Parser into RDF.
 
     Returns:
-      A list of data items that matched the filter rules.
+      A list containing data items that matched the filter rules.
     """
-    if not self._filter:
-      if isinstance(rdf_data, basestring):
-        return [rdf_data]
-      return list(rdf_data)
-    # TODO(user): filters need to return data as a list if no expression
-    # is provided.
-    return [x for x in self._filter.Parse(rdf_data, self.expression)]
+    if self._filter:
+      return list(self._filter.Parse(rdf_data, self.expression))
+    return rdf_data
 
   def Validate(self):
     """The filter exists, and has valid filter and hint expressions."""

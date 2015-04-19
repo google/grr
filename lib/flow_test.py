@@ -890,7 +890,7 @@ class GeneralFlowsTest(BasicFlowTest):
       x.aff4path = None
 
       self.assertEqual(x.st_mode, y.st_mode)
-      self.assertProtoEqual(x, y)
+      self.assertRDFValueEqual(x, y)
 
   def testClientEventNotification(self):
     """Make sure that client events handled securely."""
@@ -908,8 +908,8 @@ class GeneralFlowsTest(BasicFlowTest):
 
     # The same event should be sent to both listeners, but only the listener
     # which accepts client messages should register it.
-    self.assertProtoEqual(ClientListener.received_events[0][0].payload,
-                          event.payload)
+    self.assertRDFValueEqual(ClientListener.received_events[0][0].payload,
+                             event.payload)
     self.assertEqual(NoClientListener.received_events, [])
 
   def testFlowNotification(self):

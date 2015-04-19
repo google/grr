@@ -24,6 +24,7 @@ grrUi.core.basenameFilter.filterImplementation = function(input) {
  *
  * @return {!Function}
  * @export
+ * @ngInject
  */
 grrUi.core.basenameFilter.BasenameFilter = function() {
   return grrUi.core.basenameFilter.filterImplementation;

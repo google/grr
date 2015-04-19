@@ -81,7 +81,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
           token=self.token)
 
       stored_message = rdfvalue.GrrMessage(stored_message)
-      self.assertProtoEqual(stored_message, message)
+      self.assertRDFValueEqual(stored_message, message)
 
     return messages
 
@@ -119,7 +119,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
           token=self.token)
 
       stored_message = rdfvalue.GrrMessage(stored_message)
-      self.assertProtoEqual(stored_message, message)
+      self.assertRDFValueEqual(stored_message, message)
 
   def testWellKnownFlows(self):
     """Make sure that well known flows can run on the front end."""
