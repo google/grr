@@ -2496,13 +2496,16 @@ class AFF4ImageBase(AFF4Stream):
 
     return result
 
-  def Read(self, length):
+  def Read(self, length=None):
     """Read a block of data from the file."""
     result = ""
 
     # The total available size in the file
-    length = int(length)
-    length = min(length, self.size - self.offset)
+    if length is not None:
+        length = int(length)
+        length = min(length, self.size - self.offset)
+    else:
+        length = self.size - self.offset
 
     while length > 0:
       data = self._ReadPartial(length)
