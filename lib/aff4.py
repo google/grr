@@ -46,6 +46,8 @@ class Error(Exception):
 class LockError(Error):
   pass
 
+class OversizedRead(Error):
+  pass
 
 class InstantiationError(Error, IOError):
   pass
@@ -2499,13 +2501,15 @@ class AFF4ImageBase(AFF4Stream):
   def Read(self, length=None):
     """Read a block of data from the file."""
     result = ""
-
+    maxread = config_lib.CONFIG["Server.max_unbound_read_size"]
     # The total available size in the file
     if length is not None:
         length = int(length)
         length = min(length, self.size - self.offset)
-    else:
+    elif self.size < maxread:
         length = self.size - self.offset
+    else:
+        raise OversizedRead("Attempted to read file of size %s when Server.max_unbound_read_size is %s" % (self.size, maxread) )
 
     while length > 0:
       data = self._ReadPartial(length)
