@@ -97,6 +97,7 @@ message Filesystem {
   optional string mount_point = 2;
   optional string type = 3;
   optional string label = 4;
+  optional AttributedDict options = 5;
 };
 
 message MRUFile {

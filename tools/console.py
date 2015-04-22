@@ -77,6 +77,10 @@ flags.DEFINE_string("command_file", None,
                     "If present, no console is started but the code given in "
                     "command file is supplied as input instead.")
 
+flags.DEFINE_bool("exit_on_complete", True,
+                  "If set to False and command_file or code_to_execute is "
+                  "set we keep the console alive after the code completes.")
+
 
 def Help():
   """Print out help information."""
@@ -129,7 +133,13 @@ def main(unused_argv):
   elif flags.FLAGS.command_file:
     logging.info("Running code from file: %s", flags.FLAGS.command_file)
     execfile(flags.FLAGS.command_file)
-  else:
+
+  if (flags.FLAGS.exit_on_complete and
+      (flags.FLAGS.code_to_execute or flags.FLAGS.command_file)):
+    return
+
+  else:   # We want the normal shell.
+    locals_vars.update(globals())   # add global variables to console
     ipshell.IPShell(argv=[], user_ns=locals_vars, banner=banner)
 
 

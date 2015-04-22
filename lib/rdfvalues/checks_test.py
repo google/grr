@@ -59,7 +59,8 @@ class FilterTests(ChecksTestBase):
     self.assertIsInstance(base_filt._filter, filters.Filter)
     obj_filt = checks.Filter(type="ObjectFilter", expression="test is 'ok'")
     self.assertIsInstance(obj_filt._filter, filters.ObjectFilter)
-    rdf_filt = checks.Filter(type="RDFFilter", expression="Config,SSHConfig")
+    rdf_filt = checks.Filter(type="RDFFilter",
+                             expression="AttributedDict,SSHConfig")
     self.assertIsInstance(rdf_filt._filter, filters.RDFFilter)
 
 
