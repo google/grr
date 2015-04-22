@@ -2,6 +2,8 @@
 """A generic serializer for python dictionaries."""
 
 
+import collections
+
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import structs
@@ -152,6 +154,11 @@ class Dict(rdfvalue.RDFProtoStruct):
 
     raise KeyError("%s not found" % key)
 
+  def __contains__(self, key):
+    if self.get(key):
+      return True
+    return False
+
   def GetItem(self, key, default=None):
     try:
       return self[key]
@@ -214,6 +221,15 @@ class Dict(rdfvalue.RDFProtoStruct):
       return self.ToDict() == other
 
     return super(Dict, self).__eq__(other)
+
+
+class AttributedDict(Dict):
+  """A Dict that supports attribute indexing."""
+
+  protobuf = jobs_pb2.AttributedDict
+
+  def __getattr__(self, item):
+    return self.GetItem(item)
 
 
 # Old clients still send back "RDFProtoDicts" so we need to keep this around.
@@ -342,3 +358,5 @@ class EmbeddedRDFValue(rdfvalue.RDFProtoStruct):
     self.name = payload.__class__.__name__
     self.embedded_age = payload.age
     self.data = payload.SerializeToString()
+
+collections.Mapping.register(Dict)

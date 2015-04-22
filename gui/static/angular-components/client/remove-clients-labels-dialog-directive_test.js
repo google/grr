@@ -204,7 +204,7 @@ describe('remove clients labels dialog', function() {
     var element = renderTestTemplate(clientsWithTwoUserLabels);
     browserTrigger($('button[name=Proceed]', element), 'click');
 
-    deferred.reject({data: {status: 'NOT OK'}});
+    deferred.reject({data: {message: 'NOT OK'}});
     $rootScope.$apply();
 
     expect(element.text()).toContain('NOT OK');

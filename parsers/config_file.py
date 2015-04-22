@@ -268,6 +268,12 @@ class KeyValueParser(FieldParser):
     self.key_field = ""
     self.fields = []
 
+  def ParseToOrderedDict(self, data):
+    result = collections.OrderedDict()
+    for field in self.ParseEntries(data):
+      result.update(field)
+    return result
+
 
 class NfsExportsParser(parsers.FileParser, FieldParser):
   """Parser for NFS exports."""
@@ -492,3 +498,27 @@ class SshdConfigParser(parsers.FileParser):
       block = rdfvalue.SshdMatchBlock(criterion=criterion, config=config)
       matches.append(block)
     yield rdfvalue.SshdConfig(config=self.config, matches=matches)
+
+
+class MtabParser(parsers.FileParser, FieldParser):
+  """Parser for mounted filesystem data acquired from /proc/mounts."""
+  output_types = ["Filesystem"]
+  supported_artifacts = ["LinuxProcMounts"]
+
+  def Parse(self, unused_stat, file_obj, unused_knowledge_base):
+    self.ParseEntries(file_obj.read())
+    for entry in self.entries:
+      if not entry:
+        continue
+      result = rdfvalue.Filesystem()
+      result.device = entry[0]
+      result.mount_point = entry[1]
+      result.type = entry[2]
+      options = KeyValueParser(term=",").ParseToOrderedDict(entry[3])
+      # Keys without values get assigned [] by default. Because these keys are
+      # actually true, if declared, change any [] values to True.
+      for k, v in options.iteritems():
+        options[k] = v or [True]
+      result.options = rdfvalue.AttributedDict(**options)
+      yield result
+

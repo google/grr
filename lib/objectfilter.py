@@ -92,6 +92,7 @@ filter is easy. Three basic filter implementations are given:
 
 import abc
 import binascii
+import collections
 import re
 
 import logging
@@ -297,7 +298,12 @@ class Contains(GenericBinaryOperator):
   """Whether the right operand is contained in the value."""
 
   def Operation(self, x, y):
-    return y in x
+    # Assuming x is iterable, check if it contains y.
+    # Otherwise, check if x and y are equal.
+    try:
+      return y in x
+    except TypeError:
+      return y == x
 
 
 class NotContains(GenericBinaryOperator):
@@ -476,10 +482,13 @@ class ValueExpander(object):
   def _AtNonLeaf(self, attr_value, path):
     """Called when at a non-leaf value. Should recurse and yield values."""
     try:
-      # Check first for iterables
-      # If it's a dictionary, we yield it
-      if isinstance(attr_value, dict):
-        yield attr_value
+      # If it's dictionary-like, yield the attribute of the dict.
+      if isinstance(attr_value, (dict, collections.Mapping)):
+        sub_obj = attr_value.get(path[1])
+        if len(path) > 2:
+          sub_obj = self.Expand(sub_obj, path[2:])
+        for value in sub_obj:
+          yield value
       else:
         # If it's an iterable, we recurse on each value.
         for sub_obj in attr_value:
@@ -527,6 +536,8 @@ class AttributeValueExpander(ValueExpander):
   """An expander that gives values based on object attribute names."""
 
   def _GetValue(self, obj, attr_name):
+    if isinstance(obj, collections.Mapping):
+      return obj.get(attr_name)
     return getattr(obj, attr_name, None)
 
 
