@@ -40,9 +40,9 @@ class AttrFilterTests(test_lib.GRRBaseTest):
   def testParse(self):
     filt = filters.AttrFilter()
 
-    hit1 = rdfvalue.Config(k1="hit1", k2="found1", k3=[3, 4])
-    hit2 = rdfvalue.Config(k1="hit2", k2="found2")
-    meta = rdfvalue.Config(one=hit1, two=hit2)
+    hit1 = rdfvalue.AttributedDict(k1="hit1", k2="found1", k3=[3, 4])
+    hit2 = rdfvalue.AttributedDict(k1="hit2", k2="found2")
+    meta = rdfvalue.AttributedDict(one=hit1, two=hit2)
     objs = [hit1, hit2, meta]
 
     results = filt.Parse(objs, "k1 k2 one.k3")
@@ -66,8 +66,8 @@ class ItemFilterTests(test_lib.GRRBaseTest):
   def testParse(self):
     filt = filters.ItemFilter()
 
-    one = rdfvalue.Config(test1="1", test2=[2, 3])
-    foo = rdfvalue.Config(test1="foo", test2=["bar", "baz"])
+    one = rdfvalue.AttributedDict(test1="1", test2=[2, 3])
+    foo = rdfvalue.AttributedDict(test1="foo", test2=["bar", "baz"])
     fs = rdfvalue.Filesystem(device="/dev/sda1", mount_point="/root")
     objs = [one, foo, fs]
 
@@ -108,9 +108,9 @@ class ObjectFilterTests(test_lib.GRRBaseTest):
   def testParse(self):
     filt = filters.ObjectFilter()
 
-    hit1 = rdfvalue.Config(test="hit1")
-    hit2 = rdfvalue.Config(test="hit2")
-    miss = rdfvalue.Config(test="miss")
+    hit1 = rdfvalue.AttributedDict(test="hit1")
+    hit2 = rdfvalue.AttributedDict(test="hit2")
+    miss = rdfvalue.AttributedDict(test="miss")
     objs = [hit1, hit2, miss]
     results = filt.Parse(objs, "test is 'hit1'")
     self.assertItemsEqual([hit1], results)
@@ -125,20 +125,20 @@ class RDFFilterTests(test_lib.GRRBaseTest):
 
   def testValidate(self):
     filt = filters.RDFFilter()
-    self.assertFalse(filt.Validate("KnowledgeBase,Config"))
+    self.assertFalse(filt.Validate("KnowledgeBase,AttributedDict"))
     self.assertRaises(filters.DefinitionError, filt.Validate,
                       "KnowledgeBase,Nonexistent")
 
   def testParse(self):
     filt = filters.RDFFilter()
-    cfg = rdfvalue.Config()
+    cfg = rdfvalue.AttributedDict()
     anom = rdfvalue.Anomaly()
     objs = [cfg, anom]
     results = filt.Parse(objs, "KnowledgeBase")
     self.assertFalse(results)
-    results = filt.Parse(objs, "Config,KnowledgeBase")
+    results = filt.Parse(objs, "AttributedDict,KnowledgeBase")
     self.assertItemsEqual([cfg], results)
-    results = filt.Parse(objs, "Anomaly,Config,KnowledgeBase")
+    results = filt.Parse(objs, "Anomaly,AttributedDict,KnowledgeBase")
     self.assertItemsEqual(objs, results)
 
 
@@ -300,7 +300,7 @@ class StatFilterTests(test_lib.GRRBaseTest):
     writable = self._GenStat(
         path="/etc/shadow", st_uid=0, st_gid=0, st_mode=0100666)
     cfg = {"path": "/etc/shadow", "st_uid": 0, "st_gid": 0, "st_mode": 0100640}
-    invalid = rdfvalue.Config(**cfg)
+    invalid = rdfvalue.AttributedDict(**cfg)
     objs = [ok, link, user, writable, invalid]
     results = filt.Parse(objs, "uid:>=0 gid:>=0")
     self.assertItemsEqual([ok, link, user, writable], results)

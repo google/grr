@@ -143,6 +143,32 @@ class NfsExportParserTests(test_lib.GRRBaseTest):
     self.assertItemsEqual([], results[1].clients[1].options)
 
 
+class MtabParserTests(test_lib.GRRBaseTest):
+  """Test the mtab and proc/mounts parser."""
+
+  def testParseMountData(self):
+    test_data = r"""
+    rootfs / rootfs rw 0 0
+    arnie@host.example.org:/users/arnie /home/arnie/remote fuse.sshfs rw,nosuid,nodev,max_read=65536 0 0
+    """
+    exports = StringIO.StringIO(test_data)
+    config = config_file.MtabParser()
+    results = list(config.Parse(None, exports, None))
+    self.assertEqual("rootfs", results[0].device)
+    self.assertEqual("/", results[0].mount_point)
+    self.assertEqual("rootfs", results[0].type)
+    self.assertTrue(results[0].options.rw)
+    self.assertFalse(results[0].options.ro)
+
+    self.assertEqual("arnie@host.example.org:/users/arnie", results[1].device)
+    self.assertEqual("/home/arnie/remote", results[1].mount_point)
+    self.assertEqual("fuse.sshfs", results[1].type)
+    self.assertTrue(results[1].options.rw)
+    self.assertTrue(results[1].options.nosuid)
+    self.assertTrue(results[1].options.nodev)
+    self.assertEqual(["65536"], results[1].options.max_read)
+
+
 def main(args):
   test_lib.main(args)
 

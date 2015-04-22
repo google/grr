@@ -786,6 +786,7 @@ class FakeTime(object):
       return self.time
 
     time.time = Time
+    return self
 
   def __exit__(self, unused_type, unused_value, unused_traceback):
     time.time = self.old_time

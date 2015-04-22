@@ -101,7 +101,7 @@ class TestCheckFlows(test_lib.FlowTestsBaseclass):
     self.assertTrue("SSHD-CHECK" in checks_run)
     self.assertTrue("SW-CHECK" in checks_run)
     expected = {"explanation": "Found: Sshd allows protocol 1.",
-                "finding": ["Configured protocols: [2, 1]"],
+                "finding": ["Configured protocols: 2,1"],
                 "type": "ANALYSIS_ANOMALY"}
     self.assertTrue(expected in results)
 

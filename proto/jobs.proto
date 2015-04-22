@@ -900,6 +900,13 @@ message Dict {
     }];
 };
 
+// A Dict that allows attribute access.
+message AttributedDict {
+  repeated KeyValue dat = 1 [(sem_type) = {
+      friendly_name: "Data",
+      description: "An arbitrary key/value."
+    }];
+};
 
 // Certificates are exchanged with this.
 message Certificate {
