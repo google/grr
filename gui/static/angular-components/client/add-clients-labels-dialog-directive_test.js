@@ -6,7 +6,7 @@ goog.require('grrUi.tests.module');
 
 var browserTrigger = grrUi.tests.browserTrigger;
 
-describe('remove clients labels dialog', function() {
+describe('add clients labels dialog', function() {
   var $q, $compile, $rootScope, grrApiService, closeSpy, dismissSpy;
 
   beforeEach(module('/static/angular-components/client/' +
@@ -117,7 +117,7 @@ describe('remove clients labels dialog', function() {
     $rootScope.$apply();
     browserTrigger($('button[name=Proceed]', element), 'click');
 
-    deferred.reject({data: {status: 'NOT OK'}});
+    deferred.reject({data: {message: 'NOT OK'}});
     $rootScope.$apply();
 
     expect(element.text()).toContain('NOT OK');

@@ -109,7 +109,7 @@ def OpenClient(client_id=None, token=None):
   try:
     token = ApprovalFind(client_id, token=token)
   except access_control.UnauthorizedAccess as e:
-    logging.warn("No authorization found for access to client: %s", e)
+    logging.debug("No authorization found for access to client: %s", e)
 
   try:
     # Try and open with the token we managed to retrieve or the default.
@@ -406,3 +406,10 @@ def MigrateLabelsSeparator(token=None):
   print "Processed set labels: %d, mapped labels: %d" % (
       processed_set_labels,
       processed_mapped_labels)
+
+
+def ClientIdToHostname(client_id):
+  """Quick helper for scripts to get a hostname from a client ID."""
+  client = OpenClient(client_id)[0]
+  if client and client.Get("Host"):
+    return client.Get("Host").Summary()

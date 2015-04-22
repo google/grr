@@ -1,19 +1,9 @@
-// Configuration files. Config is a basic key/value setting. Other more specific
-// configuration files can build on this.
+// Configuration files.
 syntax = "proto2";
 
 import "grr/proto/jobs.proto";
 import "grr/proto/semantic.proto";
 
-
-
-// This is a basic key/value configuration file suitable for use whenever the
-// configuration doesn't have complex nested values.
-message Config {
-  optional Dict settings = 1 [(sem_type) = {
-      description: "The keyword/argument values of the configuration."
-    }];
-};
 
 
 // NFS configuration files.
@@ -34,7 +24,7 @@ message SshdMatchBlock {
   optional string criterion = 1 [(sem_type) = {
       description: "Criteria that trigger a match block."
     }];
-  optional Config config = 2 [(sem_type) = {
+  optional AttributedDict config = 2 [(sem_type) = {
       description: "The configuration of the match block."
     }];
 }
@@ -43,12 +33,10 @@ message SshdMatchBlock {
 // A sshd configuration containing the sshd settings, and any number of match
 // groups.
 message SshdConfig {
-  optional Config config = 1 [(sem_type) = {
+  optional AttributedDict config = 1 [(sem_type) = {
       description: "The main sshd configuration."
     }];
   repeated SshdMatchBlock matches = 2 [(sem_type) = {
       description: "Match block sections."
     }];
 }
-
-
