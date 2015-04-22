@@ -271,7 +271,7 @@ class ProcessHostDataTests(checks_test_lib.HostCheckTest):
         check_id="SSHD-CHECK",
         anomaly=[
             rdfvalue.Anomaly(
-                finding=["Configured protocols: [2, 1]"],
+                finding=["Configured protocols: 2,1"],
                 explanation="Found: Sshd allows protocol 1.",
                 type="ANALYSIS_ANOMALY")])
     self.windows = rdfvalue.CheckResult(

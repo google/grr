@@ -25,7 +25,8 @@ grrUi.core.timeSinceFilter.filterImplementation = function(
     return '<invalid time value>';
   }
 
-  var differenceSec = Math.round((currentTimeMs - inputTimeMs) / 1000);
+  var differenceSec = Math.abs(
+      Math.round((currentTimeMs - inputTimeMs) / 1000));
   var measureUnit;
   var measureValue;
   if (differenceSec < 60) {
@@ -42,10 +43,10 @@ grrUi.core.timeSinceFilter.filterImplementation = function(
     measureValue = Math.floor(differenceSec / (60 * 60 * 24));
   }
 
-  if (measureValue >= 0) {
-    return measureValue + ' ' + measureUnit.toString() + ' ago';
+  if (currentTimeMs >= inputTimeMs) {
+    return measureValue + ' ' + measureUnit + ' ago';
   } else {
-    return 'in ' + measureUnit.toString() + ' ' + measureValue;
+    return 'in ' + measureValue + ' ' + measureUnit;
   }
 };
 

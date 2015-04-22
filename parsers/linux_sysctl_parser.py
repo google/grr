@@ -26,4 +26,4 @@ class ProcSysParser(parsers.FileParser):
     for stat, file_obj in zip(stats, file_objs):
       k, v = self._Parse(stat, file_obj)
       config[k] = v
-    return rdfvalue.Config(config)
+    return rdfvalue.AttributedDict(config)

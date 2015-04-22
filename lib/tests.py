@@ -13,6 +13,7 @@ from grr.lib import artifact_test
 from grr.lib import build_test
 from grr.lib import communicator_test
 from grr.lib import config_lib_test
+from grr.lib import config_utils_test
 from grr.lib import config_validation_test
 from grr.lib import data_store_test
 from grr.lib import email_alerts_test

@@ -178,7 +178,8 @@ class AttrFilter(Filter):
     expression: One or more attributes to fetch as comma separated items.
 
   Yields:
-    Config RDF values. k is the attribute name, v is the attribute value.
+    AttributedDict RDF values. k is the attribute name, v is the attribute
+    value.
   """
 
   def _Attrs(self, expression):
@@ -203,7 +204,7 @@ class AttrFilter(Filter):
       for obj in objs:
         val = self._GetVal(obj, key)
         if val:
-          yield rdfvalue.Config({"k": key, "v": val})
+          yield rdfvalue.AttributedDict({"k": key, "v": val})
 
   def Validate(self, expression):
     self._Attrs(expression)
@@ -242,17 +243,16 @@ class ItemFilter(ObjectFilter):
     expression: An objectfilter expression..
 
   Yields:
-     Config RDF values for matching items, where k is the attribute name, and
-     v is the attribute value.
+     AttributedDict RDF values for matching items, where k is the attribute
+     name, and v is the attribute value.
   """
 
   def ParseObjs(self, objs, expression):
     filt = self._Compile(expression)
     key = expression.split(None, 1)[0]
-    for obj in objs:
-      for result in filt.Filter(obj):
-        val = getattr(result, key)
-        yield rdfvalue.Config({"k": key, "v": val})
+    for result in filt.Filter(objs):
+      val = getattr(result, key)
+      yield rdfvalue.AttributedDict({"k": key, "v": val})
 
 
 class StatFilter(Filter):
@@ -344,7 +344,7 @@ class StatFilter(Filter):
     parsed = {}
     for entry in parser.ParseEntries(expression):
       parsed.update(entry)
-    self.cfg = rdfvalue.Config(parsed)
+    self.cfg = rdfvalue.AttributedDict(parsed)
     return parsed
 
   def _Initialize(self):
