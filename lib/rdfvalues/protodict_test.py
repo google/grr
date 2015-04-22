@@ -13,6 +13,8 @@ an __iter__) method, but are serializable as an RDFProto.
 
 
 
+import collections
+
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import structs
 from grr.lib.rdfvalues import test_base
@@ -39,6 +41,10 @@ class DictTest(test_base.RDFProtoTestCase):
     for k, v in test_dict.items():
       # Test access through getitem.
       self.assertEqual(sample[k], v)
+
+  def testIsMapping(self):
+    test_dict = rdfvalue.Dict(a=1)
+    self.assertTrue(isinstance(test_dict, collections.Mapping))
 
   def testDictBehaviour(self):
     tested = rdfvalue.Dict(a=1)
@@ -156,6 +162,34 @@ class DictTest(test_base.RDFProtoTestCase):
 
     # And now it's gone.
     self.assertEqual(len(list(req.client_state.items())), 0)
+
+
+class AttributedDictTest(test_base.RDFValueTestCase):
+  """Test AttributedDictFile operations."""
+
+  rdfvalue_class = rdfvalue.AttributedDict
+
+  def GenerateSample(self, number=0):
+    return rdfvalue.AttributedDict({"number": number})
+
+  def testInitialize(self):
+    arnie = {"target": "Sarah Connor", "mission": "Protect"}
+    t800 = {"target": "Sarah Connor", "mission": "Terminate"}
+    terminator = rdfvalue.AttributedDict(arnie)
+    self.assertEquals(terminator.GetItem("target"), "Sarah Connor")
+    self.assertEquals(terminator.GetItem("mission"), "Protect")
+    terminator = rdfvalue.AttributedDict(t800)
+    self.assertEquals(terminator.target, "Sarah Connor")
+    self.assertEquals(terminator.mission, "Terminate")
+    # We don't want a conflicted Terminator
+    self.assertFalse(terminator.GetItem("happy_face"))
+    self.assertRaises(AttributeError, terminator.happy_face)
+
+  def testAttributedDictSettingsAreAttr(self):
+    t800 = {"target": "Sarah Connor", "mission": "Terminate"}
+    terminator = rdfvalue.AttributedDict(t800)
+    self.assertEquals(terminator.target, "Sarah Connor")
+    self.assertEquals(terminator.mission, "Terminate")
 
 
 class RDFValueArrayTest(test_base.RDFProtoTestCase):

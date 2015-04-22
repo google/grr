@@ -75,7 +75,8 @@ class HostCheckTest(test_lib.GRRBaseTest):
     rslt1_anoms = {a.explanation: str(a) for a in rslt1.anomaly}
     rslt2_anoms = {a.explanation: str(a) for a in rslt2.anomaly}
     self.assertItemsEqual(rslt1_anoms, rslt2_anoms,
-                          "Results have different anomaly items.")
+                          "Results have different anomaly items.:\n%s\n%s" %
+                          (rslt1_anoms.keys(), rslt2_anoms.keys()))
 
     # Now check that the anomalies are the same.
     for anom1, anom2 in zip(rslt1_anoms.itervalues(), rslt2_anoms.itervalues()):
