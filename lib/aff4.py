@@ -46,7 +46,7 @@ class Error(Exception):
 class LockError(Error):
   pass
 
-class OversizedRead(Error):
+class OversizedRead(Error, IOError):
   pass
 
 class InstantiationError(Error, IOError):
@@ -2395,6 +2395,10 @@ class AFF4ImageBase(AFF4Stream):
       self.size = 0
       self.content_last = None
 
+    # This is the configurable default length for allowing Read to be called
+    # without a specific length
+    self.max_unbound_read = config_lib.CONFIG["Server.max_unbound_read_size"]
+
   def SetChunksize(self, chunksize):
     # pylint: disable=protected-access
     self.Set(self.Schema._CHUNKSIZE(chunksize))
@@ -2501,15 +2505,17 @@ class AFF4ImageBase(AFF4Stream):
   def Read(self, length=None):
     """Read a block of data from the file."""
     result = ""
-    maxread = config_lib.CONFIG["Server.max_unbound_read_size"]
+
     # The total available size in the file
     if length is not None:
         length = int(length)
         length = min(length, self.size - self.offset)
-    elif self.size < maxread:
+    elif self.size < self.max_unbound_read:
         length = self.size - self.offset
     else:
-        raise OversizedRead("Attempted to read file of size %s when Server.max_unbound_read_size is %s" % (self.size, maxread) )
+        raise OversizedRead("Attempted to read file of size %s when "
+                            "Server.max_unbound_read_size is %s" %
+                            (self.size, self.max_unbound_read))
 
     while length > 0:
       data = self._ReadPartial(length)
