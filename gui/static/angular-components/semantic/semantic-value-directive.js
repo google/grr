@@ -117,8 +117,8 @@ SemanticValueController.prototype.compileSingleTypedValueTemplate_ = function(
  * @private
  */
 SemanticValueController.prototype.compileRepeatedValueTemplate_ = function() {
-  var element = angular.element('<grr-semantic-value value="::item" ' +
-      'ng-repeat="item in ::value || []" />');
+  var element = angular.element('<div ng-repeat="item in ::value || []">' +
+      '<grr-semantic-value value="::item" /></div>');
   return this.compile_(element);
 };
 

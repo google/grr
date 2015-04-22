@@ -6,7 +6,7 @@ goog.require('grrUi.tests.module');
 
 describe('grrTimeSince filter', function() {
   var grrTimeSinceFilter;
-  var referenceTime = 5 * 60 * 60 * 24 * 100000;
+  var referenceTime = 5 * 60 * 60 * 24 * 1000000;
 
   beforeEach(module(grrUi.client.module.name));
   beforeEach(module(grrUi.tests.module.name));
@@ -55,7 +55,7 @@ describe('grrTimeSince filter', function() {
     expect(result).toBe('in 3 days');
   });
 
-  iit('returns error message when value is 0', function() {
+  it('returns error message when value is 0', function() {
     var result = grrTimeSinceFilter(0);
     expect(result).toBe('<invalid time value>');
   });

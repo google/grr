@@ -79,6 +79,11 @@ class DummyFile(object):
     return [HashObject(hash1), HashObject(hash2)]
 
   @property
+  def mapping(self):
+    return {"hashes": [HashObject(hash1), HashObject(hash2)],
+            "nested": {"attrs": [attr1, attr2]}}
+
+  @property
   def size(self):
     return 10
 
@@ -229,6 +234,12 @@ class ObjectFilterTest(unittest.TestCase):
                                           "non_callable_repeated.desmond")
     self.assertListEqual(list(values), [["brotha", "brotha"],
                                         ["brotha", "sista"]])
+
+    # Existing, repeated, leaf is mapping.
+    values = self.value_expander().Expand(self.file, "mapping.hashes")
+    self.assertListEqual(list(values), [hash1, hash2])
+    values = self.value_expander().Expand(self.file, "mapping.nested.attrs")
+    self.assertListEqual(list(values), [[attr1, attr2]])
 
     # Now with an iterator
     values = self.value_expander().Expand(self.file, "deferred_values")
