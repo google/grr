@@ -6,9 +6,10 @@ import cStringIO
 import os
 import stat
 
+
+from binplist import binplist
 from grr.lib import parsers
 from grr.lib import rdfvalue
-from grr.parsers import binplist
 
 
 class OSXUsersParser(parsers.ArtifactFilesParser):
@@ -88,8 +89,8 @@ class OSXLaunchdPlistParser(parsers.FileParser):
 
     try:
       plist = binplist.readPlist(file_object)
-    except (binplist.FormatError, ValueError):
-      plist["Label"] = "Could not parse plist."
+    except (binplist.FormatError, ValueError, IOError) as e:
+      plist["Label"] = "Could not parse plist: %s" % e
 
     # These are items that can be directly copied
     for key in direct_copy_items:

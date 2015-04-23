@@ -19,6 +19,19 @@ from grr.lib import utils
 class FileViewTestBase(test_lib.GRRSeleniumTest):
   pass
 
+# A increasing sequence of times.
+TIME_0 = test_lib.FIXTURE_TIME
+TIME_1 = TIME_0 + rdfvalue.Duration("1d")
+TIME_2 = TIME_1 + rdfvalue.Duration("1d")
+
+
+def DateString(t):
+  return t.Format("%Y-%m-%d")
+
+
+def DateTimeString(t):
+  return t.Format("%Y-%m-%d %H:%M:%S")
+
 
 class TestFileView(FileViewTestBase):
   """Test the fileview interface."""
@@ -33,18 +46,18 @@ class TestFileView(FileViewTestBase):
   @staticmethod
   def CreateFileVersions():
     """Add a new version for a file."""
-    with test_lib.FakeTime(1333788833):
+    with test_lib.FakeTime(TIME_1):
       token = access_control.ACLToken(username="test")
-      # This file already exists in the fixture, and we overwrite it with a new
-      # version at 2012-04-07 08:53:53.
+      # This file already exists in the fixture at TIME_0, we write a later
+      # version.
       fd = aff4.FACTORY.Create(
           "aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt",
           "AFF4MemoryStream", mode="w", token=token)
       fd.Write("Hello World")
       fd.Close()
 
-    # Create another version of this file at 2012-04-09 16:27:13.
-    with test_lib.FakeTime(1333988833):
+    # An another version, even later.
+    with test_lib.FakeTime(TIME_2):
       fd = aff4.FACTORY.Create(
           "aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt",
           "AFF4MemoryStream", mode="w", token=token)
@@ -63,9 +76,9 @@ class TestFileView(FileViewTestBase):
 
     # Set up multiple version for an attribute on the client for tests.
     with self.ACLChecksDisabled():
-      for fake_time, hostname in [(1333788833, "HostnameV1"),
-                                  (1333888833, "HostnameV2"),
-                                  (1333988833, "HostnameV3")]:
+      for fake_time, hostname in [(TIME_0, "HostnameV1"),
+                                  (TIME_1, "HostnameV2"),
+                                  (TIME_2, "HostnameV3")]:
         with test_lib.FakeTime(fake_time):
           client = aff4.FACTORY.Open(u"C.0000000000000001", mode="rw",
                                      token=self.token)
@@ -105,11 +118,11 @@ class TestFileView(FileViewTestBase):
 
     # Verify that we have the latest version in the table by default
     self.assertTrue(
-        "2012-04-09 16:27:13" in self.GetText("css=tr:contains(\"a.txt\")"))
+        DateString(TIME_2) in self.GetText("css=tr:contains(\"a.txt\")"))
 
     # Click on the row.
     self.Click("css=tr:contains(\"a.txt\")")
-    self.WaitUntilContains("a.txt @ 2012-04-09", self.GetText,
+    self.WaitUntilContains("a.txt @ " + DateString(TIME_2), self.GetText,
                            "css=div#main_rightBottomPane h3")
 
     # Check the data in this file.
@@ -131,7 +144,8 @@ class TestFileView(FileViewTestBase):
       # Try to download the file.
       self.Click("css=#Download")
 
-      self.WaitUntil(self.IsTextPresent, "As downloaded on 2012-04-09 16:27:13")
+      self.WaitUntil(self.IsTextPresent,
+                     "As downloaded on %s" % DateTimeString(TIME_2))
       self.Click("css=button:contains(\"Download\")")
 
       # Click on the version selector.
@@ -140,10 +154,11 @@ class TestFileView(FileViewTestBase):
                              "css=.version-selector-dialog h4")
 
       # Select the previous version.
-      self.Click("css=td:contains(\"2012-04-07\")")
+      self.Click("css=td:contains(\"%s\")" % DateString(TIME_1))
 
       # Now we should have a different time.
-      self.WaitUntil(self.IsTextPresent, "As downloaded on 2012-04-07 08:53:53")
+      self.WaitUntil(self.IsTextPresent,
+                     "As downloaded on %s" % DateTimeString(TIME_1))
       self.Click("css=button:contains(\"Download\")")
 
     self.WaitUntil(self.IsElementPresent, "css=#TextView")
@@ -155,9 +170,12 @@ class TestFileView(FileViewTestBase):
                      u"aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt")
     self.assertEqual(downloaded_files[1][0],
                      u"aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt")
-    # But from different times.
-    self.assertEqual(downloaded_files[0][1], 1333988833000000)
-    self.assertEqual(downloaded_files[1][1], 1333788833000000)
+    # But from different times. The downloaded file timestamp is only accurate
+    # to the nearest second.
+    self.assertAlmostEqual(downloaded_files[0][1], TIME_2,
+                           delta=rdfvalue.Duration("1s"))
+    self.assertAlmostEqual(downloaded_files[1][1], TIME_1,
+                           delta=rdfvalue.Duration("1s"))
 
     self.Click("css=#TextView")
 

@@ -267,3 +267,6 @@ config_lib.DEFINE_list("ConfigIncludes", [],
 config_lib.DEFINE_bool("AdminUI.allow_hunt_results_delete", default=False,
                        help="If True, hunts with results will can be deleted "
                        "when the delete hunt button is used.")
+
+config_lib.DEFINE_integer("Server.max_unbound_read_size", 10000000, "The number of bytes "
+                          "allowed for unbounded reads from a file object")

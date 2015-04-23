@@ -20,16 +20,23 @@ class AFF4KeywordIndex(aff4.AFF4Object):
   INDEX_COLUMN_FORMAT = INDEX_PREFIX + "%s"
   INDEX_COLUMN_REGEXP = INDEX_PREFIX + ".*"
 
+  # The lowest and highest legal timestamps.
+  FIRST_TIMESTAMP = 0
+  LAST_TIMESTAMP = (2 ** 63) - 2  # maxint64 - 1
+
   def _KeywordToURN(self, keyword):
     return self.urn.Add(keyword)
 
-  def Lookup(self, keywords):
+  def Lookup(self, keywords, start_time=FIRST_TIMESTAMP,
+             end_time=LAST_TIMESTAMP):
     """Finds objects associated with keywords.
 
     Find the names related to all keywords.
 
     Args:
       keywords: A collection of keywords that we are interested in.
+      start_time: Only considers keywords added at or after this point in time.
+      end_time: Only considers keywords at or before this point in time.
     Returns:
       A set of potentially relevant names.
 
@@ -40,7 +47,8 @@ class AFF4KeywordIndex(aff4.AFF4Object):
     keywords_found = 0
 
     for _, value in data_store.DB.MultiResolveRegex(
-        keyword_urns, self.INDEX_COLUMN_REGEXP, token=self.token):
+        keyword_urns, self.INDEX_COLUMN_REGEXP,
+        timestamp=(start_time, end_time+1), token=self.token):
       kw_relevant = set()
       for column, _, _ in value:
         kw_relevant.add(column[self.INDEX_PREFIX_LEN:])

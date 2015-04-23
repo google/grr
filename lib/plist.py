@@ -5,9 +5,9 @@ import calendar
 import datetime
 
 
+from binplist import binplist
 from grr.lib import lexer
 from grr.lib import objectfilter
-from grr.parsers import binplist
 
 
 class PlistFilterParser(objectfilter.Parser):

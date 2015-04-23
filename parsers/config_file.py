@@ -55,7 +55,8 @@ class FieldParser(lexer.Lexer):
   """
 
   def __init__(self, comments=r"#", cont=r"\\\s*\n", ml_quote=False,
-               quot=(r"\"", r"'"), sep=r"\s+", term=r"\n", verbose=0):
+               quot=(r"\"", r"'"), sep=r"[ \t\f\v]+", term=r"[\r\n]",
+               verbose=0):
     """A generalized field-based parser. Handles whitespace, csv etc.
 
     Args:
@@ -184,7 +185,8 @@ class KeyValueParser(FieldParser):
   """
 
   def __init__(self, comments=r"#", cont=r"\\\s*\n", kv_sep="=", ml_quote=False,
-               quot=(r"\"", r"'"), sep=r"\s+", term=r"\n", verbose=0):
+               quot=(r"\"", r"'"), sep=r"[ \t\f\v]+", term=r"[\r\n]",
+               verbose=0):
     """A generalized key-value parser. Handles whitespace, csv etc.
 
     Args:
