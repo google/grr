@@ -175,7 +175,7 @@ class TSKFile(vfs.VFSHandler):
       yield utils.SmartUnicode(f.info.name.name)
 
   def MakeStatResponse(self, tsk_file, tsk_attribute=None, append_name=False):
-    """Given a TSK info object make a StatResponse.
+    """Given a TSK info object make a StatEntry.
 
     Note that tsk uses two things to uniquely identify a data stream - the inode
     object given in tsk_file and the attribute object which may correspond to an
@@ -192,7 +192,7 @@ class TSKFile(vfs.VFSHandler):
         pathspec.
 
     Returns:
-      A StatResponse protobuf which can be used to re-open this exact VFS node.
+      A StatEntry which can be used to re-open this exact VFS node.
     """
     info = tsk_file.info
     response = rdfvalue.StatEntry()

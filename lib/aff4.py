@@ -46,6 +46,8 @@ class Error(Exception):
 class LockError(Error):
   pass
 
+class OversizedRead(Error, IOError):
+  pass
 
 class InstantiationError(Error, IOError):
   pass
@@ -2215,6 +2217,12 @@ class AFF4Stream(AFF4Object):
   def __len__(self):
     return self.size
 
+  def Initialize(self):
+    super(AFF4Stream, self).Initialize()
+    # This is the configurable default length for allowing Read to be called
+    # without a specific length
+    self.max_unbound_read = config_lib.CONFIG["Server.max_unbound_read_size"]
+
   @abc.abstractmethod
   def Read(self, length):
     pass
@@ -2233,7 +2241,17 @@ class AFF4Stream(AFF4Object):
 
   # These are file object conformant namings for library functions that
   # grr uses, and that expect to interact with 'real' file objects.
-  read = utils.Proxy("Read")
+
+  def read(self, length=None):
+    if length is None:
+      length = self.size - self.offset
+      if length > self.max_unbound_read:
+        raise OversizedRead("Attempted to read file of size %s when "
+                            "Server.max_unbound_read_size is %s" %
+                            (self.size, self.max_unbound_read))
+    return self.Read(length)
+
+
   seek = utils.Proxy("Seek")
   tell = utils.Proxy("Tell")
   close = utils.Proxy("Close")

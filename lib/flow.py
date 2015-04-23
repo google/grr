@@ -154,6 +154,18 @@ class Responses(object):
   def __iter__(self):
     """An iterator which returns all the responses in order."""
     old_response_id = None
+    action_registry = actions.ActionPlugin.classes
+    expected_response_cls = None
+    is_client_request = False
+    # This is the client request so this response packet was sent by a client.
+    if self.request.HasField("request"):
+      is_client_request = True
+      client_action_name = self.request.request.name
+      if client_action_name not in action_registry:
+        raise RuntimeError("Got unknown client action: %s." %
+                           client_action_name)
+      expected_response_cls = action_registry[client_action_name].out_rdfvalue
+
     for message in self._responses:
       self.message = rdfvalue.GrrMessage(message)
 
@@ -165,25 +177,23 @@ class Responses(object):
         old_response_id = self.message.response_id
 
       if self.message.type == self.message.Type.MESSAGE:
-        # FIXME(scudette): Deprecate this once the client returns rdfvalue
-        # messages.
-        if not self.message.args_rdf_name:
-          client_action_name = self.request.request.name
-          try:
-            action_cls = actions.ActionPlugin.classes[client_action_name]
-            if not action_cls.out_rdfvalue:
+        if is_client_request:
+          # Let's do some verification for requests that came from clients.
+          if not expected_response_cls:
+            raise RuntimeError(
+                "Client action %s does not specify out_rdfvalue." %
+                client_action_name)
+          else:
+            args_rdf_name = self.message.args_rdf_name
+            if not args_rdf_name:
+              raise RuntimeError("Deprecated message format received: "
+                                 "args_rdf_name is None.")
+            elif args_rdf_name != expected_response_cls.__name__:
               raise RuntimeError(
-                  "Client action %s does not specify out_rdfvalue" %
-                  client_action_name)
+                  "Response type was %s but expected %s for %s." %
+                  (args_rdf_name, expected_response_cls, client_action_name))
 
-          except KeyError:
-            raise RuntimeError("Unknown client action %s.", client_action_name)
-
-          yield action_cls.out_rdfvalue(self.message.args)
-
-        else:
-          # Flows send back RDFValues. These already contain sufficient context.
-          yield self.message.payload
+        yield self.message.payload
 
   def First(self):
     """A convenience method to return the first response."""

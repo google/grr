@@ -137,9 +137,81 @@ class LinuxLSBInitParser(parsers.FileParser):
       else:
         init_files.append((k, v))
     self._ParseInsserv(insserv_data)
-    return self._ParseInit(init_files)
+    for rslt in self._ParseInit(init_files):
+      yield rslt
 
 
-# TODO(user): Other service startup tools, e.g. upstart, systemd, inetd,
-# xinetd
+class LinuxXinetdParser(parsers.FileParser):
+  """Parses xinetd entries."""
+
+  output_types = ["LinuxServiceInformation"]
+  supported_artifacts = ["LinuxXinetd"]
+
+  def _ParseSection(self, section, cfg):
+    parser = config_file.KeyValueParser()
+    # Skip includedir, we get this from the artifact.
+    if section.startswith("includedir"):
+      return
+    elif section.startswith("default"):
+      for val in parser.ParseEntries(cfg):
+        self.default.update(val)
+    elif section.startswith("service"):
+      svc = section.replace("service", "").strip()
+      if not svc:
+        return
+      self.entries[svc] = {}
+      for val in parser.ParseEntries(cfg):
+        self.entries[svc].update(val)
+
+  def _ProcessEntries(self, filename, fd):
+    """Extract entries from the xinted config files."""
+    parser = config_file.KeyValueParser(kv_sep="{", term="}", sep=None)
+    data = fd.read(100000)
+    entries = parser.ParseEntries(data)
+    for entry in entries:
+      for section, cfg in entry.items():
+        # The parser returns a list of configs. There will only be one.
+        if cfg:
+          cfg = cfg[0].strip()
+        else:
+          cfg = ""
+        self._ParseSection(section, cfg)
+
+  def _GenConfig(self, cfg):
+    """Interpolate configurations with defaults to generate actual configs."""
+    # Some setting names may have a + or - suffix. These indicate that the
+    # settings modify the default values.
+    merged = self.default.copy()
+    for setting, vals in cfg.iteritems():
+      option, operator = (setting.split(None, 1) + [None])[:2]
+      vals = set(vals)
+      default = set(self.default.get(option, []))
+      # If there is an operator, updated values accordingly.
+      if operator == "+":
+        vals = default.union(vals)
+      elif operator == "-":
+        vals = default.difference(vals)
+      merged[option] = list(vals)
+    return rdfvalue.AttributedDict(**merged)
+
+  def _GenService(self, name, cfg):
+    # Merge the config values.
+    service = rdfvalue.LinuxServiceInformation(name=name)
+    service.config = self._GenConfig(cfg)
+    if service.config.disable == ["no"]:
+      service.start_mode = "XINETD"
+      service.start_after = ["xinetd"]
+    return service
+
+  def ParseMultiple(self, stats, file_objs, _):
+    self.entries = {}
+    self.default = {}
+    paths = [s.pathspec.path for s in stats]
+    files = dict(zip(paths, file_objs))
+    for k, v in files.iteritems():
+      self._ProcessEntries(k, v)
+    for name, cfg in self.entries.iteritems():
+      yield self._GenService(name, cfg)
+
+# TODO(user): Other service startup tools, e.g. upstart, systemd, inetd
 

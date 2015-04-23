@@ -251,12 +251,12 @@ class SuspendableListDirectory(actions.SuspendableAction):
 
 
 class StatFile(ListDirectory):
-  """Sends a StatResponse for a single file."""
+  """Sends a StatEntry for a single file."""
   in_rdfvalue = rdfvalue.ListDirRequest
   out_rdfvalue = rdfvalue.StatEntry
 
   def Run(self, args):
-    """Sends a StatResponse for a single file."""
+    """Sends a StatEntry for a single file."""
     try:
       fd = vfs.VFSOpen(args.pathspec, progress_callback=self.Progress)
       res = fd.Stat()

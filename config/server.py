@@ -264,3 +264,5 @@ config_lib.DEFINE_list("ConfigIncludes", [],
                        "processed recursively depth-first, later values "
                        "override earlier ones.")
 
+config_lib.DEFINE_integer("Server.max_unbound_read_size", 10000000, "The number of bytes "
+                          "allowed for unbounded reads from a file object")

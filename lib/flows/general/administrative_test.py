@@ -520,8 +520,9 @@ class TestApplyLabelsToClientsFlow(AdministrativeFlowTests):
                                 aff4_type="ClientIndex",
                                 mode="rw",
                                 token=self.token)
-    self.assertListEqual(sorted(client_ids),
-                         sorted(index.LookupClients(["foo"])))
+    with test_lib.FakeTime(42):
+      self.assertListEqual(sorted(client_ids),
+                           sorted(index.LookupClients(["foo"])))
 
   def testAppliesMultipleLabelsToSingleClient(self):
     client_id = self.SetupClients(1)[0]

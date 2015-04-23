@@ -663,6 +663,9 @@ class Duration(RDFInteger):
 
     return NotImplemented
 
+  def __abs__(self):
+    return Duration(abs(self._value))
+
   def Expiry(self, base_time=None):
     if base_time is None:
       base_time = RDFDatetime().Now()
