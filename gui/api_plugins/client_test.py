@@ -135,7 +135,7 @@ class ApiClientSearchRendererRegressionTest(
                              token=self.token) as client:
         client.DeleteAttribute(client.Schema.CERT)
 
-    self.Check("GET", "/api/clients?query=%s" % client_ids[0].Basename())
+      self.Check("GET", "/api/clients?query=%s" % client_ids[0].Basename())
 
 
 class ApiClientSummaryRendererRegressionTest(

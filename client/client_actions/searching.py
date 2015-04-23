@@ -80,7 +80,7 @@ class Find(actions.IteratedAction):
     """Tests a file for filters.
 
     Args:
-      file_stat: A StatResponse of specified file.
+      file_stat: A StatEntry of specified file.
 
     Returns:
       True of the file matches all conditions, false otherwise.

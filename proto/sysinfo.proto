@@ -309,6 +309,10 @@ message LinuxServiceInformation {
   repeated string stop_after = 9 [(sem_type) = {
       description: "Specifies service required before this service is stopped.",
     }];
+
+  optional AttributedDict config = 10 [(sem_type) = {
+      description: "The configuration of the service.",
+    }];
 }
 
 // Describe an installed software package. Cross platform.

@@ -6,9 +6,10 @@ import cStringIO
 import os
 import stat
 
+
+from binplist import binplist
 from grr.lib import parsers
 from grr.lib import rdfvalue
-from grr.parsers import binplist
 
 
 class OSXUsersParser(parsers.ArtifactFilesParser):

@@ -17,6 +17,11 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
   """An index of client machines.
   """
 
+  START_TIME_PREFIX = "start_date:"
+  START_TIME_PREFIX_LEN = len(START_TIME_PREFIX)
+  END_TIME_PREFIX = "end_date:"
+  END_TIME_PREFIX_LEN = len(END_TIME_PREFIX)
+
   # We accept and return client URNs, but store client ids,
   # e.g. "C.00aaeccbb45f33a3".
 
@@ -38,9 +43,33 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
     Returns:
       A list of client URNs.
     """
+    start_time = rdfvalue.RDFDatetime().Now() - rdfvalue.Duration("180d")
+    end_time = rdfvalue.RDFDatetime(self.LAST_TIMESTAMP)
+
+    filtered_keywords = []
+    for k in keywords:
+      if k.startswith(self.START_TIME_PREFIX):
+        try:
+          start_time = rdfvalue.RDFDatetime(k[self.START_TIME_PREFIX_LEN:])
+        except ValueError:
+          pass
+      elif k.startswith(self.END_TIME_PREFIX):
+        try:
+          time = rdfvalue.RDFDatetime()
+          time.ParseFromHumanReadable(k[self.END_TIME_PREFIX_LEN:], eoy=True)
+          end_time = time
+        except ValueError:
+          pass
+      else:
+        filtered_keywords.append(k)
+
+    if not filtered_keywords:
+      filtered_keywords.append(".")
 
     return map(self._URNFromClientID,
-               self.Lookup(map(self._NormalizeKeyword, keywords)))
+               self.Lookup(map(self._NormalizeKeyword, filtered_keywords),
+                           start_time=start_time,
+                           end_time=end_time))
 
   def AnalyzeClient(self, client):
     """Finds the client_id and keywords for a client.

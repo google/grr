@@ -840,7 +840,7 @@ class Glob(GlobMixin, flow.GRRFlow):
   """Glob the filesystem for patterns.
 
   Returns:
-    StatResponse messages, one for each matching file.
+    StatEntry messages, one for each matching file.
   """
 
   category = "/Filesystem/"
