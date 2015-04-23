@@ -435,6 +435,8 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     """Run basic tests on a subclass of AFF4ImageBase."""
     path = "/C.12345/aff4image"
 
+    config_lib.CONFIG.Set("Server.max_unbound_read_size", 1)
+
     fd = aff4.FACTORY.Create(path, classname, token=self.token)
     fd.SetChunksize(10)
 
@@ -471,6 +473,9 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     self.assertEqual(len(data), 300)
     self.assertTrue("XXXHello WorldXXX" in data)
     self.assertTrue("XXXYYY" in data)
+    fd.seek(0)
+    self.assertRaises(aff4.OversizedRead, fd.read)
+    fd.Close()
 
   def testAFF4Image(self):
     self.ExerciseAFF4ImageBase("AFF4Image")
