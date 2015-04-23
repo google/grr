@@ -15,7 +15,7 @@ from grr.lib import test_lib
 class KeywordIndexTest(test_lib.AFF4ObjectTest):
 
   def testKeywordIndex(self):
-    index = aff4.FACTORY.Create("aff4:/index/",
+    index = aff4.FACTORY.Create("aff4:/index1/",
                                 aff4_type="AFF4KeywordIndex",
                                 mode="rw",
                                 token=self.token)
@@ -46,6 +46,28 @@ class KeywordIndexTest(test_lib.AFF4ObjectTest):
     results = index.Lookup(["popular_keyword1", "popular_keyword2",
                             "unknown_keyword"])
     self.assertEqual(len(results), 0)
+
+  def testKeywordIndexTimestamps(self):
+    index = aff4.FACTORY.Create("aff4:/index2/",
+                                aff4_type="AFF4KeywordIndex",
+                                mode="rw",
+                                token=self.token)
+    for i in range(50):
+      with test_lib.FakeTime(1000 + i):
+        index.AddKeywordsForName("C.%X" % i, ["popular_keyword1"])
+    results = index.Lookup(["popular_keyword1"])
+    self.assertEqual(len(results), 50)
+
+    results = index.Lookup(["popular_keyword1"], start_time=1025 * 1000000)
+    self.assertEqual(len(results), 25)
+
+    results = index.Lookup(["popular_keyword1"], end_time=1024 * 1000000)
+    self.assertEqual(len(results), 25)
+
+    results = index.Lookup(["popular_keyword1"],
+                           start_time=1025 * 1000000,
+                           end_time=1025 * 1000000)
+    self.assertEqual(len(results), 1)
 
 
 def main(argv):

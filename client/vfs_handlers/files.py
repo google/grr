@@ -65,7 +65,7 @@ class FileHandleManager(object):
 
 
 def MakeStatResponse(st, pathspec):
-  """Creates a StatResponse proto."""
+  """Creates a StatEntry."""
   response = rdfvalue.StatEntry(pathspec=pathspec)
 
   if st is None:

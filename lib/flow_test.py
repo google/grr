@@ -347,13 +347,15 @@ class FlowTest(BasicFlowTest):
           check_flow_errors=True, token=self.token):
         pass
 
-  def SendMessages(self, response_ids, session_id, authenticated=True):
+  def SendMessages(self, response_ids, session_id, authenticated=True,
+                   args_rdf_name="DataBlob"):
     """Send messages to the flow."""
     for response_id in response_ids:
       message = rdfvalue.GrrMessage(
           request_id=1,
           response_id=response_id,
-          session_id=session_id)
+          session_id=session_id,
+          args_rdf_name=args_rdf_name)
 
       if authenticated:
         auth_state = rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED

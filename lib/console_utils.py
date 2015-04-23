@@ -106,10 +106,11 @@ def OpenClient(client_id=None, token=None):
     tuple containing (client, token) objects or (None, None) on if
     no appropriate aproval tokens were found.
   """
-  try:
-    token = ApprovalFind(client_id, token=token)
-  except access_control.UnauthorizedAccess as e:
-    logging.debug("No authorization found for access to client: %s", e)
+  if not token:
+    try:
+      token = ApprovalFind(client_id, token=token)
+    except access_control.UnauthorizedAccess as e:
+      logging.debug("No authorization found for access to client: %s", e)
 
   try:
     # Try and open with the token we managed to retrieve or the default.
@@ -408,8 +409,8 @@ def MigrateLabelsSeparator(token=None):
       processed_mapped_labels)
 
 
-def ClientIdToHostname(client_id):
+def ClientIdToHostname(client_id, token=None):
   """Quick helper for scripts to get a hostname from a client ID."""
-  client = OpenClient(client_id)[0]
+  client = OpenClient(client_id, token=token)[0]
   if client and client.Get("Host"):
     return client.Get("Host").Summary()

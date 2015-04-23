@@ -75,6 +75,65 @@ class LinuxLSBInitParserTest(test_lib.GRRBaseTest):
     self.assertFalse(results)
 
 
+class LinuxXinetdParserTest(test_lib.GRRBaseTest):
+  """Test parsing of xinetd entries."""
+
+  def testParseXinetd(self):
+    """Xinetd entries return accurate LinuxServiceInformation values."""
+    defaults = """
+      defaults
+      {
+         instances      = 60
+         log_type       = SYSLOG     authpriv
+         log_on_success = HOST PID
+         log_on_failure = HOST
+         cps            = 25 30
+      }
+      includedir /etc/xinetd.d"""
+    telnet = """
+      service telnet
+      {
+         flags           = REUSE
+         socket_type     = stream
+         wait            = no
+         user            = root
+         server          = /sbin/telnetd
+         log_on_failure  += USERID
+         disable         = yes
+      }
+
+      service forwarder
+      {
+         disable        = no
+         type           = UNLISTED
+         socket_type    = stream
+         protocol       = tcp
+         wait           = no
+         redirect       = 192.168.1.1 22
+         bind           = 8.8.8.8
+         port           = 443
+         user           = nobody
+      }"""
+    paths = ["/etc/xinetd.conf", "/etc/xinetd.d/telnet"]
+    vals = [defaults, telnet]
+    stats, files = GenTestData(paths, vals)
+
+    parser = linux_service_parser.LinuxXinetdParser()
+    results = list(parser.ParseMultiple(stats, files, None))
+    self.assertEqual(2, len(results))
+    self.assertItemsEqual(["forwarder", "telnet"], [r.name for r in results])
+    for rslt in results:
+      self.assertFalse(rslt.start_on)
+      self.assertFalse(rslt.stop_on)
+      self.assertFalse(rslt.stop_after)
+      if rslt.name == "telnet":
+        self.assertFalse(rslt.start_mode)
+        self.assertFalse(rslt.start_after)
+      else:
+        self.assertEqual("XINETD", str(rslt.start_mode))
+        self.assertItemsEqual(["xinetd"], list(rslt.start_after))
+
+
 def main(args):
   test_lib.main(args)
 
