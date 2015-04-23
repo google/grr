@@ -2,8 +2,6 @@
 """System cron flows tests."""
 
 
-import time
-
 # pylint: disable=unused-import, g-bad-import-order
 from grr.lib import server_plugins
 # pylint: enable=unused-import, g-bad-import-order
@@ -28,11 +26,6 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
   def setUp(self):
     super(SystemCronFlowTest, self).setUp()
 
-    # Mock today's time to be 8 days after the fixture date.
-    self.old_time = time.time
-    self.now = test_lib.FIXTURE_TIME + 8 * 60 * 60 * 24
-    time.time = lambda: self.now
-
     # We are only interested in the client object (path = "/" in client VFS)
     fixture = test_lib.FilterFixture(regex="^/$")
 
@@ -49,9 +42,6 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
     for i in range(0, 10):
       test_lib.ClientFixture("C.1%015X" % i, token=self.token,
                              fixture=client_fixture.LINUX_FIXTURE)
-
-  def tearDown(self):
-    time.time = self.old_time
 
   def _CheckVersionStats(self, label, attribute, counts):
 

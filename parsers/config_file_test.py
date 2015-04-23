@@ -81,7 +81,8 @@ class FieldParserTests(test_lib.GRRBaseTest):
                 ["this", "should", "be", "another", "entry",
                  "with this quoted text as one field"],
                 ["an entrywith only two", "fields"]]
-    cfg = config_file.FieldParser(sep=[r"\s+", ":", ";"], comments=["#", ";;"])
+    cfg = config_file.FieldParser(sep=["[ \t\f\v]+", ":", ";"],
+                                  comments=["#", ";;"])
     results = cfg.ParseEntries(test_data)
     for i, expect in enumerate(expected):
       self.assertItemsEqual(expect, results[i])
@@ -91,6 +92,17 @@ class FieldParserTests(test_lib.GRRBaseTest):
     expected = [["you", "forgot", "a", "newline"]]
     cfg = config_file.FieldParser()
     results = cfg.ParseEntries(test_data)
+    for i, expect in enumerate(expected):
+      self.assertItemsEqual(expect, results[i])
+
+  def testWhitespaceDoesntNukeNewline(self):
+    test_data = "trailing spaces     \nno trailing spaces\n"
+    expected = [["trailing", "spaces"], ["no", "trailing", "spaces"]]
+    results = config_file.FieldParser().ParseEntries(test_data)
+    for i, expect in enumerate(expected):
+      self.assertItemsEqual(expect, results[i])
+    expected = [["trailing", "spaces", "no", "trailing", "spaces"]]
+    results = config_file.FieldParser(sep=r"\s+").ParseEntries(test_data)
     for i, expect in enumerate(expected):
       self.assertItemsEqual(expect, results[i])
 

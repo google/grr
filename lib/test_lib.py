@@ -775,7 +775,10 @@ class FakeTime(object):
   """A context manager for faking time."""
 
   def __init__(self, fake_time, increment=0):
-    self.time = fake_time
+    if isinstance(fake_time, rdfvalue.RDFDatetime):
+      self.time = fake_time.AsSecondsFromEpoch()
+    else:
+      self.time = fake_time
     self.increment = increment
 
   def __enter__(self):
@@ -1784,8 +1787,8 @@ def TestHuntHelper(client_mock, client_ids, check_flow_errors=False,
       token=token)
 
 
-# Default fixture age is (Mon Mar 26 14:07:13 2012).
-FIXTURE_TIME = 1332788833
+# Make the fixture appear to be 1 week old.
+FIXTURE_TIME = rdfvalue.RDFDatetime().Now() - rdfvalue.Duration("8d")
 
 
 def FilterFixture(fixture=None, regex="."):
@@ -1840,7 +1843,7 @@ class ClientFixture(object):
     """
     self.args = kwargs
     self.token = token
-    self.age = age or FIXTURE_TIME
+    self.age = age or FIXTURE_TIME.AsSecondsFromEpoch()
     self.client_id = rdfvalue.ClientURN(client_id)
     self.args["client_id"] = self.client_id.Basename()
     self.args["age"] = self.age

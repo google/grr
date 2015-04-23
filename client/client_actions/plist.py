@@ -9,11 +9,11 @@ import cStringIO
 import types
 
 
+from binplist import binplist
 from grr.client import actions
 from grr.client import vfs
 from grr.lib import plist as plist_lib
 from grr.lib import rdfvalue
-from grr.parsers import binplist
 
 
 class PlistQuery(actions.ActionPlugin):

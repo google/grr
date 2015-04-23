@@ -57,7 +57,7 @@ class VFSDirectory(aff4.AFF4Volume):
   class SchemaCls(aff4.AFF4Volume.SchemaCls):
     """Attributes specific to VFSDirectory."""
     STAT = aff4.Attribute("aff4:stat", rdfvalue.StatEntry,
-                          "A StatResponse protobuf describing this file.",
+                          "A StatEntry describing this file.",
                           "stat")
 
     PATHSPEC = aff4.Attribute(

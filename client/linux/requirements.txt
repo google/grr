@@ -1,3 +1,4 @@
+binplist==0.1.4
 gnureadline==6.3.3
 pexpect==3.3
 psutil==2.1.3

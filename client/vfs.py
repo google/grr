@@ -80,7 +80,7 @@ class VFSHandler(object):
     raise NotImplementedError
 
   def Stat(self):
-    """Returns a StatResponse proto about this file."""
+    """Returns a StatEntry about this file."""
     raise NotImplementedError
 
   def IsDirectory(self):
@@ -140,7 +140,7 @@ class VFSHandler(object):
   def ListFiles(self):
     """An iterator over all VFS files contained in this directory.
 
-    Generates a StatResponse proto for each file or directory.
+    Generates a StatEntry for each file or directory.
 
     Raises:
       IOError: if this fails.

@@ -30,11 +30,7 @@ class ApiClientSearchRenderer(api_call_renderers.ApiCallRenderer):
     end = args.count or sys.maxint
     rendered_clients = []
 
-    # An empty query matches all clients, use the universal keyword ".".
-    query = args.query or "."
-    keywords = shlex.split(query)
-    if not keywords:
-      raise ValueError("Couldn't parse query string.")
+    keywords = shlex.split(args.query)
 
     index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
                                 aff4_type="ClientIndex",
