@@ -101,6 +101,9 @@ config_lib.DEFINE_list("Cron.enabled_system_jobs", [],
 config_lib.DEFINE_integer("ACL.approvers_required", 2,
                           "The number of approvers required for access.")
 
+config_lib.DEFINE_integer("ACL.token_expiry", 604800,
+                          "The duration in seconds of a valid approval token. Default of one week.")
+
 config_lib.DEFINE_string("Frontend.bind_address", "::",
                          "The ip address to bind.")
 
