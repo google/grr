@@ -155,7 +155,7 @@ class ApprovalWithApproversAndReason(Approval):
     LIFETIME = aff4.Attribute(
         "aff4:approval/lifetime", rdfvalue.RDFInteger,
         "The number of seconds an approval is valid for.",
-        default=0) 
+        default=0)
     BREAK_GLASS = aff4.Attribute(
         "aff4:approval/breakglass", rdfvalue.RDFDatetime,
         "The date when this break glass approval will expire.")
@@ -192,9 +192,10 @@ class ApprovalWithApproversAndReason(Approval):
       token.is_emergency = True
       return True
 
-    # Check that there are enough approvers.
-    lifetime =  self.Get(self.Schema.LIFETIME) or config_lib.CONFIG["ACL.token_expiry"] 
+    lifetime = rdfvalue.Duration(self.Get(self.Schema.LIFETIME) or
+                                 config_lib.CONFIG["ACL.token_expiry"])
 
+    # Check that there are enough approvers.
     approvers = set()
     for approver in self.GetValuesForAttribute(self.Schema.APPROVER):
       if approver.age + lifetime > now:

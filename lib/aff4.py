@@ -46,8 +46,10 @@ class Error(Exception):
 class LockError(Error):
   pass
 
+
 class OversizedRead(Error, IOError):
   pass
+
 
 class InstantiationError(Error, IOError):
   pass
@@ -2220,7 +2222,7 @@ class AFF4Stream(AFF4Object):
   def Initialize(self):
     super(AFF4Stream, self).Initialize()
     # This is the configurable default length for allowing Read to be called
-    # without a specific length
+    # without a specific length.
     self.max_unbound_read = config_lib.CONFIG["Server.max_unbound_read_size"]
 
   @abc.abstractmethod
@@ -2241,8 +2243,7 @@ class AFF4Stream(AFF4Object):
 
   # These are file object conformant namings for library functions that
   # grr uses, and that expect to interact with 'real' file objects.
-
-  def read(self, length=None):
+  def read(self, length=None):  # pylint: disable=invalid-name
     if length is None:
       length = self.size - self.offset
       if length > self.max_unbound_read:
@@ -2250,7 +2251,6 @@ class AFF4Stream(AFF4Object):
                             "Server.max_unbound_read_size is %s" %
                             (self.size, self.max_unbound_read))
     return self.Read(length)
-
 
   seek = utils.Proxy("Seek")
   tell = utils.Proxy("Tell")
@@ -2672,4 +2672,3 @@ def CurrentAuditLog():
   # Logging.aff4_audit_log_rollover seconds, but is still a valid timestamp.
   current_log = (now_sec // rollover) * rollover
   return ROOT_URN.Add("audit").Add("logs").Add(str(current_log))
-
