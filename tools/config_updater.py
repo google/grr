@@ -86,8 +86,12 @@ parser_update_user.add_argument(
 parser_add_user = subparsers.add_parser(
     "add_user", help="Add a new user.")
 
-parser_add_user.add_argument("username", help="Username to update.")
-parser_add_user.add_argument("password", help="Set password.")
+parser_add_user.add_argument("username", help="Username to create.")
+parser_add_user.add_argument("--password", default=None, help="Set password.")
+
+parser_add_user.add_argument(
+    "--labels", default=[], action="append",
+    help="Create user with labels. These are used to control access.")
 
 parser_add_user.add_argument(
     "--noadmin", default=False, action="store_true",
@@ -100,15 +104,39 @@ parser_initialize.add_argument(
 parser_set_var.add_argument("var", help="Variable to set.")
 parser_set_var.add_argument("val", help="Value to set.")
 
+def AddUser(username, password, labels=[], token=None):
+  """Implementation of the add_user command."""
+  with aff4.FACTORY.Create("aff4:/users/%s" % username,
+                           "GRRUser", mode="rw", token=token) as fd:
+    # Note this accepts blank passwords as valid.
+    if not password:
+      password = getpass.getpass(
+          prompt="Please enter password for user '%s': " % username)
+    fd.SetPassword(password)
+
+    # Use sets to dedup input.
+    if labels is not []:
+      add_labels = set(labels)
+    else:
+      add_labels = None
+
+    if add_labels:
+      fd.AddLabels(*add_labels, owner="GRR")
+
+  print "Added user %s." % username
+
 
 def UpdateUser(username, password, add_labels=None, delete_labels=None,
                token=None):
   """Implementation of the update_user command."""
-  print "Updating user %s" % username
-  with aff4.FACTORY.Create("aff4:/users/%s" % username,
+
+  with aff4.FACTORY.Open("aff4:/users/%s" % username,
                            "GRRUser", mode="rw", token=token) as fd:
+
     # Note this accepts blank passwords as valid.
-    if password is not None:
+    if password:
+      password = getpass.getpass(
+        prompt="Please enter password for user '%s': " % username)
       fd.SetPassword(password)
 
     # Use sets to dedup input.
@@ -149,6 +177,8 @@ def UpdateUser(username, password, add_labels=None, delete_labels=None,
 
     if final_del_labels:
       fd.RemoveLabels(*final_del_labels, owner="GRR")
+
+  print "Updated user %s" % username
 
   ShowUser(username, token=token)
 
@@ -479,9 +509,7 @@ def Initialize(config=None, token=None):
   startup.ConfigInit()
 
   print "\nStep 3: Adding Admin User"
-  password = getpass.getpass(prompt="Please enter password for user 'admin': ")
-  UpdateUser("admin", password, ["admin"], token=token)
-  print "User admin added."
+  AddUser("admin", ["admin"], token=token)
 
   print "\nStep 4: Uploading Memory Drivers to the Database"
   LoadMemoryDrivers(flags.FLAGS.share_dir, token=token)
@@ -553,26 +581,29 @@ def main(unused_argv):
     ShowUser(flags.FLAGS.username, token=token)
 
   elif flags.FLAGS.subparser_name == "update_user":
-    password = None
-    if flags.FLAGS.password:
-      password = getpass.getpass(prompt="Please enter new password for '%s': " %
-                                 flags.FLAGS.username)
-    UpdateUser(flags.FLAGS.username, password, flags.FLAGS.add_labels,
-               flags.FLAGS.delete_labels, token=token)
+    try:
+      UpdateUser(flags.FLAGS.username, flags.FLAGS.password, flags.FLAGS.add_labels,
+                 flags.FLAGS.delete_labels, token=token)
+    except (aff4.InstantiationError):
+      print "User %s does not exist." % flags.FLAGS.username
 
   elif flags.FLAGS.subparser_name == "delete_user":
     DeleteUser(flags.FLAGS.username, token=token)
 
   elif flags.FLAGS.subparser_name == "add_user":
-    if flags.FLAGS.password:
-      password = flags.FLAGS.password
-    else:
-      password = getpass.getpass(
-          prompt="Please enter password for user '%s': " % flags.FLAGS.username)
     labels = []
     if not flags.FLAGS.noadmin:
       labels.append("admin")
-    UpdateUser(flags.FLAGS.username, password, labels, token=token)
+
+    if flags.FLAGS.labels:
+      labels.extend(flags.FLAGS.labels)
+
+    try:
+      if aff4.FACTORY.Open("aff4:/users/%s" % flags.FLAGS.username, "GRRUser",
+                           token=token):
+        print "Cannot add user %s: User already exists." % flags.FLAGS.username
+    except (aff4.InstantiationError):
+      AddUser(flags.FLAGS.username, flags.FLAGS.password, labels, token=token)
 
   elif flags.FLAGS.subparser_name == "upload_python":
     content = open(flags.FLAGS.file).read(1024 * 1024 * 30)
