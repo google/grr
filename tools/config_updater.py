@@ -8,6 +8,7 @@ import getpass
 import json
 import os
 import re
+import time
 # importing readline enables the raw_input calls to have history etc.
 import readline  # pylint: disable=unused-import
 import sys
@@ -677,3 +678,6 @@ def main(unused_argv):
 
 if __name__ == "__main__":
   flags.StartMain(main)
+  # Wait for threads to finish inserting into the datastore
+  time.sleep(.5)
+
