@@ -148,18 +148,14 @@ class AccessControlTest(test_lib.GRRBaseTest):
       # This should work now.
       aff4.FACTORY.Open(urn, mode="rw", token=token)
 
-    # 3 weeks later.
-    with test_lib.FakeTime(100.0 + 3 * 7 * 24 * 60 * 60):
-      # This should still work.
+    token_expiry = config_lib.CONFIG["ACL.token_expiry"]
+
+    # This is close to expiry but should still work.
+    with test_lib.FakeTime(100.0 + token_expiry - 100.0):
       aff4.FACTORY.Open(urn, mode="rw", token=token)
 
-    # Getting close.
-    with test_lib.FakeTime(100.0 + 4 * 7 * 24 * 60 * 60 - 100.0):
-      # This should still work.
-      aff4.FACTORY.Open(urn, mode="rw", token=token)
-
-    # Over 4 weeks now.
-    with test_lib.FakeTime(100.0 + 4 * 7 * 24 * 60 * 60 + 100.0):
+    # Past expiry, should fail.
+    with test_lib.FakeTime(100.0 + token_expiry + 100.0):
       self.assertRaises(access_control.UnauthorizedAccess,
                         aff4.FACTORY.Open, urn, None, "rw", token)
 
