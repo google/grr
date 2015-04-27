@@ -4,6 +4,8 @@
 
 import __builtin__
 import base64
+import copy
+import functools
 import os
 import pipes
 import Queue
@@ -425,6 +427,51 @@ class TimeBasedCache(FastStore):
 
   def __setstate__(self, state):
     self.__init__(max_size=state["max_size"], max_age=state["max_age"])
+
+
+class Memoize(object):
+  """A decorator to produce a memoizing version of a method f.
+  """
+
+  def __init__(self, deep_copy=False):
+    """Constructor.
+
+    Args:
+      deep_copy: Whether to perform a deep copy of the returned object.
+          Otherwise, a direct reference is returned.
+    """
+    self.deep_copy = deep_copy
+
+  def __call__(self, f):
+    """Produce a memoizing version of f.
+
+    Requires that all parameters are hashable. Also, it does not copy the return
+    value, so changes to a returned object may be visible in future invocations.
+
+    Args:
+      f: The function which will be wrapped.
+
+    Returns:
+      A wrapped function which memoizes all values returned by f, keyed by
+      the arguments to f.
+
+    """
+    f.memo_pad = {}
+    f.memo_deep_copy = self.deep_copy
+    @functools.wraps(f)
+    def Wrapped(self, *args, **kwargs):
+      # We keep args and kwargs separate to avoid confusing an arg which is a
+      # pair with a kwarg. Also, we don't try to match calls when an argument
+      # moves between args and kwargs.
+      key = tuple(args), tuple(sorted(kwargs.items(), key=lambda x: x[0]))
+      if key not in f.memo_pad:
+        f.memo_pad[key] = f(self, *args, **kwargs)
+      if f.memo_deep_copy:
+        return copy.deepcopy(f.memo_pad[key])
+      else:
+        return f.memo_pad[key]
+
+    return Wrapped
 
 
 class PickleableLock(object):

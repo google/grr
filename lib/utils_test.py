@@ -434,6 +434,34 @@ class UtilsTest(test_lib.GRRBaseTest):
       self.assertTrue(os.path.islink(link_path))
       self.assertEqual(os.readlink(link_path), "subdir/test2.txt")
 
+  def testMemoize(self):
+    class Concat(object):
+      append_count = 0
+
+      @utils.Memoize()
+      def concat(self, prefix, suffix):
+        Concat.append_count += 1
+        return prefix + "," + suffix
+
+    for _ in range(5):
+      self.assertEqual(Concat().concat(prefix="a", suffix="b"), "a,b")
+    self.assertEqual(Concat.append_count, 1)
+
+    class Fibber(object):
+      fib_count = 0
+
+      @utils.Memoize()
+      def fib(self, x):
+        Fibber.fib_count += 1
+        if x < 2:
+          return x
+        return self.fib(x - 1) + self.fib(x - 2)
+
+    self.assertEqual(Fibber().fib(20), 6765)
+    # Memoized fibbonaci runs once per value of x used, naive fibbonaci runs
+    # proportionaly to the output value.
+    self.assertEqual(Fibber.fib_count, 21)
+
 
 def main(argv):
   test_lib.main(argv)
