@@ -253,6 +253,8 @@ def RepackAllBinaries(upload=False, debug_build=False, token=None):
        build.LinuxClientDeployer),
       (["Target:Linux", "Target:LinuxRpm", "Platform:Linux", "Arch:amd64"],
        build.CentosClientDeployer),
+      (["Target:Linux", "Target:LinuxRpm", "Platform:Linux", "Arch:i386"],
+       build.CentosClientDeployer),
       (["Target:Darwin", "Platform:Darwin", "Arch:amd64"],
        build.DarwinClientDeployer)]
 
