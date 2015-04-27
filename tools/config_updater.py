@@ -105,24 +105,18 @@ parser_initialize.add_argument(
 parser_set_var.add_argument("var", help="Variable to set.")
 parser_set_var.add_argument("val", help="Value to set.")
 
-def AddUser(username, password, labels=[], token=None):
+def AddUser(username, password=None, labels=[], token=None):
   """Implementation of the add_user command."""
   with aff4.FACTORY.Create("aff4:/users/%s" % username,
                            "GRRUser", mode="rw", token=token) as fd:
     # Note this accepts blank passwords as valid.
-    if not password:
+    if password is None:
       password = getpass.getpass(
           prompt="Please enter password for user '%s': " % username)
     fd.SetPassword(password)
 
-    # Use sets to dedup input.
-    if labels is not []:
-      add_labels = set(labels)
-    else:
-      add_labels = None
-
-    if add_labels:
-      fd.AddLabels(*add_labels, owner="GRR")
+    if labels:
+      fd.AddLabels(*set(labels), owner="GRR")
 
   print "Added user %s." % username
 
@@ -510,7 +504,7 @@ def Initialize(config=None, token=None):
   startup.ConfigInit()
 
   print "\nStep 3: Adding Admin User"
-  AddUser("admin", ["admin"], token=token)
+  AddUser("admin", labels=["admin"], token=token)
 
   print "\nStep 4: Uploading Memory Drivers to the Database"
   LoadMemoryDrivers(flags.FLAGS.share_dir, token=token)
@@ -678,6 +672,3 @@ def main(unused_argv):
 
 if __name__ == "__main__":
   flags.StartMain(main)
-  # Wait for threads to finish inserting into the datastore
-  time.sleep(.5)
-
