@@ -479,7 +479,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
     fd = aff4.FACTORY.Create(path, classname, mode="rw", token=self.token)
     fd.Set(fd.Schema._CHUNKSIZE(10))
-    # Write one byte and verify the unbound read returns 1 byte
+    # Write one byte and verify the unbound read returns 10100 bytes
     data = fd.read()
     self.assertEqual(len(data), 10100)
     # Append additional data and retry as oversized unbound read
