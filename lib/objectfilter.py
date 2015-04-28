@@ -477,18 +477,29 @@ class ValueExpander(object):
 
   def _AtLeaf(self, attr_value):
     """Called when at a leaf value. Should yield a value."""
-    yield attr_value
+    if isinstance(attr_value, collections.Mapping):
+      # If the result is a dict, return each key/value pair as a new dict.
+      for k, v in attr_value.items():
+        yield {k: v}
+    else:
+      yield attr_value
 
   def _AtNonLeaf(self, attr_value, path):
     """Called when at a non-leaf value. Should recurse and yield values."""
     try:
-      # If it's dictionary-like, yield the attribute of the dict.
-      if isinstance(attr_value, (dict, collections.Mapping)):
+      if isinstance(attr_value, collections.Mapping):
+        # If it's dictionary-like, treat the dict key as the attribute..
         sub_obj = attr_value.get(path[1])
         if len(path) > 2:
+          # Expand any additional elements underneath the key.
           sub_obj = self.Expand(sub_obj, path[2:])
-        for value in sub_obj:
-          yield value
+        if isinstance(sub_obj, collections.Mapping):
+          # If the result is a dict, return each key/value pair as a new dict.
+          for k, v in sub_obj.items():
+            yield {k: v}
+        else:
+          for value in sub_obj:
+            yield value
       else:
         # If it's an iterable, we recurse on each value.
         for sub_obj in attr_value:

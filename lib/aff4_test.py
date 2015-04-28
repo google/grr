@@ -489,8 +489,6 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     self.assertRaises(aff4.OversizedRead, fd.read)
     fd.Close()
 
-
-
   def testAFF4Image(self):
     self.ExerciseAFF4ImageBase("AFF4Image")
 

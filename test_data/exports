@@ -1,0 +1,4 @@
+/path/to/foo -rw,sync host1(ro) host2
+/path/to/bar *.example.org(all_squash,ro) \
+  192.168.1.0/24 (rw) # Mistake here - space makes this default.
+

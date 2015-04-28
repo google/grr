@@ -7,6 +7,7 @@ import stat
 from grr.lib import objectfilter
 from grr.lib import rdfvalue
 from grr.lib import registry
+from grr.lib import utils
 from grr.lib.rdfvalues import structs
 from grr.parsers import config_file
 
@@ -201,9 +202,14 @@ class AttrFilter(Filter):
 
   def ParseObjs(self, objs, expression):
     for key in self._Attrs(expression):
+      # Key needs to be a string for rdfvalue.KeyValue
+      key = utils.SmartStr(key)
       for obj in objs:
         val = self._GetVal(obj, key)
         if val:
+          # Dict won't accept rdfvalue.RepeatedFieldHelper
+          if isinstance(val, structs.RepeatedFieldHelper):
+            val = list(val)
           yield rdfvalue.AttributedDict({"k": key, "v": val})
 
   def Validate(self, expression):
