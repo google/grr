@@ -127,7 +127,7 @@ class OSXEnumerateRunningServicesTest(OSXClientTests):
 
   def testOSXEnumerateRunningServicesAll(self):
     self.osx.client_utils_osx.OSXVersion().AndReturn(self.mock_version)
-    self.mock_version.VersionAsFloat().AndReturn(10.7)
+    self.mock_version.VersionAsMajorMinor().AndReturn([10, 7])
 
     self.action.GetRunningLaunchDaemons().AndReturn(testdata.JOBS)
     num_results = len(testdata.JOBS) - testdata.FILTERED_COUNT
@@ -140,7 +140,7 @@ class OSXEnumerateRunningServicesTest(OSXClientTests):
 
   def testOSXEnumerateRunningServicesSingle(self):
     self.osx.client_utils_osx.OSXVersion().AndReturn(self.mock_version)
-    self.mock_version.VersionAsFloat().AndReturn(10.7)
+    self.mock_version.VersionAsMajorMinor().AndReturn([10, 7, 1])
 
     self.action.GetRunningLaunchDaemons().AndReturn(testdata.JOB)
     self.action.SendReply(mox.Func(self.ValidResponseProtoSingle))
@@ -151,7 +151,8 @@ class OSXEnumerateRunningServicesTest(OSXClientTests):
 
   def testOSXEnumerateRunningServicesVersionError(self):
     self.osx.client_utils_osx.OSXVersion().AndReturn(self.mock_version)
-    self.mock_version.VersionAsFloat().AndReturn(10.5)
+    self.mock_version.VersionAsMajorMinor().AndReturn([10, 5, 1])
+    self.mock_version.VersionString().AndReturn("10.5.1")
 
     self.mox.ReplayAll()
     self.assertRaises(self.osx.UnsupportedOSVersionError, self.action.Run, None)

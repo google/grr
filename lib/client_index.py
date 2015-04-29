@@ -66,10 +66,12 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
     if not filtered_keywords:
       filtered_keywords.append(".")
 
+    # TODO(user): Make keyword index datetime aware so that
+    # AsMicroSecondsFromEpoch is unecessary.
     return map(self._URNFromClientID,
                self.Lookup(map(self._NormalizeKeyword, filtered_keywords),
-                           start_time=start_time,
-                           end_time=end_time))
+                           start_time=start_time.AsMicroSecondsFromEpoch(),
+                           end_time=end_time.AsMicroSecondsFromEpoch()))
 
   def AnalyzeClient(self, client):
     """Finds the client_id and keywords for a client.

@@ -263,13 +263,13 @@ class OSXEnumerateRunningServices(actions.ActionPlugin):
     Raises:
       UnsupportedOSVersionError: for OS X earlier than 10.6
     """
+    osxversion = client_utils_osx.OSXVersion()
+    version_array = osxversion.VersionAsMajorMinor()
 
-    self.osversion = client_utils_osx.OSXVersion().VersionAsFloat()
-
-    if self.osversion < 10.6:
+    if version_array[:2] < [10, 6]:
       raise UnsupportedOSVersionError(
-          "ServiceManagment API unsupported on < 10.6. This"
-          " client is %s" % self.osversion)
+          "ServiceManagment API unsupported on < 10.6. This client is %s" %
+          osxversion.VersionString())
 
     launchd_list = self.GetRunningLaunchDaemons()
 
