@@ -52,68 +52,26 @@ def main(argv):
   """Sets up all the component in their own threads."""
   flag_list = [flags.FLAGS.start_worker, flags.FLAGS.start_ui,
                flags.FLAGS.start_http_server, flags.FLAGS.start_dataserver]
-  enabled_flags = [f for f in flag_list if f]
+  # enabled_flags = [f for f in flag_list if f]
 
-  # If no start preferences were provided start everything
-  if not enabled_flags:
-    flags.FLAGS.start_worker = True
-    flags.FLAGS.start_http_server = True
-    flags.FLAGS.start_ui = True
-
-  threads = []
-  if len(enabled_flags) != 1:
-    # If we only have one flag, we are running in single component mode and we
-    # want the component to do the initialization. Otherwise we initialize as
-    # a SingleServer.
-    config_lib.CONFIG.AddContext(
-        "SingleServer Context",
-        "Context applied when running all functions in a single server.")
-    startup.Init()
+  if True not in flag_list:
+    raise RuntimeError("No component specified to start")
 
   # Start the worker thread if necessary.
   if flags.FLAGS.start_worker:
-    worker_thread = threading.Thread(target=worker.main, args=[argv],
-                                     name="Worker")
-    worker_thread.daemon = True
-    threads.append(worker_thread)
-    worker_thread.start()
+    worker.main([argv])
 
   # Start the HTTP server thread, that clients communicate with, if necessary.
   if flags.FLAGS.start_http_server:
-    http_thread = threading.Thread(target=http_server.main, args=[argv],
-                                   name="HTTP Server")
-    http_thread.daemon = True
-    threads.append(http_thread)
-    http_thread.start()
+    http_server.main([argv])
 
   # Start the UI thread if necessary.
   if flags.FLAGS.start_ui:
-    ui_thread = threading.Thread(target=admin_ui.main, args=[argv],
-                                 name="GUI")
-    ui_thread.daemon = True
-    threads.append(ui_thread)
-    ui_thread.start()
+    admin_ui.main([argv])
 
   # Start the data server thread if necessary.
   if flags.FLAGS.start_dataserver:
-    dataserver_thread = threading.Thread(target=data_server.main, args=[argv],
-                                         name="Dataserver")
-    dataserver_thread.daemon = True
-    threads.append(dataserver_thread)
-    dataserver_thread.start()
-
-  try:
-    while True:
-      time.sleep(5)
-
-      # If any threads die GRR will not work, so if there is a dead one we exit
-      for thread in threads:
-        if not thread.is_alive():
-          raise RuntimeError("Child thread %s has died, exiting" % thread.name)
-
-  except KeyboardInterrupt:
-    pass
-
+    data_server.main([argv])
 
 if __name__ == "__main__":
   flags.StartMain(main)

@@ -38,7 +38,7 @@ Client.poll_max: 600
 # Writeback for server components.
 Config.writeback: "%(Config.directory)/server.local.yaml"
 
-Datastore.implementation: MongoDataStore
+Datastore.implementation: SqliteDataStore
 
 Datastore.security_manager: BasicAccessControlManager
 
@@ -50,11 +50,9 @@ Logging.path: /var/log/grr
 
 Logging.verbose: False
 
-Mongo.db_name: grr
-
 # Mongo.server:
-Mongo.port: 27017
-
+# Mongo.port:
+# Mongo.db_name:
 
 # These must be in the domain specified above as Logging.domain.
 # Monitoring.emergency_access_email: grr-emergency-access@example.com
@@ -360,11 +358,6 @@ Platform:Windows:
     # This is where the client will write back volatile configuration data. On
     # windows we write configuration into the registry.
     Config.writeback: reg://%(Client.config_hive)/%(Client.config_key)
-
-SingleServer Context:
-  Logging.filename: "%(Logging.path)/grr-single-server.log"
-
-  Monitoring.http_port: 44441
 
 Worker Context:
   Cron.active: True
