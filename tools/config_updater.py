@@ -411,7 +411,7 @@ this will be port 8080 with the URL ending in /control.
   print """\nUI URL:
 The UI URL specifies where the Administrative Web Interface can be found.
 """
-  ui_url = RetryQuestion("AdminUI URL", "^http://.*$",
+  ui_url = RetryQuestion("AdminUI URL", "^http[s]*://.*$",
                          "http://%s:8000" % hostname)
   config.Set("AdminUI.url", ui_url)
 
