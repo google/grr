@@ -55,8 +55,8 @@ class BaseHandler(object):
     for f in self.filters:
       try:
         f.Validate()
-      except DefinitionError:
-        bad_filters.append(f.expression)
+      except DefinitionError as e:
+        bad_filters.append("%s: %s" % (f.expression, e))
     if bad_filters:
       raise DefinitionError("Filters with invalid expressions: %s" %
                             ", ".join(bad_filters))

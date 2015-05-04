@@ -164,7 +164,7 @@ class DeleteHuntFlow(flow.GRRFlow):
       if hunt.GetRunner().IsHuntStarted():
         raise RuntimeError("Unable to delete a running hunt.")
       if (not config_lib.CONFIG["AdminUI.allow_hunt_results_delete"] and
-            hunt.client_count):
+          hunt.client_count):
         raise RuntimeError("Unable to delete a hunt with results while "
                            "AdminUI.allow_hunt_results_delete is disabled.")
     aff4.FACTORY.Delete(self.args.hunt_urn, token=self.token)
