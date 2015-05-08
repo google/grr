@@ -17,7 +17,6 @@ import psutil
 from grr.client import client_plugins
 from grr.client import client_utils
 from grr.client.client_actions import standard
-from grr.client.client_actions import tests
 # pylint: enable=unused-import, g-bad-import-order
 
 from grr.client import actions

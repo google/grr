@@ -1,5 +1,7 @@
 'use strict';
 
+// TODO(user): Auto-generate parts of this file
+//
 goog.provide('grrUi.semantic.module');
 
 goog.require('grrUi.core.module');

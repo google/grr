@@ -10,6 +10,7 @@ import psutil
 
 from grr.client import comms
 from grr.lib import config_lib
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import stats
 from grr.lib import test_lib
@@ -211,3 +212,10 @@ class GetClientStatsActionTest(test_lib.EmptyActionTest):
     self.assertEqual(len(response.io_samples), 1)
     self.assertEqual(response.io_samples[0].timestamp,
                      rdfvalue.RDFDatetime().FromSecondsFromEpoch(110))
+
+
+def main(argv):
+  test_lib.main(argv)
+
+if __name__ == "__main__":
+  flags.StartMain(main)

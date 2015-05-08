@@ -14,11 +14,13 @@ goog.scope(function() {
  *
  * @param {!angular.Scope} $scope
  * @param {!angular.$filter} $filter
+ * @param {!angular.$JQLite} $element
+ * @param {!grrUi.core.timeService.TimeService} grrTimeService
  * @constructor
  * @ngInject
  */
 grrUi.semantic.timestampDirective.TimestampController = function(
-    $scope, $filter) {
+    $scope, $filter, $element, grrTimeService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
@@ -28,8 +30,17 @@ grrUi.semantic.timestampDirective.TimestampController = function(
   /** @private {!angular.$filter} $filter */
   this.filter_ = $filter;
 
-  /** @private {string} */
+  /** @private {?string} */
   this.formattedTimestamp;
+
+  /** @private {?number} */
+  this.value;
+
+  /** @private {!angular.JQLite} $element */
+  this.element_ = $element;
+
+  /** @private {grrUi.core.timeService.TimeService} grrTimeService */
+  this.timeService_ = grrTimeService;
 
   this.scope_.$watch('::value', this.onValueChange.bind(this));
 };
@@ -56,13 +67,22 @@ TimestampController.prototype.onValueChange = function(newValue) {
         timestamp = newValue / 1000;
       }
 
-      this.formattedTimestamp = this.filter_('date')(
-          timestamp, 'yyyy-MM-dd HH:mm:ss', 'UTC') + ' UTC';
+      this.value = timestamp;
+
+      this.formattedTimestamp = this.timeService_.formatAsUTC(timestamp);
     }
   }
 };
 
+/**
+ * Called when a user hovers the mouse over a timestamp to display the tooltip.
+ */
+TimestampController.prototype.onMouseEnter = function() {
+  var span = $(this.element_).find('span')[0];
 
+  span.title =
+      this.timeService_.getFormattedDiffFromCurrentTime(this.value);
+};
 
 /**
  * Directive that displays RDFDatetime values.
@@ -78,8 +98,10 @@ grrUi.semantic.timestampDirective.TimestampDirective = function($filter) {
       value: '='
     },
     restrict: 'E',
-    template: '<nobr ng-if="::controller.formattedTimestamp !== undefined">' +
-        '{$ ::controller.formattedTimestamp $}</nobr>',
+    template: '<span class="timestamp" ' +
+        'ng-if="::controller.formattedTimestamp !== undefined" ' +
+        'ng-mouseenter="controller.onMouseEnter()">' +
+        '{$ ::controller.formattedTimestamp $}</span>',
     controller: TimestampController,
     controllerAs: 'controller'
   };

@@ -174,8 +174,8 @@ class ApprovalWithApproversAndReason(Approval):
 
     if namespace != "ACL":
       raise access_control.UnauthorizedAccess(
-          "Approval object has invalid urn %s.", subject=self.urn,
-          requested_access=token.requested_access)
+          "Approval object has invalid urn %s." % self.urn,
+          subject=self.urn, requested_access=token.requested_access)
 
     user, subject_urn = self.InferUserAndSubjectFromUrn()
     if user != token.username:

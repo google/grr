@@ -268,8 +268,13 @@ class EnumerateUsers(actions.ActionPlugin):
 
 
 class EnumerateFilesystems(actions.ActionPlugin):
-  """Enumerate all unique filesystems local to the system."""
-  acceptable_filesystems = set(["ext2", "ext3", "ext4", "vfat", "ntfs"])
+  """Enumerate all unique filesystems local to the system.
+
+  Filesystems picked from:
+    https://www.kernel.org/doc/Documentation/filesystems/
+  """
+  acceptable_filesystems = set(["ext2", "ext3", "ext4", "vfat", "ntfs",
+                                "btrfs", "Reiserfs", "XFS", "JFS", "squashfs"])
   out_rdfvalue = rdfvalue.Filesystem
 
   def CheckMounts(self, filename):

@@ -7,6 +7,7 @@ goog.require('grrUi.core.aff4Service.Aff4Service');
 goog.require('grrUi.core.apiItemsProviderDirective.ApiItemsProviderDirective');
 goog.require('grrUi.core.apiService.ApiService');
 goog.require('grrUi.core.basenameFilter.BasenameFilter');
+goog.require('grrUi.core.clockDirective.ClockDirective');
 goog.require('grrUi.core.infiniteTableDirective.InfiniteTableDirective');
 goog.require('grrUi.core.legacyRendererDirective.LegacyRendererDirective');
 goog.require('grrUi.core.memoryItemsProviderDirective.MemoryItemsProviderDirective');
@@ -66,6 +67,9 @@ grrUi.core.module.directive(
 grrUi.core.module.directive(
     grrUi.core.splitterDirective.SplitterPaneDirective.directive_name,
     grrUi.core.splitterDirective.SplitterPaneDirective);
+grrUi.core.module.directive(
+    grrUi.core.clockDirective.ClockDirective.directive_name,
+    grrUi.core.clockDirective.ClockDirective);
 
 grrUi.core.module.service(
     grrUi.core.reflectionService.ReflectionService.service_name,

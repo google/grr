@@ -62,6 +62,14 @@ class Interrogate(flow.GRRFlow):
                              token=self.token)
     fd.Close()
 
+    # Make sure we always have a VFSDirectory with a pathspec at fs/os
+    pathspec = rdfvalue.PathSpec(
+        path="/", pathtype=rdfvalue.PathSpec.PathType.OS)
+    urn = self.client.PathspecToURN(pathspec, self.client.urn)
+    with aff4.FACTORY.Create(
+        urn, "VFSDirectory", mode="w", token=self.token) as fd:
+      fd.Set(fd.Schema.PATHSPEC, pathspec)
+
     self.CallClient("GetPlatformInfo", next_state="Platform")
     self.CallClient("GetInstallDate", next_state="InstallDate")
     self.CallClient("GetClientInfo", next_state="ClientInfo")

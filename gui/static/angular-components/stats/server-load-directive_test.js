@@ -36,7 +36,7 @@ describe('server load indicator service', function() {
       var deferredDenominator = $q.defer();
       deferredDenominator.resolve(denominatorResponse);
 
-      spyOn(grrApiServiceMock, 'get').andCallFake(function(path) {
+      spyOn(grrApiServiceMock, 'get').and.callFake(function(path) {
         if (path === 'stats/store/FRONTEND/metrics/metric1') {
           return deferredNumerator.promise;
         } else if (path === 'stats/store/FRONTEND/metrics/metric2') {

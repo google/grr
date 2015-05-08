@@ -25,7 +25,7 @@ class HTTPApiEndToEndTestProgram(test_lib.GrrTestProgram):
   def setUp(self):
 
     self.trd = runtests.DjangoThread()
-    self.trd.start()
+    self.trd.StartAndWaitUntilServing()
 
 
 class CSRFProtectionTest(test_lib.GRRBaseTest):
