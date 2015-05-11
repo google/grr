@@ -74,7 +74,13 @@ class MySQLConnection(object):
 
   def __exit__(self, unused_type, unused_value, unused_traceback):
     if self.queue:
-      self.queue.put(self)
+      if self.queue.qsize() < 10:
+        self.queue.put(self)
+      else:
+        self.dbh.close()
+        self.queue = None
+    else:
+      self.dbh.close()
 
   def Execute(self, *args):
     """Executes a query."""
@@ -105,12 +111,15 @@ class ConnectionPool(object):
     connection.Execute(.....)
   """
 
-  def __init__(self, pool_size=5):
+  def __init__(self):
     self.connections = Queue.Queue()
-    for _ in range(pool_size):
+    pool_init_size = int(config_lib.CONFIG["Threadpool.size"] / 5 + 5)
+    for _ in range(pool_init_size):
       self.connections.put(MySQLConnection(self.connections))
 
   def GetConnection(self):
+    if self.connections.empty():
+      self.connections.put(MySQLConnection(self.connections))
     return self.connections.get(block=True)
 
 
@@ -528,10 +537,13 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
     return [aff4_q, subjects_q]
 
-  def _ExecuteQuery(self, *args):
+  def _ExecuteQuery(self, query, args=None):
     """Get connection from pool and execute query."""
     with self.pool.GetConnection() as cursor:
-      result = cursor.Execute(*args)
+      if args:
+        result = cursor.Execute(query, args)
+      else:
+        result = cursor.Execute(query)
     return result
 
   def _MakeTimestamp(self, start, end):
