@@ -9,7 +9,7 @@ import re
 import thread
 import threading
 import time
-
+import logging
 
 import MySQLdb
 from MySQLdb import cursors
@@ -90,7 +90,8 @@ class MySQLConnection(object):
       try:
         self.cursor.execute(*args)
         return self.cursor.fetchall()
-      except MySQLdb.Error:
+      except MySQLdb.Error as e:
+        logging.warn(e)
         time.sleep(.2)
         try:
           database = config_lib.CONFIG["Mysql.database_name"]
