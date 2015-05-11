@@ -74,6 +74,7 @@ class MySQLConnection(object):
 
   def __exit__(self, unused_type, unused_value, unused_traceback):
     if self.queue:
+      self.queue.task_done()
       if self.queue.qsize() < 10:
         self.queue.put(self)
       else:
