@@ -8,7 +8,6 @@ import getpass
 import json
 import os
 import re
-import time
 # importing readline enables the raw_input calls to have history etc.
 import readline  # pylint: disable=unused-import
 import sys
