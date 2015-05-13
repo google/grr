@@ -9,6 +9,7 @@ import os
 
 from grr.client import vfs
 from grr.client.client_actions import searching
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
@@ -509,3 +510,10 @@ class XoredSearchingTest(GrepTest):
 
   XOR_IN_KEY = 37
   XOR_OUT_KEY = 57
+
+
+def main(argv):
+  test_lib.main(argv)
+
+if __name__ == "__main__":
+  flags.StartMain(main)

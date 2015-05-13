@@ -20,6 +20,7 @@ from grr.parsers import sqlite_file_test
 from grr.parsers import windows_persistence_test
 from grr.parsers import windows_registry_parser_test
 from grr.parsers import wmi_parser_test
+from grr.parsers import cron_file_parser_test
 # pylint: disable=g-import-not-at-top
 try:
   from grr.parsers import linux_software_parser_test

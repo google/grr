@@ -25,17 +25,17 @@ describe('AFF4 items provider directive', function() {
 
   it('fetches data from the server only once', function() {
     var deferred = $q.defer();
-    spyOn(grrApiServiceMock, 'get').andReturn(deferred.promise);
+    spyOn(grrApiServiceMock, 'get').and.returnValue(deferred.promise);
 
     grrReflectionService.getRDFValueDescriptor('Duration');
     grrReflectionService.getRDFValueDescriptor('RDFDatetime');
     // Check that only 1 call to API service was made.
-    expect(grrApiServiceMock.get.callCount).toBe(1);
+    expect(grrApiServiceMock.get.calls.count()).toBe(1);
   });
 
   it('queues requests until the data are fetched', function() {
     var deferred = $q.defer();
-    spyOn(grrApiServiceMock, 'get').andReturn(deferred.promise);
+    spyOn(grrApiServiceMock, 'get').and.returnValue(deferred.promise);
 
     var responses = [];
     grrReflectionService.getRDFValueDescriptor('Duration').then(
@@ -98,7 +98,7 @@ describe('AFF4 items provider directive', function() {
         }
       }
     });
-    spyOn(grrApiServiceMock, 'get').andReturn(deferred.promise);
+    spyOn(grrApiServiceMock, 'get').and.returnValue(deferred.promise);
 
     var descriptors;
     grrReflectionService.getRDFValueDescriptor('Struct', true).then(

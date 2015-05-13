@@ -3,6 +3,7 @@
 
 
 import hashlib
+import math
 import time
 import zlib
 
@@ -230,7 +231,17 @@ class FileTracker(object):
 
 
 class MultiGetFileMixin(object):
-  """A flow mixin to efficiently retrieve a number of files."""
+  """A flow mixin to efficiently retrieve a number of files.
+
+  The class extending this can provide a self.state with the following
+  attributes:
+  - file_size: int. the exact file size to download if known; if 0, the whole
+    file will be downloaded.
+  - use_external_stores: boolean. If true, look in any defined external file
+    stores for files before downloading them, and offer any new files to
+    external stores. This should be true unless the external checks are
+    misbehaving.
+  """
 
   CHUNK_SIZE = 512 * 1024
 
@@ -244,6 +255,7 @@ class MultiGetFileMixin(object):
 
     self.state.Register("files_hashed", 0)
     self.state.Register("use_external_stores", False)
+    self.state.Register("file_size", 0)
     self.state.Register("files_to_fetch", 0)
     self.state.Register("files_fetched", 0)
     self.state.Register("files_skipped", 0)
@@ -428,9 +440,24 @@ class MultiGetFileMixin(object):
       file_tracker.CreateVFSFile("VFSBlobImage", token=self.token,
                                  chunksize=self.CHUNK_SIZE)
 
+      if self.state.file_size != 0:
+        # The flow has been configured to download a specific exact number
+        # of bytes. Ignore what stat tells us and download the exact number
+        # of bytes requested
+        size_to_download = self.state.file_size
+      elif file_tracker.stat_entry.st_size == 0:
+        # Some special files such as /proc files report a size of 0
+        # even though they have non-zero actual size.
+        # For these files, we need to download the first chunk
+        size_to_download = self.CHUNK_SIZE
+      else:
+        # No exact size was specified and the file is not empty.
+        # In this case we trust what stat has reported.
+        size_to_download = file_tracker.stat_entry.st_size
+
       # We do not have the file here yet - we need to retrieve it.
-      expected_number_of_hashes = (file_tracker.stat_entry.st_size /
-                                   self.CHUNK_SIZE + 1)
+      expected_number_of_hashes = int(math.ceil(float(size_to_download) /
+                                                self.CHUNK_SIZE))
 
       # We just hash ALL the chunks in the file now. NOTE: This maximizes client
       # VFS cache hit rate and is far more efficient than launching multiple
@@ -583,7 +610,10 @@ class MultiGetFile(MultiGetFileMixin, flow.GRRFlow):
 
     self.state.use_external_stores = self.args.use_external_stores
 
+    self.state.file_size = self.args.file_size
+
     unique_paths = set()
+
     for pathspec in self.args.pathspecs:
 
       vfs_urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(

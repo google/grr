@@ -99,7 +99,7 @@ def OpenClient(client_id=None, token=None):
   """Opens the client, getting potential approval tokens.
 
   Args:
-    client_id: The client id the approval should be revoked for.
+    client_id: The client id that should be opened.
     token: Token to use to open the client
 
   Returns:

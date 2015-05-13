@@ -569,8 +569,9 @@ class FullAccessControlManager(BasicAccessControlManager):
     if not target:
       if token.username not in aff4.GRRUser.SYSTEM_USERS:
         raise access_control.UnauthorizedAccess(
-            "ACL access denied for flow without client_urn for %s",
+            "ACL access denied for flow without client_urn for %s" %
             token.username)
+
       return True
 
     if not token.reason:

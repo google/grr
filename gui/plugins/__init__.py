@@ -2,6 +2,7 @@
 """GRR GUI plugins simplify the task of displaying different GUI elements."""
 
 # pylint: disable=unused-import
+# TODO(user): automate the generation of this file
 from grr.gui.plugins import acl_manager
 from grr.gui.plugins import artifact_view
 from grr.gui.plugins import configuration_view

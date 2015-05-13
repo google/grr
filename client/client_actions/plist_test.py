@@ -14,7 +14,6 @@ import os
 from grr.client import client_plugins
 # pylint: enable=unused-import
 
-from grr.client import vfs
 from grr.lib import flags
 from grr.lib import plist as plist_lib
 from grr.lib import rdfvalue
@@ -134,9 +133,6 @@ class PlistTest(test_lib.EmptyActionTest):
 
 
 def main(argv):
-  # Initialize the VFS system
-  vfs.VFSInit()
-
   test_lib.main(argv)
 
 if __name__ == "__main__":

@@ -36,6 +36,12 @@ class DjangoThread(threading.Thread):
   def __init__(self, **kwargs):
     super(DjangoThread, self).__init__(**kwargs)
     self.base_url = "http://127.0.0.1:%d" % config_lib.CONFIG["AdminUI.port"]
+    self.ready_to_serve = threading.Event()
+
+  def StartAndWaitUntilServing(self):
+    self.start()
+    if not self.ready_to_serve.wait(60.0):
+      raise RuntimeError("Djangothread did not initialize properly.")
 
   def run(self):
     """Run the django server in a thread."""
@@ -50,6 +56,9 @@ class DjangoThread(threading.Thread):
       raise socket.error(
           "Error while listening on port %d: %s." % (port, str(e)))
 
+    # We want to notify other threads that we are now ready to serve right
+    # before we enter the serving loop.
+    self.ready_to_serve.set()
     while self.keep_running:
       server.handle_request()
 
@@ -126,8 +135,7 @@ def main(_):
 
   # Start up a server in another thread
   trd = DjangoThread()
-  trd.daemon = True
-  trd.start()
+  trd.StartAndWaitUntilServing()
 
   user_ns = dict()
   user_ns.update(globals())

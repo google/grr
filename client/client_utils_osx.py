@@ -313,14 +313,6 @@ class OSXVersion(object):
     """
     return self.version
 
-  def VersionAsFloat(self):
-    """Get major/minor version as a float.
-
-    Returns:
-      10.8 for 10.8.1
-    """
-    return float(".".join(self.majorminor))
-
 
 def KeepAlive():
   # Not yet supported for OSX.

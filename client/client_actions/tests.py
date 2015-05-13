@@ -8,6 +8,7 @@ import logging
 # pylint: disable=unused-import
 # pylint: disable=g-import-not-at-top
 # These import populate the action test registry
+from grr.client.client_actions import action_test
 from grr.client.client_actions import admin_test
 from grr.client.client_actions import file_fingerprint_test
 from grr.client.client_actions import plist_test

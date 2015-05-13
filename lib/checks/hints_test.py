@@ -82,6 +82,22 @@ class HintsTests(test_lib.GRRBaseTest):
     result = hinter.Render(rdf)
     self.assertEqual(expected, result)
 
+  def testRdfFormatterFanOut(self):
+    rdf = rdfvalue.Dict()
+    user1 = rdfvalue.KnowledgeBaseUser(username="drexler")
+    user2 = rdfvalue.KnowledgeBaseUser(username="joy")
+    rdf["cataclysm"] = "GreyGoo"
+    rdf["thinkers"] = [user1, user2]
+    rdf["reference"] = {"ecophage": ["bots", ["nanobots", ["picobots"]]],
+                        "doomsday": {"books": ["cats cradle", "prey"]}}
+    template = ("{cataclysm}; {thinkers.username}; {reference.ecophage}; "
+                "{reference.doomsday}")
+    hinter = hints.Hinter(template=template)
+    expected = ("GreyGoo; drexler,joy; bots,nanobots,picobots; "
+                "books:cats cradle,prey")
+    result = hinter.Render(rdf)
+    self.assertEqual(expected, result)
+
 
 def main(argv):
   test_lib.main(argv)

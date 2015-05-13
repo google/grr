@@ -619,3 +619,24 @@ message LaunchdPlist {
   optional bool HardResourceLimits = 42;
   optional bool Sockets = 43;
 }
+
+// CronTab Entry
+message CronTabEntry{
+  optional string minute = 1;
+  optional string hour = 2;
+  optional string dayofmonth = 3;
+  optional string month = 4;
+  optional string dayofweek = 5;
+  optional string command = 6;
+  optional string comment = 7;
+}
+
+// CronTab File
+message CronTabFile {
+  optional string aff4path = 1[(sem_type) = {
+    type: "RDFURN",
+    description: "The location of this file in the AFF4 space."
+  }];
+  repeated CronTabEntry jobs = 2;
+}
+

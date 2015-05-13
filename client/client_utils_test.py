@@ -238,12 +238,6 @@ class OSXVersionTests(test_lib.GRRBaseTest):
     self.assertEqual(osversion.VersionString(), "10.8.1")
     self.mox.VerifyAll()
 
-  def testVersionAsFloat(self):
-    self.mox.ReplayAll()
-    osversion = client_utils_osx.OSXVersion()
-    self.assertEqual(osversion.VersionAsFloat(), 10.8)
-    self.mox.VerifyAll()
-
   def tearDown(self):
     self.mox.UnsetStubs()
     super(OSXVersionTests, self).tearDown()

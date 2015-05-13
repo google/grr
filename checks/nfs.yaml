@@ -1,0 +1,54 @@
+check_id: 'CCE-4350-5'
+hint:
+  format: '{share}: defaults:{defaults} hosts:{clients.host}
+    options:{clients.options}'
+  fix: Limit read/write access to specific hosts.
+method:
+  - target: {os: ['Linux']}
+    probe:
+      - artifact: 'NfsExportsFile'
+        hint:
+          problem: Wildcard client r/w NFS exports are too permissive.
+        filters:
+          - type: 'AttrFilter'
+            expression: clients
+          - type: 'ObjectFilter'
+            expression: 'options contains "rw"'
+          - type: 'ObjectFilter'
+            expression: 'host contains "*"'
+      - artifact: 'NfsExportsFile'
+        hint:
+          problem: Default r/w NFS exports are too permissive.
+        filters:
+          - type: 'ObjectFilter'
+            expression: defaults contains "rw"
+---
+check_id: 'CCE-4544-3'
+hint:
+  format: '{share}: defaults:{defaults} hosts:{clients.host}
+    options:{clients.options}'
+  fix: If this system defaults to root_squash remove the no_root_squash
+    entries, otherwise set the default to either root_squash or
+    all_squash.
+  problem: NFS defaults allow access to the share as root.
+method:
+  - target: {os: ['Linux']}
+    probe:
+      - artifact: 'NfsExportsFile'
+        filters:
+          - type: 'ObjectFilter'
+            expression: defaults contains "no_root_squash"
+---
+check_id: 'CCE-5669-7'
+hint:
+  format: '{share}: defaults:{defaults} hosts:{clients.host}
+    options:{clients.options}'
+  problem: NFS shares use no/weak authentication methods.
+  fix: Use Kerberized NFS.
+method:
+  - target: {os: ['Linux']}
+    probe:
+      - artifact: 'NfsExportsFile'
+        filters:
+          - type: 'ObjectFilter'
+            expression: sec inset "none,sys"

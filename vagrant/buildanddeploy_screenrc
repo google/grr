@@ -1,0 +1,27 @@
+# GRR GNU screen config
+# Use this to build all clients at once:
+# screen -c build_screenrc
+#
+# This can be run on linux and OS X, the available configured vagrant images
+# will be brought up, and the others will error out.
+#
+# Installers will be written to grr/executables with timestamped directories
+
+defscrollback 32768
+startup_message off
+autodetach on
+caption always "%{= kw}%-w%{= BW}%n %t%{-}%+w %-= @%H - %LD %d %LM - %c"
+vbell off
+
+source ~/.screenrc
+
+# When a process dies, if it was non-zero exit then keep the window until you
+# hit 'q', if you hit 'r', run the same command again.
+zombie qr
+
+screen -t centos_5.11_32 bash build_and_deploy.sh centos_5.11_32
+screen -t centos_5.11_64 bash build_and_deploy.sh centos_5.11_64
+screen -t ubuntu_lucid_32 bash build_and_deploy.sh ubuntu_lucid32
+screen -t ubuntu_lucid_64 bash build_and_deploy.sh ubuntu_lucid64
+screen -t osx_64 bash build_and_deploy.sh OS_X_10.8.5
+screen -t windows bash build_and_deploy.sh windows_7_64

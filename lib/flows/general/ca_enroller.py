@@ -11,6 +11,7 @@ from M2Crypto import X509
 
 import logging
 from grr.lib import aff4
+from grr.lib import client_index
 from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import queues
@@ -32,7 +33,7 @@ class CAEnroler(flow.GRRFlow):
   def Start(self):
     """Sign the CSR from the client."""
     client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient",
-                                 token=self.token)
+                                 mode="rw", token=self.token)
 
     if self.args.csr.type != rdfvalue.Certificate.Type.CSR:
       raise IOError("Must be called with CSR")
@@ -69,6 +70,10 @@ class CAEnroler(flow.GRRFlow):
     client.Set(client.Schema.CERT, certificate_attribute)
     client.Set(client.Schema.FIRST_SEEN, rdfvalue.RDFDatetime().Now())
 
+    index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
+                                aff4_type="ClientIndex",
+                                mode="rw", token=self.token)
+    index.AddClient(client)
     client.Close(sync=True)
 
     # Publish the client enrollment message.

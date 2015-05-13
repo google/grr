@@ -336,6 +336,15 @@ class YamlParser(GRRConfigParser):
 
   name = "yaml"
 
+  # A history of files which we've already parsed, keyed by name. (Files are
+  # repeatedly loaded in unit tests.)
+  #
+  # TODO(user): Remove once our test framework is less insane.
+
+  @utils.Memoize(True)
+  def _LoadYamlByName(self, filename):
+    return yaml.safe_load(open(filename, "rb"))
+
   def _ParseYaml(self, filename="", fd=None):
     """Recursively parse included configs."""
     if not filename and not fd:
@@ -344,7 +353,7 @@ class YamlParser(GRRConfigParser):
     if fd:
       data = yaml.safe_load(fd) or OrderedYamlDict()
     elif filename:
-      data = yaml.safe_load(open(filename, "rb")) or OrderedYamlDict()
+      data = self._LoadYamlByName(filename) or OrderedYamlDict()
     for include in data.pop("ConfigIncludes", []):
       path = os.path.join(os.path.dirname(filename), include)
       parser_cls = GrrConfigManager.GetParserFromFilename(path)

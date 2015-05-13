@@ -27,3 +27,4 @@ from grr.lib.rdfvalues import rekall_types
 from grr.lib.rdfvalues import stats
 from grr.lib.rdfvalues import structs
 from grr.lib.rdfvalues import webhistory
+from grr.lib.rdfvalues import cronjobs

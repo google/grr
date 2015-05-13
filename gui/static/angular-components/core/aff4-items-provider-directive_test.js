@@ -44,7 +44,7 @@ describe('AFF4 items provider directive', function() {
 
     var deferred = $q.defer();
     deferred.resolve(testResponse);
-    spyOn(grrAff4ServiceMock, 'get').andReturn(deferred.promise);
+    spyOn(grrAff4ServiceMock, 'get').and.returnValue(deferred.promise);
 
     $rootScope.$apply();
 
@@ -208,7 +208,7 @@ describe('AFF4 items provider directive', function() {
       items = resultItems;
     });
     $rootScope.$apply();
-    expect(items).toEqual({items: [2, 3, 4, 5, 6]});
+    expect(items).toEqual({items: [2, 3, 4, 5, 6], offset: undefined});
   });
 
   it('throws if transform function returns nothing', function() {
@@ -227,6 +227,6 @@ describe('AFF4 items provider directive', function() {
       controller.fetchItems(0, 10, true).then(function(unusedResultItems) {
       });
       $rootScope.$apply();
-    }).toThrow('transform-items function returned undefined');
+    }).toThrow(Error('transform-items function returned undefined'));
   });
 });

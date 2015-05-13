@@ -1,9 +1,0 @@
-# See vagrantup.com for information about how to use vagrant.
-# Once you have it and virtualbox installed, in this directory:
-
-vagrant up ubuntu_lucid64
-
-# Once your build machine is up you can:
-vagrant ssh ubuntu_lucid64
-
-# TODO: modify build code to make it simple to do a build from this point.
