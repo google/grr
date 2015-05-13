@@ -21,6 +21,7 @@
 <script src="/static/third-party/flot-0.8.3/jquery.flot.stack.js"></script>
 <script src="/static/third-party/flot-0.8.3/jquery.flot.navigate.js"></script>
 <script src="/static/third-party/flot-0.8.3/jquery.flot.time.js"></script>
+<script src='/static/third-party/moment/moment.js'></script>
 <script src="/static/third-party/bootstrap-1.3/bootstrap.js"></script>
 
 <script src="/static/third-party/angular-1.3/angular.js"></script>
@@ -28,6 +29,7 @@
 <script src="/static/third-party/angular-1.3/angular-cookies.js"></script>
 <script src="/static/third-party/angular-1.3/angular-resource.js"></script>
 <script src="/static/third-party/bootstrap-ui-0.12.0.js"></script>
+
 {% endif %}
 
 {% if use_precompiled_js %}
@@ -58,6 +60,7 @@
           <div class="navbar-brand">{{heading|escape}}</div>
         <div id="notifications"></div>
         <div id="search_container"></div>
+        <grr-live-clock />
       </div>
     </div>
   </div>

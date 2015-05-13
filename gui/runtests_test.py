@@ -43,7 +43,7 @@ class SeleniumTestProgram(test_lib.GrrTestProgram):
 
     # Start up a server in another thread
     self.trd = runtests.DjangoThread()
-    self.trd.start()
+    self.trd.StartAndWaitUntilServing()
     self.SetupSelenium()
 
   def tearDown(self):

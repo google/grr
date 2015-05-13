@@ -6,12 +6,10 @@ EXCLUDE_TESTS=\
 HTTPDataStoreCSVBenchmarks,\
 HTTPDataStoreBenchmarks,\
 MicroBenchmarks,\
-TDBDataStoreBenchmarks,\
 FakeDataStoreBenchmarks,\
 AverageMicroBenchmarks,\
 SqliteDataStoreBenchmarks,\
 DataStoreCSVBenchmarks,\
-TDBDataStoreCSVBenchmarks,\
 AFF4Benchmark
 PYTHONPATH=. \
 python grr/run_tests.py \

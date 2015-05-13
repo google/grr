@@ -118,7 +118,6 @@ class MySQLAdvancedDataStore(data_store.DataStore):
   """A mysql based data store."""
 
   POOL = None
-  SYSTEM_TABLE = "system"
 
   def __init__(self):
     # Use the global connection pool.

@@ -275,5 +275,5 @@ config_lib.DEFINE_bool("AdminUI.allow_hunt_results_delete", default=False,
                        "accountability purposes.")
 
 config_lib.DEFINE_integer("Server.max_unbound_read_size", 10000000,
-                          help="The number of bytes allowed for unbounded reads"
-                               " from a file object")
+                          help="The number of bytes allowed for unbounded "
+                          "reads from a file object")

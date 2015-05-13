@@ -14,7 +14,6 @@ import os
 # pylint: disable=unused-import
 from grr.client import client_actions
 # pylint: enable=unused-import
-from grr.client import vfs
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -59,9 +58,6 @@ class FilehashTest(test_lib.EmptyActionTest):
 
 
 def main(argv):
-  # Initialize the VFS system
-  vfs.VFSInit()
-
   test_lib.main(argv)
 
 if __name__ == "__main__":

@@ -111,6 +111,18 @@ class WindowsClientBuilder(build.ClientBuilder):
         os.path.join(self.nanny_dir, vs_arch, build_type, "GRRNanny.exe"),
         os.path.join(self.output_dir, "GRRservice.exe"))
 
+  def BuildWithPyInstaller(self):
+    """Use pyinstaller to build a client package."""
+    # Pyinstaller caches libraries here, clear them out to avoid problems when
+    # building both 32 and 64bit.
+    directory = os.path.expandvars("%APPDATA%\\pyinstaller\\bincache00_py27")
+    logging.info("Clearing directory %s", directory)
+    try:
+      shutil.rmtree(directory)
+    except OSError:
+      pass
+    super(WindowsClientBuilder, self).BuildWithPyInstaller()
+
   def MakeExecutableTemplate(self, output_file=None):
     """Windows templates also include the nanny."""
     super(WindowsClientBuilder, self).MakeExecutableTemplate(

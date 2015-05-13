@@ -19,9 +19,9 @@ source ~/.screenrc
 # hit 'q', if you hit 'r', run the same command again.
 zombie qr
 
-screen -t centos_5.11_32 bash build_and_deploy.sh centos_5.11_32
-screen -t centos_5.11_64 bash build_and_deploy.sh centos_5.11_64
-screen -t ubuntu_lucid_32 bash build_and_deploy.sh ubuntu_lucid32
-screen -t ubuntu_lucid_64 bash build_and_deploy.sh ubuntu_lucid64
-screen -t osx_64 bash build_and_deploy.sh OS_X_10.8.5
-screen -t windows bash build_and_deploy.sh windows_7_64
+screen -t centos_5.11_32 bash build_templates.sh centos_5.11_32
+screen -t centos_5.11_64 bash build_templates.sh centos_5.11_64
+screen -t ubuntu_lucid_32 bash build_templates.sh ubuntu_lucid32
+screen -t ubuntu_lucid_64 bash build_templates.sh ubuntu_lucid64
+screen -t osx_64 bash build_templates.sh OS_X_10.8.5
+screen -t windows bash build_templates.sh windows_7_64

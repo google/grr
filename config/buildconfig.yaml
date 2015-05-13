@@ -1,0 +1,32 @@
+# Use this file to specify what clients should be built with what labels using
+# python grr/client/client_build.py buildanddeploy
+
+# Build all these contexts. If multiple contexts are listed separated by ','
+# they will be applied sequentially for that build run.
+ClientBuilder.BuildTargets:
+  - AllPlatforms Context
+#  - SomeLabel Context
+#  - AllPlatforms Context,SomeOtherLabel Context
+
+AllPlatforms Context:
+  ClientBuilder.target_platforms:
+    - darwin_amd64_dmg
+    - linux_amd64_deb
+    - linux_i386_deb
+    - linux_amd64_rpm
+    - linux_i386_rpm
+    - windows_amd64_exe
+    - windows_i386_exe
+
+# For example this tells buildanddeploy that it needs to build deb and rpm
+# installers for 64-bit linux with the "somelabel" baked in.
+#SomeLabel Context:
+#  Client.labels: [somelabel]
+#  ClientBuilder.target_platforms:
+#    - linux_amd64_deb
+#    - linux_amd64_rpm
+
+# This label will be built for all platforms since the AllPlatforms context is
+# applied above.
+#SomeOtherLabel Context:
+#  Client.labels: [someotherlabel]
