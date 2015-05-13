@@ -90,26 +90,38 @@ class MySQLConnection(object):
       raise
 
 class ConnectionPool(object):
-  """A pool of connections to the mysql server."""
+  """A pool of connections to the mysql server. That uses unfinished_tasks
+  to track the number of open connections."""
 
   def __init__(self):
     self.connections = SafeQueue()
+    self.pool_max_size = config_lib.CONFIG["Threadpool.size"]
     pool_init_size = int(config_lib.CONFIG["Threadpool.size"] / 5 + 5)
     for _ in range(pool_init_size):
       self.connections.put(MySQLConnection())
 
   def GetConnection(self):
-    if self.connections.empty():
+    if self.connections.empty() and self.connections.unfinished_tasks < self.pool_max_size:
       self.connections.put(MySQLConnection())
     connection = self.connections.get(block=True)
-    self.connections.task_done()
     return connection
 
   def PutConnection(self, connection):
     # If the pool is low on connections return this connection to the pool
+    # Reduce the connection count and then put will increment again if the
+    # connection is returned to the pool
+    self.connections.task_done()
     if self.connections.qsize() < 10:
       self.connections.put(connection)
 
+  def DropConnection(self, connection):
+    # It may be worth it to attempt to close connections
+    # before just letting the object expire.
+    _ = connection
+
+    # If a connection is going to be dropped we remove it from the count
+    # of open connections.
+    self.connections.task_done()
 
 class MySQLAdvancedDataStore(data_store.DataStore):
   """A mysql based data store."""
@@ -393,6 +405,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
         # drop
         logging.warn("Datastore query attempt %s failed with %s:" % (i, str(e)))
         time.sleep(.2)
+        self.pool.DropConnection(connection)
         continue
     self.pool.PutConnection(connection)
     return results
