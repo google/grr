@@ -38,7 +38,7 @@ Client.poll_max: 600
 # Writeback for server components.
 Config.writeback: "%(Config.directory)/server.local.yaml"
 
-Datastore.implementation: SqliteDataStore
+Datastore.implementation: MongoDataStore
 
 Datastore.security_manager: BasicAccessControlManager
 
@@ -50,9 +50,11 @@ Logging.path: /var/log/grr
 
 Logging.verbose: False
 
+Mongo.db_name: grr
+
 # Mongo.server:
-# Mongo.port:
-# Mongo.db_name:
+Mongo.port: 27017
+
 
 # These must be in the domain specified above as Logging.domain.
 # Monitoring.emergency_access_email: grr-emergency-access@example.com
