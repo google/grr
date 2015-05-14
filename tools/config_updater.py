@@ -376,6 +376,61 @@ def ConfigureBaseOptions(config):
 
   print "We are now going to configure the server using a bunch of questions.\n"
 
+  print """\n-=GRR Datastore=-
+The GRR Datastore is how all GRR service processes store and share data.
+1. SQLite (Default) - This datastore is stored on the local file system. If you
+configure GRR to run as non-root be sure to allow that user access to the files.
+
+2. MySQL - This datastore uses MySQL and requires the MySQL server to be running
+and a user with the ability to create the GRR database and tables.
+
+3. Mongo - This datastore is a legacy option and is not recommended."""
+
+  datastore = RetryQuestion("Datastore", "^[1-3]$", 1)
+
+  if datastore == 1:
+    config.Set("Datastore.implementation", "SqliteDataStore")
+    datastore_location = RetryQuestion("Datastore Location",
+                                       "^/[A-Za-z0-9/.-]+$",
+                                       config_lib.CONFIG.Get("Datastore.location"))
+    config.Set("Datastore.location", datastore_location)
+
+  if datastore == 2:
+    config.Set("Datastore.implementation", "MySQLAdvancedDataStore")
+    mysql_host = RetryQuestion("MySQL Host", "^[\\.A-Za-z0-9-]+$",
+                               config_lib.CONFIG.Get("Mysql.host"))
+    config.Set("Mysql.host", mysql_host)
+
+    mysql_port = RetryQuestion("MySQL Port", "^[0-9]+$",
+                               config_lib.CONFIG.Get("Mysql.port"))
+    config.Set("Mysql.port", mysql_port)
+
+    mysql_database = RetryQuestion("MySQL Database", "^[A-Za-z0-9-]+$",
+                                   config_lib.CONFIG.Get("Mysql.database_name"))
+    config.Set("Mysql.database_name", mysql_database)
+
+    mysql_username = RetryQuestion("MySQL Username", "[A-Za-z0-9-]+$",
+                                   config_lib.CONFIG.Get("Mysql.database_username"))
+    config.Set("Mysql.database_username", mysql_username)
+
+    mysql_password = getpass.getpass(
+      prompt="Please enter password for database user %s: " % mysql_username)
+    config.Set("Mysql.database_password", mysql_password)
+
+  if datastore == 3:
+    config.Set("Datastore.implementation", "MongoDataStore")
+    mongo_server = RetryQuestion("Mongo Server", "^[\\.A-Za-z0-9-]+$",
+                                 config_lib.CONFIG.Get("Mongo.server"))
+    config.Set("Mongo.server", mongo_server)
+
+    mongo_port = RetryQuestion("Mongo Port", "^[0-9]+$",
+                               config_lib.CONFIG.Get("Mongo.port"))
+    config.Set("Mongo.port", mongo_port)
+
+    mongo_database = RetryQuestion("Mongo Database", "^[A-Za-z0-9-]+$",
+                                   config_lib.CONFIG.Get("Mongo.db_name"))
+    config.Set("Mongo.db_name", mongo_database)
+
   print """\nFor GRR to work each client has to be able to communicate with the
 server. To do this we normally need a public dns name or IP address to
 communicate with. In the standard configuration this will be used to host both
@@ -388,12 +443,12 @@ the client facing server and the admin user interface.\n"""
       hostname = maintenance_utils.GuessPublicHostname()
       print "Using %s as public hostname" % hostname
     except (OSError, IOError):
-      print "Sorry, we couldn't guess your public hostname"
+      print "Sorry, we couldn't guess your public hostname.\n"
 
     hostname = RetryQuestion("Please enter your public hostname e.g. "
                              "grr.example.com", "^([\\.A-Za-z0-9-]+)*$")
 
-  print """\n\nServer URL
+  print """\n\n-=Server URL=-
 The Server URL specifies the URL that the clients will connect to
 communicate with the server. This needs to be publically accessible. By default
 this will be port 8080 with the URL ending in /control.
@@ -408,21 +463,21 @@ this will be port 8080 with the URL ending in /control.
     print "\nSetting the frontend listening port to %d.\n" % frontend_port
     print "Please make sure that this matches your client settings.\n"
 
-  print """\nUI URL:
-The UI URL specifies where the Administrative Web Interface can be found.
+  print """\n-=AdminUI URL=-
+The AdminUI URL specifies where the Administrative Web Interface can be found.
 """
   ui_url = RetryQuestion("AdminUI URL", "^http://.*$",
                          "http://%s:8000" % hostname)
   config.Set("AdminUI.url", ui_url)
 
-  print """\nMonitoring/Email domain name:
+  print """\n-=Monitoring/Email Domain=-
 Emails concerning alerts or updates must be sent to this domain.
 """
   domain = RetryQuestion("Email domain", "^([\\.A-Za-z0-9-]+)*$",
                          "example.com")
   config.Set("Logging.domain", domain)
 
-  print """\nMonitoring email address
+  print """\n-=Monitoring Email Address=-
 Address where monitoring events get sent, e.g. crashed clients, broken server
 etc.
 """
@@ -430,7 +485,7 @@ etc.
                         "grr-monitoring@%s" % domain)
   config.Set("Monitoring.alert_email", email)
 
-  print """\nEmergency email address
+  print """\n-=Emergency Email Address=-
 Address where high priority events such as an emergency ACL bypass are sent.
 """
   emergency_email = RetryQuestion("Monitoring emergency email", "",
