@@ -382,7 +382,8 @@ The GRR Datastore is how all GRR service processes store and share data.\n
 configure GRR to run as non-root be sure to allow that user access to the files.
 
 2. MySQL - This datastore uses MySQL and requires the MySQL server to be running
-and a user with the ability to create the GRR database and tables.
+and a user with the ability to create the GRR database and tables.  The MySQL
+client binaries are required for use with the MySQLdb python module as well.
 
 3. Mongo - This datastore is a legacy option and is not recommended.\n"""
 
@@ -447,7 +448,7 @@ the client facing server and the admin user interface.\n"""
       print "Sorry, we couldn't guess your public hostname.\n"
 
     hostname = RetryQuestion("Please enter your public hostname e.g. "
-                             "grr.example.com", "^([\\.A-Za-z0-9-]+)*$")
+                             "grr.example.com", "^[\.A-Za-z0-9-]+$")
 
   print """\n\n-=Server URL=-
 The Server URL specifies the URL that the clients will connect to
@@ -495,7 +496,7 @@ Address where high priority events such as an emergency ACL bypass are sent.
 
   config.Write()
   print ("Configuration parameters set. You can edit these in %s" %
-         config.parser)
+         config_lib.CONFIG.Get("Config.writeback"))
 
 
 def Initialize(config=None, token=None):
@@ -531,8 +532,8 @@ def Initialize(config=None, token=None):
   print "\nStep 2: Setting Basic Configuration Parameters"
   ConfigureBaseOptions(config)
 
-  # Now load our modified config.
-  startup.ConfigInit()
+  # Now initialize with our modified config.
+  startup.Init()
 
   print "\nStep 3: Adding Admin User"
   password = getpass.getpass(prompt="Please enter password for user 'admin': ")
@@ -576,7 +577,12 @@ def main(unused_argv):
   token = GetToken()
   config_lib.CONFIG.AddContext("Commandline Context")
   config_lib.CONFIG.AddContext("ConfigUpdater Context")
-  startup.Init()
+
+  if flags.FLAGS.subparser_name == "initialize":
+    startup.ConfigInit()
+    Initialize(config_lib.CONFIG, token=token)
+  else:
+    startup.Init()
 
   try:
     print "Using configuration %s" % config_lib.CONFIG.parser
@@ -601,9 +607,6 @@ def main(unused_argv):
     maintenance_utils.RepackAllBinaries(upload=flags.FLAGS.upload,
                                         debug_build=True,
                                         token=token)
-
-  elif flags.FLAGS.subparser_name == "initialize":
-    Initialize(config_lib.CONFIG, token=token)
 
   elif flags.FLAGS.subparser_name == "show_user":
     ShowUser(flags.FLAGS.username, token=token)
