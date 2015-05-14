@@ -355,14 +355,14 @@ def GenerateKeys(config):
   GenerateDjangoKey(config)
 
 
-def RetryQuestion(question_text, output_re="", default_val=""):
+def RetryQuestion(question_text, output_re="", default_val=None):
   """Continually ask a question until the output_re is matched."""
   while True:
-    if default_val:
+    if default_val is not None:
       new_text = "%s [%s]: " % (question_text, default_val)
     else:
       new_text = "%s: " % question_text
-    output = raw_input(new_text) or default_val
+    output = raw_input(new_text) or str(default_val)
     output = output.strip()
     if not output_re or re.match(output_re, output):
       break
@@ -377,31 +377,32 @@ def ConfigureBaseOptions(config):
   print "We are now going to configure the server using a bunch of questions.\n"
 
   print """\n-=GRR Datastore=-
-The GRR Datastore is how all GRR service processes store and share data.
+The GRR Datastore is how all GRR service processes store and share data.\n
 1. SQLite (Default) - This datastore is stored on the local file system. If you
 configure GRR to run as non-root be sure to allow that user access to the files.
 
 2. MySQL - This datastore uses MySQL and requires the MySQL server to be running
 and a user with the ability to create the GRR database and tables.
 
-3. Mongo - This datastore is a legacy option and is not recommended."""
+3. Mongo - This datastore is a legacy option and is not recommended.\n"""
 
-  datastore = RetryQuestion("Datastore", "^[1-3]$", 1)
+  datastore = RetryQuestion("Datastore", "^[1-3]$", "1")
 
-  if datastore == 1:
+  if datastore == "1":
     config.Set("Datastore.implementation", "SqliteDataStore")
     datastore_location = RetryQuestion("Datastore Location",
                                        "^/[A-Za-z0-9/.-]+$",
                                        config_lib.CONFIG.Get("Datastore.location"))
     config.Set("Datastore.location", datastore_location)
 
-  if datastore == 2:
+  if datastore == "2":
     config.Set("Datastore.implementation", "MySQLAdvancedDataStore")
     mysql_host = RetryQuestion("MySQL Host", "^[\\.A-Za-z0-9-]+$",
                                config_lib.CONFIG.Get("Mysql.host"))
     config.Set("Mysql.host", mysql_host)
 
-    mysql_port = RetryQuestion("MySQL Port", "^[0-9]+$",
+    mysql_port = RetryQuestion("MySQL Port (0 for local socket)",
+                               "^[0-9]+$",
                                config_lib.CONFIG.Get("Mysql.port"))
     config.Set("Mysql.port", mysql_port)
 
@@ -417,7 +418,7 @@ and a user with the ability to create the GRR database and tables.
       prompt="Please enter password for database user %s: " % mysql_username)
     config.Set("Mysql.database_password", mysql_password)
 
-  if datastore == 3:
+  if datastore == "3":
     config.Set("Datastore.implementation", "MongoDataStore")
     mongo_server = RetryQuestion("Mongo Server", "^[\\.A-Za-z0-9-]+$",
                                  config_lib.CONFIG.Get("Mongo.server"))
