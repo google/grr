@@ -95,9 +95,9 @@ class ConnectionPool(object):
 
   def __init__(self):
     self.connections = SafeQueue()
-    self.pool_max_size = config_lib.CONFIG["Threadpool.size"]
-    pool_init_size = int(config_lib.CONFIG["Threadpool.size"] / 5 + 5)
-    for _ in range(pool_init_size):
+    self.pool_max_size = int(config_lib.CONFIG["Mysql.conn_pool_max"])
+    self.pool_min_size = int(config_lib.CONFIG["Mysql.conn_pool_min"])
+    for _ in range(self.pool_min_size):
       self.connections.put(MySQLConnection())
 
   def GetConnection(self):
@@ -110,15 +110,24 @@ class ConnectionPool(object):
     # If the pool is low on connections return this connection to the pool
     # Reduce the connection count and then put will increment again if the
     # connection is returned to the pool
-    self.connections.task_done()
-    if self.connections.qsize() < 10:
+
+    if self.connections.qsize() < self.pool_min_size:
+      self.connections.task_done()
       self.connections.put(connection)
+    else:
+      self.DropConnection(connection)
 
   def DropConnection(self, connection):
-    # It may be worth it to attempt to close connections
-    # before just letting the object expire.
-    _ = connection
+    # Attempt to cleanly drop the connection
+    try:
+      connection.cursor.close()
+    except MySQLdb.Error:
+      pass
 
+    try:
+      connection.dbh.close()
+    except MySQLdb.Error:
+      pass
     # If a connection is going to be dropped we remove it from the count
     # of open connections.
     self.connections.task_done()
