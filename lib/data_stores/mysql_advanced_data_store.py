@@ -403,7 +403,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
   def _ExecuteQuery(self, query, args=None):
     """Get connection from pool and execute query."""
     retries = 10
-    for i in range(1, retries):
+    for attempt in range(1, retries + 1):
       connection = self.pool.GetConnection()
       try:
         connection.cursor.execute(query, args)
@@ -412,10 +412,13 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       except MySQLdb.Error as e:
         # If there was an error attempt to clean up this connection and let it
         # drop
-        logging.warn("Datastore query attempt %s failed with %s:" % (i, str(e)))
+        logging.warn("Datastore query attempt %s failed with %s:" % (attempt, str(e)))
         time.sleep(.2)
         self.pool.DropConnection(connection)
-        continue
+        if attempt == 10:
+          raise e
+        else:
+          continue
     self.pool.PutConnection(connection)
     return results
 
