@@ -16,13 +16,10 @@ goog.scope(function() {
  */
 grrUi.core.clockDirective.ClockController =
     function($scope, $interval, grrTimeService) {
-  /* @private {grrUi.core.timeService.TimeService} grrTimeService */
+  /** @private {grrUi.core.timeService.TimeService} */
   this.grrTimeService_ = grrTimeService;
 
-  /**
-   * The formatted clock to be displayed
-   * @export {string}
-   */
+  /** @type {string} The formatted clock to be displayed. */
   this.formattedClock;
 
   this.updateLiveClock_();

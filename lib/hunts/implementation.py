@@ -32,6 +32,10 @@ from grr.lib import registry
 from grr.lib import stats
 from grr.lib import type_info
 from grr.lib import utils
+from grr.lib.aff4_objects import collections as aff4_collections
+from grr.lib.rdfvalues import foreman as foreman_rdf
+from grr.lib.rdfvalues import hunts
+from grr.lib.rdfvalues import stats as stats_rdf
 from grr.proto import flows_pb2
 
 
@@ -211,7 +215,7 @@ class HuntRunner(flow_runner.FlowRunner):
 
         # Hunts are always in the running state.
         state=rdfvalue.Flow.State.RUNNING,
-        usage_stats=rdfvalue.ClientResourcesStats(),
+        usage_stats=stats_rdf.ClientResourcesStats(),
         remaining_cpu_quota=args.cpu_limit,
     )
 
@@ -236,10 +240,10 @@ class HuntRunner(flow_runner.FlowRunner):
     except AttributeError:
       flow_name = ""
 
-    event = rdfvalue.AuditEvent(user=self.flow_obj.token.username,
-                                action=event_action, urn=self.flow_obj.urn,
-                                flow_name=flow_name,
-                                description=self.args.description)
+    event = flow.AuditEvent(user=self.flow_obj.token.username,
+                            action=event_action, urn=self.flow_obj.urn,
+                            flow_name=flow_name,
+                            description=self.args.description)
     flow.Events.PublishEvent("Audit", event, token=self.flow_obj.token)
 
   def Start(self, add_foreman_rules=True):
@@ -273,7 +277,7 @@ class HuntRunner(flow_runner.FlowRunner):
       return
 
     # Add a new rule to the foreman
-    foreman_rule = rdfvalue.ForemanRule(
+    foreman_rule = foreman_rdf.ForemanRule(
         created=rdfvalue.RDFDatetime().Now(),
         expires=self.context.expires,
         description="Hunt %s %s" % (self.session_id,
@@ -462,16 +466,12 @@ class GRRHunt(flow.GRRFlow):
   """The GRR Hunt class."""
 
   # Some common rules.
-  MATCH_WINDOWS = rdfvalue.ForemanAttributeRegex(attribute_name="System",
-                                                 attribute_regex="Windows")
-  MATCH_LINUX = rdfvalue.ForemanAttributeRegex(attribute_name="System",
-                                               attribute_regex="Linux")
-  MATCH_DARWIN = rdfvalue.ForemanAttributeRegex(attribute_name="System",
-                                                attribute_regex="Darwin")
-
-  # TODO(user): this is deprecated (see ResultsOutputCollection, which
-  # is now used to work with hunt results).
-  DEPRECATED_RESULTS_QUEUE = rdfvalue.RDFURN("HR")
+  MATCH_WINDOWS = foreman_rdf.ForemanAttributeRegex(attribute_name="System",
+                                                    attribute_regex="Windows")
+  MATCH_LINUX = foreman_rdf.ForemanAttributeRegex(attribute_name="System",
+                                                  attribute_regex="Linux")
+  MATCH_DARWIN = foreman_rdf.ForemanAttributeRegex(attribute_name="System",
+                                                   attribute_regex="Darwin")
 
   class SchemaCls(flow.GRRFlow.SchemaCls):
     """The schema for hunts.
@@ -479,37 +479,10 @@ class GRRHunt(flow.GRRFlow):
     This object stores the persistent information for the hunt.
     """
 
-    # TODO(user): remove as soon as there are no more active hunts
-    # storing client ids and errors in versioned attributes.
-    DEPRECATED_CLIENTS = aff4.Attribute("aff4:clients", rdfvalue.RDFURN,
-                                        "The list of clients this hunt was "
-                                        "run against.",
-                                        creates_new_object_version=False)
-
     CLIENT_COUNT = aff4.Attribute("aff4:client_count", rdfvalue.RDFInteger,
                                   "The total number of clients scheduled.",
                                   versioned=False,
                                   creates_new_object_version=False)
-
-    # TODO(user): remove as soon as there are no more active hunts
-    # storing client ids and errors in versioned attributes.
-    DEPRECATED_FINISHED = aff4.Attribute(
-        "aff4:finished", rdfvalue.RDFURN,
-        "The list of clients the hunt has completed on.",
-        creates_new_object_version=False)
-
-    # TODO(user): remove as soon as there are no more active hunts
-    # storing client ids and errors in versioned attributes.
-    DEPRECATED_ERRORS = aff4.Attribute(
-        "aff4:errors", rdfvalue.HuntError,
-        "The list of clients that returned an error.",
-        creates_new_object_version=False)
-
-    # TODO(user): remove as soon as there's no more potential need to
-    # migrate old logs
-    DEPRECATED_LOG = aff4.Attribute("aff4:result_log", rdfvalue.FlowLog,
-                                    "The log entries.",
-                                    creates_new_object_version=False)
 
     # This needs to be kept out the args semantic value since must be updated
     # without taking a lock on the hunt object.
@@ -565,7 +538,7 @@ class GRRHunt(flow.GRRFlow):
     return self.state.context.creator
 
   def _AddObjectToCollection(self, obj, collection_urn):
-    aff4.PackedVersionedCollection.AddToCollection(
+    aff4_collections.PackedVersionedCollection.AddToCollection(
         collection_urn, [obj], sync=False, token=self.token)
 
   def _GetCollectionItems(self, collection_urn):
@@ -727,20 +700,6 @@ class GRRHunt(flow.GRRFlow):
       self.LogClientError(client_id, log_message=utils.SmartStr(
           responses.status))
 
-  def Save(self):
-    if self.state and self.processed_responses:
-      with self.lock:
-        # TODO(user): remove when old-style hunt results are no longer
-        # supported.
-        if (self.state.context.results_collection is not None and
-            not isinstance(self.state.context.results_collection,
-                           aff4.ResultsOutputCollection)):
-          data_store.DB.Set(self.DEPRECATED_RESULTS_QUEUE, self.urn,
-                            rdfvalue.RDFDatetime().Now(),
-                            replace=True, token=self.token)
-
-    super(GRRHunt, self).Save()
-
   def CallFlow(self, flow_name=None, next_state=None, request_data=None,
                client_id=None, **kwargs):
     """Create a new child flow from a hunt."""
@@ -804,13 +763,13 @@ class GRRHunt(flow.GRRFlow):
 
         value = int(client.Get(aff4.Attribute.NAMES[i.attribute_name]))
         op = i.operator
-        if op == rdfvalue.ForemanAttributeInteger.Operator.LESS_THAN:
+        if op == foreman_rdf.ForemanAttributeInteger.Operator.LESS_THAN:
           if value >= i.value:
             return False
-        elif op == rdfvalue.ForemanAttributeInteger.Operator.GREATER_THAN:
+        elif op == foreman_rdf.ForemanAttributeInteger.Operator.GREATER_THAN:
           if value <= i.value:
             return False
-        elif op == rdfvalue.ForemanAttributeInteger.Operator.EQUAL:
+        elif op == foreman_rdf.ForemanAttributeInteger.Operator.EQUAL:
           if value != i.value:
             return False
         else:
@@ -876,9 +835,6 @@ class GRRHunt(flow.GRRFlow):
                                 self.urn.Add("Results"))
     self.state.context.Register("output_plugins_base_urn",
                                 self.urn.Add("Results"))
-    # TODO(user): Remove as soon as old style hunts (ones that use
-    # RDFValueCollection) are removed.
-    self.state.context.Register("results_collection", None)
 
     with aff4.FACTORY.Create(
         self.state.context.results_metadata_urn, "HuntResultsMetadata",
@@ -935,8 +891,8 @@ class GRRHunt(flow.GRRFlow):
     self.RegisterCompletedClient(client_id)
 
     if self.state.context.args.notification_event:
-      status = rdfvalue.HuntNotification(session_id=self.session_id,
-                                         client_id=client_id)
+      status = hunts.HuntNotification(session_id=self.session_id,
+                                      client_id=client_id)
       self.Publish(self.state.context.args.notification_event, status)
 
   def LogClientError(self, client_id, log_message=None, backtrace=None):

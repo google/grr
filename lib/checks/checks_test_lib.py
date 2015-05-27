@@ -2,6 +2,7 @@
 """A library for check-specific tests."""
 import collections
 import os
+import StringIO
 
 
 import yaml
@@ -30,20 +31,34 @@ class HostCheckTest(test_lib.GRRBaseTest):
     cfg = os.path.join(config_lib.CONFIG["Test.srcdir"], "grr", "checks",
                        cfg_file)
     if check_ids:
+      loaded = []
       for chk_id in check_ids:
-        checks.LoadCheckFromFile(cfg, chk_id)
+        loaded.append(checks.LoadCheckFromFile(cfg, chk_id))
+      return loaded
     else:
-      checks.LoadChecksFromFiles([cfg])
+      return checks.LoadChecksFromFiles([cfg])
 
-  def SetKnowledgeBase(self, hostname, host_os, host_data):
+  def SetKnowledgeBase(self, hostname="test.example.com", host_os="Linux",
+                       host_data=None):
+    if not host_data:
+      host_data = {}
     kb = rdfvalue.KnowledgeBase()
     kb.hostname = hostname
     kb.os = host_os
     host_data["KnowledgeBase"] = kb
+    return host_data
 
   def AddData(self, parser, *args, **kwargs):
     # Initialize the parser and add parsed data to host_data.
     return [parser().Parse(*args, **kwargs)]
+
+  def AddListener(self, ip, port, family="INET", sock_type="SOCK_STREAM"):
+    conn = rdfvalue.NetworkConnection()
+    conn.state = "LISTEN"
+    conn.family = family
+    conn.type = sock_type
+    conn.local_address = rdfvalue.NetworkEndpoint(ip=ip, port=port)
+    return conn
 
   def RunChecks(self, host_data):
     return {r.check_id: r for r in checks.CheckHost(host_data)}
@@ -60,6 +75,32 @@ class HostCheckTest(test_lib.GRRBaseTest):
       errors.append("Unknown error %s: %s" % (type(e), e))
     return errors
 
+  def GetParsedMultiFile(self, artifact, data, parser):
+    stats = []
+    files = []
+    host_data = self.SetKnowledgeBase()
+    kb = host_data["KnowledgeBase"]
+    for path, lines in data.items():
+      p = rdfvalue.PathSpec(path=path)
+      stats.append(rdfvalue.StatEntry(pathspec=p))
+      files.append(StringIO.StringIO(lines))
+    rdfs = [rdf for rdf in parser.ParseMultiple(stats, files, kb)]
+    host_data[artifact] = rdfs
+    return host_data
+
+  def GetParsedFile(self, artifact, data, parser):
+    host_data = self.SetKnowledgeBase()
+    kb = host_data["KnowledgeBase"]
+    for path, lines in data.items():
+      p = rdfvalue.PathSpec(path=path)
+      stat = rdfvalue.StatEntry(pathspec=p)
+      file_obj = StringIO.StringIO(lines)
+      rdfs = [rdf for rdf in parser.Parse(stat, file_obj, kb)]
+      host_data[artifact] = rdfs
+      # Return on the first item
+      break
+    return host_data
+
   def assertRanChecks(self, check_ids, results):
     """Check that the specified checks were run."""
     residual = set(check_ids) - set(results.keys())
@@ -72,15 +113,22 @@ class HostCheckTest(test_lib.GRRBaseTest):
 
     # Quick check to see if anomaly counts are the same and they have the same
     # ordering, using explanation as a measure.
-    rslt1_anoms = {a.explanation: str(a) for a in rslt1.anomaly}
-    rslt2_anoms = {a.explanation: str(a) for a in rslt2.anomaly}
+    rslt1_anoms = {}
+    for a in rslt1.anomaly:
+      anoms = rslt1_anoms.setdefault(a.explanation, [])
+      anoms.extend(a.finding)
+    rslt2_anoms = {}
+    for a in rslt2.anomaly:
+      anoms = rslt2_anoms.setdefault(a.explanation, [])
+      anoms.extend(a.finding)
+
     self.assertItemsEqual(rslt1_anoms, rslt2_anoms,
                           "Results have different anomaly items.:\n%s\n%s" %
                           (rslt1_anoms.keys(), rslt2_anoms.keys()))
 
     # Now check that the anomalies are the same.
-    for anom1, anom2 in zip(rslt1_anoms.itervalues(), rslt2_anoms.itervalues()):
-      self.assertEqual(anom1, anom2)
+    for explanation, findings in rslt1_anoms.iteritems():
+      self.assertItemsEqual(findings, rslt2_anoms[explanation])
 
   def assertIsCheckIdResult(self, rslt, expected):
     self.assertIsInstance(rslt, rdfvalue.CheckResult)
@@ -116,3 +164,38 @@ class HostCheckTest(test_lib.GRRBaseTest):
           message += "    %s\n" % err
       self.fail(message)
 
+  def assertCheckDetectedAnom(self, check_id, results, exp=None, found=None):
+    """Assert a check was performed and specific anomalies were found."""
+    chk = results.get(check_id)
+    self.assertTrue(chk is not None, "check %s did not run" % check_id)
+    # Checks return true if there were anomalies.
+    self.assertTrue(chk, "check %s did not detect anomalies" % check_id)
+    # If exp or results are passed as args, look for anomalies with these
+    # values.
+    if exp or found:
+      expect = rdfvalue.Anomaly(explanation=exp, finding=found,
+                                type="ANALYSIS_ANOMALY")
+      # Results may contain multiple anomalies. The check will hold true if any
+      # one of them matches.
+      for rslt in chk.anomaly:
+        # If an anomaly matches return True straight away.
+        if exp and expect.explanation != rslt.explanation:
+          continue
+        if found and expect.finding != rslt.finding:
+          continue
+        return True
+      self.fail("No matching anomalies found")
+
+  def assertCheckUndetected(self, check_id, results):
+    """Assert a check_id was performed, and resulted in no anomalies."""
+    if not isinstance(results, collections.Mapping):
+      self.fail("Invalid arg, %s should be dict-like.\n" % type(results))
+    if check_id not in results:
+      self.fail("Check %s was not performed.\n" % check_id)
+    if isinstance(results.get(check_id), rdfvalue.Anomaly):
+      self.fail("Check %s unexpectedly produced an anomaly.\n" % check_id)
+
+  def assertChecksUndetected(self, check_ids, results):
+    """Assert multiple check_ids were performed & they produced no anomalies."""
+    for check_id in check_ids:
+      self.assertCheckUndetected(check_id, results)

@@ -153,11 +153,7 @@ class Cipher(object):
     self.pub_key_cache = pub_key_cache
     serialized_cipher = self.cipher.SerializeToString()
 
-    self.cipher_metadata = rdfvalue.CipherMetadata()
-    # Old clients interpret this as a string so we have to omit the "aff4:/"
-    # prefix on the wire. Can be removed after all clients have been updated.
-    self.cipher_metadata.SetWireFormat("source",
-                                       utils.SmartStr(source.Basename()))
+    self.cipher_metadata = rdfvalue.CipherMetadata(source=source)
 
     # Sign this cipher.
     digest = self.hash_function(serialized_cipher).digest()
@@ -559,8 +555,7 @@ class Communicator(object):
     # Mark messages as authenticated and where they came from.
     for msg in message_list.job:
       msg.auth_state = auth_state
-      msg.SetWireFormat("source", utils.SmartStr(
-          cipher.cipher_metadata.source.Basename()))
+      msg.source = cipher.cipher_metadata.source
 
     return (message_list.job, cipher.cipher_metadata.source,
             signed_message_list.timestamp)
@@ -605,8 +600,7 @@ class Communicator(object):
 
     if not cipher.cipher_metadata:
       # Fake the metadata
-      cipher.cipher_metadata = rdfvalue.CipherMetadata()
-      cipher.cipher_metadata.SetWireFormat(
-          "source", utils.SmartStr(signed_message_list.source.Basename()))
+      cipher.cipher_metadata = rdfvalue.CipherMetadata(
+          source=signed_message_list.source)
 
     return result

@@ -2,8 +2,6 @@
 
 goog.provide('grrUi.semantic.objectLabelsListDirective.ObjectLabelsListDirective');
 
-goog.require('grrUi.semantic.SemanticDirectivesRegistry');
-
 
 goog.scope(function() {
 
@@ -36,9 +34,16 @@ grrUi.semantic.objectLabelsListDirective.ObjectLabelsListDirective =
 grrUi.semantic.objectLabelsListDirective.ObjectLabelsListDirective
     .directive_name = 'grrObjectLabelsList';
 
-grrUi.semantic.SemanticDirectivesRegistry.registerDirective(
-    'AFF4ObjectLabelsList',
-    grrUi.semantic.objectLabelsListDirective.ObjectLabelsListDirective);
+
+/**
+ * Semantic type corresponding to this directive.
+ *
+ * @const
+ * @export
+ */
+grrUi.semantic.objectLabelsListDirective
+    .ObjectLabelsListDirective.semantic_type =
+    'AFF4ObjectLabelsList';
 
 
 });  // goog.scope

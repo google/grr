@@ -10,7 +10,6 @@ import subprocess
 import time
 
 # pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
 # Pull in some extra artifacts used for testing.
 from grr.lib import artifact_lib_test
 # pylint: enable=unused-import,g-bad-import-order
@@ -23,6 +22,7 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import artifact
 from grr.lib import artifact_lib
+from grr.lib import artifact_registry
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import flow
@@ -30,6 +30,9 @@ from grr.lib import parsers
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+# For ArtifactCollectorFlow pylint: disable=unused-import
+from grr.lib.flows.general import collectors
+# pylint: enable=unused-import
 
 # pylint: mode=test
 
@@ -208,19 +211,19 @@ class GRRArtifactTest(ArtifactTest):
       _, aff4_type, aff4_attribute, operator = dat
 
       if operator not in ["Append", "Overwrite"]:
-        raise artifact_lib.ArtifactDefinitionError(
+        raise artifact_registry.ArtifactDefinitionError(
             "Bad RDFMapping, unknown operator %s in %s" %
             (operator, rdf_name))
 
       if aff4_type not in aff4.AFF4Object.classes:
-        raise artifact_lib.ArtifactDefinitionError(
+        raise artifact_registry.ArtifactDefinitionError(
             "Bad RDFMapping, invalid AFF4 Object %s in %s" %
             (aff4_type, rdf_name))
 
       attr = getattr(aff4.AFF4Object.classes[aff4_type].SchemaCls,
                      aff4_attribute)()
       if not isinstance(attr, rdfvalue.RDFValue):
-        raise artifact_lib.ArtifactDefinitionError(
+        raise artifact_registry.ArtifactDefinitionError(
             "Bad RDFMapping, bad attribute %s for %s" %
             (aff4_attribute, rdf_name))
 
@@ -240,7 +243,7 @@ sources:
 supported_os: [Linux]
 """
 
-    with self.assertRaises(artifact_lib.ArtifactDefinitionError):
+    with self.assertRaises(artifact_registry.ArtifactDefinitionError):
       artifact.UploadArtifactYamlFile(content, token=self.token)
 
   def testUploadArtifactYamlFileBadList(self):
@@ -254,7 +257,7 @@ sources:
 supported_os: [Linux]
 """
 
-    with self.assertRaises(artifact_lib.ArtifactDefinitionError):
+    with self.assertRaises(artifact_registry.ArtifactDefinitionError):
       artifact.UploadArtifactYamlFile(content, token=self.token)
 
 
@@ -358,7 +361,7 @@ class ArtifactFlowTest(ArtifactTest):
   def testFilesArtifact(self):
     """Check GetFiles artifacts."""
     # Update the artifact path to point to the test directory.
-    art_reg = artifact_lib.ArtifactRegistry.artifacts
+    art_reg = artifact_registry.ArtifactRegistry.artifacts
     orig_path = art_reg["TestFilesArtifact"].sources[0].attributes["paths"]
     art_reg["TestFilesArtifact"].sources[0].attributes["paths"] = (
         [os.path.join(self.base_path, "auth.log")])
@@ -374,7 +377,7 @@ class ArtifactFlowTest(ArtifactTest):
   def testLinuxPasswdHomedirsArtifact(self):
     """Check LinuxPasswdHomedirs artifacts."""
     # Update the artifact path to point to the test directory.
-    art_reg = artifact_lib.ArtifactRegistry.artifacts
+    art_reg = artifact_registry.ArtifactRegistry.artifacts
     orig_path = art_reg["LinuxPasswdHomedirs"].sources[0].attributes["paths"]
     art_reg["LinuxPasswdHomedirs"].sources[0].attributes["paths"] = [
         os.path.join(self.base_path, "passwd")]
@@ -403,7 +406,7 @@ class ArtifactFlowTest(ArtifactTest):
     self.SetLinuxClient()
 
     # Update the artifact path to point to the test directory.
-    art_reg = artifact_lib.ArtifactRegistry.artifacts
+    art_reg = artifact_registry.ArtifactRegistry.artifacts
     art_reg["TestFilesArtifact"].sources[0].attributes["paths"] = ([
         os.path.join(self.base_path, "auth.log")])
 
@@ -672,7 +675,7 @@ class GrrKbTest(ArtifactTest):
   def testGetDependencies(self):
     """Test that dependencies are calculated correctly."""
     self.SetupWindowsMocks()
-    with utils.Stubber(artifact_lib.ArtifactRegistry, "artifacts", {}):
+    with utils.Stubber(artifact_registry.ArtifactRegistry, "artifacts", {}):
       test_artifacts_file = os.path.join(
           config_lib.CONFIG["Test.data_dir"], "test_artifacts.json")
       artifact_lib.LoadArtifactsFromFiles([test_artifacts_file])
@@ -709,7 +712,7 @@ class GrrKbTest(ArtifactTest):
   def testGetKBDependencies(self):
     """Test that KB dependencies are calculated correctly."""
     self.SetupWindowsMocks()
-    with utils.Stubber(artifact_lib.ArtifactRegistry, "artifacts", {}):
+    with utils.Stubber(artifact_registry.ArtifactRegistry, "artifacts", {}):
       test_artifacts_file = os.path.join(
           config_lib.CONFIG["Test.data_dir"], "test_artifacts.json")
       artifact_lib.LoadArtifactsFromFiles([test_artifacts_file])

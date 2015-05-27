@@ -13,6 +13,9 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+# pylint: disable=unused-import
+from grr.lib.flows.general import webhistory
+# pylint: enable=unused-import
 
 
 class WebHistoryFlowTest(test_lib.FlowTestsBaseclass):

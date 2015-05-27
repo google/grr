@@ -4,6 +4,7 @@
 
 
 import cStringIO
+import itertools
 import struct
 
 import logging
@@ -15,7 +16,18 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
-from grr.lib.aff4_objects import aff4_grr
+from grr.lib.rdfvalues import anomaly
+from grr.lib.rdfvalues import client
+from grr.lib.rdfvalues import structs
+from grr.proto import jobs_pb2
+
+
+class AFF4CollectionView(rdfvalue.RDFValueArray):
+  """A view specifies how an AFF4Collection is seen."""
+
+
+class RDFValueCollectionView(rdfvalue.RDFValueArray):
+  """A view specifies how an RDFValueCollection is seen."""
 
 
 class RDFValueCollection(aff4.AFF4Object):
@@ -36,7 +48,7 @@ class RDFValueCollection(aff4.AFF4Object):
     DESCRIPTION = aff4.Attribute("aff4:description", rdfvalue.RDFString,
                                  "This collection's description", "description")
 
-    VIEW = aff4.Attribute("aff4:rdfview", aff4_grr.RDFValueCollectionView,
+    VIEW = aff4.Attribute("aff4:rdfview", RDFValueCollectionView,
                           "The list of attributes which will show up in "
                           "the table.", default="")
 
@@ -165,27 +177,15 @@ class RDFValueCollection(aff4.AFF4Object):
   def deprecated_current_offset(self):
     return self.fd.Tell()
 
-  # TODO(user): remove support for offset argument as soon as old-style hunt
-  # results are gone.
-  def GenerateItems(self, offset=0):
-    """Iterate over all contained RDFValues.
-
-    Args:
-      offset: The offset in the stream to start reading from.
-
-    Yields:
-      RDFValues stored in the collection.
-
-    Raises:
-      RuntimeError: if we are in write mode.
-    """
+  def _GenerateItems(self, byte_offset=0):
+    """Generates items starting from a given byte offset."""
     if not self.fd:
       return
 
     if self.mode == "w":
       raise RuntimeError("Can not read when in write mode.")
 
-    self.fd.seek(offset)
+    self.fd.seek(byte_offset)
     count = 0
 
     while True:
@@ -213,15 +213,28 @@ class RDFValueCollection(aff4.AFF4Object):
 
       count += 1
 
+  def GenerateItems(self, offset=0):
+    """Iterate over all contained RDFValues.
+
+    Args:
+      offset: The offset in the stream to start reading from.
+
+    Returns:
+      Generator for values stored in the collection.
+
+    Raises:
+      RuntimeError: if we are in write mode.
+    """
+    return itertools.islice(self._GenerateItems(), offset, self.size)
+
   def GetItem(self, offset=0):
     for item in self.GenerateItems(offset=offset):
       return item
 
   def __getitem__(self, index):
     if index >= 0:
-      for i, item in enumerate(self):
-        if i == index:
-          return item
+      for item in self.GenerateItems(offset=index):
+        return item
     else:
       raise RuntimeError("Index must be >= 0")
 
@@ -233,7 +246,7 @@ class AFF4Collection(aff4.AFF4Volume, RDFValueCollection):
   collection simply stores the RDFURNs of all aff4 objects in the collection.
   """
 
-  _rdf_type = rdfvalue.AFF4ObjectSummary
+  _rdf_type = client.AFF4ObjectSummary
 
   _behaviours = frozenset(["Collection"])
 
@@ -338,49 +351,19 @@ class ClientAnomalyCollection(RDFValueCollection):
   This class is a normal collection, but with additional methods for making
   viewing and working with anomalies easier.
   """
-  _rdf_type = rdfvalue.Anomaly
+  _rdf_type = anomaly.Anomaly
 
 
-# DEPRECATED: this class is deprecated and is left here only temporary for
-# compatibility reasons. Add method raises a RuntimeError to discourage
-# further use of this class. Please use PackedVersionedCollection instead:
-# it has same functionality and better performance characterstics.
-class VersionedCollection(RDFValueCollection):
-  """DEPRECATED: A collection which uses the data store's version properties.
+class SeekIndexPair(structs.RDFProtoStruct):
+  """Index offset <-> byte offset pair used in seek index."""
 
-  This collection is very efficient for writing to - we can insert new values by
-  blind writing them into the data store without needing to take a lock - using
-  the timestamping features of the data store.
-  """
+  protobuf = jobs_pb2.SeekIndexPair
 
-  class SchemaCls(RDFValueCollection.SchemaCls):
-    DATA = aff4.Attribute("aff4:data", rdfvalue.EmbeddedRDFValue,
-                          "The embedded semantic value.", versioned=True)
 
-  def Add(self, rdf_value=None, **kwargs):
-    """Add the rdf value to the collection."""
-    raise RuntimeError("VersionedCollection is deprecated, can't add new "
-                       "elements.")
+class SeekIndex(structs.RDFProtoStruct):
+  """Seek index (collection of SeekIndexPairs, essentially)."""
 
-  def AddAll(self, rdf_values, callback=None):
-    """Add multiple rdf values to the collection."""
-    raise RuntimeError("VersionedCollection is deprecated, can't add new "
-                       "elements.")
-
-  def GenerateItems(self, offset=None, timestamp=None):
-    if offset is not None and timestamp is not None:
-      raise ValueError("Either offset or timestamp can be specified.")
-
-    if timestamp is None:
-      timestamp = data_store.DB.ALL_TIMESTAMPS
-
-    index = 0
-    for _, value, ts in data_store.DB.ResolveMulti(
-        self.urn, [self.Schema.DATA.predicate], token=self.token,
-        timestamp=timestamp):
-      if index >= offset:
-        yield self.Schema.DATA(value, age=ts).payload
-      index += 1
+  protobuf = jobs_pb2.SeekIndex
 
 
 class PackedVersionedCollection(RDFValueCollection):
@@ -474,6 +457,9 @@ class PackedVersionedCollection(RDFValueCollection):
     DATA = aff4.Attribute("aff4:data", rdfvalue.EmbeddedRDFValue,
                           "The embedded semantic value.", versioned=True)
 
+    SEEK_INDEX = aff4.Attribute("aff4:seek_index", SeekIndex,
+                                "Index for seek operations.", versioned=False)
+
     ADDITION_JOURNAL = aff4.Attribute("aff4:addition_journal",
                                       rdfvalue.RDFInteger,
                                       "Journal of Add(), AddAll(), and "
@@ -489,6 +475,7 @@ class PackedVersionedCollection(RDFValueCollection):
                                         "that were compacted during particular "
                                         "compaction.")
 
+  INDEX_INTERVAL = 10000
   COMPACTION_BATCH_SIZE = 10000
   MAX_REVERSED_RESULTS = 10000
 
@@ -498,13 +485,13 @@ class PackedVersionedCollection(RDFValueCollection):
         "Worker.enable_packed_versioned_collection_journaling"]
 
   def Flush(self, sync=True):
-    send_notification = self._dirty
+    send_notification = self._dirty and self.Schema.DATA in self.new_attributes
     super(PackedVersionedCollection, self).Flush(sync=sync)
     if send_notification:
       self.ScheduleNotification(self.urn, token=self.token)
 
   def Close(self, sync=True):
-    send_notification = self._dirty
+    send_notification = self._dirty and self.Schema.DATA in self.new_attributes
     super(PackedVersionedCollection, self).Close(sync=sync)
     if send_notification:
       self.ScheduleNotification(self.urn, token=self.token)
@@ -574,18 +561,39 @@ class PackedVersionedCollection(RDFValueCollection):
 
   def GenerateItems(self, offset=0):
     """First iterate over the versions, and then iterate over the stream."""
-    index = 0
+    freeze_timestamp = rdfvalue.RDFDatetime().Now()
 
-    for x in super(PackedVersionedCollection, self).GenerateItems():
+    index = 0
+    byte_offset = 0
+    if offset >= self.INDEX_INTERVAL and self.IsAttributeSet(
+        self.Schema.SEEK_INDEX):
+      seek_index = self.Get(self.Schema.SEEK_INDEX)
+      for value in reversed(seek_index.checkpoints):
+        if value.index_offset <= offset:
+          index = value.index_offset
+          byte_offset = value.byte_offset
+          break
+
+    for x in self._GenerateItems(byte_offset=byte_offset):
       if index >= offset:
         yield x
       index += 1
 
     for x in self.GenerateUncompactedItems(
-        max_reversed_results=self.MAX_REVERSED_RESULTS):
+        max_reversed_results=self.MAX_REVERSED_RESULTS,
+        timestamp=freeze_timestamp):
       if index >= offset:
         yield x
       index += 1
+
+  def GetIndex(self):
+    """Return the seek index (in the reversed chronological order)."""
+    if not self.IsAttributeSet(self.Schema.SEEK_INDEX):
+      return []
+    else:
+      seek_index = self.Get(self.Schema.SEEK_INDEX)
+      return [(v.index_offset, v.byte_offset)
+              for v in reversed(seek_index.checkpoints)]
 
   @utils.Synchronized
   def Compact(self, callback=None, timestamp=None):
@@ -626,6 +634,17 @@ class PackedVersionedCollection(RDFValueCollection):
     # to delete anything that was added after we started the compaction.
     freeze_timestamp = timestamp or rdfvalue.RDFDatetime().Now()
 
+    def UpdateIndex():
+      seek_index = self.Get(self.Schema.SEEK_INDEX, SeekIndex())
+
+      prev_index_pair = seek_index.checkpoints and seek_index.checkpoints[-1]
+      if (not prev_index_pair or
+          self.size - prev_index_pair.index_offset >= self.INDEX_INTERVAL):
+        new_index_pair = SeekIndexPair(index_offset=self.size,
+                                       byte_offset=self.fd.Tell())
+        seek_index.checkpoints.Append(new_index_pair)
+        self.Set(self.Schema.SEEK_INDEX, seek_index)
+
     def DeleteVersionedDataAndFlush():
       """Removes versioned attributes and flushes the stream."""
       data_store.DB.DeleteAttributes(self.urn, [self.Schema.DATA.predicate],
@@ -642,7 +661,6 @@ class PackedVersionedCollection(RDFValueCollection):
       if self.Schema.DATA in self.synced_attributes:
         del self.synced_attributes[self.Schema.DATA]
 
-      self.size += compacted_count
       self.Flush(sync=True)
 
     def HeartBeat():
@@ -704,6 +722,8 @@ class PackedVersionedCollection(RDFValueCollection):
       self.fd.Seek(0, 2)
       self.fd.Write(buf.getvalue())
       self.stream_dirty = True
+      self.size += len(current_batch)
+      UpdateIndex()
 
       # If current_batch was the only available batch, just write everything
       # and return.
@@ -731,6 +751,8 @@ class PackedVersionedCollection(RDFValueCollection):
       data = batch.Read(len(batch))
       self.fd.Write(data)
       self.stream_dirty = True
+      self.size += self.COMPACTION_BATCH_SIZE
+      UpdateIndex()
 
       aff4.FACTORY.Delete(batch_urn, token=self.token)
 
@@ -791,11 +813,6 @@ class ResultsOutputCollection(PackedVersionedCollection):
     if "w" in self.mode and self.fd.size == 0:
       # We want bigger chunks as we usually expect large number of results.
       self.fd.SetChunksize(1024 * 1024)
-
-
-class CheckResultsCollection(RDFValueCollection):
-  """A collection of check results."""
-  _rdf_type = rdfvalue.CheckResult
 
 
 class CollectionsInitHook(registry.InitHook):

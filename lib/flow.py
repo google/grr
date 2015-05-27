@@ -57,23 +57,43 @@ from grr.lib import communicator
 from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flow_runner
-from grr.lib import queues
 from grr.lib import queue_manager
+from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import registry
-# pylint: disable=unused-import
-from grr.lib import server_stubs
-# pylint: enable=unused-import
 from grr.lib import stats
 from grr.lib import threadpool
 from grr.lib import type_info
 from grr.lib import utils
-from grr.proto import flows_pb2
 from grr.proto import jobs_pb2
+
+
+class AuditEvent(rdfvalue.RDFProtoStruct):
+  protobuf = jobs_pb2.AuditEvent
+
+  def __init__(self, initializer=None, age=None, **kwargs):
+
+    super(AuditEvent, self).__init__(initializer=initializer, age=age,
+                                     **kwargs)
+    if not self.id:
+      self.id = utils.PRNG.GetULong()
+    if not self.timestamp:
+      self.timestamp = rdfvalue.RDFDatetime().Now()
 
 
 class FlowError(Exception):
   """Raised when we can not retrieve the flow."""
+
+
+# Flow contexts contain pickled FlowRunnerArgs, which moved from this module to
+# flow_runner. This alias allows us to read contexts built with the old loction.
+# It should not be used for any other purpose.
+#
+# TODO(user): Remove once such flows are no longer relevant.
+#
+# No choice about the name. pylint: disable=invalid-name
+FlowRunnerArgs = flow_runner.FlowRunnerArgs
+# pylint: enable=invalid-name
 
 
 class Responses(object):
@@ -118,15 +138,14 @@ class Responses(object):
 
         # Check for iterators
         if msg.type == msg.Type.ITERATOR:
-          self.iterator = rdfvalue.Iterator()
-          self.iterator.ParseFromString(msg.args)
+          self.iterator = rdfvalue.Iterator(msg.payload)
           continue
 
         # Look for a status message
         if msg.type == msg.Type.STATUS:
           # Our status is set to the first status message that we see in
           # the responses. We ignore all other messages after that.
-          self.status = rdfvalue.GrrStatus(msg.args)
+          self.status = rdfvalue.GrrStatus(msg.payload)
 
           # Check this to see if the call succeeded
           self.success = self.status.status == self.status.ReturnedStatus.OK
@@ -346,15 +365,6 @@ class PendingFlowTermination(rdfvalue.RDFProtoStruct):
 class EmptyFlowArgs(rdfvalue.RDFProtoStruct):
   """Some flows do not take argumentnts."""
   protobuf = jobs_pb2.EmptyMessage
-
-
-class FlowRunnerArgs(rdfvalue.RDFProtoStruct):
-  """The argument to the flow runner.
-
-  Note that all flows receive these arguments. This object is stored in the
-  flows state.context.arg attribute.
-  """
-  protobuf = flows_pb2.FlowRunnerArgs
 
 
 class Behaviour(object):
@@ -797,9 +807,10 @@ class GRRFlow(aff4.AFF4Volume):
     Raises:
       RuntimeError: Unknown or invalid parameters were provided.
     """
+
     # Build the runner args from the keywords.
     if runner_args is None:
-      runner_args = FlowRunnerArgs()
+      runner_args = flow_runner.FlowRunnerArgs()
 
     cls.FilterArgsFromSemanticProtobuf(runner_args, kwargs)
 
@@ -895,11 +906,11 @@ class GRRFlow(aff4.AFF4Volume):
     # Publish an audit event, only for top level flows.
     if parent_flow is None:
       Events.PublishEvent("Audit",
-                          rdfvalue.AuditEvent(user=token.username,
-                                              action="RUN_FLOW",
-                                              flow_name=runner_args.flow_name,
-                                              urn=flow_obj.urn,
-                                              client=runner_args.client_id),
+                          AuditEvent(user=token.username,
+                                     action="RUN_FLOW",
+                                     flow_name=runner_args.flow_name,
+                                     urn=flow_obj.urn,
+                                     client=runner_args.client_id),
                           token=token)
 
     return flow_obj.urn
@@ -1250,6 +1261,8 @@ class EventListener(WellKnownFlow):
   """
   EVENTS = []
 
+  __metaclass__ = registry.EventRegistry
+
   @EventHandler(auth_required=True)
   def ProcessMessage(self, message=None, event=None):
     """Handler for the event.
@@ -1269,20 +1282,6 @@ class EventListener(WellKnownFlow):
 
 class Events(object):
   """A class that provides event publishing methods."""
-
-  # This lookup map is built at runtime for fast lookups.
-  EVENT_NAME_MAP = {}
-
-  @classmethod
-  def BuildCache(cls):
-    # Build a lookup map for EventListener objects.
-    for event_cls in EventListener.classes.values():
-      if aff4.issubclass(event_cls, EventListener):
-        for event_name in event_cls.EVENTS:
-          cls.EVENT_NAME_MAP.setdefault(
-              event_name, []).append(event_cls)
-
-    EventListener.EVENT_NAME_MAP = Events.EVENT_NAME_MAP
 
   @classmethod
   def PublishEvent(cls, event_name, msg, token=None, sync=None):
@@ -1306,7 +1305,7 @@ class Events(object):
     cls.PublishMultipleEvents({event_name: [msg]}, token=token, sync=sync)
 
   @classmethod
-  def PublishMultipleEvents(cls, events, token=None, sync=None):
+  def PublishMultipleEvents(cls, events, token=None, sync=True):
     """Publish the message into all listeners of the event.
 
     If event_name is a string, we send the message to all event handlers which
@@ -1326,10 +1325,11 @@ class Events(object):
         Value (instance of RDFValue) or a full GrrMessage.
     """
     with queue_manager.WellKnownQueueManager(token=token, sync=sync) as manager:
+      event_name_map = registry.EventRegistry.EVENT_NAME_MAP
       for event_name, messages in events.iteritems():
         handler_urns = []
         if isinstance(event_name, basestring):
-          for event_cls in cls.EVENT_NAME_MAP.get(event_name, []):
+          for event_cls in event_name_map.get(event_name, []):
             if event_cls.well_known_session_id is None:
               logging.error("Well known flow %s has no session_id.",
                             event_cls.__name__)
@@ -1375,7 +1375,8 @@ class Events(object):
     # Event name must be a string.
     if not isinstance(event_name, basestring):
       raise ValueError("Event name must be a string.")
-    for event_cls in cls.EVENT_NAME_MAP.get(event_name, []):
+    event_name_map = registry.EventRegistry.EVENT_NAME_MAP
+    for event_cls in event_name_map.get(event_name, []):
       event_obj = event_cls(event_cls.well_known_session_id,
                             mode="rw", token=token)
       event_obj.ProcessMessage(msg)
@@ -1777,7 +1778,7 @@ class FrontEndServer(object):
                                     priority=msg.priority,
                                     last_status=msg.request_id)
 
-          status = rdfvalue.GrrStatus(msg.args)
+          status = rdfvalue.GrrStatus(msg.payload)
           if status.status == rdfvalue.GrrStatus.ReturnedStatus.CLIENT_KILLED:
             # A client crashed while performing an action, fire an event.
             Events.PublishEvent("ClientCrash", rdfvalue.GrrMessage(msg),
@@ -1852,7 +1853,6 @@ class FlowInit(registry.InitHook):
 
   def RunOnce(self):
     """Exports our vars."""
-    Events.BuildCache()
 
     # Frontend metrics. These metrics should be used ty the code that
     # feeds requests into the frontend.

@@ -98,6 +98,14 @@ class HintsTests(test_lib.GRRBaseTest):
     result = hinter.Render(rdf)
     self.assertEqual(expected, result)
 
+  def testStatModeFormat(self):
+    rdf = rdfvalue.StatEntry(st_mode=33204)
+    expected = "-rw-rw-r--"
+    template = "{st_mode}"
+    hinter = hints.Hinter(template=template)
+    result = hinter.Render(rdf)
+    self.assertEqual(expected, result)
+
 
 def main(argv):
   test_lib.main(argv)

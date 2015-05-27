@@ -1400,6 +1400,10 @@ message FileFinderContentsLiteralMatchCondition {
 }
 
 message FileFinderCondition {
+  option (semantic) = {
+    union_field: "condition_type"
+  };
+
   enum Type {
     MODIFICATION_TIME = 0 [(description) = "Modification time"];
     ACCESS_TIME = 1 [(description) = "Access time"];
@@ -1437,6 +1441,10 @@ message FileFinderDownloadActionOptions {
 }
 
 message FileFinderAction {
+  option (semantic) = {
+    union_field: "action_type"
+  };
+
   enum Action {
     STAT = 0 [(description) = "Stat"];
 
@@ -1508,6 +1516,10 @@ message FileReference {
 
 
 message RegistryFinderCondition {
+  option (semantic) = {
+    union_field: "condition_type"
+  };
+
   enum Type {
     VALUE_LITERAL_MATCH = 0 [(description) = "Value literal match"];
     VALUE_REGEX_MATCH = 1 [(description) = "Value regex match"];
@@ -1536,6 +1548,10 @@ message RegistryFinderArgs {
 }
 
 message MemoryCollectorCondition {
+  option (semantic) = {
+    union_field: "condition_type"
+  };
+
   enum Type {
     LITERAL_MATCH = 1 [(description) = "Literal match"];
     REGEX_MATCH = 2 [(description) = "Regex match"];
@@ -1583,6 +1599,10 @@ message MemoryCollectorWithLocalCopyDumpOption {
 }
 
 message MemoryCollectorDumpOption {
+  option (semantic) = {
+    union_field: "option_type"
+  };
+
   enum Option {
     WITHOUT_LOCAL_COPY = 0 [(description) = "Don't create local copy"];
     WITH_LOCAL_COPY = 1 [(description) = "Create local copy first"];
@@ -1631,6 +1651,10 @@ message MemoryCollectorSendToSocketAction {
 }
 
 message MemoryCollectorAction {
+  option (semantic) = {
+    union_field: "action_type"
+  };
+
   enum Action {
     NONE = 0 [(description) = "None (just report conditions matches)"];
     DOWNLOAD = 1 [(description) = "Download"];
@@ -1714,13 +1738,6 @@ message DiskVolumeInfoArgs {
       description: "Type of path. Only OS is currently supported.",
       label: HIDDEN
     }, default=OS];
-}
-
-message ApplyLabelsToClientsFlowArgs {
-  repeated string clients = 1 [(sem_type) = {
-      type: "ClientURN"
-    }];
-  repeated string labels = 2;
 }
 
 message CheckFlowArgs {

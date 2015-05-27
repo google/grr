@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 """Tests for grr.lib.flows.cron.filestore_stats."""
 
-# pylint: disable=unused-import, g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import, g-bad-import-order
-
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import test_lib

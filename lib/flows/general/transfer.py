@@ -727,7 +727,7 @@ class TransferStore(flow.WellKnownFlow):
                     message.source)
       return
 
-    read_buffer = rdfvalue.DataBlob(message.args)
+    read_buffer = rdfvalue.DataBlob(message.payload)
 
     # Only store non empty buffers
     if read_buffer.data:

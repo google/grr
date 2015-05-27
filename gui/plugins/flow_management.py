@@ -15,6 +15,7 @@ from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flow
+from grr.lib import flow_runner
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -267,7 +268,7 @@ Launched Flow {{this.flow_name}} with the following args:<br>
           prefix="args").RawHTML(request)
 
       self.runner_form = forms.SemanticProtoFormRenderer(
-          flow.FlowRunnerArgs(flow_name=self.flow_name),
+          flow_runner.FlowRunnerArgs(flow_name=self.flow_name),
           prefix="runner").RawHTML(request)
 
     response = super(SemanticProtoFlowForm, self).Layout(request, response)
@@ -293,7 +294,7 @@ Launched Flow {{this.flow_name}} with the following args:<br>
             response, "SemanticProtoFlowForm.RenderAjaxError", error=str(e))
 
       self.runner_args = forms.SemanticProtoFormRenderer(
-          flow.FlowRunnerArgs(), prefix="runner_").ParseArgs(request)
+          flow_runner.FlowRunnerArgs(), prefix="runner_").ParseArgs(request)
 
       self.runner_args.Validate()
 

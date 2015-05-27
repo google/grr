@@ -5,7 +5,9 @@ import re
 
 from grr.lib import aff4
 from grr.lib import rdfvalue
-
+# For VFSGRRClient. pylint: disable=unused-import
+from grr.lib.aff4_objects import aff4_grr
+# pylint: enable=unused-import
 
 CLIENT_SCHEMA = aff4.AFF4Object.classes["VFSGRRClient"].SchemaCls
 INDEX_PREFIX_MAP = {"host": CLIENT_SCHEMA.HOSTNAME,

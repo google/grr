@@ -9,10 +9,6 @@ import time
 
 import logging
 
-# pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import,g-bad-import-order
-
 from grr.lib import access_control
 from grr.lib import action_mocks
 from grr.lib import aff4
@@ -26,6 +22,7 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import user_managers
+from grr.lib.flows.general import administrative
 from grr.lib.hunts import standard
 
 
@@ -966,7 +963,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     with hunts.GRRHunt.StartHunt(
         hunt_name="GenericHunt",
         flow_runner_args=rdfvalue.FlowRunnerArgs(flow_name="UpdateClient"),
-        flow_args=rdfvalue.UpdateClientArgs(),
+        flow_args=administrative.UpdateClientArgs(),
         regex_rules=[
             rdfvalue.ForemanAttributeRegex(attribute_name="GRR client",
                                            attribute_regex="GRR"),

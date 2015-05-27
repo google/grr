@@ -2,10 +2,6 @@
 """Tests for the access control mechanisms."""
 
 
-# pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import,g-bad-import-order
-
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import config_lib
@@ -42,8 +38,7 @@ class AccessControlTest(test_lib.GRRBaseTest):
     approval_request.Close()
 
     if remove_from_cache:
-      data_store.DB.security_manager.acl_cache.ExpireObject(
-          utils.SmartUnicode(approval_urn))
+      data_store.DB.security_manager.acl_cache.ExpireObject(approval_urn)
 
   def CreateHuntApproval(self, hunt_urn, token, admin=False):
     approval_urn = aff4.ROOT_URN.Add("ACL").Add(hunt_urn.Path()).Add(

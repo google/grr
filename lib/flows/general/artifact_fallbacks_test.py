@@ -7,6 +7,9 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+# pylint: disable=unused-import
+from grr.lib.flows.general import artifact_fallbacks as _
+# pylint: enable=unused-import
 
 
 class TestSystemRootSystemDriveFallbackFlow(test_lib.FlowTestsBaseclass):

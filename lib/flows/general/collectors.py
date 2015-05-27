@@ -3,13 +3,23 @@
 
 import logging
 
+# For various parsers use by artifacts. pylint: disable=unused-import
+from grr import parsers as _
+# pylint: enable=unused-import
 from grr.lib import aff4
 from grr.lib import artifact
 from grr.lib import artifact_lib
+from grr.lib import artifact_registry
 from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import parsers
 from grr.lib import rdfvalue
+from grr.lib.flows.general import file_finder
+# For AnalyzeClientMemory. pylint: disable=unused-import
+from grr.lib.flows.general import memory as _
+# pylint: enable=unused-import
+from grr.lib.rdfvalues import artifacts
+from grr.lib.rdfvalues import paths
 
 
 class ArtifactCollectorFlow(flow.GRRFlow):
@@ -44,7 +54,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
   """
 
   category = "/Collectors/"
-  args_type = rdfvalue.ArtifactCollectorFlowArgs
+  args_type = artifacts.ArtifactCollectorFlowArgs
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   @flow.StateHandler(next_state=["StartCollection"])
@@ -63,10 +73,10 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     if self.args.use_tsk:
       self.state.Register("path_type", rdfvalue.PathSpec.PathType.TSK)
     else:
-      self.state.Register("path_type", rdfvalue.PathSpec.PathType.OS)
+      self.state.Register("path_type", paths.PathSpec.PathType.OS)
 
     if (self.args.dependencies ==
-        rdfvalue.ArtifactCollectorFlowArgs.Dependency.FETCH_NOW):
+        artifacts.ArtifactCollectorFlowArgs.Dependency.FETCH_NOW):
       # Don't retrieve a full knowledgebase, just get the dependencies we
       # need.  CollectArtifactDependencies calls back to this flow to retrieve
       # the necessary dependencies.  We avoid a loop because
@@ -78,7 +88,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       return
 
     elif (self.args.dependencies ==
-          rdfvalue.ArtifactCollectorFlowArgs.Dependency.USE_CACHED) and (
+          artifacts.ArtifactCollectorFlowArgs.Dependency.USE_CACHED) and (
               not self.state.knowledge_base):
       # If not provided, get a knowledge base from the client.
       try:
@@ -209,7 +219,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       new_path_list.extend(artifact_lib.InterpolateKbAttributes(
           path, self.state.knowledge_base))
 
-    action = rdfvalue.FileFinderAction(
+    action = file_finder.FileFinderAction(
         action_type=rdfvalue.FileFinderAction.Action.DOWNLOAD,
         download=rdfvalue.FileFinderDownloadActionOptions(max_size=max_size))
 
@@ -270,13 +280,14 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         regex=self._CombineRegex(content_regex_list), bytes_before=0,
         bytes_after=0)
 
-    file_finder_condition = rdfvalue.FileFinderCondition(
-        condition_type=rdfvalue.FileFinderCondition.Type.CONTENTS_REGEX_MATCH,
+    file_finder_condition = file_finder.FileFinderCondition(
+        condition_type=(file_finder.FileFinderCondition
+                        .Type.CONTENTS_REGEX_MATCH),
         contents_regex_match=regex_condition)
 
     self.CallFlow("FileFinder", paths=path_list,
                   conditions=[file_finder_condition],
-                  action=rdfvalue.FileFinderAction(), pathtype=pathtype,
+                  action=file_finder.FileFinderAction(), pathtype=pathtype,
                   request_data={"artifact_name": self.current_artifact_name,
                                 "source": source.ToPrimitiveDict()},
                   next_state="ProcessCollected")
@@ -285,7 +296,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     self.CallFlow(
         "Glob",
         paths=self.InterpolateList(source.attributes.get("keys", [])),
-        pathtype=rdfvalue.PathSpec.PathType.REGISTRY,
+        pathtype=paths.PathSpec.PathType.REGISTRY,
         request_data={"artifact_name": self.current_artifact_name,
                       "source": source.ToPrimitiveDict()},
         next_state="ProcessCollected"
@@ -304,8 +315,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       new_paths.update(expanded_paths)
 
     for new_path in new_paths:
-      pathspec = rdfvalue.PathSpec(path=new_path,
-                                   pathtype=rdfvalue.PathSpec.PathType.REGISTRY)
+      pathspec = paths.PathSpec(path=new_path,
+                                pathtype=paths.PathSpec.PathType.REGISTRY)
       self.CallClient(
           "StatFile", pathspec=pathspec,
           request_data={"artifact_name": self.current_artifact_name,
@@ -544,21 +555,21 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         pathspec = response
 
       # Check the default .pathspec attribute.
-      if not isinstance(pathspec, rdfvalue.PathSpec):
+      if not isinstance(pathspec, paths.PathSpec):
         try:
           pathspec = response.pathspec
         except AttributeError:
           pass
 
       if isinstance(pathspec, basestring):
-        pathspec = rdfvalue.PathSpec(path=pathspec)
+        pathspec = paths.PathSpec(path=pathspec)
         if self.args.use_tsk:
-          pathspec.pathtype = rdfvalue.PathSpec.PathType.TSK
+          pathspec.pathtype = paths.PathSpec.PathType.TSK
         else:
-          pathspec.pathtype = rdfvalue.PathSpec.PathType.OS
+          pathspec.pathtype = paths.PathSpec.PathType.OS
         self.download_list.append(pathspec)
 
-      elif isinstance(pathspec, rdfvalue.PathSpec):
+      elif isinstance(pathspec, paths.PathSpec):
         self.download_list.append(pathspec)
 
       else:
@@ -789,17 +800,17 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
   def _GetArtifactFromName(self, name):
     """Get an artifact class from the cache in the flow."""
-    if name in artifact_lib.ArtifactRegistry.artifacts:
-      return artifact_lib.ArtifactRegistry.artifacts[name]
+    if name in artifact_registry.ArtifactRegistry.artifacts:
+      return artifact_registry.ArtifactRegistry.artifacts[name]
     else:
       # If we don't have an artifact, things shouldn't have passed validation
       # so we assume its a new one in the datastore.
       artifact.LoadArtifactsFromDatastore(token=self.token)
-      if name not in artifact_lib.ArtifactRegistry.artifacts:
+      if name not in artifact_registry.ArtifactRegistry.artifacts:
         raise RuntimeError("ArtifactCollectorFlow failed due to unknown "
                            "Artifact %s" % name)
       else:
-        return artifact_lib.ArtifactRegistry.artifacts[name]
+        return artifact_registry.ArtifactRegistry.artifacts[name]
 
   @flow.StateHandler()
   def End(self):

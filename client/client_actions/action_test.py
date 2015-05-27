@@ -3,8 +3,8 @@
 
 """Test client actions."""
 
-
 import __builtin__
+import logging
 import os
 import platform
 import posix
@@ -227,6 +227,8 @@ class ActionTest(test_lib.EmptyActionTest):
 
         return super(RaisingListDirectory, self).Suspend()
 
+    logging.info("The following test is expected to raise a "
+                 "'Ran out of iterations' backtrace.")
     p = rdfvalue.PathSpec(path=self.base_path,
                           pathtype=rdfvalue.PathSpec.PathType.OS)
     request = rdfvalue.ListDirRequest(pathspec=p)

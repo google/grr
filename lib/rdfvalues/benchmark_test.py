@@ -56,6 +56,7 @@ class RDFValueBenchmark(test_lib.AverageMicroBenchmarks):
   """Microbenchmark tests for RDFProtos."""
 
   REPEATS = 1000
+  units = "us"
 
   USER_ACCOUNT = dict(
       username=u"user", full_name=u"John Smith",
@@ -261,16 +262,17 @@ class RDFValueBenchmark(test_lib.AverageMicroBenchmarks):
     serialized = s.SerializeToString()
 
     def ProtoEncode():
-      s = jobs_pb2.GrrMessage(name=u"foo", request_id=1, response_id=1,
-                              session_id=u"session")
-      test = s.SerializeToString()
+      s1 = jobs_pb2.GrrMessage(name=u"foo", request_id=1, response_id=1,
+                               session_id=u"session")
+
+      test = s1.SerializeToString()
       self.assertEqual(len(serialized), len(test))
 
     def RDFStructEncode():
-      s = StructGrrMessage(name=u"foo", request_id=1, response_id=1,
-                           session_id=u"session")
+      s2 = StructGrrMessage(name=u"foo", request_id=1, response_id=1,
+                            session_id=u"session")
 
-      test = s.SerializeToString()
+      test = s2.SerializeToString()
       self.assertEqual(len(serialized), len(test))
 
     self.TimeIt(RDFStructEncode)
@@ -314,3 +316,22 @@ class RDFValueBenchmark(test_lib.AverageMicroBenchmarks):
 
     self.TimeIt(RDFStructEncodeDecode)
     self.TimeIt(ProtoEncodeDecode)
+
+  def testDecodeEncode(self):
+    """Test performance of decode/encode cycle."""
+
+    s = jobs_pb2.GrrMessage(name=u"foo", request_id=1, response_id=1,
+                            session_id=u"session")
+    data = s.SerializeToString()
+
+    def ProtoDecodeEncode():
+      new_s = jobs_pb2.GrrMessage()
+      new_s.ParseFromString(data)
+      new_s.SerializeToString()
+
+    def RDFStructDecodeEncode():
+      new_s = StructGrrMessage(initializer=data)
+      new_s.SerializeToString()
+
+    self.TimeIt(RDFStructDecodeEncode)
+    self.TimeIt(ProtoDecodeEncode)

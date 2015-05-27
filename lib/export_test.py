@@ -7,10 +7,6 @@ import json
 import os
 import socket
 
-# pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import,g-bad-import-order
-
 from grr.client.client_actions import grr_rekall
 
 from grr.lib import action_mocks
@@ -21,7 +17,10 @@ from grr.lib import flow
 from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import test_lib
-
+# This test calls flows from these files. pylint: disable=unused-import
+from grr.lib.flows.general import file_finder
+from grr.lib.flows.general import transfer
+# pylint: enable=unused-import
 from grr.proto import tests_pb2
 
 
@@ -121,7 +120,7 @@ class ExportTest(test_lib.GRRBaseTest):
     converted_value = converted_values[0]
 
     self.assertEqual(converted_value.__class__.__name__,
-                     "ExportedDataAgnosticConverterTestValue")
+                     "AutoExportedDataAgnosticConverterTestValue")
 
   def testConvertsSingleValueWithMultipleAssociatedConverters(self):
     dummy_value = DummyRDFValue3("some")
@@ -238,9 +237,10 @@ class ExportTest(test_lib.GRRBaseTest):
 
     client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile",
                                           "HashBuffer")
-    for _ in test_lib.TestFlowHelper(
-        "GetFile", client_mock, token=self.token,
-        client_id=client_id, pathspec=pathspec):
+    for _ in test_lib.TestFlowHelper("GetFile", client_mock,
+                                     token=self.token,
+                                     client_id=client_id,
+                                     pathspec=pathspec):
       pass
 
     urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(pathspec, client_id)
@@ -661,8 +661,8 @@ class ExportTest(test_lib.GRRBaseTest):
         st_mtime=1336129892,
         st_ctime=1336129892)
 
-    file_finder_result = rdfvalue.FileFinderResult(stat_entry=stat_entry,
-                                                   matches=[match1, match2])
+    file_finder_result = file_finder.FileFinderResult(stat_entry=stat_entry,
+                                                      matches=[match1, match2])
     metadata = rdfvalue.ExportedMetadata(client_urn="C.0000000000000001")
 
     converter = export.FileFinderResultConverter()
@@ -729,8 +729,8 @@ class ExportTest(test_lib.GRRBaseTest):
         pecoff_md5="7dd6bee591dfcb6d75eb705405302c3eab65e21a".decode("hex"),
         pecoff_sha1="7dd6bee591dfcb6d75eb705405302c3eab65e21a".decode("hex"))
 
-    file_finder_result = rdfvalue.FileFinderResult(stat_entry=stat_entry,
-                                                   hash_entry=hash_entry)
+    file_finder_result = file_finder.FileFinderResult(stat_entry=stat_entry,
+                                                      hash_entry=hash_entry)
     metadata = rdfvalue.ExportedMetadata(client_urn="C.0000000000000001")
 
     converter = export.FileFinderResultConverter()
@@ -822,7 +822,7 @@ class ExportTest(test_lib.GRRBaseTest):
     self.assertEqual(results[0].timestamp,
                      rdfvalue.RDFDatetime().FromSecondsFromEpoch(2))
     self.assertEqual(results[0].source_urn,
-                     "aff4:/hunts/"+ str(queues.HUNTS) + ":000000/Results")
+                     "aff4:/hunts/" + str(queues.HUNTS) + ":000000/Results")
 
   def testGrrMessageConverterWithOneMissingClient(self):
     payload1 = DummyRDFValue4(

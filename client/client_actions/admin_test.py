@@ -54,7 +54,7 @@ class ConfigActionTest(test_lib.EmptyActionTest):
       return StringIO.StringIO()
 
     comms.urllib2.urlopen = FakeUrlOpen
-    client_context = comms.GRRHTTPClient()
+    client_context = comms.GRRHTTPClient(worker=MockClientWorker)
     client_context.MakeRequest("", comms.Status())
 
     self.assertTrue(location[0] in self.urls[0])

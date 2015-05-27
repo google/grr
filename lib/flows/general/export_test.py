@@ -8,10 +8,6 @@ import hashlib
 import os
 import subprocess
 
-# pylint: disable=unused-import, g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import, g-bad-import-order
-
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import email_alerts
@@ -20,6 +16,9 @@ from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+# pylint: disable=unused-import
+from grr.lib.flows.general import export
+# pylint: enable=unused-import
 
 
 class TestExportHuntResultsFilesAsArchive(test_lib.FlowTestsBaseclass):

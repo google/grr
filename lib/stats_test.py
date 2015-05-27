@@ -6,10 +6,6 @@
 import time
 
 
-# pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import,g-bad-import-order
-
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import stats

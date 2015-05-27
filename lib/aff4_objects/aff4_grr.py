@@ -15,6 +15,11 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
 from grr.lib.aff4_objects import standard
+from grr.lib.rdfvalues import client as client_rdf
+from grr.lib.rdfvalues import crypto
+from grr.lib.rdfvalues import foreman as foreman_rdf
+from grr.lib.rdfvalues import rekall_types
+from grr.lib.rdfvalues import structs
 from grr.proto import flows_pb2
 
 
@@ -51,7 +56,7 @@ class VFSGRRClient(standard.VFSDirectory):
     """The schema for the client."""
     client_index = rdfvalue.RDFURN("aff4:/index/client")
 
-    CERT = aff4.Attribute("metadata:cert", rdfvalue.RDFX509Cert,
+    CERT = aff4.Attribute("metadata:cert", crypto.RDFX509Cert,
                           "The PEM encoded cert of the client.")
 
     FILESYSTEM = aff4.Attribute("aff4:filesystem", rdfvalue.Filesystems,
@@ -98,14 +103,14 @@ class VFSGRRClient(standard.VFSDirectory):
     # The proto itself is used in Artifact handling outside of GRR (e.g. Plaso).
     # Over time we will migrate fields into this proto, but for now it is a mix.
     KNOWLEDGE_BASE = aff4.Attribute("metadata:knowledge_base",
-                                    rdfvalue.KnowledgeBase,
+                                    client_rdf.KnowledgeBase,
                                     "Artifact Knowledge Base", "KnowledgeBase")
 
     GRR_CONFIGURATION = aff4.Attribute(
         "aff4:client_configuration", rdfvalue.Dict,
         "Running configuration for the GRR client.", "Config")
 
-    USER = aff4.Attribute("aff4:users", rdfvalue.Users,
+    USER = aff4.Attribute("aff4:users", client_rdf.Users,
                           "A user of the system.", "Users")
 
     USERNAMES = aff4.Attribute("aff4:user_names", SpaceSeparatedStringArray,
@@ -299,7 +304,7 @@ class VFSGRRClient(standard.VFSDirectory):
     return summary
 
 
-class UpdateVFSFileArgs(rdfvalue.RDFProtoStruct):
+class UpdateVFSFileArgs(structs.RDFProtoStruct):
   protobuf = flows_pb2.UpdateVFSFileArgs
 
 
@@ -378,7 +383,8 @@ class MemoryImage(standard.VFSDirectory):
   """The server representation of the client's memory device."""
 
   class SchemaCls(VFSFile.SchemaCls):
-    LAYOUT = aff4.Attribute("aff4:memory/geometry", rdfvalue.MemoryInformation,
+    LAYOUT = aff4.Attribute("aff4:memory/geometry",
+                            rekall_types.MemoryInformation,
                             "The memory layout of this image.")
 
 
@@ -407,9 +413,9 @@ class GRRForeman(aff4.AFF4Object):
 
   class SchemaCls(aff4.AFF4Object.SchemaCls):
     """Attributes specific to VFSDirectory."""
-    RULES = aff4.Attribute("aff4:rules", rdfvalue.ForemanRules,
+    RULES = aff4.Attribute("aff4:rules", foreman_rdf.ForemanRules,
                            "The rules the foreman uses.",
-                           default=rdfvalue.ForemanRules())
+                           default=foreman_rdf.ForemanRules())
 
   def ExpireRules(self):
     """Removes any rules with an expiration date in the past."""
@@ -469,13 +475,13 @@ class GRRForeman(aff4.AFF4Object):
           # Not an integer attribute.
           return False
         op = integer_rule.operator
-        if op == rdfvalue.ForemanAttributeInteger.Operator.LESS_THAN:
+        if op == foreman_rdf.ForemanAttributeInteger.Operator.LESS_THAN:
           if value >= integer_rule.value:
             return False
-        elif op == rdfvalue.ForemanAttributeInteger.Operator.GREATER_THAN:
+        elif op == foreman_rdf.ForemanAttributeInteger.Operator.GREATER_THAN:
           if value <= integer_rule.value:
             return False
-        elif op == rdfvalue.ForemanAttributeInteger.Operator.EQUAL:
+        elif op == foreman_rdf.ForemanAttributeInteger.Operator.EQUAL:
           if value != integer_rule.value:
             return False
         else:
@@ -614,14 +620,6 @@ class GRRAFF4Init(registry.InitHook):
       pass
 
 
-class AFF4CollectionView(rdfvalue.RDFValueArray):
-  """A view specifies how an AFF4Collection is seen."""
-
-
-class RDFValueCollectionView(rdfvalue.RDFValueArray):
-  """A view specifies how an RDFValueCollection is seen."""
-
-
 class MRUCollection(aff4.AFF4Object):
   """Stores all of the MRU files from the registry."""
 
@@ -721,7 +719,7 @@ class AFF4RegexNotificationRule(aff4.AFF4NotificationRule):
 
       event = rdfvalue.GrrMessage(
           name="AFF4RegexNotificationRuleMatch",
-          args=aff4_object.urn.SerializeToString(),
+          payload=aff4_object.urn,
           auth_state=rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED,
           source=client_name)
       flow.Events.PublishEvent(utils.SmartStr(self.event_name), event,

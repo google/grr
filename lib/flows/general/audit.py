@@ -17,21 +17,6 @@ from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import queues
 from grr.lib import rdfvalue
-from grr.lib import utils
-from grr.proto import jobs_pb2
-
-
-class AuditEvent(rdfvalue.RDFProtoStruct):
-  protobuf = jobs_pb2.AuditEvent
-
-  def __init__(self, initializer=None, age=None, **kwargs):
-
-    super(AuditEvent, self).__init__(initializer=initializer, age=age,
-                                     **kwargs)
-    if not self.id:
-      self.id = utils.PRNG.GetULong()
-    if not self.timestamp:
-      self.timestamp = rdfvalue.RDFDatetime().Now()
 
 
 class AuditEventListener(flow.EventListener):

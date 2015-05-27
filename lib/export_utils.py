@@ -17,6 +17,7 @@ from grr.lib import threadpool
 from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
+from grr.lib.flows.general import file_finder
 
 
 BUFFER_SIZE = 16 * 1024 * 1024
@@ -245,7 +246,7 @@ def DownloadCollection(coll_path, target_path, token=None, overwrite=False,
       urn = grr_message
     elif isinstance(grr_message, rdfvalue.StatEntry):
       urn = rdfvalue.RDFURN(grr_message.aff4path)
-    elif isinstance(grr_message, rdfvalue.FileFinderResult):
+    elif isinstance(grr_message, file_finder.FileFinderResult):
       urn = rdfvalue.RDFURN(grr_message.stat_entry.aff4path)
     elif isinstance(grr_message, rdfvalue.RDFBytes):
       try:

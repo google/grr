@@ -4,10 +4,6 @@
 
 
 
-# pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import,g-bad-import-order
-
 from grr.lib import communicator
 from grr.lib import config_lib
 from grr.lib import data_store
@@ -63,7 +59,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     messages = [rdfvalue.GrrMessage(request_id=1,
                                     response_id=i,
                                     session_id=session_id,
-                                    args=str(i))
+                                    payload=rdfvalue.RDFInteger(i))
                 for i in range(1, 10)]
 
     self.server.ReceiveMessages(self.client_id, messages)
@@ -93,7 +89,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     messages = [rdfvalue.GrrMessage(request_id=1,
                                     response_id=i,
                                     session_id=session_id,
-                                    args=str(i),
+                                    payload=rdfvalue.RDFInteger(i),
                                     task_id=15)
                 for i in range(1, 10)]
 
@@ -129,7 +125,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     messages = [rdfvalue.GrrMessage(request_id=0,
                                     response_id=0,
                                     session_id=session_id,
-                                    args=str(i))
+                                    payload=rdfvalue.RDFInteger(i))
                 for i in range(1, 10)]
 
     self.server.ReceiveMessages(self.client_id, messages)
@@ -155,7 +151,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     messages = [rdfvalue.GrrMessage(request_id=0,
                                     response_id=0,
                                     session_id=session_id,
-                                    args=str(i))
+                                    payload=rdfvalue.RDFInteger(i))
                 for i in range(1, 10)]
 
     # Delete the local well known flow cache is empty.

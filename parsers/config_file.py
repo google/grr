@@ -9,6 +9,7 @@ from grr.lib import lexer
 from grr.lib import parsers
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import config_file
 
 
 def AsIter(arg):
@@ -288,13 +289,13 @@ class NfsExportsParser(parsers.FileParser, FieldParser):
     for entry in self.entries:
       if not entry:
         continue
-      result = rdfvalue.NfsExport()
+      result = config_file.NfsExport()
       result.share = entry[0]
       for field in entry[1:]:
         if field.startswith(("-", "(")):
           result.defaults = field.strip("-()").split(",")
         else:
-          client = rdfvalue.NfsClient()
+          client = config_file.NfsClient()
           cfg = field.split("(", 1)
           host = cfg[0]
           if len(cfg) > 1:
@@ -497,9 +498,9 @@ class SshdConfigParser(parsers.FileParser):
     matches = []
     for match in self.matches:
       criterion, config = match["criterion"], match["config"]
-      block = rdfvalue.SshdMatchBlock(criterion=criterion, config=config)
+      block = config_file.SshdMatchBlock(criterion=criterion, config=config)
       matches.append(block)
-    yield rdfvalue.SshdConfig(config=self.config, matches=matches)
+    yield config_file.SshdConfig(config=self.config, matches=matches)
 
 
 class MtabParser(parsers.FileParser, FieldParser):
@@ -523,4 +524,3 @@ class MtabParser(parsers.FileParser, FieldParser):
         options[k] = v or [True]
       result.options = rdfvalue.AttributedDict(**options)
       yield result
-

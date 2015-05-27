@@ -13,6 +13,7 @@ from grr.gui.plugins import wizards
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flow
+from grr.lib import flow_runner
 from grr.lib import output_plugin
 from grr.lib import rdfvalue
 from grr.lib import type_info
@@ -58,7 +59,7 @@ class HuntArgsParser(object):
         flow_cls.args_type(), prefix="args").ParseArgs(self.request)
 
     self.flow_runner_args = forms.SemanticProtoFormRenderer(
-        flow.FlowRunnerArgs(), prefix="runner").ParseArgs(self.request)
+        flow_runner.FlowRunnerArgs(), prefix="runner").ParseArgs(self.request)
 
     self.flow_runner_args.flow_name = flow_name
 

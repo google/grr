@@ -179,15 +179,17 @@ class GRRClientWorker(object):
     # Front pops are quadratic so we reverse the queue.
     self._out_queue.reverse()
 
-    # Use implicit True/False evaluation instead of len (WTF)
     while self._out_queue and length < max_size:
       message = self._out_queue.pop()[1]
       queue.job.Append(message)
       stats.STATS.IncrementCounter("grr_client_sent_messages")
 
+      # We deliberately look at the serialized length as bytes here.
+      message_length = len(message.Get("args"))
+
       # Maintain the output queue tally
-      length += len(message.args)
-      self._out_queue_size -= len(message.args)
+      length += message_length
+      self._out_queue_size -= message_length
 
     # Restore the old order.
     self._out_queue.reverse()
@@ -236,7 +238,7 @@ class GRRClientWorker(object):
     if message.type == rdfvalue.GrrMessage.Type.STATUS:
       rdf_value.network_bytes_sent = self.sent_bytes_per_flow[session_id]
       del self.sent_bytes_per_flow[session_id]
-      message.args = rdf_value.SerializeToString()
+      message.payload = rdf_value
 
     try:
       self.QueueResponse(message, priority=message.priority, blocking=blocking)
@@ -276,7 +278,7 @@ class GRRClientWorker(object):
     # message by only considering the args member. This is usually close enough
     # estimate to the overall size and avoids us un-necessarily serializing
     # here.
-    self._out_queue_size += len(message.args)
+    self._out_queue_size += len(message.Get("args"))
 
   def HandleMessage(self, message):
     """Entry point for processing jobs.
@@ -572,7 +574,7 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
     length = 0
 
     for message in self._out_queue.Get():
-      queue.job.Append(message)
+      queue.job.Append(rdfvalue.GrrMessage(message))
       stats.STATS.IncrementCounter("grr_client_sent_messages")
       length += len(message)
 

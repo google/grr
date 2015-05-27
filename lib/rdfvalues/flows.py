@@ -10,6 +10,7 @@ import time
 
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import client
 from grr.proto import jobs_pb2
 
 
@@ -72,13 +73,23 @@ class GrrMessage(rdfvalue.RDFProtoStruct):
     return task_id
 
   @property
+  def args(self):
+    raise RuntimeError("Direct access to serialized args is not permitted! "
+                       "Use payload field.")
+
+  @args.setter
+  def args(self, value):
+    raise RuntimeError("Direct access to serialized args is not permitted! "
+                       "Use payload field.")
+
+  @property
   def payload(self):
     """The payload property automatically decodes the encapsulated data."""
     if self.args_rdf_name:
       # Now try to create the correct RDFValue.
       result_cls = self.classes.get(self.args_rdf_name, rdfvalue.RDFString)
 
-      result = result_cls(self.args, age=self.args_age)
+      result = result_cls(self.Get("args"), age=self.args_age)
       return result
 
   @payload.setter
@@ -87,7 +98,7 @@ class GrrMessage(rdfvalue.RDFProtoStruct):
     if not isinstance(value, rdfvalue.RDFValue):
       raise RuntimeError("Payload must be an RDFValue.")
 
-    self.args = value.SerializeToString()
+    self.Set("args", value.SerializeToString())
 
     # pylint: disable=protected-access
     if value._age is not None:
@@ -106,7 +117,7 @@ class GrrStatus(rdfvalue.RDFProtoStruct):
   """
   protobuf = jobs_pb2.GrrStatus
 
-  rdf_map = dict(cpu_used=rdfvalue.CpuSeconds)
+  rdf_map = dict(cpu_used=client.CpuSeconds)
 
 
 class GrrNotification(rdfvalue.RDFProtoStruct):

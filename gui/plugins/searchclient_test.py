@@ -429,18 +429,16 @@ class TestContentView(SearchClientTestBase):
     self.WaitUntil(self.IsTextPresent, "CANARY MODE IS OFF")
 
     # Go to the user settings and turn canary mode on.
-    self.Click("user_settings_button")
-    self.WaitUntil(self.IsTextPresent, "Canary mode")
-    self.Click("settings-canary_mode")
+    self.Click("css=grr-user-settings-button")
+    self.Click("css=.form-group:has(label:contains('Canary mode')) input")
     self.Click("css=button[name=Proceed]")
 
     # Page should get updated and now canary mode should be on.
     self.WaitUntil(self.IsTextPresent, "CANARY MODE IS ON")
 
     # Go to the user settings and turn canary mode off.
-    self.Click("user_settings_button")
-    self.WaitUntil(self.IsTextPresent, "Canary mode")
-    self.Click("settings-canary_mode")
+    self.Click("css=grr-user-settings-button")
+    self.Click("css=.form-group:has(label:contains('Canary mode')) input")
     self.Click("css=button[name=Proceed]")
 
     # Page should get updated and now canary mode should be off.

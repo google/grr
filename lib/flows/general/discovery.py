@@ -8,6 +8,9 @@ from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import queues
 from grr.lib import rdfvalue
+# pylint: disable=unused-import
+from grr.lib.aff4_objects import network
+# pylint: enable=unused-import
 from grr.proto import flows_pb2
 
 
@@ -85,6 +88,10 @@ class Interrogate(flow.GRRFlow):
   def Save(self):
     # Make sure the client object is removed and closed
     if self.client:
+      aff4.FACTORY.Create(client_index.MAIN_INDEX,
+                          aff4_type="ClientIndex",
+                          mode="rw",
+                          token=self.token).AddClient(self.client)
       self.client.Close()
       self.client = None
 
@@ -290,12 +297,3 @@ class Interrogate(flow.GRRFlow):
     summary = self.client.GetSummary()
     self.Publish("Discovery", summary)
     self.SendReply(summary)
-
-    # Update the client index.
-    aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                        aff4_type="ClientIndex",
-                        mode="rw",
-                        token=self.token).AddClient(self.client)
-
-    # Flush the data to the data store.
-    self.client.Close()

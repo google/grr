@@ -33,9 +33,14 @@ from selenium.webdriver.support import select
 
 import logging
 import unittest
+# pylint: disable=unused-import
+from grr import config as _
 
 from grr.client import actions
 from grr.client import comms
+# pylint: disable=unused-import
+from grr.client import local as _
+# pylint: enable=unused-import
 from grr.client import vfs
 from grr.client.client_actions import standard
 
@@ -44,29 +49,35 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import client_index
 from grr.lib import config_lib
-
 from grr.lib import data_store
 from grr.lib import email_alerts
 from grr.lib import flags
-
 from grr.lib import flow
-
+# pylint: disable=unused-import
+from grr.lib import local as _
+# pylint: enable=unused-import
 from grr.lib import maintenance_utils
 from grr.lib import queue_manager
 from grr.lib import queues as queue_config
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import rekall_profile_server
-
-# Server components must also be imported even when the client code is tested.
-# pylint: disable=unused-import
-from grr.lib import server_plugins
-# pylint: enable=unused-import
 from grr.lib import startup
 from grr.lib import stats
 from grr.lib import utils
 from grr.lib import worker
 from grr.lib import worker_mocks
+
+from grr.lib.aff4_objects import user_managers
+from grr.lib.aff4_objects import users
+
+# pylint: disable=unused-import
+from grr.lib.data_stores import fake_data_store as _
+
+from grr.lib.flows.general import ca_enroller as _
+from grr.lib.flows.general import filesystem as _
+# pylint: enable=unused-import
+
 from grr.proto import tests_pb2
 
 from grr.test_data import client_fixture
@@ -206,10 +217,10 @@ class WellKnownSessionTest(flow.WellKnownFlow):
 
   def ProcessMessage(self, message):
     """Record the message id for testing."""
-    self.messages.append(int(message.args))
+    self.messages.append(int(message.payload))
 
 
-class MockSecurityManager(access_control.BasicAccessControlManager):
+class MockSecurityManager(user_managers.BasicAccessControlManager):
   """A simple in memory ACL manager which enforces the Admin label.
 
   It also guarantees that the correct access token has been passed to the
@@ -320,7 +331,7 @@ class GRRBaseTest(unittest.TestCase):
 
     # "test" must not be a system user or notifications will not be delivered.
     if "test" in aff4.GRRUser.SYSTEM_USERS:
-      aff4.GRRUser.SYSTEM_USERS.remove("test")
+      users.GRRUser.SYSTEM_USERS.remove("test")
 
     # We don't want to send actual email in our tests
     self.smtp_patcher = mock.patch("smtplib.SMTP")
@@ -764,7 +775,7 @@ class ACLChecksDisabledContextManager(object):
 
   def __enter__(self):
     self.old_security_manager = data_store.DB.security_manager
-    data_store.DB.security_manager = access_control.NullAccessControlManager()
+    data_store.DB.security_manager = user_managers.NullAccessControlManager()
     return None
 
   def __exit__(self, unused_type, unused_value, unused_traceback):
@@ -1353,8 +1364,7 @@ class MockClient(object):
       # Well known flows only accept messages of type MESSAGE.
       if message.type == rdfvalue.GrrMessage.Type.MESSAGE:
         # Assume the message is authenticated and comes from this client.
-        message.SetWireFormat(
-            "source", utils.SmartStr(self.client_id.Basename()))
+        message.source = self.client_id
 
         message.auth_state = "AUTHENTICATED"
 
@@ -1654,8 +1664,8 @@ class CrashClientMock(object):
         session_id=message.session_id,
         type=rdfvalue.GrrMessage.Type.STATUS,
         payload=status,
+        source=self.client_id,
         auth_state=rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED)
-    msg.SetWireFormat("source", utils.SmartStr(self.client_id.Basename()))
 
     self.flow_id = message.session_id
 

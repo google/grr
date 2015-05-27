@@ -6,6 +6,9 @@ from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
+# pylint: disable=unused-import
+from grr.lib.aff4_objects import timeline
+# pylint: enable=unused-import
 from grr.proto import flows_pb2
 
 

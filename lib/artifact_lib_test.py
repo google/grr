@@ -3,13 +3,18 @@
 
 import os
 
+# to have artifacts to test pylint: disable=unused-import
+from grr.lib import artifact
+# pylint: enable=unused-import
 from grr.lib import artifact_lib
+from grr.lib import artifact_registry
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import parsers
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.rdfvalues import artifacts as rdf_artifacts
 
 
 class ArtifactHandlingTest(test_lib.GRRBaseTest):
@@ -23,25 +28,26 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
   def testArtifactsValidate(self):
     """Check each artifact we have passes validation."""
 
-    for artifact_name in artifact_lib.ArtifactRegistry.artifacts:
-      art_obj = artifact_lib.ArtifactRegistry.artifacts[artifact_name]
+    for artifact_name in artifact_registry.ArtifactRegistry.artifacts:
+      art_obj = artifact_registry.ArtifactRegistry.artifacts[artifact_name]
       art_obj.Validate()
 
-    art_obj = artifact_lib.ArtifactRegistry.artifacts["TestCmdArtifact"]
+    art_obj = artifact_registry.ArtifactRegistry.artifacts["TestCmdArtifact"]
     art_obj.labels.append("BadLabel")
 
-    self.assertRaises(artifact_lib.ArtifactDefinitionError, art_obj.Validate)
+    self.assertRaises(artifact_registry.ArtifactDefinitionError,
+                      art_obj.Validate)
 
   def testGetArtifacts(self):
-    self.assertItemsEqual(artifact_lib.ArtifactRegistry.GetArtifacts(),
-                          artifact_lib.ArtifactRegistry.artifacts.values())
+    self.assertItemsEqual(artifact_registry.ArtifactRegistry.GetArtifacts(),
+                          artifact_registry.ArtifactRegistry.artifacts.values())
 
-    results = artifact_lib.ArtifactRegistry.GetArtifacts(os_name="Windows")
+    results = artifact_registry.ArtifactRegistry.GetArtifacts(os_name="Windows")
     for result in results:
       self.assertTrue("Windows" in result.supported_os or
                       not result.supported_os)
 
-    results = artifact_lib.ArtifactRegistry.GetArtifacts(
+    results = artifact_registry.ArtifactRegistry.GetArtifacts(
         os_name="Windows", name_list=[
             "TestAggregationArtifact", "TestFileArtifact"])
 
@@ -52,57 +58,57 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
       self.assertTrue("Windows" in result.supported_os or
                       not result.supported_os)
 
-    results = artifact_lib.ArtifactRegistry.GetArtifacts(
+    results = artifact_registry.ArtifactRegistry.GetArtifacts(
         os_name="Windows",
-        source_type=rdfvalue.ArtifactSource.SourceType.REGISTRY_VALUE,
+        source_type=rdf_artifacts.ArtifactSource.SourceType.REGISTRY_VALUE,
         name_list=["DepsProvidesMultiple"])
     self.assertEqual(results.pop().name, "DepsProvidesMultiple")
 
     # Check supported_os = [] matches any OS
-    results = artifact_lib.ArtifactRegistry.GetArtifacts(
+    results = artifact_registry.ArtifactRegistry.GetArtifacts(
         os_name="Windows", name_list=["RekallPsList"])
     self.assertEqual(results.pop().name, "RekallPsList")
 
-    results = artifact_lib.ArtifactRegistry.GetArtifacts(
+    results = artifact_registry.ArtifactRegistry.GetArtifacts(
         os_name="Windows", exclude_dependents=True)
     for result in results:
       self.assertFalse(result.GetArtifactPathDependencies())
 
     # Check provides filtering
-    results = artifact_lib.ArtifactRegistry.GetArtifacts(
+    results = artifact_registry.ArtifactRegistry.GetArtifacts(
         os_name="Windows", provides=["users.homedir", "domain"])
     for result in results:
       # provides contains at least one of the filter strings
       self.assertTrue(len(set(result.provides).union(set(["users.homedir",
                                                           "domain"]))) >= 1)
 
-    results = artifact_lib.ArtifactRegistry.GetArtifacts(
+    results = artifact_registry.ArtifactRegistry.GetArtifacts(
         os_name="Windows", provides=["nothingprovidesthis"])
     self.assertEqual(len(results), 0)
 
   def testGetArtifactNames(self):
 
-    result_objs = artifact_lib.ArtifactRegistry.GetArtifacts(
+    result_objs = artifact_registry.ArtifactRegistry.GetArtifacts(
         os_name="Windows", provides=["users.homedir", "domain"])
 
-    results_names = artifact_lib.ArtifactRegistry.GetArtifactNames(
+    results_names = artifact_registry.ArtifactRegistry.GetArtifactNames(
         os_name="Windows", provides=["users.homedir", "domain"])
 
     self.assertItemsEqual(set([a.name for a in result_objs]), results_names)
 
-    results_names = artifact_lib.ArtifactRegistry.GetArtifactNames(
+    results_names = artifact_registry.ArtifactRegistry.GetArtifactNames(
         os_name="Darwin", provides=["users.username", "domain"])
     self.assertItemsEqual(set(["OSXUsers"]), results_names)
 
   def testSearchDependencies(self):
-    with utils.Stubber(artifact_lib.ArtifactRegistry, "artifacts", {}):
+    with utils.Stubber(artifact_registry.ArtifactRegistry, "artifacts", {}):
       # Just use the test artifacts to verify dependency correctness so we
       # aren't subject to changing dependencies in the whole set
       test_artifacts_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
                                          "test_artifacts.json")
       artifact_lib.LoadArtifactsFromFiles([test_artifacts_file])
 
-      names, expansions = artifact_lib.ArtifactRegistry.SearchDependencies(
+      names, expansions = artifact_registry.ArtifactRegistry.SearchDependencies(
           "Windows", [u"TestAggregationArtifactDeps", u"DepsParent"])
 
       # This list contains all artifacts that can provide the dependency, e.g.
@@ -119,12 +125,12 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
                                          "users.username"])
 
       # None of these match the OS, so we should get an empty list.
-      names, expansions = artifact_lib.ArtifactRegistry.SearchDependencies(
+      names, expansions = artifact_registry.ArtifactRegistry.SearchDependencies(
           "Darwin", [u"TestCmdArtifact", u"TestFileArtifact"])
       self.assertItemsEqual(names, [])
 
   def testArtifactConversion(self):
-    for art_obj in artifact_lib.ArtifactRegistry.artifacts.values():
+    for art_obj in artifact_registry.ArtifactRegistry.artifacts.values():
       # Exercise conversions to ensure we can move back and forth between the
       # different forms.
       art_json = art_obj.ToPrettyJson(extended=False)
@@ -133,7 +139,7 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
 
   def testArtifactsDependencies(self):
     """Check artifact dependencies work."""
-    artifact_reg = artifact_lib.ArtifactRegistry.artifacts
+    artifact_reg = artifact_registry.ArtifactRegistry.artifacts
 
     deps = artifact_reg["TestAggregationArtifactDeps"].GetArtifactDependencies()
     self.assertItemsEqual(list(deps), ["TestAggregationArtifact"])

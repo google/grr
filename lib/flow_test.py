@@ -5,10 +5,6 @@
 import time
 
 
-# pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import,g-bad-import-order
-
 from grr.client import actions
 from grr.client import vfs
 from grr.lib import access_control
@@ -24,6 +20,9 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import type_info
 from grr.lib import utils
+# For GetClientStats. pylint: disable=unused-import
+from grr.lib.flows.general import administrative
+# pylint: enable=unused-import
 from grr.proto import tests_pb2
 
 # pylint: mode=test
@@ -534,7 +533,8 @@ class FlowTest(BasicFlowTest):
                      test_lib.WellKnownSessionTest.well_known_session_id)
 
     # Messages to Well Known flows can be unauthenticated
-    messages = [rdfvalue.GrrMessage(args=str(i)) for i in range(10)]
+    messages = [
+        rdfvalue.GrrMessage(payload=rdfvalue.RDFInteger(i)) for i in range(10)]
 
     for message in messages:
       test_flow.ProcessMessage(message)

@@ -13,7 +13,6 @@ import zlib
 
 import logging
 
-
 from grr.lib import access_control
 from grr.lib import config_lib
 from grr.lib import data_store
@@ -22,6 +21,8 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import type_info
 from grr.lib import utils
+from grr.lib.rdfvalues import aff4_rdfvalues
+from grr.lib.rdfvalues import crypto
 from grr.lib.rdfvalues import grr_rdf
 
 
@@ -192,7 +193,7 @@ class Factory(object):
         dirname = rdfvalue.RDFURN(urn.Dirname())
 
         try:
-          self.intermediate_cache.Get(urn.Path())
+          self.intermediate_cache.Get(urn)
           return
         except KeyError:
           data_store.DB.MultiSet(dirname, {
@@ -204,7 +205,7 @@ class Factory(object):
           },
                                  token=token, replace=True, sync=False)
 
-          self.intermediate_cache.Put(urn.Path(), 1)
+          self.intermediate_cache.Put(urn, 1)
 
           urn = dirname
 
@@ -1209,7 +1210,7 @@ class AFF4Object(object):
                                  creates_new_object_version=False,
                                  versioned=False)
 
-    LABELS = Attribute("aff4:labels_list", rdfvalue.AFF4ObjectLabelsList,
+    LABELS = Attribute("aff4:labels_list", aff4_rdfvalues.AFF4ObjectLabelsList,
                        "Any object can have labels applied to it.", "Labels",
                        creates_new_object_version=False, versioned=False)
 
@@ -2212,7 +2213,7 @@ class AFF4Stream(AFF4Object):
                      "The total size of available data for this stream.",
                      "size", default=0)
 
-    HASH = Attribute("aff4:hashobject", rdfvalue.Hash,
+    HASH = Attribute("aff4:hashobject", crypto.Hash,
                      "Hash object containing all known hash digests for"
                      " the object.")
 

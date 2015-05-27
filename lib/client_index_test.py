@@ -2,11 +2,6 @@
 """Tests for grr.lib.client_index."""
 
 
-# pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
-from grr.lib import client_index
-# pylint: enable=unused-import,g-bad-import-order
-
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import rdfvalue

@@ -78,6 +78,8 @@ def DefineFromProtobuf(cls, protobuf):
   if semantic_options.description and not cls.__doc__:
     cls.__doc__ = semantic_options.description
 
+  cls.union_field = semantic_options.union_field or None
+
   # We search through all the field descriptors and build type info
   # descriptors from them.
   for field in protobuf.DESCRIPTOR.fields:

@@ -26,7 +26,7 @@ from grr.client import comms
 from grr.client import local
 from grr.client import vfs_handlers
 from grr.lib import log
-from grr.lib import rdfvalues
+from grr.lib.rdfvalues import registry_init
 
 # Config definitions use Semantic Values from plugins.
 from grr import config

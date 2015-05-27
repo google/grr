@@ -5,6 +5,7 @@
 
 
 
+from google.protobuf import descriptor_pool
 from google.protobuf import message_factory
 
 from grr.lib import rdfvalue
@@ -32,7 +33,7 @@ class TestStruct(structs.RDFProtoStruct):
       # We can serialize an arbitrary RDFValue. This will be serialized into a
       # binary string and parsed on demand.
       type_info.ProtoRDFValue(name="urn", field_number=6,
-                              default=rdfvalue.RDFURN("http://www.google.com"),
+                              default=rdfvalue.RDFURN("www.google.com"),
                               rdf_type="RDFURN",
                               description="An arbitrary RDFValue field."),
 
@@ -49,13 +50,13 @@ class TestStruct(structs.RDFProtoStruct):
 # In order to define a recursive structure we must add it manually after the
 # class definition.
 TestStruct.AddDescriptor(
-    type_info.ProtoNested(
+    type_info.ProtoEmbedded(
         name="nested", field_number=4,
         nested=TestStruct),
 )
 
 TestStruct.AddDescriptor(
-    type_info.ProtoList(type_info.ProtoNested(
+    type_info.ProtoList(type_info.ProtoEmbedded(
         name="repeat_nested", field_number=5,
         nested=TestStruct)),
 )
@@ -93,8 +94,8 @@ class DynamicTypeTest(structs.RDFProtoStruct):
 class LateBindingTest(structs.RDFProtoStruct):
   type_description = type_info.TypeDescriptorSet(
       # A nested protobuf referring to an undefined type.
-      type_info.ProtoNested(name="nested", field_number=1,
-                            nested="UndefinedYet"),
+      type_info.ProtoEmbedded(name="nested", field_number=1,
+                              nested="UndefinedYet"),
 
       type_info.ProtoRDFValue(name="rdfvalue", field_number=6,
                               rdf_type="UndefinedRDFValue",
@@ -115,7 +116,7 @@ class RDFStructsTest(test_base.RDFValueTestCase):
 
   def GenerateSample(self, number=1):
     return self.rdfvalue_class(int=number, foobar="foo%s" % number,
-                               urn="http://www.example.com",
+                               urn="www.example.com",
                                float=2.3 + number)
 
   def testDynamicType(self):
@@ -127,10 +128,16 @@ class RDFStructsTest(test_base.RDFValueTestCase):
     test_pb.dynamic.foobar = "Hello"
     self.assertTrue(isinstance(test_pb.dynamic, TestStruct))
 
-  def testProtoDescriptorIsGeneratedForDynamicType(self):
-    test_pb_descriptor = DynamicTypeTest.EmitProtoDescriptor("grr_export")
+  def testProtoFileDescriptorIsGeneratedForDynamicType(self):
+    test_pb_file_descriptor, deps = DynamicTypeTest.EmitProtoFileDescriptor(
+        "grr_export")
+
+    pool = descriptor_pool.DescriptorPool()
+    for file_descriptor in [test_pb_file_descriptor] + deps:
+      pool.Add(file_descriptor)
+    proto_descriptor = pool.FindMessageTypeByName("grr_export.DynamicTypeTest")
     factory = message_factory.MessageFactory()
-    proto_class = factory.GetPrototype(test_pb_descriptor)
+    proto_class = factory.GetPrototype(proto_descriptor)
 
     # Now let's define an RDFProtoStruct for the dynamically generated
     # proto_class.
@@ -146,7 +153,7 @@ class RDFStructsTest(test_base.RDFValueTestCase):
     """Ensure that errors in struct definitions are raised."""
     # A descriptor without a field number should raise.
     self.assertRaises(type_info.TypeValueError,
-                      type_info.ProtoNested, name="name")
+                      type_info.ProtoEmbedded, name="name")
 
     # Adding a duplicate field number should raise.
     self.assertRaises(
@@ -227,7 +234,17 @@ class RDFStructsTest(test_base.RDFValueTestCase):
     # This field must be another TestStruct instance..
     self.assertRaises(ValueError, setattr, tested, "nested", "foo")
 
+    # Its ok to assign a compatible semantic protobuf.
     tested.nested = TestStruct(foobar="nested_foo")
+
+    # Not OK to use the wrong semantic type.
+    self.assertRaises(
+        ValueError, setattr, tested, "nested", PartialTest1(int=1))
+
+    # Not OK to assign a serialized string - even if it is for the right type -
+    # since there is no type checking.
+    serialized = TestStruct(foobar="nested_foo").SerializeToString()
+    self.assertRaises(ValueError, setattr, tested, "nested", serialized)
 
     # Nested accessors.
     self.assertEqual(tested.nested.foobar, "nested_foo")
@@ -245,10 +262,10 @@ class RDFStructsTest(test_base.RDFValueTestCase):
                       [1, 2, 3])
 
     # Coercing on assignment. This field is an RDFURN:
-    tested.urn = "http://www.example.com"
+    tested.urn = "www.example.com"
     self.assertTrue(isinstance(tested.urn, rdfvalue.RDFURN))
 
-    self.assertEqual(tested.urn, rdfvalue.RDFURN("http://www.example.com"))
+    self.assertEqual(tested.urn, rdfvalue.RDFURN("www.example.com"))
 
     # Test enums.
     self.assertEqual(tested.type, 3)
@@ -302,7 +319,7 @@ class RDFStructsTest(test_base.RDFValueTestCase):
     self.assertEqual(m.timestamp, None)
 
     # Set the wireformat to the integer equivalent.
-    m.SetWireFormat("timestamp", now)
+    m.SetPrimitive("timestamp", now)
 
     self.assertTrue(isinstance(m.timestamp, rdfvalue.RDFDatetime))
     self.assertEqual(m.timestamp, now)
@@ -310,7 +327,7 @@ class RDFStructsTest(test_base.RDFValueTestCase):
     rdf_now = rdfvalue.RDFDatetime().Now()
 
     m.timestamp = rdf_now
-    self.assertEqual(m.GetWireFormat("timestamp"), int(rdf_now))
+    self.assertEqual(m.GetPrimitive("timestamp"), int(rdf_now))
 
   def testLateBinding(self):
     # The LateBindingTest protobuf is not fully defined.
@@ -422,11 +439,11 @@ class RDFStructsTest(test_base.RDFValueTestCase):
 
     # RDFValues.
     self.assertFalse(tested.HasField("urn"))
-    self.assertEqual(tested.urn, "http://www.google.com")
+    self.assertEqual(tested.urn, "www.google.com")
     self.assertFalse(tested.HasField("urn"))
 
     # Nested fields: Accessing a nested field will create the nested protobuf.
     self.assertFalse(tested.HasField("nested"))
-    self.assertEqual(tested.nested.urn, "http://www.google.com")
+    self.assertEqual(tested.nested.urn, "www.google.com")
     self.assertTrue(tested.HasField("nested"))
     self.assertFalse(tested.nested.HasField("urn"))

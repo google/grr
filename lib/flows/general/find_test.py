@@ -10,6 +10,9 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import type_info
 from grr.lib import utils
+# pylint: disable=unused-import
+from grr.lib.flows.general import find
+# pylint: enable=unused-import
 
 
 class TestFindFlow(test_lib.FlowTestsBaseclass):

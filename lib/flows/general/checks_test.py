@@ -11,6 +11,9 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.checks import checks
+# pylint: disable=unused-import
+from grr.lib.flows.general import checks as _
+# pylint: enable=unused-import
 
 # pylint: mode=test
 

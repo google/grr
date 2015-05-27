@@ -15,6 +15,8 @@ from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import rdfvalue
 from grr.lib import registry
+from grr.lib.aff4_objects import aff4_grr
+from grr.lib.rdfvalues import nsrl
 
 
 class FileStoreInit(registry.InitHook):
@@ -153,7 +155,7 @@ class FileStore(aff4.AFF4Volume):
                             default=True)
 
 
-class FileStoreImage(aff4.VFSBlobImage):
+class FileStoreImage(aff4_grr.VFSBlobImage):
   """The AFF4 files that are stored in the file store area.
 
   Files in the file store are essentially blob images, containing indexes to the
@@ -172,7 +174,7 @@ class FileStoreImage(aff4.VFSBlobImage):
   age=1970-01-01 00:00:00>]
   """
 
-  class SchemaCls(aff4.VFSBlobImage.SchemaCls):
+  class SchemaCls(aff4_grr.VFSBlobImage.SchemaCls):
     # The file store does not need to version file content.
     HASHES = aff4.Attribute("aff4:hashes", rdfvalue.HashList,
                             "List of hashes of each chunk in this file.",
@@ -596,9 +598,9 @@ class NSRLFileStore(HashFileStore):
   EXTERNAL = False
   FILE_HASH_TYPE = rdfvalue.NSRLFileStoreHash
 
-  FILE_TYPES = {"M": rdfvalue.NSRLInformation.FileType.MALICIOUS_FILE,
-                "S": rdfvalue.NSRLInformation.FileType.SPECIAL_FILE,
-                "": rdfvalue.NSRLInformation.FileType.NORMAL_FILE}
+  FILE_TYPES = {"M": nsrl.NSRLInformation.FileType.MALICIOUS_FILE,
+                "S": nsrl.NSRLInformation.FileType.SPECIAL_FILE,
+                "": nsrl.NSRLInformation.FileType.NORMAL_FILE}
 
   def GetChildrenByPriority(self, allow_external=True):
     return

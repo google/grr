@@ -22,10 +22,6 @@ import threading
 import time
 
 
-# pylint: disable=unused-import, g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import, g-bad-import-order
-
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import data_store

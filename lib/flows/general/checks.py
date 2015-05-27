@@ -4,6 +4,9 @@ from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib.checks import checks
+# pylint: disable=unused-import
+from grr.lib.flows.general import collectors as _
+# pylint: enable=unused-import
 from grr.proto import flows_pb2
 
 
@@ -73,4 +76,3 @@ class CheckRunner(flow.GRRFlow):
       if finding.anomaly:
         self.state.checks_with_findings.append(finding.check_id)
       self.SendReply(finding)
-

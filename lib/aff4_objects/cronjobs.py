@@ -19,6 +19,8 @@ from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
 
+from grr.lib.rdfvalues import structs
+
 from grr.proto import flows_pb2
 
 
@@ -36,7 +38,7 @@ class CronSpec(rdfvalue.Duration):
     return self.ParseFromString(value)
 
 
-class CreateCronJobFlowArgs(rdfvalue.RDFProtoStruct):
+class CreateCronJobFlowArgs(structs.RDFProtoStruct):
   protobuf = flows_pb2.CreateCronJobFlowArgs
 
   def GetFlowArgsClass(self):
@@ -289,7 +291,7 @@ class CronWorker(object):
     return self.running_thread
 
 
-class ManageCronJobFlowArgs(rdfvalue.RDFProtoStruct):
+class ManageCronJobFlowArgs(structs.RDFProtoStruct):
   protobuf = flows_pb2.ManageCronJobFlowArgs
 
 

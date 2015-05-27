@@ -4,8 +4,9 @@ import collections
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.checks import checks
 from grr.lib.checks import filters
-from grr.lib.rdfvalues import checks
+from grr.lib.rdfvalues import anomaly
 
 
 # Just a named tuple that can be used to test objectfilter expressions.
@@ -132,7 +133,7 @@ class RDFFilterTests(test_lib.GRRBaseTest):
   def testParse(self):
     filt = filters.RDFFilter()
     cfg = rdfvalue.AttributedDict()
-    anom = rdfvalue.Anomaly()
+    anom = anomaly.Anomaly()
     objs = [cfg, anom]
     results = filt.Parse(objs, "KnowledgeBase")
     self.assertFalse(results)

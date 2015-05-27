@@ -6,10 +6,6 @@ import datetime
 import os
 
 
-# pylint: disable=unused-import, g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import, g-bad-import-order
-
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags

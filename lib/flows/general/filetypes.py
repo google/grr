@@ -5,6 +5,9 @@
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import rdfvalue
+# For AFF4PlistQuery pylint: disable=unused-import
+from grr.lib.aff4_objects import filetypes
+# pylint: enable=unused-import
 from grr.proto import flows_pb2
 
 

@@ -10,6 +10,12 @@ from grr.lib import artifact_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
+# For ArtifactCollectorFlow pylint: disable=unused-import
+from grr.lib.flows.general import collectors
+from grr.lib.flows.general import file_finder
+# For FindFiles
+from grr.lib.flows.general import find
+# pylint: enable=unused-import
 from grr.proto import flows_pb2
 
 
@@ -30,23 +36,23 @@ class RegistryFinder(flow.GRRFlow):
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   def ConditionsToFileFinderConditions(self, conditions):
-    ff_condition_type_cls = rdfvalue.FileFinderCondition.Type
+    ff_condition_type_cls = file_finder.FileFinderCondition.Type
     result = []
     for c in conditions:
       if c.condition_type == RegistryFinderCondition.Type.MODIFICATION_TIME:
-        result.append(rdfvalue.FileFinderCondition(
+        result.append(file_finder.FileFinderCondition(
             condition_type=ff_condition_type_cls.MODIFICATION_TIME,
             modification_time=c.modification_time))
       elif c.condition_type == RegistryFinderCondition.Type.VALUE_LITERAL_MATCH:
-        result.append(rdfvalue.FileFinderCondition(
+        result.append(file_finder.FileFinderCondition(
             condition_type=ff_condition_type_cls.CONTENTS_LITERAL_MATCH,
             contents_literal_match=c.value_literal_match))
       elif c.condition_type == RegistryFinderCondition.Type.VALUE_REGEX_MATCH:
-        result.append(rdfvalue.FileFinderCondition(
+        result.append(file_finder.FileFinderCondition(
             condition_type=ff_condition_type_cls.CONTENTS_REGEX_MATCH,
             contents_regex_match=c.value_regex_match))
       elif c.condition_type == RegistryFinderCondition.Type.SIZE:
-        result.append(rdfvalue.FileFinderCondition(
+        result.append(file_finder.FileFinderCondition(
             condition_type=ff_condition_type_cls.SIZE,
             size=c.size))
       else:
@@ -67,8 +73,8 @@ class RegistryFinder(flow.GRRFlow):
                   pathtype=rdfvalue.PathSpec.PathType.REGISTRY,
                   conditions=self.ConditionsToFileFinderConditions(
                       self.args.conditions),
-                  action=rdfvalue.FileFinderAction(
-                      action_type=rdfvalue.FileFinderAction.Action.STAT),
+                  action=file_finder.FileFinderAction(
+                      action_type=file_finder.FileFinderAction.Action.STAT),
                   next_state="Done")
 
   @flow.StateHandler()

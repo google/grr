@@ -20,7 +20,7 @@ from grr.lib import server_plugins
 
 from grr.lib import aff4
 from grr.lib import artifact
-from grr.lib import artifact_lib
+from grr.lib import artifact_registry
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import key_utils
@@ -641,7 +641,7 @@ def main(unused_argv):
       artifact.UploadArtifactYamlFile(
           open(flags.FLAGS.file).read(1000000), base_urn=base_urn, token=None,
           overwrite=flags.FLAGS.overwrite)
-    except artifact_lib.ArtifactDefinitionError as e:
+    except artifact_registry.ArtifactDefinitionError as e:
       print "Error %s. You may need to set --overwrite." % e
 
 if __name__ == "__main__":

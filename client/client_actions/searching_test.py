@@ -70,9 +70,14 @@ class MockVFSHandlerFind(vfs.VFSHandler):
       result.st_dev = 2
     f = self.filesystem[path]
     if isinstance(f, str):
-      result.st_mode = 0100664
+      if path.startswith("/mock2/directory1/directory2"):
+        result.st_mode = 0o10644  # u=rw,g=r,o=r on regular file
+      elif path.startswith("/mock2/directory3"):
+        result.st_mode = 0o10643  # u=rw,g=r,o=wx on regular file
+      else:
+        result.st_mode = 0o14666  # setuid, u=rw,g=rw,o=rw on regular file
     else:
-      result.st_mode = 040775
+      result.st_mode = 0o40775  # u=rwx,g=rwx,o=rx on directory
     result.st_size = len(f)
     result.st_mtime = 1373185602
 
@@ -248,6 +253,80 @@ class FindTest(test_lib.EmptyActionTest):
     results = self.RunAction("Find", request)
     all_files = [x.hit for x in results if isinstance(x, rdfvalue.FindSpec)]
     self.assertEqual(len(all_files), 7)
+
+  def testPermissionFilter(self):
+    """Test filtering based on file/folder permission happens correctly."""
+
+    pathspec = rdfvalue.PathSpec(path="/mock2/",
+                                 pathtype=rdfvalue.PathSpec.PathType.OS)
+
+    # Look for files that match exact permissions
+
+    request = rdfvalue.FindSpec(pathspec=pathspec, path_regex=".",
+                                perm_mode=0o644, cross_devs=True)
+    request.iterator.number = 200
+    result = self.RunAction("Find", request)
+    all_files = [x.hit for x in result if isinstance(x, rdfvalue.FindSpec)]
+
+    self.assertEqual(len(all_files), 2)
+    self.assertEqual(all_files[0].pathspec.Dirname().Basename(),
+                     "directory2")
+    self.assertEqual(all_files[0].pathspec.Basename(), "file.jpg")
+    self.assertEqual(all_files[1].pathspec.Dirname().Basename(),
+                     "directory2")
+    self.assertEqual(all_files[1].pathspec.Basename(), "file.mp3")
+
+    # Look for files/folders where 'others' have 'write' permission. All other
+    # attributes don't matter. Setuid bit must also be set and guid or sticky
+    # bit must not be set.
+
+    request = rdfvalue.FindSpec(pathspec=pathspec, path_regex=".",
+                                perm_mode=0o4002, perm_mask=0o7002,
+                                cross_devs=True)
+    request.iterator.number = 200
+    result = self.RunAction("Find", request)
+    all_files = [x.hit for x in result if isinstance(x, rdfvalue.FindSpec)]
+
+    self.assertEqual(len(all_files), 2)
+    self.assertEqual(all_files[0].pathspec.Dirname().Basename(),
+                     "directory1")
+    self.assertEqual(all_files[0].pathspec.Basename(), "file1.txt")
+    self.assertEqual(all_files[1].pathspec.Dirname().Basename(),
+                     "directory1")
+    self.assertEqual(all_files[1].pathspec.Basename(), "file2.txt")
+
+    # Look for files where 'others' have 'execute' permission. All other
+    # attributes don't matter. Only look for 'regular' files.
+
+    request = rdfvalue.FindSpec(pathspec=pathspec, path_regex=".",
+                                perm_mode=0o10001, perm_mask=0o10001,
+                                cross_devs=True)
+    request.iterator.number = 200
+    result = self.RunAction("Find", request)
+    all_files = [x.hit for x in result if isinstance(x, rdfvalue.FindSpec)]
+
+    self.assertEqual(len(all_files), 2)
+    self.assertEqual(all_files[0].pathspec.Dirname().Basename(),
+                     "directory3")
+    self.assertEqual(all_files[0].pathspec.Basename(), "file1.txt")
+    self.assertEqual(all_files[1].pathspec.Dirname().Basename(),
+                     "directory3")
+    self.assertEqual(all_files[1].pathspec.Basename(), "long_file.text")
+
+    # Look for folders where 'group' have 'execute' permission. All other
+    # attributes don't matter. Only look for folders.
+
+    request = rdfvalue.FindSpec(pathspec=pathspec, path_regex=".",
+                                perm_mode=0o40010, perm_mask=0o40010,
+                                cross_devs=True)
+    request.iterator.number = 200
+    result = self.RunAction("Find", request)
+    all_files = [x.hit for x in result if isinstance(x, rdfvalue.FindSpec)]
+
+    self.assertEqual(len(all_files), 3)
+    self.assertEqual(all_files[0].pathspec.Basename(), "directory2")
+    self.assertEqual(all_files[1].pathspec.Basename(), "directory1")
+    self.assertEqual(all_files[2].pathspec.Basename(), "directory3")
 
 
 class GrepTest(test_lib.EmptyActionTest):

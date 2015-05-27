@@ -12,6 +12,9 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+# For RegistryFinder pylint: disable=unused-import
+from grr.lib.flows.general import registry as _
+# pylint: enable=unused-import
 from grr.test_data import client_fixture
 
 

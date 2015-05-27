@@ -208,7 +208,7 @@ class DataAgnosticExportConverter(ExportConverter):
   classes_cache = {}
 
   def ExportedClassNameForValue(self, value):
-    return utils.SmartStr("Exported" + value.__class__.__name__)
+    return utils.SmartStr("AutoExported" + value.__class__.__name__)
 
   def MakeFlatRDFClass(self, value):
     """Generates flattened RDFValue class definition for the given value."""
@@ -432,6 +432,25 @@ class StatEntryToExportedRegistryKeyConverter(ExportConverter):
     return [result]
 
 
+class NetworkConnectionToExportedNetworkConnectionConverter(ExportConverter):
+  """Converts NetworkConnection to ExportedNetworkConnection."""
+
+  input_rdf_type = "NetworkConnection"
+
+  def Convert(self, metadata, conn, token=None):
+    """Converts NetworkConnection to ExportedNetworkConnection."""
+
+    result = ExportedNetworkConnection(metadata=metadata,
+                                       family=conn.family,
+                                       type=conn.type,
+                                       local_address=conn.local_address,
+                                       remote_address=conn.remote_address,
+                                       state=conn.state,
+                                       pid=conn.pid,
+                                       ctime=conn.ctime)
+    return [result]
+
+
 class ProcessToExportedProcessConverter(ExportConverter):
   """Converts Process to ExportedProcess."""
 
@@ -476,15 +495,10 @@ class ProcessToExportedNetworkConnectionConverter(ExportConverter):
   def Convert(self, metadata, process, token=None):
     """Converts Process to ExportedNetworkConnection."""
 
-    for conn in process.connections:
-      yield ExportedNetworkConnection(metadata=metadata,
-                                      family=conn.family,
-                                      type=conn.type,
-                                      local_address=conn.local_address,
-                                      remote_address=conn.remote_address,
-                                      state=conn.state,
-                                      pid=conn.pid,
-                                      ctime=conn.ctime)
+    conn_converter = NetworkConnectionToExportedNetworkConnectionConverter(
+        options=self.options)
+    return conn_converter.BatchConvert([(metadata, conn)
+                                        for conn in process.connections])
 
 
 class ProcessToExportedOpenFileConverter(ExportConverter):
@@ -825,43 +839,6 @@ class GrrMessageConverter(ExportConverter):
                                                       token=token))
 
     return converted_batch
-
-
-class FileStoreImageToExportedFileStoreHashConverter(ExportConverter):
-  """Converts FileStoreImage to ExportedFileStoreHash."""
-
-  input_rdf_type = "ExportedFileStoreImage"
-
-  def Convert(self, metadata, stat_entry, token=None):
-    """Converts StatEntry to ExportedFile.
-
-    Does nothing if StatEntry corresponds to a registry entry and not to a file.
-
-    Args:
-      metadata: ExportedMetadata to be used for conversion.
-      stat_entry: StatEntry to be converted.
-      token: Security token.
-
-    Returns:
-      List or generator with resulting RDFValues. Empty list if StatEntry
-      corresponds to a registry entry and not to a file.
-    """
-    return self.BatchConvert([(metadata, stat_entry)], token=token)
-
-  def BatchConvert(self, metadata_value_pairs, token=None):
-    """Converts a batch of StatEntry value to ExportedFile values at once.
-
-    Args:
-      metadata_value_pairs: a list or a generator of tuples (metadata, value),
-                            where metadata is ExportedMetadata to be used for
-                            conversion and value is a StatEntry to be converted.
-      token: Security token:
-
-    Yields:
-      Resulting ExportedFile values. Empty list is a valid result and means that
-      conversion wasn't possible.
-    """
-    raise NotImplementedError()
 
 
 class FileStoreHashConverter(ExportConverter):

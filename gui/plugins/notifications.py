@@ -68,10 +68,6 @@ class NotificationBar(renderers.TemplateRenderer):
   <button id="notification_button" class="btn btn-info"
          data-toggle="modal" data-target="#notification_dialog"
          style="margin-right: 10px" />
-  <button id="user_settings_button" class="btn btn-default" data-toggle="modal"
-    data-target="#user_settings_dialog">
-     <img src="static/images/modify.png" style="height: 17px; margin-top: -2px">
-  </button>
 </div>
 """)
 

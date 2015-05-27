@@ -13,6 +13,7 @@ from grr.lib import parsers
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.flows.general import file_finder
 from grr.parsers import linux_file_parser
 
 
@@ -49,7 +50,7 @@ user2:x:1001:1001:User2 Name,,,:/home/user
     buf2 = rdfvalue.BufferReference(data="user2:x:1000:1000:User2"
                                     " Name,,,:/home/user2:/bin/bash\n")
 
-    ff_result = rdfvalue.FileFinderResult(matches=[buf1, buf2])
+    ff_result = file_finder.FileFinderResult(matches=[buf1, buf2])
     out = list(parser.Parse(ff_result, None))
     self.assertEqual(len(out), 2)
     self.assertTrue(isinstance(out[1], rdfvalue.KnowledgeBaseUser))
@@ -128,6 +129,163 @@ super_group2 (-,user7,) super_group
                           ["user1:1296552099000000",
                            "user2:1296552102000000",
                            "user3:1296569997000000"])
+
+
+class LinuxShadowParserTest(test_lib.GRRBaseTest):
+  """Test parsing of linux shadow files."""
+
+  crypt = {"DES": "A.root/ootr.o",
+           "MD5": "$1$rootrootrootrootrootro",
+           "SHA256": "$5$saltsaltsalt${0}".format("r" * 43),
+           "SHA512": "$6$saltsalt${0}".format("r" * 86),
+           "UNSET": "*",
+           "DISABLED": "!$1$rootrootroootroooooootroooooooo",
+           "EMPTY": ""}
+
+  def _GenFiles(self, passwd, shadow, group, gshadow):
+    stats = []
+    files = []
+    for path in ["/etc/passwd", "/etc/shadow", "/etc/group", "/etc/gshadow"]:
+      p = rdfvalue.PathSpec(path=path)
+      stats.append(rdfvalue.StatEntry(pathspec=p))
+    for data in passwd, shadow, group, gshadow:
+      if data is None:
+        data = []
+      lines = "\n".join(data).format(**self.crypt)
+      files.append(StringIO.StringIO(lines))
+    return stats, files
+
+  def testNoAnomaliesWhenEverythingIsFine(self):
+    passwd = ["ok_1:x:1000:1000::/home/ok_1:/bin/bash",
+              "ok_2:x:1001:1001::/home/ok_2:/bin/bash"]
+    shadow = ["ok_1:{SHA256}:16000:0:99999:7:::",
+              "ok_2:{SHA512}:16000:0:99999:7:::"]
+    group = ["ok_1:x:1000:ok_1", "ok_2:x:1001:ok_2"]
+    gshadow = ["ok_1:::ok_1", "ok_2:::ok_2"]
+    stats, files = self._GenFiles(passwd, shadow, group, gshadow)
+    parser = linux_file_parser.LinuxSystemPasswdParser()
+    rdfs = parser.ParseMultiple(stats, files, None)
+    results = [r for r in rdfs if isinstance(r, rdfvalue.Anomaly)]
+    self.assertFalse(results)
+
+  def testSystemGroupParserAnomaly(self):
+    """Detect anomalies in group/gshadow files."""
+    group = ["root:x:0:root,usr1", "adm:x:1:syslog,usr1",
+             "users:x:1000:usr1,usr2,usr3,usr4"]
+    gshadow = ["root::usr4:root", "users:{DES}:usr1:usr2,usr3,usr4"]
+    stats, files = self._GenFiles(None, None, group, gshadow)
+
+    # Set up expected anomalies.
+    member = {"symptom": "Group/gshadow members differ in group: root",
+              "finding": ["Present in group, missing in gshadow: usr1",
+                          "Present in gshadow, missing in group: usr4"],
+              "type": "PARSER_ANOMALY"}
+    group = {"symptom": "Mismatched group and gshadow files.",
+             "finding": ["Present in group, missing in gshadow: adm"],
+             "type": "PARSER_ANOMALY"}
+    expected = [rdfvalue.Anomaly(**member), rdfvalue.Anomaly(**group)]
+
+    parser = linux_file_parser.LinuxSystemGroupParser()
+    rdfs = parser.ParseMultiple(stats, files, None)
+    results = [r for r in rdfs if isinstance(r, rdfvalue.Anomaly)]
+
+    self.assertEqual(len(expected), len(results))
+    for expect, result in zip(expected, results):
+      self.assertRDFValueEqual(expect, result)
+
+  def testSystemAccountAnomaly(self):
+    passwd = ["root:x:0:0::/root:/bin/sash",
+              "miss:x:1000:100:Missing:/home/miss:/bin/bash",
+              "bad1:x:0:1001:Bad 1:/home/bad1:/bin/bash",
+              "bad2:x:1002:0:Bad 2:/home/bad2:/bin/bash"]
+    shadow = ["root:{UNSET}:16000:0:99999:7:::",
+              "ok:{SHA512}:16000:0:99999:7:::",
+              "bad1::16333:0:99999:7:::", "bad2:{DES}:16333:0:99999:7:::"]
+    group = ["root:x:0:root", "miss:x:1000:miss", "bad1:x:1001:bad1",
+             "bad2:x:1002:bad2"]
+    gshadow = ["root:::root", "miss:::miss", "bad1:::bad1", "bad2:::bad2"]
+    stats, files = self._GenFiles(passwd, shadow, group, gshadow)
+
+    no_grp = {"symptom": "Accounts with invalid gid.",
+              "finding": ["gid 100 assigned without /etc/groups entry: miss"],
+              "type": "PARSER_ANOMALY"}
+    uid = {"symptom": "Accounts with shared uid.",
+           "finding": ["uid 0 assigned to multiple accounts: bad1,root"],
+           "type": "PARSER_ANOMALY"}
+    gid = {"symptom": "Privileged group with unusual members.",
+           "finding": ["Accounts in 'root' group: bad2"],
+           "type": "PARSER_ANOMALY"}
+    no_match = {"symptom": "Mismatched passwd and shadow files.",
+                "finding": ["Present in passwd, missing in shadow: miss",
+                            "Present in shadow, missing in passwd: ok"],
+                "type": "PARSER_ANOMALY"}
+    expected = [rdfvalue.Anomaly(**no_grp), rdfvalue.Anomaly(**uid),
+                rdfvalue.Anomaly(**gid), rdfvalue.Anomaly(**no_match)]
+
+    parser = linux_file_parser.LinuxSystemPasswdParser()
+    rdfs = parser.ParseMultiple(stats, files, None)
+    results = [r for r in rdfs if isinstance(r, rdfvalue.Anomaly)]
+
+    self.assertEqual(len(expected), len(results))
+    for expect, result in zip(expected, results):
+      self.assertEqual(expect.symptom, result.symptom)
+      # Expand out repeated field helper.
+      self.assertItemsEqual(list(expect.finding), list(result.finding))
+      self.assertEqual(expect.type, result.type)
+
+  def GetExpectedUser(self, algo, user_store, group_store):
+    user = rdfvalue.KnowledgeBaseUser(username="user", full_name="User",
+                                      uid="1001", gid="1001",
+                                      homedir="/home/user", shell="/bin/bash")
+    user.pw_entry = rdfvalue.PwEntry(store=user_store, hash_type=algo)
+    user.gids = [1001]
+    grp = rdfvalue.Group(gid=1001, members=["user"], name="user")
+    grp.pw_entry = rdfvalue.PwEntry(store=group_store, hash_type=algo)
+    return user, grp
+
+  def CheckExpectedUser(self, algo, expect, result):
+    self.assertEqual(expect.username, result.username)
+    self.assertEqual(expect.gid, result.gid)
+    self.assertEqual(expect.pw_entry.store, result.pw_entry.store)
+    self.assertEqual(expect.pw_entry.hash_type, result.pw_entry.hash_type)
+    self.assertItemsEqual(expect.gids, result.gids)
+
+  def CheckExpectedGroup(self, algo, expect, result):
+    self.assertEqual(expect.name, result.name)
+    self.assertEqual(expect.gid, result.gid)
+    self.assertEqual(expect.pw_entry.store, result.pw_entry.store)
+    self.assertEqual(expect.pw_entry.hash_type, result.pw_entry.hash_type)
+
+  def CheckCryptResults(self, passwd, shadow, group, gshadow, algo, usr, grp):
+    stats, files = self._GenFiles(passwd, shadow, group, gshadow)
+    parser = linux_file_parser.LinuxSystemPasswdParser()
+    results = list(parser.ParseMultiple(stats, files, None))
+    usrs = [r for r in results if isinstance(r, rdfvalue.KnowledgeBaseUser)]
+    grps = [r for r in results if isinstance(r, rdfvalue.Group)]
+    self.assertEqual(1, len(usrs), "Different number of usr %s results" % algo)
+    self.assertEqual(1, len(grps), "Different number of grp %s results" % algo)
+    self.CheckExpectedUser(algo, usr, usrs[0])
+    self.CheckExpectedGroup(algo, grp, grps[0])
+
+  def testSetShadowedEntries(self):
+    passwd = ["user:x:1001:1001:User:/home/user:/bin/bash"]
+    group = ["user:x:1001:user"]
+    for algo, crypted in self.crypt.iteritems():
+      # Flush the parser for each iteration.
+      shadow = ["user:%s:16000:0:99999:7:::" % crypted]
+      gshadow = ["user:%s::user" % crypted]
+      usr, grp = self.GetExpectedUser(algo, "SHADOW", "GSHADOW")
+      self.CheckCryptResults(passwd, shadow, group, gshadow, algo, usr, grp)
+
+  def testSetNonShadowedEntries(self):
+    shadow = ["user::16000:0:99999:7:::"]
+    gshadow = ["user:::user"]
+    for algo, crypted in self.crypt.iteritems():
+      # Flush the parser for each iteration.
+      passwd = ["user:%s:1001:1001:User:/home/user:/bin/bash" % crypted]
+      group = ["user:%s:1001:user" % crypted]
+      usr, grp = self.GetExpectedUser(algo, "PASSWD", "GROUP")
+      self.CheckCryptResults(passwd, shadow, group, gshadow, algo, usr, grp)
 
 
 def main(args):

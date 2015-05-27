@@ -14,6 +14,9 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.aff4_objects import aff4_grr
+# pylint: disable=unused-import
+from grr.lib.flows.general import fingerprint as _
+# pylint: enable=unused-import
 
 
 class TestFingerprintFlow(test_lib.FlowTestsBaseclass):

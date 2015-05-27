@@ -3,17 +3,21 @@
 
 
 
+# pylint: disable=unused-import,g-bad-import-order
+from grr.lib import server_plugins
+# pylint: enable=unused-import,g-bad-import-order
+
 from grr.gui import api_test_lib
+from grr.gui.api_plugins import reflection as reflection
+
 
 from grr.lib import flags
 from grr.lib import test_lib
 
 
-# TODO(user): Implement unit tests in addition to regression tests.
-
-
 class ApiRDFValueReflectionRendererRegressionTest(
     api_test_lib.ApiCallRendererRegressionTest):
+  """Regression test for ApiRDFValueReflectionRenderer."""
 
   renderer = "ApiRDFValueReflectionRenderer"
 
@@ -21,6 +25,15 @@ class ApiRDFValueReflectionRendererRegressionTest(
     self.Check("GET", "/api/reflection/rdfvalue/Duration")
     self.Check("GET", "/api/reflection/rdfvalue/"
                "ApiRDFValueCollectionRendererArgs")
+
+
+class ApiAllRDFValuesReflectionRendererTest(test_lib.GRRBaseTest):
+  """Test for ApiAllRDFValuesReflectionRenderer."""
+
+  def testSuccessfullyRendersReflectionDataForAllTypes(self):
+    result = reflection.ApiAllRDFValuesReflectionRenderer().Render(
+        None, token=self.token)
+    self.assertTrue(result)
 
 
 def main(argv):

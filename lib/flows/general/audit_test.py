@@ -8,8 +8,12 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flags
+from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+# pylint: disable=unused-import
+from grr.lib.flows.general import audit as _
+# pylint: enable=unused-import
 
 
 class TestAuditSystem(test_lib.FlowTestsBaseclass):
@@ -45,7 +49,7 @@ class TestAuditSystem(test_lib.FlowTestsBaseclass):
 
       self.assertEqual(len(events), 2)
       for event in events:
-        self.assertEqual(event.action, rdfvalue.AuditEvent.Action.RUN_FLOW)
+        self.assertEqual(event.action, flow.AuditEvent.Action.RUN_FLOW)
         self.assertEqual(event.flow_name, "ListDirectory")
         self.assertEqual(event.user, self.token.username)
 

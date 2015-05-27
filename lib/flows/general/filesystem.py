@@ -10,6 +10,9 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 
 from grr.lib.aff4_objects import aff4_grr
+# pylint: disable=unused-import
+from grr.lib.flows.general import transfer
+# pylint: enable=unused-import
 from grr.proto import flows_pb2
 
 
@@ -681,7 +684,7 @@ class GlobMixin(object):
     # files. Call Find on the client until we're done.
     if (responses.iterator and responses.iterator.state !=
         responses.iterator.State.FINISHED):
-      findspec = rdfvalue.FindSpec(responses.request.request.args)
+      findspec = rdfvalue.FindSpec(responses.request.request.payload)
       findspec.iterator = responses.iterator
       self.CallClient("Find", findspec,
                       next_state="ProcessEntry",
@@ -785,10 +788,15 @@ class GlobMixin(object):
             # Check for the existence of the last node.
             request = rdfvalue.ListDirRequest(pathspec=pathspec)
 
-            if (response and
-                (response.st_mode == 0 or not stat.S_ISREG(response.st_mode))):
-              # If next node is empty, this node is a leaf node, we
-              # therefore must stat it to check that it is there.
+            if (response is None or
+                (response and
+                 (response.st_mode == 0 or
+                  not stat.S_ISREG(response.st_mode)))):
+              # If next node is empty, this node is a leaf node, we therefore
+              # must stat it to check that it is there. There is a special case
+              # here where this pathspec points to a file/directory in the root
+              # directory. In this case, response will be None but we still need
+              # to stat it.
               self.CallClient(
                   "StatFile", request, next_state="ProcessEntry",
                   request_data=dict(component_path=next_component))

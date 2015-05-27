@@ -3,6 +3,7 @@
 
 import os
 
+
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -30,16 +31,16 @@ class TestCronTabParsing(test_lib.GRRBaseTest):
     self.assertEqual(len(results), 1)
 
     for result in results:
-      self.assertEqual(result.jobs[0].minute, '1')
-      self.assertEqual(result.jobs[0].hour, '2')
-      self.assertEqual(result.jobs[0].dayofmonth, '3')
-      self.assertEqual(result.jobs[0].month, '4')
-      self.assertEqual(result.jobs[0].dayofweek, '5')
-      self.assertEqual(result.jobs[0].command, '/usr/bin/echo "test"')
+      self.assertEqual(result.jobs[0].minute, "1")
+      self.assertEqual(result.jobs[0].hour, "2")
+      self.assertEqual(result.jobs[0].dayofmonth, "3")
+      self.assertEqual(result.jobs[0].month, "4")
+      self.assertEqual(result.jobs[0].dayofweek, "5")
+      self.assertEqual(result.jobs[0].command, "/usr/bin/echo \"test\"")
 
-def main(argv):
-  # Run the full test suite
-  test_lib.GrrTestProgram(argv=argv)
+
+def main(args):
+  test_lib.main(args)
 
 if __name__ == "__main__":
   flags.StartMain(main)

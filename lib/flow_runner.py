@@ -65,14 +65,31 @@ from grr.client import actions
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import data_store
+# pylint: disable=unused-import
+# for OutputPluginDescriptor, needed implicitly by FlowRunnerArgs
+from grr.lib import output_plugin as _
+# pylint: enable=unused-import
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import stats
 from grr.lib import utils
+# for RDFValueCollection pylint: disable=unused-import
+from grr.lib.aff4_objects import collections as _
+# pylint: enable=unused-import
+from grr.proto import flows_pb2
 
 
 class FlowRunnerError(Exception):
   """Raised when there is an error during state transitions."""
+
+
+class FlowRunnerArgs(rdfvalue.RDFProtoStruct):
+  """The argument to the flow runner.
+
+  Note that all flows receive these arguments. This object is stored in the
+  flows state.context.arg attribute.
+  """
+  protobuf = flows_pb2.FlowRunnerArgs
 
 
 class FlowRunner(object):
@@ -215,7 +232,7 @@ class FlowRunner(object):
   def InitializeContext(self, args):
     """Initializes the context of this flow."""
     if args is None:
-      args = rdfvalue.FlowRunnerArgs()
+      args = FlowRunnerArgs()
 
     output_collection = self._CreateOutputCollection(args)
     # Output collection is nullified when flow is terminated, so we're
@@ -854,7 +871,7 @@ class FlowRunner(object):
           response_id=request_state.response_count,
           auth_state=rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED,
           type=rdfvalue.GrrMessage.Type.MESSAGE,
-          args=response.SerializeToString(),
+          payload=response,
           args_rdf_name=response.__class__.__name__,
           args_age=int(response.age))
 
@@ -978,7 +995,7 @@ class FlowRunner(object):
           response_id=request_state.response_count,
           auth_state=rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED,
           type=rdfvalue.GrrMessage.Type.STATUS,
-          args=response.SerializeToString())
+          payload=response)
 
       try:
         # Queue the response now

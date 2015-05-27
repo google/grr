@@ -69,7 +69,7 @@ class BasicContextTests(test_lib.GRRBaseTest):
 
     self.assertEqual(message_list[0].session_id, self.session_id)
     self.assertEqual(message_list[0].response_id, 1)
-    self.assert_("hello" in message_list[0].args)
+    self.assert_("hello" in message_list[0].payload.data)
     self.assertEqual(message_list[1].response_id, 2)
     self.assertEqual(message_list[1].type, rdfvalue.GrrMessage.Type.STATUS)
 
@@ -88,7 +88,7 @@ class BasicContextTests(test_lib.GRRBaseTest):
     message_list = self.context.Drain().job
     self.assertEqual(message_list[0].session_id, self.session_id)
     self.assertEqual(message_list[0].response_id, 1)
-    status = rdfvalue.GrrStatus(message_list[0].args)
+    status = rdfvalue.GrrStatus(message_list[0].payload)
     self.assert_("RuntimeError" in status.error_message)
     self.assertNotEqual(status.status, rdfvalue.GrrStatus.ReturnedStatus.OK)
 
@@ -113,7 +113,7 @@ class BasicContextTests(test_lib.GRRBaseTest):
     self.assertEqual(len(message_list), 1)
     self.assertEqual(message_list[0].session_id, self.session_id)
     self.assertEqual(message_list[0].response_id, 1)
-    status = rdfvalue.GrrStatus(message_list[0].args)
+    status = rdfvalue.GrrStatus(message_list[0].payload)
     self.assert_("not Authenticated" in status.error_message)
     self.assert_("RuntimeError" in status.error_message)
     self.assertNotEqual(status.status, rdfvalue.GrrStatus.ReturnedStatus.OK)

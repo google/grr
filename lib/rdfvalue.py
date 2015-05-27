@@ -18,7 +18,6 @@ import functools
 import posixpath
 import re
 import time
-import urlparse
 
 import dateutil
 from dateutil import parser
@@ -150,6 +149,21 @@ class RDFValue(object):
   def SerializeToString(self):
     """Serialize into a string which can be parsed using ParseFromString."""
 
+  def __getstate__(self):
+    """Support the pickle protocol."""
+    # __pickled_rdfvalue is used to mark RDFValues pickled via the new way.
+    return dict(__pickled_rdfvalue=True,
+                age=int(self.age),
+                data=self.SerializeToString())
+
+  def __setstate__(self, data):
+    """Support the pickle protocol."""
+    if "__pickled_rdfvalue" in data:
+      self.ParseFromString(data["data"])
+      self.age = RDFDatetime(data["age"])
+    else:
+      self.__dict__ = data
+
   def AsProto(self):
     """Serialize into an RDFValue protobuf."""
     return jobs_pb2.EmbeddedRDFValue(age=int(self.age),
@@ -252,6 +266,9 @@ class RDFString(RDFBytes):
   operators["="] = (1, "ContainsMatch")
   operators["startswith"] = (1, "Startswith")
 
+  def format(self, *args, **kwargs):  # pylint: disable=invalid-name
+    return self._value.format(*args, **kwargs)
+
   def __unicode__(self):
     return utils.SmartUnicode(self._value)
 
@@ -291,6 +308,10 @@ class RDFInteger(RDFString):
 
   data_store_type = "integer"
 
+  @staticmethod
+  def IsNumeric(value):
+    return isinstance(value, (int, long, float, RDFInteger))
+
   def __init__(self, initializer=None, age=None):
     super(RDFInteger, self).__init__(initializer=initializer, age=age)
     if initializer is None:
@@ -321,6 +342,12 @@ class RDFInteger(RDFString):
 
   def __int__(self):
     return int(self._value)
+
+  def __float__(self):
+    return float(self._value)
+
+  def __index__(self):
+    return self._value
 
   def __eq__(self, other):
     return self._value == other
@@ -796,6 +823,10 @@ class RDFURN(RDFValue):
 
   data_store_type = "string"
 
+  # Careful when changing this value, this is hardcoded a few times in this
+  # class for performance reasons.
+  scheme = "aff4"
+
   def __init__(self, initializer=None, age=None):
     """Constructor.
 
@@ -807,10 +838,7 @@ class RDFURN(RDFValue):
     """
     if isinstance(initializer, RDFURN):
       # Make a direct copy of the other object
-      # pylint: disable=protected-access
-      self._urn = initializer._urn
-      self._string_urn = initializer._string_urn
-      # pylint: enable=protected-access
+      self._string_urn = initializer.Path()
       super(RDFURN, self).__init__(None, age)
       return
 
@@ -819,51 +847,35 @@ class RDFURN(RDFValue):
 
     super(RDFURN, self).__init__(initializer=initializer, age=age)
 
-  # TODO(user): This is another ugly hack but we need to support legacy
-  # clients that still send plain strings in their responses.
-  bare_string_re = re.compile("^[A-Z]{1,3}:[a-zA-Z]+$")
-
   def ParseFromString(self, initializer=None):
     """Create RDFRUN from string.
 
     Args:
       initializer: url string
     """
-    # TODO(user): This is another ugly hack but we need to support legacy
-    # clients that still send plain strings in their responses.
-    if self.bare_string_re.match(initializer):
-      initializer = "aff4:/" + initializer
+    # Strip off the aff4: prefix if necessary.
+    if initializer.startswith("aff4:/"):
+      initializer = initializer[5:]
 
-    self._urn = urlparse.urlparse(initializer, scheme="aff4")
-
-    # TODO(user): Another hack. Urlparse behaves differently in different
-    # Python versions. We have to make sure the URL is not split at '?' chars.
-    # At this point I think we should just give up on urlparse and roll our
-    # own parsing...
-    if self._urn.query:
-      scheme = self._urn.scheme
-      url = "%s?%s" % (self._urn.path, self._urn.query)
-      netloc, params, query, fragment = "", "", "", ""
-      self._urn = urlparse.ParseResult(
-          scheme, netloc, url, params, query, fragment)
-
-    # Normalize the URN path component
-    # namedtuple _replace() is not really private.
-    # pylint: disable=protected-access
-    self._urn = self._urn._replace(path=utils.NormalizePath(self._urn.path))
-    if not self._urn.scheme:
-      self._urn = self._urn._replace(scheme="aff4")
-
-    self._string_urn = self._urn.geturl()
+    self._string_urn = utils.NormalizePath(initializer)
 
   def SerializeToString(self):
     return str(self)
 
   def SerializeToDataStore(self):
-    return utils.SmartUnicode(self._string_urn)
+    return unicode(self)
+
+  def __setstate__(self, data):
+    """Support the pickle protocol."""
+    RDFValue.__setstate__(self, data)
+    # NOTE: This is done for backwards compatibility with
+    # old pickled RDFURNs that got pickled via default pickling mechanism and
+    # have 'aff4:/' pickled as part of _string_urn as a result.
+    if self._string_urn.startswith("aff4:/"):
+      self._string_urn = self._string_urn[5:]
 
   def Dirname(self):
-    return posixpath.dirname(self.SerializeToString())
+    return posixpath.dirname(self._string_urn)
 
   def Basename(self):
     return posixpath.basename(self.Path())
@@ -887,21 +899,21 @@ class RDFURN(RDFValue):
       raise ValueError("Only strings should be added to a URN.")
 
     result = self.Copy(age)
-    result.Update(path=utils.JoinPath(self._urn.path, path))
+    result.Update(path=utils.JoinPath(self._string_urn, path))
 
     return result
 
-  def Update(self, url=None, **kwargs):
+  def Update(self, url=None, path=None):
     """Update one of the fields.
 
     Args:
        url: An optional string containing a URL.
-       **kwargs: Can be one of "schema", "netloc", "query", "fragment"
+       path: If the path for this URN should be updated.
     """
-    if url: self.ParseFromString(url)
-
-    self._urn = self._urn._replace(**kwargs)  # pylint: disable=protected-access
-    self._string_urn = self._urn.geturl()
+    if url:
+      self.ParseFromString(url)
+    if path:
+      self._string_urn = path
     self.dirty = True
 
   def Copy(self, age=None):
@@ -911,33 +923,32 @@ class RDFURN(RDFValue):
     return self.__class__(self, age=age)
 
   def __str__(self):
-    return utils.SmartStr(self._string_urn)
+    return utils.SmartStr("aff4:%s" % self._string_urn)
 
   def __unicode__(self):
-    return utils.SmartUnicode(self._string_urn)
+    return utils.SmartUnicode(u"aff4:%s" % self._string_urn)
 
   def __eq__(self, other):
     if isinstance(other, basestring):
       other = self.__class__(other)
 
-    elif not isinstance(other, self.__class__):
+    elif other is None:
+      return False
+
+    elif not isinstance(other, RDFURN):
       return NotImplemented
 
-    return self._string_urn == other._string_urn  # pylint: disable=protected-access
+    return self._string_urn == other.Path()
 
   def __ne__(self, other):
-    return self._string_urn != other
+    return not self.__eq__(other)
 
   def __lt__(self, other):
     return self._string_urn < other
 
   def Path(self):
     """Return the path of the urn."""
-    return self._urn.path
-
-  @property
-  def scheme(self):
-    return self._urn.scheme
+    return self._string_urn
 
   def Split(self, count=None):
     """Returns all the path components.
@@ -953,14 +964,14 @@ class RDFURN(RDFValue):
       A list of path components of this URN.
     """
     if count:
-      result = filter(None, self.Path().split("/", count))
+      result = filter(None, self._string_urn.split("/", count))
       while len(result) < count:
         result.append("")
 
       return result
 
     else:
-      return filter(None, self.Path().split("/"))
+      return filter(None, self._string_urn.split("/"))
 
   def RelativeName(self, volume):
     """Given a volume URN return the relative URN as a unicode string.
@@ -977,17 +988,11 @@ class RDFURN(RDFValue):
     volume_url = utils.SmartUnicode(volume)
     if string_url.startswith(volume_url):
       result = string_url[len(volume_url):]
-      # Must always return a relative path
-      while result.startswith("/"):
-        result = result[1:]
-
-      # Should return a unicode string.
-      return utils.SmartUnicode(result)
+      # This must always return a relative path so we strip leading "/"s. The
+      # result is always a unicode string.
+      return result.lstrip("/")
 
     return None
-
-  def __hash__(self):
-    return hash(self._string_urn)
 
   def __repr__(self):
     return "<%s age=%s>" % (str(self), self.age)
@@ -1044,8 +1049,11 @@ class SessionID(RDFURN):
       else:
         initializer = RDFURN(base).Add("%s:%s" % (queue.Basename(), flow_name))
     elif isinstance(initializer, RDFURN):
-      if initializer.Basename().count(":") != 1:
-        raise InitializeError("Invalid URN for SessionID: %s" % initializer)
+      try:
+        self.ValidateID(initializer.Basename())
+      except ValueError as e:
+        raise InitializeError("Invalid URN for SessionID: %s, %s" %
+                              (initializer, e.message))
     super(SessionID, self).__init__(initializer=initializer, age=age)
 
   def Queue(self):
@@ -1057,6 +1065,14 @@ class SessionID(RDFURN):
   def Add(self, path, age=None):
     # Adding to a SessionID results in a normal RDFURN.
     return RDFURN(self).Add(path, age=age)
+
+  @classmethod
+  def ValidateID(cls, id_str):
+    # This check is weaker than it could be because we allow queues called
+    # "DEBUG-user1" and IDs like "TransferStore"
+    allowed_re = re.compile(r"^[-0-9a-zA-Z]+:[0-9a-zA-Z]+$")
+    if not allowed_re.match(id_str):
+      raise ValueError("Invalid SessionID")
 
 
 class FlowSessionID(SessionID):

@@ -313,6 +313,10 @@ message LinuxServiceInformation {
   optional AttributedDict config = 10 [(sem_type) = {
       description: "The configuration of the service.",
     }];
+
+  optional bool starts = 11 [(sem_type) = {
+      description: "The service is configured to start up through some means.",
+    }];
 }
 
 // Describe an installed software package. Cross platform.

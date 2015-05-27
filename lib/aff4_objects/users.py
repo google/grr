@@ -9,11 +9,12 @@ import time
 
 from grr.lib import aff4
 from grr.lib import rdfvalue
+from grr.lib.rdfvalues import structs
 from grr.proto import flows_pb2
 from grr.proto import jobs_pb2
 
 
-class GlobalNotification(rdfvalue.RDFProtoStruct):
+class GlobalNotification(structs.RDFProtoStruct):
   """Global notification shown to all the users of GRR."""
 
   protobuf = jobs_pb2.GlobalNotification
@@ -37,7 +38,7 @@ class GlobalNotification(rdfvalue.RDFProtoStruct):
     return self.Type.reverse_enum[self.type]
 
 
-class GlobalNotificationSet(rdfvalue.RDFProtoStruct):
+class GlobalNotificationSet(structs.RDFProtoStruct):
   """A set of global notifications: one notification per notification's type."""
 
   protobuf = jobs_pb2.GlobalNotificationSet
@@ -109,7 +110,7 @@ class CryptedPassword(rdfvalue.RDFString):
     return self._CalculateHash(password, salt=salt) == self._value
 
 
-class GUISettings(rdfvalue.RDFProtoStruct):
+class GUISettings(structs.RDFProtoStruct):
   protobuf = flows_pb2.GUISettings
 
 

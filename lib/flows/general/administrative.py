@@ -14,7 +14,6 @@ from grr.gui import django_lib
 # pylint: enable=unused-import
 from grr.lib import access_control
 from grr.lib import aff4
-from grr.lib import client_index
 from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import email_alerts
@@ -120,7 +119,7 @@ class GetClientStatsAuto(flow.WellKnownFlow,
 
   def ProcessMessage(self, message):
     """Processes a stats response from the client."""
-    client_stats = rdfvalue.ClientStats(message.args)
+    client_stats = rdfvalue.ClientStats(message.payload)
     self.ProcessResponse(message.source, client_stats)
 
 
@@ -532,7 +531,7 @@ Click <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
 
     client_id = message.source
 
-    message = rdfvalue.DataBlob(message.args).string
+    message = message.payload.string
 
     logging.info(self.logline, client_id, message)
 
@@ -633,7 +632,7 @@ P.S. The state of the failing flow was:
     client = aff4.FACTORY.Open(client_id, token=self.token)
     client_info = client.Get(client.Schema.CLIENT_INFO)
 
-    status = rdfvalue.GrrStatus(message.args)
+    status = rdfvalue.GrrStatus(message.payload)
     crash_details = rdfvalue.ClientCrash(
         client_id=client_id, session_id=message.session_id,
         client_info=client_info, crash_message=status.error_message,
@@ -700,7 +699,7 @@ class ClientStartupHandler(flow.EventListener):
                                  token=self.token)
     old_info = client.Get(client.Schema.CLIENT_INFO)
     old_boot = client.Get(client.Schema.LAST_BOOT_TIME, 0)
-    startup_info = rdfvalue.StartupInfo(message.args)
+    startup_info = rdfvalue.StartupInfo(message.payload)
     info = startup_info.client_info
 
     # Only write to the datastore if we have new information.
@@ -885,43 +884,3 @@ class RunReport(flow.GRRGlobalFlow):
     report_obj = report_cls(token=self.token)
     report_obj.Run()
     report_obj.MailReport(self.state.args.email)
-
-
-class ApplyLabelsToClientsFlowArgs(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.ApplyLabelsToClientsFlowArgs
-
-
-class ApplyLabelsToClientsFlow(flow.GRRGlobalFlow):
-
-  args_type = ApplyLabelsToClientsFlowArgs
-
-  ACL_ENFORCED = False
-
-  @flow.StateHandler()
-  def Start(self):
-    audit_description = ",".join(
-        [self.token.username + u"." + utils.SmartUnicode(name)
-         for name in self.args.labels])
-    audit_events = []
-    try:
-      index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                                  aff4_type="ClientIndex",
-                                  mode="rw",
-                                  token=self.token)
-      client_objs = aff4.FACTORY.MultiOpen(
-          self.args.clients, aff4_type="VFSGRRClient", mode="rw",
-          token=self.token)
-      for client_obj in client_objs:
-        client_obj.AddLabels(*self.args.labels)
-        index.AddClient(client_obj)
-        client_obj.Close()
-
-        audit_events.append(
-            rdfvalue.AuditEvent(user=self.token.username,
-                                action="CLIENT_ADD_LABEL",
-                                flow_name="ApplyLabelsToClientsFlow",
-                                client=client_obj.urn,
-                                description=audit_description))
-    finally:
-      flow.Events.PublishMultipleEvents({"Audit": audit_events},
-                                        token=self.token)

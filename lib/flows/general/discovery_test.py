@@ -16,6 +16,9 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import search
 from grr.lib import test_lib
+# pylint: disable=unused-import
+from grr.lib.flows.general import discovery
+# pylint: enable=unused-import
 
 
 class DiscoveryTestEventListener(flow.EventListener):

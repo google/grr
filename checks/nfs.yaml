@@ -51,4 +51,4 @@ method:
       - artifact: 'NfsExportsFile'
         filters:
           - type: 'ObjectFilter'
-            expression: sec inset "none,sys"
+            expression: sec inset ["none", "sys"]

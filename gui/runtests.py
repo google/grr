@@ -6,23 +6,22 @@ import socket
 import threading
 from wsgiref import simple_server
 
-# pylint: disable=unused-import
-
-# pylint: disable=g-bad-import-order
-from grr.gui import admin_ui
-from grr.gui import django_lib
-# pylint: enable=g-bad-import-order
 
 import logging
 
+# pylint: disable=g-bad-import-order
+from grr.gui import django_lib
+# pylint: enable=g-bad-import-order
+
 from grr.lib import access_control
-from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import ipshell
-from grr.lib import rdfvalue
 from grr.lib import registry
+# pylint: disable=unused-import
+from grr.lib import server_plugins
+# pylint: enable=unused-import
 from grr.lib import startup
 from grr.lib import test_lib
 

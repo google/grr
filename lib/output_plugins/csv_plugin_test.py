@@ -54,7 +54,7 @@ class CSVOutputPluginTest(test_lib.FlowTestsBaseclass):
       responses.append(rdfvalue.StatEntry(
           aff4path=self.client_id.Add("/fs/os/foo/bar").Add(str(i)),
           pathspec=rdfvalue.PathSpec(path="/foo/bar"),
-          st_mode=33184,
+          st_mode=33184,  # octal = 100640 => u=rw,g=r,o= => -rw-r-----
           st_ino=1063090,
           st_dev=64512L,
           st_nlink=1 + i,
@@ -86,7 +86,7 @@ class CSVOutputPluginTest(test_lib.FlowTestsBaseclass):
 
       self.assertEqual(parsed_output[i]["urn"],
                        self.client_id.Add("/fs/os/foo/bar").Add(str(i)))
-      self.assertEqual(parsed_output[i]["st_mode"], "33184")
+      self.assertEqual(parsed_output[i]["st_mode"], "-rw-r-----")
       self.assertEqual(parsed_output[i]["st_ino"], "1063090")
       self.assertEqual(parsed_output[i]["st_dev"], "64512")
       self.assertEqual(parsed_output[i]["st_nlink"], str(1 + i))

@@ -13,7 +13,6 @@ import psutil
 
 from grr.lib import action_mocks
 from grr.lib import aff4
-from grr.lib import client_index
 from grr.lib import config_lib
 from grr.lib import email_alerts
 from grr.lib import flags
@@ -23,6 +22,12 @@ from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+# pylint: disable=unused-import
+from grr.lib.flows.general import administrative
+# For AuditEventListener, needed to handle published audit events.
+from grr.lib.flows.general import audit as _
+from grr.lib.flows.general import discovery
+# pylint: enable=unused-import
 
 
 class AdministrativeFlowTests(test_lib.FlowTestsBaseclass):
@@ -158,7 +163,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     with utils.Stubber(email_alerts, "SendEmail", SendEmail):
       msg = rdfvalue.GrrMessage(
           session_id=rdfvalue.SessionID(flow_name="NannyMessage"),
-          args=rdfvalue.DataBlob(string=nanny_message).SerializeToString(),
+          payload=rdfvalue.DataBlob(string=nanny_message),
           source=self.client_id,
           auth_state=rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED)
 
@@ -470,137 +475,6 @@ sys.test_code_ran_here = py_args['value']
 
     self.assertAlmostEqual(sample.cpu_samples[0].user_cpu_time, 15.0)
     self.assertAlmostEqual(sample.cpu_samples[1].system_cpu_time, 31.0)
-
-
-class TestApplyLabelsToClientsFlow(AdministrativeFlowTests):
-  """Tests for ApplyLabelsToClientsFlow."""
-
-  def GetClientLabels(self, client_id):
-    fd = aff4.FACTORY.Open(client_id, aff4_type="VFSGRRClient",
-                           token=self.token)
-    return list(fd.Get(fd.Schema.LABELS,
-                       rdfvalue.AFF4ObjectLabelsList()).labels)
-
-  def testAppliesSingleLabelToSingleClient(self):
-    client_id = self.SetupClients(1)[0]
-
-    self.assertFalse(self.GetClientLabels(client_id))
-
-    with test_lib.FakeTime(42):
-      flow.GRRFlow.StartFlow(flow_name="ApplyLabelsToClientsFlow",
-                             clients=[client_id],
-                             labels=["foo"],
-                             token=self.token)
-
-    self.assertListEqual(
-        self.GetClientLabels(client_id),
-        [rdfvalue.AFF4ObjectLabel(
-            name="foo", owner="test",
-            timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))])
-
-  def testAppliesSingleLabelToMultipleClients(self):
-    client_ids = self.SetupClients(3)
-
-    for client_id in client_ids:
-      self.assertFalse(self.GetClientLabels(client_id))
-
-    with test_lib.FakeTime(42):
-      flow.GRRFlow.StartFlow(flow_name="ApplyLabelsToClientsFlow",
-                             clients=client_ids,
-                             labels=["foo"],
-                             token=self.token)
-
-    for client_id in client_ids:
-      self.assertListEqual(
-          self.GetClientLabels(client_id),
-          [rdfvalue.AFF4ObjectLabel(
-              name="foo", owner="test",
-              timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))])
-    index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                                aff4_type="ClientIndex",
-                                mode="rw",
-                                token=self.token)
-    with test_lib.FakeTime(42):
-      self.assertListEqual(sorted(client_ids),
-                           sorted(index.LookupClients(["foo"])))
-
-  def testAppliesMultipleLabelsToSingleClient(self):
-    client_id = self.SetupClients(1)[0]
-
-    self.assertFalse(self.GetClientLabels(client_id))
-
-    with test_lib.FakeTime(42):
-      flow.GRRFlow.StartFlow(flow_name="ApplyLabelsToClientsFlow",
-                             clients=[client_id],
-                             labels=["drei", "ein", "zwei"],
-                             token=self.token)
-
-    self.assertListEqual(
-        sorted(self.GetClientLabels(client_id),
-               key=lambda label: label.name),
-        [rdfvalue.AFF4ObjectLabel(
-            name="drei", owner="test",
-            timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42)),
-         rdfvalue.AFF4ObjectLabel(
-             name="ein", owner="test",
-             timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42)),
-         rdfvalue.AFF4ObjectLabel(
-             name="zwei", owner="test",
-             timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))])
-
-  def testAppliesMultipleLabelsToMultipleClients(self):
-    client_ids = self.SetupClients(3)
-
-    for client_id in client_ids:
-      self.assertFalse(self.GetClientLabels(client_id))
-
-    with test_lib.FakeTime(42):
-      flow.GRRFlow.StartFlow(flow_name="ApplyLabelsToClientsFlow",
-                             clients=client_ids,
-                             labels=["drei", "ein", "zwei"],
-                             token=self.token)
-
-    for client_id in client_ids:
-      self.assertListEqual(
-          sorted(self.GetClientLabels(client_id),
-                 key=lambda label: label.name),
-          [rdfvalue.AFF4ObjectLabel(
-              name="drei", owner="test",
-              timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42)),
-           rdfvalue.AFF4ObjectLabel(
-               name="ein", owner="test",
-               timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42)),
-           rdfvalue.AFF4ObjectLabel(
-               name="zwei", owner="test",
-               timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))])
-
-  def testAuditEntryIsCreatedForEveryClient(self):
-    client_ids = self.SetupClients(3)
-
-    flow.GRRFlow.StartFlow(flow_name="ApplyLabelsToClientsFlow",
-                           clients=client_ids,
-                           labels=["drei", "ein", "zwei"],
-                           token=self.token)
-    mock_worker = test_lib.MockWorker(token=self.token)
-    mock_worker.Simulate()
-
-    parentdir = aff4.FACTORY.Open("aff4:/audit/logs", token=self.token)
-    log = list(parentdir.ListChildren())[0]
-    fd = aff4.FACTORY.Open(log, token=self.token)
-
-    for client_id in client_ids:
-      found_event = None
-      for event in fd:
-        if (event.action == rdfvalue.AuditEvent.Action.CLIENT_ADD_LABEL and
-            event.client == rdfvalue.ClientURN(client_id)):
-          found_event = event
-          break
-
-      self.assertFalse(found_event is None)
-
-      self.assertEqual(found_event.flow_name, "ApplyLabelsToClientsFlow")
-      self.assertEqual(found_event.user, self.token.username)
-      self.assertEqual(found_event.description, "test.drei,test.ein,test.zwei")
 
 
 def main(argv):

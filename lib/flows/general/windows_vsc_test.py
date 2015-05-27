@@ -2,14 +2,13 @@
 """Tests for Windows Volume Shadow Copy flow."""
 import stat
 
-# pylint: disable=unused-import, g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import, g-bad-import-order
-
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+# needed for ListVolumeShadowCopies pylint: disable=unused-import
+from grr.lib.flows.general import windows_vsc
+# pylint: enable=unused-import
 
 
 class TestClient(object):

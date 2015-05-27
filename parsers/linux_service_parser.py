@@ -78,6 +78,8 @@ class LinuxLSBInitParser(parsers.FileParser):
         service.name = init.get("provides")
         service.start_mode = "INIT"
         service.start_on = init.get("default-start").split()
+        if service.start_on:
+          service.starts = True
         service.stop_on = init.get("default-stop")
         service.description = init.get("short-description")
         service.start_after = self._Facilities(init.get("required-start", []))
@@ -199,6 +201,7 @@ class LinuxXinetdParser(parsers.FileParser):
     service = rdfvalue.LinuxServiceInformation(name=name)
     service.config = self._GenConfig(cfg)
     if service.config.disable == ["no"]:
+      service.starts = True
       service.start_mode = "XINETD"
       service.start_after = ["xinetd"]
     return service

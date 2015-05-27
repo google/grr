@@ -7,22 +7,22 @@
 
 import math
 
-from grr.lib import rdfvalue
+from grr.lib.rdfvalues import stats as stats_rdf
 from grr.lib.rdfvalues import test_base
 
 
 class RunningStatsTest(test_base.RDFValueTestCase):
-  rdfvalue_class = rdfvalue.RunningStats
+  rdfvalue_class = stats_rdf.RunningStats
 
   def GenerateSample(self, number=0):
-    value = rdfvalue.RunningStats()
+    value = stats_rdf.RunningStats()
     value.RegisterValue(number)
     value.RegisterValue(number * 2)
     value.histogram = [2.0, number, 10.0]
     return value
 
   def testMeanIsCalculatedCorrectly(self):
-    stats = rdfvalue.RunningStats()
+    stats = stats_rdf.RunningStats()
     values = range(100)
 
     for v in values:
@@ -32,7 +32,7 @@ class RunningStatsTest(test_base.RDFValueTestCase):
     self.assertTrue(math.fabs(stats.mean - 49.5) < 1e-7)
 
   def testStdDevIsCalculatedCorrectly(self):
-    stats = rdfvalue.RunningStats()
+    stats = stats_rdf.RunningStats()
     values = range(100)
 
     for v in values:
@@ -42,8 +42,8 @@ class RunningStatsTest(test_base.RDFValueTestCase):
     self.assertTrue(math.fabs(stats.std - 28.86607004) < 1e-7)
 
   def testHistogramIsCalculatedCorrectly(self):
-    stats = rdfvalue.RunningStats()
-    stats.histogram = rdfvalue.StatsHistogram(initializer=[2.0, 4.0, 10.0])
+    stats = stats_rdf.RunningStats()
+    stats.histogram = stats_rdf.StatsHistogram(initializer=[2.0, 4.0, 10.0])
 
     stats.RegisterValue(1.0)
     stats.RegisterValue(1.0)

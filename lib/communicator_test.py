@@ -23,9 +23,6 @@ from grr.lib import flags
 from grr.lib import flow
 from grr.lib import queues
 from grr.lib import rdfvalue
-# pylint: disable=unused-import
-from grr.lib import server_plugins
-# pylint: enable=unused-import
 from grr.lib import stats
 from grr.lib import test_lib
 from grr.lib import utils
@@ -379,7 +376,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     for i, message in enumerate(
         self.client_communicator.client_worker._in_queue):
       # This is the common name embedded in the certificate.
-      self.assertEqual(message.GetWireFormat("source"), "GRR Test Server")
+      self.assertEqual(message.source, "aff4:/GRR Test Server")
       self.assertEqual(message.response_id, 2)
       self.assertEqual(message.request_id, i)
       self.assertEqual(message.session_id, "aff4:/W:session")

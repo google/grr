@@ -9,4 +9,5 @@ This module loads and registers tests of check configurations.
 # pylint: disable=unused-import,g-import-not-at-top
 from grr.checks import format_test
 from grr.checks import nfs_test
-
+from grr.checks import services_test
+from grr.checks import unix_login_test

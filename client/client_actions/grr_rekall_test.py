@@ -14,7 +14,11 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 
+# This test runs flows from these modules. pylint: disable=unused-import
+from grr.lib.flows.general import memory
+from grr.lib.flows.general import registry
 from grr.lib.flows.general import transfer
+# pylint: enable=unused-import
 
 
 class RekallTestSuite(test_lib.EmptyActionTest):

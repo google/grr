@@ -11,8 +11,9 @@ import threading
 
 from grr.client import client_utils
 from grr.client import vfs
-from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import client
+from grr.lib.rdfvalues import paths
 
 
 # File handles are cached here. They expire after a couple minutes so
@@ -66,7 +67,7 @@ class FileHandleManager(object):
 
 def MakeStatResponse(st, pathspec):
   """Creates a StatEntry."""
-  response = rdfvalue.StatEntry(pathspec=pathspec)
+  response = client.StatEntry(pathspec=pathspec)
 
   if st is None:
     # Special case empty stat if we don't have a real value, e.g. we get Access
@@ -102,7 +103,7 @@ def MakeStatResponse(st, pathspec):
 class File(vfs.VFSHandler):
   """Read a regular file."""
 
-  supported_pathtype = rdfvalue.PathSpec.PathType.OS
+  supported_pathtype = paths.PathSpec.PathType.OS
   auto_register = True
 
   # The file descriptor of the OS file.
@@ -137,7 +138,7 @@ class File(vfs.VFSHandler):
     if self.pathspec[0].HasField("offset"):
       self.file_offset = self.pathspec[0].offset
 
-    self.pathspec.last.path_options = rdfvalue.PathSpec.Options.CASE_LITERAL
+    self.pathspec.last.path_options = paths.PathSpec.Options.CASE_LITERAL
 
     self.WindowsHacks()
     self.filename = client_utils.CanonicalPathToLocalPath(self.path)

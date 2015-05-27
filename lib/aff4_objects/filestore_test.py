@@ -13,6 +13,9 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import filestore
+# Needed for GetFile pylint: disable=unused-import
+from grr.lib.flows.general import transfer
+# pylint: enable=unused-import
 
 
 class FakeStore(object):

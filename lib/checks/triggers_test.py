@@ -3,8 +3,8 @@
 """Tests for triggers."""
 from grr.lib import flags
 from grr.lib import test_lib
+from grr.lib.checks import checks
 from grr.lib.checks import triggers
-from grr.lib.rdfvalues import checks
 
 
 target_1 = checks.Target({})

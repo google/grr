@@ -106,6 +106,18 @@ class MetaclassRegistry(abc.ABCMeta):
     return cls.classes[name]
 
 
+class EventRegistry(MetaclassRegistry):
+
+  EVENT_NAME_MAP = {}
+
+  def __init__(cls, name, bases, env_dict):
+    MetaclassRegistry.__init__(cls, name, bases, env_dict)
+
+    # Register ourselves as listeners for the events in cls.EVENTS.
+    for ev in cls.EVENTS:
+      EventRegistry.EVENT_NAME_MAP.setdefault(ev, set()).add(cls)
+
+
 # Utility functions
 class HookRegistry(object):
   """An initializer that can be extended by plugins.

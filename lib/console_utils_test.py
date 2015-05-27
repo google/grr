@@ -2,10 +2,6 @@
 """Tests for grr.lib.console_utils."""
 
 
-# pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import,g-bad-import-order
-
 from grr.lib import aff4
 from grr.lib import console_utils
 from grr.lib import flags

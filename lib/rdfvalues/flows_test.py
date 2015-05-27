@@ -72,3 +72,33 @@ class FlowStateTest(test_base.RDFValueTestCase):
       result = rdfvalue.FlowState(serialized)
       self.assertTrue(isinstance(result.errors, AttributeError))
       self.assertTrue(isinstance(result.urn, flows.UnknownObject))
+
+
+class SessionIDTest(test_base.RDFValueTestCase):
+  """Test SessionID."""
+
+  rdfvalue_class = rdfvalue.SessionID
+
+  def GenerateSample(self, number=0):
+    id_str = "%08X" % (number % 2**32)
+    return rdfvalue.SessionID(flow_name=id_str)
+
+  def testSessionIDValidation(self):
+    rdfvalue.SessionID(rdfvalue.RDFURN("aff4:/flows/A:12345678"))
+    rdfvalue.SessionID(rdfvalue.RDFURN("aff4:/flows/A:TransferStore"))
+    rdfvalue.SessionID(rdfvalue.RDFURN("aff4:/flows/DEBUG-user1:12345678"))
+
+  def testBadStructure(self):
+    self.assertRaises(rdfvalue.InitializeError, rdfvalue.SessionID,
+                      rdfvalue.RDFURN("aff4:/flows/A:123456:78"))
+    self.assertRaises(rdfvalue.InitializeError, rdfvalue.SessionID,
+                      rdfvalue.RDFURN("aff4:/flows/:"))
+
+  def testBadQueue(self):
+    self.assertRaises(rdfvalue.InitializeError, rdfvalue.SessionID,
+                      rdfvalue.RDFURN("aff4:/flows/A%b:12345678"))
+
+  def testBadFlowID(self):
+    self.assertRaises(rdfvalue.InitializeError, rdfvalue.SessionID,
+                      rdfvalue.RDFURN("aff4:/flows/A:1234567G%sdf"))
+

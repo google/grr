@@ -2,10 +2,11 @@
 """Simple parsers for cron type files."""
 
 
+import crontab
+
 from grr.lib import parsers
 from grr.lib import rdfvalue
 from grr.lib import utils
-from crontab import CronTab
 
 
 class CronTabParser(parsers.FileParser):
@@ -20,7 +21,7 @@ class CronTabParser(parsers.FileParser):
     entries = []
 
     crondata = file_object.read(100000)
-    jobs = CronTab(tab=crondata)
+    jobs = crontab.CronTab(tab=crondata)
 
     for job in jobs:
       entries.append(rdfvalue.CronTabEntry(minute=utils.SmartStr(job.minute),

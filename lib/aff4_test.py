@@ -8,7 +8,6 @@ import threading
 import time
 
 # pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
 # Import this so the aff4 tests will be run.
 from grr.lib.aff4_objects import tests
 # pylint: enable=unused-import,g-bad-import-order
@@ -197,7 +196,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     """Test that append attribute works."""
     # Create an object to carry attributes
     obj = aff4.FACTORY.Create("foobar", "AFF4Object", token=self.token)
-    obj.Set(obj.Schema.STORED("http://www.google.com"))
+    obj.Set(obj.Schema.STORED("www.google.com"))
     obj.Close()
 
     obj = aff4.FACTORY.Open("foobar", mode="rw", token=self.token,
@@ -206,7 +205,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
     # Add a bunch of attributes now.
     for i in range(5):
-      obj.AddAttribute(obj.Schema.STORED("http://example.com/%s" % i))
+      obj.AddAttribute(obj.Schema.STORED("example.com/%s" % i))
 
     # There should be 6 there now
     self.assertEqual(6, len(list(obj.GetValuesForAttribute(obj.Schema.STORED))))
@@ -229,7 +228,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     """Flush with age policy NEWEST_TIME should only keeps a single version."""
     # Create an object to carry attributes
     obj = aff4.FACTORY.Create("foobar", "AFF4Object", token=self.token)
-    obj.Set(obj.Schema.STORED("http://www.google.com"))
+    obj.Set(obj.Schema.STORED("www.google.com"))
     obj.Close()
 
     obj = aff4.FACTORY.Open("foobar", mode="rw", token=self.token,
@@ -239,7 +238,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
     # Add a bunch of attributes now.
     for i in range(5):
-      obj.AddAttribute(obj.Schema.STORED("http://example.com/%s" % i))
+      obj.AddAttribute(obj.Schema.STORED("example.com/%s" % i))
 
     # There should be 5 unsynced versions now
     self.assertEqual(5, len(obj.new_attributes[obj.Schema.STORED.predicate]))
@@ -253,14 +252,14 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     self.assertEqual(1, len(obj.synced_attributes[obj.Schema.STORED.predicate]))
 
     # The latest version should be kept.
-    self.assertEqual(obj.Get(obj.Schema.STORED), "http://example.com/4")
+    self.assertEqual(obj.Get(obj.Schema.STORED), "example.com/4")
 
   def testCopyAttributes(self):
     # Create an object to carry attributes
     obj = aff4.FACTORY.Create("foobar", "AFF4Object", token=self.token)
     # Add a bunch of attributes now.
     for i in range(5):
-      obj.AddAttribute(obj.Schema.STORED("http://example.com/%s" % i))
+      obj.AddAttribute(obj.Schema.STORED("example.com/%s" % i))
     obj.Close()
 
     obj = aff4.FACTORY.Open("foobar", mode="r", token=self.token,
@@ -281,7 +280,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
   def testAttributeSet(self):
     obj = aff4.FACTORY.Create("foobar", "AFF4Object", token=self.token)
     self.assertFalse(obj.IsAttributeSet(obj.Schema.STORED))
-    obj.Set(obj.Schema.STORED("http://www.google.com"))
+    obj.Set(obj.Schema.STORED("www.google.com"))
     self.assertTrue(obj.IsAttributeSet(obj.Schema.STORED))
     obj.Close()
 

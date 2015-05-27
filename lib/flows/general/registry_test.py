@@ -9,6 +9,9 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+# pylint: disable=unused-import
+from grr.lib.flows.general import registry
+# pylint: enable=unused-import
 from grr.lib.flows.general import transfer
 
 

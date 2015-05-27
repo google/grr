@@ -137,22 +137,20 @@ class TestNotifications(test_lib.GRRSeleniumTest):
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
 
-    # Open settings dialog and change mode from BASIC to ADVANCED
-    self.Click("css=button[id=user_settings_button]")
-    self.assertEqual(
-        "ADVANCED",
-        self.GetSelectedLabel("css=#user_settings_dialog select#settings-mode"))
+    mode_selector = "css=.form-group:has(label:contains('Mode')) select"
 
-    self.Select("css=#user_settings_dialog select#settings-mode",
-                "BASIC (default)")
-    self.Click("css=#user_settings_dialog button[name=Proceed]")
+    # Open settings dialog and change mode from BASIC to ADVANCED
+    self.Click("css=grr-user-settings-button")
+    self.assertEqual("ADVANCED", self.GetSelectedLabel(mode_selector).strip())
+
+    self.Select(mode_selector, "BASIC (default)")
+    self.Click("css=button[name=Proceed]")
 
     # Check that the mode value was saved
-    self.Click("css=button[id=user_settings_button]")
+    self.Click("css=grr-user-settings-button")
     self.assertEqual(
         "BASIC (default)",
-        self.GetSelectedLabel(
-            "css=#user_settings_dialog select#settings-mode").strip())
+        self.GetSelectedLabel(mode_selector).strip())
 
   def testClickOnDownloadFileNotificationLeadsToImmediateFileDownload(self):
     file_urn = "aff4:/tmp/foo/bar"

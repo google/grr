@@ -8,6 +8,9 @@ import time
 from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+# pylint: disable=unused-import
+from grr.lib.aff4_objects import timeline
+# pylint: enable=unused-import
 
 
 class TimelineTest(test_lib.AFF4ObjectTest):

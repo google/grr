@@ -11,6 +11,7 @@ from grr.gui.plugins import semantic
 from grr.lib import aff4
 from grr.lib import artifact
 from grr.lib import artifact_lib
+from grr.lib import artifact_registry
 from grr.lib import parsers
 from grr.lib import rdfvalue
 
@@ -89,7 +90,8 @@ class ArtifactListRenderer(forms.MultiSelectListRenderer):
     # Get all artifacts that aren't Bootstrap and aren't the base class.
     self.artifacts = {}
     artifact.LoadArtifactsFromDatastore(token=request.token)
-    for name, artifact_val in artifact_lib.ArtifactRegistry.artifacts.items():
+    for name, artifact_val in (
+        artifact_registry.ArtifactRegistry.artifacts.items()):
       if set(["Bootstrap"]).isdisjoint(artifact_val.labels):
         self.artifacts[name] = artifact_val
     self.labels = artifact_lib.ARTIFACT_LABELS
@@ -294,7 +296,7 @@ class ArtifactUploadHandler(fileview.UploadHandler):
 
       return renderers.TemplateRenderer.Layout(self, request, response,
                                                self.success_template)
-    except (IOError, artifact_lib.ArtifactDefinitionError) as e:
+    except (IOError, artifact_registry.ArtifactDefinitionError) as e:
       self.error = "Could not write artifact to database %s" % e
     return renderers.TemplateRenderer.Layout(self, request, response,
                                              self.error_template)

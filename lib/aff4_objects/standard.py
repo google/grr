@@ -11,6 +11,7 @@ from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import paths
 
 
 class VFSDirectory(aff4.AFF4Volume):
@@ -61,7 +62,7 @@ class VFSDirectory(aff4.AFF4Volume):
                           "stat")
 
     PATHSPEC = aff4.Attribute(
-        "aff4:pathspec", rdfvalue.PathSpec,
+        "aff4:pathspec", paths.PathSpec,
         "The pathspec used to retrieve this object from the client.",
         "pathspec")
 

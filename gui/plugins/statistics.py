@@ -9,6 +9,7 @@ from grr.gui import renderers
 from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib.aff4_objects import aff4_grr
+from grr.lib.aff4_objects import stats as aff4_stats
 
 
 class ShowStatistics(renderers.Splitter2WayVertical):
@@ -151,7 +152,7 @@ class OSBreakdown(PieChart):
   title = "Operating system break down."
   description = "OS breakdown for clients that were active in the last day."
   active_day = 1
-  attribute = aff4.ClientFleetStats.SchemaCls.OS_HISTOGRAM
+  attribute = aff4_stats.ClientFleetStats.SchemaCls.OS_HISTOGRAM
   data_urn = rdfvalue.RDFURN("aff4:/stats/ClientFleetStats")
 
   def Layout(self, request, response):
@@ -189,7 +190,7 @@ class ReleaseBreakdown(OSBreakdown):
   title = "Operating system version break down."
   description = "This plot shows what OS clients active within the last day."
   active_day = 1
-  attribute = aff4.ClientFleetStats.SchemaCls.RELEASE_HISTOGRAM
+  attribute = aff4_stats.ClientFleetStats.SchemaCls.RELEASE_HISTOGRAM
 
 
 class ReleaseBreakdown7(ReleaseBreakdown):
@@ -213,7 +214,7 @@ This plot shows the number of clients active in the last day and how that number
 evolves over time.
 """
   active_days_display = [1, 3, 7, 30, 60]
-  attribute = aff4.ClientFleetStats.SchemaCls.LAST_CONTACTED_HISTOGRAM
+  attribute = aff4_stats.ClientFleetStats.SchemaCls.LAST_CONTACTED_HISTOGRAM
   data_urn = rdfvalue.RDFURN("aff4:/stats/ClientFleetStats")
 
   layout_template = renderers.Template("""
@@ -271,7 +272,7 @@ class LastDayGRRVersionReport(LastActiveReport):
 on the GRR version.
 """
   active_day = 1
-  attribute = aff4.ClientFleetStats.SchemaCls.GRRVERSION_HISTOGRAM
+  attribute = aff4_stats.ClientFleetStats.SchemaCls.GRRVERSION_HISTOGRAM
 
   def _ProcessGraphSeries(self, graph_series):
     for graph in graph_series:

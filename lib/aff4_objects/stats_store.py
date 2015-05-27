@@ -52,10 +52,12 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 
+from grr.lib.rdfvalues import structs
+
 from grr.proto import jobs_pb2
 
 
-class StatsStoreFieldValue(rdfvalue.RDFProtoStruct):
+class StatsStoreFieldValue(structs.RDFProtoStruct):
   """RDFValue definition for fields values to be stored in the data store."""
 
   protobuf = jobs_pb2.StatsStoreFieldValue
@@ -83,7 +85,7 @@ class StatsStoreFieldValue(rdfvalue.RDFProtoStruct):
     self.field_type = field_type
 
 
-class StatsStoreValue(rdfvalue.RDFProtoStruct):
+class StatsStoreValue(structs.RDFProtoStruct):
   """RDFValue definition for stats values to be stored in the data store."""
   protobuf = jobs_pb2.StatsStoreValue
 
@@ -118,7 +120,7 @@ class StatsStoreValue(rdfvalue.RDFProtoStruct):
     self.value_type = value_type
 
 
-class StatsStoreMetricsMetadata(rdfvalue.RDFProtoStruct):
+class StatsStoreMetricsMetadata(structs.RDFProtoStruct):
   """Container with metadata for all the metrics in a given process."""
 
   protobuf = jobs_pb2.StatsStoreMetricsMetadata

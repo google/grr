@@ -10,44 +10,51 @@ performing basic analysis.
 import json
 
 import logging
+
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import rekall_profile_server
 from grr.lib import utils
+
+# For RekallResponseCollection pylint: disable=unused-import
+from grr.lib.aff4_objects import aff4_rekall
+# pylint: enable=unused-import
+from grr.lib.rdfvalues import structs
+
 from grr.proto import flows_pb2
 
 
-class MemoryCollectorCondition(rdfvalue.RDFProtoStruct):
+class MemoryCollectorCondition(structs.RDFProtoStruct):
   protobuf = flows_pb2.MemoryCollectorCondition
 
 
-class MemoryCollectorWithoutLocalCopyDumpOption(rdfvalue.RDFProtoStruct):
+class MemoryCollectorWithoutLocalCopyDumpOption(structs.RDFProtoStruct):
   protobuf = flows_pb2.MemoryCollectorWithoutLocalCopyDumpOption
 
 
-class MemoryCollectorWithLocalCopyDumpOption(rdfvalue.RDFProtoStruct):
+class MemoryCollectorWithLocalCopyDumpOption(structs.RDFProtoStruct):
   protobuf = flows_pb2.MemoryCollectorWithLocalCopyDumpOption
 
 
-class MemoryCollectorDumpOption(rdfvalue.RDFProtoStruct):
+class MemoryCollectorDumpOption(structs.RDFProtoStruct):
   protobuf = flows_pb2.MemoryCollectorDumpOption
 
 
-class MemoryCollectorDownloadAction(rdfvalue.RDFProtoStruct):
+class MemoryCollectorDownloadAction(structs.RDFProtoStruct):
   protobuf = flows_pb2.MemoryCollectorDownloadAction
 
 
-class MemoryCollectorSendToSocketAction(rdfvalue.RDFProtoStruct):
+class MemoryCollectorSendToSocketAction(structs.RDFProtoStruct):
   protobuf = flows_pb2.MemoryCollectorSendToSocketAction
 
 
-class MemoryCollectorAction(rdfvalue.RDFProtoStruct):
+class MemoryCollectorAction(structs.RDFProtoStruct):
   protobuf = flows_pb2.MemoryCollectorAction
 
 
-class MemoryCollectorArgs(rdfvalue.RDFProtoStruct):
+class MemoryCollectorArgs(structs.RDFProtoStruct):
   protobuf = flows_pb2.MemoryCollectorArgs
 
 
@@ -296,7 +303,7 @@ class MemoryCollector(flow.GRRFlow):
           self.state.memory_src_path, responses.status))
 
 
-class DownloadMemoryImageArgs(rdfvalue.RDFProtoStruct):
+class DownloadMemoryImageArgs(structs.RDFProtoStruct):
   protobuf = flows_pb2.DownloadMemoryImageArgs
 
 
@@ -385,7 +392,7 @@ class DownloadMemoryImage(flow.GRRFlow):
                 "Memory image transferred successfully")
 
 
-class LoadMemoryDriverArgs(rdfvalue.RDFProtoStruct):
+class LoadMemoryDriverArgs(structs.RDFProtoStruct):
   protobuf = flows_pb2.LoadMemoryDriverArgs
 
 
@@ -610,7 +617,7 @@ def GetDriverFromURN(urn, token=None):
   return None
 
 
-class AnalyzeClientMemoryArgs(rdfvalue.RDFProtoStruct):
+class AnalyzeClientMemoryArgs(structs.RDFProtoStruct):
   protobuf = flows_pb2.AnalyzeClientMemoryArgs
 
 
@@ -804,7 +811,7 @@ class UnloadMemoryDriver(LoadMemoryDriver):
       raise flow.FlowError("Failed to uninstall memory driver.")
 
 
-class ScanMemoryArgs(rdfvalue.RDFProtoStruct):
+class ScanMemoryArgs(structs.RDFProtoStruct):
   protobuf = flows_pb2.ScanMemoryArgs
 
 
@@ -866,7 +873,7 @@ class ScanMemory(flow.GRRFlow):
       raise flow.FlowError("Error grepping memory: %s.", responses.status)
 
 
-class ListVADBinariesArgs(rdfvalue.RDFProtoStruct):
+class ListVADBinariesArgs(structs.RDFProtoStruct):
   protobuf = flows_pb2.ListVADBinariesArgs
 
 

@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 """Tests for grr.lib.flows.general.endtoend."""
 
-# pylint: disable=unused-import, g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import, g-bad-import-order
-
 from grr.endtoend_tests import base
 from grr.lib import action_mocks
 from grr.lib import aff4
@@ -13,6 +9,7 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.flows.general import endtoend
 
 
 class MockEndToEndTest(base.AutomatedTest):
@@ -129,7 +126,7 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
     self.client.Set(self.client.Schema.LAST_INTERFACES([interface]))
     self.client.Flush()
 
-    args = rdfvalue.EndToEndTestFlowArgs(
+    args = endtoend.EndToEndTestFlowArgs(
         test_names=["TestListDirectoryOSLinuxDarwin",
                     "MockEndToEndTest",
                     "TestListDirectoryOSLinuxDarwin"])
@@ -139,7 +136,7 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
         token=self.token, args=args))
 
   def testRunSuccessAndFail(self):
-    args = rdfvalue.EndToEndTestFlowArgs()
+    args = endtoend.EndToEndTestFlowArgs()
 
     with utils.Stubber(base.AutomatedTest, "classes",
                        {"MockEndToEndTest": MockEndToEndTest,
@@ -166,7 +163,7 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
         self.assertEqual(len(results), 2)
 
   def testRunBadSetUp(self):
-    args = rdfvalue.EndToEndTestFlowArgs(
+    args = endtoend.EndToEndTestFlowArgs(
         test_names=["TestBadSetUp"])
 
     self.assertRaises(RuntimeError, list, test_lib.TestFlowHelper(
@@ -174,7 +171,7 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
         token=self.token, args=args))
 
   def testRunBadTearDown(self):
-    args = rdfvalue.EndToEndTestFlowArgs(
+    args = endtoend.EndToEndTestFlowArgs(
         test_names=["TestBadTearDown"])
 
     self.assertRaises(RuntimeError, list, test_lib.TestFlowHelper(
@@ -188,7 +185,7 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
     Protecting and reporting on this significantly complicates this code, and a
     flow raising in Start is really broken, so we allow this behaviour.
     """
-    args = rdfvalue.EndToEndTestFlowArgs(
+    args = endtoend.EndToEndTestFlowArgs(
         test_names=["MockEndToEndTestBadFlow", "MockEndToEndTest"])
 
     self.assertRaises(RuntimeError, list, test_lib.TestFlowHelper(
@@ -196,7 +193,7 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
         token=self.token, args=args))
 
   def testEndToEndTestFailure(self):
-    args = rdfvalue.EndToEndTestFlowArgs(
+    args = endtoend.EndToEndTestFlowArgs(
         test_names=["TestFailure"])
 
     with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:

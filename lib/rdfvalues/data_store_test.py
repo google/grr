@@ -3,20 +3,20 @@
 
 
 
-from grr.lib import rdfvalue
+from grr.lib.rdfvalues import data_store
 from grr.lib.rdfvalues import test_base
 
 
 class ResultSetTest(test_base.RDFValueTestCase):
   """Tests for ResultSet."""
 
-  rdfvalue_class = rdfvalue.ResultSet
+  rdfvalue_class = data_store.ResultSet
 
   def GenerateSample(self, number=0):
-    return rdfvalue.ResultSet(payload=[number])
+    return data_store.ResultSet(payload=[number])
 
   def testWorksCorrectlyWithMalformedUnicodeStrings(self):
-    result_set = rdfvalue.ResultSet()
+    result_set = data_store.ResultSet()
 
     # This triggets the setter
     result_set.payload = [u"\udc7c"]
@@ -24,7 +24,7 @@ class ResultSetTest(test_base.RDFValueTestCase):
     self.assertEqual(result_set.payload, [u"\udc7c"])
 
   def testWorksCorrectlyWithControlCharactersAndQuotes(self):
-    result_set = rdfvalue.ResultSet()
+    result_set = data_store.ResultSet()
 
     # This triggets the setter
     result_set.payload = [u"\n\t\"'"]

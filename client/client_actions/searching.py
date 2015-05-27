@@ -99,6 +99,13 @@ class Find(actions.IteratedAction):
         file_stat.st_size > self.request.max_file_size):
       return False
 
+    # File permissions test.
+    if self.request.HasField("perm_mode"):
+      # Apply perm_mask to hide any permissions we don't care about.
+      permissions = file_stat.st_mode & self.request.perm_mask
+      if permissions != self.request.perm_mode:
+        return False
+
     # Filename regex test
     if (self.request.HasField("path_regex") and
         not self.request.path_regex.Search(file_stat.pathspec.Basename())):

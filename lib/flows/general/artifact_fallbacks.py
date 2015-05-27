@@ -6,7 +6,13 @@ These flows subclass lib.artifact.ArtifactFallbackCollector.
 
 from grr.lib import artifact
 from grr.lib import flow
+# pylint: disable=unused-import
+from grr.lib import parsers
+# pylint: enable=unused-import
 from grr.lib import rdfvalue
+# pylint: disable=unused-import
+from grr.lib.rdfvalues import artifacts
+# pylint: enable=unused-import
 
 
 class SystemRootSystemDriveFallbackFlow(artifact.ArtifactFallbackCollector):

@@ -15,6 +15,7 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
+from grr.lib.aff4_objects import collections
 from grr.lib.aff4_objects import cronjobs
 from grr.lib.hunts import implementation
 from grr.parsers import wmi_parser
@@ -236,10 +237,10 @@ class ModifyHuntFlow(flow.GRRFlow):
             runner.args.client_limit, self.args.client_limit))
 
       description = ", ".join(changes)
-      event = rdfvalue.AuditEvent(user=self.token.username,
-                                  action="HUNT_MODIFIED",
-                                  urn=self.args.hunt_urn,
-                                  description=description)
+      event = flow.AuditEvent(user=self.token.username,
+                              action="HUNT_MODIFIED",
+                              urn=self.args.hunt_urn,
+                              description=description)
       flow.Events.PublishEvent("Audit", event, token=self.token)
 
       # Just go ahead and change the hunt now.
@@ -338,15 +339,6 @@ class HuntResultsMetadata(aff4.AFF4Object):
         "Number of hunt results already processed by the cron job.",
         versioned=False, default=0)
 
-    # TODO(user): remove as soon as old-style results are gone.
-    DEPRECATED_COLLECTION_RAW_OFFSET = aff4.Attribute(
-        "aff4:collection_raw_position", rdfvalue.RDFInteger,
-        "Effectively, number of bytes occuppied by NUM_PROCESSED_RESULTS "
-        "processed results in the results collection. Used to optimize "
-        "results collection access and not to iterate over all previously "
-        "processes results all the time.",
-        versioned=False, default=0)
-
     OUTPUT_PLUGINS = aff4.Attribute(
         "aff4:output_plugins_state", rdfvalue.FlowState,
         "Pickled output plugins.", versioned=False)
@@ -365,125 +357,6 @@ class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
 
   DEFAULT_BATCH_SIZE = 1000
   MAX_REVERSED_RESULTS = 500000
-
-  # TODO(user): leaving this code here for a while. Safe to remove
-  # it when there are no active hunts that write results to RDFValueCollections.
-  def DeprecatedProcessHunt(self, session_id):
-    metadata_urn = session_id.Add("ResultsMetadata")
-    last_exception = None
-
-    with aff4.FACTORY.Open(
-        metadata_urn, mode="rw", token=self.token) as metadata_obj:
-
-      output_plugins = metadata_obj.Get(metadata_obj.Schema.OUTPUT_PLUGINS)
-      num_processed = int(metadata_obj.Get(
-          metadata_obj.Schema.NUM_PROCESSED_RESULTS))
-      raw_offset = int(metadata_obj.Get(
-          metadata_obj.Schema.DEPRECATED_COLLECTION_RAW_OFFSET))
-      results = aff4.FACTORY.Open(session_id.Add("Results"), mode="r",
-                                  token=self.token)
-
-      batch_size = self.state.args.batch_size or self.DEFAULT_BATCH_SIZE
-      batches = utils.Grouper(results.GenerateItems(offset=raw_offset),
-                              batch_size)
-
-      used_plugins = {}
-      for batch_index, batch in enumerate(batches):
-        if not used_plugins:
-          for plugin_name, (plugin_def,
-                            state) in output_plugins.data.iteritems():
-            used_plugins[plugin_name] = plugin_def.GetPluginForState(state)
-
-        # If this flow is working for more than max_running_time - stop
-        # processing.
-        if self.state.args.max_running_time:
-          elapsed = (rdfvalue.RDFDatetime().Now().AsSecondsFromEpoch() -
-                     self.start_time.AsSecondsFromEpoch())
-          if elapsed > self.state.args.max_running_time:
-            self.Log("Running for too long, skipping rest of batches for %s.",
-                     session_id)
-            break
-
-        batch = list(batch)
-        num_processed += len(batch)
-
-        for plugin_name, plugin in used_plugins.iteritems():
-          logging.debug("Processing hunt %s with %s, batch %d", session_id,
-                        plugin_name, batch_index)
-
-          try:
-            plugin.ProcessResponses(batch)
-          except Exception as e:  # pylint: disable=broad-except
-            logging.exception("Error processing hunt results: hunt %s, "
-                              "plugin %s, batch %d", session_id, plugin_name,
-                              batch_index)
-            self.Log("Error processing hunt results (hunt %s, "
-                     "plugin %s, batch %d): %s" %
-                     (session_id, plugin_name, batch_index, e))
-            last_exception = e
-        self.HeartBeat()
-
-      for plugin in used_plugins.itervalues():
-        try:
-          plugin.Flush()
-        except Exception as e:  # pylint: disable=broad-except
-          logging.exception("Error flushing hunt results: hunt %s, "
-                            "plugin %s", session_id, str(plugin))
-          self.Log("Error processing hunt results (hunt %s, "
-                   "plugin %s): %s" % (session_id, str(plugin), e))
-          last_exception = e
-
-      metadata_obj.Set(metadata_obj.Schema.OUTPUT_PLUGINS(output_plugins))
-      metadata_obj.Set(metadata_obj.Schema.NUM_PROCESSED_RESULTS(num_processed))
-      metadata_obj.Set(metadata_obj.Schema.DEPRECATED_COLLECTION_RAW_OFFSET(
-          results.deprecated_current_offset))
-
-      # TODO(user): throw proper exception which will contain all the
-      # exceptions that were raised while processing this hunt.
-      if last_exception:
-        raise last_exception  # pylint: disable=raising-bad-type
-
-  # TODO(user): leaving this code here for a while. Safe to remove
-  # it when there are no active hunts that write results to RDFValueCollections.
-  def DeprecatedStart(self):
-    last_exception = None
-
-    for session_id, timestamp, _ in data_store.DB.ResolveRegex(
-        GenericHunt.DEPRECATED_RESULTS_QUEUE, ".*", token=self.token):
-
-      logging.info("Found new results for hunt %s.", session_id)
-      try:
-        self.DeprecatedProcessHunt(rdfvalue.RDFURN(session_id))
-        self.HeartBeat()
-
-      except Exception as e:  # pylint: disable=broad-except
-        logging.exception("Error processing hunt %s.", session_id)
-        self.Log("Error processing hunt %s: %s", session_id, e)
-        last_exception = e
-
-      # We will delete hunt's results notification even if ProcessHunt has
-      # failed
-      finally:
-        results = data_store.DB.ResolveRegex(
-            GenericHunt.DEPRECATED_RESULTS_QUEUE, session_id, token=self.token)
-        if results and len(results) == 1:
-          _, latest_timestamp, _ = results[0]
-        else:
-          logging.warning("Inconsistent state in hunt results queue for "
-                          "hunt %s", session_id)
-          latest_timestamp = None
-
-        # We don't want to delete notification that was written after we
-        # started processing.
-        if latest_timestamp and latest_timestamp > timestamp:
-          logging.debug("Not deleting results notification: it was written "
-                        "after processing has started.")
-        else:
-          data_store.DB.DeleteAttributes(GenericHunt.DEPRECATED_RESULTS_QUEUE,
-                                         [session_id], sync=True,
-                                         token=self.token)
-
-    return last_exception
 
   def CheckIfRunningTooLong(self):
     if self.state.args.max_running_time:
@@ -537,11 +410,11 @@ class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
                  (hunt_urn, plugin_def.plugin_name, batch_index, e))
         exceptions_by_plugin[plugin_def] = e
 
-      aff4.PackedVersionedCollection.AddToCollection(
+      collections.PackedVersionedCollection.AddToCollection(
           self.StatusCollectionUrn(hunt_urn),
           [plugin_status], sync=False, token=self.token)
       if plugin_status.status == plugin_status.Status.ERROR:
-        aff4.PackedVersionedCollection.AddToCollection(
+        collections.PackedVersionedCollection.AddToCollection(
             self.ErrorsCollectionUrn(hunt_urn),
             [plugin_status], sync=False, token=self.token)
 
@@ -633,17 +506,6 @@ class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
 
     self.start_time = rdfvalue.RDFDatetime().Now()
 
-    # TODO(user): code below handles old-style hunts results.
-    last_exception = self.DeprecatedStart()
-    if last_exception:
-      self.Log("Exception while processing old-style results: %s",
-               last_exception)
-
-    if self.CheckIfRunningTooLong():
-      raise RuntimeError("Processing old-style results took too much "
-                         "time. That's not normal.")
-
-    # TODO(user): remove deprecated code and make code below the only one.
     exceptions_by_hunt = {}
     freeze_timestamp = rdfvalue.RDFDatetime().Now()
     for results_urn in aff4.ResultsOutputCollection.QueryNotifications(
@@ -742,7 +604,7 @@ class GenericHunt(implementation.GRRHunt):
           runner_args=self.state.args.flow_runner_args)
       started_flows.append(flow_urn)
 
-    aff4.PackedVersionedCollection.AddToCollection(
+    collections.PackedVersionedCollection.AddToCollection(
         self.started_flows_collection_urn, started_flows, sync=False,
         token=self.token)
 
@@ -853,7 +715,7 @@ class VariableGenericHunt(GenericHunt):
                 next_state="MarkDone", client_id=client_id)
             started_flows.append(flow_urn)
 
-    aff4.PackedVersionedCollection.AddToCollection(
+    collections.PackedVersionedCollection.AddToCollection(
         self.started_flows_collection_urn, started_flows, sync=False,
         token=self.token)
 

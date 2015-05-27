@@ -132,7 +132,7 @@ class Enroler(flow.WellKnownFlow):
         message: The Certificate sent by the client. Note that this
         message is not authenticated.
     """
-    cert = rdfvalue.Certificate(message.args)
+    cert = rdfvalue.Certificate(message.payload)
 
     queue = self.well_known_session_id.Queue()
 

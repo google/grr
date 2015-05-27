@@ -21,28 +21,54 @@ def GenTestData(paths, data):
   return stats, files
 
 
+def GenInit(svc, desc, start=("2", "3", "4", "5"), stop=("1")):
+  insserv = r"""
+    $local_fs   +umountfs
+    $network    +networking
+    $remote_fs  $local_fs +umountnfs +sendsigs
+    $syslog     +rsyslog +sysklogd +syslog-ng +dsyslog +inetutils-syslogd
+    """
+  tmpl = r"""
+    ### BEGIN INIT INFO
+    # Provides:             %s
+    # Required-Start:       $remote_fs $syslog
+    # Required-Stop:        $syslog
+    # Default-Start:        %s
+    # Default-Stop:         %s
+    # Short-Description:    %s
+    ### END INIT INFO
+    """ % (svc, " ".join(start), " ".join(stop), desc)
+  return {"/etc/insserv.conf": insserv, "/etc/init.d/%s" % svc: tmpl}
+
+
+def GenXinetd(svc="test", disable="no"):
+  defaults = r"""
+    defaults
+    {
+       instances      = 60
+       log_type       = SYSLOG     authpriv
+       log_on_success = HOST PID
+       log_on_failure = HOST
+       cps            = 25 30
+    }
+    includedir /etc/xinetd.d
+    """
+  tmpl = """
+    service %s
+    {
+       disable         = %s
+    }
+    """ % (svc, disable)
+  return {"/etc/xinetd.conf": defaults, "/etc/xinetd.d/%s" % svc: tmpl}
+
+
 class LinuxLSBInitParserTest(test_lib.GRRBaseTest):
   """Test parsing of linux /etc/init.d files with LSB headers."""
 
   def testParseLSBInit(self):
     """Init entries return accurate LinuxServiceInformation values."""
-    sshd_init = r"""
-      ### BEGIN INIT INFO
-      # Provides:             sshd
-      # Required-Start:       $remote_fs $syslog
-      # Required-Stop:        $syslog
-      # Default-Start:        2 3 4 5
-      # Default-Stop:         1
-      # Short-Description:    OpenBSD Secure Shell server
-      ### END INIT INFO"""
-    insserv_conf = r"""
-      $local_fs   +umountfs
-      $network    +networking
-      $remote_fs  $local_fs +umountnfs +sendsigs
-      $syslog     +rsyslog +sysklogd +syslog-ng +dsyslog +inetutils-syslogd"""
-    paths = ["/etc/init.d/sshd", "/etc/insserv.conf"]
-    vals = [sshd_init, insserv_conf]
-    stats, files = GenTestData(paths, vals)
+    configs = GenInit("sshd", "OpenBSD Secure Shell server")
+    stats, files = GenTestData(configs, configs.values())
 
     parser = linux_service_parser.LinuxLSBInitParser()
     results = list(parser.ParseMultiple(stats, files, None))
@@ -80,43 +106,9 @@ class LinuxXinetdParserTest(test_lib.GRRBaseTest):
 
   def testParseXinetd(self):
     """Xinetd entries return accurate LinuxServiceInformation values."""
-    defaults = """
-      defaults
-      {
-         instances      = 60
-         log_type       = SYSLOG     authpriv
-         log_on_success = HOST PID
-         log_on_failure = HOST
-         cps            = 25 30
-      }
-      includedir /etc/xinetd.d"""
-    telnet = """
-      service telnet
-      {
-         flags           = REUSE
-         socket_type     = stream
-         wait            = no
-         user            = root
-         server          = /sbin/telnetd
-         log_on_failure  += USERID
-         disable         = yes
-      }
-
-      service forwarder
-      {
-         disable        = no
-         type           = UNLISTED
-         socket_type    = stream
-         protocol       = tcp
-         wait           = no
-         redirect       = 192.168.1.1 22
-         bind           = 8.8.8.8
-         port           = 443
-         user           = nobody
-      }"""
-    paths = ["/etc/xinetd.conf", "/etc/xinetd.d/telnet"]
-    vals = [defaults, telnet]
-    stats, files = GenTestData(paths, vals)
+    configs = GenXinetd("telnet", "yes")
+    configs.update(GenXinetd("forwarder", "no"))
+    stats, files = GenTestData(configs, configs.values())
 
     parser = linux_service_parser.LinuxXinetdParser()
     results = list(parser.ParseMultiple(stats, files, None))
@@ -129,9 +121,11 @@ class LinuxXinetdParserTest(test_lib.GRRBaseTest):
       if rslt.name == "telnet":
         self.assertFalse(rslt.start_mode)
         self.assertFalse(rslt.start_after)
+        self.assertFalse(rslt.starts)
       else:
         self.assertEqual("XINETD", str(rslt.start_mode))
         self.assertItemsEqual(["xinetd"], list(rslt.start_after))
+        self.assertTrue(rslt.starts)
 
 
 def main(args):

@@ -11,7 +11,7 @@ from grr.gui.api_plugins import tests as tests_lib
 import json
 
 from grr.gui import api_test_lib
-
+from grr.gui import http_api
 
 from grr.lib import flags
 from grr.lib import startup
@@ -51,8 +51,9 @@ def main(unused_argv):
         except Exception:  # pylint: disable=broad-except
           pass
 
-  encoded_sample_data = json.dumps(sample_data, indent=2, sort_keys=True,
-                                   separators=(",", ": "))
+  encoded_sample_data = json.dumps(
+      sample_data, indent=2, sort_keys=True, separators=(",", ": "),
+      cls=http_api.JSONEncoderWithRDFPrimitivesSupport)
   print encoded_sample_data
 
 

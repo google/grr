@@ -25,6 +25,9 @@ from grr.lib import stats
 from grr.lib import utils
 
 from grr.lib.aff4_objects import aff4_grr
+# For Approval. pylint: disable=unused-import
+from grr.lib.aff4_objects import security
+# pylint: enable=unused-import
 
 
 class CheckAccessHelper(object):

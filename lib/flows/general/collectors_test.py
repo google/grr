@@ -8,13 +8,16 @@ from grr.client import vfs
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import artifact
-from grr.lib import artifact_lib
+from grr.lib import artifact_registry
 from grr.lib import artifact_test
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+# pylint: disable=unused-import
+from grr.lib.flows.general import artifact_fallbacks
 from grr.lib.flows.general import collectors
+# pylint: enable=unused-import
 from grr.lib.flows.general import transfer
 from grr.test_data import client_fixture
 
@@ -31,10 +34,10 @@ class TestArtifactCollectors(CollectorTest):
   def setUp(self):
     """Make sure things are initialized."""
     super(TestArtifactCollectors, self).setUp()
-    self.original_artifact_reg = artifact_lib.ArtifactRegistry.artifacts
-    artifact_lib.ArtifactRegistry.ClearRegistry()
+    self.original_artifact_reg = artifact_registry.ArtifactRegistry.artifacts
+    artifact_registry.ArtifactRegistry.ClearRegistry()
     self.LoadTestArtifacts()
-    artifact_reg = artifact_lib.ArtifactRegistry.artifacts
+    artifact_reg = artifact_registry.ArtifactRegistry.artifacts
     self.fakeartifact = artifact_reg["FakeArtifact"]
     self.fakeartifact2 = artifact_reg["FakeArtifact2"]
 
@@ -48,7 +51,7 @@ class TestArtifactCollectors(CollectorTest):
 
   def tearDown(self):
     super(TestArtifactCollectors, self).tearDown()
-    artifact_lib.ArtifactRegistry.artifacts = self.original_artifact_reg
+    artifact_registry.ArtifactRegistry.artifacts = self.original_artifact_reg
     self.fakeartifact.sources = []  # Reset any ArtifactSources
     self.fakeartifact.conditions = []  # Reset any Conditions
 
@@ -298,12 +301,12 @@ class TestArtifactCollectorsInteractions(CollectorTest):
   def setUp(self):
     """Add test artifacts to existing registry."""
     super(TestArtifactCollectorsInteractions, self).setUp()
-    self.original_artifact_reg = artifact_lib.ArtifactRegistry.artifacts
+    self.original_artifact_reg = artifact_registry.ArtifactRegistry.artifacts
     self.LoadTestArtifacts()
 
   def tearDown(self):
     super(TestArtifactCollectorsInteractions, self).tearDown()
-    artifact_lib.ArtifactRegistry.artifacts = self.original_artifact_reg
+    artifact_registry.ArtifactRegistry.artifacts = self.original_artifact_reg
 
   def testProcessCollectedArtifacts(self):
     """Test downloading files from artifacts."""

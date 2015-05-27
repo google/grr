@@ -30,15 +30,13 @@ class ClientURN(rdfvalue.RDFURN):
   """A client urn has to have a specific form."""
 
   # Valid client urns must match this expression.
-  CLIENT_ID_RE = re.compile(r"^(aff4:/)?(?P<clientid>(c|C)\.[0-9a-fA-F]{16})$")
+  CLIENT_ID_RE = re.compile(r"^(aff4:)?/?(?P<clientid>(c|C)\.[0-9a-fA-F]{16})$")
 
   def __init__(self, initializer=None, age=None):
     if isinstance(initializer, rdfvalue.RDFURN):
-      # pylint: disable=protected-access
-      if not self.Validate(initializer._string_urn):
+      if not self.Validate(initializer.Path()):
         raise type_info.TypeValueError(
             "Client urn malformed: %s" % initializer)
-      # pylint: enable=protected-access
     super(ClientURN, self).__init__(initializer=initializer, age=age)
 
   def ParseFromString(self, value):
@@ -51,17 +49,17 @@ class ClientURN(rdfvalue.RDFURN):
     """
     value = value.strip()
 
-    if not self.Validate(value):
-      raise type_info.TypeValueError("Client urn malformed: %s" % value)
+    super(ClientURN, self).ParseFromString(value)
 
-    match = self.CLIENT_ID_RE.match(value)
+    match = self.CLIENT_ID_RE.match(self._string_urn)
+    if not match:
+      raise type_info.TypeValueError("Client urn malformed: %s" % value)
 
     clientid = match.group("clientid")
     clientid_correctcase = "".join((clientid[0].upper(), clientid[1:].lower()))
 
-    value = value.replace(clientid, clientid_correctcase, 1)
-
-    super(ClientURN, self).ParseFromString(value)
+    self._string_urn = self._string_urn.replace(
+        clientid, clientid_correctcase, 1)
 
   @classmethod
   def Validate(cls, value):
@@ -96,7 +94,7 @@ class ClientURN(rdfvalue.RDFURN):
       raise ValueError("Only strings should be added to a URN.")
 
     result = rdfvalue.RDFURN(self.Copy(age))
-    result.Update(path=utils.JoinPath(self._urn.path, path))
+    result.Update(path=utils.JoinPath(self._string_urn, path))
 
     return result
 
@@ -198,6 +196,16 @@ class User(rdfvalue.RDFProtoStruct):
 class Users(protodict.RDFValueArray):
   """A list of user accounts on the client system."""
   rdf_type = User
+
+
+class PwEntry(rdfvalue.RDFProtoStruct):
+  """Information about password structures."""
+  protobuf = knowledge_base_pb2.PwEntry
+
+
+class Group(rdfvalue.RDFProtoStruct):
+  """Information about system posix groups."""
+  protobuf = knowledge_base_pb2.Group
 
 
 class KnowledgeBase(rdfvalue.RDFProtoStruct):
@@ -613,6 +621,9 @@ class StatMode(rdfvalue.RDFInteger):
         bits[8] = "T"
 
     return type_char + "".join(bits)
+
+  def __str__(self):
+    return utils.SmartStr(self.__unicode__())
 
 
 class Iterator(rdfvalue.RDFProtoStruct):

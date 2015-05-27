@@ -19,6 +19,7 @@ from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import cronjobs
+from grr.lib.aff4_objects import stats as stats_aff4
 from grr.lib.rdfvalues import stats as rdfstats
 
 
@@ -221,7 +222,7 @@ class LastAccessStats(AbstractClientStatsCronFlow):
     # Build and store the graph now. Day actives are cumulative.
     for label in self.labels:
       cumulative_count = 0
-      graph = aff4.ClientFleetStats.SchemaCls.LAST_CONTACTED_HISTOGRAM()
+      graph = stats_aff4.ClientFleetStats.SchemaCls.LAST_CONTACTED_HISTOGRAM()
       for x, y in zip(self._bins, self.values[label]):
         cumulative_count += y
         graph.Append(x_value=x, y_value=cumulative_count)
