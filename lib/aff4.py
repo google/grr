@@ -488,10 +488,11 @@ class Factory(object):
                              age=age, ignore_cache=ignore_cache,
                              token=token))
 
-    # Read the row from the table.
+    # Read the row from the table. We know the object already exists if there is
+    # some data in the local_cache already for this object.
     result = AFF4Object(urn, mode=mode, token=token, local_cache=local_cache,
                         age=age, follow_symlinks=follow_symlinks,
-                        aff4_type=aff4_type)
+                        aff4_type=aff4_type, object_exists=bool(local_cache.get(urn)))
 
     # Now we have a AFF4Object, turn it into the type it is currently supposed
     # to be as specified by Schema.TYPE.
@@ -1284,7 +1285,7 @@ class AFF4Object(object):
 
   def __init__(self, urn, mode="r", parent=None, clone=None, token=None,
                local_cache=None, age=NEWEST_TIME, follow_symlinks=True,
-               aff4_type=None):
+               aff4_type=None, object_exists=False):
     if urn is not None:
       urn = rdfvalue.RDFURN(urn)
     self.urn = urn
@@ -1294,6 +1295,10 @@ class AFF4Object(object):
     self.age_policy = age
     self.follow_symlinks = follow_symlinks
     self.lock = utils.PickleableLock()
+
+    # The object already exists in the data store - we do not need to update
+    # indexes.
+    self.object_exists = object_exists
 
     # This flag will be set whenever an attribute is changed that has the
     # creates_new_object_version flag set.
@@ -1502,9 +1507,15 @@ class AFF4Object(object):
             (rdfvalue.RDFString(self.__class__.__name__).SerializeToDataStore(),
              rdfvalue.RDFDatetime().Now())]
 
+      # We only update indexes if the schema does not forbid it and we are not
+      # sure that the object already exists.
+      add_child_index = self.Schema.ADD_CHILD_INDEX
+      if self.object_exists:
+        add_child_index = False
+
       # Write the attributes to the Factory cache.
       FACTORY.SetAttributes(self.urn, to_set, self._to_delete,
-                            add_child_index=self.Schema.ADD_CHILD_INDEX,
+                            add_child_index=add_child_index,
                             sync=sync, token=self.token)
 
       # Notify the factory that this object got updated.
@@ -1776,6 +1787,7 @@ class AFF4Object(object):
     # Instantiate the class
     result = cls(self.urn, mode=self.mode, clone=self, parent=self.parent,
                  token=self.token, age=self.age_policy,
+                 object_exists=self.object_exists,
                  follow_symlinks=self.follow_symlinks, aff4_type=self.aff4_type)
     result.Initialize()
 
