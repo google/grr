@@ -567,7 +567,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
     return [aff4_q, subjects_q]
 
-  def _MakeTimestamp(self, start, end):
+  def _MakeTimestamp(self, start=None, end=None):
     """Create a timestamp using a start and end time.
 
     Args:
@@ -576,14 +576,13 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     Returns:
       A tuple (start, end) of converted timestamps or None for all time.
     """
-    if start or end:
-      mysql_unsigned_bigint_max = 18446744073709551615
-      start = int(start or 0)
-      end = int(end or mysql_unsigned_bigint_max)
-      if start == 0 and end == mysql_unsigned_bigint_max:
-        return None
-      else:
-        return (start, end)
+    mysql_unsigned_bigint_max = 18446744073709551615
+    ts_start = int(start or 0)
+    ts_end = int(end or mysql_unsigned_bigint_max)
+    if ts_start == 0 and ts_end == mysql_unsigned_bigint_max:
+      return None
+    else:
+      return (ts_start, ts_end)
 
   def _CreateTables(self):
     self._ExecuteQuery("""
