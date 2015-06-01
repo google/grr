@@ -3,16 +3,12 @@
 
 
 
-# pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import,g-bad-import-order
-
 from grr.gui import api_aff4_object_renderers
 
 from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class ApiAFF4ObjectRendererTest(test_lib.GRRBaseTest):
@@ -31,8 +27,8 @@ class ApiAFF4ObjectRendererTest(test_lib.GRRBaseTest):
     self.renderer = api_aff4_object_renderers.ApiAFF4ObjectRenderer()
 
   def testRendersAff4Volume(self):
-    data = self.renderer.RenderObject(self.fd,
-                                      rdfvalue.ApiAFF4ObjectRendererArgs())
+    data = self.renderer.RenderObject(
+        self.fd, api_aff4_object_renderers.ApiAFF4ObjectRendererArgs())
 
     self.assertEqual(data,
                      {"age_policy": "NEWEST_TIME",
@@ -43,7 +39,8 @@ class ApiAFF4ObjectRendererTest(test_lib.GRRBaseTest):
 
   def testRendersAff4VolumeWithTypeInfo(self):
     data = self.renderer.RenderObject(
-        self.fd, rdfvalue.ApiAFF4ObjectRendererArgs(type_info="WITH_TYPES"))
+        self.fd, api_aff4_object_renderers.ApiAFF4ObjectRendererArgs(
+            type_info="WITH_TYPES"))
 
     self.assertEqual(data,
                      {"age_policy": "NEWEST_TIME",
@@ -72,8 +69,8 @@ class ApiAFF4ObjectRendererTest(test_lib.GRRBaseTest):
 
   def testRenderersAff4VolumeWithTypeInfoAndDescriptions(self):
     data = self.renderer.RenderObject(
-        self.fd,
-        rdfvalue.ApiAFF4ObjectRendererArgs(type_info="WITH_TYPES_AND_METADATA"))
+        self.fd, api_aff4_object_renderers.ApiAFF4ObjectRendererArgs(
+            type_info="WITH_TYPES_AND_METADATA"))
 
     self.assertEqual(data,
                      {
@@ -122,15 +119,14 @@ class ApiRDFValueCollectionRendererTest(test_lib.GRRBaseTest):
       with aff4.FACTORY.Create("aff4:/tmp/foo/bar", "RDFValueCollection",
                                token=self.token) as fd:
         for i in range(10):
-          fd.Add(rdfvalue.PathSpec(path="/var/os/tmp-%d" % i,
-                                   pathtype="OS"))
+          fd.Add(rdf_paths.PathSpec(path="/var/os/tmp-%d" % i, pathtype="OS"))
 
     self.fd = aff4.FACTORY.Open("aff4:/tmp/foo/bar", token=self.token)
     self.renderer = api_aff4_object_renderers.ApiRDFValueCollectionRenderer()
 
   def testRendersSampleCollection(self):
     data = self.renderer.RenderObject(
-        self.fd, rdfvalue.ApiRDFValueCollectionRendererArgs())
+        self.fd, api_aff4_object_renderers.ApiRDFValueCollectionRendererArgs())
 
     self.assertEqual(data["offset"], 0)
     self.assertEqual(data["count"], 10)
@@ -143,7 +139,8 @@ class ApiRDFValueCollectionRendererTest(test_lib.GRRBaseTest):
 
   def testRendersSampleCollectionWithCountParameter(self):
     data = self.renderer.RenderObject(
-        self.fd, rdfvalue.ApiRDFValueCollectionRendererArgs(count=2))
+        self.fd,
+        api_aff4_object_renderers.ApiRDFValueCollectionRendererArgs(count=2))
 
     self.assertEqual(data["offset"], 0)
     self.assertEqual(data["count"], 2)
@@ -158,7 +155,8 @@ class ApiRDFValueCollectionRendererTest(test_lib.GRRBaseTest):
 
   def testRendersSampleCollectionWithOffsetParameter(self):
     data = self.renderer.RenderObject(
-        self.fd, rdfvalue.ApiRDFValueCollectionRendererArgs(offset=8))
+        self.fd,
+        api_aff4_object_renderers.ApiRDFValueCollectionRendererArgs(offset=8))
 
     self.assertEqual(data["offset"], 8)
     self.assertEqual(data["count"], 2)
@@ -173,8 +171,9 @@ class ApiRDFValueCollectionRendererTest(test_lib.GRRBaseTest):
 
   def testRendersSampleCollectionWithCountAndOffsetParameters(self):
     data = self.renderer.RenderObject(
-        self.fd, rdfvalue.ApiRDFValueCollectionRendererArgs(offset=3,
-                                                            count=2))
+        self.fd,
+        api_aff4_object_renderers.ApiRDFValueCollectionRendererArgs(offset=3,
+                                                                    count=2))
 
     self.assertEqual(data["offset"], 3)
     self.assertEqual(data["count"], 2)
@@ -189,7 +188,7 @@ class ApiRDFValueCollectionRendererTest(test_lib.GRRBaseTest):
 
   def testRendersSampleCollectionWithTotalCountParameter(self):
     data = self.renderer.RenderObject(
-        self.fd, rdfvalue.ApiRDFValueCollectionRendererArgs(
+        self.fd, api_aff4_object_renderers.ApiRDFValueCollectionRendererArgs(
             count=2, with_total_count=True))
 
     self.assertEqual(len(data["items"]), 2)
@@ -197,7 +196,7 @@ class ApiRDFValueCollectionRendererTest(test_lib.GRRBaseTest):
 
   def testRendersSampleCollectionWithFilter(self):
     data = self.renderer.RenderObject(
-        self.fd, rdfvalue.ApiRDFValueCollectionRendererArgs(
+        self.fd, api_aff4_object_renderers.ApiRDFValueCollectionRendererArgs(
             filter="/var/os/tmp-9"))
 
     self.assertEqual(len(data["items"]), 1)
@@ -207,7 +206,7 @@ class ApiRDFValueCollectionRendererTest(test_lib.GRRBaseTest):
 
   def testRendersSampleCollectionWithFilterAndOffsetAndCount(self):
     data = self.renderer.RenderObject(
-        self.fd, rdfvalue.ApiRDFValueCollectionRendererArgs(
+        self.fd, api_aff4_object_renderers.ApiRDFValueCollectionRendererArgs(
             offset=2, count=2, filter="/var/os/tmp"))
 
     self.assertEqual(len(data["items"]), 2)

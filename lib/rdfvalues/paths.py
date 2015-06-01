@@ -27,7 +27,8 @@ import logging
 from grr.lib import artifact_lib
 from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.lib.rdfvalues import structs
+from grr.lib.rdfvalues import standard as rdf_standard
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import jobs_pb2
 
 INTERPOLATED_REGEX = re.compile(r"%%([^%]+?)%%")
@@ -36,7 +37,7 @@ INTERPOLATED_REGEX = re.compile(r"%%([^%]+?)%%")
 GROUPING_PATTERN = re.compile("{([^}]+)}")
 
 
-class PathSpec(structs.RDFProtoStruct):
+class PathSpec(rdf_structs.RDFProtoStruct):
   """A path specification.
 
   The pathspec protobuf is a recursive protobuf which contains components. This
@@ -322,4 +323,5 @@ class GlobExpression(rdfvalue.RDFString):
     Returns:
       A RegularExpression() object.
     """
-    return rdfvalue.RegularExpression("(?i)^" + fnmatch.translate(self._value))
+    return rdf_standard.RegularExpression(
+        "(?i)^" + fnmatch.translate(self._value))

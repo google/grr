@@ -9,6 +9,9 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class MockChangeEvent(flow.EventListener):
@@ -23,10 +26,10 @@ class MockChangeEvent(flow.EventListener):
   def ProcessMessage(self, message=None, event=None):
     _ = event
     if (message.auth_state !=
-        rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED):
+        rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED):
       return
 
-    urn = rdfvalue.RDFURN(message.args)
+    urn = rdfvalue.RDFURN(message.payload)
     MockChangeEvent.CHANGED_URNS.append(urn)
 
 
@@ -39,11 +42,11 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
 
   def testPathspecToURN(self):
     """Test the pathspec to URN conversion function."""
-    pathspec = rdfvalue.PathSpec(
-        path="\\\\.\\Volume{1234}\\", pathtype=rdfvalue.PathSpec.PathType.OS,
+    pathspec = rdf_paths.PathSpec(
+        path="\\\\.\\Volume{1234}\\", pathtype=rdf_paths.PathSpec.PathType.OS,
         mount_point="/c:/").Append(
             path="/windows",
-            pathtype=rdfvalue.PathSpec.PathType.TSK)
+            pathtype=rdf_paths.PathSpec.PathType.TSK)
 
     urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
         pathspec, "C.1234567812345678")
@@ -52,10 +55,10 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
             r"aff4:/C.1234567812345678/fs/tsk/\\.\Volume{1234}\/windows"))
 
     # Test an ADS
-    pathspec = rdfvalue.PathSpec(
-        path="\\\\.\\Volume{1234}\\", pathtype=rdfvalue.PathSpec.PathType.OS,
+    pathspec = rdf_paths.PathSpec(
+        path="\\\\.\\Volume{1234}\\", pathtype=rdf_paths.PathSpec.PathType.OS,
         mount_point="/c:/").Append(
-            pathtype=rdfvalue.PathSpec.PathType.TSK,
+            pathtype=rdf_paths.PathSpec.PathType.TSK,
             path="/Test Directory/notes.txt:ads",
             inode=66,
             ntfs_type=128,
@@ -77,7 +80,7 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
     users = fd.Schema.USER()
     for i in range(5):
       folder = "C:/Users/user%s" % i
-      user = rdfvalue.User(username="user%s" % i)
+      user = rdf_client.User(username="user%s" % i)
       user.special_folders.app_data = folder
       users.Append(user)
 
@@ -105,7 +108,7 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
     # Force notification rules to be reloaded.
     aff4.FACTORY.UpdateNotificationRules()
 
-    fd = aff4.FACTORY.Create(rdfvalue.ClientURN(client_name).Add("a"),
+    fd = aff4.FACTORY.Create(rdf_client.ClientURN(client_name).Add("a"),
                              token=self.token,
                              aff4_type="AFF4Object")
     fd.Close()
@@ -117,7 +120,7 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
     # No notifications are expected, because path doesn't match the regex
     self.assertEqual(len(MockChangeEvent.CHANGED_URNS), 0)
 
-    fd = aff4.FACTORY.Create(rdfvalue.ClientURN(client_name).Add("b"),
+    fd = aff4.FACTORY.Create(rdf_client.ClientURN(client_name).Add("b"),
                              token=self.token,
                              aff4_type="AFF4Object")
     fd.Close()
@@ -128,12 +131,12 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
     # Now we get a notification, because the path matches
     self.assertEqual(len(MockChangeEvent.CHANGED_URNS), 1)
     self.assertEqual(MockChangeEvent.CHANGED_URNS[0],
-                     rdfvalue.ClientURN(client_name).Add("b"))
+                     rdf_client.ClientURN(client_name).Add("b"))
 
     MockChangeEvent.CHANGED_URNS = []
 
     # Write again to the same file and check that there's notification again
-    fd = aff4.FACTORY.Create(rdfvalue.ClientURN(client_name).Add("b"),
+    fd = aff4.FACTORY.Create(rdf_client.ClientURN(client_name).Add("b"),
                              token=self.token,
                              aff4_type="AFF4Object")
     fd.Close()
@@ -143,7 +146,7 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
 
     self.assertEqual(len(MockChangeEvent.CHANGED_URNS), 1)
     self.assertEqual(MockChangeEvent.CHANGED_URNS[0],
-                     rdfvalue.ClientURN(client_name).Add("b"))
+                     rdf_client.ClientURN(client_name).Add("b"))
 
     MockChangeEvent.CHANGED_URNS = []
 
@@ -158,7 +161,7 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
     aff4.FACTORY.UpdateNotificationRules()
 
     # Check that we don't get a notification for overwriting existing file
-    fd = aff4.FACTORY.Create(rdfvalue.ClientURN(client_name).Add("b"),
+    fd = aff4.FACTORY.Create(rdf_client.ClientURN(client_name).Add("b"),
                              token=self.token,
                              aff4_type="AFF4Object")
     fd.Close()
@@ -169,7 +172,7 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
     self.assertEqual(len(MockChangeEvent.CHANGED_URNS), 0)
 
     # Check that we do get a notification for writing a new file
-    fd = aff4.FACTORY.Create(rdfvalue.ClientURN(client_name).Add("b2"),
+    fd = aff4.FACTORY.Create(rdf_client.ClientURN(client_name).Add("b2"),
                              token=self.token,
                              aff4_type="AFF4Object")
     fd.Close()
@@ -179,7 +182,7 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
 
     self.assertEqual(len(MockChangeEvent.CHANGED_URNS), 1)
     self.assertEqual(MockChangeEvent.CHANGED_URNS[0],
-                     rdfvalue.ClientURN(client_name).Add("b2"))
+                     rdf_client.ClientURN(client_name).Add("b2"))
 
   def testVFSFileContentLastNotUpdated(self):
     """Make sure CONTENT_LAST does not update when only STAT is written.."""
@@ -203,7 +206,7 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
         # And advance the time.
         timestamp += 1
 
-      fd.Set(fd.Schema.STAT, rdfvalue.StatEntry())
+      fd.Set(fd.Schema.STAT, rdf_client.StatEntry())
 
       fd.Close()
 
@@ -230,8 +233,8 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
     arch = "amd64"
     install_time = rdfvalue.RDFDatetime().Now()
     user = "testuser"
-    userobj = rdfvalue.User(username=user)
-    interface = rdfvalue.Interface(ifname="eth0")
+    userobj = rdf_client.User(username=user)
+    interface = rdf_client.Interface(ifname="eth0")
 
     timestamp = 1
     with utils.Stubber(time, "time", lambda: timestamp):

@@ -4,8 +4,8 @@
 
 
 from grr.lib import aff4
-from grr.lib import rdfvalue
 from grr.lib.aff4_objects import standard
+from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import stats
 
 
@@ -13,7 +13,7 @@ class ClientStats(standard.VFSDirectory):
   """A container for all client statistics."""
 
   class SchemaCls(standard.VFSDirectory.SchemaCls):
-    STATS = aff4.Attribute("aff4:stats", rdfvalue.ClientStats,
+    STATS = aff4.Attribute("aff4:stats", rdf_client.ClientStats,
                            "Client Stats.", "Client stats",
                            creates_new_object_version=False)
 

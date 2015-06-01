@@ -6,8 +6,8 @@ import random
 import time
 
 from grr.lib import aff4
-from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.aff4_objects import timeline
 
 
 class TimelineTest(test_lib.AFF4ObjectTest):
@@ -24,7 +24,7 @@ class TimelineTest(test_lib.AFF4ObjectTest):
     times = [random.randint(0, 1000) * 1000000 + now for _ in range(100)]
 
     for t in times:
-      event = rdfvalue.Event(timestamp=t)
+      event = timeline.Event(timestamp=t)
       event.stat.st_mtime = t / 1000000
       event.stat.pathspec.path = time.ctime(t / 1000000)
       fd.AddEvent(event)
@@ -50,7 +50,7 @@ class TimelineTest(test_lib.AFF4ObjectTest):
     fd = aff4.FACTORY.Create(path, "GRRTimeSeries", token=self.token)
     times = [1321533293629468, 1321633293629468, 1321733293629468]
     for t in times:
-      event = rdfvalue.Event(timestamp=t)
+      event = timeline.Event(timestamp=t)
       event.stat.st_mtime = t / 1000000
       event.stat.pathspec.path = time.strftime("Path @ %a %b %d %T %Y",
                                                time.gmtime(t / 1000000))

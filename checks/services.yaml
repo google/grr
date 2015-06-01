@@ -1,0 +1,144 @@
+check_id: CIS-INETD-WITH-NO-SERVICES
+method:
+  - target: {os:['Linux']}
+    hint:
+      problem: xinetd running with no xinetd-managed services.
+      fix: |
+        Disable xinetd as the service is not required.
+        (ref) CIS Debian Benchmark v1.0-4.1
+    match: ALL
+    probe:
+      - artifact: 'LinuxServices'
+        filters:
+          - type: 'ObjectFilter'
+            expression: name is "xinetd" and starts is "True"
+    probe:
+      - artifact: 'LinuxServices'
+        match: NONE
+        filters:
+          - type: 'ObjectFilter'
+            expression: service.start_mode is "XINETD"
+---
+check_id: CIS-SERVICE-LEGACY-SERVICE-ENABLED
+method:
+  - target: {os:['Linux']}
+    hint:
+      problem: Legacy services are running.
+      fix: |
+        This system has legacy services enabled that are insecure and should
+        not be running. In some cases, there may be more suitable replacements
+        for these services.
+
+        If a similar service is needed, use a secure replacement.  Otherwise,
+        services should simply be disabled.
+
+        (ref) CIS Debian Benchmark v1.0-3.* and 1.0-4.*
+      format: "{name} is started by {start_mode}"
+    probe:
+      - artifact: 'LinuxServices'  # TODO: Create rollup artifact.
+        filters:
+          - type: 'ObjectFilter'
+            expression: starts is 1
+        mode: PARALLEL
+        filters:
+          - type: 'ObjectFilter'
+            expression: |
+              name contains "chargen" or
+              name contains "discard" or
+              name contains "echo" or
+              name contains "fingerd" or
+              name contains "ftpd" or
+              name contains "telnet" or
+              name contains "whois" or
+              name contains "xfont-server"
+          - type: 'ObjectFilter'
+            expression: |
+              name inset ["telnet", "ntalkd", "lpd", "lpdng", "rcp", "rlogin",
+                          "rsh", "ident","nis","ypserv"]
+---
+check_id: CIS-SERVICE-SHOULD-NOT-RUN
+method:
+  - target: {os:['Linux']}
+    hint:
+      problem: Remote administration services are running.
+      fix: |
+        Disable services that provide remote administration facilities.
+
+        If services must run, ensure that access to them is:
+          - restricted to trusted hosts and networks.
+          - strongly authenticated.
+          - only accessible over an encrypted connection.
+
+        (ref) CIS Debian Benchmark v1.0-3.* and 1.0-4.*
+      format: "{name} is started by {start_mode}"
+    probe:
+      - artifact: 'LinuxServices'
+        baseline:
+          - type: 'ObjectFilter'
+            expression: starts is 1
+        filters:
+          - type: 'ObjectFilter'
+            expression: |
+              name inset ["snmp","webmin"]
+---
+check_id: CIS-SERVICE-SHOULD-RUN
+method:
+  - target: {os:['Linux']}
+    hint:
+      problem: Recommended services are not started at boot time.
+      fix: |
+        Configure these services to start by default.
+
+        (ref) CIS Debian Benchmark v1.0-2.4 and 1.0-3.2
+    match: NONE
+    probe:
+      - artifact: 'LinuxServices'
+        baseline:
+          - type: 'ObjectFilter'
+            expression: start is 1
+        mode: 'PARALLEL'
+        filters:
+          - type: 'ObjectFilter'
+            hint:
+              problem: Sysstat is not started at boot time.
+            expression: 'name is "sysstat"'
+          - type: 'ObjectFilter'
+            hint:
+              problem: A firewall is not started at boot time.
+            expression: 'name inset ["iptables", "ufw"]'
+---
+check_id: CIS-SERVICE-SHOULD-NOT-LISTEN
+method:
+  - target: {os:['Linux']}
+    hint:
+      problem: Insecure services are accessible over the network.
+      fix: |
+        Either disable these services or configure them to only allow
+        access via the loopback address.
+
+        (ref) CIS Debian Benchmark v1.0-3.* and 1.0-4.*
+      format: "{name} (pid {pid}) listens on {connections.local_address.ip}"
+    match: ALL
+    probe:
+      - artifact: 'ListProcessesGrr'
+        baseline:
+          - type: 'ObjectFilter'
+            expression: |
+              @connections (
+                      state is "LISTEN"
+                      AND
+                      (
+                        (
+                          family is "INET" and
+                          local_address.ip isnot "127.0.0.1"
+                        )
+                        OR
+                        (
+                          family is "INET6" and
+                          local_address.ip isnot "::1"
+                        )
+                      )
+              )
+        filters:
+          - type: 'ObjectFilter'
+            expression: 'name inset ["x11","xorg"]'

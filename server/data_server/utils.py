@@ -6,8 +6,7 @@ import hashlib
 import struct
 
 
-from grr.lib import rdfvalue
-
+from grr.lib.rdfvalues import data_server as rdf_data_server
 from grr.server.data_server import constants
 
 
@@ -23,7 +22,7 @@ def CreateStartInterval(index, total):
     end = constants.MAX_RANGE
   else:
     end = part * (index + 1)
-  ret = rdfvalue.DataServerInterval(start=start, end=end)
+  ret = rdf_data_server.DataServerInterval(start=start, end=end)
   return ret
 
 

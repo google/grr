@@ -30,8 +30,9 @@ from grr.client import vfs
 from grr.client.client_actions import tempfiles
 from grr.lib import config_lib
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import paths
+from grr.lib.rdfvalues import rekall_types
 
 
 class Error(Exception):
@@ -56,7 +57,8 @@ class GRRObjectRenderer(data_export.NativeDataExportObjectRenderer):
         renderer=self.renderer)
 
   def EncodeToJsonSafe(self, item, **options):
-    return self._GetDelegateObjectRenderer(item).EncodeToJsonSafe(
+    object_renderer = self.ForTarget(item, "DataExportRenderer")
+    return object_renderer(renderer=self.renderer).EncodeToJsonSafe(
         item, **options)
 
   def DecodeFromJsonSafe(self, value, options):
@@ -117,7 +119,7 @@ class GRRRekallRenderer(data_export.DataExportRenderer):
     """Prepares a RekallResponse and send to the server."""
     if self.data:
 
-      response_msg = rdfvalue.RekallResponse(
+      response_msg = rekall_types.RekallResponse(
           json_messages=self.robust_encoder.encode(self.data),
           json_context_messages=self.robust_encoder.encode(
               self.context_messages.items()),
@@ -142,9 +144,9 @@ class GRRRekallRenderer(data_export.DataExportRenderer):
     result = tempfiles.CreateGRRTempFile(filename=filename, mode=mode)
     # The tempfile library created an os path, we pass it through vfs to
     # normalize it.
-    with vfs.VFSOpen(rdfvalue.PathSpec(
+    with vfs.VFSOpen(paths.PathSpec(
         path=result.name,
-        pathtype=rdfvalue.PathSpec.PathType.OS)) as vfs_fd:
+        pathtype=paths.PathSpec.PathType.OS)) as vfs_fd:
       dict_pathspec = vfs_fd.pathspec.ToPrimitiveDict()
       self.SendMessage(["file", dict_pathspec])
     return result
@@ -155,17 +157,15 @@ class GRRRekallRenderer(data_export.DataExportRenderer):
       pdb.post_mortem()
 
 
-# We need to use the Rekall InteractiveSession here so we get sensible default
-# values. This should be fixed in Rekall directly at some point by merging
-# InteractiveSession into Session.
-class GrrRekallSession(session.InteractiveSession):
+class GrrRekallSession(session.Session):
   """A GRR Specific Rekall session."""
 
   def __init__(self, fhandle=None, action=None, **session_args):
     super(GrrRekallSession, self).__init__(**session_args)
     self.action = action
 
-    # Apply default configuration options to the session state.
+    # Apply default configuration options to the session state, unless
+    # explicitly overridden by the session_args.
     with self.state:
       for name, options in config.OPTIONS.args.iteritems():
         # We don't want to override configuration options passed via
@@ -187,7 +187,7 @@ class GrrRekallSession(session.InteractiveSession):
     # Cant load the profile, we need to ask the server for it.
     logging.debug("Asking server for profile %s", name)
     self.action.SendReply(
-        rdfvalue.RekallResponse(
+        rekall_types.RekallResponse(
             missing_profile=name,
             repository_version=constants.PROFILE_REPOSITORY_VERSION,
         ))
@@ -209,7 +209,7 @@ class GrrRekallSession(session.InteractiveSession):
 class WriteRekallProfile(actions.ActionPlugin):
   """A client action to write a Rekall profile to the local cache."""
 
-  in_rdfvalue = rdfvalue.RekallProfile
+  in_rdfvalue = rekall_types.RekallProfile
 
   def Run(self, args):
     output_filename = utils.JoinPath(
@@ -238,8 +238,8 @@ class RekallCachingIOManager(io_manager.DirectoryIOManager):
 
 class RekallAction(actions.SuspendableAction):
   """Runs a Rekall command on live memory."""
-  in_rdfvalue = rdfvalue.RekallRequest
-  out_rdfvalue = rdfvalue.RekallResponse
+  in_rdfvalue = rekall_types.RekallRequest
+  out_rdfvalue = rekall_types.RekallResponse
 
   def Iterate(self):
     """Run a Rekall plugin and return the result."""
@@ -251,8 +251,8 @@ class RekallAction(actions.SuspendableAction):
 
     # If the user has not specified a special profile path, we use the local
     # cache directory.
-    if "profile_path" not in session_args:
-      session_args["profile_path"] = [config_lib.CONFIG[
+    if "repository_path" not in session_args:
+      session_args["repository_path"] = [config_lib.CONFIG[
           "Client.rekall_profile_cache_path"]]
 
     rekal_session = GrrRekallSession(action=self, **session_args)

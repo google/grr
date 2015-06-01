@@ -7,6 +7,8 @@ import StringIO
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
 from grr.parsers import linux_sysctl_parser
 
 
@@ -17,8 +19,8 @@ class ProcSysParserTest(test_lib.GRRBaseTest):
     stats = []
     files = []
     for path in paths:
-      p = rdfvalue.PathSpec(path=path)
-      stats.append(rdfvalue.StatEntry(pathspec=p))
+      p = rdf_paths.PathSpec(path=path)
+      stats.append(rdf_client.StatEntry(pathspec=p))
     for val in data:
       files.append(StringIO.StringIO(val))
     return stats, files
@@ -30,8 +32,10 @@ class ProcSysParserTest(test_lib.GRRBaseTest):
     vals = ["0", "3 4 1 3"]
     stats, files = self._GenTestData(paths, vals)
     results = parser.ParseMultiple(stats, files, None)
-    self.assertEqual("0", results.net_ipv4_ip_forward)
-    self.assertEqual(["3", "4", "1", "3"], results.kernel_printk)
+    self.assertEqual(1, len(results))
+    self.assertTrue(isinstance(results[0], rdfvalue.RDFValue))
+    self.assertEqual("0", results[0].net_ipv4_ip_forward)
+    self.assertEqual(["3", "4", "1", "3"], results[0].kernel_printk)
 
 
 def main(args):

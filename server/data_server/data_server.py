@@ -22,11 +22,13 @@ import logging
 from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import startup
 from grr.lib import stats
 from grr.lib import utils
+
+from grr.lib.rdfvalues import data_server as rdf_data_server
+from grr.lib.rdfvalues import data_store as rdf_data_store
 
 from grr.server.data_server import auth
 from grr.server.data_server import constants
@@ -35,6 +37,7 @@ from grr.server.data_server import master
 from grr.server.data_server import rebalance
 from grr.server.data_server import store
 from grr.server.data_server import utils as sutils
+
 
 flags.DEFINE_integer("port", None,
                      "Specify the data server port.")
@@ -61,11 +64,11 @@ NONCE_STORE = None
 
 def GetStatistics():
   """Build statistics object for the server."""
-  ok = rdfvalue.DataServerState.Status.AVAILABLE
+  ok = rdf_data_server.DataServerState.Status.AVAILABLE
   num_components, avg_component = SERVICE.GetComponentInformation()
-  stat = rdfvalue.DataServerState(size=SERVICE.Size(), load=0, status=ok,
-                                  num_components=num_components,
-                                  avg_component=avg_component)
+  stat = rdf_data_server.DataServerState(size=SERVICE.Size(), load=0, status=ok,
+                                         num_components=num_components,
+                                         avg_component=avg_component)
   return stat
 
 
@@ -137,7 +140,7 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
       cmd_str = self._ReadExactly(sock, cmdlen)
     except (socket.timeout, socket.error):
       return ""
-    cmd = rdfvalue.DataStoreCommand(cmd_str)
+    cmd = rdf_data_server.DataStoreCommand(cmd_str)
 
     request = cmd.request
     op = cmd.command
@@ -152,9 +155,9 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
     else:
       status_desc = ("Operation not allowed: required %s but only have "
                      "%s permissions" % (perm, permissions))
-      resp = rdfvalue.DataStoreResponse(
+      resp = rdf_data_store.DataStoreResponse(
           request=cmd.request, status_desc=status_desc,
-          status=rdfvalue.DataStoreResponse.Status.AUTHORIZATION_DENIED)
+          status=rdf_data_store.DataStoreResponse.Status.AUTHORIZATION_DENIED)
       response = resp.SerializeToString()
 
     return sutils.SIZE_PACKER.pack(len(response)) + response
@@ -164,7 +167,7 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
     if not MASTER:
       self._EmptyResponse(constants.RESPONSE_NOT_MASTER_SERVER)
       return
-    request = rdfvalue.DataStoreRegistrationRequest(self.post_data)
+    request = rdf_data_server.DataStoreRegistrationRequest(self.post_data)
 
     port = request.port
     addr = self.client_address[0]
@@ -196,7 +199,7 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
                     "is not registered yet", self.client_address)
       self._EmptyResponse(constants.RESPONSE_SERVER_NOT_REGISTERED)
       return
-    state = rdfvalue.DataServerState(self.post_data)
+    state = rdf_data_server.DataServerState(self.post_data)
     self.data_server.UpdateState(state)
     logging.info("Received new state from server %s", self.client_address)
     # Response with our mapping.
@@ -234,7 +237,7 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
     sock.setblocking(1)
 
     # But first we need to validate the client by reading the token.
-    token = rdfvalue.DataStoreAuthToken(self.post_data)
+    token = rdf_data_server.DataStoreAuthToken(self.post_data)
     perms = NONCE_STORE.ValidateAuthTokenClient(token)
     if not perms:
       sock.sendall("IP\n")
@@ -300,10 +303,10 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
     if MASTER.IsRebalancing():
       self._EmptyResponse(constants.RESPONSE_MASTER_IS_REBALANCING)
       return
-    new_mapping = rdfvalue.DataServerMapping(self.post_data)
+    new_mapping = rdf_data_server.DataServerMapping(self.post_data)
     rebalance_id = str(uuid.uuid4())
-    reb = rdfvalue.DataServerRebalance(id=rebalance_id,
-                                       mapping=new_mapping)
+    reb = rdf_data_server.DataServerRebalance(id=rebalance_id,
+                                              mapping=new_mapping)
     if not MASTER.SetRebalancing(reb):
       logging.warning("Could not contact servers for rebalancing")
       self._EmptyResponse(constants.RESPONSE_DATA_SERVERS_UNREACHABLE)
@@ -318,7 +321,7 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
 
   def HandleRebalanceStatistics(self):
     """Call data server to count how much data needs to move in rebalancing."""
-    reb = rdfvalue.DataServerRebalance(self.post_data)
+    reb = rdf_data_server.DataServerRebalance(self.post_data)
     mapping = reb.mapping
     index = 0
     if not MASTER:
@@ -329,7 +332,7 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
     self._Response(constants.RESPONSE_OK, body)
 
   def HandleRebalanceCopy(self):
-    reb = rdfvalue.DataServerRebalance(self.post_data)
+    reb = rdf_data_server.DataServerRebalance(self.post_data)
     index = 0
     if not MASTER:
       index = DATA_SERVER.Index()
@@ -346,7 +349,7 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
     if not MASTER:
       self._EmptyResponse(constants.RESPONSE_NOT_MASTER_SERVER)
       return
-    reb = rdfvalue.DataServerRebalance(self.post_data)
+    reb = rdf_data_server.DataServerRebalance(self.post_data)
     current = MASTER.IsRebalancing()
     if not current or current.id != reb.id:
       # Not the same ID.
@@ -362,7 +365,7 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
     if not MASTER:
       self._EmptyResponse(constants.RESPONSE_NOT_MASTER_SERVER)
       return
-    reb = rdfvalue.DataServerRebalance(self.post_data)
+    reb = rdf_data_server.DataServerRebalance(self.post_data)
     current = MASTER.IsRebalancing()
     if not current or current.id != reb.id:
       # Not the same ID.
@@ -376,7 +379,7 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
 
   def HandleRebalancePerform(self):
     """Call data server to perform rebalance transaction."""
-    reb = rdfvalue.DataServerRebalance(self.post_data)
+    reb = rdf_data_server.DataServerRebalance(self.post_data)
     if not rebalance.MoveFiles(reb, MASTER):
       logging.critical("Failed to perform transaction %s", reb.id)
       self._EmptyResponse(constants.RESPONSE_FILES_NOT_MOVED)
@@ -438,7 +441,7 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
     """Master wants to send the mapping to us."""
     if MASTER:
       return self._EmptyResponse(constants.RESPONSE_IS_MASTER_SERVER)
-    mapping = rdfvalue.DataServerMapping(self.post_data)
+    mapping = rdf_data_server.DataServerMapping(self.post_data)
     DATA_SERVER.SetMapping(mapping)
     # Return state server back.
     body = GetStatistics().SerializeToString()
@@ -617,8 +620,8 @@ class StandardDataServer(object):
                                      "data master.")
       nonce = res.data
       token = NONCE_STORE.GenerateServerAuthToken(nonce)
-      request = rdfvalue.DataStoreRegistrationRequest(token=token,
-                                                      port=self.my_port)
+      request = rdf_data_server.DataStoreRegistrationRequest(token=token,
+                                                             port=self.my_port)
       body = request.SerializeToString()
       headers = {"Content-Length": len(body)}
       res = self.pool.urlopen("POST", "/server/register", headers=headers,
@@ -689,7 +692,7 @@ class StandardDataServer(object):
         logging.warning("Could not send statistics to data master.")
         return False
       # Also receive the new mapping with new statistics.
-      mapping = rdfvalue.DataServerMapping(res.data)
+      mapping = rdf_data_server.DataServerMapping(res.data)
       SERVICE.SaveServerMapping(mapping)
       return True
     except (urllib3.exceptions.MaxRetryError, errors.DataServerError):
@@ -729,7 +732,7 @@ class StandardDataServer(object):
       if res.status != constants.RESPONSE_OK:
         raise errors.DataServerError("Could not get server mapping from data "
                                      "master.")
-      mapping = rdfvalue.DataServerMapping(res.data)
+      mapping = rdf_data_server.DataServerMapping(res.data)
       SERVICE.SaveServerMapping(mapping)
       return mapping
     except urllib3.exceptions.MaxRetryError:
@@ -777,7 +780,7 @@ def Start(db, port=0, is_master=False, server_cls=ThreadedHTTPServer,
   # Create the command table for faster execution of remote calls.
   # Along with a method, each command has the required permissions.
   global CMDTABLE
-  cmd = rdfvalue.DataStoreCommand.Command
+  cmd = rdf_data_server.DataStoreCommand.Command
   CMDTABLE = {cmd.DELETE_ATTRIBUTES: (SERVICE.DeleteAttributes, "w"),
               cmd.DELETE_SUBJECT: (SERVICE.DeleteSubject, "w"),
               cmd.MULTI_SET: (SERVICE.MultiSet, "w"),

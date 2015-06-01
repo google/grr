@@ -10,14 +10,15 @@ import os
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import flow_utils
-from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.flows.general import file_finder
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.parsers import chrome_history
 from grr.parsers import firefox3_history
 from grr.proto import flows_pb2
 
 
-class ChromeHistoryArgs(rdfvalue.RDFProtoStruct):
+class ChromeHistoryArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ChromeHistoryArgs
 
 
@@ -76,8 +77,8 @@ class ChromeHistory(flow.GRRFlow):
             "FileFinder",
             paths=[os.path.join(path, fname)],
             pathtype=self.state.args.pathtype,
-            action=rdfvalue.FileFinderAction(
-                action_type=rdfvalue.FileFinderAction.Action.DOWNLOAD),
+            action=file_finder.FileFinderAction(
+                action_type=file_finder.FileFinderAction.Action.DOWNLOAD),
             next_state="ParseFiles")
 
   @flow.StateHandler()
@@ -142,7 +143,7 @@ class ChromeHistory(flow.GRRFlow):
     return paths
 
 
-class FirefoxHistoryArgs(rdfvalue.RDFProtoStruct):
+class FirefoxHistoryArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FirefoxHistoryArgs
 
 
@@ -196,8 +197,8 @@ class FirefoxHistory(flow.GRRFlow):
           "FileFinder",
           paths=[os.path.join(path, "**2", filename)],
           pathtype=self.state.args.pathtype,
-          action=rdfvalue.FileFinderAction(
-              action_type=rdfvalue.FileFinderAction.Action.DOWNLOAD),
+          action=file_finder.FileFinderAction(
+              action_type=file_finder.FileFinderAction.Action.DOWNLOAD),
           next_state="ParseFiles")
 
   @flow.StateHandler()
@@ -277,7 +278,7 @@ BROWSER_PATHS = {
 }
 
 
-class CacheGrepArgs(rdfvalue.RDFProtoStruct):
+class CacheGrepArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.CacheGrepArgs
 
 
@@ -331,11 +332,13 @@ class CacheGrep(flow.GRRFlow):
     usernames = ["%s\\%s" % (u.domain, u.username) for u in self.state.users]
     usernames = [u.lstrip("\\") for u in usernames]  # Strip \\ if no domain.
 
-    condition = rdfvalue.FileFinderCondition(
-        condition_type=rdfvalue.FileFinderCondition.Type.CONTENTS_REGEX_MATCH,
-        contents_regex_match=rdfvalue.FileFinderContentsRegexMatchCondition(
+    condition = file_finder.FileFinderCondition(
+        condition_type=
+        file_finder.FileFinderCondition.Type.CONTENTS_REGEX_MATCH,
+        contents_regex_match=file_finder.FileFinderContentsRegexMatchCondition(
             regex=self.args.data_regex,
-            mode=rdfvalue.FileFinderContentsRegexMatchCondition.Mode.FIRST_HIT))
+            mode=
+            file_finder.FileFinderContentsRegexMatchCondition.Mode.FIRST_HIT))
 
     for path in self.state.all_paths:
       full_paths = flow_utils.InterpolatePath(path, client, users=usernames)
@@ -345,8 +348,8 @@ class CacheGrep(flow.GRRFlow):
             paths=[os.path.join(full_path, "**5")],
             pathtype=self.state.args.pathtype,
             conditions=[condition],
-            action=rdfvalue.FileFinderAction(
-                action_type=rdfvalue.FileFinderAction.Action.DOWNLOAD),
+            action=file_finder.FileFinderAction(
+                action_type=file_finder.FileFinderAction.Action.DOWNLOAD),
             next_state="HandleResults")
 
   @flow.StateHandler()

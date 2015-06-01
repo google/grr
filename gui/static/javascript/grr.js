@@ -1684,7 +1684,8 @@ grr.init();
 var grrUiApp = angular.module('grrUi', ['ngCookies',
                                         'grrUi.appController']);
 
-grrUiApp.config(function($httpProvider, $interpolateProvider) {
+grrUiApp.config(function($httpProvider, $interpolateProvider,
+                         $rootScopeProvider) {
   // Set templating braces to be '{$' and '$}' to avoid conflicts with Django
   // templates.
   $interpolateProvider.startSymbol('{$');
@@ -1696,9 +1697,25 @@ grrUiApp.config(function($httpProvider, $interpolateProvider) {
   $httpProvider.defaults.headers.post[
     'Content-Type'] = 'application/x-www-form-urlencoded';
   $httpProvider.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+
+  // We use recursive data model generation when rendering forms. Therefore
+  // have to increase the digestTtl limit to 15.
+  $rootScopeProvider.digestTtl(15);
 });
 
-grrUiApp.run(function($http, $cookies) {
+grrUiApp.run(function($http, $cookies, grrReflectionService) {
   // Ensure CSRF token is in place for Angular-initiated HTTP requests.
-  $http.defaults.headers.post['X-CSRFToken'] = $cookies.csrftoken;
+  $http.defaults.headers.post['X-CSRFToken'] = $cookies.get('csrftoken');
+
+  // Call reflection service as soon as possible in the app lifetime to cache
+  // the values. "ACLToken" is picked up here as an arbitrary name.
+  // grrReflectionService loads all RDFValues definitions on first request
+  // and then caches them.
+  grrReflectionService.getRDFValueDescriptor('ACLToken');
 });
+
+
+/**
+ * TODO(user): Remove when dependency on jQuery-migrate is removed.
+ */
+jQuery.migrateMute = true;

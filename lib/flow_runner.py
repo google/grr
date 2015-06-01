@@ -65,14 +65,35 @@ from grr.client import actions
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import data_store
+# pylint: disable=unused-import
+# for OutputPluginDescriptor, needed implicitly by FlowRunnerArgs
+from grr.lib import output_plugin as _
+# pylint: enable=unused-import
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import stats
 from grr.lib import utils
+# for RDFValueCollection pylint: disable=unused-import
+from grr.lib.aff4_objects import collections as _
+# pylint: enable=unused-import
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.lib.rdfvalues import structs as rdf_structs
+from grr.proto import flows_pb2
 
 
 class FlowRunnerError(Exception):
   """Raised when there is an error during state transitions."""
+
+
+class FlowRunnerArgs(rdf_structs.RDFProtoStruct):
+  """The argument to the flow runner.
+
+  Note that all flows receive these arguments. This object is stored in the
+  flows state.context.arg attribute.
+  """
+  protobuf = flows_pb2.FlowRunnerArgs
 
 
 class FlowRunner(object):
@@ -215,7 +236,7 @@ class FlowRunner(object):
   def InitializeContext(self, args):
     """Initializes the context of this flow."""
     if args is None:
-      args = rdfvalue.FlowRunnerArgs()
+      args = FlowRunnerArgs()
 
     output_collection = self._CreateOutputCollection(args)
     # Output collection is nullified when flow is terminated, so we're
@@ -237,7 +258,7 @@ class FlowRunner(object):
     context = utils.DataObject(
         args=args,
         backtrace=None,
-        client_resources=rdfvalue.ClientResources(),
+        client_resources=rdf_client.ClientResources(),
         create_time=rdfvalue.RDFDatetime().Now(),
         creator=args.creator or self.token.username,
         current_state="Start",
@@ -253,7 +274,7 @@ class FlowRunner(object):
         output_urn=output_urn,
         outstanding_requests=0,
         remaining_cpu_quota=args.cpu_limit,
-        state=rdfvalue.Flow.State.RUNNING,
+        state=rdf_flows.Flow.State.RUNNING,
 
         # Have we sent a notification to the user.
         user_notified=False,
@@ -331,31 +352,31 @@ class FlowRunner(object):
       raise FlowRunnerError("Next state %s is invalid.")
 
     # Queue the response message to the parent flow
-    request_state = rdfvalue.RequestState(id=self.GetNextOutboundId(),
-                                          session_id=self.context.session_id,
-                                          client_id=self.args.client_id,
-                                          next_state=next_state)
+    request_state = rdf_flows.RequestState(id=self.GetNextOutboundId(),
+                                           session_id=self.context.session_id,
+                                           client_id=self.args.client_id,
+                                           next_state=next_state)
     if request_data:
-      request_state.data = rdfvalue.Dict().FromDict(request_data)
+      request_state.data = rdf_protodict.Dict().FromDict(request_data)
 
     self.QueueRequest(request_state, timestamp=start_time)
 
     # Add the status message if needed.
-    if not messages or not isinstance(messages[-1], rdfvalue.GrrStatus):
-      messages.append(rdfvalue.GrrStatus())
+    if not messages or not isinstance(messages[-1], rdf_flows.GrrStatus):
+      messages.append(rdf_flows.GrrStatus())
 
     # Send all the messages
     for i, payload in enumerate(messages):
       if isinstance(payload, rdfvalue.RDFValue):
-        msg = rdfvalue.GrrMessage(
+        msg = rdf_flows.GrrMessage(
             session_id=self.session_id, request_id=request_state.id,
             response_id=1 + i,
-            auth_state=rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED,
+            auth_state=rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED,
             payload=payload,
-            type=rdfvalue.GrrMessage.Type.MESSAGE)
+            type=rdf_flows.GrrMessage.Type.MESSAGE)
 
-        if isinstance(payload, rdfvalue.GrrStatus):
-          msg.type = rdfvalue.GrrMessage.Type.STATUS
+        if isinstance(payload, rdf_flows.GrrStatus):
+          msg.type = rdf_flows.GrrMessage.Type.STATUS
       else:
         raise FlowRunnerError("Bad message %s of type %s." % (payload,
                                                               type(payload)))
@@ -594,7 +615,7 @@ class FlowRunner(object):
        next_state: The state in this flow, that responses to this
              message should go to.
 
-       client_id: rdfvalue.ClientURN to send the request to.
+       client_id: rdf_client.ClientURN to send the request to.
 
        request_data: A dict which will be available in the RequestState
              protobuf. The Responses object maintains a reference to this
@@ -620,9 +641,9 @@ class FlowRunner(object):
       raise FlowRunnerError("CallClient() is used on a flow which was not "
                             "started with a client.")
 
-    if not isinstance(client_id, rdfvalue.ClientURN):
+    if not isinstance(client_id, rdf_client.ClientURN):
       # Try turning it into a ClientURN
-      client_id = rdfvalue.ClientURN(client_id)
+      client_id = rdf_client.ClientURN(client_id)
 
     # Retrieve the correct rdfvalue to use for this client action.
     try:
@@ -647,17 +668,17 @@ class FlowRunner(object):
     outbound_id = self.GetNextOutboundId()
 
     # Create a new request state
-    state = rdfvalue.RequestState(
+    state = rdf_flows.RequestState(
         id=outbound_id,
         session_id=self.session_id,
         next_state=next_state,
         client_id=client_id)
 
     if request_data is not None:
-      state.data = rdfvalue.Dict(request_data)
+      state.data = rdf_protodict.Dict(request_data)
 
     # Send the message with the request state
-    msg = rdfvalue.GrrMessage(
+    msg = rdf_flows.GrrMessage(
         session_id=utils.SmartUnicode(self.session_id), name=action_name,
         request_id=outbound_id, priority=self.args.priority,
         require_fastpoll=self.args.require_fastpoll,
@@ -709,8 +730,8 @@ class FlowRunner(object):
       raise ValueError("Can only publish RDFValue instances.")
 
     # Wrap the message in a GrrMessage if needed.
-    if not isinstance(msg, rdfvalue.GrrMessage):
-      msg = rdfvalue.GrrMessage(payload=msg)
+    if not isinstance(msg, rdf_flows.GrrMessage):
+      msg = rdf_flows.GrrMessage(payload=msg)
 
     # Randomize the response id or events will get overwritten.
     msg.response_id = msg.task_id = msg.GenerateTaskID()
@@ -784,7 +805,7 @@ class FlowRunner(object):
     # the request state and the stated next_state. Note however, that there is
     # no client_id or actual request message here because we directly invoke the
     # child flow rather than queue anything for it.
-    state = rdfvalue.RequestState(
+    state = rdf_flows.RequestState(
         id=self.GetNextOutboundId(),
         session_id=utils.SmartUnicode(self.session_id),
         client_id=client_id,
@@ -792,7 +813,7 @@ class FlowRunner(object):
         response_count=0)
 
     if request_data:
-      state.data = rdfvalue.Dict().FromDict(request_data)
+      state.data = rdf_protodict.Dict().FromDict(request_data)
 
     # If the urn is passed explicitly (e.g. from the hunt runner) use that,
     # otherwise use the urn from the flow_runner args. If both are None, create
@@ -848,13 +869,13 @@ class FlowRunner(object):
       request_state.response_count += 1
 
       # Make a response message
-      msg = rdfvalue.GrrMessage(
+      msg = rdf_flows.GrrMessage(
           session_id=request_state.session_id,
           request_id=request_state.id,
           response_id=request_state.response_count,
-          auth_state=rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED,
-          type=rdfvalue.GrrMessage.Type.MESSAGE,
-          args=response.SerializeToString(),
+          auth_state=rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED,
+          type=rdf_flows.GrrMessage.Type.MESSAGE,
+          payload=response,
           args_rdf_name=response.__class__.__name__,
           args_age=int(response.age))
 
@@ -881,9 +902,9 @@ class FlowRunner(object):
     client_id = client_id or self.args.client_id
     if self.IsRunning():
       # Set an error status
-      reply = rdfvalue.GrrStatus()
+      reply = rdf_flows.GrrStatus()
       if status is None:
-        reply.status = rdfvalue.GrrStatus.ReturnedStatus.GENERIC_ERROR
+        reply.status = rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR
       else:
         reply.status = status
 
@@ -892,7 +913,7 @@ class FlowRunner(object):
 
       self.Terminate(status=reply)
 
-      self.context.state = rdfvalue.Flow.State.ERROR
+      self.context.state = rdf_flows.Flow.State.ERROR
 
       if backtrace:
         logging.error("Error in flow %s (%s). Trace: %s", self.session_id,
@@ -910,7 +931,7 @@ class FlowRunner(object):
     return self.context.state
 
   def IsRunning(self):
-    return self.context.state == rdfvalue.Flow.State.RUNNING
+    return self.context.state == rdf_flows.Flow.State.RUNNING
 
   def ProcessRepliesWithOutputPlugins(self, replies):
     if not self.args.output_plugins or not replies:
@@ -939,7 +960,7 @@ class FlowRunner(object):
       pass
 
     # This flow might already not be running.
-    if self.context.state != rdfvalue.Flow.State.RUNNING:
+    if self.context.state != rdf_flows.Flow.State.RUNNING:
       return
 
     try:
@@ -958,7 +979,7 @@ class FlowRunner(object):
       logging.debug("Terminating flow %s", self.session_id)
 
       # Make a response or use the existing one.
-      response = status or rdfvalue.GrrStatus()
+      response = status or rdf_flows.GrrStatus()
 
       client_resources = self.context.client_resources
       user_cpu = client_resources.cpu_usage.user_cpu_time
@@ -972,13 +993,13 @@ class FlowRunner(object):
       request_state.response_count += 1
 
       # Make a response message
-      msg = rdfvalue.GrrMessage(
+      msg = rdf_flows.GrrMessage(
           session_id=request_state.session_id,
           request_id=request_state.id,
           response_id=request_state.response_count,
-          auth_state=rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED,
-          type=rdfvalue.GrrMessage.Type.STATUS,
-          args=response.SerializeToString())
+          auth_state=rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED,
+          type=rdf_flows.GrrMessage.Type.STATUS,
+          payload=response)
 
       try:
         # Queue the response now
@@ -987,7 +1008,7 @@ class FlowRunner(object):
         self.QueueNotification(session_id=request_state.session_id)
 
     # Mark as terminated.
-    self.context.state = rdfvalue.Flow.State.TERMINATED
+    self.context.state = rdf_flows.Flow.State.TERMINATED
     self.flow_obj.Flush()
 
   def UpdateProtoResources(self, status):
@@ -1082,9 +1103,9 @@ class FlowRunner(object):
     with self.OpenLogsCollection(self.args.logs_collection_urn,
                                  mode="w") as logs_collection:
       logs_collection.Add(
-          rdfvalue.FlowLog(client_id=self.args.client_id, urn=self.session_id,
-                           flow_name=self.flow_obj.__class__.__name__,
-                           log_message=status))
+          rdf_flows.FlowLog(client_id=self.args.client_id, urn=self.session_id,
+                            flow_name=self.flow_obj.__class__.__name__,
+                            log_message=status))
 
   def GetLog(self):
     return self.OpenLogsCollection(self.args.logs_collection_urn, mode="r")
@@ -1125,7 +1146,7 @@ class FlowRunner(object):
       fd.Close()
 
       # Add notifications to the flow.
-      notification = rdfvalue.Notification(
+      notification = rdf_flows.Notification(
           type=message_type, subject=utils.SmartUnicode(subject),
           message=utils.SmartUnicode(msg),
           source=self.session_id,
@@ -1143,13 +1164,13 @@ class FlowRunner(object):
     notification_event = (self.args.notification_event or
                           self.args.notification_urn)
     if notification_event:
-      if self.context.state == rdfvalue.Flow.State.ERROR:
-        status = rdfvalue.FlowNotification.Status.ERROR
+      if self.context.state == rdf_flows.Flow.State.ERROR:
+        status = rdf_flows.FlowNotification.Status.ERROR
 
       else:
-        status = rdfvalue.FlowNotification.Status.OK
+        status = rdf_flows.FlowNotification.Status.OK
 
-      event = rdfvalue.FlowNotification(
+      event = rdf_flows.FlowNotification(
           session_id=self.context.session_id,
           flow_name=self.args.flow_name,
           client_id=self.args.client_id,

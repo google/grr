@@ -26,7 +26,7 @@ import urlparse
 import logging
 
 from grr.lib import parsers
-from grr.lib import rdfvalue
+from grr.lib.rdfvalues import webhistory
 
 # Difference between 1 Jan 1601 and 1 Jan 1970.
 WIN_UNIX_DIFF_MSECS = 11644473600 * 1e6
@@ -44,7 +44,7 @@ class IEHistoryParser(parsers.FileParser):
     # TODO(user): Convert this to use the far more intelligent plaso parser.
     ie = IEParser(file_object)
     for dat in ie.Parse():
-      yield rdfvalue.BrowserHistoryItem(
+      yield webhistory.BrowserHistoryItem(
           url=dat["url"], domain=urlparse.urlparse(dat["url"]).netloc,
           access_time=dat.get("mtime"),
           program_name="Internet Explorer", source_urn=stat.aff4path)

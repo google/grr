@@ -11,9 +11,10 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.aff4_objects import aff4_grr
+from grr.lib.flows.general import fingerprint as flows_fingerprint
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class TestFingerprintFlow(test_lib.FlowTestsBaseclass):
@@ -21,11 +22,11 @@ class TestFingerprintFlow(test_lib.FlowTestsBaseclass):
 
   def testFingerprintPresence(self):
     path = os.path.join(self.base_path, "winexec_img.dd")
-    pathspec = rdfvalue.PathSpec(
-        pathtype=rdfvalue.PathSpec.PathType.OS, path=path)
+    pathspec = rdf_paths.PathSpec(
+        pathtype=rdf_paths.PathSpec.PathType.OS, path=path)
 
     pathspec.Append(path="/winpmem-amd64.sys",
-                    pathtype=rdfvalue.PathSpec.PathType.TSK)
+                    pathtype=rdf_paths.PathSpec.PathType.TSK)
 
     client_mock = action_mocks.ActionMock("FingerprintFile")
     with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
@@ -36,7 +37,8 @@ class TestFingerprintFlow(test_lib.FlowTestsBaseclass):
 
       self.assertEqual(len(send_reply.args), 1)
       for _, reply in send_reply.args:
-        self.assertTrue(isinstance(reply, rdfvalue.FingerprintFileResult))
+        self.assertTrue(isinstance(reply,
+                                   flows_fingerprint.FingerprintFileResult))
         self.assertTrue(str(reply.file_urn).endswith(
             "test_data/winexec_img.dd/winpmem-amd64.sys"))
 

@@ -5,11 +5,12 @@ from grr.lib import lexer
 from grr.lib import plist
 from grr.lib import rdfvalue
 from grr.lib import type_info
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import jobs_pb2
 from grr.proto import sysinfo_pb2
 
 
-class PlistRequest(rdfvalue.RDFProtoStruct):
+class PlistRequest(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.PlistRequest
 
 
@@ -33,23 +34,21 @@ class PlistQuery(FilterString):
   query_parser_cls = plist.PlistFilterParser
 
 
-class LaunchdPlist(rdfvalue.RDFProtoStruct):
+class LaunchdPlist(rdf_structs.RDFProtoStruct):
   protobuf = sysinfo_pb2.LaunchdPlist
 
 
-class LaunchdKeepAlive(rdfvalue.RDFProtoStruct):
+class LaunchdKeepAlive(rdf_structs.RDFProtoStruct):
   protobuf = sysinfo_pb2.LaunchdKeepAlive
 
 
-class LaunchdStartCalendarIntervalEntry(rdfvalue.RDFProtoStruct):
+class LaunchdStartCalendarIntervalEntry(rdf_structs.RDFProtoStruct):
   protobuf = sysinfo_pb2.LaunchdStartCalendarIntervalEntry
 
 
-class PlistBoolDictEntry(rdfvalue.RDFProtoStruct):
+class PlistBoolDictEntry(rdf_structs.RDFProtoStruct):
   protobuf = sysinfo_pb2.PlistBoolDictEntry
 
 
-class PlistStringDictEntry(rdfvalue.RDFProtoStruct):
+class PlistStringDictEntry(rdf_structs.RDFProtoStruct):
   protobuf = sysinfo_pb2.PlistStringDictEntry
-
-

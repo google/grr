@@ -5,11 +5,18 @@ import logging
 
 from grr.lib import aff4
 from grr.lib import artifact_lib
+from grr.lib import artifact_registry
 from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
+# for InstalledSoftwarePackages pylint: disable=unused-import
+from grr.lib.aff4_objects import software
+# pylint: enable=unused-import
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 
 
@@ -91,7 +98,7 @@ def SetCoreGRRKnowledgeBaseValues(kb, client_obj):
     kb.os = utils.SmartUnicode(client_obj.Get(client_schema.SYSTEM))
 
 
-class CollectArtifactDependenciesArgs(rdfvalue.RDFProtoStruct):
+class CollectArtifactDependenciesArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.CollectArtifactDependenciesArgs
 
 
@@ -152,14 +159,14 @@ class CollectArtifactDependencies(flow.GRRFlow):
     """
     artifact_set = set(self.args.artifact_list)
 
-    (name_deps,
-     self.state.all_deps) = artifact_lib.ArtifactRegistry.SearchDependencies(
-         self.state.knowledge_base.os, artifact_set)
+    (name_deps, self.state.all_deps) = (
+        artifact_registry.ArtifactRegistry
+        .SearchDependencies(self.state.knowledge_base.os, artifact_set))
 
     # Find the any dependencies that don't have dependencies themselves as our
     # starting point.
     check_deps = name_deps.union(artifact_set)
-    no_deps_names = artifact_lib.ArtifactRegistry.GetArtifactNames(
+    no_deps_names = artifact_registry.ArtifactRegistry.GetArtifactNames(
         os_name=self.state.knowledge_base.os, name_list=check_deps,
         exclude_dependents=True)
 
@@ -192,7 +199,7 @@ class CollectArtifactDependencies(flow.GRRFlow):
   def _ScheduleCollection(self):
     # Schedule any new artifacts for which we have now fulfilled dependencies.
     for artifact_name in self.state.awaiting_deps_artifacts:
-      artifact_obj = artifact_lib.ArtifactRegistry.artifacts[artifact_name]
+      artifact_obj = artifact_registry.ArtifactRegistry.artifacts[artifact_name]
       deps = artifact_obj.GetArtifactPathDependencies()
       if set(deps).issubset(self.state.fulfilled_deps):
         self.state.in_flight_artifacts.append(artifact_name)
@@ -229,8 +236,10 @@ class CollectArtifactDependencies(flow.GRRFlow):
         # If we fulfilled a dependency, make sure we have collected all
         # artifacts that provide the dependency before marking it as fulfilled.
         for dep in deps:
-          required_artifacts = artifact_lib.ArtifactRegistry.GetArtifactNames(
-              os_name=self.state.knowledge_base.os, provides=[dep])
+          required_artifacts = (
+              artifact_registry.ArtifactRegistry.GetArtifactNames(
+                  os_name=self.state.knowledge_base.os,
+                  provides=[dep]))
           if required_artifacts.issubset(self.state.completed_artifacts):
             self.state.fulfilled_deps.append(dep)
           else:
@@ -265,14 +274,14 @@ class CollectArtifactDependencies(flow.GRRFlow):
 
   def SetKBValue(self, artifact_name, responses):
     """Set values in the knowledge base based on responses."""
-    artifact_obj = artifact_lib.ArtifactRegistry.artifacts[artifact_name]
+    artifact_obj = artifact_registry.ArtifactRegistry.artifacts[artifact_name]
     if not responses:
       return None
 
-    provided = set()   # Track which deps have been provided.
+    provided = set()  # Track which deps have been provided.
 
     for response in responses:
-      if isinstance(response, rdfvalue.KnowledgeBaseUser):
+      if isinstance(response, rdf_client.KnowledgeBaseUser):
         # MergeOrAddUser will update or add a user based on the attributes
         # returned by the artifact in the KnowledgeBaseUser.
         attrs_provided, merge_conflicts = (
@@ -284,7 +293,7 @@ class CollectArtifactDependencies(flow.GRRFlow):
 
       else:
         artifact_provides = artifact_obj.provides
-        if isinstance(response, rdfvalue.Dict):
+        if isinstance(response, rdf_protodict.Dict):
           # Attempting to fulfil provides with a Dict response means we are
           # supporting multiple provides based on the keys of the dict.
           kb_dict = response.ToDict()
@@ -329,7 +338,7 @@ class CollectArtifactDependencies(flow.GRRFlow):
     usernames = []
     user_list = client.Schema.USER()
     for kbuser in self.state.knowledge_base.users:
-      user_list.Append(rdfvalue.User().FromKnowledgeBaseUser(kbuser))
+      user_list.Append(rdf_client.User().FromKnowledgeBaseUser(kbuser))
 
       if kbuser.username:
         usernames.append(kbuser.username)
@@ -365,7 +374,7 @@ class CollectArtifactDependencies(flow.GRRFlow):
     self.SendReply(self.state.knowledge_base)
 
 
-class KnowledgeBaseInitializationArgs(rdfvalue.RDFProtoStruct):
+class KnowledgeBaseInitializationArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.KnowledgeBaseInitializationArgs
 
 
@@ -398,19 +407,19 @@ class KnowledgeBaseInitializationFlow(CollectArtifactDependencies):
     kb_set = kb_base_set.union(kb_add) - kb_skip
 
     for artifact_name in kb_set:
-      if artifact_name not in artifact_lib.ArtifactRegistry.artifacts:
+      if artifact_name not in artifact_registry.ArtifactRegistry.artifacts:
         raise RuntimeError("Attempt to specify unknown artifact %s in "
                            "artifact configuration parameters. You may need"
                            " to sync the artifact repo by running make in the"
                            " artifacts directory." % artifact_name)
 
-    no_deps_names = artifact_lib.ArtifactRegistry.GetArtifactNames(
+    no_deps_names = artifact_registry.ArtifactRegistry.GetArtifactNames(
         os_name=self.state.knowledge_base.os, name_list=kb_set,
         exclude_dependents=True)
 
-    (name_deps,
-     self.state.all_deps) = artifact_lib.ArtifactRegistry.SearchDependencies(
-         self.state.knowledge_base.os, kb_set)
+    name_deps, self.state.all_deps = (
+        artifact_registry.ArtifactRegistry.SearchDependencies(
+            self.state.knowledge_base.os, kb_set))
 
     # We only retrieve artifacts that are explicitly listed in
     # Artifacts.knowledge_base + additions - skip.
@@ -427,7 +436,7 @@ class KnowledgeBaseInitializationFlow(CollectArtifactDependencies):
     self.client = aff4.FACTORY.Open(self.client_id, token=self.token)
 
     # Always create a new KB to override any old values.
-    self.state.knowledge_base = rdfvalue.KnowledgeBase()
+    self.state.knowledge_base = rdf_client.KnowledgeBase()
     SetCoreGRRKnowledgeBaseValues(self.state.knowledge_base, self.client)
     if not self.state.knowledge_base.os:
       # If we don't know what OS this is, there is no way to proceed.
@@ -450,7 +459,7 @@ def UploadArtifactYamlFile(file_content, base_urn=None, token=None,
     for artifact_value in artifact_lib.ArtifactsFromYaml(file_content):
       artifact_value.ValidateSyntax()
       artifact_coll.Add(artifact_value)
-      artifact_lib.ArtifactRegistry.RegisterArtifact(
+      artifact_registry.ArtifactRegistry.RegisterArtifact(
           artifact_value, source="datastore:%s" % base_urn,
           overwrite_if_exists=overwrite)
       loaded_artifacts.append(artifact_value)
@@ -474,7 +483,7 @@ def LoadArtifactsFromDatastore(artifact_coll_urn=None, token=None,
   with aff4.FACTORY.Create(artifact_coll_urn, aff4_type="RDFValueCollection",
                            token=token, mode="rw") as artifact_coll:
     for artifact_value in artifact_coll:
-      artifact_lib.ArtifactRegistry.RegisterArtifact(
+      artifact_registry.ArtifactRegistry.RegisterArtifact(
           artifact_value, source="datastore:%s" % artifact_coll_urn,
           overwrite_if_exists=overwrite_if_exists)
       loaded_artifacts.append(artifact_value)
@@ -487,7 +496,7 @@ def LoadArtifactsFromDatastore(artifact_coll_urn=None, token=None,
     artifact_value.Validate()
 
 
-class ArtifactFallbackCollectorArgs(rdfvalue.RDFProtoStruct):
+class ArtifactFallbackCollectorArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ArtifactFallbackCollectorArgs
 
 

@@ -55,6 +55,18 @@ message ApiClientSummaryRendererArgs {
     }];
 }
 
+message ApiFlowStatusRendererArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ClientURN",
+      description: "Client id."
+    }];
+  optional string flow_id = 2 [(sem_type) = {
+      type: "SessionID",
+      description: "Flow id."
+    }];
+
+}
+
 message ApiClientsAddLabelsRendererArgs {
   repeated string client_ids = 1 [(sem_type) = {
       type: "ClientURN",

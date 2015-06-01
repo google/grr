@@ -10,7 +10,6 @@ import subprocess
 import time
 
 # pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
 # Pull in some extra artifacts used for testing.
 from grr.lib import artifact_lib_test
 # pylint: enable=unused-import,g-bad-import-order
@@ -23,6 +22,7 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import artifact
 from grr.lib import artifact_lib
+from grr.lib import artifact_registry
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import flow
@@ -30,28 +30,45 @@ from grr.lib import parsers
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+# For ArtifactCollectorFlow pylint: disable=unused-import
+from grr.lib.flows.general import collectors
+# pylint: enable=unused-import
+from grr.lib.rdfvalues import anomaly as rdf_anomaly
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 
 # pylint: mode=test
 
 
 WMI_SAMPLE = [
-    rdfvalue.Dict({u"Version": u"65.61.49216", u"InstallDate2": u"",
-                   u"Name": u"Google Chrome", u"Vendor": u"Google, Inc.",
-                   u"Description": u"Google Chrome", u"IdentifyingNumber":
-                   u"{35790B21-ACFE-33F5-B320-9DA320D96682}",
-                   u"InstallDate": u"20130710"}),
-    rdfvalue.Dict({u"Version": u"7.0.1", u"InstallDate2": u"",
-                   u"Name": u"Parity Agent", u"Vendor": u"Bit9, Inc.",
-                   u"Description": u"Parity Agent", u"IdentifyingNumber":
-                   u"{ADC7EB41-4CC2-4FBA-8FBE-9338A9FB7666}",
-                   u"InstallDate": u"20130710"}),
-    rdfvalue.Dict({u"Version": u"8.0.61000", u"InstallDate2": u"",
-                   u"Name": u"Microsoft Visual C++ 2005 Redistributable (x64)",
-                   u"Vendor": u"Microsoft Corporation", u"Description":
-                   u"Microsoft Visual C++ 2005 Redistributable (x64)",
-                   u"IdentifyingNumber":
-                   u"{ad8a2fa1-06e7-4b0d-927d-6e54b3d3102}",
-                   u"InstallDate": u"20130710"})]
+    rdf_protodict.Dict({
+        u"Version": u"65.61.49216",
+        u"InstallDate2": u"",
+        u"Name": u"Google Chrome",
+        u"Vendor": u"Google, Inc.",
+        u"Description": u"Google Chrome",
+        u"IdentifyingNumber": u"{35790B21-ACFE-33F5-B320-9DA320D96682}",
+        u"InstallDate": u"20130710"
+    }), rdf_protodict.Dict({
+        u"Version": u"7.0.1",
+        u"InstallDate2": u"",
+        u"Name": u"Parity Agent",
+        u"Vendor": u"Bit9, Inc.",
+        u"Description": u"Parity Agent",
+        u"IdentifyingNumber": u"{ADC7EB41-4CC2-4FBA-8FBE-9338A9FB7666}",
+        u"InstallDate": u"20130710"
+    }), rdf_protodict.Dict({
+        u"Version": u"8.0.61000",
+        u"InstallDate2": u"",
+        u"Name": u"Microsoft Visual C++ 2005 Redistributable (x64)",
+        u"Vendor": u"Microsoft Corporation",
+        u"Description": u"Microsoft Visual C++ 2005 Redistributable (x64)",
+        u"IdentifyingNumber": u"{ad8a2fa1-06e7-4b0d-927d-6e54b3d3102}",
+        u"InstallDate": u"20130710"
+    })
+]
 
 
 class TestCmdProcessor(parsers.CommandParser):
@@ -62,22 +79,22 @@ class TestCmdProcessor(parsers.CommandParser):
   def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
             knowledge_base):
     _ = cmd, args, stdout, stderr, return_val, time_taken, knowledge_base
-    installed = rdfvalue.SoftwarePackage.InstallState.INSTALLED
-    soft = rdfvalue.SoftwarePackage(name="Package1", description="Desc1",
-                                    version="1", architecture="amd64",
-                                    install_state=installed)
+    installed = rdf_client.SoftwarePackage.InstallState.INSTALLED
+    soft = rdf_client.SoftwarePackage(name="Package1", description="Desc1",
+                                      version="1", architecture="amd64",
+                                      install_state=installed)
     yield soft
-    soft = rdfvalue.SoftwarePackage(name="Package2", description="Desc2",
-                                    version="1", architecture="i386",
-                                    install_state=installed)
+    soft = rdf_client.SoftwarePackage(name="Package2", description="Desc2",
+                                      version="1", architecture="i386",
+                                      install_state=installed)
     yield soft
 
     # Also yield something random so we can test return type filtering.
-    yield rdfvalue.StatEntry()
+    yield rdf_client.StatEntry()
 
     # Also yield an anomaly to test that.
-    yield rdfvalue.Anomaly(type="PARSER_ANOMALY",
-                           symptom="could not parse gremlins.")
+    yield rdf_anomaly.Anomaly(type="PARSER_ANOMALY",
+                              symptom="could not parse gremlins.")
 
 
 class MultiProvideParser(parsers.RegistryValueParser):
@@ -89,7 +106,7 @@ class MultiProvideParser(parsers.RegistryValueParser):
     _ = stat, knowledge_base
     test_dict = {"environ_temp": rdfvalue.RDFString("tempvalue"),
                  "environ_path": rdfvalue.RDFString("pathvalue")}
-    yield rdfvalue.Dict(test_dict)
+    yield rdf_protodict.Dict(test_dict)
 
 
 class RekallMock(action_mocks.MemoryClientMock):
@@ -103,12 +120,12 @@ class RekallMock(action_mocks.MemoryClientMock):
     # rekall -r data -f win7_trial_64bit.raw pslist > rekall_pslist_result.dat
     ps_list_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
                                 self.result_filename)
-    result = rdfvalue.RekallResponse(
+    result = rdf_rekall_types.RekallResponse(
         json_messages=open(ps_list_file).read(10000000),
         plugin="pslist",
         client_urn=self.client_id)
 
-    return [result, rdfvalue.Iterator(state="FINISHED")]
+    return [result, rdf_client.Iterator(state="FINISHED")]
 
 
 class ArtifactBaseTest(test_lib.GRRBaseTest):
@@ -208,19 +225,19 @@ class GRRArtifactTest(ArtifactTest):
       _, aff4_type, aff4_attribute, operator = dat
 
       if operator not in ["Append", "Overwrite"]:
-        raise artifact_lib.ArtifactDefinitionError(
+        raise artifact_registry.ArtifactDefinitionError(
             "Bad RDFMapping, unknown operator %s in %s" %
             (operator, rdf_name))
 
       if aff4_type not in aff4.AFF4Object.classes:
-        raise artifact_lib.ArtifactDefinitionError(
+        raise artifact_registry.ArtifactDefinitionError(
             "Bad RDFMapping, invalid AFF4 Object %s in %s" %
             (aff4_type, rdf_name))
 
       attr = getattr(aff4.AFF4Object.classes[aff4_type].SchemaCls,
                      aff4_attribute)()
       if not isinstance(attr, rdfvalue.RDFValue):
-        raise artifact_lib.ArtifactDefinitionError(
+        raise artifact_registry.ArtifactDefinitionError(
             "Bad RDFMapping, bad attribute %s for %s" %
             (aff4_attribute, rdf_name))
 
@@ -240,7 +257,7 @@ sources:
 supported_os: [Linux]
 """
 
-    with self.assertRaises(artifact_lib.ArtifactDefinitionError):
+    with self.assertRaises(artifact_registry.ArtifactDefinitionError):
       artifact.UploadArtifactYamlFile(content, token=self.token)
 
   def testUploadArtifactYamlFileBadList(self):
@@ -254,7 +271,7 @@ sources:
 supported_os: [Linux]
 """
 
-    with self.assertRaises(artifact_lib.ArtifactDefinitionError):
+    with self.assertRaises(artifact_registry.ArtifactDefinitionError):
       artifact.UploadArtifactYamlFile(content, token=self.token)
 
 
@@ -267,9 +284,9 @@ class ArtifactFlowTest(ArtifactTest):
     fd.Set(fd.Schema.SYSTEM("Linux"))
     kb = fd.Schema.KNOWLEDGE_BASE()
     artifact.SetCoreGRRKnowledgeBaseValues(kb, fd)
-    kb.MergeOrAddUser(rdfvalue.KnowledgeBaseUser(username="gogol"))
-    kb.MergeOrAddUser(rdfvalue.KnowledgeBaseUser(username="gevulot"))
-    kb.MergeOrAddUser(rdfvalue.KnowledgeBaseUser(username="exomemory"))
+    kb.MergeOrAddUser(rdf_client.KnowledgeBaseUser(username="gogol"))
+    kb.MergeOrAddUser(rdf_client.KnowledgeBaseUser(username="gevulot"))
+    kb.MergeOrAddUser(rdf_client.KnowledgeBaseUser(username="exomemory"))
     fd.Set(kb)
     fd.Flush()
     self.LoadTestArtifacts()
@@ -358,7 +375,7 @@ class ArtifactFlowTest(ArtifactTest):
   def testFilesArtifact(self):
     """Check GetFiles artifacts."""
     # Update the artifact path to point to the test directory.
-    art_reg = artifact_lib.ArtifactRegistry.artifacts
+    art_reg = artifact_registry.ArtifactRegistry.artifacts
     orig_path = art_reg["TestFilesArtifact"].sources[0].attributes["paths"]
     art_reg["TestFilesArtifact"].sources[0].attributes["paths"] = (
         [os.path.join(self.base_path, "auth.log")])
@@ -374,7 +391,7 @@ class ArtifactFlowTest(ArtifactTest):
   def testLinuxPasswdHomedirsArtifact(self):
     """Check LinuxPasswdHomedirs artifacts."""
     # Update the artifact path to point to the test directory.
-    art_reg = artifact_lib.ArtifactRegistry.artifacts
+    art_reg = artifact_registry.ArtifactRegistry.artifacts
     orig_path = art_reg["LinuxPasswdHomedirs"].sources[0].attributes["paths"]
     art_reg["LinuxPasswdHomedirs"].sources[0].attributes["paths"] = [
         os.path.join(self.base_path, "passwd")]
@@ -403,7 +420,7 @@ class ArtifactFlowTest(ArtifactTest):
     self.SetLinuxClient()
 
     # Update the artifact path to point to the test directory.
-    art_reg = artifact_lib.ArtifactRegistry.artifacts
+    art_reg = artifact_registry.ArtifactRegistry.artifacts
     art_reg["TestFilesArtifact"].sources[0].attributes["paths"] = ([
         os.path.join(self.base_path, "auth.log")])
 
@@ -435,9 +452,9 @@ class GrrKbTest(ArtifactTest):
     self.SetWindowsClient()
 
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
+        rdf_paths.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.OS] = test_lib.FakeFullVFSHandler
+        rdf_paths.PathSpec.PathType.OS] = test_lib.FakeFullVFSHandler
 
   def testKnowledgeBaseRetrievalWindows(self):
     """Check we can retrieve a knowledge base from a client."""
@@ -496,7 +513,7 @@ class GrrKbTest(ArtifactTest):
     client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
     self.assertRaises(artifact_lib.KnowledgeBaseUninitializedError,
                       artifact.GetArtifactKnowledgeBase, client)
-    kb = rdfvalue.KnowledgeBase()
+    kb = rdf_client.KnowledgeBase()
     kb.hostname = "test"
     client.Set(client.Schema.KNOWLEDGE_BASE(kb))
     client.Flush(sync=True)
@@ -509,7 +526,7 @@ class GrrKbTest(ArtifactTest):
     self.SetDarwinClient()
     config_lib.CONFIG.Set("Artifacts.knowledge_base", ["OSXUsers"])
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
+        rdf_paths.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
 
     client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
                                           "HashBuffer", "ListDirectory",
@@ -542,7 +559,7 @@ class GrrKbTest(ArtifactTest):
     config_lib.CONFIG.Set("Artifacts.netgroup_user_blacklist", ["isaac"])
 
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.OS] = test_lib.FakeTestDataVFSHandler
+        rdf_paths.PathSpec.PathType.OS] = test_lib.FakeTestDataVFSHandler
 
     client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
                                           "HashBuffer", "ListDirectory",
@@ -568,7 +585,7 @@ class GrrKbTest(ArtifactTest):
     """Check we can retrieve a Linux kb."""
     test_lib.ClientFixture(self.client_id, token=self.token)
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.OS] = test_lib.FakeTestDataVFSHandler
+        rdf_paths.PathSpec.PathType.OS] = test_lib.FakeTestDataVFSHandler
     client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
                                           "HashBuffer", "ListDirectory",
                                           "FingerprintFile", "Grep")
@@ -615,7 +632,7 @@ class GrrKbTest(ArtifactTest):
                           ["^doesntexist$"])
 
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.OS] = test_lib.FakeTestDataVFSHandler
+        rdf_paths.PathSpec.PathType.OS] = test_lib.FakeTestDataVFSHandler
     client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
                                           "HashBuffer", "ListDirectory",
                                           "FingerprintFile")
@@ -634,7 +651,7 @@ class GrrKbTest(ArtifactTest):
   def testKnowledgeBaseNoOS(self):
     """Check unset OS dies."""
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
+        rdf_paths.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
     client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
                                           "HashBuffer", "ListDirectory",
                                           "FingerprintFile")
@@ -657,7 +674,7 @@ class GrrKbTest(ArtifactTest):
 
     for _ in test_lib.TestFlowHelper(
         "Glob", client_mock, paths=paths,
-        pathtype=rdfvalue.PathSpec.PathType.REGISTRY,
+        pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
         client_id=self.client_id, token=self.token):
       pass
 
@@ -672,7 +689,7 @@ class GrrKbTest(ArtifactTest):
   def testGetDependencies(self):
     """Test that dependencies are calculated correctly."""
     self.SetupWindowsMocks()
-    with utils.Stubber(artifact_lib.ArtifactRegistry, "artifacts", {}):
+    with utils.Stubber(artifact_registry.ArtifactRegistry, "artifacts", {}):
       test_artifacts_file = os.path.join(
           config_lib.CONFIG["Test.data_dir"], "test_artifacts.json")
       artifact_lib.LoadArtifactsFromFiles([test_artifacts_file])
@@ -686,7 +703,7 @@ class GrrKbTest(ArtifactTest):
       collect_obj.state.Register("all_deps", set())
       collect_obj.state.Register("awaiting_deps_artifacts", [])
       collect_obj.state.Register("knowledge_base",
-                                 rdfvalue.KnowledgeBase(os="Windows"))
+                                 rdf_client.KnowledgeBase(os="Windows"))
       no_deps = collect_obj.GetFirstFlowsForCollection()
 
       self.assertItemsEqual(no_deps, [])
@@ -709,7 +726,7 @@ class GrrKbTest(ArtifactTest):
   def testGetKBDependencies(self):
     """Test that KB dependencies are calculated correctly."""
     self.SetupWindowsMocks()
-    with utils.Stubber(artifact_lib.ArtifactRegistry, "artifacts", {}):
+    with utils.Stubber(artifact_registry.ArtifactRegistry, "artifacts", {}):
       test_artifacts_file = os.path.join(
           config_lib.CONFIG["Test.data_dir"], "test_artifacts.json")
       artifact_lib.LoadArtifactsFromFiles([test_artifacts_file])
@@ -726,13 +743,13 @@ class GrrKbTest(ArtifactTest):
       config_lib.CONFIG.Set("Artifacts.knowledge_base_skip", ["DepsWindir"])
       config_lib.CONFIG.Set("Artifacts.knowledge_base_heavyweight",
                             ["FakeArtifact"])
-      args = rdfvalue.KnowledgeBaseInitializationArgs(lightweight=True)
+      args = artifact.KnowledgeBaseInitializationArgs(lightweight=True)
       kb_init = artifact.KnowledgeBaseInitializationFlow(None, token=self.token)
       kb_init.args = args
       kb_init.state.Register("all_deps", set())
       kb_init.state.Register("awaiting_deps_artifacts", [])
       kb_init.state.Register("knowledge_base",
-                             rdfvalue.KnowledgeBase(os="Windows"))
+                             rdf_client.KnowledgeBase(os="Windows"))
       no_deps = kb_init.GetFirstFlowsForCollection()
 
       self.assertItemsEqual(no_deps, ["DepsControlSet", "DepsHomedir2"])

@@ -10,9 +10,9 @@ import uuid
 from M2Crypto import EVP
 
 from grr.lib import config_lib
-from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import crypto
+from grr.lib.rdfvalues import data_server
 
 from grr.server.data_server import errors
 
@@ -35,7 +35,7 @@ class ClientCredentials(object):
     for user_spec in usernames:
       try:
         user, pwd, perm = user_spec.split(":", 2)
-        self.client_users[user] = rdfvalue.DataServerClientInformation(
+        self.client_users[user] = data_server.DataServerClientInformation(
             username=user, password=pwd, permissions=perm)
       except ValueError:
         raise errors.DataServerError(
@@ -55,7 +55,7 @@ class ClientCredentials(object):
     """Encrypt the client credentials to other data servers."""
     # We use the servers username and password to encrypt
     # the client credentials.
-    creds = rdfvalue.DataServerClientCredentials(
+    creds = data_server.DataServerClientCredentials(
         users=self.client_users.values())
     key = self._MakeEncryptKey(username, password)
     # We encrypt the credentials object.
@@ -89,7 +89,7 @@ class ClientCredentials(object):
       # Remove padding
       plain = plain.strip(" ")
 
-      creds = rdfvalue.DataServerClientCredentials(plain)
+      creds = data_server.DataServerClientCredentials(plain)
       # Create client credentials.
       self.client_users = {}
       for client in creds.users:
@@ -223,8 +223,8 @@ class NonceStore(object):
   @classmethod
   def GenerateAuthToken(cls, nonce, username, password):
     hsh = cls._GenerateAuthHash(nonce, username, password)
-    return rdfvalue.DataStoreAuthToken(nonce=nonce, hash=hsh,
-                                       username=username)
+    return data_server.DataStoreAuthToken(nonce=nonce, hash=hsh,
+                                          username=username)
 
   @classmethod
   def _GenerateAuthHash(cls, nonce, username, password):

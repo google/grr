@@ -5,8 +5,6 @@ goog.provide('grrUi.semantic.networkAddressDirective.NetworkAddressDirective');
 goog.provide('grrUi.semantic.networkAddressDirective.convertIpv4AddressToString');
 goog.provide('grrUi.semantic.networkAddressDirective.convertIpv6AddressToString');
 
-goog.require('grrUi.semantic.SemanticDirectivesRegistry');
-
 goog.scope(function() {
 
 
@@ -61,6 +59,32 @@ var convertIpv6AddressToString =
     grrUi.semantic.networkAddressDirective.convertIpv6AddressToString;
 
 
+/**
+ * Converts network address represented as bytes to a human readable
+ * representation.
+ *
+ * @param {string} address Base64-encoded with a network address.
+ * @param {string} addressType INET or INET6.
+ * @return {string} Human-readable IPv6 address.
+ */
+grrUi.semantic.networkAddressDirective.convertBase64AddressToString = function(
+    address, addressType) {
+  if (angular.isUndefined(address)) {
+    return '-';
+  } else {
+    switch (addressType) {
+      case 'INET':
+        return convertIpv4AddressToString(window.atob(address));
+      case 'INET6':
+        return convertIpv6AddressToString(window.atob(address));
+      default:
+        return '<unknown address type>';
+    }
+  }
+};
+var convertBase64AddressToString =
+    grrUi.semantic.networkAddressDirective.convertBase64AddressToString;
+
 
 /**
  * Controller for NetworkAddressDirective.
@@ -91,26 +115,31 @@ var NetworkAddressController =
  * @suppress {missingProperties} as value can be anything.
  */
 NetworkAddressController.prototype.onValueChange = function(newValue) {
-  var address, addressType;
-
-  if (angular.isObject(newValue)) {
-    if (angular.isObject(newValue.value)) {
-      address = newValue.value.packed_bytes.value;
-      addressType = newValue.value.address_type.value;
-    } else if (angular.isObject(newValue)) {
-      address = newValue.packed_bytes;
-      addressType = newValue.address_type;
-    }
+  if (!angular.isObject(newValue)) {
+    this.convertedAddress = '-';
+    return;
   }
 
-  if (angular.isUndefined(address)) {
-    this.convertedAddress = '-';
-  } else if (addressType == 'INET') {
-    this.convertedAddress = convertIpv4AddressToString(
-        window.atob(address));
-  } else if (addressType == 'INET6') {
-    this.convertedAddress = convertIpv6AddressToString(
-        window.atob(address));
+  if (angular.isObject(newValue.value)) {
+    if (angular.isDefined(newValue.value.packed_bytes)) {
+      this.convertedAddress = convertBase64AddressToString(
+          newValue.value.packed_bytes.value,
+          newValue.value.address_type.value);
+    } else if (angular.isDefined(newValue.value.human_readable)) {
+      this.convertedAddress = newValue.value.human_readable.value;
+    } else {
+      this.convertedAddress = '<unknown>';
+    }
+  } else if (angular.isObject(newValue)) {
+    if (angular.isDefined(newValue.packed_bytes)) {
+      this.convertedAddress = convertBase64AddressToString(
+          newValue.packed_bytes,
+          newValue.address_type);
+    } else if (angular.isDefined(newValue.human_readable)) {
+      this.convertedAddress = newValue.human_readable;
+    } else {
+      this.convertedAddress = '<unknown>';
+    }
   }
 };
 
@@ -139,13 +168,20 @@ grrUi.semantic.networkAddressDirective.NetworkAddressDirective = function() {
 
 /**
  * Name of the directive in Angular.
+ *
+ * @const
+ * @export
  */
 grrUi.semantic.networkAddressDirective.NetworkAddressDirective.directive_name =
     'grrNetworkAddress';
 
-grrUi.semantic.SemanticDirectivesRegistry.registerDirective(
-    'NetworkAddress',
-    grrUi.semantic.networkAddressDirective.NetworkAddressDirective);
-
+/**
+ * Semantic type corresponding to this directive.
+ *
+ * @const
+ * @export
+ */
+grrUi.semantic.networkAddressDirective.NetworkAddressDirective.semantic_type =
+    'NetworkAddress';
 
 });  // goog.scope

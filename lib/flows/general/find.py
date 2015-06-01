@@ -5,11 +5,11 @@ import stat
 
 from grr.lib import aff4
 from grr.lib import flow
-from grr.lib import rdfvalue
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 
 
-class FindFilesArgs(rdfvalue.RDFProtoStruct):
+class FindFilesArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FindFilesArgs
 
   def Validate(self):
@@ -48,7 +48,7 @@ class FindFiles(flow.GRRFlow):
     Note: This flow is inefficient for collecting a large number of files.
 
   Returns to parent flow:
-    rdfvalue.StatEntry objects for each found file.
+    rdf_client.StatEntry objects for each found file.
   """
 
   category = "/Filesystem/"

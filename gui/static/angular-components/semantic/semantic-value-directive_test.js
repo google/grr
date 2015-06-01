@@ -1,6 +1,5 @@
 'use strict';
 
-goog.require('grrUi.semantic.SemanticDirectivesRegistry');
 goog.require('grrUi.semantic.module');
 goog.require('grrUi.semantic.semanticValueDirective.clearCaches');
 goog.require('grrUi.tests.module');
@@ -10,22 +9,21 @@ goog.scope(function() {
 var SemanticDirectivesRegistry = grrUi.semantic.SemanticDirectivesRegistry;
 
 describe('semantic value directive', function() {
-  var $compile, $rootScope, prevDirectives;
+  var $compile, $rootScope;
+  var grrSemanticValueDirectivesRegistryService;
 
   beforeEach(module(grrUi.semantic.module.name));
   beforeEach(module(grrUi.tests.module.name));
 
   beforeEach(inject(function($injector) {
+    grrUi.semantic.semanticValueDirective.clearCaches();
+
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
 
-    grrUi.semantic.semanticValueDirective.clearCaches();
-    prevDirectives = SemanticDirectivesRegistry.clear();
+    grrSemanticValueDirectivesRegistryService = $injector.get(
+        'grrSemanticValueDirectivesRegistryService');
   }));
-
-  afterEach(function() {
-    SemanticDirectivesRegistry.clear(prevDirectives);
-  });
 
   var renderTestTemplate = function(value) {
     $rootScope.value = value;
@@ -74,8 +72,8 @@ describe('semantic value directive', function() {
     var directiveMock = {
       directive_name: 'theTestDirective'
     };
-    SemanticDirectivesRegistry.registerDirective('NonExistentType',
-                                                 directiveMock);
+    grrSemanticValueDirectivesRegistryService.registerDirective(
+        'NonExistentType', directiveMock);
 
     var element = renderTestTemplate({
       mro: ['NonExistentType'],
@@ -92,20 +90,20 @@ describe('semantic value directive', function() {
     var directiveMock1 = {
       directive_name: 'theTestDirective1'
     };
-    SemanticDirectivesRegistry.registerDirective('NonExistentType1',
-                                                 directiveMock1);
+    grrSemanticValueDirectivesRegistryService.registerDirective(
+        'NonExistentType1', directiveMock1);
 
     var directiveMock2 = {
       directive_name: 'theTestDirective2'
     };
-    SemanticDirectivesRegistry.registerDirective('NonExistentType2',
-                                                 directiveMock2);
+    grrSemanticValueDirectivesRegistryService.registerDirective(
+        'NonExistentType2', directiveMock2);
 
     var directiveMock3 = {
       directive_name: 'theTestDirective3'
     };
-    SemanticDirectivesRegistry.registerDirective('NonExistentType3',
-                                                 directiveMock3);
+    grrSemanticValueDirectivesRegistryService.registerDirective(
+        'NonExistentType3', directiveMock3);
 
     var element = renderTestTemplate([
       {

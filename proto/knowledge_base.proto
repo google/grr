@@ -33,6 +33,67 @@ import "grr/proto/semantic.proto";
 
 
 
+message PwEntry {
+  enum PwStore {
+    UNKNOWN = 0;
+    PASSWD = 1;
+    SHADOW = 2;
+    GROUP = 3;
+    GSHADOW = 4;
+  }
+
+  optional PwStore store = 1 [(sem_type) = {
+      description: "Where the user password is stored.",
+    }, default = UNKNOWN];
+
+  // The hash functions used for password hashes. See man crypt(3)
+  enum PwHash {
+    DES = 0;
+    MD5 = 1;
+    BLOWFISH = 2;
+    NTHASH = 3;
+    UNUSED = 4;
+    SHA256 = 5;
+    SHA512 = 6;
+    UNSET = 13;
+    DISABLED = 14;
+    EMPTY = 15;
+  }
+
+  optional PwHash hash_type = 2 [(sem_type) = {
+      description: "How the password is hashed.",
+    }];
+
+  optional uint32 age = 3 [(sem_type) = {
+      description: "The password age in days.",
+    }];
+
+  optional uint32 max_age = 4 [(sem_type) = {
+      description: "The maximum password age in days.",
+    }];
+}
+
+
+message Group {
+  optional string name = 1 [(sem_type) = {
+      description: "The name of the group. ",
+    }];
+
+  repeated string members = 2 [(sem_type) = {
+      description: "The members of the group, as usernames. ",
+    }];
+
+  // Posix specific values.
+  optional uint32 gid = 3 [(sem_type) = {
+      description: "The gid of the the group, e.g.: 1001.",
+    }];
+
+  optional PwEntry pw_entry = 4 [(sem_type) = {
+      description: "The password state of the group, e.g.: shadow+sha512.",
+    }];
+
+}
+
 
 message KnowledgeBaseUser {
   optional string username = 1 [(sem_type) = {
@@ -138,6 +199,13 @@ message KnowledgeBaseUser {
       description: "The shell of the the user. E.g. /bin/sh.",
     }];
 
+  optional PwEntry pw_entry = 34 [(sem_type) = {
+      description: "The password state of the user, e.g.: shadow+sha512.",
+    }];
+
+  repeated uint32 gids = 35 [(sem_type) = {
+      description: "Additional group ids the user is a member of.",
+    }];
 };
 
 

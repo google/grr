@@ -29,8 +29,8 @@ class ValidFormatTest(checks_test_lib.HostCheckTest):
     self.assertFalse(errors, "Errors in check configurations:\n%s" % errors)
 
 
-def main(args):
-  test_lib.main(args)
+def main(argv):
+  test_lib.GrrTestProgram(argv=argv)
 
 if __name__ == "__main__":
   flags.StartMain(main)

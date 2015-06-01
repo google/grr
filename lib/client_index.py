@@ -8,6 +8,7 @@ An index of client machines, associating likely identifiers to client IDs.
 from grr.lib import keyword_index
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import client as rdf_client
 
 # The system's primary client index.
 MAIN_INDEX = rdfvalue.RDFURN("aff4:/client_index")
@@ -29,7 +30,7 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
     return urn.Basename()
 
   def _URNFromClientID(self, client_id):
-    return rdfvalue.ClientURN(client_id)
+    return rdf_client.ClientURN(client_id)
 
   def _NormalizeKeyword(self, keyword):
     return keyword.lower()

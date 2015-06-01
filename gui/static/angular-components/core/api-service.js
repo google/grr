@@ -56,13 +56,86 @@ ApiService.prototype.get = function(apiPath, opt_params) {
 
 
 /**
+ * Strips type information from a JSON-encoded RDFValue.
+ * This may be useful when sending values edited with forms back to the
+ * server. Values edited by semantic forms will have rich type information
+ * in them, while server will be expecting stripped down version of the
+ * same data.
+ *
+ * For example, this is the value that may be produced by the form:
+ * {
+ *     "age": 0,
+ *     "mro": [
+ *       "AFF4ObjectLabel",
+ *       "RDFProtoStruct",
+ *       "RDFStruct",
+ *       "RDFValue",
+ *       "object"
+ *     ],
+ *     "type": "AFF4ObjectLabel",
+ *     "value": {
+ *       "name": {
+ *         "age": 0,
+ *         "mro": [
+ *           "unicode",
+ *           "basestring",
+ *           "object"
+ *         ],
+ *        "type": "unicode",
+ *        "value": "label2"
+ *       },
+ *    }
+ * }
+ *
+ * While the server expects this:
+ * { "name": "label2" }
+ *
+ *
+ * @param {*} richlyTypedValue JSON-encoded RDFValue with rich type information.
+ * @return {*} Same RDFValue but with all type information stripped.
+ */
+ApiService.prototype.stripTypeInfo = function(richlyTypedValue) {
+  var recursiveStrip = function(value) {
+    if (angular.isArray(value)) {
+      value = value.map(recursiveStrip);
+    } else if (angular.isDefined(value.value)) {
+      value = value.value;
+      if (angular.isObject(value)) {
+        for (var k in value) {
+          value[k] = recursiveStrip(value[k]);
+        }
+      }
+    }
+    return value;
+  };
+
+  return recursiveStrip(angular.copy(richlyTypedValue));
+};
+
+
+/**
  * Sends POST request to the server.
  *
- * @param {string} apiPath API path to triigger/
- * @param {Object<string, string>=} opt_params Query parameters.
+ * @param {string} apiPath API path to trigger.
+ * @param {Object<string, string>=} opt_params Dictionary that will be
+        sent as a POST payload.
+ * @param {boolean} opt_stripTypeInfo If true, treat opt_params as JSON-encoded
+ *      RDFValue with rich type information. This type information
+ *      will be stripped before opt_params is sent as a POST payload.
+ *
+ *      This option is useful when sending values edited with forms back to the
+ *      server. Values edited by semantic forms will have rich type information
+ *      in them, while server will be expecting stripped down version of the
+ *      same data. See stripTypeInfo() documentation for an example.
+ *
  * @return {!angular.$q.Promise} Promise that resolves to the server response.
  */
-ApiService.prototype.post = function(apiPath, opt_params) {
+ApiService.prototype.post = function(apiPath, opt_params, opt_stripTypeInfo) {
+  if (opt_stripTypeInfo) {
+    opt_params = /** @type {Object<string, string>} */ (this.stripTypeInfo(
+        opt_params));
+  }
+
   var requestParams = angular.extend({}, opt_params);
   if (grr.state.reason) {
     requestParams.reason = grr.state.reason;

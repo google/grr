@@ -8,18 +8,20 @@ import hashlib
 import os
 import subprocess
 
-# pylint: disable=unused-import, g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import, g-bad-import-order
-
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import email_alerts
 from grr.lib import flags
 from grr.lib import hunts
-from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+# pylint: disable=unused-import
+from grr.lib.flows.general import export
+# pylint: enable=unused-import
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import crypto as rdf_crypto
+from grr.lib.rdfvalues import foreman as rdf_foreman
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class TestExportHuntResultsFilesAsArchive(test_lib.FlowTestsBaseclass):
@@ -32,21 +34,21 @@ class TestExportHuntResultsFilesAsArchive(test_lib.FlowTestsBaseclass):
     fd = aff4.FACTORY.Create(path1, "AFF4MemoryStream", token=self.token)
     fd.Write("hello1")
     fd.Set(fd.Schema.HASH,
-           rdfvalue.Hash(sha256=hashlib.sha256("hello1").digest()))
+           rdf_crypto.Hash(sha256=hashlib.sha256("hello1").digest()))
     fd.Close()
 
     path2 = u"aff4:/C.0000000000000000/fs/os/foo/bar/中国新闻网新闻中.txt"
     fd = aff4.FACTORY.Create(path2, "AFF4MemoryStream", token=self.token)
     fd.Write("hello2")
     fd.Set(fd.Schema.HASH,
-           rdfvalue.Hash(sha256=hashlib.sha256("hello2").digest()))
+           rdf_crypto.Hash(sha256=hashlib.sha256("hello2").digest()))
     fd.Close()
 
     self.paths = [path1, path2]
 
     with hunts.GRRHunt.StartHunt(
         hunt_name="GenericHunt",
-        regex_rules=[rdfvalue.ForemanAttributeRegex(
+        regex_rules=[rdf_foreman.ForemanAttributeRegex(
             attribute_name="GRR client",
             attribute_regex="GRR")],
         output_plugins=[],
@@ -63,11 +65,11 @@ class TestExportHuntResultsFilesAsArchive(test_lib.FlowTestsBaseclass):
           token=self.token) as collection:
 
         for path in self.paths:
-          collection.Add(rdfvalue.StatEntry(
+          collection.Add(rdf_client.StatEntry(
               aff4path=path,
-              pathspec=rdfvalue.PathSpec(
+              pathspec=rdf_paths.PathSpec(
                   path="fs/os/foo/bar/" + path.split("/")[-1],
-                  pathtype=rdfvalue.PathSpec.PathType.OS)))
+                  pathtype=rdf_paths.PathSpec.PathType.OS)))
 
   def _CheckEmailMessage(self, email_messages):
     self.assertEqual(len(email_messages), 1)

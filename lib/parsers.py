@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 """Registry for parsers and abstract classes for basic parser functionality."""
 
-from grr.lib import artifact_lib
+from grr.lib import artifact_registry
 from grr.lib import rdfvalue
 from grr.lib import registry
+# For CronTabFile, an artifact output type. pylint: disable=unused-import
+from grr.lib.rdfvalues import cronjobs as _
+# pylint: enable=unused-import
 
 
 class Error(Exception):
@@ -63,7 +66,7 @@ class Parser(object):
   def Validate(cls):
     """Validate a parser is well defined."""
     for artifact_to_parse in cls.supported_artifacts:
-      if artifact_to_parse not in artifact_lib.ArtifactRegistry.artifacts:
+      if artifact_to_parse not in artifact_registry.ArtifactRegistry.artifacts:
         raise ParserDefinitionError("Artifact parser %s has an invalid artifact"
                                     " %s. Artifact is undefined" %
                                     (cls.__name__, artifact_to_parse))

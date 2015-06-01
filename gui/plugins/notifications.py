@@ -11,6 +11,8 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
 
+from grr.lib.aff4_objects import users as aff4_users
+
 
 class NotificationCount(renderers.TemplateRenderer):
   """Display the number of outstanding notifications."""
@@ -68,10 +70,6 @@ class NotificationBar(renderers.TemplateRenderer):
   <button id="notification_button" class="btn btn-info"
          data-toggle="modal" data-target="#notification_dialog"
          style="margin-right: 10px" />
-  <button id="user_settings_button" class="btn btn-default" data-toggle="modal"
-    data-target="#user_settings_dialog">
-     <img src="static/images/modify.png" style="height: 17px; margin-top: -2px">
-  </button>
 </div>
 """)
 
@@ -87,7 +85,7 @@ class UpdateSettingsFlow(flow.GRRFlow):
   # This flow can run without ACL enforcement (an SUID flow).
   ACL_ENFORCED = False
 
-  args_type = rdfvalue.GUISettings
+  args_type = aff4_users.GUISettings
 
   @flow.StateHandler()
   def Start(self):
@@ -132,7 +130,7 @@ Settings were successfully updated. Reloading...
   def RenderAjax(self, request, response):
     """Ajax hanlder for this renderer."""
     settings = forms.SemanticProtoFormRenderer(
-        proto_obj=rdfvalue.GUISettings(),
+        proto_obj=aff4_users.GUISettings(),
         prefix="settings").ParseArgs(request)
 
     flow.GRRFlow.StartFlow(flow_name="UpdateSettingsFlow",

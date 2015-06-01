@@ -3,19 +3,16 @@
 
 
 
-# pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import,g-bad-import-order
-
 from grr.gui import api_value_renderers
 
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import tests_pb2
 
 
-class ApiRDFProtoStructRendererSample(rdfvalue.RDFProtoStruct):
+class ApiRDFProtoStructRendererSample(rdf_structs.RDFProtoStruct):
   protobuf = tests_pb2.ApiRDFProtoStructRendererSample
 
 
@@ -142,7 +139,7 @@ class ApiGrrMessageRendererTest(test_lib.GRRBaseTest):
   """Test for ApiGrrMessageRenderer."""
 
   def testRendersGrrMessagePayloadAsStructuredData(self):
-    sample = rdfvalue.GrrMessage(
+    sample = rdf_flows.GrrMessage(
         task_id=42,
         payload=ApiRDFProtoStructRendererSample(
             index=0, values=["foo", "bar"]))

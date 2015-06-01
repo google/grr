@@ -4,10 +4,6 @@ import os
 import shutil
 import stat
 
-# pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import,g-bad-import-order
-
 from grr.lib import build
 from grr.lib import config_lib
 from grr.lib import flags

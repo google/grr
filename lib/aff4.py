@@ -13,7 +13,6 @@ import zlib
 
 import logging
 
-
 from grr.lib import access_control
 from grr.lib import config_lib
 from grr.lib import data_store
@@ -22,7 +21,12 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import type_info
 from grr.lib import utils
+from grr.lib.rdfvalues import aff4_rdfvalues
+from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import grr_rdf
+from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.lib.rdfvalues import structs as rdf_structs
 
 
 # Factor to convert from seconds to microseconds
@@ -76,8 +80,8 @@ class Factory(object):
         max_age=config_lib.CONFIG["AFF4.intermediate_cache_age"])
 
     # Create a token for system level actions:
-    self.root_token = rdfvalue.ACLToken(username="GRRSystem",
-                                        reason="Maintenance").SetUID()
+    self.root_token = access_control.ACLToken(username="GRRSystem",
+                                              reason="Maintenance").SetUID()
 
     self.notification_rules = []
     self.notification_rules_timestamp = 0
@@ -192,19 +196,18 @@ class Factory(object):
         dirname = rdfvalue.RDFURN(urn.Dirname())
 
         try:
-          self.intermediate_cache.Get(urn.Path())
+          self.intermediate_cache.Get(urn)
           return
         except KeyError:
           data_store.DB.MultiSet(dirname, {
               AFF4Object.SchemaCls.LAST: [
                   rdfvalue.RDFDatetime().Now().SerializeToDataStore()],
-
               # This updates the directory index.
               "index:dir/%s" % utils.SmartStr(basename): [EMPTY_DATA],
           },
                                  token=token, replace=True, sync=False)
 
-          self.intermediate_cache.Put(urn.Path(), 1)
+          self.intermediate_cache.Put(urn, 1)
 
           urn = dirname
 
@@ -492,7 +495,8 @@ class Factory(object):
     # some data in the local_cache already for this object.
     result = AFF4Object(urn, mode=mode, token=token, local_cache=local_cache,
                         age=age, follow_symlinks=follow_symlinks,
-                        aff4_type=aff4_type, object_exists=bool(local_cache.get(urn)))
+                        aff4_type=aff4_type,
+                        object_exists=bool(local_cache.get(urn)))
 
     # Now we have a AFF4Object, turn it into the type it is currently supposed
     # to be as specified by Schema.TYPE.
@@ -988,7 +992,7 @@ class Attribute(object):
     result = self.attribute_type
     for field_name in self.field_names:
       # Support the new semantic protobufs.
-      if issubclass(result, rdfvalue.RDFProtoStruct):
+      if issubclass(result, rdf_structs.RDFProtoStruct):
         try:
           result = result.type_infos.get(field_name).type
         except AttributeError:
@@ -1025,7 +1029,7 @@ class Attribute(object):
       All the subfields matching the field_names specification.
     """
 
-    if isinstance(fd, rdfvalue.RDFValueArray):
+    if isinstance(fd, rdf_protodict.RDFValueArray):
       for value in fd:
         for res in self._GetSubField(value, field_names):
           yield res
@@ -1211,7 +1215,7 @@ class AFF4Object(object):
                                  creates_new_object_version=False,
                                  versioned=False)
 
-    LABELS = Attribute("aff4:labels_list", rdfvalue.AFF4ObjectLabelsList,
+    LABELS = Attribute("aff4:labels_list", aff4_rdfvalues.AFF4ObjectLabelsList,
                        "Any object can have labels applied to it.", "Labels",
                        creates_new_object_version=False, versioned=False)
 
@@ -1281,7 +1285,7 @@ class AFF4Object(object):
   # Make sure that when someone references the schema, they receive an instance
   # of the class.
   @property
-  def Schema(self):   # pylint: disable=g-bad-name
+  def Schema(self):  # pylint: disable=g-bad-name
     return self.SchemaCls(self.aff4_type)
 
   def __init__(self, urn, mode="r", parent=None, clone=None, token=None,
@@ -1853,8 +1857,10 @@ class AFF4Object(object):
     labels_index = self._GetLabelsIndex()
     current_labels = self.Get(self.Schema.LABELS, self.Schema.LABELS())
     for label_name in labels_names:
-      label = rdfvalue.AFF4ObjectLabel(name=label_name, owner=owner,
-                                       timestamp=rdfvalue.RDFDatetime().Now())
+      label = aff4_rdfvalues.AFF4ObjectLabel(
+          name=label_name,
+          owner=owner,
+          timestamp=rdfvalue.RDFDatetime().Now())
       if current_labels.AddLabel(label):
         labels_index.AddLabel(self.urn, label_name, owner=owner)
 
@@ -1870,7 +1876,7 @@ class AFF4Object(object):
     labels_index = self._GetLabelsIndex()
     current_labels = self.Get(self.Schema.LABELS)
     for label_name in labels_names:
-      label = rdfvalue.AFF4ObjectLabel(name=label_name, owner=owner)
+      label = aff4_rdfvalues.AFF4ObjectLabel(name=label_name, owner=owner)
       current_labels.RemoveLabel(label)
 
       labels_index.RemoveLabel(self.urn, label_name, owner=owner)
@@ -1882,13 +1888,14 @@ class AFF4Object(object):
     self.AddLabels(*labels_names, **kwargs)
 
   def ClearLabels(self):
-    self.Set(self.Schema.LABELS, rdfvalue.AFF4ObjectLabelsList())
+    self.Set(self.Schema.LABELS, aff4_rdfvalues.AFF4ObjectLabelsList())
 
   def GetLabels(self):
-    return self.Get(self.Schema.LABELS, rdfvalue.AFF4ObjectLabelsList()).labels
+    return self.Get(self.Schema.LABELS,
+                    aff4_rdfvalues.AFF4ObjectLabelsList()).labels
 
   def GetLabelsNames(self, owner=None):
-    labels = self.Get(self.Schema.LABELS, rdfvalue.AFF4ObjectLabelsList())
+    labels = self.Get(self.Schema.LABELS, aff4_rdfvalues.AFF4ObjectLabelsList())
     return labels.GetLabelNames(owner=owner)
 
 
@@ -2090,8 +2097,8 @@ class AFF4Volume(AFF4Object):
       if stripped_components:
         # We stripped pieces of the URL, time to add them back.
         new_path = utils.JoinPath(*reversed(stripped_components[:-1]))
-        pathspec.Append(rdfvalue.PathSpec(path=new_path,
-                                          pathtype=pathspec.last.pathtype))
+        pathspec.Append(rdf_paths.PathSpec(path=new_path,
+                                           pathtype=pathspec.last.pathtype))
     else:
       raise IOError("Item has no pathspec.")
 
@@ -2181,7 +2188,7 @@ class AFF4OverlayedVolume(AFF4Volume):
   """
   overlayed_path = ""
 
-  def IsPathOverlayed(self, path):   # pylint: disable=unused-argument
+  def IsPathOverlayed(self, path):  # pylint: disable=unused-argument
     """Should this path be overlayed.
 
     Args:
@@ -2225,7 +2232,7 @@ class AFF4Stream(AFF4Object):
                      "The total size of available data for this stream.",
                      "size", default=0)
 
-    HASH = Attribute("aff4:hashobject", rdfvalue.Hash,
+    HASH = Attribute("aff4:hashobject", rdf_crypto.Hash,
                      "Hash object containing all known hash digests for"
                      " the object.")
 
@@ -2659,7 +2666,7 @@ FACTORY = None
 ROOT_URN = rdfvalue.RDFURN("aff4:/")
 
 
-def issubclass(obj, cls):    # pylint: disable=redefined-builtin,g-bad-name
+def issubclass(obj, cls):  # pylint: disable=redefined-builtin,g-bad-name
   """A sane implementation of issubclass.
 
   See http://bugs.python.org/issue10569

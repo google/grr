@@ -5,8 +5,11 @@ import StringIO
 
 
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import config_file as rdf_config_file
+from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.parsers import config_file
 
 
@@ -42,7 +45,7 @@ class SshdConfigTest(test_lib.GRRBaseTest):
   def testParseConfig(self):
     """Ensure we can extract sshd settings."""
     result = self.GetConfig()
-    self.assertTrue(isinstance(result, rdfvalue.SshdConfig))
+    self.assertTrue(isinstance(result, rdf_config_file.SshdConfig))
     self.assertItemsEqual([2], result.config.protocol)
     expect = ["aes128-ctr", "aes256-ctr", "aes128-cbc", "aes256-cbc"]
     self.assertItemsEqual(expect, result.config.ciphers)
@@ -179,6 +182,180 @@ class MtabParserTests(test_lib.GRRBaseTest):
     self.assertTrue(results[1].options.nosuid)
     self.assertTrue(results[1].options.nodev)
     self.assertEqual(["65536"], results[1].options.max_read)
+
+
+class APTPackageSourceParserTests(test_lib.GRRBaseTest):
+  """Test the APT package source lists parser."""
+
+  def testPackageSourceData(self):
+    test_data = r"""
+    # Security updates
+    deb  http://security.debian.org/ wheezy/updates main contrib non-free
+    deb-src  [arch=amd64,trusted=yes]    ftp://security.debian.org/ wheezy/updates main contrib non-free
+
+    ## Random comment
+
+    # Different transport protocols below
+    deb  ssh://ftp.debian.org/debian wheezy main contrib non-free
+    deb-src    file:/mnt/deb-sources-files/ wheezy main contrib non-free
+
+    # correct - referencing root file system
+    deb-src file:/
+    # incorrect
+    deb-src http://
+
+    # Bad lines below - these shouldn't get any URIs back
+    deb
+    deb-src   [arch=i386]
+    deb-src abcdefghijklmnopqrstuvwxyz
+    """
+    file_obj = StringIO.StringIO(test_data)
+    pathspec = rdf_paths.PathSpec(path="/etc/apt/sources.list")
+    stat = rdf_client.StatEntry(pathspec=pathspec)
+    parser = config_file.APTPackageSourceParser()
+    results = list(parser.Parse(stat, file_obj, None))
+
+    result = [d for d in results if isinstance(d,
+                                               rdf_protodict.AttributedDict)][0]
+
+    self.assertEqual("/etc/apt/sources.list", result.filename)
+    self.assertEqual(5, len(result.uris))
+
+    self.assertEqual("http", result.uris[0].transport)
+    self.assertEqual("security.debian.org", result.uris[0].host)
+    self.assertEqual("/", result.uris[0].path)
+
+    self.assertEqual("ftp", result.uris[1].transport)
+    self.assertEqual("security.debian.org", result.uris[1].host)
+    self.assertEqual("/", result.uris[1].path)
+
+    self.assertEqual("ssh", result.uris[2].transport)
+    self.assertEqual("ftp.debian.org", result.uris[2].host)
+    self.assertEqual("/debian", result.uris[2].path)
+
+    self.assertEqual("file", result.uris[3].transport)
+    self.assertEqual("", result.uris[3].host)
+    self.assertEqual("/mnt/deb-sources-files/", result.uris[3].path)
+
+    self.assertEqual("file", result.uris[4].transport)
+    self.assertEqual("", result.uris[4].host)
+    self.assertEqual("/", result.uris[4].path)
+
+  def testEmptySourceData(self):
+    test_data = r"""
+
+
+    # comment 1
+    # deb http://security.debian.org/ wheezy/updates main contrib non-free
+
+    # comment 2
+
+    """
+
+    file_obj = StringIO.StringIO(test_data)
+    pathspec = rdf_paths.PathSpec(path="/etc/apt/sources.list.d/test.list")
+    stat = rdf_client.StatEntry(pathspec=pathspec)
+    parser = config_file.APTPackageSourceParser()
+    results = list(parser.Parse(stat, file_obj, None))
+
+    result = [d for d in results if isinstance(d,
+                                               rdf_protodict.AttributedDict)][0]
+
+    self.assertEqual("/etc/apt/sources.list.d/test.list", result.filename)
+    self.assertEqual(0, len(result.uris))
+
+  def testRFC822StyleSourceDataParser(self):
+    """Test source list formated as per rfc822 style."""
+
+    test_data = r"""
+    # comment comment comment
+    Types: deb deb-src
+    URIs:    http://example.com/debian
+      http://1.example.com/debian1
+      http://2.example.com/debian2
+
+      http://willdetect.example.com/debian-strange
+    URIs :  ftp://3.example.com/debian3
+      http://4.example.com/debian4
+      blahblahblahblahblahlbha
+      http://willdetect2.example.com/debian-w2
+
+      http://willdetect3.example.com/debian-w3
+    URI :  ssh://5.example.com/debian5
+    Suites: stable testing
+    Sections: component1 component2
+    Description: short
+     long long long
+    [option1]: [option1-value]
+
+    deb-src [arch=amd64,trusted=yes] ftp://security.debian.org/ wheezy/updates main contrib non-free
+
+    # comment comment comment
+    Types: deb
+    URI : ftp://another.example.com/debian2
+    Suites: experimental
+    Sections: component1 component2
+    Enabled: no
+    Description: http://debian.org
+     This URL shouldn't be picked up by the parser
+    [option1]: [option1-value]
+
+    """
+    file_obj = StringIO.StringIO(test_data)
+    pathspec = rdf_paths.PathSpec(path="/etc/apt/sources.list.d/rfc822.list")
+    stat = rdf_client.StatEntry(pathspec=pathspec)
+    parser = config_file.APTPackageSourceParser()
+    results = list(parser.Parse(stat, file_obj, None))
+
+    result = [d for d in results if isinstance(d,
+                                               rdf_protodict.AttributedDict)][0]
+
+    self.assertEqual("/etc/apt/sources.list.d/rfc822.list", result.filename)
+    self.assertEqual(11, len(result.uris))
+
+    self.assertEqual("ftp", result.uris[0].transport)
+    self.assertEqual("security.debian.org", result.uris[0].host)
+    self.assertEqual("/", result.uris[0].path)
+
+    self.assertEqual("http", result.uris[1].transport)
+    self.assertEqual("example.com", result.uris[1].host)
+    self.assertEqual("/debian", result.uris[1].path)
+
+    self.assertEqual("http", result.uris[2].transport)
+    self.assertEqual("1.example.com", result.uris[2].host)
+    self.assertEqual("/debian1", result.uris[2].path)
+
+    self.assertEqual("http", result.uris[3].transport)
+    self.assertEqual("2.example.com", result.uris[3].host)
+    self.assertEqual("/debian2", result.uris[3].path)
+
+    self.assertEqual("http", result.uris[4].transport)
+    self.assertEqual("willdetect.example.com", result.uris[4].host)
+    self.assertEqual("/debian-strange", result.uris[4].path)
+
+    self.assertEqual("ftp", result.uris[5].transport)
+    self.assertEqual("3.example.com", result.uris[5].host)
+    self.assertEqual("/debian3", result.uris[5].path)
+
+    self.assertEqual("http", result.uris[6].transport)
+    self.assertEqual("4.example.com", result.uris[6].host)
+    self.assertEqual("/debian4", result.uris[6].path)
+
+    self.assertEqual("http", result.uris[7].transport)
+    self.assertEqual("willdetect2.example.com", result.uris[7].host)
+    self.assertEqual("/debian-w2", result.uris[7].path)
+
+    self.assertEqual("http", result.uris[8].transport)
+    self.assertEqual("willdetect3.example.com", result.uris[8].host)
+    self.assertEqual("/debian-w3", result.uris[8].path)
+
+    self.assertEqual("ssh", result.uris[9].transport)
+    self.assertEqual("5.example.com", result.uris[9].host)
+    self.assertEqual("/debian5", result.uris[9].path)
+
+    self.assertEqual("ftp", result.uris[10].transport)
+    self.assertEqual("another.example.com", result.uris[10].host)
+    self.assertEqual("/debian2", result.uris[10].path)
 
 
 def main(args):

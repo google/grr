@@ -2,21 +2,19 @@
 """System cron flows tests."""
 
 
-# pylint: disable=unused-import, g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import, g-bad-import-order
-
 from grr.endtoend_tests import base
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.flows.cron import system
+from grr.lib.flows.general import endtoend as endtoend_flows
 from grr.lib.flows.general import endtoend_test
+from grr.lib.rdfvalues import client as client_rdf
+from grr.lib.rdfvalues import flows
 from grr.test_data import client_fixture
 
 
@@ -172,7 +170,7 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
 
         stats_fd = aff4.FACTORY.Create(urn, "ClientStats", token=self.token,
                                        mode="rw")
-        st = rdfvalue.ClientStats(RSS_size=int(t))
+        st = client_rdf.ClientStats(RSS_size=int(t))
         stats_fd.AddAttribute(stats_fd.Schema.STATS(st))
 
         stats_fd.Close()
@@ -244,9 +242,8 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
                           sorted(self.client_ids))
 
   def _CreateResult(self, success, clientid):
-    success = rdfvalue.EndToEndTestResult(success=success)
-    return rdfvalue.GrrMessage(source=clientid,
-                               payload=success)
+    success = endtoend_flows.EndToEndTestResult(success=success)
+    return flows.GrrMessage(source=clientid, payload=success)
 
   def testEndToEndTestsResultChecking(self):
 

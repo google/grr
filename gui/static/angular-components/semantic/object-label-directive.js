@@ -3,9 +3,6 @@
 goog.provide('grrUi.semantic.objectLabelDirective.ObjectLabelController');
 goog.provide('grrUi.semantic.objectLabelDirective.ObjectLabelDirective');
 
-goog.require('grrUi.semantic.SemanticDirectivesRegistry');
-
-
 goog.scope(function() {
 
 
@@ -83,8 +80,14 @@ grrUi.semantic.objectLabelDirective.ObjectLabelDirective = function() {
 grrUi.semantic.objectLabelDirective.ObjectLabelDirective.directive_name =
     'grrObjectLabel';
 
-grrUi.semantic.SemanticDirectivesRegistry.registerDirective(
-    'AFF4ObjectLabel',
-    grrUi.semantic.objectLabelDirective.ObjectLabelDirective);
+/**
+ * Semantic type corresponding to this directive.
+ *
+ * @const
+ * @export
+ */
+grrUi.semantic.objectLabelDirective.ObjectLabelDirective.semantic_type =
+    'AFF4ObjectLabel';
+
 
 });  // goog.scope

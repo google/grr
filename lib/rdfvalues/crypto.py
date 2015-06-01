@@ -16,7 +16,7 @@ import logging
 from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
-from grr.lib.rdfvalues import structs
+from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import jobs_pb2
 
@@ -24,7 +24,7 @@ DIGEST_ALGORITHM = hashlib.sha256
 DIGEST_ALGORITHM_STR = "sha256"
 
 
-class Certificate(structs.RDFProtoStruct):
+class Certificate(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.Certificate
 
 
@@ -101,12 +101,12 @@ class PEMPrivateKey(rdfvalue.RDFString):
     return cls(RSA.gen_key(bits, exponent).as_pem(None))
 
 
-class Hash(rdfvalue.RDFProtoStruct):
+class Hash(rdf_structs.RDFProtoStruct):
   """A hash object containing multiple digests."""
   protobuf = jobs_pb2.Hash
 
 
-class SignedBlob(rdfvalue.RDFProtoStruct):
+class SignedBlob(rdf_structs.RDFProtoStruct):
   """A signed blob.
 
   The client can receive and verify a signed blob (e.g. driver or executable

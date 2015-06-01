@@ -5,10 +5,7 @@
 import argparse
 import os
 
-# pylint: disable=unused-import, g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import, g-bad-import-order
-
+from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flags
@@ -27,8 +24,8 @@ class CollectionFilesExportPluginTest(test_lib.GRRBaseTest):
     self.client_id = client_ids[0]
     self.out = self.client_id.Add("fs/os")
 
-    data_store.default_token = rdfvalue.ACLToken(username="user",
-                                                 reason="reason")
+    data_store.default_token = access_control.ACLToken(username="user",
+                                                       reason="reason")
 
   def CreateDir(self, dirpath):
     path = self.out.Add(dirpath)

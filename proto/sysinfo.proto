@@ -313,6 +313,10 @@ message LinuxServiceInformation {
   optional AttributedDict config = 10 [(sem_type) = {
       description: "The configuration of the service.",
     }];
+
+  optional bool starts = 11 [(sem_type) = {
+      description: "The service is configured to start up through some means.",
+    }];
 }
 
 // Describe an installed software package. Cross platform.
@@ -640,3 +644,23 @@ message CronTabFile {
   repeated CronTabEntry jobs = 2;
 }
 
+// based on http://tools.ietf.org/html/rfc3986#page-16 but much simplified
+// URI should generally be stored as strings for efficiency. Only use this
+// proto if there is a specific need to parse the individual components.
+message URI {
+  optional string transport = 1 [(sem_type) = {
+    description: "Transport such http, ftp, mailto, file etc.",
+  }];
+  optional string host = 2 [(sem_type) = {
+    description: "Host/Port portion of the URI. e.g. google.com:80.",
+  }];
+  optional string path = 3 [(sem_type) = {
+    description: "Path portion of the URI.",
+  }];
+  optional string query = 4 [(sem_type) = {
+    description: "Query portion of the URI.",
+  }];
+  optional string fragment = 5 [(sem_type) = {
+    description: "Fragment portion of the URI.",
+  }];
+}

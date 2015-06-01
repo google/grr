@@ -4,8 +4,6 @@ goog.provide('grrUi.semantic.macAddressDirective.MacAddressController');
 goog.provide('grrUi.semantic.macAddressDirective.MacAddressDirective');
 goog.provide('grrUi.semantic.macAddressDirective.convertMacAddressToString');
 
-goog.require('grrUi.semantic.SemanticDirectivesRegistry');
-
 goog.scope(function() {
 
 
@@ -100,13 +98,21 @@ grrUi.semantic.macAddressDirective.MacAddressDirective = function() {
 
 /**
  * Name of the directive in Angular.
+ *
+ * @const
+ * @export
  */
 grrUi.semantic.macAddressDirective.MacAddressDirective.directive_name =
     'grrMacAddress';
 
-grrUi.semantic.SemanticDirectivesRegistry.registerDirective(
-    'MacAddress',
-    grrUi.semantic.macAddressDirective.MacAddressDirective);
+/**
+ * Semantic type corresponding to this directive.
+ *
+ * @const
+ * @export
+ */
+grrUi.semantic.macAddressDirective.MacAddressDirective.semantic_type =
+    'MacAddress';
 
 
 });  // goog.scope

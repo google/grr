@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """This plugin renders the client search page."""
 
-import json
 import time
 
 from django.utils import datastructures
@@ -16,8 +15,9 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
-
 from grr.lib.aff4_objects import aff4_grr
+from grr.lib.aff4_objects import users as aff4_users
+from grr.lib.rdfvalues import client as rdf_client
 
 
 class SearchHostInit(registry.InitHook):
@@ -76,7 +76,7 @@ class SetGlobalNotification(flow.GRRGlobalFlow):
   # This flow is a SUID flow.
   ACL_ENFORCED = False
 
-  args_type = rdfvalue.GlobalNotification
+  args_type = aff4_users.GlobalNotification
 
   @flow.StateHandler()
   def Start(self):
@@ -92,7 +92,7 @@ class MarkGlobalNotificationAsShown(flow.GRRFlow):
   # This flow is a SUID flow.
   ACL_ENFORCED = False
 
-  args_type = rdfvalue.GlobalNotification
+  args_type = aff4_users.GlobalNotification
 
   @flow.StateHandler()
   def Start(self):
@@ -185,7 +185,7 @@ def GetLowDiskWarnings(client):
   # Avoid showing warnings for the CDROM.  This is isn't a problem for linux and
   # OS X since we only check usage on the disk mounted at "/".
   exclude_windows_types = [
-      rdfvalue.WindowsVolume.WindowsDriveTypeEnum.DRIVE_CDROM]
+      rdf_client.WindowsVolume.WindowsDriveTypeEnum.DRIVE_CDROM]
 
   if volumes:
     for volume in volumes:
@@ -230,7 +230,7 @@ Status: {{this.icon|safe}}
 
     client_id = request.REQ.get("client_id")
     if client_id:
-      client_id = rdfvalue.ClientURN(client_id)
+      client_id = rdf_client.ClientURN(client_id)
       client = aff4.FACTORY.Open(client_id, token=request.token)
 
       self.last_crash = None
@@ -466,39 +466,6 @@ class IPStatusIcon(semantic.RDFValueRenderer):
     return super(IPStatusIcon, self).Layout(request, response)
 
 
-class ClientStatusIconsRenderer(semantic.RDFValueRenderer):
-  """Render the online state by using a centered icon."""
-
-  MAX_TIME_SINCE_CRASH = rdfvalue.Duration("1d")
-
-  layout_template = renderers.Template("""<div class="centered">
-{{this.online_icon_code|safe}}
-{% if this.show_crash_icon %}
-  <img class='grr-icon' src='/static/images/skull-icon.png'
-    title="{{this.crash_time|escape}}" />
-{% endif %}
-{% if this.disk_full %}
-  <img class='grr-icon' src='/static/images/hdd-bang-icon.png'
-    title="{{this.disk_full|escape}}" />
-{% endif %}
-</div>""")
-
-  def Layout(self, request, response):
-    last_ping = self.proxy.Get(self.proxy.Schema.PING, 0)
-    self.online_icon_code = OnlineStateIcon(last_ping).RawHTML(request)
-
-    last_crash = self.proxy.Get(self.proxy.Schema.LAST_CRASH)
-    if (last_crash and
-        (rdfvalue.RDFDatetime().Now() - last_crash.timestamp) <
-        self.MAX_TIME_SINCE_CRASH):
-      self.crash_time = "%s (%s)" % (str(last_crash.timestamp),
-                                     FormatLastSeenTime(last_crash.timestamp))
-      self.show_crash_icon = True
-
-    self.disk_full = ", ".join(GetLowDiskWarnings(self.proxy))
-    return super(ClientStatusIconsRenderer, self).Layout(request, response)
-
-
 class FilestoreTable(renderers.TableRenderer):
   """Render filestore hits."""
 
@@ -529,97 +496,6 @@ class FilestoreTable(renderers.TableRenderer):
 
     # We only display 50 entries.
     return False
-
-
-class ClientCheckboxHeaderRenderer(renderers.TemplateRenderer):
-
-  layout_template = renderers.Template("""
-<input select_all_client_urns type="checkbox" class="client-checkbox"></input>
-""")
-
-
-class ClientCheckboxRenderer(renderers.RDFValueRenderer):
-  """Render the online state by using a centered icon."""
-
-  layout_template = renderers.Template("""
-<input client_urn="{{this.urn|escape}}" type="checkbox"
-  class="client-checkbox"></input>
-""")
-
-  def Layout(self, request, response):
-    self.urn = self.proxy.urn
-    return super(ClientCheckboxRenderer, self).Layout(request, response)
-
-
-class ApplyLabelToClientsDialog(renderers.ConfirmationDialogRenderer):
-  """Dialog that asks confirmation to manage a cron job."""
-  post_parameters = ["selected_clients"]
-
-  content_template = renderers.Template("""
-<div class="form-group">
-  <label class="control-label" for="input_apply_label_to_clients">Label</label>
-  <div class="controls">
-    <input type="text" onchange="grr.forms.inputOnChange(this)"
-      id="input_apply_label_to_clients"></input>
-  </div>
-</div>
-
-<hr />
-<p>Affected clients:</p>
-<table class="table table-striped table-condensed">
-<thead>
-  <tr>
-    <th>Client URN</th>
-  </tr>
-</thead>
-<tbody>
-  {% for client_urn in this.client_urns %}
-  <tr><td>{{client_urn|escape}}</td></tr>
-  {% endfor %}
-</tbody>
-</table>
-""")
-
-  ajax_template = renderers.Template("""
-<div id="{{unique|escape}}">
-<p class="text-info">Label <strong>{{this.label}}</strong> applied successfully!</p>
-</div>
-""")
-
-  @property
-  def header(self):
-    return "Apply label to clients"
-
-  def Layout(self, request, response):
-    self.client_urns = []
-    for client_urn_str in json.loads(request.REQ["selected_clients"]):
-      self.client_urns.append(rdfvalue.ClientURN(client_urn_str))
-
-    labels_index = aff4.FACTORY.Create(
-        aff4.VFSGRRClient.labels_index_urn, "AFF4LabelsIndex",
-        mode="rw", token=request.token)
-    used_labels = sorted(
-        set([label.name for label in labels_index.ListUsedLabels()]))
-
-    response = super(ApplyLabelToClientsDialog, self).Layout(
-        request, response)
-    return self.CallJavascript(response, "ApplyLabelToClientsDialog.Layout",
-                               labels=used_labels)
-
-  def RenderAjax(self, request, response):
-    client_urns = []
-    for client_urn_str in json.loads(request.REQ["selected_clients"]):
-      client_urns.append(rdfvalue.ClientURN(client_urn_str))
-
-    self.label = request.REQ.get("input_apply_label_to_clients", "")
-
-    flow.GRRFlow.StartFlow(
-        flow_name="ApplyLabelsToClientsFlow", clients=client_urns,
-        labels=[self.label], token=request.token)
-
-    response = self.RenderFromTemplate(self.ajax_template, response,
-                                       unique=self.unique, this=self)
-    return self.CallJavascript(response, "ApplyLabelToClientsDialog.RenderAjax")
 
 
 class ClientLabelsRenderer(semantic.RDFValueRenderer):

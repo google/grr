@@ -24,6 +24,7 @@ from grr.lib import server_stubs
 from grr.lib import stats
 from grr.lib import threadpool
 from grr.lib import utils
+from grr.lib.rdfvalues import flows as rdf_flows
 
 
 class Error(Exception):
@@ -191,7 +192,7 @@ class GRRWorker(object):
       try:
         flow.GRRFlow.TerminateFlow(
             stuck_flow.session_id, reason="Stuck in the worker",
-            status=rdfvalue.GrrStatus.ReturnedStatus.WORKER_STUCK,
+            status=rdf_flows.GrrStatus.ReturnedStatus.WORKER_STUCK,
             force=True, token=self.token)
       except Exception:   # pylint: disable=broad-except
         logging.exception("Error terminating stuck flow: %s", stuck_flow)
@@ -273,7 +274,7 @@ class GRRWorker(object):
 
     # Something went wrong - log it in the flow.
     except Exception as e:  # pylint: disable=broad-except
-      runner.context.state = rdfvalue.Flow.State.ERROR
+      runner.context.state = rdf_flows.Flow.State.ERROR
       runner.context.backtrace = traceback.format_exc()
       logging.error("Flow %s: %s", flow_obj, e)
       raise FlowProcessingError(e)

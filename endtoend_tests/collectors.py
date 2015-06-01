@@ -4,7 +4,7 @@
 
 from grr.endtoend_tests import base
 from grr.lib import aff4
-from grr.lib import rdfvalue
+from grr.lib.rdfvalues import client as rdf_client
 
 
 class TestCollector(base.AutomatedTest):
@@ -23,5 +23,5 @@ class TestCollector(base.AutomatedTest):
 
     self.assertTrue(len(collection) >= 1)
     for statentry in collection:
-      self.assertTrue(isinstance(statentry, rdfvalue.StatEntry))
+      self.assertTrue(isinstance(statentry, rdf_client.StatEntry))
       self.assertTrue("Run" in statentry.pathspec.path)

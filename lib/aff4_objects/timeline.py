@@ -9,12 +9,16 @@ import struct
 
 from grr.lib import aff4
 from grr.lib import rdfvalue
-from grr.lib.aff4_objects import aff4_grr
+from grr.lib.aff4_objects import collections
+# AFF4Filter is defined in aff4 but needs this pylint: disable=unused-import
+from grr.lib.aff4_objects import filters
+# pylint: enable=unused-import
 from grr.lib.aff4_objects import standard
+from grr.lib.rdfvalues import structs
 from grr.proto import analysis_pb2
 
 
-class Event(rdfvalue.RDFProtoStruct):
+class Event(structs.RDFProtoStruct):
   protobuf = analysis_pb2.Event
 
 
@@ -45,7 +49,7 @@ class AFF4Event(aff4.AFF4Object):
     pass
 
 
-class TimelineView(aff4_grr.AFF4CollectionView):
+class TimelineView(collections.AFF4CollectionView):
   """A timeline view."""
 
 

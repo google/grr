@@ -3,7 +3,6 @@
 from grr.gui import renderers
 from grr.gui.plugins import forms
 from grr.lib import aff4
-from grr.lib import rdfvalue
 
 
 class WizardRenderer(renderers.TemplateRenderer):
@@ -85,7 +84,7 @@ class WizardRenderer(renderers.TemplateRenderer):
 class AFF4AttributeFormRenderer(forms.TypeDescriptorFormRenderer):
   """A renderer for AFF4 attribute forms."""
 
-  type = rdfvalue.AFF4Attribute
+  type = aff4.AFF4Attribute
 
   layout_template = """<div class="form-group">
 """ + forms.TypeDescriptorFormRenderer.default_description_view + """
