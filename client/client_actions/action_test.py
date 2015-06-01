@@ -3,8 +3,8 @@
 
 """Test client actions."""
 
-
 import __builtin__
+import logging
 import os
 import platform
 import posix
@@ -21,10 +21,12 @@ from grr.client.client_actions import standard
 
 from grr.client import actions
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib import worker_mocks
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 # pylint: mode=test
@@ -102,8 +104,8 @@ class MockWindowsProcess(object):
 
 class ProgressAction(actions.ActionPlugin):
   """A mock action which just calls Progress."""
-  in_rdfvalue = rdfvalue.LogMessage
-  out_rdfvalue = rdfvalue.LogMessage
+  in_rdfvalue = rdf_client.LogMessage
+  out_rdfvalue = rdf_client.LogMessage
 
   time = 100
 
@@ -125,10 +127,10 @@ class ActionTest(test_lib.EmptyActionTest):
   def testReadBuffer(self):
     """Test reading a buffer."""
     path = os.path.join(self.base_path, "morenumbers.txt")
-    p = rdfvalue.PathSpec(path=path,
-                          pathtype=rdfvalue.PathSpec.PathType.OS)
+    p = rdf_paths.PathSpec(path=path,
+                           pathtype=rdf_paths.PathSpec.PathType.OS)
     result = self.RunAction("ReadBuffer",
-                            rdfvalue.BufferReference(
+                            rdf_client.BufferReference(
                                 pathspec=p, offset=100, length=10))[0]
 
     self.assertEqual(result.offset, 100)
@@ -137,9 +139,9 @@ class ActionTest(test_lib.EmptyActionTest):
 
   def testListDirectory(self):
     """Tests listing directories."""
-    p = rdfvalue.PathSpec(path=self.base_path, pathtype=0)
+    p = rdf_paths.PathSpec(path=self.base_path, pathtype=0)
     results = self.RunAction("ListDirectory",
-                             rdfvalue.ListDirRequest(
+                             rdf_client.ListDirRequest(
                                  pathspec=p))
     # Find the number.txt file
     result = None
@@ -148,24 +150,24 @@ class ActionTest(test_lib.EmptyActionTest):
         break
 
     self.assert_(result)
-    self.assertEqual(result.__class__, rdfvalue.StatEntry)
+    self.assertEqual(result.__class__, rdf_client.StatEntry)
     self.assertEqual(result.pathspec.Basename(), "morenumbers.txt")
     self.assertEqual(result.st_size, 3893)
     self.assert_(stat.S_ISREG(result.st_mode))
 
   def testIteratedListDirectory(self):
     """Tests iterated listing of directories."""
-    p = rdfvalue.PathSpec(path=self.base_path,
-                          pathtype=rdfvalue.PathSpec.PathType.OS)
+    p = rdf_paths.PathSpec(path=self.base_path,
+                           pathtype=rdf_paths.PathSpec.PathType.OS)
     non_iterated_results = self.RunAction(
-        "ListDirectory", rdfvalue.ListDirRequest(pathspec=p))
+        "ListDirectory", rdf_client.ListDirRequest(pathspec=p))
 
     # Make sure we get some results.
     l = len(non_iterated_results)
     self.assertTrue(l > 0)
 
     iterated_results = []
-    request = rdfvalue.ListDirRequest(pathspec=p)
+    request = rdf_client.ListDirRequest(pathspec=p)
     request.iterator.number = 2
     while True:
       responses = self.RunAction("IteratedListDirectory", request)
@@ -182,7 +184,7 @@ class ActionTest(test_lib.EmptyActionTest):
       self.assertRDFValueEqual(x, y)
 
   def testSuspendableListDirectory(self):
-    request = rdfvalue.ListDirRequest()
+    request = rdf_client.ListDirRequest()
     request.pathspec.path = self.base_path
     request.pathspec.pathtype = "OS"
     request.iterator.number = 2
@@ -195,15 +197,15 @@ class ActionTest(test_lib.EmptyActionTest):
                                  grr_worker=grr_worker)
       results.extend(responses)
       for response in responses:
-        if isinstance(response, rdfvalue.Iterator):
+        if isinstance(response, rdf_client.Iterator):
           request.iterator = response
 
     filenames = [os.path.basename(r.pathspec.path)
-                 for r in results if isinstance(r, rdfvalue.StatEntry)]
+                 for r in results if isinstance(r, rdf_client.StatEntry)]
 
     self.assertItemsEqual(filenames, os.listdir(self.base_path))
 
-    iterators = [r for r in results if isinstance(r, rdfvalue.Iterator)]
+    iterators = [r for r in results if isinstance(r, rdf_client.Iterator)]
     # One for two files plus one extra with the FINISHED status.
     nr_files = len(os.listdir(self.base_path))
     expected_iterators = (nr_files / 2) + 1
@@ -227,9 +229,11 @@ class ActionTest(test_lib.EmptyActionTest):
 
         return super(RaisingListDirectory, self).Suspend()
 
-    p = rdfvalue.PathSpec(path=self.base_path,
-                          pathtype=rdfvalue.PathSpec.PathType.OS)
-    request = rdfvalue.ListDirRequest(pathspec=p)
+    logging.info("The following test is expected to raise a "
+                 "'Ran out of iterations' backtrace.")
+    p = rdf_paths.PathSpec(path=self.base_path,
+                           pathtype=rdf_paths.PathSpec.PathType.OS)
+    request = rdf_client.ListDirRequest(pathspec=p)
     request.iterator.number = 2
     results = []
 
@@ -240,12 +244,12 @@ class ActionTest(test_lib.EmptyActionTest):
       results.extend(responses)
 
       for response in responses:
-        if isinstance(response, rdfvalue.Iterator):
+        if isinstance(response, rdf_client.Iterator):
           request.iterator = response
 
       status = responses[-1]
-      self.assertTrue(isinstance(status, rdfvalue.GrrStatus))
-      if status.status != rdfvalue.GrrStatus.ReturnedStatus.OK:
+      self.assertTrue(isinstance(status, rdf_flows.GrrStatus))
+      if status.status != rdf_flows.GrrStatus.ReturnedStatus.OK:
         break
 
       if len(results) > 100:
@@ -354,9 +358,9 @@ class ActionTest(test_lib.EmptyActionTest):
     results = []
 
     def MockSendReply(unused_self, reply=None, **kwargs):
-      results.append(reply or rdfvalue.LogMessage(**kwargs))
+      results.append(reply or rdf_client.LogMessage(**kwargs))
 
-    message = rdfvalue.GrrMessage(name="ProgressAction", cpu_limit=3600)
+    message = rdf_flows.GrrMessage(name="ProgressAction", cpu_limit=3600)
 
     action_cls = actions.ActionPlugin.classes[message.name]
     with utils.MultiStubber((psutil, "Process", FakeProcess),
@@ -399,7 +403,7 @@ class ActionTest(test_lib.EmptyActionTest):
 
       # This test assumes "/" is the mount point for /usr/bin
       results = self.RunAction(
-          "StatFS", rdfvalue.StatFSRequest(path_list=["/usr/bin", "/"]))
+          "StatFS", rdf_client.StatFSRequest(path_list=["/usr/bin", "/"]))
       self.assertEqual(len(results), 2)
 
       # Both results should have mount_point as "/"
@@ -416,7 +420,8 @@ class ActionTest(test_lib.EmptyActionTest):
 
       # Test we get a result even if one path is bad
       results = self.RunAction(
-          "StatFS", rdfvalue.StatFSRequest(path_list=["/does/not/exist", "/"]))
+          "StatFS",
+          rdf_client.StatFSRequest(path_list=["/does/not/exist", "/"]))
       self.assertEqual(len(results), 1)
       self.assertEqual(result.Name(), "/")
 

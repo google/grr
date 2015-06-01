@@ -5,12 +5,7 @@ goog.provide('grrUi.semantic.semanticValueDirective.SemanticValueController');
 goog.provide('grrUi.semantic.semanticValueDirective.SemanticValueDirective');
 goog.provide('grrUi.semantic.semanticValueDirective.clearCaches');
 
-goog.require('grrUi.semantic.SemanticDirectivesRegistry');
-
 goog.scope(function() {
-
-
-var SemanticDirectivesRegistry = grrUi.semantic.SemanticDirectivesRegistry;
 
 
 /**
@@ -48,10 +43,12 @@ grrUi.semantic.semanticValueDirective.clearCaches = function() {
  * @param {!angular.Scope} $scope
  * @param {!angular.$compile} $compile
  * @param {!angular.JQLite} $element
+ * @param {!grrUi.core.semanticRegistry.SemanticRegistryService}
+ *     grrSemanticValueDirectivesRegistryService
  * @ngInject
  */
 grrUi.semantic.semanticValueDirective.SemanticValueController = function(
-    $scope, $compile, $element) {
+    $scope, $compile, $element, grrSemanticValueDirectivesRegistryService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
@@ -63,6 +60,10 @@ grrUi.semantic.semanticValueDirective.SemanticValueController = function(
 
   /** @private {!angular.JQLite} */
   this.element_ = $element;
+
+  /** @private {!grrUi.core.semanticRegistry.SemanticRegistryService} */
+  this.grrSemanticValueDirectivesRegistryService_ =
+      grrSemanticValueDirectivesRegistryService;
 
   this.scope_.$watch('::value', this.onValueChange.bind(this));
 };
@@ -95,7 +96,8 @@ SemanticValueController.prototype.camelCaseToDashDelimited = function(
 SemanticValueController.prototype.compileSingleTypedValueTemplate_ = function(
     value) {
   var element = angular.element('<span />');
-  var directive = SemanticDirectivesRegistry.findDirectiveForMro(value['mro']);
+  var directive = this.grrSemanticValueDirectivesRegistryService_
+      .findDirectiveForMro(value['mro']);
 
   if (angular.isDefined(directive)) {
     element.html('<' +

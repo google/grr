@@ -1,0 +1,13 @@
+<span ng-if="controller.valueType">
+  <input ng-if="controller.valueType == 'RDFBool' ||
+                controller.valueType == 'bool'" class="form-control"
+         type="checkbox" ng-model="value.value" />
+
+  <input ng-if="controller.valueType == 'RDFString' ||
+                controller.valueType == 'basestring'" class="form-control"
+         type="text" ng-model="value.value" />
+
+  <input ng-if="controller.valueType == 'RDFInteger' ||
+                controller.valueType == 'int'" class="form-control"
+         type="number" ng-model="value.value" />
+</span>

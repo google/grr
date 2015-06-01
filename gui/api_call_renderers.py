@@ -6,6 +6,7 @@
 
 from grr.lib import rdfvalue
 from grr.lib import registry
+from grr.lib.rdfvalues import structs
 from grr.proto import api_pb2
 
 
@@ -17,7 +18,7 @@ class ApiCallRendererNotFoundError(Error):
   """Raised when no renderer found for a given URL."""
 
 
-class ApiCallAdditionalArgs(rdfvalue.RDFProtoStruct):
+class ApiCallAdditionalArgs(structs.RDFProtoStruct):
   protobuf = api_pb2.ApiCallAdditionalArgs
 
   def GetArgsClass(self):

@@ -13,8 +13,8 @@ import smtplib
 import socket
 
 from grr.lib import config_lib
-from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import standard as rdf_standard
 
 
 def RemoveHtmlTags(data):
@@ -24,7 +24,7 @@ def RemoveHtmlTags(data):
 
 def AddEmailDomain(address):
   suffix = config_lib.CONFIG["Logging.domain"]
-  if isinstance(address, rdfvalue.DomainEmailAddress):
+  if isinstance(address, rdf_standard.DomainEmailAddress):
     address = str(address)
   if suffix and "@" not in address:
     return address + "@%s" % suffix
@@ -35,7 +35,7 @@ def SplitEmailsAndAppendEmailDomain(address_list):
   """Splits a string of comma-separated emails, appending default domain."""
   result = []
   # Process email addresses, and build up a list.
-  if isinstance(address_list, rdfvalue.DomainEmailAddress):
+  if isinstance(address_list, rdf_standard.DomainEmailAddress):
     address_list = [str(address_list)]
   elif isinstance(address_list, basestring):
     address_list = [address for address in address_list.split(",") if address]
@@ -50,7 +50,7 @@ def SendEmail(to_addresses, from_address, subject, message, attachments=None,
 
   Args:
     to_addresses: blah@mycompany.com string, list of addresses as csv string, or
-                  rdfvalue.DomainEmailAddress
+                  rdf_standard.DomainEmailAddress
     from_address: blah@mycompany.com string
     subject: email subject string
     message: message contents string, as HTML or plain text

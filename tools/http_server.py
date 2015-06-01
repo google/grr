@@ -30,6 +30,8 @@ from grr.lib import startup
 from grr.lib import stats
 from grr.lib import type_info
 from grr.lib import utils
+from grr.lib.flows.general import file_finder
+from grr.lib.rdfvalues import flows as rdf_flows
 
 
 # pylint: disable=g-bad-name
@@ -114,7 +116,7 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     try:
       length = int(self.headers.getheader("content-length"))
 
-      request_comms = rdfvalue.ClientCommunication(self._GetPOSTData(length))
+      request_comms = rdf_flows.ClientCommunication(self._GetPOSTData(length))
 
       # If the client did not supply the version in the protobuf we use the get
       # parameter.
@@ -122,7 +124,7 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         request_comms.api_version = api_version
 
       # Reply using the same version we were requested with.
-      responses_comms = rdfvalue.ClientCommunication(
+      responses_comms = rdf_flows.ClientCommunication(
           api_version=request_comms.api_version)
 
       source_ip = ipaddr.IPAddress(self.client_address[0])
@@ -130,7 +132,7 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       if source_ip.version == 6:
         source_ip = source_ip.ipv4_mapped or source_ip
 
-      request_comms.orig_request = rdfvalue.HttpRequest(
+      request_comms.orig_request = rdf_flows.HttpRequest(
           raw_headers=utils.SmartStr(self.headers),
           source_ip=utils.SmartStr(source_ip))
 

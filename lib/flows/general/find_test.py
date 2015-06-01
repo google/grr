@@ -6,10 +6,14 @@ from grr.client import vfs
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import type_info
 from grr.lib import utils
+# pylint: disable=unused-import
+from grr.lib.flows.general import find
+# pylint: enable=unused-import
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class TestFindFlow(test_lib.FlowTestsBaseclass):
@@ -18,13 +22,13 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
   def setUp(self):
     super(TestFindFlow, self).setUp()
     # Install the mock
-    vfs_type = rdfvalue.PathSpec.PathType.OS
+    vfs_type = rdf_paths.PathSpec.PathType.OS
     vfs.VFS_HANDLERS[vfs_type] = test_lib.ClientVFSHandlerFixture
 
   def testInvalidFindSpec(self):
     """Test that its impossible to produce an invalid findspec."""
     # The regular expression is not valid.
-    self.assertRaises(type_info.TypeValueError, rdfvalue.FindSpec,
+    self.assertRaises(type_info.TypeValueError, rdf_client.FindSpec,
                       path_regex="[")
 
   def testFindFiles(self):
@@ -33,10 +37,10 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
     output_path = "analysis/FindFlowTest1"
 
     # Prepare a findspec.
-    findspec = rdfvalue.FindSpec(
+    findspec = rdf_client.FindSpec(
         path_regex="bash",
-        pathspec=rdfvalue.PathSpec(
-            path="/", pathtype=rdfvalue.PathSpec.PathType.OS))
+        pathspec=rdf_paths.PathSpec(
+            path="/", pathtype=rdf_paths.PathSpec.PathType.OS))
 
     for _ in test_lib.TestFlowHelper(
         "FindFiles", client_mock, client_id=self.client_id,
@@ -62,10 +66,10 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
     output_path = "analysis/FindFlowTest1"
 
     # Prepare a findspec.
-    findspec = rdfvalue.FindSpec(
+    findspec = rdf_client.FindSpec(
         path_glob="bash*",
-        pathspec=rdfvalue.PathSpec(
-            path="/", pathtype=rdfvalue.PathSpec.PathType.OS))
+        pathspec=rdf_paths.PathSpec(
+            path="/", pathtype=rdf_paths.PathSpec.PathType.OS))
 
     for _ in test_lib.TestFlowHelper(
         "FindFiles", client_mock, client_id=self.client_id,
@@ -92,10 +96,10 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
     output_path = "analysis/FindFlowTest2"
 
     # Prepare a findspec.
-    findspec = rdfvalue.FindSpec(
+    findspec = rdf_client.FindSpec(
         path_regex="bin",
-        pathspec=rdfvalue.PathSpec(path="/",
-                                   pathtype=rdfvalue.PathSpec.PathType.OS))
+        pathspec=rdf_paths.PathSpec(path="/",
+                                    pathtype=rdf_paths.PathSpec.PathType.OS))
 
     for _ in test_lib.TestFlowHelper(
         "FindFiles", client_mock, client_id=self.client_id,
@@ -119,10 +123,10 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
     output_path = "analysis/FindFlowTest4"
 
     # Prepare a findspec.
-    findspec = rdfvalue.FindSpec(
+    findspec = rdf_client.FindSpec(
         path_regex=".*",
-        pathspec=rdfvalue.PathSpec(path="/",
-                                   pathtype=rdfvalue.PathSpec.PathType.OS))
+        pathspec=rdf_paths.PathSpec(path="/",
+                                    pathtype=rdf_paths.PathSpec.PathType.OS))
 
     for _ in test_lib.TestFlowHelper(
         "FindFiles", client_mock, client_id=self.client_id, token=self.token,
@@ -143,10 +147,10 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
     output_path = "analysis/FindFlowTest5"
 
     # Prepare a findspec.
-    findspec = rdfvalue.FindSpec()
+    findspec = rdf_client.FindSpec()
     findspec.path_regex = "bin"
     findspec.pathspec.path = "/"
-    findspec.pathspec.pathtype = rdfvalue.PathSpec.PathType.OS
+    findspec.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
 
     for _ in test_lib.TestFlowHelper(
         "FindFiles", client_mock, client_id=self.client_id, token=self.token,

@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 """Map the conditions that trigger checks to the methods that perform them."""
 import itertools
-from grr.lib import rdfvalue
+
+from grr.lib.rdfvalues import structs as rdf_structs
+from grr.proto import checks_pb2
 
 
 class Error(Exception):
@@ -10,6 +12,31 @@ class Error(Exception):
 
 class DefinitionError(Error):
   """A check was defined badly."""
+
+
+class Target(rdf_structs.RDFProtoStruct):
+  """Definitions of hosts to target."""
+  protobuf = checks_pb2.Target
+
+  def __init__(self, initializer=None, age=None, **kwargs):
+    if isinstance(initializer, dict):
+      conf = initializer
+      initializer = None
+    else:
+      conf = kwargs
+    super(Target, self).__init__(initializer=initializer, age=age, **conf)
+
+  def __nonzero__(self):
+    return any([self.cpe, self.os, self.label])
+
+  def Validate(self):
+    if self.cpe:
+      # TODO(user): Add CPE library to GRR.
+      pass
+    if self.os:
+      pass
+    if self.label:
+      pass
 
 
 class Condition(object):
@@ -113,7 +140,7 @@ class Triggers(object):
     # Then, in either case, replace the empty list with one containing a single
     # None value.
     if target is None:
-      target = rdfvalue.Target()
+      target = Target()
     os_name = target.Get("os") or [None]
     cpe = target.Get("cpe") or [None]
     label = target.Get("label") or [None]

@@ -14,7 +14,8 @@ import struct
 import sys
 
 from grr.client import vfs
-from grr.lib import rdfvalue
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
 
 # pylint: disable=g-import-not-at-top
 try:
@@ -47,7 +48,7 @@ class MemoryVFS(vfs.VFSHandler):
     return False
 
   def Stat(self):
-    result = rdfvalue.StatEntry(st_size=self.size, pathspec=self.pathspec)
+    result = rdf_client.StatEntry(st_size=self.size, pathspec=self.pathspec)
     return result
 
   def Read(self, length):
@@ -337,10 +338,10 @@ class OSXMemory(MemoryVFS):
     return self.fd.read(length)
 
 if "linux" in sys.platform:
-  vfs.VFS_HANDLERS[rdfvalue.PathSpec.PathType.MEMORY] = LinuxMemory
+  vfs.VFS_HANDLERS[rdf_paths.PathSpec.PathType.MEMORY] = LinuxMemory
 
 elif "win32" in sys.platform:
-  vfs.VFS_HANDLERS[rdfvalue.PathSpec.PathType.MEMORY] = WindowsMemory
+  vfs.VFS_HANDLERS[rdf_paths.PathSpec.PathType.MEMORY] = WindowsMemory
 
 elif "darwin" in sys.platform:
-  vfs.VFS_HANDLERS[rdfvalue.PathSpec.PathType.MEMORY] = OSXMemory
+  vfs.VFS_HANDLERS[rdf_paths.PathSpec.PathType.MEMORY] = OSXMemory

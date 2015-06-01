@@ -1,0 +1,76 @@
+check_id: 'CIS-LOGIN-UNIX-HASH'
+method:
+  - target: {os: ['Linux']}
+    hint:
+      format: 'password for {username} uses {pw_entry.hash_type}'
+      fix: Use a secure hash method for passwords (SHA512 or SHA256).
+      problem: Insecure password hash method.
+    probe:
+      - artifact: 'LoginPolicyConfiguration'
+        baseline:
+          - type: 'RDFFilter'
+            expression: KnowledgeBaseUser
+        filters:
+          - type: 'ObjectFilter'
+            expression: "pw_entry.hash_type inset ['DES','MD5','NTHASH','UNUSED']"
+---
+check_id: 'CIS-LOGIN-UNIX-EMPTY'
+method:
+  - target: {os: ['Linux']}
+    hint:
+      format: 'password for {username} in {pw_entry.store} is empty.'
+      fix: Lock logins for accounts with empty passwords
+        e.g. passwd -l <account>
+      problem: Empty password string.
+    probe:
+      - artifact: 'LoginPolicyConfiguration'
+        baseline:
+          - type: 'RDFFilter'
+            expression: KnowledgeBaseUser
+        filters:
+          - type: 'ObjectFilter'
+            expression: pw_entry.hash_type is "EMPTY"
+---
+check_id: 'CIS-LOGIN-UNIX-SHADOW-MAXAGE'
+method:
+  - target: {os: ['Linux']}
+    hint:
+      format: 'Weak password aging for {username} in {pw_entry.store}.'
+      fix: Make sure password hashes are correct/valid and have a reasonable
+         password age set in /etc/shadow.
+      problem: Weak password aging settings in /etc/shadow.
+    probe:
+      - artifact: 'LoginPolicyConfiguration'
+        baseline:
+          - type: 'RDFFilter'
+            expression: KnowledgeBaseUser
+        filters:
+          - type: 'ObjectFilter'
+            expression: pw_entry.max_age > 365
+---
+check_id: 'CIS-LOGIN-UNIX-NIS-MARKER'
+match: ANY
+method:
+  - target: {os: ['Linux']}
+    hint:
+      fix: Remove this account from the system.
+      problem: NIS entries present.
+    probe:
+      - artifact: 'LoginPolicyConfiguration'
+        hint:
+          format: 'User account {username} is a NIS account marker.'
+        baseline:
+          - type: 'RDFFilter'
+            expression: KnowledgeBaseUser
+        filters:
+          - type: 'ObjectFilter'
+            expression: username regexp "\+\w*"
+      - artifact: 'LoginPolicyConfiguration'
+        hint:
+          format: 'Group entry {name} is a NIS account marker.'
+        baseline:
+          - type: 'RDFFilter'
+            expression: Group
+        filters:
+          - type: 'ObjectFilter'
+            expression: name regexp "\+\w*"

@@ -13,21 +13,23 @@ from grr.client import comms
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import flows as rdf_flows
 
 
 class MockAction(actions.ActionPlugin):
-  in_rdfvalue = rdfvalue.LogMessage
-  out_rdfvalue = rdfvalue.LogMessage
+  in_rdfvalue = rdf_client.LogMessage
+  out_rdfvalue = rdf_client.LogMessage
 
   def Run(self, message):
-    self.SendReply(rdfvalue.EchoRequest(
+    self.SendReply(rdf_client.EchoRequest(
         data="Received Message: %s. Data %s" % (message.data, "x" * 100)))
 
 
 class RaiseAction(actions.ActionPlugin):
   """A mock action which raises an error."""
-  in_rdfvalue = rdfvalue.LogMessage
-  out_rdfvalue = rdfvalue.LogMessage
+  in_rdfvalue = rdf_client.LogMessage
+  out_rdfvalue = rdf_client.LogMessage
 
   def Run(self, unused_args):
     raise RuntimeError("I dont like.")
@@ -52,12 +54,12 @@ class BasicContextTests(test_lib.GRRBaseTest):
 
   def testHandleMessage(self):
     """Test handling of a normal request with a response."""
-    args = rdfvalue.LogMessage(data="hello")
+    args = rdf_client.LogMessage(data="hello")
     # Push a request on it
-    message = rdfvalue.GrrMessage(
+    message = rdf_flows.GrrMessage(
         name="MockAction",
         session_id=self.session_id,
-        auth_state=rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED,
+        auth_state=rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED,
         payload=args,
         request_id=1)
 
@@ -69,17 +71,17 @@ class BasicContextTests(test_lib.GRRBaseTest):
 
     self.assertEqual(message_list[0].session_id, self.session_id)
     self.assertEqual(message_list[0].response_id, 1)
-    self.assert_("hello" in message_list[0].args)
+    self.assert_("hello" in message_list[0].payload.data)
     self.assertEqual(message_list[1].response_id, 2)
-    self.assertEqual(message_list[1].type, rdfvalue.GrrMessage.Type.STATUS)
+    self.assertEqual(message_list[1].type, rdf_flows.GrrMessage.Type.STATUS)
 
   def testHandleError(self):
     """Test handling of a request which raises."""
     # Push a request on it
-    message = rdfvalue.GrrMessage(
+    message = rdf_flows.GrrMessage(
         name="RaiseAction",
         session_id=self.session_id,
-        auth_state=rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED,
+        auth_state=rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED,
         request_id=1)
 
     self.context.HandleMessage(message)
@@ -88,9 +90,9 @@ class BasicContextTests(test_lib.GRRBaseTest):
     message_list = self.context.Drain().job
     self.assertEqual(message_list[0].session_id, self.session_id)
     self.assertEqual(message_list[0].response_id, 1)
-    status = rdfvalue.GrrStatus(message_list[0].args)
+    status = rdf_flows.GrrStatus(message_list[0].payload)
     self.assert_("RuntimeError" in status.error_message)
-    self.assertNotEqual(status.status, rdfvalue.GrrStatus.ReturnedStatus.OK)
+    self.assertNotEqual(status.status, rdf_flows.GrrStatus.ReturnedStatus.OK)
 
   def testUnauthenticated(self):
     """What happens if an unauthenticated message is sent to the client?
@@ -99,10 +101,10 @@ class BasicContextTests(test_lib.GRRBaseTest):
     GrrStatus message with the traceback in it.
     """
     # Push a request on it
-    message = rdfvalue.GrrMessage(
+    message = rdf_flows.GrrMessage(
         name="MockAction",
         session_id=self.session_id,
-        auth_state=rdfvalue.GrrMessage.AuthorizationState.UNAUTHENTICATED,
+        auth_state=rdf_flows.GrrMessage.AuthorizationState.UNAUTHENTICATED,
         request_id=1)
 
     self.context.HandleMessage(message)
@@ -113,18 +115,18 @@ class BasicContextTests(test_lib.GRRBaseTest):
     self.assertEqual(len(message_list), 1)
     self.assertEqual(message_list[0].session_id, self.session_id)
     self.assertEqual(message_list[0].response_id, 1)
-    status = rdfvalue.GrrStatus(message_list[0].args)
+    status = rdf_flows.GrrStatus(message_list[0].payload)
     self.assert_("not Authenticated" in status.error_message)
     self.assert_("RuntimeError" in status.error_message)
-    self.assertNotEqual(status.status, rdfvalue.GrrStatus.ReturnedStatus.OK)
+    self.assertNotEqual(status.status, rdf_flows.GrrStatus.ReturnedStatus.OK)
 
   def testPriorityAndFastPoll(self):
     """Test priority and fast poll settings propagated to status results."""
     for i in range(10):
-      message = rdfvalue.GrrMessage(
+      message = rdf_flows.GrrMessage(
           name="MockAction",
           session_id=self.session_id.Basename() + str(i),
-          auth_state=rdfvalue.GrrMessage.AuthorizationState.UNAUTHENTICATED,
+          auth_state=rdf_flows.GrrMessage.AuthorizationState.UNAUTHENTICATED,
           request_id=1,
           priority=i % 3,
           require_fastpoll=i % 2)

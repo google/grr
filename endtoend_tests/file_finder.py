@@ -4,7 +4,7 @@
 
 from grr.endtoend_tests import transfer
 from grr.lib import aff4
-from grr.lib import rdfvalue
+from grr.lib import flow_runner
 
 from grr.lib.flows.general import file_finder
 
@@ -80,7 +80,7 @@ class TestFileFinderOSHomedir(TestFileFinderOSLinux):
   action = file_finder.FileFinderAction(
       action_type=file_finder.FileFinderAction.Action.STAT)
   args = {"paths": ["%%users.homedir%%/*"], "action": action,
-          "runner_args": rdfvalue.FlowRunnerArgs(output=test_output_path)}
+          "runner_args": flow_runner.FlowRunnerArgs(output=test_output_path)}
 
   def CheckFlow(self):
     results = aff4.FACTORY.Open(self.client_id.Add(self.test_output_path),

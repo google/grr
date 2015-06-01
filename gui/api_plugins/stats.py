@@ -8,11 +8,12 @@ from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.aff4_objects import stats_store as stats_store_lib
+from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import api_pb2
 
 
-class ApiStatsStoreMetricsMetadataRendererArgs(rdfvalue.RDFProtoStruct):
+class ApiStatsStoreMetricsMetadataRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiStatsStoreMetricsMetadataRendererArgs
 
 
@@ -34,7 +35,7 @@ class ApiStatsStoreMetricsMetadataRenderer(api_call_renderers.ApiCallRenderer):
       return api_value_renderers.RenderValue(metadata)
 
 
-class ApiStatsStoreMetricRendererArgs(rdfvalue.RDFProtoStruct):
+class ApiStatsStoreMetricRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiStatsStoreMetricRendererArgs
 
 

@@ -7,55 +7,57 @@ import stat
 
 from grr.lib import aff4
 from grr.lib import flow
-from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.flows.general import filesystem
 from grr.lib.flows.general import fingerprint
 from grr.lib.flows.general import transfer
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 
 
-class FileFinderModificationTimeCondition(rdfvalue.RDFProtoStruct):
+class FileFinderModificationTimeCondition(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FileFinderModificationTimeCondition
 
 
-class FileFinderAccessTimeCondition(rdfvalue.RDFProtoStruct):
+class FileFinderAccessTimeCondition(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FileFinderAccessTimeCondition
 
 
-class FileFinderInodeChangeTimeCondition(rdfvalue.RDFProtoStruct):
+class FileFinderInodeChangeTimeCondition(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FileFinderInodeChangeTimeCondition
 
 
-class FileFinderSizeCondition(rdfvalue.RDFProtoStruct):
+class FileFinderSizeCondition(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FileFinderSizeCondition
 
 
-class FileFinderContentsRegexMatchCondition(rdfvalue.RDFProtoStruct):
+class FileFinderContentsRegexMatchCondition(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FileFinderContentsRegexMatchCondition
 
 
-class FileFinderContentsLiteralMatchCondition(rdfvalue.RDFProtoStruct):
+class FileFinderContentsLiteralMatchCondition(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FileFinderContentsLiteralMatchCondition
 
 
-class FileFinderCondition(rdfvalue.RDFProtoStruct):
+class FileFinderCondition(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FileFinderCondition
 
 
-class FileFinderDownloadActionOptions(rdfvalue.RDFProtoStruct):
+class FileFinderDownloadActionOptions(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FileFinderDownloadActionOptions
 
 
-class FileFinderAction(rdfvalue.RDFProtoStruct):
+class FileFinderAction(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FileFinderAction
 
 
-class FileFinderArgs(rdfvalue.RDFProtoStruct):
+class FileFinderArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FileFinderArgs
 
 
-class FileFinderResult(rdfvalue.RDFProtoStruct):
+class FileFinderResult(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FileFinderResult
 
 
@@ -85,7 +87,7 @@ class FileFinder(transfer.MultiGetFileMixin,
 
   def Initialize(self):
     super(FileFinder, self).Initialize()
-    type_enum = rdfvalue.FileFinderCondition.Type
+    type_enum = FileFinderCondition.Type
     # For every condition type we specify a tuple (handle, weight).
     # Conditions will be sorted by weight, so that the ones with the minimal
     # weight will be executed earlier.
@@ -117,24 +119,26 @@ class FileFinder(transfer.MultiGetFileMixin,
     self.state.Register("sorted_conditions",
                         sorted(self.args.conditions, key=self._ConditionWeight))
 
-    if self.args.pathtype in (rdfvalue.PathSpec.PathType.MEMORY,
-                              rdfvalue.PathSpec.PathType.REGISTRY):
+    self.state.file_size = self.args.file_size
+
+    if self.args.pathtype in (rdf_paths.PathSpec.PathType.MEMORY,
+                              rdf_paths.PathSpec.PathType.REGISTRY):
       # Memory and Registry StatEntries won't pass the file type check.
       self.args.no_file_type_check = True
 
-    if self.args.pathtype == rdfvalue.PathSpec.PathType.MEMORY:
+    if self.args.pathtype == rdf_paths.PathSpec.PathType.MEMORY:
       # If pathtype is MEMORY, we're treating provided paths not as globs,
       # but as paths to memory devices.
       for path in self.args.paths:
-        pathspec = rdfvalue.PathSpec(
+        pathspec = rdf_paths.PathSpec(
             path=utils.SmartUnicode(path),
-            pathtype=rdfvalue.PathSpec.PathType.MEMORY)
+            pathtype=rdf_paths.PathSpec.PathType.MEMORY)
 
         aff4path = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
             pathspec, self.client_id)
 
-        stat_entry = rdfvalue.StatEntry(aff4path=aff4path, pathspec=pathspec)
-        self.ApplyCondition(rdfvalue.FileFinderResult(stat_entry=stat_entry),
+        stat_entry = rdf_client.StatEntry(aff4path=aff4path, pathspec=pathspec)
+        self.ApplyCondition(FileFinderResult(stat_entry=stat_entry),
                             condition_index=0)
 
     else:
@@ -145,7 +149,7 @@ class FileFinder(transfer.MultiGetFileMixin,
     """This method is called by the glob mixin when there is a match."""
     super(FileFinder, self).GlobReportMatch(response)
 
-    self.ApplyCondition(rdfvalue.FileFinderResult(stat_entry=response),
+    self.ApplyCondition(FileFinderResult(stat_entry=response),
                         condition_index=0)
 
   def ModificationTimeCondition(self, response, condition_options,
@@ -194,7 +198,7 @@ class FileFinder(transfer.MultiGetFileMixin,
       return
 
     options = condition_options.contents_regex_match
-    grep_spec = rdfvalue.GrepSpec(
+    grep_spec = rdf_client.GrepSpec(
         target=response.stat_entry.pathspec,
         regex=options.regex,
         mode=options.mode,
@@ -217,7 +221,7 @@ class FileFinder(transfer.MultiGetFileMixin,
       return
 
     options = condition_options.contents_literal_match
-    grep_spec = rdfvalue.GrepSpec(
+    grep_spec = rdf_client.GrepSpec(
         target=response.stat_entry.pathspec,
         literal=options.literal,
         mode=options.mode,
@@ -265,7 +269,7 @@ class FileFinder(transfer.MultiGetFileMixin,
     """Applies action specified by user to responses."""
     action = self.state.args.action.action_type
 
-    if action == rdfvalue.FileFinderAction.Action.STAT:
+    if action == FileFinderAction.Action.STAT:
       # If action is STAT, we already have all the data we need to send the
       # response.
       self.state.files_found += 1
@@ -276,11 +280,11 @@ class FileFinder(transfer.MultiGetFileMixin,
       # sent only when we get file's hash.
       self.state.files_found += 1
 
-      if action == rdfvalue.FileFinderAction.Action.HASH:
+      if action == FileFinderAction.Action.HASH:
         self.FingerprintFile(response.stat_entry.pathspec,
                              request_data=dict(original_result=response))
 
-      elif action == rdfvalue.FileFinderAction.Action.DOWNLOAD:
+      elif action == FileFinderAction.Action.DOWNLOAD:
         # If the binary is too large we don't download it, but take a
         # fingerprint instead.
         file_size = response.stat_entry.st_size

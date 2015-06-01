@@ -4,10 +4,6 @@
 
 
 
-# pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import,g-bad-import-order
-
 from grr.lib import communicator
 from grr.lib import config_lib
 from grr.lib import data_store
@@ -17,6 +13,9 @@ from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import protodict as rdf_protodict
 
 
 class SendingTestFlow(flow.GRRFlow):
@@ -26,7 +25,7 @@ class SendingTestFlow(flow.GRRFlow):
   def Start(self):
     for i in range(10):
       self.CallClient("Test",
-                      rdfvalue.DataBlob(string="test%s" % i),
+                      rdf_protodict.DataBlob(string="test%s" % i),
                       data=str(i),
                       next_state="Incoming")
 
@@ -60,10 +59,10 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     flow_obj = self.FlowSetup("FlowOrderTest")
 
     session_id = flow_obj.session_id
-    messages = [rdfvalue.GrrMessage(request_id=1,
-                                    response_id=i,
-                                    session_id=session_id,
-                                    args=str(i))
+    messages = [rdf_flows.GrrMessage(request_id=1,
+                                     response_id=i,
+                                     session_id=session_id,
+                                     payload=rdfvalue.RDFInteger(i))
                 for i in range(1, 10)]
 
     self.server.ReceiveMessages(self.client_id, messages)
@@ -80,7 +79,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
           manager.FLOW_RESPONSE_TEMPLATE % (1, message.response_id),
           token=self.token)
 
-      stored_message = rdfvalue.GrrMessage(stored_message)
+      stored_message = rdf_flows.GrrMessage(stored_message)
       self.assertRDFValueEqual(stored_message, message)
 
     return messages
@@ -90,19 +89,19 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     flow_obj = self.FlowSetup("FlowOrderTest")
 
     session_id = flow_obj.session_id
-    messages = [rdfvalue.GrrMessage(request_id=1,
-                                    response_id=i,
-                                    session_id=session_id,
-                                    args=str(i),
-                                    task_id=15)
+    messages = [rdf_flows.GrrMessage(request_id=1,
+                                     response_id=i,
+                                     session_id=session_id,
+                                     payload=rdfvalue.RDFInteger(i),
+                                     task_id=15)
                 for i in range(1, 10)]
 
     # Now add the status message
-    status = rdfvalue.GrrStatus(status=rdfvalue.GrrStatus.ReturnedStatus.OK)
-    messages.append(rdfvalue.GrrMessage(
+    status = rdf_flows.GrrStatus(status=rdf_flows.GrrStatus.ReturnedStatus.OK)
+    messages.append(rdf_flows.GrrMessage(
         request_id=1, response_id=len(messages) + 1, task_id=15,
         session_id=messages[0].session_id, payload=status,
-        type=rdfvalue.GrrMessage.Type.STATUS))
+        type=rdf_flows.GrrMessage.Type.STATUS))
 
     self.server.ReceiveMessages(self.client_id, messages)
 
@@ -118,7 +117,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
           manager.FLOW_RESPONSE_TEMPLATE % (1, message.response_id),
           token=self.token)
 
-      stored_message = rdfvalue.GrrMessage(stored_message)
+      stored_message = rdf_flows.GrrMessage(stored_message)
       self.assertRDFValueEqual(stored_message, message)
 
   def testWellKnownFlows(self):
@@ -126,10 +125,10 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     test_lib.WellKnownSessionTest.messages = []
     session_id = test_lib.WellKnownSessionTest.well_known_session_id
 
-    messages = [rdfvalue.GrrMessage(request_id=0,
-                                    response_id=0,
-                                    session_id=session_id,
-                                    args=str(i))
+    messages = [rdf_flows.GrrMessage(request_id=0,
+                                     response_id=0,
+                                     session_id=session_id,
+                                     payload=rdfvalue.RDFInteger(i))
                 for i in range(1, 10)]
 
     self.server.ReceiveMessages(self.client_id, messages)
@@ -152,10 +151,10 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     test_lib.WellKnownSessionTest.messages = []
     session_id = test_lib.WellKnownSessionTest.well_known_session_id
 
-    messages = [rdfvalue.GrrMessage(request_id=0,
-                                    response_id=0,
-                                    session_id=session_id,
-                                    args=str(i))
+    messages = [rdf_flows.GrrMessage(request_id=0,
+                                     response_id=0,
+                                     session_id=session_id,
+                                     payload=rdfvalue.RDFInteger(i))
                 for i in range(1, 10)]
 
     # Delete the local well known flow cache is empty.
@@ -202,7 +201,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
           manager.FLOW_REQUEST_TEMPLATE % request_id,
           token=self.token)
 
-      request_state = rdfvalue.RequestState(request_state)
+      request_state = rdf_flows.RequestState(request_state)
 
       # Check that task_id for the client message is correctly set in
       # request_state.
@@ -210,7 +209,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
 
     # Now ask the server to drain the outbound messages into the
     # message list.
-    response = rdfvalue.MessageList()
+    response = rdf_flows.MessageList()
 
     self.server.DrainTaskSchedulerQueueForClient(
         self.client_id, 5, response)
@@ -294,7 +293,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     we have no certificate for, the messages are requeued when sending fails.
     """
     # Make a new fake client
-    client_id = rdfvalue.ClientURN("C." + "2" * 16)
+    client_id = rdf_client.ClientURN("C." + "2" * 16)
 
     class MockCommunicator(object):
       """A fake that simulates an unenrolled client."""
@@ -311,7 +310,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     self.server._communicator = MockCommunicator()
 
     # First request, the server will raise UnknownClientCert.
-    request_comms = rdfvalue.ClientCommunication()
+    request_comms = rdf_flows.ClientCommunication()
     self.assertRaises(communicator.UnknownClientCert,
                       self.server.HandleMessageBundles, request_comms, 2)
 
@@ -340,20 +339,20 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
   def _ScheduleResponseAndStatus(self, client_id, flow_id):
     with queue_manager.QueueManager(token=self.token) as flow_manager:
       # Schedule a response.
-      flow_manager.QueueResponse(flow_id, rdfvalue.GrrMessage(
+      flow_manager.QueueResponse(flow_id, rdf_flows.GrrMessage(
           source=client_id,
           session_id=flow_id,
-          payload=rdfvalue.DataBlob(string="Helllo"),
+          payload=rdf_protodict.DataBlob(string="Helllo"),
           request_id=1,
           response_id=1))
       # And a STATUS message.
-      flow_manager.QueueResponse(flow_id, rdfvalue.GrrMessage(
+      flow_manager.QueueResponse(flow_id, rdf_flows.GrrMessage(
           source=client_id,
           session_id=flow_id,
-          payload=rdfvalue.GrrStatus(
-              status=rdfvalue.GrrStatus.ReturnedStatus.OK),
+          payload=rdf_flows.GrrStatus(
+              status=rdf_flows.GrrStatus.ReturnedStatus.OK),
           request_id=1, response_id=2,
-          type=rdfvalue.GrrMessage.Type.STATUS))
+          type=rdf_flows.GrrMessage.Type.STATUS))
 
   def testHandleClientMessageRetransmission(self):
     """Check that requests get retransmitted but only if there is no status."""
@@ -364,7 +363,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     base_time = 1000
     msgs_recvd = []
 
-    default_ttl = rdfvalue.GrrMessage().task_ttl
+    default_ttl = rdf_flows.GrrMessage().task_ttl
     with test_lib.FakeTime(base_time):
       flow.GRRFlow.StartFlow(client_id=client_id, flow_name="SendingFlow",
                              message_count=1, token=self.token)
@@ -373,12 +372,12 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
       with test_lib.FakeTime(base_time + i * (self.message_expiry_time + 1)):
 
         tasks = self.server.DrainTaskSchedulerQueueForClient(
-            client_id, 100000, rdfvalue.MessageList())
+            client_id, 100000, rdf_flows.MessageList())
         msgs_recvd.append(tasks)
 
     # Should return a client message (ttl-1) times and nothing afterwards.
     self.assertEqual(map(bool, msgs_recvd),
-                     [True] * (rdfvalue.GrrMessage().task_ttl - 1) + [False])
+                     [True] * (rdf_flows.GrrMessage().task_ttl - 1) + [False])
 
     # Now we simulate that the workers are overloaded - the client messages
     # arrive but do not get processed in time.
@@ -399,20 +398,20 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
       with test_lib.FakeTime(base_time + i * (self.message_expiry_time + 1)):
 
         tasks = self.server.DrainTaskSchedulerQueueForClient(
-            client_id, 100000, rdfvalue.MessageList())
+            client_id, 100000, rdf_flows.MessageList())
         msgs_recvd.append(tasks)
 
         if not tasks:
           # Even if the request has not been leased ttl times yet,
           # it should be dequeued by now.
           new_tasks = queue_manager.QueueManager(token=self.token).Query(
-              queue=rdfvalue.ClientURN(client_id).Queue(), limit=1000)
+              queue=rdf_client.ClientURN(client_id).Queue(), limit=1000)
           self.assertEqual(len(new_tasks), 0)
 
     # Should return a client message twice and nothing afterwards.
     self.assertEqual(
         map(bool, msgs_recvd),
-        [True] * 2 + [False] * (rdfvalue.GrrMessage().task_ttl - 2))
+        [True] * 2 + [False] * (rdf_flows.GrrMessage().task_ttl - 2))
 
 
 def main(args):

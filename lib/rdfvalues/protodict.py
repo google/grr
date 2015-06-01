@@ -6,15 +6,15 @@ import collections
 
 from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.lib.rdfvalues import structs
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import jobs_pb2
 
 
-class KeyValue(structs.RDFProtoStruct):
+class KeyValue(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.KeyValue
 
 
-class DataBlob(structs.RDFProtoStruct):
+class DataBlob(rdf_structs.RDFProtoStruct):
   """Wrapper class for DataBlob protobuf."""
   protobuf = jobs_pb2.DataBlob
 
@@ -99,7 +99,7 @@ class DataBlob(structs.RDFProtoStruct):
       return values[0]
 
 
-class Dict(rdfvalue.RDFProtoStruct):
+class Dict(rdf_structs.RDFProtoStruct):
   """A high level interface for protobuf Dict objects.
 
   This effectively converts from a dict to a proto and back.
@@ -143,8 +143,8 @@ class Dict(rdfvalue.RDFProtoStruct):
     self.dat = None
     for key, value in dictionary.iteritems():
       self.dat.Append(
-          k=rdfvalue.DataBlob().SetValue(key, raise_on_error=raise_on_error),
-          v=rdfvalue.DataBlob().SetValue(value, raise_on_error=raise_on_error))
+          k=DataBlob().SetValue(key, raise_on_error=raise_on_error),
+          v=DataBlob().SetValue(value, raise_on_error=raise_on_error))
     return self
 
   def __getitem__(self, key):
@@ -237,11 +237,11 @@ class RDFProtoDict(Dict):
   pass
 
 
-class BlobArray(rdfvalue.RDFProtoStruct):
+class BlobArray(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.BlobArray
 
 
-class RDFValueArray(rdfvalue.RDFProtoStruct):
+class RDFValueArray(rdf_structs.RDFProtoStruct):
   """A type which serializes a list of RDFValue instances.
 
   TODO(user): This needs to be deprecated in favor of just defining a
@@ -323,7 +323,7 @@ class RDFValueArray(rdfvalue.RDFProtoStruct):
     return self.content.Pop(index).GetValue()
 
 
-class EmbeddedRDFValue(rdfvalue.RDFProtoStruct):
+class EmbeddedRDFValue(rdf_structs.RDFProtoStruct):
   """An object that contains a serialized RDFValue."""
 
   protobuf = jobs_pb2.EmbeddedRDFValue

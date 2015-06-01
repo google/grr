@@ -12,9 +12,8 @@ import logging
 
 from grr.client import client_utils_linux
 from grr.client.osx import objc
-
-from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 def OSXFindProxies():
@@ -215,7 +214,7 @@ def OSXGetRawDevice(path):
   path = utils.SmartUnicode(path)
   mount_point = path = utils.NormalizePath(path, "/")
 
-  result = rdfvalue.PathSpec(pathtype=rdfvalue.PathSpec.PathType.OS)
+  result = rdf_paths.PathSpec(pathtype=rdf_paths.PathSpec.PathType.OS)
 
   # Assign the most specific mount point to the result
   while mount_point:
@@ -224,9 +223,9 @@ def OSXGetRawDevice(path):
       if fs_type in ["ext2", "ext3", "ext4", "vfat", "ntfs",
                      "Apple_HFS", "hfs", "msdos"]:
         # These are read filesystems
-        result.pathtype = rdfvalue.PathSpec.PathType.OS
+        result.pathtype = rdf_paths.PathSpec.PathType.OS
       else:
-        result.pathtype = rdfvalue.PathSpec.PathType.UNSET
+        result.pathtype = rdf_paths.PathSpec.PathType.UNSET
 
       # Drop the mount point
       path = utils.NormalizePath(path[len(mount_point):])

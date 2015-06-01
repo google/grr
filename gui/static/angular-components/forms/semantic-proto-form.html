@@ -1,0 +1,27 @@
+<div ng-if="controller.valueDescriptor.union_field">
+  <grr-form-proto-union value="value"
+                        descriptor="controller.valueDescriptor" />
+</div>
+
+<div ng-if="!controller.valueDescriptor.union_field">
+  <div class="form-group" ng-if="metadata.depth >= 2">
+    <i class="nested-icon glyphicon" ng-click="controller.expanded = !controller.expanded"
+       ng-class="{'glyphicon-plus': !controller.expanded, 'glyphicon-minus': controller.expanded}"></i>
+  </div>
+
+  <div ng-if="(metadata.depth === undefined || metadata.depth < 2 || controller.expanded)">
+    <div ng-repeat="field in controller.valueDescriptor.fields">
+      <grr-form-proto-single-field value="value.value[field.name]"
+                                   field="field"
+                                   ng-if="!field.repeated">
+      </grr-form-proto-single-field>
+
+      <grr-form-proto-repeated-field value="value.value[field.name]"
+                                     descriptor="controller.descriptors[field.type]"
+                                     field="field"
+                                     ng-if="field.repeated">
+      </grr-form-proto-repeated-field>
+    </div>
+  </div>
+
+</div>

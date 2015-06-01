@@ -10,6 +10,7 @@ from grr.lib import parsers
 from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
+from grr.lib.rdfvalues import client as rdf_client
 
 
 SID_RE = re.compile(r"^S-\d-\d+-(\d+-){1,14}\d+$")
@@ -114,7 +115,7 @@ class AllUsersProfileEnvironmentVariable(parsers.RegistryParser):
   def ParseMultiple(self, stats, knowledge_base):
     """Parse each returned registry variable."""
     prof_directory = r"%SystemDrive%\Documents and Settings"
-    all_users = "All Users"    # Default value.
+    all_users = "All Users"  # Default value.
     for stat in stats:
       value = stat.registry_data.GetValue()
       if stat.pathspec.Basename() == "ProfilesDirectory" and value:
@@ -143,7 +144,7 @@ class WinUserSids(parsers.RegistryParser):
     sid_str = stat.pathspec.Dirname().Basename()
 
     if SID_RE.match(sid_str):
-      kb_user = rdfvalue.KnowledgeBaseUser()
+      kb_user = rdf_client.KnowledgeBaseUser()
       kb_user.sid = sid_str
       if stat.pathspec.Basename() == "ProfileImagePath":
         if stat.resident:
@@ -209,7 +210,7 @@ class WinUserSpecialDirs(parsers.RegistryParser):
       sid_str = stat.pathspec.path.split("/", 3)[2]
       if SID_RE.match(sid_str):
         if sid_str not in user_dict:
-          user_dict[sid_str] = rdfvalue.KnowledgeBaseUser(sid=sid_str)
+          user_dict[sid_str] = rdf_client.KnowledgeBaseUser(sid=sid_str)
 
         if stat.registry_data.GetValue():
           # Look up in the mapping if we can use this entry to populate a user
@@ -277,8 +278,8 @@ class WinServicesParser(parsers.RegistryValueParser):
 
       service_name = self._GetServiceName(stat.pathspec.path)
       reg_key = stat.aff4path.Dirname()
-      service_info = rdfvalue.WindowsServiceInformation(name=service_name,
-                                                        registry_key=reg_key)
+      service_info = rdf_client.WindowsServiceInformation(name=service_name,
+                                                          registry_key=reg_key)
       services.setdefault(service_name, service_info)
 
       key = self._GetKeyName(stat.pathspec.path)
@@ -290,10 +291,10 @@ class WinServicesParser(parsers.RegistryValueParser):
         except type_info.TypeValueError:
 
           # Flatten multi strings into a simple string
-          if stat.registry_type == rdfvalue.StatEntry.RegistryType.REG_MULTI_SZ:
-            services[service_name].Set(field_map[key],
-                                       utils.SmartUnicode(
-                                           stat.registry_data.GetValue()))
+          if (stat.registry_type ==
+              rdf_client.StatEntry.RegistryType.REG_MULTI_SZ):
+            services[service_name].Set(field_map[key], utils.SmartUnicode(
+                stat.registry_data.GetValue()))
           else:
             # Log failures for everything else
             # TODO(user): change this to yield a ParserAnomaly object.

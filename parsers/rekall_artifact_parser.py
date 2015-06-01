@@ -6,7 +6,8 @@ import ntpath
 
 from grr.lib import artifact_lib
 from grr.lib import parsers
-from grr.lib import rdfvalue
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class RekallPsListParser(parsers.RekallPluginParser):
@@ -17,7 +18,7 @@ class RekallPsListParser(parsers.RekallPluginParser):
 
   def ParseProcess(self, item):
     cybox = item.get("_EPROCESS", {}).get("Cybox", {})
-    result = rdfvalue.Process(
+    result = rdf_client.Process(
         exe=cybox.get("Name"),
         pid=cybox.get("PID"),
         ppid=cybox.get("Parent_PID"),
@@ -53,6 +54,6 @@ class RekallVADParser(parsers.RekallPluginParser):
 
         filename = message[1].get("filename", "")
         if filename and filename != "Pagefile-backed section":
-          yield rdfvalue.PathSpec(
+          yield rdf_paths.PathSpec(
               path=ntpath.normpath(ntpath.join(system_drive, filename)),
-              pathtype=rdfvalue.PathSpec.PathType.OS)
+              pathtype=rdf_paths.PathSpec.PathType.OS)

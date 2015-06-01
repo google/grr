@@ -4,13 +4,12 @@
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib.checks import triggers
-from grr.lib.rdfvalues import checks
 
 
-target_1 = checks.Target({})
-target_2 = checks.Target(os=["TermOS"],
-                         cpe=["cpe:/o:cyberdyne:termos"],
-                         label=["t800", "t1000"])
+target_1 = triggers.Target({})
+target_2 = triggers.Target(os=["TermOS"],
+                           cpe=["cpe:/o:cyberdyne:termos"],
+                           label=["t800", "t1000"])
 bad_ai = ("BadAI", None, None, None)
 good_ai = ("GoodAI", None, None, None)
 termos = ("BadAI", "TermOS", "cpe:/o:cyberdyne:termos")

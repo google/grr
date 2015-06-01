@@ -18,6 +18,8 @@ import logging
 from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 # TODO(user): Find a reliable way to do this for Linux.
@@ -64,7 +66,7 @@ def LinGetRawDevice(path):
   path = utils.SmartUnicode(path)
   mount_point = path = utils.NormalizePath(path, "/")
 
-  result = rdfvalue.PathSpec(pathtype=rdfvalue.PathSpec.PathType.OS)
+  result = rdf_paths.PathSpec(pathtype=rdf_paths.PathSpec.PathType.OS)
 
   # Assign the most specific mount point to the result
   while mount_point:
@@ -72,9 +74,9 @@ def LinGetRawDevice(path):
       result.path, fs_type = device_map[mount_point]
       if fs_type in ["ext2", "ext3", "ext4", "vfat", "ntfs"]:
         # These are read filesystems
-        result.pathtype = rdfvalue.PathSpec.PathType.OS
+        result.pathtype = rdf_paths.PathSpec.PathType.OS
       else:
-        result.pathtype = rdfvalue.PathSpec.PathType.UNSET
+        result.pathtype = rdf_paths.PathSpec.PathType.UNSET
 
       # Drop the mount point
       path = utils.NormalizePath(path[len(mount_point):])
@@ -233,7 +235,7 @@ class NannyController(object):
 
     try:
       if data:
-        return rdfvalue.GrrMessage(data)
+        return rdf_flows.GrrMessage(data)
     except (message.Error, rdfvalue.Error):
       return
 

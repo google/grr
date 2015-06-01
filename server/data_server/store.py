@@ -14,10 +14,12 @@ import logging
 from grr.lib import access_control
 from grr.lib import config_lib
 from grr.lib import data_store
-from grr.lib import rdfvalue
 from grr.lib import utils
 
 from grr.lib.data_stores import common
+from grr.lib.rdfvalues import data_server as rdf_data_server
+from grr.lib.rdfvalues import data_store as rdf_data_store
+from grr.lib.rdfvalues import protodict as rdf_protodict
 
 
 BASE_MAP_SUBJECT = "servers_map"
@@ -43,8 +45,8 @@ def RPCWrapper(f):
   def Wrapper(self, request):
     """Wrap the function can catch exceptions, converting them to status."""
     failed = True
-    response = rdfvalue.DataStoreResponse()
-    response.status = rdfvalue.DataStoreResponse.Status.OK
+    response = rdf_data_store.DataStoreResponse()
+    response.status = rdf_data_store.DataStoreResponse.Status.OK
 
     try:
       f(self, request, response)
@@ -55,7 +57,8 @@ def RPCWrapper(f):
       response.Clear()
       response.request = request
 
-      response.status = rdfvalue.DataStoreResponse.Status.AUTHORIZATION_DENIED
+      response.status = (rdf_data_store.DataStoreResponse.Status.
+                         AUTHORIZATION_DENIED)
       if e.subject:
         response.failed_subject = utils.SmartUnicode(e.subject)
 
@@ -67,7 +70,7 @@ def RPCWrapper(f):
       response.Clear()
       response.request = request
 
-      response.status = rdfvalue.DataStoreResponse.Status.DATA_STORE_ERROR
+      response.status = rdf_data_store.DataStoreResponse.Status.DATA_STORE_ERROR
       response.status_desc = utils.SmartUnicode(e)
 
     except access_control.ExpiryError as e:
@@ -76,7 +79,7 @@ def RPCWrapper(f):
       response.Clear()
       response.request = request
 
-      response.status = rdfvalue.DataStoreResponse.Status.TIMEOUT_ERROR
+      response.status = rdf_data_store.DataStoreResponse.Status.TIMEOUT_ERROR
       response.status_desc = utils.SmartUnicode(e)
 
     if failed:
@@ -112,7 +115,7 @@ class DataStoreService(object):
     to_delete = set()
 
     for value in request.values:
-      if value.option == rdfvalue.DataStoreValue.Option.REPLACE:
+      if value.option == rdf_data_store.DataStoreValue.Option.REPLACE:
         to_delete.add(value.attribute)
 
       timestamp = self.FromTimestampSpec(request.timestamp)
@@ -189,8 +192,8 @@ class DataStoreService(object):
     self._AddTransactionId(response, subject, transid)
 
   def _AddTransactionId(self, response, subject, transid):
-    blob = rdfvalue.DataBlob(string=transid)
-    value = rdfvalue.DataStoreValue(value=blob)
+    blob = rdf_protodict.DataBlob(string=transid)
+    value = rdf_data_store.DataStoreValue(value=blob)
     response.results.Append(subject=subject, values=[value])
 
   @RPCWrapper
@@ -287,7 +290,7 @@ class DataStoreService(object):
                                      token=token)
     if not mapping_str:
       return None
-    mapping = rdfvalue.DataServerMapping(mapping_str)
+    mapping = rdf_data_server.DataServerMapping(mapping_str)
     # Restore pathing information.
     if self._DifferentPathing(list(mapping.pathing)):
       self.pathing = list(mapping.pathing)

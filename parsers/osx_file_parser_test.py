@@ -5,8 +5,9 @@ import os
 
 
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
 from grr.parsers import osx_file_parser
 
 
@@ -19,17 +20,17 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
     statentries = []
     client = "C.1000000000000000"
     for path in paths:
-      statentries.append(rdfvalue.StatEntry(
-          aff4path=rdfvalue.ClientURN(client).Add("fs/os").Add(path),
-          pathspec=rdfvalue.PathSpec(path=path,
-                                     pathtype=rdfvalue.PathSpec.PathType.OS),
+      statentries.append(rdf_client.StatEntry(
+          aff4path=rdf_client.ClientURN(client).Add("fs/os").Add(path),
+          pathspec=rdf_paths.PathSpec(path=path,
+                                      pathtype=rdf_paths.PathSpec.PathType.OS),
           st_mode=16877))
 
-    statentries.append(rdfvalue.StatEntry(
-        aff4path=rdfvalue.ClientURN(client).Add(
+    statentries.append(rdf_client.StatEntry(
+        aff4path=rdf_client.ClientURN(client).Add(
             "fs/os").Add("/Users/.localized"),
-        pathspec=rdfvalue.PathSpec(path="/Users/.localized",
-                                   pathtype=rdfvalue.PathSpec.PathType.OS),
+        pathspec=rdf_paths.PathSpec(path="/Users/.localized",
+                                    pathtype=rdf_paths.PathSpec.PathType.OS),
         st_mode=33261))
 
     parser = osx_file_parser.OSXUsersParser()
@@ -54,10 +55,10 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
     for plist in plists:
       path = os.path.join(self.base_path, plist)
       plist_file = open(path)
-      stat = rdfvalue.StatEntry(
-          aff4path=rdfvalue.ClientURN(client).Add("fs/os").Add(path),
-          pathspec=rdfvalue.PathSpec(path=path,
-                                     pathtype=rdfvalue.PathSpec.PathType.OS),
+      stat = rdf_client.StatEntry(
+          aff4path=rdf_client.ClientURN(client).Add("fs/os").Add(path),
+          pathspec=rdf_paths.PathSpec(path=path,
+                                      pathtype=rdf_paths.PathSpec.PathType.OS),
           st_mode=16877)
       results.extend(list(parser.Parse(stat, plist_file, None)))
 

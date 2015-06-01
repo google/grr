@@ -13,6 +13,7 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.aff4_objects import cronjobs
+from grr.lib.rdfvalues import grr_rdf
 
 
 class TestCronView(test_lib.GRRSeleniumTest):
@@ -395,7 +396,7 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
     # execution
     with test_lib.FakeTime(0):
       self.AddJobStatus("aff4:/cron/OSBreakDown",
-                        rdfvalue.CronJobRunStatus.Status.OK)
+                        grr_rdf.CronJobRunStatus.Status.OK)
 
     self.Open("/")
 
@@ -413,7 +414,7 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
   def testFailingCronJobIsHighlighted(self):
     for _ in range(4):
       self.AddJobStatus("aff4:/cron/OSBreakDown",
-                        rdfvalue.CronJobRunStatus.Status.ERROR)
+                        grr_rdf.CronJobRunStatus.Status.ERROR)
 
     self.Open("/")
 

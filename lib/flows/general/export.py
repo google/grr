@@ -14,6 +14,11 @@ from grr.lib import email_alerts
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.flows.general import file_finder
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import crypto as rdf_crypto
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 
 
@@ -26,12 +31,12 @@ class ItemNotExportableError(Error):
 
 
 def CollectionItemToAff4Path(item):
-  if isinstance(item, rdfvalue.GrrMessage):
+  if isinstance(item, rdf_flows.GrrMessage):
     item = item.payload
 
-  if isinstance(item, rdfvalue.StatEntry):
+  if isinstance(item, rdf_client.StatEntry):
     return item.aff4path
-  elif isinstance(item, rdfvalue.FileFinderResult):
+  elif isinstance(item, file_finder.FileFinderResult):
     return item.stat_entry.aff4path
   else:
     raise ItemNotExportableError()
@@ -69,7 +74,7 @@ class RawIOBaseBridge(io.RawIOBase):
 # pylint: enable=invalid-name
 
 
-class ExportHuntResultsFilesAsArchiveArgs(rdfvalue.RDFProtoStruct):
+class ExportHuntResultsFilesAsArchiveArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ExportHuntResultsFilesAsArchiveArgs
 
 
@@ -104,7 +109,7 @@ class ExportHuntResultFilesAsArchive(flow.GRRFlow):
           archive_path = os.path.join(prefix, *fd.urn.Split())
           self.state.archived_files += 1
 
-          sha256_hash = fd.Get(fd.Schema.HASH, rdfvalue.Hash()).sha256
+          sha256_hash = fd.Get(fd.Schema.HASH, rdf_crypto.Hash()).sha256
           content_path = os.path.join(prefix, "hashes", str(sha256_hash))
           if sha256_hash not in hashes:
             # Make sure size of the original file is passed. It's required

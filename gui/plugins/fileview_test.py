@@ -14,6 +14,8 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.flows.general import file_finder
+from grr.lib.rdfvalues import client as rdf_client
 
 
 class FileViewTestBase(test_lib.GRRSeleniumTest):
@@ -331,7 +333,7 @@ class TestFileView(FileViewTestBase):
 
     # Get the flows that should have been started and finish them.
     with self.ACLChecksDisabled():
-      client_id = rdfvalue.ClientURN("C.0000000000000001")
+      client_id = rdf_client.ClientURN("C.0000000000000001")
 
       fd = aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
       flows = list(fd.ListChildren())
@@ -396,7 +398,7 @@ class TestFileView(FileViewTestBase):
     with self.ACLChecksDisabled():
       with aff4.FACTORY.Create(
           collection_urn, "RDFValueCollection", token=self.token) as fd:
-        fd.Add(rdfvalue.StatEntry(aff4path="aff4:/some/unique/path"))
+        fd.Add(rdf_client.StatEntry(aff4path="aff4:/some/unique/path"))
 
       self.GrantClientApproval("C.0000000000000001")
 
@@ -423,7 +425,7 @@ class TestFileView(FileViewTestBase):
     with self.ACLChecksDisabled():
       with aff4.FACTORY.Create(
           collection_urn, "RDFValueCollection", token=self.token) as fd:
-        fd.Add(rdfvalue.NetworkConnection(pid=42))
+        fd.Add(rdf_client.NetworkConnection(pid=42))
 
       self.GrantClientApproval("C.0000000000000001")
 
@@ -456,7 +458,7 @@ class TestFileView(FileViewTestBase):
     with self.ACLChecksDisabled():
       with aff4.FACTORY.Create(
           collection_urn, "RDFValueCollection", token=self.token) as fd:
-        fd.Add(rdfvalue.StatEntry(aff4path="aff4:/some/unique/path"))
+        fd.Add(rdf_client.StatEntry(aff4path="aff4:/some/unique/path"))
 
       self.GrantClientApproval("C.0000000000000001")
 
@@ -467,8 +469,8 @@ class TestFileView(FileViewTestBase):
     with self.ACLChecksDisabled():
       with aff4.FACTORY.Create(
           collection_urn, "RDFValueCollection", token=self.token) as fd:
-        fd.Add(rdfvalue.FileFinderResult(
-            stat_entry=rdfvalue.StatEntry(aff4path="aff4:/some/unique/path")))
+        fd.Add(file_finder.FileFinderResult(
+            stat_entry=rdf_client.StatEntry(aff4path="aff4:/some/unique/path")))
 
       self.GrantClientApproval("C.0000000000000001")
 
@@ -515,7 +517,7 @@ class TestHostInformation(FileViewTestBase):
     with self.ACLChecksDisabled():
       self.GrantClientApproval(self.client_id)
       with aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token) as fd:
-        fd.Set(fd.Schema.USER, rdfvalue.Users())
+        fd.Set(fd.Schema.USER, rdf_client.Users())
 
   def testClickingOnPlusOpensHistoricalAttributes(self):
     """Test the fileview interface."""

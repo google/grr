@@ -4,9 +4,9 @@ import collections
 import string
 
 from grr.lib import objectfilter
-from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.lib.rdfvalues import structs
+from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.lib.rdfvalues import structs as rdf_structs
 
 
 class Error(Exception):
@@ -51,22 +51,24 @@ class RdfFormatter(string.Formatter):
     """
     # Catch cases where RDFs are iterable but return themselves.
     if parent and obj == parent:
-      return [obj]
-    if isinstance(obj, basestring):
-      results = [utils.SmartStr(obj)]
-    elif isinstance(obj, rdfvalue.DataBlob):
+      results = [utils.SmartUnicode(obj)]
+    elif isinstance(obj, (basestring, rdf_structs.EnumNamedValue)):
+      results = [utils.SmartUnicode(obj)]
+    elif isinstance(obj, rdf_protodict.DataBlob):
       results = self.FanOut(obj.GetValue())
-    elif isinstance(obj, (collections.Mapping, rdfvalue.Dict)):
+    elif isinstance(obj, (collections.Mapping, rdf_protodict.Dict)):
       results = []
-      for k, v in obj.items():  # rdfvalue.Dict only has items, not iteritems.
-        expanded_v = [utils.SmartStr(r) for r in self.FanOut(v)]
-        results.append("%s:%s" % (utils.SmartStr(k), ",".join(expanded_v)))
-    elif isinstance(obj, (collections.Iterable, structs.RepeatedFieldHelper)):
+      # rdf_protodict.Dict only has items, not iteritems.
+      for k, v in obj.items():
+        expanded_v = [utils.SmartUnicode(r) for r in self.FanOut(v)]
+        results.append("%s:%s" % (utils.SmartUnicode(k), ",".join(expanded_v)))
+    elif isinstance(obj,
+                    (collections.Iterable, rdf_structs.RepeatedFieldHelper)):
       results = []
       for rslt in [self.FanOut(o, obj) for o in obj]:
         results.extend(rslt)
     else:
-      results = [utils.SmartStr(obj)]
+      results = [utils.SmartUnicode(obj)]
     return results
 
   def Format(self, format_string, rdf):
@@ -113,5 +115,5 @@ class Hinter(object):
     if self.template:
       result = self.formatter(self.template, rdf_data)
     else:
-      result = utils.SmartStr(rdf_data)
+      result = utils.SmartUnicode(rdf_data)
     return result

@@ -8,9 +8,9 @@ import time
 from grr.client.client_actions import tempfiles
 from grr.lib import config_lib
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class GRRTempFileTestDirectory(test_lib.GRRBaseTest):
@@ -121,8 +121,8 @@ class DeleteGRRTempFiles(test_lib.EmptyActionTest):
     self.assertTrue(os.path.exists(self.temp_fd.name))
     self.assertTrue(os.path.exists(self.temp_fd2.name))
 
-    self.pathspec = rdfvalue.PathSpec(
-        path=self.dirname, pathtype=rdfvalue.PathSpec.PathType.OS)
+    self.pathspec = rdf_paths.PathSpec(
+        path=self.dirname, pathtype=rdf_paths.PathSpec.PathType.OS)
 
   def testDeleteGRRTempFilesInDirectory(self):
     result = self.RunAction("DeleteGRRTempFiles",
@@ -134,8 +134,8 @@ class DeleteGRRTempFiles(test_lib.EmptyActionTest):
     self.assertTrue(self.temp_fd2.name in result.data)
 
   def testDeleteGRRTempFilesSpecificPath(self):
-    self.pathspec = rdfvalue.PathSpec(
-        path=self.temp_fd.name, pathtype=rdfvalue.PathSpec.PathType.OS)
+    self.pathspec = rdf_paths.PathSpec(
+        path=self.temp_fd.name, pathtype=rdf_paths.PathSpec.PathType.OS)
     result = self.RunAction("DeleteGRRTempFiles",
                             self.pathspec)[0]
     self.assertTrue(os.path.exists(self.not_tempfile))
@@ -145,8 +145,8 @@ class DeleteGRRTempFiles(test_lib.EmptyActionTest):
     self.assertFalse(self.temp_fd2.name in result.data)
 
   def testDeleteGRRTempFilesPathDoesNotExist(self):
-    self.pathspec = rdfvalue.PathSpec(
-        path="/does/not/exist", pathtype=rdfvalue.PathSpec.PathType.OS)
+    self.pathspec = rdf_paths.PathSpec(
+        path="/does/not/exist", pathtype=rdf_paths.PathSpec.PathType.OS)
     self.assertRaises(tempfiles.ErrorBadPath,
                       self.RunAction, "DeleteGRRTempFiles", self.pathspec)
 

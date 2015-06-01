@@ -15,6 +15,7 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import search
 from grr.lib.flows.console import debugging
+from grr.lib.rdfvalues import client as rdf_client
 
 
 class Error(Exception):
@@ -74,7 +75,7 @@ class ClientTestBase(unittest.TestCase):
   def __init__(self, client_id=None, platform=None, local_worker=False,
                token=None, local_client=True):
     # If we get passed a string, turn it into a urn.
-    self.client_id = rdfvalue.ClientURN(client_id)
+    self.client_id = rdf_client.ClientURN(client_id)
     self.platform = platform
     self.token = token
     self.local_worker = local_worker
@@ -195,13 +196,13 @@ def GetClientTestTargets(client_ids=None, hostnames=None, token=None,
   """Get client urns for end-to-end tests.
 
   Args:
-    client_ids: list of client id URN strings or rdfvalue.ClientURNs
+    client_ids: list of client id URN strings or rdf_client.ClientURNs
     hostnames: list of hostnames to search for
     token: access token
     checkin_duration_threshold: clients that haven't checked in for this long
                                 will be excluded
   Returns:
-    client_id_set: set of rdfvalue.ClientURNs available for end-to-end tests.
+    client_id_set: set of rdf_client.ClientURNs available for end-to-end tests.
   """
 
   if client_ids:
@@ -219,7 +220,7 @@ def GetClientTestTargets(client_ids=None, hostnames=None, token=None,
     for client_list in client_id_dict.values():
       client_ids.update(client_list)
 
-  client_id_set = set([rdfvalue.ClientURN(x) for x in client_ids])
+  client_id_set = set([rdf_client.ClientURN(x) for x in client_ids])
   duration_threshold = rdfvalue.Duration(checkin_duration_threshold)
   for client in aff4.FACTORY.MultiOpen(client_id_set, token=token):
     # Only test against client IDs that have checked in recently.  Test machines

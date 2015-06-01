@@ -15,8 +15,8 @@ import sys
 from grr.client import comms
 from grr.lib import config_lib
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import registry
+from grr.lib.rdfvalues import flows as rdf_flows
 
 
 class Installer(registry.HookRegistry):
@@ -55,11 +55,11 @@ def InstallerNotifyServer():
 
   client.EstablishConnection()
   client.client_worker.SendReply(
-      session_id=rdfvalue.FlowSessionID(flow_name="InstallationFailed"),
-      message_type=rdfvalue.GrrMessage.Type.STATUS,
+      session_id=rdf_flows.FlowSessionID(flow_name="InstallationFailed"),
+      message_type=rdf_flows.GrrMessage.Type.STATUS,
       request_id=0, response_id=0,
-      rdf_value=rdfvalue.GrrStatus(
-          status=rdfvalue.GrrStatus.ReturnedStatus.GENERIC_ERROR,
+      rdf_value=rdf_flows.GrrStatus(
+          status=rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR,
           error_message="Installation failed.",
           backtrace=log_data[-10000:]))
 

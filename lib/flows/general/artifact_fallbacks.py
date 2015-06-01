@@ -6,7 +6,12 @@ These flows subclass lib.artifact.ArtifactFallbackCollector.
 
 from grr.lib import artifact
 from grr.lib import flow
-from grr.lib import rdfvalue
+# pylint: disable=unused-import
+from grr.lib import parsers
+# pylint: enable=unused-import
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import protodict as rdf_protodict
 
 
 class SystemRootSystemDriveFallbackFlow(artifact.ArtifactFallbackCollector):
@@ -24,8 +29,8 @@ class SystemRootSystemDriveFallbackFlow(artifact.ArtifactFallbackCollector):
     self.state.Register("success", False)
     system_drive_opts = ["C:", "D:"]
     for drive in system_drive_opts:
-      pathspec = rdfvalue.PathSpec(path=drive,
-                                   pathtype=rdfvalue.PathSpec.PathType.OS)
+      pathspec = rdf_paths.PathSpec(path=drive,
+                                    pathtype=rdf_paths.PathSpec.PathType.OS)
       self.CallClient("ListDirectory", pathspec=pathspec,
                       next_state="ProcessFileStats")
 
@@ -42,8 +47,8 @@ class SystemRootSystemDriveFallbackFlow(artifact.ArtifactFallbackCollector):
         systemroot = "%s\\%s" % (systemdrive, response.pathspec.path[4:])
 
         # Put the data back into the original format expected for the artifact
-        data = rdfvalue.DataBlob().SetValue(systemroot)
-        self.SendReply(rdfvalue.StatEntry(registry_data=data))
+        data = rdf_protodict.DataBlob().SetValue(systemroot)
+        self.SendReply(rdf_client.StatEntry(registry_data=data))
         self.state.success = True
         break
 

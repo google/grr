@@ -13,9 +13,16 @@ from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
+from grr.lib import flow_runner
 from grr.lib import hunts
+from grr.lib import output_plugin
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.flows.general import file_finder
+from grr.lib.flows.general import transfer
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import foreman as rdf_foreman
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class TestHuntView(test_lib.GRRSeleniumTest):
@@ -31,15 +38,15 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     with hunts.GRRHunt.StartHunt(
         hunt_name="GenericHunt",
-        flow_runner_args=rdfvalue.FlowRunnerArgs(
+        flow_runner_args=flow_runner.FlowRunnerArgs(
             flow_name="GetFile"),
-        flow_args=rdfvalue.GetFileArgs(
-            pathspec=rdfvalue.PathSpec(
+        flow_args=transfer.GetFileArgs(
+            pathspec=rdf_paths.PathSpec(
                 path="/tmp/evil.txt",
-                pathtype=rdfvalue.PathSpec.PathType.OS,
+                pathtype=rdf_paths.PathSpec.PathType.OS,
             )
         ),
-        regex_rules=[rdfvalue.ForemanAttributeRegex(
+        regex_rules=[rdf_foreman.ForemanAttributeRegex(
             attribute_name="GRR client",
             attribute_regex="GRR")],
         output_plugins=output_plugins or [],
@@ -67,7 +74,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     with hunts.GRRHunt.StartHunt(
         hunt_name="GenericHunt",
-        regex_rules=[rdfvalue.ForemanAttributeRegex(
+        regex_rules=[rdf_foreman.ForemanAttributeRegex(
             attribute_name="GRR client",
             attribute_regex="GRR")],
         output_plugins=[],
@@ -511,8 +518,8 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "8.6")
 
   def testDoesNotShowGenerateArchiveButtonForNonExportableRDFValues(self):
-    values = [rdfvalue.Process(pid=1),
-              rdfvalue.Process(pid=42423)]
+    values = [rdf_client.Process(pid=1),
+              rdf_client.Process(pid=42423)]
 
     with self.ACLChecksDisabled():
       self.CreateGenericHuntWithCollection(values=values)
@@ -540,8 +547,8 @@ class TestHuntView(test_lib.GRRSeleniumTest):
                       "Results of this hunt can be downloaded as an archive")
 
   def testShowsGenerateArchiveButtonForFileFinderHunt(self):
-    stat_entry = rdfvalue.StatEntry(aff4path="aff4:/foo/bar")
-    values = [rdfvalue.FileFinderResult(stat_entry=stat_entry)]
+    stat_entry = rdf_client.StatEntry(aff4path="aff4:/foo/bar")
+    values = [file_finder.FileFinderResult(stat_entry=stat_entry)]
 
     with self.ACLChecksDisabled():
       self.CreateGenericHuntWithCollection(values=values)
@@ -555,8 +562,8 @@ class TestHuntView(test_lib.GRRSeleniumTest):
                    "Results of this hunt can be downloaded as an archive")
 
   def testHuntAuthorizationIsRequiredToGenerateResultsArchive(self):
-    stat_entry = rdfvalue.StatEntry(aff4path="aff4:/foo/bar")
-    values = [rdfvalue.FileFinderResult(stat_entry=stat_entry)]
+    stat_entry = rdf_client.StatEntry(aff4path="aff4:/foo/bar")
+    values = [file_finder.FileFinderResult(stat_entry=stat_entry)]
 
     with self.ACLChecksDisabled():
       self.CreateGenericHuntWithCollection(values=values)
@@ -572,8 +579,8 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent, "acl_dialog")
 
   def testGenerateZipButtonGetsDisabledAfterClick(self):
-    stat_entry = rdfvalue.StatEntry(aff4path="aff4:/foo/bar")
-    values = [rdfvalue.FileFinderResult(stat_entry=stat_entry)]
+    stat_entry = rdf_client.StatEntry(aff4path="aff4:/foo/bar")
+    values = [file_finder.FileFinderResult(stat_entry=stat_entry)]
 
     with self.ACLChecksDisabled():
       hunt_urn = self.CreateGenericHuntWithCollection(values=values)
@@ -592,8 +599,8 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Generation has started")
 
   def testStartsZipGenerationWhenGenerateZipButtonIsClicked(self):
-    stat_entry = rdfvalue.StatEntry(aff4path="aff4:/foo/bar")
-    values = [rdfvalue.FileFinderResult(stat_entry=stat_entry)]
+    stat_entry = rdf_client.StatEntry(aff4path="aff4:/foo/bar")
+    values = [file_finder.FileFinderResult(stat_entry=stat_entry)]
 
     with self.ACLChecksDisabled():
       hunt_urn = self.CreateGenericHuntWithCollection(values=values)
@@ -623,7 +630,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
       # Create hunt without results.
       self.CreateSampleHunt(output_plugins=[
-          rdfvalue.OutputPluginDescriptor(plugin_name="CSVOutputPlugin")])
+          output_plugin.OutputPluginDescriptor(plugin_name="CSVOutputPlugin")])
 
     self.Open("/#main=ManageHunts")
     self.Click("css=td:contains('GenericHunt')")
@@ -640,7 +647,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
       # Create hunt.
       self.CreateSampleHunt(output_plugins=[
-          rdfvalue.OutputPluginDescriptor(plugin_name="CSVOutputPlugin")])
+          output_plugin.OutputPluginDescriptor(plugin_name="CSVOutputPlugin")])
 
       # Actually run created hunt.
       client_mock = test_lib.SampleHuntMock()

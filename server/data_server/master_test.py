@@ -7,9 +7,9 @@ from urllib3 import connectionpool
 
 from grr.lib import config_lib
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils as libutils
+from grr.lib.rdfvalues import data_server as rdf_data_server
 
 from grr.server.data_server import auth
 from grr.server.data_server import constants
@@ -160,7 +160,8 @@ class MasterTest(test_lib.GRRBaseTest):
           self.assertTrue(pool_class.requests[1]["body"])
 
           # Ensure that the register body is a valid rdfvalue.
-          rdfvalue.DataStoreRegistrationRequest(pool_class.requests[1]["body"])
+          rdf_data_server.DataStoreRegistrationRequest(
+              pool_class.requests[1]["body"])
 
           # Ensure the requests are POST requests.
           self.assertEqual(pool_class.requests[0]["method"], "POST")

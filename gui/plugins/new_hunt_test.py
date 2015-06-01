@@ -11,8 +11,11 @@ from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import output_plugin
-from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.flows.general import processes
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import foreman as rdf_foreman
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class DummyOutputPlugin(output_plugin.OutputPlugin):
@@ -20,7 +23,7 @@ class DummyOutputPlugin(output_plugin.OutputPlugin):
 
   name = "dummy"
   description = "Dummy do do."
-  args_type = rdfvalue.ListProcessesArgs
+  args_type = processes.ListProcessesArgs
 
 
 class TestNewHuntWizard(test_lib.GRRSeleniumTest):
@@ -50,14 +53,14 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
     # Add 2 distinct clients
     client_id = "C.1%015d" % 0
-    fd = aff4.FACTORY.Create(rdfvalue.ClientURN(client_id), "VFSGRRClient",
+    fd = aff4.FACTORY.Create(rdf_client.ClientURN(client_id), "VFSGRRClient",
                              token=token)
     fd.Set(fd.Schema.SYSTEM("Windows"))
     fd.Set(fd.Schema.CLOCK(2336650631137737))
     fd.Close()
 
     client_id = "C.1%015d" % 1
-    fd = aff4.FACTORY.Create(rdfvalue.ClientURN(client_id), "VFSGRRClient",
+    fd = aff4.FACTORY.Create(rdf_client.ClientURN(client_id), "VFSGRRClient",
                              token=token)
     fd.Set(fd.Schema.SYSTEM("Linux"))
     fd.Set(fd.Schema.CLOCK(2336650631137737))
@@ -234,7 +237,7 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
                      "FileFinder")
     self.assertEqual(hunt.state.args.flow_args.paths[0], "/tmp")
     self.assertEqual(hunt.state.args.flow_args.pathtype,
-                     rdfvalue.PathSpec.PathType.TSK)
+                     rdf_paths.PathSpec.PathType.TSK)
     # self.assertEqual(hunt.state.args.flow_args.ignore_errors, True)
     self.assertTrue(hunt.state.args.output_plugins[0].plugin_name,
                     "EmailOutputPlugin")
@@ -274,7 +277,7 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
     self.assertEqual(hunt_rules[0].integer_rules[0].path, "/")
     self.assertEqual(hunt_rules[0].integer_rules[0].attribute_name, "Clock")
     self.assertEqual(hunt_rules[0].integer_rules[0].operator,
-                     rdfvalue.ForemanAttributeInteger.Operator.GREATER_THAN)
+                     rdf_foreman.ForemanAttributeInteger.Operator.GREATER_THAN)
     self.assertEqual(hunt_rules[0].integer_rules[0].value, 1336650631137737)
 
   def testOutputPluginsListEmptyWhenNoDefaultOutputPluginSet(self):
@@ -435,8 +438,8 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
         flows_count = len(list(aff4.FACTORY.Open(
             client_id.Add("flows"), token=self.token).ListChildren()))
 
-        if (client_id == rdfvalue.ClientURN("C.0000000000000001") or
-            client_id == rdfvalue.ClientURN("C.0000000000000007")):
+        if (client_id == rdf_client.ClientURN("C.0000000000000001") or
+            client_id == rdf_client.ClientURN("C.0000000000000007")):
           self.assertEqual(flows_count, 1)
         else:
           self.assertEqual(flows_count, 0)

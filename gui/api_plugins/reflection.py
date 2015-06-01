@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """API renderer for rendering descriptors of GRR data structures."""
 
+import logging
+
 from grr.gui import api_call_renderers
 from grr.gui import api_value_renderers
 
@@ -8,10 +10,12 @@ from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import type_info
 
+from grr.lib.rdfvalues import structs as rdf_structs
+
 from grr.proto import api_pb2
 
 
-class ApiRDFValueReflectionRendererArgs(rdfvalue.RDFProtoStruct):
+class ApiRDFValueReflectionRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiRDFValueReflectionRendererArgs
 
 
@@ -38,21 +42,20 @@ class ApiRDFValueReflectionRenderer(api_call_renderers.ApiCallRenderer):
       if field_type is not None:
         field["type"] = field_type.__name__
 
-      if field_type == rdfvalue.EnumNamedValue:
+      if field_type == rdf_structs.EnumNamedValue:
         allowed_values = []
-        for enum_label in sorted(field_desc.enum):
+        for enum_label in sorted(field_desc.enum, key=field_desc.enum.get):
           enum_value = field_desc.enum[enum_label]
           allowed_values.append(dict(name=enum_label,
                                      value=int(enum_value),
                                      doc=enum_value.description))
         field["allowed_values"] = allowed_values
 
-      if field_desc.default is not None:
-        if field_type:
-          field_default = field_type(field_desc.default)
-        else:
-          field_default = field_desc.default
-
+      field_default = None
+      if (field_desc.default is not None
+          and not aff4.issubclass(field_type, rdf_structs.RDFStruct)
+          and hasattr(field_desc, "GetDefault")):
+        field_default = field_desc.GetDefault()
         field["default"] = api_value_renderers.RenderValue(
             field_default, with_types=True)
 
@@ -63,23 +66,52 @@ class ApiRDFValueReflectionRenderer(api_call_renderers.ApiCallRenderer):
         field["friendly_name"] = field_desc.friendly_name
 
       if field_desc.labels:
-        field["labels"] = [rdfvalue.SemanticDescriptor.Labels.reverse_enum[x]
+        field["labels"] = [rdf_structs.SemanticDescriptor.Labels.reverse_enum[x]
                            for x in field_desc.labels]
 
       fields.append(field)
 
-    return dict(name=cls.__name__,
-                doc=cls.__doc__ or "",
-                fields=fields,
-                kind="struct")
+    struct_default = None
+    try:
+      struct_default = cls()
+    except Exception as e:   # pylint: disable=broad-except
+      # TODO(user): Some RDFStruct classes can't be constructed using
+      # default constructor (without arguments). Fix the code so that
+      # we can either construct all the RDFStruct classes with default
+      # constructors or know exactly which classes can't be constructed
+      # with default constructors.
+      logging.exception("Can't create default for struct %s: %s",
+                        field_type.__name__, e)
+
+    result = dict(name=cls.__name__,
+                  doc=cls.__doc__ or "",
+                  fields=fields,
+                  kind="struct")
+
+    if struct_default is not None:
+      result["default"] = api_value_renderers.RenderValue(struct_default,
+                                                          with_types=True)
+
+    if getattr(cls, "union_field", None):
+      result["union_field"] = cls.union_field
+
+    return result
 
   def RenderPrimitiveRDFValue(self, cls):
-    return  dict(name=cls.__name__,
-                 doc=cls.__doc__ or "",
-                 kind="primitive")
+    result = dict(name=cls.__name__,
+                  doc=cls.__doc__ or "",
+                  kind="primitive")
+    try:
+      default_value = api_value_renderers.RenderValue(cls(), with_types=True)
+      result["default"] = default_value
+    except Exception as e:   # pylint: disable=broad-except
+      logging.exception("Can't create default for primitive %s: %s",
+                        cls.__name__, e)
+
+    return result
 
   def RenderType(self, cls):
-    if aff4.issubclass(cls, rdfvalue.RDFStruct):
+    if aff4.issubclass(cls, rdf_structs.RDFStruct):
       return self.RenderRDFStruct(cls)
     else:
       return self.RenderPrimitiveRDFValue(cls)

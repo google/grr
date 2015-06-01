@@ -7,17 +7,21 @@ import yaml
 
 from grr.lib import config_lib
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.checks import checks
 from grr.lib.checks import checks_test_lib
-from grr.lib.rdfvalues import checks as checks_rdf
-from grr.parsers import config_file
+from grr.lib.checks import filters
+from grr.lib.rdfvalues import anomaly as rdf_anomaly
+from grr.lib.rdfvalues import client as rdf_client
+from grr.parsers import config_file as config_file_parsers
 from grr.parsers import linux_cmd_parser
 from grr.parsers import wmi_parser
 
 
 CHECKS_DIR = os.path.join(config_lib.CONFIG["Test.data_dir"], "checks")
+TRIGGER_1 = ("DebianPackagesStatus", "Linux", None, None)
+TRIGGER_2 = ("WMIInstalledSoftware", "Windows", None, None)
+TRIGGER_3 = ("DebianPackagesStatus", None, None, "foo")
 
 # Load some dpkg data
 parser = linux_cmd_parser.DpkgCmdParser()
@@ -36,7 +40,7 @@ with open(test_data) as f:
     WMI_SW.extend(parser.Parse(None, sw, None))
 
 # Load an sshd config
-parser = config_file.SshdConfigParser()
+parser = config_file_parsers.SshdConfigParser()
 test_data = os.path.join(config_lib.CONFIG["Test.data_dir"], "sshd_config")
 with open(test_data) as f:
   SSHD_CFG = list(parser.Parse(None, f, None))
@@ -45,7 +49,7 @@ with open(test_data) as f:
 def _LoadCheck(cfg_file, check_id):
   configs = checks.LoadConfigsFromFile(os.path.join(CHECKS_DIR, cfg_file))
   cfg = configs.get(check_id)
-  return checks_rdf.Check(**cfg)
+  return checks.Check(**cfg)
 
 
 class MatchMethodTests(test_lib.GRRBaseTest):
@@ -57,14 +61,14 @@ class MatchMethodTests(test_lib.GRRBaseTest):
     self.one = [1]
     self.some = [1, 2, 3]
     self.baselines = [self.none, self.one, self.some]
-    self.hint = checks_rdf.Hint()
+    self.hint = checks.Hint()
 
   def testCheckNone(self):
     """NONE returns an anomaly if there are no results."""
     matcher = checks.Matcher(["NONE"], self.hint)
     for baseline in self.baselines:
       self.assertIsInstance(matcher.Detect(baseline, self.none),
-                            rdfvalue.CheckResult)
+                            checks.CheckResult)
       for result in [self.one, self.some]:
         self.assertFalse(matcher.Detect(baseline, result))
 
@@ -73,7 +77,7 @@ class MatchMethodTests(test_lib.GRRBaseTest):
     matcher = checks.Matcher(["ONE"], self.hint)
     for baseline in self.baselines:
       self.assertIsInstance(matcher.Detect(baseline, self.one),
-                            rdfvalue.CheckResult)
+                            checks.CheckResult)
       for result in [self.none, self.some]:
         self.assertFalse(matcher.Detect(baseline, result))
 
@@ -82,7 +86,7 @@ class MatchMethodTests(test_lib.GRRBaseTest):
     matcher = checks.Matcher(["SOME"], self.hint)
     for baseline in self.baselines:
       self.assertIsInstance(matcher.Detect(baseline, self.some),
-                            rdfvalue.CheckResult)
+                            checks.CheckResult)
       for result in [self.none, self.one]:
         self.assertFalse(matcher.Detect(baseline, result))
 
@@ -92,7 +96,7 @@ class MatchMethodTests(test_lib.GRRBaseTest):
     for baseline in self.baselines:
       for result in [self.one, self.some]:
         self.assertIsInstance(matcher.Detect(baseline, result),
-                              rdfvalue.CheckResult)
+                              checks.CheckResult)
       self.assertFalse(matcher.Detect(baseline, self.none))
 
   def testCheckAll(self):
@@ -104,7 +108,7 @@ class MatchMethodTests(test_lib.GRRBaseTest):
     will_raise = [(self.none, self.one), (self.one, self.some),
                   (self.none, self.some)]
     for base, result in will_detect:
-      self.assertIsInstance(matcher.Detect(base, result), rdfvalue.CheckResult)
+      self.assertIsInstance(matcher.Detect(base, result), checks.CheckResult)
     for base, result in not_detect:
       self.assertFalse(matcher.Detect(base, result))
     for base, result in will_raise:
@@ -116,7 +120,7 @@ class MatchMethodTests(test_lib.GRRBaseTest):
     for baseline in self.baselines:
       for result in [self.none, self.one]:
         self.assertIsInstance(matcher.Detect(baseline, result),
-                              rdfvalue.CheckResult)
+                              checks.CheckResult)
       self.assertFalse(matcher.Detect(baseline, self.some))
 
 
@@ -185,7 +189,7 @@ class CheckRegistryTests(test_lib.GRRBaseTest):
       checks.CheckRegistry.RegisterCheck(check=self.sshd_chk,
                                          source="sshd_config",
                                          overwrite_if_exists=True)
-    self.kb = rdfvalue.KnowledgeBase()
+    self.kb = rdf_client.KnowledgeBase()
     self.kb.hostname = "test.example.com"
     self.host_data = {"KnowledgeBase": self.kb,
                       "WMIInstalledSoftware": WMI_SW,
@@ -260,28 +264,28 @@ class ProcessHostDataTests(checks_test_lib.HostCheckTest):
       checks.LoadChecksFromFiles([os.path.join(CHECKS_DIR, "sw.yaml")])
     if "SSHD-CHECK" not in registered:
       checks.LoadChecksFromFiles([os.path.join(CHECKS_DIR, "sshd.yaml")])
-    self.netcat = rdfvalue.CheckResult(
+    self.netcat = checks.CheckResult(
         check_id="SW-CHECK",
         anomaly=[
-            rdfvalue.Anomaly(
+            rdf_anomaly.Anomaly(
                 finding=["netcat-traditional 1.10-40 is installed"],
                 explanation="Found: l337 software installed",
                 type="ANALYSIS_ANOMALY")])
-    self.sshd = rdfvalue.CheckResult(
+    self.sshd = checks.CheckResult(
         check_id="SSHD-CHECK",
         anomaly=[
-            rdfvalue.Anomaly(
+            rdf_anomaly.Anomaly(
                 finding=["Configured protocols: 2,1"],
                 explanation="Found: Sshd allows protocol 1.",
                 type="ANALYSIS_ANOMALY")])
-    self.windows = rdfvalue.CheckResult(
+    self.windows = checks.CheckResult(
         check_id="SW-CHECK",
         anomaly=[
-            rdfvalue.Anomaly(
+            rdf_anomaly.Anomaly(
                 finding=["Java 6.0.240 is installed"],
                 explanation="Found: Old Java installation.",
                 type="ANALYSIS_ANOMALY"),
-            rdfvalue.Anomaly(
+            rdf_anomaly.Anomaly(
                 finding=["Adware 2.1.1 is installed"],
                 explanation="Found: Malicious software.",
                 type="ANALYSIS_ANOMALY")])
@@ -311,8 +315,222 @@ class ProcessHostDataTests(checks_test_lib.HostCheckTest):
     self.assertResultEqual(self.sshd, results["SSHD-CHECK"])
 
 
+class ChecksTestBase(test_lib.GRRBaseTest):
+  pass
+
+
+class FilterTests(ChecksTestBase):
+  """Test 'Filter' setup and operations."""
+
+  def setUp(self, *args, **kwargs):
+    super(FilterTests, self).setUp(*args, **kwargs)
+    filters.Filter.filters = {}
+
+  def tearDown(self, *args, **kwargs):
+    filters.Filter.filters = {}
+    super(FilterTests, self).tearDown(*args, **kwargs)
+
+  def testNonexistentFilterIsError(self):
+    self.assertRaises(filters.DefinitionError, checks.Filter, type="NoFilter")
+
+  def testAddFilters(self):
+    base_filt = checks.Filter(type="Filter", expression="do nothing")
+    self.assertIsInstance(base_filt._filter, filters.Filter)
+    obj_filt = checks.Filter(type="ObjectFilter", expression="test is 'ok'")
+    self.assertIsInstance(obj_filt._filter, filters.ObjectFilter)
+    rdf_filt = checks.Filter(type="RDFFilter",
+                             expression="AttributedDict,SSHConfig")
+    self.assertIsInstance(rdf_filt._filter, filters.RDFFilter)
+
+
+class ProbeTest(ChecksTestBase):
+  """Test 'Probe' operations."""
+
+  configs = {}
+
+  def setUp(self, **kwargs):
+    super(ProbeTest, self).setUp(**kwargs)
+    if not self.configs:
+      config_file = os.path.join(CHECKS_DIR, "probes.yaml")
+      with open(config_file) as data:
+        for cfg in yaml.safe_load_all(data):
+          name = cfg.get("name")
+          probe_cfg = cfg.get("probe", [{}])
+          self.configs[name] = probe_cfg[0]
+
+  def Init(self, name, artifact, handler_class):
+    """Helper method to verify that the Probe sets up the right handler."""
+    cfg = self.configs.get(name)
+    probe = checks.Probe(**cfg)
+    self.assertEqual(artifact, probe.artifact)
+    self.assertIsInstance(probe.handler, handler_class)
+    self.assertIsInstance(probe.matcher, checks.Matcher)
+
+  def testInitialize(self):
+    """Tests the input/output sequence validation."""
+    self.Init("NO-FILTER", "DpkgDb", filters.NoOpHandler)
+    self.Init("SERIAL", "DpkgDb", filters.SerialHandler)
+    self.Init("PARALLEL", "DpkgDb", filters.ParallelHandler)
+    self.Init("BASELINE", "DpkgDb", filters.SerialHandler)
+
+  def testParse(self):
+    """Host data should be passed to filters, results should be returned."""
+    pass
+
+  def testParseWithBaseline(self):
+    pass
+
+  def testValidate(self):
+    cfg = self.configs.get("NO-ARTIFACT")
+    self.assertRaises(filters.DefinitionError, checks.Probe, cfg)
+
+
+class MethodTest(ChecksTestBase):
+  """Test 'Method' operations."""
+
+  configs = {}
+
+  def setUp(self, **kwargs):
+    super(MethodTest, self).setUp(**kwargs)
+    if not self.configs:
+      config_file = os.path.join(CHECKS_DIR, "sw.yaml")
+      with open(config_file) as data:
+        check_def = yaml.safe_load(data)
+        self.configs = check_def["method"]
+
+  def testMethodRegistersTriggers(self):
+    m_1, m_2, m_3 = [checks.Method(**cfg) for cfg in self.configs]
+    expect_1 = [TRIGGER_1]
+    result_1 = [c.attr for c in m_1.triggers.conditions]
+    self.assertEqual(expect_1, result_1)
+    expect_2 = [TRIGGER_2]
+    result_2 = [c.attr for c in m_2.triggers.conditions]
+    self.assertEqual(expect_2, result_2)
+    expect_3 = [TRIGGER_3]
+    result_3 = [c.attr for c in m_3.triggers.conditions]
+    self.assertEqual(expect_3, result_3)
+
+  def testMethodRoutesDataToProbes(self):
+    pass
+
+  def testValidate(self):
+    pass
+
+
+class CheckTest(ChecksTestBase):
+  """Test 'Check' operations."""
+
+  cfg = {}
+
+  def setUp(self, **kwargs):
+    super(CheckTest, self).setUp(**kwargs)
+    if not self.cfg:
+      config_file = os.path.join(CHECKS_DIR, "sw.yaml")
+      with open(config_file) as data:
+        self.cfg = yaml.safe_load(data)
+      self.host_data = {"DebianPackagesStatus": DPKG_SW,
+                        "WMIInstalledSoftware": WMI_SW}
+
+  def testInitializeCheck(self):
+    chk = checks.Check(**self.cfg)
+    self.assertEqual("SW-CHECK", chk.check_id)
+    self.assertItemsEqual(["ANY"], [str(c) for c in chk.match])
+
+  def testGenerateTriggerMap(self):
+    chk = checks.Check(**self.cfg)
+    expect = [TRIGGER_1, TRIGGER_3]
+    result = [c.attr for c in chk.triggers.Search("DebianPackagesStatus")]
+    self.assertItemsEqual(expect, result)
+    expect = [TRIGGER_2]
+    result = [c.attr for c in chk.triggers.Search("WMIInstalledSoftware")]
+    self.assertItemsEqual(expect, result)
+
+  def testParseCheckFromConfig(self):
+    chk = checks.Check(**self.cfg)
+    # Triggers 1 (linux packages) & 2 (windows software) should return results.
+    # Trigger 3 should not return results as no host data has the label 'foo'.
+    result_1 = chk.Parse([TRIGGER_1], self.host_data)
+    result_2 = chk.Parse([TRIGGER_2], self.host_data)
+    result_3 = chk.Parse([TRIGGER_3], self.host_data)
+    self.assertTrue(result_1)
+    self.assertTrue(result_2)
+    self.assertFalse(result_3)
+
+  def testValidate(self):
+    pass
+
+
+class CheckResultsTest(ChecksTestBase):
+  """Test 'CheckResult' operations."""
+
+  def testExtendAnomalies(self):
+    anomaly1 = {"finding": ["Adware 2.1.1 is installed"],
+                "explanation": "Found: Malicious software.",
+                "type": "ANALYSIS_ANOMALY"}
+    anomaly2 = {"finding": ["Java 6.0.240 is installed"],
+                "explanation": "Found: Old Java installation.",
+                "type": "ANALYSIS_ANOMALY"}
+    result = checks.CheckResult(check_id="SW-CHECK",
+                                anomaly=rdf_anomaly.Anomaly(**anomaly1))
+    other = checks.CheckResult(check_id="SW-CHECK",
+                               anomaly=rdf_anomaly.Anomaly(**anomaly2))
+    result.ExtendAnomalies(other)
+    expect = {"check_id": "SW-CHECK", "anomaly": [anomaly1, anomaly2]}
+    self.assertDictEqual(expect, result.ToPrimitiveDict())
+
+
+class HintDefinitionTests(ChecksTestBase):
+  """Test 'Hint' operations."""
+
+  configs = {}
+
+  def setUp(self, **kwargs):
+    super(HintDefinitionTests, self).setUp(**kwargs)
+    if not self.configs:
+      config_file = os.path.join(CHECKS_DIR, "sw.yaml")
+      with open(config_file) as data:
+        cfg = yaml.safe_load(data)
+    chk = checks.Check(**cfg)
+    self.lin_method, self.win_method, self.foo_method = list(chk.method)
+
+  def testInheritHintConfig(self):
+    lin_problem = "l337 software installed"
+    lin_format = "{name} {version} is installed"
+    # Methods should not have a hint template.
+    self.assertEqual(lin_problem, self.lin_method.hint.problem)
+    self.assertFalse(self.lin_method.hint.hinter.template)
+    # Formatting should be present in probes, if defined.
+    for probe in self.lin_method.probe:
+      self.assertEqual(lin_problem, probe.hint.problem)
+      self.assertEqual(lin_format, probe.hint.format)
+
+    foo_problem = "Sudo not installed"
+    # Methods should not have a hint template.
+    self.assertEqual(foo_problem, self.foo_method.hint.problem)
+    self.assertFalse(self.foo_method.hint.hinter.template)
+    # Formatting should be missing in probes, if undefined.
+    for probe in self.foo_method.probe:
+      self.assertEqual(foo_problem, probe.hint.problem)
+      self.assertFalse(probe.hint.format)
+
+  def testOverlayHintConfig(self):
+    generic_problem = "Malicious software."
+    java_problem = "Old Java installation."
+    generic_format = "{name} {version} is installed"
+    # Methods should not have a hint template.
+    self.assertEqual(generic_problem, self.win_method.hint.problem)
+    self.assertFalse(self.win_method.hint.hinter.template)
+    # Formatting should be present in probes.
+    probe_1, probe_2 = list(self.win_method.probe)
+    self.assertEqual(java_problem, probe_1.hint.problem)
+    self.assertEqual(generic_format, probe_1.hint.format)
+    self.assertEqual(generic_problem, probe_2.hint.problem)
+    self.assertEqual(generic_format, probe_2.hint.format)
+
+
 def main(argv):
-  test_lib.main(argv)
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv)
 
 if __name__ == "__main__":
   flags.StartMain(main)

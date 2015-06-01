@@ -2,8 +2,6 @@
 
 goog.provide('grrUi.semantic.fetchMoreLinkDirective.FetchMoreLinkDirective');
 
-goog.require('grrUi.semantic.SemanticDirectivesRegistry');
-
 
 goog.scope(function() {
 
@@ -29,13 +27,22 @@ grrUi.semantic.fetchMoreLinkDirective.FetchMoreLinkDirective = function() {
 
 /**
  * Name of the directive in Angular.
+ *
+ * @const
+ * @export
  */
 grrUi.semantic.fetchMoreLinkDirective.FetchMoreLinkDirective.directive_name =
     'grrFetchMoreLink';
 
-grrUi.semantic.SemanticDirectivesRegistry.registerDirective(
-    'FetchMoreLink',
-    grrUi.semantic.fetchMoreLinkDirective.FetchMoreLinkDirective);
+
+/**
+ * Semantic type corresponding to this directive.
+ *
+ * @const
+ * @export
+ */
+grrUi.semantic.fetchMoreLinkDirective.FetchMoreLinkDirective.semantic_type =
+    'FetchMoreLink';
 
 
 });  // goog.scope

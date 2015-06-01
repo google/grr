@@ -12,6 +12,10 @@ from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.flows.general import grep
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import standard as rdf_standard
 
 
 class GrepTests(test_lib.FlowTestsBaseclass):
@@ -66,17 +70,17 @@ class TestSearchFileContentWithFixture(GrepTests):
 
     # Install the mock
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
+        rdf_paths.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
     self.client_mock = action_mocks.ActionMock("Grep", "StatFile", "Find")
 
   def testNormalGrep(self):
     output_path = "analysis/grep1"
-    grepspec = rdfvalue.BareGrepSpec(mode=rdfvalue.GrepSpec.Mode.FIRST_HIT,
-                                     literal="hello")
+    grepspec = rdf_client.BareGrepSpec(mode=rdf_client.GrepSpec.Mode.FIRST_HIT,
+                                       literal="hello")
 
     for _ in test_lib.TestFlowHelper(
         "SearchFileContent", self.client_mock, client_id=self.client_id,
-        paths=["/proc/10/cmdline"], pathtype=rdfvalue.PathSpec.PathType.OS,
+        paths=["/proc/10/cmdline"], pathtype=rdf_paths.PathSpec.PathType.OS,
         token=self.token, output=output_path, grep=grepspec):
       pass
 
@@ -96,13 +100,13 @@ class TestSearchFileContentWithFixture(GrepTests):
 
     output_path = "analysis/grep2"
 
-    grepspec = rdfvalue.BareGrepSpec(mode=rdfvalue.GrepSpec.Mode.ALL_HITS,
-                                     literal="HIT")
+    grepspec = rdf_client.BareGrepSpec(mode=rdf_client.GrepSpec.Mode.ALL_HITS,
+                                       literal="HIT")
 
     for _ in test_lib.TestFlowHelper(
         "SearchFileContent", self.client_mock, client_id=self.client_id,
         paths=["/c/Downloads/grepfile.txt"],
-        pathtype=rdfvalue.PathSpec.PathType.OS,
+        pathtype=rdf_paths.PathSpec.PathType.OS,
         grep=grepspec, token=self.token, output=output_path):
       pass
 
@@ -129,13 +133,14 @@ class TestSearchFileContentWithFixture(GrepTests):
       output_urn = self.client_id.Add(output_path)
       data_store.DB.DeleteSubject(output_urn, token=self.token)
 
-      grepspec = rdfvalue.BareGrepSpec(mode=rdfvalue.GrepSpec.Mode.FIRST_HIT,
-                                       literal="HIT")
+      grepspec = rdf_client.BareGrepSpec(
+          mode=rdf_client.GrepSpec.Mode.FIRST_HIT,
+          literal="HIT")
 
       for _ in test_lib.TestFlowHelper(
           "SearchFileContent", self.client_mock, client_id=self.client_id,
           paths=["/c/Downloads/grepfile.txt"],
-          pathtype=rdfvalue.PathSpec.PathType.OS,
+          pathtype=rdf_paths.PathSpec.PathType.OS,
           token=self.token, output=output_path, grep=grepspec):
         pass
 
@@ -158,12 +163,12 @@ class TestSearchFileContent(GrepTests):
     client_mock = action_mocks.ActionMock("Find", "Grep", "StatFile")
     path = os.path.join(os.path.dirname(self.base_path), pattern)
 
-    args = rdfvalue.SearchFileContentArgs(
-        paths=[path], pathtype=rdfvalue.PathSpec.PathType.OS)
+    args = grep.SearchFileContentArgs(
+        paths=[path], pathtype=rdf_paths.PathSpec.PathType.OS)
 
-    args.grep.literal = rdfvalue.LiteralExpression(
+    args.grep.literal = rdf_standard.LiteralExpression(
         "session opened for user dearjohn")
-    args.grep.mode = rdfvalue.GrepSpec.Mode.ALL_HITS
+    args.grep.mode = rdf_client.GrepSpec.Mode.ALL_HITS
 
     # Run the flow.
     for _ in test_lib.TestFlowHelper(
@@ -191,7 +196,7 @@ class TestSearchFileContent(GrepTests):
     path = os.path.join(os.path.dirname(self.base_path), pattern)
 
     # Do not provide a Grep expression - should match all files.
-    args = rdfvalue.SearchFileContentArgs(paths=[path])
+    args = grep.SearchFileContentArgs(paths=[path])
 
     # Run the flow.
     for _ in test_lib.TestFlowHelper(
@@ -215,8 +220,8 @@ class TestSearchFileContent(GrepTests):
     path = os.path.join(os.path.dirname(self.base_path), pattern)
 
     # Do not provide a Grep expression - should match all files.
-    args = rdfvalue.SearchFileContentArgs(paths=[path],
-                                          also_download=True)
+    args = grep.SearchFileContentArgs(paths=[path],
+                                      also_download=True)
 
     # Run the flow.
     for _ in test_lib.TestFlowHelper(

@@ -20,6 +20,7 @@ from grr.gui import renderers
 from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
+from grr.lib.rdfvalues import structs as rdf_structs
 
 
 # Caches for GetTypeDescriptorRenderer(), We can have a renderer for a repeated
@@ -159,9 +160,10 @@ class SemanticProtoFormRenderer(renderers.TemplateRenderer):
         continue
 
       # Ignore hidden labeled members.
-      if (rdfvalue.SemanticDescriptor.Labels.HIDDEN not in descriptor.labels and
-          "HIDDEN" not in descriptor.labels):
-        kwargs = dict(descriptor=descriptor, opened=self.opened,
+      if (rdf_structs.SemanticDescriptor.Labels.HIDDEN not in descriptor.labels
+          and "HIDDEN" not in descriptor.labels):
+        kwargs = dict(descriptor=descriptor,
+                      opened=self.opened,
                       container=self.proto_obj,
                       prefix=self.prefix + "-" + descriptor.name)
 
@@ -172,8 +174,8 @@ class SemanticProtoFormRenderer(renderers.TemplateRenderer):
 
         # Put the members which are labeled as advanced behind an advanced
         # button.
-        if (rdfvalue.SemanticDescriptor.Labels.ADVANCED in descriptor.labels or
-            "ADVANCED" in descriptor.labels):
+        if (rdf_structs.SemanticDescriptor.Labels.ADVANCED in descriptor.labels
+            or "ADVANCED" in descriptor.labels):
           # Allow the type renderer to draw the form.
           self.advanced_elements.append(type_renderer.RawHTML(request))
         else:

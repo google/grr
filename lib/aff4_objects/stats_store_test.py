@@ -7,9 +7,6 @@ import math
 
 import pandas
 
-# pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import,g-bad-import-order
 
 from grr.lib import aff4
 from grr.lib import data_store
@@ -40,8 +37,8 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     counter = [x for x in row if x[0] == "aff4:stats_store/counter"]
     self.assertTrue(counter)
 
-    stored_value = rdfvalue.StatsStoreValue(
-        value_type=rdfvalue.MetricMetadata.ValueType.INT,
+    stored_value = stats_store.StatsStoreValue(
+        value_type=stats.MetricMetadata.ValueType.INT,
         int_value=1)
     self.assertEqual(counter[0], ("aff4:stats_store/counter",
                                   stored_value.SerializeToString(),
@@ -58,15 +55,15 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     row = data_store.DB.ResolveRegex("aff4:/stats_store/some_pid", ".*",
                                      token=self.token)
     # Check that no plain counter is written.
-    values = [rdfvalue.StatsStoreValue(x[1]) for x in row
+    values = [stats_store.StatsStoreValue(x[1]) for x in row
               if x[0] == "aff4:stats_store/counter"]
     self.assertEqual(len(values), 2)
 
-    http_field_value = rdfvalue.StatsStoreFieldValue(
-        field_type=rdfvalue.MetricFieldDefinition.FieldType.STR,
+    http_field_value = stats_store.StatsStoreFieldValue(
+        field_type=stats.MetricFieldDefinition.FieldType.STR,
         str_value="http")
-    rpc_field_value = rdfvalue.StatsStoreFieldValue(
-        field_type=rdfvalue.MetricFieldDefinition.FieldType.STR,
+    rpc_field_value = stats_store.StatsStoreFieldValue(
+        field_type=stats.MetricFieldDefinition.FieldType.STR,
         str_value="rpc")
 
     # Check that counter with source=http is written.
@@ -74,7 +71,7 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
                     if x.fields_values == [http_field_value]]
     self.assertTrue(http_counter)
     self.assertEqual(http_counter[0].value_type,
-                     rdfvalue.MetricMetadata.ValueType.INT)
+                     stats.MetricMetadata.ValueType.INT)
     self.assertEqual(http_counter[0].int_value, 1)
 
     # Check that counter with source=rpc is written.
@@ -82,7 +79,7 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
                    if x.fields_values == [rpc_field_value]]
     self.assertTrue(rpc_counter)
     self.assertEqual(rpc_counter[0].value_type,
-                     rdfvalue.MetricMetadata.ValueType.INT)
+                     stats.MetricMetadata.ValueType.INT)
     self.assertEqual(rpc_counter[0].int_value, 2)
 
   def testEventMetricsAreWrittenToDataStore(self):
@@ -95,13 +92,13 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
 
     row = data_store.DB.ResolveRegex("aff4:/stats_store/some_pid", ".*",
                                      token=self.token)
-    values = [rdfvalue.StatsStoreValue(x[1]) for x in row
+    values = [stats_store.StatsStoreValue(x[1]) for x in row
               if x[0] == "aff4:stats_store/foo_event"]
     self.assertEqual(len(values), 1)
 
     stored_value = values[0]
     self.assertEqual(stored_value.value_type,
-                     rdfvalue.MetricMetadata.ValueType.DISTRIBUTION)
+                     stats.MetricMetadata.ValueType.DISTRIBUTION)
     self.assertEqual(stored_value.distribution_value.count, 2)
     self.assertEqual(stored_value.distribution_value.sum, 20)
 
@@ -116,15 +113,15 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     row = data_store.DB.ResolveRegex("aff4:/stats_store/some_pid", ".*",
                                      token=self.token)
 
-    values = [rdfvalue.StatsStoreValue(x[1]) for x in row
+    values = [stats_store.StatsStoreValue(x[1]) for x in row
               if x[0] == "aff4:stats_store/foo_event"]
     self.assertEqual(len(values), 2)
 
-    http_field_value = rdfvalue.StatsStoreFieldValue(
-        field_type=rdfvalue.MetricFieldDefinition.FieldType.STR,
+    http_field_value = stats_store.StatsStoreFieldValue(
+        field_type=stats.MetricFieldDefinition.FieldType.STR,
         str_value="http")
-    rpc_field_value = rdfvalue.StatsStoreFieldValue(
-        field_type=rdfvalue.MetricFieldDefinition.FieldType.STR,
+    rpc_field_value = stats_store.StatsStoreFieldValue(
+        field_type=stats.MetricFieldDefinition.FieldType.STR,
         str_value="rpc")
 
     # Check that distribution with source=http is written.
@@ -132,7 +129,7 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
                    if x.fields_values == [http_field_value]]
     self.assertTrue(http_events)
     self.assertEqual(http_events[0].value_type,
-                     rdfvalue.MetricMetadata.ValueType.DISTRIBUTION)
+                     stats.MetricMetadata.ValueType.DISTRIBUTION)
     self.assertEqual(http_events[0].distribution_value.count, 1)
     self.assertEqual(http_events[0].distribution_value.sum, 5)
 
@@ -141,7 +138,7 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
                   if x.fields_values == [rpc_field_value]]
     self.assertTrue(rpc_events)
     self.assertEqual(rpc_events[0].value_type,
-                     rdfvalue.MetricMetadata.ValueType.DISTRIBUTION)
+                     stats.MetricMetadata.ValueType.DISTRIBUTION)
     self.assertEqual(rpc_events[0].distribution_value.count, 1)
     self.assertEqual(rpc_events[0].distribution_value.sum, 15)
 
@@ -157,8 +154,8 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     counter = [x for x in row if x[0] == "aff4:stats_store/str_gauge"]
     self.assertTrue(counter)
 
-    stored_value = rdfvalue.StatsStoreValue(
-        value_type=rdfvalue.MetricMetadata.ValueType.STR,
+    stored_value = stats_store.StatsStoreValue(
+        value_type=stats.MetricMetadata.ValueType.STR,
         str_value="some_value")
     self.assertEqual(counter[0], ("aff4:stats_store/str_gauge",
                                   stored_value.SerializeToString(),
@@ -176,8 +173,8 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     counter = [x for x in row if x[0] == "aff4:stats_store/int_gauge"]
     self.assertTrue(counter)
 
-    stored_value = rdfvalue.StatsStoreValue(
-        value_type=rdfvalue.MetricMetadata.ValueType.INT,
+    stored_value = stats_store.StatsStoreValue(
+        value_type=stats.MetricMetadata.ValueType.INT,
         int_value=4242)
     self.assertEqual(counter[0], ("aff4:stats_store/int_gauge",
                                   stored_value.SerializeToString(),
@@ -200,14 +197,14 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     self.assertEqual(len(counters), 2)
     counters = sorted(counters, key=lambda x: x[2])
 
-    stored_value = rdfvalue.StatsStoreValue(
-        value_type=rdfvalue.MetricMetadata.ValueType.INT,
+    stored_value = stats_store.StatsStoreValue(
+        value_type=stats.MetricMetadata.ValueType.INT,
         int_value=1)
     self.assertEqual(counters[0], ("aff4:stats_store/counter",
                                    stored_value.SerializeToString(),
                                    42))
-    stored_value = rdfvalue.StatsStoreValue(
-        value_type=rdfvalue.MetricMetadata.ValueType.INT,
+    stored_value = stats_store.StatsStoreValue(
+        value_type=stats.MetricMetadata.ValueType.INT,
         int_value=2)
     self.assertEqual(counters[1], ("aff4:stats_store/counter",
                                    stored_value.SerializeToString(),
@@ -383,18 +380,18 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     metadata = self.stats_store.ReadMetadata(process_id=self.process_id)
 
     # Field definitions used in assertions below.
-    source_field_def = rdfvalue.MetricFieldDefinition(
+    source_field_def = stats.MetricFieldDefinition(
         field_name="source",
-        field_type=rdfvalue.MetricFieldDefinition.FieldType.STR)
-    task_field_def = rdfvalue.MetricFieldDefinition(
+        field_type=stats.MetricFieldDefinition.FieldType.STR)
+    task_field_def = stats.MetricFieldDefinition(
         field_name="task",
-        field_type=rdfvalue.MetricFieldDefinition.FieldType.INT)
+        field_type=stats.MetricFieldDefinition.FieldType.INT)
 
     self.assertTrue("counter" in metadata)
     self.assertEqual(metadata["counter"].varname, "counter")
     self.assertEqual(metadata["counter"].metric_type, stats.MetricType.COUNTER)
     self.assertEqual(metadata["counter"].value_type,
-                     rdfvalue.MetricMetadata.ValueType.INT)
+                     stats.MetricMetadata.ValueType.INT)
     self.assertListEqual(list(metadata["counter"].fields_defs), [])
 
     self.assertTrue("counter_with_fields" in metadata)
@@ -403,7 +400,7 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     self.assertEqual(metadata["counter_with_fields"].metric_type,
                      stats.MetricType.COUNTER)
     self.assertEqual(metadata["counter_with_fields"].value_type,
-                     rdfvalue.MetricMetadata.ValueType.INT)
+                     stats.MetricMetadata.ValueType.INT)
     self.assertListEqual(list(metadata["counter_with_fields"].fields_defs),
                          [source_field_def])
 
@@ -411,7 +408,7 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     self.assertEqual(metadata["events"].varname, "events")
     self.assertEqual(metadata["events"].metric_type, stats.MetricType.EVENT)
     self.assertEqual(metadata["events"].value_type,
-                     rdfvalue.MetricMetadata.ValueType.DISTRIBUTION)
+                     stats.MetricMetadata.ValueType.DISTRIBUTION)
     self.assertListEqual(list(metadata["events"].fields_defs), [])
 
     self.assertTrue("events_with_fields" in metadata)
@@ -420,7 +417,7 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     self.assertEqual(metadata["events_with_fields"].metric_type,
                      stats.MetricType.EVENT)
     self.assertEqual(metadata["events_with_fields"].value_type,
-                     rdfvalue.MetricMetadata.ValueType.DISTRIBUTION)
+                     stats.MetricMetadata.ValueType.DISTRIBUTION)
     self.assertListEqual(list(metadata["events_with_fields"].fields_defs),
                          [source_field_def])
 
@@ -428,7 +425,7 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     self.assertEqual(metadata["str_gauge"].varname, "str_gauge")
     self.assertEqual(metadata["str_gauge"].metric_type, stats.MetricType.GAUGE)
     self.assertEqual(metadata["str_gauge"].value_type,
-                     rdfvalue.MetricMetadata.ValueType.STR)
+                     stats.MetricMetadata.ValueType.STR)
     self.assertListEqual(list(metadata["str_gauge"].fields_defs), [])
 
     self.assertTrue("str_gauge_with_fields" in metadata)
@@ -437,7 +434,7 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     self.assertEqual(metadata["str_gauge_with_fields"].metric_type,
                      stats.MetricType.GAUGE)
     self.assertEqual(metadata["str_gauge_with_fields"].value_type,
-                     rdfvalue.MetricMetadata.ValueType.STR)
+                     stats.MetricMetadata.ValueType.STR)
     self.assertListEqual(list(metadata["str_gauge_with_fields"].fields_defs),
                          [task_field_def])
 
