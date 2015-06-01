@@ -19,7 +19,9 @@ from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
 
-from grr.lib.rdfvalues import structs
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import grr_rdf
+from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import flows_pb2
 
@@ -38,7 +40,7 @@ class CronSpec(rdfvalue.Duration):
     return self.ParseFromString(value)
 
 
-class CreateCronJobFlowArgs(structs.RDFProtoStruct):
+class CreateCronJobFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.CreateCronJobFlowArgs
 
   def GetFlowArgsClass(self):
@@ -192,7 +194,7 @@ class StatefulSystemCronFlow(SystemCronFlow):
     try:
       cron_job = aff4.FACTORY.Open(self.cron_job_urn, aff4_type="CronJob",
                                    token=self.token)
-      return cron_job.Get(cron_job.Schema.STATE, default=rdfvalue.FlowState())
+      return cron_job.Get(cron_job.Schema.STATE, default=rdf_flows.FlowState())
     except aff4.InstantiationError as e:
       raise StateReadError(e)
 
@@ -291,7 +293,7 @@ class CronWorker(object):
     return self.running_thread
 
 
-class ManageCronJobFlowArgs(structs.RDFProtoStruct):
+class ManageCronJobFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ManageCronJobFlowArgs
 
 
@@ -337,7 +339,7 @@ class CronJob(aff4.AFF4Volume):
 
   class SchemaCls(aff4.AFF4Volume.SchemaCls):
     """Schema for CronJob AFF4 object."""
-    CRON_ARGS = aff4.Attribute("aff4:cron/args", rdfvalue.CreateCronJobFlowArgs,
+    CRON_ARGS = aff4.Attribute("aff4:cron/args", CreateCronJobFlowArgs,
                                "This cron jobs' arguments.")
 
     DISABLED = aff4.Attribute(
@@ -355,12 +357,12 @@ class CronJob(aff4.AFF4Volume):
         versioned=False, lock_protected=True)
 
     LAST_RUN_STATUS = aff4.Attribute(
-        "aff4:cron/last_run_status", rdfvalue.CronJobRunStatus,
+        "aff4:cron/last_run_status", grr_rdf.CronJobRunStatus,
         "Result of the last flow", lock_protected=True,
         creates_new_object_version=False)
 
     STATE = aff4.Attribute(
-        "aff4:cron/state", rdfvalue.FlowState,
+        "aff4:cron/state", rdf_flows.FlowState,
         "Cron flow state that is kept between iterations", lock_protected=True,
         versioned=False)
 
@@ -378,7 +380,7 @@ class CronJob(aff4.AFF4Volume):
         return False
 
       runner = current_flow.GetRunner()
-      return runner.context.state == rdfvalue.Flow.State.RUNNING
+      return runner.context.state == rdf_flows.Flow.State.RUNNING
     return False
 
   def DueToRun(self):
@@ -418,8 +420,8 @@ class CronJob(aff4.AFF4Volume):
       flow.GRRFlow.TerminateFlow(current_flow_urn, reason=reason, force=force,
                                  token=self.token)
       self.Set(self.Schema.LAST_RUN_STATUS,
-               rdfvalue.CronJobRunStatus(
-                   status=rdfvalue.CronJobRunStatus.Status.TIMEOUT))
+               grr_rdf.CronJobRunStatus(
+                   status=grr_rdf.CronJobRunStatus.Status.TIMEOUT))
       self.DeleteAttribute(self.Schema.CURRENT_FLOW_URN)
       self.Flush()
 
@@ -469,16 +471,16 @@ class CronJob(aff4.AFF4Volume):
       current_flow = aff4.FACTORY.Open(current_flow_urn, token=self.token)
       runner = current_flow.GetRunner()
       if not runner.IsRunning():
-        if runner.context.state == rdfvalue.Flow.State.ERROR:
+        if runner.context.state == rdf_flows.Flow.State.ERROR:
           self.Set(self.Schema.LAST_RUN_STATUS,
-                   rdfvalue.CronJobRunStatus(
-                       status=rdfvalue.CronJobRunStatus.Status.ERROR))
+                   grr_rdf.CronJobRunStatus(
+                       status=grr_rdf.CronJobRunStatus.Status.ERROR))
           stats.STATS.IncrementCounter("cron_job_failure",
                                        fields=[self.urn.Basename()])
         else:
           self.Set(self.Schema.LAST_RUN_STATUS,
-                   rdfvalue.CronJobRunStatus(
-                       status=rdfvalue.CronJobRunStatus.Status.OK))
+                   grr_rdf.CronJobRunStatus(
+                       status=grr_rdf.CronJobRunStatus.Status.OK))
 
           start_time = self.Get(self.Schema.LAST_RUN_TIME)
           elapsed = time.time() - start_time.AsSecondsFromEpoch()

@@ -18,8 +18,8 @@ from grr.lib.flows.general import file_finder
 # For AnalyzeClientMemory. pylint: disable=unused-import
 from grr.lib.flows.general import memory as _
 # pylint: enable=unused-import
-from grr.lib.rdfvalues import artifacts
 from grr.lib.rdfvalues import paths
+from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 
 
 class ArtifactCollectorFlow(flow.GRRFlow):
@@ -54,7 +54,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
   """
 
   category = "/Collectors/"
-  args_type = artifacts.ArtifactCollectorFlowArgs
+  args_type = artifact_lib.ArtifactCollectorFlowArgs
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   @flow.StateHandler(next_state=["StartCollection"])
@@ -71,12 +71,12 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     self.state.Register("client_anomaly_store", None)
 
     if self.args.use_tsk:
-      self.state.Register("path_type", rdfvalue.PathSpec.PathType.TSK)
+      self.state.Register("path_type", paths.PathSpec.PathType.TSK)
     else:
       self.state.Register("path_type", paths.PathSpec.PathType.OS)
 
     if (self.args.dependencies ==
-        artifacts.ArtifactCollectorFlowArgs.Dependency.FETCH_NOW):
+        artifact_lib.ArtifactCollectorFlowArgs.Dependency.FETCH_NOW):
       # Don't retrieve a full knowledgebase, just get the dependencies we
       # need.  CollectArtifactDependencies calls back to this flow to retrieve
       # the necessary dependencies.  We avoid a loop because
@@ -88,7 +88,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       return
 
     elif (self.args.dependencies ==
-          artifacts.ArtifactCollectorFlowArgs.Dependency.USE_CACHED) and (
+          artifact_lib.ArtifactCollectorFlowArgs.Dependency.USE_CACHED) and (
               not self.state.knowledge_base):
       # If not provided, get a knowledge base from the client.
       try:
@@ -168,32 +168,33 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       if source_conditions_met:
         type_name = source.type
         self.current_artifact_name = artifact_name
-        if type_name == rdfvalue.ArtifactSource.SourceType.COMMAND:
+        if type_name == artifact_lib.ArtifactSource.SourceType.COMMAND:
           self.RunCommand(source)
-        elif type_name == rdfvalue.ArtifactSource.SourceType.FILE:
+        elif type_name == artifact_lib.ArtifactSource.SourceType.FILE:
           self.GetFiles(source, self.state.path_type,
                         self.args.max_file_size)
-        elif type_name == rdfvalue.ArtifactSource.SourceType.GREP:
+        elif type_name == artifact_lib.ArtifactSource.SourceType.GREP:
           self.Grep(source, self.state.path_type)
-        elif type_name == rdfvalue.ArtifactSource.SourceType.LIST_FILES:
+        elif type_name == artifact_lib.ArtifactSource.SourceType.LIST_FILES:
           self.Glob(source, self.state.path_type)
-        elif type_name == rdfvalue.ArtifactSource.SourceType.PATH:
+        elif type_name == artifact_lib.ArtifactSource.SourceType.PATH:
           # GRR currently ignores PATH types, they are currently only useful
           # to plaso during bootstrapping when the registry is unavailable.
           pass
-        elif type_name == rdfvalue.ArtifactSource.SourceType.REGISTRY_KEY:
+        elif type_name == artifact_lib.ArtifactSource.SourceType.REGISTRY_KEY:
           self.GetRegistryKey(source)
-        elif type_name == rdfvalue.ArtifactSource.SourceType.REGISTRY_VALUE:
+        elif type_name == artifact_lib.ArtifactSource.SourceType.REGISTRY_VALUE:
           self.GetRegistryValue(source)
-        elif type_name == rdfvalue.ArtifactSource.SourceType.WMI:
+        elif type_name == artifact_lib.ArtifactSource.SourceType.WMI:
           self.WMIQuery(source)
-        elif type_name == rdfvalue.ArtifactSource.SourceType.REKALL_PLUGIN:
+        elif type_name == artifact_lib.ArtifactSource.SourceType.REKALL_PLUGIN:
           self.RekallPlugin(source)
-        elif type_name == rdfvalue.ArtifactSource.SourceType.ARTIFACT:
+        elif type_name == artifact_lib.ArtifactSource.SourceType.ARTIFACT:
           self.CollectArtifacts(source)
-        elif type_name == rdfvalue.ArtifactSource.SourceType.ARTIFACT_FILES:
+        elif type_name == artifact_lib.ArtifactSource.SourceType.ARTIFACT_FILES:
           self.CollectArtifactFiles(source)
-        elif type_name == rdfvalue.ArtifactSource.SourceType.GRR_CLIENT_ACTION:
+        elif (type_name ==
+              artifact_lib.ArtifactSource.SourceType.GRR_CLIENT_ACTION):
           self.RunGrrClientAction(source)
         else:
           raise RuntimeError("Invalid type %s in %s" % (type_name,
@@ -220,8 +221,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
           path, self.state.knowledge_base))
 
     action = file_finder.FileFinderAction(
-        action_type=rdfvalue.FileFinderAction.Action.DOWNLOAD,
-        download=rdfvalue.FileFinderDownloadActionOptions(max_size=max_size))
+        action_type=file_finder.FileFinderAction.Action.DOWNLOAD,
+        download=file_finder.FileFinderDownloadActionOptions(max_size=max_size))
 
     self.CallFlow(
         "FileFinder", paths=new_path_list, pathtype=path_type, action=action,
@@ -276,7 +277,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     content_regex_list = self.InterpolateList(
         source.attributes.get("content_regex_list", []))
 
-    regex_condition = rdfvalue.FileFinderContentsRegexMatchCondition(
+    regex_condition = file_finder.FileFinderContentsRegexMatchCondition(
         regex=self._CombineRegex(content_regex_list), bytes_before=0,
         bytes_after=0)
 
@@ -369,10 +370,10 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       )
 
   def RekallPlugin(self, source):
-    request = rdfvalue.RekallRequest()
+    request = rdf_rekall_types.RekallRequest()
     request.plugins = [
         # Only use these methods for listing processes.
-        rdfvalue.PluginRequest(
+        rdf_rekall_types.PluginRequest(
             plugin=source.attributes["plugin"],
             args=source.attributes.get("args", {}))]
 

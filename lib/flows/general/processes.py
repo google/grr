@@ -3,12 +3,12 @@
 
 
 from grr.lib import flow
-from grr.lib import rdfvalue
 from grr.lib.flows.general import file_finder
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 
 
-class ListProcessesArgs(rdfvalue.RDFProtoStruct):
+class ListProcessesArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ListProcessesArgs
 
 

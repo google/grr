@@ -16,7 +16,8 @@ from grr.lib import data_store
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib.aff4_objects import aff4_grr
-from grr.lib.rdfvalues import nsrl
+from grr.lib.aff4_objects import standard as aff4_standard
+from grr.lib.rdfvalues import nsrl as rdf_nsrl
 
 
 class FileStoreInit(registry.InitHook):
@@ -176,7 +177,7 @@ class FileStoreImage(aff4_grr.VFSBlobImage):
 
   class SchemaCls(aff4_grr.VFSBlobImage.SchemaCls):
     # The file store does not need to version file content.
-    HASHES = aff4.Attribute("aff4:hashes", rdfvalue.HashList,
+    HASHES = aff4.Attribute("aff4:hashes", aff4_standard.HashList,
                             "List of hashes of each chunk in this file.",
                             versioned=False)
 
@@ -260,7 +261,7 @@ class HashFileStore(FileStore):
   EXTERNAL = False
   HASH_TYPES = {"generic": ["md5", "sha1", "sha256", "SignedData"],
                 "pecoff": ["md5", "sha1"]}
-  FILE_HASH_TYPE = rdfvalue.FileStoreHash
+  FILE_HASH_TYPE = FileStoreHash
 
   def CheckHashes(self, hashes):
     """Check hashes against the filestore.
@@ -485,7 +486,7 @@ class HashFileStore(FileStore):
 
     for _, values in aff4.FACTORY.MultiListChildren(urns, token=token, age=age):
       for value in values:
-        yield rdfvalue.FileStoreHash(value)
+        yield FileStoreHash(value)
 
   @classmethod
   def GetClientsForHash(cls, hash_obj, token=None, age=aff4.NEWEST_TIME):
@@ -586,7 +587,7 @@ class NSRLFile(FileStoreImage):
     TYPE = aff4.Attribute("aff4:type", rdfvalue.RDFString,
                           "The name of the AFF4Object derived class.", "type",
                           versioned=False)
-    NSRL = aff4.Attribute("aff4:nsrl", rdfvalue.NSRLInformation,
+    NSRL = aff4.Attribute("aff4:nsrl", rdf_nsrl.NSRLInformation,
                           versioned=False)
 
 
@@ -596,11 +597,11 @@ class NSRLFileStore(HashFileStore):
   PATH = rdfvalue.RDFURN("aff4:/files/nsrl")
   PRIORITY = 1
   EXTERNAL = False
-  FILE_HASH_TYPE = rdfvalue.NSRLFileStoreHash
+  FILE_HASH_TYPE = NSRLFileStoreHash
 
-  FILE_TYPES = {"M": nsrl.NSRLInformation.FileType.MALICIOUS_FILE,
-                "S": nsrl.NSRLInformation.FileType.SPECIAL_FILE,
-                "": nsrl.NSRLInformation.FileType.NORMAL_FILE}
+  FILE_TYPES = {"M": rdf_nsrl.NSRLInformation.FileType.MALICIOUS_FILE,
+                "S": rdf_nsrl.NSRLInformation.FileType.SPECIAL_FILE,
+                "": rdf_nsrl.NSRLInformation.FileType.NORMAL_FILE}
 
   def GetChildrenByPriority(self, allow_external=True):
     return

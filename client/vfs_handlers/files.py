@@ -165,7 +165,11 @@ class File(vfs.VFSHandler):
         # Work out how large the file is
         if self.size is None:
           fd.Seek(0, 2)
-          self.size = fd.Tell() - self.file_offset
+          end = fd.Tell()
+          if end == 0:
+            end = pathspec.last.file_size_override
+
+          self.size = end - self.file_offset
 
       error = None
     # Some filesystems do not support unicode properly
@@ -216,6 +220,10 @@ class File(vfs.VFSHandler):
     """Read from the file."""
     if self.progress_callback:
       self.progress_callback()
+
+    available_to_read = max(0, (self.size or 0) - self.offset)
+    to_read = min(length, available_to_read)
+
     with FileHandleManager(self.filename) as fd:
       offset = self.file_offset + self.offset
       pre_padding = offset % self.alignment
@@ -225,7 +233,7 @@ class File(vfs.VFSHandler):
 
       fd.Seek(aligned_offset)
 
-      data = fd.Read(length + pre_padding)
+      data = fd.Read(to_read + pre_padding)
       self.offset += len(data) - pre_padding
 
       return data[pre_padding:]

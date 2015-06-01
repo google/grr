@@ -6,11 +6,12 @@ import stat
 
 from grr.lib import aff4
 from grr.lib import flow
-from grr.lib import rdfvalue
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 
 
-class SearchFileContentArgs(rdfvalue.RDFProtoStruct):
+class SearchFileContentArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.SearchFileContentArgs
 
 
@@ -43,7 +44,7 @@ class SearchFileContent(flow.GRRFlow):
   """
   category = "/Filesystem/"
   friendly_name = "Search In Files"
-  args_type = rdfvalue.SearchFileContentArgs
+  args_type = SearchFileContentArgs
   behaviours = flow.GRRFlow.behaviours + "ADVANCED"
 
   @classmethod
@@ -70,7 +71,7 @@ class SearchFileContent(flow.GRRFlow):
     if responses.success:
       # Grep not specified - just list all hits.
       if not self.args.grep:
-        msgs = [rdfvalue.BufferReference(pathspec=r.pathspec)
+        msgs = [rdf_client.BufferReference(pathspec=r.pathspec)
                 for r in responses]
         self.CallStateInline(messages=msgs, next_state="WriteHits")
       else:
@@ -80,8 +81,8 @@ class SearchFileContent(flow.GRRFlow):
           if not stat.S_ISDIR(response.st_mode):
 
             # Cast the BareGrepSpec to a GrepSpec type.
-            request = rdfvalue.GrepSpec(target=response.pathspec,
-                                        **self.args.grep.AsDict())
+            request = rdf_client.GrepSpec(target=response.pathspec,
+                                          **self.args.grep.AsDict())
             self.CallClient("Grep", request=request, next_state="WriteHits",
                             request_data=dict(pathspec=response.pathspec))
 

@@ -9,11 +9,12 @@ from M2Crypto import RSA
 
 from grr.lib import config_lib
 from grr.lib import rdfvalue
+from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import test_base
 
 
 class SignedBlobTest(test_base.RDFValueTestCase):
-  rdfvalue_class = rdfvalue.SignedBlob
+  rdfvalue_class = rdf_crypto.SignedBlob
 
   def setUp(self):
     super(SignedBlobTest, self).setUp()

@@ -17,8 +17,10 @@ from grr.lib import artifact_registry
 from grr.lib import objectfilter
 from grr.lib import parsers
 from grr.lib import rdfvalue
+from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import structs
 from grr.proto import artifact_pb2
+from grr.proto import flows_pb2
 
 
 class Error(Exception):
@@ -43,6 +45,63 @@ class KnowledgeBaseUninitializedError(Error):
 
 class KnowledgeBaseAttributesMissingError(Error):
   """Knowledge Base is missing key attributes."""
+
+
+class ArtifactCollectorFlowArgs(structs.RDFProtoStruct):
+  protobuf = flows_pb2.ArtifactCollectorFlowArgs
+
+  def Validate(self):
+    if not self.artifact_list:
+      raise ValueError("No artifacts to collect.")
+
+
+class ArtifactSource(structs.RDFProtoStruct):
+  """An ArtifactSource."""
+  protobuf = artifact_pb2.ArtifactSource
+
+  def __init__(self, initializer=None, age=None, **kwarg):
+    # Support initializing from a mapping
+    if isinstance(initializer, dict):
+      super(ArtifactSource, self).__init__(age=age, **initializer)
+    else:
+      super(ArtifactSource, self).__init__(initializer=initializer, age=age,
+                                           **kwarg)
+
+  def Validate(self):
+    """Check the source is well constructed."""
+    # Catch common mistake of path vs paths.
+    if self.attributes.GetItem("paths"):
+      if not isinstance(self.attributes.GetItem("paths"), list):
+        raise artifact_registry.ArtifactDefinitionError(
+            "Arg 'paths' that is not a list.")
+
+    if self.attributes.GetItem("path"):
+      if not isinstance(self.attributes.GetItem("path"), basestring):
+        raise artifact_registry.ArtifactDefinitionError(
+            "Arg 'path' is not a string.")
+
+    # Check all returned types.
+    if self.returned_types:
+      for rdf_type in self.returned_types:
+        if rdf_type not in rdfvalue.RDFValue.classes:
+          raise artifact_registry.ArtifactDefinitionError(
+              "Invalid return type %s" % rdf_type)
+
+    if str(self.type) not in TYPE_MAP:
+      raise artifact_registry.ArtifactDefinitionError(
+          "Invalid type %s." % self.type)
+
+    src_type = TYPE_MAP[str(self.type)]
+    required_attributes = src_type.get("required_attributes", [])
+    missing_attributes = set(
+        required_attributes).difference(self.attributes.keys())
+    if missing_attributes:
+      raise artifact_registry.ArtifactDefinitionError(
+          "Missing required attributes: %s." % missing_attributes)
+
+
+class ArtifactName(rdfvalue.RDFString):
+  type = "ArtifactName"
 
 
 class Artifact(structs.RDFProtoStruct):
@@ -155,7 +214,7 @@ class Artifact(structs.RDFProtoStruct):
     """
     deps = set()
     for source in self.sources:
-      if source.type == rdfvalue.ArtifactSource.SourceType.ARTIFACT:
+      if source.type == ArtifactSource.SourceType.ARTIFACT:
         if source.attributes.GetItem("names"):
           deps.update(source.attributes.GetItem("names"))
 
@@ -244,7 +303,7 @@ class Artifact(structs.RDFProtoStruct):
             "ARTIFACT_LABELS." % (cls_name, label))
 
     # Anything listed in provides must be defined in the KnowledgeBase
-    valid_provides = rdfvalue.KnowledgeBase().GetKbFieldNames()
+    valid_provides = rdf_client.KnowledgeBase().GetKbFieldNames()
     for kb_var in self.provides:
       if kb_var not in valid_provides:
         raise artifact_registry.ArtifactDefinitionError(
@@ -442,7 +501,7 @@ def CheckCondition(condition, check_object):
 
   Args:
     condition: A string condition e.g. "os == 'Windows'"
-    check_object: Object to validate, e.g. an rdfvalue.KnowledgeBase()
+    check_object: Object to validate, e.g. an rdf_client.KnowledgeBase()
 
   Returns:
     True or False depending on whether the condition matches.
@@ -511,7 +570,7 @@ def ArtifactsFromYaml(yaml_content):
     # these are all primitive types as long as there is no other deserialization
     # involved, and we are passing these into protobuf primitive types.
     try:
-      artifact_value = rdfvalue.Artifact(**artifact_dict)
+      artifact_value = Artifact(**artifact_dict)
       valid_artifacts.append(artifact_value)
     except (TypeError, AttributeError) as e:
       raise artifact_registry.ArtifactDefinitionError(

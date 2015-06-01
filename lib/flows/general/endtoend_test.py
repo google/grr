@@ -10,14 +10,16 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.flows.general import endtoend
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class MockEndToEndTest(base.AutomatedTest):
   platforms = ["Linux", "Darwin"]
   flow = "ListDirectory"
-  args = {"pathspec": rdfvalue.PathSpec(
+  args = {"pathspec": rdf_paths.PathSpec(
       path="/bin",
-      pathtype=rdfvalue.PathSpec.PathType.OS)}
+      pathtype=rdf_paths.PathSpec.PathType.OS)}
 
   output_path = "/fs/os/bin"
   file_to_find = "ls"
@@ -61,8 +63,8 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
     super(TestEndToEndTestFlow, self).setUp()
     install_time = rdfvalue.RDFDatetime().Now()
     user = "testuser"
-    userobj = rdfvalue.User(username=user)
-    interface = rdfvalue.Interface(ifname="eth0")
+    userobj = rdf_client.User(username=user)
+    interface = rdf_client.Interface(ifname="eth0")
     self.client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient", mode="rw",
                                       token=self.token, age=aff4.ALL_TIMES)
     self.client.Set(self.client.Schema.HOSTNAME("hostname"))
@@ -81,7 +83,7 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
     self.client_mock = action_mocks.ActionMock("ListDirectory", "StatFile")
 
   def testRunSuccess(self):
-    args = rdfvalue.EndToEndTestFlowArgs(
+    args = endtoend.EndToEndTestFlowArgs(
         test_names=["TestListDirectoryOSLinuxDarwin",
                     "MockEndToEndTest",
                     "TestListDirectoryOSLinuxDarwin"])
@@ -94,7 +96,7 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
 
       results = []
       for _, reply in send_reply.args:
-        if isinstance(reply, rdfvalue.EndToEndTestResult):
+        if isinstance(reply, endtoend.EndToEndTestResult):
           results.append(reply)
           self.assertTrue(reply.success)
           self.assertTrue(reply.test_class_name in [
@@ -108,8 +110,8 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
     """Try to run linux tests on windows."""
     install_time = rdfvalue.RDFDatetime().Now()
     user = "testuser"
-    userobj = rdfvalue.User(username=user)
-    interface = rdfvalue.Interface(ifname="eth0")
+    userobj = rdf_client.User(username=user)
+    interface = rdf_client.Interface(ifname="eth0")
     self.client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient", mode="rw",
                                       token=self.token, age=aff4.ALL_TIMES)
 
@@ -149,7 +151,7 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
 
         results = []
         for _, reply in send_reply.args:
-          if isinstance(reply, rdfvalue.EndToEndTestResult):
+          if isinstance(reply, endtoend.EndToEndTestResult):
             results.append(reply)
             if reply.test_class_name == "MockEndToEndTest":
               self.assertTrue(reply.success)
@@ -205,7 +207,7 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
 
       results = []
       for _, reply in send_reply.args:
-        if isinstance(reply, rdfvalue.EndToEndTestResult):
+        if isinstance(reply, endtoend.EndToEndTestResult):
           results.append(reply)
           self.assertFalse(reply.success)
           self.assertEqual(reply.test_class_name,

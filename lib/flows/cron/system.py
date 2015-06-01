@@ -14,12 +14,17 @@ from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import export_utils
 from grr.lib import flow
+from grr.lib import flow_runner
 from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import cronjobs
 from grr.lib.aff4_objects import stats as stats_aff4
+from grr.lib.flows.general import discovery as flows_discovery
+from grr.lib.flows.general import endtoend as flows_endtoend
+from grr.lib.hunts import standard as hunts_standard
+from grr.lib.rdfvalues import foreman as rdf_foreman
 from grr.lib.rdfvalues import stats as rdfstats
 
 
@@ -262,7 +267,7 @@ class InterrogateClientsCronFlow(cronjobs.SystemCronFlow):
     apply plugins specific to the local installation.
 
     Returns:
-      list of rdfvalue.OutputPluginDescriptor objects
+      list of output_plugin.OutputPluginDescriptor objects
     """
     return []
 
@@ -270,8 +275,8 @@ class InterrogateClientsCronFlow(cronjobs.SystemCronFlow):
   def Start(self):
     with hunts.GRRHunt.StartHunt(
         hunt_name="GenericHunt",
-        flow_runner_args=rdfvalue.FlowRunnerArgs(flow_name="Interrogate"),
-        flow_args=rdfvalue.InterrogateArgs(lightweight=False),
+        flow_runner_args=flow_runner.FlowRunnerArgs(flow_name="Interrogate"),
+        flow_args=flows_discovery.InterrogateArgs(lightweight=False),
         regex_rules=[],
         output_plugins=self.GetOutputPlugins(),
         token=self.token) as hunt:
@@ -303,7 +308,7 @@ class StatsHuntCronFlow(cronjobs.SystemCronFlow):
     apply plugins specific to the local installation.
 
     Returns:
-      list of rdfvalue.OutputPluginDescriptor objects
+      list of output_plugin.OutputPluginDescriptor objects
     """
     return []
 
@@ -355,7 +360,7 @@ class PurgeClientStats(cronjobs.SystemCronFlow):
 
 
 def GetSystemForemanRule(os_string):
-  return rdfvalue.ForemanAttributeRegex(
+  return rdf_foreman.ForemanAttributeRegex(
       attribute_name="System", attribute_regex=os_string)
 
 
@@ -388,17 +393,17 @@ class EndToEndTests(cronjobs.SystemCronFlow):
 
     token = access_control.ACLToken(username="GRRWorker",
                                     reason="Running endtoend tests.").SetUID()
-    runner_args = rdfvalue.FlowRunnerArgs(flow_name="EndToEndTestFlow")
+    runner_args = flow_runner.FlowRunnerArgs(flow_name="EndToEndTestFlow")
 
-    flow_request = rdfvalue.FlowRequest(
+    flow_request = hunts_standard.FlowRequest(
         client_ids=self.state.client_ids,
-        args=rdfvalue.EndToEndTestFlowArgs(),
+        args=flows_endtoend.EndToEndTestFlowArgs(),
         runner_args=runner_args)
 
-    bogus_rule = rdfvalue.ForemanAttributeRegex(
+    bogus_rule = rdf_foreman.ForemanAttributeRegex(
         attribute_name="System", attribute_regex="Does not match anything")
 
-    hunt_args = rdfvalue.VariableGenericHuntArgs(flows=[flow_request])
+    hunt_args = hunts_standard.VariableGenericHuntArgs(flows=[flow_request])
 
     hunt_args.output_plugins = self.GetOutputPlugins()
 

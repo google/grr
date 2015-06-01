@@ -4,20 +4,15 @@
 
 
 
-# pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import,g-bad-import-order
-
 from grr.gui import api_test_lib
 from grr.gui.api_plugins import client as client_plugin
 
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import type_info
-from grr.lib.rdfvalues import client
+from grr.lib.rdfvalues import client as rdf_client
 
 
 class ApiClientsAddLabelsRendererTest(test_lib.GRRBaseTest):
@@ -33,9 +28,10 @@ class ApiClientsAddLabelsRendererTest(test_lib.GRRBaseTest):
       self.assertFalse(
           aff4.FACTORY.Open(client_id, token=self.token).GetLabels())
 
-    result = self.renderer.Render(rdfvalue.ApiClientsAddLabelsRendererArgs(
+    result = self.renderer.Render(client_plugin.ApiClientsAddLabelsRendererArgs(
         client_ids=[self.client_ids[0]],
-        labels=["foo"]), token=self.token)
+        labels=["foo"]),
+                                  token=self.token)
     self.assertEqual(result["status"], "OK")
 
     labels = aff4.FACTORY.Open(self.client_ids[0],
@@ -53,9 +49,10 @@ class ApiClientsAddLabelsRendererTest(test_lib.GRRBaseTest):
       self.assertFalse(
           aff4.FACTORY.Open(client_id, token=self.token).GetLabels())
 
-    result = self.renderer.Render(rdfvalue.ApiClientsAddLabelsRendererArgs(
+    result = self.renderer.Render(client_plugin.ApiClientsAddLabelsRendererArgs(
         client_ids=[self.client_ids[0], self.client_ids[1]],
-        labels=["foo", "bar"]), token=self.token)
+        labels=["foo", "bar"]),
+                                  token=self.token)
     self.assertEqual(result["status"], "OK")
 
     for client_id in self.client_ids[:2]:
@@ -70,7 +67,7 @@ class ApiClientsAddLabelsRendererTest(test_lib.GRRBaseTest):
         aff4.FACTORY.Open(self.client_ids[2], token=self.token).GetLabels())
 
   def testAuditEntryIsCreatedForEveryClient(self):
-    self.renderer.Render(rdfvalue.ApiClientsAddLabelsRendererArgs(
+    self.renderer.Render(client_plugin.ApiClientsAddLabelsRendererArgs(
         client_ids=self.client_ids,
         labels=["drei", "ein", "zwei"]), token=self.token)
 
@@ -87,7 +84,7 @@ class ApiClientsAddLabelsRendererTest(test_lib.GRRBaseTest):
       found_event = None
       for event in fd:
         if (event.action == flow.AuditEvent.Action.CLIENT_ADD_LABEL and
-            event.client == client.ClientURN(client_id)):
+            event.client == rdf_client.ClientURN(client_id)):
           found_event = event
           break
 
@@ -110,9 +107,11 @@ class ApiClientsRemoveLabelsRendererTest(test_lib.GRRBaseTest):
                            token=self.token) as grr_client:
       grr_client.AddLabels("foo", "bar")
 
-    result = self.renderer.Render(rdfvalue.ApiClientsRemoveLabelsRendererArgs(
-        client_ids=[self.client_ids[0]],
-        labels=["foo"]), token=self.token)
+    result = self.renderer.Render(
+        client_plugin.ApiClientsRemoveLabelsRendererArgs(
+            client_ids=[self.client_ids[0]],
+            labels=["foo"]),
+        token=self.token)
     self.assertEqual(result["status"], "OK")
 
     labels = aff4.FACTORY.Open(self.client_ids[0], token=self.token).GetLabels()
@@ -125,9 +124,11 @@ class ApiClientsRemoveLabelsRendererTest(test_lib.GRRBaseTest):
                            token=self.token) as grr_client:
       grr_client.AddLabels("foo", owner="GRR")
 
-    result = self.renderer.Render(rdfvalue.ApiClientsRemoveLabelsRendererArgs(
-        client_ids=[self.client_ids[0]],
-        labels=["foo"]), token=self.token)
+    result = self.renderer.Render(
+        client_plugin.ApiClientsRemoveLabelsRendererArgs(
+            client_ids=[self.client_ids[0]],
+            labels=["foo"]),
+        token=self.token)
     self.assertEqual(result["status"], "OK")
 
     labels = aff4.FACTORY.Open(self.client_ids[0], token=self.token).GetLabels()
@@ -139,9 +140,11 @@ class ApiClientsRemoveLabelsRendererTest(test_lib.GRRBaseTest):
       grr_client.AddLabels("foo")
       grr_client.AddLabels("foo", owner="GRR")
 
-    result = self.renderer.Render(rdfvalue.ApiClientsRemoveLabelsRendererArgs(
-        client_ids=[self.client_ids[0]],
-        labels=["foo"]), token=self.token)
+    result = self.renderer.Render(
+        client_plugin.ApiClientsRemoveLabelsRendererArgs(
+            client_ids=[self.client_ids[0]],
+            labels=["foo"]),
+        token=self.token)
     self.assertEqual(result["status"], "OK")
 
     labels = aff4.FACTORY.Open(self.client_ids[0], token=self.token).GetLabels()
@@ -202,13 +205,13 @@ class ApiFlowStatusRendererTest(test_lib.GRRBaseTest):
     Make sure our input is validated because this API doesn't require
     authorization.
     """
-    bad_flowid = rdfvalue.ApiFlowStatusRendererArgs(
+    bad_flowid = client_plugin.ApiFlowStatusRendererArgs(
         client_id=self.client_id.Basename(), flow_id="X:<script>")
     with self.assertRaises(ValueError):
       self.renderer.Render(bad_flowid, token=self.token)
 
     with self.assertRaises(type_info.TypeValueError):
-      rdfvalue.ApiFlowStatusRendererArgs(
+      client_plugin.ApiFlowStatusRendererArgs(
           client_id="C.123456<script>", flow_id="X:1245678")
 
 
@@ -239,7 +242,7 @@ class ApiFlowStatusRendererRegressionTest(
       with aff4.FACTORY.Create(
           flow_state.context.output_urn,
           aff4_type="RDFValueCollection", token=self.token) as collection:
-        collection.Add(rdfvalue.ClientSummary())
+        collection.Add(rdf_client.ClientSummary())
 
     self.Check("GET", "/api/flows/%s/%s/status" % (client_urn.Basename(),
                                                    flow_id.Basename()),

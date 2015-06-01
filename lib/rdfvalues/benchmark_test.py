@@ -3,13 +3,14 @@
 
 
 
-from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import type_info
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import jobs_pb2
 
 
-class StructGrrMessage(rdfvalue.RDFProtoStruct):
+class StructGrrMessage(rdf_structs.RDFProtoStruct):
   """A serialization agnostic GrrMessage."""
 
   type_description = type_info.TypeDescriptorSet(
@@ -42,7 +43,7 @@ class StructGrrMessage(rdfvalue.RDFProtoStruct):
   )
 
 
-class FastGrrMessageList(rdfvalue.RDFProtoStruct):
+class FastGrrMessageList(rdf_structs.RDFProtoStruct):
   """A Faster implementation of GrrMessageList."""
 
   type_description = type_info.TypeDescriptorSet(
@@ -71,18 +72,18 @@ class RDFValueBenchmark(test_lib.AverageMicroBenchmarks):
     test_proto = test_proto.SerializeToString()
 
     def RDFStructCreateAndSerialize():
-      s = rdfvalue.User(**self.USER_ACCOUNT)
+      s = rdf_client.User(**self.USER_ACCOUNT)
       s.SerializeToString()
 
     def RDFStructCreateAndSerializeSetValue():
-      s = rdfvalue.User()
+      s = rdf_client.User()
       for k, v in self.USER_ACCOUNT.iteritems():
         setattr(s, k, v)
 
       s.SerializeToString()
 
     def RDFStructCreateAndSerializeFromProto():
-      s = rdfvalue.User(test_proto)
+      s = rdf_client.User(test_proto)
       s.SerializeToString()
 
     def ProtoCreateAndSerialize():
@@ -246,7 +247,7 @@ class RDFValueBenchmark(test_lib.AverageMicroBenchmarks):
       self.assertEqual(new_s.username.__class__, unicode)
 
     def RDFStructDecode():
-      new_s = rdfvalue.User()
+      new_s = rdf_client.User()
       new_s.ParseFromString(data)
 
       self.assertEqual(new_s.username, "user")

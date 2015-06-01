@@ -13,6 +13,7 @@ from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import stats
 from grr.lib import test_lib
+from grr.lib.rdfvalues import flows as rdf_flows
 
 # pylint: mode=test
 
@@ -38,7 +39,7 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
     """Tests that queueing and fetching of requests and responses work."""
     session_id = rdfvalue.SessionID(flow_name="test")
 
-    request = rdfvalue.RequestState(
+    request = rdf_flows.RequestState(
         id=1, client_id=self.client_id,
         next_state="TestState",
         session_id=session_id)
@@ -58,7 +59,7 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
     with queue_manager.QueueManager(token=self.token) as manager:
       # Start with request 2 - leave request 1 un-responded to.
       for request_id in range(2, 5):
-        request = rdfvalue.RequestState(
+        request = rdf_flows.RequestState(
             id=request_id, client_id=self.client_id,
             next_state="TestState", session_id=session_id)
 
@@ -67,13 +68,13 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
         response_id = None
         for response_id in range(1, 10):
           # Normal message.
-          manager.QueueResponse(session_id, rdfvalue.GrrMessage(
+          manager.QueueResponse(session_id, rdf_flows.GrrMessage(
               request_id=request_id, response_id=response_id))
 
         # And a status message.
-        manager.QueueResponse(session_id, rdfvalue.GrrMessage(
+        manager.QueueResponse(session_id, rdf_flows.GrrMessage(
             request_id=request_id, response_id=response_id + 1,
-            type=rdfvalue.GrrMessage.Type.STATUS))
+            type=rdf_flows.GrrMessage.Type.STATUS))
 
     completed_requests = list(manager.FetchCompletedRequests(session_id))
     self.assertEqual(len(completed_requests), 3)
@@ -83,7 +84,7 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
 
     # Last message is the status message.
     self.assertEqual(completed_requests[0][-1].type,
-                     rdfvalue.GrrMessage.Type.STATUS)
+                     rdf_flows.GrrMessage.Type.STATUS)
     self.assertEqual(completed_requests[0][-1].response_id, 10)
 
     # Now fetch all the completed responses. Set the limit so we only fetch some
@@ -118,14 +119,14 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
     """Check that we can efficiently destroy a single flow request."""
     session_id = rdfvalue.SessionID(flow_name="test3")
 
-    request = rdfvalue.RequestState(
+    request = rdf_flows.RequestState(
         id=1, client_id=self.client_id,
         next_state="TestState",
         session_id=session_id)
 
     with queue_manager.QueueManager(token=self.token) as manager:
       manager.QueueRequest(session_id, request)
-      manager.QueueResponse(session_id, rdfvalue.GrrMessage(
+      manager.QueueResponse(session_id, rdf_flows.GrrMessage(
           request_id=1, response_id=1))
 
     # Check the request and responses are there.
@@ -143,14 +144,14 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
     """Check that we can efficiently destroy the flow's request queues."""
     session_id = rdfvalue.SessionID(flow_name="test2")
 
-    request = rdfvalue.RequestState(
+    request = rdf_flows.RequestState(
         id=1, client_id=self.client_id,
         next_state="TestState",
         session_id=session_id)
 
     with queue_manager.QueueManager(token=self.token) as manager:
       manager.QueueRequest(session_id, request)
-      manager.QueueResponse(session_id, rdfvalue.GrrMessage(
+      manager.QueueResponse(session_id, rdf_flows.GrrMessage(
           request_id=1, response_id=1))
 
     # Check the request and responses are there.
@@ -189,8 +190,8 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
   def testSchedule(self):
     """Test the ability to schedule a task."""
     test_queue = rdfvalue.RDFURN("fooSchedule")
-    task = rdfvalue.GrrMessage(queue=test_queue, task_ttl=5,
-                               session_id="aff4:/Test")
+    task = rdf_flows.GrrMessage(queue=test_queue, task_ttl=5,
+                                session_id="aff4:/Test")
     manager = queue_manager.QueueManager(token=self.token)
     manager.Schedule([task])
 
@@ -204,7 +205,7 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
         test_queue, manager._TaskIdToColumn(task.task_id),
         token=self.token)
 
-    decoded = rdfvalue.GrrMessage(value)
+    decoded = rdf_flows.GrrMessage(value)
     self.assertRDFValueEqual(decoded, task)
     self.assert_(ts > 0)
 
@@ -244,8 +245,8 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
 
   def testTaskRetransmissionsAreCorrectlyAccounted(self):
     test_queue = rdfvalue.RDFURN("fooSchedule")
-    task = rdfvalue.GrrMessage(queue=test_queue,
-                               task_ttl=5, session_id="aff4:/Test")
+    task = rdf_flows.GrrMessage(queue=test_queue,
+                                task_ttl=5, session_id="aff4:/Test")
 
     manager = queue_manager.QueueManager(token=self.token)
     manager.Schedule([task])
@@ -275,8 +276,8 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
     """Test that we can delete tasks."""
 
     test_queue = rdfvalue.RDFURN("fooDelete")
-    task = rdfvalue.GrrMessage(queue=test_queue,
-                               session_id="aff4:/Test")
+    task = rdf_flows.GrrMessage(queue=test_queue,
+                                session_id="aff4:/Test")
 
     manager = queue_manager.QueueManager(token=self.token)
     manager.Schedule([task])
@@ -309,8 +310,8 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
   def testReSchedule(self):
     """Test the ability to re-schedule a task."""
     test_queue = rdfvalue.RDFURN("fooReschedule")
-    task = rdfvalue.GrrMessage(queue=test_queue, task_ttl=5,
-                               session_id="aff4:/Test")
+    task = rdf_flows.GrrMessage(queue=test_queue, task_ttl=5,
+                                session_id="aff4:/Test")
 
     manager = queue_manager.QueueManager(token=self.token)
     manager.Schedule([task])
@@ -347,7 +348,7 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
 
     tasks = []
     for i in range(10):
-      msg = rdfvalue.GrrMessage(
+      msg = rdf_flows.GrrMessage(
           session_id="Test%d" % i,
           priority=i % 3,
           queue=test_queue)

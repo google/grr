@@ -33,6 +33,9 @@ from grr.lib import test_lib
 from grr.lib import threadpool
 from grr.lib import utils
 from grr.lib import worker
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 def DeletionTest(f):
@@ -96,7 +99,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
   def testSetResolve(self):
     """Test the Set() and Resolve() methods."""
     predicate = "task:00000001"
-    value = rdfvalue.GrrMessage(session_id="session")
+    value = rdf_flows.GrrMessage(session_id="session")
 
     # Ensure that setting a value is immediately available.
     data_store.DB.Set(self.test_row, predicate, value, token=self.token)
@@ -105,7 +108,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     (stored_proto, _) = data_store.DB.Resolve(
         self.test_row, predicate, token=self.token)
 
-    stored_proto = rdfvalue.GrrMessage(stored_proto)
+    stored_proto = rdf_flows.GrrMessage(stored_proto)
     self.assertEqual(stored_proto.session_id, value.session_id)
 
   def testMultiSet(self):
@@ -1169,9 +1172,9 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     self._InstallACLChecks("w")
 
     self.assertRaises(
-        access_control.UnauthorizedAccess,
-        data_store.DB.Set,
-        self.test_row, "task:00000001", rdfvalue.GrrMessage(), token=self.token)
+        access_control.UnauthorizedAccess, data_store.DB.Set, self.test_row,
+        "task:00000001", rdf_flows.GrrMessage(),
+        token=self.token)
 
   @DeletionTest
   def testDeleteSubjectChecksWriteAccess(self):
@@ -1708,7 +1711,8 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
         self._DeleteRandom(subjects, 4, False)
 
   def _GenerateRandomClient(self):
-    return rdfvalue.ClientURN("C.%016d" % self.rand.randint(0, (10 ** 16) - 1))
+    return rdf_client.ClientURN("C.%016d" % self.rand.randint(0,
+                                                              (10 ** 16) - 1))
 
   def _FillDatabase(self, nsubjects, nclients,
                     max_attributes=3):
@@ -1865,7 +1869,7 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
   def GenerateFiles(self, client_id, n, directory="dir/dir"):
     res = []
     for i in xrange(n):
-      res.append(rdfvalue.StatEntry(
+      res.append(rdf_client.StatEntry(
           aff4path="aff4:/%s/fs/os/%s/file%d" % (client_id, directory, i),
           st_mode=33261,
           st_ino=1026267,
@@ -1880,15 +1884,15 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
           st_blocks=128,
           st_blksize=4096,
           st_rdev=0,
-          pathspec=rdfvalue.PathSpec(path="/dir/dir/file%d" % i,
-                                     pathtype=0)))
+          pathspec=rdf_paths.PathSpec(path="/dir/dir/file%d" % i,
+                                      pathtype=0)))
     return res
 
   def StartFlow(self, client_id):
     flow_id = flow.GRRFlow.StartFlow(client_id=client_id,
                                      flow_name="ListDirectory",
                                      queue=self.queue,
-                                     pathspec=rdfvalue.PathSpec(
+                                     pathspec=rdf_paths.PathSpec(
                                          path="/",
                                          pathtype="OS",
                                      ),
@@ -1900,16 +1904,16 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
       messages += self.GenerateFiles(client_id, self.files_per_dir,
                                      "dir/dir%d" % d)
 
-    messages.append(rdfvalue.GrrStatus())
+    messages.append(rdf_flows.GrrStatus())
 
     with queue_manager.QueueManager(token=self.token) as flow_manager:
       for i, payload in enumerate(messages):
-        msg = rdfvalue.GrrMessage(
+        msg = rdf_flows.GrrMessage(
             session_id=flow_id,
             request_id=1, response_id=1 + i,
-            auth_state=rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED,
+            auth_state=rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED,
             payload=payload)
-        if isinstance(payload, rdfvalue.GrrStatus):
+        if isinstance(payload, rdf_flows.GrrStatus):
           msg.type = 1
         flow_manager.QueueResponse(flow_id, msg)
 
@@ -1931,7 +1935,7 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
     self.tp.Join()
 
     notifications = [
-        rdfvalue.GrrNotification(session_id=f) for f in self.flow_ids]
+        rdf_flows.GrrNotification(session_id=f) for f in self.flow_ids]
     with queue_manager.QueueManager(sync=True, token=self.token) as manager:
       manager.MultiNotifyQueue(notifications)
 

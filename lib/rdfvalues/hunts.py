@@ -5,9 +5,9 @@
 
 
 
-from grr.lib import rdfvalue
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import jobs_pb2
 
 
-class HuntNotification(rdfvalue.RDFProtoStruct):
+class HuntNotification(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.HuntNotification

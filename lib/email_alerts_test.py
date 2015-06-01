@@ -5,8 +5,8 @@
 from grr.lib import config_lib
 from grr.lib import email_alerts
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.rdfvalues import standard as rdf_standard
 
 
 class SendEmailTests(test_lib.GRRBaseTest):
@@ -30,8 +30,8 @@ class SendEmailTests(test_lib.GRRBaseTest):
     self.assertEqual([to_address], c_to)
     self.assertFalse("CC:" in msg)
 
-    # Single fully qualified address as rdfvalue.DomainEmailAddress
-    to_address = rdfvalue.DomainEmailAddress("testto@%s" % testdomain)
+    # Single fully qualified address as rdf_standard.DomainEmailAddress
+    to_address = rdf_standard.DomainEmailAddress("testto@%s" % testdomain)
     from_address = "me@example.com"
     subject = "test"
     message = ""
@@ -53,10 +53,10 @@ class SendEmailTests(test_lib.GRRBaseTest):
     self.assertEqual(to_address_expected, c_to)
     self.assertTrue("CC: testcc@%s" % testdomain in message)
 
-    # Multiple unqualified to addresses as rdfvalue.DomainEmailAddress, one cc
-    to_address = [rdfvalue.DomainEmailAddress("testto@%s" % testdomain),
-                  rdfvalue.DomainEmailAddress("abc@%s" % testdomain),
-                  rdfvalue.DomainEmailAddress("def@%s" % testdomain)]
+    # Multiple unqualified to addresses as DomainEmailAddress, one cc
+    to_address = [rdf_standard.DomainEmailAddress("testto@%s" % testdomain),
+                  rdf_standard.DomainEmailAddress("abc@%s" % testdomain),
+                  rdf_standard.DomainEmailAddress("def@%s" % testdomain)]
     to_address_expected = [
         x + testdomain for x in ["testto@", "abc@", "def@"]]
     cc_address = "testcc"
@@ -85,7 +85,7 @@ class SendEmailTests(test_lib.GRRBaseTest):
     # Multiple address types, two cc, no default domain
     config_lib.CONFIG.Set("Logging.domain", None)
     to_address = ["testto@localhost", "hij",
-                  rdfvalue.DomainEmailAddress("klm@localhost")]
+                  rdf_standard.DomainEmailAddress("klm@localhost")]
     to_address_expected = ["testto@localhost", "hij@localhost", "klm@localhost"]
     email_alerts.SendEmail(to_address, from_address, subject, message,
                            cc_addresses=cc_address)

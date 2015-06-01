@@ -8,6 +8,7 @@ from grr.lib import email_alerts
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import flows as rdf_flows
 
 
 class AFF4NotificationEmailListener(flow.EventListener):
@@ -26,7 +27,7 @@ Following path got modified: %(path)s"
     """Process an event message."""
 
     # Only accept authenticated messages
-    auth_state = rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED
+    auth_state = rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
     if message.auth_state != auth_state:
       return
 

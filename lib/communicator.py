@@ -22,6 +22,8 @@ from grr.lib import stats
 from grr.lib import type_info
 from grr.lib import utils
 
+from grr.lib.rdfvalues import flows as rdf_flows
+
 # Constants.
 ENCRYPT = 1
 DECRYPT = 0
@@ -142,7 +144,7 @@ class Cipher(object):
     # The CipherProperties() protocol buffer specifying the session keys, that
     # we send to the other end point. It will be encrypted using the RSA private
     # key.
-    self.cipher = rdfvalue.CipherProperties(
+    self.cipher = rdf_flows.CipherProperties(
         name=self.cipher_name,
         key=os.urandom(self.key_size / 8),
         metadata_iv=os.urandom(self.iv_size / 8),
@@ -153,7 +155,7 @@ class Cipher(object):
     self.pub_key_cache = pub_key_cache
     serialized_cipher = self.cipher.SerializeToString()
 
-    self.cipher_metadata = rdfvalue.CipherMetadata(source=source)
+    self.cipher_metadata = rdf_flows.CipherMetadata(source=source)
 
     # Sign this cipher.
     digest = self.hash_function(serialized_cipher).digest()
@@ -240,7 +242,7 @@ class ReceivedCipher(Cipher):
           private_key.rsa, response_comms.encrypted_cipher, self.e_padding)
 
       # If we get here we have the session keys.
-      self.cipher = rdfvalue.CipherProperties(self.serialized_cipher)
+      self.cipher = rdf_flows.CipherProperties(self.serialized_cipher)
 
       # Check the key lengths.
       if (len(self.cipher.key) != self.key_size / 8 or
@@ -254,7 +256,7 @@ class ReceivedCipher(Cipher):
       # using the symmetric session key. It contains the RSA signature of the
       # digest of the serialized CipherProperties(). It is stored inside the
       # encrypted payload.
-      self.cipher_metadata = rdfvalue.CipherMetadata(self.Decrypt(
+      self.cipher_metadata = rdf_flows.CipherMetadata(self.Decrypt(
           response_comms.encrypted_cipher_metadata, self.cipher.metadata_iv))
 
       self.VerifyCipherSignature()
@@ -364,7 +366,7 @@ class Communicator(object):
       # Only compress if it buys us something.
       if len(compressed_data) < len(uncompressed_data):
         signed_message_list.compression = (
-            rdfvalue.SignedMessageList.CompressionType.ZCOMPRESSION)
+            rdf_flows.SignedMessageList.CompressionType.ZCOMPRESSION)
         signed_message_list.message_list = compressed_data
 
   def EncodeMessages(self, message_list, result, destination=None,
@@ -415,7 +417,7 @@ class Communicator(object):
                       self.pub_key_cache)
       self.cipher_cache.Put(destination, cipher)
 
-    signed_message_list = rdfvalue.SignedMessageList(timestamp=timestamp)
+    signed_message_list = rdf_flows.SignedMessageList(timestamp=timestamp)
     self.EncodeMessageList(message_list, signed_message_list)
 
     result.encrypted_cipher_metadata = cipher.encrypted_cipher_metadata
@@ -461,7 +463,7 @@ class Communicator(object):
        a Signed_Message_List rdfvalue
     """
     try:
-      response_comms = rdfvalue.ClientCommunication(encrypted_response)
+      response_comms = rdf_flows.ClientCommunication(encrypted_response)
       return self.DecodeMessages(response_comms)
     except (rdfvalue.DecodeError, type_info.TypeValueError,
             ValueError, AttributeError) as e:
@@ -480,10 +482,11 @@ class Communicator(object):
       DecodingError: If decompression fails.
     """
     compression = signed_message_list.compression
-    if compression == rdfvalue.SignedMessageList.CompressionType.UNCOMPRESSED:
+    if compression == rdf_flows.SignedMessageList.CompressionType.UNCOMPRESSED:
       data = signed_message_list.message_list
 
-    elif compression == rdfvalue.SignedMessageList.CompressionType.ZCOMPRESSION:
+    elif (compression ==
+          rdf_flows.SignedMessageList.CompressionType.ZCOMPRESSION):
       try:
         data = zlib.decompress(signed_message_list.message_list)
       except zlib.error as e:
@@ -492,7 +495,7 @@ class Communicator(object):
       raise DecodingError("Compression scheme not supported")
 
     try:
-      result = rdfvalue.MessageList(data)
+      result = rdf_flows.MessageList(data)
     except rdfvalue.DecodeError:
       raise DecodingError("RDFValue parsing failed.")
 
@@ -536,7 +539,7 @@ class Communicator(object):
       plain = cipher.Decrypt(
           response_comms.encrypted, response_comms.packet_iv)
       try:
-        signed_message_list = rdfvalue.SignedMessageList(plain)
+        signed_message_list = rdf_flows.SignedMessageList(plain)
       except rdfvalue.DecodeError as e:
         raise DecryptionError(str(e))
 
@@ -576,14 +579,14 @@ class Communicator(object):
        api_version: The api version we should use.
 
     Returns:
-       a rdfvalue.GrrMessage.AuthorizationState.
+       a rdf_flows.GrrMessage.AuthorizationState.
 
     Raises:
        DecryptionError: if the message is corrupt.
     """
     # This is not used atm since we only support a single api version (3).
     _ = api_version
-    result = rdfvalue.GrrMessage.AuthorizationState.UNAUTHENTICATED
+    result = rdf_flows.GrrMessage.AuthorizationState.UNAUTHENTICATED
 
     # Give the cipher another chance to check its signature.
     if not cipher.signature_verified:
@@ -591,16 +594,16 @@ class Communicator(object):
 
     if cipher.signature_verified:
       stats.STATS.IncrementCounter("grr_authenticated_messages")
-      result = rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED
+      result = rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
 
     # Check for replay attacks. We expect the server to return the same
     # timestamp nonce we sent.
     if signed_message_list.timestamp != self.timestamp:
-      result = rdfvalue.GrrMessage.AuthorizationState.UNAUTHENTICATED
+      result = rdf_flows.GrrMessage.AuthorizationState.UNAUTHENTICATED
 
     if not cipher.cipher_metadata:
       # Fake the metadata
-      cipher.cipher_metadata = rdfvalue.CipherMetadata(
+      cipher.cipher_metadata = rdf_flows.CipherMetadata(
           source=signed_message_list.source)
 
     return result

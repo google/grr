@@ -1,12 +1,12 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc. All Rights Reserved.
-
 """Test for RunningStats class."""
 
 
 
 import math
 
+from grr.lib import flags
+from grr.lib import test_lib
 from grr.lib.rdfvalues import stats as stats_rdf
 from grr.lib.rdfvalues import test_base
 
@@ -65,3 +65,11 @@ class RunningStatsTest(test_base.RDFValueTestCase):
 
     self.assertAlmostEquals(stats.histogram.bins[2].range_max_value, 10.0)
     self.assertEqual(stats.histogram.bins[2].num, 4)
+
+
+def main(argv):
+  test_lib.GrrTestProgram(argv=argv)
+
+
+if __name__ == "__main__":
+  flags.StartMain(main)

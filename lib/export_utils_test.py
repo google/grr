@@ -12,6 +12,7 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.flows.general import file_finder
+from grr.lib.rdfvalues import client as rdf_client
 
 
 class TestExports(test_lib.FlowTestsBaseclass):
@@ -55,9 +56,9 @@ class TestExports(test_lib.FlowTestsBaseclass):
     fd = aff4.FACTORY.Create("aff4:/testcoll", "RDFValueCollection",
                              token=self.token)
     fd.Add(rdfvalue.RDFURN(self.out.Add("testfile1")))
-    fd.Add(rdfvalue.StatEntry(aff4path=self.out.Add("testfile2")))
+    fd.Add(rdf_client.StatEntry(aff4path=self.out.Add("testfile2")))
     fd.Add(file_finder.FileFinderResult(
-        stat_entry=rdfvalue.StatEntry(aff4path=self.out.Add("testfile5"))))
+        stat_entry=rdf_client.StatEntry(aff4path=self.out.Add("testfile5"))))
     fd.Close()
 
     with utils.TempDirectory() as tmpdir:
@@ -81,9 +82,9 @@ class TestExports(test_lib.FlowTestsBaseclass):
     fd = aff4.FACTORY.Create("aff4:/testcoll", "RDFValueCollection",
                              token=self.token)
     fd.Add(rdfvalue.RDFURN(self.out.Add("testfile1")))
-    fd.Add(rdfvalue.StatEntry(aff4path=self.out.Add("testfile2")))
+    fd.Add(rdf_client.StatEntry(aff4path=self.out.Add("testfile2")))
     fd.Add(file_finder.FileFinderResult(
-        stat_entry=rdfvalue.StatEntry(aff4path=self.out.Add("testfile5"))))
+        stat_entry=rdf_client.StatEntry(aff4path=self.out.Add("testfile5"))))
     fd.Close()
 
     with utils.TempDirectory() as tmpdir:
@@ -108,10 +109,10 @@ class TestExports(test_lib.FlowTestsBaseclass):
     fd = aff4.FACTORY.Create("aff4:/testcoll", "RDFValueCollection",
                              token=self.token)
     fd.Add(file_finder.FileFinderResult(
-        stat_entry=rdfvalue.StatEntry(aff4path=self.out.Add("testfile5"))))
+        stat_entry=rdf_client.StatEntry(aff4path=self.out.Add("testfile5"))))
     fd.Add(file_finder.FileFinderResult(
-        stat_entry=rdfvalue.StatEntry(aff4path=self.out.Add("testdir1"),
-                                      st_mode=stat.S_IFDIR)))
+        stat_entry=rdf_client.StatEntry(aff4path=self.out.Add("testdir1"),
+                                        st_mode=stat.S_IFDIR)))
     fd.Close()
 
     with utils.TempDirectory() as tmpdir:

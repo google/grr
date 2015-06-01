@@ -757,6 +757,12 @@ message PathSpec {
   optional uint64 ntfs_id = 10  [(sem_type) = {
       label: ADVANCED
     }];
+
+  optional uint64 file_size_override = 13 [(sem_type) = {
+      type: "ByteSize",
+      description: "For files which are non seekable from their end "
+      "(e.g. /proc files), this is the minimum amount of bytes read.",
+    }, default=512000];
 };
 
 // Ask the ListDir action to list all files in path (returns StatEntry)
@@ -1040,44 +1046,6 @@ message MemoryInformation {
 }
 
 
-message AuthenticodeSignedData {
-  optional uint64 revision = 1;
-  optional uint64 cert_type = 2;
-  optional bytes certificate = 3;
-}
-
-
-message FingerprintTuple {
-  // The fingerprinting methods the fingerprinter can be asked to perform.
-  // If none is given, all are applied.
-  enum Type {
-    FPT_GENERIC = 0;
-    FPT_PE_COFF = 1;
-  };
-  // The hash functions that a fingerprinting method may employ.
-  // If none is given, all applicable ones are used.
-  enum Hash {
-    MD5 = 0;
-    SHA1 = 1;
-    SHA256 = 2;
-  };
-  required Type fp_type = 1;
-  repeated Hash hashers = 2;
-};
-
-// Request fingerprints for a file.
-message FingerprintRequest {
-  optional PathSpec pathspec = 1;
-  repeated FingerprintTuple tuples = 2;
-};
-
-// Response data for file hashes and signature blobs.
-message FingerprintResponse {
-  repeated FingerprintTuple.Type matching_types = 1;
-  repeated Dict results = 2;
-  optional PathSpec pathspec = 3;
-};
-
 message Hash {
   optional bytes sha256 = 1 [(sem_type) = {
       type: "HashDigest",
@@ -1110,6 +1078,54 @@ message Hash {
       description: "Signed data which may be present in PE files.",
     }];
 }
+
+message AuthenticodeSignedData {
+  optional uint64 revision = 1;
+  optional uint64 cert_type = 2;
+  optional bytes certificate = 3;
+}
+
+
+message FingerprintTuple {
+  // The fingerprinting methods the fingerprinter can be asked to perform.
+  // If none is given, all are applied.
+  enum Type {
+    FPT_GENERIC = 0;
+    FPT_PE_COFF = 1;
+  };
+  // The hash functions that a fingerprinting method may employ.
+  // If none is given, all applicable ones are used.
+  enum HashType {
+    MD5 = 0;
+    SHA1 = 1;
+    SHA256 = 2;
+  };
+  required Type fp_type = 1;
+  repeated HashType hashers = 2;
+};
+
+// Request fingerprints for a file.
+message FingerprintRequest {
+  optional PathSpec pathspec = 1;
+  repeated FingerprintTuple tuples = 2;
+  optional uint64 max_filesize = 3 [(sem_type) = {
+      description: "Maximum file size to fingerprint."
+    }, default=10737418240];  // 10GiB
+};
+
+// Response data for file hashes and signature blobs.
+message FingerprintResponse {
+  repeated FingerprintTuple.Type matching_types = 1;
+  // Deprecated unstructured way to return the hashes. Results are now sent
+  // using the Hash message.
+  repeated Dict results = 2;
+  optional PathSpec pathspec = 3;
+  optional Hash hash = 4;
+  optional uint64 bytes_read = 5 [(sem_type) = {
+      description: "Total number of bytes hashed."
+    }];
+};
+
 
 // Specialized binary blob for client.
 message SignedBlob {

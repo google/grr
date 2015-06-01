@@ -5,8 +5,8 @@
 import crontab
 
 from grr.lib import parsers
-from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
 
 
 class CronTabParser(parsers.FileParser):
@@ -24,13 +24,13 @@ class CronTabParser(parsers.FileParser):
     jobs = crontab.CronTab(tab=crondata)
 
     for job in jobs:
-      entries.append(rdfvalue.CronTabEntry(minute=utils.SmartStr(job.minute),
-                                           hour=utils.SmartStr(job.hour),
-                                           dayofmonth=utils.SmartStr(job.dom),
-                                           month=utils.SmartStr(job.month),
-                                           dayofweek=utils.SmartStr(job.dow),
-                                           command=utils.SmartStr(job.command),
-                                           comment=utils.SmartStr(job.comment)))
+      entries.append(
+          rdf_cronjobs.CronTabEntry(minute=utils.SmartStr(job.minute),
+                                    hour=utils.SmartStr(job.hour),
+                                    dayofmonth=utils.SmartStr(job.dom),
+                                    month=utils.SmartStr(job.month),
+                                    dayofweek=utils.SmartStr(job.dow),
+                                    command=utils.SmartStr(job.command),
+                                    comment=utils.SmartStr(job.comment)))
 
-    yield rdfvalue.CronTabFile(aff4path=stat.aff4path, jobs=entries)
-
+    yield rdf_cronjobs.CronTabFile(aff4path=stat.aff4path, jobs=entries)

@@ -5,6 +5,11 @@
 
 import json
 
+
+# pylint: disable=g-bad-import-order,unused-import
+from grr.gui import django_lib
+# pylint: enable=g-bad-import-order,unused-import
+
 from django import http
 
 from werkzeug import exceptions as werkzeug_exceptions
@@ -88,7 +93,7 @@ def FillAdditionalArgsFromRequest(request, supported_types):
 
   results_list = []
   for name, arg_obj in results.items():
-    additional_args = rdfvalue.ApiCallAdditionalArgs(
+    additional_args = api_call_renderers.ApiCallAdditionalArgs(
         name=name, type=supported_types[name].__name__)
     additional_args.args = arg_obj
     results_list.append(additional_args)

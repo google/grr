@@ -10,12 +10,13 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import artifact_test
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 # pylint: disable=unused-import
 from grr.lib.flows.general import webhistory
 # pylint: enable=unused-import
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class WebHistoryFlowTest(test_lib.FlowTestsBaseclass):
@@ -32,10 +33,10 @@ class TestWebHistory(WebHistoryFlowTest):
     self.client.Set(self.client.Schema.SYSTEM("Linux"))
 
     user_list = self.client.Schema.USER()
-    user_list.Append(rdfvalue.User(username="test",
-                                   full_name="test user",
-                                   homedir="/home/test/",
-                                   last_logon=250))
+    user_list.Append(rdf_client.User(username="test",
+                                     full_name="test user",
+                                     homedir="/home/test/",
+                                     last_logon=250))
     self.client.AddAttribute(self.client.Schema.USER, user_list)
     self.client.Close()
 
@@ -68,7 +69,7 @@ class TestWebHistory(WebHistoryFlowTest):
     for _ in test_lib.TestFlowHelper(
         "ChromeHistory", self.client_mock, check_flow_errors=False,
         client_id=self.client_id, username="test", token=self.token,
-        output="analysis/testfoo", pathtype=rdfvalue.PathSpec.PathType.TSK):
+        output="analysis/testfoo", pathtype=rdf_paths.PathSpec.PathType.TSK):
       pass
 
     # Now check that the right files were downloaded.
@@ -94,7 +95,7 @@ class TestWebHistory(WebHistoryFlowTest):
     for _ in test_lib.TestFlowHelper(
         "FirefoxHistory", self.client_mock, check_flow_errors=False,
         client_id=self.client_id, username="test", token=self.token,
-        output="analysis/ff_out", pathtype=rdfvalue.PathSpec.PathType.TSK):
+        output="analysis/ff_out", pathtype=rdf_paths.PathSpec.PathType.TSK):
       pass
 
     # Now check that the right files were downloaded.
@@ -122,7 +123,7 @@ class TestWebHistory(WebHistoryFlowTest):
         "CacheGrep", self.client_mock, check_flow_errors=False,
         client_id=self.client_id, grep_users=["test"],
         data_regex="ENIAC", output="analysis/cachegrep/{u}",
-        pathtype=rdfvalue.PathSpec.PathType.TSK, token=self.token):
+        pathtype=rdf_paths.PathSpec.PathType.TSK, token=self.token):
       pass
 
     # Check if the collection file was created.
@@ -137,7 +138,7 @@ class TestWebHistory(WebHistoryFlowTest):
     # Get the first hit.
     hits = list(fd)
 
-    self.assertIsInstance(hits[0], rdfvalue.StatEntry)
+    self.assertIsInstance(hits[0], rdf_client.StatEntry)
 
     self.assertEqual(hits[0].pathspec.last.path,
                      "/home/test/.config/google-chrome/Default/Cache/data_1")
@@ -152,10 +153,10 @@ class TestWebHistoryWithArtifacts(WebHistoryFlowTest,
     self.SetLinuxClient()
     fd = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
     self.kb = fd.Schema.KNOWLEDGE_BASE()
-    self.kb.users.Append(rdfvalue.KnowledgeBaseUser(username="test",
-                                                    full_name="test user",
-                                                    homedir="/home/test/",
-                                                    last_logon=250))
+    self.kb.users.Append(rdf_client.KnowledgeBaseUser(username="test",
+                                                      full_name="test user",
+                                                      homedir="/home/test/",
+                                                      last_logon=250))
     self.kb.os = "Linux"
     fd.AddAttribute(fd.Schema.KNOWLEDGE_BASE, self.kb)
     fd.Flush()

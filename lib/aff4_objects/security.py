@@ -14,7 +14,8 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
 
-from grr.lib.rdfvalues import structs
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import flows_pb2
 
@@ -256,7 +257,7 @@ class ClientApproval(ApprovalWithApproversAndReason):
   def InferUserAndSubjectFromUrn(self):
     """Infers user name and subject urn from self.urn."""
     _, client_id, user, _ = self.urn.Split(4)
-    return (user, rdfvalue.ClientURN(client_id))
+    return (user, rdf_client.ClientURN(client_id))
 
 
 class HuntApproval(ApprovalWithApproversAndReason):
@@ -319,7 +320,7 @@ class CronJobApproval(ApprovalWithApproversAndReason):
     return (user, aff4.ROOT_URN.Add("cron").Add(cron_job_name))
 
 
-class RequestApprovalWithReasonFlowArgs(structs.RDFProtoStruct):
+class RequestApprovalWithReasonFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.RequestApprovalWithReasonFlowArgs
 
 
@@ -425,7 +426,7 @@ here
                            message_id=email_msg_id)
 
 
-class GrantApprovalWithReasonFlowArgs(structs.RDFProtoStruct):
+class GrantApprovalWithReasonFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.GrantApprovalWithReasonFlowArgs
 
 

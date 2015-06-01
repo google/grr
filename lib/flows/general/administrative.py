@@ -18,6 +18,7 @@ from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import email_alerts
 from grr.lib import flow
+from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import rendering
@@ -25,6 +26,9 @@ from grr.lib import stats
 from grr.lib import utils
 from grr.lib.aff4_objects import collections
 from grr.lib.aff4_objects import reports
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 
 
@@ -115,15 +119,16 @@ class GetClientStatsAuto(flow.WellKnownFlow,
 
   category = None
 
-  well_known_session_id = rdfvalue.SessionID(flow_name="Stats")
+  well_known_session_id = rdfvalue.SessionID(flow_name="Stats",
+                                             queue=queues.STATS)
 
   def ProcessMessage(self, message):
     """Processes a stats response from the client."""
-    client_stats = rdfvalue.ClientStats(message.payload)
+    client_stats = rdf_client.ClientStats(message.payload)
     self.ProcessResponse(message.source, client_stats)
 
 
-class DeleteGRRTempFilesArgs(rdfvalue.RDFProtoStruct):
+class DeleteGRRTempFilesArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.DeleteGRRTempFilesArgs
 
 
@@ -154,7 +159,7 @@ class DeleteGRRTempFiles(flow.GRRFlow):
       self.Log(response.data)
 
 
-class UninstallArgs(rdfvalue.RDFProtoStruct):
+class UninstallArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.UninstallArgs
 
 
@@ -211,7 +216,7 @@ class Kill(flow.GRRFlow):
       self.Log("Kill failed on the client.")
 
 
-class UpdateConfigurationArgs(rdfvalue.RDFProtoStruct):
+class UpdateConfigurationArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.UpdateConfigurationArgs
 
 
@@ -223,7 +228,7 @@ class UpdateConfiguration(flow.GRRFlow):
 
   # Still accessible (e.g. via ajax but not visible in the UI.)
   category = None
-  args_type = rdfvalue.UpdateConfigurationArgs
+  args_type = UpdateConfigurationArgs
 
   @flow.StateHandler(next_state=["Confirmation"])
   def Start(self):
@@ -239,7 +244,7 @@ class UpdateConfiguration(flow.GRRFlow):
           responses.status))
 
 
-class ExecutePythonHackArgs(rdfvalue.RDFProtoStruct):
+class ExecutePythonHackArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ExecutePythonHackArgs
 
 
@@ -278,7 +283,7 @@ class ExecutePythonHack(flow.GRRFlow):
       self.SendReply(rdfvalue.RDFBytes(utils.SmartStr(response.return_val)))
 
 
-class ExecuteCommandArgs(rdfvalue.RDFProtoStruct):
+class ExecuteCommandArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ExecuteCommandArgs
 
 
@@ -341,7 +346,7 @@ class Foreman(flow.WellKnownFlow):
     """Run the foreman on the client."""
     # Only accept authenticated messages
     if (message.auth_state !=
-        rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED):
+        rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED):
       return
 
     now = time.time()
@@ -358,7 +363,7 @@ class Foreman(flow.WellKnownFlow):
       self.foreman_cache.AssignTasksToClient(message.source)
 
 
-class OnlineNotificationArgs(rdfvalue.RDFProtoStruct):
+class OnlineNotificationArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.OnlineNotificationArgs
 
 
@@ -422,7 +427,7 @@ class OnlineNotification(flow.GRRFlow):
       flow.FlowError("Error while pinging client.")
 
 
-class UpdateClientArgs(rdfvalue.RDFProtoStruct):
+class UpdateClientArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.UpdateClientArgs
 
 
@@ -539,7 +544,7 @@ Click <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
     client = aff4.FACTORY.Open(client_id, token=self.token)
     client_info = client.Get(client.Schema.CLIENT_INFO)
 
-    crash_details = rdfvalue.ClientCrash(
+    crash_details = rdf_client.ClientCrash(
         client_id=client_id, client_info=client_info,
         crash_message=message, timestamp=long(time.time() * 1e6),
         crash_type=self.well_known_session_id)
@@ -632,8 +637,8 @@ P.S. The state of the failing flow was:
     client = aff4.FACTORY.Open(client_id, token=self.token)
     client_info = client.Get(client.Schema.CLIENT_INFO)
 
-    status = rdfvalue.GrrStatus(message.payload)
-    crash_details = rdfvalue.ClientCrash(
+    status = rdf_flows.GrrStatus(message.payload)
+    crash_details = rdf_client.ClientCrash(
         client_id=client_id, session_id=message.session_id,
         client_info=client_info, crash_message=status.error_message,
         timestamp=rdfvalue.RDFDatetime().Now(),
@@ -690,7 +695,7 @@ class ClientStartupHandler(flow.EventListener):
     # We accept unauthenticated messages so there are no errors but we don't
     # store the results.
     if (message.auth_state !=
-        rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED):
+        rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED):
       return
 
     client_id = message.source
@@ -699,7 +704,7 @@ class ClientStartupHandler(flow.EventListener):
                                  token=self.token)
     old_info = client.Get(client.Schema.CLIENT_INFO)
     old_boot = client.Get(client.Schema.LAST_BOOT_TIME, 0)
-    startup_info = rdfvalue.StartupInfo(message.payload)
+    startup_info = rdf_client.StartupInfo(message.payload)
     info = startup_info.client_info
 
     # Only write to the datastore if we have new information.
@@ -734,7 +739,7 @@ class IgnoreResponses(flow.WellKnownFlow):
     pass
 
 
-class KeepAliveArgs(rdfvalue.RDFProtoStruct):
+class KeepAliveArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.KeepAliveArgs
 
 
@@ -778,7 +783,7 @@ class KeepAlive(flow.GRRFlow):
       self.CallState(next_state="SendMessage", start_time=start_time)
 
 
-class TerminateFlowArgs(rdfvalue.RDFProtoStruct):
+class TerminateFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.TerminateFlowArgs
 
 
@@ -804,7 +809,7 @@ class TerminateFlow(flow.GRRFlow):
                                token=self.token, force=True)
 
 
-class LaunchBinaryArgs(rdfvalue.RDFProtoStruct):
+class LaunchBinaryArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.LaunchBinaryArgs
 
 
@@ -853,7 +858,7 @@ class LaunchBinary(flow.GRRFlow):
       self.SendReply(response)
 
 
-class RunReportFlowArgs(rdfvalue.RDFProtoStruct):
+class RunReportFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.RunReportFlowArgs
 
 

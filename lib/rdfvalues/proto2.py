@@ -165,7 +165,7 @@ def DefineFromProtobuf(cls, protobuf):
       # TODO(user): support late binding here.
       if type_descriptor.type:
         # This traps the following problem:
-        # class Certificate(rdfvalue.RDFValueArray):
+        # class Certificate(rdf_protodict.RDFValueArray):
         #    protobuf = jobs_pb2.BlobArray
         #
 

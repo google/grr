@@ -3,30 +3,33 @@
 """Tests for grr.parsers.windows_registry_parser."""
 
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.parsers import windows_registry_parser
 
 
 class WindowsRegistryParserTest(test_lib.FlowTestsBaseclass):
 
   def _MakeRegStat(self, path, value, registry_type):
-    options = rdfvalue.PathSpec.Options.CASE_LITERAL
-    pathspec = rdfvalue.PathSpec(path=path,
-                                 path_options=options,
-                                 pathtype=rdfvalue.PathSpec.PathType.REGISTRY)
+    options = rdf_paths.PathSpec.Options.CASE_LITERAL
+    pathspec = rdf_paths.PathSpec(path=path,
+                                  path_options=options,
+                                  pathtype=rdf_paths.PathSpec.PathType.REGISTRY)
 
-    if registry_type == rdfvalue.StatEntry.RegistryType.REG_MULTI_SZ:
-      reg_data = rdfvalue.DataBlob(list=rdfvalue.BlobArray(
-          content=rdfvalue.DataBlob(string=value)))
+    if registry_type == rdf_client.StatEntry.RegistryType.REG_MULTI_SZ:
+      reg_data = rdf_protodict.DataBlob(list=rdf_protodict.BlobArray(
+          content=rdf_protodict.DataBlob(string=value)))
     else:
-      reg_data = rdfvalue.DataBlob().SetValue(value)
+      reg_data = rdf_protodict.DataBlob().SetValue(value)
 
-    return rdfvalue.StatEntry(aff4path=self.client_id.Add("registry").Add(path),
-                              pathspec=pathspec,
-                              registry_data=reg_data,
-                              registry_type=registry_type)
+    return rdf_client.StatEntry(
+        aff4path=self.client_id.Add("registry").Add(path),
+        pathspec=pathspec,
+        registry_data=reg_data,
+        registry_type=registry_type)
 
   def testGetServiceName(self):
     hklm = "HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/services"
@@ -37,8 +40,8 @@ class WindowsRegistryParserTest(test_lib.FlowTestsBaseclass):
         "%s/SomeService/Parameters/ServiceDLL" % hklm), "SomeService")
 
   def testWinServicesParser(self):
-    dword = rdfvalue.StatEntry.RegistryType.REG_DWORD_LITTLE_ENDIAN
-    reg_str = rdfvalue.StatEntry.RegistryType.REG_SZ
+    dword = rdf_client.StatEntry.RegistryType.REG_DWORD_LITTLE_ENDIAN
+    reg_str = rdf_client.StatEntry.RegistryType.REG_SZ
     hklm = "HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Services"
     hklm_set01 = "HKEY_LOCAL_MACHINE/SYSTEM/ControlSet001/services"
     service_keys = [
@@ -52,7 +55,7 @@ class WindowsRegistryParserTest(test_lib.FlowTestsBaseclass):
          "acpi.inf_amd64_neutral_99aaaaabcccccccc", reg_str),
         ("%s/AcpiPmi/Start" % hklm_set01, 3, dword),
         ("%s/AcpiPmi/DisplayName" % hklm_set01, "AcpiPmi",
-         rdfvalue.StatEntry.RegistryType.REG_MULTI_SZ),
+         rdf_client.StatEntry.RegistryType.REG_MULTI_SZ),
         (u"%s/中国日报/DisplayName" % hklm, u"中国日报", reg_str),
         (u"%s/中国日报/Parameters/ServiceDLL" % hklm, "blah.dll", reg_str)
     ]
@@ -89,7 +92,7 @@ class WindowsRegistryParserTest(test_lib.FlowTestsBaseclass):
                                   "Microsoft ACPI Driver"])
 
   def testWinUserSpecialDirs(self):
-    reg_str = rdfvalue.StatEntry.RegistryType.REG_SZ
+    reg_str = rdf_client.StatEntry.RegistryType.REG_SZ
     hk_u = "registry/HKEY_USERS/S-1-1-1010-10101-1010"
     service_keys = [
         ("%s/Environment/TEMP" % hk_u, r"temp\path", reg_str),

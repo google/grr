@@ -28,6 +28,9 @@ from grr.lib.flows.general import administrative
 from grr.lib.flows.general import audit as _
 from grr.lib.flows.general import discovery
 # pylint: enable=unused-import
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import protodict as rdf_protodict
 
 
 class AdministrativeFlowTests(test_lib.FlowTestsBaseclass):
@@ -52,7 +55,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
                                           "UpdateConfiguration")
 
     loc = "http://www.example.com"
-    new_config = rdfvalue.Dict(
+    new_config = rdf_protodict.Dict(
         {"Client.control_urls": [loc],
          "Client.foreman_check_frequency": 3600,
          "Client.poll_min": 1})
@@ -113,7 +116,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
 
       flow_obj = aff4.FACTORY.Open(client.flow_id, age=aff4.ALL_TIMES,
                                    token=self.token)
-      self.assertEqual(flow_obj.state.context.state, rdfvalue.Flow.State.ERROR)
+      self.assertEqual(flow_obj.state.context.state, rdf_flows.Flow.State.ERROR)
 
       # Make sure client object is updated with the last crash.
       client_obj = aff4.FACTORY.Open(self.client_id, token=self.token)
@@ -161,11 +164,11 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
                                      title=title, message=message))
 
     with utils.Stubber(email_alerts, "SendEmail", SendEmail):
-      msg = rdfvalue.GrrMessage(
+      msg = rdf_flows.GrrMessage(
           session_id=rdfvalue.SessionID(flow_name="NannyMessage"),
-          payload=rdfvalue.DataBlob(string=nanny_message),
+          payload=rdf_protodict.DataBlob(string=nanny_message),
           source=self.client_id,
-          auth_state=rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED)
+          auth_state=rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED)
 
       # This is normally done by the FrontEnd when a CLIENT_KILLED message is
       # received.
@@ -429,16 +432,16 @@ sys.test_code_ran_here = py_args['value']
 
       def GetClientStats(self, _):
         """Fake get client stats method."""
-        response = rdfvalue.ClientStats()
+        response = rdf_client.ClientStats()
         for i in range(12):
-          sample = rdfvalue.CpuSample(
+          sample = rdf_client.CpuSample(
               timestamp=int(i * 10 * 1e6),
               user_cpu_time=10 + i,
               system_cpu_time=20 + i,
               cpu_percent=10 + i)
           response.cpu_samples.Append(sample)
 
-          sample = rdfvalue.IOSample(
+          sample = rdf_client.IOSample(
               timestamp=int(i * 10 * 1e6),
               read_bytes=10 + i,
               write_bytes=10 + i)

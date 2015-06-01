@@ -9,12 +9,14 @@ from grr.client import vfs
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 # For RegistryFinder pylint: disable=unused-import
 from grr.lib.flows.general import registry as _
 # pylint: enable=unused-import
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.test_data import client_fixture
 
 
@@ -111,12 +113,12 @@ class WindowsActionTests(test_lib.OSSpecificClientTests):
     self.assertEqual(len(result_list), 1)
 
     result = result_list.pop()
-    self.assertTrue(isinstance(result, rdfvalue.Dict))
+    self.assertTrue(isinstance(result, rdf_protodict.Dict))
     nest = result["NestingTest"]
 
     self.assertEqual(nest["one"]["two"], [3, 4])
     self.assertTrue("Unsupported type" in nest["one"]["broken"])
-    self.assertTrue(isinstance(nest["one"]["three"], rdfvalue.Dict))
+    self.assertTrue(isinstance(nest["one"]["three"], rdf_protodict.Dict))
 
     self.assertEqual(nest["four"], [])
     self.assertEqual(nest["five"], "astring")
@@ -249,8 +251,8 @@ class RegistryVFSTests(test_lib.EmptyActionTest):
 
   def testRegistryListing(self):
 
-    pathspec = rdfvalue.PathSpec(
-        pathtype=rdfvalue.PathSpec.PathType.REGISTRY,
+    pathspec = rdf_paths.PathSpec(
+        pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
         path=("/HKEY_USERS/S-1-5-20/Software/Microsoft"
               "/Windows/CurrentVersion/Run"))
 
@@ -272,7 +274,7 @@ class RegistryVFSTests(test_lib.EmptyActionTest):
 
     output_path = "analysis/file_finder"
 
-    client_id = rdfvalue.ClientURN("C.0000000000000001")
+    client_id = rdf_client.ClientURN("C.0000000000000001")
 
     aff4.FACTORY.Delete(client_id.Add(output_path),
                         token=self.token)

@@ -13,6 +13,8 @@ from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.rdfvalues import aff4_rdfvalues
+from grr.lib.rdfvalues import client as rdf_client
 
 
 class AccessControlTest(test_lib.GRRBaseTest):
@@ -69,7 +71,7 @@ class AccessControlTest(test_lib.GRRBaseTest):
   def testSimpleAccess(self):
     """Tests that simple access requires a token."""
 
-    client_urn = rdfvalue.ClientURN("C.%016X" % 0)
+    client_urn = rdf_client.ClientURN("C.%016X" % 0)
 
     # These should raise for a lack of token
     for urn, mode in [("aff4:/ACL", "r"),
@@ -100,7 +102,7 @@ class AccessControlTest(test_lib.GRRBaseTest):
   def testSupervisorToken(self):
     """Tests that the supervisor token overrides the approvals."""
 
-    urn = rdfvalue.ClientURN("C.%016X" % 0).Add("/fs/os/c")
+    urn = rdf_client.ClientURN("C.%016X" % 0).Add("/fs/os/c")
     self.assertRaises(access_control.UnauthorizedAccess, aff4.FACTORY.Open, urn)
 
     super_token = access_control.ACLToken(username="test")
@@ -110,7 +112,7 @@ class AccessControlTest(test_lib.GRRBaseTest):
   def testExpiredTokens(self):
     """Tests that expired tokens are rejected."""
 
-    urn = rdfvalue.ClientURN("C.%016X" % 0).Add("/fs/os/c")
+    urn = rdf_client.ClientURN("C.%016X" % 0).Add("/fs/os/c")
     self.assertRaises(access_control.UnauthorizedAccess, aff4.FACTORY.Open, urn)
 
     with test_lib.FakeTime(100):
@@ -132,7 +134,7 @@ class AccessControlTest(test_lib.GRRBaseTest):
     """Tests that approvals expire after the correct time."""
 
     client_id = "C.%016X" % 0
-    urn = rdfvalue.ClientURN(client_id).Add("/fs/os/c")
+    urn = rdf_client.ClientURN(client_id).Add("/fs/os/c")
     token = access_control.ACLToken(username="test", reason="For testing")
     self.assertRaises(access_control.UnauthorizedAccess, aff4.FACTORY.Open, urn,
                       None, "rw", token)
@@ -158,7 +160,7 @@ class AccessControlTest(test_lib.GRRBaseTest):
     """Tests that we can create an approval object to access clients."""
 
     client_id = "C.%016X" % 0
-    urn = rdfvalue.ClientURN(client_id).Add("/fs")
+    urn = rdf_client.ClientURN(client_id).Add("/fs")
     token = access_control.ACLToken(username="test", reason="For testing")
 
     self.assertRaises(access_control.UnauthorizedAccess, aff4.FACTORY.Open, urn,
@@ -214,7 +216,7 @@ class AccessControlTest(test_lib.GRRBaseTest):
 
     # But we cannot write to them.
     l = labels.Schema.LABELS()
-    l.AddLabel(rdfvalue.AFF4ObjectLabel(name="admin", owner="GRR"))
+    l.AddLabel(aff4_rdfvalues.AFF4ObjectLabel(name="admin", owner="GRR"))
     labels.Set(labels.Schema.LABELS, l)
     self.assertRaises(access_control.UnauthorizedAccess, labels.Close)
 
@@ -334,7 +336,7 @@ class AccessControlTest(test_lib.GRRBaseTest):
 
   def testBreakGlass(self):
     """Test the breakglass mechanism."""
-    client_id = rdfvalue.ClientURN("C.%016X" % 0)
+    client_id = rdf_client.ClientURN("C.%016X" % 0)
     urn = client_id.Add("/fs/os/c")
 
     self.assertRaises(access_control.UnauthorizedAccess, aff4.FACTORY.Open, urn,

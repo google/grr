@@ -15,6 +15,8 @@ from grr.lib import utils
 from grr.lib.aff4_objects import software
 # pylint: enable=unused-import
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 
 
@@ -96,7 +98,7 @@ def SetCoreGRRKnowledgeBaseValues(kb, client_obj):
     kb.os = utils.SmartUnicode(client_obj.Get(client_schema.SYSTEM))
 
 
-class CollectArtifactDependenciesArgs(rdfvalue.RDFProtoStruct):
+class CollectArtifactDependenciesArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.CollectArtifactDependenciesArgs
 
 
@@ -279,7 +281,7 @@ class CollectArtifactDependencies(flow.GRRFlow):
     provided = set()  # Track which deps have been provided.
 
     for response in responses:
-      if isinstance(response, rdfvalue.KnowledgeBaseUser):
+      if isinstance(response, rdf_client.KnowledgeBaseUser):
         # MergeOrAddUser will update or add a user based on the attributes
         # returned by the artifact in the KnowledgeBaseUser.
         attrs_provided, merge_conflicts = (
@@ -291,7 +293,7 @@ class CollectArtifactDependencies(flow.GRRFlow):
 
       else:
         artifact_provides = artifact_obj.provides
-        if isinstance(response, rdfvalue.Dict):
+        if isinstance(response, rdf_protodict.Dict):
           # Attempting to fulfil provides with a Dict response means we are
           # supporting multiple provides based on the keys of the dict.
           kb_dict = response.ToDict()
@@ -336,7 +338,7 @@ class CollectArtifactDependencies(flow.GRRFlow):
     usernames = []
     user_list = client.Schema.USER()
     for kbuser in self.state.knowledge_base.users:
-      user_list.Append(rdfvalue.User().FromKnowledgeBaseUser(kbuser))
+      user_list.Append(rdf_client.User().FromKnowledgeBaseUser(kbuser))
 
       if kbuser.username:
         usernames.append(kbuser.username)
@@ -372,7 +374,7 @@ class CollectArtifactDependencies(flow.GRRFlow):
     self.SendReply(self.state.knowledge_base)
 
 
-class KnowledgeBaseInitializationArgs(rdfvalue.RDFProtoStruct):
+class KnowledgeBaseInitializationArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.KnowledgeBaseInitializationArgs
 
 
@@ -494,7 +496,7 @@ def LoadArtifactsFromDatastore(artifact_coll_urn=None, token=None,
     artifact_value.Validate()
 
 
-class ArtifactFallbackCollectorArgs(rdfvalue.RDFProtoStruct):
+class ArtifactFallbackCollectorArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ArtifactFallbackCollectorArgs
 
 

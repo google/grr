@@ -41,6 +41,10 @@ from grr.lib import registry
 from grr.lib import stats
 from grr.lib import type_info
 from grr.lib import utils
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import crypto as rdf_crypto
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import protodict as rdf_protodict
 
 
 # This determines after how many consecutive errors
@@ -171,7 +175,7 @@ class GRRClientWorker(object):
     Returns:
        A MessageList protobuf
     """
-    queue = rdfvalue.MessageList()
+    queue = rdf_flows.MessageList()
 
     length = 0
     self._out_queue.sort(key=lambda msg: msg[0])
@@ -222,7 +226,7 @@ class GRRClientWorker(object):
     if not isinstance(rdf_value, rdfvalue.RDFValue):
       raise RuntimeError("Sending objects other than RDFValues not supported.")
 
-    message = rdfvalue.GrrMessage(
+    message = rdf_flows.GrrMessage(
         session_id=session_id, task_id=task_id, name=name,
         response_id=response_id, request_id=request_id,
         priority=priority, require_fastpoll=require_fastpoll,
@@ -235,7 +239,7 @@ class GRRClientWorker(object):
 
     self.ChargeBytesToSession(session_id, len(serialized_message))
 
-    if message.type == rdfvalue.GrrMessage.Type.STATUS:
+    if message.type == rdf_flows.GrrMessage.Type.STATUS:
       rdf_value.network_bytes_sent = self.sent_bytes_per_flow[session_id]
       del self.sent_bytes_per_flow[session_id]
       message.payload = rdf_value
@@ -266,7 +270,7 @@ class GRRClientWorker(object):
           "Action exceeded network send limit.")
 
   def QueueResponse(self, message,
-                    priority=rdfvalue.GrrMessage.Priority.MEDIUM_PRIORITY,
+                    priority=rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY,
                     blocking=True):
     """Push the Serialized Message on the output queue."""
     # The simple queue has no size restrictions so we never block and ignore
@@ -347,14 +351,14 @@ class GRRClientWorker(object):
         # Catch any errors and keep going here
       except Exception as e:  # pylint: disable=broad-except
         self.SendReply(
-            rdfvalue.GrrStatus(
-                status=rdfvalue.GrrStatus.ReturnedStatus.GENERIC_ERROR,
+            rdf_flows.GrrStatus(
+                status=rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR,
                 error_message=utils.SmartUnicode(e)),
             request_id=message.request_id,
             response_id=message.response_id,
             session_id=message.session_id,
             task_id=message.task_id,
-            message_type=rdfvalue.GrrMessage.Type.STATUS)
+            message_type=rdf_flows.GrrMessage.Type.STATUS)
         if flags.FLAGS.debug:
           pdb.post_mortem()
 
@@ -400,7 +404,7 @@ class GRRClientWorker(object):
       action_cls = actions.ActionPlugin.classes.get(
           "GetClientStatsAuto", actions.ActionPlugin)
       action = action_cls(grr_worker=self)
-      action.Run(rdfvalue.GetClientStatsRequest(
+      action.Run(rdf_client.GetClientStatsRequest(
           start_time=self.last_stats_sent_time))
 
       self.last_stats_sent_time = rdfvalue.RDFDatetime().Now()
@@ -411,17 +415,17 @@ class GRRClientWorker(object):
     msg = self.nanny_controller.GetNannyMessage()
     if msg:
       self.SendReply(
-          rdfvalue.DataBlob(string=msg),
+          rdf_protodict.DataBlob(string=msg),
           session_id=rdfvalue.FlowSessionID(flow_name="NannyMessage"),
-          priority=rdfvalue.GrrMessage.Priority.LOW_PRIORITY,
+          priority=rdf_flows.GrrMessage.Priority.LOW_PRIORITY,
           require_fastpoll=False)
       self.nanny_controller.ClearNannyMessage()
 
   def SendClientAlert(self, msg):
     self.SendReply(
-        rdfvalue.DataBlob(string=msg),
+        rdf_protodict.DataBlob(string=msg),
         session_id=rdfvalue.FlowSessionID(flow_name="ClientAlert"),
-        priority=rdfvalue.GrrMessage.Priority.LOW_PRIORITY,
+        priority=rdf_flows.GrrMessage.Priority.LOW_PRIORITY,
         require_fastpoll=False)
 
 
@@ -444,7 +448,7 @@ class SizeQueue(object):
     self.maxsize = maxsize
     self.nanny = nanny
 
-  def Put(self, item, priority=rdfvalue.GrrMessage.Priority.MEDIUM_PRIORITY,
+  def Put(self, item, priority=rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY,
           block=True, timeout=1000):
     """Put an item on the queue, blocking if it is too full.
 
@@ -465,7 +469,7 @@ class SizeQueue(object):
     if isinstance(item, rdfvalue.RDFValue):
       item = item.SerializeToString()
 
-    if priority >= rdfvalue.GrrMessage.Priority.HIGH_PRIORITY:
+    if priority >= rdf_flows.GrrMessage.Priority.HIGH_PRIORITY:
       pass  # If high priority is set we dont care about the size of the queue.
 
     elif not block:
@@ -570,11 +574,11 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
     Returns:
        A MessageList protobuf
     """
-    queue = rdfvalue.MessageList()
+    queue = rdf_flows.MessageList()
     length = 0
 
     for message in self._out_queue.Get():
-      queue.job.Append(rdfvalue.GrrMessage(message))
+      queue.job.Append(rdf_flows.GrrMessage(message))
       stats.STATS.IncrementCounter("grr_client_sent_messages")
       length += len(message)
 
@@ -584,7 +588,7 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
     return queue
 
   def QueueResponse(self, message,
-                    priority=rdfvalue.GrrMessage.Priority.MEDIUM_PRIORITY,
+                    priority=rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY,
                     blocking=True):
     """Push the Serialized Message on the output queue."""
     self._out_queue.Put(message, priority=priority, block=blocking)
@@ -617,8 +621,8 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
     # last time and let the server know.
     last_request = self.nanny_controller.GetTransactionLog()
     if last_request:
-      status = rdfvalue.GrrStatus(
-          status=rdfvalue.GrrStatus.ReturnedStatus.CLIENT_KILLED,
+      status = rdf_flows.GrrStatus(
+          status=rdf_flows.GrrStatus.ReturnedStatus.CLIENT_KILLED,
           error_message="Client killed during transaction")
       nanny_status = self.nanny_controller.GetNannyStatus()
       if nanny_status:
@@ -628,7 +632,7 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
                      request_id=last_request.request_id,
                      response_id=1,
                      session_id=last_request.session_id,
-                     message_type=rdfvalue.GrrMessage.Type.STATUS)
+                     message_type=rdf_flows.GrrMessage.Type.STATUS)
 
     self.nanny_controller.CleanTransactionLog()
 
@@ -658,14 +662,14 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
       except Exception as e:  # pylint: disable=broad-except
         logging.warn("%s", e)
         self.SendReply(
-            rdfvalue.GrrStatus(
-                status=rdfvalue.GrrStatus.ReturnedStatus.GENERIC_ERROR,
+            rdf_flows.GrrStats(
+                status=rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR,
                 error_message=utils.SmartUnicode(e)),
             request_id=message.request_id,
             response_id=message.response_id,
             session_id=message.session_id,
             task_id=message.task_id,
-            message_type=rdfvalue.GrrMessage.Type.STATUS)
+            message_type=rdf_flows.GrrMessage.Type.STATUS)
         if flags.FLAGS.debug:
           pdb.post_mortem()
 
@@ -870,7 +874,7 @@ class GRRHTTPClient(object):
         message_list = self.client_worker.Drain(
             max_size=config_lib.CONFIG["Client.max_post_size"])
       else:
-        message_list = rdfvalue.MessageList()
+        message_list = rdf_flows.MessageList()
 
       sent_count = 0
       sent = {}
@@ -888,7 +892,7 @@ class GRRHTTPClient(object):
                       require_fastpoll=require_fastpoll)
 
       # Make new encrypted ClientCommunication rdfvalue.
-      payload = rdfvalue.ClientCommunication()
+      payload = rdf_flows.ClientCommunication()
 
       # If our memory footprint is too large, we advertise that our input queue
       # is full. This will prevent the server from sending us any messages, and
@@ -916,13 +920,13 @@ class GRRHTTPClient(object):
         # Reschedule the tasks back on the queue so they get retried next time.
         messages = list(message_list.job)
         for message in messages:
-          message.priority = rdfvalue.GrrMessage.Priority.HIGH_PRIORITY
+          message.priority = rdf_flows.GrrMessage.Priority.HIGH_PRIORITY
           message.require_fastpoll = False
           message.ttl -= 1
           if message.ttl > 0:
             # Schedule with high priority to make it jump the queue.
             self.client_worker.QueueResponse(
-                message, rdfvalue.GrrMessage.Priority.HIGH_PRIORITY + 1)
+                message, rdf_flows.GrrMessage.Priority.HIGH_PRIORITY + 1)
           else:
             logging.info("Dropped message due to retransmissions.")
         return status
@@ -979,9 +983,9 @@ class GRRHTTPClient(object):
 
   def SendForemanRequest(self):
     self.client_worker.SendReply(
-        rdfvalue.DataBlob(),
+        rdf_protodict.DataBlob(),
         session_id=rdfvalue.FlowSessionID(flow_name="Foreman"),
-        priority=rdfvalue.GrrMessage.Priority.LOW_PRIORITY,
+        priority=rdf_flows.GrrMessage.Priority.LOW_PRIORITY,
         require_fastpoll=False)
 
   def Run(self):
@@ -1030,9 +1034,9 @@ class GRRHTTPClient(object):
         # more work from the foreman anyways so it's ok to drop the message.
         try:
           self.client_worker.SendReply(
-              rdfvalue.DataBlob(),
+              rdf_protodict.DataBlob(),
               session_id=rdfvalue.FlowSessionID(flow_name="Foreman"),
-              priority=rdfvalue.GrrMessage.Priority.LOW_PRIORITY,
+              priority=rdf_flows.GrrMessage.Priority.LOW_PRIORITY,
               require_fastpoll=False, blocking=False)
           self.last_foreman_check = now
         except Queue.Full:
@@ -1117,8 +1121,8 @@ class GRRHTTPClient(object):
       self.last_enrollment_time = now
       # Send registration request:
       self.client_worker.SendReply(
-          rdfvalue.Certificate(type=rdfvalue.Certificate.Type.CSR,
-                               pem=self.communicator.GetCSR()),
+          rdf_crypto.Certificate(type=rdf_crypto.Certificate.Type.CSR,
+                                 pem=self.communicator.GetCSR()),
           session_id=rdfvalue.SessionID(
               queue=queues.ENROLLMENT, flow_name="Enrol"))
 
@@ -1148,7 +1152,7 @@ class ClientCommunicator(communicator.Communicator):
     """
     # Our CN will be the first 64 bits of the hash of the public key.
     public_key = rsa.pub()[1]
-    self.common_name = rdfvalue.ClientURN("C.%s" % (
+    self.common_name = rdf_client.ClientURN("C.%s" % (
         hashlib.sha256(public_key).digest()[:8].encode("hex")))
 
   def _LoadOurCertificate(self):
@@ -1206,7 +1210,7 @@ class ClientCommunicator(communicator.Communicator):
     bio = BIO.MemoryBuffer()
     pkey.save_key_bio(bio, cipher=None)
 
-    self.private_key = rdfvalue.PEMPrivateKey(bio.read_all())
+    self.private_key = rdf_crypto.PEMPrivateKey(bio.read_all())
 
     config_lib.CONFIG.Set("Client.private_key", self.private_key)
     config_lib.CONFIG.Write()

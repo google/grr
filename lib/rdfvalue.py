@@ -193,12 +193,6 @@ class RDFValue(object):
   # The operators this type supports in the query language
   operators = dict(contains=(1, "ContainsMatch"))
 
-# This will register all classes into this modules's namespace regardless of
-# where they are defined. This allows us to decouple the place of definition of
-# a class (which might be in a plugin) from its use which will reference this
-# module.
-RDFValue.classes = globals()
-
 
 class RDFBytes(RDFValue):
   """An attribute which holds bytes."""

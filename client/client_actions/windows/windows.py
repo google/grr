@@ -27,7 +27,10 @@ from grr.client.client_actions import standard
 
 from grr.lib import config_lib
 from grr.lib import constants
-from grr.lib import rdfvalue
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 
 
 # Properties to remove from results sent to the server.
@@ -54,7 +57,7 @@ def UnicodeFromCodePage(string):
 
 class GetInstallDate(actions.ActionPlugin):
   """Estimate the install date of this system."""
-  out_rdfvalue = rdfvalue.DataBlob
+  out_rdfvalue = rdf_protodict.DataBlob
 
   def Run(self, unused_args):
     """Estimate the install date of this system."""
@@ -69,7 +72,7 @@ class GetInstallDate(actions.ActionPlugin):
 
 class EnumerateUsers(actions.ActionPlugin):
   """Enumerates all the users on this system."""
-  out_rdfvalue = rdfvalue.User
+  out_rdfvalue = rdf_client.User
 
   def GetUsersAndHomeDirs(self):
     """Gets the home directory from the registry for all users on the system.
@@ -135,7 +138,7 @@ class EnumerateUsers(actions.ActionPlugin):
           response[pb_field] = folder
       except exceptions.WindowsError:
         pass
-    return rdfvalue.FolderInformation(**response)
+    return rdf_client.FolderInformation(**response)
 
   def GetWMIAccount(self, result, sid, homedir, known_sids):
 
@@ -163,7 +166,7 @@ class EnumerateUsers(actions.ActionPlugin):
           folders_found[field] = path
         except exceptions.WindowsError:
           pass
-      profile_folders = rdfvalue.FolderInformation(**folders_found)
+      profile_folders = rdf_client.FolderInformation(**folders_found)
 
     response["special_folders"] = profile_folders
     return response
@@ -190,14 +193,14 @@ class EnumerateInterfaces(actions.ActionPlugin):
   Win32_NetworkAdapterConfiguration definition:
     http://msdn.microsoft.com/en-us/library/aa394217(v=vs.85).aspx
   """
-  out_rdfvalue = rdfvalue.Interface
+  out_rdfvalue = rdf_client.Interface
 
   def RunNetAdapterWMIQuery(self):
     pythoncom.CoInitialize()
     for interface in wmi.WMI().Win32_NetworkAdapterConfiguration(IPEnabled=1):
       addresses = []
       for ip_address in interface.IPAddress:
-        addresses.append(rdfvalue.NetworkAddress(
+        addresses.append(rdf_client.NetworkAddress(
             human_readable_address=ip_address))
 
       args = {"ifname": interface.Description}
@@ -216,7 +219,7 @@ class EnumerateInterfaces(actions.ActionPlugin):
 
 class EnumerateFilesystems(actions.ActionPlugin):
   """Enumerate all unique filesystems local to the system."""
-  out_rdfvalue = rdfvalue.Filesystem
+  out_rdfvalue = rdf_client.Filesystem
 
   def Run(self, unused_args):
     """List all local filesystems mounted on this system."""
@@ -236,7 +239,7 @@ class EnumerateFilesystems(actions.ActionPlugin):
 
 class Uninstall(actions.ActionPlugin):
   """Remove the service that starts us at startup."""
-  out_rdfvalue = rdfvalue.DataBlob
+  out_rdfvalue = rdf_protodict.DataBlob
 
   def Run(self, unused_arg):
     """This kills us with no cleanups."""
@@ -271,8 +274,8 @@ def QueryService(svc_name):
 
 class WmiQuery(actions.ActionPlugin):
   """Runs a WMI query and returns the results to a server callback."""
-  in_rdfvalue = rdfvalue.WMIRequest
-  out_rdfvalue = rdfvalue.Dict
+  in_rdfvalue = rdf_client.WMIRequest
+  out_rdfvalue = rdf_protodict.Dict
 
   def Run(self, args):
     """Run the WMI query and return the data."""
@@ -294,7 +297,8 @@ def RunWMIQuery(query, baseobj=r"winmgmts:\root\cimv2"):
     baseobj: the base object for the WMI query.
 
   Yields:
-    rdfvalue.Dicts containing key value pairs from the resulting COM objects.
+    rdf_protodict.Dicts containing key value pairs from the resulting COM
+    objects.
   """
   pythoncom.CoInitialize()   # Needs to be called if using com from a thread.
   wmi_obj = win32com.client.GetObject(baseobj)
@@ -312,7 +316,7 @@ def RunWMIQuery(query, baseobj=r"winmgmts:\root\cimv2"):
   # Extract results from the returned COMObject and return dicts.
   try:
     for result in query_results:
-      response = rdfvalue.Dict()
+      response = rdf_protodict.Dict()
       for prop in result.Properties_:
         if prop.Name not in IGNORE_PROPS:
           # Protodict can handle most of the types we care about, but we may
@@ -339,8 +343,8 @@ CTRL_IOCTRL = CtlCode(0x22, 0x101, 0, 3)  # Set acquisition modes.
 class GetMemoryInformation(actions.ActionPlugin):
   """Loads the driver for memory access and returns a Stat for the device."""
 
-  in_rdfvalue = rdfvalue.PathSpec
-  out_rdfvalue = rdfvalue.MemoryInformation
+  in_rdfvalue = rdf_paths.PathSpec
+  out_rdfvalue = rdf_rekall_types.MemoryInformation
 
   def Run(self, args):
     """Run."""
@@ -363,11 +367,11 @@ class GetMemoryInformation(actions.ActionPlugin):
     fmt_string = "QQl"
     cr3, _, number_of_runs = struct.unpack_from(fmt_string, data)
 
-    result = rdfvalue.MemoryInformation(
+    result = rdf_rekall_types.MemoryInformation(
         cr3=cr3,
-        device=rdfvalue.PathSpec(
+        device=rdf_paths.PathSpec(
             path=args.path,
-            pathtype=rdfvalue.PathSpec.PathType.MEMORY))
+            pathtype=rdf_paths.PathSpec.PathType.MEMORY))
 
     offset = struct.calcsize(fmt_string)
     for x in range(number_of_runs):
@@ -384,7 +388,7 @@ class UninstallDriver(actions.ActionPlugin):
   Client.driver_signing_public_key can be uninstalled.
   """
 
-  in_rdfvalue = rdfvalue.DriverInstallTemplate
+  in_rdfvalue = rdf_client.DriverInstallTemplate
 
   @staticmethod
   def UninstallDriver(driver_path, service_name, delete_file=False):
@@ -435,7 +439,7 @@ class InstallDriver(UninstallDriver):
   Note that only drivers with a signature that validates with
   Client.driver_signing_public_key can be loaded.
   """
-  in_rdfvalue = rdfvalue.DriverInstallTemplate
+  in_rdfvalue = rdf_client.DriverInstallTemplate
 
   @staticmethod
   def InstallDriver(driver_path, service_name, driver_display_name):

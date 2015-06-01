@@ -19,9 +19,6 @@ from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import ipshell
 from grr.lib import registry
-# pylint: disable=unused-import
-from grr.lib import server_plugins
-# pylint: enable=unused-import
 from grr.lib import startup
 from grr.lib import test_lib
 

@@ -5,7 +5,7 @@ from grr.gui import api_call_renderers
 from grr.gui import api_value_renderers
 
 from grr.lib import aff4
-from grr.lib import rdfvalue
+from grr.lib.aff4_objects import users as aff4_users
 
 
 class ApiUserSettingsRenderer(api_call_renderers.ApiCallRenderer):
@@ -33,7 +33,7 @@ class ApiUserSettingsRenderer(api_call_renderers.ApiCallRenderer):
 class ApiSetUserSettingsRenderer(api_call_renderers.ApiCallRenderer):
   """Sets current user settings."""
 
-  args_type = rdfvalue.GUISettings
+  args_type = aff4_users.GUISettings
   privileged = True
 
   def Render(self, args, token=None):

@@ -1186,11 +1186,9 @@ message MultiGetFileArgs {
 
   optional uint64 file_size = 4 [(sem_type) = {
       type: "ByteSize",
-      description: "The exact number of bytes to download per file, if known"
-                   " beforehand. Default value of 0 determines the file size"
-                   " using a stat call."
+      description: "Maximum number of bytes to download in each file.",
       label: ADVANCED
-    }, default=0];
+    }, default=1000000000]; // 1Gb.
 
 }
 
@@ -1210,11 +1208,9 @@ message GetExecutablesFilteredByHashArgs {
     }, default=true];
   optional uint64 file_size = 4 [(sem_type) = {
       type: "ByteSize",
-      description: "The exact number of bytes to download per file, if known"
-                   " beforehand. Default value of 0 determines the file size"
-                   " using a stat call."
+      description: "Maximum number of bytes to download in each file.",
       label: ADVANCED
-    }, default=0];
+    }, default=1000000000]; // 1GB.
 
 }
 
@@ -1473,11 +1469,9 @@ message FileFinderArgs {
 
   optional uint64 file_size = 3 [(sem_type) = {
       type: "ByteSize",
-      description: "The exact number of bytes to download per file, if known"
-                   " beforehand. Default value of 0 determines the file size"
-                   " using a stat call."
+      description: "Maximum number of bytes to download in each file.",
       label: ADVANCED
-    }, default=0];
+    }, default=1000000000]; // 1GB
 
   repeated FileFinderCondition conditions = 5 [(sem_type) = {
       description: "These conditions will be applied to all files that match"

@@ -4,7 +4,6 @@
 # These need to register plugins so, pylint: disable=unused-import
 from grr.lib.rdfvalues import aff4_rdfvalues
 from grr.lib.rdfvalues import anomaly
-from grr.lib.rdfvalues import artifacts
 from grr.lib.rdfvalues import client
 from grr.lib.rdfvalues import config_file
 from grr.lib.rdfvalues import cronjobs

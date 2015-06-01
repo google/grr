@@ -10,7 +10,9 @@ import numbers
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
-from grr.lib.rdfvalues import structs
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.lib.rdfvalues import structs as rdf_structs
 
 
 class ApiValueRenderer(object):
@@ -132,7 +134,7 @@ class ApiBytesRenderer(ApiValueRenderer):
 class ApiEnumRenderer(ApiValueRenderer):
   """Renderer for deprecated (old-style) enums."""
 
-  value_class = structs.Enum
+  value_class = rdf_structs.Enum
 
   def RenderValue(self, value):
     return self._IncludeTypeInfoIfNeeded(value.name, value)
@@ -141,7 +143,7 @@ class ApiEnumRenderer(ApiValueRenderer):
 class ApiEnumNamedValueRenderer(ApiValueRenderer):
   """Renderer for new-style enums."""
 
-  value_class = structs.EnumNamedValue
+  value_class = rdf_structs.EnumNamedValue
 
   def RenderValue(self, value):
     return self._IncludeTypeInfoIfNeeded(value.name, value)
@@ -187,13 +189,13 @@ class ApiListRenderer(ApiValueRenderer):
 class ApiRepeatedFieldHelperRenderer(ApiListRenderer):
   """Renderer for repeated fields helpers."""
 
-  value_class = structs.RepeatedFieldHelper
+  value_class = rdf_structs.RepeatedFieldHelper
 
 
 class ApiRDFValueArrayRenderer(ApiListRenderer):
   """Renderer for RDFValueArray."""
 
-  value_class = rdfvalue.RDFValueArray
+  value_class = rdf_protodict.RDFValueArray
 
 
 class ApiRDFBoolRenderer(ApiValueRenderer):
@@ -238,7 +240,7 @@ class ApiRDFIntegerRenderer(ApiValueRenderer):
 class ApiFlowStateRenderer(ApiValueRenderer):
   """Renderer for FlowState."""
 
-  value_class = rdfvalue.FlowState
+  value_class = rdf_flows.FlowState
 
   def RenderValue(self, value):
     return self._PassThrough(value.data)
@@ -247,7 +249,7 @@ class ApiFlowStateRenderer(ApiValueRenderer):
 class ApiDataBlobRenderer(ApiValueRenderer):
   """Renderer for DataBlob."""
 
-  value_class = rdfvalue.DataBlob
+  value_class = rdf_protodict.DataBlob
 
   def RenderValue(self, value):
     return self._PassThrough(value.GetValue())
@@ -256,7 +258,7 @@ class ApiDataBlobRenderer(ApiValueRenderer):
 class ApiEmbeddedRDFValueRenderer(ApiValueRenderer):
   """Renderer for EmbeddedRDFValue."""
 
-  value_class = rdfvalue.EmbeddedRDFValue
+  value_class = rdf_protodict.EmbeddedRDFValue
 
   def RenderValue(self, value):
     return self._PassThrough(value.payload)
@@ -265,7 +267,7 @@ class ApiEmbeddedRDFValueRenderer(ApiValueRenderer):
 class ApiRDFProtoStructRenderer(ApiValueRenderer):
   """Renderer for RDFProtoStructs."""
 
-  value_class = rdfvalue.RDFProtoStruct
+  value_class = rdf_structs.RDFProtoStruct
 
   processors = []
 
@@ -298,7 +300,7 @@ class ApiRDFProtoStructRenderer(ApiValueRenderer):
 class ApiGrrMessageRenderer(ApiRDFProtoStructRenderer):
   """Renderer for GrrMessage objects."""
 
-  value_class = rdfvalue.GrrMessage
+  value_class = rdf_flows.GrrMessage
 
   def RenderPayload(self, result, value):
     """Renders GrrMessage payload and renames args_rdf_name field."""

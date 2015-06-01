@@ -3,10 +3,6 @@
 
 """Tests for CSV output plugin."""
 
-# pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import,g-bad-import-order
-
 import csv
 import StringIO
 
@@ -14,6 +10,9 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.output_plugins import csv_plugin
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class CSVOutputPluginTest(test_lib.FlowTestsBaseclass):
@@ -35,8 +34,8 @@ class CSVOutputPluginTest(test_lib.FlowTestsBaseclass):
 
     messages = []
     for response in responses:
-      messages.append(rdfvalue.GrrMessage(source=self.client_id,
-                                          payload=response))
+      messages.append(rdf_flows.GrrMessage(source=self.client_id,
+                                           payload=response))
 
     if process_responses_separately:
       for message in messages:
@@ -51,9 +50,9 @@ class CSVOutputPluginTest(test_lib.FlowTestsBaseclass):
   def testCSVPluginWithValuesOfSameType(self):
     responses = []
     for i in range(10):
-      responses.append(rdfvalue.StatEntry(
+      responses.append(rdf_client.StatEntry(
           aff4path=self.client_id.Add("/fs/os/foo/bar").Add(str(i)),
-          pathspec=rdfvalue.PathSpec(path="/foo/bar"),
+          pathspec=rdf_paths.PathSpec(path="/foo/bar"),
           st_mode=33184,  # octal = 100640 => u=rw,g=r,o= => -rw-r-----
           st_ino=1063090,
           st_dev=64512L,
@@ -65,8 +64,9 @@ class CSVOutputPluginTest(test_lib.FlowTestsBaseclass):
           st_mtime=1336129892,
           st_ctime=1336129892))
 
-    streams = self.ProcessResponses(plugin_args=rdfvalue.CSVOutputPluginArgs(),
-                                    responses=responses)
+    streams = self.ProcessResponses(
+        plugin_args=csv_plugin.CSVOutputPluginArgs(),
+        responses=responses)
     self.assertEqual(streams.keys(), ["ExportedFile.csv"])
     self.assertEqual(streams["ExportedFile.csv"].urn,
                      rdfvalue.RDFURN("aff4:/foo/bar/ExportedFile.csv"))
@@ -102,12 +102,12 @@ class CSVOutputPluginTest(test_lib.FlowTestsBaseclass):
 
   def testCSVPluginWithValuesOfMultipleTypes(self):
     streams = self.ProcessResponses(
-        plugin_args=rdfvalue.CSVOutputPluginArgs(),
+        plugin_args=csv_plugin.CSVOutputPluginArgs(),
         responses=[
-            rdfvalue.StatEntry(
+            rdf_client.StatEntry(
                 aff4path=self.client_id.Add("/fs/os/foo/bar"),
-                pathspec=rdfvalue.PathSpec(path="/foo/bar")),
-            rdfvalue.Process(pid=42)],
+                pathspec=rdf_paths.PathSpec(path="/foo/bar")),
+            rdf_client.Process(pid=42)],
         process_responses_separately=True)
 
     self.assertEqual(sorted(streams.keys()),
@@ -145,11 +145,11 @@ class CSVOutputPluginTest(test_lib.FlowTestsBaseclass):
 
   def testCSVPluginWritesUnicodeValuesCorrectly(self):
     streams = self.ProcessResponses(
-        plugin_args=rdfvalue.CSVOutputPluginArgs(),
+        plugin_args=csv_plugin.CSVOutputPluginArgs(),
         responses=[
-            rdfvalue.StatEntry(
+            rdf_client.StatEntry(
                 aff4path=self.client_id.Add("/fs/os/中国新闻网新闻中"),
-                pathspec=rdfvalue.PathSpec(path="/中国新闻网新闻中"))],
+                pathspec=rdf_paths.PathSpec(path="/中国新闻网新闻中"))],
         process_responses_separately=True)
 
     contents = StringIO.StringIO(streams["ExportedFile.csv"].Read(16384))

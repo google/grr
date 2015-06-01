@@ -5,7 +5,7 @@
 
 from grr.endtoend_tests import base
 from grr.lib import aff4
-from grr.lib import rdfvalue
+from grr.lib.rdfvalues import client as rdf_client
 
 
 class TestDarwinPersistenceMechanisms(base.AutomatedTest):
@@ -63,7 +63,7 @@ class TestParserDependency(base.AutomatedTest):
     # Set the KB to an empty object
     client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
     self.old_kb = client.Get(client.Schema.KNOWLEDGE_BASE)
-    client.Set(client.Schema.KNOWLEDGE_BASE, rdfvalue.KnowledgeBase())
+    client.Set(client.Schema.KNOWLEDGE_BASE, rdf_client.KnowledgeBase())
     client.Flush()
     super(TestParserDependency, self).setUp()
 

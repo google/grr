@@ -13,8 +13,8 @@ from urllib3 import connectionpool
 import logging
 
 from grr.lib import config_lib
-from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import data_server as rdf_data_server
 
 from grr.server.data_server import constants
 from grr.server.data_server import rebalance
@@ -32,12 +32,13 @@ class DataServer(object):
   def __init__(self, location, index):
     # Parse location.
     loc = urlparse.urlparse(location, scheme="http")
-    offline = rdfvalue.DataServerState.Status.OFFLINE
-    state = rdfvalue.DataServerState(size=0, load=0, status=offline)
-    self.server_info = rdfvalue.DataServerInformation(index=index,
-                                                      address=loc.hostname,
-                                                      port=loc.port,
-                                                      state=state)
+    offline = rdf_data_server.DataServerState.Status.OFFLINE
+    state = rdf_data_server.DataServerState(size=0, load=0, status=offline)
+    self.server_info = rdf_data_server.DataServerInformation(
+        index=index,
+        address=loc.hostname,
+        port=loc.port,
+        state=state)
     self.registered = False
     self.removed = False
     logging.info("Configured DataServer on %s:%d", self.Address(), self.Port())
@@ -127,9 +128,10 @@ class DataMaster(object):
       for server in self.servers:
         server.SetInitialInterval(len(self.servers))
       servers_info = [server.server_info for server in self.servers]
-      self.mapping = rdfvalue.DataServerMapping(version=0,
-                                                num_servers=len(self.servers),
-                                                servers=servers_info)
+      self.mapping = rdf_data_server.DataServerMapping(
+          version=0,
+          num_servers=len(self.servers),
+          servers=servers_info)
       self.service.SaveServerMapping(self.mapping, create_pathing=True)
     else:
       # Check mapping and configuration matching.
@@ -166,13 +168,13 @@ class DataMaster(object):
 
   def _PeriodicThread(self):
     """Periodically update our state and store the mappings."""
-    ok = rdfvalue.DataServerState.Status.AVAILABLE
+    ok = rdf_data_server.DataServerState.Status.AVAILABLE
     num_components, avg_component = self.service.GetComponentInformation()
-    state = rdfvalue.DataServerState(size=self.service.Size(),
-                                     load=0,
-                                     status=ok,
-                                     num_components=num_components,
-                                     avg_component=avg_component)
+    state = rdf_data_server.DataServerState(size=self.service.Size(),
+                                            load=0,
+                                            status=ok,
+                                            num_components=num_components,
+                                            avg_component=avg_component)
     self.myself.UpdateState(state)
     self.service.SaveServerMapping(self.mapping)
 
@@ -305,7 +307,7 @@ class DataMaster(object):
           logging.warning("Could not sync with server %s:%d", serv.Address(),
                           serv.Port())
           return False
-        state = rdfvalue.DataServerState()
+        state = rdf_data_server.DataServerState()
         state.ParseFromString(res.data)
         serv.UpdateState(state)
     except urllib3.exceptions.MaxRetryError:
@@ -327,7 +329,7 @@ class DataMaster(object):
         if res.status != constants.RESPONSE_OK:
           self.CancelRebalancing()
           return False
-        reb = rdfvalue.DataServerRebalance()
+        reb = rdf_data_server.DataServerRebalance()
         reb.ParseFromString(res.data)
         ls = list(reb.moving)
         if ls:
@@ -374,7 +376,7 @@ class DataMaster(object):
                         self.rebalance.id)
           self.CancelRebalancing()
           return None
-        stat = rdfvalue.DataServerState()
+        stat = rdf_data_server.DataServerState()
         stat.ParseFromString(res.data)
         data_server = self.servers[i]
         data_server.UpdateState(stat)

@@ -11,8 +11,8 @@ from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.rdfvalues import client as rdf_client
 
 
 class TestNotifications(test_lib.GRRSeleniumTest):
@@ -118,7 +118,7 @@ class TestNotifications(test_lib.GRRSeleniumTest):
     with self.ACLChecksDisabled():
       with aff4.FACTORY.Create(
           collection_urn, "RDFValueCollection", token=self.token) as fd:
-        fd.Add(rdfvalue.StatEntry(aff4path="aff4:/some/unique/path"))
+        fd.Add(rdf_client.StatEntry(aff4path="aff4:/some/unique/path"))
 
       self.GenerateNotifications(
           notification_type="ViewObject", subject=collection_urn,

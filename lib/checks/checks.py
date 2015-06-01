@@ -10,14 +10,14 @@ import yaml
 import logging
 
 from grr.lib import config_lib
-from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib.aff4_objects import collections as collections_aff4
 from grr.lib.checks import filters
 from grr.lib.checks import hints
 from grr.lib.checks import triggers
-from grr.lib.rdfvalues import anomaly as anomaly_rdf
-from grr.lib.rdfvalues import structs as structs_rdf
+from grr.lib.rdfvalues import anomaly as rdf_anomaly
+from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import checks_pb2
 
 
@@ -54,7 +54,7 @@ def MatchStrToList(match=None):
   return match
 
 
-class CheckResult(structs_rdf.RDFProtoStruct):
+class CheckResult(rdf_structs.RDFProtoStruct):
   """Results of a single check performed on a host."""
   protobuf = checks_pb2.CheckResult
 
@@ -73,7 +73,7 @@ class CheckResultsCollection(collections_aff4.RDFValueCollection):
   _rdf_type = CheckResult
 
 
-class CheckResults(structs_rdf.RDFProtoStruct):
+class CheckResults(rdf_structs.RDFProtoStruct):
   """All results for a single host."""
   protobuf = checks_pb2.CheckResults
 
@@ -81,32 +81,7 @@ class CheckResults(structs_rdf.RDFProtoStruct):
     return bool(self.result)
 
 
-class Target(structs_rdf.RDFProtoStruct):
-  """Definitions of hosts to target."""
-  protobuf = checks_pb2.Target
-
-  def __init__(self, initializer=None, age=None, **kwargs):
-    if isinstance(initializer, dict):
-      conf = initializer
-      initializer = None
-    else:
-      conf = kwargs
-    super(Target, self).__init__(initializer=initializer, age=age, **conf)
-
-  def __nonzero__(self):
-    return any([self.cpe, self.os, self.label])
-
-  def Validate(self):
-    if self.cpe:
-      # TODO(user): Add CPE library to GRR.
-      pass
-    if self.os:
-      pass
-    if self.label:
-      pass
-
-
-class Check(structs_rdf.RDFProtoStruct):
+class Check(rdf_structs.RDFProtoStruct):
   """A definition of a problem, and ways to detect it.
 
   Checks contain an identifier of a problem (check_id) that is a reference to an
@@ -202,7 +177,7 @@ class Check(structs_rdf.RDFProtoStruct):
                      "Check %s has invalid method definitions" % cls_name)
 
 
-class Method(structs_rdf.RDFProtoStruct):
+class Method(rdf_structs.RDFProtoStruct):
   """A specific test method using 0 or more filters to process data."""
 
   protobuf = checks_pb2.Method
@@ -226,8 +201,8 @@ class Method(structs_rdf.RDFProtoStruct):
     self.hint = Hint(hint, reformat=False)
     self.match = MatchStrToList(kwargs.get("match"))
     self.matcher = Matcher(self.match, self.hint)
-    self.resource = [rdfvalue.Dict(**r) for r in resource]
-    self.target = Target(**target)
+    self.resource = [rdf_protodict.Dict(**r) for r in resource]
+    self.target = triggers.Target(**target)
     self.triggers = triggers.Triggers()
     for p in self.probe:
       # If the probe has a target, use it. Otherwise, use the method's target.
@@ -265,7 +240,7 @@ class Method(structs_rdf.RDFProtoStruct):
     ValidateMultiple(self.hint, "Method has invalid hint")
 
 
-class Probe(structs_rdf.RDFProtoStruct):
+class Probe(rdf_structs.RDFProtoStruct):
   """The suite of filters applied to host data."""
 
   protobuf = checks_pb2.Probe
@@ -322,7 +297,7 @@ class Probe(structs_rdf.RDFProtoStruct):
     self.hint.Validate()
 
 
-class Filter(structs_rdf.RDFProtoStruct):
+class Filter(rdf_structs.RDFProtoStruct):
   """Generic filter to provide an interface for different types of filter."""
 
   protobuf = checks_pb2.Filter
@@ -366,7 +341,7 @@ class Filter(structs_rdf.RDFProtoStruct):
     ValidateMultiple(self.hint, "Filter has invalid hint")
 
 
-class Hint(structs_rdf.RDFProtoStruct):
+class Hint(rdf_structs.RDFProtoStruct):
   """Human-formatted descriptions of problems, fixes and findings."""
 
   protobuf = checks_pb2.Hint
@@ -462,13 +437,13 @@ class Matcher(object):
       A CheckResult message.
     """
     result = CheckResult()
-    anomaly = anomaly_rdf.Anomaly(type="ANALYSIS_ANOMALY",
+    anomaly = rdf_anomaly.Anomaly(type="ANALYSIS_ANOMALY",
                                   explanation=self.hint.Explanation(state))
     # If there are CheckResults we're aggregating methods or probes.
     # Merge all current results into one CheckResult.
     # Otherwise, the results are raw host data.
     # Generate a new CheckResult and add the specific findings.
-    if results and all(isinstance(r, rdfvalue.CheckResult) for r in results):
+    if results and all(isinstance(r, CheckResult) for r in results):
       result.ExtendAnomalies(results)
     else:
       anomaly.finding = self.hint.Render(results)
@@ -478,7 +453,7 @@ class Matcher(object):
   def GotNone(self, _, results):
     """Anomaly for no results, an empty list otherwise."""
     if not results:
-      return self.Issue("Missing attribute", [])
+      return self.Issue("Missing attribute", ["Expected state was not found"])
     return []
 
   def GotSingle(self, _, results):
@@ -697,7 +672,7 @@ def LoadCheckFromFile(file_path, check_id, overwrite_if_exists=True):
   """Load a single check from a file."""
   configs = LoadConfigsFromFile(file_path)
   conf = configs.get(check_id)
-  check = rdfvalue.Check(**conf)
+  check = Check(**conf)
   check.Validate()
   CheckRegistry.RegisterCheck(check, source="file:%s" % file_path,
                               overwrite_if_exists=overwrite_if_exists)
@@ -711,7 +686,7 @@ def LoadChecksFromFiles(file_paths, overwrite_if_exists=True):
   for file_path in file_paths:
     configs = LoadConfigsFromFile(file_path)
     for conf in configs.values():
-      check = rdfvalue.Check(**conf)
+      check = Check(**conf)
       # Validate will raise if the check doesn't load.
       check.Validate()
       loaded.append(check)

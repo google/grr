@@ -3,9 +3,9 @@
 """Tests for service state checks."""
 
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.checks import checks_test_lib
+from grr.lib.rdfvalues import client as rdf_client
 from grr.parsers import linux_service_parser
 from grr.parsers import linux_service_parser_test
 
@@ -65,11 +65,11 @@ class ListeningServiceTests(checks_test_lib.HostCheckTest):
     loop6 = self.AddListener("::1", 6000, "INET6")
     ext4 = self.AddListener("10.1.1.1", 6000)
     ext6 = self.AddListener("fc00::1", 6000, "INET6")
-    x11 = rdfvalue.Process(name="x11", pid=1233, connections=[loop4, loop6])
-    xorg = rdfvalue.Process(name="xorg", pid=1234,
-                            connections=[loop4, loop6, ext4, ext6])
-    sshd = rdfvalue.Process(name="sshd", pid=1235,
-                            connections=[loop4, loop6, ext4, ext6])
+    x11 = rdf_client.Process(name="x11", pid=1233, connections=[loop4, loop6])
+    xorg = rdf_client.Process(name="xorg", pid=1234,
+                              connections=[loop4, loop6, ext4, ext6])
+    sshd = rdf_client.Process(name="sshd", pid=1235,
+                              connections=[loop4, loop6, ext4, ext6])
     host_data["ListProcessesGrr"] = [x11, xorg, sshd]
     return host_data
 
@@ -88,4 +88,3 @@ def main(argv):
 
 if __name__ == "__main__":
   flags.StartMain(main)
-

@@ -10,10 +10,12 @@ from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import type_info
 
+from grr.lib.rdfvalues import structs as rdf_structs
+
 from grr.proto import api_pb2
 
 
-class ApiRDFValueReflectionRendererArgs(rdfvalue.RDFProtoStruct):
+class ApiRDFValueReflectionRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiRDFValueReflectionRendererArgs
 
 
@@ -40,7 +42,7 @@ class ApiRDFValueReflectionRenderer(api_call_renderers.ApiCallRenderer):
       if field_type is not None:
         field["type"] = field_type.__name__
 
-      if field_type == rdfvalue.EnumNamedValue:
+      if field_type == rdf_structs.EnumNamedValue:
         allowed_values = []
         for enum_label in sorted(field_desc.enum, key=field_desc.enum.get):
           enum_value = field_desc.enum[enum_label]
@@ -51,7 +53,7 @@ class ApiRDFValueReflectionRenderer(api_call_renderers.ApiCallRenderer):
 
       field_default = None
       if (field_desc.default is not None
-          and not aff4.issubclass(field_type, rdfvalue.RDFStruct)
+          and not aff4.issubclass(field_type, rdf_structs.RDFStruct)
           and hasattr(field_desc, "GetDefault")):
         field_default = field_desc.GetDefault()
         field["default"] = api_value_renderers.RenderValue(
@@ -64,7 +66,7 @@ class ApiRDFValueReflectionRenderer(api_call_renderers.ApiCallRenderer):
         field["friendly_name"] = field_desc.friendly_name
 
       if field_desc.labels:
-        field["labels"] = [rdfvalue.SemanticDescriptor.Labels.reverse_enum[x]
+        field["labels"] = [rdf_structs.SemanticDescriptor.Labels.reverse_enum[x]
                            for x in field_desc.labels]
 
       fields.append(field)
@@ -109,7 +111,7 @@ class ApiRDFValueReflectionRenderer(api_call_renderers.ApiCallRenderer):
     return result
 
   def RenderType(self, cls):
-    if aff4.issubclass(cls, rdfvalue.RDFStruct):
+    if aff4.issubclass(cls, rdf_structs.RDFStruct):
       return self.RenderRDFStruct(cls)
     else:
       return self.RenderPrimitiveRDFValue(cls)

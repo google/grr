@@ -11,7 +11,6 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
 
 # This test runs flows from these modules. pylint: disable=unused-import
@@ -19,6 +18,8 @@ from grr.lib.flows.general import memory
 from grr.lib.flows.general import registry
 from grr.lib.flows.general import transfer
 # pylint: enable=unused-import
+from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 
 
 class RekallTestSuite(test_lib.EmptyActionTest):
@@ -63,10 +64,10 @@ class RekallTestSuite(test_lib.EmptyActionTest):
 
       def GetMemoryInformation(self, _):
         """Mock out the driver loading code to pass the memory image."""
-        reply = rdfvalue.MemoryInformation(
-            device=rdfvalue.PathSpec(
+        reply = rdf_rekall_types.MemoryInformation(
+            device=rdf_paths.PathSpec(
                 path=image_path,
-                pathtype=rdfvalue.PathSpec.PathType.OS))
+                pathtype=rdf_paths.PathSpec.PathType.OS))
 
         reply.runs.Append(offset=0, length=1000000000)
 
@@ -116,14 +117,14 @@ class RekallTests(RekallTestSuite):
   @RequireTestImage
   def testRekallModules(self):
     """Tests the end to end Rekall memory analysis."""
-    request = rdfvalue.RekallRequest()
+    request = rdf_rekall_types.RekallRequest()
     request.plugins = [
         # Only use these methods for listing processes.
-        rdfvalue.PluginRequest(
+        rdf_rekall_types.PluginRequest(
             plugin="pslist", args=dict(
                 method=["PsActiveProcessHead", "CSRSS"]
             )),
-        rdfvalue.PluginRequest(plugin="modules")]
+        rdf_rekall_types.PluginRequest(plugin="modules")]
 
     self.LaunchRekallPlugin(request)
 
@@ -147,10 +148,10 @@ class RekallTests(RekallTestSuite):
   @RequireTestImage
   def testFileOutput(self):
     """Tests that a file can be written by a plugin and retrieved."""
-    request = rdfvalue.RekallRequest()
+    request = rdf_rekall_types.RekallRequest()
     request.plugins = [
         # Run procdump to create one file.
-        rdfvalue.PluginRequest(
+        rdf_rekall_types.PluginRequest(
             plugin="procdump", args=dict(pid=2860))]
 
     with test_lib.Instrument(transfer.MultiGetFile,
@@ -161,10 +162,10 @@ class RekallTests(RekallTestSuite):
 
   @RequireTestImage
   def testParameters(self):
-    request = rdfvalue.RekallRequest()
+    request = rdf_rekall_types.RekallRequest()
     request.plugins = [
         # Only use these methods for listing processes.
-        rdfvalue.PluginRequest(
+        rdf_rekall_types.PluginRequest(
             plugin="pslist", args=dict(
                 pid=[4, 2860],
                 method="PsActiveProcessHead"
@@ -186,10 +187,10 @@ class RekallTests(RekallTestSuite):
   @RequireTestImage
   def testDLLList(self):
     """Tests that we can run a simple DLLList Action."""
-    request = rdfvalue.RekallRequest()
+    request = rdf_rekall_types.RekallRequest()
     request.plugins = [
         # Only use these methods for listing processes.
-        rdfvalue.PluginRequest(
+        rdf_rekall_types.PluginRequest(
             plugin="dlllist", args=dict(
                 proc_regex="dumpit",
                 method="PsActiveProcessHead"
@@ -244,9 +245,9 @@ class RekallTests(RekallTestSuite):
       try:
         aff4.FACTORY.Delete(output_urn, token=self.token)
 
-        request = rdfvalue.RekallRequest()
+        request = rdf_rekall_types.RekallRequest()
         request.plugins = [
-            rdfvalue.PluginRequest(plugin=plugin)
+            rdf_rekall_types.PluginRequest(plugin=plugin)
         ]
 
         self.LaunchRekallPlugin(request)

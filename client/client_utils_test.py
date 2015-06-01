@@ -17,8 +17,9 @@ from grr.client import client_utils_common
 from grr.client import client_utils_linux
 from grr.client import client_utils_osx
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 def GetVolumePathName(_):
@@ -62,13 +63,13 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
 
     for filename, expected_device, expected_path, device_type in [
         ("/etc/passwd", "/dev/mapper/root", "/etc/passwd",
-         rdfvalue.PathSpec.PathType.OS),
+         rdf_paths.PathSpec.PathType.OS),
         ("/usr/local/bin/ls", "/dev/mapper/usr", "/bin/ls",
-         rdfvalue.PathSpec.PathType.OS),
+         rdf_paths.PathSpec.PathType.OS),
         ("/proc/net/sys", "none", "/net/sys",
-         rdfvalue.PathSpec.PathType.UNSET),
+         rdf_paths.PathSpec.PathType.UNSET),
         ("/home/user/test.txt", "server.nfs:/vol/home", "/test.txt",
-         rdfvalue.PathSpec.PathType.UNSET)]:
+         rdf_paths.PathSpec.PathType.UNSET)]:
       raw_pathspec, path = client_utils_linux.LinGetRawDevice(
           filename)
 
@@ -204,7 +205,7 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
     with tempfile.NamedTemporaryFile() as fd:
       nanny_controller = client_utils_linux.NannyController()
       nanny_controller.StartNanny(nanny_logfile=fd.name)
-      grr_message = rdfvalue.GrrMessage(session_id="W:test")
+      grr_message = rdf_flows.GrrMessage(session_id="W:test")
 
       nanny_controller.WriteTransactionLog(grr_message)
       self.assertRDFValueEqual(grr_message,

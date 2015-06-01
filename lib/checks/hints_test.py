@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 """Tests for checks."""
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.checks import hints
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import protodict as rdf_protodict
 
 
 class HintsTests(test_lib.GRRBaseTest):
@@ -52,16 +53,16 @@ class HintsTests(test_lib.GRRBaseTest):
   def testRdfFormatter(self):
     """Hints format RDF values with arbitrary values and attributes."""
     # Create a complex RDF value
-    rdf = rdfvalue.ClientSummary()
+    rdf = rdf_client.ClientSummary()
     rdf.system_info.system = "Linux"
     rdf.system_info.node = "coreai.skynet.com"
     # Users (repeated)
-    rdf.users = [rdfvalue.User(username=u) for u in ("root", "jconnor")]
+    rdf.users = [rdf_client.User(username=u) for u in ("root", "jconnor")]
     # Interface (nested, repeated)
-    addresses = [rdfvalue.NetworkAddress(human_readable=a) for a in (
+    addresses = [rdf_client.NetworkAddress(human_readable=a) for a in (
         "1.1.1.1", "2.2.2.2", "3.3.3.3")]
-    eth0 = rdfvalue.Interface(ifname="eth0", addresses=addresses[:2])
-    ppp0 = rdfvalue.Interface(ifname="ppp0", addresses=addresses[2])
+    eth0 = rdf_client.Interface(ifname="eth0", addresses=addresses[:2])
+    ppp0 = rdf_client.Interface(ifname="ppp0", addresses=addresses[2])
     rdf.interfaces = [eth0, ppp0]
 
     template = ("{system_info.system} {users.username} {interfaces.ifname} "
@@ -73,9 +74,9 @@ class HintsTests(test_lib.GRRBaseTest):
 
   def testRdfFormatterHandlesKeyValuePair(self):
     """rdfvalue.KeyValue items need special handling to expand k and v."""
-    key = rdfvalue.DataBlob().SetValue("skynet")
-    value = rdfvalue.DataBlob().SetValue([1997])
-    rdf = rdfvalue.KeyValue(k=key, v=value)
+    key = rdf_protodict.DataBlob().SetValue("skynet")
+    value = rdf_protodict.DataBlob().SetValue([1997])
+    rdf = rdf_protodict.KeyValue(k=key, v=value)
     template = "{k}: {v}"
     hinter = hints.Hinter(template=template)
     expected = "skynet: 1997"
@@ -83,9 +84,9 @@ class HintsTests(test_lib.GRRBaseTest):
     self.assertEqual(expected, result)
 
   def testRdfFormatterFanOut(self):
-    rdf = rdfvalue.Dict()
-    user1 = rdfvalue.KnowledgeBaseUser(username="drexler")
-    user2 = rdfvalue.KnowledgeBaseUser(username="joy")
+    rdf = rdf_protodict.Dict()
+    user1 = rdf_client.KnowledgeBaseUser(username="drexler")
+    user2 = rdf_client.KnowledgeBaseUser(username="joy")
     rdf["cataclysm"] = "GreyGoo"
     rdf["thinkers"] = [user1, user2]
     rdf["reference"] = {"ecophage": ["bots", ["nanobots", ["picobots"]]],
@@ -99,7 +100,7 @@ class HintsTests(test_lib.GRRBaseTest):
     self.assertEqual(expected, result)
 
   def testStatModeFormat(self):
-    rdf = rdfvalue.StatEntry(st_mode=33204)
+    rdf = rdf_client.StatEntry(st_mode=33204)
     expected = "-rw-rw-r--"
     template = "{st_mode}"
     hinter = hints.Hinter(template=template)

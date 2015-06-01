@@ -11,7 +11,9 @@ from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.lib.rdfvalues import paths
+from grr.lib.rdfvalues import aff4_rdfvalues
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class VFSDirectory(aff4.AFF4Volume):
@@ -57,12 +59,12 @@ class VFSDirectory(aff4.AFF4Volume):
 
   class SchemaCls(aff4.AFF4Volume.SchemaCls):
     """Attributes specific to VFSDirectory."""
-    STAT = aff4.Attribute("aff4:stat", rdfvalue.StatEntry,
+    STAT = aff4.Attribute("aff4:stat", rdf_client.StatEntry,
                           "A StatEntry describing this file.",
                           "stat")
 
     PATHSPEC = aff4.Attribute(
-        "aff4:pathspec", paths.PathSpec,
+        "aff4:pathspec", rdf_paths.PathSpec,
         "The pathspec used to retrieve this object from the client.",
         "pathspec")
 
@@ -226,11 +228,11 @@ class BlobImage(aff4.AFF4Image):
     """The schema for Blob Images."""
     STAT = aff4.AFF4Object.VFSDirectory.SchemaCls.STAT
 
-    HASHES = aff4.Attribute("aff4:hashes", rdfvalue.HashList,
+    HASHES = aff4.Attribute("aff4:hashes", HashList,
                             "List of hashes of each chunk in this file.")
 
     FINGERPRINT = aff4.Attribute("aff4:fingerprint",
-                                 rdfvalue.FingerprintResponse,
+                                 rdf_client.FingerprintResponse,
                                  "DEPRECATED protodict containing arrays of "
                                  " hashes. Use AFF4Stream.HASH instead.")
 
@@ -335,7 +337,7 @@ class HashImage(aff4.AFF4Image):
         "updating this object.")
 
     FINGERPRINT = aff4.Attribute("aff4:fingerprint",
-                                 rdfvalue.FingerprintResponse,
+                                 rdf_client.FingerprintResponse,
                                  "DEPRECATED protodict containing arrays of "
                                  " hashes. Use AFF4Stream.HASH instead.")
 
@@ -802,7 +804,7 @@ class AFF4LabelsIndex(aff4.AFF4Volume):
   def LabelForIndexName(self, index_name):
     label_owner, label_name = utils.SmartStr(index_name).split(
         self.SEPARATOR, 1)
-    return rdfvalue.AFF4ObjectLabel(name=label_name, owner=label_owner)
+    return aff4_rdfvalues.AFF4ObjectLabel(name=label_name, owner=label_owner)
 
   def AddLabel(self, urn, label_name, owner=None):
     if owner is None:

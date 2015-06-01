@@ -5,7 +5,7 @@
 from grr.endtoend_tests import base
 from grr.lib import aff4
 from grr.lib import flow
-from grr.lib import rdfvalue
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class NetworkLimitTestFlow(flow.GRRFlow):
@@ -18,8 +18,8 @@ class NetworkLimitTestFlow(flow.GRRFlow):
 
   @flow.StateHandler(next_state="MultiGetFile")
   def Start(self):
-    urandom = rdfvalue.PathSpec(path="/dev/urandom",
-                                pathtype=rdfvalue.PathSpec.PathType.OS)
+    urandom = rdf_paths.PathSpec(path="/dev/urandom",
+                                 pathtype=rdf_paths.PathSpec.PathType.OS)
     self.CallClient("CopyPathToFile",
                     offset=0,
                     length=2 * 1024 * 1024,  # 4 default sized blobs
@@ -86,9 +86,11 @@ class TestNetworkFlowLimit(base.AutomatedTest):
   """Test limit on bytes transferred for a flow."""
   platforms = ["Linux", "Darwin"]
   flow = "GetFile"
-  args = {"pathspec": rdfvalue.PathSpec(path="/bin/bash",
-                                        pathtype=rdfvalue.PathSpec.PathType.OS),
-          "network_bytes_limit": 500 * 1024}
+  args = {
+      "pathspec": rdf_paths.PathSpec(path="/bin/bash",
+                                     pathtype=rdf_paths.PathSpec.PathType.OS),
+      "network_bytes_limit": 500 * 1024
+  }
 
   test_output_path = "/fs/os/bin/bash"
 

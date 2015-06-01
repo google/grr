@@ -7,8 +7,11 @@ import os
 
 
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.rdfvalues import anomaly as rdf_anomaly
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.parsers import linux_release_parser
 
 
@@ -79,8 +82,8 @@ class LinuxReleaseParserTest(test_lib.GRRBaseTest):
     for filepath, localfile in testdata:
       files.append(open(localfile))
 
-      p = rdfvalue.PathSpec(path=filepath)
-      s = rdfvalue.StatEntry(pathspec=p)
+      p = rdf_paths.PathSpec(path=filepath)
+      s = rdf_client.StatEntry(pathspec=p)
       stats.append(s)
 
     return stats, files
@@ -95,7 +98,7 @@ class LinuxReleaseParserTest(test_lib.GRRBaseTest):
 
     result = list(parser.ParseMultiple(stats, files, None)).pop()
 
-    self.assertIsInstance(result, rdfvalue.Dict)
+    self.assertIsInstance(result, rdf_protodict.Dict)
     self.assertEqual("Ubuntu", result["os_release"])
     self.assertEqual(14, result["os_major_version"])
     self.assertEqual(4, result["os_minor_version"])
@@ -112,7 +115,7 @@ class LinuxReleaseParserTest(test_lib.GRRBaseTest):
 
     result = list(parser.ParseMultiple(stats, files, None)).pop()
 
-    self.assertIsInstance(result, rdfvalue.Dict)
+    self.assertIsInstance(result, rdf_protodict.Dict)
     self.assertEqual("OracleLinux", result["os_release"])
     self.assertEqual(6, result["os_major_version"])
     self.assertEqual(5, result["os_minor_version"])
@@ -125,7 +128,7 @@ class LinuxReleaseParserTest(test_lib.GRRBaseTest):
     result = list(parser.ParseMultiple(stats, files, None))
 
     self.assertEqual(len(result), 1)
-    self.assertIsInstance(result[0], rdfvalue.Anomaly)
+    self.assertIsInstance(result[0], rdf_anomaly.Anomaly)
 
 
 def main(args):

@@ -18,12 +18,17 @@ from grr.lib import utils
 from grr.lib.aff4_objects import collections
 from grr.lib.aff4_objects import cronjobs
 from grr.lib.hunts import implementation
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.parsers import wmi_parser
 from grr.proto import flows_pb2
 from grr.proto import output_plugin_pb2
 
 
-class OutputPluginBatchProcessingStatus(rdfvalue.RDFProtoStruct):
+class OutputPluginBatchProcessingStatus(rdf_structs.RDFProtoStruct):
   """Describes processing status of a single batch by a hunt output plugin."""
   protobuf = output_plugin_pb2.OutputPluginBatchProcessingStatus
 
@@ -57,7 +62,7 @@ class ResultsProcessingError(Error):
     return "\n".join(messages)
 
 
-class CreateGenericHuntFlowArgs(rdfvalue.RDFProtoStruct):
+class CreateGenericHuntFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.CreateGenericHuntFlowArgs
 
 
@@ -115,7 +120,7 @@ class CreateAndRunGenericHuntFlow(flow.GRRFlow):
                self.token.username, hunt.state.args.flow_runner_args.flow_name)
 
 
-class StartHuntFlowArgs(rdfvalue.RDFProtoStruct):
+class StartHuntFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.StartHuntFlowArgs
 
 
@@ -144,7 +149,7 @@ class StartHuntFlow(flow.GRRFlow):
       hunt.Run()
 
 
-class DeleteHuntFlowArgs(rdfvalue.RDFProtoStruct):
+class DeleteHuntFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.DeleteHuntFlowArgs
 
 
@@ -171,7 +176,7 @@ class DeleteHuntFlow(flow.GRRFlow):
     aff4.FACTORY.Delete(self.args.hunt_urn, token=self.token)
 
 
-class StopHuntFlowArgs(rdfvalue.RDFProtoStruct):
+class StopHuntFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.StopHuntFlowArgs
 
 
@@ -195,7 +200,7 @@ class StopHuntFlow(flow.GRRFlow):
       hunt.Stop()
 
 
-class ModifyHuntFlowArgs(rdfvalue.RDFProtoStruct):
+class ModifyHuntFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ModifyHuntFlowArgs
 
 
@@ -248,7 +253,7 @@ class ModifyHuntFlow(flow.GRRFlow):
       runner.args.client_limit = self.args.client_limit
 
 
-class CheckHuntAccessFlowArgs(rdfvalue.RDFProtoStruct):
+class CheckHuntAccessFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.CheckHuntAccessFlowArgs
 
 
@@ -268,7 +273,7 @@ class CheckHuntAccessFlow(flow.GRRFlow):
         self.token.RealUID(), self.args.hunt_urn)
 
 
-class SampleHuntArgs(rdfvalue.RDFProtoStruct):
+class SampleHuntArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.SampleHuntArgs
 
 
@@ -280,9 +285,9 @@ class SampleHunt(implementation.GRRHunt):
   > hunt = hunts.SampleHunt()
 
   # We want to schedule on clients that run windows and OS_RELEASE 7.
-  > int_rule = rdfvalue.ForemanAttributeInteger(
+  > int_rule = rdf_foreman.ForemanAttributeInteger(
                    attribute_name=client.Schema.OS_RELEASE.name,
-                   operator=rdfvalue.ForemanAttributeInteger.Operator.EQUAL,
+                   operator=rdf_foreman.ForemanAttributeInteger.Operator.EQUAL,
                    value=7)
   > regex_rule = hunts.GRRHunt.MATCH_WINDOWS
 
@@ -306,8 +311,8 @@ class SampleHunt(implementation.GRRHunt):
 
   @flow.StateHandler()
   def RunClient(self, responses):
-    pathspec = rdfvalue.PathSpec(pathtype=rdfvalue.PathSpec.PathType.OS,
-                                 path=self.args.filename)
+    pathspec = rdf_paths.PathSpec(pathtype=rdf_paths.PathSpec.PathType.OS,
+                                  path=self.args.filename)
 
     for client_id in responses:
       self.CallFlow("GetFile", pathspec=pathspec, next_state="StoreResults",
@@ -340,11 +345,11 @@ class HuntResultsMetadata(aff4.AFF4Object):
         versioned=False, default=0)
 
     OUTPUT_PLUGINS = aff4.Attribute(
-        "aff4:output_plugins_state", rdfvalue.FlowState,
+        "aff4:output_plugins_state", rdf_flows.FlowState,
         "Pickled output plugins.", versioned=False)
 
 
-class ProcessHuntResultsCronFlowArgs(rdfvalue.RDFProtoStruct):
+class ProcessHuntResultsCronFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ProcessHuntResultsCronFlowArgs
 
 
@@ -386,7 +391,7 @@ class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
                                      delta=len(batch),
                                      fields=[plugin_def.plugin_name])
 
-        plugin_status = rdfvalue.OutputPluginBatchProcessingStatus(
+        plugin_status = OutputPluginBatchProcessingStatus(
             plugin_descriptor=plugin_def,
             status="SUCCESS",
             batch_index=batch_index,
@@ -395,7 +400,7 @@ class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
         stats.STATS.IncrementCounter("hunt_output_plugin_errors",
                                      fields=[plugin_def.plugin_name])
 
-        plugin_status = rdfvalue.OutputPluginBatchProcessingStatus(
+        plugin_status = OutputPluginBatchProcessingStatus(
             plugin_descriptor=plugin_def,
             status="ERROR",
             summary=utils.SmartStr(e),
@@ -556,7 +561,7 @@ class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
       raise e
 
 
-class GenericHuntArgs(rdfvalue.RDFProtoStruct):
+class GenericHuntArgs(rdf_structs.RDFProtoStruct):
   """Arguments to the generic hunt."""
   protobuf = flows_pb2.GenericHuntArgs
 
@@ -658,7 +663,7 @@ class GenericHunt(implementation.GRRHunt):
     flow_path = responses.status.child_session_id
     status = responses.status
 
-    resources = rdfvalue.ClientResources()
+    resources = rdf_client.ClientResources()
     resources.client_id = client_id
     resources.session_id = flow_path
     resources.cpu_usage.user_cpu_time = status.cpu_time_used.user_cpu_time
@@ -675,7 +680,7 @@ class GenericHunt(implementation.GRRHunt):
     self.MarkClientDone(client_id)
 
 
-class FlowRequest(rdfvalue.RDFProtoStruct):
+class FlowRequest(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FlowRequest
 
   def GetFlowArgsClass(self):
@@ -689,7 +694,7 @@ class FlowRequest(rdfvalue.RDFProtoStruct):
       return flow_cls.args_type
 
 
-class VariableGenericHuntArgs(rdfvalue.RDFProtoStruct):
+class VariableGenericHuntArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.VariableGenericHuntArgs
 
 
@@ -840,10 +845,10 @@ class StatsHunt(implementation.GRRHunt):
     wmi_interface_parser = wmi_parser.WMIInterfacesParser()
 
     for response in responses:
-      if isinstance(response, rdfvalue.Interface):
+      if isinstance(response, rdf_client.Interface):
         processed_responses.extend(
             filter(None, [self.ProcessInterface(response)]))
-      elif isinstance(response, rdfvalue.Dict):
+      elif isinstance(response, rdf_protodict.Dict):
         # This is a result from the WMIQuery call
         processed_responses.extend(list(
             wmi_interface_parser.Parse(None, response, None)))

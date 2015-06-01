@@ -8,12 +8,12 @@ from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.checks import checks
 # pylint: disable=unused-import
 from grr.lib.flows.general import checks as _
 # pylint: enable=unused-import
+from grr.lib.rdfvalues import paths as rdf_paths
 
 # pylint: mode=test
 
@@ -37,10 +37,10 @@ class TestCheckFlows(test_lib.FlowTestsBaseclass):
       raise RuntimeError("No checks to test.")
     test_lib.ClientFixture(self.client_id, token=self.token)
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.OS] = test_lib.FakeTestDataVFSHandler
+        rdf_paths.PathSpec.PathType.OS] = test_lib.FakeTestDataVFSHandler
     self.client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile",
                                                "Find", "HashBuffer",
-                                               "ListDirectory",
+                                               "ListDirectory", "HashFile",
                                                "FingerprintFile")
 
   def SetLinuxKB(self):
@@ -97,7 +97,7 @@ class TestCheckFlows(test_lib.FlowTestsBaseclass):
     _, replies = self.RunFlow()
     checks_run = []
     for _, rslt in replies.args:
-      if isinstance(rslt, rdfvalue.CheckResult):
+      if isinstance(rslt, checks.CheckResult):
         checks_run.append(rslt.check_id)
         if rslt.check_id == "SSHD-CHECK":  # True if there are anomalies
           results = [a.ToPrimitiveDict() for a in rslt.anomaly]

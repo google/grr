@@ -17,12 +17,15 @@ from grr.lib import config_lib
 from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import stats
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import protodict as rdf_protodict
 
 
 class Echo(actions.ActionPlugin):
   """Returns a message to the server."""
-  in_rdfvalue = rdfvalue.EchoRequest
-  out_rdfvalue = rdfvalue.LogMessage
+  in_rdfvalue = rdf_client.EchoRequest
+  out_rdfvalue = rdf_client.LogMessage
 
   def Run(self, args):
     self.SendReply(args)
@@ -30,7 +33,7 @@ class Echo(actions.ActionPlugin):
 
 class GetHostname(actions.ActionPlugin):
   """Retrieves the host name of the client."""
-  out_rdfvalue = rdfvalue.DataBlob
+  out_rdfvalue = rdf_protodict.DataBlob
 
   def Run(self, unused_args):
     self.SendReply(string=socket.gethostname())
@@ -38,7 +41,7 @@ class GetHostname(actions.ActionPlugin):
 
 class GetPlatformInfo(actions.ActionPlugin):
   """Retrieves platform information."""
-  out_rdfvalue = rdfvalue.Uname
+  out_rdfvalue = rdf_client.Uname
 
   def Run(self, unused_args):
     """Populate platform information into a Uname response."""
@@ -73,15 +76,15 @@ class Kill(actions.ActionPlugin):
 
   Used for testing process respawn.
   """
-  out_rdfvalue = rdfvalue.GrrMessage
+  out_rdfvalue = rdf_flows.GrrMessage
 
   def Run(self, unused_arg):
     """Run the kill."""
     # Send a message back to the service to say that we are about to shutdown.
-    reply = rdfvalue.GrrStatus(status=rdfvalue.GrrStatus.ReturnedStatus.OK)
+    reply = rdf_flows.GrrStatus(status=rdf_flows.GrrStatus.ReturnedStatus.OK)
     # Queue up the response message, jump the queue.
-    self.SendReply(reply, message_type=rdfvalue.GrrMessage.Type.STATUS,
-                   priority=rdfvalue.GrrMessage.Priority.HIGH_PRIORITY + 1)
+    self.SendReply(reply, message_type=rdf_flows.GrrMessage.Type.STATUS,
+                   priority=rdf_flows.GrrMessage.Priority.HIGH_PRIORITY + 1)
 
     # Give the http thread some time to send the reply.
     self.grr_worker.Sleep(10)
@@ -96,7 +99,7 @@ class Hang(actions.ActionPlugin):
 
   Used for testing nanny terminating the client.
   """
-  in_rdfvalue = rdfvalue.DataBlob
+  in_rdfvalue = rdf_protodict.DataBlob
 
   def Run(self, arg):
     # Sleep a really long time.
@@ -105,7 +108,7 @@ class Hang(actions.ActionPlugin):
 
 class BusyHang(actions.ActionPlugin):
   """A client action that burns cpu cycles. Used for testing cpu limits."""
-  in_rdfvalue = rdfvalue.DataBlob
+  in_rdfvalue = rdf_protodict.DataBlob
 
   def Run(self, arg):
     duration = 5
@@ -118,7 +121,7 @@ class BusyHang(actions.ActionPlugin):
 
 class Bloat(actions.ActionPlugin):
   """A client action that uses lots of memory for testing."""
-  in_rdfvalue = rdfvalue.DataBlob
+  in_rdfvalue = rdf_protodict.DataBlob
 
   def Run(self, arg):
 
@@ -135,7 +138,7 @@ class Bloat(actions.ActionPlugin):
 class GetConfiguration(actions.ActionPlugin):
   """Retrieves the running configuration parameters."""
   in_rdfvalue = None
-  out_rdfvalue = rdfvalue.Dict
+  out_rdfvalue = rdf_protodict.Dict
 
   BLOCKED_PARAMETERS = ["Client.private_key"]
 
@@ -161,7 +164,7 @@ class GetConfiguration(actions.ActionPlugin):
 
 class UpdateConfiguration(actions.ActionPlugin):
   """Updates configuration parameters on the client."""
-  in_rdfvalue = rdfvalue.Dict
+  in_rdfvalue = rdf_protodict.Dict
 
   UPDATEABLE_FIELDS = ["Client.compression",
                        "Client.foreman_check_frequency",
@@ -195,7 +198,7 @@ class UpdateConfiguration(actions.ActionPlugin):
 
 
 def GetClientInformation():
-  return rdfvalue.ClientInformation(
+  return rdf_client.ClientInformation(
       client_name=config_lib.CONFIG["Client.name"],
       client_description=config_lib.CONFIG["Client.description"],
       client_version=int(config_lib.CONFIG["Client.version_numeric"]),
@@ -205,7 +208,7 @@ def GetClientInformation():
 
 class GetClientInfo(actions.ActionPlugin):
   """Obtains information about the GRR client installed."""
-  out_rdfvalue = rdfvalue.ClientInformation
+  out_rdfvalue = rdf_client.ClientInformation
 
   def Run(self, unused_args):
     self.SendReply(GetClientInformation())
@@ -213,17 +216,17 @@ class GetClientInfo(actions.ActionPlugin):
 
 class GetClientStats(actions.ActionPlugin):
   """This retrieves some stats about the GRR process."""
-  in_rdfvalue = rdfvalue.GetClientStatsRequest
-  out_rdfvalue = rdfvalue.ClientStats
+  in_rdfvalue = rdf_client.GetClientStatsRequest
+  out_rdfvalue = rdf_client.ClientStats
 
   def Run(self, arg):
     """Returns the client stats."""
     if arg is None:
-      arg = rdfvalue.GetClientStatsRequest()
+      arg = rdf_client.GetClientStatsRequest()
 
     proc = psutil.Process(os.getpid())
     meminfo = proc.memory_info()
-    response = rdfvalue.ClientStats(
+    response = rdf_client.ClientStats(
         RSS_size=meminfo[0],
         VMS_size=meminfo[1],
         memory_percent=proc.memory_percent(),
@@ -237,7 +240,7 @@ class GetClientStats(actions.ActionPlugin):
     samples = self.grr_worker.stats_collector.cpu_samples
     for (timestamp, user, system, percent) in samples:
       if arg.start_time < timestamp < arg.end_time:
-        sample = rdfvalue.CpuSample(
+        sample = rdf_client.CpuSample(
             timestamp=timestamp,
             user_cpu_time=user,
             system_cpu_time=system,
@@ -247,7 +250,7 @@ class GetClientStats(actions.ActionPlugin):
     samples = self.grr_worker.stats_collector.io_samples
     for (timestamp, read_bytes, write_bytes) in samples:
       if arg.start_time < timestamp < arg.end_time:
-        sample = rdfvalue.IOSample(
+        sample = rdf_client.IOSample(
             timestamp=timestamp,
             read_bytes=read_bytes,
             write_bytes=write_bytes)
@@ -269,15 +272,15 @@ class GetClientStatsAuto(GetClientStats):
                                       flow_name="Stats"),
         response_id=0,
         request_id=0,
-        priority=rdfvalue.GrrMessage.Priority.LOW_PRIORITY,
-        message_type=rdfvalue.GrrMessage.Type.MESSAGE,
+        priority=rdf_flows.GrrMessage.Priority.LOW_PRIORITY,
+        message_type=rdf_flows.GrrMessage.Type.MESSAGE,
         require_fastpoll=False)
 
 
 class SendStartupInfo(actions.ActionPlugin):
 
   in_rdfvalue = None
-  out_rdfvalue = rdfvalue.StartupInfo
+  out_rdfvalue = rdf_client.StartupInfo
 
   well_known_session_id = rdfvalue.SessionID(flow_name="Startup")
 
@@ -285,7 +288,7 @@ class SendStartupInfo(actions.ActionPlugin):
     """Returns the startup information."""
     logging.debug("Sending startup information.")
 
-    response = rdfvalue.StartupInfo(
+    response = rdf_client.StartupInfo(
         boot_time=long(psutil.boot_time() * 1e6),
         client_info=GetClientInformation())
 
@@ -294,7 +297,7 @@ class SendStartupInfo(actions.ActionPlugin):
         session_id=self.well_known_session_id,
         response_id=0,
         request_id=0,
-        priority=rdfvalue.GrrMessage.Priority.LOW_PRIORITY,
-        message_type=rdfvalue.GrrMessage.Type.MESSAGE,
+        priority=rdf_flows.GrrMessage.Priority.LOW_PRIORITY,
+        message_type=rdf_flows.GrrMessage.Type.MESSAGE,
         require_fastpoll=False,
         ttl=ttl)

@@ -15,8 +15,9 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
-
 from grr.lib.aff4_objects import aff4_grr
+from grr.lib.aff4_objects import users as aff4_users
+from grr.lib.rdfvalues import client as rdf_client
 
 
 class SearchHostInit(registry.InitHook):
@@ -75,7 +76,7 @@ class SetGlobalNotification(flow.GRRGlobalFlow):
   # This flow is a SUID flow.
   ACL_ENFORCED = False
 
-  args_type = rdfvalue.GlobalNotification
+  args_type = aff4_users.GlobalNotification
 
   @flow.StateHandler()
   def Start(self):
@@ -91,7 +92,7 @@ class MarkGlobalNotificationAsShown(flow.GRRFlow):
   # This flow is a SUID flow.
   ACL_ENFORCED = False
 
-  args_type = rdfvalue.GlobalNotification
+  args_type = aff4_users.GlobalNotification
 
   @flow.StateHandler()
   def Start(self):
@@ -184,7 +185,7 @@ def GetLowDiskWarnings(client):
   # Avoid showing warnings for the CDROM.  This is isn't a problem for linux and
   # OS X since we only check usage on the disk mounted at "/".
   exclude_windows_types = [
-      rdfvalue.WindowsVolume.WindowsDriveTypeEnum.DRIVE_CDROM]
+      rdf_client.WindowsVolume.WindowsDriveTypeEnum.DRIVE_CDROM]
 
   if volumes:
     for volume in volumes:
@@ -229,7 +230,7 @@ Status: {{this.icon|safe}}
 
     client_id = request.REQ.get("client_id")
     if client_id:
-      client_id = rdfvalue.ClientURN(client_id)
+      client_id = rdf_client.ClientURN(client_id)
       client = aff4.FACTORY.Open(client_id, token=request.token)
 
       self.last_crash = None

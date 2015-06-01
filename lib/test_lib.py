@@ -78,8 +78,15 @@ from grr.lib.flows.general import ca_enroller as _
 from grr.lib.flows.general import filesystem as _
 # pylint: enable=unused-import
 
-from grr.proto import tests_pb2
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import crypto as rdf_crypto
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
+from grr.lib.rdfvalues import structs as rdf_structs
 
+from grr.proto import tests_pb2
 from grr.test_data import client_fixture
 
 flags.DEFINE_list("tests", None,
@@ -97,7 +104,7 @@ class TimeoutError(Error):
   """Used when command line invocations time out."""
 
 
-class ClientActionRunnerArgs(rdfvalue.RDFProtoStruct):
+class ClientActionRunnerArgs(rdf_structs.RDFProtoStruct):
   protobuf = tests_pb2.ClientActionRunnerArgs
 
 
@@ -141,7 +148,7 @@ class FlowOrderTest(flow.GRRFlow):
       self.messages.append(responses.message.response_id)
 
 
-class SendingFlowArgs(rdfvalue.RDFProtoStruct):
+class SendingFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = tests_pb2.SendingFlowArgs
 
 
@@ -482,7 +489,7 @@ class GRRBaseTest(unittest.TestCase):
     flow.GRRFlow.StartFlow(client_id=client_id,
                            flow_name="RequestClientApprovalFlow",
                            reason=token.reason,
-                           subject_urn=rdfvalue.ClientURN(client_id),
+                           subject_urn=rdf_client.ClientURN(client_id),
                            approver="approver",
                            token=token)
 
@@ -493,7 +500,7 @@ class GRRBaseTest(unittest.TestCase):
                            flow_name="GrantClientApprovalFlow",
                            reason=token.reason,
                            delegate=token.username,
-                           subject_urn=rdfvalue.ClientURN(client_id),
+                           subject_urn=rdf_client.ClientURN(client_id),
                            token=approver_token)
 
   def GrantHuntApproval(self, hunt_urn, token=None):
@@ -542,13 +549,13 @@ class GRRBaseTest(unittest.TestCase):
                                 token=self.token)
 
     for i in range(nr_clients):
-      client_id = rdfvalue.ClientURN("C.1%015d" % i)
+      client_id = rdf_client.ClientURN("C.1%015d" % i)
       client_ids.append(client_id)
 
       with aff4.FACTORY.Create(client_id, "VFSGRRClient",
                                mode="rw",
                                token=self.token) as fd:
-        cert = rdfvalue.RDFX509Cert(
+        cert = rdf_crypto.RDFX509Cert(
             self.ClientCertFromPrivateKey(
                 config_lib.CONFIG["Client.private_key"]).as_pem())
         fd.Set(fd.Schema.CERT, cert)
@@ -569,7 +576,7 @@ class GRRBaseTest(unittest.TestCase):
 
   def DeleteClients(self, nr_clients):
     for i in range(nr_clients):
-      client_id = rdfvalue.ClientURN("C.1%015d" % i)
+      client_id = rdf_client.ClientURN("C.1%015d" % i)
       data_store.DB.DeleteSubject(client_id, token=self.token)
 
   def RunForTimeWithNoExceptions(self, cmd, argv, timeout=10, should_exit=False,
@@ -613,7 +620,7 @@ class GRRBaseTest(unittest.TestCase):
           break
 
     except TimeoutError:
-      pass   # We expect timeouts.
+      pass  # We expect timeouts.
 
     finally:
       signal.alarm(0)
@@ -621,10 +628,10 @@ class GRRBaseTest(unittest.TestCase):
         if proc:
           proc.kill()
       except OSError:
-        pass   # Could already be dead.
+        pass  # Could already be dead.
 
     proc.stdout.flush()
-    stdout.write(proc.stdout.read())    # Collect any remaining output.
+    stdout.write(proc.stdout.read())  # Collect any remaining output.
 
     if "Traceback (" in stdout.getvalue():
       raise RuntimeError("Exception found in stderr of binary Stderr:\n###\n%s"
@@ -649,7 +656,7 @@ class GRRBaseTest(unittest.TestCase):
     request = X509.load_request_string(csr)
     flow_obj = aff4.FACTORY.Create(None, "CAEnroler", token=self.token)
     subject = request.get_subject()
-    cn = rdfvalue.ClientURN(subject.as_text().split("=")[-1])
+    cn = rdf_client.ClientURN(subject.as_text().split("=")[-1])
     return flow_obj.MakeCert(cn, request)
 
   def CreateSignedDriver(self):
@@ -668,21 +675,21 @@ class EmptyActionTest(GRRBaseTest):
 
   def RunAction(self, action_name, arg=None, grr_worker=None):
     if arg is None:
-      arg = rdfvalue.GrrMessage()
+      arg = rdf_flows.GrrMessage()
 
     self.results = []
     action = self._GetActionInstantace(action_name, arg=arg,
                                        grr_worker=grr_worker)
 
-    action.status = rdfvalue.GrrStatus(
-        status=rdfvalue.GrrStatus.ReturnedStatus.OK)
+    action.status = rdf_flows.GrrStatus(
+        status=rdf_flows.GrrStatus.ReturnedStatus.OK)
     action.Run(arg)
 
     return self.results
 
   def ExecuteAction(self, action_name, arg=None, grr_worker=None):
-    message = rdfvalue.GrrMessage(name=action_name, payload=arg,
-                                  auth_state="AUTHENTICATED")
+    message = rdf_flows.GrrMessage(name=action_name, payload=arg,
+                                   auth_state="AUTHENTICATED")
 
     self.results = []
     action = self._GetActionInstantace(action_name, arg=arg,
@@ -1192,7 +1199,7 @@ class AFF4ObjectTest(GRRBaseTest):
   """The base class of all aff4 object tests."""
   __metaclass__ = registry.MetaclassRegistry
 
-  client_id = rdfvalue.ClientURN("C." + "B" * 16)
+  client_id = rdf_client.ClientURN("C." + "B" * 16)
 
 
 class MicroBenchmarks(GRRBaseTest):
@@ -1335,7 +1342,7 @@ class MockClient(object):
   """
 
   def __init__(self, client_id, client_mock, token=None):
-    if not isinstance(client_id, rdfvalue.ClientURN):
+    if not isinstance(client_id, rdf_client.ClientURN):
       raise RuntimeError("Client id must be an instance of ClientURN")
 
     if client_mock is None:
@@ -1352,7 +1359,7 @@ class MockClient(object):
 
   def PushToStateQueue(self, manager, message, **kw):
     # Assume the client is authorized
-    message.auth_state = rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED
+    message.auth_state = rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
 
     # Update kw args
     for k, v in kw.items():
@@ -1362,7 +1369,7 @@ class MockClient(object):
     if message.request_id == 0:
 
       # Well known flows only accept messages of type MESSAGE.
-      if message.type == rdfvalue.GrrMessage.Type.MESSAGE:
+      if message.type == rdf_flows.GrrMessage.Type.MESSAGE:
         # Assume the message is authenticated and comes from this client.
         message.source = self.client_id
 
@@ -1402,33 +1409,33 @@ class MockClient(object):
                        message.name, len(responses) + 1)
 
           if self.status_message_enforced:
-            status = rdfvalue.GrrStatus()
+            status = rdf_flows.GrrStatus()
         except Exception as e:  # pylint: disable=broad-except
           logging.exception("Error %s occurred in client", e)
 
           # Error occurred.
           responses = []
           if self.status_message_enforced:
-            status = rdfvalue.GrrStatus(
-                status=rdfvalue.GrrStatus.ReturnedStatus.GENERIC_ERROR)
+            status = rdf_flows.GrrStatus(
+                status=rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR)
 
         # Now insert those on the flow state queue
         for response in responses:
-          if isinstance(response, rdfvalue.GrrStatus):
-            msg_type = rdfvalue.GrrMessage.Type.STATUS
-            response = rdfvalue.GrrMessage(
+          if isinstance(response, rdf_flows.GrrStatus):
+            msg_type = rdf_flows.GrrMessage.Type.STATUS
+            response = rdf_flows.GrrMessage(
                 session_id=message.session_id, name=message.name,
                 response_id=response_id, request_id=message.request_id,
                 payload=response, type=msg_type)
-          elif isinstance(response, rdfvalue.Iterator):
-            msg_type = rdfvalue.GrrMessage.Type.ITERATOR
-            response = rdfvalue.GrrMessage(
+          elif isinstance(response, rdf_client.Iterator):
+            msg_type = rdf_flows.GrrMessage.Type.ITERATOR
+            response = rdf_flows.GrrMessage(
                 session_id=message.session_id, name=message.name,
                 response_id=response_id, request_id=message.request_id,
                 payload=response, type=msg_type)
-          elif not isinstance(response, rdfvalue.GrrMessage):
-            msg_type = rdfvalue.GrrMessage.Type.MESSAGE
-            response = rdfvalue.GrrMessage(
+          elif not isinstance(response, rdf_flows.GrrMessage):
+            msg_type = rdf_flows.GrrMessage.Type.MESSAGE
+            response = rdf_flows.GrrMessage(
                 session_id=message.session_id, name=message.name,
                 response_id=response_id, request_id=message.request_id,
                 payload=response, type=msg_type)
@@ -1441,7 +1448,7 @@ class MockClient(object):
         if status is not None:
           self.PushToStateQueue(manager, message, response_id=response_id,
                                 payload=status,
-                                type=rdfvalue.GrrMessage.Type.STATUS)
+                                type=rdf_flows.GrrMessage.Type.STATUS)
         else:
           # Status may be None only if status_message_enforced is False.
           if self.status_message_enforced:
@@ -1553,7 +1560,7 @@ class MockWorker(worker.GRRWorker):
             runner.ProcessCompletedRequests(notification, self.pool)
 
             if (self.check_flow_errors and
-                runner.context.state == rdfvalue.Flow.State.ERROR):
+                runner.context.state == rdf_flows.Flow.State.ERROR):
               logging.exception("Flow terminated in state %s with an error: %s",
                                 runner.context.current_state,
                                 runner.context.backtrace)
@@ -1564,8 +1571,8 @@ class MockWorker(worker.GRRWorker):
 
 class Test(actions.ActionPlugin):
   """A test action which can be used in mocks."""
-  in_rdfvalue = rdfvalue.DataBlob
-  out_rdfvalue = rdfvalue.DataBlob
+  in_rdfvalue = rdf_protodict.DataBlob
+  out_rdfvalue = rdf_protodict.DataBlob
 
 
 def CheckFlowErrors(total_flows, token=None):
@@ -1577,7 +1584,7 @@ def CheckFlowErrors(total_flows, token=None):
     except IOError:
       continue
 
-    if flow_obj.state.context.state != rdfvalue.Flow.State.TERMINATED:
+    if flow_obj.state.context.state != rdf_flows.Flow.State.TERMINATED:
       if flags.FLAGS.debug:
         pdb.set_trace()
       raise RuntimeError("Flow %s completed in state %s" % (
@@ -1655,17 +1662,17 @@ class CrashClientMock(object):
     self.token = token
 
   def HandleMessage(self, message):
-    status = rdfvalue.GrrStatus(
-        status=rdfvalue.GrrStatus.ReturnedStatus.CLIENT_KILLED,
+    status = rdf_flows.GrrStatus(
+        status=rdf_flows.GrrStatus.ReturnedStatus.CLIENT_KILLED,
         error_message="Client killed during transaction")
 
-    msg = rdfvalue.GrrMessage(
+    msg = rdf_flows.GrrMessage(
         request_id=message.request_id, response_id=1,
         session_id=message.session_id,
-        type=rdfvalue.GrrMessage.Type.STATUS,
+        type=rdf_flows.GrrMessage.Type.STATUS,
         payload=status,
         source=self.client_id,
-        auth_state=rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED)
+        auth_state=rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED)
 
     self.flow_id = message.session_id
 
@@ -1686,9 +1693,9 @@ class SampleHuntMock(object):
     return self._StatFile(args)
 
   def _StatFile(self, args):
-    req = rdfvalue.ListDirRequest(args)
+    req = rdf_client.ListDirRequest(args)
 
-    response = rdfvalue.StatEntry(
+    response = rdf_client.StatEntry(
         pathspec=req.pathspec,
         st_mode=33184,
         st_ino=1063090,
@@ -1705,7 +1712,7 @@ class SampleHuntMock(object):
     self.count += 1
 
     # Create status message to report sample resource usage
-    status = rdfvalue.GrrStatus(status=rdfvalue.GrrStatus.ReturnedStatus.OK)
+    status = rdf_flows.GrrStatus(status=rdf_flows.GrrStatus.ReturnedStatus.OK)
     status.cpu_time_used.user_cpu_time = self.responses
     status.cpu_time_used.system_cpu_time = self.responses * 2
     status.network_bytes_sent = self.responses * 3
@@ -1718,7 +1725,7 @@ class SampleHuntMock(object):
     return [response, status]
 
   def TransferBuffer(self, args):
-    response = rdfvalue.BufferReference(args)
+    response = rdf_client.BufferReference(args)
 
     offset = min(args.offset, len(self.data))
     response.data = self.data[offset:]
@@ -1854,7 +1861,7 @@ class ClientFixture(object):
     self.args = kwargs
     self.token = token
     self.age = age or FIXTURE_TIME.AsSecondsFromEpoch()
-    self.client_id = rdfvalue.ClientURN(client_id)
+    self.client_id = rdf_client.ClientURN(client_id)
     self.args["client_id"] = self.client_id.Basename()
     self.args["age"] = self.age
     self.CreateClientObject(fixture or client_fixture.VFS)
@@ -1880,7 +1887,8 @@ class ClientFixture(object):
             value %= self.args
 
           # Is this supposed to be an RDFValue array?
-          if aff4.issubclass(attribute.attribute_type, rdfvalue.RDFValueArray):
+          if aff4.issubclass(attribute.attribute_type,
+                             rdf_protodict.RDFValueArray):
             rdfvalue_object = attribute()
             for item in value:
               new_object = rdfvalue_object.rdf_type.FromTextFormat(
@@ -1889,7 +1897,7 @@ class ClientFixture(object):
 
           # It is a text serialized protobuf.
           elif aff4.issubclass(attribute.attribute_type,
-                               rdfvalue.RDFProtoStruct):
+                               rdf_structs.RDFProtoStruct):
             # Use the alternate constructor - we always write protobufs in
             # textual form:
             rdfvalue_object = attribute.attribute_type.FromTextFormat(
@@ -1902,12 +1910,12 @@ class ClientFixture(object):
           if aff4_object.Get(aff4_object.Schema.PATHSPEC) is None:
             # If the attribute was a stat, it has a pathspec nested in it.
             # We should add that pathspec as an attribute.
-            if attribute.attribute_type == rdfvalue.StatEntry:
+            if attribute.attribute_type == rdf_client.StatEntry:
               stat_object = attribute.attribute_type.FromTextFormat(
                   utils.SmartStr(value))
               if stat_object.pathspec:
                 pathspec_attribute = aff4.Attribute(
-                    "aff4:pathspec", rdfvalue.PathSpec,
+                    "aff4:pathspec", rdf_paths.PathSpec,
                     "The pathspec used to retrieve "
                     "this object from the client.",
                     "pathspec")
@@ -1938,7 +1946,7 @@ class ClientVFSHandlerFixture(vfs.VFSHandler):
   cache = {}
 
   paths = None
-  supported_pathtype = rdfvalue.PathSpec.PathType.OS
+  supported_pathtype = rdf_paths.PathSpec.PathType.OS
 
   # Do not auto-register.
   auto_register = False
@@ -1971,16 +1979,16 @@ class ClientVFSHandlerFixture(vfs.VFSHandler):
       if path == "/":
         continue
 
-      stat = rdfvalue.StatEntry()
+      stat = rdf_client.StatEntry()
       args = {"client_id": "C.1234"}
       attrs = attributes.get("aff4:stat")
 
       if attrs:
         attrs %= args  # Remove any %% and interpolate client_id.
-        stat = rdfvalue.StatEntry.FromTextFormat(utils.SmartStr(attrs))
+        stat = rdf_client.StatEntry.FromTextFormat(utils.SmartStr(attrs))
 
-      stat.pathspec = rdfvalue.PathSpec(pathtype=self.supported_pathtype,
-                                        path=path)
+      stat.pathspec = rdf_paths.PathSpec(pathtype=self.supported_pathtype,
+                                         path=path)
 
       # TODO(user): Once we add tests around not crossing device boundaries,
       # we need to be smarter here, especially for the root entry.
@@ -1994,7 +2002,7 @@ class ClientVFSHandlerFixture(vfs.VFSHandler):
     """Handle casing differences for different filesystems."""
     # Special handling for case sensitivity of registry keys.
     # This mimicks the behavior of the operating system.
-    if self.supported_pathtype == rdfvalue.PathSpec.PathType.REGISTRY:
+    if self.supported_pathtype == rdf_paths.PathSpec.PathType.REGISTRY:
       self.path = self.path.replace("\\", "/")
       parts = path.split("/")
       if vfs_type == "VFSFile":
@@ -2024,10 +2032,10 @@ class ClientVFSHandlerFixture(vfs.VFSHandler):
         if dirname == "/" or dirname in self.paths: break
 
         self.paths[dirname] = ("VFSDirectory",
-                               rdfvalue.StatEntry(st_mode=16877,
-                                                  st_size=1,
-                                                  st_dev=1,
-                                                  pathspec=new_pathspec))
+                               rdf_client.StatEntry(st_mode=16877,
+                                                    st_size=1,
+                                                    st_dev=1,
+                                                    pathspec=new_pathspec))
 
   def ListFiles(self):
     # First return exact matches
@@ -2041,7 +2049,7 @@ class ClientVFSHandlerFixture(vfs.VFSHandler):
     if not result:
       raise IOError("File not found")
 
-    result = result[1]   # We just want the stat.
+    result = result[1]  # We just want the stat.
     data = ""
     if result.HasField("resident"):
       data = result.resident
@@ -2064,42 +2072,42 @@ class ClientVFSHandlerFixture(vfs.VFSHandler):
     """Get Stat for self.path."""
     stat_data = self.paths.get(self._NormalizeCaseForPath(self.path, None))
     if (not stat_data and
-        self.supported_pathtype == rdfvalue.PathSpec.PathType.REGISTRY):
+        self.supported_pathtype == rdf_paths.PathSpec.PathType.REGISTRY):
       # Check in case it is a registry value. Unfortunately our API doesn't let
       # the user specify if they are after a value or a key, so we have to try
       # both.
       stat_data = self.paths.get(self._NormalizeCaseForPath(self.path,
                                                             "VFSFile"))
     if stat_data:
-      return stat_data[1]   # Strip the vfs_type.
+      return stat_data[1]  # Strip the vfs_type.
     else:
       # We return some fake data, this makes writing tests easier for some
       # things but we give an error to the tester as it is often not what you
       # want.
       logging.warn("Fake value for %s under %s", self.path, self.prefix)
-      return rdfvalue.StatEntry(pathspec=self.pathspec,
-                                st_mode=16877,
-                                st_size=12288,
-                                st_atime=1319796280,
-                                st_dev=1)
+      return rdf_client.StatEntry(pathspec=self.pathspec,
+                                  st_mode=16877,
+                                  st_size=12288,
+                                  st_atime=1319796280,
+                                  st_dev=1)
 
 
 class FakeRegistryVFSHandler(ClientVFSHandlerFixture):
   """Special client VFS mock that will emulate the registry."""
   prefix = "/registry"
-  supported_pathtype = rdfvalue.PathSpec.PathType.REGISTRY
+  supported_pathtype = rdf_paths.PathSpec.PathType.REGISTRY
 
 
 class FakeFullVFSHandler(ClientVFSHandlerFixture):
   """Full client VFS mock."""
   prefix = "/"
-  supported_pathtype = rdfvalue.PathSpec.PathType.OS
+  supported_pathtype = rdf_paths.PathSpec.PathType.OS
 
 
 class FakeTestDataVFSHandler(ClientVFSHandlerFixture):
   """Client VFS mock that looks for files in the test_data directory."""
   prefix = "/fs/os"
-  supported_pathtype = rdfvalue.PathSpec.PathType.OS
+  supported_pathtype = rdf_paths.PathSpec.PathType.OS
 
   def Read(self, length):
     test_data_path = os.path.join(config_lib.CONFIG["Test.data_dir"],
@@ -2209,9 +2217,9 @@ class TestRekallRepositoryProfileServer(rekall_profile_server.ProfileServer):
 
       self.profiles_served += 1
 
-      return rdfvalue.RekallProfile(name=profile_name,
-                                    version=version,
-                                    data=profile_data)
+      return rdf_rekall_types.RekallProfile(name=profile_name,
+                                            version=version,
+                                            data=profile_data)
     except IOError:
       return None
 

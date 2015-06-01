@@ -4,11 +4,13 @@ import stat
 
 from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
 # needed for ListVolumeShadowCopies pylint: disable=unused-import
 from grr.lib.flows.general import windows_vsc
 # pylint: enable=unused-import
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import protodict as rdf_protodict
 
 
 class TestClient(object):
@@ -50,7 +52,7 @@ class TestClient(object):
     if query.query != expected_query:
       raise RuntimeError("Received unexpected query.")
 
-    return [rdfvalue.Dict(**self._RESPONSES)]
+    return [rdf_protodict.Dict(**self._RESPONSES)]
 
   def ListDirectory(self, list_directory_request):
     """A mock list directory."""
@@ -59,22 +61,22 @@ class TestClient(object):
       raise RuntimeError("Missing pathspec.")
 
     if (pathspec.path != r"\\.\HarddiskVolumeShadowCopy3" or
-        pathspec.pathtype != rdfvalue.PathSpec.PathType.OS):
+        pathspec.pathtype != rdf_paths.PathSpec.PathType.OS):
       raise RuntimeError("Invalid pathspec.")
 
     if not pathspec.nested_path:
       raise RuntimeError("Missing nested pathspec.")
 
     if (pathspec.nested_path.path != "/" or
-        pathspec.nested_path.pathtype != rdfvalue.PathSpec.PathType.TSK):
+        pathspec.nested_path.pathtype != rdf_paths.PathSpec.PathType.TSK):
       raise RuntimeError("Invalid nested pathspec.")
 
     result = []
     for i in range(10):
       mock_pathspec = pathspec.Copy()
       mock_pathspec.last.path = "/file %s" % i
-      result.append(rdfvalue.StatEntry(pathspec=mock_pathspec,
-                                       st_mode=stat.S_IFDIR))
+      result.append(rdf_client.StatEntry(pathspec=mock_pathspec,
+                                         st_mode=stat.S_IFDIR))
 
     return result
 

@@ -15,11 +15,14 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
 from grr.lib.aff4_objects import standard
-from grr.lib.rdfvalues import client as client_rdf
-from grr.lib.rdfvalues import crypto
-from grr.lib.rdfvalues import foreman as foreman_rdf
-from grr.lib.rdfvalues import rekall_types
-from grr.lib.rdfvalues import structs
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import crypto as rdf_crypto
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import foreman as rdf_foreman
+from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 
 
@@ -56,14 +59,14 @@ class VFSGRRClient(standard.VFSDirectory):
     """The schema for the client."""
     client_index = rdfvalue.RDFURN("aff4:/index/client")
 
-    CERT = aff4.Attribute("metadata:cert", crypto.RDFX509Cert,
+    CERT = aff4.Attribute("metadata:cert", rdf_crypto.RDFX509Cert,
                           "The PEM encoded cert of the client.")
 
-    FILESYSTEM = aff4.Attribute("aff4:filesystem", rdfvalue.Filesystems,
+    FILESYSTEM = aff4.Attribute("aff4:filesystem", rdf_client.Filesystems,
                                 "Filesystems on the client.")
 
     CLIENT_INFO = aff4.Attribute(
-        "metadata:ClientInfo", rdfvalue.ClientInformation,
+        "metadata:ClientInfo", rdf_client.ClientInformation,
         "GRR client information", "GRR client", default="")
 
     LAST_BOOT_TIME = aff4.Attribute("metadata:LastBootTime",
@@ -103,14 +106,14 @@ class VFSGRRClient(standard.VFSDirectory):
     # The proto itself is used in Artifact handling outside of GRR (e.g. Plaso).
     # Over time we will migrate fields into this proto, but for now it is a mix.
     KNOWLEDGE_BASE = aff4.Attribute("metadata:knowledge_base",
-                                    client_rdf.KnowledgeBase,
+                                    rdf_client.KnowledgeBase,
                                     "Artifact Knowledge Base", "KnowledgeBase")
 
     GRR_CONFIGURATION = aff4.Attribute(
-        "aff4:client_configuration", rdfvalue.Dict,
+        "aff4:client_configuration", rdf_protodict.Dict,
         "Running configuration for the GRR client.", "Config")
 
-    USER = aff4.Attribute("aff4:users", client_rdf.Users,
+    USER = aff4.Attribute("aff4:users", rdf_client.Users,
                           "A user of the system.", "Users")
 
     USERNAMES = aff4.Attribute("aff4:user_names", SpaceSeparatedStringArray,
@@ -151,22 +154,22 @@ class VFSGRRClient(standard.VFSDirectory):
         "The last time the foreman checked us.", versioned=False)
 
     LAST_INTERFACES = aff4.Attribute(
-        "aff4:last_interfaces", rdfvalue.Interfaces,
+        "aff4:last_interfaces", rdf_client.Interfaces,
         "Last seen network interfaces. Full history is maintained in the "
         "clientid/network object. Separated for performance reasons.",
         versioned=False)
 
     LAST_CRASH = aff4.Attribute(
-        "aff4:last_crash", rdfvalue.ClientCrash,
+        "aff4:last_crash", rdf_client.ClientCrash,
         "Last client crash.", creates_new_object_version=False,
         versioned=False)
 
     VOLUMES = aff4.Attribute(
-        "aff4:volumes", rdfvalue.Volumes,
+        "aff4:volumes", rdf_client.Volumes,
         "Client disk volumes.")
 
     HARDWARE_INFO = aff4.Attribute(
-        "aff4:hardware_info", rdfvalue.HardwareInfo,
+        "aff4:hardware_info", rdf_client.HardwareInfo,
         "Various hardware information.", default="")
 
   # Valid client ids
@@ -188,7 +191,7 @@ class VFSGRRClient(standard.VFSDirectory):
 
   def Initialize(self):
     # Our URN must be a valid client.id.
-    self.client_id = rdfvalue.ClientURN(self.urn)
+    self.client_id = rdf_client.ClientURN(self.urn)
 
   def Update(self, attribute=None, priority=None):
     if attribute == "CONTAINS":
@@ -201,14 +204,14 @@ class VFSGRRClient(standard.VFSDirectory):
   def OpenMember(self, path, mode="rw"):
     return aff4.AFF4Volume.OpenMember(self, path, mode=mode)
 
-  AFF4_PREFIXES = {rdfvalue.PathSpec.PathType.OS: "/fs/os",
-                   rdfvalue.PathSpec.PathType.TSK: "/fs/tsk",
-                   rdfvalue.PathSpec.PathType.REGISTRY: "/registry",
-                   rdfvalue.PathSpec.PathType.MEMORY: "/devices/memory"}
+  AFF4_PREFIXES = {rdf_paths.PathSpec.PathType.OS: "/fs/os",
+                   rdf_paths.PathSpec.PathType.TSK: "/fs/tsk",
+                   rdf_paths.PathSpec.PathType.REGISTRY: "/registry",
+                   rdf_paths.PathSpec.PathType.MEMORY: "/devices/memory"}
 
   @staticmethod
   def ClientURNFromURN(urn):
-    return rdfvalue.ClientURN(rdfvalue.RDFURN(urn).Split()[0])
+    return rdf_client.ClientURN(rdfvalue.RDFURN(urn).Split()[0])
 
   @staticmethod
   def PathspecToURN(pathspec, client_urn):
@@ -225,7 +228,7 @@ class VFSGRRClient(standard.VFSDirectory):
     Raises:
       ValueError: If pathspec is not of the correct type.
     """
-    client_urn = rdfvalue.ClientURN(client_urn)
+    client_urn = rdf_client.ClientURN(client_urn)
 
     if not isinstance(pathspec, rdfvalue.RDFValue):
       raise ValueError("Pathspec should be an rdfvalue.")
@@ -246,9 +249,9 @@ class VFSGRRClient(standard.VFSDirectory):
       dev += ":" + str(pathspec[0].offset / 512)
 
     if (len(pathspec) > 1 and
-        pathspec[0].pathtype == rdfvalue.PathSpec.PathType.OS and
-        pathspec[1].pathtype == rdfvalue.PathSpec.PathType.TSK):
-      result = [VFSGRRClient.AFF4_PREFIXES[rdfvalue.PathSpec.PathType.TSK],
+        pathspec[0].pathtype == rdf_paths.PathSpec.PathType.OS and
+        pathspec[1].pathtype == rdf_paths.PathSpec.PathType.TSK):
+      result = [VFSGRRClient.AFF4_PREFIXES[rdf_paths.PathSpec.PathType.TSK],
                 dev]
 
       # Skip the top level pathspec.
@@ -280,10 +283,10 @@ class VFSGRRClient(standard.VFSDirectory):
     """Gets a client summary object.
 
     Returns:
-      rdfvalue.ClientSummary
+      rdf_client.ClientSummary
     """
     self.max_age = 0
-    summary = rdfvalue.ClientSummary(client_id=self.urn)
+    summary = rdf_client.ClientSummary(client_id=self.urn)
     summary.system_info.node = self.Get(self.Schema.HOSTNAME)
     summary.system_info.system = self.Get(self.Schema.SYSTEM)
     summary.system_info.release = self.Get(self.Schema.OS_RELEASE)
@@ -304,7 +307,7 @@ class VFSGRRClient(standard.VFSDirectory):
     return summary
 
 
-class UpdateVFSFileArgs(structs.RDFProtoStruct):
+class UpdateVFSFileArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.UpdateVFSFileArgs
 
 
@@ -329,7 +332,7 @@ class UpdateVFSFile(flow.GRRFlow):
 
     self.state.get_file_flow_urn = fd.Update(
         attribute=self.args.attribute,
-        priority=rdfvalue.GrrMessage.Priority.HIGH_PRIORITY)
+        priority=rdf_flows.GrrMessage.Priority.HIGH_PRIORITY)
 
 
 class VFSFile(aff4.AFF4Image):
@@ -345,11 +348,11 @@ class VFSFile(aff4.AFF4Image):
         "updating this flow.")
 
     PATHSPEC = aff4.Attribute(
-        "aff4:pathspec", rdfvalue.PathSpec,
+        "aff4:pathspec", rdf_paths.PathSpec,
         "The pathspec used to retrieve this object from the client.")
 
     FINGERPRINT = aff4.Attribute("aff4:fingerprint",
-                                 rdfvalue.FingerprintResponse,
+                                 rdf_client.FingerprintResponse,
                                  "DEPRECATED protodict containing arrays of "
                                  " hashes. Use AFF4Stream.HASH instead.")
 
@@ -384,7 +387,7 @@ class MemoryImage(standard.VFSDirectory):
 
   class SchemaCls(VFSFile.SchemaCls):
     LAYOUT = aff4.Attribute("aff4:memory/geometry",
-                            rekall_types.MemoryInformation,
+                            rdf_rekall_types.MemoryInformation,
                             "The memory layout of this image.")
 
 
@@ -413,9 +416,9 @@ class GRRForeman(aff4.AFF4Object):
 
   class SchemaCls(aff4.AFF4Object.SchemaCls):
     """Attributes specific to VFSDirectory."""
-    RULES = aff4.Attribute("aff4:rules", foreman_rdf.ForemanRules,
+    RULES = aff4.Attribute("aff4:rules", rdf_foreman.ForemanRules,
                            "The rules the foreman uses.",
-                           default=foreman_rdf.ForemanRules())
+                           default=rdf_foreman.ForemanRules())
 
   def ExpireRules(self):
     """Removes any rules with an expiration date in the past."""
@@ -435,7 +438,7 @@ class GRRForeman(aff4.AFF4Object):
       # Notify the worker to mark this hunt as terminated.
       manager = queue_manager.QueueManager(token=self.token)
       manager.MultiNotifyQueue(
-          [rdfvalue.GrrNotification(session_id=session_id)
+          [rdf_flows.GrrNotification(session_id=session_id)
            for session_id in expired_session_ids])
 
     if len(new_rules) < len(rules):
@@ -475,13 +478,13 @@ class GRRForeman(aff4.AFF4Object):
           # Not an integer attribute.
           return False
         op = integer_rule.operator
-        if op == foreman_rdf.ForemanAttributeInteger.Operator.LESS_THAN:
+        if op == rdf_foreman.ForemanAttributeInteger.Operator.LESS_THAN:
           if value >= integer_rule.value:
             return False
-        elif op == foreman_rdf.ForemanAttributeInteger.Operator.GREATER_THAN:
+        elif op == rdf_foreman.ForemanAttributeInteger.Operator.GREATER_THAN:
           if value <= integer_rule.value:
             return False
-        elif op == foreman_rdf.ForemanAttributeInteger.Operator.EQUAL:
+        elif op == rdf_foreman.ForemanAttributeInteger.Operator.EQUAL:
           if value != integer_rule.value:
             return False
         else:
@@ -545,7 +548,7 @@ class GRRForeman(aff4.AFF4Object):
     Returns:
       Number of assigned tasks.
     """
-    client_id = rdfvalue.ClientURN(client_id)
+    client_id = rdf_client.ClientURN(client_id)
 
     rules = self.Get(self.Schema.RULES)
     if not rules: return 0
@@ -625,7 +628,7 @@ class MRUCollection(aff4.AFF4Object):
 
   class SchemaCls(aff4.AFF4Object.SchemaCls):
     LAST_USED_FOLDER = aff4.Attribute(
-        "aff4:mru", rdfvalue.MRUFolder, "The Most Recently Used files.",
+        "aff4:mru", rdf_client.MRUFolder, "The Most Recently Used files.",
         default="")
 
 
@@ -717,10 +720,10 @@ class AFF4RegexNotificationRule(aff4.AFF4NotificationRule):
         if len(stored_vals) > 1:
           return
 
-      event = rdfvalue.GrrMessage(
+      event = rdf_flows.GrrMessage(
           name="AFF4RegexNotificationRuleMatch",
           payload=aff4_object.urn,
-          auth_state=rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED,
+          auth_state=rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED,
           source=client_name)
       flow.Events.PublishEvent(utils.SmartStr(self.event_name), event,
                                token=self.token)
@@ -737,7 +740,7 @@ class AFF4RekallProfile(aff4.AFF4MemoryStream):
   """A Rekall profile in the AFF4 namespace."""
 
   class SchemaCls(aff4.AFF4MemoryStream.SchemaCls):
-    PROFILE = aff4.Attribute("aff4:profile", rdfvalue.RekallProfile,
+    PROFILE = aff4.Attribute("aff4:profile", rdf_rekall_types.RekallProfile,
                              "A Rekall profile.")
 
 

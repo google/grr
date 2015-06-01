@@ -7,12 +7,12 @@ import yaml
 
 from grr.lib import config_lib
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.checks import checks
 from grr.lib.checks import checks_test_lib
 from grr.lib.checks import filters
-from grr.lib.rdfvalues import anomaly as anomaly_rdf
+from grr.lib.rdfvalues import anomaly as rdf_anomaly
+from grr.lib.rdfvalues import client as rdf_client
 from grr.parsers import config_file as config_file_parsers
 from grr.parsers import linux_cmd_parser
 from grr.parsers import wmi_parser
@@ -68,7 +68,7 @@ class MatchMethodTests(test_lib.GRRBaseTest):
     matcher = checks.Matcher(["NONE"], self.hint)
     for baseline in self.baselines:
       self.assertIsInstance(matcher.Detect(baseline, self.none),
-                            rdfvalue.CheckResult)
+                            checks.CheckResult)
       for result in [self.one, self.some]:
         self.assertFalse(matcher.Detect(baseline, result))
 
@@ -77,7 +77,7 @@ class MatchMethodTests(test_lib.GRRBaseTest):
     matcher = checks.Matcher(["ONE"], self.hint)
     for baseline in self.baselines:
       self.assertIsInstance(matcher.Detect(baseline, self.one),
-                            rdfvalue.CheckResult)
+                            checks.CheckResult)
       for result in [self.none, self.some]:
         self.assertFalse(matcher.Detect(baseline, result))
 
@@ -86,7 +86,7 @@ class MatchMethodTests(test_lib.GRRBaseTest):
     matcher = checks.Matcher(["SOME"], self.hint)
     for baseline in self.baselines:
       self.assertIsInstance(matcher.Detect(baseline, self.some),
-                            rdfvalue.CheckResult)
+                            checks.CheckResult)
       for result in [self.none, self.one]:
         self.assertFalse(matcher.Detect(baseline, result))
 
@@ -96,7 +96,7 @@ class MatchMethodTests(test_lib.GRRBaseTest):
     for baseline in self.baselines:
       for result in [self.one, self.some]:
         self.assertIsInstance(matcher.Detect(baseline, result),
-                              rdfvalue.CheckResult)
+                              checks.CheckResult)
       self.assertFalse(matcher.Detect(baseline, self.none))
 
   def testCheckAll(self):
@@ -108,7 +108,7 @@ class MatchMethodTests(test_lib.GRRBaseTest):
     will_raise = [(self.none, self.one), (self.one, self.some),
                   (self.none, self.some)]
     for base, result in will_detect:
-      self.assertIsInstance(matcher.Detect(base, result), rdfvalue.CheckResult)
+      self.assertIsInstance(matcher.Detect(base, result), checks.CheckResult)
     for base, result in not_detect:
       self.assertFalse(matcher.Detect(base, result))
     for base, result in will_raise:
@@ -120,7 +120,7 @@ class MatchMethodTests(test_lib.GRRBaseTest):
     for baseline in self.baselines:
       for result in [self.none, self.one]:
         self.assertIsInstance(matcher.Detect(baseline, result),
-                              rdfvalue.CheckResult)
+                              checks.CheckResult)
       self.assertFalse(matcher.Detect(baseline, self.some))
 
 
@@ -189,7 +189,7 @@ class CheckRegistryTests(test_lib.GRRBaseTest):
       checks.CheckRegistry.RegisterCheck(check=self.sshd_chk,
                                          source="sshd_config",
                                          overwrite_if_exists=True)
-    self.kb = rdfvalue.KnowledgeBase()
+    self.kb = rdf_client.KnowledgeBase()
     self.kb.hostname = "test.example.com"
     self.host_data = {"KnowledgeBase": self.kb,
                       "WMIInstalledSoftware": WMI_SW,
@@ -264,28 +264,28 @@ class ProcessHostDataTests(checks_test_lib.HostCheckTest):
       checks.LoadChecksFromFiles([os.path.join(CHECKS_DIR, "sw.yaml")])
     if "SSHD-CHECK" not in registered:
       checks.LoadChecksFromFiles([os.path.join(CHECKS_DIR, "sshd.yaml")])
-    self.netcat = rdfvalue.CheckResult(
+    self.netcat = checks.CheckResult(
         check_id="SW-CHECK",
         anomaly=[
-            anomaly_rdf.Anomaly(
+            rdf_anomaly.Anomaly(
                 finding=["netcat-traditional 1.10-40 is installed"],
                 explanation="Found: l337 software installed",
                 type="ANALYSIS_ANOMALY")])
-    self.sshd = rdfvalue.CheckResult(
+    self.sshd = checks.CheckResult(
         check_id="SSHD-CHECK",
         anomaly=[
-            anomaly_rdf.Anomaly(
+            rdf_anomaly.Anomaly(
                 finding=["Configured protocols: 2,1"],
                 explanation="Found: Sshd allows protocol 1.",
                 type="ANALYSIS_ANOMALY")])
-    self.windows = rdfvalue.CheckResult(
+    self.windows = checks.CheckResult(
         check_id="SW-CHECK",
         anomaly=[
-            anomaly_rdf.Anomaly(
+            rdf_anomaly.Anomaly(
                 finding=["Java 6.0.240 is installed"],
                 explanation="Found: Old Java installation.",
                 type="ANALYSIS_ANOMALY"),
-            anomaly_rdf.Anomaly(
+            rdf_anomaly.Anomaly(
                 finding=["Adware 2.1.1 is installed"],
                 explanation="Found: Malicious software.",
                 type="ANALYSIS_ANOMALY")])
@@ -471,9 +471,9 @@ class CheckResultsTest(ChecksTestBase):
                 "explanation": "Found: Old Java installation.",
                 "type": "ANALYSIS_ANOMALY"}
     result = checks.CheckResult(check_id="SW-CHECK",
-                                anomaly=anomaly_rdf.Anomaly(**anomaly1))
+                                anomaly=rdf_anomaly.Anomaly(**anomaly1))
     other = checks.CheckResult(check_id="SW-CHECK",
-                               anomaly=anomaly_rdf.Anomaly(**anomaly2))
+                               anomaly=rdf_anomaly.Anomaly(**anomaly2))
     result.ExtendAnomalies(other)
     expect = {"check_id": "SW-CHECK", "anomaly": [anomaly1, anomaly2]}
     self.assertDictEqual(expect, result.ToPrimitiveDict())

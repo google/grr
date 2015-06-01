@@ -16,6 +16,8 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.aff4_objects import users as aff4_users
+from grr.lib.rdfvalues import client as rdf_client
 
 
 class SearchClientTestBase(test_lib.GRRSeleniumTest):
@@ -53,8 +55,8 @@ class TestNavigatorView(SearchClientTestBase):
       client_id = self.SetupClients(1)[0]
       with aff4.FACTORY.Open(
           client_id, mode="rw", token=self.token) as client_obj:
-        volume = rdfvalue.Volume(total_allocation_units=100,
-                                 actual_available_allocation_units=available)
+        volume = rdf_client.Volume(total_allocation_units=100,
+                                   actual_available_allocation_units=available)
         client_obj.Set(client_obj.Schema.VOLUMES([volume]))
 
       self.GrantClientApproval(client_id)
@@ -272,8 +274,8 @@ class TestContentView(SearchClientTestBase):
                                aff4_type="GlobalNotificationStorage",
                                mode="rw", token=self.token) as storage:
         storage.AddNotification(
-            rdfvalue.GlobalNotification(
-                type=rdfvalue.GlobalNotification.Type.ERROR,
+            aff4_users.GlobalNotification(
+                type=aff4_users.GlobalNotification.Type.ERROR,
                 header="Oh no, we're doomed!",
                 content="Houston, Houston, we have a prob...",
                 link="http://www.google.com"
@@ -288,15 +290,15 @@ class TestContentView(SearchClientTestBase):
                                aff4_type="GlobalNotificationStorage",
                                mode="rw", token=self.token) as storage:
         storage.AddNotification(
-            rdfvalue.GlobalNotification(
-                type=rdfvalue.GlobalNotification.Type.ERROR,
+            aff4_users.GlobalNotification(
+                type=aff4_users.GlobalNotification.Type.ERROR,
                 header="Oh no, we're doomed!",
                 content="Houston, Houston, we have a prob...",
                 link="http://www.google.com"
             ))
         storage.AddNotification(
-            rdfvalue.GlobalNotification(
-                type=rdfvalue.GlobalNotification.Type.INFO,
+            aff4_users.GlobalNotification(
+                type=aff4_users.GlobalNotification.Type.INFO,
                 header="Nothing to worry about!",
                 link="http://www.google.com"
             ))
@@ -311,8 +313,8 @@ class TestContentView(SearchClientTestBase):
                                aff4_type="GlobalNotificationStorage",
                                mode="rw", token=self.token) as storage:
         storage.AddNotification(
-            rdfvalue.GlobalNotification(
-                type=rdfvalue.GlobalNotification.Type.ERROR,
+            aff4_users.GlobalNotification(
+                type=aff4_users.GlobalNotification.Type.ERROR,
                 header="Oh no, we're doomed!",
                 content="Houston, Houston, we have a prob...",
                 link="http://www.google.com"
@@ -326,8 +328,8 @@ class TestContentView(SearchClientTestBase):
                                aff4_type="GlobalNotificationStorage",
                                mode="rw", token=self.token) as storage:
         storage.AddNotification(
-            rdfvalue.GlobalNotification(
-                type=rdfvalue.GlobalNotification.Type.ERROR,
+            aff4_users.GlobalNotification(
+                type=aff4_users.GlobalNotification.Type.ERROR,
                 content="Too late to do anything!",
                 link="http://www.google.com"
             ))
@@ -342,8 +344,8 @@ class TestContentView(SearchClientTestBase):
                                aff4_type="GlobalNotificationStorage",
                                mode="rw", token=self.token) as storage:
         storage.AddNotification(
-            rdfvalue.GlobalNotification(
-                type=rdfvalue.GlobalNotification.Type.ERROR,
+            aff4_users.GlobalNotification(
+                type=aff4_users.GlobalNotification.Type.ERROR,
                 header="Oh no, we're doomed!",
                 content="Houston, Houston, we have a prob...",
                 link="http://www.google.com"
@@ -365,15 +367,15 @@ class TestContentView(SearchClientTestBase):
                                aff4_type="GlobalNotificationStorage",
                                mode="rw", token=self.token) as storage:
         storage.AddNotification(
-            rdfvalue.GlobalNotification(
-                type=rdfvalue.GlobalNotification.Type.ERROR,
+            aff4_users.GlobalNotification(
+                type=aff4_users.GlobalNotification.Type.ERROR,
                 header="Oh no, we're doomed!",
                 content="Houston, Houston, we have a prob...",
                 link="http://www.google.com"
             ))
         storage.AddNotification(
-            rdfvalue.GlobalNotification(
-                type=rdfvalue.GlobalNotification.Type.INFO,
+            aff4_users.GlobalNotification(
+                type=aff4_users.GlobalNotification.Type.INFO,
                 header="Nothing to worry about!",
                 link="http://www.google.com"
             ))

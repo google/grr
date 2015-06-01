@@ -16,17 +16,19 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
-from grr.lib.rdfvalues import anomaly
-from grr.lib.rdfvalues import client
-from grr.lib.rdfvalues import structs
+from grr.lib.rdfvalues import anomaly as rdf_anomaly
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import crypto as rdf_crypto
+from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import jobs_pb2
 
 
-class AFF4CollectionView(rdfvalue.RDFValueArray):
+class AFF4CollectionView(rdf_protodict.RDFValueArray):
   """A view specifies how an AFF4Collection is seen."""
 
 
-class RDFValueCollectionView(rdfvalue.RDFValueArray):
+class RDFValueCollectionView(rdf_protodict.RDFValueArray):
   """A view specifies how an RDFValueCollection is seen."""
 
 
@@ -121,7 +123,7 @@ class RDFValueCollection(aff4.AFF4Object):
     if not rdf_value.age:
       rdf_value.age.Now()
 
-    data = rdfvalue.EmbeddedRDFValue(payload=rdf_value).SerializeToString()
+    data = rdf_protodict.EmbeddedRDFValue(payload=rdf_value).SerializeToString()
     self.fd.Seek(0, 2)
     self.fd.Write(struct.pack("<i", len(data)))
     self.fd.Write(data)
@@ -144,7 +146,8 @@ class RDFValueCollection(aff4.AFF4Object):
 
     buf = cStringIO.StringIO()
     for index, rdf_value in enumerate(rdf_values):
-      data = rdfvalue.EmbeddedRDFValue(payload=rdf_value).SerializeToString()
+      data = rdf_protodict.EmbeddedRDFValue(
+          payload=rdf_value).SerializeToString()
       buf.write(struct.pack("<i", len(data)))
       buf.write(data)
 
@@ -196,7 +199,7 @@ class RDFValueCollection(aff4.AFF4Object):
       except struct.error:
         break
 
-      result = rdfvalue.EmbeddedRDFValue(serialized_event)
+      result = rdf_protodict.EmbeddedRDFValue(serialized_event)
 
       payload = result.payload
       if payload is not None:
@@ -246,12 +249,12 @@ class AFF4Collection(aff4.AFF4Volume, RDFValueCollection):
   collection simply stores the RDFURNs of all aff4 objects in the collection.
   """
 
-  _rdf_type = client.AFF4ObjectSummary
+  _rdf_type = rdf_client.AFF4ObjectSummary
 
   _behaviours = frozenset(["Collection"])
 
   class SchemaCls(aff4.AFF4Volume.SchemaCls, RDFValueCollection.SchemaCls):
-    VIEW = aff4.Attribute("aff4:view", rdfvalue.AFF4CollectionView,
+    VIEW = aff4.Attribute("aff4:view", AFF4CollectionView,
                           "The list of attributes which will show up in "
                           "the table.", default="")
 
@@ -296,7 +299,7 @@ class AFF4Collection(aff4.AFF4Volume, RDFValueCollection):
 
 
 class GRRSignedBlobCollection(RDFValueCollection):
-  _rdf_type = rdfvalue.SignedBlob
+  _rdf_type = rdf_crypto.SignedBlob
 
 
 class GRRSignedBlob(aff4.AFF4MemoryStream):
@@ -334,15 +337,15 @@ class GRRMemoryDriver(GRRSignedBlob):
 
   class SchemaCls(GRRSignedBlob.SchemaCls):
     INSTALLATION = aff4.Attribute(
-        "aff4:driver/installation", rdfvalue.DriverInstallTemplate,
+        "aff4:driver/installation", rdf_client.DriverInstallTemplate,
         "The driver installation control protobuf.", "installation",
-        default=rdfvalue.DriverInstallTemplate(
+        default=rdf_client.DriverInstallTemplate(
             driver_name="pmem", device_path=r"\\.\pmem"))
 
 
 class GrepResultsCollection(RDFValueCollection):
   """A collection of grep results."""
-  _rdf_type = rdfvalue.BufferReference
+  _rdf_type = rdf_client.BufferReference
 
 
 class ClientAnomalyCollection(RDFValueCollection):
@@ -351,16 +354,16 @@ class ClientAnomalyCollection(RDFValueCollection):
   This class is a normal collection, but with additional methods for making
   viewing and working with anomalies easier.
   """
-  _rdf_type = anomaly.Anomaly
+  _rdf_type = rdf_anomaly.Anomaly
 
 
-class SeekIndexPair(structs.RDFProtoStruct):
+class SeekIndexPair(rdf_structs.RDFProtoStruct):
   """Index offset <-> byte offset pair used in seek index."""
 
   protobuf = jobs_pb2.SeekIndexPair
 
 
-class SeekIndex(structs.RDFProtoStruct):
+class SeekIndex(rdf_structs.RDFProtoStruct):
   """Seek index (collection of SeekIndexPairs, essentially)."""
 
   protobuf = jobs_pb2.SeekIndex
@@ -435,7 +438,7 @@ class PackedVersionedCollection(RDFValueCollection):
         rdf_value.age.Now()
 
       data_attrs.append(cls.SchemaCls.DATA(
-          rdfvalue.EmbeddedRDFValue(payload=rdf_value)))
+          rdf_protodict.EmbeddedRDFValue(payload=rdf_value)))
 
     attrs_to_set = {cls.SchemaCls.DATA: data_attrs}
     if cls.IsJournalingEnabled():
@@ -454,7 +457,7 @@ class PackedVersionedCollection(RDFValueCollection):
   class SchemaCls(RDFValueCollection.SchemaCls):
     """Schema for PackedVersionedCollection."""
 
-    DATA = aff4.Attribute("aff4:data", rdfvalue.EmbeddedRDFValue,
+    DATA = aff4.Attribute("aff4:data", rdf_protodict.EmbeddedRDFValue,
                           "The embedded semantic value.", versioned=True)
 
     SEEK_INDEX = aff4.Attribute("aff4:seek_index", SeekIndex,

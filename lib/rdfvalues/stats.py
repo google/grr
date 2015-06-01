@@ -5,17 +5,18 @@
 import math
 import threading
 
-from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import analysis_pb2
 from grr.proto import jobs_pb2
 
 
-class StatsHistogramBin(rdfvalue.RDFProtoStruct):
+class StatsHistogramBin(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.StatsHistogramBin
 
 
-class StatsHistogram(rdfvalue.RDFProtoStruct):
+class StatsHistogram(rdf_structs.RDFProtoStruct):
   """Histogram with a user-provided set of bins."""
   protobuf = jobs_pb2.StatsHistogram
 
@@ -38,7 +39,7 @@ class StatsHistogram(rdfvalue.RDFProtoStruct):
       self.bins[-1].num += 1
 
 
-class RunningStats(rdfvalue.RDFProtoStruct):
+class RunningStats(rdf_structs.RDFProtoStruct):
   """Class for collecting running stats: mean, stdev and histogram data."""
   protobuf = jobs_pb2.RunningStats
 
@@ -64,7 +65,7 @@ class RunningStats(rdfvalue.RDFProtoStruct):
       return math.sqrt(self.sum_sq / float(self.num) - self.mean ** 2)
 
 
-class ClientResourcesStats(rdfvalue.RDFProtoStruct):
+class ClientResourcesStats(rdf_structs.RDFProtoStruct):
   """RDF value representing clients' resources usage statistics for hunts."""
   protobuf = jobs_pb2.ClientResourcesStats
 
@@ -113,17 +114,17 @@ class ClientResourcesStats(rdfvalue.RDFProtoStruct):
     self.worst_performers = new_worst_performers
 
 
-class Sample(rdfvalue.RDFProtoStruct):
+class Sample(rdf_structs.RDFProtoStruct):
   """A Graph sample is a single data point."""
   protobuf = analysis_pb2.Sample
 
 
-class SampleFloat(rdfvalue.RDFProtoStruct):
+class SampleFloat(rdf_structs.RDFProtoStruct):
   """A Graph float data point."""
   protobuf = analysis_pb2.SampleFloat
 
 
-class Graph(rdfvalue.RDFProtoStruct):
+class Graph(rdf_structs.RDFProtoStruct):
   """A Graph is a collection of sample points."""
   protobuf = analysis_pb2.Graph
 
@@ -156,6 +157,6 @@ class GraphFloat(Graph):
       yield SampleFloat(x)
 
 
-class GraphSeries(rdfvalue.RDFValueArray):
+class GraphSeries(rdf_protodict.RDFValueArray):
   """A sequence of graphs (e.g. evolving over time)."""
   rdf_type = Graph

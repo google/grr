@@ -44,7 +44,7 @@ class ArtifactRegistry(object):
     Args:
       os_name: string to match against supported_os
       name_list: list of strings to match against artifact names
-      source_type: rdfvalue.ArtifactSource.SourceType to match against
+      source_type: rdf_artifacts.ArtifactSource.SourceType to match against
                       source_type
       exclude_dependents: if true only artifacts with no dependencies will be
                           returned

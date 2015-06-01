@@ -9,11 +9,11 @@ from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import rdfvalue
 from grr.lib import test_lib
 # pylint: disable=unused-import
 from grr.lib.flows.general import audit as _
 # pylint: enable=unused-import
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class TestAuditSystem(test_lib.FlowTestsBaseclass):
@@ -26,17 +26,17 @@ class TestAuditSystem(test_lib.FlowTestsBaseclass):
     with test_lib.FakeTime(20 * rollover):
       for _ in test_lib.TestFlowHelper(
           "ListDirectory", client_mock, client_id=self.client_id,
-          pathspec=rdfvalue.PathSpec(
+          pathspec=rdf_paths.PathSpec(
               path=os.path.join(self.base_path, "test_img.dd/test directory"),
-              pathtype=rdfvalue.PathSpec.PathType.OS),
+              pathtype=rdf_paths.PathSpec.PathType.OS),
           token=self.token):
         pass
 
       for _ in test_lib.TestFlowHelper(
           "ListDirectory", client_mock, client_id=self.client_id,
-          pathspec=rdfvalue.PathSpec(
+          pathspec=rdf_paths.PathSpec(
               path=os.path.join(self.base_path, "test_img.dd/test directory"),
-              pathtype=rdfvalue.PathSpec.PathType.OS),
+              pathtype=rdf_paths.PathSpec.PathType.OS),
           token=self.token):
         pass
 
@@ -57,9 +57,9 @@ class TestAuditSystem(test_lib.FlowTestsBaseclass):
     with test_lib.FakeTime(22 * rollover):
       for _ in test_lib.TestFlowHelper(
           "ListDirectory", client_mock, client_id=self.client_id,
-          pathspec=rdfvalue.PathSpec(
+          pathspec=rdf_paths.PathSpec(
               path=os.path.join(self.base_path, "test_img.dd/test directory"),
-              pathtype=rdfvalue.PathSpec.PathType.OS),
+              pathtype=rdf_paths.PathSpec.PathType.OS),
           token=self.token):
         pass
 

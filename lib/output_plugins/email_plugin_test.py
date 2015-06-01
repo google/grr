@@ -1,18 +1,15 @@
 #!/usr/bin/env python
 """Tests for email output plugin."""
 
-# pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import,g-bad-import-order
-
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import email_alerts
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.output_plugins import email_plugin
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import flows as rdf_flows
 
 
 class EmailOutputPluginTest(test_lib.FlowTestsBaseclass):
@@ -37,8 +34,8 @@ class EmailOutputPluginTest(test_lib.FlowTestsBaseclass):
 
     messages = []
     for response in responses:
-      messages.append(rdfvalue.GrrMessage(source=self.client_id,
-                                          payload=response))
+      messages.append(rdf_flows.GrrMessage(source=self.client_id,
+                                           payload=response))
 
     def SendEmail(address, sender, title, message, **_):
       self.email_messages.append(dict(address=address, sender=sender,
@@ -55,9 +52,9 @@ class EmailOutputPluginTest(test_lib.FlowTestsBaseclass):
 
   def testEmailPluginSendsEmailPerEveyBatchOfResponses(self):
     self.ProcessResponses(
-        plugin_args=rdfvalue.EmailOutputPluginArgs(
+        plugin_args=email_plugin.EmailOutputPluginArgs(
             email_address=self.email_address),
-        responses=[rdfvalue.Process(pid=42)])
+        responses=[rdf_client.Process(pid=42)])
 
     self.assertEqual(len(self.email_messages), 1)
 
@@ -69,9 +66,9 @@ class EmailOutputPluginTest(test_lib.FlowTestsBaseclass):
     self.assertTrue(utils.SmartStr(self.hostname) in msg["message"])
 
   def testEmailPluginStopsSendingEmailsAfterLimitIsReached(self):
-    responses = [rdfvalue.Process(pid=i) for i in range(11)]
+    responses = [rdf_client.Process(pid=i) for i in range(11)]
     self.ProcessResponses(
-        plugin_args=rdfvalue.EmailOutputPluginArgs(
+        plugin_args=email_plugin.EmailOutputPluginArgs(
             email_address=self.email_address,
             emails_limit=10),
         responses=responses,

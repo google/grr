@@ -18,6 +18,7 @@ import urlparse
 from grr.lib import server_plugins
 # pylint: enable=g-bad-import-order,unused-import
 
+from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import artifact
 from grr.lib import artifact_registry
@@ -512,7 +513,7 @@ def UploadRaw(file_path, aff4_path, token=None):
 
 def GetToken():
   # Extend for user authorization
-  return rdfvalue.ACLToken(username="GRRConsole").SetUID()
+  return access_control.ACLToken(username="GRRConsole").SetUID()
 
 
 def main(unused_argv):

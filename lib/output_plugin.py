@@ -8,9 +8,10 @@ import threading
 import zipfile
 
 from grr.lib import aff4
-from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import output_plugin_pb2
 
 
@@ -57,7 +58,7 @@ class OutputPlugin(object):
                        data (if needed).
       args: This plugin's arguments.
       token: Security token.
-      state: Instance of rdfvalue.FlowState. Represents plugin's state. If this
+      state: Instance of rdf_flows.FlowState. Represents plugin's state. If this
              is passed, no initialization will be performed, only the state will
              be applied.
     Raises:
@@ -69,7 +70,7 @@ class OutputPlugin(object):
                        "or 'token'.")
 
     if not state:
-      self.state = state or rdfvalue.FlowState()
+      self.state = state or rdf_flows.FlowState()
       self.state.Register("source_urn", source_urn)
       self.state.Register("output_base_urn", output_base_urn)
       self.state.Register("args", args)
@@ -187,7 +188,7 @@ class OutputPluginWithOutputStreams(OutputPlugin):
     raise NotImplementedError()
 
 
-class OutputPluginDescriptor(rdfvalue.RDFProtoStruct):
+class OutputPluginDescriptor(rdf_structs.RDFProtoStruct):
   """An rdfvalue describing the output plugin to create."""
 
   protobuf = output_plugin_pb2.OutputPluginDescriptor

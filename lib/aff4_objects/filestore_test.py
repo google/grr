@@ -16,6 +16,8 @@ from grr.lib.aff4_objects import filestore
 # Needed for GetFile pylint: disable=unused-import
 from grr.lib.flows.general import transfer
 # pylint: enable=unused-import
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class FakeStore(object):
@@ -123,20 +125,20 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
         pathspec=pathspec):
       pass
 
-    auth_state = rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED
+    auth_state = rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
     flow.Events.PublishEvent(
         "FileStore.AddFileToStore",
-        rdfvalue.GrrMessage(payload=urn, auth_state=auth_state),
+        rdf_flows.GrrMessage(payload=urn, auth_state=auth_state),
         token=token)
     worker = test_lib.MockWorker(token=token)
     worker.Simulate()
 
   def AddFile(self, path):
     """Add file with a subpath (relative to winexec_img.dd) to the store."""
-    pathspec = rdfvalue.PathSpec(
-        pathtype=rdfvalue.PathSpec.PathType.OS,
+    pathspec = rdf_paths.PathSpec(
+        pathtype=rdf_paths.PathSpec.PathType.OS,
         path=os.path.join(self.base_path, "winexec_img.dd"))
-    pathspec.Append(path=path, pathtype=rdfvalue.PathSpec.PathType.TSK)
+    pathspec.Append(path=path, pathtype=rdf_paths.PathSpec.PathType.TSK)
 
     return self.AddFileToFileStore(pathspec, client_id=self.client_id,
                                    token=self.token)
@@ -146,19 +148,19 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
     hashes = list(aff4.HashFileStore.ListHashes(token=self.token))
     self.assertEqual(len(hashes), 5)
 
-    self.assertTrue(rdfvalue.FileStoreHash(
+    self.assertTrue(filestore.FileStoreHash(
         fingerprint_type="pecoff", hash_type="md5",
         hash_value="a3a3259f7b145a21c7b512d876a5da06") in hashes)
-    self.assertTrue(rdfvalue.FileStoreHash(
+    self.assertTrue(filestore.FileStoreHash(
         fingerprint_type="pecoff", hash_type="sha1",
         hash_value="019bddad9cac09f37f3941a7f285c79d3c7e7801") in hashes)
-    self.assertTrue(rdfvalue.FileStoreHash(
+    self.assertTrue(filestore.FileStoreHash(
         fingerprint_type="generic", hash_type="md5",
         hash_value="bb0a15eefe63fd41f8dc9dee01c5cf9a") in hashes)
-    self.assertTrue(rdfvalue.FileStoreHash(
+    self.assertTrue(filestore.FileStoreHash(
         fingerprint_type="generic", hash_type="sha1",
         hash_value="7dd6bee591dfcb6d75eb705405302c3eab65e21a") in hashes)
-    self.assertTrue(rdfvalue.FileStoreHash(
+    self.assertTrue(filestore.FileStoreHash(
         fingerprint_type="generic", hash_type="sha256",
         hash_value="0e8dc93e150021bb4752029ebbff51394aa36f06"
         "9cf19901578e4f06017acdb5") in hashes)
@@ -184,8 +186,8 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
 
     with utils.Stubber(time, "time", lambda: 42):
       self.AddFileToFileStore(
-          rdfvalue.PathSpec(pathtype=rdfvalue.PathSpec.PathType.OS,
-                            path=os.path.join(self.base_path, "empty_file")),
+          rdf_paths.PathSpec(pathtype=rdf_paths.PathSpec.PathType.OS,
+                             path=os.path.join(self.base_path, "empty_file")),
           client_id=self.client_id, token=self.token)
 
     hashes = list(aff4.HashFileStore.ListHashes(token=self.token,
@@ -198,8 +200,8 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
     latest_time = 42 + config_lib.CONFIG["AFF4.intermediate_cache_age"] - 1
     with utils.Stubber(time, "time", lambda: latest_time):
       self.AddFileToFileStore(
-          rdfvalue.PathSpec(
-              pathtype=rdfvalue.PathSpec.PathType.OS,
+          rdf_paths.PathSpec(
+              pathtype=rdf_paths.PathSpec.PathType.OS,
               path=os.path.join(self.base_path, "a", "b", "c", "helloc.txt")),
           client_id=self.client_id, token=self.token)
 
@@ -221,8 +223,8 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
 
     with utils.Stubber(time, "time", lambda: 42):
       self.AddFileToFileStore(
-          rdfvalue.PathSpec(pathtype=rdfvalue.PathSpec.PathType.OS,
-                            path=os.path.join(self.base_path, "empty_file")),
+          rdf_paths.PathSpec(pathtype=rdf_paths.PathSpec.PathType.OS,
+                             path=os.path.join(self.base_path, "empty_file")),
           client_id=self.client_id, token=self.token)
 
     hashes = list(aff4.HashFileStore.ListHashes(token=self.token,
@@ -235,8 +237,8 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
     latest_time = 42 + config_lib.CONFIG["AFF4.intermediate_cache_age"] + 1
     with utils.Stubber(time, "time", lambda: latest_time):
       self.AddFileToFileStore(
-          rdfvalue.PathSpec(
-              pathtype=rdfvalue.PathSpec.PathType.OS,
+          rdf_paths.PathSpec(
+              pathtype=rdf_paths.PathSpec.PathType.OS,
               path=os.path.join(self.base_path, "a", "b", "c", "helloc.txt")),
           client_id=self.client_id, token=self.token)
 
@@ -254,7 +256,7 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
     self.AddFile("/Ext2IFS_1_10b.exe")
     self.AddFile("/idea.dll")
 
-    hits = list(aff4.HashFileStore.GetClientsForHash(rdfvalue.FileStoreHash(
+    hits = list(aff4.HashFileStore.GetClientsForHash(filestore.FileStoreHash(
         fingerprint_type="generic", hash_type="md5",
         hash_value="bb0a15eefe63fd41f8dc9dee01c5cf9a"), token=self.token))
     self.assertListEqual(hits, [self.client_id.Add(
@@ -266,7 +268,7 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
       self.AddFile("/idea.dll")
 
     hits = list(aff4.HashFileStore.GetClientsForHash(
-        rdfvalue.FileStoreHash(
+        filestore.FileStoreHash(
             fingerprint_type="generic", hash_type="md5",
             hash_value="bb0a15eefe63fd41f8dc9dee01c5cf9a"),
         age=41e6,
@@ -274,7 +276,7 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
     self.assertEqual(len(hits), 0)
 
     hits = list(aff4.HashFileStore.GetClientsForHash(
-        rdfvalue.FileStoreHash(
+        filestore.FileStoreHash(
             fingerprint_type="generic", hash_type="md5",
             hash_value="bb0a15eefe63fd41f8dc9dee01c5cf9a"),
         age=43e6,
@@ -282,7 +284,7 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
     self.assertEqual(len(hits), 1)
 
     hits = list(aff4.HashFileStore.GetClientsForHash(
-        rdfvalue.FileStoreHash(
+        filestore.FileStoreHash(
             fingerprint_type="generic", hash_type="md5",
             hash_value="bb0a15eefe63fd41f8dc9dee01c5cf9a"),
         token=self.token))
@@ -292,10 +294,10 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
     self.AddFile("/Ext2IFS_1_10b.exe")
     self.AddFile("/idea.dll")
 
-    hash1 = rdfvalue.FileStoreHash(
+    hash1 = filestore.FileStoreHash(
         fingerprint_type="generic", hash_type="md5",
         hash_value="bb0a15eefe63fd41f8dc9dee01c5cf9a")
-    hash2 = rdfvalue.FileStoreHash(
+    hash2 = filestore.FileStoreHash(
         fingerprint_type="generic", hash_type="sha1",
         hash_value="e1f7e62b3909263f3a2518bbae6a9ee36d5b502b")
 
@@ -312,10 +314,10 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
       self.AddFile("/Ext2IFS_1_10b.exe")
       self.AddFile("/idea.dll")
 
-    hash1 = rdfvalue.FileStoreHash(
+    hash1 = filestore.FileStoreHash(
         fingerprint_type="generic", hash_type="md5",
         hash_value="bb0a15eefe63fd41f8dc9dee01c5cf9a")
-    hash2 = rdfvalue.FileStoreHash(
+    hash2 = filestore.FileStoreHash(
         fingerprint_type="generic", hash_type="sha1",
         hash_value="e1f7e62b3909263f3a2518bbae6a9ee36d5b502b")
 

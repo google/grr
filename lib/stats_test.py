@@ -7,7 +7,6 @@ import time
 
 
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import stats
 from grr.lib import test_lib
 
@@ -249,7 +248,7 @@ class StatsTests(test_lib.GRRBaseTest):
     self.assertEqual(metrics["test_int_gauge"].metric_type,
                      stats.MetricType.GAUGE)
     self.assertEqual(metrics["test_int_gauge"].fields_defs,
-                     [rdfvalue.MetricFieldDefinition(
+                     [stats.MetricFieldDefinition(
                          field_name="dimension",
                          field_type=stats.MetricFieldDefinition.FieldType.STR)])
 

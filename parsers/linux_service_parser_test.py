@@ -5,8 +5,9 @@ import StringIO
 
 
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
 from grr.parsers import linux_service_parser
 
 
@@ -14,8 +15,8 @@ def GenTestData(paths, data):
   stats = []
   files = []
   for path in paths:
-    p = rdfvalue.PathSpec(path=path)
-    stats.append(rdfvalue.StatEntry(pathspec=p))
+    p = rdf_paths.PathSpec(path=path)
+    stats.append(rdf_client.StatEntry(pathspec=p))
   for val in data:
     files.append(StringIO.StringIO(val))
   return stats, files
@@ -72,7 +73,7 @@ class LinuxLSBInitParserTest(test_lib.GRRBaseTest):
 
     parser = linux_service_parser.LinuxLSBInitParser()
     results = list(parser.ParseMultiple(stats, files, None))
-    self.assertIsInstance(results[0], rdfvalue.LinuxServiceInformation)
+    self.assertIsInstance(results[0], rdf_client.LinuxServiceInformation)
     result = results[0]
     self.assertEqual("sshd", result.name)
     self.assertEqual("OpenBSD Secure Shell server", result.description)

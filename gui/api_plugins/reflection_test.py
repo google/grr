@@ -3,10 +3,6 @@
 
 
 
-# pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import,g-bad-import-order
-
 from grr.gui import api_test_lib
 from grr.gui.api_plugins import reflection as reflection
 

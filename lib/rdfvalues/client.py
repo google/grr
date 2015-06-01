@@ -10,6 +10,7 @@ from hashlib import sha256
 import re
 import socket
 import stat
+import urlparse
 
 from grr.lib import ipv6_utils
 from grr.lib import rdfvalue
@@ -130,7 +131,7 @@ class Filesystems(protodict.RDFValueArray):
   rdf_type = Filesystem
 
 
-class FolderInformation(rdfvalue.RDFProtoStruct):
+class FolderInformation(structs.RDFProtoStruct):
   """Representation of Window's special folders information for a User.
 
   Windows maintains a list of "Special Folders" which are used to organize a
@@ -141,7 +142,7 @@ class FolderInformation(rdfvalue.RDFProtoStruct):
   protobuf = jobs_pb2.FolderInformation
 
 
-class User(rdfvalue.RDFProtoStruct):
+class User(structs.RDFProtoStruct):
   """A user of the client system.
 
   This stores information related to a specific user of the client system.
@@ -168,7 +169,7 @@ class User(rdfvalue.RDFProtoStruct):
 
   def ToKnowledgeBaseUser(self):
     """Convert a User value into a KnowledgeBaseUser value."""
-    kb_user = rdfvalue.KnowledgeBaseUser()
+    kb_user = KnowledgeBaseUser()
     for old_pb_name, new_pb_name in self.kb_user_mapping.items():
       if len(old_pb_name.split(".")) > 1:
         attr, old_pb_name = old_pb_name.split(".", 1)
@@ -181,7 +182,7 @@ class User(rdfvalue.RDFProtoStruct):
 
   def FromKnowledgeBaseUser(self, kbuser):
     """Convert a KnowledgeBaseUser into a User value."""
-    folders = rdfvalue.FolderInformation()
+    folders = FolderInformation()
     for old_pb_name, new_pb_name in self.kb_user_mapping.items():
       val = getattr(kbuser, new_pb_name)
       if val:
@@ -198,17 +199,17 @@ class Users(protodict.RDFValueArray):
   rdf_type = User
 
 
-class PwEntry(rdfvalue.RDFProtoStruct):
+class PwEntry(structs.RDFProtoStruct):
   """Information about password structures."""
   protobuf = knowledge_base_pb2.PwEntry
 
 
-class Group(rdfvalue.RDFProtoStruct):
+class Group(structs.RDFProtoStruct):
   """Information about system posix groups."""
   protobuf = knowledge_base_pb2.Group
 
 
-class KnowledgeBase(rdfvalue.RDFProtoStruct):
+class KnowledgeBase(structs.RDFProtoStruct):
   """Information about the system and users."""
   protobuf = knowledge_base_pb2.KnowledgeBase
 
@@ -262,7 +263,7 @@ class KnowledgeBase(rdfvalue.RDFProtoStruct):
       uid: Linux/Darwin user id
       username: string
     Returns:
-      rdfvalue.KnowledgeBaseUser or None
+      rdf_client.KnowledgeBaseUser or None
     """
     if sid:
       for user in self.users:
@@ -291,16 +292,16 @@ class KnowledgeBase(rdfvalue.RDFProtoStruct):
     return sorted(fields)
 
 
-class KnowledgeBaseUser(rdfvalue.RDFProtoStruct):
+class KnowledgeBaseUser(structs.RDFProtoStruct):
   """Information about the users."""
   protobuf = knowledge_base_pb2.KnowledgeBaseUser
 
 
-class NetworkEndpoint(rdfvalue.RDFProtoStruct):
+class NetworkEndpoint(structs.RDFProtoStruct):
   protobuf = sysinfo_pb2.NetworkEndpoint
 
 
-class NetworkConnection(rdfvalue.RDFProtoStruct):
+class NetworkConnection(structs.RDFProtoStruct):
   """Information about a single network connection."""
   protobuf = sysinfo_pb2.NetworkConnection
 
@@ -310,7 +311,7 @@ class Connections(protodict.RDFValueArray):
   rdf_type = NetworkConnection
 
 
-class NetworkAddress(rdfvalue.RDFProtoStruct):
+class NetworkAddress(structs.RDFProtoStruct):
   """A network address.
 
   We'd prefer to use socket.inet_pton and  inet_ntop here, but they aren't
@@ -325,7 +326,7 @@ class NetworkAddress(rdfvalue.RDFProtoStruct):
       return self.human_readable
     else:
       try:
-        if self.address_type == rdfvalue.NetworkAddress.Family.INET:
+        if self.address_type == NetworkAddress.Family.INET:
           return socket.inet_ntoa(self.packed_bytes)
         else:
           return ipv6_utils.InetNtoA(self.packed_bytes)
@@ -336,15 +337,15 @@ class NetworkAddress(rdfvalue.RDFProtoStruct):
   def human_readable_address(self, value):
     if ":" in value:
       # IPv6
-      self.address_type = rdfvalue.NetworkAddress.Family.INET6
+      self.address_type = NetworkAddress.Family.INET6
       self.packed_bytes = ipv6_utils.InetAtoN(value)
     else:
       # IPv4
-      self.address_type = rdfvalue.NetworkAddress.Family.INET
+      self.address_type = NetworkAddress.Family.INET
       self.packed_bytes = socket.inet_aton(value)
 
 
-class DNSClientConfiguration(rdfvalue.RDFProtoStruct):
+class DNSClientConfiguration(structs.RDFProtoStruct):
   """DNS client config."""
   protobuf = sysinfo_pb2.DNSClientConfiguration
 
@@ -357,7 +358,7 @@ class MacAddress(rdfvalue.RDFBytes):
     return self._value.encode("hex")
 
 
-class Interface(rdfvalue.RDFProtoStruct):
+class Interface(structs.RDFProtoStruct):
   """A network interface on the client system."""
   protobuf = jobs_pb2.Interface
 
@@ -368,7 +369,7 @@ class Interface(rdfvalue.RDFProtoStruct):
       if address.human_readable:
         results.append(address.human_readable)
       else:
-        if address.address_type == rdfvalue.NetworkAddress.Family.INET:
+        if address.address_type == NetworkAddress.Family.INET:
           results.append(socket.inet_ntop(socket.AF_INET,
                                           address.packed_bytes))
         else:
@@ -433,22 +434,22 @@ class UnixVolume(structs.RDFProtoStruct):
   protobuf = sysinfo_pb2.UnixVolume
 
 
-class HardwareInfo(rdfvalue.RDFProtoStruct):
+class HardwareInfo(structs.RDFProtoStruct):
   """Various hardware information."""
   protobuf = sysinfo_pb2.HardwareInfo
 
 
-class ClientInformation(rdfvalue.RDFProtoStruct):
+class ClientInformation(structs.RDFProtoStruct):
   """The GRR client information."""
   protobuf = jobs_pb2.ClientInformation
 
 
-class CpuSeconds(rdfvalue.RDFProtoStruct):
+class CpuSeconds(structs.RDFProtoStruct):
   """CPU usage is reported as both a system and user components."""
   protobuf = jobs_pb2.CpuSeconds
 
 
-class CpuSample(rdfvalue.RDFProtoStruct):
+class CpuSample(structs.RDFProtoStruct):
   protobuf = jobs_pb2.CpuSample
 
   # The total number of samples this sample represents - used for running
@@ -470,7 +471,7 @@ class CpuSample(rdfvalue.RDFProtoStruct):
     self._total_samples += 1
 
 
-class IOSample(rdfvalue.RDFProtoStruct):
+class IOSample(structs.RDFProtoStruct):
   protobuf = jobs_pb2.IOSample
 
   def Average(self, sample):
@@ -481,7 +482,7 @@ class IOSample(rdfvalue.RDFProtoStruct):
     self.write_bytes = sample.write_bytes
 
 
-class ClientStats(rdfvalue.RDFProtoStruct):
+class ClientStats(structs.RDFProtoStruct):
   """A client stat object."""
   protobuf = jobs_pb2.ClientStats
 
@@ -532,7 +533,7 @@ class ClientStats(rdfvalue.RDFProtoStruct):
     Returns:
       New ClientStats object with cpu and IO samples downsampled.
     """
-    result = rdfvalue.ClientStats(self)
+    result = ClientStats(self)
     result.cpu_samples = self.DownsampleList(self.cpu_samples,
                                              sampling_interval)
     result.io_samples = self.DownsampleList(self.io_samples,
@@ -540,7 +541,7 @@ class ClientStats(rdfvalue.RDFProtoStruct):
     return result
 
 
-class DriverInstallTemplate(rdfvalue.RDFProtoStruct):
+class DriverInstallTemplate(structs.RDFProtoStruct):
   """Driver specific information controlling default installation.
 
   This is sent to the client to instruct the client how to install this driver.
@@ -548,7 +549,7 @@ class DriverInstallTemplate(rdfvalue.RDFProtoStruct):
   protobuf = jobs_pb2.DriverInstallTemplate
 
 
-class BufferReference(rdfvalue.RDFProtoStruct):
+class BufferReference(structs.RDFProtoStruct):
   """Stores information about a buffer in a file on the client."""
   protobuf = jobs_pb2.BufferReference
 
@@ -556,12 +557,12 @@ class BufferReference(rdfvalue.RDFProtoStruct):
     return self.data == other
 
 
-class Process(rdfvalue.RDFProtoStruct):
+class Process(structs.RDFProtoStruct):
   """Represent a process on the client."""
   protobuf = sysinfo_pb2.Process
 
 
-class SoftwarePackage(rdfvalue.RDFProtoStruct):
+class SoftwarePackage(structs.RDFProtoStruct):
   """Represent an installed package on the client."""
   protobuf = sysinfo_pb2.SoftwarePackage
 
@@ -626,17 +627,17 @@ class StatMode(rdfvalue.RDFInteger):
     return utils.SmartStr(self.__unicode__())
 
 
-class Iterator(rdfvalue.RDFProtoStruct):
+class Iterator(structs.RDFProtoStruct):
   """An Iterated client action is one which can be resumed on the client."""
   protobuf = jobs_pb2.Iterator
 
 
-class StatEntry(rdfvalue.RDFProtoStruct):
+class StatEntry(structs.RDFProtoStruct):
   """Represent an extended stat response."""
   protobuf = jobs_pb2.StatEntry
 
 
-class FindSpec(rdfvalue.RDFProtoStruct):
+class FindSpec(structs.RDFProtoStruct):
   """A find specification."""
   protobuf = jobs_pb2.FindSpec
 
@@ -655,52 +656,52 @@ class FindSpec(rdfvalue.RDFProtoStruct):
                        "path regex and an empty data regex")
 
 
-class LogMessage(rdfvalue.RDFProtoStruct):
+class LogMessage(structs.RDFProtoStruct):
   """A log message sent from the client to the server."""
   protobuf = jobs_pb2.PrintStr
 
 
-class EchoRequest(rdfvalue.RDFProtoStruct):
+class EchoRequest(structs.RDFProtoStruct):
   protobuf = jobs_pb2.PrintStr
 
 
-class ExecuteBinaryRequest(rdfvalue.RDFProtoStruct):
+class ExecuteBinaryRequest(structs.RDFProtoStruct):
   protobuf = jobs_pb2.ExecuteBinaryRequest
 
 
-class ExecuteBinaryResponse(rdfvalue.RDFProtoStruct):
+class ExecuteBinaryResponse(structs.RDFProtoStruct):
   protobuf = jobs_pb2.ExecuteBinaryResponse
 
 
-class ExecutePythonRequest(rdfvalue.RDFProtoStruct):
+class ExecutePythonRequest(structs.RDFProtoStruct):
   protobuf = jobs_pb2.ExecutePythonRequest
 
 
-class ExecutePythonResponse(rdfvalue.RDFProtoStruct):
+class ExecutePythonResponse(structs.RDFProtoStruct):
   protobuf = jobs_pb2.ExecutePythonResponse
 
 
-class ExecuteRequest(rdfvalue.RDFProtoStruct):
+class ExecuteRequest(structs.RDFProtoStruct):
   protobuf = jobs_pb2.ExecuteRequest
 
 
-class CopyPathToFileRequest(rdfvalue.RDFProtoStruct):
+class CopyPathToFileRequest(structs.RDFProtoStruct):
   protobuf = jobs_pb2.CopyPathToFile
 
 
-class ExecuteResponse(rdfvalue.RDFProtoStruct):
+class ExecuteResponse(structs.RDFProtoStruct):
   protobuf = jobs_pb2.ExecuteResponse
 
 
-class Uname(rdfvalue.RDFProtoStruct):
+class Uname(structs.RDFProtoStruct):
   protobuf = jobs_pb2.Uname
 
 
-class StartupInfo(rdfvalue.RDFProtoStruct):
+class StartupInfo(structs.RDFProtoStruct):
   protobuf = jobs_pb2.StartupInfo
 
 
-class SendFileRequest(rdfvalue.RDFProtoStruct):
+class SendFileRequest(structs.RDFProtoStruct):
   protobuf = jobs_pb2.SendFileRequest
 
   def Validate(self):
@@ -710,22 +711,22 @@ class SendFileRequest(rdfvalue.RDFProtoStruct):
       raise ValueError("A host must be specified.")
 
 
-class ListDirRequest(rdfvalue.RDFProtoStruct):
+class ListDirRequest(structs.RDFProtoStruct):
   protobuf = jobs_pb2.ListDirRequest
 
 
-class FingerprintTuple(rdfvalue.RDFProtoStruct):
+class FingerprintTuple(structs.RDFProtoStruct):
   protobuf = jobs_pb2.FingerprintTuple
 
 
-class FingerprintRequest(rdfvalue.RDFProtoStruct):
+class FingerprintRequest(structs.RDFProtoStruct):
   protobuf = jobs_pb2.FingerprintRequest
 
   def AddRequest(self, *args, **kw):
     self.tuples.Append(*args, **kw)
 
 
-class FingerprintResponse(rdfvalue.RDFProtoStruct):
+class FingerprintResponse(structs.RDFProtoStruct):
   """Proto containing dicts with hashes."""
   protobuf = jobs_pb2.FingerprintResponse
 
@@ -736,38 +737,38 @@ class FingerprintResponse(rdfvalue.RDFProtoStruct):
         return result
 
 
-class GrepSpec(rdfvalue.RDFProtoStruct):
+class GrepSpec(structs.RDFProtoStruct):
   protobuf = jobs_pb2.GrepSpec
 
   def Validate(self):
     self.target.Validate()
 
 
-class BareGrepSpec(rdfvalue.RDFProtoStruct):
+class BareGrepSpec(structs.RDFProtoStruct):
   """A GrepSpec without a target."""
   protobuf = flows_pb2.BareGrepSpec
 
 
-class WMIRequest(rdfvalue.RDFProtoStruct):
+class WMIRequest(structs.RDFProtoStruct):
   protobuf = jobs_pb2.WmiRequest
 
 
-class WindowsServiceInformation(rdfvalue.RDFProtoStruct):
+class WindowsServiceInformation(structs.RDFProtoStruct):
   """Windows Service."""
   protobuf = sysinfo_pb2.WindowsServiceInformation
 
 
-class OSXServiceInformation(rdfvalue.RDFProtoStruct):
+class OSXServiceInformation(structs.RDFProtoStruct):
   """OSX Service (launchagent/daemon)."""
   protobuf = sysinfo_pb2.OSXServiceInformation
 
 
-class LinuxServiceInformation(rdfvalue.RDFProtoStruct):
+class LinuxServiceInformation(structs.RDFProtoStruct):
   """Linux Service (init/upstart/systemd)."""
   protobuf = sysinfo_pb2.LinuxServiceInformation
 
 
-class ClientResources(rdfvalue.RDFProtoStruct):
+class ClientResources(structs.RDFProtoStruct):
   """An RDFValue class representing the client resource usage."""
   protobuf = jobs_pb2.ClientResources
 
@@ -775,12 +776,12 @@ class ClientResources(rdfvalue.RDFProtoStruct):
                       RDFURN=rdfvalue.RDFURN)
 
 
-class StatFSRequest(rdfvalue.RDFProtoStruct):
+class StatFSRequest(structs.RDFProtoStruct):
   protobuf = jobs_pb2.StatFSRequest
 
 
 # Start of the Registry Specific Data types
-class RunKey(rdfvalue.RDFProtoStruct):
+class RunKey(structs.RDFProtoStruct):
   protobuf = sysinfo_pb2.RunKey
 
 
@@ -789,7 +790,7 @@ class RunKeyEntry(protodict.RDFValueArray):
   rdf_type = RunKey
 
 
-class MRUFile(rdfvalue.RDFProtoStruct):
+class MRUFile(structs.RDFProtoStruct):
   protobuf = sysinfo_pb2.MRUFile
 
 
@@ -798,7 +799,7 @@ class MRUFolder(protodict.RDFValueArray):
   rdf_type = MRUFile
 
 
-class AFF4ObjectSummary(rdfvalue.RDFProtoStruct):
+class AFF4ObjectSummary(structs.RDFProtoStruct):
   """A summary of an AFF4 object.
 
   AFF4Collection objects maintain a list of AFF4 objects. To make it easier to
@@ -811,16 +812,31 @@ class AFF4ObjectSummary(rdfvalue.RDFProtoStruct):
   protobuf = jobs_pb2.AFF4ObjectSummary
 
 
-class ClientCrash(rdfvalue.RDFProtoStruct):
+class ClientCrash(structs.RDFProtoStruct):
   """Details of a client crash."""
   protobuf = jobs_pb2.ClientCrash
 
 
-class ClientSummary(rdfvalue.RDFProtoStruct):
+class ClientSummary(structs.RDFProtoStruct):
   """Object containing client's summary data."""
   protobuf = jobs_pb2.ClientSummary
 
 
-class GetClientStatsRequest(rdfvalue.RDFProtoStruct):
+class GetClientStatsRequest(structs.RDFProtoStruct):
   """Request for GetClientStats action."""
   protobuf = jobs_pb2.GetClientStatsRequest
+
+
+class URI(structs.RDFProtoStruct):
+  """Represets a URI on the client."""
+  protobuf = sysinfo_pb2.URI
+
+  def URIFromString(self, url_to_parse):
+    url = urlparse.urlparse(url_to_parse)
+
+    self.transport = url.scheme
+    self.host = url.netloc
+    self.path = url.path
+    self.query = url.query
+    self.fragment = url.fragment
+

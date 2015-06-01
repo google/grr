@@ -19,7 +19,7 @@ from grr.lib import rdfvalue
 class ArtifactListRenderer(forms.MultiSelectListRenderer):
   """Renderer for listing the available Artifacts."""
 
-  type = rdfvalue.ArtifactName
+  type = artifact_lib.ArtifactName
 
   artifact_template = ("""
           <div id='{{unique|escape}}_artifact_description'>

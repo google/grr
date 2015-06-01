@@ -6,7 +6,8 @@ import time
 
 from grr.lib import aff4
 from grr.lib import flow
-from grr.lib import rdfvalue
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 # TODO(user): This needs a test...
@@ -30,9 +31,9 @@ class TakeScreenshot(flow.GRRFlow):
     self.state.Register("new_urn", "")
     # TODO(user): Add support for non-constrained parameters so file can be
     # random/hidden.
-    cmd = rdfvalue.ExecuteRequest(cmd="/usr/sbin/screencapture",
-                                  args=["-x", "-t", "jpg", self.state.sspath],
-                                  time_limit=15)
+    cmd = rdf_client.ExecuteRequest(cmd="/usr/sbin/screencapture",
+                                    args=["-x", "-t", "jpg", self.state.sspath],
+                                    time_limit=15)
     self.CallClient("ExecuteCommand", cmd, next_state="RetrieveFile")
 
   @flow.StateHandler(next_state=["ProcessFile"])
@@ -42,8 +43,8 @@ class TakeScreenshot(flow.GRRFlow):
     if not responses.success or responses.First().exit_status != 0:
       raise flow.FlowError("Capture failed to run." % responses.status)
 
-    pathspec = rdfvalue.PathSpec(pathtype=rdfvalue.PathSpec.PathType.OS,
-                                 path=self.state.sspath)
+    pathspec = rdf_paths.PathSpec(pathtype=rdf_paths.PathSpec.PathType.OS,
+                                  path=self.state.sspath)
     self.CallFlow("GetFile", next_state="ProcessFile",
                   pathspec=pathspec)
 
@@ -68,9 +69,9 @@ class TakeScreenshot(flow.GRRFlow):
     fd.Write(content)
     fd.Close()
 
-    cmd = rdfvalue.ExecuteRequest(cmd="/bin/rm",
-                                  args=["-f", self.state.sspath],
-                                  time_limit=15)
+    cmd = rdf_client.ExecuteRequest(cmd="/bin/rm",
+                                    args=["-f", self.state.sspath],
+                                    time_limit=15)
     self.CallClient("ExecuteCommand", cmd, next_state="FinishedRemove")
 
   @flow.StateHandler()

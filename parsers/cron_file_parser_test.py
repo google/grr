@@ -5,8 +5,9 @@ import os
 
 
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
 from grr.parsers import cron_file_parser
 
 
@@ -21,10 +22,10 @@ class TestCronTabParsing(test_lib.GRRBaseTest):
 
     path = os.path.join(self.base_path, "crontab")
     plist_file = open(path)
-    stat = rdfvalue.StatEntry(
-        aff4path=rdfvalue.ClientURN(client).Add("fs/os").Add(path),
-        pathspec=rdfvalue.PathSpec(path=path,
-                                   pathtype=rdfvalue.PathSpec.PathType.OS),
+    stat = rdf_client.StatEntry(
+        aff4path=rdf_client.ClientURN(client).Add("fs/os").Add(path),
+        pathspec=rdf_paths.PathSpec(path=path,
+                                    pathtype=rdf_paths.PathSpec.PathType.OS),
         st_mode=16877)
     results.extend(list(parser.Parse(stat, plist_file, None)))
 

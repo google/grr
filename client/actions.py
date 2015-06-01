@@ -16,8 +16,8 @@ from grr.client import client_utils
 from grr.lib import flags
 from grr.lib import registry
 from grr.lib import utils
-from grr.lib.rdfvalues import flows
-from grr.lib.rdfvalues import protodict
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import protodict as rdf_protodict
 
 
 # Our first response in the session is this:
@@ -62,7 +62,7 @@ class ActionPlugin(object):
 
   __metaclass__ = registry.MetaclassRegistry
 
-  priority = flows.GrrMessage.Priority.MEDIUM_PRIORITY
+  priority = rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY
 
   require_fastpoll = True
 
@@ -79,8 +79,8 @@ class ActionPlugin(object):
     self.response_id = INITIAL_RESPONSE_ID
     self.cpu_used = None
     self.nanny_controller = None
-    self.status = flows.GrrStatus(
-        status=flows.GrrStatus.ReturnedStatus.OK)
+    self.status = rdf_flows.GrrStatus(
+        status=rdf_flows.GrrStatus.ReturnedStatus.OK)
 
   def Execute(self, message):
     """This function parses the RDFValue from the server.
@@ -119,7 +119,7 @@ class ActionPlugin(object):
       # Only allow authenticated messages in the client
       if (self._authentication_required and
           self.message.auth_state !=
-          flows.GrrMessage.AuthorizationState.AUTHENTICATED):
+          rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED):
         raise RuntimeError("Message for %s was not Authenticated." %
                            self.message.name)
 
@@ -143,14 +143,14 @@ class ActionPlugin(object):
         self.cpu_used = (user_end - user_start, system_end - system_start)
 
     except NetworkBytesExceededError as e:
-      self.SetStatus(flows.GrrStatus.ReturnedStatus.NETWORK_LIMIT_EXCEEDED,
+      self.SetStatus(rdf_flows.GrrStatus.ReturnedStatus.NETWORK_LIMIT_EXCEEDED,
                      "%r: %s" % (e, e),
                      traceback.format_exc())
 
     # We want to report back all errors and map Python exceptions to
     # Grr Errors.
     except Exception as e:  # pylint: disable=broad-except
-      self.SetStatus(flows.GrrStatus.ReturnedStatus.GENERIC_ERROR,
+      self.SetStatus(rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR,
                      "%r: %s" % (e, e),
                      traceback.format_exc())
 
@@ -158,7 +158,7 @@ class ActionPlugin(object):
         self.DisableNanny()
         pdb.post_mortem()
 
-    if self.status.status != flows.GrrStatus.ReturnedStatus.OK:
+    if self.status.status != rdf_flows.GrrStatus.ReturnedStatus.OK:
       logging.info("Job Error (%s): %s", self.__class__.__name__,
                    self.status.error_message)
 
@@ -170,7 +170,7 @@ class ActionPlugin(object):
       self.status.cpu_time_used.system_cpu_time = self.cpu_used[1]
 
     # This returns the error status of the Actions to the flow.
-    self.SendReply(self.status, message_type=flows.GrrMessage.Type.STATUS)
+    self.SendReply(self.status, message_type=rdf_flows.GrrMessage.Type.STATUS)
 
   def Run(self, unused_args):
     """Main plugin entry point.
@@ -194,7 +194,7 @@ class ActionPlugin(object):
       self.status.backtrace = utils.SmartUnicode(backtrace)
 
   def SendReply(self, rdf_value=None,
-                message_type=flows.GrrMessage.Type.MESSAGE, **kw):
+                message_type=rdf_flows.GrrMessage.Type.MESSAGE, **kw):
     """Send response back to the server."""
     if rdf_value is None:
       rdf_value = self.out_rdfvalue(**kw)  # pylint: disable=not-callable
@@ -290,11 +290,11 @@ class IteratedAction(ActionPlugin):
     self.Iterate(request, client_state)
 
     # Update the iterator client_state from the dict.
-    request.iterator.client_state = protodict.Dict(client_state)
+    request.iterator.client_state = rdf_protodict.Dict(client_state)
 
     # Return the iterator
     self.SendReply(request.iterator,
-                   message_type=flows.GrrMessage.Type.ITERATOR)
+                   message_type=rdf_flows.GrrMessage.Type.ITERATOR)
 
   def Iterate(self, request, client_state):
     """Actions should override this."""
@@ -447,7 +447,7 @@ class SuspendableAction(ActionPlugin):
 
     # Return the iterator
     self.SendReply(self.request.iterator,
-                   message_type=flows.GrrMessage.Type.ITERATOR)
+                   message_type=rdf_flows.GrrMessage.Type.ITERATOR)
 
   def Done(self):
     # Let the server know we finished.

@@ -5,9 +5,10 @@ import StringIO
 
 
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.checks import checks_test_lib
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
 from grr.parsers import linux_file_parser
 
 
@@ -49,8 +50,8 @@ class LoginPolicyConfigurationTests(checks_test_lib.HostCheckTest):
       stats = []
       files = []
       for path, lines in login.items():
-        p = rdfvalue.PathSpec(path=path)
-        stats.append(rdfvalue.StatEntry(pathspec=p))
+        p = rdf_paths.PathSpec(path=path)
+        stats.append(rdf_client.StatEntry(pathspec=p))
         files.append(StringIO.StringIO(lines))
       parser = linux_file_parser.LinuxSystemPasswdParser()
       rdfs = list(parser.ParseMultiple(stats, files, None))

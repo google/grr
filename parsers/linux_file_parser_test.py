@@ -10,10 +10,12 @@ import StringIO
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import parsers
-from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.flows.general import file_finder
+from grr.lib.rdfvalues import anomaly as rdf_anomaly
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
 from grr.parsers import linux_file_parser
 
 
@@ -29,8 +31,8 @@ user2:x:1001:1001:User2 Name,,,:/home/user2:/bin/bash
 """
     out = list(parser.Parse(None, StringIO.StringIO(dat), None))
     self.assertEqual(len(out), 2)
-    self.assertTrue(isinstance(out[1], rdfvalue.KnowledgeBaseUser))
-    self.assertTrue(isinstance(out[1], rdfvalue.KnowledgeBaseUser))
+    self.assertTrue(isinstance(out[1], rdf_client.KnowledgeBaseUser))
+    self.assertTrue(isinstance(out[1], rdf_client.KnowledgeBaseUser))
     self.assertEqual(out[0].username, "user1")
     self.assertEqual(out[0].full_name, "User1 Name,,,")
     dat = """
@@ -44,17 +46,17 @@ user2:x:1001:1001:User2 Name,,,:/home/user
   def testPasswdBufferParser(self):
     """Ensure we can extract users from a passwd file."""
     parser = linux_file_parser.PasswdBufferParser()
-    buf1 = rdfvalue.BufferReference(data="user1:x:1000:1000:User1"
-                                    " Name,,,:/home/user1:/bin/bash\n")
+    buf1 = rdf_client.BufferReference(data="user1:x:1000:1000:User1"
+                                      " Name,,,:/home/user1:/bin/bash\n")
 
-    buf2 = rdfvalue.BufferReference(data="user2:x:1000:1000:User2"
-                                    " Name,,,:/home/user2:/bin/bash\n")
+    buf2 = rdf_client.BufferReference(data="user2:x:1000:1000:User2"
+                                      " Name,,,:/home/user2:/bin/bash\n")
 
     ff_result = file_finder.FileFinderResult(matches=[buf1, buf2])
     out = list(parser.Parse(ff_result, None))
     self.assertEqual(len(out), 2)
-    self.assertTrue(isinstance(out[1], rdfvalue.KnowledgeBaseUser))
-    self.assertTrue(isinstance(out[1], rdfvalue.KnowledgeBaseUser))
+    self.assertTrue(isinstance(out[1], rdf_client.KnowledgeBaseUser))
+    self.assertTrue(isinstance(out[1], rdf_client.KnowledgeBaseUser))
     self.assertEqual(out[0].username, "user1")
     self.assertEqual(out[0].full_name, "User1 Name,,,")
 
@@ -76,7 +78,7 @@ super_group3 (-,user5,) (-,user6,) group1 group2
     out = list(parser.Parse(None, dat_fd, None))
     users = []
     for result in out:
-      if isinstance(result, rdfvalue.Anomaly):
+      if isinstance(result, rdf_anomaly.Anomaly):
         self.assertTrue(utils.SmartUnicode(u"文德文") in result.symptom)
       else:
         users.append(result)
@@ -94,12 +96,12 @@ super_group3 (-,user5,) (-,user6,) group1 group2
   def testNetgroupBufferParser(self):
     """Ensure we can extract users from a netgroup file."""
     parser = linux_file_parser.NetgroupBufferParser()
-    buf1 = rdfvalue.BufferReference(data="group1 (-,user1,) (-,user2,) "
-                                    "(-,user3,)\n")
-    buf2 = rdfvalue.BufferReference(data="super_group3 (-,user5,) (-,user6,)"
-                                    " group1 group2\n")
+    buf1 = rdf_client.BufferReference(data="group1 (-,user1,) (-,user2,) "
+                                      "(-,user3,)\n")
+    buf2 = rdf_client.BufferReference(data="super_group3 (-,user5,) (-,user6,)"
+                                      " group1 group2\n")
 
-    ff_result = rdfvalue.FileFinderResult(matches=[buf1, buf2])
+    ff_result = file_finder.FileFinderResult(matches=[buf1, buf2])
     config_lib.CONFIG.Set("Artifacts.netgroup_user_blacklist", ["user2",
                                                                 "user3"])
     out = list(parser.Parse(ff_result, None))
@@ -146,8 +148,8 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
     stats = []
     files = []
     for path in ["/etc/passwd", "/etc/shadow", "/etc/group", "/etc/gshadow"]:
-      p = rdfvalue.PathSpec(path=path)
-      stats.append(rdfvalue.StatEntry(pathspec=p))
+      p = rdf_paths.PathSpec(path=path)
+      stats.append(rdf_client.StatEntry(pathspec=p))
     for data in passwd, shadow, group, gshadow:
       if data is None:
         data = []
@@ -165,7 +167,7 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
     stats, files = self._GenFiles(passwd, shadow, group, gshadow)
     parser = linux_file_parser.LinuxSystemPasswdParser()
     rdfs = parser.ParseMultiple(stats, files, None)
-    results = [r for r in rdfs if isinstance(r, rdfvalue.Anomaly)]
+    results = [r for r in rdfs if isinstance(r, rdf_anomaly.Anomaly)]
     self.assertFalse(results)
 
   def testSystemGroupParserAnomaly(self):
@@ -183,11 +185,11 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
     group = {"symptom": "Mismatched group and gshadow files.",
              "finding": ["Present in group, missing in gshadow: adm"],
              "type": "PARSER_ANOMALY"}
-    expected = [rdfvalue.Anomaly(**member), rdfvalue.Anomaly(**group)]
+    expected = [rdf_anomaly.Anomaly(**member), rdf_anomaly.Anomaly(**group)]
 
     parser = linux_file_parser.LinuxSystemGroupParser()
     rdfs = parser.ParseMultiple(stats, files, None)
-    results = [r for r in rdfs if isinstance(r, rdfvalue.Anomaly)]
+    results = [r for r in rdfs if isinstance(r, rdf_anomaly.Anomaly)]
 
     self.assertEqual(len(expected), len(results))
     for expect, result in zip(expected, results):
@@ -219,12 +221,12 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
                 "finding": ["Present in passwd, missing in shadow: miss",
                             "Present in shadow, missing in passwd: ok"],
                 "type": "PARSER_ANOMALY"}
-    expected = [rdfvalue.Anomaly(**no_grp), rdfvalue.Anomaly(**uid),
-                rdfvalue.Anomaly(**gid), rdfvalue.Anomaly(**no_match)]
+    expected = [rdf_anomaly.Anomaly(**no_grp), rdf_anomaly.Anomaly(**uid),
+                rdf_anomaly.Anomaly(**gid), rdf_anomaly.Anomaly(**no_match)]
 
     parser = linux_file_parser.LinuxSystemPasswdParser()
     rdfs = parser.ParseMultiple(stats, files, None)
-    results = [r for r in rdfs if isinstance(r, rdfvalue.Anomaly)]
+    results = [r for r in rdfs if isinstance(r, rdf_anomaly.Anomaly)]
 
     self.assertEqual(len(expected), len(results))
     for expect, result in zip(expected, results):
@@ -234,13 +236,13 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
       self.assertEqual(expect.type, result.type)
 
   def GetExpectedUser(self, algo, user_store, group_store):
-    user = rdfvalue.KnowledgeBaseUser(username="user", full_name="User",
-                                      uid="1001", gid="1001",
-                                      homedir="/home/user", shell="/bin/bash")
-    user.pw_entry = rdfvalue.PwEntry(store=user_store, hash_type=algo)
+    user = rdf_client.KnowledgeBaseUser(username="user", full_name="User",
+                                        uid="1001", gid="1001",
+                                        homedir="/home/user", shell="/bin/bash")
+    user.pw_entry = rdf_client.PwEntry(store=user_store, hash_type=algo)
     user.gids = [1001]
-    grp = rdfvalue.Group(gid=1001, members=["user"], name="user")
-    grp.pw_entry = rdfvalue.PwEntry(store=group_store, hash_type=algo)
+    grp = rdf_client.Group(gid=1001, members=["user"], name="user")
+    grp.pw_entry = rdf_client.PwEntry(store=group_store, hash_type=algo)
     return user, grp
 
   def CheckExpectedUser(self, algo, expect, result):
@@ -260,8 +262,8 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
     stats, files = self._GenFiles(passwd, shadow, group, gshadow)
     parser = linux_file_parser.LinuxSystemPasswdParser()
     results = list(parser.ParseMultiple(stats, files, None))
-    usrs = [r for r in results if isinstance(r, rdfvalue.KnowledgeBaseUser)]
-    grps = [r for r in results if isinstance(r, rdfvalue.Group)]
+    usrs = [r for r in results if isinstance(r, rdf_client.KnowledgeBaseUser)]
+    grps = [r for r in results if isinstance(r, rdf_client.Group)]
     self.assertEqual(1, len(usrs), "Different number of usr %s results" % algo)
     self.assertEqual(1, len(grps), "Different number of grp %s results" % algo)
     self.CheckExpectedUser(algo, usr, usrs[0])

@@ -18,6 +18,8 @@ from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import file_finder
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import flows as rdf_flows
 
 
 BUFFER_SIZE = 16 * 1024 * 1024
@@ -28,7 +30,7 @@ def GetAllClients(token=None):
   results = []
   for urn in aff4.FACTORY.Open(aff4.ROOT_URN, token=token).ListChildren():
     try:
-      results.append(rdfvalue.ClientURN(urn))
+      results.append(rdf_client.ClientURN(urn))
     except type_info.TypeValueError:
       pass
   return results
@@ -234,17 +236,17 @@ def DownloadCollection(coll_path, target_path, token=None, overwrite=False,
   for grr_message in coll:
     source = None
     # If a raw message, work out the type.
-    if isinstance(grr_message, rdfvalue.GrrMessage):
+    if isinstance(grr_message, rdf_flows.GrrMessage):
       source = grr_message.source
       grr_message = grr_message.payload
 
     # Collections can contain AFF4ObjectSummary objects which encapsulate
     # RDFURNs and StatEntrys.
-    if isinstance(grr_message, rdfvalue.AFF4ObjectSummary):
+    if isinstance(grr_message, rdf_client.AFF4ObjectSummary):
       urn = grr_message.urn
     elif isinstance(grr_message, rdfvalue.RDFURN):
       urn = grr_message
-    elif isinstance(grr_message, rdfvalue.StatEntry):
+    elif isinstance(grr_message, rdf_client.StatEntry):
       urn = rdfvalue.RDFURN(grr_message.aff4path)
     elif isinstance(grr_message, file_finder.FileFinderResult):
       urn = rdfvalue.RDFURN(grr_message.stat_entry.aff4path)
@@ -268,7 +270,7 @@ def DownloadCollection(coll_path, target_path, token=None, overwrite=False,
     client_id = urn.Split()[0]
     re_match = aff4.AFF4Object.VFSGRRClient.CLIENT_ID_RE.match(client_id)
     if dump_client_info and re_match and client_id not in completed_clients:
-      args = (rdfvalue.ClientURN(client_id), target_path, token, overwrite)
+      args = (rdf_client.ClientURN(client_id), target_path, token, overwrite)
       thread_pool.AddTask(target=DumpClientYaml, args=args,
                           name="ClientYamlDownloader")
       completed_clients.add(client_id)

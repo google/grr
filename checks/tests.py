@@ -10,4 +10,5 @@ This module loads and registers tests of check configurations.
 from grr.checks import format_test
 from grr.checks import nfs_test
 from grr.checks import services_test
+from grr.checks import speedway_test
 from grr.checks import unix_login_test

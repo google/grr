@@ -3,17 +3,14 @@
 
 
 
-# pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import,g-bad-import-order
-
 from grr.gui import api_test_lib
 from grr.gui.api_plugins import user as user_plugin
 
+from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.aff4_objects import users as aff4_users
 
 
 class ApiUserSettingsRendererTest(test_lib.GRRBaseTest):
@@ -28,11 +25,12 @@ class ApiUserSettingsRendererTest(test_lib.GRRBaseTest):
         aff4.ROOT_URN.Add("users").Add("foo"),
         aff4_type="GRRUser", mode="w", token=self.token) as user_fd:
       user_fd.Set(user_fd.Schema.GUI_SETTINGS,
-                  rdfvalue.GUISettings(mode="ADVANCED",
-                                       canary_mode=True,
-                                       docs_location="REMOTE"))
+                  aff4_users.GUISettings(mode="ADVANCED",
+                                         canary_mode=True,
+                                         docs_location="REMOTE"))
 
-    result = self.renderer.Render(None, token=rdfvalue.ACLToken(username="foo"))
+    result = self.renderer.Render(None,
+                                  token=access_control.ACLToken(username="foo"))
     self.assertEqual(result["value"]["mode"]["value"], "ADVANCED")
     self.assertEqual(result["value"]["canary_mode"]["value"], True)
     self.assertEqual(result["value"]["docs_location"]["value"], "REMOTE")
@@ -50,7 +48,7 @@ class ApiUserSettingsRendererRegresstionTest(
           aff4.ROOT_URN.Add("users").Add(self.token.username),
           aff4_type="GRRUser", mode="w", token=self.token) as user_fd:
         user_fd.Set(user_fd.Schema.GUI_SETTINGS,
-                    rdfvalue.GUISettings(canary_mode=True))
+                    aff4_users.GUISettings(canary_mode=True))
 
     self.Check("GET", "/api/users/me/settings")
 
@@ -63,13 +61,13 @@ class ApiSetUserSettingsRendererTest(test_lib.GRRBaseTest):
     self.renderer = user_plugin.ApiSetUserSettingsRenderer()
 
   def testSetsSettingsForUserCorrespondingToToken(self):
-    settings = rdfvalue.GUISettings(mode="ADVANCED",
-                                    canary_mode=True,
-                                    docs_location="REMOTE")
+    settings = aff4_users.GUISettings(mode="ADVANCED",
+                                      canary_mode=True,
+                                      docs_location="REMOTE")
 
     # Render the request - effectively applying the settings for user "foo".
     result = self.renderer.Render(settings,
-                                  token=rdfvalue.ACLToken(username="foo"))
+                                  token=access_control.ACLToken(username="foo"))
     self.assertEqual(result["status"], "OK")
 
     # Check that settings for user "foo" were applied.

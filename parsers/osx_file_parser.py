@@ -9,7 +9,8 @@ import stat
 
 from binplist import binplist
 from grr.lib import parsers
-from grr.lib import rdfvalue
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import plist as rdf_plist
 
 
 class OSXUsersParser(parsers.ArtifactFilesParser):
@@ -28,8 +29,8 @@ class OSXUsersParser(parsers.ArtifactFilesParser):
         homedir = stat_entry.pathspec.path
         username = os.path.basename(homedir)
         if username not in self.blacklist:
-          yield rdfvalue.KnowledgeBaseUser(username=username,
-                                           homedir=homedir)
+          yield rdf_client.KnowledgeBaseUser(username=username,
+                                             homedir=homedir)
 
 
 class OSXSPHardwareDataTypeParser(parsers.CommandParser):
@@ -53,7 +54,7 @@ class OSXSPHardwareDataTypeParser(parsers.CommandParser):
     hardware_list = plist[0]["_items"][0]
     serial_number = hardware_list["serial_number"]
 
-    yield rdfvalue.HardwareInfo(serial_number=serial_number)
+    yield rdf_client.HardwareInfo(serial_number=serial_number)
 
 
 class OSXLaunchdPlistParser(parsers.FileParser):
@@ -128,31 +129,31 @@ class OSXLaunchdPlistParser(parsers.FileParser):
         keepalivedict["PathState"] = []
         for pathstate in pathstates:
           keepalivedict["PathState"].append(
-              rdfvalue.PlistBoolDictEntry(name=pathstate,
-                                          value=pathstates[pathstate]))
+              rdf_plist.PlistBoolDictEntry(name=pathstate,
+                                           value=pathstates[pathstate]))
 
       otherjobs = keepalive.get("OtherJobEnabled")
       if otherjobs is not None:
         keepalivedict["OtherJobEnabled"] = []
         for otherjob in otherjobs:
           keepalivedict["OtherJobEnabled"].append(
-              rdfvalue.PlistBoolDictEntry(name=otherjob,
-                                          value=otherjobs[otherjob]))
-      kwargs["KeepAliveDict"] = rdfvalue.LaunchdKeepAlive(**keepalivedict)
+              rdf_plist.PlistBoolDictEntry(name=otherjob,
+                                           value=otherjobs[otherjob]))
+      kwargs["KeepAliveDict"] = rdf_plist.LaunchdKeepAlive(**keepalivedict)
 
     envvars = plist.get("EnvironmentVariables")
     if envvars is not None:
       kwargs["EnvironmentVariables"] = []
       for envvar in envvars:
         kwargs["EnvironmentVariables"].append(
-            rdfvalue.PlistStringDictEntry(name=envvar,
-                                          value=envvars[envvar]))
+            rdf_plist.PlistStringDictEntry(name=envvar,
+                                           value=envvars[envvar]))
 
     startcalendarinterval = plist.get("StartCalendarInterval")
     if startcalendarinterval is not None:
       if isinstance(startcalendarinterval, dict):
         kwargs["StartCalendarInterval"] = [
-            rdfvalue.LaunchdStartCalendarIntervalEntry(
+            rdf_plist.LaunchdStartCalendarIntervalEntry(
                 Minute=startcalendarinterval.get("Minute"),
                 Hour=startcalendarinterval.get("Hour"),
                 Day=startcalendarinterval.get("Day"),
@@ -162,11 +163,11 @@ class OSXLaunchdPlistParser(parsers.FileParser):
         kwargs["StartCalendarInterval"] = []
         for entry in startcalendarinterval:
           kwargs["StartCalendarInterval"].append(
-              rdfvalue.LaunchdStartCalendarIntervalEntry(
+              rdf_plist.LaunchdStartCalendarIntervalEntry(
                   Minute=entry.get("Minute"),
                   Hour=entry.get("Hour"),
                   Day=entry.get("Day"),
                   Weekday=entry.get("Weekday"),
                   Month=entry.get("Month")))
 
-    yield rdfvalue.LaunchdPlist(**kwargs)
+    yield rdf_plist.LaunchdPlist(**kwargs)

@@ -11,13 +11,14 @@ from grr.gui import api_value_renderers
 from grr.lib import aff4
 from grr.lib import client_index
 from grr.lib import flow
-from grr.lib import rdfvalue
 from grr.lib import utils
+
+from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import api_pb2
 
 
-class ApiClientSearchRendererArgs(rdfvalue.RDFProtoStruct):
+class ApiClientSearchRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiClientSearchRendererArgs
 
 
@@ -42,7 +43,7 @@ class ApiClientSearchRenderer(api_call_renderers.ApiCallRenderer):
 
     for child in result_set:
       rendered_client = api_aff4_object_renderers.RenderAFF4Object(
-          child, [rdfvalue.ApiAFF4ObjectRendererArgs(
+          child, [api_aff4_object_renderers.ApiAFF4ObjectRendererArgs(
               type_info="WITH_TYPES_AND_METADATA")])
       rendered_clients.append(rendered_client)
 
@@ -52,7 +53,7 @@ class ApiClientSearchRenderer(api_call_renderers.ApiCallRenderer):
                 items=rendered_clients)
 
 
-class ApiClientSummaryRendererArgs(rdfvalue.RDFProtoStruct):
+class ApiClientSummaryRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiClientSummaryRendererArgs
 
 
@@ -66,11 +67,11 @@ class ApiClientSummaryRenderer(api_call_renderers.ApiCallRenderer):
                                token=token)
 
     return api_aff4_object_renderers.RenderAFF4Object(
-        client, [rdfvalue.ApiAFF4ObjectRendererArgs(
+        client, [api_aff4_object_renderers.ApiAFF4ObjectRendererArgs(
             type_info="WITH_TYPES_AND_METADATA")])
 
 
-class ApiClientsAddLabelsRendererArgs(rdfvalue.RDFProtoStruct):
+class ApiClientsAddLabelsRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiClientsAddLabelsRendererArgs
 
 
@@ -99,7 +100,7 @@ class ApiClientsAddLabelsRenderer(api_call_renderers.ApiCallRenderer):
         client_obj.Close()
 
         audit_events.append(
-            rdfvalue.AuditEvent(
+            flow.AuditEvent(
                 user=token.username, action="CLIENT_ADD_LABEL",
                 flow_name="renderer.ApiClientsAddLabelsRenderer",
                 client=client_obj.urn, description=audit_description))
@@ -110,7 +111,7 @@ class ApiClientsAddLabelsRenderer(api_call_renderers.ApiCallRenderer):
                                         token=token)
 
 
-class ApiClientsRemoveLabelsRendererArgs(rdfvalue.RDFProtoStruct):
+class ApiClientsRemoveLabelsRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiClientsRemoveLabelsRendererArgs
 
 
@@ -152,7 +153,7 @@ class ApiClientsRemoveLabelsRenderer(api_call_renderers.ApiCallRenderer):
         client_obj.Close()
 
         audit_events.append(
-            rdfvalue.AuditEvent(
+            flow.AuditEvent(
                 user=token.username, action="CLIENT_REMOVE_LABEL",
                 flow_name="renderer.ApiClientsRemoveLabelsRenderer",
                 client=client_obj.urn, description=audit_description))
@@ -178,7 +179,7 @@ class ApiClientsLabelsListRenderer(api_call_renderers.ApiCallRenderer):
     return dict(labels=sorted(rendered_labels))
 
 
-class ApiFlowStatusRendererArgs(rdfvalue.RDFProtoStruct):
+class ApiFlowStatusRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiFlowStatusRendererArgs
 
 

@@ -10,6 +10,7 @@ from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import stats as aff4_stats
+from grr.lib.rdfvalues import client as rdf_client
 
 
 class ShowStatistics(renderers.Splitter2WayVertical):
@@ -371,7 +372,7 @@ class AFF4ClientStats(Report):
   def Layout(self, request, response):
     """This renders graphs for the various client statistics."""
 
-    self.client_id = rdfvalue.ClientURN(request.REQ.get("client_id"))
+    self.client_id = rdf_client.ClientURN(request.REQ.get("client_id"))
 
     self.start_time, self.end_time = GetAgeTupleFromRequest(request, 90)
     fd = aff4.FACTORY.Open(self.client_id.Add("stats"), token=request.token,

@@ -4,15 +4,14 @@
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flow
-from grr.lib import rdfvalue
 from grr.lib import utils
-# pylint: disable=unused-import
 from grr.lib.aff4_objects import timeline
-# pylint: enable=unused-import
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 
 
-class MACTimesArgs(rdfvalue.RDFProtoStruct):
+class MACTimesArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.MACTimesArgs
 
 
@@ -67,8 +66,8 @@ class MACTimes(flow.GRRFlow):
     for subject, values in data_store.DB.MultiResolveRegex(
         child_urns, attribute.predicate, token=self.token, limit=10000000):
       for _, serialized, _ in values:
-        stat = rdfvalue.StatEntry(serialized)
-        event = rdfvalue.Event(source=utils.SmartUnicode(subject),
+        stat = rdf_client.StatEntry(serialized)
+        event = timeline.Event(source=utils.SmartUnicode(subject),
                                stat=stat)
 
         # Add a new event for each MAC time if it exists.

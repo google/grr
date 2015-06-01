@@ -4,7 +4,7 @@
 import os
 
 # to have artifacts to test pylint: disable=unused-import
-from grr.lib import artifact
+from grr.lib import artifact as _
 # pylint: enable=unused-import
 from grr.lib import artifact_lib
 from grr.lib import artifact_registry
@@ -14,7 +14,8 @@ from grr.lib import parsers
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
-from grr.lib.rdfvalues import artifacts as rdf_artifacts
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import test_base as rdf_test_base
 
 
 class ArtifactHandlingTest(test_lib.GRRBaseTest):
@@ -60,7 +61,7 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
 
     results = artifact_registry.ArtifactRegistry.GetArtifacts(
         os_name="Windows",
-        source_type=rdf_artifacts.ArtifactSource.SourceType.REGISTRY_VALUE,
+        source_type=artifact_lib.ArtifactSource.SourceType.REGISTRY_VALUE,
         name_list=["DepsProvidesMultiple"])
     self.assertEqual(results.pop().name, "DepsProvidesMultiple")
 
@@ -165,7 +166,7 @@ class ArtifactKBTest(test_lib.GRRBaseTest):
 
   def testInterpolation(self):
     """Check we can interpolate values from the knowledge base."""
-    kb = rdfvalue.KnowledgeBase()
+    kb = rdf_client.KnowledgeBase()
 
     # No users yet, this should raise
     self.assertRaises(artifact_lib.KnowledgeBaseInterpolationError, list,
@@ -173,8 +174,8 @@ class ArtifactKBTest(test_lib.GRRBaseTest):
                           "test%%users.username%%test", kb))
 
     # Now we have two users
-    kb.users.Append(rdfvalue.KnowledgeBaseUser(username="joe", uid=1))
-    kb.users.Append(rdfvalue.KnowledgeBaseUser(username="jim", uid=2))
+    kb.users.Append(rdf_client.KnowledgeBaseUser(username="joe", uid=1))
+    kb.users.Append(rdf_client.KnowledgeBaseUser(username="jim", uid=2))
     kb.Set("environ_allusersprofile", "c:\\programdata")
 
     paths = artifact_lib.InterpolateKbAttributes("test%%users.username%%test",
@@ -207,7 +208,7 @@ class ArtifactKBTest(test_lib.GRRBaseTest):
     # One user has users.temp defined, the others do not.  This is common on
     # windows where users have been created but have never logged in. We should
     # get just one value back.
-    kb.users.Append(rdfvalue.KnowledgeBaseUser(
+    kb.users.Append(rdf_client.KnowledgeBaseUser(
         username="jason", uid=1, temp="C:\\Users\\jason\\AppData\\Local\\Temp"))
     paths = artifact_lib.InterpolateKbAttributes(
         r"%%users.temp%%\abcd", kb)
@@ -226,7 +227,7 @@ class ArtifactParserTest(test_lib.GRRBaseTest):
                                             processor)
 
       for output_type in processor.output_types:
-        if not hasattr(rdfvalue, output_type):
+        if output_type not in rdfvalue.RDFValue.classes:
           raise parsers.ParserDefinitionError(
               "Parser %s has an output type that is an unknown type %s" %
               (processor, output_type))
@@ -236,26 +237,29 @@ class KnowledgeBaseUserMergeTest(test_lib.GRRBaseTest):
 
   def testUserMergeWindows(self):
     """Check Windows users are accurately merged."""
-    kb = rdfvalue.KnowledgeBase()
+    kb = rdf_client.KnowledgeBase()
     self.assertEqual(len(kb.users), 0)
-    kb.MergeOrAddUser(rdfvalue.KnowledgeBaseUser(sid="1234"))
+    kb.MergeOrAddUser(rdf_client.KnowledgeBaseUser(sid="1234"))
     self.assertEqual(len(kb.users), 1)
-    kb.MergeOrAddUser(rdfvalue.KnowledgeBaseUser(sid="5678", username="test1"))
+    kb.MergeOrAddUser(rdf_client.KnowledgeBaseUser(sid="5678",
+                                                   username="test1"))
     self.assertEqual(len(kb.users), 2)
 
     _, conflicts = kb.MergeOrAddUser(
-        rdfvalue.KnowledgeBaseUser(sid="5678", username="test2"))
+        rdf_client.KnowledgeBaseUser(sid="5678", username="test2"))
     self.assertEqual(len(kb.users), 2)
     self.assertEqual(conflicts[0], ("username", "test1", "test2"))
     self.assertEqual(kb.GetUser(sid="5678").username, "test2")
 
     # This should merge on user name as we have no other data.
-    kb.MergeOrAddUser(rdfvalue.KnowledgeBaseUser(username="test2", homedir="a"))
+    kb.MergeOrAddUser(rdf_client.KnowledgeBaseUser(username="test2",
+                                                   homedir="a"))
     self.assertEqual(len(kb.users), 2)
 
     # This should create a new user since the sid is different.
     new_attrs, conflicts = kb.MergeOrAddUser(
-        rdfvalue.KnowledgeBaseUser(username="test2", sid="12345", temp="/blah"))
+        rdf_client.KnowledgeBaseUser(username="test2", sid="12345",
+                                     temp="/blah"))
     self.assertEqual(len(kb.users), 3)
     self.assertItemsEqual(new_attrs, ["users.username", "users.temp",
                                       "users.sid"])
@@ -263,35 +267,134 @@ class KnowledgeBaseUserMergeTest(test_lib.GRRBaseTest):
 
   def testUserMergeLinux(self):
     """Check Linux users are accurately merged."""
-    kb = rdfvalue.KnowledgeBase()
+    kb = rdf_client.KnowledgeBase()
     self.assertEqual(len(kb.users), 0)
-    kb.MergeOrAddUser(rdfvalue.KnowledgeBaseUser(username="blake",
-                                                 last_logon=1111))
+    kb.MergeOrAddUser(rdf_client.KnowledgeBaseUser(username="blake",
+                                                   last_logon=1111))
     self.assertEqual(len(kb.users), 1)
     # This should merge since the username is the same.
-    kb.MergeOrAddUser(rdfvalue.KnowledgeBaseUser(uid="12", username="blake"))
+    kb.MergeOrAddUser(rdf_client.KnowledgeBaseUser(uid="12", username="blake"))
     self.assertEqual(len(kb.users), 1)
 
     # This should create a new record because the uid is different
     kb.MergeOrAddUser(
-        rdfvalue.KnowledgeBaseUser(username="blake",
-                                   uid="13", desktop="/home/blake/Desktop"))
+        rdf_client.KnowledgeBaseUser(username="blake",
+                                     uid="13", desktop="/home/blake/Desktop"))
     self.assertEqual(len(kb.users), 2)
 
     kb.MergeOrAddUser(
-        rdfvalue.KnowledgeBaseUser(username="newblake",
-                                   uid="14", desktop="/home/blake/Desktop"))
+        rdf_client.KnowledgeBaseUser(username="newblake",
+                                     uid="14", desktop="/home/blake/Desktop"))
 
     self.assertEqual(len(kb.users), 3)
 
     # Check merging where we don't specify uid works
     new_attrs, conflicts = kb.MergeOrAddUser(
-        rdfvalue.KnowledgeBaseUser(username="newblake",
-                                   desktop="/home/blakey/Desktop"))
+        rdf_client.KnowledgeBaseUser(username="newblake",
+                                     desktop="/home/blakey/Desktop"))
     self.assertEqual(len(kb.users), 3)
     self.assertItemsEqual(new_attrs, ["users.username", "users.desktop"])
     self.assertItemsEqual(conflicts, [("desktop", u"/home/blake/Desktop",
                                        u"/home/blakey/Desktop")])
+
+
+class ArtifactTests(rdf_test_base.RDFValueTestCase):
+  """Test the Artifact implementation."""
+
+  rdfvalue_class = artifact_lib.Artifact
+
+  def GenerateSample(self, number=0):
+    result = artifact_lib.Artifact(name="artifact%s" % number,
+                                   doc="Doco",
+                                   provides="environ_windir",
+                                   supported_os="Windows",
+                                   urls="http://blah")
+    return result
+
+  def testGetArtifactPathDependencies(self):
+    sources = [
+        {"type": artifact_lib.ArtifactSource.SourceType.REGISTRY_KEY,
+         "attributes": {
+             "keys": [r"%%current_control_set%%\Control\Session "
+                      r"Manager\Environment\Path"]}},
+        {"type": artifact_lib.ArtifactSource.SourceType.WMI,
+         "attributes": {
+             "query": "SELECT * FROM Win32_UserProfile "
+                      "WHERE SID='%%users.sid%%'"}},
+        {"type": artifact_lib.ArtifactSource.SourceType.GREP,
+         "attributes": {
+             "content_regex_list": ["^%%users.username%%:"]}}]
+
+    artifact = artifact_lib.Artifact(name="artifact", doc="Doco",
+                                     provides=["environ_windir"],
+                                     supported_os=["Windows"],
+                                     urls=["http://blah"],
+                                     sources=sources)
+
+    self.assertItemsEqual(
+        [x["type"] for x in artifact.ToPrimitiveDict()["sources"]],
+        ["REGISTRY_KEY", "WMI", "GREP"])
+
+    class Parser1(object):
+      knowledgebase_dependencies = ["appdata", "sid"]
+
+    class Parser2(object):
+      knowledgebase_dependencies = ["sid", "desktop"]
+
+    @classmethod
+    def MockGetClassesByArtifact(unused_cls, _):
+      return [Parser1, Parser2]
+
+    with utils.Stubber(parsers.Parser, "GetClassesByArtifact",
+                       MockGetClassesByArtifact):
+      self.assertItemsEqual(artifact.GetArtifactPathDependencies(),
+                            ["appdata", "sid", "desktop", "current_control_set",
+                             "users.sid", "users.username"])
+
+  def testValidateSyntax(self):
+    sources = [
+        {"type": artifact_lib.ArtifactSource.SourceType.REGISTRY_KEY,
+         "attributes": {
+             "keys": [r"%%current_control_set%%\Control\Session "
+                      r"Manager\Environment\Path"]}},
+        {"type": artifact_lib.ArtifactSource.SourceType.FILE,
+         "attributes": {
+             "paths": [r"%%environ_systemdrive%%\Temp"]}}]
+
+    artifact = artifact_lib.Artifact(name="good", doc="Doco",
+                                     provides=["environ_windir"],
+                                     supported_os=["Windows"],
+                                     urls=["http://blah"],
+                                     sources=sources)
+    artifact.ValidateSyntax()
+
+  def testValidateSyntaxBadProvides(self):
+    sources = [
+        {"type": artifact_lib.ArtifactSource.SourceType.FILE,
+         "attributes": {
+             "paths": [r"%%environ_systemdrive%%\Temp"]}}]
+
+    artifact = artifact_lib.Artifact(name="bad", doc="Doco",
+                                     provides=["windir"],
+                                     supported_os=["Windows"],
+                                     urls=["http://blah"],
+                                     sources=sources)
+    with self.assertRaises(artifact_registry.ArtifactDefinitionError):
+      artifact.ValidateSyntax()
+
+  def testValidateSyntaxBadPathDependency(self):
+    sources = [
+        {"type": artifact_lib.ArtifactSource.SourceType.FILE,
+         "attributes": {
+             "paths": [r"%%systemdrive%%\Temp"]}}]
+
+    artifact = artifact_lib.Artifact(name="bad", doc="Doco",
+                                     provides=["environ_windir"],
+                                     supported_os=["Windows"],
+                                     urls=["http://blah"],
+                                     sources=sources)
+    with self.assertRaises(artifact_registry.ArtifactDefinitionError):
+      artifact.ValidateSyntax()
 
 
 def main(argv):

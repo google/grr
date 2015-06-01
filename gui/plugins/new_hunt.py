@@ -15,10 +15,11 @@ from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import flow_runner
 from grr.lib import output_plugin
-from grr.lib import rdfvalue
 from grr.lib import type_info
-
 from grr.lib.hunts import implementation
+from grr.lib.hunts import standard
+from grr.lib.rdfvalues import aff4_rdfvalues
+from grr.lib.rdfvalues import foreman as rdf_foreman
 
 
 class HuntArgsParser(object):
@@ -39,9 +40,9 @@ class HuntArgsParser(object):
 
     for option in ConfigureHuntRules().ParseArgs(self.request):
       # Options can be either regex or integer rules.
-      if option.__class__ is rdfvalue.ForemanAttributeRegex:
+      if option.__class__ is rdf_foreman.ForemanAttributeRegex:
         hunt_runner_args.regex_rules.Append(option)
-      elif option.__class__ is rdfvalue.ForemanAttributeInteger:
+      elif option.__class__ is rdf_foreman.ForemanAttributeInteger:
         hunt_runner_args.integer_rules.Append(option)
 
   def ParseFlowArgs(self):
@@ -74,7 +75,7 @@ class HuntArgsParser(object):
       return self.hunt_runner_args
 
     self.hunt_runner_args = forms.SemanticProtoFormRenderer(
-        rdfvalue.HuntRunnerArgs(), prefix="hunt_runner").ParseArgs(
+        implementation.HuntRunnerArgs(), prefix="hunt_runner").ParseArgs(
             self.request)
 
     self.hunt_runner_args.hunt_name = "GenericHunt"
@@ -91,7 +92,7 @@ class HuntArgsParser(object):
 
     flow_runner_args, flow_args = self.ParseFlowArgs()
 
-    self.hunt_args = rdfvalue.GenericHuntArgs(
+    self.hunt_args = standard.GenericHuntArgs(
         flow_runner_args=flow_runner_args,
         flow_args=flow_args,
         output_plugins=self.ParseOutputPlugins())
@@ -166,7 +167,7 @@ class HuntFlowForm(flow_management.SemanticProtoFlowForm):
     self.flow_name = os.path.basename(self.flow_path)
 
     hunt_runner_form = forms.SemanticProtoFormRenderer(
-        rdfvalue.HuntRunnerArgs(), id=self.id,
+        implementation.HuntRunnerArgs(), id=self.id,
         supressions=self.suppressions, prefix="hunt_runner")
 
     self.hunt_params_form = hunt_runner_form.RawHTML(request)
@@ -315,13 +316,13 @@ This rule will match all <strong>{{system}}</strong> systems.
     elif option == "Regex":
       return self.RenderFromTemplate(
           self.form_template, response, form=forms.SemanticProtoFormRenderer(
-              rdfvalue.ForemanAttributeRegex(),
+              rdf_foreman.ForemanAttributeRegex(),
               prefix=self.prefix).RawHTML(request))
 
     elif option == "Integer":
       return self.RenderFromTemplate(
           self.form_template, response, form=forms.SemanticProtoFormRenderer(
-              rdfvalue.ForemanAttributeInteger(),
+              rdf_foreman.ForemanAttributeInteger(),
               prefix=self.prefix).RawHTML(request))
 
   def ParseOption(self, option, request):
@@ -339,21 +340,21 @@ This rule will match all <strong>{{system}}</strong> systems.
       label_name = ClientLabelNameFormRenderer(
           descriptor=type_info.TypeInfoObject(),
           default="", prefix=self.prefix).ParseArgs(request)
-      regex = rdfvalue.AFF4ObjectLabelsList.RegexForStringifiedValueMatch(
+      regex = aff4_rdfvalues.AFF4ObjectLabelsList.RegexForStringifiedValueMatch(
           label_name)
 
-      return rdfvalue.ForemanAttributeRegex(
+      return rdf_foreman.ForemanAttributeRegex(
           attribute_name="Labels",
           attribute_regex=regex)
 
     elif option == "Regex":
       return forms.SemanticProtoFormRenderer(
-          rdfvalue.ForemanAttributeRegex(),
+          rdf_foreman.ForemanAttributeRegex(),
           prefix=self.prefix).ParseArgs(request)
 
     elif option == "Integer":
       return forms.SemanticProtoFormRenderer(
-          rdfvalue.ForemanAttributeInteger(),
+          rdf_foreman.ForemanAttributeInteger(),
           prefix=self.prefix).ParseArgs(request)
 
 

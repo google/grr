@@ -4,8 +4,9 @@
 import logging
 from grr.lib import lexer
 from grr.lib import parsers
-from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.parsers import config_file
 
 
@@ -74,7 +75,7 @@ class LinuxLSBInitParser(parsers.FileParser):
     for path, file_obj in init_files:
       init = init_lexer.ParseEntries(file_obj.read(100000))
       if init:
-        service = rdfvalue.LinuxServiceInformation()
+        service = rdf_client.LinuxServiceInformation()
         service.name = init.get("provides")
         service.start_mode = "INIT"
         service.start_on = init.get("default-start").split()
@@ -194,11 +195,11 @@ class LinuxXinetdParser(parsers.FileParser):
       elif operator == "-":
         vals = default.difference(vals)
       merged[option] = list(vals)
-    return rdfvalue.AttributedDict(**merged)
+    return rdf_protodict.AttributedDict(**merged)
 
   def _GenService(self, name, cfg):
     # Merge the config values.
-    service = rdfvalue.LinuxServiceInformation(name=name)
+    service = rdf_client.LinuxServiceInformation(name=name)
     service.config = self._GenConfig(cfg)
     if service.config.disable == ["no"]:
       service.starts = True
@@ -217,4 +218,3 @@ class LinuxXinetdParser(parsers.FileParser):
       yield self._GenService(name, cfg)
 
 # TODO(user): Other service startup tools, e.g. upstart, systemd, inetd
-

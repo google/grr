@@ -8,8 +8,13 @@
 from google.protobuf import descriptor_pool
 from google.protobuf import message_factory
 
+from grr.lib import flags
 from grr.lib import rdfvalue
+from grr.lib import test_lib
 from grr.lib import type_info
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs
 from grr.lib.rdfvalues import test_base
 
@@ -87,7 +92,7 @@ class DynamicTypeTest(structs.RDFProtoStruct):
           description="A dynamic value based on another field."),
 
       type_info.ProtoEmbedded(name="nested", field_number=3,
-                              nested=rdfvalue.User)
+                              nested=rdf_client.User)
   )
 
 
@@ -142,10 +147,10 @@ class RDFStructsTest(test_base.RDFValueTestCase):
     # Now let's define an RDFProtoStruct for the dynamically generated
     # proto_class.
     new_dynamic_class = type("DynamicTypeTestReversed",
-                             (rdfvalue.RDFProtoStruct,),
+                             (structs.RDFProtoStruct,),
                              dict(protobuf=proto_class))
     new_dynamic_instance = new_dynamic_class(
-        type="foo", nested=rdfvalue.User(username="bar"))
+        type="foo", nested=rdf_client.User(username="bar"))
     self.assertEqual(new_dynamic_instance.type, "foo")
     self.assertEqual(new_dynamic_instance.nested.username, "bar")
 
@@ -292,13 +297,13 @@ class RDFStructsTest(test_base.RDFValueTestCase):
     self.assertEqual(tested.type, 4)
 
   def testCacheInvalidation(self):
-    path = rdfvalue.PathSpec(path="/", pathtype=rdfvalue.PathSpec.PathType.OS)
+    path = rdf_paths.PathSpec(path="/", pathtype=rdf_paths.PathSpec.PathType.OS)
     for x in "01234":
-      path.last.Append(path=x, pathtype=rdfvalue.PathSpec.PathType.OS)
+      path.last.Append(path=x, pathtype=rdf_paths.PathSpec.PathType.OS)
 
     serialized = path.SerializeToString()
 
-    path = rdfvalue.PathSpec(serialized)
+    path = rdf_paths.PathSpec(serialized)
 
     # At this point the wire format cache is fully populated (since the proto
     # had been parsed). We change a deeply nested member.
@@ -311,7 +316,7 @@ class RDFStructsTest(test_base.RDFValueTestCase):
 
   def testWireFormatAccess(self):
 
-    m = rdfvalue.SignedMessageList()
+    m = rdf_flows.SignedMessageList()
 
     now = 1369308998000000
 
@@ -420,12 +425,12 @@ class RDFStructsTest(test_base.RDFValueTestCase):
     self.assertEqual(type(tested.repeated[0]), UndefinedRDFValue2)
 
   def testRDFValueParsing(self):
-    stat = rdfvalue.StatEntry.protobuf(st_mode=16877)
+    stat = rdf_client.StatEntry.protobuf(st_mode=16877)
     data = stat.SerializeToString()
 
-    result = rdfvalue.StatEntry(data)
+    result = rdf_client.StatEntry(data)
 
-    self.assertTrue(isinstance(result.st_mode, rdfvalue.StatMode))
+    self.assertTrue(isinstance(result.st_mode, rdf_client.StatMode))
 
   def testDefaults(self):
     """Accessing a field which does not exist returns a default."""
@@ -447,3 +452,11 @@ class RDFStructsTest(test_base.RDFValueTestCase):
     self.assertEqual(tested.nested.urn, "www.google.com")
     self.assertTrue(tested.HasField("nested"))
     self.assertFalse(tested.nested.HasField("urn"))
+
+
+def main(argv):
+  test_lib.GrrTestProgram(argv=argv)
+
+
+if __name__ == "__main__":
+  flags.StartMain(main)

@@ -33,13 +33,17 @@ from grr.lib import stats
 from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.aff4_objects import collections as aff4_collections
-from grr.lib.rdfvalues import foreman as foreman_rdf
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import foreman as rdf_foreman
 from grr.lib.rdfvalues import hunts
-from grr.lib.rdfvalues import stats as stats_rdf
+from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.lib.rdfvalues import stats as rdf_stats
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 
 
-class HuntRunnerArgs(rdfvalue.RDFProtoStruct):
+class HuntRunnerArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.HuntRunnerArgs
 
   def Validate(self):
@@ -163,9 +167,9 @@ class HuntRunner(flow_runner.FlowRunner):
 
     logs_collection = self.OpenLogsCollection(self.args.logs_collection_urn)
     logs_collection.Add(
-        rdfvalue.FlowLog(client_id=None, urn=self.session_id,
-                         flow_name=self.flow_obj.__class__.__name__,
-                         log_message=status))
+        rdf_flows.FlowLog(client_id=None, urn=self.session_id,
+                          flow_name=self.flow_obj.__class__.__name__,
+                          log_message=status))
     logs_collection.Flush()
 
   def Error(self, backtrace, client_id=None):
@@ -197,7 +201,7 @@ class HuntRunner(flow_runner.FlowRunner):
     context = utils.DataObject(
         args=args,
         backtrace=None,
-        client_resources=rdfvalue.ClientResources(),
+        client_resources=rdf_client.ClientResources(),
         create_time=rdfvalue.RDFDatetime().Now(),
         creator=self.token.username,
         expires=rdfvalue.RDFDatetime().Now(),
@@ -212,10 +216,9 @@ class HuntRunner(flow_runner.FlowRunner):
         outstanding_requests=0,
         current_state=None,
         start_time=rdfvalue.RDFDatetime().Now(),
-
         # Hunts are always in the running state.
-        state=rdfvalue.Flow.State.RUNNING,
-        usage_stats=stats_rdf.ClientResourcesStats(),
+        state=rdf_flows.Flow.State.RUNNING,
+        usage_stats=rdf_stats.ClientResourcesStats(),
         remaining_cpu_quota=args.cpu_limit,
     )
 
@@ -277,7 +280,7 @@ class HuntRunner(flow_runner.FlowRunner):
       return
 
     # Add a new rule to the foreman
-    foreman_rule = foreman_rdf.ForemanRule(
+    foreman_rule = rdf_foreman.ForemanRule(
         created=rdfvalue.RDFDatetime().Now(),
         expires=self.context.expires,
         description="Hunt %s %s" % (self.session_id,
@@ -422,32 +425,32 @@ class HuntRunner(flow_runner.FlowRunner):
     # Now we construct a special response which will be sent to the hunt
     # flow. Randomize the request_id so we do not overwrite other messages in
     # the queue.
-    request_state = rdfvalue.RequestState(id=utils.PRNG.GetULong(),
-                                          session_id=self.context.session_id,
-                                          client_id=client_id,
-                                          next_state=next_state)
+    request_state = rdf_flows.RequestState(id=utils.PRNG.GetULong(),
+                                           session_id=self.context.session_id,
+                                           client_id=client_id,
+                                           next_state=next_state)
 
     if request_data:
-      request_state.data = rdfvalue.Dict().FromDict(request_data)
+      request_state.data = rdf_protodict.Dict().FromDict(request_data)
 
     self.QueueRequest(request_state, timestamp=start_time)
 
     # Add the status message if needed.
-    if not messages or not isinstance(messages[-1], rdfvalue.GrrStatus):
-      messages.append(rdfvalue.GrrStatus())
+    if not messages or not isinstance(messages[-1], rdf_flows.GrrStatus):
+      messages.append(rdf_flows.GrrStatus())
 
     # Send all the messages
     for i, payload in enumerate(messages):
       if isinstance(payload, rdfvalue.RDFValue):
-        msg = rdfvalue.GrrMessage(
+        msg = rdf_flows.GrrMessage(
             session_id=self.session_id, request_id=request_state.id,
             response_id=1 + i,
-            auth_state=rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED,
+            auth_state=rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED,
             payload=payload,
-            type=rdfvalue.GrrMessage.Type.MESSAGE)
+            type=rdf_flows.GrrMessage.Type.MESSAGE)
 
-        if isinstance(payload, rdfvalue.GrrStatus):
-          msg.type = rdfvalue.GrrMessage.Type.STATUS
+        if isinstance(payload, rdf_flows.GrrStatus):
+          msg.type = rdf_flows.GrrMessage.Type.STATUS
       else:
         raise flow_runner.FlowRunnerError("Bad message %s of type %s." %
                                           (payload, type(payload)))
@@ -455,8 +458,8 @@ class HuntRunner(flow_runner.FlowRunner):
       self.QueueResponse(msg, timestamp=start_time)
 
     # Add the status message if needed.
-    if not messages or not isinstance(messages[-1], rdfvalue.GrrStatus):
-      messages.append(rdfvalue.GrrStatus())
+    if not messages or not isinstance(messages[-1], rdf_flows.GrrStatus):
+      messages.append(rdf_flows.GrrStatus())
 
     # Notify the worker about it.
     self.QueueNotification(session_id=self.session_id, timestamp=start_time)
@@ -466,11 +469,11 @@ class GRRHunt(flow.GRRFlow):
   """The GRR Hunt class."""
 
   # Some common rules.
-  MATCH_WINDOWS = foreman_rdf.ForemanAttributeRegex(attribute_name="System",
+  MATCH_WINDOWS = rdf_foreman.ForemanAttributeRegex(attribute_name="System",
                                                     attribute_regex="Windows")
-  MATCH_LINUX = foreman_rdf.ForemanAttributeRegex(attribute_name="System",
+  MATCH_LINUX = rdf_foreman.ForemanAttributeRegex(attribute_name="System",
                                                   attribute_regex="Linux")
-  MATCH_DARWIN = foreman_rdf.ForemanAttributeRegex(attribute_name="System",
+  MATCH_DARWIN = rdf_foreman.ForemanAttributeRegex(attribute_name="System",
                                                    attribute_regex="Darwin")
 
   class SchemaCls(flow.GRRFlow.SchemaCls):
@@ -555,8 +558,8 @@ class GRRHunt(flow.GRRFlow):
                                 self.completed_clients_collection_urn)
 
   def RegisterClientError(self, client_id, log_message=None, backtrace=None):
-    error = rdfvalue.HuntError(client_id=client_id,
-                               backtrace=backtrace)
+    error = rdf_flows.HuntError(client_id=client_id,
+                                backtrace=backtrace)
     if log_message:
       error.log_message = utils.SmartUnicode(log_message)
 
@@ -622,10 +625,11 @@ class GRRHunt(flow.GRRFlow):
     except AttributeError:
       flow_name = ""
 
-    event = rdfvalue.AuditEvent(user=runner_args.token.username,
-                                action="HUNT_CREATED", urn=hunt_obj.urn,
-                                flow_name=flow_name,
-                                description=runner_args.description)
+    event = flow.AuditEvent(user=runner_args.token.username,
+                            action="HUNT_CREATED",
+                            urn=hunt_obj.urn,
+                            flow_name=flow_name,
+                            description=runner_args.description)
     flow.Events.PublishEvent("Audit", event, token=runner_args.token)
 
     return hunt_obj
@@ -649,21 +653,21 @@ class GRRHunt(flow.GRRFlow):
         # Now we construct a special response which will be sent to the hunt
         # flow. Randomize the request_id so we do not overwrite other messages
         # in the queue.
-        state = rdfvalue.RequestState(id=utils.PRNG.GetULong(),
-                                      session_id=hunt_id,
-                                      client_id=client_id,
-                                      next_state="AddClient")
+        state = rdf_flows.RequestState(id=utils.PRNG.GetULong(),
+                                       session_id=hunt_id,
+                                       client_id=client_id,
+                                       next_state="AddClient")
 
         # Queue the new request.
         flow_manager.QueueRequest(hunt_id, state)
 
         # Send a response.
-        msg = rdfvalue.GrrMessage(
+        msg = rdf_flows.GrrMessage(
             session_id=hunt_id,
             request_id=state.id, response_id=1,
-            auth_state=rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED,
-            type=rdfvalue.GrrMessage.Type.STATUS,
-            payload=rdfvalue.GrrStatus())
+            auth_state=rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED,
+            type=rdf_flows.GrrMessage.Type.STATUS,
+            payload=rdf_flows.GrrStatus())
 
         flow_manager.QueueResponse(hunt_id, msg)
 
@@ -687,7 +691,7 @@ class GRRHunt(flow.GRRFlow):
       with self.lock:
         self.processed_responses = True
 
-        msgs = [rdfvalue.GrrMessage(payload=response, source=client_id)
+        msgs = [rdf_flows.GrrMessage(payload=response, source=client_id)
                 for response in responses]
         aff4.ResultsOutputCollection.AddToCollection(
             self.state.context.results_collection_urn, msgs,
@@ -763,13 +767,13 @@ class GRRHunt(flow.GRRFlow):
 
         value = int(client.Get(aff4.Attribute.NAMES[i.attribute_name]))
         op = i.operator
-        if op == foreman_rdf.ForemanAttributeInteger.Operator.LESS_THAN:
+        if op == rdf_foreman.ForemanAttributeInteger.Operator.LESS_THAN:
           if value >= i.value:
             return False
-        elif op == foreman_rdf.ForemanAttributeInteger.Operator.GREATER_THAN:
+        elif op == rdf_foreman.ForemanAttributeInteger.Operator.GREATER_THAN:
           if value <= i.value:
             return False
-        elif op == foreman_rdf.ForemanAttributeInteger.Operator.EQUAL:
+        elif op == rdf_foreman.ForemanAttributeInteger.Operator.EQUAL:
           if value != i.value:
             return False
         else:
@@ -840,7 +844,7 @@ class GRRHunt(flow.GRRFlow):
         self.state.context.results_metadata_urn, "HuntResultsMetadata",
         mode="rw", token=self.token) as results_metadata:
 
-      state = rdfvalue.FlowState()
+      state = rdf_flows.FlowState()
       try:
         plugins_descriptors = self.state.args.output_plugins
       except AttributeError:

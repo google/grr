@@ -79,7 +79,7 @@ PyObject *py_varint_encode(PyObject *self, PyObject *args) {
 
 int varint_decode(unsigned PY_LONG_LONG *result,
                   const char *buffer, Py_ssize_t length,
-                  Py_ssize_t *next_pos) {
+                  Py_ssize_t *decoded_length) {
   Py_ssize_t pos = 0;
   unsigned int shift = 0;
 
@@ -91,8 +91,8 @@ int varint_decode(unsigned PY_LONG_LONG *result,
     pos++;
 
     if ( (b & 0x80) == 0 ) {
-      if (next_pos) {
-        *next_pos = pos;
+      if (decoded_length) {
+        *decoded_length = pos;
       }
       return 1;
     }
@@ -156,16 +156,16 @@ PyObject *py_split_buffer(PyObject *self, PyObject *args, PyObject *kwargs) {
   // We advance the buffer and decrement the length until there is no more
   // buffer space left.
   while (length > 0) {
-    Py_ssize_t data_index = 0;
+    Py_ssize_t decoded_length = 0;
     unsigned PY_LONG_LONG tag;
 
     // Read the tag off the buffer.
-    varint_decode(&tag, buffer, length, &data_index);
+    varint_decode(&tag, buffer, length, &decoded_length);
 
     // Prepare to pass the encoded tag into the result tuple.
-    encoded_tag = PyString_FromStringAndSize(buffer, data_index);
-    buffer += data_index;
-    length -= data_index;
+    encoded_tag = PyString_FromStringAndSize(buffer, decoded_length);
+    buffer += decoded_length;
+    length -= decoded_length;
 
     // Handle the tag depending on its type.
     int tag_type = tag & TAG_TYPE_MASK;
@@ -255,12 +255,12 @@ PyObject *py_split_buffer(PyObject *self, PyObject *args, PyObject *kwargs) {
       case WIRETYPE_LENGTH_DELIMITED: {
         // Decode the length varint and position ourselves at the start of the
         // data.
-        Py_ssize_t data_offset = 0;
+        Py_ssize_t decoded_length = 0;
         unsigned PY_LONG_LONG data_size;
-        varint_decode(&data_size, buffer, length, &data_offset);
+        varint_decode(&data_size, buffer, length, &decoded_length);
 
         // Check that we do not exceed the available buffer here.
-        if (data_size + data_offset > (unsigned int)length) {
+        if (data_size + decoded_length > (unsigned int)length) {
           PyErr_SetString(
               PyExc_ValueError, "Length tag exceeds available buffer.");
 
@@ -274,17 +274,17 @@ PyObject *py_split_buffer(PyObject *self, PyObject *args, PyObject *kwargs) {
         // Empty string "".
         PyTuple_SET_ITEM(
             entry, 1,
-            PyString_FromStringAndSize(buffer, data_offset));
+            PyString_FromStringAndSize(buffer, decoded_length));
 
         PyTuple_SET_ITEM(
             entry, 2,
-            PyString_FromStringAndSize(buffer + data_offset, data_size));
+            PyString_FromStringAndSize(buffer + decoded_length, data_size));
 
         PyList_Append(result, entry);
         Py_DECREF(entry);
 
-        buffer += data_offset + data_size;
-        length -= data_offset + data_size;
+        buffer += decoded_length + data_size;
+        length -= decoded_length + data_size;
 
         break;
       }

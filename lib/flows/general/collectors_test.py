@@ -8,6 +8,7 @@ from grr.client import vfs
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import artifact
+from grr.lib import artifact_lib
 from grr.lib import artifact_registry
 from grr.lib import artifact_test
 from grr.lib import flags
@@ -19,6 +20,8 @@ from grr.lib.flows.general import artifact_fallbacks
 from grr.lib.flows.general import collectors
 # pylint: enable=unused-import
 from grr.lib.flows.general import transfer
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
 from grr.test_data import client_fixture
 
 # pylint: mode=test
@@ -61,14 +64,14 @@ class TestArtifactCollectors(CollectorTest):
   def testInterpolateArgs(self):
     collect_flow = collectors.ArtifactCollectorFlow(None, token=self.token)
 
-    collect_flow.state.Register("knowledge_base", rdfvalue.KnowledgeBase())
+    collect_flow.state.Register("knowledge_base", rdf_client.KnowledgeBase())
     collect_flow.current_artifact_name = "blah"
     collect_flow.state.knowledge_base.MergeOrAddUser(
-        rdfvalue.KnowledgeBaseUser(username="test1"))
+        rdf_client.KnowledgeBaseUser(username="test1"))
     collect_flow.state.knowledge_base.MergeOrAddUser(
-        rdfvalue.KnowledgeBaseUser(username="test2"))
+        rdf_client.KnowledgeBaseUser(username="test2"))
 
-    test_rdf = rdfvalue.KnowledgeBase()
+    test_rdf = rdf_client.KnowledgeBase()
     action_args = {"usernames": ["%%users.username%%", "%%users.username%%"],
                    "nointerp": "asdfsdf", "notastring": test_rdf}
     kwargs = collect_flow.InterpolateDict(action_args)
@@ -113,18 +116,18 @@ class TestArtifactCollectors(CollectorTest):
                        mock_call_flow.CallFlow):
 
       collect_flow = collectors.ArtifactCollectorFlow(None, token=self.token)
-      collect_flow.state.Register("knowledge_base", rdfvalue.KnowledgeBase())
+      collect_flow.state.Register("knowledge_base", rdf_client.KnowledgeBase())
       collect_flow.current_artifact_name = "blah"
       collect_flow.state.knowledge_base.MergeOrAddUser(
-          rdfvalue.KnowledgeBaseUser(username="test1"))
+          rdf_client.KnowledgeBaseUser(username="test1"))
       collect_flow.state.knowledge_base.MergeOrAddUser(
-          rdfvalue.KnowledgeBaseUser(username="test2"))
+          rdf_client.KnowledgeBaseUser(username="test2"))
 
-      collector = rdfvalue.ArtifactSource(
-          type=rdfvalue.ArtifactSource.SourceType.GREP,
+      collector = artifact_lib.ArtifactSource(
+          type=artifact_lib.ArtifactSource.SourceType.GREP,
           attributes={"paths": ["/etc/passwd"],
                       "content_regex_list": [r"^a%%users.username%%b$"]})
-      collect_flow.Grep(collector, rdfvalue.PathSpec.PathType.TSK)
+      collect_flow.Grep(collector, rdf_paths.PathSpec.PathType.TSK)
 
     conditions = mock_call_flow.kwargs["conditions"]
     self.assertEqual(len(conditions), 1)
@@ -143,8 +146,8 @@ class TestArtifactCollectors(CollectorTest):
 
     # Dynamically add a ArtifactSource specifying the base path.
     file_path = os.path.join(self.base_path, "test_img.dd")
-    coll1 = rdfvalue.ArtifactSource(
-        type=rdfvalue.ArtifactSource.SourceType.FILE,
+    coll1 = artifact_lib.ArtifactSource(
+        type=artifact_lib.ArtifactSource.SourceType.FILE,
         attributes={"paths": [file_path]})
     self.fakeartifact.sources.append(coll1)
 
@@ -169,8 +172,8 @@ class TestArtifactCollectors(CollectorTest):
     client.Set(client.Schema.SYSTEM("Linux"))
     client.Flush()
 
-    coll1 = rdfvalue.ArtifactSource(
-        type=rdfvalue.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
+    coll1 = artifact_lib.ArtifactSource(
+        type=artifact_lib.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
         attributes={"client_action": r"ListProcesses"})
     self.fakeartifact.sources.append(coll1)
     artifact_list = ["FakeArtifact"]
@@ -183,7 +186,7 @@ class TestArtifactCollectors(CollectorTest):
     # Test the AFF4 file that was created.
     fd = aff4.FACTORY.Open(rdfvalue.RDFURN(self.client_id).Add("test_artifact"),
                            token=self.token)
-    self.assertTrue(isinstance(list(fd)[0], rdfvalue.Process))
+    self.assertTrue(isinstance(list(fd)[0], rdf_client.Process))
     self.assertTrue(len(fd) > 5)
 
   def testRunGrrClientActionArtifactSplit(self):
@@ -193,8 +196,8 @@ class TestArtifactCollectors(CollectorTest):
     client.Set(client.Schema.SYSTEM("Linux"))
     client.Flush()
 
-    coll1 = rdfvalue.ArtifactSource(
-        type=rdfvalue.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
+    coll1 = artifact_lib.ArtifactSource(
+        type=artifact_lib.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
         attributes={"client_action": r"ListProcesses"})
     self.fakeartifact.sources.append(coll1)
     self.fakeartifact2.sources.append(coll1)
@@ -210,21 +213,21 @@ class TestArtifactCollectors(CollectorTest):
     fd = aff4.FACTORY.Open(rdfvalue.RDFURN(
         self.client_id).Add("test_artifact_FakeArtifact"),
                            token=self.token)
-    self.assertTrue(isinstance(list(fd)[0], rdfvalue.Process))
+    self.assertTrue(isinstance(list(fd)[0], rdf_client.Process))
     self.assertTrue(len(fd) > 5)
 
     fd = aff4.FACTORY.Open(rdfvalue.RDFURN(
         self.client_id).Add("test_artifact_FakeArtifact2"),
                            token=self.token)
     self.assertTrue(len(fd) > 5)
-    self.assertTrue(isinstance(list(fd)[0], rdfvalue.Process))
+    self.assertTrue(isinstance(list(fd)[0], rdf_client.Process))
 
   def testConditions(self):
     """Test we can get a GRR client artifact with conditions."""
     # Run with false condition.
     client_mock = action_mocks.ActionMock("ListProcesses")
-    coll1 = rdfvalue.ArtifactSource(
-        type=rdfvalue.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
+    coll1 = artifact_lib.ArtifactSource(
+        type=artifact_lib.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
         attributes={"client_action": "ListProcesses"},
         conditions=["os == 'Windows'"])
     self.fakeartifact.sources.append(coll1)
@@ -249,8 +252,8 @@ class TestArtifactCollectors(CollectorTest):
     """Test supported_os inside the collector object."""
     # Run with false condition.
     client_mock = action_mocks.ActionMock("ListProcesses")
-    coll1 = rdfvalue.ArtifactSource(
-        type=rdfvalue.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
+    coll1 = artifact_lib.ArtifactSource(
+        type=artifact_lib.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
         attributes={"client_action": "ListProcesses"}, supported_os=["Windows"])
     self.fakeartifact.sources.append(coll1)
     fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
@@ -316,9 +319,9 @@ class TestArtifactCollectorsInteractions(CollectorTest):
     client.Flush()
 
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
+        rdf_paths.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.OS] = test_lib.FakeFullVFSHandler
+        rdf_paths.PathSpec.PathType.OS] = test_lib.FakeFullVFSHandler
 
     client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
                                           "HashBuffer", "FingerprintFile",
@@ -418,12 +421,12 @@ class TestArtifactCollectorsRealArtifacts(CollectorTest):
 
     # No registry, so this should use the fallback flow
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
+        rdf_paths.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
     self._CheckDriveAndRoot()
 
     # Registry is present, so this should use the regular artifact collection
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
+        rdf_paths.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
     self._CheckDriveAndRoot()
 
   def testRunWMIComputerSystemProductArtifact(self):
@@ -443,13 +446,14 @@ class TestArtifactCollectorsRealArtifacts(CollectorTest):
         "ArtifactCollectorFlow", client_mock,
         artifact_list=["WMIComputerSystemProduct"], token=self.token,
         client_id=self.client_id,
-        dependencies=rdfvalue.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS,
+        dependencies=
+        artifact_lib.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS,
         store_results_in_aff4=True):
       pass
 
     client = aff4.FACTORY.Open(self.client_id, token=self.token,)
     hardware = client.Get(client.Schema.HARDWARE_INFO)
-    self.assertTrue(isinstance(hardware, rdfvalue.HardwareInfo))
+    self.assertTrue(isinstance(hardware, rdf_client.HardwareInfo))
     self.assertEqual(str(hardware.serial_number), "2RXYYZ1")
     self.assertEqual(str(hardware.system_manufacturer), "Dell Inc.")
 
@@ -469,7 +473,8 @@ class TestArtifactCollectorsRealArtifacts(CollectorTest):
     for _ in test_lib.TestFlowHelper(
         "ArtifactCollectorFlow", client_mock, artifact_list=["WMILogicalDisks"],
         token=self.token, client_id=self.client_id,
-        dependencies=rdfvalue.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS,
+        dependencies=
+        artifact_lib.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS,
         store_results_in_aff4=True):
       pass
 
@@ -478,7 +483,7 @@ class TestArtifactCollectorsRealArtifacts(CollectorTest):
     volumes = client.Get(client.Schema.VOLUMES)
     self.assertEqual(len(volumes), 2)
     for result in volumes:
-      self.assertTrue(isinstance(result, rdfvalue.Volume))
+      self.assertTrue(isinstance(result, rdf_client.Volume))
       self.assertTrue(result.windows.drive_letter in ["Z:", "C:"])
       if result.windows.drive_letter == "C:":
         self.assertAlmostEqual(result.FreeSpacePercent(), 76.142, delta=0.001)
@@ -495,9 +500,9 @@ class TestArtifactCollectorsRealArtifacts(CollectorTest):
     client.Flush()
 
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
+        rdf_paths.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.OS] = test_lib.FakeFullVFSHandler
+        rdf_paths.PathSpec.PathType.OS] = test_lib.FakeFullVFSHandler
 
     client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
                                           "HashBuffer", "FingerprintFile",
@@ -507,7 +512,8 @@ class TestArtifactCollectorsRealArtifacts(CollectorTest):
     for _ in test_lib.TestFlowHelper(
         "ArtifactCollectorFlow", client_mock, artifact_list=artifact_list,
         token=self.token, client_id=self.client_id,
-        dependencies=rdfvalue.ArtifactCollectorFlowArgs.Dependency.FETCH_NOW,
+        dependencies=
+        artifact_lib.ArtifactCollectorFlowArgs.Dependency.FETCH_NOW,
         output="testRetrieveDependencies"):
       pass
 

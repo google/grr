@@ -9,14 +9,15 @@ import logging
 
 from grr.client import actions
 from grr.client import vfs
-from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import flows as rdf_flows
 
 
 class Find(actions.IteratedAction):
   """Recurses through a directory returning files which match conditions."""
-  in_rdfvalue = rdfvalue.FindSpec
-  out_rdfvalue = rdfvalue.FindSpec
+  in_rdfvalue = rdf_client.FindSpec
+  out_rdfvalue = rdf_client.FindSpec
 
   # If this is true we cross filesystem boundaries.
   # This defaults to true so you can see mountpoints with ListDirectory.
@@ -39,7 +40,7 @@ class Find(actions.IteratedAction):
         # We failed to open the directory the server asked for because dir
         # doesn't exist or some other reason. So we set status and return
         # back to the caller ending the Iterator.
-        self.SetStatus(rdfvalue.GrrStatus.ReturnedStatus.IOERROR, e)
+        self.SetStatus(rdf_flows.GrrStatus.ReturnedStatus.IOERROR, e)
       else:
         # Can't open the directory we're searching, ignore the directory.
         logging.info("Find failed to ListDirectory for %s. Err: %s",
@@ -76,48 +77,6 @@ class Find(actions.IteratedAction):
     except KeyError:
       pass
 
-  def FilterFile(self, file_stat):
-    """Tests a file for filters.
-
-    Args:
-      file_stat: A StatEntry of specified file.
-
-    Returns:
-      True of the file matches all conditions, false otherwise.
-    """
-    self.Progress()
-
-    # Check timestamp
-    if file_stat.HasField("st_mtime") and (
-        file_stat.st_mtime < self.request.start_time or
-        file_stat.st_mtime > self.request.end_time):
-      return False
-
-    # File size test.
-    if file_stat.HasField("st_size") and (
-        file_stat.st_size < self.request.min_file_size or
-        file_stat.st_size > self.request.max_file_size):
-      return False
-
-    # File permissions test.
-    if self.request.HasField("perm_mode"):
-      # Apply perm_mask to hide any permissions we don't care about.
-      permissions = file_stat.st_mode & self.request.perm_mask
-      if permissions != self.request.perm_mode:
-        return False
-
-    # Filename regex test
-    if (self.request.HasField("path_regex") and
-        not self.request.path_regex.Search(file_stat.pathspec.Basename())):
-      return False
-
-    # Content regex test.
-    if (self.request.HasField("data_regex") and
-        not self.TestFileContent(file_stat)):
-      return False
-
-    return True
-
   def TestFileContent(self, file_stat):
     """Checks the file for the presence of the regular expression."""
     # Content regex check
@@ -146,19 +105,72 @@ class Find(actions.IteratedAction):
 
     return False
 
+  def BuildChecks(self, request):
+    """Parses request and returns a list of filter callables.
+
+    Each callable will be called with the StatEntry and returns True if the
+    entry should be suppressed.
+
+    Args:
+      request: A FindSpec that describes the search.
+
+    Returns:
+      a list of callables which return True if the file is to be suppressed.
+    """
+    result = []
+    if request.HasField("start_time") or request.HasField("end_time"):
+      def FilterTimestamp(file_stat, request=request):
+        return file_stat.HasField("st_mtime") and (
+            file_stat.st_mtime < request.start_time or
+            file_stat.st_mtime > request.end_time)
+
+      result.append(FilterTimestamp)
+
+    if request.HasField("min_file_size") or request.HasField("max_file_size"):
+      def FilterSize(file_stat, request=request):
+        return file_stat.HasField("st_size") and (
+            file_stat.st_size < request.min_file_size or
+            file_stat.st_size > request.max_file_size)
+
+      result.append(FilterSize)
+
+    if request.HasField("perm_mode"):
+      def FilterPerms(file_stat, request=request):
+        return (file_stat.st_mode & request.perm_mask) != request.perm_mode
+
+      result.append(FilterPerms)
+
+    if request.HasField("path_regex"):
+      regex = request.path_regex
+      def FilterPath(file_stat, regex=regex):
+        """Suppress any filename not matching the regular expression."""
+        return not regex.Search(file_stat.pathspec.Basename())
+
+      result.append(FilterPath)
+
+    if request.HasField("data_regex"):
+      def FilterData(file_stat, **_):
+        """Suppress files that do not match the content."""
+        return not self.TestFileContent(file_stat)
+
+      result.append(FilterData)
+
+    return result
+
   def Iterate(self, request, client_state):
     """Restores its way through the directory using an Iterator."""
     self.request = request
-
+    filters = self.BuildChecks(request)
     limit = request.iterator.number
 
     # TODO(user): What is a reasonable measure of work here?
     for count, f in enumerate(
         self.ListDirectory(request.pathspec, client_state)):
+      self.Progress()
 
-      # Only send the reply if the file matches all criteria
-      if self.FilterFile(f):
-        self.SendReply(rdfvalue.FindSpec(hit=f))
+      # Ignore this file if any of the checks fail.
+      if not any((check(f) for check in filters)):
+        self.SendReply(rdf_client.FindSpec(hit=f))
 
       # We only check a limited number of files in each iteration. This might
       # result in returning an empty response - but the iterator is not yet
@@ -168,13 +180,13 @@ class Find(actions.IteratedAction):
         return
 
     # End this iterator
-    request.iterator.state = rdfvalue.Iterator.State.FINISHED
+    request.iterator.state = rdf_client.Iterator.State.FINISHED
 
 
 class Grep(actions.ActionPlugin):
   """Search a file for a pattern."""
-  in_rdfvalue = rdfvalue.GrepSpec
-  out_rdfvalue = rdfvalue.BufferReference
+  in_rdfvalue = rdf_client.GrepSpec
+  out_rdfvalue = rdf_client.BufferReference
 
   def FindRegex(self, regex, data):
     """Search the data for a hit."""
@@ -317,7 +329,7 @@ class Grep(actions.ActionPlugin):
                        data=out_data, length=len(out_data),
                        pathspec=fd.pathspec)
 
-        if args.mode == rdfvalue.GrepSpec.Mode.FIRST_HIT:
+        if args.mode == rdf_client.GrepSpec.Mode.FIRST_HIT:
           return
 
         if hits >= self.HIT_LIMIT:

@@ -21,6 +21,7 @@ from grr.lib import utils
 from grr.lib.rdfvalues import proto2
 from grr.proto import semantic_pb2
 # pylint: disable=super-init-not-called
+# pylint: enable=g-import-not-at-top
 
 # We copy these here to remove dependency on the protobuf library.
 TAG_TYPE_BITS = 3  # Number of bits used to hold type info in a proto tag.
@@ -832,7 +833,7 @@ class ProtoEmbedded(ProtoType):
       self.proto_type_name = nested
 
       # Try to resolve the type it names
-      self.type = getattr(rdfvalue, nested, None)
+      self.type = rdfvalue.RDFValue.classes.get(nested, None)
 
       # We do not know about this type yet. Implement Late Binding.
       if self.type is None:
@@ -1296,7 +1297,7 @@ class ProtoRDFValue(ProtoBinary):
       self.original_proto_type_name = self.proto_type_name = rdf_type
 
       # Try to resolve the type it names
-      self.type = getattr(rdfvalue, rdf_type, None)
+      self.type = rdfvalue.RDFValue.classes.get(rdf_type, None)
 
       # We do not know about this type yet. Implement Late Binding.
       if self.type is None:
@@ -1888,7 +1889,11 @@ class RDFProtoStruct(RDFStruct):
   def _ToPrimitive(self, value):
     if isinstance(value, RepeatedFieldHelper):
       return list(self._ToPrimitive(v) for v in value)
-    elif isinstance(value, rdfvalue.Dict):
+    # Hack to avoid dependency loop. Safe because if value is a protodict.Dict,
+    # then protodict has already been loaded.
+    # TODO(user): remove this hack
+    elif "Dict" in rdfvalue.RDFValue.classes and isinstance(
+        value, rdfvalue.RDFValue.classes["Dict"]):
       new_val = value.ToDict()
       return dict((k, self._ToPrimitive(v)) for k, v in new_val.items())
     elif isinstance(value, dict):

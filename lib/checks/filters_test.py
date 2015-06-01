@@ -2,11 +2,13 @@
 """Tests for grr.lib.checks.filters."""
 import collections
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.checks import checks
 from grr.lib.checks import filters
 from grr.lib.rdfvalues import anomaly
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import protodict as rdf_protodict
 
 
 # Just a named tuple that can be used to test objectfilter expressions.
@@ -41,9 +43,9 @@ class AttrFilterTests(test_lib.GRRBaseTest):
   def testParse(self):
     filt = filters.AttrFilter()
 
-    hit1 = rdfvalue.AttributedDict(k1="hit1", k2="found1", k3=[3, 4])
-    hit2 = rdfvalue.AttributedDict(k1="hit2", k2="found2")
-    meta = rdfvalue.AttributedDict(one=hit1, two=hit2)
+    hit1 = rdf_protodict.AttributedDict(k1="hit1", k2="found1", k3=[3, 4])
+    hit2 = rdf_protodict.AttributedDict(k1="hit2", k2="found2")
+    meta = rdf_protodict.AttributedDict(one=hit1, two=hit2)
     objs = [hit1, hit2, meta]
 
     results = filt.Parse(objs, "k1 k2 one.k3")
@@ -67,9 +69,9 @@ class ItemFilterTests(test_lib.GRRBaseTest):
   def testParse(self):
     filt = filters.ItemFilter()
 
-    one = rdfvalue.AttributedDict(test1="1", test2=[2, 3])
-    foo = rdfvalue.AttributedDict(test1="foo", test2=["bar", "baz"])
-    fs = rdfvalue.Filesystem(device="/dev/sda1", mount_point="/root")
+    one = rdf_protodict.AttributedDict(test1="1", test2=[2, 3])
+    foo = rdf_protodict.AttributedDict(test1="foo", test2=["bar", "baz"])
+    fs = rdf_client.Filesystem(device="/dev/sda1", mount_point="/root")
     objs = [one, foo, fs]
 
     results = filt.Parse(objs, "test1 is '1'")
@@ -109,9 +111,9 @@ class ObjectFilterTests(test_lib.GRRBaseTest):
   def testParse(self):
     filt = filters.ObjectFilter()
 
-    hit1 = rdfvalue.AttributedDict(test="hit1")
-    hit2 = rdfvalue.AttributedDict(test="hit2")
-    miss = rdfvalue.AttributedDict(test="miss")
+    hit1 = rdf_protodict.AttributedDict(test="hit1")
+    hit2 = rdf_protodict.AttributedDict(test="hit2")
+    miss = rdf_protodict.AttributedDict(test="miss")
     objs = [hit1, hit2, miss]
     results = filt.Parse(objs, "test is 'hit1'")
     self.assertItemsEqual([hit1], results)
@@ -132,7 +134,7 @@ class RDFFilterTests(test_lib.GRRBaseTest):
 
   def testParse(self):
     filt = filters.RDFFilter()
-    cfg = rdfvalue.AttributedDict()
+    cfg = rdf_protodict.AttributedDict()
     anom = anomaly.Anomaly()
     objs = [cfg, anom]
     results = filt.Parse(objs, "KnowledgeBase")
@@ -172,12 +174,19 @@ class StatFilterTests(test_lib.GRRBaseTest):
                st_size=1024, st_atime=1336469177, st_mtime=1336129892,
                st_ctime=1336129892):
     """Generate a StatEntry RDF value."""
-    pathspec = rdfvalue.PathSpec(
-        path=path, pathtype=rdfvalue.PathSpec.PathType.OS)
-    return rdfvalue.StatEntry(pathspec=pathspec, st_mode=st_mode, st_ino=st_ino,
-                              st_dev=st_dev, st_nlink=st_nlink, st_uid=st_uid,
-                              st_gid=st_gid, st_size=st_size, st_atime=st_atime,
-                              st_mtime=st_mtime, st_ctime=st_ctime)
+    pathspec = rdf_paths.PathSpec(
+        path=path, pathtype=rdf_paths.PathSpec.PathType.OS)
+    return rdf_client.StatEntry(pathspec=pathspec,
+                                st_mode=st_mode,
+                                st_ino=st_ino,
+                                st_dev=st_dev,
+                                st_nlink=st_nlink,
+                                st_uid=st_uid,
+                                st_gid=st_gid,
+                                st_size=st_size,
+                                st_atime=st_atime,
+                                st_mtime=st_mtime,
+                                st_ctime=st_ctime)
 
   def testValidate(self):
     filt = filters.StatFilter()
@@ -190,13 +199,13 @@ class StatFilterTests(test_lib.GRRBaseTest):
 
   def testFileTypeParse(self):
     """FileType filters restrict results to specified file types."""
-    all_types = {"BLOCK": self._GenStat(st_mode=24992),        # 0060640
-                 "Character": self._GenStat(st_mode=8608),     # 0020640
-                 "directory": self._GenStat(st_mode=16873),    # 0040751
-                 "fiFO": self._GenStat(st_mode=4534),          # 0010666
-                 "REGULAR": self._GenStat(st_mode=33204),      # 0100664
-                 "socket": self._GenStat(st_mode=49568),       # 0140640
-                 "SymLink": self._GenStat(st_mode=41471)}      # 0120777
+    all_types = {"BLOCK": self._GenStat(st_mode=24992),  # 0060640
+                 "Character": self._GenStat(st_mode=8608),  # 0020640
+                 "directory": self._GenStat(st_mode=16873),  # 0040751
+                 "fiFO": self._GenStat(st_mode=4534),  # 0010666
+                 "REGULAR": self._GenStat(st_mode=33204),  # 0100664
+                 "socket": self._GenStat(st_mode=49568),  # 0140640
+                 "SymLink": self._GenStat(st_mode=41471)}  # 0120777
     filt = filters.StatFilter()
     for file_type, expected in all_types.iteritems():
       filt._Flush()
@@ -301,7 +310,7 @@ class StatFilterTests(test_lib.GRRBaseTest):
     writable = self._GenStat(
         path="/etc/shadow", st_uid=0, st_gid=0, st_mode=0100666)
     cfg = {"path": "/etc/shadow", "st_uid": 0, "st_gid": 0, "st_mode": 0100640}
-    invalid = rdfvalue.AttributedDict(**cfg)
+    invalid = rdf_protodict.AttributedDict(**cfg)
     objs = [ok, link, user, writable, invalid]
     results = filt.Parse(objs, "uid:>=0 gid:>=0")
     self.assertItemsEqual([ok, link, user, writable], results)
@@ -354,7 +363,7 @@ class HandlerTests(test_lib.GRRBaseTest):
     """Initialize one or more filters as if they were contained in a probe."""
     # The artifact isn't actually used for anything, it's just required to
     # initialize handlers.
-    probe = rdfvalue.Probe(artifact="Data", filters=filt_defs)
+    probe = checks.Probe(artifact="Data", filters=filt_defs)
     return probe.filters
 
   def testValidateFilters(self):

@@ -6,13 +6,15 @@ import re
 import stat
 
 from grr.lib import aff4
+from grr.lib import artifact_lib
 from grr.lib import flow
-from grr.lib import rdfvalue
-
 from grr.lib.aff4_objects import aff4_grr
 # pylint: disable=unused-import
 from grr.lib.flows.general import transfer
 # pylint: enable=unused-import
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 
 
@@ -34,7 +36,7 @@ def CreateAFF4Object(stat_response, client_id, token, sync=False):
   fd.Close(sync=sync)
 
 
-class ListDirectoryArgs(rdfvalue.RDFProtoStruct):
+class ListDirectoryArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ListDirectoryArgs
 
 
@@ -64,7 +66,7 @@ class ListDirectory(flow.GRRFlow):
 
     else:
       # Keep the stat response for later.
-      self.state.Register("stat", rdfvalue.StatEntry(responses.First()))
+      self.state.Register("stat", rdf_client.StatEntry(responses.First()))
       self.state.Register("directory_pathspec", self.state.stat.pathspec)
 
       # The full path of the object is the combination of the client_id and the
@@ -90,7 +92,7 @@ class ListDirectory(flow.GRRFlow):
     fd.Close(sync=False)
 
     for st in responses:
-      st = rdfvalue.StatEntry(st)
+      st = rdf_client.StatEntry(st)
       CreateAFF4Object(st, self.client_id, self.token, sync=False)
       self.SendReply(st)  # Send Stats to parent flows.
 
@@ -119,7 +121,7 @@ class IteratedListDirectory(ListDirectory):
     self.state.Register("urn", None)
 
     # We use data to pass the path to the callback:
-    self.state.Register("request", rdfvalue.ListDirRequest(
+    self.state.Register("request", rdf_client.ListDirRequest(
         pathspec=self.state.args.pathspec))
 
     # For this example we will use a really small number to force many round
@@ -163,7 +165,7 @@ class IteratedListDirectory(ListDirectory):
     fd.Close(sync=False)
 
     for st in self.state.responses:
-      st = rdfvalue.StatEntry(st)
+      st = rdf_client.StatEntry(st)
       CreateAFF4Object(st, self.client_id, self.token)
       self.SendReply(st)  # Send Stats to parent flows.
 
@@ -173,7 +175,7 @@ class IteratedListDirectory(ListDirectory):
         self.state.args.pathspec))
 
 
-class RecursiveListDirectoryArgs(rdfvalue.RDFProtoStruct):
+class RecursiveListDirectoryArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.RecursiveListDirectoryArgs
 
 
@@ -241,7 +243,7 @@ class RecursiveListDirectory(flow.GRRFlow):
   def StoreDirectory(self, responses):
     """Stores all stat responses."""
     for st in responses:
-      st = rdfvalue.StatEntry(st)
+      st = rdf_client.StatEntry(st)
       CreateAFF4Object(st, self.client_id, self.token)
       self.SendReply(st)  # Send Stats to parent flows.
 
@@ -255,7 +257,7 @@ class RecursiveListDirectory(flow.GRRFlow):
     self.Status(status_text, self.state.file_count, self.state.dir_count)
 
 
-class UpdateSparseImageChunksArgs(rdfvalue.RDFProtoStruct):
+class UpdateSparseImageChunksArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.UpdateSparseImageChunksArgs
 
 
@@ -267,9 +269,9 @@ class UpdateSparseImageChunks(flow.GRRFlow):
 
   def GetBufferForChunk(self, chunk):
     chunk_offset = chunk * self.state.chunksize
-    request = rdfvalue.BufferReference(pathspec=self.state.pathspec,
-                                       length=self.state.chunksize,
-                                       offset=chunk_offset)
+    request = rdf_client.BufferReference(pathspec=self.state.pathspec,
+                                         length=self.state.chunksize,
+                                         offset=chunk_offset)
     return request
 
   @flow.StateHandler(next_state="UpdateChunk")
@@ -313,7 +315,7 @@ class UpdateSparseImageChunks(flow.GRRFlow):
       self.CallClient("TransferBuffer", request, next_state="UpdateChunk")
 
 
-class FetchBufferForSparseImageArgs(rdfvalue.RDFProtoStruct):
+class FetchBufferForSparseImageArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FetchBufferForSparseImageArgs
 
 
@@ -355,9 +357,9 @@ class FetchBufferForSparseImage(flow.GRRFlow):
     self.state.Register("current_offset", new_offset)
 
     # Always read one chunk at a time.
-    request = rdfvalue.BufferReference(pathspec=self.state.pathspec,
-                                       length=self.state.chunksize,
-                                       offset=self.state.current_offset)
+    request = rdf_client.BufferReference(pathspec=self.state.pathspec,
+                                         length=self.state.chunksize,
+                                         offset=self.state.current_offset)
 
     # Remember where we're up to, and that we're about to read one chunk.
     self.state.bytes_left_to_read -= chunksize
@@ -386,9 +388,9 @@ class FetchBufferForSparseImage(flow.GRRFlow):
                          self.state.bytes_left_to_read)
 
     if length_to_read:
-      request = rdfvalue.BufferReference(pathspec=self.state.pathspec,
-                                         length=length_to_read,
-                                         offset=self.state.current_offset)
+      request = rdf_client.BufferReference(pathspec=self.state.pathspec,
+                                           length=length_to_read,
+                                           offset=self.state.current_offset)
 
       # TODO(user): Again, this is going to be too slow, since we're
       # waiting for a client response every time we request a buffer. We need to
@@ -430,7 +432,7 @@ class FetchBufferForSparseImage(flow.GRRFlow):
     return new_length, new_offset
 
 
-class MakeNewAFF4SparseImageArgs(rdfvalue.RDFProtoStruct):
+class MakeNewAFF4SparseImageArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.MakeNewAFF4SparseImageArgs
 
 
@@ -499,7 +501,7 @@ class MakeNewAFF4SparseImage(flow.GRRFlow):
       raise IOError("Could not get file: %s" % responses.status)
 
 
-class GlobArgs(rdfvalue.RDFProtoStruct):
+class GlobArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.GlobArgs
 
   def Validate(self):
@@ -605,35 +607,35 @@ class GlobMixin(object):
     for path_component in pattern.split("/"):
       # A ** in the path component means recurse into directories that match the
       # pattern.
-      m = rdfvalue.GlobExpression.RECURSION_REGEX.search(path_component)
+      m = rdf_paths.GlobExpression.RECURSION_REGEX.search(path_component)
       if m:
         path_component = path_component.replace(m.group(0), "*")
 
-        component = rdfvalue.PathSpec(
+        component = rdf_paths.PathSpec(
             path=fnmatch.translate(path_component),
             pathtype=self.state.pathtype,
-            path_options=rdfvalue.PathSpec.Options.RECURSIVE)
+            path_options=rdf_paths.PathSpec.Options.RECURSIVE)
 
         # Allow the user to override the recursion depth.
         if m.group(1):
           component.recursion_depth = int(m.group(1))
 
       elif self.GLOB_MAGIC_CHECK.search(path_component):
-        component = rdfvalue.PathSpec(
+        component = rdf_paths.PathSpec(
             path=fnmatch.translate(path_component),
             pathtype=self.state.pathtype,
-            path_options=rdfvalue.PathSpec.Options.REGEX)
+            path_options=rdf_paths.PathSpec.Options.REGEX)
       else:
         pathtype = self.state.pathtype
         # TODO(user): This is a backwards compatibility hack. Remove when
         # all clients reach 3.0.0.2.
-        if (pathtype == rdfvalue.PathSpec.PathType.TSK and
+        if (pathtype == rdf_paths.PathSpec.PathType.TSK and
             re.match("^.:$", path_component)):
           path_component = "%s\\" % path_component
-        component = rdfvalue.PathSpec(
+        component = rdf_paths.PathSpec(
             path=path_component,
             pathtype=pathtype,
-            path_options=rdfvalue.PathSpec.Options.CASE_INSENSITIVE)
+            path_options=rdf_paths.PathSpec.Options.CASE_INSENSITIVE)
 
       components.append(component)
 
@@ -664,13 +666,13 @@ class GlobMixin(object):
   def _MatchPath(self, pathspec, response):
     """Check if the responses matches the pathspec (considering options)."""
     to_match = response.pathspec.Basename()
-    if pathspec.path_options == rdfvalue.PathSpec.Options.CASE_INSENSITIVE:
+    if pathspec.path_options == rdf_paths.PathSpec.Options.CASE_INSENSITIVE:
       return to_match.lower() == pathspec.path.lower()
-    elif pathspec.path_options == rdfvalue.PathSpec.Options.CASE_LITERAL:
+    elif pathspec.path_options == rdf_paths.PathSpec.Options.CASE_LITERAL:
       return to_match == pathspec.path
-    elif pathspec.path_options == rdfvalue.PathSpec.Options.REGEX:
+    elif pathspec.path_options == rdf_paths.PathSpec.Options.REGEX:
       return bool(re.match(pathspec.path, to_match, flags=re.IGNORECASE))
-    elif pathspec.path_options == rdfvalue.PathSpec.Options.RECURSIVE:
+    elif pathspec.path_options == rdf_paths.PathSpec.Options.RECURSIVE:
       return True
     raise ValueError("Unknown Pathspec type.")
 
@@ -684,7 +686,7 @@ class GlobMixin(object):
     # files. Call Find on the client until we're done.
     if (responses.iterator and responses.iterator.state !=
         responses.iterator.State.FINISHED):
-      findspec = rdfvalue.FindSpec(responses.request.request.payload)
+      findspec = rdf_client.FindSpec(responses.request.request.payload)
       findspec.iterator = responses.iterator
       self.CallClient("Find", findspec,
                       next_state="ProcessEntry",
@@ -692,7 +694,7 @@ class GlobMixin(object):
 
     # The Find client action does not return a StatEntry but a
     # FindSpec. Normalize to a StatEntry.
-    stat_responses = [r.hit if isinstance(r, rdfvalue.FindSpec) else r
+    stat_responses = [r.hit if isinstance(r, rdf_client.FindSpec) else r
                       for r in responses]
 
     # If this was a pure path matching call without any regex / recursion, we
@@ -715,7 +717,7 @@ class GlobMixin(object):
       for response in stat_responses:
         matching_components = []
         for next_node in base_node.keys():
-          pathspec = rdfvalue.PathSpec(next_node)
+          pathspec = rdf_paths.PathSpec(next_node)
 
           if self._MatchPath(pathspec, response):
             matching_path = base_path + [next_node]
@@ -748,7 +750,7 @@ class GlobMixin(object):
 
       # There are further components in the tree - iterate over them.
       for component_str, next_node in node.items():
-        component = rdfvalue.PathSpec(component_str)
+        component = rdf_paths.PathSpec(component_str)
         next_component = component_path + [component_str]
 
         # If we reach this point, we are instructed to go deeper into the
@@ -786,7 +788,7 @@ class GlobMixin(object):
 
           if not next_node:
             # Check for the existence of the last node.
-            request = rdfvalue.ListDirRequest(pathspec=pathspec)
+            request = rdf_client.ListDirRequest(pathspec=pathspec)
 
             if (response is None or
                 (response and
@@ -805,7 +807,7 @@ class GlobMixin(object):
             # paths in the prefix tree, just emulate this by recursively
             # calling this state inline.
             self.CallStateInline(
-                [rdfvalue.StatEntry(pathspec=pathspec)],
+                [rdf_client.StatEntry(pathspec=pathspec)],
                 next_state="ProcessEntry",
                 request_data=dict(component_path=next_component))
 
@@ -815,16 +817,16 @@ class GlobMixin(object):
         # that opens the root with pathtype "OS".
         base_pathspec = self._GetBasePathspec(response)
         if not base_pathspec:
-          base_pathspec = rdfvalue.PathSpec(path="/", pathtype="OS")
+          base_pathspec = rdf_paths.PathSpec(path="/", pathtype="OS")
 
         for depth, recursions in recursions_to_get.iteritems():
           path_regex = "(?i)^" + "$|^".join(
               set([c.path for c in recursions])) + "$"
 
-          findspec = rdfvalue.FindSpec(pathspec=base_pathspec,
-                                       cross_devs=True,
-                                       max_depth=depth,
-                                       path_regex=path_regex)
+          findspec = rdf_client.FindSpec(pathspec=base_pathspec,
+                                         cross_devs=True,
+                                         max_depth=depth,
+                                         path_regex=path_regex)
 
           findspec.iterator.number = self.FILE_MAX_PER_DIR
           self.CallClient("Find", findspec,
@@ -834,9 +836,9 @@ class GlobMixin(object):
         if regexes_to_get:
           path_regex = "(?i)^" + "$|^".join(
               set([c.path for c in regexes_to_get])) + "$"
-          findspec = rdfvalue.FindSpec(pathspec=base_pathspec,
-                                       max_depth=1,
-                                       path_regex=path_regex)
+          findspec = rdf_client.FindSpec(pathspec=base_pathspec,
+                                         max_depth=1,
+                                         path_regex=path_regex)
 
           findspec.iterator.number = self.FILE_MAX_PER_DIR
           self.CallClient("Find", findspec,
@@ -874,7 +876,7 @@ class Glob(GlobMixin, flow.GRRFlow):
     self.SendReply(stat_response)
 
 
-class DiskVolumeInfoArgs(rdfvalue.RDFProtoStruct):
+class DiskVolumeInfoArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.DiskVolumeInfoArgs
 
 
@@ -949,7 +951,7 @@ class DiskVolumeInfo(flow.GRRFlow):
   def CollectVolumeInfo(self, unused_responses):
     if self.state.system == "Windows":
       # No dependencies for WMI
-      deps = rdfvalue.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS
+      deps = artifact_lib.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS
       self.CallFlow(
           "ArtifactCollectorFlow",
           artifact_list=["WMILogicalDisks"],
@@ -958,7 +960,7 @@ class DiskVolumeInfo(flow.GRRFlow):
           store_results_in_aff4=True)
     else:
       self.CallClient("StatFS",
-                      rdfvalue.StatFSRequest(
+                      rdf_client.StatFSRequest(
                           path_list=self.args.path_list,
                           pathtype=self.args.pathtype),
                       next_state="ProcessVolumes")

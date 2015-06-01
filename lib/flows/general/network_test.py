@@ -4,11 +4,11 @@
 
 from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
 # pylint: disable=unused-import
 from grr.lib.flows.general import network
 # pylint: enable=unused-import
+from grr.lib.rdfvalues import client as rdf_client
 
 
 class NetstatTest(test_lib.FlowTestsBaseclass):
@@ -21,24 +21,24 @@ class NetstatTest(test_lib.FlowTestsBaseclass):
 
       def Netstat(self, _):
         """Returns fake connections."""
-        conn1 = rdfvalue.NetworkConnection(
-            state=rdfvalue.NetworkConnection.State.LISTEN,
-            type=rdfvalue.NetworkConnection.Type.SOCK_STREAM,
-            local_address=rdfvalue.NetworkEndpoint(
+        conn1 = rdf_client.NetworkConnection(
+            state=rdf_client.NetworkConnection.State.LISTEN,
+            type=rdf_client.NetworkConnection.Type.SOCK_STREAM,
+            local_address=rdf_client.NetworkEndpoint(
                 ip="0.0.0.0",
                 port=22),
-            remote_address=rdfvalue.NetworkEndpoint(
+            remote_address=rdf_client.NetworkEndpoint(
                 ip="0.0.0.0",
                 port=0),
             pid=2136,
             ctime=0)
-        conn2 = rdfvalue.NetworkConnection(
-            state=rdfvalue.NetworkConnection.State.LISTEN,
-            type=rdfvalue.NetworkConnection.Type.SOCK_STREAM,
-            local_address=rdfvalue.NetworkEndpoint(
+        conn2 = rdf_client.NetworkConnection(
+            state=rdf_client.NetworkConnection.State.LISTEN,
+            type=rdf_client.NetworkConnection.Type.SOCK_STREAM,
+            local_address=rdf_client.NetworkEndpoint(
                 ip="192.168.1.1",
                 port=31337),
-            remote_address=rdfvalue.NetworkEndpoint(
+            remote_address=rdf_client.NetworkEndpoint(
                 ip="1.2.3.4",
                 port=6667),
             pid=1,
