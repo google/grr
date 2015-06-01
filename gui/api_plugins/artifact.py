@@ -5,7 +5,7 @@ from grr.gui import api_call_renderers
 
 from grr.lib import aff4
 from grr.lib import artifact
-from grr.lib import artifact_lib
+from grr.lib import artifact_registry
 from grr.lib import parsers
 from grr.lib import rdfvalue
 
@@ -52,7 +52,8 @@ class ApiArtifactRenderer(api_call_renderers.ApiCallRenderer):
     artifacts = {}
     artifact.LoadArtifactsFromDatastore(token=token)
 
-    for name, artifact_val in artifact_lib.ArtifactRegistry.artifacts.items():
+    for name, artifact_val in (
+        artifact_registry.ArtifactRegistry.artifacts.items()):
       artifacts[name] = artifact_val
 
     return self.RenderArtifacts(artifacts, custom_artifacts=custom_artifacts)

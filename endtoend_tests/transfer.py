@@ -10,12 +10,14 @@ import threading
 from grr.endtoend_tests import base
 from grr.lib import aff4
 from grr.lib import flow
-from grr.lib import rdfvalue
-from grr.lib.rdfvalues import crypto
+from grr.lib.rdfvalues import crypto as rdf_crypto
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import tests_pb2
 
 
-class MultiGetFileTestFlowArgs(rdfvalue.RDFProtoStruct):
+class MultiGetFileTestFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = tests_pb2.MultiGetFileTestFlowArgs
 
 
@@ -33,8 +35,8 @@ class MultiGetFileTestFlow(flow.GRRFlow):
     parameter from CopyPathToFile.
     """
     self.state.Register("client_hashes", {})
-    urandom = rdfvalue.PathSpec(path="/dev/urandom",
-                                pathtype=rdfvalue.PathSpec.PathType.OS)
+    urandom = rdf_paths.PathSpec(path="/dev/urandom",
+                                 pathtype=rdf_paths.PathSpec.PathType.OS)
 
     for _ in range(self.args.file_limit):
       self.CallClient("CopyPathToFile",
@@ -100,7 +102,7 @@ class TestMultiGetFile(base.AutomatedTest):
     runner = flow_obj.GetRunner()
     self.assertFalse(runner.context.get("backtrace", ""))
     self.assertEqual(
-        runner.GetState(), rdfvalue.Flow.State.TERMINATED,
+        runner.GetState(), rdf_flows.Flow.State.TERMINATED,
         "Expected TERMINATED state, got %s" % flow_obj.state.context.state)
 
 
@@ -113,9 +115,9 @@ class TestGetFileTSKLinux(base.AutomatedTest):
   """Tests if GetFile works on Linux using Sleuthkit."""
   platforms = ["Linux"]
   flow = "GetFile"
-  args = {"pathspec": rdfvalue.PathSpec(
+  args = {"pathspec": rdf_paths.PathSpec(
       path="/bin/ls",
-      pathtype=rdfvalue.PathSpec.PathType.TSK)}
+      pathtype=rdf_paths.PathSpec.PathType.TSK)}
 
   # Interpolate for /dev/mapper-...
   test_output_path = "/fs/tsk/.*/bin/ls"
@@ -147,37 +149,37 @@ class TestGetFileTSKLinux(base.AutomatedTest):
 class TestMultiGetFileTSKLinux(TestGetFileTSKLinux):
   """Tests if MultiGetFile works on Linux using Sleuthkit."""
   flow = "MultiGetFile"
-  args = {"pathspecs": [rdfvalue.PathSpec(
+  args = {"pathspecs": [rdf_paths.PathSpec(
       path="/bin/ls",
-      pathtype=rdfvalue.PathSpec.PathType.TSK)]}
+      pathtype=rdf_paths.PathSpec.PathType.TSK)]}
 
 
 class TestGetFileOSLinux(TestGetFileTSKLinux):
   """Tests if GetFile works on Linux."""
-  args = {"pathspec": rdfvalue.PathSpec(
+  args = {"pathspec": rdf_paths.PathSpec(
       path="/bin/ls",
-      pathtype=rdfvalue.PathSpec.PathType.OS)}
+      pathtype=rdf_paths.PathSpec.PathType.OS)}
   test_output_path = "/fs/os/bin/ls"
 
 
 class TestMultiGetFileOSLinux(TestGetFileOSLinux):
   """Tests if MultiGetFile works on Linux."""
   flow = "MultiGetFile"
-  args = {"pathspecs": [rdfvalue.PathSpec(
+  args = {"pathspecs": [rdf_paths.PathSpec(
       path="/bin/ls",
-      pathtype=rdfvalue.PathSpec.PathType.OS)]}
+      pathtype=rdf_paths.PathSpec.PathType.OS)]}
 
 
 class TestSendFile(base.LocalClientTest):
   """Test SendFile."""
   platforms = ["Linux"]
   flow = "SendFile"
-  key = rdfvalue.AES128Key("1a5eafcc77d428863d4c2441ea26e5a5")
-  iv = rdfvalue.AES128Key("2241b14c64874b1898dad4de7173d8c0")
+  key = rdf_crypto.AES128Key("1a5eafcc77d428863d4c2441ea26e5a5")
+  iv = rdf_crypto.AES128Key("2241b14c64874b1898dad4de7173d8c0")
 
   args = dict(host="127.0.0.1",
               port=12345,
-              pathspec=rdfvalue.PathSpec(pathtype=0, path="/bin/ls"),
+              pathspec=rdf_paths.PathSpec(pathtype=0, path="/bin/ls"),
               key=key,
               iv=iv)
 
@@ -219,8 +221,10 @@ class TestSendFile(base.LocalClientTest):
     if self.local_client:
       original_data = open("/bin/ls", "rb").read()
       received_cipher = "".join(self.listener.result)
-      cipher = crypto.AES128CBCCipher(key=self.key, iv=self.iv,
-                                      mode=crypto.AES128CBCCipher.OP_DECRYPT)
+      cipher = rdf_crypto.AES128CBCCipher(
+          key=self.key,
+          iv=self.iv,
+          mode=rdf_crypto.AES128CBCCipher.OP_DECRYPT)
       received_data = cipher.Update(received_cipher) + cipher.Final()
 
       self.assertEqual(received_data, original_data)
@@ -249,9 +253,9 @@ class TestMultiGetFileTSKMac(TestGetFileTSKLinux):
     for d in tsk_dirs:
       pathspec = d.Get(d.Schema.PATHSPEC)
       if pathspec:
-        pathspec.nested_path = rdfvalue.PathSpec(
+        pathspec.nested_path = rdf_paths.PathSpec(
             path="/bin/ls",
-            pathtype=rdfvalue.PathSpec.PathType.TSK)
+            pathtype=rdf_paths.PathSpec.PathType.TSK)
         pathspecs.append(pathspec)
     if not pathspecs:
       self.fail("No suitable devices found for TSK.")
@@ -273,9 +277,9 @@ class TestGetFileOSMac(TestGetFileOSLinux):
 class TestMultiGetFileOSMac(TestGetFileOSMac):
   """Tests if MultiGetFile works on Mac."""
   flow = "MultiGetFile"
-  args = {"pathspecs": [rdfvalue.PathSpec(
+  args = {"pathspecs": [rdf_paths.PathSpec(
       path="/bin/ls",
-      pathtype=rdfvalue.PathSpec.PathType.OS)]}
+      pathtype=rdf_paths.PathSpec.PathType.OS)]}
 
 
 ###########
@@ -286,9 +290,9 @@ class TestMultiGetFileOSMac(TestGetFileOSMac):
 class TestGetFileOSWindows(TestGetFileOSLinux):
   """Tests if GetFile works on Windows."""
   platforms = ["Windows"]
-  args = {"pathspec": rdfvalue.PathSpec(
+  args = {"pathspec": rdf_paths.PathSpec(
       path="C:\\Windows\\regedit.exe",
-      pathtype=rdfvalue.PathSpec.PathType.OS)}
+      pathtype=rdf_paths.PathSpec.PathType.OS)}
   test_output_path = "/fs/os/C:/Windows/regedit.exe"
 
   def CheckFile(self, fd):
@@ -299,16 +303,16 @@ class TestGetFileOSWindows(TestGetFileOSLinux):
 class TestMultiGetFileOSWindows(TestGetFileOSWindows):
   """Tests if MultiGetFile works on Windows."""
   flow = "MultiGetFile"
-  args = {"pathspecs": [rdfvalue.PathSpec(
+  args = {"pathspecs": [rdf_paths.PathSpec(
       path="C:\\Windows\\regedit.exe",
-      pathtype=rdfvalue.PathSpec.PathType.OS)]}
+      pathtype=rdf_paths.PathSpec.PathType.OS)]}
 
 
 class TestGetFileTSKWindows(TestGetFileOSWindows):
   """Tests if GetFile works on Windows using TSK."""
-  args = {"pathspec": rdfvalue.PathSpec(
+  args = {"pathspec": rdf_paths.PathSpec(
       path="C:\\Windows\\regedit.exe",
-      pathtype=rdfvalue.PathSpec.PathType.TSK)}
+      pathtype=rdf_paths.PathSpec.PathType.TSK)}
 
   def CheckFlow(self):
     urn = self.client_id.Add("/fs/tsk")
@@ -335,6 +339,6 @@ class TestGetFileTSKWindows(TestGetFileOSWindows):
 class TestMultiGetFileTSKWindows(TestGetFileTSKWindows):
   """Tests if MultiGetFile works on Windows using TSK."""
   flow = "MultiGetFile"
-  args = {"pathspecs": [rdfvalue.PathSpec(
+  args = {"pathspecs": [rdf_paths.PathSpec(
       path="C:\\Windows\\regedit.exe",
-      pathtype=rdfvalue.PathSpec.PathType.TSK)]}
+      pathtype=rdf_paths.PathSpec.PathType.TSK)]}

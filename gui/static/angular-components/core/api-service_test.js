@@ -21,6 +21,119 @@ describe('API service', function() {
     $httpBackend.verifyNoOutstandingRequest();
   });
 
+  describe('stripTypeInfo() method', function() {
+    it('converts richly typed primitive into a primitive value', function() {
+      var richData = {
+        'age': 0,
+        'mro': [
+          'RDFString',
+          'object'
+        ],
+        'type': 'unicode',
+        'value': 'label2'
+      };
+
+      expect(grrApiService.stripTypeInfo(richData)).toEqual('label2');
+    });
+
+    it('converts typed structure into a primitive dictionary', function() {
+      var richData = {
+        'age': 0,
+        'mro': [
+          'AFF4ObjectLabel',
+          'RDFProtoStruct',
+          'RDFStruct',
+          'RDFValue',
+          'object'
+        ],
+        'type': 'AFF4ObjectLabel',
+        'value': {
+          'name': {
+            'age': 0,
+            'mro': [
+              'unicode',
+              'basestring',
+              'object'
+            ],
+            'type': 'unicode',
+            'value': 'label2'
+          }
+        }
+      };
+
+      expect(grrApiService.stripTypeInfo(richData)).toEqual({'name': 'label2'});
+    });
+
+    it('converts richly typed list into list of primitives', function() {
+      var richData = [
+        {
+          'age': 0,
+          'mro': [
+            'RDFString',
+            'object'
+          ],
+          'type': 'unicode',
+        'value': 'label2'
+        },
+        {
+          'age': 0,
+          'mro': [
+            'RDFString',
+            'object'
+          ],
+          'type': 'unicode',
+        'value': 'label3'
+        }
+      ];
+
+
+      expect(grrApiService.stripTypeInfo(richData)).toEqual(
+          ['label2', 'label3']);
+    });
+
+    it('converts list structure field into list of primitives', function() {
+      var richData = {
+        'age': 0,
+        'mro': [
+          'AFF4ObjectLabel',
+          'RDFProtoStruct',
+          'RDFStruct',
+          'RDFValue',
+          'object'
+        ],
+        'type': 'AFF4ObjectLabel',
+        'value': {
+          'name': [
+            {
+              'age': 0,
+              'mro': [
+                'unicode',
+                'basestring',
+                'object'
+              ],
+              'type': 'unicode',
+              'value': 'label2'
+            },
+            {
+              'age': 0,
+              'mro': [
+                'unicode',
+                'basestring',
+                'object'
+              ],
+              'type': 'unicode',
+              'value': 'label3'
+            }
+          ]
+        }
+      };
+
+      expect(grrApiService.stripTypeInfo(richData)).toEqual({
+        'name': ['label2', 'label3']
+      });
+    });
+  });
+
   describe('get() method', function() {
     it('adds "/api/" to a given url', function() {
       $httpBackend.whenGET('/api/some/path').respond(200);
@@ -87,6 +200,36 @@ describe('API service', function() {
           '/api/some/path', {key1: 'value1', key2: 'value2'}).
               respond(200);
       grrApiService.post('some/path', {key1: 'value1', key2: 'value2'});
+      $httpBackend.flush();
+    });
+
+    it('strips type info from params if opt_stripTypeInfo is true', function() {
+      var richData = {
+        'age': 0,
+        'mro': [
+          'AFF4ObjectLabel',
+          'RDFProtoStruct',
+          'RDFStruct',
+          'RDFValue',
+          'object'
+        ],
+        'type': 'AFF4ObjectLabel',
+        'value': {
+          'name': {
+            'age': 0,
+            'mro': [
+              'unicode',
+              'basestring',
+              'object'
+            ],
+            'type': 'unicode',
+            'value': 'label2'
+          }
+        }
+      };
+
+      $httpBackend.whenPOST('/api/some/path', {name: 'label2'}).respond(200);
+      grrApiService.post('some/path', richData, true);
       $httpBackend.flush();
     });
 

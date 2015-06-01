@@ -2,7 +2,7 @@
 """Simple parsers for configuration files."""
 
 from grr.lib import parsers
-from grr.lib import rdfvalue
+from grr.lib.rdfvalues import protodict as rdf_protodict
 
 
 class ProcSysParser(parsers.FileParser):
@@ -26,4 +26,4 @@ class ProcSysParser(parsers.FileParser):
     for stat, file_obj in zip(stats, file_objs):
       k, v = self._Parse(stat, file_obj)
       config[k] = v
-    return rdfvalue.AttributedDict(config)
+    return [rdf_protodict.AttributedDict(config)]

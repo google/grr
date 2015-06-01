@@ -6,22 +6,25 @@ intended to end up as an independent library.
 """
 
 import itertools
+import json
 import os
 import re
 import yaml
 
 import logging
 
+from grr.lib import artifact_registry
 from grr.lib import objectfilter
+from grr.lib import parsers
 from grr.lib import rdfvalue
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import structs
+from grr.proto import artifact_pb2
+from grr.proto import flows_pb2
 
 
 class Error(Exception):
   """Base exception."""
-
-
-class ArtifactDefinitionError(Error):
-  """Artifact is not well defined."""
 
 
 class ConditionError(Error):
@@ -42,6 +45,305 @@ class KnowledgeBaseUninitializedError(Error):
 
 class KnowledgeBaseAttributesMissingError(Error):
   """Knowledge Base is missing key attributes."""
+
+
+class ArtifactCollectorFlowArgs(structs.RDFProtoStruct):
+  protobuf = flows_pb2.ArtifactCollectorFlowArgs
+
+  def Validate(self):
+    if not self.artifact_list:
+      raise ValueError("No artifacts to collect.")
+
+
+class ArtifactSource(structs.RDFProtoStruct):
+  """An ArtifactSource."""
+  protobuf = artifact_pb2.ArtifactSource
+
+  def __init__(self, initializer=None, age=None, **kwarg):
+    # Support initializing from a mapping
+    if isinstance(initializer, dict):
+      super(ArtifactSource, self).__init__(age=age, **initializer)
+    else:
+      super(ArtifactSource, self).__init__(initializer=initializer, age=age,
+                                           **kwarg)
+
+  def Validate(self):
+    """Check the source is well constructed."""
+    # Catch common mistake of path vs paths.
+    if self.attributes.GetItem("paths"):
+      if not isinstance(self.attributes.GetItem("paths"), list):
+        raise artifact_registry.ArtifactDefinitionError(
+            "Arg 'paths' that is not a list.")
+
+    if self.attributes.GetItem("path"):
+      if not isinstance(self.attributes.GetItem("path"), basestring):
+        raise artifact_registry.ArtifactDefinitionError(
+            "Arg 'path' is not a string.")
+
+    # Check all returned types.
+    if self.returned_types:
+      for rdf_type in self.returned_types:
+        if rdf_type not in rdfvalue.RDFValue.classes:
+          raise artifact_registry.ArtifactDefinitionError(
+              "Invalid return type %s" % rdf_type)
+
+    if str(self.type) not in TYPE_MAP:
+      raise artifact_registry.ArtifactDefinitionError(
+          "Invalid type %s." % self.type)
+
+    src_type = TYPE_MAP[str(self.type)]
+    required_attributes = src_type.get("required_attributes", [])
+    missing_attributes = set(
+        required_attributes).difference(self.attributes.keys())
+    if missing_attributes:
+      raise artifact_registry.ArtifactDefinitionError(
+          "Missing required attributes: %s." % missing_attributes)
+
+
+class ArtifactName(rdfvalue.RDFString):
+  type = "ArtifactName"
+
+
+class Artifact(structs.RDFProtoStruct):
+  """An RDFValue representation of an artifact."""
+  protobuf = artifact_pb2.Artifact
+
+  required_repeated_fields = [
+      # List of object filter rules that define whether Artifact collection
+      # should run. These operate as an AND operator, all conditions
+      # must pass for it to run. OR operators should be implemented as their own
+      # conditions.
+      "conditions",
+      # A list of labels that help users find artifacts. Must be in the list
+      # ARTIFACT_LABELS.
+      "labels",
+      # Which OS are supported by the Artifact e.g. Linux, Windows, Darwin
+      # Note that this can be implemented by conditions as well, but this
+      # provides a more obvious interface for users for common cases.
+      "supported_os",
+      # URLs that link to information describing what this artifact collects.
+      "urls",
+      # List of strings that describe knowledge_base entries that this artifact
+      # can supply.
+      "provides"]
+
+  def ToJson(self):
+    artifact_dict = self.ToPrimitiveDict()
+    return json.dumps(artifact_dict)
+
+  def ToDict(self):
+    return self.ToPrimitiveDict()
+
+  def ToPrimitiveDict(self):
+    """Handle dict generation specifically for Artifacts."""
+    artifact_dict = super(Artifact, self).ToPrimitiveDict()
+
+    # Convert proto enum to simple strings so they get rendered in the GUI
+    # properly
+    for source in artifact_dict["sources"]:
+      if "type" in source:
+        source["type"] = str(source["type"])
+      if "key_value_pairs" in source["attributes"]:
+        outarray = []
+        for indict in source["attributes"]["key_value_pairs"]:
+          outarray.append(dict(indict.items()))
+        source["attributes"]["key_value_pairs"] = outarray
+
+    # Repeated fields that have not been set should return as empty lists.
+    for field in self.required_repeated_fields:
+      if field not in artifact_dict:
+        artifact_dict[field] = []
+    return artifact_dict
+
+  def ToExtendedDict(self):
+    artifact_dict = self.ToPrimitiveDict()
+    artifact_dict["dependencies"] = list(self.GetArtifactPathDependencies())
+    return artifact_dict
+
+  def ToPrettyJson(self, extended=False):
+    """Print in json format but customized for pretty artifact display."""
+    if extended:
+      artifact_dict = self.ToExtendedDict()
+    else:
+      artifact_dict = self.ToPrimitiveDict()
+
+    artifact_json = json.dumps(artifact_dict, indent=2, separators=(",", ": "))
+    # Now tidy up the json for better display. Unfortunately json gives us very
+    # little control over output format, so we manually tidy it up given that
+    # we have a defined format.
+
+    def CompressBraces(name, in_str):
+      return re.sub(r"%s\": \[\n\s+(.*)\n\s+" % name,
+                    "%s\": [ \\g<1> " % name, in_str)
+    artifact_json = CompressBraces("conditions", artifact_json)
+    artifact_json = CompressBraces("urls", artifact_json)
+    artifact_json = CompressBraces("labels", artifact_json)
+    artifact_json = CompressBraces("supported_os", artifact_json)
+    artifact_json = re.sub(r"{\n\s+", "{ ", artifact_json)
+    return artifact_json
+
+  def ToYaml(self):
+    artifact_dict = self.ToPrimitiveDict()
+    # Remove redundant empty defaults.
+
+    def ReduceDict(in_dict):
+      return dict((k, v) for (k, v) in in_dict.items() if v)
+    artifact_dict = ReduceDict(artifact_dict)
+    artifact_dict["sources"] = [ReduceDict(c) for c in
+                                artifact_dict["sources"]]
+    # Do some clunky stuff to put the name and doc first in the YAML.
+    # Unfortunatley PYYaml makes doing this difficult in other ways.
+    name = artifact_dict.pop("name")
+    doc = artifact_dict.pop("doc")
+    doc_str = yaml.safe_dump({"doc": doc}, allow_unicode=True, width=80)[1:-2]
+    yaml_str = yaml.safe_dump(artifact_dict, allow_unicode=True, width=80)
+    return "name: %s\n%s\n%s" % (name, doc_str, yaml_str)
+
+  def GetArtifactDependencies(self, recursive=False, depth=1):
+    """Return a set of artifact dependencies.
+
+    Args:
+      recursive: If True recurse into dependencies to find their dependencies.
+      depth: Used for limiting recursion depth.
+
+    Returns:
+      A set of strings containing the dependent artifact names.
+
+    Raises:
+      RuntimeError: If maximum recursion depth reached.
+    """
+    deps = set()
+    for source in self.sources:
+      if source.type == ArtifactSource.SourceType.ARTIFACT:
+        if source.attributes.GetItem("names"):
+          deps.update(source.attributes.GetItem("names"))
+
+    if depth > 10:
+      raise RuntimeError("Max artifact recursion depth reached.")
+
+    deps_set = set(deps)
+    if recursive:
+      for dep in deps:
+        artifact_obj = artifact_registry.ArtifactRegistry.artifacts[dep]
+        new_dep = artifact_obj.GetArtifactDependencies(True, depth=depth + 1)
+        if new_dep:
+          deps_set.update(new_dep)
+
+    return deps_set
+
+  def GetArtifactParserDependencies(self):
+    """Return the set of knowledgebase path dependencies required by the parser.
+
+    Returns:
+      A set of strings for the required kb objects e.g.
+      ["users.appdata", "systemroot"]
+    """
+    deps = set()
+    processors = parsers.Parser.GetClassesByArtifact(self.name)
+    for parser in processors:
+      deps.update(parser.knowledgebase_dependencies)
+    return deps
+
+  def GetArtifactPathDependencies(self):
+    """Return a set of knowledgebase path dependencies.
+
+    Returns:
+      A set of strings for the required kb objects e.g.
+      ["users.appdata", "systemroot"]
+    """
+    deps = set()
+    for source in self.sources:
+      for arg, value in source.attributes.items():
+        paths = []
+        if arg in ["path", "query"]:
+          paths.append(value)
+        if arg == "key_value_pairs":
+          # This is a REGISTRY_VALUE {key:blah, value:blah} dict.
+          paths.extend([x["key"] for x in value])
+        if arg in ["keys", "paths", "path_list", "content_regex_list"]:
+          paths.extend(value)
+        for path in paths:
+          for match in INTERPOLATED_REGEX.finditer(path):
+            deps.add(match.group()[2:-2])  # Strip off %%.
+    deps.update(self.GetArtifactParserDependencies())
+    return deps
+
+  def ValidateSyntax(self):
+    """Validate artifact syntax.
+
+    This method can be used to validate individual artifacts as they are loaded,
+    without needing all artifacts to be loaded first, as for Validate().
+
+    Raises:
+      ArtifactDefinitionError: If artifact is invalid.
+    """
+    cls_name = self.name
+    if not self.doc:
+      raise artifact_registry.ArtifactDefinitionError(
+          "Artifact %s has missing doc" % cls_name)
+
+    for supp_os in self.supported_os:
+      if supp_os not in SUPPORTED_OS_LIST:
+        raise artifact_registry.ArtifactDefinitionError(
+            "Artifact %s has invalid supported_os %s" % (cls_name, supp_os))
+
+    for condition in self.conditions:
+      try:
+        of = objectfilter.Parser(condition).Parse()
+        of.Compile(objectfilter.BaseFilterImplementation)
+      except ConditionError as e:
+        raise artifact_registry.ArtifactDefinitionError(
+            "Artifact %s has invalid condition %s. %s" % (
+                cls_name, condition, e))
+
+    for label in self.labels:
+      if label not in ARTIFACT_LABELS:
+        raise artifact_registry.ArtifactDefinitionError(
+            "Artifact %s has an invalid label %s. Please use one from "
+            "ARTIFACT_LABELS." % (cls_name, label))
+
+    # Anything listed in provides must be defined in the KnowledgeBase
+    valid_provides = rdf_client.KnowledgeBase().GetKbFieldNames()
+    for kb_var in self.provides:
+      if kb_var not in valid_provides:
+        raise artifact_registry.ArtifactDefinitionError(
+            "Artifact %s has broken provides: '%s' not in KB fields: %s" % (
+                cls_name, kb_var, valid_provides))
+
+    # Any %%blah%% path dependencies must be defined in the KnowledgeBase
+    for dep in self.GetArtifactPathDependencies():
+      if dep not in valid_provides:
+        raise artifact_registry.ArtifactDefinitionError(
+            "Artifact %s has an invalid path dependency: '%s', not in KB "
+            "fields: %s" % (cls_name, dep, valid_provides))
+
+    for source in self.sources:
+      try:
+        source.Validate()
+      except Error as e:
+        raise artifact_registry.ArtifactDefinitionError(
+            "Artifact %s has bad source. %s" % (cls_name, e))
+
+  def Validate(self):
+    """Attempt to validate the artifact has been well defined.
+
+    This is used to enforce Artifact rules. Since it checks all dependencies are
+    present, this method can only be called once all artifacts have been loaded
+    into the registry. Use ValidateSyntax to check syntax for each artifact on
+    import.
+
+    Raises:
+      ArtifactDefinitionError: If artifact is invalid.
+    """
+    cls_name = self.name
+    self.ValidateSyntax()
+
+    # Check all artifact dependencies exist.
+    for dependency in self.GetArtifactDependencies():
+      if dependency not in artifact_registry.ArtifactRegistry.artifacts:
+        raise artifact_registry.ArtifactDefinitionError(
+            "Artifact %s has an invalid dependency %s . Could not find artifact"
+            " definition." % (cls_name, dependency))
 
 
 # These labels represent the full set of labels that an Artifact can have.
@@ -103,127 +405,6 @@ INTERPOLATED_REGEX = re.compile(r"%%([^%]+?)%%")
 GLOB_MAGIC_CHECK = re.compile("[*?[]")
 
 
-class ArtifactRegistry(object):
-  """A global registry of artifacts."""
-
-  artifacts = {}
-
-  @classmethod
-  def RegisterArtifact(cls, artifact_rdfvalue, source="datastore",
-                       overwrite_if_exists=False):
-    if not overwrite_if_exists and artifact_rdfvalue.name in cls.artifacts:
-      raise ArtifactDefinitionError("Artifact named %s already exists and "
-                                    "overwrite_if_exists is set to False." %
-                                    artifact_rdfvalue.name)
-
-    # Preserve where the artifact was loaded from to help debugging.
-    artifact_rdfvalue.loaded_from = source
-    cls.artifacts[artifact_rdfvalue.name] = artifact_rdfvalue
-
-  @classmethod
-  def ClearRegistry(cls, replace_with=None):
-    prev_artifacts = cls.artifacts
-    cls.artifacts = replace_with or {}
-    return prev_artifacts
-
-  @classmethod
-  def GetArtifacts(cls, os_name=None, name_list=None,
-                   source_type=None, exclude_dependents=False,
-                   provides=None):
-    """Retrieve artifact classes with optional filtering.
-
-    All filters must match for the artifact to be returned.
-
-    Args:
-      os_name: string to match against supported_os
-      name_list: list of strings to match against artifact names
-      source_type: rdfvalue.ArtifactSource.SourceType to match against
-                      source_type
-      exclude_dependents: if true only artifacts with no dependencies will be
-                          returned
-      provides: return the artifacts that provide these dependencies
-    Returns:
-      set of artifacts matching filter criteria
-    """
-    results = set()
-    for artifact in ArtifactRegistry.artifacts.values():
-
-      # artifact.supported_os = [] matches all OSes
-      if os_name and artifact.supported_os and (os_name not in
-                                                artifact.supported_os):
-        continue
-      if name_list and artifact.name not in name_list:
-        continue
-      if source_type:
-        source_types = [c.type for c in artifact.sources]
-        if source_type not in source_types:
-          continue
-      if exclude_dependents and artifact.GetArtifactPathDependencies():
-        continue
-
-      # This needs to remain the last test, if it matches the result is added
-      if provides:
-        for provide_string in artifact.provides:
-          if provide_string in provides:
-            results.add(artifact)
-            continue
-        continue
-
-      results.add(artifact)
-    return results
-
-  @classmethod
-  def GetArtifactNames(cls, *args, **kwargs):
-    return set([a.name for a in cls.GetArtifacts(*args, **kwargs)])
-
-  @classmethod
-  def SearchDependencies(cls, os_name, artifact_name_list,
-                         existing_artifact_deps=None,
-                         existing_expansion_deps=None):
-    """Return a set of artifact names needed to fulfill dependencies.
-
-    Search the path dependency tree for all artifacts that can fulfill
-    dependencies of artifact_name_list.  If multiple artifacts provide a
-    dependency, they are all included.
-
-    Args:
-      os_name: operating system string
-      artifact_name_list: list of artifact names to find dependencies for.
-      existing_artifact_deps: existing dependencies to add to, for recursion,
-        e.g. set(["WindowsRegistryProfiles", "WinPathEnvironmentVariable"])
-      existing_expansion_deps: existing expansion dependencies to add to, for
-        recursion, e.g. set(["users.userprofile", "users.homedir"])
-    Returns:
-      (artifact_names, expansion_names): a tuple of sets, one with artifact
-          names, the other expansion names
-    """
-    artifact_deps = existing_artifact_deps or set()
-    expansion_deps = existing_expansion_deps or set()
-
-    artifact_objs = cls.GetArtifacts(os_name=os_name,
-                                     name_list=artifact_name_list)
-    artifact_deps = artifact_deps.union([a.name for a in artifact_objs])
-
-    for artifact in artifact_objs:
-      expansions = artifact.GetArtifactPathDependencies()
-      if expansions:
-        expansion_deps = expansion_deps.union(set(expansions))
-        # Get the names of the artifacts that provide those expansions
-        new_artifact_names = cls.GetArtifactNames(os_name=os_name,
-                                                  provides=expansions)
-        missing_artifacts = new_artifact_names - artifact_deps
-
-        if missing_artifacts:
-          # Add those artifacts and any child dependencies
-          new_artifacts, new_expansions = cls.SearchDependencies(
-              os_name, new_artifact_names, existing_artifact_deps=artifact_deps,
-              existing_expansion_deps=expansion_deps)
-          artifact_deps = artifact_deps.union(new_artifacts)
-          expansion_deps = expansion_deps.union(new_expansions)
-
-    return artifact_deps, expansion_deps
-
-
 def InterpolateKbAttributes(pattern, knowledge_base):
   """Interpolate all knowledgebase attributes in pattern.
 
@@ -244,7 +425,7 @@ def InterpolateKbAttributes(pattern, knowledge_base):
     alternatives = []
 
     try:
-      if "." in match.group(1):     # e.g. %%users.username%%
+      if "." in match.group(1):  # e.g. %%users.username%%
         base_name, attr_name = match.group(1).split(".", 1)
         kb_value = knowledge_base.Get(base_name.lower())
         if not kb_value:
@@ -311,7 +492,7 @@ def ExpandWindowsEnvironmentVariables(data_string, knowledge_base):
     else:
       components.append("%%%s%%" % match.group(1))
     offset = match.end()
-  components.append(data_string[offset:])    # Append the final chunk.
+  components.append(data_string[offset:])  # Append the final chunk.
   return "".join(components)
 
 
@@ -320,7 +501,7 @@ def CheckCondition(condition, check_object):
 
   Args:
     condition: A string condition e.g. "os == 'Windows'"
-    check_object: Object to validate, e.g. an rdfvalue.KnowledgeBase()
+    check_object: Object to validate, e.g. an rdf_client.KnowledgeBase()
 
   Returns:
     True or False depending on whether the condition matches.
@@ -364,7 +545,7 @@ def ExpandWindowsUserEnvironmentVariables(data_string, knowledge_base, sid=None,
       components.append("%%%s%%" % match.group(1))
     offset = match.end()
 
-  components.append(data_string[offset:])    # Append the final chunk.
+  components.append(data_string[offset:])  # Append the final chunk.
   return "".join(components)
 
 
@@ -373,7 +554,8 @@ def ArtifactsFromYaml(yaml_content):
   try:
     raw_list = list(yaml.safe_load_all(yaml_content))
   except (ValueError, yaml.YAMLError) as e:
-    raise ArtifactDefinitionError("Invalid YAML for artifact: %s" % e)
+    raise artifact_registry.ArtifactDefinitionError(
+        "Invalid YAML for artifact: %s" % e)
 
   # Try to do the right thing with json/yaml formatted as a list.
   if (isinstance(raw_list, list) and len(raw_list) == 1 and
@@ -388,11 +570,12 @@ def ArtifactsFromYaml(yaml_content):
     # these are all primitive types as long as there is no other deserialization
     # involved, and we are passing these into protobuf primitive types.
     try:
-      artifact_value = rdfvalue.Artifact(**artifact_dict)
+      artifact_value = Artifact(**artifact_dict)
       valid_artifacts.append(artifact_value)
     except (TypeError, AttributeError) as e:
-      raise ArtifactDefinitionError("Invalid artifact definition for %s: %s" %
-                                    (artifact_dict.get("name"), e))
+      raise artifact_registry.ArtifactDefinitionError(
+          "Invalid artifact definition for %s: %s" %
+          (artifact_dict.get("name"), e))
 
   return valid_artifacts
 
@@ -406,7 +589,7 @@ def LoadArtifactsFromFiles(file_paths, overwrite_if_exists=True):
       with open(file_path, mode="rb") as fh:
         logging.debug("Loading artifacts from %s", file_path)
         for artifact_val in ArtifactsFromYaml(fh.read(1000000)):
-          ArtifactRegistry.RegisterArtifact(
+          artifact_registry.ArtifactRegistry.RegisterArtifact(
               artifact_val, source="file:%s" % file_path,
               overwrite_if_exists=overwrite_if_exists)
           loaded_artifacts.append(artifact_val)

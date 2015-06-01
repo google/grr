@@ -10,3 +10,4 @@ from grr.gui.api_plugins import docs
 from grr.gui.api_plugins import hunt
 from grr.gui.api_plugins import reflection
 from grr.gui.api_plugins import stats
+from grr.gui.api_plugins import user

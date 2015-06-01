@@ -11,11 +11,11 @@ from grr.lib import test_lib
 
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import rdfvalue
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import tests_pb2
 
 
-class DefaultArgsTestFlowArgs(rdfvalue.RDFProtoStruct):
+class DefaultArgsTestFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = tests_pb2.DefaultArgsTestFlowArgs
 
 

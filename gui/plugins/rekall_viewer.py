@@ -20,6 +20,7 @@ from grr.gui.plugins import semantic
 from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class GRRRekallViewerRenderer(grr_rekall.GRRRekallRenderer):
@@ -315,7 +316,7 @@ class RekallResponseCollectionRenderer(semantic.RDFValueRenderer):
           # the directory in the virtual file system, not the particular
           # file. So we just render one link for each output directory.
           file_urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
-              rdfvalue.PathSpec(**statement[1]),
+              rdf_paths.PathSpec(**statement[1]),
               rekall_response.client_urn)
           output_directories.add(rdfvalue.RDFURN(file_urn.Dirname()))
 

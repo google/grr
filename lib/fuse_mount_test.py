@@ -6,10 +6,6 @@ import datetime
 import os
 
 
-# pylint: disable=unused-import, g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import, g-bad-import-order
-
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
@@ -19,6 +15,8 @@ from grr.lib import test_lib
 from grr.lib import utils
 
 from grr.lib.aff4_objects import standard
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
 
 from grr.tools import fuse_mount
 
@@ -149,7 +147,7 @@ class GRRFuseDatastoreOnlyTest(GRRFuseTestBase):
         "st_nlink": 1,
         "st_gid": 0,
         "st_blksize": 4096,
-        "pathspec": rdfvalue.PathSpec(
+        "pathspec": rdf_paths.PathSpec(
             path="/bin/bash",
             pathtype="OS",
             path_options="CASE_LITERAL"),
@@ -157,7 +155,7 @@ class GRRFuseDatastoreOnlyTest(GRRFuseTestBase):
         "st_size": 4874,
         "st_ino": 1026148,
         "st_uid": 0,
-        "st_mode": rdfvalue.StatMode(33261),
+        "st_mode": rdf_client.StatMode(33261),
         "st_atime": rdfvalue.RDFDatetimeSeconds(1299502220)
     }
 
@@ -245,7 +243,7 @@ class GRRFuseTest(GRRFuseTestBase):
     # NOTE: Path is a client side path, so does not have a leading
     # /<client name>/fs/os
 
-    pathspec = rdfvalue.PathSpec(path=path, pathtype="OS")
+    pathspec = rdf_paths.PathSpec(path=path, pathtype="OS")
 
     for _ in test_lib.TestFlowHelper("ListDirectory", self.action_mock,
                                      pathspec=pathspec, token=self.token,

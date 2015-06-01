@@ -25,8 +25,11 @@ from grr.client.osx.objc import ServiceManagement
 from grr.client.vfs_handlers import memory
 
 from grr.lib import config_lib
-from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr.parsers import osx_launchd
 
 
@@ -136,7 +139,7 @@ setattr(Ifaddrs, "_fields_", [
 
 class EnumerateInterfaces(actions.ActionPlugin):
   """Enumerate all MAC addresses of all NICs."""
-  out_rdfvalue = rdfvalue.Interface
+  out_rdfvalue = rdf_client.Interface
 
   def Run(self, unused_args):
     """Enumerate all MAC addresses."""
@@ -158,9 +161,9 @@ class EnumerateInterfaces(actions.ActionPlugin):
         if iffamily == 0x2:     # AF_INET
           data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin))
           ip4 = "".join(map(chr, data.contents.sin_addr))
-          address_type = rdfvalue.NetworkAddress.Family.INET
-          address = rdfvalue.NetworkAddress(address_type=address_type,
-                                            packed_bytes=ip4)
+          address_type = rdf_client.NetworkAddress.Family.INET
+          address = rdf_client.NetworkAddress(address_type=address_type,
+                                              packed_bytes=ip4)
           addresses.setdefault(ifname, []).append(address)
 
         if iffamily == 0x12:    # AF_LINK
@@ -173,9 +176,9 @@ class EnumerateInterfaces(actions.ActionPlugin):
         if iffamily == 0x1E:     # AF_INET6
           data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin6))
           ip6 = "".join(map(chr, data.contents.sin6_addr))
-          address_type = rdfvalue.NetworkAddress.Family.INET6
-          address = rdfvalue.NetworkAddress(address_type=address_type,
-                                            packed_bytes=ip6)
+          address_type = rdf_client.NetworkAddress.Family.INET6
+          address = rdf_client.NetworkAddress(address_type=address_type,
+                                              packed_bytes=ip6)
           addresses.setdefault(ifname, []).append(address)
       except ValueError:
         # Some interfaces don't have a iffamily and will raise a null pointer
@@ -199,7 +202,7 @@ class EnumerateInterfaces(actions.ActionPlugin):
 
 class GetInstallDate(actions.ActionPlugin):
   """Estimate the install date of this system."""
-  out_rdfvalue = rdfvalue.DataBlob
+  out_rdfvalue = rdf_protodict.DataBlob
 
   def Run(self, unused_args):
     for f in ["/var/log/CDIS.custom", "/var", "/private"]:
@@ -214,7 +217,7 @@ class GetInstallDate(actions.ActionPlugin):
 
 class EnumerateFilesystems(actions.ActionPlugin):
   """Enumerate all unique filesystems local to the system."""
-  out_rdfvalue = rdfvalue.Filesystem
+  out_rdfvalue = rdf_client.Filesystem
 
   def Run(self, unused_args):
     """List all local filesystems mounted on this system."""
@@ -249,7 +252,7 @@ class EnumerateFilesystems(actions.ActionPlugin):
 class OSXEnumerateRunningServices(actions.ActionPlugin):
   """Enumerate all running launchd jobs."""
   in_rdfvalue = None
-  out_rdfvalue = rdfvalue.OSXServiceInformation
+  out_rdfvalue = rdf_client.OSXServiceInformation
 
   def GetRunningLaunchDaemons(self):
     """Get running launchd jobs from objc ServiceManagement framework."""
@@ -286,7 +289,7 @@ class OSXEnumerateRunningServices(actions.ActionPlugin):
     Returns:
       sysinfo_pb2.OSXServiceInformation proto
     """
-    service = rdfvalue.OSXServiceInformation(
+    service = rdf_client.OSXServiceInformation(
         label=job.get("Label"), program=job.get("Program"),
         sessiontype=job.get("LimitLoadToSessionType"),
         lastexitstatus=int(job["LastExitStatus"]),
@@ -312,7 +315,7 @@ class OSXEnumerateRunningServices(actions.ActionPlugin):
 
 class Uninstall(actions.ActionPlugin):
   """Remove the service that starts us at startup."""
-  out_rdfvalue = rdfvalue.DataBlob
+  out_rdfvalue = rdf_protodict.DataBlob
 
   def Run(self, unused_arg):
     """This kills us with no cleanups."""
@@ -353,7 +356,7 @@ class InstallDriver(actions.ActionPlugin):
   Note that only drivers with a signature that validates with
   client_config.DRIVER_SIGNING_CERT can be loaded.
   """
-  in_rdfvalue = rdfvalue.DriverInstallTemplate
+  in_rdfvalue = rdf_client.DriverInstallTemplate
 
   def _FindKext(self, path):
     """Find the .kext directory under path.
@@ -400,8 +403,8 @@ class InstallDriver(actions.ActionPlugin):
 class GetMemoryInformation(actions.ActionPlugin):
   """Loads the driver for memory access and returns a Stat for the device."""
 
-  in_rdfvalue = rdfvalue.PathSpec
-  out_rdfvalue = rdfvalue.MemoryInformation
+  in_rdfvalue = rdf_paths.PathSpec
+  out_rdfvalue = rdf_rekall_types.MemoryInformation
 
   def Run(self, args):
     """Run."""
@@ -412,11 +415,11 @@ class GetMemoryInformation(actions.ActionPlugin):
     logging.debug("Querying device %s", args.path)
     mem_dev = open(args.path, "rb")
 
-    result = rdfvalue.MemoryInformation(
+    result = rdf_rekall_types.MemoryInformation(
         cr3=memory.OSXMemory.GetCR3(mem_dev),
-        device=rdfvalue.PathSpec(
+        device=rdf_paths.PathSpec(
             path=args.path,
-            pathtype=rdfvalue.PathSpec.PathType.MEMORY))
+            pathtype=rdf_paths.PathSpec.PathType.MEMORY))
     for start, length in memory.OSXMemory.GetMemoryMap(mem_dev):
       result.runs.Append(offset=start, length=length)
     self.SendReply(result)
@@ -428,7 +431,7 @@ class UninstallDriver(actions.ActionPlugin):
   Only if the request contains a valid signature the driver will be uninstalled.
   """
 
-  in_rdfvalue = rdfvalue.DriverInstallTemplate
+  in_rdfvalue = rdf_client.DriverInstallTemplate
 
   def Run(self, args):
     """Unloads a driver."""
@@ -458,9 +461,9 @@ class UpdateAgent(standard.ExecuteBinaryCommand):
     stdout = stdout[:10 * 1024 * 1024]
     stderr = stderr[:10 * 1024 * 1024]
 
-    result = rdfvalue.ExecuteBinaryResponse(stdout=stdout,
-                                            stderr=stderr,
-                                            exit_status=status,
-                                            # We have to return microseconds.
-                                            time_used=int(1e6 * time_used))
+    result = rdf_client.ExecuteBinaryResponse(stdout=stdout,
+                                              stderr=stderr,
+                                              exit_status=status,
+                                              # We have to return microseconds.
+                                              time_used=int(1e6 * time_used))
     self.SendReply(result)

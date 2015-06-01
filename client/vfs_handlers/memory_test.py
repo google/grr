@@ -11,9 +11,9 @@ from grr.client import client_plugins
 
 from grr.client.vfs_handlers import memory
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class FakeFile(object):
@@ -136,8 +136,8 @@ cbae7000-cbffffff : ACPI Non-volatile Storage
       return FakeFile()
 
     with utils.Stubber(memory, "open", FakeOpen):
-      result = memory.LinuxMemory(None, pathspec=rdfvalue.PathSpec(
-          path="/dev/pmem", pathtype=rdfvalue.PathSpec.PathType.MEMORY))
+      result = memory.LinuxMemory(None, pathspec=rdf_paths.PathSpec(
+          path="/dev/pmem", pathtype=rdf_paths.PathSpec.PathType.MEMORY))
 
       self.assertEqual(result.size, 0x82fffffff)
       return result
@@ -186,8 +186,8 @@ class TestWindowsMemory(OSXMemoryTest):
   """Test the windows memory handler."""
 
   def GetVFSHandler(self):
-    result = memory.WindowsMemory(None, pathspec=rdfvalue.PathSpec(
-        path=r"\\.\pmem", pathtype=rdfvalue.PathSpec.PathType.MEMORY))
+    result = memory.WindowsMemory(None, pathspec=rdf_paths.PathSpec(
+        path=r"\\.\pmem", pathtype=rdf_paths.PathSpec.PathType.MEMORY))
 
     self.assertEqual(result.size, 0x82fffffff)
     return result

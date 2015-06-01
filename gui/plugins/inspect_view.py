@@ -18,6 +18,8 @@ from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import flows as rdf_flows
 
 
 class ClientLoadView(renderers.TemplateRenderer):
@@ -96,7 +98,7 @@ No actions currently in progress.
 """)
 
   def Layout(self, request, response):
-    self.client_id = rdfvalue.ClientURN(request.REQ.get("client_id"))
+    self.client_id = rdf_client.ClientURN(request.REQ.get("client_id"))
     self.client_actions = []
 
     current_time = rdfvalue.RDFDatetime().Now()
@@ -147,7 +149,7 @@ No actions currently in progress.
     if client_stats_list:
       client_stats = client_stats_list[-1].Copy()
     else:
-      client_stats = rdfvalue.ClientStats()
+      client_stats = rdf_client.ClientStats()
 
     client_stats.cpu_samples = cpu_samples
     client_stats.io_samples = io_samples
@@ -228,7 +230,7 @@ class RequestTable(renderers.TableRenderer):
     self.AddColumn(semantic.RDFValueColumn("Client Action", width="30%"))
 
   def BuildTable(self, start_row, end_row, request):
-    client_id = rdfvalue.ClientURN(request.REQ.get("client_id"))
+    client_id = rdf_client.ClientURN(request.REQ.get("client_id"))
     now = rdfvalue.RDFDatetime().Now()
 
     # Make a local QueueManager.
@@ -275,7 +277,7 @@ class ResponsesTable(renderers.TableRenderer):
 
   def BuildTable(self, start_row, end_row, request):
     """Builds the table."""
-    client_id = rdfvalue.ClientURN(request.REQ.get("client_id"))
+    client_id = rdf_client.ClientURN(request.REQ.get("client_id"))
 
     task_id = "task:%s" % request.REQ.get("task_id", "")
 
@@ -301,7 +303,7 @@ class ResponsesTable(renderers.TableRenderer):
         data_store.DB.ResolveRegex(state_queue, predicate_re,
                                    limit=end_row, token=request.token)):
 
-      message = rdfvalue.GrrMessage(serialized_message)
+      message = rdf_flows.GrrMessage(serialized_message)
 
       if i < start_row:
         continue
@@ -309,7 +311,7 @@ class ResponsesTable(renderers.TableRenderer):
         break
 
       # Tie up the request to each response to make it easier to render.
-      rdf_response_message = rdfvalue.GrrMessage(message)
+      rdf_response_message = rdf_flows.GrrMessage(message)
       rdf_response_message.request = request_message
 
       self.AddCell(i, "Task ID", predicate)
@@ -371,7 +373,7 @@ class RequestRenderer(renderers.TemplateRenderer):
     if request.REQ.get("task_id") is None:
       return
 
-    client_id = rdfvalue.ClientURN(request.REQ.get("client_id"))
+    client_id = rdf_client.ClientURN(request.REQ.get("client_id"))
     task_id = "task:" + request.REQ.get("task_id")
 
     # Make a local QueueManager.

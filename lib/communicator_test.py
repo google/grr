@@ -23,14 +23,13 @@ from grr.lib import flags
 from grr.lib import flow
 from grr.lib import queues
 from grr.lib import rdfvalue
-# pylint: disable=unused-import
-from grr.lib import server_plugins
-# pylint: enable=unused-import
 from grr.lib import stats
 from grr.lib import test_lib
 from grr.lib import utils
-
 from grr.lib.flows.general import ca_enroller
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import crypto as rdf_crypto
+from grr.lib.rdfvalues import flows as rdf_flows
 
 # pylint: mode=test
 
@@ -72,7 +71,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
 
   def ClientServerCommunicate(self, timestamp=None):
     """Tests the end to end encrypted communicators."""
-    message_list = rdfvalue.MessageList()
+    message_list = rdf_flows.MessageList()
     for i in range(1, 11):
       message_list.job.Append(
           session_id=rdfvalue.SessionID(base="aff4:/flows",
@@ -80,7 +79,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
                                         flow_name=i),
           name="OMG it's a string")
 
-    result = rdfvalue.ClientCommunication()
+    result = rdf_flows.ClientCommunication()
     timestamp = self.client_communicator.EncodeMessages(message_list, result,
                                                         timestamp=timestamp)
     self.cipher_text = result.SerializeToString()
@@ -104,12 +103,12 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     decoded_messages = self.ClientServerCommunicate()
     for i in range(len(decoded_messages)):
       self.assertEqual(decoded_messages[i].auth_state,
-                       rdfvalue.GrrMessage.AuthorizationState.UNAUTHENTICATED)
+                       rdf_flows.GrrMessage.AuthorizationState.UNAUTHENTICATED)
 
   def MakeClientAFF4Record(self):
     """Make a client in the data store."""
     cert = self.ClientCertFromPrivateKey(self.client_private_key)
-    client_cert = rdfvalue.RDFX509Cert(cert.as_pem())
+    client_cert = rdf_crypto.RDFX509Cert(cert.as_pem())
     new_client = aff4.FACTORY.Create(client_cert.common_name, "VFSGRRClient",
                                      token=self.token)
     new_client.Set(new_client.Schema.CERT, client_cert)
@@ -124,7 +123,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
 
     for i in range(len(decoded_messages)):
       self.assertEqual(decoded_messages[i].auth_state,
-                       rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED)
+                       rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED)
 
   def testServerReplayAttack(self):
     """Test that replaying encrypted messages to the server invalidates them."""
@@ -134,7 +133,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     decoded_messages = self.ClientServerCommunicate()
 
     self.assertEqual(decoded_messages[0].auth_state,
-                     rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED)
+                     rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED)
 
     # Now replay the last message to the server
     (decoded_messages, _, _) = self.server_communicator.DecryptMessage(
@@ -142,7 +141,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
 
     # Messages should now be tagged as desynced
     self.assertEqual(decoded_messages[0].auth_state,
-                     rdfvalue.GrrMessage.AuthorizationState.DESYNCHRONIZED)
+                     rdf_flows.GrrMessage.AuthorizationState.DESYNCHRONIZED)
 
   def testCompression(self):
     """Tests that the compression works."""
@@ -192,11 +191,11 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     self.MakeClientAFF4Record()
 
     # Make something to send
-    message_list = rdfvalue.MessageList()
+    message_list = rdf_flows.MessageList()
     for i in range(0, 10):
       message_list.job.Append(session_id=str(i))
 
-    result = rdfvalue.ClientCommunication()
+    result = rdf_flows.ClientCommunication()
     self.client_communicator.EncodeMessages(message_list, result)
     cipher_text = result.SerializeToString()
 
@@ -244,7 +243,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
 
     # Verify that the CN is of the correct form
     public_key = req.get_pubkey().get_rsa().pub()[1]
-    cn = rdfvalue.ClientURN.FromPublicKey(public_key)
+    cn = rdf_client.ClientURN.FromPublicKey(public_key)
 
     self.assertEqual(cn, req.get_subject().CN)
 
@@ -263,7 +262,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     self.server_private_key = config_lib.CONFIG["PrivateKeys.server_key"]
     self.server_certificate = config_lib.CONFIG["Frontend.certificate"]
 
-    self.client_cn = rdfvalue.RDFX509Cert(self.certificate).common_name
+    self.client_cn = rdf_crypto.RDFX509Cert(self.certificate).common_name
 
     # Make a new client
     self.CreateNewClientObject()
@@ -330,7 +329,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
     _ = kwargs
     try:
-      self.client_communication = rdfvalue.ClientCommunication(req.data)
+      self.client_communication = rdf_flows.ClientCommunication(req.data)
 
       # Decrypt incoming messages
       self.messages, source, ts = self.server_communicator.DecodeMessages(
@@ -346,8 +345,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
           self.assertEqual(message.session_id, "aff4:/W:session")
 
       # Now prepare a response
-      response_comms = rdfvalue.ClientCommunication()
-      message_list = rdfvalue.MessageList()
+      response_comms = rdf_flows.ClientCommunication()
+      message_list = rdf_flows.MessageList()
       for i in range(0, num_messages):
         message_list.job.Append(request_id=i, **self.server_response)
 
@@ -379,12 +378,12 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     for i, message in enumerate(
         self.client_communicator.client_worker._in_queue):
       # This is the common name embedded in the certificate.
-      self.assertEqual(message.GetWireFormat("source"), "GRR Test Server")
+      self.assertEqual(message.source, "aff4:/GRR Test Server")
       self.assertEqual(message.response_id, 2)
       self.assertEqual(message.request_id, i)
       self.assertEqual(message.session_id, "aff4:/W:session")
       self.assertEqual(message.auth_state,
-                       rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED)
+                       rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED)
 
     # Clear the queue
     self.client_communicator.client_worker._in_queue = []
@@ -394,7 +393,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     # Generate some client traffic
     for i in range(0, 10):
       self.client_communicator.client_worker.SendReply(
-          rdfvalue.GrrStatus(),
+          rdf_flows.GrrStatus(),
           session_id=rdfvalue.SessionID("W:session"),
           response_id=i, request_id=1)
 
@@ -444,7 +443,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     self.assertEqual(status.code, 406)
     self.assertEqual(len(self.messages), 10)
     self.assertEqual(self.messages[0].auth_state,
-                     rdfvalue.GrrMessage.AuthorizationState.UNAUTHENTICATED)
+                     rdf_flows.GrrMessage.AuthorizationState.UNAUTHENTICATED)
 
     # The next request should be an enrolling request.
     status = self.client_communicator.RunOnce()
@@ -563,7 +562,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
     def Corruptor(req, **_):
       """Futz with some of the fields."""
-      self.client_communication = rdfvalue.ClientCommunication(req.data)
+      self.client_communication = rdf_flows.ClientCommunication(req.data)
 
       if self.corruptor_field:
         field_data = getattr(self.client_communication, self.corruptor_field)
@@ -744,7 +743,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
         self.assertEqual(len(runs), 0)
 
       self.client_communicator.client_worker.HandleMessage(
-          rdfvalue.GrrMessage())
+          rdf_flows.GrrMessage())
 
       # HandleMessage was called, but one minute hasn't passed, so
       # stats should not be sent.

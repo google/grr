@@ -3,17 +3,16 @@
 
 
 
-# pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import,g-bad-import-order
-
 from grr.gui import api_test_lib
 from grr.gui.api_plugins import hunt as hunt_plugin
 
 from grr.lib import flags
+from grr.lib import flow_runner
 from grr.lib import hunts
-from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.flows.general import transfer
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class ApiHuntsListRendererTest(test_lib.GRRBaseTest):
@@ -24,12 +23,12 @@ class ApiHuntsListRendererTest(test_lib.GRRBaseTest):
     return hunts.GRRHunt.StartHunt(
         hunt_name="GenericHunt",
         description=description,
-        flow_runner_args=rdfvalue.FlowRunnerArgs(
+        flow_runner_args=flow_runner.FlowRunnerArgs(
             flow_name="GetFile"),
-        flow_args=rdfvalue.GetFileArgs(
-            pathspec=rdfvalue.PathSpec(
+        flow_args=transfer.GetFileArgs(
+            pathspec=rdf_paths.PathSpec(
                 path="/tmp/evil.txt",
-                pathtype=rdfvalue.PathSpec.PathType.OS,
+                pathtype=rdf_paths.PathSpec.PathType.OS,
             )
         ), client_rate=0, token=token)
 
@@ -46,7 +45,7 @@ class ApiHuntsListRendererTest(test_lib.GRRBaseTest):
     for i in range(10):
       self.CreateSampleHunt("hunt_%d" % i, token=self.token)
 
-    result = self.renderer.Render(rdfvalue.ApiHuntsListRendererArgs(),
+    result = self.renderer.Render(hunt_plugin.ApiHuntsListRendererArgs(),
                                   token=self.token)
     descriptions = set(r["summary"]["description"] for r in result["items"])
 
@@ -59,7 +58,7 @@ class ApiHuntsListRendererTest(test_lib.GRRBaseTest):
       with test_lib.FakeTime(i * 1000):
         self.CreateSampleHunt("hunt_%d" % i, token=self.token)
 
-    result = self.renderer.Render(rdfvalue.ApiHuntsListRendererArgs(),
+    result = self.renderer.Render(hunt_plugin.ApiHuntsListRendererArgs(),
                                   token=self.token)
     create_times = [r["summary"]["create_time"] for r in result["items"]]
 
@@ -72,7 +71,7 @@ class ApiHuntsListRendererTest(test_lib.GRRBaseTest):
       with test_lib.FakeTime(i * 1000):
         self.CreateSampleHunt("hunt_%d" % i, token=self.token)
 
-    result = self.renderer.Render(rdfvalue.ApiHuntsListRendererArgs(
+    result = self.renderer.Render(hunt_plugin.ApiHuntsListRendererArgs(
         offset=2, count=2), token=self.token)
     create_times = [r["summary"]["create_time"] for r in result["items"]]
 
@@ -153,11 +152,11 @@ class ApiHuntErrorsRendererRegressionTest(
           "the hunt", token=self.token) as hunt_obj:
 
         with test_lib.FakeTime(52):
-          hunt_obj.LogClientError(rdfvalue.ClientURN("C.0000111122223333"),
+          hunt_obj.LogClientError(rdf_client.ClientURN("C.0000111122223333"),
                                   "Error foo.")
 
         with test_lib.FakeTime(55):
-          hunt_obj.LogClientError(rdfvalue.ClientURN("C.1111222233334444"),
+          hunt_obj.LogClientError(rdf_client.ClientURN("C.1111222233334444"),
                                   "Error bar.", "<some backtrace>")
 
     self.Check("GET", "/api/hunts/%s/errors" % hunt_obj.urn.Basename(),

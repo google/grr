@@ -18,8 +18,9 @@ import win32security
 from google.protobuf import message
 
 from grr.lib import config_lib
-from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 DACL_PRESENT = 1
@@ -218,9 +219,9 @@ def WinGetRawDevice(path):
   volume = LocalPathToCanonicalPath(volume)
 
   # The pathspec for the raw volume
-  result = rdfvalue.PathSpec(path=volume,
-                             pathtype=rdfvalue.PathSpec.PathType.OS,
-                             mount_point=mount_point.rstrip("\\"))
+  result = rdf_paths.PathSpec(path=volume,
+                              pathtype=rdf_paths.PathSpec.PathType.OS,
+                              mount_point=mount_point.rstrip("\\"))
 
   return result, corrected_path
 
@@ -295,7 +296,7 @@ class NannyController(object):
       return
 
     try:
-      return rdfvalue.GrrMessage(value)
+      return rdf_flows.GrrMessage(value)
     except message.Error:
       return
 

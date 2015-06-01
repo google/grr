@@ -259,7 +259,7 @@ Test Context:
   Nanny.unresponsive_kill_period: 3600
   Datastore.implementation: FakeDataStore
 
-  Logging.verbose: true
+  Logging.verbose: false
 
   Client.tempdir: /tmp/
 
@@ -279,4 +279,3 @@ Test Context:
 
     # When debugging it helps to be able to see all output on the console.
     ClientBuilder.console: True
-

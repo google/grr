@@ -17,9 +17,10 @@ from grr.client import client_plugins
 
 from grr.lib import config_lib
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import startup
 from grr.lib import utils
+
+from grr.lib.rdfvalues import data_server as rdf_data_server
 
 from grr.server.data_server import constants
 from grr.server.data_server import errors
@@ -59,7 +60,7 @@ class Manager(object):
       res = self.pool.urlopen("POST", "/manage", headers=headers, body=body)
       if res.status != constants.RESPONSE_OK:
         return False
-      self.mapping = rdfvalue.DataServerMapping(res.data)
+      self.mapping = rdf_data_server.DataServerMapping(res.data)
       self.mapping_time = time.time()
     except urllib3.exceptions.MaxRetryError:
       pass
@@ -114,12 +115,13 @@ class Manager(object):
     newstart = 0
     n_servers = self.mapping.num_servers
     servers = list(mapping.servers)
-    new_mapping = rdfvalue.DataServerMapping(version=self.mapping.version + 1,
-                                             num_servers=n_servers,
-                                             pathing=self.mapping.pathing)
+    new_mapping = rdf_data_server.DataServerMapping(
+        version=self.mapping.version + 1,
+        num_servers=n_servers,
+        pathing=self.mapping.pathing)
     for i, perc in enumerate(newperc):
       quant = int(perc * constants.MAX_RANGE)
-      interval = rdfvalue.DataServerInterval(start=newstart)
+      interval = rdf_data_server.DataServerInterval(start=newstart)
       end = newstart + quant
       if i == len(newperc) - 1:
         end = constants.MAX_RANGE
@@ -172,7 +174,7 @@ class Manager(object):
     if res.status != constants.RESPONSE_OK:
       print "Re-sharding cannot be done!"
       return
-    rebalance = rdfvalue.DataServerRebalance(res.data)
+    rebalance = rdf_data_server.DataServerRebalance(res.data)
     print "OK"
     print
     print "The following servers will need to move data:"
@@ -211,7 +213,7 @@ class Manager(object):
       print "'recover %s' in order to re-run transaction" % rebalance.id
       return
 
-    self.mapping = rdfvalue.DataServerMapping(res.data)
+    self.mapping = rdf_data_server.DataServerMapping(res.data)
 
     print "Rebalance with id %s fully performed." % rebalance.id
 
@@ -242,7 +244,7 @@ class Manager(object):
     if res.status != constants.RESPONSE_OK:
       print "Potential data master error. Giving up..."
       return
-    rebalance = rdfvalue.DataServerRebalance(res.data)
+    rebalance = rdf_data_server.DataServerRebalance(res.data)
     print "Got transaction object %s" % rebalance.id
     answer = raw_input("Proceed with the recover process? (y/n) ")
     if answer != "y":
@@ -266,7 +268,7 @@ class Manager(object):
       print "'recover %s' in order to re-run transaction" % rebalance.id
       return
 
-    self.mapping = rdfvalue.DataServerMapping(res.data)
+    self.mapping = rdf_data_server.DataServerMapping(res.data)
     print "Rebalance with id %s fully performed." % rebalance.id
 
   def _PackNewServer(self, addr, port):
@@ -347,7 +349,7 @@ class Manager(object):
     self._CompleteAddServerHelp(addr, port)
 
     # Update mapping.
-    self.mapping = rdfvalue.DataServerMapping(res.data)
+    self.mapping = rdf_data_server.DataServerMapping(res.data)
 
   def _CompleteAddServerHelp(self, addr, port):
     print ("\t1. Add '//%s:%d' to Dataserver.server_list in your configuration "
@@ -382,7 +384,7 @@ class Manager(object):
       return False
     print "Sync done."
     # Update mapping.
-    self.mapping = rdfvalue.DataServerMapping(res.data)
+    self.mapping = rdf_data_server.DataServerMapping(res.data)
     return True
 
   def _FindServer(self, addr, port):
@@ -481,7 +483,7 @@ class Manager(object):
 
     if res.status == constants.RESPONSE_OK:
       # Update mapping.
-      self.mapping = rdfvalue.DataServerMapping(res.data)
+      self.mapping = rdf_data_server.DataServerMapping(res.data)
       self._CompleteRemServerHelpComplete(addr, port)
       return
 

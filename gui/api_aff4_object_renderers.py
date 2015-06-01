@@ -10,9 +10,10 @@ import sys
 
 from grr.gui import api_value_renderers
 from grr.lib import aff4
-from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import api_pb2
 
 
@@ -25,7 +26,7 @@ class ApiAFF4ObjectRendererBase(object):
   args_type = None
 
 
-class ApiAFF4ObjectRendererArgs(rdfvalue.RDFProtoStruct):
+class ApiAFF4ObjectRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiAFF4ObjectRendererArgs
 
 
@@ -84,7 +85,7 @@ class ApiAFF4ObjectRenderer(ApiAFF4ObjectRendererBase):
     return result
 
 
-class ApiRDFValueCollectionRendererArgs(rdfvalue.RDFProtoStruct):
+class ApiRDFValueCollectionRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiRDFValueCollectionRendererArgs
 
 
@@ -150,7 +151,7 @@ class VFSGRRClientApiObjectRenderer(ApiAFF4ObjectRendererBase):
     # Avoid showing warnings for the CDROM.  This is isn't a problem for linux
     # and OS X since we only check usage on the disk mounted at "/".
     exclude_windows_types = [
-        rdfvalue.WindowsVolume.WindowsDriveTypeEnum.DRIVE_CDROM]
+        rdf_client.WindowsVolume.WindowsDriveTypeEnum.DRIVE_CDROM]
 
     if volumes:
       for volume in volumes:

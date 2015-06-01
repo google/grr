@@ -3,7 +3,7 @@
 
 
 from grr.lib import aff4
-from grr.lib import rdfvalue
+from grr.lib.rdfvalues import client
 
 
 class InstalledSoftwarePackages(aff4.AFF4Object):
@@ -11,5 +11,5 @@ class InstalledSoftwarePackages(aff4.AFF4Object):
 
   class SchemaCls(aff4.AFF4Object.SchemaCls):
     INSTALLED_PACKAGES = aff4.Attribute(
-        "aff4:info/packages", rdfvalue.SoftwarePackages,
+        "aff4:info/packages", client.SoftwarePackages,
         "Installed software packages.", default="")

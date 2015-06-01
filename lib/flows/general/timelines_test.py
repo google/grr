@@ -7,8 +7,11 @@ from grr.client import vfs
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
+# pylint: disable=unused-import
+from grr.lib.flows.general import timelines as _
+# pylint: enable=unused-import
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class TestTimelines(test_lib.FlowTestsBaseclass):
@@ -20,13 +23,13 @@ class TestTimelines(test_lib.FlowTestsBaseclass):
     """Test that the timelining works with files."""
     # Install the mock
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
+        rdf_paths.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
 
     client_mock = action_mocks.ActionMock("ListDirectory")
     output_path = "analysis/Timeline/MAC"
 
-    pathspec = rdfvalue.PathSpec(path="/",
-                                 pathtype=rdfvalue.PathSpec.PathType.OS)
+    pathspec = rdf_paths.PathSpec(path="/",
+                                  pathtype=rdf_paths.PathSpec.PathType.OS)
 
     for _ in test_lib.TestFlowHelper(
         "RecursiveListDirectory", client_mock, client_id=self.client_id,

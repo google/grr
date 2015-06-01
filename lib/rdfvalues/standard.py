@@ -6,6 +6,7 @@ import re
 from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import type_info
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import jobs_pb2
 
 
@@ -74,9 +75,9 @@ class DomainEmailAddress(EmailAddress):
           "domain '%s'" % (self._match.group(1), domain))
 
 
-class AuthenticodeSignedData(rdfvalue.RDFProtoStruct):
+class AuthenticodeSignedData(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.AuthenticodeSignedData
 
 
-class PersistenceFile(rdfvalue.RDFProtoStruct):
+class PersistenceFile(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.PersistenceFile

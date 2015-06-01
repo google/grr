@@ -52,9 +52,9 @@ from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import master
-from grr.lib import rdfvalue
 from grr.lib import startup
 from grr.lib import stats
+from grr.lib.rdfvalues import flows as rdf_flows
 
 
 flags.DEFINE_integer("max_queue_size", 500,
@@ -106,9 +106,9 @@ class GrrWSGIServer(object):
         length = int(environ["CONTENT_LENGTH"])
         input_data = environ["wsgi.input"].read(length)
 
-        request_comms = rdfvalue.ClientCommunication(input_data)
+        request_comms = rdf_flows.ClientCommunication(input_data)
 
-        responses_comms = rdfvalue.ClientCommunication()
+        responses_comms = rdf_flows.ClientCommunication()
 
         self.front_end.HandleMessageBundles(
             request_comms, responses_comms)

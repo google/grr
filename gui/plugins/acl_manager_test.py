@@ -20,6 +20,8 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import cronjobs
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import foreman as rdf_foreman
 
 
 class TestACLWorkflow(test_lib.GRRSeleniumTest):
@@ -32,7 +34,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
   def CreateSampleHunt(self, token=None):
     with hunts.GRRHunt.StartHunt(
         hunt_name="SampleHunt",
-        regex_rules=[rdfvalue.ForemanAttributeRegex(
+        regex_rules=[rdf_foreman.ForemanAttributeRegex(
             attribute_name="GRR client",
             attribute_regex="GRR")],
         token=token or self.token) as hunt:
@@ -111,11 +113,13 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     # Lets add another approver.
     token = access_control.ACLToken(username="approver")
-    flow.GRRFlow.StartFlow(client_id="C.0000000000000001",
-                           flow_name="GrantClientApprovalFlow",
-                           reason=self.reason, delegate="test",
-                           subject_urn=rdfvalue.ClientURN("C.0000000000000001"),
-                           token=token)
+    flow.GRRFlow.StartFlow(
+        client_id="C.0000000000000001",
+        flow_name="GrantClientApprovalFlow",
+        reason=self.reason,
+        delegate="test",
+        subject_urn=rdf_client.ClientURN("C.0000000000000001"),
+        token=token)
 
     # Try again:
     self.Open("/")
@@ -624,13 +628,14 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     # Request client approval, it will trigger an email message.
     with utils.Stubber(email_alerts, "SendEmail", SendEmailStub):
-      flow.GRRFlow.StartFlow(client_id=client_id,
-                             flow_name="RequestClientApprovalFlow",
-                             reason="Please please let me",
-                             subject_urn=client_id,
-                             approver="test",
-                             token=rdfvalue.ACLToken(username="iwantapproval",
-                                                     reason="test"))
+      flow.GRRFlow.StartFlow(
+          client_id=client_id,
+          flow_name="RequestClientApprovalFlow",
+          reason="Please please let me",
+          subject_urn=client_id,
+          approver="test",
+          token=access_control.ACLToken(username="iwantapproval",
+                                        reason="test"))
     self.assertEqual(len(messages_sent), 1)
 
     # Extract link from the message text and open it.

@@ -3,10 +3,6 @@
 
 
 
-# pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import,g-bad-import-order
-
 import json
 
 from grr.gui import api_aff4_object_renderers
@@ -14,14 +10,14 @@ from grr.gui import api_call_renderers
 from grr.gui import http_api
 
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import tests_pb2
 
 
-class SampleGetRendererArgs(rdfvalue.RDFProtoStruct):
+class SampleGetRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = tests_pb2.SampleGetRendererArgs
 
 
@@ -37,7 +33,7 @@ class SampleGetRenderer(api_call_renderers.ApiCallRenderer):
     }
 
 
-class SampleGetRendererWithAdditionalArgsArgs(rdfvalue.RDFProtoStruct):
+class SampleGetRendererWithAdditionalArgsArgs(rdf_structs.RDFProtoStruct):
   protobuf = tests_pb2.SampleGetRendererWithAdditionalArgsArgs
 
 
@@ -48,7 +44,7 @@ class SampleGetRendererWithAdditionalArgs(api_call_renderers.ApiCallRenderer):
       "AFF4Object": api_aff4_object_renderers.ApiAFF4ObjectRendererArgs,
       "RDFValueCollection": (api_aff4_object_renderers.
                              ApiRDFValueCollectionRendererArgs)
-      }
+  }
 
   def Render(self, args, token=None):
     result = {
@@ -155,10 +151,14 @@ class RenderHttpResponseTest(test_lib.GRRBaseTest):
 
   def testAdditionalArgumentsAreParsedCorrectly(self):
     additional_args = http_api.FillAdditionalArgsFromRequest(
-        {"AFF4Object.limit_lists": "10",
-         "RDFValueCollection.with_total_count": "1"},
-        {"AFF4Object": rdfvalue.ApiAFF4ObjectRendererArgs,
-         "RDFValueCollection": rdfvalue.ApiRDFValueCollectionRendererArgs})
+        {
+            "AFF4Object.limit_lists": "10",
+            "RDFValueCollection.with_total_count": "1"
+        }, {
+            "AFF4Object": api_aff4_object_renderers.ApiAFF4ObjectRendererArgs,
+            "RDFValueCollection":
+            api_aff4_object_renderers.ApiRDFValueCollectionRendererArgs
+        })
     additional_args = sorted(additional_args, key=lambda x: x.name)
 
     self.assertListEqual(
@@ -169,8 +169,9 @@ class RenderHttpResponseTest(test_lib.GRRBaseTest):
         ["ApiAFF4ObjectRendererArgs", "ApiRDFValueCollectionRendererArgs"])
     self.assertListEqual(
         [x.args for x in additional_args],
-        [rdfvalue.ApiAFF4ObjectRendererArgs(limit_lists=10),
-         rdfvalue.ApiRDFValueCollectionRendererArgs(with_total_count=True)])
+        [api_aff4_object_renderers.ApiAFF4ObjectRendererArgs(limit_lists=10),
+         api_aff4_object_renderers.ApiRDFValueCollectionRendererArgs(
+             with_total_count=True)])
 
   def testAdditionalArgumentsAreFoundAndPassedToTheRenderer(self):
     response = self._RenderResponse(

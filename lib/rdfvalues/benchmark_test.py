@@ -3,13 +3,14 @@
 
 
 
-from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import type_info
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import jobs_pb2
 
 
-class StructGrrMessage(rdfvalue.RDFProtoStruct):
+class StructGrrMessage(rdf_structs.RDFProtoStruct):
   """A serialization agnostic GrrMessage."""
 
   type_description = type_info.TypeDescriptorSet(
@@ -42,7 +43,7 @@ class StructGrrMessage(rdfvalue.RDFProtoStruct):
   )
 
 
-class FastGrrMessageList(rdfvalue.RDFProtoStruct):
+class FastGrrMessageList(rdf_structs.RDFProtoStruct):
   """A Faster implementation of GrrMessageList."""
 
   type_description = type_info.TypeDescriptorSet(
@@ -56,6 +57,7 @@ class RDFValueBenchmark(test_lib.AverageMicroBenchmarks):
   """Microbenchmark tests for RDFProtos."""
 
   REPEATS = 1000
+  units = "us"
 
   USER_ACCOUNT = dict(
       username=u"user", full_name=u"John Smith",
@@ -70,18 +72,18 @@ class RDFValueBenchmark(test_lib.AverageMicroBenchmarks):
     test_proto = test_proto.SerializeToString()
 
     def RDFStructCreateAndSerialize():
-      s = rdfvalue.User(**self.USER_ACCOUNT)
+      s = rdf_client.User(**self.USER_ACCOUNT)
       s.SerializeToString()
 
     def RDFStructCreateAndSerializeSetValue():
-      s = rdfvalue.User()
+      s = rdf_client.User()
       for k, v in self.USER_ACCOUNT.iteritems():
         setattr(s, k, v)
 
       s.SerializeToString()
 
     def RDFStructCreateAndSerializeFromProto():
-      s = rdfvalue.User(test_proto)
+      s = rdf_client.User(test_proto)
       s.SerializeToString()
 
     def ProtoCreateAndSerialize():
@@ -245,7 +247,7 @@ class RDFValueBenchmark(test_lib.AverageMicroBenchmarks):
       self.assertEqual(new_s.username.__class__, unicode)
 
     def RDFStructDecode():
-      new_s = rdfvalue.User()
+      new_s = rdf_client.User()
       new_s.ParseFromString(data)
 
       self.assertEqual(new_s.username, "user")
@@ -261,16 +263,17 @@ class RDFValueBenchmark(test_lib.AverageMicroBenchmarks):
     serialized = s.SerializeToString()
 
     def ProtoEncode():
-      s = jobs_pb2.GrrMessage(name=u"foo", request_id=1, response_id=1,
-                              session_id=u"session")
-      test = s.SerializeToString()
+      s1 = jobs_pb2.GrrMessage(name=u"foo", request_id=1, response_id=1,
+                               session_id=u"session")
+
+      test = s1.SerializeToString()
       self.assertEqual(len(serialized), len(test))
 
     def RDFStructEncode():
-      s = StructGrrMessage(name=u"foo", request_id=1, response_id=1,
-                           session_id=u"session")
+      s2 = StructGrrMessage(name=u"foo", request_id=1, response_id=1,
+                            session_id=u"session")
 
-      test = s.SerializeToString()
+      test = s2.SerializeToString()
       self.assertEqual(len(serialized), len(test))
 
     self.TimeIt(RDFStructEncode)
@@ -314,3 +317,22 @@ class RDFValueBenchmark(test_lib.AverageMicroBenchmarks):
 
     self.TimeIt(RDFStructEncodeDecode)
     self.TimeIt(ProtoEncodeDecode)
+
+  def testDecodeEncode(self):
+    """Test performance of decode/encode cycle."""
+
+    s = jobs_pb2.GrrMessage(name=u"foo", request_id=1, response_id=1,
+                            session_id=u"session")
+    data = s.SerializeToString()
+
+    def ProtoDecodeEncode():
+      new_s = jobs_pb2.GrrMessage()
+      new_s.ParseFromString(data)
+      new_s.SerializeToString()
+
+    def RDFStructDecodeEncode():
+      new_s = StructGrrMessage(initializer=data)
+      new_s.SerializeToString()
+
+    self.TimeIt(RDFStructDecodeEncode)
+    self.TimeIt(ProtoDecodeEncode)

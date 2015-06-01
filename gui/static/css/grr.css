@@ -147,6 +147,11 @@ grr-server-load-graph {
   margin-bottom: 4em;
 }
 
+grr-user-settings-button button img {
+  height: 17px;
+  margin-top: -2px;
+}
+
 /* Bootstrap tweaks */
 .navbar {
   margin-bottom: 0;
@@ -744,7 +749,7 @@ input.pickerIcon {
   visibility: hidden;
 }
 
-input.unset, select.unset {
+input.unset, select.unset, grr-form-proto input.ng-pristine, grr-form-proto select.ng-pristine {
     background-color:  #FEFFE0;
 }
 

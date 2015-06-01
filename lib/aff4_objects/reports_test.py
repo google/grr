@@ -2,9 +2,9 @@
 """Reporting tests."""
 
 from grr.lib import aff4
-from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.aff4_objects import reports
+from grr.lib.rdfvalues import client as rdf_client
 
 
 class ReportsTest(test_lib.AFF4ObjectTest):
@@ -20,8 +20,8 @@ class ReportsTest(test_lib.AFF4ObjectTest):
                              token=self.token, mode="w") as net:
         interfaces = net.Schema.INTERFACES()
         interfaces.Append(
-            addresses=[rdfvalue.NetworkAddress(human_readable="1.1.1.1",
-                                               address_type="INET")],
+            addresses=[rdf_client.NetworkAddress(human_readable="1.1.1.1",
+                                                 address_type="INET")],
             mac_address="11:11:11:11:11:11", ifname="eth0")
         net.Set(interfaces)
 

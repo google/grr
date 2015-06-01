@@ -3,8 +3,6 @@
 goog.provide('grrUi.semantic.timestampDirective.TimestampController');
 goog.provide('grrUi.semantic.timestampDirective.TimestampDirective');
 
-goog.require('grrUi.semantic.SemanticDirectivesRegistry');
-
 goog.scope(function() {
 
 
@@ -14,7 +12,7 @@ goog.scope(function() {
  *
  * @param {!angular.Scope} $scope
  * @param {!angular.$filter} $filter
- * @param {!angular.$JQLite} $element
+ * @param {!angular.JQLite} $element
  * @param {!grrUi.core.timeService.TimeService} grrTimeService
  * @constructor
  * @ngInject
@@ -80,8 +78,10 @@ TimestampController.prototype.onValueChange = function(newValue) {
 TimestampController.prototype.onMouseEnter = function() {
   var span = $(this.element_).find('span')[0];
 
-  span.title =
-      this.timeService_.getFormattedDiffFromCurrentTime(this.value);
+  if (angular.isDefined(this.value)) {
+    span.title =
+        this.timeService_.getFormattedDiffFromCurrentTime(Number(this.value));
+  }
 };
 
 /**
@@ -117,9 +117,14 @@ grrUi.semantic.timestampDirective.TimestampDirective = function($filter) {
 grrUi.semantic.timestampDirective.TimestampDirective.directive_name =
     'grrTimestamp';
 
-grrUi.semantic.SemanticDirectivesRegistry.registerDirective(
-    'RDFDatetime',
-    grrUi.semantic.timestampDirective.TimestampDirective);
+/**
+ * Semantic type corresponding to this directive.
+ *
+ * @const
+ * @export
+ */
+grrUi.semantic.timestampDirective.TimestampDirective.semantic_type =
+    'RDFDatetime';
 
 
 });  // goog.scope

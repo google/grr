@@ -394,6 +394,8 @@ class ObjectFilterTest(unittest.TestCase):
     # Arguments are either int, float or quoted string
     objectfilter.Parser("attribute == 1").Parse()
     objectfilter.Parser("attribute == 0x10").Parse()
+    objectfilter.Parser("attribute == 0xa").Parse()
+    objectfilter.Parser("attribute == 0xFF").Parse()
     parser = objectfilter.Parser("attribute == 1a")
     self.assertRaises(objectfilter.ParseError, parser.Parse)
     objectfilter.Parser("attribute == 1.2").Parse()
@@ -412,6 +414,15 @@ class ObjectFilterTest(unittest.TestCase):
     self.assertRaises(objectfilter.ParseError, parser.Parse)
     # Need to open braces to close them
     parser = objectfilter.Parser("a is 3)")
+    self.assertRaises(objectfilter.ParseError, parser.Parse)
+
+    # Can parse lists
+    objectfilter.Parser("attribute inset [1, 2, '3', 4.01, 0xa]").Parse()
+    # Need to close square braces for lists.
+    parser = objectfilter.Parser("attribute inset [1, 2, '3', 4.01, 0xA")
+    self.assertRaises(objectfilter.ParseError, parser.Parse)
+    # Need to opensquare braces to close lists.
+    parser = objectfilter.Parser("attribute inset 1, 2, '3', 4.01]")
     self.assertRaises(objectfilter.ParseError, parser.Parse)
 
     # Context Operator alone is not accepted
@@ -473,6 +484,20 @@ AND
 )
 AND @exported_symbols(name is 'inject')
 """
+
+  def testInset(self):
+    obj = DummyObject("clone", 2)
+    parser = objectfilter.Parser("clone inset [1, 2, 3]").Parse()
+    filter_ = parser.Compile(self.filter_imp)
+    self.assertEqual(filter_.Matches(obj), True)
+    obj = DummyObject("troubleshooter", "red")
+    parser = objectfilter.Parser("troubleshooter inset ['red', 'blue']").Parse()
+    filter_ = parser.Compile(self.filter_imp)
+    self.assertEqual(filter_.Matches(obj), True)
+    obj = DummyObject("troubleshooter", "infrared")
+    parser = objectfilter.Parser("troubleshooter inset ['red', 'blue']").Parse()
+    filter_ = parser.Compile(self.filter_imp)
+    self.assertEqual(filter_.Matches(obj), False)
 
   def testCompile(self):
     obj = DummyObject("something", "Blue")

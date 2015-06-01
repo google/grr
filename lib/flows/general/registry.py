@@ -8,16 +8,24 @@ from grr.lib import aff4
 from grr.lib import artifact
 from grr.lib import artifact_lib
 from grr.lib import flow
-from grr.lib import rdfvalue
 from grr.lib import utils
+# For ArtifactCollectorFlow pylint: disable=unused-import
+from grr.lib.flows.general import collectors
+from grr.lib.flows.general import file_finder
+# For FindFiles
+from grr.lib.flows.general import find
+# pylint: enable=unused-import
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 
 
-class RegistryFinderCondition(rdfvalue.RDFProtoStruct):
+class RegistryFinderCondition(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.RegistryFinderCondition
 
 
-class RegistryFinderArgs(rdfvalue.RDFProtoStruct):
+class RegistryFinderArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.RegistryFinderArgs
 
 
@@ -30,23 +38,23 @@ class RegistryFinder(flow.GRRFlow):
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   def ConditionsToFileFinderConditions(self, conditions):
-    ff_condition_type_cls = rdfvalue.FileFinderCondition.Type
+    ff_condition_type_cls = file_finder.FileFinderCondition.Type
     result = []
     for c in conditions:
       if c.condition_type == RegistryFinderCondition.Type.MODIFICATION_TIME:
-        result.append(rdfvalue.FileFinderCondition(
+        result.append(file_finder.FileFinderCondition(
             condition_type=ff_condition_type_cls.MODIFICATION_TIME,
             modification_time=c.modification_time))
       elif c.condition_type == RegistryFinderCondition.Type.VALUE_LITERAL_MATCH:
-        result.append(rdfvalue.FileFinderCondition(
+        result.append(file_finder.FileFinderCondition(
             condition_type=ff_condition_type_cls.CONTENTS_LITERAL_MATCH,
             contents_literal_match=c.value_literal_match))
       elif c.condition_type == RegistryFinderCondition.Type.VALUE_REGEX_MATCH:
-        result.append(rdfvalue.FileFinderCondition(
+        result.append(file_finder.FileFinderCondition(
             condition_type=ff_condition_type_cls.CONTENTS_REGEX_MATCH,
             contents_regex_match=c.value_regex_match))
       elif c.condition_type == RegistryFinderCondition.Type.SIZE:
-        result.append(rdfvalue.FileFinderCondition(
+        result.append(file_finder.FileFinderCondition(
             condition_type=ff_condition_type_cls.SIZE,
             size=c.size))
       else:
@@ -64,11 +72,11 @@ class RegistryFinder(flow.GRRFlow):
   def Start(self):
     self.CallFlow("FileFinder",
                   paths=self.args.keys_paths,
-                  pathtype=rdfvalue.PathSpec.PathType.REGISTRY,
+                  pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
                   conditions=self.ConditionsToFileFinderConditions(
                       self.args.conditions),
-                  action=rdfvalue.FileFinderAction(
-                      action_type=rdfvalue.FileFinderAction.Action.STAT),
+                  action=file_finder.FileFinderAction(
+                      action_type=file_finder.FileFinderAction.Action.STAT),
                   next_state="Done")
 
   @flow.StateHandler()
@@ -120,8 +128,8 @@ class CollectRunKeyBinaries(flow.GRRFlow):
 
       for path in path_guesses:
         full_path = artifact_lib.ExpandWindowsEnvironmentVariables(path, kb)
-        filenames.append(rdfvalue.PathSpec(
-            path=full_path, pathtype=rdfvalue.PathSpec.PathType.TSK))
+        filenames.append(rdf_paths.PathSpec(
+            path=full_path, pathtype=rdf_paths.PathSpec.PathType.TSK))
 
     if filenames:
       self.CallFlow("MultiGetFile", pathspecs=filenames,
@@ -148,10 +156,10 @@ class GetMRU(flow.GRRFlow):
                   "/CurrentVersion/Explorer/ComDlg32"
                   "/OpenSavePidlMRU" % user.sid)
 
-      findspec = rdfvalue.FindSpec(max_depth=2, path_regex=".")
+      findspec = rdf_client.FindSpec(max_depth=2, path_regex=".")
       findspec.iterator.number = 1000
       findspec.pathspec.path = mru_path
-      findspec.pathspec.pathtype = rdfvalue.PathSpec.PathType.REGISTRY
+      findspec.pathspec.pathtype = rdf_paths.PathSpec.PathType.REGISTRY
 
       self.CallFlow("FindFiles", findspec=findspec, output=None,
                     next_state="StoreMRUs",
@@ -179,7 +187,7 @@ class GetMRU(flow.GRRFlow):
       if m:
         extension = m.group(1)
         fd = aff4.FACTORY.Create(
-            rdfvalue.ClientURN(self.client_id)
+            rdf_client.ClientURN(self.client_id)
             .Add("analysis/MRU/Explorer")
             .Add(extension)
             .Add(username),

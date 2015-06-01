@@ -8,6 +8,9 @@ from grr.lib import stats as stats_lib
 from grr.lib import utils
 
 from grr.lib.aff4_objects import cronjobs
+# For FilestoreStats. pylint: disable=unused-import
+from grr.lib.aff4_objects import stats as _
+# pylint: enable=unused-import
 
 
 class ClassCounter(object):

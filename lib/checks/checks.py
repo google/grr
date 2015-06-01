@@ -10,9 +10,15 @@ import yaml
 import logging
 
 from grr.lib import config_lib
-from grr.lib import rdfvalue
 from grr.lib import registry
-from grr.lib.checks import triggers as triggers_lib
+from grr.lib.aff4_objects import collections as collections_aff4
+from grr.lib.checks import filters
+from grr.lib.checks import hints
+from grr.lib.checks import triggers
+from grr.lib.rdfvalues import anomaly as rdf_anomaly
+from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.lib.rdfvalues import structs as rdf_structs
+from grr.proto import checks_pb2
 
 
 class Error(Exception):
@@ -25,6 +31,354 @@ class DefinitionError(Error):
 
 class ProcessingError(Error):
   """A check generated bad results."""
+
+
+def ValidateMultiple(component, hint):
+  errors = []
+  for item in component:
+    try:
+      item.Validate()
+    except (DefinitionError) as e:
+      errors.append(str(e))
+  if errors:
+    raise DefinitionError("%s:\n  %s" % (hint, "\n  ".join(errors)))
+
+
+def MatchStrToList(match=None):
+  # Set a default match type of ANY, if unset.
+  # Allow multiple match types, either as a list or as a string.
+  if match is None:
+    match = ["ANY"]
+  elif isinstance(match, basestring):
+    match = match.split()
+  return match
+
+
+class CheckResult(rdf_structs.RDFProtoStruct):
+  """Results of a single check performed on a host."""
+  protobuf = checks_pb2.CheckResult
+
+  def __nonzero__(self):
+    return bool(self.anomaly)
+
+  def ExtendAnomalies(self, other):
+    """Merge anomalies from another CheckResult."""
+    for o in other:
+      if o is not None:
+        self.anomaly.Extend(list(o.anomaly))
+
+
+class CheckResultsCollection(collections_aff4.RDFValueCollection):
+  """A collection of check results."""
+  _rdf_type = CheckResult
+
+
+class CheckResults(rdf_structs.RDFProtoStruct):
+  """All results for a single host."""
+  protobuf = checks_pb2.CheckResults
+
+  def __nonzero__(self):
+    return bool(self.result)
+
+
+class Check(rdf_structs.RDFProtoStruct):
+  """A definition of a problem, and ways to detect it.
+
+  Checks contain an identifier of a problem (check_id) that is a reference to an
+  externally or internally defined vulnerability.
+
+  Checks use one or more Methods to determine if an issue exists. Methods define
+  data collection and processing, and return an Anomaly if the conditions tested
+  by the method weren't met.
+
+  Checks can define a default platform, OS or environment to target. This
+  is passed to each Method, but can be overridden by more specific definitions.
+  """
+  protobuf = checks_pb2.Check
+
+  def __init__(self, initializer=None, age=None, check_id=None, target=None,
+               match=None, method=None, hint=None):
+    super(Check, self).__init__(initializer=initializer, age=age)
+    self.check_id = check_id
+    self.match = MatchStrToList(match)
+    self.hint = Hint(hint, reformat=False)
+    self.target = target
+    if method is None:
+      method = []
+    self.triggers = triggers.Triggers()
+    self.matcher = Matcher(self.match, self.hint)
+    for cfg in method:
+      # Use the value of "target" as a default for each method, if defined.
+      # Targets defined in methods or probes override this default value.
+      if hint:
+        cfg["hint"] = hints.Overlay(child=cfg.get("hint", {}), parent=hint)
+      if target:
+        cfg.setdefault("target", target)
+      # Create the method and add its triggers to the check.
+      m = Method(**cfg)
+      self.method.append(m)
+      self.triggers.Update(m.triggers, callback=m)
+    self.artifacts = set([t.artifact for t in self.triggers.conditions])
+
+  def SelectChecks(self, conditions):
+    """Identifies which check methods to use based on host attributes.
+
+    Queries the trigger map for any check methods that apply to a combination of
+    OS, CPE and/or label.
+
+    Args:
+      conditions: A list of Condition objects.
+
+    Returns:
+      A list of method callbacks that should perform checks.
+    """
+    return self.triggers.Calls(conditions)
+
+  def UsesArtifact(self, artifacts):
+    """Determines if the check uses the specified artifact.
+
+    Args:
+      artifacts: Either a single artifact name, or a list of artifact names
+
+    Returns:
+      True if the check uses a specific artifact.
+    """
+    # If artifact is a single string, see if it is in the list of artifacts
+    # as-is. Otherwise, test whether any of the artifacts passed in to this
+    # function exist in the list of artifacts.
+    if isinstance(artifacts, basestring):
+      return artifacts in self.artifacts
+    else:
+      return any(True for artifact in artifacts if artifact in self.artifacts)
+
+  def Parse(self, conditions, host_data):
+    """Runs methods that evaluate whether collected host_data has an issue.
+
+    Args:
+      conditions: A list of conditions to determine which Methods to trigger.
+      host_data: A map of artifacts and rdf data.
+
+    Returns:
+      A CheckResult populated with Anomalies if an issue exists.
+    """
+    result = CheckResult(check_id=self.check_id)
+    methods = self.SelectChecks(conditions)
+    result.ExtendAnomalies([m.Parse(conditions, host_data) for m in methods])
+    return result
+
+  def Validate(self):
+    """Check the method is well constructed."""
+    if not self.check_id:
+      raise DefinitionError("Check has missing check_id value")
+    cls_name = self.check_id
+    if not self.method:
+      raise DefinitionError("Check %s has no methods" % cls_name)
+    ValidateMultiple(self.method,
+                     "Check %s has invalid method definitions" % cls_name)
+
+
+class Method(rdf_structs.RDFProtoStruct):
+  """A specific test method using 0 or more filters to process data."""
+
+  protobuf = checks_pb2.Method
+
+  def __init__(self, initializer=None, age=None, **kwargs):
+    if isinstance(initializer, dict):
+      conf = initializer
+      initializer = None
+    else:
+      conf = kwargs
+    super(Method, self).__init__(initializer=initializer, age=age)
+    probe = conf.get("probe", {})
+    resource = conf.get("resource", {})
+    hint = conf.get("hint", {})
+    target = conf.get("target", {})
+    if hint:
+      # Add the hint to children.
+      for cfg in probe:
+        cfg["hint"] = hints.Overlay(child=cfg.get("hint", {}), parent=hint)
+    self.probe = [Probe(**cfg) for cfg in probe]
+    self.hint = Hint(hint, reformat=False)
+    self.match = MatchStrToList(kwargs.get("match"))
+    self.matcher = Matcher(self.match, self.hint)
+    self.resource = [rdf_protodict.Dict(**r) for r in resource]
+    self.target = triggers.Target(**target)
+    self.triggers = triggers.Triggers()
+    for p in self.probe:
+      # If the probe has a target, use it. Otherwise, use the method's target.
+      target = p.target or self.target
+      self.triggers.Add(p.artifact, target, p)
+
+  def Parse(self, conditions, host_data):
+    """Runs probes that evaluate whether collected data has an issue.
+
+    Args:
+      conditions: The trigger conditions.
+      host_data: A map of artifacts and rdf data.
+
+    Returns:
+      Anomalies if an issue exists.
+    """
+    processed = []
+    probes = self.triggers.Calls(conditions)
+    for p in probes:
+      # Get the data required for the probe.
+      rdf_data = host_data.get(p.artifact)
+      try:
+        result = p.Parse(rdf_data)
+      except ProcessingError as e:
+        raise ProcessingError("Bad artifact %s: %s" % (p.artifact, e))
+      if result:
+        processed.append(result)
+    # Matcher compares the number of probes that triggered with results.
+    return self.matcher.Detect(probes, processed)
+
+  def Validate(self):
+    """Check the Method is well constructed."""
+    ValidateMultiple(self.probe, "Method has invalid probes")
+    ValidateMultiple(self.target, "Method has invalid target")
+    ValidateMultiple(self.hint, "Method has invalid hint")
+
+
+class Probe(rdf_structs.RDFProtoStruct):
+  """The suite of filters applied to host data."""
+
+  protobuf = checks_pb2.Probe
+
+  def __init__(self, initializer=None, age=None, **kwargs):
+    if isinstance(initializer, dict):
+      conf = initializer
+      initializer = None
+    else:
+      conf = kwargs
+    conf["match"] = MatchStrToList(kwargs.get("match"))
+    super(Probe, self).__init__(initializer=initializer, age=age, **conf)
+    if self.filters:
+      handler = filters.GetHandler(mode=self.mode)
+    else:
+      handler = filters.GetHandler()
+    self.baseliner = handler(artifact=self.artifact, filters=self.baseline)
+    self.handler = handler(artifact=self.artifact, filters=self.filters)
+    hinter = Hint(conf.get("hint", {}), reformat=False)
+    self.matcher = Matcher(conf["match"], hinter)
+
+  def Parse(self, rdf_data):
+    """Process rdf data through filters. Test if results match expectations.
+
+    Processing of rdf data is staged by a filter handler, which manages the
+    processing of host data. The output of the filters are compared against
+    expected results.
+
+    Args:
+      rdf_data: An list containing 0 or more rdf values.
+
+    Returns:
+      An anomaly if data didn't match expectations.
+
+    Raises:
+      ProcessingError: If rdf_data is not a handled type.
+
+    """
+    if not isinstance(rdf_data, (list, set)):
+      raise ProcessingError("Bad host data format: %s" % type(rdf_data))
+    if self.baseline:
+      comparison = self.baseliner.Parse(rdf_data)
+    else:
+      comparison = rdf_data
+    found = self.handler.Parse(comparison)
+    results = self.hint.Render(found)
+    return self.matcher.Detect(comparison, results)
+
+  def Validate(self):
+    """Check the test set is well constructed."""
+    ValidateMultiple(self.target, "Probe has invalid target")
+    self.baseliner.Validate()
+    self.handler.Validate()
+    self.hint.Validate()
+
+
+class Filter(rdf_structs.RDFProtoStruct):
+  """Generic filter to provide an interface for different types of filter."""
+
+  protobuf = checks_pb2.Filter
+
+  def __init__(self, initializer=None, age=None, **kwargs):
+    # FIXME(sebastianw): Probe seems to pass in the configuration for filters
+    # as a dict in initializer, rather than as kwargs.
+    if isinstance(initializer, dict):
+      conf = initializer
+      initializer = None
+    else:
+      conf = kwargs
+    super(Filter, self).__init__(initializer=initializer, age=age, **conf)
+    filter_name = self.type or "Filter"
+    self._filter = filters.Filter.GetFilter(filter_name)
+
+  def Parse(self, rdf_data):
+    """Process rdf data through the filter.
+
+    Filters sift data according to filter rules. Data that passes the filter
+    rule is kept, other data is dropped.
+
+    If no filter method is provided, the data is returned as a list.
+    Otherwise, a items that meet filter conditions are returned in a list.
+
+    Args:
+      rdf_data: Host data that has already been processed by a Parser into RDF.
+
+    Returns:
+      A list containing data items that matched the filter rules.
+    """
+    if self._filter:
+      return list(self._filter.Parse(rdf_data, self.expression))
+    return rdf_data
+
+  def Validate(self):
+    """The filter exists, and has valid filter and hint expressions."""
+    if self.type not in filters.Filter.classes:
+      raise DefinitionError("Undefined filter type %s" % self.type)
+    self._filter.Validate(self.expression)
+    ValidateMultiple(self.hint, "Filter has invalid hint")
+
+
+class Hint(rdf_structs.RDFProtoStruct):
+  """Human-formatted descriptions of problems, fixes and findings."""
+
+  protobuf = checks_pb2.Hint
+
+  def __init__(self, initializer=None, age=None, reformat=True, **kwargs):
+    if isinstance(initializer, dict):
+      conf = initializer
+      initializer = None
+    else:
+      conf = kwargs
+    super(Hint, self).__init__(initializer=initializer, age=age, **conf)
+    if not self.max_results:
+      self.max_results = config_lib.CONFIG.Get("Checks.max_results")
+    if reformat:
+      self.hinter = hints.Hinter(self.format)
+    else:
+      self.hinter = hints.Hinter()
+
+  def Render(self, rdf_data):
+    """Processes data according to formatting rules."""
+    report_data = rdf_data[:self.max_results]
+    results = [self.hinter.Render(rdf) for rdf in report_data]
+    extra = len(rdf_data) - len(report_data)
+    if extra > 0:
+      results.append("...plus another %d issues." % extra)
+    return results
+
+  def Explanation(self, state):
+    """Creates an anomaly explanation string."""
+    if self.problem:
+      return "%s: %s" % (state, self.problem)
+
+  def Validate(self):
+    """Ensures that required values are set and formatting rules compile."""
+    # TODO(user): Default format string.
+    if self.problem:
+      pass
 
 
 class Matcher(object):
@@ -54,7 +408,7 @@ class Matcher(object):
       A CheckResult message containing anomalies if any detectors identified an
       issue, None otherwise.
     """
-    result = rdfvalue.CheckResult()
+    result = CheckResult()
     for detector in self.detectors:
       for finding in detector(baseline, host_data):
         if finding:
@@ -82,14 +436,14 @@ class Matcher(object):
     Returns:
       A CheckResult message.
     """
-    result = rdfvalue.CheckResult()
-    anomaly = rdfvalue.Anomaly(type="ANALYSIS_ANOMALY",
-                               explanation=self.hint.Explanation(state))
+    result = CheckResult()
+    anomaly = rdf_anomaly.Anomaly(type="ANALYSIS_ANOMALY",
+                                  explanation=self.hint.Explanation(state))
     # If there are CheckResults we're aggregating methods or probes.
     # Merge all current results into one CheckResult.
     # Otherwise, the results are raw host data.
     # Generate a new CheckResult and add the specific findings.
-    if results and all(isinstance(r, rdfvalue.CheckResult) for r in results):
+    if results and all(isinstance(r, CheckResult) for r in results):
       result.ExtendAnomalies(results)
     else:
       anomaly.finding = self.hint.Render(results)
@@ -99,7 +453,7 @@ class Matcher(object):
   def GotNone(self, _, results):
     """Anomaly for no results, an empty list otherwise."""
     if not results:
-      return self.Issue("Missing attribute", [])
+      return self.Issue("Missing attribute", ["Expected state was not found"])
     return []
 
   def GotSingle(self, _, results):
@@ -141,13 +495,13 @@ class CheckRegistry(object):
   """
   checks = {}
 
-  triggers = triggers_lib.Triggers()
+  triggers = triggers.Triggers()
 
   @classmethod
   def Clear(cls):
     """Remove all checks and triggers from the registry."""
     cls.checks = {}
-    cls.triggers = triggers_lib.Triggers()
+    cls.triggers = triggers.Triggers()
 
   @classmethod
   def RegisterCheck(cls, check, source="unknown", overwrite_if_exists=False):
@@ -318,28 +672,37 @@ def LoadCheckFromFile(file_path, check_id, overwrite_if_exists=True):
   """Load a single check from a file."""
   configs = LoadConfigsFromFile(file_path)
   conf = configs.get(check_id)
-  check = rdfvalue.Check(**conf)
+  check = Check(**conf)
   check.Validate()
   CheckRegistry.RegisterCheck(check, source="file:%s" % file_path,
                               overwrite_if_exists=overwrite_if_exists)
   logging.debug("Loaded check %s from %s", check.check_id, file_path)
+  return check
 
 
 def LoadChecksFromFiles(file_paths, overwrite_if_exists=True):
+  """Load the checks defined in the specified files."""
+  loaded = []
   for file_path in file_paths:
     configs = LoadConfigsFromFile(file_path)
     for conf in configs.values():
-      check = rdfvalue.Check(**conf)
+      check = Check(**conf)
+      # Validate will raise if the check doesn't load.
       check.Validate()
+      loaded.append(check)
       CheckRegistry.RegisterCheck(check, source="file:%s" % file_path,
                                   overwrite_if_exists=overwrite_if_exists)
       logging.debug("Loaded check %s from %s", check.check_id, file_path)
+  return loaded
 
 
 def LoadChecksFromDirs(dir_paths, overwrite_if_exists=True):
+  """Load checks from all yaml files in the specified directories."""
+  loaded = []
   for dir_path in dir_paths:
     cfg_files = glob.glob(os.path.join(dir_path, "*.yaml"))
-    LoadChecksFromFiles(cfg_files, overwrite_if_exists)
+    loaded.extend(LoadChecksFromFiles(cfg_files, overwrite_if_exists))
+  return loaded
 
 
 class CheckLoader(registry.InitHook):
@@ -350,4 +713,4 @@ class CheckLoader(registry.InitHook):
   def RunOnce(self):
     LoadChecksFromDirs(config_lib.CONFIG["Checks.config_dir"])
     LoadChecksFromFiles(config_lib.CONFIG["Checks.config_files"])
-
+    logging.debug("Loaded checks: %s", ",".join(sorted(CheckRegistry.checks)))

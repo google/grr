@@ -4,16 +4,16 @@
 
 from grr.endtoend_tests import base
 from grr.lib import aff4
-from grr.lib import rdfvalue
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class TestFingerprintFileOSLinux(base.AutomatedTest):
   """Tests if Fingerprinting works on Linux."""
   platforms = ["Linux"]
   flow = "FingerprintFile"
-  args = {"pathspec": rdfvalue.PathSpec(
+  args = {"pathspec": rdf_paths.PathSpec(
       path="/bin/ls",
-      pathtype=rdfvalue.PathSpec.PathType.OS)}
+      pathtype=rdf_paths.PathSpec.PathType.OS)}
   test_output_path = "/fs/os/bin/ls"
 
   def CheckFlow(self):
@@ -30,7 +30,7 @@ class TestFingerprintFileOSLinux(base.AutomatedTest):
 class TestFingerprintFileOSWindows(TestFingerprintFileOSLinux):
   """Tests if Fingerprinting works on Windows."""
   platforms = ["Windows"]
-  args = {"pathspec": rdfvalue.PathSpec(
+  args = {"pathspec": rdf_paths.PathSpec(
       path="C:\\Windows\\regedit.exe",
-      pathtype=rdfvalue.PathSpec.PathType.OS)}
+      pathtype=rdf_paths.PathSpec.PathType.OS)}
   test_output_path = "/fs/os/C:/Windows/regedit.exe"

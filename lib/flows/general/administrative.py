@@ -14,11 +14,11 @@ from grr.gui import django_lib
 # pylint: enable=unused-import
 from grr.lib import access_control
 from grr.lib import aff4
-from grr.lib import client_index
 from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import email_alerts
 from grr.lib import flow
+from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import rendering
@@ -26,6 +26,9 @@ from grr.lib import stats
 from grr.lib import utils
 from grr.lib.aff4_objects import collections
 from grr.lib.aff4_objects import reports
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 
 
@@ -116,15 +119,16 @@ class GetClientStatsAuto(flow.WellKnownFlow,
 
   category = None
 
-  well_known_session_id = rdfvalue.SessionID(flow_name="Stats")
+  well_known_session_id = rdfvalue.SessionID(flow_name="Stats",
+                                             queue=queues.STATS)
 
   def ProcessMessage(self, message):
     """Processes a stats response from the client."""
-    client_stats = rdfvalue.ClientStats(message.args)
+    client_stats = rdf_client.ClientStats(message.payload)
     self.ProcessResponse(message.source, client_stats)
 
 
-class DeleteGRRTempFilesArgs(rdfvalue.RDFProtoStruct):
+class DeleteGRRTempFilesArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.DeleteGRRTempFilesArgs
 
 
@@ -155,7 +159,7 @@ class DeleteGRRTempFiles(flow.GRRFlow):
       self.Log(response.data)
 
 
-class UninstallArgs(rdfvalue.RDFProtoStruct):
+class UninstallArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.UninstallArgs
 
 
@@ -212,7 +216,7 @@ class Kill(flow.GRRFlow):
       self.Log("Kill failed on the client.")
 
 
-class UpdateConfigurationArgs(rdfvalue.RDFProtoStruct):
+class UpdateConfigurationArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.UpdateConfigurationArgs
 
 
@@ -224,7 +228,7 @@ class UpdateConfiguration(flow.GRRFlow):
 
   # Still accessible (e.g. via ajax but not visible in the UI.)
   category = None
-  args_type = rdfvalue.UpdateConfigurationArgs
+  args_type = UpdateConfigurationArgs
 
   @flow.StateHandler(next_state=["Confirmation"])
   def Start(self):
@@ -240,7 +244,7 @@ class UpdateConfiguration(flow.GRRFlow):
           responses.status))
 
 
-class ExecutePythonHackArgs(rdfvalue.RDFProtoStruct):
+class ExecutePythonHackArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ExecutePythonHackArgs
 
 
@@ -279,7 +283,7 @@ class ExecutePythonHack(flow.GRRFlow):
       self.SendReply(rdfvalue.RDFBytes(utils.SmartStr(response.return_val)))
 
 
-class ExecuteCommandArgs(rdfvalue.RDFProtoStruct):
+class ExecuteCommandArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ExecuteCommandArgs
 
 
@@ -342,7 +346,7 @@ class Foreman(flow.WellKnownFlow):
     """Run the foreman on the client."""
     # Only accept authenticated messages
     if (message.auth_state !=
-        rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED):
+        rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED):
       return
 
     now = time.time()
@@ -359,7 +363,7 @@ class Foreman(flow.WellKnownFlow):
       self.foreman_cache.AssignTasksToClient(message.source)
 
 
-class OnlineNotificationArgs(rdfvalue.RDFProtoStruct):
+class OnlineNotificationArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.OnlineNotificationArgs
 
 
@@ -423,7 +427,7 @@ class OnlineNotification(flow.GRRFlow):
       flow.FlowError("Error while pinging client.")
 
 
-class UpdateClientArgs(rdfvalue.RDFProtoStruct):
+class UpdateClientArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.UpdateClientArgs
 
 
@@ -532,7 +536,7 @@ Click <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
 
     client_id = message.source
 
-    message = rdfvalue.DataBlob(message.args).string
+    message = message.payload.string
 
     logging.info(self.logline, client_id, message)
 
@@ -540,7 +544,7 @@ Click <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
     client = aff4.FACTORY.Open(client_id, token=self.token)
     client_info = client.Get(client.Schema.CLIENT_INFO)
 
-    crash_details = rdfvalue.ClientCrash(
+    crash_details = rdf_client.ClientCrash(
         client_id=client_id, client_info=client_info,
         crash_message=message, timestamp=long(time.time() * 1e6),
         crash_type=self.well_known_session_id)
@@ -633,8 +637,8 @@ P.S. The state of the failing flow was:
     client = aff4.FACTORY.Open(client_id, token=self.token)
     client_info = client.Get(client.Schema.CLIENT_INFO)
 
-    status = rdfvalue.GrrStatus(message.args)
-    crash_details = rdfvalue.ClientCrash(
+    status = rdf_flows.GrrStatus(message.payload)
+    crash_details = rdf_client.ClientCrash(
         client_id=client_id, session_id=message.session_id,
         client_info=client_info, crash_message=status.error_message,
         timestamp=rdfvalue.RDFDatetime().Now(),
@@ -691,7 +695,7 @@ class ClientStartupHandler(flow.EventListener):
     # We accept unauthenticated messages so there are no errors but we don't
     # store the results.
     if (message.auth_state !=
-        rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED):
+        rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED):
       return
 
     client_id = message.source
@@ -700,7 +704,7 @@ class ClientStartupHandler(flow.EventListener):
                                  token=self.token)
     old_info = client.Get(client.Schema.CLIENT_INFO)
     old_boot = client.Get(client.Schema.LAST_BOOT_TIME, 0)
-    startup_info = rdfvalue.StartupInfo(message.args)
+    startup_info = rdf_client.StartupInfo(message.payload)
     info = startup_info.client_info
 
     # Only write to the datastore if we have new information.
@@ -735,7 +739,7 @@ class IgnoreResponses(flow.WellKnownFlow):
     pass
 
 
-class KeepAliveArgs(rdfvalue.RDFProtoStruct):
+class KeepAliveArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.KeepAliveArgs
 
 
@@ -779,7 +783,7 @@ class KeepAlive(flow.GRRFlow):
       self.CallState(next_state="SendMessage", start_time=start_time)
 
 
-class TerminateFlowArgs(rdfvalue.RDFProtoStruct):
+class TerminateFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.TerminateFlowArgs
 
 
@@ -805,7 +809,7 @@ class TerminateFlow(flow.GRRFlow):
                                token=self.token, force=True)
 
 
-class LaunchBinaryArgs(rdfvalue.RDFProtoStruct):
+class LaunchBinaryArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.LaunchBinaryArgs
 
 
@@ -854,7 +858,7 @@ class LaunchBinary(flow.GRRFlow):
       self.SendReply(response)
 
 
-class RunReportFlowArgs(rdfvalue.RDFProtoStruct):
+class RunReportFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.RunReportFlowArgs
 
 
@@ -885,43 +889,3 @@ class RunReport(flow.GRRGlobalFlow):
     report_obj = report_cls(token=self.token)
     report_obj.Run()
     report_obj.MailReport(self.state.args.email)
-
-
-class ApplyLabelsToClientsFlowArgs(rdfvalue.RDFProtoStruct):
-  protobuf = flows_pb2.ApplyLabelsToClientsFlowArgs
-
-
-class ApplyLabelsToClientsFlow(flow.GRRGlobalFlow):
-
-  args_type = ApplyLabelsToClientsFlowArgs
-
-  ACL_ENFORCED = False
-
-  @flow.StateHandler()
-  def Start(self):
-    audit_description = ",".join(
-        [self.token.username + u"." + utils.SmartUnicode(name)
-         for name in self.args.labels])
-    audit_events = []
-    try:
-      index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                                  aff4_type="ClientIndex",
-                                  mode="rw",
-                                  token=self.token)
-      client_objs = aff4.FACTORY.MultiOpen(
-          self.args.clients, aff4_type="VFSGRRClient", mode="rw",
-          token=self.token)
-      for client_obj in client_objs:
-        client_obj.AddLabels(*self.args.labels)
-        index.AddClient(client_obj)
-        client_obj.Close()
-
-        audit_events.append(
-            rdfvalue.AuditEvent(user=self.token.username,
-                                action="CLIENT_ADD_LABEL",
-                                flow_name="ApplyLabelsToClientsFlow",
-                                client=client_obj.urn,
-                                description=audit_description))
-    finally:
-      flow.Events.PublishMultipleEvents({"Audit": audit_events},
-                                        token=self.token)

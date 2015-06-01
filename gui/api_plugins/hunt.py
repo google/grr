@@ -11,13 +11,15 @@ from grr.lib import aff4
 from grr.lib import hunts
 from grr.lib import rdfvalue
 
+from grr.lib.rdfvalues import structs as rdf_structs
+
 from grr.proto import api_pb2
 
 
 HUNTS_ROOT_PATH = rdfvalue.RDFURN("aff4:/hunts")
 
 
-class ApiGRRHuntRendererArgs(rdfvalue.RDFProtoStruct):
+class ApiGRRHuntRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiGRRHuntRendererArgs
 
 
@@ -69,11 +71,11 @@ class ApiGRRHuntRenderer(
     rendered_object = {
         "summary": dict(untyped_summary_part.items() +
                         typed_summary_part.items())
-        }
+    }
     return rendered_object
 
 
-class ApiHuntsListRendererArgs(rdfvalue.RDFProtoStruct):
+class ApiHuntsListRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiHuntsListRendererArgs
 
 
@@ -89,7 +91,8 @@ class ApiHuntsListRenderer(api_call_renderers.ApiCallRenderer):
     encoded_hunt_list = []
     for hunt in hunts_list:
       encoded_hunt = api_aff4_object_renderers.RenderAFF4Object(
-          hunt, [rdfvalue.ApiAFF4ObjectRendererArgs(limit_lists=0)])
+          hunt,
+          [api_aff4_object_renderers.ApiAFF4ObjectRendererArgs(limit_lists=0)])
       encoded_hunt_list.append(encoded_hunt)
 
     return encoded_hunt_list
@@ -117,7 +120,7 @@ class ApiHuntsListRenderer(api_call_renderers.ApiCallRenderer):
                 items=self._RenderHuntList(hunt_list))
 
 
-class ApiHuntSummaryRendererArgs(rdfvalue.RDFProtoStruct):
+class ApiHuntSummaryRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiHuntSummaryRendererArgs
 
 
@@ -131,11 +134,12 @@ class ApiHuntSummaryRenderer(api_call_renderers.ApiCallRenderer):
                              aff4_type="GRRHunt", token=token)
 
     return api_aff4_object_renderers.RenderAFF4Object(
-        hunt, [ApiGRRHuntRendererArgs(with_full_summary=True),
-               rdfvalue.ApiAFF4ObjectRendererArgs(limit_lists=10)])
+        hunt,
+        [ApiGRRHuntRendererArgs(with_full_summary=True),
+         api_aff4_object_renderers.ApiAFF4ObjectRendererArgs(limit_lists=10)])
 
 
-class ApiHuntLogRendererArgs(rdfvalue.RDFProtoStruct):
+class ApiHuntLogRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiHuntLogRendererArgs
 
 
@@ -153,12 +157,12 @@ class ApiHuntLogRenderer(api_call_renderers.ApiCallRenderer):
 
     return api_aff4_object_renderers.RenderAFF4Object(
         logs_collection,
-        [rdfvalue.ApiRDFValueCollectionRendererArgs(
+        [api_aff4_object_renderers.ApiRDFValueCollectionRendererArgs(
             offset=args.offset, count=args.count, with_total_count=True,
             items_type_info="WITH_TYPES_AND_METADATA")])
 
 
-class ApiHuntErrorsRendererArgs(rdfvalue.RDFProtoStruct):
+class ApiHuntErrorsRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiHuntErrorsRendererArgs
 
 
@@ -176,6 +180,6 @@ class ApiHuntErrorsRenderer(api_call_renderers.ApiCallRenderer):
 
     return api_aff4_object_renderers.RenderAFF4Object(
         errors_collection,
-        [rdfvalue.ApiRDFValueCollectionRendererArgs(
+        [api_aff4_object_renderers.ApiRDFValueCollectionRendererArgs(
             offset=args.offset, count=args.count, with_total_count=True,
             items_type_info="WITH_TYPES_AND_METADATA")])

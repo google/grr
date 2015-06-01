@@ -3,16 +3,12 @@
 
 
 
-# pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import,g-bad-import-order
-
 import os
 
 from grr.gui import api_test_lib
 from grr.gui.api_plugins import artifact as artifact_plugin
-
 from grr.lib import artifact_lib
+from grr.lib import artifact_registry
 from grr.lib import artifact_test
 from grr.lib import config_lib
 from grr.lib import flags
@@ -39,7 +35,8 @@ class ArtifactRendererTest(artifact_test.ArtifactBaseTest):
     self.LoadTestArtifacts()
 
   def _renderEmptyArtifacts(self):
-    with utils.Stubber(artifact_lib, "ArtifactRegistry", ArtifactRegistryMock):
+    with utils.Stubber(artifact_registry, "ArtifactRegistry",
+                       ArtifactRegistryMock):
       rendering = self.renderer.Render(None, token=self.token)
     return rendering
 
@@ -76,7 +73,7 @@ class ArtifactRendererRegressionTest(
   renderer = "ApiArtifactRenderer"
 
   def Run(self):
-    artifact_lib.ArtifactRegistry.ClearRegistry()
+    artifact_registry.ArtifactRegistry.ClearRegistry()
     test_artifacts_file = os.path.join(
         config_lib.CONFIG["Test.data_dir"], "test_artifact.json")
     artifact_lib.LoadArtifactsFromFiles([test_artifacts_file])

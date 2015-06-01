@@ -24,6 +24,10 @@ from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.flows.general import export as flows_export
+from grr.lib.hunts import standard as hunts_standard
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import flows as rdf_flows
 
 
 class ManageHunts(renderers.AngularDirectiveRenderer):
@@ -113,7 +117,7 @@ class ModifyHuntDialog(renderers.ConfirmationDialogRenderer):
 
       runner = hunt.GetRunner()
 
-      hunt_args = rdfvalue.ModifyHuntFlowArgs(
+      hunt_args = hunts_standard.ModifyHuntFlowArgs(
           client_limit=runner.args.client_limit,
           expiry_time=runner.context.expires,
       )
@@ -130,7 +134,7 @@ class ModifyHuntDialog(renderers.ConfirmationDialogRenderer):
     hunt_urn = rdfvalue.RDFURN(request.REQ.get("hunt_id"))
 
     args = forms.SemanticProtoFormRenderer(
-        rdfvalue.ModifyHuntFlowArgs()).ParseArgs(request)
+        hunts_standard.ModifyHuntFlowArgs()).ParseArgs(request)
 
     flow.GRRFlow.StartFlow(flow_name="ModifyHuntFlow", token=request.token,
                            hunt_urn=hunt_urn, args=args)
@@ -719,7 +723,7 @@ class HuntHostInformationRenderer(fileview.AFF4Stats):
     if client_id:
       super(HuntHostInformationRenderer, self).Layout(
           request, response, client_id=client_id,
-          aff4_path=rdfvalue.ClientURN(client_id),
+          aff4_path=rdf_client.ClientURN(client_id),
           age=aff4.ALL_TIMES)
 
 
@@ -884,7 +888,8 @@ class HuntGenerateResultsArchive(renderers.TemplateRenderer):
     hunt_id = rdfvalue.RDFURN(request.REQ.get("hunt_id"))
     archive_format = utils.SmartStr(request.REQ.get("format"))
     if (archive_format not in
-        rdfvalue.ExportHuntResultsFilesAsArchiveArgs.ArchiveFormat.enum_dict):
+        flows_export.ExportHuntResultsFilesAsArchiveArgs.
+        ArchiveFormat.enum_dict):
       raise ValueError("Invalid format: %s.", format)
 
     urn = flow.GRRFlow.StartFlow(flow_name="ExportHuntResultFilesAsArchive",
@@ -1039,7 +1044,7 @@ class HuntOutstandingRenderer(renderers.TableRenderer):
       client_requests.setdefault(client_id, [])
 
       for _, serialized, _ in requests:
-        client_requests[client_id].append(rdfvalue.GrrMessage(serialized))
+        client_requests[client_id].append(rdf_flows.GrrMessage(serialized))
 
     return client_requests
 
@@ -1071,9 +1076,9 @@ class HuntOutstandingRenderer(renderers.TableRenderer):
       for subject, serialized, _ in values:
         try:
           if "status" in subject:
-            msg = rdfvalue.GrrMessage(serialized)
+            msg = rdf_flows.GrrMessage(serialized)
           else:
-            msg = rdfvalue.RequestState(serialized)
+            msg = rdf_flows.RequestState(serialized)
         except Exception as e:  # pylint: disable=broad-except
           logging.warn("Error while parsing: %s", e)
           continue
@@ -1114,11 +1119,11 @@ class HuntOutstandingRenderer(renderers.TableRenderer):
 
     for flow_urn in flow_requests:
       for obj in flow_requests[flow_urn]:
-        if isinstance(obj, rdfvalue.RequestState):
+        if isinstance(obj, rdf_flows.RequestState):
           waitingfor.setdefault(flow_urn, obj)
           if waitingfor[flow_urn].id > obj.id:
             waitingfor[flow_urn] = obj
-        elif isinstance(obj, rdfvalue.GrrMessage):
+        elif isinstance(obj, rdf_flows.GrrMessage):
           status_by_request.setdefault(flow_urn, {})[obj.request_id] = obj
 
     response_urns = []

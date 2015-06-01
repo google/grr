@@ -9,7 +9,9 @@ from grr.gui.plugins import semantic
 from grr.gui.plugins import statistics
 from grr.lib import aff4
 from grr.lib import config_lib
+from grr.lib import flow as lib_flow
 from grr.lib import rdfvalue
+from grr.lib.rdfvalues import stats as rdf_stats
 
 
 def GetAuditLogFiles(offset, now, token):
@@ -69,7 +71,7 @@ class MostActiveUsers(statistics.PieChart):
         counts.setdefault(event.user, 0)
         counts[event.user] += 1
 
-      self.graph = rdfvalue.Graph(title="User activity breakdown.")
+      self.graph = rdf_stats.Graph(title="User activity breakdown.")
       self.data = []
       for user, count in counts.items():
         if user not in aff4.GRRUser.SYSTEM_USERS:
@@ -173,7 +175,7 @@ class SystemFlows(statistics.Report, renderers.TableRenderer):
       # Store run count total and per-user
       counts = {}
       for event in GetAuditLogEntries(self.time_offset, now, request.token):
-        if (event.action == rdfvalue.AuditEvent.Action.RUN_FLOW and
+        if (event.action == lib_flow.AuditEvent.Action.RUN_FLOW and
             self.UserFilter(event.user)):
           counts.setdefault(event.flow_name, {"total": 0, event.user: 0})
           counts[event.flow_name]["total"] += 1
@@ -304,9 +306,9 @@ class ClientApprovals(AuditTable):
   title = "Client approval requests and grants for the last 7 days"
   column_map = {"Timestamp": "timestamp", "Approval Type": "action", "User":
                 "user", "Client": "client", "Reason": "description"}
-  TYPES = [rdfvalue.AuditEvent.Action.CLIENT_APPROVAL_BREAK_GLASS_REQUEST,
-           rdfvalue.AuditEvent.Action.CLIENT_APPROVAL_GRANT,
-           rdfvalue.AuditEvent.Action.CLIENT_APPROVAL_REQUEST]
+  TYPES = [lib_flow.AuditEvent.Action.CLIENT_APPROVAL_BREAK_GLASS_REQUEST,
+           lib_flow.AuditEvent.Action.CLIENT_APPROVAL_GRANT,
+           lib_flow.AuditEvent.Action.CLIENT_APPROVAL_REQUEST]
 
 
 class ClientApprovals30(ClientApprovals):
@@ -322,8 +324,8 @@ class HuntApprovals(AuditTable):
   title = "Hunt approval requests and grants for the last 7 days"
   column_map = {"Timestamp": "timestamp", "Approval Type": "action", "User":
                 "user", "URN": "urn", "Reason": "description"}
-  TYPES = [rdfvalue.AuditEvent.Action.HUNT_APPROVAL_GRANT,
-           rdfvalue.AuditEvent.Action.HUNT_APPROVAL_REQUEST]
+  TYPES = [lib_flow.AuditEvent.Action.HUNT_APPROVAL_GRANT,
+           lib_flow.AuditEvent.Action.HUNT_APPROVAL_REQUEST]
 
 
 class HuntApprovals30(HuntApprovals):
@@ -337,8 +339,8 @@ class CronApprovals(HuntApprovals):
   """Last week's cron approvals."""
   category = "/Server/Approvals/Crons/  7 days"
   title = "Cron approval requests and grants for the last 7 days"
-  TYPES = [rdfvalue.AuditEvent.Action.CRON_APPROVAL_GRANT,
-           rdfvalue.AuditEvent.Action.CRON_APPROVAL_REQUEST]
+  TYPES = [lib_flow.AuditEvent.Action.CRON_APPROVAL_GRANT,
+           lib_flow.AuditEvent.Action.CRON_APPROVAL_REQUEST]
 
 
 class CronApprovals30(CronApprovals):
@@ -356,11 +358,11 @@ class HuntActions(AuditTable):
                 "User": "user", "Flow Name": "flow_name", "URN": "urn",
                 "Description": "description"}
 
-  TYPES = [rdfvalue.AuditEvent.Action.HUNT_CREATED,
-           rdfvalue.AuditEvent.Action.HUNT_MODIFIED,
-           rdfvalue.AuditEvent.Action.HUNT_PAUSED,
-           rdfvalue.AuditEvent.Action.HUNT_STARTED,
-           rdfvalue.AuditEvent.Action.HUNT_STOPPED]
+  TYPES = [lib_flow.AuditEvent.Action.HUNT_CREATED,
+           lib_flow.AuditEvent.Action.HUNT_MODIFIED,
+           lib_flow.AuditEvent.Action.HUNT_PAUSED,
+           lib_flow.AuditEvent.Action.HUNT_STARTED,
+           lib_flow.AuditEvent.Action.HUNT_STOPPED]
 
 
 class HuntActions30(HuntActions):

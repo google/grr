@@ -4,7 +4,7 @@
 
 from grr.endtoend_tests import base
 from grr.lib import aff4
-from grr.lib import rdfvalue
+from grr.lib.rdfvalues import client as rdf_client
 
 
 class TestSearchFiles(base.AutomatedTest):
@@ -31,7 +31,7 @@ class TestSearchFilesGrep(base.AutomatedTest):
   test_output_path = "analysis/SearchFilesGrep/testing"
   args = {"output": test_output_path,
           "paths": ["/bin/ls*"],
-          "grep": rdfvalue.BareGrepSpec(literal="ELF"),
+          "grep": rdf_client.BareGrepSpec(literal="ELF"),
           "also_download": True}
 
   def CheckFlow(self):

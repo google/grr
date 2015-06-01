@@ -5,8 +5,12 @@ import socket
 
 from grr.client import actions
 from grr.lib import config_lib
-from grr.lib import rdfvalue
 from grr.lib import worker_mocks
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr.test_data import client_fixture
 
 
@@ -46,7 +50,7 @@ class ActionMock(object):
 
   def HandleMessage(self, message):
     """Consume a message and execute the client action."""
-    message.auth_state = rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED
+    message.auth_state = rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
 
     # We allow special methods to be specified for certain actions.
     if hasattr(self, message.name):
@@ -89,13 +93,13 @@ class InvalidActionMock(object):
 
 class UnixVolumeClientMock(ActionMock):
   """A mock of client filesystem volumes."""
-  unix_local = rdfvalue.UnixVolume(mount_point="/usr")
-  unix_home = rdfvalue.UnixVolume(mount_point="/")
+  unix_local = rdf_client.UnixVolume(mount_point="/usr")
+  unix_home = rdf_client.UnixVolume(mount_point="/")
   path_results = [
-      rdfvalue.Volume(
+      rdf_client.Volume(
           unix=unix_local, bytes_per_sector=4096, sectors_per_allocation_unit=1,
           actual_available_allocation_units=50, total_allocation_units=100),
-      rdfvalue.Volume(
+      rdf_client.Volume(
           unix=unix_home, bytes_per_sector=4096,
           sectors_per_allocation_unit=1,
           actual_available_allocation_units=10,
@@ -107,14 +111,14 @@ class UnixVolumeClientMock(ActionMock):
 
 class WindowsVolumeClientMock(ActionMock):
   """A mock of client filesystem volumes."""
-  windows_d = rdfvalue.WindowsVolume(drive_letter="D:")
-  windows_c = rdfvalue.WindowsVolume(drive_letter="C:")
+  windows_d = rdf_client.WindowsVolume(drive_letter="D:")
+  windows_c = rdf_client.WindowsVolume(drive_letter="C:")
   path_results = [
-      rdfvalue.Volume(
+      rdf_client.Volume(
           windows=windows_d, bytes_per_sector=4096,
           sectors_per_allocation_unit=1,
           actual_available_allocation_units=50, total_allocation_units=100),
-      rdfvalue.Volume(
+      rdf_client.Volume(
           windows=windows_c, bytes_per_sector=4096,
           sectors_per_allocation_unit=1, actual_available_allocation_units=10,
           total_allocation_units=100)]
@@ -136,10 +140,10 @@ class MemoryClientMock(ActionMock):
     return []
 
   def GetMemoryInformation(self, _):
-    reply = rdfvalue.MemoryInformation(
-        device=rdfvalue.PathSpec(
+    reply = rdf_rekall_types.MemoryInformation(
+        device=rdf_paths.PathSpec(
             path=r"\\.\pmem",
-            pathtype=rdfvalue.PathSpec.PathType.MEMORY))
+            pathtype=rdf_paths.PathSpec.PathType.MEMORY))
     reply.runs.Append(offset=0x1000, length=0x10000)
     reply.runs.Append(offset=0x20000, length=0x10000)
 
@@ -164,7 +168,7 @@ class InterrogatedClient(ActionMock):
 
   def GetPlatformInfo(self, _):
     self.response_count += 1
-    return [rdfvalue.Uname(
+    return [rdf_client.Uname(
         system=self.system,
         node="test_node",
         release="5",
@@ -174,15 +178,15 @@ class InterrogatedClient(ActionMock):
 
   def GetInstallDate(self, _):
     self.response_count += 1
-    return [rdfvalue.DataBlob(integer=100)]
+    return [rdf_protodict.DataBlob(integer=100)]
 
   def EnumerateInterfaces(self, _):
     self.response_count += 1
-    return [rdfvalue.Interface(
+    return [rdf_client.Interface(
         mac_address="123456",
         addresses=[
-            rdfvalue.NetworkAddress(
-                address_type=rdfvalue.NetworkAddress.Family.INET,
+            rdf_client.NetworkAddress(
+                address_type=rdf_client.NetworkAddress.Family.INET,
                 human_readable="100.100.100.1",
                 packed_bytes=socket.inet_aton("100.100.100.1"),
             )]
@@ -190,12 +194,12 @@ class InterrogatedClient(ActionMock):
 
   def EnumerateFilesystems(self, _):
     self.response_count += 1
-    return [rdfvalue.Filesystem(device="/dev/sda",
-                                mount_point="/mnt/data")]
+    return [rdf_client.Filesystem(device="/dev/sda",
+                                  mount_point="/mnt/data")]
 
   def GetClientInfo(self, _):
     self.response_count += 1
-    return [rdfvalue.ClientInformation(
+    return [rdf_client.ClientInformation(
         client_name=config_lib.CONFIG["Client.name"],
         client_version=int(config_lib.CONFIG["Client.version_numeric"]),
         build_time=config_lib.CONFIG["Client.build_time"],
@@ -210,9 +214,10 @@ class InterrogatedClient(ActionMock):
 
   def GetConfiguration(self, _):
     self.response_count += 1
-    return [rdfvalue.Dict({"Client.control_urls":
-                           ["http://localhost:8001/control"], "Client.poll_min":
-                           1.0})]
+    return [rdf_protodict.Dict({
+        "Client.control_urls": ["http://localhost:8001/control"],
+        "Client.poll_min": 1.0
+    })]
 
   def WmiQuery(self, query):
     if query.query == u"SELECT * FROM Win32_LogicalDisk":
@@ -221,7 +226,7 @@ class InterrogatedClient(ActionMock):
     elif query.query.startswith("Select * "
                                 "from Win32_NetworkAdapterConfiguration"):
       self.response_count += 1
-      rdf_dict = rdfvalue.Dict()
+      rdf_dict = rdf_protodict.Dict()
       wmi_properties = (client_fixture.WMIWin32NetworkAdapterConfigurationMock.
                         __dict__.iteritems())
       for key, value in wmi_properties:

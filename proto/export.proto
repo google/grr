@@ -272,3 +272,142 @@ message ExportedBytes {
   optional bytes data = 2;
   optional uint64 length = 3;
 }
+
+
+// Rekall-specific protobufs for reliable exporting of data from plugins.
+
+// Contains the minimum information necessary from a Windows process so
+// correlation with logs can be done easily.
+// Related plugins: pslist
+message ExportedRekallProcess {
+  optional ExportedMetadata metadata = 1;
+
+  optional uint64 pid = 2 [(sem_type) = {
+      description: "Unique process ID of this process."
+    }];
+
+  optional string name = 3 [(sem_type) = {
+      description: "The process name."
+    }];
+
+  optional string fullpath = 4 [(sem_type) = {
+      description: "The full path of the executable that was loaded when the "
+                   "process was started."
+    }];
+
+  optional string creation_time = 5[(sem_type) = {
+      description: "When the process was created. In microseconds from UNIX "
+                   "epoch. UTC."
+    }];
+
+  optional string exit_time = 6[(sem_type) = {
+      description: "When the process exitted. In microseconds from UNIX "
+                   "epoch. UTC."
+    }];
+
+  optional uint64 parent_pid = 7[(sem_type) = {
+      description: "Unique process ID of the parent process."
+    }];
+
+  optional string commandline = 8[(sem_type) = {
+      description: "The commandline used to launch this process."
+    }];
+
+};
+
+// Represents a module (usually a dll or executable) loaded into a process'
+// address space in Windows.
+// Related plugins: ldrmodules
+message ExportedWindowsLoadedModule {
+  optional ExportedMetadata metadata = 1;
+  optional ExportedRekallProcess process = 2;
+
+  optional string fullpath = 3 [(sem_type) = {
+      description: "The full path of the file backing this module."
+    }];
+
+  optional uint64 address = 4 [(sem_type) = {
+      description: "Base address where the module is loaded."
+    }];
+
+  optional uint64 size = 5 [(sem_type) = {
+      description: "Size of the module."
+    }];
+
+  optional bool is_in_load_list = 6 [(sem_type) = {
+      description: "Whether the module is referenced in the "
+                   "InLoadOrderLinksInLoadOrderModuleList of the Process "
+                   "Environment."
+    }];
+
+  optional string in_load_fullpath = 7 [(sem_type) = {
+      description: "The full path of the module in this list."
+    }];
+
+  optional bool is_in_init_list = 8 [(sem_type) = {
+      description: "Whether the module is referenced in the "
+                   "InInitializationOrderModuleList of the Process Environment "
+                   "Block."
+    }];
+
+  optional string in_init_fullpath = 9 [(sem_type) = {
+      description: "The full path of the module in this list."
+    }];
+
+  optional bool is_in_mem_list = 10 [(sem_type) = {
+      description: "Whether the module is referenced in the "
+                   "InMemoryOrderModuleList of the Process Environment Block."
+    }];
+
+  optional string in_mem_fullpath = 11 [(sem_type) = {
+      description: "The full path of the module in this list."
+    }];
+};
+
+
+// Represents a handle held by a process.
+// Related plugins: handles
+message ExportedWindowsHandle {
+  optional ExportedMetadata metadata = 1;
+  optional ExportedRekallProcess process = 2;
+
+  optional uint64 address = 3 [(sem_type) = {
+      description: "The address of the OBJECT_HEADER of the handle."
+    }];
+
+  //
+  optional string type = 4 [(sem_type) = {
+      description: "The type of handle (Process, Thread, Key, Event, "
+                   "Mutant...)."
+    }];
+
+  //
+  optional string name = 5 [(sem_type) = {
+      description: "The name of the handle."
+    }];
+};
+
+
+// Represents an entry in the syscall table
+// Related plugins: check_syscall
+message ExportedLinuxSyscallTableEntry {
+  optional ExportedMetadata metadata = 1;
+
+  optional string source_table = 2 [(sem_type) = {
+      description: "The name of the syscall table."
+    }];
+
+  optional uint64 index = 3 [(sem_type) = {
+      description: "The index within the table. It's equivalent to the syscall "
+                   "number"
+    }];
+
+  optional uint64 handler_address = 4 [(sem_type) = {
+      description: "The address of the syscall handler."
+    }];
+
+  optional string handler_symbol = 5 [(sem_type) = {
+      description: "The resolved symbol name for the handler "
+                   "(i.e: linux!sys_read)."
+    }];
+};

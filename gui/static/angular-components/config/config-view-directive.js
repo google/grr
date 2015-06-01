@@ -24,7 +24,6 @@ directive.ConfigViewController = function($scope, $http) {
     ctrl.items = items;
   });
 };
-
 var ConfigViewController = directive.ConfigViewController;
 
 

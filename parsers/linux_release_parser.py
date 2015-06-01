@@ -5,7 +5,8 @@ import itertools
 import re
 
 from grr.lib import parsers
-from grr.lib import rdfvalue
+from grr.lib.rdfvalues import anomaly as rdf_anomaly
+from grr.lib.rdfvalues import protodict as rdf_protodict
 
 
 ParsedRelease = collections.namedtuple('ParsedRelease',
@@ -177,12 +178,12 @@ class LinuxReleaseParser(parsers.FileParser):
       if result is None:
         continue
       elif complete:
-        yield rdfvalue.Dict({
+        yield rdf_protodict.Dict({
             'os_release': result.release,
             'os_major_version': result.major,
             'os_minor_version': result.minor})
         break
     else:
       # No successful parse.
-      yield rdfvalue.Anomaly(type='PARSER_ANOMALY',
-                             symptom='Unable to determine distribution.')
+      yield rdf_anomaly.Anomaly(type='PARSER_ANOMALY',
+                                symptom='Unable to determine distribution.')

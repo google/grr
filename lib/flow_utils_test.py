@@ -2,15 +2,12 @@
 """Tests for flow utils classes."""
 
 
-# pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import,g-bad-import-order
-
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow_utils
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class TestInterpolatePath(test_lib.FlowTestsBaseclass):
@@ -71,7 +68,7 @@ class TestInterpolatePath(test_lib.FlowTestsBaseclass):
 
   def testInterpolateClientAttributes(self):
 
-    path = rdfvalue.GlobExpression(u"%%Users.homedir%%\\.ssh")
+    path = rdf_paths.GlobExpression(u"%%Users.homedir%%\\.ssh")
 
     res = list(path.InterpolateClientAttributes(self.client))
 

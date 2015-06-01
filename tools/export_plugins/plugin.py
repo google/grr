@@ -8,8 +8,8 @@ import threading
 import logging
 
 from grr.lib import data_store
+from grr.lib import export
 from grr.lib import output_plugin as output_plugin_lib
-from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import threadpool
 from grr.lib import utils
@@ -152,7 +152,7 @@ class OutputPluginBasedExportPlugin(ExportPlugin):
           output_plugin_class.args_type, args)
       if hasattr(output_plugin_args, "export_options"):
         export_options = self._InitRdfValueFromParsedArgs(
-            rdfvalue.ExportOptions, args)
+            export.ExportOptions, args)
         output_plugin_args.export_options = export_options
     else:
       output_plugin_args = None
@@ -189,7 +189,7 @@ class OutputPluginBasedExportPlugin(ExportPlugin):
   def ConfigureArgParser(self, parser):
     """Configures args parser based on plugin's args RDFValue."""
 
-    self._ConfigureArgParserForRdfValue(parser, rdfvalue.ExportOptions)
+    self._ConfigureArgParserForRdfValue(parser, export.ExportOptions)
 
     subparsers = parser.add_subparsers(title="Output plugins")
     for cls in output_plugin_lib.OutputPlugin.classes.itervalues():

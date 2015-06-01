@@ -16,7 +16,9 @@ from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
-from grr.lib.rdfvalues import structs
+from grr.lib.rdfvalues import crypto as rdf_crypto
+from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.lib.rdfvalues import structs as rdf_structs
 
 
 # Caches for FindRendererForObject(), We can have a renderer for a repeated
@@ -41,17 +43,17 @@ def FindRendererForObject(rdf_obj):
 
   # Try to find an RDFValueArray renderer for repeated types. This allows
   # renderers to be specified for repeated fields.
-  if isinstance(rdf_obj, rdfvalue.RDFValueArray):
+  if isinstance(rdf_obj, rdf_protodict.RDFValueArray):
     return repeated_renderer_cache.get(
         rdf_obj_classname, RDFValueArrayRenderer)(rdf_obj)
 
-  if isinstance(rdf_obj, structs.RepeatedFieldHelper):
+  if isinstance(rdf_obj, rdf_structs.RepeatedFieldHelper):
     rdf_obj_classname = rdf_obj.type_descriptor.type.__name__
     return repeated_renderer_cache.get(
         rdf_obj_classname, RDFValueArrayRenderer)(rdf_obj)
 
   # If it is a semantic proto, we just use the RDFProtoRenderer.
-  if isinstance(rdf_obj, structs.RDFProtoStruct):
+  if isinstance(rdf_obj, rdf_structs.RDFProtoStruct):
     return semantic_renderer_cache.get(
         rdf_obj_classname, RDFProtoRenderer)(rdf_obj)
 
@@ -358,7 +360,7 @@ class RDFValueArrayRenderer(RDFValueRenderer):
     cache = request.REQ.pop("cache", None)
     if cache:
       self.cache = aff4.FACTORY.Open(cache, token=request.token)
-      self.proxy = rdfvalue.RDFValueArray(self.cache.Read(1000000))
+      self.proxy = rdf_protodict.RDFValueArray(self.cache.Read(1000000))
 
     else:
       # We need to create a cache if this is too long.
@@ -366,7 +368,7 @@ class RDFValueArrayRenderer(RDFValueRenderer):
         # Make a cache
         with aff4.FACTORY.Create(None, "TempMemoryFile",
                                  token=request.token) as self.cache:
-          data = rdfvalue.RDFValueArray()
+          data = rdf_protodict.RDFValueArray()
           data.Extend(self.proxy)
           self.cache.Write(data.SerializeToString())
 
@@ -557,7 +559,7 @@ class DataObjectRenderer(DictRenderer):
 class AES128KeyFormRenderer(forms.StringTypeFormRenderer):
   """Renders an encryption key."""
 
-  type = rdfvalue.AES128Key
+  type = rdf_crypto.AES128Key
 
   layout_template = """
 <div class="form-group">
@@ -633,7 +635,7 @@ class ClientURNRenderer(RDFValueRenderer):
 
 class KeyValueFormRenderer(forms.TypeDescriptorFormRenderer):
   """A renderer for a Dict's KeyValue protobuf."""
-  type = rdfvalue.KeyValue
+  type = rdf_protodict.KeyValue
 
   layout_template = renderers.Template("""<div class="form-group">
 <div id="{{unique}}" class="control input-append">
@@ -704,7 +706,7 @@ class KeyValueFormRenderer(forms.TypeDescriptorFormRenderer):
     if key is None:
       return
 
-    result = rdfvalue.KeyValue()
+    result = rdf_protodict.KeyValue()
     result.k.SetValue(key)
 
     # Automatically try to detect the value

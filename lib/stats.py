@@ -54,9 +54,9 @@ import threading
 import time
 
 
-from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
+from grr.lib.rdfvalues import structs
 
 from grr.proto import jobs_pb2
 
@@ -186,7 +186,7 @@ class _CounterMetric(_Metric):
       self._values[key] = delta
 
 
-class Distribution(rdfvalue.RDFProtoStruct):
+class Distribution(structs.RDFProtoStruct):
   """Statistics values for events - i.e. things that take time."""
 
   protobuf = jobs_pb2.Distribution
@@ -273,13 +273,13 @@ class _GaugeMetric(_Metric):
       return result
 
 
-class MetricFieldDefinition(rdfvalue.RDFProtoStruct):
+class MetricFieldDefinition(structs.RDFProtoStruct):
   """Metric field definition."""
 
   protobuf = jobs_pb2.MetricFieldDefinition
 
 
-class MetricMetadata(rdfvalue.RDFProtoStruct):
+class MetricMetadata(structs.RDFProtoStruct):
   """Metric metadata for a particular metric."""
 
   protobuf = jobs_pb2.MetricMetadata
