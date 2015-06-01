@@ -8,8 +8,9 @@ import os
 
 from grr.lib import config_lib
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr.parsers import rekall_artifact_parser
 
 
@@ -20,12 +21,12 @@ class RekallVADParserTest(test_lib.GRRBaseTest):
     ps_list_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
                                 "rekall_vad_result.dat")
 
-    result = rdfvalue.RekallResponse(
+    result = rdf_rekall_types.RekallResponse(
         json_messages=open(ps_list_file).read(10000000),
         plugin="pslist",
     )
 
-    knowledge_base = rdfvalue.KnowledgeBase()
+    knowledge_base = rdf_client.KnowledgeBase()
     knowledge_base.environ_systemdrive = "C:"
 
     parser = rekall_artifact_parser.RekallVADParser()

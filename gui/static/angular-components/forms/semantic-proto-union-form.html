@@ -1,0 +1,17 @@
+<div class="well well-large">
+
+  <div class="form-group">
+    <label class="control-label" title="{$ controller.unionField.doc $}">
+      {$ controller.unionField.friendly_name $}
+    </label>
+    <div class="controls">
+      <grr-form-value value="value.value[controller.unionField.name]"
+                      metadata="controller.unionField" />
+    </div>
+  </div>
+
+  <div class="form-group">
+    <grr-form-value value="value.value[controller.unionFieldValue]" />
+  </div>
+
+</div>

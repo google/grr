@@ -2,15 +2,13 @@
 """This plugin adds reporting functionality."""
 
 from grr.gui.plugins import forms
-from grr.lib import rdfvalue
-from grr.lib.aff4_objects import reports
 from grr.lib.aff4_objects import reports
 
 
 class ReportNameRenderer(forms.StringTypeFormRenderer):
   """Renderer for listing the available reports."""
 
-  type_descriptor = rdfvalue.ReportName
+  type_descriptor = reports.ReportName
   default = "ClientListReport"
 
   layout_template = ("""<div class="form-group">

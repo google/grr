@@ -13,9 +13,9 @@ from urllib3 import connectionpool
 import logging
 
 from grr.lib import data_store
-from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.data_stores import common
+from grr.lib.rdfvalues import data_server as rdf_data_server
 
 from grr.server.data_server import constants
 from grr.server.data_server import store
@@ -73,10 +73,10 @@ class FileCopyWrapper(object):
 
   def __init__(self, rebalance, directory, filename, fullpath):
     filesize = os.path.getsize(fullpath)
-    filecopy = rdfvalue.DataServerFileCopy(rebalance_id=rebalance.id,
-                                           directory=directory,
-                                           filename=filename,
-                                           size=filesize)
+    filecopy = rdf_data_server.DataServerFileCopy(rebalance_id=rebalance.id,
+                                                  directory=directory,
+                                                  filename=filename,
+                                                  size=filesize)
     filecopy_str = filecopy.SerializeToString()
     self.header = sutils.SIZE_PACKER.pack(len(filecopy_str))
     self.header += filecopy_str
@@ -247,7 +247,7 @@ def SaveTemporaryFile(fp):
   # Read DataServerFileCopy object.
   filecopy_len_str = fp.read(sutils.SIZE_PACKER.size)
   filecopy_len = sutils.SIZE_PACKER.unpack(filecopy_len_str)[0]
-  filecopy = rdfvalue.DataServerFileCopy(fp.read(filecopy_len))
+  filecopy = rdf_data_server.DataServerFileCopy(fp.read(filecopy_len))
 
   rebdir = _CreateDirectory(loc, filecopy.rebalance_id)
   filedir = utils.JoinPath(rebdir, filecopy.directory)
@@ -392,7 +392,7 @@ def GetCommitInformation(transid):
   if not os.path.isfile(tempfile):
     return None
   with open(tempfile, "rb") as fp:
-    return rdfvalue.DataServerRebalance(fp.read())
+    return rdf_data_server.DataServerRebalance(fp.read())
 
 
 def RemoveDirectory(rebalance):

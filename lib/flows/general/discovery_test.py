@@ -16,6 +16,11 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import search
 from grr.lib import test_lib
+# pylint: disable=unused-import
+from grr.lib.flows.general import discovery
+# pylint: enable=unused-import
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class DiscoveryTestEventListener(flow.EventListener):
@@ -166,7 +171,7 @@ class TestClientInterrogate(artifact_test.ArtifactTest):
     volumes = client.Get(client.Schema.VOLUMES)
     self.assertEqual(len(volumes), 2)
     for result in volumes:
-      self.assertTrue(isinstance(result, rdfvalue.Volume))
+      self.assertTrue(isinstance(result, rdf_client.Volume))
       self.assertTrue(result.windows.drive_letter in ["Z:", "C:"])
 
   def _CheckRegistryPathspec(self):
@@ -176,7 +181,7 @@ class TestClientInterrogate(artifact_test.ArtifactTest):
     fd = aff4.FACTORY.Open(self.client_id.Add("registry").Add(
         "HKEY_LOCAL_MACHINE").Add("random/path/bla"), token=self.token)
     pathspec = fd.real_pathspec
-    self.assertEqual(pathspec.pathtype, rdfvalue.PathSpec.PathType.REGISTRY)
+    self.assertEqual(pathspec.pathtype, rdf_paths.PathSpec.PathType.REGISTRY)
     self.assertEqual(pathspec.CollapsePath(),
                      u"/HKEY_LOCAL_MACHINE/random/path/bla")
 
@@ -195,7 +200,7 @@ class TestClientInterrogate(artifact_test.ArtifactTest):
     test_lib.ClientFixture(self.client_id, token=self.token)
 
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.OS] = test_lib.FakeTestDataVFSHandler
+        rdf_paths.PathSpec.PathType.OS] = test_lib.FakeTestDataVFSHandler
 
     config_lib.CONFIG.Set("Artifacts.knowledge_base", ["LinuxWtmp",
                                                        "NetgroupConfiguration",
@@ -238,9 +243,9 @@ class TestClientInterrogate(artifact_test.ArtifactTest):
     test_lib.ClientFixture(self.client_id, token=self.token)
 
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
+        rdf_paths.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.OS] = test_lib.FakeFullVFSHandler
+        rdf_paths.PathSpec.PathType.OS] = test_lib.FakeFullVFSHandler
 
     client_mock = action_mocks.InterrogatedClient("TransferBuffer", "StatFile",
                                                   "Find", "HashBuffer",

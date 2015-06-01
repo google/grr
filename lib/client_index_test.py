@@ -2,16 +2,10 @@
 """Tests for grr.lib.client_index."""
 
 
-# pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
-from grr.lib import client_index
-# pylint: enable=unused-import,g-bad-import-order
-
 from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
-
+from grr.lib.rdfvalues import client as rdf_client
 
 CLIENT_ID = "C.00aaeccbb45f33a3"
 
@@ -27,8 +21,8 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
     self.assertEqual(
         CLIENT_ID,
         index._ClientIdFromURN(
-            rdfvalue.ClientURN("aff4:/C.00AAeccbb45f33a3")))
-    self.assertEqual(rdfvalue.ClientURN("aff4:/C.00aaeccbb45f33a3"),
+            rdf_client.ClientURN("aff4:/C.00AAeccbb45f33a3")))
+    self.assertEqual(rdf_client.ClientURN("aff4:/C.00aaeccbb45f33a3"),
                      index._URNFromClientID(CLIENT_ID))
 
   def testAnalyzeClient(self):
@@ -81,34 +75,34 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
     # Check unique identifiers.
     self.assertEqual(
         index.LookupClients(["192.168.0.1"]),
-        [rdfvalue.ClientURN("aff4:/C.1000000000000001")])
+        [rdf_client.ClientURN("aff4:/C.1000000000000001")])
     self.assertEqual(
         index.LookupClients(["2001:aBcd::1"]),
-        [rdfvalue.ClientURN("aff4:/C.1000000000000001")])
+        [rdf_client.ClientURN("aff4:/C.1000000000000001")])
     self.assertEqual(
         index.LookupClients(["ip:192.168.0.1"]),
-        [rdfvalue.ClientURN("aff4:/C.1000000000000001")])
+        [rdf_client.ClientURN("aff4:/C.1000000000000001")])
     self.assertEqual(
         index.LookupClients(["ip:2001:abcd::1"]),
-        [rdfvalue.ClientURN("aff4:/C.1000000000000001")])
+        [rdf_client.ClientURN("aff4:/C.1000000000000001")])
     self.assertEqual(
         index.LookupClients(["host-2"]),
-        [rdfvalue.ClientURN("aff4:/C.1000000000000002")])
+        [rdf_client.ClientURN("aff4:/C.1000000000000002")])
     self.assertEqual(
         index.LookupClients(["C.1000000000000002"]),
-        [rdfvalue.ClientURN("aff4:/C.1000000000000002")])
+        [rdf_client.ClientURN("aff4:/C.1000000000000002")])
     self.assertEqual(
         index.LookupClients(["aabbccddee01"]),
-        [rdfvalue.ClientURN("aff4:/C.1000000000000001")])
+        [rdf_client.ClientURN("aff4:/C.1000000000000001")])
     self.assertEqual(
         index.LookupClients(["mac:aabbccddee01"]),
-        [rdfvalue.ClientURN("aff4:/C.1000000000000001")])
+        [rdf_client.ClientURN("aff4:/C.1000000000000001")])
     self.assertEqual(
         index.LookupClients(["aa:bb:cc:dd:ee:01"]),
-        [rdfvalue.ClientURN("aff4:/C.1000000000000001")])
+        [rdf_client.ClientURN("aff4:/C.1000000000000001")])
     self.assertEqual(
         index.LookupClients(["mac:aa:bb:cc:dd:ee:01"]),
-        [rdfvalue.ClientURN("aff4:/C.1000000000000001")])
+        [rdf_client.ClientURN("aff4:/C.1000000000000001")])
 
     # IP prefixes of octets should work:
     self.assertEqual(
@@ -117,11 +111,11 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
     # Hostname prefixes of tokens should work.
     self.assertEqual(
         index.LookupClients(["host-5.example"]),
-        [rdfvalue.ClientURN("aff4:/C.1000000000000005")])
+        [rdf_client.ClientURN("aff4:/C.1000000000000005")])
 
     # Intersections should work.
     self.assertEqual(index.LookupClients(["192.168.0", "Host-2"]),
-                     [rdfvalue.ClientURN("aff4:/C.1000000000000002")])
+                     [rdf_client.ClientURN("aff4:/C.1000000000000002")])
 
     # Universal keyword should find everything.
     self.assertEqual(len(index.LookupClients(["."])), 42)

@@ -9,6 +9,9 @@ import zlib
 from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.rdfvalues import aff4_rdfvalues
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class BlobImageTest(test_lib.AFF4ObjectTest):
@@ -209,7 +212,7 @@ class AFF4LabelsIndexTest(test_lib.AFF4ObjectTest):
                              token=token)
 
   def testIndexSeparatorNotAllowedInLabelName(self):
-    self.assertRaises(ValueError, rdfvalue.AFF4ObjectLabel,
+    self.assertRaises(ValueError, aff4_rdfvalues.AFF4ObjectLabel,
                       name=aff4.AFF4LabelsIndex.SEPARATOR)
 
   def testAddedLabelIsCorrectlyListed(self):
@@ -220,8 +223,8 @@ class AFF4LabelsIndexTest(test_lib.AFF4ObjectTest):
 
     index = self.ReadIndex(token=self.token)
     self.assertListEqual(index.ListUsedLabels(),
-                         [rdfvalue.AFF4ObjectLabel(name="foo",
-                                                   owner="testuser")])
+                         [aff4_rdfvalues.AFF4ObjectLabel(name="foo",
+                                                         owner="testuser")])
 
   def testMultipleLabelsWithDifferentOwnersAreCorrectlyListed(self):
     urn = rdfvalue.RDFURN("aff4:/foo/bar")
@@ -232,10 +235,10 @@ class AFF4LabelsIndexTest(test_lib.AFF4ObjectTest):
 
     index = self.ReadIndex(token=self.token)
     self.assertItemsEqual(index.ListUsedLabels(),
-                          [rdfvalue.AFF4ObjectLabel(name="foo",
-                                                    owner="testuser1"),
-                           rdfvalue.AFF4ObjectLabel(name="foo",
-                                                    owner="testuser2")])
+                          [aff4_rdfvalues.AFF4ObjectLabel(name="foo",
+                                                          owner="testuser1"),
+                           aff4_rdfvalues.AFF4ObjectLabel(name="foo",
+                                                          owner="testuser2")])
 
   def testUrnWithAddedLabelCanBeFound(self):
     urn = rdfvalue.RDFURN("aff4:/foo/bar")
@@ -282,10 +285,12 @@ class AFF4LabelsIndexTest(test_lib.AFF4ObjectTest):
     found_urns = index.FindUrnsByLabelNameRegex("f.*o")
     self.assertEqual(len(found_urns), 2)
     self.assertListEqual(
-        found_urns[rdfvalue.AFF4ObjectLabel(name="foo", owner="testuser1")],
+        found_urns[aff4_rdfvalues.AFF4ObjectLabel(name="foo",
+                                                  owner="testuser1")],
         [rdfvalue.RDFURN("aff4:/foo/bar1")])
     self.assertListEqual(
-        found_urns[rdfvalue.AFF4ObjectLabel(name="foo", owner="testuser3")],
+        found_urns[aff4_rdfvalues.AFF4ObjectLabel(name="foo",
+                                                  owner="testuser3")],
         [rdfvalue.RDFURN("aff4:/foo/bar3")])
 
   def testUrnWithAddedLabelCanBeFoundViaLabelRegexAndOwner(self):
@@ -301,7 +306,8 @@ class AFF4LabelsIndexTest(test_lib.AFF4ObjectTest):
     found_urns = index.FindUrnsByLabelNameRegex("f.*o", owner="testuser3")
     self.assertEqual(len(found_urns), 1)
     self.assertListEqual(
-        found_urns[rdfvalue.AFF4ObjectLabel(name="foo", owner="testuser3")],
+        found_urns[aff4_rdfvalues.AFF4ObjectLabel(name="foo",
+                                                  owner="testuser3")],
         [rdfvalue.RDFURN("aff4:/foo/bar3")])
 
   def testUrnWithAddedLabelNotFoundWithWrongOwner(self):
@@ -357,7 +363,7 @@ class AFF4LabelsIndexTest(test_lib.AFF4ObjectTest):
     self.assertFalse(found_urns)
 
   def testDeletedLabelIsNotRemovedFromUsedLabelsList(self):
-    label = rdfvalue.AFF4ObjectLabel(name="foo", owner="testuser")
+    label = aff4_rdfvalues.AFF4ObjectLabel(name="foo", owner="testuser")
     urn = rdfvalue.RDFURN("aff4:/foo/bar")
 
     with self.CreateIndex(token=self.token) as index:
@@ -563,13 +569,13 @@ class VFSDirectoryTest(test_lib.AFF4ObjectTest):
 
   def testRealPathspec(self):
 
-    client_id = rdfvalue.ClientURN("C.%016X" % 1234)
+    client_id = rdf_client.ClientURN("C.%016X" % 1234)
     for path in ["a/b", "a/b/c/d"]:
       d = aff4.FACTORY.Create(client_id.Add("fs/os").Add(path),
                               aff4_type="VFSDirectory",
                               token=self.token)
-      pathspec = rdfvalue.PathSpec(path=path,
-                                   pathtype=rdfvalue.PathSpec.PathType.OS)
+      pathspec = rdf_paths.PathSpec(path=path,
+                                    pathtype=rdf_paths.PathSpec.PathType.OS)
       d.Set(d.Schema.PATHSPEC, pathspec)
       d.Close()
 

@@ -9,8 +9,9 @@ import pytsk3
 
 from grr.client import client_utils
 from grr.client import vfs
-from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class CachedFilesystem(object):
@@ -47,7 +48,7 @@ class MyImgInfo(pytsk3.Img_Info):
 class TSKFile(vfs.VFSHandler):
   """Read a regular file."""
 
-  supported_pathtype = rdfvalue.PathSpec.PathType.TSK
+  supported_pathtype = rdf_paths.PathSpec.PathType.TSK
   auto_register = True
 
   # A mapping to encode TSK types to a stat.st_mode
@@ -121,7 +122,7 @@ class TSKFile(vfs.VFSHandler):
 
     # If we are successful in opening this path below the path casing is
     # correct.
-    self.pathspec.last.path_options = rdfvalue.PathSpec.Options.CASE_LITERAL
+    self.pathspec.last.path_options = rdf_paths.PathSpec.Options.CASE_LITERAL
 
     fd_hash = self.tsk_raw_device.pathspec.SerializeToString()
 
@@ -195,7 +196,7 @@ class TSKFile(vfs.VFSHandler):
       A StatEntry which can be used to re-open this exact VFS node.
     """
     info = tsk_file.info
-    response = rdfvalue.StatEntry()
+    response = rdf_client.StatEntry()
     meta = info.meta
     if meta:
       response.st_ino = meta.addr
@@ -305,7 +306,7 @@ class TSKFile(vfs.VFSHandler):
   def Open(cls, fd, component, pathspec=None, progress_callback=None):
     # A Pathspec which starts with TSK means we need to resolve the mount point
     # at runtime.
-    if fd is None and component.pathtype == rdfvalue.PathSpec.PathType.TSK:
+    if fd is None and component.pathtype == rdf_paths.PathSpec.PathType.TSK:
       # We are the top level handler. This means we need to check the system
       # mounts to work out the exact mount point and device we need to
       # open. We then modify the pathspec so we get nested in the raw

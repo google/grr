@@ -4,7 +4,12 @@
 """This is a test fixture for client objects.."""
 
 
-from grr.lib import rdfvalue
+# For VFSGRRClient, etc. pylint: disable=unused-import
+from grr.lib.aff4_objects import aff4_grr as _
+# pylint: enable=unused-import
+from grr.lib.rdfvalues import client as _
+from grr.lib.rdfvalues import protodict as rdf_protodict
+
 
 # This file is mostly data so,
 # pylint: disable=g-continuation-in-parens-misaligned,g-line-too-long
@@ -4201,7 +4206,7 @@ pathspec {
 ]
 
 WMI_SAMPLE = [
-    rdfvalue.Dict(
+    rdf_protodict.Dict(
         {u"QuotasDisabled": u"True", u"ProviderName": u"",
          u"PowerManagementSupported": u"", u"PowerManagementCapabilities":
          u"", u"Access": u"0", u"SystemName": u"myhost", u"DriveType": u"3",
@@ -4219,7 +4224,7 @@ WMI_SAMPLE = [
          u"ErrorDescription": u"", u"LastErrorCode": u"", u"Availability":
            u"", u"SystemCreationClassName": u"Win32_ComputerSystem", u"Size":
            u"249690058752"}),
-    rdfvalue.Dict(
+    rdf_protodict.Dict(
         {u"QuotasDisabled": u"", u"ProviderName":
              u"\\\\homefileshare\\home\\user", u"PowerManagementSupported": u"",
          u"PowerManagementCapabilities": u"", u"Access": u"0",
@@ -4288,7 +4293,7 @@ class WMIWin32NetworkAdapterConfigurationMock(object):
                          "broken": UnSerializable(),
                          "three": {}},
                  "four": [], "five": "astring", "six": [None, None, ""],
-                 "seven": None, "rdfvalue": rdfvalue.Dict(a="asdf")}
+                 "seven": None, "rdfvalue": rdf_protodict.Dict(a="asdf")}
   OpaqueObject = UnSerializable()
 
 # pylint: enable=invalid-name
@@ -4307,7 +4312,7 @@ USR_ACCOUNT_WMI_SIDS = ["S-1-5-18", "S-1-5-19", "S-1-5-20",
                         "S-1-5-21-3067777777-777777777-7777777774-500",
                         "S-1-5-21-8888888888-888888888-8888888884-500"]
 
-WMI_CMP_SYS_PRD = [rdfvalue.Dict(
+WMI_CMP_SYS_PRD = [rdf_protodict.Dict(
     {u"IdentifyingNumber": u"2RXYYZ1", u"Name": u"Latitude E7440",
      u"Vendor": u"Dell Inc.", u"Version": u"01",
      u"Caption": u"Computer System Product"})]

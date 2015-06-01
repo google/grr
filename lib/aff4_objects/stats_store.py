@@ -52,19 +52,21 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 
+from grr.lib.rdfvalues import structs
+
 from grr.proto import jobs_pb2
 
 
-class StatsStoreFieldValue(rdfvalue.RDFProtoStruct):
+class StatsStoreFieldValue(structs.RDFProtoStruct):
   """RDFValue definition for fields values to be stored in the data store."""
 
   protobuf = jobs_pb2.StatsStoreFieldValue
 
   @property
   def value(self):
-    if self.field_type == rdfvalue.MetricFieldDefinition.FieldType.INT:
+    if self.field_type == stats.MetricFieldDefinition.FieldType.INT:
       value = self.int_value
-    elif self.field_type == rdfvalue.MetricFieldDefinition.FieldType.STR:
+    elif self.field_type == stats.MetricFieldDefinition.FieldType.STR:
       value = self.str_value
     else:
       raise ValueError("Internal inconsistency, invalid "
@@ -73,9 +75,9 @@ class StatsStoreFieldValue(rdfvalue.RDFProtoStruct):
     return value
 
   def SetValue(self, value, field_type):
-    if field_type == rdfvalue.MetricFieldDefinition.FieldType.INT:
+    if field_type == stats.MetricFieldDefinition.FieldType.INT:
       self.int_value = value
-    elif field_type == rdfvalue.MetricFieldDefinition.FieldType.STR:
+    elif field_type == stats.MetricFieldDefinition.FieldType.STR:
       self.str_value = value
     else:
       raise ValueError("Invalid field type %d." % field_type)
@@ -83,19 +85,19 @@ class StatsStoreFieldValue(rdfvalue.RDFProtoStruct):
     self.field_type = field_type
 
 
-class StatsStoreValue(rdfvalue.RDFProtoStruct):
+class StatsStoreValue(structs.RDFProtoStruct):
   """RDFValue definition for stats values to be stored in the data store."""
   protobuf = jobs_pb2.StatsStoreValue
 
   @property
   def value(self):
-    if self.value_type == rdfvalue.MetricMetadata.ValueType.INT:
+    if self.value_type == stats.MetricMetadata.ValueType.INT:
       value = self.int_value
-    elif self.value_type == rdfvalue.MetricMetadata.ValueType.FLOAT:
+    elif self.value_type == stats.MetricMetadata.ValueType.FLOAT:
       value = self.float_value
-    elif self.value_type == rdfvalue.MetricMetadata.ValueType.STR:
+    elif self.value_type == stats.MetricMetadata.ValueType.STR:
       value = self.str_value
-    elif self.value_type == rdfvalue.MetricMetadata.ValueType.DISTRIBUTION:
+    elif self.value_type == stats.MetricMetadata.ValueType.DISTRIBUTION:
       value = self.distribution_value
     else:
       raise ValueError("Internal inconsistency, invalid "
@@ -104,13 +106,13 @@ class StatsStoreValue(rdfvalue.RDFProtoStruct):
     return value
 
   def SetValue(self, value, value_type):
-    if value_type == rdfvalue.MetricMetadata.ValueType.INT:
+    if value_type == stats.MetricMetadata.ValueType.INT:
       self.int_value = value
-    elif value_type == rdfvalue.MetricMetadata.ValueType.FLOAT:
+    elif value_type == stats.MetricMetadata.ValueType.FLOAT:
       self.float_value = value
-    elif value_type == rdfvalue.MetricMetadata.ValueType.STR:
+    elif value_type == stats.MetricMetadata.ValueType.STR:
       self.str_value = value
-    elif value_type == rdfvalue.MetricMetadata.ValueType.DISTRIBUTION:
+    elif value_type == stats.MetricMetadata.ValueType.DISTRIBUTION:
       self.distribution_value = value
     else:
       raise ValueError("Invalid value type %d." % value_type)
@@ -118,7 +120,7 @@ class StatsStoreValue(rdfvalue.RDFProtoStruct):
     self.value_type = value_type
 
 
-class StatsStoreMetricsMetadata(rdfvalue.RDFProtoStruct):
+class StatsStoreMetricsMetadata(structs.RDFProtoStruct):
   """Container with metadata for all the metrics in a given process."""
 
   protobuf = jobs_pb2.StatsStoreMetricsMetadata
@@ -144,17 +146,17 @@ class StatsStoreProcessData(aff4.AFF4Object):
 
     METRICS_METADATA = aff4.Attribute(
         "aff4:stats_store_process_data/metrics_metadata",
-        rdfvalue.StatsStoreMetricsMetadata,
+        StatsStoreMetricsMetadata,
         creates_new_object_version=False,
         versioned=False)
 
   def WriteMetadataDescriptors(self, metrics_metadata, sync=False,
                                timestamp=None):
     current_metadata = self.Get(self.Schema.METRICS_METADATA,
-                                default=rdfvalue.StatsStoreMetricsMetadata())
+                                default=StatsStoreMetricsMetadata())
 
     if current_metadata.AsDict() != metrics_metadata:
-      store_metadata = rdfvalue.StatsStoreMetricsMetadata(
+      store_metadata = StatsStoreMetricsMetadata(
           metrics=metrics_metadata.values())
       self.AddAttribute(self.Schema.METRICS_METADATA, store_metadata,
                         age=timestamp)
@@ -171,11 +173,11 @@ class StatsStoreProcessData(aff4.AFF4Object):
         for fields_values in stats.STATS.GetMetricFields(name):
           value = stats.STATS.GetMetricValue(name, fields=fields_values)
 
-          store_value = rdfvalue.StatsStoreValue()
+          store_value = StatsStoreValue()
           store_fields_values = []
           for field_def, field_value in zip(metadata.fields_defs,
                                             fields_values):
-            store_field_value = rdfvalue.StatsStoreFieldValue()
+            store_field_value = StatsStoreFieldValue()
             store_field_value.SetValue(field_value,
                                        field_def.field_type)
             store_fields_values.append(store_field_value)
@@ -187,7 +189,7 @@ class StatsStoreProcessData(aff4.AFF4Object):
               store_value)
       else:
         value = stats.STATS.GetMetricValue(name)
-        store_value = rdfvalue.StatsStoreValue()
+        store_value = StatsStoreValue()
         store_value.SetValue(value, metadata.value_type)
 
         to_set[self.STATS_STORE_PREFIX + name] = [store_value]
@@ -327,7 +329,7 @@ class StatsStore(aff4.AFF4Volume):
         except KeyError:
           continue
 
-        stored_value = rdfvalue.StatsStoreValue(value_string)
+        stored_value = StatsStoreValue(value_string)
 
         fields_values = []
         if metadata.fields_defs:

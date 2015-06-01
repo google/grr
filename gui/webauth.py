@@ -5,10 +5,10 @@
 from django import http
 import logging
 
+from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import log
-from grr.lib import rdfvalue
 from grr.lib import registry
 
 
@@ -63,7 +63,7 @@ class BasicWebAuthManager(BaseWebAuthManager):
 
       if auth_type == "Basic":
         user, password = authorization.decode("base64").split(":", 1)
-        token = rdfvalue.ACLToken(username=user)
+        token = access_control.ACLToken(username=user)
 
         fd = aff4.FACTORY.Open("aff4:/users/%s" % user, aff4_type="GRRUser",
                                token=token)
@@ -101,8 +101,8 @@ class NullWebAuthManager(BaseWebAuthManager):
     """A decorator applied to protected web handlers."""
     request.event_id = "1"
     request.user = self.username
-    request.token = rdfvalue.ACLToken(username="Testing",
-                                      reason="Just a test")
+    request.token = access_control.ACLToken(username="Testing",
+                                            reason="Just a test")
     return func(request, *args, **kwargs)
 
 

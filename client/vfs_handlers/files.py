@@ -11,8 +11,9 @@ import threading
 
 from grr.client import client_utils
 from grr.client import vfs
-from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import client
+from grr.lib.rdfvalues import paths
 
 
 # File handles are cached here. They expire after a couple minutes so
@@ -66,7 +67,7 @@ class FileHandleManager(object):
 
 def MakeStatResponse(st, pathspec):
   """Creates a StatEntry."""
-  response = rdfvalue.StatEntry(pathspec=pathspec)
+  response = client.StatEntry(pathspec=pathspec)
 
   if st is None:
     # Special case empty stat if we don't have a real value, e.g. we get Access
@@ -102,7 +103,7 @@ def MakeStatResponse(st, pathspec):
 class File(vfs.VFSHandler):
   """Read a regular file."""
 
-  supported_pathtype = rdfvalue.PathSpec.PathType.OS
+  supported_pathtype = paths.PathSpec.PathType.OS
   auto_register = True
 
   # The file descriptor of the OS file.
@@ -137,7 +138,7 @@ class File(vfs.VFSHandler):
     if self.pathspec[0].HasField("offset"):
       self.file_offset = self.pathspec[0].offset
 
-    self.pathspec.last.path_options = rdfvalue.PathSpec.Options.CASE_LITERAL
+    self.pathspec.last.path_options = paths.PathSpec.Options.CASE_LITERAL
 
     self.WindowsHacks()
     self.filename = client_utils.CanonicalPathToLocalPath(self.path)
@@ -164,7 +165,11 @@ class File(vfs.VFSHandler):
         # Work out how large the file is
         if self.size is None:
           fd.Seek(0, 2)
-          self.size = fd.Tell() - self.file_offset
+          end = fd.Tell()
+          if end == 0:
+            end = pathspec.last.file_size_override
+
+          self.size = end - self.file_offset
 
       error = None
     # Some filesystems do not support unicode properly
@@ -215,6 +220,10 @@ class File(vfs.VFSHandler):
     """Read from the file."""
     if self.progress_callback:
       self.progress_callback()
+
+    available_to_read = max(0, (self.size or 0) - self.offset)
+    to_read = min(length, available_to_read)
+
     with FileHandleManager(self.filename) as fd:
       offset = self.file_offset + self.offset
       pre_padding = offset % self.alignment
@@ -224,7 +233,7 @@ class File(vfs.VFSHandler):
 
       fd.Seek(aligned_offset)
 
-      data = fd.Read(length + pre_padding)
+      data = fd.Read(to_read + pre_padding)
       self.offset += len(data) - pre_padding
 
       return data[pre_padding:]

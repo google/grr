@@ -13,10 +13,11 @@ from grr.gui import api_value_renderers
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import rdfvalue
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import api_pb2
 
 
-class ApiAff4RendererArgs(rdfvalue.RDFProtoStruct):
+class ApiAff4RendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiAff4RendererArgs
 
 
@@ -48,7 +49,7 @@ class ApiAff4Renderer(api_call_renderers.ApiCallRenderer):
     return rendered_data
 
 
-class ApiAff4IndexRendererArgs(rdfvalue.RDFProtoStruct):
+class ApiAff4IndexRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiAff4IndexRendererArgs
 
 

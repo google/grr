@@ -22,6 +22,8 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.flows.general import export
+from grr.lib.flows.general import filesystem
+from grr.lib.rdfvalues import client as rdf_client
 
 
 class BufferReferenceRenderer(semantic.RDFProtoRenderer):
@@ -690,7 +692,7 @@ class RecursiveRefreshDialog(renderers.ConfirmationDialogRenderer):
 """)
 
   def Layout(self, request, response):
-    args = rdfvalue.RecursiveListDirectoryArgs()
+    args = filesystem.RecursiveListDirectoryArgs()
     self.recursive_refresh_form = forms.SemanticProtoFormRenderer(
         args, supressions=["pathspec"]).RawHTML(request)
     return super(RecursiveRefreshDialog, self).Layout(request, response)
@@ -698,7 +700,7 @@ class RecursiveRefreshDialog(renderers.ConfirmationDialogRenderer):
   def RenderAjax(self, request, response):
     aff4_path = rdfvalue.RDFURN(request.REQ.get("aff4_path"))
     args = forms.SemanticProtoFormRenderer(
-        rdfvalue.RecursiveListDirectoryArgs()).ParseArgs(request)
+        filesystem.RecursiveListDirectoryArgs()).ParseArgs(request)
 
     fd = aff4.FACTORY.Open(aff4_path, aff4_type="AFF4Volume",
                            token=request.token)
@@ -783,7 +785,7 @@ class Toolbar(renderers.TemplateRenderer):
     self.state["aff4_path"] = aff4_path = request.REQ.get(
         "aff4_path", client_id)
 
-    client_urn = rdfvalue.ClientURN(client_id)
+    client_urn = rdf_client.ClientURN(client_id)
 
     self.paths = [("/", client_urn, "_", 0)]
     for path in rdfvalue.RDFURN(aff4_path).Split()[1:]:
@@ -1260,7 +1262,7 @@ class HostInformation(AFF4Stats):
 
   def Layout(self, request, response, client_id=None):
     client_id = client_id or request.REQ.get("client_id")
-    urn = rdfvalue.ClientURN(client_id)
+    urn = rdf_client.ClientURN(client_id)
 
     # This verifies we have auth for deep client paths. If this raises, we
     # force the auth screen.

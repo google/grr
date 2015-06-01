@@ -8,6 +8,7 @@ import calendar
 from grr.lib import parsers
 from grr.lib import rdfvalue
 from grr.lib import time_utils
+from grr.lib.rdfvalues import client as rdf_client
 
 
 class WMIInstalledSoftwareParser(parsers.WMIQueryParser):
@@ -19,8 +20,8 @@ class WMIInstalledSoftwareParser(parsers.WMIQueryParser):
   def Parse(self, query, result, knowledge_base):
     """Parse the wmi packages output."""
     _ = query, knowledge_base
-    status = rdfvalue.SoftwarePackage.InstallState.INSTALLED
-    soft = rdfvalue.SoftwarePackage(
+    status = rdf_client.SoftwarePackage.InstallState.INSTALLED
+    soft = rdf_client.SoftwarePackage(
         name=result["Name"],
         description=result["Description"],
         version=result["Version"],
@@ -38,12 +39,12 @@ class WMIHotfixesSoftwareParser(parsers.WMIQueryParser):
   def Parse(self, query, result, knowledge_base):
     """Parse the wmi packages output."""
     _ = query, knowledge_base
-    status = rdfvalue.SoftwarePackage.InstallState.INSTALLED
+    status = rdf_client.SoftwarePackage.InstallState.INSTALLED
     result = result.ToDict()
 
     # InstalledOn comes back in a godawful format such as '7/10/2013'.
     installed_on = time_utils.AmericanDateToEpoch(result.get("InstalledOn", ""))
-    soft = rdfvalue.SoftwarePackage(
+    soft = rdf_client.SoftwarePackage(
         name=result.get("HotFixID"),
         description=result.get("Caption"),
         installed_by=result.get("InstalledBy"),
@@ -72,7 +73,7 @@ class WMIUserParser(parsers.WMIQueryParser):
   def Parse(self, query, result, knowledge_base):
     """Parse the wmi Win32_UserAccount output."""
     _ = query, knowledge_base
-    kb_user = rdfvalue.KnowledgeBaseUser()
+    kb_user = rdf_client.KnowledgeBaseUser()
     for wmi_key, kb_key in self.account_mapping.items():
       try:
         kb_user.Set(kb_key, result[wmi_key])
@@ -96,8 +97,8 @@ class WMILogicalDisksParser(parsers.WMIQueryParser):
     """Parse the wmi packages output."""
     _ = query, knowledge_base
     result = result.ToDict()
-    winvolume = rdfvalue.WindowsVolume(drive_letter=result.get("DeviceID"),
-                                       drive_type=result.get("DriveType"))
+    winvolume = rdf_client.WindowsVolume(drive_letter=result.get("DeviceID"),
+                                         drive_type=result.get("DriveType"))
 
     try:
       size = int(result.get("Size"))
@@ -110,14 +111,14 @@ class WMILogicalDisksParser(parsers.WMIQueryParser):
       free_space = None
 
     # Since we don't get the sector sizes from WMI, we just set them at 1 byte
-    volume = rdfvalue.Volume(windows=winvolume,
-                             name=result.get("VolumeName"),
-                             file_system_type=result.get("FileSystem"),
-                             serial_number=result.get("VolumeSerialNumber"),
-                             sectors_per_allocation_unit=1,
-                             bytes_per_sector=1,
-                             total_allocation_units=size,
-                             actual_available_allocation_units=free_space)
+    volume = rdf_client.Volume(windows=winvolume,
+                               name=result.get("VolumeName"),
+                               file_system_type=result.get("FileSystem"),
+                               serial_number=result.get("VolumeSerialNumber"),
+                               sectors_per_allocation_unit=1,
+                               bytes_per_sector=1,
+                               total_allocation_units=size,
+                               actual_available_allocation_units=free_space)
 
     yield volume
 
@@ -136,8 +137,8 @@ class WMIComputerSystemProductParser(parsers.WMIQueryParser):
     # Win32_ComputerSystemProduct.
     _ = query, knowledge_base
 
-    yield rdfvalue.HardwareInfo(serial_number=result["IdentifyingNumber"],
-                                system_manufacturer=result["Vendor"])
+    yield rdf_client.HardwareInfo(serial_number=result["IdentifyingNumber"],
+                                  system_manufacturer=result["Vendor"])
 
 
 class WMIInterfacesParser(parsers.WMIQueryParser):
@@ -178,10 +179,10 @@ class WMIInterfacesParser(parsers.WMIQueryParser):
       addresses = []
       if isinstance(interface[inputkey], list):
         for ip_address in interface[inputkey]:
-          addresses.append(rdfvalue.NetworkAddress(
+          addresses.append(rdf_client.NetworkAddress(
               human_readable_address=ip_address))
       else:
-        addresses.append(rdfvalue.NetworkAddress(
+        addresses.append(rdf_client.NetworkAddress(
             human_readable_address=interface[inputkey]))
       output_dict[outputkey] = addresses
     return output_dict
@@ -206,8 +207,8 @@ class WMIInterfacesParser(parsers.WMIQueryParser):
       args["dhcp_lease_obtained"] = self.WMITimeStrToRDFDatetime(
           result["DHCPLeaseObtained"])
 
-    yield rdfvalue.Interface(**args)
+    yield rdf_client.Interface(**args)
 
-    yield rdfvalue.DNSClientConfiguration(
+    yield rdf_client.DNSClientConfiguration(
         dns_server=result["DNSServerSearchOrder"],
         dns_suffix=result["DNSDomainSuffixSearchOrder"])

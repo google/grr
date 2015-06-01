@@ -8,6 +8,7 @@
 import time
 
 from grr.lib import rdfvalue
+from grr.lib import utils
 from grr.lib.rdfvalues import test_base
 
 
@@ -194,21 +195,60 @@ class RDFURNTest(test_base.RDFValueTestCase):
     url = rdfvalue.RDFURN(str_url, age=1)
     self.assertEqual(url.age, 1)
     self.assertEqual(url.Path(), "/hunts/W:AAAAAAAA/Results")
-    self.assertEqual(url._urn.netloc, "")
-    self.assertEqual(url._urn.scheme, "aff4")
+    self.assertEqual(str(url), str_url)
+    self.assertEqual(url.scheme, "aff4")
 
     # Test the Add() function
     url = url.Add("some", age=2).Add("path", age=3)
     self.assertEqual(url.age, 3)
     self.assertEqual(url.Path(), "/hunts/W:AAAAAAAA/Results/some/path")
-    self.assertEqual(url._urn.netloc, "")
-    self.assertEqual(url._urn.scheme, "aff4")
+    self.assertEqual(str(url), utils.Join(str_url, "some", "path"))
 
     # Test that we can handle urns with a '?' and do not interpret them as
     # a delimiter between url and parameter list.
     str_url = "aff4:/C.0000000000000000/fs/os/c/regex.*?]&[+{}--"
     url = rdfvalue.RDFURN(str_url, age=1)
     self.assertEqual(url.Path(), str_url[5:])
+
+    # Some more special characters...
+    for path in [
+        "aff4:/test/?#asd",
+        "aff4:/test/#asd",
+        "aff4:/test/?#"
+        ]:
+      self.assertEqual(path, str(rdfvalue.RDFURN(path)))
+
+  def testComparison(self):
+    urn = rdfvalue.RDFURN("aff4:/abc/def")
+    self.assertEqual(urn, str(urn))
+    self.assertEqual(urn, "aff4:/abc/def")
+    self.assertEqual(urn, "/abc/def")
+    self.assertEqual(urn, "abc/def")
+
+    self.assertNotEqual(urn, None)
+
+    string_list = ["abc", "ghi", "def", "mno", "jkl"]
+    urn_list = [rdfvalue.RDFURN(s) for s in string_list]
+
+    self.assertEqual(sorted(string_list), sorted(urn_list))
+
+    # Inequality.
+    s = "some_urn"
+    s2 = "some_other_urn"
+    self.assertTrue(s == rdfvalue.RDFURN(s))
+    self.assertFalse(s != rdfvalue.RDFURN(s))
+    self.assertTrue(s != rdfvalue.RDFURN(s2))
+    self.assertFalse(s == rdfvalue.RDFURN(s2))
+
+  def testHashing(self):
+
+    m = {}
+    urn1 = rdfvalue.RDFURN("aff4:/test1")
+    urn2 = rdfvalue.RDFURN("aff4:/test2")
+
+    m[urn1] = 1
+    self.assertIn(urn1, m)
+    self.assertNotIn(urn2, m)
 
   def testInitialization(self):
     """Check that we can initialize from common initializers."""

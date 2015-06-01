@@ -5,7 +5,7 @@
 import re
 
 from grr.lib import parsers
-from grr.lib import rdfvalue
+from grr.lib.rdfvalues import client as rdf_client
 
 
 class DpkgCmdParser(parsers.CommandParser):
@@ -40,12 +40,12 @@ class DpkgCmdParser(parsers.CommandParser):
         # Status is potentially 3 columns, but always at least two, desired and
         # actual state. We only care about actual state.
         if status[1] == "i":
-          status = rdfvalue.SoftwarePackage.InstallState.INSTALLED
+          status = rdf_client.SoftwarePackage.InstallState.INSTALLED
         else:
-          status = rdfvalue.SoftwarePackage.InstallState.UNKNOWN
-        yield rdfvalue.SoftwarePackage(name=name, description=desc,
-                                       version=version, architecture=arch,
-                                       install_state=status)
+          status = rdf_client.SoftwarePackage.InstallState.UNKNOWN
+        yield rdf_client.SoftwarePackage(name=name, description=desc,
+                                         version=version, architecture=arch,
+                                         install_state=status)
 
 
 class DmidecodeCmdParser(parsers.CommandParser):
@@ -83,8 +83,8 @@ class DmidecodeCmdParser(parsers.CommandParser):
       elif match_manf:
         system_manufacturer = match_manf.groups()[0].strip()
 
-    return rdfvalue.HardwareInfo(serial_number=serial_number,
-                                 system_manufacturer=system_manufacturer)
+    return rdf_client.HardwareInfo(serial_number=serial_number,
+                                   system_manufacturer=system_manufacturer)
 
 
 class UserParser(parsers.GenericResponseParser):
@@ -95,7 +95,7 @@ class UserParser(parsers.GenericResponseParser):
 
   def Parse(self, user, knowledge_base):
     _ = knowledge_base
-    if isinstance(user, rdfvalue.User):
+    if isinstance(user, rdf_client.User):
       yield user.ToKnowledgeBaseUser()
     else:
       yield user

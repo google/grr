@@ -18,10 +18,8 @@ from grr import parsers
 from grr.client import client_plugins
 
 from grr.lib import access_control
-from grr.lib import aff4_objects
 from grr.lib import client_compatibility
 from grr.lib import config_lib
-from grr.lib import data_stores
 from grr.lib import flow
 from grr.lib import hunts
 from grr.lib import local
@@ -29,8 +27,10 @@ from grr.lib import master
 from grr.lib import output_plugin
 from grr.lib import output_plugins
 from grr.lib import stats
-from grr.lib.flows import cron
-from grr.lib.flows import general
+from grr.lib.aff4_objects import registry_init
+from grr.lib.data_stores import registry_init
+from grr.lib.flows.cron import registry_init
+from grr.lib.flows.general import registry_init
 
 
 from grr.server import server_plugins

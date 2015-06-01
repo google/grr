@@ -8,7 +8,9 @@
 import re
 
 from grr.lib import parsers
-from grr.lib import rdfvalue
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import standard as rdf_standard
 
 
 class OSXLaunchdJobDict(object):
@@ -69,13 +71,13 @@ class DarwinPersistenceMechanismsParser(parsers.ArtifactFilesParser):
     """Convert persistence collector output to downloadable rdfvalues."""
     pathspecs = []
 
-    if isinstance(persistence, rdfvalue.OSXServiceInformation):
+    if isinstance(persistence, rdf_client.OSXServiceInformation):
       if persistence.program:
-        pathspecs = rdfvalue.PathSpec(path=persistence.program,
-                                      pathtype=download_pathtype)
+        pathspecs = rdf_paths.PathSpec(path=persistence.program,
+                                       pathtype=download_pathtype)
       elif persistence.args:
-        pathspecs = rdfvalue.PathSpec(path=persistence.args[0],
-                                      pathtype=download_pathtype)
+        pathspecs = rdf_paths.PathSpec(path=persistence.args[0],
+                                       pathtype=download_pathtype)
 
     for pathspec in pathspecs:
-      yield rdfvalue.PersistenceFile(pathspec=pathspec)
+      yield rdf_standard.PersistenceFile(pathspec=pathspec)

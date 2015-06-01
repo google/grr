@@ -16,6 +16,8 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import flows as rdf_flows
 
 
 class Error(Exception):
@@ -31,7 +33,7 @@ class QueueManager(object):
 
   The workflow for client task scheduling is as follows:
 
-  1) Create a bunch of tasks (rdfvalue.GrrMessage()). Tasks must
+  1) Create a bunch of tasks (rdf_flows.GrrMessage()). Tasks must
   be assigned to queues and contain arbitrary values.
 
   2) Call QueueManager.Schedule(task) to add the tasks to their queues.
@@ -181,7 +183,7 @@ class QueueManager(object):
     """Remove the message from the client queue that this request forms."""
     # Check this request was actually bound for a client.
     if client_id:
-      client_id = rdfvalue.ClientURN(client_id)
+      client_id = rdf_client.ClientURN(client_id)
 
       self.client_messages_to_delete.setdefault(client_id, []).append(task_id)
 
@@ -226,8 +228,8 @@ class QueueManager(object):
 
     for request_id, serialized in sorted(requests.items()):
       if request_id in status:
-        yield (rdfvalue.RequestState(serialized),
-               rdfvalue.GrrMessage(status[request_id]))
+        yield (rdf_flows.RequestState(serialized),
+               rdf_flows.GrrMessage(status[request_id]))
 
   def FetchCompletedResponses(self, session_id, timestamp=None, limit=10000):
     """Fetch only completed requests and responses up to a limit."""
@@ -254,7 +256,7 @@ class QueueManager(object):
     for response_urn, request in sorted(response_subjects.items()):
       responses = []
       for _, serialized, _ in response_data.get(response_urn, []):
-        responses.append(rdfvalue.GrrMessage(serialized))
+        responses.append(rdf_flows.GrrMessage(serialized))
 
       yield (request, sorted(responses, key=lambda msg: msg.response_id))
 
@@ -302,10 +304,10 @@ class QueueManager(object):
         timestamp=timestamp))
 
     for urn, request_data in sorted(requests.items()):
-      request = rdfvalue.RequestState(request_data)
+      request = rdf_flows.RequestState(request_data)
       responses = []
       for _, serialized, _ in response_data.get(urn, []):
-        responses.append(rdfvalue.GrrMessage(serialized))
+        responses.append(rdf_flows.GrrMessage(serialized))
 
       yield (request, sorted(responses, key=lambda msg: msg.response_id))
 
@@ -334,7 +336,7 @@ class QueueManager(object):
         subject, self.FLOW_REQUEST_REGEX, token=self.token,
         limit=self.request_limit):
 
-      request = rdfvalue.RequestState(serialized)
+      request = rdf_flows.RequestState(serialized)
 
       # Efficiently drop all responses to this request.
       response_subject = self.GetFlowResponseSubject(session_id, request.id)
@@ -391,7 +393,7 @@ class QueueManager(object):
     # Status messages cause their requests to be marked as complete. This allows
     # us to quickly enumerate all the completed requests - it is essentially an
     # index for completed requests.
-    if response.type == rdfvalue.GrrMessage.Type.STATUS:
+    if response.type == rdf_flows.GrrMessage.Type.STATUS:
       subject = session_id.Add("state")
       queue = self.to_write.setdefault(subject, {})
       queue.setdefault(
@@ -425,7 +427,7 @@ class QueueManager(object):
     """Queues a notification for a flow."""
 
     if notification is None:
-      notification = rdfvalue.GrrNotification(**kw)
+      notification = rdf_flows.GrrNotification(**kw)
 
     if notification.session_id:
       if timestamp is None:
@@ -538,7 +540,7 @@ class QueueManager(object):
     Args:
       queue: usually rdfvalue.RDFURN("aff4:/W")
     Returns:
-      List of rdfvalue.GrrNotification objects
+      List of rdf_flows.GrrNotification objects
     """
     notifications_by_session_id = {}
     for queue_shard in self.GetAllNotificationShards(queue):
@@ -572,7 +574,7 @@ class QueueManager(object):
 
       # Parse the notification.
       try:
-        notification = rdfvalue.GrrNotification(serialized_notification)
+        notification = rdf_flows.GrrNotification(serialized_notification)
       except Exception:  # pylint: disable=broad-except
         logging.exception("Can't unserialize notification, deleting it: "
                           "predicate=%s, ts=%d", predicate, ts)
@@ -683,7 +685,7 @@ class QueueManager(object):
     """
     # This function is usually used for manual testing so we also accept client
     # ids and get the queue from it.
-    if isinstance(queue, rdfvalue.ClientURN):
+    if isinstance(queue, rdf_client.ClientURN):
       queue = queue.Queue()
 
     if task_id is None:
@@ -696,7 +698,7 @@ class QueueManager(object):
     for _, serialized, ts in self.data_store.ResolveRegex(
         queue, regex, timestamp=self.data_store.ALL_TIMESTAMPS,
         token=self.token):
-      task = rdfvalue.GrrMessage(serialized)
+      task = rdf_flows.GrrMessage(serialized)
       task.eta = ts
       all_tasks.append(task)
 
@@ -751,7 +753,7 @@ class QueueManager(object):
     for predicate, task, timestamp in transaction.ResolveRegex(
         self.TASK_PREDICATE_PREFIX % ".*",
         timestamp=(0, self.frozen_timestamp or rdfvalue.RDFDatetime().Now())):
-      task = rdfvalue.GrrMessage(task)
+      task = rdf_flows.GrrMessage(task)
       task.eta = timestamp
       task.last_lease = "%s@%s:%d" % (user,
                                       socket.gethostname(),
@@ -764,7 +766,7 @@ class QueueManager(object):
         ttl_exceeded_count += 1
         stats.STATS.IncrementCounter("grr_task_ttl_expired_count")
       else:
-        if task.task_ttl != rdfvalue.GrrMessage.max_ttl - 1:
+        if task.task_ttl != rdf_flows.GrrMessage.max_ttl - 1:
           stats.STATS.IncrementCounter("grr_task_retransmission_count")
 
         # Update the timestamp on the value to be in the future
@@ -818,9 +820,9 @@ class WellKnownQueueManager(QueueManager):
 
       # The predicate format is flow:response:REQUEST_ID:RESPONSE_ID. For well
       # known flows both request_id and response_id are randomized.
-      response = rdfvalue.GrrMessage(serialized)
+      response = rdf_flows.GrrMessage(serialized)
 
-      yield rdfvalue.RequestState(id=0), [response]
+      yield rdf_flows.RequestState(id=0), [response]
 
 
 class QueueManagerInit(registry.InitHook):

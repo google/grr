@@ -12,7 +12,7 @@ import urlparse
 
 
 from grr.lib import parsers
-from grr.lib import rdfvalue
+from grr.lib.rdfvalues import webhistory as rdf_webhistory
 from grr.parsers import sqlite_file
 
 
@@ -29,12 +29,12 @@ class ChromeHistoryParser(parsers.FileParser):
     chrome = ChromeParser(file_object)
     for timestamp, entry_type, url, data1, _, _ in chrome.Parse():
       if entry_type == "CHROME_DOWNLOAD":
-        yield rdfvalue.BrowserHistoryItem(
+        yield rdf_webhistory.BrowserHistoryItem(
             url=url, domain=urlparse.urlparse(url).netloc,
             access_time=timestamp, program_name="Chrome",
             source_urn=stat.aff4path, download_path=data1)
       elif entry_type == "CHROME_VISIT":
-        yield rdfvalue.BrowserHistoryItem(
+        yield rdf_webhistory.BrowserHistoryItem(
             url=url, domain=urlparse.urlparse(url).netloc,
             access_time=timestamp, program_name="Chrome",
             source_urn=stat.aff4path, title=data1)

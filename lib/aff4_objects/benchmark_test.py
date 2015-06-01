@@ -5,8 +5,8 @@
 
 from grr.lib import aff4
 from grr.lib import data_store
-from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.rdfvalues import client as rdf_client
 
 
 class AFF4Benchmark(test_lib.AverageMicroBenchmarks):
@@ -31,8 +31,8 @@ class AFF4Benchmark(test_lib.AverageMicroBenchmarks):
   def testAFF4CreateAndSet(self):
     """How long does it take to create and set properties."""
 
-    client_info = rdfvalue.ClientInformation(client_name="GRR",
-                                             client_description="Description")
+    client_info = rdf_client.ClientInformation(client_name="GRR",
+                                               client_description="Description")
 
     def CreateAFF4Object():
       """Blind write a VFSGRRClient with 1000 client info attributes."""

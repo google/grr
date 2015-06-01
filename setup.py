@@ -9,6 +9,7 @@ import glob
 import os
 import subprocess
 
+from disutils import core
 from setuptools import find_packages, setup
 from setuptools.command.build_py import build_py
 
@@ -228,4 +229,11 @@ setup(name="grr",
               "grr_fuse = grr.lib.distro_entry:GRRFuse",
           ]
       },
+      ext_modules=[
+          core.Extension(
+              "_semantic",
+              ["grr/accelerated/accelerated.c"],
+          )
+      ],
+
       cmdclass={"build_py": MyBuild})

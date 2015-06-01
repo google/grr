@@ -2,8 +2,7 @@
 """Configuration parameters for the server side subsystems."""
 
 from grr.lib import config_lib
-from grr.lib import rdfvalue
-
+from grr.lib.rdfvalues import crypto as rdf_crypto
 
 # Note: Each thread adds about 8mb for stack space.
 config_lib.DEFINE_integer("Threadpool.size", 50,
@@ -71,16 +70,16 @@ config_lib.DEFINE_string("Worker.smtp_password", None,
 
 # Server Cryptographic settings.
 config_lib.DEFINE_semantic(
-    rdfvalue.PEMPrivateKey, "PrivateKeys.ca_key",
+    rdf_crypto.PEMPrivateKey, "PrivateKeys.ca_key",
     description="CA private key. Used to sign for client enrollment.",
 )
 
 config_lib.DEFINE_semantic(
-    rdfvalue.PEMPrivateKey, "PrivateKeys.server_key",
+    rdf_crypto.PEMPrivateKey, "PrivateKeys.server_key",
     description="Private key for the front end server.")
 
 config_lib.DEFINE_semantic(
-    rdfvalue.RDFX509Cert, "Frontend.certificate",
+    rdf_crypto.RDFX509Cert, "Frontend.certificate",
     description="An X509 certificate for the frontend server.")
 
 config_lib.DEFINE_integer("ACL.cache_age", 600, "The number of seconds "

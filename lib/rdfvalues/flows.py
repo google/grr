@@ -10,6 +10,9 @@ import time
 
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import jobs_pb2
 
 
@@ -19,7 +22,7 @@ from grr.proto import jobs_pb2
 DataObject = utils.DataObject
 
 
-class GrrMessage(rdfvalue.RDFProtoStruct):
+class GrrMessage(rdf_structs.RDFProtoStruct):
   """An RDFValue class to manage GRR messages."""
   protobuf = jobs_pb2.GrrMessage
 
@@ -52,14 +55,14 @@ class GrrMessage(rdfvalue.RDFProtoStruct):
     random_number = utils.PRNG.GetUShort() + 1
 
     # 16 bit random numbers
-    with Task.lock:
-      next_id_base = Task.next_id_base
+    with GrrMessage.lock:
+      next_id_base = GrrMessage.next_id_base
 
       id_base = (next_id_base + random_number) & 0xFFFFFFFF
       if id_base < next_id_base:
         time.sleep(0.001)
 
-      Task.next_id_base = id_base
+      GrrMessage.next_id_base = id_base
 
     # 32 bit timestamp (in 1/1000 second resolution)
     time_base = (long(time.time() * 1000) & 0x1FFFFFFF) << 32
@@ -72,13 +75,23 @@ class GrrMessage(rdfvalue.RDFProtoStruct):
     return task_id
 
   @property
+  def args(self):
+    raise RuntimeError("Direct access to serialized args is not permitted! "
+                       "Use payload field.")
+
+  @args.setter
+  def args(self, value):
+    raise RuntimeError("Direct access to serialized args is not permitted! "
+                       "Use payload field.")
+
+  @property
   def payload(self):
     """The payload property automatically decodes the encapsulated data."""
     if self.args_rdf_name:
       # Now try to create the correct RDFValue.
       result_cls = self.classes.get(self.args_rdf_name, rdfvalue.RDFString)
 
-      result = result_cls(self.args, age=self.args_age)
+      result = result_cls(self.Get("args"), age=self.args_age)
       return result
 
   @payload.setter
@@ -87,7 +100,7 @@ class GrrMessage(rdfvalue.RDFProtoStruct):
     if not isinstance(value, rdfvalue.RDFValue):
       raise RuntimeError("Payload must be an RDFValue.")
 
-    self.args = value.SerializeToString()
+    self.Set("args", value.SerializeToString())
 
     # pylint: disable=protected-access
     if value._age is not None:
@@ -97,7 +110,7 @@ class GrrMessage(rdfvalue.RDFProtoStruct):
     self.args_rdf_name = value.__class__.__name__
 
 
-class GrrStatus(rdfvalue.RDFProtoStruct):
+class GrrStatus(rdf_structs.RDFProtoStruct):
   """The client status message.
 
   When the client responds to a request, it sends a series of response messages,
@@ -106,10 +119,10 @@ class GrrStatus(rdfvalue.RDFProtoStruct):
   """
   protobuf = jobs_pb2.GrrStatus
 
-  rdf_map = dict(cpu_used=rdfvalue.CpuSeconds)
+  rdf_map = dict(cpu_used=rdf_client.CpuSeconds)
 
 
-class GrrNotification(rdfvalue.RDFProtoStruct):
+class GrrNotification(rdf_structs.RDFProtoStruct):
   """A flow notification."""
   protobuf = jobs_pb2.GrrNotification
 
@@ -118,11 +131,11 @@ class Backtrace(rdfvalue.RDFString):
   """A special type representing a backtrace."""
 
 
-class RequestState(rdfvalue.RDFProtoStruct):
+class RequestState(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.RequestState
 
 
-class Flow(rdfvalue.RDFProtoStruct):
+class Flow(rdf_structs.RDFProtoStruct):
   """A Flow protobuf.
 
   The flow protobuf holds metadata about the flow, as well as the pickled flow
@@ -256,7 +269,7 @@ class FlowState(rdfvalue.RDFValue):
     return dir(self.data) + dir(self.__class__)
 
 
-class Notification(rdfvalue.RDFProtoStruct):
+class Notification(rdf_structs.RDFProtoStruct):
   """A notification is used in the GUI to alert users.
 
   Usually the notification means that some operation is completed, and provides
@@ -271,49 +284,49 @@ class Notification(rdfvalue.RDFProtoStruct):
                         "DownloadFile"]     # Directly download a file.
 
 
-class FlowNotification(rdfvalue.RDFProtoStruct):
+class FlowNotification(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.FlowNotification
 
 
-class NotificationList(rdfvalue.RDFValueArray):
+class NotificationList(rdf_protodict.RDFValueArray):
   """A List of notifications for this user."""
   rdf_type = Notification
 
 
-class SignedMessageList(rdfvalue.RDFProtoStruct):
+class SignedMessageList(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.SignedMessageList
 
 
-class MessageList(rdfvalue.RDFProtoStruct):
+class MessageList(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.MessageList
 
   def __len__(self):
     return len(self.job)
 
 
-class CipherProperties(rdfvalue.RDFProtoStruct):
+class CipherProperties(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.CipherProperties
 
 
-class CipherMetadata(rdfvalue.RDFProtoStruct):
+class CipherMetadata(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.CipherMetadata
 
 
-class HuntError(rdfvalue.RDFProtoStruct):
+class HuntError(rdf_structs.RDFProtoStruct):
   """An RDFValue class representing a hunt error."""
   protobuf = jobs_pb2.HuntError
 
 
-class FlowLog(rdfvalue.RDFProtoStruct):
+class FlowLog(rdf_structs.RDFProtoStruct):
   """An RDFValue class representing flow log entries."""
   protobuf = jobs_pb2.FlowLog
 
 
-class HttpRequest(rdfvalue.RDFProtoStruct):
+class HttpRequest(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.HttpRequest
 
 
-class ClientCommunication(rdfvalue.RDFProtoStruct):
+class ClientCommunication(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.ClientCommunication
 
   num_messages = 0
@@ -321,115 +334,3 @@ class ClientCommunication(rdfvalue.RDFProtoStruct):
 
 class ProgressGraph(rdfvalue.RDFString):
   """A class that renders a button to show a progress graph."""
-
-
-class Task(rdfvalue.RDFProtoStruct):
-  """Tasks are scheduled on the task scheduler.
-
-  This class is DEPRECATED! It only exists here so we can render flows stored
-  in the old format in the GUI. Do not use this anymore, GrrMessage now contains
-  all the fields necessary for scheduling already.
-  """
-
-  protobuf = jobs_pb2.Task
-
-  lock = threading.Lock()
-  next_id_base = 0
-  max_ttl = 5
-  payload = None
-
-  def __init__(self, initializer=None, payload=None, *args, **kwargs):
-    """Constructor.
-
-    Args:
-      initializer: passthrough, can also be used to pass the payload.
-      payload: The rdfvalue object to store in this Task.
-      *args: passthrough.
-      **kwargs: passthrough.
-    """
-    if payload:
-      self.payload = payload
-    elif (isinstance(initializer, rdfvalue.RDFValue) and
-          not isinstance(initializer, Task)):
-      # This is an RDFValue object that we can use.
-      self.payload = initializer
-      initializer = None
-
-    super(Task, self).__init__(initializer=initializer, *args, **kwargs)
-
-    self.eta = 0
-
-    # self.value now contains a serialized RDFValue protobuf.
-    self.payload = rdfvalue.RDFValueObject(self.value).Payload()
-
-    # If the payload has a priority, the task inherits it.
-    try:
-      self.priority = self.payload.priority
-    except AttributeError:
-      pass
-
-    if not self.id:
-      random_number = utils.PRNG.GetUShort() + 1
-
-      with Task.lock:
-        next_id_base = Task.next_id_base
-
-        id_base = (next_id_base + random_number) & 0xFFFFFFFF
-        if id_base < next_id_base:
-          time.sleep(0.001)
-
-        Task.next_id_base = id_base
-
-      # 32 bit timestamp (in 1/1000 second resolution)
-      time_base = (long(time.time() * 1000) & 0xFFFFFFFF) << 32
-
-      self.id = time_base + id_base
-
-  def SerializeToString(self):
-    try:
-      self.value = self.payload.SerializeToString()
-    except AttributeError:
-      pass
-
-    return self._data.SerializeToString()
-
-  def ParseFromString(self, string):
-    super(Task, self).ParseFromString(string)
-
-    # self.value now contains a serialized RDFValue protobuf.
-    self.payload = rdfvalue.RDFValueObject(self.value).Payload()
-
-  def __str__(self):
-    result = ""
-    for field in ["id", "value", "ttl", "eta", "queue", "priority"]:
-      value = getattr(self, field)
-      if field == "eta":
-        value = time.ctime(self.eta / 1e6)
-        lease = (self.eta / 1e6) - time.time()
-        if lease < 0:
-          value += ", available for leasing"
-        else:
-          value += ", leased for another %d seconds" % int(lease)
-
-      result += u"%s: %s\n" % (field, utils.SmartUnicode(value))
-
-    return result
-
-  def __repr__(self):
-    result = []
-    for field in ["id", "ttl", "eta", "queue", "priority"]:
-      value = getattr(self, field)
-      if field == "eta":
-        value = time.ctime(self.eta / 1e6)
-        lease = (self.eta / 1e6) - time.time()
-        if lease < 0:
-          value += ", available for leasing."
-        else:
-          value += ", leased for another %d seconds." % int(lease)
-
-      result.append(u"%s: %s" % (field, utils.SmartUnicode(value)))
-
-    return u"<Task %s>" % u",". join(result)
-
-  def __bool__(self):
-    return bool(self.payload)

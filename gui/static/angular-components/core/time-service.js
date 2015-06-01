@@ -36,16 +36,16 @@ TimeService.prototype.getCurrentTimeMs = function() {
 /**
  * Returns the time passed formatted as UTC for consumption by a human.
  *
- * @param {number} timestamp The timestamp to format as UTC, in milliseconds
+ * @param {number} opt_timestamp The timestamp to format as UTC, in milliseconds
  *     from epoch. By default, the current timestamp is used,
  *     i.e. new Date() - 0
  *
  * @return {string} Formatted UTC time.
  */
-TimeService.prototype.formatAsUTC = function(timestamp) {
-  var when = angular.isUndefined(timestamp) ?
+TimeService.prototype.formatAsUTC = function(opt_timestamp) {
+  var when = angular.isUndefined(opt_timestamp) ?
              moment() :
-             moment(timestamp);
+             moment(opt_timestamp);
   return when.utc().format('YYYY-MM-DD HH:mm:ss') + ' UTC';
 };
 

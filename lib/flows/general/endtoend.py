@@ -6,16 +6,16 @@ import traceback
 from grr.endtoend_tests import base
 from grr.lib import aff4
 from grr.lib import flow
-from grr.lib import rdfvalue
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 from grr.proto import jobs_pb2
 
 
-class EndToEndTestFlowArgs(rdfvalue.RDFProtoStruct):
+class EndToEndTestFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.EndToEndTestFlowArgs
 
 
-class EndToEndTestResult(rdfvalue.RDFProtoStruct):
+class EndToEndTestResult(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.EndToEndTestResult
 
 

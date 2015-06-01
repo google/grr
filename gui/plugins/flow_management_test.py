@@ -9,12 +9,13 @@ from grr.gui import runtests_test
 from grr.lib import action_mocks
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import tests_pb2
 
 
-class RecursiveTestFlowArgs(rdfvalue.RDFProtoStruct):
+class RecursiveTestFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = tests_pb2.RecursiveTestFlowArgs
 
 
@@ -36,7 +37,7 @@ class FlowWithOneStatEntryResult(flow.GRRFlow):
 
   @flow.StateHandler()
   def Start(self):
-    self.SendReply(rdfvalue.StatEntry(aff4path="aff4:/some/unique/path"))
+    self.SendReply(rdf_client.StatEntry(aff4path="aff4:/some/unique/path"))
 
 
 class FlowWithOneNetworkConnectionResult(flow.GRRFlow):
@@ -44,7 +45,7 @@ class FlowWithOneNetworkConnectionResult(flow.GRRFlow):
 
   @flow.StateHandler()
   def Start(self):
-    self.SendReply(rdfvalue.NetworkConnection(pid=42))
+    self.SendReply(rdf_client.NetworkConnection(pid=42))
 
 
 class TestFlowManagement(test_lib.GRRSeleniumTest):
@@ -143,7 +144,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
                    "css=.tab-content td.proto_value:contains(StatFile)")
 
   def testLogsCanBeOpenedByClickingOnLogsTab(self):
-    client_id = rdfvalue.ClientURN("C.0000000000000001")
+    client_id = rdf_client.ClientURN("C.0000000000000001")
 
     # RecursiveTestFlow doesn't send any results back.
     with self.ACLChecksDisabled():
@@ -163,7 +164,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Subflow call 0")
 
   def testResultsAreDisplayedInResultsTab(self):
-    client_id = rdfvalue.ClientURN("C.0000000000000001")
+    client_id = rdf_client.ClientURN("C.0000000000000001")
 
     with self.ACLChecksDisabled():
       for _ in test_lib.TestFlowHelper(
@@ -196,7 +197,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
                    "th:contains('Value')")
 
   def testExportTabIsEnabledForStatEntryResults(self):
-    client_id = rdfvalue.ClientURN("C.0000000000000001")
+    client_id = rdf_client.ClientURN("C.0000000000000001")
 
     with self.ACLChecksDisabled():
       for _ in test_lib.TestFlowHelper(
@@ -217,7 +218,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
         "--path aff4:/C.0000000000000001/analysis/FlowWithOneStatEntryResult")
 
   def testExportTabIsDisabledWhenNoResults(self):
-    client_id = rdfvalue.ClientURN("C.0000000000000001")
+    client_id = rdf_client.ClientURN("C.0000000000000001")
 
     # RecursiveTestFlow doesn't send any results back.
     with self.ACLChecksDisabled():
@@ -234,7 +235,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent, "css=#Export.disabled")
 
   def testExportTabIsDisabledForNonFileResults(self):
-    client_id = rdfvalue.ClientURN("C.0000000000000001")
+    client_id = rdf_client.ClientURN("C.0000000000000001")
 
     with self.ACLChecksDisabled():
       for _ in test_lib.TestFlowHelper(

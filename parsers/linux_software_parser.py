@@ -4,7 +4,8 @@ import re
 from debian import deb822
 
 from grr.lib import parsers
-from grr.lib import rdfvalue
+from grr.lib.rdfvalues import anomaly as rdf_anomaly
+from grr.lib.rdfvalues import client as rdf_client
 
 
 class DebianPackagesStatusParser(parsers.FileParser):
@@ -21,7 +22,7 @@ class DebianPackagesStatusParser(parsers.FileParser):
     try:
       for pkg in deb822.Packages.iter_paragraphs(file_object):
         if self.installed_re.match(pkg["Status"]):
-          soft = rdfvalue.SoftwarePackage(
+          soft = rdf_client.SoftwarePackage(
               name=pkg["Package"],
               description=pkg["Description"],
               version=pkg["Version"],
@@ -30,5 +31,5 @@ class DebianPackagesStatusParser(parsers.FileParser):
               install_state="INSTALLED")
           yield soft
     except SystemError:
-      yield rdfvalue.Anomaly(type="PARSER_ANOMALY",
-                             symptom="Invalid dpkg status file")
+      yield rdf_anomaly.Anomaly(type="PARSER_ANOMALY",
+                                symptom="Invalid dpkg status file")

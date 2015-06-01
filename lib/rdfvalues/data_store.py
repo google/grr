@@ -4,36 +4,36 @@
 
 import json
 
-from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import structs
 from grr.proto import data_store_pb2
 
 
-class TimestampSpec(rdfvalue.RDFProtoStruct):
+class TimestampSpec(structs.RDFProtoStruct):
   protobuf = data_store_pb2.TimestampSpec
 
 
-class DataStoreValue(rdfvalue.RDFProtoStruct):
+class DataStoreValue(structs.RDFProtoStruct):
   protobuf = data_store_pb2.DataStoreValue
 
 
-class DataStoreRequest(rdfvalue.RDFProtoStruct):
+class DataStoreRequest(structs.RDFProtoStruct):
   protobuf = data_store_pb2.DataStoreRequest
 
 
-class DataStoreResponse(rdfvalue.RDFProtoStruct):
+class DataStoreResponse(structs.RDFProtoStruct):
   protobuf = data_store_pb2.DataStoreResponse
 
 
-class QueryASTNode(rdfvalue.RDFProtoStruct):
+class QueryASTNode(structs.RDFProtoStruct):
   protobuf = data_store_pb2.QueryASTNode
 
 
-class DataStoreQuery(rdfvalue.RDFProtoStruct):
+class DataStoreQuery(structs.RDFProtoStruct):
   protobuf = data_store_pb2.DataStoreQuery
 
 
-class ResultSet(rdfvalue.RDFProtoStruct):
+class ResultSet(structs.RDFProtoStruct):
   protobuf = data_store_pb2.ResultSet
 
   @property

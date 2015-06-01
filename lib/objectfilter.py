@@ -644,6 +644,8 @@ class Parser(lexer.SearchParser):
   context_cls = ContextExpression
   identity_expression_cls = IdentityExpression
 
+  list_args = []
+
   tokens = [
       # Operators and related tokens
       lexer.Token("INITIAL", r"\@[\w._0-9]+",
@@ -667,12 +669,22 @@ class Parser(lexer.SearchParser):
       lexer.Token("SQ_STRING", r"\\(.)", "StringEscape", None),
       lexer.Token("SQ_STRING", r"[^\\']+", "StringInsert", None),
 
+      # List processing.
+      lexer.Token("LIST_ARG", r"]", "PopState,ListFinish", None),
+      lexer.Token("LIST_ARG", r"(\d+\.\d+)", "InsertFloatArg", "LIST_ARG"),
+      lexer.Token("LIST_ARG", r"(0x[a-f\d]+)", "InsertInt16Arg", "LIST_ARG"),
+      lexer.Token("LIST_ARG", r"(\d+)", "InsertIntArg", "LIST_ARG"),
+      lexer.Token("LIST_ARG", "\"", "PushState,StringStart", "STRING"),
+      lexer.Token("LIST_ARG", "'", "PushState,StringStart", "SQ_STRING"),
+      lexer.Token("LIST_ARG", r",", None, None),
+
       # Basic expression
       lexer.Token("ATTRIBUTE", r"[\w._0-9]+", "StoreAttribute", "OPERATOR"),
       lexer.Token("OPERATOR", r"(\w+|[<>!=]=?)", "StoreOperator", "ARG"),
       lexer.Token("ARG", r"(\d+\.\d+)", "InsertFloatArg", "ARG"),
-      lexer.Token("ARG", r"(0x\d+)", "InsertInt16Arg", "ARG"),
+      lexer.Token("ARG", r"(0x[a-f\d]+)", "InsertInt16Arg", "ARG"),
       lexer.Token("ARG", r"(\d+)", "InsertIntArg", "ARG"),
+      lexer.Token("ARG", r"\[", "PushState,ListStart", "LIST_ARG"),
       lexer.Token("ARG", "\"", "PushState,StringStart", "STRING"),
       lexer.Token("ARG", "'", "PushState,StringStart", "SQ_STRING"),
       # When the last parameter from arg_list has been pushed
@@ -693,8 +705,10 @@ class Parser(lexer.SearchParser):
     """Insert an arg to the current expression."""
     logging.debug("Storing Argument %s", string)
 
-    # This expression is complete
-    if self.current_expression.AddArg(string):
+    if self.state == "LIST_ARG":
+      self.list_args.append(string)
+    elif self.current_expression.AddArg(string):
+      # This expression is complete
       self.stack.append(self.current_expression)
       self.current_expression = self.expression_cls()
       # We go to the BINARY state, to find if there's an AND or OR operator
@@ -724,11 +738,17 @@ class Parser(lexer.SearchParser):
     except (TypeError, ValueError):
       raise ParseError("%s is not a valid base16 integer." % string)
 
+  def ListStart(self, **_):
+    self.list_args = []
+
+  def ListFinish(self, **_):
+    return self.InsertArg(string=self.list_args)
+
   def StringFinish(self, **_):
     if self.state == "ATTRIBUTE":
       return self.StoreAttribute(string=self.string)
 
-    elif self.state == "ARG":
+    elif self.state == "ARG" or "LIST_ARG":
       return self.InsertArg(string=self.string)
 
   def StringEscape(self, string, match, **_):
@@ -741,9 +761,15 @@ class Parser(lexer.SearchParser):
       match: The match object (m.group(1) is the escaped code)
 
     Raises:
-      ParseError: When the escaped string is not one of [\'"rnbt]
+      ParseError: For strings other than those used to define a regexp, raise an
+        error if the escaped string is not one of [\'"rnbt].
     """
-    if match.group(1) in "\\'\"rnbt":
+    # Allow unfiltered strings for regexp operations so that escaped special
+    # characters (e.g. \*) or special sequences (e.g. \w) can be used in
+    # objectfilter.
+    if self.current_expression.operator == "regexp":
+      self.string += string.decode("string_escape")
+    elif match.group(1) in "\\'\"rnbt":
       self.string += string.decode("string_escape")
     else:
       raise ParseError("Invalid escape character %s." % string)

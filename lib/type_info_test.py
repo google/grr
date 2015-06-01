@@ -7,9 +7,9 @@
 
 
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import type_info
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class TypeInfoTest(test_lib.GRRBaseTest):
@@ -48,7 +48,7 @@ class TypeInfoTest(test_lib.GRRBaseTest):
     self.assertRaises(type_info.TypeValueError, a.Validate, None)
     self.assertRaises(type_info.TypeValueError, a.Validate, ["test"])
     self.assertRaises(type_info.TypeValueError, a.Validate, [
-        rdfvalue.PathSpec()])
+        rdf_paths.PathSpec()])
     a.Validate([1, 2, 3])
 
   def testTypeInfoMultiChoiceObjects(self):

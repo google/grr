@@ -3,9 +3,9 @@
 
 
 from grr.client import client_utils
-from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 # A central Cache for vfs handlers. This can be used to keep objects alive
@@ -51,7 +51,7 @@ class VFSHandler(object):
     self.base_fd = base_fd
     self.progress_callback = progress_callback
     if base_fd is None:
-      self.pathspec = rdfvalue.PathSpec()
+      self.pathspec = rdf_paths.PathSpec()
     else:
       # Make a copy of the base pathspec.
       self.pathspec = base_fd.pathspec.Copy()
@@ -101,9 +101,9 @@ class VFSHandler(object):
     # TODO(user): Add support for more container here (e.g. registries, zip
     # files etc).
     else:  # For now just guess TSK.
-      return VFS_HANDLERS[rdfvalue.PathSpec.PathType.TSK](
-          self, rdfvalue.PathSpec(path="/",
-                                  pathtype=rdfvalue.PathSpec.PathType.TSK),
+      return VFS_HANDLERS[rdf_paths.PathSpec.PathType.TSK](
+          self, rdf_paths.PathSpec(path="/",
+                                   pathtype=rdf_paths.PathSpec.PathType.TSK),
           progress_callback=self.progress_callback)
 
   def MatchBestComponentName(self, component):
@@ -132,8 +132,8 @@ class VFSHandler(object):
           component = x
           break
 
-    new_pathspec = rdfvalue.PathSpec(path=component,
-                                     pathtype=fd.supported_pathtype)
+    new_pathspec = rdf_paths.PathSpec(path=component,
+                                      pathtype=fd.supported_pathtype)
 
     return new_pathspec
 
@@ -189,7 +189,7 @@ class VFSHandler(object):
           "VFS handler %d not supported." % component.pathtype)
 
     # We will not do any case folding unless requested.
-    if component.path_options == rdfvalue.PathSpec.Options.CASE_LITERAL:
+    if component.path_options == rdf_paths.PathSpec.Options.CASE_LITERAL:
       return handler(base_fd=fd, pathspec=component)
 
     path_components = client_utils.LocalPathToCanonicalPath(component.path)
@@ -218,7 +218,7 @@ class VFSHandler(object):
 
         # Insert the remaining path at the front of the pathspec.
         pathspec.Insert(0, path=utils.JoinPath(*path_components[i:]),
-                        pathtype=rdfvalue.PathSpec.PathType.TSK)
+                        pathtype=rdf_paths.PathSpec.PathType.TSK)
         break
 
     return fd
@@ -304,6 +304,8 @@ def VFSOpen(pathspec, progress_callback=None):
   """
   fd = None
 
+  original_pathspec = pathspec
+
   # Opening changes the pathspec so we work on a copy.
   pathspec = pathspec.Copy()
 
@@ -323,7 +325,7 @@ def VFSOpen(pathspec, progress_callback=None):
       fd = handler.Open(fd, component, pathspec=pathspec,
                         progress_callback=progress_callback)
     except IOError as e:
-      raise IOError("%s: %s" % (e, component))
+      raise IOError("%s: %s" % (e, original_pathspec))
 
   return fd
 

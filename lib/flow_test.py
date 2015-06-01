@@ -5,10 +5,6 @@
 import time
 
 
-# pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import,g-bad-import-order
-
 from grr.client import actions
 from grr.client import vfs
 from grr.lib import access_control
@@ -24,6 +20,15 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import type_info
 from grr.lib import utils
+# For GetClientStats. pylint: disable=unused-import
+from grr.lib.flows.general import administrative
+# pylint: enable=unused-import
+from grr.lib.flows.general import transfer
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import tests_pb2
 
 # pylint: mode=test
@@ -35,7 +40,7 @@ class FlowResponseSerialization(flow.GRRFlow):
   @flow.StateHandler(next_state="Response1")
   def Start(self, unused_message=None):
     self.CallClient("ReturnBlob",
-                    rdfvalue.EchoRequest(data="test"),
+                    rdf_client.EchoRequest(data="test"),
                     next_state="Response1")
 
   @flow.StateHandler(next_state="Response2")
@@ -43,7 +48,7 @@ class FlowResponseSerialization(flow.GRRFlow):
     """Record the message id for testing."""
     self.state.Register("messages", messages)
     self.CallClient("ReturnBlob",
-                    rdfvalue.EchoRequest(data="test"),
+                    rdf_client.EchoRequest(data="test"),
                     next_state="Response2")
 
   @flow.StateHandler()
@@ -51,7 +56,7 @@ class FlowResponseSerialization(flow.GRRFlow):
     # We need to receive one response and it must be the same as that stored in
     # the previous state.
     if (len(list(messages)) != 1 or
-        messages.status.status != rdfvalue.GrrStatus.ReturnedStatus.OK or
+        messages.status.status != rdf_flows.GrrStatus.ReturnedStatus.OK or
         list(messages) != list(self.state.messages)):
       raise RuntimeError("Messages not serialized")
 
@@ -146,15 +151,15 @@ class FlowCreationTest(BasicFlowTest):
 
     class TestClientMock(object):
 
-      in_rdfvalue = rdfvalue.EchoRequest
-      out_rdfvalue = rdfvalue.DataBlob
+      in_rdfvalue = rdf_client.EchoRequest
+      out_rdfvalue = rdf_protodict.DataBlob
 
       def __init__(self):
         # Register us as an action plugin.
         actions.ActionPlugin.classes["ReturnBlob"] = self
 
       def ReturnBlob(self, unused_args):
-        return [rdfvalue.DataBlob(integer=100)]
+        return [rdf_protodict.DataBlob(integer=100)]
 
     # Run the flow in the simulated way
     for _ in test_lib.TestFlowHelper("FlowResponseSerialization",
@@ -172,7 +177,7 @@ class FlowCreationTest(BasicFlowTest):
     runner = flow_obj.GetRunner()
     self.assertEqual(runner.IsRunning(), False)
     self.assertEqual(runner.context.state,
-                     rdfvalue.Flow.State.ERROR)
+                     rdf_flows.Flow.State.ERROR)
 
     reason = "no reason"
     session_id = flow.GRRFlow.StartFlow(
@@ -184,7 +189,7 @@ class FlowCreationTest(BasicFlowTest):
     runner = flow_obj.GetRunner()
     self.assertEqual(runner.IsRunning(), False)
     self.assertEqual(runner.context.state,
-                     rdfvalue.Flow.State.ERROR)
+                     rdf_flows.Flow.State.ERROR)
     self.assertTrue(reason in runner.context.status)
 
   def testChildTermination(self):
@@ -209,7 +214,7 @@ class FlowCreationTest(BasicFlowTest):
     runner = flow_obj.GetRunner()
     self.assertEqual(runner.IsRunning(), False)
     self.assertEqual(runner.context.state,
-                     rdfvalue.Flow.State.ERROR)
+                     rdf_flows.Flow.State.ERROR)
 
     self.assertTrue("user test" in runner.context.status)
     self.assertTrue(reason in runner.context.status)
@@ -220,7 +225,7 @@ class FlowCreationTest(BasicFlowTest):
     runner = child.GetRunner()
     self.assertEqual(runner.IsRunning(), False)
     self.assertEqual(runner.context.state,
-                     rdfvalue.Flow.State.ERROR)
+                     rdf_flows.Flow.State.ERROR)
 
     self.assertTrue("user test" in runner.context.status)
     self.assertTrue("Parent flow terminated." in runner.context.status)
@@ -351,14 +356,14 @@ class FlowTest(BasicFlowTest):
                    args_rdf_name="DataBlob"):
     """Send messages to the flow."""
     for response_id in response_ids:
-      message = rdfvalue.GrrMessage(
+      message = rdf_flows.GrrMessage(
           request_id=1,
           response_id=response_id,
           session_id=session_id,
           args_rdf_name=args_rdf_name)
 
       if authenticated:
-        auth_state = rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED
+        auth_state = rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
         message.auth_state = auth_state
 
       self.SendMessage(message)
@@ -370,14 +375,14 @@ class FlowTest(BasicFlowTest):
 
   def SendOKStatus(self, response_id, session_id):
     """Send a message to the flow."""
-    message = rdfvalue.GrrMessage(
+    message = rdf_flows.GrrMessage(
         request_id=1,
         response_id=response_id,
         session_id=session_id,
-        type=rdfvalue.GrrMessage.Type.STATUS,
-        auth_state=rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED)
+        type=rdf_flows.GrrMessage.Type.STATUS,
+        auth_state=rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED)
 
-    status = rdfvalue.GrrStatus(status=rdfvalue.GrrStatus.ReturnedStatus.OK)
+    status = rdf_flows.GrrStatus(status=rdf_flows.GrrStatus.ReturnedStatus.OK)
     message.payload = status
 
     self.SendMessage(message)
@@ -388,7 +393,7 @@ class FlowTest(BasicFlowTest):
         queue_manager.QueueManager.FLOW_REQUEST_TEMPLATE % message.request_id,
         token=self.token)
 
-    request_state = rdfvalue.RequestState(request_state)
+    request_state = rdf_flows.RequestState(request_state)
     request_state.status = status
 
     data_store.DB.Set(
@@ -410,7 +415,8 @@ class FlowTest(BasicFlowTest):
     message = self.SendOKStatus(6, flow_obj.session_id)
 
     runner = flow_runner.FlowRunner(flow_obj)
-    notification = rdfvalue.Notification(timestamp=rdfvalue.RDFDatetime().Now())
+    notification = rdf_flows.Notification(
+        timestamp=rdfvalue.RDFDatetime().Now())
     runner.ProcessCompletedRequests(notification, [message])
 
     # Check that the messages were processed in order
@@ -481,7 +487,8 @@ class FlowTest(BasicFlowTest):
     message = self.SendOKStatus(6, flow_obj.session_id)
 
     runner = flow_runner.FlowRunner(flow_obj)
-    notification = rdfvalue.Notification(timestamp=rdfvalue.RDFDatetime().Now())
+    notification = rdf_flows.Notification(
+        timestamp=rdfvalue.RDFDatetime().Now())
     runner.ProcessCompletedRequests(notification, [message])
 
     # Now messages should actually be processed
@@ -519,7 +526,8 @@ class FlowTest(BasicFlowTest):
     message = self.SendOKStatus(7, flow_obj.session_id)
 
     runner = flow_runner.FlowRunner(flow_obj)
-    notification = rdfvalue.Notification(timestamp=rdfvalue.RDFDatetime().Now())
+    notification = rdf_flows.Notification(
+        timestamp=rdfvalue.RDFDatetime().Now())
     runner.ProcessCompletedRequests(notification, [message])
 
     # Some messages should actually be processed
@@ -534,7 +542,8 @@ class FlowTest(BasicFlowTest):
                      test_lib.WellKnownSessionTest.well_known_session_id)
 
     # Messages to Well Known flows can be unauthenticated
-    messages = [rdfvalue.GrrMessage(args=str(i)) for i in range(10)]
+    messages = [
+        rdf_flows.GrrMessage(payload=rdfvalue.RDFInteger(i)) for i in range(10)]
 
     for message in messages:
       test_flow.ProcessMessage(message)
@@ -559,7 +568,7 @@ class FlowTest(BasicFlowTest):
     # Should not raise now if we provide the correct type.
     flow.GRRFlow.StartFlow(
         client_id=self.client_id, flow_name="BadArgsFlow1",
-        arg1=rdfvalue.PathSpec(), token=self.token)
+        arg1=rdf_paths.PathSpec(), token=self.token)
 
 
 class FlowTerminationTest(BasicFlowTest):
@@ -610,14 +619,14 @@ class FlowOutputPluginsTest(BasicFlowTest):
 
   def RunFlow(self, flow_name=None, plugins=None, flow_args=None,
               client_mock=None):
-    runner_args = rdfvalue.FlowRunnerArgs(flow_name=flow_name or "GetFile",
-                                          output_plugins=plugins)
+    runner_args = flow_runner.FlowRunnerArgs(flow_name=flow_name or "GetFile",
+                                             output_plugins=plugins)
 
     if flow_args is None:
-      flow_args = rdfvalue.GetFileArgs(
-          pathspec=rdfvalue.PathSpec(
+      flow_args = transfer.GetFileArgs(
+          pathspec=rdf_paths.PathSpec(
               path="/tmp/evil.txt",
-              pathtype=rdfvalue.PathSpec.PathType.OS))
+              pathtype=rdf_paths.PathSpec.PathType.OS))
 
     if client_mock is None:
       client_mock = test_lib.SampleHuntMock()
@@ -640,20 +649,20 @@ class FlowOutputPluginsTest(BasicFlowTest):
   def testFlowWithOutputPluginButWithoutResultsCompletes(self):
     self.RunFlow(
         flow_name="NoRequestParentFlow",
-        plugins=rdfvalue.OutputPluginDescriptor(
+        plugins=output_plugin.OutputPluginDescriptor(
             plugin_name="DummyFlowOutputPlugin"))
     self.assertEqual(DummyFlowOutputPlugin.num_calls, 0)
 
   def testFlowWithOutputPluginProcessesResultsSuccessfully(self):
     self.RunFlow(
-        plugins=rdfvalue.OutputPluginDescriptor(
+        plugins=output_plugin.OutputPluginDescriptor(
             plugin_name="DummyFlowOutputPlugin"))
     self.assertEqual(DummyFlowOutputPlugin.num_calls, 1)
     self.assertEqual(DummyFlowOutputPlugin.num_responses, 1)
 
   def testFlowLogsSuccessfulOutputPluginProcessing(self):
     flow_urn = self.RunFlow(
-        plugins=rdfvalue.OutputPluginDescriptor(
+        plugins=output_plugin.OutputPluginDescriptor(
             plugin_name="DummyFlowOutputPlugin"))
     flow_obj = aff4.FACTORY.Open(flow_urn, token=self.token)
     log_messages = [item.log_message for item in flow_obj.GetLog()]
@@ -663,7 +672,7 @@ class FlowOutputPluginsTest(BasicFlowTest):
 
   def testFlowLogsFailedOutputPluginProcessing(self):
     flow_urn = self.RunFlow(
-        plugins=rdfvalue.OutputPluginDescriptor(
+        plugins=output_plugin.OutputPluginDescriptor(
             plugin_name="FailingDummyFlowOutputPlugin"))
     flow_obj = aff4.FACTORY.Open(flow_urn, token=self.token)
     log_messages = [item.log_message for item in flow_obj.GetLog()]
@@ -673,7 +682,7 @@ class FlowOutputPluginsTest(BasicFlowTest):
 
   def testFlowDoesNotFailWhenOutputPluginFails(self):
     flow_urn = self.RunFlow(
-        plugins=rdfvalue.OutputPluginDescriptor(
+        plugins=output_plugin.OutputPluginDescriptor(
             plugin_name="FailingDummyFlowOutputPlugin"))
     flow_obj = aff4.FACTORY.Open(flow_urn, token=self.token)
     self.assertEqual(flow_obj.state.context.state, "TERMINATED")
@@ -681,9 +690,9 @@ class FlowOutputPluginsTest(BasicFlowTest):
   def testFailingPluginDoesNotImpactOtherPlugins(self):
     self.RunFlow(
         plugins=[
-            rdfvalue.OutputPluginDescriptor(
+            output_plugin.OutputPluginDescriptor(
                 plugin_name="FailingDummyFlowOutputPlugin"),
-            rdfvalue.OutputPluginDescriptor(
+            output_plugin.OutputPluginDescriptor(
                 plugin_name="DummyFlowOutputPlugin")])
 
     self.assertEqual(DummyFlowOutputPlugin.num_calls, 1)
@@ -866,23 +875,23 @@ class GeneralFlowsTest(BasicFlowTest):
   def testIteratedDirectoryListing(self):
     """Test that the client iterator works."""
     # Install the mock
-    vfs.VFS_HANDLERS[rdfvalue.PathSpec.PathType.OS] = MockVFSHandler
+    vfs.VFS_HANDLERS[rdf_paths.PathSpec.PathType.OS] = MockVFSHandler
     path = "/"
 
     # Run the flow in the simulated way
     client_mock = action_mocks.ActionMock("IteratedListDirectory")
     for _ in test_lib.TestFlowHelper(
         "IteratedListDirectory", client_mock, client_id=self.client_id,
-        pathspec=rdfvalue.PathSpec(path="/",
-                                   pathtype=rdfvalue.PathSpec.PathType.OS),
+        pathspec=rdf_paths.PathSpec(path="/",
+                                    pathtype=rdf_paths.PathSpec.PathType.OS),
         token=self.token):
       pass
 
     fd = aff4.FACTORY.Open(self.client_id.Add("fs/os").Add(path),
                            token=self.token)
     directory = [ch for ch in fd.OpenChildren()]
-    pb = rdfvalue.PathSpec(path=path,
-                           pathtype=rdfvalue.PathSpec.PathType.OS)
+    pb = rdf_paths.PathSpec(path=path,
+                            pathtype=rdf_paths.PathSpec.PathType.OS)
     directory2 = list(vfs.VFSOpen(pb).ListFiles())
     directory.sort()
     result = [x.Get(x.Schema.STAT) for x in directory]
@@ -899,11 +908,11 @@ class GeneralFlowsTest(BasicFlowTest):
     ClientListener.received_events = []
     NoClientListener.received_events = []
 
-    event = rdfvalue.GrrMessage(
+    event = rdf_flows.GrrMessage(
         source="C.1395c448a443c7d9",
-        auth_state=rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED)
+        auth_state=rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED)
 
-    event.payload = rdfvalue.PathSpec(path="foobar")
+    event.payload = rdf_paths.PathSpec(path="foobar")
 
     flow.Events.PublishEvent("TestEvent", event, token=self.token)
     test_lib.MockWorker(token=self.token).Simulate()
@@ -918,9 +927,9 @@ class GeneralFlowsTest(BasicFlowTest):
     FlowDoneListener.received_events = []
 
     # Install the mock
-    vfs.VFS_HANDLERS[rdfvalue.PathSpec.PathType.OS] = MockVFSHandler
-    path = rdfvalue.PathSpec(path="/",
-                             pathtype=rdfvalue.PathSpec.PathType.OS)
+    vfs.VFS_HANDLERS[rdf_paths.PathSpec.PathType.OS] = MockVFSHandler
+    path = rdf_paths.PathSpec(path="/",
+                              pathtype=rdf_paths.PathSpec.PathType.OS)
 
     # Run the flow in the simulated way
     client_mock = action_mocks.ActionMock("IteratedListDirectory")
@@ -941,17 +950,17 @@ class GeneralFlowsTest(BasicFlowTest):
     flow_event = FlowDoneListener.received_events[0].payload
     self.assertEqual(flow_event.flow_name, "IteratedListDirectory")
     self.assertEqual(flow_event.client_id, "aff4:/C.1000000000000000")
-    self.assertEqual(flow_event.status, rdfvalue.FlowNotification.Status.OK)
+    self.assertEqual(flow_event.status, rdf_flows.FlowNotification.Status.OK)
 
   def testEventNotification(self):
     """Test that events are sent to listeners."""
     NoClientListener.received_events = []
     worker = test_lib.MockWorker(token=self.token)
 
-    event = rdfvalue.GrrMessage(
+    event = rdf_flows.GrrMessage(
         session_id=rdfvalue.SessionID(flow_name="SomeFlow"),
         name="test message",
-        payload=rdfvalue.PathSpec(path="foobar", pathtype="TSK"),
+        payload=rdf_paths.PathSpec(path="foobar", pathtype="TSK"),
         source="aff4:/C.0000000000000001", auth_state="AUTHENTICATED")
 
     # Not allowed to publish a message from a client..
@@ -963,7 +972,7 @@ class GeneralFlowsTest(BasicFlowTest):
     event.source = "Source"
 
     # First make the message unauthenticated.
-    event.auth_state = rdfvalue.GrrMessage.AuthorizationState.UNAUTHENTICATED
+    event.auth_state = rdf_flows.GrrMessage.AuthorizationState.UNAUTHENTICATED
 
     # Publish the event.
     flow.Events.PublishEvent("TestEvent", event, token=self.token)
@@ -973,7 +982,7 @@ class GeneralFlowsTest(BasicFlowTest):
     self.assertEqual(NoClientListener.received_events, [])
 
     # Now make the message authenticated.
-    event.auth_state = rdfvalue.GrrMessage.AuthorizationState.AUTHENTICATED
+    event.auth_state = rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
 
     # Publish the event.
     flow.Events.PublishEvent("TestEvent", event, token=self.token)
@@ -1016,11 +1025,11 @@ class GeneralFlowsTest(BasicFlowTest):
                                       token=self.token)
 
     # Start some flows with different priorities.
-    args = [(rdfvalue.GrrMessage.Priority.LOW_PRIORITY, "low priority"),
-            (rdfvalue.GrrMessage.Priority.MEDIUM_PRIORITY, "medium priority"),
-            (rdfvalue.GrrMessage.Priority.LOW_PRIORITY, "low priority2"),
-            (rdfvalue.GrrMessage.Priority.HIGH_PRIORITY, "high priority"),
-            (rdfvalue.GrrMessage.Priority.MEDIUM_PRIORITY, "medium priority2")]
+    args = [(rdf_flows.GrrMessage.Priority.LOW_PRIORITY, "low priority"),
+            (rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY, "medium priority"),
+            (rdf_flows.GrrMessage.Priority.LOW_PRIORITY, "low priority2"),
+            (rdf_flows.GrrMessage.Priority.HIGH_PRIORITY, "high priority"),
+            (rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY, "medium priority2")]
 
     for (priority, msg) in args:
       flow.GRRFlow.StartFlow(
@@ -1055,11 +1064,11 @@ class GeneralFlowsTest(BasicFlowTest):
                                       token=self.token)
 
     # Start some flows with different priorities.
-    args = [(rdfvalue.GrrMessage.Priority.LOW_PRIORITY, "low priority"),
-            (rdfvalue.GrrMessage.Priority.MEDIUM_PRIORITY, "medium priority"),
-            (rdfvalue.GrrMessage.Priority.LOW_PRIORITY, "low priority2"),
-            (rdfvalue.GrrMessage.Priority.HIGH_PRIORITY, "high priority"),
-            (rdfvalue.GrrMessage.Priority.MEDIUM_PRIORITY, "medium priority2")]
+    args = [(rdf_flows.GrrMessage.Priority.LOW_PRIORITY, "low priority"),
+            (rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY, "medium priority"),
+            (rdf_flows.GrrMessage.Priority.LOW_PRIORITY, "low priority2"),
+            (rdf_flows.GrrMessage.Priority.HIGH_PRIORITY, "high priority"),
+            (rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY, "medium priority2")]
 
     server_result = []
     PriorityFlow.storage = server_result
@@ -1137,11 +1146,11 @@ class MockVFSHandler(vfs.VFSHandler):
   """A mock VFS handler with fake files."""
   children = []
   for x in range(10):
-    child = rdfvalue.StatEntry(pathspec=rdfvalue.PathSpec(
-        path="Foo%s" % x, pathtype=rdfvalue.PathSpec.PathType.OS))
+    child = rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
+        path="Foo%s" % x, pathtype=rdf_paths.PathSpec.PathType.OS))
     children.append(child)
 
-  supported_pathtype = rdfvalue.PathSpec.PathType.OS
+  supported_pathtype = rdf_paths.PathSpec.PathType.OS
 
   def __init__(self, base_fd, pathspec=None, progress_callback=None):
     super(MockVFSHandler, self).__init__(
@@ -1158,7 +1167,7 @@ class MockVFSHandler(vfs.VFSHandler):
 
 class PriorityClientMock(object):
 
-  in_rdfvalue = rdfvalue.DataBlob
+  in_rdfvalue = rdf_protodict.DataBlob
 
   def __init__(self, storage):
     # Register us as an action plugin.
@@ -1167,10 +1176,10 @@ class PriorityClientMock(object):
 
   def Store(self, data):
     self.storage.append(self.in_rdfvalue(data).string)
-    return [rdfvalue.DataBlob(string="Hello World")]
+    return [rdf_protodict.DataBlob(string="Hello World")]
 
 
-class PriorityFlowArgs(rdfvalue.RDFProtoStruct):
+class PriorityFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = tests_pb2.PriorityFlowArgs
 
 
@@ -1191,7 +1200,7 @@ class PriorityFlow(flow.GRRFlow):
 
 class CPULimitClientMock(object):
 
-  in_rdfvalue = rdfvalue.DataBlob
+  in_rdfvalue = rdf_protodict.DataBlob
 
   def __init__(self, storage):
     # Register us as an action plugin.
@@ -1343,7 +1352,7 @@ class BrokenParentFlow(flow.GRRFlow):
   @flow.StateHandler()
   def ReceiveHello(self, responses):
     if (responses or
-        responses.status.status == rdfvalue.GrrStatus.ReturnedStatus.OK):
+        responses.status.status == rdf_flows.GrrStatus.ReturnedStatus.OK):
       raise RuntimeError("Error not propagated to parent")
 
     BrokenParentFlow.success = True
@@ -1403,7 +1412,7 @@ class DelayedCallStateFlow(flow.GRRFlow):
     DelayedCallStateFlow.flow_ran = 2
 
 
-class BadArgsFlow1Args(rdfvalue.RDFProtoStruct):
+class BadArgsFlow1Args(rdf_structs.RDFProtoStruct):
   protobuf = tests_pb2.BadArgsFlow1Args
 
 

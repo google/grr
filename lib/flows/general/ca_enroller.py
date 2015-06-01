@@ -17,10 +17,13 @@ from grr.lib import flow
 from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import crypto as rdf_crypto
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 
 
-class CAEnrolerArgs(rdfvalue.RDFProtoStruct):
+class CAEnrolerArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.CAEnrolerArgs
 
 
@@ -35,7 +38,7 @@ class CAEnroler(flow.GRRFlow):
     client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient",
                                  mode="rw", token=self.token)
 
-    if self.args.csr.type != rdfvalue.Certificate.Type.CSR:
+    if self.args.csr.type != rdf_crypto.Certificate.Type.CSR:
       raise IOError("Must be called with CSR")
 
     req = X509.load_request_string(self.args.csr.pem)
@@ -48,10 +51,10 @@ class CAEnroler(flow.GRRFlow):
     # Verify that the CN is of the correct form. The common name should refer
     # to a client URN.
     public_key = req.get_pubkey().get_rsa().pub()[1]
-    self.cn = rdfvalue.ClientURN.FromPublicKey(public_key)
-    if self.cn != rdfvalue.ClientURN(req.get_subject().CN):
+    self.cn = rdf_client.ClientURN.FromPublicKey(public_key)
+    if self.cn != rdf_client.ClientURN(req.get_subject().CN):
       raise IOError("CSR CN %s does not match public key %s." %
-                    (rdfvalue.ClientURN(req.get_subject().CN), self.cn))
+                    (rdf_client.ClientURN(req.get_subject().CN), self.cn))
 
     logging.info("Will sign CSR for: %s", self.cn)
 
@@ -66,7 +69,7 @@ class CAEnroler(flow.GRRFlow):
                            self.cn, self.client_id)
 
     # Set and write the certificate to the client record.
-    certificate_attribute = rdfvalue.RDFX509Cert(cert.as_pem())
+    certificate_attribute = rdf_crypto.RDFX509Cert(cert.as_pem())
     client.Set(client.Schema.CERT, certificate_attribute)
     client.Set(client.Schema.FIRST_SEEN, rdfvalue.RDFDatetime().Now())
 
@@ -132,7 +135,7 @@ class Enroler(flow.WellKnownFlow):
         message: The Certificate sent by the client. Note that this
         message is not authenticated.
     """
-    cert = rdfvalue.Certificate(message.args)
+    cert = rdf_crypto.Certificate(message.payload)
 
     queue = self.well_known_session_id.Queue()
 

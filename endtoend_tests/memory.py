@@ -5,7 +5,8 @@
 from grr.endtoend_tests import base
 from grr.lib import aff4
 from grr.lib import config_lib
-from grr.lib import rdfvalue
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 
 
 class TestGrepMemory(base.AutomatedTest):
@@ -14,9 +15,9 @@ class TestGrepMemory(base.AutomatedTest):
   flow = "ScanMemory"
   test_output_path = "analysis/grep/testing"
   args = {"also_download": False,
-          "grep": rdfvalue.BareGrepSpec(
+          "grep": rdf_client.BareGrepSpec(
               literal="grr", length=4 * 1024 * 1024 * 1024,
-              mode=rdfvalue.GrepSpec.Mode.FIRST_HIT,
+              mode=rdf_client.GrepSpec.Mode.FIRST_HIT,
               bytes_before=10, bytes_after=10),
           "output": test_output_path}
 
@@ -41,7 +42,7 @@ class AbstractTestAnalyzeClientMemory(base.ClientTestBase):
   """
   flow = "AnalyzeClientMemory"
   test_output_path = "analysis/memory"
-  args = {"request": rdfvalue.RekallRequest(),
+  args = {"request": rdf_rekall_types.RekallRequest(),
           "output": test_output_path}
 
   def setUpRequest(self):
@@ -85,14 +86,19 @@ class TestAnalyzeClientMemoryWindowsPSList(
     AbstractTestAnalyzeClientMemoryWindows):
 
   def setUpRequest(self):
-    self.args["request"].plugins = [rdfvalue.PluginRequest(plugin="pslist")]
+    self.args["request"].plugins = [
+        rdf_rekall_types.PluginRequest(plugin="pslist")
+    ]
 
 
 class TestAnalyzeClientMemoryWindowsModules(
-    AbstractTestAnalyzeClientMemoryWindows):
+    AbstractTestAnalyzeClientMemoryWindows
+):
 
   def setUpRequest(self):
-    self.args["request"].plugins = [rdfvalue.PluginRequest(plugin="modules")]
+    self.args["request"].plugins = [
+        rdf_rekall_types.PluginRequest(plugin="modules")
+    ]
 
 
 class TestAnalyzeClientMemoryWindowsDLLList(
@@ -103,11 +109,11 @@ class TestAnalyzeClientMemoryWindowsDLLList(
     self.binaryname = "svchost.exe"
 
     self.args["request"].plugins = [
-        rdfvalue.PluginRequest(plugin="dlllist",
-                               args=dict(
-                                   proc_regex=self.binaryname,
-                                   method="PsActiveProcessHead"
-                               ))
+        rdf_rekall_types.PluginRequest(plugin="dlllist",
+                                       args=dict(
+                                           proc_regex=self.binaryname,
+                                           method="PsActiveProcessHead"
+                                       ))
     ]
 
   def CheckFlow(self):
@@ -128,7 +134,7 @@ class TestAnalyzeClientMemoryMac(AbstractTestAnalyzeClientMemory):
 
   def setUpRequest(self):
     self.args["request"].plugins = [
-        rdfvalue.PluginRequest(plugin="pslist")]
+        rdf_rekall_types.PluginRequest(plugin="pslist")]
 
   def CheckFlow(self):
     response = aff4.FACTORY.Open(self.client_id.Add(self.test_output_path),

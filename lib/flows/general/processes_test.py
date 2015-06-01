@@ -7,8 +7,11 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import rdfvalue
 from grr.lib import test_lib
+# pylint: disable=unused-import
+from grr.lib.flows.general import processes as _
+# pylint: enable=unused-import
+from grr.lib.rdfvalues import client as rdf_client
 
 
 class ListProcessesMock(action_mocks.ActionMock):
@@ -30,7 +33,7 @@ class ListProcessesTest(test_lib.FlowTestsBaseclass):
   def testProcessListingOnly(self):
     """Test that the ListProcesses flow works."""
 
-    client_mock = ListProcessesMock([rdfvalue.Process(
+    client_mock = ListProcessesMock([rdf_client.Process(
         pid=2, ppid=1, cmdline=["cmd.exe"], exe="c:\\windows\\cmd.exe",
         ctime=long(1333718907.167083 * 1e6))])
 
@@ -50,8 +53,47 @@ class ListProcessesTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(processes[0].ctime, 1333718907167083L)
     self.assertEqual(processes[0].cmdline, ["cmd.exe"])
 
+  def testProcessListingWithFilter(self):
+    """Test that the ListProcesses flow works with filter."""
+
+    client_mock = ListProcessesMock([
+        rdf_client.Process(pid=2, ppid=1, cmdline=["cmd.exe"],
+                           exe="c:\\windows\\cmd.exe",
+                           ctime=long(1333718907.167083 * 1e6)),
+        rdf_client.Process(pid=3, ppid=1, cmdline=["cmd2.exe"],
+                           exe="c:\\windows\\cmd2.exe",
+                           ctime=long(1333718907.167083 * 1e6)),
+        rdf_client.Process(pid=4, ppid=1, cmdline=["missing_exe.exe"],
+                           ctime=long(1333718907.167083 * 1e6)),
+        rdf_client.Process(pid=5, ppid=1, cmdline=["missing2_exe.exe"],
+                           ctime=long(1333718907.167083 * 1e6))])
+
+    flow_urn = flow.GRRFlow.StartFlow(client_id=self.client_id,
+                                      flow_name="ListProcesses",
+                                      output="Processes",
+                                      filename_regex=r".*cmd2.exe",
+                                      token=self.token)
+    for _ in test_lib.TestFlowHelper(
+        flow_urn, client_mock, client_id=self.client_id, token=self.token):
+      pass
+
+    # Expect one result that matches regex
+    processes = aff4.FACTORY.Open(self.client_id.Add("Processes"),
+                                  token=self.token)
+
+    self.assertEqual(len(processes), 1)
+    self.assertEqual(processes[0].ctime, 1333718907167083L)
+    self.assertEqual(processes[0].cmdline, ["cmd2.exe"])
+
+    # Expect two skipped results
+    logs = aff4.FACTORY.Open(flow_urn.Add("Logs"), token=self.token)
+    for log in logs:
+      if "Skipped 2" in log.log_message:
+        return
+    raise RuntimeError("Skipped process not mentioned in logs")
+
   def testWhenFetchingFiltersOutProcessesWithoutExeAttribute(self):
-    process = rdfvalue.Process(
+    process = rdf_client.Process(
         pid=2,
         ppid=1,
         cmdline=["test_img.dd"],
@@ -71,7 +113,7 @@ class ListProcessesTest(test_lib.FlowTestsBaseclass):
                         aff4_type="RDFValueCollection", token=self.token)
 
   def testFetchesAndStoresBinary(self):
-    process = rdfvalue.Process(
+    process = rdf_client.Process(
         pid=2,
         ppid=1,
         cmdline=["test_img.dd"],
@@ -94,14 +136,14 @@ class ListProcessesTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(binaries[0].st_size, os.stat(process.exe).st_size)
 
   def testDoesNotFetchDuplicates(self):
-    process1 = rdfvalue.Process(
+    process1 = rdf_client.Process(
         pid=2,
         ppid=1,
         cmdline=["test_img.dd"],
         exe=os.path.join(self.base_path, "test_img.dd"),
         ctime=long(1333718907.167083 * 1e6))
 
-    process2 = rdfvalue.Process(
+    process2 = rdf_client.Process(
         pid=3,
         ppid=1,
         cmdline=["test_img.dd", "--arg"],
@@ -121,14 +163,14 @@ class ListProcessesTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(fd), 1)
 
   def testWhenFetchingIgnoresMissingFiles(self):
-    process1 = rdfvalue.Process(
+    process1 = rdf_client.Process(
         pid=2,
         ppid=1,
         cmdline=["test_img.dd"],
         exe=os.path.join(self.base_path, "test_img.dd"),
         ctime=long(1333718907.167083 * 1e6))
 
-    process2 = rdfvalue.Process(
+    process2 = rdf_client.Process(
         pid=2,
         ppid=1,
         cmdline=["file_that_does_not_exist"],

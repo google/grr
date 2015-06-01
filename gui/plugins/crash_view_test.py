@@ -7,14 +7,15 @@ from grr.gui import runtests_test
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import hunts
-from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import foreman as rdf_foreman
 
 
 class TestCrashView(test_lib.GRRSeleniumTest):
   """Tests the crash view."""
 
-  client_id = rdfvalue.ClientURN("C.0000000000000001")
+  client_id = rdf_client.ClientURN("C.0000000000000001")
 
   def SetUpCrashedFlow(self):
     client = test_lib.CrashClientMock(self.client_id, self.token)
@@ -73,13 +74,13 @@ class TestCrashView(test_lib.GRRSeleniumTest):
         "Manage launched flows", "Flow Name", "Flow Information"])
 
   def SetUpCrashedFlowInHunt(self):
-    client_ids = [rdfvalue.ClientURN("C.%016X" % i) for i in range(0, 10)]
+    client_ids = [rdf_client.ClientURN("C.%016X" % i) for i in range(0, 10)]
     client_mocks = dict([(client_id, test_lib.CrashClientMock(
         client_id, self.token)) for client_id in client_ids])
 
     with hunts.GRRHunt.StartHunt(
         hunt_name="SampleHunt",
-        regex_rules=[rdfvalue.ForemanAttributeRegex(
+        regex_rules=[rdf_foreman.ForemanAttributeRegex(
             attribute_name="GRR client",
             attribute_regex="GRR")],
         client_rate=0,

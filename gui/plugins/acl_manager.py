@@ -14,6 +14,8 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
 
+from grr.lib.rdfvalues import client as rdf_client
+
 
 class UnauthorizedRenderer(renderers.TemplateRenderer):
   """Send UnauthorizedAccess Exceptions to the queue."""
@@ -101,7 +103,7 @@ Client Access Request created. Please try again once an approval is granted.
                              reason=reason, approver=approver,
                              token=request.token,
                              email_cc_address=_GetEmailCCAddress(request),
-                             subject_urn=rdfvalue.ClientURN(client_id))
+                             subject_urn=rdf_client.ClientURN(client_id))
 
     if keepalive:
       flow.GRRFlow.StartFlow(client_id=client_id, flow_name="KeepAlive",
@@ -169,7 +171,7 @@ class ClientApprovalDetailsRenderer(fileview.HostInformation):
     # We skip the direct super class to avoid the access control check.
     super(fileview.HostInformation, self).Layout(
         request, response, client_id=client_id,
-        aff4_path=rdfvalue.ClientURN(client_id))
+        aff4_path=rdf_client.ClientURN(client_id))
 
 
 class HuntApprovalDetailsRenderer(hunt_view.HuntOverviewRenderer):
@@ -321,7 +323,7 @@ You have granted access for {{this.subject|escape}} to {{this.user|escape}}
       flow.GRRFlow.StartFlow(client_id=client_id,
                              flow_name="GrantClientApprovalFlow",
                              reason=self.reason, delegate=self.user,
-                             subject_urn=rdfvalue.ClientURN(self.subject),
+                             subject_urn=rdf_client.ClientURN(self.subject),
                              token=request.token)
     else:
       raise access_control.UnauthorizedAccess(

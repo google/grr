@@ -2,8 +2,8 @@
 """Configuration parameters for logging and error reporting subsystems."""
 
 from grr.lib import config_lib
-from grr.lib import rdfvalue
 from grr.lib import type_info
+from grr.lib.rdfvalues import standard
 
 
 config_lib.DEFINE_string("Logging.domain", "localhost",
@@ -39,13 +39,13 @@ config_lib.DEFINE_string("Logging.service_name", "GRR",
                          "event log engine.")
 
 config_lib.DEFINE_option(type_info.RDFValueType(
-    rdfclass=rdfvalue.DomainEmailAddress,
+    rdfclass=standard.DomainEmailAddress,
     name="Monitoring.alert_email",
     help="The email address to send events to.",
     default="monitoring@localhost"))
 
 config_lib.DEFINE_option(type_info.RDFValueType(
-    rdfclass=rdfvalue.DomainEmailAddress,
+    rdfclass=standard.DomainEmailAddress,
     name="Monitoring.emergency_access_email",
     help="The email address to notify in an emergency.",
     default="monitoring@localhost"))
@@ -56,4 +56,3 @@ config_lib.DEFINE_integer("Monitoring.http_port", 0,
 config_lib.DEFINE_integer("Logging.aff4_audit_log_rollover", 60 * 60 * 24 * 14,
                           "Audit log rollover interval in seconds. "
                           "Default is 2 weeks")
-
