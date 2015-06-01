@@ -22,8 +22,9 @@ from grr.client import comms
 from grr.client import vfs
 from grr.lib import config_lib
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import startup
+from grr.lib.rdfvalues import crypto as rdf_crypto
+from grr.lib.rdfvalues import paths as rdf_paths
 
 flags.DEFINE_integer("nrclients", 1,
                      "Number of clients to start")
@@ -91,7 +92,7 @@ def CreateClientPool(n):
 
   while len(clients) < n:
     # Generate a new RSA key pair for each client.
-    key = rdfvalue.PEMPrivateKey.GenKey(bits=comms.ClientCommunicator.BITS)
+    key = rdf_crypto.PEMPrivateKey.GenKey(bits=comms.ClientCommunicator.BITS)
     clients.append(PoolGRRClient(private_key=key))
 
   # Start all the clients now.
@@ -164,8 +165,8 @@ def main(unused_argv):
 
   # Let the OS handler also handle sleuthkit requests since sleuthkit is not
   # thread safe.
-  tsk = rdfvalue.PathSpec.PathType.TSK
-  os = rdfvalue.PathSpec.PathType.OS
+  tsk = rdf_paths.PathSpec.PathType.TSK
+  os = rdf_paths.PathSpec.PathType.OS
   vfs.VFS_HANDLERS[tsk] = vfs.VFS_HANDLERS[os]
 
   CreateClientPool(flags.FLAGS.nrclients)

@@ -22,7 +22,10 @@ import distorm3
 try:
   from PyInstaller import main as PyInstallerMain
 except ImportError:
-  logging.error("PyInstaller missing")
+  # We ignore this failure since most people running the code don't build their
+  # own clients and printing an error message causes confusion.  Those building
+  # their own clients will need PyInstaller installed.
+  pass
 
 from grr.lib import config_lib
 from grr.lib import rdfvalue

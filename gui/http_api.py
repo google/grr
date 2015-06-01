@@ -5,6 +5,11 @@
 
 import json
 
+
+# pylint: disable=g-bad-import-order,unused-import
+from grr.gui import django_lib
+# pylint: enable=g-bad-import-order,unused-import
+
 from django import http
 
 from werkzeug import exceptions as werkzeug_exceptions
@@ -88,12 +93,44 @@ def FillAdditionalArgsFromRequest(request, supported_types):
 
   results_list = []
   for name, arg_obj in results.items():
-    additional_args = rdfvalue.ApiCallAdditionalArgs(
+    additional_args = api_call_renderers.ApiCallAdditionalArgs(
         name=name, type=supported_types[name].__name__)
     additional_args.args = arg_obj
     results_list.append(additional_args)
 
   return results_list
+
+
+class JSONEncoderWithRDFPrimitivesSupport(json.JSONEncoder):
+  """Custom JSON encoder that encodes renderers output.
+
+  Custom encoder is required to facilitate usage of primitive values -
+  booleans, integers and strings - in renderers responses.
+
+  If renderer references an RDFString, RDFInteger or and RDFBOol when building a
+  response, it will lead to JSON encoding failure when response encoded,
+  unless this custom encoder is used. Another way to solve this issue would be
+  to explicitly call api_value_renderers.RenderValue on every value returned
+  from the renderer, but it will make the code look overly verbose and dirty.
+  """
+
+  def default(self, obj):
+    if isinstance(obj, (rdfvalue.RDFInteger,
+                        rdfvalue.RDFBool,
+                        rdfvalue.RDFString)):
+      return obj.SerializeToDataStore()
+
+    return json.JSONEncoder.default(self, obj)
+
+
+def BuildResponse(status, rendered_data):
+  """Builds HTTPResponse object from rendered data and HTTP status."""
+  response = http.HttpResponse(status=status, content_type="application/json")
+  response.write(")]}'\n")  # XSSI protection
+  response.write(json.dumps(rendered_data,
+                            cls=JSONEncoderWithRDFPrimitivesSupport))
+
+  return response
 
 
 def RenderHttpResponse(request):
@@ -132,8 +169,18 @@ def RenderHttpResponse(request):
     else:
       args = None
   elif request.method == "POST":
-    payload = json.loads(request.body)
-    args = renderer.args_type(**payload)
+    try:
+      payload = json.loads(request.body)
+      args = renderer.args_type(**payload)
+    except Exception as e:  # pylint: disable=broad-except
+      response = http.HttpResponse(status=500)
+      response.write(")]}'\n")  # XSSI protection
+      response.write(json.dumps(dict(message=str(e))))
+
+      logging.exception(
+          "Error while parsing POST request %s (%s): %s",
+          request.path, request.method, e)
+      return response
   else:
     raise RuntimeError("Unsupported method: %s." % request.method)
 
@@ -143,19 +190,13 @@ def RenderHttpResponse(request):
     rendered_data = api_call_renderers.HandleApiCall(renderer, args,
                                                      token=token)
 
-    response = http.HttpResponse(content_type="application/json")
-    response.write(")]}'\n")  # XSSI protection
-    response.write(json.dumps(rendered_data))
+    return BuildResponse(200, rendered_data)
   except Exception as e:  # pylint: disable=broad-except
-    response = http.HttpResponse(status=500)
-    response.write(")]}'\n")  # XSSI protection
-    response.write(json.dumps(dict(message=str(e))))
-
     logging.exception(
         "Error while processing %s (%s) with %s: %s", request.path,
         request.method, renderer.__class__.__name__, e)
 
-  return response
+    return BuildResponse(500, dict(message=str(e)))
 
 
 class HttpApiInitHook(registry.InitHook):
@@ -194,7 +235,8 @@ class HttpApiInitHook(registry.InitHook):
 
     RegisterHttpRouteHandler("GET", "/api/docs",
                              api_plugins.docs.ApiDocsRenderer)
-
+    RegisterHttpRouteHandler("GET", "/api/flows/<client_id>/<flow_id>/status",
+                             api_plugins.client.ApiFlowStatusRenderer)
     RegisterHttpRouteHandler("GET", "/api/hunts",
                              api_plugins.hunt.ApiHuntsListRenderer)
     RegisterHttpRouteHandler("GET", "/api/hunts/<hunt_id>",
@@ -217,3 +259,8 @@ class HttpApiInitHook(registry.InitHook):
     RegisterHttpRouteHandler(
         "GET", "/api/stats/store/<component>/metrics/<metric_name>",
         api_plugins.stats.ApiStatsStoreMetricRenderer)
+
+    RegisterHttpRouteHandler("GET", "/api/users/me/settings",
+                             api_plugins.user.ApiUserSettingsRenderer)
+    RegisterHttpRouteHandler("POST", "/api/users/me/settings",
+                             api_plugins.user.ApiSetUserSettingsRenderer)

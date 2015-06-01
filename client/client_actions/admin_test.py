@@ -10,9 +10,12 @@ import psutil
 
 from grr.client import comms
 from grr.lib import config_lib
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import stats
 from grr.lib import test_lib
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import protodict as rdf_protodict
 
 
 class ConfigActionTest(test_lib.EmptyActionTest):
@@ -31,7 +34,7 @@ class ConfigActionTest(test_lib.EmptyActionTest):
     self.assertRaises(IOError, open, self.config_file)
 
     location = ["http://www.example1.com/", "http://www.example2.com/"]
-    request = rdfvalue.Dict()
+    request = rdf_protodict.Dict()
     request["Client.control_urls"] = location
     request["Client.foreman_check_frequency"] = 3600
 
@@ -53,7 +56,7 @@ class ConfigActionTest(test_lib.EmptyActionTest):
       return StringIO.StringIO()
 
     comms.urllib2.urlopen = FakeUrlOpen
-    client_context = comms.GRRHTTPClient()
+    client_context = comms.GRRHTTPClient(worker=MockClientWorker)
     client_context.MakeRequest("", comms.Status())
 
     self.assertTrue(location[0] in self.urls[0])
@@ -66,7 +69,7 @@ class ConfigActionTest(test_lib.EmptyActionTest):
     config_lib.CONFIG.Set("Client.server_serial_number", 1)
 
     location = ["http://www.example.com"]
-    request = rdfvalue.Dict()
+    request = rdf_protodict.Dict()
     request["Client.control_urls"] = location
     request["Client.server_serial_number"] = 10
 
@@ -82,7 +85,7 @@ class ConfigActionTest(test_lib.EmptyActionTest):
     """Check GetConfig client action works."""
     # Use UpdateConfig to generate a config.
     location = ["http://example.com"]
-    request = rdfvalue.Dict()
+    request = rdf_protodict.Dict()
     request["Client.control_urls"] = location
     request["Client.foreman_check_frequency"] = 3600
 
@@ -139,7 +142,7 @@ class GetClientStatsActionTest(test_lib.EmptyActionTest):
     stats.STATS.IncrementCounter("grr_client_sent_bytes", 2000)
 
     results = self.RunAction("GetClientStats", grr_worker=MockClientWorker(),
-                             arg=rdfvalue.GetClientStatsRequest())
+                             arg=rdf_client.GetClientStatsRequest())
 
     response = results[0]
     self.assertEqual(response.bytes_received, 1566)
@@ -169,7 +172,7 @@ class GetClientStatsActionTest(test_lib.EmptyActionTest):
     start_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(117)
     results = self.RunAction(
         "GetClientStats", grr_worker=MockClientWorker(),
-        arg=rdfvalue.GetClientStatsRequest(start_time=start_time))
+        arg=rdf_client.GetClientStatsRequest(start_time=start_time))
 
     response = results[0]
     self.assertEqual(len(response.cpu_samples), 1)
@@ -184,7 +187,7 @@ class GetClientStatsActionTest(test_lib.EmptyActionTest):
     end_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(102)
     results = self.RunAction(
         "GetClientStats", grr_worker=MockClientWorker(),
-        arg=rdfvalue.GetClientStatsRequest(end_time=end_time))
+        arg=rdf_client.GetClientStatsRequest(end_time=end_time))
 
     response = results[0]
     self.assertEqual(len(response.cpu_samples), 1)
@@ -200,8 +203,8 @@ class GetClientStatsActionTest(test_lib.EmptyActionTest):
     end_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(113)
     results = self.RunAction(
         "GetClientStats", grr_worker=MockClientWorker(),
-        arg=rdfvalue.GetClientStatsRequest(start_time=start_time,
-                                           end_time=end_time))
+        arg=rdf_client.GetClientStatsRequest(start_time=start_time,
+                                             end_time=end_time))
 
     response = results[0]
     self.assertEqual(len(response.cpu_samples), 1)
@@ -211,3 +214,10 @@ class GetClientStatsActionTest(test_lib.EmptyActionTest):
     self.assertEqual(len(response.io_samples), 1)
     self.assertEqual(response.io_samples[0].timestamp,
                      rdfvalue.RDFDatetime().FromSecondsFromEpoch(110))
+
+
+def main(argv):
+  test_lib.main(argv)
+
+if __name__ == "__main__":
+  flags.StartMain(main)

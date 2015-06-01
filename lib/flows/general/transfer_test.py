@@ -9,16 +9,18 @@ from grr.client.client_actions import standard
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.flows.general import transfer
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
 
 # pylint:mode=test
 
 
 class TestTransfer(test_lib.FlowTestsBaseclass):
   """Test the transfer mechanism."""
+  maxDiff = 65 * 1024
 
   def setUp(self):
     super(TestTransfer, self).setUp()
@@ -48,7 +50,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
       def ReadBuffer(self, args):
         _ = args
         return [
-            rdfvalue.BufferReference(
+            rdf_client.BufferReference(
                 data=mbr, offset=0, length=len(mbr))]
 
     for _ in test_lib.TestFlowHelper("GetMBR", ClientMock(), token=self.token,
@@ -62,8 +64,8 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
     """Test that the GetFile flow works."""
 
     client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile")
-    pathspec = rdfvalue.PathSpec(
-        pathtype=rdfvalue.PathSpec.PathType.OS,
+    pathspec = rdf_paths.PathSpec(
+        pathtype=rdf_paths.PathSpec.PathType.OS,
         path=os.path.join(self.base_path, "test_img.dd"))
 
     for _ in test_lib.TestFlowHelper("GetFile", client_mock, token=self.token,
@@ -82,42 +84,63 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
     self.assertEqual(fd2.tell(), int(fd1.Get(fd1.Schema.SIZE)))
     self.CompareFDs(fd1, fd2)
 
-  def testGetFileWithZeroStat(self):
-    """Test GetFile works on stat.st_size==0 files when read_length is set."""
-    pathspec = rdfvalue.PathSpec(
-        pathtype=rdfvalue.PathSpec.PathType.OS,
-        path=os.path.join(self.base_path, "test_img.dd"))
+  def testMultiGetFileOfSpecialFiles(self):
+    """Test that special /proc/ files are handled correctly.
 
-    class ClientMock(action_mocks.ActionMock):
+    /proc/ files have the property that they are non seekable from their end
+    (i.e. seeking them relative to the end is not supported). They also return
+    an st_size of 0. For example:
 
-      def StatFile(self, _):
-        # Return a stat response with no size.
-        return [rdfvalue.StatEntry(st_size=0, pathspec=pathspec)]
+    $ stat /proc/self/maps
+    File: '/proc/self/maps'
+    Size: 0   Blocks: 0   IO Block: 1024 regular empty file
 
-    client_mock = ClientMock("TransferBuffer")
+    $ head /proc/self/maps
+    00400000-00409000 r-xp 00000000 fc:01 9180740 /usr/bin/head
+    00608000-00609000 r--p 00008000 fc:01 9180740 /usr/bin/head
+    ...
 
-    urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
+    When we try to use the MultiGetFile flow, it deduplicates the files and
+    since it thinks the file has a zero size, the flow will not download the
+    file, and instead copy the zero size file into it.
+    """
+    client_mock = action_mocks.ActionMock(
+        "TransferBuffer", "HashFile", "HashBuffer", "StatFile")
 
-    for _ in test_lib.TestFlowHelper("GetFile", client_mock, token=self.token,
-                                     client_id=self.client_id,
-                                     pathspec=pathspec):
+    # # Create a zero sized file.
+    zero_sized_filename = os.path.join(self.temp_dir, "zero_size")
+    with open(zero_sized_filename, "wb") as fd:
       pass
+
+    pathspec = rdf_paths.PathSpec(
+        pathtype=rdf_paths.PathSpec.PathType.OS,
+        path=zero_sized_filename)
+
+    for _ in test_lib.TestFlowHelper(
+        "MultiGetFile", client_mock, token=self.token, file_size="1MiB",
+        client_id=self.client_id, pathspecs=[pathspec]):
+      pass
+
+    # Now if we try to fetch a real /proc/ filename this will fail because the
+    # filestore already contains the zero length file
+    # aff4:/files/nsrl/da39a3ee5e6b4b0d3255bfef95601890afd80709.
+    pathspec = rdf_paths.PathSpec(
+        pathtype=rdf_paths.PathSpec.PathType.OS,
+        path="/proc/self/environ")
+
+    for _ in test_lib.TestFlowHelper(
+        "MultiGetFile", client_mock, token=self.token, file_size=1024*1024,
+        client_id=self.client_id, pathspecs=[pathspec]):
+      pass
+
+    data = open(pathspec.last.path).read()
 
     # Test the AFF4 file that was created - it should be empty since by default
     # we judge the file size based on its stat.st_size.
+    urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
     fd = aff4.FACTORY.Open(urn, token=self.token)
-    self.assertEqual(fd.size, 0)
-
-    for _ in test_lib.TestFlowHelper("GetFile", client_mock, token=self.token,
-                                     client_id=self.client_id,
-                                     read_length=2 * 1024 * 1024 + 5,
-                                     pathspec=pathspec):
-      pass
-
-    # When we explicitly pass the read_length parameter we read more of the
-    # file.
-    fd = aff4.FACTORY.Open(urn, token=self.token)
-    self.assertEqual(fd.size, 2 * 1024 * 1024 + 5)
+    self.assertEqual(fd.size, len(data))
+    self.assertMultiLineEqual(fd.read(len(data)), data)
 
   def CompareFDs(self, fd1, fd2):
     ranges = [
@@ -142,13 +165,13 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
   def testMultiGetFile(self):
     """Test MultiGetFile."""
 
-    client_mock = action_mocks.ActionMock("TransferBuffer", "FingerprintFile",
+    client_mock = action_mocks.ActionMock("TransferBuffer", "HashFile",
                                           "StatFile", "HashBuffer")
-    pathspec = rdfvalue.PathSpec(
-        pathtype=rdfvalue.PathSpec.PathType.OS,
+    pathspec = rdf_paths.PathSpec(
+        pathtype=rdf_paths.PathSpec.PathType.OS,
         path=os.path.join(self.base_path, "test_img.dd"))
 
-    args = rdfvalue.MultiGetFileArgs(pathspecs=[pathspec, pathspec])
+    args = transfer.MultiGetFileArgs(pathspecs=[pathspec, pathspec])
     with test_lib.Instrument(
         transfer.MultiGetFile, "StoreStat") as storestat_instrument:
       for _ in test_lib.TestFlowHelper("MultiGetFile", client_mock,

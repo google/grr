@@ -14,10 +14,10 @@ import os
 # pylint: disable=unused-import
 from grr.client import client_actions
 # pylint: enable=unused-import
-from grr.client import vfs
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class FilehashTest(test_lib.EmptyActionTest):
@@ -26,10 +26,10 @@ class FilehashTest(test_lib.EmptyActionTest):
   def testHashFile(self):
     """Can we hash a file?"""
     path = os.path.join(self.base_path, "numbers.txt")
-    p = rdfvalue.PathSpec(path=path,
-                          pathtype=rdfvalue.PathSpec.PathType.OS)
+    p = rdf_paths.PathSpec(path=path,
+                           pathtype=rdf_paths.PathSpec.PathType.OS)
     result = self.RunAction("FingerprintFile",
-                            rdfvalue.FingerprintRequest(pathspec=p))
+                            rdf_client.FingerprintRequest(pathspec=p))
     types = result[0].matching_types
     fingers = {}
     for f in result[0].results:
@@ -39,8 +39,8 @@ class FilehashTest(test_lib.EmptyActionTest):
                      hashlib.sha256(open(path).read()).digest())
 
     # Make sure all fingers are listed in types and vice versa.
-    t_map = {rdfvalue.FingerprintTuple.Type.FPT_GENERIC: "generic",
-             rdfvalue.FingerprintTuple.Type.FPT_PE_COFF: "pecoff"}
+    t_map = {rdf_client.FingerprintTuple.Type.FPT_GENERIC: "generic",
+             rdf_client.FingerprintTuple.Type.FPT_PE_COFF: "pecoff"}
     ti_map = dict((v, k) for k, v in t_map.iteritems())
     for t in types:
       self.assertTrue(t_map[t] in fingers)
@@ -52,16 +52,13 @@ class FilehashTest(test_lib.EmptyActionTest):
   def testMissingFile(self):
     """Fail on missing file?"""
     path = os.path.join(self.base_path, "this file does not exist")
-    p = rdfvalue.PathSpec(path=path,
-                          pathtype=rdfvalue.PathSpec.PathType.OS)
+    p = rdf_paths.PathSpec(path=path,
+                           pathtype=rdf_paths.PathSpec.PathType.OS)
     self.assertRaises(IOError, self.RunAction, "FingerprintFile",
-                      rdfvalue.FingerprintRequest(pathspec=p))
+                      rdf_client.FingerprintRequest(pathspec=p))
 
 
 def main(argv):
-  # Initialize the VFS system
-  vfs.VFSInit()
-
   test_lib.main(argv)
 
 if __name__ == "__main__":

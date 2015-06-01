@@ -2,49 +2,49 @@
 """RDFValues for the data server."""
 
 
-from grr.lib import rdfvalue
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import data_server_pb2
 
 
-class DataStoreCommand(rdfvalue.RDFProtoStruct):
+class DataStoreCommand(rdf_structs.RDFProtoStruct):
   protobuf = data_server_pb2.DataStoreCommand
 
 
-class DataServerState(rdfvalue.RDFProtoStruct):
+class DataServerState(rdf_structs.RDFProtoStruct):
   protobuf = data_server_pb2.DataServerState
 
 
-class DataServerInterval(rdfvalue.RDFProtoStruct):
+class DataServerInterval(rdf_structs.RDFProtoStruct):
   protobuf = data_server_pb2.DataServerInterval
 
 
-class DataServerInformation(rdfvalue.RDFProtoStruct):
+class DataServerInformation(rdf_structs.RDFProtoStruct):
   protobuf = data_server_pb2.DataServerInformation
 
 
-class DataServerMapping(rdfvalue.RDFProtoStruct):
+class DataServerMapping(rdf_structs.RDFProtoStruct):
   protobuf = data_server_pb2.DataServerMapping
 
 
-class DataServerClientInformation(rdfvalue.RDFProtoStruct):
+class DataServerClientInformation(rdf_structs.RDFProtoStruct):
   protobuf = data_server_pb2.DataServerClientInformation
 
 
-class DataServerClientCredentials(rdfvalue.RDFProtoStruct):
+class DataServerClientCredentials(rdf_structs.RDFProtoStruct):
   protobuf = data_server_pb2.DataServerClientCredentials
 
 
-class DataServerFileCopy(rdfvalue.RDFProtoStruct):
+class DataServerFileCopy(rdf_structs.RDFProtoStruct):
   protobuf = data_server_pb2.DataServerFileCopy
 
 
-class DataServerRebalance(rdfvalue.RDFProtoStruct):
+class DataServerRebalance(rdf_structs.RDFProtoStruct):
   protobuf = data_server_pb2.DataServerRebalance
 
 
-class DataStoreRegistrationRequest(rdfvalue.RDFProtoStruct):
+class DataStoreRegistrationRequest(rdf_structs.RDFProtoStruct):
   protobuf = data_server_pb2.DataStoreRegistrationRequest
 
 
-class DataStoreAuthToken(rdfvalue.RDFProtoStruct):
+class DataStoreAuthToken(rdf_structs.RDFProtoStruct):
   protobuf = data_server_pb2.DataStoreAuthToken

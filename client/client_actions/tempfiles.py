@@ -17,8 +17,9 @@ from grr.client import actions
 from grr.client import client_utils
 from grr.client.vfs_handlers import files
 from grr.lib import config_lib
-from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class Error(Exception):
@@ -146,8 +147,8 @@ def DeleteGRRTempFile(path):
 
 class DeleteGRRTempFiles(actions.ActionPlugin):
   """Delete all the GRR temp files in a directory."""
-  in_rdfvalue = rdfvalue.PathSpec
-  out_rdfvalue = rdfvalue.LogMessage
+  in_rdfvalue = rdf_paths.PathSpec
+  out_rdfvalue = rdf_client.LogMessage
 
   def Run(self, args):
     """Delete all the GRR temp files in path.
@@ -194,5 +195,5 @@ class DeleteGRRTempFiles(actions.ActionPlugin):
     else:
       raise ErrorBadPath("Not a regular file or directory: %s" % path)
 
-    out_rdfvalue = rdfvalue.LogMessage(data="Deleted: %s" % deleted)
+    out_rdfvalue = rdf_client.LogMessage(data="Deleted: %s" % deleted)
     self.SendReply(out_rdfvalue)

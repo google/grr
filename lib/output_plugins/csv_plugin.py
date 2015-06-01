@@ -9,10 +9,11 @@ from grr.lib import export
 from grr.lib import output_plugin
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import output_plugin_pb2
 
 
-class CSVOutputPluginArgs(rdfvalue.RDFProtoStruct):
+class CSVOutputPluginArgs(rdf_structs.RDFProtoStruct):
   protobuf = output_plugin_pb2.CSVOutputPluginArgs
 
 
@@ -24,7 +25,7 @@ class CSVOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
   args_type = CSVOutputPluginArgs
 
   def ProcessResponses(self, responses):
-    default_metadata = rdfvalue.ExportedMetadata(
+    default_metadata = export.ExportedMetadata(
         annotations=u",".join(self.args.export_options.annotations),
         source_urn=self.state.source_urn)
 

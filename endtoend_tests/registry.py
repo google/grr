@@ -7,9 +7,10 @@ from grr.endtoend_tests import base
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flow_utils
-from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.flows.console import debugging
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class TestFindWindowsRegistry(base.ClientTestBase):
@@ -31,13 +32,13 @@ class TestFindWindowsRegistry(base.ClientTestBase):
   def runTest(self):
     """Launch our flows."""
     for flow, args in [
-        ("ListDirectory", {"pathspec": rdfvalue.PathSpec(
-            pathtype=rdfvalue.PathSpec.PathType.REGISTRY,
+        ("ListDirectory", {"pathspec": rdf_paths.PathSpec(
+            pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
             path=self.reg_path)}),
-        ("FindFiles", {"findspec": rdfvalue.FindSpec(
-            pathspec=rdfvalue.PathSpec(
+        ("FindFiles", {"findspec": rdf_client.FindSpec(
+            pathspec=rdf_paths.PathSpec(
                 path=self.reg_path,
-                pathtype=rdfvalue.PathSpec.PathType.REGISTRY),
+                pathtype=rdf_paths.PathSpec.PathType.REGISTRY),
             path_regex="ProfileImagePath"),
                        "output": self.output_path})]:
 
@@ -74,9 +75,9 @@ class TestClientRegistry(base.AutomatedTest):
   platforms = ["Windows"]
   flow = "ListDirectory"
 
-  args = {"pathspec": rdfvalue.PathSpec(
+  args = {"pathspec": rdf_paths.PathSpec(
       path="HKEY_LOCAL_MACHINE",
-      pathtype=rdfvalue.PathSpec.PathType.REGISTRY)}
+      pathtype=rdf_paths.PathSpec.PathType.REGISTRY)}
   output_path = "/registry/HKEY_LOCAL_MACHINE"
 
   def CheckFlow(self):

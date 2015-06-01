@@ -5,8 +5,8 @@ import os
 
 
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.rdfvalues import client as rdf_client
 from grr.parsers import linux_cmd_parser
 
 
@@ -20,7 +20,7 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     out = list(parser.Parse("/usr/bin/dpkg", ["--list"], content, "", 0, 5,
                             None))
     self.assertEqual(len(out), 181)
-    self.assertTrue(isinstance(out[1], rdfvalue.SoftwarePackage))
+    self.assertTrue(isinstance(out[1], rdf_client.SoftwarePackage))
     self.assertTrue(out[0].name, "acpi-support-base")
 
   def testDmidecodeParser(self):
@@ -29,7 +29,7 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     content = open(os.path.join(self.base_path, "dmidecode.out")).read()
     hardware = parser.Parse(
         "/usr/sbin/dmidecode", ["-q"], content, "", 0, 5, None)
-    self.assertTrue(isinstance(hardware, rdfvalue.HardwareInfo))
+    self.assertTrue(isinstance(hardware, rdf_client.HardwareInfo))
     self.assertEqual(hardware.serial_number, "2UA25107BB")
     self.assertEqual(hardware.system_manufacturer, "Hewlett-Packard")
 

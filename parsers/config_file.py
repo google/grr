@@ -7,8 +7,10 @@ import logging
 
 from grr.lib import lexer
 from grr.lib import parsers
-from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import config_file as rdf_config_file
+from grr.lib.rdfvalues import protodict as rdf_protodict
 
 
 def AsIter(arg):
@@ -288,13 +290,13 @@ class NfsExportsParser(parsers.FileParser, FieldParser):
     for entry in self.entries:
       if not entry:
         continue
-      result = rdfvalue.NfsExport()
+      result = rdf_config_file.NfsExport()
       result.share = entry[0]
       for field in entry[1:]:
         if field.startswith(("-", "(")):
           result.defaults = field.strip("-()").split(",")
         else:
-          client = rdfvalue.NfsClient()
+          client = rdf_config_file.NfsClient()
           cfg = field.split("(", 1)
           host = cfg[0]
           if len(cfg) > 1:
@@ -497,9 +499,9 @@ class SshdConfigParser(parsers.FileParser):
     matches = []
     for match in self.matches:
       criterion, config = match["criterion"], match["config"]
-      block = rdfvalue.SshdMatchBlock(criterion=criterion, config=config)
+      block = rdf_config_file.SshdMatchBlock(criterion=criterion, config=config)
       matches.append(block)
-    yield rdfvalue.SshdConfig(config=self.config, matches=matches)
+    yield rdf_config_file.SshdConfig(config=self.config, matches=matches)
 
 
 class MtabParser(parsers.FileParser, FieldParser):
@@ -512,7 +514,7 @@ class MtabParser(parsers.FileParser, FieldParser):
     for entry in self.entries:
       if not entry:
         continue
-      result = rdfvalue.Filesystem()
+      result = rdf_client.Filesystem()
       result.device = entry[0]
       result.mount_point = entry[1]
       result.type = entry[2]
@@ -521,6 +523,100 @@ class MtabParser(parsers.FileParser, FieldParser):
       # actually true, if declared, change any [] values to True.
       for k, v in options.iteritems():
         options[k] = v or [True]
-      result.options = rdfvalue.AttributedDict(**options)
+      result.options = rdf_protodict.AttributedDict(**options)
       yield result
 
+
+class APTPackageSourceParser(parsers.FileParser, FieldParser):
+  """Parser for APT source lists to extract URIs only."""
+  output_types = ["AttributedDict"]
+  supported_artifacts = ["APTSources"]
+
+  def Parse(self, stat, file_obj, unused_knowledge_base):
+    rfc822_format = ""
+    uris_to_parse = []
+
+    for line in file_obj.read().splitlines(True):
+      # check if legacy style line - if it is then extract URL
+      m = re.search(r"^\s*deb(?:-\S+)?(?:\s+\[[^\]]*\])*\s+(\S+)(?:\s|$)", line)
+      if m:
+        uris_to_parse.append(m.group(1))
+      else:
+        rfc822_format += line
+
+    uris_to_parse += self._ParseRFC822(rfc822_format)
+
+    uris = []
+
+    for url_to_parse in uris_to_parse:
+      url = rdf_client.URI()
+      url.URIFromString(url_to_parse)
+
+      # if no transport then url_to_parse wasn't actually a valid URL
+      # either host or path also have to exist for this to be a valid URL
+      if url.transport and (url.host or url.path):
+        uris.append(url)
+
+    filename = stat.pathspec.path
+    cfg = {"filename": filename, "uris": uris}
+    yield rdf_protodict.AttributedDict(**cfg)
+
+  def _ParseRFC822(self, data):
+    """Parse RFC822 formatted source listing and return potential URLs.
+
+    The fundamental shape of this format is as follows:
+    key: value
+    key : value
+    URI: [URL]
+      [URL]
+      [URL]
+    key: value
+
+    The key "URI" or "URIs" is of interest to us and since the next line
+    in the config could contain another [URL], we need to keep track of context
+    when we hit the "URI" keyword to be able to check if the next line(s)
+    have more [URL].
+
+    Args:
+      data: lines (compressed into one string) from a file that is contains
+        RFC822 formatted data
+
+    Returns:
+      A list of potential URLs found in data
+    """
+    self.ParseEntries(data)
+
+    uris = []
+    uri_set = False
+    for line in self.entries:
+      # if uri_set then we treat first word of this line as
+      # a potential URL. If line longer than 1 word
+      # then it can't be a URL so uri_set becomes false
+      if uri_set and len(line) == 1:
+        url_to_parse = line[0]
+      # if at least 2 words on the line then search for URL
+      elif len(line) >= 2:
+        uri_set = False
+
+        first_word = line[0].lower()
+        if first_word.startswith("uri"):
+          uri_set = True  # to search for URL in first word of next line(s)
+        else:
+          # if first_word does not start with 'uri' then skip
+          continue
+
+        # if the second word doesn't starts with : then URL is the second word
+        # otherwise it's the third word iff it exists
+        if line[1][0] != ":":
+          url_to_parse = line[1]
+        elif len(line) > 2:
+          url_to_parse = line[2]
+        else:
+          continue
+
+      else:
+        continue
+
+      uris.append(url_to_parse)
+
+    return uris

@@ -16,10 +16,12 @@ from grr.lib import flow
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import worker
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 
 
-class ClientActionArgs(rdfvalue.RDFProtoStruct):
+class ClientActionArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ClientActionArgs
 
   def GetActionArgsClass(self):
@@ -72,7 +74,7 @@ class ClientAction(flow.GRRFlow):
           fd.close()
 
 
-class ConsoleDebugFlowArgs(rdfvalue.RDFProtoStruct):
+class ConsoleDebugFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ConsoleDebugFlowArgs
 
   def GetFlowArgsClass(self):
@@ -210,11 +212,12 @@ def WakeStuckFlow(session_id):
 
         checked_pending = True
 
-      if not responses or responses[-1].type != rdfvalue.GrrMessage.Type.STATUS:
+      if (not responses or responses[-1].type !=
+          rdf_flows.GrrMessage.Type.STATUS):
         manager.QueueClientMessage(request.request)
         woken += 1
 
-      if responses and responses[-1].type == rdfvalue.GrrMessage.Type.STATUS:
+      if responses and responses[-1].type == rdf_flows.GrrMessage.Type.STATUS:
         manager.QueueNotification(session_id)
 
   return woken

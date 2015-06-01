@@ -20,7 +20,8 @@ from grr.lib import registry
 from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.aff4_objects import filestore
-from grr.lib.rdfvalues import structs
+from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import export_pb2
 
 
@@ -32,11 +33,11 @@ class NoConverterFound(Error):
   """Raised when no converter is found for particular value."""
 
 
-class ExportOptions(rdfvalue.RDFProtoStruct):
+class ExportOptions(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportOptions
 
 
-class ExportedMetadata(rdfvalue.RDFProtoStruct):
+class ExportedMetadata(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedMetadata
 
   def __init__(self, initializer=None, age=None, payload=None, **kwarg):
@@ -47,51 +48,51 @@ class ExportedMetadata(rdfvalue.RDFProtoStruct):
       self.timestamp = rdfvalue.RDFDatetime().Now()
 
 
-class ExportedClient(rdfvalue.RDFProtoStruct):
+class ExportedClient(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedClient
 
 
-class ExportedFile(rdfvalue.RDFProtoStruct):
+class ExportedFile(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedFile
 
 
-class ExportedRegistryKey(rdfvalue.RDFProtoStruct):
+class ExportedRegistryKey(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedRegistryKey
 
 
-class ExportedProcess(rdfvalue.RDFProtoStruct):
+class ExportedProcess(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedProcess
 
 
-class ExportedNetworkConnection(rdfvalue.RDFProtoStruct):
+class ExportedNetworkConnection(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedNetworkConnection
 
 
-class ExportedDNSClientConfiguration(rdfvalue.RDFProtoStruct):
+class ExportedDNSClientConfiguration(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedDNSClientConfiguration
 
 
-class ExportedOpenFile(rdfvalue.RDFProtoStruct):
+class ExportedOpenFile(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedOpenFile
 
 
-class ExportedNetworkInterface(rdfvalue.RDFProtoStruct):
+class ExportedNetworkInterface(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedNetworkInterface
 
 
-class ExportedFileStoreHash(rdfvalue.RDFProtoStruct):
+class ExportedFileStoreHash(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedFileStoreHash
 
 
-class ExportedSoftware(rdfvalue.RDFProtoStruct):
+class ExportedSoftware(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedSoftware
 
 
-class ExportedMatch(rdfvalue.RDFProtoStruct):
+class ExportedMatch(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedMatch
 
 
-class ExportedBytes(rdfvalue.RDFProtoStruct):
+class ExportedBytes(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedBytes
 
 
@@ -127,7 +128,7 @@ class ExportConverter(object):
                or may not affect this converter's behavior.
     """
     super(ExportConverter, self).__init__()
-    self.options = options or rdfvalue.ExportOptions()
+    self.options = options or ExportOptions()
 
   def Convert(self, metadata, value, token=None):
     """Converts given RDFValue to other RDFValues.
@@ -208,7 +209,7 @@ class DataAgnosticExportConverter(ExportConverter):
   classes_cache = {}
 
   def ExportedClassNameForValue(self, value):
-    return utils.SmartStr("Exported" + value.__class__.__name__)
+    return utils.SmartStr("AutoExported" + value.__class__.__name__)
 
   def MakeFlatRDFClass(self, value):
     """Generates flattened RDFValue class definition for the given value."""
@@ -224,13 +225,13 @@ class DataAgnosticExportConverter(ExportConverter):
           setattr(self, desc.name, getattr(value_to_flatten, desc.name))
 
     output_class = type(self.ExportedClassNameForValue(value),
-                        (rdfvalue.RDFProtoStruct,),
+                        (rdf_structs.RDFProtoStruct,),
                         dict(Flatten=Flatten))
 
     # Metadata is always the first field of exported data.
-    output_class.AddDescriptor(structs.ProtoEmbedded(
+    output_class.AddDescriptor(rdf_structs.ProtoEmbedded(
         name="metadata", field_number=1,
-        nested=rdfvalue.ExportedMetadata))
+        nested=ExportedMetadata))
 
     for number, desc in sorted(value.type_infos_by_field_number.items()):
       # Name 'metadata' is reserved to store ExportedMetadata value.
@@ -338,7 +339,7 @@ class StatEntryToExportedFileConverter(ExportConverter):
     filtered_pairs = []
     for metadata, stat_entry in metadata_value_pairs:
       # Ignore registry keys.
-      if stat_entry.pathspec.pathtype != rdfvalue.PathSpec.PathType.REGISTRY:
+      if stat_entry.pathspec.pathtype != rdf_paths.PathSpec.PathType.REGISTRY:
         filtered_pairs.append((metadata, stat_entry))
 
     if self.options.export_files_hashes or self.options.export_files_contents:
@@ -407,7 +408,7 @@ class StatEntryToExportedRegistryKeyConverter(ExportConverter):
       List or generator with resulting RDFValues. Empty list if StatEntry
       corresponds to a file and not to a registry entry.
     """
-    if stat_entry.pathspec.pathtype != rdfvalue.PathSpec.PathType.REGISTRY:
+    if stat_entry.pathspec.pathtype != rdf_paths.PathSpec.PathType.REGISTRY:
       return []
 
     result = ExportedRegistryKey(metadata=metadata,
@@ -429,6 +430,25 @@ class StatEntryToExportedRegistryKeyConverter(ExportConverter):
 
       result.data = data
 
+    return [result]
+
+
+class NetworkConnectionToExportedNetworkConnectionConverter(ExportConverter):
+  """Converts NetworkConnection to ExportedNetworkConnection."""
+
+  input_rdf_type = "NetworkConnection"
+
+  def Convert(self, metadata, conn, token=None):
+    """Converts NetworkConnection to ExportedNetworkConnection."""
+
+    result = ExportedNetworkConnection(metadata=metadata,
+                                       family=conn.family,
+                                       type=conn.type,
+                                       local_address=conn.local_address,
+                                       remote_address=conn.remote_address,
+                                       state=conn.state,
+                                       pid=conn.pid,
+                                       ctime=conn.ctime)
     return [result]
 
 
@@ -476,15 +496,10 @@ class ProcessToExportedNetworkConnectionConverter(ExportConverter):
   def Convert(self, metadata, process, token=None):
     """Converts Process to ExportedNetworkConnection."""
 
-    for conn in process.connections:
-      yield ExportedNetworkConnection(metadata=metadata,
-                                      family=conn.family,
-                                      type=conn.type,
-                                      local_address=conn.local_address,
-                                      remote_address=conn.remote_address,
-                                      state=conn.state,
-                                      pid=conn.pid,
-                                      ctime=conn.ctime)
+    conn_converter = NetworkConnectionToExportedNetworkConnectionConverter(
+        options=self.options)
+    return conn_converter.BatchConvert([(metadata, conn)
+                                        for conn in process.connections])
 
 
 class ProcessToExportedOpenFileConverter(ExportConverter):
@@ -796,7 +811,7 @@ class GrrMessageConverter(ExportConverter):
         for original_metadata, message in msg_dict[metadata.client_urn]:
           # Get source_urn and annotations from the original metadata
           # provided and original_timestamp from the payload age.
-          new_metadata = rdfvalue.ExportedMetadata(metadata)
+          new_metadata = ExportedMetadata(metadata)
           new_metadata.source_urn = original_metadata.source_urn
           new_metadata.annotations = original_metadata.annotations
           new_metadata.original_timestamp = message.payload.age
@@ -827,43 +842,6 @@ class GrrMessageConverter(ExportConverter):
     return converted_batch
 
 
-class FileStoreImageToExportedFileStoreHashConverter(ExportConverter):
-  """Converts FileStoreImage to ExportedFileStoreHash."""
-
-  input_rdf_type = "ExportedFileStoreImage"
-
-  def Convert(self, metadata, stat_entry, token=None):
-    """Converts StatEntry to ExportedFile.
-
-    Does nothing if StatEntry corresponds to a registry entry and not to a file.
-
-    Args:
-      metadata: ExportedMetadata to be used for conversion.
-      stat_entry: StatEntry to be converted.
-      token: Security token.
-
-    Returns:
-      List or generator with resulting RDFValues. Empty list if StatEntry
-      corresponds to a registry entry and not to a file.
-    """
-    return self.BatchConvert([(metadata, stat_entry)], token=token)
-
-  def BatchConvert(self, metadata_value_pairs, token=None):
-    """Converts a batch of StatEntry value to ExportedFile values at once.
-
-    Args:
-      metadata_value_pairs: a list or a generator of tuples (metadata, value),
-                            where metadata is ExportedMetadata to be used for
-                            conversion and value is a StatEntry to be converted.
-      token: Security token:
-
-    Yields:
-      Resulting ExportedFile values. Empty list is a valid result and means that
-      conversion wasn't possible.
-    """
-    raise NotImplementedError()
-
-
 class FileStoreHashConverter(ExportConverter):
   input_rdf_type = "FileStoreHash"
 
@@ -883,10 +861,10 @@ class FileStoreHashConverter(ExportConverter):
     for hash_urn, client_files in filestore.HashFileStore.GetClientsForHashes(
         urns, token=token):
       for hit in client_files:
-        metadata = rdfvalue.ExportedMetadata(urns_dict[hash_urn])
+        metadata = ExportedMetadata(urns_dict[hash_urn])
         metadata.client_urn = rdfvalue.RDFURN(hit).Split(2)[0]
 
-        result = rdfvalue.ExportedFileStoreHash(
+        result = ExportedFileStoreHash(
             metadata=metadata,
             hash=hash_urn.hash_value,
             fingerprint_type=hash_urn.fingerprint_type,
@@ -964,7 +942,7 @@ class RekallResponseConverter(ExportConverter):
     """Generates output class with a given name for a given set of tables."""
 
     output_class = type(utils.SmartStr(class_name),
-                        (rdfvalue.RDFProtoStruct,),
+                        (rdf_structs.RDFProtoStruct,),
                         {})
 
     if not tables:
@@ -972,17 +950,19 @@ class RekallResponseConverter(ExportConverter):
                          "definition.")
 
     field_number = 1
-    output_class.AddDescriptor(structs.ProtoEmbedded(
+    output_class.AddDescriptor(rdf_structs.ProtoEmbedded(
         name="metadata", field_number=field_number,
-        nested=rdfvalue.ExportedMetadata))
+        nested=ExportedMetadata))
 
     field_number += 1
-    output_class.AddDescriptor(structs.ProtoString(name="section_name",
-                                                   field_number=field_number))
+    output_class.AddDescriptor(
+        rdf_structs.ProtoString(name="section_name",
+                                field_number=field_number))
 
     field_number += 1
-    output_class.AddDescriptor(structs.ProtoString(name="text",
-                                                   field_number=field_number))
+    output_class.AddDescriptor(
+        rdf_structs.ProtoString(name="text",
+                                field_number=field_number))
 
     # All the tables are merged into one. This is done so that if plugin
     # outputs multiple tables, we get all possible columns in the output
@@ -1008,8 +988,8 @@ class RekallResponseConverter(ExportConverter):
         field_number += 1
         used_names.add(column_name)
         output_class.AddDescriptor(
-            structs.ProtoString(name=column_name,
-                                field_number=field_number))
+            rdf_structs.ProtoString(name=column_name,
+                                    field_number=field_number))
 
     return output_class
 
@@ -1188,7 +1168,7 @@ def ConvertValues(default_metadata, values, token=None, options=None):
   """Converts a set of RDFValues into a set of export-friendly RDFValues.
 
   Args:
-    default_metadata: rdfvalue.ExportedMetadata instance with basic
+    default_metadata: export.ExportedMetadata instance with basic
                       information about where the values come from.
                       This metadata will be passed to exporters.
     values: Values to convert. They should be of the same type.

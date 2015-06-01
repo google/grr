@@ -7,7 +7,7 @@ sources:
 - type: GRR_CLIENT_ACTION
   attributes:
     client_action: StatFS
-    action_attributes: {paths: ["/"]}
+    action_args: {path_list: ["/"]}
 labels: [System]
 supported_os: [Linux, Darwin]
 

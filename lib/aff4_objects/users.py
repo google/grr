@@ -9,11 +9,13 @@ import time
 
 from grr.lib import aff4
 from grr.lib import rdfvalue
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 from grr.proto import jobs_pb2
 
 
-class GlobalNotification(rdfvalue.RDFProtoStruct):
+class GlobalNotification(rdf_structs.RDFProtoStruct):
   """Global notification shown to all the users of GRR."""
 
   protobuf = jobs_pb2.GlobalNotification
@@ -37,7 +39,7 @@ class GlobalNotification(rdfvalue.RDFProtoStruct):
     return self.Type.reverse_enum[self.type]
 
 
-class GlobalNotificationSet(rdfvalue.RDFProtoStruct):
+class GlobalNotificationSet(rdf_structs.RDFProtoStruct):
   """A set of global notifications: one notification per notification's type."""
 
   protobuf = jobs_pb2.GlobalNotificationSet
@@ -109,7 +111,7 @@ class CryptedPassword(rdfvalue.RDFString):
     return self._CalculateHash(password, salt=salt) == self._value
 
 
-class GUISettings(rdfvalue.RDFProtoStruct):
+class GUISettings(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.GUISettings
 
 
@@ -125,12 +127,12 @@ class GRRUser(aff4.AFF4Object):
   class SchemaCls(aff4.AFF4Object.SchemaCls):
     """Schema for GRRUser."""
     PENDING_NOTIFICATIONS = aff4.Attribute(
-        "aff4:notification/pending", rdfvalue.NotificationList,
+        "aff4:notification/pending", rdf_flows.NotificationList,
         "The notifications pending for the user.", default="",
         versioned=False)
 
     SHOWN_NOTIFICATIONS = aff4.Attribute(
-        "aff4:notifications/shown", rdfvalue.NotificationList,
+        "aff4:notifications/shown", rdf_flows.NotificationList,
         "Notifications already shown to the user.", default="",
         versioned=False)
 
@@ -140,7 +142,7 @@ class GRRUser(aff4.AFF4Object):
         default=GlobalNotificationSet(), versioned=False)
 
     GUI_SETTINGS = aff4.Attribute(
-        "aff4:gui/settings", rdfvalue.GUISettings,
+        "aff4:gui/settings", GUISettings,
         "GUI Settings", default="")
 
     PASSWORD = aff4.Attribute(
@@ -164,7 +166,7 @@ class GRRUser(aff4.AFF4Object):
     if pending is None:
       pending = self.Schema.PENDING_NOTIFICATIONS()
 
-    if message_type not in rdfvalue.Notification.notification_types:
+    if message_type not in rdf_flows.Notification.notification_types:
       raise TypeError("Invalid notification type %s" % message_type)
 
     pending.Append(type=message_type, subject=subject, message=msg,

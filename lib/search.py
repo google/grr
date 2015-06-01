@@ -4,8 +4,10 @@ import itertools
 import re
 
 from grr.lib import aff4
-from grr.lib import rdfvalue
-
+# For VFSGRRClient. pylint: disable=unused-import
+from grr.lib.aff4_objects import aff4_grr
+# pylint: enable=unused-import
+from grr.lib.rdfvalues import client as rdf_client
 
 CLIENT_SCHEMA = aff4.AFF4Object.classes["VFSGRRClient"].SchemaCls
 INDEX_PREFIX_MAP = {"host": CLIENT_SCHEMA.HOSTNAME,
@@ -24,7 +26,7 @@ def SearchClients(query_string, start=0, max_results=1000, token=None):
 
   try:
     # If someone specified a client_id we use that.
-    result_iterators.append([rdfvalue.ClientURN(query_string.strip())])
+    result_iterators.append([rdf_client.ClientURN(query_string.strip())])
   except ValueError:
     pass
 
@@ -80,7 +82,7 @@ def SearchClients(query_string, start=0, max_results=1000, token=None):
         wildcard_query = "%s.*" % wildcard_query
       search_results = index.Query(
           indexed_attrs, wildcard_query, limit=(start, max_results))
-      search_results = [rdfvalue.ClientURN(r) for r in search_results]
+      search_results = [rdf_client.ClientURN(r) for r in search_results]
       result_iterators.append(search_results)
 
     if client_schema.LABELS in indexed_attrs:
@@ -94,7 +96,7 @@ def SearchClients(query_string, start=0, max_results=1000, token=None):
       # to filter for those that are clients.
       for result in label_results:
         try:
-          result = rdfvalue.ClientURN(result)
+          result = rdf_client.ClientURN(result)
           label_matches.append(result)
         except ValueError:
           pass
@@ -122,5 +124,5 @@ def GetClientURNsForHostnames(hostnames, token=None):
   result = {}
   query_result = index.MultiQuery([hostname, fqdn], hostnames)
   for hostname, urns in query_result.iteritems():
-    result[hostname] = [rdfvalue.ClientURN(urn) for urn in urns]
+    result[hostname] = [rdf_client.ClientURN(urn) for urn in urns]
   return result

@@ -3,29 +3,19 @@
 
 
 
-# pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import,g-bad-import-order
-
 import abc
 import json
 import os
+import re
 import urlparse
 
+from grr import gui
 from grr.gui import http_api
-
-from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib import utils
 
 
-# To update regression data use the following command line:
-# grr/gui/api_renderers_regression_data_generate.py > \
-#   ./grr/gui/static/angular-components/docs/api-docs-examples.json
-flags.DEFINE_string(
-    "api_regression_data",
-    "grr/gui/static/angular-components/docs/api-docs-examples.json",
-    "Base path for GRR static files.")
+DOCUMENT_ROOT = os.path.join(os.path.dirname(gui.__file__), "static")
 
 
 class ApiCallRendererRegressionTest(test_lib.GRRBaseTest):
@@ -33,16 +23,16 @@ class ApiCallRendererRegressionTest(test_lib.GRRBaseTest):
 
   Regression tests are supposed to implement a single abstract Run() method.
 
-  In the Run() implementation they're supposed to set up necessary
-  environment and do a number of Check() calls. Every Check() call fetches
-  a particular URL and keeps the data. Then, if this test class is used
-  as part of a test suite, generated data will be compared with ones in
-  flags.FLAGS.api_regression_data file and exception will be raised if
-  they're different.
+  In the Run() implementation they're supposed to set up necessary environment
+  and do a number of Check() calls. Every Check() call fetches a particular URL
+  and keeps the data. Then, if this test class is used as part of a test suite,
+  generated data will be compared with ones in the api regression data file and
+  exception will be raised if they're different.
 
   Alternatively, if this class is used in
   api_renderers_regression_data_generate.py, then generated data will be
   aggregated with data from other test classes and printed to the stdout.
+
   """
 
   __abstract = True  # pylint: disable=g-bad-name
@@ -104,11 +94,16 @@ class ApiCallRendererRegressionTest(test_lib.GRRBaseTest):
     """Sets up test envionment and does Check() calls."""
     pass
 
+  def Normalize(self, output):
+    """Normalizes the output for comparison."""
+    return re.sub("\"long\"", "\"int\"", output)
+
   def testForRegression(self):
     """Checks whether there's a regression."""
     self.maxDiff = 65536  # pylint: disable=invalid-name
 
-    with open(os.path.join(flags.FLAGS.api_regression_data), "r") as fd:
+    with open(os.path.join(
+        DOCUMENT_ROOT, "angular-components/docs/api-docs-examples.json")) as fd:
       prev_data = json.load(fd)
 
     checks = prev_data[self.renderer]
@@ -121,8 +116,11 @@ class ApiCallRendererRegressionTest(test_lib.GRRBaseTest):
     # Make sure that this test has generated some checks.
     self.assertTrue(self.checks)
 
-    checks_str = json.dumps(self.checks, indent=2, sort_keys=True,
-                            separators=(",", ": "))
-    prev_checks_str = json.dumps(relevant_checks, indent=2, sort_keys=True,
-                                 separators=(",", ": "))
+    checks_str = self.Normalize(
+        json.dumps(self.checks, indent=2, sort_keys=True,
+                   separators=(",", ": ")))
+    prev_checks_str = self.Normalize(
+        json.dumps(relevant_checks, indent=2, sort_keys=True,
+                   separators=(",", ": ")))
+
     self.assertMultiLineEqual(prev_checks_str, checks_str)

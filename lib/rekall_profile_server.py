@@ -15,6 +15,7 @@ from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import registry
+from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 
 
 class ProfileServer(object):
@@ -102,9 +103,9 @@ class RekallRepositoryProfileServer(ProfileServer):
     if profile_data[:3] != "\x1F\x8B\x08":
       raise ValueError("Downloaded file does not look like gzipped data: %s",
                        profile_data[:100])
-    return rdfvalue.RekallProfile(name=profile_name,
-                                  version=version,
-                                  data=profile_data)
+    return rdf_rekall_types.RekallProfile(name=profile_name,
+                                          version=version,
+                                          data=profile_data)
 
 
 class GRRRekallProfileServer(CachingProfileServer,

@@ -8,6 +8,11 @@ from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import queues
 from grr.lib import rdfvalue
+# pylint: disable=unused-import
+from grr.lib.aff4_objects import network
+# pylint: enable=unused-import
+from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 
 
@@ -33,7 +38,7 @@ class EnrolmentInterrogateEvent(flow.EventListener):
                            token=self.token)
 
 
-class InterrogateArgs(rdfvalue.RDFProtoStruct):
+class InterrogateArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.InterrogateArgs
 
 
@@ -62,6 +67,14 @@ class Interrogate(flow.GRRFlow):
                              token=self.token)
     fd.Close()
 
+    # Make sure we always have a VFSDirectory with a pathspec at fs/os
+    pathspec = rdf_paths.PathSpec(
+        path="/", pathtype=rdf_paths.PathSpec.PathType.OS)
+    urn = self.client.PathspecToURN(pathspec, self.client.urn)
+    with aff4.FACTORY.Create(
+        urn, "VFSDirectory", mode="w", token=self.token) as fd:
+      fd.Set(fd.Schema.PATHSPEC, pathspec)
+
     self.CallClient("GetPlatformInfo", next_state="Platform")
     self.CallClient("GetInstallDate", next_state="InstallDate")
     self.CallClient("GetClientInfo", next_state="ClientInfo")
@@ -77,6 +90,10 @@ class Interrogate(flow.GRRFlow):
   def Save(self):
     # Make sure the client object is removed and closed
     if self.client:
+      aff4.FACTORY.Create(client_index.MAIN_INDEX,
+                          aff4_type="ClientIndex",
+                          mode="rw",
+                          token=self.token).AddClient(self.client)
       self.client.Close()
       self.client = None
 
@@ -109,7 +126,7 @@ class Interrogate(flow.GRRFlow):
         with aff4.FACTORY.Create(self.client.urn.Add("registry"),
                                  "VFSDirectory", token=self.token) as fd:
           fd.Set(fd.Schema.PATHSPEC, fd.Schema.PATHSPEC(
-              path="/", pathtype=rdfvalue.PathSpec.PathType.REGISTRY))
+              path="/", pathtype=rdf_paths.PathSpec.PathType.REGISTRY))
 
     else:
       self.Log("Could not retrieve Platform info.")
@@ -208,12 +225,12 @@ class Interrogate(flow.GRRFlow):
 
           offset = int(offset)
 
-          pathspec = rdfvalue.PathSpec(
-              path=device, pathtype=rdfvalue.PathSpec.PathType.OS,
+          pathspec = rdf_paths.PathSpec(
+              path=device, pathtype=rdf_paths.PathSpec.PathType.OS,
               offset=offset)
 
           pathspec.Append(path="/",
-                          pathtype=rdfvalue.PathSpec.PathType.TSK)
+                          pathtype=rdf_paths.PathSpec.PathType.TSK)
 
           urn = self.client.PathspecToURN(pathspec, self.client.urn)
           fd = aff4.FACTORY.Create(urn, "VFSDirectory", token=self.token)
@@ -222,12 +239,12 @@ class Interrogate(flow.GRRFlow):
           continue
 
         if response.device:
-          pathspec = rdfvalue.PathSpec(
+          pathspec = rdf_paths.PathSpec(
               path=response.device,
-              pathtype=rdfvalue.PathSpec.PathType.OS)
+              pathtype=rdf_paths.PathSpec.PathType.OS)
 
           pathspec.Append(path="/",
-                          pathtype=rdfvalue.PathSpec.PathType.TSK)
+                          pathtype=rdf_paths.PathSpec.PathType.TSK)
 
           urn = self.client.PathspecToURN(pathspec, self.client.urn)
           fd = aff4.FACTORY.Create(urn, "VFSDirectory", token=self.token)
@@ -236,9 +253,9 @@ class Interrogate(flow.GRRFlow):
 
         if response.mount_point:
           # Create the OS device
-          pathspec = rdfvalue.PathSpec(
+          pathspec = rdf_paths.PathSpec(
               path=response.mount_point,
-              pathtype=rdfvalue.PathSpec.PathType.OS)
+              pathtype=rdf_paths.PathSpec.PathType.OS)
 
           urn = self.client.PathspecToURN(pathspec, self.client.urn)
           fd = aff4.FACTORY.Create(urn, "VFSDirectory", token=self.token)
@@ -282,12 +299,3 @@ class Interrogate(flow.GRRFlow):
     summary = self.client.GetSummary()
     self.Publish("Discovery", summary)
     self.SendReply(summary)
-
-    # Update the client index.
-    aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                        aff4_type="ClientIndex",
-                        mode="rw",
-                        token=self.token).AddClient(self.client)
-
-    # Flush the data to the data store.
-    self.client.Close()

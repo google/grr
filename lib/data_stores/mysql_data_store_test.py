@@ -5,10 +5,6 @@
 
 import unittest
 
-# pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import,g-bad-import-order
-
 import logging
 
 from grr.lib import access_control

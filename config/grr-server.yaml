@@ -72,41 +72,43 @@ ClientBuilder Context:
 
 # Include other config files like this. An example buildconfig.yaml is supplied
 # for separating out build configuration.
-# ConfigIncludes:
-#   - grr/config/buildconfig.yaml
+  ConfigIncludes:
+    - grr/config/buildconfig.yaml
 
   Target:Darwin:
 
-   Client.install_path: |
-     /usr/lib/%(Client.name)/%(ClientBuilder.output_basename)
+    Client.install_path: |
+      /usr/lib/%(Client.name)/%(ClientBuilder.output_basename)
 
-   Client.rekall_profile_cache_path: |
-     %(Client.install_path)/rekall_profiles
+    Client.rekall_profile_cache_path: |
+      %(Client.install_path)/rekall_profiles
 
-   ClientBuilder.build_dest: "%(Client.name)-build"
+    ClientBuilder.build_dest: "%(Client.name)-build"
 
-   ClientBuilder.build_root_dir: /Users/%(USER|env)/mac-build
+    ClientBuilder.build_root_dir: /Users/%(USER|env)/mac-build
 
-   ClientBuilder.install_dir: "/usr/lib/%(Client.name)/%(ClientBuilder.output_basename)"
+    ClientBuilder.install_dir: "/usr/lib/%(Client.name)/%(ClientBuilder.output_basename)"
 
-   # Needed for package maker. Do not touch.
-   ClientBuilder.mangled_output_basename: |
-       %(Client.name)_%(Client.version_major).%(Client.version_minor).%(Client.version_revision)
+    # Needed for package maker. Do not touch.
+    ClientBuilder.mangled_output_basename: |
+        %(Client.name)_%(Client.version_major).%(Client.version_minor).%(Client.version_revision)
 
-   ClientBuilder.output_extension: .pkg
+    ClientBuilder.output_extension: .pkg
 
-   ClientBuilder.package_dir: "%(ClientBuilder.build_root_dir)/%(Client.name)-pkg"
+    ClientBuilder.package_dir: "%(ClientBuilder.build_root_dir)/%(Client.name)-pkg"
 
-   ClientBuilder.package_maker_organization: com.google.code
+    ClientBuilder.package_maker_organization: com.google.code
 
-   ClientBuilder.package_maker_path: |
-       /Applications/PackageMaker.app/Contents/MacOS/PackageMaker
+    ClientBuilder.package_maker_path: |
+        /Applications/PackageMaker.app/Contents/MacOS/PackageMaker
 
-   PyInstaller.path: |
-       /Users/%(USER|env)/mac-build/pyinstaller/pyinstaller.py
+    ClientBuilder.template_extension: .pkg.xar
 
-   PyInstaller.distpath: |
-     /Users/%(USER|env)/mac-dist
+    PyInstaller.path: |
+        /Users/%(USER|env)/mac-build/pyinstaller/pyinstaller.py
+
+    PyInstaller.distpath: |
+      /Users/%(USER|env)/mac-dist
 
   Target:Linux:
     Client.binary_name: grrd
@@ -126,6 +128,8 @@ ClientBuilder Context:
 
     ClientBuilder.target_dir: |
       /usr/lib/%(Client.name)/%(ClientBuilder.output_basename)
+
+    ClientBuilder.template_extension: .deb.zip
 
     Logging.engines: stderr
 
@@ -165,15 +169,17 @@ ClientBuilder Context:
 
     ClientBuilder.output_extension: .exe
 
+    ClientBuilder.template_extension: .exe.zip
+
     ClientBuilder.vs_dir: |
-      %{C:\Program Files (x86)\Microsoft Visual Studio 10.0}
+      %{C:\Program Files (x86)\Microsoft Visual Studio 12.0}
 
     # This is where the pyinstaller svn checkout lives on the build server.
     PyInstaller.path: C:\\grr_build\\pyinstaller\\pyinstaller.py
 
     PyInstaller.distorm_lib: distorm3.dll
 
-    ClientBuilder.make_command: C:\\cygwin64\\bin\\make.exe
+    ClientBuilder.make_command: C:\\tools\\cygwin\\bin\\make.exe
 
   # This indicates that we are building a client for debugging.
   DebugClientBuild Context:

@@ -1,12 +1,9 @@
 #!/usr/bin/env python
 
-# pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import,g-bad-import-order
-
 from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.aff4_objects import users
 
 
 class UsersTest(test_lib.AFF4ObjectTest):
@@ -27,8 +24,8 @@ class UsersTest(test_lib.AFF4ObjectTest):
     with aff4.FACTORY.Create(aff4.GlobalNotificationStorage.DEFAULT_PATH,
                              aff4_type="GlobalNotificationStorage", mode="rw",
                              token=self.token) as storage:
-      storage.AddNotification(rdfvalue.GlobalNotification(
-          type=rdfvalue.GlobalNotification.Type.ERROR, header="foo",
+      storage.AddNotification(users.GlobalNotification(
+          type=users.GlobalNotification.Type.ERROR, header="foo",
           content="bar", link="http://www.google.com"))
 
     notifications = self.user.GetPendingGlobalNotifications()
@@ -42,8 +39,8 @@ class UsersTest(test_lib.AFF4ObjectTest):
       with aff4.FACTORY.Create(aff4.GlobalNotificationStorage.DEFAULT_PATH,
                                aff4_type="GlobalNotificationStorage", mode="rw",
                                token=self.token) as storage:
-        storage.AddNotification(rdfvalue.GlobalNotification(
-            type=rdfvalue.GlobalNotification.Type.ERROR, header="foo",
+        storage.AddNotification(users.GlobalNotification(
+            type=users.GlobalNotification.Type.ERROR, header="foo",
             content="bar", duration=rdfvalue.Duration("1h"),))
 
     with test_lib.FakeTime(101):
@@ -59,4 +56,3 @@ class UsersTest(test_lib.AFF4ObjectTest):
     describe_str = self.user.Describe()
     self.assertTrue("test1" in describe_str)
     self.assertTrue("test2" in describe_str)
-

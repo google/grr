@@ -1,8 +1,10 @@
 binplist==0.1.4
 psutil==2.1.3
 pycrypto==2.6.1
-pyinstaller==2.1
+# http://stackoverflow.com/questions/8078216/how-to-install-pywin32-on-virtualenv-with-python-2-7-64-bit
+pypiwin32==219
 python-dateutil==2.3
 pytz==2014.10
 rekall==1.3.1
 urllib3==1.10
+WMI==1.4.9

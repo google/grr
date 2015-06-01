@@ -17,8 +17,12 @@ from grr.client import client_utils_common
 from grr.client.client_actions import standard
 from grr.client.client_actions.linux import ko_patcher
 from grr.lib import config_lib
-from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
+
 
 # struct sockaddr_ll
 #   {
@@ -110,7 +114,7 @@ Ifaddrs._fields_ = [  # pylint: disable=protected-access
 
 class EnumerateInterfaces(actions.ActionPlugin):
   """Enumerates all MAC addresses on this system."""
-  out_rdfvalue = rdfvalue.Interface
+  out_rdfvalue = rdf_client.Interface
 
   def Run(self, unused_args):
     """Enumerate all interfaces and collect their MAC addresses."""
@@ -132,9 +136,9 @@ class EnumerateInterfaces(actions.ActionPlugin):
         if iffamily == 0x2:     # AF_INET
           data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin))
           ip4 = "".join(map(chr, data.contents.sin_addr))
-          address_type = rdfvalue.NetworkAddress.Family.INET
-          address = rdfvalue.NetworkAddress(address_type=address_type,
-                                            packed_bytes=ip4)
+          address_type = rdf_client.NetworkAddress.Family.INET
+          address = rdf_client.NetworkAddress(address_type=address_type,
+                                              packed_bytes=ip4)
           addresses.setdefault(ifname, []).append(address)
 
         if iffamily == 0x11:    # AF_PACKET
@@ -145,9 +149,9 @@ class EnumerateInterfaces(actions.ActionPlugin):
         if iffamily == 0xA:     # AF_INET6
           data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin6))
           ip6 = "".join(map(chr, data.contents.sin6_addr))
-          address_type = rdfvalue.NetworkAddress.Family.INET6
-          address = rdfvalue.NetworkAddress(address_type=address_type,
-                                            packed_bytes=ip6)
+          address_type = rdf_client.NetworkAddress.Family.INET6
+          address = rdf_client.NetworkAddress(address_type=address_type,
+                                              packed_bytes=ip6)
           addresses.setdefault(ifname, []).append(address)
       except ValueError:
         # Some interfaces don't have a iffamily and will raise a null pointer
@@ -166,12 +170,12 @@ class EnumerateInterfaces(actions.ActionPlugin):
         args["mac_address"] = mac
       if addresses:
         args["addresses"] = address_list
-      self.SendReply(rdfvalue.Interface(**args))
+      self.SendReply(rdf_client.Interface(**args))
 
 
 class GetInstallDate(actions.ActionPlugin):
   """Estimate the install date of this system."""
-  out_rdfvalue = rdfvalue.DataBlob
+  out_rdfvalue = rdf_protodict.DataBlob
 
   def Run(self, unused_args):
     self.SendReply(integer=int(os.stat("/lost+found").st_ctime))
@@ -203,11 +207,11 @@ class EnumerateUsers(actions.ActionPlugin):
   allow for the metadata (homedir) expansion to occur on the client, where we
   have access to LDAP.
 
-  This client action used to return rdfvalue.User.  To allow for backwards
+  This client action used to return rdf_client.User.  To allow for backwards
   compatibility we expect it to be called via the LinuxUserProfiles artifact and
   we convert User to KnowledgeBaseUser in the artifact parser on the server.
   """
-  out_rdfvalue = rdfvalue.KnowledgeBaseUser
+  out_rdfvalue = rdf_client.KnowledgeBaseUser
 
   def ParseWtmp(self):
     """Parse wtmp and extract the last logon time."""
@@ -268,9 +272,14 @@ class EnumerateUsers(actions.ActionPlugin):
 
 
 class EnumerateFilesystems(actions.ActionPlugin):
-  """Enumerate all unique filesystems local to the system."""
-  acceptable_filesystems = set(["ext2", "ext3", "ext4", "vfat", "ntfs"])
-  out_rdfvalue = rdfvalue.Filesystem
+  """Enumerate all unique filesystems local to the system.
+
+  Filesystems picked from:
+    https://www.kernel.org/doc/Documentation/filesystems/
+  """
+  acceptable_filesystems = set(["ext2", "ext3", "ext4", "vfat", "ntfs",
+                                "btrfs", "Reiserfs", "XFS", "JFS", "squashfs"])
+  out_rdfvalue = rdf_client.Filesystem
 
   def CheckMounts(self, filename):
     """Parses the currently mounted devices."""
@@ -319,7 +328,7 @@ class Uninstall(actions.ActionPlugin):
   Note this needs to handle the different distributions separately, e.g. Redhat
   vs Debian.
   """
-  out_rdfvalue = rdfvalue.DataBlob
+  out_rdfvalue = rdf_protodict.DataBlob
 
   def Run(self, unused_arg):
     raise RuntimeError("Not implemented")
@@ -332,7 +341,7 @@ class UninstallDriver(actions.ActionPlugin):
   client_config.DRIVER_SIGNING_CERT can be uninstalled.
   """
 
-  in_rdfvalue = rdfvalue.DriverInstallTemplate
+  in_rdfvalue = rdf_client.DriverInstallTemplate
 
   @staticmethod
   def UninstallDriver(driver_name):
@@ -402,8 +411,8 @@ class InstallDriver(UninstallDriver):
     try:
       fd = tempfile.NamedTemporaryFile()
       data = args.driver.data
-      if args.mode >= rdfvalue.DriverInstallTemplate.RewriteMode.ENABLE:
-        force = args.mode == rdfvalue.DriverInstallTemplate.RewriteMode.FORCE
+      if args.mode >= rdf_client.DriverInstallTemplate.RewriteMode.ENABLE:
+        force = args.mode == rdf_client.DriverInstallTemplate.RewriteMode.FORCE
         data = ko_patcher.KernelObjectPatcher().Patch(data, force_patch=force)
       fd.write(data)
       fd.flush()
@@ -430,20 +439,20 @@ class InstallDriver(UninstallDriver):
 class GetMemoryInformation(actions.ActionPlugin):
   """Loads the driver for memory access and returns a Stat for the device."""
 
-  in_rdfvalue = rdfvalue.PathSpec
-  out_rdfvalue = rdfvalue.MemoryInformation
+  in_rdfvalue = rdf_paths.PathSpec
+  out_rdfvalue = rdf_rekall_types.MemoryInformation
 
   def Run(self, args):
     """Run."""
-    result = rdfvalue.MemoryInformation()
+    result = rdf_rekall_types.MemoryInformation()
 
     # Try if we can actually open the device.
     with open(args.path, "rb") as fd:
       fd.read(5)
 
-    result.device = rdfvalue.PathSpec(
+    result.device = rdf_paths.PathSpec(
         path=args.path,
-        pathtype=rdfvalue.PathSpec.PathType.MEMORY)
+        pathtype=rdf_paths.PathSpec.PathType.MEMORY)
 
     self.SendReply(result)
 

@@ -39,7 +39,6 @@ from grr.lib import flow_utils
 from grr.lib import hunts
 from grr.lib import ipshell
 from grr.lib import maintenance_utils
-from grr.lib import rdfvalue
 from grr.lib import search
 from grr.lib import startup
 from grr.lib import type_info
@@ -105,8 +104,8 @@ def main(unused_argv):
 
   # To make the console easier to use, we make a default token which will be
   # used in StartFlow operations.
-  data_store.default_token = rdfvalue.ACLToken(username=getpass.getuser(),
-                                               reason=flags.FLAGS.reason)
+  data_store.default_token = access_control.ACLToken(username=getpass.getuser(),
+                                                     reason=flags.FLAGS.reason)
 
   locals_vars = {
       "hilfe": Help,

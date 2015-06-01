@@ -9,7 +9,13 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.flows.general import file_finder
+# pylint: disable=unused-import
+from grr.lib.flows.general import registry
+# pylint: enable=unused-import
 from grr.lib.flows.general import transfer
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class RegistryFlowTest(test_lib.FlowTestsBaseclass):
@@ -23,7 +29,7 @@ class TestRegistryFinderFlow(RegistryFlowTest):
     super(TestRegistryFinderFlow, self).setUp()
 
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
+        rdf_paths.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
 
     self.output_path = "analysis/file_finder"
     self.client_mock = action_mocks.ActionMock(
@@ -91,9 +97,9 @@ class TestRegistryFinderFlow(RegistryFlowTest):
   def testFindsKeyWithInterpolatedGlobWithoutConditions(self):
     # Initialize client's knowledge base in order for the interpolation
     # to work.
-    user = rdfvalue.KnowledgeBaseUser(
+    user = rdf_client.KnowledgeBaseUser(
         sid="S-1-5-21-2911950750-476812067-1487428992-1001")
-    kb = rdfvalue.KnowledgeBase(users=[user])
+    kb = rdf_client.KnowledgeBase(users=[user])
 
     with aff4.FACTORY.Open(
         self.client_id, mode="rw", token=self.token) as client:
@@ -112,29 +118,29 @@ class TestRegistryFinderFlow(RegistryFlowTest):
                      "aff4:/C.1000000000000000/registry" + key)
     self.assertEqual(results[0].stat_entry.pathspec.path, key)
     self.assertEqual(results[0].stat_entry.pathspec.pathtype,
-                     rdfvalue.PathSpec.PathType.REGISTRY)
+                     rdf_paths.PathSpec.PathType.REGISTRY)
 
   def testFindsNothingIfNothingMatchesLiteralMatchCondition(self):
-    value_literal_match = rdfvalue.FileFinderContentsLiteralMatchCondition(
+    value_literal_match = file_finder.FileFinderContentsLiteralMatchCondition(
         literal="CanNotFindMe")
 
     self.RunFlow(
         ["HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"],
-        [rdfvalue.RegistryFinderCondition(
+        [registry.RegistryFinderCondition(
             condition_type=
-            rdfvalue.RegistryFinderCondition.Type.VALUE_LITERAL_MATCH,
+            registry.RegistryFinderCondition.Type.VALUE_LITERAL_MATCH,
             value_literal_match=value_literal_match)])
     self.AssertNoResults()
 
   def testFindsKeyIfItMatchesLiteralMatchCondition(self):
-    value_literal_match = rdfvalue.FileFinderContentsLiteralMatchCondition(
+    value_literal_match = file_finder.FileFinderContentsLiteralMatchCondition(
         literal="Windows Sidebar\\Sidebar.exe")
 
     self.RunFlow(
         ["HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"],
-        [rdfvalue.RegistryFinderCondition(
+        [registry.RegistryFinderCondition(
             condition_type=
-            rdfvalue.RegistryFinderCondition.Type.VALUE_LITERAL_MATCH,
+            registry.RegistryFinderCondition.Type.VALUE_LITERAL_MATCH,
             value_literal_match=value_literal_match)])
 
     results = self.GetResults()
@@ -152,29 +158,29 @@ class TestRegistryFinderFlow(RegistryFlowTest):
                      "/HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/"
                      "CurrentVersion/Run/Sidebar")
     self.assertEqual(results[0].stat_entry.pathspec.pathtype,
-                     rdfvalue.PathSpec.PathType.REGISTRY)
+                     rdf_paths.PathSpec.PathType.REGISTRY)
 
   def testFindsNothingIfRegexMatchesNothing(self):
-    value_regex_match = rdfvalue.FileFinderContentsRegexMatchCondition(
+    value_regex_match = file_finder.FileFinderContentsRegexMatchCondition(
         regex=".*CanNotFindMe.*")
 
     self.RunFlow(
         ["HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"],
-        [rdfvalue.RegistryFinderCondition(
+        [registry.RegistryFinderCondition(
             condition_type=
-            rdfvalue.RegistryFinderCondition.Type.VALUE_REGEX_MATCH,
+            registry.RegistryFinderCondition.Type.VALUE_REGEX_MATCH,
             value_regex_match=value_regex_match)])
     self.AssertNoResults()
 
   def testFindsKeyIfItMatchesRegexMatchCondition(self):
-    value_regex_match = rdfvalue.FileFinderContentsRegexMatchCondition(
+    value_regex_match = file_finder.FileFinderContentsRegexMatchCondition(
         regex="Windows.+\\.exe")
 
     self.RunFlow(
         ["HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"],
-        [rdfvalue.RegistryFinderCondition(
+        [registry.RegistryFinderCondition(
             condition_type=
-            rdfvalue.RegistryFinderCondition.Type.VALUE_REGEX_MATCH,
+            registry.RegistryFinderCondition.Type.VALUE_REGEX_MATCH,
             value_regex_match=value_regex_match)])
 
     results = self.GetResults()
@@ -192,23 +198,23 @@ class TestRegistryFinderFlow(RegistryFlowTest):
                      "/HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/"
                      "CurrentVersion/Run/Sidebar")
     self.assertEqual(results[0].stat_entry.pathspec.pathtype,
-                     rdfvalue.PathSpec.PathType.REGISTRY)
+                     rdf_paths.PathSpec.PathType.REGISTRY)
 
   def testFindsNothingIfModiciationTimeConditionMatchesNothing(self):
-    modification_time = rdfvalue.FileFinderModificationTimeCondition(
+    modification_time = file_finder.FileFinderModificationTimeCondition(
         min_last_modified_time=rdfvalue.RDFDatetime().FromSecondsFromEpoch(0),
         max_last_modified_time=rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
 
     self.RunFlow(
         ["HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"],
-        [rdfvalue.RegistryFinderCondition(
+        [registry.RegistryFinderCondition(
             condition_type=
-            rdfvalue.RegistryFinderCondition.Type.MODIFICATION_TIME,
+            registry.RegistryFinderCondition.Type.MODIFICATION_TIME,
             modification_time=modification_time)])
     self.AssertNoResults()
 
   def testFindsKeysIfModificationTimeConditionMatches(self):
-    modification_time = rdfvalue.FileFinderModificationTimeCondition(
+    modification_time = file_finder.FileFinderModificationTimeCondition(
         min_last_modified_time=
         rdfvalue.RDFDatetime().FromSecondsFromEpoch(1247546054 - 1),
         max_last_modified_time=
@@ -216,9 +222,9 @@ class TestRegistryFinderFlow(RegistryFlowTest):
 
     self.RunFlow(
         ["HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"],
-        [rdfvalue.RegistryFinderCondition(
+        [registry.RegistryFinderCondition(
             condition_type=
-            rdfvalue.RegistryFinderCondition.Type.MODIFICATION_TIME,
+            registry.RegistryFinderCondition.Type.MODIFICATION_TIME,
             modification_time=modification_time)])
 
     results = self.GetResults()
@@ -231,24 +237,24 @@ class TestRegistryFinderFlow(RegistryFlowTest):
                      if r.stat_entry.aff4path.Basename() == "MctAdmin"])
 
   def testFindsKeyWithLiteralAndModificaitonTimeConditions(self):
-    modification_time = rdfvalue.FileFinderModificationTimeCondition(
+    modification_time = file_finder.FileFinderModificationTimeCondition(
         min_last_modified_time=
         rdfvalue.RDFDatetime().FromSecondsFromEpoch(1247546054 - 1),
         max_last_modified_time=
         rdfvalue.RDFDatetime().FromSecondsFromEpoch(1247546054 + 1))
 
-    value_literal_match = rdfvalue.FileFinderContentsLiteralMatchCondition(
+    value_literal_match = file_finder.FileFinderContentsLiteralMatchCondition(
         literal="Windows Sidebar\\Sidebar.exe")
 
     self.RunFlow(
         ["HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"],
-        [rdfvalue.RegistryFinderCondition(
+        [registry.RegistryFinderCondition(
             condition_type=
-            rdfvalue.RegistryFinderCondition.Type.MODIFICATION_TIME,
+            registry.RegistryFinderCondition.Type.MODIFICATION_TIME,
             modification_time=modification_time),
-         rdfvalue.RegistryFinderCondition(
+         registry.RegistryFinderCondition(
              condition_type=
-             rdfvalue.RegistryFinderCondition.Type.VALUE_LITERAL_MATCH,
+             registry.RegistryFinderCondition.Type.VALUE_LITERAL_MATCH,
              value_literal_match=value_literal_match)])
 
     results = self.GetResults()
@@ -263,9 +269,9 @@ class TestRegistryFinderFlow(RegistryFlowTest):
     # There are two values, one is 20 bytes, the other 53.
     self.RunFlow(
         ["HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"],
-        [rdfvalue.RegistryFinderCondition(
-            condition_type=rdfvalue.RegistryFinderCondition.Type.SIZE,
-            size=rdfvalue.FileFinderSizeCondition(min_file_size=50))])
+        [registry.RegistryFinderCondition(
+            condition_type=registry.RegistryFinderCondition.Type.SIZE,
+            size=file_finder.FileFinderSizeCondition(min_file_size=50))])
     results = self.GetResults()
     self.assertEqual(len(results), 1)
     self.assertGreater(results[0].stat_entry.st_size, 50)
@@ -278,7 +284,7 @@ class TestRegistryFlows(RegistryFlowTest):
     """Test that the MRU discovery flow. Flow is a work in Progress."""
     # Install the mock
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
+        rdf_paths.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
 
     # Mock out the Find client action.
     client_mock = action_mocks.ActionMock("Find")
@@ -286,7 +292,7 @@ class TestRegistryFlows(RegistryFlowTest):
     # Add some user accounts to this client.
     fd = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
     users = fd.Schema.USER()
-    users.Append(rdfvalue.User(
+    users.Append(rdf_client.User(
         username="testing", domain="testing-PC",
         homedir=r"C:\Users\testing", sid="S-1-5-21-2911950750-476812067-"
         "1487428992-1001"))
@@ -320,9 +326,9 @@ class TestRegistryFlows(RegistryFlowTest):
     client.Flush()
 
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
+        rdf_paths.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
     vfs.VFS_HANDLERS[
-        rdfvalue.PathSpec.PathType.OS] = test_lib.FakeFullVFSHandler
+        rdf_paths.PathSpec.PathType.OS] = test_lib.FakeFullVFSHandler
 
     client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
                                           "HashBuffer", "FingerprintFile",

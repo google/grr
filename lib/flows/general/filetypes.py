@@ -4,11 +4,14 @@
 
 from grr.lib import aff4
 from grr.lib import flow
-from grr.lib import rdfvalue
+# For AFF4PlistQuery pylint: disable=unused-import
+from grr.lib.aff4_objects import filetypes
+# pylint: enable=unused-import
+from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 
 
-class PlistValueFilterArgs(rdfvalue.RDFProtoStruct):
+class PlistValueFilterArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.PlistValueFilterArgs
 
 

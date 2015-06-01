@@ -17,6 +17,8 @@ from grr.lib import build
 from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import rdfvalue
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import crypto as rdf_crypto
 
 
 DIGEST_ALGORITHM = hashlib.sha256  # pylint: disable=invalid-name
@@ -63,7 +65,7 @@ def UploadSignedConfigBlob(content, aff4_path, client_context=None,
     for start_of_chunk in xrange(0, len(content), limit):
       chunk = content[start_of_chunk:start_of_chunk + limit]
 
-      blob_rdf = rdfvalue.SignedBlob()
+      blob_rdf = rdf_crypto.SignedBlob()
       blob_rdf.Sign(chunk, sig_key, ver_key, prompt=True)
       fd.Add(blob_rdf)
 
@@ -109,7 +111,7 @@ def UploadSignedDriverBlob(content, aff4_path=None, client_context=None,
       raise IOError("Ambiguous driver location, please specify.")
     aff4_path = aff4_paths[0]
 
-  blob_rdf = rdfvalue.SignedBlob()
+  blob_rdf = rdf_crypto.SignedBlob()
   blob_rdf.Sign(content, sig_key, ver_key, prompt=True)
 
   with aff4.FACTORY.Create(
@@ -118,7 +120,7 @@ def UploadSignedDriverBlob(content, aff4_path=None, client_context=None,
 
     if install_request is None:
       # Create install_request from the configuration.
-      install_request = rdfvalue.DriverInstallTemplate(
+      install_request = rdf_client.DriverInstallTemplate(
           device_path=config_lib.CONFIG.Get(
               "MemoryDriver.device_path", context=client_context),
           driver_display_name=config_lib.CONFIG.Get(

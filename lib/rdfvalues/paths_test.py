@@ -7,7 +7,7 @@
 
 
 from grr.lib import aff4
-from grr.lib import rdfvalue
+from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import test_base
 from grr.proto import jobs_pb2
 
@@ -15,7 +15,7 @@ from grr.proto import jobs_pb2
 class PathSpecTest(test_base.RDFProtoTestCase):
   """Test the PathSpec implementation."""
 
-  rdfvalue_class = rdfvalue.PathSpec
+  rdfvalue_class = rdf_paths.PathSpec
 
   def CheckRDFValue(self, rdfproto, sample):
     """Check that the rdfproto is the same as the sample."""
@@ -26,23 +26,23 @@ class PathSpecTest(test_base.RDFProtoTestCase):
 
   def GenerateSample(self, number=0):
     """Make a sample PathSpec instance."""
-    return rdfvalue.PathSpec(path="/%s/" % number, pathtype=number)
+    return rdf_paths.PathSpec(path="/%s/" % number, pathtype=number)
 
   def testPop(self):
     """Test we can pop arbitrary elements from the pathspec."""
-    sample = rdfvalue.PathSpec(
-        path="/", pathtype=rdfvalue.PathSpec.PathType.OS)
+    sample = rdf_paths.PathSpec(
+        path="/", pathtype=rdf_paths.PathSpec.PathType.OS)
 
     for i in range(5):
       sample.Append(
-          path=str(i), pathtype=rdfvalue.PathSpec.PathType.OS)
+          path=str(i), pathtype=rdf_paths.PathSpec.PathType.OS)
 
     self.assertEqual([x.path for x in sample],
                      list("/01234"))
 
     # Check we pop the right element.
     popped = sample.Pop(2)
-    self.assertIsInstance(popped, rdfvalue.PathSpec)
+    self.assertIsInstance(popped, rdf_paths.PathSpec)
     self.assertEqual(popped.path, "1")
     self.assertEqual([x.path for x in sample],
                      list("/0234"))
@@ -60,7 +60,7 @@ class PathSpecTest(test_base.RDFProtoTestCase):
     pathspec_pb.nested_path.pathtype = 2
 
     # Create a new RDFPathspec from scratch.
-    pathspec = rdfvalue.PathSpec()
+    pathspec = rdf_paths.PathSpec()
     pathspec.path = "/"
     pathspec.pathtype = 1
     pathspec.Append(path="foo", pathtype=2)
@@ -68,7 +68,7 @@ class PathSpecTest(test_base.RDFProtoTestCase):
     self.assertRDFValueEqualToProto(pathspec, pathspec_pb)
 
     # Create a new RDFPathspec from keywords.
-    pathspec = rdfvalue.PathSpec(path="/", pathtype=1)
+    pathspec = rdf_paths.PathSpec(path="/", pathtype=1)
     pathspec.Append(path="foo", pathtype=2)
 
     self.assertRDFValueEqualToProto(pathspec, pathspec_pb)
@@ -86,7 +86,7 @@ class PathSpecTest(test_base.RDFProtoTestCase):
     pathspec_pb_copy = jobs_pb2.PathSpec()
     pathspec_pb_copy.CopyFrom(pathspec_pb)
 
-    pathspec = rdfvalue.PathSpec(pathspec_pb_copy)
+    pathspec = rdf_paths.PathSpec(pathspec_pb_copy)
     self.assertRDFValueEqualToProto(pathspec, pathspec_pb)
 
     pathspec.first.path = "test"
@@ -98,36 +98,36 @@ class PathSpecTest(test_base.RDFProtoTestCase):
     # Length.
     self.assertEqual(len(pathspec), 2)
 
-    pathspec = rdfvalue.PathSpec(path="/foo", pathtype=1)
+    pathspec = rdf_paths.PathSpec(path="/foo", pathtype=1)
     pathspec.Append(path="/", pathtype=0)
     self.assertEqual(pathspec.Dirname().CollapsePath(), "/")
     pathspec.Append(path="sdasda", pathtype=0)
     self.assertEqual(pathspec.Dirname().CollapsePath(), "/foo")
 
-    pathspec = rdfvalue.PathSpec(path="/foo", pathtype=1)
-    pathspec_base = rdfvalue.PathSpec()
+    pathspec = rdf_paths.PathSpec(path="/foo", pathtype=1)
+    pathspec_base = rdf_paths.PathSpec()
     pathspec_base.Append(pathspec)
 
     self.assertEqual(pathspec_base.CollapsePath(), "/foo")
 
-    pathspec_base = rdfvalue.PathSpec()
+    pathspec_base = rdf_paths.PathSpec()
     pathspec_base.Insert(0, path="/foo", pathtype=1)
 
     self.assertEqual(pathspec_base.CollapsePath(), "/foo")
 
   def testUnicodePaths(self):
     """Test that we can manipulate paths in unicode."""
-    sample = rdfvalue.PathSpec(pathtype=1,
-                               path=u"/dev/c/msn升级程序[1].exe")
+    sample = rdf_paths.PathSpec(pathtype=1,
+                                path=u"/dev/c/msn升级程序[1].exe")
 
     # Ensure we can convert to a string.
     str(sample)
     unicode(sample)
 
   def testCopy(self):
-    sample = rdfvalue.PathSpec(
-        path="/", pathtype=rdfvalue.PathSpec.PathType.OS)
-    sample.Append(path="foo", pathtype=rdfvalue.PathSpec.PathType.TSK)
+    sample = rdf_paths.PathSpec(
+        path="/", pathtype=rdf_paths.PathSpec.PathType.OS)
+    sample.Append(path="foo", pathtype=rdf_paths.PathSpec.PathType.TSK)
 
     # Make a copy of the original and change it.
     sample_copy = sample.Copy()
@@ -138,7 +138,7 @@ class PathSpecTest(test_base.RDFProtoTestCase):
 
 
 class GlobExpressionTest(test_base.RDFValueTestCase):
-  rdfvalue_class = rdfvalue.GlobExpression
+  rdfvalue_class = rdf_paths.GlobExpression
 
   USER_ACCOUNT = dict(
       username=u"user", full_name=u"John Smith",
@@ -166,7 +166,7 @@ class GlobExpressionTest(test_base.RDFValueTestCase):
     fd.Close()
 
     fd = aff4.FACTORY.Open(client_id, token=self.token)
-    glob_expression = rdfvalue.GlobExpression(
+    glob_expression = rdf_paths.GlobExpression(
         "/home/%%Users.username%%/.mozilla/")
 
     interpolated = sorted(glob_expression.InterpolateClientAttributes(
@@ -175,10 +175,10 @@ class GlobExpressionTest(test_base.RDFValueTestCase):
     self.assertEqual(interpolated[1], "/home/user1/.mozilla/")
 
   def testValidation(self):
-    glob_expression = rdfvalue.GlobExpression(
+    glob_expression = rdf_paths.GlobExpression(
         "/home/%%Users.username%%/**/.mozilla/")
     glob_expression.Validate()
 
-    glob_expression = rdfvalue.GlobExpression(
+    glob_expression = rdf_paths.GlobExpression(
         "/home/**/**")
     self.assertRaises(ValueError, glob_expression.Validate)

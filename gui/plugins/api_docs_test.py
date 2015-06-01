@@ -37,7 +37,7 @@ class TestAPIDocs(test_lib.GRRSeleniumTest):
     self.WaitUntil(
         self.IsTextPresent,
         "/api/stats/store/WORKER/metrics/sample_counter?"
-        "end=3600000000&start=42000000")
+        "start=42000000&end=3600000000")
     self.WaitUntil(self.IsTextPresent, 'metric_name": "sample_counter"')
 
   def testAff4ObjectRenderersDocsAreShown(self):

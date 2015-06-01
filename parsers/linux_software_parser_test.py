@@ -7,8 +7,8 @@ import os
 
 
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.parsers import linux_software_parser
 
 
@@ -32,7 +32,7 @@ class LinuxSoftwareParserTest(test_lib.GRRBaseTest):
     with open(path) as data:
       out = list(parser.Parse(None, data, None))
     for result in out:
-      self.assertIsInstance(result, rdfvalue.Anomaly)
+      self.assertIsInstance(result, rdf_anomaly.Anomaly)
 
 
 def main(args):

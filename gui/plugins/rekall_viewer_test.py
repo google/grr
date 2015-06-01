@@ -7,8 +7,8 @@
 from grr.client.client_actions import grr_rekall_test
 from grr.gui import runtests_test
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 
 
 class TestRekallViewer(test_lib.GRRSeleniumTest,
@@ -20,14 +20,14 @@ class TestRekallViewer(test_lib.GRRSeleniumTest,
 
     self.UninstallACLChecks()
 
-    request = rdfvalue.RekallRequest()
+    request = rdf_rekall_types.RekallRequest()
     request.plugins = [
         # Only use these methods for listing processes.
-        rdfvalue.PluginRequest(
+        rdf_rekall_types.PluginRequest(
             plugin="pslist", args=dict(
                 method=["PsActiveProcessHead", "CSRSS"]
             )),
-        rdfvalue.PluginRequest(plugin="modules")]
+        rdf_rekall_types.PluginRequest(plugin="modules")]
 
     self.LaunchRekallPlugin(request)
 

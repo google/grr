@@ -61,7 +61,7 @@ describe('infinite table', function() {
         '</tbody></table>';
     var compiledTemplate = $compile(template);
     expect(function() { compiledTemplate($rootScope); }).toThrow(
-        'Data provider not specified.');
+        Error('Data provider not specified.'));
   });
 
   it('shows empty table when there are no elements', function() {

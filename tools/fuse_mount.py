@@ -14,6 +14,7 @@ from grr.lib import server_plugins
 
 import logging
 
+from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import data_store
@@ -577,8 +578,8 @@ Try:
   root = flags.FLAGS.aff4path
 
   username = flags.FLAGS.username or getpass.getuser()
-  token = rdfvalue.ACLToken(username=username, reason=flags.FLAGS.reason or
-                            "fusemount")
+  token = access_control.ACLToken(username=username,
+                                  reason=flags.FLAGS.reason or "fusemount")
 
   # If we're exporting a path inside a client, check to see if we have access to
   # that client and get the appropriate token.

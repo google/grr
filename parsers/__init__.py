@@ -4,6 +4,7 @@
 # pylint: disable=g-import-not-at-top
 # pylint: disable=unused-import
 from grr.parsers import config_file
+from grr.parsers import cron_file_parser
 from grr.parsers import ie_history
 from grr.parsers import linux_cmd_parser
 from grr.parsers import linux_file_parser

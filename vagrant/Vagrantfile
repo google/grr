@@ -74,12 +74,8 @@ Vagrant.configure(2) do |config|
     end
   end
 
-  # TODO: create a windows vm based off the trial images that we can distribute.
-  # The build code assumes ssh access into a Cygwin environment.
+  # This is the fully configured windows VM with all dependencies installed
   config.vm.define "windows_7_64" do |box|
-    # We map one level up so 'net use x: \\VBOXSVR\host will give us a x:\grr
-    # subdirectory so python imports work.
-    box.vm.synced_folder "../../", "/host"
     box.vm.box = "windows_7_64"
     box.vm.guest = :windows
     # Random keypair generation and insertion doesn't work on Windows
@@ -91,7 +87,58 @@ Vagrant.configure(2) do |config|
     # provisioning time, so we need to use vagrant --provision reload and wait
     # for a reboot. Ugh.
     box.vm.communicator = "winrm"
-    config.vm.provision "shell", path: "build_windows_templates.bat"
+    box.vm.provider "virtualbox" do |v|
+      v.memory = "8192"
+      v.cpus = "6"
+    end
+    config.vm.provision "shell", path: "windows/build_windows_templates.bat"
+  end
+
+  # This is the bare windows VM you get from packer.
+  config.vm.define "windows_7_64_vanilla" do |box|
+    box.vm.box = "windows_7_64_vanilla"
+    box.vm.guest = :windows
+    # Random keypair generation and insertion doesn't work on Windows
+    box.ssh.insert_key = false
+    box.vm.communicator = "winrm"
+    box.vm.provider "virtualbox" do |v|
+      v.gui = true
+      v.memory = "8192"
+      v.cpus = "6"
+    end
+  end
+
+  # This is the bare windows VM you get from packer. Just here for testing 32bit
+  # build, we don't build with this.
+  config.vm.define "windows_7_32_vanilla" do |box|
+    box.vm.box = "windows_7_32_vanilla"
+    box.vm.guest = :windows
+    # Random keypair generation and insertion doesn't work on Windows
+    box.ssh.insert_key = false
+    box.vm.communicator = "winrm"
+    box.vm.provider "virtualbox" do |v|
+      v.gui = true
+      v.memory = "8192"
+      v.cpus = "6"
+    end
+  end
+
+  # This is the base windows VM with major dependencies like visualstudio
+  # installed.  Unfortunately we can't use the provision script functionality to
+  # install the rest of the dependencies because the vagrant output redirection
+  # triggers this bug:
+  # http://www.leeholmes.com/blog/2008/07/30/workaround-the-os-handles-position-is-not-what-filestream-expected/
+  config.vm.define "windows_7_64_base" do |box|
+    box.vm.box = "windows_7_64_base"
+    box.vm.guest = :windows
+    # Random keypair generation and insertion doesn't work on Windows
+    box.ssh.insert_key = false
+    box.vm.communicator = "winrm"
+    box.vm.provider "virtualbox" do |v|
+      v.gui = true
+      v.memory = "8192"
+      v.cpus = "6"
+    end
   end
 
 end

@@ -8,7 +8,6 @@ import threading
 import time
 
 # pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
 # Import this so the aff4 tests will be run.
 from grr.lib.aff4_objects import tests
 # pylint: enable=unused-import,g-bad-import-order
@@ -21,6 +20,12 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
+from grr.lib.rdfvalues import aff4_rdfvalues
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import crypto as rdf_crypto
+from grr.lib.rdfvalues import foreman as rdf_foreman
+from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import protodict as rdf_protodict
 
 
 class MockNotificationRule(aff4.AFF4NotificationRule):
@@ -197,7 +202,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     """Test that append attribute works."""
     # Create an object to carry attributes
     obj = aff4.FACTORY.Create("foobar", "AFF4Object", token=self.token)
-    obj.Set(obj.Schema.STORED("http://www.google.com"))
+    obj.Set(obj.Schema.STORED("www.google.com"))
     obj.Close()
 
     obj = aff4.FACTORY.Open("foobar", mode="rw", token=self.token,
@@ -206,7 +211,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
     # Add a bunch of attributes now.
     for i in range(5):
-      obj.AddAttribute(obj.Schema.STORED("http://example.com/%s" % i))
+      obj.AddAttribute(obj.Schema.STORED("example.com/%s" % i))
 
     # There should be 6 there now
     self.assertEqual(6, len(list(obj.GetValuesForAttribute(obj.Schema.STORED))))
@@ -229,7 +234,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     """Flush with age policy NEWEST_TIME should only keeps a single version."""
     # Create an object to carry attributes
     obj = aff4.FACTORY.Create("foobar", "AFF4Object", token=self.token)
-    obj.Set(obj.Schema.STORED("http://www.google.com"))
+    obj.Set(obj.Schema.STORED("www.google.com"))
     obj.Close()
 
     obj = aff4.FACTORY.Open("foobar", mode="rw", token=self.token,
@@ -239,7 +244,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
     # Add a bunch of attributes now.
     for i in range(5):
-      obj.AddAttribute(obj.Schema.STORED("http://example.com/%s" % i))
+      obj.AddAttribute(obj.Schema.STORED("example.com/%s" % i))
 
     # There should be 5 unsynced versions now
     self.assertEqual(5, len(obj.new_attributes[obj.Schema.STORED.predicate]))
@@ -253,14 +258,14 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     self.assertEqual(1, len(obj.synced_attributes[obj.Schema.STORED.predicate]))
 
     # The latest version should be kept.
-    self.assertEqual(obj.Get(obj.Schema.STORED), "http://example.com/4")
+    self.assertEqual(obj.Get(obj.Schema.STORED), "example.com/4")
 
   def testCopyAttributes(self):
     # Create an object to carry attributes
     obj = aff4.FACTORY.Create("foobar", "AFF4Object", token=self.token)
     # Add a bunch of attributes now.
     for i in range(5):
-      obj.AddAttribute(obj.Schema.STORED("http://example.com/%s" % i))
+      obj.AddAttribute(obj.Schema.STORED("example.com/%s" % i))
     obj.Close()
 
     obj = aff4.FACTORY.Open("foobar", mode="r", token=self.token,
@@ -281,7 +286,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
   def testAttributeSet(self):
     obj = aff4.FACTORY.Create("foobar", "AFF4Object", token=self.token)
     self.assertFalse(obj.IsAttributeSet(obj.Schema.STORED))
-    obj.Set(obj.Schema.STORED("http://www.google.com"))
+    obj.Set(obj.Schema.STORED("www.google.com"))
     self.assertTrue(obj.IsAttributeSet(obj.Schema.STORED))
     obj.Close()
 
@@ -392,7 +397,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     fd = aff4.FACTORY.Create(self.client_id, "VFSGRRClient", token=self.token)
 
     # Certs invalid - The RDFX509Cert should check the validity of the cert
-    self.assertRaises(rdfvalue.DecodeError, rdfvalue.RDFX509Cert, "My cert")
+    self.assertRaises(rdfvalue.DecodeError, rdf_crypto.RDFX509Cert, "My cert")
 
     fd.Close()
 
@@ -659,7 +664,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     client_id = "C.%016X" % 0
     test_lib.ClientFixture(client_id, token=self.token)
 
-    fd = aff4.FACTORY.Open(rdfvalue.ClientURN(client_id).Add(
+    fd = aff4.FACTORY.Open(rdf_client.ClientURN(client_id).Add(
         "/fs/os/c"), token=self.token)
 
     # Test that we can match a unicode char.
@@ -677,7 +682,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
                      u"fs/os/c/regex.*?][{}--")
 
     # Test the OpenChildren function on files that contain regex chars.
-    fd = aff4.FACTORY.Open(rdfvalue.ClientURN(client_id).Add(
+    fd = aff4.FACTORY.Open(rdf_client.ClientURN(client_id).Add(
         r"/fs/os/c/regex\V.*?]xx[{}--"), token=self.token)
 
     children = list(fd.OpenChildren())
@@ -685,7 +690,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     self.assertTrue("regexchild" in utils.SmartUnicode(children[0].urn))
 
     # Test that OpenChildren works correctly on Unicode names.
-    fd = aff4.FACTORY.Open(rdfvalue.ClientURN(client_id).Add(
+    fd = aff4.FACTORY.Open(rdf_client.ClientURN(client_id).Add(
         "/fs/os/c"), token=self.token)
 
     children = list(fd.OpenChildren())
@@ -697,7 +702,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     self.assertTrue(u"aff4:/C.0000000000000000/fs/os/c/中国新闻网新闻中"
                     in urns)
 
-    fd = aff4.FACTORY.Open(rdfvalue.ClientURN(client_id).Add(
+    fd = aff4.FACTORY.Open(rdf_client.ClientURN(client_id).Add(
         "/fs/os/c/中国新闻网新闻中"), token=self.token)
 
     children = list(fd.OpenChildren())
@@ -706,7 +711,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     self.assertEqual(child.Get(child.Schema.TYPE), "VFSFile")
 
     # This tests filtering through the AFF4Filter.
-    fd = aff4.FACTORY.Open(rdfvalue.ClientURN(client_id).Add(
+    fd = aff4.FACTORY.Open(rdf_client.ClientURN(client_id).Add(
         "/fs/os/c/bin %s" % client_id), token=self.token)
 
     matched = list(fd.Query(
@@ -727,7 +732,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     client_id = "C.%016X" % 0
     test_lib.ClientFixture(client_id, token=self.token)
 
-    file_url = rdfvalue.ClientURN(client_id).Add("/fs/os/c/time/file.txt")
+    file_url = rdf_client.ClientURN(client_id).Add("/fs/os/c/time/file.txt")
     for t in [1000, 1500, 2000, 2500]:
       with test_lib.FakeTime(t):
         f = aff4.FACTORY.Create(rdfvalue.RDFURN(file_url), "VFSFile",
@@ -737,7 +742,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
     # The following tests occur sometime in the future (time 3000).
     with test_lib.FakeTime(3000):
-      fd = aff4.FACTORY.Open(rdfvalue.ClientURN(client_id).Add(
+      fd = aff4.FACTORY.Open(rdf_client.ClientURN(client_id).Add(
           "/fs/os/c/time"), token=self.token)
 
       # Query for all entries.
@@ -1247,23 +1252,26 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     label_index = aff4.FACTORY.Open(aff4.VFSGRRClient.labels_index_urn,
                                     token=self.token)
     self.assertSetEqual(set(label_index.ListUsedLabels()),
-                        set([rdfvalue.AFF4ObjectLabel(name="label1",
-                                                      owner="test"),
-                             rdfvalue.AFF4ObjectLabel(name="label2",
-                                                      owner="test"),
-                             rdfvalue.AFF4ObjectLabel(name="label3",
-                                                      owner="test")]))
+                        set([aff4_rdfvalues.AFF4ObjectLabel(name="label1",
+                                                            owner="test"),
+                             aff4_rdfvalues.AFF4ObjectLabel(name="label2",
+                                                            owner="test"),
+                             aff4_rdfvalues.AFF4ObjectLabel(name="label3",
+                                                            owner="test")]))
 
     found_urns = label_index.MultiFindUrnsByLabel(labels)
-    self.assertListEqual(found_urns[rdfvalue.AFF4ObjectLabel(name="label1",
-                                                             owner="test")],
-                         [rdfvalue.ClientURN("C.0000000000000001")])
-    self.assertListEqual(found_urns[rdfvalue.AFF4ObjectLabel(name="label2",
-                                                             owner="test")],
-                         [rdfvalue.ClientURN("C.0000000000000001")])
-    self.assertListEqual(found_urns[rdfvalue.AFF4ObjectLabel(name="label3",
-                                                             owner="test")],
-                         [rdfvalue.ClientURN("C.0000000000000001")])
+    self.assertListEqual(
+        found_urns[aff4_rdfvalues.AFF4ObjectLabel(name="label1",
+                                                  owner="test")],
+        [rdf_client.ClientURN("C.0000000000000001")])
+    self.assertListEqual(
+        found_urns[aff4_rdfvalues.AFF4ObjectLabel(name="label2",
+                                                  owner="test")],
+        [rdf_client.ClientURN("C.0000000000000001")])
+    self.assertListEqual(
+        found_urns[aff4_rdfvalues.AFF4ObjectLabel(name="label3",
+                                                  owner="test")],
+        [rdf_client.ClientURN("C.0000000000000001")])
 
   def testLabelIndexIsNotUpdatedWhenLabelIsRemoved(self):
     with aff4.FACTORY.Create("C.0000000000000001", "VFSGRRClient",
@@ -1278,17 +1286,17 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
     label_index = aff4.FACTORY.Open(aff4.VFSGRRClient.labels_index_urn,
                                     token=self.token)
-    self.assertTrue(rdfvalue.AFF4ObjectLabel(
+    self.assertTrue(aff4_rdfvalues.AFF4ObjectLabel(
         name="label1", owner="test") in label_index.ListUsedLabels())
     self.assertListEqual(
         label_index.FindUrnsByLabel("label3"),
-        [rdfvalue.ClientURN("C.0000000000000001")])
+        [rdf_client.ClientURN("C.0000000000000001")])
 
   def testPathSpecInterpolation(self):
     # Create a base directory containing a pathspec.
     os_urn = rdfvalue.RDFURN("aff4:/C.0000000000000002/fs/os")
-    pathspec = rdfvalue.PathSpec(
-        path="/", pathtype=rdfvalue.PathSpec.PathType.OS)
+    pathspec = rdf_paths.PathSpec(
+        path="/", pathtype=rdf_paths.PathSpec.PathType.OS)
     additional_path = "/var/log"
     fd = aff4.FACTORY.Create(os_urn, "VFSDirectory", token=self.token)
     fd.Set(fd.Schema.PATHSPEC(pathspec))
@@ -1413,8 +1421,8 @@ class ForemanTests(test_lib.AFF4ObjectTest):
       foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
 
       # Make a new rule
-      rule = rdfvalue.ForemanRule(created=int(now), expires=int(expires),
-                                  description="Test rule")
+      rule = rdf_foreman.ForemanRule(created=int(now), expires=int(expires),
+                                     description="Test rule")
 
       # Matches Windows boxes
       rule.regex_rules.Append(attribute_name=fd.Schema.SYSTEM.name,
@@ -1422,7 +1430,7 @@ class ForemanTests(test_lib.AFF4ObjectTest):
 
       # Will run Test Flow
       rule.actions.Append(flow_name="Test Flow",
-                          argv=rdfvalue.Dict(foo="bar"))
+                          argv=rdf_protodict.Dict(foo="bar"))
 
       # Clear the rule set and add the new rule to it.
       rule_set = foreman.Schema.RULES()
@@ -1440,9 +1448,9 @@ class ForemanTests(test_lib.AFF4ObjectTest):
       # Make sure that only the windows machines ran
       self.assertEqual(len(self.clients_launched), 2)
       self.assertEqual(self.clients_launched[0][0],
-                       rdfvalue.ClientURN("C.0000000000000001"))
+                       rdf_client.ClientURN("C.0000000000000001"))
       self.assertEqual(self.clients_launched[1][0],
-                       rdfvalue.ClientURN("C.0000000000000003"))
+                       rdf_client.ClientURN("C.0000000000000003"))
 
       self.clients_launched = []
 
@@ -1488,56 +1496,56 @@ class ForemanTests(test_lib.AFF4ObjectTest):
       foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
 
       # Make a new rule
-      rule = rdfvalue.ForemanRule(created=int(now), expires=int(expires),
-                                  description="Test rule(old)")
+      rule = rdf_foreman.ForemanRule(created=int(now), expires=int(expires),
+                                     description="Test rule(old)")
 
       # Matches the old client
       rule.integer_rules.Append(
           attribute_name=fd.Schema.INSTALL_DATE.name,
-          operator=rdfvalue.ForemanAttributeInteger.Operator.LESS_THAN,
+          operator=rdf_foreman.ForemanAttributeInteger.Operator.LESS_THAN,
           value=int(1336480583077736 - 3600 * 1e6))
 
       old_flow = "Test flow for old clients"
       # Will run Test Flow
       rule.actions.Append(flow_name=old_flow,
-                          argv=rdfvalue.Dict(dict(foo="bar")))
+                          argv=rdf_protodict.Dict(dict(foo="bar")))
 
       # Clear the rule set and add the new rule to it.
       rule_set = foreman.Schema.RULES()
       rule_set.Append(rule)
 
       # Make a new rule
-      rule = rdfvalue.ForemanRule(created=int(now), expires=int(expires),
-                                  description="Test rule(new)")
+      rule = rdf_foreman.ForemanRule(created=int(now), expires=int(expires),
+                                     description="Test rule(new)")
 
       # Matches the newer clients
       rule.integer_rules.Append(
           attribute_name=fd.Schema.INSTALL_DATE.name,
-          operator=rdfvalue.ForemanAttributeInteger.Operator.GREATER_THAN,
+          operator=rdf_foreman.ForemanAttributeInteger.Operator.GREATER_THAN,
           value=int(1336480583077736 - 3600 * 1e6))
 
       new_flow = "Test flow for newer clients"
 
       # Will run Test Flow
       rule.actions.Append(flow_name=new_flow,
-                          argv=rdfvalue.Dict(dict(foo="bar")))
+                          argv=rdf_protodict.Dict(dict(foo="bar")))
 
       rule_set.Append(rule)
 
       # Make a new rule
-      rule = rdfvalue.ForemanRule(created=int(now), expires=int(expires),
-                                  description="Test rule(eq)")
+      rule = rdf_foreman.ForemanRule(created=int(now), expires=int(expires),
+                                     description="Test rule(eq)")
 
       # Note that this also tests the handling of nonexistent attributes.
       rule.integer_rules.Append(
           attribute_name=fd.Schema.LAST_BOOT_TIME.name,
-          operator=rdfvalue.ForemanAttributeInteger.Operator.EQUAL,
+          operator=rdf_foreman.ForemanAttributeInteger.Operator.EQUAL,
           value=1336300000000000)
 
       eq_flow = "Test flow for LAST_BOOT_TIME"
 
       rule.actions.Append(flow_name=eq_flow,
-                          argv=rdfvalue.Dict(dict(foo="bar")))
+                          argv=rdf_protodict.Dict(dict(foo="bar")))
 
       rule_set.Append(rule)
 
@@ -1554,16 +1562,16 @@ class ForemanTests(test_lib.AFF4ObjectTest):
       # Make sure that the clients ran the correct flows.
       self.assertEqual(len(self.clients_launched), 4)
       self.assertEqual(self.clients_launched[0][0],
-                       rdfvalue.ClientURN("C.0000000000000011"))
+                       rdf_client.ClientURN("C.0000000000000011"))
       self.assertEqual(self.clients_launched[0][1], new_flow)
       self.assertEqual(self.clients_launched[1][0],
-                       rdfvalue.ClientURN("C.0000000000000012"))
+                       rdf_client.ClientURN("C.0000000000000012"))
       self.assertEqual(self.clients_launched[1][1], new_flow)
       self.assertEqual(self.clients_launched[2][0],
-                       rdfvalue.ClientURN("C.0000000000000013"))
+                       rdf_client.ClientURN("C.0000000000000013"))
       self.assertEqual(self.clients_launched[2][1], old_flow)
       self.assertEqual(self.clients_launched[3][0],
-                       rdfvalue.ClientURN("C.0000000000000014"))
+                       rdf_client.ClientURN("C.0000000000000014"))
       self.assertEqual(self.clients_launched[3][1], eq_flow)
 
   def testRuleExpiration(self):
@@ -1571,18 +1579,18 @@ class ForemanTests(test_lib.AFF4ObjectTest):
       foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
 
       rules = []
-      rules.append(rdfvalue.ForemanRule(created=1000 * 1000000,
-                                        expires=1500 * 1000000,
-                                        description="Test rule1"))
-      rules.append(rdfvalue.ForemanRule(created=1000 * 1000000,
-                                        expires=1200 * 1000000,
-                                        description="Test rule2"))
-      rules.append(rdfvalue.ForemanRule(created=1000 * 1000000,
-                                        expires=1500 * 1000000,
-                                        description="Test rule3"))
-      rules.append(rdfvalue.ForemanRule(created=1000 * 1000000,
-                                        expires=1300 * 1000000,
-                                        description="Test rule4"))
+      rules.append(rdf_foreman.ForemanRule(created=1000 * 1000000,
+                                           expires=1500 * 1000000,
+                                           description="Test rule1"))
+      rules.append(rdf_foreman.ForemanRule(created=1000 * 1000000,
+                                           expires=1200 * 1000000,
+                                           description="Test rule2"))
+      rules.append(rdf_foreman.ForemanRule(created=1000 * 1000000,
+                                           expires=1500 * 1000000,
+                                           description="Test rule3"))
+      rules.append(rdf_foreman.ForemanRule(created=1000 * 1000000,
+                                           expires=1300 * 1000000,
+                                           description="Test rule4"))
 
       client_id = "C.0000000000000021"
       fd = aff4.FACTORY.Create(client_id, "VFSGRRClient",

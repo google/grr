@@ -18,9 +18,10 @@ import urlparse
 from grr.lib import server_plugins
 # pylint: enable=g-bad-import-order,unused-import
 
+from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import artifact
-from grr.lib import artifact_lib
+from grr.lib import artifact_registry
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import key_utils
@@ -469,7 +470,7 @@ this will be port 8080 with the URL ending in /control.
   print """\n-=AdminUI URL=-
 The AdminUI URL specifies where the Administrative Web Interface can be found.
 """
-  ui_url = RetryQuestion("AdminUI URL", "^http://.*$",
+  ui_url = RetryQuestion("AdminUI URL", "^http[s]*://.*$",
                          "http://%s:8000" % hostname)
   config.Set("AdminUI.url", ui_url)
 
@@ -570,7 +571,7 @@ def UploadRaw(file_path, aff4_path, token=None):
 
 def GetToken():
   # Extend for user authorization
-  return rdfvalue.ACLToken(username="GRRConsole").SetUID()
+  return access_control.ACLToken(username="GRRConsole").SetUID()
 
 
 def main(unused_argv):
@@ -701,7 +702,7 @@ def main(unused_argv):
       artifact.UploadArtifactYamlFile(
           open(flags.FLAGS.file).read(1000000), base_urn=base_urn, token=None,
           overwrite=flags.FLAGS.overwrite)
-    except artifact_lib.ArtifactDefinitionError as e:
+    except artifact_registry.ArtifactDefinitionError as e:
       print "Error %s. You may need to set --overwrite." % e
 
 if __name__ == "__main__":

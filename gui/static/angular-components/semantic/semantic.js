@@ -1,8 +1,11 @@
 'use strict';
 
+// TODO(user): Auto-generate parts of this file
+//
 goog.provide('grrUi.semantic.module');
 
 goog.require('grrUi.core.module');
+goog.require('grrUi.core.semanticRegistry.SemanticRegistryService');
 goog.require('grrUi.semantic.clientUrnDirective.ClientUrnDirective');
 goog.require('grrUi.semantic.fetchMoreLinkDirective.FetchMoreLinkDirective');
 goog.require('grrUi.semantic.macAddressDirective.MacAddressDirective');
@@ -52,3 +55,42 @@ grrUi.semantic.module.directive(
 grrUi.semantic.module.directive(
     grrUi.semantic.timestampDirective.TimestampDirective.directive_name,
     grrUi.semantic.timestampDirective.TimestampDirective);
+grrUi.semantic.module.service(
+    grrUi.core.semanticRegistry.SemanticRegistryService.values_service_name,
+    grrUi.core.semanticRegistry.SemanticRegistryService);
+
+
+grrUi.semantic.module.run(function(grrSemanticValueDirectivesRegistryService) {
+  var registry = grrSemanticValueDirectivesRegistryService;
+
+  registry.registerDirective(
+      grrUi.semantic.clientUrnDirective.ClientUrnDirective.semantic_type,
+      grrUi.semantic.clientUrnDirective.ClientUrnDirective);
+  registry.registerDirective(
+      grrUi.semantic.fetchMoreLinkDirective.FetchMoreLinkDirective
+          .semantic_type,
+      grrUi.semantic.fetchMoreLinkDirective.FetchMoreLinkDirective);
+  registry.registerDirective(
+      grrUi.semantic.macAddressDirective.MacAddressDirective.semantic_type,
+      grrUi.semantic.macAddressDirective.MacAddressDirective);
+  registry.registerDirective(
+    grrUi.semantic.networkAddressDirective.NetworkAddressDirective
+        .semantic_type,
+    grrUi.semantic.networkAddressDirective.NetworkAddressDirective);
+  registry.registerDirective(
+    grrUi.semantic.objectLabelDirective.ObjectLabelDirective.semantic_type,
+    grrUi.semantic.objectLabelDirective.ObjectLabelDirective);
+  registry.registerDirective(
+    grrUi.semantic.objectLabelDirective.ObjectLabelDirective.semantic_type,
+    grrUi.semantic.objectLabelDirective.ObjectLabelDirective);
+  registry.registerDirective(
+    grrUi.semantic.objectLabelsListDirective.ObjectLabelsListDirective
+        .semantic_type,
+    grrUi.semantic.objectLabelsListDirective.ObjectLabelsListDirective);
+  registry.registerDirective(
+    grrUi.semantic.semanticProtoDirective.SemanticProtoDirective.semantic_type,
+    grrUi.semantic.semanticProtoDirective.SemanticProtoDirective);
+  registry.registerDirective(
+    grrUi.semantic.timestampDirective.TimestampDirective.semantic_type,
+    grrUi.semantic.timestampDirective.TimestampDirective);
+});

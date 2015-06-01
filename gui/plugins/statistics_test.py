@@ -9,8 +9,8 @@ from grr.gui import runtests_test
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.rdfvalues import stats as rdf_stats
 
 
 class TestStats(test_lib.GRRSeleniumTest):
@@ -31,7 +31,7 @@ class TestStats(test_lib.GRRSeleniumTest):
             age=int((now + i * 60 * 60 * 24) * 1e6))
 
         for number in [1, 7, 14, 30]:
-          graph = rdfvalue.Graph(title="%s day actives" % number)
+          graph = rdf_stats.Graph(title="%s day actives" % number)
           graph.Append(label="Windows", y_value=i + number)
           graph.Append(label="Linux", y_value=i * 2 + number)
 

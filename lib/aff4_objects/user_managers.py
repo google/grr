@@ -25,6 +25,10 @@ from grr.lib import stats
 from grr.lib import utils
 
 from grr.lib.aff4_objects import aff4_grr
+# For Approval. pylint: disable=unused-import
+from grr.lib.aff4_objects import security
+# pylint: enable=unused-import
+from grr.lib.rdfvalues import client as rdf_client
 
 
 class CheckAccessHelper(object):
@@ -192,7 +196,7 @@ class BasicAccessControlManager(NullAccessControlManager):
   def CheckFlowAccess(self, token, flow_name, client_id=None):
     client_urn = None
     if client_id:
-      client_urn = rdfvalue.ClientURN(client_id)
+      client_urn = rdf_client.ClientURN(client_id)
 
     self.ValidateToken(token, client_urn)
 
@@ -218,7 +222,7 @@ class BasicAccessControlManager(NullAccessControlManager):
 
   def CheckClientAccess(self, subject, token):
     client_id, _ = rdfvalue.RDFURN(subject).Split(2)
-    client_urn = rdfvalue.ClientURN(client_id)
+    client_urn = rdf_client.ClientURN(client_id)
     return self.CheckACL(token, client_urn)
 
   @stats.Timed("acl_check_time")
@@ -569,8 +573,9 @@ class FullAccessControlManager(BasicAccessControlManager):
     if not target:
       if token.username not in aff4.GRRUser.SYSTEM_USERS:
         raise access_control.UnauthorizedAccess(
-            "ACL access denied for flow without client_urn for %s",
+            "ACL access denied for flow without client_urn for %s" %
             token.username)
+
       return True
 
     if not token.reason:

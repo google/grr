@@ -11,13 +11,14 @@ from grr.gui import api_value_renderers
 from grr.lib import aff4
 from grr.lib import client_index
 from grr.lib import flow
-from grr.lib import rdfvalue
 from grr.lib import utils
+
+from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import api_pb2
 
 
-class ApiClientSearchRendererArgs(rdfvalue.RDFProtoStruct):
+class ApiClientSearchRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiClientSearchRendererArgs
 
 
@@ -42,7 +43,7 @@ class ApiClientSearchRenderer(api_call_renderers.ApiCallRenderer):
 
     for child in result_set:
       rendered_client = api_aff4_object_renderers.RenderAFF4Object(
-          child, [rdfvalue.ApiAFF4ObjectRendererArgs(
+          child, [api_aff4_object_renderers.ApiAFF4ObjectRendererArgs(
               type_info="WITH_TYPES_AND_METADATA")])
       rendered_clients.append(rendered_client)
 
@@ -52,7 +53,7 @@ class ApiClientSearchRenderer(api_call_renderers.ApiCallRenderer):
                 items=rendered_clients)
 
 
-class ApiClientSummaryRendererArgs(rdfvalue.RDFProtoStruct):
+class ApiClientSummaryRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiClientSummaryRendererArgs
 
 
@@ -66,11 +67,11 @@ class ApiClientSummaryRenderer(api_call_renderers.ApiCallRenderer):
                                token=token)
 
     return api_aff4_object_renderers.RenderAFF4Object(
-        client, [rdfvalue.ApiAFF4ObjectRendererArgs(
+        client, [api_aff4_object_renderers.ApiAFF4ObjectRendererArgs(
             type_info="WITH_TYPES_AND_METADATA")])
 
 
-class ApiClientsAddLabelsRendererArgs(rdfvalue.RDFProtoStruct):
+class ApiClientsAddLabelsRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiClientsAddLabelsRendererArgs
 
 
@@ -99,7 +100,7 @@ class ApiClientsAddLabelsRenderer(api_call_renderers.ApiCallRenderer):
         client_obj.Close()
 
         audit_events.append(
-            rdfvalue.AuditEvent(
+            flow.AuditEvent(
                 user=token.username, action="CLIENT_ADD_LABEL",
                 flow_name="renderer.ApiClientsAddLabelsRenderer",
                 client=client_obj.urn, description=audit_description))
@@ -110,7 +111,7 @@ class ApiClientsAddLabelsRenderer(api_call_renderers.ApiCallRenderer):
                                         token=token)
 
 
-class ApiClientsRemoveLabelsRendererArgs(rdfvalue.RDFProtoStruct):
+class ApiClientsRemoveLabelsRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiClientsRemoveLabelsRendererArgs
 
 
@@ -152,7 +153,7 @@ class ApiClientsRemoveLabelsRenderer(api_call_renderers.ApiCallRenderer):
         client_obj.Close()
 
         audit_events.append(
-            rdfvalue.AuditEvent(
+            flow.AuditEvent(
                 user=token.username, action="CLIENT_REMOVE_LABEL",
                 flow_name="renderer.ApiClientsRemoveLabelsRenderer",
                 client=client_obj.urn, description=audit_description))
@@ -176,3 +177,82 @@ class ApiClientsLabelsListRenderer(api_call_renderers.ApiCallRenderer):
       rendered_labels.append(api_value_renderers.RenderValue(label))
 
     return dict(labels=sorted(rendered_labels))
+
+
+class ApiFlowStatusRendererArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiFlowStatusRendererArgs
+
+
+class ApiFlowStatusRenderer(api_call_renderers.ApiCallRenderer):
+  """Renders summary of a given flow.
+
+  Only top-level flows can be targeted. Times returned in the response are micro
+  seconds since epoch.
+  """
+
+  args_type = ApiFlowStatusRendererArgs
+
+  # Make this SetUID, see comment below. Authentication is still required.
+  privileged = True
+
+  def Render(self, args, token=None):
+    """Render flow status.
+
+    This renderer needs to be setuid because it needs to access any top level
+    flow on any client. The ACL model operates at the object level, and doesn't
+    give us the ability to target specific attributes of the object. This
+    renderer relies on ClientURN and SessionID type validation to check the
+    input parameters to avoid allowing arbitrary reads into the client aff4
+    space. This renderer filters out only the attributes that are appropriate to
+    release without authorization (authentication is still required).
+
+    Args:
+      args: ApiFlowStatusRendererArgs object
+      token: access token
+    Returns:
+      dict representing flow state
+    Raises:
+      ValueError: if there is no flow at the URN
+    """
+    # args.flow_id looks like aff4:/F:ABCDEF12, convert it into a flow urn for
+    # the target client.
+    flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())
+    try:
+      flow_obj = aff4.FACTORY.Open(flow_urn, aff4_type="GRRFlow",
+                                   token=token)
+    except aff4.InstantiationError:
+      raise ValueError("No flow object at %s" % flow_urn)
+
+    flow_state = flow_obj.Get(flow_obj.Schema.FLOW_STATE)
+
+    # We expect there is a use case for exposing flow_state.args, but in the
+    # interest of exposing the minimum information required, we'll leave it out
+    # until there is demonstrated need.
+    rdf_result_map = {
+        # "args": flow_state.args,
+        "backtrace": flow_state.context.backtrace,
+        "client_resources": flow_state.context.client_resources,
+        "create_time": flow_state.context.create_time,
+        "creator": flow_state.context.creator,
+        "flow_runner_args": flow_state.context.args,
+        "last_update_time": flow_obj.Get(flow_obj.Schema.LAST),
+        "network_bytes_sent": flow_state.context.network_bytes_sent,
+        "output_urn": flow_state.context.output_urn,
+        "session_id": flow_state.context.session_id,
+        "state": flow_state.context.state,
+        }
+
+    result = {}
+    for dest_key, src in rdf_result_map.iteritems():
+      result[dest_key] = api_value_renderers.RenderValue(src)
+
+    result["current_state"] = flow_state.context.current_state
+    try:
+      result_collection = aff4.FACTORY.Open(flow_state.context.output_urn,
+                                            aff4_type="RDFValueCollection",
+                                            token=token)
+      result["result_count"] = len(result_collection)
+    except aff4.InstantiationError:
+      result["result_count"] = 0
+
+    return result

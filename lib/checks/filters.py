@@ -8,6 +8,8 @@ from grr.lib import objectfilter
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs
 from grr.parsers import config_file
 
@@ -55,8 +57,8 @@ class BaseHandler(object):
     for f in self.filters:
       try:
         f.Validate()
-      except DefinitionError:
-        bad_filters.append(f.expression)
+      except DefinitionError as e:
+        bad_filters.append("%s: %s" % (f.expression, e))
     if bad_filters:
       raise DefinitionError("Filters with invalid expressions: %s" %
                             ", ".join(bad_filters))
@@ -210,7 +212,7 @@ class AttrFilter(Filter):
           # Dict won't accept rdfvalue.RepeatedFieldHelper
           if isinstance(val, structs.RepeatedFieldHelper):
             val = list(val)
-          yield rdfvalue.AttributedDict({"k": key, "v": val})
+          yield rdf_protodict.AttributedDict({"k": key, "v": val})
 
   def Validate(self, expression):
     self._Attrs(expression)
@@ -258,7 +260,7 @@ class ItemFilter(ObjectFilter):
     key = expression.split(None, 1)[0]
     for result in filt.Filter(objs):
       val = getattr(result, key)
-      yield rdfvalue.AttributedDict({"k": key, "v": val})
+      yield rdf_protodict.AttributedDict({"k": key, "v": val})
 
 
 class StatFilter(Filter):
@@ -350,7 +352,7 @@ class StatFilter(Filter):
     parsed = {}
     for entry in parser.ParseEntries(expression):
       parsed.update(entry)
-    self.cfg = rdfvalue.AttributedDict(parsed)
+    self.cfg = rdf_protodict.AttributedDict(parsed)
     return parsed
 
   def _Initialize(self):
@@ -409,7 +411,7 @@ class StatFilter(Filter):
     """
     self.Validate(expression)
     for obj in objs:
-      if not isinstance(obj, rdfvalue.StatEntry):
+      if not isinstance(obj, rdf_client.StatEntry):
         continue
       # If all match conditions pass, yield the object.
       for match in self.matchers:
@@ -522,4 +524,3 @@ class RDFFilter(Filter):
     errs = [n for n in self._RDFTypes(type_names) if not self._GetClass(n)]
     if errs:
       raise DefinitionError("Undefined RDF Types: %s" % ",".join(errs))
-

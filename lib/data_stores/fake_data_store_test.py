@@ -3,10 +3,6 @@
 
 
 
-# pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import,g-bad-import-order
-
 from grr.lib import data_store_test
 from grr.lib import flags
 from grr.lib import test_lib

@@ -11,8 +11,9 @@ from grr.gui import runtests_test
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import queue_manager
-from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import flows as rdf_flows
 
 
 class TestInspectViewBase(test_lib.GRRSeleniumTest):
@@ -24,7 +25,7 @@ class TestClientLoadView(TestInspectViewBase):
 
   @staticmethod
   def CreateLeasedClientRequest(
-      client_id=rdfvalue.ClientURN("C.0000000000000001"),
+      client_id=rdf_client.ClientURN("C.0000000000000001"),
       token=None):
 
     flow.GRRFlow.StartFlow(client_id=client_id,
@@ -33,26 +34,26 @@ class TestClientLoadView(TestInspectViewBase):
       manager.QueryAndOwn(client_id.Queue(), limit=1, lease_seconds=10000)
 
   @staticmethod
-  def FillClientStats(client_id=rdfvalue.ClientURN("C.0000000000000001"),
+  def FillClientStats(client_id=rdf_client.ClientURN("C.0000000000000001"),
                       token=None):
     for minute in range(6):
-      stats = rdfvalue.ClientStats()
+      stats = rdf_client.ClientStats()
       for i in range(minute * 60, (minute + 1) * 60):
-        sample = rdfvalue.CpuSample(
+        sample = rdf_client.CpuSample(
             timestamp=int(i * 10 * 1e6),
             user_cpu_time=10 + i,
             system_cpu_time=20 + i,
             cpu_percent=10 + i)
         stats.cpu_samples.Append(sample)
 
-        sample = rdfvalue.IOSample(
+        sample = rdf_client.IOSample(
             timestamp=int(i * 10 * 1e6),
             read_bytes=10 + i,
             write_bytes=10 + i * 2)
         stats.io_samples.Append(sample)
 
-      message = rdfvalue.GrrMessage(source=client_id,
-                                    args=stats.SerializeToString())
+      message = rdf_flows.GrrMessage(source=client_id,
+                                     args=stats.SerializeToString())
       flow.WellKnownFlow.GetAllWellKnownFlows(
           token=token)["Stats"].ProcessMessage(message)
 
@@ -70,7 +71,7 @@ class TestClientLoadView(TestInspectViewBase):
     self.Open("/#c=C.0000000000000001&main=ClientLoadView")
     self.WaitUntil(self.IsTextPresent, "No actions currently in progress.")
 
-    flow.GRRFlow.StartFlow(client_id=rdfvalue.ClientURN("C.0000000000000001"),
+    flow.GRRFlow.StartFlow(client_id=rdf_client.ClientURN("C.0000000000000001"),
                            flow_name="ListProcesses", token=self.token)
 
   def testClientActionIsDisplayedWhenItReceiveByTheClient(self):
@@ -134,7 +135,7 @@ class TestDebugClientRequestsView(TestInspectViewBase):
     # Here we emulate a mock client with no actions (None) this should produce
     # an error.
     with self.ACLChecksDisabled():
-      mock = test_lib.MockClient(rdfvalue.ClientURN("C.0000000000000001"),
+      mock = test_lib.MockClient(rdf_client.ClientURN("C.0000000000000001"),
                                  None, token=self.token)
       while mock.Next():
         pass

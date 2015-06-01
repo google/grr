@@ -1176,6 +1176,36 @@
       "url": "/api/config"
     }
   ],
+  "ApiFlowStatusRenderer": [
+    {
+      "method": "GET",
+      "response": {
+        "backtrace": null,
+        "client_resources": {
+          "cpu_usage": {}
+        },
+        "create_time": 42000000,
+        "creator": "test",
+        "current_state": "Start",
+        "flow_runner_args": {
+          "client_id": "aff4:/C.1000000000000000",
+          "flow_name": "Interrogate",
+          "token": {
+            "reason": "Running tests",
+            "username": "test"
+          }
+        },
+        "last_update_time": 42000000,
+        "network_bytes_sent": 0,
+        "output_urn": "aff4:/C.1000000000000000/analysis/Interrogate/test-42",
+        "result_count": 1,
+        "session_id": "aff4:/C.1000000000000000/flows/F:ABCDEF12",
+        "state": "RUNNING"
+      },
+      "test_class": "ApiFlowStatusRendererRegressionTest",
+      "url": "/api/flows/C.1000000000000000/F:ABCDEF12/status"
+    }
+  ],
   "ApiHuntErrorsRenderer": [
     {
       "method": "GET",
@@ -1840,7 +1870,6 @@
               "output_plugins_base_urn": "aff4:/hunts/H:123456/Results",
               "outstanding_requests": 0,
               "remaining_cpu_quota": 0,
-              "results_collection": "None",
               "results_collection_urn": "aff4:/hunts/H:123456/Results",
               "results_metadata_urn": "aff4:/hunts/H:123456/ResultsMetadata",
               "session_id": "aff4:/hunts/H:123456",
@@ -2277,7 +2306,6 @@
                   "output_plugins_base_urn": "aff4:/hunts/H:000001/Results",
                   "outstanding_requests": 0,
                   "remaining_cpu_quota": 0,
-                  "results_collection": "None",
                   "results_collection_urn": "aff4:/hunts/H:000001/Results",
                   "results_metadata_urn": "aff4:/hunts/H:000001/ResultsMetadata",
                   "session_id": "aff4:/hunts/H:000001",
@@ -2360,7 +2388,6 @@
                   "output_plugins_base_urn": "aff4:/hunts/H:000000/Results",
                   "outstanding_requests": 0,
                   "remaining_cpu_quota": 0,
-                  "results_collection": "None",
                   "results_collection_urn": "aff4:/hunts/H:000000/Results",
                   "results_metadata_urn": "aff4:/hunts/H:000000/ResultsMetadata",
                   "session_id": "aff4:/hunts/H:000000",
@@ -2454,7 +2481,6 @@
                   "output_plugins_base_urn": "aff4:/hunts/H:000001/Results",
                   "outstanding_requests": 0,
                   "remaining_cpu_quota": 0,
-                  "results_collection": "None",
                   "results_collection_urn": "aff4:/hunts/H:000001/Results",
                   "results_metadata_urn": "aff4:/hunts/H:000001/ResultsMetadata",
                   "session_id": "aff4:/hunts/H:000001",
@@ -2549,7 +2575,6 @@
                   "output_plugins_base_urn": "aff4:/hunts/H:000000/Results",
                   "outstanding_requests": 0,
                   "remaining_cpu_quota": 0,
-                  "results_collection": "None",
                   "results_collection_urn": "aff4:/hunts/H:000000/Results",
                   "results_metadata_urn": "aff4:/hunts/H:000000/ResultsMetadata",
                   "session_id": "aff4:/hunts/H:000000",
@@ -2600,6 +2625,19 @@
     {
       "method": "GET",
       "response": {
+        "default": {
+          "age": 0,
+          "mro": [
+            "Duration",
+            "RDFInteger",
+            "RDFString",
+            "RDFBytes",
+            "RDFValue",
+            "object"
+          ],
+          "type": "Duration",
+          "value": 0
+        },
         "doc": "Duration value stored in seconds internally.",
         "kind": "primitive",
         "name": "Duration"
@@ -2610,19 +2648,28 @@
     {
       "method": "GET",
       "response": {
+        "default": {
+          "age": 0,
+          "mro": [
+            "ApiRDFValueCollectionRendererArgs",
+            "RDFProtoStruct",
+            "RDFStruct",
+            "RDFValue",
+            "object"
+          ],
+          "type": "ApiRDFValueCollectionRendererArgs",
+          "value": {}
+        },
         "doc": "",
         "fields": [
           {
             "default": {
               "age": 0,
               "mro": [
-                "RDFInteger",
-                "RDFString",
-                "RDFBytes",
-                "RDFValue",
+                "int",
                 "object"
               ],
-              "type": "RDFInteger",
+              "type": "int",
               "value": 0
             },
             "doc": "Fetch items starting from this offset.",
@@ -2637,13 +2684,10 @@
             "default": {
               "age": 0,
               "mro": [
-                "RDFInteger",
-                "RDFString",
-                "RDFBytes",
-                "RDFValue",
+                "int",
                 "object"
               ],
-              "type": "RDFInteger",
+              "type": "int",
               "value": 0
             },
             "doc": "Fetch this number of elements.",
@@ -2680,12 +2724,11 @@
             "default": {
               "age": 0,
               "mro": [
-                "RDFString",
-                "RDFBytes",
-                "RDFValue",
+                "unicode",
+                "basestring",
                 "object"
               ],
-              "type": "RDFString",
+              "type": "unicode",
               "value": ""
             },
             "doc": "Return only collection items whose string representation contains given substring.",
@@ -2700,13 +2743,10 @@
             "default": {
               "age": 0,
               "mro": [
-                "RDFInteger",
-                "RDFString",
-                "RDFBytes",
-                "RDFValue",
+                "int",
                 "object"
               ],
-              "type": "RDFInteger",
+              "type": "int",
               "value": -1
             },
             "doc": "If >0, lists of values in the response will contain no more than specified number of items. This is an effective way to protect the UI from fetching and presenting enormously big datasets. If 0, no lists will be rendered at all. If -1, lists will be rendered in their entirety.",
@@ -2746,7 +2786,7 @@
                 "object"
               ],
               "type": "EnumNamedValue",
-              "value": "0"
+              "value": "NONE"
             },
             "doc": "Which type information to include when rendering collection items.",
             "dynamic": false,
@@ -3223,6 +3263,48 @@
       },
       "test_class": "ApiStatsStoreMetricsMetadataRendererRegressionTest",
       "url": "/api/stats/store/WORKER/metadata"
+    }
+  ],
+  "ApiUserSettingsRenderer": [
+    {
+      "method": "GET",
+      "response": {
+        "age": 42,
+        "fields_order": [
+          "canary_mode"
+        ],
+        "metadata": {
+          "canary_mode": {
+            "description": "If true, show features that are being canaried.",
+            "friendly_name": "Canary mode"
+          }
+        },
+        "mro": [
+          "GUISettings",
+          "RDFProtoStruct",
+          "RDFStruct",
+          "RDFValue",
+          "object"
+        ],
+        "type": "GUISettings",
+        "value": {
+          "canary_mode": {
+            "age": 0,
+            "mro": [
+              "RDFBool",
+              "RDFInteger",
+              "RDFString",
+              "RDFBytes",
+              "RDFValue",
+              "object"
+            ],
+            "type": "RDFBool",
+            "value": true
+          }
+        }
+      },
+      "test_class": "ApiUserSettingsRendererRegresstionTest",
+      "url": "/api/users/me/settings"
     }
   ]
 }

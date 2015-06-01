@@ -2,8 +2,6 @@
 
 goog.provide('grrUi.semantic.semanticProtoDirective.SemanticProtoDirective');
 
-goog.require('grrUi.semantic.SemanticDirectivesRegistry');
-
 goog.scope(function() {
 
 
@@ -107,9 +105,13 @@ grrUi.semantic.semanticProtoDirective.SemanticProtoDirective = function() {
 grrUi.semantic.semanticProtoDirective.SemanticProtoDirective.directive_name =
     'grrSemanticProto';
 
-grrUi.semantic.SemanticDirectivesRegistry.registerDirective(
-    'RDFProtoStruct',
-    grrUi.semantic.semanticProtoDirective.SemanticProtoDirective);
-
+/**
+ * Semantic type corresponding to this directive.
+ *
+ * @const
+ * @export
+ */
+grrUi.semantic.semanticProtoDirective.SemanticProtoDirective.semantic_type =
+    'RDFProtoStruct';
 
 });  // goog.scope

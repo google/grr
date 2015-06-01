@@ -5,7 +5,8 @@ import re
 
 from grr.endtoend_tests import base
 from grr.lib import aff4
-from grr.lib import rdfvalue
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 ####################
@@ -17,9 +18,9 @@ class TestListDirectoryOSLinuxDarwin(base.AutomatedTest):
   """Tests if ListDirectory works on Linux and Darwin."""
   platforms = ["Linux", "Darwin"]
   flow = "ListDirectory"
-  args = {"pathspec": rdfvalue.PathSpec(
+  args = {"pathspec": rdf_paths.PathSpec(
       path="/bin",
-      pathtype=rdfvalue.PathSpec.PathType.OS)}
+      pathtype=rdf_paths.PathSpec.PathType.OS)}
 
   output_path = "/fs/os/bin"
   file_to_find = "ls"
@@ -56,9 +57,9 @@ class TestListDirectoryOSLinuxDarwin(base.AutomatedTest):
 class TestListDirectoryTSKLinux(TestListDirectoryOSLinuxDarwin):
   """Tests if ListDirectory works on Linux and Darwin using Sleuthkit."""
   platforms = ["Linux"]
-  args = {"pathspec": rdfvalue.PathSpec(
+  args = {"pathspec": rdf_paths.PathSpec(
       path="/bin",
-      pathtype=rdfvalue.PathSpec.PathType.TSK)}
+      pathtype=rdf_paths.PathSpec.PathType.TSK)}
   output_path = "/fs/tsk/.*/bin"
 
 
@@ -67,8 +68,8 @@ class TestRecursiveListDirectoryLinuxDarwin(TestListDirectoryOSLinuxDarwin):
   flow = "RecursiveListDirectory"
   file_to_find = "less"
   output_path = "/fs/os/usr/bin"
-  args = {"pathspec": rdfvalue.PathSpec(
-      path="/usr", pathtype=rdfvalue.PathSpec.PathType.OS),
+  args = {"pathspec": rdf_paths.PathSpec(
+      path="/usr", pathtype=rdf_paths.PathSpec.PathType.OS),
           "max_depth": 1}
 
 
@@ -77,22 +78,22 @@ class TestFindTSKLinux(TestListDirectoryTSKLinux):
   """Tests if the find flow works on Linux and Darwin using Sleuthkit."""
   flow = "FindFiles"
 
-  args = {"findspec": rdfvalue.FindSpec(
+  args = {"findspec": rdf_client.FindSpec(
       path_regex=".",
-      pathspec=rdfvalue.PathSpec(
+      pathspec=rdf_paths.PathSpec(
           path="/bin/",
-          pathtype=rdfvalue.PathSpec.PathType.TSK))}
+          pathtype=rdf_paths.PathSpec.PathType.TSK))}
 
 
 class TestFindOSLinuxDarwin(TestListDirectoryOSLinuxDarwin):
   """Tests if the find flow works on Linux and Darwin."""
   flow = "FindFiles"
 
-  args = {"findspec": rdfvalue.FindSpec(
+  args = {"findspec": rdf_client.FindSpec(
       path_regex=".",
-      pathspec=rdfvalue.PathSpec(
+      pathspec=rdf_paths.PathSpec(
           path="/bin/",
-          pathtype=rdfvalue.PathSpec.PathType.OS))}
+          pathtype=rdf_paths.PathSpec.PathType.OS))}
 
 
 ###########
@@ -103,9 +104,9 @@ class TestFindOSLinuxDarwin(TestListDirectoryOSLinuxDarwin):
 class TestListDirectoryOSWindows(TestListDirectoryOSLinuxDarwin):
   """Tests if ListDirectory works on Windows."""
   platforms = ["Windows"]
-  args = {"pathspec": rdfvalue.PathSpec(
+  args = {"pathspec": rdf_paths.PathSpec(
       path="C:\\Windows",
-      pathtype=rdfvalue.PathSpec.PathType.OS)}
+      pathtype=rdf_paths.PathSpec.PathType.OS)}
   file_to_find = "regedit.exe"
   output_path = "/fs/os/C:/Windows"
 
@@ -113,9 +114,9 @@ class TestListDirectoryOSWindows(TestListDirectoryOSLinuxDarwin):
 class TestListDirectoryTSKWindows(TestListDirectoryTSKLinux):
   """Tests if ListDirectory works on Windows using Sleuthkit."""
   platforms = ["Windows"]
-  args = {"pathspec": rdfvalue.PathSpec(
+  args = {"pathspec": rdf_paths.PathSpec(
       path="C:\\Windows",
-      pathtype=rdfvalue.PathSpec.PathType.TSK)}
+      pathtype=rdf_paths.PathSpec.PathType.TSK)}
   file_to_find = "regedit.exe"
 
   def CheckFlow(self):
@@ -141,9 +142,9 @@ class TestListDirectoryTSKWindows(TestListDirectoryTSKLinux):
 
 class TestRecursiveListDirectoryOSWindows(TestListDirectoryOSWindows):
   flow = "RecursiveListDirectory"
-  args = {"pathspec": rdfvalue.PathSpec(
+  args = {"pathspec": rdf_paths.PathSpec(
       path="C:\\",
-      pathtype=rdfvalue.PathSpec.PathType.OS),
+      pathtype=rdf_paths.PathSpec.PathType.OS),
           "max_depth": 1}
   file_to_find = "regedit.exe"
   output_path = "/fs/os/C:/Windows"

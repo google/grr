@@ -42,7 +42,7 @@ describe('clients list', function() {
 
   it('sends request with a query to the server', function() {
     var deferred = $q.defer();
-    spyOn(grrApiService, 'get').andReturn(deferred.promise);
+    spyOn(grrApiService, 'get').and.returnValue(deferred.promise);
 
     var element = render('.');
 
@@ -184,7 +184,7 @@ describe('clients list', function() {
 
     var deferred = $q.defer();
     deferred.resolve({ data: clientsResponse });
-    spyOn(grrApiService, 'get').andReturn(deferred.promise);
+    spyOn(grrApiService, 'get').and.returnValue(deferred.promise);
 
     var element = render('.');
     // Online/offline status icon.

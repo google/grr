@@ -20,6 +20,7 @@ from grr.lib import rdfvalue
 from grr.lib import search
 from grr.lib import type_info
 from grr.lib import utils
+from grr.lib.rdfvalues import client as rdf_client
 
 
 def FormatISOTime(t):
@@ -197,13 +198,13 @@ def ApprovalCreateRaw(aff4_path, reason="", expire_in=60 * 60 * 24 * 7,
     RuntimeError: On bad token.
   """
   if approval_type == "ClientApproval":
-    urn = rdfvalue.ClientURN(aff4_path)
+    urn = rdf_client.ClientURN(aff4_path)
   else:
     urn = rdfvalue.RDFURN(aff4_path)
 
   if not token:
     expiry = time.time() + expire_in
-    token = rdfvalue.ACLToken(reason=reason, expiry=expiry)
+    token = access_control.ACLToken(reason=reason, expiry=expiry)
 
   if not token.reason:
     raise RuntimeError("Cannot create approval with empty reason")
@@ -237,7 +238,7 @@ def ApprovalRevokeRaw(aff4_path, token, remove_from_cache=False):
                        security_manager cache.
   """
   try:
-    urn = rdfvalue.ClientURN(aff4_path)
+    urn = rdf_client.ClientURN(aff4_path)
   except type_info.TypeValueError:
     urn = rdfvalue.RDFURN(aff4_path)
 

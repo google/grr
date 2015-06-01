@@ -2,8 +2,6 @@
 
 goog.provide('grrUi.semantic.clientUrnDirective.ClientUrnDirective');
 
-goog.require('grrUi.semantic.SemanticDirectivesRegistry');
-
 goog.scope(function() {
 
 
@@ -119,9 +117,15 @@ grrUi.semantic.clientUrnDirective.ClientUrnDirective = function() {
 grrUi.semantic.clientUrnDirective.ClientUrnDirective.directive_name =
     'grrClientUrn';
 
-grrUi.semantic.SemanticDirectivesRegistry.registerDirective(
-    'ClientURN',
-    grrUi.semantic.clientUrnDirective.ClientUrnDirective);
+
+/**
+ * Semantic type corresponding to this directive.
+ *
+ * @const
+ * @export
+ */
+grrUi.semantic.clientUrnDirective.ClientUrnDirective.semantic_type =
+    'ClientURN';
 
 
 });  // goog.scope

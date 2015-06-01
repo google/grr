@@ -44,7 +44,7 @@ describe('API items provider directive', function() {
 
     var deferred = $q.defer();
     deferred.resolve(testResponse);
-    spyOn(grrApiServiceMock, 'get').andReturn(deferred.promise);
+    spyOn(grrApiServiceMock, 'get').and.returnValue(deferred.promise);
 
     $rootScope.$apply();
 
@@ -75,6 +75,6 @@ describe('API items provider directive', function() {
 
     expect(function() {
       controller.fetchFilteredItems('some', 0, 10);
-    }).toThrow('Not implemented.');
+    }).toThrow(Error('Not implemented.'));
   });
 });

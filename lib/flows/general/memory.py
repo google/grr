@@ -10,44 +10,54 @@ performing basic analysis.
 import json
 
 import logging
+
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flow
-from grr.lib import rdfvalue
 from grr.lib import rekall_profile_server
 from grr.lib import utils
+
+# For RekallResponseCollection pylint: disable=unused-import
+from grr.lib.aff4_objects import aff4_rekall
+# pylint: enable=unused-import
+from grr.lib.flows.general import file_finder
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import structs as rdf_structs
+
 from grr.proto import flows_pb2
 
 
-class MemoryCollectorCondition(rdfvalue.RDFProtoStruct):
+class MemoryCollectorCondition(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.MemoryCollectorCondition
 
 
-class MemoryCollectorWithoutLocalCopyDumpOption(rdfvalue.RDFProtoStruct):
+class MemoryCollectorWithoutLocalCopyDumpOption(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.MemoryCollectorWithoutLocalCopyDumpOption
 
 
-class MemoryCollectorWithLocalCopyDumpOption(rdfvalue.RDFProtoStruct):
+class MemoryCollectorWithLocalCopyDumpOption(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.MemoryCollectorWithLocalCopyDumpOption
 
 
-class MemoryCollectorDumpOption(rdfvalue.RDFProtoStruct):
+class MemoryCollectorDumpOption(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.MemoryCollectorDumpOption
 
 
-class MemoryCollectorDownloadAction(rdfvalue.RDFProtoStruct):
+class MemoryCollectorDownloadAction(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.MemoryCollectorDownloadAction
 
 
-class MemoryCollectorSendToSocketAction(rdfvalue.RDFProtoStruct):
+class MemoryCollectorSendToSocketAction(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.MemoryCollectorSendToSocketAction
 
 
-class MemoryCollectorAction(rdfvalue.RDFProtoStruct):
+class MemoryCollectorAction(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.MemoryCollectorAction
 
 
-class MemoryCollectorArgs(rdfvalue.RDFProtoStruct):
+class MemoryCollectorArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.MemoryCollectorArgs
 
 
@@ -81,15 +91,15 @@ class MemoryCollector(flow.GRRFlow):
   args_type = MemoryCollectorArgs
 
   def ConditionsToFileFinderConditions(self, conditions):
-    ff_condition_type_cls = rdfvalue.FileFinderCondition.Type
+    ff_condition_type_cls = file_finder.FileFinderCondition.Type
     result = []
     for c in conditions:
       if c.condition_type == MemoryCollectorCondition.Type.LITERAL_MATCH:
-        result.append(rdfvalue.FileFinderCondition(
+        result.append(file_finder.FileFinderCondition(
             condition_type=ff_condition_type_cls.CONTENTS_LITERAL_MATCH,
             contents_literal_match=c.literal_match))
       elif c.condition_type == MemoryCollectorCondition.Type.REGEX_MATCH:
-        result.append(rdfvalue.FileFinderCondition(
+        result.append(file_finder.FileFinderCondition(
             condition_type=ff_condition_type_cls.CONTENTS_REGEX_MATCH,
             contents_regex_match=c.regex_match))
       else:
@@ -189,7 +199,7 @@ class MemoryCollector(flow.GRRFlow):
     if self.args.conditions:
       self.CallFlow("FileFinder",
                     paths=[self.state.memory_information.device.path],
-                    pathtype=rdfvalue.PathSpec.PathType.MEMORY,
+                    pathtype=rdf_paths.PathSpec.PathType.MEMORY,
                     conditions=self.ConditionsToFileFinderConditions(
                         self.args.conditions),
                     next_state="Action")
@@ -296,7 +306,7 @@ class MemoryCollector(flow.GRRFlow):
           self.state.memory_src_path, responses.status))
 
 
-class DownloadMemoryImageArgs(rdfvalue.RDFProtoStruct):
+class DownloadMemoryImageArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.DownloadMemoryImageArgs
 
 
@@ -385,7 +395,7 @@ class DownloadMemoryImage(flow.GRRFlow):
                 "Memory image transferred successfully")
 
 
-class LoadMemoryDriverArgs(rdfvalue.RDFProtoStruct):
+class LoadMemoryDriverArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.LoadMemoryDriverArgs
 
 
@@ -423,9 +433,9 @@ class LoadMemoryDriver(flow.GRRFlow):
                                    token=self.token)
 
       self.CallClient("GetMemoryInformation",
-                      rdfvalue.PathSpec(
+                      rdf_paths.PathSpec(
                           path=installer.device_path,
-                          pathtype=rdfvalue.PathSpec.PathType.MEMORY),
+                          pathtype=rdf_paths.PathSpec.PathType.MEMORY),
                       next_state="CheckMemoryInformation")
 
   @flow.StateHandler(next_state=["LoadDriver", "GotMemoryInformation"])
@@ -459,9 +469,9 @@ class LoadMemoryDriver(flow.GRRFlow):
       self.CallStateInline(next_state="LoadDriver")
 
     self.CallClient("GetMemoryInformation",
-                    rdfvalue.PathSpec(
+                    rdf_paths.PathSpec(
                         path=self.state.current_installer.device_path,
-                        pathtype=rdfvalue.PathSpec.PathType.MEMORY),
+                        pathtype=rdf_paths.PathSpec.PathType.MEMORY),
                     next_state="GotMemoryInformation")
 
   @flow.StateHandler()
@@ -486,7 +496,7 @@ class LoadMemoryDriver(flow.GRRFlow):
 
   @flow.StateHandler()
   def End(self):
-    if self.state.context.state != rdfvalue.Flow.State.ERROR:
+    if self.state.context.state != rdf_flows.Flow.State.ERROR:
       self.Notify("ViewObject", self.state.device_urn,
                   "Driver successfully initialized.")
 
@@ -610,7 +620,7 @@ def GetDriverFromURN(urn, token=None):
   return None
 
 
-class AnalyzeClientMemoryArgs(rdfvalue.RDFProtoStruct):
+class AnalyzeClientMemoryArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.AnalyzeClientMemoryArgs
 
 
@@ -652,9 +662,11 @@ class AnalyzeClientMemory(flow.GRRFlow):
     client = aff4.FACTORY.Open(self.client_id, token=self.token)
     system = client.Get(client.Schema.SYSTEM)
     if self.args.use_kcore_if_present and system == "Linux":
-      kcore_pathspec = rdfvalue.PathSpec(path="/proc/kcore",
-                                         pathtype=rdfvalue.PathSpec.PathType.OS)
-      self.CallClient("StatFile", pathspec=kcore_pathspec,
+      kcore_pathspec = rdf_paths.PathSpec(
+          path="/proc/kcore",
+          pathtype=rdf_paths.PathSpec.PathType.OS)
+      self.CallClient("StatFile",
+                      pathspec=kcore_pathspec,
                       next_state="KcoreStatResult")
       return
 
@@ -731,12 +743,12 @@ class AnalyzeClientMemory(flow.GRRFlow):
               self.state.rekall_context_messages[message[0]] = message[1]
 
             if message[0] == "file":
-              pathspec = rdfvalue.PathSpec(**message[1])
+              pathspec = rdf_paths.PathSpec(**message[1])
               self.state.output_files.append(pathspec)
 
         self.SendReply(response)
 
-    if responses.iterator.state != rdfvalue.Iterator.State.FINISHED:
+    if responses.iterator.state != rdf_client.Iterator.State.FINISHED:
       self.args.request.iterator = responses.iterator
       self.CallClient("RekallAction", self.args.request,
                       next_state="StoreResults")
@@ -804,7 +816,7 @@ class UnloadMemoryDriver(LoadMemoryDriver):
       raise flow.FlowError("Failed to uninstall memory driver.")
 
 
-class ScanMemoryArgs(rdfvalue.RDFProtoStruct):
+class ScanMemoryArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ScanMemoryArgs
 
 
@@ -840,8 +852,8 @@ class ScanMemory(flow.GRRFlow):
     memory_information = responses.First()
 
     # Coerce the BareGrepSpec into a GrepSpec explicitly.
-    grep_request = rdfvalue.GrepSpec(target=memory_information.device,
-                                     **self.args.grep.AsDict())
+    grep_request = rdf_client.GrepSpec(target=memory_information.device,
+                                       **self.args.grep.AsDict())
 
     # For literal matches we xor the search term. This stops us matching the GRR
     # client itself.
@@ -866,7 +878,7 @@ class ScanMemory(flow.GRRFlow):
       raise flow.FlowError("Error grepping memory: %s.", responses.status)
 
 
-class ListVADBinariesArgs(rdfvalue.RDFProtoStruct):
+class ListVADBinariesArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ListVADBinariesArgs
 
 
@@ -943,13 +955,13 @@ class ListVADBinaries(flow.GRRFlow):
       binaries = responses
 
     if self.args.fetch_binaries:
-      self.CallFlow("FileFinder",
-                    next_state="HandleDownloadedFiles",
-                    paths=[rdfvalue.GlobExpression(b.CollapsePath())
-                           for b in binaries],
-                    pathtype=rdfvalue.PathSpec.PathType.OS,
-                    action=rdfvalue.FileFinderAction(
-                        action_type=rdfvalue.FileFinderAction.Action.DOWNLOAD))
+      self.CallFlow(
+          "FileFinder",
+          next_state="HandleDownloadedFiles",
+          paths=[rdf_paths.GlobExpression(b.CollapsePath()) for b in binaries],
+          pathtype=rdf_paths.PathSpec.PathType.OS,
+          action=file_finder.FileFinderAction(
+              action_type=file_finder.FileFinderAction.Action.DOWNLOAD))
     else:
       for b in binaries:
         self.SendReply(b)

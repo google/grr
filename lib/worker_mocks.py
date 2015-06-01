@@ -5,7 +5,7 @@ import threading
 
 from grr.client import client_stats
 from grr.client import comms
-from grr.lib import rdfvalue
+from grr.lib.rdfvalues import flows as rdf_flows
 
 
 class FakeClientWorker(comms.GRRClientWorker):
@@ -25,8 +25,8 @@ class FakeClientWorker(comms.GRRClientWorker):
     pass
 
   def SendReply(self, rdf_value,
-                message_type=rdfvalue.GrrMessage.Type.MESSAGE, **kw):
-    message = rdfvalue.GrrMessage(
+                message_type=rdf_flows.GrrMessage.Type.MESSAGE, **kw):
+    message = rdf_flows.GrrMessage(
         type=message_type, payload=rdf_value, **kw)
 
     self.responses.append(message)

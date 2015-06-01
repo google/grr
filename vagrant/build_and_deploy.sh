@@ -22,7 +22,8 @@ if [ $1 == "windows_7_64" ]; then
     exit 1
   fi
   # First, build the templates on windows. See Vagrantfile for info on why we
-  # use --provision.
+  # use --provision. These templates don't go into a timestamped directory
+  # because the next step runs on linux and needs to know where to find them.
   vagrant reload --provision windows_7_64
   if [ $? -eq 0 ]; then
     vagrant halt $1

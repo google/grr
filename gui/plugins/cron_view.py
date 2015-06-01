@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- mode: python; encoding: utf-8 -*-
+# -*- Mode: python; encoding: utf-8 -*-
 #
 
 """This is the interface for managing cron jobs."""
@@ -19,6 +19,7 @@ from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib.aff4_objects import cronjobs
+from grr.lib.rdfvalues import grr_rdf
 
 
 class ManageCron(renderers.Splitter2Way):
@@ -167,7 +168,7 @@ class CronTable(renderers.TableRenderer):
 
     failures_count = 0
     for status in statuses:
-      if status.status != rdfvalue.CronJobRunStatus.Status.OK:
+      if status.status != grr_rdf.CronJobRunStatus.Status.OK:
         failures_count += 1
 
     return failures_count >= 2
@@ -256,7 +257,7 @@ class CronJobManagementConfirmationDialog(renderers.ConfirmationDialogRenderer):
   """Dialog that asks confirmation to manage a cron job."""
   post_parameters = ["cron_urn"]
 
-  action_name = rdfvalue.ManageCronJobFlowArgs.Action.NOOP
+  action_name = cronjobs.ManageCronJobFlowArgs.Action.NOOP
 
   content_template = renderers.Template("""
 <p>Are you sure you want to <strong>{{this.action_name|escape}}</strong>
@@ -291,18 +292,18 @@ successfully!</p>
 class DisableCronJobConfirmationDialog(CronJobManagementConfirmationDialog):
   """Dialog that asks for confirmation to disable a cron job."""
 
-  action_name = rdfvalue.ManageCronJobFlowArgs.Action.DISABLE
+  action_name = cronjobs.ManageCronJobFlowArgs.Action.DISABLE
 
 
 class EnableCronJobConfirmationDialog(CronJobManagementConfirmationDialog):
   """Dialog that asks for confirmation to enable a cron job."""
 
-  action_name = rdfvalue.ManageCronJobFlowArgs.Action.ENABLE
+  action_name = cronjobs.ManageCronJobFlowArgs.Action.ENABLE
 
 
 class DeleteCronJobConfirmationDialog(CronJobManagementConfirmationDialog):
   """Dialog that asks for confirmation to delete a cron job."""
-  action_name = rdfvalue.ManageCronJobFlowArgs.Action.DELETE
+  action_name = cronjobs.ManageCronJobFlowArgs.Action.DELETE
 
 
 class ForceRunCronJobConfirmationDialog(CronJobManagementConfirmationDialog):
@@ -311,7 +312,7 @@ class ForceRunCronJobConfirmationDialog(CronJobManagementConfirmationDialog):
   This action can be run at any time regardless of whether the cronjob is
   enabled or disabled.
   """
-  action_name = rdfvalue.ManageCronJobFlowArgs.Action.RUN
+  action_name = cronjobs.ManageCronJobFlowArgs.Action.RUN
 
 
 class CronConfigureSchedule(renderers.TemplateRenderer):
@@ -333,7 +334,7 @@ class CronConfigureSchedule(renderers.TemplateRenderer):
     pass
 
   def Layout(self, request, response):
-    cron_args = rdfvalue.CreateCronJobFlowArgs()
+    cron_args = cronjobs.CreateCronJobFlowArgs()
     cron_args.flow_runner_args.flow_name = "CreateAndRunGenericHuntFlow"
 
     self.cron_form = forms.SemanticProtoFormRenderer(
@@ -348,7 +349,7 @@ class CronHuntParser(new_hunt.HuntArgsParser):
 
   def ParseCronParameters(self):
     params = forms.SemanticProtoFormRenderer(
-        rdfvalue.CreateCronJobFlowArgs(), prefix="cron").ParseArgs(
+        cronjobs.CreateCronJobFlowArgs(), prefix="cron").ParseArgs(
             self.request)
 
     params.flow_runner_args.flow_name = "CreateAndRunGenericHuntFlow"

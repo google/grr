@@ -14,7 +14,7 @@ import urlparse
 
 
 from grr.lib import parsers
-from grr.lib import rdfvalue
+from grr.lib.rdfvalues import webhistory as rdf_webhistory
 from grr.parsers import sqlite_file
 
 
@@ -30,7 +30,7 @@ class FirefoxHistoryParser(parsers.FileParser):
     # TODO(user): Convert this to use the far more intelligent plaso parser.
     ff = Firefox3History(file_object)
     for timestamp, unused_entry_type, url, title in ff.Parse():
-      yield rdfvalue.BrowserHistoryItem(
+      yield rdf_webhistory.BrowserHistoryItem(
           url=url, domain=urlparse.urlparse(url).netloc, access_time=timestamp,
           program_name="Firefox", source_urn=stat.aff4path,
           title=title)

@@ -14,11 +14,11 @@ import os
 from grr.client import client_plugins
 # pylint: enable=unused-import
 
-from grr.client import vfs
 from grr.lib import flags
 from grr.lib import plist as plist_lib
-from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import plist as rdf_plist
 
 
 # This variable holds the same contents as the ondisk test plist
@@ -124,9 +124,9 @@ class PlistTest(test_lib.EmptyActionTest):
 
   def _RunQuery(self, plist="test.plist", query="", context=""):
     path = os.path.join(self.base_path, plist)
-    pathspec = rdfvalue.PathSpec(path=path,
-                                 pathtype=rdfvalue.PathSpec.PathType.OS)
-    plistrequest = rdfvalue.PlistRequest()
+    pathspec = rdf_paths.PathSpec(path=path,
+                                  pathtype=rdf_paths.PathSpec.PathType.OS)
+    plistrequest = rdf_plist.PlistRequest()
     plistrequest.query = query
     plistrequest.context = context
     plistrequest.pathspec = pathspec
@@ -134,9 +134,6 @@ class PlistTest(test_lib.EmptyActionTest):
 
 
 def main(argv):
-  # Initialize the VFS system
-  vfs.VFSInit()
-
   test_lib.main(argv)
 
 if __name__ == "__main__":

@@ -9,13 +9,13 @@ import psutil
 import logging
 
 from grr.client import actions
-from grr.lib import rdfvalue
+from grr.lib.rdfvalues import client as rdf_client
 
 
 class Netstat(actions.ActionPlugin):
   """Gather open network connection stats."""
   in_rdfvalue = None
-  out_rdfvalue = rdfvalue.NetworkConnection
+  out_rdfvalue = rdf_client.NetworkConnection
 
   def Run(self, unused_args):
     netstat = []
@@ -28,7 +28,7 @@ class Netstat(actions.ActionPlugin):
 
     for pid, connections in netstat:
       for conn in connections:
-        res = rdfvalue.NetworkConnection()
+        res = rdf_client.NetworkConnection()
         res.pid = pid
         res.family = conn.family
         res.type = conn.type

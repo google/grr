@@ -4,8 +4,9 @@
 
 
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
 from grr.parsers import osx_launchd
 from grr.test_data import osx_launchd as testdata
 
@@ -39,9 +40,10 @@ class DarwinPersistenceMechanismsParserTest(test_lib.FlowTestsBaseclass):
 
   def testParse(self):
     parser = osx_launchd.DarwinPersistenceMechanismsParser()
-    serv_info = rdfvalue.OSXServiceInformation(label="blah",
-                                               args=["/blah/test", "-v"])
-    results = list(parser.Parse(serv_info, None, rdfvalue.PathSpec.PathType.OS))
+    serv_info = rdf_client.OSXServiceInformation(label="blah",
+                                                 args=["/blah/test", "-v"])
+    results = list(parser.Parse(serv_info, None,
+                                rdf_paths.PathSpec.PathType.OS))
     self.assertEqual(results[0].pathspec.path, "/blah/test")
 
 

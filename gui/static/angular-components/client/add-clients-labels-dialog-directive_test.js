@@ -89,7 +89,7 @@ describe('add clients labels dialog', function() {
 
   it('sends request when Proceed is clicked', function() {
     var deferred = $q.defer();
-    spyOn(grrApiService, 'post').andReturn(deferred.promise);
+    spyOn(grrApiService, 'post').and.returnValue(deferred.promise);
 
     var element = renderTestTemplate(clients);
 
@@ -109,7 +109,7 @@ describe('add clients labels dialog', function() {
 
   it('shows failure warning on failure', function() {
     var deferred = $q.defer();
-    spyOn(grrApiService, 'post').andReturn(deferred.promise);
+    spyOn(grrApiService, 'post').and.returnValue(deferred.promise);
 
     var element = renderTestTemplate(clients);
     $('input[name=labelBox]', element).val('foobar');
@@ -125,7 +125,7 @@ describe('add clients labels dialog', function() {
 
   it('shows success message on success', function() {
     var deferred = $q.defer();
-    spyOn(grrApiService, 'post').andReturn(deferred.promise);
+    spyOn(grrApiService, 'post').and.returnValue(deferred.promise);
 
     var element = renderTestTemplate(clients);
     $('input[name=labelBox]', element).val('foobar');
@@ -141,7 +141,7 @@ describe('add clients labels dialog', function() {
 
   it('calls on-close callback when closed after success', function() {
     var deferred = $q.defer();
-    spyOn(grrApiService, 'post').andReturn(deferred.promise);
+    spyOn(grrApiService, 'post').and.returnValue(deferred.promise);
 
     var element = renderTestTemplate(clients);
     $('input[name=labelBox]', element).val('foobar');
