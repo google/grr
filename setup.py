@@ -232,7 +232,7 @@ setup(name="grr",
       ext_modules=[
           core.Extension(
               "_semantic",
-              ["grr/accelerated/accelerated.c"],
+              ["accelerated/accelerated.c"],
           )
       ],
 
