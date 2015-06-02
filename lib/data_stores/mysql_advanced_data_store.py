@@ -219,7 +219,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       for row in result:
         value = self._Decode(attribute, row["value"])
 
-        yield attribute, value, rdfvalue.RDFDatetime(row["timestamp"])
+        yield (attribute, value, row["timestamp"])
 
       if limit:
         limit -= len(result)
@@ -274,8 +274,6 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     """Set multiple attributes' values for this subject in one operation."""
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
     to_delete = set(to_delete or [])
-    if timestamp is None:
-      timestamp = time.time() * 1e6
 
     # Prepare a bulk insert operation.
     subject = utils.SmartUnicode(subject)
@@ -285,13 +283,17 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     # Build a document for each unique timestamp.
     for attribute, sequence in values.items():
       for value in sequence:
-        entry_timestamp = None
 
         if isinstance(value, tuple):
           value, entry_timestamp = value
+        else:
+          entry_timestamp = timestamp
 
         if entry_timestamp is None:
           entry_timestamp = timestamp
+
+        if entry_timestamp is not None:
+          entry_timestamp = int(entry_timestamp)
 
         attribute = utils.SmartUnicode(attribute)
         data = self._Encode(value)
@@ -302,19 +304,19 @@ class MySQLAdvancedDataStore(data_store.DataStore):
           if duplicates > 1:
             to_delete.add(attribute)
             to_insert.append(
-                [subject, attribute, data, int(entry_timestamp)])
+                [subject, attribute, data, entry_timestamp])
           else:
             if attribute in to_delete:
               to_delete.remove(attribute)
             if duplicates == 0:
               to_insert.append(
-                  [subject, attribute, data, int(entry_timestamp)])
+                  [subject, attribute, data, entry_timestamp])
             elif duplicates == 1:
               to_replace.append(
-                  [subject, attribute, data, int(entry_timestamp)])
+                  [subject, attribute, data, entry_timestamp])
         else:
           to_insert.append(
-              [subject, attribute, data, int(entry_timestamp)])
+              [subject, attribute, data, entry_timestamp])
 
     if to_delete:
       self.DeleteAttributes(subject, to_delete, token=token)
@@ -354,10 +356,11 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     for (subject, attribute, value, timestamp) in values:
       aff4_q = {}
       aff4_q["query"] = (
-          "UPDATE aff4 SET value=%s, timestamp=%s "
+          "UPDATE aff4 SET value=%s, "
+          "timestamp=if(%s is NULL,floor(unix_timestamp(now(6))*1000000),%s) "
           "WHERE subject_hash=unhex(md5(%s)) "
           "AND attribute_hash=unhex(md5(%s))")
-      aff4_q["args"] = [value, timestamp, subject, attribute]
+      aff4_q["args"] = [value, timestamp, timestamp, subject, attribute]
       transaction.append(aff4_q)
     return transaction
 
@@ -388,15 +391,15 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       if attribute not in seen["attributes"]:
         attributes_q["args"].extend([attribute, attribute])
         seen["attributes"].append(attribute)
-      aff4_q["args"].extend([subject, attribute, timestamp, value])
+      aff4_q["args"].extend([subject, attribute, timestamp, timestamp, value])
 
     subjects_q["query"] += ", ".join(
         ["(unhex(md5(%s)), %s)"] * (len(subjects_q["args"]) / 2))
     attributes_q["query"] += ", ".join(
         ["(unhex(md5(%s)), %s)"] * (len(attributes_q["args"]) / 2))
     aff4_q["query"] += ", ".join(
-        ["(unhex(md5(%s)), unhex(md5(%s)), %s, %s)"] * (
-            len(aff4_q["args"]) / 4))
+        ["(unhex(md5(%s)), unhex(md5(%s)), if(%s is NULL,floor(unix_timestamp(now(6))*1000000),%s), %s)"] * (
+            len(aff4_q["args"]) / 5))
 
     return [aff4_q, subjects_q, attributes_q]
 

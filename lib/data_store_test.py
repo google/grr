@@ -151,16 +151,17 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     self.assertEqual(ts, 200)
 
     # Test giving a broken timestamp definition.
-    with test_lib.FakeTime(555):
-      data_store.DB.MultiSet(self.test_row,
+    start_time = time.time() * 1e6
+    data_store.DB.MultiSet(self.test_row,
                              {"aff4:size": [(1, None)],
                               "aff4:stored": [(unicode_string, 200)]},
                              token=self.token)
-
+    end_time = time.time() * 1e6
     (stored, ts) = data_store.DB.Resolve(self.test_row, "aff4:size",
                                          token=self.token)
     self.assertEqual(stored, 1)
-    self.assertEqual(ts, 555000000)
+    self.assertGreaterEqual(ts, start_time)
+    self.assertLessEqual(ts, end_time)
 
     (stored, ts) = data_store.DB.Resolve(self.test_row, "aff4:stored",
                                          token=self.token)
