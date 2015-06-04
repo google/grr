@@ -448,9 +448,8 @@ the client facing server and the admin user interface.\n"""
     except (OSError, IOError):
       print "Sorry, we couldn't guess your public hostname.\n"
 
-    hostname = RetryQuestion("Please enter your public hostname",
-                             "^[\\.A-Za-z0-9-]+$",
-                             "grr.example.com")
+    hostname = RetryQuestion("Please enter your public hostname e.g. "
+                             "grr.example.com", "^[\\.A-Za-z0-9-]+$")
 
   print """\n\n-=Server URL=-
 The Server URL specifies the URL that the clients will connect to
