@@ -218,7 +218,7 @@ do
   SERVER_DEFAULT=/etc/default/${SERVER}
   run_cmd_confirm sed -i 's/START=\"no\"/START=\"yes\"/' ${SERVER_DEFAULT};
 
-  header "Starting up the services"
+  header "Starting ${SERVER}"
 
   initctl status ${SERVER} | grep "running"
   IS_RUNNING=$?
