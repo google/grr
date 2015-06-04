@@ -94,9 +94,12 @@ class TestMultiGetFile(base.AutomatedTest):
   args = {}
 
   def CheckFlow(self):
-    # Reopen the object to update the state.
+    # Reopen the object to update the state. Ignore the cache to avoid a race
+    # where the flow has just been terminated but we get the cached object back
+    # from the factory and it looks like it's still running.
     flow_obj = aff4.FACTORY.Open(self.session_id, token=self.token,
-                                 aff4_type="MultiGetFileTestFlow")
+                                 aff4_type="MultiGetFileTestFlow",
+                                 ignore_cache=True)
 
     # Check flow completed normally, checking is done inside the flow
     runner = flow_obj.GetRunner()

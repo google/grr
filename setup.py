@@ -9,7 +9,7 @@ import glob
 import os
 import subprocess
 
-from disutils import core
+from distutils import core
 from setuptools import find_packages, setup
 from setuptools.command.build_py import build_py
 
@@ -232,7 +232,7 @@ setup(name="grr",
       ext_modules=[
           core.Extension(
               "_semantic",
-              ["grr/accelerated/accelerated.c"],
+              ["accelerated/accelerated.c"],
           )
       ],
 

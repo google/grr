@@ -1,10 +1,15 @@
 #!/usr/bin/env python
 """Simple parsers for configuration files."""
 
+import os
+import re
+import stat
+
 import logging
 from grr.lib import lexer
 from grr.lib import parsers
 from grr.lib import utils
+from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.parsers import config_file
@@ -217,4 +222,60 @@ class LinuxXinetdParser(parsers.FileParser):
     for name, cfg in self.entries.iteritems():
       yield self._GenService(name, cfg)
 
-# TODO(user): Other service startup tools, e.g. upstart, systemd, inetd
+
+class LinuxSysVInitParser(parsers.FileParser):
+  """Parses SysV runlevel entries.
+
+  Reads the stat entries for files under /etc/rc* runlevel scripts.
+  Identifies start and stop levels for services.
+
+  Yields:
+    LinuxServiceInformation for each service with a runlevel entry.
+    Anomalies if there are non-standard service startup definitions.
+  """
+
+  output_types = ["LinuxServiceInformation"]
+  supported_artifacts = ["LinuxSysVInit"]
+
+  runlevel_re = re.compile(r"/etc/rc(?:\.)?([0-6S]|local$)(?:\.d)?")
+  runscript_re = re.compile(r"(?P<action>[KS])(?P<prio>\d+)(?P<name>\S+)")
+
+  def ParseMultiple(self, stats, unused_file_obj, unused_kb):
+    """Identify the init scripts and the start/stop scripts at each runlevel.
+
+    Evaluate all the stat entries collected from the system.
+    If the path name matches a runlevel spec, and if the filename matches a
+    sysv init symlink process the link as a service.
+
+    Args:
+      stats: An iterator of StatEntry rdfs.
+      unused_file_obj: An iterator of file contents. Not needed as the parser
+        only evaluates link attributes.
+      unused_kb: Unused KnowledgeBase rdf.
+
+    Yields:
+      rdf_anomaly.Anomaly if the startup link seems wierd.
+      rdf_client.LinuxServiceInformation for each detected service.
+    """
+    services = {}
+    for stat_entry in stats:
+      path = stat_entry.pathspec.path
+      runlevel = self.runlevel_re.match(os.path.dirname(path))
+      runscript = self.runscript_re.match(os.path.basename(path))
+      if runlevel and runscript:
+        svc = runscript.groupdict()
+        service = services.setdefault(
+            svc["name"], rdf_client.LinuxServiceInformation(
+                name=svc["name"], start_mode="INIT"))
+        runlvl = runlevel.group(1)
+        if svc["action"] == "S":
+          service.start_on.append(runlvl)
+          service.starts = True
+        else:
+          service.stop_on.append(runlvl)
+        if not stat.S_ISLNK(int(stat_entry.st_mode)):
+          yield rdf_anomaly.Anomaly(
+              type="PARSER_ANOMALY", finding=[path],
+              explanation="Startup script is not a symlink.")
+    for svc in services.itervalues():
+      yield svc

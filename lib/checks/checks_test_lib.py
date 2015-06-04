@@ -14,7 +14,6 @@ from grr.lib import type_info
 from grr.lib.checks import checks
 from grr.lib.checks import filters
 from grr.lib.checks import hints
-from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 
@@ -49,6 +48,15 @@ class HostCheckTest(test_lib.GRRBaseTest):
     kb.os = host_os
     host_data["KnowledgeBase"] = kb
     return host_data
+
+  def SetArtifactData(self, anomaly=None, parsed=None, raw=None):
+    if anomaly is None:
+      anomaly = []
+    if parsed is None:
+      parsed = []
+    if raw is None:
+      raw = []
+    return {"ANOMALY": anomaly, "PARSER": parsed, "RAW": raw}
 
   def AddData(self, parser, *args, **kwargs):
     # Initialize the parser and add parsed data to host_data.
@@ -87,7 +95,7 @@ class HostCheckTest(test_lib.GRRBaseTest):
       stats.append(rdf_client.StatEntry(pathspec=p))
       files.append(StringIO.StringIO(lines))
     rdfs = [rdf for rdf in parser.ParseMultiple(stats, files, kb)]
-    host_data[artifact] = rdfs
+    host_data[artifact] = self.SetArtifactData(parsed=rdfs)
     return host_data
 
   def GetParsedFile(self, artifact, data, parser):
@@ -98,15 +106,18 @@ class HostCheckTest(test_lib.GRRBaseTest):
       stat = rdf_client.StatEntry(pathspec=p)
       file_obj = StringIO.StringIO(lines)
       rdfs = [rdf for rdf in parser.Parse(stat, file_obj, kb)]
-      host_data[artifact] = rdfs
+      host_data[artifact] = self.SetArtifactData(parsed=rdfs)
       # Return on the first item
       break
     return host_data
 
   def assertRanChecks(self, check_ids, results):
     """Check that the specified checks were run."""
-    residual = set(check_ids) - set(results.keys())
-    self.assertFalse(residual)
+    self.assertTrue(set(check_ids).issubset(set(results.keys())))
+
+  def assertChecksNotRun(self, check_ids, results):
+    """Check that the specified checks were not run."""
+    self.assertFalse(set(check_ids).intersection(set(results.keys())))
 
   def assertResultEqual(self, rslt1, rslt2):
     # Build a map of anomaly explanations to findings.
@@ -241,7 +252,8 @@ class HostCheckTest(test_lib.GRRBaseTest):
       self.fail("Invalid arg, %s should be dict-like.\n" % type(results))
     if check_id not in results:
       self.fail("Check %s was not performed.\n" % check_id)
-    if isinstance(results.get(check_id), rdf_anomaly.Anomaly):
+    # A check result will evaluate as True if it contains an anomaly.
+    if results.get(check_id):
       self.fail("Check %s unexpectedly produced an anomaly.\n" % check_id)
 
   def assertChecksUndetected(self, check_ids, results):

@@ -17,12 +17,6 @@ from grr.lib.rdfvalues import paths as rdf_paths
 
 # pylint: mode=test
 
-# Load some dpkg data
-dpkg_src = os.path.join(config_lib.CONFIG["Test.data_dir"], "dpkg.out")
-# Load an sshd_config
-sshd_name = "/fs/os/etc/sshd/sshd_config"
-sshd_src = os.path.join(config_lib.CONFIG["Test.data_dir"], "sshd_config")
-
 
 class TestCheckFlows(test_lib.FlowTestsBaseclass):
 
@@ -64,9 +58,9 @@ class TestCheckFlows(test_lib.FlowTestsBaseclass):
   def RunFlow(self):
     session_id = None
     with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
-      for session_id in test_lib.TestFlowHelper("CheckRunner", self.client_mock,
-                                                token=self.token,
-                                                client_id=self.client_id):
+      for session_id in test_lib.TestFlowHelper(
+          "CheckRunner", client_mock=self.client_mock, client_id=self.client_id,
+          token=self.token):
         pass
     session = aff4.FACTORY.Open(session_id, token=self.token)
     replies = send_reply
@@ -75,6 +69,7 @@ class TestCheckFlows(test_lib.FlowTestsBaseclass):
   def LoadChecks(self):
     """Load the checks, returning the names of the checks that were loaded."""
     config_lib.CONFIG.Set("Checks.max_results", 5)
+    checks.CheckRegistry.Clear()
     check_configs = ("sshd.yaml", "sw.yaml")
     cfg_dir = os.path.join(config_lib.CONFIG["Test.data_dir"], "checks")
     chk_files = [os.path.join(cfg_dir, f) for f in check_configs]
@@ -94,19 +89,29 @@ class TestCheckFlows(test_lib.FlowTestsBaseclass):
   def testCheckHostDataReturnsFindings(self):
     """Test the flow returns results."""
     self.SetLinuxKB()
-    _, replies = self.RunFlow()
+
+    # Run the check flow end-to-end.
     checks_run = []
-    for _, rslt in replies.args:
-      if isinstance(rslt, checks.CheckResult):
-        checks_run.append(rslt.check_id)
-        if rslt.check_id == "SSHD-CHECK":  # True if there are anomalies
-          results = [a.ToPrimitiveDict() for a in rslt.anomaly]
+    _, replies = self.RunFlow()
+
+    for _, result in replies.args:
+      if isinstance(result, checks.CheckResult):
+        checks_run.append(result.check_id)
+        if result.check_id == "SSHD-CHECK":  # True if there are anomalies
+          sshd_results = [a.ToPrimitiveDict() for a in result.anomaly]
+        if result.check_id == "SSHD-PERMS":  # True if there are stat results
+          perm_results = [r.ToPrimitiveDict() for r in result.anomaly]
     self.assertTrue("SSHD-CHECK" in checks_run)
-    self.assertTrue("SW-CHECK" in checks_run)
     expected = {"explanation": "Found: Sshd allows protocol 1.",
                 "finding": ["Configured protocols: 2,1"],
                 "type": "ANALYSIS_ANOMALY"}
-    self.assertTrue(expected in results)
+    self.assertTrue(expected in sshd_results)
+    self.assertTrue("SSHD-PERMS" in checks_run)
+    self.assertEqual(1, len(perm_results))
+    expected = {"explanation": "Found: The filesystem supports stat.",
+                "finding": ["/etc/ssh/sshd_config"],
+                "type": "ANALYSIS_ANOMALY"}
+    self.assertTrue(expected in perm_results)
 
 
 def main(argv):

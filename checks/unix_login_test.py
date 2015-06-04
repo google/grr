@@ -7,6 +7,7 @@ import StringIO
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib.checks import checks_test_lib
+from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.parsers import linux_file_parser
@@ -55,7 +56,10 @@ class LoginPolicyConfigurationTests(checks_test_lib.HostCheckTest):
         files.append(StringIO.StringIO(lines))
       parser = linux_file_parser.LinuxSystemPasswdParser()
       rdfs = list(parser.ParseMultiple(stats, files, None))
-      host_data["LoginPolicyConfiguration"] = rdfs
+      host_data["LoginPolicyConfiguration"] = self.SetArtifactData(
+          anomaly=[a for a in rdfs if isinstance(a, rdf_anomaly.Anomaly)],
+          parsed=[r for r in rdfs if not isinstance(r, rdf_anomaly.Anomaly)],
+          raw=stats)
       return self.RunChecks(host_data)
 
   def testPasswdHash(self):

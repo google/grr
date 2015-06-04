@@ -1682,7 +1682,8 @@ grr.init();
  *  existing set of GRR renderers.
  */
 var grrUiApp = angular.module('grrUi', ['ngCookies',
-                                        'grrUi.appController']);
+                                        'grrUi.appController',
+                                        'grrUiLocal.local']);
 
 grrUiApp.config(function($httpProvider, $interpolateProvider,
                          $rootScopeProvider) {
@@ -1703,7 +1704,9 @@ grrUiApp.config(function($httpProvider, $interpolateProvider,
   $rootScopeProvider.digestTtl(15);
 });
 
-grrUiApp.run(function($http, $cookies, grrReflectionService) {
+grrUiApp.run(function($injector, $http, $cookies, grrReflectionService) {
+  grr.angularInjector = $injector;
+
   // Ensure CSRF token is in place for Angular-initiated HTTP requests.
   $http.defaults.headers.post['X-CSRFToken'] = $cookies.get('csrftoken');
 
@@ -1711,6 +1714,7 @@ grrUiApp.run(function($http, $cookies, grrReflectionService) {
   // the values. "ACLToken" is picked up here as an arbitrary name.
   // grrReflectionService loads all RDFValues definitions on first request
   // and then caches them.
+
   grrReflectionService.getRDFValueDescriptor('ACLToken');
 });
 

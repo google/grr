@@ -3,13 +3,18 @@
 
 import operator
 
+import logging
+
 from grr.gui import api_aff4_object_renderers
 from grr.gui import api_call_renderers
 from grr.gui import api_value_renderers
 
 from grr.lib import aff4
+from grr.lib import flow
 from grr.lib import hunts
 from grr.lib import rdfvalue
+from grr.lib import utils
+from grr.lib.aff4_objects import security as aff4_security
 
 from grr.lib.rdfvalues import structs as rdf_structs
 
@@ -183,3 +188,28 @@ class ApiHuntErrorsRenderer(api_call_renderers.ApiCallRenderer):
         [api_aff4_object_renderers.ApiRDFValueCollectionRendererArgs(
             offset=args.offset, count=args.count, with_total_count=True,
             items_type_info="WITH_TYPES_AND_METADATA")])
+
+
+class ApiHuntArchiveFilesRendererArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiHuntArchiveFilesRendererArgs
+
+
+class ApiHuntArchiveFilesRenderer(api_call_renderers.ApiCallRenderer):
+  """Generates archive with all files references in hunt's results."""
+
+  args_type = ApiHuntArchiveFilesRendererArgs
+
+  def Render(self, args, token=None):
+    """Check if the user has access to the specified hunt."""
+    hunt_urn = rdfvalue.RDFURN("aff4:/hunts").Add(args.hunt_id.Basename())
+    approved_token = aff4_security.Approval.GetApprovalForObject(
+        hunt_urn, token=token)
+
+    urn = flow.GRRFlow.StartFlow(flow_name="ExportHuntResultFilesAsArchive",
+                                 hunt_urn=hunt_urn,
+                                 format=args.archive_format,
+                                 token=approved_token)
+    logging.info("Generating %s results for %s with flow %s.", format,
+                 args.hunt_id, urn)
+
+    return dict(status="OK", flow_urn=utils.SmartStr(urn))

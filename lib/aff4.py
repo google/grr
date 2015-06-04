@@ -6,6 +6,7 @@ This contains an AFF4 data model implementation.
 
 import __builtin__
 import abc
+import itertools
 import StringIO
 import time
 import zlib
@@ -65,6 +66,199 @@ class ChunkNotFoundError(IOError):
 
 class BadGetAttributeError(Exception):
   pass
+
+
+class DeletionPool(object):
+  """Pool used to optimize deletion of large object hierarchies."""
+
+  def __init__(self, token=None):
+    super(DeletionPool, self).__init__()
+
+    if token is None:
+      raise ValueError("token can't be None")
+
+    self._objects_cache = {}
+    self._children_lists_cache = {}
+    self._urns_for_deletion = set()
+
+    self._token = token
+
+  def _ObjectKey(self, urn, mode):
+    return u"%s:%s" % (mode, utils.SmartUnicode(urn))
+
+  def Open(self, urn, aff4_type=None, mode="r"):
+    """Opens the named object.
+
+    DeletionPool will only open the object if it's not in the pool already.
+    Otherwise it will just return the cached version. Objects are cached
+    based on their urn and mode. I.e. same object opened with mode="r" and
+    mode="rw" will be actually opened two times and cached separately.
+
+    DeletionPool's Open() also doesn't follow symlinks.
+
+    Args:
+      urn: The urn to open.
+      aff4_type: If this parameter is set, we raise an IOError if
+          the object is not an instance of this type.
+      mode: The mode to open the file with.
+
+    Returns:
+      An AFF4Object instance.
+
+    Raises:
+      IOError: If the object is not of the required type.
+    """
+    key = self._ObjectKey(urn, mode)
+
+    try:
+      obj = self._objects_cache[key]
+    except KeyError:
+      obj = FACTORY.Open(urn, mode=mode, follow_symlinks=False,
+                         token=self._token)
+      self._objects_cache[key] = obj
+
+    if (aff4_type is not None and
+        not isinstance(obj, AFF4Object.classes[aff4_type])):
+      raise InstantiationError(
+          "Object %s is of type %s, but required_type is %s" % (
+              urn, obj.__class__.__name__, aff4_type))
+
+    return obj
+
+  def MultiOpen(self, urns, aff4_type=None, mode="r"):
+    """Opens many urns efficiently, returning cached objects when possible."""
+    result = []
+    not_opened_urns = []
+
+    for urn in urns:
+      key = self._ObjectKey(urn, mode)
+      try:
+        result.append(self._objects_cache[key])
+      except KeyError:
+        not_opened_urns.append(urn)
+
+    if not_opened_urns:
+      objs = FACTORY.MultiOpen(not_opened_urns, follow_symlinks=False,
+                               mode=mode, token=self._token)
+      for obj in objs:
+        result.append(obj)
+
+        key = self._ObjectKey(obj.urn, mode)
+        self._objects_cache[key] = obj
+
+    if aff4_type is not None:
+      type_checked_result = []
+      for obj in result:
+        if isinstance(obj, AFF4Object.classes[aff4_type]):
+          type_checked_result.append(obj)
+
+      return type_checked_result
+    else:
+      return result
+
+  def ListChildren(self, urn):
+    """Lists children of a given urn. Resulting list is cached."""
+    result = self.MultiListChildren([urn])
+    try:
+      return result[urn]
+    except KeyError:
+      return []
+
+  def MultiListChildren(self, urns):
+    """Lists children of a bunch of given urns. Results are cached."""
+    result = {}
+    not_listed_urns = []
+
+    for urn in urns:
+      try:
+        result[urn] = self._children_lists_cache[urn]
+      except KeyError:
+        not_listed_urns.append(urn)
+
+    if not_listed_urns:
+      for urn, children in FACTORY.MultiListChildren(
+          not_listed_urns, token=self._token):
+        result[urn] = self._children_lists_cache[urn] = children
+
+      for urn in not_listed_urns:
+        self._children_lists_cache.setdefault(urn, [])
+        result.setdefault(urn, [])
+
+    return result
+
+  def RecursiveMultiListChildren(self, urns):
+    """Recursively lists given urns. Results are cached."""
+    result = {}
+
+    checked_urns = set()
+    not_cached_urns = []
+    urns_to_check = urns
+    while True:
+      found_children = []
+
+      for urn in urns_to_check:
+        try:
+          children = result[urn] = self._children_lists_cache[urn]
+          found_children.extend(children)
+        except KeyError:
+          not_cached_urns.append(urn)
+
+      checked_urns.update(urns_to_check)
+      urns_to_check = set(found_children) - checked_urns
+
+      if not urns_to_check:
+        break
+
+    for urn, children in FACTORY.RecursiveMultiListChildren(
+        not_cached_urns, token=self._token):
+      result[urn] = self._children_lists_cache[urn] = children
+
+    return result
+
+  def MarkForDeletion(self, urn):
+    """Marks object and all of its children for deletion."""
+    self.MultiMarkForDeletion([urn])
+
+  def MultiMarkForDeletion(self, urns):
+    """Marks multiple urns (and their children) for deletion."""
+    all_children_urns = self.RecursiveMultiListChildren(urns)
+
+    urns += list(itertools.chain.from_iterable(all_children_urns.values()))
+    for urn in urns:
+      self._urns_for_deletion.add(urn)
+
+    objs = self.MultiOpen(urns)
+    for obj in objs:
+      obj.OnDelete(deletion_pool=self)
+
+  @property
+  def root_urns_for_deletion(self):
+    """Roots of the graph of urns marked for deletion."""
+    roots = set()
+    for urn in self._urns_for_deletion:
+      new_root = True
+
+      fake_roots = []
+      for root in roots:
+        str_root = utils.SmartUnicode(root)
+        str_urn = utils.SmartUnicode(urn)
+
+        if str_urn.startswith(str_root):
+          new_root = False
+          break
+        elif str_root.startswith(str_urn):
+          fake_roots.append(root)
+
+      if new_root:
+        roots -= set(fake_roots)
+        roots.add(urn)
+
+    return roots
+
+  @property
+  def urns_for_deletion(self):
+    """Urns marked for deletion."""
+    return self._urns_for_deletion
 
 
 class Factory(object):
@@ -216,7 +410,6 @@ class Factory(object):
 
   def _DeleteChildFromIndex(self, urn, token):
     try:
-      # Create navigation aids by touching intermediate subject names.
       basename = urn.Basename()
       dirname = rdfvalue.RDFURN(urn.Dirname())
 
@@ -513,8 +706,9 @@ class Factory(object):
     return result
 
   def MultiOpen(self, urns, mode="rw", ignore_cache=False, token=None,
-                aff4_type=None, age=NEWEST_TIME):
+                aff4_type=None, age=NEWEST_TIME, follow_symlinks=True):
     """Opens a bunch of urns efficiently."""
+
     if token is None:
       token = data_store.default_token
 
@@ -529,7 +723,7 @@ class Factory(object):
         obj = self.Open(urn, mode=mode, ignore_cache=ignore_cache, token=token,
                         local_cache={urn: values}, aff4_type=aff4_type, age=age,
                         follow_symlinks=False)
-        if isinstance(obj, AFF4Symlink):
+        if follow_symlinks and isinstance(obj, AFF4Symlink):
           target = obj.Get(obj.Schema.SYMLINK_TARGET)
           if target is not None:
             symlinks.append(target)
@@ -697,7 +891,64 @@ class Factory(object):
 
     return result
 
-  def Delete(self, urn, token=None, limit=None):
+  def MultiDelete(self, urns, token=None):
+    """Drop all the information about given objects.
+
+    DANGEROUS! This recursively deletes all objects contained within the
+    specified URN.
+
+    Args:
+      urns: Urns of objects to remove.
+      token: The Security Token to use for opening this item.
+    Raises:
+      RuntimeError: If one of the urns is too short. This is a safety check to
+      ensure the root is not removed.
+    """
+    urns = [rdfvalue.RDFURN(urn) for urn in urns]
+
+    if token is None:
+      token = data_store.default_token
+
+    for urn in urns:
+      if urn.Path() == "/":
+        raise RuntimeError("Can't delete root URN. Please enter a valid URN")
+
+    deletion_pool = DeletionPool(token=token)
+    for urn in urns:
+      deletion_pool.MarkForDeletion(urn)
+
+    marked_root_urns = deletion_pool.root_urns_for_deletion
+    marked_urns = deletion_pool.urns_for_deletion
+
+    logging.debug(
+        u"Found %d objects to remove when removing %s",
+        len(marked_urns), urns)
+
+    logging.debug(
+        u"Removing %d root objects when removing %s: %s",
+        len(marked_root_urns), urns, marked_root_urns)
+
+    for root in marked_root_urns:
+      # Only the index of the parent object should be updated. Everything
+      # below the target object (along with indexes) is going to be
+      # deleted.
+      self._DeleteChildFromIndex(root, token)
+
+    for urn_to_delete in marked_urns:
+      try:
+        self.intermediate_cache.ExpireObject(urn_to_delete.Path())
+      except KeyError:
+        pass
+
+      data_store.DB.DeleteSubject(urn_to_delete, token=token, sync=False)
+      logging.debug(u"%s deleted from data store", urn_to_delete)
+
+    # Ensure this is removed from the cache as well.
+    self.Flush()
+
+    logging.debug("Removed %d objects", len(marked_urns))
+
+  def Delete(self, urn, token=None):
     """Drop all the information about this object.
 
     DANGEROUS! This recursively deletes all objects contained within the
@@ -706,66 +957,11 @@ class Factory(object):
     Args:
       urn: The object to remove.
       token: The Security Token to use for opening this item.
-      limit: The total number of objects to remove. Default is None, which
-             means no limit will be enforced.
     Raises:
       RuntimeError: If the urn is too short. This is a safety check to ensure
       the root is not removed.
     """
-    if token is None:
-      token = data_store.default_token
-
-    urn = rdfvalue.RDFURN(urn)
-    if len(urn.Path()) < 1:
-      raise RuntimeError("URN %s too short. Please enter a valid URN" % urn)
-
-    # Get all the children (not only immediate ones, but the whole subtree)
-    # from the index.
-    all_urns = [urn]
-    subjects_to_check = [urn]
-
-    # To make the implementation more efficient we first collect urns of all
-    # the children objects in the subtree of the urn to be deleted.
-    while True:
-      found_children = []
-      for _, children in FACTORY.MultiListChildren(
-          subjects_to_check, token=token):
-        found_children.extend(children)
-        all_urns.extend(children)
-
-      if not found_children:
-        break
-
-      subjects_to_check = found_children
-
-      if limit and len(all_urns) >= limit:
-        logging.warning(u"Removed object has more children than the limit: %s",
-                        urn)
-        all_urns = all_urns[:limit]
-        break
-
-    logging.info(u"Found %d objects to remove when removing %s",
-                 len(all_urns), urn)
-
-    # Only the index of the parent object should be updated. Everything
-    # below the target object (along with indexes) is going to be
-    # deleted.
-    self._DeleteChildFromIndex(urn, token)
-
-    for urn_to_delete in all_urns:
-      logging.debug(u"Removing %s", urn_to_delete)
-
-      try:
-        self.intermediate_cache.ExpireObject(urn_to_delete.Path())
-      except KeyError:
-        pass
-      data_store.DB.DeleteSubject(urn_to_delete, token=token, sync=False)
-
-    # Ensure this is removed from the cache as well.
-    self.Flush()
-
-    # Do not remove the index or deeper objects may become unnavigable.
-    logging.info("Removed %d objects", len(all_urns))
+    self.MultiDelete([urn], token=token)
 
   def RDFValue(self, name):
     return rdfvalue.RDFValue.classes.get(name)
@@ -813,11 +1009,15 @@ class Factory(object):
     Yields:
        Tuples of Subjects and a list of children urns of a given subject.
     """
+    checked_subjects = set()
+
     index_prefix = "index:dir/"
     for subject, values in data_store.DB.MultiResolveRegex(
         urns, index_prefix + ".+", token=token,
         timestamp=Factory.ParseAgeSpecification(age),
         limit=limit):
+
+      checked_subjects.add(subject)
 
       subject_result = []
       for predicate, _, timestamp in values:
@@ -826,6 +1026,51 @@ class Factory(object):
         subject_result.append(urn)
 
       yield subject, subject_result
+
+    for subject in set(urns) - checked_subjects:
+      yield subject, []
+
+  def RecursiveMultiListChildren(self, urns, token=None, limit=None,
+                                 age=NEWEST_TIME):
+    """Recursively lists bunch of directories.
+
+    Args:
+      urns: List of urns to list children.
+      token: Security token.
+      limit: Max number of children to list (NOTE: this is per urn).
+      age: The age of the items to retrieve. Should be one of ALL_TIMES,
+           NEWEST_TIME or a range.
+
+    Yields:
+       (subject<->children urns) tuples. RecursiveMultiListChildren will fetch
+       children lists for initial set of urns and then will fetch children's
+       children, etc.
+
+       For example, for the following objects structure:
+       a->
+          b -> c
+            -> d
+
+       RecursiveMultiListChildren(['a']) will return:
+       [('a', ['b']), ('b', ['c', 'd'])]
+    """
+
+    checked_urns = set()
+    urns_to_check = urns
+    while True:
+      found_children = []
+
+      for subject, values in self.MultiListChildren(
+          urns_to_check, token=token, limit=limit, age=age):
+
+        found_children.extend(values)
+        yield subject, values
+
+      checked_urns.update(urns_to_check)
+
+      urns_to_check = set(found_children) - checked_urns
+      if not urns_to_check:
+        break
 
   def Flush(self):
     data_store.DB.Flush()
@@ -1483,6 +1728,25 @@ class AFF4Object(object):
     # Interacting with a closed object is a bug. We need to catch this ASAP so
     # we remove all mode permissions from this object.
     self.mode = ""
+
+  def OnDelete(self, deletion_pool=None):
+    """Called when the object is about to be deleted.
+
+    NOTE: If the implementation of this method has to list children or delete
+    other dependent objects, make sure to use DeletionPool's API instead of a
+    generic aff4.FACTORY one. DeletionPool is optimized for deleting large
+    amounts of objects - it minimizes number of expensive data store calls,
+    trying to group as many of them as possible into a single batch, and caches
+    results of these calls.
+
+    Args:
+      deletion_pool: DeletionPool object used for this deletion operation.
+
+    Raises:
+      ValueError: if deletion pool is None.
+    """
+    if deletion_pool is None:
+      raise ValueError("deletion_pool can't be None")
 
   @utils.Synchronized
   def _WriteAttributes(self, sync=True):

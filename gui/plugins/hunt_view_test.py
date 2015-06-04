@@ -531,7 +531,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     self.WaitUntil(self.IsTextPresent, "42423")
     self.WaitUntilNot(self.IsTextPresent,
-                      "Results of this hunt can be downloaded as an archive")
+                      "Files referenced in this collection can be downloaded")
 
   def testDoesNotShowGenerateArchiveButtonWhenResultsCollectionIsEmpty(self):
     with self.ACLChecksDisabled():
@@ -544,7 +544,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     self.WaitUntil(self.IsTextPresent, "Value")
     self.WaitUntilNot(self.IsTextPresent,
-                      "Results of this hunt can be downloaded as an archive")
+                      "Files referenced in this collection can be downloaded")
 
   def testShowsGenerateArchiveButtonForFileFinderHunt(self):
     stat_entry = rdf_client.StatEntry(aff4path="aff4:/foo/bar")
@@ -559,7 +559,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.Click("css=li[heading=Results]")
 
     self.WaitUntil(self.IsTextPresent,
-                   "Results of this hunt can be downloaded as an archive")
+                   "Files referenced in this collection can be downloaded")
 
   def testHuntAuthorizationIsRequiredToGenerateResultsArchive(self):
     stat_entry = rdf_client.StatEntry(aff4path="aff4:/foo/bar")
@@ -572,9 +572,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.Click("css=a[grrtarget=ManageHunts]")
     self.Click("css=td:contains('GenericHunt')")
     self.Click("css=li[heading=Results]")
-    # Using :visible selector as we don't know which button (ZIP or TAR.GZ) will
-    # be shown - it depends on the platform.
-    self.Click("css=button.DownloadButton:visible")
+    self.Click("css=button.DownloadButton")
 
     self.WaitUntil(self.IsElementPresent, "acl_dialog")
 
@@ -590,12 +588,10 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.Click("css=a[grrtarget=ManageHunts]")
     self.Click("css=td:contains('GenericHunt')")
     self.Click("css=li[heading=Results]")
-    # Using :visible selector as we don't know which button (ZIP or TAR.GZ) will
-    # be shown - it depends on the platform.
-    self.Click("css=button.DownloadButton:visible")
+    self.Click("css=button.DownloadButton")
 
     self.WaitUntil(self.IsElementPresent,
-                   "css=button[name*=generate_][disabled]:visible")
+                   "css=button.DownloadButton[disabled]")
     self.WaitUntil(self.IsTextPresent, "Generation has started")
 
   def testStartsZipGenerationWhenGenerateZipButtonIsClicked(self):
@@ -610,9 +606,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.Click("css=a[grrtarget=ManageHunts]")
     self.Click("css=td:contains('GenericHunt')")
     self.Click("css=li[heading=Results]")
-    # Using :visible selector as we don't know which button (ZIP or TAR.GZ) will
-    # be shown - it depends on the platform.
-    self.Click("css=button.DownloadButton:visible")
+    self.Click("css=button.DownloadButton")
     self.WaitUntil(self.IsTextPresent, "Generation has started")
 
     with self.ACLChecksDisabled():
@@ -637,9 +631,8 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     # Click the Results tab.
     self.Click("css=li[heading=Results]")
-    self.WaitUntil(self.IsElementPresent, "css=table[aff4_path]")
-    self.WaitUntilNot(self.IsTextPresent,
-                      "CSV output plugin writes to following files")
+    self.WaitUntil(self.IsTextPresent, "CSV Output")
+    self.WaitUntil(self.IsTextPresent, "Nothing was written yet")
 
   def testShowsFilesAndAllowsDownloadWhenCSVExportIsUsed(self):
     with self.ACLChecksDisabled():
@@ -664,11 +657,10 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     # Click the Results tab.
     self.Click("css=li[heading=Results]")
-    self.WaitUntil(self.IsTextPresent,
-                   "CSV output plugin writes to following files")
+    self.WaitUntil(self.IsTextPresent, "Following files were written")
 
     # Check that displayed file can be downloaded.
-    self.Click("css=.csv-output-note a:contains('ExportedFile.csv')")
+    self.Click("css=a:contains('ExportedFile.csv')")
     self.WaitUntil(self.FileWasDownloaded)
 
   def testLogsTabShowsLogsFromAllClients(self):

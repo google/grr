@@ -3,7 +3,7 @@
 :: resulting in missing the library entirely. I believe the issue is this:
 :: https://github.com/pypa/pip/issues/3#issuecomment-1659959
 :: Using --egg installs it in a way that PyInstaller understands
-pip install --egg protobuf==2.6.0 || echo "protobuf egg install failed" && exit /b 1
+pip install --egg protobuf==2.6.1 || echo "protobuf egg install failed" && exit /b 1
 pip install -r C:\grr\client\windows\requirements.txt  || echo "python requirements install failed" && exit /b 1
 
 

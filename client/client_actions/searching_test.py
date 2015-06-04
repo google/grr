@@ -601,13 +601,13 @@ class FindBenchmarks(test_lib.AverageMicroBenchmarks,
     # First get all the files at once
     def RunFind():
 
-      pathspec = rdf_paths.PathSpec(path="/usr/",
+      pathspec = rdf_paths.PathSpec(path=self.base_path,
                                     pathtype=rdf_paths.PathSpec.PathType.OS)
       request = rdf_client.FindSpec(pathspec=pathspec)
-      request.iterator.number = 200
+      request.iterator.number = 80
       result = self.RunAction("Find", request)
-      # 2000 results plus one iterator.
-      self.assertEqual(len(result), 201)
+      # 80 results plus one iterator.
+      self.assertEqual(len(result), 81)
 
     self.TimeIt(RunFind, "Find files with no filters.")
 

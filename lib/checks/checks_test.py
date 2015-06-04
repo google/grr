@@ -128,43 +128,33 @@ class CheckLoaderTests(test_lib.GRRBaseTest):
   """Check definitions can be loaded."""
 
   def testLoadToDict(self):
-    expect = {
-        "SSHD-CHECK": {
-            "check_id": "SSHD-CHECK",
-            "method": [{
-                "probe": [{"artifact": "SshdConfigFile", "match": ["ANY"],
-                           "filters": [
-                               {"type": "ObjectFilter",
-                                "expression": "config.protocol contains 1"}]}],
-                "target": {"os": ["Linux", "Darwin"]},
-                "match": ["ANY"],
-                "hint": {"problem": "Sshd allows protocol 1.",
-                         "summary": "sshd parameter",
-                         "format": "Configured protocols: {config.protocol}"}}],
-            "match": "NONE"}}
-
     result = checks.LoadConfigsFromFile(os.path.join(CHECKS_DIR, "sshd.yaml"))
-    self.assertEqual(expect.keys(), result.keys())
+    self.assertItemsEqual(["SSHD-CHECK", "SSHD-PERMS"], result)
     # Start with basic check attributes.
-    expect_check = expect["SSHD-CHECK"]
     result_check = result["SSHD-CHECK"]
-    self.assertEqual(expect_check["check_id"], result_check["check_id"])
-    self.assertEqual(expect_check["match"], result_check["match"])
+    self.assertEqual("SSHD-CHECK", result_check["check_id"])
+    self.assertEqual("NONE", result_check["match"])
     # Now dive into the method.
-    expect_method = expect_check["method"][0]
     result_method = result_check["method"][0]
-    self.assertEqual(expect_method["target"], result_method["target"])
-    self.assertEqual(expect_method["match"], result_method["match"])
-    self.assertDictEqual(expect_method["hint"], result_method["hint"])
+    self.assertEqual({"os": ["Linux", "Darwin"]}, result_method["target"])
+    self.assertEqual(["ANY"], result_method["match"])
+    expect_hint = {"problem": "Sshd allows protocol 1.",
+                   "format": "Configured protocols: {config.protocol}"}
+    self.assertDictEqual(expect_hint, result_method["hint"])
     # Now dive into the probe.
-    expect_probe = expect_method["probe"][0]
     result_probe = result_method["probe"][0]
-    self.assertEqual(expect_probe["artifact"], result_probe["artifact"])
-    self.assertEqual(expect_probe["match"], result_probe["match"])
+    self.assertEqual("SshdConfigFile", result_probe["artifact"])
+    self.assertEqual(["ANY"], result_probe["match"])
     # Now dive into the filters.
-    expect_filters = expect_probe["filters"][0]
+    expect_filters = {"type": "ObjectFilter",
+                      "expression": "config.protocol contains 1"}
     result_filters = result_probe["filters"][0]
     self.assertDictEqual(expect_filters, result_filters)
+    # Make sure any specified probe context is set.
+    result_check = result["SSHD-PERMS"]
+    probe = result_check["method"][0]["probe"][0]
+    result_context = str(probe["result_context"])
+    self.assertItemsEqual("RAW", result_context)
 
   def testLoadFromFiles(self):
     check_defs = [os.path.join(CHECKS_DIR, "sshd.yaml")]
@@ -176,6 +166,7 @@ class CheckRegistryTests(test_lib.GRRBaseTest):
 
   sw_chk = None
   sshd_chk = None
+  sshd_perms = None
 
   def setUp(self):
     super(CheckRegistryTests, self).setUp()
@@ -189,6 +180,11 @@ class CheckRegistryTests(test_lib.GRRBaseTest):
       checks.CheckRegistry.RegisterCheck(check=self.sshd_chk,
                                          source="sshd_config",
                                          overwrite_if_exists=True)
+    if self.sshd_perms is None:
+      self.sshd_perms = _LoadCheck("sshd.yaml", "SSHD-PERMS")
+      checks.CheckRegistry.RegisterCheck(check=self.sshd_perms,
+                                         source="sshd_config",
+                                         overwrite_if_exists=True)
     self.kb = rdf_client.KnowledgeBase()
     self.kb.hostname = "test.example.com"
     self.host_data = {"KnowledgeBase": self.kb,
@@ -200,6 +196,7 @@ class CheckRegistryTests(test_lib.GRRBaseTest):
     """Defined checks are present in the check registry."""
     self.assertEqual(self.sw_chk, checks.CheckRegistry.checks["SW-CHECK"])
     self.assertEqual(self.sshd_chk, checks.CheckRegistry.checks["SSHD-CHECK"])
+    self.assertEqual(self.sshd_perms, checks.CheckRegistry.checks["SSHD-PERMS"])
 
   def testMapChecksToTriggers(self):
     """Checks are identified and run when their prerequisites are met."""
@@ -290,27 +287,27 @@ class ProcessHostDataTests(checks_test_lib.HostCheckTest):
                 explanation="Found: Malicious software.",
                 type="ANALYSIS_ANOMALY")])
 
-    self.host_data = {"WMIInstalledSoftware": WMI_SW,
-                      "DebianPackagesStatus": DPKG_SW,
-                      "SshdConfigFile": SSHD_CFG}
+    self.data = {"WMIInstalledSoftware": self.SetArtifactData(parsed=WMI_SW),
+                 "DebianPackagesStatus": self.SetArtifactData(parsed=DPKG_SW),
+                 "SshdConfigFile": self.SetArtifactData(parsed=SSHD_CFG)}
 
   def testProcessLinuxHost(self):
     """Checks detect issues and return anomalies as check results."""
-    self.SetKnowledgeBase("host.example.org", "Linux", self.host_data)
-    results = self.RunChecks(self.host_data)
+    host_data = self.SetKnowledgeBase("host.example.org", "Linux", self.data)
+    results = self.RunChecks(host_data)
     self.assertRanChecks(["SW-CHECK", "SSHD-CHECK"], results)
     self.assertResultEqual(self.netcat, results["SW-CHECK"])
     self.assertResultEqual(self.sshd, results["SSHD-CHECK"])
 
   def testProcessWindowsHost(self):
-    self.SetKnowledgeBase("host.example.org", "Windows", self.host_data)
-    results = self.RunChecks(self.host_data)
+    host_data = self.SetKnowledgeBase("host.example.org", "Windows", self.data)
+    results = self.RunChecks(host_data)
     self.assertRanChecks(["SW-CHECK"], results)
     self.assertResultEqual(self.windows, results["SW-CHECK"])
 
   def testProcessDarwinHost(self):
-    self.SetKnowledgeBase("host.example.org", "Darwin", self.host_data)
-    results = self.RunChecks(self.host_data)
+    host_data = self.SetKnowledgeBase("host.example.org", "Darwin", self.data)
+    results = self.RunChecks(host_data)
     self.assertRanChecks(["SSHD-CHECK"], results)
     self.assertResultEqual(self.sshd, results["SSHD-CHECK"])
 
@@ -358,20 +355,22 @@ class ProbeTest(ChecksTestBase):
           probe_cfg = cfg.get("probe", [{}])
           self.configs[name] = probe_cfg[0]
 
-  def Init(self, name, artifact, handler_class):
+  def Init(self, name, artifact, handler_class, result_context):
     """Helper method to verify that the Probe sets up the right handler."""
     cfg = self.configs.get(name)
     probe = checks.Probe(**cfg)
     self.assertEqual(artifact, probe.artifact)
     self.assertIsInstance(probe.handler, handler_class)
     self.assertIsInstance(probe.matcher, checks.Matcher)
+    self.assertItemsEqual(result_context, str(probe.result_context))
 
   def testInitialize(self):
     """Tests the input/output sequence validation."""
-    self.Init("NO-FILTER", "DpkgDb", filters.NoOpHandler)
-    self.Init("SERIAL", "DpkgDb", filters.SerialHandler)
-    self.Init("PARALLEL", "DpkgDb", filters.ParallelHandler)
-    self.Init("BASELINE", "DpkgDb", filters.SerialHandler)
+    self.Init("NO-FILTER", "DpkgDb", filters.NoOpHandler, "PARSER")
+    self.Init("ANOM-CONTEXT", "DpkgDb", filters.NoOpHandler, "ANOMALY")
+    self.Init("SERIAL", "DpkgDb", filters.SerialHandler, "PARSER")
+    self.Init("PARALLEL", "DpkgDb", filters.ParallelHandler, "PARSER")
+    self.Init("BASELINE", "DpkgDb", filters.SerialHandler, "PARSER")
 
   def testParse(self):
     """Host data should be passed to filters, results should be returned."""
@@ -428,8 +427,9 @@ class CheckTest(ChecksTestBase):
       config_file = os.path.join(CHECKS_DIR, "sw.yaml")
       with open(config_file) as data:
         self.cfg = yaml.safe_load(data)
-      self.host_data = {"DebianPackagesStatus": DPKG_SW,
-                        "WMIInstalledSoftware": WMI_SW}
+      self.host_data = {
+          "DebianPackagesStatus": {"ANOMALY": [], "PARSER": DPKG_SW, "RAW": []},
+          "WMIInstalledSoftware": {"ANOMALY": [], "PARSER": WMI_SW, "RAW": []}}
 
   def testInitializeCheck(self):
     chk = checks.Check(**self.cfg)

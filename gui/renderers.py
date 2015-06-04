@@ -1178,6 +1178,7 @@ def JsonResponse(dump_object, xssi_protection=True):
   response = http.HttpResponse(
       result, content_type="application/json; charset=utf-8")
 
-  response["Content-Disposition"] = "attachment"
+  response["Content-Disposition"] = "attachment; filename=response.json"
+  response["X-Content-Type-Options"] = "nosniff"
 
   return response

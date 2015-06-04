@@ -11,6 +11,7 @@ from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import config_file as rdf_config_file
 from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.lib.rdfvalues import standard as rdf_standard
 
 
 def AsIter(arg):
@@ -82,6 +83,12 @@ class FieldParser(lexer.Lexer):
     self.term = AsIter(term)
     self.verbose = verbose
     self._GenStates()
+
+  def Reset(self):
+    super(FieldParser, self).Reset()
+    self.entries = []
+    self.fields = []
+    self.field = ""
 
   def _GenStates(self):
     """Generate the lexer states."""
@@ -286,8 +293,7 @@ class NfsExportsParser(parsers.FileParser, FieldParser):
   supported_artifacts = ["NfsExportsFile"]
 
   def Parse(self, unused_stat, file_obj, unused_knowledge_base):
-    self.ParseEntries(file_obj.read())
-    for entry in self.entries:
+    for entry in self.ParseEntries(file_obj.read()):
       if not entry:
         continue
       result = rdf_config_file.NfsExport()
@@ -507,11 +513,10 @@ class SshdConfigParser(parsers.FileParser):
 class MtabParser(parsers.FileParser, FieldParser):
   """Parser for mounted filesystem data acquired from /proc/mounts."""
   output_types = ["Filesystem"]
-  supported_artifacts = ["LinuxProcMounts"]
+  supported_artifacts = ["LinuxProcMounts", "LinuxFstab"]
 
   def Parse(self, unused_stat, file_obj, unused_knowledge_base):
-    self.ParseEntries(file_obj.read())
-    for entry in self.entries:
+    for entry in self.ParseEntries(file_obj.read()):
       if not entry:
         continue
       result = rdf_client.Filesystem()
@@ -525,6 +530,64 @@ class MtabParser(parsers.FileParser, FieldParser):
         options[k] = v or [True]
       result.options = rdf_protodict.AttributedDict(**options)
       yield result
+
+
+class RsyslogParser(parsers.FileParser, FieldParser):
+  """Parser for syslog configurations."""
+  output_types = ["AttributedDict"]
+  supported_artifacts = ["LinuxRsyslogConfigs"]
+
+  log_rule_re = re.compile(r"([\w,\*]+)\.([\w,!=\*]+)")
+  destinations = collections.OrderedDict([
+      ("TCP", re.compile(r"(?:@@)([^;]*)")),
+      ("UDP", re.compile(r"(?:@)([^;]*)")),
+      ("PIPE", re.compile(r"(?:\|)([^;]*)")),
+      ("NULL", re.compile(r"(?:~)([^;]*)")),
+      ("SCRIPT", re.compile(r"(?:\^)([^;]*)")),
+      ("MODULE", re.compile(r"(?::om\w:)([^;]*)")),
+      ("FILE", re.compile(r"(/[^;]*)"))])
+
+  def _ParseAction(self, action):
+    """Extract log configuration data from rsyslog actions.
+
+    Actions have the format:
+      <facility>/<severity> <type_def><destination>;<template>
+      e.g. *.* @@loghost.example.com.:514;RSYSLOG_ForwardFormat
+
+    Actions are selected by a type definition. These include:
+      "@@": TCP syslog
+      "@": UDP syslog
+      "|": Named pipe
+      "~": Drop to /dev/null
+      "^": Shell script
+      ":om<string>:": An output module
+      Or a file path.
+
+    Args:
+      action: The action string from rsyslog.
+
+    Returns:
+      a rdfvalue.LogTarget message.
+    """
+    for dst_str, dst_re in self.destinations.iteritems():
+      dst = dst_re.match(action)
+      if dst:
+        endpoint = dst.group(1)
+        return rdf_config_file.LogTarget(transport=dst_str,
+                                         destination=endpoint)
+
+  def ParseMultiple(self, unused_stats, file_objs, unused_knowledge_base):
+    # TODO(user): review quoting and line continuation.
+    result = rdf_config_file.LogConfig()
+    for file_obj in file_objs:
+      for entry in self.ParseEntries(file_obj.read()):
+        directive = entry[0]
+        log_rule = self.log_rule_re.match(directive)
+        if log_rule and entry[1:]:
+          target = self._ParseAction(entry[1])
+          target.facility, target.priority = log_rule.groups()
+          result.targets.append(target)
+    yield result
 
 
 class APTPackageSourceParser(parsers.FileParser, FieldParser):
@@ -549,8 +612,8 @@ class APTPackageSourceParser(parsers.FileParser, FieldParser):
     uris = []
 
     for url_to_parse in uris_to_parse:
-      url = rdf_client.URI()
-      url.URIFromString(url_to_parse)
+      url = rdf_standard.URI()
+      url.ParseFromString(url_to_parse)
 
       # if no transport then url_to_parse wasn't actually a valid URL
       # either host or path also have to exist for this to be a valid URL

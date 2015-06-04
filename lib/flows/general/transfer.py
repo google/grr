@@ -12,6 +12,7 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib.aff4_objects import filestore
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
@@ -347,7 +348,7 @@ class MultiGetFileMixin(object):
       hash_obj = response.hash
     else:
       # Deprecate this method of returning hashes.
-      hash_obj = rdfvalue.Hash()
+      hash_obj = rdf_crypto.Hash()
 
       if len(response.results) < 1 or response.results[0]["name"] != "generic":
         self.Log("Failed to hash file: %s", str(vfs_urn))
