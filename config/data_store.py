@@ -86,6 +86,14 @@ config_lib.DEFINE_string("Mysql.database_username", default="root",
 config_lib.DEFINE_string("Mysql.database_password", default="",
                          help="The password to connect to the database.")
 
+config_lib.DEFINE_integer("Mysql.conn_pool_max", 50,
+                          help="The maximum number of open connections to keep "
+                               "available in the pool.")
+
+config_lib.DEFINE_integer("Mysql.conn_pool_min", 10,
+                          help="The minimum number of open connections to keep "
+                               "available in the pool.")
+
 # HTTP data store.
 config_lib.DEFINE_string("HTTPDataStore.username", default="httpuser",
                          help="The username to connect to the http data store.")
