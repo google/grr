@@ -830,7 +830,7 @@ class Factory(object):
       yield dict(urn=rdfvalue.RDFURN(subject), type=values[0])
 
   def Create(self, urn, aff4_type, mode="w", token=None, age=NEWEST_TIME,
-             ignore_cache=False, force_new_version=True):
+             ignore_cache=False, force_new_version=True, object_exists=False):
     """Creates the urn if it does not already exist, otherwise opens it.
 
     If the urn exists and is of a different type, this will also promote it to
@@ -884,7 +884,8 @@ class Factory(object):
 
     # Object does not exist, just make it.
     cls = AFF4Object.classes[str(aff4_type)]
-    result = cls(urn, mode=mode, token=token, age=age, aff4_type=aff4_type)
+    result = cls(urn, mode=mode, token=token, age=age, aff4_type=aff4_type,
+                 object_exists=object_exists)
     result.Initialize()
     if force_new_version:
       result.ForceNewVersion()
