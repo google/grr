@@ -42,28 +42,27 @@ flags.DEFINE_bool("start_dataserver", False,
 
 def main(argv):
   """Sets up all the component in their own threads."""
-  flag_list = [flags.FLAGS.start_worker, flags.FLAGS.start_ui,
-               flags.FLAGS.start_http_server, flags.FLAGS.start_dataserver]
-  # enabled_flags = [f for f in flag_list if f]
 
-  if True not in flag_list:
-    raise RuntimeError("No component specified to start")
-
-  # Start the worker thread if necessary.
+  # Start as a worker.
   if flags.FLAGS.start_worker:
     worker.main([argv])
 
-  # Start the HTTP server thread, that clients communicate with, if necessary.
-  if flags.FLAGS.start_http_server:
+  # Start as a HTTP server that clients communicate with.
+  elif flags.FLAGS.start_http_server:
     http_server.main([argv])
 
-  # Start the UI thread if necessary.
-  if flags.FLAGS.start_ui:
+  # Start as an AdminUI.
+  elif flags.FLAGS.start_ui:
     admin_ui.main([argv])
 
-  # Start the data server thread if necessary.
-  if flags.FLAGS.start_dataserver:
+  # Start as the data server.
+  elif flags.FLAGS.start_dataserver:
     data_server.main([argv])
+
+  # If no flags were set then raise.
+  else:
+    raise RuntimeError("No component specified to start")
+
 
 if __name__ == "__main__":
   flags.StartMain(main)
