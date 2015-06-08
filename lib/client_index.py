@@ -5,6 +5,7 @@ An index of client machines, associating likely identifiers to client IDs.
 """
 
 
+from grr.lib import aff4
 from grr.lib import keyword_index
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -35,18 +36,9 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
   def _NormalizeKeyword(self, keyword):
     return keyword.lower()
 
-  def LookupClients(self, keywords):
-    """Returns a list of client URNs associated with keywords.
-
-    Args:
-      keywords: The list of keywords to search by.
-
-    Returns:
-      A list of client URNs.
-    """
+  def _AnalyzeKeywords(self, keywords):
     start_time = rdfvalue.RDFDatetime().Now() - rdfvalue.Duration("180d")
     end_time = rdfvalue.RDFDatetime(self.LAST_TIMESTAMP)
-
     filtered_keywords = []
     for k in keywords:
       if k.startswith(self.START_TIME_PREFIX):
@@ -67,12 +59,42 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
     if not filtered_keywords:
       filtered_keywords.append(".")
 
+    return start_time, end_time, filtered_keywords
+
+  def LookupClients(self, keywords):
+    """Returns a list of client URNs associated with keywords.
+
+    Args:
+      keywords: The list of keywords to search by.
+
+    Returns:
+      A list of client URNs.
+    """
+    start_time, end_time, filtered_keywords = self._AnalyzeKeywords(keywords)
+
     # TODO(user): Make keyword index datetime aware so that
     # AsMicroSecondsFromEpoch is unecessary.
     return map(self._URNFromClientID,
                self.Lookup(map(self._NormalizeKeyword, filtered_keywords),
                            start_time=start_time.AsMicroSecondsFromEpoch(),
                            end_time=end_time.AsMicroSecondsFromEpoch()))
+
+  def ReadClientPostingLists(self, keywords):
+    """Looks up all clients associated with any of the given keywords.
+
+    Args:
+      keywords: A list of keywords we are interested in.
+    Returns:
+      A dict mapping each keyword to a list of matching clients.
+    """
+
+    start_time, end_time, filtered_keywords = self._AnalyzeKeywords(keywords)
+
+    # TODO(user): Make keyword index datetime aware so that
+    # AsMicroSecondsFromEpoch is unecessary.
+    return self.ReadPostingLists(
+        filtered_keywords, start_time=start_time.AsMicroSecondsFromEpoch(),
+        end_time=end_time.AsMicroSecondsFromEpoch())
 
   def AnalyzeClient(self, client):
     """Finds the client_id and keywords for a client.
@@ -128,7 +150,7 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
     s = client.Schema
     TryAppend("host", client.Get(s.HOSTNAME))
     TryAppendPrefixes("host", client.Get(s.HOSTNAME), "-")
-    TryAppend("fdqn", client.Get(s.FQDN))
+    TryAppend("host", client.Get(s.FQDN))
     TryAppendPrefixes("host", client.Get(s.FQDN), ".")
     TryAppend("", client.Get(s.SYSTEM))
     TryAppend("", client.Get(s.UNAME))
@@ -186,3 +208,30 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
     """
 
     self.AddKeywordsForName(*self.AnalyzeClient(client), **kwargs)
+
+
+def GetClientURNsForHostnames(hostnames, token=None):
+  """Gets all client_ids for a given list of hostnames or FQDNS.
+
+  Args:
+    hostnames: A list of hostnames / FQDNs.
+    token: An ACL token.
+  Returns:
+    A dict with a list of all known GRR client_ids for each hostname.
+  """
+
+  index = aff4.FACTORY.Create(
+      MAIN_INDEX, aff4_type="ClientIndex", mode="rw", token=token)
+
+  keywords = set()
+  for hostname in hostnames:
+    if hostname.startswith("host:"):
+      keywords.add(hostname)
+    else:
+      keywords.add("host:%s" % hostname)
+  results = index.ReadClientPostingLists(keywords)
+
+  result = {}
+  for keyword, hits in results.iteritems():
+    result[keyword[len("host:"):]] = hits
+  return result

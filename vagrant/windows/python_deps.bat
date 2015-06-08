@@ -1,4 +1,4 @@
-:: Install 64-bit dependencies
+:: Install python dependencies
 :: protobuf uses a fancy egg format which seems to mess up PyInstaller,
 :: resulting in missing the library entirely. I believe the issue is this:
 :: https://github.com/pypa/pip/issues/3#issuecomment-1659959

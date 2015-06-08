@@ -104,6 +104,9 @@ class GRRWorker(object):
           processed = 0
 
         if processed == 0:
+          logger = logging.getLogger()
+          for h in logger.handlers:
+            h.flush()
 
           if time.time() - self.last_active > self.SHORT_POLL_TIME:
             interval = self.POLLING_INTERVAL

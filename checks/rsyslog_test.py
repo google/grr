@@ -40,8 +40,9 @@ class RsyslogCheckTests(checks_test_lib.HostCheckTest):
     host_data = self.GetParsedMultiFile("LinuxRsyslogConfigs", test_data,
                                         self.parser)
     exp = "Missing attribute: No remote destination for auth logs."
+    found = ["Expected state was not found"]
     results = self.RunChecks(host_data)
-    self.assertCheckDetectedAnom(chk_id, results, exp, [])
+    self.assertCheckDetectedAnom(chk_id, results, exp, found)
 
   def testLoggingFilePermissions(self):
     chk_id = "CIS-LOGGING-FILE-PERMISSIONS"

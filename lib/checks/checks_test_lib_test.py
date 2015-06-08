@@ -37,7 +37,7 @@ class CheckHelperTests(checks_test_lib.HostCheckTest):
                       self.assertCheckUndetected, "SW-CHECK", has_anomaly)
 
   def testAssertRanChecks(self):
-    """Test for the assertRanChecks() method."""
+    """Tests for the assertRanChecks() method."""
     no_checks = {}
     some_checks = {"EXISTS": checks.CheckResult(check_id="EXISTS")}
 
@@ -50,7 +50,7 @@ class CheckHelperTests(checks_test_lib.HostCheckTest):
                       ["FOOBAR"], some_checks)
 
   def testAssertChecksNotRun(self):
-    """Test for the assertChecksNotRun() method."""
+    """Tests for the assertChecksNotRun() method."""
     no_checks = {}
     some_checks = {"EXISTS": checks.CheckResult(check_id="EXISTS")}
 
@@ -65,6 +65,74 @@ class CheckHelperTests(checks_test_lib.HostCheckTest):
     self.assertRaises(AssertionError,
                       self.assertChecksNotRun,
                       ["FOO", "EXISTS", "BAR"], some_checks)
+
+  def testAssertCheckDetectedAnom(self):
+    """Tests for the assertCheckDetectedAnom() method."""
+
+    # Check we fail when our checkid isn't in the results.
+    no_checks = {}
+    self.assertRaises(AssertionError,
+                      self.assertCheckDetectedAnom,
+                      "UNICORN",
+                      no_checks,
+                      exp=None,
+                      findings=None)
+
+    # Check we fail when our checkid is in the results but hasn't
+    # produced an anomaly.
+    passing_checks = {"EXISTS": checks.CheckResult(check_id="EXISTS")}
+    self.assertRaises(AssertionError,
+                      self.assertCheckDetectedAnom,
+                      "EXISTS",
+                      passing_checks,
+                      exp=None,
+                      findings=None)
+
+    # On to a 'successful' cases.
+    anomaly = {"finding": ["Finding"],
+               "explanation": "Found: An issue.",
+               "type": "ANALYSIS_ANOMALY"}
+    failing_checks = {"EXISTS": checks.CheckResult(
+        check_id="EXISTS",
+        anomaly=rdf_anomaly.Anomaly(**anomaly))}
+
+    # Check we pass when our check produces an anomaly and we don't care
+    # about the details.
+    self.assertCheckDetectedAnom("EXISTS", failing_checks,
+                                 exp=None, findings=None)
+    # When we do care only about the 'explanation'.
+    self.assertCheckDetectedAnom("EXISTS", failing_checks,
+                                 exp="Found: An issue.", findings=None)
+    # And when we also care about the findings.
+    self.assertCheckDetectedAnom("EXISTS", failing_checks,
+                                 exp="Found: An issue.",
+                                 findings=["Finding"])
+    # And check we match substrings of a 'finding'.
+    self.assertCheckDetectedAnom("EXISTS", failing_checks,
+                                 exp="Found: An issue.",
+                                 findings=["Fin"])
+    # Check we complain when the explanation doesn't match.
+    self.assertRaises(AssertionError,
+                      self.assertCheckDetectedAnom,
+                      "EXISTS",
+                      failing_checks,
+                      exp="wrong explanation",
+                      findings=None)
+    # Check we complain when the explanation matches but the findings don't.
+    self.assertRaises(AssertionError,
+                      self.assertCheckDetectedAnom,
+                      "EXISTS",
+                      failing_checks,
+                      exp="Found: An issue.",
+                      findings=["Not found"])
+    # Lastly, if there is a finding in the anomaly we didn't expect, we consider
+    # that a problem.
+    self.assertRaises(AssertionError,
+                      self.assertCheckDetectedAnom,
+                      "EXISTS",
+                      failing_checks,
+                      exp="Found: An issue.",
+                      findings=[])
 
 
 def main(argv):

@@ -14,7 +14,6 @@ from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import search
 from grr.lib import test_lib
 # pylint: disable=unused-import
 from grr.lib.flows.general import discovery
@@ -162,8 +161,12 @@ class TestClientInterrogate(artifact_test.ArtifactTest):
 
   def _CheckLabelIndex(self):
     """Check that label indexes are updated."""
+    index = aff4.FACTORY.Create(
+        client_index.MAIN_INDEX, aff4_type="ClientIndex",
+        mode="rw", token=self.token)
+
     self.assertEqual(
-        list(search.SearchClients("label:Label2", token=self.token)),
+        list(index.LookupClients(["label:Label2"])),
         [self.client_id])
 
   def _CheckWindowsDiskInfo(self):

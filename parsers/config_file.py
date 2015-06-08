@@ -536,6 +536,7 @@ class RsyslogParser(parsers.FileParser, FieldParser):
   """Parser for syslog configurations."""
   output_types = ["AttributedDict"]
   supported_artifacts = ["LinuxRsyslogConfigs"]
+  process_together = True
 
   log_rule_re = re.compile(r"([\w,\*]+)\.([\w,!=\*]+)")
   destinations = collections.OrderedDict([
@@ -587,7 +588,7 @@ class RsyslogParser(parsers.FileParser, FieldParser):
           target = self._ParseAction(entry[1])
           target.facility, target.priority = log_rule.groups()
           result.targets.append(target)
-    yield result
+    return [result]
 
 
 class APTPackageSourceParser(parsers.FileParser, FieldParser):

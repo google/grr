@@ -3,6 +3,7 @@
 import os
 
 
+import portpicker
 from selenium import webdriver
 
 import logging
@@ -40,6 +41,10 @@ class SeleniumTestProgram(test_lib.GrrTestProgram):
       logging.exception(e)
 
   def setUp(self):
+    # Select a free port
+    port = portpicker.PickUnusedPort()
+    config_lib.CONFIG.Set("AdminUI.port", port)
+    logging.info("Picked free AdminUI port %d.", port)
 
     # Start up a server in another thread
     self.trd = runtests.DjangoThread()

@@ -34,7 +34,7 @@ class XinetdServiceStateTests(checks_test_lib.HostCheckTest):
   def testEmptyXinetdCheck(self):
     chk_id = "CIS-INETD-WITH-NO-SERVICES"
     exp = "Missing attribute: xinetd running with no xinetd-managed services."
-    found = []
+    found = ["Expected state was not found"]
     self.RunXinetdCheck(chk_id, "finger", "yes", exp, found)
 
   def testLegacyXinetdServicesCheck(self):
@@ -125,6 +125,20 @@ class ListeningServiceTests(checks_test_lib.HostCheckTest):
     host_data = self.GenHostData()
     results = self.RunChecks(host_data)
     self.assertCheckDetectedAnom(chk_id, results, exp, found)
+
+  def testFindNoRunningLogserver(self):
+    chk_id = "CIS-SERVICE-LOGSERVER-RUNNING"
+    exp = "Missing attribute: Logging software is not running."
+    found = ["Expected state was not found"]
+    host_data = self.GenHostData()
+    # Try it without rsyslog.
+    results = self.RunChecks(host_data)
+    self.assertCheckDetectedAnom(chk_id, results, exp, found)
+    # Now rsyslog is running.
+    logs = rdf_client.Process(name="rsyslogd", pid=1236)
+    host_data["ListProcessesGrr"]["PARSER"].append(logs)
+    results = self.RunChecks(host_data)
+    self.assertCheckUndetected(chk_id, results)
 
 
 def main(argv):

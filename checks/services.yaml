@@ -147,3 +147,21 @@ method:
         filters:
           - type: 'ObjectFilter'
             expression: 'name inset ["x11","xorg"]'
+---
+check_id: CIS-SERVICE-LOGSERVER-RUNNING
+method:
+  - target: {os:['Linux']}
+    hint:
+      problem: Logging software is not running.
+      fix: "Configure a logserver to run at boot time."
+    match: 'NONE'
+    probe:
+      - artifact: 'ListProcessesGrr'
+        mode: 'PARALLEL'
+        filters:
+          - type: 'ObjectFilter'
+            expression: name is "rsyslogd"
+          - type: 'ObjectFilter'
+            expression: name is "syslogd"
+          - type: 'ObjectFilter'
+            expression: name is "syslog-ng"

@@ -10,6 +10,7 @@ from grr.lib import flags
 from grr.lib import flow
 from grr.lib import test_lib
 from grr.lib.checks import checks
+from grr.lib.checks import checks_test_lib
 # pylint: disable=unused-import
 from grr.lib.flows.general import checks as _
 # pylint: enable=unused-import
@@ -18,7 +19,8 @@ from grr.lib.rdfvalues import paths as rdf_paths
 # pylint: mode=test
 
 
-class TestCheckFlows(test_lib.FlowTestsBaseclass):
+class TestCheckFlows(test_lib.FlowTestsBaseclass,
+                     checks_test_lib.HostCheckTest):
 
   checks_loaded = False
 
@@ -63,14 +65,15 @@ class TestCheckFlows(test_lib.FlowTestsBaseclass):
           token=self.token):
         pass
     session = aff4.FACTORY.Open(session_id, token=self.token)
-    replies = send_reply
-    return session, replies
+    results = {r.check_id: r for _, r in send_reply.args if isinstance(
+        r, checks.CheckResult)}
+    return session, results
 
   def LoadChecks(self):
     """Load the checks, returning the names of the checks that were loaded."""
     config_lib.CONFIG.Set("Checks.max_results", 5)
     checks.CheckRegistry.Clear()
-    check_configs = ("sshd.yaml", "sw.yaml")
+    check_configs = ("sshd.yaml", "sw.yaml", "unix_login.yaml")
     cfg_dir = os.path.join(config_lib.CONFIG["Test.data_dir"], "checks")
     chk_files = [os.path.join(cfg_dir, f) for f in check_configs]
     checks.LoadChecksFromFiles(chk_files)
@@ -78,40 +81,40 @@ class TestCheckFlows(test_lib.FlowTestsBaseclass):
 
   def testSelectArtifactsForChecks(self):
     self.SetLinuxKB()
-    results, _ = self.RunFlow()
-    self.assertTrue("DebianPackagesStatus" in results.state.artifacts_wanted)
-    self.assertTrue("SshdConfigFile" in results.state.artifacts_wanted)
+    session, _ = self.RunFlow()
+    self.assertTrue("DebianPackagesStatus" in session.state.artifacts_wanted)
+    self.assertTrue("SshdConfigFile" in session.state.artifacts_wanted)
 
     self.SetWindowsKB()
-    results, _ = self.RunFlow()
-    self.assertTrue("WMIInstalledSoftware" in results.state.artifacts_wanted)
+    session, _ = self.RunFlow()
+    self.assertTrue("WMIInstalledSoftware" in session.state.artifacts_wanted)
 
-  def testCheckHostDataReturnsFindings(self):
-    """Test the flow returns results."""
+  def testCheckFlowSelectsChecks(self):
+    """Confirm the flow runs checks for a target machine."""
     self.SetLinuxKB()
+    _, results = self.RunFlow()
+    expected = ["SHADOW-HASH", "SSHD-CHECK", "SSHD-PERMS", "SW-CHECK"]
+    self.assertRanChecks(expected, results)
 
-    # Run the check flow end-to-end.
-    checks_run = []
-    _, replies = self.RunFlow()
-
-    for _, result in replies.args:
-      if isinstance(result, checks.CheckResult):
-        checks_run.append(result.check_id)
-        if result.check_id == "SSHD-CHECK":  # True if there are anomalies
-          sshd_results = [a.ToPrimitiveDict() for a in result.anomaly]
-        if result.check_id == "SSHD-PERMS":  # True if there are stat results
-          perm_results = [r.ToPrimitiveDict() for r in result.anomaly]
-    self.assertTrue("SSHD-CHECK" in checks_run)
-    expected = {"explanation": "Found: Sshd allows protocol 1.",
-                "finding": ["Configured protocols: 2,1"],
-                "type": "ANALYSIS_ANOMALY"}
-    self.assertTrue(expected in sshd_results)
-    self.assertTrue("SSHD-PERMS" in checks_run)
-    self.assertEqual(1, len(perm_results))
-    expected = {"explanation": "Found: The filesystem supports stat.",
-                "finding": ["/etc/ssh/sshd_config"],
-                "type": "ANALYSIS_ANOMALY"}
-    self.assertTrue(expected in perm_results)
+  def testChecksProcessResultContext(self):
+    """Test the flow returns parser results."""
+    self.SetLinuxKB()
+    _, results = self.RunFlow()
+    # Detected by result_context: PARSER
+    exp = "Found: Sshd allows protocol 1."
+    self.assertCheckDetectedAnom("SSHD-CHECK", results, exp)
+    # Detected by result_context: RAW
+    exp = "Found: The filesystem supports stat."
+    found = ["/etc/ssh/sshd_config"]
+    self.assertCheckDetectedAnom("SSHD-PERMS", results, exp, found)
+    # Detected by result_context: ANOMALY
+    exp = "Found: Unix system account anomalies."
+    found = ["Accounts with invalid gid.",
+             "Mismatched passwd and shadow files."]
+    self.assertCheckDetectedAnom("ODD-PASSWD", results, exp, found)
+    # No findings.
+    self.assertCheckUndetected("SHADOW-HASH", results)
+    self.assertCheckUndetected("SW-CHECK", results)
 
 
 def main(argv):

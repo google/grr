@@ -8,12 +8,12 @@ import unittest
 
 
 from grr.lib import aff4
+from grr.lib import client_index
 from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flow_utils
 from grr.lib import rdfvalue
 from grr.lib import registry
-from grr.lib import search
 from grr.lib.flows.console import debugging
 from grr.lib.rdfvalues import client as rdf_client
 
@@ -216,7 +216,7 @@ def GetClientTestTargets(client_ids=None, hostnames=None, token=None,
     hosts = set(config_lib.CONFIG.Get("Test.end_to_end_client_hostnames"))
 
   if hosts:
-    client_id_dict = search.GetClientURNsForHostnames(hosts, token=token)
+    client_id_dict = client_index.GetClientURNsForHostnames(hosts, token=token)
     for client_list in client_id_dict.values():
       client_ids.update(client_list)
 

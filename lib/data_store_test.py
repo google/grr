@@ -693,6 +693,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
 
     # We should still be able to modify using the first transaction:
     t1.Set(predicate, "1")
+    t1.Commit()
     self.assertEqual(t1.Resolve(predicate)[0], "1")
     t1.Commit()
 
@@ -714,7 +715,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     t3 = data_store.DB.Transaction(subject, token=self.token)
     t3.Set(predicate1, "10")
     t3.Set(predicate2, "20")
-
+    t3.Commit()
     self.assertEqual(t3.ResolveRegex(predicate1regex)[0][1], "10")
     self.assertEqual(
         t3.ResolveRegex(predicate1regex,
@@ -731,6 +732,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     t4 = data_store.DB.Transaction(subject, token=self.token)
 
     t4.DeleteAttribute(predicate1)
+    t4.Commit()
 
     self.assertEqual(t4.Resolve(predicate1), (None, 0))
     self.assertEqual(len(t4.ResolveRegex(predicate1regex)), 0)

@@ -177,15 +177,51 @@ class HostCheckTest(test_lib.GRRBaseTest):
           message += "    %s\n" % err
       self.fail(message)
 
+  def _HasExplanation(self, anomalies, exp):
+    if exp is None:
+      return True
+    rslts = {rslt.explanation: rslt for rslt in anomalies}
+    rslt = rslts.get(exp)
+    # Anomalies evaluate false if there are no finding strings.
+    self.assertTrue(rslt is not None,
+                    "Didn't get expected explanation string '%s' in '%s'" %
+                    (exp, ",".join(rslts)))
+
+  def _GetFindings(self, anomalies, exp):
+    """Generate a set of findings from anomalys that match the explanation."""
+    result = set()
+    for anomaly in anomalies:
+      if anomaly.explanation == exp:
+        result.update(set(anomaly.finding))
+    return result
+
+  def _MatchFindings(self, expected, found):
+    """Check that every expected finding is a substring of a found finding."""
+    matched_so_far = set()
+    for finding_str in expected:
+      no_match = True
+      for found_str in found:
+        if finding_str in found_str:
+          matched_so_far.add(found_str)
+          no_match = False
+          break
+      if no_match:
+        return False
+    # If we got here, all expected's match at least one item.
+    # Now check if every item in found was matched at least once.
+    # If so, everything is as expected, If not, Badness.
+    if not matched_so_far.symmetric_difference(found):
+      return True
+
   def assertCheckDetectedAnom(self, check_id, results, exp=None, findings=None):
     """Assert a check was performed and specific anomalies were found.
 
     Results may contain multiple anomalies. The check will hold true if any
     one of them matches. As some results can contain multiple anomalies we
-    will need to make sure the right anomaly is selected.
+    will need to make sure the right anomalies are selected.
 
-    If an explanation is provided, look for an anomaly that matches the
-    expression string and use that anomaly. Otherwise, all anomalies in the
+    If an explanation is provided, look for anomalies that matches the
+    expression string and use those. Otherwise, all anomalies in the
     check should be used.
 
     If finding strings are provided, the check tests if the substring is present
@@ -209,42 +245,21 @@ class HostCheckTest(test_lib.GRRBaseTest):
     self.assertTrue(chk, "check %s did not generate anomalies" % check_id)
     # If exp or results are passed as args, look for anomalies with these
     # values.
-    if exp is not None or findings is not None:
-      # By default, check all the anomalies in the check result.
-      anomalies = chk.anomaly
-      rslts = {rslt.explanation: rslt for rslt in anomalies}
-      if exp:
-        rslt = rslts.get(exp)
-        # Anomalies evaluate false if there are no finding strings.
-        self.assertTrue(rslt is not None,
-                        "Didn't get expected explanation string '%s' in '%s'" %
-                        (exp, ",".join(rslts)))
-        anomalies = [rslt]
-      # Stop now if there are no findings to test.
-      if not findings:
-        return True
-      # Now check whether the selected anomaly/anomalies contain the specified
-      # finding strings.
-      for rslt in anomalies:
-        if findings:
-          # Should be the same number of findings. If not, this may not be the
-          # right result.
-          if len(findings) != len(rslt.finding):
-            continue
-          # Each expected finding string should be in a result finding.
-          # We do a substring match to prevent ordering effects within anomaly
-          # strings from making the tests flake.
-          for want_str in findings:
-            found = any([want_str in rslt_str for rslt_str in rslt.finding])
-            if not found:
-              continue
-          # If we get here, the number and content of finding strings matched.
-          # The test passes!
-          return True
-      # If we get to here, none of the result anomalies matched expectations.
-      others = "\n".join([str(a) for a in chk.anomaly])
-      self.fail("No anomalies matched\nexpression:%s:\nfinding strings %s\n"
-                "Got:\n%s" % (exp, ",".join(findings), others))
+    self._HasExplanation(chk.anomaly, exp)
+    if findings is None:
+      # We are not expecting to match on findings, so skip checking them.
+      return True
+    findings = set(findings)
+    found = self._GetFindings(chk.anomaly, exp)
+    if self._MatchFindings(findings, found):
+      # Everything matches, and nothing unexpected, so all is good.
+      return True
+    # If we have made it here, we have the expected explanation but
+    # the findings didn't match up.
+    others = "\n".join([str(a) for a in chk.anomaly])
+    self.fail("Findings don't match for explanation '%s':\nExpected:\n  %s\n"
+              "Got:\n  %s\nFrom:\n%s"
+              % (exp, ", ".join(findings), ", ".join(found), others))
 
   def assertCheckUndetected(self, check_id, results):
     """Assert a check_id was performed, and resulted in no anomalies."""
@@ -254,7 +269,8 @@ class HostCheckTest(test_lib.GRRBaseTest):
       self.fail("Check %s was not performed.\n" % check_id)
     # A check result will evaluate as True if it contains an anomaly.
     if results.get(check_id):
-      self.fail("Check %s unexpectedly produced an anomaly.\n" % check_id)
+      self.fail("Check %s unexpectedly produced an anomaly.\nGot: %s\n"
+                % (check_id, results.get(check_id).anomaly))
 
   def assertChecksUndetected(self, check_ids, results):
     """Assert multiple check_ids were performed & they produced no anomalies."""

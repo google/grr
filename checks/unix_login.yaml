@@ -74,3 +74,59 @@ method:
         filters:
           - type: 'ObjectFilter'
             expression: name regexp "\+\w*"
+---
+check_id: 'CIS-LOGIN-UNIX-WRITABLE'
+method:
+  - target: {os: ['Linux']}
+    hint:
+      format: >
+        {pathspec.path}: user: {st_uid}, group: {st_gid}, mode: {st_mode}
+      fix: >
+        Set permissions such that all files are owned by root and are not
+        modifiable by other users.
+      problem: 'System account files can be modified by non-privileged users.'
+    probe:
+      - artifact: 'LoginPolicyConfiguration'
+        mode: 'PARALLEL'
+        result_context: 'RAW'
+        filters:
+          - type: 'StatFilter'
+            expression: 'uid:!0'
+          - type: 'StatFilter'
+            expression: 'gid:!0 mode:0020 mask:7020'
+          - type: 'StatFilter'
+            expression: 'mode:0002 mask:7002'
+---
+check_id: 'CIS-LOGIN-UNIX-SHADOW-PERMS'
+method:
+  - target: {os: ['Linux']}
+    hint:
+      format: >
+        {pathspec.path}: user: {st_uid}, group: {st_gid}, mode: {st_mode}
+      fix: >
+        Set permissions such that shadow files are owned by and only readable by
+        root.
+      problem: 'Incorrect shadow file permissions.'
+    probe:
+      - artifact: 'LoginPolicyConfiguration'
+        mode: 'PARALLEL'
+        result_context: 'RAW'
+        baseline:
+          - type: 'StatFilter'
+            expression: 'file_re:"shadow"'
+        filters:
+          - type: 'StatFilter'
+            expression: 'gid:!0'
+          - type: 'StatFilter'
+            expression: 'mode:0044 mask:7044'
+---
+check_id: 'CIS-LOGIN-UNIX-INCONSISTENCIES'
+method:
+  - target: {os: ['Linux']}
+    hint:
+      format: '{symptom}'
+      fix: 'Keep password and shadow files consistent for all system accounts.'
+      problem: 'System account entries are anomalous.'
+    probe:
+      - artifact: 'LoginPolicyConfiguration'
+        result_context: 'ANOMALY'

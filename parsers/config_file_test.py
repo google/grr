@@ -199,8 +199,9 @@ class RsyslogParserTests(test_lib.GRRBaseTest):
     """
     log_conf = StringIO.StringIO(test_data)
     config = config_file.RsyslogParser()
-    results = list(config.ParseMultiple([None], [log_conf], None))[0]
-    tcp, udp, pipe, null, script, fs = [target for target in results.targets]
+    results = list(config.ParseMultiple([None], [log_conf], None))
+    self.assertEqual(1, len(results))
+    tcp, udp, pipe, null, script, fs = [target for target in results[0].targets]
 
     self.assertEqual("daemon", tcp.facility)
     self.assertEqual("*", tcp.priority)

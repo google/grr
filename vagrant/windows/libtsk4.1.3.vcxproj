@@ -1,0 +1,306 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug_NoLibs|Win32">
+      <Configuration>Debug_NoLibs</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug_NoLibs|x64">
+      <Configuration>Debug_NoLibs</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{76EFC06C-1F64-4478-ABE8-79832716B393}</ProjectGuid>
+    <RootNamespace>libtsk</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_NoLibs|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_NoLibs|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>Windows7.1SDK</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v120</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>Windows7.1SDK</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>Windows7.1SDK</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug_NoLibs|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug_NoLibs|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(Configuration)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(Configuration)\</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(Configuration)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(Configuration)\</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug_NoLibs|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug_NoLibs|x64'">$(OutDir)</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug_NoLibs|Win32'">$(Configuration)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug_NoLibs|x64'">$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_DEPRECATE;WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_DEPRECATE;WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_DEPRECATE;WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_DEPRECATE;WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_NoLibs|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_DEPRECATE;WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_NoLibs|x64'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_DEPRECATE;WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\tsk\vs\bsd.c" />
+    <ClCompile Include="..\..\tsk\vs\dos.c" />
+    <ClCompile Include="..\..\tsk\vs\gpt.c" />
+    <ClCompile Include="..\..\tsk\vs\mac.c" />
+    <ClCompile Include="..\..\tsk\vs\mm_io.c" />
+    <ClCompile Include="..\..\tsk\vs\mm_open.c" />
+    <ClCompile Include="..\..\tsk\vs\mm_part.c" />
+    <ClCompile Include="..\..\tsk\vs\mm_types.c" />
+    <ClCompile Include="..\..\tsk\vs\sun.c" />
+    <ClCompile Include="..\..\tsk\fs\dcalc_lib.c" />
+    <ClCompile Include="..\..\tsk\fs\dcat_lib.c" />
+    <ClCompile Include="..\..\tsk\fs\dls_lib.c" />
+    <ClCompile Include="..\..\tsk\fs\dstat_lib.c" />
+    <ClCompile Include="..\..\tsk\fs\ext2fs.c" />
+    <ClCompile Include="..\..\tsk\fs\ext2fs_dent.c" />
+    <ClCompile Include="..\..\tsk\fs\ext2fs_journal.c" />
+    <ClCompile Include="..\..\tsk\fs\fatfs.c" />
+    <ClCompile Include="..\..\tsk\fs\fatfs_dent.cpp" />
+    <ClCompile Include="..\..\tsk\fs\fatfs_meta.c" />
+    <ClCompile Include="..\..\tsk\fs\ffind_lib.c" />
+    <ClCompile Include="..\..\tsk\fs\ffs.c" />
+    <ClCompile Include="..\..\tsk\fs\ffs_dent.c" />
+    <ClCompile Include="..\..\tsk\fs\fls_lib.c" />
+    <ClCompile Include="..\..\tsk\fs\fs_attr.c" />
+    <ClCompile Include="..\..\tsk\fs\fs_attrlist.c" />
+    <ClCompile Include="..\..\tsk\fs\fs_block.c" />
+    <ClCompile Include="..\..\tsk\fs\fs_dir.c" />
+    <ClCompile Include="..\..\tsk\fs\fs_file.c" />
+    <ClCompile Include="..\..\tsk\fs\fs_inode.c" />
+    <ClCompile Include="..\..\tsk\fs\fs_io.c" />
+    <ClCompile Include="..\..\tsk\fs\fs_load.c" />
+    <ClCompile Include="..\..\tsk\fs\fs_name.c" />
+    <ClCompile Include="..\..\tsk\fs\fs_open.c" />
+    <ClCompile Include="..\..\tsk\fs\fs_parse.c" />
+    <ClCompile Include="..\..\tsk\fs\fs_types.c" />
+    <ClCompile Include="..\..\tsk\fs\hfs.c" />
+    <ClCompile Include="..\..\tsk\fs\hfs_dent.c" />
+    <ClCompile Include="..\..\tsk\fs\hfs_journal.c" />
+    <ClCompile Include="..\..\tsk\fs\hfs_unicompare.c" />
+    <ClCompile Include="..\..\tsk\fs\icat_lib.c" />
+    <ClCompile Include="..\..\tsk\fs\ifind_lib.c" />
+    <ClCompile Include="..\..\tsk\fs\ils_lib.c" />
+    <ClCompile Include="..\..\tsk\fs\iso9660.c" />
+    <ClCompile Include="..\..\tsk\fs\iso9660_dent.c" />
+    <ClCompile Include="..\..\tsk\fs\nofs_misc.c" />
+    <ClCompile Include="..\..\tsk\fs\ntfs.c" />
+    <ClCompile Include="..\..\tsk\fs\ntfs_dent.cpp" />
+    <ClCompile Include="..\..\tsk\fs\rawfs.c" />
+    <ClCompile Include="..\..\tsk\fs\swapfs.c" />
+    <ClCompile Include="..\..\tsk\fs\unix_misc.c" />
+    <ClCompile Include="..\..\tsk\fs\walk_cpp.cpp" />
+    <ClCompile Include="..\..\tsk\fs\yaffs.cpp" />
+    <ClCompile Include="..\..\tsk\auto\auto.cpp" />
+    <ClCompile Include="..\..\tsk\auto\auto_db.cpp" />
+    <ClCompile Include="..\..\tsk\auto\case_db.cpp" />
+    <ClCompile Include="..\..\tsk\auto\db_sqlite.cpp" />
+    <ClCompile Include="..\..\tsk\auto\sqlite3.c" />
+    <ClCompile Include="..\..\tsk\base\md5c.c" />
+    <ClCompile Include="..\..\tsk\base\mymalloc.c" />
+    <ClCompile Include="..\..\tsk\base\sha1c.c" />
+    <ClCompile Include="..\..\tsk\base\tsk_endian.c" />
+    <ClCompile Include="..\..\tsk\base\tsk_error.c" />
+    <ClCompile Include="..\..\tsk\base\tsk_error_win32.cpp" />
+    <ClCompile Include="..\..\tsk\base\tsk_list.c" />
+    <ClCompile Include="..\..\tsk\base\tsk_lock.c" />
+    <ClCompile Include="..\..\tsk\base\tsk_parse.c" />
+    <ClCompile Include="..\..\tsk\base\tsk_printf.c" />
+    <ClCompile Include="..\..\tsk\base\tsk_stack.c" />
+    <ClCompile Include="..\..\tsk\base\tsk_unicode.c" />
+    <ClCompile Include="..\..\tsk\base\tsk_version.c" />
+    <ClCompile Include="..\..\tsk\base\XGetopt.c" />
+    <ClCompile Include="..\..\tsk\hashdb\encase_index.c" />
+    <ClCompile Include="..\..\tsk\hashdb\hk_index.c" />
+    <ClCompile Include="..\..\tsk\hashdb\idxonly_index.c" />
+    <ClCompile Include="..\..\tsk\hashdb\md5sum_index.c" />
+    <ClCompile Include="..\..\tsk\hashdb\nsrl_index.c" />
+    <ClCompile Include="..\..\tsk\hashdb\tm_lookup.c" />
+    <ClCompile Include="..\..\tsk\img\aff.c" />
+    <ClCompile Include="..\..\tsk\img\ewf.c" />
+    <ClCompile Include="..\..\tsk\img\img_io.c" />
+    <ClCompile Include="..\..\tsk\img\img_open.c" />
+    <ClCompile Include="..\..\tsk\img\img_types.c" />
+    <ClCompile Include="..\..\tsk\img\mult_files.c" />
+    <ClCompile Include="..\..\tsk\img\raw.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\tsk\vs\tsk_bsd.h" />
+    <ClInclude Include="..\..\tsk\vs\tsk_dos.h" />
+    <ClInclude Include="..\..\tsk\vs\tsk_gpt.h" />
+    <ClInclude Include="..\..\tsk\vs\tsk_mac.h" />
+    <ClInclude Include="..\..\tsk\vs\tsk_sun.h" />
+    <ClInclude Include="..\..\tsk\vs\tsk_vs.h" />
+    <ClInclude Include="..\..\tsk\vs\tsk_vs_i.h" />
+    <ClInclude Include="..\..\tsk\fs\tsk_ext2fs.h" />
+    <ClInclude Include="..\..\tsk\fs\tsk_fatfs.h" />
+    <ClInclude Include="..\..\tsk\fs\tsk_ffs.h" />
+    <ClInclude Include="..\..\tsk\fs\tsk_fs.h" />
+    <ClInclude Include="..\..\tsk\fs\tsk_fs_i.h" />
+    <ClInclude Include="..\..\tsk\fs\tsk_hfs.h" />
+    <ClInclude Include="..\..\tsk\fs\tsk_iso9660.h" />
+    <ClInclude Include="..\..\tsk\fs\tsk_ntfs.h" />
+    <ClInclude Include="..\..\tsk\fs\tsk_yaffs.h" />
+    <ClInclude Include="..\..\tsk\auto\sqlite3.h" />
+    <ClInclude Include="..\..\tsk\auto\tsk_auto.h" />
+    <ClInclude Include="..\..\tsk\auto\tsk_auto_i.h" />
+    <ClInclude Include="..\..\tsk\auto\tsk_case_db.h" />
+    <ClInclude Include="..\..\tsk\auto\tsk_db_sqlite.h" />
+    <ClInclude Include="..\..\tsk\base\tsk_base.h" />
+    <ClInclude Include="..\..\tsk\base\tsk_base_i.h" />
+    <ClInclude Include="..\..\tsk\base\tsk_os.h" />
+    <ClInclude Include="..\..\tsk\hashdb\tsk_hashdb.h" />
+    <ClInclude Include="..\..\tsk\hashdb\tsk_hashdb_i.h" />
+    <ClInclude Include="..\..\tsk\img\aff.h" />
+    <ClInclude Include="..\..\tsk\img\ewf.h" />
+    <ClInclude Include="..\..\tsk\img\raw.h" />
+    <ClInclude Include="..\..\tsk\img\tsk_img.h" />
+    <ClInclude Include="..\..\tsk\img\tsk_img_i.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

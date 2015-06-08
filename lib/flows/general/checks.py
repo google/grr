@@ -34,7 +34,7 @@ class CheckRunner(flow.GRRFlow):
 
   @flow.StateHandler(next_state=["MapArtifactData"])
   def Start(self):
-    """."""
+    """Initialize the system check flow."""
     self.client = aff4.FACTORY.Open(self.client_id, token=self.token)
     self.state.Register("knowledge_base",
                         self.client.Get(self.client.Schema.KNOWLEDGE_BASE))
@@ -73,8 +73,8 @@ class CheckRunner(flow.GRRFlow):
                     next_state="AddResponses")
     self.CallState(next_state="RunChecks")
 
-  def _UpdateData(self, processor, responses, artifact_name, source):
-    """Adds collected data to the right host_data entries.
+  def _ProcessData(self, processor, responses, artifact_name, source):
+    """Runs parsers over the raw data and maps it to artifact_data types.
 
     Args:
       processor: A processor method to use.
@@ -83,23 +83,19 @@ class CheckRunner(flow.GRRFlow):
       artifact_name: The name of the artifact.
       source: The origin of the data, if specified.
     """
-    data = self.state.host_data.setdefault(artifact_name, {})
-    data["ANOMALY"] = []
-    data["PARSER"] = []
-    data["RAW"] = [r for r in responses]
-
+    # Now parse the data and set state.
+    artifact_data = self.state.host_data.get(artifact_name)
     result_iterator = artifact.ApplyParserToResponses(
         processor, responses, source, self.state, self.token)
-    if result_iterator:
-      for rdf in result_iterator:
-        if isinstance(rdf, rdf_anomaly.Anomaly):
-          data["ANOMALY"].append(rdf)
-        else:
-          data["PARSER"].append(rdf)
 
-  @flow.StateHandler()
-  def AddResponses(self, responses):
-    """Process the raw response data from this artifact collection.
+    for rdf in result_iterator:
+      if isinstance(rdf, rdf_anomaly.Anomaly):
+        artifact_data["ANOMALY"].append(rdf)
+      else:
+        artifact_data["PARSER"].append(rdf)
+
+  def _RunProcessors(self, artifact_name, responses):
+    """Manages processing of raw data from the artifact collection.
 
     The raw data and parsed results are stored in different result contexts:
     Anomaly, Parser and Raw. Demuxing these results makes the specific data
@@ -109,9 +105,9 @@ class CheckRunner(flow.GRRFlow):
     map rdfvalues to the Parse context.
 
     Args:
+      artifact_name: The name of the artifact being processed as a string.
       responses: Input from previous states as an rdfvalue.Dict
     """
-    artifact_name = responses.request_data["artifact_name"]
     source = responses.request_data.GetItem("source", None)
 
     # Find all the parsers that should apply to an artifact.
@@ -122,19 +118,46 @@ class CheckRunner(flow.GRRFlow):
     # Then, send the host data for parsing and demuxing.
     for response in responses:
       if processors:
-        for processor in processors:
-          processor_obj = processor()
-          if processor_obj.process_together:
+        for processor_cls in processors:
+          processor = processor_cls()
+          if processor.process_together:
             # Store the response until we have them all.
-            saved_responses.setdefault(processor.__name__, []).append(response)
+            processor_name = processor.__class__.__name__
+            saved_responses.setdefault(processor_name, []).append(response)
           else:
             # Process the response immediately
-            self._UpdateData(processor_obj, response, artifact_name, source)
+            self._ProcessData(processor, response, artifact_name, source)
 
     # If we were saving responses, process them now:
     for processor_name, responses_list in saved_responses.items():
-      processor_obj = parsers.Parser.classes[processor_name]()
-      self._UpdateData(processor_obj, responses_list, artifact_name, source)
+      processor = parsers.Parser.classes[processor_name]()
+      self._ProcessData(processor, responses_list, artifact_name, source)
+
+  @flow.StateHandler()
+  def AddResponses(self, responses):
+    """Process the raw response data from this artifact collection.
+
+    The raw data and parsed results are stored in different result contexts:
+    Anomaly, Parser and Raw.
+
+    Add raw responses to the collection of data obtained for this artifact.
+    Then, iterate over the parsers that should be applied to the raw data and
+    map rdfvalues to the Parse context.
+
+    Args:
+      responses: Input from previous states as an rdfvalue.Dict
+    """
+    artifact_name = responses.request_data["artifact_name"]
+    # In some cases, artifacts may not find anything. We create an empty set of
+    # host data so the checks still run.
+    artifact_data = self.state.host_data.setdefault(artifact_name, {})
+    artifact_data["ANOMALY"] = []
+    artifact_data["PARSER"] = []
+    artifact_data["RAW"] = [r for r in responses]
+
+    # If there are respones, run them through the parsers.
+    if responses:
+      self._RunProcessors(artifact_name, responses)
 
   @flow.StateHandler(next_state=["Done"])
   def RunChecks(self, responses):

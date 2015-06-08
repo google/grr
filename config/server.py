@@ -234,6 +234,11 @@ config_lib.DEFINE_string(
     "approval emails. The user has the option to"
     " remove this CC address .")
 
+config_lib.DEFINE_string(
+    "Email.approval_signature", None,
+    "If you feel like it, you can add a funny cat picture to approval mails. "
+    "Needs full html: <img src=\"https://imgur.com/path/to/cat.jpg\">.")
+
 config_lib.DEFINE_integer(
     "StatsHunt.ClientBatchSize", "200",
     "Batch size for client scheduling. This should be large enough that it "

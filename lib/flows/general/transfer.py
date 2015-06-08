@@ -211,7 +211,11 @@ class FileTracker(object):
     self.bytes_read = 0
 
   def __str__(self):
-    return "<Tracker: %s (%s hashes)>" % (self.urn, len(self.hash_list))
+    sha256 = self.hash_obj.sha256
+    if sha256:
+      return "<Tracker: %s (sha256: %s)>" % (self.urn, sha256)
+    else:
+      return "<Tracker: %s >" % self.urn
 
   def CreateVFSFile(self, filetype, token=None, chunksize=None):
     """Create a VFSFile with stat_entry metadata.
@@ -429,8 +433,8 @@ class MultiGetFileMixin(object):
       for file_tracker in hash_to_urn.get(hashset.sha256, []):
 
         # Some existing_blob files can be created with 0 size, make sure our
-        # size matches the STAT.
-        existing_blob.size = file_tracker.stat_entry.st_size
+        # size matches the actual size.
+        existing_blob.size = file_tracker.bytes_read
 
         # Create a file in the client name space with the same classtype and
         # populate its attributes.

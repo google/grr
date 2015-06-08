@@ -830,7 +830,8 @@ class Factory(object):
       yield dict(urn=rdfvalue.RDFURN(subject), type=values[0])
 
   def Create(self, urn, aff4_type, mode="w", token=None, age=NEWEST_TIME,
-             ignore_cache=False, force_new_version=True, object_exists=False):
+             ignore_cache=False, force_new_version=True,
+             object_exists=False):
     """Creates the urn if it does not already exist, otherwise opens it.
 
     If the urn exists and is of a different type, this will also promote it to
@@ -845,6 +846,8 @@ class Factory(object):
            has "r".
       ignore_cache: Bypass the aff4 cache.
       force_new_version: Forces the creation of a new object in the data_store.
+      object_exists: If we know the object already exists we can skip index
+                     creation.
 
     Returns:
       An AFF4 object of the desired type and mode.
