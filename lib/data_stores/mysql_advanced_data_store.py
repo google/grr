@@ -398,8 +398,9 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     attributes_q["query"] += ", ".join(
         ["(unhex(md5(%s)), %s)"] * (len(attributes_q["args"]) / 2))
     aff4_q["query"] += ", ".join(
-        ["(unhex(md5(%s)), unhex(md5(%s)), if(%s is NULL,floor(unix_timestamp(now(6))*1000000),%s), %s)"] * (
-            len(aff4_q["args"]) / 5))
+        ["(unhex(md5(%s)), unhex(md5(%s)), "
+         "if(%s is NULL,floor(unix_timestamp(now(6))*1000000),%s), %s)"] *
+        (len(aff4_q["args"]) / 5))
 
     return [aff4_q, subjects_q, attributes_q]
 
@@ -415,7 +416,8 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       except MySQLdb.Error as e:
         # If there was an error attempt to clean up this connection and let it
         # drop
-        logging.warn("Datastore query attempt %s failed with %s:" % (attempt, str(e)))
+        logging.warn("Datastore query attempt %s failed with %s:" %
+                     (attempt, str(e)))
         time.sleep(.2)
         self.pool.DropConnection(connection)
         if attempt == 10:
@@ -691,7 +693,7 @@ class MySQLTransaction(data_store.CommonTransaction):
 
       # We own this lock now.
       if (row["lock_expiration"] == self.expires_lock and
-          row["lock_owner"] == self.lock_token):
+              row["lock_owner"] == self.lock_token):
         return
 
       else:

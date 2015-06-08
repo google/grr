@@ -153,9 +153,9 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     # Test giving a broken timestamp definition.
     start_time = time.time() * 1e6
     data_store.DB.MultiSet(self.test_row,
-                             {"aff4:size": [(1, None)],
-                              "aff4:stored": [(unicode_string, 200)]},
-                             token=self.token)
+                           {"aff4:size": [(1, None)],
+                            "aff4:stored": [(unicode_string, 200)]},
+                           token=self.token)
     end_time = time.time() * 1e6
     (stored, ts) = data_store.DB.Resolve(self.test_row, "aff4:size",
                                          token=self.token)
