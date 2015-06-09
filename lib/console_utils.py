@@ -13,11 +13,11 @@ import logging
 
 from grr.lib import access_control
 from grr.lib import aff4
+from grr.lib import client_index
 from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import search
 from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
@@ -31,14 +31,21 @@ def FormatISOTime(t):
 def SearchClients(query_str, token=None, limit=1000):
   """Search indexes for clients. Returns list (client, hostname, os version)."""
   client_schema = aff4.AFF4Object.classes["VFSGRRClient"].SchemaCls
+  index = aff4.FACTORY.Create(
+      client_index.MAIN_INDEX,
+      aff4_type="ClientIndex", mode="rw", token=token)
+
+  client_list = index.LookupClients([query_str])
+  result_set = aff4.FACTORY.MultiOpen(client_list, token=token)
   results = []
-  result_urns = search.SearchClients(query_str, max_results=limit, token=token)
-  result_set = aff4.FACTORY.MultiOpen(result_urns, token=token)
   for result in result_set:
     results.append((result,
                     str(result.Get(client_schema.HOSTNAME)),
                     str(result.Get(client_schema.OS_VERSION)),
                     str(result.Get(client_schema.PING))))
+    if len(results) >= limit:
+      break
+
   return results
 
 

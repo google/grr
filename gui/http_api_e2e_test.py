@@ -7,6 +7,7 @@ stack with regards to the HTTP API.
 """
 
 import json
+import portpicker
 import requests
 
 
@@ -23,6 +24,13 @@ class HTTPApiEndToEndTestProgram(test_lib.GrrTestProgram):
   server_port = None
 
   def setUp(self):
+    # Select a free port
+    HTTPApiEndToEndTestProgram.server_port = (
+        portpicker.PickUnusedPort())
+    config_lib.CONFIG.Set("AdminUI.port",
+                          HTTPApiEndToEndTestProgram.server_port)
+    logging.info("Picked free AdminUI port %d.",
+                 HTTPApiEndToEndTestProgram.server_port)
 
     self.trd = runtests.DjangoThread()
     self.trd.StartAndWaitUntilServing()

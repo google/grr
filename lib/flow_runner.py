@@ -231,7 +231,7 @@ class FlowRunner(object):
     """
     return aff4.FACTORY.Create(self._GetLogsCollectionURN(logs_collection_urn),
                                "PackedVersionedCollection", mode=mode,
-                               token=self.token)
+                               object_exists=True, token=self.token)
 
   def InitializeContext(self, args):
     """Initializes the context of this flow."""

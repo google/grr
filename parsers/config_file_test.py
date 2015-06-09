@@ -184,6 +184,56 @@ class MtabParserTests(test_lib.GRRBaseTest):
     self.assertEqual(["65536"], results[1].options.max_read)
 
 
+class RsyslogParserTests(test_lib.GRRBaseTest):
+  """Test the rsyslog parser."""
+
+  def testParseRsyslog(self):
+    test_data = r"""
+    $SomeDirective
+    daemon.* @@tcp.example.com.:514;RSYSLOG_ForwardFormat
+    syslog.debug,info @udp.example.com.:514;RSYSLOG_ForwardFormat
+    kern.* |/var/log/pipe
+    news,uucp.* ~
+    user.* ^/usr/bin/log2cowsay
+    *.* /var/log/messages
+    """
+    log_conf = StringIO.StringIO(test_data)
+    config = config_file.RsyslogParser()
+    results = list(config.ParseMultiple([None], [log_conf], None))
+    self.assertEqual(1, len(results))
+    tcp, udp, pipe, null, script, fs = [target for target in results[0].targets]
+
+    self.assertEqual("daemon", tcp.facility)
+    self.assertEqual("*", tcp.priority)
+    self.assertEqual("TCP", tcp.transport)
+    self.assertEqual("tcp.example.com.:514", tcp.destination)
+
+    self.assertEqual("syslog", udp.facility)
+    self.assertEqual("debug,info", udp.priority)
+    self.assertEqual("UDP", udp.transport)
+    self.assertEqual("udp.example.com.:514", udp.destination)
+
+    self.assertEqual("kern", pipe.facility)
+    self.assertEqual("*", pipe.priority)
+    self.assertEqual("PIPE", pipe.transport)
+    self.assertEqual("/var/log/pipe", pipe.destination)
+
+    self.assertEqual("news,uucp", null.facility)
+    self.assertEqual("*", null.priority)
+    self.assertEqual("NULL", null.transport)
+    self.assertFalse(null.destination)
+
+    self.assertEqual("user", script.facility)
+    self.assertEqual("*", script.priority)
+    self.assertEqual("SCRIPT", script.transport)
+    self.assertEqual("/usr/bin/log2cowsay", script.destination)
+
+    self.assertEqual("*", fs.facility)
+    self.assertEqual("*", fs.priority)
+    self.assertEqual("FILE", fs.transport)
+    self.assertEqual("/var/log/messages", fs.destination)
+
+
 class APTPackageSourceParserTests(test_lib.GRRBaseTest):
   """Test the APT package source lists parser."""
 

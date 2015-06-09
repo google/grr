@@ -778,6 +778,23 @@ def SeleniumAction(f):
   return Decorator
 
 
+class ConfigOverrider(object):
+  """A context to temporarily change config options."""
+
+  def __init__(self, overrides):
+    self._overrides = overrides
+    self._saved_values = {}
+
+  def __enter__(self):
+    for k, v in self._overrides.iteritems():
+      self._saved_values[k] = config_lib.CONFIG.Get(k)
+      config_lib.CONFIG.Set(k, v)
+
+  def __exit__(self, unused_type, unused_value, unused_traceback):
+    for k, v in self._saved_values.iteritems():
+      config_lib.CONFIG.Set(k, v)
+
+
 class ACLChecksDisabledContextManager(object):
 
   def __enter__(self):

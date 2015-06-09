@@ -1,0 +1,40 @@
+#7.1 Add 'nodev' Option To Appropriate Partitions In /etc/fstab
+#7.2 Add 'nosuid' and 'nodev' Option To Removable Media in /etc/fstab
+#7.3 Disable User-Mounted Removable File Systems
+check_id: 'CIS-MOUNT-OPTION-NO-DEV'
+hint:
+  format: '{mount_point}: {device} mounted with {options}'
+method:
+  - target: {os: ['Linux']}
+    probe:
+      - artifact: 'LinuxFstab'
+        hint:
+          problem: 'Non-system mountpoints allow devices'
+          fix: |
+            Add "nodev" option to appropriate partitions.
+        baseline:
+          - type: 'ObjectFilter'
+            expression: 'mount_point isnot "/"'
+          - type: 'ObjectFilter'
+            expression: 'type inset
+                    ["ext2", "ext3", "ext4", "jfs", "xfs", "btrfs", "iso9660"]'
+        filters:
+          - type: 'ObjectFilter'
+            expression: 'options notcontains "nodev"'
+---
+check_id: 'CIS-MOUNT-OPTION-NO-USER-SUID'
+hint:
+  format: '{mount_point}: {device} mounted with {options}'
+method:
+  - target: {os: ['Linux']}
+    probe:
+      - artifact: 'LinuxFstab'
+        hint:
+          problem: 'User mountable media allows suid'
+          fix: 'Add "nosuid" option to appropriate partitions.'
+        baseline:
+          - type: 'ObjectFilter'
+            expression: 'options contains "user"'
+        filters:
+          - type: 'ObjectFilter'
+            expression: 'options notcontains "nosuid"'

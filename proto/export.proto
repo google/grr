@@ -2,6 +2,7 @@
 
 syntax = "proto2";
 
+import "grr/proto/anomaly.proto";
 import "grr/proto/jobs.proto";
 import "grr/proto/sysinfo.proto";
 import "grr/proto/semantic.proto";
@@ -230,6 +231,52 @@ message ExportedNetworkConnection {
   optional NetworkConnection.State state = 6 [default = UNKNOWN];
   optional uint32 pid = 7;
   optional uint64 ctime = 8;
+}
+
+message ExportedAnomaly {
+  optional Anomaly.AnomalyType type = 1 [(sem_type) = {
+      description: "Type of anomaly this represents.",
+    }];
+
+  optional Anomaly.AnomalyLevel severity = 2 [(sem_type) = {
+      description: "Severity of the anomaly if it is a true positive.",
+    }];
+
+  optional Anomaly.AnomalyLevel confidence = 3 [(sem_type) = {
+      description: "Confidence that the anomaly is a true positive.",
+    }];
+
+  optional string symptom = 4 [(sem_type) = {
+      description: "A description of what is anomalous.",
+    }];
+
+  optional string explanation = 5 [(sem_type) = {
+      description: "A description of possible explanations for the anomaly if "
+      "additional information is available.",
+    }];
+
+  optional string generated_by = 6 [(sem_type) = {
+      description: "String describing what generated the anomaly, this is "
+        "normally the name of a parser or artifact.",
+    }];
+
+  // Not exporting PathSpec due to its recursive nature.
+
+  repeated string anomaly_reference_id = 8 [(sem_type) = {
+      description: "A string used to reference the anomaly in the Anomaly "
+        "database."
+    }];
+}
+
+message ExportedCheckResult {
+  optional ExportedMetadata metadata = 1;
+
+  optional string check_id = 2 [(sem_type) = {
+    description: "The check id, identifies what check is being reported."
+  }];
+  optional ExportedAnomaly anomaly = 3 [(sem_type) = {
+    description: "Specific finding indicating an issue exists."
+  }];
 }
 
 message ExportedOpenFile {

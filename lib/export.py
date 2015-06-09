@@ -84,6 +84,14 @@ class ExportedFileStoreHash(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedFileStoreHash
 
 
+class ExportedAnomaly(rdf_structs.RDFProtoStruct):
+  protobuf = export_pb2.ExportedAnomaly
+
+
+class ExportedCheckResult(rdf_structs.RDFProtoStruct):
+  protobuf = export_pb2.ExportedCheckResult
+
+
 class ExportedSoftware(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedSoftware
 
@@ -873,6 +881,46 @@ class FileStoreHashConverter(ExportConverter):
         results.append(result)
 
     return results
+
+
+class CheckResultConverter(ExportConverter):
+  input_rdf_type = "CheckResult"
+
+  def Convert(self, metadata, checkresult, token=None):
+    """Converts a single CheckResult.
+
+    Args:
+      metadata: ExportedMetadata to be used for conversion.
+      checkresult: CheckResult to be converted.
+      token: Security token.
+
+    Yields:
+      Resulting ExportedCheckResult. Empty list is a valid result and means that
+      conversion wasn't possible.
+    """
+    if checkresult.anomaly:
+      for anomaly in checkresult.anomaly:
+        exported_anomaly = ExportedAnomaly(
+            type=anomaly.type,
+            severity=anomaly.severity,
+            confidence=anomaly.confidence)
+        if anomaly.symptom:
+          exported_anomaly.symptom = anomaly.symptom
+        if anomaly.explanation:
+          exported_anomaly.explanation = anomaly.explanation
+        if anomaly.generated_by:
+          exported_anomaly.generated_by = anomaly.generated_by
+        if anomaly.anomaly_reference_id:
+          exported_anomaly.anomaly_reference_id.extend(
+              anomaly.anomaly_reference_id)
+        yield ExportedCheckResult(
+            metadata=metadata,
+            check_id=checkresult.check_id,
+            anomaly=exported_anomaly)
+    else:
+      yield ExportedCheckResult(
+          metadata=metadata,
+          check_id=checkresult.check_id)
 
 
 def RekallStringRenderer(x):

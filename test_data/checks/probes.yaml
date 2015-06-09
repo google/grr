@@ -2,6 +2,11 @@ name: 'NO-FILTER'
 probe:
   - artifact: 'DpkgDb'
 ---
+name: 'ANOM-CONTEXT'
+probe:
+  - artifact: 'DpkgDb'
+    result_context: 'ANOMALY'
+---
 name: 'SERIAL'
 probe:
   - artifact: 'DpkgDb'

@@ -7,6 +7,7 @@ import socket
 import threading
 
 
+import portpicker
 
 from grr.lib import config_lib
 from grr.lib import data_store
@@ -86,7 +87,7 @@ class HTTPDataStoreMixin(object):
   def InitDatastore(self):
     global PORT
     if not PORT:
-      PORT = 7000
+      PORT = portpicker.PickUnusedPort()
     _SetConfig(self.temp_dir)
     if not STARTED_SERVER:
       _StartServer(self.temp_dir)

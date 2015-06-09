@@ -94,7 +94,8 @@ describe('semantic enum form directive', function() {
 
     expect(value.value).toBe('NONE');
 
-    element.find('select').val('2');
+    element.find('select').val(
+        element.find('select option[label="CHOICE 2"]').val());
     browserTrigger(element.find('select'), 'change');
     $rootScope.$apply();
 

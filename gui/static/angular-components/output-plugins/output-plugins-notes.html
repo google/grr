@@ -1,0 +1,6 @@
+<div ng-repeat="(_, pluginMetadata) in controller.states">
+  <grr-output-plugin-note descriptor="pluginMetadata[0]" state="pluginMetadata[1]"></grr-output-plugin-note>
+</div>
+<div class="alert alert-error" ng-if="controller.error">
+  <em>Can't fetch output plugins metadata: {$ controller.error $}.</em>
+</div>

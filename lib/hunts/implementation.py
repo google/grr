@@ -550,6 +550,9 @@ class GRRHunt(flow.GRRFlow):
                                      mode="r", token=self.token)
     return collection.GenerateItems()
 
+  def _ClientSymlinkUrn(self, client_id):
+    return client_id.Add("flows").Add("%s:hunt" % (self.urn.Basename()))
+
   def RegisterClient(self, client_urn):
     self._AddObjectToCollection(client_urn, self.all_clients_collection_urn)
 
@@ -564,6 +567,24 @@ class GRRHunt(flow.GRRFlow):
       error.log_message = utils.SmartUnicode(log_message)
 
     self._AddObjectToCollection(error, self.clients_errors_collection_urn)
+
+  def OnDelete(self, deletion_pool=None):
+    super(GRRHunt, self).OnDelete(deletion_pool=deletion_pool)
+
+    # Delete all the symlinks in the clients namespace that point to the flows
+    # initiated by this hunt.
+    children_urns = deletion_pool.ListChildren(self.urn)
+    clients_ids = []
+    for urn in children_urns:
+      try:
+        clients_ids.append(rdf_client.ClientURN(urn.Basename()))
+      except type_info.TypeValueError:
+        # Ignore children that are not valid clients ids.
+        continue
+
+    symlinks_urns = [self._ClientSymlinkUrn(client_id)
+                     for client_id in clients_ids]
+    deletion_pool.MultiMarkForDeletion(symlinks_urns)
 
   @flow.StateHandler()
   def RunClient(self, client_id):

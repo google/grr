@@ -137,59 +137,42 @@ args = parser.parse_args()
 
 
 def GetBuilder(context):
-  """Get the appropriate builder based on the selected flags."""
+  """Get instance of builder class based on flags."""
   try:
-    if args.platform == "darwin":
-      context = ["Platform:Darwin"] + context
-      builder_obj = builders.DarwinClientBuilder
-
-    elif args.platform == "windows":
-      context = ["Platform:Windows"] + context
-      builder_obj = builders.WindowsClientBuilder
-
-    elif args.platform == "linux":
-      if args.package_format == "deb":
-        context = ["Platform:Linux"] + context
-        builder_obj = builders.LinuxClientBuilder
-      elif args.package_format == "rpm":
-        context = ["Platform:Linux", "Target:LinuxRpm"] + context
-        builder_obj = builders.CentosClientBuilder
-      else:
-        parser.error("Couldn't guess packaging format for: %s" %
-                     platform.linux_distribution()[0])
+    if "Target:Darwin" in context:
+      builder_class = builders.DarwinClientBuilder
+    elif "Target:Windows" in context:
+      builder_class = builders.WindowsClientBuilder
+    elif "Target:LinuxDeb" in context:
+      builder_class = builders.LinuxClientBuilder
+    elif "Target:LinuxRpm" in context:
+      builder_class = builders.CentosClientBuilder
     else:
-      parser.error("Unsupported build platform: %s" % args.platform)
+      parser.error("Bad build context: %s" % context)
 
   except AttributeError:
     raise RuntimeError("Unable to build for platform %s when running "
                        "on current platform." % args.platform)
 
-  return builder_obj(context=context)
+  return builder_class(context=context)
 
 
 def GetDeployer(context, signer=None):
   """Get the appropriate client deployer based on the selected flags."""
-  if args.platform == "darwin":
-    context = ["Platform:Darwin"] + context
-    deployer_obj = build.DarwinClientDeployer
-
-  elif args.platform == "windows":
-    args.package_format = "exe"
-    context = ["Platform:Windows"] + context
-    deployer_obj = build.WindowsClientDeployer
-
-  elif args.platform == "linux":
-    if args.package_format == "deb":
-      context = ["Platform:Linux"] + context
-      deployer_obj = build.LinuxClientDeployer
-    else:
-      context = ["Platform:Linux", "Target:LinuxRpm"] + context
-      deployer_obj = build.CentosClientDeployer
-
+  # TODO(user): The builder-deployer separation probably can be consolidated
+  # into something simpler under the vagrant build system.
+  if "Target:Darwin" in context:
+    deployer_class = build.DarwinClientDeployer
+  elif "Target:Windows" in context:
+    deployer_class = build.WindowsClientDeployer
+  elif "Target:LinuxDeb" in context:
+    deployer_class = build.LinuxClientDeployer
+  elif "Target:LinuxRpm" in context:
+    deployer_class = build.CentosClientDeployer
   else:
-    parser.error("Unsupported build platform: %s" % args.platform)
+    parser.error("Bad build context: %s" % context)
 
-  return deployer_obj(context=context, signer=signer)
+  return deployer_class(context=context, signer=signer)
 
 
 def GetSigner(context):
@@ -217,7 +200,7 @@ def TemplateInputFilename(context):
   return None
 
 
-def BuildAndDeployWindows(context, signer=None):
+def BuildAndDeployWindows(signer=None):
   """Run buildanddeploy for 32/64 dbg/prod."""
   build_combos = [
       {"arch": "amd64", "debug_build": True},
@@ -227,18 +210,18 @@ def BuildAndDeployWindows(context, signer=None):
   timestamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
   args.package_format = "exe"
 
-  # Set the relevant context values so we can export and import to reset context
-  # state between each buildanddeploy run
-  for context_str in context:
-    config_lib.CONFIG.AddContext(context_str)
-  config_orig = config_lib.CONFIG.ExportState()
-
+  context_orig = SetOSContextFromArgs([])
+  # Take a copy of the context list so we can reset back to clean state for each
+  # buildanddeploy run
+  context = list(context_orig)
   for argset in build_combos:
     for key, value in argset.items():
       setattr(args, key, value)
-    print "Building for: %s" % argset
-    BuildAndDeploy([], timestamp=timestamp, signer=signer)
-    config_lib.ImportConfigManger(config_orig)
+    context = SetArchContextFromArgs(context)
+    context = SetDebugContextFromArgs(context)
+    print "Building for: %s" % context
+    BuildAndDeploy(context, timestamp=timestamp, signer=signer)
+    context = list(context_orig)
 
 
 def BuildAndDeploy(context, signer=None, timestamp=None):
@@ -248,8 +231,6 @@ def BuildAndDeploy(context, signer=None, timestamp=None):
 
   if args.plugins:
     config_lib.CONFIG.Set("Client.plugins", args.plugins)
-
-  context = SetContextFromArgs(context)
 
   # Output directory like: 2015-02-13T21:48:47-0800/linux_amd64_deb/
   spec = "_".join((args.platform, args.arch, args.package_format))
@@ -269,13 +250,11 @@ def BuildAndDeploy(context, signer=None, timestamp=None):
   context_list = config_lib.CONFIG.Get("ClientBuilder.BuildTargets")
 
   logging.info("Building installers for: %s", context_list)
-  config_orig = config_lib.CONFIG.ExportState()
   deployed_list = []
   for deploycontext in context_list:
 
     # Add the settings for this context
     for newcontext in deploycontext.split(","):
-      config_lib.CONFIG.AddContext(newcontext)
       context.append(newcontext)
 
     try:
@@ -309,7 +288,6 @@ def BuildAndDeploy(context, signer=None, timestamp=None):
       # Remove the custom settings for the next deploy
       for newcontext in deploycontext.split(","):
         context.remove(newcontext)
-      config_lib.ImportConfigManger(config_orig)
 
   logging.info("Complete, installers for %s are in %s", deployed_list,
                output_dir)
@@ -324,8 +302,6 @@ def Deploy(context, signer=None):
   """
   if args.plugins:
     config_lib.CONFIG.Set("Client.plugins", args.plugins)
-
-  context = SetContextFromArgs(context)
 
   deployer = GetDeployer(context, signer=signer)
   template_path = (args.template or TemplateInputFilename(deployer.context) or
@@ -355,8 +331,6 @@ def Repack(context, signer=None):
     context: config_lib context
     signer: lib.builders.signing.CodeSigner object
   """
-  context = SetContextFromArgs(context)
-
   if args.plugins:
     config_lib.CONFIG.Set("Client.plugins", args.plugins)
 
@@ -369,16 +343,45 @@ def Repack(context, signer=None):
                            output_filename)
 
 
-def SetContextFromArgs(context):
+def SetOSContextFromArgs(context):
+  """Set OS context sections based on args."""
+  context.append("ClientBuilder Context")
+  if args.platform == "darwin":
+    context = ["Platform:Darwin", "Target:Darwin"] + context
+  elif args.platform == "windows":
+    context = ["Platform:Windows", "Target:Windows"] + context
+  elif args.platform == "linux":
+    context = ["Platform:Linux", "Target:Linux"] + context
+    if args.package_format == "deb":
+      context = ["Target:LinuxDeb"] + context
+    elif args.package_format == "rpm":
+      context = ["Target:LinuxRpm"] + context
+    else:
+      parser.error("Couldn't guess packaging format for: %s" %
+                   platform.linux_distribution()[0])
+  else:
+    parser.error("Unsupported build platform: %s" % args.platform)
+  return context
+
+
+def SetArchContextFromArgs(context):
   if args.arch == "amd64":
     context.append("Arch:amd64")
   else:
     context.append("Arch:i386")
+  return context
 
+
+def SetDebugContextFromArgs(context):
   if args.subparser_name != "build" and args.debug_build:
     context += ["DebugClientBuild Context"]
-
   return context
+
+
+def SetContextFromArgs(context):
+  context = SetArchContextFromArgs(context)
+  context = SetDebugContextFromArgs(context)
+  return SetOSContextFromArgs(context)
 
 
 def main(_):
@@ -401,14 +404,12 @@ def main(_):
   logger.handlers = [handler]
 
   context = flags.FLAGS.context
-  context.append("ClientBuilder Context")
-
+  context = SetContextFromArgs(context)
   signer = None
   if args.sign:
     signer = GetSigner(context)
 
   if args.subparser_name == "build":
-    context = SetContextFromArgs(context)
     builder_obj = GetBuilder(context)
     builder_obj.MakeExecutableTemplate()
   elif args.subparser_name == "repack":
@@ -418,8 +419,8 @@ def main(_):
   elif args.subparser_name == "buildanddeploy":
     if args.platform == "windows":
       # Handle windows differently because we do 32, 64, and debug builds all at
-      # once
-      BuildAndDeployWindows(context, signer=signer)
+      # once.
+      BuildAndDeployWindows(signer=signer)
     else:
       BuildAndDeploy(context, signer=signer)
 

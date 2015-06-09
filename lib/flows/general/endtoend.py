@@ -6,6 +6,8 @@ import traceback
 from grr.endtoend_tests import base
 from grr.lib import aff4
 from grr.lib import flow
+from grr.lib import registry
+from grr.lib import stats
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 from grr.proto import jobs_pb2
@@ -108,16 +110,23 @@ class EndToEndTestFlow(flow.GRRFlow):
   @flow.StateHandler(next_state=["ProcessResults", "End"])
   def ProcessResults(self, responses):
     test_object = self.state.flow_test_map[responses.status.child_session_id]
-    result = EndToEndTestResult(test_class_name=test_object.__class__.__name__,
+    cls_name = test_object.__class__.__name__
+    system = self.state.client_summary.system_info.system
+    result = EndToEndTestResult(test_class_name=cls_name,
                                 success=False)
     try:
       test_object.CheckFlow()
       result.success = True
+      stats.STATS.IncrementCounter(
+          "endtoend_test_success",
+          fields=[cls_name, system])
     except Exception:   # pylint: disable=broad-except
       # CheckFlow verifies the test result and can raise any number of different
       # exceptions.  We want to log and move on so that we can run all tests,
       # not just die on first failure.
       self.state.fail_count += 1
+      stats.STATS.IncrementCounter(
+          "endtoend_test_failure", fields=[cls_name, system])
       backtrace = traceback.format_exc()
       self.Log(backtrace)
       result.log = backtrace
@@ -143,3 +152,16 @@ class EndToEndTestFlow(flow.GRRFlow):
     """Log results."""
     self.Log("%s tests passed, %s failed.", self.state.pass_count,
              self.state.fail_count)
+
+
+class EndToEndTestStatsInit(registry.InitHook):
+  """Initialize EndToEndTest stats."""
+  pre = ["AFF4InitHook", "StatsInit"]
+
+  def RunOnce(self):
+    stats.STATS.RegisterCounterMetric("endtoend_test_failure",
+                                      fields=[("test_name", str),
+                                              ("platform", str)])
+    stats.STATS.RegisterCounterMetric("endtoend_test_success",
+                                      fields=[("test_name", str),
+                                              ("platform", str)])
