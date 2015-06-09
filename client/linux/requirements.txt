@@ -4,7 +4,8 @@ pexpect==3.3
 psutil==2.1.3
 pycrypto==2.6.1
 pyinstaller==2.1
+python-crontab==1.9.2
 python-dateutil==2.3
 pytz==2014.10
-rekall==1.3.1
+rekall==1.3.2
 urllib3==1.10

@@ -1,4 +1,4 @@
-check_id: 'GOOGLE-NFS-EXPORTS-RW-OPEN'
+check_id: 'NFS-EXPORTS-RW-OPEN'
 method:
   - match: 'ANY'
     target:

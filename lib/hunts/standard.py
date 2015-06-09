@@ -517,7 +517,7 @@ class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
         timestamp=freeze_timestamp, token=self.token):
 
       aff4.ResultsOutputCollection.DeleteNotifications(
-          [results_urn], end=freeze_timestamp, token=self.token)
+          [results_urn], end=results_urn.age, token=self.token)
 
       # Feed the results to output plugins
       try:

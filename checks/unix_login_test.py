@@ -7,6 +7,7 @@ import StringIO
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib.checks import checks_test_lib
+from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.parsers import linux_file_parser
@@ -47,15 +48,24 @@ class LoginPolicyConfigurationTests(checks_test_lib.HostCheckTest):
               nopasswd:::nopasswd
               md5:::md5
               undying:::undying"""}
+      perms = {"/etc/passwd": (0, 0, 0o100666),   # Anomalous write perm.
+               "/etc/group": (1, 0, 0o100644),    # Anomalous owner.
+               "/etc/shadow": (0, 0, 0o100444),   # Anomalous read perm.
+               "/etc/gshadow": (0, 1, 0o100400)}  # Anomalous group.
       stats = []
       files = []
       for path, lines in login.items():
-        p = rdf_paths.PathSpec(path=path)
-        stats.append(rdf_client.StatEntry(pathspec=p))
+        p = rdf_paths.PathSpec(path=path, pathtype="OS")
+        st_uid, st_gid, st_mode = perms.get(path)
+        stats.append(rdf_client.StatEntry(
+            pathspec=p, st_uid=st_uid, st_gid=st_gid, st_mode=st_mode))
         files.append(StringIO.StringIO(lines))
       parser = linux_file_parser.LinuxSystemPasswdParser()
       rdfs = list(parser.ParseMultiple(stats, files, None))
-      host_data["LoginPolicyConfiguration"] = rdfs
+      host_data["LoginPolicyConfiguration"] = self.SetArtifactData(
+          anomaly=[a for a in rdfs if isinstance(a, rdf_anomaly.Anomaly)],
+          parsed=[r for r in rdfs if not isinstance(r, rdf_anomaly.Anomaly)],
+          raw=stats)
       return self.RunChecks(host_data)
 
   def testPasswdHash(self):
@@ -80,10 +90,29 @@ class LoginPolicyConfigurationTests(checks_test_lib.HostCheckTest):
   def testNisPasswordCheck(self):
     chk_id = "CIS-LOGIN-UNIX-NIS-MARKER"
     exp = "Found: NIS entries present."
-    found = ["Group entry + is a NIS account marker."]
+    found = ["Group entry + is a NIS account marker.",
+             "User account +nisuser is a NIS account marker."]
     self.assertCheckDetectedAnom(chk_id, self.results, exp, found)
-    exp = "Found: NIS entries present."
-    found = ["User account +nisuser is a NIS account marker."]
+
+  def testDetectWeakPermissions(self):
+    chk_id = "CIS-LOGIN-UNIX-WRITABLE"
+    exp = "Found: System account files can be modified by non-privileged users."
+    found = ["/etc/group: user: 1, group: 0, mode: -rw-r--r--",
+             "/etc/passwd: user: 0, group: 0, mode: -rw-rw-rw-"]
+    self.assertCheckDetectedAnom(chk_id, self.results, exp, found)
+
+  def testDetectShadowReadable(self):
+    chk_id = "CIS-LOGIN-UNIX-SHADOW-PERMS"
+    exp = "Found: Incorrect shadow file permissions."
+    found = ["/etc/gshadow: user: 0, group: 1, mode: -r--------",
+             "/etc/shadow: user: 0, group: 0, mode: -r--r--r--"]
+    self.assertCheckDetectedAnom(chk_id, self.results, exp, found)
+
+  def testReportDetectedAnomalies(self):
+    chk_id = "CIS-LOGIN-UNIX-INCONSISTENCIES"
+    exp = "Found: System account entries are anomalous."
+    found = ["Mismatched group and gshadow files.",
+             "Mismatched passwd and shadow files."]
     self.assertCheckDetectedAnom(chk_id, self.results, exp, found)
 
 

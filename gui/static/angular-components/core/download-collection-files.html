@@ -1,0 +1,45 @@
+<div class="well well-small">
+  <div class="pull-left">
+    Files referenced in this collection can be downloaded as an archive:&nbsp;
+
+    <div class="btn-group">
+      <button class="btn btn-default DownloadButton"
+              ng-disabled="controller.fileArchiveGenerationStarted"
+              ng-click="controller.generateFileArchive(controller.primaryArchiveExtension)">
+        Generate {$ controller.primaryArchiveExtension | uppercase $}
+      </button>
+      <button class="btn btn-default dropdown-toggle"
+              ng-disabled="controller.fileArchiveGenerationStarted"
+              data-toggle="dropdown">
+        <span class="caret"></span>
+      </button>
+      <ul class="dropdown-menu">
+       <li>
+         <a ng-click="controller.generateFileArchive(controller.secondaryArchiveExtension)"
+            href="#">
+           Generate {$ controller.secondaryArchiveExtension | uppercase $}
+         </a>
+       </li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="pull-right">
+    <em>NOTE: generated archive will contain <strong>symlinks</strong>.<br/>
+      Unsure whether your archive utility supports them?<br/>
+      Just unpack the archive before browsing its contents.</em>
+  </div>
+  <div class="clearfix"></div>
+</div>
+
+<div class="alert alert-success"
+     ng-if="controller.fileArchiveGenerationStarted &&
+            controller.fileArchiveGenerationSuccess !== undefined">
+  <em>Generation has started. An email will be sent upon completion.</em>
+</div>
+
+<div class="alert alert-error"
+     ng-if="controller.fileArchiveGenerationStarted &&
+            controller.fileArchiveGenerationError !== undefined">
+  <em>Can't generate archive: {$ controller.fileArchiveGenerationError $}.</em>
+</div>

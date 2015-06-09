@@ -70,6 +70,20 @@ grr.state;
  */
 grr.publish = function(name, value, opt_event, opt_data) {};
 
+
+/**
+ * Angular definitions.
+ */
+
+/**
+ * @typedef {{
+ *   get: function(string)
+ *   }}
+ */
+angular.$cookies;
+
+
+
 /**
  * Angular UI definitions.
  */

@@ -156,6 +156,44 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
       pass
     return flow_urn
 
+  def testCreatesSymlinksOnClientsForEveryStartedFlow(self):
+    hunt_urn = self.StartHunt()
+    self.AssignTasksToClients()
+    self.RunHunt()
+
+    for client_id in self.client_ids:
+      flows_fd = aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
+      flows_urns = list(flows_fd.ListChildren())
+      self.assertEqual(len(flows_urns), 1)
+      self.assertEqual(flows_urns[0].Basename(), hunt_urn.Basename() + ":hunt")
+
+      # Check that the object is a symlink.
+      fd = aff4.FACTORY.Open(flows_urns[0], follow_symlinks=False,
+                             token=self.token)
+      self.assertEqual(fd.Get(fd.Schema.TYPE), "AFF4Symlink")
+
+      target = fd.Get(fd.Schema.SYMLINK_TARGET)
+      # Check that the symlink points into the hunt's namespace.
+      self.assertTrue(str(target).startswith(str(hunt_urn)))
+
+  def testDeletesSymlinksOnClientsWhenGetsDeletedItself(self):
+    hunt_urn = self.StartHunt()
+    self.AssignTasksToClients()
+    self.RunHunt()
+
+    for client_id in self.client_ids:
+      # Check that symlinks to hunt-initiated flows are there as the hunt is
+      # not deleted yet.
+      flows_fd = aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
+      self.assertTrue(list(flows_fd.ListChildren()))
+
+    aff4.FACTORY.Delete(hunt_urn, token=self.token)
+
+    for client_id in self.client_ids:
+      # Check that symlinks to hunt-initiated flows were deleted.
+      flows_fd = aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
+      self.assertFalse(list(flows_fd.ListChildren()))
+
   def testStoppingHuntMarksAllStartedFlowsAsPendingForTermination(self):
     with hunts.GRRHunt.StartHunt(
         hunt_name="GenericHunt",

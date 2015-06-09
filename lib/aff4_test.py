@@ -3,6 +3,7 @@
 
 """Tests for the flow."""
 
+import itertools
 import os
 import threading
 import time
@@ -14,6 +15,7 @@ from grr.lib.aff4_objects import tests
 
 from grr.lib import aff4
 from grr.lib import config_lib
+from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
@@ -47,6 +49,261 @@ class ObjectWithLockProtectedAttribute(aff4.AFF4Volume):
                                       rdfvalue.RDFString,
                                       "SomeString",
                                       lock_protected=False)
+
+
+class DeletionPoolTest(test_lib.GRRBaseTest):
+  """Tests for DeletionPool class."""
+
+  def setUp(self):
+    super(DeletionPoolTest, self).setUp()
+    self.pool = aff4.DeletionPool(token=self.token)
+
+  def _CreateObject(self, urn, aff4_type):
+    with aff4.FACTORY.Create(urn, aff4_type, mode="w", token=self.token) as fd:
+      return fd
+
+  def testMarkForDeletionAddsObjectsToDeletionSet(self):
+    self.pool.MarkForDeletion(rdfvalue.RDFURN("aff4:/a"))
+    self.pool.MarkForDeletion(rdfvalue.RDFURN("aff4:/b"))
+
+    self.assertEqual(self.pool.urns_for_deletion,
+                     set([rdfvalue.RDFURN("aff4:/a"),
+                          rdfvalue.RDFURN("aff4:/b")]))
+
+  def testMarkForDeletionAddsChildrenToDeletionSet(self):
+    self._CreateObject("aff4:/a", "AFF4MemoryStream")
+    self._CreateObject("aff4:/a/b", "AFF4MemoryStream")
+
+    self.pool.MarkForDeletion(rdfvalue.RDFURN("aff4:/a"))
+
+    self.assertEqual(self.pool.urns_for_deletion,
+                     set([rdfvalue.RDFURN("aff4:/a"),
+                          rdfvalue.RDFURN("aff4:/a/b")]))
+
+  def testMultiMarkForDeletionAddsMultipleObjectsToDeletionSet(self):
+    self.pool.MultiMarkForDeletion([rdfvalue.RDFURN("aff4:/a"),
+                                    rdfvalue.RDFURN("aff4:/b")])
+
+    self.assertEqual(self.pool.urns_for_deletion,
+                     set([rdfvalue.RDFURN("aff4:/a"),
+                          rdfvalue.RDFURN("aff4:/b")]))
+
+  def testMultiMarkForDeletionAddsMultipleObjectsAndChildrenToDeletionSet(self):
+    self._CreateObject("aff4:/a", "AFF4MemoryStream")
+    self._CreateObject("aff4:/a/b", "AFF4MemoryStream")
+    self._CreateObject("aff4:/c", "AFF4MemoryStream")
+    self._CreateObject("aff4:/c/d", "AFF4MemoryStream")
+    self._CreateObject("aff4:/c/e", "AFF4MemoryStream")
+
+    self.pool.MultiMarkForDeletion([rdfvalue.RDFURN("aff4:/a"),
+                                    rdfvalue.RDFURN("aff4:/c")])
+
+    self.assertEqual(self.pool.urns_for_deletion,
+                     set([rdfvalue.RDFURN("aff4:/a"),
+                          rdfvalue.RDFURN("aff4:/a/b"),
+                          rdfvalue.RDFURN("aff4:/c"),
+                          rdfvalue.RDFURN("aff4:/c/d"),
+                          rdfvalue.RDFURN("aff4:/c/e")]))
+
+  def testReturnsEmptyListOfRootsWhenNoUrnsMarked(self):
+    self.assertEqual(self.pool.root_urns_for_deletion, set())
+
+  def testReturnsSingleRootIfTwoUrnsInTheSameSubtreeMarkedForDeletion(self):
+    self.pool.MarkForDeletion(rdfvalue.RDFURN("aff4:/a"))
+    self.pool.MarkForDeletion(rdfvalue.RDFURN("aff4:/a/b"))
+
+    self.assertEqual(self.pool.root_urns_for_deletion,
+                     set([rdfvalue.RDFURN("/a")]))
+
+  def testReturnsTwoRootsIfTwoMarkedUrnsAreFromDifferentSubtrees(self):
+    self.pool.MarkForDeletion(rdfvalue.RDFURN("aff4:/a/b"))
+    self.pool.MarkForDeletion(rdfvalue.RDFURN("aff4:/b/c"))
+
+    self.assertEqual(self.pool.root_urns_for_deletion,
+                     set([rdfvalue.RDFURN("aff4:/a/b"),
+                          rdfvalue.RDFURN("aff4:/b/c")]))
+
+  def testReturnsCorrectRootsForShuffledMarkForDeletionCalls(self):
+    urns = [
+        "aff4:/a/f",
+        "aff4:/a/b",
+        "aff4:/a/b/c",
+        "aff4:/a/b/d",
+        "aff4:/a/b/e"]
+
+    for urns_permutation in itertools.permutations(urns):
+      pool = aff4.DeletionPool(token=self.token)
+      for urn in urns_permutation:
+        pool.MarkForDeletion(urn)
+
+      self.assertEqual(
+          pool.root_urns_for_deletion,
+          set([rdfvalue.RDFURN("aff4:/a/b"),
+               rdfvalue.RDFURN("aff4:/a/f")]))
+
+  def testOpenCachesObjectBasedOnUrnAndMode(self):
+    self._CreateObject("aff4:/obj", "AFF4MemoryStream")
+    obj = self.pool.Open("aff4:/obj")
+    self.assertEqual(obj.Get(obj.Schema.TYPE), "AFF4MemoryStream")
+
+    self._CreateObject("aff4:/obj", "AFF4Volume")
+    obj = self.pool.Open("aff4:/obj")
+    # Check that we still get the old object from the cache.
+    self.assertEqual(obj.Get(obj.Schema.TYPE), "AFF4MemoryStream")
+
+    # Check that request with different mode is not cached.
+    obj = self.pool.Open("aff4:/obj", mode="rw")
+    self.assertEqual(obj.Get(obj.Schema.TYPE), "AFF4Volume")
+
+  def testOpenCachesObjectEvenIfRequestedAff4TypeIsWrong(self):
+    self._CreateObject("aff4:/obj", "AFF4MemoryStream")
+    self.assertRaises(IOError, self.pool.Open,
+                      "aff4:/obj", aff4_type="RDFValueCollection")
+
+    self._CreateObject("aff4:/obj", "AFF4Volume")
+    obj = self.pool.Open("aff4:/obj")
+    # Check that the original object got cached and we do not make
+    # roundtrips to the datastore.
+    self.assertEqual(obj.Get(obj.Schema.TYPE), "AFF4MemoryStream")
+
+  def testMultiOpenCachesObjectsBasedOnUrnAndMode(self):
+    self._CreateObject("aff4:/obj1", "AFF4MemoryStream")
+    self._CreateObject("aff4:/obj2", "AFF4MemoryStream")
+
+    result = self.pool.MultiOpen(["aff4:/obj1", "aff4:/obj2"])
+    self.assertEqual(result[0].Get(result[0].Schema.TYPE), "AFF4MemoryStream")
+    self.assertEqual(result[1].Get(result[1].Schema.TYPE), "AFF4MemoryStream")
+
+    self._CreateObject("aff4:/obj1", "AFF4Volume")
+    self._CreateObject("aff4:/obj2", "AFF4Volume")
+
+    # Check that this result is still cached.
+    result = self.pool.MultiOpen(["aff4:/obj1", "aff4:/obj2"])
+    self.assertEqual(result[0].Get(result[0].Schema.TYPE), "AFF4MemoryStream")
+    self.assertEqual(result[1].Get(result[1].Schema.TYPE), "AFF4MemoryStream")
+
+    # Check that request with different mode is not cached.
+    result = self.pool.MultiOpen(["aff4:/obj1", "aff4:/obj2"], mode="rw")
+    self.assertEqual(result[0].Get(result[0].Schema.TYPE), "AFF4Volume")
+    self.assertEqual(result[1].Get(result[1].Schema.TYPE), "AFF4Volume")
+
+  def testMultiOpenCachesObjectsEvenIfRequestedAff4TypeIsWrong(self):
+    self._CreateObject("aff4:/obj1", "AFF4MemoryStream")
+    self._CreateObject("aff4:/obj2", "AFF4MemoryStream")
+
+    result = self.pool.MultiOpen(["aff4:/obj1", "aff4:/obj2"],
+                                 aff4_type="RDFValueCollection")
+    self.assertFalse(result)
+
+    self._CreateObject("aff4:/obj1", "AFF4Volume")
+    self._CreateObject("aff4:/obj2", "AFF4Volume")
+
+    # Check that original objects got cached despite the fact that they didn't
+    # match the aff4_type in the original pool request.
+    result = self.pool.MultiOpen(["aff4:/obj1", "aff4:/obj2"])
+    self.assertEqual(result[0].Get(result[0].Schema.TYPE), "AFF4MemoryStream")
+    self.assertEqual(result[1].Get(result[1].Schema.TYPE), "AFF4MemoryStream")
+
+  def testMultiOpenQueriesOnlyNonCachedObjects(self):
+    self._CreateObject("aff4:/obj1", "AFF4MemoryStream")
+    self._CreateObject("aff4:/obj2", "AFF4MemoryStream")
+
+    result = self.pool.MultiOpen(["aff4:/obj1"])
+    self.assertEqual(len(result), 1)
+    self.assertEqual(result[0].Get(result[0].Schema.TYPE), "AFF4MemoryStream")
+
+    self._CreateObject("aff4:/obj1", "AFF4Volume")
+    self._CreateObject("aff4:/obj2", "AFF4Volume")
+
+    result = dict((obj.urn.Basename(), obj) for obj in
+                  self.pool.MultiOpen(["aff4:/obj1", "aff4:/obj2"]))
+    # Check that only previously uncached objects got fetched. Cached objects
+    # were left intact.
+    self.assertEqual(result["obj1"].Get(result["obj1"].Schema.TYPE),
+                     "AFF4MemoryStream")
+    self.assertEqual(result["obj2"].Get(result["obj2"].Schema.TYPE),
+                     "AFF4Volume")
+
+  def testMultiOpenDoesNotCacheNegativeResults(self):
+    result = self.pool.MultiOpen([""])
+    self.assertFalse(result)
+
+    self._CreateObject("aff4:/obj1", "AFF4MemoryStream")
+    result = self.pool.MultiOpen(["aff4:/obj1"])
+    self.assertEqual(result[0].Get(result[0].Schema.TYPE), "AFF4MemoryStream")
+
+  def testListChildrenResultsAreCached(self):
+    self._CreateObject("aff4:/a", "AFF4Volume")
+    self._CreateObject("aff4:/a/b", "AFF4Volume")
+
+    result = self.pool.ListChildren("aff4:/a")
+    self.assertListEqual(result, ["aff4:/a/b"])
+
+    self._CreateObject("aff4:/a/c", "AFF4Volume")
+    result = self.pool.ListChildren("aff4:/a")
+    # Check that the result was cached and newly created item is not reflected
+    # in the request.
+    self.assertListEqual(result, ["aff4:/a/b"])
+
+  def testMultiListChildrenResultsAreCached(self):
+    result = self.pool.MultiListChildren(["aff4:/a", "aff4:/b"])
+    self.assertEqual(result, {"aff4:/a": [], "aff4:/b": []})
+
+    self._CreateObject("aff4:/a", "AFF4Volume")
+    self._CreateObject("aff4:/a/b", "AFF4Volume")
+
+    result = self.pool.MultiListChildren(["aff4:/a", "aff4:/b"])
+    self.assertEqual(result, {"aff4:/a": [], "aff4:/b": []})
+
+  def testMultiListeChildreQueriesOnlyNonCachedUrns(self):
+    self._CreateObject("aff4:/a", "AFF4Volume")
+    self._CreateObject("aff4:/a/b", "AFF4Volume")
+
+    self._CreateObject("aff4:/b", "AFF4Volume")
+    self._CreateObject("aff4:/b/c", "AFF4Volume")
+
+    result = self.pool.MultiListChildren(["aff4:/a"])
+    self.assertEqual(result, {"aff4:/a": ["aff4:/a/b"]})
+
+    self._CreateObject("aff4:/a/foo", "AFF4Volume")
+    self._CreateObject("aff4:/b/bar", "AFF4Volume")
+
+    # Check that cached children lists are not refetched.
+    result = self.pool.MultiListChildren(["aff4:/a", "aff4:/b"])
+    self.assertEqual(result, {"aff4:/a": ["aff4:/a/b"],
+                              "aff4:/b": ["aff4:/b/bar", "aff4:/b/c"]})
+
+  def testRecursiveMultiListChildrenResultsAreCached(self):
+    result = self.pool.RecursiveMultiListChildren(["aff4:/a", "aff4:/b"])
+    self.assertEqual(result, {"aff4:/a": [], "aff4:/b": []})
+
+    self._CreateObject("aff4:/a", "AFF4Volume")
+    self._CreateObject("aff4:/a/b", "AFF4Volume")
+
+    result = self.pool.MultiListChildren(["aff4:/a", "aff4:/b"])
+    self.assertEqual(result, {"aff4:/a": [], "aff4:/b": []})
+
+  def testRecursiveMultiListChildrenQueriesOnlyNonCachedUrns(self):
+    self._CreateObject("aff4:/a", "AFF4Volume")
+    self._CreateObject("aff4:/a/b", "AFF4Volume")
+    self._CreateObject("aff4:/a/b/c", "AFF4Volume")
+
+    # This should put aff4:/a and aff4:/a/b into the cache.
+    # Note that there's aff4:/a/b/c children were not queried and cached.
+    self.pool.MultiListChildren(["aff4:/a", "aff4:/a/b"])
+
+    self._CreateObject("aff4:/a/foo", "AFF4Volume")
+    self._CreateObject("aff4:/a/b/c/d", "AFF4Volume")
+
+    # aff4:/a children were cached, so aff4:/a/foo won't be present in
+    # the results. On the other hand, aff4:/a/b/c/d should be in the
+    # results because children of aff4:/a/b/c weren't queried and cached.
+    result = self.pool.RecursiveMultiListChildren(["aff4:/a"])
+
+    self.assertEqual(result, {"aff4:/a": ["aff4:/a/b"],
+                              "aff4:/a/b": ["aff4:/a/b/c"],
+                              "aff4:/a/b/c": ["aff4:/a/b/c/d"],
+                              "aff4:/a/b/c/d": []})
 
 
 class AFF4Tests(test_lib.AFF4ObjectTest):
@@ -360,6 +617,10 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     self.assertRaises(IOError, aff4.FACTORY.Open, path, "AFF4MemoryStream",
                       token=self.token)
 
+  def testDeleteRaisesWhenTryingToDeleteRoot(self):
+    self.assertRaises(RuntimeError, aff4.FACTORY.Delete, "aff4:/",
+                      token=self.token)
+
   def testRecursiveDelete(self):
     """Checks that recusrive deletion of objects works."""
 
@@ -392,6 +653,34 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     fd = aff4.FACTORY.Open("aff4:/tmp/dir2", token=self.token)
     self.assertListEqual(list(fd.ListChildren()),
                          ["aff4:/tmp/dir2/hello4.txt"])
+
+  def testMultiDeleteRaisesWhenTryingToDeleteRoot(self):
+    self.assertRaises(RuntimeError, aff4.FACTORY.MultiDelete,
+                      ["aff4:/a", "aff4:/"], token=self.token)
+
+  def testMultiDeleteRemovesAllTracesOfObjectsFromDataStore(self):
+    unique_token = "recursive_delete"
+
+    for i in range(5):
+      for j in range(5):
+        with aff4.FACTORY.Create(
+            "aff4:" + ("/%s%d" % (unique_token, i)) * (j + 1),
+            "AFF4Volume", token=self.token):
+          pass
+
+    aff4.FACTORY.MultiDelete(
+        ["aff4:/%s%d" % (unique_token, i) for i in range(5)],
+        token=self.token)
+
+    # NOTE: We assume that tests are running with FakeDataStore.
+    for subject, subject_data in data_store.DB.subjects.items():
+      self.assertFalse(unique_token in subject)
+
+      for column_name, values in subject_data.items():
+        self.assertFalse(unique_token in column_name)
+
+        for value, _ in values:
+          self.assertFalse(unique_token in utils.SmartUnicode(value))
 
   def testClientObject(self):
     fd = aff4.FACTORY.Create(self.client_id, "VFSGRRClient", token=self.token)

@@ -366,6 +366,14 @@ class CronJob(aff4.AFF4Volume):
         "Cron flow state that is kept between iterations", lock_protected=True,
         versioned=False)
 
+  def DeleteJobFlows(self, age=None):
+    """Deletes flows initiated by the job that are older than specified."""
+    if age is None:
+      raise ValueError("age can't be None")
+
+    child_flows = self.ListChildren(age=age)
+    aff4.FACTORY.MultiDelete(child_flows, token=self.token)
+
   def IsRunning(self):
     """Returns True if there's a currently running iteration of this job."""
     current_urn = self.Get(self.Schema.CURRENT_FLOW_URN)
@@ -493,7 +501,10 @@ class CronJob(aff4.AFF4Volume):
     if not force and not self.DueToRun():
       return
 
+    # Make sure the flow is created with cron job as a parent folder.
     cron_args = self.Get(self.Schema.CRON_ARGS)
+    cron_args.flow_runner_args.base_session_id = self.urn
+
     flow_urn = flow.GRRFlow.StartFlow(
         runner_args=cron_args.flow_runner_args,
         args=cron_args.flow_args, token=self.token, sync=False)
@@ -501,11 +512,6 @@ class CronJob(aff4.AFF4Volume):
     self.Set(self.Schema.CURRENT_FLOW_URN, flow_urn)
     self.Set(self.Schema.LAST_RUN_TIME, rdfvalue.RDFDatetime().Now())
     self.Flush()
-
-    flow_link = aff4.FACTORY.Create(self.urn.Add(flow_urn.Basename()),
-                                    "AFF4Symlink", token=self.token)
-    flow_link.Set(flow_link.Schema.SYMLINK_TARGET(flow_urn))
-    flow_link.Close()
 
 
 class CronHook(registry.InitHook):

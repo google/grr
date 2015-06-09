@@ -12,6 +12,8 @@ from grr import gui
 from grr.lib import registry
 
 document_root = os.path.join(os.path.dirname(gui.__file__), "static")
+local_document_root = os.path.join(os.path.dirname(gui.__file__),
+                                   "local", "static")
 help_root = os.path.join(os.path.dirname(os.path.dirname(gui.__file__)), "docs")
 
 django_base = "django."
@@ -29,6 +31,8 @@ urlpatterns = urls.patterns(
     (r"^download/[^/]+/.*", view_base + "RenderBinaryDownload"),
     (r"^static/(.*)$", static_handler,
      {"document_root": document_root}),
+    (r"^local/static/(.*)$", static_handler,
+     {"document_root": local_document_root}),
     (r"^help/(.*)$", view_base + "RenderHelp")
 )
 

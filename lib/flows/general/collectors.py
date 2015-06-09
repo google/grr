@@ -13,7 +13,6 @@ from grr.lib import artifact_registry
 from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import parsers
-from grr.lib import rdfvalue
 from grr.lib.flows.general import file_finder
 # For AnalyzeClientMemory. pylint: disable=unused-import
 from grr.lib.flows.general import memory as _
@@ -591,7 +590,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     if source:
       return source["returned_types"]
 
-  def _ProcessAnomaly(self, anomaly_value):
+  def _StoreAnomaly(self, anomaly_value):
     """Write anomalies to the client in the data store."""
     if not self.state.client_anomaly_store:
       self.state.client_anomaly_store = aff4.FACTORY.Create(
@@ -615,67 +614,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       RuntimeError: On bad parser.
     """
     _ = responses_obj
-    if not processor_obj:
-      # We don't do any parsing, the results are raw as they came back.
-      # If this is an RDFValue we don't want to unpack it further
-      if isinstance(responses, rdfvalue.RDFValue):
-        result_iterator = [responses]
-      else:
-        result_iterator = responses
-
-    else:
-      # We have some processors to run.
-      if processor_obj.process_together:
-        # We are processing things in a group which requires specialized
-        # handling by the parser. This is used when multiple responses need to
-        # be combined to parse successfully. E.g parsing passwd and shadow files
-        # together.
-        parse_method = processor_obj.ParseMultiple
-      else:
-        parse_method = processor_obj.Parse
-
-      if isinstance(processor_obj, parsers.CommandParser):
-        # Command processor only supports one response at a time.
-        response = responses
-        result_iterator = parse_method(
-            cmd=response.request.cmd,
-            args=response.request.args,
-            stdout=response.stdout,
-            stderr=response.stderr,
-            return_val=response.exit_status,
-            time_taken=response.time_used,
-            knowledge_base=self.state.knowledge_base)
-
-      elif isinstance(processor_obj, parsers.WMIQueryParser):
-        query = source["attributes"]["query"]
-        result_iterator = parse_method(query, responses,
-                                       self.state.knowledge_base)
-
-      elif isinstance(processor_obj, parsers.FileParser):
-        if processor_obj.process_together:
-          file_objects = [aff4.FACTORY.Open(r.aff4path, token=self.token)
-                          for r in responses]
-          result_iterator = parse_method(responses, file_objects,
-                                         self.state.knowledge_base)
-        else:
-          fd = aff4.FACTORY.Open(responses.aff4path,
-                                 token=self.token)
-          result_iterator = parse_method(responses, fd,
-                                         self.state.knowledge_base)
-
-      elif isinstance(processor_obj, (parsers.RegistryParser,
-                                      parsers.RekallPluginParser,
-                                      parsers.RegistryValueParser,
-                                      parsers.GenericResponseParser,
-                                      parsers.GrepParser)):
-        result_iterator = parse_method(responses, self.state.knowledge_base)
-
-      elif isinstance(processor_obj, (parsers.ArtifactFilesParser)):
-        result_iterator = parse_method(responses, self.state.knowledge_base,
-                                       self.state.path_type)
-
-      else:
-        raise RuntimeError("Unsupported parser detected %s" % processor_obj)
+    result_iterator = artifact.ApplyParserToResponses(
+        processor_obj, responses, source, self.state, self.token)
 
     artifact_return_types = self._GetArtifactReturnTypes(source)
 
@@ -684,8 +624,9 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       for result in result_iterator:
         result_type = result.__class__.__name__
         if result_type == "Anomaly":
-          # Anomalies are special results and get handled separately.
-          self._ProcessAnomaly(result)
+          if self.args.store_results_in_aff4:
+            self._StoreAnomaly(result)
+          self.SendReply(result)
         elif not artifact_return_types or result_type in artifact_return_types:
           self.state.response_count += 1
           self.SendReply(result)

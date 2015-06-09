@@ -125,7 +125,11 @@ class JSONEncoderWithRDFPrimitivesSupport(json.JSONEncoder):
 
 def BuildResponse(status, rendered_data):
   """Builds HTTPResponse object from rendered data and HTTP status."""
-  response = http.HttpResponse(status=status, content_type="application/json")
+  response = http.HttpResponse(status=status,
+                               content_type="application/json; charset=utf-8")
+  response["Content-Disposition"] = "attachment; filename=response.json"
+  response["X-Content-Type-Options"] = "nosniff"
+
   response.write(")]}'\n")  # XSSI protection
   response.write(json.dumps(rendered_data,
                             cls=JSONEncoderWithRDFPrimitivesSupport))
@@ -172,15 +176,16 @@ def RenderHttpResponse(request):
     try:
       payload = json.loads(request.body)
       args = renderer.args_type(**payload)
-    except Exception as e:  # pylint: disable=broad-except
-      response = http.HttpResponse(status=500)
-      response.write(")]}'\n")  # XSSI protection
-      response.write(json.dumps(dict(message=str(e))))
 
+      for type_info in args.type_infos:
+        if type_info.name in route_args:
+          args.Set(type_info.name, route_args[type_info.name])
+    except Exception as e:  # pylint: disable=broad-except
       logging.exception(
           "Error while parsing POST request %s (%s): %s",
           request.path, request.method, e)
-      return response
+
+      return BuildResponse(500, dict(message=str(e)))
   else:
     raise RuntimeError("Unsupported method: %s." % request.method)
 
@@ -245,6 +250,9 @@ class HttpApiInitHook(registry.InitHook):
                              api_plugins.hunt.ApiHuntErrorsRenderer)
     RegisterHttpRouteHandler("GET", "/api/hunts/<hunt_id>/log",
                              api_plugins.hunt.ApiHuntLogRenderer)
+    RegisterHttpRouteHandler("POST",
+                             "/api/hunts/<hunt_id>/results/archive-files",
+                             api_plugins.hunt.ApiHuntArchiveFilesRenderer)
 
     RegisterHttpRouteHandler(
         "GET", "/api/reflection/rdfvalue/<type>",

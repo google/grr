@@ -10,7 +10,6 @@ from hashlib import sha256
 import re
 import socket
 import stat
-import urlparse
 
 from grr.lib import ipv6_utils
 from grr.lib import rdfvalue
@@ -825,18 +824,4 @@ class ClientSummary(structs.RDFProtoStruct):
 class GetClientStatsRequest(structs.RDFProtoStruct):
   """Request for GetClientStats action."""
   protobuf = jobs_pb2.GetClientStatsRequest
-
-
-class URI(structs.RDFProtoStruct):
-  """Represets a URI on the client."""
-  protobuf = sysinfo_pb2.URI
-
-  def URIFromString(self, url_to_parse):
-    url = urlparse.urlparse(url_to_parse)
-
-    self.transport = url.scheme
-    self.host = url.netloc
-    self.path = url.path
-    self.query = url.query
-    self.fragment = url.fragment
 

@@ -317,10 +317,6 @@ class ClientDeployer(BuilderBase):
 class WindowsClientDeployer(ClientDeployer):
   """Repackages windows installers."""
 
-  def __init__(self, context=None, signer=None):
-    super(WindowsClientDeployer, self).__init__(context=context, signer=signer)
-    self.context.append("Target:Windows")
-
   def ValidateEndConfig(self, config, errors_fatal=True):
     """Windows specific config validations."""
     errors = super(WindowsClientDeployer, self).ValidateEndConfig(
@@ -543,10 +539,6 @@ class WindowsClientDeployer(ClientDeployer):
 class DarwinClientDeployer(ClientDeployer):
   """Repackage OSX clients."""
 
-  def __init__(self, context=None, signer=None):
-    super(DarwinClientDeployer, self).__init__(context=context, signer=signer)
-    self.context.append("Target:Darwin")
-
   def MakeDeployableBinary(self, template_path, output_path=None):
     """This will add the config to the client template."""
     if output_path is None:
@@ -566,10 +558,6 @@ class DarwinClientDeployer(ClientDeployer):
 
 class LinuxClientDeployer(ClientDeployer):
   """Repackage Linux templates."""
-
-  def __init__(self, context=None, signer=None):
-    super(LinuxClientDeployer, self).__init__(context=context, signer=signer)
-    self.context.append("Target:Linux")
 
   def GenerateDPKGFiles(self, template_path):
     """Generates the files needed by dpkg-buildpackage."""

@@ -30,7 +30,6 @@ from grr.lib import objectfilter_test
 from grr.lib import parsers_test
 from grr.lib import queue_manager_test
 from grr.lib import rekall_profile_server_test
-from grr.lib import search_test
 from grr.lib import stats_test
 from grr.lib import test_lib
 from grr.lib import threadpool_test
@@ -43,6 +42,7 @@ from grr.lib.checks import tests
 from grr.lib.data_stores import tests
 from grr.lib.flows import tests
 from grr.lib.hunts import tests
+from grr.lib.local import tests
 from grr.lib.output_plugins import tests
 from grr.lib.rdfvalues import tests
 from grr.tools import entry_point_test

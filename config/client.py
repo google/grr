@@ -108,6 +108,12 @@ config_lib.DEFINE_string(
     help="Default temporary directory to use on the client.",
     default="/var/tmp/%(Client.name)/")
 
+config_lib.DEFINE_list(
+    name="Client.vfs_chroots",
+    help=("If this is set for a VFS type, client VFS operations will always be"
+          " relative to the given root. Format is os:/mount/disk."),
+    default=[])
+
 config_lib.DEFINE_integer("Client.version_major", 0,
                           "Major version number of client binary.")
 

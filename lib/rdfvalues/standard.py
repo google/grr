@@ -3,11 +3,14 @@
 
 
 import re
+import urlparse
+
 from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import jobs_pb2
+from grr.proto import sysinfo_pb2
 
 
 class RegularExpression(rdfvalue.RDFString):
@@ -81,3 +84,27 @@ class AuthenticodeSignedData(rdf_structs.RDFProtoStruct):
 
 class PersistenceFile(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.PersistenceFile
+
+
+class URI(rdf_structs.RDFProtoStruct):
+  """Represets a URI with its individual components seperated."""
+  protobuf = sysinfo_pb2.URI
+
+  def ParseFromString(self, value):
+    url = urlparse.urlparse(value)
+
+    if url.scheme:
+      self.transport = url.scheme
+    if url.netloc:
+      self.host = url.netloc
+    if url.path:
+      self.path = url.path
+    if url.query:
+      self.query = url.query
+    if url.fragment:
+      self.fragment = url.fragment
+
+  def SerializeToString(self):
+    url = (self.transport, self.host, self.path, self.query, self.fragment)
+    return str(urlparse.urlunsplit(url))
+
