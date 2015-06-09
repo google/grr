@@ -22,7 +22,7 @@ var SemanticRegistryService =
 
 
 /**
- * The implemented service is used as 2 separate singletons:
+ * The implemented service is used as 3 separate singletons:
  * - For semantic value presentation directives.
  */
 SemanticRegistryService.values_service_name =
@@ -33,6 +33,12 @@ SemanticRegistryService.values_service_name =
  */
 SemanticRegistryService.forms_service_name =
     'grrSemanticFormDirectivesRegistryService';
+
+/**
+ * - And for output plugins directvies.
+ */
+SemanticRegistryService.output_plugins_service_name =
+    'grrOutputPluginsDirectivesRegistryService';
 
 
 /**

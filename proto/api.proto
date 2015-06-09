@@ -4,6 +4,7 @@
 
 syntax = "proto2";
 
+import "grr/proto/flows.proto";
 import "grr/proto/semantic.proto";
 
 
@@ -121,6 +122,15 @@ message ApiHuntErrorsRendererArgs {
       description: "Max number of errors to fetch."
     }];
 };
+
+message ApiHuntArchiveFilesRendererArgs {
+  optional string hunt_id = 1 [(sem_type) = {
+      description: "Hunt id.",
+      type: "SessionID"
+    }];
+  optional ExportHuntResultsFilesAsArchiveArgs.ArchiveFormat archive_format = 2;
+};
+
 
 message ApiRDFValueReflectionRendererArgs {
   optional string type = 1 [(sem_type) = {

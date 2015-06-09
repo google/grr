@@ -3,7 +3,12 @@
 
 
 
-from urllib3 import connectionpool
+# pylint: disable=g-import-not-at-top
+try:
+  from urllib3 import connectionpool
+except ImportError:
+  # Urllib3 also comes as part of requests, try to fallback.
+  from requests.packages.urllib3 import connectionpool
 
 from grr.lib import config_lib
 from grr.lib import flags
@@ -17,6 +22,7 @@ from grr.server.data_server import data_server
 from grr.server.data_server import errors
 from grr.server.data_server import master
 from grr.server.data_server import utils
+# pylint: enable=g-import-not-at-top
 
 
 class MockDataStoreService(object):

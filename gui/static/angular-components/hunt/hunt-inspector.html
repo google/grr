@@ -17,12 +17,12 @@
       <grr-hunt-errors hunt-urn="huntUrn" ng-if="errorTabShown" />
     </tab>
 
-    <tab heading="Graph">
+    <tab heading="Graph" select="graphTabsShown = true">
       <grr-legacy-renderer renderer="HuntClientGraphRenderer" query-params="{hunt_id: huntUrn}" />
     </tab>
 
     <tab heading="Results" select="resultsTabShown = true">
-      <grr-legacy-renderer renderer="HuntResultsRenderer" query-params="{hunt_id: huntUrn}" />
+      <grr-hunt-results hunt-urn="huntUrn" ng-if="resultsTabShown" />
     </tab>
 
     <tab heading="Stats" select="statsTabShown = true">

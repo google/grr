@@ -1852,14 +1852,12 @@ def ProcessCompletedRequests(flow_obj, thread_pool, reqs):
 
 
 class FlowInit(registry.InitHook):
-  """Ensures that the Well known flows exist."""
+  """Sets up flow-related stats."""
 
   pre = ["AFF4InitHook", "StatsInit"]
 
   def RunOnce(self):
-    """Exports our vars."""
-
-    # Frontend metrics. These metrics should be used ty the code that
+    # Frontend metrics. These metrics should be used by the code that
     # feeds requests into the frontend.
     stats.STATS.RegisterGaugeMetric(
         "frontend_active_count", int, fields=[("source", str)])

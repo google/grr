@@ -17,10 +17,12 @@ from grr.lib import flow
 from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.checks import checks
 # This test calls flows from these files. pylint: disable=unused-import
 from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import transfer
 # pylint: enable=unused-import
+from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
@@ -605,6 +607,40 @@ class ExportTest(test_lib.GRRBaseTest):
     self.assertEqual(results[0].ifname, "eth0")
     self.assertEqual(results[0].ip4_addresses, "127.0.0.1 10.0.0.1")
     self.assertEqual(results[0].ip6_addresses, "2001:720:1500:1::a100")
+
+  def testCheckResultConverter(self):
+    checkresults = [
+        checks.CheckResult(check_id="check-id-1"),
+        checks.CheckResult(
+            check_id="check-id-2",
+            anomaly=[
+                rdf_anomaly.Anomaly(
+                    type="PARSER_ANOMALY",
+                    symptom="something was wrong on the system"),
+                rdf_anomaly.Anomaly(
+                    type="MANUAL_ANOMALY",
+                    symptom="manually found wrong stuff"),
+                ]),
+        ]
+    metadata = export.ExportedMetadata()
+
+    converter = export.CheckResultConverter()
+    results = list(converter.BatchConvert(
+        [(metadata, r) for r in checkresults],
+        token=self.token))
+    self.assertEqual(len(results), 3)
+    self.assertEqual(results[0].check_id, checkresults[0].check_id)
+    self.assertFalse(results[0].HasField("anomaly"))
+    self.assertEqual(results[1].check_id, checkresults[1].check_id)
+    self.assertEqual(results[1].anomaly.type,
+                     checkresults[1].anomaly[0].type)
+    self.assertEqual(results[1].anomaly.symptom,
+                     checkresults[1].anomaly[0].symptom)
+    self.assertEqual(results[2].check_id, checkresults[1].check_id)
+    self.assertEqual(results[2].anomaly.type,
+                     checkresults[1].anomaly[1].type)
+    self.assertEqual(results[2].anomaly.symptom,
+                     checkresults[1].anomaly[1].symptom)
 
   def testGetMetadata(self):
     client_urn = rdf_client.ClientURN("C.0000000000000000")

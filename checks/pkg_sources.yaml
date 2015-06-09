@@ -1,0 +1,15 @@
+check_id: 'CIS-APT-SOURCE-UNSUPPORTED-TRANSPORT'
+method:
+  - target: {os: ['Linux']}
+  - probe:
+      - artifact: 'APTSources'
+        hint:
+          problem: 'APT sources use unsupported transport.'
+          fix: 'Make sure all APT sources use a trusted protocol.'
+          format: '{filename}: transport: {uris.transport}'
+        filters:
+          - type: 'ObjectFilter'
+            expression: >
+                @uris(
+                    transport notequals 'https'
+                )

@@ -9,6 +9,7 @@ goog.require('grrUi.docs.module');
 goog.require('grrUi.flow.module');
 goog.require('grrUi.forms.module');
 goog.require('grrUi.hunt.module');
+goog.require('grrUi.outputPlugins.module');
 goog.require('grrUi.semantic.module');
 goog.require('grrUi.stats.module');
 goog.require('grrUi.user.module');
@@ -22,9 +23,10 @@ grrUi.appController.module = angular.module('grrUi.appController',
                                              grrUi.config.module.name,
                                              grrUi.core.module.name,
                                              grrUi.docs.module.name,
-                                             grrUi.hunt.module.name,
                                              grrUi.flow.module.name,
                                              grrUi.forms.module.name,
+                                             grrUi.hunt.module.name,
+                                             grrUi.outputPlugins.module.name,
                                              grrUi.semantic.module.name,
                                              grrUi.stats.module.name,
                                              grrUi.user.module.name]);

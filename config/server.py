@@ -2,6 +2,7 @@
 """Configuration parameters for the server side subsystems."""
 
 from grr.lib import config_lib
+from grr.lib import rdfvalue
 from grr.lib.rdfvalues import crypto as rdf_crypto
 
 # Note: Each thread adds about 8mb for stack space.
@@ -233,6 +234,11 @@ config_lib.DEFINE_string(
     "approval emails. The user has the option to"
     " remove this CC address .")
 
+config_lib.DEFINE_string(
+    "Email.approval_signature", None,
+    "If you feel like it, you can add a funny cat picture to approval mails. "
+    "Needs full html: <img src=\"https://imgur.com/path/to/cat.jpg\">.")
+
 config_lib.DEFINE_integer(
     "StatsHunt.ClientBatchSize", "200",
     "Batch size for client scheduling. This should be large enough that it "
@@ -276,3 +282,19 @@ config_lib.DEFINE_bool("AdminUI.allow_hunt_results_delete", default=False,
 config_lib.DEFINE_integer("Server.max_unbound_read_size", 10000000,
                           help="The number of bytes allowed for unbounded "
                           "reads from a file object")
+
+# Data retention policies.
+config_lib.DEFINE_semantic(
+    rdfvalue.Duration, "DataRetention.cron_jobs_flows_ttl", default=None,
+    description="Cron job flows TTL specified as the duration string. "
+    "Examples: 90d, 180d, 1y. If not set, cron jobs flows will be retained "
+    "forever.")
+
+config_lib.DEFINE_semantic(
+    rdfvalue.Duration, "DataRetention.hunts_ttl", default=None,
+    description="Hunts TTL specified as the duration string. Examples: 90d, "
+    "180d, 1y. If not set, hunts will be retained forever.")
+
+config_lib.DEFINE_string("DataRetention.hunts_ttl_exception_label",
+                         default="retain", help="Hunts marked with this label "
+                         "will be retained forever.")

@@ -8,6 +8,7 @@ from grr.lib import artifact_lib
 from grr.lib import artifact_registry
 from grr.lib import config_lib
 from grr.lib import flow
+from grr.lib import parsers
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
@@ -442,6 +443,84 @@ class KnowledgeBaseInitializationFlow(CollectArtifactDependencies):
       # If we don't know what OS this is, there is no way to proceed.
       raise flow.FlowError("Client OS not set for: %s, cannot initialize"
                            " KnowledgeBase" % self.client_id)
+
+
+def ApplyParserToResponses(processor_obj, responses, source, state, token):
+  """Parse responses using the specified processor and the right args.
+
+  Args:
+    processor_obj: A Processor object that inherits from Parser.
+    responses: A list of, or single response depending on the processors
+       process_together setting.
+    source: The source responsible for producing the responses.
+    state: The current state of an artifact collection flow.
+    token: The token used in an artifact collection flow.
+
+  Raises:
+    RuntimeError: On bad parser.
+
+  Returns:
+    An iterator of the processor responses.
+  """
+  if not processor_obj:
+    # We don't do any parsing, the results are raw as they came back.
+    # If this is an RDFValue we don't want to unpack it further
+    if isinstance(responses, rdfvalue.RDFValue):
+      result_iterator = [responses]
+    else:
+      result_iterator = responses
+
+  else:
+    # We have some processors to run.
+    if processor_obj.process_together:
+      # We are processing things in a group which requires specialized
+      # handling by the parser. This is used when multiple responses need to
+      # be combined to parse successfully. E.g parsing passwd and shadow files
+      # together.
+      parse_method = processor_obj.ParseMultiple
+    else:
+      parse_method = processor_obj.Parse
+
+    if isinstance(processor_obj, parsers.CommandParser):
+      # Command processor only supports one response at a time.
+      response = responses
+      result_iterator = parse_method(
+          cmd=response.request.cmd,
+          args=response.request.args,
+          stdout=response.stdout,
+          stderr=response.stderr,
+          return_val=response.exit_status,
+          time_taken=response.time_used,
+          knowledge_base=state.knowledge_base)
+
+    elif isinstance(processor_obj, parsers.WMIQueryParser):
+      query = source["attributes"]["query"]
+      result_iterator = parse_method(query, responses, state.knowledge_base)
+
+    elif isinstance(processor_obj, parsers.FileParser):
+      if processor_obj.process_together:
+        file_objects = [aff4.FACTORY.Open(r.aff4path, token=token)
+                        for r in responses]
+        result_iterator = parse_method(responses, file_objects,
+                                       state.knowledge_base)
+      else:
+        fd = aff4.FACTORY.Open(responses.aff4path, token=token)
+        result_iterator = parse_method(responses, fd, state.knowledge_base)
+
+    elif isinstance(processor_obj, (parsers.RegistryParser,
+                                    parsers.RekallPluginParser,
+                                    parsers.RegistryValueParser,
+                                    parsers.GenericResponseParser,
+                                    parsers.GrepParser)):
+      result_iterator = parse_method(responses, state.knowledge_base)
+
+    elif isinstance(processor_obj, (parsers.ArtifactFilesParser)):
+      result_iterator = parse_method(responses, state.knowledge_base,
+                                     state.path_type)
+
+    else:
+      raise RuntimeError("Unsupported parser detected %s" % processor_obj)
+  return result_iterator
 
 
 def UploadArtifactYamlFile(file_content, base_urn=None, token=None,

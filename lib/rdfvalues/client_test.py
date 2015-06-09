@@ -197,31 +197,3 @@ class NetworkAddressTests(test_base.RDFValueTestCase):
                        address)
 
       self.CheckRDFValue(self.rdfvalue_class(sample), sample)
-
-
-class URITests(test_base.RDFValueTestCase):
-  """Test URI proto."""
-
-  rdfvalue_class = rdf_client.URI
-
-  def GenerateSample(self, number=0):
-    return rdf_client.URI(transport="http", host="%s.example.com" % number)
-
-  def testURI(self):
-    sample = rdf_client.URI(transport="http", host="google.com", path="/index",
-                            query="q=hi", fragment="anchor1")
-    self.assertEqual(sample.transport, "http")
-    self.assertEqual(sample.host, "google.com")
-    self.assertEqual(sample.path, "/index")
-    self.assertEqual(sample.query, "q=hi")
-    self.assertEqual(sample.fragment, "anchor1")
-
-  def testURIFromString(self):
-    sample = rdf_client.URI()
-    sample.URIFromString("http://google.com:443/search?query=hi#anchor2")
-
-    self.assertEqual(sample.transport, "http")
-    self.assertEqual(sample.host, "google.com:443")
-    self.assertEqual(sample.path, "/search")
-    self.assertEqual(sample.query, "query=hi")
-    self.assertEqual(sample.fragment, "anchor2")

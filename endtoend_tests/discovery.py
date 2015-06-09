@@ -6,6 +6,7 @@ from grr.endtoend_tests import base
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
 
 
 class TestClientInterrogateEndToEnd(base.AutomatedTest):
@@ -13,15 +14,15 @@ class TestClientInterrogateEndToEnd(base.AutomatedTest):
   platforms = ["Windows", "Linux", "Darwin"]
   flow = "Interrogate"
 
-  attributes = [aff4.VFSGRRClient.SchemaCls.CLIENT_INFO,
-                aff4.VFSGRRClient.SchemaCls.GRR_CONFIGURATION,
-                aff4.VFSGRRClient.SchemaCls.HOSTNAME,
-                aff4.VFSGRRClient.SchemaCls.INSTALL_DATE,
-                aff4.VFSGRRClient.SchemaCls.MAC_ADDRESS,
-                aff4.VFSGRRClient.SchemaCls.OS_RELEASE,
-                aff4.VFSGRRClient.SchemaCls.OS_VERSION,
-                aff4.VFSGRRClient.SchemaCls.SYSTEM,
-                aff4.VFSGRRClient.SchemaCls.USERNAMES]
+  attributes = [aff4_grr.VFSGRRClient.SchemaCls.CLIENT_INFO,
+                aff4_grr.VFSGRRClient.SchemaCls.GRR_CONFIGURATION,
+                aff4_grr.VFSGRRClient.SchemaCls.HOSTNAME,
+                aff4_grr.VFSGRRClient.SchemaCls.INSTALL_DATE,
+                aff4_grr.VFSGRRClient.SchemaCls.MAC_ADDRESS,
+                aff4_grr.VFSGRRClient.SchemaCls.OS_RELEASE,
+                aff4_grr.VFSGRRClient.SchemaCls.OS_VERSION,
+                aff4_grr.VFSGRRClient.SchemaCls.SYSTEM,
+                aff4_grr.VFSGRRClient.SchemaCls.USERNAMES]
 
   kb_attributes = ["hostname", "os", "os_major_version", "os_minor_version"]
 
@@ -68,7 +69,7 @@ class TestClientInterrogateEndToEnd(base.AutomatedTest):
 
   def CheckFlow(self):
     fd = aff4.FACTORY.Open(self.client_id, mode="r", token=self.token)
-    self.assertIsInstance(fd, aff4.VFSGRRClient)
+    self.assertIsInstance(fd, aff4_grr.VFSGRRClient)
 
     # Check KnowledgeBase was populated correctly
     kb = fd.Get(fd.Schema.KNOWLEDGE_BASE)

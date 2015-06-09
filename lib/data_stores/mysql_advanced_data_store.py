@@ -4,12 +4,13 @@
 """An implementation of a data store based on mysql."""
 
 
+import logging
 import Queue
 import re
 import thread
 import threading
 import time
-import logging
+
 
 import MySQLdb
 from MySQLdb import cursors
@@ -26,25 +27,22 @@ class Error(data_store.Error):
   """Base class for all exceptions in this module."""
 # pylint: enable=nonstandard-exception
 
+
 class SafeQueue(Queue.Queue):
+  """Queue with RLock instead of Lock."""
+
   def __init__(self, maxsize=0):
-      self.maxsize = maxsize
-      self._init(maxsize)
-      # mutex must be held whenever the queue is mutating.  All methods
-      # that acquire mutex must release it before returning.  mutex
-      # is shared between the three conditions, so acquiring and
-      # releasing the conditions also acquires and releases mutex.
-      self.mutex = threading.RLock()
-      # Notify not_empty whenever an item is added to the queue; a
-      # thread waiting to get is notified then.
-      self.not_empty = threading.Condition(self.mutex)
-      # Notify not_full whenever an item is removed from the queue;
-      # a thread waiting to put is notified then.
-      self.not_full = threading.Condition(self.mutex)
-      # Notify all_tasks_done whenever the number of unfinished tasks
-      # drops to zero; thread waiting to join() is notified to resume
-      self.all_tasks_done = threading.Condition(self.mutex)
-      self.unfinished_tasks = 0
+    # Queue is an old-style class so we can't use super()
+    Queue.Queue.__init__(self, maxsize=maxsize)
+    # This code is far from ideal as the Queue implementation makes it difficult
+    # to replace Lock with RLock. Here we override the variables that use
+    # self.mutex in the super class __init__.  If Queue.Queue.__init__
+    # implementation changes this code could break.
+    self.mutex = threading.RLock()
+    self.not_empty = threading.Condition(self.mutex)
+    self.not_full = threading.Condition(self.mutex)
+    self.all_tasks_done = threading.Condition(self.mutex)
+
 
 class MySQLConnection(object):
   """A Class to manage MySQL database connections."""
@@ -89,9 +87,12 @@ class MySQLConnection(object):
         raise Error(str(e))
       raise
 
+
 class ConnectionPool(object):
-  """A pool of connections to the mysql server. That uses unfinished_tasks
-  to track the number of open connections."""
+  """A pool of connections to the mysql server.
+
+  Uses unfinished_tasks to track the number of open connections.
+  """
 
   def __init__(self):
     self.connections = SafeQueue()
@@ -101,7 +102,8 @@ class ConnectionPool(object):
       self.connections.put(MySQLConnection())
 
   def GetConnection(self):
-    if self.connections.empty() and self.connections.unfinished_tasks < self.pool_max_size:
+    if self.connections.empty() and (self.connections.unfinished_tasks <
+                                     self.pool_max_size):
       self.connections.put(MySQLConnection())
     connection = self.connections.get(block=True)
     return connection
@@ -118,7 +120,7 @@ class ConnectionPool(object):
       self.DropConnection(connection)
 
   def DropConnection(self, connection):
-    # Attempt to cleanly drop the connection
+    """Attempt to cleanly drop the connection."""
     try:
       connection.cursor.close()
     except MySQLdb.Error:
@@ -131,6 +133,7 @@ class ConnectionPool(object):
     # If a connection is going to be dropped we remove it from the count
     # of open connections.
     self.connections.task_done()
+
 
 class MySQLAdvancedDataStore(data_store.DataStore):
   """A mysql based data store."""
@@ -152,18 +155,18 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
   def Initialize(self):
     try:
-      self._ExecuteQuery("desc `aff4`")
+      self.ExecuteQuery("desc `aff4`")
     except MySQLdb.Error:
       self.RecreateTables()
 
   def DropTables(self):
     """Drop all existing tables."""
 
-    rows = self._ExecuteQuery(
+    rows = self.ExecuteQuery(
         "SELECT table_name FROM information_schema.tables "
         "WHERE table_schema='%s'" % self.database_name)
     for row in rows:
-      self._ExecuteQuery("DROP TABLE `%s`" % row["table_name"])
+      self.ExecuteQuery("DROP TABLE `%s`" % row["table_name"])
 
   def RecreateTables(self):
     """Drops the tables and creates a new ones."""
@@ -180,7 +183,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
              "WHERE table_schema = \"%s\" GROUP by table_schema" %
              self.database_name)
 
-    result = self._ExecuteQuery(query, [])
+    result = self.ExecuteQuery(query, [])
     if len(result) != 1:
       return -1
     return int(result[0]["size"])
@@ -214,7 +217,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
     for attribute in attributes:
       query, args = self._BuildQuery(subject, attribute, timestamp, limit)
-      result = self._ExecuteQuery(query, args)
+      result = self.ExecuteQuery(query, args)
 
       for row in result:
         value = self._Decode(attribute, row["value"])
@@ -260,7 +263,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     for regex in attribute_regex:
       query, args = self._BuildQuery(subject, regex, timestamp, limit,
                                      is_regex=True)
-      rows = self._ExecuteQuery(query, args)
+      rows = self.ExecuteQuery(query, args)
 
       for row in rows:
         attribute = row["attribute"]
@@ -347,7 +350,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
              "WHERE subject_hash=unhex(md5(%s)) "
              "AND attribute_hash=unhex(md5(%s))")
     args = [subject, attribute]
-    result = self._ExecuteQuery(query, args)
+    result = self.ExecuteQuery(query, args)
     return int(result[0]["total"])
 
   def _BuildReplaces(self, values):
@@ -404,7 +407,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
     return [aff4_q, subjects_q, attributes_q]
 
-  def _ExecuteQuery(self, query, args=None):
+  def ExecuteQuery(self, query, args=None):
     """Get connection from pool and execute query."""
     retries = 10
     for attempt in range(1, retries + 1):
@@ -416,8 +419,8 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       except MySQLdb.Error as e:
         # If there was an error attempt to clean up this connection and let it
         # drop
-        logging.warn("Datastore query attempt %s failed with %s:" %
-                     (attempt, str(e)))
+        logging.warn("Datastore query attempt %s failed with %s:",
+                     attempt, str(e))
         time.sleep(.2)
         self.pool.DropConnection(connection)
         if attempt == 10:
@@ -430,7 +433,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
   def _ExecuteTransaction(self, transaction):
     """Get connection from pool and execute queries."""
     for query in transaction:
-      self._ExecuteQuery(query["query"], query["args"])
+      self.ExecuteQuery(query["query"], query["args"])
 
   def _CalculateAttributeStorageTypes(self):
     """Build a mapping between column names and types."""
@@ -590,14 +593,14 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       return (ts_start, ts_end)
 
   def _CreateTables(self):
-    self._ExecuteQuery("""
+    self.ExecuteQuery("""
     CREATE TABLE IF NOT EXISTS `subjects` (
       hash BINARY(16) PRIMARY KEY NOT NULL,
       subject TEXT CHARACTER SET utf8 NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT ='Table for storing subjects';
     """)
 
-    self._ExecuteQuery("""
+    self.ExecuteQuery("""
     CREATE TABLE IF NOT EXISTS `attributes` (
       hash BINARY(16) PRIMARY KEY NOT NULL,
       attribute VARCHAR(2048) CHARACTER SET utf8 DEFAULT NULL,
@@ -605,7 +608,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT ='Table storing attributes';
     """)
 
-    self._ExecuteQuery("""
+    self.ExecuteQuery("""
     CREATE TABLE IF NOT EXISTS `aff4` (
       id BIGINT UNSIGNED PRIMARY KEY NOT NULL AUTO_INCREMENT,
       subject_hash BINARY(16) NOT NULL,
@@ -618,7 +621,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     COMMENT ='Table representing AFF4 objects';
     """)
 
-    self._ExecuteQuery("""
+    self.ExecuteQuery("""
     CREATE TABLE IF NOT EXISTS `locks` (
       subject_hash BINARY(16) PRIMARY KEY NOT NULL,
       lock_owner BIGINT UNSIGNED DEFAULT NULL,
@@ -658,7 +661,7 @@ class MySQLTransaction(data_store.CommonTransaction):
         "WHERE subject_hash=unhex(md5(%s)) "
         "AND (lock_expiration < %s)")
     args = [self.expires_lock, self.lock_token, subject, time.time() * 1e6]
-    self.store._ExecuteQuery(query, args)
+    self.store.ExecuteQuery(query, args)
 
     self._CheckForLock()
 
@@ -670,7 +673,7 @@ class MySQLTransaction(data_store.CommonTransaction):
         "UPDATE locks SET lock_expiration=%s, lock_owner=%s "
         "WHERE subject_hash=unhex(md5(%s))")
     args = [self.expires_lock, self.lock_token, self.subject]
-    self.store._ExecuteQuery(query, args)
+    self.store.ExecuteQuery(query, args)
 
   def CheckLease(self):
     return max(0, self.expires_lock / 1e6 - time.time())
@@ -688,7 +691,7 @@ class MySQLTransaction(data_store.CommonTransaction):
     query = ("SELECT lock_expiration, lock_owner FROM locks "
              "WHERE subject_hash=unhex(md5(%s))")
     args = [self.subject]
-    rows = self.store._ExecuteQuery(query, args)
+    rows = self.store.ExecuteQuery(query, args)
     for row in rows:
 
       # We own this lock now.
@@ -705,7 +708,7 @@ class MySQLTransaction(data_store.CommonTransaction):
              "SET lock_expiration=%s, lock_owner=%s, "
              "subject_hash=unhex(md5(%s))")
     args = [self.expires_lock, self.lock_token, self.subject]
-    self.store._ExecuteQuery(query, args)
+    self.store.ExecuteQuery(query, args)
 
     self._CheckForLock()
 
@@ -719,4 +722,4 @@ class MySQLTransaction(data_store.CommonTransaction):
              "AND lock_owner=%s "
              "AND subject_hash=unhex(md5(%s))")
     args = [self.expires_lock, self.lock_token, self.subject]
-    self.store._ExecuteQuery(query, args)
+    self.store.ExecuteQuery(query, args)

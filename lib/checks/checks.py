@@ -222,8 +222,14 @@ class Method(rdf_structs.RDFProtoStruct):
     processed = []
     probes = self.triggers.Calls(conditions)
     for p in probes:
-      # Get the data required for the probe.
-      rdf_data = host_data.get(p.artifact)
+      # Get the data required for the probe. A probe can use a result_context
+      # (e.g. Parsers, Anomalies, Raw), to identify the data that is needed
+      # from the artifact collection results.
+      artifact_data = host_data.get(p.artifact)
+      if not p.result_context:
+        rdf_data = artifact_data["PARSER"]
+      else:
+        rdf_data = artifact_data.get(str(p.result_context))
       try:
         result = p.Parse(rdf_data)
       except ProcessingError as e:

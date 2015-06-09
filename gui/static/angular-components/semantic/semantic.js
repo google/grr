@@ -15,6 +15,7 @@ goog.require('grrUi.semantic.objectLabelsListDirective.ObjectLabelsListDirective
 goog.require('grrUi.semantic.semanticProtoDirective.SemanticProtoDirective');
 goog.require('grrUi.semantic.semanticValueDirective.SemanticValueDirective');
 goog.require('grrUi.semantic.timestampDirective.TimestampDirective');
+goog.require('grrUi.semantic.urnDirective.UrnDirective');
 
 
 /**
@@ -55,6 +56,10 @@ grrUi.semantic.module.directive(
 grrUi.semantic.module.directive(
     grrUi.semantic.timestampDirective.TimestampDirective.directive_name,
     grrUi.semantic.timestampDirective.TimestampDirective);
+grrUi.semantic.module.directive(
+    grrUi.semantic.urnDirective.UrnDirective.directive_name,
+    grrUi.semantic.urnDirective.UrnDirective);
+
 grrUi.semantic.module.service(
     grrUi.core.semanticRegistry.SemanticRegistryService.values_service_name,
     grrUi.core.semanticRegistry.SemanticRegistryService);
@@ -93,4 +98,7 @@ grrUi.semantic.module.run(function(grrSemanticValueDirectivesRegistryService) {
   registry.registerDirective(
     grrUi.semantic.timestampDirective.TimestampDirective.semantic_type,
     grrUi.semantic.timestampDirective.TimestampDirective);
+  registry.registerDirective(
+    grrUi.semantic.urnDirective.UrnDirective.semantic_type,
+    grrUi.semantic.urnDirective.UrnDirective);
 });

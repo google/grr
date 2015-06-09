@@ -7,8 +7,14 @@ import threading
 import urlparse
 
 
-import urllib3
-from urllib3 import connectionpool
+# pylint: disable=g-import-not-at-top
+try:
+  import urllib3
+  from urllib3 import connectionpool
+except ImportError:
+  # Urllib3 also comes as part of requests, try to fallback.
+  from requests.packages import urllib3
+  from requests.packages.urllib3 import connectionpool
 
 import logging
 
@@ -19,6 +25,7 @@ from grr.lib.rdfvalues import data_server as rdf_data_server
 from grr.server.data_server import constants
 from grr.server.data_server import rebalance
 from grr.server.data_server import utils as sutils
+# pylint: enable=g-import-not-at-top
 
 
 class DataMasterError(Exception):

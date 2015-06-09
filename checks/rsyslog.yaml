@@ -1,0 +1,38 @@
+check_id: 'CIS-LOGGING-AUTH-REMOTE'
+hint:
+  problem: 'No remote destination for auth logs.'
+  fix: 'Modify log configurations to log authentication events, e.g. in rsyslog:
+      auth.* @@logserver.example.org.:514;RSYSLOG_ForwardFormat'
+method:
+  - target: {os: ['Linux']}
+    probe:
+      - artifact: 'LinuxRsyslogConfigs'
+        match: NONE
+        baseline:
+          - type: 'ObjectFilter'
+            expression: 'targets.facility inset ["auth","priv","authpriv","*"]'
+        filters:
+          - type: 'ObjectFilter'
+            expression: 'targets.transport inset ["TCP", "UDP"]'
+---
+check_id: 'CIS-LOGGING-FILE-PERMISSIONS'
+hint:
+  problem: 'Log configurations can be modified by non-privileged users.'
+  format: '{pathspec.path} user: {st_uid}, group: {st_gid}, mode: {st_mode}'
+  fix: 'Remove writable permissions from these files.'
+method:
+  - target: {os: ['Linux']}
+    probe:
+      - artifact: 'LinuxRsyslogConfigs'
+        result_context: 'RAW'
+        mode: PARALLEL
+        baseline:
+          - type: 'RDFFilter'
+            expression: 'StatEntry'
+        filters:
+          - type: 'StatFilter'
+            expression: 'uid:!0'
+          - type: 'StatFilter'
+            expression: 'gid:!0'
+          - type: 'StatFilter'
+            expression: 'mode:0002 mask:7002'

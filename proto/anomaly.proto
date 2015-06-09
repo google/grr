@@ -9,17 +9,19 @@ import "grr/proto/semantic.proto";
 message Anomaly {
 
   enum AnomalyLevel {
-    VERY_LOW = 0;
-    LOW = 1;
-    MEDIUM = 2;
-    HIGH = 3;
-    VERY_HIGH = 4;
+    UNKNOWN_ANOMALY_LEVEL = 0;
+    VERY_LOW = 1;
+    LOW = 2;
+    MEDIUM = 3;
+    HIGH = 4;
+    VERY_HIGH = 5;
   };
 
   enum AnomalyType {
-    PARSER_ANOMALY = 0;     // Found during format parsing.
-    ANALYSIS_ANOMALY = 1;   // Found during analysis.
-    MANUAL_ANOMALY = 2;     // Found by humans.
+    UNKNOWN_ANOMALY_TYPE = 0;
+    PARSER_ANOMALY = 1;     // Found during format parsing.
+    ANALYSIS_ANOMALY = 2;   // Found during analysis.
+    MANUAL_ANOMALY = 3;     // Found by humans.
   };
 
   optional AnomalyType type = 1 [(sem_type) = {

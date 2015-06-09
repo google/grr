@@ -6,6 +6,44 @@ import "grr/proto/semantic.proto";
 
 
 
+// Logging configuration.
+message LogTarget {
+  optional string facility = 1 [(sem_type) = {
+      description: "What log types this target applies to."
+    }];
+
+  optional string priority = 2 [(sem_type) = {
+      description: "What log priorities this target applies to."
+    }];
+
+  enum LogTransport {
+    UNKNOWN_LOG_TRANSPORT = 0;
+    NULL = 1;
+    FILE = 2;
+    UDP = 3;
+    TCP = 4;
+    PIPE = 5;
+    SCRIPT = 6;
+    MODULE = 7;
+  };
+
+  optional LogTransport transport = 3 [(sem_type) = {
+      description: "How logs are sent to a destination."
+    }];
+
+  optional string destination = 4 [(sem_type) = {
+      description: "Where logs are sent to."
+    }];
+}
+
+
+message LogConfig {
+  repeated LogTarget targets = 1 [(sem_type) = {
+        description: "Logging targets."
+    }];
+}
+
+
 // NFS configuration files.
 message NfsClient {
   optional string host = 1;

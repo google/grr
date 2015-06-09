@@ -67,11 +67,17 @@ message Probe {
     SERIAL = 0;
     PARALLEL = 1;
   }
+  enum ResultContext {
+    UNKNOWN_RESULT_CONTEXT = 0;
+    PARSER = 1;
+    ANOMALY = 2;
+    RAW = 3;
+  }
   optional string artifact = 1 [(sem_type) = {
     description: "The artifact that provides the host data."
   }];
   repeated string parser = 2 [(sem_type) = {
-    description: "Which parser(s) should process host data."
+    description: "Which parsers should process host data."
   }];
   optional Mode mode = 3 [default = SERIAL, (sem_type) = {
     description: "How to apply filters. Serial runs data through each filter"
@@ -94,6 +100,10 @@ message Probe {
   }];
   optional Hint hint = 8 [(sem_type) = {
     description: "Textual descriptions of a problem, fix and/or findings."
+  }];
+  optional ResultContext result_context = 9 [default = PARSER, (sem_type) = {
+    description: "Which stage of results in the artifact collection to use for "
+                 "the checks. Defaults to the registered artifact parsers."
   }];
 }
 

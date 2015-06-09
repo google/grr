@@ -39,7 +39,6 @@ from grr.lib import flow_utils
 from grr.lib import hunts
 from grr.lib import ipshell
 from grr.lib import maintenance_utils
-from grr.lib import search
 from grr.lib import startup
 from grr.lib import type_info
 from grr.lib import utils
@@ -50,7 +49,9 @@ from grr.lib.aff4_objects import reports
 from grr.lib.aff4_objects import security
 
 # All the functions in this lib we want in local namespace.
+# pylint: disable=wildcard-import
 from grr.lib.console_utils import *
+# pylint: enable=wildcard-import
 
 from grr.lib.flows import console
 from grr.lib.flows.console import debugging

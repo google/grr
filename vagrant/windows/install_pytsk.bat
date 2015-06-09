@@ -4,20 +4,14 @@ del /f /q /s sleuthkit*
 powershell -NoProfile -ExecutionPolicy unrestricted -Command "(new-object System.Net.WebClient).DownloadFile('https://sourceforge.net/projects/sleuthkit/files/sleuthkit/4.1.3/sleuthkit-4.1.3.tar.gz/download', 'sleuthkit-4.1.3.tar.gz')"
 7z e sleuthkit-4.1.3.tar.gz && 7z x sleuthkit-4.1.3.tar
 powershell -NoProfile -ExecutionPolicy unrestricted -Command "(new-object System.Net.WebClient).DownloadFile('https://googledrive.com/host/0B3fBvzttpiiScUxsUm54cG02RDA/tsk4.1.3_external_type.patch', 'tsk4.1.3_external_type.patch')"
-cd sleuthkit-4.1.3
 :: Fix segfault https://github.com/py4n6/pytsk/wiki/Building-SleuthKit
-git apply -p0 ..\tsk4.1.3_external_type.patch
+git apply -p0 tsk4.1.3_external_type.patch
+cd sleuthkit-4.1.3
 
 :: Fix project build file: we don't want libewf and don't have zlib, and we
-:: want to target the Windows 7.1 SDK.
-copy C:\grr\vagrant\windows\libtsk4.1.3.vcxproj.patch .
-:: Don't mess with line endings
-git config --global core.autocrlf false
-git apply -p0 libtsk4.1.3.vcxproj.patch
-
-:: Remove the PlatformToolset reference to VisualStudio 2010 in the project file by upgrading.
-:: Without this 32bit won't build.
-cmd /c ""%PROGRAMFILES% (x86)\Microsoft Visual Studio 12.0\VC\bin\amd64\vcvars64.bat" && devenv win32\libtsk\libtsk.vcxproj /upgrade"
+:: want to target the Windows 7.1 SDK. Upgrade the PlatformToolset reference in
+:: the project file to VisualStudio 12.0, without this 32bit won't build.
+copy C:\grr\vagrant\windows\libtsk4.1.3.vcxproj win32\libtsk\libtsk.vcxproj /y
 cd %USERPROFILE%
 
 :: Install pytsk
