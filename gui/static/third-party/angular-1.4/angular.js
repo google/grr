@@ -1,5 +1,5 @@
 /**
- * @license AngularJS v1.4.1-local+sha.e967abc
+ * @license AngularJS v1.4.1-local+sha.9efb0d5
  * (c) 2010-2015 Google, Inc. http://angularjs.org
  * License: MIT
  */
@@ -58,7 +58,7 @@ function minErr(module, ErrorConstructor) {
       return match;
     });
 
-    message += '\nhttp://errors.angularjs.org/1.4.1-local+sha.e967abc/' +
+    message += '\nhttp://errors.angularjs.org/1.4.1-local+sha.9efb0d5/' +
       (module ? module + '/' : '') + code;
 
     for (i = SKIP_INDEXES, paramPrefix = '?'; i < templateArgs.length; i++, paramPrefix = '&') {
@@ -866,9 +866,18 @@ function copy(source, destination, stackSource, stackDest) {
 
   if (!destination) {
     destination = source;
-    if (source) {
+    if (isObject(source)) {
+      var index;
+      if (stackSource && (index = stackSource.indexOf(source)) !== -1) {
+        return stackDest[index];
+      }
+
+      // TypedArray, Date and RegExp have specific copy functionality and must be
+      // pushed onto the stack before returning.
+      // Array and other objects create the base object and recurse to copy child
+      // objects. The array/object will be pushed onto the stack when recursed.
       if (isArray(source)) {
-        destination = copy(source, [], stackSource, stackDest);
+        return copy(source, [], stackSource, stackDest);
       } else if (isTypedArray(source)) {
         destination = new source.constructor(source);
       } else if (isDate(source)) {
@@ -876,9 +885,14 @@ function copy(source, destination, stackSource, stackDest) {
       } else if (isRegExp(source)) {
         destination = new RegExp(source.source, source.toString().match(/[^\/]*$/)[0]);
         destination.lastIndex = source.lastIndex;
-      } else if (isObject(source)) {
+      } else {
         var emptyObject = Object.create(getPrototypeOf(source));
-        destination = copy(source, emptyObject, stackSource, stackDest);
+        return copy(source, emptyObject, stackSource, stackDest);
+      }
+
+      if (stackDest) {
+        stackSource.push(source);
+        stackDest.push(destination);
       }
     }
   } else {
@@ -889,9 +903,6 @@ function copy(source, destination, stackSource, stackDest) {
     stackDest = stackDest || [];
 
     if (isObject(source)) {
-      var index = stackSource.indexOf(source);
-      if (index !== -1) return stackDest[index];
-
       stackSource.push(source);
       stackDest.push(destination);
     }
@@ -900,12 +911,7 @@ function copy(source, destination, stackSource, stackDest) {
     if (isArray(source)) {
       destination.length = 0;
       for (var i = 0; i < source.length; i++) {
-        result = copy(source[i], null, stackSource, stackDest);
-        if (isObject(source[i])) {
-          stackSource.push(source[i]);
-          stackDest.push(result);
-        }
-        destination.push(result);
+        destination.push(copy(source[i], null, stackSource, stackDest));
       }
     } else {
       var h = destination.$$hashKey;
@@ -919,20 +925,20 @@ function copy(source, destination, stackSource, stackDest) {
       if (isBlankObject(source)) {
         // createMap() fast path --- Safe to avoid hasOwnProperty check because prototype chain is empty
         for (key in source) {
-          putValue(key, source[key], destination, stackSource, stackDest);
+          destination[key] = copy(source[key], null, stackSource, stackDest);
         }
       } else if (source && typeof source.hasOwnProperty === 'function') {
         // Slow path, which must rely on hasOwnProperty
         for (key in source) {
           if (source.hasOwnProperty(key)) {
-            putValue(key, source[key], destination, stackSource, stackDest);
+            destination[key] = copy(source[key], null, stackSource, stackDest);
           }
         }
       } else {
         // Slowest path --- hasOwnProperty can't be called as a method
         for (key in source) {
           if (hasOwnProperty.call(source, key)) {
-            putValue(key, source[key], destination, stackSource, stackDest);
+            destination[key] = copy(source[key], null, stackSource, stackDest);
           }
         }
       }
@@ -940,16 +946,6 @@ function copy(source, destination, stackSource, stackDest) {
     }
   }
   return destination;
-
-  function putValue(key, val, destination, stackSource, stackDest) {
-    // No context allocation, trivial outer scope, easily inlined
-    var result = copy(val, null, stackSource, stackDest);
-    if (isObject(val)) {
-      stackSource.push(val);
-      stackDest.push(result);
-    }
-    destination[key] = result;
-  }
 }
 
 /**
@@ -2350,7 +2346,7 @@ function toDebugString(obj) {
  * - `codeName` – `{string}` – Code name of the release, such as "jiggling-armfat".
  */
 var version = {
-  full: '1.4.1-local+sha.e967abc',    // all of these placeholder strings will be replaced by grunt's
+  full: '1.4.1-local+sha.9efb0d5',    // all of these placeholder strings will be replaced by grunt's
   major: 1,    // package task
   minor: 4,
   dot: undefined,
@@ -2679,6 +2675,13 @@ function jqLiteAcceptsData(node) {
   // Otherwise we are only interested in elements (1) and documents (9)
   var nodeType = node.nodeType;
   return nodeType === NODE_TYPE_ELEMENT || !nodeType || nodeType === NODE_TYPE_DOCUMENT;
+}
+
+function jqLiteHasData(node) {
+  for (var key in jqCache[node.ng339]) {
+    return true;
+  }
+  return false;
 }
 
 function jqLiteBuildFragment(html, context) {
@@ -3055,7 +3058,8 @@ function getAliasedAttrName(element, name) {
 
 forEach({
   data: jqLiteData,
-  removeData: jqLiteRemoveData
+  removeData: jqLiteRemoveData,
+  hasData: jqLiteHasData
 }, function(fn, name) {
   JQLite[name] = fn;
 });
@@ -7648,6 +7652,13 @@ function $CompileProvider($provide, $$sanitizeUriProvider) {
           }
           break;
         case NODE_TYPE_TEXT: /* Text Node */
+          if (msie === 11) {
+            // Workaround for #11781
+            while (node.parentNode && node.nextSibling && node.nextSibling.nodeType === NODE_TYPE_TEXT) {
+              node.nodeValue = node.nodeValue + node.nextSibling.nodeValue;
+              node.parentNode.removeChild(node.nextSibling);
+            }
+          }
           addTextInterpolateDirective(directives, node.nodeValue);
           break;
         case NODE_TYPE_COMMENT: /* Comment */
@@ -8594,26 +8605,28 @@ function $CompileProvider($provide, $$sanitizeUriProvider) {
       var fragment = document.createDocumentFragment();
       fragment.appendChild(firstElementToRemove);
 
-      // Copy over user data (that includes Angular's $scope etc.). Don't copy private
-      // data here because there's no public interface in jQuery to do that and copying over
-      // event listeners (which is the main use of private data) wouldn't work anyway.
-      jqLite(newNode).data(jqLite(firstElementToRemove).data());
+      if (jqLite.hasData(firstElementToRemove)) {
+        // Copy over user data (that includes Angular's $scope etc.). Don't copy private
+        // data here because there's no public interface in jQuery to do that and copying over
+        // event listeners (which is the main use of private data) wouldn't work anyway.
+        jqLite(newNode).data(jqLite(firstElementToRemove).data());
 
-      // Remove data of the replaced element. We cannot just call .remove()
-      // on the element it since that would deallocate scope that is needed
-      // for the new node. Instead, remove the data "manually".
-      if (!jQuery) {
-        delete jqLite.cache[firstElementToRemove[jqLite.expando]];
-      } else {
-        // jQuery 2.x doesn't expose the data storage. Use jQuery.cleanData to clean up after
-        // the replaced element. The cleanData version monkey-patched by Angular would cause
-        // the scope to be trashed and we do need the very same scope to work with the new
-        // element. However, we cannot just cache the non-patched version and use it here as
-        // that would break if another library patches the method after Angular does (one
-        // example is jQuery UI). Instead, set a flag indicating scope destroying should be
-        // skipped this one time.
-        skipDestroyOnNextJQueryCleanData = true;
-        jQuery.cleanData([firstElementToRemove]);
+        // Remove data of the replaced element. We cannot just call .remove()
+        // on the element it since that would deallocate scope that is needed
+        // for the new node. Instead, remove the data "manually".
+        if (!jQuery) {
+          delete jqLite.cache[firstElementToRemove[jqLite.expando]];
+        } else {
+          // jQuery 2.x doesn't expose the data storage. Use jQuery.cleanData to clean up after
+          // the replaced element. The cleanData version monkey-patched by Angular would cause
+          // the scope to be trashed and we do need the very same scope to work with the new
+          // element. However, we cannot just cache the non-patched version and use it here as
+          // that would break if another library patches the method after Angular does (one
+          // example is jQuery UI). Instead, set a flag indicating scope destroying should be
+          // skipped this one time.
+          skipDestroyOnNextJQueryCleanData = true;
+          jQuery.cleanData([firstElementToRemove]);
+        }
       }
 
       for (var k = 1, kk = elementsToRemove.length; k < kk; k++) {
@@ -20914,6 +20927,16 @@ var inputType = {
    * error docs for more information and an example of how to convert your model if necessary.
    * </div>
    *
+   * ## Issues with HTML5 constraint validation
+   *
+   * In browsers that follow the
+   * [HTML5 specification](https://html.spec.whatwg.org/multipage/forms.html#number-state-%28type=number%29),
+   * `input[number]` does not work as expected with {@link ngModelOptions `ngModelOptions.allowInvalid`}.
+   * If a non-number is entered in the input, the browser will report the value as an empty string,
+   * which means the view / model values in `ngModel` and subsequently the scope value
+   * will also be an empty string.
+   *
+   *
    * @param {string} ngModel Assignable angular expression to data-bind to.
    * @param {string=} name Property name of the form under which the control is published.
    * @param {string=} min Sets the `min` validation error key if the value entered is less than `min`.
@@ -22456,7 +22479,7 @@ function classDirective(name, selector) {
  * @example Example that demonstrates basic bindings via ngClass directive.
    <example>
      <file name="index.html">
-       <p ng-class="{strike: deleted, bold: important, red: error}">Map Syntax Example</p>
+       <p ng-class="{strike: deleted, bold: important, 'has-error': error}">Map Syntax Example</p>
        <label>
           <input type="checkbox" ng-model="deleted">
           deleted (apply "strike" class)
@@ -22467,7 +22490,7 @@ function classDirective(name, selector) {
        </label><br>
        <label>
           <input type="checkbox" ng-model="error">
-          error (apply "red" class)
+          error (apply "has-error" class)
        </label>
        <hr>
        <p ng-class="style">Using String Syntax</p>
@@ -22496,6 +22519,10 @@ function classDirective(name, selector) {
        .red {
            color: red;
        }
+       .has-error {
+           color: red;
+           background-color: yellow;
+       }
        .orange {
            color: orange;
        }
@@ -22506,13 +22533,13 @@ function classDirective(name, selector) {
        it('should let you toggle the class', function() {
 
          expect(ps.first().getAttribute('class')).not.toMatch(/bold/);
-         expect(ps.first().getAttribute('class')).not.toMatch(/red/);
+         expect(ps.first().getAttribute('class')).not.toMatch(/has-error/);
 
          element(by.model('important')).click();
          expect(ps.first().getAttribute('class')).toMatch(/bold/);
 
          element(by.model('error')).click();
-         expect(ps.first().getAttribute('class')).toMatch(/red/);
+         expect(ps.first().getAttribute('class')).toMatch(/has-error/);
        });
 
        it('should let you toggle string example', function() {

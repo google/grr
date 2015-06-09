@@ -72,13 +72,13 @@ class MockVFSHandlerFind(vfs.VFSHandler):
     f = self.filesystem[path]
     if isinstance(f, str):
       if path.startswith("/mock2/directory1/directory2"):
-        result.st_mode = 0o10644  # u=rw,g=r,o=r on regular file
+        result.st_mode = 0o0100644  # u=rw,g=r,o=r on regular file
       elif path.startswith("/mock2/directory3"):
-        result.st_mode = 0o10643  # u=rw,g=r,o=wx on regular file
+        result.st_mode = 0o0100643  # u=rw,g=r,o=wx on regular file
       else:
-        result.st_mode = 0o14666  # setuid, u=rw,g=rw,o=rw on regular file
+        result.st_mode = 0o0104666  # setuid, u=rw,g=rw,o=rw on regular file
     else:
-      result.st_mode = 0o40775  # u=rwx,g=rwx,o=rx on directory
+      result.st_mode = 0o0040775  # u=rwx,g=rwx,o=rx on directory
     result.st_size = len(f)
     result.st_mtime = 1373185602
 
@@ -300,7 +300,7 @@ class FindTest(test_lib.EmptyActionTest):
     # attributes don't matter. Only look for 'regular' files.
 
     request = rdf_client.FindSpec(pathspec=pathspec, path_regex=".",
-                                  perm_mode=0o10001, perm_mask=0o10001,
+                                  perm_mode=0o0100001, perm_mask=0o0100001,
                                   cross_devs=True)
     request.iterator.number = 200
     result = self.RunAction("Find", request)
@@ -318,7 +318,7 @@ class FindTest(test_lib.EmptyActionTest):
     # attributes don't matter. Only look for folders.
 
     request = rdf_client.FindSpec(pathspec=pathspec, path_regex=".",
-                                  perm_mode=0o40010, perm_mask=0o40010,
+                                  perm_mode=0o0040010, perm_mask=0o0040010,
                                   cross_devs=True)
     request.iterator.number = 200
     result = self.RunAction("Find", request)
