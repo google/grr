@@ -121,16 +121,6 @@ class ApiStringRenderer(ApiValueRenderer):
     return self._IncludeTypeInfoIfNeeded(utils.SmartUnicode(value), value)
 
 
-class ApiBytesRenderer(ApiValueRenderer):
-  """Renderer for RDFBytes."""
-
-  value_class = bytes
-
-  def RenderValue(self, value):
-    result = base64.b64encode(value)
-    return self._IncludeTypeInfoIfNeeded(result, value)
-
-
 class ApiEnumRenderer(ApiValueRenderer):
   """Renderer for deprecated (old-style) enums."""
 
@@ -184,6 +174,18 @@ class ApiListRenderer(ApiValueRenderer):
           result.append("<more items available>")
 
     return result
+
+
+class ApiTupleRenderer(ApiListRenderer):
+  """Renderer for tuples."""
+
+  value_class = tuple
+
+
+class ApiSetRenderer(ApiListRenderer):
+  """Renderer for sets."""
+
+  value_class = set
 
 
 class ApiRepeatedFieldHelperRenderer(ApiListRenderer):
@@ -269,14 +271,15 @@ class ApiRDFProtoStructRenderer(ApiValueRenderer):
 
   value_class = rdf_structs.RDFProtoStruct
 
-  processors = []
+  value_processors = []
+  metadata_processors = []
 
   def RenderValue(self, value):
     result = value.AsDict()
     for k, v in value.AsDict().items():
       result[k] = self._PassThrough(v)
 
-    for processor in self.processors:
+    for processor in self.value_processors:
       result = processor(self, result, value)
 
     result = self._IncludeTypeInfoIfNeeded(result, value)
@@ -290,6 +293,9 @@ class ApiRDFProtoStructRenderer(ApiValueRenderer):
             "friendly_name": descriptor.friendly_name,
             "description": descriptor.description
         }
+
+      for processor in self.metadata_processors:
+        descriptors, order = processor(self, descriptors, order)
 
       result["metadata"] = descriptors
       result["fields_order"] = order
@@ -314,11 +320,36 @@ class ApiGrrMessageRenderer(ApiRDFProtoStructRenderer):
 
     return result
 
-  processors = [RenderPayload]
+  def RenderMetadata(self, descriptors, fields_order):
+    """Payload-aware metadata renderer."""
+
+    if "args_rdf_name" in descriptors:
+      descriptors["payload_type"] = descriptors["args_rdf_name"]
+      del descriptors["args_rdf_name"]
+
+    if "args" in descriptors:
+      descriptors["payload"] = descriptors["args"]
+      del descriptors["args"]
+
+    new_order = []
+    for field in fields_order:
+      if field == "args_rdf_name":
+        field = "payload_type"
+      elif field == "args":
+        field = "payload"
+
+      new_order.append(field)
+
+    return descriptors, new_order
+
+  value_processors = [RenderPayload]
+  metadata_processors = [RenderMetadata]
 
 
 def RenderValue(value, with_types=False, with_metadata=False,
                 limit_lists=-1):
+  """Render given RDFValue as plain old python objects."""
+
   if value is None:
     return None
 

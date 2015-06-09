@@ -42,30 +42,43 @@ class AFF4KeywordIndex(aff4.AFF4Object):
 
     """
 
-    keyword_urns = map(self._KeywordToURN, keywords)
-    relevant_set = None
-    keywords_found = 0
+    posting_lists = self.ReadPostingLists(keywords, start_time, end_time)
 
-    for _, value in data_store.DB.MultiResolveRegex(
-        keyword_urns, self.INDEX_COLUMN_REGEXP,
-        timestamp=(start_time, end_time+1), token=self.token):
-      kw_relevant = set()
-      for column, _, _ in value:
-        kw_relevant.add(column[self.INDEX_PREFIX_LEN:])
-
-      if relevant_set is None:
-        relevant_set = kw_relevant
-      else:
-        relevant_set &= kw_relevant
+    results = posting_lists.values()
+    relevant_set = results[0]
+    for hits in results[1:]:
+      relevant_set &= hits
 
       if not relevant_set:
-        return set()
-      keywords_found += 1
-
-    if keywords_found < len(keywords):
-      return set()
+        return relevant_set
 
     return relevant_set
+
+  def ReadPostingLists(self, keywords, start_time=FIRST_TIMESTAMP,
+                       end_time=LAST_TIMESTAMP):
+    """Finds all objects associated with any of the keywords.
+
+    Args:
+      keywords: A collection of keywords that we are interested in.
+      start_time: Only considers keywords added at or after this point in time.
+      end_time: Only considers keywords at or before this point in time.
+    Returns:
+      A dict mapping each keyword to a set of relevant names.
+    """
+
+    keyword_urns = {self._KeywordToURN(k): k for k in keywords}
+    result = {}
+    for kw in keywords:
+      result[kw] = set()
+
+    for keyword_urn, value in data_store.DB.MultiResolveRegex(
+        keyword_urns.keys(), self.INDEX_COLUMN_REGEXP,
+        timestamp=(start_time, end_time+1), token=self.token):
+      for column, _, _ in value:
+        result[keyword_urns[keyword_urn]].add(
+            column[self.INDEX_PREFIX_LEN:])
+
+    return result
 
   def AddKeywordsForName(self, name, keywords, sync=True, **kwargs):
     """Associates keywords with name.
@@ -75,6 +88,7 @@ class AFF4KeywordIndex(aff4.AFF4Object):
     Args:
       name: A name which should be associated with some keywords.
       keywords: A collection of keywords to associate with name.
+      sync: Sync to data store immediately.
       **kwargs: Additional arguments to pass to the datastore.
     """
     for keyword in set(keywords):

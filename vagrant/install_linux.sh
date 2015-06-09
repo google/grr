@@ -99,9 +99,9 @@ function install_python_from_source() {
 # package isn't enough because we need the compiler and associated libraries.
 # This version needs to stay in sync with the requirements.txt python version.
 function install_protobuf_libs() {
-  ${WGET} https://protobuf.googlecode.com/svn/rc/protobuf-2.6.0.tar.gz
-  tar zxvf protobuf-2.6.0.tar.gz
-  cd protobuf-2.6.0
+  ${WGET} https://github.com/google/protobuf/releases/download/v2.6.1/protobuf-2.6.1.tar.gz
+  tar zxvf protobuf-2.6.1.tar.gz
+  cd protobuf-2.6.1
   ./configure
   make -j4
 
@@ -158,7 +158,12 @@ function install_python_deps() {
   # resulting in missing the library entirely. I believe the issue is this:
   # https://github.com/pypa/pip/issues/3#issuecomment-1659959
   # Using --egg installs it in a way that PyInstaller understands
-  pip2.7 install --egg protobuf==2.6.0
+  pip2.7 install --egg protobuf==2.6.1
+
+  # That isn't even enough, pyinstaller still fails to include it because there
+  # is no __init__.py as noted here:
+  # http://stackoverflow.com/questions/13862562/google-protocol-buffers-not-found-when-trying-to-freeze-python-app
+  touch PYTHON_ENV/lib/python2.7/site-packages/google/__init__.py
 
   install_rekall_HEAD
 }
@@ -183,8 +188,8 @@ function install_sleuthkit() {
   # Segfault fix: https://github.com/py4n6/pytsk/wiki/Building-SleuthKit
   ${WGET} https://googledrive.com/host/0B3fBvzttpiiScUxsUm54cG02RDA/tsk4.1.3_external_type.patch
   tar zxf sleuthkit-4.1.3.tar.gz
+  patch -u -p0 < tsk4.1.3_external_type.patch
   cd sleuthkit-4.1.3
-  patch -u -p0 < ../tsk4.1.3_external_type.patch
   # Exclude some pieces of sleuthkit we don't use
   ./configure --disable-java --without-libewf --without-afflib
   make -j4

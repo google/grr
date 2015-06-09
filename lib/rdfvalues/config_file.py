@@ -4,6 +4,16 @@ from grr.lib.rdfvalues import structs
 from grr.proto import config_file_pb2
 
 
+class LogTarget(structs.RDFProtoStruct):
+  """An RDFValue represenation of a logging target."""
+  protobuf = config_file_pb2.LogTarget
+
+
+class LogConfig(structs.RDFProtoStruct):
+  """An RDFValue represenation of a logging configuration."""
+  protobuf = config_file_pb2.LogConfig
+
+
 class NfsClient(structs.RDFProtoStruct):
   """An RDFValue representation of an NFS Client configuration."""
   protobuf = config_file_pb2.NfsClient

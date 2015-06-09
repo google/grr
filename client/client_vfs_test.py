@@ -440,24 +440,30 @@ class VFSTest(test_lib.GRRBaseTest):
 
   def testRegistryListing(self):
     """Test our ability to list registry keys."""
-    vfs.VFS_HANDLERS[
-        rdf_paths.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
+    reg = rdf_paths.PathSpec.PathType.REGISTRY
+    old_handler = vfs.VFS_HANDLERS.get(reg)
+    try:
+      vfs.VFS_HANDLERS[reg] = test_lib.FakeRegistryVFSHandler
 
-    pathspec = rdf_paths.PathSpec(
-        pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
-        path=("/HKEY_USERS/S-1-5-20/Software/Microsoft"
-              "/Windows/CurrentVersion/Run"))
+      pathspec = rdf_paths.PathSpec(
+          pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
+          path=("/HKEY_USERS/S-1-5-20/Software/Microsoft"
+                "/Windows/CurrentVersion/Run"))
 
-    expected_names = {"MctAdmin": stat.S_IFDIR,
-                      "Sidebar": stat.S_IFDIR}
-    expected_data = [u"%ProgramFiles%\\Windows Sidebar\\Sidebar.exe /autoRun",
-                     u"%TEMP%\\Sidebar.exe"]
+      expected_names = {"MctAdmin": stat.S_IFDIR,
+                        "Sidebar": stat.S_IFDIR}
+      expected_data = [u"%ProgramFiles%\\Windows Sidebar\\Sidebar.exe /autoRun",
+                       u"%TEMP%\\Sidebar.exe"]
 
-    for f in vfs.VFSOpen(pathspec).ListFiles():
-      base, name = os.path.split(f.pathspec.CollapsePath())
-      self.assertEqual(base, pathspec.CollapsePath())
-      self.assertIn(name, expected_names)
-      self.assertIn(f.registry_data.GetValue(), expected_data)
+      for f in vfs.VFSOpen(pathspec).ListFiles():
+        base, name = os.path.split(f.pathspec.CollapsePath())
+        self.assertEqual(base, pathspec.CollapsePath())
+        self.assertIn(name, expected_names)
+        self.assertIn(f.registry_data.GetValue(), expected_data)
+
+    finally:
+      # Cleanup.
+      vfs.VFS_HANDLERS[reg] = old_handler
 
   def CheckDirectoryListing(self, directory, test_file):
     """Check that the directory listing is sensible."""
@@ -483,6 +489,52 @@ class VFSTest(test_lib.GRRBaseTest):
 
     # Raise if we try to read the contents of a directory object.
     self.assertRaises(IOError, directory.Read, 5)
+
+  def testVFSChroot(self):
+
+    # Let's open a file in the chroot.
+    os_root = "os:%s" % self.base_path
+    with test_lib.ConfigOverrider({"Client.vfs_chroots": [os_root]}):
+      # We need to reset the vfs.VFS_CHROOT too.
+      vfs.VFSInit().Run()
+
+      fd = vfs.VFSOpen(
+          rdf_paths.PathSpec(path="/morenumbers.txt",
+                             pathtype=rdf_paths.PathSpec.PathType.OS))
+      data = fd.read(10)
+      self.assertEqual(data, "1\n2\n3\n4\n5\n")
+
+    # This should also work with TSK.
+    tsk_root = "tsk:%s" % os.path.join(self.base_path, "test_img.dd")
+    with test_lib.ConfigOverrider({"Client.vfs_chroots": [tsk_root]}):
+      vfs.VFSInit().Run()
+
+      image_file_ps = rdf_paths.PathSpec(
+          path=u"איןד ןד ש אקדא/איןד.txt",
+          pathtype=rdf_paths.PathSpec.PathType.TSK)
+
+      fd = vfs.VFSOpen(image_file_ps)
+
+      data = fd.read(10)
+      self.assertEqual(data, "1\n2\n3\n4\n5\n")
+
+      # This should not influence vfs handlers other than OS and TSK.
+      reg_type = rdf_paths.PathSpec.PathType.REGISTRY
+      self.assertFalse(vfs.VFS_HANDLERS.get(reg_type))
+
+      os_handler = vfs.VFS_HANDLERS[rdf_paths.PathSpec.PathType.OS]
+      try:
+        vfs.VFS_HANDLERS[reg_type] = os_handler
+
+        with self.assertRaises(IOError):
+          image_file_ps.pathtype = reg_type
+          vfs.VFSOpen(image_file_ps)
+
+      finally:
+        del vfs.VFS_HANDLERS[reg_type]
+
+    # Reset to whatever it was before this test.
+    vfs.VFSInit().Run()
 
 
 def main(argv):

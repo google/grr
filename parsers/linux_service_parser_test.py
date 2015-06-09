@@ -6,17 +6,18 @@ import StringIO
 
 from grr.lib import flags
 from grr.lib import test_lib
+from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.parsers import linux_service_parser
 
 
-def GenTestData(paths, data):
+def GenTestData(paths, data, st_mode=33188):
   stats = []
   files = []
   for path in paths:
-    p = rdf_paths.PathSpec(path=path)
-    stats.append(rdf_client.StatEntry(pathspec=p))
+    p = rdf_paths.PathSpec(path=path, pathtype="OS")
+    stats.append(rdf_client.StatEntry(pathspec=p, st_mode=st_mode))
   for val in data:
     files.append(StringIO.StringIO(val))
   return stats, files
@@ -127,6 +128,47 @@ class LinuxXinetdParserTest(test_lib.GRRBaseTest):
         self.assertEqual("XINETD", str(rslt.start_mode))
         self.assertItemsEqual(["xinetd"], list(rslt.start_after))
         self.assertTrue(rslt.starts)
+
+
+class LinuxSysVInitParserTest(test_lib.GRRBaseTest):
+  """Test parsing of sysv startup and shutdown links."""
+
+  results = None
+
+  def setUp(self, *args, **kwargs):
+    super(LinuxSysVInitParserTest, self).setUp(*args, **kwargs)
+    if self.results is None:
+      # Create a fake filesystem.
+      dirs = ["/etc", "/etc/rc1.d", "/etc/rc2.d", "/etc/rc6.d"]
+      d_stat, d_files = GenTestData(dirs, [""] * len(dirs), st_mode=16877)
+      files = ["/etc/rc.local", "/etc/ignoreme", "/etc/rc2.d/S20ssh"]
+      f_stat, f_files = GenTestData(files, [""] * len(files))
+      links = ["/etc/rc1.d/S90single", "/etc/rc1.d/K20ssh", "/etc/rc1.d/ignore",
+               "/etc/rc2.d/S20ntp", "/etc/rc2.d/S30ufw", "/etc/rc6.d/K20ssh"]
+      l_stat, l_files = GenTestData(links, [""] * len(links), st_mode=41471)
+      stats = d_stat + f_stat + l_stat
+      files = d_files + f_files + l_files
+
+      parser = linux_service_parser.LinuxSysVInitParser()
+      self.results = list(parser.ParseMultiple(stats, files, None))
+
+  def testParseServices(self):
+    """SysV init links return accurate LinuxServiceInformation values."""
+    services = {s.name: s for s in self.results if isinstance
+                (s, rdf_client.LinuxServiceInformation)}
+    self.assertEqual(4, len(services))
+    self.assertItemsEqual(["single", "ssh", "ntp", "ufw"], services)
+    self.assertItemsEqual([2], services["ssh"].start_on)
+    self.assertItemsEqual([1, 6], services["ssh"].stop_on)
+    self.assertTrue(services["ssh"].starts)
+
+  def testDetectAnomalies(self):
+    anomalies = [a for a in self.results if isinstance(a, rdf_anomaly.Anomaly)]
+    self.assertEqual(1, len(anomalies))
+    rslt = anomalies[0]
+    self.assertEqual("Startup script is not a symlink.", rslt.explanation)
+    self.assertEqual(["/etc/rc2.d/S20ssh"], rslt.finding)
+    self.assertEqual("PARSER_ANOMALY", rslt.type)
 
 
 def main(args):

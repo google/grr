@@ -6,7 +6,6 @@ method:
       os: ['Linux', 'Darwin']
     hint:
       problem: 'Sshd allows protocol 1.'
-      summary: 'sshd parameter'
       format: 'Configured protocols: {config.protocol}'
     probe:
       - artifact: 'SshdConfigFile'
@@ -14,3 +13,18 @@ method:
         filters:
           - type: 'ObjectFilter'
             expression: 'config.protocol contains 1'
+---
+check_id: 'SSHD-PERMS'
+method:
+  - match: ['ANY']
+    target:
+      os: ['Linux']
+    hint:
+      problem: 'The filesystem supports stat.'
+      format: '{pathspec.path}'
+    probe:
+      - artifact: 'SshdConfigFile'
+        result_context: 'RAW'
+        filters:
+          - type: 'RDFFilter'
+            expression: 'StatEntry'

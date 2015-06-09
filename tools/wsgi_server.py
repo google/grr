@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc. All Rights Reserved.
 """This is the WSGI based version of the GRR HTTP Server.
 
 If you want to set up apache as an http server for GRR, here is a site config
@@ -38,6 +37,8 @@ grrpath = grrpath.replace("/grr/tools", "")
 if grrpath not in sys.path:
   sys.path.append(grrpath)
 
+# pylint: disable=g-import-not-at-top
+# pylint: enable=g-import-not-at-top
 
 import logging
 
@@ -68,6 +69,7 @@ flags.DEFINE_integer("message_expiry_time", 600,
                      "Maximum time messages remain valid within the system.")
 
 
+# pylint: disable=g-bad-name
 
 
 class GrrWSGIServer(object):

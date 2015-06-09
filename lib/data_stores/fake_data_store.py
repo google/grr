@@ -161,6 +161,7 @@ class FakeDataStore(data_store.DataStore):
     subject = utils.SmartUnicode(subject)
     try:
       record = self.subjects[subject]
+      keys_to_delete = []
       for name, values in record.iteritems():
         if name not in attributes:
           continue
@@ -173,7 +174,13 @@ class FakeDataStore(data_store.DataStore):
           if not start <= timestamp <= end:
             new_values.append((value, int(timestamp)))
 
-        record[name] = new_values
+        if new_values:
+          record[name] = new_values
+        else:
+          keys_to_delete.append(name)
+
+      for key in keys_to_delete:
+        record.pop(key)
     except KeyError:
       pass
 

@@ -19,8 +19,6 @@ from grr.lib import startup
 from grr.tools import http_server
 from grr.worker import worker
 
-BASE_DIR = "grr/"
-
 
 def main(argv):
   """Sets up all the component in their own threads."""

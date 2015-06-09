@@ -1,0 +1,3 @@
+<span ng-if="::controller.hash === undefined">{$ ::controller.plainValue $}</span>
+<a ng-if="::controller.hash !== undefined" ng-href="#{$ ::controller.hash $}"
+   ng-click="controller.onClick()">{$ ::controller.plainValue $}</a>

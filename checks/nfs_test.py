@@ -15,10 +15,11 @@ class NfsExportsTests(checks_test_lib.HostCheckTest):
     check_id = "CCE-4350-5"
     self.LoadCheck("nfs.yaml")
 
-    host_data = self.SetKnowledgeBase("test.example.com", "Linux")
+    host_data = self.SetKnowledgeBase()
     parser = config_file.NfsExportsParser()
     with open(self.TestDataPath("exports")) as export_fd:
-      host_data["NfsExportsFile"] = list(parser.Parse(None, export_fd, None))
+      parsed = list(parser.Parse(None, export_fd, None))
+      host_data["NfsExportsFile"] = self.SetArtifactData(parsed=parsed)
 
     results = self.RunChecks(host_data)
     exp = "Found: Default r/w NFS exports are too permissive."

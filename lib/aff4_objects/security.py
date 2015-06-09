@@ -403,7 +403,7 @@ here
 </body></html>"""
 
     # If you feel like it, add a funny cat picture here :)
-    image = ""
+    image = config_lib.CONFIG["Email.approval_signature"]
 
     url = urllib.urlencode((("acl", utils.SmartStr(approval_urn)),
                             ("main", "GrantAccess")))

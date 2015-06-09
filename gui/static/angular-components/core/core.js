@@ -2,12 +2,15 @@
 
 goog.provide('grrUi.core.module');
 
+goog.require('grrUi.core.aff4DownloadLinkDirective.Aff4DownloadLinkDirective');
 goog.require('grrUi.core.aff4ItemsProviderDirective.Aff4ItemsProviderDirective');
 goog.require('grrUi.core.aff4Service.Aff4Service');
 goog.require('grrUi.core.apiItemsProviderDirective.ApiItemsProviderDirective');
 goog.require('grrUi.core.apiService.ApiService');
 goog.require('grrUi.core.basenameFilter.BasenameFilter');
 goog.require('grrUi.core.clockDirective.ClockDirective');
+goog.require('grrUi.core.downloadCollectionFilesDirective.DownloadCollectionFilesDirective');
+goog.require('grrUi.core.encodeUriComponentFilter.EncodeUriComponentFilter');
 goog.require('grrUi.core.infiniteTableDirective.InfiniteTableDirective');
 goog.require('grrUi.core.legacyRendererDirective.LegacyRendererDirective');
 goog.require('grrUi.core.memoryItemsProviderDirective.MemoryItemsProviderDirective');
@@ -24,9 +27,13 @@ goog.require('grrUi.core.timeSinceFilter.TimeSinceFilter');
 /**
  * Angular module for core GRR UI components.
  */
-grrUi.core.module = angular.module('grrUi.core', ['ui.bootstrap']);
+grrUi.core.module = angular.module('grrUi.core', ['ngCookies', 'ui.bootstrap']);
 
 
+grrUi.core.module.directive(
+    grrUi.core.aff4DownloadLinkDirective.Aff4DownloadLinkDirective
+        .directive_name,
+    grrUi.core.aff4DownloadLinkDirective.Aff4DownloadLinkDirective);
 grrUi.core.module.directive(
     grrUi.core.apiItemsProviderDirective.
         ApiItemsProviderDirective.directive_name,
@@ -70,6 +77,11 @@ grrUi.core.module.directive(
 grrUi.core.module.directive(
     grrUi.core.clockDirective.ClockDirective.directive_name,
     grrUi.core.clockDirective.ClockDirective);
+grrUi.core.module.directive(
+    grrUi.core.downloadCollectionFilesDirective
+        .DownloadCollectionFilesDirective.directive_name,
+    grrUi.core.downloadCollectionFilesDirective
+        .DownloadCollectionFilesDirective);
 
 grrUi.core.module.service(
     grrUi.core.reflectionService.ReflectionService.service_name,
@@ -80,5 +92,8 @@ grrUi.core.module.service(
 
 grrUi.core.module.filter(grrUi.core.basenameFilter.BasenameFilter.filter_name,
                          grrUi.core.basenameFilter.BasenameFilter);
+grrUi.core.module.filter(
+    grrUi.core.encodeUriComponentFilter.EncodeUriComponentFilter.filter_name,
+    grrUi.core.encodeUriComponentFilter.EncodeUriComponentFilter);
 grrUi.core.module.filter(grrUi.core.timeSinceFilter.TimeSinceFilter.filter_name,
                          grrUi.core.timeSinceFilter.TimeSinceFilter);

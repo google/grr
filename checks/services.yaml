@@ -42,15 +42,21 @@ method:
         mode: PARALLEL
         filters:
           - type: 'ObjectFilter'
-            expression: |
-              name contains "chargen" or
-              name contains "discard" or
-              name contains "echo" or
-              name contains "fingerd" or
-              name contains "ftpd" or
-              name contains "telnet" or
-              name contains "whois" or
-              name contains "xfont-server"
+            expression: name contains "chargen"
+          - type: 'ObjectFilter'
+            expression: name contains "discard"
+          - type: 'ObjectFilter'
+            expression: name contains "echo"
+          - type: 'ObjectFilter'
+            expression: name contains "fingerd"
+          - type: 'ObjectFilter'
+            expression: name contains "ftpd"
+          - type: 'ObjectFilter'
+            expression: name contains "telnet"
+          - type: 'ObjectFilter'
+            expression: name contains "whois"
+          - type: 'ObjectFilter'
+            expression: name contains "xfont-server"
           - type: 'ObjectFilter'
             expression: |
               name inset ["telnet", "ntalkd", "lpd", "lpdng", "rcp", "rlogin",
@@ -90,22 +96,21 @@ method:
         Configure these services to start by default.
 
         (ref) CIS Debian Benchmark v1.0-2.4 and 1.0-3.2
-    match: NONE
     probe:
       - artifact: 'LinuxServices'
-        baseline:
-          - type: 'ObjectFilter'
-            expression: start is 1
-        mode: 'PARALLEL'
+        hint:
+          problem: Sysstat is not started at boot time.
+        match: NONE
         filters:
           - type: 'ObjectFilter'
-            hint:
-              problem: Sysstat is not started at boot time.
-            expression: 'name is "sysstat"'
+            expression: 'name is "sysstat" and start is 1'
+      - artifact: 'LinuxServices'
+        hint:
+          problem: A firewall is not started at boot time.
+        match: NONE
+        filters:
           - type: 'ObjectFilter'
-            hint:
-              problem: A firewall is not started at boot time.
-            expression: 'name inset ["iptables", "ufw"]'
+            expression: 'name inset ["iptables", "ufw"] and start is 1'
 ---
 check_id: CIS-SERVICE-SHOULD-NOT-LISTEN
 method:
@@ -142,3 +147,21 @@ method:
         filters:
           - type: 'ObjectFilter'
             expression: 'name inset ["x11","xorg"]'
+---
+check_id: CIS-SERVICE-LOGSERVER-RUNNING
+method:
+  - target: {os:['Linux']}
+    hint:
+      problem: Logging software is not running.
+      fix: "Configure a logserver to run at boot time."
+    match: 'NONE'
+    probe:
+      - artifact: 'ListProcessesGrr'
+        mode: 'PARALLEL'
+        filters:
+          - type: 'ObjectFilter'
+            expression: name is "rsyslogd"
+          - type: 'ObjectFilter'
+            expression: name is "syslogd"
+          - type: 'ObjectFilter'
+            expression: name is "syslog-ng"

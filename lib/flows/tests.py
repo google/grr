@@ -7,6 +7,7 @@ from grr.lib.flows.console import debugging_test
 
 # Cron tests.
 from grr.lib.flows.cron import compactors_test
+from grr.lib.flows.cron import data_retention_test
 from grr.lib.flows.cron import filestore_stats_test
 from grr.lib.flows.cron import system_test
 
@@ -14,7 +15,7 @@ from grr.lib.flows.general import administrative_test
 from grr.lib.flows.general import artifact_fallbacks_test
 from grr.lib.flows.general import audit_test
 # Disable due to breakage.
-# from grr.lib.flows.general import checks_test
+from grr.lib.flows.general import checks_test
 from grr.lib.flows.general import collectors_test
 from grr.lib.flows.general import discovery_test
 from grr.lib.flows.general import endtoend_test

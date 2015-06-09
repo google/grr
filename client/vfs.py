@@ -3,6 +3,7 @@
 
 
 from grr.client import client_utils
+from grr.lib import config_lib
 from grr.lib import registry
 from grr.lib import utils
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -230,6 +231,9 @@ class VFSHandler(object):
 # A registry of all VFSHandler registered
 VFS_HANDLERS = {}
 
+# The paths we should use as root for VFS operations.
+VFS_CHROOTS = {}
+
 
 class VFSInit(registry.InitHook):
   """Register all known vfs handlers to open a pathspec types."""
@@ -238,6 +242,29 @@ class VFSInit(registry.InitHook):
     for handler in VFSHandler.classes.values():
       if handler.auto_register:
         VFS_HANDLERS[handler.supported_pathtype] = handler
+
+    VFS_CHROOTS.clear()
+    vfs_chroots = config_lib.CONFIG["Client.vfs_chroots"]
+    for vfs_chroot in vfs_chroots:
+      try:
+        handler_string, root = vfs_chroot.split(":", 1)
+      except ValueError:
+        raise ValueError(
+            "Badly formatted vfs chroot: %s. Correct format is "
+            "os:/path/to/chroot" % vfs_chroot)
+
+      handler_string = handler_string.upper()
+      handler = rdf_paths.PathSpec.PathType.enum_dict.get(handler_string)
+      if handler is None:
+        raise ValueError("Unsupported vfs handler: %s." % handler_string)
+
+      # We need some translation here, TSK needs an OS chroot base. For every
+      # other handler we can just keep the type the same.
+      base_types = {
+          rdf_paths.PathSpec.PathType.TSK: rdf_paths.PathSpec.PathType.OS
+      }
+      base_type = base_types.get(handler, handler)
+      VFS_CHROOTS[handler] = rdf_paths.PathSpec(path=root, pathtype=base_type)
 
 
 def VFSOpen(pathspec, progress_callback=None):
@@ -304,16 +331,21 @@ def VFSOpen(pathspec, progress_callback=None):
   """
   fd = None
 
-  original_pathspec = pathspec
+  # Adjust the pathspec in case we are using a vfs_chroot.
+  chroot = VFS_CHROOTS.get(pathspec.pathtype)
 
-  # Opening changes the pathspec so we work on a copy.
-  pathspec = pathspec.Copy()
+  if chroot:
+    working_pathspec = chroot.Copy()
+    working_pathspec.last.nested_path = pathspec.Copy()
+  else:
+    # Opening changes the pathspec so we always work on a copy.
+    working_pathspec = pathspec.Copy()
 
   # For each pathspec step, we get the handler for it and instantiate it with
   # the old object, and the current step.
-  while pathspec:
+  while working_pathspec:
 
-    component = pathspec.Pop()
+    component = working_pathspec.Pop()
     try:
       handler = VFS_HANDLERS[component.pathtype]
     except KeyError:
@@ -322,10 +354,10 @@ def VFSOpen(pathspec, progress_callback=None):
 
     try:
       # Open the component.
-      fd = handler.Open(fd, component, pathspec=pathspec,
+      fd = handler.Open(fd, component, pathspec=working_pathspec,
                         progress_callback=progress_callback)
     except IOError as e:
-      raise IOError("%s: %s" % (e, original_pathspec))
+      raise IOError("%s: %s" % (e, pathspec))
 
   return fd
 
