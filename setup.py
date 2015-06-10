@@ -152,7 +152,7 @@ grr_artifact_files = ("grr",
                       ["*.yaml"])
 
 grr_gui_data_files = ("grr.gui",
-                      ["static", "templates"],
+                      ["static", "templates", "local"],
                       ["*.css", "*.js", "*.gif", "*.html",
                        "*.jpg", "*.MF", "*.png", "*.ico",
                        "*.eot", "*.ttf", "*.svg", "*.woff"])
