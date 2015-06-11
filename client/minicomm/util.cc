@@ -1,8 +1,8 @@
-#include "util.h"
+#include "grr/client/minicomm/util.h"
 
 #include <array>
 
-#include "base.h"
+#include "grr/client/minicomm/base.h"
 
 namespace grr {
 namespace {

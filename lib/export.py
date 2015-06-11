@@ -898,7 +898,7 @@ class CheckResultConverter(ExportConverter):
       Resulting ExportedCheckResult. Empty list is a valid result and means that
       conversion wasn't possible.
     """
-    if checkresult.anomaly:
+    if checkresult.HasField("anomaly"):
       for anomaly in checkresult.anomaly:
         exported_anomaly = ExportedAnomaly(
             type=anomaly.type,

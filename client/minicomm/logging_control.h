@@ -1,7 +1,7 @@
 #ifndef GRR_CLIENT_MINICOMM_LOGGING_CONTROL_H_
 #define GRR_CLIENT_MINICOMM_LOGGING_CONTROL_H_
 
-#include "base.h"
+#include "grr/client/minicomm/base.h"
 
 namespace grr {
 

@@ -432,9 +432,11 @@ class MultiGetFileMixin(object):
 
       for file_tracker in hash_to_urn.get(hashset.sha256, []):
 
-        # Some existing_blob files can be created with 0 size, make sure our
-        # size matches the actual size.
-        existing_blob.size = file_tracker.bytes_read
+        # Due to potential filestore corruption, the existing_blob files can
+        # have 0 size, make sure our size matches the actual size in that case.
+        if existing_blob.size == 0:
+          existing_blob.size = (file_tracker.bytes_read or
+                                file_tracker.stat_entry.st_size)
 
         # Create a file in the client name space with the same classtype and
         # populate its attributes.

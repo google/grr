@@ -6,8 +6,8 @@
 
 #include "google/protobuf/repeated_field.h"
 
-#include "base.h"
-#include "compression.h"
+#include "grr/client/minicomm/base.h"
+#include "grr/client/minicomm/compression.h"
 
 namespace grr {
 // *** MessageBuilder ***

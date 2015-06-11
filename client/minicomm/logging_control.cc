@@ -1,4 +1,4 @@
-#include "logging_control.h"
+#include "grr/client/minicomm/logging_control.h"
 
 #include <algorithm>
 #include <chrono>

@@ -1,5 +1,5 @@
 
-#include "client.h"
+#include "grr/client/minicomm/client.h"
 
 int main(int argc, char* argv[]) {
   grr::Client::StaticInit();

@@ -24,6 +24,10 @@ set(http_comms_lib_DEPS core_lib curl ${core_lib_DEPS})
 add_library(subprocess_delegator_lib subprocess_delegator.cc)
 set(subprocess_delegator_lib_DEPS core_lib ${core_lib_DEPS})
 
+add_library(client_actions_lib client_action.cc
+  client_actions/get_platform_info.cc)
+set(set_client_actions_lib_DEPS core_lib ${core_lib_DEPS})
+
 add_executable(minicomm client_main.cc client.cc)
 set(minicom_external_DEPS
   ${subprocess_delegator_lib_DEPS}
@@ -48,6 +52,8 @@ add_library(test_helper_lib logging_control.cc client_test_base)
 set(test_helper_lib_DEPS gtest pthread)
 
 add_executable(unit_tests grr_test_main.cc
+  client_action_test.cc
+  client_actions/get_platform_info_test.cc
   compression_test.cc
   comms_utils_test.cc
   config_test.cc
@@ -57,11 +63,13 @@ add_executable(unit_tests grr_test_main.cc
   util_test.cc
 )
 set(unit_tests_external_DEPS
+  ${client_actions_lib_DEPS}
   ${core_lib_DEPS}
   ${subprocess_delegator_lib_DEPS}
   ${test_helper_lib_DEPS})
 list(REMOVE_DUPLICATES unit_tests_external_DEPS)
 target_link_libraries(unit_tests
+  client_actions_lib
   core_lib
   subprocess_delegator_lib
   test_helper_lib

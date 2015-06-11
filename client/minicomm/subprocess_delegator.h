@@ -7,8 +7,8 @@
 #include <mutex>
 #include <thread>
 
-#include "config.h"
-#include "message_queue.h"
+#include "grr/client/minicomm/config.h"
+#include "grr/client/minicomm/message_queue.h"
 #include "google/protobuf/io/coded_stream.h"
 #include "google/protobuf/io/zero_copy_stream.h"
 #include "google/protobuf/io/zero_copy_stream_impl.h"

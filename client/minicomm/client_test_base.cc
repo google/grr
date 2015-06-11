@@ -1,9 +1,9 @@
-#include "client_test_base.h"
+#include "grr/client/minicomm/client_test_base.h"
 
 #include <stdlib.h>
 #include <fstream>
 
-#include "logging_control.h"
+#include "grr/client/minicomm/logging_control.h"
 
 namespace grr {
 namespace {

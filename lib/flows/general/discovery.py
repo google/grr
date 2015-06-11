@@ -50,13 +50,11 @@ class Interrogate(flow.GRRFlow):
   args_type = InterrogateArgs
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
-  @flow.StateHandler(next_state=["Hostname",
-                                 "Platform",
+  @flow.StateHandler(next_state=["Platform",
                                  "InstallDate",
                                  "EnumerateInterfaces",
                                  "EnumerateFilesystems",
                                  "ClientInfo",
-                                 "ClientConfig",
                                  "ClientConfiguration"])
   def Start(self):
     """Start off all the tests."""
@@ -90,10 +88,6 @@ class Interrogate(flow.GRRFlow):
   def Save(self):
     # Make sure the client object is removed and closed
     if self.client:
-      aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                          aff4_type="ClientIndex",
-                          mode="rw",
-                          token=self.token).AddClient(self.client)
       self.client.Close()
       self.client = None
 
@@ -127,6 +121,12 @@ class Interrogate(flow.GRRFlow):
                                  "VFSDirectory", token=self.token) as fd:
           fd.Set(fd.Schema.PATHSPEC, fd.Schema.PATHSPEC(
               path="/", pathtype=rdf_paths.PathSpec.PathType.REGISTRY))
+
+      # Update the client index
+      aff4.FACTORY.Create(client_index.MAIN_INDEX,
+                          aff4_type="ClientIndex",
+                          mode="rw",
+                          token=self.token).AddClient(self.client)
 
     else:
       self.Log("Could not retrieve Platform info.")
@@ -171,6 +171,12 @@ class Interrogate(flow.GRRFlow):
       self.CallFlow("ArtifactCollectorFlow", artifact_list=artifact_list,
                     next_state="ProcessArtifactResponses",
                     store_results_in_aff4=True)
+
+    # Update the client index
+    aff4.FACTORY.Create(client_index.MAIN_INDEX,
+                        aff4_type="ClientIndex",
+                        mode="rw",
+                        token=self.token).AddClient(self.client)
 
   @flow.StateHandler()
   def ProcessArtifactResponses(self, responses):
@@ -277,13 +283,6 @@ class Interrogate(flow.GRRFlow):
       self.Log("Could not get ClientInfo.")
 
   @flow.StateHandler()
-  def ClientConfig(self, responses):
-    """Process client config."""
-    if responses.success:
-      response = responses.First()
-      self.client.Set(self.client.Schema.GRR_CONFIG(response))
-
-  @flow.StateHandler()
   def ClientConfiguration(self, responses):
     """Process client config."""
     if responses.success:
@@ -299,3 +298,9 @@ class Interrogate(flow.GRRFlow):
     summary = self.client.GetSummary()
     self.Publish("Discovery", summary)
     self.SendReply(summary)
+
+    # Update the client index
+    aff4.FACTORY.Create(client_index.MAIN_INDEX,
+                        aff4_type="ClientIndex",
+                        mode="rw",
+                        token=self.token).AddClient(self.client)

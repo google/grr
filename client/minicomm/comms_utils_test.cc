@@ -1,8 +1,8 @@
-#include "comms_utils.h"
+#include "grr/client/minicomm/comms_utils.h"
 
 #include <fstream>
 
-#include "client_test_base.h"
+#include "grr/client/minicomm/client_test_base.h"
 #include "gtest/gtest.h"
 
 namespace grr {

@@ -4,11 +4,11 @@
 #include <memory>
 #include <string>
 
-#include "comms_utils.h"
-#include "config.h"
-#include "http_connection.h"
-#include "message_queue.h"
-#include "subprocess_delegator.h"
+#include "grr/client/minicomm/comms_utils.h"
+#include "grr/client/minicomm/config.h"
+#include "grr/client/minicomm/http_connection.h"
+#include "grr/client/minicomm/message_queue.h"
+#include "grr/client/minicomm/subprocess_delegator.h"
 
 namespace grr {
 
