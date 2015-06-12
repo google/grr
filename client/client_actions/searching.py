@@ -140,6 +140,18 @@ class Find(actions.IteratedAction):
 
       result.append(FilterPerms)
 
+    if request.HasField("uid"):
+      def FilterUID(file_stat, request=request):
+        return file_stat.st_uid != request.uid
+
+      result.append(FilterUID)
+
+    if request.HasField("gid"):
+      def FilterGID(file_stat, request=request):
+        return file_stat.st_gid != request.gid
+
+      result.append(FilterGID)
+
     if request.HasField("path_regex"):
       regex = request.path_regex
       def FilterPath(file_stat, regex=regex):

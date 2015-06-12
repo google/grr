@@ -25,6 +25,7 @@ message LogTarget {
     PIPE = 5;
     SCRIPT = 6;
     MODULE = 7;
+    WALL = 8;
   };
 
   optional LogTransport transport = 3 [(sem_type) = {
