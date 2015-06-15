@@ -222,7 +222,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       for row in result:
         value = self._Decode(attribute, row["value"])
 
-        yield (attribute, value, rdfvalue.RDFDatetime(row["timestamp"]))
+        yield (attribute, value, row["timestamp"])
 
       if limit:
         limit -= len(result)
@@ -268,7 +268,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       for row in rows:
         attribute = row["attribute"]
         value = self._Decode(attribute, row["value"])
-        results.append((attribute, value, rdfvalue.RDFDatetime(row["timestamp"])))
+        results.append((attribute, value, row["timestamp"]))
 
     return results
 
