@@ -14,6 +14,10 @@ template <int size>
 std::string ArrayToString(const char(&array)[size]) {
   return std::string(array, strnlen(array, size));
 }
+
+// Wrapper to convert C errno into string descriptions.
+std::string ErrorName(int errnum);
+
 }  // namespace grr
 
 #endif  // GRR_CLIENT_MINICOMM_UTIL_H_

@@ -651,6 +651,7 @@ class AnalyzeClientMemory(flow.GRRFlow):
 
     self.state.Register("rekall_context_messages", {})
     self.state.Register("output_files", [])
+    self.state.Register("plugin_errors", [])
 
     # If a device is already provided, just us it.
     if self.args.request.device:
@@ -677,6 +678,8 @@ class AnalyzeClientMemory(flow.GRRFlow):
   def KcoreStatResult(self, responses):
     if responses.success:
       self.args.request.device = responses.First().pathspec
+      if self.args.debug_logging:
+        self.args.request.session[u"logging_level"] = u"DEBUG"
       self.CallClient("RekallAction", self.args.request,
                       next_state="StoreResults")
     else:
@@ -692,6 +695,8 @@ class AnalyzeClientMemory(flow.GRRFlow):
     memory_information = responses.First()
     # Update the device from the result of LoadMemoryDriver.
     self.args.request.device = memory_information.device
+    if self.args.debug_logging:
+      self.args.request.session[u"logging_level"] = u"DEBUG"
     self.CallClient("RekallAction", self.args.request,
                     next_state="StoreResults")
 
@@ -705,8 +710,7 @@ class AnalyzeClientMemory(flow.GRRFlow):
   def StoreResults(self, responses):
     """Stores the results."""
     if not responses.success:
-      self.Error("Error running plugins: %s." % responses.status)
-      return
+      self.state.plugin_errors.append(unicode(responses.status.error_message))
 
     self.Log("Rekall returned %s responses." % len(responses))
     for response in responses:
@@ -746,6 +750,12 @@ class AnalyzeClientMemory(flow.GRRFlow):
               pathspec = rdf_paths.PathSpec(**message[1])
               self.state.output_files.append(pathspec)
 
+            if message[0] == "L":
+              if len(message) > 1:
+                log_record = message[1]
+                self.Log("%s:%s:%s", log_record["level"],
+                         log_record["name"], log_record["msg"])
+
         self.SendReply(response)
 
     if responses.iterator.state != rdf_client.Iterator.State.FINISHED:
@@ -775,6 +785,10 @@ class AnalyzeClientMemory(flow.GRRFlow):
 
   @flow.StateHandler()
   def End(self):
+    if self.state.plugin_errors:
+      all_errors = u"\n".join([unicode(e) for e in self.state.plugin_errors])
+      raise flow.FlowError("Error running plugins: %s" % all_errors)
+
     if self.runner.output is not None:
       self.Notify("ViewObject", self.runner.output.urn,
                   "Ran analyze client memory")

@@ -296,7 +296,11 @@ class VFSGRRClient(standard.VFSDirectory):
     summary.system_info.machine = self.Get(self.Schema.ARCH)
     summary.system_info.install_date = self.Get(
         self.Schema.INSTALL_DATE)
-    summary.users = self.Get(self.Schema.USER)
+    # This should be summary.users = self.Get(self.Schema.USER) but older
+    # clients may return serialized users here.
+    users = self.Get(self.Schema.USER)
+    if users:
+      summary.users = [rdf_client.User(u) for u in users]
     summary.interfaces = self.Get(self.Schema.LAST_INTERFACES)
     summary.client_info = self.Get(self.Schema.CLIENT_INFO)
     summary.serial_number = self.Get(self.Schema.HARDWARE_INFO).serial_number

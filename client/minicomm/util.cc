@@ -26,4 +26,10 @@ std::string UrlDirname(const std::string& input) {
   }
   return input.substr(0, end_slash);
 }
+
+std::string ErrorName(int errnum) {
+  char buff[1025];
+  strerror_r(errnum, buff, sizeof(buff));
+  return ArrayToString(buff);
+}
 }  // namespace grr

@@ -191,5 +191,19 @@
     "doc": "Test multiple provide values.",
     "labels": ["Logs", "Authentication"],
     "supported_os": [ "Windows" ]
+  },
+
+  { "name": "WMIActiveScriptEventConsumer",
+    "doc": "List all ActiveScript Event Consumers.",
+    "sources": [
+      { "type": "WMI",
+        "attributes": { "base_object": "winmgmts:\\root\\subscription",
+                        "query": "SELECT * FROM ActiveScriptEventConsumer"
+                      }
+      }
+    ],
+    "labels": [ "Software" ],
+    "supported_os": [ "Windows" ],
+    "urls": [ "https://msdn.microsoft.com/en-us/library/aa384749%28v=vs.85%29.aspx" ],
   }
 ]

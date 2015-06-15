@@ -76,6 +76,10 @@ class AbstractTestAnalyzeClientMemory(base.ClientTestBase):
     self.assertIsInstance(self.response, aff4.RDFValueCollection)
     self.assertTrue(len(self.response) >= 1)
 
+  def OpenFlow(self):
+    """Returns the flow used on this test."""
+    return aff4.FACTORY.Open(str(self.session_id), token=self.token)
+
 
 class AbstractTestAnalyzeClientMemoryWindows(AbstractTestAnalyzeClientMemory,
                                              base.AutomatedTest):
@@ -143,3 +147,73 @@ class TestAnalyzeClientMemoryMac(AbstractTestAnalyzeClientMemory):
         "Client.binary_name", context=["Client context", "Platform:Darwin"])
 
     self.assertTrue(binary_name in str(response))
+
+
+class TestAnalyzeClientMemoryLinux(AbstractTestAnalyzeClientMemory):
+  """Runs Rekall on Linux."""
+  platforms = ["Linux"]
+
+  def setUpRequest(self):
+    self.args["request"].plugins = [
+        rdf_rekall_types.PluginRequest(plugin="pslist")]
+
+  def CheckFlow(self):
+    response = aff4.FACTORY.Open(self.client_id.Add(self.test_output_path),
+                                 token=self.token)
+    self.assertTrue('"init"' in str(response[0]))
+
+
+class TestAnalyzeClientMemoryLoggingWorks(AbstractTestAnalyzeClientMemory):
+  """Runs pslist with DEBUG logging and checks that we got DEBUG messages."""
+  platforms = ["Linux", "Windows", "Darwin"]
+
+  def setUpRequest(self):
+    self.args["request"].plugins = [
+        rdf_rekall_types.PluginRequest(plugin="pslist")]
+    self.args["request"].session["logging_level"] = "DEBUG"
+
+  def CheckFlow(self):
+    response = aff4.FACTORY.Open(self.client_id.Add(self.test_output_path),
+                                 token=self.token)
+    self.assertTrue('"level":"DEBUG"' in response[0].json_messages)
+
+
+class TestAnalyzeClientMemoryNonexistantPlugin(AbstractTestAnalyzeClientMemory):
+  """Tests flow failure when a plugin doesn't exist."""
+  platforms = ["Linux", "Windows"]
+
+  def setUpRequest(self):
+    self.args["request"].plugins = [
+        rdf_rekall_types.PluginRequest(plugin="idontexist")]
+
+  def CheckFlow(self):
+    flow = self.OpenFlow()
+    flow_state = flow.Get(flow.SchemaCls.FLOW_STATE)
+    self.assertTrue(flow_state.context.state.name == "ERROR")
+
+
+class TestAnalyzeClientMemoryPluginBadParamsFails(
+    TestAnalyzeClientMemoryNonexistantPlugin):
+  """Tests flow failure when a plugin is given wrong parameters."""
+
+  def setUpRequest(self):
+    self.args["request"].plugins = [
+        rdf_rekall_types.PluginRequest(plugin="pslist",
+                                       args=dict(abcdefg=12345))]
+
+  def CheckFlow(self):
+    # First check that the flow ended up with an error
+    super(TestAnalyzeClientMemoryPluginBadParamsFails, self).CheckFlow()
+    flow = self.OpenFlow()
+    flow_state = flow.Get(flow.SchemaCls.FLOW_STATE)
+    self.assertTrue("InvalidArgs" in flow_state.context.backtrace)
+
+
+class TestAnalyzeClientMemoryNonexistantPluginWithExisting(
+    TestAnalyzeClientMemoryNonexistantPlugin):
+  """Tests flow failure when failing and non failing plugins run together."""
+
+  def setUpRequest(self):
+    self.args["request"].plugins = [
+        rdf_rekall_types.PluginRequest(plugin="pslist"),
+        rdf_rekall_types.PluginRequest(plugin="idontexist")]

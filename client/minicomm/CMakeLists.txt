@@ -25,7 +25,11 @@ add_library(subprocess_delegator_lib subprocess_delegator.cc)
 set(subprocess_delegator_lib_DEPS core_lib ${core_lib_DEPS})
 
 add_library(client_actions_lib client_action.cc
-  client_actions/get_platform_info.cc)
+  ../../proto/sysinfo.pb.cc
+  client_actions/enumerate_filesystems.cc
+  client_actions/enumerate_interfaces.cc
+  client_actions/get_platform_info.cc
+)
 set(set_client_actions_lib_DEPS core_lib ${core_lib_DEPS})
 
 add_executable(minicomm client_main.cc client.cc)
@@ -48,11 +52,17 @@ install(TARGETS minicomm DESTINATION bin)
 find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIR})
 
-add_library(test_helper_lib logging_control.cc client_test_base)
+add_library(test_helper_lib
+  client_test_base.cc
+  logging_control.cc
+  test_util.cc)
+
 set(test_helper_lib_DEPS gtest pthread)
 
 add_executable(unit_tests grr_test_main.cc
   client_action_test.cc
+  client_actions/enumerate_filesystems_test.cc
+  client_actions/enumerate_interfaces_test.cc
   client_actions/get_platform_info_test.cc
   compression_test.cc
   comms_utils_test.cc

@@ -15,6 +15,7 @@ from grr.lib import utils
 # for InstalledSoftwarePackages pylint: disable=unused-import
 from grr.lib.aff4_objects import software
 # pylint: enable=unused-import
+from grr.lib.rdfvalues import anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -282,6 +283,10 @@ class CollectArtifactDependencies(flow.GRRFlow):
     provided = set()  # Track which deps have been provided.
 
     for response in responses:
+      if isinstance(response, anomaly.Anomaly):
+        logging.error("Artifact %s returned an Anomaly: %s", artifact_name,
+                      response)
+        continue
       if isinstance(response, rdf_client.KnowledgeBaseUser):
         # MergeOrAddUser will update or add a user based on the attributes
         # returned by the artifact in the KnowledgeBaseUser.

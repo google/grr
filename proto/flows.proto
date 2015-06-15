@@ -679,6 +679,11 @@ message AnalyzeClientMemoryArgs {
       description: "Use /proc/kcore if present. Only affects linux clients.",
       friendly_name: "Enable kcore scanning."
     }, default=true];
+
+  optional bool debug_logging = 4 [(sem_type) = {
+      description: "Use DEBUG level logging.",
+      friendly_name: "DEBUG logging."
+    }, default=false];
 }
 
 message ScanMemoryArgs {
