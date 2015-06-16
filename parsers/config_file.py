@@ -8,6 +8,7 @@ import logging
 from grr.lib import lexer
 from grr.lib import parsers
 from grr.lib import utils
+from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import config_file as rdf_config_file
 from grr.lib.rdfvalues import protodict as rdf_protodict
@@ -687,3 +688,30 @@ class APTPackageSourceParser(parsers.FileParser, FieldParser):
       uris.append(url_to_parse)
 
     return uris
+
+
+class CronAtAllowDenyParser(parsers.FileParser):
+  """Parser for /etc/cron.allow /etc/cron.deny /etc/at.allow & /etc/at.deny."""
+  output_types = ["AttributedDict"]
+  supported_artifacts = ["CronAtAllowDenyFiles"]
+
+  def Parse(self, stat, file_obj, unused_knowledge_base):
+    lines = set([l.strip() for l in file_obj.read(100000).splitlines()])
+
+    users = []
+    bad_lines = []
+    for line in lines:
+      if " " in line:           # behaviour of At/Cron is undefined for lines
+        bad_lines.append(line)  # with whitespace separated fields/usernames
+      elif line:                # drop empty lines
+        users.append(line)
+
+    filename = stat.pathspec.path
+    cfg = {"filename": filename, "users": users}
+    yield rdf_protodict.AttributedDict(**cfg)
+
+    if bad_lines:
+      yield rdf_anomaly.Anomaly(type="PARSER_ANOMALY",
+                                symptom="Dodgy entries in %s." % (filename),
+                                reference_pathspec=stat.pathspec,
+                                finding=bad_lines)

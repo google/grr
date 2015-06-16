@@ -6,6 +6,7 @@ import StringIO
 
 from grr.lib import flags
 from grr.lib import test_lib
+from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import config_file as rdf_config_file
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -419,6 +420,40 @@ class APTPackageSourceParserTests(test_lib.GRRBaseTest):
     self.assertEqual("ftp", result.uris[10].transport)
     self.assertEqual("another.example.com", result.uris[10].host)
     self.assertEqual("/debian2", result.uris[10].path)
+
+
+class CronAtAllowDenyParserTests(test_lib.GRRBaseTest):
+  """Test the cron/at allow/deny parser."""
+
+  def testParseCronData(self):
+    test_data = r"""root
+    user
+
+    user2 user3
+    root
+    hi hello
+    user
+    pparth"""
+    file_obj = StringIO.StringIO(test_data)
+    pathspec = rdf_paths.PathSpec(path="/etc/at.allow")
+    stat = rdf_client.StatEntry(pathspec=pathspec)
+    config = config_file.CronAtAllowDenyParser()
+    results = list(config.Parse(stat, file_obj, None))
+
+    result = [d for d in results if isinstance(d,
+                                               rdf_protodict.AttributedDict)][0]
+    filename = result.filename
+    users = result.users
+    self.assertEqual("/etc/at.allow", filename)
+    self.assertEqual(sorted(["root", "user", "pparth"]), sorted(users))
+
+    anomalies = [a for a in results if isinstance(a, rdf_anomaly.Anomaly)]
+    self.assertEqual(1, len(anomalies))
+    anom = anomalies[0]
+    self.assertEqual("Dodgy entries in /etc/at.allow.", anom.symptom)
+    self.assertEqual(sorted(["user2 user3", "hi hello"]), sorted(anom.finding))
+    self.assertEqual(pathspec, anom.reference_pathspec)
+    self.assertEqual("PARSER_ANOMALY", anom.type)
 
 
 def main(args):

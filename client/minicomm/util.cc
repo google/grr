@@ -28,7 +28,7 @@ std::string UrlDirname(const std::string& input) {
 }
 
 std::string ErrorName(int errnum) {
-  char buff[1025];
+  char buff[1024];
   strerror_r(errnum, buff, sizeof(buff));
   return ArrayToString(buff);
 }

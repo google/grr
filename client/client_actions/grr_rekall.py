@@ -88,7 +88,7 @@ class GRRRekallRenderer(data_export.DataExportRenderer):
   # Maximum number of statements to queue before sending a reply.
   RESPONSE_CHUNK_SIZE = 1000
 
-  def __init__(self, rekall_session=None, action=None, output=None):
+  def __init__(self, rekall_session=None, action=None, **kwargs):
     """Collect Rekall rendering commands and send to the server.
 
     Args:
@@ -101,7 +101,7 @@ class GRRRekallRenderer(data_export.DataExportRenderer):
     except AttributeError:
       sys.stdout.isatty = lambda: False
 
-    super(GRRRekallRenderer, self).__init__(session=rekall_session)
+    super(GRRRekallRenderer, self).__init__(session=rekall_session, **kwargs)
 
     # A handle to the client action we can use for sending responses.
     self.action = action
@@ -183,8 +183,17 @@ class GrrRekallSession(session.Session):
 
   def LoadProfile(self, name):
     """Wraps the Rekall profile's LoadProfile to fetch profiles from GRR."""
+    profile = None
+
     # If the user specified a special profile path we use their choice.
-    profile = super(GrrRekallSession, self).LoadProfile(name)
+    try:
+      profile = super(GrrRekallSession, self).LoadProfile(name)
+    except io_manager.IOManagerError as e:
+      # Currently, Rekall will raise when the repository directory is not
+      # created. This is fine, because we'll create the directory after
+      # WriteRekallProfile runs a few lines later.
+      self.logging.warning(e)
+
     if profile:
       return profile
 
@@ -205,10 +214,9 @@ class GrrRekallSession(session.Session):
     return super(GrrRekallSession, self).LoadProfile(
         name, use_cache=False)
 
-  def GetRenderer(self, output=None):
+  def GetRenderer(self, **kwargs):
     # We will use this renderer to push results to the server.
-    return GRRRekallRenderer(rekall_session=self, action=self.action,
-                             output=output)
+    return GRRRekallRenderer(rekall_session=self, action=self.action, **kwargs)
 
   def _HandleRunPluginException(self, ui_renderer, e):
     """Log the exception and raise it."""
@@ -235,6 +243,8 @@ class WriteRekallProfile(actions.ActionPlugin):
       fd.write(args.data)
 
 
+# TODO(user): Refactor the caching functionality to use Rekall's own caching
+# system.
 class RekallCachingIOManager(io_manager.DirectoryIOManager):
   order = io_manager.DirectoryIOManager.order - 1
 

@@ -5,6 +5,7 @@
 
 #include <map>
 
+#include "gtest/gtest_prod.h"
 #include "grr/client/minicomm/client_action.h"
 
 namespace grr {
@@ -14,8 +15,7 @@ class EnumerateInterfaces : public ClientAction {
 
   void ProcessRequest(ActionContext* args) override;
 
-  /*** Implementation details, public to support testing. ***/
-
+ private:
   // Map from interface name to interface information.
   typedef std::map<std::string, Interface> InterfaceMap;
 
@@ -23,8 +23,9 @@ class EnumerateInterfaces : public ClientAction {
   // call.
   InterfaceMap ProcessIfaddrList(const struct ifaddrs* addresses);
 
- private:
   static const char kName[];
+
+  FRIEND_TEST(EnumerateInterfacesTest, ProcessIfaddrList);
 };
 }  // namespace grr
 #endif  // GRR_CLIENT_MINICOMM_CLIENT_ACTIONS_ENUMERATE_INTERFACES_H_

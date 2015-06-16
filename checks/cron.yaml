@@ -1,0 +1,109 @@
+check_id: 'CIS-CRON-PERMISSIONS'
+method:
+  - target: {os: ['Linux']}
+    probe:
+      # artifact defined in grr/artifacts/cron.yaml not in ForensicArtifacts
+      - artifact: 'AllLinuxScheduleFiles'
+        hint:
+          problem: 'System crontabs can be modified by non-privileged users.'
+          fix: >
+            Make sure crontabs are owned by root and are not modifiable by
+            any other users.
+          format: >
+             {pathspec.path} user: {st_uid}, group: {st_gid}, mode: {st_mode}
+        mode: PARALLEL
+        result_context: 'RAW'
+        filters:
+          - type: 'StatFilter'
+            expression: 'uid:!0'
+          - type: 'StatFilter'
+            expression: 'gid:!0 mode:0020 mask:7020'
+          - type: 'StatFilter'
+            expression: 'mode:0002 mask:7002'
+      - artifact: 'CronAtAllowDenyFiles'
+        hint:
+          problem: >
+             System cron or at allow/deny files can be modified by
+             non-privileged users.
+          fix: >
+            Make sure cron or at allow/deny files are owned by root and are
+            not modifiable by any other users.
+          format: >
+             {pathspec.path} user: {st_uid}, group: {st_gid}, mode: {st_mode}
+        mode: PARALLEL
+        result_context: 'RAW'
+        filters:
+          - type: 'StatFilter'
+            expression: 'uid:!0'
+          - type: 'StatFilter'
+            expression: 'gid:!0 mode:0020 mask:7020'
+          - type: 'StatFilter'
+            expression: 'mode:0002 mask:7002'
+---
+check_id: 'CIS-AT-CRON-ALLOW-DOES-NOT-EXIST'
+method:
+  - target: {os: ['Linux']}
+    probe:
+      - artifact: 'CronAtAllowDenyFiles'
+        hint:
+          problem: '/etc/cron.allow does not exist on the system.'
+          fix: 'Make sure /etc/cron.allow exists and only contains root.'
+        match: NONE
+        result_context: 'RAW'
+        filters:
+          - type: 'StatFilter'
+            expression: 'path_re:"/etc/cron\.allow"'
+      - artifact: 'CronAtAllowDenyFiles'
+        hint:
+          problem: '/etc/at.allow does not exist on the system.'
+          fix: 'Make sure /etc/at.allow exists and only contains root.'
+        match: NONE
+        result_context: 'RAW'
+        filters:
+          - type: 'StatFilter'
+            expression: 'path_re:"/etc/at\.allow"'
+---
+check_id: 'CIS-AT-CRON-DENY-EXISTS'
+method:
+  - target: {os: ['Linux']}
+    probe:
+      - artifact: 'CronAtAllowDenyFiles'
+        hint:
+          format: >
+            {pathspec.path} user: {st_uid}, group: {st_gid}, mode: {st_mode}
+          problem: '/etc/cron.deny exists on the system.'
+          fix: 'Remove /etc/cron.deny from the system.'
+        result_context: 'RAW'
+        mode: 'PARALLEL'
+        filters:
+          - type: 'StatFilter'
+            expression: 'path_re:"/etc/cron\.deny"'
+      - artifact: 'CronAtAllowDenyFiles'
+        hint:
+          format: >
+            {pathspec.path} user: {st_uid}, group: {st_gid}, mode: {st_mode}
+          problem: '/etc/at.deny exists on the system.'
+          fix: 'Remove /etc/at.deny from the system.'
+        result_context: 'RAW'
+        mode: 'PARALLEL'
+        filters:
+          - type: 'StatFilter'
+            expression: 'path_re:"/etc/at\.deny"'
+---
+check_id: 'CIS-CRON-AT-ALLOW-ONLY-CONTAINS-ROOT'
+method:
+  - target: {os: ['Linux']}
+    probe:
+      - artifact: 'CronAtAllowDenyFiles'
+        hint:
+          problem: >
+             at.allow or cron.allow contains non-root users or
+             does not contain root.
+          format: '{filename}: {users}'
+        mode: PARALLEL
+        result_context: 'PARSER'
+        filters:
+          - type: 'ObjectFilter'
+            expression: 'filename is "/etc/cron.allow" and users isnot ["root"]'
+          - type: 'ObjectFilter'
+            expression: 'filename is "/etc/at.allow" and users isnot ["root"]'

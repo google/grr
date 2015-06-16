@@ -31,9 +31,11 @@ from grr.lib import startup
 from grr.lib import utils
 from grr.lib.aff4_objects import users
 
+
 class Error(Exception):
   """Base error class."""
   pass
+
 
 class UserError(Error):
   pass
@@ -112,13 +114,13 @@ parser_set_var.add_argument("var", help="Variable to set.")
 parser_set_var.add_argument("val", help="Value to set.")
 
 
-def AddUser(username, password=None, labels=[], token=None):
+def AddUser(username, password=None, labels=None, token=None):
   """Implementation of the add_user command."""
   try:
     if aff4.FACTORY.Open("aff4:/users/%s" % username, "GRRUser",
-                           token=token):
-        raise UserError("Cannot add user %s: User already exists." % username)
-  except (aff4.InstantiationError):
+                         token=token):
+      raise UserError("Cannot add user %s: User already exists." % username)
+  except aff4.InstantiationError:
     pass
 
   fd = aff4.FACTORY.Create("aff4:/users/%s" % username,
@@ -143,13 +145,13 @@ def UpdateUser(username, password, add_labels=None, delete_labels=None,
   try:
     fd = aff4.FACTORY.Open("aff4:/users/%s" % username,
                            "GRRUser", mode="rw", token=token)
-  except (aff4.InstantiationError):
+  except aff4.InstantiationError:
     raise UserError("User %s does not exist." % username)
 
   # Note this accepts blank passwords as valid.
   if password:
     password = getpass.getpass(
-      prompt="Please enter password for user '%s': " % username)
+        prompt="Please enter password for user '%s': " % username)
     fd.SetPassword(password)
 
   # Use sets to dedup input.
