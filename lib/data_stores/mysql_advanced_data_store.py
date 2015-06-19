@@ -535,19 +535,20 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
   def _BuildDelete(self, subject, attribute=None, timestamp=None):
     """Build the DELETE query to be executed."""
-    subjects_q = {}
-    attributes_q = {}
-    aff4_q = {}
+    subjects_q = {
+      "query": "DELETE subjects FROM subjects WHERE hash=unhex(md5(%s))",
+      "args": [subject]
+    }
 
-    subjects_q["query"] = (
-        "DELETE subjects FROM subjects WHERE hash=unhex(md5(%s))")
-    subjects_q["args"] = [subject]
+    aff4_q = {
+      "query": "DELETE aff4 FROM aff4 WHERE subject_hash=unhex(md5(%s))",
+      "args":  [subject]
+    }
 
-    aff4_q["query"] = "DELETE aff4 FROM aff4 WHERE subject_hash=unhex(md5(%s))"
-    aff4_q["args"] = [subject]
-
-    attributes_q["query"] = ""
-    attributes_q["args"] = []
+    locks_q = {
+      "query": "DELETE locks FROM locks WHERE subject_hash=unhex(md5(%s))",
+      "args": [subject]
+    }
 
     if attribute:
       aff4_q["query"] += " AND attribute_hash=unhex(md5(%s))"
@@ -564,16 +565,23 @@ class MySQLAdvancedDataStore(data_store.DataStore):
           "WHERE subjects.hash=unhex(md5(%s)) "
           "AND aff4.subject_hash IS NULL")
 
-      attributes_q["query"] = (
-          "DELETE attributes FROM attributes "
-          "LEFT JOIN aff4 ON aff4.attribute_hash=attributes.hash "
-          "WHERE attributes.hash=unhex(md5(%s)) "
-          "AND aff4.attribute_hash IS NULL")
-      attributes_q["args"].append(attribute)
+      attributes_q = {
+        "query": "DELETE attributes FROM attributes LEFT JOIN aff4 ON "
+                 "aff4.attribute_hash=attributes.hash "
+                 "WHERE attributes.hash=unhex(md5(%s)) "
+                 "AND aff4.attribute_hash IS NULL",
+        "args": [attribute]
+      }
 
-      return [aff4_q, subjects_q, attributes_q]
+      locks_q["query"] = (
+          "DELETE locks FROM locks "
+          "LEFT JOIN aff4 ON aff4.subject_hash=locks.subject_hash "
+          "WHERE locks.subject_hash=unhex(md5(%s)) "
+          "AND aff4.subject_hash IS NULL")
 
-    return [aff4_q, subjects_q]
+      return [aff4_q, subjects_q, attributes_q, locks_q]
+
+    return [aff4_q, subjects_q, locks_q]
 
   def _MakeTimestamp(self, start=None, end=None):
     """Create a timestamp using a start and end time.
