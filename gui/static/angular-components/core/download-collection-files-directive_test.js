@@ -66,7 +66,7 @@ describe('download collection files directive', function() {
     element.find('button').click();
 
     expect(grrApiService.post).toHaveBeenCalledWith('some/download/url',
-                                                    {archive_format: 'TAR_GZ'});
+        {archive_format: 'TAR_GZ'});
   });
 
   it('sends ZIP generation request when dropdownclicked on Mac', function() {

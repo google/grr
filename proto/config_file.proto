@@ -79,3 +79,32 @@ message SshdConfig {
       description: "Match block sections."
     }];
 }
+
+
+// A ntp configuration containing the all the ntp settings.
+message NtpConfig {
+  optional AttributedDict config = 1 [(sem_type) = {
+      description: "The main ntp configuration."
+    }];
+  repeated AttributedDict server = 2 [(sem_type) = {
+      description: "server keyword configurations."
+    }];
+  repeated AttributedDict restrict = 3 [(sem_type) = {
+      description: "restrict keyword configurations."
+    }];
+  repeated AttributedDict fudge = 4 [(sem_type) = {
+      description: "fudge keyword configurations."
+    }];
+  repeated AttributedDict trap = 5 [(sem_type) = {
+      description: "trap keyword configurations."
+    }];
+  repeated AttributedDict peer = 6 [(sem_type) = {
+      description: "peer keyword configurations."
+    }];
+  repeated AttributedDict broadcast = 7 [(sem_type) = {
+      description: "broadcast keyword configurations."
+    }];
+  repeated AttributedDict manycastclient = 8 [(sem_type) = {
+      description: "manycastclient keyword configurations."
+    }];
+}

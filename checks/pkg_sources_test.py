@@ -2,22 +2,22 @@
 # -*- coding: utf-8 -*-
 """Tests for package source checks."""
 
-import StringIO
-
 
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib.checks import checks_test_lib
-from grr.lib.rdfvalues import anomaly as rdf_anomaly
-from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import paths as rdf_paths
 from grr.parsers import config_file
 
 
 class PkgSourceCheckTests(checks_test_lib.HostCheckTest):
 
-  def _GenResults(self):
-    self.LoadCheck("pkg_sources.yaml")
+  @classmethod
+  def setUpClass(cls):
+    cls.LoadCheck("pkg_sources.yaml")
+
+  def testAPTDetectUnsupportedTransport(self):
+    artifact = "APTSources"
+    parser = config_file.APTPackageSourceParser()
     sources = {
         "/etc/apt/sources.list": r"""
             # APT sources.list providing the default Ubuntu packages
@@ -47,30 +47,60 @@ class PkgSourceCheckTests(checks_test_lib.HostCheckTest):
             Suite: testing
             Section: main contrib
             """}
-    rdfs = []
-    parser = config_file.APTPackageSourceParser()
-    stats = []
-    for path, lines in sources.items():
-      p = rdf_paths.PathSpec(path=path)
-      stat = rdf_client.StatEntry(pathspec=p)
-      stats.append(stat)
-      file_obj = StringIO.StringIO(lines)
-      rdfs.extend(list(parser.Parse(stat, file_obj, None)))
-    host_data = self.SetKnowledgeBase()
-    host_data["APTSources"] = self.SetArtifactData(
-        anomaly=[a for a in rdfs if isinstance(a, rdf_anomaly.Anomaly)],
-        parsed=[r for r in rdfs if not isinstance(r, rdf_anomaly.Anomaly)],
-        raw=stats)
-    return self.RunChecks(host_data)
 
-  def testDetectUnsupportedTransport(self):
-    chk_id = "CIS-APT-SOURCE-UNSUPPORTED-TRANSPORT"
+    chk_id = "CIS-PKG-SOURCE-UNSUPPORTED-TRANSPORT"
     exp = "Found: APT sources use unsupported transport."
     found = ["/etc/apt/sources.list.d/test.list: transport: file,https,https",
              "/etc/apt/sources.list.d/test2.list: transport: http",
              "/etc/apt/sources.list.d/file-test.list: transport: file",
              "/etc/apt/sources.list.d/rfc822.list: transport: http,https"]
-    results = self._GenResults()
+    results = self.GenResults([artifact], [sources], [parser])
+    self.assertCheckDetectedAnom(chk_id, results, exp, found)
+
+  def testYumDetectUnsupportedTransport(self):
+    artifact = "YumSources"
+    parser = config_file.YumPackageSourceParser()
+    sources = {
+        "/etc/yum.repos.d/noproblems.repo": r"""
+            # comment 1
+            [centosdvdiso]
+            name=CentOS DVD ISO
+            baseurl=https://mirror1.centos.org/CentOS/6/os/i386/
+            enabled=1
+            gpgcheck=1
+            gpgkey=file:///mnt/RPM-GPG-KEY-CentOS-6
+
+            # comment2
+            [examplerepo]
+            name=Example Repository
+            baseurl = https://mirror3.centos.org/CentOS/6/os/i386/
+            enabled=1
+            gpgcheck=1
+            gpgkey=http://mirror.centos.org/CentOS/6/os/i386/RPM-GPG-KEY
+            """,
+        "/etc/yum.repos.d/test.repo": r"""
+            [centosdvdiso]
+            name=CentOS DVD ISO
+            baseurl=file:///mnt/
+            https://mirror1.centos.org/CentOS/6/os/i386/
+            """,
+        "/etc/yum.repos.d/test2.repo": r"""
+            [centosdvdiso]
+            name=CentOS DVD ISO
+            baseurl=http://mirror1.centos.org/CentOS/6/os/i386/
+            """,
+        "/etc/yum.repos.d/file-test.repo": r"""
+            [centosdvdiso]
+            name=CentOS DVD ISO
+            baseurl=file:///mnt/
+            """}
+
+    chk_id = "CIS-PKG-SOURCE-UNSUPPORTED-TRANSPORT"
+    exp = "Found: Yum sources use unsupported transport."
+    found = ["/etc/yum.repos.d/test.repo: transport: file,https",
+             "/etc/yum.repos.d/test2.repo: transport: http",
+             "/etc/yum.repos.d/file-test.repo: transport: file"]
+    results = self.GenResults([artifact], [sources], [parser])
     self.assertCheckDetectedAnom(chk_id, results, exp, found)
 
 

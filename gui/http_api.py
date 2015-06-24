@@ -44,6 +44,23 @@ def BuildToken(request, execution_time):
   return token
 
 
+def StripTypeInfo(rendered_data):
+  """Strips type information from rendered data. Useful for debugging."""
+
+  if isinstance(rendered_data, (list, tuple)):
+    return [StripTypeInfo(d) for d in rendered_data]
+  elif isinstance(rendered_data, dict):
+    if "value" in rendered_data:
+      return StripTypeInfo(rendered_data["value"])
+    else:
+      result = {}
+      for k, v in rendered_data.items():
+        result[k] = StripTypeInfo(v)
+      return result
+  else:
+    return rendered_data
+
+
 HTTP_ROUTING_MAP = routing.Map()
 
 
@@ -142,7 +159,11 @@ def RenderHttpResponse(request):
 
   renderer, route_args = GetRendererForHttpRequest(request)
 
+  strip_type_info = False
+
   if request.method == "GET":
+    if request.GET.get("strip_type_info", ""):
+      strip_type_info = True
 
     if renderer.args_type:
       unprocessed_request = request.GET
@@ -194,6 +215,9 @@ def RenderHttpResponse(request):
   try:
     rendered_data = api_call_renderers.HandleApiCall(renderer, args,
                                                      token=token)
+
+    if strip_type_info:
+      rendered_data = StripTypeInfo(rendered_data)
 
     return BuildResponse(200, rendered_data)
   except Exception as e:  # pylint: disable=broad-except

@@ -40,6 +40,8 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
     start_time = rdfvalue.RDFDatetime().Now() - rdfvalue.Duration("180d")
     end_time = rdfvalue.RDFDatetime(self.LAST_TIMESTAMP)
     filtered_keywords = []
+    unversioned_keywords = []
+
     for k in keywords:
       if k.startswith(self.START_TIME_PREFIX):
         try:
@@ -49,17 +51,22 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
       elif k.startswith(self.END_TIME_PREFIX):
         try:
           time = rdfvalue.RDFDatetime()
+
           time.ParseFromHumanReadable(k[self.END_TIME_PREFIX_LEN:], eoy=True)
           end_time = time
-        except ValueError:
+        except (TypeError, ValueError):
           pass
+      elif k[0] == "+":
+        kw = k[1:]
+        filtered_keywords.append(kw)
+        unversioned_keywords.append(kw)
       else:
         filtered_keywords.append(k)
 
     if not filtered_keywords:
       filtered_keywords.append(".")
 
-    return start_time, end_time, filtered_keywords
+    return start_time, end_time, filtered_keywords, unversioned_keywords
 
   def LookupClients(self, keywords):
     """Returns a list of client URNs associated with keywords.
@@ -70,14 +77,34 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
     Returns:
       A list of client URNs.
     """
-    start_time, end_time, filtered_keywords = self._AnalyzeKeywords(keywords)
+    start_time, end_time, filtered_keywords, unversioned_keywords = (
+        self._AnalyzeKeywords(keywords)
+    )
+
+    # If there are any unversioned keywords in the query, add the universal
+    # keyword so we are assured to have an accurate last update time for each
+    # client.
+    last_seen_map = None
+    if unversioned_keywords:
+      filtered_keywords.append(".")
+      last_seen_map = {}
 
     # TODO(user): Make keyword index datetime aware so that
     # AsMicroSecondsFromEpoch is unecessary.
-    return map(self._URNFromClientID,
-               self.Lookup(map(self._NormalizeKeyword, filtered_keywords),
-                           start_time=start_time.AsMicroSecondsFromEpoch(),
-                           end_time=end_time.AsMicroSecondsFromEpoch()))
+
+    raw_results = self.Lookup(map(self._NormalizeKeyword, filtered_keywords),
+                              start_time=start_time.AsMicroSecondsFromEpoch(),
+                              end_time=end_time.AsMicroSecondsFromEpoch(),
+                              last_seen_map=last_seen_map)
+
+    old_results = set()
+    for keyword in unversioned_keywords:
+      for result in raw_results:
+        if last_seen_map[(keyword, result)] < last_seen_map[(".", result)]:
+          old_results.add(result)
+    raw_results -= old_results
+
+    return map(self._URNFromClientID, raw_results)
 
   def ReadClientPostingLists(self, keywords):
     """Looks up all clients associated with any of the given keywords.
@@ -88,7 +115,7 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
       A dict mapping each keyword to a list of matching clients.
     """
 
-    start_time, end_time, filtered_keywords = self._AnalyzeKeywords(keywords)
+    start_time, end_time, filtered_keywords, _ = self._AnalyzeKeywords(keywords)
 
     # TODO(user): Make keyword index datetime aware so that
     # AsMicroSecondsFromEpoch is unecessary.
@@ -235,3 +262,56 @@ def GetClientURNsForHostnames(hostnames, token=None):
   for keyword, hits in results.iteritems():
     result[keyword[len("host:"):]] = hits
   return result
+
+
+def BulkLabel(label, hostnames, token, client_index=None):
+  """Assign a label to a group of clients based on hostname.
+
+  Sets a label as an identifier to a group of clients. Removes the label from
+  other clients.
+
+  This can be used to automate labeling clients based on externally derived
+  attributes, for example machines assigned to particular users, or machines
+  fulfilling particular roles.
+
+  Args:
+    label: The label to apply.
+    hostnames: The collection of hostnames that should have the label.
+    token: The authentication token.
+    client_index: An optional client index to use. If not provided, use the
+      default client index.
+  """
+  if client_index is None:
+    client_index = aff4.FACTORY.Create(
+        MAIN_INDEX, aff4_type="ClientIndex", mode="rw", token=token)
+
+  fqdns = set()
+  for hostname in hostnames:
+    fqdns.add(hostname.lower())
+
+  # Find clients with this label.
+  label_index = aff4.FACTORY.Open("aff4:/index/labels/clients", token=token)
+  labelled_urns = label_index.FindUrnsByLabel(label)
+  # If a labelled client fqdn isn't in the set of target fqdns remove the label.
+  # Labelled clients with a target fqdn need no action and are removed from the
+  # set of target fqdns.
+  for client in aff4.FACTORY.MultiOpen(labelled_urns, token=token,
+                                       aff4_type="VFSGRRClient", mode="rw"):
+    fqdn = utils.SmartStr(client.Get("FQDN")).lower()
+    if fqdn not in fqdns:
+      client.RemoveLabels(label, owner="GRR")
+      client.Flush()
+      client_index.AddClient(client)
+    else:
+      fqdns.discard(fqdn)
+
+  # The residual set of fqdns needs labelling.
+  # Get the latest URN for these clients and open them to add the label.
+  urns = []
+  for fqdn in fqdns:
+    urns.extend(client_index.LookupClients(["+host:%s" % fqdn]))
+  for client in aff4.FACTORY.MultiOpen(urns, token=token,
+                                       aff4_type="VFSGRRClient", mode="rw"):
+    client.AddLabels(label, owner="GRR")
+    client.Flush()
+    client_index.AddClient(client)

@@ -10,12 +10,16 @@ goog.scope(function() {
  * Controller for SemanticProtoDirective.
  *
  * @param {!angular.Scope} $scope Directive's scope.
+ * @param {!grrUi.core.reflectionService.ReflectionService} grrReflectionService
  * @constructor
  * @ngInject
  */
-var SemanticProtoController = function($scope) {
+var SemanticProtoController = function($scope, grrReflectionService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
+
+  /** @private {!grrUi.core.reflectionService.ReflectionService} */
+  this.grrReflectionService_ = grrReflectionService;
 
   /** @type {Object} */
   this.scope_.value;
@@ -34,7 +38,12 @@ var SemanticProtoController = function($scope) {
  */
 SemanticProtoController.prototype.onValueChange = function() {
   if (angular.isObject(this.scope_.value)) {
-    this.items = this.buildItems(this.scope_.value);
+    var valueType = this.scope_.value['type'];
+    this.grrReflectionService_.getRDFValueDescriptor(valueType).then(
+        function success(descriptor) {
+          this.items = this.buildItems(this.scope_.value, descriptor);
+        }.bind(this)); // TODO(user): Reflection failure scenario should be
+                       // handled globally by reflection service.
   } else {
     this.items = [];
   }
@@ -47,27 +56,28 @@ SemanticProtoController.prototype.onValueChange = function() {
  * description will be filled in.
  *
  * @param {!Object} value Value to be converted to an array of items.
+ * @param {!Object} descriptor Descriptor of the value to be converted to an
+ *     array of items. Expected to have 'fields' attribute with list of fields
+ *     descriptors.
  * @return {Array.<Object>} List of items to display.
  * @export
  * @suppress {missingProperties} as value can have arbitrary data.
  */
-SemanticProtoController.prototype.buildItems = function(value) {
+SemanticProtoController.prototype.buildItems = function(value, descriptor) {
   var items = [];
 
-  var fieldsOrderLength = value.fields_order.length;
-  for (var i = 0; i < fieldsOrderLength; ++i) {
-    var key = value.fields_order[i];
+  var fieldsLength = descriptor.fields.length;
+  for (var i = 0; i < fieldsLength; ++i) {
+    var field = descriptor.fields[i];
+    var key = field['name'];
     var keyValue = value.value[key];
 
-    if (value.metadata !== undefined &&
-        value.metadata[key] !== undefined) {
+    if (angular.isDefined(keyValue)) {
       items.push({
         'value': keyValue,
-        'key': value.metadata[key].friendly_name,
-        'desc': value.metadata[key].description
+        'key': field['friendly_name'] || field['name'],
+        'desc': field['doc']
       });
-    } else {
-      items.push({'value': keyValue, 'key': key});
     }
   }
 

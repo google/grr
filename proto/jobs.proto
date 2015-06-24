@@ -940,7 +940,7 @@ message FolderInformation {
   optional string favorites = 5;
   optional string history = 6;
   optional string local_app_data = 7;
-  optional string local_settings = 8;
+  // ID 8 previously used by local_settings
   optional string my_music = 9;
   optional string my_pictures = 10;
   optional string my_video = 11;

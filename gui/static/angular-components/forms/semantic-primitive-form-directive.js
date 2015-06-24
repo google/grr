@@ -10,12 +10,16 @@ goog.provide('grrUi.forms.semanticPrimitiveFormDirective.SemanticPrimitiveFormDi
  *
  * @constructor
  * @param {!angular.Scope} $scope
+ * @param {!grrUi.core.reflectionService.ReflectionService} grrReflectionService
  * @ngInject
  */
 grrUi.forms.semanticPrimitiveFormDirective.SemanticPrimitiveFormController =
-    function($scope) {
+    function($scope, grrReflectionService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
+
+  /** @private {!grrUi.core.reflectionService.ReflectionService} */
+  this.grrReflectionService_ = grrReflectionService;
 
   /** @export {?string} */
   this.valueType;
@@ -39,21 +43,26 @@ SemanticPrimitiveFormController.prototype.onValueTypeChange_ = function(
     return;
   }
 
-  var allowedTypes = grrUi.forms.semanticPrimitiveFormDirective
-      .SemanticPrimitiveFormDirective.semantic_types;
-  var typeIndex = -1;
-  angular.forEach(allowedTypes,
-                  function(type) {
-                    var index = this.scope_.value['mro'].indexOf(type);
-                    if (index != -1 && (typeIndex == -1 || typeIndex > index)) {
-                      typeIndex = index;
-                      this.valueType = type;
-                    }
-                  }.bind(this));
+  var descriptorHandler = function(descriptor) {
+    var allowedTypes = grrUi.forms.semanticPrimitiveFormDirective
+        .SemanticPrimitiveFormDirective.semantic_types;
+    var typeIndex = -1;
+    angular.forEach(
+        allowedTypes, function(type) {
+          var index = descriptor['mro'].indexOf(type);
+          if (index != -1 && (typeIndex == -1 || typeIndex > index)) {
+            typeIndex = index;
+            this.valueType = type;
+          }
+        }.bind(this));
 
-  if (!this.valueType) {
-    this.valueType = 'RDFString';
-  }
+    if (!this.valueType) {
+      this.valueType = 'RDFString';
+    }
+  }.bind(this);
+
+  this.grrReflectionService_.getRDFValueDescriptor(newValue)
+      .then(descriptorHandler);
 };
 
 /**

@@ -32,3 +32,8 @@ class SshdMatchBlock(structs.RDFProtoStruct):
 class SshdConfig(structs.RDFProtoStruct):
   """An RDFValue representation of a sshd config file."""
   protobuf = config_file_pb2.SshdConfig
+
+
+class NtpConfig(structs.RDFProtoStruct):
+  """An RDFValue representation of a ntp config file."""
+  protobuf = config_file_pb2.NtpConfig

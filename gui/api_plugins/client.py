@@ -42,9 +42,7 @@ class ApiClientSearchRenderer(api_call_renderers.ApiCallRenderer):
     result_set = aff4.FACTORY.MultiOpen(result_urns, token=token)
 
     for child in result_set:
-      rendered_client = api_aff4_object_renderers.RenderAFF4Object(
-          child, [api_aff4_object_renderers.ApiAFF4ObjectRendererArgs(
-              type_info="WITH_TYPES_AND_METADATA")])
+      rendered_client = api_aff4_object_renderers.RenderAFF4Object(child)
       rendered_clients.append(rendered_client)
 
     return dict(query=args.query,
@@ -66,9 +64,7 @@ class ApiClientSummaryRenderer(api_call_renderers.ApiCallRenderer):
     client = aff4.FACTORY.Open(args.client_id, aff4_type="VFSGRRClient",
                                token=token)
 
-    return api_aff4_object_renderers.RenderAFF4Object(
-        client, [api_aff4_object_renderers.ApiAFF4ObjectRendererArgs(
-            type_info="WITH_TYPES_AND_METADATA")])
+    return api_aff4_object_renderers.RenderAFF4Object(client)
 
 
 class ApiClientsAddLabelsRendererArgs(rdf_structs.RDFProtoStruct):

@@ -35,6 +35,7 @@ from grr.lib import flags
 from grr.lib import utils
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths
+from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import rekall_types
 
 
@@ -95,6 +96,7 @@ class GRRRekallRenderer(data_export.DataExportRenderer):
       rekall_session: The Rekall session object.
       action: The GRR Client Action which owns this renderer. We will use it to
          actually send messages back to the server.
+      **kwargs: passthrough.
     """
     try:
       sys.stdout.isatty()
@@ -284,7 +286,7 @@ class RekallAction(actions.SuspendableAction):
       plugin_args = plugin_request.args.ToDict()
       try:
         rekal_session.RunPlugin(plugin_request.plugin, **plugin_args)
-      except Exception as e:  # pylint: disable=broad-except
+      except Exception:  # pylint: disable=broad-except
         tb = traceback.format_exc()
         logging.fatal("While running plugin (%s): %s",
                       plugin_request.plugin, tb)
@@ -293,3 +295,21 @@ class RekallAction(actions.SuspendableAction):
     if plugin_errors:
       self.SetStatus(rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR,
                      u"\n\n".join(plugin_errors))
+
+
+class GetMemoryInformation(actions.ActionPlugin):
+  """Loads the driver for memory access and returns a Stat for the device."""
+
+  in_rdfvalue = rdf_paths.PathSpec
+  out_rdfvalue = rekall_types.MemoryInformation
+
+  def Run(self, args):
+    """Run."""
+    # This action might crash the box so we need to flush the transaction log.
+    self.SyncTransactionLog()
+
+    if args.pathtype != "MEMORY":
+      raise RuntimeError("Can only GetMemoryInformation on memory devices.")
+
+    with vfs.VFSOpen(args) as fd:
+      self.SendReply(fd.GetMemoryInformation())

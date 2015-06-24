@@ -22,14 +22,11 @@ from grr.client import client_utils_common
 from grr.client import client_utils_osx
 from grr.client.client_actions import standard
 from grr.client.osx.objc import ServiceManagement
-from grr.client.vfs_handlers import memory
 
 from grr.lib import config_lib
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
-from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr.parsers import osx_launchd
 
 
@@ -396,33 +393,8 @@ class InstallDriver(actions.ActionPlugin):
       driver_archive.extractall(kext_tmp_dir)
       # Now load it.
       kext_path = self._FindKext(kext_tmp_dir)
-      logging.debug("Loading kext {0}".format(kext_path))
+      logging.debug("Loading kext %s", kext_path)
       client_utils_osx.InstallDriver(kext_path)
-
-
-class GetMemoryInformation(actions.ActionPlugin):
-  """Loads the driver for memory access and returns a Stat for the device."""
-
-  in_rdfvalue = rdf_paths.PathSpec
-  out_rdfvalue = rdf_rekall_types.MemoryInformation
-
-  def Run(self, args):
-    """Run."""
-    # This action might crash the box so we need to flush the transaction log.
-    self.SyncTransactionLog()
-
-    # Do any initialization we need to do.
-    logging.debug("Querying device %s", args.path)
-    mem_dev = open(args.path, "rb")
-
-    result = rdf_rekall_types.MemoryInformation(
-        cr3=memory.OSXMemory.GetCR3(mem_dev),
-        device=rdf_paths.PathSpec(
-            path=args.path,
-            pathtype=rdf_paths.PathSpec.PathType.MEMORY))
-    for start, length in memory.OSXMemory.GetMemoryMap(mem_dev):
-      result.runs.Append(offset=start, length=length)
-    self.SendReply(result)
 
 
 class UninstallDriver(actions.ActionPlugin):

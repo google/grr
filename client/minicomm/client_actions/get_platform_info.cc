@@ -16,7 +16,7 @@ void GetPlatformInfo::ProcessRequest(ActionContext* context) {
   // Get what we can from uname.
   struct utsname result;
   if (uname(&result)) {
-    context->SendError("Uname failed with errno: " + ErrorName(errno));
+    context->SetError("Uname failed with errno: " + ErrorName(errno));
     return;
   }
   Uname response;

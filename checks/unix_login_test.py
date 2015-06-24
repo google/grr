@@ -15,58 +15,61 @@ from grr.parsers import linux_file_parser
 
 class LoginPolicyConfigurationTests(checks_test_lib.HostCheckTest):
 
-  check_loaded = False
   results = None
+
+  @classmethod
+  def setUpClass(cls):
+    cls.LoadCheck("unix_login.yaml")
 
   def setUp(self, *args, **kwargs):
     super(LoginPolicyConfigurationTests, self).setUp(*args, **kwargs)
-    if not self.check_loaded:
-      self.check_loaded = self.LoadCheck("unix_login.yaml")
-    # Create some host_data..
-    if not self.results:
-      self.results = self._GenResults()
+    if not LoginPolicyConfigurationTests.results:
+      LoginPolicyConfigurationTests.results = self._GenResults()
 
   def _GenResults(self):
-    if self.results is None:
-      host_data = self.SetKnowledgeBase()
-      login = {
-          "/etc/passwd": """
-              nopasswd:x:1000:1000::/home/nopasswd:/bin/bash
-              md5:x:1001:1001::/home/md5:/bin/bash
-              undying:x:1002:1002::/home/undying:/bin/bash
-              +nisuser:acr.7pt3dpA5s::::::/bin/zsh""",
-          "/etc/shadow": """
-              nopasswd::16000:0:365:7:::
-              md5:$1$rootrootrootrootrootro:16000:0:365:7:::
-              undying:$6$saltsalt${0}:16000:0:99999:7:::""".format("r" * 86),
-          "/etc/group": """
-              nopasswd:x:1000:nopasswd
-              +:::
-              md5:x:1001:md5
-              undying:x:1002:undying""",
-          "/etc/gshadow": """
-              nopasswd:::nopasswd
-              md5:::md5
-              undying:::undying"""}
-      perms = {"/etc/passwd": (0, 0, 0o100666),   # Anomalous write perm.
-               "/etc/group": (1, 0, 0o100644),    # Anomalous owner.
-               "/etc/shadow": (0, 0, 0o100444),   # Anomalous read perm.
-               "/etc/gshadow": (0, 1, 0o100400)}  # Anomalous group.
-      stats = []
-      files = []
-      for path, lines in login.items():
-        p = rdf_paths.PathSpec(path=path, pathtype="OS")
-        st_uid, st_gid, st_mode = perms.get(path)
-        stats.append(rdf_client.StatEntry(
-            pathspec=p, st_uid=st_uid, st_gid=st_gid, st_mode=st_mode))
-        files.append(StringIO.StringIO(lines))
-      parser = linux_file_parser.LinuxSystemPasswdParser()
-      rdfs = list(parser.ParseMultiple(stats, files, None))
-      host_data["LoginPolicyConfiguration"] = self.SetArtifactData(
-          anomaly=[a for a in rdfs if isinstance(a, rdf_anomaly.Anomaly)],
-          parsed=[r for r in rdfs if not isinstance(r, rdf_anomaly.Anomaly)],
-          raw=stats)
-      return self.RunChecks(host_data)
+    host_data = self.SetKnowledgeBase()
+    login = {
+        "/etc/passwd": """
+            nopasswd:x:1000:1000::/home/nopasswd:/bin/bash
+            md5:x:1001:1001::/home/md5:/bin/bash
+            undying:x:1002:1002::/home/undying:/bin/bash
+            disabled:x:1003:1003::/home/disabled:/bin/bash
+            +nisuser:acr.7pt3dpA5s::::::/bin/zsh""",
+        "/etc/shadow": """
+            nopasswd::16000:0:365:7:::
+            md5:$1$rootrootrootrootrootro:16000::::::
+            undying:$6$saltsalt${0}:16000:0:99999:7:::
+            disabled:!:16000:0:99999:7:::""".format("r" * 86),
+        "/etc/group": """
+            nopasswd:x:1000:nopasswd
+            +:::
+            md5:x:1001:md5
+            undying:x:1002:undying
+            disabled:x:1003:disabled""",
+        "/etc/gshadow": """
+            nopasswd:::nopasswd
+            md5:::md5
+            undying:::undying
+            disabled:::disabled"""}
+    perms = {"/etc/passwd": (0, 0, 0o100666),   # Anomalous write perm.
+             "/etc/group": (1, 0, 0o100644),    # Anomalous owner.
+             "/etc/shadow": (0, 0, 0o100444),   # Anomalous read perm.
+             "/etc/gshadow": (0, 1, 0o100400)}  # Anomalous group.
+    stats = []
+    files = []
+    for path, lines in login.items():
+      p = rdf_paths.PathSpec(path=path, pathtype="OS")
+      st_uid, st_gid, st_mode = perms.get(path)
+      stats.append(rdf_client.StatEntry(
+          pathspec=p, st_uid=st_uid, st_gid=st_gid, st_mode=st_mode))
+      files.append(StringIO.StringIO(lines))
+    parser = linux_file_parser.LinuxSystemPasswdParser()
+    rdfs = list(parser.ParseMultiple(stats, files, None))
+    host_data["LoginPolicyConfiguration"] = self.SetArtifactData(
+        anomaly=[a for a in rdfs if isinstance(a, rdf_anomaly.Anomaly)],
+        parsed=[r for r in rdfs if not isinstance(r, rdf_anomaly.Anomaly)],
+        raw=stats)
+    return self.RunChecks(host_data)
 
   def testPasswdHash(self):
     chk_id = "CIS-LOGIN-UNIX-HASH"

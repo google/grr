@@ -25,9 +25,7 @@ class ApiUserSettingsRenderer(api_call_renderers.ApiCallRenderer):
     """Fetches and renders current user's settings."""
 
     user_settings = self.GetUserSettings(token)
-    return api_value_renderers.RenderValue(user_settings,
-                                           with_types=True,
-                                           with_metadata=True)
+    return api_value_renderers.RenderValue(user_settings)
 
 
 class ApiSetUserSettingsRenderer(api_call_renderers.ApiCallRenderer):

@@ -15,4 +15,5 @@ from grr.checks import pkg_sources_test
 from grr.checks import rsyslog_test
 from grr.checks import services_test
 from grr.checks import stat_test
+from grr.checks import time_test
 from grr.checks import unix_login_test

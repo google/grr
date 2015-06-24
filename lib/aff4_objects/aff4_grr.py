@@ -113,6 +113,10 @@ class VFSGRRClient(standard.VFSDirectory):
         "aff4:client_configuration", rdf_protodict.Dict,
         "Running configuration for the GRR client.", "Config")
 
+    LIBRARY_VERSIONS = aff4.Attribute(
+        "aff4:library_versions", rdf_protodict.Dict,
+        "Running library versions for the client.", "Libraries")
+
     USER = aff4.Attribute("aff4:users", rdf_client.Users,
                           "A user of the system.", "Users")
 

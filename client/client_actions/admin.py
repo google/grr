@@ -6,9 +6,15 @@ import os
 import platform
 import socket
 import time
+import traceback
 
 
+from distorm3 import _distorm
+import M2Crypto
+import pkg_resources
 import psutil
+import pytsk3
+import rekall
 
 import logging
 
@@ -17,6 +23,7 @@ from grr.lib import config_lib
 from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import stats
+from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
@@ -160,6 +167,58 @@ class GetConfiguration(actions.ActionPlugin):
         out[descriptor.name] = value
 
     self.SendReply(out)
+
+
+class GetLibraryVersions(actions.ActionPlugin):
+  """Retrieves version information for installed libraries."""
+  in_rdfvalue = None
+  out_rdfvalue = rdf_protodict.Dict
+
+  def GetSSLVersion(self):
+    return M2Crypto.m2.OPENSSL_VERSION_TEXT
+
+  def GetM2CryptoVersion(self):
+    return M2Crypto.version
+
+  def GetPSUtilVersion(self):
+    return ".".join(map(utils.SmartUnicode, psutil.version_info))
+
+  def GetProtoVersion(self):
+    return pkg_resources.get_distribution("protobuf").version
+
+  def GetRekallVersion(self):
+    return rekall.constants.VERSION
+
+  def GetTSKVersion(self):
+    return pytsk3.TSK_VERSION_STR
+
+  def GetPyTSKVersion(self):
+    return pytsk3.get_version()
+
+  def GetDistormVersion(self):
+    return hex(_distorm.distorm_version())
+
+  library_map = {
+      "pytsk": GetPyTSKVersion,
+      "TSK": GetTSKVersion,
+      "M2Crypto": GetM2CryptoVersion,
+      "SSL": GetSSLVersion,
+      "psutil": GetPSUtilVersion,
+      "rekall": GetRekallVersion,
+      "distorm3": GetDistormVersion,
+      }
+
+  error_str = "Unable to determine library version: %s"
+
+  def Run(self, unused_arg):
+    result = self.out_rdfvalue()
+    for lib, f in self.library_map.iteritems():
+      try:
+        result[lib] = f(self)
+      except Exception:  # pylint: disable=broad-except
+        result[lib] = self.error_str % traceback.format_exc()
+
+    self.SendReply(result)
 
 
 class UpdateConfiguration(actions.ActionPlugin):

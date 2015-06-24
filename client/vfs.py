@@ -35,7 +35,8 @@ class VFSHandler(object):
 
   __metaclass__ = registry.MetaclassRegistry
 
-  def __init__(self, base_fd, pathspec=None, progress_callback=None):
+  def __init__(self, base_fd, pathspec=None, progress_callback=None,
+               full_pathspec=None):
     """Constructor.
 
     Args:
@@ -43,12 +44,14 @@ class VFSHandler(object):
       pathspec: The pathspec to open.
       progress_callback: A callback to indicate that the open call is still
                          working but needs more time.
+      full_pathspec: The full pathspec we are trying to open.
 
     Raises:
       IOError: if this handler can not be instantiated over the
       requested path.
     """
     _ = pathspec
+    _ = full_pathspec
     self.base_fd = base_fd
     self.progress_callback = progress_callback
     if base_fd is None:
@@ -160,7 +163,8 @@ class VFSHandler(object):
   close = utils.Proxy("Close")
 
   @classmethod
-  def Open(cls, fd, component, pathspec=None, progress_callback=None):
+  def Open(cls, fd, component, pathspec=None, progress_callback=None,
+           full_pathspec=None):
     """Try to correct the casing of component.
 
     This method is called when we failed to open the component directly. We try
@@ -175,6 +179,7 @@ class VFSHandler(object):
       pathspec: The rest of the pathspec object.
       progress_callback: A callback to indicate that the open call is still
                          working but needs more time.
+      full_pathspec: The full pathspec we are trying to open.
 
     Returns:
       A file object.
@@ -211,6 +216,7 @@ class VFSHandler(object):
               "VFS handler %d not supported." % new_pathspec.pathtype)
 
         fd = handler(base_fd=fd, pathspec=new_pathspec,
+                     full_pathspec=full_pathspec,
                      progress_callback=progress_callback)
       except IOError:
         # Can not open the first component, we must raise here.
@@ -239,6 +245,7 @@ class VFSInit(registry.InitHook):
   """Register all known vfs handlers to open a pathspec types."""
 
   def Run(self):
+    VFS_HANDLERS.clear()
     for handler in VFSHandler.classes.values():
       if handler.auto_register:
         VFS_HANDLERS[handler.supported_pathtype] = handler
@@ -355,6 +362,7 @@ def VFSOpen(pathspec, progress_callback=None):
     try:
       # Open the component.
       fd = handler.Open(fd, component, pathspec=working_pathspec,
+                        full_pathspec=pathspec,
                         progress_callback=progress_callback)
     except IOError as e:
       raise IOError("%s: %s" % (e, pathspec))

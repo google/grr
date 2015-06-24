@@ -12,15 +12,10 @@ from grr.parsers import linux_service_parser_test
 
 class XinetdServiceStateTests(checks_test_lib.HostCheckTest):
 
-  check_loaded = False
-  parser = None
-
-  def setUp(self, *args, **kwargs):
-    super(XinetdServiceStateTests, self).setUp(*args, **kwargs)
-    if not self.check_loaded:
-      self.check_loaded = self.LoadCheck("services.yaml")
-    if not self.parser:
-      self.parser = linux_service_parser.LinuxXinetdParser().ParseMultiple
+  @classmethod
+  def setUpClass(cls):
+    cls.LoadCheck("services.yaml")
+    cls.parser = linux_service_parser.LinuxXinetdParser().ParseMultiple
 
   def RunXinetdCheck(self, chk_id, svc, disabled, exp, found):
     host_data = self.SetKnowledgeBase()
@@ -52,27 +47,24 @@ class XinetdServiceStateTests(checks_test_lib.HostCheckTest):
 
 class SysVInitStateTests(checks_test_lib.HostCheckTest):
 
-  check_loaded = False
-  parser = None
   results = None
+
+  @classmethod
+  def setUpClass(cls):
+    cls.LoadCheck("services.yaml")
+    cls.parser = linux_service_parser.LinuxSysVInitParser().ParseMultiple
 
   def setUp(self, *args, **kwargs):
     super(SysVInitStateTests, self).setUp(*args, **kwargs)
-    if not self.check_loaded:
-      self.check_loaded = self.LoadCheck("services.yaml")
-    if not self.parser:
-      self.parser = linux_service_parser.LinuxSysVInitParser().ParseMultiple
-    if not self.results:
-      self.RunSysVChecks()
+    self.RunSysVChecks()
 
   def RunSysVChecks(self):
     host_data = self.SetKnowledgeBase()
-    parser = linux_service_parser.LinuxSysVInitParser().ParseMultiple
     links = ["/etc/rc2.d/S50xinetd", "/etc/rc2.d/S60wu-ftpd",
              "/etc/rc2.d/S10ufw"]
     stats, files = linux_service_parser_test.GenTestData(
         links, [""] * len(links), st_mode=41471)
-    parsed = list(parser(stats, files, None))
+    parsed = list(self.parser(stats, files, None))
     host_data["LinuxServices"] = self.SetArtifactData(parsed=parsed)
     self.results = self.RunChecks(host_data)
 
@@ -95,12 +87,9 @@ class SysVInitStateTests(checks_test_lib.HostCheckTest):
 
 class ListeningServiceTests(checks_test_lib.HostCheckTest):
 
-  check_loaded = False
-
-  def setUp(self, *args, **kwargs):
-    super(ListeningServiceTests, self).setUp(*args, **kwargs)
-    if not self.check_loaded:
-      self.check_loaded = self.LoadCheck("services.yaml")
+  @classmethod
+  def setUpClass(cls):
+    cls.LoadCheck("services.yaml")
 
   def GenHostData(self):
     # Create some host_data..

@@ -71,7 +71,7 @@ class ApiGRRHuntRenderer(
 
     for k, v in typed_summary_part.items():
       typed_summary_part[k] = api_value_renderers.RenderValue(
-          v, with_types=True, with_metadata=True, limit_lists=10)
+          v, limit_lists=10)
 
     rendered_object = {
         "summary": dict(untyped_summary_part.items() +
@@ -163,8 +163,7 @@ class ApiHuntLogRenderer(api_call_renderers.ApiCallRenderer):
     return api_aff4_object_renderers.RenderAFF4Object(
         logs_collection,
         [api_aff4_object_renderers.ApiRDFValueCollectionRendererArgs(
-            offset=args.offset, count=args.count, with_total_count=True,
-            items_type_info="WITH_TYPES_AND_METADATA")])
+            offset=args.offset, count=args.count, with_total_count=True)])
 
 
 class ApiHuntErrorsRendererArgs(rdf_structs.RDFProtoStruct):
@@ -186,8 +185,7 @@ class ApiHuntErrorsRenderer(api_call_renderers.ApiCallRenderer):
     return api_aff4_object_renderers.RenderAFF4Object(
         errors_collection,
         [api_aff4_object_renderers.ApiRDFValueCollectionRendererArgs(
-            offset=args.offset, count=args.count, with_total_count=True,
-            items_type_info="WITH_TYPES_AND_METADATA")])
+            offset=args.offset, count=args.count, with_total_count=True)])
 
 
 class ApiHuntArchiveFilesRendererArgs(rdf_structs.RDFProtoStruct):

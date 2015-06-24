@@ -482,8 +482,13 @@ class LinuxSystemPasswdParser(LinuxBaseShadowParser):
       pw_entry = self.shadow.setdefault(rslt["login"], client.PwEntry())
       pw_entry.store = self.shadow_store
       pw_entry.hash_type = self.GetHashType(rslt["passwd"])
-      pw_entry.age = int(rslt["last_change"])
-      pw_entry.max_age = int(rslt["max_age"])
+      # Tread carefully here in case these values aren't set.
+      last_change = rslt.get("last_change")
+      if last_change:
+        pw_entry.age = int(last_change)
+      max_age = rslt.get("max_age")
+      if max_age:
+        pw_entry.max_age = int(max_age)
 
   def ParsePasswdEntry(self, line):
     """Process the passwd entry fields and primary group memberships."""

@@ -521,9 +521,9 @@ class MtabParser(parsers.FileParser, FieldParser):
       if not entry:
         continue
       result = rdf_client.Filesystem()
-      result.device = entry[0]
-      result.mount_point = entry[1]
-      result.type = entry[2]
+      result.device = entry[0].decode("string_escape")
+      result.mount_point = entry[1].decode("string_escape")
+      result.type = entry[2].decode("string_escape")
       options = KeyValueParser(term=",").ParseToOrderedDict(entry[3])
       # Keys without values get assigned [] by default. Because these keys are
       # actually true, if declared, change any [] values to True.
@@ -531,6 +531,39 @@ class MtabParser(parsers.FileParser, FieldParser):
         options[k] = v or [True]
       result.options = rdf_protodict.AttributedDict(**options)
       yield result
+
+
+class MountCmdParser(parsers.CommandParser, FieldParser):
+  """Parser for mounted filesystem data acquired from the mount command."""
+  output_types = ["Filesystem"]
+  supported_artifacts = ["LinuxMountCmd"]
+
+  mount_re = re.compile(r"(.*) on (.*) type (.*) \((.*)\)")
+
+  def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
+            knowledge_base):
+    """Parse the mount command output."""
+    _ = stderr, time_taken, args, knowledge_base  # Unused.
+    self.CheckReturn(cmd, return_val)
+    result = rdf_protodict.AttributedDict()
+    for entry in self.ParseEntries(stdout):
+      line_str = " ".join(entry)
+      mount_rslt = self.mount_re.match(line_str)
+      if mount_rslt:
+        device, mount_point, fs_type, option_str = mount_rslt.groups()
+        result = rdf_client.Filesystem()
+        result.device = device
+        result.mount_point = mount_point
+        result.type = fs_type
+        # Parse these options as a dict as some items may be key/values.
+        # KeyValue parser uses OrderedDict as the native parser method. Use it.
+        options = KeyValueParser(term=",").ParseToOrderedDict(option_str)
+        # Keys without values get assigned [] by default. Because these keys are
+        # actually true, if declared, change any [] values to True.
+        for k, v in options.iteritems():
+          options[k] = v or [True]
+        result.options = rdf_protodict.AttributedDict(**options)
+        yield result
 
 
 class RsyslogParser(parsers.FileParser, FieldParser):
@@ -595,25 +628,15 @@ class RsyslogParser(parsers.FileParser, FieldParser):
     return [result]
 
 
-class APTPackageSourceParser(parsers.FileParser, FieldParser):
-  """Parser for APT source lists to extract URIs only."""
+class PackageSourceParser(parsers.FileParser):
+  """Common code for APT and YUM source list parsing."""
   output_types = ["AttributedDict"]
-  supported_artifacts = ["APTSources"]
+
+  # Prevents this from automatically registering.
+  __abstract = True  # pylint: disable=g-bad-name
 
   def Parse(self, stat, file_obj, unused_knowledge_base):
-    rfc822_format = ""
-    uris_to_parse = []
-
-    for line in file_obj.read().splitlines(True):
-      # check if legacy style line - if it is then extract URL
-      m = re.search(r"^\s*deb(?:-\S+)?(?:\s+\[[^\]]*\])*\s+(\S+)(?:\s|$)", line)
-      if m:
-        uris_to_parse.append(m.group(1))
-      else:
-        rfc822_format += line
-
-    uris_to_parse += self._ParseRFC822(rfc822_format)
-
+    uris_to_parse = self.FindPotentialURIs(file_obj)
     uris = []
 
     for url_to_parse in uris_to_parse:
@@ -629,65 +652,84 @@ class APTPackageSourceParser(parsers.FileParser, FieldParser):
     cfg = {"filename": filename, "uris": uris}
     yield rdf_protodict.AttributedDict(**cfg)
 
-  def _ParseRFC822(self, data):
-    """Parse RFC822 formatted source listing and return potential URLs.
+  def FindPotentialURIs(self, file_obj):
+    """Stub Method to be overriden by APT and Yum source parsers."""
+    raise NotImplementedError("Please implement FindPotentialURIs.")
+
+  def ParseURIFromKeyValues(self, data, separator, uri_key):
+    """Parse key/value formatted source listing and return potential URLs.
 
     The fundamental shape of this format is as follows:
-    key: value
+    key: value   # here : = separator
     key : value
-    URI: [URL]
-      [URL]
-      [URL]
+    URI: [URL]   # here URI = uri_key
+      [URL]      # this is where it becomes trickey because [URL]
+      [URL]      # can contain 'separator' specially if separator is :
     key: value
 
-    The key "URI" or "URIs" is of interest to us and since the next line
+    The key uri_key is of interest to us and since the next line
     in the config could contain another [URL], we need to keep track of context
-    when we hit the "URI" keyword to be able to check if the next line(s)
+    when we hit uri_key  to be able to check if the next line(s)
     have more [URL].
 
     Args:
-      data: lines (compressed into one string) from a file that is contains
-        RFC822 formatted data
+      data: unprocessed lines from a file
+      separator: how the key/value pairs are seperated
+      uri_key: starting name of the key containing URI.
 
     Returns:
       A list of potential URLs found in data
     """
-    self.ParseEntries(data)
+    kv_entries = KeyValueParser(kv_sep=separator).ParseEntries(data)
+    spaced_entries = FieldParser().ParseEntries(data)
 
     uris = []
-    uri_set = False
-    for line in self.entries:
-      # if uri_set then we treat first word of this line as
-      # a potential URL. If line longer than 1 word
-      # then it can't be a URL so uri_set becomes false
-      if uri_set and len(line) == 1:
-        url_to_parse = line[0]
-      # if at least 2 words on the line then search for URL
-      elif len(line) >= 2:
-        uri_set = False
-
-        first_word = line[0].lower()
-        if first_word.startswith("uri"):
-          uri_set = True  # to search for URL in first word of next line(s)
+    check_uri_on_next_line = False
+    for kv_entry, sp_entry in zip(kv_entries, spaced_entries):
+      for k, v in kv_entry.iteritems():
+        # This line could be a URL if a) from  key:value, value is empty OR
+        # b) if separator is : and first character of v starts with /.
+        if (check_uri_on_next_line and
+            (not v or (separator == ":" and
+                       v and v[0].startswith("/")))):
+          uris.append(sp_entry[0])
         else:
-          # if first_word does not start with 'uri' then skip
-          continue
-
-        # if the second word doesn't starts with : then URL is the second word
-        # otherwise it's the third word iff it exists
-        if line[1][0] != ":":
-          url_to_parse = line[1]
-        elif len(line) > 2:
-          url_to_parse = line[2]
-        else:
-          continue
-
-      else:
-        continue
-
-      uris.append(url_to_parse)
+          check_uri_on_next_line = False
+          if k.lower().startswith(uri_key) and v:
+            check_uri_on_next_line = True
+            uris.append(v[0])  # v is a list
 
     return uris
+
+
+class APTPackageSourceParser(PackageSourceParser):
+  """Parser for APT source lists to extract URIs only."""
+  supported_artifacts = ["APTSources"]
+
+  def FindPotentialURIs(self, file_obj):
+    """Given a file, this will return all potenial APT source URIs."""
+    rfc822_format = ""   # will contain all lines not in legacy format
+    uris_to_parse = []
+
+    for line in file_obj.read().splitlines(True):
+      # check if legacy style line - if it is then extract URL
+      m = re.search(r"^\s*deb(?:-\S+)?(?:\s+\[[^\]]*\])*\s+(\S+)(?:\s|$)", line)
+      if m:
+        uris_to_parse.append(m.group(1))
+      else:
+        rfc822_format += line
+
+    uris_to_parse.extend(self.ParseURIFromKeyValues(rfc822_format, ":", "uri"))
+    return uris_to_parse
+
+
+class YumPackageSourceParser(PackageSourceParser):
+  """Parser for Yum source lists to extract URIs only."""
+  supported_artifacts = ["YumSources"]
+
+  def FindPotentialURIs(self, file_obj):
+    """Given a file, this will return all potenial Yum source URIs."""
+    return self.ParseURIFromKeyValues(file_obj.read(), "=", "baseurl")
 
 
 class CronAtAllowDenyParser(parsers.FileParser):
@@ -715,3 +757,133 @@ class CronAtAllowDenyParser(parsers.FileParser):
                                 symptom="Dodgy entries in %s." % (filename),
                                 reference_pathspec=stat.pathspec,
                                 finding=bad_lines)
+
+
+class NtpdParser(parsers.FileParser, FieldParser):
+  """Parser for ntpd.conf file."""
+  output_types = ["NtpConfig"]
+  supported_artifacts = ["NtpConfFile"]
+  process_together = True
+
+  # The syntax is based on:
+  #   https://www.freebsd.org/cgi/man.cgi?query=ntp.conf&sektion=5
+  # keywords with integer args.
+  _integers = set(["ttl", "hop"])
+  # keywords with floating point args.
+  _floats = set(["broadcastdelay", "calldelay"])
+  # keywords that have repeating args.
+  _repeated = set(["ttl", "hop"])
+  # keywords that set an option state, but can be "repeated" as well.
+  _boolean = set(["enable", "disable"])
+  # keywords that are keyed to their first argument, an address.
+  _address_based = set([
+      "trap", "fudge", "server", "restrict", "peer", "broadcast",
+      "manycastclient"])
+  # keywords that append/augment the config.
+  _accumulators = set(["includefile", "setvar"])
+  # keywords that can appear multiple times, accumulating data each time.
+  _duplicates = _address_based | _boolean | _accumulators
+  # All the expected keywords.
+  _match_keywords = _integers | _floats | _repeated | _duplicates | set([
+      "autokey", "revoke", "multicastclient", "driftfile", "broadcastclient",
+      "manycastserver", "includefile", "interface", "disable", "includefile",
+      "discard", "logconfig", "logfile", "tos", "tinker", "keys", "keysdir",
+      "requestkey", "trustedkey", "crypto", "control", "statsdir", "filegen"])
+
+  _defaults = {"auth": True, "bclient": False, "calibrate": False,
+               "kernel": False, "monitor": True, "ntp": True,
+               "pps": False, "stats": False}
+
+  def ParseLine(self, entries):
+    """Extracts keyword/value settings from the ntpd config.
+
+    The keyword is always the first entry item.
+    Values are the remainder of the entries. In cases where an ntpd config
+    allows multiple values, these are split according to whitespace or
+    duplicate entries.
+
+    Keywords and values are normalized. Keywords are converted to lowercase.
+    Values are converted into integers, floats or strings. Strings are always
+    lowercased.
+
+    Args:
+      entries: A list of items making up a single line of a ntp.conf file.
+    """
+    # If no entries were found, short circuit.
+    if not entries:
+      return
+    keyword = entries[0].lower()
+    # Set the argument string if it wasn't found.
+    values = entries[1:] or [""]
+
+    # Convert any types we need too.
+    if keyword in self._integers:
+      values = [int(v) for v in values]
+    if keyword in self._floats:
+      values = [float(v) for v in values]
+
+    if keyword not in self._repeated | self._duplicates:
+      # We have a plain and simple single key/value config line.
+      if isinstance(values[0], basestring):
+        self.config[keyword] = " ".join(values)
+      else:
+        self.config[keyword] = values
+
+    elif keyword in self._repeated:
+      # The keyword can have multiple single-word options, so add them as a list
+      # and overwrite previous settings.
+      self.config[keyword] = values
+
+    elif keyword in self._duplicates:
+      if keyword in self._address_based:
+        # If we have an address keyed keyword, join the keyword and address
+        # together to make the complete key for this data.
+        address = values[0].lower()
+        values = values[1:] or [""]
+        # Add/overwrite the address in this 'keyed' keywords dictionary.
+        existing_keyword_config = self.keyed.setdefault(keyword, [])
+        # Create a dict which stores the server name and the options.
+        # Flatten the remaining options into a single string.
+        existing_keyword_config.append({"address": address,
+                                        "options": " ".join(values)})
+
+      # Are we toggling an option?
+      elif keyword in self._boolean:
+        for option in values:
+          if keyword == "enable":
+            self.config[option] = True
+          else:
+            # As there are only two items in this set, we can assume disable.
+            self.config[option] = False
+
+      else:
+        # We have a non-keyed & non-boolean keyword, so add to the collected
+        # data so far. Order matters technically.
+        prev_settings = self.config.setdefault(keyword, [])
+        prev_settings.append(" ".join(values))
+
+  def Parse(self, stat, file_object, knowledge_base):
+    """Parse a ntp config into rdf."""
+    _, _ = stat, knowledge_base
+    # Clean out any residual state.
+    self.config = self._defaults.copy()
+    self.keyed = {}
+    # ntp.conf has no line continuation. Override the default 'cont' values
+    # then parse up the lines.
+    self.cont = ""
+    for line in self.ParseEntries(file_object.read(100000)):
+      self.ParseLine(line)
+    yield rdf_config_file.NtpConfig(
+        config=self.config,
+        server=self.keyed.get("server"),
+        restrict=self.keyed.get("restrict"),
+        fudge=self.keyed.get("fudge"),
+        trap=self.keyed.get("trap"),
+        peer=self.keyed.get("peer"),
+        broadcast=self.keyed.get("broadcast"),
+        manycastclient=self.keyed.get("manycastclient"))
+
+  def ParseMultiple(self, stats, file_objects, knowledge_base):
+    for s, f in zip(stats, file_objects):
+      for rslt in self.Parse(s, f, knowledge_base):
+        yield rslt

@@ -2,6 +2,7 @@
 """This file contains common grr jobs."""
 
 
+import gc
 import logging
 import os
 import pdb
@@ -171,6 +172,9 @@ class ActionPlugin(object):
 
     # This returns the error status of the Actions to the flow.
     self.SendReply(self.status, message_type=rdf_flows.GrrMessage.Type.STATUS)
+    # After each action we can run the garbage collection to reduce our memory
+    # footprint a bit.
+    gc.collect()
 
   def Run(self, unused_args):
     """Main plugin entry point.

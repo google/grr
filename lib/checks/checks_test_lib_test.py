@@ -7,6 +7,7 @@ from grr.lib import test_lib
 from grr.lib.checks import checks
 from grr.lib.checks import checks_test_lib
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
+from grr.lib.rdfvalues import client as rdf_client
 
 
 class CheckHelperTests(checks_test_lib.HostCheckTest):
@@ -133,6 +134,65 @@ class CheckHelperTests(checks_test_lib.HostCheckTest):
                       failing_checks,
                       exp="Found: An issue.",
                       findings=[])
+
+  def testGenProcessData(self):
+    """Test for the GenProcessData() method."""
+    # Trivial empty case.
+    result = self.GenProcessData([])
+    self.assertTrue("KnowledgeBase" in result)
+    self.assertTrue("ListProcessesGrr" in result)
+    self.assertDictEqual(self.SetArtifactData(), result["ListProcessesGrr"])
+    # Now with data.
+    result = self.GenProcessData([("proc1", 1, ["/bin/foo"]),
+                                  ("proc2", 2, ["/bin/bar"])])
+    self.assertEquals("proc1", result["ListProcessesGrr"]["PARSER"][0].name)
+    self.assertEquals(1, result["ListProcessesGrr"]["PARSER"][0].pid)
+    self.assertEquals(["/bin/foo"],
+                      result["ListProcessesGrr"]["PARSER"][0].cmdline)
+    self.assertEquals("proc2", result["ListProcessesGrr"]["PARSER"][1].name)
+    self.assertEquals(2, result["ListProcessesGrr"]["PARSER"][1].pid)
+    self.assertEquals(["/bin/bar"],
+                      result["ListProcessesGrr"]["PARSER"][1].cmdline)
+
+  def testGenFileData(self):
+    """Test for the GenFileData() method."""
+    # Trivial empty case.
+    result = self.GenFileData("EMPTY", [])
+    self.assertTrue("KnowledgeBase" in result)
+    self.assertTrue("EMPTY" in result)
+    self.assertDictEqual(self.SetArtifactData(), result["EMPTY"])
+    # Now with data.
+    result = self.GenFileData("FILES", {"/tmp/foo": """blah""",
+                                        "/tmp/bar": """meh"""})
+    self.assertTrue("FILES" in result)
+    # No parser information should be generated.
+    self.assertEquals([], result["FILES"]["PARSER"])
+    # Two stat entries under raw (stat entries should exist)
+    self.assertEquals(2, len(result["FILES"]["RAW"]))
+    # Walk the result till we find the item we want.
+    # This is to avoid a flakey test.
+    statentry = None
+    for r in result["FILES"]["RAW"]:
+      if r.pathspec.path == "/tmp/bar":
+        statentry = r
+    self.assertIsInstance(statentry, rdf_client.StatEntry)
+    self.assertEquals(33188, statentry.st_mode)
+
+  def testGenSysVInitData(self):
+    """Test for the GenSysVInitData() method."""
+    # Trivial empty case.
+    result = self.GenSysVInitData([])
+    self.assertTrue("KnowledgeBase" in result)
+    self.assertTrue("LinuxServices" in result)
+    self.assertDictEqual(self.SetArtifactData(), result["LinuxServices"])
+    # Now with data.
+    result = self.GenSysVInitData(["/etc/rc2.d/S99testing"])
+    self.assertTrue("LinuxServices" in result)
+    self.assertEquals(1, len(result["LinuxServices"]["PARSER"]))
+    result = result["LinuxServices"]["PARSER"][0]
+    self.assertEquals("testing", result.name)
+    self.assertEquals([2], result.start_on)
+    self.assertTrue(result.starts)
 
 
 def main(argv):

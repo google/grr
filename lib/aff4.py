@@ -358,7 +358,8 @@ class Factory(object):
 
     if index:
       for index_urn, index_data in index.items():
-        aff4index = self.Create(index_urn, "AFF4Index", mode="w", token=token)
+        aff4index = self.Create(index_urn, "AFF4Index", mode="w",
+                                object_exists=True, token=token)
         for attribute, value in index_data:
           aff4index.Add(urn, attribute, value)
         aff4index.Close()

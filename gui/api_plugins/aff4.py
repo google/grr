@@ -9,10 +9,10 @@ from grr.lib import server_plugins
 
 from grr.gui import api_aff4_object_renderers
 from grr.gui import api_call_renderers
-from grr.gui import api_value_renderers
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import rdfvalue
+from grr.lib import utils
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import api_pb2
 
@@ -68,7 +68,6 @@ class ApiAff4IndexRenderer(api_call_renderers.ApiCallRenderer):
         timestamp=data_store.DB.NEWEST_TIMESTAMP, limit=1000000):
 
       urn = aff4_path.Add(predicate[len(index_prefix):])
-      encoded_urns.append([api_value_renderers.RenderValue(urn),
-                           timestamp])
+      encoded_urns.append([utils.SmartUnicode(urn), timestamp])
 
     return encoded_urns

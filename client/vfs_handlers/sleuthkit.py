@@ -83,7 +83,8 @@ class TSKFile(vfs.VFSHandler):
   # NTFS files carry an attribute identified by ntfs_type and ntfs_id.
   tsk_attribute = None
 
-  def __init__(self, base_fd, pathspec=None, progress_callback=None):
+  def __init__(self, base_fd, pathspec=None, progress_callback=None,
+               full_pathspec=None):
     """Use TSK to read the pathspec.
 
     Args:
@@ -91,11 +92,13 @@ class TSKFile(vfs.VFSHandler):
       pathspec: An optional pathspec to open directly.
       progress_callback: A callback to indicate that the open call is still
                          working but needs more time.
+      full_pathspec: The full pathspec we are trying to open.
     Raises:
       IOError: If the file can not be opened.
     """
     super(TSKFile, self).__init__(base_fd, pathspec=pathspec,
-                                  progress_callback=progress_callback)
+                                  progress_callback=progress_callback,
+                                  full_pathspec=full_pathspec)
     if self.base_fd is None:
       raise IOError("TSK driver must have a file base.")
 
@@ -303,7 +306,8 @@ class TSKFile(vfs.VFSHandler):
     return self.fd.info.meta.type == pytsk3.TSK_FS_META_TYPE_REG
 
   @classmethod
-  def Open(cls, fd, component, pathspec=None, progress_callback=None):
+  def Open(cls, fd, component, pathspec=None, progress_callback=None,
+           full_pathspec=None):
     # A Pathspec which starts with TSK means we need to resolve the mount point
     # at runtime.
     if fd is None and component.pathtype == rdf_paths.PathSpec.PathType.TSK:
@@ -332,9 +336,11 @@ class TSKFile(vfs.VFSHandler):
 
     # If an inode is specified, just use it directly.
     elif component.HasField("inode"):
-      return TSKFile(fd, component, progress_callback=progress_callback)
+      return TSKFile(fd, component, progress_callback=progress_callback,
+                     full_pathspec=full_pathspec)
 
     # Otherwise do the usual case folding.
     else:
       return vfs.VFSHandler.Open(fd, component, pathspec=pathspec,
-                                 progress_callback=progress_callback)
+                                 progress_callback=progress_callback,
+                                 full_pathspec=full_pathspec)

@@ -8,7 +8,6 @@ import ctypes
 import exceptions
 import logging
 import os
-import struct
 import tempfile
 import _winreg
 
@@ -28,9 +27,7 @@ from grr.client.client_actions import standard
 from grr.lib import config_lib
 from grr.lib import constants
 from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
-from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 
 
 # Properties to remove from results sent to the server.
@@ -338,47 +335,6 @@ def CtlCode(device_type, function, method, access):
 # IOCTLS for interacting with the driver.
 INFO_IOCTRL = CtlCode(0x22, 0x100, 0, 3)  # Get information.
 CTRL_IOCTRL = CtlCode(0x22, 0x101, 0, 3)  # Set acquisition modes.
-
-
-class GetMemoryInformation(actions.ActionPlugin):
-  """Loads the driver for memory access and returns a Stat for the device."""
-
-  in_rdfvalue = rdf_paths.PathSpec
-  out_rdfvalue = rdf_rekall_types.MemoryInformation
-
-  def Run(self, args):
-    """Run."""
-    # This action might crash the box so we need to flush the transaction log.
-    self.SyncTransactionLog()
-
-    # Do any initialization we need to do.
-    logging.debug("Querying device %s", args.path)
-
-    fd = win32file.CreateFile(
-        args.path,
-        win32file.GENERIC_READ | win32file.GENERIC_WRITE,
-        win32file.FILE_SHARE_READ | win32file.FILE_SHARE_WRITE,
-        None,
-        win32file.OPEN_EXISTING,
-        win32file.FILE_ATTRIBUTE_NORMAL,
-        None)
-
-    data = win32file.DeviceIoControl(fd, INFO_IOCTRL, "", 1024, None)
-    fmt_string = "QQl"
-    cr3, _, number_of_runs = struct.unpack_from(fmt_string, data)
-
-    result = rdf_rekall_types.MemoryInformation(
-        cr3=cr3,
-        device=rdf_paths.PathSpec(
-            path=args.path,
-            pathtype=rdf_paths.PathSpec.PathType.MEMORY))
-
-    offset = struct.calcsize(fmt_string)
-    for x in range(number_of_runs):
-      start, length = struct.unpack_from("QQ", data, x * 16 + offset)
-      result.runs.Append(offset=start, length=length)
-
-    self.SendReply(result)
 
 
 class UninstallDriver(actions.ActionPlugin):

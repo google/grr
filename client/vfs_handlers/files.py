@@ -117,8 +117,10 @@ class File(vfs.VFSHandler):
   alignment = 1
   file_offset = 0
 
-  def __init__(self, base_fd, pathspec=None, progress_callback=None):
+  def __init__(self, base_fd, pathspec=None, progress_callback=None,
+               full_pathspec=None):
     super(File, self).__init__(base_fd, pathspec=pathspec,
+                               full_pathspec=full_pathspec,
                                progress_callback=progress_callback)
     if base_fd is None:
       self.pathspec.Append(pathspec)

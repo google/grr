@@ -47,7 +47,8 @@ class ApiHuntsListRendererTest(test_lib.GRRBaseTest):
 
     result = self.renderer.Render(hunt_plugin.ApiHuntsListRendererArgs(),
                                   token=self.token)
-    descriptions = set(r["summary"]["description"] for r in result["items"])
+    descriptions = set(r["summary"]["description"]["value"]
+                       for r in result["items"])
 
     self.assertEqual(len(descriptions), 10)
     for i in range(10):
@@ -60,7 +61,8 @@ class ApiHuntsListRendererTest(test_lib.GRRBaseTest):
 
     result = self.renderer.Render(hunt_plugin.ApiHuntsListRendererArgs(),
                                   token=self.token)
-    create_times = [r["summary"]["create_time"] for r in result["items"]]
+    create_times = [r["summary"]["create_time"]["value"]
+                    for r in result["items"]]
 
     self.assertEqual(len(create_times), 10)
     for index, expected_time in enumerate(reversed(range(10))):
@@ -73,7 +75,8 @@ class ApiHuntsListRendererTest(test_lib.GRRBaseTest):
 
     result = self.renderer.Render(hunt_plugin.ApiHuntsListRendererArgs(
         offset=2, count=2), token=self.token)
-    create_times = [r["summary"]["create_time"] for r in result["items"]]
+    create_times = [r["summary"]["create_time"]["value"]
+                    for r in result["items"]]
 
     self.assertEqual(len(create_times), 2)
     self.assertEqual(create_times[0], 7 * 1000000000)

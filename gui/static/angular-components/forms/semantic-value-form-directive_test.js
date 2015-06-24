@@ -4,8 +4,8 @@ goog.require('grrUi.forms.module');
 goog.require('grrUi.tests.module');
 
 describe('semantic value form directive', function() {
-  var $compile, $rootScope;
-  var grrSemanticFormDirectivesRegistryService;
+  var $compile, $rootScope, $q, grrSemanticFormDirectivesRegistryService;
+  var grrReflectionService;
 
   beforeEach(module(grrUi.forms.module.name));
   beforeEach(module(grrUi.tests.module.name));
@@ -15,9 +15,19 @@ describe('semantic value form directive', function() {
 
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
-
+    $q = $injector.get('$q');
     grrSemanticFormDirectivesRegistryService = $injector.get(
         'grrSemanticFormDirectivesRegistryService');
+    grrReflectionService = $injector.get('grrReflectionService');
+
+    grrReflectionService.getRDFValueDescriptor = function(valueType) {
+      var deferred = $q.defer();
+      deferred.resolve({
+        name: valueType,
+        mro: [valueType]
+      });
+      return deferred.promise;
+    };
   }));
 
   var renderTestTemplate = function(value, metadata) {

@@ -41,15 +41,14 @@ var OutputPluginsNotesController =
 OutputPluginsNotesController.prototype.onMetadataUrnChange_ = function(
     newValue) {
   if (angular.isDefined(newValue)) {
-    this.grrAff4Service_.get(
-        newValue, {'AFF4Object.type_info': 'WITH_TYPES_AND_METADATA'}).then(
-            function success(response) {
-              this.states = response.data['attributes'][
-                'aff4:output_plugins_state'];
-            }.bind(this),
-            function failure(response) {
-              this.error = response.data.message;
-            }.bind(this));
+    this.grrAff4Service_.get(newValue).then(
+        function success(response) {
+          this.states = response.data['attributes'][
+            'aff4:output_plugins_state'];
+        }.bind(this),
+        function failure(response) {
+          this.error = response.data.message;
+        }.bind(this));
   }
 };
 

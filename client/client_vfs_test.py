@@ -520,8 +520,6 @@ class VFSTest(test_lib.GRRBaseTest):
 
       # This should not influence vfs handlers other than OS and TSK.
       reg_type = rdf_paths.PathSpec.PathType.REGISTRY
-      self.assertFalse(vfs.VFS_HANDLERS.get(reg_type))
-
       os_handler = vfs.VFS_HANDLERS[rdf_paths.PathSpec.PathType.OS]
       try:
         vfs.VFS_HANDLERS[reg_type] = os_handler
@@ -531,10 +529,8 @@ class VFSTest(test_lib.GRRBaseTest):
           vfs.VFSOpen(image_file_ps)
 
       finally:
-        del vfs.VFS_HANDLERS[reg_type]
-
-    # Reset to whatever it was before this test.
-    vfs.VFSInit().Run()
+        # Reset to whatever it was before this test.
+        vfs.VFSInit().Run()
 
 
 def main(argv):

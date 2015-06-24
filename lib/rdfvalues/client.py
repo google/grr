@@ -156,7 +156,6 @@ class User(structs.RDFProtoStruct):
       "full_name": "full_name",
       "last_logon": "last_logon",
       "special_folders.cookies": "cookies",
-      "special_folders.local_settings": "local_settings",
       "special_folders.local_app_data": "localappdata",
       "special_folders.app_data": "appdata",
       "special_folders.cache": "internet_cache",

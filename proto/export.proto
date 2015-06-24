@@ -266,6 +266,10 @@ message ExportedAnomaly {
       description: "A string used to reference the anomaly in the Anomaly "
         "database."
     }];
+
+  repeated string finding = 9 [(sem_type) = {
+      description: "String descriptions of data that triggered the Anomaly."
+    }];
 }
 
 message ExportedCheckResult {

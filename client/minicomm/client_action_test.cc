@@ -47,31 +47,34 @@ TEST_F(ActionContextTest, SendResponse) {
 
   Uname args;
   args.set_system("Nouveau Linux");
+
   context.SendResponse(args, GrrMessage::MESSAGE);
 
   GrrMessage result_message;
   EXPECT_TRUE(GetOneResponse(&result_message));
   EXPECT_EQ("Session26", result_message.session_id());
+  EXPECT_EQ(1, result_message.response_id());
   EXPECT_EQ(GrrMessage::MESSAGE, result_message.type());
 
   EXPECT_EQ("Uname", result_message.args_rdf_name());
   EXPECT_EQ(args.SerializeAsString(), result_message.args());
+
+  context.SendResponse(args, GrrMessage::MESSAGE);
+
+  EXPECT_TRUE(GetOneResponse(&result_message));
+  EXPECT_EQ("Session26", result_message.session_id());
+  EXPECT_EQ(2, result_message.response_id());
+  EXPECT_EQ(GrrMessage::MESSAGE, result_message.type());
 }
 
-TEST_F(ActionContextTest, SendError) {
+TEST_F(ActionContextTest, SetError) {
   ActionContext context(request_message_, &message_queue_);
+  EXPECT_EQ(GrrStatus::OK, context.Status().status());
 
-  context.SendError("Unable to fizz or buzz.");
+  context.SetError("Unable to fizz or buzz.");
 
-  GrrMessage result_message;
-  EXPECT_TRUE(GetOneResponse(&result_message));
-  EXPECT_EQ(GrrMessage::STATUS, result_message.type());
-  EXPECT_EQ("GrrStatus", result_message.args_rdf_name());
-
-  GrrStatus result_status;
-  EXPECT_TRUE(result_status.ParseFromString(result_message.args()));
-  EXPECT_EQ(GrrStatus::GENERIC_ERROR, result_status.status());
-  EXPECT_EQ("Unable to fizz or buzz.", result_status.error_message());
+  EXPECT_EQ(GrrStatus::GENERIC_ERROR, context.Status().status());
+  EXPECT_EQ("Unable to fizz or buzz.", context.Status().error_message());
 }
 
 TEST_F(ActionContextTest, PopulateArgsNoArgs) {
@@ -80,16 +83,10 @@ TEST_F(ActionContextTest, PopulateArgsNoArgs) {
   BufferReference ref;
   EXPECT_FALSE(context.PopulateArgs(&ref));
 
-  // Should produce an error message.
-  GrrMessage result_message;
-  EXPECT_TRUE(GetOneResponse(&result_message));
-  EXPECT_EQ(GrrMessage::STATUS, result_message.type());
-  EXPECT_EQ("GrrStatus", result_message.args_rdf_name());
-  GrrStatus result_status;
-  EXPECT_TRUE(result_status.ParseFromString(result_message.args()));
-  EXPECT_EQ(GrrStatus::GENERIC_ERROR, result_status.status());
+  // Should set an error code.
+  EXPECT_EQ(GrrStatus::GENERIC_ERROR, context.Status().status());
   EXPECT_EQ("Expected args of type: BufferReference, but no args provided.",
-            result_status.error_message());
+            context.Status().error_message());
 }
 
 TEST_F(ActionContextTest, PopulateArgsBadType) {
@@ -99,18 +96,12 @@ TEST_F(ActionContextTest, PopulateArgsBadType) {
   BufferReference ref;
   EXPECT_FALSE(context.PopulateArgs(&ref));
 
-  // Should produce an error message.
-  GrrMessage result_message;
-  EXPECT_TRUE(GetOneResponse(&result_message));
-  EXPECT_EQ(GrrMessage::STATUS, result_message.type());
-  EXPECT_EQ("GrrStatus", result_message.args_rdf_name());
-  GrrStatus result_status;
-  EXPECT_TRUE(result_status.ParseFromString(result_message.args()));
-  EXPECT_EQ(GrrStatus::GENERIC_ERROR, result_status.status());
+  // Should set an error code.
+  EXPECT_EQ(GrrStatus::GENERIC_ERROR, context.Status().status());
   EXPECT_EQ(
       "Expected args of type: BufferReference, but received args of type: "
       "FingerprintRequest",
-      result_status.error_message());
+      context.Status().error_message());
 }
 
 TEST_F(ActionContextTest, PopulateArgsBadData) {
@@ -120,15 +111,9 @@ TEST_F(ActionContextTest, PopulateArgsBadData) {
   BufferReference ref;
   EXPECT_FALSE(context.PopulateArgs(&ref));
 
-  // Should produce an error message.
-  GrrMessage result_message;
-  EXPECT_TRUE(GetOneResponse(&result_message));
-  EXPECT_EQ(GrrMessage::STATUS, result_message.type());
-  EXPECT_EQ("GrrStatus", result_message.args_rdf_name());
-  GrrStatus result_status;
-  EXPECT_TRUE(result_status.ParseFromString(result_message.args()));
-  EXPECT_EQ(GrrStatus::GENERIC_ERROR, result_status.status());
-  EXPECT_EQ("Unable to parse args.", result_status.error_message());
+  // Should set an error code.
+  EXPECT_EQ(GrrStatus::GENERIC_ERROR, context.Status().status());
+  EXPECT_EQ("Unable to parse args.", context.Status().error_message());
 }
 
 TEST_F(ActionContextTest, PopulateArgsEmptyArgs) {

@@ -653,9 +653,14 @@ class AnalyzeClientMemory(flow.GRRFlow):
     self.state.Register("output_files", [])
     self.state.Register("plugin_errors", [])
 
+    self.state.Register("rekall_request", self.args.request.Copy())
+
+    if self.args.debug_logging:
+      self.state.rekall_request[u"logging_level"] = u"DEBUG"
+
     # If a device is already provided, just us it.
-    if self.args.request.device:
-      self.CallClient("RekallAction", self.args.request,
+    if self.state.rekall_request.device:
+      self.CallClient("RekallAction", self.state.rekall_request,
                       next_state="StoreResults")
       return
 
@@ -677,10 +682,8 @@ class AnalyzeClientMemory(flow.GRRFlow):
   @flow.StateHandler(next_state=["StoreResults", "RunPlugins"])
   def KcoreStatResult(self, responses):
     if responses.success:
-      self.args.request.device = responses.First().pathspec
-      if self.args.debug_logging:
-        self.args.request.session[u"logging_level"] = u"DEBUG"
-      self.CallClient("RekallAction", self.args.request,
+      self.state.rekall_request.device = responses.First().pathspec
+      self.CallClient("RekallAction", self.state.rekall_request,
                       next_state="StoreResults")
     else:
       self.CallFlow("LoadMemoryDriver", next_state="RunPlugins",
@@ -694,10 +697,8 @@ class AnalyzeClientMemory(flow.GRRFlow):
 
     memory_information = responses.First()
     # Update the device from the result of LoadMemoryDriver.
-    self.args.request.device = memory_information.device
-    if self.args.debug_logging:
-      self.args.request.session[u"logging_level"] = u"DEBUG"
-    self.CallClient("RekallAction", self.args.request,
+    self.state.rekall_request.device = memory_information.device
+    self.CallClient("RekallAction", self.state.rekall_request,
                     next_state="StoreResults")
 
   @flow.StateHandler()
@@ -759,8 +760,8 @@ class AnalyzeClientMemory(flow.GRRFlow):
         self.SendReply(response)
 
     if responses.iterator.state != rdf_client.Iterator.State.FINISHED:
-      self.args.request.iterator = responses.iterator
-      self.CallClient("RekallAction", self.args.request,
+      self.state.rekall_request.iterator = responses.iterator
+      self.CallClient("RekallAction", self.state.rekall_request,
                       next_state="StoreResults")
     else:
       if self.state.output_files:

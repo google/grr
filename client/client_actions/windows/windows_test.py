@@ -145,8 +145,9 @@ class FakeKeyHandle(object):
 
 class RegistryFake(test_lib.FakeRegistryVFSHandler):
 
-  def __init__(self):
+  def __init__(self, **kwargs):
     self.PopulateCache()
+    super(RegistryFake, self).__init__(**kwargs)
 
   def OpenKey(self, key, sub_key):
     res = "%s/%s" % (key.value, sub_key.replace("\\", "/"))

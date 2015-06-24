@@ -1714,7 +1714,7 @@ message ExportHuntResultsFilesAsArchiveArgs {
 
   enum ArchiveFormat {
     ZIP = 0;
-    TAR_GZIP = 1;
+    TAR_GZ = 1;
   }
   optional ArchiveFormat format = 3 [(sem_type) = {
       description: "Archive format.",

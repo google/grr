@@ -22,7 +22,7 @@ const char EnumerateInterfaces::kName[] = "EnumerateInterfaces";
 void EnumerateInterfaces::ProcessRequest(ActionContext* context) {
   struct ifaddrs* addresses = nullptr;
   if (getifaddrs(&addresses)) {
-    context->SendError("Getifaddr failed with error: " + ErrorName(errno));
+    context->SetError("Getifaddr failed with error: " + ErrorName(errno));
     if (addresses != nullptr) {
       freeifaddrs(addresses);
     }
