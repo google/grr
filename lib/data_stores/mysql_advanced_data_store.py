@@ -222,7 +222,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       for row in result:
         value = self._Decode(attribute, row["value"])
 
-        yield attribute, value, rdfvalue.RDFDatetime(row["timestamp"])
+        yield (attribute, value, row["timestamp"])
 
       if limit:
         limit -= len(result)
@@ -277,8 +277,6 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     """Set multiple attributes' values for this subject in one operation."""
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
     to_delete = set(to_delete or [])
-    if timestamp is None:
-      timestamp = time.time() * 1e6
 
     # Prepare a bulk insert operation.
     subject = utils.SmartUnicode(subject)
@@ -288,13 +286,17 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     # Build a document for each unique timestamp.
     for attribute, sequence in values.items():
       for value in sequence:
-        entry_timestamp = None
 
         if isinstance(value, tuple):
           value, entry_timestamp = value
+        else:
+          entry_timestamp = timestamp
 
         if entry_timestamp is None:
           entry_timestamp = timestamp
+
+        if entry_timestamp is not None:
+          entry_timestamp = int(entry_timestamp)
 
         attribute = utils.SmartUnicode(attribute)
         data = self._Encode(value)
@@ -305,19 +307,19 @@ class MySQLAdvancedDataStore(data_store.DataStore):
           if duplicates > 1:
             to_delete.add(attribute)
             to_insert.append(
-                [subject, attribute, data, int(entry_timestamp)])
+                [subject, attribute, data, entry_timestamp])
           else:
             if attribute in to_delete:
               to_delete.remove(attribute)
             if duplicates == 0:
               to_insert.append(
-                  [subject, attribute, data, int(entry_timestamp)])
+                  [subject, attribute, data, entry_timestamp])
             elif duplicates == 1:
               to_replace.append(
-                  [subject, attribute, data, int(entry_timestamp)])
+                  [subject, attribute, data, entry_timestamp])
         else:
           to_insert.append(
-              [subject, attribute, data, int(entry_timestamp)])
+              [subject, attribute, data, entry_timestamp])
 
     if to_delete:
       self.DeleteAttributes(subject, to_delete, token=token)
@@ -357,10 +359,11 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     for (subject, attribute, value, timestamp) in values:
       aff4_q = {}
       aff4_q["query"] = (
-          "UPDATE aff4 SET value=%s, timestamp=%s "
+          "UPDATE aff4 SET value=%s, "
+          "timestamp=if(%s is NULL,floor(unix_timestamp(now(6))*1000000),%s) "
           "WHERE subject_hash=unhex(md5(%s)) "
           "AND attribute_hash=unhex(md5(%s))")
-      aff4_q["args"] = [value, timestamp, subject, attribute]
+      aff4_q["args"] = [value, timestamp, timestamp, subject, attribute]
       transaction.append(aff4_q)
     return transaction
 
@@ -391,15 +394,16 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       if attribute not in seen["attributes"]:
         attributes_q["args"].extend([attribute, attribute])
         seen["attributes"].append(attribute)
-      aff4_q["args"].extend([subject, attribute, timestamp, value])
+      aff4_q["args"].extend([subject, attribute, timestamp, timestamp, value])
 
     subjects_q["query"] += ", ".join(
         ["(unhex(md5(%s)), %s)"] * (len(subjects_q["args"]) / 2))
     attributes_q["query"] += ", ".join(
         ["(unhex(md5(%s)), %s)"] * (len(attributes_q["args"]) / 2))
     aff4_q["query"] += ", ".join(
-        ["(unhex(md5(%s)), unhex(md5(%s)), %s, %s)"] * (
-            len(aff4_q["args"]) / 4))
+        ["(unhex(md5(%s)), unhex(md5(%s)), "
+         "if(%s is NULL,floor(unix_timestamp(now(6))*1000000),%s), %s)"] *
+        (len(aff4_q["args"]) / 5))
 
     return [aff4_q, subjects_q, attributes_q]
 
@@ -531,19 +535,20 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
   def _BuildDelete(self, subject, attribute=None, timestamp=None):
     """Build the DELETE query to be executed."""
-    subjects_q = {}
-    attributes_q = {}
-    aff4_q = {}
+    subjects_q = {
+      "query": "DELETE subjects FROM subjects WHERE hash=unhex(md5(%s))",
+      "args": [subject]
+    }
 
-    subjects_q["query"] = (
-        "DELETE subjects FROM subjects WHERE hash=unhex(md5(%s))")
-    subjects_q["args"] = [subject]
+    aff4_q = {
+      "query": "DELETE aff4 FROM aff4 WHERE subject_hash=unhex(md5(%s))",
+      "args":  [subject]
+    }
 
-    aff4_q["query"] = "DELETE aff4 FROM aff4 WHERE subject_hash=unhex(md5(%s))"
-    aff4_q["args"] = [subject]
-
-    attributes_q["query"] = ""
-    attributes_q["args"] = []
+    locks_q = {
+      "query": "DELETE locks FROM locks WHERE subject_hash=unhex(md5(%s))",
+      "args": [subject]
+    }
 
     if attribute:
       aff4_q["query"] += " AND attribute_hash=unhex(md5(%s))"
@@ -560,16 +565,23 @@ class MySQLAdvancedDataStore(data_store.DataStore):
           "WHERE subjects.hash=unhex(md5(%s)) "
           "AND aff4.subject_hash IS NULL")
 
-      attributes_q["query"] = (
-          "DELETE attributes FROM attributes "
-          "LEFT JOIN aff4 ON aff4.attribute_hash=attributes.hash "
-          "WHERE attributes.hash=unhex(md5(%s)) "
-          "AND aff4.attribute_hash IS NULL")
-      attributes_q["args"].append(attribute)
+      attributes_q = {
+        "query": "DELETE attributes FROM attributes LEFT JOIN aff4 ON "
+                 "aff4.attribute_hash=attributes.hash "
+                 "WHERE attributes.hash=unhex(md5(%s)) "
+                 "AND aff4.attribute_hash IS NULL",
+        "args": [attribute]
+      }
 
-      return [aff4_q, subjects_q, attributes_q]
+      locks_q["query"] = (
+          "DELETE locks FROM locks "
+          "LEFT JOIN aff4 ON aff4.subject_hash=locks.subject_hash "
+          "WHERE locks.subject_hash=unhex(md5(%s)) "
+          "AND aff4.subject_hash IS NULL")
 
-    return [aff4_q, subjects_q]
+      return [aff4_q, subjects_q, attributes_q, locks_q]
+
+    return [aff4_q, subjects_q, locks_q]
 
   def _MakeTimestamp(self, start=None, end=None):
     """Create a timestamp using a start and end time.
@@ -692,7 +704,7 @@ class MySQLTransaction(data_store.CommonTransaction):
 
       # We own this lock now.
       if (row["lock_expiration"] == self.expires_lock and
-          row["lock_owner"] == self.lock_token):
+              row["lock_owner"] == self.lock_token):
         return
 
       else:
