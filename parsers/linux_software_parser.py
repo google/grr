@@ -20,7 +20,8 @@ class DebianPackagesStatusParser(parsers.FileParser):
     """Parse the status file."""
     _, _ = stat, knowledge_base
     try:
-      for pkg in deb822.Packages.iter_paragraphs(file_object):
+      sw_data = file_object.read()
+      for pkg in deb822.Packages.iter_paragraphs(sw_data.splitlines()):
         if self.installed_re.match(pkg["Status"]):
           soft = rdf_client.SoftwarePackage(
               name=pkg["Package"],

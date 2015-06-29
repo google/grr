@@ -14,7 +14,9 @@ import traceback
 import psutil
 
 from grr.client import client_utils
+from grr.lib import config_lib
 from grr.lib import flags
+from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
 from grr.lib.rdfvalues import flows as rdf_flows
@@ -82,6 +84,8 @@ class ActionPlugin(object):
     self.nanny_controller = None
     self.status = rdf_flows.GrrStatus(
         status=rdf_flows.GrrStatus.ReturnedStatus.OK)
+    self._last_gc_run = rdfvalue.RDFDatetime().Now()
+    self._gc_frequency = config_lib.CONFIG["Client.gc_frequency"]
 
   def Execute(self, message):
     """This function parses the RDFValue from the server.
@@ -172,9 +176,21 @@ class ActionPlugin(object):
 
     # This returns the error status of the Actions to the flow.
     self.SendReply(self.status, message_type=rdf_flows.GrrMessage.Type.STATUS)
+
+    self._RunGC()
+
+  def _RunGC(self):
     # After each action we can run the garbage collection to reduce our memory
-    # footprint a bit.
-    gc.collect()
+    # footprint a bit. We don't do it too frequently though since this is
+    # a bit expensive.
+    now = rdfvalue.RDFDatetime().Now()
+    if now - self._last_gc_run > self._gc_frequency:
+      gc.collect()
+      self._last_gc_run = now
+
+  def ForceGC(self):
+    self._last_gc_run = rdfvalue.RDFDatetime(0)
+    self._RunGC()
 
   def Run(self, unused_args):
     """Main plugin entry point.

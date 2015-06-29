@@ -9,6 +9,7 @@ from grr.gui import api_aff4_object_renderers
 from grr.gui import api_call_renderers
 from grr.gui import api_value_renderers
 
+from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import hunts
@@ -200,8 +201,14 @@ class ApiHuntArchiveFilesRenderer(api_call_renderers.ApiCallRenderer):
   def Render(self, args, token=None):
     """Check if the user has access to the specified hunt."""
     hunt_urn = rdfvalue.RDFURN("aff4:/hunts").Add(args.hunt_id.Basename())
-    approved_token = aff4_security.Approval.GetApprovalForObject(
-        hunt_urn, token=token)
+
+    # TODO(user): This should be abstracted away into AccessControlManager
+    # API.
+    try:
+      approved_token = aff4_security.Approval.GetApprovalForObject(
+          hunt_urn, token=token)
+    except access_control.UnauthorizedAccess:
+      approved_token = token
 
     urn = flow.GRRFlow.StartFlow(flow_name="ExportHuntResultFilesAsArchive",
                                  hunt_urn=hunt_urn,

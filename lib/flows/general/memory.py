@@ -656,7 +656,8 @@ class AnalyzeClientMemory(flow.GRRFlow):
     self.state.Register("rekall_request", self.args.request.Copy())
 
     if self.args.debug_logging:
-      self.state.rekall_request[u"logging_level"] = u"DEBUG"
+      self.state.rekall_request.session[
+          u"logging_level"] = u"DEBUG"
 
     # If a device is already provided, just us it.
     if self.state.rekall_request.device:

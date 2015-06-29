@@ -141,6 +141,15 @@ class FolderInformation(structs.RDFProtoStruct):
   protobuf = jobs_pb2.FolderInformation
 
 
+class ManagementAgent(structs.RDFProtoStruct):
+  """Description of the running management agent (puppet etc).
+
+  Describes the state, last run timestamp, and name of the management agent
+  installed on the system.
+  """
+  protobuf = sysinfo_pb2.ManagementAgent
+
+
 class User(structs.RDFProtoStruct):
   """A user of the client system.
 

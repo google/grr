@@ -9,12 +9,55 @@ from grr.lib import artifact_test
 from grr.lib import flags
 from grr.lib import parsers
 from grr.lib import test_lib
+from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.parsers import linux_cmd_parser
 
 
 class LinuxCmdParserTest(test_lib.GRRBaseTest):
   """Test parsing of linux command output."""
+
+  def testYumCmdParser(self):
+    """Ensure we can extract packages from yum output."""
+    parser = linux_cmd_parser.YumCmdParser()
+    content = open(os.path.join(self.base_path, "yum.out")).read()
+    out = list(parser.Parse("/usr/bin/yum", ["list installed -q"], content, "",
+                            0, 5, None))
+    self.assertEqual(len(out), 2)
+    self.assertTrue(isinstance(out[0], rdf_client.SoftwarePackage))
+    self.assertEqual(out[0].name, "ConsoleKit")
+    self.assertEqual(out[0].architecture, "x86_64")
+    self.assertEqual(out[0].publisher, "@base")
+
+  def testRpmCmdParser(self):
+    """Ensure we can extract packages from rpm output."""
+    parser = linux_cmd_parser.RpmCmdParser()
+    content = """
+      glib2-2.12.3-4.el5_3.1
+      elfutils-libelf-0.137-3.el5
+      libgpg-error-1.4-2
+      keyutils-libs-1.2-1.el5
+      less-436-9.el5
+      libstdc++-devel-4.1.2-55.el5
+      gcc-c++-4.1.2-55.el5
+      -not-valid.123.el5
+    """
+    stderr = "error: rpmdbNextIterator: skipping h#"
+    out = list(parser.Parse("/bin/rpm", ["-qa"], content, stderr, 0, 5, None))
+    software = {o.name: o.version for o in out
+                if isinstance(o, rdf_client.SoftwarePackage)}
+    anomaly = [o for o in out if isinstance(o, rdf_anomaly.Anomaly)]
+    self.assertEqual(7, len(software))
+    self.assertEqual(1, len(anomaly))
+    expected = {"glib2": "2.12.3-4.el5_3.1",
+                "elfutils-libelf": "0.137-3.el5",
+                "libgpg-error": "1.4-2",
+                "keyutils-libs": "1.2-1.el5",
+                "less": "436-9.el5",
+                "libstdc++-devel": "4.1.2-55.el5",
+                "gcc-c++": "4.1.2-55.el5"}
+    self.assertItemsEqual(expected, software)
+    self.assertEqual("Broken rpm database.", anomaly[0].symptom)
 
   def testDpkgCmdParser(self):
     """Ensure we can extract packages from dpkg output."""

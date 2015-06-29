@@ -1,13 +1,16 @@
 #!/usr/bin/env python
 """Simple parsers for Linux files."""
+import os
 import re
 
 import logging
 from grr.lib import config_lib
 from grr.lib import parsers
 from grr.lib import utils
-from grr.lib.rdfvalues import anomaly
-from grr.lib.rdfvalues import client
+from grr.lib.rdfvalues import anomaly as rdf_anomaly
+from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.parsers import config_file
 
 
 class PasswdParser(parsers.FileParser):
@@ -22,12 +25,12 @@ class PasswdParser(parsers.FileParser):
     try:
       if not line: return
       dat = dict(zip(fields, line.split(":")))
-      user = client.KnowledgeBaseUser(username=dat["username"],
-                                      uid=int(dat["uid"]),
-                                      homedir=dat["homedir"],
-                                      shell=dat["shell"],
-                                      gid=int(dat["gid"]),
-                                      full_name=dat["fullname"])
+      user = rdf_client.KnowledgeBaseUser(username=dat["username"],
+                                          uid=int(dat["uid"]),
+                                          homedir=dat["homedir"],
+                                          shell=dat["shell"],
+                                          gid=int(dat["gid"]),
+                                          full_name=dat["fullname"])
       return user
 
     except (IndexError, KeyError):
@@ -116,8 +119,8 @@ class LinuxWtmpParser(parsers.FileParser):
         users[record.user] = record.sec
 
     for user, last_login in users.iteritems():
-      yield client.KnowledgeBaseUser(username=utils.SmartUnicode(user),
-                                     last_logon=last_login * 1000000)
+      yield rdf_client.KnowledgeBaseUser(username=utils.SmartUnicode(user),
+                                         last_logon=last_login * 1000000)
 
 
 class NetgroupParser(parsers.FileParser):
@@ -131,8 +134,10 @@ class NetgroupParser(parsers.FileParser):
   @classmethod
   def ParseLines(cls, lines):
     users = set()
-    filter_regexes = [re.compile(x) for x in
-                      config_lib.CONFIG["Artifacts.netgroup_filter_regexes"]]
+    filter_regexes = [
+        re.compile(x)
+        for x in config_lib.CONFIG["Artifacts.netgroup_filter_regexes"]
+    ]
     username_regex = re.compile(cls.USERNAME_REGEX)
     blacklist = config_lib.CONFIG["Artifacts.netgroup_user_blacklist"]
     for index, line in enumerate(lines):
@@ -157,11 +162,11 @@ class NetgroupParser(parsers.FileParser):
             _, user, _ = member.split(",")
             if user not in users and user not in blacklist:
               if not username_regex.match(user):
-                yield anomaly.Anomaly(type="PARSER_ANOMALY",
-                                      symptom="Invalid username: %s" % user)
+                yield rdf_anomaly.Anomaly(type="PARSER_ANOMALY",
+                                          symptom="Invalid username: %s" % user)
               else:
                 users.add(user)
-                yield client.KnowledgeBaseUser(
+                yield rdf_client.KnowledgeBaseUser(
                     username=utils.SmartUnicode(user))
           except ValueError:
             raise parsers.ParseError("Invalid netgroup file at line %d: %s" %
@@ -185,7 +190,7 @@ class NetgroupParser(parsers.FileParser):
       knowledge_base: unused
 
     Returns:
-      client.KnowledgeBaseUser
+      rdf_client.KnowledgeBaseUser
     """
     _, _ = stat, knowledge_base
     lines = [l.strip() for l in file_object.read(100000).splitlines()]
@@ -209,13 +214,11 @@ class LinuxBaseShadowParser(parsers.FileParser):
   # A list of hash types and hash matching expressions.
   hashes = [("SHA512", re.compile(r"\$6\$[A-z\d\.\\]{0,16}\$[A-z\d\.\\]{86}$")),
             ("SHA256", re.compile(r"\$5\$[A-z\d\.\\]{0,16}\$[A-z\d\.\\]{43}$")),
-            ("DISABLED", re.compile(r"!.*")),
-            ("UNSET", re.compile(r"\*.*")),
+            ("DISABLED", re.compile(r"!.*")), ("UNSET", re.compile(r"\*.*")),
             ("MD5", re.compile(r"\$1\$([A-z\d\.\\]{1,8}\$)?[A-z\d\.\\]{22}$")),
             ("DES", re.compile(r"[A-z\d\.\/]{2}.{11}$")),
             ("BLOWFISH", re.compile(r"\$2a?\$\d\d\$[A-z\d\.\\]{22}$")),
-            ("NTHASH", re.compile(r"\$3\$")),
-            ("UNUSED", re.compile(r"\$4\$"))]
+            ("NTHASH", re.compile(r"\$3\$")), ("UNUSED", re.compile(r"\$4\$"))]
 
   # Prevents this from automatically registering.
   __abstract = True  # pylint: disable=g-bad-name
@@ -305,7 +308,8 @@ class LinuxBaseShadowParser(parsers.FileParser):
           v.pw_entry.store = "UNKNOWN"
 
   def _Anomaly(self, msg, found):
-    return anomaly.Anomaly(type="PARSER_ANOMALY", symptom=msg, finding=found)
+    return rdf_anomaly.Anomaly(type="PARSER_ANOMALY", symptom=msg,
+                               finding=found)
 
   @staticmethod
   def MemberDiff(data1, set1_name, data2, set2_name):
@@ -360,7 +364,7 @@ class LinuxSystemGroupParser(LinuxBaseShadowParser):
       rslt = dict(zip(fields, line.split(":")))
       # Add the shadow state to the internal store.
       name = rslt["name"]
-      pw_entry = self.shadow.setdefault(name, client.PwEntry())
+      pw_entry = self.shadow.setdefault(name, rdf_client.PwEntry())
       pw_entry.store = self.shadow_store
       pw_entry.hash_type = self.GetHashType(rslt["passwd"])
       # Add the members to the internal store.
@@ -375,7 +379,7 @@ class LinuxSystemGroupParser(LinuxBaseShadowParser):
     if line:
       rslt = dict(zip(fields, line.split(":")))
       name = rslt["name"]
-      group = self.entry.setdefault(name, client.Group(name=name))
+      group = self.entry.setdefault(name, rdf_client.Group(name=name))
       group.pw_entry.store = self.GetPwStore(rslt["passwd"])
       if group.pw_entry.store == self.base_store:
         group.pw_entry.hash_type = self.GetHashType(rslt["passwd"])
@@ -461,10 +465,10 @@ class LinuxSystemPasswdParser(LinuxBaseShadowParser):
 
   def __init__(self, *args, **kwargs):
     super(LinuxSystemPasswdParser, self).__init__(*args, **kwargs)
-    self.groups = {}       # Groups mapped by name.
+    self.groups = {}  # Groups mapped by name.
     self.memberships = {}  # Group memberships per user.
-    self.uids = {}         # Assigned uids
-    self.gids = {}         # Assigned gids
+    self.uids = {}  # Assigned uids
+    self.gids = {}  # Assigned gids
 
   def ParseShadowEntry(self, line):
     """Extract the user accounts in /etc/shadow.
@@ -479,7 +483,7 @@ class LinuxSystemPasswdParser(LinuxBaseShadowParser):
               "warn_time", "inactivity", "expire", "reserved")
     if line:
       rslt = dict(zip(fields, line.split(":")))
-      pw_entry = self.shadow.setdefault(rslt["login"], client.PwEntry())
+      pw_entry = self.shadow.setdefault(rslt["login"], rdf_client.PwEntry())
       pw_entry.store = self.shadow_store
       pw_entry.hash_type = self.GetHashType(rslt["passwd"])
       # Tread carefully here in case these values aren't set.
@@ -495,7 +499,8 @@ class LinuxSystemPasswdParser(LinuxBaseShadowParser):
     fields = ("uname", "passwd", "uid", "gid", "fullname", "homedir", "shell")
     if line:
       rslt = dict(zip(fields, line.split(":")))
-      user = self.entry.setdefault(rslt["uname"], client.KnowledgeBaseUser())
+      user = self.entry.setdefault(rslt["uname"],
+                                   rdf_client.KnowledgeBaseUser())
       user.username = rslt["uname"]
       user.pw_entry.store = self.GetPwStore(rslt["passwd"])
       if user.pw_entry.store == self.base_store:
@@ -568,6 +573,22 @@ class LinuxSystemPasswdParser(LinuxBaseShadowParser):
     if diffs:
       yield self._Anomaly("Mismatched passwd and shadow files.", diffs)
 
+  def AddPassword(self, fileset):
+    """Add the passwd entries to the shadow store."""
+    passwd = fileset.get("/etc/passwd")
+    if passwd:
+      self._ParseFile(passwd, self.ParsePasswdEntry)
+    else:
+      logging.debug("No /etc/passwd file.")
+
+  def AddShadow(self, fileset):
+    """Add the shadow entries to the shadow store."""
+    shadow = fileset.get("/etc/shadow")
+    if shadow:
+      self._ParseFile(shadow, self.ParseShadowEntry)
+    else:
+      logging.debug("No /etc/shadow file.")
+
   def ParseFileset(self, fileset=None):
     """Process linux system login files.
 
@@ -584,21 +605,13 @@ class LinuxSystemPasswdParser(LinuxBaseShadowParser):
       - A series of anomalies in cases where there are mismatches between passwd
         and shadow state.
     """
-    shadow = fileset.get("/etc/shadow")
-    if shadow:
-      self._ParseFile(shadow, self.ParseShadowEntry)
-    else:
-      logging.debug("No /etc/shadow file.")
-    passwd = fileset.get("/etc/passwd")
-    if passwd:
-      self._ParseFile(passwd, self.ParsePasswdEntry)
-    else:
-      logging.debug("No /etc/passwd file.")
+    self.AddPassword(fileset)
+    self.AddShadow(fileset)
     self.ReconcileShadow(self.shadow_store)
     # Get group memberships using the files that were already collected.
     # Separate out groups and anomalies.
     for rdf in LinuxSystemGroupParser().ParseFileset(fileset):
-      if isinstance(rdf, client.Group):
+      if isinstance(rdf, rdf_client.Group):
         self.groups[rdf.name] = rdf
       else:
         yield rdf
@@ -609,3 +622,166 @@ class LinuxSystemPasswdParser(LinuxBaseShadowParser):
       yield grp
     for anom in self.FindAnomalies():
       yield anom
+
+
+class PathParser(parsers.FileParser):
+  """Parser for dotfile entries.
+
+  Extracts path attributes from dotfiles to infer effective paths for users.
+  This parser doesn't attempt or expect to determine path state for all cases,
+  rather, it is a best effort attempt to detect common misconfigurations. It is
+  not intended to detect maliciously obfuscated path modifications.
+  """
+  output_types = ["AttributedDict"]
+  # TODO(user): Modify once a decision is made on contextual selection of
+  # parsed results for artifact data.
+  supported_artifacts = ["GlobalShellConfigs", "RootUserShellConfigs",
+                         "UsersShellConfigs"]
+
+  # https://cwe.mitre.org/data/definitions/426.html
+  _TARGETS = ("CLASSPATH", "LD_AOUT_LIBRARY_PATH", "LD_AOUT_PRELOAD",
+              "LD_LIBRARY_PATH", "LD_PRELOAD", "MODULE_PATH", "PATH",
+              "PERL5LIB", "PERLLIB", "PYTHONPATH", "RUBYLIB")
+  _SH_CONTINUATION = ("{", "}", "||", "&&", "export")
+
+  _CSH_FILES = (".login", ".cshrc", ".tcsh", "csh.cshrc", "csh.login",
+                "csh.logout")
+  # This matches "set a = (b . ../../.. )", "set a=(. b c)" etc.
+  _CSH_SET_RE = re.compile(r"(\w+)\s*=\s*\((.*)\)$")
+
+  # This matches $PATH, ${PATH}, "$PATH" and "${   PATH }" etc.
+  # Omits more fancy parameter expansion e.g. ${unset_val:=../..}
+  _SHELLVAR_RE = re.compile(r'"?\$\{?\s*(\w+)\s*\}?"?')
+
+  def __init__(self):
+    super(PathParser, self).__init__()
+    # Terminate entries on ";" to capture multiple values on one line.
+    self.parser = config_file.FieldParser(term=r"[\r\n;]")
+
+  def _ExpandPath(self, target, vals, paths):
+    """Extract path information, interpolating current path values as needed."""
+    if target not in self._TARGETS:
+      return
+    expanded = []
+    for val in vals:
+      # Null entries specify the current directory, so :a::b:c: is equivalent
+      # to .:a:.:b:c:.
+      shellvar = self._SHELLVAR_RE.match(val)
+      if not val:
+        expanded.append(".")
+      elif shellvar:
+        # The value may actually be in braces as well. Always convert to upper
+        # case so we deal with stuff like lowercase csh path.
+        existing = paths.get(shellvar.group(1).upper())
+        if existing:
+          expanded.extend(existing)
+        else:
+          expanded.append(val)
+      else:
+        expanded.append(val)
+    paths[target] = expanded
+
+  def _ParseShVariables(self, lines):
+    """Extract env_var and path values from sh derivative shells.
+
+    Iterates over each line, word by word searching for statements that set the
+    path. These are either variables, or conditions that would allow a variable
+    to be set later in the line (e.g. export).
+
+    Args:
+      lines: A list of lines, each of which is a list of space separated words.
+
+    Returns:
+      a dictionary of path names and values.
+    """
+    paths = {}
+    for line in lines:
+      for entry in line:
+        if "=" in entry:
+          # Pad out the list so that it's always 2 elements, even if the split
+          # failed.
+          target, vals = (entry.split("=", 1) + [""])[:2]
+          if vals:
+            path_vals = vals.split(":")
+          else:
+            path_vals = []
+          self._ExpandPath(target, path_vals, paths)
+        elif entry not in self._SH_CONTINUATION:
+          # Stop processing the line unless the entry might allow paths to still
+          # be set, e.g.
+          #   reserved words: "export"
+          #   conditions: { PATH=VAL } && PATH=:$PATH || PATH=.
+          break
+    return paths
+
+  def _ParseCshVariables(self, lines):
+    """Extract env_var and path values from csh derivative shells.
+
+    Path attributes can be set several ways:
+    - setenv takes the form "setenv PATH_NAME COLON:SEPARATED:LIST"
+    - set takes the form "set path_name=(space separated list)" and is
+      automatically exported for several types of files.
+
+    The first entry in each stanza is used to decide what context to use.
+    Other entries are used to identify the path name and any assigned values.
+
+    Args:
+      lines: A list of lines, each of which is a list of space separated words.
+
+    Returns:
+      a dictionary of path names and values.
+    """
+    paths = {}
+    for line in lines:
+      if len(line) < 2:
+        continue
+      action = line[0]
+      if action == "setenv":
+        target = line[1]
+        path_vals = []
+        if line[2:]:
+          path_vals = line[2].split(":")
+        self._ExpandPath(target, path_vals, paths)
+      elif action == "set":
+        set_vals = self._CSH_SET_RE.search(" ".join(line[1:]))
+        if set_vals:
+          target, vals = set_vals.groups()
+          # Automatically exported to ENV vars.
+          if target in ("path", "term", "user"):
+            target = target.upper()
+          path_vals = vals.split()
+          self._ExpandPath(target, path_vals, paths)
+    return paths
+
+  def Parse(self, stat, file_obj, knowledge_base):
+    """Identifies the paths set within a file.
+
+    Expands paths within the context of the file, but does not infer fully
+    expanded paths from external states. There are plenty of cases where path
+    attributes are unresolved, e.g. sourcing other files.
+
+    Lines are not handled literally. A field parser is used to:
+    - Break lines with multiple distinct statements into separate lines (e.g.
+      lines with a ';' separating stanzas.
+    - Strip out comments.
+    - Handle line continuations to capture multi-line configurations into one
+      statement.
+
+    Args:
+      stat: statentry
+      file_obj: VFSFile
+      knowledge_base: unused
+
+    Yields:
+      An attributed dict for each env vars. 'name' contains the path name, and
+      'vals' contains its vals.
+    """
+    _ = knowledge_base
+    lines = self.parser.ParseEntries(file_obj.read())
+    if os.path.basename(stat.pathspec.path) in self._CSH_FILES:
+      paths = self._ParseCshVariables(lines)
+    else:
+      paths = self._ParseShVariables(lines)
+    for path_name, path_vals in paths.iteritems():
+      yield rdf_protodict.AttributedDict(config=stat.pathspec.path,
+                                         name=path_name, vals=path_vals)

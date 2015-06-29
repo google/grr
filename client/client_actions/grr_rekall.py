@@ -295,6 +295,10 @@ class RekallAction(actions.SuspendableAction):
     if plugin_errors:
       self.SetStatus(rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR,
                      u"\n\n".join(plugin_errors))
+    # Rekall uses quite a bit of memory so we force a garbage collection here
+    # even though it may cost a second or two of cpu time.
+    self.Progress()
+    self.ForceGC()
 
 
 class GetMemoryInformation(actions.ActionPlugin):

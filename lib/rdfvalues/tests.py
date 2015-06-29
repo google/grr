@@ -19,6 +19,7 @@ from grr.lib.rdfvalues import filestore_test
 from grr.lib.rdfvalues import flows_test
 from grr.lib.rdfvalues import paths_test
 from grr.lib.rdfvalues import protodict_test
+from grr.lib.rdfvalues import rekall_types_test
 from grr.lib.rdfvalues import standard_test
 from grr.lib.rdfvalues import stats_test
 from grr.lib.rdfvalues import structs_test

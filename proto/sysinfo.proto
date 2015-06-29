@@ -10,6 +10,19 @@ import "grr/proto/jobs.proto";
 import "grr/proto/semantic.proto";
 
 
+// Describes the type of management agent (puppet etc),
+// as well as the most recent run time
+message ManagementAgent {
+  optional string name = 1 [(sem_type) = {
+      description: "Management agent name (puppet etc)",
+    }];
+
+  optional uint64 last_success = 2 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Time of most recent successful agent run",
+    }];
+}
+
 // A Process record describing a system process.
 message Process {
   option (semantic) = {

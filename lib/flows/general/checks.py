@@ -30,6 +30,7 @@ class CheckRunner(flow.GRRFlow):
   """
   friendly_name = "Run Checks"
   category = "/Checks/"
+  args_type = CheckFlowArgs
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   @flow.StateHandler(next_state=["MapArtifactData"])
@@ -65,7 +66,8 @@ class CheckRunner(flow.GRRFlow):
       responses: Input from previous states as an rdfvalue.Dict
     """
     self.state.artifacts_wanted = checks.CheckRegistry.SelectArtifacts(
-        os_name=self.state.knowledge_base.os)
+        os_name=self.state.knowledge_base.os,
+        restrict_checks=self.args.restrict_checks)
     for artifact_name in self.state.artifacts_wanted:
       self.CallFlow("ArtifactCollectorFlow", artifact_list=[artifact_name],
                     apply_parsers=False,
@@ -166,7 +168,8 @@ class CheckRunner(flow.GRRFlow):
     # Hand host data across to checks. Do this after all data has been collected
     # in case some checks require multiple artifacts/results.
     for finding in checks.CheckHost(self.state.host_data,
-                                    os_name=self.state.knowledge_base.os):
+                                    os_name=self.state.knowledge_base.os,
+                                    restrict_checks=self.args.restrict_checks):
       self.state.checks_run.append(finding.check_id)
       if finding.anomaly:
         self.state.checks_with_findings.append(finding.check_id)

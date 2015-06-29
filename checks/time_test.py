@@ -21,20 +21,19 @@ class TimeSyncTests(checks_test_lib.HostCheckTest):
   def testTimeSyncBoot(self):
     """Test we handle the cases for when a time service is started at boot."""
 
-    exp = ("Missing attribute: No time synchronization service is started "
+    sym = ("Missing attribute: No time synchronization service is started "
            "at boot time.")
     found = ["Expected state was not found"]
     bad = []
     good = ["/etc/rc2.d/S07ntp"]
 
     # The failure cases. I.e. No startup file for a time service.
+    results = self.RunChecks(self.GenSysVInitData(bad))
+    self.assertCheckDetectedAnom("TIME-SYNC-BOOT", results, sym, found)
 
-    self.assertCheckDetectedAnom("TIME-SYNC-BOOT",
-                                 self.RunChecks(self.GenSysVInitData(bad)),
-                                 exp, found)
     # Now the successful cases.
-    self.assertCheckUndetected("TIME-SYNC-BOOT",
-                               self.RunChecks(self.GenSysVInitData(good)))
+    results = self.RunChecks(self.GenSysVInitData(good))
+    self.assertCheckUndetected("TIME-SYNC-BOOT", results)
 
   def testTimeSyncRunning(self):
     """Test we handle the cases for when a time service is running or not."""
@@ -56,6 +55,8 @@ class TimeSyncTests(checks_test_lib.HostCheckTest):
 
   def testNtpDoesntAllowOpenQueries(self):
     """Test for checking we don't allow queries by default."""
+    parser = config_file.NtpdParser()
+
     good_config = {"/etc/ntp.conf": """
         restrict default nomodify noquery nopeer
         """}
@@ -66,28 +67,27 @@ class TimeSyncTests(checks_test_lib.HostCheckTest):
         """}
 
     # A good config should pass.
-    self.assertCheckUndetected(
-        "TIME-NTP-VULN-2014-12",
-        self.RunChecks(self.GenFileData("NtpConfFile", good_config,
-                                        parser=config_file.NtpdParser)))
-    # A bad one should detect a problem.
+    results = self.RunChecks(
+        self.GenFileData("NtpConfFile", good_config, parser))
+    self.assertCheckUndetected("TIME-NTP-VULN-2014-12", results)
+
     found = ["Expected state was not found"]
-    exp = ("Missing attribute: ntpd.conf is configured or defaults to open "
+    sym = ("Missing attribute: ntpd.conf is configured or defaults to open "
            "queries. Can allow DDoS.")
-    self.assertCheckDetectedAnom(
-        "TIME-NTP-VULN-2014-12",
-        self.RunChecks(self.GenFileData("NtpConfFile", bad_config,
-                                        parser=config_file.NtpdParser)),
-        exp, found)
+    # A bad one should detect a problem.
+    results = self.RunChecks(
+        self.GenFileData("NtpConfFile", bad_config, parser))
+    self.assertCheckDetectedAnom("TIME-NTP-VULN-2014-12", results, sym, found)
+
     # And as the default is to be queryable, check we detect an empty config.
-    self.assertCheckDetectedAnom(
-        "TIME-NTP-VULN-2014-12",
-        self.RunChecks(self.GenFileData("NtpConfFile", bad_default_config,
-                                        parser=config_file.NtpdParser)),
-        exp, found)
+    results = self.RunChecks(
+        self.GenFileData("NtpConfFile", bad_default_config, parser))
+    self.assertCheckDetectedAnom("TIME-NTP-VULN-2014-12", results, sym, found)
 
   def testNtpHasMonitorDisabled(self):
     """Test for checking that monitor is disabled."""
+    parser = config_file.NtpdParser()
+
     good_config = {"/etc/ntp.conf": """
         disable monitor
         """}
@@ -107,36 +107,28 @@ class TimeSyncTests(checks_test_lib.HostCheckTest):
         enable kernel monitor
         """}
     found = ["ntpd.conf has monitor flag set to True."]
-    exp = ("Found: ntpd.conf is configured to allow monlist NTP reflection "
+    sym = ("Found: ntpd.conf is configured to allow monlist NTP reflection "
            "attacks.")
 
-    self.assertCheckUndetected(
-        "TIME-NTP-REFLECTION",
-        self.RunChecks(self.GenFileData("NtpConfFile", good_config,
-                                        parser=config_file.NtpdParser)))
+    results = self.RunChecks(
+        self.GenFileData("NtpConfFile", good_config, parser))
+    self.assertCheckUndetected("TIME-NTP-REFLECTION", results)
 
-    self.assertCheckUndetected(
-        "TIME-NTP-REFLECTION",
-        self.RunChecks(self.GenFileData("NtpConfFile", good_tricky_config,
-                                        parser=config_file.NtpdParser)))
+    results = self.RunChecks(
+        self.GenFileData("NtpConfFile", good_tricky_config, parser))
+    self.assertCheckUndetected("TIME-NTP-REFLECTION", results)
 
-    self.assertCheckDetectedAnom(
-        "TIME-NTP-REFLECTION",
-        self.RunChecks(self.GenFileData("NtpConfFile", bad_config,
-                                        parser=config_file.NtpdParser)),
-        exp, found)
+    results = self.RunChecks(
+        self.GenFileData("NtpConfFile", bad_config, parser))
+    self.assertCheckDetectedAnom("TIME-NTP-REFLECTION", results, sym, found)
 
-    self.assertCheckDetectedAnom(
-        "TIME-NTP-REFLECTION",
-        self.RunChecks(self.GenFileData("NtpConfFile", bad_default_config,
-                                        parser=config_file.NtpdParser)),
-        exp, found)
+    results = self.RunChecks(
+        self.GenFileData("NtpConfFile", bad_default_config, parser))
+    self.assertCheckDetectedAnom("TIME-NTP-REFLECTION", results, sym, found)
 
-    self.assertCheckDetectedAnom(
-        "TIME-NTP-REFLECTION",
-        self.RunChecks(self.GenFileData("NtpConfFile", bad_tricky_config,
-                                        parser=config_file.NtpdParser)),
-        exp, found)
+    results = self.RunChecks(
+        self.GenFileData("NtpConfFile", bad_tricky_config, parser))
+    self.assertCheckDetectedAnom("TIME-NTP-REFLECTION", results, sym, found)
 
 
 def main(argv):

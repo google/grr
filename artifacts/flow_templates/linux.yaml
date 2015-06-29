@@ -36,6 +36,16 @@ labels: [Authentication]
 supported_os: [Linux]
 urls: ['https://code.google.com/p/nsscache/']
 ---
+name: RedhatYumPackagesList
+doc: Linux output of yum list installed.
+sources:
+- type: COMMAND
+  attributes:
+    args: [list installed -q]
+    cmd: /usr/bin/yum
+labels: [Software]
+supported_os: [Linux]
+---
 name: RedhatPackagesList
 doc: Linux output of rpm -qa.
 sources:

@@ -25,13 +25,13 @@ class StatOnlyTests(checks_test_lib.HostCheckTest):
     results = self.GenResults(["RootEnvPath"], [data])
 
     check_id = "CIS-ROOT-PATH-HAS-FILES-FOLDERS-WRITABLE-BY-NON-ROOT"
-    exp = ("Found: Files or folders in default $PATH of root can be modified "
-           "by non-privileged users.\n")
-    found = ["/usr/local/bin/hit-123 user: 50, group: 0, mode: -rw-r-----\n",
-             "/usr/local/bin/hit-234 user: 0, group: 60, mode: drwxrwxrwx\n",
-             "/usr/local/bin/hit-345 user: 70, group: 0, mode: -rw-rw----\n",]
+    sym = ("Found: Files or folders in default $PATH of root can be modified "
+           "by non-privileged users.")
+    found = ["/usr/local/bin/hit-123 user: 50, group: 0, mode: -rw-r-----",
+             "/usr/local/bin/hit-234 user: 0, group: 60, mode: drwxrwxrwx",
+             "/usr/local/bin/hit-345 user: 70, group: 0, mode: -rw-rw----",]
 
-    self.assertCheckDetectedAnom(check_id, results, exp, found)
+    self.assertCheckDetectedAnom(check_id, results, sym, found)
 
   def testUserHomeDirCheck(self):
     """Ensure user home dir check detect folders modifiable by non-owners."""
@@ -49,14 +49,14 @@ class StatOnlyTests(checks_test_lib.HostCheckTest):
     results = self.GenResults(["UserHomeDirs"], [data])
 
     check_id = "CIS-HOME-DIRS-WRITABLE-BY-NON-OWNERS"
-    exp = ("Found: User home dirctory can be written to by "
-           "group or others.\n")
-    found = ["/home/user2 user: 200, group: 60, mode: drwxrwx---\n",
-             "/home/user3 user: 300, group: 70, mode: drwxrwxrwx\n",
-             "/home/user4 user: 400, group: 70, mode: drwxrw----\n",
-             "/home/user8 user: 700, group: 70, mode: drwxr-x-w-\n",]
+    sym = ("Found: User home directory can be written to by "
+           "group or others.")
+    found = ["/home/user2 user: 200, group: 60, mode: drwxrwx---",
+             "/home/user3 user: 300, group: 70, mode: drwxrwxrwx",
+             "/home/user4 user: 400, group: 70, mode: drwxrw----",
+             "/home/user8 user: 700, group: 70, mode: drwxr-x-w-",]
 
-    self.assertCheckDetectedAnom(check_id, results, exp, found)
+    self.assertCheckDetectedAnom(check_id, results, sym, found)
 
   def testUserDotFilesCheck(self):
     """Ensure user dot files check detects files that are world writable."""
@@ -72,19 +72,19 @@ class StatOnlyTests(checks_test_lib.HostCheckTest):
     results = self.GenResults(["UserDotFiles"], [data])
 
     check_id = "CIS-USER-DOT-FILES-DIRS-WORLD-WRITABLE"
-    exp = ("Found: Dot files or folders in user home dirctory are world "
-           "writable.\n")
-    found = ["/root/.bashrc user: 0, group: 0, mode: -rwxrwx-w-\n",
-             "/root/.gitconfig user: 0, group: 0, mode: -rwxrwx-wx\n",
-             "/home/user/.vim user: 100, group: 70, mode: drwxrwxrwx\n",]
+    sym = ("Found: Dot files or folders in user home directory are world "
+           "writable.")
+    found = ["/root/.bashrc user: 0, group: 0, mode: -rwxrwx-w-",
+             "/root/.gitconfig user: 0, group: 0, mode: -rwxrwx-wx",
+             "/home/user/.vim user: 100, group: 70, mode: drwxrwxrwx",]
 
-    self.assertCheckDetectedAnom(check_id, results, exp, found)
+    self.assertCheckDetectedAnom(check_id, results, sym, found)
 
     check_id = "CIS-DOT-NETRC-FILE-EXISTS"
-    exp = "Found: The .netrc file exists in a user's home directory.\n"
-    found = ["/home/user/.netrc user: 100, group: 70, mode: -rw-rw-r--\n"]
+    sym = "Found: The .netrc file exists in a user's home directory."
+    found = ["/home/user/.netrc user: 100, group: 70, mode: -rw-rw-r--"]
 
-    self.assertCheckDetectedAnom(check_id, results, exp, found)
+    self.assertCheckDetectedAnom(check_id, results, sym, found)
 
   def testLogFilesCheck(self):
     """Ensure log files check detects files modifiable by non-root."""
@@ -100,26 +100,26 @@ class StatOnlyTests(checks_test_lib.HostCheckTest):
     results = self.GenResults(["LinuxLogFiles"], [data])
 
     check_id = "CIS-LOG-FILES-PERMISSIONS-WRONG-OWNER"
-    exp = "Found: Vital system log files have wrong owner."
-    found = ["/var/log/debug.1.gz user: 10, group: 0, mode: -rwxrwxr--\n",
-             "/var/log/dpkg.log user: 200, group: 70, mode: -rw-rw-r--\n"]
+    sym = "Found: Vital system log files have wrong owner."
+    found = ["/var/log/debug.1.gz user: 10, group: 0, mode: -rwxrwxr--",
+             "/var/log/dpkg.log user: 200, group: 70, mode: -rw-rw-r--"]
 
-    self.assertCheckDetectedAnom(check_id, results, exp, found)
+    self.assertCheckDetectedAnom(check_id, results, sym, found)
 
     check_id = "CIS-LOG-FILES-PERMISSIONS-WRONG-GROUP"
-    exp = "Found: Vital system log files have wrong group."
-    found = ["/var/log/mail.log user: 0, group: 2, mode: -rwxrwx---\n",
-             "/var/log/dpkg.log user: 200, group: 70, mode: -rw-rw-r--\n"]
+    sym = "Found: Vital system log files have wrong group."
+    found = ["/var/log/mail.log user: 0, group: 2, mode: -rwxrwx---",
+             "/var/log/dpkg.log user: 200, group: 70, mode: -rw-rw-r--"]
 
-    self.assertCheckDetectedAnom(check_id, results, exp, found)
+    self.assertCheckDetectedAnom(check_id, results, sym, found)
 
     check_id = "CIS-LOG-FILES-PERMISSIONS-WORLD-WRITABLE"
-    exp = "Found: Log files are world writable."
-    found = ["/var/log/syslog user: 0, group: 0, mode: -rw-rw-rw-\n",
-             "/var/log/puppet/mail.log user: 30, group: 70, mode: -rwxrwxrwx\n",
-             "/var/log/user.log.1.gz user: 0, group: 4, mode: -rw-r---w-\n"]
+    sym = "Found: Log files are world writable."
+    found = ["/var/log/syslog user: 0, group: 0, mode: -rw-rw-rw-",
+             "/var/log/puppet/mail.log user: 30, group: 70, mode: -rwxrwxrwx",
+             "/var/log/user.log.1.gz user: 0, group: 4, mode: -rw-r---w-"]
 
-    self.assertCheckDetectedAnom(check_id, results, exp, found)
+    self.assertCheckDetectedAnom(check_id, results, sym, found)
 
 
 def main(argv):

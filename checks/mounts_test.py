@@ -22,7 +22,7 @@ class LinuxMountsTests(checks_test_lib.HostCheckTest):
       /dev/sda2  none               swap  sw                          0  0
     """
     data = {"/etc/fstab": fstab}
-    host_data = self.GetParsedFile("LinuxFstab", data, self.parser)
+    host_data = self.GenFileData("LinuxFstab", data, self.parser)
 
     check_id = "CIS-MOUNT-OPTION-NO-DEV"
     results = self.RunChecks(host_data)
@@ -39,16 +39,16 @@ class LinuxMountsTests(checks_test_lib.HostCheckTest):
       /dev/sda3  /tmp/media         ext3  noexec,ro                   0  1
     """
     data = {"/etc/fstab": fstab}
-    host_data = self.GetParsedFile("LinuxFstab", data, self.parser)
+    host_data = self.GenFileData("LinuxFstab", data, self.parser)
 
     check_id = "CIS-MOUNT-OPTION-NO-DEV"
     results = self.RunChecks(host_data)
 
-    exp = "Found: Non-system mountpoints allow devices"
+    sym = "Found: Non-system mountpoints allow devices"
     # Mount options have variable ordering, so do a substring match.
     found = ["/media: /dev/sda2 mounted",
              "/tmp/media: /dev/sda3 mounted"]
-    self.assertCheckDetectedAnom(check_id, results, exp, found)
+    self.assertCheckDetectedAnom(check_id, results, sym, found)
 
   def testNoUserSUIDAllowed(self):
     fstab = """
@@ -57,14 +57,14 @@ class LinuxMountsTests(checks_test_lib.HostCheckTest):
       /dev/sda3  /tmp/media         xfs   nosuid,user                 0  1
     """
     data = {"/etc/fstab": fstab}
-    host_data = self.GetParsedFile("LinuxFstab", data, self.parser)
+    host_data = self.GenFileData("LinuxFstab", data, self.parser)
 
     check_id = "CIS-MOUNT-OPTION-NO-USER-SUID"
     results = self.RunChecks(host_data)
 
-    exp = "Found: User mountable media allows suid"
+    sym = "Found: User mountable media allows suid"
     found = ["/media: /dev/sda2 mounted with user:True"]
-    self.assertCheckDetectedAnom(check_id, results, exp, found)
+    self.assertCheckDetectedAnom(check_id, results, sym, found)
 
 
 def main(argv):

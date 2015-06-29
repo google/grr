@@ -6,22 +6,22 @@
       </div>
 
       <p>
-        Below is the list of HTTP API calls that the GRR Admin UI can handle. For
-        every supported route you'll find a list of supported query parameters
-        (if any). These parameters are passed either as URL query parameters or
-        as parts of URL path.<br/>
+        Below is the list of HTTP API calls that the GRR Admin UI can handle.
+        For every supported route you'll find a list of supported query
+        parameters (if any). These parameters are passed either as URL query
+        parameters or as parts of URL path.<br/>
         For example:
       </p>
       <p>
         <samp>/api/hunts?<strong>offset=100&amp;count=20</strong></samp><br>
-        <samp>/api/aff4/<strong>foo/bar/collection</strong>?<strong>RDFValueCollection.filter=blah</strong></samp>
+        <samp>/api/aff4/hunts/H:12345678/Results?RDFValueCollection.count=5&amp;RDFValueCollection.offset=0</samp>
       </p>
       <p>
         If special permissions are required to access certain resources,
         &quot;reason&quot; query parameter may be specified.
         For example:</p>
       <p>
-        <samp>/api/aff4/foo/bar/collection?RDFValueCollection.filter=blah&amp;<strong>reason=testreason</strong></samp>
+        <samp>/api/aff4/C.123456789abcdef1/analysis/AnalyzeClientMemory/myusername-1435178456.2?RekallResponseCollection&amp;reason=InvestigationID+1234</samp>
       </p><br/>
 
       <div class="doc-item"

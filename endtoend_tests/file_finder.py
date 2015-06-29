@@ -63,6 +63,32 @@ class TestFileFinderOSLinux(transfer.TestGetFileOSLinux):
           "conditions": filecondition, "action": action}
 
 
+class TestFileFinderOSLinuxProc(transfer.TestGetFileOSLinux):
+  """Download a /proc/sys entry with FileFinder."""
+  platforms = ["Linux"]
+  flow = "FileFinder"
+  test_output_path = "/fs/os/proc/sys/net/ipv4/ip_forward"
+  client_min_version = 3007
+
+  sizecondition = file_finder.FileFinderSizeCondition(max_file_size=1000000)
+  filecondition = file_finder.FileFinderCondition(
+      condition_type=file_finder.FileFinderCondition.Type.SIZE,
+      size=sizecondition)
+
+  download = file_finder.FileFinderDownloadActionOptions()
+  action = file_finder.FileFinderAction(
+      action_type=file_finder.FileFinderAction.Action.DOWNLOAD,
+      download=download)
+
+  args = {"paths": ["/proc/sys/net/ipv4/ip_forward"],
+          "conditions": filecondition, "action": action}
+
+  def CheckFile(self, fd):
+    data = fd.Read(10)
+    # Some value was read from the sysctl.
+    self.assertTrue(data)
+
+
 class TestFileFinderOSDarwin(TestFileFinderOSLinux):
   platforms = ["Darwin"]
 

@@ -49,13 +49,13 @@ class PkgSourceCheckTests(checks_test_lib.HostCheckTest):
             """}
 
     chk_id = "CIS-PKG-SOURCE-UNSUPPORTED-TRANSPORT"
-    exp = "Found: APT sources use unsupported transport."
+    sym = "Found: APT sources use unsupported transport."
     found = ["/etc/apt/sources.list.d/test.list: transport: file,https,https",
              "/etc/apt/sources.list.d/test2.list: transport: http",
              "/etc/apt/sources.list.d/file-test.list: transport: file",
              "/etc/apt/sources.list.d/rfc822.list: transport: http,https"]
     results = self.GenResults([artifact], [sources], [parser])
-    self.assertCheckDetectedAnom(chk_id, results, exp, found)
+    self.assertCheckDetectedAnom(chk_id, results, sym, found)
 
   def testYumDetectUnsupportedTransport(self):
     artifact = "YumSources"
@@ -96,12 +96,12 @@ class PkgSourceCheckTests(checks_test_lib.HostCheckTest):
             """}
 
     chk_id = "CIS-PKG-SOURCE-UNSUPPORTED-TRANSPORT"
-    exp = "Found: Yum sources use unsupported transport."
+    sym = "Found: Yum sources use unsupported transport."
     found = ["/etc/yum.repos.d/test.repo: transport: file,https",
              "/etc/yum.repos.d/test2.repo: transport: http",
              "/etc/yum.repos.d/file-test.repo: transport: file"]
     results = self.GenResults([artifact], [sources], [parser])
-    self.assertCheckDetectedAnom(chk_id, results, exp, found)
+    self.assertCheckDetectedAnom(chk_id, results, sym, found)
 
 
 def main(argv):

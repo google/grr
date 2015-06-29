@@ -8,7 +8,64 @@ import logging
 
 from grr.lib import artifact_registry
 from grr.lib import parsers
+from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
+
+
+# TODO(user): Extend this to resolve repo/publisher to its baseurl.
+class YumCmdParser(parsers.CommandParser):
+  """Parser for yum list output. Yields SoftwarePackage rdfvalues.
+
+  We read the output of yum rather than rpm because it has publishers, and we
+  don't use bdb because it's a world of hurt and appears to use different,
+  incompatible versions across OS revisions.
+  """
+
+  output_types = ["SoftwarePackage"]
+  supported_artifacts = []
+
+  def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
+            knowledge_base):
+    """Parse the yum output."""
+    _ = stderr, time_taken, args, knowledge_base  # Unused.
+    self.CheckReturn(cmd, return_val)
+    for line in stdout.splitlines()[1:]:  # Ignore first line
+      cols = line.split()
+      name_arch, version, source = cols
+      name, arch = name_arch.split(".")
+
+      status = rdf_client.SoftwarePackage.InstallState.INSTALLED
+      yield rdf_client.SoftwarePackage(name=name,
+                                       publisher=source,
+                                       version=version,
+                                       architecture=arch,
+                                       install_state=status)
+
+
+class RpmCmdParser(parsers.CommandParser):
+  """Parser for rpm qa output. Yields SoftwarePackage rdfvalues."""
+
+  output_types = ["SoftwarePackage"]
+  supported_artifacts = ["RedhatPackagesList"]
+
+  def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
+            knowledge_base):
+    """Parse the rpm -qa output."""
+    _ = time_taken, args, knowledge_base  # Unused.
+    rpm_re = re.compile(r"^(\w[-\w\+]+?)-(\d.*)$")
+    self.CheckReturn(cmd, return_val)
+    for line in stdout.splitlines():
+      pkg_match = rpm_re.match(line.strip())
+      if pkg_match:
+        name, version = pkg_match.groups()
+        status = rdf_client.SoftwarePackage.InstallState.INSTALLED
+        yield rdf_client.SoftwarePackage(name=name, version=version,
+                                         install_state=status)
+    for line in stderr.splitlines():
+      if "error: rpmdbNextIterator: skipping h#" in line:
+        yield rdf_anomaly.Anomaly(
+            type="PARSER_ANOMALY", symptom="Broken rpm database.")
+        break
 
 
 class DpkgCmdParser(parsers.CommandParser):

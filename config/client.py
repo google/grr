@@ -183,6 +183,9 @@ config_lib.DEFINE_semantic(
 config_lib.DEFINE_integer("Client.server_serial_number", 0,
                           "Minimal serial number we accept for server cert.")
 
+config_lib.DEFINE_integer(
+    "Client.gc_frequency", 10,
+    "Defines how often the client calls garbage collection (seconds).")
 
 # The following configuration options are defined here but are used in
 # the windows nanny code (grr/client/nanny/windows_nanny.h).

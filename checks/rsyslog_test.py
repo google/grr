@@ -22,8 +22,7 @@ class RsyslogCheckTests(checks_test_lib.HostCheckTest):
 
     test_data = {"/etc/rsyslog.conf":
                  "*.* @@tcp.example.com.:514;RSYSLOG_ForwardFormat"}
-    host_data = self.GetParsedMultiFile("LinuxRsyslogConfigs", test_data,
-                                        self.parser)
+    host_data = self.GenFileData("LinuxRsyslogConfigs", test_data, self.parser)
     results = self.RunChecks(host_data)
     self.assertCheckUndetected(chk_id, results)
 
@@ -31,12 +30,11 @@ class RsyslogCheckTests(checks_test_lib.HostCheckTest):
     chk_id = "CIS-LOGGING-AUTH-REMOTE"
 
     test_data = {"/etc/rsyslog.conf": "*.* /var/log/messages"}
-    host_data = self.GetParsedMultiFile("LinuxRsyslogConfigs", test_data,
-                                        self.parser)
-    exp = "Missing attribute: No remote destination for auth logs."
+    host_data = self.GenFileData("LinuxRsyslogConfigs", test_data, self.parser)
+    sym = "Missing attribute: No remote destination for auth logs."
     found = ["Expected state was not found"]
     results = self.RunChecks(host_data)
-    self.assertCheckDetectedAnom(chk_id, results, exp, found)
+    self.assertCheckDetectedAnom(chk_id, results, sym, found)
 
   def testLoggingFilePermissions(self):
     chk_id = "CIS-LOGGING-FILE-PERMISSIONS"
@@ -44,10 +42,10 @@ class RsyslogCheckTests(checks_test_lib.HostCheckTest):
     ro = self.CreateStat("/test/ro", 0, 0, 0o0100640)
     rw = self.CreateStat("/test/rw", 0, 0, 0o0100666)
 
-    exp = "Found: Log configurations can be modified by non-privileged users."
+    sym = "Found: Log configurations can be modified by non-privileged users."
     found = ["/test/rw user: 0, group: 0, mode: -rw-rw-rw-"]
     results = self.GenResults(["LinuxRsyslogConfigs"], [[ro, rw]])
-    self.assertCheckDetectedAnom(chk_id, results, exp, found)
+    self.assertCheckDetectedAnom(chk_id, results, sym, found)
 
 
 def main(argv):

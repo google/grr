@@ -16,11 +16,11 @@ class CronCheckTests(checks_test_lib.HostCheckTest):
   def setUpClass(cls):
     cls.LoadCheck("cron.yaml")
 
-  def _CheckMultipleExpPerCheck(self, check_id, results, exp_list, found_list):
-    """Ensure results for a check containing multiple explanations match."""
+  def _CheckMultipleSymPerCheck(self, check_id, results, sym_list, found_list):
+    """Ensure results for a check containing multiple symptoms match."""
     anom = []
-    for exp, found in zip(exp_list, found_list):
-      anom.append(rdf_anomaly.Anomaly(explanation=exp, finding=found,
+    for sym, found in zip(sym_list, found_list):
+      anom.append(rdf_anomaly.Anomaly(symptom=sym, finding=found,
                                       type="ANALYSIS_ANOMALY"))
     expected = checks.CheckResult(check_id=check_id, anomaly=anom)
     self.assertResultEqual(expected, results[check_id])
@@ -37,12 +37,12 @@ class CronCheckTests(checks_test_lib.HostCheckTest):
                                     0o0100640),
                     self.CreateStat("/etc/cron.d/cronfile2", 0, 0, 0o0100664)]
 
-    exp_crontab = ("Found: System crontabs can be modified by non-privileged "
+    sym_crontab = ("Found: System crontabs can be modified by non-privileged "
                    "users.")
     found_crontab = [("/etc/cron.daily/test1 user: 0, group: 60, "
-                      "mode: -rw-rw----\n"),
+                      "mode: -rw-rw----"),
                      ("/etc/cron.daily/test2 user: 50, group: 0, "
-                      "mode: -r--r--r--\n")]
+                      "mode: -r--r--r--")]
 
     artifact_allow_deny = "CronAtAllowDenyFiles"
     data_allow_deny = [self.CreateStat("/etc/cron.allow", 5, 0, 0o0100640),
@@ -50,24 +50,24 @@ class CronCheckTests(checks_test_lib.HostCheckTest):
                        self.CreateStat("/etc/at.allow", 0, 0, 0o0100440),
                        self.CreateStat("/etc/at.deny", 0, 0, 0o0100666)]
 
-    exp_allow_deny = ("Found: System cron or at allow/deny files can be "
-                      "modified by non-privileged users.\n")
-    found_allow_deny = ["/etc/cron.allow user: 5, group: 0, mode: -rw-r-----\n",
-                        "/etc/at.deny user: 0, group: 0, mode: -rw-rw-rw-\n"]
+    sym_allow_deny = ("Found: System cron or at allow/deny files can be "
+                      "modified by non-privileged users.")
+    found_allow_deny = ["/etc/cron.allow user: 5, group: 0, mode: -rw-r-----",
+                        "/etc/at.deny user: 0, group: 0, mode: -rw-rw-rw-"]
 
     # Run checks only with results from only one artifact each
     results = self.GenResults([artifact_crontab], [data_crontab])
-    self.assertCheckDetectedAnom(check_id, results, exp_crontab, found_crontab)
+    self.assertCheckDetectedAnom(check_id, results, sym_crontab, found_crontab)
 
     results = self.GenResults([artifact_allow_deny], [data_allow_deny])
-    self.assertCheckDetectedAnom(check_id, results, exp_allow_deny,
+    self.assertCheckDetectedAnom(check_id, results, sym_allow_deny,
                                  found_allow_deny)
 
     # Run checks with results from both artifacts
     results = self.GenResults([artifact_crontab, artifact_allow_deny],
                               [data_crontab, data_allow_deny])
-    self._CheckMultipleExpPerCheck(check_id, results,
-                                   [exp_crontab, exp_allow_deny],
+    self._CheckMultipleSymPerCheck(check_id, results,
+                                   [sym_crontab, sym_allow_deny],
                                    [found_crontab, found_allow_deny])
 
   def testCronAllowDoesNotExistCheck(self):
@@ -94,9 +94,9 @@ class CronCheckTests(checks_test_lib.HostCheckTest):
              self.CreateStat("/etc/cron/cron.allow", 300, 70, 0o0100640),
              self.CreateStat("/home/user1/at.allow", 400, 70, 0o0100640)]
 
-    exp_cron_allow = ("Missing attribute: /etc/cron.allow does not exist "
+    sym_cron_allow = ("Missing attribute: /etc/cron.allow does not exist "
                       "on the system.")
-    exp_at_allow = ("Missing attribute: /etc/at.allow does not exist "
+    sym_at_allow = ("Missing attribute: /etc/at.allow does not exist "
                     "on the system.")
 
     found = ["Expected state was not found"]
@@ -107,18 +107,18 @@ class CronCheckTests(checks_test_lib.HostCheckTest):
 
     # check with only one file existing - one hit
     results = self.GenResults([artifact], [data2])
-    self.assertCheckDetectedAnom(check_id, results, exp_cron_allow, found)
+    self.assertCheckDetectedAnom(check_id, results, sym_cron_allow, found)
 
     # check when both files don't exist - two hits
     results = self.GenResults([artifact], [data3])
-    self._CheckMultipleExpPerCheck(check_id, results,
-                                   [exp_cron_allow, exp_at_allow],
+    self._CheckMultipleSymPerCheck(check_id, results,
+                                   [sym_cron_allow, sym_at_allow],
                                    [found, found])
 
     # Provide empty host data - check both files don't exist - two hits
     results = self.GenResults([artifact], [None])
-    self._CheckMultipleExpPerCheck(check_id, results,
-                                   [exp_cron_allow, exp_at_allow],
+    self._CheckMultipleSymPerCheck(check_id, results,
+                                   [sym_cron_allow, sym_at_allow],
                                    [found, found])
 
   def testCronDenyExistCheck(self):
@@ -145,21 +145,21 @@ class CronCheckTests(checks_test_lib.HostCheckTest):
              self.CreateStat("/etc/cron/cron.deny", 300, 70, 0o0100640),
              self.CreateStat("/home/user1/at.deny", 400, 70, 0o0100640)]
 
-    exp_cron_deny = "Found: /etc/cron.deny exists on the system."
-    exp_at_deny = "Found: /etc/at.deny exists on the system."
+    sym_cron_deny = "Found: /etc/cron.deny exists on the system."
+    sym_at_deny = "Found: /etc/at.deny exists on the system."
 
-    found_cron_deny = ["/etc/cron.deny user: 0, group: 0, mode: -rw-r-----\n"]
-    found_at_deny = ["/etc/at.deny user: 0, group: 0, mode: -rw-r-----\n"]
+    found_cron_deny = ["/etc/cron.deny user: 0, group: 0, mode: -rw-r-----"]
+    found_at_deny = ["/etc/at.deny user: 0, group: 0, mode: -rw-r-----"]
 
     # check when both files exists
     results = self.GenResults([artifact], [data1])
-    self._CheckMultipleExpPerCheck(check_id, results,
-                                   [exp_cron_deny, exp_at_deny],
+    self._CheckMultipleSymPerCheck(check_id, results,
+                                   [sym_cron_deny, sym_at_deny],
                                    [found_cron_deny, found_at_deny])
 
     # check with only one file existing - one hit
     results = self.GenResults([artifact], [data2])
-    self.assertCheckDetectedAnom(check_id, results, exp_at_deny, found_at_deny)
+    self.assertCheckDetectedAnom(check_id, results, sym_at_deny, found_at_deny)
 
     # check with both file not existing - no hits
     results = self.GenResults([artifact], [data3])
@@ -169,8 +169,8 @@ class CronCheckTests(checks_test_lib.HostCheckTest):
     """Ensure cron/at allow only contains "root"."""
     check_id = "CIS-CRON-AT-ALLOW-ONLY-CONTAINS-ROOT"
     artifact = "CronAtAllowDenyFiles"
-    exp = ("Found: at.allow or cron.allow contains non-root users or does "
-           "not contain root.\n")
+    sym = ("Found: at.allow or cron.allow contains non-root users or does "
+           "not contain root.")
     parser = config_file.CronAtAllowDenyParser()
 
     data = {"/etc/at.allow": "root",
@@ -179,22 +179,22 @@ class CronCheckTests(checks_test_lib.HostCheckTest):
     found = ["/etc/cron.allow: user1"]
 
     results = self.GenResults([artifact], [data], [parser])
-    self.assertCheckDetectedAnom(check_id, results, exp, found)
+    self.assertCheckDetectedAnom(check_id, results, sym, found)
 
     data = {"/etc/at.allow": "",
             "/etc/cron.allow": "root"}
-    found = ["/etc/at.allow: "]
+    found = ["/etc/at.allow:"]
 
     results = self.GenResults([artifact], [data], [parser])
-    self.assertCheckDetectedAnom(check_id, results, exp, found)
+    self.assertCheckDetectedAnom(check_id, results, sym, found)
 
     data = {"/etc/at.allow": "",
             "/etc/cron.allow": ""}
-    found = ["/etc/at.allow: ",
-             "/etc/cron.allow: "]
+    found = ["/etc/at.allow:",
+             "/etc/cron.allow:"]
 
     results = self.GenResults([artifact], [data], [parser])
-    self.assertCheckDetectedAnom(check_id, results, exp, found)
+    self.assertCheckDetectedAnom(check_id, results, sym, found)
 
     data = {"/etc/at.allow": "root",
             "/etc/cron.allow": "root"}

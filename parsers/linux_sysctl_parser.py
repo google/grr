@@ -3,12 +3,13 @@
 
 from grr.lib import parsers
 from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.parsers import config_file
 
 
 class ProcSysParser(parsers.FileParser):
   """Parser for /proc/sys entries."""
 
-  output_types = ["KeyValue"]
+  output_types = ["AttributedDict"]
   supported_artifacts = ["LinuxProcSysHardeningSettings"]
   process_together = True
 
@@ -27,3 +28,29 @@ class ProcSysParser(parsers.FileParser):
       k, v = self._Parse(stat, file_obj)
       config[k] = v
     return [rdf_protodict.AttributedDict(config)]
+
+
+class SysctlCmdParser(parsers.CommandParser):
+  """Parser for sysctl -a output."""
+
+  output_types = ["AttributedDict"]
+  supported_artifacts = ["LinuxSysctlCmd"]
+
+  def __init__(self, *args, **kwargs):
+    super(SysctlCmdParser, self).__init__(*args, **kwargs)
+    self.lexer = config_file.KeyValueParser()
+
+  def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
+            knowledge_base):
+    """Parse the sysctl output."""
+    _ = stderr, time_taken, args, knowledge_base  # Unused.
+    self.CheckReturn(cmd, return_val)
+    result = rdf_protodict.AttributedDict()
+    # The KeyValueParser generates an ordered dict by default. The sysctl vals
+    # aren't ordering dependent, but there's no need to un-order it.
+    for k, v in self.lexer.ParseToOrderedDict(stdout).iteritems():
+      key = k.replace(".", "_")
+      if len(v) == 1:
+        v = v[0]
+      result[key] = v
+    return [result]

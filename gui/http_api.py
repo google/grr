@@ -29,7 +29,7 @@ def BuildToken(request, execution_time):
   if request.method == "GET":
     reason = request.GET.get("reason", "")
   elif request.method == "POST":
-    reason = request.POST.get("reason", "")
+    reason = request.META.get("HTTP_GRR_REASON", "")
 
   token = access_control.ACLToken(
       username=request.user,

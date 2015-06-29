@@ -1,0 +1,152 @@
+--- !ruby/object:Puppet::Transaction::Report
+  transaction_uuid: f43fsef-f54g45g-gh56h5h-f34f34
+  host: fergrt-htrhrth-rsrhst
+  logs:
+    - !ruby/object:Puppet::Util::Log
+      message: "defined 'message' as 'Hello from svc'"
+      tags:
+        - node
+        - notify
+        - class
+        - notice
+        - "wiggles_fleet::service_specific_module"
+      line: 8
+      time: 2015-05-26 22:29:08.839143 -07:00
+      file: /var/lib/puppetmaster/init.pp
+      level: !ruby/sym notice
+      source: /Stage[main]/svc/Notify[svc]/message
+  environment: funstable
+  time: 2015-05-26 22:28:51.895810 -07:00
+  configuration_version: "94543240 puppet.asdf.doodle.com"
+  puppet_version: "3.8.2"
+  kind: apply
+  report_format: 4
+  resource_statuses:
+    File[/usr/share/cache]: !ruby/object:Puppet::Resource::Status
+      resource: File[/usr/share/cache]
+      file: /var/lib/puppetmaster/puppet.pp
+      line: 29
+      evaluation_time: 0.004142
+      change_count: 0
+      out_of_sync_count: 0
+      tags:
+        - file
+        - node
+        - class
+        - default
+        - auth
+        - nss
+      time: 2015-05-26 22:29:08.518493 -07:00
+      events: []
+      out_of_sync: false
+      changed: false
+      resource_type: File
+      title: /usr/share/cache
+      skipped: false
+      failed: false
+      containment_path:
+        - Stage[main]
+        - File[/usr/share/cache]
+  status: changed
+  metrics:
+    time: !ruby/object:Puppet::Util::Metric
+      name: time
+      values:
+        - - exec
+          - Exec
+          - 19.514336
+        - - file
+          - File
+          - 3.597725
+        - - notify
+          - Notify
+          - 0.004843
+        - - tidy
+          - Tidy
+          - 0.000175
+        - - filebucket
+          - Filebucket
+          - 0.00019
+        - - user
+          - User
+          - 0.002519
+        - - config_retrieval
+          - "Config retrieval"
+          - 5.93517804145813
+          - 0.001196
+        - - augeas
+          - Augeas
+          - 10.654779
+        - - total
+          - Total
+          - 47.0478430414581
+        - - cron
+          - Cron
+          - 0.001264
+        - - schedule
+          - Schedule
+          - 0.001254
+        - - group
+          - Group
+          - 0.001759
+        - - mount
+          - Mount
+          - 0.00133
+        - - package
+          - Package
+          - 3.765828
+        - - filekeyvalue
+          - Filekeyvalue
+          - 0.002551
+        - - service
+          - Service
+          - 3.562916
+      label: Time
+    changes: !ruby/object:Puppet::Util::Metric
+      name: changes
+      values:
+        - - total
+          - Total
+          - 8
+      label: Changes
+    resources: !ruby/object:Puppet::Util::Metric
+      name: resources
+      values:
+        - - out_of_sync
+          - "Out of sync"
+          - 8
+        - - changed
+          - Changed
+          - 8
+        - - restarted
+          - Restarted
+          - 0
+        - - failed_to_restart
+          - "Failed to restart"
+          - 0
+        - - total
+          - Total
+          - 448
+        - - skipped
+          - Skipped
+          - 0
+        - - scheduled
+          - Scheduled
+          - 0
+        - - failed
+          - Failed
+          - 0
+      label: Resources
+    events: !ruby/object:Puppet::Util::Metric
+      name: events
+      values:
+        - - success
+          - Success
+          - 8
+        - - total
+          - Total
+          - 8
+        - - failure
+          - Failure
+          - 0
+      label: Events

@@ -301,11 +301,6 @@ message ExportedFileStoreHash {
     }];
 }
 
-message ExportedSoftware {
-  optional ExportedMetadata metadata = 1;
-  optional SoftwarePackage software = 2;
-}
-
 message ExportedMatch {
   optional ExportedMetadata metadata = 1;
   optional uint64 offset = 2;

@@ -283,7 +283,7 @@ class StatFilter(Filter):
     expression: A statfilter expression
 
   Yields:
-    StatResult objets that match the filter term.
+    StatResult objects that match the filter term.
   """
   _KEYS = {"path_re", "file_re", "file_type", "uid", "gid", "mode", "mask"}
   _UID_GID_RE = re.compile(r"\A(!|>|>=|<=|<|=)([0-9]+)\Z")

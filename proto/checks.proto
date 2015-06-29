@@ -152,10 +152,10 @@ message CheckResults {
 // condensed form when reporting problems.
 message Hint {
   optional string problem = 1 [(sem_type) = {
-    description: "A description of the issue and how to fix it."
+    description: "A description of the issue."
   }];
   optional string fix = 2 [(sem_type) = {
-    description: "A description of the issue and how to fix it."
+    description: "A description of how to fix the issue."
   }];
   optional string format = 3 [(sem_type) = {
     description: "A template expression to format finding for an issue."

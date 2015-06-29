@@ -92,10 +92,6 @@ class ExportedCheckResult(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedCheckResult
 
 
-class ExportedSoftware(rdf_structs.RDFProtoStruct):
-  protobuf = export_pb2.ExportedSoftware
-
-
 class ExportedMatch(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedMatch
 
@@ -541,16 +537,6 @@ class ProcessToExportedOpenFileConverter(ExportConverter):
       yield ExportedOpenFile(metadata=metadata,
                              pid=process.pid,
                              path=f)
-
-
-class SoftwareToExportedSoftwareConverter(ExportConverter):
-  """Converts Software to ExportedSoftware."""
-
-  input_rdf_type = "Software"
-
-  def Convert(self, metadata, software, token=None):
-    yield ExportedSoftware(metadata=metadata,
-                           software=software)
 
 
 class InterfaceToExportedNetworkInterfaceConverter(ExportConverter):

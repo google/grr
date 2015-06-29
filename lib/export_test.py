@@ -626,10 +626,8 @@ class ExportTest(test_lib.GRRBaseTest):
         ]
     metadata = export.ExportedMetadata()
 
-    converter = export.CheckResultConverter()
-    results = list(converter.BatchConvert(
-        [(metadata, r) for r in checkresults],
-        token=self.token))
+    results = list(
+        export.ConvertValues(metadata, checkresults, token=self.token))
     self.assertEqual(len(results), 3)
     self.assertEqual(results[0].check_id, checkresults[0].check_id)
     self.assertFalse(results[0].HasField("anomaly"))
