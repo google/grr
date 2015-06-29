@@ -123,13 +123,6 @@ function run_cmd_confirm()
   fi
 };
 
-function install_mongo()
-{
-  apt-get --yes --force-yes install mongodb python-pymongo;
-  service mongodb stop 2>/dev/null || true
-  service mongodb start 2>/dev/null
-}
-
 header "Updating APT and Installing dependencies"
 run_cmd_confirm apt-get --yes update;
 run_cmd_confirm apt-get --yes upgrade;
@@ -195,9 +188,6 @@ if [ $BUILD_DEPS_ONLY = 1 ]; then
   echo "#######################################"
   exit 0
 fi
-
-header "Installing Mongodb"
-run_cmd_confirm install_mongo
 
 header "Installing GRR from prebuilt package"
 SERVER_DEB=$(basename ${SERVER_DEB_URL});
