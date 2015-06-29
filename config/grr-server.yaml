@@ -367,11 +367,6 @@ Platform:Windows:
     # windows we write configuration into the registry.
     Config.writeback: reg://%(Client.config_hive)/%(Client.config_key)
 
-SingleServer Context:
-  Logging.filename: "%(Logging.path)/grr-single-server.log"
-
-  Monitoring.http_port: 44441
-
 Worker Context:
   Cron.active: True
 
