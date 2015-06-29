@@ -87,14 +87,6 @@ class EntryPointTest(test_lib.GRRBaseTest):
                                     timeout=self.default_timeout * 2)
 
   @test_lib.SetLabel("large")
-  def testGrrSingleServer(self):
-    run_bin = os.path.join(self.bin_dir, "tools",
-                           "grr_server" + self.bin_ext)
-    self.RunForTimeWithNoExceptions(self.interpreter,
-                                    [run_bin] + self.extra_opts,
-                                    timeout=self.default_timeout * 2)
-
-  @test_lib.SetLabel("large")
   def testFileExporter(self):
     run_bin = os.path.join(self.bin_dir, "tools",
                            "export" + self.bin_ext)
