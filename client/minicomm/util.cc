@@ -1,8 +1,8 @@
-#include "util.h"
+#include "grr/client/minicomm/util.h"
 
 #include <array>
 
-#include "base.h"
+#include "grr/client/minicomm/base.h"
 
 namespace grr {
 namespace {
@@ -25,5 +25,11 @@ std::string UrlDirname(const std::string& input) {
     return "";
   }
   return input.substr(0, end_slash);
+}
+
+std::string ErrorName(int errnum) {
+  char buff[1025];
+  strerror_r(errnum, buff, sizeof(buff));
+  return ArrayToString(buff);
 }
 }  // namespace grr

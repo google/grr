@@ -1,4 +1,4 @@
-#include "message_queue.h"
+#include "grr/client/minicomm/message_queue.h"
 
 #include <chrono>
 #include <memory>

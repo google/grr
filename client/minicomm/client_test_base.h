@@ -5,7 +5,7 @@
 #include <string>
 
 #include "gtest/gtest.h"
-#include "config.h"
+#include "grr/client/minicomm/config.h"
 
 namespace grr {
 

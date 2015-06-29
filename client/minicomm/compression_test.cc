@@ -1,4 +1,4 @@
-#include "compression.h"
+#include "grr/client/minicomm/compression.h"
 
 #include "gtest/gtest.h"
 

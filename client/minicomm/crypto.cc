@@ -1,4 +1,4 @@
-#include "crypto.h"
+#include "grr/client/minicomm/crypto.h"
 
 #include <stddef.h>
 #include <memory>

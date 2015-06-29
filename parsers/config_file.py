@@ -546,7 +546,8 @@ class RsyslogParser(parsers.FileParser, FieldParser):
       ("NULL", re.compile(r"(?:~)([^;]*)")),
       ("SCRIPT", re.compile(r"(?:\^)([^;]*)")),
       ("MODULE", re.compile(r"(?::om\w:)([^;]*)")),
-      ("FILE", re.compile(r"(/[^;]*)"))])
+      ("FILE", re.compile(r"-?(/[^;]*)")),
+      ("WALL", re.compile(r"(\*)"))])
 
   def _ParseAction(self, action):
     """Extract log configuration data from rsyslog actions.
@@ -570,12 +571,14 @@ class RsyslogParser(parsers.FileParser, FieldParser):
     Returns:
       a rdfvalue.LogTarget message.
     """
+    rslt = rdf_config_file.LogTarget()
     for dst_str, dst_re in self.destinations.iteritems():
       dst = dst_re.match(action)
       if dst:
-        endpoint = dst.group(1)
-        return rdf_config_file.LogTarget(transport=dst_str,
-                                         destination=endpoint)
+        rslt.transport = dst_str
+        rslt.destination = dst.group(1)
+        break
+    return rslt
 
   def ParseMultiple(self, unused_stats, file_objs, unused_knowledge_base):
     # TODO(user): review quoting and line continuation.

@@ -1445,6 +1445,14 @@ message FindSpec {
       type: "StatMode",
       description: "File permission mode to match against."
     }];
+
+  optional uint64 uid = 16 [(sem_type) = {
+      description: "User ID to match against a file's UID."
+    }];
+
+  optional uint64 gid = 17 [(sem_type) = {
+      description: "Group ID to match against a file's GID."
+    }];
 }
 
 message PlistRequest {

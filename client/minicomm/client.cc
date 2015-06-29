@@ -1,4 +1,4 @@
-#include "client.h"
+#include "grr/client/minicomm/client.h"
 
 #include <thread>
 

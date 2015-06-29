@@ -589,7 +589,7 @@ class StatMode(rdfvalue.RDFInteger):
     elif stat.S_ISDIR(mode):
       type_char = "d"
     elif stat.S_ISFIFO(mode):
-      type_char = "f"
+      type_char = "p"
     elif stat.S_ISLNK(mode):
       type_char = "l"
     elif stat.S_ISSOCK(mode):

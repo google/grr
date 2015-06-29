@@ -19,7 +19,7 @@
 // Supports move, but not copy, as copies require specific knowledge about the
 // openssl type.
 
-#include "base.h"  // GOOGLE_CHECK
+#include "grr/client/minicomm/base.h"  // GOOGLE_CHECK
 
 template <typename OpenSSLType, void (*deallocator)(OpenSSLType *)>
 class scoped_ptr_openssl_void {

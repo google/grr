@@ -15,10 +15,10 @@
 
 #include "curl/curl.h"
 
-#include "../../proto/jobs.pb.h"
-#include "comms_utils.h"
-#include "crypto.h"
-#include "util.h"
+#include "grr/client/minicomm/comms_utils.h"
+#include "grr/client/minicomm/crypto.h"
+#include "grr/client/minicomm/util.h"
+#include "grr/proto/jobs.pb.h"
 
 namespace grr {
 namespace {

@@ -6,9 +6,11 @@ This module implements the Rekall enabled client actions.
 
 
 
+import logging
 import os
 import pdb
 import sys
+import traceback
 
 
 # Initialize the Rekall plugins, so pylint: disable=unused-import
@@ -31,6 +33,7 @@ from grr.client.client_actions import tempfiles
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import utils
+from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths
 from grr.lib.rdfvalues import rekall_types
 
@@ -85,7 +88,7 @@ class GRRRekallRenderer(data_export.DataExportRenderer):
   # Maximum number of statements to queue before sending a reply.
   RESPONSE_CHUNK_SIZE = 1000
 
-  def __init__(self, rekall_session=None, action=None):
+  def __init__(self, rekall_session=None, action=None, output=None):
     """Collect Rekall rendering commands and send to the server.
 
     Args:
@@ -108,7 +111,8 @@ class GRRRekallRenderer(data_export.DataExportRenderer):
 
     self.context_messages = {}
     self.new_context_messages = {}
-    self.robust_encoder = json_renderer.RobustEncoder()
+    self.robust_encoder = json_renderer.RobustEncoder(
+        logging=rekall_session.logging)
 
   def start(self, plugin_name=None, kwargs=None):
     self.plugin = plugin_name
@@ -185,7 +189,7 @@ class GrrRekallSession(session.Session):
       return profile
 
     # Cant load the profile, we need to ask the server for it.
-    logging.debug("Asking server for profile %s", name)
+    self.logging.info("Asking server for profile %s", name)
     self.action.SendReply(
         rekall_types.RekallResponse(
             missing_profile=name,
@@ -201,9 +205,15 @@ class GrrRekallSession(session.Session):
     return super(GrrRekallSession, self).LoadProfile(
         name, use_cache=False)
 
-  def GetRenderer(self):
+  def GetRenderer(self, output=None):
     # We will use this renderer to push results to the server.
-    return GRRRekallRenderer(rekall_session=self, action=self.action)
+    return GRRRekallRenderer(rekall_session=self, action=self.action,
+                             output=output)
+
+  def _HandleRunPluginException(self, ui_renderer, e):
+    """Log the exception and raise it."""
+    self.logging.error(str(e))
+    raise e
 
 
 class WriteRekallProfile(actions.ActionPlugin):
@@ -257,12 +267,19 @@ class RekallAction(actions.SuspendableAction):
 
     rekal_session = GrrRekallSession(action=self, **session_args)
 
+    plugin_errors = []
+
     for plugin_request in self.request.plugins:
       # Get the keyword args to this plugin.
       plugin_args = plugin_request.args.ToDict()
       try:
         rekal_session.RunPlugin(plugin_request.plugin, **plugin_args)
-
       except Exception as e:  # pylint: disable=broad-except
-        # The exception has already been logged at this point in the renderer.
-        logging.info(str(e))
+        tb = traceback.format_exc()
+        logging.fatal("While running plugin (%s): %s",
+                      plugin_request.plugin, tb)
+        plugin_errors.append(tb)
+
+    if plugin_errors:
+      self.SetStatus(rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR,
+                     u"\n\n".join(plugin_errors))

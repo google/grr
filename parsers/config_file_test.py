@@ -196,12 +196,15 @@ class RsyslogParserTests(test_lib.GRRBaseTest):
     news,uucp.* ~
     user.* ^/usr/bin/log2cowsay
     *.* /var/log/messages
+    *.emerg    *
+    mail.*  -/var/log/maillog
     """
     log_conf = StringIO.StringIO(test_data)
     config = config_file.RsyslogParser()
     results = list(config.ParseMultiple([None], [log_conf], None))
     self.assertEqual(1, len(results))
-    tcp, udp, pipe, null, script, fs = [target for target in results[0].targets]
+    tcp, udp, pipe, null, script, fs, wall, async_fs = [
+        target for target in results[0].targets]
 
     self.assertEqual("daemon", tcp.facility)
     self.assertEqual("*", tcp.priority)
@@ -232,6 +235,16 @@ class RsyslogParserTests(test_lib.GRRBaseTest):
     self.assertEqual("*", fs.priority)
     self.assertEqual("FILE", fs.transport)
     self.assertEqual("/var/log/messages", fs.destination)
+
+    self.assertEqual("*", wall.facility)
+    self.assertEqual("emerg", wall.priority)
+    self.assertEqual("WALL", wall.transport)
+    self.assertEqual("*", wall.destination)
+
+    self.assertEqual("mail", async_fs.facility)
+    self.assertEqual("*", async_fs.priority)
+    self.assertEqual("FILE", async_fs.transport)
+    self.assertEqual("/var/log/maillog", async_fs.destination)
 
 
 class APTPackageSourceParserTests(test_lib.GRRBaseTest):

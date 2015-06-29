@@ -1,4 +1,4 @@
-#include "subprocess_delegator.h"
+#include "grr/client/minicomm/subprocess_delegator.h"
 
 #include <signal.h>
 #include <stddef.h>
@@ -10,8 +10,8 @@
 #include <string>
 #include <vector>
 
-#include "base.h"
-#include "config.pb.h"
+#include "grr/client/minicomm/base.h"
+#include "grr/client/minicomm/config.pb.h"
 #include "grr/proto/jobs.pb.h"
 
 namespace grr {

@@ -360,9 +360,10 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     query = source.attributes["query"]
     queries = artifact_lib.InterpolateKbAttributes(query,
                                                    self.state.knowledge_base)
+    base_object = source.attributes.get("base_object")
     for query in queries:
       self.CallClient(
-          "WmiQuery", query=query,
+          "WmiQuery", query=query, base_object=base_object,
           request_data={"artifact_name": self.current_artifact_name,
                         "source": source.ToPrimitiveDict()},
           next_state="ProcessCollected"

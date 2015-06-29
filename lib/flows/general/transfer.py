@@ -271,6 +271,9 @@ class MultiGetFileMixin(object):
     self.state.Register("files_fetched", 0)
     self.state.Register("files_skipped", 0)
 
+    # Counter to batch up hash checking in the filestore
+    self.state.Register("files_hashed_since_check", 0)
+
     # A dict of file trackers which are waiting to be checked by the file
     # store.  Keys are vfs urns and values are FileTrack instances.  Values are
     # copied to pending_files for download if not present in FileStore.
@@ -374,7 +377,8 @@ class MultiGetFileMixin(object):
     tracker.hash_obj = hash_obj
     tracker.bytes_read = response.bytes_read
 
-    if len(self.state.pending_hashes) >= self.MIN_CALL_TO_FILE_STORE:
+    self.state.files_hashed_since_check += 1
+    if self.state.files_hashed_since_check >= self.MIN_CALL_TO_FILE_STORE:
       self._CheckHashesWithFileStore()
 
   def _CheckHashesWithFileStore(self):
@@ -399,6 +403,11 @@ class MultiGetFileMixin(object):
     # keys are hashdigest objects, values are arrays of tracker objects.
     hash_to_urn = {}
     for vfs_urn, tracker in self.state.pending_hashes.iteritems():
+
+      # We might not have gotten this hash yet
+      if tracker.hash_obj is None:
+        continue
+
       digest = tracker.hash_obj.sha256
       file_hashes[vfs_urn] = tracker.hash_obj
       hash_to_urn.setdefault(digest, []).append(tracker)
@@ -415,11 +424,14 @@ class MultiGetFileMixin(object):
       for tracker in hash_to_urn[digest]:
         vfs_urn = tracker.urn
         self.state.files_skipped += 1
-        file_hashes.pop(vfs_urn, None)
+        file_hashes.pop(vfs_urn)
         files_in_filestore.add(file_store_urn)
         # Remove this tracker from the pending_hashes store since we no longer
         # need to process it.
-        self.state.pending_hashes.pop(vfs_urn, None)
+        self.state.pending_hashes.pop(vfs_urn)
+
+    # Now that the check is done, reset our counter
+    self.state.files_hashed_since_check = 0
 
     # Now copy all existing files to the client aff4 space.
     for existing_blob in aff4.FACTORY.MultiOpen(files_in_filestore,
@@ -432,9 +444,11 @@ class MultiGetFileMixin(object):
 
       for file_tracker in hash_to_urn.get(hashset.sha256, []):
 
-        # Some existing_blob files can be created with 0 size, make sure our
-        # size matches the actual size.
-        existing_blob.size = file_tracker.bytes_read
+        # Due to potential filestore corruption, the existing_blob files can
+        # have 0 size, make sure our size matches the actual size in that case.
+        if existing_blob.size == 0:
+          existing_blob.size = (file_tracker.bytes_read or
+                                file_tracker.stat_entry.st_size)
 
         # Create a file in the client name space with the same classtype and
         # populate its attributes.
@@ -461,7 +475,7 @@ class MultiGetFileMixin(object):
 
       # Move the tracker from the pending hashes store to the pending files
       # store - it will now be downloaded.
-      file_tracker = self.state.pending_hashes.pop(vfs_urn, None)
+      file_tracker = self.state.pending_hashes.pop(vfs_urn)
       self.state.pending_files[vfs_urn] = file_tracker
 
       # Create the VFS file for this file tracker.
@@ -492,10 +506,6 @@ class MultiGetFileMixin(object):
     if self.state.files_hashed % 100 == 0:
       self.Log("Hashed %d files, skipped %s already stored.",
                self.state.files_hashed, self.state.files_skipped)
-
-    # Clear the pending urns. This should already be empty now but just in case
-    # we clear it.
-    self.state.pending_hashes = {}
 
   @flow.StateHandler(next_state="WriteBuffer")
   def CheckHash(self, responses):
