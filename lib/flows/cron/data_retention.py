@@ -15,7 +15,7 @@ class CleanHunts(cronjobs.SystemCronFlow):
   """Cleaner that deletes old hunts."""
 
   frequency = rdfvalue.Duration("7d")
-  lifetime = rdfvalue.Duration("6h")
+  lifetime = rdfvalue.Duration("1d")
 
   @flow.StateHandler()
   def Start(self):
@@ -50,7 +50,7 @@ class CleanCronJobs(cronjobs.SystemCronFlow):
   """Cleaner that deletes old finished cron flows."""
 
   frequency = rdfvalue.Duration("7d")
-  lifetime = rdfvalue.Duration("6h")
+  lifetime = rdfvalue.Duration("1d")
 
   @flow.StateHandler()
   def Start(self):
