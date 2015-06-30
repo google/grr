@@ -30,7 +30,6 @@ class CleanHunts(cronjobs.SystemCronFlow):
     hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
     hunts_urns = list(hunts_root.ListChildren())
 
-    urns_to_delete = []
     deadline = rdfvalue.RDFDatetime().Now() - hunts_ttl
 
     hunts = aff4.FACTORY.MultiOpen(hunts_urns, aff4_type="GRRHunt",
@@ -41,9 +40,7 @@ class CleanHunts(cronjobs.SystemCronFlow):
 
       runner = hunt.GetRunner()
       if runner.context.expires < deadline:
-        urns_to_delete.append(hunt.urn)
-
-    aff4.FACTORY.MultiDelete(urns_to_delete, token=self.token)
+        aff4.FACTORY.MultiDelete(urns_to_delete, token=self.token)
 
 
 class CleanCronJobs(cronjobs.SystemCronFlow):
