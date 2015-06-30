@@ -382,11 +382,13 @@ The GRR Datastore is how all GRR service processes store and share data.\n
 1. SQLite (Default) - This datastore is stored on the local file system. If you
 configure GRR to run as non-root be sure to allow that user access to the files.
 
-2. MySQL - This datastore uses MySQL and requires the MySQL server to be running
-and a user with the ability to create the GRR database and tables.  The MySQL
-client binaries are required for use with the MySQLdb python module as well.
+2. MySQL - This datastore uses MySQL and requires MySQL 5.6 server or later
+to be running and a user with the ability to create the GRR database and tables.
+The MySQL client binaries are required for use with the MySQLdb python module as
+well.
 
-3. Mongo - This datastore is a legacy option and is not recommended.\n"""
+3. Mongo - This datastore uses MongoDB and requires MongoDB server to be
+running.  This datastore is a legacy option and is not recommended.\n"""
 
   datastore = RetryQuestion("Datastore", "^[1-3]$", "1")
 
