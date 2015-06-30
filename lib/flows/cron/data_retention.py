@@ -41,6 +41,7 @@ class CleanHunts(cronjobs.SystemCronFlow):
       runner = hunt.GetRunner()
       if runner.context.expires < deadline:
         aff4.FACTORY.Delete(hunt.urn, token=self.token)
+        self.HeartBeat()
 
 
 class CleanCronJobs(cronjobs.SystemCronFlow):
@@ -63,3 +64,33 @@ class CleanCronJobs(cronjobs.SystemCronFlow):
     for obj in jobs_objs:
       age = rdfvalue.RDFDatetime().Now() - cron_jobs_ttl
       obj.DeleteJobFlows(age)
+      self.HeartBeat
+
+class CleanTmp(cronjobs.SystemCronFlow):
+  """Cleaner that deletes old hunts."""
+
+  frequency = rdfvalue.Duration("7d")
+  lifetime = rdfvalue.Duration("1d")
+
+  @flow.StateHandler()
+  def Start(self):
+    tmp_ttl = config_lib.CONFIG["DataRetention.tmp_ttl"]
+    if not tmp_ttl:
+      self.Log("TTL not set - nothing to do...")
+      return
+
+    exception_label = config_lib.CONFIG[
+        "DataRetention.tmp_ttl_exception_label"]
+
+    tmp_root = aff4.FACTORY.Open("aff4:/tmp", token=self.token)
+    tmp_urns = list(tmp_root.ListChildren())
+
+    deadline = rdfvalue.RDFDatetime().Now() - tmp_ttl
+
+    for urn in tmp_urns:
+      obj = aff4.FACTORY.Open(urn)
+      if exception_label in obj.GetLabelsNames():
+        continue
+
+      if urn.age < deadline:
+        aff4.FACTORY.Delete(urn, token=self.token)
