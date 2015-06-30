@@ -66,7 +66,7 @@ class CleanCronJobs(cronjobs.SystemCronFlow):
       obj.DeleteJobFlows(age)
       self.HeartBeat
 
-class CleanTmp(cronjobs.SystemCronFlow):
+class CleanTemp(cronjobs.SystemCronFlow):
   """Cleaner that deletes old hunts."""
 
   frequency = rdfvalue.Duration("7d")
@@ -88,9 +88,10 @@ class CleanTmp(cronjobs.SystemCronFlow):
     deadline = rdfvalue.RDFDatetime().Now() - tmp_ttl
 
     for urn in tmp_urns:
-      obj = aff4.FACTORY.Open(urn)
+      obj = aff4.FACTORY.Open(urn, token=self.token)
       if exception_label in obj.GetLabelsNames():
         continue
 
       if urn.age < deadline:
         aff4.FACTORY.Delete(urn, token=self.token)
+        self.HeartBeat()
