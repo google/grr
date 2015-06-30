@@ -40,7 +40,7 @@ class CleanHunts(cronjobs.SystemCronFlow):
 
       runner = hunt.GetRunner()
       if runner.context.expires < deadline:
-        aff4.FACTORY.MultiDelete(urns_to_delete, token=self.token)
+        aff4.FACTORY.Delete(hunt.urn, token=self.token)
 
 
 class CleanCronJobs(cronjobs.SystemCronFlow):
