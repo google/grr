@@ -3,6 +3,8 @@
 
 
 
+import re
+
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flow
@@ -67,7 +69,7 @@ class CleanCronJobs(cronjobs.SystemCronFlow):
       self.HeartBeat
 
 class CleanTemp(cronjobs.SystemCronFlow):
-  """Cleaner that deletes old hunts."""
+  """Cleaner that deletes temp objects."""
 
   frequency = rdfvalue.Duration("7d")
   lifetime = rdfvalue.Duration("1d")
@@ -82,7 +84,7 @@ class CleanTemp(cronjobs.SystemCronFlow):
     exception_label = config_lib.CONFIG[
         "DataRetention.tmp_ttl_exception_label"]
 
-    tmp_root = aff4.FACTORY.Open("aff4:/tmp", token=self.token)
+    tmp_root = aff4.FACTORY.Open("aff4:/tmp", mode="r", token=self.token)
     tmp_urns = list(tmp_root.ListChildren())
 
     deadline = rdfvalue.RDFDatetime().Now() - tmp_ttl
@@ -94,4 +96,37 @@ class CleanTemp(cronjobs.SystemCronFlow):
 
       if urn.age < deadline:
         aff4.FACTORY.Delete(urn, token=self.token)
+        self.HeartBeat()
+
+class CleanInactiveClients(cronjobs.SystemCronFlow):
+  """Cleaner that deletes inactive clients."""
+
+  frequency = rdfvalue.Duration("7d")
+  lifetime = rdfvalue.Duration("1d")
+  CLIENT_URN_PATTERN = "aff4:/C." + "[0-9a-fA-F]" * 16
+
+  @flow.StateHandler()
+  def Start(self):
+    client_regex = re.compile(self.CLIENT_URN_PATTERN)
+    inactive_client_ttl = config_lib.CONFIG["DataRetention.inactive_client_ttl"]
+    if not inactive_client_ttl:
+      self.Log("TTL not set - nothing to do...")
+      return
+
+    exception_label = config_lib.CONFIG[
+        "DataRetention.inactive_client_ttl_exception_label"]
+
+    aff4_root = aff4.FACTORY.Open("aff4:/", mode="r", token=self.token)
+    aff4_urns = list(aff4_root.ListChildren())
+    client_urns = [x for x in aff4_urns if re.match(client_regex, str(x))]
+
+    deadline = rdfvalue.RDFDatetime().Now() - inactive_client_ttl
+
+    for client_urn in client_urns:
+      client = aff4.FACTORY.Open(client_urn, mode="r", token=self.token)
+      if exception_label in client.GetLabelsNames():
+        continue
+
+      if client.Get(client.Schema.LAST) < deadline:
+        aff4.FACTORY.Delete(client_urn, token=self.token)
         self.HeartBeat()

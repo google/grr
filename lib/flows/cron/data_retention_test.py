@@ -2,6 +2,7 @@
 """Tests for datastore cleaning cron flows."""
 
 
+import re
 
 from grr.lib import aff4
 from grr.lib import config_lib
@@ -182,6 +183,7 @@ class CleanCronJobsTest(test_lib.FlowTestsBaseclass):
         self.assertTrue(child_urn.age >
                         latest_timestamp - rdfvalue.Duration("150s"))
 
+
 class CleanTempTest(test_lib.FlowTestsBaseclass):
   """Test the CleanTemp flow."""
 
@@ -246,6 +248,84 @@ class CleanTempTest(test_lib.FlowTestsBaseclass):
     tmp_urns = list(aff4.FACTORY.Open("aff4:/tmp",
                                         token=self.token).ListChildren())
     self.assertEqual(len(tmp_urns), 3)
+
+
+class CleanInactiveClientsTest(test_lib.FlowTestsBaseclass):
+  """Test the CleanTemp flow."""
+
+  NUM_CLIENT = 10
+  CLIENT_URN_PATTERN = "aff4:/C.A" + "[0-9a-fA-F]" * 15
+
+  def setUp(self):
+    super(CleanInactiveClientsTest, self).setUp()
+
+    self.client_urns = []
+    self.client_regex = re.compile(self.CLIENT_URN_PATTERN)
+    for i in range(self.NUM_CLIENT):
+      with test_lib.FakeTime(40 + 60 * i):
+        client = aff4.FACTORY.Create("aff4:/C.A%015X" % i, "VFSGRRClient", mode="w",
+                                     token=self.token)
+        client.Set(client.Schema.LAST(rdfvalue.RDFDatetime().Now()))
+        client.Close()
+        self.client_urns.append(client.urn)
+
+
+  def testDoesNothingIfAgeLimitNotSetInConfig(self):
+    with test_lib.FakeTime(40 + 60 * self.NUM_CLIENT):
+      flow.GRRFlow.StartFlow(
+          flow_name=data_retention.CleanInactiveClients.__name__,
+          sync=True, token=self.token)
+
+    aff4_root = aff4.FACTORY.Open("aff4:/", mode="r", token=self.token)
+    aff4_urns = list(aff4_root.ListChildren())
+    client_urns = [x for x in aff4_urns if re.match(self.client_regex, str(x))]
+
+    self.assertEqual(len(client_urns), 10)
+
+  def testDeletesInactiveClientsWithAgeOlderThanGivenAge(self):
+    config_lib.CONFIG.Set("DataRetention.inactive_client_ttl",
+                          rdfvalue.Duration("300s"))
+
+    with test_lib.FakeTime(40 + 60 * self.NUM_CLIENT):
+      flow.GRRFlow.StartFlow(
+          flow_name=data_retention.CleanInactiveClients.__name__,
+          sync=True, token=self.token)
+      latest_timestamp = rdfvalue.RDFDatetime().Now()
+
+    aff4_root = aff4.FACTORY.Open("aff4:/", mode="r", token=self.token)
+    aff4_urns = list(aff4_root.ListChildren())
+    client_urns = [x for x in aff4_urns if re.match(self.client_regex, str(x))]
+
+    self.assertEqual(len(client_urns), 5)
+
+    for client_urn in client_urns:
+      client = aff4.FACTORY.Open(client_urn, mode="r", token=self.token)
+      self.assertTrue(client.Get(client.Schema.LAST) < latest_timestamp)
+      self.assertTrue(client.Get(client.Schema.LAST) >=
+                      latest_timestamp - rdfvalue.Duration("300s"))
+
+  def testKeepsTempWithRetainLabel(self):
+    exception_label_name = config_lib.CONFIG[
+        "DataRetention.inactive_client_ttl_exception_label"]
+
+    for client_urn in self.client_urns[:3]:
+      with aff4.FACTORY.Open(client_urn, mode="rw", token=self.token) as fd:
+        fd.AddLabels(exception_label_name)
+
+    config_lib.CONFIG.Set("DataRetention.inactive_client_ttl",
+                          rdfvalue.Duration("10s"))
+
+    with test_lib.FakeTime(40 + 60 * self.NUM_CLIENT):
+      flow.GRRFlow.StartFlow(
+          flow_name=data_retention.CleanInactiveClients.__name__,
+          sync=True, token=self.token)
+
+    aff4_root = aff4.FACTORY.Open("aff4:/", mode="r", token=self.token)
+    aff4_urns = list(aff4_root.ListChildren())
+    client_urns = [x for x in aff4_urns if re.match(self.client_regex, str(x))]
+
+    self.assertEqual(len(client_urns), 3)
+
 
 def main(argv):
   # Run the full test suite
