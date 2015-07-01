@@ -9,7 +9,7 @@ method:
              non-privileged users.
           fix: >
              Make sure all files and folders in $PATH of root are owned by root
-             and not modifable by any other users.
+             and not modifiable by any other users.
           format: >
              {pathspec.path} user: {st_uid}, group: {st_gid}, mode: {st_mode}
         mode: PARALLEL

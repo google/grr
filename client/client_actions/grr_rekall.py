@@ -34,7 +34,6 @@ from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import utils
 from grr.lib.rdfvalues import flows as rdf_flows
-from grr.lib.rdfvalues import paths
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import rekall_types
 
@@ -96,7 +95,7 @@ class GRRRekallRenderer(data_export.DataExportRenderer):
       rekall_session: The Rekall session object.
       action: The GRR Client Action which owns this renderer. We will use it to
          actually send messages back to the server.
-      **kwargs: passthrough.
+      **kwargs: Passthrough.
     """
     try:
       sys.stdout.isatty()
@@ -147,15 +146,9 @@ class GRRRekallRenderer(data_export.DataExportRenderer):
       self.flush()
 
   def open(self, directory=None, filename=None, mode="rb"):
-    result = tempfiles.CreateGRRTempFile(filename=filename, mode=mode)
-    # The tempfile library created an os path, we pass it through vfs to
-    # normalize it.
-    with vfs.VFSOpen(paths.PathSpec(
-        path=result.name,
-        pathtype=paths.PathSpec.PathType.OS)) as vfs_fd:
-      dict_pathspec = vfs_fd.pathspec.ToPrimitiveDict()
-      self.SendMessage(["file", dict_pathspec])
-    return result
+    fd, pathspec = tempfiles.CreateGRRTempFileVFS(filename=filename, mode=mode)
+    self.SendMessage(["file", pathspec.ToPrimitiveDict()])
+    return fd
 
   def report_error(self, message):
     super(GRRRekallRenderer, self).report_error(message)
@@ -183,13 +176,13 @@ class GrrRekallSession(session.Session):
     # progress.
     self.progress.Register(id(self), lambda *_, **__: self.action.Progress())
 
-  def LoadProfile(self, name):
+  def LoadProfile(self, name, **kw):
     """Wraps the Rekall profile's LoadProfile to fetch profiles from GRR."""
     profile = None
 
     # If the user specified a special profile path we use their choice.
     try:
-      profile = super(GrrRekallSession, self).LoadProfile(name)
+      profile = super(GrrRekallSession, self).LoadProfile(name, **kw)
     except io_manager.IOManagerError as e:
       # Currently, Rekall will raise when the repository directory is not
       # created. This is fine, because we'll create the directory after
@@ -213,8 +206,7 @@ class GrrRekallSession(session.Session):
 
     # Now the server should have sent the data already. We try to load the
     # profile one more time.
-    return super(GrrRekallSession, self).LoadProfile(
-        name, use_cache=False)
+    return super(GrrRekallSession, self).LoadProfile(name, use_cache=False)
 
   def GetRenderer(self, **kwargs):
     # We will use this renderer to push results to the server.
@@ -288,7 +280,7 @@ class RekallAction(actions.SuspendableAction):
         rekal_session.RunPlugin(plugin_request.plugin, **plugin_args)
       except Exception:  # pylint: disable=broad-except
         tb = traceback.format_exc()
-        logging.fatal("While running plugin (%s): %s",
+        logging.error("While running plugin (%s): %s",
                       plugin_request.plugin, tb)
         plugin_errors.append(tb)
 

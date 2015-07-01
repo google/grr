@@ -722,7 +722,7 @@ class RDFURNConverter(ExportConverter):
       batch.append((urns_dict[fd.urn], fd))
 
     try:
-      return ConvertValuesWithMetadata(batch)
+      return ConvertValuesWithMetadata(batch, token=token)
     except NoConverterFound as e:
       logging.debug(e)
 

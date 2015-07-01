@@ -1140,8 +1140,6 @@ class ClientCommunicator(communicator.Communicator):
     server side certificates.
   """
 
-  BITS = 1024
-
   def _ParseRSAKey(self, rsa):
     """Use the RSA private key to initialize our parameters.
 
@@ -1179,7 +1177,8 @@ class ClientCommunicator(communicator.Communicator):
 
     # We either have an invalid key or no key. We just generate a new one.
     # 65537 is the standard value for e
-    rsa = RSA.gen_key(self.BITS, 65537, lambda: None)
+    rsa = RSA.gen_key(config_lib.CONFIG["Client.rsa_key_length"],
+                      65537, lambda: None)
 
     self._ParseRSAKey(rsa)
     logging.info("Client pending enrolment %s", self.common_name)

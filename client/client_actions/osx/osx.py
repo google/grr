@@ -1,8 +1,10 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc. All Rights Reserved.
+"""OSX specific actions.
 
-"""OSX specific actions."""
-
+Most of these actions share an interface (in/out rdfvalues) with linux actions
+of the same name. OSX-only actions are registered with the server via
+libs/server_stubs.py
+"""
 
 
 import ctypes

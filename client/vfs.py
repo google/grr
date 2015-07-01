@@ -237,8 +237,8 @@ class VFSHandler(object):
 # A registry of all VFSHandler registered
 VFS_HANDLERS = {}
 
-# The paths we should use as root for VFS operations.
-VFS_CHROOTS = {}
+# The paths we should use as virtual root for VFS operations.
+VFS_VIRTUALROOTS = {}
 
 
 class VFSInit(registry.InitHook):
@@ -250,28 +250,29 @@ class VFSInit(registry.InitHook):
       if handler.auto_register:
         VFS_HANDLERS[handler.supported_pathtype] = handler
 
-    VFS_CHROOTS.clear()
-    vfs_chroots = config_lib.CONFIG["Client.vfs_chroots"]
-    for vfs_chroot in vfs_chroots:
+    VFS_VIRTUALROOTS.clear()
+    vfs_virtualroots = config_lib.CONFIG["Client.vfs_virtualroots"]
+    for vfs_virtualroot in vfs_virtualroots:
       try:
-        handler_string, root = vfs_chroot.split(":", 1)
+        handler_string, root = vfs_virtualroot.split(":", 1)
       except ValueError:
         raise ValueError(
-            "Badly formatted vfs chroot: %s. Correct format is "
-            "os:/path/to/chroot" % vfs_chroot)
+            "Badly formatted vfs virtual root: %s. Correct format is "
+            "os:/path/to/virtual_root" % vfs_virtualroot)
 
       handler_string = handler_string.upper()
       handler = rdf_paths.PathSpec.PathType.enum_dict.get(handler_string)
       if handler is None:
         raise ValueError("Unsupported vfs handler: %s." % handler_string)
 
-      # We need some translation here, TSK needs an OS chroot base. For every
-      # other handler we can just keep the type the same.
+      # We need some translation here, TSK needs an OS virtual root base. For
+      # every other handler we can just keep the type the same.
       base_types = {
           rdf_paths.PathSpec.PathType.TSK: rdf_paths.PathSpec.PathType.OS
       }
       base_type = base_types.get(handler, handler)
-      VFS_CHROOTS[handler] = rdf_paths.PathSpec(path=root, pathtype=base_type)
+      VFS_VIRTUALROOTS[handler] = rdf_paths.PathSpec(
+          path=root, pathtype=base_type, is_virtualroot=True)
 
 
 def VFSOpen(pathspec, progress_callback=None):
@@ -324,6 +325,24 @@ def VFSOpen(pathspec, progress_callback=None):
   headers to determine the next appropriate driver to use, and create a nested
   pathspec.
 
+  Note that for some clients there might be a virtual root specified. This
+  is a directory that gets prepended to all pathspecs of a given
+  pathtype. For example if there is a virtual root defined as
+  ["os:/virtualroot"], a path specification like
+
+  pathtype: OS
+  path: "/home/user/*"
+
+  will get translated into
+
+  pathtype: OS
+  path: "/virtualroot"
+  is_virtualroot: True
+  nested_path {
+    pathtype: OS
+    path: "/dev/sda1"
+  }
+
   Args:
     pathspec: A Path() protobuf to normalize.
     progress_callback: A callback to indicate that the open call is still
@@ -335,18 +354,28 @@ def VFSOpen(pathspec, progress_callback=None):
 
   Raises:
     IOError: if one of the path components can not be opened.
+
   """
   fd = None
 
-  # Adjust the pathspec in case we are using a vfs_chroot.
-  chroot = VFS_CHROOTS.get(pathspec.pathtype)
+  # Adjust the pathspec in case we are using a vfs_virtualroot.
+  vroot = VFS_VIRTUALROOTS.get(pathspec.pathtype)
 
-  if chroot:
-    working_pathspec = chroot.Copy()
-    working_pathspec.last.nested_path = pathspec.Copy()
-  else:
-    # Opening changes the pathspec so we always work on a copy.
+  # If we have a virtual root for this vfs handler, we need to prepend
+  # it to the incoming pathspec except if the pathspec is explicitly
+  # marked as containing a virtual root already or if it isn't marked but
+  # the path already contains the virtual root.
+  if (not vroot or
+      pathspec.is_virtualroot or
+      pathspec.CollapsePath().startswith(vroot.CollapsePath())):
+    # No virtual root but opening changes the pathspec so we always work on a
+    # copy.
     working_pathspec = pathspec.Copy()
+  else:
+    # We're in a virtual root, put the target pathspec inside the virtual root
+    # as a nested path.
+    working_pathspec = vroot.Copy()
+    working_pathspec.last.nested_path = pathspec.Copy()
 
   # For each pathspec step, we get the handler for it and instantiate it with
   # the old object, and the current step.

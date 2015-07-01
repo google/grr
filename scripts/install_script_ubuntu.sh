@@ -216,6 +216,9 @@ header "Enable grr services to start automatically on boot"
 for SERVER in grr-http-server grr-worker grr-ui
 do
   SERVER_DEFAULT=/etc/default/${SERVER}
+  # The package has START=no to enable users installing distributed components
+  # to selectively enable what they want on each machine. Here we want them all
+  # running.
   run_cmd_confirm sed -i 's/START=\"no\"/START=\"yes\"/' ${SERVER_DEFAULT};
 
   header "Starting ${SERVER}"

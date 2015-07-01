@@ -377,24 +377,27 @@ def GenerateKeys(config):
     raise RuntimeError("Config %s already has keys, use --overwrite to "
                        "override." % config.parser)
 
+  length = config_lib.CONFIG["Server.rsa_key_length"]
+  print "All keys will have a bit length of %d." % length
   print "Generating executable signing key"
-  priv_key, pub_key = key_utils.GenerateRSAKey()
+  priv_key, pub_key = key_utils.GenerateRSAKey(key_length=length)
   config.Set("PrivateKeys.executable_signing_private_key", priv_key)
   config.Set("Client.executable_signing_public_key", pub_key)
 
   print "Generating driver signing key"
-  priv_key, pub_key = key_utils.GenerateRSAKey()
+  priv_key, pub_key = key_utils.GenerateRSAKey(key_length=length)
   config.Set("PrivateKeys.driver_signing_private_key", priv_key)
   config.Set("Client.driver_signing_public_key", pub_key)
 
   print "Generating CA keys"
-  ca_cert, ca_pk, _ = key_utils.MakeCACert()
+  ca_cert, ca_pk, _ = key_utils.MakeCACert(bits=length)
   cipher = None
   config.Set("CA.certificate", ca_cert.as_pem())
   config.Set("PrivateKeys.ca_key", ca_pk.as_pem(cipher))
 
   print "Generating Server keys"
-  server_cert, server_key = key_utils.MakeCASignedCert("grr", ca_pk, bits=2048)
+  server_cert, server_key = key_utils.MakeCASignedCert(
+      "grr", ca_pk, bits=length)
   config.Set("Frontend.certificate", server_cert.as_pem())
   config.Set("PrivateKeys.server_key", server_key.as_pem(cipher))
 

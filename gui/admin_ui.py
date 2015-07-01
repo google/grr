@@ -23,7 +23,7 @@ class ThreadingDjango(SocketServer.ThreadingMixIn, simple_server.WSGIServer):
   address_family = socket.AF_INET6
 
 
-def main(unused_argv):
+def main(_):
   """Run the main test harness."""
   config_lib.CONFIG.AddContext(
       "AdminUI Context",

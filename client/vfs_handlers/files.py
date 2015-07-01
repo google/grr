@@ -24,9 +24,9 @@ FILE_HANDLE_CACHE = utils.TimeBasedCache(max_age=300)
 class LockedFileHandle(object):
   """An object which encapsulates access to a file."""
 
-  def __init__(self, filename):
+  def __init__(self, filename, mode="rb"):
     self.lock = threading.RLock()
-    self.fd = open(filename, "rb")
+    self.fd = open(filename, mode)
     self.filename = filename
 
   def Seek(self, offset, whence=0):
@@ -53,7 +53,7 @@ class FileHandleManager(object):
     try:
       self.fd = FILE_HANDLE_CACHE.Get(self.filename)
     except KeyError:
-      self.fd = LockedFileHandle(self.filename)
+      self.fd = LockedFileHandle(self.filename, mode="rb")
       FILE_HANDLE_CACHE.Put(self.filename, self.fd)
 
     # Wait for exclusive access to this file handle.
@@ -106,8 +106,6 @@ class File(vfs.VFSHandler):
   supported_pathtype = paths.PathSpec.PathType.OS
   auto_register = True
 
-  # The file descriptor of the OS file.
-  fd = None
   files = None
 
   # Directories do not have a size.
@@ -331,3 +329,8 @@ class File(vfs.VFSHandler):
       path = os.path.dirname(path)
 
     return path
+
+
+class TempFile(File):
+  """GRR temporary files on the client."""
+  supported_pathtype = paths.PathSpec.PathType.TMPFILE

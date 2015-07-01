@@ -170,26 +170,29 @@ class CopyPathToFile(actions.ActionPlugin):
 
   BLOCK_SIZE = 10 * 1024 * 1024
 
-  def _Copy(self, dest_fd):
-    """Copy from VFS to file until no more data or self.length is reached.
+  def _Copy(self, src_fd, dest_fd, length):
+    """Copy from VFS to file until no more data or length is reached.
 
     Args:
-      dest_fd: file object to write to
+      src_fd: File object to read from.
+      dest_fd: File object to write to.
+      length: Number of bytes to write.
     Returns:
-      self.written: bytes written
+      Bytes written.
     """
-    while self.written < self.length:
-      to_read = min(self.length - self.written, self.BLOCK_SIZE)
-      data = self.src_fd.read(to_read)
+    written = 0
+    while written < length:
+      to_read = min(length - written, self.BLOCK_SIZE)
+      data = src_fd.read(to_read)
       if not data:
         break
 
       dest_fd.write(data)
-      self.written += len(data)
+      written += len(data)
 
       # Send heartbeats for long files.
       self.Progress()
-    return self.written
+    return written
 
   def Run(self, args):
     """Read from a VFS file and write to a GRRTempFile on disk.
@@ -199,34 +202,31 @@ class CopyPathToFile(actions.ActionPlugin):
     Args:
       args: see CopyPathToFile in jobs.proto
     """
-    self.src_fd = vfs.VFSOpen(args.src_path, progress_callback=self.Progress)
-    self.src_fd.Seek(args.offset)
-    offset = self.src_fd.Tell()
+    src_fd = vfs.VFSOpen(args.src_path, progress_callback=self.Progress)
+    src_fd.Seek(args.offset)
+    offset = src_fd.Tell()
 
-    self.length = args.length or (1024 ** 4)  # 1 TB
+    length = args.length or (1024 ** 4)  # 1 TB
 
-    self.written = 0
     suffix = ".gz" if args.gzip_output else ""
 
-    self.dest_fd = tempfiles.CreateGRRTempFile(directory=args.dest_dir,
-                                               lifetime=args.lifetime,
-                                               suffix=suffix)
-    self.dest_file = self.dest_fd.name
-    with self.dest_fd:
+    dest_fd, dest_pathspec = tempfiles.CreateGRRTempFileVFS(
+        directory=args.dest_dir, lifetime=args.lifetime, suffix=suffix)
+
+    dest_file = dest_fd.name
+    with dest_fd:
 
       if args.gzip_output:
-        gzip_fd = gzip.GzipFile(self.dest_file, "wb", 9, self.dest_fd)
+        gzip_fd = gzip.GzipFile(dest_file, "wb", 9, dest_fd)
 
         # Gzip filehandle needs its own close method called
         with gzip_fd:
-          self._Copy(gzip_fd)
+          written = self._Copy(src_fd, gzip_fd, length)
       else:
-        self._Copy(self.dest_fd)
+        written = self._Copy(src_fd, dest_fd, length)
 
-    pathspec_out = rdf_paths.PathSpec(
-        path=self.dest_file, pathtype=rdf_paths.PathSpec.PathType.OS)
-    self.SendReply(offset=offset, length=self.written, src_path=args.src_path,
-                   dest_dir=args.dest_dir, dest_path=pathspec_out,
+    self.SendReply(offset=offset, length=written, src_path=args.src_path,
+                   dest_dir=args.dest_dir, dest_path=dest_pathspec,
                    gzip_output=args.gzip_output)
 
 

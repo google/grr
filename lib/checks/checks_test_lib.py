@@ -74,7 +74,8 @@ class HostCheckTest(test_lib.GRRBaseTest):
       raise test_lib.Error("Missing test data: %s" % file_name)
     return path
 
-  def SetKnowledgeBase(self, hostname="test.example.com", host_os="Linux",
+  @classmethod
+  def SetKnowledgeBase(cls, hostname="test.example.com", host_os="Linux",
                        host_data=None):
     """Generates a KnowledgeBase entry in the host_data used by checks."""
     if not host_data:
@@ -220,7 +221,8 @@ class HostCheckTest(test_lib.GRRBaseTest):
     host_data["ListProcessesGrr"] = self.SetArtifactData(parsed=data)
     return host_data
 
-  def _GenFileData(self, paths, data, stats=None, files=None, modes=None):
+  @classmethod
+  def _GenFileData(cls, paths, data, stats=None, files=None, modes=None):
     """Generate a tuple of list of stats and list of file contents."""
     if stats is None:
       stats = []
@@ -237,6 +239,16 @@ class HostCheckTest(test_lib.GRRBaseTest):
     for val in data:
       files.append(StringIO.StringIO(val))
     return stats, files
+
+  @classmethod
+  def GenStatFileData(cls, data, modes=None):
+    """Gen a tuple of list of stats and list of file contents from a dict."""
+    paths = []
+    contents = []
+    for path, content in data.iteritems():
+      paths.append(path)
+      contents.append(content)
+    return cls._GenFileData(paths, contents, modes=modes)
 
   def GenFileData(self, artifact, data, parser=None, modes=None, include=None):
     """Create a set of host_data results based on file parser results.

@@ -51,6 +51,15 @@ class ActionPlugin(object):
 
   The code is specified in the Run() method, while the data is
   specified in the in_rdfvalue and out_rdfvalue classes.
+
+  Windows and OS X client actions cannot be imported on the linux server since
+  they require OS-specific libraries. If you are adding a client action that
+  doesn't have a linux implementation, you will need to register it in
+  libs/server_stubs.py
+
+  Windows and OS X implementations of client actions with the same name (e.g.
+  EnumerateInterfaces) as linux actions must accept and return the same rdfvalue
+  types as their linux counterparts.
   """
   # The rdfvalue used to encode this message.
   in_rdfvalue = None

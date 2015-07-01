@@ -12,6 +12,19 @@ import "grr/proto/semantic.proto";
 // API call renderers arguments (see gui/api_call_renderers.py).
 //
 
+message ApiAuthorization {
+  optional string renderer = 1 [(sem_type) = {
+      description: "api_call_renderers.ApiCallRenderer class name that this "
+                   "authorization applies to."
+    }];
+  repeated string users = 2 [(sem_type) = {
+      description: "List of users allowed to call the API."
+    }];
+  repeated string groups = 3[(sem_type) = {
+      description: "List of groups allowed to call the API."
+    }];
+}
+
 message ApiCallAdditionalArgs {
   optional string name = 1;
   optional string type = 2;

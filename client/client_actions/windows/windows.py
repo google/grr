@@ -1,6 +1,10 @@
 #!/usr/bin/env python
-# Copyright 2010 Google Inc. All Rights Reserved.
-"""Windows specific actions."""
+"""Windows specific actions.
+
+Most of these actions share an interface (in/out rdfvalues) with linux actions
+of the same name. Windows-only actions are registered with the server via
+libs/server_stubs.py
+"""
 
 
 import binascii

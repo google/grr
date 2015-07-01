@@ -200,18 +200,23 @@ def DefineFromProtobuf(cls, protobuf):
       enum_desc = field.enum_type
       enum_dict = {}
       enum_descriptions = {}
+      enum_labels = {}
 
       for enum_value in enum_desc.values:
         enum_dict[enum_value.name] = enum_value.number
         description = enum_value.GetOptions().Extensions[
             semantic_pb2.description]
         enum_descriptions[enum_value.name] = description
+        labels = [label for label in
+                  enum_value.GetOptions().Extensions[semantic_pb2.label]]
+        enum_labels[enum_value.name] = labels
 
       enum_dict = dict((x.name, x.number) for x in enum_desc.values)
 
       type_descriptor = type_info.ProtoEnum(
           enum_name=enum_desc.name, enum=enum_dict,
-          enum_descriptions=enum_descriptions, **kwargs)
+          enum_descriptions=enum_descriptions,
+          enum_labels=enum_labels, **kwargs)
 
       # Attach the enum container to the class for easy reference:
       setattr(cls, enum_desc.name, type_descriptor.enum_container)

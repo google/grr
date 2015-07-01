@@ -211,7 +211,8 @@ class VFSGRRClient(standard.VFSDirectory):
   AFF4_PREFIXES = {rdf_paths.PathSpec.PathType.OS: "/fs/os",
                    rdf_paths.PathSpec.PathType.TSK: "/fs/tsk",
                    rdf_paths.PathSpec.PathType.REGISTRY: "/registry",
-                   rdf_paths.PathSpec.PathType.MEMORY: "/devices/memory"}
+                   rdf_paths.PathSpec.PathType.MEMORY: "/devices/memory",
+                   rdf_paths.PathSpec.PathType.TMPFILE: "/temp"}
 
   @staticmethod
   def ClientURNFromURN(urn):

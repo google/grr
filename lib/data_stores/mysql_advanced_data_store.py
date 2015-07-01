@@ -18,7 +18,6 @@ from MySQLdb import cursors
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import data_store
-from grr.lib import rdfvalue
 from grr.lib import utils
 
 
@@ -536,18 +535,18 @@ class MySQLAdvancedDataStore(data_store.DataStore):
   def _BuildDelete(self, subject, attribute=None, timestamp=None):
     """Build the DELETE query to be executed."""
     subjects_q = {
-      "query": "DELETE subjects FROM subjects WHERE hash=unhex(md5(%s))",
-      "args": [subject]
+        "query": "DELETE subjects FROM subjects WHERE hash=unhex(md5(%s))",
+        "args": [subject]
     }
 
     aff4_q = {
-      "query": "DELETE aff4 FROM aff4 WHERE subject_hash=unhex(md5(%s))",
-      "args":  [subject]
+        "query": "DELETE aff4 FROM aff4 WHERE subject_hash=unhex(md5(%s))",
+        "args": [subject]
     }
 
     locks_q = {
-      "query": "DELETE locks FROM locks WHERE subject_hash=unhex(md5(%s))",
-      "args": [subject]
+        "query": "DELETE locks FROM locks WHERE subject_hash=unhex(md5(%s))",
+        "args": [subject]
     }
 
     if attribute:
@@ -566,11 +565,11 @@ class MySQLAdvancedDataStore(data_store.DataStore):
           "AND aff4.subject_hash IS NULL")
 
       attributes_q = {
-        "query": "DELETE attributes FROM attributes LEFT JOIN aff4 ON "
-                 "aff4.attribute_hash=attributes.hash "
-                 "WHERE attributes.hash=unhex(md5(%s)) "
-                 "AND aff4.attribute_hash IS NULL",
-        "args": [attribute]
+          "query": "DELETE attributes FROM attributes LEFT JOIN aff4 ON "
+                   "aff4.attribute_hash=attributes.hash "
+                   "WHERE attributes.hash=unhex(md5(%s)) "
+                   "AND aff4.attribute_hash IS NULL",
+          "args": [attribute]
       }
 
       locks_q["query"] = (
@@ -704,7 +703,7 @@ class MySQLTransaction(data_store.CommonTransaction):
 
       # We own this lock now.
       if (row["lock_expiration"] == self.expires_lock and
-              row["lock_owner"] == self.lock_token):
+          row["lock_owner"] == self.lock_token):
         return
 
       else:

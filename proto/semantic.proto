@@ -76,4 +76,5 @@ extend google.protobuf.MessageOptions {
 
 extend google.protobuf.EnumValueOptions {
   optional string description = 48651165;
+  repeated SemanticDescriptor.Labels label = 48651166;
 }

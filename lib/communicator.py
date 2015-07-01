@@ -39,7 +39,6 @@ class CommunicatorInit(registry.InitHook):
     stats.STATS.RegisterCounterMetric("grr_client_unknown")
     stats.STATS.RegisterCounterMetric("grr_decoding_error")
     stats.STATS.RegisterCounterMetric("grr_decryption_error")
-    stats.STATS.RegisterCounterMetric("grr_rekey_error")
     stats.STATS.RegisterCounterMetric("grr_authenticated_messages")
     stats.STATS.RegisterCounterMetric("grr_unauthenticated_messages")
     stats.STATS.RegisterCounterMetric("grr_rsa_operations")
@@ -58,11 +57,6 @@ class DecodingError(Error):
 class DecryptionError(DecodingError):
   """Raised when the message can not be decrypted properly."""
   counter = "grr_decryption_error"
-
-
-class RekeyError(DecodingError):
-  """Raised when the session key is not known and rekeying is needed."""
-  counter = "grr_rekey_error"
 
 
 class UnknownClientCert(DecodingError):
@@ -195,6 +189,7 @@ class Cipher(object):
     return iv, ctext
 
   def Decrypt(self, data, iv):
+    """Symmetrically decrypt the data."""
     try:
       evp_cipher = EVP.Cipher(alg=self.cipher_name, key=self.cipher.key,
                               iv=iv, op=DECRYPT)

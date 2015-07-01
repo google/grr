@@ -211,7 +211,7 @@ class FileTracker(object):
     self.bytes_read = 0
 
   def __str__(self):
-    sha256 = self.hash_obj.sha256
+    sha256 = self.hash_obj and self.hash_obj.sha256
     if sha256:
       return "<Tracker: %s (sha256: %s)>" % (self.urn, sha256)
     else:

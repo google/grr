@@ -108,3 +108,35 @@ message NtpConfig {
       description: "manycastclient keyword configurations."
     }];
 }
+
+
+// A PAM configuration entry.
+message PamConfigEntry {
+  optional string service = 1 [(sem_type) = {
+      description: "The service name the entry belongs to."
+    }];
+  optional string type = 2 [(sem_type) = {
+      description: "The type for this entry."
+    }];
+  optional string control = 3 [(sem_type) = {
+      description: "The behavior of PAM for this entry."
+    }];
+  optional string module_path = 4 [(sem_type) = {
+      description: "The filepath to the PAM module."
+    }];
+  optional string module_args = 5 [(sem_type) = {
+      description: "The arguments to the PAM module."
+    }];
+}
+
+
+// A PAM configuration, containing all definitions of the services.
+// and any references to external configs outside of the artifact.
+message PamConfig {
+  repeated PamConfigEntry entries = 1 [(sem_type) = {
+      description: "A list of the enumerated PAM configuration entries."
+    }];
+  repeated string external_config = 2 [(sem_type) = {
+      description: "Details of references to external config files."
+    }];
+}

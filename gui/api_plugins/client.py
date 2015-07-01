@@ -191,6 +191,9 @@ class ApiFlowStatusRenderer(api_call_renderers.ApiCallRenderer):
   # Make this SetUID, see comment below. Authentication is still required.
   privileged = True
 
+  # Require explicit ACL to use this API.
+  enabled_by_default = False
+
   def Render(self, args, token=None):
     """Render flow status.
 

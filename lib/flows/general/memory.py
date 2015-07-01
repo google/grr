@@ -671,7 +671,10 @@ class AnalyzeClientMemory(flow.GRRFlow):
     if self.args.use_kcore_if_present and system == "Linux":
       kcore_pathspec = rdf_paths.PathSpec(
           path="/proc/kcore",
-          pathtype=rdf_paths.PathSpec.PathType.OS)
+          pathtype=rdf_paths.PathSpec.PathType.OS,
+          # Devices are always outside the chroot so we specify this flag so
+          # the client is able to locate it.
+          is_virtualroot=True)
       self.CallClient("StatFile",
                       pathspec=kcore_pathspec,
                       next_state="KcoreStatResult")

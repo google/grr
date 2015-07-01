@@ -356,8 +356,6 @@ class HTTPClientTests(test_lib.GRRBaseTest):
           timestamp=ts, api_version=self.client_communication.api_version)
 
       return StringIO.StringIO(response_comms.SerializeToString())
-    except communicator.RekeyError:
-      raise urllib2.HTTPError(url=None, code=400, msg=None, hdrs=None, fp=None)
     except communicator.UnknownClientCert:
       raise urllib2.HTTPError(url=None, code=406, msg=None, hdrs=None, fp=None)
     except Exception as e:

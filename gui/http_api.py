@@ -148,8 +148,14 @@ def BuildResponse(status, rendered_data):
   response["X-Content-Type-Options"] = "nosniff"
 
   response.write(")]}'\n")  # XSSI protection
-  response.write(json.dumps(rendered_data,
-                            cls=JSONEncoderWithRDFPrimitivesSupport))
+
+  # To avoid IE content sniffing problems, escape the tags. Otherwise somebody
+  # may send a link with malicious payload that will be opened in IE (which
+  # does content sniffing and doesn't respect Content-Disposition header) and
+  # IE will treat the document as html and executre arbitrary JS that was
+  # passed with the payload.
+  str_data = json.dumps(rendered_data, cls=JSONEncoderWithRDFPrimitivesSupport)
+  response.write(str_data.replace("<", r"\u003c").replace(">", r"\u003e"))
 
   return response
 
@@ -220,6 +226,12 @@ def RenderHttpResponse(request):
       rendered_data = StripTypeInfo(rendered_data)
 
     return BuildResponse(200, rendered_data)
+  except access_control.UnauthorizedAccess as e:
+    logging.exception(
+        "Access denied to %s (%s) with %s: %s", request.path,
+        request.method, renderer.__class__.__name__, e)
+
+    return BuildResponse(403, dict(message="Access denied by ACL"))
   except Exception as e:  # pylint: disable=broad-except
     logging.exception(
         "Error while processing %s (%s) with %s: %s", request.path,

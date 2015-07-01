@@ -37,3 +37,13 @@ class SshdConfig(structs.RDFProtoStruct):
 class NtpConfig(structs.RDFProtoStruct):
   """An RDFValue representation of a ntp config file."""
   protobuf = config_file_pb2.NtpConfig
+
+
+class PamConfigEntry(structs.RDFProtoStruct):
+  """An RDFValue representation of a single entry in a PAM configuration."""
+  protobuf = config_file_pb2.PamConfigEntry
+
+
+class PamConfig(structs.RDFProtoStruct):
+  """An RDFValue representation of an entire PAM configuration."""
+  protobuf = config_file_pb2.PamConfig
