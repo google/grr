@@ -18,7 +18,7 @@ from grr.lib.hunts import standard
 
 
 class CleanHuntsTest(test_lib.FlowTestsBaseclass):
-  """Test the CleanOldHunts flow."""
+  """Test the CleanHunts flow."""
 
   NUM_HUNTS = 10
 
@@ -63,7 +63,7 @@ class CleanHuntsTest(test_lib.FlowTestsBaseclass):
       runner = hunt_obj.GetRunner()
 
       self.assertTrue(runner.context.expires < latest_timestamp)
-      self.assertTrue(runner.context.expires >
+      self.assertTrue(runner.context.expires >=
                       latest_timestamp - rdfvalue.Duration("150s"))
 
   def testNoTraceOfDeletedHuntIsLeftInTheDataStore(self):
@@ -182,6 +182,70 @@ class CleanCronJobsTest(test_lib.FlowTestsBaseclass):
         self.assertTrue(child_urn.age >
                         latest_timestamp - rdfvalue.Duration("150s"))
 
+class CleanTempTest(test_lib.FlowTestsBaseclass):
+  """Test the CleanTemp flow."""
+
+  NUM_TMP = 10
+
+  def setUp(self):
+    super(CleanTempTest, self).setUp()
+
+    self.tmp_urns = []
+    for i in range(self.NUM_TMP):
+      with test_lib.FakeTime(40 + 60 * i):
+        tmp_obj = aff4.FACTORY.Create("aff4:/tmp/%s" % i, "TempMemoryFile",
+                                      mode="rw", token=self.token)
+        self.tmp_urns.append(tmp_obj.urn)
+        tmp_obj.Close()
+
+  def testDoesNothingIfAgeLimitNotSetInConfig(self):
+    with test_lib.FakeTime(40 + 60 * self.NUM_TMP):
+      flow.GRRFlow.StartFlow(
+          flow_name=data_retention.CleanTemp.__name__,
+          sync=True, token=self.token)
+
+    tmp_urns = list(aff4.FACTORY.Open("aff4:/tmp",
+                                        token=self.token).ListChildren())
+    self.assertEqual(len(tmp_urns), 10)
+
+  def testDeletesTempWithAgeOlderThanGivenAge(self):
+    config_lib.CONFIG.Set("DataRetention.tmp_ttl",
+                          rdfvalue.Duration("300s"))
+
+    with test_lib.FakeTime(40 + 60 * self.NUM_TMP):
+      flow.GRRFlow.StartFlow(
+          flow_name=data_retention.CleanTemp.__name__,
+          sync=True, token=self.token)
+      latest_timestamp = rdfvalue.RDFDatetime().Now()
+
+    tmp_urns = list(aff4.FACTORY.Open("aff4:/tmp",
+                                        token=self.token).ListChildren())
+    self.assertEqual(len(tmp_urns), 5)
+
+    for tmp_urn in tmp_urns:
+      self.assertTrue(tmp_urn.age < latest_timestamp)
+      self.assertTrue(tmp_urn.age >=
+                      latest_timestamp - rdfvalue.Duration("300s"))
+
+  def testKeepsTempWithRetainLabel(self):
+    exception_label_name = config_lib.CONFIG[
+        "DataRetention.tmp_ttl_exception_label"]
+
+    for tmp_urn in self.tmp_urns[:3]:
+      with aff4.FACTORY.Open(tmp_urn, mode="rw", token=self.token) as fd:
+        fd.AddLabels(exception_label_name)
+
+    config_lib.CONFIG.Set("DataRetention.tmp_ttl",
+                          rdfvalue.Duration("10s"))
+
+    with test_lib.FakeTime(40 + 60 * self.NUM_TMP):
+      flow.GRRFlow.StartFlow(
+          flow_name=data_retention.CleanTemp.__name__,
+          sync=True, token=self.token)
+
+    tmp_urns = list(aff4.FACTORY.Open("aff4:/tmp",
+                                        token=self.token).ListChildren())
+    self.assertEqual(len(tmp_urns), 3)
 
 def main(argv):
   # Run the full test suite
