@@ -522,7 +522,8 @@ class ProcessToExportedNetworkConnectionConverter(ExportConverter):
     conn_converter = NetworkConnectionToExportedNetworkConnectionConverter(
         options=self.options)
     return conn_converter.BatchConvert([(metadata, conn)
-                                        for conn in process.connections])
+                                        for conn in process.connections],
+                                       token=token)
 
 
 class ProcessToExportedOpenFileConverter(ExportConverter):
@@ -1171,7 +1172,7 @@ class RekallResponseConverter(ExportConverter):
     """Convert batch of RekallResponses."""
 
     for metadata, rekall_response in metadata_value_pairs:
-      for result in self.Convert(metadata, rekall_response):
+      for result in self.Convert(metadata, rekall_response, token=token):
         yield result
 
 
