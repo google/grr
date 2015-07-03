@@ -6,6 +6,7 @@
 import socket
 
 from grr.client import vfs
+from grr.client.client_actions import admin
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import artifact_test
@@ -198,6 +199,19 @@ class TestClientInterrogate(artifact_test.ArtifactTest):
     self.assertEqual(release, desired_release)
     self.assertEqual(version, desired_version)
 
+  def _CheckClientLibraries(self):
+    client = aff4.FACTORY.Open(self.client_id, token=self.token)
+    libs = client.Get(client.Schema.LIBRARY_VERSIONS)
+    self.assertTrue(libs is not None)
+    libs = libs.ToDict()
+
+    error_str = admin.GetLibraryVersions.error_str
+    # Strip off the exception itself.
+    error_str = error_str[:error_str.find("%s")]
+    for key in admin.GetLibraryVersions.library_map:
+      self.assertIn(key, libs)
+      self.assertFalse(libs[key].startswith(error_str))
+
   def testInterrogateLinuxWithWtmp(self):
     """Test the Interrogate flow."""
     test_lib.ClientFixture(self.client_id, token=self.token)
@@ -210,10 +224,9 @@ class TestClientInterrogate(artifact_test.ArtifactTest):
                                                        "LinuxRelease"])
     config_lib.CONFIG.Set("Artifacts.netgroup_filter_regexes", [r"^login$"])
     self.SetLinuxClient()
-    client_mock = action_mocks.InterrogatedClient("TransferBuffer", "StatFile",
-                                                  "Find", "HashBuffer",
-                                                  "ListDirectory",
-                                                  "FingerprintFile")
+    client_mock = action_mocks.InterrogatedClient(
+        "TransferBuffer", "StatFile", "Find", "HashBuffer",
+        "ListDirectory", "FingerprintFile", "GetLibraryVersions")
     client_mock.InitializeClient()
 
     for _ in test_lib.TestFlowHelper("Interrogate", client_mock,
@@ -239,6 +252,7 @@ class TestClientInterrogate(artifact_test.ArtifactTest):
     self._CheckLabelIndex()
     self._CheckClientKwIndex(["Linux"], 1)
     self._CheckClientKwIndex(["Label2"], 1)
+    self._CheckClientLibraries()
 
   def testInterrogateWindows(self):
     """Test the Interrogate flow."""
@@ -250,10 +264,9 @@ class TestClientInterrogate(artifact_test.ArtifactTest):
     vfs.VFS_HANDLERS[
         rdf_paths.PathSpec.PathType.OS] = test_lib.FakeFullVFSHandler
 
-    client_mock = action_mocks.InterrogatedClient("TransferBuffer", "StatFile",
-                                                  "Find", "HashBuffer",
-                                                  "ListDirectory",
-                                                  "FingerprintFile")
+    client_mock = action_mocks.InterrogatedClient(
+        "TransferBuffer", "StatFile", "Find", "HashBuffer",
+        "ListDirectory", "FingerprintFile", "GetLibraryVersions")
 
     self.SetWindowsClient()
     client_mock.InitializeClient(system="Windows", version="6.1.7600",

@@ -92,10 +92,6 @@ class ExportedCheckResult(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedCheckResult
 
 
-class ExportedSoftware(rdf_structs.RDFProtoStruct):
-  protobuf = export_pb2.ExportedSoftware
-
-
 class ExportedMatch(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedMatch
 
@@ -289,6 +285,13 @@ class StatEntryToExportedFileConverter(ExportConverter):
 
   MAX_CONTENT_SIZE = 1024 * 64
 
+  def __init__(self, *args, **kwargs):
+    super(StatEntryToExportedFileConverter, self).__init__(*args, **kwargs)
+    # If either of these are true we need to open the file to get more
+    # information
+    self.open_file_for_read = (self.options.export_files_hashes or
+                               self.options.export_files_contents)
+
   @staticmethod
   def ParseSignedData(signed_data, result):
     """Parses signed certificate data and updates result rdfvalue."""
@@ -331,6 +334,55 @@ class StatEntryToExportedFileConverter(ExportConverter):
     """
     return self.BatchConvert([(metadata, stat_entry)], token=token)
 
+  def _RemoveRegistryKeys(self, metadata_value_pairs):
+    """Filter out registry keys to operate on files."""
+    filtered_pairs = []
+    for metadata, stat_entry in metadata_value_pairs:
+      # Ignore registry keys.
+      if stat_entry.pathspec.pathtype != rdf_paths.PathSpec.PathType.REGISTRY:
+        filtered_pairs.append((metadata, stat_entry))
+
+    return filtered_pairs
+
+  def _OpenFilesForRead(self, metadata_value_pairs, token):
+    """Open files all at once if necessary."""
+    if self.open_file_for_read:
+      aff4_paths = [result.aff4path for _, result in metadata_value_pairs]
+      fds = aff4.FACTORY.MultiOpen(aff4_paths, mode="r", token=token)
+      fds_dict = dict([(fd.urn, fd) for fd in fds])
+      return fds_dict
+
+  def _ExportHash(self, aff4_object, result):
+    """Add hashes from aff4_object to result."""
+    if self.options.export_files_hashes:
+      hash_obj = aff4_object.Get(aff4_object.Schema.HASH)
+      if hash_obj:
+        self.ParseFileHash(hash_obj, result)
+
+  def _ExportFileContent(self, aff4_object, result):
+    """Add file content from aff4_object to result."""
+    if self.options.export_files_contents:
+      try:
+        result.content = aff4_object.Read(self.MAX_CONTENT_SIZE)
+        result.content_sha256 = hashlib.sha256(result.content).hexdigest()
+      except (IOError, AttributeError) as e:
+        logging.warning("Can't read content of %s: %s",
+                        result.aff4path, e)
+
+  def _CreateExportedFile(self, metadata, stat_entry):
+    return ExportedFile(metadata=metadata, urn=stat_entry.aff4path,
+                        basename=stat_entry.pathspec.Basename(),
+                        st_mode=stat_entry.st_mode, st_ino=stat_entry.st_ino,
+                        st_dev=stat_entry.st_dev, st_nlink=stat_entry.st_nlink,
+                        st_uid=stat_entry.st_uid, st_gid=stat_entry.st_gid,
+                        st_size=stat_entry.st_size,
+                        st_atime=stat_entry.st_atime,
+                        st_mtime=stat_entry.st_mtime,
+                        st_ctime=stat_entry.st_ctime,
+                        st_blocks=stat_entry.st_blocks,
+                        st_blksize=stat_entry.st_blksize,
+                        st_rdev=stat_entry.st_rdev, symlink=stat_entry.symlink)
+
   def BatchConvert(self, metadata_value_pairs, token=None):
     """Converts a batch of StatEntry value to ExportedFile values at once.
 
@@ -344,56 +396,19 @@ class StatEntryToExportedFileConverter(ExportConverter):
       Resulting ExportedFile values. Empty list is a valid result and means that
       conversion wasn't possible.
     """
-    filtered_pairs = []
-    for metadata, stat_entry in metadata_value_pairs:
-      # Ignore registry keys.
-      if stat_entry.pathspec.pathtype != rdf_paths.PathSpec.PathType.REGISTRY:
-        filtered_pairs.append((metadata, stat_entry))
-
-    if self.options.export_files_hashes or self.options.export_files_contents:
-      aff4_paths = [stat_entry.aff4path
-                    for metadata, stat_entry in metadata_value_pairs]
-      fds = aff4.FACTORY.MultiOpen(aff4_paths, mode="r", token=token)
-      fds_dict = dict([(fd.urn, fd) for fd in fds])
+    filtered_pairs = self._RemoveRegistryKeys(metadata_value_pairs)
+    fds_dict = self._OpenFilesForRead(filtered_pairs, token=token)
 
     for metadata, stat_entry in filtered_pairs:
-      result = ExportedFile(metadata=metadata,
-                            urn=stat_entry.aff4path,
-                            basename=stat_entry.pathspec.Basename(),
-                            st_mode=stat_entry.st_mode,
-                            st_ino=stat_entry.st_ino,
-                            st_dev=stat_entry.st_dev,
-                            st_nlink=stat_entry.st_nlink,
-                            st_uid=stat_entry.st_uid,
-                            st_gid=stat_entry.st_gid,
-                            st_size=stat_entry.st_size,
-                            st_atime=stat_entry.st_atime,
-                            st_mtime=stat_entry.st_mtime,
-                            st_ctime=stat_entry.st_ctime,
-                            st_blocks=stat_entry.st_blocks,
-                            st_blksize=stat_entry.st_blksize,
-                            st_rdev=stat_entry.st_rdev,
-                            symlink=stat_entry.symlink)
+      result = self._CreateExportedFile(metadata, stat_entry)
 
-      if self.options.export_files_hashes or self.options.export_files_contents:
+      if self.open_file_for_read:
         try:
           aff4_object = fds_dict[stat_entry.aff4path]
-
-          if self.options.export_files_hashes:
-            hash_obj = aff4_object.Get(aff4_object.Schema.HASH)
-            if hash_obj:
-              self.ParseFileHash(hash_obj, result)
-
-          if self.options.export_files_contents:
-            try:
-              result.content = aff4_object.Read(self.MAX_CONTENT_SIZE)
-              result.content_sha256 = hashlib.sha256(result.content).hexdigest()
-            except (IOError, AttributeError) as e:
-              logging.warning("Can't read content of %s: %s",
-                              stat_entry.aff4path, e)
+          self._ExportHash(aff4_object, result)
+          self._ExportFileContent(aff4_object, result)
         except KeyError:
           pass
-
       yield result
 
 
@@ -507,7 +522,8 @@ class ProcessToExportedNetworkConnectionConverter(ExportConverter):
     conn_converter = NetworkConnectionToExportedNetworkConnectionConverter(
         options=self.options)
     return conn_converter.BatchConvert([(metadata, conn)
-                                        for conn in process.connections])
+                                        for conn in process.connections],
+                                       token=token)
 
 
 class ProcessToExportedOpenFileConverter(ExportConverter):
@@ -522,16 +538,6 @@ class ProcessToExportedOpenFileConverter(ExportConverter):
       yield ExportedOpenFile(metadata=metadata,
                              pid=process.pid,
                              path=f)
-
-
-class SoftwareToExportedSoftwareConverter(ExportConverter):
-  """Converts Software to ExportedSoftware."""
-
-  input_rdf_type = "Software"
-
-  def Convert(self, metadata, software, token=None):
-    yield ExportedSoftware(metadata=metadata,
-                           software=software)
 
 
 class InterfaceToExportedNetworkInterfaceConverter(ExportConverter):
@@ -607,32 +613,82 @@ class BufferReferenceToExportedMatchConverter(ExportConverter):
                             metadata.client_urn))
 
 
-class FileFinderResultConverter(ExportConverter):
+class FileFinderResultConverter(StatEntryToExportedFileConverter):
   """Export converter for FileFinderResult instances."""
 
   input_rdf_type = "FileFinderResult"
 
+  def __init__(self, *args, **kwargs):
+    super(FileFinderResultConverter, self).__init__(*args, **kwargs)
+    # We only need to open the file if we're going to export the contents, we
+    # already have the hash in the FileFinderResult
+    self.open_file_for_read = self.options.export_files_contents
+
+  def _SeparateTypes(self, metadata_value_pairs):
+    """Separate files, registry keys, grep matches."""
+    registry_pairs = []
+    file_pairs = []
+    match_pairs = []
+    for metadata, result in metadata_value_pairs:
+      if (result.stat_entry.pathspec.pathtype ==
+          rdf_paths.PathSpec.PathType.REGISTRY):
+        registry_pairs.append((metadata, result))
+      else:
+        file_pairs.append((metadata, result))
+
+      match_pairs.extend([(metadata, match) for match in result.matches])
+
+    return registry_pairs, file_pairs, match_pairs
+
   def BatchConvert(self, metadata_value_pairs, token=None):
-    for result in ConvertValuesWithMetadata(
-        [(metadata, val.stat_entry) for metadata, val in metadata_value_pairs],
-        token=token, options=self.options):
+    """Convert FileFinder results.
+
+    Args:
+      metadata_value_pairs: array of ExportedMetadata and rdfvalue tuples.
+      token: ACLToken
+
+    Yields:
+      ExportedFile, ExportedRegistryKey, or ExportedMatch
+
+    FileFinderResult objects have 3 types of results that need to be handled
+    separately. Files, registry keys, and grep matches. The file results are
+    similar to statentry exports, and share some code, but different because we
+    already have the hash available without having to go back to the database to
+    retrieve it from the aff4 object.
+
+    """
+    registry_pairs, file_pairs, match_pairs = self._SeparateTypes(
+        metadata_value_pairs)
+
+    # Export files first
+    fds_dict = self._OpenFilesForRead(
+        [(metadata, val.stat_entry) for metadata, val in file_pairs],
+        token=token)
+
+    for metadata, ff_result in file_pairs:
+      result = self._CreateExportedFile(metadata, ff_result.stat_entry)
 
       # FileFinderResult has hashes in "hash_entry" attribute which is not
       # passed to ConvertValuesWithMetadata call. We have to process these
-      # data explicitly here. Note also that we only do this when
-      # ConvertValuesWithMetadata produces ExportedFile values. We have to
-      # check for the value type explicitly as ConvertValuesWithMetadata
-      # may produce values of different types.
-      if val.HasField("hash_entry") and isinstance(result, ExportedFile):
-        StatEntryToExportedFileConverter.ParseFileHash(val.hash_entry, result)
+      # explicitly here.
+      self.ParseFileHash(ff_result.hash_entry, result)
 
+      if self.options.export_files_contents:
+        try:
+          aff4_object = fds_dict[ff_result.stat_entry.aff4path]
+          self._ExportFileContent(aff4_object, result)
+        except KeyError:
+          logging.warn("Couldn't open %s for export",
+                       ff_result.stat_entry.aff4path)
       yield result
 
-    matches = []
-    for metadata, val in metadata_value_pairs:
-      matches.extend([(metadata, match) for match in val.matches])
+    # Now export the registry keys
+    for result in ConvertValuesWithMetadata(registry_pairs, token=token,
+                                            options=self.options):
+      yield result
 
-    for result in ConvertValuesWithMetadata(matches, token=token,
+    # Now export the grep matches.
+    for result in ConvertValuesWithMetadata(match_pairs, token=token,
                                             options=self.options):
       yield result
 
@@ -667,7 +723,7 @@ class RDFURNConverter(ExportConverter):
       batch.append((urns_dict[fd.urn], fd))
 
     try:
-      return ConvertValuesWithMetadata(batch)
+      return ConvertValuesWithMetadata(batch, token=token)
     except NoConverterFound as e:
       logging.debug(e)
 
@@ -911,8 +967,10 @@ class CheckResultConverter(ExportConverter):
         if anomaly.generated_by:
           exported_anomaly.generated_by = anomaly.generated_by
         if anomaly.anomaly_reference_id:
-          exported_anomaly.anomaly_reference_id.extend(
+          exported_anomaly.anomaly_reference_id.Extend(
               anomaly.anomaly_reference_id)
+        if anomaly.finding:
+          exported_anomaly.finding.Extend(anomaly.finding)
         yield ExportedCheckResult(
             metadata=metadata,
             check_id=checkresult.check_id,
@@ -1114,7 +1172,7 @@ class RekallResponseConverter(ExportConverter):
     """Convert batch of RekallResponses."""
 
     for metadata, rekall_response in metadata_value_pairs:
-      for result in self.Convert(metadata, rekall_response):
+      for result in self.Convert(metadata, rekall_response, token=token):
         yield result
 
 

@@ -4,11 +4,16 @@
 
 
 import base64
+import inspect
 import numbers
 
 
+import logging
+
+from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import registry
+from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
@@ -26,14 +31,15 @@ class ApiValueRenderer(object):
   _renderers_cache = {}
 
   @classmethod
-  def GetRendererForValue(cls, value, with_types=False, with_metadata=False,
-                          limit_lists=-1):
+  def GetRendererForValueOrClass(cls, value, limit_lists=-1):
     """Returns renderer corresponding to a given value and rendering args."""
 
-    cache_key = "%s_%s_%s_%d" % (value.__class__.__name__,
-                                 with_types,
-                                 with_metadata,
-                                 limit_lists)
+    if inspect.isclass(value):
+      value_cls = value
+    else:
+      value_cls = value.__class__
+
+    cache_key = "%s_%d" % (value_cls.__name__, limit_lists)
     try:
       renderer_cls = cls._renderers_cache[cache_key]
     except KeyError:
@@ -44,8 +50,12 @@ class ApiValueRenderer(object):
         else:
           continue
 
-        if isinstance(value, candidate_class):
-          candidates.append((candidate, candidate_class))
+        if inspect.isclass(value):
+          if aff4.issubclass(value_cls, candidate_class):
+            candidates.append((candidate, candidate_class))
+        else:
+          if isinstance(value, candidate_class):
+            candidates.append((candidate, candidate_class))
 
       if not candidates:
         raise RuntimeError("No renderer found for value %s." %
@@ -56,50 +66,56 @@ class ApiValueRenderer(object):
       renderer_cls = candidates[-1][0]
       cls._renderers_cache[cache_key] = renderer_cls
 
-    return renderer_cls(with_types=with_types,
-                        with_metadata=with_metadata,
-                        limit_lists=limit_lists)
+    return renderer_cls(limit_lists=limit_lists)
 
-  def __init__(self, with_types=False, with_metadata=False,
-               limit_lists=-1):
+  def __init__(self, limit_lists=-1):
     super(ApiValueRenderer, self).__init__()
 
-    self.with_types = with_types
-    self.with_metadata = with_metadata
     self.limit_lists = limit_lists
 
   def _PassThrough(self, value):
-    renderer = ApiValueRenderer.GetRendererForValue(
-        value, with_types=self.with_types, with_metadata=self.with_metadata,
-        limit_lists=self.limit_lists)
+    renderer = ApiValueRenderer.GetRendererForValueOrClass(
+        value, limit_lists=self.limit_lists)
     return renderer.RenderValue(value)
 
-  def _GetTypeList(self, value):
-    try:
-      return ApiValueRenderer._type_list_cache[value.__class__.__name__]
-    except KeyError:
-      type_list = [klass.__name__ for klass in value.__class__.__mro__]
-      ApiValueRenderer._type_list_cache[value.__class__.__name__] = type_list
-      return type_list
-
-  def _IncludeTypeInfoIfNeeded(self, result, original_value):
-    # If type information is needed, converted value is placed in the
-    # resulting dictionary under the 'value' key.
-    if self.with_types:
-      if hasattr(original_value, "age"):
-        age = original_value.age.AsSecondsFromEpoch()
-      else:
-        age = 0
-
-      return dict(type=original_value.__class__.__name__,
-                  mro=self._GetTypeList(original_value),
-                  value=result,
-                  age=age)
+  def _IncludeTypeInfo(self, result, original_value):
+    # Converted value is placed in the resulting dictionary under the 'value'
+    # key.
+    if hasattr(original_value, "age"):
+      age = original_value.age.AsSecondsFromEpoch()
     else:
-      return result
+      age = 0
+
+    return dict(type=original_value.__class__.__name__,
+                value=result,
+                age=age)
 
   def RenderValue(self, value):
-    return self._IncludeTypeInfoIfNeeded(utils.SmartUnicode(value), value)
+    """Renders given value into plain old python objects."""
+    return self._IncludeTypeInfo(utils.SmartUnicode(value), value)
+
+  def RenderMetadata(self, value_cls):
+    """Renders metadata of a given value class.
+
+    Args:
+      value_cls: Metadata of this class will be rendered. This class is
+                 guaranteed to be (or to be a subclass of) value_class.
+    Returns:
+      Dictionary with class metadata.
+    """
+    result = dict(name=value_cls.__name__,
+                  mro=[klass.__name__ for klass in value_cls.__mro__],
+                  doc=value_cls.__doc__ or "",
+                  kind="primitive")
+
+    try:
+      default_value = RenderValue(value_cls())
+      result["default"] = default_value
+    except Exception as e:   # pylint: disable=broad-except
+      logging.debug("Can't create default for primitive %s: %s",
+                    value_cls.__name__, e)
+
+    return result
 
 
 class ApiNumberRenderer(ApiValueRenderer):
@@ -108,8 +124,12 @@ class ApiNumberRenderer(ApiValueRenderer):
   value_class = numbers.Number
 
   def RenderValue(self, value):
-    # Numbers are returned as-is.
-    return self._IncludeTypeInfoIfNeeded(value, value)
+    # Always render ints as longs - so that there's no ambiguity in the UI
+    # renderers when type depends on the value.
+    if isinstance(value, int):
+      value = long(value)
+
+    return self._IncludeTypeInfo(value, value)
 
 
 class ApiStringRenderer(ApiValueRenderer):
@@ -118,7 +138,7 @@ class ApiStringRenderer(ApiValueRenderer):
   value_class = basestring
 
   def RenderValue(self, value):
-    return self._IncludeTypeInfoIfNeeded(utils.SmartUnicode(value), value)
+    return self._IncludeTypeInfo(utils.SmartUnicode(value), value)
 
 
 class ApiEnumRenderer(ApiValueRenderer):
@@ -127,7 +147,7 @@ class ApiEnumRenderer(ApiValueRenderer):
   value_class = rdf_structs.Enum
 
   def RenderValue(self, value):
-    return self._IncludeTypeInfoIfNeeded(value.name, value)
+    return self._IncludeTypeInfo(value.name, value)
 
 
 class ApiEnumNamedValueRenderer(ApiValueRenderer):
@@ -136,7 +156,7 @@ class ApiEnumNamedValueRenderer(ApiValueRenderer):
   value_class = rdf_structs.EnumNamedValue
 
   def RenderValue(self, value):
-    return self._IncludeTypeInfoIfNeeded(value.name, value)
+    return self._IncludeTypeInfo(value.name, value)
 
 
 class ApiDictRenderer(ApiValueRenderer):
@@ -152,6 +172,10 @@ class ApiDictRenderer(ApiValueRenderer):
     return result
 
 
+class FetchMoreLink(rdfvalue.RDFValue):
+  """Stub used to display 'More data available...' link."""
+
+
 class ApiListRenderer(ApiValueRenderer):
   """Renderer for lists."""
 
@@ -165,13 +189,9 @@ class ApiListRenderer(ApiValueRenderer):
     else:
       result = [self._PassThrough(v) for v in list(value)[:self.limit_lists]]
       if len(value) > self.limit_lists:
-        if self.with_types:
-          result.append(dict(age=0,
-                             mro=["FetchMoreLink"],
-                             type="FetchMoreLink",
-                             url="to/be/implemented"))
-        else:
-          result.append("<more items available>")
+        result.append(dict(age=0,
+                           type=FetchMoreLink.__name__,
+                           url="to/be/implemented"))
 
     return result
 
@@ -206,7 +226,7 @@ class ApiRDFBoolRenderer(ApiValueRenderer):
   value_class = rdfvalue.RDFBool
 
   def RenderValue(self, value):
-    return self._IncludeTypeInfoIfNeeded(value != 0, value)
+    return self._IncludeTypeInfo(value != 0, value)
 
 
 class ApiRDFBytesRenderer(ApiValueRenderer):
@@ -216,7 +236,7 @@ class ApiRDFBytesRenderer(ApiValueRenderer):
 
   def RenderValue(self, value):
     result = base64.b64encode(value.SerializeToString())
-    return self._IncludeTypeInfoIfNeeded(result, value)
+    return self._IncludeTypeInfo(result, value)
 
 
 class ApiRDFStringRenderer(ApiValueRenderer):
@@ -226,7 +246,7 @@ class ApiRDFStringRenderer(ApiValueRenderer):
 
   def RenderValue(self, value):
     result = utils.SmartUnicode(value)
-    return self._IncludeTypeInfoIfNeeded(result, value)
+    return self._IncludeTypeInfo(result, value)
 
 
 class ApiRDFIntegerRenderer(ApiValueRenderer):
@@ -236,7 +256,7 @@ class ApiRDFIntegerRenderer(ApiValueRenderer):
 
   def RenderValue(self, value):
     result = int(value)
-    return self._IncludeTypeInfoIfNeeded(result, value)
+    return self._IncludeTypeInfo(result, value)
 
 
 class ApiFlowStateRenderer(ApiValueRenderer):
@@ -255,6 +275,16 @@ class ApiDataBlobRenderer(ApiValueRenderer):
 
   def RenderValue(self, value):
     return self._PassThrough(value.GetValue())
+
+
+class ApiHashDigestRenderer(ApiValueRenderer):
+  """Renderer for hash digests."""
+
+  value_class = rdfvalue.HashDigest
+
+  def RenderValue(self, value):
+    result = utils.SmartStr(value)
+    return self._IncludeTypeInfo(result, value)
 
 
 class ApiEmbeddedRDFValueRenderer(ApiValueRenderer):
@@ -282,23 +312,85 @@ class ApiRDFProtoStructRenderer(ApiValueRenderer):
     for processor in self.value_processors:
       result = processor(self, result, value)
 
-    result = self._IncludeTypeInfoIfNeeded(result, value)
+    result = self._IncludeTypeInfo(result, value)
 
-    if self.with_metadata:
-      descriptors = {}
-      order = []
-      for descriptor, _ in value.ListSetFields():
-        order.append(descriptor.name)
-        descriptors[descriptor.name] = {
-            "friendly_name": descriptor.friendly_name,
-            "description": descriptor.description
-        }
+    return result
 
-      for processor in self.metadata_processors:
-        descriptors, order = processor(self, descriptors, order)
+  def RenderMetadata(self, value_cls):
+    fields = []
+    for field_desc in value_cls.type_infos:
+      repeated = isinstance(field_desc, type_info.ProtoList)
+      if hasattr(field_desc, "delegate"):
+        field_desc = field_desc.delegate
 
-      result["metadata"] = descriptors
-      result["fields_order"] = order
+      field = {
+          "name": field_desc.name,
+          "index": field_desc.field_number,
+          "repeated": repeated,
+          "dynamic": isinstance(field_desc, type_info.ProtoDynamicEmbedded)
+      }
+
+      field_type = field_desc.type
+      if field_type is not None:
+        field["type"] = field_type.__name__
+
+      if field_type == rdf_structs.EnumNamedValue:
+        allowed_values = []
+        for enum_label in sorted(field_desc.enum, key=field_desc.enum.get):
+          enum_value = field_desc.enum[enum_label]
+          labels = [rdf_structs.SemanticDescriptor.Labels.reverse_enum[x]
+                    for x in enum_value.labels or []]
+          allowed_values.append(dict(name=enum_label,
+                                     value=int(enum_value),
+                                     labels=labels,
+                                     doc=enum_value.description))
+        field["allowed_values"] = allowed_values
+
+      field_default = None
+      if (field_desc.default is not None
+          and not aff4.issubclass(field_type, rdf_structs.RDFStruct)
+          and hasattr(field_desc, "GetDefault")):
+        field_default = field_desc.GetDefault()
+        field["default"] = RenderValue(field_default)
+
+      if field_desc.description:
+        field["doc"] = field_desc.description
+
+      if field_desc.friendly_name:
+        field["friendly_name"] = field_desc.friendly_name
+
+      if field_desc.labels:
+        field["labels"] = [rdf_structs.SemanticDescriptor.Labels.reverse_enum[x]
+                           for x in field_desc.labels]
+
+      fields.append(field)
+
+    for processor in self.metadata_processors:
+      fields = processor(self, fields)
+
+    result = dict(name=value_cls.__name__,
+                  mro=[klass.__name__ for klass in value_cls.__mro__],
+                  doc=value_cls.__doc__ or "",
+                  fields=fields,
+                  kind="struct")
+
+    if getattr(value_cls, "union_field", None):
+      result["union_field"] = value_cls.union_field
+
+    struct_default = None
+    try:
+      struct_default = value_cls()
+    except Exception as e:   # pylint: disable=broad-except
+      # TODO(user): Some RDFStruct classes can't be constructed using
+      # default constructor (without arguments). Fix the code so that
+      # we can either construct all the RDFStruct classes with default
+      # constructors or know exactly which classes can't be constructed
+      # with default constructors.
+      logging.debug("Can't create default for struct %s: %s",
+                    field_type.__name__, e)
+
+    if struct_default is not None:
+      result["default"] = RenderValue(struct_default)
 
     return result
 
@@ -320,41 +412,34 @@ class ApiGrrMessageRenderer(ApiRDFProtoStructRenderer):
 
     return result
 
-  def RenderMetadata(self, descriptors, fields_order):
-    """Payload-aware metadata renderer."""
+  def RenderPayloadMetadata(self, fields):
+    """Payload-aware metadata processor."""
 
-    if "args_rdf_name" in descriptors:
-      descriptors["payload_type"] = descriptors["args_rdf_name"]
-      del descriptors["args_rdf_name"]
+    for f in fields:
+      if f["name"] == "args_rdf_name":
+        f["name"] = "payload_type"
 
-    if "args" in descriptors:
-      descriptors["payload"] = descriptors["args"]
-      del descriptors["args"]
+      if f["name"] == "args":
+        f["name"] = "payload"
 
-    new_order = []
-    for field in fields_order:
-      if field == "args_rdf_name":
-        field = "payload_type"
-      elif field == "args":
-        field = "payload"
-
-      new_order.append(field)
-
-    return descriptors, new_order
+    return fields
 
   value_processors = [RenderPayload]
-  metadata_processors = [RenderMetadata]
+  metadata_processors = [RenderPayloadMetadata]
 
 
-def RenderValue(value, with_types=False, with_metadata=False,
-                limit_lists=-1):
+def RenderValue(value, limit_lists=-1):
   """Render given RDFValue as plain old python objects."""
 
   if value is None:
     return None
 
-  renderer = ApiValueRenderer.GetRendererForValue(value,
-                                                  with_types=with_types,
-                                                  with_metadata=with_metadata,
-                                                  limit_lists=limit_lists)
+  renderer = ApiValueRenderer.GetRendererForValueOrClass(
+      value, limit_lists=limit_lists)
   return renderer.RenderValue(value)
+
+
+def RenderTypeMetadata(value_cls):
+  renderer = ApiValueRenderer.GetRendererForValueOrClass(value_cls)
+
+  return renderer.RenderMetadata(value_cls)

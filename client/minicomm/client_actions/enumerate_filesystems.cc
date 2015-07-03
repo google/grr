@@ -30,7 +30,7 @@ void EnumerateFilesystems::ProcessFile(const std::string& filename,
     return;
   }
   std::string line;
-  while (getline(file, line)) {
+  while (std::getline(file, line)) {
     Filesystem f = ProcessLine(line);
     if (f.has_mount_point()) {
       auto& result = (*results)[f.mount_point()];

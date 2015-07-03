@@ -436,24 +436,27 @@ class DictRenderer(RDFValueRenderer):
     self.data = []
 
     for key, value in sorted(self.proxy.items()):
+      rendered_value = None
+
       if key in self.filter_keys:
         continue
       try:
         renderer = FindRendererForObject(value)
         if renderer:
-          value = renderer.RawHTML(request)
+          rendered_value = renderer.RawHTML(request)
         else:
           raise TypeError("Unknown renderer")
 
       # If the translation fails for whatever reason, just output the string
       # value literally (after escaping)
       except TypeError:
-        value = self.FormatFromTemplate(self.translator_error_template,
-                                        value=value)
+        rendered_value = self.FormatFromTemplate(self.translator_error_template,
+                                                 value=value)
       except Exception as e:
         logging.warn("Failed to render {0}. Err: {1}".format(type(value), e))
 
-      self.data.append((key, value))
+      if rendered_value is not None:
+        self.data.append((key, rendered_value))
 
     return super(DictRenderer, self).Layout(request, response)
 

@@ -490,12 +490,12 @@ class VFSTest(test_lib.GRRBaseTest):
     # Raise if we try to read the contents of a directory object.
     self.assertRaises(IOError, directory.Read, 5)
 
-  def testVFSChroot(self):
+  def testVFSVirtualRoot(self):
 
-    # Let's open a file in the chroot.
+    # Let's open a file in the virtual root.
     os_root = "os:%s" % self.base_path
-    with test_lib.ConfigOverrider({"Client.vfs_chroots": [os_root]}):
-      # We need to reset the vfs.VFS_CHROOT too.
+    with test_lib.ConfigOverrider({"Client.vfs_virtualroots": [os_root]}):
+      # We need to reset the vfs.VFS_VIRTUALROOTS too.
       vfs.VFSInit().Run()
 
       fd = vfs.VFSOpen(
@@ -506,7 +506,7 @@ class VFSTest(test_lib.GRRBaseTest):
 
     # This should also work with TSK.
     tsk_root = "tsk:%s" % os.path.join(self.base_path, "test_img.dd")
-    with test_lib.ConfigOverrider({"Client.vfs_chroots": [tsk_root]}):
+    with test_lib.ConfigOverrider({"Client.vfs_virtualroots": [tsk_root]}):
       vfs.VFSInit().Run()
 
       image_file_ps = rdf_paths.PathSpec(
@@ -520,8 +520,6 @@ class VFSTest(test_lib.GRRBaseTest):
 
       # This should not influence vfs handlers other than OS and TSK.
       reg_type = rdf_paths.PathSpec.PathType.REGISTRY
-      self.assertFalse(vfs.VFS_HANDLERS.get(reg_type))
-
       os_handler = vfs.VFS_HANDLERS[rdf_paths.PathSpec.PathType.OS]
       try:
         vfs.VFS_HANDLERS[reg_type] = os_handler
@@ -531,10 +529,8 @@ class VFSTest(test_lib.GRRBaseTest):
           vfs.VFSOpen(image_file_ps)
 
       finally:
-        del vfs.VFS_HANDLERS[reg_type]
-
-    # Reset to whatever it was before this test.
-    vfs.VFSInit().Run()
+        # Reset to whatever it was before this test.
+        vfs.VFSInit().Run()
 
 
 def main(argv):

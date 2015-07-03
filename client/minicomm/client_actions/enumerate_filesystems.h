@@ -6,7 +6,8 @@
 #include <set>
 
 #include "grr/proto/sysinfo.pb.h"
-#include "../client_action.h"
+#include "gtest/gtest_prod.h"
+#include "grr/client/minicomm/client_action.h"
 
 namespace grr {
 class EnumerateFilesystems : public ClientAction {
@@ -17,8 +18,7 @@ class EnumerateFilesystems : public ClientAction {
 
   void ProcessRequest(ActionContext* args) override;
 
-  /*** Implementation details, public to support testing. ***/
-
+ private:
   // Map from mount point to a filesystem record for it.
   typedef std::map<std::string, Filesystem> ResultMap;
 
@@ -27,11 +27,13 @@ class EnumerateFilesystems : public ClientAction {
   // has priority.
   void ProcessFile(const std::string& filename, ResultMap* results);
 
- private:
   Filesystem ProcessLine(std::string line);
 
   static const char kName[];
   const std::set<std::string> to_report_;
+
+  FRIEND_TEST(EnumerateFilesystemsTest, ProcessFileComments);
+  FRIEND_TEST(EnumerateFilesystemsTest, ProcessFileNormal);
 };
 
 }  // namespace grr

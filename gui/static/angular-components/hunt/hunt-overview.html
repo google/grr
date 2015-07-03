@@ -10,7 +10,7 @@
 
   <dl class="dl-horizontal dl-hunt">
     <dt>Name</dt>
-    <dd>{$ controller.huntSummary.hunt_name $}</dd>
+    <dd><grr-semantic-value value="controller.huntSummary.hunt_name" /></dd>
 
     <dt>Hunt ID</dt>
     <dd>{$ controller.huntId $}</dd>
@@ -19,7 +19,7 @@
     <dd>{$ controller.hunt.urn $}</dd>
 
     <dt>Creator</dt>
-    <dd>{$ controller.huntSummary.creator $}</dd>
+    <dd><grr-semantic-value value="controller.huntSummary.creator" /></dd>
 
     <dt>Start Time</dt>
     <dd><grr-timestamp value="controller.huntSummary.create_time" /></dd>
@@ -28,30 +28,30 @@
     <dd><grr-timestamp value="controller.huntSummary.expires" /></dd>
 
     <dt>Status</dt>
-    <dd>{$ controller.huntSummary.state $}</dd>
+    <dd><grr-semantic-value value="controller.huntSummary.state" /></dd>
 
     <dt>Client Limit</dt>
     <dd ng-if="!controller.huntSummary.client_limit">-</dd>
-    <dd ng-if="controller.huntSummary.client_limit">{$ controller.huntSummary.client_limit $}</dd>
+    <dd ng-if="controller.huntSummary.client_limit"><grr-semantic-value value="controller.huntSummary.client_limit" /></dd>
 
     <dt>Client Rate (clients/min)</dt>
     <dd ng-if="!controller.huntSummary.client_rate">-</dd>
-    <dd ng-if="controller.huntSummary.client_rate">{$ controller.huntSummary.client_rate $}</dd>
+    <dd ng-if="controller.huntSummary.client_rate"><grr-semantic-value value="controller.huntSummary.client_rate" /></dd>
 
     <dt>Clients Scheduled</dt>
-    <dd>{$ controller.huntSummary.all_clients_count $}</dd>
+    <dd><grr-semantic-value value="controller.huntSummary.all_clients_count" /></dd>
 
     <dt>Outstanding</dt>
-    <dd>{$ controller.huntSummary.outstanding_clients_count $}</dd>
+    <dd><grr-semantic-value value="controller.huntSummary.outstanding_clients_count" /></dd>
 
     <dt>Completed</dt>
-    <dd>{$ controller.huntSummary.completed_clients_count $}</dd>
+    <dd><grr-semantic-value value="controller.huntSummary.completed_clients_count" /></dd>
 
     <dt>Total CPU seconds used</dt>
-    <dd>{$ controller.huntSummary.stats.user_cpu_stats.sum | number:0 $}s</dd>
+    <dd>{$ controller.huntSummary.stats.value.user_cpu_stats.value.sum.value | number:0 $}s</dd>
 
     <dt>Total network traffic</dt>
-    <dd>{$ controller.huntSummary.stats.network_bytes_sent_stats.sum | number:0 $}b</dd>
+    <dd>{$ controller.huntSummary.stats.value.network_bytes_sent_stats.value.sum.value | number:0 $}b</dd>
 
     <dt>Regex Rules</dt>
     <dd ng-if="!controller.huntSummary.regex_rules.length">-</dd>

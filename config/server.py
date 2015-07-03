@@ -79,6 +79,9 @@ config_lib.DEFINE_semantic(
     rdf_crypto.PEMPrivateKey, "PrivateKeys.server_key",
     description="Private key for the front end server.")
 
+config_lib.DEFINE_integer("Server.rsa_key_length", 2048,
+                          "The length of the server rsa key in bits.")
+
 config_lib.DEFINE_semantic(
     rdf_crypto.RDFX509Cert, "Frontend.certificate",
     description="An X509 certificate for the frontend server.")

@@ -645,7 +645,11 @@ class FlowRunner(object):
       # Try turning it into a ClientURN
       client_id = rdf_client.ClientURN(client_id)
 
-    # Retrieve the correct rdfvalue to use for this client action.
+    # Retrieve the correct rdfvalue to use for this client action.  This code
+    # assumes that windows and OS X implementations of actions with the same
+    # name (e.g. EnumerateInterfaces) accept and return the same rdfvalue types
+    # as their linux counterparts. Non-linux actions are registered in
+    # libs/server_stubs.py
     try:
       action = actions.ActionPlugin.classes[action_name]
     except KeyError:

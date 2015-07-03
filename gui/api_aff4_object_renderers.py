@@ -41,13 +41,6 @@ class ApiAFF4ObjectRenderer(ApiAFF4ObjectRendererBase):
 
   def RenderObject(self, aff4_object, args):
     """Renders given object as plain JSON-friendly data structure."""
-    render_value_args = dict(limit_lists=args.limit_lists)
-    if args.type_info == args.TypeInformation.WITH_TYPES:
-      render_value_args["with_types"] = True
-    elif args.type_info == args.TypeInformation.WITH_TYPES_AND_METADATA:
-      render_value_args["with_types"] = True
-      render_value_args["with_metadata"] = True
-
     object_attributes = aff4_object.synced_attributes.copy()
     for key, value in aff4_object.new_attributes.items():
       object_attributes[key] = value
@@ -63,26 +56,16 @@ class ApiAFF4ObjectRenderer(ApiAFF4ObjectRendererBase):
 
         if aff4_object.age_policy != aff4.NEWEST_TIME:
           attributes[attribute.predicate].append(
-              api_value_renderers.RenderValue(value, **render_value_args))
+              api_value_renderers.RenderValue(value,
+                                              limit_lists=args.limit_lists))
         else:
           attributes[attribute.predicate] = api_value_renderers.RenderValue(
-              value, **render_value_args)
+              value, limit_lists=args.limit_lists)
 
-    result = dict(aff4_class=aff4_object.__class__.__name__,
-                  urn=utils.SmartUnicode(aff4_object.urn),
-                  attributes=attributes,
-                  age_policy=aff4_object.age_policy)
-
-    if args.type_info == args.TypeInformation.WITH_TYPES_AND_METADATA:
-      descriptors = {}
-      for attribute, _ in aff4_object.synced_attributes.items():
-        descriptors[attribute.predicate] = {
-            "description": attribute.description
-        }
-
-      result["metadata"] = descriptors
-
-    return result
+    return dict(aff4_class=aff4_object.__class__.__name__,
+                urn=utils.SmartUnicode(aff4_object.urn),
+                attributes=attributes,
+                age_policy=aff4_object.age_policy)
 
 
 class ApiRDFValueCollectionRendererArgs(rdf_structs.RDFProtoStruct):
@@ -114,18 +97,11 @@ class ApiRDFValueCollectionRenderer(ApiAFF4ObjectRendererBase):
           aff4_object.GenerateItems(), args.offset,
           args.count and (args.offset + args.count) or sys.maxint))
 
-    render_value_args = dict(limit_lists=args.items_limit_lists)
-    if args.items_type_info == "WITH_TYPES":
-      render_value_args["with_types"] = True
-    elif args.items_type_info == "WITH_TYPES_AND_METADATA":
-      render_value_args["with_types"] = True
-      render_value_args["with_metadata"] = True
-
     result = {}
     result["offset"] = args.offset
     result["count"] = len(items)
     result["items"] = api_value_renderers.RenderValue(
-        items, **render_value_args)
+        items, limit_lists=args.items_limit_lists)
 
     if args.with_total_count:
       if hasattr(aff4_object, "CalculateLength"):
@@ -165,17 +141,16 @@ class VFSGRRClientApiObjectRenderer(ApiAFF4ObjectRendererBase):
   def RenderObject(self, client, unused_args):
     """Renders VFSGRRClient as plain JSON-friendly data structure."""
     return dict(disk_warnings=self._GetDiskWarnings(client),
-                summary=api_value_renderers.RenderValue(
-                    client.GetSummary(),
-                    with_types=True,
-                    with_metadata=True))
+                summary=api_value_renderers.RenderValue(client.GetSummary()))
 
 
 RENDERERS_CACHE = {}
 
 
-def RenderAFF4Object(obj, args):
+def RenderAFF4Object(obj, args=None):
   """Renders given AFF4 object into JSON-friendly data structure."""
+  args = args or []
+
   cache_key = obj.__class__.__name__
 
   try:

@@ -1,0 +1,27 @@
+# This file has artifacts that collect stat entries only
+# This cannot be in ForensicArtifact repo as it uses LIST_FILES
+name: LinuxCronParentFolders
+doc: Collect stat information on parent folders of cron and at jobs.
+sources:
+- type: LIST_FILES
+  attributes:
+    paths:
+      - '/etc/cron.daily'
+      - '/etc/cron.hourly'
+      - '/etc/cron.monthly'
+      - '/etc/cron.weekly'
+      - '/etc/cron.d'
+      - '/var/spool/cron'
+      - '/var/spool/at'
+labels: [Configuration Files]
+supported_os: [Linux]
+urls: ['https://help.ubuntu.com/community/CronHowto#How_Anacron_is_Arranged']
+---
+name: AllLinuxScheduleFiles
+doc: All Linux job scheduling files.
+sources:
+- type: ARTIFACT
+  attributes:
+    names: [AnacronFiles, LinuxCronTabs, LinuxAtJobs, LinuxCronParentFolders]
+labels: [Configuration Files]
+supported_os: [Linux]

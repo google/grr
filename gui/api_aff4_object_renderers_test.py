@@ -32,81 +32,18 @@ class ApiAFF4ObjectRendererTest(test_lib.GRRBaseTest):
 
     self.assertEqual(data,
                      {"age_policy": "NEWEST_TIME",
-                      "attributes": {"aff4:type": "AFF4Volume",
-                                     "metadata:last": 42000000},
-                      "urn": "aff4:/tmp/foo/bar",
-                      "aff4_class": "AFF4Volume"})
-
-  def testRendersAff4VolumeWithTypeInfo(self):
-    data = self.renderer.RenderObject(
-        self.fd, api_aff4_object_renderers.ApiAFF4ObjectRendererArgs(
-            type_info="WITH_TYPES"))
-
-    self.assertEqual(data,
-                     {"age_policy": "NEWEST_TIME",
                       "attributes": {
                           "aff4:type": {
                               "age": 42,
-                              "mro": ["RDFString",
-                                      "RDFBytes",
-                                      "RDFValue",
-                                      "object"],
                               "type": "RDFString",
                               "value": "AFF4Volume"},
                           "metadata:last": {
                               "age": 42,
-                              "mro": ["RDFDatetime",
-                                      "RDFInteger",
-                                      "RDFString",
-                                      "RDFBytes",
-                                      "RDFValue",
-                                      "object"],
                               "type": "RDFDatetime",
                               "value": 42000000}
                       },
                       "urn": "aff4:/tmp/foo/bar",
                       "aff4_class": "AFF4Volume"})
-
-  def testRenderersAff4VolumeWithTypeInfoAndDescriptions(self):
-    data = self.renderer.RenderObject(
-        self.fd, api_aff4_object_renderers.ApiAFF4ObjectRendererArgs(
-            type_info="WITH_TYPES_AND_METADATA"))
-
-    self.assertEqual(data,
-                     {
-                         "age_policy": "NEWEST_TIME",
-                         "attributes": {
-                             "aff4:type": {
-                                 "age": 42,
-                                 "mro": ["RDFString",
-                                         "RDFBytes",
-                                         "RDFValue",
-                                         "object"],
-                                 "type": "RDFString",
-                                 "value": "AFF4Volume"},
-                             "metadata:last": {
-                                 "age": 42,
-                                 "mro": ["RDFDatetime",
-                                         "RDFInteger",
-                                         "RDFString",
-                                         "RDFBytes",
-                                         "RDFValue",
-                                         "object"],
-                                 "type": "RDFDatetime",
-                                 "value": 42000000}
-                         },
-                         "urn": "aff4:/tmp/foo/bar",
-                         "aff4_class": "AFF4Volume",
-                         "metadata": {
-                             "aff4:type": {
-                                 "description": "The name of the "
-                                                "AFF4Object derived class."},
-                             "metadata:last": {
-                                 "description": "The last time any "
-                                                "attribute of this "
-                                                "object was written."}
-                         }
-                     })
 
 
 class ApiRDFValueCollectionRendererTest(test_lib.GRRBaseTest):
@@ -134,8 +71,20 @@ class ApiRDFValueCollectionRendererTest(test_lib.GRRBaseTest):
     self.assertEqual(len(data["items"]), 10)
     for i in range(10):
       self.assertEqual(data["items"][i],
-                       {"path": "/var/os/tmp-%d" % i,
-                        "pathtype": "OS"})
+                       {"age": 42,
+                        "type": "PathSpec",
+                        "value": {
+                            "path": {
+                                "age": 0,
+                                "type": "unicode",
+                                "value": "/var/os/tmp-%d" % i
+                                },
+                            "pathtype": {
+                                "age": 0,
+                                "type": "EnumNamedValue",
+                                "value": "OS"
+                                }
+                            }})
 
   def testRendersSampleCollectionWithCountParameter(self):
     data = self.renderer.RenderObject(
@@ -147,11 +96,35 @@ class ApiRDFValueCollectionRendererTest(test_lib.GRRBaseTest):
 
     self.assertEqual(len(data["items"]), 2)
     self.assertEqual(data["items"][0],
-                     {"path": "/var/os/tmp-0",
-                      "pathtype": "OS"})
+                     {"age": 42,
+                      "type": "PathSpec",
+                      "value": {
+                          "path": {
+                              "age": 0,
+                              "type": "unicode",
+                              "value": "/var/os/tmp-0"
+                              },
+                          "pathtype": {
+                              "age": 0,
+                              "type": "EnumNamedValue",
+                              "value": "OS"
+                              }
+                          }})
     self.assertEqual(data["items"][1],
-                     {"path": "/var/os/tmp-1",
-                      "pathtype": "OS"})
+                     {"age": 42,
+                      "type": "PathSpec",
+                      "value": {
+                          "path": {
+                              "age": 0,
+                              "type": "unicode",
+                              "value": "/var/os/tmp-1"
+                              },
+                          "pathtype": {
+                              "age": 0,
+                              "type": "EnumNamedValue",
+                              "value": "OS"
+                              }
+                          }})
 
   def testRendersSampleCollectionWithOffsetParameter(self):
     data = self.renderer.RenderObject(
@@ -163,11 +136,35 @@ class ApiRDFValueCollectionRendererTest(test_lib.GRRBaseTest):
 
     self.assertEqual(len(data["items"]), 2)
     self.assertEqual(data["items"][0],
-                     {"path": "/var/os/tmp-8",
-                      "pathtype": "OS"})
+                     {"age": 42,
+                      "type": "PathSpec",
+                      "value": {
+                          "path": {
+                              "age": 0,
+                              "type": "unicode",
+                              "value": "/var/os/tmp-8"
+                              },
+                          "pathtype": {
+                              "age": 0,
+                              "type": "EnumNamedValue",
+                              "value": "OS"
+                              }
+                          }})
     self.assertEqual(data["items"][1],
-                     {"path": "/var/os/tmp-9",
-                      "pathtype": "OS"})
+                     {"age": 42,
+                      "type": "PathSpec",
+                      "value": {
+                          "path": {
+                              "age": 0,
+                              "type": "unicode",
+                              "value": "/var/os/tmp-9"
+                              },
+                          "pathtype": {
+                              "age": 0,
+                              "type": "EnumNamedValue",
+                              "value": "OS"
+                              }
+                          }})
 
   def testRendersSampleCollectionWithCountAndOffsetParameters(self):
     data = self.renderer.RenderObject(
@@ -180,11 +177,35 @@ class ApiRDFValueCollectionRendererTest(test_lib.GRRBaseTest):
 
     self.assertEqual(len(data["items"]), 2)
     self.assertEqual(data["items"][0],
-                     {"path": "/var/os/tmp-3",
-                      "pathtype": "OS"})
+                     {"age": 42,
+                      "type": "PathSpec",
+                      "value": {
+                          "path": {
+                              "age": 0,
+                              "type": "unicode",
+                              "value": "/var/os/tmp-3"
+                              },
+                          "pathtype": {
+                              "age": 0,
+                              "type": "EnumNamedValue",
+                              "value": "OS"
+                              }
+                          }})
     self.assertEqual(data["items"][1],
-                     {"path": "/var/os/tmp-4",
-                      "pathtype": "OS"})
+                     {"age": 42,
+                      "type": "PathSpec",
+                      "value": {
+                          "path": {
+                              "age": 0,
+                              "type": "unicode",
+                              "value": "/var/os/tmp-4"
+                              },
+                          "pathtype": {
+                              "age": 0,
+                              "type": "EnumNamedValue",
+                              "value": "OS"
+                              }
+                          }})
 
   def testRendersSampleCollectionWithTotalCountParameter(self):
     data = self.renderer.RenderObject(
@@ -201,8 +222,20 @@ class ApiRDFValueCollectionRendererTest(test_lib.GRRBaseTest):
 
     self.assertEqual(len(data["items"]), 1)
     self.assertEqual(data["items"][0],
-                     {"path": "/var/os/tmp-9",
-                      "pathtype": "OS"})
+                     {"age": 42,
+                      "type": "PathSpec",
+                      "value": {
+                          "path": {
+                              "age": 0,
+                              "type": "unicode",
+                              "value": "/var/os/tmp-9"
+                              },
+                          "pathtype": {
+                              "age": 0,
+                              "type": "EnumNamedValue",
+                              "value": "OS"
+                              }
+                          }})
 
   def testRendersSampleCollectionWithFilterAndOffsetAndCount(self):
     data = self.renderer.RenderObject(
@@ -211,11 +244,35 @@ class ApiRDFValueCollectionRendererTest(test_lib.GRRBaseTest):
 
     self.assertEqual(len(data["items"]), 2)
     self.assertEqual(data["items"][0],
-                     {"path": "/var/os/tmp-2",
-                      "pathtype": "OS"})
+                     {"age": 42,
+                      "type": "PathSpec",
+                      "value": {
+                          "path": {
+                              "age": 0,
+                              "type": "unicode",
+                              "value": "/var/os/tmp-2"
+                              },
+                          "pathtype": {
+                              "age": 0,
+                              "type": "EnumNamedValue",
+                              "value": "OS"
+                              }
+                          }})
     self.assertEqual(data["items"][1],
-                     {"path": "/var/os/tmp-3",
-                      "pathtype": "OS"})
+                     {"age": 42,
+                      "type": "PathSpec",
+                      "value": {
+                          "path": {
+                              "age": 0,
+                              "type": "unicode",
+                              "value": "/var/os/tmp-3"
+                              },
+                          "pathtype": {
+                              "age": 0,
+                              "type": "EnumNamedValue",
+                              "value": "OS"
+                              }
+                          }})
 
 
 class VFSGRRClientApiObjectRendererTest(test_lib.GRRBaseTest):
@@ -228,7 +285,7 @@ class VFSGRRClientApiObjectRendererTest(test_lib.GRRBaseTest):
     self.fd = aff4.FACTORY.Open(self.client_id, token=self.token)
     self.renderer = api_aff4_object_renderers.VFSGRRClientApiObjectRenderer()
 
-  def testRendersClientSummaryInWithTypeMetadata(self):
+  def testRendersClientSummaryIn(self):
     data = self.renderer.RenderObject(self.fd, None)
 
     self.assertEqual(

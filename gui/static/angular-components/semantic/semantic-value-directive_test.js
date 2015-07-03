@@ -9,8 +9,9 @@ goog.scope(function() {
 var SemanticDirectivesRegistry = grrUi.semantic.SemanticDirectivesRegistry;
 
 describe('semantic value directive', function() {
-  var $compile, $rootScope;
+  var $compile, $rootScope, $q;
   var grrSemanticValueDirectivesRegistryService;
+  var grrReflectionService;
 
   beforeEach(module(grrUi.semantic.module.name));
   beforeEach(module(grrUi.tests.module.name));
@@ -20,9 +21,19 @@ describe('semantic value directive', function() {
 
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
-
+    $q = $injector.get('$q');
     grrSemanticValueDirectivesRegistryService = $injector.get(
         'grrSemanticValueDirectivesRegistryService');
+    grrReflectionService = $injector.get('grrReflectionService');
+
+    grrReflectionService.getRDFValueDescriptor = function(valueType) {
+      var deferred = $q.defer();
+      deferred.resolve({
+        name: valueType,
+        mro: [valueType]
+      });
+      return deferred.promise;
+    };
   }));
 
   var renderTestTemplate = function(value) {
@@ -76,7 +87,7 @@ describe('semantic value directive', function() {
         'NonExistentType', directiveMock);
 
     var element = renderTestTemplate({
-      mro: ['NonExistentType'],
+      type: 'NonExistentType',
       value: 42
     });
     expect($('the-test-directive', element).length).toBe(1);
@@ -107,15 +118,15 @@ describe('semantic value directive', function() {
 
     var element = renderTestTemplate([
       {
-        mro: ['NonExistentType1'],
+        type: 'NonExistentType1',
         value: 41
       },
       {
-        mro: ['NonExistentType2'],
+        type: 'NonExistentType2',
         value: 42
       },
       {
-        mro: ['NonExistentType3'],
+        type: 'NonExistentType3',
         value: 43
       }
     ]);
@@ -127,9 +138,10 @@ describe('semantic value directive', function() {
 
   it('renders typed values as strings when there\'s no handler', function() {
     var element = renderTestTemplate({
-      mro: ['NonExistentType'],
+      type: 'NonExistentType',
       value: 42
     });
+
     expect(element.text().trim()).toBe('42');
   });
 });

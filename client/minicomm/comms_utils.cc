@@ -176,4 +176,13 @@ bool SecureSession::DecodeMessages(const ClientCommunication& input,
   return true;
 }
 
+uint64 NonceGenerator::Generate() {
+  const auto now = std::chrono::high_resolution_clock::now();
+  uint64 now_usec = std::chrono::duration_cast<std::chrono::microseconds>(
+      now.time_since_epoch())
+      .count();
+  uint64 result = std::max(last_nonce_ + 1, now_usec);
+  last_nonce_ = result;
+  return result;
+}
 }  // namespace grr

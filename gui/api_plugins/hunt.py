@@ -9,6 +9,7 @@ from grr.gui import api_aff4_object_renderers
 from grr.gui import api_call_renderers
 from grr.gui import api_value_renderers
 
+from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import hunts
@@ -71,7 +72,7 @@ class ApiGRRHuntRenderer(
 
     for k, v in typed_summary_part.items():
       typed_summary_part[k] = api_value_renderers.RenderValue(
-          v, with_types=True, with_metadata=True, limit_lists=10)
+          v, limit_lists=10)
 
     rendered_object = {
         "summary": dict(untyped_summary_part.items() +
@@ -163,8 +164,7 @@ class ApiHuntLogRenderer(api_call_renderers.ApiCallRenderer):
     return api_aff4_object_renderers.RenderAFF4Object(
         logs_collection,
         [api_aff4_object_renderers.ApiRDFValueCollectionRendererArgs(
-            offset=args.offset, count=args.count, with_total_count=True,
-            items_type_info="WITH_TYPES_AND_METADATA")])
+            offset=args.offset, count=args.count, with_total_count=True)])
 
 
 class ApiHuntErrorsRendererArgs(rdf_structs.RDFProtoStruct):
@@ -186,8 +186,7 @@ class ApiHuntErrorsRenderer(api_call_renderers.ApiCallRenderer):
     return api_aff4_object_renderers.RenderAFF4Object(
         errors_collection,
         [api_aff4_object_renderers.ApiRDFValueCollectionRendererArgs(
-            offset=args.offset, count=args.count, with_total_count=True,
-            items_type_info="WITH_TYPES_AND_METADATA")])
+            offset=args.offset, count=args.count, with_total_count=True)])
 
 
 class ApiHuntArchiveFilesRendererArgs(rdf_structs.RDFProtoStruct):
@@ -202,8 +201,14 @@ class ApiHuntArchiveFilesRenderer(api_call_renderers.ApiCallRenderer):
   def Render(self, args, token=None):
     """Check if the user has access to the specified hunt."""
     hunt_urn = rdfvalue.RDFURN("aff4:/hunts").Add(args.hunt_id.Basename())
-    approved_token = aff4_security.Approval.GetApprovalForObject(
-        hunt_urn, token=token)
+
+    # TODO(user): This should be abstracted away into AccessControlManager
+    # API.
+    try:
+      approved_token = aff4_security.Approval.GetApprovalForObject(
+          hunt_urn, token=token)
+    except access_control.UnauthorizedAccess:
+      approved_token = token
 
     urn = flow.GRRFlow.StartFlow(flow_name="ExportHuntResultFilesAsArchive",
                                  hunt_urn=hunt_urn,

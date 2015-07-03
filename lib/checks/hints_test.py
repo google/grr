@@ -14,9 +14,9 @@ class HintsTests(test_lib.GRRBaseTest):
   def testCheckOverlay(self):
     """Overlay(hint1, hint2) should populate hint2 with the values of hint1."""
     # Fully populated hint.
-    full = {"problem": "Terminator needs trousers.",
-            "fix": "Give me your clothes.",
-            "format": "{mission}, {target}",
+    full = {"problem": "Terminator needs trousers.\n",
+            "fix": "Give me your clothes.\n",
+            "format": "{mission}, {target}\n",
             "summary": "I'll be back."}
     # Partial hint
     partial = {"problem": "Terminator needs to go shopping.",
@@ -66,7 +66,7 @@ class HintsTests(test_lib.GRRBaseTest):
     rdf.interfaces = [eth0, ppp0]
 
     template = ("{system_info.system} {users.username} {interfaces.ifname} "
-                "{interfaces.addresses.human_readable}")
+                "{interfaces.addresses.human_readable}\n")
     hinter = hints.Hinter(template=template)
     expected = "Linux root,jconnor eth0,ppp0 1.1.1.1,2.2.2.2,3.3.3.3"
     result = hinter.Render(rdf)
@@ -92,7 +92,7 @@ class HintsTests(test_lib.GRRBaseTest):
     rdf["reference"] = {"ecophage": ["bots", ["nanobots", ["picobots"]]],
                         "doomsday": {"books": ["cats cradle", "prey"]}}
     template = ("{cataclysm}; {thinkers.username}; {reference.ecophage}; "
-                "{reference.doomsday}")
+                "{reference.doomsday}\n")
     hinter = hints.Hinter(template=template)
     expected = ("GreyGoo; drexler,joy; bots,nanobots,picobots; "
                 "books:cats cradle,prey")

@@ -224,7 +224,7 @@ HuntsListController.prototype.transformItems = function(items) {
   angular.forEach(items, function(item) {
     item.shortUrn = item.urn.replace(/^aff4:\//, '');
     item.isRobot = (item.attributes['aff4:flow_state'].
-        context.creator == 'GRRWorker');
+        context.creator.value == 'GRRWorker');
 
     this.huntsByUrn[item.urn] = item;
   }.bind(this));

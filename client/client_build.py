@@ -178,6 +178,7 @@ def GetDeployer(context, signer=None):
 def GetSigner(context):
   if args.platform == "windows" and args.subparser_name in ["deploy", "repack",
                                                             "buildanddeploy"]:
+    print "Enter passphrase for code signing cert:"
     passwd = getpass.getpass()
     cert = config_lib.CONFIG.Get(
         "ClientBuilder.windows_signing_cert", context=context)

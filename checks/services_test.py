@@ -12,95 +12,84 @@ from grr.parsers import linux_service_parser_test
 
 class XinetdServiceStateTests(checks_test_lib.HostCheckTest):
 
-  check_loaded = False
-  parser = None
+  @classmethod
+  def setUpClass(cls):
+    cls.LoadCheck("services.yaml")
+    cls.parser = linux_service_parser.LinuxXinetdParser().ParseMultiple
 
-  def setUp(self, *args, **kwargs):
-    super(XinetdServiceStateTests, self).setUp(*args, **kwargs)
-    if not self.check_loaded:
-      self.check_loaded = self.LoadCheck("services.yaml")
-    if not self.parser:
-      self.parser = linux_service_parser.LinuxXinetdParser().ParseMultiple
-
-  def RunXinetdCheck(self, chk_id, svc, disabled, exp, found):
+  def RunXinetdCheck(self, chk_id, svc, disabled, sym, found):
     host_data = self.SetKnowledgeBase()
     cfgs = linux_service_parser_test.GenXinetd(svc, disabled)
     stats, files = linux_service_parser_test.GenTestData(cfgs, cfgs.values())
     data = list(self.parser(stats, files, None))
     host_data["LinuxServices"] = self.SetArtifactData(parsed=data)
     results = self.RunChecks(host_data)
-    self.assertCheckDetectedAnom(chk_id, results, exp, found)
+    self.assertCheckDetectedAnom(chk_id, results, sym, found)
 
   def testEmptyXinetdCheck(self):
     chk_id = "CIS-INETD-WITH-NO-SERVICES"
-    exp = "Missing attribute: xinetd running with no xinetd-managed services."
+    sym = "Missing attribute: xinetd running with no xinetd-managed services."
     found = ["Expected state was not found"]
-    self.RunXinetdCheck(chk_id, "finger", "yes", exp, found)
+    self.RunXinetdCheck(chk_id, "finger", "yes", sym, found)
 
   def testLegacyXinetdServicesCheck(self):
     chk_id = "CIS-SERVICE-LEGACY-SERVICE-ENABLED"
-    exp = "Found: Legacy services are running."
+    sym = "Found: Legacy services are running."
     found = ["telnet is started by XINETD"]
-    self.RunXinetdCheck(chk_id, "telnet", "no", exp, found)
+    self.RunXinetdCheck(chk_id, "telnet", "no", sym, found)
 
   def testUnwantedServicesCheck(self):
     chk_id = "CIS-SERVICE-SHOULD-NOT-RUN"
-    exp = "Found: Remote administration services are running."
+    sym = "Found: Remote administration services are running."
     found = ["webmin is started by XINETD"]
-    self.RunXinetdCheck(chk_id, "webmin", "no", exp, found)
+    self.RunXinetdCheck(chk_id, "webmin", "no", sym, found)
 
 
 class SysVInitStateTests(checks_test_lib.HostCheckTest):
 
-  check_loaded = False
-  parser = None
   results = None
+
+  @classmethod
+  def setUpClass(cls):
+    cls.LoadCheck("services.yaml")
+    cls.parser = linux_service_parser.LinuxSysVInitParser().ParseMultiple
 
   def setUp(self, *args, **kwargs):
     super(SysVInitStateTests, self).setUp(*args, **kwargs)
-    if not self.check_loaded:
-      self.check_loaded = self.LoadCheck("services.yaml")
-    if not self.parser:
-      self.parser = linux_service_parser.LinuxSysVInitParser().ParseMultiple
-    if not self.results:
-      self.RunSysVChecks()
+    self.RunSysVChecks()
 
   def RunSysVChecks(self):
     host_data = self.SetKnowledgeBase()
-    parser = linux_service_parser.LinuxSysVInitParser().ParseMultiple
     links = ["/etc/rc2.d/S50xinetd", "/etc/rc2.d/S60wu-ftpd",
              "/etc/rc2.d/S10ufw"]
     stats, files = linux_service_parser_test.GenTestData(
         links, [""] * len(links), st_mode=41471)
-    parsed = list(parser(stats, files, None))
+    parsed = list(self.parser(stats, files, None))
     host_data["LinuxServices"] = self.SetArtifactData(parsed=parsed)
     self.results = self.RunChecks(host_data)
 
   def testEmptyXinetdCheck(self):
     chk_id = "CIS-INETD-WITH-NO-SERVICES"
-    exp = "Missing attribute: xinetd running with no xinetd-managed services."
-    self.assertCheckDetectedAnom(chk_id, self.results, exp)
+    sym = "Missing attribute: xinetd running with no xinetd-managed services."
+    self.assertCheckDetectedAnom(chk_id, self.results, sym)
 
   def testLegacyServicesCheck(self):
     chk_id = "CIS-SERVICE-LEGACY-SERVICE-ENABLED"
-    exp = "Found: Legacy services are running."
+    sym = "Found: Legacy services are running."
     found = ["wu-ftpd is started by INIT"]
-    self.assertCheckDetectedAnom(chk_id, self.results, exp, found)
+    self.assertCheckDetectedAnom(chk_id, self.results, sym, found)
 
   def testRequiredServicesNotRunningCheck(self):
     chk_id = "CIS-SERVICE-SHOULD-RUN"
-    exp = "Missing attribute: Sysstat is not started at boot time."
-    self.assertCheckDetectedAnom(chk_id, self.results, exp)
+    sym = "Missing attribute: Sysstat is not started at boot time."
+    self.assertCheckDetectedAnom(chk_id, self.results, sym)
 
 
 class ListeningServiceTests(checks_test_lib.HostCheckTest):
 
-  check_loaded = False
-
-  def setUp(self, *args, **kwargs):
-    super(ListeningServiceTests, self).setUp(*args, **kwargs)
-    if not self.check_loaded:
-      self.check_loaded = self.LoadCheck("services.yaml")
+  @classmethod
+  def setUpClass(cls):
+    cls.LoadCheck("services.yaml")
 
   def GenHostData(self):
     # Create some host_data..
@@ -120,20 +109,20 @@ class ListeningServiceTests(checks_test_lib.HostCheckTest):
 
   def testFindListeningServicesCheck(self):
     chk_id = "CIS-SERVICE-SHOULD-NOT-LISTEN"
-    exp = "Found: Insecure services are accessible over the network."
+    sym = "Found: Insecure services are accessible over the network."
     found = ["xorg (pid 1234) listens on 127.0.0.1,::1,10.1.1.1,fc00::1"]
     host_data = self.GenHostData()
     results = self.RunChecks(host_data)
-    self.assertCheckDetectedAnom(chk_id, results, exp, found)
+    self.assertCheckDetectedAnom(chk_id, results, sym, found)
 
   def testFindNoRunningLogserver(self):
     chk_id = "CIS-SERVICE-LOGSERVER-RUNNING"
-    exp = "Missing attribute: Logging software is not running."
+    sym = "Missing attribute: Logging software is not running."
     found = ["Expected state was not found"]
     host_data = self.GenHostData()
     # Try it without rsyslog.
     results = self.RunChecks(host_data)
-    self.assertCheckDetectedAnom(chk_id, results, exp, found)
+    self.assertCheckDetectedAnom(chk_id, results, sym, found)
     # Now rsyslog is running.
     logs = rdf_client.Process(name="rsyslogd", pid=1236)
     host_data["ListProcessesGrr"]["PARSER"].append(logs)

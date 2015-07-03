@@ -115,6 +115,38 @@ def CreateGRRTempFile(directory=None, filename=None, lifetime=0, mode="w+b",
   return outfile
 
 
+def CreateGRRTempFileVFS(directory=None, filename=None, lifetime=0, mode="w+b",
+                         suffix=""):
+  """Creates a GRR VFS temp file.
+
+  This function is analogous to CreateGRRTempFile but returns an open VFS handle
+  to the newly created file. Arguments are the same as for CreateGRRTempFile:
+
+  Args:
+    directory: string representing absolute directory where file should be
+               written. If None, use 'tmp' under the directory we're running
+               from.
+
+    filename: The name of the file to use. Note that setting both filename and
+       directory name is not allowed.
+
+    lifetime: time in seconds before we should delete this tempfile.
+
+    mode: The mode to open the file.
+
+    suffix: optional suffix to use for the temp file
+
+  Returns:
+    An open file handle to the new file and the corresponding pathspec.
+  """
+
+  fd = CreateGRRTempFile(directory=directory, filename=filename,
+                         lifetime=lifetime, mode=mode, suffix=suffix)
+  pathspec = rdf_paths.PathSpec(
+      path=fd.name, pathtype=rdf_paths.PathSpec.PathType.TMPFILE)
+  return fd, pathspec
+
+
 def DeleteGRRTempFile(path):
   """Delete a GRR temp file.
 

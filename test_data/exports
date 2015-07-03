@@ -1,4 +1,5 @@
-/path/to/foo -rw,sync host1(ro) host2
+/path/to/foo -rw,sync,no_root_squash host1(ro,sec=sys) host2
 /path/to/bar *.example.org(all_squash,ro) \
   192.168.1.0/24 (rw) # Mistake here - space makes this default.
-
+/path/to/good ro host3
+/path/to/bad (sec=none) *.example.org(rw)

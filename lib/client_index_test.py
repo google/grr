@@ -3,8 +3,10 @@
 
 
 from grr.lib import aff4
+from grr.lib import client_index
 from grr.lib import flags
 from grr.lib import test_lib
+from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 
 CLIENT_ID = "C.00aaeccbb45f33a3"
@@ -148,6 +150,89 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
     # Ignore the keyword if the date is not readable.
     self.assertEqual(len(index.LookupClients([".", "start_date:2013-10-20",
                                               "end_date:XXXX"])), 5)
+
+  def testUnversionedKeywords(self):
+    index = aff4.FACTORY.Create("aff4:/client-index3/",
+                                aff4_type="ClientIndex",
+                                mode="rw",
+                                token=self.token)
+
+    client_urns = self.SetupClients(5)
+
+    with test_lib.FakeTime(1000000):
+      for i in range(5):
+        client = aff4.FACTORY.Create(client_urns[i],
+                                     aff4_type="VFSGRRClient",
+                                     mode="rw",
+                                     token=self.token)
+        client.Set(client.Schema.HOST_IPS("10.1.0.%d" % i))
+        client.Flush()
+        index.AddClient(client)
+
+    with test_lib.FakeTime(2000000):
+      for i in range(5):
+        client = aff4.FACTORY.Create(client_urns[i],
+                                     aff4_type="VFSGRRClient",
+                                     mode="rw",
+                                     token=self.token)
+        client.Set(client.Schema.HOST_IPS("10.1.1.%d" % i))
+        client.Flush()
+        index.AddClient(client)
+    with test_lib.FakeTime(3000000):
+      self.assertEqual(index.LookupClients(["10.1.0", "Host-2"]),
+                       [rdf_client.ClientURN("aff4:/C.1000000000000002")])
+      self.assertEqual(index.LookupClients(["+10.1.0", "Host-2"]), [])
+      self.assertEqual(index.LookupClients(["+10.1.1", "Host-2"]),
+                       [rdf_client.ClientURN("aff4:/C.1000000000000002")])
+
+  def _HostsHaveLabel(self, hosts, label, label_index):
+    urns = label_index.FindUrnsByLabel(label)
+    result = [utils.SmartStr(c.Get("Host")).lower()
+              for c in aff4.FACTORY.MultiOpen(urns, token=self.token)]
+    self.assertItemsEqual(hosts, result)
+
+  def testBulkLabelClients(self):
+    index = aff4.FACTORY.Create("aff4:/client-index4/",
+                                aff4_type="ClientIndex",
+                                mode="rw",
+                                token=self.token)
+
+    client_urns = self.SetupClients(2)
+    for urn in client_urns:
+      client = aff4.FACTORY.Create(urn,
+                                   aff4_type="VFSGRRClient",
+                                   mode="rw",
+                                   token=self.token)
+      client.AddLabels("test_client", token=self.token)
+      client.Flush()
+      index.AddClient(client)
+    label_index = aff4.FACTORY.Open("aff4:/index/labels/clients",
+                                    token=self.token)
+
+    # No hostname.
+    client_index.BulkLabel("label-0", ["host-3"], self.token, index)
+    self._HostsHaveLabel([], "label-0", label_index)
+
+    # Add label.
+    hosts = ["host-0", "host-1"]
+    client_index.BulkLabel("label-0", hosts, self.token, index)
+    self._HostsHaveLabel(hosts, "label-0", label_index)
+
+    # Add another label only changes the new host.
+    hosts = ["host-1"]
+    client_index.BulkLabel("label-1", hosts, self.token, index)
+    self._HostsHaveLabel(hosts, "label-1", label_index)
+    # and other labels remain unchanged.
+    hosts = ["host-0", "host-1"]
+    self._HostsHaveLabel(hosts, "label-0", label_index)
+
+    # Relabeling updates the label on already labeled hosts.
+    hosts = ["host-0"]
+    client_index.BulkLabel("label-0", hosts, self.token, index)
+    self._HostsHaveLabel(hosts, "label-0", label_index)
+    # and other labels remain unchanged.
+    hosts = ["host-1"]
+    self._HostsHaveLabel(hosts, "label-1", label_index)
 
 
 def main(argv):

@@ -1,0 +1,15 @@
+# GRR API authorization rules
+#
+# Any API Renderer with a rule listed here will have access checked against the
+# defined users. If none match, access is denied. Any renderers not listed are
+# available to all authenticated users. Note the format supports groups but
+# you'll need to write your own class to support group expansion, see
+# SimpleAPIAuthorizationManager class documentation.
+#
+# Examples:
+#
+#renderer: "ApiFlowStatusRenderer"
+#users:
+#  - "user1"
+#  - "user2"
+#

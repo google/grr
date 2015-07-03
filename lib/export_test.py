@@ -619,15 +619,15 @@ class ExportTest(test_lib.GRRBaseTest):
                     symptom="something was wrong on the system"),
                 rdf_anomaly.Anomaly(
                     type="MANUAL_ANOMALY",
-                    symptom="manually found wrong stuff"),
+                    symptom="manually found wrong stuff",
+                    anomaly_reference_id=["id1", "id2"],
+                    finding=["file has bad permissions: /tmp/test"]),
                 ]),
         ]
     metadata = export.ExportedMetadata()
 
-    converter = export.CheckResultConverter()
-    results = list(converter.BatchConvert(
-        [(metadata, r) for r in checkresults],
-        token=self.token))
+    results = list(
+        export.ConvertValues(metadata, checkresults, token=self.token))
     self.assertEqual(len(results), 3)
     self.assertEqual(results[0].check_id, checkresults[0].check_id)
     self.assertFalse(results[0].HasField("anomaly"))
@@ -641,6 +641,10 @@ class ExportTest(test_lib.GRRBaseTest):
                      checkresults[1].anomaly[1].type)
     self.assertEqual(results[2].anomaly.symptom,
                      checkresults[1].anomaly[1].symptom)
+    self.assertItemsEqual(results[2].anomaly.anomaly_reference_id,
+                          checkresults[1].anomaly[1].anomaly_reference_id)
+    self.assertItemsEqual(results[2].anomaly.finding,
+                          checkresults[1].anomaly[1].finding)
 
   def testGetMetadata(self):
     client_urn = rdf_client.ClientURN("C.0000000000000000")
@@ -757,6 +761,8 @@ class ExportTest(test_lib.GRRBaseTest):
   def testFileFinderResultExportConverterConvertsHashes(self):
     pathspec = rdf_paths.PathSpec(path="/some/path",
                                   pathtype=rdf_paths.PathSpec.PathType.OS)
+    pathspec2 = rdf_paths.PathSpec(path="/some/path2",
+                                   pathtype=rdf_paths.PathSpec.PathType.OS)
 
     stat_entry = rdf_client.StatEntry(
         aff4path=rdfvalue.RDFURN("aff4:/C.00000000000001/fs/os/some/path"),
@@ -774,31 +780,66 @@ class ExportTest(test_lib.GRRBaseTest):
         pecoff_md5="7dd6bee591dfcb6d75eb705405302c3eab65e21a".decode("hex"),
         pecoff_sha1="7dd6bee591dfcb6d75eb705405302c3eab65e21a".decode("hex"))
 
+    stat_entry2 = rdf_client.StatEntry(
+        aff4path=rdfvalue.RDFURN("aff4:/C.00000000000001/fs/os/some/path2"),
+        pathspec=pathspec2,
+        st_mode=33184,
+        st_ino=1063090,
+        st_atime=1336469177,
+        st_mtime=1336129892,
+        st_ctime=1336129892)
+    hash_entry2 = rdf_crypto.Hash(
+        sha256=("9e8dc93e150021bb4752029ebbff51394aa36f069cf19901578"
+                "e4f06017acdb5").decode("hex"),
+        sha1="6dd6bee591dfcb6d75eb705405302c3eab65e21a".decode("hex"),
+        md5="8b0a15eefe63fd41f8dc9dee01c5cf9a".decode("hex"),
+        pecoff_md5="1dd6bee591dfcb6d75eb705405302c3eab65e21a".decode("hex"),
+        pecoff_sha1="1dd6bee591dfcb6d75eb705405302c3eab65e21a".decode("hex"))
+
     file_finder_result = file_finder.FileFinderResult(stat_entry=stat_entry,
                                                       hash_entry=hash_entry)
+    file_finder_result2 = file_finder.FileFinderResult(stat_entry=stat_entry2,
+                                                       hash_entry=hash_entry2)
+
     metadata = export.ExportedMetadata(client_urn="C.0000000000000001")
 
     converter = export.FileFinderResultConverter()
-    results = list(converter.Convert(metadata, file_finder_result,
-                                     token=self.token))
+    results = list(converter.BatchConvert([(metadata, file_finder_result),
+                                           (metadata, file_finder_result2)],
+                                          token=self.token))
 
-    # We expect 1 ExportedFile instance in the results
     exported_files = [result for result in results
                       if isinstance(result, export.ExportedFile)]
-    self.assertEqual(len(exported_files), 1)
+    self.assertEqual(len(exported_files), 2)
+    self.assertItemsEqual([x.basename for x in exported_files],
+                          ["path", "path2"])
 
-    self.assertEqual(exported_files[0].basename, "path")
-    self.assertEqual(exported_files[0].hash_sha256,
-                     "0e8dc93e150021bb4752029ebbff51394aa36f069cf19901578e4"
-                     "f06017acdb5")
-    self.assertEqual(exported_files[0].hash_sha1,
-                     "7dd6bee591dfcb6d75eb705405302c3eab65e21a")
-    self.assertEqual(exported_files[0].hash_md5,
-                     "bb0a15eefe63fd41f8dc9dee01c5cf9a")
-    self.assertEqual(exported_files[0].pecoff_hash_md5,
-                     "7dd6bee591dfcb6d75eb705405302c3eab65e21a")
-    self.assertEqual(exported_files[0].pecoff_hash_sha1,
-                     "7dd6bee591dfcb6d75eb705405302c3eab65e21a")
+    for export_result in exported_files:
+      if export_result.basename == "path":
+        self.assertEqual(export_result.hash_sha256,
+                         "0e8dc93e150021bb4752029ebbff51394aa36f069cf19901578e4"
+                         "f06017acdb5")
+        self.assertEqual(export_result.hash_sha1,
+                         "7dd6bee591dfcb6d75eb705405302c3eab65e21a")
+        self.assertEqual(export_result.hash_md5,
+                         "bb0a15eefe63fd41f8dc9dee01c5cf9a")
+        self.assertEqual(export_result.pecoff_hash_md5,
+                         "7dd6bee591dfcb6d75eb705405302c3eab65e21a")
+        self.assertEqual(export_result.pecoff_hash_sha1,
+                         "7dd6bee591dfcb6d75eb705405302c3eab65e21a")
+      elif export_result.basename == "path2":
+        self.assertEqual(export_result.basename, "path2")
+        self.assertEqual(export_result.hash_sha256,
+                         "9e8dc93e150021bb4752029ebbff51394aa36f069cf19901578e4"
+                         "f06017acdb5")
+        self.assertEqual(export_result.hash_sha1,
+                         "6dd6bee591dfcb6d75eb705405302c3eab65e21a")
+        self.assertEqual(export_result.hash_md5,
+                         "8b0a15eefe63fd41f8dc9dee01c5cf9a")
+        self.assertEqual(export_result.pecoff_hash_md5,
+                         "1dd6bee591dfcb6d75eb705405302c3eab65e21a")
+        self.assertEqual(export_result.pecoff_hash_sha1,
+                         "1dd6bee591dfcb6d75eb705405302c3eab65e21a")
 
   def testRDFURNConverterWithURNPointingToCollection(self):
     urn = rdfvalue.RDFURN("aff4:/C.00000000000000/some/collection")

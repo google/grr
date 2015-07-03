@@ -1,0 +1,54 @@
+check_id: 'CIS-PATH-UNSAFE-VALUE'
+hint:
+  problem: 'Paths include unsafe values.'
+  format: '{config} sets {name} to {vals}'
+method:
+  - target: {os: ['Linux']}
+    probe:
+      - artifact: 'AllShellConfigs'
+        filters:
+          - type: 'ObjectFilter'
+            expression: 'vals contains "."'
+---
+check_id: 'CIS-DOTFILE-FILE-PERMISSIONS'
+hint:
+  problem: 'Dotfile permissions allow modification by others.'
+  format: '{pathspec.path} user: {st_uid}, group: {st_gid}, mode: {st_mode}'
+  fix: 'Remove group/other write permissions on these files.'
+method:
+  - target: {os: ['Linux']}
+    probe:
+      - artifact: 'AllShellConfigs'
+        result_context: 'RAW'
+        mode: PARALLEL
+        filters:
+          # Note: Ensure a regular file to limit false positives on symlinks.
+          - type: 'StatFilter'
+            expression: 'mode:0002 mask:7002 file_type:REGULAR'
+          - type: 'StatFilter'
+            expression: 'mode:0020 mask:7020 file_type:REGULAR'
+---
+check_id: 'CIS-DOTFILE-FILE-OWNERS'
+hint:
+  problem: 'Dotfiles are not owned by the root user.'
+  format: '{pathspec.path} user: {st_uid}, group: {st_gid}, mode: {st_mode}'
+  fix: 'Change the ownership to root:root.'
+method:
+  - target: {os: ['Linux']}
+    probe:
+      - artifact: 'GlobalShellConfigs'
+        result_context: 'RAW'
+        mode: PARALLEL
+        filters:
+          - type: 'StatFilter'
+            expression: 'uid:!0'
+          - type: 'StatFilter'
+            expression: 'gid:!0'
+      - artifact: 'RootUserShellConfigs'
+        result_context: 'RAW'
+        mode: PARALLEL
+        filters:
+          - type: 'StatFilter'
+            expression: 'uid:!0'
+          - type: 'StatFilter'
+            expression: 'gid:!0'

@@ -4,7 +4,7 @@ goog.require('grrUi.forms.module');
 goog.require('grrUi.tests.module');
 
 describe('semantic proto union form directive', function() {
-  var $compile, $rootScope, descriptor;
+  var $compile, $rootScope, $q, grrReflectionService, descriptor;
 
   beforeEach(module('/static/angular-components/forms/semantic-proto-form.html'));
   beforeEach(module('/static/angular-components/forms/semantic-proto-union-form.html'));
@@ -16,6 +16,17 @@ describe('semantic proto union form directive', function() {
   beforeEach(inject(function($injector) {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
+    $q = $injector.get('$q');
+    grrReflectionService = $injector.get('grrReflectionService');
+
+    grrReflectionService.getRDFValueDescriptor = function(valueType) {
+      var deferred = $q.defer();
+      deferred.resolve({
+        name: valueType,
+        mro: [valueType]
+      });
+      return deferred.promise;
+    };
 
     descriptor = {
       'default': {

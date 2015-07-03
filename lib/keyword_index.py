@@ -10,6 +10,7 @@ possible to search for those names which match all keywords.
 
 from grr.lib import aff4
 from grr.lib import data_store
+from grr.lib import rdfvalue
 
 
 class AFF4KeywordIndex(aff4.AFF4Object):
@@ -27,26 +28,26 @@ class AFF4KeywordIndex(aff4.AFF4Object):
   def _KeywordToURN(self, keyword):
     return self.urn.Add(keyword)
 
-  def Lookup(self, keywords, start_time=FIRST_TIMESTAMP,
-             end_time=LAST_TIMESTAMP):
+  def Lookup(self, keywords, **kwargs):
     """Finds objects associated with keywords.
 
     Find the names related to all keywords.
 
     Args:
       keywords: A collection of keywords that we are interested in.
-      start_time: Only considers keywords added at or after this point in time.
-      end_time: Only considers keywords at or before this point in time.
+      **kwargs: Additional arguments to be passed to the underlying call to
+        ReadPostingLists
     Returns:
       A set of potentially relevant names.
 
     """
 
-    posting_lists = self.ReadPostingLists(keywords, start_time, end_time)
+    posting_lists = self.ReadPostingLists(keywords, **kwargs)
 
     results = posting_lists.values()
     relevant_set = results[0]
-    for hits in results[1:]:
+
+    for hits in results:
       relevant_set &= hits
 
       if not relevant_set:
@@ -55,17 +56,19 @@ class AFF4KeywordIndex(aff4.AFF4Object):
     return relevant_set
 
   def ReadPostingLists(self, keywords, start_time=FIRST_TIMESTAMP,
-                       end_time=LAST_TIMESTAMP):
+                       end_time=LAST_TIMESTAMP, last_seen_map=None):
     """Finds all objects associated with any of the keywords.
 
     Args:
       keywords: A collection of keywords that we are interested in.
       start_time: Only considers keywords added at or after this point in time.
       end_time: Only considers keywords at or before this point in time.
+      last_seen_map: If present, is treated as a dict and populated to map pairs
+        (keyword, name) to the timestamp of the latest connection found.
     Returns:
       A dict mapping each keyword to a set of relevant names.
-    """
 
+    """
     keyword_urns = {self._KeywordToURN(k): k for k in keywords}
     result = {}
     for kw in keywords:
@@ -74,13 +77,17 @@ class AFF4KeywordIndex(aff4.AFF4Object):
     for keyword_urn, value in data_store.DB.MultiResolveRegex(
         keyword_urns.keys(), self.INDEX_COLUMN_REGEXP,
         timestamp=(start_time, end_time+1), token=self.token):
-      for column, _, _ in value:
-        result[keyword_urns[keyword_urn]].add(
-            column[self.INDEX_PREFIX_LEN:])
+      for column, _, ts in value:
+        kw = keyword_urns[keyword_urn]
+        name = column[self.INDEX_PREFIX_LEN:]
+        result[kw].add(name)
+        if last_seen_map is not None:
+          last_seen_map[(kw, name)] = max(last_seen_map.get((kw, name), -1), ts)
 
     return result
 
-  def AddKeywordsForName(self, name, keywords, sync=True, **kwargs):
+  def AddKeywordsForName(self, name, keywords, sync=True, timestamp=None,
+                         **kwargs):
     """Associates keywords with name.
 
     Records that keywords are associated with name.
@@ -89,12 +96,15 @@ class AFF4KeywordIndex(aff4.AFF4Object):
       name: A name which should be associated with some keywords.
       keywords: A collection of keywords to associate with name.
       sync: Sync to data store immediately.
+      timestamp: timestamp to use for the underlying datastore write
       **kwargs: Additional arguments to pass to the datastore.
     """
+    if timestamp is None:
+      timestamp = rdfvalue.RDFDatetime().Now().AsMicroSecondsFromEpoch()
     for keyword in set(keywords):
       data_store.DB.Set(
           self._KeywordToURN(keyword),
           self.INDEX_COLUMN_FORMAT % name, "",
-          token=self.token, sync=False, **kwargs)
+          token=self.token, sync=False, timestamp=timestamp, **kwargs)
     if sync:
       data_store.DB.Flush()

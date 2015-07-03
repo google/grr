@@ -674,13 +674,15 @@ message ExecuteResponse {
 }
 
 // A message to encode a filesystem path (maybe for raw access)
+// Next field: 15
 message PathSpec {
   enum PathType {
     UNSET = -1;
     OS = 0;
     TSK = 1;
     REGISTRY = 2;
-    MEMORY = 3;
+    MEMORY = 3 [(label) = HIDDEN];
+    TMPFILE = 4 [(label) = HIDDEN];
   };
   optional PathType pathtype = 1 [default = UNSET];
 
@@ -763,6 +765,10 @@ message PathSpec {
       description: "For files which are non seekable from their end "
       "(e.g. /proc files), this is the minimum amount of bytes read.",
     }, default=512000];
+
+  optional bool is_virtualroot = 14 [(sem_type) = {
+      description: "Indicates that this pathspec already contains a "
+      "virtual root."}];
 };
 
 // Ask the ListDir action to list all files in path (returns StatEntry)
@@ -940,7 +946,7 @@ message FolderInformation {
   optional string favorites = 5;
   optional string history = 6;
   optional string local_app_data = 7;
-  optional string local_settings = 8;
+  // ID 8 previously used by local_settings
   optional string my_music = 9;
   optional string my_pictures = 10;
   optional string my_video = 11;
@@ -1188,9 +1194,13 @@ message RekallRequest {
     }];
 }
 
-// Next field: 7
+// Next field: 8
 message RekallResponse {
+  // Deprecated. Anything written in this field will be compressed and placed
+  // into the compressed_json_messages field upon serialization.
   optional string json_messages = 1;
+  optional bytes compressed_json_messages = 7;
+
   optional string json_context_messages = 5;
 
   optional string plugin = 2;

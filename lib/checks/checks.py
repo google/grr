@@ -18,6 +18,7 @@ from grr.lib.checks import triggers
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
+from grr.proto import anomaly_pb2
 from grr.proto import checks_pb2
 
 
@@ -375,10 +376,15 @@ class Hint(rdf_structs.RDFProtoStruct):
       results.append("...plus another %d issues." % extra)
     return results
 
-  def Explanation(self, state):
-    """Creates an anomaly explanation string."""
+  def Problem(self, state):
+    """Creates an anomaly symptom/problem string."""
     if self.problem:
-      return "%s: %s" % (state, self.problem)
+      return "%s: %s" % (state, self.problem.strip())
+
+  def Fix(self):
+    """Creates an anomaly explanation/fix string."""
+    if self.fix:
+      return self.fix.strip()
 
   def Validate(self):
     """Ensures that required values are set and formatting rules compile."""
@@ -443,8 +449,6 @@ class Matcher(object):
       A CheckResult message.
     """
     result = CheckResult()
-    anomaly = rdf_anomaly.Anomaly(type="ANALYSIS_ANOMALY",
-                                  explanation=self.hint.Explanation(state))
     # If there are CheckResults we're aggregating methods or probes.
     # Merge all current results into one CheckResult.
     # Otherwise, the results are raw host data.
@@ -452,8 +456,12 @@ class Matcher(object):
     if results and all(isinstance(r, CheckResult) for r in results):
       result.ExtendAnomalies(results)
     else:
-      anomaly.finding = self.hint.Render(results)
-      result.anomaly = anomaly
+      result.anomaly = rdf_anomaly.Anomaly(
+          type=anomaly_pb2.Anomaly.AnomalyType.Name(
+              anomaly_pb2.Anomaly.ANALYSIS_ANOMALY),
+          symptom=self.hint.Problem(state),
+          finding=self.hint.Render(results),
+          explanation=self.hint.Fix())
     return result
 
   def GotNone(self, _, results):
@@ -554,7 +562,8 @@ class CheckRegistry(object):
       yield condition
 
   @classmethod
-  def FindChecks(cls, artifact=None, os_name=None, cpe=None, labels=None):
+  def FindChecks(cls, artifact=None, os_name=None, cpe=None, labels=None,
+                 restrict_checks=None):
     """Takes targeting info, identifies relevant checks.
 
     FindChecks will return results when a host has the conditions necessary for
@@ -568,6 +577,7 @@ class CheckRegistry(object):
       os_name: 0+ OS names.
       cpe: 0+ CPE identifiers.
       labels: 0+ GRR labels.
+      restrict_checks: A list of check ids to restrict check processing to.
 
     Returns:
       the check_ids that apply.
@@ -575,22 +585,24 @@ class CheckRegistry(object):
     check_ids = set()
     conditions = list(cls.Conditions(artifact, os_name, cpe, labels))
     for chk_id, chk in cls.checks.iteritems():
-      # A quick test to determine whether to dive into the checks.
-      if chk.UsesArtifact(artifact):
-        for condition in conditions:
-          if chk.triggers.Match(*condition):
-            check_ids.add(chk_id)
-            break  # No need to keep checking other conditions.
+      if restrict_checks and chk_id not in restrict_checks:
+        continue
+      for condition in conditions:
+        if chk.triggers.Match(*condition):
+          check_ids.add(chk_id)
+          break  # No need to keep checking other conditions.
     return check_ids
 
   @classmethod
-  def SelectArtifacts(cls, os_name=None, cpe=None, labels=None):
+  def SelectArtifacts(cls, os_name=None, cpe=None, labels=None,
+                      restrict_checks=None):
     """Takes targeting info, identifies artifacts to fetch.
 
     Args:
       os_name: 0+ OS names.
       cpe: 0+ CPE identifiers.
       labels: 0+ GRR labels.
+      restrict_checks: A list of check ids whose artifacts should be fetched.
 
     Returns:
       the artifacts that should be collected.
@@ -599,11 +611,14 @@ class CheckRegistry(object):
     for condition in cls.Conditions(None, os_name, cpe, labels):
       trigger = condition[1:]
       for chk in cls.checks.values():
+        if restrict_checks and chk.check_id not in restrict_checks:
+          continue
         results.update(chk.triggers.Artifacts(*trigger))
     return results
 
   @classmethod
-  def Process(cls, host_data, os_name=None, cpe=None, labels=None):
+  def Process(cls, host_data, os_name=None, cpe=None, labels=None,
+              restrict_checks=None):
     """Runs checks over all host data.
 
     Args:
@@ -611,6 +626,7 @@ class CheckRegistry(object):
       os_name: 0+ OS names.
       cpe: 0+ CPE identifiers.
       labels: 0+ GRR labels.
+      restrict_checks: A list of check ids that may be run, if appropriate.
 
     Yields:
       A CheckResult message for each check that was performed.
@@ -620,6 +636,8 @@ class CheckRegistry(object):
     check_ids = cls.FindChecks(artifacts, os_name, cpe, labels)
     conditions = list(cls.Conditions(artifacts, os_name, cpe, labels))
     for check_id in check_ids:
+      if restrict_checks and check_id not in restrict_checks:
+        continue
       try:
         chk = cls.checks[check_id]
         yield chk.Parse(conditions, host_data)
@@ -627,7 +645,8 @@ class CheckRegistry(object):
         logging.warn("Check ID %s raised: %s" % (check_id, e))
 
 
-def CheckHost(host_data, os_name=None, cpe=None, labels=None):
+def CheckHost(host_data, os_name=None, cpe=None, labels=None,
+              restrict_checks=None):
   """Perform all checks on a host using acquired artifacts.
 
   Checks are selected based on the artifacts available and the host attributes
@@ -648,6 +667,7 @@ def CheckHost(host_data, os_name=None, cpe=None, labels=None):
     os_name: An OS name (optional).
     cpe: A CPE string (optional).
     labels: An iterable of labels (optional).
+    restrict_checks: A list of check ids that may be run, if appropriate.
 
   Returns:
     A CheckResults object that contains results for all checks that were
@@ -665,7 +685,7 @@ def CheckHost(host_data, os_name=None, cpe=None, labels=None):
     # from client)
     pass
   return CheckRegistry.Process(host_data, os_name=os_name, cpe=cpe,
-                               labels=labels)
+                               labels=labels, restrict_checks=restrict_checks)
 
 
 def LoadConfigsFromFile(file_path):

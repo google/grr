@@ -5,10 +5,10 @@ import StringIO
 
 
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.parsers import linux_sysctl_parser
 
 
@@ -33,7 +33,24 @@ class ProcSysParserTest(test_lib.GRRBaseTest):
     stats, files = self._GenTestData(paths, vals)
     results = parser.ParseMultiple(stats, files, None)
     self.assertEqual(1, len(results))
-    self.assertTrue(isinstance(results[0], rdfvalue.RDFValue))
+    self.assertTrue(isinstance(results[0], rdf_protodict.AttributedDict))
+    self.assertEqual("0", results[0].net_ipv4_ip_forward)
+    self.assertEqual(["3", "4", "1", "3"], results[0].kernel_printk)
+
+
+class SysctlCmdParserTest(test_lib.GRRBaseTest):
+  """Test parsing of linux sysctl -a command output."""
+
+  def testParseSysctl(self):
+    """Sysctl entries return an underscore separated key and 0+ values."""
+    content = """
+      kernel.printk = 3       4       1       3
+      net.ipv4.ip_forward = 0
+    """
+    parser = linux_sysctl_parser.SysctlCmdParser()
+    results = parser.Parse("/sbin/sysctl", ["-a"], content, "", 0, 5, None)
+    self.assertEqual(1, len(results))
+    self.assertTrue(isinstance(results[0], rdf_protodict.AttributedDict))
     self.assertEqual("0", results[0].net_ipv4_ip_forward)
     self.assertEqual(["3", "4", "1", "3"], results[0].kernel_printk)
 

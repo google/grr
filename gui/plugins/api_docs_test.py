@@ -48,9 +48,6 @@ class TestAPIDocs(test_lib.GRRSeleniumTest):
 
     # Check that query parameters are described.
     self.WaitUntil(self.IsTextPresent, "AFF4Object.limit_lists")
-    self.WaitUntil(self.IsTextPresent, "AFF4Object.type_info")
-    self.WaitUntil(self.IsTextPresent, "WITH_TYPES")
-    self.WaitUntil(self.IsTextPresent, "WITH_TYPES_AND_METADATA")
 
 
 def main(argv):

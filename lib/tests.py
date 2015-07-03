@@ -11,6 +11,7 @@ from grr.lib import aff4_test
 from grr.lib import artifact_lib_test
 from grr.lib import artifact_test
 from grr.lib import build_test
+from grr.lib import client_index_test
 from grr.lib import communicator_test
 from grr.lib import config_lib_test
 from grr.lib import config_validation_test

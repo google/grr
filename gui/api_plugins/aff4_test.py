@@ -30,7 +30,10 @@ class ApiAff4RendererTest(test_lib.GRRBaseTest):
     self.assertEqual(result["urn"], "aff4:/tmp/foo/bar")
     self.assertEqual(result["aff4_class"], "AFF4Volume")
     self.assertEqual(result["age_policy"], "NEWEST_TIME")
-    self.assertEqual(result["attributes"]["metadata:last"], 42000000)
+    self.assertEqual(result["attributes"]["metadata:last"], {
+        "value": 42000000,
+        "type": "RDFDatetime",
+        "age": 42})
 
 
 class ApiAff4RendererRegressionTest(
@@ -46,10 +49,6 @@ class ApiAff4RendererRegressionTest(
         sample_object.AddLabels("label1", "label2")
 
     self.Check("GET", "/api/aff4/foo/bar")
-    self.Check("GET", "/api/aff4/foo/bar?"
-               "AFF4Object.type_info=WITH_TYPES")
-    self.Check("GET", "/api/aff4/foo/bar?"
-               "AFF4Object.type_info=WITH_TYPES_AND_METADATA")
 
 
 class ApiAff4IndexRendererTest(test_lib.GRRBaseTest):
