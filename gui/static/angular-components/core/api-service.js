@@ -131,22 +131,29 @@ ApiService.prototype.stripTypeInfo = function(richlyTypedValue) {
  * @return {!angular.$q.Promise} Promise that resolves to the server response.
  */
 ApiService.prototype.post = function(apiPath, opt_params, opt_stripTypeInfo) {
+  opt_params = opt_params || {};
+
   if (opt_stripTypeInfo) {
     opt_params = /** @type {Object<string, string>} */ (this.stripTypeInfo(
         opt_params));
-  }
-
-  var requestParams = angular.extend({}, opt_params);
-  if (grr.state.reason) {
-    requestParams.reason = grr.state.reason;
   }
 
   // TODO(user): implement this in angular way (i.e. - make a service).
   angular.element('#ajax_spinner').html(
       '<img src="/static/images/ajax-loader.gif">');
 
-  var url = '/api/' + apiPath.replace(/^\//, '');
-  var promise = this.http_.post(url, requestParams);
+  var request = {
+    method: 'POST',
+    url: '/api/' + apiPath.replace(/^\//, ''),
+    data: opt_params
+  };
+  if (grr.state.reason) {
+    request.headers = {
+      'grr-reason': grr.state.reason
+    };
+  }
+
+  var promise = /** @type {function(Object)} */ (this.http_)(request);
   return promise.then(function(response) {
     angular.element('#ajax_spinner').html('');
     return response;

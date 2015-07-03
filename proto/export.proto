@@ -21,13 +21,14 @@ message ExportOptions {
       "this may require additional datastore roundtrips and slow down the "
       "export process."
     }];
-  optional bool export_files_hashes = 3 [ default = false, (sem_type) = {
+  optional bool export_files_hashes = 3 [ default = true, (sem_type) = {
       description: "If this is true, export hashes when dealing with "
-      "file-related values. The files are not gonna be hashed during the "
+      "file-related values. The files won't be hashed during the "
       "export, hashes will only be exported if they were collected before "
       "the export. This option affects exporting VFSFile and StatEntry "
-      "RDFValues. Note: setting this option to true may require additional "
-      "datastore roundtrips and slow down the export process."
+      "RDFValues. This is true by default even though it requires extra "
+      " datastore roundtrips because it's very useful and users expect the "
+      "hashes to be there."
     }];
   repeated string annotations = 4 [(sem_type) = {
       description: "Annotations to add to exported data. This field can be "
@@ -266,6 +267,10 @@ message ExportedAnomaly {
       description: "A string used to reference the anomaly in the Anomaly "
         "database."
     }];
+
+  repeated string finding = 9 [(sem_type) = {
+      description: "String descriptions of data that triggered the Anomaly."
+    }];
 }
 
 message ExportedCheckResult {
@@ -295,11 +300,6 @@ message ExportedFileStoreHash {
   optional string target_urn = 5 [(sem_type) = {
       type: "RDFURN",
     }];
-}
-
-message ExportedSoftware {
-  optional ExportedMetadata metadata = 1;
-  optional SoftwarePackage software = 2;
 }
 
 message ExportedMatch {

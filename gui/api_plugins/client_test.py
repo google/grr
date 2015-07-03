@@ -4,6 +4,9 @@
 
 
 
+import mock
+
+from grr.gui import api_call_renderers
 from grr.gui import api_test_lib
 from grr.gui.api_plugins import client as client_plugin
 
@@ -215,9 +218,15 @@ class ApiFlowStatusRendererTest(test_lib.GRRBaseTest):
           client_id="C.123456<script>", flow_id="X:1245678")
 
 
+@mock.patch.object(api_call_renderers.SimpleAPIAuthorizationManager,
+                   "CheckAccess", lambda a, b, c: True)
 class ApiFlowStatusRendererRegressionTest(
     api_test_lib.ApiCallRendererRegressionTest):
+  """Test flow status renderer.
 
+  This renderer is disabled by default in the ACLs so we need to do some
+  patching to get the proper output and not just "access denied".
+  """
   renderer = "ApiFlowStatusRenderer"
 
   def Run(self):

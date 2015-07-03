@@ -9,7 +9,7 @@ method:
              non-privileged users.
           fix: >
              Make sure all files and folders in $PATH of root are owned by root
-             and not modifable by any other users.
+             and not modifiable by any other users.
           format: >
              {pathspec.path} user: {st_uid}, group: {st_gid}, mode: {st_mode}
         mode: PARALLEL
@@ -17,10 +17,16 @@ method:
         filters:
           - type: 'StatFilter'
             expression: 'uid:!0'
+          # Limit 'group' checks to just files and directories.
           - type: 'StatFilter'
-            expression: 'gid:!0 mode:0020 mask:7020'
+            expression: 'gid:!0 mode:0020 mask:7020 file_type:REGULAR'
           - type: 'StatFilter'
-            expression: 'mode:0002 mask:7002'
+            expression: 'gid:!0 mode:0020 mask:7020 file_type:DIRECTORY'
+          # Limit 'other' checks to just files and directories.
+          - type: 'StatFilter'
+            expression: 'mode:0002 mask:7002 file_type:REGULAR'
+          - type: 'StatFilter'
+            expression: 'mode:0002 mask:7002 file_type:DIRECTORY'
 ---
 check_id: 'CIS-HOME-DIRS-WRITABLE-BY-NON-OWNERS'
 method:
@@ -29,7 +35,7 @@ method:
       - artifact: 'UserHomeDirs'
         hint:
           problem: >
-             User home dirctory can be written to by group or others.
+             User home directory can be written to by group or others.
           fix: >
              Remove write permissions from group and others: chmod go-w
           format: >
@@ -37,10 +43,11 @@ method:
         mode: PARALLEL
         result_context: 'RAW'
         filters:
+          # Ensure it's a directory. This avoids a false positive on symlinks.
           - type: 'StatFilter'
-            expression: 'mode:0020 mask:0020'
+            expression: 'mode:0020 mask:0020 file_type:DIRECTORY'
           - type: 'StatFilter'
-            expression: 'mode:0002 mask:0002'
+            expression: 'mode:0002 mask:0002 file_type:DIRECTORY'
 ---
 check_id: 'CIS-USER-DOT-FILES-DIRS-WORLD-WRITABLE'
 method:
@@ -49,14 +56,26 @@ method:
       - artifact: 'UserDotFiles'
         hint:
           problem: >
-             Dot files or folders in user home dirctory are world writable.
+             Dot files or folders in user home directory are world writable.
           fix: 'Please remove write permission from others: chmod o-w.'
           format: >
              {pathspec.path} user: {st_uid}, group: {st_gid}, mode: {st_mode}
+        mode: PARALLEL
         result_context: 'RAW'
         filters:
+          # We want every file type _except_ SYMLINK. Symlinks are 'lrwxrwxrwx'.
           - type: 'StatFilter'
-            expression: 'mode:0002 mask:0002'
+            expression: 'mode:0002 mask:0002 file_type:REGULAR'
+          - type: 'StatFilter'
+            expression: 'mode:0002 mask:0002 file_type:DIRECTORY'
+          - type: 'StatFilter'
+            expression: 'mode:0002 mask:0002 file_type:BLOCK'
+          - type: 'StatFilter'
+            expression: 'mode:0002 mask:0002 file_type:FIFO'
+          - type: 'StatFilter'
+            expression: 'mode:0002 mask:0002 file_type:SOCKET'
+          - type: 'StatFilter'
+            expression: 'mode:0002 mask:0002 file_type:CHARACTER'
 ---
 check_id: 'CIS-DOT-NETRC-FILE-EXISTS'
 method:
@@ -87,10 +106,22 @@ method:
           fix: 'Remove write permissions from others: chmod o-w'
           format: >
              {pathspec.path} user: {st_uid}, group: {st_gid}, mode: {st_mode}
+        mode: PARALLEL
         result_context: 'RAW'
         filters:
+          # We want every file type _except_ SYMLINK. Symlinks are 'lrwxrwxrwx'.
           - type: 'StatFilter'
-            expression: 'mode:0002 mask:0002'
+            expression: 'mode:0002 mask:0002 file_type:REGULAR'
+          - type: 'StatFilter'
+            expression: 'mode:0002 mask:0002 file_type:DIRECTORY'
+          - type: 'StatFilter'
+            expression: 'mode:0002 mask:0002 file_type:BLOCK'
+          - type: 'StatFilter'
+            expression: 'mode:0002 mask:0002 file_type:FIFO'
+          - type: 'StatFilter'
+            expression: 'mode:0002 mask:0002 file_type:SOCKET'
+          - type: 'StatFilter'
+            expression: 'mode:0002 mask:0002 file_type:CHARACTER'
 ---
 # Next two checks deals with vital system log files whose owner and group
 # we know has to be uid=0 and gid=(0 or 4). Since /var/log/ can have many

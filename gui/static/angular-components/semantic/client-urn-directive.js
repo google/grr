@@ -65,12 +65,10 @@ ClientUrnController.prototype.onInfoClick = function() {
     scope: this.scope_
   });
 
-  this.grrAff4Service_.get(
-      this.clientUrn,
-      {'AFF4Object.type_info': 'WITH_TYPES_AND_METADATA'}).then(
-          function(response) {
-            this.clientSummary = response.data.summary;
-          }.bind(this));
+  this.grrAff4Service_.get(this.clientUrn).then(
+      function(response) {
+        this.clientSummary = response.data.summary;
+      }.bind(this));
 };
 
 

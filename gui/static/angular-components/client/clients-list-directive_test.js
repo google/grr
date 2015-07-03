@@ -5,6 +5,7 @@ goog.require('grrUi.tests.module');
 
 describe('clients list', function() {
   var $q, $compile, $rootScope, $interval, grrApiService, grrTimeService;
+  var grrReflectionService;
 
   beforeEach(module('/static/angular-components/client/clients-list.html'));
   beforeEach(module('/static/angular-components/client/client-status-icons.html'));
@@ -20,6 +21,16 @@ describe('clients list', function() {
     $interval = $injector.get('$interval');
     grrApiService = $injector.get('grrApiService');
     grrTimeService = $injector.get('grrTimeService');
+    grrReflectionService = $injector.get('grrReflectionService');
+
+    grrReflectionService.getRDFValueDescriptor = function(valueType) {
+      var deferred = $q.defer();
+      deferred.resolve({
+        name: valueType,
+        mro: [valueType]
+      });
+      return deferred.promise;
+    };
   }));
 
   afterEach(function() {
@@ -62,99 +73,46 @@ describe('clients list', function() {
           urn: 'aff4:/C.0000000000000001',
           attributes: {
             'metadata:hostname': {
-              'mro': [
-                'RDFString',
-                'RDFBytes',
-                'RDFValue',
-                'object'
-              ],
               'value': 'localhost.com',
               'type': 'RDFString',
               'age': 1427300092
             },
             'metadata:os_version': {
-              'mro': [
-                'VersionString',
-                'RDFString',
-                'RDFBytes',
-                'RDFValue',
-                'object'
-              ],
               'value': '10.9.5',
               'type': 'VersionString',
               'age': 1427347403
             },
             'aff4:mac_addresses': {
-              'mro': [
-                'RDFString',
-                'RDFBytes',
-                'RDFValue',
-                'object'
-              ],
               'value': '109add556715',
               'type': 'RDFString',
               'age': 1427347403
             },
             'aff4:user_names': {
-              'mro': [
-                'SpaceSeparatedStringArray',
-                'RDFString',
-                'RDFBytes',
-                'RDFValue',
-                'object'
-              ],
               'value': 'user_foo user_bar',
               'type': 'SpaceSeparatedStringArray',
               'age': 1427347408
             },
             'metadata:FirstSeen': {
-              'mro': [
-                'RDFDatetime',
-                'RDFInteger',
-                'RDFString',
-                'RDFBytes',
-                'RDFValue',
-                'object'
-              ],
               'value': 1358346544915179,
               'type': 'RDFDatetime',
               'age': 1358346544
             },
             'metadata:install_date': {
-              'mro': [
-                'RDFDatetime',
-                'RDFInteger',
-                'RDFString',
-                'RDFBytes',
-                'RDFValue',
-                'object'
-              ],
               'value': 1385377629000000,
               'type': 'RDFDatetime',
               'age': 1427347403
             },
             'aff4:labels_list': {
-              'mro': ['AFF4ObjectLabelsList'],
               'value': {
                 'labels': [
                   {
                     'value': {
                       'owner': {
-                        'mro': [
-                          'unicode',
-                          'basestring',
-                          'object'
-                        ],
                         'value': 'GRR',
                         'type': 'unicode',
                         'age': 0
                       },
                       'name': {
-                        'mro': [
-                          'unicode',
-                          'basestring',
-                          'object'
-                        ],
                         'value': 'foobar-label',
                         'type': 'unicode',
                         'age': 0
@@ -162,17 +120,10 @@ describe('clients list', function() {
                     }
                   },
                 ]
-              }
+              },
+              type: 'AFF4ObjectLabelsList'
             },
             'metadata:clock': {
-              'mro': [
-                'RDFDatetime',
-                'RDFInteger',
-                'RDFString',
-                'RDFBytes',
-                'RDFValue',
-                'object'
-              ],
               'value': 1427750098770803,
               'type': 'RDFDatetime',
               'age': 0

@@ -4,6 +4,7 @@
 from grr.endtoend_tests import administrative
 from grr.endtoend_tests import artifacts
 from grr.endtoend_tests import base
+from grr.endtoend_tests import checks
 from grr.endtoend_tests import collectors
 from grr.endtoend_tests import discovery
 from grr.endtoend_tests import file_finder

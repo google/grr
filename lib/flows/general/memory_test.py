@@ -137,7 +137,7 @@ class TestMemoryCollector(MemoryTest):
     self.assertTrue(flow_obj.state.memory_src_path is not None)
     self.assertEqual(
         flow_obj.state.downloaded_file,
-        self.client_id.Add("fs/os").Add(flow_obj.state.memory_src_path.path))
+        self.client_id.Add("temp").Add(flow_obj.state.memory_src_path.path))
 
     fd = aff4.FACTORY.Open(flow_obj.state.downloaded_file, token=self.token)
     self.assertEqual(fd.Read(1024 * 1024), self.memory_dump)
@@ -152,7 +152,7 @@ class TestMemoryCollector(MemoryTest):
     self.assertTrue(flow_obj.state.memory_src_path is not None)
     self.assertEqual(
         flow_obj.state.downloaded_file,
-        self.client_id.Add("fs/os").Add(flow_obj.state.memory_src_path.path))
+        self.client_id.Add("temp").Add(flow_obj.state.memory_src_path.path))
 
     fd = aff4.FACTORY.Open(flow_obj.state.downloaded_file, token=self.token)
     self.assertEqual(fd.Read(1024 * 1024), self.memory_dump)
@@ -175,7 +175,7 @@ class TestMemoryCollector(MemoryTest):
     self.assertTrue(flow_obj.state.memory_src_path is not None)
     self.assertEqual(
         flow_obj.state.downloaded_file,
-        self.client_id.Add("fs/os").Add(flow_obj.state.memory_src_path.path))
+        self.client_id.Add("temp").Add(flow_obj.state.memory_src_path.path))
 
     fd = aff4.FACTORY.Open(flow_obj.state.downloaded_file, token=self.token)
     self.assertEqual(fd.Read(1024 * 1024), self.memory_dump[10:52])
@@ -372,7 +372,7 @@ class TestMemoryCollector(MemoryTest):
     self.assertTrue(flow_obj.state.memory_src_path is not None)
     self.assertEqual(
         flow_obj.state.downloaded_file,
-        self.client_id.Add("fs/os").Add(flow_obj.state.memory_src_path.path))
+        self.client_id.Add("temp").Add(flow_obj.state.memory_src_path.path))
 
     fd = aff4.FACTORY.Open(flow_obj.state.downloaded_file, token=self.token)
     self.assertEqual(fd.Read(1024 * 1024), self.memory_dump)

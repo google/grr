@@ -35,9 +35,7 @@ describe('output plugins notes list directive', function() {
 
     var element = renderTestTemplate();
 
-    expect(grrAff4Service.get).toHaveBeenCalledWith(
-        'aff4:/foo/bar',
-        {'AFF4Object.type_info': 'WITH_TYPES_AND_METADATA'});
+    expect(grrAff4Service.get).toHaveBeenCalledWith('aff4:/foo/bar');
   });
 
   it('shows an error when AFF4 request fails', function() {

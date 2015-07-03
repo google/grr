@@ -503,9 +503,6 @@ class StringInterpolator(lexer.Lexer):
       # Glob up as much data as possible to increase efficiency here.
       lexer.Token(None, r"[^()%{}|\\]+", "AppendArg", None),
       lexer.Token(None, r".", "AppendArg", None),
-
-      # Empty input is also ok.
-      lexer.Token(None, "^$", None, None)
   ]
 
   STRING_ESCAPES = {"\\\\": "\\",

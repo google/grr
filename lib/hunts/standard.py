@@ -90,8 +90,9 @@ class CreateGenericHuntFlow(flow.GRRFlow):
 
       # Nothing really to do here - hunts are always created in the paused
       # state.
-      self.Log("User %s created a new %s hunt",
-               self.token.username, hunt.state.args.flow_runner_args.flow_name)
+      self.Log("User %s created a new %s hunt (%s)",
+               self.token.username, hunt.state.args.flow_runner_args.flow_name,
+               hunt.urn)
 
 
 class CreateAndRunGenericHuntFlow(flow.GRRFlow):
@@ -116,8 +117,9 @@ class CreateAndRunGenericHuntFlow(flow.GRRFlow):
 
       hunt.Run()
 
-      self.Log("User %s created a new %s hunt",
-               self.token.username, hunt.state.args.flow_runner_args.flow_name)
+      self.Log("User %s created a new %s hunt (%s)",
+               self.token.username, hunt.state.args.flow_runner_args.flow_name,
+               hunt.urn)
 
 
 class StartHuntFlowArgs(rdf_structs.RDFProtoStruct):

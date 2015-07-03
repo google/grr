@@ -158,7 +158,7 @@ class TestExportHuntResultsFilesAsArchive(test_lib.FlowTestsBaseclass):
 
       for _ in test_lib.TestFlowHelper(
           "ExportHuntResultFilesAsArchive", None,
-          hunt_urn=self.hunt_urn, format="TAR_GZIP", token=self.token):
+          hunt_urn=self.hunt_urn, format="TAR_GZ", token=self.token):
         pass
 
       self._CheckEmailMessage(self.email_messages)

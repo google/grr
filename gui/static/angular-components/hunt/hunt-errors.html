@@ -8,9 +8,7 @@
     </tr>
   </thead>
   <tbody>
-    <tr grr-paged-filtered-table grr-aff4-items-provider aff4-path="::controller.errorsUrn"
-        query-params="{'RDFValueCollection.items_type_info': 'WITH_TYPES'}">
-
+    <tr grr-paged-filtered-table grr-aff4-items-provider aff4-path="::controller.errorsUrn">
       <td ng-class="::{proto_key: $index % 2 == 0}"><nobr>{$ ::item.age * 1000 | date:'medium' $}</nobr></td>
       <td ng-class="::{proto_key: $index % 2 == 0}"><grr-client-urn value="::item.value.client_id" /></td>
       <td ng-class="::{proto_key: $index % 2 == 0}">{$ ::item.value.backtrace.value $}</td>

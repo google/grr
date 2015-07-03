@@ -19,9 +19,7 @@ from grr.client.client_actions.linux import ko_patcher
 from grr.lib import config_lib
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
-from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 
 
 # struct sockaddr_ll
@@ -434,27 +432,6 @@ class InstallDriver(UninstallDriver):
 
     finally:
       fd.close()
-
-
-class GetMemoryInformation(actions.ActionPlugin):
-  """Loads the driver for memory access and returns a Stat for the device."""
-
-  in_rdfvalue = rdf_paths.PathSpec
-  out_rdfvalue = rdf_rekall_types.MemoryInformation
-
-  def Run(self, args):
-    """Run."""
-    result = rdf_rekall_types.MemoryInformation()
-
-    # Try if we can actually open the device.
-    with open(args.path, "rb") as fd:
-      fd.read(5)
-
-    result.device = rdf_paths.PathSpec(
-        path=args.path,
-        pathtype=rdf_paths.PathSpec.PathType.MEMORY)
-
-    self.SendReply(result)
 
 
 class UpdateAgent(standard.ExecuteBinaryCommand):

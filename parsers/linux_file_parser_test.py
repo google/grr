@@ -290,6 +290,63 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
       self.CheckCryptResults(passwd, shadow, group, gshadow, algo, usr, grp)
 
 
+class LinuxDotFileParserTest(test_lib.GRRBaseTest):
+  """Test parsing of user dotfiles."""
+
+  def testFindPaths(self):
+    # TODO(user): Deal with cases where multiple vars are exported.
+    # export TERM PERLLIB=.:shouldntbeignored
+    bashrc_data = StringIO.StringIO("""
+      IGNORE='bad' PATH=${HOME}/bin:$PATH
+     { PYTHONPATH=/path1:/path2 }
+      export TERM=screen-256color
+      export http_proxy="http://proxy.example.org:3128/"
+      export HTTP_PROXY=$http_proxy
+      if [[ "$some_condition" ]]; then
+        export PATH=:$PATH; LD_LIBRARY_PATH=foo:bar:$LD_LIBRARY_PATH
+        PYTHONPATH=$PATH:"${PYTHONPATH}"
+        CLASSPATH=
+      fi
+      echo PATH=/should/be/ignored
+      # Ignore PATH=foo:bar
+      TERM=vt100 PS=" Foo" PERL5LIB=:shouldntbeignored
+    """)
+    cshrc_data = StringIO.StringIO("""
+      setenv PATH ${HOME}/bin:$PATH
+      setenv PYTHONPATH /path1:/path2
+      set term = (screen-256color)
+      setenv http_proxy "http://proxy.example.org:3128/"
+      setenv HTTP_PROXY $http_proxy
+      if ( -e "$some_condition" ) then
+        set path =  (. $path); setenv LD_LIBRARY_PATH foo:bar:$LD_LIBRARY_PATH
+        setenv PYTHONPATH $PATH:"${PYTHONPATH}"
+        setenv CLASSPATH
+      endif
+      echo PATH=/should/be/ignored
+      setenv PERL5LIB :shouldntbeignored
+    """)
+    parser = linux_file_parser.PathParser()
+    bashrc_stat = rdf_client.StatEntry(
+        pathspec=rdf_paths.PathSpec(path="/home/user1/.bashrc", pathtype="OS"))
+    cshrc_stat = rdf_client.StatEntry(
+        pathspec=rdf_paths.PathSpec(path="/home/user1/.cshrc", pathtype="OS"))
+    bashrc = {r.name: r.vals for r in parser.Parse(bashrc_stat, bashrc_data,
+                                                   None)}
+    cshrc = {r.name: r.vals for r in parser.Parse(cshrc_stat, cshrc_data, None)}
+    expected = {"PATH": [".", "${HOME}/bin", "$PATH"],
+                "PYTHONPATH": [".", "${HOME}/bin", "$PATH", "/path1", "/path2"],
+                "LD_LIBRARY_PATH": ["foo", "bar", "$LD_LIBRARY_PATH"],
+                "CLASSPATH": [],
+                "PERL5LIB": [".", "shouldntbeignored"]}
+    # Got the same environment variables for bash and cshrc files.
+    self.assertItemsEqual(expected, bashrc)
+    self.assertItemsEqual(expected, cshrc)
+    # The path values are expanded correctly.
+    for var_name in ("PATH", "PYTHONPATH", "LD_LIBRARY_PATH"):
+      self.assertEqual(expected[var_name], bashrc[var_name])
+      self.assertEqual(expected[var_name], cshrc[var_name])
+
+
 def main(args):
   test_lib.main(args)
 

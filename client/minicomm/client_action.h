@@ -5,39 +5,7 @@
 #include "grr/client/minicomm/message_queue.h"
 
 namespace grr {
-
-// Contains the data and helper methods to read a request and report back to the
-// server.
-class ActionContext {
- public:
-  ActionContext(const GrrMessage& grr_message, MessageQueue* outbox)
-      : outbox_(outbox), grr_message_(grr_message) {}
-
-  ~ActionContext() {}
-
-  // The message which we are responding to.
-  const GrrMessage& Message() const { return grr_message_; }
-
-  // Helper method to populate an args protocol buffer. Returns true on success,
-  // sends an error to the server on failure.
-  bool PopulateArgs(google::protobuf::Message* args);
-
-  // Helper method to create a response GrrMesssage protocol buffer, encoding
-  // payload into its args field. Returns true on success, returns false and
-  // sends an error to the server if the payload doesn't serialize.
-  bool SendResponse(const google::protobuf::Message& payload,
-                    GrrMessage::Type type);
-
-  // Report an error processing the current request.
-  void SendError(const std::string& error_message);
-
-  // Send a message to the server verbatim.
-  void SendMessage(const GrrMessage& message) { outbox_->AddMessage(message); }
-
- private:
-  MessageQueue* const outbox_;
-  const GrrMessage grr_message_;
-};
+class ActionContext;
 
 // Represents a client action.
 class ClientAction {
@@ -49,8 +17,53 @@ class ClientAction {
   // action.
   virtual const char* Name() = 0;
 
+  // Attempt to handle the request contained in context. Should send all
+  // necessary responses, except for the final status message.
   virtual void ProcessRequest(ActionContext* context) = 0;
 };
+
+// Contains the data and helper methods to read a request and report back to the
+// server.
+class ActionContext {
+ public:
+  ActionContext(const GrrMessage& grr_message, MessageQueue* outbox)
+      : response_id_(1), outbox_(outbox), grr_message_(grr_message) {}
+
+  ~ActionContext() {}
+
+  // The message which we are responding to.
+  const GrrMessage& Message() const { return grr_message_; }
+
+  // Helper method to populate an args protocol buffer. Returns true on success,
+  // sets an error status on failure.
+  bool PopulateArgs(google::protobuf::Message* args);
+
+  // Helper method to send a response to the server for the current
+  // request. Encodes payload into the response's args field. Returns true on
+  // success, otherwise returns false and sets an error status.
+  bool SendResponse(const google::protobuf::Message& payload,
+                    GrrMessage::Type type);
+
+  // Fail this action, setting GENERIC_ERROR status with error_message.
+  void SetError(const std::string& error_message);
+
+  // Send a message to the server verbatim.
+  void SendMessage(const GrrMessage& message) { outbox_->AddMessage(message); }
+
+  // Report the current status.
+  const GrrStatus& Status() const { return status_; }
+
+ private:
+  MessageQueue* const outbox_;
+  const GrrMessage grr_message_;
+
+  // The next response id that we should use.
+  int response_id_;
+
+  // The status of this action.
+  GrrStatus status_;
+};
+
 }  // namespace grr
 
 #endif  // GRR_CLIENT_MINICOMM_CLIENT_ACTION_H_

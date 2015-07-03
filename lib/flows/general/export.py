@@ -148,7 +148,7 @@ class ExportHuntResultFilesAsArchive(flow.GRRFlow):
 
       if self.args.format == self.args.ArchiveFormat.ZIP:
         file_extension = "zip"
-      elif self.args.format == self.args.ArchiveFormat.TAR_GZIP:
+      elif self.args.format == self.args.ArchiveFormat.TAR_GZ:
         file_extension = "tar.gz"
       else:
         raise ValueError("Unknown archive format: %s" % self.args.format)
@@ -173,7 +173,7 @@ class ExportHuntResultFilesAsArchive(flow.GRRFlow):
       if self.args.format == self.args.ArchiveFormat.ZIP:
         streaming_writer = utils.StreamingZipWriter(buffered_outfd, "w",
                                                     zipfile.ZIP_DEFLATED)
-      elif self.args.format == self.args.ArchiveFormat.TAR_GZIP:
+      elif self.args.format == self.args.ArchiveFormat.TAR_GZ:
         streaming_writer = utils.StreamingTarWriter(buffered_outfd, "w:gz")
       else:
         raise ValueError("Unknown archive format: %s" % self.args.format)

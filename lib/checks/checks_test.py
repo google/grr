@@ -232,6 +232,16 @@ class CheckRegistryTests(test_lib.GRRBaseTest):
     residual = expect - result
     self.assertFalse(residual)
 
+  def testRestrictChecksFiltersCheckOptions(self):
+    result = set(checks.CheckRegistry.FindChecks(
+        artifact="SshdConfigFile", os_name="Linux",
+        restrict_checks=["SSHD-CHECK"]))
+    self.assertItemsEqual(["SSHD-CHECK"], result)
+    result = set(checks.CheckRegistry.FindChecks(
+        artifact="SshdConfigFile", os_name="Linux",
+        restrict_checks=["SW_CHECK"]))
+    self.assertFalse(result)
+
   def testMapArtifactsToTriggers(self):
     """Identify the artifacts that should be collected based on criteria."""
     # Test whether all expected checks were mapped.
@@ -251,6 +261,11 @@ class CheckRegistryTests(test_lib.GRRBaseTest):
     residual = expect - result
     self.assertFalse(residual)
 
+    expect = set(["DebianPackagesStatus"])
+    result = set(checks.CheckRegistry.SelectArtifacts(
+        os_name="Linux", restrict_checks=["SW-CHECK"]))
+    self.assertItemsEqual(expect, result)
+
 
 class ProcessHostDataTests(checks_test_lib.HostCheckTest):
 
@@ -266,25 +281,25 @@ class ProcessHostDataTests(checks_test_lib.HostCheckTest):
         anomaly=[
             rdf_anomaly.Anomaly(
                 finding=["netcat-traditional 1.10-40 is installed"],
-                explanation="Found: l337 software installed",
+                symptom="Found: l337 software installed",
                 type="ANALYSIS_ANOMALY")])
     self.sshd = checks.CheckResult(
         check_id="SSHD-CHECK",
         anomaly=[
             rdf_anomaly.Anomaly(
                 finding=["Configured protocols: 2,1"],
-                explanation="Found: Sshd allows protocol 1.",
+                symptom="Found: Sshd allows protocol 1.",
                 type="ANALYSIS_ANOMALY")])
     self.windows = checks.CheckResult(
         check_id="SW-CHECK",
         anomaly=[
             rdf_anomaly.Anomaly(
                 finding=["Java 6.0.240 is installed"],
-                explanation="Found: Old Java installation.",
+                symptom="Found: Old Java installation.",
                 type="ANALYSIS_ANOMALY"),
             rdf_anomaly.Anomaly(
                 finding=["Adware 2.1.1 is installed"],
-                explanation="Found: Malicious software.",
+                symptom="Found: Malicious software.",
                 type="ANALYSIS_ANOMALY")])
 
     self.data = {"WMIInstalledSoftware": self.SetArtifactData(parsed=WMI_SW),
@@ -298,6 +313,13 @@ class ProcessHostDataTests(checks_test_lib.HostCheckTest):
     self.assertRanChecks(["SW-CHECK", "SSHD-CHECK"], results)
     self.assertResultEqual(self.netcat, results["SW-CHECK"])
     self.assertResultEqual(self.sshd, results["SSHD-CHECK"])
+
+  def testProcessLinuxRestrictChecks(self):
+    """Checks detect issues and return anomalies as check results."""
+    host_data = self.SetKnowledgeBase("host.example.org", "Linux", self.data)
+    results = self.RunChecks(host_data, restrict_checks=["SW-CHECK"])
+    self.assertRanChecks(["SW-CHECK"], results)
+    self.assertResultEqual(self.netcat, results["SW-CHECK"])
 
   def testProcessWindowsHost(self):
     host_data = self.SetKnowledgeBase("host.example.org", "Windows", self.data)
@@ -465,10 +487,12 @@ class CheckResultsTest(ChecksTestBase):
 
   def testExtendAnomalies(self):
     anomaly1 = {"finding": ["Adware 2.1.1 is installed"],
-                "explanation": "Found: Malicious software.",
+                "symptom": "Found: Malicious software.",
+                "explanation": "Remove software.",
                 "type": "ANALYSIS_ANOMALY"}
     anomaly2 = {"finding": ["Java 6.0.240 is installed"],
-                "explanation": "Found: Old Java installation.",
+                "symptom": "Found: Old Java installation.",
+                "explanation": "Update Java.",
                 "type": "ANALYSIS_ANOMALY"}
     result = checks.CheckResult(check_id="SW-CHECK",
                                 anomaly=rdf_anomaly.Anomaly(**anomaly1))
@@ -494,38 +518,42 @@ class HintDefinitionTests(ChecksTestBase):
     self.lin_method, self.win_method, self.foo_method = list(chk.method)
 
   def testInheritHintConfig(self):
-    lin_problem = "l337 software installed"
-    lin_format = "{name} {version} is installed"
+    # Adding newlines to ensure they get stripped (can happen when reading from
+    # YAML).
+    lin_problem = "l337 software installed\n"
+    lin_format = "{name} {version} is installed\n"
     # Methods should not have a hint template.
-    self.assertEqual(lin_problem, self.lin_method.hint.problem)
+    self.assertEqual(lin_problem.strip(), self.lin_method.hint.problem)
     self.assertFalse(self.lin_method.hint.hinter.template)
     # Formatting should be present in probes, if defined.
     for probe in self.lin_method.probe:
-      self.assertEqual(lin_problem, probe.hint.problem)
-      self.assertEqual(lin_format, probe.hint.format)
+      self.assertEqual(lin_problem.strip(), probe.hint.problem)
+      self.assertEqual(lin_format.strip(), probe.hint.format)
 
-    foo_problem = "Sudo not installed"
+    foo_problem = "Sudo not installed\n"
     # Methods should not have a hint template.
-    self.assertEqual(foo_problem, self.foo_method.hint.problem)
+    self.assertEqual(foo_problem.strip(), self.foo_method.hint.problem)
     self.assertFalse(self.foo_method.hint.hinter.template)
     # Formatting should be missing in probes, if undefined.
     for probe in self.foo_method.probe:
-      self.assertEqual(foo_problem, probe.hint.problem)
+      self.assertEqual(foo_problem.strip(), probe.hint.problem)
       self.assertFalse(probe.hint.format)
 
   def testOverlayHintConfig(self):
-    generic_problem = "Malicious software."
-    java_problem = "Old Java installation."
-    generic_format = "{name} {version} is installed"
+    # Adding newlines to ensure they get stripped (can happen when reading from
+    # YAML).
+    generic_problem = "Malicious software.\n"
+    java_problem = "Old Java installation.\n"
+    generic_format = "{name} {version} is installed\n"
     # Methods should not have a hint template.
-    self.assertEqual(generic_problem, self.win_method.hint.problem)
+    self.assertEqual(generic_problem.strip(), self.win_method.hint.problem)
     self.assertFalse(self.win_method.hint.hinter.template)
     # Formatting should be present in probes.
     probe_1, probe_2 = list(self.win_method.probe)
-    self.assertEqual(java_problem, probe_1.hint.problem)
-    self.assertEqual(generic_format, probe_1.hint.format)
-    self.assertEqual(generic_problem, probe_2.hint.problem)
-    self.assertEqual(generic_format, probe_2.hint.format)
+    self.assertEqual(java_problem.strip(), probe_1.hint.problem)
+    self.assertEqual(generic_format.strip(), probe_1.hint.format)
+    self.assertEqual(generic_problem.strip(), probe_2.hint.problem)
+    self.assertEqual(generic_format.strip(), probe_2.hint.format)
 
 
 def main(argv):

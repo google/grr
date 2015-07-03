@@ -1971,10 +1971,11 @@ class ClientVFSHandlerFixture(vfs.VFSHandler):
   # Everything below this prefix is emulated
   prefix = "/fs/os"
 
-  def __init__(self, base_fd, prefix=None, pathspec=None,
-               progress_callback=None):
+  def __init__(self, base_fd=None, prefix=None, pathspec=None,
+               progress_callback=None, full_pathspec=None):
     super(ClientVFSHandlerFixture, self).__init__(
-        base_fd, pathspec=pathspec, progress_callback=progress_callback)
+        base_fd, pathspec=pathspec, progress_callback=progress_callback,
+        full_pathspec=full_pathspec)
 
     self.prefix = self.prefix or prefix
     self.pathspec.Append(pathspec)

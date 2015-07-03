@@ -18,6 +18,15 @@ class MessageBuilder {
   static void InitiateEnrollment(ClientConfig* config, MessageQueue* outbox);
 };
 
+class NonceGenerator {
+ public:
+  NonceGenerator() : last_nonce_(0) {}
+  uint64 Generate();
+
+ private:
+  uint64 last_nonce_;
+};
+
 class SecureSession {
  public:
   SecureSession(const std::string& client_id, RSAKey* our_key,

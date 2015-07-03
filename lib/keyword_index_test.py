@@ -64,6 +64,24 @@ class KeywordIndexTest(test_lib.AFF4ObjectTest):
                            end_time=1025 * 1000000)
     self.assertEqual(len(results), 1)
 
+  def testKeywordIndexLastSeen(self):
+    index = aff4.FACTORY.Create("aff4:/index2/",
+                                aff4_type="AFF4KeywordIndex",
+                                mode="rw",
+                                token=self.token)
+    for i in range(5):
+      with test_lib.FakeTime(2000 + i):
+        index.AddKeywordsForName("C.000000", ["popular_keyword1"])
+
+    for i in range(10):
+      with test_lib.FakeTime(1000 + i):
+        index.AddKeywordsForName("C.000000", ["popular_keyword2"])
+
+    ls_map = {}
+    index.Lookup(["popular_keyword1", "popular_keyword2"], last_seen_map=ls_map)
+    self.assertEqual(2004 * 1000000, ls_map[("popular_keyword1", "C.000000")])
+    self.assertEqual(1009 * 1000000, ls_map[("popular_keyword2", "C.000000")])
+
 
 def main(argv):
   test_lib.main(argv)

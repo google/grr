@@ -34,7 +34,6 @@ class LSBInitLexer(lexer.Lexer):
       lexer.Token("UPSTART", r"### END INIT INFO", "Finish", "INITIAL"),
       lexer.Token("UPSTART", r"#\s+([-\w]+):\s+([^#\n]*)", "StoreEntry", None),
       lexer.Token("UPSTART", r"\n\s*\w+", "Finish", None),
-      lexer.Token("UPSTART", r"[\n\s.]*", None, None),
       lexer.Token(".*", ".", None, None)
   ]
 
@@ -53,6 +52,7 @@ class LSBInitLexer(lexer.Lexer):
     self.buffer = []
 
   def ParseEntries(self, data):
+    self.entries = {}
     self.Reset()
     self.Feed(utils.SmartStr(data))
     self.Close()
@@ -61,11 +61,19 @@ class LSBInitLexer(lexer.Lexer):
       return self.entries
 
 
+def GetRunlevelNums(states):
+  """Accepts a string and returns a list of numeric runlevels."""
+  if not states:
+    return []
+  return [s for s in states.split() if s in ["0", "1", "2", "3", "4", "5", "6"]]
+
+
 class LinuxLSBInitParser(parsers.FileParser):
   """Parses LSB style /etc/init.d entries."""
 
   output_types = ["LinuxServiceInformation"]
   supported_artifacts = ["LinuxLSBInit"]
+  process_together = True
 
   def _Facilities(self, condition):
     results = []
@@ -83,10 +91,10 @@ class LinuxLSBInitParser(parsers.FileParser):
         service = rdf_client.LinuxServiceInformation()
         service.name = init.get("provides")
         service.start_mode = "INIT"
-        service.start_on = init.get("default-start").split()
+        service.start_on = GetRunlevelNums(init.get("default-start"))
         if service.start_on:
           service.starts = True
-        service.stop_on = init.get("default-stop")
+        service.stop_on = GetRunlevelNums(init.get("default-stop"))
         service.description = init.get("short-description")
         service.start_after = self._Facilities(init.get("required-start", []))
         service.stop_after = self._Facilities(init.get("required-stop", []))
@@ -154,6 +162,7 @@ class LinuxXinetdParser(parsers.FileParser):
 
   output_types = ["LinuxServiceInformation"]
   supported_artifacts = ["LinuxXinetd"]
+  process_together = True
 
   def _ParseSection(self, section, cfg):
     parser = config_file.KeyValueParser()
@@ -236,6 +245,7 @@ class LinuxSysVInitParser(parsers.FileParser):
 
   output_types = ["LinuxServiceInformation"]
   supported_artifacts = ["LinuxSysVInit"]
+  process_together = True
 
   runlevel_re = re.compile(r"/etc/rc(?:\.)?([0-6S]|local$)(?:\.d)?")
   runscript_re = re.compile(r"(?P<action>[KS])(?P<prio>\d+)(?P<name>\S+)")
@@ -267,12 +277,12 @@ class LinuxSysVInitParser(parsers.FileParser):
         service = services.setdefault(
             svc["name"], rdf_client.LinuxServiceInformation(
                 name=svc["name"], start_mode="INIT"))
-        runlvl = runlevel.group(1)
-        if svc["action"] == "S":
-          service.start_on.append(runlvl)
+        runlvl = GetRunlevelNums(runlevel.group(1))
+        if svc["action"] == "S" and runlvl:
+          service.start_on.append(runlvl[0])
           service.starts = True
-        else:
-          service.stop_on.append(runlvl)
+        elif runlvl:
+          service.stop_on.append(runlvl[0])
         if not stat.S_ISLNK(int(stat_entry.st_mode)):
           yield rdf_anomaly.Anomaly(
               type="PARSER_ANOMALY", finding=[path],

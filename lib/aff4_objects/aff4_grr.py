@@ -113,6 +113,10 @@ class VFSGRRClient(standard.VFSDirectory):
         "aff4:client_configuration", rdf_protodict.Dict,
         "Running configuration for the GRR client.", "Config")
 
+    LIBRARY_VERSIONS = aff4.Attribute(
+        "aff4:library_versions", rdf_protodict.Dict,
+        "Running library versions for the client.", "Libraries")
+
     USER = aff4.Attribute("aff4:users", rdf_client.Users,
                           "A user of the system.", "Users")
 
@@ -207,7 +211,8 @@ class VFSGRRClient(standard.VFSDirectory):
   AFF4_PREFIXES = {rdf_paths.PathSpec.PathType.OS: "/fs/os",
                    rdf_paths.PathSpec.PathType.TSK: "/fs/tsk",
                    rdf_paths.PathSpec.PathType.REGISTRY: "/registry",
-                   rdf_paths.PathSpec.PathType.MEMORY: "/devices/memory"}
+                   rdf_paths.PathSpec.PathType.MEMORY: "/devices/memory",
+                   rdf_paths.PathSpec.PathType.TMPFILE: "/temp"}
 
   @staticmethod
   def ClientURNFromURN(urn):

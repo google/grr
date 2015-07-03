@@ -61,7 +61,6 @@ describe('semantic proto form directive', function() {
       reflectionDeferred.resolve({
         'Foo': {
           'default': {
-            'mro': ['Foo', 'RDFProtoStruct'],
             'type': 'Foo',
             'value': {}
           },
@@ -69,7 +68,6 @@ describe('semantic proto form directive', function() {
           'fields': [
             {
               'default': {
-                'mro': ['PrimitiveType'],
                 'type': 'PrimitiveType',
                 'value': ''
               },
@@ -83,7 +81,6 @@ describe('semantic proto form directive', function() {
             },
             {
               'default': {
-                'mro': ['PrimitiveType'],
                 'type': 'PrimitiveType',
                 'value': 'a foo bar'
               },
@@ -96,20 +93,33 @@ describe('semantic proto form directive', function() {
               'type': 'PrimitiveType'
             }
           ],
+          'name': 'Foo',
+          'mro': ['Foo', 'RDFProtoStruct']
         },
         'PrimitiveType': {
           'default': {
-            'mro': ['PrimitiveType'],
             'type': 'PrimitiveType',
             'value': ''
           },
           'doc': 'Test primitive type description.',
           'kind': 'primitive',
-          'name': 'PrimitiveType'
+          'name': 'PrimitiveType',
+          'mro': ['PrimitiveType']
         }
       });
-      spyOn(grrReflectionServiceMock, 'getRDFValueDescriptor').and.returnValue(
-          reflectionDeferred.promise);
+      spyOn(grrReflectionServiceMock, 'getRDFValueDescriptor').and.callFake(
+          function(valueType, withDeps) {
+            if (withDeps) {
+              return reflectionDeferred.promise;
+            } else {
+              var deferred = $q.defer();
+              deferred.resolve({
+                name: valueType,
+                mro: [valueType]
+              });
+              return deferred.promise;
+            }
+          });
     });
 
     it('renders a form for structure with 2 primitive fields', function() {
@@ -126,12 +136,10 @@ describe('semantic proto form directive', function() {
 
       expect(fooValue.value).toEqual({
         field_1: {
-          'mro': ['PrimitiveType'],
           'type': 'PrimitiveType',
           'value': ''
         },
         field_2: {
-          'mro': ['PrimitiveType'],
           'type': 'PrimitiveType',
           'value': 'a foo bar'
         }

@@ -211,7 +211,7 @@ class FileTracker(object):
     self.bytes_read = 0
 
   def __str__(self):
-    sha256 = self.hash_obj.sha256
+    sha256 = self.hash_obj and self.hash_obj.sha256
     if sha256:
       return "<Tracker: %s (sha256: %s)>" % (self.urn, sha256)
     else:
@@ -409,7 +409,8 @@ class MultiGetFileMixin(object):
         continue
 
       digest = tracker.hash_obj.sha256
-      file_hashes[vfs_urn] = tracker.hash_obj
+      # We need to use the normalized tracker.urn instead of vfs_urn here.
+      file_hashes[tracker.urn] = tracker.hash_obj
       hash_to_urn.setdefault(digest, []).append(tracker)
 
     # First we get all the files which are present in the file store.
@@ -422,13 +423,12 @@ class MultiGetFileMixin(object):
       # Since checkhashes only returns one digest per unique hash we need to
       # find any other files pending download with the same hash.
       for tracker in hash_to_urn[digest]:
-        vfs_urn = tracker.urn
         self.state.files_skipped += 1
-        file_hashes.pop(vfs_urn)
+        file_hashes.pop(tracker.urn)
         files_in_filestore.add(file_store_urn)
         # Remove this tracker from the pending_hashes store since we no longer
         # need to process it.
-        self.state.pending_hashes.pop(vfs_urn)
+        self.state.pending_hashes.pop(tracker.urn)
 
     # Now that the check is done, reset our counter
     self.state.files_hashed_since_check = 0

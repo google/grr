@@ -358,7 +358,8 @@ class Factory(object):
 
     if index:
       for index_urn, index_data in index.items():
-        aff4index = self.Create(index_urn, "AFF4Index", mode="w", token=token)
+        aff4index = self.Create(index_urn, "AFF4Index", mode="w",
+                                object_exists=True, token=token)
         for attribute, value in index_data:
           aff4index.Add(urn, attribute, value)
         aff4index.Close()
@@ -393,12 +394,19 @@ class Factory(object):
           self.intermediate_cache.Get(urn)
           return
         except KeyError:
-          data_store.DB.MultiSet(dirname, {
-              AFF4Object.SchemaCls.LAST: [
-                  rdfvalue.RDFDatetime().Now().SerializeToDataStore()],
+          attributes = {
               # This updates the directory index.
               "index:dir/%s" % utils.SmartStr(basename): [EMPTY_DATA],
-          },
+          }
+          # This is a performance optimization. On the root there is no point
+          # setting the last access time since it gets accessed all the time.
+          # TODO(user): Can we get rid of the index in the root node entirely?
+          # It's too big to query anyways...
+          if dirname != u"/":
+            attributes[AFF4Object.SchemaCls.LAST] = [
+                rdfvalue.RDFDatetime().Now().SerializeToDataStore()]
+
+          data_store.DB.MultiSet(dirname, attributes,
                                  token=token, replace=True, sync=False)
 
           self.intermediate_cache.Put(urn, 1)

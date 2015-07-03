@@ -77,6 +77,7 @@ class Interrogate(flow.GRRFlow):
     self.CallClient("GetInstallDate", next_state="InstallDate")
     self.CallClient("GetClientInfo", next_state="ClientInfo")
     self.CallClient("GetConfiguration", next_state="ClientConfiguration")
+    self.CallClient("GetLibraryVersions", next_state="ClientLibraries")
     self.CallClient("EnumerateInterfaces", next_state="EnumerateInterfaces")
     self.CallClient("EnumerateFilesystems", next_state="EnumerateFilesystems")
 
@@ -126,6 +127,7 @@ class Interrogate(flow.GRRFlow):
       aff4.FACTORY.Create(client_index.MAIN_INDEX,
                           aff4_type="ClientIndex",
                           mode="rw",
+                          object_exists=True,
                           token=self.token).AddClient(self.client)
 
     else:
@@ -176,6 +178,7 @@ class Interrogate(flow.GRRFlow):
     aff4.FACTORY.Create(client_index.MAIN_INDEX,
                         aff4_type="ClientIndex",
                         mode="rw",
+                        object_exists=True,
                         token=self.token).AddClient(self.client)
 
   @flow.StateHandler()
@@ -290,6 +293,13 @@ class Interrogate(flow.GRRFlow):
       self.client.Set(self.client.Schema.GRR_CONFIGURATION(response))
 
   @flow.StateHandler()
+  def ClientLibraries(self, responses):
+    """Process client library information."""
+    if responses.success:
+      response = responses.First()
+      self.client.Set(self.client.Schema.LIBRARY_VERSIONS(response))
+
+  @flow.StateHandler()
   def End(self):
     """Finalize client registration."""
     self.Notify("Discovery", self.client.urn, "Client Discovery Complete")
@@ -303,4 +313,5 @@ class Interrogate(flow.GRRFlow):
     aff4.FACTORY.Create(client_index.MAIN_INDEX,
                         aff4_type="ClientIndex",
                         mode="rw",
+                        object_exists=True,
                         token=self.token).AddClient(self.client)

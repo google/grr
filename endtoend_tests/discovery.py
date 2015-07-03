@@ -37,7 +37,6 @@ class TestClientInterrogateEndToEnd(base.AutomatedTest):
 
   # Intentionally excluded:
   # userdomain: too slow to collect, not in lightweight interrogate
-  # local_settings: not always present in reg keys
   user_win_kb_attributes = ["sid", "userprofile", "appdata", "localappdata",
                             "internet_cache", "cookies", "recent", "personal",
                             "startup", "localappdata_low"]

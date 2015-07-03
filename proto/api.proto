@@ -12,6 +12,19 @@ import "grr/proto/semantic.proto";
 // API call renderers arguments (see gui/api_call_renderers.py).
 //
 
+message ApiAuthorization {
+  optional string renderer = 1 [(sem_type) = {
+      description: "api_call_renderers.ApiCallRenderer class name that this "
+                   "authorization applies to."
+    }];
+  repeated string users = 2 [(sem_type) = {
+      description: "List of users allowed to call the API."
+    }];
+  repeated string groups = 3[(sem_type) = {
+      description: "List of groups allowed to call the API."
+    }];
+}
+
 message ApiCallAdditionalArgs {
   optional string name = 1;
   optional string type = 2;
@@ -204,18 +217,6 @@ message ApiAFF4ObjectRendererArgs {
       "If 0, no lists will be rendered at all. If -1, lists will be rendered "
       "in their entirety."
     }, default = -1];
-
-  enum TypeInformation {
-    NONE = 0 [(description) = "Do not include type information."];
-    WITH_TYPES = 1 [(description) = "Include type names and "
-                    "MROs for all values."];
-    WITH_TYPES_AND_METADATA = 2 [(description) = "Include type names, "
-                                 "descriptions, friendly names, suggested "
-                                 "fields order, etc."];
-  };
-  optional TypeInformation type_info = 2 [(sem_type) = {
-      description: "Which type information to include into the output."
-    }];
 }
 
 message ApiGRRHuntRendererArgs {
@@ -247,9 +248,4 @@ message ApiRDFValueCollectionRendererArgs {
       "If 0, no lists will be rendered at all. If -1, lists will be rendered "
       "in their entirety."
     }, default = -1];
-
-  optional ApiAFF4ObjectRendererArgs.TypeInformation items_type_info = 6 [(sem_type) = {
-      description: "Which type information to include when rendering "
-      "collection items."
-    }];
 }

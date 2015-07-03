@@ -24,7 +24,7 @@ set(http_comms_lib_DEPS core_lib curl ${core_lib_DEPS})
 add_library(subprocess_delegator_lib subprocess_delegator.cc)
 set(subprocess_delegator_lib_DEPS core_lib ${core_lib_DEPS})
 
-add_library(client_actions_lib client_action.cc
+add_library(client_actions_lib client_action.cc client_action_dispatcher.cc
   ../../proto/sysinfo.pb.cc
   client_actions/enumerate_filesystems.cc
   client_actions/enumerate_interfaces.cc
@@ -34,14 +34,14 @@ set(set_client_actions_lib_DEPS core_lib ${core_lib_DEPS})
 
 add_executable(minicomm client_main.cc client.cc)
 set(minicom_external_DEPS
-  ${subprocess_delegator_lib_DEPS}
   ${http_comms_lib_DEPS}
+  ${client_actions_lib_DEPS}
   ${core_lib_DEPS})
 list(REMOVE_DUPLICATES minicom_external_DEPS)
 target_link_libraries(minicomm
   core_lib
   http_comms_lib
-  subprocess_delegator_lib
+  client_actions_lib
   ${minicom_external_DEPS}
 )
 
@@ -60,6 +60,7 @@ add_library(test_helper_lib
 set(test_helper_lib_DEPS gtest pthread)
 
 add_executable(unit_tests grr_test_main.cc
+  client_action_dispatcher_test.cc
   client_action_test.cc
   client_actions/enumerate_filesystems_test.cc
   client_actions/enumerate_interfaces_test.cc

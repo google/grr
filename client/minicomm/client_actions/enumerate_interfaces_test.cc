@@ -7,6 +7,7 @@
 #include <cstring>
 
 #include "gtest/gtest.h"
+#include "grr/client/minicomm/base.h"
 #include "grr/client/minicomm/util.h"
 
 namespace grr {
@@ -16,6 +17,9 @@ TEST(EnumerateInterfacesTest, ProcessIfaddrList) {
   const char kMacAddr[] = "\xFF\x00\xFE\x01\xFD\x02";
   const char kIp6Addr[] =
       "\xFF\x00\xFE\x01\xFD\x02\xFC\x03\xFB\x04\xFA\x05\xF9\x06\xF8\x07";
+  constexpr uint32 kIp4Addr = 0xC0A80102ul;  // 192.168.1.2
+  const char kIp4AddrBytes[] = "\xC0\xA8\x01\x02";
+
   struct sockaddr_ll eth0_mac_addr = {};
   eth0_mac_addr.sll_family = AF_PACKET;
   eth0_mac_addr.sll_halen = 6;
@@ -27,7 +31,7 @@ TEST(EnumerateInterfacesTest, ProcessIfaddrList) {
 
   struct sockaddr_in eth0_ip_addr = {};
   eth0_ip_addr.sin_family = AF_INET;
-  eth0_ip_addr.sin_addr.s_addr = htonl(0xC0A80102ul);
+  eth0_ip_addr.sin_addr.s_addr = htonl(kIp4Addr);
 
   struct ifaddrs eth0_ip = {};
   eth0_ip.ifa_name = kEth0;
@@ -50,7 +54,7 @@ TEST(EnumerateInterfacesTest, ProcessIfaddrList) {
   EXPECT_EQ(2, result[kEth0].addresses_size());
   for (const auto& addr : result[kEth0].addresses()) {
     if (addr.address_type() == NetworkAddress::INET) {
-      EXPECT_EQ(std::string("\xC0\xA8\x01\x02", 4), addr.packed_bytes());
+      EXPECT_EQ(std::string(kIp4AddrBytes, 4), addr.packed_bytes());
     }
     if (addr.address_type() == NetworkAddress::INET6) {
       EXPECT_EQ(std::string(kIp6Addr, 16), addr.packed_bytes());

@@ -6,6 +6,7 @@ import StringIO
 
 from grr.lib import flags
 from grr.lib import test_lib
+from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import config_file as rdf_config_file
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -142,8 +143,8 @@ class NfsExportParserTests(test_lib.GRRBaseTest):
         192.168.1.0/24 (rw) # Mistake here - space makes this default.
     """
     exports = StringIO.StringIO(test_data)
-    config = config_file.NfsExportsParser()
-    results = list(config.Parse(None, exports, None))
+    parser = config_file.NfsExportsParser()
+    results = list(parser.Parse(None, exports, None))
     self.assertEqual("/path/to/foo", results[0].share)
     self.assertItemsEqual(["rw", "sync"], results[0].defaults)
     self.assertEqual("host1", results[0].clients[0].host)
@@ -165,10 +166,11 @@ class MtabParserTests(test_lib.GRRBaseTest):
     test_data = r"""
     rootfs / rootfs rw 0 0
     arnie@host.example.org:/users/arnie /home/arnie/remote fuse.sshfs rw,nosuid,nodev,max_read=65536 0 0
+    /dev/sr0 /media/USB\040Drive vfat ro,nosuid,nodev
     """
     exports = StringIO.StringIO(test_data)
-    config = config_file.MtabParser()
-    results = list(config.Parse(None, exports, None))
+    parser = config_file.MtabParser()
+    results = list(parser.Parse(None, exports, None))
     self.assertEqual("rootfs", results[0].device)
     self.assertEqual("/", results[0].mount_point)
     self.assertEqual("rootfs", results[0].type)
@@ -182,6 +184,46 @@ class MtabParserTests(test_lib.GRRBaseTest):
     self.assertTrue(results[1].options.nosuid)
     self.assertTrue(results[1].options.nodev)
     self.assertEqual(["65536"], results[1].options.max_read)
+
+    self.assertEqual("/dev/sr0", results[2].device)
+    self.assertEqual("/media/USB Drive", results[2].mount_point)
+    self.assertEqual("vfat", results[2].type)
+    self.assertTrue(results[2].options.ro)
+    self.assertTrue(results[2].options.nosuid)
+    self.assertTrue(results[2].options.nodev)
+
+
+class MountCmdTests(test_lib.GRRBaseTest):
+  """Test the mount command parser."""
+
+  def testParseMountData(self):
+    test_data = r"""
+    rootfs on / type rootfs (rw)
+    arnie@host.example.org:/users/arnie on /home/arnie/remote type fuse.sshfs (rw,nosuid,nodev,max_read=65536)
+    /dev/sr0 on /media/USB Drive type vfat (ro,nosuid,nodev)
+    """
+    parser = config_file.MountCmdParser()
+    results = list(parser.Parse("/bin/mount", [], test_data, "", 0, 5, None))
+    self.assertEqual("rootfs", results[0].device)
+    self.assertEqual("/", results[0].mount_point)
+    self.assertEqual("rootfs", results[0].type)
+    self.assertTrue(results[0].options.rw)
+    self.assertFalse(results[0].options.ro)
+
+    self.assertEqual("arnie@host.example.org:/users/arnie", results[1].device)
+    self.assertEqual("/home/arnie/remote", results[1].mount_point)
+    self.assertEqual("fuse.sshfs", results[1].type)
+    self.assertTrue(results[1].options.rw)
+    self.assertTrue(results[1].options.nosuid)
+    self.assertTrue(results[1].options.nodev)
+    self.assertEqual(["65536"], results[1].options.max_read)
+
+    self.assertEqual("/dev/sr0", results[2].device)
+    self.assertEqual("/media/USB Drive", results[2].mount_point)
+    self.assertEqual("vfat", results[2].type)
+    self.assertTrue(results[2].options.ro)
+    self.assertTrue(results[2].options.nosuid)
+    self.assertTrue(results[2].options.nodev)
 
 
 class RsyslogParserTests(test_lib.GRRBaseTest):
@@ -200,8 +242,8 @@ class RsyslogParserTests(test_lib.GRRBaseTest):
     mail.*  -/var/log/maillog
     """
     log_conf = StringIO.StringIO(test_data)
-    config = config_file.RsyslogParser()
-    results = list(config.ParseMultiple([None], [log_conf], None))
+    parser = config_file.RsyslogParser()
+    results = list(parser.ParseMultiple([None], [log_conf], None))
     self.assertEqual(1, len(results))
     tcp, udp, pipe, null, script, fs, wall, async_fs = [
         target for target in results[0].targets]
@@ -305,15 +347,18 @@ class APTPackageSourceParserTests(test_lib.GRRBaseTest):
     self.assertEqual("/", result.uris[4].path)
 
   def testEmptySourceData(self):
-    test_data = r"""
-
-
-    # comment 1
-    # deb http://security.debian.org/ wheezy/updates main contrib non-free
-
-    # comment 2
-
-    """
+    test_data = ("# comment 1\n"
+                 "# deb http://security.debian.org/ wheezy/updates main\n"
+                 "URI :\n"
+                 "URI:\n"
+                 "# Trailing whitespace on purpose\n"
+                 "URI:          \n"
+                 "\n"
+                 "URIs :\n"
+                 "URIs:\n"
+                 "# Trailing whitespace on purpose\n"
+                 "URIs:        \n"
+                 "# comment 2\n")
 
     file_obj = StringIO.StringIO(test_data)
     pathspec = rdf_paths.PathSpec(path="/etc/apt/sources.list.d/test.list")
@@ -344,6 +389,7 @@ class APTPackageSourceParserTests(test_lib.GRRBaseTest):
       http://willdetect2.example.com/debian-w2
 
       http://willdetect3.example.com/debian-w3
+    URI
     URI :  ssh://5.example.com/debian5
     Suites: stable testing
     Sections: component1 component2
@@ -355,7 +401,7 @@ class APTPackageSourceParserTests(test_lib.GRRBaseTest):
 
     # comment comment comment
     Types: deb
-    URI : ftp://another.example.com/debian2
+    URI:ftp://another.example.com/debian2
     Suites: experimental
     Sections: component1 component2
     Enabled: no
@@ -419,6 +465,197 @@ class APTPackageSourceParserTests(test_lib.GRRBaseTest):
     self.assertEqual("ftp", result.uris[10].transport)
     self.assertEqual("another.example.com", result.uris[10].host)
     self.assertEqual("/debian2", result.uris[10].path)
+
+
+class YumPackageSourceParserTests(test_lib.GRRBaseTest):
+  """Test the Yum package source lists parser."""
+
+  def testPackageSourceData(self):
+    test_data = r"""
+    # comment 1
+    [centosdvdiso]
+    name=CentOS DVD ISO
+    baseurl=file:///mnt
+    http://mirror1.centos.org/CentOS/6/os/i386/
+    baseurl =ssh://mirror2.centos.org/CentOS/6/os/i386/
+    enabled=1
+    gpgcheck=1
+    gpgkey=file:///mnt/RPM-GPG-KEY-CentOS-6
+
+    # comment2
+    [examplerepo]
+    name=Example Repository
+    baseurl = https://mirror3.centos.org/CentOS/6/os/i386/
+    enabled=1
+    gpgcheck=1
+    gpgkey=http://mirror.centos.org/CentOS/6/os/i386/RPM-GPG-KEY-CentOS-6
+
+    """
+    file_obj = StringIO.StringIO(test_data)
+    pathspec = rdf_paths.PathSpec(path="/etc/yum.repos.d/test1.repo")
+    stat = rdf_client.StatEntry(pathspec=pathspec)
+    parser = config_file.YumPackageSourceParser()
+    results = list(parser.Parse(stat, file_obj, None))
+
+    result = [d for d in results if isinstance(d,
+                                               rdf_protodict.AttributedDict)][0]
+
+    self.assertEqual("/etc/yum.repos.d/test1.repo", result.filename)
+    self.assertEqual(4, len(result.uris))
+
+    self.assertEqual("file", result.uris[0].transport)
+    self.assertEqual("", result.uris[0].host)
+    self.assertEqual("/mnt", result.uris[0].path)
+
+    self.assertEqual("http", result.uris[1].transport)
+    self.assertEqual("mirror1.centos.org", result.uris[1].host)
+    self.assertEqual("/CentOS/6/os/i386/", result.uris[1].path)
+
+    self.assertEqual("ssh", result.uris[2].transport)
+    self.assertEqual("mirror2.centos.org", result.uris[2].host)
+    self.assertEqual("/CentOS/6/os/i386/", result.uris[2].path)
+
+    self.assertEqual("https", result.uris[3].transport)
+    self.assertEqual("mirror3.centos.org", result.uris[3].host)
+    self.assertEqual("/CentOS/6/os/i386/", result.uris[3].path)
+
+  def testEmptySourceData(self):
+    test_data = ("# comment 1\n"
+                 "baseurl=\n"
+                 "# Trailing whitespace on purpose\n"
+                 "baseurl=      \n"
+                 "# Trailing whitespace on purpose\n"
+                 "baseurl =            \n"
+                 "baseurl\n"
+                 "# comment 2\n")
+
+    file_obj = StringIO.StringIO(test_data)
+    pathspec = rdf_paths.PathSpec(path="/etc/yum.repos.d/emptytest.repo")
+    stat = rdf_client.StatEntry(pathspec=pathspec)
+    parser = config_file.YumPackageSourceParser()
+    results = list(parser.Parse(stat, file_obj, None))
+
+    result = [d for d in results if isinstance(d,
+                                               rdf_protodict.AttributedDict)][0]
+
+    self.assertEqual("/etc/yum.repos.d/emptytest.repo", result.filename)
+    self.assertEqual(0, len(result.uris))
+
+
+class CronAtAllowDenyParserTests(test_lib.GRRBaseTest):
+  """Test the cron/at allow/deny parser."""
+
+  def testParseCronData(self):
+    test_data = r"""root
+    user
+
+    user2 user3
+    root
+    hi hello
+    user
+    pparth"""
+    file_obj = StringIO.StringIO(test_data)
+    pathspec = rdf_paths.PathSpec(path="/etc/at.allow")
+    stat = rdf_client.StatEntry(pathspec=pathspec)
+    parser = config_file.CronAtAllowDenyParser()
+    results = list(parser.Parse(stat, file_obj, None))
+
+    result = [d for d in results if isinstance(d,
+                                               rdf_protodict.AttributedDict)][0]
+    filename = result.filename
+    users = result.users
+    self.assertEqual("/etc/at.allow", filename)
+    self.assertEqual(sorted(["root", "user", "pparth"]), sorted(users))
+
+    anomalies = [a for a in results if isinstance(a, rdf_anomaly.Anomaly)]
+    self.assertEqual(1, len(anomalies))
+    anom = anomalies[0]
+    self.assertEqual("Dodgy entries in /etc/at.allow.", anom.symptom)
+    self.assertEqual(sorted(["user2 user3", "hi hello"]), sorted(anom.finding))
+    self.assertEqual(pathspec, anom.reference_pathspec)
+    self.assertEqual("PARSER_ANOMALY", anom.type)
+
+
+class NtpParserTests(test_lib.GRRBaseTest):
+  """Test the ntp.conf parser."""
+
+  def testParseNtpConfig(self):
+    test_data = r"""
+    # Time servers
+    server 1.2.3.4 iburst
+    server 4.5.6.7 iburst
+    server 8.9.10.11 iburst
+    server pool.ntp.org iburst
+    server 2001:1234:1234:2::f iburst
+
+    # Drift file
+    driftfile /var/lib/ntp/ntp.drift
+
+    restrict default nomodify noquery nopeer
+
+    # Guard against monlist NTP reflection attacks.
+    disable monitor
+
+    # Enable the creation of a peerstats file
+    enable stats
+    statsdir /var/log/ntpstats
+    filegen peerstats file peerstats type day link enable
+
+    # Test only.
+    ttl 127 88
+    broadcastdelay 0.01
+"""
+    conffile = StringIO.StringIO(test_data)
+    parser = config_file.NtpdParser()
+    results = list(parser.Parse(None, conffile, None))
+
+    # We expect some results.
+    self.assertTrue(results)
+    # There should be only one result.
+    self.assertEqual(1, len(results))
+    # Now that we are sure, just use that single result for easy of reading.
+    results = results[0]
+
+    # Check all the expected "simple" config keywords are present.
+    expected_config_keywords = set(
+        ["driftfile", "statsdir", "filegen", "ttl",
+         "broadcastdelay"]) | set(parser._defaults.keys())
+    self.assertEqual(expected_config_keywords, set(results.config.keys()))
+
+    # Check all the expected "keyed" config keywords are present.
+    self.assertTrue(results.server)
+    self.assertTrue(results.restrict)
+    # And check one that isn't in the config, isn't in out result.
+    self.assertFalse(results.trap)
+
+    # Check we got all the "servers".
+    servers = ["1.2.3.4", "4.5.6.7", "8.9.10.11", "pool.ntp.org",
+               "2001:1234:1234:2::f"]
+    self.assertItemsEqual(servers, [r.address for r in results.server])
+    # In our test data, they all have "iburst" as an arg. Check that is found.
+    for r in results.server:
+      self.assertEqual("iburst", r.options)
+
+    # Check a few values were parsed correctly.
+    self.assertEqual("/var/lib/ntp/ntp.drift", results.config["driftfile"])
+    self.assertEqual("/var/log/ntpstats", results.config["statsdir"])
+    self.assertEqual("peerstats file peerstats type day link enable",
+                     results.config["filegen"])
+    self.assertEqual(1, len(results.restrict))
+    self.assertEqual("default", results.restrict[0].address)
+    self.assertEqual("nomodify noquery nopeer", results.restrict[0].options)
+    # A option that can have a list of integers.
+    self.assertEqual([127, 88], results.config["ttl"])
+    # An option that should only have a single float.
+    self.assertEqual([0.01], results.config["broadcastdelay"])
+
+    # Check the modified defaults.
+    self.assertFalse(results.config["monitor"])
+    self.assertTrue(results.config["stats"])
+
+    # Check an unlisted defaults are unmodified.
+    self.assertFalse(results.config["kernel"])
+    self.assertTrue(results.config["auth"])
 
 
 def main(args):

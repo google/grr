@@ -6,7 +6,6 @@
 import abc
 import json
 import os
-import re
 import urlparse
 
 from grr import gui
@@ -94,10 +93,6 @@ class ApiCallRendererRegressionTest(test_lib.GRRBaseTest):
     """Sets up test envionment and does Check() calls."""
     pass
 
-  def Normalize(self, output):
-    """Normalizes the output for comparison."""
-    return re.sub("\"long\"", "\"int\"", output)
-
   def testForRegression(self):
     """Checks whether there's a regression."""
     self.maxDiff = 65536  # pylint: disable=invalid-name
@@ -116,11 +111,9 @@ class ApiCallRendererRegressionTest(test_lib.GRRBaseTest):
     # Make sure that this test has generated some checks.
     self.assertTrue(self.checks)
 
-    checks_str = self.Normalize(
-        json.dumps(self.checks, indent=2, sort_keys=True,
-                   separators=(",", ": ")))
-    prev_checks_str = self.Normalize(
-        json.dumps(relevant_checks, indent=2, sort_keys=True,
-                   separators=(",", ": ")))
+    checks_str = json.dumps(self.checks, indent=2, sort_keys=True,
+                            separators=(",", ": "))
+    prev_checks_str = json.dumps(relevant_checks, indent=2, sort_keys=True,
+                                 separators=(",", ": "))
 
     self.assertMultiLineEqual(prev_checks_str, checks_str)

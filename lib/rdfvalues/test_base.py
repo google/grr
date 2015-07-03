@@ -208,9 +208,14 @@ class RDFValueTestCase(RDFValueBaseTest):
     self.assertTrue(hash(sample1) != hash(self.GenerateSample(2)))
 
   def testInitialization(self):
-    """Check that we can initialize from common initializers."""
+    """Check that we can use an empty initializer.
 
-    # Empty Initializer.
+    RDFValues are created in many different ways, sometimes in stages by
+    gradually populating fields. The only time you can be sure the user has
+    finished creating a proto is when it is serialized. This means strong
+    validation that requires all fields populated can't be done in init, but
+    should be done in SerializeToString.
+    """
     self.rdfvalue_class()
 
     # Initialize from another instance.

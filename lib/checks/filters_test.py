@@ -100,6 +100,31 @@ class ItemFilterTests(test_lib.GRRBaseTest):
     self.assertEqual("/root", results[0].v)
 
 
+class ForEachTests(test_lib.GRRBaseTest):
+  """Test ForEach filter methods and operations."""
+
+  def testValidate(self):
+    filt = filters.ForEach()
+    self.assertRaises(filters.DefinitionError, filt.Validate, " ")
+    self.assertRaises(filters.DefinitionError, filt.Validate, "attr1 attr2")
+    self.assertFalse(filt.Validate("attr1"))
+
+  def testParse(self):
+    filt = filters.ForEach()
+
+    hit1 = rdf_protodict.AttributedDict(k1="v1", k2="v2", k3="v3")
+    hit2 = rdf_protodict.AttributedDict(k1="v4", k2="v5", k3="v6")
+    meta = rdf_protodict.AttributedDict(foo=["foo", "bar"], target=[hit1, hit2])
+    objs = [meta]
+
+    results = filt.Parse(objs, "target")
+    self.assertEqual(2, len(results))
+    self.assertItemsEqual([hit1, hit2], results)
+
+    results = filt.Parse(objs, "foo")
+    self.assertEqual(0, len(results))
+
+
 class ObjectFilterTests(test_lib.GRRBaseTest):
   """Test object filter methods and operations."""
 

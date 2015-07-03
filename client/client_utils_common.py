@@ -141,6 +141,7 @@ def IsExecutionWhitelisted(cmd, args):
         ("/usr/bin/last", []),
         ("/sbin/lsmod", []),
         ("/usr/bin/yum", ["list installed -q"]),
+        ("/usr/bin/yum", ["repolist -v -q"]),
     ]
   elif platform.system() == "Darwin":
     whitelist = [

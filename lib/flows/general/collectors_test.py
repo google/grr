@@ -371,6 +371,11 @@ class TestArtifactCollectorsInteractions(CollectorTest):
 class TestArtifactCollectorsRealArtifacts(CollectorTest):
   """Test the collection of real artifacts."""
 
+  def setUp(self):
+    """Add test artifacts to existing registry."""
+    super(TestArtifactCollectorsRealArtifacts, self).setUp()
+    self.LoadTestArtifacts()
+
   def _CheckDriveAndRoot(self):
     client_mock = action_mocks.ActionMock("StatFile", "ListDirectory")
 

@@ -7,7 +7,7 @@ goog.require('grrUi.tests.module');
 var browserTrigger = grrUi.tests.browserTrigger;
 
 describe('semantic proto repeated field form directive', function() {
-  var $compile, $rootScope;
+  var $compile, $rootScope, $q, grrReflectionService;
 
   beforeEach(module('/static/angular-components/forms/semantic-proto-form.html'));
   beforeEach(module('/static/angular-components/forms/semantic-proto-union-form.html'));
@@ -19,6 +19,17 @@ describe('semantic proto repeated field form directive', function() {
   beforeEach(inject(function($injector) {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
+    $q = $injector.get('$q');
+    grrReflectionService = $injector.get('grrReflectionService');
+
+    grrReflectionService.getRDFValueDescriptor = function(valueType) {
+      var deferred = $q.defer();
+      deferred.resolve({
+        name: valueType,
+        mro: [valueType]
+      });
+      return deferred.promise;
+    };
   }));
 
   var renderTestTemplate = function(value, descriptor, field) {

@@ -138,6 +138,7 @@ HttpConnectionManager::TryEstablishConnection() {
         return nullptr;
       }
       RSAKey my_key(config_->key());
+      GOOGLE_LOG(INFO) << "Connection established to: " << url;
       return new Connection(config_->ClientId(), config_->key(),
                             std::move(cert), url, proxy);
     }
@@ -153,7 +154,8 @@ void HttpConnectionManager::Run() {
   // to the server.
   std::vector<GrrMessage> to_send;
 
-  GOOGLE_LOG(INFO) << "Entering cm loop.";
+  NonceGenerator nonce_gen;
+
   while (true) {
     // If the last try was a failure, wait 5 seconds before retrying. Otherwise
     // wait depending on how long it has been since there was some activity.
@@ -175,18 +177,8 @@ void HttpConnectionManager::Run() {
     if (to_send.empty()) {
       to_send = outbox_->GetMessages(1000, 1000000, false);
     }
-    const int timestamp = time(NULL);
 
-    // Insted of trying to get a portable sub-second clock, we just add random
-    // values to the standard second level clock.
-    const uint64 rnd = CryptoRand::RandInt64();
-    if (rnd == 0UL) {
-      failed = true;
-      continue;
-    }
-    // 2^20-1 = 1048575
-    const uint64 nonce =
-        timestamp * 1000000UL + (rnd & 0b1111111111111111111UL);
+    const uint64 nonce = nonce_gen.Generate();
     HttpResponse response = RequestURL(current_connection_->url() + "?api=3",
                                        current_connection_->proxy(),
                                        current_connection_->secure_session()
@@ -206,7 +198,10 @@ void HttpConnectionManager::Run() {
       failed = true;
       continue;
     }
-    // We succeeded in sending to_send.
+    if (to_send.size()) {
+      // We succeeded in sending to_send.
+      GOOGLE_LOG(INFO) << "Sent " << to_send.size() << " messages.";
+    }
     to_send.clear();
 
     ClientCommunication result;
@@ -221,8 +216,10 @@ void HttpConnectionManager::Run() {
       failed = true;
       continue;
     }
-    GOOGLE_LOG(INFO) << "Decoded response with " << messages.size()
-                     << " messages.";
+    if (messages.size()) {
+      GOOGLE_LOG(INFO) << "Decoded response with " << messages.size()
+                       << " messages.";
+    }
     if (messages.size() == 0 && to_send.size() == 0) {
       no_activity_count += 1;
     } else {

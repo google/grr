@@ -3,10 +3,12 @@
 """Tests for checks_test_lib."""
 
 from grr.lib import flags
+from grr.lib import parsers
 from grr.lib import test_lib
 from grr.lib.checks import checks
 from grr.lib.checks import checks_test_lib
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
+from grr.lib.rdfvalues import client as rdf_client
 
 
 class CheckHelperTests(checks_test_lib.HostCheckTest):
@@ -15,7 +17,7 @@ class CheckHelperTests(checks_test_lib.HostCheckTest):
   def testAssertCheckUndetected(self):
     """Tests for the asertCheckUndetected() method."""
     anomaly = {"finding": ["Adware 2.1.1 is installed"],
-               "explanation": "Found: Malicious software.",
+               "symptom": "Found: Malicious software.",
                "type": "ANALYSIS_ANOMALY"}
 
     # Simple no anomaly case.
@@ -75,7 +77,7 @@ class CheckHelperTests(checks_test_lib.HostCheckTest):
                       self.assertCheckDetectedAnom,
                       "UNICORN",
                       no_checks,
-                      exp=None,
+                      sym=None,
                       findings=None)
 
     # Check we fail when our checkid is in the results but hasn't
@@ -85,12 +87,12 @@ class CheckHelperTests(checks_test_lib.HostCheckTest):
                       self.assertCheckDetectedAnom,
                       "EXISTS",
                       passing_checks,
-                      exp=None,
+                      sym=None,
                       findings=None)
 
     # On to a 'successful' cases.
     anomaly = {"finding": ["Finding"],
-               "explanation": "Found: An issue.",
+               "symptom": "Found: An issue.",
                "type": "ANALYSIS_ANOMALY"}
     failing_checks = {"EXISTS": checks.CheckResult(
         check_id="EXISTS",
@@ -99,31 +101,31 @@ class CheckHelperTests(checks_test_lib.HostCheckTest):
     # Check we pass when our check produces an anomaly and we don't care
     # about the details.
     self.assertCheckDetectedAnom("EXISTS", failing_checks,
-                                 exp=None, findings=None)
-    # When we do care only about the 'explanation'.
+                                 sym=None, findings=None)
+    # When we do care only about the 'symptom'.
     self.assertCheckDetectedAnom("EXISTS", failing_checks,
-                                 exp="Found: An issue.", findings=None)
+                                 sym="Found: An issue.", findings=None)
     # And when we also care about the findings.
     self.assertCheckDetectedAnom("EXISTS", failing_checks,
-                                 exp="Found: An issue.",
+                                 sym="Found: An issue.",
                                  findings=["Finding"])
     # And check we match substrings of a 'finding'.
     self.assertCheckDetectedAnom("EXISTS", failing_checks,
-                                 exp="Found: An issue.",
+                                 sym="Found: An issue.",
                                  findings=["Fin"])
-    # Check we complain when the explanation doesn't match.
+    # Check we complain when the symptom doesn't match.
     self.assertRaises(AssertionError,
                       self.assertCheckDetectedAnom,
                       "EXISTS",
                       failing_checks,
-                      exp="wrong explanation",
+                      sym="wrong symptom",
                       findings=None)
-    # Check we complain when the explanation matches but the findings don't.
+    # Check we complain when the symptom matches but the findings don't.
     self.assertRaises(AssertionError,
                       self.assertCheckDetectedAnom,
                       "EXISTS",
                       failing_checks,
-                      exp="Found: An issue.",
+                      sym="Found: An issue.",
                       findings=["Not found"])
     # Lastly, if there is a finding in the anomaly we didn't expect, we consider
     # that a problem.
@@ -131,8 +133,70 @@ class CheckHelperTests(checks_test_lib.HostCheckTest):
                       self.assertCheckDetectedAnom,
                       "EXISTS",
                       failing_checks,
-                      exp="Found: An issue.",
+                      sym="Found: An issue.",
                       findings=[])
+
+  def testGenProcessData(self):
+    """Test for the GenProcessData() method."""
+    # Trivial empty case.
+    result = self.GenProcessData([])
+    self.assertTrue("KnowledgeBase" in result)
+    self.assertTrue("ListProcessesGrr" in result)
+    self.assertDictEqual(self.SetArtifactData(), result["ListProcessesGrr"])
+    # Now with data.
+    result = self.GenProcessData([("proc1", 1, ["/bin/foo"]),
+                                  ("proc2", 2, ["/bin/bar"])])
+    self.assertEquals("proc1", result["ListProcessesGrr"]["PARSER"][0].name)
+    self.assertEquals(1, result["ListProcessesGrr"]["PARSER"][0].pid)
+    self.assertEquals(["/bin/foo"],
+                      result["ListProcessesGrr"]["PARSER"][0].cmdline)
+    self.assertEquals("proc2", result["ListProcessesGrr"]["PARSER"][1].name)
+    self.assertEquals(2, result["ListProcessesGrr"]["PARSER"][1].pid)
+    self.assertEquals(["/bin/bar"],
+                      result["ListProcessesGrr"]["PARSER"][1].cmdline)
+
+  def testGenFileData(self):
+    """Test for the GenFileData() method."""
+    # Need a parser
+    self.assertRaises(test_lib.Error, self.GenFileData, "EMPTY", [])
+    # Trivial empty case.
+    parser = parsers.FileParser()
+    result = self.GenFileData("EMPTY", [], parser)
+    self.assertTrue("KnowledgeBase" in result)
+    self.assertTrue("EMPTY" in result)
+    self.assertDictEqual(self.SetArtifactData(), result["EMPTY"])
+    # Now with data.
+    result = self.GenFileData("FILES", {"/tmp/foo": """blah""",
+                                        "/tmp/bar": """meh"""}, parser)
+    self.assertTrue("FILES" in result)
+    # No parser information should be generated.
+    self.assertEquals([], result["FILES"]["PARSER"])
+    # Two stat entries under raw (stat entries should exist)
+    self.assertEquals(2, len(result["FILES"]["RAW"]))
+    # Walk the result till we find the item we want.
+    # This is to avoid a flakey test.
+    statentry = None
+    for r in result["FILES"]["RAW"]:
+      if r.pathspec.path == "/tmp/bar":
+        statentry = r
+    self.assertIsInstance(statentry, rdf_client.StatEntry)
+    self.assertEquals(33188, statentry.st_mode)
+
+  def testGenSysVInitData(self):
+    """Test for the GenSysVInitData() method."""
+    # Trivial empty case.
+    result = self.GenSysVInitData([])
+    self.assertTrue("KnowledgeBase" in result)
+    self.assertTrue("LinuxServices" in result)
+    self.assertDictEqual(self.SetArtifactData(), result["LinuxServices"])
+    # Now with data.
+    result = self.GenSysVInitData(["/etc/rc2.d/S99testing"])
+    self.assertTrue("LinuxServices" in result)
+    self.assertEquals(1, len(result["LinuxServices"]["PARSER"]))
+    result = result["LinuxServices"]["PARSER"][0]
+    self.assertEquals("testing", result.name)
+    self.assertEquals([2], result.start_on)
+    self.assertTrue(result.starts)
 
 
 def main(argv):

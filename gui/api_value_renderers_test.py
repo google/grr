@@ -19,119 +19,70 @@ class ApiRDFProtoStructRendererSample(rdf_structs.RDFProtoStruct):
 class ApiRDFProtoStructRendererTest(test_lib.GRRBaseTest):
   """Test for ApiRDFProtoStructRenderer."""
 
-  def testRendersProtoStructWithoutListsWithoutTypeInfo(self):
+  def testRendersProtoStructWithoutLists(self):
     sample = ApiRDFProtoStructRendererSample(
         index=0, values=["foo", "bar"])
 
-    renderer = api_value_renderers.ApiRDFProtoStructRenderer(
-        limit_lists=0)
-    data = renderer.RenderValue(sample)
-    self.assertEqual(data, dict(index=0, values="<lists are omitted>"))
-
-  def testRendersProtoStructWithoutListsLimitWithoutTypeInfo(self):
-    sample = ApiRDFProtoStructRendererSample(
-        index=0, values=["foo", "bar"])
-
-    renderer = api_value_renderers.ApiRDFProtoStructRenderer(
-        limit_lists=-1)
-    data = renderer.RenderValue(sample)
-    self.assertEqual(data, dict(index=0, values=["foo", "bar"]))
-
-  def testRendersProtoStructWithListsLimitWithoutTypeInfo(self):
-    sample = ApiRDFProtoStructRendererSample(
-        index=0, values=["foo", "bar"])
-
-    renderer = api_value_renderers.ApiRDFProtoStructRenderer(
-        limit_lists=1)
-    data = renderer.RenderValue(sample)
-    self.assertEqual(
-        data, dict(index=0, values=["foo", "<more items available>"]))
-
-  def testRendersProtoStructWithoutListsWithTypeInfo(self):
-    sample = ApiRDFProtoStructRendererSample(
-        index=0, values=["foo", "bar"])
-
-    renderer = api_value_renderers.ApiRDFProtoStructRenderer(
-        limit_lists=0, with_types=True)
+    renderer = api_value_renderers.ApiRDFProtoStructRenderer(limit_lists=0)
     data = renderer.RenderValue(sample)
     self.assertEqual(data,
                      {"age": 0,
-                      "mro": ["ApiRDFProtoStructRendererSample",
-                              "RDFProtoStruct",
-                              "RDFStruct",
-                              "RDFValue",
-                              "object"],
                       "type": "ApiRDFProtoStructRendererSample",
-                      "value": {"index": {"age": 0,
-                                          "mro": ["int", "object"],
-                                          "type": "int",
-                                          "value": 0},
-                                "values": "<lists are omitted>"}})
+                      "value": {
+                          "index": {
+                              "age": 0,
+                              "type": "long",
+                              "value": 0
+                              },
+                          "values": "<lists are omitted>"
+                          }
+                     })
 
-  def testRendersProtoStructWithoutListsLimitWithTypeInfo(self):
+  def testRendersProtoStructWithoutListsLimit(self):
     sample = ApiRDFProtoStructRendererSample(
         index=0, values=["foo", "bar"])
 
-    renderer = api_value_renderers.ApiRDFProtoStructRenderer(
-        limit_lists=-1, with_types=True)
+    renderer = api_value_renderers.ApiRDFProtoStructRenderer(limit_lists=-1)
     data = renderer.RenderValue(sample)
 
     self.assertEqual(data,
                      {"age": 0,
-                      "mro": ["ApiRDFProtoStructRendererSample",
-                              "RDFProtoStruct",
-                              "RDFStruct",
-                              "RDFValue",
-                              "object"],
                       "type": "ApiRDFProtoStructRendererSample",
                       "value": {"index": {"age": 0,
-                                          "mro": ["int", "object"],
-                                          "type": "int",
+                                          "type": "long",
                                           "value": 0},
                                 "values": [
                                     {"age": 0,
-                                     "mro": ["unicode", "basestring", "object"],
                                      "type": "unicode",
                                      "value": "foo"},
                                     {"age": 0,
-                                     "mro": ["unicode", "basestring", "object"],
                                      "type": "unicode",
                                      "value": "bar"}]}})
 
-  def testRendersProtoStructWithListsLimitWithTypeInfo(self):
+  def testRendersProtoStructWithListsLimit(self):
     sample = ApiRDFProtoStructRendererSample(
         index=0, values=["foo", "bar"])
 
-    renderer = api_value_renderers.ApiRDFProtoStructRenderer(
-        limit_lists=1, with_types=True)
+    renderer = api_value_renderers.ApiRDFProtoStructRenderer(limit_lists=1)
     data = renderer.RenderValue(sample)
 
     self.assertEqual(data,
                      {"age": 0,
-                      "mro": [
-                          "ApiRDFProtoStructRendererSample",
-                          "RDFProtoStruct",
-                          "RDFStruct",
-                          "RDFValue",
-                          "object"],
                       "type": "ApiRDFProtoStructRendererSample",
                       "value": {
                           "index": {"age": 0,
-                                    "mro": ["int", "object"],
-                                    "type": "int",
+                                    "type": "long",
                                     "value": 0
                                    },
                           "values": [
                               {
                                   "age": 0,
-                                  "mro": ["unicode", "basestring", "object"],
                                   "type": "unicode",
                                   "value": u"foo"
                                   },
                               {
                                   "url": "to/be/implemented",
                                   "age": 0,
-                                  "mro": ["FetchMoreLink"],
                                   "type": "FetchMoreLink"}]}})
 
 
@@ -142,18 +93,51 @@ class ApiGrrMessageRendererTest(test_lib.GRRBaseTest):
     sample = rdf_flows.GrrMessage(
         task_id=42,
         payload=ApiRDFProtoStructRendererSample(
-            index=0, values=["foo", "bar"]))
+            index=43, values=["foo", "bar"]))
 
     renderer = api_value_renderers.ApiGrrMessageRenderer()
     data = renderer.RenderValue(sample)
-    self.assertEqual(data, {
-        "payload_type": "ApiRDFProtoStructRendererSample",
-        "payload": {
-            "index": 0,
-            "values": ["foo", "bar"]
-            },
-        "task_id": 42
-        })
+
+    model_data = {"age": 0,
+                  "type": "GrrMessage",
+                  "value": {
+                      "task_id": {
+                          "age": 0,
+                          "type": "long",
+                          "value": 42
+                          },
+                      "payload_type": {
+                          "age": 0,
+                          "type": "unicode",
+                          "value": "ApiRDFProtoStructRendererSample"
+                          },
+                      "payload": {
+                          "age": 0,
+                          "type": "ApiRDFProtoStructRendererSample",
+                          "value": {
+                              "index": {
+                                  "age": 0,
+                                  "type": "long",
+                                  "value": 43
+                                  },
+                              "values": [
+                                  {
+                                      "age": 0,
+                                      "type": "unicode",
+                                      "value": "foo"
+                                      },
+                                  {
+                                      "age": 0,
+                                      "type": "unicode",
+                                      "value": "bar"
+                                      }
+                                  ]
+                              }
+                          }
+                      }
+                 }
+
+    self.assertEqual(data, model_data)
 
 
 def main(argv):

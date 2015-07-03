@@ -45,7 +45,6 @@ describe('client urn directive', function() {
   it('shows value with type information', function() {
     var clientUrn = {
       age: 0,
-      mro: ['ClientURN', 'RDFURN', 'RDFValue', 'object'],
       type: 'ClientURN',
       value: 'aff4:/C.0000000000000001'
     };
@@ -78,17 +77,20 @@ describe('client urn directive', function() {
     it('is shown when info button is clicked', function() {
       var element = renderTestTemplate('aff4:/C.0000000000000001');
       browserTrigger($('button', element), 'click');
-      expect($(document.body).text()).toContain('This is a summary');
+      expect($(document.body).text()).toContain(
+          'Client aff4:/C.0000000000000001');
     });
 
     it('closed when close button is clicked', function() {
       var element = renderTestTemplate('aff4:/C.0000000000000001');
       browserTrigger($('button', element), 'click');
-      expect($(document.body).text()).toContain('This is a summary');
+      expect($(document.body).text()).toContain(
+          'Client aff4:/C.0000000000000001');
 
       browserTrigger($('button.close'), 'click');
       $timeout.flush();
-      expect($(document.body).text()).not.toContain('This is a summary');
+      expect($(document.body).text()).not.toContain(
+          'Client aff4:/C.0000000000000001');
     });
   });
 });

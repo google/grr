@@ -442,6 +442,10 @@ class RDFDatetime(RDFInteger):
     elif isinstance(initializer, (int, long, float)):
       self._value = int(initializer)
 
+    elif isinstance(initializer, datetime.datetime):
+      seconds = calendar.timegm(initializer.utctimetuple())
+      self._value = (seconds * self.converter) + initializer.microsecond
+
     elif isinstance(initializer, basestring):
       try:
         # Can be just a serialized integer.

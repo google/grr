@@ -89,25 +89,29 @@ SemanticValueController.prototype.camelCaseToDashDelimited = function(
  * Compiles a template for a given single value.
  *
  * @param {Object} value Value to compile the template for.
- * @return {function(!angular.Scope, function(Object,
- *     !angular.Scope=)=):Object} Compiled template.
+ * @return {!angular.$q.Promise} Promise that will get resolved into the
+ *     compiled template.
  * @private
  */
 SemanticValueController.prototype.compileSingleTypedValueTemplate_ = function(
     value) {
-  var element = angular.element('<span />');
-  var directive = this.grrSemanticValueDirectivesRegistryService_
-      .findDirectiveForMro(value['mro']);
+  var successHandler = function(directive) {
+    var element = angular.element('<span />');
 
-  if (angular.isDefined(directive)) {
     element.html('<' +
         this.camelCaseToDashDelimited(directive.directive_name) +
         ' value="::value" />');
-  } else {
-    element.html('{$ ::value.value || "" $}');
-  }
+    return this.compile_(element);
+  }.bind(this);
 
-  return this.compile_(element);
+  var failureHandler = function(directive) {
+    var element = angular.element('<span />');
+    element.html('{$ ::value.value $}');
+    return this.compile_(element);
+  }.bind(this);
+
+  return this.grrSemanticValueDirectivesRegistryService_.
+      findDirectiveForType(value['type']).then(successHandler, failureHandler);
 };
 
 
@@ -143,13 +147,26 @@ SemanticValueController.prototype.onValueChange = function() {
    */
   var template;
 
-  if (angular.isArray(value['mro'])) {
-    template = grrUi.semantic.semanticValueDirective.singleValueTemplateCache[
-        value['mro']];
+
+  if (angular.isDefined(value['type'])) {
+    var handleTemplate = function(template) {
+      template(this.scope_, function(cloned, opt_scope) {
+        this.element_.html('');
+        this.element_.append(cloned);
+      }.bind(this));
+    }.bind(this);
+
+    var singleValueTemplateCache = grrUi.semantic.semanticValueDirective
+        .singleValueTemplateCache;
+
+    template = singleValueTemplateCache[value['type']];
     if (angular.isUndefined(template)) {
-      template = this.compileSingleTypedValueTemplate_(value);
-      grrUi.semantic.semanticValueDirective.singleValueTemplateCache[
-          value['mro']] = template;
+      this.compileSingleTypedValueTemplate_(value).then(function(tmpl) {
+        singleValueTemplateCache[value['type']] = tmpl;
+        handleTemplate(tmpl);
+      }.bind(this));
+    } else {
+      handleTemplate(template);
     }
   } else if (angular.isArray(value)) {
     if (angular.isUndefined(
@@ -158,9 +175,7 @@ SemanticValueController.prototype.onValueChange = function() {
           this.compileRepeatedValueTemplate_();
     }
     template = grrUi.semantic.semanticValueDirective.repeatedValuesTemplate;
-  }
 
-  if (angular.isDefined(template)) {
     template(this.scope_, function(cloned, opt_scope) {
       this.element_.html('');
       this.element_.append(cloned);

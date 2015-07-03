@@ -34,6 +34,9 @@ config_lib.DEFINE_string("Client.arch", "amd64",
 config_lib.DEFINE_string("Client.build_time", "Unknown",
                          "The time the client was built.")
 
+config_lib.DEFINE_integer("Client.rsa_key_length", 2048,
+                          "The key length of the client keys in bits.")
+
 config_lib.DEFINE_string(
     name="Client.install_path",
     default=r"%(SystemRoot|env)\\System32\\%(name)\\%(version_string)",
@@ -109,7 +112,7 @@ config_lib.DEFINE_string(
     default="/var/tmp/%(Client.name)/")
 
 config_lib.DEFINE_list(
-    name="Client.vfs_chroots",
+    name="Client.vfs_virtualroots",
     help=("If this is set for a VFS type, client VFS operations will always be"
           " relative to the given root. Format is os:/mount/disk."),
     default=[])
@@ -183,6 +186,9 @@ config_lib.DEFINE_semantic(
 config_lib.DEFINE_integer("Client.server_serial_number", 0,
                           "Minimal serial number we accept for server cert.")
 
+config_lib.DEFINE_integer(
+    "Client.gc_frequency", 10,
+    "Defines how often the client calls garbage collection (seconds).")
 
 # The following configuration options are defined here but are used in
 # the windows nanny code (grr/client/nanny/windows_nanny.h).
