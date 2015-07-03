@@ -329,7 +329,7 @@ class ApiRDFProtoStructRenderer(ApiValueRenderer):
         for enum_label in sorted(field_desc.enum, key=field_desc.enum.get):
           enum_value = field_desc.enum[enum_label]
           labels = [rdf_structs.SemanticDescriptor.Labels.reverse_enum[x]
-                    for x in enum_value.labels]
+                    for x in enum_value.labels or []]
           allowed_values.append(dict(name=enum_label,
                                      value=int(enum_value),
                                      labels=labels,
