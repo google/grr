@@ -571,7 +571,7 @@ class GRRBaseTest(unittest.TestCase):
         fd.Flush()
 
         index.AddClient(fd)
-
+    index.Close()
     return client_ids
 
   def DeleteClients(self, nr_clients):

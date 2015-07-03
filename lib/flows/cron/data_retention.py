@@ -3,12 +3,11 @@
 
 
 
-import re
-
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
+from grr.lib import client_index
 
 from grr.lib.aff4_objects import cronjobs
 
@@ -103,11 +102,9 @@ class CleanInactiveClients(cronjobs.SystemCronFlow):
 
   frequency = rdfvalue.Duration("7d")
   lifetime = rdfvalue.Duration("1d")
-  CLIENT_URN_PATTERN = "aff4:/C." + "[0-9a-fA-F]" * 16
 
   @flow.StateHandler()
   def Start(self):
-    client_regex = re.compile(self.CLIENT_URN_PATTERN)
     inactive_client_ttl = config_lib.CONFIG["DataRetention.inactive_client_ttl"]
     if not inactive_client_ttl:
       self.Log("TTL not set - nothing to do...")
@@ -116,9 +113,9 @@ class CleanInactiveClients(cronjobs.SystemCronFlow):
     exception_label = config_lib.CONFIG[
         "DataRetention.inactive_client_ttl_exception_label"]
 
-    aff4_root = aff4.FACTORY.Open("aff4:/", mode="r", token=self.token)
-    aff4_urns = list(aff4_root.ListChildren())
-    client_urns = [x for x in aff4_urns if re.match(client_regex, str(x))]
+    index = aff4.FACTORY.Open(client_index.MAIN_INDEX, mode="r",
+                               token=self.token)
+    client_urns = index.LookupClients(["."])
 
     deadline = rdfvalue.RDFDatetime().Now() - inactive_client_ttl
 

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Tests for datastore cleaning cron flows."""
 
-
 import re
 
 from grr.lib import aff4
@@ -255,20 +254,17 @@ class CleanInactiveClientsTest(test_lib.FlowTestsBaseclass):
   """Test the CleanTemp flow."""
 
   NUM_CLIENT = 10
-  CLIENT_URN_PATTERN = "aff4:/C.A" + "[0-9a-fA-F]" * 15
+  CLIENT_URN_PATTERN = "aff4:/C." + "[0-9a-fA-F]" * 16
 
   def setUp(self):
     super(CleanInactiveClientsTest, self).setUp()
-
-    self.client_urns = []
     self.client_regex = re.compile(self.CLIENT_URN_PATTERN)
-    for i in range(self.NUM_CLIENT):
+    self.client_urns = self.SetupClients(self.NUM_CLIENT)
+    for i in range(len(self.client_urns)):
       with test_lib.FakeTime(40 + 60 * i):
-        client = aff4.FACTORY.Create("aff4:/C.A%015X" % i, "VFSGRRClient", mode="w",
-                                     token=self.token)
-        client.Set(client.Schema.LAST(rdfvalue.RDFDatetime().Now()))
-        client.Close()
-        self.client_urns.append(client.urn)
+        with aff4.FACTORY.Open(self.client_urns[i], mode="rw",
+                               token=self.token) as client:
+          client.Set(client.Schema.LAST(rdfvalue.RDFDatetime().Now()))
 
 
   def testDoesNothingIfAgeLimitNotSetInConfig(self):
