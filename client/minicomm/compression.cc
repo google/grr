@@ -4,7 +4,7 @@
 #include <memory>
 #include <vector>
 
-#include "base.h"
+#include "grr/client/minicomm/base.h"
 #include "zlib.h"
 
 namespace grr {

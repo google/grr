@@ -82,6 +82,10 @@ class Lexer(object):
 
   def NextToken(self):
     """Fetch the next token by trying to match any of the regexes in order."""
+    # Nothing in the input stream - no token can match.
+    if not self.buffer:
+      return
+
     current_state = self.state
     for token in self._tokens:
       # Does the rule apply to us?
@@ -98,6 +102,11 @@ class Lexer(object):
 
       if self.verbose:
         logging.debug("%s matched %s", token.re_str, m.group(0))
+
+      # A token matched the empty string. We can not consume the token from the
+      # input stream.
+      if m.end() == 0:
+        raise RuntimeError("Lexer bug! Token can not match the empty string.")
 
       # The match consumes the data off the buffer (the handler can put it back
       # if it likes)

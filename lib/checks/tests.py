@@ -9,6 +9,7 @@ This module loads and registers all the check tests.
 # pylint: disable=unused-import,g-import-not-at-top
 
 from grr.lib.checks import checks_test
+from grr.lib.checks import checks_test_lib_test
 from grr.lib.checks import filters_test
 from grr.lib.checks import hints_test
 from grr.lib.checks import triggers_test

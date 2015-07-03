@@ -7,7 +7,8 @@ goog.require('grrUi.tests.module');
 var browserTrigger = grrUi.tests.browserTrigger;
 
 describe('semantic primitive form directive', function() {
-  var $compile, $rootScope, stringValue, intValue, boolValue;
+  var $compile, $rootScope, $q, grrReflectionService;
+  var stringValue, intValue, boolValue;
 
   beforeEach(module('/static/angular-components/forms/semantic-primitive-form.html'));
   beforeEach(module(grrUi.forms.module.name));
@@ -16,22 +17,30 @@ describe('semantic primitive form directive', function() {
   beforeEach(inject(function($injector) {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
+    $q = $injector.get('$q');
+    grrReflectionService = $injector.get('grrReflectionService');
+
+    grrReflectionService.getRDFValueDescriptor = function(valueType) {
+      var deferred = $q.defer();
+      deferred.resolve({
+        name: valueType,
+        mro: [valueType]
+      });
+      return deferred.promise;
+    };
 
     stringValue = {
       type: 'RDFString',
-      mro: ['RDFString'],
       value: 'foo'
     };
 
     intValue = {
       type: 'RDFInteger',
-      mro: ['RDFInteger'],
       value: 42
     };
 
     boolValue = {
       type: 'RDFBool',
-      mro: ['RDFBool'],
       value: true
     };
   }));

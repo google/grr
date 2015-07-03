@@ -1,7 +1,7 @@
 #include "google/protobuf/stubs/common.h"
 #include "gtest/gtest.h"
 
-#include "logging_control.h"
+#include "grr/client/minicomm/logging_control.h"
 
 int main(int argc, char **argv) {
   grr::LogControl::Initialize();

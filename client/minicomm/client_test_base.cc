@@ -1,38 +1,18 @@
-#include "client_test_base.h"
+#include "grr/client/minicomm/client_test_base.h"
 
 #include <stdlib.h>
 #include <fstream>
 
-#include "logging_control.h"
+#include "grr/client/minicomm/logging_control.h"
+#include "grr/client/minicomm/test_util.h"
 
 namespace grr {
-namespace {
-std::string MakeTempDir() {
-  const ::testing::TestInfo* const test_info =
-      ::testing::UnitTest::GetInstance()->current_test_info();
-  std::string t = "/tmp/GrrTest.";
-  t.append(test_info->test_case_name());
-  t.append(".");
-  t.append(test_info->name());
-  t.append(".XXXXXX");
 
-  std::unique_ptr<char[]> writeable(new char[t.size()+1]);
-  std::copy(t.begin(), t.end(), writeable.get());
-  writeable[t.size()] = '\0';
-  const char* result = mkdtemp(writeable.get());
-  GOOGLE_CHECK(result != nullptr) << "Unable to make temp directory, errno:"
-                                  << errno;
-  return std::string(result);
-}
-}  // namespace
-
-ClientTestBase::ClientTestBase() :
-  tmp_dir_(MakeTempDir()),
-  config_filename_(tmp_dir_ + "/config"),
-  writeback_filename_(tmp_dir_ + "/writeback"),
-  config_(config_filename_) {
-  GOOGLE_LOG(INFO) << "Using temporary directory: " << tmp_dir_;
-}
+ClientTestBase::ClientTestBase()
+    : tmp_dir_(testing::MakeTempDir()),
+      config_filename_(tmp_dir_ + "/config"),
+      writeback_filename_(tmp_dir_ + "/writeback"),
+      config_(config_filename_) {}
 
 ClientTestBase::~ClientTestBase() {}
 
@@ -65,7 +45,7 @@ std::string ClientTestBase::ReadWritebackFile() {
   std::ifstream file;
   file.open(writeback_filename_);
   const std::string r((std::istreambuf_iterator<char>(file)),
-                 std::istreambuf_iterator<char>());
+                      std::istreambuf_iterator<char>());
   file.close();
   return r;
 }

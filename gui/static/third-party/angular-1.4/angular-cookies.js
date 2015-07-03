@@ -1,5 +1,5 @@
 /**
- * @license AngularJS v1.4.1-local+sha.9efb0d5
+ * @license AngularJS v1.4.2-local+sha.d193c3a
  * (c) 2010-2015 Google, Inc. http://angularjs.org
  * License: MIT
  */
@@ -18,8 +18,7 @@
  *
  * <div doc-module-components="ngCookies"></div>
  *
- * See {@link ngCookies.$cookies `$cookies`} and
- * {@link ngCookies.$cookieStore `$cookieStore`} for usage.
+ * See {@link ngCookies.$cookies `$cookies`} for usage.
  */
 
 
@@ -66,9 +65,11 @@ angular.module('ngCookies', ['ng']).
      * @description
      * Provides read/write access to browser's cookies.
      *
-     * BREAKING CHANGE: `$cookies` no longer exposes properties that represent the
-     * current browser cookie values. Now you must use the get/put/remove/etc. methods
-     * as described below.
+     * <div class="alert alert-info">
+     * Up until Angular 1.3, `$cookies` exposed properties that represented the
+     * current browser cookie values. In version 1.4, this behavior has changed, and
+     * `$cookies` now provides a standard api of getters, setters etc.
+     * </div>
      *
      * Requires the {@link ngCookies `ngCookies`} module to be installed.
      *
@@ -194,7 +195,7 @@ angular.module('ngCookies').
  * Requires the {@link ngCookies `ngCookies`} module to be installed.
  *
  * <div class="alert alert-danger">
- * **Note:** The $cookieStore service is deprecated.
+ * **Note:** The $cookieStore service is **deprecated**.
  * Please use the {@link ngCookies.$cookies `$cookies`} service instead.
  * </div>
  *

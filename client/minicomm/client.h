@@ -4,11 +4,11 @@
 #include <memory>
 #include <string>
 
-#include "comms_utils.h"
-#include "config.h"
-#include "http_connection.h"
-#include "message_queue.h"
-#include "subprocess_delegator.h"
+#include "grr/client/minicomm/client_action_dispatcher.h"
+#include "grr/client/minicomm/comms_utils.h"
+#include "grr/client/minicomm/config.h"
+#include "grr/client/minicomm/http_connection.h"
+#include "grr/client/minicomm/message_queue.h"
 
 namespace grr {
 
@@ -31,7 +31,7 @@ class Client {
   HttpConnectionManager connection_manager_;
   std::unique_ptr<SecureSession> session_;
 
-  SubprocessDelegator subprocess_delegator_;
+  ClientActionDispatcher client_action_dispatcher_;
 };
 
 }  // namespace grr

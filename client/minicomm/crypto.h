@@ -8,8 +8,8 @@
 #include "openssl/rsa.h"
 #include "openssl/x509.h"
 
-#include "base.h"
-#include "scoped_ptr_ssl.h"
+#include "grr/client/minicomm/base.h"
+#include "grr/client/minicomm/scoped_ptr_ssl.h"
 
 // Thin C++ wrappers around openssl data structures, providing the limited
 // functionality required by grr in a C++ friendly format.

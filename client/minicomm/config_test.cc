@@ -1,8 +1,8 @@
-#include "config.h"
+#include "grr/client/minicomm/config.h"
 
 #include <fstream>
 
-#include "client_test_base.h"
+#include "grr/client/minicomm/client_test_base.h"
 #include "google/protobuf/text_format.h"
 #include "gtest/gtest.h"
 

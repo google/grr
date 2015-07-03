@@ -317,7 +317,7 @@ class StatGraph(object):
   def AddSeries(self, series, series_name, max_samples=1000):
     """Add a downsampled series to a graph."""
     downsample_ratio = 1
-    if max_samples:
+    if max_samples and series:
       downsample_ratio = int(math.ceil(float(len(series)) / max_samples))
     data = [[k, series[k]] for k in sorted(series)[::downsample_ratio]]
     self.series.append(StatData(series_name, data))

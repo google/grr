@@ -1,8 +1,8 @@
-#include "util.h"
+#include "grr/client/minicomm/util.h"
 
 #include <array>
 
-#include "base.h"
+#include "grr/client/minicomm/base.h"
 
 namespace grr {
 namespace {
@@ -25,5 +25,18 @@ std::string UrlDirname(const std::string& input) {
     return "";
   }
   return input.substr(0, end_slash);
+}
+
+std::string ErrorName(int errnum) {
+  char buff[1024];
+  // NOTE: The version of strerror_r that we get when including libstdc++ is GNU
+  // specific and may return buff, or may return pointer to a static string
+  // constant. In the former case we trust the null termination, in the latter
+  // case we hard limit the size of the string with ArrayToString just in case.
+  char* res = strerror_r(errnum, buff, sizeof(buff));
+  if (res == buff) {
+    return ArrayToString(buff);
+  }
+  return res;
 }
 }  // namespace grr

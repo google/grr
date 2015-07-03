@@ -32,6 +32,14 @@ from grr.lib import utils
 from grr.lib.aff4_objects import users
 
 
+class Error(Exception):
+  """Base error class."""
+  pass
+
+
+class UserError(Error):
+  pass
+
 parser = flags.PARSER
 parser.description = ("Set configuration parameters for the GRR Server."
                       "\nThis script has numerous subcommands to perform "
@@ -87,8 +95,12 @@ parser_update_user.add_argument(
 parser_add_user = subparsers.add_parser(
     "add_user", help="Add a new user.")
 
-parser_add_user.add_argument("username", help="Username to update.")
-parser_add_user.add_argument("password", help="Set password.")
+parser_add_user.add_argument("username", help="Username to create.")
+parser_add_user.add_argument("--password", default=None, help="Set password.")
+
+parser_add_user.add_argument(
+    "--labels", default=[], action="append",
+    help="Create user with labels. These are used to control access.")
 
 parser_add_user.add_argument(
     "--noadmin", default=False, action="store_true",
@@ -102,54 +114,88 @@ parser_set_var.add_argument("var", help="Variable to set.")
 parser_set_var.add_argument("val", help="Value to set.")
 
 
+def AddUser(username, password=None, labels=None, token=None):
+  """Implementation of the add_user command."""
+  try:
+    if aff4.FACTORY.Open("aff4:/users/%s" % username, "GRRUser",
+                         token=token):
+      raise UserError("Cannot add user %s: User already exists." % username)
+  except aff4.InstantiationError:
+    pass
+
+  fd = aff4.FACTORY.Create("aff4:/users/%s" % username,
+                           "GRRUser", mode="rw", token=token)
+    # Note this accepts blank passwords as valid.
+  if password is None:
+    password = getpass.getpass(
+        prompt="Please enter password for user '%s': " % username)
+  fd.SetPassword(password)
+
+  if labels:
+    fd.AddLabels(*set(labels), owner="GRR")
+
+  fd.Close()
+
+  print "Added user %s." % username
+
+
 def UpdateUser(username, password, add_labels=None, delete_labels=None,
                token=None):
   """Implementation of the update_user command."""
-  print "Updating user %s" % username
-  with aff4.FACTORY.Create("aff4:/users/%s" % username,
-                           "GRRUser", mode="rw", token=token) as fd:
-    # Note this accepts blank passwords as valid.
-    if password is not None:
-      fd.SetPassword(password)
+  try:
+    fd = aff4.FACTORY.Open("aff4:/users/%s" % username,
+                           "GRRUser", mode="rw", token=token)
+  except aff4.InstantiationError:
+    raise UserError("User %s does not exist." % username)
 
-    # Use sets to dedup input.
-    current_labels = set()
+  # Note this accepts blank passwords as valid.
+  if password:
+    password = getpass.getpass(
+        prompt="Please enter password for user '%s': " % username)
+    fd.SetPassword(password)
 
-    # Build a list of existing labels.
-    for label in fd.GetLabels():
-      current_labels.add(label.name)
+  # Use sets to dedup input.
+  current_labels = set()
 
-    # Build a list of labels to be added.
-    expanded_add_labels = set()
-    if add_labels:
-      for label in add_labels:
-        # Split up any space or comma separated labels in the list.
-        labels = label.split(",")
-        expanded_add_labels.update(labels)
+  # Build a list of existing labels.
+  for label in fd.GetLabels():
+    current_labels.add(label.name)
 
-    # Build a list of labels to be removed.
-    expanded_delete_labels = set()
-    if delete_labels:
-      for label in delete_labels:
-        # Split up any space or comma separated labels in the list.
-        labels = label.split(",")
-        expanded_delete_labels.update(labels)
+  # Build a list of labels to be added.
+  expanded_add_labels = set()
+  if add_labels:
+    for label in add_labels:
+      # Split up any space or comma separated labels in the list.
+      labels = label.split(",")
+      expanded_add_labels.update(labels)
 
-    # Set subtraction to remove labels being added and deleted at the same time.
-    clean_add_labels = expanded_add_labels - expanded_delete_labels
-    clean_del_labels = expanded_delete_labels - expanded_add_labels
+  # Build a list of labels to be removed.
+  expanded_delete_labels = set()
+  if delete_labels:
+    for label in delete_labels:
+      # Split up any space or comma separated labels in the list.
+      labels = label.split(",")
+      expanded_delete_labels.update(labels)
 
-    # Create final list using difference to only add new labels.
-    final_add_labels = clean_add_labels - current_labels
+  # Set subtraction to remove labels being added and deleted at the same time.
+  clean_add_labels = expanded_add_labels - expanded_delete_labels
+  clean_del_labels = expanded_delete_labels - expanded_add_labels
 
-    # Create final list using intersection to only remove existing labels.
-    final_del_labels = clean_del_labels & current_labels
+  # Create final list using difference to only add new labels.
+  final_add_labels = clean_add_labels - current_labels
 
-    if final_add_labels:
-      fd.AddLabels(*final_add_labels, owner="GRR")
+  # Create final list using intersection to only remove existing labels.
+  final_del_labels = clean_del_labels & current_labels
 
-    if final_del_labels:
-      fd.RemoveLabels(*final_del_labels, owner="GRR")
+  if final_add_labels:
+    fd.AddLabels(*final_add_labels, owner="GRR")
+
+  if final_del_labels:
+    fd.RemoveLabels(*final_del_labels, owner="GRR")
+
+  fd.Close()
+
+  print "Updated user %s" % username
 
   ShowUser(username, token=token)
 
@@ -331,24 +377,27 @@ def GenerateKeys(config):
     raise RuntimeError("Config %s already has keys, use --overwrite to "
                        "override." % config.parser)
 
+  length = config_lib.CONFIG["Server.rsa_key_length"]
+  print "All keys will have a bit length of %d." % length
   print "Generating executable signing key"
-  priv_key, pub_key = key_utils.GenerateRSAKey()
+  priv_key, pub_key = key_utils.GenerateRSAKey(key_length=length)
   config.Set("PrivateKeys.executable_signing_private_key", priv_key)
   config.Set("Client.executable_signing_public_key", pub_key)
 
   print "Generating driver signing key"
-  priv_key, pub_key = key_utils.GenerateRSAKey()
+  priv_key, pub_key = key_utils.GenerateRSAKey(key_length=length)
   config.Set("PrivateKeys.driver_signing_private_key", priv_key)
   config.Set("Client.driver_signing_public_key", pub_key)
 
   print "Generating CA keys"
-  ca_cert, ca_pk, _ = key_utils.MakeCACert()
+  ca_cert, ca_pk, _ = key_utils.MakeCACert(bits=length)
   cipher = None
   config.Set("CA.certificate", ca_cert.as_pem())
   config.Set("PrivateKeys.ca_key", ca_pk.as_pem(cipher))
 
   print "Generating Server keys"
-  server_cert, server_key = key_utils.MakeCASignedCert("grr", ca_pk, bits=2048)
+  server_cert, server_key = key_utils.MakeCASignedCert(
+      "grr", ca_pk, bits=length)
   config.Set("Frontend.certificate", server_cert.as_pem())
   config.Set("PrivateKeys.server_key", server_key.as_pem(cipher))
 
@@ -539,9 +588,12 @@ def Initialize(config=None, token=None):
   startup.Init()
 
   print "\nStep 3: Adding Admin User"
-  password = getpass.getpass(prompt="Please enter password for user 'admin': ")
-  UpdateUser("admin", password, ["admin"], token=token)
-  print "User admin added."
+  try:
+    AddUser("admin", labels=["admin"], token=token)
+  except UserError:
+    if ((raw_input("User 'admin' already exists, do you want to"
+                   "reset the password? [yN]: ").upper() or "N") == "Y"):
+      UpdateUser("admin", password=True, add_labels=["admin"], token=token)
 
   print "\nStep 4: Uploading Memory Drivers to the Database"
   LoadMemoryDrivers(flags.FLAGS.share_dir, token=token)
@@ -615,26 +667,27 @@ def main(unused_argv):
     ShowUser(flags.FLAGS.username, token=token)
 
   elif flags.FLAGS.subparser_name == "update_user":
-    password = None
-    if flags.FLAGS.password:
-      password = getpass.getpass(prompt="Please enter new password for '%s': " %
-                                 flags.FLAGS.username)
-    UpdateUser(flags.FLAGS.username, password, flags.FLAGS.add_labels,
-               flags.FLAGS.delete_labels, token=token)
+    try:
+      UpdateUser(flags.FLAGS.username, flags.FLAGS.password,
+                 flags.FLAGS.add_labels, flags.FLAGS.delete_labels, token=token)
+    except UserError as e:
+      print e
 
   elif flags.FLAGS.subparser_name == "delete_user":
     DeleteUser(flags.FLAGS.username, token=token)
 
   elif flags.FLAGS.subparser_name == "add_user":
-    if flags.FLAGS.password:
-      password = flags.FLAGS.password
-    else:
-      password = getpass.getpass(
-          prompt="Please enter password for user '%s': " % flags.FLAGS.username)
     labels = []
     if not flags.FLAGS.noadmin:
       labels.append("admin")
-    UpdateUser(flags.FLAGS.username, password, labels, token=token)
+
+    if flags.FLAGS.labels:
+      labels.extend(flags.FLAGS.labels)
+
+    try:
+      AddUser(flags.FLAGS.username, flags.FLAGS.password, labels, token=token)
+    except UserError as e:
+      print e
 
   elif flags.FLAGS.subparser_name == "upload_python":
     content = open(flags.FLAGS.file).read(1024 * 1024 * 30)

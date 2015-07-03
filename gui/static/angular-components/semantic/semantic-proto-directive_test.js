@@ -6,7 +6,7 @@ goog.require('grrUi.tests.module');
 goog.scope(function() {
 
 describe('semantic proto directive', function() {
-  var $compile, $rootScope;
+  var $compile, $rootScope, $q, grrReflectionService;
 
   beforeEach(module('/static/angular-components/semantic/semantic-proto.html'));
   beforeEach(module(grrUi.semantic.module.name));
@@ -15,10 +15,23 @@ describe('semantic proto directive', function() {
   beforeEach(inject(function($injector) {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
+    $q = $injector.get('$q');
+    grrReflectionService = $injector.get('grrReflectionService');
+
+    spyOn(grrReflectionService, 'getRDFValueDescriptor');
   }));
 
-  var renderTestTemplate = function(value) {
+  var renderTestTemplate = function(value, descriptors) {
     $rootScope.value = value;
+
+    if (descriptors) {
+      grrReflectionService.getRDFValueDescriptor.and.callFake(
+          function(typeName) {
+            var deferred = $q.defer();
+            deferred.resolve(descriptors[typeName]);
+            return deferred.promise;
+          });
+    }
 
     var template = '<grr-semantic-proto value="value" />';
     var element = $compile(template)($rootScope);
@@ -34,11 +47,25 @@ describe('semantic proto directive', function() {
 
   it('respects fields order', function() {
     var element = renderTestTemplate({
-      fields_order: ['client_id', 'system_info', 'client_info'],
+      type: 'RDFProtoStruct',
       value: {
         client_id: 'client_id',
         system_info: 'system_info',
         client_info: 'client_info'
+      }
+    }, {
+      'RDFProtoStruct': {
+        fields: [
+          {
+            name: 'client_id'
+          },
+          {
+            name: 'system_info'
+          },
+          {
+            name: 'client_info'
+          }
+        ]
       }
     });
     expect($('tr:nth(0)', element).text()).toContain('client_id');
@@ -46,43 +73,30 @@ describe('semantic proto directive', function() {
     expect($('tr:nth(2)', element).text()).toContain('client_info');
 
     element = renderTestTemplate({
-      fields_order: ['client_info', 'system_info', 'client_id'],
+      type: 'RDFProtoStruct',
       value: {
         client_id: 'client_id',
         system_info: 'system_info',
         client_info: 'client_info'
       }
+    }, {
+      'RDFProtoStruct': {
+        fields: [
+          {
+            name: 'client_info'
+          },
+          {
+            name: 'system_info'
+          },
+          {
+            name: 'client_id'
+          }
+        ]
+      }
     });
     expect($('tr:nth(0)', element).text()).toContain('client_info');
     expect($('tr:nth(1)', element).text()).toContain('system_info');
     expect($('tr:nth(2)', element).text()).toContain('client_id');
-  });
-
-  it('renders nested RDFProtoStruct', function() {
-    var element = renderTestTemplate({
-      fields_order: ['field', 'nested'],
-      value: {
-        field: 'foobar',
-        nested: {
-          mro: ['RDFProtoStruct'],
-          fields_order: ['nested_field1', 'nested_field2'],
-          value: {
-            nested_field1: 42,
-            nested_field2: 'nested_field_value'
-          }
-        }
-      }
-    });
-
-    expect($('tr:nth(0)', element).text()).toContain('field');
-    expect($('tr:nth(0)', element).text()).toContain('foobar');
-
-    expect($('tr:nth(1) tr:nth(0)', element).text()).toContain('nested_field1');
-    expect($('tr:nth(1) tr:nth(0)', element).text()).toContain('42');
-
-    expect($('tr:nth(1) tr:nth(1)', element).text()).toContain('nested_field2');
-    expect($('tr:nth(1) tr:nth(1)', element).text()).toContain(
-        'nested_field_value');
   });
 
 });

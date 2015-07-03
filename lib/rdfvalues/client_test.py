@@ -83,6 +83,8 @@ class UserTests(test_base.RDFValueTestCase):
         (9136, "crw-rw---T"),
         # BLK
         (25008, "brw-rw----"),
+        # FIFO
+        (4516, "prw-r--r--"),
         # Socket
         (49663, "srwxrwxrwx"),
         # Sticky

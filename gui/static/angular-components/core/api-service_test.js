@@ -189,8 +189,9 @@ describe('API service', function() {
     it('uses grr.state.reason in requests', function() {
       grr.state.reason = 'some reason';
 
-      $httpBackend.whenPOST('/api/some/path',
-                            {reason: 'some reason'}).respond(200);
+      $httpBackend.expectPOST('/api/some/path', {}, function(headers) {
+        return headers['grr-reason'] == 'some reason';
+      }).respond(200);
       grrApiService.post('some/path');
       $httpBackend.flush();
     });
@@ -236,10 +237,12 @@ describe('API service', function() {
     it('passes user-provided headers and reason in the request', function() {
       grr.state.reason = 'some reason';
 
-      $httpBackend.whenPOST(
+      $httpBackend.expectPOST(
           '/api/some/path',
-          {key1: 'value1', key2: 'value2', reason: 'some reason'})
-              .respond(200);
+          {key1: 'value1', key2: 'value2'}, function(headers) {
+            return headers['grr-reason'] == 'some reason';
+          }).respond(200);
+
       grrApiService.post('some/path', {key1: 'value1', key2: 'value2'});
       $httpBackend.flush();
     });

@@ -59,8 +59,7 @@ class ApiConfigRenderer(api_call_renderers.ApiCallRenderer):
             value_type = "plain"
 
             if isinstance(option_value, rdfvalue.RDFValue):
-              option_value = api_value_renderers.RenderValue(
-                  option_value, with_types=True, with_metadata=True)
+              option_value = api_value_renderers.RenderValue(option_value)
             else:
               if isinstance(option_value, str):
                 raw_value = option_value = None

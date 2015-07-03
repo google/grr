@@ -53,6 +53,9 @@ class ClientTestBase(unittest.TestCase):
   timeout = flow_utils.DEFAULT_TIMEOUT
   test_output_path = None
 
+  # Only run on clients after this version
+  client_min_version = None
+
   __metaclass__ = registry.MetaclassRegistry
 
   def __call__(self):
@@ -100,6 +103,14 @@ class ClientTestBase(unittest.TestCase):
     self._CleanState()
 
   def runTest(self):
+    if self.client_min_version:
+      target_client = aff4.FACTORY.Open(self.client_id)
+      client_info = target_client.Get(target_client.Schema.CLIENT_INFO)
+      if client_info.client_version < self.client_min_version:
+        message = "Skipping version %s less than client_min_version: %s" % (
+            client_info.client_version, self.client_min_version)
+        return self.skipTest(message)
+
     if self.local_worker:
       self.session_id = debugging.StartFlowAndWorker(
           self.client_id, self.flow, **self.args)

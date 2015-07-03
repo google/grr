@@ -58,7 +58,7 @@ class TakeScreenshot(flow.GRRFlow):
     ss_file = responses.First()
     ss_urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(ss_file.pathspec,
                                                         self.client_id)
-    ss_fd = aff4.FACTORY.Open(ss_urn, aff4_type="HashImage")
+    ss_fd = aff4.FACTORY.Open(ss_urn, aff4_type="HashImage", token=self.token)
     content = ss_fd.Read(10000000)
 
     curr_time = time.asctime(time.gmtime())

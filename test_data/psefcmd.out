@@ -1,0 +1,7 @@
+UID          PID    PPID  C STIME TTY          TIME CMD
+root           1       0  0 Jun12 ?        00:00:03 init [3]       
+root           2       0  0 Jun12 ?        00:00:00 [kthreadd]
+root           3       2  0 Jun12 ?        00:00:00 [ksoftirqd/0]
+root           5       2  0 Jun12 ?        00:00:00 [kworker/0:0H]
+root      337127  337126  0 00:48 ?        00:00:00 sleep 60
+usernam   337492  592357  0 00:49 pts/0    00:00:00 ps -ef

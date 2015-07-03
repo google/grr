@@ -24,370 +24,70 @@
         "age_policy": "NEWEST_TIME",
         "attributes": {
           "aff4:labels_list": {
-            "labels": [
-              {
-                "name": "label1",
-                "owner": "test",
-                "timestamp": 42000000
-              },
-              {
-                "name": "label2",
-                "owner": "test",
-                "timestamp": 42000000
-              }
-            ]
+            "age": 0,
+            "type": "AFF4ObjectLabelsList",
+            "value": {
+              "labels": [
+                {
+                  "age": 0,
+                  "type": "AFF4ObjectLabel",
+                  "value": {
+                    "name": {
+                      "age": 0,
+                      "type": "unicode",
+                      "value": "label1"
+                    },
+                    "owner": {
+                      "age": 0,
+                      "type": "unicode",
+                      "value": "test"
+                    },
+                    "timestamp": {
+                      "age": 0,
+                      "type": "RDFDatetime",
+                      "value": 42000000
+                    }
+                  }
+                },
+                {
+                  "age": 0,
+                  "type": "AFF4ObjectLabel",
+                  "value": {
+                    "name": {
+                      "age": 0,
+                      "type": "unicode",
+                      "value": "label2"
+                    },
+                    "owner": {
+                      "age": 0,
+                      "type": "unicode",
+                      "value": "test"
+                    },
+                    "timestamp": {
+                      "age": 0,
+                      "type": "RDFDatetime",
+                      "value": 42000000
+                    }
+                  }
+                }
+              ]
+            }
           },
-          "aff4:type": "AFF4Volume",
-          "metadata:last": 42000000
+          "aff4:type": {
+            "age": 42,
+            "type": "RDFString",
+            "value": "AFF4Volume"
+          },
+          "metadata:last": {
+            "age": 42,
+            "type": "RDFDatetime",
+            "value": 42000000
+          }
         },
         "urn": "aff4:/foo/bar"
       },
       "test_class": "ApiAff4RendererRegressionTest",
       "url": "/api/aff4/foo/bar"
-    },
-    {
-      "method": "GET",
-      "response": {
-        "aff4_class": "AFF4Volume",
-        "age_policy": "NEWEST_TIME",
-        "attributes": {
-          "aff4:labels_list": {
-            "age": 0,
-            "mro": [
-              "AFF4ObjectLabelsList",
-              "RDFProtoStruct",
-              "RDFStruct",
-              "RDFValue",
-              "object"
-            ],
-            "type": "AFF4ObjectLabelsList",
-            "value": {
-              "labels": [
-                {
-                  "age": 0,
-                  "mro": [
-                    "AFF4ObjectLabel",
-                    "RDFProtoStruct",
-                    "RDFStruct",
-                    "RDFValue",
-                    "object"
-                  ],
-                  "type": "AFF4ObjectLabel",
-                  "value": {
-                    "name": {
-                      "age": 0,
-                      "mro": [
-                        "unicode",
-                        "basestring",
-                        "object"
-                      ],
-                      "type": "unicode",
-                      "value": "label1"
-                    },
-                    "owner": {
-                      "age": 0,
-                      "mro": [
-                        "unicode",
-                        "basestring",
-                        "object"
-                      ],
-                      "type": "unicode",
-                      "value": "test"
-                    },
-                    "timestamp": {
-                      "age": 0,
-                      "mro": [
-                        "RDFDatetime",
-                        "RDFInteger",
-                        "RDFString",
-                        "RDFBytes",
-                        "RDFValue",
-                        "object"
-                      ],
-                      "type": "RDFDatetime",
-                      "value": 42000000
-                    }
-                  }
-                },
-                {
-                  "age": 0,
-                  "mro": [
-                    "AFF4ObjectLabel",
-                    "RDFProtoStruct",
-                    "RDFStruct",
-                    "RDFValue",
-                    "object"
-                  ],
-                  "type": "AFF4ObjectLabel",
-                  "value": {
-                    "name": {
-                      "age": 0,
-                      "mro": [
-                        "unicode",
-                        "basestring",
-                        "object"
-                      ],
-                      "type": "unicode",
-                      "value": "label2"
-                    },
-                    "owner": {
-                      "age": 0,
-                      "mro": [
-                        "unicode",
-                        "basestring",
-                        "object"
-                      ],
-                      "type": "unicode",
-                      "value": "test"
-                    },
-                    "timestamp": {
-                      "age": 0,
-                      "mro": [
-                        "RDFDatetime",
-                        "RDFInteger",
-                        "RDFString",
-                        "RDFBytes",
-                        "RDFValue",
-                        "object"
-                      ],
-                      "type": "RDFDatetime",
-                      "value": 42000000
-                    }
-                  }
-                }
-              ]
-            }
-          },
-          "aff4:type": {
-            "age": 42,
-            "mro": [
-              "RDFString",
-              "RDFBytes",
-              "RDFValue",
-              "object"
-            ],
-            "type": "RDFString",
-            "value": "AFF4Volume"
-          },
-          "metadata:last": {
-            "age": 42,
-            "mro": [
-              "RDFDatetime",
-              "RDFInteger",
-              "RDFString",
-              "RDFBytes",
-              "RDFValue",
-              "object"
-            ],
-            "type": "RDFDatetime",
-            "value": 42000000
-          }
-        },
-        "urn": "aff4:/foo/bar"
-      },
-      "test_class": "ApiAff4RendererRegressionTest",
-      "url": "/api/aff4/foo/bar?AFF4Object.type_info=WITH_TYPES"
-    },
-    {
-      "method": "GET",
-      "response": {
-        "aff4_class": "AFF4Volume",
-        "age_policy": "NEWEST_TIME",
-        "attributes": {
-          "aff4:labels_list": {
-            "age": 0,
-            "fields_order": [
-              "labels"
-            ],
-            "metadata": {
-              "labels": {
-                "description": "",
-                "friendly_name": "Labels"
-              }
-            },
-            "mro": [
-              "AFF4ObjectLabelsList",
-              "RDFProtoStruct",
-              "RDFStruct",
-              "RDFValue",
-              "object"
-            ],
-            "type": "AFF4ObjectLabelsList",
-            "value": {
-              "labels": [
-                {
-                  "age": 0,
-                  "fields_order": [
-                    "name",
-                    "owner",
-                    "timestamp"
-                  ],
-                  "metadata": {
-                    "name": {
-                      "description": "",
-                      "friendly_name": "Name"
-                    },
-                    "owner": {
-                      "description": "Username of the user who added the label.",
-                      "friendly_name": "Owner"
-                    },
-                    "timestamp": {
-                      "description": "Timestamp for when the label was added.",
-                      "friendly_name": "Timestamp"
-                    }
-                  },
-                  "mro": [
-                    "AFF4ObjectLabel",
-                    "RDFProtoStruct",
-                    "RDFStruct",
-                    "RDFValue",
-                    "object"
-                  ],
-                  "type": "AFF4ObjectLabel",
-                  "value": {
-                    "name": {
-                      "age": 0,
-                      "mro": [
-                        "unicode",
-                        "basestring",
-                        "object"
-                      ],
-                      "type": "unicode",
-                      "value": "label1"
-                    },
-                    "owner": {
-                      "age": 0,
-                      "mro": [
-                        "unicode",
-                        "basestring",
-                        "object"
-                      ],
-                      "type": "unicode",
-                      "value": "test"
-                    },
-                    "timestamp": {
-                      "age": 0,
-                      "mro": [
-                        "RDFDatetime",
-                        "RDFInteger",
-                        "RDFString",
-                        "RDFBytes",
-                        "RDFValue",
-                        "object"
-                      ],
-                      "type": "RDFDatetime",
-                      "value": 42000000
-                    }
-                  }
-                },
-                {
-                  "age": 0,
-                  "fields_order": [
-                    "name",
-                    "owner",
-                    "timestamp"
-                  ],
-                  "metadata": {
-                    "name": {
-                      "description": "",
-                      "friendly_name": "Name"
-                    },
-                    "owner": {
-                      "description": "Username of the user who added the label.",
-                      "friendly_name": "Owner"
-                    },
-                    "timestamp": {
-                      "description": "Timestamp for when the label was added.",
-                      "friendly_name": "Timestamp"
-                    }
-                  },
-                  "mro": [
-                    "AFF4ObjectLabel",
-                    "RDFProtoStruct",
-                    "RDFStruct",
-                    "RDFValue",
-                    "object"
-                  ],
-                  "type": "AFF4ObjectLabel",
-                  "value": {
-                    "name": {
-                      "age": 0,
-                      "mro": [
-                        "unicode",
-                        "basestring",
-                        "object"
-                      ],
-                      "type": "unicode",
-                      "value": "label2"
-                    },
-                    "owner": {
-                      "age": 0,
-                      "mro": [
-                        "unicode",
-                        "basestring",
-                        "object"
-                      ],
-                      "type": "unicode",
-                      "value": "test"
-                    },
-                    "timestamp": {
-                      "age": 0,
-                      "mro": [
-                        "RDFDatetime",
-                        "RDFInteger",
-                        "RDFString",
-                        "RDFBytes",
-                        "RDFValue",
-                        "object"
-                      ],
-                      "type": "RDFDatetime",
-                      "value": 42000000
-                    }
-                  }
-                }
-              ]
-            }
-          },
-          "aff4:type": {
-            "age": 42,
-            "mro": [
-              "RDFString",
-              "RDFBytes",
-              "RDFValue",
-              "object"
-            ],
-            "type": "RDFString",
-            "value": "AFF4Volume"
-          },
-          "metadata:last": {
-            "age": 42,
-            "mro": [
-              "RDFDatetime",
-              "RDFInteger",
-              "RDFString",
-              "RDFBytes",
-              "RDFValue",
-              "object"
-            ],
-            "type": "RDFDatetime",
-            "value": 42000000
-          }
-        },
-        "metadata": {
-          "aff4:labels_list": {
-            "description": "Any object can have labels applied to it."
-          },
-          "aff4:type": {
-            "description": "The name of the AFF4Object derived class."
-          },
-          "metadata:last": {
-            "description": "The last time any attribute of this object was written."
-          }
-        },
-        "urn": "aff4:/foo/bar"
-      },
-      "test_class": "ApiAff4RendererRegressionTest",
-      "url": "/api/aff4/foo/bar?AFF4Object.type_info=WITH_TYPES_AND_METADATA"
     }
   ],
   "ApiArtifactRenderer": [
@@ -443,64 +143,25 @@
             "attributes": {
               "aff4:host_ips": {
                 "age": 42,
-                "mro": [
-                  "RDFString",
-                  "RDFBytes",
-                  "RDFValue",
-                  "object"
-                ],
                 "type": "RDFString",
                 "value": "192.168.0.0\n2001:abcd::0"
               },
               "aff4:mac_addresses": {
                 "age": 42,
-                "mro": [
-                  "RDFString",
-                  "RDFBytes",
-                  "RDFValue",
-                  "object"
-                ],
                 "type": "RDFString",
                 "value": "aabbccddee00\nbbccddeeff00"
               },
               "aff4:type": {
                 "age": 42,
-                "mro": [
-                  "RDFString",
-                  "RDFBytes",
-                  "RDFValue",
-                  "object"
-                ],
                 "type": "RDFString",
                 "value": "VFSGRRClient"
               },
               "metadata:ClientInfo": {
                 "age": 42,
-                "fields_order": [
-                  "client_name"
-                ],
-                "metadata": {
-                  "client_name": {
-                    "description": "",
-                    "friendly_name": "Client name"
-                  }
-                },
-                "mro": [
-                  "ClientInformation",
-                  "RDFProtoStruct",
-                  "RDFStruct",
-                  "RDFValue",
-                  "object"
-                ],
                 "type": "ClientInformation",
                 "value": {
                   "client_name": {
                     "age": 0,
-                    "mro": [
-                      "unicode",
-                      "basestring",
-                      "object"
-                    ],
                     "type": "unicode",
                     "value": "GRR Monitor"
                   }
@@ -508,163 +169,41 @@
               },
               "metadata:fqdn": {
                 "age": 42,
-                "mro": [
-                  "RDFString",
-                  "RDFBytes",
-                  "RDFValue",
-                  "object"
-                ],
                 "type": "RDFString",
                 "value": "Host-0.example.com"
               },
               "metadata:hostname": {
                 "age": 42,
-                "mro": [
-                  "RDFString",
-                  "RDFBytes",
-                  "RDFValue",
-                  "object"
-                ],
                 "type": "RDFString",
                 "value": "Host-0"
               },
               "metadata:last": {
                 "age": 42,
-                "mro": [
-                  "RDFDatetime",
-                  "RDFInteger",
-                  "RDFString",
-                  "RDFBytes",
-                  "RDFValue",
-                  "object"
-                ],
                 "type": "RDFDatetime",
                 "value": 42000000
               },
               "metadata:ping": {
                 "age": 0,
-                "mro": [
-                  "RDFDatetime",
-                  "RDFInteger",
-                  "RDFString",
-                  "RDFBytes",
-                  "RDFValue",
-                  "object"
-                ],
                 "type": "RDFDatetime",
                 "value": 42000000
               }
             },
             "disk_warnings": [],
-            "metadata": {
-              "aff4:host_ips": {
-                "description": "An IP address."
-              },
-              "aff4:mac_addresses": {
-                "description": "A hex encoded MAC address."
-              },
-              "aff4:type": {
-                "description": "The name of the AFF4Object derived class."
-              },
-              "metadata:ClientInfo": {
-                "description": "GRR client information"
-              },
-              "metadata:fqdn": {
-                "description": "Fully qualified hostname of the host."
-              },
-              "metadata:hostname": {
-                "description": "Hostname of the host."
-              },
-              "metadata:last": {
-                "description": "The last time any attribute of this object was written."
-              },
-              "metadata:ping": {
-                "description": "The last time the server heard from this client."
-              }
-            },
             "summary": {
               "age": 0,
-              "fields_order": [
-                "client_id",
-                "timestamp",
-                "system_info",
-                "client_info",
-                "serial_number",
-                "system_manufacturer"
-              ],
-              "metadata": {
-                "client_id": {
-                  "description": "The Client's URN.",
-                  "friendly_name": "Client id"
-                },
-                "client_info": {
-                  "description": "Basic information about the GRR client.",
-                  "friendly_name": "Client info"
-                },
-                "serial_number": {
-                  "description": "Serial Number from HW info.",
-                  "friendly_name": "Serial number"
-                },
-                "system_info": {
-                  "description": "Client's system info.",
-                  "friendly_name": "System info"
-                },
-                "system_manufacturer": {
-                  "description": "System Manufacturer from HW info.",
-                  "friendly_name": "System manufacturer"
-                },
-                "timestamp": {
-                  "description": "Timestamp for the creation of the record.",
-                  "friendly_name": "Timestamp"
-                }
-              },
-              "mro": [
-                "ClientSummary",
-                "RDFProtoStruct",
-                "RDFStruct",
-                "RDFValue",
-                "object"
-              ],
               "type": "ClientSummary",
               "value": {
                 "client_id": {
                   "age": 0,
-                  "mro": [
-                    "ClientURN",
-                    "RDFURN",
-                    "RDFValue",
-                    "object"
-                  ],
                   "type": "ClientURN",
                   "value": "aff4:/C.1000000000000000"
                 },
                 "client_info": {
                   "age": 42,
-                  "fields_order": [
-                    "client_name"
-                  ],
-                  "metadata": {
-                    "client_name": {
-                      "description": "",
-                      "friendly_name": "Client name"
-                    }
-                  },
-                  "mro": [
-                    "ClientInformation",
-                    "RDFProtoStruct",
-                    "RDFStruct",
-                    "RDFValue",
-                    "object"
-                  ],
                   "type": "ClientInformation",
                   "value": {
                     "client_name": {
                       "age": 0,
-                      "mro": [
-                        "unicode",
-                        "basestring",
-                        "object"
-                      ],
                       "type": "unicode",
                       "value": "GRR Monitor"
                     }
@@ -672,71 +211,25 @@
                 },
                 "serial_number": {
                   "age": 0,
-                  "mro": [
-                    "unicode",
-                    "basestring",
-                    "object"
-                  ],
                   "type": "unicode",
                   "value": ""
                 },
                 "system_info": {
                   "age": 0,
-                  "fields_order": [
-                    "node",
-                    "version",
-                    "fqdn"
-                  ],
-                  "metadata": {
-                    "fqdn": {
-                      "description": "The system's fully qualified domain name.",
-                      "friendly_name": "Fqdn"
-                    },
-                    "node": {
-                      "description": "The hostname of this system.",
-                      "friendly_name": "Node"
-                    },
-                    "version": {
-                      "description": "The OS version ID e.g. 6.1.7601SP1, 10.9.2, 14.04.",
-                      "friendly_name": "Version"
-                    }
-                  },
-                  "mro": [
-                    "Uname",
-                    "RDFProtoStruct",
-                    "RDFStruct",
-                    "RDFValue",
-                    "object"
-                  ],
                   "type": "Uname",
                   "value": {
                     "fqdn": {
                       "age": 0,
-                      "mro": [
-                        "unicode",
-                        "basestring",
-                        "object"
-                      ],
                       "type": "unicode",
                       "value": "Host-0.example.com"
                     },
                     "node": {
                       "age": 0,
-                      "mro": [
-                        "unicode",
-                        "basestring",
-                        "object"
-                      ],
                       "type": "unicode",
                       "value": "Host-0"
                     },
                     "version": {
                       "age": 0,
-                      "mro": [
-                        "unicode",
-                        "basestring",
-                        "object"
-                      ],
                       "type": "unicode",
                       "value": ""
                     }
@@ -744,24 +237,11 @@
                 },
                 "system_manufacturer": {
                   "age": 0,
-                  "mro": [
-                    "unicode",
-                    "basestring",
-                    "object"
-                  ],
                   "type": "unicode",
                   "value": ""
                 },
                 "timestamp": {
                   "age": 0,
-                  "mro": [
-                    "RDFDatetime",
-                    "RDFInteger",
-                    "RDFString",
-                    "RDFBytes",
-                    "RDFValue",
-                    "object"
-                  ],
                   "type": "RDFDatetime",
                   "value": 42000000
                 }
@@ -786,64 +266,25 @@
         "attributes": {
           "aff4:host_ips": {
             "age": 42,
-            "mro": [
-              "RDFString",
-              "RDFBytes",
-              "RDFValue",
-              "object"
-            ],
             "type": "RDFString",
             "value": "192.168.0.0\n2001:abcd::0"
           },
           "aff4:mac_addresses": {
             "age": 42,
-            "mro": [
-              "RDFString",
-              "RDFBytes",
-              "RDFValue",
-              "object"
-            ],
             "type": "RDFString",
             "value": "aabbccddee00\nbbccddeeff00"
           },
           "aff4:type": {
             "age": 42,
-            "mro": [
-              "RDFString",
-              "RDFBytes",
-              "RDFValue",
-              "object"
-            ],
             "type": "RDFString",
             "value": "VFSGRRClient"
           },
           "metadata:ClientInfo": {
             "age": 42,
-            "fields_order": [
-              "client_name"
-            ],
-            "metadata": {
-              "client_name": {
-                "description": "",
-                "friendly_name": "Client name"
-              }
-            },
-            "mro": [
-              "ClientInformation",
-              "RDFProtoStruct",
-              "RDFStruct",
-              "RDFValue",
-              "object"
-            ],
             "type": "ClientInformation",
             "value": {
               "client_name": {
                 "age": 0,
-                "mro": [
-                  "unicode",
-                  "basestring",
-                  "object"
-                ],
                 "type": "unicode",
                 "value": "GRR Monitor"
               }
@@ -851,163 +292,41 @@
           },
           "metadata:fqdn": {
             "age": 42,
-            "mro": [
-              "RDFString",
-              "RDFBytes",
-              "RDFValue",
-              "object"
-            ],
             "type": "RDFString",
             "value": "Host-0.example.com"
           },
           "metadata:hostname": {
             "age": 42,
-            "mro": [
-              "RDFString",
-              "RDFBytes",
-              "RDFValue",
-              "object"
-            ],
             "type": "RDFString",
             "value": "Host-0"
           },
           "metadata:last": {
             "age": 42,
-            "mro": [
-              "RDFDatetime",
-              "RDFInteger",
-              "RDFString",
-              "RDFBytes",
-              "RDFValue",
-              "object"
-            ],
             "type": "RDFDatetime",
             "value": 42000000
           },
           "metadata:ping": {
             "age": 0,
-            "mro": [
-              "RDFDatetime",
-              "RDFInteger",
-              "RDFString",
-              "RDFBytes",
-              "RDFValue",
-              "object"
-            ],
             "type": "RDFDatetime",
             "value": 42000000
           }
         },
         "disk_warnings": [],
-        "metadata": {
-          "aff4:host_ips": {
-            "description": "An IP address."
-          },
-          "aff4:mac_addresses": {
-            "description": "A hex encoded MAC address."
-          },
-          "aff4:type": {
-            "description": "The name of the AFF4Object derived class."
-          },
-          "metadata:ClientInfo": {
-            "description": "GRR client information"
-          },
-          "metadata:fqdn": {
-            "description": "Fully qualified hostname of the host."
-          },
-          "metadata:hostname": {
-            "description": "Hostname of the host."
-          },
-          "metadata:last": {
-            "description": "The last time any attribute of this object was written."
-          },
-          "metadata:ping": {
-            "description": "The last time the server heard from this client."
-          }
-        },
         "summary": {
           "age": 0,
-          "fields_order": [
-            "client_id",
-            "timestamp",
-            "system_info",
-            "client_info",
-            "serial_number",
-            "system_manufacturer"
-          ],
-          "metadata": {
-            "client_id": {
-              "description": "The Client's URN.",
-              "friendly_name": "Client id"
-            },
-            "client_info": {
-              "description": "Basic information about the GRR client.",
-              "friendly_name": "Client info"
-            },
-            "serial_number": {
-              "description": "Serial Number from HW info.",
-              "friendly_name": "Serial number"
-            },
-            "system_info": {
-              "description": "Client's system info.",
-              "friendly_name": "System info"
-            },
-            "system_manufacturer": {
-              "description": "System Manufacturer from HW info.",
-              "friendly_name": "System manufacturer"
-            },
-            "timestamp": {
-              "description": "Timestamp for the creation of the record.",
-              "friendly_name": "Timestamp"
-            }
-          },
-          "mro": [
-            "ClientSummary",
-            "RDFProtoStruct",
-            "RDFStruct",
-            "RDFValue",
-            "object"
-          ],
           "type": "ClientSummary",
           "value": {
             "client_id": {
               "age": 0,
-              "mro": [
-                "ClientURN",
-                "RDFURN",
-                "RDFValue",
-                "object"
-              ],
               "type": "ClientURN",
               "value": "aff4:/C.1000000000000000"
             },
             "client_info": {
               "age": 42,
-              "fields_order": [
-                "client_name"
-              ],
-              "metadata": {
-                "client_name": {
-                  "description": "",
-                  "friendly_name": "Client name"
-                }
-              },
-              "mro": [
-                "ClientInformation",
-                "RDFProtoStruct",
-                "RDFStruct",
-                "RDFValue",
-                "object"
-              ],
               "type": "ClientInformation",
               "value": {
                 "client_name": {
                   "age": 0,
-                  "mro": [
-                    "unicode",
-                    "basestring",
-                    "object"
-                  ],
                   "type": "unicode",
                   "value": "GRR Monitor"
                 }
@@ -1015,71 +334,25 @@
             },
             "serial_number": {
               "age": 0,
-              "mro": [
-                "unicode",
-                "basestring",
-                "object"
-              ],
               "type": "unicode",
               "value": ""
             },
             "system_info": {
               "age": 0,
-              "fields_order": [
-                "node",
-                "version",
-                "fqdn"
-              ],
-              "metadata": {
-                "fqdn": {
-                  "description": "The system's fully qualified domain name.",
-                  "friendly_name": "Fqdn"
-                },
-                "node": {
-                  "description": "The hostname of this system.",
-                  "friendly_name": "Node"
-                },
-                "version": {
-                  "description": "The OS version ID e.g. 6.1.7601SP1, 10.9.2, 14.04.",
-                  "friendly_name": "Version"
-                }
-              },
-              "mro": [
-                "Uname",
-                "RDFProtoStruct",
-                "RDFStruct",
-                "RDFValue",
-                "object"
-              ],
               "type": "Uname",
               "value": {
                 "fqdn": {
                   "age": 0,
-                  "mro": [
-                    "unicode",
-                    "basestring",
-                    "object"
-                  ],
                   "type": "unicode",
                   "value": "Host-0.example.com"
                 },
                 "node": {
                   "age": 0,
-                  "mro": [
-                    "unicode",
-                    "basestring",
-                    "object"
-                  ],
                   "type": "unicode",
                   "value": "Host-0"
                 },
                 "version": {
                   "age": 0,
-                  "mro": [
-                    "unicode",
-                    "basestring",
-                    "object"
-                  ],
                   "type": "unicode",
                   "value": ""
                 }
@@ -1087,24 +360,11 @@
             },
             "system_manufacturer": {
               "age": 0,
-              "mro": [
-                "unicode",
-                "basestring",
-                "object"
-              ],
               "type": "unicode",
               "value": ""
             },
             "timestamp": {
               "age": 0,
-              "mro": [
-                "RDFDatetime",
-                "RDFInteger",
-                "RDFString",
-                "RDFBytes",
-                "RDFValue",
-                "object"
-              ],
               "type": "RDFDatetime",
               "value": 42000000
             }
@@ -1122,12 +382,36 @@
       "response": {
         "labels": [
           {
-            "name": "bar",
-            "owner": "test"
+            "age": 0,
+            "type": "AFF4ObjectLabel",
+            "value": {
+              "name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "bar"
+              },
+              "owner": {
+                "age": 0,
+                "type": "unicode",
+                "value": "test"
+              }
+            }
           },
           {
-            "name": "foo",
-            "owner": "test"
+            "age": 0,
+            "type": "AFF4ObjectLabel",
+            "value": {
+              "name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "foo"
+              },
+              "owner": {
+                "age": 0,
+                "type": "unicode",
+                "value": "test"
+              }
+            }
           }
         ]
       },
@@ -1182,25 +466,85 @@
       "response": {
         "backtrace": null,
         "client_resources": {
-          "cpu_usage": {}
-        },
-        "create_time": 42000000,
-        "creator": "test",
-        "current_state": "Start",
-        "flow_runner_args": {
-          "client_id": "aff4:/C.1000000000000000",
-          "flow_name": "Interrogate",
-          "token": {
-            "reason": "Running tests",
-            "username": "test"
+          "age": 0,
+          "type": "ClientResources",
+          "value": {
+            "cpu_usage": {
+              "age": 0,
+              "type": "CpuSeconds",
+              "value": {}
+            }
           }
         },
-        "last_update_time": 42000000,
-        "network_bytes_sent": 0,
-        "output_urn": "aff4:/C.1000000000000000/analysis/Interrogate/test-42",
+        "create_time": {
+          "age": 0,
+          "type": "RDFDatetime",
+          "value": 42000000
+        },
+        "creator": {
+          "age": 0,
+          "type": "unicode",
+          "value": "test"
+        },
+        "current_state": "Start",
+        "flow_runner_args": {
+          "age": 0,
+          "type": "FlowRunnerArgs",
+          "value": {
+            "client_id": {
+              "age": 0,
+              "type": "ClientURN",
+              "value": "aff4:/C.1000000000000000"
+            },
+            "flow_name": {
+              "age": 0,
+              "type": "unicode",
+              "value": "Interrogate"
+            },
+            "token": {
+              "age": 0,
+              "type": "ACLToken",
+              "value": {
+                "reason": {
+                  "age": 0,
+                  "type": "unicode",
+                  "value": "Running tests"
+                },
+                "username": {
+                  "age": 0,
+                  "type": "unicode",
+                  "value": "test"
+                }
+              }
+            }
+          }
+        },
+        "last_update_time": {
+          "age": 42,
+          "type": "RDFDatetime",
+          "value": 42000000
+        },
+        "network_bytes_sent": {
+          "age": 0,
+          "type": "long",
+          "value": 0
+        },
+        "output_urn": {
+          "age": 0,
+          "type": "RDFURN",
+          "value": "aff4:/C.1000000000000000/analysis/Interrogate/test-42"
+        },
         "result_count": 1,
-        "session_id": "aff4:/C.1000000000000000/flows/F:ABCDEF12",
-        "state": "RUNNING"
+        "session_id": {
+          "age": 0,
+          "type": "SessionID",
+          "value": "aff4:/C.1000000000000000/flows/F:ABCDEF12"
+        },
+        "state": {
+          "age": 0,
+          "type": "EnumNamedValue",
+          "value": "RUNNING"
+        }
       },
       "test_class": "ApiFlowStatusRendererRegressionTest",
       "url": "/api/flows/C.1000000000000000/F:ABCDEF12/status"
@@ -1214,58 +558,50 @@
         "age_policy": "NEWEST_TIME",
         "attributes": {
           "aff4:data": {
-            "backtrace": "<some backtrace>",
-            "client_id": "aff4:/C.1111222233334444",
-            "log_message": "Error bar."
+            "age": 55,
+            "type": "HuntError",
+            "value": {
+              "backtrace": {
+                "age": 0,
+                "type": "unicode",
+                "value": "<some backtrace>"
+              },
+              "client_id": {
+                "age": 0,
+                "type": "ClientURN",
+                "value": "aff4:/C.1111222233334444"
+              },
+              "log_message": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Error bar."
+              }
+            }
           },
-          "aff4:type": "PackedVersionedCollection",
-          "metadata:last": 55000000
+          "aff4:type": {
+            "age": 42,
+            "type": "RDFString",
+            "value": "PackedVersionedCollection"
+          },
+          "metadata:last": {
+            "age": 55,
+            "type": "RDFDatetime",
+            "value": 55000000
+          }
         },
         "count": 2,
         "items": [
           {
             "age": 52,
-            "fields_order": [
-              "client_id",
-              "log_message"
-            ],
-            "metadata": {
-              "client_id": {
-                "description": "",
-                "friendly_name": "Client id"
-              },
-              "log_message": {
-                "description": "",
-                "friendly_name": "Log message"
-              }
-            },
-            "mro": [
-              "HuntError",
-              "RDFProtoStruct",
-              "RDFStruct",
-              "RDFValue",
-              "object"
-            ],
             "type": "HuntError",
             "value": {
               "client_id": {
                 "age": 0,
-                "mro": [
-                  "ClientURN",
-                  "RDFURN",
-                  "RDFValue",
-                  "object"
-                ],
                 "type": "ClientURN",
                 "value": "aff4:/C.0000111122223333"
               },
               "log_message": {
                 "age": 0,
-                "mro": [
-                  "unicode",
-                  "basestring",
-                  "object"
-                ],
                 "type": "unicode",
                 "value": "Error foo."
               }
@@ -1273,62 +609,20 @@
           },
           {
             "age": 55,
-            "fields_order": [
-              "client_id",
-              "log_message",
-              "backtrace"
-            ],
-            "metadata": {
-              "backtrace": {
-                "description": "",
-                "friendly_name": "Backtrace"
-              },
-              "client_id": {
-                "description": "",
-                "friendly_name": "Client id"
-              },
-              "log_message": {
-                "description": "",
-                "friendly_name": "Log message"
-              }
-            },
-            "mro": [
-              "HuntError",
-              "RDFProtoStruct",
-              "RDFStruct",
-              "RDFValue",
-              "object"
-            ],
             "type": "HuntError",
             "value": {
               "backtrace": {
                 "age": 0,
-                "mro": [
-                  "unicode",
-                  "basestring",
-                  "object"
-                ],
                 "type": "unicode",
                 "value": "<some backtrace>"
               },
               "client_id": {
                 "age": 0,
-                "mro": [
-                  "ClientURN",
-                  "RDFURN",
-                  "RDFValue",
-                  "object"
-                ],
                 "type": "ClientURN",
                 "value": "aff4:/C.1111222233334444"
               },
               "log_message": {
                 "age": 0,
-                "mro": [
-                  "unicode",
-                  "basestring",
-                  "object"
-                ],
                 "type": "unicode",
                 "value": "Error bar."
               }
@@ -1349,58 +643,50 @@
         "age_policy": "NEWEST_TIME",
         "attributes": {
           "aff4:data": {
-            "backtrace": "<some backtrace>",
-            "client_id": "aff4:/C.1111222233334444",
-            "log_message": "Error bar."
+            "age": 55,
+            "type": "HuntError",
+            "value": {
+              "backtrace": {
+                "age": 0,
+                "type": "unicode",
+                "value": "<some backtrace>"
+              },
+              "client_id": {
+                "age": 0,
+                "type": "ClientURN",
+                "value": "aff4:/C.1111222233334444"
+              },
+              "log_message": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Error bar."
+              }
+            }
           },
-          "aff4:type": "PackedVersionedCollection",
-          "metadata:last": 55000000
+          "aff4:type": {
+            "age": 42,
+            "type": "RDFString",
+            "value": "PackedVersionedCollection"
+          },
+          "metadata:last": {
+            "age": 55,
+            "type": "RDFDatetime",
+            "value": 55000000
+          }
         },
         "count": 1,
         "items": [
           {
             "age": 52,
-            "fields_order": [
-              "client_id",
-              "log_message"
-            ],
-            "metadata": {
-              "client_id": {
-                "description": "",
-                "friendly_name": "Client id"
-              },
-              "log_message": {
-                "description": "",
-                "friendly_name": "Log message"
-              }
-            },
-            "mro": [
-              "HuntError",
-              "RDFProtoStruct",
-              "RDFStruct",
-              "RDFValue",
-              "object"
-            ],
             "type": "HuntError",
             "value": {
               "client_id": {
                 "age": 0,
-                "mro": [
-                  "ClientURN",
-                  "RDFURN",
-                  "RDFValue",
-                  "object"
-                ],
                 "type": "ClientURN",
                 "value": "aff4:/C.0000111122223333"
               },
               "log_message": {
                 "age": 0,
-                "mro": [
-                  "unicode",
-                  "basestring",
-                  "object"
-                ],
                 "type": "unicode",
                 "value": "Error foo."
               }
@@ -1421,73 +707,55 @@
         "age_policy": "NEWEST_TIME",
         "attributes": {
           "aff4:data": {
-            "backtrace": "<some backtrace>",
-            "client_id": "aff4:/C.1111222233334444",
-            "log_message": "Error bar."
-          },
-          "aff4:type": "PackedVersionedCollection",
-          "metadata:last": 55000000
-        },
-        "count": 1,
-        "items": [
-          {
             "age": 55,
-            "fields_order": [
-              "client_id",
-              "log_message",
-              "backtrace"
-            ],
-            "metadata": {
-              "backtrace": {
-                "description": "",
-                "friendly_name": "Backtrace"
-              },
-              "client_id": {
-                "description": "",
-                "friendly_name": "Client id"
-              },
-              "log_message": {
-                "description": "",
-                "friendly_name": "Log message"
-              }
-            },
-            "mro": [
-              "HuntError",
-              "RDFProtoStruct",
-              "RDFStruct",
-              "RDFValue",
-              "object"
-            ],
             "type": "HuntError",
             "value": {
               "backtrace": {
                 "age": 0,
-                "mro": [
-                  "unicode",
-                  "basestring",
-                  "object"
-                ],
                 "type": "unicode",
                 "value": "<some backtrace>"
               },
               "client_id": {
                 "age": 0,
-                "mro": [
-                  "ClientURN",
-                  "RDFURN",
-                  "RDFValue",
-                  "object"
-                ],
                 "type": "ClientURN",
                 "value": "aff4:/C.1111222233334444"
               },
               "log_message": {
                 "age": 0,
-                "mro": [
-                  "unicode",
-                  "basestring",
-                  "object"
-                ],
+                "type": "unicode",
+                "value": "Error bar."
+              }
+            }
+          },
+          "aff4:type": {
+            "age": 42,
+            "type": "RDFString",
+            "value": "PackedVersionedCollection"
+          },
+          "metadata:last": {
+            "age": 55,
+            "type": "RDFDatetime",
+            "value": 55000000
+          }
+        },
+        "count": 1,
+        "items": [
+          {
+            "age": 55,
+            "type": "HuntError",
+            "value": {
+              "backtrace": {
+                "age": 0,
+                "type": "unicode",
+                "value": "<some backtrace>"
+              },
+              "client_id": {
+                "age": 0,
+                "type": "ClientURN",
+                "value": "aff4:/C.1111222233334444"
+              },
+              "log_message": {
+                "age": 0,
                 "type": "unicode",
                 "value": "Error bar."
               }
@@ -1510,72 +778,55 @@
         "age_policy": "NEWEST_TIME",
         "attributes": {
           "aff4:data": {
-            "flow_name": "GenericHunt",
-            "log_message": "Sample message: bar.",
-            "urn": "aff4:/hunts/H:123456"
-          },
-          "aff4:type": "PackedVersionedCollection",
-          "metadata:last": 55000000
-        },
-        "count": 2,
-        "items": [
-          {
-            "age": 52,
-            "fields_order": [
-              "log_message",
-              "urn",
-              "flow_name"
-            ],
-            "metadata": {
-              "flow_name": {
-                "description": "Human readable name for the session ID.",
-                "friendly_name": "Flow name"
-              },
-              "log_message": {
-                "description": "",
-                "friendly_name": "Log message"
-              },
-              "urn": {
-                "description": "Session ID that generated the log.",
-                "friendly_name": "Urn"
-              }
-            },
-            "mro": [
-              "FlowLog",
-              "RDFProtoStruct",
-              "RDFStruct",
-              "RDFValue",
-              "object"
-            ],
+            "age": 55,
             "type": "FlowLog",
             "value": {
               "flow_name": {
                 "age": 0,
-                "mro": [
-                  "unicode",
-                  "basestring",
-                  "object"
-                ],
                 "type": "unicode",
                 "value": "GenericHunt"
               },
               "log_message": {
                 "age": 0,
-                "mro": [
-                  "unicode",
-                  "basestring",
-                  "object"
-                ],
+                "type": "unicode",
+                "value": "Sample message: bar."
+              },
+              "urn": {
+                "age": 0,
+                "type": "RDFURN",
+                "value": "aff4:/hunts/H:123456"
+              }
+            }
+          },
+          "aff4:type": {
+            "age": 55,
+            "type": "RDFString",
+            "value": "PackedVersionedCollection"
+          },
+          "metadata:last": {
+            "age": 55,
+            "type": "RDFDatetime",
+            "value": 55000000
+          }
+        },
+        "count": 2,
+        "items": [
+          {
+            "age": 52,
+            "type": "FlowLog",
+            "value": {
+              "flow_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "GenericHunt"
+              },
+              "log_message": {
+                "age": 0,
                 "type": "unicode",
                 "value": "Sample message: foo."
               },
               "urn": {
                 "age": 0,
-                "mro": [
-                  "RDFURN",
-                  "RDFValue",
-                  "object"
-                ],
                 "type": "RDFURN",
                 "value": "aff4:/hunts/H:123456"
               }
@@ -1583,61 +834,20 @@
           },
           {
             "age": 55,
-            "fields_order": [
-              "log_message",
-              "urn",
-              "flow_name"
-            ],
-            "metadata": {
-              "flow_name": {
-                "description": "Human readable name for the session ID.",
-                "friendly_name": "Flow name"
-              },
-              "log_message": {
-                "description": "",
-                "friendly_name": "Log message"
-              },
-              "urn": {
-                "description": "Session ID that generated the log.",
-                "friendly_name": "Urn"
-              }
-            },
-            "mro": [
-              "FlowLog",
-              "RDFProtoStruct",
-              "RDFStruct",
-              "RDFValue",
-              "object"
-            ],
             "type": "FlowLog",
             "value": {
               "flow_name": {
                 "age": 0,
-                "mro": [
-                  "unicode",
-                  "basestring",
-                  "object"
-                ],
                 "type": "unicode",
                 "value": "GenericHunt"
               },
               "log_message": {
                 "age": 0,
-                "mro": [
-                  "unicode",
-                  "basestring",
-                  "object"
-                ],
                 "type": "unicode",
                 "value": "Sample message: bar."
               },
               "urn": {
                 "age": 0,
-                "mro": [
-                  "RDFURN",
-                  "RDFValue",
-                  "object"
-                ],
                 "type": "RDFURN",
                 "value": "aff4:/hunts/H:123456"
               }
@@ -1658,72 +868,55 @@
         "age_policy": "NEWEST_TIME",
         "attributes": {
           "aff4:data": {
-            "flow_name": "GenericHunt",
-            "log_message": "Sample message: bar.",
-            "urn": "aff4:/hunts/H:123456"
-          },
-          "aff4:type": "PackedVersionedCollection",
-          "metadata:last": 55000000
-        },
-        "count": 1,
-        "items": [
-          {
-            "age": 52,
-            "fields_order": [
-              "log_message",
-              "urn",
-              "flow_name"
-            ],
-            "metadata": {
-              "flow_name": {
-                "description": "Human readable name for the session ID.",
-                "friendly_name": "Flow name"
-              },
-              "log_message": {
-                "description": "",
-                "friendly_name": "Log message"
-              },
-              "urn": {
-                "description": "Session ID that generated the log.",
-                "friendly_name": "Urn"
-              }
-            },
-            "mro": [
-              "FlowLog",
-              "RDFProtoStruct",
-              "RDFStruct",
-              "RDFValue",
-              "object"
-            ],
+            "age": 55,
             "type": "FlowLog",
             "value": {
               "flow_name": {
                 "age": 0,
-                "mro": [
-                  "unicode",
-                  "basestring",
-                  "object"
-                ],
                 "type": "unicode",
                 "value": "GenericHunt"
               },
               "log_message": {
                 "age": 0,
-                "mro": [
-                  "unicode",
-                  "basestring",
-                  "object"
-                ],
+                "type": "unicode",
+                "value": "Sample message: bar."
+              },
+              "urn": {
+                "age": 0,
+                "type": "RDFURN",
+                "value": "aff4:/hunts/H:123456"
+              }
+            }
+          },
+          "aff4:type": {
+            "age": 55,
+            "type": "RDFString",
+            "value": "PackedVersionedCollection"
+          },
+          "metadata:last": {
+            "age": 55,
+            "type": "RDFDatetime",
+            "value": 55000000
+          }
+        },
+        "count": 1,
+        "items": [
+          {
+            "age": 52,
+            "type": "FlowLog",
+            "value": {
+              "flow_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "GenericHunt"
+              },
+              "log_message": {
+                "age": 0,
                 "type": "unicode",
                 "value": "Sample message: foo."
               },
               "urn": {
                 "age": 0,
-                "mro": [
-                  "RDFURN",
-                  "RDFValue",
-                  "object"
-                ],
                 "type": "RDFURN",
                 "value": "aff4:/hunts/H:123456"
               }
@@ -1744,72 +937,55 @@
         "age_policy": "NEWEST_TIME",
         "attributes": {
           "aff4:data": {
-            "flow_name": "GenericHunt",
-            "log_message": "Sample message: bar.",
-            "urn": "aff4:/hunts/H:123456"
-          },
-          "aff4:type": "PackedVersionedCollection",
-          "metadata:last": 55000000
-        },
-        "count": 1,
-        "items": [
-          {
             "age": 55,
-            "fields_order": [
-              "log_message",
-              "urn",
-              "flow_name"
-            ],
-            "metadata": {
-              "flow_name": {
-                "description": "Human readable name for the session ID.",
-                "friendly_name": "Flow name"
-              },
-              "log_message": {
-                "description": "",
-                "friendly_name": "Log message"
-              },
-              "urn": {
-                "description": "Session ID that generated the log.",
-                "friendly_name": "Urn"
-              }
-            },
-            "mro": [
-              "FlowLog",
-              "RDFProtoStruct",
-              "RDFStruct",
-              "RDFValue",
-              "object"
-            ],
             "type": "FlowLog",
             "value": {
               "flow_name": {
                 "age": 0,
-                "mro": [
-                  "unicode",
-                  "basestring",
-                  "object"
-                ],
                 "type": "unicode",
                 "value": "GenericHunt"
               },
               "log_message": {
                 "age": 0,
-                "mro": [
-                  "unicode",
-                  "basestring",
-                  "object"
-                ],
                 "type": "unicode",
                 "value": "Sample message: bar."
               },
               "urn": {
                 "age": 0,
-                "mro": [
-                  "RDFURN",
-                  "RDFValue",
-                  "object"
-                ],
+                "type": "RDFURN",
+                "value": "aff4:/hunts/H:123456"
+              }
+            }
+          },
+          "aff4:type": {
+            "age": 55,
+            "type": "RDFString",
+            "value": "PackedVersionedCollection"
+          },
+          "metadata:last": {
+            "age": 55,
+            "type": "RDFDatetime",
+            "value": 55000000
+          }
+        },
+        "count": 1,
+        "items": [
+          {
+            "age": 55,
+            "type": "FlowLog",
+            "value": {
+              "flow_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "GenericHunt"
+              },
+              "log_message": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Sample message: bar."
+              },
+              "urn": {
+                "age": 0,
                 "type": "RDFURN",
                 "value": "aff4:/hunts/H:123456"
               }
@@ -1831,259 +1007,616 @@
         "aff4_class": "GenericHunt",
         "age_policy": "NEWEST_TIME",
         "attributes": {
-          "aff4:hunt_state": "PAUSED",
-          "aff4:type": "GenericHunt",
+          "aff4:hunt_state": {
+            "age": 0,
+            "type": "RDFString",
+            "value": "PAUSED"
+          },
+          "aff4:type": {
+            "age": 42,
+            "type": "RDFString",
+            "value": "GenericHunt"
+          },
           "aff4:flow_state": {
             "args": {
-              "flow_args": {
-                "pathspec": {
-                  "path": "/tmp/evil.txt",
-                  "pathtype": "OS"
+              "age": 0,
+              "type": "GenericHuntArgs",
+              "value": {
+                "flow_args": {
+                  "age": 0,
+                  "type": "GetFileArgs",
+                  "value": {
+                    "pathspec": {
+                      "age": 0,
+                      "type": "PathSpec",
+                      "value": {
+                        "path": {
+                          "age": 0,
+                          "type": "unicode",
+                          "value": "/tmp/evil.txt"
+                        },
+                        "pathtype": {
+                          "age": 0,
+                          "type": "EnumNamedValue",
+                          "value": "OS"
+                        }
+                      }
+                    }
+                  }
+                },
+                "flow_runner_args": {
+                  "age": 0,
+                  "type": "FlowRunnerArgs",
+                  "value": {
+                    "flow_name": {
+                      "age": 0,
+                      "type": "unicode",
+                      "value": "GetFile"
+                    }
+                  }
                 }
-              },
-              "flow_runner_args": {
-                "flow_name": "GetFile"
               }
             },
             "context": {
               "args": {
-                "client_rate": 0.0,
-                "description": "the hunt",
-                "hunt_name": "GenericHunt",
-                "token": {
-                  "reason": "Running tests",
-                  "username": "test"
+                "age": 0,
+                "type": "HuntRunnerArgs",
+                "value": {
+                  "client_rate": {
+                    "age": 0,
+                    "type": "float",
+                    "value": 0.0
+                  },
+                  "description": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "the hunt"
+                  },
+                  "hunt_name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "GenericHunt"
+                  },
+                  "token": {
+                    "age": 0,
+                    "type": "ACLToken",
+                    "value": {
+                      "reason": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "Running tests"
+                      },
+                      "username": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "test"
+                      }
+                    }
+                  }
                 }
               },
-              "backtrace": "None",
-              "client_resources": {},
-              "create_time": 42000000,
-              "creator": "test",
-              "current_state": "Start",
-              "expires": 42000000,
-              "kill_timestamp": "None",
-              "network_bytes_sent": 0,
-              "next_client_due": 0,
-              "next_outbound_id": 1,
-              "next_processed_request": 1,
+              "backtrace": {
+                "age": 0,
+                "type": "NoneType",
+                "value": "None"
+              },
+              "client_resources": {
+                "age": 0,
+                "type": "ClientResources",
+                "value": {}
+              },
+              "create_time": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 42000000
+              },
+              "creator": {
+                "age": 0,
+                "type": "unicode",
+                "value": "test"
+              },
+              "current_state": {
+                "age": 0,
+                "type": "str",
+                "value": "Start"
+              },
+              "expires": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 42000000
+              },
+              "kill_timestamp": {
+                "age": 0,
+                "type": "NoneType",
+                "value": "None"
+              },
+              "network_bytes_sent": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "next_client_due": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "next_outbound_id": {
+                "age": 0,
+                "type": "long",
+                "value": 1
+              },
+              "next_processed_request": {
+                "age": 0,
+                "type": "long",
+                "value": 1
+              },
               "next_states": [],
-              "output_plugins_base_urn": "aff4:/hunts/H:123456/Results",
-              "outstanding_requests": 0,
-              "remaining_cpu_quota": 0,
-              "results_collection_urn": "aff4:/hunts/H:123456/Results",
-              "results_metadata_urn": "aff4:/hunts/H:123456/ResultsMetadata",
-              "session_id": "aff4:/hunts/H:123456",
-              "start_time": 42000000,
-              "state": "RUNNING",
+              "output_plugins_base_urn": {
+                "age": 42,
+                "type": "RDFURN",
+                "value": "aff4:/hunts/H:123456/Results"
+              },
+              "outstanding_requests": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "remaining_cpu_quota": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "results_collection_urn": {
+                "age": 42,
+                "type": "RDFURN",
+                "value": "aff4:/hunts/H:123456/Results"
+              },
+              "results_metadata_urn": {
+                "age": 42,
+                "type": "RDFURN",
+                "value": "aff4:/hunts/H:123456/ResultsMetadata"
+              },
+              "session_id": {
+                "age": 42,
+                "type": "SessionID",
+                "value": "aff4:/hunts/H:123456"
+              },
+              "start_time": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 42000000
+              },
+              "state": {
+                "age": 0,
+                "type": "EnumNamedValue",
+                "value": "RUNNING"
+              },
               "usage_stats": {
-                "network_bytes_sent_stats": {
-                  "histogram": {
-                    "bins": [
-                      {
-                        "range_max_value": 16.0
-                      },
-                      {
-                        "range_max_value": 32.0
-                      },
-                      {
-                        "range_max_value": 64.0
-                      },
-                      {
-                        "range_max_value": 128.0
-                      },
-                      {
-                        "range_max_value": 256.0
-                      },
-                      {
-                        "range_max_value": 512.0
-                      },
-                      {
-                        "range_max_value": 1024.0
-                      },
-                      {
-                        "range_max_value": 2048.0
-                      },
-                      {
-                        "range_max_value": 4096.0
-                      },
-                      {
-                        "range_max_value": 8192.0
-                      },
-                      "<more items available>"
-                    ]
-                  }
-                },
-                "system_cpu_stats": {
-                  "histogram": {
-                    "bins": [
-                      {
-                        "range_max_value": 0.10000000149011612
-                      },
-                      {
-                        "range_max_value": 0.20000000298023224
-                      },
-                      {
-                        "range_max_value": 0.30000001192092896
-                      },
-                      {
-                        "range_max_value": 0.4000000059604645
-                      },
-                      {
-                        "range_max_value": 0.5
-                      },
-                      {
-                        "range_max_value": 0.75
-                      },
-                      {
-                        "range_max_value": 1.0
-                      },
-                      {
-                        "range_max_value": 1.5
-                      },
-                      {
-                        "range_max_value": 2.0
-                      },
-                      {
-                        "range_max_value": 2.5
-                      },
-                      "<more items available>"
-                    ]
-                  }
-                },
-                "user_cpu_stats": {
-                  "histogram": {
-                    "bins": [
-                      {
-                        "range_max_value": 0.10000000149011612
-                      },
-                      {
-                        "range_max_value": 0.20000000298023224
-                      },
-                      {
-                        "range_max_value": 0.30000001192092896
-                      },
-                      {
-                        "range_max_value": 0.4000000059604645
-                      },
-                      {
-                        "range_max_value": 0.5
-                      },
-                      {
-                        "range_max_value": 0.75
-                      },
-                      {
-                        "range_max_value": 1.0
-                      },
-                      {
-                        "range_max_value": 1.5
-                      },
-                      {
-                        "range_max_value": 2.0
-                      },
-                      {
-                        "range_max_value": 2.5
-                      },
-                      "<more items available>"
-                    ]
+                "age": 0,
+                "type": "ClientResourcesStats",
+                "value": {
+                  "network_bytes_sent_stats": {
+                    "age": 0,
+                    "type": "RunningStats",
+                    "value": {
+                      "histogram": {
+                        "age": 0,
+                        "type": "StatsHistogram",
+                        "value": {
+                          "bins": [
+                            {
+                              "age": 0,
+                              "type": "StatsHistogramBin",
+                              "value": {
+                                "range_max_value": {
+                                  "age": 0,
+                                  "type": "float",
+                                  "value": 16.0
+                                }
+                              }
+                            },
+                            {
+                              "age": 0,
+                              "type": "StatsHistogramBin",
+                              "value": {
+                                "range_max_value": {
+                                  "age": 0,
+                                  "type": "float",
+                                  "value": 32.0
+                                }
+                              }
+                            },
+                            {
+                              "age": 0,
+                              "type": "StatsHistogramBin",
+                              "value": {
+                                "range_max_value": {
+                                  "age": 0,
+                                  "type": "float",
+                                  "value": 64.0
+                                }
+                              }
+                            },
+                            {
+                              "age": 0,
+                              "type": "StatsHistogramBin",
+                              "value": {
+                                "range_max_value": {
+                                  "age": 0,
+                                  "type": "float",
+                                  "value": 128.0
+                                }
+                              }
+                            },
+                            {
+                              "age": 0,
+                              "type": "StatsHistogramBin",
+                              "value": {
+                                "range_max_value": {
+                                  "age": 0,
+                                  "type": "float",
+                                  "value": 256.0
+                                }
+                              }
+                            },
+                            {
+                              "age": 0,
+                              "type": "StatsHistogramBin",
+                              "value": {
+                                "range_max_value": {
+                                  "age": 0,
+                                  "type": "float",
+                                  "value": 512.0
+                                }
+                              }
+                            },
+                            {
+                              "age": 0,
+                              "type": "StatsHistogramBin",
+                              "value": {
+                                "range_max_value": {
+                                  "age": 0,
+                                  "type": "float",
+                                  "value": 1024.0
+                                }
+                              }
+                            },
+                            {
+                              "age": 0,
+                              "type": "StatsHistogramBin",
+                              "value": {
+                                "range_max_value": {
+                                  "age": 0,
+                                  "type": "float",
+                                  "value": 2048.0
+                                }
+                              }
+                            },
+                            {
+                              "age": 0,
+                              "type": "StatsHistogramBin",
+                              "value": {
+                                "range_max_value": {
+                                  "age": 0,
+                                  "type": "float",
+                                  "value": 4096.0
+                                }
+                              }
+                            },
+                            {
+                              "age": 0,
+                              "type": "StatsHistogramBin",
+                              "value": {
+                                "range_max_value": {
+                                  "age": 0,
+                                  "type": "float",
+                                  "value": 8192.0
+                                }
+                              }
+                            },
+                            {
+                              "age": 0,
+                              "type": "FetchMoreLink",
+                              "url": "to/be/implemented"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "system_cpu_stats": {
+                    "age": 0,
+                    "type": "RunningStats",
+                    "value": {
+                      "histogram": {
+                        "age": 0,
+                        "type": "StatsHistogram",
+                        "value": {
+                          "bins": [
+                            {
+                              "age": 0,
+                              "type": "StatsHistogramBin",
+                              "value": {
+                                "range_max_value": {
+                                  "age": 0,
+                                  "type": "float",
+                                  "value": 0.10000000149011612
+                                }
+                              }
+                            },
+                            {
+                              "age": 0,
+                              "type": "StatsHistogramBin",
+                              "value": {
+                                "range_max_value": {
+                                  "age": 0,
+                                  "type": "float",
+                                  "value": 0.20000000298023224
+                                }
+                              }
+                            },
+                            {
+                              "age": 0,
+                              "type": "StatsHistogramBin",
+                              "value": {
+                                "range_max_value": {
+                                  "age": 0,
+                                  "type": "float",
+                                  "value": 0.30000001192092896
+                                }
+                              }
+                            },
+                            {
+                              "age": 0,
+                              "type": "StatsHistogramBin",
+                              "value": {
+                                "range_max_value": {
+                                  "age": 0,
+                                  "type": "float",
+                                  "value": 0.4000000059604645
+                                }
+                              }
+                            },
+                            {
+                              "age": 0,
+                              "type": "StatsHistogramBin",
+                              "value": {
+                                "range_max_value": {
+                                  "age": 0,
+                                  "type": "float",
+                                  "value": 0.5
+                                }
+                              }
+                            },
+                            {
+                              "age": 0,
+                              "type": "StatsHistogramBin",
+                              "value": {
+                                "range_max_value": {
+                                  "age": 0,
+                                  "type": "float",
+                                  "value": 0.75
+                                }
+                              }
+                            },
+                            {
+                              "age": 0,
+                              "type": "StatsHistogramBin",
+                              "value": {
+                                "range_max_value": {
+                                  "age": 0,
+                                  "type": "float",
+                                  "value": 1.0
+                                }
+                              }
+                            },
+                            {
+                              "age": 0,
+                              "type": "StatsHistogramBin",
+                              "value": {
+                                "range_max_value": {
+                                  "age": 0,
+                                  "type": "float",
+                                  "value": 1.5
+                                }
+                              }
+                            },
+                            {
+                              "age": 0,
+                              "type": "StatsHistogramBin",
+                              "value": {
+                                "range_max_value": {
+                                  "age": 0,
+                                  "type": "float",
+                                  "value": 2.0
+                                }
+                              }
+                            },
+                            {
+                              "age": 0,
+                              "type": "StatsHistogramBin",
+                              "value": {
+                                "range_max_value": {
+                                  "age": 0,
+                                  "type": "float",
+                                  "value": 2.5
+                                }
+                              }
+                            },
+                            {
+                              "age": 0,
+                              "type": "FetchMoreLink",
+                              "url": "to/be/implemented"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "user_cpu_stats": {
+                    "age": 0,
+                    "type": "RunningStats",
+                    "value": {
+                      "histogram": {
+                        "age": 0,
+                        "type": "StatsHistogram",
+                        "value": {
+                          "bins": [
+                            {
+                              "age": 0,
+                              "type": "StatsHistogramBin",
+                              "value": {
+                                "range_max_value": {
+                                  "age": 0,
+                                  "type": "float",
+                                  "value": 0.10000000149011612
+                                }
+                              }
+                            },
+                            {
+                              "age": 0,
+                              "type": "StatsHistogramBin",
+                              "value": {
+                                "range_max_value": {
+                                  "age": 0,
+                                  "type": "float",
+                                  "value": 0.20000000298023224
+                                }
+                              }
+                            },
+                            {
+                              "age": 0,
+                              "type": "StatsHistogramBin",
+                              "value": {
+                                "range_max_value": {
+                                  "age": 0,
+                                  "type": "float",
+                                  "value": 0.30000001192092896
+                                }
+                              }
+                            },
+                            {
+                              "age": 0,
+                              "type": "StatsHistogramBin",
+                              "value": {
+                                "range_max_value": {
+                                  "age": 0,
+                                  "type": "float",
+                                  "value": 0.4000000059604645
+                                }
+                              }
+                            },
+                            {
+                              "age": 0,
+                              "type": "StatsHistogramBin",
+                              "value": {
+                                "range_max_value": {
+                                  "age": 0,
+                                  "type": "float",
+                                  "value": 0.5
+                                }
+                              }
+                            },
+                            {
+                              "age": 0,
+                              "type": "StatsHistogramBin",
+                              "value": {
+                                "range_max_value": {
+                                  "age": 0,
+                                  "type": "float",
+                                  "value": 0.75
+                                }
+                              }
+                            },
+                            {
+                              "age": 0,
+                              "type": "StatsHistogramBin",
+                              "value": {
+                                "range_max_value": {
+                                  "age": 0,
+                                  "type": "float",
+                                  "value": 1.0
+                                }
+                              }
+                            },
+                            {
+                              "age": 0,
+                              "type": "StatsHistogramBin",
+                              "value": {
+                                "range_max_value": {
+                                  "age": 0,
+                                  "type": "float",
+                                  "value": 1.5
+                                }
+                              }
+                            },
+                            {
+                              "age": 0,
+                              "type": "StatsHistogramBin",
+                              "value": {
+                                "range_max_value": {
+                                  "age": 0,
+                                  "type": "float",
+                                  "value": 2.0
+                                }
+                              }
+                            },
+                            {
+                              "age": 0,
+                              "type": "StatsHistogramBin",
+                              "value": {
+                                "range_max_value": {
+                                  "age": 0,
+                                  "type": "float",
+                                  "value": 2.5
+                                }
+                              }
+                            },
+                            {
+                              "age": 0,
+                              "type": "FetchMoreLink",
+                              "url": "to/be/implemented"
+                            }
+                          ]
+                        }
+                      }
+                    }
                   }
                 }
               }
             }
           },
-          "metadata:last": 42000000
+          "metadata:last": {
+            "age": 42,
+            "type": "RDFDatetime",
+            "value": 42000000
+          }
         },
         "summary": {
-          "all_clients_count": 0,
+          "all_clients_count": {
+            "age": 0,
+            "type": "long",
+            "value": 0
+          },
           "args": {
             "age": 0,
-            "fields_order": [
-              "flow_args",
-              "flow_runner_args"
-            ],
-            "metadata": {
-              "flow_args": {
-                "description": "Arguments to the flow to run. This should be an instance of flow.args_type proto.",
-                "friendly_name": "Flow args"
-              },
-              "flow_runner_args": {
-                "description": "The runner args for launching each flow.",
-                "friendly_name": "Flow runner args"
-              }
-            },
-            "mro": [
-              "GenericHuntArgs",
-              "RDFProtoStruct",
-              "RDFStruct",
-              "RDFValue",
-              "object"
-            ],
             "type": "GenericHuntArgs",
             "value": {
               "flow_args": {
                 "age": 0,
-                "fields_order": [
-                  "pathspec"
-                ],
-                "metadata": {
-                  "pathspec": {
-                    "description": "The pathspec for the file to retrieve.",
-                    "friendly_name": "Pathspec"
-                  }
-                },
-                "mro": [
-                  "GetFileArgs",
-                  "RDFProtoStruct",
-                  "RDFStruct",
-                  "RDFValue",
-                  "object"
-                ],
                 "type": "GetFileArgs",
                 "value": {
                   "pathspec": {
                     "age": 0,
-                    "fields_order": [
-                      "pathtype",
-                      "path"
-                    ],
-                    "metadata": {
-                      "path": {
-                        "description": "",
-                        "friendly_name": "Path"
-                      },
-                      "pathtype": {
-                        "description": "",
-                        "friendly_name": "Pathtype"
-                      }
-                    },
-                    "mro": [
-                      "PathSpec",
-                      "RDFProtoStruct",
-                      "RDFStruct",
-                      "RDFValue",
-                      "object"
-                    ],
                     "type": "PathSpec",
                     "value": {
                       "path": {
                         "age": 0,
-                        "mro": [
-                          "unicode",
-                          "basestring",
-                          "object"
-                        ],
                         "type": "unicode",
                         "value": "/tmp/evil.txt"
                       },
                       "pathtype": {
                         "age": 0,
-                        "mro": [
-                          "EnumNamedValue",
-                          "RDFInteger",
-                          "RDFString",
-                          "RDFBytes",
-                          "RDFValue",
-                          "object"
-                        ],
                         "type": "EnumNamedValue",
                         "value": "OS"
                       }
@@ -2093,31 +1626,10 @@
               },
               "flow_runner_args": {
                 "age": 0,
-                "fields_order": [
-                  "flow_name"
-                ],
-                "metadata": {
-                  "flow_name": {
-                    "description": "The name of the class implementing the flow to run.",
-                    "friendly_name": "Flow name"
-                  }
-                },
-                "mro": [
-                  "FlowRunnerArgs",
-                  "RDFProtoStruct",
-                  "RDFStruct",
-                  "RDFValue",
-                  "object"
-                ],
                 "type": "FlowRunnerArgs",
                 "value": {
                   "flow_name": {
                     "age": 0,
-                    "mro": [
-                      "unicode",
-                      "basestring",
-                      "object"
-                    ],
                     "type": "unicode",
                     "value": "GetFile"
                   }
@@ -2125,128 +1637,448 @@
               }
             }
           },
-          "client_limit": 0,
-          "client_rate": 0.0,
-          "completed_clients_count": 0,
-          "create_time": 42000000,
-          "creator": "test",
-          "description": "the hunt",
-          "expires": 42000000,
-          "hunt_name": "GenericHunt",
+          "client_limit": {
+            "age": 0,
+            "type": "long",
+            "value": 0
+          },
+          "client_rate": {
+            "age": 0,
+            "type": "float",
+            "value": 0.0
+          },
+          "completed_clients_count": {
+            "age": 0,
+            "type": "long",
+            "value": 0
+          },
+          "create_time": {
+            "age": 0,
+            "type": "RDFDatetime",
+            "value": 42000000
+          },
+          "creator": {
+            "age": 0,
+            "type": "unicode",
+            "value": "test"
+          },
+          "description": {
+            "age": 0,
+            "type": "unicode",
+            "value": "the hunt"
+          },
+          "expires": {
+            "age": 0,
+            "type": "RDFDatetime",
+            "value": 42000000
+          },
+          "hunt_name": {
+            "age": 0,
+            "type": "unicode",
+            "value": "GenericHunt"
+          },
           "integer_rules": [],
-          "outstanding_clients_count": 0,
+          "outstanding_clients_count": {
+            "age": 0,
+            "type": "long",
+            "value": 0
+          },
           "regex_rules": [],
-          "state": "PAUSED",
+          "state": {
+            "age": 0,
+            "type": "RDFString",
+            "value": "PAUSED"
+          },
           "stats": {
-            "network_bytes_sent_stats": {
-              "histogram": {
-                "bins": [
-                  {
-                    "range_max_value": 16.0
-                  },
-                  {
-                    "range_max_value": 32.0
-                  },
-                  {
-                    "range_max_value": 64.0
-                  },
-                  {
-                    "range_max_value": 128.0
-                  },
-                  {
-                    "range_max_value": 256.0
-                  },
-                  {
-                    "range_max_value": 512.0
-                  },
-                  {
-                    "range_max_value": 1024.0
-                  },
-                  {
-                    "range_max_value": 2048.0
-                  },
-                  {
-                    "range_max_value": 4096.0
-                  },
-                  {
-                    "range_max_value": 8192.0
-                  },
-                  "<more items available>"
-                ]
-              }
-            },
-            "system_cpu_stats": {
-              "histogram": {
-                "bins": [
-                  {
-                    "range_max_value": 0.10000000149011612
-                  },
-                  {
-                    "range_max_value": 0.20000000298023224
-                  },
-                  {
-                    "range_max_value": 0.30000001192092896
-                  },
-                  {
-                    "range_max_value": 0.4000000059604645
-                  },
-                  {
-                    "range_max_value": 0.5
-                  },
-                  {
-                    "range_max_value": 0.75
-                  },
-                  {
-                    "range_max_value": 1.0
-                  },
-                  {
-                    "range_max_value": 1.5
-                  },
-                  {
-                    "range_max_value": 2.0
-                  },
-                  {
-                    "range_max_value": 2.5
-                  },
-                  "<more items available>"
-                ]
-              }
-            },
-            "user_cpu_stats": {
-              "histogram": {
-                "bins": [
-                  {
-                    "range_max_value": 0.10000000149011612
-                  },
-                  {
-                    "range_max_value": 0.20000000298023224
-                  },
-                  {
-                    "range_max_value": 0.30000001192092896
-                  },
-                  {
-                    "range_max_value": 0.4000000059604645
-                  },
-                  {
-                    "range_max_value": 0.5
-                  },
-                  {
-                    "range_max_value": 0.75
-                  },
-                  {
-                    "range_max_value": 1.0
-                  },
-                  {
-                    "range_max_value": 1.5
-                  },
-                  {
-                    "range_max_value": 2.0
-                  },
-                  {
-                    "range_max_value": 2.5
-                  },
-                  "<more items available>"
-                ]
+            "age": 0,
+            "type": "ClientResourcesStats",
+            "value": {
+              "network_bytes_sent_stats": {
+                "age": 0,
+                "type": "RunningStats",
+                "value": {
+                  "histogram": {
+                    "age": 0,
+                    "type": "StatsHistogram",
+                    "value": {
+                      "bins": [
+                        {
+                          "age": 0,
+                          "type": "StatsHistogramBin",
+                          "value": {
+                            "range_max_value": {
+                              "age": 0,
+                              "type": "float",
+                              "value": 16.0
+                            }
+                          }
+                        },
+                        {
+                          "age": 0,
+                          "type": "StatsHistogramBin",
+                          "value": {
+                            "range_max_value": {
+                              "age": 0,
+                              "type": "float",
+                              "value": 32.0
+                            }
+                          }
+                        },
+                        {
+                          "age": 0,
+                          "type": "StatsHistogramBin",
+                          "value": {
+                            "range_max_value": {
+                              "age": 0,
+                              "type": "float",
+                              "value": 64.0
+                            }
+                          }
+                        },
+                        {
+                          "age": 0,
+                          "type": "StatsHistogramBin",
+                          "value": {
+                            "range_max_value": {
+                              "age": 0,
+                              "type": "float",
+                              "value": 128.0
+                            }
+                          }
+                        },
+                        {
+                          "age": 0,
+                          "type": "StatsHistogramBin",
+                          "value": {
+                            "range_max_value": {
+                              "age": 0,
+                              "type": "float",
+                              "value": 256.0
+                            }
+                          }
+                        },
+                        {
+                          "age": 0,
+                          "type": "StatsHistogramBin",
+                          "value": {
+                            "range_max_value": {
+                              "age": 0,
+                              "type": "float",
+                              "value": 512.0
+                            }
+                          }
+                        },
+                        {
+                          "age": 0,
+                          "type": "StatsHistogramBin",
+                          "value": {
+                            "range_max_value": {
+                              "age": 0,
+                              "type": "float",
+                              "value": 1024.0
+                            }
+                          }
+                        },
+                        {
+                          "age": 0,
+                          "type": "StatsHistogramBin",
+                          "value": {
+                            "range_max_value": {
+                              "age": 0,
+                              "type": "float",
+                              "value": 2048.0
+                            }
+                          }
+                        },
+                        {
+                          "age": 0,
+                          "type": "StatsHistogramBin",
+                          "value": {
+                            "range_max_value": {
+                              "age": 0,
+                              "type": "float",
+                              "value": 4096.0
+                            }
+                          }
+                        },
+                        {
+                          "age": 0,
+                          "type": "StatsHistogramBin",
+                          "value": {
+                            "range_max_value": {
+                              "age": 0,
+                              "type": "float",
+                              "value": 8192.0
+                            }
+                          }
+                        },
+                        {
+                          "age": 0,
+                          "type": "FetchMoreLink",
+                          "url": "to/be/implemented"
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "system_cpu_stats": {
+                "age": 0,
+                "type": "RunningStats",
+                "value": {
+                  "histogram": {
+                    "age": 0,
+                    "type": "StatsHistogram",
+                    "value": {
+                      "bins": [
+                        {
+                          "age": 0,
+                          "type": "StatsHistogramBin",
+                          "value": {
+                            "range_max_value": {
+                              "age": 0,
+                              "type": "float",
+                              "value": 0.10000000149011612
+                            }
+                          }
+                        },
+                        {
+                          "age": 0,
+                          "type": "StatsHistogramBin",
+                          "value": {
+                            "range_max_value": {
+                              "age": 0,
+                              "type": "float",
+                              "value": 0.20000000298023224
+                            }
+                          }
+                        },
+                        {
+                          "age": 0,
+                          "type": "StatsHistogramBin",
+                          "value": {
+                            "range_max_value": {
+                              "age": 0,
+                              "type": "float",
+                              "value": 0.30000001192092896
+                            }
+                          }
+                        },
+                        {
+                          "age": 0,
+                          "type": "StatsHistogramBin",
+                          "value": {
+                            "range_max_value": {
+                              "age": 0,
+                              "type": "float",
+                              "value": 0.4000000059604645
+                            }
+                          }
+                        },
+                        {
+                          "age": 0,
+                          "type": "StatsHistogramBin",
+                          "value": {
+                            "range_max_value": {
+                              "age": 0,
+                              "type": "float",
+                              "value": 0.5
+                            }
+                          }
+                        },
+                        {
+                          "age": 0,
+                          "type": "StatsHistogramBin",
+                          "value": {
+                            "range_max_value": {
+                              "age": 0,
+                              "type": "float",
+                              "value": 0.75
+                            }
+                          }
+                        },
+                        {
+                          "age": 0,
+                          "type": "StatsHistogramBin",
+                          "value": {
+                            "range_max_value": {
+                              "age": 0,
+                              "type": "float",
+                              "value": 1.0
+                            }
+                          }
+                        },
+                        {
+                          "age": 0,
+                          "type": "StatsHistogramBin",
+                          "value": {
+                            "range_max_value": {
+                              "age": 0,
+                              "type": "float",
+                              "value": 1.5
+                            }
+                          }
+                        },
+                        {
+                          "age": 0,
+                          "type": "StatsHistogramBin",
+                          "value": {
+                            "range_max_value": {
+                              "age": 0,
+                              "type": "float",
+                              "value": 2.0
+                            }
+                          }
+                        },
+                        {
+                          "age": 0,
+                          "type": "StatsHistogramBin",
+                          "value": {
+                            "range_max_value": {
+                              "age": 0,
+                              "type": "float",
+                              "value": 2.5
+                            }
+                          }
+                        },
+                        {
+                          "age": 0,
+                          "type": "FetchMoreLink",
+                          "url": "to/be/implemented"
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "user_cpu_stats": {
+                "age": 0,
+                "type": "RunningStats",
+                "value": {
+                  "histogram": {
+                    "age": 0,
+                    "type": "StatsHistogram",
+                    "value": {
+                      "bins": [
+                        {
+                          "age": 0,
+                          "type": "StatsHistogramBin",
+                          "value": {
+                            "range_max_value": {
+                              "age": 0,
+                              "type": "float",
+                              "value": 0.10000000149011612
+                            }
+                          }
+                        },
+                        {
+                          "age": 0,
+                          "type": "StatsHistogramBin",
+                          "value": {
+                            "range_max_value": {
+                              "age": 0,
+                              "type": "float",
+                              "value": 0.20000000298023224
+                            }
+                          }
+                        },
+                        {
+                          "age": 0,
+                          "type": "StatsHistogramBin",
+                          "value": {
+                            "range_max_value": {
+                              "age": 0,
+                              "type": "float",
+                              "value": 0.30000001192092896
+                            }
+                          }
+                        },
+                        {
+                          "age": 0,
+                          "type": "StatsHistogramBin",
+                          "value": {
+                            "range_max_value": {
+                              "age": 0,
+                              "type": "float",
+                              "value": 0.4000000059604645
+                            }
+                          }
+                        },
+                        {
+                          "age": 0,
+                          "type": "StatsHistogramBin",
+                          "value": {
+                            "range_max_value": {
+                              "age": 0,
+                              "type": "float",
+                              "value": 0.5
+                            }
+                          }
+                        },
+                        {
+                          "age": 0,
+                          "type": "StatsHistogramBin",
+                          "value": {
+                            "range_max_value": {
+                              "age": 0,
+                              "type": "float",
+                              "value": 0.75
+                            }
+                          }
+                        },
+                        {
+                          "age": 0,
+                          "type": "StatsHistogramBin",
+                          "value": {
+                            "range_max_value": {
+                              "age": 0,
+                              "type": "float",
+                              "value": 1.0
+                            }
+                          }
+                        },
+                        {
+                          "age": 0,
+                          "type": "StatsHistogramBin",
+                          "value": {
+                            "range_max_value": {
+                              "age": 0,
+                              "type": "float",
+                              "value": 1.5
+                            }
+                          }
+                        },
+                        {
+                          "age": 0,
+                          "type": "StatsHistogramBin",
+                          "value": {
+                            "range_max_value": {
+                              "age": 0,
+                              "type": "float",
+                              "value": 2.0
+                            }
+                          }
+                        },
+                        {
+                          "age": 0,
+                          "type": "StatsHistogramBin",
+                          "value": {
+                            "range_max_value": {
+                              "age": 0,
+                              "type": "float",
+                              "value": 2.5
+                            }
+                          }
+                        },
+                        {
+                          "age": 0,
+                          "type": "FetchMoreLink",
+                          "url": "to/be/implemented"
+                        }
+                      ]
+                    }
+                  }
+                }
               }
             }
           }
@@ -2267,81 +2099,289 @@
             "aff4_class": "GenericHunt",
             "age_policy": "NEWEST_TIME",
             "attributes": {
-              "aff4:hunt_state": "STOPPED",
-              "aff4:type": "GenericHunt",
+              "aff4:hunt_state": {
+                "age": 0,
+                "type": "RDFString",
+                "value": "STOPPED"
+              },
+              "aff4:type": {
+                "age": 1000,
+                "type": "RDFString",
+                "value": "GenericHunt"
+              },
               "aff4:flow_state": {
                 "args": {
-                  "flow_args": {
-                    "pathspec": {
-                      "path": "/tmp/evil.txt",
-                      "pathtype": "OS"
+                  "age": 0,
+                  "type": "GenericHuntArgs",
+                  "value": {
+                    "flow_args": {
+                      "age": 0,
+                      "type": "GetFileArgs",
+                      "value": {
+                        "pathspec": {
+                          "age": 0,
+                          "type": "PathSpec",
+                          "value": {
+                            "path": {
+                              "age": 0,
+                              "type": "unicode",
+                              "value": "/tmp/evil.txt"
+                            },
+                            "pathtype": {
+                              "age": 0,
+                              "type": "EnumNamedValue",
+                              "value": "OS"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "flow_runner_args": {
+                      "age": 0,
+                      "type": "FlowRunnerArgs",
+                      "value": {
+                        "flow_name": {
+                          "age": 0,
+                          "type": "unicode",
+                          "value": "GetFile"
+                        }
+                      }
                     }
-                  },
-                  "flow_runner_args": {
-                    "flow_name": "GetFile"
                   }
                 },
                 "context": {
                   "args": {
-                    "client_rate": 0.0,
-                    "description": "hunt_1",
-                    "hunt_name": "GenericHunt",
-                    "token": {
-                      "reason": "Running tests",
-                      "username": "test"
+                    "age": 0,
+                    "type": "HuntRunnerArgs",
+                    "value": {
+                      "client_rate": {
+                        "age": 0,
+                        "type": "float",
+                        "value": 0.0
+                      },
+                      "description": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "hunt_1"
+                      },
+                      "hunt_name": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "GenericHunt"
+                      },
+                      "token": {
+                        "age": 0,
+                        "type": "ACLToken",
+                        "value": {
+                          "reason": {
+                            "age": 0,
+                            "type": "unicode",
+                            "value": "Running tests"
+                          },
+                          "username": {
+                            "age": 0,
+                            "type": "unicode",
+                            "value": "test"
+                          }
+                        }
+                      }
                     }
                   },
-                  "backtrace": "None",
-                  "client_resources": {},
-                  "create_time": 1000000000,
-                  "creator": "test",
-                  "current_state": "Start",
-                  "expires": 1000000000,
-                  "kill_timestamp": "None",
-                  "network_bytes_sent": 0,
-                  "next_client_due": 0,
-                  "next_outbound_id": 1,
-                  "next_processed_request": 1,
+                  "backtrace": {
+                    "age": 0,
+                    "type": "NoneType",
+                    "value": "None"
+                  },
+                  "client_resources": {
+                    "age": 0,
+                    "type": "ClientResources",
+                    "value": {}
+                  },
+                  "create_time": {
+                    "age": 0,
+                    "type": "RDFDatetime",
+                    "value": 1000000000
+                  },
+                  "creator": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "test"
+                  },
+                  "current_state": {
+                    "age": 0,
+                    "type": "str",
+                    "value": "Start"
+                  },
+                  "expires": {
+                    "age": 0,
+                    "type": "RDFDatetime",
+                    "value": 1000000000
+                  },
+                  "kill_timestamp": {
+                    "age": 0,
+                    "type": "NoneType",
+                    "value": "None"
+                  },
+                  "network_bytes_sent": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 0
+                  },
+                  "next_client_due": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 0
+                  },
+                  "next_outbound_id": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 1
+                  },
+                  "next_processed_request": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 1
+                  },
                   "next_states": "<lists are omitted>",
-                  "output_plugins_base_urn": "aff4:/hunts/H:000001/Results",
-                  "outstanding_requests": 0,
-                  "remaining_cpu_quota": 0,
-                  "results_collection_urn": "aff4:/hunts/H:000001/Results",
-                  "results_metadata_urn": "aff4:/hunts/H:000001/ResultsMetadata",
-                  "session_id": "aff4:/hunts/H:000001",
-                  "start_time": 1000000000,
-                  "state": "RUNNING",
-                  "status": "0 flows terminated.",
+                  "output_plugins_base_urn": {
+                    "age": 1000,
+                    "type": "RDFURN",
+                    "value": "aff4:/hunts/H:000001/Results"
+                  },
+                  "outstanding_requests": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 0
+                  },
+                  "remaining_cpu_quota": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 0
+                  },
+                  "results_collection_urn": {
+                    "age": 1000,
+                    "type": "RDFURN",
+                    "value": "aff4:/hunts/H:000001/Results"
+                  },
+                  "results_metadata_urn": {
+                    "age": 1000,
+                    "type": "RDFURN",
+                    "value": "aff4:/hunts/H:000001/ResultsMetadata"
+                  },
+                  "session_id": {
+                    "age": 1000,
+                    "type": "SessionID",
+                    "value": "aff4:/hunts/H:000001"
+                  },
+                  "start_time": {
+                    "age": 0,
+                    "type": "RDFDatetime",
+                    "value": 1000000000
+                  },
+                  "state": {
+                    "age": 0,
+                    "type": "EnumNamedValue",
+                    "value": "RUNNING"
+                  },
+                  "status": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "0 flows terminated."
+                  },
                   "usage_stats": {
-                    "network_bytes_sent_stats": {
-                      "histogram": {
-                        "bins": "<lists are omitted>"
-                      }
-                    },
-                    "system_cpu_stats": {
-                      "histogram": {
-                        "bins": "<lists are omitted>"
-                      }
-                    },
-                    "user_cpu_stats": {
-                      "histogram": {
-                        "bins": "<lists are omitted>"
+                    "age": 0,
+                    "type": "ClientResourcesStats",
+                    "value": {
+                      "network_bytes_sent_stats": {
+                        "age": 0,
+                        "type": "RunningStats",
+                        "value": {
+                          "histogram": {
+                            "age": 0,
+                            "type": "StatsHistogram",
+                            "value": {
+                              "bins": "<lists are omitted>"
+                            }
+                          }
+                        }
+                      },
+                      "system_cpu_stats": {
+                        "age": 0,
+                        "type": "RunningStats",
+                        "value": {
+                          "histogram": {
+                            "age": 0,
+                            "type": "StatsHistogram",
+                            "value": {
+                              "bins": "<lists are omitted>"
+                            }
+                          }
+                        }
+                      },
+                      "user_cpu_stats": {
+                        "age": 0,
+                        "type": "RunningStats",
+                        "value": {
+                          "histogram": {
+                            "age": 0,
+                            "type": "StatsHistogram",
+                            "value": {
+                              "bins": "<lists are omitted>"
+                            }
+                          }
+                        }
                       }
                     }
                   }
                 }
               },
-              "metadata:last": 1000000000
+              "metadata:last": {
+                "age": 1000,
+                "type": "RDFDatetime",
+                "value": 1000000000
+              }
             },
             "summary": {
-              "client_limit": 0,
-              "client_rate": 0.0,
-              "create_time": 1000000000,
-              "creator": "test",
-              "description": "hunt_1",
-              "expires": 1000000000,
-              "hunt_name": "GenericHunt",
-              "state": "STOPPED"
+              "client_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "client_rate": {
+                "age": 0,
+                "type": "float",
+                "value": 0.0
+              },
+              "create_time": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 1000000000
+              },
+              "creator": {
+                "age": 0,
+                "type": "unicode",
+                "value": "test"
+              },
+              "description": {
+                "age": 0,
+                "type": "unicode",
+                "value": "hunt_1"
+              },
+              "expires": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 1000000000
+              },
+              "hunt_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "GenericHunt"
+              },
+              "state": {
+                "age": 0,
+                "type": "RDFString",
+                "value": "STOPPED"
+              }
             },
             "urn": "aff4:/hunts/H:000001"
           },
@@ -2349,80 +2389,284 @@
             "aff4_class": "GenericHunt",
             "age_policy": "NEWEST_TIME",
             "attributes": {
-              "aff4:hunt_state": "PAUSED",
-              "aff4:type": "GenericHunt",
+              "aff4:hunt_state": {
+                "age": 0,
+                "type": "RDFString",
+                "value": "PAUSED"
+              },
+              "aff4:type": {
+                "age": 0,
+                "type": "RDFString",
+                "value": "GenericHunt"
+              },
               "aff4:flow_state": {
                 "args": {
-                  "flow_args": {
-                    "pathspec": {
-                      "path": "/tmp/evil.txt",
-                      "pathtype": "OS"
+                  "age": 0,
+                  "type": "GenericHuntArgs",
+                  "value": {
+                    "flow_args": {
+                      "age": 0,
+                      "type": "GetFileArgs",
+                      "value": {
+                        "pathspec": {
+                          "age": 0,
+                          "type": "PathSpec",
+                          "value": {
+                            "path": {
+                              "age": 0,
+                              "type": "unicode",
+                              "value": "/tmp/evil.txt"
+                            },
+                            "pathtype": {
+                              "age": 0,
+                              "type": "EnumNamedValue",
+                              "value": "OS"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "flow_runner_args": {
+                      "age": 0,
+                      "type": "FlowRunnerArgs",
+                      "value": {
+                        "flow_name": {
+                          "age": 0,
+                          "type": "unicode",
+                          "value": "GetFile"
+                        }
+                      }
                     }
-                  },
-                  "flow_runner_args": {
-                    "flow_name": "GetFile"
                   }
                 },
                 "context": {
                   "args": {
-                    "client_rate": 0.0,
-                    "description": "hunt_0",
-                    "hunt_name": "GenericHunt",
-                    "token": {
-                      "reason": "Running tests",
-                      "username": "test"
+                    "age": 0,
+                    "type": "HuntRunnerArgs",
+                    "value": {
+                      "client_rate": {
+                        "age": 0,
+                        "type": "float",
+                        "value": 0.0
+                      },
+                      "description": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "hunt_0"
+                      },
+                      "hunt_name": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "GenericHunt"
+                      },
+                      "token": {
+                        "age": 0,
+                        "type": "ACLToken",
+                        "value": {
+                          "reason": {
+                            "age": 0,
+                            "type": "unicode",
+                            "value": "Running tests"
+                          },
+                          "username": {
+                            "age": 0,
+                            "type": "unicode",
+                            "value": "test"
+                          }
+                        }
+                      }
                     }
                   },
-                  "backtrace": "None",
-                  "client_resources": {},
-                  "create_time": 0,
-                  "creator": "test",
-                  "current_state": "Start",
-                  "expires": 0,
-                  "kill_timestamp": "None",
-                  "network_bytes_sent": 0,
-                  "next_client_due": 0,
-                  "next_outbound_id": 1,
-                  "next_processed_request": 1,
+                  "backtrace": {
+                    "age": 0,
+                    "type": "NoneType",
+                    "value": "None"
+                  },
+                  "client_resources": {
+                    "age": 0,
+                    "type": "ClientResources",
+                    "value": {}
+                  },
+                  "create_time": {
+                    "age": 0,
+                    "type": "RDFDatetime",
+                    "value": 0
+                  },
+                  "creator": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "test"
+                  },
+                  "current_state": {
+                    "age": 0,
+                    "type": "str",
+                    "value": "Start"
+                  },
+                  "expires": {
+                    "age": 0,
+                    "type": "RDFDatetime",
+                    "value": 0
+                  },
+                  "kill_timestamp": {
+                    "age": 0,
+                    "type": "NoneType",
+                    "value": "None"
+                  },
+                  "network_bytes_sent": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 0
+                  },
+                  "next_client_due": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 0
+                  },
+                  "next_outbound_id": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 1
+                  },
+                  "next_processed_request": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 1
+                  },
                   "next_states": "<lists are omitted>",
-                  "output_plugins_base_urn": "aff4:/hunts/H:000000/Results",
-                  "outstanding_requests": 0,
-                  "remaining_cpu_quota": 0,
-                  "results_collection_urn": "aff4:/hunts/H:000000/Results",
-                  "results_metadata_urn": "aff4:/hunts/H:000000/ResultsMetadata",
-                  "session_id": "aff4:/hunts/H:000000",
-                  "start_time": 0,
-                  "state": "RUNNING",
+                  "output_plugins_base_urn": {
+                    "age": 0,
+                    "type": "RDFURN",
+                    "value": "aff4:/hunts/H:000000/Results"
+                  },
+                  "outstanding_requests": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 0
+                  },
+                  "remaining_cpu_quota": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 0
+                  },
+                  "results_collection_urn": {
+                    "age": 0,
+                    "type": "RDFURN",
+                    "value": "aff4:/hunts/H:000000/Results"
+                  },
+                  "results_metadata_urn": {
+                    "age": 0,
+                    "type": "RDFURN",
+                    "value": "aff4:/hunts/H:000000/ResultsMetadata"
+                  },
+                  "session_id": {
+                    "age": 0,
+                    "type": "SessionID",
+                    "value": "aff4:/hunts/H:000000"
+                  },
+                  "start_time": {
+                    "age": 0,
+                    "type": "RDFDatetime",
+                    "value": 0
+                  },
+                  "state": {
+                    "age": 0,
+                    "type": "EnumNamedValue",
+                    "value": "RUNNING"
+                  },
                   "usage_stats": {
-                    "network_bytes_sent_stats": {
-                      "histogram": {
-                        "bins": "<lists are omitted>"
-                      }
-                    },
-                    "system_cpu_stats": {
-                      "histogram": {
-                        "bins": "<lists are omitted>"
-                      }
-                    },
-                    "user_cpu_stats": {
-                      "histogram": {
-                        "bins": "<lists are omitted>"
+                    "age": 0,
+                    "type": "ClientResourcesStats",
+                    "value": {
+                      "network_bytes_sent_stats": {
+                        "age": 0,
+                        "type": "RunningStats",
+                        "value": {
+                          "histogram": {
+                            "age": 0,
+                            "type": "StatsHistogram",
+                            "value": {
+                              "bins": "<lists are omitted>"
+                            }
+                          }
+                        }
+                      },
+                      "system_cpu_stats": {
+                        "age": 0,
+                        "type": "RunningStats",
+                        "value": {
+                          "histogram": {
+                            "age": 0,
+                            "type": "StatsHistogram",
+                            "value": {
+                              "bins": "<lists are omitted>"
+                            }
+                          }
+                        }
+                      },
+                      "user_cpu_stats": {
+                        "age": 0,
+                        "type": "RunningStats",
+                        "value": {
+                          "histogram": {
+                            "age": 0,
+                            "type": "StatsHistogram",
+                            "value": {
+                              "bins": "<lists are omitted>"
+                            }
+                          }
+                        }
                       }
                     }
                   }
                 }
               },
-              "metadata:last": 0
+              "metadata:last": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 0
+              }
             },
             "summary": {
-              "client_limit": 0,
-              "client_rate": 0.0,
-              "create_time": 0,
-              "creator": "test",
-              "description": "hunt_0",
-              "expires": 0,
-              "hunt_name": "GenericHunt",
-              "state": "PAUSED"
+              "client_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "client_rate": {
+                "age": 0,
+                "type": "float",
+                "value": 0.0
+              },
+              "create_time": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 0
+              },
+              "creator": {
+                "age": 0,
+                "type": "unicode",
+                "value": "test"
+              },
+              "description": {
+                "age": 0,
+                "type": "unicode",
+                "value": "hunt_0"
+              },
+              "expires": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 0
+              },
+              "hunt_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "GenericHunt"
+              },
+              "state": {
+                "age": 0,
+                "type": "RDFString",
+                "value": "PAUSED"
+              }
             },
             "urn": "aff4:/hunts/H:000000"
           }
@@ -2442,81 +2686,289 @@
             "aff4_class": "GenericHunt",
             "age_policy": "NEWEST_TIME",
             "attributes": {
-              "aff4:hunt_state": "STOPPED",
-              "aff4:type": "GenericHunt",
+              "aff4:hunt_state": {
+                "age": 0,
+                "type": "RDFString",
+                "value": "STOPPED"
+              },
+              "aff4:type": {
+                "age": 1000,
+                "type": "RDFString",
+                "value": "GenericHunt"
+              },
               "aff4:flow_state": {
                 "args": {
-                  "flow_args": {
-                    "pathspec": {
-                      "path": "/tmp/evil.txt",
-                      "pathtype": "OS"
+                  "age": 0,
+                  "type": "GenericHuntArgs",
+                  "value": {
+                    "flow_args": {
+                      "age": 0,
+                      "type": "GetFileArgs",
+                      "value": {
+                        "pathspec": {
+                          "age": 0,
+                          "type": "PathSpec",
+                          "value": {
+                            "path": {
+                              "age": 0,
+                              "type": "unicode",
+                              "value": "/tmp/evil.txt"
+                            },
+                            "pathtype": {
+                              "age": 0,
+                              "type": "EnumNamedValue",
+                              "value": "OS"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "flow_runner_args": {
+                      "age": 0,
+                      "type": "FlowRunnerArgs",
+                      "value": {
+                        "flow_name": {
+                          "age": 0,
+                          "type": "unicode",
+                          "value": "GetFile"
+                        }
+                      }
                     }
-                  },
-                  "flow_runner_args": {
-                    "flow_name": "GetFile"
                   }
                 },
                 "context": {
                   "args": {
-                    "client_rate": 0.0,
-                    "description": "hunt_1",
-                    "hunt_name": "GenericHunt",
-                    "token": {
-                      "reason": "Running tests",
-                      "username": "test"
+                    "age": 0,
+                    "type": "HuntRunnerArgs",
+                    "value": {
+                      "client_rate": {
+                        "age": 0,
+                        "type": "float",
+                        "value": 0.0
+                      },
+                      "description": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "hunt_1"
+                      },
+                      "hunt_name": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "GenericHunt"
+                      },
+                      "token": {
+                        "age": 0,
+                        "type": "ACLToken",
+                        "value": {
+                          "reason": {
+                            "age": 0,
+                            "type": "unicode",
+                            "value": "Running tests"
+                          },
+                          "username": {
+                            "age": 0,
+                            "type": "unicode",
+                            "value": "test"
+                          }
+                        }
+                      }
                     }
                   },
-                  "backtrace": "None",
-                  "client_resources": {},
-                  "create_time": 1000000000,
-                  "creator": "test",
-                  "current_state": "Start",
-                  "expires": 1000000000,
-                  "kill_timestamp": "None",
-                  "network_bytes_sent": 0,
-                  "next_client_due": 0,
-                  "next_outbound_id": 1,
-                  "next_processed_request": 1,
+                  "backtrace": {
+                    "age": 0,
+                    "type": "NoneType",
+                    "value": "None"
+                  },
+                  "client_resources": {
+                    "age": 0,
+                    "type": "ClientResources",
+                    "value": {}
+                  },
+                  "create_time": {
+                    "age": 0,
+                    "type": "RDFDatetime",
+                    "value": 1000000000
+                  },
+                  "creator": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "test"
+                  },
+                  "current_state": {
+                    "age": 0,
+                    "type": "str",
+                    "value": "Start"
+                  },
+                  "expires": {
+                    "age": 0,
+                    "type": "RDFDatetime",
+                    "value": 1000000000
+                  },
+                  "kill_timestamp": {
+                    "age": 0,
+                    "type": "NoneType",
+                    "value": "None"
+                  },
+                  "network_bytes_sent": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 0
+                  },
+                  "next_client_due": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 0
+                  },
+                  "next_outbound_id": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 1
+                  },
+                  "next_processed_request": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 1
+                  },
                   "next_states": "<lists are omitted>",
-                  "output_plugins_base_urn": "aff4:/hunts/H:000001/Results",
-                  "outstanding_requests": 0,
-                  "remaining_cpu_quota": 0,
-                  "results_collection_urn": "aff4:/hunts/H:000001/Results",
-                  "results_metadata_urn": "aff4:/hunts/H:000001/ResultsMetadata",
-                  "session_id": "aff4:/hunts/H:000001",
-                  "start_time": 1000000000,
-                  "state": "RUNNING",
-                  "status": "0 flows terminated.",
+                  "output_plugins_base_urn": {
+                    "age": 1000,
+                    "type": "RDFURN",
+                    "value": "aff4:/hunts/H:000001/Results"
+                  },
+                  "outstanding_requests": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 0
+                  },
+                  "remaining_cpu_quota": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 0
+                  },
+                  "results_collection_urn": {
+                    "age": 1000,
+                    "type": "RDFURN",
+                    "value": "aff4:/hunts/H:000001/Results"
+                  },
+                  "results_metadata_urn": {
+                    "age": 1000,
+                    "type": "RDFURN",
+                    "value": "aff4:/hunts/H:000001/ResultsMetadata"
+                  },
+                  "session_id": {
+                    "age": 1000,
+                    "type": "SessionID",
+                    "value": "aff4:/hunts/H:000001"
+                  },
+                  "start_time": {
+                    "age": 0,
+                    "type": "RDFDatetime",
+                    "value": 1000000000
+                  },
+                  "state": {
+                    "age": 0,
+                    "type": "EnumNamedValue",
+                    "value": "RUNNING"
+                  },
+                  "status": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "0 flows terminated."
+                  },
                   "usage_stats": {
-                    "network_bytes_sent_stats": {
-                      "histogram": {
-                        "bins": "<lists are omitted>"
-                      }
-                    },
-                    "system_cpu_stats": {
-                      "histogram": {
-                        "bins": "<lists are omitted>"
-                      }
-                    },
-                    "user_cpu_stats": {
-                      "histogram": {
-                        "bins": "<lists are omitted>"
+                    "age": 0,
+                    "type": "ClientResourcesStats",
+                    "value": {
+                      "network_bytes_sent_stats": {
+                        "age": 0,
+                        "type": "RunningStats",
+                        "value": {
+                          "histogram": {
+                            "age": 0,
+                            "type": "StatsHistogram",
+                            "value": {
+                              "bins": "<lists are omitted>"
+                            }
+                          }
+                        }
+                      },
+                      "system_cpu_stats": {
+                        "age": 0,
+                        "type": "RunningStats",
+                        "value": {
+                          "histogram": {
+                            "age": 0,
+                            "type": "StatsHistogram",
+                            "value": {
+                              "bins": "<lists are omitted>"
+                            }
+                          }
+                        }
+                      },
+                      "user_cpu_stats": {
+                        "age": 0,
+                        "type": "RunningStats",
+                        "value": {
+                          "histogram": {
+                            "age": 0,
+                            "type": "StatsHistogram",
+                            "value": {
+                              "bins": "<lists are omitted>"
+                            }
+                          }
+                        }
                       }
                     }
                   }
                 }
               },
-              "metadata:last": 1000000000
+              "metadata:last": {
+                "age": 1000,
+                "type": "RDFDatetime",
+                "value": 1000000000
+              }
             },
             "summary": {
-              "client_limit": 0,
-              "client_rate": 0.0,
-              "create_time": 1000000000,
-              "creator": "test",
-              "description": "hunt_1",
-              "expires": 1000000000,
-              "hunt_name": "GenericHunt",
-              "state": "STOPPED"
+              "client_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "client_rate": {
+                "age": 0,
+                "type": "float",
+                "value": 0.0
+              },
+              "create_time": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 1000000000
+              },
+              "creator": {
+                "age": 0,
+                "type": "unicode",
+                "value": "test"
+              },
+              "description": {
+                "age": 0,
+                "type": "unicode",
+                "value": "hunt_1"
+              },
+              "expires": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 1000000000
+              },
+              "hunt_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "GenericHunt"
+              },
+              "state": {
+                "age": 0,
+                "type": "RDFString",
+                "value": "STOPPED"
+              }
             },
             "urn": "aff4:/hunts/H:000001"
           }
@@ -2536,80 +2988,284 @@
             "aff4_class": "GenericHunt",
             "age_policy": "NEWEST_TIME",
             "attributes": {
-              "aff4:hunt_state": "PAUSED",
-              "aff4:type": "GenericHunt",
+              "aff4:hunt_state": {
+                "age": 0,
+                "type": "RDFString",
+                "value": "PAUSED"
+              },
+              "aff4:type": {
+                "age": 0,
+                "type": "RDFString",
+                "value": "GenericHunt"
+              },
               "aff4:flow_state": {
                 "args": {
-                  "flow_args": {
-                    "pathspec": {
-                      "path": "/tmp/evil.txt",
-                      "pathtype": "OS"
+                  "age": 0,
+                  "type": "GenericHuntArgs",
+                  "value": {
+                    "flow_args": {
+                      "age": 0,
+                      "type": "GetFileArgs",
+                      "value": {
+                        "pathspec": {
+                          "age": 0,
+                          "type": "PathSpec",
+                          "value": {
+                            "path": {
+                              "age": 0,
+                              "type": "unicode",
+                              "value": "/tmp/evil.txt"
+                            },
+                            "pathtype": {
+                              "age": 0,
+                              "type": "EnumNamedValue",
+                              "value": "OS"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "flow_runner_args": {
+                      "age": 0,
+                      "type": "FlowRunnerArgs",
+                      "value": {
+                        "flow_name": {
+                          "age": 0,
+                          "type": "unicode",
+                          "value": "GetFile"
+                        }
+                      }
                     }
-                  },
-                  "flow_runner_args": {
-                    "flow_name": "GetFile"
                   }
                 },
                 "context": {
                   "args": {
-                    "client_rate": 0.0,
-                    "description": "hunt_0",
-                    "hunt_name": "GenericHunt",
-                    "token": {
-                      "reason": "Running tests",
-                      "username": "test"
+                    "age": 0,
+                    "type": "HuntRunnerArgs",
+                    "value": {
+                      "client_rate": {
+                        "age": 0,
+                        "type": "float",
+                        "value": 0.0
+                      },
+                      "description": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "hunt_0"
+                      },
+                      "hunt_name": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "GenericHunt"
+                      },
+                      "token": {
+                        "age": 0,
+                        "type": "ACLToken",
+                        "value": {
+                          "reason": {
+                            "age": 0,
+                            "type": "unicode",
+                            "value": "Running tests"
+                          },
+                          "username": {
+                            "age": 0,
+                            "type": "unicode",
+                            "value": "test"
+                          }
+                        }
+                      }
                     }
                   },
-                  "backtrace": "None",
-                  "client_resources": {},
-                  "create_time": 0,
-                  "creator": "test",
-                  "current_state": "Start",
-                  "expires": 0,
-                  "kill_timestamp": "None",
-                  "network_bytes_sent": 0,
-                  "next_client_due": 0,
-                  "next_outbound_id": 1,
-                  "next_processed_request": 1,
+                  "backtrace": {
+                    "age": 0,
+                    "type": "NoneType",
+                    "value": "None"
+                  },
+                  "client_resources": {
+                    "age": 0,
+                    "type": "ClientResources",
+                    "value": {}
+                  },
+                  "create_time": {
+                    "age": 0,
+                    "type": "RDFDatetime",
+                    "value": 0
+                  },
+                  "creator": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "test"
+                  },
+                  "current_state": {
+                    "age": 0,
+                    "type": "str",
+                    "value": "Start"
+                  },
+                  "expires": {
+                    "age": 0,
+                    "type": "RDFDatetime",
+                    "value": 0
+                  },
+                  "kill_timestamp": {
+                    "age": 0,
+                    "type": "NoneType",
+                    "value": "None"
+                  },
+                  "network_bytes_sent": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 0
+                  },
+                  "next_client_due": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 0
+                  },
+                  "next_outbound_id": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 1
+                  },
+                  "next_processed_request": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 1
+                  },
                   "next_states": "<lists are omitted>",
-                  "output_plugins_base_urn": "aff4:/hunts/H:000000/Results",
-                  "outstanding_requests": 0,
-                  "remaining_cpu_quota": 0,
-                  "results_collection_urn": "aff4:/hunts/H:000000/Results",
-                  "results_metadata_urn": "aff4:/hunts/H:000000/ResultsMetadata",
-                  "session_id": "aff4:/hunts/H:000000",
-                  "start_time": 0,
-                  "state": "RUNNING",
+                  "output_plugins_base_urn": {
+                    "age": 0,
+                    "type": "RDFURN",
+                    "value": "aff4:/hunts/H:000000/Results"
+                  },
+                  "outstanding_requests": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 0
+                  },
+                  "remaining_cpu_quota": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 0
+                  },
+                  "results_collection_urn": {
+                    "age": 0,
+                    "type": "RDFURN",
+                    "value": "aff4:/hunts/H:000000/Results"
+                  },
+                  "results_metadata_urn": {
+                    "age": 0,
+                    "type": "RDFURN",
+                    "value": "aff4:/hunts/H:000000/ResultsMetadata"
+                  },
+                  "session_id": {
+                    "age": 0,
+                    "type": "SessionID",
+                    "value": "aff4:/hunts/H:000000"
+                  },
+                  "start_time": {
+                    "age": 0,
+                    "type": "RDFDatetime",
+                    "value": 0
+                  },
+                  "state": {
+                    "age": 0,
+                    "type": "EnumNamedValue",
+                    "value": "RUNNING"
+                  },
                   "usage_stats": {
-                    "network_bytes_sent_stats": {
-                      "histogram": {
-                        "bins": "<lists are omitted>"
-                      }
-                    },
-                    "system_cpu_stats": {
-                      "histogram": {
-                        "bins": "<lists are omitted>"
-                      }
-                    },
-                    "user_cpu_stats": {
-                      "histogram": {
-                        "bins": "<lists are omitted>"
+                    "age": 0,
+                    "type": "ClientResourcesStats",
+                    "value": {
+                      "network_bytes_sent_stats": {
+                        "age": 0,
+                        "type": "RunningStats",
+                        "value": {
+                          "histogram": {
+                            "age": 0,
+                            "type": "StatsHistogram",
+                            "value": {
+                              "bins": "<lists are omitted>"
+                            }
+                          }
+                        }
+                      },
+                      "system_cpu_stats": {
+                        "age": 0,
+                        "type": "RunningStats",
+                        "value": {
+                          "histogram": {
+                            "age": 0,
+                            "type": "StatsHistogram",
+                            "value": {
+                              "bins": "<lists are omitted>"
+                            }
+                          }
+                        }
+                      },
+                      "user_cpu_stats": {
+                        "age": 0,
+                        "type": "RunningStats",
+                        "value": {
+                          "histogram": {
+                            "age": 0,
+                            "type": "StatsHistogram",
+                            "value": {
+                              "bins": "<lists are omitted>"
+                            }
+                          }
+                        }
                       }
                     }
                   }
                 }
               },
-              "metadata:last": 0
+              "metadata:last": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 0
+              }
             },
             "summary": {
-              "client_limit": 0,
-              "client_rate": 0.0,
-              "create_time": 0,
-              "creator": "test",
-              "description": "hunt_0",
-              "expires": 0,
-              "hunt_name": "GenericHunt",
-              "state": "PAUSED"
+              "client_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "client_rate": {
+                "age": 0,
+                "type": "float",
+                "value": 0.0
+              },
+              "create_time": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 0
+              },
+              "creator": {
+                "age": 0,
+                "type": "unicode",
+                "value": "test"
+              },
+              "description": {
+                "age": 0,
+                "type": "unicode",
+                "value": "hunt_0"
+              },
+              "expires": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 0
+              },
+              "hunt_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "GenericHunt"
+              },
+              "state": {
+                "age": 0,
+                "type": "RDFString",
+                "value": "PAUSED"
+              }
             },
             "urn": "aff4:/hunts/H:000000"
           }
@@ -2627,19 +3283,19 @@
       "response": {
         "default": {
           "age": 0,
-          "mro": [
-            "Duration",
-            "RDFInteger",
-            "RDFString",
-            "RDFBytes",
-            "RDFValue",
-            "object"
-          ],
           "type": "Duration",
           "value": 0
         },
         "doc": "Duration value stored in seconds internally.",
         "kind": "primitive",
+        "mro": [
+          "Duration",
+          "RDFInteger",
+          "RDFString",
+          "RDFBytes",
+          "RDFValue",
+          "object"
+        ],
         "name": "Duration"
       },
       "test_class": "ApiRDFValueReflectionRendererRegressionTest",
@@ -2650,13 +3306,6 @@
       "response": {
         "default": {
           "age": 0,
-          "mro": [
-            "ApiRDFValueCollectionRendererArgs",
-            "RDFProtoStruct",
-            "RDFStruct",
-            "RDFValue",
-            "object"
-          ],
           "type": "ApiRDFValueCollectionRendererArgs",
           "value": {}
         },
@@ -2665,11 +3314,7 @@
           {
             "default": {
               "age": 0,
-              "mro": [
-                "int",
-                "object"
-              ],
-              "type": "int",
+              "type": "long",
               "value": 0
             },
             "doc": "Fetch items starting from this offset.",
@@ -2683,11 +3328,7 @@
           {
             "default": {
               "age": 0,
-              "mro": [
-                "int",
-                "object"
-              ],
-              "type": "int",
+              "type": "long",
               "value": 0
             },
             "doc": "Fetch this number of elements.",
@@ -2701,14 +3342,6 @@
           {
             "default": {
               "age": 0,
-              "mro": [
-                "RDFBool",
-                "RDFInteger",
-                "RDFString",
-                "RDFBytes",
-                "RDFValue",
-                "object"
-              ],
               "type": "RDFBool",
               "value": false
             },
@@ -2723,11 +3356,6 @@
           {
             "default": {
               "age": 0,
-              "mro": [
-                "unicode",
-                "basestring",
-                "object"
-              ],
               "type": "unicode",
               "value": ""
             },
@@ -2742,11 +3370,7 @@
           {
             "default": {
               "age": 0,
-              "mro": [
-                "int",
-                "object"
-              ],
-              "type": "int",
+              "type": "long",
               "value": -1
             },
             "doc": "If >0, lists of values in the response will contain no more than specified number of items. This is an effective way to protect the UI from fetching and presenting enormously big datasets. If 0, no lists will be rendered at all. If -1, lists will be rendered in their entirety.",
@@ -2756,48 +3380,16 @@
             "name": "items_limit_lists",
             "repeated": false,
             "type": "RDFInteger"
-          },
-          {
-            "allowed_values": [
-              {
-                "doc": "Do not include type information.",
-                "name": "NONE",
-                "value": 0
-              },
-              {
-                "doc": "Include type names and MROs for all values.",
-                "name": "WITH_TYPES",
-                "value": 1
-              },
-              {
-                "doc": "Include type names, descriptions, friendly names, suggested fields order, etc.",
-                "name": "WITH_TYPES_AND_METADATA",
-                "value": 2
-              }
-            ],
-            "default": {
-              "age": 0,
-              "mro": [
-                "EnumNamedValue",
-                "RDFInteger",
-                "RDFString",
-                "RDFBytes",
-                "RDFValue",
-                "object"
-              ],
-              "type": "EnumNamedValue",
-              "value": "NONE"
-            },
-            "doc": "Which type information to include when rendering collection items.",
-            "dynamic": false,
-            "friendly_name": "Items type info",
-            "index": 6,
-            "name": "items_type_info",
-            "repeated": false,
-            "type": "EnumNamedValue"
           }
         ],
         "kind": "struct",
+        "mro": [
+          "ApiRDFValueCollectionRendererArgs",
+          "RDFProtoStruct",
+          "RDFStruct",
+          "RDFValue",
+          "object"
+        ],
         "name": "ApiRDFValueCollectionRendererArgs"
       },
       "test_class": "ApiRDFValueReflectionRendererRegressionTest",
@@ -3243,22 +3835,82 @@
       "method": "GET",
       "response": {
         "sample_counter": {
-          "docstring": "Sample counter metric.",
-          "metric_type": "COUNTER",
-          "value_type": "INT",
-          "varname": "sample_counter"
+          "age": 0,
+          "type": "MetricMetadata",
+          "value": {
+            "docstring": {
+              "age": 0,
+              "type": "unicode",
+              "value": "Sample counter metric."
+            },
+            "metric_type": {
+              "age": 0,
+              "type": "EnumNamedValue",
+              "value": "COUNTER"
+            },
+            "value_type": {
+              "age": 0,
+              "type": "EnumNamedValue",
+              "value": "INT"
+            },
+            "varname": {
+              "age": 0,
+              "type": "unicode",
+              "value": "sample_counter"
+            }
+          }
         },
         "sample_event": {
-          "docstring": "Sample event metric.",
-          "metric_type": "EVENT",
-          "value_type": "DISTRIBUTION",
-          "varname": "sample_event"
+          "age": 0,
+          "type": "MetricMetadata",
+          "value": {
+            "docstring": {
+              "age": 0,
+              "type": "unicode",
+              "value": "Sample event metric."
+            },
+            "metric_type": {
+              "age": 0,
+              "type": "EnumNamedValue",
+              "value": "EVENT"
+            },
+            "value_type": {
+              "age": 0,
+              "type": "EnumNamedValue",
+              "value": "DISTRIBUTION"
+            },
+            "varname": {
+              "age": 0,
+              "type": "unicode",
+              "value": "sample_event"
+            }
+          }
         },
         "sample_gauge_value": {
-          "docstring": "Sample gauge metric.",
-          "metric_type": "GAUGE",
-          "value_type": "STR",
-          "varname": "sample_gauge_value"
+          "age": 0,
+          "type": "MetricMetadata",
+          "value": {
+            "docstring": {
+              "age": 0,
+              "type": "unicode",
+              "value": "Sample gauge metric."
+            },
+            "metric_type": {
+              "age": 0,
+              "type": "EnumNamedValue",
+              "value": "GAUGE"
+            },
+            "value_type": {
+              "age": 0,
+              "type": "EnumNamedValue",
+              "value": "STR"
+            },
+            "varname": {
+              "age": 0,
+              "type": "unicode",
+              "value": "sample_gauge_value"
+            }
+          }
         }
       },
       "test_class": "ApiStatsStoreMetricsMetadataRendererRegressionTest",
@@ -3270,34 +3922,10 @@
       "method": "GET",
       "response": {
         "age": 42,
-        "fields_order": [
-          "canary_mode"
-        ],
-        "metadata": {
-          "canary_mode": {
-            "description": "If true, show features that are being canaried.",
-            "friendly_name": "Canary mode"
-          }
-        },
-        "mro": [
-          "GUISettings",
-          "RDFProtoStruct",
-          "RDFStruct",
-          "RDFValue",
-          "object"
-        ],
         "type": "GUISettings",
         "value": {
           "canary_mode": {
             "age": 0,
-            "mro": [
-              "RDFBool",
-              "RDFInteger",
-              "RDFString",
-              "RDFBytes",
-              "RDFValue",
-              "object"
-            ],
             "type": "RDFBool",
             "value": true
           }

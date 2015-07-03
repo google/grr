@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Implementation of filters, which run host data through a chain of parsers."""
+"""Implement rdf post-processors for running data through a chain of parsers."""
 import os
 import re
 import stat
@@ -238,6 +238,37 @@ class ObjectFilter(Filter):
     self._Compile(expression)
 
 
+class ForEach(ObjectFilter):
+  """A filter that extracts values from a repeated field.
+
+  This filter is a convenient way to extract repeated items from an object
+  for individual processing.
+
+  Args:
+    objs: One or more objects.
+    expression: An expression specifying what attribute to expand.
+
+  Yields:
+     The RDF values of elements in the repeated fields.
+  """
+
+  def Validate(self, expression):
+    attrs = [x.strip() for x in expression.strip().split() if x]
+    if attrs:
+      if len(attrs) == 1:
+        return
+      raise DefinitionError("ForEach has multiple attributes: %s" %
+                            expression)
+    raise DefinitionError("ForEach sets no attribute: %s" % expression)
+
+  def ParseObjs(self, objs, expression):
+    for obj in objs:
+      repeated_vals = getattr(obj, expression)
+      for val in repeated_vals:
+        if isinstance(val, rdfvalue.RDFValue):
+          yield val
+
+
 class ItemFilter(ObjectFilter):
   """A filter that extracts the first match item from a objectfilter expression.
 
@@ -283,7 +314,7 @@ class StatFilter(Filter):
     expression: A statfilter expression
 
   Yields:
-    StatResult objets that match the filter term.
+    StatResult objects that match the filter term.
   """
   _KEYS = {"path_re", "file_re", "file_type", "uid", "gid", "mode", "mask"}
   _UID_GID_RE = re.compile(r"\A(!|>|>=|<=|<|=)([0-9]+)\Z")

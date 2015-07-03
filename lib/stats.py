@@ -304,7 +304,7 @@ class StatsCollector(object):
 
   def __init__(self):
     self._metrics = {}
-    self.lock = threading.Lock()
+    self.lock = threading.RLock()
     self._metrics_metadata = {}
 
   @staticmethod
@@ -342,6 +342,7 @@ class StatsCollector(object):
                                           field_type=field_type))
     return result
 
+  @utils.Synchronized
   def RegisterCounterMetric(self, varname, fields=None, docstring=None,
                             units=None):
     """Registers a counter metric (integer value that never decreases).
@@ -381,6 +382,7 @@ class StatsCollector(object):
     """
     self._metrics[varname].Increment(delta, fields)
 
+  @utils.Synchronized
   def RegisterEventMetric(self, varname, bins=None, fields=None,
                           docstring=None, units=None):
     """Registers metric that records distribution of values.
@@ -420,6 +422,7 @@ class StatsCollector(object):
     """
     self._metrics[varname].Record(value, fields)
 
+  @utils.Synchronized
   def RegisterGaugeMetric(self, varname, value_type, fields=None,
                           docstring=None, units=None):
     """Registers metric that may change arbitrarily.

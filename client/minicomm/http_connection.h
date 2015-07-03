@@ -4,10 +4,10 @@
 #include <chrono>
 #include <memory>
 
-#include "base.h"
-#include "comms_utils.h"
-#include "config.h"
-#include "message_queue.h"
+#include "grr/client/minicomm/base.h"
+#include "grr/client/minicomm/comms_utils.h"
+#include "grr/client/minicomm/config.h"
+#include "grr/client/minicomm/message_queue.h"
 
 namespace grr {
 class HttpConnectionManager {

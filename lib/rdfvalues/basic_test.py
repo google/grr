@@ -5,6 +5,8 @@
 """Basic rdfvalue tests."""
 
 
+import datetime
+from datetime import datetime
 import time
 
 from grr.lib import rdfvalue
@@ -303,6 +305,17 @@ class RDFDatetimeTest(test_base.RDFValueTestCase):
 
     finally:
       time.time = orig_time
+
+  def testInitFromDatetimeObject(self):
+    # Test initializing from a datetime object
+    date = datetime(2015, 6, 17, 5, 22, 3)
+    self.assertEqual(rdfvalue.RDFDatetime(date).AsDatetime(), date)
+    date = datetime.utcfromtimestamp(99999)
+    self.assertEqual(rdfvalue.RDFDatetime(date).AsSecondsFromEpoch(), 99999)
+
+    # Test microsecond support
+    date = datetime(1970, 1, 1, 0, 0, 0, 1000)
+    self.assertEqual(rdfvalue.RDFDatetime(date).AsMicroSecondsFromEpoch(), 1000)
 
   def testAddNumber(self):
     date = rdfvalue.RDFDatetime(1e9)

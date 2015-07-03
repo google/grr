@@ -16,6 +16,6 @@ call refreshenv
 
 mkdir %SYSTEMDRIVE%\openssl
 cd %SYSTEMDRIVE%\openssl
-powershell -NoProfile -ExecutionPolicy unrestricted -Command "(new-object System.Net.WebClient).DownloadFile('https://www.openssl.org/source/openssl-1.0.2a.tar.gz', '%SYSTEMDRIVE%\openssl\openssl-1.0.2a.tar.gz')" || echo "Couldn't download openssl" && exit /b 1
-7z e openssl-1.0.2a.tar.gz
+powershell -NoProfile -ExecutionPolicy unrestricted -Command "(new-object System.Net.WebClient).DownloadFile('https://www.openssl.org/source/openssl-1.0.2c.tar.gz', '%SYSTEMDRIVE%\openssl\openssl-1.0.2c.tar.gz')" || echo "Couldn't download openssl" && exit /b 1
+7z e openssl-1.0.2c.tar.gz
 

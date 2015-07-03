@@ -4,10 +4,14 @@ PROTO_PACKAGES=(libprotobuf9_2.6.1-1ppa1~precise_amd64.deb libprotobuf-lite9_2.6
 mkdir protobuf-debs
 cd protobuf-debs
 
+# Dependency for libprotobuf-dev package.
+sudo apt-get install zlib1g-dev
+
+# TODO: move these packages into the ppa.
 echo "Installing protobuf debs"
 for i in ${PROTO_PACKAGES[@]}; do
   echo "Downloading custom package $i"
-  wget https://dionyziz.com/protobuf-debs/$i
+  wget https://googledrive.com/host/0B1wsLqFoT7i2aW5mWXNDX1NtTnc/$i
   echo "Installing $i"
   sudo dpkg -i $i
 done
@@ -15,9 +19,15 @@ cd ..
 echo "Protobuf debs installed"
 
 sudo apt-get install python-software-properties
-sudo add-apt-repository ppa:kristinn-l/plaso-dev -y
+# no pytsk3 for precise in stable ppa
+sudo add-apt-repository ppa:gift/dev -y
 sudo apt-get update -q
-sudo apt-get install m2crypto python-support libdistorm64-1 libdistorm64-dev python-psutil pytsk3 ncurses-dev python-pip
+sudo apt-get install python-dev python-m2crypto python-support libdistorm64-1 libdistorm64-dev python-psutil pytsk3 ncurses-dev python-pip -y
+sudo pip install pip --upgrade
+
+# Required for M2Crypto matplotlib and numpy
+sudo apt-get install libfreetype6-dev swig libpng-dev -y
+sudo pip install distribute --upgrade
 
 PLAT=amd64
 DEB_DEPENDENCIES_URL=https://googledrive.com/host/0B1wsLqFoT7i2aW5mWXNDX1NtTnc/ubuntu-12.04-${PLAT}-debs.tar.gz
@@ -28,3 +38,4 @@ DEB_DEPENDENCIES_TARBALL=$(basename ${DEB_DEPENDENCIES_URL})
 wget --no-verbose ${DEB_DEPENDENCIES_URL} -O ${DEB_DEPENDENCIES_TARBALL}
 tar zxfv ${DEB_DEPENDENCIES_TARBALL}
 sudo dpkg -i ${DEB_DEPENDENCIES_DIR}/${SLEUTHKIT_DEB}
+

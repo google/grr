@@ -37,9 +37,11 @@ class MockVFSHandlerFind(vfs.VFSHandler):
                 "/mock2/directory3/long_file.text": ("space " * 100000 +
                                                      "A Secret")}
 
-  def __init__(self, base_fd, pathspec=None, progress_callback=None):
+  def __init__(self, base_fd, pathspec=None, progress_callback=None,
+               full_pathspec=None):
     super(MockVFSHandlerFind, self).__init__(
-        base_fd, pathspec=pathspec, progress_callback=progress_callback)
+        base_fd, pathspec=pathspec, progress_callback=progress_callback,
+        full_pathspec=full_pathspec)
 
     self.pathspec.Append(pathspec)
     self.path = self.pathspec.CollapsePath()
@@ -73,12 +75,20 @@ class MockVFSHandlerFind(vfs.VFSHandler):
     if isinstance(f, str):
       if path.startswith("/mock2/directory1/directory2"):
         result.st_mode = 0o0100644  # u=rw,g=r,o=r on regular file
+        result.st_uid = 50
+        result.st_gid = 500
       elif path.startswith("/mock2/directory3"):
         result.st_mode = 0o0100643  # u=rw,g=r,o=wx on regular file
+        result.st_uid = 60
+        result.st_gid = 600
       else:
         result.st_mode = 0o0104666  # setuid, u=rw,g=rw,o=rw on regular file
+        result.st_uid = 90
+        result.st_gid = 900
     else:
       result.st_mode = 0o0040775  # u=rwx,g=rwx,o=rx on directory
+      result.st_uid = 0
+      result.st_gid = 4
     result.st_size = len(f)
     result.st_mtime = 1373185602
 
@@ -328,6 +338,111 @@ class FindTest(test_lib.EmptyActionTest):
     self.assertEqual(all_files[0].pathspec.Basename(), "directory2")
     self.assertEqual(all_files[1].pathspec.Basename(), "directory1")
     self.assertEqual(all_files[2].pathspec.Basename(), "directory3")
+
+  def testUIDFilter(self):
+    """Test filtering based on uid happens correctly."""
+
+    pathspec = rdf_paths.PathSpec(path="/mock2/",
+                                  pathtype=rdf_paths.PathSpec.PathType.OS)
+
+    # Look for files that have uid of 60
+
+    request = rdf_client.FindSpec(pathspec=pathspec, path_regex=".",
+                                  uid=60, cross_devs=True)
+    request.iterator.number = 200
+    result = self.RunAction("Find", request)
+    all_files = [x.hit for x in result if isinstance(x, rdf_client.FindSpec)]
+
+    self.assertEqual(len(all_files), 2)
+    self.assertEqual(all_files[0].pathspec.Dirname().Basename(),
+                     "directory3")
+    self.assertEqual(all_files[0].pathspec.Basename(), "file1.txt")
+    self.assertEqual(all_files[1].pathspec.Dirname().Basename(),
+                     "directory3")
+    self.assertEqual(all_files[1].pathspec.Basename(), "long_file.text")
+
+    # Look for files that have uid of 0
+
+    request = rdf_client.FindSpec(pathspec=pathspec, path_regex=".",
+                                  uid=0, cross_devs=True)
+    request.iterator.number = 200
+    result = self.RunAction("Find", request)
+    all_files = [x.hit for x in result if isinstance(x, rdf_client.FindSpec)]
+
+    self.assertEqual(len(all_files), 3)
+    self.assertEqual(all_files[0].pathspec.Basename(), "directory2")
+    self.assertEqual(all_files[1].pathspec.Basename(), "directory1")
+    self.assertEqual(all_files[2].pathspec.Basename(), "directory3")
+
+  def testGIDFilter(self):
+    """Test filtering based on gid happens correctly."""
+
+    pathspec = rdf_paths.PathSpec(path="/mock2/",
+                                  pathtype=rdf_paths.PathSpec.PathType.OS)
+
+    # Look for files that have gid of 500
+
+    request = rdf_client.FindSpec(pathspec=pathspec, path_regex=".",
+                                  gid=500, cross_devs=True)
+    request.iterator.number = 200
+    result = self.RunAction("Find", request)
+    all_files = [x.hit for x in result if isinstance(x, rdf_client.FindSpec)]
+
+    self.assertEqual(len(all_files), 2)
+    self.assertEqual(all_files[0].pathspec.Dirname().Basename(),
+                     "directory2")
+    self.assertEqual(all_files[0].pathspec.Basename(), "file.jpg")
+    self.assertEqual(all_files[1].pathspec.Dirname().Basename(),
+                     "directory2")
+    self.assertEqual(all_files[1].pathspec.Basename(), "file.mp3")
+
+    # Look for files that have uid of 900
+
+    request = rdf_client.FindSpec(pathspec=pathspec, path_regex=".",
+                                  gid=900, cross_devs=True)
+    request.iterator.number = 200
+    result = self.RunAction("Find", request)
+    all_files = [x.hit for x in result if isinstance(x, rdf_client.FindSpec)]
+
+    self.assertEqual(len(all_files), 2)
+    self.assertEqual(all_files[0].pathspec.Dirname().Basename(),
+                     "directory1")
+    self.assertEqual(all_files[0].pathspec.Basename(), "file1.txt")
+    self.assertEqual(all_files[1].pathspec.Dirname().Basename(),
+                     "directory1")
+    self.assertEqual(all_files[1].pathspec.Basename(), "file2.txt")
+
+  def testUIDAndGIDFilter(self):
+    """Test filtering based on combination of uid and gid happens correctly."""
+
+    pathspec = rdf_paths.PathSpec(path="/mock2/",
+                                  pathtype=rdf_paths.PathSpec.PathType.OS)
+
+    # Look for files that have uid of 90 and gid of 500
+
+    request = rdf_client.FindSpec(pathspec=pathspec, path_regex=".",
+                                  uid=90, gid=500, cross_devs=True)
+    request.iterator.number = 200
+    result = self.RunAction("Find", request)
+    all_files = [x.hit for x in result if isinstance(x, rdf_client.FindSpec)]
+
+    self.assertEqual(len(all_files), 0)
+
+    # Look for files that have uid of 50 and gid of 500
+
+    request = rdf_client.FindSpec(pathspec=pathspec, path_regex=".",
+                                  uid=50, gid=500, cross_devs=True)
+    request.iterator.number = 200
+    result = self.RunAction("Find", request)
+    all_files = [x.hit for x in result if isinstance(x, rdf_client.FindSpec)]
+
+    self.assertEqual(len(all_files), 2)
+    self.assertEqual(all_files[0].pathspec.Dirname().Basename(),
+                     "directory2")
+    self.assertEqual(all_files[0].pathspec.Basename(), "file.jpg")
+    self.assertEqual(all_files[1].pathspec.Dirname().Basename(),
+                     "directory2")
+    self.assertEqual(all_files[1].pathspec.Basename(), "file.mp3")
 
 
 class GrepTest(test_lib.EmptyActionTest):

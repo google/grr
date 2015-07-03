@@ -71,8 +71,12 @@ class EndToEndTestFlow(flow.GRRFlow):
     # Save the object so we can call CheckFlow once the flow is done
     self.state.flow_test_map[test_object.session_id] = test_object
 
-  def _AddTest(self, cls, system):
-    if aff4.issubclass(cls, base.AutomatedTest) and system in cls.platforms:
+  def _AddTest(self, cls, system, client_version):
+    if aff4.issubclass(cls, base.AutomatedTest):
+      if system not in cls.platforms:
+        return
+      if cls.client_min_version and client_version < cls.client_min_version:
+        return
       if not cls.__name__.startswith("Abstract"):
         self.state.test_set.add(cls)
 
@@ -87,14 +91,16 @@ class EndToEndTestFlow(flow.GRRFlow):
     self.client = aff4.FACTORY.Open(self.client_id, token=self.token)
     self.state.client_summary = self.client.GetSummary()
     system = self.state.client_summary.system_info.system
+    client_version = self.state.client_summary.client_info.client_version
 
     for test_name in self.args.test_names:
-      self._AddTest(base.AutomatedTest.classes[test_name], system)
+      self._AddTest(base.AutomatedTest.classes[test_name], system,
+                    client_version)
 
     # If no tests were specified, get all the AutomatedTest classes.
     if not self.args.test_names:
       for cls in base.AutomatedTest.classes.values():
-        self._AddTest(cls, system)
+        self._AddTest(cls, system, client_version)
 
     if not self.state.test_set:
       raise flow.FlowError("No applicable tests for client: %s"

@@ -14,6 +14,7 @@ from grr.lib.checks import checks_test_lib
 # pylint: disable=unused-import
 from grr.lib.flows.general import checks as _
 # pylint: enable=unused-import
+from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 
 # pylint: mode=test
@@ -43,6 +44,8 @@ class TestCheckFlows(test_lib.FlowTestsBaseclass,
     client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
     kb = client.Schema.KNOWLEDGE_BASE()
     kb.os = "Linux"
+    user = rdf_client.KnowledgeBaseUser(username="user1", homedir="/home/user1")
+    kb.users = [user]
     client.Set(client.Schema.KNOWLEDGE_BASE, kb)
     client.Set(client.Schema.SYSTEM("Linux"))
     client.Set(client.Schema.OS_VERSION("12.04"))

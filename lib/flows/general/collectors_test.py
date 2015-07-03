@@ -28,7 +28,13 @@ from grr.test_data import client_fixture
 
 
 class CollectorTest(artifact_test.ArtifactTest):
-  pass
+
+  def _PrepareWindowsClient(self):
+    client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
+    client.Set(client.Schema.SYSTEM("Windows"))
+    client.Set(client.Schema.OS_VERSION("6.2"))
+    client.Flush()
+    return client
 
 
 class TestArtifactCollectors(CollectorTest):
@@ -313,10 +319,7 @@ class TestArtifactCollectorsInteractions(CollectorTest):
 
   def testProcessCollectedArtifacts(self):
     """Test downloading files from artifacts."""
-    client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
-    client.Set(client.Schema.SYSTEM("Windows"))
-    client.Set(client.Schema.OS_VERSION("6.2"))
-    client.Flush()
+    self._PrepareWindowsClient()
 
     vfs.VFS_HANDLERS[
         rdf_paths.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
@@ -368,6 +371,11 @@ class TestArtifactCollectorsInteractions(CollectorTest):
 class TestArtifactCollectorsRealArtifacts(CollectorTest):
   """Test the collection of real artifacts."""
 
+  def setUp(self):
+    """Add test artifacts to existing registry."""
+    super(TestArtifactCollectorsRealArtifacts, self).setUp()
+    self.LoadTestArtifacts()
+
   def _CheckDriveAndRoot(self):
     client_mock = action_mocks.ActionMock("StatFile", "ListDirectory")
 
@@ -396,10 +404,7 @@ class TestArtifactCollectorsRealArtifacts(CollectorTest):
     self.assertTrue(str(fd[0]) in [r"C:\Windows", r"C:\WINDOWS"])
 
   def testSystemDriveArtifact(self):
-    client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
-    client.Set(client.Schema.SYSTEM("Windows"))
-    client.Set(client.Schema.OS_VERSION("6.2"))
-    client.Flush()
+    self._PrepareWindowsClient()
 
     class BrokenClientMock(action_mocks.ActionMock):
 
@@ -436,11 +441,7 @@ class TestArtifactCollectorsRealArtifacts(CollectorTest):
       def WmiQuery(self, _):
         return client_fixture.WMI_CMP_SYS_PRD
 
-    client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
-    client.Set(client.Schema.SYSTEM("Windows"))
-    client.Set(client.Schema.OS_VERSION("6.2"))
-    client.Flush()
-
+    self._PrepareWindowsClient()
     client_mock = WMIActionMock()
     for _ in test_lib.TestFlowHelper(
         "ArtifactCollectorFlow", client_mock,
@@ -464,10 +465,7 @@ class TestArtifactCollectorsRealArtifacts(CollectorTest):
       def WmiQuery(self, _):
         return client_fixture.WMI_SAMPLE
 
-    client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
-    client.Set(client.Schema.SYSTEM("Windows"))
-    client.Set(client.Schema.OS_VERSION("6.2"))
-    client.Flush()
+    self._PrepareWindowsClient()
 
     client_mock = WMIActionMock()
     for _ in test_lib.TestFlowHelper(
@@ -492,12 +490,35 @@ class TestArtifactCollectorsRealArtifacts(CollectorTest):
         self.assertEqual(result.Name(), "homefileshare$")
         self.assertAlmostEqual(result.FreeSpacePercent(), 58.823, delta=0.001)
 
+  def testWMIBaseObject(self):
+    class WMIActionMock(action_mocks.ActionMock):
+
+      base_objects = []
+
+      def WmiQuery(self, args):
+        self.base_objects.append(args.base_object)
+        return client_fixture.WMI_SAMPLE
+
+    self._PrepareWindowsClient()
+
+    client_mock = WMIActionMock()
+    for _ in test_lib.TestFlowHelper(
+        "ArtifactCollectorFlow", client_mock,
+        artifact_list=["WMIActiveScriptEventConsumer"],
+        token=self.token, client_id=self.client_id,
+        dependencies=
+        artifact_lib.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS):
+      pass
+
+    # Make sure the artifact's base_object made it into the WmiQuery call.
+    artifact_obj = artifact_registry.ArtifactRegistry.artifacts[
+        "WMIActiveScriptEventConsumer"]
+    self.assertItemsEqual(WMIActionMock.base_objects,
+                          [artifact_obj.sources[0].attributes["base_object"]])
+
   def testRetrieveDependencies(self):
     """Test getting an artifact without a KB using retrieve_depdendencies."""
-    client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
-    client.Set(client.Schema.SYSTEM("Windows"))
-    client.Set(client.Schema.OS_VERSION("6.2"))
-    client.Flush()
+    self._PrepareWindowsClient()
 
     vfs.VFS_HANDLERS[
         rdf_paths.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler

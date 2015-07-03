@@ -201,17 +201,25 @@ fi
 header "Initialize the configuration, building clients and setting options."
 run_cmd_confirm grr_config_updater initialize
 
-header "Enable grr-single-server to start automatically on boot"
-SERVER_DEFAULT=/etc/default/grr-single-server
-run_cmd_confirm sed -i 's/START=\"no\"/START=\"yes\"/' ${SERVER_DEFAULT};
+header "Enable grr services to start automatically on boot"
 
-header "Starting up the service"
-initctl status grr-single-server | grep "running"
-IS_RUNNING=$?
-if [ $IS_RUNNING = 0 ]; then
-  run_cmd_confirm service grr-single-server stop
-fi
-run_cmd_confirm service grr-single-server start
+for SERVER in grr-http-server grr-worker grr-ui
+do
+  SERVER_DEFAULT=/etc/default/${SERVER}
+  # The package has START=no to enable users installing distributed components
+  # to selectively enable what they want on each machine. Here we want them all
+  # running.
+  run_cmd_confirm sed -i 's/START=\"no\"/START=\"yes\"/' ${SERVER_DEFAULT};
+
+  header "Starting ${SERVER}"
+
+  initctl status ${SERVER} | grep "running"
+  IS_RUNNING=$?
+  if [ $IS_RUNNING = 0 ]; then
+    run_cmd_confirm service ${SERVER} stop
+  fi
+  run_cmd_confirm service ${SERVER} start
+done
 
 HOSTNAME=`hostname`
 echo "############################################################################################"

@@ -1,4 +1,4 @@
-#include "subprocess_delegator.h"
+#include "grr/client/minicomm/subprocess_delegator.h"
 
 #include <chrono>
 #include <ratio>
@@ -8,11 +8,11 @@
 #include "google/protobuf/repeated_field.h"
 #include "gtest/gtest.h"
 
-#include "base.h"
-#include "client_test_base.h"
-#include "config.h"
-#include "config.pb.h"
-#include "message_queue.h"
+#include "grr/client/minicomm/base.h"
+#include "grr/client/minicomm/client_test_base.h"
+#include "grr/client/minicomm/config.h"
+#include "grr/client/minicomm/config.pb.h"
+#include "grr/client/minicomm/message_queue.h"
 
 namespace grr {
 

@@ -8,6 +8,7 @@ from grr.parsers import config_file_test
 from grr.parsers import cron_file_parser_test
 from grr.parsers import firefox3_history_test
 from grr.parsers import ie_history_test
+from grr.parsers import linux_cmd_parser_test
 from grr.parsers import linux_file_parser_test
 from grr.parsers import linux_release_parser_test
 from grr.parsers import linux_service_parser_test

@@ -74,18 +74,20 @@ def MakeCASignedCert(common_name, ca_pkey, bits=2048):
   return cert, pk
 
 
-def MakeCACert(common_name="grr", issuer_cn="grr_test", issuer_c="US"):
+def MakeCACert(common_name="grr", issuer_cn="grr_test", issuer_c="US",
+               bits=2048):
   """Generate a CA certificate.
 
   Args:
     common_name: Name for cert.
     issuer_cn: Name for issuer.
     issuer_c: Country for issuer.
+    bits: Bit length of the key used.
 
   Returns:
     (Certificate, priv key, pub key).
   """
-  req, pk = MakeCSR(2048, common_name=common_name)
+  req, pk = MakeCSR(bits, common_name=common_name)
   pkey = req.get_pubkey()
   cert = X509.X509()
   cert.set_serial_number(1)

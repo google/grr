@@ -5,17 +5,26 @@
 #include <string>
 #include <vector>
 
-#include "../../proto/jobs.pb.h"
-#include "base.h"
-#include "config.h"
-#include "crypto.h"
-#include "message_queue.h"
+#include "grr/proto/jobs.pb.h"
+#include "grr/client/minicomm/base.h"
+#include "grr/client/minicomm/config.h"
+#include "grr/client/minicomm/crypto.h"
+#include "grr/client/minicomm/message_queue.h"
 
 namespace grr {
 
 class MessageBuilder {
  public:
   static void InitiateEnrollment(ClientConfig* config, MessageQueue* outbox);
+};
+
+class NonceGenerator {
+ public:
+  NonceGenerator() : last_nonce_(0) {}
+  uint64 Generate();
+
+ private:
+  uint64 last_nonce_;
 };
 
 class SecureSession {

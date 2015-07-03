@@ -113,6 +113,10 @@ class VFSGRRClient(standard.VFSDirectory):
         "aff4:client_configuration", rdf_protodict.Dict,
         "Running configuration for the GRR client.", "Config")
 
+    LIBRARY_VERSIONS = aff4.Attribute(
+        "aff4:library_versions", rdf_protodict.Dict,
+        "Running library versions for the client.", "Libraries")
+
     USER = aff4.Attribute("aff4:users", rdf_client.Users,
                           "A user of the system.", "Users")
 
@@ -207,7 +211,8 @@ class VFSGRRClient(standard.VFSDirectory):
   AFF4_PREFIXES = {rdf_paths.PathSpec.PathType.OS: "/fs/os",
                    rdf_paths.PathSpec.PathType.TSK: "/fs/tsk",
                    rdf_paths.PathSpec.PathType.REGISTRY: "/registry",
-                   rdf_paths.PathSpec.PathType.MEMORY: "/devices/memory"}
+                   rdf_paths.PathSpec.PathType.MEMORY: "/devices/memory",
+                   rdf_paths.PathSpec.PathType.TMPFILE: "/temp"}
 
   @staticmethod
   def ClientURNFromURN(urn):
@@ -296,7 +301,11 @@ class VFSGRRClient(standard.VFSDirectory):
     summary.system_info.machine = self.Get(self.Schema.ARCH)
     summary.system_info.install_date = self.Get(
         self.Schema.INSTALL_DATE)
-    summary.users = self.Get(self.Schema.USER)
+    # This should be summary.users = self.Get(self.Schema.USER) but older
+    # clients may return serialized users here.
+    users = self.Get(self.Schema.USER)
+    if users:
+      summary.users = [rdf_client.User(u) for u in users]
     summary.interfaces = self.Get(self.Schema.LAST_INTERFACES)
     summary.client_info = self.Get(self.Schema.CLIENT_INFO)
     summary.serial_number = self.Get(self.Schema.HARDWARE_INFO).serial_number

@@ -23,9 +23,9 @@ def Overlay(child, parent):
     if not isinstance(arg, collections.Mapping):
       raise DefinitionError("Trying to merge badly defined hints. Child: %s, "
                             "Parent: %s" % (type(child), type(parent)))
-  for attr in ("fix", "format", "problem", "summary"):
+  for attr in ["fix", "format", "problem", "summary"]:
     if not child.get(attr):
-      child[attr] = parent.get(attr, "")
+      child[attr] = parent.get(attr, "").strip()
   return child
 
 
@@ -51,9 +51,9 @@ class RdfFormatter(string.Formatter):
     """
     # Catch cases where RDFs are iterable but return themselves.
     if parent and obj == parent:
-      results = [utils.SmartUnicode(obj)]
+      results = [utils.SmartUnicode(obj).strip()]
     elif isinstance(obj, (basestring, rdf_structs.EnumNamedValue)):
-      results = [utils.SmartUnicode(obj)]
+      results = [utils.SmartUnicode(obj).strip()]
     elif isinstance(obj, rdf_protodict.DataBlob):
       results = self.FanOut(obj.GetValue())
     elif isinstance(obj, (collections.Mapping, rdf_protodict.Dict)):
@@ -68,7 +68,7 @@ class RdfFormatter(string.Formatter):
       for rslt in [self.FanOut(o, obj) for o in obj]:
         results.extend(rslt)
     else:
-      results = [utils.SmartUnicode(obj)]
+      results = [utils.SmartUnicode(obj).strip()]
     return results
 
   def Format(self, format_string, rdf):
@@ -116,4 +116,4 @@ class Hinter(object):
       result = self.formatter(self.template, rdf_data)
     else:
       result = utils.SmartUnicode(rdf_data)
-    return result
+    return result.strip()

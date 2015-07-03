@@ -673,10 +673,12 @@ class EnumNamedValue(rdfvalue.RDFInteger):
   Enums are just integers, except when printed they have a name.
   """
 
-  def __init__(self, initializer=None, name=None, description=None, age=None):
+  def __init__(self, initializer=None, name=None, description=None, labels=None,
+               age=None):
     super(EnumNamedValue, self).__init__(initializer)
     self.name = name or str(initializer)
     self.description = description
+    self.labels = labels
 
   # TODO(user): EnumNamedValue loses some information when serialized.
   # Currently this only matters when it's pickled (usually - as part of
@@ -707,7 +709,7 @@ class ProtoEnum(ProtoSignedInteger):
   type = EnumNamedValue
 
   def __init__(self, default=None, enum_name=None, enum=None,
-               enum_descriptions=None, **kwargs):
+               enum_descriptions=None, enum_labels=None, **kwargs):
     super(ProtoEnum, self).__init__(**kwargs)
     if enum_name is None:
       raise type_info.TypeValueError("Enum groups must be given a name.")
@@ -722,7 +724,8 @@ class ProtoEnum(ProtoSignedInteger):
         raise type_info.TypeValueError("Enum values must be integers.")
 
     self.enum_container = EnumContainer(
-        name=enum_name, descriptions=enum_descriptions, **(enum or {}))
+        name=enum_name, descriptions=enum_descriptions,
+        enum_labels=enum_labels, **(enum or {}))
     self.enum = self.enum_container.enum_dict
     self.reverse_enum = self.enum_container.reverse_enum
 
@@ -1828,15 +1831,17 @@ class RDFStruct(rdfvalue.RDFValue):
 class EnumContainer(object):
   """A data class to hold enum objects."""
 
-  def __init__(self, name=None, descriptions=None, **kwargs):
+  def __init__(self, name=None, descriptions=None, enum_labels=None, **kwargs):
     descriptions = descriptions or {}
+    enum_labels = enum_labels or {}
 
     self.enum_dict = {}
     self.reverse_enum = {}
     self.name = name
 
     for k, v in kwargs.items():
-      v = EnumNamedValue(v, name=k, description=descriptions.get(k, None))
+      v = EnumNamedValue(v, name=k, description=descriptions.get(k, None),
+                         labels=enum_labels.get(k, None))
       self.enum_dict[k] = v
       self.reverse_enum[v] = k
       setattr(self, k, v)

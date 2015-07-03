@@ -6,9 +6,11 @@ This module implements the Rekall enabled client actions.
 
 
 
+import logging
 import os
 import pdb
 import sys
+import traceback
 
 
 # Initialize the Rekall plugins, so pylint: disable=unused-import
@@ -31,7 +33,8 @@ from grr.client.client_actions import tempfiles
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import utils
-from grr.lib.rdfvalues import paths
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import rekall_types
 
 
@@ -85,20 +88,21 @@ class GRRRekallRenderer(data_export.DataExportRenderer):
   # Maximum number of statements to queue before sending a reply.
   RESPONSE_CHUNK_SIZE = 1000
 
-  def __init__(self, rekall_session=None, action=None):
+  def __init__(self, rekall_session=None, action=None, **kwargs):
     """Collect Rekall rendering commands and send to the server.
 
     Args:
       rekall_session: The Rekall session object.
       action: The GRR Client Action which owns this renderer. We will use it to
          actually send messages back to the server.
+      **kwargs: Passthrough.
     """
     try:
       sys.stdout.isatty()
     except AttributeError:
       sys.stdout.isatty = lambda: False
 
-    super(GRRRekallRenderer, self).__init__(session=rekall_session)
+    super(GRRRekallRenderer, self).__init__(session=rekall_session, **kwargs)
 
     # A handle to the client action we can use for sending responses.
     self.action = action
@@ -108,7 +112,8 @@ class GRRRekallRenderer(data_export.DataExportRenderer):
 
     self.context_messages = {}
     self.new_context_messages = {}
-    self.robust_encoder = json_renderer.RobustEncoder()
+    self.robust_encoder = json_renderer.RobustEncoder(
+        logging=rekall_session.logging)
 
   def start(self, plugin_name=None, kwargs=None):
     self.plugin = plugin_name
@@ -141,15 +146,9 @@ class GRRRekallRenderer(data_export.DataExportRenderer):
       self.flush()
 
   def open(self, directory=None, filename=None, mode="rb"):
-    result = tempfiles.CreateGRRTempFile(filename=filename, mode=mode)
-    # The tempfile library created an os path, we pass it through vfs to
-    # normalize it.
-    with vfs.VFSOpen(paths.PathSpec(
-        path=result.name,
-        pathtype=paths.PathSpec.PathType.OS)) as vfs_fd:
-      dict_pathspec = vfs_fd.pathspec.ToPrimitiveDict()
-      self.SendMessage(["file", dict_pathspec])
-    return result
+    fd, pathspec = tempfiles.CreateGRRTempFileVFS(filename=filename, mode=mode)
+    self.SendMessage(["file", pathspec.ToPrimitiveDict()])
+    return fd
 
   def report_error(self, message):
     super(GRRRekallRenderer, self).report_error(message)
@@ -177,15 +176,24 @@ class GrrRekallSession(session.Session):
     # progress.
     self.progress.Register(id(self), lambda *_, **__: self.action.Progress())
 
-  def LoadProfile(self, name):
+  def LoadProfile(self, name, **kw):
     """Wraps the Rekall profile's LoadProfile to fetch profiles from GRR."""
+    profile = None
+
     # If the user specified a special profile path we use their choice.
-    profile = super(GrrRekallSession, self).LoadProfile(name)
+    try:
+      profile = super(GrrRekallSession, self).LoadProfile(name, **kw)
+    except io_manager.IOManagerError as e:
+      # Currently, Rekall will raise when the repository directory is not
+      # created. This is fine, because we'll create the directory after
+      # WriteRekallProfile runs a few lines later.
+      self.logging.warning(e)
+
     if profile:
       return profile
 
     # Cant load the profile, we need to ask the server for it.
-    logging.debug("Asking server for profile %s", name)
+    self.logging.info("Asking server for profile %s", name)
     self.action.SendReply(
         rekall_types.RekallResponse(
             missing_profile=name,
@@ -198,12 +206,16 @@ class GrrRekallSession(session.Session):
 
     # Now the server should have sent the data already. We try to load the
     # profile one more time.
-    return super(GrrRekallSession, self).LoadProfile(
-        name, use_cache=False)
+    return super(GrrRekallSession, self).LoadProfile(name, use_cache=False)
 
-  def GetRenderer(self):
+  def GetRenderer(self, **kwargs):
     # We will use this renderer to push results to the server.
-    return GRRRekallRenderer(rekall_session=self, action=self.action)
+    return GRRRekallRenderer(rekall_session=self, action=self.action, **kwargs)
+
+  def _HandleRunPluginException(self, ui_renderer, e):
+    """Log the exception and raise it."""
+    self.logging.error(str(e))
+    raise e
 
 
 class WriteRekallProfile(actions.ActionPlugin):
@@ -225,6 +237,8 @@ class WriteRekallProfile(actions.ActionPlugin):
       fd.write(args.data)
 
 
+# TODO(user): Refactor the caching functionality to use Rekall's own caching
+# system.
 class RekallCachingIOManager(io_manager.DirectoryIOManager):
   order = io_manager.DirectoryIOManager.order - 1
 
@@ -257,12 +271,41 @@ class RekallAction(actions.SuspendableAction):
 
     rekal_session = GrrRekallSession(action=self, **session_args)
 
+    plugin_errors = []
+
     for plugin_request in self.request.plugins:
       # Get the keyword args to this plugin.
       plugin_args = plugin_request.args.ToDict()
       try:
         rekal_session.RunPlugin(plugin_request.plugin, **plugin_args)
+      except Exception:  # pylint: disable=broad-except
+        tb = traceback.format_exc()
+        logging.error("While running plugin (%s): %s",
+                      plugin_request.plugin, tb)
+        plugin_errors.append(tb)
 
-      except Exception as e:  # pylint: disable=broad-except
-        # The exception has already been logged at this point in the renderer.
-        logging.info(str(e))
+    if plugin_errors:
+      self.SetStatus(rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR,
+                     u"\n\n".join(plugin_errors))
+    # Rekall uses quite a bit of memory so we force a garbage collection here
+    # even though it may cost a second or two of cpu time.
+    self.Progress()
+    self.ForceGC()
+
+
+class GetMemoryInformation(actions.ActionPlugin):
+  """Loads the driver for memory access and returns a Stat for the device."""
+
+  in_rdfvalue = rdf_paths.PathSpec
+  out_rdfvalue = rekall_types.MemoryInformation
+
+  def Run(self, args):
+    """Run."""
+    # This action might crash the box so we need to flush the transaction log.
+    self.SyncTransactionLog()
+
+    if args.pathtype != "MEMORY":
+      raise RuntimeError("Can only GetMemoryInformation on memory devices.")
+
+    with vfs.VFSOpen(args) as fd:
+      self.SendReply(fd.GetMemoryInformation())

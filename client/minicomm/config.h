@@ -5,8 +5,8 @@
 #include <string>
 #include <vector>
 
-#include "config.pb.h"
-#include "crypto.h"
+#include "grr/client/minicomm/config.pb.h"
+#include "grr/client/minicomm/crypto.h"
 #include "google/protobuf/repeated_field.h"
 
 // Represents the configuration of a client. Thread safe.

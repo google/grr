@@ -360,9 +360,10 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     query = source.attributes["query"]
     queries = artifact_lib.InterpolateKbAttributes(query,
                                                    self.state.knowledge_base)
+    base_object = source.attributes.get("base_object")
     for query in queries:
       self.CallClient(
-          "WmiQuery", query=query,
+          "WmiQuery", query=query, base_object=base_object,
           request_data={"artifact_name": self.current_artifact_name,
                         "source": source.ToPrimitiveDict()},
           next_state="ProcessCollected"
@@ -490,11 +491,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         self.state.artifacts_failed.append(artifact_name)
       return
 
-    # Initialize some local non-state saved variables for processing.
-    if not hasattr(self, "output_collection_map"):
-      self.output_collection_map = {}
-    if not hasattr(self, "aff4_output_map"):
-      self.aff4_output_map = {}
+    output_collection_map = {}
+    aff4_output_map = {}
 
     # Now process the responses.
     processors = parsers.Parser.GetClassesByArtifact(artifact_name)
@@ -509,23 +507,25 @@ class ArtifactCollectorFlow(flow.GRRFlow):
           else:
             # Process the response immediately
             self._ParseResponses(processor_obj, response, responses,
-                                 artifact_name, source)
+                                 artifact_name, source, aff4_output_map,
+                                 output_collection_map)
       else:
         # We don't have any defined processors for this artifact.
-        self._ParseResponses(None, response, responses, artifact_name,
-                             source)
+        self._ParseResponses(None, response, responses, artifact_name, source,
+                             aff4_output_map, output_collection_map)
 
     # If we were saving responses, process them now:
     for processor_name, responses_list in saved_responses.items():
       processor_obj = parsers.Parser.classes[processor_name]()
       self._ParseResponses(processor_obj, responses_list, responses,
-                           artifact_name, source)
+                           artifact_name, source, aff4_output_map,
+                           output_collection_map)
 
     # Flush the results to the objects.
     if self.args.split_output_by_artifact:
-      self._FinalizeSplitCollection()
+      self._FinalizeSplitCollection(output_collection_map)
     if self.args.store_results_in_aff4:
-      self._FinalizeMappedAFF4Locations(artifact_name)
+      self._FinalizeMappedAFF4Locations(artifact_name, aff4_output_map)
     if self.state.client_anomaly_store:
       self.state.client_anomaly_store.Flush()
 
@@ -599,7 +599,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     self.state.client_anomaly_store.Add(anomaly_value)
 
   def _ParseResponses(self, processor_obj, responses, responses_obj,
-                      artifact_name, source):
+                      artifact_name, source, aff4_output_map,
+                      output_collection_map):
     """Create a result parser sending different arguments for diff parsers.
 
     Args:
@@ -609,6 +610,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       responses_obj: The responses object itself.
       artifact_name: Name of the artifact that generated the responses.
       source: The source responsible for producing the responses.
+      aff4_output_map: dict of where to write results in aff4
+      output_collection_map: dict of collections when splitting by artifact
 
     Raises:
       RuntimeError: On bad parser.
@@ -630,12 +633,15 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         elif not artifact_return_types or result_type in artifact_return_types:
           self.state.response_count += 1
           self.SendReply(result)
-          self._WriteResultToSplitCollection(result, artifact_name)
+          self._WriteResultToSplitCollection(result, artifact_name,
+                                             output_collection_map)
           if self.args.store_results_in_aff4:
             # Write our result back to a mapped location in AFF4 space.
-            self._WriteResultToMappedAFF4Location(result)
+            self._WriteResultToMappedAFF4Location(result, artifact_name,
+                                                  aff4_output_map)
 
-  def _WriteResultToSplitCollection(self, result, artifact_name):
+  def _WriteResultToSplitCollection(self, result, artifact_name,
+                                    output_collection_map):
     """Write any results to the collection if we are splitting by artifact.
 
     If not splitting, SendReply will handle writing to the collection.
@@ -643,40 +649,42 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     Args:
       result: result to write
       artifact_name: artifact name string
+      output_collection_map: dict of collections when splitting by artifact
     """
     if self.args.split_output_by_artifact:
       if (self.runner.output is not None and
-          artifact_name not in self.output_collection_map):
+          artifact_name not in output_collection_map):
         # Create the new collections in the same directory but not as children,
         # so they are visible in the GUI
         urn = "_".join((str(self.runner.output.urn), artifact_name))
         collection = aff4.FACTORY.Create(urn, "RDFValueCollection", mode="rw",
                                          token=self.token)
         # Cache the opened object.
-        self.output_collection_map[artifact_name] = collection
-      self.output_collection_map[artifact_name].Add(result)
+        output_collection_map[artifact_name] = collection
+      output_collection_map[artifact_name].Add(result)
 
-  def _FinalizeSplitCollection(self):
-    """Finalize writes to the Collection."""
+  def _FinalizeSplitCollection(self, output_collection_map):
+    """Flush all of the collections that were split by artifact."""
     total = 0
-    for artifact_name, collection in self.output_collection_map.iteritems():
+    for artifact_name, collection in output_collection_map.iteritems():
       total += len(collection)
       collection.Flush()
 
       self.Log("Wrote results from Artifact %s to %s. Collection size %d.",
                artifact_name, collection.urn, total)
 
-  def _WriteResultToMappedAFF4Location(self, result):
+  def _WriteResultToMappedAFF4Location(self, result, artifact_name,
+                                       aff4_output_map):
     """If we have a mapping for this result type, write it there."""
     result_type = result.__class__.__name__
-    if result_type not in self.aff4_output_map:
+    if result_type not in aff4_output_map:
       aff4_obj, aff4_attr, operator = (
           self.GetAFF4PathForArtifactResponses(result_type))
       cache_entry = (aff4_obj, aff4_attr, operator, [])
       # Cache the opened object.
-      self.aff4_output_map[result_type] = cache_entry
+      aff4_output_map[result_type] = cache_entry
     else:
-      cache_entry = self.aff4_output_map[result_type]
+      cache_entry = aff4_output_map[result_type]
 
     aff4_obj, aff4_attr, operator, result_list = cache_entry
 
@@ -685,19 +693,22 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     elif operator == "Overwrite":
       # We set for each new value, overwriting older ones.
       aff4_obj.Set(aff4_attr(result))
+      self.Log("Wrote %s artifact result to %s on %s",
+               artifact_name, aff4_obj.urn, aff4_attr.predicate)
     else:
       raise RuntimeError("Bad RDFMap writing method")
 
-  def _FinalizeMappedAFF4Locations(self, artifact_name):
-    for cache_entry in self.aff4_output_map.values():
+  def _FinalizeMappedAFF4Locations(self, artifact_name, aff4_output_map):
+    for cache_entry in aff4_output_map.values():
       aff4_obj, aff4_attr, operator, result_list = cache_entry
       if operator == "Append":
         # For any objects we appended to, we need to do the set now as the new
         # attributes aren't assigned to the AFF4 object yet.
         aff4_obj.Set(aff4_attr(result_list))
+        self.Log("Wrote %s results from artifact %s to %s on %s",
+                 len(result_list), artifact_name,
+                 aff4_obj.urn, aff4_attr.predicate)
       aff4_obj.Flush()
-      self.Log("Wrote Artifact %s results to %s on %s", artifact_name,
-               aff4_obj.urn, aff4_attr.__class__.__name__)
 
   def GetAFF4PathForArtifactResponses(self, output_type):
     """Use the RDFValue type to find where in AFF4 space to write results.

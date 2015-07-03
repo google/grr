@@ -44,6 +44,8 @@ method:
         baseline:
           - type: 'RDFFilter'
             expression: KnowledgeBaseUser
+          - type: 'ObjectFilter'
+            expression: "pw_entry.hash_type notinset ['DISABLED', 'UNSET']"
         filters:
           - type: 'ObjectFilter'
             expression: pw_entry.max_age > 365

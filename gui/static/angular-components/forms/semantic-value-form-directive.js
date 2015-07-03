@@ -68,20 +68,26 @@ SemanticValueFormController.prototype.onValueTypeChange_ = function(newValue) {
     return;
   }
 
+  var updateElement = function(tmpl) {
+    if (angular.isDefined(tmpl)) {
+      tmpl(this.scope_, function(cloned, opt_scope) {
+        this.element_.append(cloned);
+      }.bind(this));
+    } else {
+      this.element_.text('Can\'t handle type: ' + this.value['type']);
+    }
+  }.bind(this);
+
   var templatesCache = grrUi.forms.semanticValueFormDirective.templatesCache;
   var value = this.scope_.value;
-  var template = templatesCache[value['mro']];
+  var template = templatesCache[value['type']];
   if (angular.isUndefined(template)) {
-    template = this.compileSingleTypedValueTemplate_(value);
-    templatesCache[value['mro']] = template;
-  }
-
-  if (angular.isDefined(template)) {
-    template(this.scope_, function(cloned, opt_scope) {
-      this.element_.append(cloned);
+    this.compileSingleTypedValueTemplate_(value).then(function(template) {
+      templatesCache[value['type']] = template;
+      updateElement(template);
     }.bind(this));
   } else {
-    this.element_.text('Can\'t handle type: ' + this.value['type']);
+    updateElement(template);
   }
 };
 
@@ -107,20 +113,26 @@ SemanticValueFormController.prototype.camelCaseToDashDelimited = function(
  */
 SemanticValueFormController.prototype
     .compileSingleTypedValueTemplate_ = function(value) {
-  var element = angular.element('<span />');
-  var directive = this.grrSemanticFormDirectivesRegistryService_
-      .findDirectiveForMro(value['mro']);
 
-  if (angular.isDefined(directive)) {
-    element.html('<' +
-        this.camelCaseToDashDelimited(directive.directive_name) +
+  var successHandler = function success(directive) {
+    var element = angular.element('<span />');
+
+    element.html('<' + this.camelCaseToDashDelimited(directive.directive_name) +
         ' metadata="metadata" value="value" />');
-  } else {
-    element.html('<p class="form-control-static">No directive for type: ' +
-        '{$ value.type $}.</p>');
-  }
+    return this.compile_(element);
+  }.bind(this);
 
-  return this.compile_(element);
+  var failureHandler = function failure() {
+    var element = angular.element('<span />');
+
+    element.html('<p class="form-control-static">No directive ' +
+        'for type: {$ value.type $}.</p>');
+    return this.compile_(element);
+  }.bind(this);
+
+  return this.grrSemanticFormDirectivesRegistryService_.
+      findDirectiveForType(value['type']).then(
+          successHandler, failureHandler);
 };
 
 

@@ -6,6 +6,7 @@ import __builtin__
 import base64
 import copy
 import functools
+import ipaddr
 import os
 import pipes
 import Queue
@@ -34,18 +35,21 @@ class IPInfo(object):
 def RetrieveIPInfo(ip):
   if not ip:
     return (IPInfo.UNKNOWN, "No ip information.")
-  ip = SmartStr(ip)
-  if ":" in ip:
+  try:
+    ip = ipaddr.IPAddress(SmartStr(ip))
+  except ValueError:
+    return (IPInfo.UNKNOWN, "No ip information.")
+  if ip.version == 6:
     return RetrieveIP6Info(ip)
   return RetrieveIP4Info(ip)
 
 def RetrieveIP4Info(ip):
   """Retrieves information for an IP4 address."""
-  if ip.startswith("192"):
+  if ip.is_private:
     return (IPInfo.INTERNAL, "Internal IP address.")
   try:
     # It's an external IP, let's try to do a reverse lookup.
-    res = socket.gethostbyaddr(ip)
+    res = socket.gethostbyaddr(str(ip))
     return (IPInfo.EXTERNAL, res[0])
   except (socket.herror, socket.gaierror):
     return (IPInfo.EXTERNAL, "Unknown IP address.")
@@ -698,7 +702,7 @@ def NormalizePath(path, sep="/"):
       return sep + sep.join(path_list)
 
 
-def JoinPath(stem, *parts):
+def JoinPath(stem="", *parts):
   """A sane version of os.path.join.
 
   The intention here is to append the stem to the path. The standard module

@@ -7,8 +7,8 @@
 #include <fcntl.h>
 #endif
 
-#include "config.pb.h"
-#include "util.h"
+#include "grr/client/minicomm/config.pb.h"
+#include "grr/client/minicomm/util.h"
 #include "google/protobuf/io/zero_copy_stream_impl.h"
 #include "google/protobuf/text_format.h"
 

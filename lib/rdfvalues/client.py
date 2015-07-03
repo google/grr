@@ -141,6 +141,15 @@ class FolderInformation(structs.RDFProtoStruct):
   protobuf = jobs_pb2.FolderInformation
 
 
+class ManagementAgent(structs.RDFProtoStruct):
+  """Description of the running management agent (puppet etc).
+
+  Describes the state, last run timestamp, and name of the management agent
+  installed on the system.
+  """
+  protobuf = sysinfo_pb2.ManagementAgent
+
+
 class User(structs.RDFProtoStruct):
   """A user of the client system.
 
@@ -156,7 +165,6 @@ class User(structs.RDFProtoStruct):
       "full_name": "full_name",
       "last_logon": "last_logon",
       "special_folders.cookies": "cookies",
-      "special_folders.local_settings": "local_settings",
       "special_folders.local_app_data": "localappdata",
       "special_folders.app_data": "appdata",
       "special_folders.cache": "internet_cache",
@@ -589,7 +597,7 @@ class StatMode(rdfvalue.RDFInteger):
     elif stat.S_ISDIR(mode):
       type_char = "d"
     elif stat.S_ISFIFO(mode):
-      type_char = "f"
+      type_char = "p"
     elif stat.S_ISLNK(mode):
       type_char = "l"
     elif stat.S_ISSOCK(mode):

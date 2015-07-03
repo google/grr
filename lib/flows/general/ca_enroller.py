@@ -75,6 +75,7 @@ class CAEnroler(flow.GRRFlow):
 
     index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
                                 aff4_type="ClientIndex",
+                                object_exists=True,
                                 mode="rw", token=self.token)
     index.AddClient(client)
     client.Close(sync=True)
