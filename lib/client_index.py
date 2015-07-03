@@ -248,7 +248,8 @@ def GetClientURNsForHostnames(hostnames, token=None):
   """
 
   index = aff4.FACTORY.Create(
-      MAIN_INDEX, aff4_type="ClientIndex", mode="rw", token=token)
+      MAIN_INDEX, aff4_type="ClientIndex", mode="rw", object_exists=True,
+      token=token)
 
   keywords = set()
   for hostname in hostnames:
@@ -283,7 +284,8 @@ def BulkLabel(label, hostnames, token, client_index=None):
   """
   if client_index is None:
     client_index = aff4.FACTORY.Create(
-        MAIN_INDEX, aff4_type="ClientIndex", mode="rw", token=token)
+        MAIN_INDEX, aff4_type="ClientIndex", mode="rw", object_exists=True,
+        token=token)
 
   fqdns = set()
   for hostname in hostnames:
