@@ -127,6 +127,7 @@ class Interrogate(flow.GRRFlow):
       aff4.FACTORY.Create(client_index.MAIN_INDEX,
                           aff4_type="ClientIndex",
                           mode="rw",
+                          object_exists=True,
                           token=self.token).AddClient(self.client)
 
     else:
@@ -177,6 +178,7 @@ class Interrogate(flow.GRRFlow):
     aff4.FACTORY.Create(client_index.MAIN_INDEX,
                         aff4_type="ClientIndex",
                         mode="rw",
+                        object_exists=True,
                         token=self.token).AddClient(self.client)
 
   @flow.StateHandler()
@@ -311,4 +313,5 @@ class Interrogate(flow.GRRFlow):
     aff4.FACTORY.Create(client_index.MAIN_INDEX,
                         aff4_type="ClientIndex",
                         mode="rw",
+                        object_exists=True,
                         token=self.token).AddClient(self.client)
