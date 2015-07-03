@@ -8,6 +8,7 @@ from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import client_index
+from grr.lib import utils
 
 from grr.lib.aff4_objects import cronjobs
 
@@ -119,11 +120,17 @@ class CleanInactiveClients(cronjobs.SystemCronFlow):
 
     deadline = rdfvalue.RDFDatetime().Now() - inactive_client_ttl
 
-    for client_urn in client_urns:
-      client = aff4.FACTORY.Open(client_urn, mode="r", token=self.token)
-      if exception_label in client.GetLabelsNames():
-        continue
+    for client_group in utils.Grouper(client_urns, 10000):
+      inactive_client_urns = []
+      for client in aff4.FACTORY.MultiOpen(client_group, mode="r",
+                                       aff4_type="VFSGRRClient",
+                                       token=self.token):
+        if exception_label in client.GetLabelsNames():
+          continue
 
-      if client.Get(client.Schema.LAST) < deadline:
-        aff4.FACTORY.Delete(client_urn, token=self.token)
+        if client.Get(client.Schema.LAST) < deadline:
+          inactive_client_urns.append(client.urn)
+
+        aff4.FACTORY.MultiDelete(inactive_client_urns, token=self.token)
         self.HeartBeat()
+
