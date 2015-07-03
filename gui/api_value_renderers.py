@@ -277,6 +277,16 @@ class ApiDataBlobRenderer(ApiValueRenderer):
     return self._PassThrough(value.GetValue())
 
 
+class ApiHashDigestRenderer(ApiValueRenderer):
+  """Renderer for hash digests."""
+
+  value_class = rdfvalue.HashDigest
+
+  def RenderValue(self, value):
+    result = utils.SmartStr(value)
+    return self._IncludeTypeInfo(result, value)
+
+
 class ApiEmbeddedRDFValueRenderer(ApiValueRenderer):
   """Renderer for EmbeddedRDFValue."""
 
