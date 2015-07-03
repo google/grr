@@ -114,8 +114,11 @@ class CleanInactiveClients(cronjobs.SystemCronFlow):
     exception_label = config_lib.CONFIG[
         "DataRetention.inactive_client_ttl_exception_label"]
 
-    index = aff4.FACTORY.Open(client_index.MAIN_INDEX, mode="r",
-                               token=self.token)
+    index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
+                                aff4_type="ClientIndex",
+                                mode="rw",
+                                token=self.token)
+
     client_urns = index.LookupClients(["."])
 
     deadline = rdfvalue.RDFDatetime().Now() - inactive_client_ttl
