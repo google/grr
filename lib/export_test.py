@@ -758,6 +758,30 @@ class ExportTest(test_lib.GRRBaseTest):
         exported_matches[1].urn,
         rdfvalue.RDFURN("aff4:/C.0000000000000001/fs/os/some/path"))
 
+    # Also test registry entries.
+    data = rdf_protodict.DataBlob()
+    data.SetValue("testdata")
+    stat_entry = rdf_client.StatEntry(
+        aff4path=rdfvalue.RDFURN(
+            "aff4:/C.00000000000001/registry/HKEY_USERS/S-1-1-1-1/Software"),
+        registry_type="REG_SZ",
+        registry_data=data,
+        pathspec=rdf_paths.PathSpec(pathtype="REGISTRY"))
+    file_finder_result = file_finder.FileFinderResult(stat_entry=stat_entry)
+    metadata = export.ExportedMetadata(client_urn="C.0000000000000001")
+    converter = export.FileFinderResultConverter()
+    results = list(converter.Convert(metadata, file_finder_result,
+                                     token=self.token))
+
+    self.assertEqual(len(results), 1)
+    self.assertIsInstance(results[0], export.ExportedRegistryKey)
+    result = results[0]
+
+    self.assertEqual(result.data, "testdata")
+    self.assertEqual(
+        result.urn,
+        "aff4:/C.00000000000001/registry/HKEY_USERS/S-1-1-1-1/Software")
+
   def testFileFinderResultExportConverterConvertsHashes(self):
     pathspec = rdf_paths.PathSpec(path="/some/path",
                                   pathtype=rdf_paths.PathSpec.PathType.OS)

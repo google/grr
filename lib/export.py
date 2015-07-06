@@ -420,7 +420,7 @@ class StatEntryToExportedRegistryKeyConverter(ExportConverter):
   def Convert(self, metadata, stat_entry, token=None):
     """Converts StatEntry to ExportedRegistryKey.
 
-    Does nothing if StatEntry corresponds to a file and nto a registry entry.
+    Does nothing if StatEntry corresponds to a file and not a registry entry.
 
     Args:
       metadata: ExportedMetadata to be used for conversion.
@@ -632,7 +632,7 @@ class FileFinderResultConverter(StatEntryToExportedFileConverter):
     for metadata, result in metadata_value_pairs:
       if (result.stat_entry.pathspec.pathtype ==
           rdf_paths.PathSpec.PathType.REGISTRY):
-        registry_pairs.append((metadata, result))
+        registry_pairs.append((metadata, result.stat_entry))
       else:
         file_pairs.append((metadata, result))
 
