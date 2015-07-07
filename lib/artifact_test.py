@@ -5,6 +5,7 @@
 
 
 
+import gzip
 import os
 import subprocess
 import time
@@ -118,10 +119,11 @@ class RekallMock(action_mocks.MemoryClientMock):
   def RekallAction(self, _):
     # Generate this file with:
     # rekall -r data -f win7_trial_64bit.raw pslist > rekall_pslist_result.dat
+    # and gzip rekall_pslist_result.dat
     ps_list_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
                                 self.result_filename)
     result = rdf_rekall_types.RekallResponse(
-        json_messages=open(ps_list_file).read(10000000),
+        json_messages=gzip.open(ps_list_file).read(10000000),
         plugin="pslist",
         client_urn=self.client_id)
 
@@ -294,21 +296,8 @@ class ArtifactFlowTest(ArtifactTest):
   def testCmdArtifact(self):
     """Check we can run command based artifacts and get anomalies."""
 
-    class Popen(object):
-      """A mock object for subprocess.Popen."""
-
-      def __init__(self, run, stdout, stderr, stdin):
-        Popen.running_args = run
-        Popen.stdout = stdout
-        Popen.stderr = stderr
-        Popen.stdin = stdin
-        Popen.returncode = 0
-
-      def communicate(self):  # pylint: disable=g-bad-name
-        return "stdout here", "stderr here"
-
     client_mock = self.MockClient("ExecuteCommand", client_id=self.client_id)
-    with utils.Stubber(subprocess, "Popen", Popen):
+    with utils.Stubber(subprocess, "Popen", test_lib.Popen):
       for _ in test_lib.TestFlowHelper(
           "ArtifactCollectorFlow", client_mock, client_id=self.client_id,
           store_results_in_aff4=True, use_tsk=False,
@@ -343,7 +332,7 @@ class ArtifactFlowTest(ArtifactTest):
     self.CreateSignedDriver()
     fd = self.RunCollectorAndGetCollection(
         ["RekallPsList"], RekallMock(
-            self.client_id, "rekall_pslist_result.dat"))
+            self.client_id, "rekall_pslist_result.dat.gz"))
 
     self.assertEqual(len(fd), 36)
     self.assertEqual(fd[0].exe, "System")
@@ -363,7 +352,7 @@ class ArtifactFlowTest(ArtifactTest):
     self.CreateSignedDriver()
     fd = self.RunCollectorAndGetCollection(
         ["FullVADBinaryList"], RekallMock(
-            self.client_id, "rekall_vad_result.dat"))
+            self.client_id, "rekall_vad_result.dat.gz"))
 
     self.assertEqual(len(fd), 1986)
     self.assertEqual(fd[0].path, u"c:\\Windows\\System32\\ntdll.dll")

@@ -10,8 +10,6 @@
 #include "grr/client/minicomm/util.h"
 
 namespace grr {
-const char GetPlatformInfo::kName[] = "GetPlatformInfo";
-
 void GetPlatformInfo::ProcessRequest(ActionContext* context) {
   // Get what we can from uname.
   struct utsname result;

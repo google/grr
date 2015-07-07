@@ -11,8 +11,6 @@
 namespace grr {
 class EnumerateInterfaces : public ClientAction {
  public:
-  const char* Name() override { return kName; }
-
   void ProcessRequest(ActionContext* args) override;
 
  private:

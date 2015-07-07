@@ -23,8 +23,8 @@ void ClientActionDispatcher::StartProcessing() {
   processing_thread_ = std::thread([this]() { this->ActionLoop(); });
 }
 
-void ClientActionDispatcher::AddAction(ClientAction* action) {
-  actions_[action->Name()].reset(action);
+void ClientActionDispatcher::AddAction(const char* name, ClientAction* action) {
+  actions_[name].reset(action);
 }
 
 bool ClientActionDispatcher::CanHandle(const GrrMessage& message) const {
@@ -48,7 +48,15 @@ void ClientActionDispatcher::ActionLoop() {
         GOOGLE_LOG(ERROR) << "Unrecognized action: [" << m.name() << "]";
         context.SetError("Unrecognized action: " + m.name());
       } else {
-        found->second->ProcessRequest(&context);
+        GOOGLE_LOG(INFO) << "Performing action: " + m.name();
+        try {
+          found->second->ProcessRequest(&context);
+        } catch (std::exception e) {
+          // We try to minimize the use of exceptions, but if one happens during
+          // a client action we still prefer to report it and not die.
+          context.SetError(std::string("Exception in ProcessRequest: ") +
+                           e.what());
+        }
       }
       context.SendResponse(context.Status(), GrrMessage::STATUS);
     }

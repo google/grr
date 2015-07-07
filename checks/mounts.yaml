@@ -13,11 +13,17 @@ method:
           fix: |
             Add "nodev" option to appropriate partitions.
         baseline:
+          # White-list mount points where we expect to see device files.
           - type: 'ObjectFilter'
-            expression: 'mount_point isnot "/"'
+            expression: 'mount_point notinset
+                ["/", "/dev", "/boot", "/dev/cgroup/devices"]'
+          # White-list known non-device file supporting filesystem types.
+          # i.e. Assume every other type can support device files. Black
+          # listing filesystem filesystem types is a whack-a-mole problem.
           - type: 'ObjectFilter'
-            expression: 'type inset
-                    ["ext2", "ext3", "ext4", "jfs", "xfs", "btrfs", "iso9660"]'
+            expression: 'type notinset
+                ["proc", "swap", "sysfs", "rpc_pipefs", "fusectl", "securityfs",
+                 "devtmpfs", "devpts", "debugfs", "pstore", "devfsd", "devfs"]'
         filters:
           - type: 'ObjectFilter'
             expression: 'options notcontains "nodev"'

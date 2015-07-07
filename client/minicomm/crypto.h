@@ -4,6 +4,7 @@
 #include <string>
 
 #include "openssl/hmac.h"
+#include "openssl/md5.h"
 #include "openssl/pem.h"
 #include "openssl/rsa.h"
 #include "openssl/x509.h"
@@ -16,10 +17,35 @@
 
 namespace grr {
 
-// Hashing/digest functions.
+// Incremental digest computation.
+
 class Digest {
  public:
-  static std::string Sha256(const std::string& input);
+  // The types of hash that we support.
+  enum class Type { MD5, SHA1, SHA256 };
+
+  // Convenience method to compute a hash in a single step.
+  static std::string Hash(Type t, const std::string& input);
+
+  // Create an incremental digest state of type t.
+  explicit Digest(Type t);
+  ~Digest();
+
+  // Stream limit bytes into the hash from buffer.
+  template <size_t size>
+  void Update(const char(&buffer)[size], size_t limit) {
+    UpdateInternal(buffer, std::min(size, limit));
+  }
+
+  // Stream input into the hash.
+  void Update(const std::string& input);
+
+  // Return the hash of everything added by Update().
+  std::string Final();
+
+ private:
+  void UpdateInternal(const char* buffer, size_t limit);
+  EVP_MD_CTX ctx_;
 };
 
 // Incremental HMAC computation.

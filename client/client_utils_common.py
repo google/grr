@@ -27,7 +27,8 @@ def HandleAlarm(process):
     pass
 
 
-def Execute(cmd, args, time_limit=-1, bypass_whitelist=False, daemon=False):
+def Execute(cmd, args, time_limit=-1, bypass_whitelist=False, daemon=False,
+            use_client_context=False):
   """Executes commands on the client.
 
   This function is the only place where commands will be executed
@@ -42,6 +43,8 @@ def Execute(cmd, args, time_limit=-1, bypass_whitelist=False, daemon=False):
         Note that this should only ever be called on a binary that passes the
         VerifySignedBlob check.
     daemon: Start the new process in the background.
+    use_client_context: Run this script in the client's context. Defaults to
+                        system context.
 
   Returns:
     A tuple of stdout, stderr, return value and time taken.
@@ -64,19 +67,28 @@ def Execute(cmd, args, time_limit=-1, bypass_whitelist=False, daemon=False):
       except OSError:
         # This only works if the process is running as root.
         pass
-      _Execute(cmd, args, time_limit)
+      _Execute(cmd, args, time_limit, use_client_context=use_client_context)
       os._exit(0)  # pylint: disable=protected-access
   else:
-    return _Execute(cmd, args, time_limit)
+    return _Execute(cmd, args, time_limit,
+                    use_client_context=use_client_context)
 
 
-def _Execute(cmd, args, time_limit=-1):
+def _Execute(cmd, args, time_limit=-1, use_client_context=False):
   """Executes cmd."""
   run = [cmd]
   run.extend(args)
-  logging.info("Executing %s", " ".join(run))
-  p = subprocess.Popen(run, stdin=subprocess.PIPE,
-                       stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+  env = os.environ.copy()
+  if use_client_context:
+    env.pop("LD_LIBRARY_PATH", None)
+    env.pop("PYTHON_PATH", None)
+    context = "client"
+  else:
+    context = "system"
+  logging.info("Executing %s in %s context.", " ".join(run), context)
+  p = subprocess.Popen(
+      run, stdin=subprocess.PIPE,
+      stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
 
   alarm = None
   if time_limit > 0:
