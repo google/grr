@@ -16,7 +16,7 @@ from grr.lib.aff4_objects import cronjobs
 class CleanHunts(cronjobs.SystemCronFlow):
   """Cleaner that deletes old hunts."""
 
-  frequency = rdfvalue.Duration("7d")
+  frequency = rdfvalue.Duration("1d")
   lifetime = rdfvalue.Duration("1d")
 
   @flow.StateHandler()
@@ -49,7 +49,7 @@ class CleanHunts(cronjobs.SystemCronFlow):
 class CleanCronJobs(cronjobs.SystemCronFlow):
   """Cleaner that deletes old finished cron flows."""
 
-  frequency = rdfvalue.Duration("7d")
+  frequency = rdfvalue.Duration("1d")
   lifetime = rdfvalue.Duration("1d")
 
   @flow.StateHandler()
@@ -71,7 +71,7 @@ class CleanCronJobs(cronjobs.SystemCronFlow):
 class CleanTemp(cronjobs.SystemCronFlow):
   """Cleaner that deletes temp objects."""
 
-  frequency = rdfvalue.Duration("7d")
+  frequency = rdfvalue.Duration("1d")
   lifetime = rdfvalue.Duration("1d")
 
   @flow.StateHandler()
@@ -101,7 +101,7 @@ class CleanTemp(cronjobs.SystemCronFlow):
 class CleanInactiveClients(cronjobs.SystemCronFlow):
   """Cleaner that deletes inactive clients."""
 
-  frequency = rdfvalue.Duration("7d")
+  frequency = rdfvalue.Duration("1d")
   lifetime = rdfvalue.Duration("1d")
 
   @flow.StateHandler()
