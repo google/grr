@@ -421,15 +421,9 @@ def RetryQuestion(question_text, output_re="", default_val=""):
   return output
 
 
-def ConfigureBaseOptions(config):
-  """Configure the basic options required to run the server."""
+def ConfigureHostnames(config):
+  """This configures the hostnames stored in the config."""
 
-  print "We are now going to configure the server using a bunch of questions.\n"
-
-  print """\nFor GRR to work each client has to be able to communicate with the
-server. To do this we normally need a public dns name or IP address to
-communicate with. In the standard configuration this will be used to host both
-the client facing server and the admin user interface.\n"""
   if flags.FLAGS.external_hostname:
     hostname = flags.FLAGS.external_hostname
   else:
@@ -464,6 +458,32 @@ The UI URL specifies where the Administrative Web Interface can be found.
   ui_url = RetryQuestion("AdminUI URL", "^http[s]*://.*$",
                          "http://%s:8000" % hostname)
   config.Set("AdminUI.url", ui_url)
+
+
+def ConfigureBaseOptions(config):
+  """Configure the basic options required to run the server."""
+
+  print "We are now going to configure the server using a bunch of questions.\n"
+
+  print """\nFor GRR to work each client has to be able to communicate with the
+server. To do this we normally need a public dns name or IP address to
+communicate with. In the standard configuration this will be used to host both
+the client facing server and the admin user interface.\n"""
+
+  existing_ui_urn = config_lib.CONFIG.Get("AdminUI.url", default=None)
+  existing_frontend_urn = config_lib.CONFIG.Get("Client.control_urls",
+                                                default=None)
+  if not existing_frontend_urn or not existing_ui_urn:
+    ConfigureHostnames(config)
+  else:
+    print """Found existing settings:
+Admin ui urn: %s
+Frontend urn(s): %s
+""" % (existing_ui_urn, existing_frontend_urn)
+
+    if raw_input("Do you want to keep this configuration?"
+                 " [Yn]: ").upper() == "N":
+      ConfigureHostnames(config)
 
   print """\nMonitoring/Email domain name:
 Emails concerning alerts or updates must be sent to this domain.

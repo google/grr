@@ -19,6 +19,8 @@ class LinuxMountsTests(checks_test_lib.HostCheckTest):
     fstab = """
       proc       /proc              proc  defaults                    0  0
       /dev/sda1  /                  ext4  defaults,errors=remount-ro  0  1
+      /dev/sda4  /dev               ext4  defaults                    0  2
+      /dev/sdb1  /boot              ext4  defaults                    0  0
       /dev/sda2  none               swap  sw                          0  0
     """
     data = {"/etc/fstab": fstab}

@@ -481,12 +481,16 @@ class UpdateClient(flow.GRRFlow):
                          "/executables/<platform>/agentupdates/<version>")
 
     aff4_blobs = aff4.FACTORY.Open(blob_path, token=self.token)
+    if not isinstance(aff4_blobs, aff4.GRRSignedBlob):
+      raise RuntimeError("%s is not a valid GRRSignedBlob." % blob_path)
+
     offset = 0
-    write_path = "%d" % time.time()
+    write_path = "%d_%s" % (time.time(), aff4_blobs.urn.Basename())
     for i, blob in enumerate(aff4_blobs):
       self.CallClient(
           "UpdateAgent", executable=blob, more_data=i < aff4_blobs.chunks - 1,
-          offset=offset, write_path=write_path, next_state="Interrogate")
+          offset=offset, write_path=write_path, next_state="Interrogate",
+          use_client_env=False)
 
       offset += len(blob.data)
 

@@ -29,7 +29,7 @@ class LSBInitLexer(lexer.Lexer):
   ### END INIT INFO
   """
 
-  _tokens = [
+  tokens = [
       lexer.Token("INITIAL", r"### BEGIN INIT INFO", None, "UPSTART"),
       lexer.Token("UPSTART", r"### END INIT INFO", "Finish", "INITIAL"),
       lexer.Token("UPSTART", r"#\s+([-\w]+):\s+([^#\n]*)", "StoreEntry", None),
@@ -40,6 +40,7 @@ class LSBInitLexer(lexer.Lexer):
   required = {"provides", "default-start"}
 
   def __init__(self):
+    super(LSBInitLexer, self).__init__()
     self.entries = {}
 
   def StoreEntry(self, match, **_):
@@ -61,11 +62,42 @@ class LSBInitLexer(lexer.Lexer):
       return self.entries
 
 
-def GetRunlevelNums(states):
-  """Accepts a string and returns a list of numeric runlevels."""
+def _LogInvalidRunLevels(states, valid):
+  """Log any invalid run states found."""
+  invalid = set()
+  for state in states:
+    if state not in valid:
+      invalid.add(state)
+  if invalid:
+    logging.warn("Invalid init runlevel(s) encountered: %s", ", ".join(invalid))
+
+
+def GetRunlevelsLSB(states):
+  """Accepts a string and returns a list of strings of numeric LSB runlevels."""
   if not states:
-    return []
-  return [s for s in states.split() if s in ["0", "1", "2", "3", "4", "5", "6"]]
+    return set()
+  valid = set(["0", "1", "2", "3", "4", "5", "6"])
+  _LogInvalidRunLevels(states, valid)
+  return valid.intersection(set(states.split()))
+
+
+def GetRunlevelsNonLSB(states):
+  """Accepts a string and returns a list of strings of numeric LSB runlevels."""
+  if not states:
+    return set()
+  convert_table = {"0": "0",
+                   "1": "1",
+                   "2": "2",
+                   "3": "3",
+                   "4": "4",
+                   "5": "5",
+                   "6": "6",
+                   # SysV, Gentoo, Solaris, HP-UX all allow an alpha variant
+                   # for single user. https://en.wikipedia.org/wiki/Runlevel
+                   "S": "1",
+                   "s": "1"}
+  _LogInvalidRunLevels(states, convert_table)
+  return set([convert_table[s] for s in states.split() if s in convert_table])
 
 
 class LinuxLSBInitParser(parsers.FileParser):
@@ -91,10 +123,10 @@ class LinuxLSBInitParser(parsers.FileParser):
         service = rdf_client.LinuxServiceInformation()
         service.name = init.get("provides")
         service.start_mode = "INIT"
-        service.start_on = GetRunlevelNums(init.get("default-start"))
+        service.start_on = GetRunlevelsLSB(init.get("default-start"))
         if service.start_on:
           service.starts = True
-        service.stop_on = GetRunlevelNums(init.get("default-stop"))
+        service.stop_on = GetRunlevelsLSB(init.get("default-stop"))
         service.description = init.get("short-description")
         service.start_after = self._Facilities(init.get("required-start", []))
         service.stop_after = self._Facilities(init.get("required-stop", []))
@@ -103,6 +135,7 @@ class LinuxLSBInitParser(parsers.FileParser):
         logging.debug("No runlevel information found in %s" % path)
 
   def _InsservExpander(self, facilities, val):
+    """Expand insserv variables."""
     expanded = []
     if val.startswith("$"):
       vals = facilities.get(val, [])
@@ -180,8 +213,8 @@ class LinuxXinetdParser(parsers.FileParser):
       for val in parser.ParseEntries(cfg):
         self.entries[svc].update(val)
 
-  def _ProcessEntries(self, filename, fd):
-    """Extract entries from the xinted config files."""
+  def _ProcessEntries(self, fd):
+    """Extract entries from the xinetd config files."""
     parser = config_file.KeyValueParser(kv_sep="{", term="}", sep=None)
     data = fd.read(100000)
     entries = parser.ParseEntries(data)
@@ -226,8 +259,8 @@ class LinuxXinetdParser(parsers.FileParser):
     self.default = {}
     paths = [s.pathspec.path for s in stats]
     files = dict(zip(paths, file_objs))
-    for k, v in files.iteritems():
-      self._ProcessEntries(k, v)
+    for v in files.values():
+      self._ProcessEntries(v)
     for name, cfg in self.entries.iteritems():
       yield self._GenService(name, cfg)
 
@@ -277,12 +310,12 @@ class LinuxSysVInitParser(parsers.FileParser):
         service = services.setdefault(
             svc["name"], rdf_client.LinuxServiceInformation(
                 name=svc["name"], start_mode="INIT"))
-        runlvl = GetRunlevelNums(runlevel.group(1))
+        runlvl = GetRunlevelsNonLSB(runlevel.group(1))
         if svc["action"] == "S" and runlvl:
-          service.start_on.append(runlvl[0])
+          service.start_on.append(runlvl.pop())
           service.starts = True
         elif runlvl:
-          service.stop_on.append(runlvl[0])
+          service.stop_on.append(runlvl.pop())
         if not stat.S_ISLNK(int(stat_entry.st_mode)):
           yield rdf_anomaly.Anomaly(
               type="PARSER_ANOMALY", finding=[path],

@@ -7,8 +7,6 @@
 
 namespace grr {
 
-const char EnumerateFilesystems::kName[] = "EnumerateFilesystems";
-
 EnumerateFilesystems::EnumerateFilesystems()
     : to_report_{"ext2",  "ext3",     "ext4", "vfat", "ntfs",
                  "btrfs", "Reiserfs", "XFS",  "JFS",  "squashfs"} {}
