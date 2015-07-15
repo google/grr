@@ -1254,6 +1254,10 @@ message ExecuteBinaryRequest {
       "This must be the end of the file to ensure we did not lose any "
       "requests on the way."
     }];
+  optional bool use_client_env = 7 [default = false, (sem_type) = {
+      description: "Indicates if this command should be run in the context of "
+      "the installed client or the target system."
+    }];
 }
 
 message ExecuteBinaryResponse {

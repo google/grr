@@ -14,8 +14,6 @@ class EnumerateFilesystems : public ClientAction {
  public:
   EnumerateFilesystems();
 
-  const char* Name() override { return kName; }
-
   void ProcessRequest(ActionContext* args) override;
 
  private:

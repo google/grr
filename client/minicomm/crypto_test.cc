@@ -4,7 +4,7 @@
 
 namespace grr {
 
-TEST(CryptoTest, Digest) {
+TEST(CryptoTest, DigestSha256) {
   static const std::string plaintext(
       "Machines take me by surprise with great frequency");
   static const std::string hash(
@@ -15,8 +15,8 @@ TEST(CryptoTest, Digest) {
       "\xe3\xb0\xc4\x42\x98\xfc\x1c\x14\x9a\xfb\xf4\xc8\x99\x6f\xb9\x24\x27\xae"
       "\x41\xe4\x64\x9b\x93\x4c\xa4\x95\x99\x1b\x78\x52\xb8\x55",
       256 / 8);
-  EXPECT_EQ(Digest::Sha256(plaintext), hash);
-  EXPECT_EQ(Digest::Sha256(""), empty_hash);
+  EXPECT_EQ(Digest::Hash(Digest::Type::SHA256, plaintext), hash);
+  EXPECT_EQ(Digest::Hash(Digest::Type::SHA256, ""), empty_hash);
 }
 
 TEST(CryptoText, HMAC) {

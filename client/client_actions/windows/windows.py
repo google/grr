@@ -461,5 +461,3 @@ class UpdateAgent(standard.ExecuteBinaryCommand):
   """Updates the GRR agent to a new version."""
 
   # For Windows this is just an alias to ExecuteBinaryCommand.
-
-  suffix = "exe"

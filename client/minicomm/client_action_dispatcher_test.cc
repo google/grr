@@ -26,8 +26,6 @@ std::vector<GrrMessage> GetMessagesExact(int message_count,
 
 // A fast action which sends PathSpec args back.
 class FastAction : public ClientAction {
-  const char* Name() override { return "FastAction"; }
-
   void ProcessRequest(ActionContext* context) override {
     PathSpec spec;
     context->PopulateArgs(&spec);
@@ -37,8 +35,6 @@ class FastAction : public ClientAction {
 
 // A slow action which sends back an error message.
 class SlowAction : public ClientAction {
-  const char* Name() override { return "SlowAction"; }
-
   void ProcessRequest(ActionContext* context) override {
     std::this_thread::sleep_for(std::chrono::seconds(1));
     context->SetError("Timeout copying path.");
@@ -50,8 +46,8 @@ TEST(ClientActionDispatcherTest, SimpleTest) {
   MessageQueue outbox(10, 100000);
 
   ClientActionDispatcher dispatcher(&inbox, &outbox);
-  dispatcher.AddAction(new FastAction());
-  dispatcher.AddAction(new SlowAction());
+  dispatcher.AddAction("FastAction", new FastAction());
+  dispatcher.AddAction("SlowAction", new SlowAction());
   dispatcher.StartProcessing();
 
   GrrMessage request_1;

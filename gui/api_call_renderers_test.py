@@ -2,7 +2,13 @@
 """Tests for grr.gui.api_call_renderers."""
 
 import __builtin__
+
 import mock
+
+# Necessary to get GuiPluginsInit loaded when testing
+# pylint: disable=g-bad-import-order,unused-import
+from grr.gui import django_lib
+# pylint: enable=g-bad-import-order,unused-import
 
 from grr.gui import api_call_renderers
 from grr.lib import access_control
@@ -86,6 +92,9 @@ class SimpleAPIAuthorizationManagerTest(test_lib.GRRBaseTest):
     self.mock_renderer = mock.MagicMock()
     self.mock_renderer.enabled_by_default = True
     self.mock_renderer.__class__.__name__ = "ApiCallRenderer"
+    # API ACLs are off by default, we need to set this to something so the tests
+    # exercise the functionality. Each test will supply its own ACL data.
+    config_lib.CONFIG.Set("API.RendererACLFile", "dummy")
 
   def testSimpleAPIAuthorizationManager(self):
     acls = """

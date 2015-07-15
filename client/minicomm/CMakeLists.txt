@@ -4,7 +4,7 @@ SET(CMAKE_VERBOSE_MAKEFILE on)
 project(grr_minicomm)
 
 include_directories(../../..)
-list(APPEND CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
+list(APPEND CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS} -g")
 
 add_library(core_lib
   ../../proto/jobs.pb.cc
@@ -16,7 +16,7 @@ add_library(core_lib
   comms_utils.cc
   util.cc
 )
-set(core_lib_DEPS crypto protobuf z)
+set(core_lib_DEPS boost_regex crypto protobuf z)
 
 add_library(http_comms_lib http_connection.cc)
 set(http_comms_lib_DEPS core_lib curl ${core_lib_DEPS})
@@ -26,9 +26,18 @@ set(subprocess_delegator_lib_DEPS core_lib ${core_lib_DEPS})
 
 add_library(client_actions_lib client_action.cc client_action_dispatcher.cc
   ../../proto/sysinfo.pb.cc
+  ../../proto/knowledge_base.pb.cc
   client_actions/enumerate_filesystems.cc
   client_actions/enumerate_interfaces.cc
+  client_actions/enumerate_users.cc
   client_actions/get_platform_info.cc
+  client_actions/find.cc
+  client_actions/fingerprint_file.cc
+  client_actions/grep.cc
+  client_actions/stat_file.cc
+  client_actions/transfer_buffer.cc
+  file_operations.cc
+  paths.cc
 )
 set(set_client_actions_lib_DEPS core_lib ${core_lib_DEPS})
 
@@ -64,13 +73,20 @@ add_executable(unit_tests grr_test_main.cc
   client_action_test.cc
   client_actions/enumerate_filesystems_test.cc
   client_actions/enumerate_interfaces_test.cc
+  client_actions/enumerate_users_test.cc
+  client_actions/find_test.cc
+  client_actions/fingerprint_file_test.cc
   client_actions/get_platform_info_test.cc
+  client_actions/grep_test.cc
+  client_actions/transfer_buffer_test.cc
   compression_test.cc
   comms_utils_test.cc
   config_test.cc
   crypto_test.cc
+  file_operations_test.cc
   message_queue_test.cc
-  subprocess_delegator_test.cc
+  paths_test.cc
+#  subprocess_delegator_test.cc
   util_test.cc
 )
 set(unit_tests_external_DEPS

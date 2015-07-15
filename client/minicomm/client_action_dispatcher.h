@@ -16,7 +16,7 @@ class ClientActionDispatcher {
 
   // Setup method. All calls should be made before StartProcessing. Takes
   // ownership.
-  void AddAction(ClientAction* action);
+  void AddAction(const char* name, ClientAction* action);
 
   // Begins monitoring inbox, and processing messages using added actions.
   void StartProcessing();

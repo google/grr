@@ -421,10 +421,8 @@ def RetryQuestion(question_text, output_re="", default_val=None):
   return output
 
 
-def ConfigureBaseOptions(config):
-  """Configure the basic options required to run the server."""
-
-  print "We are now going to configure the server using a bunch of questions.\n"
+def ConfigureHostnames(config):
+  """This configures the hostnames stored in the config."""
 
   print """\n-=GRR Datastore=-
 The GRR Datastore is how all GRR service processes store and share data.\n

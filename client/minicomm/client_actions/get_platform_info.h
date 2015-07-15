@@ -6,8 +6,6 @@
 namespace grr {
 class GetPlatformInfo : public ClientAction {
  public:
-  const char* Name() override { return kName; }
-
   void ProcessRequest(ActionContext* args) override;
 
  private:

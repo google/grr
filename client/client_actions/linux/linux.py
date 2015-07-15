@@ -437,10 +437,15 @@ class InstallDriver(UninstallDriver):
 class UpdateAgent(standard.ExecuteBinaryCommand):
   """Updates the GRR agent to a new version."""
 
-  suffix = "deb"
-
   def ProcessFile(self, path, args):
+    if path.endswith(".deb"):
+      self._InstallDeb(path, args)
+    elif path.endswith(".rpm"):
+      self._InstallRpm(path)
+    else:
+      raise ValueError("Unknown suffix for file %s." % path)
 
+  def _InstallDeb(self, path, args):
     cmd = "/usr/bin/dpkg"
     cmd_args = ["-i", path]
     time_limit = args.time_limit
@@ -452,3 +457,37 @@ class UpdateAgent(standard.ExecuteBinaryCommand):
     # so we just wait. If something goes wrong, the nanny will restart the
     # service after a short while and the client will come back to life.
     time.sleep(1000)
+
+  def _InstallRpm(self, path):
+    """Client update for rpm based distros.
+
+    Upgrading rpms is a bit more tricky than upgrading deb packages since there
+    is a preinstall script that kills the running GRR daemon and, thus, also
+    the installer process. We need to make sure we detach the child process
+    properly and therefore cannot use client_utils_common.Execute().
+
+    Args:
+      path: Path to the .rpm.
+    """
+
+    pid = os.fork()
+    if pid == 0:
+      # This is the child that will become the installer process.
+
+      cmd = "/bin/rpm"
+      cmd_args = [cmd, "-U", "--replacepkgs", "--replacefiles", path]
+
+      # We need to clean the environment or rpm will fail - similar to the
+      # use_client_context=False parameter.
+      env = os.environ.copy()
+      env.pop("LD_LIBRARY_PATH", None)
+      env.pop("PYTHON_PATH", None)
+
+      # This call doesn't return.
+      os.execve(cmd, cmd_args, env)
+
+    else:
+      # The installer will run in the background and kill the main process
+      # so we just wait. If something goes wrong, the nanny will restart the
+      # service after a short while and the client will come back to life.
+      time.sleep(1000)

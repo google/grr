@@ -13,10 +13,6 @@ class ClientAction {
   ClientAction() {}
   ~ClientAction() {}
 
-  // Returns the name of the ClientAction. Used to recognize requests for the
-  // action.
-  virtual const char* Name() = 0;
-
   // Attempt to handle the request contained in context. Should send all
   // necessary responses, except for the final status message.
   virtual void ProcessRequest(ActionContext* context) = 0;

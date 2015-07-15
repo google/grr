@@ -1,5 +1,5 @@
 /**
- * @license AngularJS v1.4.2-local+sha.d193c3a
+ * @license AngularJS v1.4.2-local+sha.1f5e42e
  * (c) 2010-2015 Google, Inc. http://angularjs.org
  * License: MIT
  */
@@ -58,7 +58,7 @@ function minErr(module, ErrorConstructor) {
       return match;
     });
 
-    message += '\nhttp://errors.angularjs.org/1.4.2-local+sha.d193c3a/' +
+    message += '\nhttp://errors.angularjs.org/1.4.2-local+sha.1f5e42e/' +
       (module ? module + '/' : '') + code;
 
     for (i = SKIP_INDEXES, paramPrefix = '?'; i < templateArgs.length; i++, paramPrefix = '&') {
@@ -2355,7 +2355,7 @@ function toDebugString(obj) {
  * - `codeName` – `{string}` – Code name of the release, such as "jiggling-armfat".
  */
 var version = {
-  full: '1.4.2-local+sha.d193c3a',    // all of these placeholder strings will be replaced by grunt's
+  full: '1.4.2-local+sha.1f5e42e',    // all of these placeholder strings will be replaced by grunt's
   major: 1,    // package task
   minor: 4,
   dot: undefined,
