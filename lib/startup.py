@@ -34,8 +34,13 @@ def AddConfigContext():
 
 def ConfigInit():
   """Initialize the configuration manager from the command line arg."""
+  global CONFIG_INIT_RAN
+  if CONFIG_INIT_RAN:
+    return
+
   # Initialize the config system from the command line options.
   config_lib.ParseConfigCommandLine()
+  CONFIG_INIT_RAN = True
 
 
 def ClientPluginInit():
@@ -76,7 +81,7 @@ def ClientInit():
 
 # Make sure we do not reinitialize multiple times.
 INIT_RAN = False
-
+CONFIG_INIT_RAN = False
 
 def Init():
   """Run all required startup routines and initialization hooks."""
