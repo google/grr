@@ -53,7 +53,7 @@ var ClientSearchBoxController =
 ClientSearchBoxController.prototype.onGetLabels_ = function(response) {
   var labels = {};
   angular.forEach(response['data']['labels'], function(label) {
-    labels[label['name']] = 'X';
+    labels[label['value']['name']['value']] = 'X';
   });
 
   var intervalPromise = this.interval_(function() {

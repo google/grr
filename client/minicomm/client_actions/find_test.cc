@@ -40,7 +40,7 @@ TEST(Find, RegexMatching) {
   MessageQueue queue(5, 20000);
   ActionContext context(message, &queue);
 
-  Find action;
+  actions::Find action;
   action.ProcessRequest(&context);
 
   const auto results = queue.GetMessages(5, 20000, false);
@@ -81,7 +81,7 @@ TEST(Find, RegexDeepMatching) {
   MessageQueue queue(20, 20000);
   ActionContext context(message, &queue);
 
-  Find action;
+  actions::Find action;
   action.ProcessRequest(&context);
 
   const auto results = queue.GetMessages(20, 20000, false);

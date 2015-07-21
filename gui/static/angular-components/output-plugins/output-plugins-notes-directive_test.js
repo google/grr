@@ -5,7 +5,7 @@ goog.require('grrUi.tests.module');
 
 
 describe('output plugins notes list directive', function() {
-  var $compile, $rootScope, $q, grrAff4Service;
+  var $compile, $rootScope, $q, grrApiService;
 
   beforeEach(module('/static/angular-components/output-plugins/' +
         'output-plugins-notes.html'));
@@ -16,31 +16,31 @@ describe('output plugins notes list directive', function() {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
     $q = $injector.get('$q');
-    grrAff4Service = $injector.get('grrAff4Service');
+    grrApiService = $injector.get('grrApiService');
   }));
 
   var renderTestTemplate = function() {
-    $rootScope.metadataUrn = 'aff4:/foo/bar';
+    $rootScope.metadataUrl = '/foo/bar/metadata';
 
-    var template = '<grr-output-plugins-notes metadata-urn="metadataUrn" />';
+    var template = '<grr-output-plugins-notes metadata-url="metadataUrl" />';
     var element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     return element;
   };
 
-  it('requests AFF4 metadata object via AFF4 service', function() {
+  it('requests output plugins metadata via API service', function() {
     var deferred = $q.defer();
-    spyOn(grrAff4Service, 'get').and.returnValue(deferred.promise);
+    spyOn(grrApiService, 'get').and.returnValue(deferred.promise);
 
     var element = renderTestTemplate();
 
-    expect(grrAff4Service.get).toHaveBeenCalledWith('aff4:/foo/bar');
+    expect(grrApiService.get).toHaveBeenCalledWith('/foo/bar/metadata');
   });
 
-  it('shows an error when AFF4 request fails', function() {
+  it('shows an error when API request fails', function() {
     var deferred = $q.defer();
-    spyOn(grrAff4Service, 'get').and.returnValue(deferred.promise);
+    spyOn(grrApiService, 'get').and.returnValue(deferred.promise);
     deferred.reject({data: {message: 'FAIL'}});
 
     var element = renderTestTemplate();
@@ -50,7 +50,7 @@ describe('output plugins notes list directive', function() {
 
   it('delegates every plugin display to grr-output-plugin-note', function() {
     var deferred = $q.defer();
-    spyOn(grrAff4Service, 'get').and.returnValue(deferred.promise);
+    spyOn(grrApiService, 'get').and.returnValue(deferred.promise);
 
     var descriptor1 = {
       value: {
@@ -75,12 +75,8 @@ describe('output plugins notes list directive', function() {
     };
     deferred.resolve({
       data: {
-        attributes: {
-          'aff4:output_plugins_state': {
-            'Output1': [descriptor1, state1],
-            'Output2': [descriptor2, state2]
-          }
-        }
+        'Output1': [descriptor1, state1],
+        'Output2': [descriptor2, state2]
       }
     });
 

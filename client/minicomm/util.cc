@@ -33,10 +33,19 @@ std::string ErrorName(int errnum) {
   // specific and may return buff, or may return pointer to a static string
   // constant. In the latter case we trust the null termination, in the former
   // case we hard limit the size of the string with ArrayToString just in case.
+
+#ifndef ANDROID
   char* res = strerror_r(errnum, buff, sizeof(buff));
   if (res == buff) {
     return ArrayToString(buff);
   }
   return res;
+#else
+  int res = strerror_r(errnum, buff, sizeof(buff));
+  if (res == 0) {
+    return ArrayToString(buff);
+  }
+  return "Error occured.";
+#endif
 }
 }  // namespace grr

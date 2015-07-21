@@ -27,7 +27,7 @@ Client.version_major: 3
 
 Client.version_minor: 0
 
-Client.version_release: 6
+Client.version_release: 7
 
 Client.version_revision: 0
 
@@ -261,15 +261,13 @@ Platform:Darwin:
 
   # Darwin systems have their drivers stored in this part of the config space.
   MemoryDriver.aff4_paths:
-    - "%(Config.aff4_root)/drivers/osx/memory/pmem-signed"
-    - "%(Config.aff4_root)/drivers/osx/memory/pmem"
+    - "%(Config.aff4_root)/drivers/osx/memory/pmem-ng-signed"
 
   MemoryDriver.device_path: /dev/pmem
 
   Arch:amd64:
     MemoryDriver.driver_files:
-      - binaries/OSXPMem-signed.tar.gz
-      - binaries/OSXPMem.tar.gz
+      - binaries/OSXPMem-ng-signed.tar.gz
 
 Platform:Linux:
   Client.binary_name: grrd

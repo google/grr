@@ -18,6 +18,7 @@ goog.require('grrUi.core.pagedFilteredTableDirective.PagedFilteredTableDirective
 goog.require('grrUi.core.pagedFilteredTableDirective.TableBottomDirective');
 goog.require('grrUi.core.pagedFilteredTableDirective.TableTopDirective');
 goog.require('grrUi.core.reflectionService.ReflectionService');
+goog.require('grrUi.core.resultsCollectionDirective.ResultsCollectionDirective');
 goog.require('grrUi.core.splitterDirective.SplitterDirective');
 goog.require('grrUi.core.splitterDirective.SplitterPaneDirective');
 goog.require('grrUi.core.timeService.TimeService');
@@ -68,6 +69,10 @@ grrUi.core.module.service(
 grrUi.core.module.service(
     grrUi.core.apiService.ApiService.service_name,
     grrUi.core.apiService.ApiService);
+grrUi.core.module.directive(
+    grrUi.core.resultsCollectionDirective.ResultsCollectionDirective
+        .directive_name,
+    grrUi.core.resultsCollectionDirective.ResultsCollectionDirective);
 grrUi.core.module.directive(
     grrUi.core.splitterDirective.SplitterDirective.directive_name,
     grrUi.core.splitterDirective.SplitterDirective);

@@ -195,7 +195,7 @@ class HashTracker(object):
 class FileTracker(object):
   """A Class to track a single file download."""
 
-  def __init__(self, stat_entry, client_id, request_data):
+  def __init__(self, stat_entry, client_id, request_data, index=None):
     self.fd = None
     self.stat_entry = stat_entry
     self.hash_obj = None
@@ -205,6 +205,7 @@ class FileTracker(object):
         self.pathspec, client_id)
     self.stat_entry.aff4path = self.urn
     self.request_data = request_data
+    self.index = index
 
     # The total number of bytes available in this file. This may be different
     # from the size as reported by stat() for special files (e.g. proc files).
@@ -283,6 +284,9 @@ class MultiGetFileMixin(object):
     # values are FileTracker instances.
     self.state.Register("pending_files", {})
 
+    # A mapping of index values to the original pathspecs.
+    self.state.Register("indexed_pathspecs", {})
+
     # Set of blobs we still need to fetch.
     self.state.Register("blobs_we_need", set())
 
@@ -290,10 +294,19 @@ class MultiGetFileMixin(object):
                            token=self.token)
     self.state.Register("filestore", fd)
 
-  def StartFileFetch(self, pathspec, vfs_urn, request_data=None):
+  def GenerateIndex(self, pathspec):
+    h = hashlib.sha256()
+    h.update(pathspec.SerializeToString())
+    return h.hexdigest()
+
+  def StartFileFetch(self, pathspec, request_data=None):
     """The entry point for this flow mixin - Schedules new file transfer."""
+    # Create an index so we can find this pathspec later.
+    index = self.GenerateIndex(pathspec)
+    self.state.indexed_pathspecs[index] = pathspec
+
     request_data = request_data or {}
-    request_data["vfs_urn"] = vfs_urn
+    request_data["index"] = index
     self.CallClient("StatFile", pathspec=pathspec,
                     next_state="StoreStat",
                     request_data=request_data)
@@ -326,9 +339,9 @@ class MultiGetFileMixin(object):
       return
 
     stat_entry = responses.First()
-    vfs_urn = responses.request_data["vfs_urn"]
-    self.state.pending_hashes[vfs_urn] = FileTracker(stat_entry, self.client_id,
-                                                     responses.request_data)
+    index = responses.request_data["index"]
+    self.state.pending_hashes[index] = FileTracker(
+        stat_entry, self.client_id, responses.request_data, index)
 
   @flow.StateHandler(next_state="CheckHash")
   def ReceiveFileHash(self, responses):
@@ -343,10 +356,10 @@ class MultiGetFileMixin(object):
                       request_data=responses.request_data)
       return
 
-    vfs_urn = responses.request_data["vfs_urn"]
+    index = responses.request_data["index"]
     if not responses.success:
       self.Log("Failed to hash file: %s", responses.status)
-      self.state.pending_hashes.pop(vfs_urn, None)
+      self.state.pending_hashes.pop(index, None)
       return
 
     self.state.files_hashed += 1
@@ -358,8 +371,8 @@ class MultiGetFileMixin(object):
       hash_obj = rdf_crypto.Hash()
 
       if len(response.results) < 1 or response.results[0]["name"] != "generic":
-        self.Log("Failed to hash file: %s", str(vfs_urn))
-        self.state.pending_hashes.pop(vfs_urn, None)
+        self.Log("Failed to hash file: %s", self.state.indexed_pathspecs[index])
+        self.state.pending_hashes.pop(index, None)
         return
 
       result = response.results[0]
@@ -369,11 +382,11 @@ class MultiGetFileMixin(object):
           value = result.GetItem(hash_type)
           setattr(hash_obj, hash_type, value)
       except AttributeError:
-        self.Log("Failed to hash file: %s", str(vfs_urn))
-        self.state.pending_hashes.pop(vfs_urn, None)
+        self.Log("Failed to hash file: %s", self.state.indexed_pathspecs[index])
+        self.state.pending_hashes.pop(index, None)
         return
 
-    tracker = self.state.pending_hashes[vfs_urn]
+    tracker = self.state.pending_hashes[index]
     tracker.hash_obj = hash_obj
     tracker.bytes_read = response.bytes_read
 
@@ -402,15 +415,14 @@ class MultiGetFileMixin(object):
     # Store urns by hash to allow us to remove duplicates.
     # keys are hashdigest objects, values are arrays of tracker objects.
     hash_to_urn = {}
-    for vfs_urn, tracker in self.state.pending_hashes.iteritems():
+    for index, tracker in self.state.pending_hashes.iteritems():
 
       # We might not have gotten this hash yet
       if tracker.hash_obj is None:
         continue
 
       digest = tracker.hash_obj.sha256
-      # We need to use the normalized tracker.urn instead of vfs_urn here.
-      file_hashes[tracker.urn] = tracker.hash_obj
+      file_hashes[index] = tracker.hash_obj
       hash_to_urn.setdefault(digest, []).append(tracker)
 
     # First we get all the files which are present in the file store.
@@ -424,11 +436,11 @@ class MultiGetFileMixin(object):
       # find any other files pending download with the same hash.
       for tracker in hash_to_urn[digest]:
         self.state.files_skipped += 1
-        file_hashes.pop(tracker.urn)
+        file_hashes.pop(tracker.index)
         files_in_filestore.add(file_store_urn)
         # Remove this tracker from the pending_hashes store since we no longer
         # need to process it.
-        self.state.pending_hashes.pop(tracker.urn)
+        self.state.pending_hashes.pop(tracker.index)
 
     # Now that the check is done, reset our counter
     self.state.files_hashed_since_check = 0
@@ -471,12 +483,12 @@ class MultiGetFileMixin(object):
 
     # Now we iterate over all the files which are not in the store and arrange
     # for them to be copied.
-    for vfs_urn in file_hashes:
+    for index in file_hashes:
 
       # Move the tracker from the pending hashes store to the pending files
       # store - it will now be downloaded.
-      file_tracker = self.state.pending_hashes.pop(vfs_urn)
-      self.state.pending_files[vfs_urn] = file_tracker
+      file_tracker = self.state.pending_hashes.pop(index)
+      self.state.pending_files[index] = file_tracker
 
       # Create the VFS file for this file tracker.
       file_tracker.CreateVFSFile("VFSBlobImage", token=self.token,
@@ -501,7 +513,7 @@ class MultiGetFileMixin(object):
         self.CallClient("HashBuffer", pathspec=file_tracker.pathspec,
                         offset=i * self.CHUNK_SIZE,
                         length=self.CHUNK_SIZE, next_state="CheckHash",
-                        request_data=dict(urn=vfs_urn))
+                        request_data=dict(index=index))
 
     if self.state.files_hashed % 100 == 0:
       self.Log("Hashed %d files, skipped %s already stored.",
@@ -510,19 +522,19 @@ class MultiGetFileMixin(object):
   @flow.StateHandler(next_state="WriteBuffer")
   def CheckHash(self, responses):
     """Adds the block hash to the file tracker responsible for this vfs URN."""
-    vfs_urn = responses.request_data["urn"]
+    index = responses.request_data["index"]
 
-    if vfs_urn not in self.state.pending_files:
+    if index not in self.state.pending_files:
       # This is a blobhash for a file we already failed to read and logged as
       # below, check here to avoid logging dups.
       return
 
-    file_tracker = self.state.pending_files[vfs_urn]
+    file_tracker = self.state.pending_files[index]
 
     hash_response = responses.First()
     if not responses.success or not hash_response:
       self.Log("Failed to read %s: %s" % (file_tracker.urn, responses.status))
-      del self.state.pending_files[vfs_urn]
+      del self.state.pending_files[index]
       return
 
     hash_tracker = HashTracker(hash_response)
@@ -548,7 +560,7 @@ class MultiGetFileMixin(object):
     self.state.blobs_we_need = set()
 
     # Now iterate over all the blobs and add them directly to the blob image.
-    for vfs_urn, file_tracker in self.state.pending_files.iteritems():
+    for index, file_tracker in self.state.pending_files.iteritems():
       for hash_tracker in file_tracker.hash_list:
         # Make sure we read the correct pathspec on the client.
         hash_tracker.hash_response.pathspec = file_tracker.pathspec
@@ -557,13 +569,13 @@ class MultiGetFileMixin(object):
           # If we have the data we may call our state directly.
           self.CallState([hash_tracker.hash_response],
                          next_state="WriteBuffer",
-                         request_data=dict(urn=vfs_urn))
+                         request_data=dict(index=index))
 
         else:
           # We dont have this blob - ask the client to transmit it.
           self.CallClient("TransferBuffer", hash_tracker.hash_response,
                           next_state="WriteBuffer",
-                          request_data=dict(urn=vfs_urn))
+                          request_data=dict(index=index))
 
       # Clear the file tracker's hash list.
       file_tracker.hash_list = []
@@ -573,23 +585,23 @@ class MultiGetFileMixin(object):
     """Write the hash received to the blob image."""
     # Note that hashes must arrive at this state in the correct order since they
     # are sent in the correct order (either via CallState or CallClient).
-    vfs_urn = responses.request_data["urn"]
-    if vfs_urn not in self.state.pending_files:
+    index = responses.request_data["index"]
+    if index not in self.state.pending_files:
       return
 
     # Failed to read the file - ignore it.
     if not responses.success:
-      return self.RemoveInFlightFile(vfs_urn)
+      return self.RemoveInFlightFile(index)
 
     response = responses.First()
-    file_tracker = self.state.pending_files.get(vfs_urn)
+    file_tracker = self.state.pending_files.get(index)
     if file_tracker:
       file_tracker.fd.AddBlob(response.data, response.length)
 
       if (response.length < file_tracker.fd.chunksize or
           response.offset + response.length >= file_tracker.stat_entry.st_size):
         # File done, remove from the store and close it.
-        self.RemoveInFlightFile(vfs_urn)
+        self.RemoveInFlightFile(index)
 
         # Close and write the file to the data store.
         file_tracker.fd.Close(sync=True)
@@ -606,8 +618,8 @@ class MultiGetFileMixin(object):
           self.Log("Fetched %d of %d files.", self.state.files_fetched,
                    self.state.files_to_fetch)
 
-  def RemoveInFlightFile(self, vfs_urn):
-    file_tracker = self.state.pending_files.pop(vfs_urn)
+  def RemoveInFlightFile(self, index):
+    file_tracker = self.state.pending_files.pop(index)
     if file_tracker:
       self.ReceiveFetchedFile(file_tracker.stat_entry, file_tracker.hash_obj,
                               request_data=file_tracker.request_data)
@@ -652,7 +664,7 @@ class MultiGetFile(MultiGetFileMixin, flow.GRRFlow):
         # Only Stat/Hash each path once, input pathspecs can have dups.
         unique_paths.add(vfs_urn)
 
-        self.StartFileFetch(pathspec, vfs_urn)
+        self.StartFileFetch(pathspec)
 
   def ReceiveFetchedFile(self, stat_entry, unused_hash_obj,
                          request_data=None):

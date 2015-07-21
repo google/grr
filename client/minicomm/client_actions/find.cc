@@ -5,6 +5,7 @@
 #include "boost/regex.hpp"
 
 namespace grr {
+namespace actions {
 void Find::ProcessRequest(ActionContext* context) {
   FindSpec req;
   if (!context->PopulateArgs(&req)) {
@@ -134,4 +135,5 @@ bool Find::ProcessRecursive(const std::vector<FileFilter>& filters,
     }
   }
 }
+}  // namespace actions
 }  // namespace grr

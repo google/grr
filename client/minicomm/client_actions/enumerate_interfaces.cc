@@ -11,6 +11,7 @@
 #include "grr/client/minicomm/util.h"
 
 namespace grr {
+namespace actions {
 
 template <class T>
 std::string ToBytes(const T& input) {
@@ -70,4 +71,5 @@ EnumerateInterfaces::InterfaceMap EnumerateInterfaces::ProcessIfaddrList(
   }
   return interfaces;
 }
+}  // namespace actions
 }  // namespace grr

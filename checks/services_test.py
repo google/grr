@@ -17,32 +17,63 @@ class XinetdServiceStateTests(checks_test_lib.HostCheckTest):
     cls.LoadCheck("services.yaml")
     cls.parser = linux_service_parser.LinuxXinetdParser().ParseMultiple
 
-  def RunXinetdCheck(self, chk_id, svc, disabled, sym, found):
+  def RunXinetdCheck(self, chk_id, svc, disabled, sym, found,
+                     xinetd=False, should_detect=True):
     host_data = self.SetKnowledgeBase()
     cfgs = linux_service_parser_test.GenXinetd(svc, disabled)
     stats, files = linux_service_parser_test.GenTestData(cfgs, cfgs.values())
     data = list(self.parser(stats, files, None))
+
+    # create entries on whether xinetd itself is setup to start or not
+    if xinetd:
+      cfgs = linux_service_parser_test.GenInit(
+          "xinetd", "the extended Internet services daemon")
+      stats, files = linux_service_parser_test.GenTestData(cfgs, cfgs.values())
+      lsb_parser = linux_service_parser.LinuxLSBInitParser()
+      data.extend(list(lsb_parser.ParseMultiple(stats, files, None)))
+
     host_data["LinuxServices"] = self.SetArtifactData(parsed=data)
     results = self.RunChecks(host_data)
-    self.assertCheckDetectedAnom(chk_id, results, sym, found)
+
+    if should_detect:
+      self.assertCheckDetectedAnom(chk_id, results, sym, found)
+    else:
+      self.assertCheckUndetected(chk_id, results)
 
   def testEmptyXinetdCheck(self):
     chk_id = "CIS-INETD-WITH-NO-SERVICES"
     sym = "Missing attribute: xinetd running with no xinetd-managed services."
     found = ["Expected state was not found"]
-    self.RunXinetdCheck(chk_id, "finger", "yes", sym, found)
+
+    # xinetd is running and the only service is disabled - there should be a hit
+    self.RunXinetdCheck(chk_id, "finger", "yes", sym, found, xinetd=True,
+                        should_detect=True)
+
+    # xinetd is running and there is a service enabled - no hit
+    self.RunXinetdCheck(chk_id, "finger", "no", sym, found, xinetd=True,
+                        should_detect=False)
+    # xinetd not running and the only service is disabled - no hit
+    self.RunXinetdCheck(chk_id, "finger", "yes", sym, found, xinetd=False,
+                        should_detect=False)
+    # xinetd not running and there is a service enabled - no hit
+    self.RunXinetdCheck(chk_id, "finger", "no", sym, found, xinetd=False,
+                        should_detect=False)
 
   def testLegacyXinetdServicesCheck(self):
     chk_id = "CIS-SERVICE-LEGACY-SERVICE-ENABLED"
     sym = "Found: Legacy services are running."
     found = ["telnet is started by XINETD"]
     self.RunXinetdCheck(chk_id, "telnet", "no", sym, found)
+    self.RunXinetdCheck(chk_id, "telnet", "yes", sym, found,
+                        should_detect=False)
 
   def testUnwantedServicesCheck(self):
     chk_id = "CIS-SERVICE-SHOULD-NOT-RUN"
     sym = "Found: Remote administration services are running."
     found = ["webmin is started by XINETD"]
     self.RunXinetdCheck(chk_id, "webmin", "no", sym, found)
+    self.RunXinetdCheck(chk_id, "webmin", "yes", sym, found,
+                        should_detect=False)
 
 
 class SysVInitStateTests(checks_test_lib.HostCheckTest):

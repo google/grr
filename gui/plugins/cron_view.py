@@ -271,7 +271,7 @@ successfully!</p>
 
   @property
   def header(self):
-    return self.action_name.title() + " a cron job?"
+    return self.action_name.name.title() + " cron job"
 
   def Layout(self, request, response):
     self.check_access_subject = rdfvalue.RDFURN(request.REQ.get("cron_urn"))

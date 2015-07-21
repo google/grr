@@ -3,6 +3,7 @@
 #include "grr/client/minicomm/paths.h"
 
 namespace grr {
+namespace actions {
 void StatFile::ProcessRequest(ActionContext* context) {
   ListDirRequest req;
   if (!context->PopulateArgs(&req)) {
@@ -19,4 +20,5 @@ void StatFile::ProcessRequest(ActionContext* context) {
   *res.mutable_pathspec() = req.pathspec();
   context->SendResponse(res, GrrMessage::MESSAGE);
 }
+}  // namespace actions
 }  // namespace grr

@@ -10,6 +10,7 @@
 #include "grr/client/minicomm/client_action.h"
 
 namespace grr {
+namespace actions {
 class EnumerateFilesystems : public ClientAction {
  public:
   EnumerateFilesystems();
@@ -33,7 +34,7 @@ class EnumerateFilesystems : public ClientAction {
   FRIEND_TEST(EnumerateFilesystemsTest, ProcessFileComments);
   FRIEND_TEST(EnumerateFilesystemsTest, ProcessFileNormal);
 };
-
+}  // namespace actions
 }  // namespace grr
 
 #endif  // GRR_CLIENT_MINICOMM_CLIENT_ACTIONS_ENUMERATE_FILESYSTEMS_H_

@@ -1,0 +1,21 @@
+<div grr-splitter orientation="vertical" class="rightSplitterContainer" closeable-to="0">
+
+  <div grr-splitter-pane id="main_leftPane" class="leftPane">
+    <grr-flows-tree selected-descriptor="selection.flowDescriptor" />
+  </div>
+
+  <div grr-splitter-pane id="main_rightPane" class="rightPane no-overflow">
+    <div grr-splitter orientation="horizontal" class="rightSplitterContainer" closeable-to="100">
+
+      <div grr-splitter-pane id="main_rightTopPane" class="rightTopPane">
+        <grr-start-flow-form client-id="clientId" descriptor="selection.flowDescriptor" />
+      </div>
+
+      <div grr-splitter-pane id="main_rightBottomPane" class="rightBottomPane">
+        <grr-flow-info descriptor="selection.flowDescriptor" />
+      </div>
+
+    </div>
+  </div>
+
+</div>

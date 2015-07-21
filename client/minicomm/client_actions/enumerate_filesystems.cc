@@ -6,6 +6,7 @@
 #include "grr/client/minicomm/util.h"
 
 namespace grr {
+namespace actions {
 
 EnumerateFilesystems::EnumerateFilesystems()
     : to_report_{"ext2",  "ext3",     "ext4", "vfat", "ntfs",
@@ -60,4 +61,5 @@ Filesystem EnumerateFilesystems::ProcessLine(std::string line) {
   }
   return f;
 }
+}  // namespace actions
 }  // namespace grr

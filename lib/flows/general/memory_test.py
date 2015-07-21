@@ -50,13 +50,13 @@ class DummyDiskVolumeInfo(flow.GRRFlow):
   def Start(self):
     if "/opt" in self.args.path_list[0]:
       mnt = rdf_client.UnixVolume(mount_point="/opt")
-      self.SendReply(rdf_client.Volume(unix=mnt, bytes_per_sector=4096,
+      self.SendReply(rdf_client.Volume(unixvolume=mnt, bytes_per_sector=4096,
                                        sectors_per_allocation_unit=1,
                                        actual_available_allocation_units=10,
                                        total_allocation_units=100))
     else:
       mnt = rdf_client.UnixVolume(mount_point="/var")
-      self.SendReply(rdf_client.Volume(unix=mnt, bytes_per_sector=1,
+      self.SendReply(rdf_client.Volume(unixvolume=mnt, bytes_per_sector=1,
                                        sectors_per_allocation_unit=1,
                                        actual_available_allocation_units=784165,
                                        total_allocation_units=78416500))

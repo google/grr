@@ -6,6 +6,7 @@
 #include "boost/regex.hpp"
 
 namespace grr {
+namespace actions {
 void Grep::ProcessRequest(ActionContext* context) {
   GrepSpec req;
   if (!context->PopulateArgs(&req)) {
@@ -29,9 +30,10 @@ void Grep::ProcessRequest(ActionContext* context) {
   }
 
   const char* start_pos =
-      mmap_offset + std::min(req.start_offset(), result->size());
+      mmap_offset + std::min((size_t)req.start_offset(), result->size());
   const char* end_pos =
-      mmap_offset + std::min(req.start_offset() + req.length(), result->size());
+      mmap_offset + std::min((size_t)(req.start_offset() +
+                            req.length()), result->size());
   if (start_pos == end_pos) {
     context->SetError(
         "Attempt to grep empty interval. Start offset too large?");
@@ -111,4 +113,5 @@ std::vector<Grep::Match> Grep::SearchRegex(const std::string& regex,
   }
   return res;
 }
+}  // namespace actions
 }  // namespace grr

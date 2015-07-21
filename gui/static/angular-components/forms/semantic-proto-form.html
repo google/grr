@@ -10,7 +10,9 @@
   </div>
 
   <div ng-if="(metadata.depth === undefined || metadata.depth < 2 || controller.expanded)">
-    <div ng-repeat="field in controller.valueDescriptor.fields">
+
+    <div ng-repeat="field in controller.valueDescriptor.fields |
+                    filter:controller.regularFieldsOnly">
       <grr-form-proto-single-field value="value.value[field.name]"
                                    field="field"
                                    ng-if="!field.repeated">
@@ -22,6 +24,39 @@
                                      ng-if="field.repeated">
       </grr-form-proto-repeated-field>
     </div>
+
+    <div ng-if="controller.hasAdvancedFields">
+      <div>
+        <label class="control-label">
+          <a class="advanced-label"
+             ng-click="controller.advancedShown = !controller.advancedShown">
+            Advanced
+          </a>
+          <i class="advanced-icon glyphicon"
+             ng-class="{'glyphicon-chevron-right': !controller.advancedShown,
+                       'glyphicon-chevron-down': controller.advancedShown}"></i>
+        </label>
+      </div>
+      <div class="clearfix"></div>
+
+      <div class="advanced-controls" ng-show="controller.advancedShown">
+        <div ng-repeat="field in controller.valueDescriptor.fields |
+                        filter:controller.advancedFieldsOnly">
+          <grr-form-proto-single-field value="value.value[field.name]"
+                                       field="field"
+                                       ng-if="!field.repeated">
+          </grr-form-proto-single-field>
+
+          <grr-form-proto-repeated-field value="value.value[field.name]"
+                                         descriptor="controller.descriptors[field.type]"
+                                         field="field"
+                                         ng-if="field.repeated">
+          </grr-form-proto-repeated-field>
+        </div>
+      </div>
+    </div>
+    <div class="clearfix"></div>
+
   </div>
 
 </div>

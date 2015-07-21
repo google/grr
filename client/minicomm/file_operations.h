@@ -1,15 +1,22 @@
 #ifndef GRR_CLIENT_MINICOMM_FILE_OPERATIONS_H_
 #define GRR_CLIENT_MINICOMM_FILE_OPERATIONS_H_
 
+#include <sys/stat.h>
+// On linux, sys/stat.h defines these as macros, which conflict with the
+// StatEntry protocol buffer. We stash the definitions, because they are needed
+// to actually read the fields in question from a struct stat.
+#pragma push_macro("st_atime")
+#pragma push_macro("st_ctime")
+#pragma push_macro("st_mtime")
+#undef st_atime
+#undef st_ctime
+#undef st_mtime
+
 #include <memory>
 #include <vector>
 
 #include "grr/proto/jobs.pb.h"
 #include "grr/client/minicomm/base.h"
-
-// Needs to come after jobs.pb.h due to name clash.
-// TODO(user): Fix properly (put protos in namespace?).
-#include <sys/stat.h>
 
 namespace grr {
 

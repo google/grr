@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2013 Google Inc. All Rights Reserved.
 """RDFValues for the remote data_store."""
 
 import json
@@ -56,5 +55,4 @@ class ResultSet(structs.RDFProtoStruct):
     # and json.loads('"\\udc7c"') raises "Unpaired low surrogate" error.
     self.serialized_result = utils.SmartStr(
         json.dumps(value, ensure_ascii=False))
-
 

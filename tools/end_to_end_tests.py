@@ -63,15 +63,18 @@ def RunEndToEndTests():
     print ("No clients to test on.  Define Test.end_to_end_client* config "
            "options, or pass them as parameters.")
 
+  results_by_client = {}
   for client in aff4.FACTORY.MultiOpen(client_id_set, token=token):
-    client = client.GetSummary()
+    client_summary = client.GetSummary()
 
-    if hasattr(client, "system_info"):
-      sysinfo = client.system_info
+    if hasattr(client_summary, "system_info"):
+      sysinfo = client_summary.system_info
     else:
       raise RuntimeError("Unknown system type, likely waiting on interrogate"
                          " to complete.")
 
+    results = {}
+    results_by_client[client.urn] = results
     for cls in base.ClientTestBase.classes.values():
       if flags.FLAGS.testnames and (
           cls.__name__ not in flags.FLAGS.testnames):
@@ -92,7 +95,7 @@ def RunEndToEndTests():
 
       if sysinfo.system in cls.platforms:
         print "Running %s on %s (%s: %s, %s, %s)" % (
-            cls.__name__, client.client_id, sysinfo.fqdn,
+            cls.__name__, client_summary.client_id, sysinfo.fqdn,
             sysinfo.system, sysinfo.version,
             sysinfo.machine)
 
@@ -100,13 +103,23 @@ def RunEndToEndTests():
           # Mixin the unittest framework so we can use the test runner to run
           # the test and get nice output.  We don't want to depend on unitttest
           # code in the tests themselves.
-          testcase = cls(client_id=client.client_id,
+          testcase = cls(client_id=client_summary.client_id,
                          platform=sysinfo.system, token=token,
                          local_client=flags.FLAGS.local_client,
                          local_worker=flags.FLAGS.local_worker)
-          runner.run(testcase)
+          results[cls.__name__] = runner.run(testcase)
         except Exception:  # pylint: disable=broad-except
           logging.exception("Failed to run test %s", cls)
+
+    # Print a little summary.
+
+    for client, results in results_by_client.iteritems():
+      print "Results for %s:" % client
+      for testcase, result in sorted(results.items()):
+        res = "[  OK  ]"
+        if result.errors or result.failures:
+          res = "[ FAIL ]"
+        print "%45s: %s" % (testcase, res)
 
 
 def main(unused_argv):

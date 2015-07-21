@@ -9,6 +9,8 @@
 #include "grr/client/minicomm/client_action.h"
 
 namespace grr {
+namespace actions {
+
 class EnumerateInterfaces : public ClientAction {
  public:
   void ProcessRequest(ActionContext* args) override;
@@ -25,5 +27,6 @@ class EnumerateInterfaces : public ClientAction {
 
   FRIEND_TEST(EnumerateInterfacesTest, ProcessIfaddrList);
 };
+}  // namespace actions
 }  // namespace grr
 #endif  // GRR_CLIENT_MINICOMM_CLIENT_ACTIONS_ENUMERATE_INTERFACES_H_

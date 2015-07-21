@@ -100,8 +100,8 @@ class ApiRDFValueCollectionRenderer(ApiAFF4ObjectRendererBase):
     result = {}
     result["offset"] = args.offset
     result["count"] = len(items)
-    result["items"] = api_value_renderers.RenderValue(
-        items, limit_lists=args.items_limit_lists)
+    result["items"] = [api_value_renderers.RenderValue(
+        i, limit_lists=args.items_limit_lists) for i in items]
 
     if args.with_total_count:
       if hasattr(aff4_object, "CalculateLength"):
@@ -131,7 +131,7 @@ class VFSGRRClientApiObjectRenderer(ApiAFF4ObjectRendererBase):
 
     if volumes:
       for volume in volumes:
-        if volume.windows.drive_type not in exclude_windows_types:
+        if volume.windowsvolume.drive_type not in exclude_windows_types:
           freespace = volume.FreeSpacePercent()
           if freespace < 5.0:
             warnings.append([volume.Name(), freespace])

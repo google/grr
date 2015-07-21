@@ -30,12 +30,17 @@ add_library(client_actions_lib client_action.cc client_action_dispatcher.cc
   client_actions/enumerate_filesystems.cc
   client_actions/enumerate_interfaces.cc
   client_actions/enumerate_users.cc
+  client_actions/get_client_info.cc
+  client_actions/get_configuration.cc
+  client_actions/get_install_date.cc
+  client_actions/get_library_versions.cc
   client_actions/get_platform_info.cc
   client_actions/find.cc
   client_actions/fingerprint_file.cc
   client_actions/grep.cc
   client_actions/stat_file.cc
   client_actions/transfer_buffer.cc
+  client_actions/list_directory.cc
   file_operations.cc
   paths.cc
 )

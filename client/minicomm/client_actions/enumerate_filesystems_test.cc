@@ -6,6 +6,7 @@
 #include "grr/client/minicomm/test_util.h"
 
 namespace grr {
+namespace actions {
 
 TEST(EnumerateFilesystemsTest, ProcessFileNormal) {
   EnumerateFilesystems action;
@@ -66,4 +67,5 @@ TEST(EnumerateFilesystemsTest, ProcessFileComments) {
   EXPECT_EQ("/mnt/windows", results["/mnt/windows"].mount_point());
   EXPECT_EQ("ntfs", results["/mnt/windows"].type());
 }
+}  // namespace actions
 }  // namespace grr

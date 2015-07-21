@@ -28,7 +28,7 @@ TEST(TransferBuffer, SmallFile) {
   file.close();
 
   MessageQueue queue(5, 20000);
-  TransferBuffer action;
+  actions::TransferBuffer action;
 
   BufferReference req;
   req.mutable_pathspec()->set_pathtype(PathSpec::OS);

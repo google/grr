@@ -1888,6 +1888,42 @@ class RDFProtoStruct(RDFStruct):
 
     return result
 
+  def FromDict(self, dictionary):
+    """Initializes itself from a given dictionary."""
+    dynamic_fields = []
+
+    for key, value in dictionary.items():
+      field_type_info = self.type_infos.get(key)
+      if isinstance(field_type_info, ProtoEmbedded):
+        nested_value = field_type_info.GetDefault(container=self)
+        nested_value.FromDict(value)
+        self.Set(key, nested_value)
+      elif isinstance(field_type_info, ProtoList):
+        if isinstance(field_type_info.delegate, ProtoEmbedded):
+          nested_values = []
+          for v in value:
+            nested_value = field_type_info.delegate.GetDefault(container=self)
+            nested_value.FromDict(v)
+            nested_values.append(nested_value)
+
+          self.Set(key, nested_values)
+        else:
+          self.Set(key, value)
+      elif isinstance(field_type_info, ProtoDynamicEmbedded):
+        dynamic_fields.append(field_type_info)
+      else:
+        self.Set(key, value)
+
+    # Process dynamic fields after all other fields, because most probably
+    # their class is determined by one of the previously set fields.
+    for dynamic_field in dynamic_fields:
+      nested_value = dynamic_field.GetDefault(container=self)
+      if nested_value is None:
+        raise RuntimeError("Can't initialize dynamic field %s, probably some "
+                           "necessary fields weren't supplied.")
+      nested_value.FromDict(dictionary[dynamic_field.name])
+      self.Set(dynamic_field.name, nested_value)
+
   def ToPrimitiveDict(self):
     return self._ToPrimitive(self.AsDict())
 

@@ -14,7 +14,7 @@ TEST(EnumerateUsersTest, SimpleTest) {
   MessageQueue queue(5, 20000);
   ActionContext context(message, &queue);
 
-  EnumerateUsers action;
+  actions::EnumerateUsers action;
   action.ProcessRequest(&context);
 
   const auto r = queue.GetMessages(10, 20000, true);

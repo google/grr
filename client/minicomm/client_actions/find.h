@@ -8,6 +8,7 @@
 #include "grr/client/minicomm/file_operations.h"
 
 namespace grr {
+namespace actions {
 class Find : public ClientAction {
  public:
   Find() {}
@@ -33,6 +34,7 @@ class Find : public ClientAction {
                         std::unique_ptr<OpenedPath> path, int remaining_depth,
                         bool cross_devices, ActionContext* context);
 };
+}  // namespace actions
 }  // namespace grr
 
 #endif  // GRR_CLIENT_MINICOMM_CLIENT_ACTIONS_FIND_H_

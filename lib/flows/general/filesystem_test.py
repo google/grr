@@ -764,7 +764,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
         if isinstance(reply, rdf_client.Volume):
           results.append(reply)
 
-      self.assertItemsEqual([x.unix.mount_point for x in results],
+      self.assertItemsEqual([x.unixvolume.mount_point for x in results],
                             ["/", "/usr"])
       self.assertEqual(len(results), 2)
 
@@ -792,7 +792,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
       # We asked for D and we guessed systemroot (C) for "/var/tmp", but only C
       # and Z are present, so we should just get C.
-      self.assertItemsEqual([x.windows.drive_letter for x in results],
+      self.assertItemsEqual([x.windowsvolume.drive_letter for x in results],
                             ["C:"])
       self.assertEqual(len(results), 1)
 
@@ -808,7 +808,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
             reply, rdf_client.Volume):
           results.append(reply)
 
-      self.assertItemsEqual([x.windows.drive_letter for x in results],
+      self.assertItemsEqual([x.windowsvolume.drive_letter for x in results],
                             ["Z:"])
       self.assertEqual(len(results), 1)
 

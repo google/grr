@@ -132,4 +132,3 @@ message DataStoreResponse {
       description: "The request which elicited this response.",
     }];
 };
-

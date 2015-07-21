@@ -27,6 +27,24 @@ from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import standard as rdf_standard
 
 
+# TODO(user): Uncomment as soon as artifacts are migrated to Angular so that
+# artifacts-related flows work.
+#
+# class LaunchFlows(renderers.AngularDirectiveRenderer):
+#   """Launches a new flow."""
+
+#   description = "Start new flows"
+#   behaviours = frozenset(["Host"])
+#   order = 10
+
+#   directive = "grr-start-flow-view"
+
+#   def Layout(self, request, response):
+#     self.directive_args = {}
+#     self.directive_args["client-id"] = request.REQ.get("client_id")
+#     return super(LaunchFlows, self).Layout(request, response)
+
+
 class LaunchFlows(renderers.Splitter):
   """Launches a new flow."""
   description = "Start new flows"
@@ -477,31 +495,15 @@ class FlowRequestView(renderers.TableRenderer):
         self.AddCell(i, "Last Response", responses[-1])
 
 
-class FlowResultsView(semantic.RDFValueCollectionRenderer):
-  """Displays a collection of flow's results."""
+class FlowResultsView(renderers.AngularDirectiveRenderer):
+  """Shows flow results."""
 
-  error_template = renderers.Template("""
-<p>This flow hasn't stored any results yet.</p>
-""")
-
-  context_help_url = "user_manual.html#_exporting_a_collection"
+  directive = "grr-flow-results"
 
   def Layout(self, request, response):
-    session_id = request.REQ.get("flow", "")
-
-    if not session_id:
-      return
-
-    flow_obj = aff4.FACTORY.Open(session_id, token=request.token)
-    runner = flow_obj.GetRunner()
-    # If there's collection in the runner, use it, otherwise display
-    # 'no results' message.
-    if getattr(runner, "output_urn", None):
-      return super(FlowResultsView, self).Layout(
-          request, response, aff4_path=runner.output_urn)
-    else:
-      return self.RenderFromTemplate(self.error_template, response,
-                                     unique=self.unique)
+    self.directive_args = {}
+    self.directive_args["flow-urn"] = request.REQ.get("flow")
+    return super(FlowResultsView, self).Layout(request, response)
 
 
 class FlowResultsExportView(fileview.CollectionExportView):

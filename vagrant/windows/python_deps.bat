@@ -16,6 +16,12 @@ cd C:\grr_build\pyinstaller
 git reset --hard edb5d438d8df5255a5c8f70f42f11f75aa4e08cf
 python setup.py install
 
+:: Install Rekall from head.
+git clone https://github.com/google/rekall.git C:\grr_build\rekall
+cd C:\grr_build\rekall
+python setup.py install
+
+
 :: Check the most complicated python bits here
 python -c "import M2Crypto" || echo "M2Crypto install failed" && exit /b 1
 python -c "from rekall import plugins" || echo "rekall install failed" && exit /b 1

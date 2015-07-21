@@ -10,7 +10,7 @@ namespace grr {
 
 TEST(FingerprintFile, FingerprintNormal) {
   MessageQueue queue(5, 20000);
-  FingerprintFile action;
+  actions::FingerprintFile action;
   const std::string temp_dir = testing::MakeTempDir();
 
   const std::string file_name = temp_dir + "/text";

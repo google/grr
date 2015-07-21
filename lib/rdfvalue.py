@@ -80,6 +80,9 @@ class RDFValue(object):
   # ParseFromDataStore()
   data_store_type = "bytes"
 
+  # URL pointing to a help page about this value type.
+  context_help_url = None
+
   _age = 0
 
   # Mark as dirty each time we modify this object.
