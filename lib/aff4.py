@@ -392,8 +392,10 @@ class Factory(object):
 
         try:
           self.intermediate_cache.Get(urn)
+          logging.debug("Intermediate cache hit for urn: %s", urn)
           return
         except KeyError:
+          logging.debug("Intermediate cache miss for urn: %s", urn)
           attributes = {
               # This updates the directory index.
               "index:dir/%s" % utils.SmartStr(basename): [EMPTY_DATA],
@@ -410,6 +412,7 @@ class Factory(object):
                                  token=token, replace=True, sync=False)
 
           self.intermediate_cache.Put(urn, 1)
+          logging.debug("Intermediate cache insert for urn: %s", urn)
 
           urn = dirname
 
@@ -423,6 +426,7 @@ class Factory(object):
 
       try:
         self.intermediate_cache.ExpireObject(urn.Path())
+        logging.debug("Intermediate cache removal for urn: %s", urn)
       except KeyError:
         pass
 
@@ -949,6 +953,7 @@ class Factory(object):
     for urn_to_delete in marked_urns:
       try:
         self.intermediate_cache.ExpireObject(urn_to_delete.Path())
+        logging.debug("Intermediate cache removal for urn: %s", urn)
       except KeyError:
         pass
 
@@ -1088,6 +1093,7 @@ class Factory(object):
     data_store.DB.Flush()
     self.cache.Flush()
     self.intermediate_cache.Flush()
+    logging.debug("Intermediate cache flushed")
 
   def UpdateNotificationRules(self):
     fd = self.Open(rdfvalue.RDFURN("aff4:/config/aff4_rules"), mode="r",
