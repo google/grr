@@ -961,7 +961,7 @@ class Factory(object):
       logging.debug(u"%s deleted from data store", urn_to_delete)
 
     # Ensure this is removed from the cache as well.
-    self.Flush()
+    self.cache.Flush()
 
     logging.debug("Removed %d objects", len(marked_urns))
 
