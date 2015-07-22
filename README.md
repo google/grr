@@ -66,8 +66,8 @@ See [quickstart](https://github.com/google/grr-doc/blob/master/quickstart.adoc) 
 
 Screenshots
 -----------
-[<img src="http://raw.githubusercontent.com/google/grr/gh-pages/screenshots/Screenshot from 2013-11-18 18-36-13.png" width="140" height="80" />](http://raw.githubusercontent.com/google/grr/gh-pages/screenshots/Screenshot from 2013-11-18 18-36-13.png)
-[<img src="http://raw.githubusercontent.com/google/grr/gh-pages/screenshots/Screenshot from 2013-11-18 18-36-46.png" width="140" height="80" />](http://raw.githubusercontent.com/google/grr/gh-pages/screenshots/Screenshot from 2013-11-18 18-36-46.png)
-[<img src="http://raw.githubusercontent.com/google/grr/gh-pages/screenshots/Screenshot from 2013-11-18 18-37-37.png" width="140" height="80" />](http://raw.githubusercontent.com/google/grr/gh-pages/screenshots/Screenshot from 2013-11-18 18-37-37.png)
-[<img src="http://raw.githubusercontent.com/google/grr/gh-pages/screenshots/Screenshot from 2013-11-18 18-40-49.png" width="140" height="80" />](http://raw.githubusercontent.com/google/grr/gh-pages/screenshots/Screenshot from 2013-11-18 18-40-49.png)
-[<img src="http://raw.githubusercontent.com/google/grr/gh-pages/screenshots/Screenshot from 2013-11-18 18-41-45.png" width="140" height="80" />](http://raw.githubusercontent.com/google/grr/gh-pages/screenshots/Screenshot from 2013-11-18 18-41-45.png)
+[<img src="https://github.com/google/grr/blob/gh-pages/screenshots/Screenshot from 2013-11-18 18-36-13.png" width="140" height="80" />](https://github.com/google/grr/blob/gh-pages/screenshots/Screenshot from 2013-11-18 18-36-13.png)
+[<img src="https://github.com/google/grr/blob/gh-pages/screenshots/Screenshot from 2013-11-18 18-36-46.png" width="140" height="80" />](https://github.com/google/grr/blob/gh-pages/screenshots/Screenshot from 2013-11-18 18-36-46.png)
+[<img src="https://github.com/google/grr/blob/gh-pages/screenshots/Screenshot from 2013-11-18 18-37-37.png" width="140" height="80" />](https://github.com/google/grr/blob/gh-pages/screenshots/Screenshot from 2013-11-18 18-37-37.png)
+[<img src="https://github.com/google/grr/blob/gh-pages/screenshots/Screenshot from 2013-11-18 18-40-49.png" width="140" height="80" />](https://github.com/google/grr/blob/gh-pages/screenshots/Screenshot from 2013-11-18 18-40-49.png)
+[<img src="https://github.com/google/grr/blob/gh-pages/screenshots/Screenshot from 2013-11-18 18-41-45.png" width="140" height="80" />](https://github.com/google/grr/blob/gh-pages/screenshots/Screenshot from 2013-11-18 18-41-45.png)
