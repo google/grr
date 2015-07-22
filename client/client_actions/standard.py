@@ -707,5 +707,5 @@ class StatFS(actions.ActionPlugin):
                                  sectors_per_allocation_unit=1,
                                  total_allocation_units=st.f_blocks,
                                  actual_available_allocation_units=st.f_bavail,
-                                 unix=unix)
+                                 unixvolume=unix)
       self.SendReply(result)

@@ -12,7 +12,7 @@ def IPShell(argv=None, user_ns=None, banner=None):
     argv = []
 
   try:
-    from IPython.frontend.terminal.embed import InteractiveShellEmbed
+    from IPython.terminal.embed import InteractiveShellEmbed
     from IPython.config.loader import Config
 
     cfg = Config()

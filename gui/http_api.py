@@ -201,12 +201,13 @@ def RenderHttpResponse(request):
       args = None
   elif request.method == "POST":
     try:
-      payload = json.loads(request.body)
-      args = renderer.args_type(**payload)
-
+      args = renderer.args_type()
       for type_info in args.type_infos:
         if type_info.name in route_args:
           args.Set(type_info.name, route_args[type_info.name])
+
+      payload = json.loads(request.body)
+      args.FromDict(payload)
     except Exception as e:  # pylint: disable=broad-except
       logging.exception(
           "Error while parsing POST request %s (%s): %s",
@@ -276,8 +277,24 @@ class HttpApiInitHook(registry.InitHook):
 
     RegisterHttpRouteHandler("GET", "/api/docs",
                              api_plugins.docs.ApiDocsRenderer)
+
     RegisterHttpRouteHandler("GET", "/api/flows/<client_id>/<flow_id>/status",
-                             api_plugins.client.ApiFlowStatusRenderer)
+                             api_plugins.flow.ApiFlowStatusRenderer)
+    RegisterHttpRouteHandler("GET", "/api/flows/descriptors",
+                             api_plugins.flow.ApiFlowDescriptorsListRenderer)
+    RegisterHttpRouteHandler(
+        "GET", "/api/clients/<client_id>/flows/<flow_id>/results",
+        api_plugins.flow.ApiFlowResultsRenderer)
+    RegisterHttpRouteHandler(
+        "GET", "/api/clients/<client_id>/flows/<flow_id>/output-plugins",
+        api_plugins.flow.ApiFlowOutputPluginsRenderer)
+    RegisterHttpRouteHandler("POST", "/api/clients/<client_id>/flows/start",
+                             api_plugins.flow.ApiStartFlowRenderer)
+
+    RegisterHttpRouteHandler(
+        "GET", "/api/output-plugins/all",
+        api_plugins.output_plugin.ApiOutputPluginsListRenderer)
+
     RegisterHttpRouteHandler("GET", "/api/hunts",
                              api_plugins.hunt.ApiHuntsListRenderer)
     RegisterHttpRouteHandler("GET", "/api/hunts/<hunt_id>",
@@ -286,6 +303,10 @@ class HttpApiInitHook(registry.InitHook):
                              api_plugins.hunt.ApiHuntErrorsRenderer)
     RegisterHttpRouteHandler("GET", "/api/hunts/<hunt_id>/log",
                              api_plugins.hunt.ApiHuntLogRenderer)
+    RegisterHttpRouteHandler("GET", "/api/hunts/<hunt_id>/results",
+                             api_plugins.hunt.ApiHuntResultsRenderer)
+    RegisterHttpRouteHandler("GET", "/api/hunts/<hunt_id>/output-plugins",
+                             api_plugins.hunt.ApiHuntOutputPluginsRenderer)
     RegisterHttpRouteHandler("POST",
                              "/api/hunts/<hunt_id>/results/archive-files",
                              api_plugins.hunt.ApiHuntArchiveFilesRenderer)

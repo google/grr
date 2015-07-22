@@ -5,6 +5,7 @@
 #include "grr/client/minicomm/paths.h"
 
 namespace grr {
+namespace actions {
 void TransferBuffer::ProcessRequest(ActionContext* context) {
   BufferReference req;
   if (!context->PopulateArgs(&req)) {
@@ -38,14 +39,12 @@ void TransferBuffer::ProcessRequest(ActionContext* context) {
       context->SetError(error);
       return;
     }
-    GOOGLE_LOG(INFO) << "bytes_read: " << bytes_read;
     sha256.Update(buff, bytes_read);
     if (transfer) {
       compressed->Update(buff, bytes_read);
     }
     bytes_remaining -= bytes_read;
   }
-  GOOGLE_LOG(INFO) << "bytes_remaining: " << bytes_remaining;
   if (transfer) {
     GrrMessage blob_message;
     {
@@ -64,4 +63,5 @@ void TransferBuffer::ProcessRequest(ActionContext* context) {
   res.set_data(sha256.Final());
   context->SendResponse(res, GrrMessage::MESSAGE);
 }
+}  // namespace actions
 }  // namespace grr

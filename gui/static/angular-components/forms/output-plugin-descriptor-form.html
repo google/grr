@@ -1,0 +1,19 @@
+<div class="well well-large">
+
+  <div class="form-group">
+    <label class="control-label" title="Plugin">
+      Plugin
+    </label>
+    <div class="controls">
+      <select class="form-control" ng-model="value.value.plugin_name.value"
+              ng-options="optionValue as optionValue
+                          for optionValue in controller.allowedPluginsNames">
+      </select>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <grr-form-value value="value.value.plugin_args" />
+  </div>
+
+</div>

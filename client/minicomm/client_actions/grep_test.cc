@@ -6,6 +6,7 @@
 #include "grr/client/minicomm/test_util.h"
 
 namespace grr {
+namespace actions {
 
 TEST(GrepTest, SimpleLiteralSearch) {
   const std::string temp_dir = testing::MakeTempDir();
@@ -284,4 +285,5 @@ TEST(GrepTest, BrokenRegexSearch) {
   EXPECT_EQ(GrrStatus::GENERIC_ERROR, context.Status().status());
   GOOGLE_LOG(INFO) << context.Status().DebugString();
 }
+}  // namespace actions
 }  // namespace grr

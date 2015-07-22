@@ -67,12 +67,10 @@ class ApiGRRHuntRenderer(
           args=hunt.state.args)
 
     for k, v in untyped_summary_part.items():
-      untyped_summary_part[k] = api_value_renderers.RenderValue(
-          v, limit_lists=10)
+      untyped_summary_part[k] = api_value_renderers.RenderValue(v)
 
     for k, v in typed_summary_part.items():
-      typed_summary_part[k] = api_value_renderers.RenderValue(
-          v, limit_lists=10)
+      typed_summary_part[k] = api_value_renderers.RenderValue(v)
 
     rendered_object = {
         "summary": dict(untyped_summary_part.items() +
@@ -141,8 +139,45 @@ class ApiHuntSummaryRenderer(api_call_renderers.ApiCallRenderer):
 
     return api_aff4_object_renderers.RenderAFF4Object(
         hunt,
-        [ApiGRRHuntRendererArgs(with_full_summary=True),
-         api_aff4_object_renderers.ApiAFF4ObjectRendererArgs(limit_lists=10)])
+        [ApiGRRHuntRendererArgs(with_full_summary=True)])
+
+
+class ApiHuntResultsRendererArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiHuntResultsRendererArgs
+
+
+class ApiHuntResultsRenderer(api_call_renderers.ApiCallRenderer):
+  """Renders hunt results."""
+
+  args_type = ApiHuntResultsRendererArgs
+
+  def Render(self, args, token=None):
+    results = aff4.FACTORY.Create(
+        HUNTS_ROOT_PATH.Add(args.hunt_id).Add("Results"), mode="r",
+        aff4_type="RDFValueCollection", token=token)
+
+    return api_aff4_object_renderers.RenderAFF4Object(
+        results,
+        [api_aff4_object_renderers.ApiRDFValueCollectionRendererArgs(
+            offset=args.offset, count=args.count, with_total_count=True)])
+
+
+class ApiHuntOutputPluginsRendererArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiHuntOutputPluginsRendererArgs
+
+
+class ApiHuntOutputPluginsRenderer(api_call_renderers.ApiCallRenderer):
+  """Renders hunt's output plugins states."""
+
+  args_type = ApiHuntOutputPluginsRendererArgs
+
+  def Render(self, args, token=None):
+    metadata = aff4.FACTORY.Create(
+        HUNTS_ROOT_PATH.Add(args.hunt_id).Add("ResultsMetadata"), mode="r",
+        aff4_type="HuntResultsMetadata", token=token)
+
+    return api_value_renderers.RenderValue(
+        metadata.Get(metadata.Schema.OUTPUT_PLUGINS, {}))
 
 
 class ApiHuntLogRendererArgs(rdf_structs.RDFProtoStruct):

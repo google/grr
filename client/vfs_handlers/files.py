@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2010 Google Inc. All Rights Reserved.
 """Implements VFSHandlers for files on the client."""
 
 import logging
@@ -140,7 +139,7 @@ class File(vfs.VFSHandler):
 
     self.pathspec.last.path_options = paths.PathSpec.Options.CASE_LITERAL
 
-    self.WindowsHacks()
+    self.FileHacks()
     self.filename = client_utils.CanonicalPathToLocalPath(self.path)
 
     error = None
@@ -162,14 +161,18 @@ class File(vfs.VFSHandler):
     try:
       with FileHandleManager(self.filename) as fd:
 
-        # Work out how large the file is
-        if self.size is None:
-          fd.Seek(0, 2)
-          end = fd.Tell()
-          if end == 0:
-            end = pathspec.last.file_size_override
+        if pathspec.last.HasField("file_size_override"):
+          self.size = pathspec.last.file_size_override - self.file_offset
+        else:
+          # Work out how large the file is.
+          if self.size is None:
+            fd.Seek(0, 2)
+            end = fd.Tell()
+            if end == 0:
+              # This file is not seekable, we just use the default.
+              end = pathspec.last.file_size_override
 
-          self.size = end - self.file_offset
+            self.size = end - self.file_offset
 
       error = None
     # Some filesystems do not support unicode properly
@@ -183,8 +186,8 @@ class File(vfs.VFSHandler):
     if error is not None:
       raise error  # pylint: disable=raising-bad-type
 
-  def WindowsHacks(self):
-    """Windows specific hacks to make the filesystem look normal."""
+  def FileHacks(self):
+    """Hacks to make the filesystem look normal."""
     if sys.platform == "win32":
       import win32api  # pylint: disable=g-import-not-at-top
 
@@ -211,6 +214,12 @@ class File(vfs.VFSHandler):
         self.path = self.path.rstrip("\\")
 
         # In windows raw devices must be accessed using sector alignment.
+        self.alignment = 512
+    elif sys.platform == "darwin":
+      # On Mac, raw disk devices are also not seekable to the end and have no
+      # size so we use the same approach as on Windows.
+      if re.match("/dev/r?disk.*", self.path):
+        self.size = 0x7fffffffffffffff
         self.alignment = 512
 
   def ListNames(self):

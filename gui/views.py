@@ -15,7 +15,6 @@ from django.views.decorators import csrf
 import psutil
 import logging
 
-from grr import gui
 from grr.gui import http_api
 from grr.gui import renderers
 from grr.gui import urls
@@ -27,9 +26,6 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
-
-
-DOCUMENT_ROOT = os.path.join(os.path.dirname(gui.__file__), "static")
 
 
 class ViewsInit(registry.InitHook):

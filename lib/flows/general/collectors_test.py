@@ -482,11 +482,11 @@ class TestArtifactCollectorsRealArtifacts(CollectorTest):
     self.assertEqual(len(volumes), 2)
     for result in volumes:
       self.assertTrue(isinstance(result, rdf_client.Volume))
-      self.assertTrue(result.windows.drive_letter in ["Z:", "C:"])
-      if result.windows.drive_letter == "C:":
+      self.assertTrue(result.windowsvolume.drive_letter in ["Z:", "C:"])
+      if result.windowsvolume.drive_letter == "C:":
         self.assertAlmostEqual(result.FreeSpacePercent(), 76.142, delta=0.001)
         self.assertEqual(result.Name(), "C:")
-      elif result.windows.drive_letter == "Z:":
+      elif result.windowsvolume.drive_letter == "Z:":
         self.assertEqual(result.Name(), "homefileshare$")
         self.assertAlmostEqual(result.FreeSpacePercent(), 58.823, delta=0.001)
 

@@ -18,6 +18,8 @@ class DarwinClientBuilder(build.ClientBuilder):
     self.context.append("Target:Darwin")
     self.build_src_dir = os.path.join(config_lib.CONFIG.Get(
         "ClientBuilder.source", context=self.context), "grr")
+    self.pkg_dir = config_lib.CONFIG.Get(
+        "ClientBuilder.package_dir", context=self.context)
 
   def MakeExecutableTemplate(self, output_file=None):
     """Create the executable template."""
@@ -27,6 +29,10 @@ class DarwinClientBuilder(build.ClientBuilder):
     self.BuildWithPyInstaller()
     self.CopyMissingModules()
     self.BuildInstallerPkg(self.template_file)
+
+  def MakeBuildDirectory(self):
+    super(DarwinClientBuilder, self).MakeBuildDirectory()
+    self.CleanDirectory(self.pkg_dir)
 
   # WARNING: change with care since the PackageMaker files are fragile!
   def BuildInstallerPkg(self, output_file):
@@ -118,15 +124,18 @@ class DarwinClientBuilder(build.ClientBuilder):
         config_lib.CONFIG.Get("Client.name", context=self.context),
         config_lib.CONFIG.Get("Client.version_string", context=self.context))
 
-    output_pkg_path = os.path.join(config_lib.CONFIG.Get(
-        "ClientBuilder.package_dir", context=self.context), pkg)
+    output_pkg_path = os.path.join(self.pkg_dir, pkg)
     command = [
         config_lib.CONFIG.Get("ClientBuilder.package_maker_path",
                               context=self.context),
         "--doc", out_pmdoc_dir, "--out", output_pkg_path]
 
     print "Running: %s " % " ".join(command)
-    subprocess.call(command)
+    ret = subprocess.call(command)
+    if ret != 0:
+      msg = "PackageMaker returned an error (%d)." % ret
+      print msg
+      raise RuntimeError(msg)
 
     print "Copying output to templates location: %s -> %s" % (output_pkg_path,
                                                               output_file)

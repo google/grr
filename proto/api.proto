@@ -69,6 +69,17 @@ message ApiClientSummaryRendererArgs {
     }];
 }
 
+message ApiStartFlowRendererArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ClientURN",
+      description: "Client id."
+    }];
+  optional FlowRunnerArgs runner_args = 2;
+  optional bytes flow_args = 3 [(sem_type) = {
+      dynamic_type: "GetFlowArgsClass"
+    }];
+}
+
 message ApiFlowStatusRendererArgs {
   optional string client_id = 1 [(sem_type) = {
       type: "ClientURN",
@@ -78,7 +89,34 @@ message ApiFlowStatusRendererArgs {
       type: "SessionID",
       description: "Flow id."
     }];
+}
 
+message ApiFlowResultsRendererArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ClientURN",
+      description: "Client id."
+    }];
+  optional string flow_id = 2 [(sem_type) = {
+      type: "SessionID",
+      description: "Flow id."
+    }];
+  optional int64 offset = 3 [(sem_type) = {
+      description: "Results items starting offset."
+    }];
+  optional int64 count = 4 [(sem_type) = {
+      description: "Max number of results to fetch."
+    }];
+}
+
+message ApiFlowOutputPluginsRendererArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ClientURN",
+      description: "Client id."
+    }];
+  optional string flow_id = 2 [(sem_type) = {
+      type: "SessionID",
+      description: "Flow id."
+    }];
 }
 
 message ApiClientsAddLabelsRendererArgs {
@@ -133,6 +171,24 @@ message ApiHuntErrorsRendererArgs {
     }];
   optional int64 count = 3 [(sem_type) = {
       description: "Max number of errors to fetch."
+    }];
+};
+
+message ApiHuntResultsRendererArgs {
+  optional string hunt_id = 1 [(sem_type) = {
+      description: "Hunt id."
+    }];
+  optional int64 offset = 2 [(sem_type) = {
+      description: "Hunt results starting offset."
+    }];
+  optional int64 count = 3 [(sem_type) = {
+      description: "Max number of results to fetch."
+    }];
+};
+
+message ApiHuntOutputPluginsRendererArgs {
+  optional string hunt_id = 1 [(sem_type) = {
+      description: "Hunt id."
     }];
 };
 

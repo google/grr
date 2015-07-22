@@ -23,7 +23,7 @@ z_stream MakeZS(const std::string& input) {
 }  // namespace
 
 std::string ZLib::Inflate(const std::string& input) {
-  const auto block_size = std::max(input.size(), 1024UL);
+  const auto block_size = std::max(input.size(), (size_t)1024);
   std::vector<std::unique_ptr<unsigned char[]>> output_blocks;
   output_blocks.emplace_back(new unsigned char[block_size]());
 

@@ -407,15 +407,15 @@ class ActionTest(test_lib.EmptyActionTest):
       self.assertEqual(len(results), 2)
 
       # Both results should have mount_point as "/"
-      self.assertEqual(results[0].unix.mount_point,
-                       results[1].unix.mount_point)
+      self.assertEqual(results[0].unixvolume.mount_point,
+                       results[1].unixvolume.mount_point)
       result = results[0]
       self.assertEqual(result.bytes_per_sector, f_bsize)
       self.assertEqual(result.sectors_per_allocation_unit, 1)
       self.assertEqual(result.total_allocation_units, f_blocks)
       self.assertEqual(result.actual_available_allocation_units, f_bavail)
       self.assertAlmostEqual(result.FreeSpacePercent(), 53.388, delta=0.001)
-      self.assertEqual(result.unix.mount_point, "/")
+      self.assertEqual(result.unixvolume.mount_point, "/")
       self.assertEqual(result.Name(), "/")
 
       # Test we get a result even if one path is bad

@@ -11,13 +11,12 @@ method:
       - artifact: 'LinuxServices'
         filters:
           - type: 'ObjectFilter'
-            expression: name is "xinetd" and starts is "True"
-    probe:
+            expression: name is "xinetd" and starts is 1
       - artifact: 'LinuxServices'
         match: NONE
         filters:
           - type: 'ObjectFilter'
-            expression: service.start_mode is "XINETD"
+            expression: start_mode is "XINETD"
 ---
 check_id: CIS-SERVICE-LEGACY-SERVICE-ENABLED
 method:
@@ -35,8 +34,8 @@ method:
         (ref) CIS Debian Benchmark v1.0-3.* and 1.0-4.*
       format: "{name} is started by {start_mode}"
     probe:
-      - artifact: 'LinuxServices'  # TODO: Create rollup artifact.
-        filters:
+      - artifact: 'LinuxServices'
+        baseline:
           - type: 'ObjectFilter'
             expression: starts is 1
         mode: PARALLEL

@@ -3,6 +3,7 @@
 
 
 import email
+import re
 import urllib
 
 from grr.lib import access_control
@@ -320,14 +321,8 @@ class CronJobApproval(ApprovalWithApproversAndReason):
     return (user, aff4.ROOT_URN.Add("cron").Add(cron_job_name))
 
 
-class RequestApprovalWithReasonFlowArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.RequestApprovalWithReasonFlowArgs
-
-
-class RequestApprovalWithReasonFlow(flow.GRRFlow):
-  """Base flow class for flows that request approval of a certain type."""
-  args_type = RequestApprovalWithReasonFlowArgs
-
+class AbstractApprovalWithReason(object):
+  """Abstract class for approval requests/grants."""
   approval_type = None
 
   def BuildApprovalUrn(self):
@@ -338,11 +333,40 @@ class RequestApprovalWithReasonFlow(flow.GRRFlow):
     """Returns the string with subject's title."""
     raise NotImplementedError()
 
-  @classmethod
-  def ApprovalUrnBuilder(cls, subject, user, reason):
+  def BuildAccessUrl(self):
+    """Builds the urn to access this object."""
+    raise NotImplementedError()
+
+  def CreateReasonHTML(self, reason):
+    """Creates clickable links in the reason where appropriate.
+
+    Args:
+      reason: reason string
+    Returns:
+      Reason string with HTML hrefs as appropriate.
+
+    Use a regex named group of "link":
+      (?P<link>sometext)
+
+    for things that should be turned into links.
+    """
+    for link_re in config_lib.CONFIG.Get("Email.link_regex_list"):
+      reason = re.sub(link_re, r"""<a href="\g<link>">\g<link></a>""", reason)
+    return reason
+
+  def ApprovalUrnBuilder(self, subject, user, reason):
     """Encode an approval URN."""
     return aff4.ROOT_URN.Add("ACL").Add(
         subject).Add(user).Add(utils.EncodeReasonString(reason))
+
+
+class RequestApprovalWithReasonFlowArgs(rdf_structs.RDFProtoStruct):
+  protobuf = flows_pb2.RequestApprovalWithReasonFlowArgs
+
+
+class RequestApprovalWithReasonFlow(AbstractApprovalWithReason, flow.GRRFlow):
+  """Base flow class for flows that request approval of a certain type."""
+  args_type = RequestApprovalWithReasonFlowArgs
 
   @flow.StateHandler()
   def Start(self):
@@ -387,10 +411,14 @@ class RequestApprovalWithReasonFlow(flow.GRRFlow):
                 "Please grant access to %s" % subject_title, self.session_id)
       fd.Close()
 
-    template = u"""
-<html><body><h1>Approval to access %(subject_title)s requested.</h1>
+    reason = self.CreateReasonHTML(self.args.reason)
 
-The user "%(username)s" has requested access to %(subject_title)s
+    template = u"""
+<html><body><h1>Approval to access
+<a href='%(admin_ui)s#%(approval_urn)s'>%(subject_title)s</a> requested.</h1>
+
+The user "%(username)s" has requested access to
+<a href='%(admin_ui)s#%(approval_urn)s'>%(subject_title)s</a>
 for the purpose of "%(reason)s".
 
 Please click <a href='%(admin_ui)s#%(approval_urn)s'>
@@ -410,7 +438,7 @@ here
 
     body = template % dict(
         username=self.token.username,
-        reason=self.args.reason,
+        reason=reason,
         admin_ui=config_lib.CONFIG["AdminUI.url"],
         subject_title=subject_title,
         approval_urn=url,
@@ -430,27 +458,9 @@ class GrantApprovalWithReasonFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.GrantApprovalWithReasonFlowArgs
 
 
-class GrantApprovalWithReasonFlow(flow.GRRFlow):
+class GrantApprovalWithReasonFlow(AbstractApprovalWithReason, flow.GRRFlow):
   """Base flows class for flows that grant approval of a certain type."""
   args_type = GrantApprovalWithReasonFlowArgs
-
-  def BuildApprovalUrn(self):
-    """Builds approval object urn."""
-    raise NotImplementedError()
-
-  def BuildSubjectTitle(self):
-    """Returns the string with subject's title."""
-    raise NotImplementedError()
-
-  def BuildAccessUrl(self):
-    """Builds the urn to access this object."""
-    raise NotImplementedError()
-
-  @classmethod
-  def ApprovalUrnBuilder(cls, subject, user, reason):
-    """Encode an approval URN."""
-    return RequestApprovalWithReasonFlow.ApprovalUrnBuilder(subject, user,
-                                                            reason)
 
   @flow.StateHandler()
   def Start(self):
@@ -488,10 +498,14 @@ class GrantApprovalWithReasonFlow(flow.GRRFlow):
               % (self.token.username, subject_title), self.session_id)
     fd.Close()
 
-    template = u"""
-<html><body><h1>Access to %(subject_title)s granted.</h1>
+    reason = self.CreateReasonHTML(self.args.reason)
 
-The user %(username)s has granted access to %(subject_title)s for the
+    template = u"""
+<html><body><h1>Access to
+<a href='%(admin_ui)s#%(subject_urn)s'>%(subject_title)s</a> granted.</h1>
+
+The user %(username)s has granted access to
+<a href='%(admin_ui)s#%(subject_urn)s'>%(subject_title)s</a> for the
 purpose of "%(reason)s".
 
 Please click <a href='%(admin_ui)s#%(subject_urn)s'>here</a> to access it.
@@ -503,7 +517,7 @@ Please click <a href='%(admin_ui)s#%(subject_urn)s'>here</a> to access it.
     body = template % dict(
         subject_title=subject_title,
         username=self.token.username,
-        reason=self.args.reason,
+        reason=reason,
         admin_ui=config_lib.CONFIG["AdminUI.url"],
         subject_urn=access_urn,
         signature=config_lib.CONFIG["Email.signature"]

@@ -162,6 +162,13 @@ grr-user-settings-button button img {
   margin-right: 0;
 }
 
+.context-help {
+  width: 15px;
+  position: absolute;
+  right: 10px;
+  top: 0;
+}
+
 label {
   font-weight: normal;
 }

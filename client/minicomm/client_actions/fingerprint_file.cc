@@ -4,6 +4,7 @@
 #include "grr/client/minicomm/paths.h"
 
 namespace grr {
+namespace actions {
 void FingerprintFile::ProcessRequest(ActionContext* context) {
   FingerprintRequest req;
   if (!context->PopulateArgs(&req)) {
@@ -47,4 +48,5 @@ void FingerprintFile::ProcessRequest(ActionContext* context) {
 
   context->SendResponse(res, GrrMessage::MESSAGE);
 }
+}  // namespace actions
 }  // namespace grr

@@ -189,7 +189,7 @@ def GetLowDiskWarnings(client):
 
   if volumes:
     for volume in volumes:
-      if volume.windows.drive_type not in exclude_windows_types:
+      if volume.windowsvolume.drive_type not in exclude_windows_types:
         freespace = volume.FreeSpacePercent()
         if freespace < 5.0:
           warnings.append("{0} {1:.0f}% free".format(volume.Name(),

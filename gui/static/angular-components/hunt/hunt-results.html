@@ -1,24 +1,4 @@
-<!-- Download files panel -->
-<grr-download-collection-files download-url="::controller.downloadFilesUrl"
-                               ng-if="::controller.resultsAreFiles">
-</grr-download-collection-files>
-
-<!-- Output modules -->
-<grr-output-plugins-notes metadata-urn="::controller.outputPluginsMetadataUrn">
-</grr-output-plugins-notes>
-
-<!-- Results table -->
-<table class="table table-striped table-condensed table-bordered full-width">
-  <thead>
-    <tr>
-      <th>Value</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr grr-paged-filtered-table
-        grr-aff4-items-provider aff4-path="::controller.resultsUrn"
-        transform-items="controller.transformItems(items)">
-      <td><grr-semantic-value value="::item" /></td>
-    </tr>
-  </tbody>
-</table>
+<grr-results-collection
+   results-url="controller.resultsUrl"
+   output-plugins-url="controller.outputPluginsMetadataUrl"
+   download-files-url="controller.downloadFilesUrl" />

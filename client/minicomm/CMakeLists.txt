@@ -9,11 +9,11 @@ list(APPEND CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS} -g")
 add_library(core_lib
   ../../proto/jobs.pb.cc
   ../../proto/semantic.pb.cc
+  comms_utils.cc
   compression.cc
   config.cc config.pb.cc
   crypto.cc
   message_queue.cc
-  comms_utils.cc
   util.cc
 )
 set(core_lib_DEPS boost_regex crypto protobuf z)
@@ -30,10 +30,16 @@ add_library(client_actions_lib client_action.cc client_action_dispatcher.cc
   client_actions/enumerate_filesystems.cc
   client_actions/enumerate_interfaces.cc
   client_actions/enumerate_users.cc
-  client_actions/get_platform_info.cc
   client_actions/find.cc
   client_actions/fingerprint_file.cc
+  client_actions/get_client_info.cc
+  client_actions/get_configuration.cc
+  client_actions/get_install_date.cc
+  client_actions/get_library_versions.cc
+  client_actions/get_platform_info.cc
   client_actions/grep.cc
+  client_actions/list_directory.cc
+  client_actions/list_processes.cc
   client_actions/stat_file.cc
   client_actions/transfer_buffer.cc
   file_operations.cc
@@ -78,9 +84,11 @@ add_executable(unit_tests grr_test_main.cc
   client_actions/fingerprint_file_test.cc
   client_actions/get_platform_info_test.cc
   client_actions/grep_test.cc
+  client_actions/list_directory_test.cc
+  client_actions/list_processes_test.cc
   client_actions/transfer_buffer_test.cc
-  compression_test.cc
   comms_utils_test.cc
+  compression_test.cc
   config_test.cc
   crypto_test.cc
   file_operations_test.cc

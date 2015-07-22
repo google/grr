@@ -423,6 +423,9 @@ class YamlParser(GRRConfigParser):
   def SaveDataToFD(self, raw_data, fd):
     """Merge the raw data with the config file and store it."""
     yaml.dump(raw_data, fd, default_flow_style=False)
+    # We are writing data to a file so we need to flush the memoization cache or
+    # we might get stale data.
+    self._LoadYamlByName.memo_pad.clear()
 
   def _RawData(self, data):
     """Convert data to common format.

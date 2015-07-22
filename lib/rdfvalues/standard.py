@@ -16,6 +16,8 @@ from grr.proto import sysinfo_pb2
 class RegularExpression(rdfvalue.RDFString):
   """A semantic regular expression."""
 
+  context_help_url = "user_manual.html#_regex_matches"
+
   def ParseFromString(self, value):
     super(RegularExpression, self).ParseFromString(value)
 
@@ -50,6 +52,8 @@ class RegularExpression(rdfvalue.RDFString):
 
 class LiteralExpression(rdfvalue.RDFBytes):
   """A RDFBytes literal for use in GrepSpec."""
+
+  context_help_url = "user_manual.html#_specifying_file_paths"
 
 
 class EmailAddress(rdfvalue.RDFString):
@@ -107,4 +111,3 @@ class URI(rdf_structs.RDFProtoStruct):
   def SerializeToString(self):
     url = (self.transport, self.host, self.path, self.query, self.fragment)
     return str(urlparse.urlunsplit(url))
-

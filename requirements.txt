@@ -15,7 +15,7 @@
 # client. So until pip can handle proper dependency resolution we'll maintain
 # these separately. Please check if the client files need to be updated if you
 # update this one.
-Django==1.7.1
+Django==1.8.3
 Flask-Sockets==0.1
 Flask==0.10.1
 Jinja2==2.7.3

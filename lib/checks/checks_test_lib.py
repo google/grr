@@ -86,15 +86,14 @@ class HostCheckTest(test_lib.GRRBaseTest):
     host_data["KnowledgeBase"] = kb
     return host_data
 
-  def SetArtifactData(self, anomaly=None, parsed=None, raw=None):
+  def SetArtifactData(self, anomaly=None, parsed=None, raw=None, results=None):
     """Adds data in the format required by host_data."""
-    if anomaly is None:
-      anomaly = []
-    if parsed is None:
-      parsed = []
-    if raw is None:
-      raw = []
-    return {"ANOMALY": anomaly, "PARSER": parsed, "RAW": raw}
+    if not results:
+      results = {"ANOMALY": [], "PARSER": [], "RAW": []}
+    results["ANOMALY"].extend(anomaly or [])
+    results["PARSER"].extend(parsed or [])
+    results["RAW"].extend(raw or [])
+    return results
 
   def AddData(self, parser, *args, **kwargs):
     """Initialize the parser and add parsed data to host_data."""
@@ -163,7 +162,7 @@ class HostCheckTest(test_lib.GRRBaseTest):
     host_data[artifact] = self.SetArtifactData(
         anomaly=[a for a in rdfs if isinstance(a, rdf_anomaly.Anomaly)],
         parsed=[r for r in rdfs if not isinstance(r, rdf_anomaly.Anomaly)],
-        raw=stats)
+        raw=stats, results=host_data.get(artifact))
     return host_data
 
   def GenResults(self, artifact_list, sources_list, parser_list=None):
@@ -207,7 +206,8 @@ class HostCheckTest(test_lib.GRRBaseTest):
     for artifact, sources, parser in zip(artifact_list, sources_list,
                                          parser_list):
       if parser is None:
-        host_data[artifact] = self.SetArtifactData(raw=sources)
+        host_data[artifact] = self.SetArtifactData(
+            raw=sources, results=host_data.get(artifact))
       else:
         host_data = self._AddToHostData(host_data, artifact, sources, parser)
     return self.RunChecks(host_data)

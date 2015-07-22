@@ -1533,8 +1533,8 @@ class AFF4Object(object):
       """
       if self.aff4_type:
         raise BadGetAttributeError(
-            "Attribute does not exist on object opened with aff4_type %s" %
-            self.aff4_type)
+            "Attribute %s does not exist on object opened with aff4_type %s" % (
+                utils.SmartStr(attr), self.aff4_type))
 
       return None
 

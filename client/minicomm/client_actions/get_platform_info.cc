@@ -10,6 +10,7 @@
 #include "grr/client/minicomm/util.h"
 
 namespace grr {
+namespace actions {
 void GetPlatformInfo::ProcessRequest(ActionContext* context) {
   // Get what we can from uname.
   struct utsname result;
@@ -31,4 +32,5 @@ void GetPlatformInfo::ProcessRequest(ActionContext* context) {
   // TODO(user): Add distribution detection.
   context->SendResponse(response, GrrMessage::MESSAGE);
 }
+}  // namespace actions
 }  // namespace grr

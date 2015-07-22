@@ -19,8 +19,15 @@ grrUi.semantic.fetchMoreLinkDirective.FetchMoreLinkDirective = function() {
     scope: {
       value: '='
     },
+    link: function(scope) {
+      // TODO(user): turn into controller
+      scope.onClick = function() {
+        scope.continuationShown = true;
+      };
+    },
     restrict: 'E',
-    template: 'List was truncated...'
+    templateUrl: '/static/angular-components/semantic/' +
+        'semantic-fetch-more-link.html',
   };
 };
 

@@ -532,6 +532,23 @@ class VFSTest(test_lib.GRRBaseTest):
         # Reset to whatever it was before this test.
         vfs.VFSInit().Run()
 
+  def testFileSizeOverride(self):
+
+    # We assume /dev/null exists and has a 0 size.
+    fname = "/dev/null"
+    try:
+      st = os.stat(fname)
+    except OSError:
+      self.skipTest("%s not accessible." % fname)
+    if st.st_size != 0:
+      self.skipTest("%s doesn't have 0 size." % fname)
+
+    pathspec = rdf_paths.PathSpec(path=fname,
+                                  pathtype="OS",
+                                  file_size_override=100000000)
+    fd = vfs.VFSOpen(pathspec)
+    self.assertEqual(fd.size, 100000000)
+
 
 def main(argv):
   vfs.VFSInit()

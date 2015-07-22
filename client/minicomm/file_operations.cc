@@ -1,6 +1,7 @@
 #include "grr/client/minicomm/file_operations.h"
 
 #include <dirent.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -8,6 +9,19 @@
 #include <unistd.h>
 
 #include "grr/client/minicomm/util.h"
+
+#pragma pop_macro("st_atime")
+#pragma pop_macro("st_ctime")
+#pragma pop_macro("st_mtime")
+
+#ifdef ANDROID
+#include <sstream>
+std::string to_string(off64_t t) {
+  std::ostringstream os;
+  os << t;
+  return os.str();
+}
+#endif
 
 namespace grr {
 
@@ -61,9 +75,14 @@ std::unique_ptr<OpenedPath> OpenedPath::Open(const std::string& path,
 bool OpenedPath::Seek(uint64 offset, std::string* error) {
   const off64_t res = lseek64(fd_, offset, SEEK_SET);
   if (res == (off64_t)-1) {
-    SetError(
-        "Unable to seek to [" + path_ + "] to [" + std::to_string(offset) + "]",
-        error);
+    SetError("Unable to seek to [" + path_ + "] to [" +
+#ifdef ANDROID
+                 to_string(offset)
+#else
+                 std::to_string(offset)
+#endif
+                 + "]",
+             error);
     return false;
   }
   return true;

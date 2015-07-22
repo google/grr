@@ -13,7 +13,7 @@ TEST(GetPlatformInfoTest, SimpleTest) {
   MessageQueue queue(5, 20000);
   ActionContext context(message, &queue);
 
-  GetPlatformInfo action;
+  actions::GetPlatformInfo action;
   action.ProcessRequest(&context);
 
   const auto r = queue.GetMessages(5, 20000, true);

@@ -6,6 +6,7 @@
 #include "grr/client/minicomm/client_action.h"
 
 namespace grr {
+namespace actions {
 class Grep : public ClientAction {
  public:
   Grep() {}
@@ -25,6 +26,7 @@ class Grep : public ClientAction {
                                  const char* start_pos, const char* end_pos,
                                  bool all_hits, std::string* error);
 };
+}  // namespace actions
 }  // namespace grr
 
 #endif  // GRR_CLIENT_MINICOMM_CLIENT_ACTIONS_GREP_H_

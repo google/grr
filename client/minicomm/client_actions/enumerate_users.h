@@ -7,6 +7,7 @@
 #include "grr/client/minicomm/client_action.h"
 
 namespace grr {
+namespace actions {
 class EnumerateUsers : public ClientAction {
  public:
   EnumerateUsers() {}
@@ -16,6 +17,7 @@ class EnumerateUsers : public ClientAction {
  private:
   std::map<std::string, int32> UsersFromWtmp(const std::string& wtmp);
 };
+}  // namespace actions
 }  // namespace grr
 
 #endif  // GRR_CLIENT_MINICOMM_CLIENT_ACTIONS_ENUMERATE_USERS_H_

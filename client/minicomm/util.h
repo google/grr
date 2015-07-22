@@ -7,6 +7,7 @@
 namespace grr {
 std::string BytesToHex(const std::string& input);
 std::string UrlDirname(const std::string& input);
+bool IsNumber(const std::string& x);
 
 // Slightly paranoid conversion of a null terminated character array to a
 // string: does the right thing if the null was truncated.
