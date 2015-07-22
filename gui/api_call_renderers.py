@@ -208,6 +208,7 @@ class SimpleAPIAuthorizationManager(APIAuthorizationManager):
     return self.auth_import.GetACLedRenderers()
 
   def _CheckPermission(self, username, renderer_name):
+    """Apply ACLs for specific renderers if they exist."""
     if renderer_name in self.auth_dict:
       return username in self.auth_dict[renderer_name]
     return True

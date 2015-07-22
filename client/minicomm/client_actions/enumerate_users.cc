@@ -26,7 +26,9 @@ void EnumerateUsers::ProcessRequest(ActionContext* args) {
     KnowledgeBaseUser u;
     u.set_username(user.first);
     u.set_last_logon(std::max(0, user.second));
-#ifndef ANDROID
+#ifdef ANDROID
+    continue;
+#else
     int s = getpwnam_r(user.first.c_str(), &pwd, buff, kBuffSize, &result);
     if (result != nullptr) {
       u.set_homedir(result->pw_dir);
@@ -62,7 +64,7 @@ std::map<std::string, int32> EnumerateUsers::UsersFromWtmp(
         if (it == res.end()) {
           res[user] = u.ut_tv.tv_sec;
         } else {
-          it->second = std::max((time_t)it->second, u.ut_tv.tv_sec);
+          it->second = std::max(it->second, static_cast<int32>(u.ut_tv.tv_sec));
         }
       }
     }

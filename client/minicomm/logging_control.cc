@@ -28,17 +28,16 @@ class DefaultLogSink : public LogSink {
         duration_cast<microseconds>(current_time.time_since_epoch()).count() %
         1000000;
     static const char level_names[] = {'I', 'W', 'E', 'F'};
-#ifndef ANDROID
-    fprintf(stderr, "[%c %02d.%02d %02d:%02d:%02d.%06d %s:%d] %s\n",
-            level_names[level], time.tm_mon, time.tm_mday, time.tm_hour,
-            time.tm_min, time.tm_sec, usec, filename, line, message.c_str());
-#else
-    __android_log_print(ANDROID_LOG_DEBUG,
-                        "LOG_GRR",
+#ifdef ANDROID
+    __android_log_print(ANDROID_LOG_DEBUG, "LOG_GRR",
                         "[%c %02d.%02d %02d:%02d:%02d.%06d %s:%d] %s\n",
                         level_names[level], time.tm_mon, time.tm_mday,
                         time.tm_hour, time.tm_min, time.tm_sec, usec, filename,
                         line, message.c_str());
+#else
+    fprintf(stderr, "[%c %02d.%02d %02d:%02d:%02d.%06d %s:%d] %s\n",
+            level_names[level], time.tm_mon, time.tm_mday, time.tm_hour,
+            time.tm_min, time.tm_sec, usec, filename, line, message.c_str());
 #endif
   }
 };

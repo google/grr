@@ -8,9 +8,6 @@ namespace actions {
 class GetPlatformInfo : public ClientAction {
  public:
   void ProcessRequest(ActionContext* args) override;
-
- private:
-  static const char kName[];
 };
 }  // namespace actions
 }  // namespace grr

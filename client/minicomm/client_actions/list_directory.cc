@@ -44,6 +44,7 @@ void ListDirectory::ProcessRequest(ActionContext* context) {
 
     StatEntry res = child_path->Stats();
     res.mutable_pathspec()->set_path(base_path + "/" + d.first);
+    res.mutable_pathspec()->set_pathtype(PathSpec::OS);
     res.mutable_pathspec()->set_path_options(PathSpec::CASE_LITERAL);
     context->SendResponse(res, GrrMessage::MESSAGE);
   }

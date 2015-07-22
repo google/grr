@@ -16,6 +16,7 @@
 #include "grr/client/minicomm/client_actions/get_platform_info.h"
 #include "grr/client/minicomm/client_actions/grep.h"
 #include "grr/client/minicomm/client_actions/list_directory.h"
+#include "grr/client/minicomm/client_actions/list_processes.h"
 #include "grr/client/minicomm/client_actions/stat_file.h"
 #include "grr/client/minicomm/client_actions/transfer_buffer.h"
 
@@ -65,6 +66,9 @@ void Client::Run() {
                                       new actions::FingerprintFile());
   client_action_dispatcher_.AddAction("ListDirectory",
                                       new actions::ListDirectory());
+
+  client_action_dispatcher_.AddAction("ListProcesses",
+                                      new actions::ListProcesses());
   client_action_dispatcher_.AddAction("StatFile", new actions::StatFile());
   client_action_dispatcher_.AddAction("HashBuffer",
                                       new actions::TransferBuffer());

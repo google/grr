@@ -23,8 +23,6 @@ class EnumerateInterfaces : public ClientAction {
   // call.
   InterfaceMap ProcessIfaddrList(const struct ifaddrs* addresses);
 
-  static const char kName[];
-
   FRIEND_TEST(EnumerateInterfacesTest, ProcessIfaddrList);
 };
 }  // namespace actions

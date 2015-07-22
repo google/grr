@@ -28,7 +28,6 @@ class EnumerateFilesystems : public ClientAction {
 
   Filesystem ProcessLine(std::string line);
 
-  static const char kName[];
   const std::set<std::string> to_report_;
 
   FRIEND_TEST(EnumerateFilesystemsTest, ProcessFileComments);

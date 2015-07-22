@@ -20,8 +20,10 @@ class ApprovalWithReasonTest(test_lib.GRRBaseTest):
     self._CreateReason("Nothing happens if no regex set i/1234",
                        "Nothing happens if no regex set i/1234")
 
-    config_lib.CONFIG.SetRaw("Email.link_regex_list",
-                             [r"(?P<link>(incident|ir|jira)\/\d+)"])
+    # %{} is used here to tell the config system this is a literal that
+    # shouldn't be expanded/filtered.
+    config_lib.CONFIG.Set("Email.link_regex_list",
+                          [r"%{(?P<link>(incident|ir|jira)\/\d+)}"])
     test_pairs = [
         ("Investigating jira/1234 (incident/1234)...incident/bug",
          "Investigating <a href=\"jira/1234\">jira/1234</a> "

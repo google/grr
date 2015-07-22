@@ -14,7 +14,6 @@
 #pragma pop_macro("st_ctime")
 #pragma pop_macro("st_mtime")
 
-
 #ifdef ANDROID
 #include <sstream>
 std::string to_string(off64_t t) {
@@ -73,19 +72,17 @@ std::unique_ptr<OpenedPath> OpenedPath::Open(const std::string& path,
   return ret;
 }
 
-
 bool OpenedPath::Seek(uint64 offset, std::string* error) {
   const off64_t res = lseek64(fd_, offset, SEEK_SET);
   if (res == (off64_t)-1) {
-    SetError(
-        "Unable to seek to [" + path_ + "] to [" +
-#ifndef ANDROID
-        std::to_string(offset)
+    SetError("Unable to seek to [" + path_ + "] to [" +
+#ifdef ANDROID
+                 to_string(offset)
 #else
-        to_string(offset)
+                 std::to_string(offset)
 #endif
-        + "]",
-        error);
+                 + "]",
+             error);
     return false;
   }
   return true;

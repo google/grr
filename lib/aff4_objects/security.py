@@ -350,7 +350,7 @@ class AbstractApprovalWithReason(object):
 
     for things that should be turned into links.
     """
-    for link_re in config_lib.CONFIG.GetRaw("Email.link_regex_list"):
+    for link_re in config_lib.CONFIG.Get("Email.link_regex_list"):
       reason = re.sub(link_re, r"""<a href="\g<link>">\g<link></a>""", reason)
     return reason
 
