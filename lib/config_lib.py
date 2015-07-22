@@ -341,7 +341,6 @@ class YamlParser(GRRConfigParser):
   #
   # TODO(user): Remove once our test framework is less insane.
 
-  @utils.Memoize(True)
   def _LoadYamlByName(self, filename):
     return yaml.safe_load(open(filename, "rb"))
 
