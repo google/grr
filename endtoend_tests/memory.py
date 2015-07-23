@@ -249,7 +249,8 @@ class TestSigScan(AbstractTestAnalyzeClientMemoryWindows):
   def setUpRequest(self):
     # This is a signature for the tcpip.sys driver on Windows 7. If you are
     # running a different version, a hit is not guaranteed.
-    sig_path = os.path.join(config_lib.CONFIG["Test.data_dir"], "tcpip.sig")
+    sig_path = os.path.join(config_lib.CONFIG["Test.end_to_end_data_dir"],
+                            "tcpip.sig")
 
     signature = open(sig_path, "rb").read().strip()
     args = {"scan_kernel": True,

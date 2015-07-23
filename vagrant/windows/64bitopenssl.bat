@@ -2,9 +2,9 @@
 ::avoid any 32-64 contamination.
 call C:\grr\vagrant\windows\64bitenv.bat
 cd %SYSTEMDRIVE%\openssl
-rd /q /s openssl-1.0.2c
-7z x openssl-1.0.2c.tar
-cd openssl-1.0.2c
+rd /q /s openssl-1.0.2d
+7z x openssl-1.0.2d.tar
+cd openssl-1.0.2d
 perl Configure VC-WIN64A --prefix=C:\Build-OpenSSL-VC-64
 call ms\do_win64a.bat
 nmake -f ms\ntdll.mak

@@ -162,6 +162,13 @@ class CleanCronJobsTest(test_lib.FlowTestsBaseclass):
       self.assertEqual(len(list(fd.ListChildren())), self.NUM_CRON_RUNS)
 
   def testDeletesFlowsOlderThanGivenAge(self):
+
+    all_children = []
+    for cron_urn in self.cron_jobs_urns:
+      fd = aff4.FACTORY.Open(cron_urn, token=self.token)
+      children = list(fd.ListChildren())
+      all_children.extend(children)
+
     config_lib.CONFIG.Set("DataRetention.cron_jobs_flows_ttl",
                           rdfvalue.Duration("150s"))
     # Only two iterations are supposed to survive, as they were running
@@ -172,15 +179,24 @@ class CleanCronJobsTest(test_lib.FlowTestsBaseclass):
           sync=True, token=self.token)
       latest_timestamp = rdfvalue.RDFDatetime().Now()
 
+    remaining_children = []
     for cron_urn in self.cron_jobs_urns:
       fd = aff4.FACTORY.Open(cron_urn, token=self.token)
       children = list(fd.ListChildren())
       self.assertEqual(len(children), 2)
+      remaining_children.extend(children)
 
       for child_urn in children:
         self.assertTrue(child_urn.age < latest_timestamp)
         self.assertTrue(child_urn.age >
                         latest_timestamp - rdfvalue.Duration("150s"))
+
+    # Check that no subjects are left behind that have anything to do with
+    # the deleted flows (requests, responses, ...).
+    deleted_flows = set(all_children) - set(remaining_children)
+    for subject in data_store.DB.subjects:
+      for flow_urn in deleted_flows:
+        self.assertNotIn(str(flow_urn), subject)
 
 
 def main(argv):
