@@ -42,13 +42,13 @@ config_lib.DEFINE_option(type_info.RDFValueType(
     rdfclass=standard.DomainEmailAddress,
     name="Monitoring.alert_email",
     help="The email address to send events to.",
-    default="monitoring@localhost"))
+    default="grr-monitoring@localhost"))
 
 config_lib.DEFINE_option(type_info.RDFValueType(
     rdfclass=standard.DomainEmailAddress,
     name="Monitoring.emergency_access_email",
     help="The email address to notify in an emergency.",
-    default="monitoring@localhost"))
+    default="grr-emergency@localhost"))
 
 config_lib.DEFINE_integer("Monitoring.http_port", 0,
                           "Port for stats monitoring server.")

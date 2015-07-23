@@ -520,6 +520,30 @@ running.  This datastore is a legacy option and is not recommended.\n"""
                                    config_lib.CONFIG.Get("Mongo.db_name"))
     config.Set("Mongo.db_name", mongo_database)
 
+def ConfigureEmails(config):
+  print """\n-=Monitoring/Email Domain=-
+Emails concerning alerts or updates must be sent to this domain.
+"""
+  domain = RetryQuestion("Email Domain e.g example.com",
+                         "^([\\.A-Za-z0-9-]+)*$",
+                         config_lib.CONFIG.Get("Logging.domain"))
+  config.Set("Logging.domain", domain)
+
+  print """\n-=Alert Email Address=-
+Address where monitoring events get sent, e.g. crashed clients, broken server
+etc.
+"""
+  email = RetryQuestion("Alert Email Address", "",
+                        "grr-monitoring@%s" % domain)
+  config.Set("Monitoring.alert_email", email)
+
+  print """\n-=Emergency Email Address=-
+Address where high priority events such as an emergency ACL bypass are sent.
+"""
+  emergency_email = RetryQuestion("Emergency Access Email Address", "",
+                                  "grr-emergency@%s" % domain)
+  config.Set("Monitoring.emergency_access_email", emergency_email)
+
 def ConfigureBaseOptions(config):
   """Configure the basic options required to run the server."""
 
@@ -537,7 +561,7 @@ the datastore.  To do this we need to configure a datastore.\n"""
   Datastore: %s""" % existing_datastore
 
     if existing_datastore == "SqliteDataStore":
-      print "  Datastore location: %s" % config_lib.CONFIG.Get(
+      print "  Datastore Location: %s" % config_lib.CONFIG.Get(
         "Datastore.location")
 
     if existing_datastore == "MySQLAdvancedDataStore":
@@ -553,8 +577,8 @@ the datastore.  To do this we need to configure a datastore.\n"""
       print """  Mongo Host: %s
   Mongo Port: %s
   Mongo Database: %s\n""" % (config_lib.CONFIG.Get("Mongo.server"),
-                                 config_lib.CONFIG.Get("Mongo.port"),
-                                 config_lib.CONFIG.Get("Mongo.db_name"))
+                             config_lib.CONFIG.Get("Mongo.port"),
+                             config_lib.CONFIG.Get("Mongo.db_name"))
 
     if raw_input("Do you want to keep this configuration?"
                  " [Yn]: ").upper() == "N":
@@ -581,27 +605,26 @@ the client facing server and the admin user interface.\n"""
                  " [Yn]: ").upper() == "N":
       ConfigureHostnames(config)
 
-  print """\n-=Monitoring/Email Domain=-
-Emails concerning alerts or updates must be sent to this domain.
-"""
-  domain = RetryQuestion("Email domain", "^([\\.A-Za-z0-9-]+)*$",
-                         "example.com")
-  config.Set("Logging.domain", domain)
 
-  print """\n-=Monitoring Email Address=-
-Address where monitoring events get sent, e.g. crashed clients, broken server
-etc.
-"""
-  email = RetryQuestion("Monitoring email", "",
-                        "grr-monitoring@%s" % domain)
-  config.Set("Monitoring.alert_email", email)
+  existing_log_domain = config_lib.CONFIG.Get("Logging.domain",
+                                                  default=None)
+  existing_al_email = config_lib.CONFIG.Get("Monitoring.alert_email",
+                                                default=None)
 
-  print """\n-=Emergency Email Address=-
-Address where high priority events such as an emergency ACL bypass are sent.
-"""
-  emergency_email = RetryQuestion("Monitoring emergency email", "",
-                                  "grr-emergency@%s" % domain)
-  config.Set("Monitoring.emergency_access_email", emergency_email)
+  existing_em_email = config_lib.CONFIG.Get("Monitoring.emergency_access_email",
+                                                default=None)
+  if not existing_log_domain or not existing_al_email or not existing_em_email:
+    ConfigureEmails(config)
+  else:
+    print """Found existing settings:
+  Email Domain: %s
+  Alert Email Address: %s
+  Emergency Access Email Address: %s
+""" % (existing_log_domain, existing_al_email, existing_em_email)
+
+    if raw_input("Do you want to keep this configuration?"
+                 " [Yn]: ").upper() == "N":
+      ConfigureEmails(config)
 
   config.Write()
   print ("Configuration parameters set. You can edit these in %s" %
