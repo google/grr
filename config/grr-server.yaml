@@ -6,18 +6,11 @@ AdminUI.bind: "::"
 
 AdminUI.django_debug: True
 
-AdminUI.port: 8000
-
-AdminUI.url: http://localhost:8000
-
 AdminUI.webauth_manager: BasicWebAuthManager
 
 Client.company_name: GRR Project
 
 Client.description: "%(name) %(platform) %(arch)"
-
-Client.control_urls:
-  - http://localhost:8080/control
 
 Client.name: GRR
 

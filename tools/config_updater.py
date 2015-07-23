@@ -446,19 +446,19 @@ this will be port 8080 with the URL ending in /control.
                            "http://%s:8080/control" % hostname)
   config.Set("Client.control_urls", [location])
 
-  frontend_port = urlparse.urlparse(location).port or 80
-  if frontend_port != config_lib.CONFIG.Get("Frontend.bind_port"):
-    config.Set("Frontend.bind_port", frontend_port)
-    print "\nSetting the frontend listening port to %d.\n" % frontend_port
-    print "Please make sure that this matches your client settings.\n"
+  frontend_port = urlparse.urlparse(location).port or config_lib.CONFIG.Get(
+    "Frontend.bind_port")
+  config.Set("Frontend.bind_port", frontend_port)
 
-  print """\n-=AdminUI URL=-L:
+  print """\n-=AdminUI URL=-:
 The UI URL specifies where the Administrative Web Interface can be found.
 """
   ui_url = RetryQuestion("AdminUI URL", "^http[s]*://.*$",
                          "http://%s:8000" % hostname)
   config.Set("AdminUI.url", ui_url)
-
+  ui_port = urlparse.urlparse(location).port or config_lib.CONFIG.Get(
+    "AdminUI.port")
+  config.Set("AdminUI.port", ui_port)
 
 def ConfigureDatastore(config):
   print """\n-=GRR Datastore=-
@@ -605,6 +605,9 @@ the client facing server and the admin user interface.\n"""
                  " [Yn]: ").upper() == "N":
       ConfigureHostnames(config)
 
+  print """\nGRR needs to be able to send emails for various logging and
+  alerting functions.  The email domain will be appended to GRR user names
+  when sending emails to users.\n"""
 
   existing_log_domain = config_lib.CONFIG.Get("Logging.domain",
                                                   default=None)
