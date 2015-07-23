@@ -693,6 +693,7 @@ def main(unused_argv):
   if flags.FLAGS.subparser_name == "initialize":
     startup.ConfigInit()
     Initialize(config_lib.CONFIG, token=token)
+    return
   else:
     startup.Init()
 
@@ -771,8 +772,9 @@ def main(unused_argv):
               os.path.basename(flags.FLAGS.file))
 
     # Now upload to the destination.
-    uploaded = maintenance_utils.UploadSignedConfigBlob(
-        content, aff4_path=dest_path, client_context=context, token=token)
+    maintenance_utils.UploadSignedConfigBlob(content, aff4_path=dest_path,
+                                             client_context=context,
+                                             token=token)
 
     print "Uploaded to %s" % dest_path
 

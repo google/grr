@@ -36,7 +36,6 @@ def ConfigInit():
   """Initialize the configuration manager from the command line arg."""
   # Initialize the config system from the command line options.
   config_lib.ParseConfigCommandLine()
-  CONFIG_INIT_RAN = True
 
 
 def ClientPluginInit():
