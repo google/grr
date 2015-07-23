@@ -12,6 +12,7 @@ import re
 import readline  # pylint: disable=unused-import
 import sys
 import urlparse
+import socket
 
 
 # pylint: disable=unused-import,g-bad-import-order
@@ -427,20 +428,18 @@ def ConfigureHostnames(config):
   if flags.FLAGS.external_hostname:
     hostname = flags.FLAGS.external_hostname
   else:
-    print "Guessing public hostname of your server..."
     try:
-      hostname = maintenance_utils.GuessPublicHostname()
-      print "Using %s as public hostname" % hostname
+      hostname = socket.gethostname()
     except (OSError, IOError):
-      print "Sorry, we couldn't guess your public hostname"
+      print "Sorry, we couldn't guess your hostname.\n"
 
-    hostname = RetryQuestion("Please enter your public hostname e.g. "
-                             "grr.example.com", "^[\\.A-Za-z0-9-]+$")
+    hostname = RetryQuestion("Please enter your hostname e.g. "
+                             "grr.example.com", "^[\\.A-Za-z0-9-]+$", hostname)
 
   print """\n\n-=Server URL=-
 The Server URL specifies the URL that the clients will connect to
-communicate with the server. This needs to be publically accessible. By default
-this will be port 8080 with the URL ending in /control.
+communicate with the server. For best results this should be publicly
+accessible. By default this will be port 8080 with the URL ending in /control.
 """
   location = RetryQuestion("Frontend URL", "^http://.*/control$",
                            "http://%s:8080/control" % hostname)
@@ -450,7 +449,7 @@ this will be port 8080 with the URL ending in /control.
     "Frontend.bind_port")
   config.Set("Frontend.bind_port", frontend_port)
 
-  print """\n-=AdminUI URL=-:
+  print """\n\n-=AdminUI URL=-:
 The UI URL specifies where the Administrative Web Interface can be found.
 """
   ui_url = RetryQuestion("AdminUI URL", "^http[s]*://.*$",
@@ -461,8 +460,7 @@ The UI URL specifies where the Administrative Web Interface can be found.
   config.Set("AdminUI.port", ui_port)
 
 def ConfigureDatastore(config):
-  print """\n-=GRR Datastore=-
-The GRR Datastore is how all GRR service processes store and share data.\n
+  print """
 1. SQLite (Default) - This datastore is stored on the local file system. If you
 configure GRR to run as non-root be sure to allow that user access to the files.
 
@@ -521,7 +519,7 @@ running.  This datastore is a legacy option and is not recommended.\n"""
     config.Set("Mongo.db_name", mongo_database)
 
 def ConfigureEmails(config):
-  print """\n-=Monitoring/Email Domain=-
+  print """\n\n-=Monitoring/Email Domain=-
 Emails concerning alerts or updates must be sent to this domain.
 """
   domain = RetryQuestion("Email Domain e.g example.com",
@@ -529,7 +527,7 @@ Emails concerning alerts or updates must be sent to this domain.
                          config_lib.CONFIG.Get("Logging.domain"))
   config.Set("Logging.domain", domain)
 
-  print """\n-=Alert Email Address=-
+  print """\n\n-=Alert Email Address=-
 Address where monitoring events get sent, e.g. crashed clients, broken server
 etc.
 """
@@ -537,7 +535,7 @@ etc.
                         "grr-monitoring@%s" % domain)
   config.Set("Monitoring.alert_email", email)
 
-  print """\n-=Emergency Email Address=-
+  print """\n\n-=Emergency Email Address=-
 Address where high priority events such as an emergency ACL bypass are sent.
 """
   emergency_email = RetryQuestion("Emergency Access Email Address", "",
@@ -549,8 +547,9 @@ def ConfigureBaseOptions(config):
 
   print "We are now going to configure the server using a bunch of questions."
 
-  print """\nFor GRR to work each GRR server has to be able to communicate with
-the datastore.  To do this we need to configure a datastore.\n"""
+  print """\n\n-=GRR Datastore=-
+For GRR to work each GRR server has to be able to communicate with the
+datastore.  To do this we need to configure a datastore.\n"""
 
   existing_datastore = config_lib.CONFIG.Get("Datastore.implementation")
 
@@ -561,31 +560,34 @@ the datastore.  To do this we need to configure a datastore.\n"""
   Datastore: %s""" % existing_datastore
 
     if existing_datastore == "SqliteDataStore":
-      print "  Datastore Location: %s" % config_lib.CONFIG.Get(
-        "Datastore.location")
+      print """  Datastore Location: %s
+      """ % config_lib.CONFIG.Get("Datastore.location")
 
     if existing_datastore == "MySQLAdvancedDataStore":
       print """  MySQL Host: %s
   MySQL Port: %s
   MySQL Database: %s
-  MySQL Username: %s\n""" % (config_lib.CONFIG.Get("Mysql.host"),
-                             config_lib.CONFIG.Get("Mysql.port"),
-                             config_lib.CONFIG.Get("Mysql.database_name"),
-                             config_lib.CONFIG.Get("Mysql.database_username"))
+  MySQL Username: %s
+  """ % (config_lib.CONFIG.Get("Mysql.host"),
+         config_lib.CONFIG.Get("Mysql.port"),
+         config_lib.CONFIG.Get("Mysql.database_name"),
+         config_lib.CONFIG.Get("Mysql.database_username"))
 
     if existing_datastore == "MongoDataStore":
       print """  Mongo Host: %s
   Mongo Port: %s
-  Mongo Database: %s\n""" % (config_lib.CONFIG.Get("Mongo.server"),
-                             config_lib.CONFIG.Get("Mongo.port"),
-                             config_lib.CONFIG.Get("Mongo.db_name"))
+  Mongo Database: %s
+  """ % (config_lib.CONFIG.Get("Mongo.server"),
+         config_lib.CONFIG.Get("Mongo.port"),
+         config_lib.CONFIG.Get("Mongo.db_name"))
 
     if raw_input("Do you want to keep this configuration?"
                  " [Yn]: ").upper() == "N":
       ConfigureDatastore(config)
 
 
-  print """\nFor GRR to work each client has to be able to communicate with the
+  print """\n\n-=GRR URLs=-
+For GRR to work each client has to be able to communicate with the
 server. To do this we normally need a public dns name or IP address to
 communicate with. In the standard configuration this will be used to host both
 the client facing server and the admin user interface.\n"""
@@ -605,7 +607,8 @@ the client facing server and the admin user interface.\n"""
                  " [Yn]: ").upper() == "N":
       ConfigureHostnames(config)
 
-  print """\nGRR needs to be able to send emails for various logging and
+  print """\n\n-=GRR Emails=-
+  GRR needs to be able to send emails for various logging and
   alerting functions.  The email domain will be appended to GRR user names
   when sending emails to users.\n"""
 
