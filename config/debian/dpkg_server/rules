@@ -30,8 +30,8 @@ override_dh_installinit:
 	# Set up upstart scripts
 	mkdir -p debian/grr-server/etc/default
 	mkdir -p debian/grr-server/etc/init
-	install -p -m644 config/debian/default/grr-* debian/grr-server/etc/default
-	install -p -m644 config/debian/upstart/grr-* debian/grr-server/etc/init
+	install -p -m644 config/upstart/default/grr-* debian/grr-server/etc/default
+	install -p -m644 config/upstart/grr-* debian/grr-server/etc/init
 	# Do not copy the client script across for the server package.
 	rm debian/grr-server/etc/init/grr-client.conf
 	# Set up grr-server shared directories and files
