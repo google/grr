@@ -126,8 +126,6 @@ function run_cmd_confirm()
 function install_mongo()
 {
   apt-get --yes --force-yes install mongodb python-pymongo;
-  service mongodb stop 2>/dev/null || true
-  service mongodb start 2>/dev/null
 }
 
 header "Updating APT and Installing dependencies"
@@ -195,6 +193,10 @@ if [ $BUILD_DEPS_ONLY = 1 ]; then
   echo "#######################################"
   exit 0
 fi
+
+# Mongo is actually unused in the default configuration (sqlite is the default).
+# We install it here to satisfy the grr-server deb package dependency. Remove
+# this once we have built a new grr-server.deb without the mongo dependency.
 
 header "Installing Mongodb"
 run_cmd_confirm install_mongo

@@ -6,18 +6,11 @@ AdminUI.bind: "::"
 
 AdminUI.django_debug: True
 
-AdminUI.port: 8000
-
-AdminUI.url: http://localhost:8000
-
 AdminUI.webauth_manager: BasicWebAuthManager
 
 Client.company_name: GRR Project
 
 Client.description: "%(name) %(platform) %(arch)"
-
-Client.control_urls:
-  - http://localhost:8080/control
 
 Client.name: GRR
 
@@ -38,8 +31,6 @@ Client.poll_max: 600
 # Writeback for server components.
 Config.writeback: "%(Config.directory)/server.local.yaml"
 
-Datastore.implementation: MongoDataStore
-
 Datastore.security_manager: BasicAccessControlManager
 
 # Logging.domain: example.com
@@ -50,22 +41,9 @@ Logging.path: /var/log/grr
 
 Logging.verbose: False
 
-Mongo.db_name: grr
-
-# Mongo.server:
-Mongo.port: 27017
-
-
 # These must be in the domain specified above as Logging.domain.
 # Monitoring.emergency_access_email: grr-emergency-access@example.com
 # Monitoring.alert_email: grr-monitoring@example.com
-
-# Mysql.host:
-# Mysql.port:
-# Mysql.database_name:
-# Mysql.table_name:
-# Mysql.database_username:
-# Mysql.database_password:
 
 AdminUI Context:
   Logging.filename: "%(Logging.path)/grr-ui.log"

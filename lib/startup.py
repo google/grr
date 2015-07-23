@@ -77,7 +77,6 @@ def ClientInit():
 # Make sure we do not reinitialize multiple times.
 INIT_RAN = False
 
-
 def Init():
   """Run all required startup routines and initialization hooks."""
   global INIT_RAN
