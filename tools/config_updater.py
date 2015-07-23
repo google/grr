@@ -68,7 +68,7 @@ parser_repack_clients = subparsers.add_parser(
 
 parser_initialize = subparsers.add_parser(
     "initialize",
-    help="Interactively run all the required steps to setup a new GRR install.")
+    help="Run all the required steps to setup a new GRR install.")
 
 parser_set_var = subparsers.add_parser(
     "set_var", help="Set a config variable.")
@@ -110,6 +110,14 @@ parser_initialize.add_argument(
     "--external_hostname", default=None,
     help="External hostname to use.")
 
+parser_initialize.add_argument(
+    "--admin_password", default=None,
+    help="External hostname to use.")
+
+parser_initialize.add_argument(
+    "--noprompt", default=False, action="store_true",
+    help="Set to avoid prompting during initialize.")
+
 parser_set_var.add_argument("var", help="Variable to set.")
 parser_set_var.add_argument("val", help="Value to set.")
 
@@ -150,8 +158,9 @@ def UpdateUser(username, password, add_labels=None, delete_labels=None,
 
   # Note this accepts blank passwords as valid.
   if password:
-    password = getpass.getpass(
-        prompt="Please enter password for user '%s': " % username)
+    if not isinstance(password, basestring):
+      password = getpass.getpass(
+          prompt="Please enter password for user '%s': " % username)
     fd.SetPassword(password)
 
   # Use sets to dedup input.
@@ -442,8 +451,12 @@ The Server URL specifies the URL that the clients will connect to
 communicate with the server. This needs to be publically accessible. By default
 this will be port 8080 with the URL ending in /control.
 """
-  location = RetryQuestion("Server URL", "^http://.*/control$",
-                           "http://%s:8080/control" % hostname)
+  location = "http://%s:8080/control" % hostname
+  if flags.FLAGS.noprompt:
+    print "Setting Client.control_urls = %s" % location
+  else:
+    location = RetryQuestion("Server URL", "^http://.*/control$",
+                             location)
   config.Set("Client.control_urls", [location])
 
   frontend_port = urlparse.urlparse(location).port or 80
@@ -455,8 +468,11 @@ this will be port 8080 with the URL ending in /control.
   print """\nUI URL:
 The UI URL specifies where the Administrative Web Interface can be found.
 """
-  ui_url = RetryQuestion("AdminUI URL", "^http[s]*://.*$",
-                         "http://%s:8000" % hostname)
+  ui_url = "http://%s:8000" % hostname
+  if flags.FLAGS.noprompt:
+    print "Setting AdminUI.url = %s" % ui_url
+  else:
+    ui_url = RetryQuestion("AdminUI URL", "^http[s]*://.*$", ui_url)
   config.Set("AdminUI.url", ui_url)
 
 
@@ -473,7 +489,11 @@ the client facing server and the admin user interface.\n"""
   existing_ui_urn = config_lib.CONFIG.Get("AdminUI.url", default=None)
   existing_frontend_urn = config_lib.CONFIG.Get("Client.control_urls",
                                                 default=None)
-  if not existing_frontend_urn or not existing_ui_urn:
+
+  # If we're missing one of these or operating in noprompt mode, set the
+  # hostname
+  if (not existing_frontend_urn or not existing_ui_urn or
+      flags.FLAGS.noprompt):
     ConfigureHostnames(config)
   else:
     print """Found existing settings:
@@ -481,30 +501,35 @@ Admin ui urn: %s
 Frontend urn(s): %s
 """ % (existing_ui_urn, existing_frontend_urn)
 
-    if raw_input("Do you want to keep this configuration?"
-                 " [Yn]: ").upper() == "N":
+    if raw_input(
+        "Do you want to keep this configuration? [Yn]: ").upper() == "N":
       ConfigureHostnames(config)
 
   print """\nMonitoring/Email domain name:
 Emails concerning alerts or updates must be sent to this domain.
 """
-  domain = RetryQuestion("Email domain", "^([\\.A-Za-z0-9-]+)*$",
-                         "example.com")
+  domain = flags.FLAGS.external_hostname
+  if not flags.FLAGS.noprompt:
+    domain = RetryQuestion("Email domain", "^([\\.A-Za-z0-9-]+)*$",
+                           "example.com")
   config.Set("Logging.domain", domain)
 
   print """\nMonitoring email address
 Address where monitoring events get sent, e.g. crashed clients, broken server
 etc.
 """
-  email = RetryQuestion("Monitoring email", "",
-                        "grr-monitoring@%s" % domain)
+  email = "grr-monitoring@%s" % domain
+  if not flags.FLAGS.noprompt:
+    email = RetryQuestion("Monitoring email", "", email)
   config.Set("Monitoring.alert_email", email)
 
   print """\nEmergency email address
 Address where high priority events such as an emergency ACL bypass are sent.
 """
-  emergency_email = RetryQuestion("Monitoring emergency email", "",
-                                  "grr-emergency@%s" % domain)
+  emergency_email = "grr-emergency@%s" % domain
+  if not flags.FLAGS.noprompt:
+    emergency_email = RetryQuestion("Monitoring emergency email", "",
+                                    emergency_email)
   config.Set("Monitoring.emergency_access_email", emergency_email)
 
   config.Write()
@@ -524,8 +549,9 @@ def Initialize(config=None, token=None):
   prev_config_file = config.Get("ConfigUpdater.old_config", default=None)
   if prev_config_file and os.access(prev_config_file, os.R_OK):
     print "Found config file %s." % prev_config_file
-    if raw_input("Do you want to import this configuration?"
-                 " [yN]: ").upper() == "Y":
+    if (flags.FLAGS.noprompt) or (
+        raw_input("Do you want to import this configuration?"
+                  " [yN]: ").upper() == "Y"):
       options_imported = ImportConfig(prev_config_file, config)
   else:
     print "No old config file found."
@@ -535,7 +561,8 @@ def Initialize(config=None, token=None):
     if options_imported > 0:
       print ("Since you have imported keys from another installation in the "
              "last step,\nyou probably do not want to generate new keys now.")
-    if ((raw_input("You already have keys in your config, do you want to"
+    if not flags.FLAGS.noprompt and (
+        (raw_input("You already have keys in your config, do you want to"
                    " overwrite them? [yN]: ").upper() or "N") == "Y"):
       flags.FLAGS.overwrite = True
       GenerateKeys(config)
@@ -550,11 +577,16 @@ def Initialize(config=None, token=None):
 
   print "\nStep 3: Adding Admin User"
   try:
-    AddUser("admin", labels=["admin"], token=token)
+    AddUser("admin", labels=["admin"], token=token,
+            password=flags.FLAGS.admin_password)
   except UserError:
-    if ((raw_input("User 'admin' already exists, do you want to"
-                   "reset the password? [yN]: ").upper() or "N") == "Y"):
-      UpdateUser("admin", password=True, add_labels=["admin"], token=token)
+    if flags.FLAGS.noprompt:
+        UpdateUser("admin", password=flags.FLAGS.admin_password,
+                   add_labels=["admin"], token=token)
+    else:
+      if ((raw_input("User 'admin' already exists, do you want to"
+                    "reset the password? [yN]: ").upper() or "N") == "Y"):
+        UpdateUser("admin", password=True, add_labels=["admin"], token=token)
 
   print "\nStep 4: Uploading Memory Drivers to the Database"
   LoadMemoryDrivers(flags.FLAGS.share_dir, token=token)
@@ -620,6 +652,12 @@ def main(unused_argv):
                                         token=token)
 
   elif flags.FLAGS.subparser_name == "initialize":
+    if (flags.FLAGS.noprompt) and not (
+        flags.FLAGS.external_hostname and
+        flags.FLAGS.admin_password):
+      raise ValueError(
+          "If interactive prompting is disabled, external_hostname and "
+          "admin_password must be set.")
     Initialize(config_lib.CONFIG, token=token)
 
   elif flags.FLAGS.subparser_name == "show_user":

@@ -38,7 +38,7 @@ Client.poll_max: 600
 # Writeback for server components.
 Config.writeback: "%(Config.directory)/server.local.yaml"
 
-Datastore.implementation: MongoDataStore
+Datastore.implementation: SqliteDataStore
 
 Datastore.security_manager: BasicAccessControlManager
 

@@ -90,7 +90,10 @@ def Init():
   # ConfigInit() which needs to happen before we can start our create our proper
   # logging setup.
   syslog_logger = logging.getLogger("TempLogger")
-  handler = logging.handlers.SysLogHandler(address="/dev/log")
+  if os.path.exists("/dev/log"):
+    handler = logging.handlers.SysLogHandler(address="/dev/log")
+  else:
+    handler = logging.handlers.SysLogHandler()
   syslog_logger.addHandler(handler)
 
   try:
