@@ -354,7 +354,8 @@ class AbstractApprovalWithReason(object):
       reason = re.sub(link_re, r"""<a href="\g<link>">\g<link></a>""", reason)
     return reason
 
-  def ApprovalUrnBuilder(self, subject, user, reason):
+  @staticmethod
+  def ApprovalUrnBuilder(subject, user, reason):
     """Encode an approval URN."""
     return aff4.ROOT_URN.Add("ACL").Add(
         subject).Add(user).Add(utils.EncodeReasonString(reason))

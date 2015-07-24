@@ -89,7 +89,7 @@ class LinuxClientBuilder(build.ClientBuilder):
     outdir = os.path.join(dpkg_dir, "debian/upstart.in")
     self.EnsureDirExists(outdir)
     shutil.copy(
-        os.path.join(src_dir, "config/debian/upstart/grr-client.conf"),
+        os.path.join(src_dir, "config/upstart/grr-client.conf"),
         outdir)
 
     # Copy init files

@@ -361,7 +361,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     self.CheckLength(predicate, 0)
 
   @DeletionTest
-  def testDeleteSubjects(self):
+  def testDeleteSubject(self):
     predicate = "metadata:tspredicate"
 
     data_store.DB.Set(self.test_row, predicate, "hello100", timestamp=100,
@@ -375,6 +375,30 @@ class _DataStoreTest(test_lib.GRRBaseTest):
                       replace=False, token=self.token)
     data_store.DB.DeleteSubject(self.test_row, token=self.token, sync=True)
     self.CheckLength(predicate, 0)
+
+  @DeletionTest
+  def testDeleteSubjects(self):
+    row_template = "aff4:/deletesubjectstest%d"
+    rows = [row_template % i for i in xrange(100)]
+    predicate = "metadata:tspredicate"
+
+    for i, row in enumerate(rows):
+      data_store.DB.Set(row, predicate, "hello%d" % i, timestamp=100,
+                        replace=False, token=self.token)
+    data_store.DB.Flush()
+
+    data_store.DB.DeleteSubjects(rows[20:80], token=self.token)
+    data_store.DB.Flush()
+
+    res = dict(data_store.DB.MultiResolveRegex(
+        rows, predicate, token=self.token))
+    for i in xrange(100):
+      if 20 <= i < 80:
+        # These rows have been deleted.
+        self.assertNotIn(row_template % i, res)
+      else:
+        # These rows should be present.
+        self.assertIn(row_template % i, res)
 
   def testMultiResolveRegex(self):
     """tests MultiResolveRegex."""
@@ -1345,6 +1369,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
   def testApi(self):
     api = ["DeleteAttributes",
            "DeleteSubject",
+           "DeleteSubjects",
            "MultiResolveRegex",
            "MultiSet",
            "Resolve",
