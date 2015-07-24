@@ -8,9 +8,9 @@ from grr.client import vfs
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import artifact
-from grr.lib import artifact_lib
 from grr.lib import artifact_registry
 from grr.lib import artifact_test
+from grr.lib import artifact_utils
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -43,12 +43,10 @@ class TestArtifactCollectors(CollectorTest):
   def setUp(self):
     """Make sure things are initialized."""
     super(TestArtifactCollectors, self).setUp()
-    self.original_artifact_reg = artifact_registry.ArtifactRegistry.artifacts
-    artifact_registry.ArtifactRegistry.ClearRegistry()
+    artifact_registry.REGISTRY.ClearRegistry()
     self.LoadTestArtifacts()
-    artifact_reg = artifact_registry.ArtifactRegistry.artifacts
-    self.fakeartifact = artifact_reg["FakeArtifact"]
-    self.fakeartifact2 = artifact_reg["FakeArtifact2"]
+    self.fakeartifact = artifact_registry.REGISTRY.GetArtifact("FakeArtifact")
+    self.fakeartifact2 = artifact_registry.REGISTRY.GetArtifact("FakeArtifact2")
 
     self.output_count = 0
 
@@ -60,7 +58,6 @@ class TestArtifactCollectors(CollectorTest):
 
   def tearDown(self):
     super(TestArtifactCollectors, self).tearDown()
-    artifact_registry.ArtifactRegistry.artifacts = self.original_artifact_reg
     self.fakeartifact.sources = []  # Reset any ArtifactSources
     self.fakeartifact.conditions = []  # Reset any Conditions
 
@@ -129,8 +126,8 @@ class TestArtifactCollectors(CollectorTest):
       collect_flow.state.knowledge_base.MergeOrAddUser(
           rdf_client.KnowledgeBaseUser(username="test2"))
 
-      collector = artifact_lib.ArtifactSource(
-          type=artifact_lib.ArtifactSource.SourceType.GREP,
+      collector = artifact_registry.ArtifactSource(
+          type=artifact_registry.ArtifactSource.SourceType.GREP,
           attributes={"paths": ["/etc/passwd"],
                       "content_regex_list": [r"^a%%users.username%%b$"]})
       collect_flow.Grep(collector, rdf_paths.PathSpec.PathType.TSK)
@@ -152,8 +149,8 @@ class TestArtifactCollectors(CollectorTest):
 
     # Dynamically add a ArtifactSource specifying the base path.
     file_path = os.path.join(self.base_path, "test_img.dd")
-    coll1 = artifact_lib.ArtifactSource(
-        type=artifact_lib.ArtifactSource.SourceType.FILE,
+    coll1 = artifact_registry.ArtifactSource(
+        type=artifact_registry.ArtifactSource.SourceType.FILE,
         attributes={"paths": [file_path]})
     self.fakeartifact.sources.append(coll1)
 
@@ -178,8 +175,8 @@ class TestArtifactCollectors(CollectorTest):
     client.Set(client.Schema.SYSTEM("Linux"))
     client.Flush()
 
-    coll1 = artifact_lib.ArtifactSource(
-        type=artifact_lib.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
+    coll1 = artifact_registry.ArtifactSource(
+        type=artifact_registry.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
         attributes={"client_action": r"ListProcesses"})
     self.fakeartifact.sources.append(coll1)
     artifact_list = ["FakeArtifact"]
@@ -202,8 +199,8 @@ class TestArtifactCollectors(CollectorTest):
     client.Set(client.Schema.SYSTEM("Linux"))
     client.Flush()
 
-    coll1 = artifact_lib.ArtifactSource(
-        type=artifact_lib.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
+    coll1 = artifact_registry.ArtifactSource(
+        type=artifact_registry.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
         attributes={"client_action": r"ListProcesses"})
     self.fakeartifact.sources.append(coll1)
     self.fakeartifact2.sources.append(coll1)
@@ -232,8 +229,8 @@ class TestArtifactCollectors(CollectorTest):
     """Test we can get a GRR client artifact with conditions."""
     # Run with false condition.
     client_mock = action_mocks.ActionMock("ListProcesses")
-    coll1 = artifact_lib.ArtifactSource(
-        type=artifact_lib.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
+    coll1 = artifact_registry.ArtifactSource(
+        type=artifact_registry.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
         attributes={"client_action": "ListProcesses"},
         conditions=["os == 'Windows'"])
     self.fakeartifact.sources.append(coll1)
@@ -258,8 +255,8 @@ class TestArtifactCollectors(CollectorTest):
     """Test supported_os inside the collector object."""
     # Run with false condition.
     client_mock = action_mocks.ActionMock("ListProcesses")
-    coll1 = artifact_lib.ArtifactSource(
-        type=artifact_lib.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
+    coll1 = artifact_registry.ArtifactSource(
+        type=artifact_registry.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
         attributes={"client_action": "ListProcesses"}, supported_os=["Windows"])
     self.fakeartifact.sources.append(coll1)
     fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
@@ -310,12 +307,10 @@ class TestArtifactCollectorsInteractions(CollectorTest):
   def setUp(self):
     """Add test artifacts to existing registry."""
     super(TestArtifactCollectorsInteractions, self).setUp()
-    self.original_artifact_reg = artifact_registry.ArtifactRegistry.artifacts
     self.LoadTestArtifacts()
 
   def tearDown(self):
     super(TestArtifactCollectorsInteractions, self).tearDown()
-    artifact_registry.ArtifactRegistry.artifacts = self.original_artifact_reg
 
   def testProcessCollectedArtifacts(self):
     """Test downloading files from artifacts."""
@@ -448,7 +443,7 @@ class TestArtifactCollectorsRealArtifacts(CollectorTest):
         artifact_list=["WMIComputerSystemProduct"], token=self.token,
         client_id=self.client_id,
         dependencies=
-        artifact_lib.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS,
+        artifact_utils.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS,
         store_results_in_aff4=True):
       pass
 
@@ -472,7 +467,7 @@ class TestArtifactCollectorsRealArtifacts(CollectorTest):
         "ArtifactCollectorFlow", client_mock, artifact_list=["WMILogicalDisks"],
         token=self.token, client_id=self.client_id,
         dependencies=
-        artifact_lib.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS,
+        artifact_utils.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS,
         store_results_in_aff4=True):
       pass
 
@@ -507,12 +502,12 @@ class TestArtifactCollectorsRealArtifacts(CollectorTest):
         artifact_list=["WMIActiveScriptEventConsumer"],
         token=self.token, client_id=self.client_id,
         dependencies=
-        artifact_lib.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS):
+        artifact_utils.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS):
       pass
 
     # Make sure the artifact's base_object made it into the WmiQuery call.
-    artifact_obj = artifact_registry.ArtifactRegistry.artifacts[
-        "WMIActiveScriptEventConsumer"]
+    artifact_obj = artifact_registry.REGISTRY.GetArtifact(
+        "WMIActiveScriptEventConsumer")
     self.assertItemsEqual(WMIActionMock.base_objects,
                           [artifact_obj.sources[0].attributes["base_object"]])
 
@@ -534,7 +529,7 @@ class TestArtifactCollectorsRealArtifacts(CollectorTest):
         "ArtifactCollectorFlow", client_mock, artifact_list=artifact_list,
         token=self.token, client_id=self.client_id,
         dependencies=
-        artifact_lib.ArtifactCollectorFlowArgs.Dependency.FETCH_NOW,
+        artifact_utils.ArtifactCollectorFlowArgs.Dependency.FETCH_NOW,
         output="testRetrieveDependencies"):
       pass
 

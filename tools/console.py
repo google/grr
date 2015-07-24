@@ -27,7 +27,7 @@ from grr.endtoend_tests import base
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import artifact
-from grr.lib import artifact_lib
+from grr.lib import artifact_utils
 from grr.lib import config_lib
 from grr.lib import console_utils
 from grr.lib import data_store

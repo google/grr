@@ -24,6 +24,10 @@ grrUi.forms.module = angular.module('grrUi.forms', [grrUi.core.module.name,
 grrUi.forms.module.service(
     grrUi.core.semanticRegistry.SemanticRegistryService.forms_service_name,
     grrUi.core.semanticRegistry.SemanticRegistryService);
+grrUi.forms.module.service(
+    grrUi.core.semanticRegistry.SemanticRegistryService
+        .repeated_forms_service_name,
+    grrUi.core.semanticRegistry.SemanticRegistryService);
 
 
 grrUi.forms.module.directive(

@@ -7,6 +7,7 @@ goog.provide('grrUi.semantic.module');
 goog.require('grrUi.core.module');
 goog.require('grrUi.core.semanticRegistry.SemanticRegistryService');
 goog.require('grrUi.semantic.clientUrnDirective.ClientUrnDirective');
+goog.require('grrUi.semantic.dictDirective.DictDirective');
 goog.require('grrUi.semantic.fetchMoreLinkDirective.FetchMoreLinkDirective');
 goog.require('grrUi.semantic.macAddressDirective.MacAddressDirective');
 goog.require('grrUi.semantic.networkAddressDirective.NetworkAddressDirective');
@@ -30,6 +31,9 @@ grrUi.semantic.module = angular.module('grrUi.semantic',
 grrUi.semantic.module.directive(
     grrUi.semantic.clientUrnDirective.ClientUrnDirective.directive_name,
     grrUi.semantic.clientUrnDirective.ClientUrnDirective);
+grrUi.semantic.module.directive(
+    grrUi.semantic.dictDirective.DictDirective.directive_name,
+    grrUi.semantic.dictDirective.DictDirective);
 grrUi.semantic.module.directive(
     grrUi.semantic.fetchMoreLinkDirective.FetchMoreLinkDirective.directive_name,
     grrUi.semantic.fetchMoreLinkDirective.FetchMoreLinkDirective);
@@ -71,6 +75,12 @@ grrUi.semantic.module.run(function(grrSemanticValueDirectivesRegistryService) {
   registry.registerDirective(
       grrUi.semantic.clientUrnDirective.ClientUrnDirective.semantic_type,
       grrUi.semantic.clientUrnDirective.ClientUrnDirective);
+  angular.forEach(
+      grrUi.semantic.dictDirective.DictDirective.semantic_types,
+      function(type) {
+        registry.registerDirective(type,
+                                   grrUi.semantic.dictDirective.DictDirective);
+      }.bind(this));
   registry.registerDirective(
       grrUi.semantic.fetchMoreLinkDirective.FetchMoreLinkDirective
           .semantic_type,

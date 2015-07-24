@@ -105,6 +105,7 @@ class ApiHuntsListRenderer(api_call_renderers.ApiCallRenderer):
     fd = aff4.FACTORY.Open("aff4:/hunts", mode="r", token=token)
 
     children = list(fd.ListChildren())
+    total_count = len(children)
     children.sort(key=operator.attrgetter("age"), reverse=True)
     if args.count:
       children = children[args.offset:args.offset + args.count]
@@ -118,7 +119,7 @@ class ApiHuntsListRenderer(api_call_renderers.ApiCallRenderer):
 
       hunt_list.append(hunt)
 
-    return dict(total_count=len(children),
+    return dict(total_count=total_count,
                 offset=args.offset,
                 count=len(hunt_list),
                 items=self._RenderHuntList(hunt_list))
@@ -176,8 +177,10 @@ class ApiHuntOutputPluginsRenderer(api_call_renderers.ApiCallRenderer):
         HUNTS_ROOT_PATH.Add(args.hunt_id).Add("ResultsMetadata"), mode="r",
         aff4_type="HuntResultsMetadata", token=token)
 
+    # We don't need rendered type information, so we return just the "value"
+    # part of the result.
     return api_value_renderers.RenderValue(
-        metadata.Get(metadata.Schema.OUTPUT_PLUGINS, {}))
+        metadata.Get(metadata.Schema.OUTPUT_PLUGINS, {}))["value"]
 
 
 class ApiHuntLogRendererArgs(rdf_structs.RDFProtoStruct):

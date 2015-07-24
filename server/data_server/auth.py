@@ -7,11 +7,8 @@ import threading
 import time
 import uuid
 
-from M2Crypto import EVP
-
 from grr.lib import config_lib
 from grr.lib import utils
-from grr.lib.rdfvalues import crypto
 from grr.lib.rdfvalues import data_server
 
 from grr.server.data_server import errors
@@ -42,61 +39,49 @@ class ClientCredentials(object):
             "User %s from Dataserver.client_credentials is not"
             " a valid specification" % user_spec)
 
-  def _MakeEncryptKey(self, username, password):
-    data = hashlib.md5(username + password).hexdigest()
-    return crypto.AES128Key(data)
-
-  def _MakeInitVector(self):
-    init_vector = crypto.AES128Key()
-    init_vector.Generate()
-    return init_vector
-
   def Encrypt(self, username, password):
-    """Encrypt the client credentials to other data servers."""
+    """Encrypt the client credentials to other data servers.
+
+    Args:
+      username: This server's username.
+      password: This server's password.
+
+    Returns:
+      A serialized DataServerEncryptedCreds proto that can be sent to other
+      servers.
+    """
     # We use the servers username and password to encrypt
     # the client credentials.
     creds = data_server.DataServerClientCredentials(
         users=self.client_users.values())
-    key = self._MakeEncryptKey(username, password)
-    # We encrypt the credentials object.
-    string = creds.SerializeToString()
 
-    if len(string) % 16:
-      string += " " * (16 - len(string) % 16)  # Must be in 16 byte blocks.
-    init_vector = self._MakeInitVector()
-    encryptor = crypto.AES128CBCCipher(key, init_vector,
-                                       crypto.Cipher.OP_ENCRYPT)
-    data = encryptor.Update(string)
-    data += encryptor.Final()
-    # Initialization vector is prepended to the encrypted credentials.
-    return str(init_vector) + data
+    result = data_server.DataServerEncryptedCreds()
+    result.SetPayload(creds.SerializeToString(), username, password)
+
+    return result.SerializeToString()
 
   def InitializeFromEncryption(self, string, username, password):
-    """Initialize client credentials from encrypted string from the master."""
-    # Use the same key used in Encrypt()
-    key = self._MakeEncryptKey(username, password)
-    # Initialization vector was prepended.
-    init_vector_str = string[:INITVECTOR_SIZE]
-    init_vector = crypto.AES128Key(init_vector_str)
-    ciphertext = string[INITVECTOR_SIZE:]
-    decryptor = crypto.AES128CBCCipher(key, init_vector,
-                                       crypto.Cipher.OP_DECRYPT)
-    # Decrypt credentials information and set the required fields.
-    try:
-      plain = decryptor.Update(ciphertext)
-      plain += decryptor.Final()
+    """Initialize client credentials from encrypted string from the master.
 
-      # Remove padding
-      plain = plain.strip(" ")
+    Args:
+      string: The serialized DataServerEncryptedCreds proto to parse.
+      username: This server's username.
+      password: This server's password.
 
-      creds = data_server.DataServerClientCredentials(plain)
-      # Create client credentials.
-      self.client_users = {}
-      for client in creds.users:
-        self.client_users[client.username] = client
-      return self
-    except EVP.EVPError:
-      return None
+    Returns:
+      self.
+    """
+    encrypted_creds = data_server.DataServerEncryptedCreds(string)
+
+    creds = data_server.DataServerClientCredentials(
+        encrypted_creds.GetPayload(username, password))
+
+    # Create client credentials.
+    self.client_users = {}
+    for client in creds.users:
+      self.client_users[client.username] = client
+
+    return self
 
   def HasUser(self, username):
     return username in self.client_users

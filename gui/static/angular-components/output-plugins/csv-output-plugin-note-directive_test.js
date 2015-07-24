@@ -32,7 +32,9 @@ describe('csv output plugin directive', function() {
 
   it('shows "nothing was written yet" by default', function() {
     var element = renderTestTemplate({
-      output_streams: {}
+      value: {
+        output_streams: {}
+      }
     });
     expect(element.text()).toContain('Nothing was written yet.');
   });
@@ -40,12 +42,16 @@ describe('csv output plugin directive', function() {
   it('shows download aff4-link for every written type', function() {
     var element = renderTestTemplate(
         {
-          output_base_urn: {
-            value: 'aff4:/foo/bar'
-          },
-          output_streams: {
-            'ExportedFile': {},
-            'ExportedClient': {}
+          value: {
+            output_base_urn: {
+              value: 'aff4:/foo/bar'
+            },
+            output_streams: {
+              value: {
+                'ExportedFile': {},
+                'ExportedClient': {}
+              }
+            }
           }
         });
 

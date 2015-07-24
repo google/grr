@@ -24,7 +24,7 @@ import re
 
 import logging
 
-from grr.lib import artifact_lib
+from grr.lib import artifact_utils
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import standard as rdf_standard
@@ -229,11 +229,11 @@ class GlobExpression(rdfvalue.RDFString):
     try:
       kb = client.Get(client.Schema.KNOWLEDGE_BASE)
       if not kb:
-        raise artifact_lib.KnowledgeBaseInterpolationError(
+        raise artifact_utils.KnowledgeBaseInterpolationError(
             "Client has no knowledge base")
 
-      patterns = artifact_lib.InterpolateKbAttributes(self._value, kb)
-    except artifact_lib.KnowledgeBaseInterpolationError:
+      patterns = artifact_utils.InterpolateKbAttributes(self._value, kb)
+    except artifact_utils.KnowledgeBaseInterpolationError:
       # TODO(user): Deprecate InterpolateClientAttributes() support and
       # make KnowledgeBase the default and only option as soon as we're
       # confident that it's fully populated.

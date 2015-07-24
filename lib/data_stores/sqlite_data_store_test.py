@@ -47,16 +47,6 @@ class SqliteDataStoreTest(SqliteTestMixin, data_store_test._DataStoreTest):
   """Test the sqlite data store."""
 
 
-class SqliteDataStoreBenchmarks(SqliteTestMixin,
-                                data_store_test.DataStoreBenchmarks):
-  """Benchmark the SQLite data store abstraction."""
-
-
-class SqliteDataStoreCSVBenchmarks(SqliteTestMixin,
-                                   data_store_test.DataStoreCSVBenchmarks):
-  """Benchmark the SQLite data store abstraction."""
-
-
 def main(args):
   test_lib.main(args)
 

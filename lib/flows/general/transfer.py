@@ -427,14 +427,14 @@ class MultiGetFileMixin(object):
 
     # First we get all the files which are present in the file store.
     files_in_filestore = set()
-    for file_store_urn, digest in self.state.filestore.CheckHashes(
+    for file_store_urn, hash_obj in self.state.filestore.CheckHashes(
         file_hashes.values(), external=self.state.use_external_stores):
 
       self.HeartBeat()
 
       # Since checkhashes only returns one digest per unique hash we need to
       # find any other files pending download with the same hash.
-      for tracker in hash_to_urn[digest]:
+      for tracker in hash_to_urn[hash_obj.sha256]:
         self.state.files_skipped += 1
         file_hashes.pop(tracker.index)
         files_in_filestore.add(file_store_urn)

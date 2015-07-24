@@ -7,6 +7,7 @@ from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.rdfvalues import crypto
 
 from grr.server.data_server import auth
 
@@ -115,9 +116,10 @@ class AuthTest(test_lib.GRRBaseTest):
     # Encrypt credentials.
     cipher = creds.Encrypt(user, pwd)
     self.assertNotEqual(cipher, "")
+
     creds2 = auth.ClientCredentials()
-    self.assertEqual(creds2.InitializeFromEncryption(cipher, user, pwd),
-                     creds2)
+    creds2.InitializeFromEncryption(cipher, user, pwd)
+    self.assertEqual(creds2.client_users, creds.client_users)
 
     # Must have same credentials.
     self.assertTrue(creds2.HasUser(user))
@@ -126,8 +128,9 @@ class AuthTest(test_lib.GRRBaseTest):
 
     # Create new credentials with wrong password.
     creds3 = auth.ClientCredentials()
-    self.assertEqual(creds3.InitializeFromEncryption(cipher, user,
-                                                     "badpassword"), None)
+    self.assertRaises(
+        crypto.CipherError,
+        creds3.InitializeFromEncryption, cipher, user, "badpassword")
 
     self.assertFalse(creds3.HasUser(user))
 

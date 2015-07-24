@@ -4,7 +4,7 @@
 import json
 import ntpath
 
-from grr.lib import artifact_lib
+from grr.lib import artifact_utils
 from grr.lib import parsers
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -43,7 +43,7 @@ class RekallVADParser(parsers.RekallPluginParser):
   knowledgebase_dependencies = ["environ_systemdrive", "environ_systemroot"]
 
   def Parse(self, response, knowledge_base):
-    system_drive = artifact_lib.ExpandWindowsEnvironmentVariables(
+    system_drive = artifact_utils.ExpandWindowsEnvironmentVariables(
         "%systemdrive%", knowledge_base)
 
     for message in json.loads(response.json_messages):

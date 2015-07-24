@@ -480,6 +480,15 @@ table tr.config_modified {
   position: relative;
 }
 
+grr-start-flow-view .rightTopPane {
+  width : 100%;
+  height : 70%;
+  overflow : hidden;
+  background: white;
+  overflow: auto;
+  position: relative;
+}
+
 .rightBottomPane {
   width : 100%;
   background: white;

@@ -1,26 +1,46 @@
-<div class="form-group">
-  <label class="control-label" title="{$ field.doc $}">
-    {$ field.friendly_name $}
-    <a ng-if="field.context_help_url"
-       ng-href="/help/{$ field.context_help_url $}" target="_blank">
-      <i class="glyphicon glyphicon-question-sign"></i>
-    </a>
-  </label>
+<div ng-if="!controller.hasCustomTemplate">
+  <div class="form-group">
+    <label class="control-label" title="{$ field.doc $}">
+      {$ field.friendly_name $}
+      <a ng-if="field.context_help_url"
+         ng-href="/help/{$ field.context_help_url $}" target="_blank">
+        <i class="glyphicon glyphicon-question-sign"></i>
+      </a>
+    </label>
 
-  <div class="controls">
-    <button class="btn btn-default form-add" name="Add"
-            ng-click="controller.addItem()">
-      <i class="glyphicon glyphicon-plus"></i>
-    </button>
+    <div class="controls">
+      <button class="btn btn-default form-add" name="Add"
+              ng-click="controller.addItem()">
+        <i class="glyphicon glyphicon-plus"></i>
+      </button>
+    </div>
+  </div>
+
+  <div ng-repeat="item in value">
+    <button type="button" class="control-label close" name="Remove"
+            ng-click="controller.removeItem($index)">&times;</button>
+    <div class="controls">
+      <div class="form-group">
+        <grr-form-value value="item" metadata="field"></grr-form-value>
+      </div>
+    </div>
   </div>
 </div>
 
-<div ng-repeat="item in value">
-  <button type="button" class="control-label close" name="Remove"
-          ng-click="controller.removeItem($index)">&times;</button>
+<div ng-show="controller.hasCustomTemplate">
+  <div class="form-group">
+    <label class="control-label" title="{$ field.doc $}">
+      {$ field.friendly_name $}
+      <a ng-if="field.context_help_url"
+         ng-href="/help/{$ field.context_help_url $}" target="_blank">
+        <i class="glyphicon glyphicon-question-sign"></i>
+      </a>
+    </label>
+  </div>
+
   <div class="controls">
-    <div class="form-group">
-      <grr-form-value value="item" metadata="field"></grr-form-value>
+    <div class="form-group" name="custom-template">
+      <!-- custom template will be inserted here if it's available-->
     </div>
   </div>
 </div>

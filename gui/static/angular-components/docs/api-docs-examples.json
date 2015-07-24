@@ -94,38 +94,100 @@
     {
       "method": "GET",
       "response": {
-        "TestDrivers": {
-          "artifact": {
-            "conditions": [
-              "os_major_version >= 6"
-            ],
-            "dependencies": [],
-            "doc": "Extract the installed drivers on Windows via WMI.",
-            "labels": [
-              "Software"
-            ],
-            "name": "TestDrivers",
-            "provides": [],
-            "sources": [
-              {
-                "attributes": {
-                  "query": "SELECT * from Win32_SystemDriver"
-                },
-                "conditions": [],
-                "returned_types": [],
-                "type": "WMI"
-              }
-            ],
-            "supported_os": [
-              "Windows"
-            ],
-            "urls": [
-              "http://www.example.com"
-            ]
-          },
-          "custom": false,
-          "processors": []
-        }
+        "count": 1,
+        "items": [
+          {
+            "age": 0,
+            "type": "ArtifactDescriptor",
+            "value": {
+              "artifact": {
+                "age": 0,
+                "type": "Artifact",
+                "value": {
+                  "conditions": [
+                    {
+                      "age": 0,
+                      "type": "unicode",
+                      "value": "os_major_version >= 6"
+                    }
+                  ],
+                  "doc": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Extract the installed drivers on Windows via WMI."
+                  },
+                  "labels": [
+                    {
+                      "age": 0,
+                      "type": "unicode",
+                      "value": "Software"
+                    }
+                  ],
+                  "name": {
+                    "age": 0,
+                    "type": "ArtifactName",
+                    "value": "TestDrivers"
+                  },
+                  "provides": [],
+                  "sources": [
+                    {
+                      "age": 0,
+                      "type": "ArtifactSource",
+                      "value": {
+                        "attributes": {
+                          "age": 0,
+                          "type": "Dict",
+                          "value": {
+                            "query": {
+                              "age": 0,
+                              "type": "str",
+                              "value": "SELECT * from Win32_SystemDriver"
+                            }
+                          }
+                        },
+                        "conditions": [],
+                        "returned_types": [],
+                        "type": {
+                          "age": 0,
+                          "type": "EnumNamedValue",
+                          "value": "WMI"
+                        }
+                      }
+                    }
+                  ],
+                  "supported_os": [
+                    {
+                      "age": 0,
+                      "type": "unicode",
+                      "value": "Windows"
+                    }
+                  ],
+                  "urls": [
+                    {
+                      "age": 0,
+                      "type": "unicode",
+                      "value": "http://www.example.com"
+                    }
+                  ]
+                }
+              },
+              "artifact_source": {
+                "age": 0,
+                "type": "unicode",
+                "value": "{ \"conditions\": [ \"os_major_version >= 6\" ],\n  \"dependencies\": [],\n  \"doc\": \"Extract the installed drivers on Windows via WMI.\",\n  \"labels\": [ \"Software\" ],\n  \"name\": \"TestDrivers\",\n  \"provides\": [],\n  \"sources\": [\n    { \"attributes\": { \"query\": \"SELECT * from Win32_SystemDriver\"\n      },\n      \"conditions\": [],\n      \"returned_types\": [],\n      \"type\": \"WMI\"\n    }\n  ],\n  \"supported_os\": [ \"Windows\" ],\n  \"urls\": [ \"http://www.example.com\" ]\n}"
+              },
+              "dependencies": [],
+              "is_custom": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "path_dependencies": []
+            }
+          }
+        ],
+        "offset": 0,
+        "total_count": 1
       },
       "test_class": "ArtifactRendererRegressionTest",
       "url": "/api/artifacts"
@@ -587,55 +649,59 @@
             }
           },
           {
-            "args": {
-              "age": 0,
-              "type": "EmailOutputPluginArgs",
-              "value": {
-                "email_address": {
-                  "age": 0,
-                  "type": "DomainEmailAddress",
-                  "value": "test@localhost"
-                },
-                "emails_limit": {
-                  "age": 0,
-                  "type": "long",
-                  "value": 42
+            "age": 0,
+            "type": "DataObject",
+            "value": {
+              "args": {
+                "age": 0,
+                "type": "EmailOutputPluginArgs",
+                "value": {
+                  "email_address": {
+                    "age": 0,
+                    "type": "DomainEmailAddress",
+                    "value": "test@localhost"
+                  },
+                  "emails_limit": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 42
+                  }
                 }
-              }
-            },
-            "emails_sent": {
-              "age": 0,
-              "type": "long",
-              "value": 0
-            },
-            "output_base_urn": {
-              "age": 0,
-              "type": "NoneType",
-              "value": "None"
-            },
-            "source_urn": {
-              "age": 0,
-              "type": "RDFURN",
-              "value": "aff4:/C.1000000000000000/analysis/ListProcesses/test-42"
-            },
-            "token": {
-              "age": 0,
-              "type": "ACLToken",
-              "value": {
-                "expiry": {
-                  "age": 0,
-                  "type": "RDFDatetime",
-                  "value": 32427003069000000
-                },
-                "reason": {
-                  "age": 0,
-                  "type": "unicode",
-                  "value": "Running tests"
-                },
-                "username": {
-                  "age": 0,
-                  "type": "unicode",
-                  "value": "test"
+              },
+              "emails_sent": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "output_base_urn": {
+                "age": 0,
+                "type": "NoneType",
+                "value": "None"
+              },
+              "source_urn": {
+                "age": 0,
+                "type": "RDFURN",
+                "value": "aff4:/C.1000000000000000/analysis/ListProcesses/test-42"
+              },
+              "token": {
+                "age": 0,
+                "type": "ACLToken",
+                "value": {
+                  "expiry": {
+                    "age": 0,
+                    "type": "RDFDatetime",
+                    "value": 32427003069000000
+                  },
+                  "reason": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Running tests"
+                  },
+                  "username": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "test"
+                  }
                 }
               }
             }
@@ -1315,859 +1381,867 @@
             "value": "GenericHunt"
           },
           "aff4:flow_state": {
-            "args": {
-              "age": 0,
-              "type": "GenericHuntArgs",
-              "value": {
-                "flow_args": {
-                  "age": 0,
-                  "type": "GetFileArgs",
-                  "value": {
-                    "pathspec": {
-                      "age": 0,
-                      "type": "PathSpec",
-                      "value": {
-                        "path": {
-                          "age": 0,
-                          "type": "unicode",
-                          "value": "/tmp/evil.txt"
-                        },
-                        "pathtype": {
-                          "age": 0,
-                          "type": "EnumNamedValue",
-                          "value": "OS"
-                        }
-                      }
-                    }
-                  }
-                },
-                "flow_runner_args": {
-                  "age": 0,
-                  "type": "FlowRunnerArgs",
-                  "value": {
-                    "flow_name": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "GetFile"
-                    }
-                  }
-                }
-              }
-            },
-            "context": {
+            "age": 0,
+            "type": "DataObject",
+            "value": {
               "args": {
                 "age": 0,
-                "type": "HuntRunnerArgs",
+                "type": "GenericHuntArgs",
                 "value": {
-                  "client_rate": {
+                  "flow_args": {
                     "age": 0,
-                    "type": "float",
-                    "value": 0.0
-                  },
-                  "description": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "the hunt"
-                  },
-                  "hunt_name": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "GenericHunt"
-                  },
-                  "token": {
-                    "age": 0,
-                    "type": "ACLToken",
+                    "type": "GetFileArgs",
                     "value": {
-                      "reason": {
+                      "pathspec": {
+                        "age": 0,
+                        "type": "PathSpec",
+                        "value": {
+                          "path": {
+                            "age": 0,
+                            "type": "unicode",
+                            "value": "/tmp/evil.txt"
+                          },
+                          "pathtype": {
+                            "age": 0,
+                            "type": "EnumNamedValue",
+                            "value": "OS"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "flow_runner_args": {
+                    "age": 0,
+                    "type": "FlowRunnerArgs",
+                    "value": {
+                      "flow_name": {
                         "age": 0,
                         "type": "unicode",
-                        "value": "Running tests"
-                      },
-                      "username": {
-                        "age": 0,
-                        "type": "unicode",
-                        "value": "test"
+                        "value": "GetFile"
                       }
                     }
                   }
                 }
               },
-              "backtrace": {
+              "context": {
                 "age": 0,
-                "type": "NoneType",
-                "value": "None"
-              },
-              "client_resources": {
-                "age": 0,
-                "type": "ClientResources",
-                "value": {}
-              },
-              "create_time": {
-                "age": 0,
-                "type": "RDFDatetime",
-                "value": 42000000
-              },
-              "creator": {
-                "age": 0,
-                "type": "unicode",
-                "value": "test"
-              },
-              "current_state": {
-                "age": 0,
-                "type": "str",
-                "value": "Start"
-              },
-              "expires": {
-                "age": 0,
-                "type": "RDFDatetime",
-                "value": 42000000
-              },
-              "kill_timestamp": {
-                "age": 0,
-                "type": "NoneType",
-                "value": "None"
-              },
-              "network_bytes_sent": {
-                "age": 0,
-                "type": "long",
-                "value": 0
-              },
-              "next_client_due": {
-                "age": 0,
-                "type": "long",
-                "value": 0
-              },
-              "next_outbound_id": {
-                "age": 0,
-                "type": "long",
-                "value": 1
-              },
-              "next_processed_request": {
-                "age": 0,
-                "type": "long",
-                "value": 1
-              },
-              "next_states": [],
-              "output_plugins_base_urn": {
-                "age": 42,
-                "type": "RDFURN",
-                "value": "aff4:/hunts/H:123456/Results"
-              },
-              "outstanding_requests": {
-                "age": 0,
-                "type": "long",
-                "value": 0
-              },
-              "remaining_cpu_quota": {
-                "age": 0,
-                "type": "long",
-                "value": 0
-              },
-              "results_collection_urn": {
-                "age": 42,
-                "type": "RDFURN",
-                "value": "aff4:/hunts/H:123456/Results"
-              },
-              "results_metadata_urn": {
-                "age": 42,
-                "type": "RDFURN",
-                "value": "aff4:/hunts/H:123456/ResultsMetadata"
-              },
-              "session_id": {
-                "age": 42,
-                "type": "SessionID",
-                "value": "aff4:/hunts/H:123456"
-              },
-              "start_time": {
-                "age": 0,
-                "type": "RDFDatetime",
-                "value": 42000000
-              },
-              "state": {
-                "age": 0,
-                "type": "EnumNamedValue",
-                "value": "RUNNING"
-              },
-              "usage_stats": {
-                "age": 0,
-                "type": "ClientResourcesStats",
+                "type": "DataObject",
                 "value": {
-                  "network_bytes_sent_stats": {
+                  "args": {
                     "age": 0,
-                    "type": "RunningStats",
+                    "type": "HuntRunnerArgs",
                     "value": {
-                      "histogram": {
+                      "client_rate": {
                         "age": 0,
-                        "type": "StatsHistogram",
+                        "type": "float",
+                        "value": 0.0
+                      },
+                      "description": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "the hunt"
+                      },
+                      "hunt_name": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "GenericHunt"
+                      },
+                      "token": {
+                        "age": 0,
+                        "type": "ACLToken",
                         "value": {
-                          "bins": [
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 16.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 32.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 64.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 128.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 256.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 512.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 1024.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 2048.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 4096.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 8192.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 16384.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 32768.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 65536.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 131072.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 262144.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 524288.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 1048576.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 2097152.0
-                                }
-                              }
-                            }
-                          ]
+                          "reason": {
+                            "age": 0,
+                            "type": "unicode",
+                            "value": "Running tests"
+                          },
+                          "username": {
+                            "age": 0,
+                            "type": "unicode",
+                            "value": "test"
+                          }
                         }
                       }
                     }
                   },
-                  "system_cpu_stats": {
+                  "backtrace": {
                     "age": 0,
-                    "type": "RunningStats",
-                    "value": {
-                      "histogram": {
-                        "age": 0,
-                        "type": "StatsHistogram",
-                        "value": {
-                          "bins": [
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 0.10000000149011612
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 0.20000000298023224
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 0.30000001192092896
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 0.4000000059604645
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 0.5
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 0.75
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 1.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 1.5
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 2.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 2.5
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 3.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 4.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 5.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 6.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 7.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 8.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 9.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 10.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 15.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 20.0
-                                }
-                              }
-                            }
-                          ]
-                        }
-                      }
-                    }
+                    "type": "NoneType",
+                    "value": "None"
                   },
-                  "user_cpu_stats": {
+                  "client_resources": {
                     "age": 0,
-                    "type": "RunningStats",
+                    "type": "ClientResources",
+                    "value": {}
+                  },
+                  "create_time": {
+                    "age": 0,
+                    "type": "RDFDatetime",
+                    "value": 42000000
+                  },
+                  "creator": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "test"
+                  },
+                  "current_state": {
+                    "age": 0,
+                    "type": "str",
+                    "value": "Start"
+                  },
+                  "expires": {
+                    "age": 0,
+                    "type": "RDFDatetime",
+                    "value": 42000000
+                  },
+                  "kill_timestamp": {
+                    "age": 0,
+                    "type": "NoneType",
+                    "value": "None"
+                  },
+                  "network_bytes_sent": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 0
+                  },
+                  "next_client_due": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 0
+                  },
+                  "next_outbound_id": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 1
+                  },
+                  "next_processed_request": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 1
+                  },
+                  "next_states": [],
+                  "output_plugins_base_urn": {
+                    "age": 42,
+                    "type": "RDFURN",
+                    "value": "aff4:/hunts/H:123456/Results"
+                  },
+                  "outstanding_requests": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 0
+                  },
+                  "remaining_cpu_quota": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 0
+                  },
+                  "results_collection_urn": {
+                    "age": 42,
+                    "type": "RDFURN",
+                    "value": "aff4:/hunts/H:123456/Results"
+                  },
+                  "results_metadata_urn": {
+                    "age": 42,
+                    "type": "RDFURN",
+                    "value": "aff4:/hunts/H:123456/ResultsMetadata"
+                  },
+                  "session_id": {
+                    "age": 42,
+                    "type": "SessionID",
+                    "value": "aff4:/hunts/H:123456"
+                  },
+                  "start_time": {
+                    "age": 0,
+                    "type": "RDFDatetime",
+                    "value": 42000000
+                  },
+                  "state": {
+                    "age": 0,
+                    "type": "EnumNamedValue",
+                    "value": "RUNNING"
+                  },
+                  "usage_stats": {
+                    "age": 0,
+                    "type": "ClientResourcesStats",
                     "value": {
-                      "histogram": {
+                      "network_bytes_sent_stats": {
                         "age": 0,
-                        "type": "StatsHistogram",
+                        "type": "RunningStats",
                         "value": {
-                          "bins": [
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
+                          "histogram": {
+                            "age": 0,
+                            "type": "StatsHistogram",
+                            "value": {
+                              "bins": [
+                                {
                                   "age": 0,
-                                  "type": "float",
-                                  "value": 0.10000000149011612
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 16.0
+                                    }
+                                  }
+                                },
+                                {
                                   "age": 0,
-                                  "type": "float",
-                                  "value": 0.20000000298023224
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 32.0
+                                    }
+                                  }
+                                },
+                                {
                                   "age": 0,
-                                  "type": "float",
-                                  "value": 0.30000001192092896
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 64.0
+                                    }
+                                  }
+                                },
+                                {
                                   "age": 0,
-                                  "type": "float",
-                                  "value": 0.4000000059604645
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 128.0
+                                    }
+                                  }
+                                },
+                                {
                                   "age": 0,
-                                  "type": "float",
-                                  "value": 0.5
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 256.0
+                                    }
+                                  }
+                                },
+                                {
                                   "age": 0,
-                                  "type": "float",
-                                  "value": 0.75
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 512.0
+                                    }
+                                  }
+                                },
+                                {
                                   "age": 0,
-                                  "type": "float",
-                                  "value": 1.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 1024.0
+                                    }
+                                  }
+                                },
+                                {
                                   "age": 0,
-                                  "type": "float",
-                                  "value": 1.5
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 2048.0
+                                    }
+                                  }
+                                },
+                                {
                                   "age": 0,
-                                  "type": "float",
-                                  "value": 2.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 4096.0
+                                    }
+                                  }
+                                },
+                                {
                                   "age": 0,
-                                  "type": "float",
-                                  "value": 2.5
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 8192.0
+                                    }
+                                  }
+                                },
+                                {
                                   "age": 0,
-                                  "type": "float",
-                                  "value": 3.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 16384.0
+                                    }
+                                  }
+                                },
+                                {
                                   "age": 0,
-                                  "type": "float",
-                                  "value": 4.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 32768.0
+                                    }
+                                  }
+                                },
+                                {
                                   "age": 0,
-                                  "type": "float",
-                                  "value": 5.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 65536.0
+                                    }
+                                  }
+                                },
+                                {
                                   "age": 0,
-                                  "type": "float",
-                                  "value": 6.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 131072.0
+                                    }
+                                  }
+                                },
+                                {
                                   "age": 0,
-                                  "type": "float",
-                                  "value": 7.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 262144.0
+                                    }
+                                  }
+                                },
+                                {
                                   "age": 0,
-                                  "type": "float",
-                                  "value": 8.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 524288.0
+                                    }
+                                  }
+                                },
+                                {
                                   "age": 0,
-                                  "type": "float",
-                                  "value": 9.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 1048576.0
+                                    }
+                                  }
+                                },
+                                {
                                   "age": 0,
-                                  "type": "float",
-                                  "value": 10.0
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 2097152.0
+                                    }
+                                  }
                                 }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 15.0
-                                }
-                              }
-                            },
-                            {
-                              "age": 0,
-                              "type": "StatsHistogramBin",
-                              "value": {
-                                "range_max_value": {
-                                  "age": 0,
-                                  "type": "float",
-                                  "value": 20.0
-                                }
-                              }
+                              ]
                             }
-                          ]
+                          }
+                        }
+                      },
+                      "system_cpu_stats": {
+                        "age": 0,
+                        "type": "RunningStats",
+                        "value": {
+                          "histogram": {
+                            "age": 0,
+                            "type": "StatsHistogram",
+                            "value": {
+                              "bins": [
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 0.10000000149011612
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 0.20000000298023224
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 0.30000001192092896
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 0.4000000059604645
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 0.5
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 0.75
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 1.0
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 1.5
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 2.0
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 2.5
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 3.0
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 4.0
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 5.0
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 6.0
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 7.0
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 8.0
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 9.0
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 10.0
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 15.0
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 20.0
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      },
+                      "user_cpu_stats": {
+                        "age": 0,
+                        "type": "RunningStats",
+                        "value": {
+                          "histogram": {
+                            "age": 0,
+                            "type": "StatsHistogram",
+                            "value": {
+                              "bins": [
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 0.10000000149011612
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 0.20000000298023224
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 0.30000001192092896
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 0.4000000059604645
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 0.5
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 0.75
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 1.0
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 1.5
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 2.0
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 2.5
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 3.0
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 4.0
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 5.0
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 6.0
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 7.0
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 8.0
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 9.0
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 10.0
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 15.0
+                                    }
+                                  }
+                                },
+                                {
+                                  "age": 0,
+                                  "type": "StatsHistogramBin",
+                                  "value": {
+                                    "range_max_value": {
+                                      "age": 0,
+                                      "type": "float",
+                                      "value": 20.0
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
                         }
                       }
                     }
@@ -2993,223 +3067,231 @@
                 "value": "GenericHunt"
               },
               "aff4:flow_state": {
-                "args": {
-                  "age": 0,
-                  "type": "GenericHuntArgs",
-                  "value": {
-                    "flow_args": {
-                      "age": 0,
-                      "type": "GetFileArgs",
-                      "value": {
-                        "pathspec": {
-                          "age": 0,
-                          "type": "PathSpec",
-                          "value": {
-                            "path": {
-                              "age": 0,
-                              "type": "unicode",
-                              "value": "/tmp/evil.txt"
-                            },
-                            "pathtype": {
-                              "age": 0,
-                              "type": "EnumNamedValue",
-                              "value": "OS"
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "flow_runner_args": {
-                      "age": 0,
-                      "type": "FlowRunnerArgs",
-                      "value": {
-                        "flow_name": {
-                          "age": 0,
-                          "type": "unicode",
-                          "value": "GetFile"
-                        }
-                      }
-                    }
-                  }
-                },
-                "context": {
+                "age": 0,
+                "type": "DataObject",
+                "value": {
                   "args": {
                     "age": 0,
-                    "type": "HuntRunnerArgs",
+                    "type": "GenericHuntArgs",
                     "value": {
-                      "client_rate": {
+                      "flow_args": {
                         "age": 0,
-                        "type": "float",
-                        "value": 0.0
-                      },
-                      "description": {
-                        "age": 0,
-                        "type": "unicode",
-                        "value": "hunt_1"
-                      },
-                      "hunt_name": {
-                        "age": 0,
-                        "type": "unicode",
-                        "value": "GenericHunt"
-                      },
-                      "token": {
-                        "age": 0,
-                        "type": "ACLToken",
+                        "type": "GetFileArgs",
                         "value": {
-                          "reason": {
+                          "pathspec": {
+                            "age": 0,
+                            "type": "PathSpec",
+                            "value": {
+                              "path": {
+                                "age": 0,
+                                "type": "unicode",
+                                "value": "/tmp/evil.txt"
+                              },
+                              "pathtype": {
+                                "age": 0,
+                                "type": "EnumNamedValue",
+                                "value": "OS"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "flow_runner_args": {
+                        "age": 0,
+                        "type": "FlowRunnerArgs",
+                        "value": {
+                          "flow_name": {
                             "age": 0,
                             "type": "unicode",
-                            "value": "Running tests"
-                          },
-                          "username": {
-                            "age": 0,
-                            "type": "unicode",
-                            "value": "test"
+                            "value": "GetFile"
                           }
                         }
                       }
                     }
                   },
-                  "backtrace": {
+                  "context": {
                     "age": 0,
-                    "type": "NoneType",
-                    "value": "None"
-                  },
-                  "client_resources": {
-                    "age": 0,
-                    "type": "ClientResources",
-                    "value": {}
-                  },
-                  "create_time": {
-                    "age": 0,
-                    "type": "RDFDatetime",
-                    "value": 1000000000
-                  },
-                  "creator": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "test"
-                  },
-                  "current_state": {
-                    "age": 0,
-                    "type": "str",
-                    "value": "Start"
-                  },
-                  "expires": {
-                    "age": 0,
-                    "type": "RDFDatetime",
-                    "value": 1000000000
-                  },
-                  "kill_timestamp": {
-                    "age": 0,
-                    "type": "NoneType",
-                    "value": "None"
-                  },
-                  "network_bytes_sent": {
-                    "age": 0,
-                    "type": "long",
-                    "value": 0
-                  },
-                  "next_client_due": {
-                    "age": 0,
-                    "type": "long",
-                    "value": 0
-                  },
-                  "next_outbound_id": {
-                    "age": 0,
-                    "type": "long",
-                    "value": 1
-                  },
-                  "next_processed_request": {
-                    "age": 0,
-                    "type": "long",
-                    "value": 1
-                  },
-                  "next_states": "<lists are omitted>",
-                  "output_plugins_base_urn": {
-                    "age": 1000,
-                    "type": "RDFURN",
-                    "value": "aff4:/hunts/H:000001/Results"
-                  },
-                  "outstanding_requests": {
-                    "age": 0,
-                    "type": "long",
-                    "value": 0
-                  },
-                  "remaining_cpu_quota": {
-                    "age": 0,
-                    "type": "long",
-                    "value": 0
-                  },
-                  "results_collection_urn": {
-                    "age": 1000,
-                    "type": "RDFURN",
-                    "value": "aff4:/hunts/H:000001/Results"
-                  },
-                  "results_metadata_urn": {
-                    "age": 1000,
-                    "type": "RDFURN",
-                    "value": "aff4:/hunts/H:000001/ResultsMetadata"
-                  },
-                  "session_id": {
-                    "age": 1000,
-                    "type": "SessionID",
-                    "value": "aff4:/hunts/H:000001"
-                  },
-                  "start_time": {
-                    "age": 0,
-                    "type": "RDFDatetime",
-                    "value": 1000000000
-                  },
-                  "state": {
-                    "age": 0,
-                    "type": "EnumNamedValue",
-                    "value": "RUNNING"
-                  },
-                  "status": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "0 flows terminated."
-                  },
-                  "usage_stats": {
-                    "age": 0,
-                    "type": "ClientResourcesStats",
+                    "type": "DataObject",
                     "value": {
-                      "network_bytes_sent_stats": {
+                      "args": {
                         "age": 0,
-                        "type": "RunningStats",
+                        "type": "HuntRunnerArgs",
                         "value": {
-                          "histogram": {
+                          "client_rate": {
                             "age": 0,
-                            "type": "StatsHistogram",
+                            "type": "float",
+                            "value": 0.0
+                          },
+                          "description": {
+                            "age": 0,
+                            "type": "unicode",
+                            "value": "hunt_1"
+                          },
+                          "hunt_name": {
+                            "age": 0,
+                            "type": "unicode",
+                            "value": "GenericHunt"
+                          },
+                          "token": {
+                            "age": 0,
+                            "type": "ACLToken",
                             "value": {
-                              "bins": "<lists are omitted>"
+                              "reason": {
+                                "age": 0,
+                                "type": "unicode",
+                                "value": "Running tests"
+                              },
+                              "username": {
+                                "age": 0,
+                                "type": "unicode",
+                                "value": "test"
+                              }
                             }
                           }
                         }
                       },
-                      "system_cpu_stats": {
+                      "backtrace": {
                         "age": 0,
-                        "type": "RunningStats",
-                        "value": {
-                          "histogram": {
-                            "age": 0,
-                            "type": "StatsHistogram",
-                            "value": {
-                              "bins": "<lists are omitted>"
-                            }
-                          }
-                        }
+                        "type": "NoneType",
+                        "value": "None"
                       },
-                      "user_cpu_stats": {
+                      "client_resources": {
                         "age": 0,
-                        "type": "RunningStats",
+                        "type": "ClientResources",
+                        "value": {}
+                      },
+                      "create_time": {
+                        "age": 0,
+                        "type": "RDFDatetime",
+                        "value": 1000000000
+                      },
+                      "creator": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "test"
+                      },
+                      "current_state": {
+                        "age": 0,
+                        "type": "str",
+                        "value": "Start"
+                      },
+                      "expires": {
+                        "age": 0,
+                        "type": "RDFDatetime",
+                        "value": 1000000000
+                      },
+                      "kill_timestamp": {
+                        "age": 0,
+                        "type": "NoneType",
+                        "value": "None"
+                      },
+                      "network_bytes_sent": {
+                        "age": 0,
+                        "type": "long",
+                        "value": 0
+                      },
+                      "next_client_due": {
+                        "age": 0,
+                        "type": "long",
+                        "value": 0
+                      },
+                      "next_outbound_id": {
+                        "age": 0,
+                        "type": "long",
+                        "value": 1
+                      },
+                      "next_processed_request": {
+                        "age": 0,
+                        "type": "long",
+                        "value": 1
+                      },
+                      "next_states": "<lists are omitted>",
+                      "output_plugins_base_urn": {
+                        "age": 1000,
+                        "type": "RDFURN",
+                        "value": "aff4:/hunts/H:000001/Results"
+                      },
+                      "outstanding_requests": {
+                        "age": 0,
+                        "type": "long",
+                        "value": 0
+                      },
+                      "remaining_cpu_quota": {
+                        "age": 0,
+                        "type": "long",
+                        "value": 0
+                      },
+                      "results_collection_urn": {
+                        "age": 1000,
+                        "type": "RDFURN",
+                        "value": "aff4:/hunts/H:000001/Results"
+                      },
+                      "results_metadata_urn": {
+                        "age": 1000,
+                        "type": "RDFURN",
+                        "value": "aff4:/hunts/H:000001/ResultsMetadata"
+                      },
+                      "session_id": {
+                        "age": 1000,
+                        "type": "SessionID",
+                        "value": "aff4:/hunts/H:000001"
+                      },
+                      "start_time": {
+                        "age": 0,
+                        "type": "RDFDatetime",
+                        "value": 1000000000
+                      },
+                      "state": {
+                        "age": 0,
+                        "type": "EnumNamedValue",
+                        "value": "RUNNING"
+                      },
+                      "status": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "0 flows terminated."
+                      },
+                      "usage_stats": {
+                        "age": 0,
+                        "type": "ClientResourcesStats",
                         "value": {
-                          "histogram": {
+                          "network_bytes_sent_stats": {
                             "age": 0,
-                            "type": "StatsHistogram",
+                            "type": "RunningStats",
                             "value": {
-                              "bins": "<lists are omitted>"
+                              "histogram": {
+                                "age": 0,
+                                "type": "StatsHistogram",
+                                "value": {
+                                  "bins": "<lists are omitted>"
+                                }
+                              }
+                            }
+                          },
+                          "system_cpu_stats": {
+                            "age": 0,
+                            "type": "RunningStats",
+                            "value": {
+                              "histogram": {
+                                "age": 0,
+                                "type": "StatsHistogram",
+                                "value": {
+                                  "bins": "<lists are omitted>"
+                                }
+                              }
+                            }
+                          },
+                          "user_cpu_stats": {
+                            "age": 0,
+                            "type": "RunningStats",
+                            "value": {
+                              "histogram": {
+                                "age": 0,
+                                "type": "StatsHistogram",
+                                "value": {
+                                  "bins": "<lists are omitted>"
+                                }
+                              }
                             }
                           }
                         }
@@ -3283,218 +3365,226 @@
                 "value": "GenericHunt"
               },
               "aff4:flow_state": {
-                "args": {
-                  "age": 0,
-                  "type": "GenericHuntArgs",
-                  "value": {
-                    "flow_args": {
-                      "age": 0,
-                      "type": "GetFileArgs",
-                      "value": {
-                        "pathspec": {
-                          "age": 0,
-                          "type": "PathSpec",
-                          "value": {
-                            "path": {
-                              "age": 0,
-                              "type": "unicode",
-                              "value": "/tmp/evil.txt"
-                            },
-                            "pathtype": {
-                              "age": 0,
-                              "type": "EnumNamedValue",
-                              "value": "OS"
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "flow_runner_args": {
-                      "age": 0,
-                      "type": "FlowRunnerArgs",
-                      "value": {
-                        "flow_name": {
-                          "age": 0,
-                          "type": "unicode",
-                          "value": "GetFile"
-                        }
-                      }
-                    }
-                  }
-                },
-                "context": {
+                "age": 0,
+                "type": "DataObject",
+                "value": {
                   "args": {
                     "age": 0,
-                    "type": "HuntRunnerArgs",
+                    "type": "GenericHuntArgs",
                     "value": {
-                      "client_rate": {
+                      "flow_args": {
                         "age": 0,
-                        "type": "float",
-                        "value": 0.0
-                      },
-                      "description": {
-                        "age": 0,
-                        "type": "unicode",
-                        "value": "hunt_0"
-                      },
-                      "hunt_name": {
-                        "age": 0,
-                        "type": "unicode",
-                        "value": "GenericHunt"
-                      },
-                      "token": {
-                        "age": 0,
-                        "type": "ACLToken",
+                        "type": "GetFileArgs",
                         "value": {
-                          "reason": {
+                          "pathspec": {
+                            "age": 0,
+                            "type": "PathSpec",
+                            "value": {
+                              "path": {
+                                "age": 0,
+                                "type": "unicode",
+                                "value": "/tmp/evil.txt"
+                              },
+                              "pathtype": {
+                                "age": 0,
+                                "type": "EnumNamedValue",
+                                "value": "OS"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "flow_runner_args": {
+                        "age": 0,
+                        "type": "FlowRunnerArgs",
+                        "value": {
+                          "flow_name": {
                             "age": 0,
                             "type": "unicode",
-                            "value": "Running tests"
-                          },
-                          "username": {
-                            "age": 0,
-                            "type": "unicode",
-                            "value": "test"
+                            "value": "GetFile"
                           }
                         }
                       }
                     }
                   },
-                  "backtrace": {
+                  "context": {
                     "age": 0,
-                    "type": "NoneType",
-                    "value": "None"
-                  },
-                  "client_resources": {
-                    "age": 0,
-                    "type": "ClientResources",
-                    "value": {}
-                  },
-                  "create_time": {
-                    "age": 0,
-                    "type": "RDFDatetime",
-                    "value": 0
-                  },
-                  "creator": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "test"
-                  },
-                  "current_state": {
-                    "age": 0,
-                    "type": "str",
-                    "value": "Start"
-                  },
-                  "expires": {
-                    "age": 0,
-                    "type": "RDFDatetime",
-                    "value": 0
-                  },
-                  "kill_timestamp": {
-                    "age": 0,
-                    "type": "NoneType",
-                    "value": "None"
-                  },
-                  "network_bytes_sent": {
-                    "age": 0,
-                    "type": "long",
-                    "value": 0
-                  },
-                  "next_client_due": {
-                    "age": 0,
-                    "type": "long",
-                    "value": 0
-                  },
-                  "next_outbound_id": {
-                    "age": 0,
-                    "type": "long",
-                    "value": 1
-                  },
-                  "next_processed_request": {
-                    "age": 0,
-                    "type": "long",
-                    "value": 1
-                  },
-                  "next_states": "<lists are omitted>",
-                  "output_plugins_base_urn": {
-                    "age": 0,
-                    "type": "RDFURN",
-                    "value": "aff4:/hunts/H:000000/Results"
-                  },
-                  "outstanding_requests": {
-                    "age": 0,
-                    "type": "long",
-                    "value": 0
-                  },
-                  "remaining_cpu_quota": {
-                    "age": 0,
-                    "type": "long",
-                    "value": 0
-                  },
-                  "results_collection_urn": {
-                    "age": 0,
-                    "type": "RDFURN",
-                    "value": "aff4:/hunts/H:000000/Results"
-                  },
-                  "results_metadata_urn": {
-                    "age": 0,
-                    "type": "RDFURN",
-                    "value": "aff4:/hunts/H:000000/ResultsMetadata"
-                  },
-                  "session_id": {
-                    "age": 0,
-                    "type": "SessionID",
-                    "value": "aff4:/hunts/H:000000"
-                  },
-                  "start_time": {
-                    "age": 0,
-                    "type": "RDFDatetime",
-                    "value": 0
-                  },
-                  "state": {
-                    "age": 0,
-                    "type": "EnumNamedValue",
-                    "value": "RUNNING"
-                  },
-                  "usage_stats": {
-                    "age": 0,
-                    "type": "ClientResourcesStats",
+                    "type": "DataObject",
                     "value": {
-                      "network_bytes_sent_stats": {
+                      "args": {
                         "age": 0,
-                        "type": "RunningStats",
+                        "type": "HuntRunnerArgs",
                         "value": {
-                          "histogram": {
+                          "client_rate": {
                             "age": 0,
-                            "type": "StatsHistogram",
+                            "type": "float",
+                            "value": 0.0
+                          },
+                          "description": {
+                            "age": 0,
+                            "type": "unicode",
+                            "value": "hunt_0"
+                          },
+                          "hunt_name": {
+                            "age": 0,
+                            "type": "unicode",
+                            "value": "GenericHunt"
+                          },
+                          "token": {
+                            "age": 0,
+                            "type": "ACLToken",
                             "value": {
-                              "bins": "<lists are omitted>"
+                              "reason": {
+                                "age": 0,
+                                "type": "unicode",
+                                "value": "Running tests"
+                              },
+                              "username": {
+                                "age": 0,
+                                "type": "unicode",
+                                "value": "test"
+                              }
                             }
                           }
                         }
                       },
-                      "system_cpu_stats": {
+                      "backtrace": {
                         "age": 0,
-                        "type": "RunningStats",
-                        "value": {
-                          "histogram": {
-                            "age": 0,
-                            "type": "StatsHistogram",
-                            "value": {
-                              "bins": "<lists are omitted>"
-                            }
-                          }
-                        }
+                        "type": "NoneType",
+                        "value": "None"
                       },
-                      "user_cpu_stats": {
+                      "client_resources": {
                         "age": 0,
-                        "type": "RunningStats",
+                        "type": "ClientResources",
+                        "value": {}
+                      },
+                      "create_time": {
+                        "age": 0,
+                        "type": "RDFDatetime",
+                        "value": 0
+                      },
+                      "creator": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "test"
+                      },
+                      "current_state": {
+                        "age": 0,
+                        "type": "str",
+                        "value": "Start"
+                      },
+                      "expires": {
+                        "age": 0,
+                        "type": "RDFDatetime",
+                        "value": 0
+                      },
+                      "kill_timestamp": {
+                        "age": 0,
+                        "type": "NoneType",
+                        "value": "None"
+                      },
+                      "network_bytes_sent": {
+                        "age": 0,
+                        "type": "long",
+                        "value": 0
+                      },
+                      "next_client_due": {
+                        "age": 0,
+                        "type": "long",
+                        "value": 0
+                      },
+                      "next_outbound_id": {
+                        "age": 0,
+                        "type": "long",
+                        "value": 1
+                      },
+                      "next_processed_request": {
+                        "age": 0,
+                        "type": "long",
+                        "value": 1
+                      },
+                      "next_states": "<lists are omitted>",
+                      "output_plugins_base_urn": {
+                        "age": 0,
+                        "type": "RDFURN",
+                        "value": "aff4:/hunts/H:000000/Results"
+                      },
+                      "outstanding_requests": {
+                        "age": 0,
+                        "type": "long",
+                        "value": 0
+                      },
+                      "remaining_cpu_quota": {
+                        "age": 0,
+                        "type": "long",
+                        "value": 0
+                      },
+                      "results_collection_urn": {
+                        "age": 0,
+                        "type": "RDFURN",
+                        "value": "aff4:/hunts/H:000000/Results"
+                      },
+                      "results_metadata_urn": {
+                        "age": 0,
+                        "type": "RDFURN",
+                        "value": "aff4:/hunts/H:000000/ResultsMetadata"
+                      },
+                      "session_id": {
+                        "age": 0,
+                        "type": "SessionID",
+                        "value": "aff4:/hunts/H:000000"
+                      },
+                      "start_time": {
+                        "age": 0,
+                        "type": "RDFDatetime",
+                        "value": 0
+                      },
+                      "state": {
+                        "age": 0,
+                        "type": "EnumNamedValue",
+                        "value": "RUNNING"
+                      },
+                      "usage_stats": {
+                        "age": 0,
+                        "type": "ClientResourcesStats",
                         "value": {
-                          "histogram": {
+                          "network_bytes_sent_stats": {
                             "age": 0,
-                            "type": "StatsHistogram",
+                            "type": "RunningStats",
                             "value": {
-                              "bins": "<lists are omitted>"
+                              "histogram": {
+                                "age": 0,
+                                "type": "StatsHistogram",
+                                "value": {
+                                  "bins": "<lists are omitted>"
+                                }
+                              }
+                            }
+                          },
+                          "system_cpu_stats": {
+                            "age": 0,
+                            "type": "RunningStats",
+                            "value": {
+                              "histogram": {
+                                "age": 0,
+                                "type": "StatsHistogram",
+                                "value": {
+                                  "bins": "<lists are omitted>"
+                                }
+                              }
+                            }
+                          },
+                          "user_cpu_stats": {
+                            "age": 0,
+                            "type": "RunningStats",
+                            "value": {
+                              "histogram": {
+                                "age": 0,
+                                "type": "StatsHistogram",
+                                "value": {
+                                  "bins": "<lists are omitted>"
+                                }
+                              }
                             }
                           }
                         }
@@ -3580,223 +3670,231 @@
                 "value": "GenericHunt"
               },
               "aff4:flow_state": {
-                "args": {
-                  "age": 0,
-                  "type": "GenericHuntArgs",
-                  "value": {
-                    "flow_args": {
-                      "age": 0,
-                      "type": "GetFileArgs",
-                      "value": {
-                        "pathspec": {
-                          "age": 0,
-                          "type": "PathSpec",
-                          "value": {
-                            "path": {
-                              "age": 0,
-                              "type": "unicode",
-                              "value": "/tmp/evil.txt"
-                            },
-                            "pathtype": {
-                              "age": 0,
-                              "type": "EnumNamedValue",
-                              "value": "OS"
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "flow_runner_args": {
-                      "age": 0,
-                      "type": "FlowRunnerArgs",
-                      "value": {
-                        "flow_name": {
-                          "age": 0,
-                          "type": "unicode",
-                          "value": "GetFile"
-                        }
-                      }
-                    }
-                  }
-                },
-                "context": {
+                "age": 0,
+                "type": "DataObject",
+                "value": {
                   "args": {
                     "age": 0,
-                    "type": "HuntRunnerArgs",
+                    "type": "GenericHuntArgs",
                     "value": {
-                      "client_rate": {
+                      "flow_args": {
                         "age": 0,
-                        "type": "float",
-                        "value": 0.0
-                      },
-                      "description": {
-                        "age": 0,
-                        "type": "unicode",
-                        "value": "hunt_1"
-                      },
-                      "hunt_name": {
-                        "age": 0,
-                        "type": "unicode",
-                        "value": "GenericHunt"
-                      },
-                      "token": {
-                        "age": 0,
-                        "type": "ACLToken",
+                        "type": "GetFileArgs",
                         "value": {
-                          "reason": {
+                          "pathspec": {
+                            "age": 0,
+                            "type": "PathSpec",
+                            "value": {
+                              "path": {
+                                "age": 0,
+                                "type": "unicode",
+                                "value": "/tmp/evil.txt"
+                              },
+                              "pathtype": {
+                                "age": 0,
+                                "type": "EnumNamedValue",
+                                "value": "OS"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "flow_runner_args": {
+                        "age": 0,
+                        "type": "FlowRunnerArgs",
+                        "value": {
+                          "flow_name": {
                             "age": 0,
                             "type": "unicode",
-                            "value": "Running tests"
-                          },
-                          "username": {
-                            "age": 0,
-                            "type": "unicode",
-                            "value": "test"
+                            "value": "GetFile"
                           }
                         }
                       }
                     }
                   },
-                  "backtrace": {
+                  "context": {
                     "age": 0,
-                    "type": "NoneType",
-                    "value": "None"
-                  },
-                  "client_resources": {
-                    "age": 0,
-                    "type": "ClientResources",
-                    "value": {}
-                  },
-                  "create_time": {
-                    "age": 0,
-                    "type": "RDFDatetime",
-                    "value": 1000000000
-                  },
-                  "creator": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "test"
-                  },
-                  "current_state": {
-                    "age": 0,
-                    "type": "str",
-                    "value": "Start"
-                  },
-                  "expires": {
-                    "age": 0,
-                    "type": "RDFDatetime",
-                    "value": 1000000000
-                  },
-                  "kill_timestamp": {
-                    "age": 0,
-                    "type": "NoneType",
-                    "value": "None"
-                  },
-                  "network_bytes_sent": {
-                    "age": 0,
-                    "type": "long",
-                    "value": 0
-                  },
-                  "next_client_due": {
-                    "age": 0,
-                    "type": "long",
-                    "value": 0
-                  },
-                  "next_outbound_id": {
-                    "age": 0,
-                    "type": "long",
-                    "value": 1
-                  },
-                  "next_processed_request": {
-                    "age": 0,
-                    "type": "long",
-                    "value": 1
-                  },
-                  "next_states": "<lists are omitted>",
-                  "output_plugins_base_urn": {
-                    "age": 1000,
-                    "type": "RDFURN",
-                    "value": "aff4:/hunts/H:000001/Results"
-                  },
-                  "outstanding_requests": {
-                    "age": 0,
-                    "type": "long",
-                    "value": 0
-                  },
-                  "remaining_cpu_quota": {
-                    "age": 0,
-                    "type": "long",
-                    "value": 0
-                  },
-                  "results_collection_urn": {
-                    "age": 1000,
-                    "type": "RDFURN",
-                    "value": "aff4:/hunts/H:000001/Results"
-                  },
-                  "results_metadata_urn": {
-                    "age": 1000,
-                    "type": "RDFURN",
-                    "value": "aff4:/hunts/H:000001/ResultsMetadata"
-                  },
-                  "session_id": {
-                    "age": 1000,
-                    "type": "SessionID",
-                    "value": "aff4:/hunts/H:000001"
-                  },
-                  "start_time": {
-                    "age": 0,
-                    "type": "RDFDatetime",
-                    "value": 1000000000
-                  },
-                  "state": {
-                    "age": 0,
-                    "type": "EnumNamedValue",
-                    "value": "RUNNING"
-                  },
-                  "status": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "0 flows terminated."
-                  },
-                  "usage_stats": {
-                    "age": 0,
-                    "type": "ClientResourcesStats",
+                    "type": "DataObject",
                     "value": {
-                      "network_bytes_sent_stats": {
+                      "args": {
                         "age": 0,
-                        "type": "RunningStats",
+                        "type": "HuntRunnerArgs",
                         "value": {
-                          "histogram": {
+                          "client_rate": {
                             "age": 0,
-                            "type": "StatsHistogram",
+                            "type": "float",
+                            "value": 0.0
+                          },
+                          "description": {
+                            "age": 0,
+                            "type": "unicode",
+                            "value": "hunt_1"
+                          },
+                          "hunt_name": {
+                            "age": 0,
+                            "type": "unicode",
+                            "value": "GenericHunt"
+                          },
+                          "token": {
+                            "age": 0,
+                            "type": "ACLToken",
                             "value": {
-                              "bins": "<lists are omitted>"
+                              "reason": {
+                                "age": 0,
+                                "type": "unicode",
+                                "value": "Running tests"
+                              },
+                              "username": {
+                                "age": 0,
+                                "type": "unicode",
+                                "value": "test"
+                              }
                             }
                           }
                         }
                       },
-                      "system_cpu_stats": {
+                      "backtrace": {
                         "age": 0,
-                        "type": "RunningStats",
-                        "value": {
-                          "histogram": {
-                            "age": 0,
-                            "type": "StatsHistogram",
-                            "value": {
-                              "bins": "<lists are omitted>"
-                            }
-                          }
-                        }
+                        "type": "NoneType",
+                        "value": "None"
                       },
-                      "user_cpu_stats": {
+                      "client_resources": {
                         "age": 0,
-                        "type": "RunningStats",
+                        "type": "ClientResources",
+                        "value": {}
+                      },
+                      "create_time": {
+                        "age": 0,
+                        "type": "RDFDatetime",
+                        "value": 1000000000
+                      },
+                      "creator": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "test"
+                      },
+                      "current_state": {
+                        "age": 0,
+                        "type": "str",
+                        "value": "Start"
+                      },
+                      "expires": {
+                        "age": 0,
+                        "type": "RDFDatetime",
+                        "value": 1000000000
+                      },
+                      "kill_timestamp": {
+                        "age": 0,
+                        "type": "NoneType",
+                        "value": "None"
+                      },
+                      "network_bytes_sent": {
+                        "age": 0,
+                        "type": "long",
+                        "value": 0
+                      },
+                      "next_client_due": {
+                        "age": 0,
+                        "type": "long",
+                        "value": 0
+                      },
+                      "next_outbound_id": {
+                        "age": 0,
+                        "type": "long",
+                        "value": 1
+                      },
+                      "next_processed_request": {
+                        "age": 0,
+                        "type": "long",
+                        "value": 1
+                      },
+                      "next_states": "<lists are omitted>",
+                      "output_plugins_base_urn": {
+                        "age": 1000,
+                        "type": "RDFURN",
+                        "value": "aff4:/hunts/H:000001/Results"
+                      },
+                      "outstanding_requests": {
+                        "age": 0,
+                        "type": "long",
+                        "value": 0
+                      },
+                      "remaining_cpu_quota": {
+                        "age": 0,
+                        "type": "long",
+                        "value": 0
+                      },
+                      "results_collection_urn": {
+                        "age": 1000,
+                        "type": "RDFURN",
+                        "value": "aff4:/hunts/H:000001/Results"
+                      },
+                      "results_metadata_urn": {
+                        "age": 1000,
+                        "type": "RDFURN",
+                        "value": "aff4:/hunts/H:000001/ResultsMetadata"
+                      },
+                      "session_id": {
+                        "age": 1000,
+                        "type": "SessionID",
+                        "value": "aff4:/hunts/H:000001"
+                      },
+                      "start_time": {
+                        "age": 0,
+                        "type": "RDFDatetime",
+                        "value": 1000000000
+                      },
+                      "state": {
+                        "age": 0,
+                        "type": "EnumNamedValue",
+                        "value": "RUNNING"
+                      },
+                      "status": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "0 flows terminated."
+                      },
+                      "usage_stats": {
+                        "age": 0,
+                        "type": "ClientResourcesStats",
                         "value": {
-                          "histogram": {
+                          "network_bytes_sent_stats": {
                             "age": 0,
-                            "type": "StatsHistogram",
+                            "type": "RunningStats",
                             "value": {
-                              "bins": "<lists are omitted>"
+                              "histogram": {
+                                "age": 0,
+                                "type": "StatsHistogram",
+                                "value": {
+                                  "bins": "<lists are omitted>"
+                                }
+                              }
+                            }
+                          },
+                          "system_cpu_stats": {
+                            "age": 0,
+                            "type": "RunningStats",
+                            "value": {
+                              "histogram": {
+                                "age": 0,
+                                "type": "StatsHistogram",
+                                "value": {
+                                  "bins": "<lists are omitted>"
+                                }
+                              }
+                            }
+                          },
+                          "user_cpu_stats": {
+                            "age": 0,
+                            "type": "RunningStats",
+                            "value": {
+                              "histogram": {
+                                "age": 0,
+                                "type": "StatsHistogram",
+                                "value": {
+                                  "bins": "<lists are omitted>"
+                                }
+                              }
                             }
                           }
                         }
@@ -3857,7 +3955,7 @@
           }
         ],
         "offset": 0,
-        "total_count": 1
+        "total_count": 2
       },
       "test_class": "ApiHuntsListRendererRegressionTest",
       "url": "/api/hunts?count=1"
@@ -3882,218 +3980,226 @@
                 "value": "GenericHunt"
               },
               "aff4:flow_state": {
-                "args": {
-                  "age": 0,
-                  "type": "GenericHuntArgs",
-                  "value": {
-                    "flow_args": {
-                      "age": 0,
-                      "type": "GetFileArgs",
-                      "value": {
-                        "pathspec": {
-                          "age": 0,
-                          "type": "PathSpec",
-                          "value": {
-                            "path": {
-                              "age": 0,
-                              "type": "unicode",
-                              "value": "/tmp/evil.txt"
-                            },
-                            "pathtype": {
-                              "age": 0,
-                              "type": "EnumNamedValue",
-                              "value": "OS"
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "flow_runner_args": {
-                      "age": 0,
-                      "type": "FlowRunnerArgs",
-                      "value": {
-                        "flow_name": {
-                          "age": 0,
-                          "type": "unicode",
-                          "value": "GetFile"
-                        }
-                      }
-                    }
-                  }
-                },
-                "context": {
+                "age": 0,
+                "type": "DataObject",
+                "value": {
                   "args": {
                     "age": 0,
-                    "type": "HuntRunnerArgs",
+                    "type": "GenericHuntArgs",
                     "value": {
-                      "client_rate": {
+                      "flow_args": {
                         "age": 0,
-                        "type": "float",
-                        "value": 0.0
-                      },
-                      "description": {
-                        "age": 0,
-                        "type": "unicode",
-                        "value": "hunt_0"
-                      },
-                      "hunt_name": {
-                        "age": 0,
-                        "type": "unicode",
-                        "value": "GenericHunt"
-                      },
-                      "token": {
-                        "age": 0,
-                        "type": "ACLToken",
+                        "type": "GetFileArgs",
                         "value": {
-                          "reason": {
+                          "pathspec": {
+                            "age": 0,
+                            "type": "PathSpec",
+                            "value": {
+                              "path": {
+                                "age": 0,
+                                "type": "unicode",
+                                "value": "/tmp/evil.txt"
+                              },
+                              "pathtype": {
+                                "age": 0,
+                                "type": "EnumNamedValue",
+                                "value": "OS"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "flow_runner_args": {
+                        "age": 0,
+                        "type": "FlowRunnerArgs",
+                        "value": {
+                          "flow_name": {
                             "age": 0,
                             "type": "unicode",
-                            "value": "Running tests"
-                          },
-                          "username": {
-                            "age": 0,
-                            "type": "unicode",
-                            "value": "test"
+                            "value": "GetFile"
                           }
                         }
                       }
                     }
                   },
-                  "backtrace": {
+                  "context": {
                     "age": 0,
-                    "type": "NoneType",
-                    "value": "None"
-                  },
-                  "client_resources": {
-                    "age": 0,
-                    "type": "ClientResources",
-                    "value": {}
-                  },
-                  "create_time": {
-                    "age": 0,
-                    "type": "RDFDatetime",
-                    "value": 0
-                  },
-                  "creator": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "test"
-                  },
-                  "current_state": {
-                    "age": 0,
-                    "type": "str",
-                    "value": "Start"
-                  },
-                  "expires": {
-                    "age": 0,
-                    "type": "RDFDatetime",
-                    "value": 0
-                  },
-                  "kill_timestamp": {
-                    "age": 0,
-                    "type": "NoneType",
-                    "value": "None"
-                  },
-                  "network_bytes_sent": {
-                    "age": 0,
-                    "type": "long",
-                    "value": 0
-                  },
-                  "next_client_due": {
-                    "age": 0,
-                    "type": "long",
-                    "value": 0
-                  },
-                  "next_outbound_id": {
-                    "age": 0,
-                    "type": "long",
-                    "value": 1
-                  },
-                  "next_processed_request": {
-                    "age": 0,
-                    "type": "long",
-                    "value": 1
-                  },
-                  "next_states": "<lists are omitted>",
-                  "output_plugins_base_urn": {
-                    "age": 0,
-                    "type": "RDFURN",
-                    "value": "aff4:/hunts/H:000000/Results"
-                  },
-                  "outstanding_requests": {
-                    "age": 0,
-                    "type": "long",
-                    "value": 0
-                  },
-                  "remaining_cpu_quota": {
-                    "age": 0,
-                    "type": "long",
-                    "value": 0
-                  },
-                  "results_collection_urn": {
-                    "age": 0,
-                    "type": "RDFURN",
-                    "value": "aff4:/hunts/H:000000/Results"
-                  },
-                  "results_metadata_urn": {
-                    "age": 0,
-                    "type": "RDFURN",
-                    "value": "aff4:/hunts/H:000000/ResultsMetadata"
-                  },
-                  "session_id": {
-                    "age": 0,
-                    "type": "SessionID",
-                    "value": "aff4:/hunts/H:000000"
-                  },
-                  "start_time": {
-                    "age": 0,
-                    "type": "RDFDatetime",
-                    "value": 0
-                  },
-                  "state": {
-                    "age": 0,
-                    "type": "EnumNamedValue",
-                    "value": "RUNNING"
-                  },
-                  "usage_stats": {
-                    "age": 0,
-                    "type": "ClientResourcesStats",
+                    "type": "DataObject",
                     "value": {
-                      "network_bytes_sent_stats": {
+                      "args": {
                         "age": 0,
-                        "type": "RunningStats",
+                        "type": "HuntRunnerArgs",
                         "value": {
-                          "histogram": {
+                          "client_rate": {
                             "age": 0,
-                            "type": "StatsHistogram",
+                            "type": "float",
+                            "value": 0.0
+                          },
+                          "description": {
+                            "age": 0,
+                            "type": "unicode",
+                            "value": "hunt_0"
+                          },
+                          "hunt_name": {
+                            "age": 0,
+                            "type": "unicode",
+                            "value": "GenericHunt"
+                          },
+                          "token": {
+                            "age": 0,
+                            "type": "ACLToken",
                             "value": {
-                              "bins": "<lists are omitted>"
+                              "reason": {
+                                "age": 0,
+                                "type": "unicode",
+                                "value": "Running tests"
+                              },
+                              "username": {
+                                "age": 0,
+                                "type": "unicode",
+                                "value": "test"
+                              }
                             }
                           }
                         }
                       },
-                      "system_cpu_stats": {
+                      "backtrace": {
                         "age": 0,
-                        "type": "RunningStats",
-                        "value": {
-                          "histogram": {
-                            "age": 0,
-                            "type": "StatsHistogram",
-                            "value": {
-                              "bins": "<lists are omitted>"
-                            }
-                          }
-                        }
+                        "type": "NoneType",
+                        "value": "None"
                       },
-                      "user_cpu_stats": {
+                      "client_resources": {
                         "age": 0,
-                        "type": "RunningStats",
+                        "type": "ClientResources",
+                        "value": {}
+                      },
+                      "create_time": {
+                        "age": 0,
+                        "type": "RDFDatetime",
+                        "value": 0
+                      },
+                      "creator": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "test"
+                      },
+                      "current_state": {
+                        "age": 0,
+                        "type": "str",
+                        "value": "Start"
+                      },
+                      "expires": {
+                        "age": 0,
+                        "type": "RDFDatetime",
+                        "value": 0
+                      },
+                      "kill_timestamp": {
+                        "age": 0,
+                        "type": "NoneType",
+                        "value": "None"
+                      },
+                      "network_bytes_sent": {
+                        "age": 0,
+                        "type": "long",
+                        "value": 0
+                      },
+                      "next_client_due": {
+                        "age": 0,
+                        "type": "long",
+                        "value": 0
+                      },
+                      "next_outbound_id": {
+                        "age": 0,
+                        "type": "long",
+                        "value": 1
+                      },
+                      "next_processed_request": {
+                        "age": 0,
+                        "type": "long",
+                        "value": 1
+                      },
+                      "next_states": "<lists are omitted>",
+                      "output_plugins_base_urn": {
+                        "age": 0,
+                        "type": "RDFURN",
+                        "value": "aff4:/hunts/H:000000/Results"
+                      },
+                      "outstanding_requests": {
+                        "age": 0,
+                        "type": "long",
+                        "value": 0
+                      },
+                      "remaining_cpu_quota": {
+                        "age": 0,
+                        "type": "long",
+                        "value": 0
+                      },
+                      "results_collection_urn": {
+                        "age": 0,
+                        "type": "RDFURN",
+                        "value": "aff4:/hunts/H:000000/Results"
+                      },
+                      "results_metadata_urn": {
+                        "age": 0,
+                        "type": "RDFURN",
+                        "value": "aff4:/hunts/H:000000/ResultsMetadata"
+                      },
+                      "session_id": {
+                        "age": 0,
+                        "type": "SessionID",
+                        "value": "aff4:/hunts/H:000000"
+                      },
+                      "start_time": {
+                        "age": 0,
+                        "type": "RDFDatetime",
+                        "value": 0
+                      },
+                      "state": {
+                        "age": 0,
+                        "type": "EnumNamedValue",
+                        "value": "RUNNING"
+                      },
+                      "usage_stats": {
+                        "age": 0,
+                        "type": "ClientResourcesStats",
                         "value": {
-                          "histogram": {
+                          "network_bytes_sent_stats": {
                             "age": 0,
-                            "type": "StatsHistogram",
+                            "type": "RunningStats",
                             "value": {
-                              "bins": "<lists are omitted>"
+                              "histogram": {
+                                "age": 0,
+                                "type": "StatsHistogram",
+                                "value": {
+                                  "bins": "<lists are omitted>"
+                                }
+                              }
+                            }
+                          },
+                          "system_cpu_stats": {
+                            "age": 0,
+                            "type": "RunningStats",
+                            "value": {
+                              "histogram": {
+                                "age": 0,
+                                "type": "StatsHistogram",
+                                "value": {
+                                  "bins": "<lists are omitted>"
+                                }
+                              }
+                            }
+                          },
+                          "user_cpu_stats": {
+                            "age": 0,
+                            "type": "RunningStats",
+                            "value": {
+                              "histogram": {
+                                "age": 0,
+                                "type": "StatsHistogram",
+                                "value": {
+                                  "bins": "<lists are omitted>"
+                                }
+                              }
                             }
                           }
                         }
@@ -4154,7 +4260,7 @@
           }
         ],
         "offset": 1,
-        "total_count": 1
+        "total_count": 2
       },
       "test_class": "ApiHuntsListRendererRegressionTest",
       "url": "/api/hunts?offset=1&count=1"
@@ -4819,81 +4925,85 @@
     {
       "method": "GET",
       "response": {
-        "sample_counter": {
-          "age": 0,
-          "type": "MetricMetadata",
-          "value": {
-            "docstring": {
-              "age": 0,
-              "type": "unicode",
-              "value": "Sample counter metric."
-            },
-            "metric_type": {
-              "age": 0,
-              "type": "EnumNamedValue",
-              "value": "COUNTER"
-            },
-            "value_type": {
-              "age": 0,
-              "type": "EnumNamedValue",
-              "value": "INT"
-            },
-            "varname": {
-              "age": 0,
-              "type": "unicode",
-              "value": "sample_counter"
+        "age": 0,
+        "type": "dict",
+        "value": {
+          "sample_counter": {
+            "age": 0,
+            "type": "MetricMetadata",
+            "value": {
+              "docstring": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Sample counter metric."
+              },
+              "metric_type": {
+                "age": 0,
+                "type": "EnumNamedValue",
+                "value": "COUNTER"
+              },
+              "value_type": {
+                "age": 0,
+                "type": "EnumNamedValue",
+                "value": "INT"
+              },
+              "varname": {
+                "age": 0,
+                "type": "unicode",
+                "value": "sample_counter"
+              }
             }
-          }
-        },
-        "sample_event": {
-          "age": 0,
-          "type": "MetricMetadata",
-          "value": {
-            "docstring": {
-              "age": 0,
-              "type": "unicode",
-              "value": "Sample event metric."
-            },
-            "metric_type": {
-              "age": 0,
-              "type": "EnumNamedValue",
-              "value": "EVENT"
-            },
-            "value_type": {
-              "age": 0,
-              "type": "EnumNamedValue",
-              "value": "DISTRIBUTION"
-            },
-            "varname": {
-              "age": 0,
-              "type": "unicode",
-              "value": "sample_event"
+          },
+          "sample_event": {
+            "age": 0,
+            "type": "MetricMetadata",
+            "value": {
+              "docstring": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Sample event metric."
+              },
+              "metric_type": {
+                "age": 0,
+                "type": "EnumNamedValue",
+                "value": "EVENT"
+              },
+              "value_type": {
+                "age": 0,
+                "type": "EnumNamedValue",
+                "value": "DISTRIBUTION"
+              },
+              "varname": {
+                "age": 0,
+                "type": "unicode",
+                "value": "sample_event"
+              }
             }
-          }
-        },
-        "sample_gauge_value": {
-          "age": 0,
-          "type": "MetricMetadata",
-          "value": {
-            "docstring": {
-              "age": 0,
-              "type": "unicode",
-              "value": "Sample gauge metric."
-            },
-            "metric_type": {
-              "age": 0,
-              "type": "EnumNamedValue",
-              "value": "GAUGE"
-            },
-            "value_type": {
-              "age": 0,
-              "type": "EnumNamedValue",
-              "value": "STR"
-            },
-            "varname": {
-              "age": 0,
-              "type": "unicode",
-              "value": "sample_gauge_value"
+          },
+          "sample_gauge_value": {
+            "age": 0,
+            "type": "MetricMetadata",
+            "value": {
+              "docstring": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Sample gauge metric."
+              },
+              "metric_type": {
+                "age": 0,
+                "type": "EnumNamedValue",
+                "value": "GAUGE"
+              },
+              "value_type": {
+                "age": 0,
+                "type": "EnumNamedValue",
+                "value": "STR"
+              },
+              "varname": {
+                "age": 0,
+                "type": "unicode",
+                "value": "sample_gauge_value"
+              }
             }
           }
         }

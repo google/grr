@@ -206,8 +206,15 @@ def RenderHttpResponse(request):
         if type_info.name in route_args:
           args.Set(type_info.name, route_args[type_info.name])
 
-      payload = json.loads(request.body)
-      args.FromDict(payload)
+      if request.META["CONTENT_TYPE"].startswith("multipart/form-data;"):
+        payload = json.loads(request.POST["_params_"])
+        args.FromDict(payload)
+
+        for name, fd in request.FILES.items():
+          args.Set(name, fd.read())
+      else:
+        payload = json.loads(request.body)
+        args.FromDict(payload)
     except Exception as e:  # pylint: disable=broad-except
       logging.exception(
           "Error while parsing POST request %s (%s): %s",
@@ -259,7 +266,11 @@ class HttpApiInitHook(registry.InitHook):
                              api_plugins.aff4.ApiAff4IndexRenderer)
 
     RegisterHttpRouteHandler("GET", "/api/artifacts",
-                             api_plugins.artifact.ApiArtifactRenderer)
+                             api_plugins.artifact.ApiArtifactsRenderer)
+    RegisterHttpRouteHandler("POST", "/api/artifacts/upload",
+                             api_plugins.artifact.ApiArtifactsUploadRenderer)
+    RegisterHttpRouteHandler("POST", "/api/artifacts/delete",
+                             api_plugins.artifact.ApiArtifactsDeleteRenderer)
 
     RegisterHttpRouteHandler("GET", "/api/clients",
                              api_plugins.client.ApiClientSearchRenderer)

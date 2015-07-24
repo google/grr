@@ -559,6 +559,10 @@ class FullAccessControlManager(BasicAccessControlManager):
     h.Allow("aff4:/artifact_store")
     h.Allow("aff4:/artifact_store/*")
 
+    # Namespace for audit data. Required to display usage statistics.
+    h.Allow("aff4:/audit/logs")
+    h.Allow("aff4:/audit/logs/*")
+
     return h
 
   def CheckACL(self, token, target):

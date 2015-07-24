@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 """Registry for parsers and abstract classes for basic parser functionality."""
 
-from grr.lib import artifact_registry
-from grr.lib import rdfvalue
 from grr.lib import registry
 # For CronTabFile, an artifact output type. pylint: disable=unused-import
 from grr.lib.rdfvalues import cronjobs as _
@@ -62,25 +60,11 @@ class Parser(object):
     else:
       return ""
 
+  # Additional validation code can be put in this function. This will only be
+  # run in tests.
   @classmethod
   def Validate(cls):
-    """Validate a parser is well defined."""
-    for artifact_to_parse in cls.supported_artifacts:
-      if artifact_to_parse not in artifact_registry.ArtifactRegistry.artifacts:
-        raise ParserDefinitionError("Artifact parser %s has an invalid artifact"
-                                    " %s. Artifact is undefined" %
-                                    (cls.__name__, artifact_to_parse))
-
-    for out_type in cls.output_types:
-      if out_type not in rdfvalue.RDFValue.classes:
-        raise ParserDefinitionError("Artifact parser %s has an invalid output "
-                                    "type %s." % (cls.__name__, out_type))
-
-    if cls.process_together:
-      if not hasattr(cls, "ParseMultiple"):
-        raise ParserDefinitionError("Parser %s has set process_together, but "
-                                    "has not defined a ParseMultiple method." %
-                                    cls.__name__)
+    pass
 
 
 class CommandParser(Parser):

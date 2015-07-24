@@ -1,6 +1,7 @@
 #!/bin/bash
 #
-# Script to install GRR from scratch on an Ubuntu 12.04, 12.10 or 13.04 system.
+# Script to install GRR from scratch on an Ubuntu system. Tested on trusty
+# (14.04)
 #
 # By default this will install into /usr and set the config in
 # /etc/grr/
@@ -118,10 +119,10 @@ function run_cmd_confirm()
   fi
 };
 
-header "Increase our filehandle limit (for SQLite datastore)."
-run_cmd_confirm echo "fs.file-max = 1048576" >> /etc/sysctl.conf
-run_cmd_confirm sysctl -p
-echo "Filehandle limit now: $(cat /proc/sys/fs/file-max)"
+header "Adding launchpad.net/~gift PPA for m2crypto pytsk dependencies."
+run_cmd_confirm apt-get install -y software-properties-common
+run_cmd_confirm add-apt-repository ppa:gift/dev -y
+run_cmd_confirm apt-get update -q
 
 header "Updating APT and Installing dependencies"
 run_cmd_confirm apt-get --yes update;
@@ -129,38 +130,33 @@ if $UPGRADE; then
   run_cmd_confirm apt-get --yes upgrade;
 fi
 
-header "Adding launchpad.net/~gift PPA for m2crypto pytsk dependencies."
-run_cmd_confirm apt-get install -y software-properties-common
-run_cmd_confirm add-apt-repository ppa:gift/dev -y
-run_cmd_confirm apt-get update -q
-
 header "Installing dependencies."
-run_cmd_confirm apt-get --force-yes --yes install \
+# Installing pkg-config is a workaround for this matplotlib problem:
+# https://github.com/matplotlib/matplotlib/issues/3029/
+sudo apt-get install -y \
   apache2-utils \
   build-essential \
   debhelper \
   dpkg-dev \
+  git-core \
   ipython \
+  libdistorm64-dev \
+  libdistorm64-1 \
+  libfreetype6-dev \
+  libpng-dev \
   libprotobuf-dev \
   ncurses-dev \
+  pkg-config \
   prelink \
   protobuf-compiler \
-  python-dateutil \
-  python-ipaddr \
   python-m2crypto \
-  python-matplotlib \
-  python-mock \
-  python-mox \
-  python-pandas \
-  python-pip \
   python-protobuf \
   python-setuptools \
   python-support \
   pytsk3 \
-  python-yaml \
-  python-werkzeug \
   rpm \
   sleuthkit \
+  swig \
   wget \
   zip
 
@@ -169,41 +165,21 @@ run_cmd_confirm apt-get --force-yes --yes install \
 apt-get --force-yes --yes install python-dev 2>/dev/null
 apt-get --force-yes --yes install libpython-dev 2>/dev/null
 
+run_cmd_confirm wget --quiet https://bootstrap.pypa.io/get-pip.py
+run_cmd_confirm python get-pip.py
 run_cmd_confirm pip install pip --upgrade
 
-header "Installing Rekall"
-INSTALL_REKALL=0
-if [ ${ALL_YES} = 0 ]; then
-  echo ""
-  read -p "Run pip install rekall --upgrade [Y/n/a]? " REPLY
-  case $REPLY in
-    y|Y|'') INSTALL_REKALL=1;;
-    a|A) echo "Answering yes from now on"; ALL_YES=1; INSTALL_REKALL=1;;
-  esac
-else
-  INSTALL_REKALL=1
+header "Installing python dependencies"
+run_cmd_confirm wget --quiet https://raw.githubusercontent.com/google/grr/93cd1fd0cd1ca05e526af86ef33a996216273c8e/requirements.txt
+run_cmd_confirm pip install -r requirements.txt
+
+# Set filehandle max to a high value if it isn't already set.
+if ! grep -Fq "fs.file-max" /etc/sysctl.conf; then
+  header "Increase our filehandle limit (for SQLite datastore)."
+  echo "fs.file-max = 1048576" >> /etc/sysctl.conf
+  sysctl -p
 fi
-
-if [ ${INSTALL_REKALL} = 1 ]; then
-  pip install rekall --upgrade
-  RETVAL=$?
-  if [ $RETVAL -ne 0 ]; then
-    exit_fail pip install rekall --upgrade;
-  fi
-fi
-
-header "Installing psutil via pip"
-run_cmd_confirm apt-get --yes remove python-psutil;
-run_cmd_confirm pip install psutil --upgrade
-
-header "Installing Selenium test framework for Tests"
-run_cmd_confirm easy_install selenium
-
-header "Installing correct Django version."
-# We support everything from 1.4 to 1.6, 12.04 ships with 1.3. This is only
-# necessary for server 0.3.0-2, remove the requirement for 1.6 once we upgrade.
-run_cmd_confirm apt-get --yes remove python-django
-run_cmd_confirm pip install django==1.6
+echo "Filehandle limit now: $(cat /proc/sys/fs/file-max)"
 
 if [ $BUILD_DEPS_ONLY = 1 ]; then
   echo "#######################################"
@@ -225,27 +201,10 @@ header "Initialize the configuration, building clients and setting options."
 run_cmd_confirm grr_config_updater initialize
 
 header "Enable grr services to start automatically on boot"
-
-for SERVER in grr-http-server grr-worker grr-ui
-do
-  SERVER_DEFAULT=/etc/default/${SERVER}
-  # The package has START=no to enable users installing distributed components
-  # to selectively enable what they want on each machine. Here we want them all
-  # running.
-  run_cmd_confirm sed -i 's/START=\"no\"/START=\"yes\"/' ${SERVER_DEFAULT};
-
-  header "Starting ${SERVER}"
-
-  initctl status ${SERVER} | grep "running"
-  IS_RUNNING=$?
-  if [ $IS_RUNNING = 0 ]; then
-    run_cmd_confirm service ${SERVER} stop
-  fi
-  run_cmd_confirm service ${SERVER} start
-done
+run_cmd_confirm . /usr/share/grr/scripts/shell_helpers.sh
+run_cmd_confirm enable_services grr-http-server
+run_cmd_confirm enable_services grr-ui
+run_cmd_confirm enable_services grr-worker
 
 HOSTNAME=`hostname`
-echo "############################################################################################"
-echo "Install complete. Congratulations. Point your browser at http://${HOSTNAME}:8000"
-echo "############################################################################################"
-echo ""
+header "Install complete. Congratulations. Point your browser at http://${HOSTNAME}:8000"

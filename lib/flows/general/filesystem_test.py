@@ -135,8 +135,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     # We should find some files.
     self.assertEqual(sorted(children),
                      sorted(["syslog", "syslog_compress.gz",
-                             "syslog_false.gz", "test_artifacts.json",
-                             "test_artifact.json", "test_img.dd", "test.plist",
+                             "syslog_false.gz", "test_img.dd", "test.plist",
                              "tests", "tests_long", "wtmp"]))
 
   def _MockSendReply(self, reply=None):

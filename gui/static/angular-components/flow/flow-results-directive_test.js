@@ -10,17 +10,9 @@ describe('flow results directive', function() {
   beforeEach(module(grrUi.flow.module.name));
   beforeEach(module(grrUi.tests.module.name));
 
-  beforeEach(function() {
-    // Mock out grrResultsCollection directive, as all rendering is going
-    // to be delegated to it.
-    grrUi.flow.module.directive('grrResultsCollection',
-                                function() {
-                                  return {
-                                    priority: 100000,
-                                    terminal: true
-                                  };
-                                });
-  });
+  // Stub out grrResultsCollection directive, as all rendering is going
+  // to be delegated to it.
+  grrUi.tests.stubDirective('grrResultsCollection');
 
   beforeEach(inject(function($injector) {
     $compile = $injector.get('$compile');

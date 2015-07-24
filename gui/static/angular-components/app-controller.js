@@ -2,6 +2,7 @@
 
 goog.provide('grrUi.appController.module');
 
+goog.require('grrUi.artifact.module');
 goog.require('grrUi.client.module');
 goog.require('grrUi.config.module');
 goog.require('grrUi.core.module');
@@ -19,7 +20,8 @@ goog.require('grrUi.user.module');
  * Main GRR UI application module.
  */
 grrUi.appController.module = angular.module('grrUi.appController',
-                                            [grrUi.client.module.name,
+                                            [grrUi.artifact.module.name,
+                                             grrUi.client.module.name,
                                              grrUi.config.module.name,
                                              grrUi.core.module.name,
                                              grrUi.docs.module.name,

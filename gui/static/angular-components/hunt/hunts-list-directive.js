@@ -55,7 +55,7 @@ grrUi.hunt.huntsListDirective.HuntsListController = function($scope, $modal) {
 
   /**
    * This variable is bound to grr-infinite-table's trigger-update attribute
-   * and therefore is set but that directive to a function that triggers
+   * and therefore is set by that directive to a function that triggers
    * table update.
    * @export {function()}
    */
@@ -223,8 +223,8 @@ HuntsListController.prototype.deleteHunt = function() {
 HuntsListController.prototype.transformItems = function(items) {
   angular.forEach(items, function(item) {
     item.shortUrn = item.urn.replace(/^aff4:\//, '');
-    item.isRobot = (item.attributes['aff4:flow_state'].
-        context.creator.value == 'GRRWorker');
+    item.isRobot = item.attributes['aff4:flow_state'][
+      'value']['context']['value']['creator']['value'] == 'GRRWorker';
 
     this.huntsByUrn[item.urn] = item;
   }.bind(this));

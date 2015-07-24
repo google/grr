@@ -43,10 +43,15 @@ TEST(EnumerateInterfacesTest, ProcessIfaddrList) {
   eth0_ip6_addr.sin6_family = AF_INET6;
   std::memcpy(&eth0_ip6_addr.sin6_addr.s6_addr, kIp6Addr, 16);
 
+  struct ifaddrs eth0_null = {};
+  eth0_null.ifa_name = kEth0;
+  eth0_null.ifa_addr = nullptr;
+  eth0_null.ifa_next = &eth0_ip;
+
   struct ifaddrs eth0_ip6 = {};
   eth0_ip6.ifa_name = kEth0;
   eth0_ip6.ifa_addr = reinterpret_cast<struct sockaddr*>(&eth0_ip6_addr);
-  eth0_ip6.ifa_next = &eth0_ip;
+  eth0_ip6.ifa_next = &eth0_null;
 
   EnumerateInterfaces action;
   auto result = action.ProcessIfaddrList(&eth0_ip6);

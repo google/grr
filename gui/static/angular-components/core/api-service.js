@@ -127,10 +127,13 @@ ApiService.prototype.stripTypeInfo = function(richlyTypedValue) {
  *      server. Values edited by semantic forms will have rich type information
  *      in them, while server will be expecting stripped down version of the
  *      same data. See stripTypeInfo() documentation for an example.
+ * @param {Object<string, File>=} opt_files Dictionary with files to be uploaded
+ *      to the server.
  *
  * @return {!angular.$q.Promise} Promise that resolves to the server response.
  */
-ApiService.prototype.post = function(apiPath, opt_params, opt_stripTypeInfo) {
+ApiService.prototype.post = function(apiPath, opt_params, opt_stripTypeInfo,
+                                     opt_files) {
   opt_params = opt_params || {};
 
   if (opt_stripTypeInfo) {
@@ -142,22 +145,49 @@ ApiService.prototype.post = function(apiPath, opt_params, opt_stripTypeInfo) {
   angular.element('#ajax_spinner').html(
       '<img src="/static/images/ajax-loader.gif">');
 
-  var request = {
-    method: 'POST',
-    url: '/api/' + apiPath.replace(/^\//, ''),
-    data: opt_params
-  };
-  if (grr.state.reason) {
-    request.headers = {
-      'grr-reason': grr.state.reason
+  if (angular.equals(opt_files || {}, {})) {
+    var request = {
+      method: 'POST',
+      url: '/api/' + apiPath.replace(/^\//, ''),
+      data: opt_params
     };
-  }
+    if (grr.state.reason) {
+      request.headers = {
+        'grr-reason': grr.state.reason
+      };
+    }
 
-  var promise = /** @type {function(Object)} */ (this.http_)(request);
-  return promise.then(function(response) {
-    angular.element('#ajax_spinner').html('');
-    return response;
-  });
+    var promise = /** @type {function(Object)} */ (this.http_)(request);
+    return promise.then(function(response) {
+      angular.element('#ajax_spinner').html('');
+      return response;
+    });
+  } else {
+    var fd = new FormData();
+    angular.forEach(/** @type {Object} */(opt_files), function(value, key) {
+      fd.append(key, value);
+    }.bind(this));
+    fd.append('_params_', angular.toJson(opt_params || {}));
+
+    var request = {
+      method: 'POST',
+      url: '/api/' + apiPath.replace(/^\//, ''),
+      data: fd,
+      transformRequest: angular.identity,
+      headers: {
+        'Content-Type': undefined
+      }
+    };
+    if (grr.state.reason) {
+      request.headers['grr-reason'] = grr.state.reason;
+    }
+
+    var promise = /** @type {function(Object)} */ (this.http_)(request);
+    return promise.then(function(response) {
+      angular.element('#ajax_spinner').html('');
+      return response;
+    });
+  }
 };
 
 

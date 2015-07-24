@@ -5,7 +5,7 @@ import re
 
 import logging
 
-from grr.lib import artifact_lib
+from grr.lib import artifact_utils
 from grr.lib import parsers
 from grr.lib import rdfvalue
 from grr.lib import type_info
@@ -48,8 +48,8 @@ class WinEnvironmentParser(parsers.RegistryValueParser):
     value = stat.registry_data.GetValue()
     if not value:
       raise parsers.ParseError("Invalid value for key %s" % stat.pathspec.path)
-    value = artifact_lib.ExpandWindowsEnvironmentVariables(value,
-                                                           knowledge_base)
+    value = artifact_utils.ExpandWindowsEnvironmentVariables(value,
+                                                             knowledge_base)
     if value:
       yield rdfvalue.RDFString(value)
 
@@ -124,7 +124,7 @@ class AllUsersProfileEnvironmentVariable(parsers.RegistryParser):
         all_users = value
 
     all_users_dir = r"%s\%s" % (prof_directory, all_users)
-    all_users_dir = artifact_lib.ExpandWindowsEnvironmentVariables(
+    all_users_dir = artifact_utils.ExpandWindowsEnvironmentVariables(
         all_users_dir, knowledge_base)
     yield rdfvalue.RDFString(all_users_dir)
 
@@ -221,9 +221,9 @@ class WinUserSpecialDirs(parsers.RegistryParser):
             reg_key = stat.pathspec.Basename()
             kb_attr = map_dict.get(reg_key)
             if kb_attr:
-              value = artifact_lib.ExpandWindowsEnvironmentVariables(
+              value = artifact_utils.ExpandWindowsEnvironmentVariables(
                   stat.registry_data.GetValue(), knowledge_base)
-              value = artifact_lib.ExpandWindowsUserEnvironmentVariables(
+              value = artifact_utils.ExpandWindowsUserEnvironmentVariables(
                   value, knowledge_base, sid=sid_str)
               user_dict[sid_str].Set(kb_attr, value)
 

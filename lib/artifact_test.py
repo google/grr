@@ -12,7 +12,7 @@ import time
 
 # pylint: disable=unused-import,g-bad-import-order
 # Pull in some extra artifacts used for testing.
-from grr.lib import artifact_lib_test
+from grr.lib import artifact_utils_test
 # pylint: enable=unused-import,g-bad-import-order
 
 from grr.client import client_utils_linux
@@ -22,8 +22,8 @@ from grr.client.client_actions import standard
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import artifact
-from grr.lib import artifact_lib
 from grr.lib import artifact_registry
+from grr.lib import artifact_utils
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import flow
@@ -134,9 +134,10 @@ class ArtifactBaseTest(test_lib.GRRBaseTest):
 
   @classmethod
   def LoadTestArtifacts(cls):
+    artifact_registry.REGISTRY.ClearSources()
     test_artifacts_file = os.path.join(
-        config_lib.CONFIG["Test.data_dir"], "test_artifacts.json")
-    artifact_lib.LoadArtifactsFromFiles([test_artifacts_file])
+        config_lib.CONFIG["Test.data_dir"], "artifacts", "test_artifacts.json")
+    artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
 
 
 class ArtifactTest(ArtifactBaseTest):
@@ -147,6 +148,13 @@ class ArtifactTest(ArtifactBaseTest):
     self.client_id = self.SetupClients(1)[0]
 
     self.client_id = self.SetupClients(1)[0]
+
+  @classmethod
+  def LoadTestArtifacts(cls):
+    # The tests in this class use more than just the test artifacts so we have
+    # to override LoadTestArtifacts to include the standard artifacts as well.
+    artifact_registry.REGISTRY.AddFileSource(os.path.join(
+        config_lib.CONFIG["Test.data_dir"], "artifacts", "test_artifacts.json"))
 
   class MockClient(action_mocks.MemoryClientMock):
 
@@ -243,11 +251,29 @@ class GRRArtifactTest(ArtifactTest):
             "Bad RDFMapping, bad attribute %s for %s" %
             (aff4_attribute, rdf_name))
 
-  def testUploadArtifactYamlFile(self):
+  def testUploadArtifactYamlFileAndDumpToYaml(self):
+    artifact_registry.REGISTRY.ClearRegistry()
+    artifact_registry.REGISTRY.ClearSources()
+    artifact_registry.REGISTRY._CheckDirty()
+
     test_artifacts_file = os.path.join(
-        config_lib.CONFIG["Test.data_dir"], "test_artifacts.json")
+        config_lib.CONFIG["Test.data_dir"], "artifacts", "test_artifacts.json")
     filecontent = open(test_artifacts_file).read()
     artifact.UploadArtifactYamlFile(filecontent, token=self.token)
+    loaded_artifacts = artifact_registry.REGISTRY.GetArtifacts()
+    self.assertEqual(len(loaded_artifacts), 18)
+    self.assertIn("DepsWindirRegex", [a.name for a in loaded_artifacts])
+
+    # Now dump back to YAML.
+    yaml_data = artifact_registry.REGISTRY.DumpArtifactsToYaml()
+    for snippet in [
+        "name: TestFilesArtifact",
+        "urls: ['https://msdn.microsoft.com/en-us/library/aa384749%28v=vs.85",
+        "returned_types: [SoftwarePackage]",
+        "args: [--list]",
+        "cmd: /usr/bin/dpkg",
+        ]:
+      self.assertIn(snippet, yaml_data)
 
   def testUploadArtifactYamlFileMissingDoc(self):
     content = """name: Nodoc
@@ -364,74 +390,85 @@ class ArtifactFlowTest(ArtifactTest):
   def testFilesArtifact(self):
     """Check GetFiles artifacts."""
     # Update the artifact path to point to the test directory.
-    art_reg = artifact_registry.ArtifactRegistry.artifacts
-    orig_path = art_reg["TestFilesArtifact"].sources[0].attributes["paths"]
-    art_reg["TestFilesArtifact"].sources[0].attributes["paths"] = (
-        [os.path.join(self.base_path, "auth.log")])
-    client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
-                                          "HashBuffer", "ListDirectory",
-                                          "FingerprintFile")
-    self.RunCollectorAndGetCollection(["TestFilesArtifact"],
-                                      client_mock=client_mock)
-    urn = self.client_id.Add("fs/os/").Add(self.base_path).Add("auth.log")
-    aff4.FACTORY.Open(urn, aff4_type="VFSBlobImage", token=self.token)
-    art_reg["TestFilesArtifact"].sources[0].attributes["paths"] = orig_path
+    art_obj = artifact_registry.REGISTRY.GetArtifact(
+        "TestFilesArtifact")
+    orig_path = art_obj.sources[0].attributes["paths"]
+    try:
+      art_obj.sources[0].attributes["paths"] = (
+          [os.path.join(self.base_path, "auth.log")])
+      client_mock = action_mocks.ActionMock(
+          "TransferBuffer", "StatFile", "Find",
+          "HashBuffer", "ListDirectory", "FingerprintFile")
+      self.RunCollectorAndGetCollection(["TestFilesArtifact"],
+                                        client_mock=client_mock)
+      urn = self.client_id.Add("fs/os/").Add(self.base_path).Add("auth.log")
+      aff4.FACTORY.Open(urn, aff4_type="VFSBlobImage", token=self.token)
+    finally:
+      art_obj.sources[0].attributes["paths"] = orig_path
 
   def testLinuxPasswdHomedirsArtifact(self):
     """Check LinuxPasswdHomedirs artifacts."""
     # Update the artifact path to point to the test directory.
-    art_reg = artifact_registry.ArtifactRegistry.artifacts
-    orig_path = art_reg["LinuxPasswdHomedirs"].sources[0].attributes["paths"]
-    art_reg["LinuxPasswdHomedirs"].sources[0].attributes["paths"] = [
-        os.path.join(self.base_path, "passwd")]
+    art_obj = artifact_registry.REGISTRY.GetArtifact(
+        "LinuxPasswdHomedirs")
+    orig_path = art_obj.sources[0].attributes["paths"]
+    try:
+      art_obj.sources[0].attributes["paths"] = [
+          os.path.join(self.base_path, "passwd")]
 
-    client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
-                                          "HashBuffer", "ListDirectory",
-                                          "FingerprintFile", "Grep")
-    fd = self.RunCollectorAndGetCollection(["LinuxPasswdHomedirs"],
-                                           client_mock=client_mock)
+      client_mock = action_mocks.ActionMock(
+          "TransferBuffer", "StatFile", "Find",
+          "HashBuffer", "ListDirectory", "FingerprintFile", "Grep")
+      fd = self.RunCollectorAndGetCollection(["LinuxPasswdHomedirs"],
+                                             client_mock=client_mock)
 
-    self.assertEqual(len(fd), 3)
-    self.assertItemsEqual([x.username for x in fd], [u"exomemory", u"gevulot",
-                                                     u"gogol"])
-    for user in fd:
-      if user.username == u"exomemory":
-        self.assertEqual(user.full_name, u"Never Forget (admin)")
-        self.assertEqual(user.gid, 47)
-        self.assertEqual(user.homedir, u"/var/lib/exomemory")
-        self.assertEqual(user.shell, u"/bin/sh")
-        self.assertEqual(user.uid, 46)
+      self.assertEqual(len(fd), 3)
+      self.assertItemsEqual([x.username for x in fd], [u"exomemory", u"gevulot",
+                                                       u"gogol"])
+      for user in fd:
+        if user.username == u"exomemory":
+          self.assertEqual(user.full_name, u"Never Forget (admin)")
+          self.assertEqual(user.gid, 47)
+          self.assertEqual(user.homedir, u"/var/lib/exomemory")
+          self.assertEqual(user.shell, u"/bin/sh")
+          self.assertEqual(user.uid, 46)
 
-    art_reg["LinuxPasswdHomedirs"].sources[0].attributes["paths"] = orig_path
+    finally:
+      art_obj.sources[0].attributes["paths"] = orig_path
 
   def testArtifactOutput(self):
     """Check we can run command based artifacts."""
     self.SetLinuxClient()
 
     # Update the artifact path to point to the test directory.
-    art_reg = artifact_registry.ArtifactRegistry.artifacts
-    art_reg["TestFilesArtifact"].sources[0].attributes["paths"] = ([
-        os.path.join(self.base_path, "auth.log")])
+    art_obj = artifact_registry.REGISTRY.GetArtifact(
+        "TestFilesArtifact")
+    oldpaths = art_obj.sources[0].attributes["paths"]
+    try:
+      art_obj.sources[0].attributes["paths"] = [
+          os.path.join(self.base_path, "auth.log")]
 
-    client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile",
-                                          "FingerprintFile", "HashBuffer",
-                                          "ListDirectory", "Find")
-    # Will raise if something goes wrong.
-    self.RunCollectorAndGetCollection(["TestFilesArtifact"],
-                                      client_mock=client_mock)
+      client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile",
+                                            "FingerprintFile", "HashBuffer",
+                                            "ListDirectory", "Find")
+      # Will raise if something goes wrong.
+      self.RunCollectorAndGetCollection(["TestFilesArtifact"],
+                                        client_mock=client_mock)
 
-    # Will raise if something goes wrong.
-    self.RunCollectorAndGetCollection(["TestFilesArtifact"],
-                                      client_mock=client_mock,
-                                      split_output_by_artifact=True)
+      # Will raise if something goes wrong.
+      self.RunCollectorAndGetCollection(["TestFilesArtifact"],
+                                        client_mock=client_mock,
+                                        split_output_by_artifact=True)
 
-    # Test the on_no_results_error option.
-    with self.assertRaises(RuntimeError) as context:
-      self.RunCollectorAndGetCollection(
-          ["NullArtifact"], client_mock=client_mock,
-          split_output_by_artifact=True, on_no_results_error=True)
-    if "collector returned 0 responses" not in str(context.exception):
-      raise RuntimeError("0 responses should have been returned")
+      # Test the on_no_results_error option.
+      with self.assertRaises(RuntimeError) as context:
+        self.RunCollectorAndGetCollection(
+            ["NullArtifact"], client_mock=client_mock,
+            split_output_by_artifact=True, on_no_results_error=True)
+      if "collector returned 0 responses" not in str(context.exception):
+        raise RuntimeError("0 responses should have been returned")
+    finally:
+      art_obj.sources[0].attributes["path"] = oldpaths
 
 
 class GrrKbTest(ArtifactTest):
@@ -500,13 +537,13 @@ class GrrKbTest(ArtifactTest):
   def testKnowledgeBaseRetrievalFailures(self):
     """Test kb retrieval failure modes."""
     client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
-    self.assertRaises(artifact_lib.KnowledgeBaseUninitializedError,
+    self.assertRaises(artifact_utils.KnowledgeBaseUninitializedError,
                       artifact.GetArtifactKnowledgeBase, client)
     kb = rdf_client.KnowledgeBase()
     kb.hostname = "test"
     client.Set(client.Schema.KNOWLEDGE_BASE(kb))
     client.Flush(sync=True)
-    self.assertRaises(artifact_lib.KnowledgeBaseAttributesMissingError,
+    self.assertRaises(artifact_utils.KnowledgeBaseAttributesMissingError,
                       artifact.GetArtifactKnowledgeBase, client)
 
   def testKnowledgeBaseRetrievalDarwin(self):
@@ -678,10 +715,12 @@ class GrrKbTest(ArtifactTest):
   def testGetDependencies(self):
     """Test that dependencies are calculated correctly."""
     self.SetupWindowsMocks()
-    with utils.Stubber(artifact_registry.ArtifactRegistry, "artifacts", {}):
+    artifact_registry.REGISTRY.ClearSources()
+    try:
       test_artifacts_file = os.path.join(
-          config_lib.CONFIG["Test.data_dir"], "test_artifacts.json")
-      artifact_lib.LoadArtifactsFromFiles([test_artifacts_file])
+          config_lib.CONFIG["Test.data_dir"],
+          "artifacts", "test_artifacts.json")
+      artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
 
       # No dependencies
       args = artifact.CollectArtifactDependenciesArgs(
@@ -711,14 +750,18 @@ class GrrKbTest(ArtifactTest):
                                                          "current_control_set"])
       self.assertItemsEqual(collect_obj.state.awaiting_deps_artifacts,
                             ["DepsWindir", "DepsWindirRegex"])
+    finally:
+      artifact.ArtifactLoader().RunOnce()
 
   def testGetKBDependencies(self):
     """Test that KB dependencies are calculated correctly."""
     self.SetupWindowsMocks()
-    with utils.Stubber(artifact_registry.ArtifactRegistry, "artifacts", {}):
+    artifact_registry.REGISTRY.ClearSources()
+    try:
       test_artifacts_file = os.path.join(
-          config_lib.CONFIG["Test.data_dir"], "test_artifacts.json")
-      artifact_lib.LoadArtifactsFromFiles([test_artifacts_file])
+          config_lib.CONFIG["Test.data_dir"],
+          "artifacts", "test_artifacts.json")
+      artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
 
       config_lib.CONFIG.Set("Artifacts.knowledge_base", ["DepsParent",
                                                          "DepsDesktop",
@@ -750,6 +793,8 @@ class GrrKbTest(ArtifactTest):
       self.assertItemsEqual(kb_init.state.awaiting_deps_artifacts,
                             ["DepsParent", "DepsDesktop", "DepsHomedir",
                              "DepsWindirRegex"])
+    finally:
+      artifact.ArtifactLoader().RunOnce()
 
 
 def main(argv):

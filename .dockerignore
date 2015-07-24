@@ -1,4 +1,14 @@
+.git
+.gitignore
 *.pyc
-build/*
-debian/*
-executables/*
+*.egg-info
+ACKNOWLEDGEMENTS
+AUTHORS
+build
+debian
+executables
+LICENSE
+README
+README.md
+travis
+vagrant

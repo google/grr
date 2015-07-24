@@ -1,6 +1,7 @@
 
 syntax = "proto2";
 import "grr/proto/data_store.proto";
+import "grr/proto/semantic.proto";
 
 
 
@@ -73,6 +74,17 @@ message DataServerClientInformation {
 
   // Client permissions (r, rw, w).
   optional string permissions = 3;
+};
+
+message DataServerEncryptedCreds {
+  optional bytes init_vector = 1 [(sem_type) = {
+      type: "AES128Key"
+    }];
+  optional bytes ciphertext = 2;
+  optional bytes sha256 = 3 [(sem_type) = {
+      description: "The sha256 of the plain text encrypted in the ciphertext "
+      "field.";
+    }];
 };
 
 message DataServerClientCredentials {

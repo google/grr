@@ -3,7 +3,7 @@
 
 import re
 
-from grr.lib import artifact_lib
+from grr.lib import artifact_utils
 from grr.lib import parsers
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
@@ -43,7 +43,7 @@ class WindowsPersistenceMechanismsParser(parsers.ArtifactFilesParser):
                     path, count=1)
       path = re.sub(self.system32_re, r"%systemroot%\\system32",
                     path, count=1)
-      full_path = artifact_lib.ExpandWindowsEnvironmentVariables(path, kb)
+      full_path = artifact_utils.ExpandWindowsEnvironmentVariables(path, kb)
       pathspecs.append(rdf_paths.PathSpec(
           path=full_path, pathtype=pathtype))
 

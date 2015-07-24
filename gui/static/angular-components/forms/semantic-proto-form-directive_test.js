@@ -9,11 +9,16 @@ describe('semantic proto form directive', function() {
   var grrReflectionServiceMock;
 
   beforeEach(module('/static/angular-components/forms/semantic-proto-form.html'));
-  beforeEach(module('/static/angular-components/forms/semantic-proto-union-form.html'));
-  beforeEach(module('/static/angular-components/forms/semantic-proto-single-field-form.html'));
-  beforeEach(module('/static/angular-components/forms/semantic-proto-repeated-field-form.html'));
   beforeEach(module(grrUi.forms.module.name));
   beforeEach(module(grrUi.tests.module.name));
+
+  angular.forEach(
+      ['grrFormProtoSingleField',
+       'grrFormProtoRepeatedField',
+       'grrFormProtoUnion'],
+      function(directiveName) {
+        grrUi.tests.stubDirective(directiveName);
+      });
 
   beforeEach(module(function($provide) {
     grrReflectionServiceMock = {
@@ -57,8 +62,7 @@ describe('semantic proto form directive', function() {
     beforeEach(function() {
       // Reflection service is a mock. Stub out the getRDFValueDescriptor method
       // and return a promise with the reflection data.
-      var reflectionDeferred = $q.defer();
-      reflectionDeferred.resolve({
+      var data = {
         'Foo': {
           'default': {
             'type': 'Foo',
@@ -93,6 +97,7 @@ describe('semantic proto form directive', function() {
               'type': 'PrimitiveType'
             }
           ],
+          'kind': 'struct',
           'name': 'Foo',
           'mro': ['Foo', 'RDFProtoStruct']
         },
@@ -106,19 +111,15 @@ describe('semantic proto form directive', function() {
           'name': 'PrimitiveType',
           'mro': ['PrimitiveType']
         }
-      });
+      };
+
+      var reflectionDeferred = $q.defer();
+      reflectionDeferred.resolve(data);
       spyOn(grrReflectionServiceMock, 'getRDFValueDescriptor').and.callFake(
-          function(valueType, withDeps) {
-            if (withDeps) {
-              return reflectionDeferred.promise;
-            } else {
-              var deferred = $q.defer();
-              deferred.resolve({
-                name: valueType,
-                mro: [valueType]
-              });
-              return deferred.promise;
-            }
+          function(type, opt_withDeps) {
+            var reflectionDeferred = $q.defer();
+            reflectionDeferred.resolve(opt_withDeps ? data : data[type]);
+            return reflectionDeferred.promise;
           });
     });
 
@@ -213,11 +214,9 @@ describe('semantic proto form directive', function() {
     beforeEach(function() {
       // Reflection service is a mock. Stub out the getRDFValueDescriptor method
       // and return a promise with the reflection data.
-      var reflectionDeferred = $q.defer();
-      reflectionDeferred.resolve({
+      var data = {
         'Foo': {
           'default': {
-            'mro': ['Foo', 'RDFProtoStruct'],
             'type': 'Foo',
             'value': {}
           },
@@ -238,26 +237,32 @@ describe('semantic proto form directive', function() {
               'type': 'PrimitiveType'
             }
           ],
+          'kind': 'struct',
+          'mro': ['Foo', 'RDFProtoStruct']
         },
         'PrimitiveType': {
           'default': {
-            'mro': ['PrimitiveType'],
             'type': 'PrimitiveType',
             'value': ''
           },
           'doc': 'Test primitive type description.',
           'kind': 'primitive',
+          'mro': ['PrimitiveType'],
           'name': 'PrimitiveType'
         }
-      });
-      spyOn(grrReflectionServiceMock, 'getRDFValueDescriptor').and.returnValue(
-          reflectionDeferred.promise);
+      };
+
+      spyOn(grrReflectionServiceMock, 'getRDFValueDescriptor').and.callFake(
+          function(type, opt_withDeps) {
+            var reflectionDeferred = $q.defer();
+            reflectionDeferred.resolve(opt_withDeps ? data : data[type]);
+            return reflectionDeferred.promise;
+          });
     });
 
     it('prefills the model with empty array for repeated field', function() {
       var fooValue = {
         type: 'Foo',
-        mro: ['Foo', 'RDFProtoStruct'],
         value: {}
       };
       var element = renderTestTemplate(fooValue);
@@ -270,7 +275,6 @@ describe('semantic proto form directive', function() {
     it('renders the repeated field with corresponding directive', function() {
       var fooValue = {
         type: 'Foo',
-        mro: ['Foo', 'RDFProtoStruct'],
         value: {}
       };
       var element = renderTestTemplate(fooValue);
@@ -285,11 +289,9 @@ describe('semantic proto form directive', function() {
     beforeEach(function() {
       // Reflection service is a mock. Stub out the getRDFValueDescriptor method
       // and return a promise with the reflection data.
-      var reflectionDeferred = $q.defer();
-      reflectionDeferred.resolve({
+      var data = {
         'Foo': {
           'default': {
-            'mro': ['Foo', 'RDFProtoStruct'],
             'type': 'Foo',
             'value': {}
           },
@@ -313,26 +315,34 @@ describe('semantic proto form directive', function() {
               'type': 'PrimitiveType'
             }
           ],
+          'kind': 'struct',
+          'mro': ['Foo', 'RDFProtoStruct'],
         },
         'PrimitiveType': {
           'default': {
-            'mro': ['PrimitiveType'],
             'type': 'PrimitiveType',
             'value': ''
           },
           'doc': 'Test primitive type description.',
           'kind': 'primitive',
+          'mro': ['PrimitiveType'],
           'name': 'PrimitiveType'
         }
-      });
-      spyOn(grrReflectionServiceMock, 'getRDFValueDescriptor').and.returnValue(
-          reflectionDeferred.promise);
+      };
+
+      var reflectionDeferred = $q.defer();
+      reflectionDeferred.resolve(data);
+      spyOn(grrReflectionServiceMock, 'getRDFValueDescriptor').and.callFake(
+          function(type, opt_withDeps) {
+            var reflectionDeferred = $q.defer();
+            reflectionDeferred.resolve(opt_withDeps ? data : data[type]);
+            return reflectionDeferred.promise;
+          });
     });
 
     it('delegates union-type structure rendering', function() {
       var fooValue = {
         type: 'Foo',
-        mro: ['Foo', 'RDFProtoStruct'],
         value: {}
       };
       var element = renderTestTemplate(fooValue);

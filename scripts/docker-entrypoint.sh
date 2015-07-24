@@ -22,7 +22,8 @@ if [ "$1" = 'grr' ]; then
   /usr/bin/grr_server --start_worker --disallow_missing_config_definitions --config=/etc/grr/grr-server.yaml &
   /usr/bin/grr_server --start_worker --disallow_missing_config_definitions --config=/etc/grr/grr-server.yaml &
   /usr/bin/grr_server --start_worker --disallow_missing_config_definitions --config=/etc/grr/grr-server.yaml &
-  /usr/bin/grr_server --start_worker --disallow_missing_config_definitions --config=/etc/grr/grr-server.yaml &
+  /usr/bin/grr_server --start_worker --disallow_missing_config_definitions --config=/etc/grr/grr-server.yaml
+else
+  exec "$@"
 fi
 
-exec "$@"

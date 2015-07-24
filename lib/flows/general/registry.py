@@ -6,7 +6,7 @@ import stat
 
 from grr.lib import aff4
 from grr.lib import artifact
-from grr.lib import artifact_lib
+from grr.lib import artifact_utils
 from grr.lib import flow
 from grr.lib import utils
 # For ArtifactCollectorFlow pylint: disable=unused-import
@@ -127,7 +127,7 @@ class CollectRunKeyBinaries(flow.GRRFlow):
         self.Log("Couldn't guess path for %s", runkey)
 
       for path in path_guesses:
-        full_path = artifact_lib.ExpandWindowsEnvironmentVariables(path, kb)
+        full_path = artifact_utils.ExpandWindowsEnvironmentVariables(path, kb)
         filenames.append(rdf_paths.PathSpec(
             path=full_path, pathtype=rdf_paths.PathSpec.PathType.TSK))
 

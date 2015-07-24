@@ -60,6 +60,7 @@ message ArtifactSource {
 message Artifact {
   optional string name = 1 [(sem_type) = {
       description: "Globally unique name of the artifact.",
+      type: "ArtifactName",
     }];
 
   repeated string conditions = 2 [(sem_type) = {
@@ -96,4 +97,39 @@ message Artifact {
     description: "A list of artifact sources.",
   }];
 
+}
+
+
+message ArtifactProcessorDescriptor {
+  optional string name = 1 [(sem_type) = {
+      description: "Processor's name as registered in GRR."
+    }];
+  optional string description = 2 [(sem_type) = {
+      description: "Description of this processor."
+    }];
+  repeated string output_types = 3 [(sem_type) = {
+      description: "The semantic types that can be produced by the processor."
+    }];
+}
+
+
+message ArtifactDescriptor {
+  optional Artifact artifact = 1 [(sem_type) = {
+      description: "Artifact itself."
+    }];
+  repeated string dependencies = 2 [(sem_type) = {
+      description: "Names of artifacts this artifact depends on."
+    }];
+  repeated string path_dependencies = 3 [(sem_type) = {
+      description: "Names of KB objects this artifact depends on."
+    }];
+  optional string artifact_source = 4 [(sem_type) = {
+      description: "Artifact's JSON source."
+    }];
+  repeated ArtifactProcessorDescriptor processors = 5 [(sem_type) = {
+      description: "Processors that will process this artifact's output."
+    }];
+  optional bool is_custom = 6 [(sem_type) = {
+      description: "If True, this artifact was manually uploaded by the user."
+    }];
 }

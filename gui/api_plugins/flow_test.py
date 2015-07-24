@@ -3,9 +3,7 @@
 
 
 
-import mock
 
-from grr.gui import api_call_renderers
 from grr.gui import api_test_lib
 from grr.gui.api_plugins import flow as flow_plugin
 
@@ -33,6 +31,9 @@ class ApiFlowStatusRendererTest(test_lib.GRRBaseTest):
     self.client_id = self.SetupClients(1)[0]
     self.renderer = flow_plugin.ApiFlowStatusRenderer()
 
+  def testIsDisabledByDefault(self):
+    self.assertFalse(self.renderer.enabled_by_default)
+
   def testParameterValidation(self):
     """Check bad parameters are rejected.
 
@@ -49,8 +50,6 @@ class ApiFlowStatusRendererTest(test_lib.GRRBaseTest):
           client_id="C.123456<script>", flow_id="X:1245678")
 
 
-@mock.patch.object(api_call_renderers.SimpleAPIAuthorizationManager,
-                   "CheckAccess", lambda a, b, c: True)
 class ApiFlowStatusRendererRegressionTest(
     api_test_lib.ApiCallRendererRegressionTest):
   """Test flow status renderer.
@@ -84,9 +83,9 @@ class ApiFlowStatusRendererRegressionTest(
           aff4_type="RDFValueCollection", token=self.token) as collection:
         collection.Add(rdf_client.ClientSummary())
 
-    self.Check("GET", "/api/flows/%s/%s/status" % (client_urn.Basename(),
-                                                   flow_id.Basename()),
-               replace={flow_id.Basename(): "F:ABCDEF12"})
+      self.Check("GET", "/api/flows/%s/%s/status" % (client_urn.Basename(),
+                                                     flow_id.Basename()),
+                 replace={flow_id.Basename(): "F:ABCDEF12"})
 
 
 class ApiFlowResultsRendererRegressionTest(

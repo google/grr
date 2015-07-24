@@ -1,0 +1,43 @@
+<div name="UploadArtifactDialog">
+
+  <div class="modal-header">
+    <button type="button" class="close" ng-click="dismiss()">
+      <span aria-hidden="true">&times;</span>
+      <span class="sr-only">Close</span>
+    </button>
+    <h4 class="modal-title">Upload Artifact</h4>
+  </div>
+
+  <div class="modal-body">
+
+    <input type="file" ng-disabled="controller.inProgress"
+           onchange="angular.element(this).scope().controller.onFileSet(this.files)" />
+    <br/>
+
+    <div class="aler alert-success padded" role="alert" ng-if="controller.success">
+      {$ controller.success $}
+    </div>
+
+    <div class="aler alert-danger padded" role="alert" ng-if="controller.error">
+      {$ controller.error $}
+    </div>
+  </div>
+
+  <div class="modal-footer" ng-if="!controller.success && !controller.error">
+    <button class="btn btn-default" ng-click="dismiss()" name="Cancel">
+      Cancel
+    </button>
+    <button class="btn btn-primary"
+            ng-disabled="!controller.file || controller.inProgress"
+            ng-click="controller.proceed()" name="Proceed">
+      Proceed
+    </button>
+  </div>
+
+  <div class="modal-footer" ng-if="controller.success || controller.error">
+    <button class="btn btn-default" ng-click="close()" name="Close">
+      Close
+    </button>
+  </div>
+
+</div>

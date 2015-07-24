@@ -10,9 +10,9 @@ import os
 import re
 # importing readline enables the raw_input calls to have history etc.
 import readline  # pylint: disable=unused-import
+import socket
 import sys
 import urlparse
-import socket
 
 
 # pylint: disable=unused-import,g-bad-import-order
@@ -113,7 +113,7 @@ parser_initialize.add_argument(
 
 parser_initialize.add_argument(
     "--admin_password", default=None,
-    help="External hostname to use.")
+    help="Admin password for web interface.")
 
 parser_initialize.add_argument(
     "--noprompt", default=False, action="store_true",
@@ -454,7 +454,7 @@ accessible. By default this will be port 8080 with the URL ending in /control.
   config.Set("Client.control_urls", [location])
 
   frontend_port = urlparse.urlparse(location).port or config_lib.CONFIG.Get(
-    "Frontend.bind_port")
+      "Frontend.bind_port")
   config.Set("Frontend.bind_port", frontend_port)
 
   print """\n\n-=AdminUI URL=-:
@@ -464,11 +464,12 @@ The UI URL specifies where the Administrative Web Interface can be found.
                          "http://%s:8000" % hostname)
   config.Set("AdminUI.url", ui_url)
   ui_port = urlparse.urlparse(location).port or config_lib.CONFIG.Get(
-    "AdminUI.port")
+      "AdminUI.port")
   config.Set("AdminUI.port", ui_port)
 
 
 def ConfigureDatastore(config):
+  """Set the datastore to use by prompting the user to choose."""
   print """
 1. SQLite (Default) - This datastore is stored on the local file system. If you
 configure GRR to run as non-root be sure to allow that user access to the files.
@@ -503,16 +504,19 @@ well.
                                    config_lib.CONFIG.Get("Mysql.database_name"))
     config.Set("Mysql.database_name", mysql_database)
 
-    mysql_username = RetryQuestion("MySQL Username", "[A-Za-z0-9-]+$",
-                                   config_lib.CONFIG.Get("Mysql.database_username"))
+    mysql_username = RetryQuestion(
+        "MySQL Username", "[A-Za-z0-9-]+$",
+        config_lib.CONFIG.Get("Mysql.database_username"))
     config.Set("Mysql.database_username", mysql_username)
 
     mysql_password = getpass.getpass(
-      prompt="Please enter password for database user %s: " % mysql_username)
+        prompt="Please enter password for database user %s: " % mysql_username)
     config.Set("Mysql.database_password", mysql_password)
 
 
+
 def ConfigureEmails(config):
+  """Configure email notification addresses."""
   print """\n\n-=Monitoring/Email Domain=-
 Emails concerning alerts or updates must be sent to this domain.
 """
@@ -578,7 +582,6 @@ datastore.  To do this we need to configure a datastore.\n"""
     if raw_input("Do you want to keep this configuration?"
                  " [Yn]: ").upper() == "N":
       ConfigureDatastore(config)
-
 
   print """\n\n-=GRR URLs=-
 For GRR to work each client has to be able to communicate with the

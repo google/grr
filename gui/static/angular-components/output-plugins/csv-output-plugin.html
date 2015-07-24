@@ -7,8 +7,8 @@
     <div ng-if="controller.hasStreams">
       Following files were written:
       <ul>
-        <li ng-repeat="(streamName, streamDescriptor) in state.output_streams">
-          <grr-aff4-download-link aff4-path="state.output_base_urn.value + '/' + streamName">{$ streamName $}</grr-aff4-download-link>
+        <li ng-repeat="(streamName, streamDescriptor) in state.value.output_streams.value">
+          <grr-aff4-download-link aff4-path="state.value.output_base_urn.value + '/' + streamName">{$ streamName $}</grr-aff4-download-link>
         </li>
     </div>
   </div>

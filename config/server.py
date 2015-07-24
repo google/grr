@@ -307,3 +307,21 @@ config_lib.DEFINE_semantic(
 config_lib.DEFINE_string("DataRetention.hunts_ttl_exception_label",
                          default="retain", help="Hunts marked with this label "
                          "will be retained forever.")
+
+config_lib.DEFINE_semantic(
+    rdfvalue.Duration, "DataRetention.tmp_ttl", default=None,
+    description="Temp TTL specified as the duration string. Examples: 90d, "
+    "180d, 1y. If not set, temp objects will be retained forever.")
+
+config_lib.DEFINE_string("DataRetention.tmp_ttl_exception_label",
+                         default="retain", help="Temp objects marked with this "
+                         "label will be retained forever.")
+
+config_lib.DEFINE_semantic(
+    rdfvalue.Duration, "DataRetention.inactive_client_ttl", default=None,
+    description="Temp TTL specified as the duration string. Examples: 90d, "
+    "180d, 1y. If not set, inactive clients will be retained forever.")
+
+config_lib.DEFINE_string("DataRetention.inactive_client_ttl_exception_label",
+                         default="retain", help="Inactive clients marked with "
+                         "this label will be retained forever.")
