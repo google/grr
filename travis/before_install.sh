@@ -1,11 +1,9 @@
 #!/bin/bash
 set -e
 
-sudo apt-get install python-software-properties
-
 sudo -H pip install pip --upgrade
-sudo -H pip install distribute --upgrade
 
+sudo apt-get install python-software-properties
 # No pytsk3 for precise in stable ppa
 sudo add-apt-repository ppa:gift/dev -y
 sudo apt-get update -q
@@ -29,3 +27,5 @@ sudo apt-get install -y \
   sleuthkit \
   swig
 
+# Required for matplotlib, to be installed in the next step.
+sudo -H pip install distribute --upgrade
