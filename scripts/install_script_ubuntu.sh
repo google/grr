@@ -132,7 +132,6 @@ fi
 header "Adding launchpad.net/~gift PPA for m2crypto pytsk dependencies."
 run_cmd_confirm apt-get install -y software-properties-common
 run_cmd_confirm add-apt-repository ppa:gift/dev -y
-run_cmd_confirm add-apt-repository ppa:gift/testing -y
 run_cmd_confirm apt-get update -q
 
 header "Installing dependencies."
