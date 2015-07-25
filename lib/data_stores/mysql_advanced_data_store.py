@@ -148,7 +148,8 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     self.to_insert = []
     self._CalculateAttributeStorageTypes()
     self.database_name = config_lib.CONFIG["Mysql.database_name"]
-    self.lock = threading.Lock()
+    self.buffer_lock = threading.RLock()
+    self.lock = threading.RLock()
 
     super(MySQLAdvancedDataStore, self).__init__()
 
@@ -332,11 +333,12 @@ class MySQLAdvancedDataStore(data_store.DataStore):
         transaction = self._BuildInserts(to_insert)
         self._ExecuteTransaction(transaction)
       else:
-        with self.lock:
+        with self.buffer_lock:
           self.to_insert.extend(to_insert)
 
+  @utils.Synchronized
   def Flush(self):
-    with self.lock:
+    with self.buffer_lock:
       to_insert = self.to_insert
       self.to_insert = []
 
