@@ -145,6 +145,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       MySQLAdvancedDataStore.POOL = ConnectionPool()
     self.pool = self.POOL
 
+    self.to_replace = []
     self.to_insert = []
     self._CalculateAttributeStorageTypes()
     self.database_name = config_lib.CONFIG["Mysql.database_name"]
@@ -325,8 +326,12 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       self.DeleteAttributes(subject, to_delete, token=token)
 
     if to_replace:
-      transaction = self._BuildReplaces(to_replace)
-      self._ExecuteTransaction(transaction)
+      if sync:
+        transaction = self._BuildReplaces(to_replace)
+        self._ExecuteTransaction(transaction)
+      else:
+        with self.buffer_lock:
+          self.to_replace.extend(to_replace)
 
     if to_insert:
       if sync:
@@ -340,10 +345,16 @@ class MySQLAdvancedDataStore(data_store.DataStore):
   def Flush(self):
     with self.buffer_lock:
       to_insert = self.to_insert
+      to_replace = self.to_replace
+      self.to_replace = []
       self.to_insert = []
 
     if to_insert:
       transaction = self._BuildInserts(to_insert)
+      self._ExecuteTransaction(transaction)
+
+    if to_replace:
+      transaction = self._BuildReplaces(to_replace)
       self._ExecuteTransaction(transaction)
 
   def _CountDuplicateAttributes(self, subject, attribute):
@@ -356,16 +367,26 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
   def _BuildReplaces(self, values):
     transaction = []
+    updates = {}
 
     for (subject, attribute, value, timestamp) in values:
-      aff4_q = {}
-      aff4_q["query"] = (
-          "UPDATE aff4 SET value=%s, "
-          "timestamp=if(%s is NULL,floor(unix_timestamp(now(6))*1000000),%s) "
-          "WHERE subject_hash=unhex(md5(%s)) "
-          "AND attribute_hash=unhex(md5(%s))")
-      aff4_q["args"] = [value, timestamp, timestamp, subject, attribute]
-      transaction.append(aff4_q)
+      try:
+        updates[subject][attribute] = [value, timestamp]
+      except KeyError:
+        updates[subject] = {attribute: [value, timestamp]}
+
+    for subject in updates:
+      for attribute in updates[subject]:
+        value = updates[subject][attribute][0]
+        timestamp = updates[subject][attribute][1]
+        aff4_q = {}
+        aff4_q["query"] = (
+            "UPDATE aff4 SET value=%s, "
+            "timestamp=if(%s is NULL,floor(unix_timestamp(now(6))*1000000),%s) "
+            "WHERE subject_hash=unhex(md5(%s)) "
+            "AND attribute_hash=unhex(md5(%s))")
+        aff4_q["args"] = [value, timestamp, timestamp, subject, attribute]
+        transaction.append(aff4_q)
     return transaction
 
   def _BuildInserts(self, values):
