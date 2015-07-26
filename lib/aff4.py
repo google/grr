@@ -392,6 +392,10 @@ class Factory(object):
 
         try:
           self.intermediate_cache.Get(urn)
+          # When an object is retrieved from the cache bump it back to the
+          # front to ensure heavily accessed items remain in the cache for their
+          # full age.
+          self.intermediate_cache.Put(urn, 1)
           return
         except KeyError:
           attributes = {
