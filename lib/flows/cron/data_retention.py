@@ -89,14 +89,19 @@ class CleanTemp(cronjobs.SystemCronFlow):
 
     deadline = rdfvalue.RDFDatetime().Now() - tmp_ttl
 
-    for urn in tmp_urns:
-      obj = aff4.FACTORY.Open(urn, token=self.token)
-      if exception_label in obj.GetLabelsNames():
-        continue
+    for tmp_group in utils.Grouper(tmp_urns, 10000):
+      expired_tmp_urns = []
+      for tmp_obj in aff4.FACTORY.MultiOpen(tmp_group, mode="r",
+                                            token=self.token):
+        if exception_label in tmp_obj.GetLabelsNames():
+          continue
 
-      if urn.age < deadline:
-        aff4.FACTORY.Delete(urn, token=self.token)
-        self.HeartBeat()
+        if tmp_obj.Get(tmp_obj.Schema.LAST) < deadline:
+          expired_tmp_urns.append(tmp_obj.urn)
+
+      aff4.FACTORY.MultiDelete(expired_tmp_urns, token=self.token)
+      self.HeartBeat()
+
 
 class CleanInactiveClients(cronjobs.SystemCronFlow):
   """Cleaner that deletes inactive clients."""
@@ -134,6 +139,6 @@ class CleanInactiveClients(cronjobs.SystemCronFlow):
         if client.Get(client.Schema.LAST) < deadline:
           inactive_client_urns.append(client.urn)
 
-        aff4.FACTORY.MultiDelete(inactive_client_urns, token=self.token)
-        self.HeartBeat()
+      aff4.FACTORY.MultiDelete(inactive_client_urns, token=self.token)
+      self.HeartBeat()
 

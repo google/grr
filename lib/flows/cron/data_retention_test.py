@@ -291,7 +291,8 @@ class CleanInactiveClientsTest(test_lib.FlowTestsBaseclass):
 
       aff4_root = aff4.FACTORY.Open("aff4:/", mode="r", token=self.token)
       aff4_urns = list(aff4_root.ListChildren())
-      client_urns = [x for x in aff4_urns if re.match(self.client_regex, str(x))]
+      client_urns = [x for x in aff4_urns if re.match(
+        self.client_regex, str(x))]
 
       self.assertEqual(len(client_urns), 5)
 
@@ -319,7 +320,8 @@ class CleanInactiveClientsTest(test_lib.FlowTestsBaseclass):
 
       aff4_root = aff4.FACTORY.Open("aff4:/", mode="r", token=self.token)
       aff4_urns = list(aff4_root.ListChildren())
-      client_urns = [x for x in aff4_urns if re.match(self.client_regex, str(x))]
+      client_urns = [x for x in aff4_urns if re.match(
+        self.client_regex, str(x))]
 
       self.assertEqual(len(client_urns), 3)
 
