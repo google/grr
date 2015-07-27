@@ -450,9 +450,30 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     return results
 
   def _ExecuteTransaction(self, transaction):
-    """Get connection from pool and execute queries."""
-    for query in transaction:
-      self.ExecuteQuery(query["query"], query["args"])
+    """Get connection from pool and execute query."""
+    retries = 10
+    for attempt in range(1, retries + 1):
+      connection = self.pool.GetConnection()
+      try:
+        connection.cursor.execute("START TRANSACTION")
+        for query in transaction:
+          connection.cursor.execute(query["query"], query["args"])
+        connection.cursor.execute("COMMIT")
+        results = connection.cursor.fetchall()
+        break
+      except MySQLdb.Error as e:
+        # If there was an error attempt to clean up this connection and let it
+        # drop
+        logging.warn("Datastore query attempt %s failed with %s:",
+                     attempt, str(e))
+        time.sleep(.2)
+        self.pool.DropConnection(connection)
+        if attempt == 10:
+          raise e
+        else:
+          continue
+    self.pool.PutConnection(connection)
+    return results
 
   def _CalculateAttributeStorageTypes(self):
     """Build a mapping between column names and types."""
