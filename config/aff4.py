@@ -16,7 +16,7 @@ config_lib.DEFINE_integer(
     "The number of seconds AFF4 urns live in index cache.")
 
 config_lib.DEFINE_integer(
-    "AFF4.intermediate_cache_max_size", 2000,
+    "AFF4.intermediate_cache_max_size", 20000,
     "Maximum size of the AFF4 index cache.")
 
 config_lib.DEFINE_integer(

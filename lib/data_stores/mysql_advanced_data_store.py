@@ -370,10 +370,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     updates = {}
 
     for (subject, attribute, value, timestamp) in values:
-      try:
-        updates[subject][attribute] = [value, timestamp]
-      except KeyError:
-        updates[subject] = {attribute: [value, timestamp]}
+      updates.setdefault(subject, {})[attribute] = [value,timestamp]
 
     for subject in updates:
       for attribute in updates[subject]:
