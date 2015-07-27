@@ -1,6 +1,7 @@
 #include "grr/client/minicomm/util.h"
 
 #include <array>
+#include <cctype>
 
 #include "grr/client/minicomm/base.h"
 
@@ -27,16 +28,33 @@ std::string UrlDirname(const std::string& input) {
   return input.substr(0, end_slash);
 }
 
+bool IsNumber(const std::string& x) {
+  for (auto& c : x) {
+    if (isdigit(c) == false) return false;
+  }
+
+  return true;
+}
+
 std::string ErrorName(int errnum) {
   char buff[1024];
-  // NOTE: The version of strerror_r that we get when including libstdc++ is GNU
-  // specific and may return buff, or may return pointer to a static string
-  // constant. In the former case we trust the null termination, in the latter
-  // case we hard limit the size of the string with ArrayToString just in case.
+// NOTE: The version of strerror_r that we get when including libstdc++ is GNU
+// specific and may return buff, or may return pointer to a static string
+// constant. In the latter case we trust the null termination, in the former
+// case we hard limit the size of the string with ArrayToString just in case.
+
+#ifdef ANDROID
+  int res = strerror_r(errnum, buff, sizeof(buff));
+  if (res == 0) {
+    return ArrayToString(buff);
+  }
+  return "Error occured.";
+#else
   char* res = strerror_r(errnum, buff, sizeof(buff));
   if (res == buff) {
     return ArrayToString(buff);
   }
   return res;
+#endif
 }
 }  // namespace grr

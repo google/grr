@@ -4,9 +4,6 @@
 
 
 
-import mock
-
-from grr.gui import api_call_renderers
 from grr.gui import api_test_lib
 from grr.gui.api_plugins import client as client_plugin
 
@@ -14,7 +11,6 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import test_lib
-from grr.lib import type_info
 from grr.lib.rdfvalues import client as rdf_client
 
 
@@ -192,70 +188,6 @@ class ApiClientSummaryRendererRegressionTest(
         grr_client.DeleteAttribute(grr_client.Schema.CERT)
 
     self.Check("GET", "/api/clients/%s" % client_ids[0].Basename())
-
-
-class ApiFlowStatusRendererTest(test_lib.GRRBaseTest):
-  """Test for ApiFlowStatusRenderer."""
-
-  def setUp(self):
-    super(ApiFlowStatusRendererTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
-    self.renderer = client_plugin.ApiFlowStatusRenderer()
-
-  def testParameterValidation(self):
-    """Check bad parameters are rejected.
-
-    Make sure our input is validated because this API doesn't require
-    authorization.
-    """
-    bad_flowid = client_plugin.ApiFlowStatusRendererArgs(
-        client_id=self.client_id.Basename(), flow_id="X:<script>")
-    with self.assertRaises(ValueError):
-      self.renderer.Render(bad_flowid, token=self.token)
-
-    with self.assertRaises(type_info.TypeValueError):
-      client_plugin.ApiFlowStatusRendererArgs(
-          client_id="C.123456<script>", flow_id="X:1245678")
-
-
-@mock.patch.object(api_call_renderers.SimpleAPIAuthorizationManager,
-                   "CheckAccess", lambda a, b, c: True)
-class ApiFlowStatusRendererRegressionTest(
-    api_test_lib.ApiCallRendererRegressionTest):
-  """Test flow status renderer.
-
-  This renderer is disabled by default in the ACLs so we need to do some
-  patching to get the proper output and not just "access denied".
-  """
-  renderer = "ApiFlowStatusRenderer"
-
-  def Run(self):
-    # Fix the time to avoid regressions.
-    with test_lib.FakeTime(42):
-      client_urn = self.SetupClients(1)[0]
-
-      # Delete the certificates as it's being regenerated every time the
-      # client is created.
-      with aff4.FACTORY.Open(client_urn, mode="rw",
-                             token=self.token) as client_obj:
-        client_obj.DeleteAttribute(client_obj.Schema.CERT)
-
-      flow_id = flow.GRRFlow.StartFlow(flow_name="Interrogate",
-                                       client_id=client_urn, token=self.token)
-
-      # Put something in the output collection
-      flow_obj = aff4.FACTORY.Open(flow_id, aff4_type="GRRFlow",
-                                   token=self.token)
-      flow_state = flow_obj.Get(flow_obj.Schema.FLOW_STATE)
-
-      with aff4.FACTORY.Create(
-          flow_state.context.output_urn,
-          aff4_type="RDFValueCollection", token=self.token) as collection:
-        collection.Add(rdf_client.ClientSummary())
-
-    self.Check("GET", "/api/flows/%s/%s/status" % (client_urn.Basename(),
-                                                   flow_id.Basename()),
-               replace={flow_id.Basename(): "F:ABCDEF12"})
 
 
 class ApiClientsLabelsListRendererRegressionTest(

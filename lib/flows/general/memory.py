@@ -721,7 +721,8 @@ class AnalyzeClientMemory(flow.GRRFlow):
     for response in responses:
       if response.missing_profile:
         server_type = config_lib.CONFIG["Rekall.profile_server"]
-        logging.debug("Getting missing Rekall profile from %s", server_type)
+        logging.info("Getting missing Rekall profile '%s' from %s",
+                     response.missing_profile, server_type)
         profile_server = rekall_profile_server.ProfileServer.classes[
             server_type]()
         profile = profile_server.GetProfileByName(

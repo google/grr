@@ -50,6 +50,9 @@ config_lib.DEFINE_string("Test.end_to_end_result_check_wait", "50m",
                          "clients will have picked up the hunt, but not so "
                          "long that the flow gets timed out.")
 
+config_lib.DEFINE_string("Test.end_to_end_data_dir", "%(Test.data_dir)",
+                         "The directory containing test data used in end to "
+                         "end tests.")
+
 config_lib.DEFINE_string("PrivateKeys.ca_key_raw_data", "",
                          "For testing purposes.")
-

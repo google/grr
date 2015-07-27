@@ -419,8 +419,6 @@ class UninstallDriver(actions.ActionPlugin):
 class UpdateAgent(standard.ExecuteBinaryCommand):
   """Updates the GRR agent to a new version."""
 
-  suffix = "pkg"
-
   def ProcessFile(self, path, args):
 
     cmd = "/usr/sbin/installer"

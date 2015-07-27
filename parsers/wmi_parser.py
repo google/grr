@@ -111,7 +111,7 @@ class WMILogicalDisksParser(parsers.WMIQueryParser):
       free_space = None
 
     # Since we don't get the sector sizes from WMI, we just set them at 1 byte
-    volume = rdf_client.Volume(windows=winvolume,
+    volume = rdf_client.Volume(windowsvolume=winvolume,
                                name=result.get("VolumeName"),
                                file_system_type=result.get("FileSystem"),
                                serial_number=result.get("VolumeSerialNumber"),

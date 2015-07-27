@@ -4,6 +4,7 @@
 """Tests for memory related flows."""
 
 import copy
+import gzip
 import json
 import os
 import socket
@@ -49,13 +50,13 @@ class DummyDiskVolumeInfo(flow.GRRFlow):
   def Start(self):
     if "/opt" in self.args.path_list[0]:
       mnt = rdf_client.UnixVolume(mount_point="/opt")
-      self.SendReply(rdf_client.Volume(unix=mnt, bytes_per_sector=4096,
+      self.SendReply(rdf_client.Volume(unixvolume=mnt, bytes_per_sector=4096,
                                        sectors_per_allocation_unit=1,
                                        actual_available_allocation_units=10,
                                        total_allocation_units=100))
     else:
       mnt = rdf_client.UnixVolume(mount_point="/var")
-      self.SendReply(rdf_client.Volume(unix=mnt, bytes_per_sector=1,
+      self.SendReply(rdf_client.Volume(unixvolume=mnt, bytes_per_sector=1,
                                        sectors_per_allocation_unit=1,
                                        actual_available_allocation_units=784165,
                                        total_allocation_units=78416500))
@@ -554,9 +555,9 @@ class ListVADBinariesActionMock(action_mocks.ActionMock):
 
   def RekallAction(self, _):
     ps_list_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
-                                "rekall_vad_result.dat")
+                                "rekall_vad_result.dat.gz")
     response = rdf_rekall_types.RekallResponse(
-        json_messages=open(ps_list_file, "rb").read(),
+        json_messages=gzip.open(ps_list_file, "rb").read(),
         plugin="pslist")
 
     # If we are given process names here we need to craft a Rekall result

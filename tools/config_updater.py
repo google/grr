@@ -12,6 +12,7 @@ import re
 import readline  # pylint: disable=unused-import
 import sys
 import urlparse
+import socket
 
 
 # pylint: disable=unused-import,g-bad-import-order
@@ -405,14 +406,14 @@ def GenerateKeys(config):
   GenerateDjangoKey(config)
 
 
-def RetryQuestion(question_text, output_re="", default_val=""):
+def RetryQuestion(question_text, output_re="", default_val=None):
   """Continually ask a question until the output_re is matched."""
   while True:
-    if default_val:
+    if default_val is not None:
       new_text = "%s [%s]: " % (question_text, default_val)
     else:
       new_text = "%s: " % question_text
-    output = raw_input(new_text) or default_val
+    output = raw_input(new_text) or str(default_val)
     output = output.strip()
     if not output_re or re.match(output_re, output):
       break
@@ -421,75 +422,219 @@ def RetryQuestion(question_text, output_re="", default_val=""):
   return output
 
 
-def ConfigureBaseOptions(config):
-  """Configure the basic options required to run the server."""
+def ConfigureHostnames(config):
+  """This configures the hostnames stored in the config."""
 
-  print "We are now going to configure the server using a bunch of questions.\n"
-
-  print """\nFor GRR to work each client has to be able to communicate with the
-server. To do this we normally need a public dns name or IP address to
-communicate with. In the standard configuration this will be used to host both
-the client facing server and the admin user interface.\n"""
   if flags.FLAGS.external_hostname:
     hostname = flags.FLAGS.external_hostname
   else:
-    print "Guessing public hostname of your server..."
     try:
-      hostname = maintenance_utils.GuessPublicHostname()
-      print "Using %s as public hostname" % hostname
+      hostname = socket.gethostname()
     except (OSError, IOError):
-      print "Sorry, we couldn't guess your public hostname"
+      print "Sorry, we couldn't guess your hostname.\n"
 
-    hostname = RetryQuestion("Please enter your public hostname e.g. "
-                             "grr.example.com", "^([\\.A-Za-z0-9-]+)*$")
+    hostname = RetryQuestion("Please enter your hostname e.g. "
+                             "grr.example.com", "^[\\.A-Za-z0-9-]+$", hostname)
 
-  print """\n\nServer URL
+  print """\n\n-=Server URL=-
 The Server URL specifies the URL that the clients will connect to
-communicate with the server. This needs to be publically accessible. By default
-this will be port 8080 with the URL ending in /control.
+communicate with the server. For best results this should be publicly
+accessible. By default this will be port 8080 with the URL ending in /control.
 """
-  location = RetryQuestion("Server URL", "^http://.*/control$",
+  location = RetryQuestion("Frontend URL", "^http://.*/control$",
                            "http://%s:8080/control" % hostname)
   config.Set("Client.control_urls", [location])
 
-  frontend_port = urlparse.urlparse(location).port or 80
-  if frontend_port != config_lib.CONFIG.Get("Frontend.bind_port"):
-    config.Set("Frontend.bind_port", frontend_port)
-    print "\nSetting the frontend listening port to %d.\n" % frontend_port
-    print "Please make sure that this matches your client settings.\n"
+  frontend_port = urlparse.urlparse(location).port or config_lib.CONFIG.Get(
+    "Frontend.bind_port")
+  config.Set("Frontend.bind_port", frontend_port)
 
-  print """\nUI URL:
+  print """\n\n-=AdminUI URL=-:
 The UI URL specifies where the Administrative Web Interface can be found.
 """
   ui_url = RetryQuestion("AdminUI URL", "^http[s]*://.*$",
                          "http://%s:8000" % hostname)
   config.Set("AdminUI.url", ui_url)
+  ui_port = urlparse.urlparse(location).port or config_lib.CONFIG.Get(
+    "AdminUI.port")
+  config.Set("AdminUI.port", ui_port)
 
-  print """\nMonitoring/Email domain name:
+def ConfigureDatastore(config):
+  print """
+1. SQLite (Default) - This datastore is stored on the local file system. If you
+configure GRR to run as non-root be sure to allow that user access to the files.
+
+2. MySQL - This datastore uses MySQL and requires MySQL 5.6 server or later
+to be running and a user with the ability to create the GRR database and tables.
+The MySQL client binaries are required for use with the MySQLdb python module as
+well.
+
+3. Mongo - This datastore uses MongoDB and requires MongoDB server to be
+running.  This datastore is a legacy option and is not recommended.\n"""
+
+  datastore = RetryQuestion("Datastore", "^[1-3]$", "1")
+
+  if datastore == "1":
+    config.Set("Datastore.implementation", "SqliteDataStore")
+    datastore_location = RetryQuestion("Datastore Location",
+                                       "^/[A-Za-z0-9/.-]+$",
+                                       config_lib.CONFIG.Get("Datastore.location"))
+    config.Set("Datastore.location", datastore_location)
+
+  if datastore == "2":
+    config.Set("Datastore.implementation", "MySQLAdvancedDataStore")
+    mysql_host = RetryQuestion("MySQL Host", "^[\\.A-Za-z0-9-]+$",
+                               config_lib.CONFIG.Get("Mysql.host"))
+    config.Set("Mysql.host", mysql_host)
+
+    mysql_port = RetryQuestion("MySQL Port (0 for local socket)",
+                               "^[0-9]+$",
+                               config_lib.CONFIG.Get("Mysql.port"))
+    config.Set("Mysql.port", mysql_port)
+
+    mysql_database = RetryQuestion("MySQL Database", "^[A-Za-z0-9-]+$",
+                                   config_lib.CONFIG.Get("Mysql.database_name"))
+    config.Set("Mysql.database_name", mysql_database)
+
+    mysql_username = RetryQuestion("MySQL Username", "[A-Za-z0-9-]+$",
+                                   config_lib.CONFIG.Get("Mysql.database_username"))
+    config.Set("Mysql.database_username", mysql_username)
+
+    mysql_password = getpass.getpass(
+      prompt="Please enter password for database user %s: " % mysql_username)
+    config.Set("Mysql.database_password", mysql_password)
+
+  if datastore == "3":
+    config.Set("Datastore.implementation", "MongoDataStore")
+    mongo_server = RetryQuestion("Mongo Host", "^[\\.A-Za-z0-9-]+$",
+                                 config_lib.CONFIG.Get("Mongo.server"))
+    config.Set("Mongo.server", mongo_server)
+
+    mongo_port = RetryQuestion("Mongo Port", "^[0-9]+$",
+                               config_lib.CONFIG.Get("Mongo.port"))
+    config.Set("Mongo.port", mongo_port)
+
+    mongo_database = RetryQuestion("Mongo Database", "^[A-Za-z0-9-]+$",
+                                   config_lib.CONFIG.Get("Mongo.db_name"))
+    config.Set("Mongo.db_name", mongo_database)
+
+def ConfigureEmails(config):
+  print """\n\n-=Monitoring/Email Domain=-
 Emails concerning alerts or updates must be sent to this domain.
 """
-  domain = RetryQuestion("Email domain", "^([\\.A-Za-z0-9-]+)*$",
-                         "example.com")
+  domain = RetryQuestion("Email Domain e.g example.com",
+                         "^([\\.A-Za-z0-9-]+)*$",
+                         config_lib.CONFIG.Get("Logging.domain"))
   config.Set("Logging.domain", domain)
 
-  print """\nMonitoring email address
+  print """\n\n-=Alert Email Address=-
 Address where monitoring events get sent, e.g. crashed clients, broken server
 etc.
 """
-  email = RetryQuestion("Monitoring email", "",
+  email = RetryQuestion("Alert Email Address", "",
                         "grr-monitoring@%s" % domain)
   config.Set("Monitoring.alert_email", email)
 
-  print """\nEmergency email address
+  print """\n\n-=Emergency Email Address=-
 Address where high priority events such as an emergency ACL bypass are sent.
 """
-  emergency_email = RetryQuestion("Monitoring emergency email", "",
+  emergency_email = RetryQuestion("Emergency Access Email Address", "",
                                   "grr-emergency@%s" % domain)
   config.Set("Monitoring.emergency_access_email", emergency_email)
 
+def ConfigureBaseOptions(config):
+  """Configure the basic options required to run the server."""
+
+  print "We are now going to configure the server using a bunch of questions."
+
+  print """\n\n-=GRR Datastore=-
+For GRR to work each GRR server has to be able to communicate with the
+datastore.  To do this we need to configure a datastore.\n"""
+
+  existing_datastore = config_lib.CONFIG.Get("Datastore.implementation")
+
+  if not existing_datastore or existing_datastore == "FakeDataStore":
+    ConfigureDatastore(config)
+  else:
+    print """Found existing settings:
+  Datastore: %s""" % existing_datastore
+
+    if existing_datastore == "SqliteDataStore":
+      print """  Datastore Location: %s
+      """ % config_lib.CONFIG.Get("Datastore.location")
+
+    if existing_datastore == "MySQLAdvancedDataStore":
+      print """  MySQL Host: %s
+  MySQL Port: %s
+  MySQL Database: %s
+  MySQL Username: %s
+  """ % (config_lib.CONFIG.Get("Mysql.host"),
+         config_lib.CONFIG.Get("Mysql.port"),
+         config_lib.CONFIG.Get("Mysql.database_name"),
+         config_lib.CONFIG.Get("Mysql.database_username"))
+
+    if existing_datastore == "MongoDataStore":
+      print """  Mongo Host: %s
+  Mongo Port: %s
+  Mongo Database: %s
+  """ % (config_lib.CONFIG.Get("Mongo.server"),
+         config_lib.CONFIG.Get("Mongo.port"),
+         config_lib.CONFIG.Get("Mongo.db_name"))
+
+    if raw_input("Do you want to keep this configuration?"
+                 " [Yn]: ").upper() == "N":
+      ConfigureDatastore(config)
+
+
+  print """\n\n-=GRR URLs=-
+For GRR to work each client has to be able to communicate with the
+server. To do this we normally need a public dns name or IP address to
+communicate with. In the standard configuration this will be used to host both
+the client facing server and the admin user interface.\n"""
+
+  existing_ui_urn = config_lib.CONFIG.Get("AdminUI.url", default=None)
+  existing_frontend_urn = config_lib.CONFIG.Get("Client.control_urls",
+                                                default=None)
+  if not existing_frontend_urn or not existing_ui_urn:
+    ConfigureHostnames(config)
+  else:
+    print """Found existing settings:
+  AdminUI URL: %s
+  Frontend URL(s): %s
+""" % (existing_ui_urn, existing_frontend_urn)
+
+    if raw_input("Do you want to keep this configuration?"
+                 " [Yn]: ").upper() == "N":
+      ConfigureHostnames(config)
+
+  print """\n\n-=GRR Emails=-
+  GRR needs to be able to send emails for various logging and
+  alerting functions.  The email domain will be appended to GRR user names
+  when sending emails to users.\n"""
+
+  existing_log_domain = config_lib.CONFIG.Get("Logging.domain",
+                                                  default=None)
+  existing_al_email = config_lib.CONFIG.Get("Monitoring.alert_email",
+                                                default=None)
+
+  existing_em_email = config_lib.CONFIG.Get("Monitoring.emergency_access_email",
+                                                default=None)
+  if not existing_log_domain or not existing_al_email or not existing_em_email:
+    ConfigureEmails(config)
+  else:
+    print """Found existing settings:
+  Email Domain: %s
+  Alert Email Address: %s
+  Emergency Access Email Address: %s
+""" % (existing_log_domain, existing_al_email, existing_em_email)
+
+    if raw_input("Do you want to keep this configuration?"
+                 " [Yn]: ").upper() == "N":
+      ConfigureEmails(config)
+
   config.Write()
   print ("Configuration parameters set. You can edit these in %s" %
-         config.parser)
+         config_lib.CONFIG.Get("Config.writeback"))
 
 
 def Initialize(config=None, token=None):
@@ -525,14 +670,14 @@ def Initialize(config=None, token=None):
   print "\nStep 2: Setting Basic Configuration Parameters"
   ConfigureBaseOptions(config)
 
-  # Now load our modified config.
-  startup.ConfigInit()
+  # Now initialize with our modified config.
+  startup.Init()
 
   print "\nStep 3: Adding Admin User"
   try:
     AddUser("admin", labels=["admin"], token=token)
   except UserError:
-    if ((raw_input("User 'admin' already exists, do you want to"
+    if ((raw_input("User 'admin' already exists, do you want to "
                    "reset the password? [yN]: ").upper() or "N") == "Y"):
       UpdateUser("admin", password=True, add_labels=["admin"], token=token)
 
@@ -573,7 +718,13 @@ def main(unused_argv):
   token = GetToken()
   config_lib.CONFIG.AddContext("Commandline Context")
   config_lib.CONFIG.AddContext("ConfigUpdater Context")
-  startup.Init()
+
+  if flags.FLAGS.subparser_name == "initialize":
+    startup.ConfigInit()
+    Initialize(config_lib.CONFIG, token=token)
+    return
+  else:
+    startup.Init()
 
   try:
     print "Using configuration %s" % config_lib.CONFIG.parser
@@ -598,9 +749,6 @@ def main(unused_argv):
     maintenance_utils.RepackAllBinaries(upload=flags.FLAGS.upload,
                                         debug_build=True,
                                         token=token)
-
-  elif flags.FLAGS.subparser_name == "initialize":
-    Initialize(config_lib.CONFIG, token=token)
 
   elif flags.FLAGS.subparser_name == "show_user":
     ShowUser(flags.FLAGS.username, token=token)
@@ -653,8 +801,9 @@ def main(unused_argv):
               os.path.basename(flags.FLAGS.file))
 
     # Now upload to the destination.
-    uploaded = maintenance_utils.UploadSignedConfigBlob(
-        content, aff4_path=dest_path, client_context=context, token=token)
+    maintenance_utils.UploadSignedConfigBlob(content, aff4_path=dest_path,
+                                             client_context=context,
+                                             token=token)
 
     print "Uploaded to %s" % dest_path
 

@@ -102,7 +102,7 @@ class VFSHandler(object):
     if self.IsDirectory():
       return self
 
-    # TODO(user): Add support for more container here (e.g. registries, zip
+    # TODO(user): Add support for more containers here (e.g. registries, zip
     # files etc).
     else:  # For now just guess TSK.
       return VFS_HANDLERS[rdf_paths.PathSpec.PathType.TSK](
@@ -136,8 +136,12 @@ class VFSHandler(object):
           component = x
           break
 
-    new_pathspec = rdf_paths.PathSpec(path=component,
-                                      pathtype=fd.supported_pathtype)
+    if fd.supported_pathtype != self.pathspec.pathtype:
+      new_pathspec = rdf_paths.PathSpec(path=component,
+                                        pathtype=fd.supported_pathtype)
+    else:
+      new_pathspec = self.pathspec.last.Copy()
+      new_pathspec.path = component
 
     return new_pathspec
 
@@ -380,7 +384,6 @@ def VFSOpen(pathspec, progress_callback=None):
   # For each pathspec step, we get the handler for it and instantiate it with
   # the old object, and the current step.
   while working_pathspec:
-
     component = working_pathspec.Pop()
     try:
       handler = VFS_HANDLERS[component.pathtype]

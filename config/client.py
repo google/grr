@@ -48,7 +48,7 @@ config_lib.DEFINE_string(
     help="Where GRR stores cached Rekall profiles needed for memory analysis")
 
 config_lib.DEFINE_list("Client.control_urls",
-                       ["http://www.example.com/control"],
+                       ["http://localhost:8080/control"],
                        "List of URLs of the controlling server.")
 
 config_lib.DEFINE_string("Client.plist_path",

@@ -123,8 +123,9 @@ SemanticValueController.prototype.compileSingleTypedValueTemplate_ = function(
  * @private
  */
 SemanticValueController.prototype.compileRepeatedValueTemplate_ = function() {
-  var element = angular.element('<div ng-repeat="item in ::value || []">' +
-      '<grr-semantic-value value="::item" /></div>');
+  var element = angular.element(
+      '<div ng-repeat="item in ::repeatedValue || []">' +
+          '<grr-semantic-value value="::item" /></div>');
   return this.compile_(element);
 };
 
@@ -169,6 +170,18 @@ SemanticValueController.prototype.onValueChange = function() {
       handleTemplate(template);
     }
   } else if (angular.isArray(value)) {
+    if (value.length > 10) {
+      var continuation = value.slice(10);
+      this.scope_.repeatedValue = value.slice(0, 10);
+      this.scope_.repeatedValue.push({
+        type: 'FetchMoreLink',
+        mro: ['FetchMoreLink'],
+        value: continuation
+      });
+    } else {
+      this.scope_.repeatedValue = value;
+    }
+
     if (angular.isUndefined(
         grrUi.semantic.semanticValueDirective.repeatedValuesTemplate)) {
       grrUi.semantic.semanticValueDirective.repeatedValuesTemplate =

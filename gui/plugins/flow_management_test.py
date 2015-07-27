@@ -98,8 +98,10 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
 
     self.Click("link=GetFile")
 
-    self.Select("css=select#args-pathspec-pathtype", "OS")
-    self.Type("css=input#args-pathspec-path", u"/dev/c/msn[1].exe")
+    self.Select("css=.form-group:has(> label:contains('Pathtype')) select",
+                "OS")
+    self.Type("css=.form-group:has(> label:contains('Path')) input",
+              u"/dev/c/msn[1].exe")
 
     self.Click("css=button.Launch")
 

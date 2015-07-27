@@ -19,6 +19,7 @@ class NetworkLimitTestFlow(flow.GRRFlow):
   @flow.StateHandler(next_state="MultiGetFile")
   def Start(self):
     urandom = rdf_paths.PathSpec(path="/dev/urandom",
+                                 file_size_override=2 * 1024 * 1024,
                                  pathtype=rdf_paths.PathSpec.PathType.OS)
     self.CallClient("CopyPathToFile",
                     offset=0,
@@ -103,6 +104,7 @@ class TestNetworkFlowLimit(base.AutomatedTest):
       self.assertAlmostEqual(flow_obj.state.context.network_bytes_sent,
                              500 * 1024, delta=30000)
       backtrace = flow_obj.state.context.get("backtrace", "")
+      self.assertIsNotNone(backtrace)
       self.assertTrue("Network bytes limit exceeded." in backtrace)
 
 

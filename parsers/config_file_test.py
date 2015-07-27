@@ -265,7 +265,7 @@ class RsyslogParserTests(test_lib.GRRBaseTest):
 
     self.assertEqual("news,uucp", null.facility)
     self.assertEqual("*", null.priority)
-    self.assertEqual("NULL", null.transport)
+    self.assertEqual("NONE", null.transport)
     self.assertFalse(null.destination)
 
     self.assertEqual("user", script.facility)

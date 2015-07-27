@@ -43,12 +43,13 @@ class ApiCallRendererRegressionTest(test_lib.GRRBaseTest):
     super(ApiCallRendererRegressionTest, self).setUp()
     self.checks = []
 
-  def Check(self, method, url, replace=None):
+  def Check(self, method, url, payload=None, replace=None):
     """Records output of a given url accessed with a given method.
 
     Args:
-      method: HTTP method. Currently, only "GET" is supported.
+      method: HTTP method. May be "GET" or "POST".
       url: String repesenting an url.
+      payload: JSON-able payload that will be sent when "POST" method is used.
       replace: Dictionary of key->value pairs. In the recorded JSON output
                every "key" string will be replaced with its "value"
                counterpart. This way we can properly handle dynamically
@@ -64,29 +65,34 @@ class ApiCallRendererRegressionTest(test_lib.GRRBaseTest):
                                environ={"SERVER_NAME": "foo.bar",
                                         "SERVER_PORT": 1234},
                                user="test")
+    request.META = {}
 
     if method == "GET":
       request.GET = dict(urlparse.parse_qsl(parsed_url.query))
-      request.META = {}
-
-      http_response = http_api.RenderHttpResponse(request)
-      content = http_response.content
-
-      xssi_token = ")]}'\n"
-      if content.startswith(xssi_token):
-        content = content[len(xssi_token):]
-
-      if replace:
-        for substr, repl in replace.items():
-          content = content.replace(substr, repl)
-          url = url.replace(substr, repl)
-
-      parsed_content = json.loads(content)
-      self.checks.append(dict(method=method, url=url,
-                              test_class=self.__class__.__name__,
-                              response=parsed_content))
+    elif method == "POST":
+      request.body = json.dumps(payload)
     else:
       raise ValueError("Unsupported method: %s." % method)
+
+    http_response = http_api.RenderHttpResponse(request)
+    content = http_response.content
+
+    xssi_token = ")]}'\n"
+    if content.startswith(xssi_token):
+      content = content[len(xssi_token):]
+
+    if replace:
+      if hasattr(replace, "__call__"):
+        replace = replace()
+
+      for substr, repl in replace.items():
+        content = content.replace(substr, repl)
+        url = url.replace(substr, repl)
+
+    parsed_content = json.loads(content)
+    self.checks.append(dict(method=method, url=url,
+                            test_class=self.__class__.__name__,
+                            response=parsed_content))
 
   @abc.abstractmethod
   def Run(self):

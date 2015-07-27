@@ -702,8 +702,7 @@ class RecursiveRefreshDialog(renderers.ConfirmationDialogRenderer):
     args = forms.SemanticProtoFormRenderer(
         filesystem.RecursiveListDirectoryArgs()).ParseArgs(request)
 
-    fd = aff4.FACTORY.Open(aff4_path, aff4_type="AFF4Volume",
-                           token=request.token)
+    fd = aff4.FACTORY.Open(aff4_path, token=request.token)
     args.pathspec = fd.real_pathspec
 
     flow.GRRFlow.StartFlow(client_id=aff4_path.Split()[0],

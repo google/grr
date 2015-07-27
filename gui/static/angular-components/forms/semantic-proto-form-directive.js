@@ -24,29 +24,73 @@ grrUi.forms.semanticProtoFormDirective.SemanticProtoFormController = function(
   this.grrReflectionService_ = grrReflectionService;
 
   /** @type {boolean} */
+  this.advancedShown = false;
+
+  /** @type {boolean} */
+  this.hasAdvancedFields = false;
+
+  /** @type {boolean} */
   this.expanded = false;
 
-  this.scope_.$watch('value.type', this.onValueTypeChanged_.bind(this));
+  this.scope_.$watch('value', this.onValueChange_.bind(this));
 };
 var SemanticProtoFormController =
     grrUi.forms.semanticProtoFormDirective.SemanticProtoFormController;
 
 
 /**
+ * Predicate that returns true only for regular (non-hidden, non-advanced)
+ * fields.
+ *
+ * @param {Object} field Descriptor field to check.
+ * @param {Number} index Descriptor field index.
+ * @return {boolean}
+ * @export
+ */
+SemanticProtoFormController.prototype.regularFieldsOnly = function(
+    field, index) {
+  return angular.isUndefined(field.labels) ||
+      field.labels.indexOf('HIDDEN') == -1 &&
+      field.labels.indexOf('ADVANCED') == -1;
+};
+
+
+/**
+ * Predicate that returns true only for advanced (and non-hidden) fields.
+ *
+ * @param {Object} field Descriptor field to check.
+ * @param {Number} index Descriptor field index.
+ * @return {boolean}
+ * @export
+ */
+SemanticProtoFormController.prototype.advancedFieldsOnly = function(
+    field, index) {
+  return angular.isDefined(field.labels) &&
+      field.labels.indexOf('HIDDEN') == -1 &&
+      field.labels.indexOf('ADVANCED') != -1;
+};
+
+
+/**
  * Handles changes of the value type.
  *
  * @param {?string} newValue
+ * @param {?string} oldValue
  * @private
  */
-SemanticProtoFormController.prototype.onValueTypeChanged_ = function(newValue) {
+SemanticProtoFormController.prototype.onValueChange_ = function(
+    newValue, oldValue) {
   if (angular.isUndefined(newValue)) {
     this.descriptors = undefined;
     this.valueDescriptor = undefined;
     return;
   }
 
-  this.grrReflectionService_.getRDFValueDescriptor(
-      this.scope_.value.type, true).then(this.onDescriptorsFetched_.bind(this));
+  if (newValue !== oldValue || angular.isUndefined(this.valueDescriptor)) {
+    this.grrReflectionService_.getRDFValueDescriptor(
+        this.scope_.value.type, true).then(
+            this.onDescriptorsFetched_.bind(this));
+  }
 };
 
 
@@ -66,6 +110,16 @@ SemanticProtoFormController.prototype.onDescriptorsFetched_ = function(
   }
 
   angular.forEach(this.valueDescriptor['fields'], function(field) {
+    if (angular.isDefined(field.labels)) {
+      if (field.labels.indexOf('HIDDEN') != -1) {
+        return;
+      }
+
+      if (field.labels.indexOf('ADVANCED') != -1) {
+        this.hasAdvancedFields = true;
+      }
+    }
+
     if (field.repeated) {
       field.depth = 0;
 

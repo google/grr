@@ -971,7 +971,7 @@ class DiskVolumeInfo(flow.GRRFlow):
       self.Log("Error running WMILogicalDisks artifact: %s", responses.status)
 
     for response in responses:
-      if response.windows.drive_letter in self.state.drive_letters:
+      if response.windowsvolume.drive_letter in self.state.drive_letters:
         self.SendReply(response)
 
   @flow.StateHandler()

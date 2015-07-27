@@ -10,11 +10,10 @@
 #include "grr/client/minicomm/client_action.h"
 
 namespace grr {
+namespace actions {
 class EnumerateFilesystems : public ClientAction {
  public:
   EnumerateFilesystems();
-
-  const char* Name() override { return kName; }
 
   void ProcessRequest(ActionContext* args) override;
 
@@ -29,13 +28,12 @@ class EnumerateFilesystems : public ClientAction {
 
   Filesystem ProcessLine(std::string line);
 
-  static const char kName[];
   const std::set<std::string> to_report_;
 
   FRIEND_TEST(EnumerateFilesystemsTest, ProcessFileComments);
   FRIEND_TEST(EnumerateFilesystemsTest, ProcessFileNormal);
 };
-
+}  // namespace actions
 }  // namespace grr
 
 #endif  // GRR_CLIENT_MINICOMM_CLIENT_ACTIONS_ENUMERATE_FILESYSTEMS_H_

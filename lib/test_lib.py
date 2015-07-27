@@ -1585,6 +1585,27 @@ class MockWorker(worker.GRRWorker):
     return run_sessions
 
 
+class Popen(object):
+  """A mock object for subprocess.Popen."""
+
+  def __init__(self, run, stdout, stderr, stdin, env=None):
+    _ = env
+    Popen.running_args = run
+    Popen.stdout = stdout
+    Popen.stderr = stderr
+    Popen.stdin = stdin
+    Popen.returncode = 0
+
+    try:
+      # Store the content of the executable file.
+      Popen.binary = open(run[0]).read()
+    except IOError:
+      Popen.binary = None
+
+  def communicate(self):  # pylint: disable=g-bad-name
+    return "stdout here", "stderr here"
+
+
 class Test(actions.ActionPlugin):
   """A test action which can be used in mocks."""
   in_rdfvalue = rdf_protodict.DataBlob

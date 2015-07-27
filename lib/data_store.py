@@ -160,6 +160,11 @@ class DataStore(object):
   def DeleteSubject(self, subject, sync=False, token=None):
     """Completely deletes all information about this subject."""
 
+  def DeleteSubjects(self, subjects, sync=False, token=None):
+    """Delete multiple subjects at once."""
+    for subject in subjects:
+      self.DeleteSubject(subject, sync=sync, token=token)
+
   def Set(self, subject, attribute, value, timestamp=None, token=None,
           replace=True, sync=True):
     """Set a single value for this subject's attribute.

@@ -4,6 +4,7 @@ goog.provide('grrUi.forms.module');
 
 goog.require('grrUi.core.module');
 goog.require('grrUi.core.semanticRegistry.SemanticRegistryService');
+goog.require('grrUi.forms.outputPluginDescriptorFormDirective.OutputPluginDescriptorFormDirective');
 goog.require('grrUi.forms.semanticEnumFormDirective.SemanticEnumFormDirective');
 goog.require('grrUi.forms.semanticPrimitiveFormDirective.SemanticPrimitiveFormDirective');
 goog.require('grrUi.forms.semanticProtoFormDirective.SemanticProtoFormDirective');
@@ -25,6 +26,11 @@ grrUi.forms.module.service(
     grrUi.core.semanticRegistry.SemanticRegistryService);
 
 
+grrUi.forms.module.directive(
+    grrUi.forms.outputPluginDescriptorFormDirective
+        .OutputPluginDescriptorFormDirective.directive_name,
+    grrUi.forms.outputPluginDescriptorFormDirective
+        .OutputPluginDescriptorFormDirective);
 grrUi.forms.module.directive(
     grrUi.forms.semanticEnumFormDirective.SemanticEnumFormDirective
         .directive_name,
@@ -60,6 +66,12 @@ grrUi.forms.module.directive(
 
 grrUi.forms.module.run(function(grrSemanticFormDirectivesRegistryService) {
   var registry = grrSemanticFormDirectivesRegistryService;
+
+  registry.registerDirective(
+      grrUi.forms.outputPluginDescriptorFormDirective
+          .OutputPluginDescriptorFormDirective.semantic_type,
+      grrUi.forms.outputPluginDescriptorFormDirective
+          .OutputPluginDescriptorFormDirective);
 
   var primitiveSemanticTypes =
       grrUi.forms.semanticPrimitiveFormDirective.SemanticPrimitiveFormDirective

@@ -3,7 +3,7 @@
 
 
 
-
+import gzip
 import os
 
 from grr.lib import config_lib
@@ -19,10 +19,10 @@ class RekallVADParserTest(test_lib.GRRBaseTest):
 
   def testBasicParsing(self):
     ps_list_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
-                                "rekall_vad_result.dat")
+                                "rekall_vad_result.dat.gz")
 
     result = rdf_rekall_types.RekallResponse(
-        json_messages=open(ps_list_file).read(10000000),
+        json_messages=gzip.open(ps_list_file).read(10000000),
         plugin="pslist",
     )
 

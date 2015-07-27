@@ -1,6 +1,7 @@
 #include "config.h"
 
 #include <stddef.h>
+#include <sys/stat.h>
 #ifdef _WIN32
 #include <io.h>
 #else
@@ -126,7 +127,8 @@ std::string ClientConfig::MakeClientId() {
   if (!key_.get()) {
     return "";
   }
-  return "C." + BytesToHex(Digest::Sha256(key_.PublicKeyN()).substr(0, 8));
+  return "C." + BytesToHex(Digest::Hash(Digest::Type::SHA256, key_.PublicKeyN())
+                               .substr(0, 8));
 }
 
 bool ClientConfig::MergeConfigFile(const std::string& config_file,

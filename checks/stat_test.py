@@ -17,20 +17,53 @@ class StatOnlyTests(checks_test_lib.HostCheckTest):
     """Ensure root $PATH check detects files that non-root users can edit."""
 
     data = [self.CreateStat("/usr/local/bin/hit-123", 50, 0, 0o0100640),
-            self.CreateStat("/usr/local/bin/hit-234", 0, 60, 0o0040777),
             self.CreateStat("/usr/local/bin/no-hit-123", 0, 6000, 0o0100440),
             self.CreateStat("/usr/local/bin/no-hit-234", 0, 0, 0o0100640),
-            self.CreateStat("/usr/local/bin/hit-345", 70, 0, 0o0100660)]
+            self.CreateStat("/usr/local/bin/hit-345", 70, 0, 0o0100660),
+            self.CreateStat("/bin/hit-symlink-567", 70, 0, 0o0120777),
+            self.CreateStat("/bin/no-hit-symlink-456", 0, 0, 0o0120777)]
 
     results = self.GenResults(["RootEnvPath"], [data])
 
-    check_id = "CIS-ROOT-PATH-HAS-FILES-FOLDERS-WRITABLE-BY-NON-ROOT"
-    sym = ("Found: Files or folders in default $PATH of root can be modified "
+    check_id = "CIS-ROOT-PATH-HAS-FILES-WRITABLE-BY-NON-ROOT"
+    sym = ("Found: Files in default $PATH of root can be modified "
            "by non-privileged users.")
     found = ["/usr/local/bin/hit-123 user: 50, group: 0, mode: -rw-r-----",
-             "/usr/local/bin/hit-234 user: 0, group: 60, mode: drwxrwxrwx",
-             "/usr/local/bin/hit-345 user: 70, group: 0, mode: -rw-rw----",]
+             "/usr/local/bin/hit-345 user: 70, group: 0, mode: -rw-rw----",
+             "/bin/hit-symlink-567 user: 70, group: 0, mode: lrwxrwxrwx"]
+    self.assertCheckDetectedAnom(check_id, results, sym, found)
 
+  def testRootPATHDirCheck(self):
+    """Ensure root $PATH directory entries are editable only by root."""
+
+    data = [
+        # Bad cases:
+        # Non-root group ownership & permissions.
+        self.CreateStat("/usr/local/bin", 0, 60, 0o0040775),
+        # File & Non-root owner.
+        self.CreateStat("/bin", 70, 0, 0o0100660),
+        # A non-root symlink.
+        self.CreateStat("/usr/local/sbin", 1, 0, 0o0120777),
+        # File not owned by root but has no write permissions.
+        self.CreateStat("/sbin", 1, 0, 0o0100400),
+        # Fully root owned dir, but world writable.
+        self.CreateStat("/usr", 0, 0, 0o0040666),
+
+        # Safe cases:
+        self.CreateStat("/usr/local", 0, 0, 0o0040755),  # Root owned directory.
+        self.CreateStat("/usr/bin", 0, 0, 0o0120777),  # Root owned symlink.
+        self.CreateStat("/usr/sbin", 0, 0, 0o0100775)]  # Root owned file.
+
+    results = self.GenResults(["RootEnvPathDirs"], [data])
+
+    check_id = "CIS-ROOT-PATH-HAS-FOLDERS-WRITABLE-BY-NON-ROOT"
+    sym = ("Found: Folders that comprise the default $PATH of root can be "
+           "modified by non-privileged users.")
+    found = ["/usr/local/bin user: 0, group: 60, mode: drwxrwxr-x",
+             "/bin user: 70, group: 0, mode: -rw-rw----",
+             "/usr/local/sbin user: 1, group: 0, mode: lrwxrwxrwx",
+             "/sbin user: 1, group: 0, mode: -r--------",
+             "/usr user: 0, group: 0, mode: drw-rw-rw-"]
     self.assertCheckDetectedAnom(check_id, results, sym, found)
 
   def testUserHomeDirCheck(self):

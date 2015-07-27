@@ -5,10 +5,6 @@
 
 import hashlib
 import os
-import socket
-
-import ipaddr
-
 import logging
 
 from grr.lib import access_control
@@ -188,18 +184,6 @@ def CreateBinaryConfigPaths(token=None):
   except access_control.UnauthorizedAccess:
     logging.info("User is not admin, cannot check configuration tree.")
     return
-
-
-def GuessPublicHostname():
-  """Attempt to guess a public host name for this machine."""
-  local_hostname = socket.gethostname()
-  local_ip = socket.gethostbyname(local_hostname)
-  if not ipaddr.IPAddress(local_ip).is_private:
-    # The host name resolves and is not private.
-    return local_hostname
-  else:
-    # Our local host does not resolve attempt to retreive it externally.
-    raise OSError("Could not detect public hostname for this machine")
 
 
 def _RepackBinary(context, builder_cls):

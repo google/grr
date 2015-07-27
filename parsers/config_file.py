@@ -577,7 +577,7 @@ class RsyslogParser(parsers.FileParser, FieldParser):
       ("TCP", re.compile(r"(?:@@)([^;]*)")),
       ("UDP", re.compile(r"(?:@)([^;]*)")),
       ("PIPE", re.compile(r"(?:\|)([^;]*)")),
-      ("NULL", re.compile(r"(?:~)([^;]*)")),
+      ("NONE", re.compile(r"(?:~)([^;]*)")),
       ("SCRIPT", re.compile(r"(?:\^)([^;]*)")),
       ("MODULE", re.compile(r"(?::om\w:)([^;]*)")),
       ("FILE", re.compile(r"-?(/[^;]*)")),

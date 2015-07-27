@@ -165,8 +165,7 @@ class PsCmdParser(parsers.CommandParser):
   """Parser for '/bin/ps' output. Yields Process rdfvalues."""
 
   output_types = ["Process"]
-  # TODO(user): Add this artifacts to open source.
-  # supported_artifacts = ["ListProcessesPs"]
+  supported_artifacts = ["ListProcessesPsCommand"]
 
   @classmethod
   def Validate(cls):

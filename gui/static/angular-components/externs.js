@@ -120,3 +120,9 @@ angularUi.$modal;
  * @param {Object=} opt_options
  */
 $.plot = function(placeholder, data, opt_options) {};
+
+
+/**
+ * @param {Object} data
+ */
+jQuery.prototype.jstree = function(data) {};

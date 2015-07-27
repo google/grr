@@ -1,0 +1,68 @@
+# This file contains miscellaneous artifacts that collect only the stat of
+# files/folder. This cannot be in ForensicArtifact repo as it uses LIST_FILES
+name: RootEnvPath
+doc: Collect stat on files in root's $PATH.
+sources:
+- type: LIST_FILES
+  attributes:
+    paths:
+      - '/usr/local/sbin/*'
+      - '/usr/local/bin/*'
+      - '/usr/sbin/*'
+      - '/usr/bin/*'
+      - '/sbin/*'
+      - '/bin/*'
+labels: [Software]
+supported_os: [Linux]
+---
+name: RootEnvPathDirs
+doc: "Collect stat on directories (including parents) containing the files in
+      root's $PATH."
+sources:
+- type: LIST_FILES
+  attributes:
+    paths:
+      - '/usr/local/sbin'
+      - '/usr/local/bin'
+      - '/usr/local'
+      - '/usr/sbin'
+      - '/usr/bin'
+      - '/usr'
+      - '/sbin'
+      - '/bin'
+      - '/'
+labels: [Software]
+supported_os: [Linux]
+---
+name: LinuxLogFiles
+doc: Collect stat of all linux log files/folders
+sources:
+- type: LIST_FILES
+  attributes:
+    paths:
+      - '/var/log'
+      - '/var/log/**'
+labels: [Logs]
+supported_os: [Linux]
+---
+name: UserHomeDirs
+doc: Collect stat on users' home directories
+sources:
+- type: LIST_FILES
+  attributes:
+    paths:
+      - '%%users.homedir%%'
+      - '/root'
+labels: [Users]
+supported_os: [Linux]
+---
+name: UserDotFiles
+doc: Collect stat on dot files in users' home directories
+sources:
+- type: LIST_FILES
+  attributes:
+    paths:
+      - '%%users.homedir%%/.*'
+      - '/root/.*'
+labels: [Configuration Files]
+supported_os: [Linux]

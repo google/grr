@@ -294,11 +294,7 @@ class FileFinder(transfer.MultiGetFileMixin,
           self.FingerprintFile(response.stat_entry.pathspec,
                                request_data=dict(original_result=response))
         else:
-          pathspec = response.stat_entry.pathspec
-          vfs_urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
-              pathspec, self.client_id)
-
-          self.StartFileFetch(pathspec, vfs_urn,
+          self.StartFileFetch(response.stat_entry.pathspec,
                               request_data=dict(original_result=response))
 
   def ReceiveFileFingerprint(self, urn, hash_obj, request_data=None):

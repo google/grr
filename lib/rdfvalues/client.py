@@ -422,8 +422,8 @@ class Volume(structs.RDFProtoStruct):
 
   def Name(self):
     """Return the best available name for this volume."""
-    return (self.name or self.device_path or self.windows.drive_letter or
-            self.unix.mount_point or None)
+    return (self.name or self.device_path or self.windowsvolume.drive_letter or
+            self.unixvolume.mount_point or None)
 
 
 class Volumes(protodict.RDFValueArray):

@@ -176,7 +176,7 @@ class TestClientInterrogate(artifact_test.ArtifactTest):
     self.assertEqual(len(volumes), 2)
     for result in volumes:
       self.assertTrue(isinstance(result, rdf_client.Volume))
-      self.assertTrue(result.windows.drive_letter in ["Z:", "C:"])
+      self.assertTrue(result.windowsvolume.drive_letter in ["Z:", "C:"])
 
   def _CheckRegistryPathspec(self):
     # This tests that we can click refresh on a key in the registry vfs subtree

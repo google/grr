@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """End to end tests for lib.flows.general.memory."""
 
+import os
+
 
 from grr.endtoend_tests import base
 from grr.lib import aff4
@@ -11,7 +13,7 @@ from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 
 class TestGrepMemory(base.AutomatedTest):
   """Test ScanMemory."""
-  platforms = ["Windows", "Darwin"]
+  platforms = ["Windows"]
   flow = "ScanMemory"
   test_output_path = "analysis/grep/testing"
   args = {"also_download": False,
@@ -124,16 +126,13 @@ class TestAnalyzeClientMemoryWindowsDLLList(
     super(TestAnalyzeClientMemoryWindowsDLLList, self).CheckFlow()
 
     # Make sure the dlllist found our process by regex:
-    response_str = "".join([unicode(x) for x in self.response])
+    response_str = "".join([x.json_messages for x in self.response])
     self.assertIn(self.binaryname, response_str)
 
 
-class TestAnalyzeClientMemoryMac(AbstractTestAnalyzeClientMemory):
-  """Runs Rekall on Macs.
-
-  This test has been disabled for automated testing since OS X memory analysis
-  isn't reliable with Yosemite yet.
-  """
+class TestAnalyzeClientMemoryMac(AbstractTestAnalyzeClientMemory,
+                                 base.AutomatedTest):
+  """Runs Rekall on Macs."""
   platforms = ["Darwin"]
 
   def setUpRequest(self):
@@ -146,7 +145,10 @@ class TestAnalyzeClientMemoryMac(AbstractTestAnalyzeClientMemory):
     binary_name = config_lib.CONFIG.Get(
         "Client.binary_name", context=["Client context", "Platform:Darwin"])
 
-    self.assertTrue(binary_name in str(response))
+    responses = list(response)
+    self.assertTrue(len(responses))
+    self.assertTrue(any([binary_name in response.json_messages
+                         for response in list(response)]))
 
 
 class TestAnalyzeClientMemoryLinux(AbstractTestAnalyzeClientMemory):
@@ -157,10 +159,13 @@ class TestAnalyzeClientMemoryLinux(AbstractTestAnalyzeClientMemory):
     self.args["request"].plugins = [
         rdf_rekall_types.PluginRequest(plugin="pslist")]
 
+  def CheckForInit(self):
+    responses = aff4.FACTORY.Open(self.client_id.Add(self.test_output_path),
+                                  token=self.token)
+    self.assertTrue(any(["\"init\"" in r.json_messages for r in responses]))
+
   def CheckFlow(self):
-    response = aff4.FACTORY.Open(self.client_id.Add(self.test_output_path),
-                                 token=self.token)
-    self.assertTrue('"init"' in str(response[0]))
+    self.CheckForInit()
 
 
 class TestAnalyzeClientMemoryLoggingWorks(AbstractTestAnalyzeClientMemory):
@@ -175,7 +180,7 @@ class TestAnalyzeClientMemoryLoggingWorks(AbstractTestAnalyzeClientMemory):
   def CheckFlow(self):
     response = aff4.FACTORY.Open(self.client_id.Add(self.test_output_path),
                                  token=self.token)
-    self.assertTrue('"level":"DEBUG"' in response[0].json_messages)
+    self.assertIn("\"level\":\"DEBUG\"", response[0].json_messages)
 
 
 class TestAnalyzeClientMemoryNonexistantPlugin(AbstractTestAnalyzeClientMemory):
@@ -186,10 +191,17 @@ class TestAnalyzeClientMemoryNonexistantPlugin(AbstractTestAnalyzeClientMemory):
     self.args["request"].plugins = [
         rdf_rekall_types.PluginRequest(plugin="idontexist")]
 
+  def CheckForError(self, flow_state):
+    self.assertEqual(flow_state.context.state.name, "ERROR")
+
+  def CheckForInvalidPlugin(self, flow_state):
+    self.assertIn("Invalid Plugin", flow_state.context.backtrace)
+
   def CheckFlow(self):
     flow = self.OpenFlow()
     flow_state = flow.Get(flow.SchemaCls.FLOW_STATE)
-    self.assertTrue(flow_state.context.state.name == "ERROR")
+    self.CheckForError(flow_state)
+    self.CheckForInvalidPlugin(flow_state)
 
 
 class TestAnalyzeClientMemoryPluginBadParamsFails(
@@ -201,19 +213,56 @@ class TestAnalyzeClientMemoryPluginBadParamsFails(
         rdf_rekall_types.PluginRequest(plugin="pslist",
                                        args=dict(abcdefg=12345))]
 
+  def CheckForInvalidArgs(self, flow_state):
+    self.assertIn("InvalidArgs", flow_state.context.backtrace)
+
   def CheckFlow(self):
-    # First check that the flow ended up with an error
-    super(TestAnalyzeClientMemoryPluginBadParamsFails, self).CheckFlow()
     flow = self.OpenFlow()
     flow_state = flow.Get(flow.SchemaCls.FLOW_STATE)
-    self.assertTrue("InvalidArgs" in flow_state.context.backtrace)
+    # First check that the flow ended up with an error
+    self.CheckForError(flow_state)
+    self.CheckForInvalidArgs(flow_state)
 
 
 class TestAnalyzeClientMemoryNonexistantPluginWithExisting(
-    TestAnalyzeClientMemoryNonexistantPlugin):
+    TestAnalyzeClientMemoryLinux, TestAnalyzeClientMemoryNonexistantPlugin):
   """Tests flow failure when failing and non failing plugins run together."""
 
   def setUpRequest(self):
     self.args["request"].plugins = [
         rdf_rekall_types.PluginRequest(plugin="pslist"),
         rdf_rekall_types.PluginRequest(plugin="idontexist")]
+
+  def CheckFlow(self):
+    flow = self.OpenFlow()
+    flow_state = flow.Get(flow.SchemaCls.FLOW_STATE)
+    # idontexist should throw an error and have invalid plugin in the backtrace.
+    self.CheckForError(flow_state)
+    self.CheckForInvalidPlugin(flow_state)
+    # but pslist should still give results.
+    self.CheckForInit()
+
+
+class TestSigScan(AbstractTestAnalyzeClientMemoryWindows):
+  """Tests signature scanning on Windows."""
+
+  def setUpRequest(self):
+    # This is a signature for the tcpip.sys driver on Windows 7. If you are
+    # running a different version, a hit is not guaranteed.
+    sig_path = os.path.join(config_lib.CONFIG["Test.end_to_end_data_dir"],
+                            "tcpip.sig")
+
+    signature = open(sig_path, "rb").read().strip()
+    args = {"scan_kernel": True,
+            "signature": [signature]}
+    self.args["request"].plugins = [
+        rdf_rekall_types.PluginRequest(plugin="sigscan",
+                                       args=args)
+    ]
+
+  def CheckFlow(self):
+    collection = aff4.FACTORY.Open(self.client_id.Add(self.test_output_path),
+                                   token=self.token)
+    self.assertIsInstance(collection, aff4.RDFValueCollection)
+    self.assertTrue(any(["Hit in kernel AS:" in response.json_messages
+                         for response in list(collection)]))

@@ -97,10 +97,11 @@ class UnixVolumeClientMock(ActionMock):
   unix_home = rdf_client.UnixVolume(mount_point="/")
   path_results = [
       rdf_client.Volume(
-          unix=unix_local, bytes_per_sector=4096, sectors_per_allocation_unit=1,
-          actual_available_allocation_units=50, total_allocation_units=100),
+          unixvolume=unix_local, bytes_per_sector=4096,
+          sectors_per_allocation_unit=1, actual_available_allocation_units=50,
+          total_allocation_units=100),
       rdf_client.Volume(
-          unix=unix_home, bytes_per_sector=4096,
+          unixvolume=unix_home, bytes_per_sector=4096,
           sectors_per_allocation_unit=1,
           actual_available_allocation_units=10,
           total_allocation_units=100)]
@@ -115,11 +116,11 @@ class WindowsVolumeClientMock(ActionMock):
   windows_c = rdf_client.WindowsVolume(drive_letter="C:")
   path_results = [
       rdf_client.Volume(
-          windows=windows_d, bytes_per_sector=4096,
+          windowsvolume=windows_d, bytes_per_sector=4096,
           sectors_per_allocation_unit=1,
           actual_available_allocation_units=50, total_allocation_units=100),
       rdf_client.Volume(
-          windows=windows_c, bytes_per_sector=4096,
+          windowsvolume=windows_c, bytes_per_sector=4096,
           sectors_per_allocation_unit=1, actual_available_allocation_units=10,
           total_allocation_units=100)]
 

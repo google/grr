@@ -11,13 +11,13 @@
 #include "grr/client/minicomm/util.h"
 
 namespace grr {
+namespace actions {
 
 template <class T>
 std::string ToBytes(const T& input) {
   return std::string(static_cast<const char*>(static_cast<const void*>(&input)),
                      sizeof(input));
 }
-const char EnumerateInterfaces::kName[] = "EnumerateInterfaces";
 
 void EnumerateInterfaces::ProcessRequest(ActionContext* context) {
   struct ifaddrs* addresses = nullptr;
@@ -71,4 +71,5 @@ EnumerateInterfaces::InterfaceMap EnumerateInterfaces::ProcessIfaddrList(
   }
   return interfaces;
 }
+}  // namespace actions
 }  // namespace grr

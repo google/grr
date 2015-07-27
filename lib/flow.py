@@ -1033,7 +1033,7 @@ class GRRFlow(aff4.AFF4Volume):
   def GetArgsHelpAsString(cls):
     """Get a string description of the calling prototype for this function."""
     output = ["  Call Spec:", "    %s" % cls.GetCallingPrototypeAsString(), ""]
-    arg_list = cls.GetArgs().items()
+    arg_list = sorted(cls.GetArgs().items(), key=lambda x: x[0])
     if not arg_list:
       output.append("  Args: None")
     else:

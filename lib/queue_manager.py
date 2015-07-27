@@ -329,24 +329,35 @@ class QueueManager(object):
     self.data_store.DeleteSubject(response_subject, token=self.token)
 
   def DestroyFlowStates(self, session_id):
-    """Deletes all states in this flow and dequeue all client messages."""
-    subject = session_id.Add("state")
+    """Deletes all states in this flow and dequeues all client messages."""
+    self.MultiDestroyFlowStates([session_id])
 
-    for _, serialized, _ in self.data_store.ResolveRegex(
-        subject, self.FLOW_REQUEST_REGEX, token=self.token,
+  def MultiDestroyFlowStates(self, session_ids):
+    """Deletes all states in multiple flows and dequeues all client messages."""
+    subjects = [session_id.Add("state") for session_id in session_ids]
+    to_delete = []
+
+    for subject, values in self.data_store.MultiResolveRegex(
+        subjects, self.FLOW_REQUEST_REGEX, token=self.token,
         limit=self.request_limit):
+      for _, serialized, _ in values:
 
-      request = rdf_flows.RequestState(serialized)
+        request = rdf_flows.RequestState(serialized)
 
-      # Efficiently drop all responses to this request.
-      response_subject = self.GetFlowResponseSubject(session_id, request.id)
-      self.data_store.DeleteSubject(response_subject, token=self.token)
+        # Drop all responses to this request.
+        response_subject = self.GetFlowResponseSubject(request.session_id,
+                                                       request.id)
+        to_delete.append(response_subject)
 
-      if request.HasField("request"):
-        self.DeQueueClientRequest(request.client_id, request.request.task_id)
+        if request.HasField("request"):
+          # Client request dequeueing is cached so we can call it directly.
+          self.DeQueueClientRequest(request.client_id, request.request.task_id)
 
-    # Now drop all the requests at once.
-    self.data_store.DeleteSubject(subject, token=self.token)
+      # Mark the request itself for deletion.
+      to_delete.append(subject)
+
+    # Drop them all at once.
+    self.data_store.DeleteSubjects(to_delete, token=self.token)
 
   def Flush(self):
     """Writes the changes in this object to the datastore."""

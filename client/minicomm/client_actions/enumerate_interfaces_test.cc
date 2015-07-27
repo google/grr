@@ -11,6 +11,7 @@
 #include "grr/client/minicomm/util.h"
 
 namespace grr {
+namespace actions {
 
 TEST(EnumerateInterfacesTest, ProcessIfaddrList) {
   char kEth0[] = "eth0";
@@ -61,4 +62,5 @@ TEST(EnumerateInterfacesTest, ProcessIfaddrList) {
     }
   }
 }
+}  // namespace actions
 }  // namespace grr

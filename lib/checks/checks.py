@@ -618,7 +618,7 @@ class CheckRegistry(object):
 
   @classmethod
   def Process(cls, host_data, os_name=None, cpe=None, labels=None,
-              restrict_checks=None):
+              exclude_checks=None, restrict_checks=None):
     """Runs checks over all host data.
 
     Args:
@@ -626,6 +626,8 @@ class CheckRegistry(object):
       os_name: 0+ OS names.
       cpe: 0+ CPE identifiers.
       labels: 0+ GRR labels.
+      exclude_checks: A list of check ids not to run. A check id in this list
+                      will not get run even if included in restrict_checks.
       restrict_checks: A list of check ids that may be run, if appropriate.
 
     Yields:
@@ -636,6 +638,9 @@ class CheckRegistry(object):
     check_ids = cls.FindChecks(artifacts, os_name, cpe, labels)
     conditions = list(cls.Conditions(artifacts, os_name, cpe, labels))
     for check_id in check_ids:
+      # skip if check in list of excluded checks
+      if exclude_checks and check_id in exclude_checks:
+        continue
       if restrict_checks and check_id not in restrict_checks:
         continue
       try:
@@ -646,7 +651,7 @@ class CheckRegistry(object):
 
 
 def CheckHost(host_data, os_name=None, cpe=None, labels=None,
-              restrict_checks=None):
+              exclude_checks=None, restrict_checks=None):
   """Perform all checks on a host using acquired artifacts.
 
   Checks are selected based on the artifacts available and the host attributes
@@ -667,6 +672,8 @@ def CheckHost(host_data, os_name=None, cpe=None, labels=None,
     os_name: An OS name (optional).
     cpe: A CPE string (optional).
     labels: An iterable of labels (optional).
+    exclude_checks: A list of check ids not to run. A check id in this list
+                    will not get run even if included in restrict_checks.
     restrict_checks: A list of check ids that may be run, if appropriate.
 
   Returns:
@@ -685,7 +692,8 @@ def CheckHost(host_data, os_name=None, cpe=None, labels=None,
     # from client)
     pass
   return CheckRegistry.Process(host_data, os_name=os_name, cpe=cpe,
-                               labels=labels, restrict_checks=restrict_checks)
+                               labels=labels, restrict_checks=restrict_checks,
+                               exclude_checks=exclude_checks)
 
 
 def LoadConfigsFromFile(file_path):

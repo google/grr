@@ -18,7 +18,7 @@ message LogTarget {
 
   enum LogTransport {
     UNKNOWN_LOG_TRANSPORT = 0;
-    NULL = 1;
+    NONE = 1;
     FILE = 2;
     UDP = 3;
     TCP = 4;

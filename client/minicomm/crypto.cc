@@ -23,17 +23,53 @@ inline std::string BIOToString(BIO* bio) {
 inline const unsigned char* StringToBytes(const std::string& input) {
   return reinterpret_cast<const unsigned char*>(input.data());
 }
-
 }  // namespace
 
 // *** Digest ***
-std::string Digest::Sha256(const std::string& input) {
-  SHA256_CTX context;
-  SHA256_Init(&context);
-  SHA256_Update(&context, StringToBytes(input), input.length());
-  unsigned char digest[SHA256_DIGEST_LENGTH];
-  SHA256_Final(digest, &context);
-  return std::string(reinterpret_cast<char*>(digest), SHA256_DIGEST_LENGTH);
+Digest::Digest(Digest::Type t) {
+  const EVP_MD* type = nullptr;
+  switch (t) {
+    case Type::MD5:
+      type = EVP_md5();
+      break;
+    case Type::SHA1:
+      type = EVP_sha1();
+      break;
+    case Type::SHA256:
+      type = EVP_sha256();
+      break;
+    default:
+      GOOGLE_LOG(FATAL) << "Unknown digest type:" << int(t);
+  }
+  EVP_MD_CTX_init(&ctx_);
+  if (!EVP_DigestInit_ex(&ctx_, type, nullptr)) {
+    GOOGLE_LOG(FATAL) << "Unable to initialize digest context.";
+  }
+}
+
+void Digest::UpdateInternal(const char* buffer, size_t limit) {
+  EVP_DigestUpdate(&ctx_, reinterpret_cast<const unsigned char*>(buffer),
+                   limit);
+}
+
+void Digest::Update(const std::string& input) {
+  UpdateInternal(input.data(), input.length());
+}
+
+std::string Digest::Final() {
+  unsigned int digest_size;
+  std::unique_ptr<unsigned char[]> buf(
+      new unsigned char[EVP_MD_CTX_size(&ctx_)]);
+  EVP_DigestFinal_ex(&ctx_, buf.get(), &digest_size);
+  return std::string(reinterpret_cast<char*>(buf.get()), digest_size);
+}
+
+Digest::~Digest() { EVP_MD_CTX_cleanup(&ctx_); }
+
+std::string Digest::Hash(Digest::Type t, const std::string& input) {
+  Digest d(t);
+  d.Update(input);
+  return d.Final();
 }
 
 // *** Sha1HMAC ***
@@ -302,8 +338,8 @@ std::string AES128CBCCipher::Decrypt(const std::string& key,
   }
   EVP_CIPHER_CTX context;
   EVP_CIPHER_CTX_init(&context);
-  EVP_DecryptInit_ex(&context, EVP_aes_128_cbc(), NULL,
-                     StringToBytes(key), StringToBytes(iv));
+  EVP_DecryptInit_ex(&context, EVP_aes_128_cbc(), NULL, StringToBytes(key),
+                     StringToBytes(iv));
   EVP_CIPHER_CTX_set_padding(&context, 1);
   const int max_output_size = input.length() + EVP_CIPHER_block_size(cipher);
   std::unique_ptr<unsigned char[]> output(new unsigned char[max_output_size]);

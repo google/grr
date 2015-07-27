@@ -14,6 +14,7 @@ from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import master
+from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
@@ -371,7 +372,10 @@ class CronJob(aff4.AFF4Volume):
     if age is None:
       raise ValueError("age can't be None")
 
-    child_flows = self.ListChildren(age=age)
+    child_flows = list(self.ListChildren(age=age))
+    with queue_manager.QueueManager(token=self.token) as queuemanager:
+      queuemanager.MultiDestroyFlowStates(child_flows)
+
     aff4.FACTORY.MultiDelete(child_flows, token=self.token)
 
   def IsRunning(self):

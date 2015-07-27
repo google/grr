@@ -111,7 +111,7 @@ message Filesystem {
   optional string type = 3;
   optional string label = 4;
   optional AttributedDict options = 5;
-};
+}
 
 message MRUFile {
   optional string filename = 1;
@@ -301,7 +301,7 @@ message LinuxServiceInformation {
     SYSTEMD = 3;
     INETD = 4;
     XINETD = 5;
-  }
+  };
 
   optional StartMode start_mode = 5 [(sem_type) = {
       description: "Service start options",
@@ -464,11 +464,11 @@ message Volume {
       description: "Serial number of the volume",
     }];
 
-  optional WindowsVolume windows = 12 [(sem_type) = {
+  optional WindowsVolume windowsvolume = 12 [(sem_type) = {
       description: "Windows specific volume attributes",
     }];
 
-  optional UnixVolume unix = 13 [(sem_type) = {
+  optional UnixVolume unixvolume = 13 [(sem_type) = {
       description: "Unix specific volume attributes",
     }];
 

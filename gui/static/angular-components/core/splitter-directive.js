@@ -53,9 +53,16 @@ SplitterController.prototype.addPane = function(pane) {
  */
 /** @suppress {missingProperties} For jQuery.splitter(). */
 SplitterController.prototype.link = function() {
+  var closeableTo;
+  if (angular.isDefined(this.scope_['closeableTo'])) {
+    closeableTo = Number(this.scope_['closeableTo']);
+  } else {
+    closeableTo = 100;
+  }
+
   var splitterOptions = {
     animSpeed: 50,
-    closeableto: 100
+    closeableto: closeableTo
   };
 
   if (this.scope_.orientation === 'horizontal') {
@@ -66,16 +73,20 @@ SplitterController.prototype.link = function() {
     throw Error('Orientation can be either "vertical" or "horizontal".');
   }
 
-  var height = $(this.element_).height();
-
   splitterOptions['A'] = $(this.panes[0].elem);
-  splitterOptions['A'].height(height / 2);
-
   splitterOptions['B'] = $(this.panes[1].elem);
-  splitterOptions['B'].height(height / 2);
 
-  $(this.element_).find('.splitter').splitter(splitterOptions);
-  $(this.element_).find('.splitter').resize();
+  // TODO(user): check if this is really needed.
+  if (this.scope_.orientation === 'horizontal') {
+    var height = $(this.element_).height();
+    splitterOptions['A'].height(height / 2);
+    splitterOptions['B'].height(height / 2);
+  }
+
+  $(this.element_).children('div.splitter').splitter(splitterOptions);
+
+  // TODO(user): check if this call is really needed.
+  $(this.element_).children('div.splitter').resize();
 };
 
 
@@ -90,7 +101,8 @@ SplitterController.prototype.link = function() {
 grrUi.core.splitterDirective.SplitterDirective = function() {
   return {
     scope: {
-      orientation: '@'
+      orientation: '@',
+      closeableTo: '@'
     },
     restrict: 'EA',
     transclude: true,

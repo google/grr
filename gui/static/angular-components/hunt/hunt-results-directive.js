@@ -17,27 +17,17 @@ goog.scope(function() {
  */
 grrUi.hunt.huntResultsDirective.HuntResultsController = function(
     $scope) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
-
-  /** @type {string} */
-  this.scope_.huntUrn;
+  /** @export {string} */
+  this.resultsUrl;
 
   /** @export {string} */
-  this.resultsUrn;
+  this.outputPluginsMetadataUrl;
 
   /** @export {string} */
   this.downloadFilesUrl;
 
-  /** @export {string} */
-  this.outputPluginsMetadataUrn;
-
-  /** @export {boolean} */
-  this.resultsAreFiles;
-
-  this.scope_.$watch('huntUrn', this.onHuntUrnChange.bind(this));
+  $scope.$watch('huntUrn', this.onHuntUrnChange.bind(this));
 };
-
 var HuntResultsController =
     grrUi.hunt.huntResultsDirective.HuntResultsController;
 
@@ -45,33 +35,20 @@ var HuntResultsController =
 /**
  * Handles huntUrn attribute changes.
  *
+ * @param {?string} huntUrn
  * @export
  */
-HuntResultsController.prototype.onHuntUrnChange = function() {
-  this.resultsUrn = this.scope_.huntUrn + '/Results';
-  this.outputPluginsMetadataUrn = this.scope_.huntUrn + '/ResultsMetadata';
-
-  var components = this.scope_.huntUrn.split('/');
-  var huntId = components[components.length - 1];
-  this.downloadFilesUrl = '/hunts/' + huntId + '/results/archive-files';
-};
-
-
-/**
- * Transformation callback for results table items provider that determines
- * whether results can be downloaded as an archive.
- *
- * @param {!Array<Object>} items Array of log items.
- * @return {!Array<Object>} Transformed items.
- * @export
- */
-HuntResultsController.prototype.transformItems = function(items) {
-  if (!angular.isDefined(this.resultsAreFiles)) {
-    this.resultsAreFiles = items.length > 0 &&
-        grrUi.core.downloadCollectionFilesDirective.valuePointsToFile(items[0]);
+HuntResultsController.prototype.onHuntUrnChange = function(huntUrn) {
+  if (!angular.isString(huntUrn)) {
+    return;
   }
 
-  return items;
+  var components = huntUrn.split('/');
+  var huntId = components[components.length - 1];
+
+  this.resultsUrl = '/hunts/' + huntId + '/results';
+  this.outputPluginsMetadataUrl = '/hunts/' + huntId + '/output-plugins';
+  this.downloadFilesUrl = '/hunts/' + huntId + '/results/archive-files';
 };
 
 

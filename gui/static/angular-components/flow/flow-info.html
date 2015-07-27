@@ -1,0 +1,39 @@
+<div class="padded" ng-if="descriptor.name">
+
+<h3>{$ descriptor.name $}</h3>
+<p class="preserve-linebreaks">{$ descriptor.doc $}</p>
+
+<pre>
+Prototype: {$ descriptor.prototype $}
+</pre>
+
+<table class="table table-condensed table-bordered full-width fixed-columns">
+
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 60%" />
+<col style="width: 20%" />
+</colgroup>
+
+<thead>
+<tr>
+<th class="ui-state-default">State</th>
+<th class="ui-state-default">Description</th>
+<th class="ui-state-default">Next States</th>
+</tr>
+
+</thead>
+
+<tbody>
+  <tr ng-repeat="state in descriptor.states">
+    <td class="state">{$ state[0] $}</td>
+    <td class="description">{$ state[1] $}</td>
+    <td class="text">{$ state[2] $}</td>
+  </tr>
+</tbody>
+
+</table>
+
+</div>
+
+<div class="padded" ng-if="!descriptor.name">No flow selected.</span>

@@ -356,9 +356,7 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
   in_rdfvalue = rdf_client.ExecuteBinaryRequest
   out_rdfvalue = rdf_client.ExecuteBinaryResponse
 
-  suffix = ""
-
-  def WriteBlobToFile(self, request, suffix=""):
+  def WriteBlobToFile(self, request):
     """Writes the blob to a file and returns its path."""
     lifetime = 0
     # Only set the lifetime thread on the last chunk written.
@@ -375,8 +373,8 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
     else:
       mode = "r+b"
 
-    temp_file = tempfiles.CreateGRRTempFile(filename=request.write_path,
-                                            suffix=suffix, mode=mode)
+    temp_file = tempfiles.CreateGRRTempFile(
+        filename=request.write_path, mode=mode)
     with temp_file:
       path = temp_file.name
       temp_file.seek(0, 2)
@@ -402,7 +400,7 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
     args.executable.Verify(config_lib.CONFIG[
         "Client.executable_signing_public_key"])
 
-    path = self.WriteBlobToFile(args, self.suffix)
+    path = self.WriteBlobToFile(args)
 
     # Only actually run the file on the last chunk.
     if not args.more_data:
@@ -709,5 +707,5 @@ class StatFS(actions.ActionPlugin):
                                  sectors_per_allocation_unit=1,
                                  total_allocation_units=st.f_blocks,
                                  actual_available_allocation_units=st.f_bavail,
-                                 unix=unix)
+                                 unixvolume=unix)
       self.SendReply(result)

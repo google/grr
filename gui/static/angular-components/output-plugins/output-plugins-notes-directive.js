@@ -11,21 +11,21 @@ goog.scope(function() {
  *
  * @constructor
  * @param {!angular.Scope} $scope
- * @param {!grrUi.core.aff4Service.Aff4Service} grrAff4Service
+ * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
 grrUi.outputPlugins.outputPluginsNotesDirective.OutputPluginsNotesController =
-    function($scope, grrAff4Service) {
+    function($scope, grrApiService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @private {!grrUi.core.aff4Service.Aff4Service} */
-  this.grrAff4Service_ = grrAff4Service;
+  /** @private {!grrUi.core.apiService.ApiService} */
+  this.grrApiService_ = grrApiService;
 
   /** @export {?string} */
   this.error;
 
-  this.scope_.$watch('metadataUrn', this.onMetadataUrnChange_.bind(this));
+  this.scope_.$watch('metadataUrl', this.onMetadataUrlChange_.bind(this));
 };
 var OutputPluginsNotesController =
     grrUi.outputPlugins.outputPluginsNotesDirective
@@ -33,21 +33,20 @@ var OutputPluginsNotesController =
 
 
 /**
- * Handles changes in metadata urn.
+ * Handles changes in metadata url.
  *
- * @param {?string} newValue New metadata urn.
+ * @param {?string} newValue New metadata url.
  * @private
  */
-OutputPluginsNotesController.prototype.onMetadataUrnChange_ = function(
+OutputPluginsNotesController.prototype.onMetadataUrlChange_ = function(
     newValue) {
   if (angular.isDefined(newValue)) {
-    this.grrAff4Service_.get(newValue).then(
+    this.grrApiService_.get(/** @type {string} */ (newValue)).then(
         function success(response) {
-          this.states = response.data['attributes'][
-            'aff4:output_plugins_state'];
+          this.states = response['data'];
         }.bind(this),
         function failure(response) {
-          this.error = response.data.message;
+          this.error = response['data']['message'];
         }.bind(this));
   }
 };
@@ -64,7 +63,7 @@ grrUi.outputPlugins.outputPluginsNotesDirective.OutputPluginsNotesDirective =
     function() {
   return {
     scope: {
-      metadataUrn: '='
+      metadataUrl: '='
     },
     restrict: 'E',
     templateUrl: '/static/angular-components/output-plugins/' +

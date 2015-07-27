@@ -17,8 +17,8 @@ class DjangoInit(registry.InitHook):
 
   def RunOnce(self):
     """Configure the Django environment."""
-    if django.VERSION[0] == 1 and django.VERSION[1] < 4:
-      msg = ("The installed Django version is too old. We need 1.4+. You can "
+    if django.VERSION[0] == 1 and django.VERSION[1] < 5:
+      msg = ("The installed Django version is too old. We need 1.5+. You can "
              "install a new version with 'sudo easy_install Django'.")
       logging.error(msg)
       raise RuntimeError(msg)

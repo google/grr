@@ -23,7 +23,7 @@ z_stream MakeZS(const std::string& input) {
 }  // namespace
 
 std::string ZLib::Inflate(const std::string& input) {
-  const auto block_size = std::max(input.size(), 1024UL);
+  const auto block_size = std::max(input.size(), (size_t)1024);
   std::vector<std::unique_ptr<unsigned char[]>> output_blocks;
   output_blocks.emplace_back(new unsigned char[block_size]());
 
@@ -68,4 +68,64 @@ std::string ZLib::Deflate(const std::string& input) {
   deflateEnd(&zs);
   return std::string(reinterpret_cast<char*>(output.get()), zs.total_out);
 }
+
+ZDeflate::ZDeflate() {
+  zs_.zalloc = Z_NULL;
+  zs_.zfree = Z_NULL;
+  zs_.opaque = Z_NULL;
+  deflateInit(&zs_, Z_DEFAULT_COMPRESSION);
+
+  zs_.next_out = nullptr;
+  zs_.avail_out = 0;
+}
+
+ZDeflate::~ZDeflate() { deflateEnd(&zs_); }
+
+void ZDeflate::UpdateInternal(const char* buffer, size_t limit) {
+  zs_.next_in = const_cast<unsigned char*>(
+      reinterpret_cast<const unsigned char*>(buffer));
+  zs_.avail_in = limit;
+
+  int result;
+  do {
+    if (zs_.avail_out == 0) {
+      output_blocks_.emplace_back(new unsigned char[kBlockSize]());
+      zs_.next_out =
+          reinterpret_cast<unsigned char*>(output_blocks_.back().get());
+      zs_.avail_out = kBlockSize;
+    }
+  } while (zs_.avail_in > 0 && (result = deflate(&zs_, Z_NO_FLUSH)) == Z_OK);
+
+  if (result != Z_OK) {
+    GOOGLE_LOG(FATAL) << "Unexpected ZLIB result:" << result;
+  }
+}
+
+std::string ZDeflate::Final() {
+  GOOGLE_CHECK(zs_.avail_in == 0);
+  int result;
+  do {
+    if (zs_.avail_out == 0) {
+      output_blocks_.emplace_back(new unsigned char[kBlockSize]());
+      zs_.next_out =
+          reinterpret_cast<unsigned char*>(output_blocks_.back().get());
+      zs_.avail_out = kBlockSize;
+    }
+  } while ((result = deflate(&zs_, Z_FINISH)) == Z_OK);
+
+  if (result != Z_STREAM_END) {
+    GOOGLE_LOG(FATAL) << "Unexpected ZLIB result:" << result;
+  }
+
+  std::string r;
+  r.reserve(zs_.total_out);
+  for (int i = 0; i < output_blocks_.size() - 1; i++) {
+    r.append(reinterpret_cast<char*>(output_blocks_[i].get()), kBlockSize);
+  }
+  r.append(reinterpret_cast<char*>(output_blocks_.back().get()),
+           kBlockSize - zs_.avail_out);
+  output_blocks_.clear();
+  return r;
+}
+
 }  // namespace grr
