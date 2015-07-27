@@ -6,7 +6,7 @@ import re
 import stat
 
 from grr.lib import aff4
-from grr.lib import artifact_lib
+from grr.lib import artifact_utils
 from grr.lib import flow
 from grr.lib.aff4_objects import aff4_grr
 # pylint: disable=unused-import
@@ -951,7 +951,7 @@ class DiskVolumeInfo(flow.GRRFlow):
   def CollectVolumeInfo(self, unused_responses):
     if self.state.system == "Windows":
       # No dependencies for WMI
-      deps = artifact_lib.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS
+      deps = artifact_utils.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS
       self.CallFlow(
           "ArtifactCollectorFlow",
           artifact_list=["WMILogicalDisks"],

@@ -29,6 +29,7 @@ void EnumerateInterfaces::ProcessRequest(ActionContext* context) {
     return;
   }
   InterfaceMap interfaces = ProcessIfaddrList(addresses);
+
   freeifaddrs(addresses);
   for (const auto& p : interfaces) {
     context->SendResponse(p.second, GrrMessage::MESSAGE);
@@ -38,12 +39,20 @@ void EnumerateInterfaces::ProcessRequest(ActionContext* context) {
 EnumerateInterfaces::InterfaceMap EnumerateInterfaces::ProcessIfaddrList(
     const struct ifaddrs* addresses) {
   InterfaceMap interfaces;
+
   for (auto p = addresses; p != nullptr; p = p->ifa_next) {
     const std::string name(p->ifa_name);
     Interface& result = interfaces[name];
     if (result.ifname() == "") {
       result.set_ifname(name);
     }
+
+    // This will occur typically on Android's usb interfaces, but it's possible
+    // to occur on *nix as well
+    if (p->ifa_addr == nullptr) {
+      continue;
+    }
+
     switch (p->ifa_addr->sa_family) {
       case AF_INET: {
         const auto ip_addr = reinterpret_cast<struct sockaddr_in*>(p->ifa_addr);

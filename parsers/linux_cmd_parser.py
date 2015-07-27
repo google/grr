@@ -172,7 +172,7 @@ class PsCmdParser(parsers.CommandParser):
     """Perform some extra sanity checks on the ps arguments."""
     super(PsCmdParser, cls).Validate()
     for artifact_name in cls.supported_artifacts:
-      artifact = artifact_registry.ArtifactRegistry.artifacts[artifact_name]
+      artifact = artifact_registry.REGISTRY.GetArtifact(artifact_name)
       for source in artifact.sources:
         if not cls._FindPsOutputFormat(source.attributes["cmd"],
                                        source.attributes["args"]):

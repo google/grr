@@ -8,8 +8,8 @@ from grr import parsers as _
 # pylint: enable=unused-import
 from grr.lib import aff4
 from grr.lib import artifact
-from grr.lib import artifact_lib
 from grr.lib import artifact_registry
+from grr.lib import artifact_utils
 from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import parsers
@@ -53,7 +53,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
   """
 
   category = "/Collectors/"
-  args_type = artifact_lib.ArtifactCollectorFlowArgs
+  args_type = artifact_utils.ArtifactCollectorFlowArgs
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   @flow.StateHandler(next_state=["StartCollection"])
@@ -75,7 +75,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       self.state.Register("path_type", paths.PathSpec.PathType.OS)
 
     if (self.args.dependencies ==
-        artifact_lib.ArtifactCollectorFlowArgs.Dependency.FETCH_NOW):
+        artifact_utils.ArtifactCollectorFlowArgs.Dependency.FETCH_NOW):
       # Don't retrieve a full knowledgebase, just get the dependencies we
       # need.  CollectArtifactDependencies calls back to this flow to retrieve
       # the necessary dependencies.  We avoid a loop because
@@ -87,13 +87,13 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       return
 
     elif (self.args.dependencies ==
-          artifact_lib.ArtifactCollectorFlowArgs.Dependency.USE_CACHED) and (
+          artifact_utils.ArtifactCollectorFlowArgs.Dependency.USE_CACHED) and (
               not self.state.knowledge_base):
       # If not provided, get a knowledge base from the client.
       try:
         self.state.knowledge_base = artifact.GetArtifactKnowledgeBase(
             self.client)
-      except artifact_lib.KnowledgeBaseUninitializedError:
+      except artifact_utils.KnowledgeBaseUninitializedError:
         # If no-one has ever initialized the knowledge base, we should do so
         # now.
         if not self._AreArtifactsKnowledgeBaseArtifacts():
@@ -110,7 +110,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
   def StartCollection(self, responses):
     """Start collecting."""
     if not responses.success:
-      raise artifact_lib.KnowledgeBaseUninitializedError(
+      raise artifact_utils.KnowledgeBaseUninitializedError(
           "Attempt to initialize Knowledge Base failed.")
 
     if not self.state.knowledge_base:
@@ -145,7 +145,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
     # Check each of the conditions match our target.
     for condition in test_conditions:
-      if not artifact_lib.CheckCondition(condition, self.state.knowledge_base):
+      if not artifact_utils.CheckCondition(
+          condition, self.state.knowledge_base):
         logging.debug("Artifact %s condition %s failed on %s",
                       artifact_name, condition, self.client_id)
         self.state.artifacts_skipped_due_to_condition.append(
@@ -160,40 +161,40 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       self.ConvertSupportedOSToConditions(source, source.conditions)
       if source.conditions:
         for condition in source.conditions:
-          if not artifact_lib.CheckCondition(condition,
-                                             self.state.knowledge_base):
+          if not artifact_utils.CheckCondition(
+              condition, self.state.knowledge_base):
             source_conditions_met = False
 
       if source_conditions_met:
         type_name = source.type
+        source_type = artifact_registry.ArtifactSource.SourceType
         self.current_artifact_name = artifact_name
-        if type_name == artifact_lib.ArtifactSource.SourceType.COMMAND:
+        if type_name == source_type.COMMAND:
           self.RunCommand(source)
-        elif type_name == artifact_lib.ArtifactSource.SourceType.FILE:
+        elif type_name == source_type.FILE:
           self.GetFiles(source, self.state.path_type,
                         self.args.max_file_size)
-        elif type_name == artifact_lib.ArtifactSource.SourceType.GREP:
+        elif type_name == source_type.GREP:
           self.Grep(source, self.state.path_type)
-        elif type_name == artifact_lib.ArtifactSource.SourceType.LIST_FILES:
+        elif type_name == source_type.LIST_FILES:
           self.Glob(source, self.state.path_type)
-        elif type_name == artifact_lib.ArtifactSource.SourceType.PATH:
+        elif type_name == source_type.PATH:
           # GRR currently ignores PATH types, they are currently only useful
           # to plaso during bootstrapping when the registry is unavailable.
           pass
-        elif type_name == artifact_lib.ArtifactSource.SourceType.REGISTRY_KEY:
+        elif type_name == source_type.REGISTRY_KEY:
           self.GetRegistryKey(source)
-        elif type_name == artifact_lib.ArtifactSource.SourceType.REGISTRY_VALUE:
+        elif type_name == source_type.REGISTRY_VALUE:
           self.GetRegistryValue(source)
-        elif type_name == artifact_lib.ArtifactSource.SourceType.WMI:
+        elif type_name == source_type.WMI:
           self.WMIQuery(source)
-        elif type_name == artifact_lib.ArtifactSource.SourceType.REKALL_PLUGIN:
+        elif type_name == source_type.REKALL_PLUGIN:
           self.RekallPlugin(source)
-        elif type_name == artifact_lib.ArtifactSource.SourceType.ARTIFACT:
+        elif type_name == source_type.ARTIFACT:
           self.CollectArtifacts(source)
-        elif type_name == artifact_lib.ArtifactSource.SourceType.ARTIFACT_FILES:
+        elif type_name == source_type.ARTIFACT_FILES:
           self.CollectArtifactFiles(source)
-        elif (type_name ==
-              artifact_lib.ArtifactSource.SourceType.GRR_CLIENT_ACTION):
+        elif type_name == source_type.GRR_CLIENT_ACTION:
           self.RunGrrClientAction(source)
         else:
           raise RuntimeError("Invalid type %s in %s" % (type_name,
@@ -216,7 +217,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     new_path_list = []
     for path in source.attributes["paths"]:
       # Interpolate any attributes from the knowledgebase.
-      new_path_list.extend(artifact_lib.InterpolateKbAttributes(
+      new_path_list.extend(artifact_utils.InterpolateKbAttributes(
           path, self.state.knowledge_base))
 
     action = file_finder.FileFinderAction(
@@ -310,7 +311,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       # key and value, and possibly also support forward slash.
       path = "\\".join((kvdict["key"], kvdict["value"]))
 
-      expanded_paths = artifact_lib.InterpolateKbAttributes(
+      expanded_paths = artifact_utils.InterpolateKbAttributes(
           path, self.state.knowledge_base)
       new_paths.update(expanded_paths)
 
@@ -358,8 +359,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
   def WMIQuery(self, source):
     """Run a Windows WMI Query."""
     query = source.attributes["query"]
-    queries = artifact_lib.InterpolateKbAttributes(query,
-                                                   self.state.knowledge_base)
+    queries = artifact_utils.InterpolateKbAttributes(
+        query, self.state.knowledge_base)
     base_object = source.attributes.get("base_object")
     for query in queries:
       self.CallClient(
@@ -386,7 +387,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     )
 
   def _GetSingleExpansion(self, value):
-    results = list(artifact_lib.InterpolateKbAttributes(
+    results = list(artifact_utils.InterpolateKbAttributes(
         value, self.state.knowledge_base))
     if len(results) > 1:
       raise ValueError("Interpolation generated multiple results, use a"
@@ -423,7 +424,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     new_args = []
     for value in input_list:
       if isinstance(value, basestring):
-        results = list(artifact_lib.InterpolateKbAttributes(
+        results = list(artifact_utils.InterpolateKbAttributes(
             value, self.state.knowledge_base))
         new_args.extend(results)
       else:
@@ -472,8 +473,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       responses: Responses from the collection.
 
     Raises:
-      artifact_lib.ArtifactDefinitionError: On bad definition.
-      artifact_lib.ArtifactProcessingError: On failure to process.
+      artifact_utils.ArtifactDefinitionError: On bad definition.
+      artifact_utils.ArtifactProcessingError: On failure to process.
     """
     flow_name = self.__class__.__name__
     artifact_name = responses.request_data["artifact_name"]
@@ -725,7 +726,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
     rdf_type = artifact.GRRArtifactMappings.rdf_map.get(output_type)
     if rdf_type is None:
-      raise artifact_lib.ArtifactProcessingError(
+      raise artifact_utils.ArtifactProcessingError(
           "No defined RDF type for %s.  See the description for "
           " the store_results_in_aff4 option, you probably want it set to "
           "false. Supported types are: %s" %
@@ -740,12 +741,12 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       result_object = aff4.FACTORY.Open(urn, aff4_type=aff4_type, mode="w",
                                         token=self.token)
     except IOError as e:
-      raise artifact_lib.ArtifactProcessingError(
+      raise artifact_utils.ArtifactProcessingError(
           "Failed to open result object for type %s. %s" % (output_type, e))
 
     result_attr = getattr(result_object.Schema, aff4_attribute, None)
     if result_attr is None:
-      raise artifact_lib.ArtifactProcessingError(
+      raise artifact_utils.ArtifactProcessingError(
           "Failed to get attribute %s for output type %s" %
           (aff4_attribute, output_type))
 
@@ -753,24 +754,25 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
   def _GetArtifactFromName(self, name):
     """Get an artifact class from the cache in the flow."""
-    if name in artifact_registry.ArtifactRegistry.artifacts:
-      return artifact_registry.ArtifactRegistry.artifacts[name]
-    else:
-      # If we don't have an artifact, things shouldn't have passed validation
-      # so we assume its a new one in the datastore.
-      artifact.LoadArtifactsFromDatastore(token=self.token)
-      if name not in artifact_registry.ArtifactRegistry.artifacts:
-        raise RuntimeError("ArtifactCollectorFlow failed due to unknown "
-                           "Artifact %s" % name)
-      else:
-        return artifact_registry.ArtifactRegistry.artifacts[name]
+    art_obj = artifact_registry.REGISTRY.GetArtifact(name)
+    if art_obj is not None:
+      return art_obj
+    # If we don't have an artifact, things shouldn't have passed validation
+    # so we assume its a new one in the datastore.
+    artifact_registry.REGISTRY.ClearRegistry()
+    art_obj = artifact_registry.REGISTRY.GetArtifact(name)
+    if art_obj is not None:
+      return art_obj
+
+    raise RuntimeError("ArtifactCollectorFlow failed due to unknown "
+                       "Artifact %s" % name)
 
   @flow.StateHandler()
   def End(self):
     # If we got no responses, and user asked for it, we error out.
     if self.args.on_no_results_error and self.state.response_count == 0:
-      raise artifact_lib.ArtifactProcessingError("Artifact collector returned "
-                                                 "0 responses.")
+      raise artifact_utils.ArtifactProcessingError(
+          "Artifact collector returned 0 responses.")
     if self.runner.output is not None:
       urn = self.runner.output.urn
     else:

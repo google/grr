@@ -10,7 +10,6 @@ from grr.gui.plugins import forms
 from grr.gui.plugins import semantic
 from grr.lib import aff4
 from grr.lib import artifact
-from grr.lib import artifact_lib
 from grr.lib import artifact_registry
 from grr.lib import parsers
 from grr.lib import rdfvalue
@@ -19,7 +18,7 @@ from grr.lib import rdfvalue
 class ArtifactListRenderer(forms.MultiSelectListRenderer):
   """Renderer for listing the available Artifacts."""
 
-  type = artifact_lib.ArtifactName
+  type = artifact_registry.ArtifactName
 
   artifact_template = ("""
           <div id='{{unique|escape}}_artifact_description'>
@@ -88,33 +87,30 @@ class ArtifactListRenderer(forms.MultiSelectListRenderer):
   def Layout(self, request, response):
     """Get available artifact information for display."""
     # Get all artifacts that aren't Bootstrap and aren't the base class.
-    self.artifacts = {}
-    artifact.LoadArtifactsFromDatastore(token=request.token)
-    for name, artifact_val in (
-        artifact_registry.ArtifactRegistry.artifacts.items()):
-      if set(["Bootstrap"]).isdisjoint(artifact_val.labels):
-        self.artifacts[name] = artifact_val
-    self.labels = artifact_lib.ARTIFACT_LABELS
+    self.labels = artifact_registry.Artifact.ARTIFACT_LABELS
+    artifact_dict = {}
 
     # Convert artifacts into a dict usable from javascript.
-    artifact_dict = {}
-    for artifact_name, artifact_val in self.artifacts.items():
-      artifact_dict[artifact_name] = artifact_val.ToExtendedDict()
+    for art in artifact_registry.REGISTRY.GetArtifacts(
+        reload_datastore_artifacts=True):
+      if "Bootstrap" in art.labels:
+        continue
+
+      artifact_dict[art.name] = art.ToExtendedDict()
       processors = []
-      for processor in parsers.Parser.GetClassesByArtifact(artifact_name):
+      for processor in parsers.Parser.GetClassesByArtifact(art.name):
         processors.append({"name": processor.__name__,
                            "output_types": processor.output_types,
                            "doc": processor.GetDescription()})
-      artifact_dict[artifact_name]["processors"] = processors
+      artifact_dict[art.name]["processors"] = processors
 
     # Skip the our parent and call the TypeDescriptorFormRenderer direct.
     response = renderers.TypeDescriptorFormRenderer.Layout(self, request,
                                                            response)
-    return self.CallJavascript(response, "ArtifactListRenderer.Layout",
-                               prefix=self.prefix,
-                               artifacts=artifact_dict,
-                               supported_os=artifact_lib.SUPPORTED_OS_LIST,
-                               labels=self.labels)
+    return self.CallJavascript(
+        response, "ArtifactListRenderer.Layout", prefix=self.prefix,
+        artifacts=artifact_dict, labels=self.labels,
+        supported_os=artifact_registry.Artifact.SUPPORTED_OS_LIST)
 
 
 class ArtifactRDFValueRenderer(semantic.RDFValueRenderer):

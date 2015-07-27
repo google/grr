@@ -4,17 +4,16 @@
 import logging
 
 from grr.lib import aff4
-from grr.lib import artifact_lib
 from grr.lib import artifact_registry
+from grr.lib import artifact_utils
 from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import parsers
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
-# for InstalledSoftwarePackages pylint: disable=unused-import
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import software
-# pylint: enable=unused-import
 from grr.lib.rdfvalues import anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import protodict as rdf_protodict
@@ -60,10 +59,10 @@ def GetArtifactKnowledgeBase(client_obj, allow_uninitialized=False):
   kb = client_obj.Get(client_schema.KNOWLEDGE_BASE)
   if not allow_uninitialized:
     if not kb:
-      raise artifact_lib.KnowledgeBaseUninitializedError(
+      raise artifact_utils.KnowledgeBaseUninitializedError(
           "KnowledgeBase empty for %s." % client_obj.urn)
     if not kb.os:
-      raise artifact_lib.KnowledgeBaseAttributesMissingError(
+      raise artifact_utils.KnowledgeBaseAttributesMissingError(
           "KnowledgeBase missing OS for %s. Knowledgebase content: %s" %
           (client_obj.urn, kb))
   if not kb:
@@ -161,14 +160,14 @@ class CollectArtifactDependencies(flow.GRRFlow):
     """
     artifact_set = set(self.args.artifact_list)
 
-    (name_deps, self.state.all_deps) = (
-        artifact_registry.ArtifactRegistry
-        .SearchDependencies(self.state.knowledge_base.os, artifact_set))
+    deps = artifact_registry.REGISTRY.SearchDependencies(
+        self.state.knowledge_base.os, artifact_set)
+    name_deps, self.state.all_deps = deps
 
     # Find the any dependencies that don't have dependencies themselves as our
     # starting point.
     check_deps = name_deps.union(artifact_set)
-    no_deps_names = artifact_registry.ArtifactRegistry.GetArtifactNames(
+    no_deps_names = artifact_registry.REGISTRY.GetArtifactNames(
         os_name=self.state.knowledge_base.os, name_list=check_deps,
         exclude_dependents=True)
 
@@ -201,7 +200,8 @@ class CollectArtifactDependencies(flow.GRRFlow):
   def _ScheduleCollection(self):
     # Schedule any new artifacts for which we have now fulfilled dependencies.
     for artifact_name in self.state.awaiting_deps_artifacts:
-      artifact_obj = artifact_registry.ArtifactRegistry.artifacts[artifact_name]
+      artifact_obj = artifact_registry.REGISTRY.GetArtifact(
+          artifact_name)
       deps = artifact_obj.GetArtifactPathDependencies()
       if set(deps).issubset(self.state.fulfilled_deps):
         self.state.in_flight_artifacts.append(artifact_name)
@@ -239,7 +239,7 @@ class CollectArtifactDependencies(flow.GRRFlow):
         # artifacts that provide the dependency before marking it as fulfilled.
         for dep in deps:
           required_artifacts = (
-              artifact_registry.ArtifactRegistry.GetArtifactNames(
+              artifact_registry.REGISTRY.GetArtifactNames(
                   os_name=self.state.knowledge_base.os,
                   provides=[dep]))
           if required_artifacts.issubset(self.state.completed_artifacts):
@@ -276,7 +276,7 @@ class CollectArtifactDependencies(flow.GRRFlow):
 
   def SetKBValue(self, artifact_name, responses):
     """Set values in the knowledge base based on responses."""
-    artifact_obj = artifact_registry.ArtifactRegistry.artifacts[artifact_name]
+    artifact_obj = artifact_registry.REGISTRY.GetArtifact(artifact_name)
     if not responses:
       return None
 
@@ -413,18 +413,18 @@ class KnowledgeBaseInitializationFlow(CollectArtifactDependencies):
     kb_set = kb_base_set.union(kb_add) - kb_skip
 
     for artifact_name in kb_set:
-      if artifact_name not in artifact_registry.ArtifactRegistry.artifacts:
+      if artifact_registry.REGISTRY.GetArtifact(artifact_name) is None:
         raise RuntimeError("Attempt to specify unknown artifact %s in "
                            "artifact configuration parameters. You may need"
                            " to sync the artifact repo by running make in the"
                            " artifacts directory." % artifact_name)
 
-    no_deps_names = artifact_registry.ArtifactRegistry.GetArtifactNames(
+    no_deps_names = artifact_registry.REGISTRY.GetArtifactNames(
         os_name=self.state.knowledge_base.os, name_list=kb_set,
         exclude_dependents=True)
 
     name_deps, self.state.all_deps = (
-        artifact_registry.ArtifactRegistry.SearchDependencies(
+        artifact_registry.REGISTRY.SearchDependencies(
             self.state.knowledge_base.os, kb_set))
 
     # We only retrieve artifacts that are explicitly listed in
@@ -535,15 +535,16 @@ def UploadArtifactYamlFile(file_content, base_urn=None, token=None,
   loaded_artifacts = []
   if not base_urn:
     base_urn = aff4.ROOT_URN.Add("artifact_store")
+  registry_obj = artifact_registry.REGISTRY
 
   with aff4.FACTORY.Create(base_urn, aff4_type="RDFValueCollection",
                            token=token, mode="rw") as artifact_coll:
 
     # Iterate through each artifact adding it to the collection.
-    for artifact_value in artifact_lib.ArtifactsFromYaml(file_content):
+    for artifact_value in registry_obj.ArtifactsFromYaml(file_content):
       artifact_value.ValidateSyntax()
       artifact_coll.Add(artifact_value)
-      artifact_registry.ArtifactRegistry.RegisterArtifact(
+      registry_obj.RegisterArtifact(
           artifact_value, source="datastore:%s" % base_urn,
           overwrite_if_exists=overwrite)
       loaded_artifacts.append(artifact_value)
@@ -555,29 +556,6 @@ def UploadArtifactYamlFile(file_content, base_urn=None, token=None,
     artifact_value.Validate()
 
   return base_urn
-
-
-def LoadArtifactsFromDatastore(artifact_coll_urn=None, token=None,
-                               overwrite_if_exists=True):
-  """Load artifacts from the data store."""
-  loaded_artifacts = []
-  if not artifact_coll_urn:
-    artifact_coll_urn = aff4.ROOT_URN.Add("artifact_store")
-
-  with aff4.FACTORY.Create(artifact_coll_urn, aff4_type="RDFValueCollection",
-                           token=token, mode="rw") as artifact_coll:
-    for artifact_value in artifact_coll:
-      artifact_registry.ArtifactRegistry.RegisterArtifact(
-          artifact_value, source="datastore:%s" % artifact_coll_urn,
-          overwrite_if_exists=overwrite_if_exists)
-      loaded_artifacts.append(artifact_value)
-      logging.debug("Loaded artifact %s from %s", artifact_value.name,
-                    artifact_coll_urn)
-
-  # Once all artifacts are loaded we can validate, as validation of dependencies
-  # requires the group are all loaded before doing the validation.
-  for artifact_value in loaded_artifacts:
-    artifact_value.Validate()
 
 
 class ArtifactFallbackCollectorArgs(rdf_structs.RDFProtoStruct):
@@ -618,10 +596,13 @@ class GRRArtifactMappings(object):
   """
 
   rdf_map = {
-      "SoftwarePackage": ("info/software", "InstalledSoftwarePackages",
-                          "INSTALLED_PACKAGES", "Append"),
-      "Volume": ("", "VFSGRRClient", "VOLUMES", "Append"),
-      "HardwareInfo": ("", "VFSGRRClient", "HARDWARE_INFO", "Overwrite")
+      "SoftwarePackage": (
+          "info/software", software.InstalledSoftwarePackages.__name__,
+          "INSTALLED_PACKAGES", "Append"),
+      "Volume": (
+          "", aff4_grr.VFSGRRClient.__name__, "VOLUMES", "Append"),
+      "HardwareInfo": (
+          "", aff4_grr.VFSGRRClient.__name__, "HARDWARE_INFO", "Overwrite")
   }
 
 
@@ -634,5 +615,8 @@ class ArtifactLoader(registry.InitHook):
   pre = ["AFF4InitHook"]
 
   def RunOnce(self):
-    artifact_lib.LoadArtifactsFromDirs(
-        config_lib.CONFIG["Artifacts.artifact_dirs"])
+    for path in config_lib.CONFIG["Artifacts.artifact_dirs"]:
+      artifact_registry.REGISTRY.AddDirSource(path)
+
+    artifact_registry.REGISTRY.AddDatastoreSources(
+        [aff4.ROOT_URN.Add("artifact_store")])

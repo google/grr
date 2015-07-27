@@ -136,16 +136,6 @@ class HTTPDataStoreTest(HTTPDataStoreMixin,
     pass
 
 
-class HTTPDataStoreBenchmarks(HTTPDataStoreMixin,
-                              data_store_test.DataStoreBenchmarks):
-  """Benchmark the HTTP remote data store abstraction."""
-
-
-class HTTPDataStoreCSVBenchmarks(HTTPDataStoreMixin,
-                                 data_store_test.DataStoreCSVBenchmarks):
-  """Benchmark the HTTP remote data store."""
-
-
 def main(args):
   test_lib.main(args)
 

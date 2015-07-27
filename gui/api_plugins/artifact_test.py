@@ -7,23 +7,11 @@ import os
 
 from grr.gui import api_test_lib
 from grr.gui.api_plugins import artifact as artifact_plugin
-from grr.lib import artifact_lib
 from grr.lib import artifact_registry
 from grr.lib import artifact_test
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import test_lib
-from grr.lib import utils
-
-
-class ArtifactRegistryMock(object):
-
-  class Artifacts(object):
-
-    def items(self):
-      return {}
-
-  artifacts = Artifacts()
 
 
 class ArtifactRendererTest(artifact_test.ArtifactBaseTest):
@@ -35,10 +23,8 @@ class ArtifactRendererTest(artifact_test.ArtifactBaseTest):
     self.LoadTestArtifacts()
 
   def _renderEmptyArtifacts(self):
-    with utils.Stubber(artifact_registry, "ArtifactRegistry",
-                       ArtifactRegistryMock):
-      rendering = self.renderer.Render(None, token=self.token)
-    return rendering
+    artifact_registry.REGISTRY.ClearSources()
+    return self.renderer.Render(None, token=self.token)
 
   def testNoArtifacts(self):
     rendering = self._renderEmptyArtifacts()
@@ -46,8 +32,7 @@ class ArtifactRendererTest(artifact_test.ArtifactBaseTest):
     self.assertFalse(rendering)
 
   def _renderTestArtifacts(self):
-    rendering = self.renderer.Render(None, token=self.token)
-    return rendering
+    return self.renderer.Render(None, token=self.token)
 
   def testPrepackagedArtifacts(self):
     rendering = self._renderTestArtifacts()
@@ -73,10 +58,10 @@ class ArtifactRendererRegressionTest(
   renderer = "ApiArtifactRenderer"
 
   def Run(self):
-    artifact_registry.ArtifactRegistry.ClearRegistry()
+    artifact_registry.REGISTRY.ClearSources()
     test_artifacts_file = os.path.join(
-        config_lib.CONFIG["Test.data_dir"], "test_artifact.json")
-    artifact_lib.LoadArtifactsFromFiles([test_artifacts_file])
+        config_lib.CONFIG["Test.data_dir"], "artifacts", "test_artifact.json")
+    artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
 
     self.Check("GET", "/api/artifacts")
 

@@ -38,6 +38,7 @@ class DjangoInit(registry.InitHook):
         # Don't use the database for sessions, use a file.
         "SESSION_ENGINE": "django.contrib.sessions.backends.file",
         "ALLOWED_HOSTS": config_lib.CONFIG["AdminUI.django_allowed_hosts"],
+        "USE_I18N": False,
     }
 
     # The below will use conf/global_settings/py from Django, we need to

@@ -10,9 +10,9 @@ import os
 import re
 # importing readline enables the raw_input calls to have history etc.
 import readline  # pylint: disable=unused-import
+import socket
 import sys
 import urlparse
-import socket
 
 
 # pylint: disable=unused-import,g-bad-import-order
@@ -446,7 +446,7 @@ accessible. By default this will be port 8080 with the URL ending in /control.
   config.Set("Client.control_urls", [location])
 
   frontend_port = urlparse.urlparse(location).port or config_lib.CONFIG.Get(
-    "Frontend.bind_port")
+      "Frontend.bind_port")
   config.Set("Frontend.bind_port", frontend_port)
 
   print """\n\n-=AdminUI URL=-:
@@ -456,10 +456,12 @@ The UI URL specifies where the Administrative Web Interface can be found.
                          "http://%s:8000" % hostname)
   config.Set("AdminUI.url", ui_url)
   ui_port = urlparse.urlparse(location).port or config_lib.CONFIG.Get(
-    "AdminUI.port")
+      "AdminUI.port")
   config.Set("AdminUI.port", ui_port)
 
+
 def ConfigureDatastore(config):
+  """Set the datastore to use by prompting the user to choose."""
   print """
 1. SQLite (Default) - This datastore is stored on the local file system. If you
 configure GRR to run as non-root be sure to allow that user access to the files.
@@ -476,9 +478,9 @@ running.  This datastore is a legacy option and is not recommended.\n"""
 
   if datastore == "1":
     config.Set("Datastore.implementation", "SqliteDataStore")
-    datastore_location = RetryQuestion("Datastore Location",
-                                       "^/[A-Za-z0-9/.-]+$",
-                                       config_lib.CONFIG.Get("Datastore.location"))
+    datastore_location = RetryQuestion(
+        "Datastore Location", "^/[A-Za-z0-9/.-]+$",
+        config_lib.CONFIG.Get("Datastore.location"))
     config.Set("Datastore.location", datastore_location)
 
   if datastore == "2":
@@ -496,12 +498,13 @@ running.  This datastore is a legacy option and is not recommended.\n"""
                                    config_lib.CONFIG.Get("Mysql.database_name"))
     config.Set("Mysql.database_name", mysql_database)
 
-    mysql_username = RetryQuestion("MySQL Username", "[A-Za-z0-9-]+$",
-                                   config_lib.CONFIG.Get("Mysql.database_username"))
+    mysql_username = RetryQuestion(
+        "MySQL Username", "[A-Za-z0-9-]+$",
+        config_lib.CONFIG.Get("Mysql.database_username"))
     config.Set("Mysql.database_username", mysql_username)
 
     mysql_password = getpass.getpass(
-      prompt="Please enter password for database user %s: " % mysql_username)
+        prompt="Please enter password for database user %s: " % mysql_username)
     config.Set("Mysql.database_password", mysql_password)
 
   if datastore == "3":
@@ -518,7 +521,9 @@ running.  This datastore is a legacy option and is not recommended.\n"""
                                    config_lib.CONFIG.Get("Mongo.db_name"))
     config.Set("Mongo.db_name", mongo_database)
 
+
 def ConfigureEmails(config):
+  """Configure email notification addresses."""
   print """\n\n-=Monitoring/Email Domain=-
 Emails concerning alerts or updates must be sent to this domain.
 """
@@ -541,6 +546,7 @@ Address where high priority events such as an emergency ACL bypass are sent.
   emergency_email = RetryQuestion("Emergency Access Email Address", "",
                                   "grr-emergency@%s" % domain)
   config.Set("Monitoring.emergency_access_email", emergency_email)
+
 
 def ConfigureBaseOptions(config):
   """Configure the basic options required to run the server."""
@@ -585,7 +591,6 @@ datastore.  To do this we need to configure a datastore.\n"""
                  " [Yn]: ").upper() == "N":
       ConfigureDatastore(config)
 
-
   print """\n\n-=GRR URLs=-
 For GRR to work each client has to be able to communicate with the
 server. To do this we normally need a public dns name or IP address to
@@ -612,13 +617,12 @@ the client facing server and the admin user interface.\n"""
   alerting functions.  The email domain will be appended to GRR user names
   when sending emails to users.\n"""
 
-  existing_log_domain = config_lib.CONFIG.Get("Logging.domain",
-                                                  default=None)
-  existing_al_email = config_lib.CONFIG.Get("Monitoring.alert_email",
-                                                default=None)
+  existing_log_domain = config_lib.CONFIG.Get("Logging.domain", default=None)
+  existing_al_email = config_lib.CONFIG.Get(
+      "Monitoring.alert_email", default=None)
 
   existing_em_email = config_lib.CONFIG.Get("Monitoring.emergency_access_email",
-                                                default=None)
+                                            default=None)
   if not existing_log_domain or not existing_al_email or not existing_em_email:
     ConfigureEmails(config)
   else:

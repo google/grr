@@ -45,16 +45,6 @@ class MysqlDataStoreTest(MysqlTestMixin, data_store_test._DataStoreTest):
   """Test the mysql data store abstraction."""
 
 
-class MysqlDataStoreBenchmarks(MysqlTestMixin,
-                               data_store_test.DataStoreBenchmarks):
-  """Benchmark the mysql data store abstraction."""
-
-
-class MysqlDataStoreCSVBenchmarks(MysqlTestMixin,
-                                  data_store_test.DataStoreCSVBenchmarks):
-  """Benchmark the mysql data store abstraction."""
-
-
 def main(args):
   test_lib.main(args)
 

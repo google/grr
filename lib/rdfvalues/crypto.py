@@ -24,6 +24,10 @@ DIGEST_ALGORITHM = hashlib.sha256
 DIGEST_ALGORITHM_STR = "sha256"
 
 
+class CipherError(rdfvalue.DecodeError):
+  """Raised when decryption failed."""
+
+
 class Certificate(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.Certificate
 
@@ -63,7 +67,7 @@ class PEMPublicKey(rdfvalue.RDFString):
       bio = BIO.MemoryBuffer(self._value)
       rsa = RSA.load_pub_key_bio(bio)
       if rsa.check_key() != 1:
-        raise RSA.RSAError("RSA.check_key() did not succeed.")
+        raise CipherError("RSA.check_key() did not succeed.")
 
       return rsa
     except RSA.RSAError as e:
@@ -202,8 +206,8 @@ class EncryptionKey(rdfvalue.RDFBytes):
       self._value = string
 
     else:
-      raise ValueError("%s must be exactly %s bit longs." %
-                       (self.__class__.__name__, self.length))
+      raise CipherError("%s must be exactly %s bit longs." %
+                        (self.__class__.__name__, self.length))
 
   def __str__(self):
     return self._value.encode("hex")
@@ -246,7 +250,22 @@ class AES128CBCCipher(Cipher):
                              iv=iv.RawBytes(), op=mode)
 
   def Update(self, data):
-    return self.cipher.update(data)
+    """Encrypts the data up to blocksize."""
+    try:
+      return self.cipher.update(data)
+    except EVP.EVPError as e:
+      raise CipherError(e)
 
   def Final(self):
-    return self.cipher.final()
+    """Pad the message to blocksize and finalize it."""
+    try:
+      return self.cipher.final()
+    except EVP.EVPError as e:
+      raise CipherError(e)
+
+  def Encrypt(self, data):
+    """A convenience method which pads and encrypts at once."""
+    try:
+      return self.Update(data) + self.Final()
+    except EVP.EVPError as e:
+      raise CipherError(e)

@@ -25,7 +25,7 @@ class TestArtifactManagementRender(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Upload File")
 
     json_file = os.path.realpath(os.path.join(
-        config_lib.CONFIG["Test.data_dir"], "test_artifact.json"))
+        config_lib.CONFIG["Test.data_dir"], "artifacts", "test_artifact.json"))
 
     # Can't use self.Type here as it isn't a standard input box.
     element = self.WaitUntil(self.GetVisibleElement, "css=input[id$=_file]")
