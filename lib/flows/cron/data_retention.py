@@ -128,7 +128,7 @@ class CleanInactiveClients(cronjobs.SystemCronFlow):
 
     deadline = rdfvalue.RDFDatetime().Now() - inactive_client_ttl
 
-    for client_group in utils.Grouper(client_urns, 10000):
+    for client_group in utils.Grouper(client_urns, 1000):
       inactive_client_urns = []
       for client in aff4.FACTORY.MultiOpen(client_group, mode="r",
                                        aff4_type="VFSGRRClient",
