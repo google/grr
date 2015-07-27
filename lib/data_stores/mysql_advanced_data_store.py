@@ -438,10 +438,10 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       except MySQLdb.Error as e:
         # If there was an error attempt to clean up this connection and let it
         # drop
+        self.pool.DropConnection(connection)
         logging.warn("Datastore query attempt %s failed with %s:",
                      attempt, str(e))
         time.sleep(.2)
-        self.pool.DropConnection(connection)
         if attempt == 10:
           raise e
         else:
@@ -464,10 +464,10 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       except MySQLdb.Error as e:
         # If there was an error attempt to clean up this connection and let it
         # drop
+        self.pool.DropConnection(connection)
         logging.warn("Datastore query attempt %s failed with %s:",
                      attempt, str(e))
         time.sleep(.2)
-        self.pool.DropConnection(connection)
         if attempt == 10:
           raise e
         else:
