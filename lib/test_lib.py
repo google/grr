@@ -543,35 +543,34 @@ class GRRBaseTest(unittest.TestCase):
 
   def SetupClients(self, nr_clients):
     client_ids = []
-    index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
+    with aff4.FACTORY.Create(client_index.MAIN_INDEX,
                                 aff4_type="ClientIndex",
                                 mode="rw",
-                                token=self.token)
+                                token=self.token) as index:
 
-    for i in range(nr_clients):
-      client_id = rdf_client.ClientURN("C.1%015d" % i)
-      client_ids.append(client_id)
+      for i in range(nr_clients):
+        client_id = rdf_client.ClientURN("C.1%015d" % i)
+        client_ids.append(client_id)
 
-      with aff4.FACTORY.Create(client_id, "VFSGRRClient",
-                               mode="rw",
-                               token=self.token) as fd:
-        cert = rdf_crypto.RDFX509Cert(
-            self.ClientCertFromPrivateKey(
-                config_lib.CONFIG["Client.private_key"]).as_pem())
-        fd.Set(fd.Schema.CERT, cert)
+        with aff4.FACTORY.Create(client_id, "VFSGRRClient",
+                                 mode="rw",
+                                 token=self.token) as fd:
+          cert = rdf_crypto.RDFX509Cert(
+              self.ClientCertFromPrivateKey(
+                  config_lib.CONFIG["Client.private_key"]).as_pem())
+          fd.Set(fd.Schema.CERT, cert)
 
-        info = fd.Schema.CLIENT_INFO()
-        info.client_name = "GRR Monitor"
-        fd.Set(fd.Schema.CLIENT_INFO, info)
-        fd.Set(fd.Schema.PING, rdfvalue.RDFDatetime().Now())
-        fd.Set(fd.Schema.HOSTNAME("Host-%s" % i))
-        fd.Set(fd.Schema.FQDN("Host-%s.example.com" % i))
-        fd.Set(fd.Schema.MAC_ADDRESS("aabbccddee%02x\nbbccddeeff%02x" % (i, i)))
-        fd.Set(fd.Schema.HOST_IPS("192.168.0.%d\n2001:abcd::%x" % (i, i)))
-        fd.Flush()
+          info = fd.Schema.CLIENT_INFO()
+          info.client_name = "GRR Monitor"
+          fd.Set(fd.Schema.CLIENT_INFO, info)
+          fd.Set(fd.Schema.PING, rdfvalue.RDFDatetime().Now())
+          fd.Set(fd.Schema.HOSTNAME("Host-%s" % i))
+          fd.Set(fd.Schema.FQDN("Host-%s.example.com" % i))
+          fd.Set(fd.Schema.MAC_ADDRESS("aabbccddee%02x\nbbccddeeff%02x" % (i, i)))
+          fd.Set(fd.Schema.HOST_IPS("192.168.0.%d\n2001:abcd::%x" % (i, i)))
+          fd.Flush()
 
-        index.AddClient(fd)
-
+          index.AddClient(fd)
     return client_ids
 
   def DeleteClients(self, nr_clients):

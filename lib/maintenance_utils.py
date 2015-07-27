@@ -296,7 +296,7 @@ def RebuildIndex(urn, primary_attribute, indexed_attributes, token):
   index_urn = rdfvalue.RDFURN(urn)
 
   logging.info("Deleting index %s", urn)
-  data_store.DB.DeleteSubject(index_urn, sync=True)
+  data_store.DB.DeleteSubject(index_urn, sync=True, token=token)
   attribute_predicates = [a.predicate for a in indexed_attributes]
   filter_obj = data_store.DB.filter.HasPredicateFilter(
       primary_attribute.predicate)
