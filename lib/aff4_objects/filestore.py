@@ -81,14 +81,14 @@ class FileStore(aff4.AFF4Volume):
       external: If true, attempt to check stores defined as EXTERNAL.
 
     Yields:
-      Tuples of (RDFURN, HashDigest) objects that exist in the store.
+      Tuples of (RDFURN, hash object) that exist in the store.
     """
     hashes = set(hashes)
     for child in self.GetChildrenByPriority(allow_external=external):
-      for urn, digest in child.CheckHashes(hashes):
-        yield urn, digest
+      for urn, hash_obj in child.CheckHashes(hashes):
+        yield urn, hash_obj
 
-        hashes.discard(digest)
+        hashes.discard(hash_obj)
 
       # Nothing to search for, we are done.
       if not hashes:
@@ -273,15 +273,14 @@ class HashFileStore(FileStore):
       hashes: A list of Hash objects to check.
 
     Yields:
-      Tuples of (RDFURN, HashDigest) objects that exist in the store.
+      Tuples of (RDFURN, hash object) that exist in the store.
     """
     hash_map = {}
     for hsh in hashes:
       if hsh.HasField("sha256"):
         # The canonical name of the file is where we store the file hash.
-        digest = hsh.sha256
         hash_map[aff4.ROOT_URN.Add("files/hash/generic/sha256").Add(
-            str(digest))] = digest
+            str(hsh.sha256))] = hsh
 
     for metadata in aff4.FACTORY.Stat(list(hash_map), token=self.token):
       yield metadata["urn"], hash_map[metadata["urn"]]
@@ -621,15 +620,14 @@ class NSRLFileStore(HashFileStore):
       unused_external: Ignored.
 
     Yields:
-      Tuples of (RDFURN, HashDigest) objects that exist in the store.
+      Tuples of (RDFURN, hash object) that exist in the store.
     """
     hash_map = {}
     for hsh in hashes:
       if hsh.HasField("sha1"):
-        digest = hsh.sha1
-        hash_urn = self.PATH.Add(str(digest))
+        hash_urn = self.PATH.Add(str(hsh.sha1))
         logging.info("Checking URN %s", str(hash_urn))
-        hash_map[hash_urn] = digest
+        hash_map[hash_urn] = hsh
 
     for metadata in aff4.FACTORY.Stat(list(hash_map), token=self.token):
       yield metadata["urn"], hash_map[metadata["urn"]]
