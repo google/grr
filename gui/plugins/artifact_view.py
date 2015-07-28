@@ -89,13 +89,17 @@ class ArtifactListRenderer(forms.MultiSelectListRenderer):
       if "Bootstrap" in art.labels:
         continue
 
-      artifact_dict[art.name] = art.ToExtendedDict()
+      art_dict = art.ToExtendedDict()
+      # We don't use art.name here since it isn't JSON serializable, the name
+      # inside the extended dict has already been converted, so use that.
+      art_name = art_dict["name"]
+      artifact_dict[art_name] = art_dict
       processors = []
-      for processor in parsers.Parser.GetClassesByArtifact(art.name):
+      for processor in parsers.Parser.GetClassesByArtifact(art_name):
         processors.append({"name": processor.__name__,
                            "output_types": processor.output_types,
                            "doc": processor.GetDescription()})
-      artifact_dict[art.name]["processors"] = processors
+      artifact_dict[art_name]["processors"] = processors
 
     # Skip the our parent and call the TypeDescriptorFormRenderer direct.
     response = renderers.TypeDescriptorFormRenderer.Layout(self, request,
