@@ -342,22 +342,29 @@ message ExportedRekallProcess {
                    "process was started."
     }];
 
-  optional string creation_time = 5[(sem_type) = {
+  optional uint64 creation_time = 5[(sem_type) = {
       description: "When the process was created. In microseconds from UNIX "
                    "epoch. UTC."
     }];
 
-  optional string exit_time = 6[(sem_type) = {
+  optional uint64 exit_time = 6[(sem_type) = {
       description: "When the process exitted. In microseconds from UNIX "
                    "epoch. UTC."
     }];
 
-  optional uint64 parent_pid = 7[(sem_type) = {
+  optional uint64 parent_pid = 7 [(sem_type) = {
       description: "Unique process ID of the parent process."
     }];
 
-  optional string commandline = 8[(sem_type) = {
+  optional string commandline = 8 [(sem_type) = {
       description: "The commandline used to launch this process."
+    }];
+
+  optional string trusted_fullpath = 9 [(sem_type) = {
+      description: "The full path of the executable that was loaded when the "
+                   "process was started. Obtained via a trusted method that's "
+                   "not easily tampered with. If no such method exists, do not "
+                   "fill in this field."
     }];
 
 };
@@ -365,8 +372,9 @@ message ExportedRekallProcess {
 // Represents a module (usually a dll or executable) loaded into a process'
 // address space in Windows.
 // Related plugins: ldrmodules
-message ExportedWindowsLoadedModule {
+message ExportedRekallWindowsLoadedModule {
   optional ExportedMetadata metadata = 1;
+
   optional ExportedRekallProcess process = 2;
 
   optional string fullpath = 3 [(sem_type) = {

@@ -13,6 +13,7 @@ from grr.lib import artifact_utils
 from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import parsers
+from grr.lib import utils
 from grr.lib.flows.general import file_finder
 # For AnalyzeClientMemory. pylint: disable=unused-import
 from grr.lib.flows.general import memory as _
@@ -657,7 +658,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
           artifact_name not in output_collection_map):
         # Create the new collections in the same directory but not as children,
         # so they are visible in the GUI
-        urn = "_".join((str(self.runner.output.urn), artifact_name))
+        urn = "_".join((str(self.runner.output.urn),
+                        utils.SmartStr(artifact_name)))
         collection = aff4.FACTORY.Create(urn, "RDFValueCollection", mode="rw",
                                          token=self.token)
         # Cache the opened object.

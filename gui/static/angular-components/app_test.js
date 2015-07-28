@@ -51,3 +51,34 @@ grrUi.tests.browserTrigger = function(element, eventType) {
     element.fireEvent('on' + eventType);
   }
 };
+
+
+var directiveStubCounter = 0;
+
+/**
+ * Stub out a directive.
+ *
+ * This function creates a temporary test module and registers a stub
+ * directive there with a high priority and terminal=true - this directive
+ * will effectively block all other directives with a same name.
+ *
+ * Module with a fake directive has a unique name, so it won't get loaded
+ * in other tests and therefore won't affect them.
+ *
+ * @param {string} directiveName
+ * @export
+ */
+grrUi.tests.stubDirective = function(directiveName) {
+  var moduleName = 'test.directives.stubs.' + directiveStubCounter;
+  directiveStubCounter += 1;
+
+  angular.module(moduleName, []).directive(directiveName,
+                                           function() {
+                                             return {
+                                           priority: 100000,
+                                               terminal: true
+                                             };
+                                           });
+
+  beforeEach(module(moduleName));
+};

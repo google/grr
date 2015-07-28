@@ -38,10 +38,16 @@ SemanticRegistryService.values_service_name =
     'grrSemanticValueDirectivesRegistryService';
 
 /**
- * - And for for semantic forms.
+ * - And for semantic forms.
  */
 SemanticRegistryService.forms_service_name =
     'grrSemanticFormDirectivesRegistryService';
+
+/**
+ * - And for semantic forms.
+ */
+SemanticRegistryService.repeated_forms_service_name =
+    'grrSemanticRepeatedFormDirectivesRegistryService';
 
 /**
  * - And for output plugins directvies.

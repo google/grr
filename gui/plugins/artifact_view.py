@@ -1,18 +1,11 @@
 #!/usr/bin/env python
 """This plugin adds artifact functionality to the UI."""
 
-import itertools
-import StringIO
-
 from grr.gui import renderers
-from grr.gui.plugins import fileview
 from grr.gui.plugins import forms
 from grr.gui.plugins import semantic
-from grr.lib import aff4
-from grr.lib import artifact
 from grr.lib import artifact_registry
 from grr.lib import parsers
-from grr.lib import rdfvalue
 
 
 class ArtifactListRenderer(forms.MultiSelectListRenderer):
@@ -145,154 +138,11 @@ class ArtifactRawRDFValueRenderer(semantic.RDFValueRenderer):
     super(ArtifactRawRDFValueRenderer, self).Layout(request, response)
 
 
-class ArtifactManagerView(renderers.TableRenderer):
+class ArtifactManagerView(renderers.AngularDirectiveRenderer):
   """Artifact Manager table with toolbar."""
 
   description = "Artifact Manager"
   behaviours = frozenset(["Configuration"])
   order = 50
 
-  toolbar = "ArtifactManagerToolbar"
-
-  def __init__(self, **kwargs):
-    super(ArtifactManagerView, self).__init__(**kwargs)
-    self.AddColumn(semantic.RDFValueColumn("Artifact Name", width="5%"))
-    self.AddColumn(semantic.RDFValueColumn(
-        "Artifact Details", width="50%", renderer=ArtifactRDFValueRenderer))
-    self.AddColumn(semantic.RDFValueColumn(
-        "Artifact Raw", width="40%", renderer=ArtifactRawRDFValueRenderer))
-
-  def BuildTable(self, start_row, end_row, request):
-    """Builds table artifacts."""
-    artifact_urn = rdfvalue.RDFURN("aff4:/artifact_store")
-    try:
-      collection = aff4.FACTORY.Open(artifact_urn,
-                                     aff4_type="RDFValueCollection",
-                                     token=request.token)
-    except IOError:
-      return
-
-    self.size = len(collection)
-    row_index = start_row
-    for value in itertools.islice(collection, start_row, end_row):
-      self.AddCell(row_index, "Artifact Name", value.name)
-      self.AddCell(row_index, "Artifact Details", value)
-      self.AddCell(row_index, "Artifact Raw", value)
-      row_index += 1
-
-  def Layout(self, request, response):
-    """Populate the table state with the request."""
-    if self.toolbar:
-      tb_cls = renderers.Renderer.classes[self.toolbar]
-      tb_cls().Layout(request, response)
-    return super(ArtifactManagerView, self).Layout(request, response)
-
-
-class ArtifactManagerToolbar(renderers.TemplateRenderer):
-  """A navigation enhancing toolbar.
-
-  Internal State:
-    - aff4_path: The path we are viewing now in the table.
-  """
-  post_parameters = ["aff4_path"]
-  event_queue = "file_select"
-
-  layout_template = renderers.Template("""
-<ul id="toolbar_{{unique|escape}}" class="breadcrumb">
-  <li>
-    <button id='{{unique|escape}}_upload' class="btn btn-default"
-      title="Upload Artifacts as JSON or YAML"
-      data-toggle="modal" data-target="#upload_dialog_{{unique|escape}}">
-      <img src='/static/images/upload.png' class='toolbar_icon'>
-    </button>
-
-    <button id='{{unique|escape}}_deleteall' class="btn btn-default"
-      title="Delete all uploaded artifacts" data-toggle="modal"
-      data-target="#delete_confirm_dialog_{{unique|escape}}">
-      <img src='/static/images/editdelete.png' class='toolbar_icon'>
-    </button>
-  </li>
-
-</ul>
-
-<div id="upload_dialog_{{unique|escape}}" class="modal" tabindex="-1"
-  role="dialog" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <button id="upload_artifact_btn_{{unique|escape}}" type="button"
-        class="close" data-dismiss="modal" aria-hidden="true">
-          x</button>
-        <h3>Upload File</h3>
-      </div>
-      <div class="modal-body" id="upload_dialog_body_{{unique|escape}}"></div>
-      <div class="modal-footer">
-        <button id="upload_artifact_close_btn_{{unique|escape}}"
-          class="btn btn-default" data-dismiss="modal" aria-hidden="true">
-          Close
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div id="delete_confirm_dialog_{{unique|escape}}"
-  class="modal" tabindex="-1" role="dialog" aria-hidden="true">
-</div>
-
-""")
-
-  def Layout(self, request, response):
-    response = super(ArtifactManagerToolbar, self).Layout(request, response)
-    return self.CallJavascript(response, "ArtifactManagerToolbar.Layout")
-
-
-class DeleteArtifactsConfirmationDialog(renderers.ConfirmationDialogRenderer):
-  """Dialog that asks for confirmation to delete uploaded artifacts.
-
-  Note that this only deletes artifacts that have been uploaded via the
-  ArtifactManager.  Artifacts loaded from the artifacts directory are
-  unaffected.
-  """
-
-  content_template = renderers.Template("""
-<p>Are you sure you want to <strong>delete all</strong>
-uploaded artifacts?</p>
-""")
-
-  ajax_template = renderers.Template("""
-<p class="text-info">Uploaded artifacts were deleted successfully.</p>
-""")
-
-  def RenderAjax(self, request, response):
-    aff4.FACTORY.Delete("aff4:/artifact_store", token=request.token)
-    return self.RenderFromTemplate(self.ajax_template, response,
-                                   unique=self.unique, this=self)
-
-
-class ArtifactJsonUploadView(fileview.UploadView):
-  """Renders a binary upload page."""
-  post_parameters = []
-  upload_handler = "ArtifactUploadHandler"
-  storage_path = "aff4:/artifact_store"
-
-
-class ArtifactUploadHandler(fileview.UploadHandler):
-  """Handles upload of a binary config file such as a driver."""
-
-  def RenderAjax(self, request, response):
-    """Handle the upload via ajax."""
-    try:
-      self.uploaded_file = request.FILES.items()[0][1]
-      content = StringIO.StringIO()
-      for chunk in self.uploaded_file.chunks():
-        content.write(chunk)
-      self.dest_path = artifact.UploadArtifactYamlFile(
-          content.getvalue(), token=request.token)
-
-      return renderers.TemplateRenderer.Layout(self, request, response,
-                                               self.success_template)
-    except (IOError, artifact_registry.ArtifactDefinitionError) as e:
-      self.error = "Could not write artifact to database %s" % e
-    return renderers.TemplateRenderer.Layout(self, request, response,
-                                             self.error_template)
+  directive = "grr-artifact-manager-view"

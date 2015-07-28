@@ -14,6 +14,7 @@ from grr.lib import artifact_utils
 from grr.lib import objectfilter
 from grr.lib import parsers
 from grr.lib import rdfvalue
+from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import structs
 from grr.proto import artifact_pb2
@@ -157,6 +158,7 @@ class ArtifactRegistry(object):
 
   def ClearRegistry(self):
     self._artifacts = {}
+    self._dirty = False
 
   def _ReloadArtifacts(self):
     """Load artifacts from all sources."""
@@ -380,7 +382,7 @@ class ArtifactSource(structs.RDFProtoStruct):
 
 
 class ArtifactName(rdfvalue.RDFString):
-  type = "ArtifactName"
+  pass
 
 
 class Artifact(structs.RDFProtoStruct):
@@ -442,6 +444,9 @@ class Artifact(structs.RDFProtoStruct):
     """Handle dict generation specifically for Artifacts."""
     artifact_dict = super(Artifact, self).ToPrimitiveDict()
 
+    # ArtifactName is not JSON-serializable, so convert name to string.
+    artifact_dict["name"] = utils.SmartStr(self.name)
+
     # Convert proto enum to simple strings so they get rendered in the GUI
     # properly
     for source in artifact_dict["sources"]:
@@ -471,7 +476,8 @@ class Artifact(structs.RDFProtoStruct):
     else:
       artifact_dict = self.ToPrimitiveDict()
 
-    artifact_json = json.dumps(artifact_dict, indent=2, separators=(",", ": "))
+    artifact_json = json.dumps(artifact_dict, indent=2, sort_keys=True,
+                               separators=(",", ": "))
     # Now tidy up the json for better display. Unfortunately json gives us very
     # little control over output format, so we manually tidy it up given that
     # we have a defined format.
@@ -650,3 +656,15 @@ class Artifact(structs.RDFProtoStruct):
         raise ArtifactDefinitionError(
             "Artifact %s has an invalid dependency %s . Could not find artifact"
             " definition." % (cls_name, dependency))
+
+
+class ArtifactProcessorDescriptor(structs.RDFProtoStruct):
+  """Describes artifact processor."""
+
+  protobuf = artifact_pb2.ArtifactProcessorDescriptor
+
+
+class ArtifactDescriptor(structs.RDFProtoStruct):
+  """Includes artifact, its JSON source, processors and additional info."""
+
+  protobuf = artifact_pb2.ArtifactDescriptor

@@ -11,6 +11,7 @@ goog.require('grrUi.core.basenameFilter.BasenameFilter');
 goog.require('grrUi.core.clockDirective.ClockDirective');
 goog.require('grrUi.core.downloadCollectionFilesDirective.DownloadCollectionFilesDirective');
 goog.require('grrUi.core.encodeUriComponentFilter.EncodeUriComponentFilter');
+goog.require('grrUi.core.forceRefreshDirective.ForceRefreshDirective');
 goog.require('grrUi.core.infiniteTableDirective.InfiniteTableDirective');
 goog.require('grrUi.core.legacyRendererDirective.LegacyRendererDirective');
 goog.require('grrUi.core.memoryItemsProviderDirective.MemoryItemsProviderDirective');
@@ -28,7 +29,8 @@ goog.require('grrUi.core.timeSinceFilter.TimeSinceFilter');
 /**
  * Angular module for core GRR UI components.
  */
-grrUi.core.module = angular.module('grrUi.core', ['ngCookies', 'ui.bootstrap']);
+grrUi.core.module = angular.module('grrUi.core', ['ngCookies',
+                                                  'ui.bootstrap']);
 
 
 grrUi.core.module.directive(
@@ -43,6 +45,9 @@ grrUi.core.module.directive(
     grrUi.core.aff4ItemsProviderDirective.
         Aff4ItemsProviderDirective.directive_name,
     grrUi.core.aff4ItemsProviderDirective.Aff4ItemsProviderDirective);
+grrUi.core.module.directive(
+    grrUi.core.forceRefreshDirective.ForceRefreshDirective.directive_name,
+    grrUi.core.forceRefreshDirective.ForceRefreshDirective);
 grrUi.core.module.directive(
     grrUi.core.legacyRendererDirective.LegacyRendererDirective.directive_name,
     grrUi.core.legacyRendererDirective.LegacyRendererDirective);

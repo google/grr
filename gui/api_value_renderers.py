@@ -169,7 +169,13 @@ class ApiDictRenderer(ApiValueRenderer):
     for k, v in value.items():
       result[k] = self._PassThrough(v)
 
-    return result
+    return self._IncludeTypeInfo(result, value)
+
+
+class ApiRDFDictRenderer(ApiDictRenderer):
+  """Renderer for RDF Dict instances."""
+
+  value_class = rdf_protodict.Dict
 
 
 class FetchMoreLink(rdfvalue.RDFValue):

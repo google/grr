@@ -1,0 +1,46 @@
+<div name="DeleteArtifactDialog">
+
+  <div class="modal-header">
+    <button type="button" class="close" ng-click="dismiss()">
+      <span aria-hidden="true">&times;</span>
+      <span class="sr-only">Close</span>
+    </button>
+    <h4 class="modal-title">Delete Selected Artifacts</h4>
+  </div>
+
+  <div class="modal-body">
+
+    <p>Are you sure you want to delete following artifacts?</p>
+    <ul>
+      <li ng-repeat="name in names">
+        {$ name $}
+      </li>
+    </ul>
+
+    <div class="aler alert-success padded" role="alert" ng-if="controller.success">
+      {$ controller.success $}
+    </div>
+
+    <div class="aler alert-danger padded" role="alert" ng-if="controller.error">
+      {$ controller.error $}
+    </div>
+  </div>
+
+  <div class="modal-footer" ng-if="!controller.success && !controller.error">
+    <button class="btn btn-default" ng-click="dismiss()" name="Cancel">
+      Cancel
+    </button>
+    <button class="btn btn-primary"
+            ng-disabled="controller.inProgress"
+            ng-click="controller.proceed()" name="Proceed">
+      Proceed
+    </button>
+  </div>
+
+  <div class="modal-footer" ng-if="controller.success || controller.error">
+    <button class="btn btn-default" ng-click="close()" name="Close">
+      Close
+    </button>
+  </div>
+
+</div>

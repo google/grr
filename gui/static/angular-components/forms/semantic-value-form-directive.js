@@ -96,6 +96,7 @@ SemanticValueFormController.prototype.onValueTypeChange_ = function(newValue) {
  *
  * @param {string} directiveName String to be converted.
  * @return {string} Converted string.
+ * @export
  */
 SemanticValueFormController.prototype.camelCaseToDashDelimited = function(
     directiveName) {

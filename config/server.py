@@ -315,8 +315,7 @@ config_lib.DEFINE_semantic(
 
 config_lib.DEFINE_string("DataRetention.tmp_ttl_exception_label",
                          default="retain", help="Temp objects marked with this "
-                                                "label will be retained "
-                                                "forever.")
+                         "label will be retained forever.")
 
 config_lib.DEFINE_semantic(
     rdfvalue.Duration, "DataRetention.inactive_client_ttl", default=None,
@@ -325,5 +324,4 @@ config_lib.DEFINE_semantic(
 
 config_lib.DEFINE_string("DataRetention.inactive_client_ttl_exception_label",
                          default="retain", help="Inactive clients marked with "
-                                                "this label will be retained "
-                                                "forever.")
+                         "this label will be retained forever.")

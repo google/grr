@@ -76,17 +76,7 @@ SplitterController.prototype.link = function() {
   splitterOptions['A'] = $(this.panes[0].elem);
   splitterOptions['B'] = $(this.panes[1].elem);
 
-  // TODO(user): check if this is really needed.
-  if (this.scope_.orientation === 'horizontal') {
-    var height = $(this.element_).height();
-    splitterOptions['A'].height(height / 2);
-    splitterOptions['B'].height(height / 2);
-  }
-
   $(this.element_).children('div.splitter').splitter(splitterOptions);
-
-  // TODO(user): check if this call is really needed.
-  $(this.element_).children('div.splitter').resize();
 };
 
 

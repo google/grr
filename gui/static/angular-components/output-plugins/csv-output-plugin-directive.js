@@ -22,7 +22,7 @@ grrUi.outputPlugins.csvOutputPluginDirective.CsvOutputPluginController =
   /** @export {boolean} */
   this.hasStreams = false;
 
-  this.scope_.$watch('state.output_streams', function(newValue) {
+  this.scope_.$watch('state.value.output_streams.value', function(newValue) {
     this.hasStreams = angular.isDefined(newValue) &&
         Object.keys(newValue).length > 0;
   }.bind(this));

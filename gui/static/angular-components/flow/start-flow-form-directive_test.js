@@ -10,6 +10,17 @@ describe('start flow form directive', function() {
   beforeEach(module(grrUi.flow.module.name));
   beforeEach(module(grrUi.tests.module.name));
 
+  // Stub out grr-semantic-value, grr-form-value and
+  // grr-form-proto-repeated-field directives, as all rendering is going to
+  // be delegated to them.
+  angular.forEach(
+      ['grrFormValue',
+       'grrFormProtoRepeatedField',
+       'grrSemanticValue'],
+      function(directiveName) {
+        grrUi.tests.stubDirective(directiveName);
+      });
+
   beforeEach(inject(function($injector) {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
@@ -55,31 +66,6 @@ describe('start flow form directive', function() {
 
           return deferred.promise;
         });
-
-    // Mock out grr-semantic-value, grr-form-value and
-    // grr-form-proto-repeated-field directives, as all rendering is going to
-    // be delegated to them.
-    grrUi.flow.module.directive('grrFormValue',
-                                function() {
-                                  return {
-                                    priority: 100000,
-                                    terminal: true
-                                  };
-                                });
-    grrUi.flow.module.directive('grrFormProtoRepeatedField',
-                                function() {
-                                  return {
-                                    priority: 100000,
-                                    terminal: true
-                                  };
-                                });
-    grrUi.flow.module.directive('grrSemanticValue',
-                                function() {
-                                  return {
-                                    priority: 100000,
-                                    terminal: true
-                                  };
-                                });
   }));
 
   var renderTestTemplate = function() {

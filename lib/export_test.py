@@ -1121,19 +1121,19 @@ class DataAgnosticExportConverterTest(test_lib.GRRBaseTest):
     self.assertEqual(converted_value, unserialized_converted_value)
 
 
-class RekallResponseConverterTest(test_lib.GRRBaseTest):
+class DynamicRekallResponseConverterTest(test_lib.GRRBaseTest):
 
   def SendReply(self, response_msg):
     self.messages.append(response_msg)
 
   def setUp(self):
-    super(RekallResponseConverterTest, self).setUp()
+    super(DynamicRekallResponseConverterTest, self).setUp()
 
     self.rekall_session = grr_rekall.GrrRekallSession(action=self)
     self.renderer = self.rekall_session.GetRenderer()
     self.messages = []
 
-    self.converter = export.RekallResponseConverter()
+    self.converter = export.DynamicRekallResponseConverter()
 
   def testSingleTableIsExported(self):
     self.renderer.start(plugin_name="sample")
@@ -1298,6 +1298,167 @@ class RekallResponseConverterTest(test_lib.GRRBaseTest):
     self.assertEqual(converted_values[0]._EPROCESS, "System (4)")
     self.assertEqual(converted_values[0].int, "42")
     self.assertEqual(converted_values[0].str, "some string")
+
+
+class RekallResponseToExportedRekallProcessConverterTest(test_lib.GRRBaseTest):
+  """Tests for RekallResponseToExportedRekallProcessConverter."""
+
+  def setUp(self):
+    super(RekallResponseToExportedRekallProcessConverterTest, self).setUp()
+    self.converter = export.RekallResponseToExportedRekallProcessConverter()
+
+  def testConvertsCompatibleMessage(self):
+    messages = [[
+        "r",
+        {"_EPROCESS": {
+            "Cybox": {
+                "Creation_Time": {
+                    "epoch": 1281506799,
+                    },
+                "Image_Info": {
+                    "Command_Line": "\"C:\\Program Files\\VMware\\VMware "
+                                    "Tools\\TPAutoConnSvc.exe\"",
+                    "Path": "C:\\Program Files\\VMware\\VMware "
+                            "Tools\\TPAutoConnSvc.exe",
+                    "TrustedPath": "C:\\Program Files\\VMware\\VMware "
+                                   "Tools\\Trusted\\TPAutoConnSvc.exe",
+                    "type": "ProcessObj:ImageInfoType"
+                    },
+                "Name": "TPAutoConnSvc.e",
+                "PID": 1968,
+                "Parent_PID": 676,
+                },
+            },
+        }]]
+
+    rekall_response = rdf_rekall_types.RekallResponse(
+        plugin="handles", json_messages=json.dumps(messages))
+    metadata = export.ExportedMetadata()
+    converted_values = list(self.converter.Convert(metadata,
+                                                   rekall_response,
+                                                   token=self.token))
+
+    self.assertEqual(len(converted_values), 1)
+
+    model = export.ExportedRekallProcess(
+        metadata=metadata,
+        commandline="\"C:\\Program Files\\VMware\\VMware Tools"
+        "\\TPAutoConnSvc.exe\"",
+        creation_time=1281506799000000,
+        fullpath="C:\\Program Files\\VMware\\VMware Tools"
+        "\\TPAutoConnSvc.exe",
+        trusted_fullpath="C:\\Program Files\\VMware\\VMware Tools"
+        "\\Trusted\\TPAutoConnSvc.exe",
+        name="TPAutoConnSvc.e",
+        parent_pid=676,
+        pid=1968)
+    self.assertEqual(converted_values[0], model)
+
+  def testIgnoresIncompatibleMessage(self):
+    messages = [[
+        "r",
+        {"baseaddress": 0}
+        ]]
+
+    rekall_response = rdf_rekall_types.RekallResponse(
+        plugin="handles", json_messages=json.dumps(messages))
+    converted_values = list(self.converter.Convert(export.ExportedMetadata(),
+                                                   rekall_response,
+                                                   token=self.token))
+
+    self.assertEqual(len(converted_values), 0)
+
+
+class RekallResponseToExportedRekallWindowsLoadedModuleConverterTest(
+    test_lib.GRRBaseTest):
+  """Tests for RekallResponseToExportedRekallProcessConverter."""
+
+  def setUp(self):
+    super(RekallResponseToExportedRekallWindowsLoadedModuleConverterTest,
+          self).setUp()
+    self.converter = export.RekallResponseToExportedRekallWindowsLoadedModuleConverter()  # pylint: disable=line-too-long
+
+  def testConvertsCompatibleMessage(self):
+    messages = [[
+        "r",
+        {
+            "_EPROCESS": {
+                "Cybox": {
+                    "Creation_Time": {
+                        "epoch": 1281506799,
+                        },
+                    "Image_Info": {
+                        "Command_Line": "C:\\WINDOWS\\System32\\alg.exe",
+                        "File_Name": "\\Device\\HarddiskVolume1\\WINDOWS\\"
+                                     "system32\\alg.exe",
+                        "Path": "C:\\WINDOWS\\System32\\alg.exe",
+                        "TrustedPath": "C:\\WINDOWS\\system32\\alg.exe",
+                        "type": "ProcessObj:ImageInfoType"
+                        },
+                    "Name": "alg.exe",
+                    "PID": 216,
+                    "Parent_PID": 676,
+                    "type": "ProcessObj:ProcessObjectType"
+                    },
+                },
+            "base_address": 1991507968,
+            "in_init": True,
+            "in_init_path": "C:\\WINDOWS\\System32\\WINMM.dll",
+            "in_load": True,
+            "in_load_path": "C:\\WINDOWS\\System32\\WINMM.dll",
+            "in_mem": True,
+            "in_mem_path": {
+                "id": 25042,
+                "mro": "NoneObject:object",
+                "reason": "None Object"
+                },
+            "mapped_filename": "\\WINDOWS\\system32\\winmm.dll"
+            }
+        ]]
+
+    rekall_response = rdf_rekall_types.RekallResponse(
+        plugin="handles", json_messages=json.dumps(messages))
+    metadata = export.ExportedMetadata()
+    converted_values = list(self.converter.Convert(metadata,
+                                                   rekall_response,
+                                                   token=self.token))
+
+    self.assertEqual(len(converted_values), 1)
+
+    model = export.ExportedRekallWindowsLoadedModule(
+        metadata=metadata,
+        process=export.ExportedRekallProcess(
+            commandline="C:\\WINDOWS\\System32\\alg.exe",
+            creation_time=1281506799000000,
+            fullpath="C:\\WINDOWS\\System32\\alg.exe",
+            trusted_fullpath="C:\\WINDOWS\\system32\\alg.exe",
+            name="alg.exe",
+            parent_pid=676,
+            pid=216),
+        address=1991507968,
+        fullpath="\\WINDOWS\\system32\\winmm.dll",
+        in_init_fullpath="C:\\WINDOWS\\System32\\WINMM.dll",
+        in_load_fullpath="C:\\WINDOWS\\System32\\WINMM.dll",
+        is_in_init_list=True,
+        is_in_load_list=True,
+        is_in_mem_list=True)
+    print str(converted_values[0])
+    print str(model)
+    self.assertEqual(converted_values[0], model)
+
+  def testIgnoresIncompatibleMessage(self):
+    messages = [[
+        "r",
+        {"baseaddress": 0}
+        ]]
+
+    rekall_response = rdf_rekall_types.RekallResponse(
+        plugin="handles", json_messages=json.dumps(messages))
+    converted_values = list(self.converter.Convert(export.ExportedMetadata(),
+                                                   rekall_response,
+                                                   token=self.token))
+
+    self.assertEqual(len(converted_values), 0)
 
 
 def main(argv):

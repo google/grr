@@ -40,21 +40,23 @@ class TestArtifactRender(test_lib.GRRSeleniumTest):
     self.Click("link=ArtifactCollectorFlow")
     self.WaitUntil(self.IsTextPresent, "Artifact list")
 
-    self.Select("css=select[id$=_os_filter]", "Linux")
+    self.Click("css=grr-artifacts-list-form button:contains('All Platforms')")
+    self.Click("css=grr-artifacts-list-form li:contains('Linux')")
 
     # Check search works.
-    self.Type("css=input[id$=_search]", u"Uni")
     self.WaitUntil(self.IsTextPresent, "UnixPasswd")
+    self.WaitUntil(self.IsTextPresent, "SshdConfigFile")
+
+    self.Type("css=grr-artifacts-list-form input[type=text]", u"Uni")
+    self.WaitUntil(self.IsTextPresent, "UnixPasswd")
+    self.WaitUntilNot(self.IsTextPresent, "SshdConfigFile")
 
     # Check we can add to the list.
-    self.Click("css=option[value=UnixPasswd]")
-    self.Click("css=a[id$=_artifact_add]")
-
-    self.Select("css=#args-artifact_list", "UnixPasswd")
-    self.Click("css=option[value=UnixPasswd]")
-
-    # Force selection due to selenium not propagating change correctly.
-    self.driver.execute_script("return $('#args-artifact_list').change()")
+    self.Click("css=grr-artifacts-list-form tr:contains('UnixPasswd')")
+    self.Click("css=grr-artifacts-list-form button:contains('Add')")
+    # Selected artifacts should be highlighted in bold.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-artifacts-list-form strong:contains('UnixPasswd')")
 
     # Check the artifact description loaded.
     self.WaitUntil(self.IsTextPresent, "Unix /etc/passwd file")

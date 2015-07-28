@@ -27,33 +27,19 @@ from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import standard as rdf_standard
 
 
-# TODO(user): Uncomment as soon as artifacts are migrated to Angular so that
-# artifacts-related flows work.
-#
-# class LaunchFlows(renderers.AngularDirectiveRenderer):
-#   """Launches a new flow."""
-
-#   description = "Start new flows"
-#   behaviours = frozenset(["Host"])
-#   order = 10
-
-#   directive = "grr-start-flow-view"
-
-#   def Layout(self, request, response):
-#     self.directive_args = {}
-#     self.directive_args["client-id"] = request.REQ.get("client_id")
-#     return super(LaunchFlows, self).Layout(request, response)
-
-
-class LaunchFlows(renderers.Splitter):
+class LaunchFlows(renderers.AngularDirectiveRenderer):
   """Launches a new flow."""
+
   description = "Start new flows"
   behaviours = frozenset(["Host"])
   order = 10
 
-  left_renderer = "FlowTree"
-  top_right_renderer = "SemanticProtoFlowForm"
-  bottom_right_renderer = "FlowManagementTabs"
+  directive = "grr-start-flow-view"
+
+  def Layout(self, request, response):
+    self.directive_args = {}
+    self.directive_args["client-id"] = request.REQ.get("client_id")
+    return super(LaunchFlows, self).Layout(request, response)
 
 
 class FlowTree(renderers.TreeRenderer):

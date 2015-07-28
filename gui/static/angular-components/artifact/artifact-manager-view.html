@@ -1,0 +1,56 @@
+<ul class="breadcrumb">
+  <li>
+    <button class="btn btn-default"
+            title="Upload Artifacts as JSON or YAML"
+            name="UploadArtifact"
+            ng-click="controller.upload()">
+      <img src='/static/images/upload.png' class='toolbar_icon'>
+    </button>
+
+    <button class="btn btn-default"
+            title="Delete selected artifacts"
+            name="DeleteArtifact"
+            ng-disabled="controller.numSelectedDescriptors == 0"
+            ng-click="controller.deleteSelected()">
+      <img src='/static/images/editdelete.png' class='toolbar_icon'>
+    </button>
+  </li>
+</ul>
+
+<table class="table table-condensed table-bordered full-width">
+  <colgroup>
+    <col style="width: 40px">
+    <col width="100px"></col>
+    <col width="100%"></col>
+  </colgroup>
+
+  <thead>
+    <tr>
+      <th><input type="checkbox" class="client-checkbox select-all"
+                 ng-model="controller.allDescriptorsSelected"
+                 ng-change="controller.selectAll()" />
+      <th>Artifact Name</th>
+      <th>Artifact Details</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <tr grr-infinite-table grr-api-items-provider url="controller.artifactsUrl"
+        page-size="65536"
+        transform-items="controller.transformItems(items)"
+        trigger-update="controller.triggerUpdate">
+
+      <!-- Selection checkbox -->
+      <td>
+        <input type="checkbox" class="client-checkbox"
+               ng-change="controller.updateNumSelectedDescriptors()"
+               ng-model="controller.selectedDescriptors[item.value.artifact.value.name.value]"
+               ng-click="$event.stopPropagation()"
+               />
+      </td>
+
+      <td><grr-semantic-value value="::item.value.artifact.value.name"></grr-semantic-value></td>
+      <td><grr-semantic-value value="::item"></grr-semantic-value></td>
+    </tr>
+  </tbody>
+</table>

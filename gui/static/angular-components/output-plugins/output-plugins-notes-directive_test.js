@@ -68,10 +68,14 @@ describe('output plugins notes list directive', function() {
     };
 
     var state1 = {
-      'foo': 'bar1'
+      value: {
+        'foo': 'bar1'
+      }
     };
     var state2 = {
-      'foo': 'bar2'
+      value: {
+        'foo': 'bar2'
+      }
     };
     deferred.resolve({
       data: {

@@ -81,7 +81,9 @@ describe('output plugin note directive', function() {
       }
     };
     var state = {
-      value: 'value'
+      value: {
+        foo: 'bar'
+      }
     };
 
     var element = renderTestTemplate(descriptor, state);

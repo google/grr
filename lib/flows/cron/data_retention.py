@@ -4,10 +4,10 @@
 
 
 from grr.lib import aff4
+from grr.lib import client_index
 from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import client_index
 from grr.lib import utils
 
 from grr.lib.aff4_objects import cronjobs
@@ -66,7 +66,8 @@ class CleanCronJobs(cronjobs.SystemCronFlow):
     for obj in jobs_objs:
       age = rdfvalue.RDFDatetime().Now() - cron_jobs_ttl
       obj.DeleteJobFlows(age)
-      self.HeartBeat
+      self.HeartBeat()
+
 
 class CleanTemp(cronjobs.SystemCronFlow):
   """Cleaner that deletes temp objects."""
@@ -131,8 +132,8 @@ class CleanInactiveClients(cronjobs.SystemCronFlow):
     for client_group in utils.Grouper(client_urns, 1000):
       inactive_client_urns = []
       for client in aff4.FACTORY.MultiOpen(client_group, mode="r",
-                                       aff4_type="VFSGRRClient",
-                                       token=self.token):
+                                           aff4_type="VFSGRRClient",
+                                           token=self.token):
         if exception_label in client.GetLabelsNames():
           continue
 

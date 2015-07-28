@@ -543,10 +543,8 @@ class GRRBaseTest(unittest.TestCase):
 
   def SetupClients(self, nr_clients):
     client_ids = []
-    with aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                                aff4_type="ClientIndex",
-                                mode="rw",
-                                token=self.token) as index:
+    with aff4.FACTORY.Create(client_index.MAIN_INDEX, aff4_type="ClientIndex",
+                             mode="rw", token=self.token) as index:
 
       for i in range(nr_clients):
         client_id = rdf_client.ClientURN("C.1%015d" % i)
@@ -566,7 +564,8 @@ class GRRBaseTest(unittest.TestCase):
           fd.Set(fd.Schema.PING, rdfvalue.RDFDatetime().Now())
           fd.Set(fd.Schema.HOSTNAME("Host-%s" % i))
           fd.Set(fd.Schema.FQDN("Host-%s.example.com" % i))
-          fd.Set(fd.Schema.MAC_ADDRESS("aabbccddee%02x\nbbccddeeff%02x" % (i, i)))
+          fd.Set(
+              fd.Schema.MAC_ADDRESS("aabbccddee%02x\nbbccddeeff%02x" % (i, i)))
           fd.Set(fd.Schema.HOST_IPS("192.168.0.%d\n2001:abcd::%x" % (i, i)))
           fd.Flush()
 

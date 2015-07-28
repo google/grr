@@ -1,0 +1,196 @@
+'use strict';
+
+goog.provide('grrUi.artifact.artifactManagerViewDirective.ArtifactManagerViewController');
+goog.provide('grrUi.artifact.artifactManagerViewDirective.ArtifactManagerViewDirective');
+
+
+goog.scope(function() {
+
+
+/**
+ * Controller for OutputPluginNoteDirective.
+ *
+ * @constructor
+ * @param {!angular.Scope} $scope
+ * @param {!angularUi.$modal} $modal Bootstrap UI modal service.
+ * @param {!grrUi.core.apiService.ApiService} grrApiService
+ * @ngInject
+ */
+grrUi.artifact.artifactManagerViewDirective.ArtifactManagerViewController =
+    function($scope, $modal, grrApiService) {
+
+  /** @private {!angular.Scope} */
+  this.scope_ = $scope;
+
+  /** @private {!angularUi.$modal} */
+  this.modal_ = $modal;
+
+ /** @private {!grrUi.core.apiService.ApiService} */
+  this.grrApiService_ = grrApiService;
+
+  /**
+   * This variable is bound to grr-infinite-table's trigger-update attribute
+   * and therefore is set by that directive to a function that triggers
+   * table update.
+   * @export {function()}
+   */
+  this.triggerUpdate;
+
+  /** @export {Array.<Object>} */
+  this.descriptors = [];
+
+  /** @export {Object.<string, boolean>} */
+  this.selectedDescriptors = {};
+
+  /** @export {number} */
+  this.numSelectedDescriptors = 0;
+
+  /** @export {boolean} */
+  this.allDescriptorsSelected = false;
+};
+var ArtifactManagerViewController =
+    grrUi.artifact.artifactManagerViewDirective.ArtifactManagerViewController;
+
+
+/**
+ * Artifacts list API url.
+ * @const {string}
+ */
+ArtifactManagerViewController.prototype.artifactsUrl = '/artifacts';
+
+
+/**
+ * Transforms table items before they get shown.
+ *
+ * @param {!Array<Object>} items Items to be transformed.
+ * @return {!Array<Object>} Transformed items.
+ * @export
+ * @suppress {missingProperties} For items, as they crom from JSON response.
+ */
+ArtifactManagerViewController.prototype.transformItems = function(items) {
+  this.descriptors = [];
+
+  angular.forEach(items, function(item) {
+    if (item.value.is_custom.value) {
+      this.descriptors.push(item);
+    }
+  }.bind(this));
+
+  return this.descriptors;
+};
+
+
+/**
+ * Selects all artifacts in the table
+ *
+ * @export
+ */
+ArtifactManagerViewController.prototype.selectAll = function() {
+  angular.forEach(this.descriptors, function(descriptor) {
+    this.selectedDescriptors[descriptor.value.artifact.value.name.value] =
+        this.allDescriptorsSelected;
+  }.bind(this));
+
+  this.updateNumSelectedDescriptors();
+};
+
+
+/**
+ * Shows "Upload artifact dialog.
+ *
+ * @export
+ */
+ArtifactManagerViewController.prototype.upload = function() {
+  var modalInstance = this.modal_.open({
+    template: '<grr-upload-artifact-dialog close="$close()" ' +
+        'dismiss="$dismiss()" />',
+    scope: this.scope_
+  });
+
+  modalInstance.result.then(function resolve() {
+    this.triggerUpdate();
+  }.bind(this));
+};
+
+
+/**
+ * Shows confirmation dialog and deletes selected artifacts.
+ *
+ * @export
+ */
+ArtifactManagerViewController.prototype.deleteSelected = function() {
+  var modalScope = this.scope_.$new();
+  this.scope_.$on('$destroy', function() {
+    modalScope.$destroy();
+  });
+
+  var namesToDelete = [];
+  for (var name in this.selectedDescriptors) {
+    if (this.selectedDescriptors[name]) {
+      namesToDelete.push(name);
+    }
+  }
+  modalScope.names = namesToDelete;
+
+  var modalInstance = this.modal_.open({
+    template: '<grr-delete-artifacts-dialog close="$close()" ' +
+        'dismiss="$dismiss()" names="names" />',
+    scope: modalScope
+  });
+
+  modalInstance.result.then(function resolve() {
+    this.selectedDescriptors = {};
+    this.numSelectedDescriptors = 0;
+    this.triggerUpdate();
+  }.bind(this));
+};
+
+
+/**
+ * Updates number of selected descriptors by traversing selection dictionary.
+ *
+ * @export
+ */
+ArtifactManagerViewController.prototype.updateNumSelectedDescriptors =
+    function() {
+  var count = 0;
+  for (var key in this.selectedDescriptors) {
+    if (this.selectedDescriptors[key]) {
+      ++count;
+    }
+  }
+
+  this.numSelectedDescriptors = count;
+};
+
+
+/**
+ * Directive that displays artifact manager view.
+ *
+ * @constructor
+ * @ngInject
+ * @export
+ */
+grrUi.artifact.artifactManagerViewDirective.ArtifactManagerViewDirective =
+    function() {
+  return {
+    scope: {},
+    restrict: 'E',
+    templateUrl: '/static/angular-components/artifact/' +
+        'artifact-manager-view.html',
+    controller: ArtifactManagerViewController,
+    controllerAs: 'controller'
+  };
+};
+
+/**
+ * Directive's name in Angular.
+ *
+ * @const
+ * @export
+ */
+grrUi.artifact.artifactManagerViewDirective.ArtifactManagerViewDirective
+    .directive_name = 'grrArtifactManagerView';
+
+
+});  // goog.scope

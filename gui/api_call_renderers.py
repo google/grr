@@ -164,6 +164,9 @@ class APIAuthorizationImporter(object):
 class APIAuthorizationManager(object):
   """Abstract API authorization manager class."""
 
+  __metaclass__ = registry.MetaclassRegistry
+  __abstract = True  # pylint: disable=g-bad-name
+
   def CheckAccess(self, renderer_name, username):
     """Check access against ACL file, if defined.
 
@@ -187,7 +190,6 @@ class SimpleAPIAuthorizationManager(APIAuthorizationManager):
   just needs to have a way to check membership in those groups that should query
   the canonical source for group membership in your environment (AD, LDAP etc.).
   """
-  __metaclass__ = registry.MetaclassRegistry
 
   def __init__(self):
     self.auth_import = APIAuthorizationImporter()
@@ -275,4 +277,3 @@ def HandleApiCall(renderer, args, token=None):
   API_AUTH_MGR.CheckAccess(renderer, token.username)
 
   return renderer.Render(args, token=token)
-

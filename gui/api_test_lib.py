@@ -9,12 +9,20 @@ import os
 import urlparse
 
 from grr import gui
+from grr.gui import api_call_renderers
 from grr.gui import http_api
 from grr.lib import test_lib
 from grr.lib import utils
 
 
 DOCUMENT_ROOT = os.path.join(os.path.dirname(gui.__file__), "static")
+
+
+class NullAPIAuthorizationManager(api_call_renderers.APIAuthorizationManager):
+  """Authorization manager that allows everything. Used for testing only."""
+
+  def CheckAccess(self, unused_renderer, unused_username):
+    return True
 
 
 class ApiCallRendererRegressionTest(test_lib.GRRBaseTest):
@@ -43,6 +51,10 @@ class ApiCallRendererRegressionTest(test_lib.GRRBaseTest):
     super(ApiCallRendererRegressionTest, self).setUp()
     self.checks = []
 
+  def NoAuthorizationChecks(self):
+    return utils.Stubber(api_call_renderers, "API_AUTH_MGR",
+                         NullAPIAuthorizationManager())
+
   def Check(self, method, url, payload=None, replace=None):
     """Records output of a given url accessed with a given method.
 
@@ -65,7 +77,9 @@ class ApiCallRendererRegressionTest(test_lib.GRRBaseTest):
                                environ={"SERVER_NAME": "foo.bar",
                                         "SERVER_PORT": 1234},
                                user="test")
-    request.META = {}
+    request.META = {
+        "CONTENT_TYPE": "application/json"
+    }
 
     if method == "GET":
       request.GET = dict(urlparse.parse_qsl(parsed_url.query))
@@ -74,7 +88,9 @@ class ApiCallRendererRegressionTest(test_lib.GRRBaseTest):
     else:
       raise ValueError("Unsupported method: %s." % method)
 
-    http_response = http_api.RenderHttpResponse(request)
+    with self.NoAuthorizationChecks():
+      http_response = http_api.RenderHttpResponse(request)
+
     content = http_response.content
 
     xssi_token = ")]}'\n"
