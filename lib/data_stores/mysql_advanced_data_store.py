@@ -109,11 +109,8 @@ class ConnectionPool(object):
 
   def PutConnection(self, connection):
     # If the pool is low on connections return this connection to the pool
-    # Reduce the connection count and then put will increment again if the
-    # connection is returned to the pool
 
     if self.connections.qsize() < self.pool_min_size:
-      self.connections.task_done()
       self.connections.put(connection)
     else:
       self.DropConnection(connection)
@@ -129,9 +126,6 @@ class ConnectionPool(object):
       connection.dbh.close()
     except MySQLdb.Error:
       pass
-    # If a connection is going to be dropped we remove it from the count
-    # of open connections.
-    self.connections.task_done()
 
 
 class MySQLAdvancedDataStore(data_store.DataStore):
@@ -444,8 +438,10 @@ class MySQLAdvancedDataStore(data_store.DataStore):
         time.sleep(.2)
         if attempt == 10:
           raise e
-        else:
-          continue
+      finally:
+        # Reduce the open connection count by calling task_done. This will
+        # increment again if the connection is returned to the pool.
+        self.pool.connections.task_done()
     self.pool.PutConnection(connection)
     return results
 
@@ -470,8 +466,10 @@ class MySQLAdvancedDataStore(data_store.DataStore):
         time.sleep(.2)
         if attempt == 10:
           raise e
-        else:
-          continue
+      finally:
+        # Reduce the open connection count by calling task_done. This will
+        # increment again if the connection is returned to the pool.
+        self.pool.connections.task_done()
     self.pool.PutConnection(connection)
     return results
 
