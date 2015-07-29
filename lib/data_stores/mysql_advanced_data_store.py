@@ -152,6 +152,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     try:
       self.ExecuteQuery("desc `aff4`")
     except MySQLdb.Error:
+      logging.debug("Recreating Tables")
       self.RecreateTables()
 
   def DropTables(self):
@@ -194,15 +195,15 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     for attribute in attributes:
       timestamp = self._MakeTimestamp(start, end)
       attribute = utils.SmartUnicode(attribute)
-      transaction = self._BuildDelete(subject, attribute, timestamp)
-      self._ExecuteTransaction(transaction)
+      queries = self._BuildDelete(subject, attribute, timestamp)
+      self._ExecuteQueries(queries)
 
   def DeleteSubject(self, subject, sync=False, token=None):
     _ = sync
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
 
-    transaction = self._BuildDelete(subject)
-    self._ExecuteTransaction(transaction)
+    queries = self._BuildDelete(subject)
+    self._ExecuteQueries(queries)
 
   def ResolveMulti(self, subject, attributes, timestamp=None, limit=None,
                    token=None):
@@ -418,37 +419,51 @@ class MySQLAdvancedDataStore(data_store.DataStore):
          "if(%s is NULL,floor(unix_timestamp(now(6))*1000000),%s), %s)"] *
         (len(aff4_q["args"]) / 5))
 
-    return [aff4_q, subjects_q, attributes_q]
+    return [aff4_q, attributes_q, subjects_q]
 
   def ExecuteQuery(self, query, args=None):
     """Get connection from pool and execute query."""
-    retries = 10
-    for attempt in range(1, retries + 1):
+    while True:
+      # Connectivity issues and deadlocks should not cause threads to die and
+      # create inconsistency.  Any MySQL errors here should be temporary in
+      # nature and GRR should be able to recover when the server is available or
+      # deadlocks have been resolved.
       connection = self.pool.GetConnection()
       try:
         connection.cursor.execute(query, args)
         results = connection.cursor.fetchall()
-        break
+        self.pool.PutConnection(connection)
+        return results
       except MySQLdb.Error as e:
         # If there was an error attempt to clean up this connection and let it
         # drop
         self.pool.DropConnection(connection)
-        logging.warn("Datastore query attempt %s failed with %s:",
-                     attempt, str(e))
-        time.sleep(.2)
-        if attempt == 10:
+        if "doesn't exist" in str(e):
+          # This should indicate missing tables and raise immediately
           raise e
+        else:
+          logging.warn("Datastore query attempt %s failed with %s:",
+                       attempt, str(e))
+          # Most errors encountered here need a reasonable backoff time to
+          # resolve.
+          time.sleep(1)
       finally:
         # Reduce the open connection count by calling task_done. This will
         # increment again if the connection is returned to the pool.
         self.pool.connections.task_done()
-    self.pool.PutConnection(connection)
-    return results
+
+  def _ExecuteQueries(self, queries):
+    """Get connection from pool and execute queries."""
+    for query in queries:
+      self.ExecuteQuery(query["query"], query["args"])
 
   def _ExecuteTransaction(self, transaction):
-    """Get connection from pool and execute query."""
-    retries = 10
-    for attempt in range(1, retries + 1):
+    """Get connection from pool and execute transaction."""
+    while True:
+      # Connectivity issues and deadlocks should not cause threads to die and
+      # create inconsistency.  Any MySQL errors here should be temporary in
+      # nature and GRR should be able to recover when the server is available or
+      # deadlocks have been resolved.
       connection = self.pool.GetConnection()
       try:
         connection.cursor.execute("START TRANSACTION")
@@ -456,22 +471,25 @@ class MySQLAdvancedDataStore(data_store.DataStore):
           connection.cursor.execute(query["query"], query["args"])
         connection.cursor.execute("COMMIT")
         results = connection.cursor.fetchall()
-        break
+        self.pool.PutConnection(connection)
+        return results
       except MySQLdb.Error as e:
         # If there was an error attempt to clean up this connection and let it
         # drop
         self.pool.DropConnection(connection)
-        logging.warn("Datastore query attempt %s failed with %s:",
-                     attempt, str(e))
-        time.sleep(.2)
-        if attempt == 10:
+        if "doesn't exist" in str(e):
+          # This should indicate missing tables and raise immediately
           raise e
+        else:
+          logging.warn("Datastore query attempt %s failed with %s:",
+                       attempt, str(e))
+          # Most errors encountered here need a reasonable backoff time to
+          # resolve.
+          time.sleep(1)
       finally:
         # Reduce the open connection count by calling task_done. This will
         # increment again if the connection is returned to the pool.
         self.pool.connections.task_done()
-    self.pool.PutConnection(connection)
-    return results
 
   def _CalculateAttributeStorageTypes(self):
     """Build a mapping between column names and types."""
@@ -617,9 +635,9 @@ class MySQLAdvancedDataStore(data_store.DataStore):
           "WHERE locks.subject_hash=unhex(md5(%s)) "
           "AND aff4.subject_hash IS NULL")
 
-      return [aff4_q, subjects_q, attributes_q, locks_q]
+      return [aff4_q, attributes_q, locks_q, subjects_q]
 
-    return [aff4_q, subjects_q, locks_q]
+    return [aff4_q, locks_q, subjects_q]
 
   def _MakeTimestamp(self, start=None, end=None):
     """Create a timestamp using a start and end time.
