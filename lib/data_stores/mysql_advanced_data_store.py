@@ -522,7 +522,6 @@ class MySQLAdvancedDataStore(data_store.DataStore):
                   limit=None, is_regex=False):
     """Build the SELECT query to be executed."""
     args = []
-    fields = ""
     criteria = "WHERE aff4.subject_hash=unhex(md5(%s))"
     args.append(subject)
     sorting = ""
