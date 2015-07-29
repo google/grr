@@ -1,26 +1,22 @@
 #!/bin/bash
 #
-# Script to install GRR from scratch on an Ubuntu 12.04, 12.10 or 13.04 system.
+# Script to install GRR from scratch on an Ubuntu system. Tested on trusty
+# (14.04)
 #
 # By default this will install into /usr and set the config in
 # /etc/grr/
 #
 PREFIX=/usr
 
+# If true, do an apt-get upgrade
+: ${UPGRADE:=true}
+
 # Variables to control the install versions etc. Made for changing this to
 # support other platforms more easily.
 PLAT=amd64
 INSTALL_DIR=${PREFIX}/share/grr
 
-# We now host files on google drive since code.google.com downloads are
-# deprecated: https://code.google.com/p/support/wiki/DownloadsFAQ
-DEB_DEPENDENCIES_URL=https://googledrive.com/host/0B1wsLqFoT7i2aW5mWXNDX1NtTnc/ubuntu-12.04-${PLAT}-debs.tar.gz;
-DEB_DEPENDENCIES_DIR=ubuntu-12.04-${PLAT}-debs;
-SLEUTHKIT_DEB=sleuthkit-lib_3.2.3-1_${PLAT}.deb
-PYTSK_DEB=pytsk3_3.2.3-1_${PLAT}.deb
-M2CRYPTO_DEB=m2crypto_0.21.1-1_${PLAT}.deb
-
-GRR_STABLE_VERSION=0.3.0-6
+GRR_STABLE_VERSION=0.3.0-7
 GRR_TEST_VERSION=
 SERVER_DEB_STABLE_BASE_URL=https://googledrive.com/host/0B1wsLqFoT7i2c3F0ZmI1RDJlUEU/grr-server_
 SERVER_DEB_TEST_BASE_URL=https://googledrive.com/host/0B1wsLqFoT7i2c3F0ZmI1RDJlUEU/test-grr-server_
@@ -123,69 +119,67 @@ function run_cmd_confirm()
   fi
 };
 
-function install_mongo()
-{
-  apt-get --yes --force-yes install mongodb python-pymongo;
-}
+header "Adding launchpad.net/~gift PPA for m2crypto pytsk dependencies."
+run_cmd_confirm apt-get install -y software-properties-common
+run_cmd_confirm add-apt-repository ppa:gift/dev -y
+run_cmd_confirm apt-get update -q
 
 header "Updating APT and Installing dependencies"
 run_cmd_confirm apt-get --yes update;
-run_cmd_confirm apt-get --yes upgrade;
-run_cmd_confirm apt-get --force-yes --yes install python-setuptools python-dateutil python-django ipython apache2-utils zip wget python-ipaddr python-support python-matplotlib python-mox python-yaml python-pip dpkg-dev debhelper rpm prelink build-essential python-dev python-pandas python-mock python-werkzeug;
+if $UPGRADE; then
+  run_cmd_confirm apt-get --yes upgrade;
+fi
+
+header "Installing dependencies."
+# Installing pkg-config is a workaround for this matplotlib problem:
+# https://github.com/matplotlib/matplotlib/issues/3029/
+sudo apt-get install -y \
+  apache2-utils \
+  build-essential \
+  debhelper \
+  dpkg-dev \
+  git-core \
+  ipython \
+  libdistorm64-dev \
+  libdistorm64-1 \
+  libfreetype6-dev \
+  libpng-dev \
+  libprotobuf-dev \
+  ncurses-dev \
+  pkg-config \
+  prelink \
+  protobuf-compiler \
+  python-m2crypto \
+  python-protobuf \
+  python-setuptools \
+  python-support \
+  pytsk3 \
+  rpm \
+  sleuthkit \
+  swig \
+  wget \
+  zip
 
 # Fail silently if python-dev or libpython-dev is not available in the apt repo
 # python-dev is for Ubuntu version < 12.10 and libpython-dev is for > 12.04
 apt-get --force-yes --yes install python-dev 2>/dev/null
 apt-get --force-yes --yes install libpython-dev 2>/dev/null
 
-header "Getting the right version of M2Crypto installed"
-run_cmd_confirm apt-get --yes remove python-m2crypto;
+run_cmd_confirm wget --quiet https://bootstrap.pypa.io/get-pip.py
+run_cmd_confirm python get-pip.py
+run_cmd_confirm pip install pip --upgrade
 
-DEB_DEPENDENCIES_TARBALL=$(basename ${DEB_DEPENDENCIES_URL});
-run_cmd_confirm wget --no-verbose ${DEB_DEPENDENCIES_URL} -O ${DEB_DEPENDENCIES_TARBALL};
-run_cmd_confirm tar zxfv ${DEB_DEPENDENCIES_TARBALL};
-run_cmd_confirm dpkg -i ${DEB_DEPENDENCIES_DIR}/${M2CRYPTO_DEB};
+header "Installing python dependencies"
+run_cmd_confirm wget --quiet https://raw.githubusercontent.com/google/grr/93cd1fd0cd1ca05e526af86ef33a996216273c8e/requirements.txt
+run_cmd_confirm pip install -r requirements.txt
 
-header "Installing Protobuf"
-run_cmd_confirm apt-get --yes --force-yes install libprotobuf-dev python-protobuf protobuf-compiler libprotobuf-dev;
-
-header "Installing Sleuthkit and Pytsk"
-run_cmd_confirm apt-get --yes remove libtsk3* sleuthkit
-run_cmd_confirm dpkg -i ${DEB_DEPENDENCIES_DIR}/${SLEUTHKIT_DEB} ${DEB_DEPENDENCIES_DIR}/${PYTSK_DEB};
-
-header "Installing Rekall"
-INSTALL_REKALL=0
-if [ ${ALL_YES} = 0 ]; then
-  echo ""
-  read -p "Run pip install rekall --upgrade [Y/n/a]? " REPLY
-  case $REPLY in
-    y|Y|'') INSTALL_REKALL=1;;
-    a|A) echo "Answering yes from now on"; ALL_YES=1; INSTALL_REKALL=1;;
-  esac
-else
-  INSTALL_REKALL=1
+# Set filehandle max to a high value if it isn't already set.
+if ! grep -Fq "fs.file-max" /etc/sysctl.conf; then
+  header "Increase our filehandle limit (for SQLite datastore)."
+  echo "fs.file-max = 1048576" >> /etc/sysctl.conf
+  sysctl -p
 fi
-
-if [ ${INSTALL_REKALL} = 1 ]; then
-  pip install rekall --upgrade
-  RETVAL=$?
-  if [ $RETVAL -ne 0 ]; then
-    exit_fail pip install rekall --upgrade;
-  fi
-fi
-
-header "Installing psutil via pip"
-run_cmd_confirm apt-get --yes remove python-psutil;
-run_cmd_confirm pip install psutil --upgrade
-
-header "Installing Selenium test framework for Tests"
-run_cmd_confirm easy_install selenium
-
-header "Installing correct Django version."
-# We support everything from 1.4 to 1.6, 12.04 ships with 1.3. This is only
-# necessary for server 0.3.0-2, remove the requirement for 1.6 once we upgrade.
-run_cmd_confirm apt-get --yes remove python-django
-run_cmd_confirm pip install django==1.6
+echo "Filehandle limit now: $(cat /proc/sys/fs/file-max)"
 
 if [ $BUILD_DEPS_ONLY = 1 ]; then
   echo "#######################################"
@@ -193,13 +187,6 @@ if [ $BUILD_DEPS_ONLY = 1 ]; then
   echo "#######################################"
   exit 0
 fi
-
-# Mongo is actually unused in the default configuration (sqlite is the default).
-# We install it here to satisfy the grr-server deb package dependency. Remove
-# this once we have built a new grr-server.deb without the mongo dependency.
-
-header "Installing Mongodb"
-run_cmd_confirm install_mongo
 
 header "Installing GRR from prebuilt package"
 SERVER_DEB=$(basename ${SERVER_DEB_URL});
@@ -214,27 +201,10 @@ header "Initialize the configuration, building clients and setting options."
 run_cmd_confirm grr_config_updater initialize
 
 header "Enable grr services to start automatically on boot"
-
-for SERVER in grr-http-server grr-worker grr-ui
-do
-  SERVER_DEFAULT=/etc/default/${SERVER}
-  # The package has START=no to enable users installing distributed components
-  # to selectively enable what they want on each machine. Here we want them all
-  # running.
-  run_cmd_confirm sed -i 's/START=\"no\"/START=\"yes\"/' ${SERVER_DEFAULT};
-
-  header "Starting ${SERVER}"
-
-  initctl status ${SERVER} | grep "running"
-  IS_RUNNING=$?
-  if [ $IS_RUNNING = 0 ]; then
-    run_cmd_confirm service ${SERVER} stop
-  fi
-  run_cmd_confirm service ${SERVER} start
-done
+run_cmd_confirm . /usr/share/grr/scripts/shell_helpers.sh
+run_cmd_confirm enable_services grr-http-server
+run_cmd_confirm enable_services grr-ui
+run_cmd_confirm enable_services grr-worker
 
 HOSTNAME=`hostname`
-echo "############################################################################################"
-echo "Install complete. Congratulations. Point your browser at http://${HOSTNAME}:8000"
-echo "############################################################################################"
-echo ""
+header "Install complete. Congratulations. Point your browser at http://${HOSTNAME}:8000"

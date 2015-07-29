@@ -69,7 +69,7 @@ parser_repack_clients = subparsers.add_parser(
 
 parser_initialize = subparsers.add_parser(
     "initialize",
-    help="Interactively run all the required steps to setup a new GRR install.")
+    help="Run all the required steps to setup a new GRR install.")
 
 parser_set_var = subparsers.add_parser(
     "set_var", help="Set a config variable.")
@@ -111,6 +111,14 @@ parser_initialize.add_argument(
     "--external_hostname", default=None,
     help="External hostname to use.")
 
+parser_initialize.add_argument(
+    "--admin_password", default=None,
+    help="Admin password for web interface.")
+
+parser_initialize.add_argument(
+    "--noprompt", default=False, action="store_true",
+    help="Set to avoid prompting during initialize.")
+
 parser_set_var.add_argument("var", help="Variable to set.")
 parser_set_var.add_argument("val", help="Value to set.")
 
@@ -151,8 +159,9 @@ def UpdateUser(username, password, add_labels=None, delete_labels=None,
 
   # Note this accepts blank passwords as valid.
   if password:
-    password = getpass.getpass(
-        prompt="Please enter password for user '%s': " % username)
+    if not isinstance(password, basestring):
+      password = getpass.getpass(
+          prompt="Please enter password for user '%s': " % username)
     fd.SetPassword(password)
 
   # Use sets to dedup input.
@@ -424,7 +433,6 @@ def RetryQuestion(question_text, output_re="", default_val=None):
 
 def ConfigureHostnames(config):
   """This configures the hostnames stored in the config."""
-
   if flags.FLAGS.external_hostname:
     hostname = flags.FLAGS.external_hostname
   else:
@@ -470,11 +478,9 @@ configure GRR to run as non-root be sure to allow that user access to the files.
 to be running and a user with the ability to create the GRR database and tables.
 The MySQL client binaries are required for use with the MySQLdb python module as
 well.
+"""
 
-3. Mongo - This datastore uses MongoDB and requires MongoDB server to be
-running.  This datastore is a legacy option and is not recommended.\n"""
-
-  datastore = RetryQuestion("Datastore", "^[1-3]$", "1")
+  datastore = RetryQuestion("Datastore", "^[1-2]$", "1")
 
   if datastore == "1":
     config.Set("Datastore.implementation", "SqliteDataStore")
@@ -507,19 +513,7 @@ running.  This datastore is a legacy option and is not recommended.\n"""
         prompt="Please enter password for database user %s: " % mysql_username)
     config.Set("Mysql.database_password", mysql_password)
 
-  if datastore == "3":
-    config.Set("Datastore.implementation", "MongoDataStore")
-    mongo_server = RetryQuestion("Mongo Host", "^[\\.A-Za-z0-9-]+$",
-                                 config_lib.CONFIG.Get("Mongo.server"))
-    config.Set("Mongo.server", mongo_server)
 
-    mongo_port = RetryQuestion("Mongo Port", "^[0-9]+$",
-                               config_lib.CONFIG.Get("Mongo.port"))
-    config.Set("Mongo.port", mongo_port)
-
-    mongo_database = RetryQuestion("Mongo Database", "^[A-Za-z0-9-]+$",
-                                   config_lib.CONFIG.Get("Mongo.db_name"))
-    config.Set("Mongo.db_name", mongo_database)
 
 
 def ConfigureEmails(config):
@@ -528,16 +522,15 @@ def ConfigureEmails(config):
 Emails concerning alerts or updates must be sent to this domain.
 """
   domain = RetryQuestion("Email Domain e.g example.com",
-                         "^([\\.A-Za-z0-9-]+)*$",
-                         config_lib.CONFIG.Get("Logging.domain"))
+                          "^([\\.A-Za-z0-9-]+)*$",
+                          config_lib.CONFIG.Get("Logging.domain"))
   config.Set("Logging.domain", domain)
 
   print """\n\n-=Alert Email Address=-
 Address where monitoring events get sent, e.g. crashed clients, broken server
 etc.
 """
-  email = RetryQuestion("Alert Email Address", "",
-                        "grr-monitoring@%s" % domain)
+  email = RetryQuestion("Alert Email Address", "", "grr-monitoring@%s" % domain)
   config.Set("Monitoring.alert_email", email)
 
   print """\n\n-=Emergency Email Address=-
@@ -600,6 +593,7 @@ the client facing server and the admin user interface.\n"""
   existing_ui_urn = config_lib.CONFIG.Get("AdminUI.url", default=None)
   existing_frontend_urn = config_lib.CONFIG.Get("Client.control_urls",
                                                 default=None)
+
   if not existing_frontend_urn or not existing_ui_urn:
     ConfigureHostnames(config)
   else:
@@ -608,8 +602,8 @@ the client facing server and the admin user interface.\n"""
   Frontend URL(s): %s
 """ % (existing_ui_urn, existing_frontend_urn)
 
-    if raw_input("Do you want to keep this configuration?"
-                 " [Yn]: ").upper() == "N":
+    if raw_input(
+        "Do you want to keep this configuration? [Yn]: ").upper() == "N":
       ConfigureHostnames(config)
 
   print """\n\n-=GRR Emails=-
@@ -618,8 +612,8 @@ the client facing server and the admin user interface.\n"""
   when sending emails to users.\n"""
 
   existing_log_domain = config_lib.CONFIG.Get("Logging.domain", default=None)
-  existing_al_email = config_lib.CONFIG.Get(
-      "Monitoring.alert_email", default=None)
+  existing_al_email = config_lib.CONFIG.Get("Monitoring.alert_email",
+                                            default=None)
 
   existing_em_email = config_lib.CONFIG.Get("Monitoring.emergency_access_email",
                                             default=None)
@@ -639,6 +633,43 @@ the client facing server and the admin user interface.\n"""
   config.Write()
   print ("Configuration parameters set. You can edit these in %s" %
          config_lib.CONFIG.Get("Config.writeback"))
+
+
+def AddUsers(config=None, token=None):
+  # Now initialize with our modified config.
+  startup.Init()
+
+  print "\nStep 3: Adding Admin User"
+  try:
+    AddUser("admin", labels=["admin"], token=token,
+            password=flags.FLAGS.admin_password)
+  except UserError:
+    if flags.FLAGS.noprompt:
+        UpdateUser("admin", password=flags.FLAGS.admin_password,
+                   add_labels=["admin"], token=token)
+    else:
+      if ((raw_input("User 'admin' already exists, do you want to "
+                    "reset the password? [yN]: ").upper() or "N") == "Y"):
+        UpdateUser("admin", password=True, add_labels=["admin"], token=token)
+
+
+def ManageBinaries(config=None, token=None):
+  print "\nStep 4: Uploading Memory Drivers to the Database"
+  LoadMemoryDrivers(flags.FLAGS.share_dir, token=token)
+
+  print "\nStep 5: Repackaging clients with new configuration."
+  # We need to update the config to point to the installed templates now.
+  config.Set("ClientBuilder.executables_path", os.path.join(
+      flags.FLAGS.share_dir, "executables"))
+
+  # Build debug binaries, then build release binaries.
+  maintenance_utils.RepackAllBinaries(upload=True, debug_build=True,
+                                      token=token)
+  maintenance_utils.RepackAllBinaries(upload=True, token=token)
+
+  print "\nInitialization complete, writing configuration."
+  config.Write()
+  print "Please restart the service for it to take effect.\n\n"
 
 
 def Initialize(config=None, token=None):
@@ -664,8 +695,8 @@ def Initialize(config=None, token=None):
     if options_imported > 0:
       print ("Since you have imported keys from another installation in the "
              "last step,\nyou probably do not want to generate new keys now.")
-    if ((raw_input("You already have keys in your config, do you want to"
-                   " overwrite them? [yN]: ").upper() or "N") == "Y"):
+    if (raw_input("You already have keys in your config, do you want to"
+                  " overwrite them? [yN]: ").upper() or "N") == "Y":
       flags.FLAGS.overwrite = True
       GenerateKeys(config)
   else:
@@ -673,34 +704,53 @@ def Initialize(config=None, token=None):
 
   print "\nStep 2: Setting Basic Configuration Parameters"
   ConfigureBaseOptions(config)
+  AddUsers(config, token=token)
+  ManageBinaries(config, token=token)
 
-  # Now initialize with our modified config.
-  startup.Init()
 
-  print "\nStep 3: Adding Admin User"
-  try:
-    AddUser("admin", labels=["admin"], token=token)
-  except UserError:
-    if ((raw_input("User 'admin' already exists, do you want to "
-                   "reset the password? [yN]: ").upper() or "N") == "Y"):
-      UpdateUser("admin", password=True, add_labels=["admin"], token=token)
+def InitializeNoPrompt(config=None, token=None):
+  """Initialize GRR with no prompts, assumes SQLite db.
 
-  print "\nStep 4: Uploading Memory Drivers to the Database"
-  LoadMemoryDrivers(flags.FLAGS.share_dir, token=token)
+  Args:
+    config: config object
+    token: auth token
 
-  print "\nStep 5: Repackaging clients with new configuration."
-  # We need to update the config to point to the installed templates now.
-  config.Set("ClientBuilder.executables_path", os.path.join(
-      flags.FLAGS.share_dir, "executables"))
+  This method does the minimum work necessary to configure GRR without any user
+  prompting, relying heavily on config default values. User must supply the
+  external hostname and admin password, everything else is set automatically.
+  """
+  if not (flags.FLAGS.external_hostname and flags.FLAGS.admin_password):
+    raise ValueError(
+        "If interactive prompting is disabled, external_hostname and "
+        "admin_password must be set.")
 
-  # Build debug binaries, then build release binaries.
-  maintenance_utils.RepackAllBinaries(upload=True, debug_build=True,
-                                      token=token)
-  maintenance_utils.RepackAllBinaries(upload=True, token=token)
+  print "Checking write access on config %s" % config.parser
+  if not os.access(config.parser.filename, os.W_OK):
+    raise IOError("Config not writeable (need sudo?)")
 
-  print "\nInitialization complete, writing configuration."
+  config_dict = {}
+  GenerateKeys(config)
+  config_dict["Datastore.implementation"] = "SqliteDataStore"
+  hostname = flags.FLAGS.external_hostname
+  config_dict["Client.control_urls"] = ["http://%s:%s/control" % (
+      hostname, config.Get("Frontend.bind_port"))]
+
+  config_dict["AdminUI.url"] = "http://%s:%s" % (
+      hostname, config.Get("AdminUI.port"))
+  config_dict["Logging.domain"] = hostname
+  config_dict["Monitoring.alert_email"] = "grr-monitoring@%s" % hostname
+  config_dict["Monitoring.emergency_access_email"] = (
+      "grr-emergency@%s" % hostname)
+
+  print "Setting configuration as:\n\n%s" % config_dict
+  for key, value in config_dict.iteritems():
+    config.Set(key, value)
   config.Write()
-  print "Please restart the service for it to take effect.\n\n"
+
+  print ("Configuration parameters set. You can edit these in %s" %
+         config_lib.CONFIG.Get("Config.writeback"))
+  AddUsers(config, token=token)
+  ManageBinaries(config, token=token)
 
 
 def UploadRaw(file_path, aff4_path, token=None):
@@ -725,7 +775,10 @@ def main(unused_argv):
 
   if flags.FLAGS.subparser_name == "initialize":
     startup.ConfigInit()
-    Initialize(config_lib.CONFIG, token=token)
+    if flags.FLAGS.noprompt:
+      InitializeNoPrompt(config_lib.CONFIG, token=token)
+    else:
+      Initialize(config_lib.CONFIG, token=token)
     return
   else:
     startup.Init()

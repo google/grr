@@ -48,6 +48,13 @@ Vagrant.configure(2) do |config|
     config.vm.box_download_checksum = "15a36cfe264f3eb58bb9c540d9de5a5a945b8c5162d6fd66b59925ed0a832e86"
   end
 
+  config.vm.define "travis_testing" do |box|
+    box.vm.box = "ubuntu/precise64"
+    box.vm.provision "shell" do |s|
+      s.path = "../travis/run_tests.sh"
+    end
+  end
+
   config.vm.define "ubuntu_lucid64" do |box|
     box.vm.box = "mrgcastle/ubuntu-lucid64"
     box.vm.provision "shell" do |s|

@@ -19,11 +19,11 @@ cd proto
 echo "Running make in proto dir..."
 pwd
 make
-cd ..
+cd -
 
 echo "Compiling artifact files..."
 cd artifacts
 echo "Running make in artifacts dir..."
 pwd
 make
-cd ..
+cd -
