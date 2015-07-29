@@ -442,7 +442,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
           # This should indicate missing tables and raise immediately
           raise e
         else:
-          logging.warn("Datastore query failed with %s:", str(e))
+          logging.warn("Datastore query retrying after failed with %s.", str(e))
           # Most errors encountered here need a reasonable backoff time to
           # resolve.
           time.sleep(1)
@@ -480,7 +480,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
           # This should indicate missing tables and raise immediately
           raise e
         else:
-          logging.warn("Datastore query failed with %s:", str(e))
+          logging.warn("Datastore query retrying after failed with %s.", str(e))
           # Most errors encountered here need a reasonable backoff time to
           # resolve.
           time.sleep(1)
