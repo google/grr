@@ -381,13 +381,13 @@ class QueueManager(object):
 
     # We need to make sure that notifications are written after the requests so
     # we flush here and only notify afterwards.
-    if self.sync and session_ids:
+    if session_ids:
       self.data_store.Flush()
 
     for notification, timestamp in self.notifications:
       self.NotifyQueue(notification, timestamp=timestamp, sync=False)
 
-    if self.sync:
+    if self.notifications:
       self.data_store.Flush()
 
     self.to_write = {}
