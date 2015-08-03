@@ -449,11 +449,11 @@ The Server URL specifies the URL that the clients will connect to
 communicate with the server. For best results this should be publicly
 accessible. By default this will be port 8080 with the URL ending in /control.
 """
-  location = RetryQuestion("Frontend URL", "^http://.*/control$",
+  frontend_url = RetryQuestion("Frontend URL", "^http://.*/control$",
                            "http://%s:8080/control" % hostname)
-  config.Set("Client.control_urls", [location])
+  config.Set("Client.control_urls", [frontend_url])
 
-  frontend_port = urlparse.urlparse(location).port or config_lib.CONFIG.Get(
+  frontend_port = urlparse.urlparse(frontend_url).port or config_lib.CONFIG.Get(
       "Frontend.bind_port")
   config.Set("Frontend.bind_port", frontend_port)
 
@@ -463,7 +463,7 @@ The UI URL specifies where the Administrative Web Interface can be found.
   ui_url = RetryQuestion("AdminUI URL", "^http[s]*://.*$",
                          "http://%s:8000" % hostname)
   config.Set("AdminUI.url", ui_url)
-  ui_port = urlparse.urlparse(location).port or config_lib.CONFIG.Get(
+  ui_port = urlparse.urlparse(ui_url).port or config_lib.CONFIG.Get(
       "AdminUI.port")
   config.Set("AdminUI.port", ui_port)
 
