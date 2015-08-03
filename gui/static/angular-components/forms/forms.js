@@ -4,6 +4,9 @@ goog.provide('grrUi.forms.module');
 
 goog.require('grrUi.core.module');
 goog.require('grrUi.core.semanticRegistry.SemanticRegistryService');
+goog.require('grrUi.forms.datetimeFormDirective.DatetimeFormDirective');
+goog.require('grrUi.forms.dictFormDirective.DictFormDirective');
+goog.require('grrUi.forms.globExpressionFormDirective.GlobExpressionFormDirective');
 goog.require('grrUi.forms.outputPluginDescriptorFormDirective.OutputPluginDescriptorFormDirective');
 goog.require('grrUi.forms.semanticEnumFormDirective.SemanticEnumFormDirective');
 goog.require('grrUi.forms.semanticPrimitiveFormDirective.SemanticPrimitiveFormDirective');
@@ -30,6 +33,16 @@ grrUi.forms.module.service(
     grrUi.core.semanticRegistry.SemanticRegistryService);
 
 
+grrUi.forms.module.directive(
+    grrUi.forms.datetimeFormDirective.DatetimeFormDirective.directive_name,
+    grrUi.forms.datetimeFormDirective.DatetimeFormDirective);
+grrUi.forms.module.directive(
+    grrUi.forms.dictFormDirective.DictFormDirective.directive_name,
+    grrUi.forms.dictFormDirective.DictFormDirective);
+grrUi.forms.module.directive(
+    grrUi.forms.globExpressionFormDirective.GlobExpressionFormDirective
+        .directive_name,
+    grrUi.forms.globExpressionFormDirective.GlobExpressionFormDirective);
 grrUi.forms.module.directive(
     grrUi.forms.outputPluginDescriptorFormDirective
         .OutputPluginDescriptorFormDirective.directive_name,
@@ -70,6 +83,22 @@ grrUi.forms.module.directive(
 
 grrUi.forms.module.run(function(grrSemanticFormDirectivesRegistryService) {
   var registry = grrSemanticFormDirectivesRegistryService;
+
+  registry.registerDirective(
+      grrUi.forms.datetimeFormDirective.DatetimeFormDirective.semantic_type,
+      grrUi.forms.datetimeFormDirective.DatetimeFormDirective);
+  var dictSemanticTypes =
+      grrUi.forms.dictFormDirective.DictFormDirective.semantic_types;
+  angular.forEach(dictSemanticTypes, function(dictSemanticType) {
+    registry.registerDirective(
+        dictSemanticType,
+        grrUi.forms.dictFormDirective.DictFormDirective);
+  });
+
+  registry.registerDirective(
+      grrUi.forms.globExpressionFormDirective.GlobExpressionFormDirective
+          .semantic_type,
+      grrUi.forms.globExpressionFormDirective.GlobExpressionFormDirective);
 
   registry.registerDirective(
       grrUi.forms.outputPluginDescriptorFormDirective

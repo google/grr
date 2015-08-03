@@ -6,6 +6,40 @@
 
 namespace grr {
 namespace actions {
+namespace {
+std::vector<std::function<bool(const StatEntry&)>> MakeStatFilters(
+    const FindSpec& req) {
+  std::vector<std::function<bool(const StatEntry&)>> r;
+  if (req.has_min_file_size()) {
+    r.emplace_back([&req](const StatEntry& stats) {
+      return stats.has_st_size() && req.min_file_size() > stats.st_size();
+    });
+  }
+  if (req.has_max_file_size()) {
+    r.emplace_back([&req](const StatEntry& stats) {
+      return stats.has_st_size() && req.max_file_size() < stats.st_size();
+    });
+  }
+  if (req.has_perm_mode()) {
+    r.emplace_back([&req](const StatEntry& stats) {
+      return stats.has_st_mode() &&
+             (req.perm_mask() & stats.st_mode() != req.perm_mode());
+    });
+  }
+  if (req.has_uid()) {
+    r.emplace_back([&req](const StatEntry& stats) {
+      return stats.has_st_uid() && req.uid() != stats.st_uid();
+    });
+  }
+  if (req.has_gid()) {
+    r.emplace_back([&req](const StatEntry& stats) {
+      return stats.has_st_gid() && req.gid() != stats.st_gid();
+    });
+  }
+  return r;
+}
+}  // namespace
+
 void Find::ProcessRequest(ActionContext* context) {
   FindSpec req;
   if (!context->PopulateArgs(&req)) {
@@ -32,46 +66,37 @@ void Find::ProcessRequest(ActionContext* context) {
                       "]");
     return;
   }
-  std::vector<FileFilter> filters;
+  FilterSet filters;
 
-  std::unique_ptr<boost::regex> pattern;
+  std::unique_ptr<boost::regex> path_pattern;
   if (req.has_path_regex()) {
-    pattern.reset(new boost::regex(req.path_regex(),
-                                   boost::regex_constants::ECMAScript |
-                                       boost::regex_constants::no_except));
-    if (pattern->status()) {
+    path_pattern.reset(new boost::regex(req.path_regex(),
+                                        boost::regex_constants::ECMAScript |
+                                            boost::regex_constants::no_except));
+    if (path_pattern->status()) {
       context->SetError("Unable to parse regex [" + req.path_regex() + "]");
       return;
     }
-    filters.emplace_back([&pattern](const std::string name, const StatEntry&) {
-      return !regex_match(name, *pattern);
+    filters.name.emplace_back([&path_pattern](const std::string& name) {
+      return !boost::regex_match(name, *path_pattern);
     });
   }
 
-  if (req.has_min_file_size()) {
-    filters.emplace_back([&req](const std::string, const StatEntry& stats) {
-      return stats.has_st_size() && req.min_file_size() > stats.st_size();
-    });
-  }
-  if (req.has_max_file_size()) {
-    filters.emplace_back([&req](const std::string, const StatEntry& stats) {
-      return stats.has_st_size() && req.max_file_size() < stats.st_size();
-    });
-  }
-  if (req.has_perm_mode()) {
-    filters.emplace_back([&req](const std::string, const StatEntry& stats) {
-      return stats.has_st_mode() &&
-             (req.perm_mask() & stats.st_mode() != req.perm_mode());
-    });
-  }
-  if (req.has_uid()) {
-    filters.emplace_back([&req](const std::string, const StatEntry& stats) {
-      return stats.has_st_uid() && req.uid() != stats.st_uid();
-    });
-  }
-  if (req.has_gid()) {
-    filters.emplace_back([&req](const std::string, const StatEntry& stats) {
-      return stats.has_st_gid() && req.gid() != stats.st_gid();
+  filters.stat = MakeStatFilters(req);
+
+  std::unique_ptr<boost::regex> data_pattern;
+  if (req.has_data_regex()) {
+    data_pattern.reset(new boost::regex(req.data_regex(),
+                                        boost::regex_constants::ECMAScript |
+                                            boost::regex_constants::no_except));
+    if (data_pattern->status()) {
+      context->SetError("Unable to parse regex [" + req.data_regex() + "]");
+      return;
+    }
+    filters.contents.emplace_back([&data_pattern](FileContents* contents) {
+      typedef boost::regex_iterator<FileContentsIterator> re_iter;
+      return re_iter(contents->begin(), contents->end(), *data_pattern) !=
+             re_iter();
     });
   }
 
@@ -85,7 +110,7 @@ void Find::ProcessRequest(ActionContext* context) {
 
 typedef std::function<bool(const std::string&, const StatEntry&)> FileFilter;
 
-bool Find::ProcessRecursive(const std::vector<FileFilter>& filters,
+bool Find::ProcessRecursive(const FilterSet& filters,
                             std::unique_ptr<OpenedPath> path,
                             int remaining_depth, bool cross_devices,
                             ActionContext* context) {
@@ -110,28 +135,44 @@ bool Find::ProcessRecursive(const std::vector<FileFilter>& filters,
     if (d.first == "." || d.first == "..") {
       continue;
     }
+    bool filtered = false;
+    for (const auto& f : filters.name) {
+      if (f(d.first)) {
+        filtered = true;
+        break;
+      }
+    }
     auto child_path = OpenedPath::Open(base_path + "/" + d.first, &error);
-    if (child_path != nullptr) {
-      const StatEntry child_stats = child_path->Stats();
-      bool filtered = false;
-      for (const auto& f : filters) {
-        if (f(d.first, child_stats)) {
+    if (child_path == nullptr) {
+      continue;
+    }
+    const StatEntry child_stats = child_path->Stats();
+    for (const auto& f : filters.stat) {
+      if (!filtered && f(child_stats)) {
+        filtered = true;
+        break;
+      }
+    }
+    if (!filtered && filters.contents.size()) {
+      FileContents contents(child_path.get());
+      for (const auto& f : filters.contents) {
+        if (f(&contents)) {
           filtered = true;
           break;
         }
       }
-      if (!filtered) {
-        FindSpec res;
-        *res.mutable_hit() = child_stats;
-        res.mutable_hit()->mutable_pathspec()->set_path(child_path->Path());
-        res.mutable_hit()->mutable_pathspec()->set_pathtype(PathSpec::OS);
-        context->SendResponse(res, GrrMessage::MESSAGE);
-      }
-      if (remaining_depth > 2 && child_path->is_directory() &&
-          (cross_devices || (child_stats.st_dev() == base_stats.st_dev()))) {
-        ProcessRecursive(filters, std::move(child_path), remaining_depth - 1,
-                         cross_devices, context);
-      }
+    }
+    if (!filtered) {
+      FindSpec res;
+      *res.mutable_hit() = child_stats;
+      res.mutable_hit()->mutable_pathspec()->set_path(child_path->Path());
+      res.mutable_hit()->mutable_pathspec()->set_pathtype(PathSpec::OS);
+      context->SendResponse(res, GrrMessage::MESSAGE);
+    }
+    if (remaining_depth > 2 && child_path->is_directory() &&
+        (cross_devices || (child_stats.st_dev() == base_stats.st_dev()))) {
+      ProcessRecursive(filters, std::move(child_path), remaining_depth - 1,
+                       cross_devices, context);
     }
   }
 }

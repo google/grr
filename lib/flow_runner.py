@@ -245,9 +245,27 @@ class FlowRunner(object):
 
     output_plugins_states = []
     for plugin_descriptor in args.output_plugins:
+      if not args.client_id:
+        self.Log("Not initializing output plugin %s as flow does not run on "
+                 "the client.", plugin_descriptor.plugin_name)
+        continue
+
+      if not args.output:
+        self.Log("Not initializing output plugin %s as output path pattern is "
+                 "not specified in the flow args.",
+                 plugin_descriptor.plugin_name)
+        continue
+
+      output_path = args.output.format(
+          t=time.time(),
+          p=(self.flow_obj.__class__.__name__ + "-" +
+             plugin_descriptor.plugin_name),
+          u=self.token.username)
+      output_base_urn = args.client_id.Add(output_path)
+
       plugin_class = plugin_descriptor.GetPluginClass()
       plugin = plugin_class(output_urn, args=plugin_descriptor.plugin_args,
-                            token=self.token)
+                            output_base_urn=output_base_urn, token=self.token)
       try:
         plugin.Initialize()
         output_plugins_states.append((plugin_descriptor, plugin.state))

@@ -1619,22 +1619,20 @@ class AFF4SymlinkTestSubject(aff4.AFF4Volume):
 class AFF4SymlinkTest(test_lib.AFF4ObjectTest):
   """Tests the AFF4Symlink."""
 
+  symlink_source_urn = rdfvalue.RDFURN("aff4:/symlink")
+  symlink_target_urn = rdfvalue.RDFURN("aff4:/C.0000000000000001")
+
   def CreateAndOpenObjectAndSymlink(self):
-    fd_urn = rdfvalue.RDFURN("aff4:/C.0000000000000001")
-    symlink_urn = rdfvalue.RDFURN("aff4:/symlink")
+    with aff4.FACTORY.Create(self.symlink_target_urn, "AFF4SymlinkTestSubject",
+                             token=self.token) as fd:
+      fd.Set(fd.Schema.SOME_STRING, rdfvalue.RDFString("the_string"))
 
-    fd = aff4.FACTORY.Create(fd_urn, "AFF4SymlinkTestSubject",
-                             token=self.token)
-    fd.Set(fd.Schema.SOME_STRING, rdfvalue.RDFString("the_string"))
-    fd.Close()
+    with aff4.FACTORY.Create(self.symlink_source_urn, "AFF4Symlink",
+                             token=self.token) as symlink:
+      symlink.Set(symlink.Schema.SYMLINK_TARGET, self.symlink_target_urn)
 
-    symlink = aff4.FACTORY.Create(symlink_urn, "AFF4Symlink",
-                                  token=self.token)
-    symlink.Set(symlink.Schema.SYMLINK_TARGET, fd_urn)
-    symlink.Close()
-
-    fd = aff4.FACTORY.Open(fd_urn, token=self.token)
-    symlink = aff4.FACTORY.Open(symlink_urn, token=self.token)
+    fd = aff4.FACTORY.Open(self.symlink_target_urn, token=self.token)
+    symlink = aff4.FACTORY.Open(self.symlink_source_urn, token=self.token)
 
     return (fd, symlink)
 
@@ -1643,24 +1641,32 @@ class AFF4SymlinkTest(test_lib.AFF4ObjectTest):
 
     self.assertEqual(symlink_obj.urn, fd.urn)
 
+  def testOpenedObjectHasSymlinkUrnAttributeSet(self):
+    _, symlink_obj = self.CreateAndOpenObjectAndSymlink()
+
+    self.assertIsNotNone(symlink_obj.symlink_urn)
+    self.assertEqual(symlink_obj.urn, self.symlink_target_urn)
+    self.assertEqual(symlink_obj.symlink_urn, self.symlink_source_urn)
+
   def testMultiOpenMixedObjects(self):
     """Test symlinks are correct when using multiopen with other objects."""
-    fd, symlink_obj = self.CreateAndOpenObjectAndSymlink()
-    symlink_urn = symlink_obj.urn
+    fd, _ = self.CreateAndOpenObjectAndSymlink()
     fd_urn1 = fd.urn
-    fd.Close()
-    symlink_obj.Close()
 
     fd_urn2 = rdfvalue.RDFURN("aff4:/C.0000000000000002")
     fd = aff4.FACTORY.Create(fd_urn2, "AFF4Image",
                              token=self.token)
     fd.Close()
 
-    for fd in aff4.FACTORY.MultiOpen([symlink_urn, fd_urn2], token=self.token):
+    for fd in aff4.FACTORY.MultiOpen([self.symlink_source_urn, fd_urn2],
+                                     token=self.token):
       if fd.urn == fd_urn2:
         self.assertTrue(isinstance(fd, aff4.AFF4Image))
       elif fd.urn == fd_urn1:
         self.assertTrue(isinstance(fd, AFF4SymlinkTestSubject))
+        self.assertIsNotNone(fd.symlink_urn)
+        self.assertEqual(fd.urn, self.symlink_target_urn)
+        self.assertEqual(fd.symlink_urn, self.symlink_source_urn)
       else:
         raise ValueError("Unexpected URN: %s" % fd.urn)
 

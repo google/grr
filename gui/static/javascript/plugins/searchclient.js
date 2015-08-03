@@ -30,7 +30,7 @@ grr.labels_completer.filter = function(completions, term) {
  */
 grr.labels_completer.Completer = function(element, completions, split_term) {
   if (angular.isString(element)) {
-    element = $('#' + dom_id);
+    element = $('#' + element);
   }
   element.bind('keydown', function(event) {
     if (event.keyCode === $.ui.keyCode.TAB &&

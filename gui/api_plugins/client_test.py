@@ -211,6 +211,14 @@ class ApiClientsLabelsListRendererRegressionTest(
     self.Check("GET", "/api/clients/labels")
 
 
+class ApiListKbFieldsRendererTest(api_test_lib.ApiCallRendererRegressionTest):
+
+  renderer = "ApiListKbFieldsRenderer"
+
+  def Run(self):
+    self.Check("GET", "/api/clients/kb-fields")
+
+
 def main(argv):
   test_lib.main(argv)
 

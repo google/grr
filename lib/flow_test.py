@@ -587,11 +587,16 @@ class FlowTerminationTest(BasicFlowTest):
     self.assertRaisesRegexp(RuntimeError, "because i can", ProcessFlow)
 
 
-class DummyFlowOutputPlugin(output_plugin.OutputPlugin):
+class DummyFlowOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
+  """Dummy plugin that opens a dummy stream."""
   num_calls = 0
   num_responses = 0
 
   def ProcessResponses(self, responses):
+    stream = self._CreateOutputStream("dummy")
+    stream.Write("dummy")
+    stream.Flush()
+
     DummyFlowOutputPlugin.num_calls += 1
     DummyFlowOutputPlugin.num_responses += len(list(responses))
 

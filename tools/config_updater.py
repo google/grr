@@ -514,16 +514,14 @@ well.
     config.Set("Mysql.database_password", mysql_password)
 
 
-
-
 def ConfigureEmails(config):
   """Configure email notification addresses."""
   print """\n\n-=Monitoring/Email Domain=-
 Emails concerning alerts or updates must be sent to this domain.
 """
   domain = RetryQuestion("Email Domain e.g example.com",
-                          "^([\\.A-Za-z0-9-]+)*$",
-                          config_lib.CONFIG.Get("Logging.domain"))
+                         "^([\\.A-Za-z0-9-]+)*$",
+                         config_lib.CONFIG.Get("Logging.domain"))
   config.Set("Logging.domain", domain)
 
   print """\n\n-=Alert Email Address=-
@@ -635,7 +633,7 @@ the client facing server and the admin user interface.\n"""
          config_lib.CONFIG.Get("Config.writeback"))
 
 
-def AddUsers(config=None, token=None):
+def AddUsers(token=None):
   # Now initialize with our modified config.
   startup.Init()
 
@@ -645,15 +643,17 @@ def AddUsers(config=None, token=None):
             password=flags.FLAGS.admin_password)
   except UserError:
     if flags.FLAGS.noprompt:
-        UpdateUser("admin", password=flags.FLAGS.admin_password,
-                   add_labels=["admin"], token=token)
+      UpdateUser("admin", password=flags.FLAGS.admin_password,
+                 add_labels=["admin"], token=token)
     else:
       if ((raw_input("User 'admin' already exists, do you want to "
-                    "reset the password? [yN]: ").upper() or "N") == "Y"):
+                     "reset the password? [yN]: ").upper() or "N") == "Y"):
         UpdateUser("admin", password=True, add_labels=["admin"], token=token)
 
 
 def ManageBinaries(config=None, token=None):
+  """Load memory drivers and repack templates into installers."""
+
   print "\nStep 4: Uploading Memory Drivers to the Database"
   LoadMemoryDrivers(flags.FLAGS.share_dir, token=token)
 
@@ -704,7 +704,7 @@ def Initialize(config=None, token=None):
 
   print "\nStep 2: Setting Basic Configuration Parameters"
   ConfigureBaseOptions(config)
-  AddUsers(config, token=token)
+  AddUsers(token=token)
   ManageBinaries(config, token=token)
 
 
@@ -714,6 +714,10 @@ def InitializeNoPrompt(config=None, token=None):
   Args:
     config: config object
     token: auth token
+
+  Raises:
+    ValueError: if hostname and password not supplied.
+    IOError: if config is not writeable
 
   This method does the minimum work necessary to configure GRR without any user
   prompting, relying heavily on config default values. User must supply the
@@ -749,7 +753,7 @@ def InitializeNoPrompt(config=None, token=None):
 
   print ("Configuration parameters set. You can edit these in %s" %
          config_lib.CONFIG.Get("Config.writeback"))
-  AddUsers(config, token=token)
+  AddUsers(token=token)
   ManageBinaries(config, token=token)
 
 

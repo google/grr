@@ -675,8 +675,8 @@
               },
               "output_base_urn": {
                 "age": 0,
-                "type": "NoneType",
-                "value": "None"
+                "type": "RDFURN",
+                "value": "aff4:/C.1000000000000000/analysis/ListProcesses-EmailOutputPlugin/test-42"
               },
               "source_urn": {
                 "age": 0,
@@ -4264,6 +4264,57 @@
       },
       "test_class": "ApiHuntsListRendererRegressionTest",
       "url": "/api/hunts?offset=1&count=1"
+    }
+  ],
+  "ApiListKbFieldsRenderer": [
+    {
+      "method": "GET",
+      "response": {
+        "fields": [
+          "code_page",
+          "current_control_set",
+          "domain",
+          "environ_allusersappdata",
+          "environ_allusersprofile",
+          "environ_path",
+          "environ_programfiles",
+          "environ_programfilesx86",
+          "environ_systemdrive",
+          "environ_systemroot",
+          "environ_temp",
+          "environ_windir",
+          "hostname",
+          "os",
+          "os_major_version",
+          "os_minor_version",
+          "os_release",
+          "time_zone",
+          "users.appdata",
+          "users.cookies",
+          "users.desktop",
+          "users.full_name",
+          "users.gid",
+          "users.gids",
+          "users.homedir",
+          "users.internet_cache",
+          "users.last_logon",
+          "users.localappdata",
+          "users.localappdata_low",
+          "users.personal",
+          "users.pw_entry",
+          "users.recent",
+          "users.shell",
+          "users.sid",
+          "users.startup",
+          "users.temp",
+          "users.uid",
+          "users.userdomain",
+          "users.username",
+          "users.userprofile"
+        ]
+      },
+      "test_class": "ApiListKbFieldsRendererTest",
+      "url": "/api/clients/kb-fields"
     }
   ],
   "ApiOutputPluginsListRenderer": [

@@ -634,6 +634,9 @@ class ListFlowsTable(renderers.TableRenderer):
     if not depth:
       root_children_paths = root_children_paths[start_row:end_row]
 
+    # TODO(user): should be able to specify aff4_type="GRRFlow" here.
+    # Currently this doesn't work because symlinks get filtered out.
+    # This is an aff4.FACTORY.MultiOpen's bug.
     root_children = aff4.FACTORY.MultiOpen(
         root_children_paths, token=request.token)
     root_children = sorted(root_children, key=self._GetCreationTime,
@@ -656,7 +659,7 @@ class ListFlowsTable(renderers.TableRenderer):
         row["Last Active"] = last
 
       if isinstance(flow_obj, aff4.AFF4Object.GRRFlow):
-        row_name = flow_obj.urn.Basename()
+        row_name = (flow_obj.symlink_urn or flow_obj.urn).Basename()
         try:
           if flow_obj.Get(flow_obj.Schema.CLIENT_CRASH):
             row["State"] = "CLIENT_CRASHED"
@@ -677,8 +680,12 @@ class ListFlowsTable(renderers.TableRenderer):
         # A logs collection, skip, it will be rendered separately
         continue
 
-      self.columns[1].AddElement(row_index, flow_obj.urn, depth, row_type,
-                                 row_name)
+      self.columns[1].AddElement(
+          # If flow object is symlinked, we want to use symlink path in the
+          # table. This way UI logic can make reasonable assumptions about
+          # client's flows URNs.
+          row_index, flow_obj.symlink_urn or flow_obj.urn, depth, row_type,
+          row_name)
 
       self.AddRow(row, row_index)
       row_index += 1

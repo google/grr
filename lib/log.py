@@ -18,7 +18,7 @@ LOGGER = None
 
 
 class GrrApplicationLogger(object):
-  """Code to emit DataAccessLogProto records.
+  """The GRR application logger.
 
   These records are used for machine readable authentication logging of security
   critical events.

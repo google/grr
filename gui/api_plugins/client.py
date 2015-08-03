@@ -13,6 +13,7 @@ from grr.lib import client_index
 from grr.lib import flow
 from grr.lib import utils
 
+from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import api_pb2
@@ -173,3 +174,11 @@ class ApiClientsLabelsListRenderer(api_call_renderers.ApiCallRenderer):
       rendered_labels.append(api_value_renderers.RenderValue(label))
 
     return dict(labels=sorted(rendered_labels))
+
+
+class ApiListKbFieldsRenderer(api_call_renderers.ApiCallRenderer):
+  """Lists all the available clients knowledge base fields."""
+
+  def Render(self, args, token=None):
+    fields = rdf_client.KnowledgeBase().GetKbFieldNames()
+    return dict(fields=sorted(fields))

@@ -21,14 +21,13 @@ std::string to_string(off64_t t) {
   os << t;
   return os.str();
 }
+#else
+using std::to_string;
 #endif
 
 namespace grr {
 
 OpenedPath::~OpenedPath() {
-  if (mmap_loc_ != nullptr) {
-    munmap(const_cast<void*>(reinterpret_cast<const void*>(mmap_loc_)), size());
-  }
   if (fd_ != -1) {
     int result = close(fd_);
     if (result == -1) {
@@ -55,7 +54,7 @@ std::unique_ptr<OpenedPath> OpenedPath::Open(const std::string& path,
     return ret;
   }
   ret.reset(new OpenedPath(path, fd));
-  const int stat_res = fstat(fd, &ret->stat_);
+  const int stat_res = fstat64(fd, &ret->stat_);
   if (stat_res == -1) {
     SetError("Unable to stat [" + path + "]", error);
     ret.reset(nullptr);
@@ -75,33 +74,14 @@ std::unique_ptr<OpenedPath> OpenedPath::Open(const std::string& path,
 bool OpenedPath::Seek(uint64 offset, std::string* error) {
   const off64_t res = lseek64(fd_, offset, SEEK_SET);
   if (res == (off64_t)-1) {
-    SetError("Unable to seek to [" + path_ + "] to [" +
-#ifdef ANDROID
-                 to_string(offset)
-#else
-                 std::to_string(offset)
-#endif
-                 + "]",
+    SetError("Unable to seek to [" + path_ + "] to [" + to_string(offset) + "]",
              error);
     return false;
   }
   return true;
 }
 
-size_t OpenedPath::size() const { return stat_.st_size; }
-
-const char* OpenedPath::MMap(std::string* error) {
-  if (mmap_loc_ == nullptr) {
-    void* res =
-        mmap(nullptr, size(), PROT_READ, MAP_SHARED | MAP_NORESERVE, fd_, 0);
-    if (res == MAP_FAILED) {
-      SetError("Unable to mmap [" + path_ + "]", error);
-      return nullptr;
-    }
-    mmap_loc_ = reinterpret_cast<char*>(res);
-  }
-  return mmap_loc_;
-}
+uint64 OpenedPath::size() const { return stat_.st_size; }
 
 bool OpenedPath::ReadInternal(char* buffer, size_t buffer_size,
                               size_t* bytes_read, std::string* error) {

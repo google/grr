@@ -118,7 +118,7 @@ grr-collection-td {
   margin-right: 1em;
 }
 
-.controls input, .controls select {
+.controls input, .controls select, .controls div.input-group {
   width: 206px;
 }
 
@@ -150,6 +150,32 @@ grr-server-load-graph {
 grr-user-settings-button button img {
   height: 17px;
   margin-top: -2px;
+}
+
+grr-artifacts-list-form div.input-group {
+  width: 100% !important;
+}
+
+grr-dict-form .pair {
+  display: flex;
+  flex-direction: row;
+  width: 206px;
+}
+
+grr-dict-form input.key {
+  flex-grow: 1;
+  margin-right: 1em;
+}
+
+grr-dict-form input.value {
+  flex-grow: 1;
+  margin-left: 1em;
+}
+
+grr-dict-form button.close {
+  position: relative;
+  left: -30px;
+  float: left;
 }
 
 /* Bootstrap tweaks */
