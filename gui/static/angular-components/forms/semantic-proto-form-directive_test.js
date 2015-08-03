@@ -131,18 +131,44 @@ describe('semantic proto form directive', function() {
       expect(element.find('grr-form-proto-single-field').length).toBe(2);
     });
 
-    it('prefills the model with defaults for every value', function() {
+    it('does not prefill the model with defaults', function() {
       var fooValue = defaultFooStructValue;
       var element = renderTestTemplate(fooValue);
 
+      expect(fooValue.value).toEqual({});
+    });
+
+    it('prefills nested form elements with defaults', function() {
+      var fooValue = defaultFooStructValue;
+      var element = renderTestTemplate(fooValue);
+
+      var field = element.find('grr-form-proto-single-field:nth(0)');
+      expect(field.scope().$eval(field.attr('value'))).toEqual({
+        type: 'PrimitiveType',
+        value: ''
+      });
+
+      field = element.find('grr-form-proto-single-field:nth(1)');
+      expect(field.scope().$eval(field.attr('value'))).toEqual({
+        type: 'PrimitiveType',
+        value: 'a foo bar'
+      });
+    });
+
+    it('updates model when a field is changed', function() {
+      var fooValue = defaultFooStructValue;
+      var element = renderTestTemplate(fooValue);
+
+      var field = element.find('grr-form-proto-single-field:nth(0)');
+      var fieldValue = field.scope().$eval(field.attr('value'));
+      fieldValue.value = '42';
+
+      $rootScope.$apply();
+
       expect(fooValue.value).toEqual({
         field_1: {
-          'type': 'PrimitiveType',
-          'value': ''
-        },
-        field_2: {
-          'type': 'PrimitiveType',
-          'value': 'a foo bar'
+          type: 'PrimitiveType',
+          value: '42'
         }
       });
     });
@@ -260,15 +286,35 @@ describe('semantic proto form directive', function() {
           });
     });
 
-    it('prefills the model with empty array for repeated field', function() {
+    it('does not prefill the model', function() {
       var fooValue = {
         type: 'Foo',
         value: {}
       };
       var element = renderTestTemplate(fooValue);
 
+      expect(fooValue.value).toEqual({});
+    });
+
+    it('updates the model when repeated field is changed', function() {
+      var fooValue = {
+        type: 'Foo',
+        value: {}
+      };
+      var element = renderTestTemplate(fooValue);
+
+      var field = element.find('grr-form-proto-repeated-field:nth(0)');
+      var fieldValue = field.scope().$eval(field.attr('value'));
+      fieldValue.push({'type': 'PrimitiveType', value: '42'});
+      $rootScope.$apply();
+
       expect(fooValue.value).toEqual({
-        field_1: []
+        field_1: [
+          {
+            type: 'PrimitiveType',
+            value: '42'
+          }
+        ]
       });
     });
 

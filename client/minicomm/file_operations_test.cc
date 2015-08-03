@@ -70,22 +70,6 @@ TEST(FileOperations, Open) {
   EXPECT_EQ(stat_result.st_size(), kFileContents.size());
 }
 
-TEST(FileOperations, MMap) {
-  const std::string temp_dir = testing::MakeTempDir();
-  const std::string file = temp_dir + "/file";
-  const std::string kFileContents("File contents.");
-  WriteFile(file, kFileContents);
-
-  std::string error;
-  auto res = OpenedPath::Open(file, &error);
-  ASSERT_NE(res, nullptr);
-  EXPECT_TRUE(res->is_regular());
-
-  const char* mmapped_file = res->MMap(&error);
-  ASSERT_NE(mmapped_file, nullptr);
-  EXPECT_EQ(std::string(mmapped_file, res->size()), kFileContents);
-}
-
 TEST(FileOperations, BadSeek) {
   const std::string temp_dir = testing::MakeTempDir();
   auto res = OpenedPath::Open(temp_dir, nullptr);

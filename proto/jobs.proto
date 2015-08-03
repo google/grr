@@ -1174,7 +1174,9 @@ message PluginRequest {
 
 // Issue a request for Rekall memory analysis.
 message RekallRequest {
-  optional Iterator iterator = 1;
+  optional Iterator iterator = 1 [(sem_type) = {
+      label: HIDDEN
+    }];
 
   repeated PluginRequest plugins = 2 [(sem_type) = {
       description: "We can execute multiple plugins in the same session. "
@@ -1191,6 +1193,7 @@ message RekallRequest {
 
   optional RekallProfile profile_data = 8 [(sem_type) = {
       description: "Profiles sent by the server to store on the client.",
+      label: HIDDEN
     }];
 }
 

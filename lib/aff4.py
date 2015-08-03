@@ -725,7 +725,7 @@ class Factory(object):
 
     self.aff4_type = aff4_type
 
-    symlinks = []
+    symlinks = {}
     for urn, values in self.GetAttributes(urns, token=token, age=age):
       try:
         obj = self.Open(urn, mode=mode, ignore_cache=ignore_cache, token=token,
@@ -734,7 +734,7 @@ class Factory(object):
         if follow_symlinks and isinstance(obj, AFF4Symlink):
           target = obj.Get(obj.Schema.SYMLINK_TARGET)
           if target is not None:
-            symlinks.append(target)
+            symlinks[target] = obj.urn
         else:
           yield obj
       except IOError:
@@ -743,6 +743,7 @@ class Factory(object):
     if symlinks:
       for obj in self.MultiOpen(symlinks, mode=mode, ignore_cache=ignore_cache,
                                 token=token, aff4_type=aff4_type, age=age):
+        obj.symlink_urn = symlinks[obj.urn]
         yield obj
 
   def OpenDiscreteVersions(self, urn, mode="r", ignore_cache=False, token=None,
@@ -1557,6 +1558,10 @@ class AFF4Object(object):
     self.follow_symlinks = follow_symlinks
     self.lock = utils.PickleableLock()
 
+    # If object was opened through a symlink, "symlink_urn" attribute will
+    # contain a sylmink urn.
+    self.symlink_urn = None
+
     # The object already exists in the data store - we do not need to update
     # indexes.
     self.object_exists = object_exists
@@ -2069,6 +2074,7 @@ class AFF4Object(object):
                  token=self.token, age=self.age_policy,
                  object_exists=self.object_exists,
                  follow_symlinks=self.follow_symlinks, aff4_type=self.aff4_type)
+    result.symlink_urn = self.urn
     result.Initialize()
 
     return result
@@ -2440,7 +2446,9 @@ class AFF4Symlink(AFF4Object):
       # Get the real object (note, clone shouldn't be None during normal
       # object creation process):
       target_urn = clone.Get(cls.SchemaCls.SYMLINK_TARGET)
-      return FACTORY.Open(target_urn, mode=mode, age=age, token=token)
+      result = FACTORY.Open(target_urn, mode=mode, age=age, token=token)
+      result.symlink_urn = clone.urn
+      return result
     else:
       raise RuntimeError("Unable to open symlink.")
 

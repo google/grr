@@ -40,7 +40,7 @@ class OpenedPath {
   StatEntry Stats() const;
 
   // The size of the file contents.
-  size_t size() const;
+  uint64 size() const;
 
   // The exact path which was opened.
   const std::string& Path() const { return path_; }
@@ -72,15 +72,6 @@ class OpenedPath {
     return ReadInternal(buffer, std::min(size, limit), bytes_read, error);
   }
 
-  // Attempts to mmap file. On success returns a pointers to the start of the
-  // file contents. Only maps this.size() bytes. Mapping is valid for the
-  // lifspan of this object.
-  //
-  // Warning: It is possible to segfault on access if a file is truncated after
-  // being mmapped. TODO(user): Replace this with a more stable random
-  // access method.
-  const char* MMap(std::string* error);
-
   /*** Directory handling ***/
 
   enum class FileType { NORMAL, STREAM, DIRECTORY, SYM_LINK, UNKNOWN };
@@ -95,11 +86,10 @@ class OpenedPath {
 
  private:
   OpenedPath(const std::string& path, int fd)
-      : path_(path), fd_(fd), mmap_loc_(nullptr) {}
+      : path_(path), fd_(fd) {}
   const std::string path_;
   int fd_;
-  const char* mmap_loc_;
-  struct stat stat_;
+  struct stat64 stat_;
 
   bool ReadInternal(char* buffer, size_t buffer_size, size_t* bytes_read,
                     std::string* error);

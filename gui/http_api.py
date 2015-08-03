@@ -272,6 +272,8 @@ class HttpApiInitHook(registry.InitHook):
     RegisterHttpRouteHandler("POST", "/api/artifacts/delete",
                              api_plugins.artifact.ApiArtifactsDeleteRenderer)
 
+    RegisterHttpRouteHandler("GET", "/api/clients/kb-fields",
+                             api_plugins.client.ApiListKbFieldsRenderer)
     RegisterHttpRouteHandler("GET", "/api/clients",
                              api_plugins.client.ApiClientSearchRenderer)
     RegisterHttpRouteHandler("GET", "/api/clients/<client_id>",

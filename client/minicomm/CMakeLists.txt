@@ -42,6 +42,7 @@ add_library(client_actions_lib client_action.cc client_action_dispatcher.cc
   client_actions/list_processes.cc
   client_actions/stat_file.cc
   client_actions/transfer_buffer.cc
+  file_contents.cc
   file_operations.cc
   paths.cc
 )
@@ -91,6 +92,7 @@ add_executable(unit_tests grr_test_main.cc
   compression_test.cc
   config_test.cc
   crypto_test.cc
+  file_contents_test.cc
   file_operations_test.cc
   message_queue_test.cc
   paths_test.cc

@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "grr/client/minicomm/client_action.h"
+#include "grr/client/minicomm/file_contents.h"
 
 namespace grr {
 namespace actions {
@@ -15,15 +16,17 @@ class Grep : public ClientAction {
 
  private:
   struct Match {
-    const char* start;
-    size_t len;
+    FileContentsIterator match_start;
+    FileContentsIterator match_end;
   };
   std::vector<Match> SearchLiteral(const std::string& literal,
-                                   const char* start_pos, const char* end_pos,
+                                   FileContentsIterator begin,
+                                   FileContentsIterator end,
                                    bool all_hits);
 
   std::vector<Match> SearchRegex(const std::string& regex,
-                                 const char* start_pos, const char* end_pos,
+                                 FileContentsIterator begin,
+                                 FileContentsIterator end,
                                  bool all_hits, std::string* error);
 };
 }  // namespace actions

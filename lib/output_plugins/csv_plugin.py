@@ -82,6 +82,12 @@ class CSVOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
 
   @utils.Synchronized
   def WriteValuesToCSVFile(self, values):
+    output_files = {}
     for value in values:
       output_file = self.GetOutputFd(value.__class__.__name__)
+      output_files[value.__class__.__name__] = output_file
+
       self.WriteCSVRow(output_file, value)
+
+    for fd in output_files.values():
+      fd.Flush()

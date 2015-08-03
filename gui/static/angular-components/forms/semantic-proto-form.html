@@ -1,5 +1,5 @@
 <div ng-if="controller.valueDescriptor.union_field">
-  <grr-form-proto-union value="value"
+  <grr-form-proto-union value="controller.editedValue"
                         descriptor="controller.valueDescriptor" />
 </div>
 
@@ -13,12 +13,12 @@
 
     <div ng-repeat="field in controller.valueDescriptor.fields |
                     filter:controller.regularFieldsOnly">
-      <grr-form-proto-single-field value="value.value[field.name]"
+      <grr-form-proto-single-field value="controller.editedValue.value[field.name]"
                                    field="field"
                                    ng-if="!field.repeated">
       </grr-form-proto-single-field>
 
-      <grr-form-proto-repeated-field value="value.value[field.name]"
+      <grr-form-proto-repeated-field value="controller.editedValue.value[field.name]"
                                      descriptor="controller.descriptors[field.type]"
                                      field="field"
                                      ng-if="field.repeated">
@@ -42,12 +42,12 @@
       <div class="advanced-controls" ng-show="controller.advancedShown">
         <div ng-repeat="field in controller.valueDescriptor.fields |
                         filter:controller.advancedFieldsOnly">
-          <grr-form-proto-single-field value="value.value[field.name]"
+          <grr-form-proto-single-field value="controller.editedValue.value[field.name]"
                                        field="field"
                                        ng-if="!field.repeated">
           </grr-form-proto-single-field>
 
-          <grr-form-proto-repeated-field value="value.value[field.name]"
+          <grr-form-proto-repeated-field value="controller.editedValue.value[field.name]"
                                          descriptor="controller.descriptors[field.type]"
                                          field="field"
                                          ng-if="field.repeated">

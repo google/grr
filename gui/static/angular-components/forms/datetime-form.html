@@ -1,0 +1,17 @@
+<div class="input-group" ng-class="{'has-error': controller.isInvalid}">
+
+  <input type="text" class="form-control"
+         ng-model="controller.valueString"
+         placeholder="{$ controller.format $}"></input>
+  <div class="input-group-btn">
+    <button type="button" name="Today" class="btn btn-default"
+            ng-click="controller.today()"><small>Today</small></button>
+  </div>
+
+</div>
+
+<div class="has-error" ng-if="controller.isInvalid">
+  <span class="help-block">
+    Expected format is {$ controller.format $}, i.e. {$ controller.example $}
+  </span>
+</div>

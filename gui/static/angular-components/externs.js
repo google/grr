@@ -51,6 +51,19 @@ grr.labels_completer.Completer = function(element, completions, regex) {};
 
 
 /**
+ * @type {Object}
+ */
+grr.glob_completer = {};
+
+
+/**
+ * @param {(jQuerySelector|Element|jQuery|string)} element
+ * @param {Array<string>} completions
+ */
+grr.glob_completer.Completer = function(element, completions) {};
+
+
+/**
  * @type {Object<string, string>}
  */
 grr.hash;
@@ -126,3 +139,9 @@ $.plot = function(placeholder, data, opt_options) {};
  * @param {Object} data
  */
 jQuery.prototype.jstree = function(data) {};
+
+
+/**
+ * @type {Function}
+ */
+moment.utc = function() {};
