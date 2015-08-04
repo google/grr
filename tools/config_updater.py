@@ -513,11 +513,12 @@ well.
         prompt="Please enter password for database user %s: " % mysql_username)
     config.Set("Mysql.database_password", mysql_password)
 
-    print """***WARNING*** Do not continue until a MySQL 5.6 server is installed
-and running with a user created with the ability to create the GRR database and
-tables and the Python MySQLdb module has been installed on the GRR server.
+    print """\n\n***WARNING***
+Do not continue until a MySQL 5.6 server is installed and running with a user
+created with the ability to create the GRR database and tables and the Python
+MySQLdb module has been installed on the GRR server.
 
-E.g: apt-get install mysql-server-5.6 python-mysqldb\n
+E.g: apt-get install mysql-server-5.6 python-mysqldb
 """
     while raw_input("Are you ready to continue?[Yn]: ").upper() != "Y":
       pass
