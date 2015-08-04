@@ -27,65 +27,109 @@ grrUi.flow.flowsTreeDirective.FlowsTreeController = function(
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
 
+  /** @type {!Object} */
+  this.flowsDescriptors;
+
+  /** @type {!Object} */
+  this.userSettings;
+
+  this.grrApiService_.get('/users/me/settings').then(function(response) {
+    this.userSettings = response.data;
+  }.bind(this));
+
   this.grrApiService_.get('/flows/descriptors').then(function(response) {
-    var flowsDescriptors = response.data;
+    this.flowsDescriptors = response.data;
+  }.bind(this));
 
-    var treeNodes = [];
-    angular.forEach(Object.keys(flowsDescriptors).sort(), function(category) {
-      var categoryNode = {
-        data: category,
-        // Id is needed for Selenium tests backwards compatibility.
-        attr: {id: '_' + category},
-        state: 'closed',
-        children: []
-      };
+  this.scope_.$watchGroup(['controller.userSettings',
+                           'controller.flowsDescriptors'],
+                          this.onDescriptorsOrSettingsChange_.bind(this));
+};
+var FlowsTreeController = grrUi.flow.flowsTreeDirective.FlowsTreeController;
 
-      var descriptors = flowsDescriptors[category].sort(function(a, b) {
-        var aName = a['friendly_name'] || a['name'];
-        var bName = b['friendly_name'] || b['name'];
 
-        if (aName < bName) {
-          return -1;
-        } else if (aName > bName) {
-          return 1;
-        } else {
-          return 0;
-        }
-      });
-      angular.forEach(descriptors, function(descriptor) {
+/**
+ * Handles data necessary to build the tree: list of flows descriptors and
+ * user settings (settings contain UI mode - BASIC/ADVANCED/DEBUG) necessary
+ * to filter the flow tree.
+ *
+ * @private
+ */
+FlowsTreeController.prototype.onDescriptorsOrSettingsChange_ = function() {
+  if (angular.isUndefined(this.flowsDescriptors) ||
+      angular.isUndefined(this.userSettings)) {
+    return;
+  }
+
+  // Get current UI mode selected by the user. Default to "BASIC" if
+  // it's not set.
+  // TODO(user): stuff like this should be abstracted away into a
+  // dedicated service.
+  var mode = this.scope_.$eval('controller.userSettings.value.mode.value');
+  if (angular.isUndefined(mode)) {
+    mode = 'BASIC';
+  }
+
+  var treeNodes = [];
+  var descriptorsKeys = Object.keys(this.flowsDescriptors).sort();
+  angular.forEach(descriptorsKeys, function(category) {
+    var categoryNode = {
+      data: category,
+      // Id is needed for Selenium tests backwards compatibility.
+      attr: {id: '_' + category},
+      state: 'closed',
+      children: []
+    };
+
+    var descriptors = this.flowsDescriptors[category].sort(function(a, b) {
+      var aName = a['friendly_name'] || a['name'];
+      var bName = b['friendly_name'] || b['name'];
+
+      if (aName < bName) {
+        return -1;
+      } else if (aName > bName) {
+        return 1;
+      } else {
+        return 0;
+      }
+    });
+    angular.forEach(descriptors, function(descriptor) {
+      // Filter out flows that don't support display mode selected by
+      // the user.
+      if (mode == 'DEBUG' || descriptor['behaviours'].indexOf(mode) != -1) {
+
         categoryNode['children'].push({
           metadata: {descriptor: descriptor},
           // Id is needed for Selenium tests backwards compatibility.
           attr: {id: '_' + category + '-' + descriptor['name']},
           data: descriptor['friendly_name'] || descriptor['name']
         });
-      }.bind(this));
-
-      treeNodes.push(categoryNode);
-    }.bind(this));
-
-    var treeElem = $(this.element_).children('div.tree');
-    treeElem.jstree({
-      'json_data': {
-        'data': treeNodes,
-      },
-      'plugins': ['json_data', 'themes', 'ui']
-    });
-    treeElem.on('select_node.jstree', function(e, data) {
-      data['inst']['toggle_node'](data['rslt']['obj']);
-
-      var descriptor = data['rslt']['obj'].data('descriptor');
-      if (angular.isDefined(descriptor)) {
-        // Have to call apply as we're in event handler triggered by
-        // non-Angular code.
-        this.scope_.$apply(function() {
-          this.scope_.selectedDescriptor = descriptor;
-        }.bind(this));
       }
     }.bind(this));
+
+    treeNodes.push(categoryNode);
+  }.bind(this));
+
+  var treeElem = $(this.element_).children('div.tree');
+  treeElem.jstree({
+    'json_data': {
+      'data': treeNodes,
+    },
+    'plugins': ['json_data', 'themes', 'ui']
+  });
+  treeElem.on('select_node.jstree', function(e, data) {
+    data['inst']['toggle_node'](data['rslt']['obj']);
+
+    var descriptor = data['rslt']['obj'].data('descriptor');
+    if (angular.isDefined(descriptor)) {
+      // Have to call apply as we're in event handler triggered by
+      // non-Angular code.
+      this.scope_.$apply(function() {
+        this.scope_.selectedDescriptor = descriptor;
+      }.bind(this));
+    }
   }.bind(this));
 };
-var FlowsTreeController = grrUi.flow.flowsTreeDirective.FlowsTreeController;
 
 
 /**

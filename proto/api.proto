@@ -106,6 +106,10 @@ message ApiFlowResultsRendererArgs {
   optional int64 count = 4 [(sem_type) = {
       description: "Max number of results to fetch."
     }];
+  optional string filter = 5 [(sem_type) = {
+      description: "Return only results whose string representation "
+      "contains given substring."
+    }];
 }
 
 message ApiFlowOutputPluginsRendererArgs {
@@ -183,6 +187,10 @@ message ApiHuntResultsRendererArgs {
     }];
   optional int64 count = 3 [(sem_type) = {
       description: "Max number of results to fetch."
+    }];
+  optional string filter = 4 [(sem_type) = {
+      description: "Return only results whose string representation "
+      "contains given substring."
     }];
 };
 

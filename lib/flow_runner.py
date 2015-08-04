@@ -911,7 +911,14 @@ class FlowRunner(object):
       # avoids creating a collection for every intermediate flow result.
       self.context.output.Add(response)
 
-    self.sent_replies.append(response)
+    if self.args.client_id:
+      # While wrapping the response in GrrMessage is not strictly necessary for
+      # output plugins, GrrMessage.source may be used by these plugins to fetch
+      # client's metadata and include it into the exported data.
+      self.sent_replies.append(rdf_flows.GrrMessage(payload=response,
+                                                    source=self.args.client_id))
+    else:
+      self.sent_replies.append(response)
 
   def FlushMessages(self):
     """Flushes the messages that were queued."""
