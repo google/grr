@@ -87,7 +87,7 @@ class MySQLConnection(object):
           raise Error(str(e))
 
         if "Can't connect" in str(e):
-          logging.error("Datastore connection retrying after failed with %s.",
+          logging.warning("Datastore connection retrying after failed with %s.",
                        str(e))
           time.sleep(.5)
           continue
@@ -441,7 +441,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
           # This should indicate missing tables and raise immediately
           raise e
         else:
-          logging.error("Datastore query retrying after failed with %s.", str(e))
+          logging.warning("Datastore query retrying after failed with %s.", str(e))
           # Most errors encountered here need a reasonable backoff time to
           # resolve.
           time.sleep(1)
@@ -479,7 +479,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
           # This should indicate missing tables and raise immediately
           raise e
         else:
-          logging.error("Datastore query retrying after failed with %s.", str(e))
+          logging.warning("Datastore query retrying after failed with %s.", str(e))
           # Most errors encountered here need a reasonable backoff time to
           # resolve.
           time.sleep(1)
