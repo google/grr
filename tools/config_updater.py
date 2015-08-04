@@ -513,6 +513,15 @@ well.
         prompt="Please enter password for database user %s: " % mysql_username)
     config.Set("Mysql.database_password", mysql_password)
 
+    print """***WARNING*** Do not continue until a MySQL 5.6 server is installed
+and running with a user created with the ability to create the GRR database and
+tables and the Python MySQLdb module has been installed on the GRR server.
+
+E.g: apt-get install mysql-server-5.6 python-mysqldb\n
+"""
+    while raw_input("Are you ready to continue?[Yn]: ").upper() != "Y":
+      pass
+
 
 def ConfigureEmails(config):
   """Configure email notification addresses."""
@@ -570,13 +579,6 @@ datastore.  To do this we need to configure a datastore.\n"""
          config_lib.CONFIG.Get("Mysql.database_name"),
          config_lib.CONFIG.Get("Mysql.database_username"))
 
-    if existing_datastore == "MongoDataStore":
-      print """  Mongo Host: %s
-  Mongo Port: %s
-  Mongo Database: %s
-  """ % (config_lib.CONFIG.Get("Mongo.server"),
-         config_lib.CONFIG.Get("Mongo.port"),
-         config_lib.CONFIG.Get("Mongo.db_name"))
 
     if raw_input("Do you want to keep this configuration?"
                  " [Yn]: ").upper() == "N":
