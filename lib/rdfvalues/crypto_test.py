@@ -9,6 +9,7 @@ from M2Crypto import RSA
 
 from grr.lib import config_lib
 from grr.lib import rdfvalue
+from grr.lib import test_lib
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import test_base
 
@@ -20,7 +21,6 @@ class SignedBlobTest(test_base.RDFValueTestCase):
     super(SignedBlobTest, self).setUp()
     self.private_key = config_lib.CONFIG[
         "PrivateKeys.driver_signing_private_key"]
-
     self.public_key = config_lib.CONFIG[
         "Client.driver_signing_public_key"]
 
@@ -58,6 +58,15 @@ class TestCryptoTypeInfos(test_base.RDFValueBaseTest):
   There is no need to check for success here because if that did not work we
   would not be able to run any tests.
   """
+
+  def setUp(self):
+    super(TestCryptoTypeInfos, self).setUp()
+    self.config_stubber = test_lib.PreserveConfig()
+    self.config_stubber.Start()
+
+  def tearDown(self):
+    super(TestCryptoTypeInfos, self).tearDown()
+    self.config_stubber.Stop()
 
   def testX509Certificates(self):
     """Deliberately try to parse an invalid certificate."""

@@ -40,12 +40,13 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     """Setup the server."""
     super(GRRFEServerTest, self).setUp()
 
-    # Whitelist test flow.
-    config_lib.CONFIG.Set("Frontend.well_known_flows", [utils.SmartStr(
-        test_lib.WellKnownSessionTest.well_known_session_id.FlowName())])
-
-    # For tests, small pools are ok.
-    config_lib.CONFIG.Set("Threadpool.size", 10)
+    self.config_overrider = test_lib.ConfigOverrider({
+        # Whitelist test flow.
+        "Frontend.well_known_flows": [utils.SmartStr(
+            test_lib.WellKnownSessionTest.well_known_session_id.FlowName())],
+        # For tests, small pools are ok.
+        "Threadpool.size": 10})
+    self.config_overrider.Start()
 
     prefix = "pool-%s" % self._testMethodName
     self.server = flow.FrontEndServer(
@@ -53,6 +54,10 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
         private_key=config_lib.CONFIG["PrivateKeys.server_key"],
         message_expiry_time=self.message_expiry_time,
         threadpool_prefix=prefix)
+
+  def tearDown(self):
+    super(GRRFEServerTest, self).tearDown()
+    self.config_overrider.Stop()
 
   def testReceiveMessages(self):
     """Test Receiving messages with no status."""

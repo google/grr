@@ -4,7 +4,6 @@
 
 
 from grr.lib import access_control
-from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import data_store_test
 from grr.lib import flags
@@ -25,12 +24,12 @@ class MongoTestMixin(object):
     """Initializes the data store."""
     self.token = access_control.ACLToken(username="test",
                                          reason="Running tests")
-    config_lib.CONFIG.Set("Mongo.db_name", "grr_test_%s" %
-                          self.__class__.__name__)
-    data_store.DB = mongo_data_store.MongoDataStore()
-    data_store.DB.security_manager = test_lib.MockSecurityManager()
+    with test_lib.ConfigOverrider({
+        "Mongo.db_name": "grr_test_%s" % self.__class__.__name__}):
+      data_store.DB = mongo_data_store.MongoDataStore()
+      data_store.DB.security_manager = test_lib.MockSecurityManager()
 
-    self.DestroyDatastore()
+      self.DestroyDatastore()
 
   def DestroyDatastore(self):
     # Drop the collection.

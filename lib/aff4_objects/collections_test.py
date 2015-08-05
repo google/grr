@@ -6,7 +6,6 @@ import itertools
 import math
 
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -146,21 +145,22 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
 
     # For the sake of test's performance, make COMPACTION_BATCH_SIZE and
     # MAX_REVERSED_RESULTS reasonably small.
-    self.old_batch_size = aff4.PackedVersionedCollection.COMPACTION_BATCH_SIZE
-    aff4.PackedVersionedCollection.COMPACTION_BATCH_SIZE = 100
-
-    self.old_max_rev = aff4.PackedVersionedCollection.MAX_REVERSED_RESULTS
-    aff4.PackedVersionedCollection.MAX_REVERSED_RESULTS = 100
-
-    self.old_index_interval = aff4.PackedVersionedCollection.INDEX_INTERVAL
-    aff4.PackedVersionedCollection.INDEX_INTERVAL = 100
+    self.stubber = utils.MultiStubber(
+        (aff4.PackedVersionedCollection, "COMPACTION_BATCH_SIZE", 100),
+        (aff4.PackedVersionedCollection, "MAX_REVERSED_RESULTS", 100),
+        (aff4.PackedVersionedCollection, "INDEX_INTERVAL", 100))
+    self.stubber.Start()
 
   def tearDown(self):
-    aff4.PackedVersionedCollection.COMPACTION_BATCH_SIZE = self.old_batch_size
-    aff4.PackedVersionedCollection.MAX_REVERSED_RESULTS = self.old_max_rev
-    aff4.PackedVersionedCollection.INDEX_INTERVAL = self.old_index_interval
+    self.stubber.Stop()
 
     super(TestPackedVersionedCollection, self).tearDown()
+
+    try:
+      self.journaling_setter.Stop()
+      del self.journaling_setter
+    except AttributeError:
+      pass
 
   def testAddMethodWritesToVersionedAttributeAndNotToStream(self):
     with aff4.FACTORY.Create(self.collection_urn, "PackedVersionedCollection",
@@ -224,14 +224,14 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
     self.assertEqual(len(fd), 2)
     self.assertEqual(len(list(fd.GenerateUncompactedItems())), 2)
 
-  def _testRandomAccessEqualsIterator(self):
+  def _testRandomAccessEqualsIterator(self, step=1):
     # Check that random access works correctly for different age modes.
     for age in [aff4.NEWEST_TIME, aff4.ALL_TIMES]:
       fd = aff4.FACTORY.Open(self.collection_urn, age=age, token=self.token)
 
       model_data = list(fd.GenerateItems())
-      for index, model_item in enumerate(model_data):
-        self.assertEqual(fd[index], model_item)
+      for index in xrange(len(model_data), step):
+        self.assertEqual(fd[index], model_data[index])
 
         self.assertListEqual(list(fd.GenerateItems(offset=index)),
                              model_data[index:])
@@ -279,7 +279,7 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
       for i in range(fd.MAX_REVERSED_RESULTS + 1):
         fd.Add(rdf_flows.GrrMessage(request_id=i))
 
-    self._testRandomAccessEqualsIterator()
+    self._testRandomAccessEqualsIterator(step=10)
 
   def testIteratesOverBothCompactedAndUncompcatedParts(self):
     with aff4.FACTORY.Create(self.collection_urn,
@@ -370,9 +370,36 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
 
   def testRandomAccessWorksCorrectlyForIndexIntervalsFrom1To10(self):
     for index_interval in range(1, 11):
-      aff4.PackedVersionedCollection.INDEX_INTERVAL = index_interval
+      with utils.Stubber(
+          aff4.PackedVersionedCollection, "INDEX_INTERVAL", index_interval):
 
-      aff4.FACTORY.Delete(self.collection_urn, token=self.token)
+        aff4.FACTORY.Delete(self.collection_urn, token=self.token)
+        with aff4.FACTORY.Create(
+            self.collection_urn, "PackedVersionedCollection",
+            mode="w", token=self.token):
+          pass
+
+        for i in range(20):
+          with aff4.FACTORY.Open(
+              self.collection_urn, "PackedVersionedCollection",
+              mode="w", token=self.token) as fd:
+            fd.Add(rdf_flows.GrrMessage(request_id=i))
+
+          with aff4.FACTORY.OpenWithLock(
+              self.collection_urn, "PackedVersionedCollection",
+              token=self.token) as fd:
+            fd.Compact()
+
+        fd = aff4.FACTORY.Open(self.collection_urn, token=self.token)
+        self.assertEqual(len(fd.GetIndex()),
+                         int(math.ceil(20.0 / index_interval)))
+        self._testRandomAccessEqualsIterator()
+
+  def testIndexIsUsedWhenRandomAccessIsUsed(self):
+    with utils.MultiStubber(
+        (aff4.PackedVersionedCollection, "COMPACTION_BATCH_SIZE", 100),
+        (aff4.PackedVersionedCollection, "INDEX_INTERVAL", 1)):
+
       with aff4.FACTORY.Create(self.collection_urn, "PackedVersionedCollection",
                                mode="w", token=self.token):
         pass
@@ -388,46 +415,22 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
             token=self.token) as fd:
           fd.Compact()
 
-      fd = aff4.FACTORY.Open(self.collection_urn, token=self.token)
-      self.assertEqual(len(fd.GetIndex()),
-                       int(math.ceil(20.0 / index_interval)))
-      self._testRandomAccessEqualsIterator()
+      collection = aff4.FACTORY.Open(self.collection_urn, token=self.token)
+      item_size = collection.fd.size / len(collection)
 
-  def testIndexIsUsedWhenRandomAccessIsUsed(self):
-    aff4.PackedVersionedCollection.COMPACTION_BATCH_SIZE = 100
-    aff4.PackedVersionedCollection.INDEX_INTERVAL = 1
+      # There's no seek expected for the first element
+      for i in range(1, 20):
+        seek_ops = []
+        old_seek = collection.fd.Seek
+        def SeekStub(offset):
+          seek_ops.append(offset)  #  pylint: disable=cell-var-from-loop
+          old_seek(offset)  #  pylint: disable=cell-var-from-loop
 
-    with aff4.FACTORY.Create(self.collection_urn, "PackedVersionedCollection",
-                             mode="w", token=self.token):
-      pass
-
-    for i in range(20):
-      with aff4.FACTORY.Open(
-          self.collection_urn, "PackedVersionedCollection",
-          mode="w", token=self.token) as fd:
-        fd.Add(rdf_flows.GrrMessage(request_id=i))
-
-      with aff4.FACTORY.OpenWithLock(
-          self.collection_urn, "PackedVersionedCollection",
-          token=self.token) as fd:
-        fd.Compact()
-
-    collection = aff4.FACTORY.Open(self.collection_urn, token=self.token)
-    item_size = collection.fd.size / len(collection)
-
-    # There's no seek expected for the first element
-    for i in range(1, 20):
-      seek_ops = []
-      old_seek = collection.fd.Seek
-      def SeekStub(offset):
-        seek_ops.append(offset)  #  pylint: disable=cell-var-from-loop
-        old_seek(offset)  #  pylint: disable=cell-var-from-loop
-
-      # Check that the stream is seeked to a correct byte offset on every
-      # GenerateItems() call with an offset specified.
-      with utils.Stubber(collection.fd, "Seek", SeekStub):
-        _ = list(collection.GenerateItems(offset=i))
-        self.assertListEqual([item_size * i], seek_ops)
+        # Check that the stream is seeked to a correct byte offset on every
+        # GenerateItems() call with an offset specified.
+        with utils.Stubber(collection.fd, "Seek", SeekStub):
+          _ = list(collection.GenerateItems(offset=i))
+          self.assertListEqual([item_size * i], seek_ops)
 
   def testItemsCanBeAddedToCollectionInWriteOnlyMode(self):
     with aff4.FACTORY.Create(self.collection_urn, "PackedVersionedCollection",
@@ -762,51 +765,53 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
         elements.append(rdf_flows.GrrMessage(request_id=i))
       fd.AddAll(elements)
 
-    config_lib.CONFIG.Set("Worker.compaction_lease_time", 42)
+    with test_lib.ConfigOverrider({"Worker.compaction_lease_time": 42}):
 
-    with test_lib.FakeTime(20):
-      # Lease time here is much less than compaction_lease_time,
-      # collection will have to extend the lease immediately
-      # when compaction starts.
-      fd = aff4.FACTORY.OpenWithLock(self.collection_urn,
-                                     "PackedVersionedCollection",
-                                     lease_time=10, token=self.token)
+      with test_lib.FakeTime(20):
+        # Lease time here is much less than compaction_lease_time,
+        # collection will have to extend the lease immediately
+        # when compaction starts.
+        fd = aff4.FACTORY.OpenWithLock(self.collection_urn,
+                                       "PackedVersionedCollection",
+                                       lease_time=10, token=self.token)
 
-      # This is the expected lease time: time.time() + lease_time
-      self.assertEqual(fd.CheckLease(), 10)
+        # This is the expected lease time: time.time() + lease_time
+        self.assertEqual(fd.CheckLease(), 10)
 
-    with test_lib.FakeTime(29):
-      fd.Compact()
-      # Compaction should have updated the lease.
-      self.assertEqual(fd.CheckLease(), 42)
+      with test_lib.FakeTime(29):
+        fd.Compact()
+        # Compaction should have updated the lease.
+        self.assertEqual(fd.CheckLease(), 42)
 
   def testNoJournalEntriesAreAddedWhenJournalingIsDisabled(self):
-    config_lib.CONFIG.Set(
-        "Worker.enable_packed_versioned_collection_journaling", False)
+    with test_lib.ConfigOverrider({
+        "Worker.enable_packed_versioned_collection_journaling": False}):
 
-    with aff4.FACTORY.Create(self.collection_urn,
-                             "PackedVersionedCollection",
-                             mode="w", token=self.token) as fd:
-      fd.Add(rdf_flows.GrrMessage(request_id=42))
-      fd.AddAll([rdf_flows.GrrMessage(request_id=43),
-                 rdf_flows.GrrMessage(request_id=44)])
+      with aff4.FACTORY.Create(self.collection_urn,
+                               "PackedVersionedCollection",
+                               mode="w", token=self.token) as fd:
+        fd.Add(rdf_flows.GrrMessage(request_id=42))
+        fd.AddAll([rdf_flows.GrrMessage(request_id=43),
+                   rdf_flows.GrrMessage(request_id=44)])
 
-    aff4.PackedVersionedCollection.AddToCollection(
-        self.collection_urn, [rdf_flows.GrrMessage(request_id=1),
-                              rdf_flows.GrrMessage(request_id=2)],
-        token=self.token)
+      aff4.PackedVersionedCollection.AddToCollection(
+          self.collection_urn, [rdf_flows.GrrMessage(request_id=1),
+                                rdf_flows.GrrMessage(request_id=2)],
+          token=self.token)
 
-    with aff4.FACTORY.OpenWithLock(self.collection_urn, token=self.token) as fd:
-      fd.Compact()
+      with aff4.FACTORY.OpenWithLock(self.collection_urn,
+                                     token=self.token) as fd:
+        fd.Compact()
 
-    fd = aff4.FACTORY.Open(self.collection_urn, age=aff4.ALL_TIMES,
-                           token=self.token)
-    self.assertFalse(fd.IsAttributeSet(fd.Schema.ADDITION_JOURNAL))
-    self.assertFalse(fd.IsAttributeSet(fd.Schema.COMPACTION_JOURNAL))
+      fd = aff4.FACTORY.Open(self.collection_urn, age=aff4.ALL_TIMES,
+                             token=self.token)
+      self.assertFalse(fd.IsAttributeSet(fd.Schema.ADDITION_JOURNAL))
+      self.assertFalse(fd.IsAttributeSet(fd.Schema.COMPACTION_JOURNAL))
 
   def _EnableJournaling(self):
-    config_lib.CONFIG.Set(
-        "Worker.enable_packed_versioned_collection_journaling", True)
+    self.journaling_setter = test_lib.ConfigOverrider({
+        "Worker.enable_packed_versioned_collection_journaling": True})
+    self.journaling_setter.Start()
 
   def testJournalEntryIsAddedAfterSingeAddCall(self):
     self._EnableJournaling()

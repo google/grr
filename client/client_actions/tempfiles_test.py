@@ -73,14 +73,16 @@ class GRRTempFileTestFilename(test_lib.GRRBaseTest):
     # This is where temp files go if a directory is not provided.
     # For this test it has to be different from the temp firectory
     # so we create a new one.
-    self.old_client_tempdir = config_lib.CONFIG.Get("Client.tempdir")
     self.client_tempdir = tempfile.mkdtemp(
         dir=config_lib.CONFIG.Get("Client.tempdir"))
-    config_lib.CONFIG.Set("Client.tempdir", self.client_tempdir)
+    self.tempdir_overrider = test_lib.ConfigOverrider({
+        "Client.tempdir": self.client_tempdir})
+    self.tempdir_overrider.Start()
 
   def tearDown(self):
+    super(GRRTempFileTestFilename, self).tearDown()
     os.rmdir(config_lib.CONFIG.Get("Client.tempdir"))
-    config_lib.CONFIG.Set("Client.tempdir", self.old_client_tempdir)
+    self.tempdir_overrider.Stop()
 
   def testCreateAndDelete(self):
     fd = tempfiles.CreateGRRTempFile(filename="process.42.exe", mode="wb")
@@ -110,7 +112,9 @@ class DeleteGRRTempFiles(test_lib.EmptyActionTest):
                                    "delete_test", filename)
     self.dirname = os.path.dirname(self.tempfile)
     os.makedirs(self.dirname)
-    config_lib.CONFIG.Set("Client.tempdir", self.dirname)
+    self.tempdir_overrider = test_lib.ConfigOverrider({
+        "Client.tempdir": self.dirname})
+    self.tempdir_overrider.Start()
 
     self.not_tempfile = os.path.join(self.temp_dir, "notatempfile")
     open(self.not_tempfile, "w").write("something")
@@ -123,6 +127,10 @@ class DeleteGRRTempFiles(test_lib.EmptyActionTest):
 
     self.pathspec = rdf_paths.PathSpec(
         path=self.dirname, pathtype=rdf_paths.PathSpec.PathType.OS)
+
+  def tearDown(self):
+    super(DeleteGRRTempFiles, self).tearDown()
+    self.tempdir_overrider.Stop()
 
   def testDeleteGRRTempFilesInDirectory(self):
     result = self.RunAction("DeleteGRRTempFiles",

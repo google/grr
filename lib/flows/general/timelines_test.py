@@ -3,7 +3,6 @@
 
 """Tests for the Timelines flow."""
 
-from grr.client import vfs
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
@@ -21,41 +20,40 @@ class TestTimelines(test_lib.FlowTestsBaseclass):
 
   def testMACTimes(self):
     """Test that the timelining works with files."""
-    # Install the mock
-    vfs.VFS_HANDLERS[
-        rdf_paths.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
+    with test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.OS, test_lib.ClientVFSHandlerFixture):
 
-    client_mock = action_mocks.ActionMock("ListDirectory")
-    output_path = "analysis/Timeline/MAC"
+      client_mock = action_mocks.ActionMock("ListDirectory")
+      output_path = "analysis/Timeline/MAC"
 
-    pathspec = rdf_paths.PathSpec(path="/",
-                                  pathtype=rdf_paths.PathSpec.PathType.OS)
+      pathspec = rdf_paths.PathSpec(path="/",
+                                    pathtype=rdf_paths.PathSpec.PathType.OS)
 
-    for _ in test_lib.TestFlowHelper(
-        "RecursiveListDirectory", client_mock, client_id=self.client_id,
-        pathspec=pathspec, token=self.token):
-      pass
+      for _ in test_lib.TestFlowHelper(
+          "RecursiveListDirectory", client_mock, client_id=self.client_id,
+          pathspec=pathspec, token=self.token):
+        pass
 
-    # Now make a timeline
-    for _ in test_lib.TestFlowHelper(
-        "MACTimes", client_mock, client_id=self.client_id, token=self.token,
-        path="/", output=output_path):
-      pass
+      # Now make a timeline
+      for _ in test_lib.TestFlowHelper(
+          "MACTimes", client_mock, client_id=self.client_id, token=self.token,
+          path="/", output=output_path):
+        pass
 
-    fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
+      fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
 
-    timestamp = 0
-    events = list(fd.Query("event.stat.pathspec.path contains grep"))
+      timestamp = 0
+      events = list(fd.Query("event.stat.pathspec.path contains grep"))
 
-    for event in events:
-      # Check the times are monotonously increasing.
-      self.assert_(event.event.timestamp >= timestamp)
-      timestamp = event.event.timestamp
+      for event in events:
+        # Check the times are monotonously increasing.
+        self.assert_(event.event.timestamp >= timestamp)
+        timestamp = event.event.timestamp
 
-      self.assert_("grep" in event.event.stat.pathspec.path)
+        self.assert_("grep" in event.event.stat.pathspec.path)
 
-    # 9 files, each having mac times = 27 events.
-    self.assertEqual(len(events), 27)
+      # 9 files, each having mac times = 27 events.
+      self.assertEqual(len(events), 27)
 
 
 def main(argv):

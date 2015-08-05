@@ -46,10 +46,9 @@ class SafeQueue(Queue.Queue):
 class MySQLConnection(object):
   """A Class to manage MySQL database connections."""
 
-  def __init__(self):
-    database = config_lib.CONFIG["Mysql.database_name"]
+  def __init__(self, database_name):
     try:
-      self.dbh = self._MakeConnection(database=database)
+      self.dbh = self._MakeConnection(database=database_name)
       self.cursor = self.dbh.cursor()
       self.cursor.connection.autocommit(True)
     except MySQLdb.OperationalError as e:
@@ -58,11 +57,11 @@ class MySQLConnection(object):
         dbh = self._MakeConnection()
         cursor = dbh.cursor()
         cursor.connection.autocommit(True)
-        cursor.execute("Create database `%s`" % database)
+        cursor.execute("Create database `%s`" % database_name)
         cursor.close()
         dbh.close()
 
-        self.dbh = self._MakeConnection(database=database)
+        self.dbh = self._MakeConnection(database=database_name)
         self.cursor = self.dbh.cursor()
         self.cursor.connection.autocommit(True)
       else:
@@ -93,17 +92,18 @@ class ConnectionPool(object):
   Uses unfinished_tasks to track the number of open connections.
   """
 
-  def __init__(self):
+  def __init__(self, database_name):
     self.connections = SafeQueue()
+    self.database_name = database_name
     self.pool_max_size = int(config_lib.CONFIG["Mysql.conn_pool_max"])
     self.pool_min_size = int(config_lib.CONFIG["Mysql.conn_pool_min"])
     for _ in range(self.pool_min_size):
-      self.connections.put(MySQLConnection())
+      self.connections.put(MySQLConnection(self.database_name))
 
   def GetConnection(self):
     if self.connections.empty() and (self.connections.unfinished_tasks <
                                      self.pool_max_size):
-      self.connections.put(MySQLConnection())
+      self.connections.put(MySQLConnection(self.database_name))
     connection = self.connections.get(block=True)
     return connection
 
@@ -140,14 +140,14 @@ class MySQLAdvancedDataStore(data_store.DataStore):
   POOL = None
 
   def __init__(self):
+    self.database_name = config_lib.CONFIG["Mysql.database_name"]
     # Use the global connection pool.
     if MySQLAdvancedDataStore.POOL is None:
-      MySQLAdvancedDataStore.POOL = ConnectionPool()
+      MySQLAdvancedDataStore.POOL = ConnectionPool(self.database_name)
     self.pool = self.POOL
 
     self.to_insert = []
     self._CalculateAttributeStorageTypes()
-    self.database_name = config_lib.CONFIG["Mysql.database_name"]
     self.lock = threading.Lock()
 
     super(MySQLAdvancedDataStore, self).__init__()

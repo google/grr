@@ -4,7 +4,6 @@
 
 import os
 
-from grr.client import vfs
 from grr.client.client_actions import searching
 from grr.lib import action_mocks
 from grr.lib import aff4
@@ -68,10 +67,14 @@ class TestSearchFileContentWithFixture(GrepTests):
   def setUp(self):
     super(TestSearchFileContentWithFixture, self).setUp()
 
-    # Install the mock
-    vfs.VFS_HANDLERS[
-        rdf_paths.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
     self.client_mock = action_mocks.ActionMock("Grep", "StatFile", "Find")
+    self.vfs_overrider = test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.OS, test_lib.ClientVFSHandlerFixture)
+    self.vfs_overrider.Start()
+
+  def tearDown(self):
+    super(TestSearchFileContentWithFixture, self).tearDown()
+    self.vfs_overrider.Stop()
 
   def testNormalGrep(self):
     output_path = "analysis/grep1"

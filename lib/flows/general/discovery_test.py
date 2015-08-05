@@ -5,7 +5,6 @@
 
 import socket
 
-from grr.client import vfs
 from grr.client.client_actions import admin
 from grr.lib import action_mocks
 from grr.lib import aff4
@@ -132,7 +131,8 @@ class TestClientInterrogate(artifact_test.ArtifactTest):
     interfaces = list(net_fd.Get(net_fd.Schema.INTERFACES))
     self.assertEqual(interfaces[0].mac_address, "123456")
     self.assertEqual(interfaces[0].addresses[0].human_readable, "100.100.100.1")
-    self.assertEqual(socket.inet_ntoa(interfaces[0].addresses[0].packed_bytes),
+    self.assertEqual(socket.inet_ntop(
+        socket.AF_INET, interfaces[0].addresses[0].packed_bytes),
                      "100.100.100.1")
 
     # Mac addresses should be available as hex for searching
@@ -216,88 +216,88 @@ class TestClientInterrogate(artifact_test.ArtifactTest):
     """Test the Interrogate flow."""
     test_lib.ClientFixture(self.client_id, token=self.token)
 
-    vfs.VFS_HANDLERS[
-        rdf_paths.PathSpec.PathType.OS] = test_lib.FakeTestDataVFSHandler
+    with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                               test_lib.FakeTestDataVFSHandler):
+      with test_lib.ConfigOverrider(
+          {"Artifacts.knowledge_base": ["LinuxWtmp",
+                                        "NetgroupConfiguration",
+                                        "LinuxRelease"],
+           "Artifacts.netgroup_filter_regexes": [r"^login$"]}):
+        self.SetLinuxClient()
+        client_mock = action_mocks.InterrogatedClient(
+            "TransferBuffer", "StatFile", "Find", "HashBuffer",
+            "ListDirectory", "FingerprintFile", "GetLibraryVersions")
+        client_mock.InitializeClient()
 
-    config_lib.CONFIG.Set("Artifacts.knowledge_base", ["LinuxWtmp",
-                                                       "NetgroupConfiguration",
-                                                       "LinuxRelease"])
-    config_lib.CONFIG.Set("Artifacts.netgroup_filter_regexes", [r"^login$"])
-    self.SetLinuxClient()
-    client_mock = action_mocks.InterrogatedClient(
-        "TransferBuffer", "StatFile", "Find", "HashBuffer",
-        "ListDirectory", "FingerprintFile", "GetLibraryVersions")
-    client_mock.InitializeClient()
+        for _ in test_lib.TestFlowHelper("Interrogate", client_mock,
+                                         token=self.token,
+                                         client_id=self.client_id):
+          pass
 
-    for _ in test_lib.TestFlowHelper("Interrogate", client_mock,
-                                     token=self.token,
-                                     client_id=self.client_id):
-      pass
+        self.fd = aff4.FACTORY.Open(self.client_id, token=self.token)
+        self._CheckAFF4Object("test_node", "Linux", 100 * 1000000)
+        self._CheckClientInfo()
+        self._CheckClientIndex(".*test.*")
+        self._CheckGRRConfig()
+        self._CheckNotificationsCreated()
+        self._CheckClientSummary("Linux", "14.4", release="Ubuntu",
+                                 kernel="3.13.0-39-generic")
+        self._CheckRelease("Ubuntu", "14.4")
 
-    self.fd = aff4.FACTORY.Open(self.client_id, token=self.token)
-    self._CheckAFF4Object("test_node", "Linux", 100 * 1000000)
-    self._CheckClientInfo()
-    self._CheckClientIndex(".*test.*")
-    self._CheckGRRConfig()
-    self._CheckNotificationsCreated()
-    self._CheckClientSummary("Linux", "14.4", release="Ubuntu",
-                             kernel="3.13.0-39-generic")
-    self._CheckRelease("Ubuntu", "14.4")
-
-    # users 1,2,3 from wtmp
-    # users yagharek, isaac from netgroup
-    self._CheckUsers(["yagharek", "isaac", "user1", "user2", "user3"])
-    self._CheckNetworkInfo()
-    self._CheckVFS()
-    self._CheckLabelIndex()
-    self._CheckClientKwIndex(["Linux"], 1)
-    self._CheckClientKwIndex(["Label2"], 1)
-    self._CheckClientLibraries()
+        # users 1,2,3 from wtmp
+        # users yagharek, isaac from netgroup
+        self._CheckUsers(["yagharek", "isaac", "user1", "user2", "user3"])
+        self._CheckNetworkInfo()
+        self._CheckVFS()
+        self._CheckLabelIndex()
+        self._CheckClientKwIndex(["Linux"], 1)
+        self._CheckClientKwIndex(["Label2"], 1)
+        self._CheckClientLibraries()
 
   def testInterrogateWindows(self):
     """Test the Interrogate flow."""
 
     test_lib.ClientFixture(self.client_id, token=self.token)
 
-    vfs.VFS_HANDLERS[
-        rdf_paths.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
-    vfs.VFS_HANDLERS[
-        rdf_paths.PathSpec.PathType.OS] = test_lib.FakeFullVFSHandler
+    with test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.REGISTRY, test_lib.FakeRegistryVFSHandler):
+      with test_lib.VFSOverrider(
+          rdf_paths.PathSpec.PathType.OS, test_lib.FakeFullVFSHandler):
 
-    client_mock = action_mocks.InterrogatedClient(
-        "TransferBuffer", "StatFile", "Find", "HashBuffer",
-        "ListDirectory", "FingerprintFile", "GetLibraryVersions")
+        client_mock = action_mocks.InterrogatedClient(
+            "TransferBuffer", "StatFile", "Find", "HashBuffer",
+            "ListDirectory", "FingerprintFile", "GetLibraryVersions")
 
-    self.SetWindowsClient()
-    client_mock.InitializeClient(system="Windows", version="6.1.7600",
-                                 kernel="6.1.7601")
+        self.SetWindowsClient()
+        client_mock.InitializeClient(system="Windows", version="6.1.7600",
+                                     kernel="6.1.7601")
 
-    # Run the flow in the simulated way
-    for _ in test_lib.TestFlowHelper("Interrogate", client_mock,
-                                     token=self.token,
-                                     client_id=self.client_id):
-      pass
+        # Run the flow in the simulated way
+        for _ in test_lib.TestFlowHelper("Interrogate", client_mock,
+                                         token=self.token,
+                                         client_id=self.client_id):
+          pass
 
-    self.fd = aff4.FACTORY.Open(self.client_id, token=self.token)
-    self._CheckAFF4Object("test_node", "Windows", 100 * 1000000)
-    self._CheckClientInfo()
-    self._CheckClientIndex(".*Host.*")
-    self._CheckGRRConfig()
-    self._CheckNotificationsCreated()
-    self._CheckClientSummary("Windows", "6.1.7600", kernel="6.1.7601")
+        self.fd = aff4.FACTORY.Open(self.client_id, token=self.token)
+        self._CheckAFF4Object("test_node", "Windows", 100 * 1000000)
+        self._CheckClientInfo()
+        self._CheckClientIndex(".*Host.*")
+        self._CheckGRRConfig()
+        self._CheckNotificationsCreated()
+        self._CheckClientSummary("Windows", "6.1.7600", kernel="6.1.7601")
 
-    # users Bert and Ernie added by the fixture should not be present (USERS
-    # overriden by kb)
-    # jim parsed from registry profile keys
-    self._CheckUsers(["jim", "kovacs"])
-    self._CheckNetworkInfo()
-    self._CheckVFS()
-    self._CheckLabelIndex()
-    self._CheckWindowsDiskInfo()
-    self._CheckRegistryPathspec()
-    self._CheckClientKwIndex(["Linux"], 0)
-    self._CheckClientKwIndex(["Windows"], 1)
-    self._CheckClientKwIndex(["Label2"], 1)
+        # users Bert and Ernie added by the fixture should not be present (USERS
+        # overriden by kb)
+        # jim parsed from registry profile keys
+        self._CheckUsers(["jim", "kovacs"])
+        self._CheckNetworkInfo()
+        self._CheckVFS()
+        self._CheckLabelIndex()
+        self._CheckWindowsDiskInfo()
+        self._CheckRegistryPathspec()
+        self._CheckClientKwIndex(["Linux"], 0)
+        self._CheckClientKwIndex(["Windows"], 1)
+        self._CheckClientKwIndex(["Label2"], 1)
 
 
 def main(argv):

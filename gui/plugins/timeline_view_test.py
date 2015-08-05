@@ -1,12 +1,9 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 
-# Copyright 2011 Google Inc. All Rights Reserved.
 """Tests for the Timeline viewer flow."""
 
 
-
-from grr.client import vfs
 
 from grr.gui import runtests_test
 
@@ -38,24 +35,23 @@ class TestTimelineView(test_lib.GRRSeleniumTest):
     fd.Set(fd.Schema.CERT(client_cert))
     fd.Close()
 
-    # Install the mock
-    vfs.VFS_HANDLERS[
-        rdf_paths.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
-    client_mock = action_mocks.ActionMock("ListDirectory")
-    output_path = "analysis/Timeline/MAC"
+    with test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.OS, test_lib.ClientVFSHandlerFixture):
+      client_mock = action_mocks.ActionMock("ListDirectory")
+      output_path = "analysis/Timeline/MAC"
 
-    for _ in test_lib.TestFlowHelper(
-        "RecursiveListDirectory", client_mock, client_id=client_id,
-        pathspec=rdf_paths.PathSpec(
-            path="/", pathtype=rdf_paths.PathSpec.PathType.OS),
-        token=token):
-      pass
+      for _ in test_lib.TestFlowHelper(
+          "RecursiveListDirectory", client_mock, client_id=client_id,
+          pathspec=rdf_paths.PathSpec(
+              path="/", pathtype=rdf_paths.PathSpec.PathType.OS),
+          token=token):
+        pass
 
-    # Now make a timeline
-    for _ in test_lib.TestFlowHelper(
-        "MACTimes", client_mock, client_id=client_id, token=token,
-        path="/", output=output_path):
-      pass
+      # Now make a timeline
+      for _ in test_lib.TestFlowHelper(
+          "MACTimes", client_mock, client_id=client_id, token=token,
+          path="/", output=output_path):
+        pass
 
   def setUp(self):
     test_lib.GRRSeleniumTest.setUp(self)

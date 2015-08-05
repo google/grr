@@ -879,34 +879,33 @@ class GeneralFlowsTest(BasicFlowTest):
 
   def testIteratedDirectoryListing(self):
     """Test that the client iterator works."""
-    # Install the mock
-    vfs.VFS_HANDLERS[rdf_paths.PathSpec.PathType.OS] = MockVFSHandler
-    path = "/"
+    with test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.OS, MockVFSHandler):
+      path = "/"
+      # Run the flow in the simulated way
+      client_mock = action_mocks.ActionMock("IteratedListDirectory")
+      for _ in test_lib.TestFlowHelper(
+          "IteratedListDirectory", client_mock, client_id=self.client_id,
+          pathspec=rdf_paths.PathSpec(path="/",
+                                      pathtype=rdf_paths.PathSpec.PathType.OS),
+          token=self.token):
+        pass
 
-    # Run the flow in the simulated way
-    client_mock = action_mocks.ActionMock("IteratedListDirectory")
-    for _ in test_lib.TestFlowHelper(
-        "IteratedListDirectory", client_mock, client_id=self.client_id,
-        pathspec=rdf_paths.PathSpec(path="/",
-                                    pathtype=rdf_paths.PathSpec.PathType.OS),
-        token=self.token):
-      pass
+      fd = aff4.FACTORY.Open(self.client_id.Add("fs/os").Add(path),
+                             token=self.token)
+      directory = [ch for ch in fd.OpenChildren()]
+      pb = rdf_paths.PathSpec(path=path,
+                              pathtype=rdf_paths.PathSpec.PathType.OS)
+      directory2 = list(vfs.VFSOpen(pb).ListFiles())
+      directory.sort()
+      result = [x.Get(x.Schema.STAT) for x in directory]
 
-    fd = aff4.FACTORY.Open(self.client_id.Add("fs/os").Add(path),
-                           token=self.token)
-    directory = [ch for ch in fd.OpenChildren()]
-    pb = rdf_paths.PathSpec(path=path,
-                            pathtype=rdf_paths.PathSpec.PathType.OS)
-    directory2 = list(vfs.VFSOpen(pb).ListFiles())
-    directory.sort()
-    result = [x.Get(x.Schema.STAT) for x in directory]
+      # Make sure that the resulting directory is what it should be
+      for x, y in zip(result, directory2):
+        x.aff4path = None
 
-    # Make sure that the resulting directory is what it should be
-    for x, y in zip(result, directory2):
-      x.aff4path = None
-
-      self.assertEqual(x.st_mode, y.st_mode)
-      self.assertRDFValueEqual(x, y)
+        self.assertEqual(x.st_mode, y.st_mode)
+        self.assertRDFValueEqual(x, y)
 
   def testClientEventNotification(self):
     """Make sure that client events handled securely."""
@@ -931,31 +930,31 @@ class GeneralFlowsTest(BasicFlowTest):
   def testFlowNotification(self):
     FlowDoneListener.received_events = []
 
-    # Install the mock
-    vfs.VFS_HANDLERS[rdf_paths.PathSpec.PathType.OS] = MockVFSHandler
-    path = rdf_paths.PathSpec(path="/",
-                              pathtype=rdf_paths.PathSpec.PathType.OS)
+    with test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.OS, MockVFSHandler):
+      path = rdf_paths.PathSpec(path="/",
+                                pathtype=rdf_paths.PathSpec.PathType.OS)
 
-    # Run the flow in the simulated way
-    client_mock = action_mocks.ActionMock("IteratedListDirectory")
-    for _ in test_lib.TestFlowHelper(
-        "IteratedListDirectory", client_mock, client_id=self.client_id,
-        notification_urn=rdfvalue.SessionID(queue=rdfvalue.RDFURN("EV"),
-                                            flow_name="FlowDone"),
-        pathspec=path, token=self.token):
-      pass
+      # Run the flow in the simulated way
+      client_mock = action_mocks.ActionMock("IteratedListDirectory")
+      for _ in test_lib.TestFlowHelper(
+          "IteratedListDirectory", client_mock, client_id=self.client_id,
+          notification_urn=rdfvalue.SessionID(queue=rdfvalue.RDFURN("EV"),
+                                              flow_name="FlowDone"),
+          pathspec=path, token=self.token):
+        pass
 
-    # The event goes to an external queue so we need another worker.
-    worker = test_lib.MockWorker(queues=[rdfvalue.RDFURN("EV")],
-                                 token=self.token)
-    worker.Simulate()
+      # The event goes to an external queue so we need another worker.
+      worker = test_lib.MockWorker(queues=[rdfvalue.RDFURN("EV")],
+                                   token=self.token)
+      worker.Simulate()
 
-    self.assertEqual(len(FlowDoneListener.received_events), 1)
+      self.assertEqual(len(FlowDoneListener.received_events), 1)
 
-    flow_event = FlowDoneListener.received_events[0].payload
-    self.assertEqual(flow_event.flow_name, "IteratedListDirectory")
-    self.assertEqual(flow_event.client_id, "aff4:/C.1000000000000000")
-    self.assertEqual(flow_event.status, rdf_flows.FlowNotification.Status.OK)
+      flow_event = FlowDoneListener.received_events[0].payload
+      self.assertEqual(flow_event.flow_name, "IteratedListDirectory")
+      self.assertEqual(flow_event.client_id, "aff4:/C.1000000000000000")
+      self.assertEqual(flow_event.status, rdf_flows.FlowNotification.Status.OK)
 
   def testEventNotification(self):
     """Test that events are sent to listeners."""

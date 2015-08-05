@@ -2,7 +2,6 @@
 """Test the collector flows."""
 import os
 
-from grr.client import vfs
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import config_lib
@@ -25,20 +24,25 @@ class TestCheckFlows(test_lib.FlowTestsBaseclass,
 
   checks_loaded = False
 
-  def setUp(self, **kwargs):
-    super(TestCheckFlows, self).setUp(**kwargs)
+  def setUp(self):
+    super(TestCheckFlows, self).setUp()
     # Only load the checks once.
     if self.checks_loaded is False:
       self.checks_loaded = self.LoadChecks()
     if not self.checks_loaded:
       raise RuntimeError("No checks to test.")
     test_lib.ClientFixture(self.client_id, token=self.token)
-    vfs.VFS_HANDLERS[
-        rdf_paths.PathSpec.PathType.OS] = test_lib.FakeTestDataVFSHandler
+    self.vfs_overrider = test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                               test_lib.FakeTestDataVFSHandler)
+    self.vfs_overrider.Start()
     self.client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile",
                                                "Find", "HashBuffer",
                                                "ListDirectory", "HashFile",
                                                "FingerprintFile")
+
+  def tearDown(self):
+    super(TestCheckFlows, self).tearDown()
+    self.vfs_overrider.Stop()
 
   def SetLinuxKB(self):
     client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
@@ -74,7 +78,6 @@ class TestCheckFlows(test_lib.FlowTestsBaseclass,
 
   def LoadChecks(self):
     """Load the checks, returning the names of the checks that were loaded."""
-    config_lib.CONFIG.Set("Checks.max_results", 5)
     checks.CheckRegistry.Clear()
     check_configs = ("sshd.yaml", "sw.yaml", "unix_login.yaml")
     cfg_dir = os.path.join(config_lib.CONFIG["Test.data_dir"], "checks")

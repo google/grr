@@ -5,7 +5,6 @@ import shutil
 
 
 from grr.lib import access_control
-from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import data_store_test
 from grr.lib import flags
@@ -24,12 +23,12 @@ class SqliteTestMixin(object):
                                          reason="Running tests")
     self.root_path = utils.SmartStr("%s/sqlite_test/" % self.temp_dir)
 
-    config_lib.CONFIG.Set("Datastore.location", self.root_path)
+    with test_lib.ConfigOverrider({"Datastore.location": self.root_path}):
 
-    self.DestroyDatastore()
+      self.DestroyDatastore()
 
-    data_store.DB = sqlite_data_store.SqliteDataStore()
-    data_store.DB.security_manager = test_lib.MockSecurityManager()
+      data_store.DB = sqlite_data_store.SqliteDataStore()
+      data_store.DB.security_manager = test_lib.MockSecurityManager()
 
   def testCorrectDataStore(self):
     self.assertTrue(isinstance(data_store.DB,

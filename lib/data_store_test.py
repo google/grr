@@ -533,10 +533,10 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     predicate1 = "metadata:predicate1"
     subject = "aff4:/test_resolve_regex_results_order_in_dec_order1"
 
-    # Set 1000 values with increasing timestamps.
-    for i in range(1000):
+    # Set 100 values with increasing timestamps.
+    for i in range(100):
       data_store.DB.Set(
-          subject, predicate1, str(i), timestamp=i * 1000, replace=False,
+          subject, predicate1, str(i), timestamp=i * 100, replace=False,
           token=self.token)
 
     # Check that results will be returned in decreasing timestamp order.
@@ -546,18 +546,18 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     result = data_store.DB.ResolveRegex(
         subject, predicate1, timestamp=data_store.DB.ALL_TIMESTAMPS,
         token=self.token)
-    for result_index, i in enumerate(reversed(range(1000))):
-      self.assertEqual(result[result_index], (predicate1, str(i), i * 1000))
+    for result_index, i in enumerate(reversed(range(100))):
+      self.assertEqual(result[result_index], (predicate1, str(i), i * 100))
 
   def testResolveRegexResultsOrderedInDecreasingTimestampOrder2(self):
     predicate1 = "metadata:predicate1"
     subject = "aff4:/test_resolve_regex_results_order_in_dec_order2"
 
-    # Set 1000 values with timestamps starting in the future and going to
+    # Set 100 values with timestamps starting in the future and going to
     # the past.
-    for i in reversed(range(1000)):
+    for i in reversed(range(100)):
       data_store.DB.Set(
-          subject, predicate1, str(i), timestamp=i * 1000, replace=False,
+          subject, predicate1, str(i), timestamp=i * 100, replace=False,
           token=self.token)
 
     # Check that results will be returned in decreasing timestamp order.
@@ -567,21 +567,21 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     result = data_store.DB.ResolveRegex(
         subject, predicate1, timestamp=data_store.DB.ALL_TIMESTAMPS,
         token=self.token)
-    for result_index, i in enumerate(reversed(range(1000))):
-      self.assertEqual(result[result_index], (predicate1, str(i), i * 1000))
+    for result_index, i in enumerate(reversed(range(100))):
+      self.assertEqual(result[result_index], (predicate1, str(i), i * 100))
 
   def testResolveRegexResultsOrderedInDecreasingTimestampOrderPerColumn1(self):
     predicate1 = "metadata:predicate1"
     predicate2 = "metadata:predicate2"
     subject = "aff4:/test_resolve_regex_results_order_in_dec_order_per_column1"
 
-    # Set 1000 values with increasing timestamps for each predicate.
-    for i in range(1000):
+    # Set 100 values with increasing timestamps for each predicate.
+    for i in range(100):
       data_store.DB.Set(
-          subject, predicate1, str(i), timestamp=i * 1000, replace=False,
+          subject, predicate1, str(i), timestamp=i * 100, replace=False,
           token=self.token)
       data_store.DB.Set(
-          subject, predicate2, str(i), timestamp=i * 1000, replace=False,
+          subject, predicate2, str(i), timestamp=i * 100, replace=False,
           token=self.token)
 
     # Check that results will be returned in decreasing timestamp order
@@ -591,31 +591,31 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     # order when fetched.
     result = list(data_store.DB.ResolveRegex(
         subject, "metadata:predicate.*", timestamp=data_store.DB.ALL_TIMESTAMPS,
-        limit=10000, token=self.token))
+        limit=1000, token=self.token))
 
     predicate1_results = [r for r in result if r[0] == predicate1]
-    for result_index, i in enumerate(reversed(range(1000))):
+    for result_index, i in enumerate(reversed(range(100))):
       self.assertEqual(predicate1_results[result_index],
-                       (predicate1, str(i), i * 1000))
+                       (predicate1, str(i), i * 100))
 
     predicate2_results = [r for r in result if r[0] == predicate2]
-    for result_index, i in enumerate(reversed(range(1000))):
+    for result_index, i in enumerate(reversed(range(100))):
       self.assertEqual(predicate2_results[result_index],
-                       (predicate2, str(i), i * 1000))
+                       (predicate2, str(i), i * 100))
 
   def testResolveRegexResultsOrderedInDecreasingTimestampOrderPerColumn2(self):
     predicate1 = "metadata:predicate1"
     predicate2 = "metadata:predicate2"
     subject = "aff4:/test_resolve_regex_results_order_in_dec_order_per_column2"
 
-    # Set 1000 values for each predicate with timestamps starting in the
+    # Set 100 values for each predicate with timestamps starting in the
     # future and going to the past.
-    for i in reversed(range(1000)):
+    for i in reversed(range(100)):
       data_store.DB.Set(
-          subject, predicate1, str(i), timestamp=i * 1000, replace=False,
+          subject, predicate1, str(i), timestamp=i * 100, replace=False,
           token=self.token)
       data_store.DB.Set(
-          subject, predicate2, str(i), timestamp=i * 1000, replace=False,
+          subject, predicate2, str(i), timestamp=i * 100, replace=False,
           token=self.token)
 
     # Check that results will be returned in decreasing timestamp order
@@ -625,17 +625,17 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     # order when fetched.
     result = list(data_store.DB.ResolveRegex(
         subject, "metadata:predicate.*", timestamp=data_store.DB.ALL_TIMESTAMPS,
-        limit=10000, token=self.token))
+        limit=1000, token=self.token))
 
     predicate1_results = [r for r in result if r[0] == predicate1]
-    for result_index, i in enumerate(reversed(range(1000))):
+    for result_index, i in enumerate(reversed(range(100))):
       self.assertEqual(predicate1_results[result_index],
-                       (predicate1, str(i), i * 1000))
+                       (predicate1, str(i), i * 100))
 
     predicate2_results = [r for r in result if r[0] == predicate2]
-    for result_index, i in enumerate(reversed(range(1000))):
+    for result_index, i in enumerate(reversed(range(100))):
       self.assertEqual(predicate2_results[result_index],
-                       (predicate2, str(i), i * 1000))
+                       (predicate2, str(i), i * 100))
 
   def testResolveRegexMatchesNewLinesInAttributeNames(self):
     subject = "aff4:/test_resolve_regex_matches_new_lines_in_attr_names"

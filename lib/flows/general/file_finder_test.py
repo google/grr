@@ -6,8 +6,6 @@
 import glob
 import os
 
-from grr.client import vfs
-
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
@@ -554,51 +552,51 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     self.CheckFilesInCollection(["*.log", "auth.log"])
 
   def testAppliesLiteralConditionWhenMemoryPathTypeIsUsed(self):
-    vfs.VFS_HANDLERS[
-        rdf_paths.PathSpec.PathType.OS] = test_lib.FakeTestDataVFSHandler
-    vfs.VFS_HANDLERS[
-        rdf_paths.PathSpec.PathType.MEMORY] = test_lib.FakeTestDataVFSHandler
+    with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                               test_lib.FakeTestDataVFSHandler):
+      with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.MEMORY,
+                                 test_lib.FakeTestDataVFSHandler):
+        paths = [os.path.join(os.path.dirname(self.base_path), "auth.log"),
+                 os.path.join(os.path.dirname(self.base_path), "dpkg.log")]
 
-    paths = [os.path.join(os.path.dirname(self.base_path), "auth.log"),
-             os.path.join(os.path.dirname(self.base_path), "dpkg.log")]
+        literal_condition = file_finder.FileFinderContentsLiteralMatchCondition
+        all_hits = literal_condition.Mode.ALL_HITS
+        literal_condition = file_finder.FileFinderCondition(
+            condition_type=
+            file_finder.FileFinderCondition.Type.CONTENTS_LITERAL_MATCH,
+            contents_literal_match=literal_condition(
+                mode=all_hits,
+                literal="session opened for user dearjohn"))
 
-    literal_condition = file_finder.FileFinderCondition(
-        condition_type=
-        file_finder.FileFinderCondition.Type.CONTENTS_LITERAL_MATCH,
-        contents_literal_match=
-        file_finder.FileFinderContentsLiteralMatchCondition(
-            mode=
-            file_finder.FileFinderContentsLiteralMatchCondition.Mode.ALL_HITS,
-            literal="session opened for user dearjohn"))
+        # Check this condition with all the actions. This makes sense, as we may
+        # download memeory or send it to the socket.
+        for action in sorted(
+            file_finder.FileFinderAction.Action.enum_dict.values()):
+          for _ in test_lib.TestFlowHelper(
+              "FileFinder", self.client_mock,
+              client_id=self.client_id,
+              paths=paths,
+              pathtype=rdf_paths.PathSpec.PathType.MEMORY,
+              conditions=[literal_condition],
+              action=file_finder.FileFinderAction(
+                  action_type=action),
+              token=self.token,
+              output=self.output_path):
+            pass
 
-    # Check this condition with all the actions. This makes sense, as we may
-    # download memeory or send it to the socket.
-    for action in sorted(
-        file_finder.FileFinderAction.Action.enum_dict.values()):
-      for _ in test_lib.TestFlowHelper(
-          "FileFinder", self.client_mock,
-          client_id=self.client_id,
-          paths=paths,
-          pathtype=rdf_paths.PathSpec.PathType.MEMORY,
-          conditions=[literal_condition],
-          action=file_finder.FileFinderAction(
-              action_type=action),
-          token=self.token,
-          output=self.output_path):
-        pass
+          self.CheckFilesInCollection(["auth.log"])
 
-      self.CheckFilesInCollection(["auth.log"])
-
-      fd = aff4.FACTORY.Open(self.client_id.Add(self.output_path),
-                             aff4_type="RDFValueCollection",
-                             token=self.token)
-      self.assertEqual(fd[0].stat_entry.pathspec.CollapsePath(),
-                       paths[0])
-      self.assertEqual(len(fd), 1)
-      self.assertEqual(len(fd[0].matches), 1)
-      self.assertEqual(fd[0].matches[0].offset, 350)
-      self.assertEqual(fd[0].matches[0].data,
-                       "session): session opened for user dearjohn by (uid=0")
+          fd = aff4.FACTORY.Open(self.client_id.Add(self.output_path),
+                                 aff4_type="RDFValueCollection",
+                                 token=self.token)
+          self.assertEqual(fd[0].stat_entry.pathspec.CollapsePath(),
+                           paths[0])
+          self.assertEqual(len(fd), 1)
+          self.assertEqual(len(fd[0].matches), 1)
+          self.assertEqual(fd[0].matches[0].offset, 350)
+          self.assertEqual(
+              fd[0].matches[0].data,
+              "session): session opened for user dearjohn by (uid=0")
 
 
 def main(argv):

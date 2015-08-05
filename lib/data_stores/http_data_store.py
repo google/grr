@@ -96,9 +96,9 @@ class DataServerConnection(object):
       response = rdf_data_store.DataStoreResponse(reply)
       CheckResponseStatus(response)
       return response
-    except (socket.error, socket.timeout):
-      logging.warning("Cannot read reply from server %s:%d", self.Address(),
-                      self.Port())
+    except (socket.error, socket.timeout) as e:
+      logging.warning("Cannot read reply from server %s:%d : %s",
+                      self.Address(), self.Port(), e)
       return None
 
   def _Sync(self):

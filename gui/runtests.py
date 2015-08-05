@@ -29,10 +29,11 @@ class DjangoThread(threading.Thread):
   keep_running = True
   daemon = True
 
-  def __init__(self, **kwargs):
+  def __init__(self, port, **kwargs):
     super(DjangoThread, self).__init__(**kwargs)
-    self.base_url = "http://127.0.0.1:%d" % config_lib.CONFIG["AdminUI.port"]
+    self.base_url = "http://127.0.0.1:%d" % port
     self.ready_to_serve = threading.Event()
+    self.port = port
 
   def StartAndWaitUntilServing(self):
     self.start()
@@ -42,7 +43,7 @@ class DjangoThread(threading.Thread):
   def run(self):
     """Run the django server in a thread."""
     logging.info("Base URL is %s", self.base_url)
-    port = config_lib.CONFIG["AdminUI.port"]
+    port = self.port
     logging.info("Django listening on port %d.", port)
     try:
       # Make a simple reference implementation WSGI server
@@ -130,7 +131,7 @@ def main(_):
   startup.TestInit()
 
   # Start up a server in another thread
-  trd = DjangoThread()
+  trd = DjangoThread(config_lib.CONFIG["AdminUI.port"])
   trd.StartAndWaitUntilServing()
 
   user_ns = dict()
