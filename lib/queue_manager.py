@@ -108,7 +108,7 @@ class QueueManager(object):
     # lists of task ids.
     self.client_messages_to_delete = {}
     self.new_client_messages = []
-    self.notifications = []
+    self.notifications = {}
 
     self.prev_frozen_timestamps = []
     self.frozen_timestamp = None
@@ -172,8 +172,9 @@ class QueueManager(object):
 
   def __exit__(self, unused_type, unused_value, unused_traceback):
     """Supports 'with' protocol."""
-    self.UnfreezeTimestamp()
+    # Flush() uses the frozen timestamp so needs to go first.
     self.Flush()
+    self.UnfreezeTimestamp()
 
   def GetFlowResponseSubject(self, session_id, request_id):
     """The subject used to carry all the responses for a specific request_id."""
@@ -367,8 +368,8 @@ class QueueManager(object):
         self.data_store.MultiSet(session_id, self.to_write.get(session_id, {}),
                                  to_delete=self.to_delete.get(session_id, []),
                                  sync=False, token=self.token)
-      except data_store.Error:
-        pass
+      except data_store.Error as e:
+        logging.error("Datastore error while flushing queue_manager: %s", e)
 
     for client_id, messages in self.client_messages_to_delete.iteritems():
       self.Delete(client_id.Queue(), messages)
@@ -384,7 +385,7 @@ class QueueManager(object):
     if self.sync and session_ids:
       self.data_store.Flush()
 
-    for notification, timestamp in self.notifications:
+    for notification, timestamp in self.notifications.itervalues():
       self.NotifyQueue(notification, timestamp=timestamp, sync=False)
 
     if self.sync:
@@ -393,7 +394,7 @@ class QueueManager(object):
     self.to_write = {}
     self.to_delete = {}
     self.client_messages_to_delete = {}
-    self.notifications = []
+    self.notifications = {}
     self.new_client_messages = []
 
   def QueueResponse(self, session_id, response, timestamp=None):
@@ -440,11 +441,27 @@ class QueueManager(object):
     if notification is None:
       notification = rdf_flows.GrrNotification(**kw)
 
-    if notification.session_id:
+    session_id = notification.session_id
+    if session_id:
       if timestamp is None:
         timestamp = self.frozen_timestamp
 
-      self.notifications.append((notification, timestamp))
+      # We must not store more than one notification per session id and
+      # timestamp or there will be race conditions. We therefore only keep
+      # the one with the highest request number (indicated by last_status).
+      # Note that timestamp might be None. In that case we also only want
+      # to keep the latest.
+      if timestamp is None:
+        ts_str = "None"
+      else:
+        ts_str = int(timestamp)
+      key = "%s!%s" % (session_id, ts_str)
+      existing = self.notifications.get(key)
+      if existing is not None:
+        if existing[0].last_status < notification.last_status:
+          self.notifications[key] = (notification, timestamp)
+      else:
+        self.notifications[key] = (notification, timestamp)
 
   def _TaskIdToColumn(self, task_id):
     """Return a predicate representing this task."""
@@ -491,7 +508,7 @@ class QueueManager(object):
 
   def _SortByPriority(self, notifications, queue, output_dict=None):
     """Sort notifications by priority into output_dict."""
-    if not output_dict:
+    if output_dict is None:
       output_dict = {}
 
     for notification in notifications:
@@ -529,11 +546,10 @@ class QueueManager(object):
     """
     output_dict = {}
     for queue_shard in self.GetAllNotificationShards(queue):
-      output_dict = self._GetUnsortedNotifications(
+      self._GetUnsortedNotifications(
           queue_shard, notifications_by_session_id=output_dict)
 
-    output_dict = self._SortByPriority(output_dict.values(), queue)
-    return output_dict
+    return self._SortByPriority(output_dict.values(), queue)
 
   def GetNotifications(self, queue):
     """Returns all queue notifications sorted by priority."""
@@ -575,7 +591,7 @@ class QueueManager(object):
     Returns:
       dict of notifications. keys are session ids.
     """
-    if not notifications_by_session_id:
+    if notifications_by_session_id is None:
       notifications_by_session_id = {}
     end_time = self.frozen_timestamp or rdfvalue.RDFDatetime().Now()
     for predicate, serialized_notification, ts in data_store.DB.ResolveRegex(
@@ -606,6 +622,14 @@ class QueueManager(object):
         # If we have a notification for this session_id already, we only store
         # the one that was scheduled last.
         if notification.first_queued > existing.first_queued:
+          notifications_by_session_id[notification.session_id] = notification
+        elif notification.first_queued == existing.first_queued and (
+            notification.last_status > existing.last_status):
+          # Multiple notifications with the same timestamp should not happen.
+          # We can still do the correct thing and use the latest one.
+          logging.warn(
+              "Notifications with equal first_queued fields detected: %s %s",
+              notification, existing)
           notifications_by_session_id[notification.session_id] = notification
       else:
         notifications_by_session_id[notification.session_id] = notification

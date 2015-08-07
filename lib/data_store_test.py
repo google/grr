@@ -974,6 +974,32 @@ class _DataStoreTest(test_lib.GRRBaseTest):
         (u"metadata:predicate1", "1.2", 2000),
         (u"metadata:predicate2", "2.2", 2020)])
 
+  @DeletionTest
+  def testTimestampEdgeCases(self):
+    row = "aff4:/row"
+    attribute = "metadata:attribute"
+    for i in range(4):
+      # First TS is 0!
+      timestamp = rdfvalue.RDFDatetime(100 * i)
+      data_store.DB.MultiSet(row, {attribute: [i]},
+                             timestamp=timestamp, replace=False,
+                             token=self.token)
+
+    rows = data_store.DB.ResolveRegex(row, "metadata:.*",
+                                      timestamp=data_store.DB.ALL_TIMESTAMPS,
+                                      token=self.token)
+
+    self.assertEqual(len(rows), 4)
+    self.assertItemsEqual([r[2] for r in rows], [0, 100, 200, 300])
+
+    data_store.DB.DeleteAttributes(row, [attribute], start=0, end=0,
+                                   token=self.token)
+    rows = data_store.DB.ResolveRegex(row, "metadata:.*",
+                                      timestamp=data_store.DB.ALL_TIMESTAMPS,
+                                      token=self.token)
+    self.assertEqual(len(rows), 3)
+    self.assertItemsEqual([r[2] for r in rows], [100, 200, 300])
+
   def testResolveRegEx(self):
     """Test regex Resolving works."""
     predicate = "metadata:predicate"

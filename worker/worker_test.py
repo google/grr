@@ -324,7 +324,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
 
   def testNoKillNotificationsScheduledForHunts(self):
     worker_obj = worker.GRRWorker(token=self.token)
-    initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(0)
+    initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(100)
 
     try:
       with test_lib.FakeTime(initial_time.AsSecondsFromEpoch()):
@@ -355,7 +355,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
 
   def testKillNotificationsScheduledForFlows(self):
     worker_obj = worker.GRRWorker(token=self.token)
-    initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(0)
+    initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(100)
 
     try:
       with test_lib.FakeTime(initial_time.AsSecondsFromEpoch()):
@@ -383,7 +383,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
 
   def testStuckFlowGetsTerminated(self):
     worker_obj = worker.GRRWorker(token=self.token)
-    initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(0)
+    initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(100)
     stuck_flows_timeout = rdfvalue.Duration(
         config_lib.CONFIG["Worker.stuck_flows_timeout"])
 
@@ -421,7 +421,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
 
   def testStuckNotificationGetsDeletedAfterTheFlowIsTerminated(self):
     worker_obj = worker.GRRWorker(token=self.token)
-    initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(0)
+    initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(100)
     stuck_flows_timeout = rdfvalue.Duration(
         config_lib.CONFIG["Worker.stuck_flows_timeout"])
 
@@ -463,7 +463,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
 
   def testHeartBeatingFlowIsNotTreatedAsStuck(self):
     worker_obj = worker.GRRWorker(token=self.token)
-    initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(0)
+    initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(100)
 
     stuck_flows_timeout = rdfvalue.Duration(
         config_lib.CONFIG["Worker.stuck_flows_timeout"])
@@ -520,7 +520,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
 
   def testNonStuckFlowDoesNotGetTerminated(self):
     worker_obj = worker.GRRWorker(token=self.token)
-    initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(0)
+    initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(100)
     stuck_flows_timeout = rdfvalue.Duration(
         config_lib.CONFIG["Worker.stuck_flows_timeout"])
 
@@ -829,6 +829,52 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
 
       for (_, _, timestamp) in res:
         self.assertEqual(timestamp, frozen_timestamp)
+
+  def testEqualTimetampNotifications(self):
+    frontend_server = flow.FrontEndServer(
+        certificate=config_lib.CONFIG["Frontend.certificate"],
+        private_key=config_lib.CONFIG["PrivateKeys.server_key"],
+        message_expiry_time=100,
+        threadpool_prefix="notification-test")
+
+    # This schedules 10 requests.
+    session_id = flow.GRRFlow.StartFlow(client_id=self.client_id,
+                                        flow_name="WorkerSendingTestFlow",
+                                        token=self.token)
+
+    # We pretend that the client processed all the 10 requests at once and
+    # sends the replies in a single http poll.
+    messages = [
+        rdf_flows.GrrMessage(
+            request_id=i,
+            response_id=1,
+            session_id=session_id,
+            payload=rdf_protodict.DataBlob(string="test%s" % i))
+        for i in range(1, 11)]
+    status = rdf_flows.GrrStatus(status=rdf_flows.GrrStatus.ReturnedStatus.OK)
+    statuses = [
+        rdf_flows.GrrMessage(
+            request_id=i,
+            response_id=2,
+            session_id=session_id,
+            payload=status,
+            type=rdf_flows.GrrMessage.Type.STATUS)
+        for i in range(1, 11)]
+
+    frontend_server.ReceiveMessages(self.client_id, messages + statuses)
+
+    with queue_manager.QueueManager(token=self.token) as q:
+      all_notifications = q.GetNotificationsByPriorityForAllShards(
+          rdfvalue.RDFURN("aff4:/F"))
+      medium_priority = rdf_flows.GrrNotification.Priority.MEDIUM_PRIORITY
+      medium_notifications = all_notifications[medium_priority]
+      my_notifications = [n for n in medium_notifications
+                          if n.session_id == session_id]
+      # There must not be more than one notification.
+      self.assertEqual(len(my_notifications), 1)
+      notification = my_notifications[0]
+      self.assertEqual(notification.first_queued, notification.timestamp)
+      self.assertEqual(notification.last_status, 10)
 
 
 def main(_):

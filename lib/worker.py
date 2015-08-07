@@ -242,7 +242,6 @@ class GRRWorker(object):
   def _ProcessRegularFlowMessages(self, flow_obj, notification):
     """Processes messages for a given flow."""
     session_id = notification.session_id
-
     if not isinstance(flow_obj, flow.GRRFlow):
       logging.warn("%s is not a proper flow object (got %s)", session_id,
                    type(flow_obj))
@@ -296,6 +295,7 @@ class GRRWorker(object):
             notification.last_status and
             (runner.context.next_processed_request <=
              notification.last_status)):
+          logging.debug("Had to reschedule a notification: %s", notification)
           # We are processing requests in order and have received a
           # notification for a specific request but could not process
           # that request. This might be a race condition in the data
