@@ -10,7 +10,6 @@ except ImportError:
   # Urllib3 also comes as part of requests, try to fallback.
   from requests.packages.urllib3 import connectionpool
 
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib import utils as libutils
@@ -96,7 +95,13 @@ class MasterTest(test_lib.GRRBaseTest):
     for port in self.ports:
       server_list.append("http://%s:%i" % (self.host, port))
 
-    config_lib.CONFIG.Set("Dataserver.server_list", server_list)
+    self.server_list_overrider = test_lib.ConfigOverrider({
+        "Dataserver.server_list": server_list})
+    self.server_list_overrider.Start()
+
+  def tearDown(self):
+    super(MasterTest, self).tearDown()
+    self.server_list_overrider.Stop()
 
   def testInvalidMaster(self):
     """Attempt to create an invalid master."""

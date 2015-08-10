@@ -753,7 +753,7 @@ class GRRFlow(aff4.AFF4Volume):
     getattr(self, next_state)(self.runner, direct_response=responses)
 
   def CallState(self, messages=None, next_state="", request_data=None,
-                start_time=0):
+                start_time=None):
     return self.runner.CallState(messages=messages, next_state=next_state,
                                  request_data=request_data,
                                  start_time=start_time)

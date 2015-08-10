@@ -116,7 +116,8 @@ class ApiFlowResultsRenderer(api_call_renderers.ApiCallRenderer):
     return api_aff4_object_renderers.RenderAFF4Object(
         output_collection,
         [api_aff4_object_renderers.ApiRDFValueCollectionRendererArgs(
-            offset=args.offset, count=args.count, with_total_count=True)])
+            offset=args.offset, count=args.count, filter=args.filter,
+            with_total_count=True)])
 
 
 class ApiFlowOutputPluginsRendererArgs(rdf_structs.RDFProtoStruct):

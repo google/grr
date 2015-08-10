@@ -3,6 +3,7 @@
 
 
 import httplib
+import shutil
 import socket
 import threading
 
@@ -67,33 +68,51 @@ def _CloseServer():
   conn.getresponse()
 
 
-def _SetConfig(path):
-  config_lib.CONFIG.Set("Dataserver.server_list",
-                        ["http://127.0.0.1:" + str(PORT)])
-  config_lib.CONFIG.Set("Dataserver.server_username", "root")
-  config_lib.CONFIG.Set("Dataserver.server_password", "root")
-  config_lib.CONFIG.Set("Dataserver.client_credentials", ["user:user:rw"])
-  config_lib.CONFIG.Set("HTTPDataStore.username", "user")
-  config_lib.CONFIG.Set("HTTPDataStore.password", "user")
-  config_lib.CONFIG.Set("Datastore.location", path)
-
-
 def tearDownModule():
   _CloseServer()
 
 
 class HTTPDataStoreMixin(object):
 
-  def InitDatastore(self):
-    global PORT
+  def setUp(self):
+    super(HTTPDataStoreMixin, self).setUp()
+    # These tests change the config so we preserve state.
+    self.config_stubber = test_lib.PreserveConfig()
+    self.config_stubber.Start()
     if not PORT:
-      PORT = portpicker.PickUnusedPort()
-    _SetConfig(self.temp_dir)
-    if not STARTED_SERVER:
-      _StartServer(self.temp_dir)
+      self.SetupDataStore()
     else:
-      # Change location of the database.
-      HTTP_DB.ChangeLocation(self.temp_dir)
+      self._SetConfig(self.temp_dir)
+
+  def tearDown(self):
+    super(HTTPDataStoreMixin, self).tearDown()
+    self.config_stubber.Stop()
+
+  def _SetConfig(self, path):
+    config_lib.CONFIG.Set("Dataserver.server_list",
+                          ["http://127.0.0.1:%d" % PORT])
+    config_lib.CONFIG.Set("Dataserver.server_username", "root")
+    config_lib.CONFIG.Set("Dataserver.server_password", "root")
+    config_lib.CONFIG.Set("Dataserver.client_credentials", ["user:user:rw"])
+    config_lib.CONFIG.Set("HTTPDataStore.username", "user")
+    config_lib.CONFIG.Set("HTTPDataStore.password", "user")
+    config_lib.CONFIG.Set("Datastore.location", path)
+
+  def InitDatastore(self):
+    try:
+      if HTTP_DB:
+        shutil.rmtree(HTTP_DB.cache.root_path)
+    except (OSError, IOError):
+      pass
+
+  def SetupDataStore(self):
+    global PORT
+    if PORT:
+      return
+    PORT = portpicker.PickUnusedPort()
+    self._SetConfig(self.temp_dir)
+    _StartServer(self.temp_dir)
+
     try:
       data_store.DB = http_data_store.HTTPDataStore()
     except http_data_store.HTTPDataStoreError as e:
@@ -101,7 +120,7 @@ class HTTPDataStoreMixin(object):
       _CloseServer()
       self.fail("Error: %s" % str(e))
 
-    self.old_security_manager = None
+  old_security_manager = None
 
   def _InstallACLChecks(self, forbidden_access):
     if self.old_security_manager:
@@ -121,15 +140,15 @@ class HTTPDataStoreMixin(object):
   def DestroyDatastore(self):
     if self.old_security_manager:
       HTTP_DB.security_manager = self.old_security_manager
-
-    # Close connections with the server.
-    if data_store.DB:
-      data_store.DB.CloseConnections()
+      self.old_security_manager = None
 
 
 class HTTPDataStoreTest(HTTPDataStoreMixin,
                         data_store_test._DataStoreTest):
   """Test the remote data store."""
+
+  def __init__(self, *args):
+    super(HTTPDataStoreTest, self).__init__(*args)
 
   def testRDFDatetimeTimestamps(self):
     # Disabled for now.

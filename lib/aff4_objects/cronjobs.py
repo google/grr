@@ -83,22 +83,20 @@ class CronManager(object):
       job_name = "%s_%s" % (cron_args.flow_runner_args.flow_name, uid)
 
     cron_job_urn = self.CRON_JOBS_PATH.Add(job_name)
-    cron_job = aff4.FACTORY.Create(cron_job_urn, aff4_type="CronJob", mode="rw",
-                                   token=token, force_new_version=False)
+    with aff4.FACTORY.Create(cron_job_urn, aff4_type="CronJob", mode="rw",
+                             token=token, force_new_version=False) as cron_job:
 
-    # If the cronjob was already present we don't want to overwrite the original
-    # start_time
-    existing_cron_args = cron_job.Get(cron_job.Schema.CRON_ARGS)
-    if existing_cron_args and existing_cron_args.start_time:
-      cron_args.start_time = existing_cron_args.start_time
+      # If the cronjob was already present we don't want to overwrite the
+      # original start_time.
+      existing_cron_args = cron_job.Get(cron_job.Schema.CRON_ARGS)
+      if existing_cron_args and existing_cron_args.start_time:
+        cron_args.start_time = existing_cron_args.start_time
 
-    if cron_args != existing_cron_args:
-      cron_job.Set(cron_job.Schema.CRON_ARGS(cron_args))
+      if cron_args != existing_cron_args:
+        cron_job.Set(cron_job.Schema.CRON_ARGS(cron_args))
 
-    if disabled != cron_job.Get(cron_job.Schema.DISABLED):
-      cron_job.Set(cron_job.Schema.DISABLED(disabled))
-
-    cron_job.Close()
+      if disabled != cron_job.Get(cron_job.Schema.DISABLED):
+        cron_job.Set(cron_job.Schema.DISABLED(disabled))
 
     return cron_job_urn
 

@@ -637,7 +637,10 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     """
     mysql_unsigned_bigint_max = 18446744073709551615
     ts_start = int(start or 0)
-    ts_end = int(end or mysql_unsigned_bigint_max)
+    if end is None:
+      ts_end = mysql_unsigned_bigint_max
+    else:
+      ts_end = int(end)
     if ts_start == 0 and ts_end == mysql_unsigned_bigint_max:
       return None
     else:

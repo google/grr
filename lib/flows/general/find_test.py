@@ -2,7 +2,6 @@
 # -*- mode: python; encoding: utf-8 -*-
 
 """Tests for the Find flow."""
-from grr.client import vfs
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
@@ -21,9 +20,13 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
 
   def setUp(self):
     super(TestFindFlow, self).setUp()
-    # Install the mock
-    vfs_type = rdf_paths.PathSpec.PathType.OS
-    vfs.VFS_HANDLERS[vfs_type] = test_lib.ClientVFSHandlerFixture
+    self.vfs_overrider = test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.OS, test_lib.ClientVFSHandlerFixture)
+    self.vfs_overrider.Start()
+
+  def tearDown(self):
+    super(TestFindFlow, self).tearDown()
+    self.vfs_overrider.Stop()
 
   def testInvalidFindSpec(self):
     """Test that its impossible to produce an invalid findspec."""

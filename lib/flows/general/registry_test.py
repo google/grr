@@ -3,7 +3,6 @@
 
 """Tests for the registry flows."""
 
-from grr.client import vfs
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
@@ -19,7 +18,16 @@ from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class RegistryFlowTest(test_lib.FlowTestsBaseclass):
-  pass
+
+  def setUp(self):
+    super(RegistryFlowTest, self).setUp()
+    self.vfs_overrider = test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.REGISTRY, test_lib.FakeRegistryVFSHandler)
+    self.vfs_overrider.Start()
+
+  def tearDown(self):
+    super(RegistryFlowTest, self).tearDown()
+    self.vfs_overrider.Stop()
 
 
 class TestRegistryFinderFlow(RegistryFlowTest):
@@ -27,9 +35,6 @@ class TestRegistryFinderFlow(RegistryFlowTest):
 
   def setUp(self):
     super(TestRegistryFinderFlow, self).setUp()
-
-    vfs.VFS_HANDLERS[
-        rdf_paths.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
 
     self.output_path = "analysis/file_finder"
     self.client_mock = action_mocks.ActionMock(
@@ -282,10 +287,6 @@ class TestRegistryFlows(RegistryFlowTest):
 
   def testRegistryMRU(self):
     """Test that the MRU discovery flow. Flow is a work in Progress."""
-    # Install the mock
-    vfs.VFS_HANDLERS[
-        rdf_paths.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
-
     # Mock out the Find client action.
     client_mock = action_mocks.ActionMock("Find")
 
@@ -325,35 +326,33 @@ class TestRegistryFlows(RegistryFlowTest):
     client.Set(client.Schema.OS_VERSION("6.2"))
     client.Flush()
 
-    vfs.VFS_HANDLERS[
-        rdf_paths.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
-    vfs.VFS_HANDLERS[
-        rdf_paths.PathSpec.PathType.OS] = test_lib.FakeFullVFSHandler
+    with test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.OS, test_lib.FakeFullVFSHandler):
 
-    client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
-                                          "HashBuffer", "FingerprintFile",
-                                          "ListDirectory")
+      client_mock = action_mocks.ActionMock(
+          "TransferBuffer", "StatFile", "Find",
+          "HashBuffer", "FingerprintFile", "ListDirectory")
 
-    # Get KB initialized
-    for _ in test_lib.TestFlowHelper(
-        "KnowledgeBaseInitializationFlow", client_mock,
-        client_id=self.client_id, token=self.token):
-      pass
-
-    with test_lib.Instrument(
-        transfer.MultiGetFile, "Start") as getfile_instrument:
-      # Run the flow in the emulated way.
+      # Get KB initialized
       for _ in test_lib.TestFlowHelper(
-          "CollectRunKeyBinaries", client_mock, client_id=self.client_id,
-          token=self.token):
+          "KnowledgeBaseInitializationFlow", client_mock,
+          client_id=self.client_id, token=self.token):
         pass
 
-      # Check MultiGetFile got called for our runkey file
-      download_requested = False
-      for pathspec in getfile_instrument.args[0][0].args.pathspecs:
-        if pathspec.path == u"C:\\Windows\\TEMP\\A.exe":
-          download_requested = True
-      self.assertTrue(download_requested)
+      with test_lib.Instrument(
+          transfer.MultiGetFile, "Start") as getfile_instrument:
+        # Run the flow in the emulated way.
+        for _ in test_lib.TestFlowHelper(
+            "CollectRunKeyBinaries", client_mock, client_id=self.client_id,
+            token=self.token):
+          pass
+
+        # Check MultiGetFile got called for our runkey file
+        download_requested = False
+        for pathspec in getfile_instrument.args[0][0].args.pathspecs:
+          if pathspec.path == u"C:\\Windows\\TEMP\\A.exe":
+            download_requested = True
+        self.assertTrue(download_requested)
 
 
 def main(argv):

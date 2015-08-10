@@ -12,7 +12,6 @@ from grr.gui import django_lib
 
 from grr.gui import api_call_renderers
 from grr.lib import access_control
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib.rdfvalues import test_base
@@ -94,7 +93,13 @@ class SimpleAPIAuthorizationManagerTest(test_lib.GRRBaseTest):
     self.mock_renderer.__class__.__name__ = "ApiCallRenderer"
     # API ACLs are off by default, we need to set this to something so the tests
     # exercise the functionality. Each test will supply its own ACL data.
-    config_lib.CONFIG.Set("API.RendererACLFile", "dummy")
+    self.aclfile_overrider = test_lib.ConfigOverrider({
+        "API.RendererACLFile": "dummy"})
+    self.aclfile_overrider.Start()
+
+  def tearDown(self):
+    super(SimpleAPIAuthorizationManagerTest, self).tearDown()
+    self.aclfile_overrider.Stop()
 
   def testSimpleAPIAuthorizationManager(self):
     acls = """
@@ -123,13 +128,13 @@ renderer: "ApiCallRenderer"
 
   def testNoACLs(self):
     """All checking is skipped if no API.RendererACLFile is defined."""
-    config_lib.CONFIG.Set("API.RendererACLFile", "")
-    auth_mgr = api_call_renderers.SimpleAPIAuthorizationManager()
-    auth_mgr.CheckAccess(self.mock_renderer, "u1")
-    bad_renderer = mock.MagicMock()
-    bad_renderer.enabled_by_default = True
-    bad_renderer.__class__.__name__ = "BadRenderer"
-    auth_mgr.CheckAccess(bad_renderer, "u2")
+    with test_lib.ConfigOverrider({"API.RendererACLFile": ""}):
+      auth_mgr = api_call_renderers.SimpleAPIAuthorizationManager()
+      auth_mgr.CheckAccess(self.mock_renderer, "u1")
+      bad_renderer = mock.MagicMock()
+      bad_renderer.enabled_by_default = True
+      bad_renderer.__class__.__name__ = "BadRenderer"
+      auth_mgr.CheckAccess(bad_renderer, "u2")
 
   def testRaiseIfGroupsDefined(self):
     """We have no way to expand groups, so raise if defined."""
@@ -143,13 +148,13 @@ groups: ["g1"]
 
   def testHandleApiCallNotEnabled(self):
     """Raises if no matching ACL and enabled_by_default=False."""
-    config_lib.CONFIG.Set("API.RendererACLFile", "")
-    auth_mgr = api_call_renderers.SimpleAPIAuthorizationManager()
-    self.mock_renderer.enabled_by_default = False
-    with mock.patch.object(api_call_renderers, "API_AUTH_MGR", auth_mgr):
-      with self.assertRaises(access_control.UnauthorizedAccess):
-        api_call_renderers.HandleApiCall(self.mock_renderer, "",
-                                         token=self.token)
+    with test_lib.ConfigOverrider({"API.RendererACLFile": ""}):
+      auth_mgr = api_call_renderers.SimpleAPIAuthorizationManager()
+      self.mock_renderer.enabled_by_default = False
+      with mock.patch.object(api_call_renderers, "API_AUTH_MGR", auth_mgr):
+        with self.assertRaises(access_control.UnauthorizedAccess):
+          api_call_renderers.HandleApiCall(self.mock_renderer, "",
+                                           token=self.token)
 
   def testHandleApiCallNotEnabledWithACL(self):
     """Matching ACL and enabled_by_default=False is allowed."""

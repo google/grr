@@ -53,47 +53,48 @@ class RekallTestSuite(test_lib.EmptyActionTest):
     # For this test we force the client to write the profile cache in the temp
     # directory. This forces the profiles to always be downloaded from the
     # server (since each test run gets a new temp directory).
-    config_lib.CONFIG.Set("Client.rekall_profile_cache_path", self.temp_dir)
-    image_path = os.path.join(self.base_path, "win7_trial_64bit.raw")
+    with test_lib.ConfigOverrider({"Client.rekall_profile_cache_path":
+                                   self.temp_dir}):
+      image_path = os.path.join(self.base_path, "win7_trial_64bit.raw")
 
-    self.CreateClient()
-    self.CreateSignedDriver()
+      self.CreateClient()
+      self.CreateSignedDriver()
 
-    class ClientMock(action_mocks.MemoryClientMock):
-      """A mock which returns the image as the driver path."""
+      class ClientMock(action_mocks.MemoryClientMock):
+        """A mock which returns the image as the driver path."""
 
-      def GetMemoryInformation(self, _):
-        """Mock out the driver loading code to pass the memory image."""
-        reply = rdf_rekall_types.MemoryInformation(
-            device=rdf_paths.PathSpec(
-                path=image_path,
-                pathtype=rdf_paths.PathSpec.PathType.OS))
+        def GetMemoryInformation(self, _):
+          """Mock out the driver loading code to pass the memory image."""
+          reply = rdf_rekall_types.MemoryInformation(
+              device=rdf_paths.PathSpec(
+                  path=image_path,
+                  pathtype=rdf_paths.PathSpec.PathType.OS))
 
-        reply.runs.Append(offset=0, length=1000000000)
+          reply.runs.Append(offset=0, length=1000000000)
 
-        return [reply]
+          return [reply]
 
-    # Allow the real RekallAction to run against the image.
-    for _ in test_lib.TestFlowHelper(
-        "AnalyzeClientMemory",
-        ClientMock(
-            "RekallAction", "WriteRekallProfile", "DeleteGRRTempFiles"
-        ),
-        token=self.token, client_id=self.client_id,
-        request=request, output="analysis/memory"):
-      pass
+      # Allow the real RekallAction to run against the image.
+      for _ in test_lib.TestFlowHelper(
+          "AnalyzeClientMemory",
+          ClientMock(
+              "RekallAction", "WriteRekallProfile", "DeleteGRRTempFiles"
+          ),
+          token=self.token, client_id=self.client_id,
+          request=request, output="analysis/memory"):
+        pass
 
-    # Check that the profiles are also cached locally.
-    test_profile_dir = os.path.join(config_lib.CONFIG["Test.data_dir"],
-                                    "profiles")
-    self.assertEqual(
-        os.stat(os.path.join(self.temp_dir, "v1.0/pe.gz")).st_size,
-        os.stat(os.path.join(test_profile_dir, "v1.0/pe.gz")).st_size)
+      # Check that the profiles are also cached locally.
+      test_profile_dir = os.path.join(config_lib.CONFIG["Test.data_dir"],
+                                      "profiles")
+      self.assertEqual(
+          os.stat(os.path.join(self.temp_dir, "v1.0/pe.gz")).st_size,
+          os.stat(os.path.join(test_profile_dir, "v1.0/pe.gz")).st_size)
 
-    p_name = "v1.0/nt/GUID/F8E2A8B5C9B74BF4A6E4A48F180099942.gz"
-    self.assertEqual(
-        os.stat(os.path.join(self.temp_dir, p_name)).st_size,
-        os.stat(os.path.join(test_profile_dir, p_name)).st_size)
+      p_name = "v1.0/nt/GUID/F8E2A8B5C9B74BF4A6E4A48F180099942.gz"
+      self.assertEqual(
+          os.stat(os.path.join(self.temp_dir, p_name)).st_size,
+          os.stat(os.path.join(test_profile_dir, p_name)).st_size)
 
 
 def RequireTestImage(f):

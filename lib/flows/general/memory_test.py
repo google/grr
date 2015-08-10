@@ -10,7 +10,6 @@ import os
 import socket
 import threading
 
-from grr.client import vfs
 from grr.client.client_actions import grr_rekall_test
 
 from grr.lib import action_mocks
@@ -94,13 +93,15 @@ class TestMemoryCollector(MemoryTest):
     self.old_diskvolume_flow = flow.GRRFlow.classes["DiskVolumeInfo"]
     flow.GRRFlow.classes["DiskVolumeInfo"] = DummyDiskVolumeInfo
 
-    vfs.VFS_HANDLERS[
-        rdf_paths.PathSpec.PathType.MEMORY] = test_lib.FakeTestDataVFSHandler
+    self.vfs_overrider = test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.MEMORY, test_lib.FakeTestDataVFSHandler)
+    self.vfs_overrider.Start()
 
   def tearDown(self):
     super(TestMemoryCollector, self).tearDown()
     flow.GRRFlow.classes["LoadMemoryDriver"] = self.old_driver_flow
     flow.GRRFlow.classes["DiskVolumeInfo"] = self.old_diskvolume_flow
+    self.vfs_overrider.Stop()
 
   def testCallWithDefaultArgumentsDoesNothing(self):
     for _ in test_lib.TestFlowHelper(
@@ -589,10 +590,12 @@ class ListVADBinariesTest(MemoryTest):
     client.Set(client.Schema.OS_VERSION("6.2"))
     client.Flush()
 
-    vfs.VFS_HANDLERS[
-        rdf_paths.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
-    vfs.VFS_HANDLERS[
-        rdf_paths.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
+    self.os_overrider = test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.OS, test_lib.ClientVFSHandlerFixture)
+    self.reg_overrider = test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.REGISTRY, test_lib.FakeRegistryVFSHandler)
+    self.os_overrider.Start()
+    self.reg_overrider.Start()
 
     # Add some user accounts to this client.
     fd = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
@@ -610,6 +613,8 @@ class ListVADBinariesTest(MemoryTest):
     super(ListVADBinariesTest, self).tearDown()
 
     flow.GRRFlow.classes["LoadMemoryDriver"] = self.old_driver_flow
+    self.os_overrider.Stop()
+    self.reg_overrider.Stop()
 
   def testListsBinaries(self):
     client_mock = ListVADBinariesActionMock()

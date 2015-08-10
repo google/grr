@@ -142,7 +142,13 @@ class FindTest(test_lib.EmptyActionTest):
     super(FindTest, self).setUp()
 
     # Install the mock
-    vfs.VFS_HANDLERS[rdf_paths.PathSpec.PathType.OS] = MockVFSHandlerFind
+    self.vfs_overrider = test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.OS, MockVFSHandlerFind)
+    self.vfs_overrider.Start()
+
+  def tearDown(self):
+    super(FindTest, self).tearDown()
+    self.vfs_overrider.Stop()
 
   def testFindAction(self):
     """Test the find action."""
@@ -455,8 +461,14 @@ class GrepTest(test_lib.EmptyActionTest):
     super(GrepTest, self).setUp()
 
     # Install the mock
-    vfs.VFS_HANDLERS[rdf_paths.PathSpec.PathType.OS] = MockVFSHandlerFind
+    self.vfs_overrider = test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.OS, MockVFSHandlerFind)
+    self.vfs_overrider.Start()
     self.filename = "/mock2/directory1/grepfile.txt"
+
+  def tearDown(self):
+    super(GrepTest, self).tearDown()
+    self.vfs_overrider.Stop()
 
   def testGrep(self):
     # Use the real file system.

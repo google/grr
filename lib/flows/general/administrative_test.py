@@ -45,7 +45,15 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
 
     test_tmp = os.environ.get("TEST_TMPDIR")
     if test_tmp:
-      config_lib.CONFIG.Set("Client.tempdir", test_tmp)
+      self.tempdir_overrider = test_lib.ConfigOverrider({})
+      self.tempdir_overrider.Start()
+
+  def tearDown(self):
+    super(TestAdministrativeFlows, self).tearDown()
+    try:
+      self.tempdir_overrider.Stop()
+    except AttributeError:
+      pass
 
   def testUpdateConfig(self):
     """Ensure we can retrieve and update the config."""
@@ -60,12 +68,16 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
          "Client.foreman_check_frequency": 3600,
          "Client.poll_min": 1})
 
-    # Write the config.
-    for _ in test_lib.TestFlowHelper("UpdateConfiguration", client_mock,
-                                     client_id=self.client_id,
-                                     token=self.token,
-                                     config=new_config):
-      pass
+    # Setting config options is disallowed in tests so we need to temporarily
+    # revert this.
+    with utils.Stubber(config_lib.CONFIG, "Set",
+                       config_lib.CONFIG.Set.old_target):
+      # Write the config.
+      for _ in test_lib.TestFlowHelper("UpdateConfiguration", client_mock,
+                                       client_id=self.client_id,
+                                       token=self.token,
+                                       config=new_config):
+        pass
 
     # Now retrieve it again to see if it got written.
     for _ in test_lib.TestFlowHelper("Interrogate", client_mock,
@@ -194,6 +206,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
           self.client_id.Add("crashes"),
           aff4_type="PackedVersionedCollection",
           token=self.token))
+
       self.assertEqual(len(client_crashes), 1)
       crash = client_crashes[0]
       self.assertEqual(crash.client_id, self.client_id)
@@ -263,18 +276,19 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
                      int(fd.Get(fd.Schema.CLIENT_INFO).age))
 
     # Now set a new client build time.
-    config_lib.CONFIG.Set("Client.build_time", time.ctime())
+    with test_lib.ConfigOverrider({
+        "Client.build_time": time.ctime()}):
 
-    # Run it again - this should now update the client info.
-    for _ in test_lib.TestFlowHelper(
-        "ClientActionRunner", client_mock, client_id=self.client_id,
-        action="SendStartupInfo", token=self.token):
-      pass
+      # Run it again - this should now update the client info.
+      for _ in test_lib.TestFlowHelper(
+          "ClientActionRunner", client_mock, client_id=self.client_id,
+          action="SendStartupInfo", token=self.token):
+        pass
 
-    # Ensure the client info attribute is updated.
-    fd = aff4.FACTORY.Open(self.client_id, token=self.token)
-    self.assertNotEqual(int(client_info.age),
-                        int(fd.Get(fd.Schema.CLIENT_INFO).age))
+      # Ensure the client info attribute is updated.
+      fd = aff4.FACTORY.Open(self.client_id, token=self.token)
+      self.assertNotEqual(int(client_info.age),
+                          int(fd.Get(fd.Schema.CLIENT_INFO).age))
 
   def testExecutePythonHack(self):
     client_mock = action_mocks.ActionMock("ExecutePython")

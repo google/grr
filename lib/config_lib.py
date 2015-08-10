@@ -336,12 +336,6 @@ class YamlParser(GRRConfigParser):
 
   name = "yaml"
 
-  # A history of files which we've already parsed, keyed by name. (Files are
-  # repeatedly loaded in unit tests.)
-  #
-  # TODO(user): Remove once our test framework is less insane.
-
-  @utils.Memoize(True)
   def _LoadYamlByName(self, filename):
     return yaml.safe_load(open(filename, "rb"))
 
@@ -424,9 +418,6 @@ class YamlParser(GRRConfigParser):
   def SaveDataToFD(self, raw_data, fd):
     """Merge the raw data with the config file and store it."""
     yaml.dump(raw_data, fd, default_flow_style=False)
-    # We are writing data to a file so we need to flush the memoization cache or
-    # we might get stale data.
-    self._LoadYamlByName.memo_pad.clear()
 
   def _RawData(self, data):
     """Convert data to common format.
@@ -773,7 +764,6 @@ class GrrConfigManager(object):
     Raises:
       ConstModificationError: When attempting to change a constant option.
     """
-
     # If the configuration system has a write back location we use it,
     # otherwise we use the primary configuration object.
     if self.writeback is None:

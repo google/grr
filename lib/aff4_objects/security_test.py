@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Tests for grr.lib.aff4_objects.security."""
 
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib.aff4_objects import security
@@ -22,21 +21,22 @@ class ApprovalWithReasonTest(test_lib.GRRBaseTest):
 
     # %{} is used here to tell the config system this is a literal that
     # shouldn't be expanded/filtered.
-    config_lib.CONFIG.Set("Email.link_regex_list",
-                          [r"%{(?P<link>(incident|ir|jira)\/\d+)}"])
-    test_pairs = [
-        ("Investigating jira/1234 (incident/1234)...incident/bug",
-         "Investigating <a href=\"jira/1234\">jira/1234</a> "
-         "(<a href=\"incident/1234\">incident/1234</a>)...incident/bug"),
-        ("\"jira/1234\" == (incident/1234)",
-         "\"<a href=\"jira/1234\">jira/1234</a>\" == "
-         "(<a href=\"incident/1234\">incident/1234</a>)"),
-        ("Checking /var/lib/i/123/blah file",
-         "Checking /var/lib/i/123/blah file")
-        ]
+    with test_lib.ConfigOverrider({
+        "Email.link_regex_list":
+        [r"%{(?P<link>(incident|ir|jira)\/\d+)}"]}):
+      test_pairs = [
+          ("Investigating jira/1234 (incident/1234)...incident/bug",
+           "Investigating <a href=\"jira/1234\">jira/1234</a> "
+           "(<a href=\"incident/1234\">incident/1234</a>)...incident/bug"),
+          ("\"jira/1234\" == (incident/1234)",
+           "\"<a href=\"jira/1234\">jira/1234</a>\" == "
+           "(<a href=\"incident/1234\">incident/1234</a>)"),
+          ("Checking /var/lib/i/123/blah file",
+           "Checking /var/lib/i/123/blah file")
+          ]
 
-    for reason, result in test_pairs:
-      self._CreateReason(reason, result)
+      for reason, result in test_pairs:
+        self._CreateReason(reason, result)
 
 
 def main(argv):

@@ -113,6 +113,7 @@ class MemoryCollector(flow.GRRFlow):
     self.state.Register(
         "destdir",
         self.args.action.download.dump_option.with_local_copy.destdir)
+
     self.CallFlow("LoadMemoryDriver",
                   driver_installer=self.args.driver_installer,
                   next_state="StoreMemoryInformation")
@@ -264,6 +265,7 @@ class MemoryCollector(flow.GRRFlow):
     elif (self.args.action.action_type ==
           MemoryCollectorAction.Action.SEND_TO_SOCKET):
       options = self.state.args.action.send_to_socket
+
       self.CallClient("SendFile", key=utils.SmartStr(options.key),
                       iv=utils.SmartStr(options.iv),
                       pathspec=self.state.memory_src_path,
@@ -895,7 +897,7 @@ class ScanMemory(flow.GRRFlow):
           self.CallFlow("DownloadMemoryImage", next_state="End")
 
     else:
-      raise flow.FlowError("Error grepping memory: %s.", responses.status)
+      raise flow.FlowError("Error grepping memory: %s." % responses.status)
 
 
 class ListVADBinariesArgs(rdf_structs.RDFProtoStruct):

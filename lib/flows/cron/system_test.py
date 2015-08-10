@@ -5,7 +5,6 @@
 from grr.endtoend_tests import base
 from grr.lib import action_mocks
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import test_lib
@@ -214,32 +213,33 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
 
     self.client_mock = action_mocks.ActionMock("ListDirectory", "StatFile")
 
-    config_lib.CONFIG.Set("Test.end_to_end_client_ids", self.client_ids)
-    with utils.MultiStubber((base.AutomatedTest, "classes",
-                             {"MockEndToEndTest":
-                              endtoend_test.MockEndToEndTest}),
-                            (system.EndToEndTests, "lifetime", 0)):
+    with test_lib.ConfigOverrider({
+        "Test.end_to_end_client_ids": self.client_ids}):
+      with utils.MultiStubber((base.AutomatedTest, "classes",
+                               {"MockEndToEndTest":
+                                endtoend_test.MockEndToEndTest}),
+                              (system.EndToEndTests, "lifetime", 0)):
 
-      # The test harness doesn't understand the callstate at a later time that
-      # this flow is doing, so we need to disable check_flow_errors.
-      for _ in test_lib.TestFlowHelper("EndToEndTests", self.client_mock,
-                                       client_id=self.client_id,
-                                       check_flow_errors=False,
-                                       token=self.token):
-        pass
+        # The test harness doesn't understand the callstate at a later time that
+        # this flow is doing, so we need to disable check_flow_errors.
+        for _ in test_lib.TestFlowHelper("EndToEndTests", self.client_mock,
+                                         client_id=self.client_id,
+                                         check_flow_errors=False,
+                                         token=self.token):
+          pass
 
-    test_lib.TestHuntHelperWithMultipleMocks({}, check_flow_errors=False,
-                                             token=self.token)
-    hunt_ids = list(aff4.FACTORY.Open("aff4:/hunts",
-                                      token=self.token).ListChildren())
-    # We have only created one hunt, and we should have started with clean aff4
-    # space.
-    self.assertEqual(len(hunt_ids), 1)
+      test_lib.TestHuntHelperWithMultipleMocks({}, check_flow_errors=False,
+                                               token=self.token)
+      hunt_ids = list(aff4.FACTORY.Open("aff4:/hunts",
+                                        token=self.token).ListChildren())
+      # We have only created one hunt, and we should have started with a clean
+      # aff4 space.
+      self.assertEqual(len(hunt_ids), 1)
 
-    hunt_obj = aff4.FACTORY.Open(hunt_ids[0], token=self.token,
-                                 age=aff4.ALL_TIMES)
-    self.assertItemsEqual(sorted(hunt_obj.GetClients()),
-                          sorted(self.client_ids))
+      hunt_obj = aff4.FACTORY.Open(hunt_ids[0], token=self.token,
+                                   age=aff4.ALL_TIMES)
+      self.assertItemsEqual(sorted(hunt_obj.GetClients()),
+                            sorted(self.client_ids))
 
   def _CreateResult(self, success, clientid):
     success = endtoend_flows.EndToEndTestResult(success=success)

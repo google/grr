@@ -17,7 +17,6 @@ from grr.lib import artifact_utils_test
 
 from grr.client import client_utils_linux
 from grr.client import client_utils_osx
-from grr.client import vfs
 from grr.client.client_actions import standard
 from grr.lib import action_mocks
 from grr.lib import aff4
@@ -477,10 +476,20 @@ class GrrKbTest(ArtifactTest):
     test_lib.ClientFixture(self.client_id, token=self.token)
     self.SetWindowsClient()
 
-    vfs.VFS_HANDLERS[
-        rdf_paths.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
-    vfs.VFS_HANDLERS[
-        rdf_paths.PathSpec.PathType.OS] = test_lib.FakeFullVFSHandler
+    self.os_overrider = test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.OS, test_lib.FakeFullVFSHandler)
+    self.reg_overrider = test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.REGISTRY, test_lib.FakeRegistryVFSHandler)
+    self.os_overrider.Start()
+    self.reg_overrider.Start()
+
+  def tearDown(self):
+    super(GrrKbTest, self).tearDown()
+    try:
+      self.os_overrider.Stop()
+      self.reg_overrider.Stop()
+    except AttributeError:
+      pass
 
   def testKnowledgeBaseRetrievalWindows(self):
     """Check we can retrieve a knowledge base from a client."""
@@ -519,20 +528,22 @@ class GrrKbTest(ArtifactTest):
     self.SetupWindowsMocks()
     # Replace some artifacts with test one that will run the MultiProvideParser.
     self.LoadTestArtifacts()
-    config_lib.CONFIG.Set("Artifacts.knowledge_base", ["DepsProvidesMultiple"])
-    client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
-                                          "HashBuffer", "ListDirectory",
-                                          "FingerprintFile")
-    for _ in test_lib.TestFlowHelper(
-        "KnowledgeBaseInitializationFlow", client_mock,
-        client_id=self.client_id, token=self.token):
-      pass
+    with test_lib.ConfigOverrider({"Artifacts.knowledge_base":
+                                   ["DepsProvidesMultiple"]}):
+      client_mock = action_mocks.ActionMock(
+          "TransferBuffer", "StatFile", "Find",
+          "HashBuffer", "ListDirectory", "FingerprintFile")
 
-    # The client should now be populated with the data we care about.
-    client = aff4.FACTORY.Open(self.client_id, token=self.token)
-    kb = artifact.GetArtifactKnowledgeBase(client)
-    self.assertEqual(kb.environ_temp, "tempvalue")
-    self.assertEqual(kb.environ_path, "pathvalue")
+      for _ in test_lib.TestFlowHelper(
+          "KnowledgeBaseInitializationFlow", client_mock,
+          client_id=self.client_id, token=self.token):
+        pass
+
+      # The client should now be populated with the data we care about.
+      client = aff4.FACTORY.Open(self.client_id, token=self.token)
+      kb = artifact.GetArtifactKnowledgeBase(client)
+      self.assertEqual(kb.environ_temp, "tempvalue")
+      self.assertEqual(kb.environ_path, "pathvalue")
 
   def testKnowledgeBaseRetrievalFailures(self):
     """Test kb retrieval failure modes."""
@@ -550,141 +561,141 @@ class GrrKbTest(ArtifactTest):
     """Check we can retrieve a Darwin kb."""
     test_lib.ClientFixture(self.client_id, token=self.token)
     self.SetDarwinClient()
-    config_lib.CONFIG.Set("Artifacts.knowledge_base", ["OSXUsers"])
-    vfs.VFS_HANDLERS[
-        rdf_paths.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
+    with test_lib.ConfigOverrider({"Artifacts.knowledge_base": ["OSXUsers"]}):
+      with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                 test_lib.ClientVFSHandlerFixture):
 
-    client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
-                                          "HashBuffer", "ListDirectory",
-                                          "FingerprintFile")
+        client_mock = action_mocks.ActionMock(
+            "TransferBuffer", "StatFile", "Find",
+            "HashBuffer", "ListDirectory", "FingerprintFile")
 
-    for _ in test_lib.TestFlowHelper(
-        "KnowledgeBaseInitializationFlow", client_mock,
-        client_id=self.client_id, token=self.token):
-      pass
-    client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
+        for _ in test_lib.TestFlowHelper(
+            "KnowledgeBaseInitializationFlow", client_mock,
+            client_id=self.client_id, token=self.token):
+          pass
+        client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
 
-    kb = artifact.GetArtifactKnowledgeBase(client)
-    self.assertEqual(kb.os_major_version, 10)
-    self.assertEqual(kb.os_minor_version, 9)
-    # scalzi from /Users dir listing.
-    # Bert and Ernie not present (Users fixture overriden by kb).
-    self.assertItemsEqual([x.username for x in kb.users], ["scalzi"])
-    user = kb.GetUser(username="scalzi")
-    self.assertEqual(user.homedir, "/Users/scalzi")
+        kb = artifact.GetArtifactKnowledgeBase(client)
+        self.assertEqual(kb.os_major_version, 10)
+        self.assertEqual(kb.os_minor_version, 9)
+        # scalzi from /Users dir listing.
+        # Bert and Ernie not present (Users fixture overriden by kb).
+        self.assertItemsEqual([x.username for x in kb.users], ["scalzi"])
+        user = kb.GetUser(username="scalzi")
+        self.assertEqual(user.homedir, "/Users/scalzi")
 
   def testKnowledgeBaseRetrievalLinux(self):
     """Check we can retrieve a Linux kb."""
     test_lib.ClientFixture(self.client_id, token=self.token)
     self.SetLinuxClient()
-    config_lib.CONFIG.Set("Artifacts.knowledge_base", ["LinuxWtmp",
-                                                       "NetgroupConfiguration",
-                                                       "LinuxPasswdHomedirs",
-                                                       "LinuxRelease"])
-    config_lib.CONFIG.Set("Artifacts.netgroup_filter_regexes", ["^login$"])
-    config_lib.CONFIG.Set("Artifacts.netgroup_user_blacklist", ["isaac"])
+    with test_lib.ConfigOverrider({
+        "Artifacts.knowledge_base": ["LinuxWtmp",
+                                     "NetgroupConfiguration",
+                                     "LinuxPasswdHomedirs",
+                                     "LinuxRelease"],
+        "Artifacts.netgroup_filter_regexes": ["^login$"],
+        "Artifacts.netgroup_user_blacklist": ["isaac"]}):
+      with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                 test_lib.FakeTestDataVFSHandler):
 
-    vfs.VFS_HANDLERS[
-        rdf_paths.PathSpec.PathType.OS] = test_lib.FakeTestDataVFSHandler
+        client_mock = action_mocks.ActionMock(
+            "TransferBuffer", "StatFile", "Find", "HashBuffer",
+            "ListDirectory", "FingerprintFile", "Grep")
 
-    client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
-                                          "HashBuffer", "ListDirectory",
-                                          "FingerprintFile", "Grep")
-
-    for _ in test_lib.TestFlowHelper(
-        "KnowledgeBaseInitializationFlow", client_mock,
-        client_id=self.client_id, token=self.token):
-      pass
-    client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
-    kb = artifact.GetArtifactKnowledgeBase(client)
-    self.assertEqual(kb.os_major_version, 14)
-    self.assertEqual(kb.os_minor_version, 4)
-    # user 1,2,3 from wtmp. yagharek from netgroup.
-    # Bert and Ernie not present (Users fixture overriden by kb).
-    self.assertItemsEqual([x.username for x in kb.users], ["user1", "user2",
-                                                           "user3", "yagharek"])
-    user = kb.GetUser(username="user1")
-    self.assertEqual(user.last_logon.AsSecondsFromEpoch(), 1296552099)
-    self.assertEqual(user.homedir, "/home/user1")
+        for _ in test_lib.TestFlowHelper(
+            "KnowledgeBaseInitializationFlow", client_mock,
+            client_id=self.client_id, token=self.token):
+          pass
+        client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
+        kb = artifact.GetArtifactKnowledgeBase(client)
+        self.assertEqual(kb.os_major_version, 14)
+        self.assertEqual(kb.os_minor_version, 4)
+        # user 1,2,3 from wtmp. yagharek from netgroup.
+        # Bert and Ernie not present (Users fixture overriden by kb).
+        self.assertItemsEqual([x.username for x in kb.users],
+                              ["user1", "user2", "user3", "yagharek"])
+        user = kb.GetUser(username="user1")
+        self.assertEqual(user.last_logon.AsSecondsFromEpoch(), 1296552099)
+        self.assertEqual(user.homedir, "/home/user1")
 
   def testKnowledgeBaseRetrievalLinuxPasswd(self):
     """Check we can retrieve a Linux kb."""
     test_lib.ClientFixture(self.client_id, token=self.token)
-    vfs.VFS_HANDLERS[
-        rdf_paths.PathSpec.PathType.OS] = test_lib.FakeTestDataVFSHandler
-    client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
-                                          "HashBuffer", "ListDirectory",
-                                          "FingerprintFile", "Grep")
+    with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                               test_lib.FakeTestDataVFSHandler):
+      client_mock = action_mocks.ActionMock(
+          "TransferBuffer", "StatFile", "Find",
+          "HashBuffer", "ListDirectory", "FingerprintFile", "Grep")
 
-    self.SetLinuxClient()
-    config_lib.CONFIG.Set("Artifacts.knowledge_base", ["LinuxWtmp",
-                                                       "LinuxPasswdHomedirs",
-                                                       "LinuxRelease"])
-    config_lib.CONFIG.Set("Artifacts.knowledge_base_additions", [])
-    config_lib.CONFIG.Set("Artifacts.knowledge_base_skip", [])
+      self.SetLinuxClient()
+      with test_lib.ConfigOverrider({
+          "Artifacts.knowledge_base": ["LinuxWtmp",
+                                       "LinuxPasswdHomedirs",
+                                       "LinuxRelease"],
+          "Artifacts.knowledge_base_additions": [],
+          "Artifacts.knowledge_base_skip": []}):
 
-    for _ in test_lib.TestFlowHelper(
-        "KnowledgeBaseInitializationFlow", client_mock,
-        client_id=self.client_id, token=self.token):
-      pass
+        for _ in test_lib.TestFlowHelper(
+            "KnowledgeBaseInitializationFlow", client_mock,
+            client_id=self.client_id, token=self.token):
+          pass
 
-    client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
-    kb = artifact.GetArtifactKnowledgeBase(client)
-    self.assertEqual(kb.os_major_version, 14)
-    self.assertEqual(kb.os_minor_version, 4)
-    # user 1,2,3 from wtmp.
-    # Bert and Ernie not present (Users fixture overriden by kb).
-    self.assertItemsEqual([x.username for x in kb.users], ["user1", "user2",
-                                                           "user3"])
-    user = kb.GetUser(username="user1")
-    self.assertEqual(user.last_logon.AsSecondsFromEpoch(), 1296552099)
-    self.assertEqual(user.homedir, "/home/user1")
+        client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
+        kb = artifact.GetArtifactKnowledgeBase(client)
+        self.assertEqual(kb.os_major_version, 14)
+        self.assertEqual(kb.os_minor_version, 4)
+        # user 1,2,3 from wtmp.
+        # Bert and Ernie not present (Users fixture overriden by kb).
+        self.assertItemsEqual([x.username for x in kb.users], ["user1", "user2",
+                                                               "user3"])
+        user = kb.GetUser(username="user1")
+        self.assertEqual(user.last_logon.AsSecondsFromEpoch(), 1296552099)
+        self.assertEqual(user.homedir, "/home/user1")
 
-    user = kb.GetUser(username="user2")
-    self.assertEqual(user.last_logon.AsSecondsFromEpoch(), 1296552102)
-    self.assertEqual(user.homedir, "/home/user2")
+        user = kb.GetUser(username="user2")
+        self.assertEqual(user.last_logon.AsSecondsFromEpoch(), 1296552102)
+        self.assertEqual(user.homedir, "/home/user2")
 
-    self.assertFalse(kb.GetUser(username="buguser3"))
+        self.assertFalse(kb.GetUser(username="buguser3"))
 
   def testKnowledgeBaseRetrievalLinuxNoUsers(self):
     """Cause a users.username dependency failure."""
     test_lib.ClientFixture(self.client_id, token=self.token)
     self.SetLinuxClient()
-    config_lib.CONFIG.Set("Artifacts.knowledge_base",
-                          ["NetgroupConfiguration",
-                           "NssCacheLinuxPasswdHomedirs",
-                           "LinuxRelease"])
-    config_lib.CONFIG.Set("Artifacts.netgroup_filter_regexes",
-                          ["^doesntexist$"])
+    with test_lib.ConfigOverrider({
+        "Artifacts.knowledge_base": ["NetgroupConfiguration",
+                                     "NssCacheLinuxPasswdHomedirs",
+                                     "LinuxRelease"],
+        "Artifacts.netgroup_filter_regexes": ["^doesntexist$"]}):
 
-    vfs.VFS_HANDLERS[
-        rdf_paths.PathSpec.PathType.OS] = test_lib.FakeTestDataVFSHandler
-    client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
-                                          "HashBuffer", "ListDirectory",
-                                          "FingerprintFile")
+      with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                 test_lib.FakeTestDataVFSHandler):
+        client_mock = action_mocks.ActionMock(
+            "TransferBuffer", "StatFile", "Find",
+            "HashBuffer", "ListDirectory", "FingerprintFile")
 
-    for _ in test_lib.TestFlowHelper(
-        "KnowledgeBaseInitializationFlow", client_mock,
-        require_complete=False,
-        client_id=self.client_id, token=self.token):
-      pass
-    client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
-    kb = artifact.GetArtifactKnowledgeBase(client)
-    self.assertEqual(kb.os_major_version, 14)
-    self.assertEqual(kb.os_minor_version, 4)
-    self.assertItemsEqual([x.username for x in kb.users], [])
+        for _ in test_lib.TestFlowHelper(
+            "KnowledgeBaseInitializationFlow", client_mock,
+            require_complete=False,
+            client_id=self.client_id, token=self.token):
+          pass
+        client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
+        kb = artifact.GetArtifactKnowledgeBase(client)
+        self.assertEqual(kb.os_major_version, 14)
+        self.assertEqual(kb.os_minor_version, 4)
+        self.assertItemsEqual([x.username for x in kb.users], [])
 
   def testKnowledgeBaseNoOS(self):
     """Check unset OS dies."""
-    vfs.VFS_HANDLERS[
-        rdf_paths.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
-    client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
-                                          "HashBuffer", "ListDirectory",
-                                          "FingerprintFile")
+    with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                               test_lib.ClientVFSHandlerFixture):
+      client_mock = action_mocks.ActionMock(
+          "TransferBuffer", "StatFile", "Find",
+          "HashBuffer", "ListDirectory", "FingerprintFile")
 
-    self.assertRaises(flow.FlowError, list, test_lib.TestFlowHelper(
-        "KnowledgeBaseInitializationFlow", client_mock,
-        client_id=self.client_id, token=self.token))
+      self.assertRaises(flow.FlowError, list, test_lib.TestFlowHelper(
+          "KnowledgeBaseInitializationFlow", client_mock,
+          client_id=self.client_id, token=self.token))
 
   def testGlobRegistry(self):
     """Test that glob works on registry."""
@@ -763,36 +774,36 @@ class GrrKbTest(ArtifactTest):
           "artifacts", "test_artifacts.json")
       artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
 
-      config_lib.CONFIG.Set("Artifacts.knowledge_base", ["DepsParent",
-                                                         "DepsDesktop",
-                                                         "DepsHomedir",
-                                                         "DepsWindir",
-                                                         "DepsWindirRegex",
-                                                         "DepsControlSet",
-                                                         "FakeArtifact"])
-      config_lib.CONFIG.Set("Artifacts.knowledge_base_additions",
-                            ["DepsHomedir2"])
-      config_lib.CONFIG.Set("Artifacts.knowledge_base_skip", ["DepsWindir"])
-      config_lib.CONFIG.Set("Artifacts.knowledge_base_heavyweight",
-                            ["FakeArtifact"])
-      args = artifact.KnowledgeBaseInitializationArgs(lightweight=True)
-      kb_init = artifact.KnowledgeBaseInitializationFlow(None, token=self.token)
-      kb_init.args = args
-      kb_init.state.Register("all_deps", set())
-      kb_init.state.Register("awaiting_deps_artifacts", [])
-      kb_init.state.Register("knowledge_base",
-                             rdf_client.KnowledgeBase(os="Windows"))
-      no_deps = kb_init.GetFirstFlowsForCollection()
+      with test_lib.ConfigOverrider({
+          "Artifacts.knowledge_base": ["DepsParent",
+                                       "DepsDesktop",
+                                       "DepsHomedir",
+                                       "DepsWindir",
+                                       "DepsWindirRegex",
+                                       "DepsControlSet",
+                                       "FakeArtifact"],
+          "Artifacts.knowledge_base_additions": ["DepsHomedir2"],
+          "Artifacts.knowledge_base_skip": ["DepsWindir"],
+          "Artifacts.knowledge_base_heavyweight": ["FakeArtifact"]}):
+        args = artifact.KnowledgeBaseInitializationArgs(lightweight=True)
+        kb_init = artifact.KnowledgeBaseInitializationFlow(
+            None, token=self.token)
+        kb_init.args = args
+        kb_init.state.Register("all_deps", set())
+        kb_init.state.Register("awaiting_deps_artifacts", [])
+        kb_init.state.Register("knowledge_base",
+                               rdf_client.KnowledgeBase(os="Windows"))
+        no_deps = kb_init.GetFirstFlowsForCollection()
 
-      self.assertItemsEqual(no_deps, ["DepsControlSet", "DepsHomedir2"])
-      self.assertItemsEqual(kb_init.state.all_deps, ["users.homedir",
-                                                     "users.desktop",
-                                                     "users.username",
-                                                     "environ_windir",
-                                                     "current_control_set"])
-      self.assertItemsEqual(kb_init.state.awaiting_deps_artifacts,
-                            ["DepsParent", "DepsDesktop", "DepsHomedir",
-                             "DepsWindirRegex"])
+        self.assertItemsEqual(no_deps, ["DepsControlSet", "DepsHomedir2"])
+        self.assertItemsEqual(kb_init.state.all_deps, ["users.homedir",
+                                                       "users.desktop",
+                                                       "users.username",
+                                                       "environ_windir",
+                                                       "current_control_set"])
+        self.assertItemsEqual(kb_init.state.awaiting_deps_artifacts,
+                              ["DepsParent", "DepsDesktop", "DepsHomedir",
+                               "DepsWindirRegex"])
     finally:
       artifact.ArtifactLoader().RunOnce()
 

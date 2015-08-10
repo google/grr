@@ -48,7 +48,11 @@ class ClientCommsTest(test_lib.GRRBaseTest):
 
   def setUp(self):
     """Set up communicator tests."""
-    test_lib.GRRBaseTest.setUp(self)
+    super(ClientCommsTest, self).setUp()
+
+    # These tests change the config so we preserve state.
+    self.config_stubber = test_lib.PreserveConfig()
+    self.config_stubber.Start()
 
     self.client_private_key = config_lib.CONFIG["Client.private_key"]
 
@@ -68,6 +72,10 @@ class ClientCommsTest(test_lib.GRRBaseTest):
         token=self.token)
 
     self.last_urlmock_error = None
+
+  def tearDown(self):
+    super(ClientCommsTest, self).tearDown()
+    self.config_stubber.Stop()
 
   def ClientServerCommunicate(self, timestamp=None):
     """Tests the end to end encrypted communicators."""
@@ -145,25 +153,28 @@ class ClientCommsTest(test_lib.GRRBaseTest):
 
   def testCompression(self):
     """Tests that the compression works."""
-    config_lib.CONFIG.Set("Network.compression", "UNCOMPRESSED")
-    self.testCommunications()
-    uncompressed_len = len(self.cipher_text)
+    with test_lib.ConfigOverrider({
+        "Network.compression": "UNCOMPRESSED"}):
+      self.testCommunications()
+      uncompressed_len = len(self.cipher_text)
 
     # If the client compresses, the server should still be able to
     # parse it:
-    config_lib.CONFIG.Set("Network.compression", "ZCOMPRESS")
-    self.testCommunications()
-    compressed_len = len(self.cipher_text)
+    with test_lib.ConfigOverrider({
+        "Network.compression": "ZCOMPRESS"}):
+      self.testCommunications()
+      compressed_len = len(self.cipher_text)
 
-    self.assert_(compressed_len < uncompressed_len)
+      self.assert_(compressed_len < uncompressed_len)
 
     # If we chose a crazy compression scheme, the client should not
     # compress.
-    config_lib.CONFIG.Set("Network.compression", "SOMECRAZYCOMPRESSION")
-    self.testCommunications()
-    compressed_len = len(self.cipher_text)
+    with test_lib.ConfigOverrider({
+        "Network.compression": "SOMECRAZYCOMPRESSION"}):
+      self.testCommunications()
+      compressed_len = len(self.cipher_text)
 
-    self.assertEqual(compressed_len, uncompressed_len)
+      self.assertEqual(compressed_len, uncompressed_len)
 
   def testX509Verify(self):
     """X509 Verify can have several failure paths."""
@@ -255,6 +266,10 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     """Set up communicator tests."""
     super(HTTPClientTests, self).setUp()
 
+    # These tests change the config so we preserve state.
+    self.config_stubber = test_lib.PreserveConfig()
+    self.config_stubber.Start()
+
     self.certificate = self.ClientCertFromPrivateKey(
         config_lib.CONFIG["Client.private_key"]).as_pem()
     self.server_serial_number = 0
@@ -280,13 +295,15 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     self.client.Flush()
 
     # Stop the client from actually processing anything
-    config_lib.CONFIG.Set("Client.max_out_queue", 0)
+    self.out_queue_overrider = test_lib.ConfigOverrider({
+        "Client.max_out_queue": 0})
+    self.out_queue_overrider.Start()
 
     # And cache it in the server
     self.CreateNewServerCommunicator()
 
-    self.urlopen = urllib2.urlopen
-    urllib2.urlopen = self.UrlMock
+    self.urlopen_stubber = utils.Stubber(urllib2, "urlopen", self.UrlMock)
+    self.urlopen_stubber.Start()
 
     self.messages = []
 
@@ -306,7 +323,9 @@ class HTTPClientTests(test_lib.GRRBaseTest):
         self.client_cn, self.client)
 
   def tearDown(self):
-    urllib2.urlopen = self.urlopen
+    self.urlopen_stubber.Stop()
+    self.out_queue_overrider.Stop()
+    self.config_stubber.Stop()
     super(HTTPClientTests, self).tearDown()
 
   def CreateNewClientObject(self):
@@ -399,27 +418,28 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     """If the client has no certificate initially it should enroll."""
 
     # Clear the certificate so we can generate a new one.
-    config_lib.CONFIG.Set("Client.private_key", "")
-    self.CreateNewClientObject()
+    with test_lib.ConfigOverrider({
+        "Client.private_key": ""}):
+      self.CreateNewClientObject()
 
-    # Client should get a new Common Name.
-    self.assertNotEqual(self.client_cn,
-                        self.client_communicator.communicator.common_name)
+      # Client should get a new Common Name.
+      self.assertNotEqual(self.client_cn,
+                          self.client_communicator.communicator.common_name)
 
-    self.client_cn = self.client_communicator.communicator.common_name
+      self.client_cn = self.client_communicator.communicator.common_name
 
-    # Now communicate with the server.
-    status = self.client_communicator.RunOnce()
+      # Now communicate with the server.
+      status = self.client_communicator.RunOnce()
 
-    self.assertEqual(status.code, 406)
+      self.assertEqual(status.code, 406)
 
-    # The client should now send an enrollment request.
-    status = self.client_communicator.RunOnce()
+      # The client should now send an enrollment request.
+      status = self.client_communicator.RunOnce()
 
-    # Client should generate enrollment message by itself.
-    self.assertEqual(len(self.messages), 1)
-    self.assertEqual(self.messages[0].session_id,
-                     ca_enroller.Enroler.well_known_session_id)
+      # Client should generate enrollment message by itself.
+      self.assertEqual(len(self.messages), 1)
+      self.assertEqual(self.messages[0].session_id,
+                       ca_enroller.Enroler.well_known_session_id)
 
   def testEnrollment(self):
     """Test the http response to unknown clients."""
@@ -610,7 +630,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     fail = True
     num_messages = 10
 
-    def FlakyServer(req):
+    def FlakyServer(req, timeout=None):  # pylint: disable=unused-argument
       if not fail:
         return self.UrlMock(req, num_messages=num_messages)
 

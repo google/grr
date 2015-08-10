@@ -4,7 +4,6 @@
 
 import os
 
-from grr.client import vfs
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import artifact
@@ -316,11 +315,13 @@ class TestArtifactCollectorsInteractions(CollectorTest):
     """Test downloading files from artifacts."""
     self._PrepareWindowsClient()
 
-    vfs.VFS_HANDLERS[
-        rdf_paths.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
-    vfs.VFS_HANDLERS[
-        rdf_paths.PathSpec.PathType.OS] = test_lib.FakeFullVFSHandler
+    with test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.REGISTRY, test_lib.FakeRegistryVFSHandler):
+      with test_lib.VFSOverrider(
+          rdf_paths.PathSpec.PathType.OS, test_lib.FakeFullVFSHandler):
+        self._testProcessCollectedArtifacts()
 
+  def _testProcessCollectedArtifacts(self):
     client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
                                           "HashBuffer", "FingerprintFile",
                                           "ListDirectory")
@@ -420,14 +421,14 @@ class TestArtifactCollectorsRealArtifacts(CollectorTest):
         pass
 
     # No registry, so this should use the fallback flow
-    vfs.VFS_HANDLERS[
-        rdf_paths.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
-    self._CheckDriveAndRoot()
+    with test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.OS, test_lib.ClientVFSHandlerFixture):
+      self._CheckDriveAndRoot()
 
     # Registry is present, so this should use the regular artifact collection
-    vfs.VFS_HANDLERS[
-        rdf_paths.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
-    self._CheckDriveAndRoot()
+    with test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.REGISTRY, test_lib.FakeRegistryVFSHandler):
+      self._CheckDriveAndRoot()
 
   def testRunWMIComputerSystemProductArtifact(self):
 
@@ -515,28 +516,28 @@ class TestArtifactCollectorsRealArtifacts(CollectorTest):
     """Test getting an artifact without a KB using retrieve_depdendencies."""
     self._PrepareWindowsClient()
 
-    vfs.VFS_HANDLERS[
-        rdf_paths.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
-    vfs.VFS_HANDLERS[
-        rdf_paths.PathSpec.PathType.OS] = test_lib.FakeFullVFSHandler
+    with test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.REGISTRY, test_lib.FakeRegistryVFSHandler):
+      with test_lib.VFSOverrider(
+          rdf_paths.PathSpec.PathType.OS, test_lib.FakeFullVFSHandler):
 
-    client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
-                                          "HashBuffer", "FingerprintFile",
-                                          "ListDirectory")
+        client_mock = action_mocks.ActionMock(
+            "TransferBuffer", "StatFile", "Find",
+            "HashBuffer", "FingerprintFile", "ListDirectory")
 
-    artifact_list = ["WinDirEnvironmentVariable"]
-    for _ in test_lib.TestFlowHelper(
-        "ArtifactCollectorFlow", client_mock, artifact_list=artifact_list,
-        token=self.token, client_id=self.client_id,
-        dependencies=
-        artifact_utils.ArtifactCollectorFlowArgs.Dependency.FETCH_NOW,
-        output="testRetrieveDependencies"):
-      pass
+        artifact_list = ["WinDirEnvironmentVariable"]
+        for _ in test_lib.TestFlowHelper(
+            "ArtifactCollectorFlow", client_mock, artifact_list=artifact_list,
+            token=self.token, client_id=self.client_id,
+            dependencies=
+            artifact_utils.ArtifactCollectorFlowArgs.Dependency.FETCH_NOW,
+            output="testRetrieveDependencies"):
+          pass
 
-    output = aff4.FACTORY.Open(self.client_id.Add("testRetrieveDependencies"),
-                               token=self.token)
-    self.assertEqual(len(output), 1)
-    self.assertEqual(output[0], r"C:\Windows")
+        output = aff4.FACTORY.Open(
+            self.client_id.Add("testRetrieveDependencies"), token=self.token)
+        self.assertEqual(len(output), 1)
+        self.assertEqual(output[0], r"C:\Windows")
 
 
 def main(argv):

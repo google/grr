@@ -55,7 +55,7 @@ class ApiHuntsListRendererTest(test_lib.GRRBaseTest):
       self.assertTrue("hunt_%d" % i in descriptions)
 
   def testHuntListIsSortedInReversedCreationTimestampOrder(self):
-    for i in range(10):
+    for i in range(1, 11):
       with test_lib.FakeTime(i * 1000):
         self.CreateSampleHunt("hunt_%d" % i, token=self.token)
 
@@ -65,11 +65,11 @@ class ApiHuntsListRendererTest(test_lib.GRRBaseTest):
                     for r in result["items"]]
 
     self.assertEqual(len(create_times), 10)
-    for index, expected_time in enumerate(reversed(range(10))):
+    for index, expected_time in enumerate(reversed(range(1, 11))):
       self.assertEqual(create_times[index], expected_time * 1000000000)
 
   def testRendersSubrangeOfListOfHuntObjects(self):
-    for i in range(10):
+    for i in range(1, 11):
       with test_lib.FakeTime(i * 1000):
         self.CreateSampleHunt("hunt_%d" % i, token=self.token)
 
@@ -79,8 +79,8 @@ class ApiHuntsListRendererTest(test_lib.GRRBaseTest):
                     for r in result["items"]]
 
     self.assertEqual(len(create_times), 2)
-    self.assertEqual(create_times[0], 7 * 1000000000)
-    self.assertEqual(create_times[1], 6 * 1000000000)
+    self.assertEqual(create_times[0], 8 * 1000000000)
+    self.assertEqual(create_times[1], 7 * 1000000000)
 
 
 class ApiHuntsListRendererRegressionTest(
@@ -90,8 +90,8 @@ class ApiHuntsListRendererRegressionTest(
 
   def Run(self):
     replace = {}
-    for i in range(2):
-      with test_lib.FakeTime(i * 1000):
+    for i in range(0, 2):
+      with test_lib.FakeTime((1 + i) * 1000):
         with ApiHuntsListRendererTest.CreateSampleHunt(
             "hunt_%d" % i, token=self.token) as hunt_obj:
           if i % 2:

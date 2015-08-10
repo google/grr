@@ -108,6 +108,7 @@ class FileStore(aff4.AFF4Volume):
       external: If true, attempt to add files to stores defined as EXTERNAL.
     """
     files_for_write = []
+
     for sub_store in self.GetChildrenByPriority(allow_external=external):
       new_file = sub_store.AddFile(fd, sync=sync)
       if new_file:

@@ -35,6 +35,7 @@ import logging
 import unittest
 # pylint: disable=unused-import
 from grr import config as _
+# pylint: enable=unused-import
 
 from grr.client import actions
 from grr.client import comms
@@ -68,6 +69,8 @@ from grr.lib import utils
 from grr.lib import worker
 from grr.lib import worker_mocks
 
+from grr.lib.aff4_objects import aff4_grr
+from grr.lib.aff4_objects import filestore
 from grr.lib.aff4_objects import user_managers
 from grr.lib.aff4_objects import users
 
@@ -309,6 +312,9 @@ class GRRBaseTest(unittest.TestCase):
       methodName: The test method to run.
     """
     super(GRRBaseTest, self).__init__(methodName=methodName or "__init__")
+    self.base_path = config_lib.CONFIG["Test.data_dir"]
+    self.token = access_control.ACLToken(username="test",
+                                         reason="Running tests")
 
   def setUp(self):
     super(GRRBaseTest, self).setUp()
@@ -318,15 +324,8 @@ class GRRBaseTest(unittest.TestCase):
     # Make a temporary directory for test files.
     self.temp_dir = tempfile.mkdtemp(dir=tmpdir)
 
-    # Reinitialize the config system each time.
-    startup.TestInit()
-
     config_lib.CONFIG.SetWriteBack(
         os.path.join(self.temp_dir, "writeback.yaml"))
-
-    self.base_path = config_lib.CONFIG["Test.data_dir"]
-    self.token = access_control.ACLToken(username="test",
-                                         reason="Running tests")
 
     if self.install_mock_acl:
       # Enforce checking that security tokens are propagated to the data store
@@ -335,19 +334,24 @@ class GRRBaseTest(unittest.TestCase):
 
     logging.info("Starting test: %s.%s",
                  self.__class__.__name__, self._testMethodName)
+    self.last_start_time = time.time()
 
-    # "test" must not be a system user or notifications will not be delivered.
-    if "test" in aff4.GRRUser.SYSTEM_USERS:
-      users.GRRUser.SYSTEM_USERS.remove("test")
+    try:
+      # Clear() is much faster than init but only supported for FakeDataStore.
+      data_store.DB.Clear()
+    except AttributeError:
+      self.InitDatastore()
 
-    # We don't want to send actual email in our tests
-    self.smtp_patcher = mock.patch("smtplib.SMTP")
-    self.mock_smtp = self.smtp_patcher.start()
+    aff4.FACTORY.Flush()
+
+    # Create a Foreman and Filestores, they are used in many tests.
+    aff4_grr.GRRAFF4Init().Run()
+    filestore.FileStoreInit().Run()
 
   def tearDown(self):
-    self.smtp_patcher.stop()
-    logging.info("Completed test: %s.%s",
-                 self.__class__.__name__, self._testMethodName)
+    logging.info("Completed test: %s.%s (%.4fs)",
+                 self.__class__.__name__, self._testMethodName,
+                 time.time() - self.last_start_time)
 
     # This may fail on filesystems which do not support unicode filenames.
     try:
@@ -743,10 +747,6 @@ class FlowTestsBaseclass(GRRBaseTest):
     client_ids = self.SetupClients(1)
     self.client_id = client_ids[0]
 
-  def tearDown(self):
-    super(FlowTestsBaseclass, self).tearDown()
-    data_store.DB.Clear()
-
   def FlowSetup(self, name):
     session_id = flow.GRRFlow.StartFlow(client_id=self.client_id,
                                         flow_name=name, token=self.token)
@@ -784,23 +784,100 @@ class ConfigOverrider(object):
     self._saved_values = {}
 
   def __enter__(self):
+    self.Start()
+
+  def Start(self):
     for k, v in self._overrides.iteritems():
       self._saved_values[k] = config_lib.CONFIG.Get(k)
-      config_lib.CONFIG.Set(k, v)
+      try:
+        config_lib.CONFIG.Set.old_target(k, v)
+      except AttributeError:
+        config_lib.CONFIG.Set(k, v)
 
   def __exit__(self, unused_type, unused_value, unused_traceback):
+    self.Stop()
+
+  def Stop(self):
     for k, v in self._saved_values.iteritems():
-      config_lib.CONFIG.Set(k, v)
+      try:
+        config_lib.CONFIG.Set.old_target(k, v)
+      except AttributeError:
+        config_lib.CONFIG.Set(k, v)
+
+
+class PreserveConfig(object):
+
+  def __enter__(self):
+    self.Start()
+
+  def Start(self):
+    self.old_config = config_lib.CONFIG
+    config_lib.CONFIG = self.old_config.MakeNewConfig()
+    config_lib.CONFIG.initialized = self.old_config.initialized
+    config_lib.CONFIG.SetWriteBack(self.old_config.writeback.filename)
+    config_lib.CONFIG.raw_data = self.old_config.raw_data.copy()
+    config_lib.CONFIG.writeback_data = self.old_config.writeback_data.copy()
+
+  def __exit__(self, unused_type, unused_value, unused_traceback):
+    self.Stop()
+
+  def Stop(self):
+    config_lib.CONFIG = self.old_config
+
+
+class VFSOverrider(object):
+  """A context to temporarily change VFS handlers."""
+
+  def __init__(self, vfs_type, temp_handler):
+    self._vfs_type = vfs_type
+    self._temp_handler = temp_handler
+
+  def __enter__(self):
+    self.Start()
+
+  def Start(self):
+    self._old_handler = vfs.VFS_HANDLERS.get(self._vfs_type)
+    vfs.VFS_HANDLERS[self._vfs_type] = self._temp_handler
+
+  def __exit__(self, unused_type, unused_value, unused_traceback):
+    self.Stop()
+
+  def Stop(self):
+    if self._old_handler:
+      vfs.VFS_HANDLERS[self._vfs_type] = self._old_handler
+    else:
+      del vfs.VFS_HANDLERS[self._vfs_type]
 
 
 class ACLChecksDisabledContextManager(object):
 
   def __enter__(self):
+    self.Start()
+
+  def Start(self):
     self.old_security_manager = data_store.DB.security_manager
     data_store.DB.security_manager = user_managers.NullAccessControlManager()
-    return None
 
   def __exit__(self, unused_type, unused_value, unused_traceback):
+    self.Stop()
+
+  def Stop(self):
+    data_store.DB.security_manager = self.old_security_manager
+
+
+class ACLChecksEnabledContextManager(object):
+
+  def __enter__(self):
+    self.Start()
+
+  def Start(self):
+    self.old_security_manager = data_store.DB.security_manager
+    data_store.DB.security_manager = access_control.FullAccessControlManager()
+
+  def __exit__(self, unused_type, unused_value, unused_traceback):
+    self.Stop()
+
+  def Stop(self):
     data_store.DB.security_manager = self.old_security_manager
 
 
@@ -905,35 +982,34 @@ class GRRSeleniumTest(GRRBaseTest):
   # Base url of the Admin UI
   base_url = None
 
-  # Whether InstallACLChecks() was called during the test
-  acl_checks_installed = False
+  # Also indicates whether InstallACLChecks() was called during the test.
+  acl_manager = None
 
   def InstallACLChecks(self):
     """Installs AccessControlManager and stubs out SendEmail."""
-    if self.acl_checks_installed:
+    if self.acl_manager:
       return
 
-    self.old_security_manager = data_store.DB.security_manager
-    data_store.DB.security_manager = access_control.FullAccessControlManager()
+    self.acl_manager = ACLChecksEnabledContextManager()
+    self.acl_manager.Start()
 
     # Stub out the email function
-    self.old_send_email = email_alerts.SendEmail
     self.emails_sent = []
 
     def SendEmailStub(from_user, to_user, subject, message, **unused_kwargs):
       self.emails_sent.append((from_user, to_user, subject, message))
 
-    email_alerts.SendEmail = SendEmailStub
-    self.acl_checks_installed = True
+    self.mail_stubber = utils.Stubber(email_alerts, "SendEmail", SendEmailStub)
+    self.mail_stubber.Start()
 
   def UninstallACLChecks(self):
     """Deinstall previously installed ACL checks."""
-    if not self.acl_checks_installed:
+    if not self.acl_manager:
       return
 
-    data_store.DB.security_manager = self.old_security_manager
-    email_alerts.SendEmail = self.old_send_email
-    self.acl_checks_installed = False
+    self.acl_manager.Stop()
+    self.mail_stubber.Stop()
+    self.acl_manager = None
 
   def ACLChecksDisabled(self):
     return ACLChecksDisabledContextManager()
@@ -1202,6 +1278,9 @@ class GRRSeleniumTest(GRRBaseTest):
         aff4.ROOT_URN.Add("users/test"), aff4_type="GRRUser", mode="w",
         token=self.token) as user_fd:
       user_fd.Set(user_fd.Schema.GUI_SETTINGS(mode="ADVANCED"))
+
+    # This creates client fixtures for the UI tests.
+    registry.InitHook.classes["RunTestsInit"]().Run()
 
     self.InstallACLChecks()
 
@@ -2172,7 +2251,7 @@ class GrrTestProgram(unittest.TestProgram):
   def __init__(self, labels=None, **kw):
     self.labels = labels
 
-    # Recreate a new data store each time.
+    # Set everything up once for all test.
     startup.TestInit()
 
     self.setUp()
@@ -2186,9 +2265,26 @@ class GrrTestProgram(unittest.TestProgram):
 
   def setUp(self):
     """Any global initialization goes here."""
+    # We don't want to send actual email in our tests
+    self.smtp_patcher = mock.patch("smtplib.SMTP")
+    self.mock_smtp = self.smtp_patcher.start()
+
+    # "test" must not be a system user or notifications will not be delivered.
+    if "test" in aff4.GRRUser.SYSTEM_USERS:
+      users.GRRUser.SYSTEM_USERS.remove("test")
+
+    def DisabledSet(*unused_args, **unused_kw):
+      raise NotImplementedError(
+          "Usage of Set() is disabled, please use a configoverrider in tests.")
+
+    self.config_set_disable = utils.Stubber(
+        config_lib.CONFIG, "Set", DisabledSet)
+    self.config_set_disable.Start()
 
   def tearDown(self):
     """Global teardown code goes here."""
+    self.config_set_disable.Stop()
+    self.smtp_patcher.stop()
 
   def parseArgs(self, argv):
     """Delegate arg parsing to the conf subsystem."""
@@ -2270,15 +2366,16 @@ class OSSpecificClientTests(EmptyActionTest):
 
   def setUp(self):
     super(OSSpecificClientTests, self).setUp()
-    self.old_action_reg = actions.ActionPlugin.classes
-    self.old_standard_reg = standard.ExecuteBinaryCommand.classes
-    actions.ActionPlugin.classes = {}
-    standard.ExecuteBinaryCommand.classes = {}
+    self.action_reg_stubber = utils.Stubber(actions.ActionPlugin, "classes", {})
+    self.action_reg_stubber.Start()
+    self.binary_command_stubber = utils.Stubber(standard.ExecuteBinaryCommand,
+                                                "classes", {})
+    self.binary_command_stubber.Start()
 
   def tearDown(self):
     super(OSSpecificClientTests, self).tearDown()
-    actions.ActionPlugin.classes = self.old_action_reg
-    standard.ExecuteBinaryCommand.classes = self.old_standard_reg
+    self.action_reg_stubber.Stop()
+    self.binary_command_stubber.Stop()
 
 
 def main(argv=None):

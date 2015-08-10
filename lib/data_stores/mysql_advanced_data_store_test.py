@@ -6,7 +6,6 @@ import unittest
 import logging
 
 from grr.lib import access_control
-from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import data_store_test
 from grr.lib import flags
@@ -20,16 +19,15 @@ class MysqlAdvancedTestMixin(object):
     self.token = access_control.ACLToken(username="test",
                                          reason="Running tests")
     # Use separate tables for benchmarks / tests so they can be run in parallel.
-    config_lib.CONFIG.Set("Mysql.database_name", "grr_test_%s" %
-                          self.__class__.__name__)
-
-    try:
-      data_store.DB = mysql_advanced_data_store.MySQLAdvancedDataStore()
-      data_store.DB.security_manager = test_lib.MockSecurityManager()
-      data_store.DB.RecreateTables()
-    except Exception as e:
-      logging.debug("Error while connecting to MySQL db: %s.", e)
-      raise unittest.SkipTest("Skipping since Mysql db is not reachable.")
+    with test_lib.ConfigOverrider({
+        "Mysql.database_name": "grr_test_%s" % self.__class__.__name__}):
+      try:
+        data_store.DB = mysql_advanced_data_store.MySQLAdvancedDataStore()
+        data_store.DB.security_manager = test_lib.MockSecurityManager()
+        data_store.DB.RecreateTables()
+      except Exception as e:
+        logging.debug("Error while connecting to MySQL db: %s.", e)
+        raise unittest.SkipTest("Skipping since Mysql db is not reachable.")
 
   def DestroyDatastore(self):
     data_store.DB.DropTables()

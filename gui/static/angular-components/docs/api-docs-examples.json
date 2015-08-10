@@ -3062,7 +3062,7 @@
                 "value": "STOPPED"
               },
               "aff4:type": {
-                "age": 1000,
+                "age": 2000,
                 "type": "RDFString",
                 "value": "GenericHunt"
               },
@@ -3163,7 +3163,7 @@
                       "create_time": {
                         "age": 0,
                         "type": "RDFDatetime",
-                        "value": 1000000000
+                        "value": 2000000000
                       },
                       "creator": {
                         "age": 0,
@@ -3178,7 +3178,7 @@
                       "expires": {
                         "age": 0,
                         "type": "RDFDatetime",
-                        "value": 1000000000
+                        "value": 2000000000
                       },
                       "kill_timestamp": {
                         "age": 0,
@@ -3207,7 +3207,7 @@
                       },
                       "next_states": "<lists are omitted>",
                       "output_plugins_base_urn": {
-                        "age": 1000,
+                        "age": 2000,
                         "type": "RDFURN",
                         "value": "aff4:/hunts/H:000001/Results"
                       },
@@ -3222,24 +3222,24 @@
                         "value": 0
                       },
                       "results_collection_urn": {
-                        "age": 1000,
+                        "age": 2000,
                         "type": "RDFURN",
                         "value": "aff4:/hunts/H:000001/Results"
                       },
                       "results_metadata_urn": {
-                        "age": 1000,
+                        "age": 2000,
                         "type": "RDFURN",
                         "value": "aff4:/hunts/H:000001/ResultsMetadata"
                       },
                       "session_id": {
-                        "age": 1000,
+                        "age": 2000,
                         "type": "SessionID",
                         "value": "aff4:/hunts/H:000001"
                       },
                       "start_time": {
                         "age": 0,
                         "type": "RDFDatetime",
-                        "value": 1000000000
+                        "value": 2000000000
                       },
                       "state": {
                         "age": 0,
@@ -3301,9 +3301,9 @@
                 }
               },
               "metadata:last": {
-                "age": 1000,
+                "age": 2000,
                 "type": "RDFDatetime",
-                "value": 1000000000
+                "value": 2000000000
               }
             },
             "summary": {
@@ -3320,7 +3320,7 @@
               "create_time": {
                 "age": 0,
                 "type": "RDFDatetime",
-                "value": 1000000000
+                "value": 2000000000
               },
               "creator": {
                 "age": 0,
@@ -3335,7 +3335,7 @@
               "expires": {
                 "age": 0,
                 "type": "RDFDatetime",
-                "value": 1000000000
+                "value": 2000000000
               },
               "hunt_name": {
                 "age": 0,
@@ -3360,7 +3360,7 @@
                 "value": "PAUSED"
               },
               "aff4:type": {
-                "age": 0,
+                "age": 1000,
                 "type": "RDFString",
                 "value": "GenericHunt"
               },
@@ -3461,7 +3461,7 @@
                       "create_time": {
                         "age": 0,
                         "type": "RDFDatetime",
-                        "value": 0
+                        "value": 1000000000
                       },
                       "creator": {
                         "age": 0,
@@ -3476,7 +3476,7 @@
                       "expires": {
                         "age": 0,
                         "type": "RDFDatetime",
-                        "value": 0
+                        "value": 1000000000
                       },
                       "kill_timestamp": {
                         "age": 0,
@@ -3505,7 +3505,7 @@
                       },
                       "next_states": "<lists are omitted>",
                       "output_plugins_base_urn": {
-                        "age": 0,
+                        "age": 1000,
                         "type": "RDFURN",
                         "value": "aff4:/hunts/H:000000/Results"
                       },
@@ -3520,24 +3520,24 @@
                         "value": 0
                       },
                       "results_collection_urn": {
-                        "age": 0,
+                        "age": 1000,
                         "type": "RDFURN",
                         "value": "aff4:/hunts/H:000000/Results"
                       },
                       "results_metadata_urn": {
-                        "age": 0,
+                        "age": 1000,
                         "type": "RDFURN",
                         "value": "aff4:/hunts/H:000000/ResultsMetadata"
                       },
                       "session_id": {
-                        "age": 0,
+                        "age": 1000,
                         "type": "SessionID",
                         "value": "aff4:/hunts/H:000000"
                       },
                       "start_time": {
                         "age": 0,
                         "type": "RDFDatetime",
-                        "value": 0
+                        "value": 1000000000
                       },
                       "state": {
                         "age": 0,
@@ -3594,9 +3594,9 @@
                 }
               },
               "metadata:last": {
-                "age": 0,
+                "age": 1000,
                 "type": "RDFDatetime",
-                "value": 0
+                "value": 1000000000
               }
             },
             "summary": {
@@ -3613,7 +3613,7 @@
               "create_time": {
                 "age": 0,
                 "type": "RDFDatetime",
-                "value": 0
+                "value": 1000000000
               },
               "creator": {
                 "age": 0,
@@ -3628,7 +3628,7 @@
               "expires": {
                 "age": 0,
                 "type": "RDFDatetime",
-                "value": 0
+                "value": 1000000000
               },
               "hunt_name": {
                 "age": 0,
@@ -3665,7 +3665,7 @@
                 "value": "STOPPED"
               },
               "aff4:type": {
-                "age": 1000,
+                "age": 2000,
                 "type": "RDFString",
                 "value": "GenericHunt"
               },
@@ -3766,7 +3766,7 @@
                       "create_time": {
                         "age": 0,
                         "type": "RDFDatetime",
-                        "value": 1000000000
+                        "value": 2000000000
                       },
                       "creator": {
                         "age": 0,
@@ -3781,7 +3781,7 @@
                       "expires": {
                         "age": 0,
                         "type": "RDFDatetime",
-                        "value": 1000000000
+                        "value": 2000000000
                       },
                       "kill_timestamp": {
                         "age": 0,
@@ -3810,7 +3810,7 @@
                       },
                       "next_states": "<lists are omitted>",
                       "output_plugins_base_urn": {
-                        "age": 1000,
+                        "age": 2000,
                         "type": "RDFURN",
                         "value": "aff4:/hunts/H:000001/Results"
                       },
@@ -3825,24 +3825,24 @@
                         "value": 0
                       },
                       "results_collection_urn": {
-                        "age": 1000,
+                        "age": 2000,
                         "type": "RDFURN",
                         "value": "aff4:/hunts/H:000001/Results"
                       },
                       "results_metadata_urn": {
-                        "age": 1000,
+                        "age": 2000,
                         "type": "RDFURN",
                         "value": "aff4:/hunts/H:000001/ResultsMetadata"
                       },
                       "session_id": {
-                        "age": 1000,
+                        "age": 2000,
                         "type": "SessionID",
                         "value": "aff4:/hunts/H:000001"
                       },
                       "start_time": {
                         "age": 0,
                         "type": "RDFDatetime",
-                        "value": 1000000000
+                        "value": 2000000000
                       },
                       "state": {
                         "age": 0,
@@ -3904,9 +3904,9 @@
                 }
               },
               "metadata:last": {
-                "age": 1000,
+                "age": 2000,
                 "type": "RDFDatetime",
-                "value": 1000000000
+                "value": 2000000000
               }
             },
             "summary": {
@@ -3923,7 +3923,7 @@
               "create_time": {
                 "age": 0,
                 "type": "RDFDatetime",
-                "value": 1000000000
+                "value": 2000000000
               },
               "creator": {
                 "age": 0,
@@ -3938,7 +3938,7 @@
               "expires": {
                 "age": 0,
                 "type": "RDFDatetime",
-                "value": 1000000000
+                "value": 2000000000
               },
               "hunt_name": {
                 "age": 0,
@@ -3975,7 +3975,7 @@
                 "value": "PAUSED"
               },
               "aff4:type": {
-                "age": 0,
+                "age": 1000,
                 "type": "RDFString",
                 "value": "GenericHunt"
               },
@@ -4076,7 +4076,7 @@
                       "create_time": {
                         "age": 0,
                         "type": "RDFDatetime",
-                        "value": 0
+                        "value": 1000000000
                       },
                       "creator": {
                         "age": 0,
@@ -4091,7 +4091,7 @@
                       "expires": {
                         "age": 0,
                         "type": "RDFDatetime",
-                        "value": 0
+                        "value": 1000000000
                       },
                       "kill_timestamp": {
                         "age": 0,
@@ -4120,7 +4120,7 @@
                       },
                       "next_states": "<lists are omitted>",
                       "output_plugins_base_urn": {
-                        "age": 0,
+                        "age": 1000,
                         "type": "RDFURN",
                         "value": "aff4:/hunts/H:000000/Results"
                       },
@@ -4135,24 +4135,24 @@
                         "value": 0
                       },
                       "results_collection_urn": {
-                        "age": 0,
+                        "age": 1000,
                         "type": "RDFURN",
                         "value": "aff4:/hunts/H:000000/Results"
                       },
                       "results_metadata_urn": {
-                        "age": 0,
+                        "age": 1000,
                         "type": "RDFURN",
                         "value": "aff4:/hunts/H:000000/ResultsMetadata"
                       },
                       "session_id": {
-                        "age": 0,
+                        "age": 1000,
                         "type": "SessionID",
                         "value": "aff4:/hunts/H:000000"
                       },
                       "start_time": {
                         "age": 0,
                         "type": "RDFDatetime",
-                        "value": 0
+                        "value": 1000000000
                       },
                       "state": {
                         "age": 0,
@@ -4209,9 +4209,9 @@
                 }
               },
               "metadata:last": {
-                "age": 0,
+                "age": 1000,
                 "type": "RDFDatetime",
-                "value": 0
+                "value": 1000000000
               }
             },
             "summary": {
@@ -4228,7 +4228,7 @@
               "create_time": {
                 "age": 0,
                 "type": "RDFDatetime",
-                "value": 0
+                "value": 1000000000
               },
               "creator": {
                 "age": 0,
@@ -4243,7 +4243,7 @@
               "expires": {
                 "age": 0,
                 "type": "RDFDatetime",
-                "value": 0
+                "value": 1000000000
               },
               "hunt_name": {
                 "age": 0,
