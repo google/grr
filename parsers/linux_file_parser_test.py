@@ -7,7 +7,6 @@ import os
 import StringIO
 
 
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import parsers
 from grr.lib import test_lib
@@ -73,25 +72,26 @@ super_group3 (-,user5,) (-,user6,) group1 group2
 """
     dat_fd = StringIO.StringIO(dat)
 
-    config_lib.CONFIG.Set("Artifacts.netgroup_user_blacklist", ["user2",
-                                                                "user3"])
-    out = list(parser.Parse(None, dat_fd, None))
-    users = []
-    for result in out:
-      if isinstance(result, rdf_anomaly.Anomaly):
-        self.assertTrue(utils.SmartUnicode(u"文德文") in result.symptom)
-      else:
-        users.append(result)
+    with test_lib.ConfigOverrider({
+        "Artifacts.netgroup_user_blacklist": ["user2", "user3"]}):
+      out = list(parser.Parse(None, dat_fd, None))
+      users = []
+      for result in out:
+        if isinstance(result, rdf_anomaly.Anomaly):
+          self.assertTrue(utils.SmartUnicode(u"文德文") in result.symptom)
+        else:
+          users.append(result)
 
-    self.assertItemsEqual([x.username for x in users],
-                          [u"user1", u"user4", u"user5", u"user6", u"user7"])
+      self.assertItemsEqual([x.username for x in users],
+                            [u"user1", u"user4", u"user5", u"user6", u"user7"])
 
-    dat_fd.seek(0)
-    config_lib.CONFIG.Set("Artifacts.netgroup_filter_regexes",
-                          [r"^super_group3$"])
-    out = list(parser.Parse(None, dat_fd, None))
-    self.assertItemsEqual([x.username for x in out],
-                          [u"user5", u"user6"])
+      dat_fd.seek(0)
+
+    with test_lib.ConfigOverrider({
+        "Artifacts.netgroup_filter_regexes": [r"^super_group3$"]}):
+      out = list(parser.Parse(None, dat_fd, None))
+      self.assertItemsEqual([x.username for x in out],
+                            [u"user5", u"user6"])
 
   def testNetgroupBufferParser(self):
     """Ensure we can extract users from a netgroup file."""
@@ -102,11 +102,11 @@ super_group3 (-,user5,) (-,user6,) group1 group2
                                       " group1 group2\n")
 
     ff_result = file_finder.FileFinderResult(matches=[buf1, buf2])
-    config_lib.CONFIG.Set("Artifacts.netgroup_user_blacklist", ["user2",
-                                                                "user3"])
-    out = list(parser.Parse(ff_result, None))
-    self.assertItemsEqual([x.username for x in out],
-                          [u"user1", u"user5", u"user6"])
+    with test_lib.ConfigOverrider({
+        "Artifacts.netgroup_user_blacklist": ["user2", "user3"]}):
+      out = list(parser.Parse(ff_result, None))
+      self.assertItemsEqual([x.username for x in out],
+                            [u"user1", u"user5", u"user6"])
 
   def testNetgroupParserBadInput(self):
     parser = linux_file_parser.NetgroupParser()

@@ -33,6 +33,7 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
     time.time = lambda: self._current_mock_time
 
   def tearDown(self):
+    super(QueueManagerTest, self).tearDown()
     time.time = self.old_time
 
   def testQueueing(self):
@@ -472,7 +473,13 @@ class MultiShardedQueueManagerTest(QueueManagerTest):
   def setUp(self):
     super(MultiShardedQueueManagerTest, self).setUp()
 
-    config_lib.CONFIG.Set("Worker.queue_shards", 2)
+    self.config_overrider = test_lib.ConfigOverrider(
+        {"Worker.queue_shards": 2})
+    self.config_overrider.Start()
+
+  def tearDown(self):
+    super(MultiShardedQueueManagerTest, self).tearDown()
+    self.config_overrider.Stop()
 
   def testFirstShardNameIsEqualToTheQueue(self):
     manager = queue_manager.QueueManager(token=self.token)
@@ -552,51 +559,51 @@ class MultiShardedQueueManagerTest(QueueManagerTest):
     self.assertEqual(len(notifications), 2)
 
   def testNotificationRequeueing(self):
-    config_lib.CONFIG.Set("Worker.queue_shards", 1)
-    session_id = rdfvalue.SessionID(base="aff4:/testflows",
-                                    queue=queues.HUNTS,
-                                    flow_name="123")
-    with test_lib.FakeTime(1000):
-      # Schedule a notification.
-      with queue_manager.QueueManager(token=self.token) as manager:
-        manager.QueueNotification(session_id=session_id)
+    with test_lib.ConfigOverrider({"Worker.queue_shards": 1}):
+      session_id = rdfvalue.SessionID(base="aff4:/testflows",
+                                      queue=queues.HUNTS,
+                                      flow_name="123")
+      with test_lib.FakeTime(1000):
+        # Schedule a notification.
+        with queue_manager.QueueManager(token=self.token) as manager:
+          manager.QueueNotification(session_id=session_id)
 
-    with test_lib.FakeTime(1100):
-      with queue_manager.QueueManager(token=self.token) as manager:
-        notifications = manager.GetNotifications(queues.HUNTS)
-        self.assertEqual(len(notifications), 1)
-        # This notification was first queued and last queued at time 1000.
-        notification = notifications[0]
-        self.assertEqual(notification.timestamp.AsSecondsFromEpoch(), 1000)
-        self.assertEqual(notification.first_queued.AsSecondsFromEpoch(), 1000)
-        # Now requeue the same notification.
-        manager.DeleteNotification(session_id)
-        manager.QueueNotification(notification)
+      with test_lib.FakeTime(1100):
+        with queue_manager.QueueManager(token=self.token) as manager:
+          notifications = manager.GetNotifications(queues.HUNTS)
+          self.assertEqual(len(notifications), 1)
+          # This notification was first queued and last queued at time 1000.
+          notification = notifications[0]
+          self.assertEqual(notification.timestamp.AsSecondsFromEpoch(), 1000)
+          self.assertEqual(notification.first_queued.AsSecondsFromEpoch(), 1000)
+          # Now requeue the same notification.
+          manager.DeleteNotification(session_id)
+          manager.QueueNotification(notification)
 
-    with test_lib.FakeTime(1200):
-      with queue_manager.QueueManager(token=self.token) as manager:
-        notifications = manager.GetNotifications(queues.HUNTS)
-        self.assertEqual(len(notifications), 1)
-        notification = notifications[0]
-        # Now the last queue time is 1100, the first queue time is still 1000.
-        self.assertEqual(notification.timestamp.AsSecondsFromEpoch(), 1100)
-        self.assertEqual(notification.first_queued.AsSecondsFromEpoch(), 1000)
-        # Again requeue the same notification.
-        manager.DeleteNotification(session_id)
-        manager.QueueNotification(notification)
+      with test_lib.FakeTime(1200):
+        with queue_manager.QueueManager(token=self.token) as manager:
+          notifications = manager.GetNotifications(queues.HUNTS)
+          self.assertEqual(len(notifications), 1)
+          notification = notifications[0]
+          # Now the last queue time is 1100, the first queue time is still 1000.
+          self.assertEqual(notification.timestamp.AsSecondsFromEpoch(), 1100)
+          self.assertEqual(notification.first_queued.AsSecondsFromEpoch(), 1000)
+          # Again requeue the same notification.
+          manager.DeleteNotification(session_id)
+          manager.QueueNotification(notification)
 
-    expired = 1000 + config_lib.CONFIG["Worker.notification_expiry_time"]
-    with test_lib.FakeTime(expired):
-      with queue_manager.QueueManager(token=self.token) as manager:
-        notifications = manager.GetNotifications(queues.HUNTS)
-        self.assertEqual(len(notifications), 1)
-        # Again requeue the notification, this time it should be dropped.
-        manager.DeleteNotification(session_id)
-        manager.QueueNotification(notifications[0])
+      expired = 1000 + config_lib.CONFIG["Worker.notification_expiry_time"]
+      with test_lib.FakeTime(expired):
+        with queue_manager.QueueManager(token=self.token) as manager:
+          notifications = manager.GetNotifications(queues.HUNTS)
+          self.assertEqual(len(notifications), 1)
+          # Again requeue the notification, this time it should be dropped.
+          manager.DeleteNotification(session_id)
+          manager.QueueNotification(notifications[0])
 
-      with queue_manager.QueueManager(token=self.token) as manager:
-        notifications = manager.GetNotifications(queues.HUNTS)
-        self.assertEqual(len(notifications), 0)
+        with queue_manager.QueueManager(token=self.token) as manager:
+          notifications = manager.GetNotifications(queues.HUNTS)
+          self.assertEqual(len(notifications), 0)
 
 
 def main(argv):

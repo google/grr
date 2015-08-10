@@ -28,6 +28,9 @@ grrUi.core.aff4DownloadLinkDirective.Aff4DownloadLinkController = function(
   this.cookies_ = $cookies;
 
   /** @export {string} */
+  this.reason = grr.state.reason;
+
+  /** @export {string} */
   this.csrfToken = $cookies.get('csrftoken');
 };
 var Aff4DownloadLinkController =

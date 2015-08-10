@@ -108,7 +108,8 @@ ApiItemsProviderController.prototype.fetchItems = function(
 
 /**
  * Fetches specified number of collection items filtered by a given token
- * starting from a given offset.
+ * starting from a given offset. Assuming that API supports "filter"
+ * parameter.
  *
  * @param {string} filter Token to be used for filtering.
  * @param {number} offset Number of items to skip in the resulting set.
@@ -118,7 +119,14 @@ ApiItemsProviderController.prototype.fetchItems = function(
  */
 ApiItemsProviderController.prototype.fetchFilteredItems = function(
     filter, offset, count) {
-  throw new Error('Not implemented.');
+  var params = angular.extend(this.queryParams || {}, {
+    'filter': filter,
+    'offset': offset,
+    'count': count
+  });
+
+  return this.grrApiService_.get(this.url, params).then(
+      this.onFetchedItems_.bind(this));
 };
 
 

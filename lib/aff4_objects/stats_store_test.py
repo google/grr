@@ -21,6 +21,7 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
 
   def setUp(self):
     super(StatsStoreTest, self).setUp()
+
     self.process_id = "some_pid"
     self.stats_store = aff4.FACTORY.Create(
         None, "StatsStore", mode="w", token=self.token)

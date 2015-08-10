@@ -5,6 +5,7 @@ goog.require('grrUi.tests.module');
 
 describe('flows tree directive', function() {
   var $compile, $rootScope, $q, grrApiService;
+  var emptySettingsDeferred;
 
   beforeEach(module(grrUi.flow.module.name));
   beforeEach(module(grrUi.tests.module.name));
@@ -14,6 +15,12 @@ describe('flows tree directive', function() {
     $rootScope = $injector.get('$rootScope');
     $q = $injector.get('$q');
     grrApiService = $injector.get('grrApiService');
+
+    // If user settings are empty, flows tree should use 'BASIC' mode.
+    emptySettingsDeferred = $q.defer();
+    emptySettingsDeferred.resolve({
+      data: {}
+    });
   }));
 
   afterEach(function() {
@@ -47,9 +54,24 @@ describe('flows tree directive', function() {
     expect(grrApiService.get).toHaveBeenCalledWith('/flows/descriptors');
   });
 
-  it('creates node per category', function(done) {
+  it('fetches user settings from the server', function() {
     var deferred = $q.defer();
     spyOn(grrApiService, 'get').and.returnValue(deferred.promise);
+
+    renderTestTemplate();
+
+    expect(grrApiService.get).toHaveBeenCalledWith('/users/me/settings');
+  });
+
+  it('creates node per category', function(done) {
+    var deferred = $q.defer();
+    spyOn(grrApiService, 'get').and.callFake(function(url) {
+      if (url == '/users/me/settings') {
+        return emptySettingsDeferred.promise;
+      } else {
+        return deferred.promise;
+      }
+    });
 
     deferred.resolve({
       data: {
@@ -67,16 +89,23 @@ describe('flows tree directive', function() {
     });
   });
 
-  it('uses friendly name if available', function() {
+  it('uses friendly name if available', function(done) {
     var deferred = $q.defer();
-    spyOn(grrApiService, 'get').and.returnValue(deferred.promise);
+    spyOn(grrApiService, 'get').and.callFake(function(url) {
+      if (url == '/users/me/settings') {
+        return emptySettingsDeferred.promise;
+      } else {
+        return deferred.promise;
+      }
+    });
 
     deferred.resolve({
       data: {
         'Category 1': [
           {
             name: 'foo',
-            friendly_name: 'friendly foo'
+            friendly_name: 'friendly foo',
+            behaviours: ['BASIC']
           }
         ],
       }
@@ -90,19 +119,73 @@ describe('flows tree directive', function() {
     });
   });
 
+  it('hides flows without specified behavior', function(done) {
+    var advancedSettingsDeferred = $q.defer();
+    advancedSettingsDeferred.resolve({
+      data: {
+        value: {
+          mode: {
+            value: 'ADVANCED'
+          }
+        }
+      }
+    });
+
+    var deferred = $q.defer();
+    deferred.resolve({
+      data: {
+        'Category 1': [
+          {
+            name: 'foo',
+            friendly_name: 'friendly foo',
+            behaviours: ['BASIC']
+          },
+          {
+            name: 'bar',
+            friendly_name: 'friendly bar',
+            behaviours: ['ADVANCED']
+          }
+        ],
+      }
+    });
+
+    spyOn(grrApiService, 'get').and.callFake(function(url) {
+      if (url == '/users/me/settings') {
+        return advancedSettingsDeferred.promise;
+      } else {
+        return deferred.promise;
+      }
+    });
+
+    var element = renderTestTemplate();
+    element.bind('DOMNodeInserted', function(e) {
+      if (element.text().indexOf('friendly bar') != -1 &&
+          element.text().indexOf('friendly foo') == -1) {
+        done();
+      }
+    });
+  });
+
   describe('when clicked', function() {
     var element;
 
     beforeEach(function(done) {
       var deferred = $q.defer();
-      spyOn(grrApiService, 'get').and.returnValue(deferred.promise);
+      spyOn(grrApiService, 'get').and.callFake(function(url) {
+        if (url == '/users/me/settings') {
+          return emptySettingsDeferred.promise;
+        } else {
+          return deferred.promise;
+        }
+      });
 
       deferred.resolve({
         data: {
           'Category 1': [
             {
               name: 'foo',
-              friendly_name: 'friendly foo'
+              friendly_name: 'friendly foo',
+              behaviours: ['BASIC']
             }
           ],
         }
@@ -125,7 +208,8 @@ describe('flows tree directive', function() {
 
       expect($rootScope.selectedDescriptor.value).toEqual({
         name: 'foo',
-        friendly_name: 'friendly foo'
+        friendly_name: 'friendly foo',
+        behaviours: ['BASIC']
       });
     });
   });

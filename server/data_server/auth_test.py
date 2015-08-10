@@ -17,10 +17,16 @@ class AuthTest(test_lib.GRRBaseTest):
 
   def setUp(self):
     super(AuthTest, self).setUp()
-    config_lib.CONFIG.Set("Dataserver.server_username", "rootuser1")
-    config_lib.CONFIG.Set("Dataserver.server_password", "somelongpasswordaabb")
-    config_lib.CONFIG.Set("Dataserver.client_credentials",
-                          ["rootuser1:somelongpasswordaabb:rw"])
+    self.config_overrider = test_lib.ConfigOverrider({
+        "Dataserver.server_username": "rootuser1",
+        "Dataserver.server_password": "somelongpasswordaabb",
+        "Dataserver.client_credentials":
+        ["rootuser1:somelongpasswordaabb:rw"]})
+    self.config_overrider.Start()
+
+  def tearDown(self):
+    super(AuthTest, self).tearDown()
+    self.config_overrider.Stop()
 
   def testNonceStoreSimple(self):
     # Test creation and deletion of nonces.

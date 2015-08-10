@@ -729,59 +729,58 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     """Run basic tests on a subclass of AFF4ImageBase."""
     path = "/C.12345/aff4image"
 
-    fd = aff4.FACTORY.Create(path, classname, token=self.token)
-    fd.SetChunksize(10)
+    with aff4.FACTORY.Create(path, classname, token=self.token) as fd:
+      fd.SetChunksize(10)
 
-    # Make lots of small writes - The length of this string and the chunk size
-    # are relative primes for worst case.
-    for i in range(100):
-      fd.Write("Test%08X\n" % i)
+      # Make lots of small writes - The length of this string and the chunk size
+      # are relative primes for worst case.
+      for i in range(10):
+        fd.Write("Test%08X\n" % i)
 
-    fd.Close()
+    with aff4.FACTORY.Open(path, token=self.token) as fd:
+      for i in range(10):
+        self.assertEqual(fd.Read(13), "Test%08X\n" % i)
 
-    fd = aff4.FACTORY.Open(path, token=self.token)
-    for i in range(100):
-      self.assertEqual(fd.Read(13), "Test%08X\n" % i)
+    with aff4.FACTORY.Create(path, classname, mode="rw",
+                             token=self.token) as fd:
+      fd.Set(fd.Schema._CHUNKSIZE(10))
 
-    fd.Close()
+      # Overflow the cache (Cache is 100 chunks, can hold 10*100 bytes).
+      fd.Write("X" * 1100)
+      self.assertEqual(fd.size, 1100)
+      # Now rewind a bit and write something.
+      fd.seek(fd.size - 100)
+      fd.Write("Hello World")
+      self.assertEqual(fd.size, 1100)
+      # Now append to the end.
+      fd.seek(fd.size)
+      fd.Write("Y" * 10)
+      self.assertEqual(fd.size, 1110)
+      # And verify everything worked as expected.
+      fd.seek(997)
+      data = fd.Read(17)
+      self.assertEqual("XXXHello WorldXXX", data)
 
-    fd = aff4.FACTORY.Create(path, classname, mode="rw", token=self.token)
-    fd.Set(fd.Schema._CHUNKSIZE(10))
-
-    # Overflow the cache.
-    fd.Write("X" * 10000)
-    self.assertEqual(fd.size, 10000)
-    # Now rewind a bit and write something.
-    fd.seek(fd.size - 100)
-    fd.Write("Hello World")
-    self.assertEqual(fd.size, 10000)
-    # Now append to the end.
-    fd.seek(fd.size)
-    fd.Write("Y" * 100)
-    self.assertEqual(fd.size, 10100)
-    # And verify everything worked as expected.
-    fd.seek(10000 - 200)
-    data = fd.Read(500)
-    self.assertEqual(len(data), 300)
-    self.assertTrue("XXXHello WorldXXX" in data)
-    self.assertTrue("XXXYYY" in data)
-    fd.Close()
+      fd.seek(1097)
+      data = fd.Read(6)
+      self.assertEqual("XXXYYY", data)
 
     # Set the max_unbound_read_size to last size of object at path
     # before object creation for unbound read() tests.
-    config_lib.CONFIG.Set("Server.max_unbound_read_size", 10100)
+    with test_lib.ConfigOverrider({
+        "Server.max_unbound_read_size": 1110}):
 
-    fd = aff4.FACTORY.Create(path, classname, mode="rw", token=self.token)
-    fd.Set(fd.Schema._CHUNKSIZE(10))
-    # Write one byte and verify the unbound read returns 10100 bytes
-    data = fd.read()
-    self.assertEqual(len(data), 10100)
-    # Append additional data and retry as oversized unbound read
-    fd.seek(fd.size)
-    fd.Write("X" * 10)
-    fd.seek(0)
-    self.assertRaises(aff4.OversizedRead, fd.read)
-    fd.Close()
+      with aff4.FACTORY.Create(path, classname, mode="rw",
+                               token=self.token) as fd:
+        fd.Set(fd.Schema._CHUNKSIZE(10))
+        # Verify the unbound read returns 110 bytes
+        data = fd.read()
+        self.assertEqual(len(data), 1110)
+        # Append additional data and retry as oversized unbound read
+        fd.seek(fd.size)
+        fd.Write("X" * 10)
+        fd.seek(0)
+        self.assertRaises(aff4.OversizedRead, fd.read)
 
   def testAFF4Image(self):
     self.ExerciseAFF4ImageBase("AFF4Image")
@@ -1385,8 +1384,10 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
       self.assertEqual(obj1.Get(obj1.Schema.HOSTNAME), "client1")
 
       def TryOpen():
-        with aff4.FACTORY.OpenWithLock(self.client_id, token=self.token,
-                                       blocking=True, blocking_lock_timeout=1):
+        with aff4.FACTORY.OpenWithLock(
+            self.client_id, token=self.token,
+            blocking=True, blocking_lock_timeout=0.1,
+            blocking_sleep_interval=0.1):
           pass
 
       self.assertRaises(aff4.LockError, TryOpen)
@@ -1681,6 +1682,10 @@ class ForemanTests(test_lib.AFF4ObjectTest):
   """Tests the Foreman."""
 
   clients_launched = []
+
+  def setUp(self):
+    super(ForemanTests, self).setUp()
+    aff4_grr.GRRAFF4Init().Run()
 
   def StartFlow(self, client_id, flow_name, token=None, **kw):
     # Make sure the foreman is launching these

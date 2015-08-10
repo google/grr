@@ -17,6 +17,7 @@ from grr.lib import flow
 from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.aff4_objects import filestore
 from grr.lib.checks import checks
 # This test calls flows from these files. pylint: disable=unused-import
 from grr.lib.flows.general import file_finder
@@ -283,6 +284,7 @@ class ExportTest(test_lib.GRRBaseTest):
     self.assertEqual("", results[0].metadata.annotations)
 
   def testStatEntryToExportedFileConverterWithHashedAFF4File(self):
+    filestore.FileStoreInit().Run()
     client_ids = self.SetupClients(1)
     client_id = client_ids[0]
 

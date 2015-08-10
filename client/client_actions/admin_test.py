@@ -21,6 +21,16 @@ from grr.lib.rdfvalues import protodict as rdf_protodict
 class ConfigActionTest(test_lib.EmptyActionTest):
   """Tests the client actions UpdateConfiguration and GetConfiguration."""
 
+  def setUp(self):
+    super(ConfigActionTest, self).setUp()
+    # These tests change the config so we preserve state.
+    self.config_stubber = test_lib.PreserveConfig()
+    self.config_stubber.Start()
+
+  def tearDown(self):
+    super(ConfigActionTest, self).tearDown()
+    self.config_stubber.Stop()
+
   def testUpdateConfiguration(self):
     """Test that we can update the config."""
     # A unique name on the filesystem for the writeback.
@@ -64,22 +74,22 @@ class ConfigActionTest(test_lib.EmptyActionTest):
 
   def testUpdateConfigBlacklist(self):
     """Tests that disallowed fields are not getting updated."""
+    with test_lib.ConfigOverrider({
+        "Client.control_urls": ["http://something.com/"],
+        "Client.server_serial_number": 1}):
 
-    config_lib.CONFIG.Set("Client.control_urls", ["http://something.com/"])
-    config_lib.CONFIG.Set("Client.server_serial_number", 1)
+      location = ["http://www.example.com"]
+      request = rdf_protodict.Dict()
+      request["Client.control_urls"] = location
+      request["Client.server_serial_number"] = 10
 
-    location = ["http://www.example.com"]
-    request = rdf_protodict.Dict()
-    request["Client.control_urls"] = location
-    request["Client.server_serial_number"] = 10
+      self.RunAction("UpdateConfiguration", request)
 
-    self.RunAction("UpdateConfiguration", request)
+      # Location can be set.
+      self.assertEqual(config_lib.CONFIG["Client.control_urls"], location)
 
-    # Location can be set.
-    self.assertEqual(config_lib.CONFIG["Client.control_urls"], location)
-
-    # But the server serial number can not be updated.
-    self.assertEqual(config_lib.CONFIG["Client.server_serial_number"], 1)
+      # But the server serial number can not be updated.
+      self.assertEqual(config_lib.CONFIG["Client.server_serial_number"], 1)
 
   def testGetConfig(self):
     """Check GetConfig client action works."""

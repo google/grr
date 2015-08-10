@@ -69,12 +69,12 @@ describe('API items provider directive', function() {
         'some/api/path', {offset: 0, count: 10});
   });
 
-  it('throws when trying to fetch filtered items', function() {
+  it('adds "filter" to query when fetching filtered items', function() {
     var controller = getController(
         'some/api/path', undefined, undefined);
 
-    expect(function() {
-      controller.fetchFilteredItems('some', 0, 10);
-    }).toThrow(Error('Not implemented.'));
+    controller.fetchFilteredItems('some', 0, 10);
+    expect(grrApiServiceMock.get).toHaveBeenCalledWith(
+        'some/api/path', {offset: 0, count: 10, filter: 'some'});
   });
 });

@@ -5,7 +5,6 @@
 import hashlib
 import os
 
-from grr.client import vfs
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
@@ -528,91 +527,90 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
   def testDownloadDirectory(self):
     """Test a FileFinder flow with depth=1."""
-    vfs.VFS_HANDLERS[
-        rdf_paths.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
+    with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                               test_lib.ClientVFSHandlerFixture):
+      # Mock the client actions FileFinder uses.
+      client_mock = action_mocks.ActionMock(
+          "FingerprintFile", "HashBuffer", "StatFile", "Find", "TransferBuffer")
 
-    # Mock the client actions FileFinder uses.
-    client_mock = action_mocks.ActionMock("FingerprintFile", "HashBuffer",
-                                          "StatFile", "Find", "TransferBuffer")
+      for _ in test_lib.TestFlowHelper(
+          "FileFinder", client_mock, client_id=self.client_id,
+          paths=["/c/Downloads/*"],
+          action=file_finder.FileFinderAction(
+              action_type=file_finder.FileFinderAction.Action.DOWNLOAD),
+          token=self.token):
+        pass
 
-    for _ in test_lib.TestFlowHelper(
-        "FileFinder", client_mock, client_id=self.client_id,
-        paths=["/c/Downloads/*"],
-        action=file_finder.FileFinderAction(
-            action_type=file_finder.FileFinderAction.Action.DOWNLOAD),
-        token=self.token):
-      pass
+      # Check if the base path was created
+      output_path = self.client_id.Add("fs/os/c/Downloads")
 
-    # Check if the base path was created
-    output_path = self.client_id.Add("fs/os/c/Downloads")
+      output_fd = aff4.FACTORY.Open(output_path, token=self.token)
 
-    output_fd = aff4.FACTORY.Open(output_path, token=self.token)
+      children = list(output_fd.OpenChildren())
 
-    children = list(output_fd.OpenChildren())
+      # There should be 6 children:
+      expected_children = u"a.txt b.txt c.txt d.txt sub1 中国新闻网新闻中.txt"
 
-    # There should be 6 children:
-    expected_children = u"a.txt b.txt c.txt d.txt sub1 中国新闻网新闻中.txt"
+      self.assertEqual(len(children), 6)
 
-    self.assertEqual(len(children), 6)
+      self.assertEqual(expected_children.split(),
+                       sorted([child.urn.Basename() for child in children]))
 
-    self.assertEqual(expected_children.split(),
-                     sorted([child.urn.Basename() for child in children]))
+      # Find the child named: a.txt
+      for child in children:
+        if child.urn.Basename() == "a.txt":
+          break
 
-    # Find the child named: a.txt
-    for child in children:
-      if child.urn.Basename() == "a.txt":
-        break
-
-    # Check the AFF4 type of the child, it should have changed
-    # from VFSFile to VFSBlobImage
-    self.assertEqual(child.__class__.__name__, "VFSBlobImage")
+      # Check the AFF4 type of the child, it should have changed
+      # from VFSFile to VFSBlobImage
+      self.assertEqual(child.__class__.__name__, "VFSBlobImage")
 
   def testDownloadDirectorySub(self):
     """Test a FileFinder flow with depth=5."""
-    vfs.VFS_HANDLERS[
-        rdf_paths.PathSpec.PathType.OS] = test_lib.ClientVFSHandlerFixture
+    with test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.OS, test_lib.ClientVFSHandlerFixture):
 
-    # Mock the client actions FileFinder uses.
-    client_mock = action_mocks.ActionMock("FingerprintFile", "HashBuffer",
-                                          "StatFile", "Find", "TransferBuffer")
+      # Mock the client actions FileFinder uses.
+      client_mock = action_mocks.ActionMock(
+          "FingerprintFile", "HashBuffer", "StatFile", "Find", "TransferBuffer")
 
-    for _ in test_lib.TestFlowHelper(
-        "FileFinder", client_mock, client_id=self.client_id,
-        paths=["/c/Downloads/**5"],
-        action=file_finder.FileFinderAction(
-            action_type=file_finder.FileFinderAction.Action.DOWNLOAD),
-        token=self.token):
-      pass
+      for _ in test_lib.TestFlowHelper(
+          "FileFinder", client_mock, client_id=self.client_id,
+          paths=["/c/Downloads/**5"],
+          action=file_finder.FileFinderAction(
+              action_type=file_finder.FileFinderAction.Action.DOWNLOAD),
+          token=self.token):
+        pass
 
-    # Check if the base path was created
-    output_path = self.client_id.Add("fs/os/c/Downloads")
+      # Check if the base path was created
+      output_path = self.client_id.Add("fs/os/c/Downloads")
 
-    output_fd = aff4.FACTORY.Open(output_path, token=self.token)
+      output_fd = aff4.FACTORY.Open(output_path, token=self.token)
 
-    children = list(output_fd.OpenChildren())
+      children = list(output_fd.OpenChildren())
 
-    # There should be 6 children:
-    expected_children = u"a.txt b.txt c.txt d.txt sub1 中国新闻网新闻中.txt"
+      # There should be 6 children:
+      expected_children = u"a.txt b.txt c.txt d.txt sub1 中国新闻网新闻中.txt"
 
-    self.assertEqual(len(children), 6)
+      self.assertEqual(len(children), 6)
 
-    self.assertEqual(expected_children.split(),
-                     sorted([child.urn.Basename() for child in children]))
+      self.assertEqual(expected_children.split(),
+                       sorted([child.urn.Basename() for child in children]))
 
-    # Find the child named: sub1
-    for child in children:
-      if child.urn.Basename() == "sub1":
-        break
+      # Find the child named: sub1
+      for child in children:
+        if child.urn.Basename() == "sub1":
+          break
 
-    children = list(child.OpenChildren())
+      children = list(child.OpenChildren())
 
-    # There should be 4 children: a.txt, b.txt, c.txt, d.txt
-    expected_children = "a.txt b.txt c.txt d.txt"
+      # There should be 4 children: a.txt, b.txt, c.txt, d.txt
+      expected_children = "a.txt b.txt c.txt d.txt"
 
-    self.assertEqual(len(children), 4)
+      self.assertEqual(len(children), 4)
 
-    self.assertEqual(expected_children.split(),
-                     sorted([child.urn.Basename() for child in children]))
+      self.assertEqual(expected_children.split(),
+                       sorted([child.urn.Basename() for child in children]))
 
   def CreateNewSparseImage(self):
     path = os.path.join(self.base_path, "test_img.dd")
@@ -771,45 +769,45 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
     client.Set(client.Schema.SYSTEM("Windows"))
     client.Flush()
-    vfs.VFS_HANDLERS[
-        rdf_paths.PathSpec.PathType.REGISTRY] = test_lib.FakeRegistryVFSHandler
+    with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
+                               test_lib.FakeRegistryVFSHandler):
 
-    client_mock = action_mocks.WindowsVolumeClientMock("StatFile",
-                                                       "ListDirectory")
+      client_mock = action_mocks.WindowsVolumeClientMock("StatFile",
+                                                         "ListDirectory")
 
-    with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
-      for _ in test_lib.TestFlowHelper(
-          "DiskVolumeInfo", client_mock, client_id=self.client_id,
-          token=self.token, path_list=[r"D:\temp\something", r"/var/tmp"]):
-        pass
+      with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
+        for _ in test_lib.TestFlowHelper(
+            "DiskVolumeInfo", client_mock, client_id=self.client_id,
+            token=self.token, path_list=[r"D:\temp\something", r"/var/tmp"]):
+          pass
 
-      results = []
-      for cls, reply in send_reply.args:
-        if isinstance(cls, filesystem.DiskVolumeInfo) and isinstance(
-            reply, rdf_client.Volume):
-          results.append(reply)
+        results = []
+        for cls, reply in send_reply.args:
+          if isinstance(cls, filesystem.DiskVolumeInfo) and isinstance(
+              reply, rdf_client.Volume):
+            results.append(reply)
 
-      # We asked for D and we guessed systemroot (C) for "/var/tmp", but only C
-      # and Z are present, so we should just get C.
-      self.assertItemsEqual([x.windowsvolume.drive_letter for x in results],
-                            ["C:"])
-      self.assertEqual(len(results), 1)
+        # We asked for D and we guessed systemroot (C) for "/var/tmp", but only
+        # C and Z are present, so we should just get C.
+        self.assertItemsEqual([x.windowsvolume.drive_letter for x in results],
+                              ["C:"])
+        self.assertEqual(len(results), 1)
 
-    with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
-      for _ in test_lib.TestFlowHelper(
-          "DiskVolumeInfo", client_mock, client_id=self.client_id,
-          token=self.token, path_list=[r"Z:\blah"]):
-        pass
+      with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
+        for _ in test_lib.TestFlowHelper(
+            "DiskVolumeInfo", client_mock, client_id=self.client_id,
+            token=self.token, path_list=[r"Z:\blah"]):
+          pass
 
-      results = []
-      for cls, reply in send_reply.args:
-        if isinstance(cls, filesystem.DiskVolumeInfo) and isinstance(
-            reply, rdf_client.Volume):
-          results.append(reply)
+        results = []
+        for cls, reply in send_reply.args:
+          if isinstance(cls, filesystem.DiskVolumeInfo) and isinstance(
+              reply, rdf_client.Volume):
+            results.append(reply)
 
-      self.assertItemsEqual([x.windowsvolume.drive_letter for x in results],
-                            ["Z:"])
-      self.assertEqual(len(results), 1)
+        self.assertItemsEqual([x.windowsvolume.drive_letter for x in results],
+                              ["Z:"])
+        self.assertEqual(len(results), 1)
 
 
 def main(argv):

@@ -14,7 +14,6 @@ import requests
 import logging
 
 from grr.gui import runtests
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import test_lib
 
@@ -25,14 +24,11 @@ class HTTPApiEndToEndTestProgram(test_lib.GrrTestProgram):
 
   def setUp(self):
     # Select a free port
-    HTTPApiEndToEndTestProgram.server_port = (
-        portpicker.PickUnusedPort())
-    config_lib.CONFIG.Set("AdminUI.port",
-                          HTTPApiEndToEndTestProgram.server_port)
-    logging.info("Picked free AdminUI port %d.",
-                 HTTPApiEndToEndTestProgram.server_port)
+    port = portpicker.PickUnusedPort()
+    HTTPApiEndToEndTestProgram.server_port = port
+    logging.info("Picked free AdminUI port %d.", port)
 
-    self.trd = runtests.DjangoThread()
+    self.trd = runtests.DjangoThread(port)
     self.trd.StartAndWaitUntilServing()
 
 
@@ -42,8 +38,7 @@ class CSRFProtectionTest(test_lib.GRRBaseTest):
   def setUp(self):
     super(CSRFProtectionTest, self).setUp()
 
-    port = (HTTPApiEndToEndTestProgram.server_port or
-            config_lib.CONFIG["AdminUI.port"])
+    port = HTTPApiEndToEndTestProgram.server_port
     self.base_url = "http://localhost:%s" % port
 
   def testGETRequestWithoutCSRFTokenSucceeds(self):

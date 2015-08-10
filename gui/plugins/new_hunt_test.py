@@ -294,20 +294,20 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
     self.WaitUntilNot(self.IsTextPresent, "Dummy do do")
 
   def testDefaultOutputPluginIsCorrectlyAddedToThePluginsList(self):
-    config_lib.CONFIG.Set("AdminUI.new_hunt_wizard.default_output_plugin",
-                          "DummyOutputPlugin")
+    with test_lib.ConfigOverrider({
+        "AdminUI.new_hunt_wizard.default_output_plugin":
+        "DummyOutputPlugin"}):
+      self.Open("/#main=ManageHunts")
+      self.Click("css=button[name=NewHunt]")
 
-    self.Open("/#main=ManageHunts")
-    self.Click("css=button[name=NewHunt]")
+      # Select "List Processes" flow.
+      self.Click("css=#_Processes > ins.jstree-icon")
+      self.Click("link=ListProcesses")
 
-    # Select "List Processes" flow.
-    self.Click("css=#_Processes > ins.jstree-icon")
-    self.Click("link=ListProcesses")
-
-    # Dummy output plugin should be added by default.
-    self.Click("css=.Wizard button.Next")
-    self.WaitUntil(self.IsTextPresent, "Output Processing")
-    self.WaitUntil(self.IsTextPresent, "Dummy do do")
+      # Dummy output plugin should be added by default.
+      self.Click("css=.Wizard button.Next")
+      self.WaitUntil(self.IsTextPresent, "Output Processing")
+      self.WaitUntil(self.IsTextPresent, "Dummy do do")
 
   def testLabelsHuntRuleDisplaysAvailableLabels(self):
     with self.ACLChecksDisabled():

@@ -17,6 +17,18 @@ describe('aff4 download link directive', function() {
     $cookies = $injector.get('$cookies');
   }));
 
+  var prevGrrState;
+  beforeEach(function() {
+    prevGrrState = grr.state;
+    grr.state = {
+      reason: 'blah'
+    };
+  });
+
+  afterEach(function() {
+    grr.state = prevGrrState;
+  });
+
   var renderTestTemplate = function(aff4Path, safeExtension) {
     $rootScope.aff4Path = aff4Path;
     $rootScope.safeExtension = safeExtension;
@@ -47,7 +59,7 @@ describe('aff4 download link directive', function() {
     expect(formSubmitted).toBe(true);
   });
 
-  it('puts csrf token and aff4 path into the form', function() {
+  it('puts csrf token, aff4 path and reason into the form', function() {
     spyOn($cookies, 'get').and.returnValue('CSRF-TOKEN');
 
     var element = renderTestTemplate('aff4:/foo/bar', undefined);
@@ -56,6 +68,8 @@ describe('aff4 download link directive', function() {
         'CSRF-TOKEN');
     expect(element.find('input[name=aff4_path]').val()).toBe(
         'aff4:/foo/bar');
+    expect(element.find('input[name=reason]').val()).toBe(
+        'blah');
   });
 
   it('puts safe extension into form when not provided', function() {

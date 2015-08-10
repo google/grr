@@ -1,8 +1,9 @@
 <form class="hide" target="_blank" action="/render/Download/DownloadView" method="post">
-  <input type="hidden" name="csrfmiddlewaretoken" value="{$ controller.csrfToken $}" />
-  <input type="hidden" name="aff4_path" value="{$ aff4Path $}" />
+  <input type="hidden" name="csrfmiddlewaretoken" value="{$ controller.csrfToken $}"></input>
+  <input type="hidden" name="reason" value="{$ controller.reason $}"></input>
+  <input type="hidden" name="aff4_path" value="{$ aff4Path $}"></input>
   <input ng-if="safeExtension" type="hidden" name="safe_extension"
-         value="{$ safeExtension $}" />
+         value="{$ safeExtension $}"></input>
 </form>
 <a ng-click="controller.onClick()">
   <ng-transclude />

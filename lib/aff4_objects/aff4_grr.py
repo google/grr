@@ -625,9 +625,9 @@ class GRRAFF4Init(registry.InitHook):
   def Run(self):
     try:
       # Make the foreman
-      fd = aff4.FACTORY.Create("aff4:/foreman", "GRRForeman",
-                               token=aff4.FACTORY.root_token)
-      fd.Close()
+      with aff4.FACTORY.Create("aff4:/foreman", "GRRForeman",
+                               token=aff4.FACTORY.root_token):
+        pass
     except access_control.UnauthorizedAccess:
       pass
 

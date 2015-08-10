@@ -441,10 +441,7 @@ class VFSTest(test_lib.GRRBaseTest):
   def testRegistryListing(self):
     """Test our ability to list registry keys."""
     reg = rdf_paths.PathSpec.PathType.REGISTRY
-    old_handler = vfs.VFS_HANDLERS.get(reg)
-    try:
-      vfs.VFS_HANDLERS[reg] = test_lib.FakeRegistryVFSHandler
-
+    with test_lib.VFSOverrider(reg, test_lib.FakeRegistryVFSHandler):
       pathspec = rdf_paths.PathSpec(
           pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
           path=("/HKEY_USERS/S-1-5-20/Software/Microsoft"
@@ -460,10 +457,6 @@ class VFSTest(test_lib.GRRBaseTest):
         self.assertEqual(base, pathspec.CollapsePath())
         self.assertIn(name, expected_names)
         self.assertIn(f.registry_data.GetValue(), expected_data)
-
-    finally:
-      # Cleanup.
-      vfs.VFS_HANDLERS[reg] = old_handler
 
   def CheckDirectoryListing(self, directory, test_file):
     """Check that the directory listing is sensible."""
@@ -521,16 +514,10 @@ class VFSTest(test_lib.GRRBaseTest):
       # This should not influence vfs handlers other than OS and TSK.
       reg_type = rdf_paths.PathSpec.PathType.REGISTRY
       os_handler = vfs.VFS_HANDLERS[rdf_paths.PathSpec.PathType.OS]
-      try:
-        vfs.VFS_HANDLERS[reg_type] = os_handler
-
+      with test_lib.VFSOverrider(reg_type, os_handler):
         with self.assertRaises(IOError):
           image_file_ps.pathtype = reg_type
           vfs.VFSOpen(image_file_ps)
-
-      finally:
-        # Reset to whatever it was before this test.
-        vfs.VFSInit().Run()
 
   def testFileSizeOverride(self):
 

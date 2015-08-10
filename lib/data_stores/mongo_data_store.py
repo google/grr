@@ -179,7 +179,7 @@ class MongoDataStore(data_store.DataStore):
         {"$or": [dict(predicate=utils.SmartUnicode(x)) for x in attributes]},
     ]}
 
-    if not start and not end:
+    if start is None and end is None:
       # Just delete all the versions.
       self.versioned_collection.remove(spec)
       self.latest_collection.remove(spec)
@@ -193,7 +193,7 @@ class MongoDataStore(data_store.DataStore):
     if start:
       spec["$and"].append(dict(timestamp={"$gte": int(start)}))
 
-    if not end:
+    if end is None:
       # We can optimize this case since the latest version will always
       # be unchanged or deleted.
       self.versioned_collection.remove(spec)

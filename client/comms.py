@@ -619,6 +619,7 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
     # We read the transaction log and fail any requests that are in it. If there
     # is anything in the transaction log we assume its there because we crashed
     # last time and let the server know.
+
     last_request = self.nanny_controller.GetTransactionLog()
     if last_request:
       status = rdf_flows.GrrStatus(
