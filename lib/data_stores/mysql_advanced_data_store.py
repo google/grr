@@ -46,9 +46,10 @@ class SafeQueue(Queue.Queue):
 class MySQLConnection(object):
   """A Class to manage MySQL database connections."""
 
-  def __init__(self, database_name):
+  def __init__(self):
+    database = config_lib.CONFIG["Mysql.database_name"]
     try:
-      self.dbh = self._MakeConnection(database=database_name)
+      self.dbh = self._MakeConnection(database=database)
       self.cursor = self.dbh.cursor()
       self.cursor.connection.autocommit(True)
     except MySQLdb.OperationalError as e:
@@ -57,33 +58,40 @@ class MySQLConnection(object):
         dbh = self._MakeConnection()
         cursor = dbh.cursor()
         cursor.connection.autocommit(True)
-        cursor.execute("Create database `%s`" % database_name)
+        cursor.execute("Create database `%s`" % database)
         cursor.close()
         dbh.close()
 
-        self.dbh = self._MakeConnection(database=database_name)
+        self.dbh = self._MakeConnection(database=database)
         self.cursor = self.dbh.cursor()
         self.cursor.connection.autocommit(True)
       else:
         raise
 
   def _MakeConnection(self, database=""):
-    try:
-      connection_args = dict(
-          user=config_lib.CONFIG["Mysql.database_username"],
-          db=database, charset="utf8",
-          passwd=config_lib.CONFIG["Mysql.database_password"],
-          cursorclass=cursors.DictCursor,
-          host=config_lib.CONFIG["Mysql.host"],
-          port=config_lib.CONFIG["Mysql.port"])
+    while True:
+      try:
+        connection_args = dict(
+            user=config_lib.CONFIG["Mysql.database_username"],
+            db=database, charset="utf8",
+            passwd=config_lib.CONFIG["Mysql.database_password"],
+            cursorclass=cursors.DictCursor,
+            host=config_lib.CONFIG["Mysql.host"],
+            port=config_lib.CONFIG["Mysql.port"])
 
-      dbh = MySQLdb.connect(**connection_args)
-      return dbh
-    except MySQLdb.OperationalError as e:
-      # This is a fatal error, we just raise the top level exception here.
-      if "Access denied" in str(e):
-        raise Error(str(e))
-      raise
+        dbh = MySQLdb.connect(**connection_args)
+        return dbh
+      except MySQLdb.OperationalError as e:
+        # This is a fatal error, we just raise the top level exception here.
+        if "Access denied" in str(e):
+          raise Error(str(e))
+
+        if "Can't connect" in str(e):
+          logging.warning("Datastore connection retrying after failed with %s.",
+                       str(e))
+          time.sleep(.5)
+          continue
+        raise
 
 
 class ConnectionPool(object):
@@ -92,28 +100,24 @@ class ConnectionPool(object):
   Uses unfinished_tasks to track the number of open connections.
   """
 
-  def __init__(self, database_name):
+  def __init__(self):
     self.connections = SafeQueue()
-    self.database_name = database_name
     self.pool_max_size = int(config_lib.CONFIG["Mysql.conn_pool_max"])
     self.pool_min_size = int(config_lib.CONFIG["Mysql.conn_pool_min"])
     for _ in range(self.pool_min_size):
-      self.connections.put(MySQLConnection(self.database_name))
+      self.connections.put(MySQLConnection())
 
   def GetConnection(self):
     if self.connections.empty() and (self.connections.unfinished_tasks <
                                      self.pool_max_size):
-      self.connections.put(MySQLConnection(self.database_name))
+      self.connections.put(MySQLConnection())
     connection = self.connections.get(block=True)
     return connection
 
   def PutConnection(self, connection):
     # If the pool is low on connections return this connection to the pool
-    # Reduce the connection count and then put will increment again if the
-    # connection is returned to the pool
 
     if self.connections.qsize() < self.pool_min_size:
-      self.connections.task_done()
       self.connections.put(connection)
     else:
       self.DropConnection(connection)
@@ -129,9 +133,6 @@ class ConnectionPool(object):
       connection.dbh.close()
     except MySQLdb.Error:
       pass
-    # If a connection is going to be dropped we remove it from the count
-    # of open connections.
-    self.connections.task_done()
 
 
 class MySQLAdvancedDataStore(data_store.DataStore):
@@ -140,15 +141,17 @@ class MySQLAdvancedDataStore(data_store.DataStore):
   POOL = None
 
   def __init__(self):
-    self.database_name = config_lib.CONFIG["Mysql.database_name"]
     # Use the global connection pool.
     if MySQLAdvancedDataStore.POOL is None:
-      MySQLAdvancedDataStore.POOL = ConnectionPool(self.database_name)
+      MySQLAdvancedDataStore.POOL = ConnectionPool()
     self.pool = self.POOL
 
+    self.to_replace = []
     self.to_insert = []
     self._CalculateAttributeStorageTypes()
-    self.lock = threading.Lock()
+    self.database_name = config_lib.CONFIG["Mysql.database_name"]
+    self.buffer_lock = threading.RLock()
+    self.lock = threading.RLock()
 
     super(MySQLAdvancedDataStore, self).__init__()
 
@@ -156,6 +159,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     try:
       self.ExecuteQuery("desc `aff4`")
     except MySQLdb.Error:
+      logging.debug("Recreating Tables")
       self.RecreateTables()
 
   def DropTables(self):
@@ -198,15 +202,15 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     for attribute in attributes:
       timestamp = self._MakeTimestamp(start, end)
       attribute = utils.SmartUnicode(attribute)
-      transaction = self._BuildDelete(subject, attribute, timestamp)
-      self._ExecuteTransaction(transaction)
+      queries = self._BuildDelete(subject, attribute, timestamp)
+      self._ExecuteQueries(queries)
 
   def DeleteSubject(self, subject, sync=False, token=None):
     _ = sync
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
 
-    transaction = self._BuildDelete(subject)
-    self._ExecuteTransaction(transaction)
+    queries = self._BuildDelete(subject)
+    self._ExecuteQueries(queries)
 
   def ResolveMulti(self, subject, attributes, timestamp=None, limit=None,
                    token=None):
@@ -281,6 +285,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     subject = utils.SmartUnicode(subject)
     to_insert = []
     to_replace = []
+    transaction = []
 
     # Build a document for each unique timestamp.
     for attribute, sequence in values.items():
@@ -302,49 +307,37 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
         # Replacing means to delete all versions of the attribute first.
         if replace or attribute in to_delete:
-          duplicates = self._CountDuplicateAttributes(subject, attribute)
-          if duplicates > 1:
-            to_delete.add(attribute)
-            to_insert.append(
-                [subject, attribute, data, entry_timestamp])
+          existing = self._CountExistingRows(subject, attribute)
+          if existing:
+            to_replace.append([subject, attribute, data, entry_timestamp])
           else:
-            if attribute in to_delete:
-              to_delete.remove(attribute)
-            if duplicates == 0:
-              to_insert.append(
-                  [subject, attribute, data, entry_timestamp])
-            elif duplicates == 1:
-              to_replace.append(
-                  [subject, attribute, data, entry_timestamp])
+            to_insert.append([subject, attribute, data, entry_timestamp])
+          if attribute in to_delete:
+            to_delete.remove(attribute)
+
         else:
-          to_insert.append(
-              [subject, attribute, data, entry_timestamp])
+          to_insert.append([subject, attribute, data, entry_timestamp])
 
     if to_delete:
       self.DeleteAttributes(subject, to_delete, token=token)
 
-    if to_replace:
-      transaction = self._BuildReplaces(to_replace)
-      self._ExecuteTransaction(transaction)
-
-    if to_insert:
-      if sync:
-        transaction = self._BuildInserts(to_insert)
+    if sync:
+      if to_replace:
+        transaction.extend(self._BuildReplaces(to_replace))
+      if to_insert:
+        transaction.extend(self._BuildInserts(to_insert))
+      if transaction:
         self._ExecuteTransaction(transaction)
-      else:
-        with self.lock:
+    else:
+      if to_replace:
+        with self.buffer_lock:
+          self.to_replace.extend(to_replace)
+      if to_insert:
+        with self.buffer_lock:
           self.to_insert.extend(to_insert)
 
-  def Flush(self):
-    with self.lock:
-      to_insert = self.to_insert
-      self.to_insert = []
 
-    if to_insert:
-      transaction = self._BuildInserts(to_insert)
-      self._ExecuteTransaction(transaction)
-
-  def _CountDuplicateAttributes(self, subject, attribute):
+  def _CountExistingRows(self, subject, attribute):
     query = ("SELECT count(*) AS total FROM aff4 "
              "WHERE subject_hash=unhex(md5(%s)) "
              "AND attribute_hash=unhex(md5(%s))")
@@ -352,18 +345,39 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     result = self.ExecuteQuery(query, args)
     return int(result[0]["total"])
 
+  @utils.Synchronized
+  def Flush(self):
+    with self.buffer_lock:
+      to_insert = self.to_insert
+      to_replace = self.to_replace
+      self.to_replace = []
+      self.to_insert = []
+
+    transaction = []
+    if to_replace:
+      transaction.extend(self._BuildReplaces(to_replace))
+    if to_insert:
+      transaction.extend(self._BuildInserts(to_insert))
+    if transaction:
+      self._ExecuteTransaction(transaction)
+
+
   def _BuildReplaces(self, values):
     transaction = []
+    updates = {}
+    to_insert = []
 
-    for (subject, attribute, value, timestamp) in values:
-      aff4_q = {}
-      aff4_q["query"] = (
-          "UPDATE aff4 SET value=%s, "
-          "timestamp=if(%s is NULL,floor(unix_timestamp(now(6))*1000000),%s) "
-          "WHERE subject_hash=unhex(md5(%s)) "
-          "AND attribute_hash=unhex(md5(%s))")
-      aff4_q["args"] = [value, timestamp, timestamp, subject, attribute]
-      transaction.append(aff4_q)
+    for (subject, attribute, data, timestamp) in values:
+      updates.setdefault(subject, {})[attribute] = [data, timestamp]
+
+    for subject in updates:
+      for attribute in updates[subject]:
+        data = updates[subject][attribute][0]
+        timestamp = updates[subject][attribute][1]
+        to_insert.append([subject, attribute, data, timestamp])
+        delete_q = self._BuildDelete(subject, attribute)[0]
+        transaction.append(delete_q)
+    transaction.extend(self._BuildInserts(to_insert))
     return transaction
 
   def _BuildInserts(self, values):
@@ -404,35 +418,75 @@ class MySQLAdvancedDataStore(data_store.DataStore):
          "if(%s is NULL,floor(unix_timestamp(now(6))*1000000),%s), %s)"] *
         (len(aff4_q["args"]) / 5))
 
-    return [aff4_q, subjects_q, attributes_q]
+    return [aff4_q, attributes_q, subjects_q]
 
   def ExecuteQuery(self, query, args=None):
     """Get connection from pool and execute query."""
-    retries = 10
-    for attempt in range(1, retries + 1):
+    while True:
+      # Connectivity issues and deadlocks should not cause threads to die and
+      # create inconsistency.  Any MySQL errors here should be temporary in
+      # nature and GRR should be able to recover when the server is available or
+      # deadlocks have been resolved.
       connection = self.pool.GetConnection()
       try:
         connection.cursor.execute(query, args)
         results = connection.cursor.fetchall()
-        break
+        self.pool.PutConnection(connection)
+        return results
       except MySQLdb.Error as e:
         # If there was an error attempt to clean up this connection and let it
         # drop
-        logging.warn("Datastore query attempt %s failed with %s:",
-                     attempt, str(e))
-        time.sleep(.2)
         self.pool.DropConnection(connection)
-        if attempt == 10:
+        if "doesn't exist" in str(e):
+          # This should indicate missing tables and raise immediately
           raise e
         else:
-          continue
-    self.pool.PutConnection(connection)
-    return results
+          logging.warning("Datastore query retrying after failed with %s.", str(e))
+          # Most errors encountered here need a reasonable backoff time to
+          # resolve.
+          time.sleep(1)
+      finally:
+        # Reduce the open connection count by calling task_done. This will
+        # increment again if the connection is returned to the pool.
+        self.pool.connections.task_done()
+
+  def _ExecuteQueries(self, queries):
+    """Get connection from pool and execute queries."""
+    for query in queries:
+      self.ExecuteQuery(query["query"], query["args"])
 
   def _ExecuteTransaction(self, transaction):
-    """Get connection from pool and execute queries."""
-    for query in transaction:
-      self.ExecuteQuery(query["query"], query["args"])
+    """Get connection from pool and execute transaction."""
+    while True:
+      # Connectivity issues and deadlocks should not cause threads to die and
+      # create inconsistency.  Any MySQL errors here should be temporary in
+      # nature and GRR should be able to recover when the server is available or
+      # deadlocks have been resolved.
+      connection = self.pool.GetConnection()
+      try:
+        connection.cursor.execute("START TRANSACTION")
+        for query in transaction:
+          connection.cursor.execute(query["query"], query["args"])
+        connection.cursor.execute("COMMIT")
+        results = connection.cursor.fetchall()
+        self.pool.PutConnection(connection)
+        return results
+      except MySQLdb.Error as e:
+        # If there was an error attempt to clean up this connection and let it
+        # drop
+        self.pool.DropConnection(connection)
+        if "doesn't exist" in str(e):
+          # This should indicate missing tables and raise immediately
+          raise e
+        else:
+          logging.warning("Datastore query retrying after failed with %s.", str(e))
+          # Most errors encountered here need a reasonable backoff time to
+          # resolve.
+          time.sleep(1)
+      finally:
+        # Reduce the open connection count by calling task_done. This will
+        # increment again if the connection is returned to the pool.
+        self.pool.connections.task_done()
 
   def _CalculateAttributeStorageTypes(self):
     """Build a mapping between column names and types."""
@@ -465,7 +519,6 @@ class MySQLAdvancedDataStore(data_store.DataStore):
                   limit=None, is_regex=False):
     """Build the SELECT query to be executed."""
     args = []
-    fields = ""
     criteria = "WHERE aff4.subject_hash=unhex(md5(%s))"
     args.append(subject)
     sorting = ""
@@ -558,12 +611,6 @@ class MySQLAdvancedDataStore(data_store.DataStore):
         aff4_q["args"].append(int(timestamp[0]))
         aff4_q["args"].append(int(timestamp[1]))
 
-      subjects_q["query"] = (
-          "DELETE subjects FROM subjects "
-          "LEFT JOIN aff4 ON aff4.subject_hash=subjects.hash "
-          "WHERE subjects.hash=unhex(md5(%s)) "
-          "AND aff4.subject_hash IS NULL")
-
       attributes_q = {
           "query": "DELETE attributes FROM attributes LEFT JOIN aff4 ON "
                    "aff4.attribute_hash=attributes.hash "
@@ -571,16 +618,13 @@ class MySQLAdvancedDataStore(data_store.DataStore):
                    "AND aff4.attribute_hash IS NULL",
           "args": [attribute]
       }
+      # If only attribute is being deleted we will not check to clean up
+      # subject and lock tables.
+      return [aff4_q, attributes_q]
+    # If a subject is being deleted we clean up the locks and subjects table
+    # but assume it has attributes that are common to other subjects
 
-      locks_q["query"] = (
-          "DELETE locks FROM locks "
-          "LEFT JOIN aff4 ON aff4.subject_hash=locks.subject_hash "
-          "WHERE locks.subject_hash=unhex(md5(%s)) "
-          "AND aff4.subject_hash IS NULL")
-
-      return [aff4_q, subjects_q, attributes_q, locks_q]
-
-    return [aff4_q, subjects_q, locks_q]
+    return [aff4_q, locks_q, subjects_q]
 
   def _MakeTimestamp(self, start=None, end=None):
     """Create a timestamp using a start and end time.
