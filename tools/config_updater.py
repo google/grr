@@ -449,11 +449,11 @@ The Server URL specifies the URL that the clients will connect to
 communicate with the server. For best results this should be publicly
 accessible. By default this will be port 8080 with the URL ending in /control.
 """
-  location = RetryQuestion("Frontend URL", "^http://.*/control$",
+  frontend_url = RetryQuestion("Frontend URL", "^http://.*/control$",
                            "http://%s:8080/control" % hostname)
-  config.Set("Client.control_urls", [location])
+  config.Set("Client.control_urls", [frontend_url])
 
-  frontend_port = urlparse.urlparse(location).port or config_lib.CONFIG.Get(
+  frontend_port = urlparse.urlparse(frontend_url).port or config_lib.CONFIG.Get(
       "Frontend.bind_port")
   config.Set("Frontend.bind_port", frontend_port)
 
@@ -513,6 +513,16 @@ well.
         prompt="Please enter password for database user %s: " % mysql_username)
     config.Set("Mysql.database_password", mysql_password)
 
+    print """\n\n***WARNING***
+Do not continue until a MySQL 5.6 server is installed and running with a user
+created with the ability to create the GRR database and tables and the Python
+MySQLdb module has been installed on the GRR server.
+
+E.g: apt-get install mysql-server-5.6 python-mysqldb
+"""
+    while raw_input("Are you ready to continue?[Yn]: ").upper() != "Y":
+      pass
+
 
 def ConfigureEmails(config):
   """Configure email notification addresses."""
@@ -570,13 +580,6 @@ datastore.  To do this we need to configure a datastore.\n"""
          config_lib.CONFIG.Get("Mysql.database_name"),
          config_lib.CONFIG.Get("Mysql.database_username"))
 
-    if existing_datastore == "MongoDataStore":
-      print """  Mongo Host: %s
-  Mongo Port: %s
-  Mongo Database: %s
-  """ % (config_lib.CONFIG.Get("Mongo.server"),
-         config_lib.CONFIG.Get("Mongo.port"),
-         config_lib.CONFIG.Get("Mongo.db_name"))
 
     if raw_input("Do you want to keep this configuration?"
                  " [Yn]: ").upper() == "N":
