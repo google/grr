@@ -280,7 +280,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
     regex_condition = file_finder.FileFinderContentsRegexMatchCondition(
         regex=self._CombineRegex(content_regex_list), bytes_before=0,
-        bytes_after=0)
+        bytes_after=0, mode="ALL_HITS")
 
     file_finder_condition = file_finder.FileFinderCondition(
         condition_type=(file_finder.FileFinderCondition

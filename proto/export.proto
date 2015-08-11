@@ -263,12 +263,12 @@ message ExportedAnomaly {
 
   // Not exporting PathSpec due to its recursive nature.
 
-  repeated string anomaly_reference_id = 8 [(sem_type) = {
+  optional string anomaly_reference_id = 8 [(sem_type) = {
       description: "A string used to reference the anomaly in the Anomaly "
         "database."
     }];
 
-  repeated string finding = 9 [(sem_type) = {
+  optional string finding = 9 [(sem_type) = {
       description: "String descriptions of data that triggered the Anomaly."
     }];
 }

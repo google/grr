@@ -163,9 +163,9 @@ class TestFileView(FileViewTestBase):
                      "As downloaded on %s" % DateTimeString(TIME_1))
       self.Click("css=button:contains(\"Download\")")
 
-    self.WaitUntil(self.IsElementPresent, "css=#TextView")
+      self.WaitUntil(self.IsElementPresent, "css=#TextView")
 
-    self.WaitUntil(lambda: len(downloaded_files) == 2)
+      self.WaitUntil(lambda: len(downloaded_files) == 2)
 
     # Both files should be the same...
     self.assertEqual(downloaded_files[0][0],

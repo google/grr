@@ -643,10 +643,10 @@ class ExportTest(test_lib.GRRBaseTest):
                      checkresults[1].anomaly[1].type)
     self.assertEqual(results[2].anomaly.symptom,
                      checkresults[1].anomaly[1].symptom)
-    self.assertItemsEqual(results[2].anomaly.anomaly_reference_id,
-                          checkresults[1].anomaly[1].anomaly_reference_id)
-    self.assertItemsEqual(results[2].anomaly.finding,
-                          checkresults[1].anomaly[1].finding)
+    self.assertEqual(results[2].anomaly.anomaly_reference_id,
+                     "\n".join(checkresults[1].anomaly[1].anomaly_reference_id))
+    self.assertEqual(results[2].anomaly.finding,
+                     checkresults[1].anomaly[1].finding[0])
 
   def testGetMetadata(self):
     client_urn = rdf_client.ClientURN("C.0000000000000000")

@@ -967,10 +967,10 @@ class CheckResultConverter(ExportConverter):
         if anomaly.generated_by:
           exported_anomaly.generated_by = anomaly.generated_by
         if anomaly.anomaly_reference_id:
-          exported_anomaly.anomaly_reference_id.Extend(
+          exported_anomaly.anomaly_reference_id = "\n".join(
               anomaly.anomaly_reference_id)
         if anomaly.finding:
-          exported_anomaly.finding.Extend(anomaly.finding)
+          exported_anomaly.finding = "\n".join(anomaly.finding)
         yield ExportedCheckResult(
             metadata=metadata,
             check_id=checkresult.check_id,

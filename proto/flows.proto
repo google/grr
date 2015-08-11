@@ -1324,7 +1324,7 @@ message FileFinderContentsRegexMatchCondition {
   optional Mode mode = 6 [(sem_type) = {
       description: "When should searching stop? Stop after one hit "
                    "or search for all?",
-    }, default = ALL_HITS];
+    }, default = FIRST_HIT];
 
   optional uint32 bytes_before = 7 [(sem_type) = {
       description: "Include this many bytes before the hit.",
@@ -1363,7 +1363,7 @@ message FileFinderContentsLiteralMatchCondition {
   optional Mode mode = 6 [(sem_type) = {
       description: "When should searching stop? Stop after one hit "
                    "or search for all?",
-    }, default = ALL_HITS];
+    }, default = FIRST_HIT];
 
   optional uint64 start_offset = 2 [(sem_type) = {
       description: "Start searching at this file offset.",
