@@ -450,7 +450,7 @@ communicate with the server. For best results this should be publicly
 accessible. By default this will be port 8080 with the URL ending in /control.
 """
   frontend_url = RetryQuestion("Frontend URL", "^http://.*/control$",
-                           "http://%s:8080/control" % hostname)
+                               "http://%s:8080/control" % hostname)
   config.Set("Client.control_urls", [frontend_url])
 
   frontend_port = urlparse.urlparse(frontend_url).port or config_lib.CONFIG.Get(
@@ -579,7 +579,6 @@ datastore.  To do this we need to configure a datastore.\n"""
          config_lib.CONFIG.Get("Mysql.port"),
          config_lib.CONFIG.Get("Mysql.database_name"),
          config_lib.CONFIG.Get("Mysql.database_username"))
-
 
     if raw_input("Do you want to keep this configuration?"
                  " [Yn]: ").upper() == "N":

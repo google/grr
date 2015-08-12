@@ -46,10 +46,9 @@ class SafeQueue(Queue.Queue):
 class MySQLConnection(object):
   """A Class to manage MySQL database connections."""
 
-  def __init__(self):
-    database = config_lib.CONFIG["Mysql.database_name"]
+  def __init__(self, database_name):
     try:
-      self.dbh = self._MakeConnection(database=database)
+      self.dbh = self._MakeConnection(database=database_name)
       self.cursor = self.dbh.cursor()
       self.cursor.connection.autocommit(True)
     except MySQLdb.OperationalError as e:
@@ -58,11 +57,11 @@ class MySQLConnection(object):
         dbh = self._MakeConnection()
         cursor = dbh.cursor()
         cursor.connection.autocommit(True)
-        cursor.execute("Create database `%s`" % database)
+        cursor.execute("Create database `%s`" % database_name)
         cursor.close()
         dbh.close()
 
-        self.dbh = self._MakeConnection(database=database)
+        self.dbh = self._MakeConnection(database=database_name)
         self.cursor = self.dbh.cursor()
         self.cursor.connection.autocommit(True)
       else:
@@ -88,7 +87,7 @@ class MySQLConnection(object):
 
         if "Can't connect" in str(e):
           logging.warning("Datastore connection retrying after failed with %s.",
-                       str(e))
+                          str(e))
           time.sleep(.5)
           continue
         raise
@@ -100,17 +99,18 @@ class ConnectionPool(object):
   Uses unfinished_tasks to track the number of open connections.
   """
 
-  def __init__(self):
+  def __init__(self, database_name):
     self.connections = SafeQueue()
+    self.database_name = database_name
     self.pool_max_size = int(config_lib.CONFIG["Mysql.conn_pool_max"])
     self.pool_min_size = int(config_lib.CONFIG["Mysql.conn_pool_min"])
     for _ in range(self.pool_min_size):
-      self.connections.put(MySQLConnection())
+      self.connections.put(MySQLConnection(self.database_name))
 
   def GetConnection(self):
     if self.connections.empty() and (self.connections.unfinished_tasks <
                                      self.pool_max_size):
-      self.connections.put(MySQLConnection())
+      self.connections.put(MySQLConnection(self.database_name))
     connection = self.connections.get(block=True)
     return connection
 
@@ -141,9 +141,10 @@ class MySQLAdvancedDataStore(data_store.DataStore):
   POOL = None
 
   def __init__(self):
+    self.database_name = config_lib.CONFIG["Mysql.database_name"]
     # Use the global connection pool.
     if MySQLAdvancedDataStore.POOL is None:
-      MySQLAdvancedDataStore.POOL = ConnectionPool()
+      MySQLAdvancedDataStore.POOL = ConnectionPool(self.database_name)
     self.pool = self.POOL
 
     self.to_replace = []
@@ -336,7 +337,6 @@ class MySQLAdvancedDataStore(data_store.DataStore):
         with self.buffer_lock:
           self.to_insert.extend(to_insert)
 
-
   def _CountExistingRows(self, subject, attribute):
     query = ("SELECT count(*) AS total FROM aff4 "
              "WHERE subject_hash=unhex(md5(%s)) "
@@ -360,7 +360,6 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       transaction.extend(self._BuildInserts(to_insert))
     if transaction:
       self._ExecuteTransaction(transaction)
-
 
   def _BuildReplaces(self, values):
     transaction = []
@@ -441,7 +440,8 @@ class MySQLAdvancedDataStore(data_store.DataStore):
           # This should indicate missing tables and raise immediately
           raise e
         else:
-          logging.warning("Datastore query retrying after failed with %s.", str(e))
+          logging.warning("Datastore query retrying after failed with %s.",
+                          str(e))
           # Most errors encountered here need a reasonable backoff time to
           # resolve.
           time.sleep(1)
@@ -479,7 +479,8 @@ class MySQLAdvancedDataStore(data_store.DataStore):
           # This should indicate missing tables and raise immediately
           raise e
         else:
-          logging.warning("Datastore query retrying after failed with %s.", str(e))
+          logging.warning("Datastore query retrying after failed with %s.",
+                          str(e))
           # Most errors encountered here need a reasonable backoff time to
           # resolve.
           time.sleep(1)
