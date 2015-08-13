@@ -345,23 +345,39 @@ grr.Renderer('AngularDirectiveRenderer', {
     var $compile = injector.get('$compile');
     var $rootScope = injector.get('$rootScope');
 
+    var isolatedScope = $rootScope.$new(true, $rootScope);
+
     var template = $(document.createElement(directive));
     if (angular.isDefined(directive_args)) {
       var index = 0;
       for (var key in directive_args) {
         var value = directive_args[key];
         var valueName = 'var' + index.toString();
-        $rootScope[valueName] = value;
+        isolatedScope[valueName] = value;
         template.attr(key, valueName);
       }
     }
 
-    var linkFn = $compile(template);
-    var element = linkFn($rootScope);
-
-    $rootScope.$apply(function() {
+    var templateFn = $compile(template);
+    templateFn(isolatedScope, function(cloned) {
       var parent = $('#' + unique);
-      parent.append(element);
+      parent.append(cloned);
     });
+
+    // When parent item goes away destroy the scope. Otherwise we'll have a
+    // leak. In Angular-only application Angular handles this itself
+    // (TODO: double check that it does), but here, because we remove DOM
+    // elements outside of normal Angular workflow, we have to delete
+    // the scope manually.
+    var poll = function() {
+      setTimeout(function() {
+        if ($('#' + unique).length == 0) {
+          isolatedScope.$destroy();
+        } else {
+          poll();
+        }
+      }, 1000);
+    };
+    poll();
   }
 });

@@ -204,7 +204,12 @@ class RDFBytes(RDFValue):
   _value = ""
 
   def ParseFromString(self, string):
-    self._value = string
+    # TODO(user): this needs some more test coverage, particularly around
+    # submitting unicode strings and byte literals in the UI forms.
+    if isinstance(string, unicode):
+      self._value = utils.SmartStr(string)
+    else:
+      self._value = string
 
   def SerializeToString(self):
     return self._value
