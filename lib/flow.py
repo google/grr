@@ -236,13 +236,13 @@ class Responses(object):
 
     logging.error(
         "No valid Status message.\nState:\n%s\n%s\n%s",
-        data_store.DB.ResolveRegex(
+        data_store.DB.ResolvePrefix(
             session_id.Add("state"),
-            "flow:.*", token=token),
-        data_store.DB.ResolveRegex(
+            "flow:", token=token),
+        data_store.DB.ResolvePrefix(
             session_id.Add("state/request:%08X" % responses[0].request_id),
-            "flow:.*", token=token),
-        data_store.DB.ResolveRegex(
+            "flow:", token=token),
+        data_store.DB.ResolvePrefix(
             queues.FLOWS, "notify:%s" % session_id, token=token))
 
 
@@ -1700,7 +1700,7 @@ class FrontEndServer(object):
 
     1) Get all messages in the client queue.
     2) Sort these into a set of session_ids.
-    3) Use data_store.DB.ResolveRegex() to query all requests.
+    3) Use data_store.DB.ResolvePrefix() to query all requests.
     4) Delete all responses for retransmitted messages (if needed).
 
     Args:

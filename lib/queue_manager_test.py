@@ -162,13 +162,13 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
 
     # Ensure the rows are in the data store:
     self.assertEqual(
-        data_store.DB.ResolveRegex(
-            session_id.Add("state"), ".*", token=self.token)[0][0],
+        data_store.DB.ResolveRow(
+            session_id.Add("state"), token=self.token)[0][0],
         "flow:request:00000001")
 
     self.assertEqual(
-        data_store.DB.ResolveRegex(
-            session_id.Add("state/request:00000001"), ".*",
+        data_store.DB.ResolveRow(
+            session_id.Add("state/request:00000001"),
             token=self.token)[0][0],
         "flow:response:00000001:00000001")
 
@@ -180,13 +180,13 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
 
     # Ensure the rows are gone from the data store.
     self.assertEqual(
-        data_store.DB.ResolveRegex(
-            session_id.Add("state/request:00000001"), ".*", token=self.token),
+        data_store.DB.ResolveRow(
+            session_id.Add("state/request:00000001"), token=self.token),
         [])
 
     self.assertEqual(
-        data_store.DB.ResolveRegex(
-            session_id.Add("state"), ".*", token=self.token), [])
+        data_store.DB.ResolveRow(
+            session_id.Add("state"), token=self.token), [])
 
   def testSchedule(self):
     """Test the ability to schedule a task."""

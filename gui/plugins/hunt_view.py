@@ -858,8 +858,8 @@ class HuntOutstandingRenderer(renderers.TableRenderer):
     """Returns all client requests for the given client urns."""
     task_urns = [urn.Add("tasks") for urn in client_urns]
 
-    client_requests_raw = data_store.DB.MultiResolveRegex(task_urns, "task:.*",
-                                                          token=token)
+    client_requests_raw = data_store.DB.MultiResolvePrefix(task_urns, "task:",
+                                                           token=token)
 
     client_requests = {}
     for client_urn, requests in client_requests_raw:
@@ -895,8 +895,8 @@ class HuntOutstandingRenderer(renderers.TableRenderer):
     flow_requests = {}
     flow_request_urns = [flow_urn.Add("state") for flow_urn in flow_urns]
 
-    for flow_urn, values in data_store.DB.MultiResolveRegex(
-        flow_request_urns, "flow:.*", token=token):
+    for flow_urn, values in data_store.DB.MultiResolvePrefix(
+        flow_request_urns, "flow:", token=token):
       for subject, serialized, _ in values:
         try:
           if "status" in subject:
@@ -956,8 +956,8 @@ class HuntOutstandingRenderer(renderers.TableRenderer):
       response_urns.append(rdfvalue.RDFURN(request_base_urn).Add(
           "request:%08X" % request.id))
 
-    response_dict = dict(data_store.DB.MultiResolveRegex(
-        response_urns, "flow:.*", token=token))
+    response_dict = dict(data_store.DB.MultiResolvePrefix(
+        response_urns, "flow:", token=token))
 
     row_index = start_row
 

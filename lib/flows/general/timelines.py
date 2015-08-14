@@ -63,7 +63,7 @@ class MACTimes(flow.GRRFlow):
     child_urns = self._ListVFSChildren([self.state.urn])
     attribute = aff4.Attribute.GetAttributeByName("stat")
 
-    for subject, values in data_store.DB.MultiResolveRegex(
+    for subject, values in data_store.DB.MultiResolvePrefix(
         child_urns, attribute.predicate, token=self.token, limit=10000000):
       for _, serialized, _ in values:
         stat = rdf_client.StatEntry(serialized)

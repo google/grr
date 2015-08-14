@@ -506,8 +506,11 @@ class SqliteDataStore(data_store.DataStore):
     try:
       return buffer(value.SerializeToString())
     except AttributeError:
-      # Types "string" and "bytes" are stored as strings here.
-      return buffer(utils.SmartStr(value))
+      if isinstance(value, (int, long)):
+        return value
+      else:
+        # Types "string" and "bytes" are stored as strings here.
+        return buffer(utils.SmartStr(value))
 
   def _Decode(self, attribute, value):
     required_type = self._attribute_types.get(attribute, "bytes")

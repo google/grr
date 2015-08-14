@@ -179,7 +179,7 @@ class MySQLDataStore(data_store.DataStore):
                    ",".join(["%s"] * len(attributes))))
       args = [subject, subject] + list(attributes)
 
-      if start or end:
+      if start or end is not None:
         query += " and age >= %s and age <= %s"
         args.append(int(start or 0))
         mysql_unsigned_bigint_max = 18446744073709551615

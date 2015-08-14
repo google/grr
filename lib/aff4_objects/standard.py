@@ -732,9 +732,9 @@ class AFF4IndexSet(aff4.AFF4Object):
     column_name = self.INDEX_PREFIX + utils.SmartStr(value)
     self.to_delete.add(column_name)
 
-  def ListValues(self, regex=".*", limit=10000):
-    values = data_store.DB.ResolveRegex(self.urn, self.INDEX_PREFIX + regex,
-                                        token=self.token, limit=limit)
+  def ListValues(self, limit=10000):
+    values = data_store.DB.ResolvePrefix(self.urn, self.INDEX_PREFIX,
+                                         token=self.token, limit=limit)
 
     result = set()
     for v in values:

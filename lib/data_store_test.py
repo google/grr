@@ -247,7 +247,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
 
     # This should only produce a single result
     count = 0
-    for count, (predicate, value, _) in enumerate(data_store.DB.ResolveRegex(
+    for count, (predicate, value, _) in enumerate(data_store.DB.ResolvePrefix(
         self.test_row, "aff4:size", timestamp=data_store.DB.ALL_TIMESTAMPS,
         token=self.token)):
       self.assertEqual(value, 4)
@@ -271,18 +271,18 @@ class _DataStoreTest(test_lib.GRRBaseTest):
                            {"aff4:stored": [("2", 100), ("3", 200)]},
                            replace=False, token=self.token)
 
-    values = data_store.DB.ResolveRegex(self.test_row, "aff4:stored",
-                                        timestamp=data_store.DB.ALL_TIMESTAMPS,
-                                        token=self.token)
+    values = data_store.DB.ResolvePrefix(self.test_row, "aff4:stored",
+                                         timestamp=data_store.DB.ALL_TIMESTAMPS,
+                                         token=self.token)
     self.assertListEqual(
         values, [("aff4:stored", "3", 200), ("aff4:stored", "2", 100)])
 
     data_store.DB.MultiSet(self.test_row,
                            {"aff4:stored": [("4", 150)]},
                            replace=True, token=self.token)
-    values = data_store.DB.ResolveRegex(self.test_row, "aff4:stored",
-                                        timestamp=data_store.DB.ALL_TIMESTAMPS,
-                                        token=self.token)
+    values = data_store.DB.ResolvePrefix(self.test_row, "aff4:stored",
+                                         timestamp=data_store.DB.ALL_TIMESTAMPS,
+                                         token=self.token)
     self.assertListEqual(
         values, [("aff4:stored", "4", 150)])
 
@@ -390,7 +390,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     data_store.DB.DeleteSubjects(rows[20:80], token=self.token)
     data_store.DB.Flush()
 
-    res = dict(data_store.DB.MultiResolveRegex(
+    res = dict(data_store.DB.MultiResolvePrefix(
         rows, predicate, token=self.token))
     for i in xrange(100):
       if 20 <= i < 80:
@@ -400,20 +400,44 @@ class _DataStoreTest(test_lib.GRRBaseTest):
         # These rows should be present.
         self.assertIn(row_template % i, res)
 
-  def testMultiResolveRegex(self):
-    """tests MultiResolveRegex."""
+  def testMultiResolvePrefix(self):
+    """tests MultiResolvePrefix."""
     rows = self._MakeTimestampedRows()
 
-    subjects = dict(data_store.DB.MultiResolveRegex(
-        rows, ["metadata:[34]", "metadata:[78]"], token=self.token))
+    subjects = dict(data_store.DB.MultiResolvePrefix(
+        rows, ["metadata:3", "metadata:7"], token=self.token))
 
     subject_names = subjects.keys()
     subject_names.sort()
 
-    self.assertEqual(len(subjects), 4)
+    self.assertEqual(len(subjects), 2)
     self.assertEqual(
         subject_names,
-        [u"aff4:/row:3", u"aff4:/row:4", u"aff4:/row:7", u"aff4:/row:8"])
+        [u"aff4:/row:3", u"aff4:/row:7"])
+
+    rows = []
+    for r in range(5):
+      row_name = "aff4:/prefix_row_%d" % r
+      rows.append(row_name)
+      for i in range(5):
+        timestamp = rdfvalue.RDFDatetime(100 + i)
+        data_store.DB.Set(row_name, "metadata:%s" % ("X" * (1 + i)), str(i),
+                          timestamp=timestamp, token=self.token)
+
+    subjects = dict(data_store.DB.MultiResolvePrefix(
+        rows, ["metadata:"], token=self.token))
+    self.assertItemsEqual(subjects.keys(), rows)
+    row = subjects["aff4:/prefix_row_4"]
+    self.assertEqual(len(row), 5)
+
+    subjects = dict(data_store.DB.MultiResolvePrefix(
+        rows, ["metadata:XXX"], token=self.token))
+    self.assertItemsEqual(subjects.keys(), rows)
+    for row in subjects.values():
+      # Those with 3-5 X's.
+      self.assertEqual(len(row), 3)
+      self.assertIn((u"metadata:XXX", "2", 102), row)
+      self.assertNotIn((u"metadata:XX", "1", 101), row)
 
   def testMultiResolveRegexTimestamp(self):
     """tests MultiResolveRegex with a timestamp."""
@@ -985,18 +1009,18 @@ class _DataStoreTest(test_lib.GRRBaseTest):
                              timestamp=timestamp, replace=False,
                              token=self.token)
 
-    rows = data_store.DB.ResolveRegex(row, "metadata:.*",
-                                      timestamp=data_store.DB.ALL_TIMESTAMPS,
-                                      token=self.token)
+    rows = data_store.DB.ResolvePrefix(row, "metadata:",
+                                       timestamp=data_store.DB.ALL_TIMESTAMPS,
+                                       token=self.token)
 
     self.assertEqual(len(rows), 4)
     self.assertItemsEqual([r[2] for r in rows], [0, 100, 200, 300])
 
     data_store.DB.DeleteAttributes(row, [attribute], start=0, end=0,
                                    token=self.token)
-    rows = data_store.DB.ResolveRegex(row, "metadata:.*",
-                                      timestamp=data_store.DB.ALL_TIMESTAMPS,
-                                      token=self.token)
+    rows = data_store.DB.ResolvePrefix(row, "metadata:",
+                                       timestamp=data_store.DB.ALL_TIMESTAMPS,
+                                       token=self.token)
     self.assertEqual(len(rows), 3)
     self.assertItemsEqual([r[2] for r in rows], [100, 200, 300])
 
@@ -1114,9 +1138,9 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     aff4.FACTORY.Open("aff4:/C.1240/dir/a.b/c", "VFSDirectory",
                       token=self.token)
 
-    index = data_store.DB.ResolveRegex("aff4:/C.1240/dir",
-                                       "index:dir/.+",
-                                       token=self.token)
+    index = data_store.DB.ResolvePrefix("aff4:/C.1240/dir",
+                                        "index:dir/",
+                                        token=self.token)
     subjects = [s for (s, _, _) in index]
     self.assertTrue("index:dir/b" in subjects)
     self.assertTrue("index:dir/a.b" in subjects)
@@ -1366,6 +1390,12 @@ class _DataStoreTest(test_lib.GRRBaseTest):
           subjects[0], "metadata:.*", limit=limit, token=self.token)
       self.assertEqual(len(results), min(limit, 10))
 
+    # ResolvePrefix.
+    for limit in [1, 2, 5, 10, 100]:
+      results = data_store.DB.ResolvePrefix(
+          subjects[0], "metadata:", limit=limit, token=self.token)
+      self.assertEqual(len(results), min(limit, 10))
+
     # MultiResolveRegex.
     for limit in [1, 2, 5, 9, 10, 11, 25, 100, 120]:
       results = dict(data_store.DB.MultiResolveRegex(
@@ -1378,6 +1408,25 @@ class _DataStoreTest(test_lib.GRRBaseTest):
 
     for limit in [1, 2, 5, 9, 10, 11, 25]:
       results = dict(data_store.DB.MultiResolveRegex(
+          subjects, "metadata:limittest_7", limit=limit, token=self.token))
+      all_results = []
+      for subect_res in results.itervalues():
+        all_results.extend(subect_res)
+
+      self.assertEqual(len(all_results), min(limit, 10))
+
+    # MultiResolvePrefix.
+    for limit in [1, 2, 5, 9, 10, 11, 25, 100, 120]:
+      results = dict(data_store.DB.MultiResolvePrefix(
+          subjects, "metadata:", limit=limit, token=self.token))
+      all_results = []
+      for subect_res in results.itervalues():
+        all_results.extend(subect_res)
+
+      self.assertEqual(len(all_results), min(limit, 100))
+
+    for limit in [1, 2, 5, 9, 10, 11, 25]:
+      results = dict(data_store.DB.MultiResolvePrefix(
           subjects, "metadata:limittest_7", limit=limit, token=self.token))
       all_results = []
       for subect_res in results.itervalues():

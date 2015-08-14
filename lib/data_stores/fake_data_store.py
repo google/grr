@@ -329,6 +329,92 @@ class FakeDataStore(data_store.DataStore):
         result.append((k, v[2], v[1]))
     return result
 
+  @utils.Synchronized
+  def MultiResolvePrefix(self, subjects, attribute_prefix, token=None,
+                         timestamp=None, limit=None):
+    required_access = self.GetRequiredResolveAccess(attribute_prefix)
+
+    result = {}
+    for subject in subjects:
+      # If any of the subjects is forbidden we fail the entire request.
+      self.security_manager.CheckDataStoreAccess(token, [subject],
+                                                 required_access)
+
+      values = self.ResolvePrefix(subject, attribute_prefix, token=token,
+                                  timestamp=timestamp, limit=limit)
+
+      if not values:
+        continue
+
+      if limit:
+        if limit < len(values):
+          values = values[:limit]
+        result[subject] = values
+        limit -= len(values)
+        if limit <= 0:
+          return result.iteritems()
+      else:
+        result[subject] = values
+
+    return result.iteritems()
+
+  @utils.Synchronized
+  def ResolvePrefix(self, subject, attribute_prefix, token=None,
+                    timestamp=None, limit=None):
+    """Resolve all attributes for a subject starting with a prefix."""
+    self.security_manager.CheckDataStoreAccess(
+        token, [subject], self.GetRequiredResolveAccess(attribute_prefix))
+
+    # Does timestamp represent a range?
+    if isinstance(timestamp, (list, tuple)):
+      start, end = timestamp  # pylint: disable=unpacking-non-sequence
+    else:
+      start, end = 0, (2 ** 63) - 1
+
+    start = int(start)
+    end = int(end)
+
+    if isinstance(attribute_prefix, str):
+      attribute_prefix = [attribute_prefix]
+
+    subject = utils.SmartUnicode(subject)
+    try:
+      record = self.subjects[subject]
+    except KeyError:
+      return []
+
+    # Holds all the attributes which matched. Keys are attribute names, values
+    # are lists of timestamped data.
+    results = {}
+    nr_results = 0
+    for prefix in attribute_prefix:
+      for attribute, values in record.iteritems():
+        if limit and nr_results >= limit:
+          break
+        if utils.SmartStr(attribute).startswith(prefix):
+          for value, ts in values:
+            results_list = results.setdefault(attribute, [])
+            # If we are always after the latest ts we clear older ones.
+            if (results_list and timestamp == self.NEWEST_TIMESTAMP and
+                results_list[0][1] < ts):
+              results_list = []
+              results[attribute] = results_list
+
+            # Timestamp outside the range, drop it.
+            elif ts < start or ts > end:
+              continue
+
+            results_list.append((attribute, ts, value))
+            nr_results += 1
+            if limit and nr_results >= limit:
+              break
+
+    result = []
+    for k, values in sorted(results.items()):
+      for v in sorted(values, key=lambda x: x[1], reverse=True):
+        result.append((k, v[2], v[1]))
+    return result
+
   def Size(self):
     total_size = sys.getsizeof(self.subjects)
     for subject, record in self.subjects.iteritems():

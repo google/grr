@@ -19,7 +19,6 @@ class AFF4KeywordIndex(aff4.AFF4Object):
   INDEX_PREFIX = "kw_index:"
   INDEX_PREFIX_LEN = len(INDEX_PREFIX)
   INDEX_COLUMN_FORMAT = INDEX_PREFIX + "%s"
-  INDEX_COLUMN_REGEXP = INDEX_PREFIX + ".*"
 
   # The lowest and highest legal timestamps.
   FIRST_TIMESTAMP = 0
@@ -74,8 +73,8 @@ class AFF4KeywordIndex(aff4.AFF4Object):
     for kw in keywords:
       result[kw] = set()
 
-    for keyword_urn, value in data_store.DB.MultiResolveRegex(
-        keyword_urns.keys(), self.INDEX_COLUMN_REGEXP,
+    for keyword_urn, value in data_store.DB.MultiResolvePrefix(
+        keyword_urns.keys(), self.INDEX_PREFIX,
         timestamp=(start_time, end_time+1), token=self.token):
       for column, _, ts in value:
         kw = keyword_urns[keyword_urn]

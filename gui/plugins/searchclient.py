@@ -484,8 +484,8 @@ class FilestoreTable(renderers.TableRenderer):
     hash_urn = rdfvalue.RDFURN("aff4:/files/hash/generic/sha256/").Add(
         query_string)
 
-    for i, (_, value, timestamp) in enumerate(data_store.DB.ResolveRegex(
-        hash_urn, "index:.*", token=request.token)):
+    for i, (_, value, timestamp) in enumerate(data_store.DB.ResolvePrefix(
+        hash_urn, "index:", token=request.token)):
 
       if i > end:
         break

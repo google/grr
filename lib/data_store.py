@@ -119,6 +119,7 @@ class DataStore(object):
       trees of objects (see AFF4Volume.ListChildren for details).
     """
 
+    # TODO(user): This should not be regex specific.
     if isinstance(attribute_regex, basestring):
       attribute_regex = [utils.SmartStr(attribute_regex)]
     else:
@@ -320,6 +321,74 @@ class DataStore(object):
 
     return (None, 0)
 
+  def MultiResolvePrefix(self, subjects, attribute_prefix, timestamp=None,
+                         limit=None, token=None):
+    """Generate a set of values matching for subjects' attribute.
+
+    Args:
+      subjects: A list of subjects.
+      attribute_prefix: The attribute prefix.
+
+      timestamp: A range of times for consideration (In
+          microseconds). Can be a constant such as ALL_TIMESTAMPS or
+          NEWEST_TIMESTAMP or a tuple of ints (start, end).
+
+      limit: The number of subjects to return.
+      token: An ACL token.
+
+    Returns:
+       A dict keyed by subjects, with values being a list of (attribute, value
+       string, timestamp).
+
+       Values with the same attribute (happens when timestamp is not
+       NEWEST_TIMESTAMP, but ALL_TIMESTAMPS or time range) are guaranteed
+       to be ordered in the decreasing timestamp order.
+
+    Raises:
+      AccessError: if anything goes wrong.
+    """
+    if isinstance(attribute_prefix, basestring):
+      attribute_regex = attribute_prefix + ".*"
+    else:
+      attribute_regex = [x + ".*" for x in attribute_prefix]
+
+    return self.MultiResolveRegex(
+        subjects, attribute_regex, timestamp=timestamp, limit=limit,
+        token=token)
+
+  def ResolvePrefix(self, subject, attribute_prefix, timestamp=None,
+                    limit=None, token=None):
+    """Retrieve a set of value matching for this subject's attribute.
+
+    Args:
+      subject: The subject that we will search.
+      attribute_prefix: The attribute prefix.
+
+      timestamp: A range of times for consideration (In
+          microseconds). Can be a constant such as ALL_TIMESTAMPS or
+          NEWEST_TIMESTAMP or a tuple of ints (start, end).
+
+      limit: The number of results to fetch.
+      token: An ACL token.
+
+    Returns:
+       A list of (attribute, value string, timestamp).
+
+       Values with the same attribute (happens when timestamp is not
+       NEWEST_TIMESTAMP, but ALL_TIMESTAMPS or time range) are guaranteed
+       to be ordered in the decreasing timestamp order.
+
+    Raises:
+      AccessError: if anything goes wrong.
+    """
+    for _, values in self.MultiResolvePrefix(
+        [subject], attribute_prefix, timestamp=timestamp, token=token,
+        limit=limit):
+      values.sort(key=lambda a: a[0])
+      return values
+
+    return []
+
   @abc.abstractmethod
   def MultiResolveRegex(self, subjects, attribute_regex, timestamp=None,
                         limit=None, token=None):
@@ -472,6 +541,9 @@ class Transaction(object):
     Raises:
       AccessError: if anything goes wrong.
     """
+
+  def ResolvePrefix(self, attribute_prefix, timestamp=None):
+    return self.ResolveRegex(attribute_prefix + ".*", timestamp=timestamp)
 
   def UpdateLease(self, duration):
     """Update the transaction lease by at least the number of seconds.

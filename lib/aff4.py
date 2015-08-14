@@ -315,7 +315,7 @@ class Factory(object):
 
     # If there are any urns left we get them from the database.
     if urns:
-      for subject, values in data_store.DB.MultiResolveRegex(
+      for subject, values in data_store.DB.MultiResolvePrefix(
           urns, AFF4_PREFIXES, timestamp=self.ParseAgeSpecification(age),
           token=token, limit=None):
 
@@ -612,7 +612,7 @@ class Factory(object):
       token = data_store.default_token
 
     values = {}
-    for predicate, value, ts in data_store.DB.ResolveRegex(
+    for predicate, value, ts in data_store.DB.ResolvePrefix(
         old_urn, AFF4_PREFIXES,
         timestamp=self.ParseAgeSpecification(age),
         token=token, limit=limit):
@@ -834,7 +834,7 @@ class Factory(object):
 
     if isinstance(urns, basestring):
       raise RuntimeError("Expected an iterable, not string.")
-    for subject, values in data_store.DB.MultiResolveRegex(
+    for subject, values in data_store.DB.MultiResolvePrefix(
         urns, ["aff4:type"], token=token):
       yield dict(urn=rdfvalue.RDFURN(subject), type=values[0])
 
@@ -1025,8 +1025,8 @@ class Factory(object):
     checked_subjects = set()
 
     index_prefix = "index:dir/"
-    for subject, values in data_store.DB.MultiResolveRegex(
-        urns, index_prefix + ".+", token=token,
+    for subject, values in data_store.DB.MultiResolvePrefix(
+        urns, index_prefix, token=token,
         timestamp=Factory.ParseAgeSpecification(age),
         limit=limit):
 
@@ -2253,8 +2253,8 @@ class AFF4Volume(AFF4Object):
       A generator over the children.
     """
     direct_child_urns = []
-    for entry in data_store.DB.ResolveRegex(self.urn, "index:dir/.*",
-                                            limit=limit, token=self.token):
+    for entry in data_store.DB.ResolvePrefix(self.urn, "index:dir/",
+                                             limit=limit, token=self.token):
       _, filename = entry[0].split("/", 1)
       direct_child_urns.append(self.urn.Add(filename))
 
@@ -2313,8 +2313,8 @@ class AFF4Volume(AFF4Object):
     """
     # Just grab all the children from the index.
     index_prefix = "index:dir/"
-    for predicate, _, timestamp in data_store.DB.ResolveRegex(
-        self.urn, index_prefix + ".+", token=self.token,
+    for predicate, _, timestamp in data_store.DB.ResolvePrefix(
+        self.urn, index_prefix, token=self.token,
         timestamp=Factory.ParseAgeSpecification(age), limit=limit):
       urn = self.urn.Add(predicate[len(index_prefix):])
       urn.age = rdfvalue.RDFDatetime(timestamp)

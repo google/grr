@@ -302,8 +302,8 @@ class FlowCreationTest(BasicFlowTest):
         client_id=self.client_id, flow_name="CallClientParentFlow",
         token=self.token)
 
-    client_requests = data_store.DB.ResolveRegex(
-        self.client_id.Queue(), "task:.*", token=self.token)
+    client_requests = data_store.DB.ResolvePrefix(
+        self.client_id.Queue(), "task:", token=self.token)
 
     self.assertEqual(len(client_requests), 1)
 
