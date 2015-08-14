@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 """API renderers for dealing with output_plugins."""
 
-from grr.gui import api_call_renderers
+from grr.gui import api_call_renderer_base
 
 from grr.lib import output_plugin
 
 
-class ApiOutputPluginsListRenderer(api_call_renderers.ApiCallRenderer):
+class ApiOutputPluginsListRenderer(api_call_renderer_base.ApiCallRenderer):
   """Renders all available output plugins definitions."""
 
   def Render(self, unused_args, token=None):

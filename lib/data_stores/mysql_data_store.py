@@ -287,7 +287,7 @@ class MySQLDataStore(data_store.DataStore):
       query += "and (" + " or ".join(
           ["attribute rlike %s"] * len(attribute_regex)) + ")"
 
-      args = list(subjects) + list(subjects) + attribute_regex
+      args = list(subjects) + list(subjects) + list(attribute_regex)
 
       query += self._TimestampToQuery(timestamp, args)
 

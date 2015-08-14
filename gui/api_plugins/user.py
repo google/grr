@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 """API renderers for user-related data and actions."""
 
-from grr.gui import api_call_renderers
+from grr.gui import api_call_renderer_base
 from grr.gui import api_value_renderers
 
 from grr.lib import aff4
 from grr.lib.aff4_objects import users as aff4_users
 
 
-class ApiUserSettingsRenderer(api_call_renderers.ApiCallRenderer):
+class ApiUserSettingsRenderer(api_call_renderer_base.ApiCallRenderer):
   """Renders current user settings."""
 
   def GetUserSettings(self, token):
@@ -28,7 +28,7 @@ class ApiUserSettingsRenderer(api_call_renderers.ApiCallRenderer):
     return api_value_renderers.RenderValue(user_settings)
 
 
-class ApiSetUserSettingsRenderer(api_call_renderers.ApiCallRenderer):
+class ApiSetUserSettingsRenderer(api_call_renderer_base.ApiCallRenderer):
   """Sets current user settings."""
 
   args_type = aff4_users.GUISettings

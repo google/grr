@@ -41,7 +41,7 @@ ALL_TIMES = "ALL_TIMES"
 # Just something to write on an index attribute to make it exist.
 EMPTY_DATA = "X"
 
-AFF4_PREFIXES = ["aff4:.*", "metadata:.*"]
+AFF4_PREFIXES = set(["aff4:.*", "metadata:.*"])
 
 
 class Error(Exception):

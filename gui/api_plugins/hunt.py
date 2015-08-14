@@ -6,7 +6,7 @@ import operator
 import logging
 
 from grr.gui import api_aff4_object_renderers
-from grr.gui import api_call_renderers
+from grr.gui import api_call_renderer_base
 from grr.gui import api_value_renderers
 
 from grr.lib import access_control
@@ -83,7 +83,7 @@ class ApiHuntsListRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiHuntsListRendererArgs
 
 
-class ApiHuntsListRenderer(api_call_renderers.ApiCallRenderer):
+class ApiHuntsListRenderer(api_call_renderer_base.ApiCallRenderer):
   """Renders list of available hunts."""
 
   args_type = ApiHuntsListRendererArgs
@@ -129,7 +129,7 @@ class ApiHuntSummaryRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiHuntSummaryRendererArgs
 
 
-class ApiHuntSummaryRenderer(api_call_renderers.ApiCallRenderer):
+class ApiHuntSummaryRenderer(api_call_renderer_base.ApiCallRenderer):
   """Renders hunt's summary."""
 
   args_type = ApiHuntSummaryRendererArgs
@@ -147,7 +147,7 @@ class ApiHuntResultsRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiHuntResultsRendererArgs
 
 
-class ApiHuntResultsRenderer(api_call_renderers.ApiCallRenderer):
+class ApiHuntResultsRenderer(api_call_renderer_base.ApiCallRenderer):
   """Renders hunt results."""
 
   args_type = ApiHuntResultsRendererArgs
@@ -168,7 +168,7 @@ class ApiHuntOutputPluginsRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiHuntOutputPluginsRendererArgs
 
 
-class ApiHuntOutputPluginsRenderer(api_call_renderers.ApiCallRenderer):
+class ApiHuntOutputPluginsRenderer(api_call_renderer_base.ApiCallRenderer):
   """Renders hunt's output plugins states."""
 
   args_type = ApiHuntOutputPluginsRendererArgs
@@ -188,7 +188,7 @@ class ApiHuntLogRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiHuntLogRendererArgs
 
 
-class ApiHuntLogRenderer(api_call_renderers.ApiCallRenderer):
+class ApiHuntLogRenderer(api_call_renderer_base.ApiCallRenderer):
   """Renders hunt's log."""
 
   args_type = ApiHuntLogRendererArgs
@@ -210,7 +210,7 @@ class ApiHuntErrorsRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiHuntErrorsRendererArgs
 
 
-class ApiHuntErrorsRenderer(api_call_renderers.ApiCallRenderer):
+class ApiHuntErrorsRenderer(api_call_renderer_base.ApiCallRenderer):
   """Renders hunt's errors."""
 
   args_type = ApiHuntErrorsRendererArgs
@@ -232,7 +232,7 @@ class ApiHuntArchiveFilesRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiHuntArchiveFilesRendererArgs
 
 
-class ApiHuntArchiveFilesRenderer(api_call_renderers.ApiCallRenderer):
+class ApiHuntArchiveFilesRenderer(api_call_renderer_base.ApiCallRenderer):
   """Generates archive with all files references in hunt's results."""
 
   args_type = ApiHuntArchiveFilesRendererArgs

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """API renderers for accessing artifacts."""
 
-from grr.gui import api_call_renderers
+from grr.gui import api_call_renderer_base
 from grr.gui import api_value_renderers
 
 from grr.lib import aff4
@@ -19,7 +19,7 @@ class ApiArtifactsRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiArtifactsRendererArgs
 
 
-class ApiArtifactsRenderer(api_call_renderers.ApiCallRenderer):
+class ApiArtifactsRenderer(api_call_renderer_base.ApiCallRenderer):
   """Renders available artifacts definitions."""
 
   args_type = ApiArtifactsRendererArgs
@@ -87,7 +87,7 @@ class ApiArtifactsUploadRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiArtifactsUploadRendererArgs
 
 
-class ApiArtifactsUploadRenderer(api_call_renderers.ApiCallRenderer):
+class ApiArtifactsUploadRenderer(api_call_renderer_base.ApiCallRenderer):
   """Handles artifact upload."""
 
   args_type = ApiArtifactsUploadRendererArgs
@@ -101,7 +101,7 @@ class ApiArtifactsDeleteRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiArtifactsDeleteRendererArgs
 
 
-class ApiArtifactsDeleteRenderer(api_call_renderers.ApiCallRenderer):
+class ApiArtifactsDeleteRenderer(api_call_renderer_base.ApiCallRenderer):
   """Handles artifact deletion."""
 
   args_type = ApiArtifactsDeleteRendererArgs

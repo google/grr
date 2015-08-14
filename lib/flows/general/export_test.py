@@ -89,7 +89,8 @@ class TestExportHuntResultsFilesAsArchive(test_lib.FlowTestsBaseclass):
 
   def testNotifiesUserWithDownloadFileNotification(self):
 
-    with utils.Stubber(email_alerts, "SendEmail", self.SendEmailMock):
+    with utils.Stubber(
+        email_alerts.EMAIL_ALERTER, "SendEmail", self.SendEmailMock):
       self.email_messages = []
       for _ in test_lib.TestFlowHelper(
           "ExportHuntResultFilesAsArchive", None,
@@ -108,7 +109,8 @@ class TestExportHuntResultsFilesAsArchive(test_lib.FlowTestsBaseclass):
 
   def testCreatesZipContainingDeduplicatedHuntResultsFiles(self):
 
-    with utils.Stubber(email_alerts, "SendEmail", self.SendEmailMock):
+    with utils.Stubber(
+        email_alerts.EMAIL_ALERTER, "SendEmail", self.SendEmailMock):
       self.email_messages = []
 
       for _ in test_lib.TestFlowHelper(
@@ -153,7 +155,8 @@ class TestExportHuntResultsFilesAsArchive(test_lib.FlowTestsBaseclass):
 
   def testCreatesTarContainingDeduplicatedHuntResultsFiles(self):
 
-    with utils.Stubber(email_alerts, "SendEmail", self.SendEmailMock):
+    with utils.Stubber(
+        email_alerts.EMAIL_ALERTER, "SendEmail", self.SendEmailMock):
       self.email_messages = []
 
       for _ in test_lib.TestFlowHelper(

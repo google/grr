@@ -5,7 +5,7 @@ import shlex
 import sys
 
 from grr.gui import api_aff4_object_renderers
-from grr.gui import api_call_renderers
+from grr.gui import api_call_renderer_base
 from grr.gui import api_value_renderers
 
 from grr.lib import aff4
@@ -23,7 +23,7 @@ class ApiClientSearchRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiClientSearchRendererArgs
 
 
-class ApiClientSearchRenderer(api_call_renderers.ApiCallRenderer):
+class ApiClientSearchRenderer(api_call_renderer_base.ApiCallRenderer):
   """Renders results of a client search."""
 
   args_type = ApiClientSearchRendererArgs
@@ -56,7 +56,7 @@ class ApiClientSummaryRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiClientSummaryRendererArgs
 
 
-class ApiClientSummaryRenderer(api_call_renderers.ApiCallRenderer):
+class ApiClientSummaryRenderer(api_call_renderer_base.ApiCallRenderer):
   """Renders summary of a given client."""
 
   args_type = ApiClientSummaryRendererArgs
@@ -72,7 +72,7 @@ class ApiClientsAddLabelsRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiClientsAddLabelsRendererArgs
 
 
-class ApiClientsAddLabelsRenderer(api_call_renderers.ApiCallRenderer):
+class ApiClientsAddLabelsRenderer(api_call_renderer_base.ApiCallRenderer):
   """Adds labels to a given client."""
 
   args_type = ApiClientsAddLabelsRendererArgs
@@ -112,7 +112,7 @@ class ApiClientsRemoveLabelsRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiClientsRemoveLabelsRendererArgs
 
 
-class ApiClientsRemoveLabelsRenderer(api_call_renderers.ApiCallRenderer):
+class ApiClientsRemoveLabelsRenderer(api_call_renderer_base.ApiCallRenderer):
   """Remove labels from a given client."""
 
   args_type = ApiClientsRemoveLabelsRendererArgs
@@ -161,7 +161,7 @@ class ApiClientsRemoveLabelsRenderer(api_call_renderers.ApiCallRenderer):
     return dict(status="OK")
 
 
-class ApiClientsLabelsListRenderer(api_call_renderers.ApiCallRenderer):
+class ApiClientsLabelsListRenderer(api_call_renderer_base.ApiCallRenderer):
   """Lists all the available clients labels."""
 
   def Render(self, args, token=None):
@@ -176,7 +176,7 @@ class ApiClientsLabelsListRenderer(api_call_renderers.ApiCallRenderer):
     return dict(labels=sorted(rendered_labels))
 
 
-class ApiListKbFieldsRenderer(api_call_renderers.ApiCallRenderer):
+class ApiListKbFieldsRenderer(api_call_renderer_base.ApiCallRenderer):
   """Lists all the available clients knowledge base fields."""
 
   def Render(self, args, token=None):

@@ -351,7 +351,7 @@ class AccessControlTest(test_lib.GRRBaseTest):
       email["subject"] = subject
       email["message"] = message
 
-    with utils.Stubber(email_alerts, "SendEmail", SendEmail):
+    with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
       flow.GRRFlow.StartFlow(
           client_id=client_id, flow_name="BreakGlassGrantClientApprovalFlow",
           token=self.token, reason=self.token.reason)

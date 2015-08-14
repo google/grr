@@ -102,10 +102,11 @@ class ClientReport(Report):
     subject = subject or "%s - %s" % (self.REPORT_NAME, dt)
     csv_data = self.AsCsv()
     filename = "%s-%s.csv" % (self.REPORT_NAME, dt)
-    email_alerts.SendEmail(recipient, self.EMAIL_FROM, subject,
-                           "Please find the CSV report file attached",
-                           attachments={filename: csv_data.getvalue()},
-                           is_html=False)
+    email_alerts.EMAIL_ALERTER.SendEmail(
+        recipient, self.EMAIL_FROM, subject,
+        "Please find the CSV report file attached",
+        attachments={filename: csv_data.getvalue()},
+        is_html=False)
     logging.info("Report %s mailed to %s", self.REPORT_NAME, recipient)
 
   def MailHTMLReport(self, recipient, subject=None):
@@ -114,12 +115,13 @@ class ClientReport(Report):
     subject = subject or "%s - %s" % (self.REPORT_NAME, dt)
     report_text = self.AsHtmlTable()
 
-    email_alerts.SendEmail(recipient, self.EMAIL_FROM, subject,
-                           self.EMAIL_TEMPLATE % dict(
-                               report_text=report_text,
-                               report_name=self.REPORT_NAME,
-                               signature=config_lib.CONFIG["Email.signature"]),
-                           is_html=True)
+    email_alerts.EMAIL_ALERTER.SendEmail(
+        recipient, self.EMAIL_FROM, subject,
+        self.EMAIL_TEMPLATE % dict(
+            report_text=report_text,
+            report_name=self.REPORT_NAME,
+            signature=config_lib.CONFIG["Email.signature"]),
+        is_html=True)
     logging.info("Report %s mailed to %s", self.REPORT_NAME, recipient)
 
   def Run(self, max_age=60 * 60 * 24 * 7):

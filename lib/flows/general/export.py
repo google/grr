@@ -211,7 +211,7 @@ class ExportHuntResultFilesAsArchive(flow.GRRFlow):
         self.args.hunt_urn.Basename())
 
     creator = self.state.context.creator
-    email_alerts.SendEmail(
+    email_alerts.EMAIL_ALERTER.SendEmail(
         "%s@%s" % (creator, config_lib.CONFIG.Get("Logging.domain")),
         "grr-noreply@%s" % config_lib.CONFIG.Get("Logging.domain"), subject,
         template % dict(

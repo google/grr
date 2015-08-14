@@ -999,7 +999,8 @@ class GRRSeleniumTest(GRRBaseTest):
     def SendEmailStub(from_user, to_user, subject, message, **unused_kwargs):
       self.emails_sent.append((from_user, to_user, subject, message))
 
-    self.mail_stubber = utils.Stubber(email_alerts, "SendEmail", SendEmailStub)
+    self.mail_stubber = utils.Stubber(
+        email_alerts.EMAIL_ALERTER, "SendEmail", SendEmailStub)
     self.mail_stubber.Start()
 
   def UninstallACLChecks(self):

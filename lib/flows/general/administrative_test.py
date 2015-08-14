@@ -110,7 +110,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
       self.email_message.update(dict(address=address, sender=sender,
                                      title=title, message=message))
 
-    with utils.Stubber(email_alerts, "SendEmail", SendEmail):
+    with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
       client = test_lib.CrashClientMock(self.client_id, self.token)
       for _ in test_lib.TestFlowHelper(
           "FlowWithOneClientRequest", client, client_id=self.client_id,
@@ -175,7 +175,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
       self.email_message.update(dict(address=address, sender=sender,
                                      title=title, message=message))
 
-    with utils.Stubber(email_alerts, "SendEmail", SendEmail):
+    with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
       msg = rdf_flows.GrrMessage(
           session_id=rdfvalue.SessionID(flow_name="NannyMessage"),
           payload=rdf_protodict.DataBlob(string=nanny_message),

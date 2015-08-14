@@ -18,6 +18,8 @@ from werkzeug import routing
 import logging
 
 from grr.gui import api_call_renderers
+from grr.gui import api_plugins
+from grr.gui import http_routing
 from grr.lib import access_control
 from grr.lib import rdfvalue
 from grr.lib import registry
@@ -61,12 +63,9 @@ def StripTypeInfo(rendered_data):
     return rendered_data
 
 
-HTTP_ROUTING_MAP = routing.Map()
-
-
 def RegisterHttpRouteHandler(method, route, renderer_cls):
   """Registers given ApiCallRenderer for given method and route."""
-  HTTP_ROUTING_MAP.add(routing.Rule(
+  http_routing.HTTP_ROUTING_MAP.add(routing.Rule(
       route, methods=[method],
       endpoint=renderer_cls))
 
@@ -74,8 +73,9 @@ def RegisterHttpRouteHandler(method, route, renderer_cls):
 def GetRendererForHttpRequest(request):
   """Returns a renderer to handle given HTTP request."""
 
-  matcher = HTTP_ROUTING_MAP.bind("%s:%s" % (request.environ["SERVER_NAME"],
-                                             request.environ["SERVER_PORT"]))
+  matcher = http_routing.HTTP_ROUTING_MAP.bind(
+      "%s:%s" % (request.environ["SERVER_NAME"],
+                 request.environ["SERVER_PORT"]))
   try:
     match = matcher.match(request.path, request.method)
   except werkzeug_exceptions.NotFound:
@@ -252,13 +252,6 @@ class HttpApiInitHook(registry.InitHook):
   """Register HTTP API renderers."""
 
   def RunOnce(self):
-    # Doing late import to avoid circular dependency (http_api.py is referenced
-    # by api_plugins/docs.py).
-    #
-    # pylint: disable=g-import-not-at-top
-    from grr.gui import api_plugins
-    # pylint: enable=g-import-not-at-top
-
     # The list is alphabetized by route.
     RegisterHttpRouteHandler("GET", "/api/aff4/<path:aff4_path>",
                              api_plugins.aff4.ApiAff4Renderer)

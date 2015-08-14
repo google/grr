@@ -11,7 +11,6 @@ import zipfile
 
 
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 
@@ -147,18 +146,6 @@ class UtilsTest(test_lib.GRRBaseTest):
       self.assertNotEqual(xor_arr, test_arr)
       utils.XorByteArray(xor_arr, key)
       self.assertEqual(xor_arr, test_arr)
-
-
-  def testIPInfo(self):
-    for ip, result in [
-        ("", utils.IPInfo.UNKNOWN),
-        ("192.168.0.1", utils.IPInfo.INTERNAL),
-        ("10.0.0.7", utils.IPInfo.INTERNAL),
-        ("69.50.225.155", utils.IPInfo.EXTERNAL),
-        ]:
-      rdf_ip = rdfvalue.RDFString(ip)
-      info, _ = utils.RetrieveIPInfo(rdf_ip)
-      self.assertEqual(info, result)
 
   def LinkedListTest(self):
 

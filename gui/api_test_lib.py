@@ -9,6 +9,7 @@ import os
 import urlparse
 
 from grr import gui
+from grr.gui import api_auth_manager
 from grr.gui import api_call_renderers
 from grr.gui import http_api
 from grr.lib import test_lib
@@ -18,7 +19,7 @@ from grr.lib import utils
 DOCUMENT_ROOT = os.path.join(os.path.dirname(gui.__file__), "static")
 
 
-class NullAPIAuthorizationManager(api_call_renderers.APIAuthorizationManager):
+class NullAPIAuthorizationManager(api_auth_manager.APIAuthorizationManager):
   """Authorization manager that allows everything. Used for testing only."""
 
   def CheckAccess(self, unused_renderer, unused_username):

@@ -196,6 +196,12 @@ config_lib.DEFINE_string("AdminUI.new_hunt_wizard.default_output_plugin",
 config_lib.DEFINE_string("Server.master_watcher_class", "DefaultMasterWatcher",
                          "The master watcher class to use.")
 
+config_lib.DEFINE_string("Server.ip_resolver_class", "IPResolver",
+                         "The ip resolver class to use.")
+
+config_lib.DEFINE_string("Server.email_alerter_class", "SMTPEmailAlerter",
+                         "The email alerter class to use.")
+
 config_lib.DEFINE_string(
     "Rekall.profile_repository",
     "https://github.com/google/rekall-profiles/raw/master",

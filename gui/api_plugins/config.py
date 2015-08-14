@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """API renderers for accessing config."""
 
-from grr.gui import api_call_renderers
+from grr.gui import api_call_renderer_base
 from grr.gui import api_value_renderers
 
 from grr.lib import config_lib
@@ -10,7 +10,7 @@ from grr.lib import type_info
 from grr.lib import utils
 
 
-class ApiConfigRenderer(api_call_renderers.ApiCallRenderer):
+class ApiConfigRenderer(api_call_renderer_base.ApiCallRenderer):
   """Renders GRR's server configuration."""
 
   redacted_options = ["AdminUI.django_secret_key", "Mysql.database_password",

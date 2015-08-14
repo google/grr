@@ -89,7 +89,7 @@ class EmailOutputPlugin(output_plugin.OutputPlugin):
         creator=cgi.escape(utils.SmartStr(self.token.username))
         )
 
-    email_alerts.SendEmail(
+    email_alerts.EMAIL_ALERTER.SendEmail(
         self.state.args.email_address, "grr-noreply",
         subject, self.template % template_args, is_html=True)
 

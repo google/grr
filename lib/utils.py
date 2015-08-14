@@ -6,14 +6,12 @@ import __builtin__
 import base64
 import copy
 import functools
-import ipaddr
 import os
 import pipes
 import Queue
 import random
 import re
 import shlex
-import socket
 import shutil
 import struct
 import tarfile
@@ -22,41 +20,6 @@ import threading
 import time
 import zipfile
 import zlib
-
-
-
-class IPInfo(object):
-  UNKNOWN = 0
-  INTERNAL = 1
-  EXTERNAL = 2
-  VPN = 3
-
-
-def RetrieveIPInfo(ip):
-  if not ip:
-    return (IPInfo.UNKNOWN, "No ip information.")
-  try:
-    ip = ipaddr.IPAddress(SmartStr(ip))
-  except ValueError:
-    return (IPInfo.UNKNOWN, "No ip information.")
-  if ip.version == 6:
-    return RetrieveIP6Info(ip)
-  return RetrieveIP4Info(ip)
-
-def RetrieveIP4Info(ip):
-  """Retrieves information for an IP4 address."""
-  if ip.is_private:
-    return (IPInfo.INTERNAL, "Internal IP address.")
-  try:
-    # It's an external IP, let's try to do a reverse lookup.
-    res = socket.gethostbyaddr(str(ip))
-    return (IPInfo.EXTERNAL, res[0])
-  except (socket.herror, socket.gaierror):
-    return (IPInfo.EXTERNAL, "Unknown IP address.")
-
-def RetrieveIP6Info(ip):
-  """Retrieves information for an IP6 address."""
-  return (IPInfo.INTERNAL, "Internal IP6 address.")
 
 
 def Proxy(f):

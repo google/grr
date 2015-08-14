@@ -41,7 +41,7 @@ class EmailOutputPluginTest(test_lib.FlowTestsBaseclass):
       self.email_messages.append(dict(address=address, sender=sender,
                                       title=title, message=message))
 
-    with utils.Stubber(email_alerts, "SendEmail", SendEmail):
+    with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
       if process_responses_separately:
         for message in messages:
           plugin.ProcessResponses([message])

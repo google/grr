@@ -446,13 +446,14 @@ here
         image=image,
         signature=config_lib.CONFIG["Email.signature"])
 
-    email_alerts.SendEmail(self.args.approver,
-                           utils.SmartStr(self.token.username),
-                           u"Approval for %s to access %s." % (
-                               self.token.username, subject_title),
-                           utils.SmartStr(body), is_html=True,
-                           cc_addresses=email_cc,
-                           message_id=email_msg_id)
+    email_alerts.EMAIL_ALERTER.SendEmail(
+        self.args.approver,
+        utils.SmartStr(self.token.username),
+        u"Approval for %s to access %s." % (
+            self.token.username, subject_title),
+        utils.SmartStr(body), is_html=True,
+        cc_addresses=email_cc,
+        message_id=email_msg_id)
 
 
 class GrantApprovalWithReasonFlowArgs(rdf_structs.RDFProtoStruct):
@@ -529,11 +530,12 @@ Please click <a href='%(admin_ui)s#%(subject_urn)s'>here</a> to access it.
     subject = u"Approval for %s to access %s." % (
         utils.SmartStr(self.args.delegate), subject_title)
     headers = {"In-Reply-To": email_msg_id, "References": email_msg_id}
-    email_alerts.SendEmail(utils.SmartStr(self.args.delegate),
-                           utils.SmartStr(self.token.username), subject,
-                           utils.SmartStr(body), is_html=True,
-                           cc_addresses=email_cc,
-                           headers=headers)
+    email_alerts.EMAIL_ALERTER.SendEmail(
+        utils.SmartStr(self.args.delegate),
+        utils.SmartStr(self.token.username), subject,
+        utils.SmartStr(body), is_html=True,
+        cc_addresses=email_cc,
+        headers=headers)
 
 
 class BreakGlassGrantApprovalWithReasonFlow(GrantApprovalWithReasonFlow):
@@ -590,7 +592,7 @@ This access has been logged and granted for 24 hours.
         reason=self.args.reason,
         signature=config_lib.CONFIG["Email.signature"]),
 
-    email_alerts.SendEmail(
+    email_alerts.EMAIL_ALERTER.SendEmail(
         config_lib.CONFIG["Monitoring.emergency_access_email"],
         self.token.username,
         u"Emergency approval granted for %s." % subject_title,

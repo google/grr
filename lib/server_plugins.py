@@ -22,6 +22,7 @@ from grr.lib import client_compatibility
 from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import hunts
+from grr.lib import ip_resolver
 from grr.lib import local
 from grr.lib import master
 from grr.lib import output_plugin

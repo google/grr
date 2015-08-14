@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """API renderer for rendering descriptors of GRR data structures."""
 
-from grr.gui import api_call_renderers
+from grr.gui import api_call_renderer_base
 from grr.gui import api_value_renderers
 
 from grr.lib import rdfvalue
@@ -15,7 +15,7 @@ class ApiRDFValueReflectionRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiRDFValueReflectionRendererArgs
 
 
-class ApiRDFValueReflectionRenderer(api_call_renderers.ApiCallRenderer):
+class ApiRDFValueReflectionRenderer(api_call_renderer_base.ApiCallRenderer):
   """Renders descriptor of a given RDFValue type."""
 
   args_type = ApiRDFValueReflectionRendererArgs

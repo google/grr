@@ -11,10 +11,10 @@ from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flow
+from grr.lib import ip_resolver
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
-from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import users as aff4_users
 from grr.lib.rdfvalues import client as rdf_client
@@ -255,7 +255,7 @@ Status: {{this.icon|safe}}
       self.last_seen_msg = FormatLastSeenTime(age)
 
       ip = client.Get(client.Schema.CLIENT_IP)
-      (status, description) = utils.RetrieveIPInfo(ip)
+      (status, description) = ip_resolver.IP_RESOLVER.RetrieveIPInfo(ip)
       self.ip_icon = IPStatusIcon(status).RawHTML(request)
       self.ip_description = description
 
@@ -456,10 +456,10 @@ class IPStatusIcon(semantic.RDFValueRenderer):
 <img class="grr-icon-small {{this.cls|escape}}"
      src="/static/images/{{this.ip_icon|escape}}"/>""")
 
-  icons = {utils.IPInfo.UNKNOWN: "ip_unknown.png",
-           utils.IPInfo.INTERNAL: "ip_internal.png",
-           utils.IPInfo.EXTERNAL: "ip_external.png",
-           utils.IPInfo.VPN: "ip_unknown.png"}
+  icons = {ip_resolver.IPInfo.UNKNOWN: "ip_unknown.png",
+           ip_resolver.IPInfo.INTERNAL: "ip_internal.png",
+           ip_resolver.IPInfo.EXTERNAL: "ip_external.png",
+           ip_resolver.IPInfo.VPN: "ip_unknown.png"}
 
   def Layout(self, request, response):
     self.ip_icon = self.icons.setdefault(int(self.proxy), "ip_unknown.png")

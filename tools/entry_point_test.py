@@ -50,7 +50,7 @@ class EntryPointTest(test_lib.GRRBaseTest):
     self.bin_ext = ".py"
     self.extra_opts = ["--config", self.config_file, "--context",
                        "Test Context,EntryPoint Context"]
-    self.default_timeout = 10
+    self.default_timeout = 12
     self.interpreter = sys.executable
 
 

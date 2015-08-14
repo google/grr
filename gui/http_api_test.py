@@ -6,6 +6,7 @@
 import json
 
 from grr.gui import api_aff4_object_renderers
+from grr.gui import api_call_renderer_base
 from grr.gui import api_call_renderers
 from grr.gui import http_api
 
@@ -21,7 +22,7 @@ class SampleGetRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = tests_pb2.SampleGetRendererArgs
 
 
-class SampleGetRenderer(api_call_renderers.ApiCallRenderer):
+class SampleGetRenderer(api_call_renderer_base.ApiCallRenderer):
 
   args_type = SampleGetRendererArgs
 
@@ -37,7 +38,8 @@ class SampleGetRendererWithAdditionalArgsArgs(rdf_structs.RDFProtoStruct):
   protobuf = tests_pb2.SampleGetRendererWithAdditionalArgsArgs
 
 
-class SampleGetRendererWithAdditionalArgs(api_call_renderers.ApiCallRenderer):
+class SampleGetRendererWithAdditionalArgs(
+    api_call_renderer_base.ApiCallRenderer):
 
   args_type = SampleGetRendererWithAdditionalArgsArgs
   additional_args_types = {

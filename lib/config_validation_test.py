@@ -12,36 +12,62 @@ from grr.lib import test_lib
 from grr.lib import utils
 
 
-def ValidateConfig(config_file=None):
-  """Iterate over all the sections in the config file and validate them."""
-  logging.debug("Processing %s", config_file)
-
-  if isinstance(config_file, config_lib.GrrConfigManager):
-    conf_obj = config_file
-  else:
-    conf_obj = config_lib.CONFIG
-    conf_obj.Initialize(config_file, reset=True)
-
-  all_sections = conf_obj.GetSections()
-  errors = conf_obj.Validate(sections=all_sections)
-
-  return errors
-
-
-class BuildConfigTests(test_lib.GRRBaseTest):
-  """Tests for config functionality."""
+class BuildConfigTestsBase(test_lib.GRRBaseTest):
+  """Base for config functionality tests."""
 
   # Server configuration files do not normally have valid client keys.
-  exceptions = ["Client.private_key",
-                "PrivateKeys.executable_signing_private_key",
-                "PrivateKeys.server_key", "PrivateKeys.ca_key",
-                "PrivateKeys.driver_signing_private_key"]
-
-  # The executables dir may be missing
-  exceptions.append("ClientBuilder.executables_dir")
+  exceptions = [
+      "Client.private_key",
+      "ClientBuilder.executables_dir",
+      "PrivateKeys.ca_key",
+      "PrivateKeys.driver_signing_private_key"
+      "PrivateKeys.executable_signing_private_key",
+      "PrivateKeys.server_key",
+      ]
 
   disabled_filters = [
   ]
+
+  def ValidateConfig(self, config_file=None):
+    """Iterate over all the sections in the config file and validate them."""
+    logging.debug("Processing %s", config_file)
+
+    if isinstance(config_file, config_lib.GrrConfigManager):
+      conf_obj = config_file
+    else:
+      conf_obj = config_lib.CONFIG.MakeNewConfig()
+      conf_obj.Initialize(config_file, reset=True)
+
+    with utils.Stubber(config_lib, "CONFIG", conf_obj):
+      all_sections = conf_obj.GetSections()
+      errors = conf_obj.Validate(sections=all_sections)
+
+    return errors
+
+  def ValidateConfigs(self, configs):
+    test_filter_map = config_lib.ConfigFilter.classes_by_name
+    for filter_name in self.disabled_filters:
+      test_filter_map[filter_name] = config_lib.ConfigFilter
+
+    with utils.Stubber(config_lib.ConfigFilter, "classes_by_name",
+                       test_filter_map):
+      for config_file in configs:
+        errors = self.ValidateConfig(config_file)
+
+        for exception in self.exceptions:
+          errors.pop(exception, None)
+
+        if errors:
+          logging.info("Validation of %s returned errors:", config_file)
+          for config_entry, error in errors.iteritems():
+            logging.info("%s:", config_entry)
+            logging.info("%s", error)
+
+          self.fail("Validation of %s returned errors: %s" % (
+              config_file, errors))
+
+
+class BuildConfigTests(BuildConfigTestsBase):
 
   def testAllConfigs(self):
     """Go through all our config files looking for errors."""
@@ -57,21 +83,7 @@ class BuildConfigTests(test_lib.GRRBaseTest):
         logging.info(
             "Skipping checking %s, you probably need to be root" % cfg_file)
 
-    test_filter_map = config_lib.ConfigFilter.classes_by_name
-    for filter_name in self.disabled_filters:
-      test_filter_map[filter_name] = config_lib.ConfigFilter
-
-    with utils.Stubber(config_lib.ConfigFilter, "classes_by_name",
-                       test_filter_map):
-      for config_file in configs:
-        errors = ValidateConfig(config_file)
-
-        for exception in self.exceptions:
-          errors.pop(exception, None)
-
-        if errors:
-          self.fail("Validation of %s returned errors: %s" % (
-              config_file, errors))
+    self.ValidateConfigs(configs)
 
 
 def main(argv):

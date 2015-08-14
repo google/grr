@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """API renderers for stats."""
 
-from grr.gui import api_call_renderers
+from grr.gui import api_call_renderer_base
 from grr.gui import api_value_renderers
 
 from grr.lib import aff4
@@ -17,7 +17,8 @@ class ApiStatsStoreMetricsMetadataRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiStatsStoreMetricsMetadataRendererArgs
 
 
-class ApiStatsStoreMetricsMetadataRenderer(api_call_renderers.ApiCallRenderer):
+class ApiStatsStoreMetricsMetadataRenderer(
+    api_call_renderer_base.ApiCallRenderer):
   """Renders available metrics descriptors for a given system component."""
 
   args_type = ApiStatsStoreMetricsMetadataRendererArgs
@@ -39,7 +40,7 @@ class ApiStatsStoreMetricRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiStatsStoreMetricRendererArgs
 
 
-class ApiStatsStoreMetricRenderer(api_call_renderers.ApiCallRenderer):
+class ApiStatsStoreMetricRenderer(api_call_renderer_base.ApiCallRenderer):
   """Renders historical data for a given metric."""
 
   args_type = ApiStatsStoreMetricRendererArgs

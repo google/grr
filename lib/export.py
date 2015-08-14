@@ -13,7 +13,6 @@ import time
 
 import logging
 
-
 from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import registry
@@ -23,6 +22,14 @@ from grr.lib.aff4_objects import filestore
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import export_pb2
+
+try:
+  # pylint: disable=g-import-not-at-top
+  from verify_sigs import auth_data
+  from verify_sigs.asn1 import dn
+  # pylint: enable=g-import-not-at-top
+except ImportError:
+  pass
 
 
 class Error(Exception):
@@ -295,6 +302,63 @@ class StatEntryToExportedFileConverter(ExportConverter):
   @staticmethod
   def ParseSignedData(signed_data, result):
     """Parses signed certificate data and updates result rdfvalue."""
+    try:
+      auth_data
+    except NameError:
+      # Verify_sigs is not available so we can't parse signatures. If you want
+      # this functionality, please install the verify-sigs package:
+      # https://github.com/anthrotype/verify-sigs
+      # TODO(user): Make verify-sigs a pip package and add a dependency.
+      return
+
+    try:
+      try:
+        auth = auth_data.AuthData(signed_data.certificate)
+      except Exception as e:  # pylint: disable=broad-except
+        # If we failed to parse the certificate, we want the user to know it.
+        result.cert_hasher_name = "Error parsing certificate: %s" % str(e)
+        raise
+
+      result.cert_hasher_name = auth.digest_algorithm().name
+      result.cert_program_name = str(auth.program_name)
+      result.cert_program_url = str(auth.program_url)
+      result.cert_signing_id = str(auth.signing_cert_id)
+
+      try:
+        # This fills in auth.cert_chain_head. We ignore Asn1Error because
+        # we want to extract as much data as possible, no matter if the
+        # certificate has expired or not.
+        auth.ValidateCertChains(time.gmtime())
+      except auth_data.Asn1Error:
+        pass
+      result.cert_chain_head_issuer = str(auth.cert_chain_head[2])
+
+      if auth.has_countersignature:
+        result.cert_countersignature_chain_head_issuer = str(
+            auth.counter_chain_head[2])
+
+      certs = []
+      for (issuer, serial), cert in auth.certificates.items():
+        subject = cert[0][0]["subject"]
+        subject_dn = str(dn.DistinguishedName.TraverseRdn(subject[0]))
+        not_before = cert[0][0]["validity"]["notBefore"]
+        not_after = cert[0][0]["validity"]["notAfter"]
+        not_before_time = not_before.ToPythonEpochTime()
+        not_after_time = not_after.ToPythonEpochTime()
+        not_before_time_str = time.asctime(time.gmtime(not_before_time))
+        not_after_time_str = time.asctime(time.gmtime(not_after_time))
+
+        certs.append(dict(issuer=issuer,
+                          serial=serial,
+                          subject=subject_dn,
+                          not_before_time=not_before_time_str,
+                          not_after_time=not_after_time_str))
+      result.cert_certificates = str(certs)
+
+    # Verify_sigs library can basically throw all kinds of exceptions so
+    # we have to use broad except here.
+    except Exception as e:  # pylint: disable=broad-except
+      logging.error(e)
 
   @staticmethod
   def ParseFileHash(hash_obj, result):

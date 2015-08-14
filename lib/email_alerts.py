@@ -8,116 +8,140 @@ from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+import logging
 import re
 import smtplib
 import socket
 
 from grr.lib import config_lib
-from grr.lib import utils
+from grr.lib import registry
 from grr.lib.rdfvalues import standard as rdf_standard
 
 
-def RemoveHtmlTags(data):
-  p = re.compile(r"<.*?>")
-  return p.sub("", data)
+class EmailAlerterBase(object):
+  """The email alerter base class."""
+
+  __metaclass__ = registry.MetaclassRegistry
+
+  def RemoveHtmlTags(self, data):
+    p = re.compile(r"<.*?>")
+    return p.sub("", data)
+
+  def AddEmailDomain(self, address):
+    suffix = config_lib.CONFIG["Logging.domain"]
+    if isinstance(address, rdf_standard.DomainEmailAddress):
+      address = str(address)
+    if suffix and "@" not in address:
+      return address + "@%s" % suffix
+    return address
+
+  def SplitEmailsAndAppendEmailDomain(self, address_list):
+    """Splits a string of comma-separated emails, appending default domain."""
+    result = []
+    # Process email addresses, and build up a list.
+    if isinstance(address_list, rdf_standard.DomainEmailAddress):
+      address_list = [str(address_list)]
+    elif isinstance(address_list, basestring):
+      address_list = [address for address in address_list.split(",") if address]
+    for address in address_list:
+      result.append(self.AddEmailDomain(address))
+    return result
+
+  def SendEmail(self, to_addresses, from_address, subject, message,
+                attachments=None, is_html=True, cc_addresses=None,
+                message_id=None, headers=None):
+    raise NotImplementedError()
 
 
-def AddEmailDomain(address):
-  suffix = config_lib.CONFIG["Logging.domain"]
-  if isinstance(address, rdf_standard.DomainEmailAddress):
-    address = str(address)
-  if suffix and "@" not in address:
-    return address + "@%s" % suffix
-  return address
+class SMTPEmailAlerter(EmailAlerterBase):
 
+  def SendEmail(self, to_addresses, from_address, subject, message,
+                attachments=None, is_html=True, cc_addresses=None,
+                message_id=None, headers=None):
+    """This method sends an email notification.
 
-def SplitEmailsAndAppendEmailDomain(address_list):
-  """Splits a string of comma-separated emails, appending default domain."""
-  result = []
-  # Process email addresses, and build up a list.
-  if isinstance(address_list, rdf_standard.DomainEmailAddress):
-    address_list = [str(address_list)]
-  elif isinstance(address_list, basestring):
-    address_list = [address for address in address_list.split(",") if address]
-  for address in address_list:
-    result.append(AddEmailDomain(address))
-  return result
+    Args:
+      to_addresses: blah@mycompany.com string, list of addresses as csv string,
+                    or rdf_standard.DomainEmailAddress
+      from_address: blah@mycompany.com string
+      subject: email subject string
+      message: message contents string, as HTML or plain text
+      attachments: iterable of filename string and file data tuples,
+                   e.g. {"/file/name/string": filedata}
+      is_html: true if message is in HTML format
+      cc_addresses: blah@mycompany.com string, or list of addresses as
+                    csv string
+      message_id: smtp message_id. Used to enable conversation threading
+      headers: dict of str-> str, headers to set
+    Raises:
+      RuntimeError: for problems connecting to smtp server.
+    """
+    headers = headers or {}
+    msg = MIMEMultipart("alternative")
+    if is_html:
+      text = self.RemoveHtmlTags(message)
+      part1 = MIMEText(text, "plain")
+      msg.attach(part1)
+      part2 = MIMEText(message, "html")
+      msg.attach(part2)
+    else:
+      part1 = MIMEText(message, "plain")
+      msg.attach(part1)
 
+    if attachments:
+      for file_name, file_data in attachments.iteritems():
+        part = MIMEBase("application", "octet-stream")
+        part.set_payload(file_data)
+        encoders.encode_base64(part)
+        part.add_header("Content-Disposition",
+                        "attachment; filename=\"%s\"" % file_name)
+        msg.attach(part)
 
-def SendEmail(to_addresses, from_address, subject, message, attachments=None,
-              is_html=True, cc_addresses=None, message_id=None, headers=None):
-  """This method sends an email notification.
+    msg["Subject"] = subject
 
-  Args:
-    to_addresses: blah@mycompany.com string, list of addresses as csv string, or
-                  rdf_standard.DomainEmailAddress
-    from_address: blah@mycompany.com string
-    subject: email subject string
-    message: message contents string, as HTML or plain text
-    attachments: iterable of filename string and file data tuples,
-                 e.g. {"/file/name/string": filedata}
-    is_html: true if message is in HTML format
-    cc_addresses: blah@mycompany.com string, or list of addresses as csv string
-    message_id: smtp message_id. Used to enable conversation threading
-    headers: dict of str-> str, headers to set
-  Raises:
-    RuntimeError: for problems connecting to smtp server.
-  """
-  headers = headers or {}
-  msg = MIMEMultipart("alternative")
-  if is_html:
-    text = RemoveHtmlTags(message)
-    part1 = MIMEText(text, "plain")
-    msg.attach(part1)
-    part2 = MIMEText(message, "html")
-    msg.attach(part2)
-  else:
-    part1 = MIMEText(message, "plain")
-    msg.attach(part1)
+    from_address = self.AddEmailDomain(from_address)
+    to_addresses = self.SplitEmailsAndAppendEmailDomain(to_addresses)
+    cc_addresses = self.SplitEmailsAndAppendEmailDomain(cc_addresses or "")
 
-  if attachments:
-    for file_name, file_data in attachments.iteritems():
-      part = MIMEBase("application", "octet-stream")
-      part.set_payload(file_data)
-      encoders.encode_base64(part)
-      part.add_header("Content-Disposition",
-                      "attachment; filename=\"%s\"" % file_name)
-      msg.attach(part)
+    msg["From"] = from_address
+    msg["To"] = ",".join(to_addresses)
+    if cc_addresses:
+      msg["CC"] = ",".join(cc_addresses)
 
-  msg["Subject"] = subject
+    if message_id:
+      msg.add_header("Message-ID", message_id)
 
-  from_address = AddEmailDomain(from_address)
-  to_addresses = SplitEmailsAndAppendEmailDomain(to_addresses)
-  cc_addresses = SplitEmailsAndAppendEmailDomain(cc_addresses or "")
+    for header, value in headers.iteritems():
+      msg.add_header(header, value)
 
-  msg["From"] = from_address
-  msg["To"] = ",".join(to_addresses)
-  if cc_addresses:
-    msg["CC"] = ",".join(cc_addresses)
-
-  if message_id:
-    msg.add_header("Message-ID", message_id)
-
-  for header, value in headers.iteritems():
-    msg.add_header(header, value)
-
-  try:
-    s = smtplib.SMTP(config_lib.CONFIG["Worker.smtp_server"],
-                     int(config_lib.CONFIG["Worker.smtp_port"]))
-    s.ehlo()
-    if config_lib.CONFIG["Worker.smtp_starttls"]:
-      s.starttls()
+    try:
+      s = smtplib.SMTP(config_lib.CONFIG["Worker.smtp_server"],
+                       int(config_lib.CONFIG["Worker.smtp_port"]))
       s.ehlo()
-    if (config_lib.CONFIG["Worker.smtp_user"] and
-        config_lib.CONFIG["Worker.smtp_password"]):
-      s.login(config_lib.CONFIG["Worker.smtp_user"],
-              config_lib.CONFIG["Worker.smtp_password"])
-    s.sendmail(from_address, to_addresses, msg.as_string())
-    s.quit()
-  except (socket.error, smtplib.SMTPException) as e:
-    raise RuntimeError("Could not connect to SMTP server to send email. Please "
-                       "check config option Worker.smtp_server. Currently set "
-                       "to %s. Error: %s" %
-                       (config_lib.CONFIG["Worker.smtp_server"], e))
+      if config_lib.CONFIG["Worker.smtp_starttls"]:
+        s.starttls()
+        s.ehlo()
+      if (config_lib.CONFIG["Worker.smtp_user"] and
+          config_lib.CONFIG["Worker.smtp_password"]):
+        s.login(config_lib.CONFIG["Worker.smtp_user"],
+                config_lib.CONFIG["Worker.smtp_password"])
+      s.sendmail(from_address, to_addresses, msg.as_string())
+      s.quit()
+    except (socket.error, smtplib.SMTPException) as e:
+      raise RuntimeError("Could not connect to SMTP server to send email. "
+                         "Please check config option Worker.smtp_server. "
+                         "Currently set to %s. Error: %s" %
+                         (config_lib.CONFIG["Worker.smtp_server"], e))
+
+EMAIL_ALERTER = None
 
 
+class EmailAlerterInit(registry.InitHook):
+
+  def RunOnce(self):
+    global EMAIL_ALERTER
+    email_alerter_cls_name = config_lib.CONFIG["Server.email_alerter_class"]
+    logging.debug("Using email alerter: %s", email_alerter_cls_name)
+    cls = EmailAlerterBase.GetPlugin(email_alerter_cls_name)
+
+    EMAIL_ALERTER = cls()

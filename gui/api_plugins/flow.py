@@ -2,7 +2,7 @@
 """API renderers for dealing with flows."""
 
 from grr.gui import api_aff4_object_renderers
-from grr.gui import api_call_renderers
+from grr.gui import api_call_renderer_base
 from grr.gui import api_value_renderers
 
 from grr.lib import access_control
@@ -18,7 +18,7 @@ class ApiFlowStatusRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiFlowStatusRendererArgs
 
 
-class ApiFlowStatusRenderer(api_call_renderers.ApiCallRenderer):
+class ApiFlowStatusRenderer(api_call_renderer_base.ApiCallRenderer):
   """Renders summary of a given flow.
 
   Only top-level flows can be targeted. Times returned in the response are micro
@@ -100,7 +100,7 @@ class ApiFlowResultsRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiFlowResultsRendererArgs
 
 
-class ApiFlowResultsRenderer(api_call_renderers.ApiCallRenderer):
+class ApiFlowResultsRenderer(api_call_renderer_base.ApiCallRenderer):
   """Renders results of a given flow."""
 
   args_type = ApiFlowResultsRendererArgs
@@ -124,7 +124,7 @@ class ApiFlowOutputPluginsRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiFlowOutputPluginsRendererArgs
 
 
-class ApiFlowOutputPluginsRenderer(api_call_renderers.ApiCallRenderer):
+class ApiFlowOutputPluginsRenderer(api_call_renderer_base.ApiCallRenderer):
   """Renders output plugins descriptors and states for a given flow."""
 
   args_type = ApiFlowOutputPluginsRendererArgs
@@ -159,7 +159,7 @@ class ApiStartFlowRendererArgs(rdf_structs.RDFProtoStruct):
       return flow_cls.args_type
 
 
-class ApiStartFlowRenderer(api_call_renderers.ApiCallRenderer):
+class ApiStartFlowRenderer(api_call_renderer_base.ApiCallRenderer):
   """Starts a flow on a given client with given parameters."""
 
   args_type = ApiStartFlowRendererArgs
@@ -177,7 +177,7 @@ class ApiStartFlowRenderer(api_call_renderers.ApiCallRenderer):
         runner_args=api_value_renderers.RenderValue(args.runner_args))
 
 
-class ApiFlowDescriptorsListRenderer(api_call_renderers.ApiCallRenderer):
+class ApiFlowDescriptorsListRenderer(api_call_renderer_base.ApiCallRenderer):
   """Renders all available flows descriptors."""
 
   # Only show flows in the tree that specify all of these behaviours in their

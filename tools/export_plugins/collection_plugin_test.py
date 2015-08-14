@@ -48,7 +48,7 @@ class CollectionExportPluginTest(test_lib.GRRBaseTest):
                                       title=title, message=message))
 
     email_address = "notify@%s" % config_lib.CONFIG["Logging.domain"]
-    with utils.Stubber(email_alerts, "SendEmail", SendEmail):
+    with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
       self.email_messages = []
 
       plugin.Run(parser.parse_args(args=[

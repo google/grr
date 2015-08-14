@@ -412,7 +412,7 @@ class OnlineNotification(flow.GRRFlow):
 
       subject = "GRR Client on %s became available." % hostname
 
-      email_alerts.SendEmail(
+      email_alerts.EMAIL_ALERTER.SendEmail(
           self.args.email, "grr-noreply",
           subject,
           self.template % dict(
@@ -562,7 +562,7 @@ Click <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
       url = urllib.urlencode((("c", client_id),
                               ("main", "HostInformation")))
 
-      email_alerts.SendEmail(
+      email_alerts.EMAIL_ALERTER.SendEmail(
           config_lib.CONFIG["Monitoring.alert_email"],
           "GRR server",
           self.subject % client_id,
@@ -663,7 +663,7 @@ P.S. The state of the failing flow was:
 
       renderer = rendering.FindRendererForObject(flow_obj.state)
 
-      email_alerts.SendEmail(
+      email_alerts.EMAIL_ALERTER.SendEmail(
           config_lib.CONFIG["Monitoring.alert_email"],
           "GRR server",
           "Client %s reported a crash." % client_id,
