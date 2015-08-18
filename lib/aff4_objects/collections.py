@@ -383,7 +383,8 @@ class PackedVersionedCollection(RDFValueCollection):
   """
 
   notification_queue = "aff4:/cron/versioned_collection_compactor"
-  index_format = "index:changed/%s"
+  index_prefix = "index:changed/"
+  index_format = index_prefix + "%s"
 
   @classmethod
   def ScheduleNotification(cls, urn, sync=False, token=None):
@@ -401,9 +402,8 @@ class PackedVersionedCollection(RDFValueCollection):
     if timestamp is None:
       timestamp = rdfvalue.RDFDatetime().Now()
 
-    index_predicate = cls.index_format % ".+"
-    for _, urn, urn_timestamp in data_store.DB.ResolveRegex(
-        cls.notification_queue, index_predicate,
+    for _, urn, urn_timestamp in data_store.DB.ResolvePrefix(
+        cls.notification_queue, cls.index_prefix,
         timestamp=(0, timestamp), token=token):
       yield rdfvalue.RDFURN(urn, age=urn_timestamp)
 
@@ -545,7 +545,7 @@ class PackedVersionedCollection(RDFValueCollection):
     if self.IsAttributeSet(self.Schema.DATA):
       freeze_timestamp = timestamp or rdfvalue.RDFDatetime().Now()
       results = []
-      for _, value, _ in data_store.DB.ResolveRegex(
+      for _, value, _ in data_store.DB.ResolvePrefix(
           self.urn, self.Schema.DATA.predicate, token=self.token,
           timestamp=(0, freeze_timestamp)):
 
@@ -682,7 +682,7 @@ class PackedVersionedCollection(RDFValueCollection):
     # We iterate over all versioned attributes. If we get more than
     # self.COMPACTION_BATCH_SIZE, we write the data to temporary
     # stream in the reversed order.
-    for _, value, _ in data_store.DB.ResolveRegex(
+    for _, value, _ in data_store.DB.ResolvePrefix(
         self.urn, self.Schema.DATA.predicate, token=self.token,
         timestamp=(0, freeze_timestamp)):
 

@@ -260,15 +260,17 @@ class FakeDataStore(data_store.DataStore):
     # Return the results in the same order they requested.
     remaining_limit = limit
     for attribute in attributes:
-      for v in sorted(results.get(attribute, []), key=lambda x: x[1],
-                      reverse=True):
+      # This returns triples of (attribute_name, timestamp, data). We want to
+      # sort by timestamp.
+      for _, ts, data in sorted(results.get(attribute, []), key=lambda x: x[1],
+                                reverse=True):
         if remaining_limit:
           remaining_limit -= 1
           if remaining_limit == 0:
-            yield (attribute, v[2], v[1])
+            yield (attribute, data, ts)
             return
 
-        yield (attribute, v[2], v[1])
+        yield (attribute, data, ts)
 
   @utils.Synchronized
   def ResolveRegex(self, subject, attribute_regex, token=None,
@@ -327,6 +329,97 @@ class FakeDataStore(data_store.DataStore):
     for k, values in sorted(results.items()):
       for v in sorted(values, key=lambda x: x[1], reverse=True):
         result.append((k, v[2], v[1]))
+    return result
+
+  @utils.Synchronized
+  def MultiResolvePrefix(self, subjects, attribute_prefix, token=None,
+                         timestamp=None, limit=None):
+    required_access = self.GetRequiredResolveAccess(attribute_prefix)
+
+    result = {}
+    for subject in subjects:
+      # If any of the subjects is forbidden we fail the entire request.
+      self.security_manager.CheckDataStoreAccess(token, [subject],
+                                                 required_access)
+
+      values = self.ResolvePrefix(subject, attribute_prefix, token=token,
+                                  timestamp=timestamp, limit=limit)
+
+      if not values:
+        continue
+
+      if limit:
+        if limit < len(values):
+          values = values[:limit]
+        result[subject] = values
+        limit -= len(values)
+        if limit <= 0:
+          return result.iteritems()
+      else:
+        result[subject] = values
+
+    return result.iteritems()
+
+  @utils.Synchronized
+  def ResolvePrefix(self, subject, attribute_prefix, token=None,
+                    timestamp=None, limit=None):
+    """Resolve all attributes for a subject starting with a prefix."""
+    self.security_manager.CheckDataStoreAccess(
+        token, [subject], self.GetRequiredResolveAccess(attribute_prefix))
+
+    if timestamp in [None, self.NEWEST_TIMESTAMP, self.ALL_TIMESTAMPS]:
+      start, end = 0, (2 ** 63) - 1
+    # Does timestamp represent a range?
+    elif isinstance(timestamp, (list, tuple)):
+      start, end = timestamp  # pylint: disable=unpacking-non-sequence
+    else:
+      raise ValueError("Invalid timestamp: %s" % timestamp)
+
+    start = int(start)
+    end = int(end)
+
+    if isinstance(attribute_prefix, str):
+      attribute_prefix = [attribute_prefix]
+
+    subject = utils.SmartUnicode(subject)
+    try:
+      record = self.subjects[subject]
+    except KeyError:
+      return []
+
+    # Holds all the attributes which matched. Keys are attribute names, values
+    # are lists of timestamped data.
+    results = {}
+    nr_results = 0
+    for prefix in attribute_prefix:
+      for attribute, values in record.iteritems():
+        if limit and nr_results >= limit:
+          break
+        if utils.SmartStr(attribute).startswith(prefix):
+          for value, ts in values:
+            results_list = results.setdefault(attribute, [])
+            # If we are always after the latest ts we clear older ones.
+            if (results_list and timestamp == self.NEWEST_TIMESTAMP and
+                results_list[0][1] < ts):
+              results_list = []
+              results[attribute] = results_list
+
+            # Timestamp outside the range, drop it.
+            elif ts < start or ts > end:
+              continue
+
+            results_list.append((attribute, ts, value))
+            nr_results += 1
+            if limit and nr_results >= limit:
+              break
+
+    result = []
+    for attribute_name, values in sorted(results.items()):
+      # Values are triples of (attribute_name, timestamp, data). We want to
+      # sort by timestamp.
+      for _, ts, data in sorted(values, key=lambda x: x[1], reverse=True):
+        # Return triples (attribute_name, data, timestamp).
+        result.append((attribute_name, data, ts))
     return result
 
   def Size(self):

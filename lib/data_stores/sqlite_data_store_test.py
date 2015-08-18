@@ -36,6 +36,10 @@ class SqliteTestMixin(object):
 
   def DestroyDatastore(self):
     try:
+      data_store.DB.cache.Flush()
+    except AttributeError:
+      pass
+    try:
       if self.root_path:
         shutil.rmtree(self.root_path)
     except (OSError, IOError):

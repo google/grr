@@ -26,6 +26,7 @@ class MysqlTestMixin(object):
         "Mysql.table_name": "aff4_test"}):
       try:
         data_store.DB = mysql_data_store.MySQLDataStore()
+        data_store.DB.flusher_thread.Stop()
         data_store.DB.security_manager = test_lib.MockSecurityManager()
         data_store.DB.RecreateDataBase()
       except Exception as e:

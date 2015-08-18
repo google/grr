@@ -59,8 +59,8 @@ class ApiAff4IndexRenderer(api_call_renderer_base.ApiCallRenderer):
 
     aff4_path = rdfvalue.RDFURN(args.aff4_path)
     index_prefix = "index:dir/"
-    for predicate, _, timestamp in data_store.DB.ResolveRegex(
-        aff4_path, index_prefix + ".+", token=token,
+    for predicate, _, timestamp in data_store.DB.ResolvePrefix(
+        aff4_path, index_prefix, token=token,
         timestamp=data_store.DB.NEWEST_TIMESTAMP, limit=1000000):
 
       urn = aff4_path.Add(predicate[len(index_prefix):])

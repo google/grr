@@ -69,21 +69,17 @@ class QueueManager(object):
   # When a status message is received from the client, we write it with the
   # request using the following template.
   FLOW_STATUS_TEMPLATE = "flow:status:%08X"
-  FLOW_STATUS_REGEX = "flow:status:.*"
-
-  # This regex will return all the requests in order
-  FLOW_REQUEST_REGEX = FLOW_REQUEST_PREFIX + ".*"
+  FLOW_STATUS_PREFIX = "flow:status:"
 
   # Each request may have any number of responses. Responses are kept in their
   # own subject object. The subject name is derived from the session id.
-  FLOW_RESPONSE_PREFIX = "flow:response:%08X:"
-  FLOW_RESPONSE_TEMPLATE = FLOW_RESPONSE_PREFIX + "%08X"
+  FLOW_RESPONSE_PREFIX = "flow:response:"
+  FLOW_RESPONSE_TEMPLATE = FLOW_RESPONSE_PREFIX + "%08X:%08X"
 
-  # This regex will return all the responses in order
-  FLOW_RESPONSE_REGEX = "flow:response:.*"
-
-  TASK_PREDICATE_PREFIX = "task:%s"
-  NOTIFY_PREDICATE_PREFIX = "notify:%s"
+  TASK_PREDICATE_PREFIX = "task:"
+  TASK_PREDICATE_TEMPLATE = TASK_PREDICATE_PREFIX + "%s"
+  NOTIFY_PREDICATE_PREFIX = "notify:"
+  NOTIFY_PREDICATE_TEMPLATE = NOTIFY_PREDICATE_PREFIX + "%s"
 
   STUCK_PRIORITY = "Flow stuck"
 
@@ -194,8 +190,8 @@ class QueueManager(object):
 
     statuses_found = {}
 
-    for subject, result in self.data_store.MultiResolveRegex(
-        subjects, self.FLOW_STATUS_REGEX,
+    for subject, result in self.data_store.MultiResolvePrefix(
+        subjects, self.FLOW_STATUS_PREFIX,
         token=self.token):
       for predicate, _, _ in result:
         request_nr = int(predicate.split(":")[-1], 16)
@@ -216,8 +212,8 @@ class QueueManager(object):
     if timestamp is None:
       timestamp = (0, self.frozen_timestamp or rdfvalue.RDFDatetime().Now())
 
-    for predicate, serialized, _ in self.data_store.ResolveRegex(
-        subject, [self.FLOW_REQUEST_REGEX, self.FLOW_STATUS_REGEX],
+    for predicate, serialized, _ in self.data_store.ResolvePrefix(
+        subject, [self.FLOW_REQUEST_PREFIX, self.FLOW_STATUS_PREFIX],
         token=self.token, limit=self.request_limit, timestamp=timestamp):
 
       parts = predicate.split(":", 3)
@@ -250,8 +246,8 @@ class QueueManager(object):
       if total_size > limit:
         break
 
-    response_data = dict(self.data_store.MultiResolveRegex(
-        response_subjects, self.FLOW_RESPONSE_REGEX, token=self.token,
+    response_data = dict(self.data_store.MultiResolvePrefix(
+        response_subjects, self.FLOW_RESPONSE_PREFIX, token=self.token,
         timestamp=timestamp))
 
     for response_urn, request in sorted(response_subjects.items()):
@@ -291,16 +287,16 @@ class QueueManager(object):
       timestamp = (0, self.frozen_timestamp or rdfvalue.RDFDatetime().Now())
 
     # Get some requests.
-    for predicate, serialized, _ in self.data_store.ResolveRegex(
-        subject, self.FLOW_REQUEST_REGEX, token=self.token,
+    for predicate, serialized, _ in self.data_store.ResolvePrefix(
+        subject, self.FLOW_REQUEST_PREFIX, token=self.token,
         limit=self.request_limit, timestamp=timestamp):
 
       request_id = predicate.split(":", 1)[1]
       requests[str(subject.Add(request_id))] = serialized
 
     # And the responses for them.
-    response_data = dict(self.data_store.MultiResolveRegex(
-        requests.keys(), self.FLOW_RESPONSE_REGEX,
+    response_data = dict(self.data_store.MultiResolvePrefix(
+        requests.keys(), self.FLOW_RESPONSE_PREFIX,
         limit=self.response_limit, token=self.token,
         timestamp=timestamp))
 
@@ -338,8 +334,8 @@ class QueueManager(object):
     subjects = [session_id.Add("state") for session_id in session_ids]
     to_delete = []
 
-    for subject, values in self.data_store.MultiResolveRegex(
-        subjects, self.FLOW_REQUEST_REGEX, token=self.token,
+    for subject, values in self.data_store.MultiResolvePrefix(
+        subjects, self.FLOW_REQUEST_PREFIX, token=self.token,
         limit=self.request_limit):
       for _, serialized, _ in values:
 
@@ -465,7 +461,7 @@ class QueueManager(object):
 
   def _TaskIdToColumn(self, task_id):
     """Return a predicate representing this task."""
-    return self.TASK_PREDICATE_PREFIX % ("%08d" % task_id)
+    return self.TASK_PREDICATE_TEMPLATE % ("%08d" % task_id)
 
   def Delete(self, queue, tasks):
     """Removes the tasks from the queue.
@@ -594,8 +590,8 @@ class QueueManager(object):
     if notifications_by_session_id is None:
       notifications_by_session_id = {}
     end_time = self.frozen_timestamp or rdfvalue.RDFDatetime().Now()
-    for predicate, serialized_notification, ts in data_store.DB.ResolveRegex(
-        queue_shard, self.NOTIFY_PREDICATE_PREFIX % ".*",
+    for predicate, serialized_notification, ts in data_store.DB.ResolvePrefix(
+        queue_shard, self.NOTIFY_PREDICATE_PREFIX,
         timestamp=(0, end_time),
         token=self.token, limit=10000):
 
@@ -613,7 +609,7 @@ class QueueManager(object):
         continue
 
       # Strip the prefix from the predicate to get the session_id.
-      session_id = predicate[len(self.NOTIFY_PREDICATE_PREFIX % ""):]
+      session_id = predicate[len(self.NOTIFY_PREDICATE_PREFIX):]
       notification.session_id = session_id
       notification.timestamp = ts
 
@@ -680,7 +676,7 @@ class QueueManager(object):
 
     data_store.DB.MultiSet(
         self.GetNotificationShard(queue),
-        dict([(self.NOTIFY_PREDICATE_PREFIX % session_id,
+        dict([(self.NOTIFY_PREDICATE_TEMPLATE % session_id,
                [(data, timestamp)])
               for session_id, data in serialized_notifications.iteritems()]),
         sync=sync, replace=False, token=self.token)
@@ -701,7 +697,7 @@ class QueueManager(object):
 
     for queue_shard in self.GetAllNotificationShards(session_id.Queue()):
       data_store.DB.DeleteAttributes(
-          queue_shard, [self.NOTIFY_PREDICATE_PREFIX % session_id],
+          queue_shard, [self.NOTIFY_PREDICATE_TEMPLATE % session_id],
           token=self.token, start=start, end=end, sync=True)
 
   def Query(self, queue, limit=1, task_id=None):
@@ -724,14 +720,14 @@ class QueueManager(object):
       queue = queue.Queue()
 
     if task_id is None:
-      regex = self.TASK_PREDICATE_PREFIX % ".*"
+      prefix = self.TASK_PREDICATE_PREFIX
     else:
-      regex = utils.SmartStr(task_id)
+      prefix = utils.SmartStr(task_id)
 
     all_tasks = []
 
-    for _, serialized, ts in self.data_store.ResolveRegex(
-        queue, regex, timestamp=self.data_store.ALL_TIMESTAMPS,
+    for _, serialized, ts in self.data_store.ResolvePrefix(
+        queue, prefix, timestamp=self.data_store.ALL_TIMESTAMPS,
         token=self.token):
       task = rdf_flows.GrrMessage(serialized)
       task.eta = ts
@@ -785,8 +781,8 @@ class QueueManager(object):
     ttl_exceeded_count = 0
 
     # Only grab attributes with timestamps in the past.
-    for predicate, task, timestamp in transaction.ResolveRegex(
-        self.TASK_PREDICATE_PREFIX % ".*",
+    for predicate, task, timestamp in transaction.ResolvePrefix(
+        self.TASK_PREDICATE_PREFIX,
         timestamp=(0, self.frozen_timestamp or rdfvalue.RDFDatetime().Now())):
       task = rdf_flows.GrrMessage(task)
       task.eta = timestamp
@@ -848,8 +844,8 @@ class WellKnownQueueManager(QueueManager):
     subject = session_id.Add("state/request:00000000")
 
     # Get some requests
-    for _, serialized, _ in sorted(self.data_store.ResolveRegex(
-        subject, self.FLOW_RESPONSE_REGEX, token=self.token,
+    for _, serialized, _ in sorted(self.data_store.ResolvePrefix(
+        subject, self.FLOW_RESPONSE_PREFIX, token=self.token,
         limit=self.response_limit,
         timestamp=(0, self.frozen_timestamp or rdfvalue.RDFDatetime().Now()))):
 

@@ -773,15 +773,17 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     self.assertNotEqual(flow_obj.state.context.state,
                         rdf_flows.Flow.State.ERROR)
 
-    request2_data = data_store.DB.ResolveRegex(session_id.Add("state"),
-                                               ".*:00000002", token=self.token)
-    # Make sure the status field and the original request are still there.
-    self.assertEqual(len(request2_data), 2)
+    request_data = data_store.DB.ResolvePrefix(session_id.Add("state"),
+                                               "flow:", token=self.token)
+    subjects = [r[0] for r in request_data]
 
-    request1_data = data_store.DB.ResolveRegex(session_id.Add("state"),
-                                               ".*:00000001", token=self.token)
+    # Make sure the status field and the original request are still there.
+    self.assertIn("flow:request:00000002", subjects)
+    self.assertIn("flow:status:00000002", subjects)
+
     # Everything from request 1 should have been deleted.
-    self.assertEqual(len(request1_data), 0)
+    self.assertNotIn("flow:request:00000001", subjects)
+    self.assertNotIn("flow:status:00000001", subjects)
 
     # The notification for request 2 should have survived.
     with queue_manager.QueueManager(token=self.token) as manager:
@@ -814,14 +816,14 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     request_id = 1
     with queue_manager.QueueManager(token=self.token) as manager:
       request_urn = session_id.Add("state")
-      res = data_store.DB.ResolveRegex(
+      res = data_store.DB.ResolvePrefix(
           request_urn, "flow:status:00000001", token=self.token)
       self.assertTrue(res)
       self.assertEqual(res[0][2], frozen_timestamp)
 
       response_urn = manager.GetFlowResponseSubject(session_id, request_id)
-      res = data_store.DB.ResolveRegex(
-          response_urn, "flow:response:00000001:.*", token=self.token)
+      res = data_store.DB.ResolvePrefix(
+          response_urn, "flow:response:00000001:", token=self.token)
       self.assertTrue(res)
 
       for (_, _, timestamp) in res:

@@ -148,8 +148,8 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
                      list(range(1, 10)))
 
     # There should be nothing in the client_queue
-    self.assertEqual([], data_store.DB.ResolveRegex(self.client_id, "task:.*",
-                                                    token=self.token))
+    self.assertEqual([], data_store.DB.ResolvePrefix(self.client_id, "task:",
+                                                     token=self.token))
 
   def testWellKnownFlowsRemote(self):
     """Make sure that flows that do not exist on the front end get scheduled."""
@@ -173,13 +173,13 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(test_lib.WellKnownSessionTest.messages, [])
 
     # There should be nothing in the client_queue
-    self.assertEqual([], data_store.DB.ResolveRegex(self.client_id, "task:.*",
-                                                    token=self.token))
+    self.assertEqual([], data_store.DB.ResolvePrefix(self.client_id, "task:",
+                                                     token=self.token))
 
     # The well known flow messages should be waiting in the flow state now:
     queued_messages = []
-    for predicate, _, _ in data_store.DB.ResolveRegex(
-        session_id.Add("state/request:00000000"), "flow:.*", token=self.token):
+    for predicate, _, _ in data_store.DB.ResolvePrefix(
+        session_id.Add("state/request:00000000"), "flow:", token=self.token):
       queued_messages.append(predicate)
 
     self.assertEqual(len(queued_messages), 9)
