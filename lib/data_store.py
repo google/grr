@@ -325,6 +325,10 @@ class DataStore(object):
                          limit=None, token=None):
     """Generate a set of values matching for subjects' attribute.
 
+    This method provides backwards compatibility for the old method of
+    specifying regexes. Each datastore can move to prefix matching by
+    overriding this method and ResolvePrefix below.
+
     Args:
       subjects: A list of subjects.
       attribute_prefix: The attribute prefix.

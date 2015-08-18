@@ -260,15 +260,17 @@ class FakeDataStore(data_store.DataStore):
     # Return the results in the same order they requested.
     remaining_limit = limit
     for attribute in attributes:
-      for v in sorted(results.get(attribute, []), key=lambda x: x[1],
-                      reverse=True):
+      # This returns triples of (attribute_name, timestamp, data). We want to
+      # sort by timestamp.
+      for _, ts, data in sorted(results.get(attribute, []), key=lambda x: x[1],
+                                reverse=True):
         if remaining_limit:
           remaining_limit -= 1
           if remaining_limit == 0:
-            yield (attribute, v[2], v[1])
+            yield (attribute, data, ts)
             return
 
-        yield (attribute, v[2], v[1])
+        yield (attribute, data, ts)
 
   @utils.Synchronized
   def ResolveRegex(self, subject, attribute_regex, token=None,
@@ -365,11 +367,13 @@ class FakeDataStore(data_store.DataStore):
     self.security_manager.CheckDataStoreAccess(
         token, [subject], self.GetRequiredResolveAccess(attribute_prefix))
 
+    if timestamp in [None, self.NEWEST_TIMESTAMP, self.ALL_TIMESTAMPS]:
+      start, end = 0, (2 ** 63) - 1
     # Does timestamp represent a range?
-    if isinstance(timestamp, (list, tuple)):
+    elif isinstance(timestamp, (list, tuple)):
       start, end = timestamp  # pylint: disable=unpacking-non-sequence
     else:
-      start, end = 0, (2 ** 63) - 1
+      raise ValueError("Invalid timestamp: %s" % timestamp)
 
     start = int(start)
     end = int(end)
@@ -411,8 +415,11 @@ class FakeDataStore(data_store.DataStore):
 
     result = []
     for k, values in sorted(results.items()):
-      for v in sorted(values, key=lambda x: x[1], reverse=True):
-        result.append((k, v[2], v[1]))
+      # Values are triples of (attribute_name, timestamp, data). We want to
+      # sort by timestamp.
+      for _, ts, data in sorted(values, key=lambda x: x[1], reverse=True):
+        # Return triples (attribute_name, data, timestamp).
+        result.append((k, data, ts))
     return result
 
   def Size(self):
