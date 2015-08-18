@@ -767,7 +767,7 @@ class HuntStatsRenderer(renderers.TemplateRenderer):
   <dt>Network bytes sent stdev</dt>
   <dd>{{this.stats.network_bytes_sent_stats.std|floatformat}}</dd>
 
-  <dt>Clients Hisogram</dt>
+  <dt>Clients Histogram</dt>
   <dd class="histogram">
     <div id="network_bytes_sent_{{unique|escape}}"></div>
   </dd>
@@ -822,7 +822,7 @@ class HuntStatsRenderer(renderers.TemplateRenderer):
         self.user_cpu_json_data = self._HistogramToJSON(
             self.stats.user_cpu_stats.histogram)
         self.system_cpu_json_data = self._HistogramToJSON(
-            self.stats.user_cpu_stats.histogram)
+            self.stats.system_cpu_stats.histogram)
         self.network_bytes_sent_json_data = self._HistogramToJSON(
             self.stats.network_bytes_sent_stats.histogram)
 

@@ -34,6 +34,7 @@ from grr.lib import rekall_profile_server_test
 from grr.lib import stats_test
 from grr.lib import test_lib
 from grr.lib import threadpool_test
+from grr.lib import throttle_test
 from grr.lib import type_info_test
 from grr.lib import utils_test
 

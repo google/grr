@@ -34,3 +34,6 @@ try:
   from grr.lib.data_stores import http_data_store
 except ImportError:
   pass
+
+# Site specific data stores.
+from grr.lib.data_stores import local

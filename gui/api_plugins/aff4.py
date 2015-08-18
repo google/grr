@@ -3,10 +3,6 @@
 
 
 
-# pylint: disable=unused-import,g-bad-import-order
-from grr.lib import server_plugins
-# pylint: enable=unused-import,g-bad-import-order
-
 from grr.gui import api_aff4_object_renderers
 from grr.gui import api_call_renderer_base
 from grr.lib import aff4
