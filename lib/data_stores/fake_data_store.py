@@ -414,12 +414,12 @@ class FakeDataStore(data_store.DataStore):
               break
 
     result = []
-    for k, values in sorted(results.items()):
+    for attribute_name, values in sorted(results.items()):
       # Values are triples of (attribute_name, timestamp, data). We want to
       # sort by timestamp.
       for _, ts, data in sorted(values, key=lambda x: x[1], reverse=True):
         # Return triples (attribute_name, data, timestamp).
-        result.append((k, data, ts))
+        result.append((attribute_name, data, ts))
     return result
 
   def Size(self):
