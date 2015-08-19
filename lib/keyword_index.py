@@ -107,3 +107,19 @@ class AFF4KeywordIndex(aff4.AFF4Object):
           token=self.token, sync=False, timestamp=timestamp, **kwargs)
     if sync:
       data_store.DB.Flush()
+
+  def RemoveKeywordsForName(self, name, keywords, sync=True):
+    """Removes keywords for a name.
+
+    Args:
+      name: A name which should not be associated with some keywords anymore.
+      keywords: A collection of keywords.
+      sync: Sync to data store immediately.
+    """
+    for keyword in set(keywords):
+      data_store.DB.DeleteAttributes(
+          self._KeywordToURN(keyword),
+          self.INDEX_COLUMN_FORMAT % name,
+          token=self.token, sync=False)
+    if sync:
+      data_store.DB.Flush()

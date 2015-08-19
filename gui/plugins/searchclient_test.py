@@ -562,9 +562,11 @@ class TestHostTable(SearchClientTestBase):
   def testAppliedLabelBecomesSearchableImmediately(self):
     self.Open("/#main=HostTable")
 
-    # Select 1 client and click 'Add Label' button.
+    # Select 2 clients and click 'Add Label' button.
     self.Click("css=input.client-checkbox["
                "client_urn='aff4:/C.0000000000000001']")
+    self.Click("css=input.client-checkbox["
+               "client_urn='aff4:/C.0000000000000002']")
     self.Click("css=button[name=AddLabels]:not([disabled])")
 
     # Type label name.
@@ -584,9 +586,29 @@ class TestHostTable(SearchClientTestBase):
     self.WaitUntilNot(self.IsVisible,
                       "css=div[name=AddClientsLabelsDialog]")
 
-    # Open client search with label and check that labeled client is shown.
+    # Search using the new label and check that the labeled clients are shown.
     self.Open("/#main=HostTable&q=label:\"issue 42\"")
     self.WaitUntil(self.IsTextPresent, "C.0000000000000001")
+    self.WaitUntil(self.IsTextPresent, "C.0000000000000002")
+
+    # Now we test if we can remove the label and if the search index is updated.
+
+    # Select 1 client and click 'Remove Label' button.
+    self.Click("css=input.client-checkbox["
+               "client_urn='aff4:/C.0000000000000001']")
+    self.Click("css=button[name=RemoveLabels]:not([disabled])")
+    # The label should already be prefilled in the dropdown.
+    self.WaitUntil(self.IsTextPresent, "issue 42")
+
+    self.Click("css=div[name=RemoveClientsLabelsDialog] button[name=Proceed]")
+
+    # Open client search with label and check that labeled client is not shown
+    # anymore.
+    self.Open("/#main=HostTable&q=label:\"issue 42\"")
+
+    self.WaitUntil(self.IsTextPresent, "C.0000000000000002")
+    # This client must not be in the results anymore.
+    self.assertFalse(self.IsTextPresent("C.0000000000000001"))
 
   def testSelectionIsPreservedWhenAddClientsLabelsDialogIsCancelled(self):
     self.Open("/#main=HostTable")

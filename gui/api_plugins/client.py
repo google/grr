@@ -143,9 +143,8 @@ class ApiClientsRemoveLabelsRenderer(api_call_renderer_base.ApiCallRenderer):
       client_objs = aff4.FACTORY.MultiOpen(
           args.client_ids, aff4_type="VFSGRRClient", mode="rw", token=token)
       for client_obj in client_objs:
+        index.RemoveClientLabels(client_obj)
         self.RemoveClientLabels(client_obj, args.labels)
-        # TODO(user): AddClient doesn't remove labels. Make sure removed labels
-        # are actually removed from the index.
         index.AddClient(client_obj)
         client_obj.Close()
 

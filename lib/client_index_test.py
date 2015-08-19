@@ -19,7 +19,7 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
                                 aff4_type="ClientIndex",
                                 mode="rw",
                                 token=self.token)
-    # Capitilzation is fixed if necessary.
+    # Capitalization is fixed if necessary.
     self.assertEqual(
         CLIENT_ID,
         index._ClientIdFromURN(
@@ -185,6 +185,32 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
       self.assertEqual(index.LookupClients(["+10.1.1", "Host-2"]),
                        [rdf_client.ClientURN("aff4:/C.1000000000000002")])
 
+  def testRemoveLabels(self):
+    client = aff4.FACTORY.Create(CLIENT_ID,
+                                 aff4_type="VFSGRRClient",
+                                 mode="rw",
+                                 token=self.token)
+    client.AddLabels("testlabel_1", token=self.token)
+    client.AddLabels("testlabel_2", token=self.token)
+    client.Flush()
+    index = aff4.FACTORY.Create("aff4:/client-index4/",
+                                aff4_type="ClientIndex",
+                                mode="rw",
+                                token=self.token)
+    index.AddClient(client)
+
+    client_list = [rdf_client.ClientURN(CLIENT_ID)]
+    self.assertEqual(index.LookupClients(["testlabel_1"]), client_list)
+    self.assertEqual(index.LookupClients(["testlabel_2"]), client_list)
+
+    # Now delete one label.
+    index.RemoveClientLabels(client)
+    client.RemoveLabels("testlabel_1")
+    index.AddClient(client)
+
+    self.assertEqual(index.LookupClients(["testlabel_1"]), [])
+    self.assertEqual(index.LookupClients(["testlabel_2"]), client_list)
+
   def _HostsHaveLabel(self, hosts, label, label_index):
     urns = label_index.FindUrnsByLabel(label)
     result = [utils.SmartStr(c.Get("Host")).lower()
@@ -209,6 +235,10 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
     label_index = aff4.FACTORY.Open("aff4:/index/labels/clients",
                                     token=self.token)
 
+    # Maps hostnames used in the test to client urns.
+    m = {"host-0": client_urns[0],
+         "host-1": client_urns[1]}
+
     # No hostname.
     client_index.BulkLabel("label-0", ["host-3"], self.token, index)
     self._HostsHaveLabel([], "label-0", label_index)
@@ -216,23 +246,39 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
     # Add label.
     hosts = ["host-0", "host-1"]
     client_index.BulkLabel("label-0", hosts, self.token, index)
+    # host-0: label-0
+    # host-1: label-0
     self._HostsHaveLabel(hosts, "label-0", label_index)
+    self.assertItemsEqual(index.LookupClients(["label-0"]),
+                          [m[host] for host in hosts])
 
     # Add another label only changes the new host.
     hosts = ["host-1"]
     client_index.BulkLabel("label-1", hosts, self.token, index)
+    # host-0: label-0
+    # host-1: label-0, label-1
     self._HostsHaveLabel(hosts, "label-1", label_index)
+    self.assertItemsEqual(index.LookupClients(["label-1"]),
+                          [m[host] for host in hosts])
     # and other labels remain unchanged.
     hosts = ["host-0", "host-1"]
     self._HostsHaveLabel(hosts, "label-0", label_index)
+    self.assertItemsEqual(index.LookupClients(["label-0"]),
+                          [m[host] for host in hosts])
 
     # Relabeling updates the label on already labeled hosts.
     hosts = ["host-0"]
     client_index.BulkLabel("label-0", hosts, self.token, index)
+    # host-0: label-0
+    # host-1: label-1
     self._HostsHaveLabel(hosts, "label-0", label_index)
+    self.assertItemsEqual(index.LookupClients(["label-0"]),
+                          [m[host] for host in hosts])
     # and other labels remain unchanged.
     hosts = ["host-1"]
     self._HostsHaveLabel(hosts, "label-1", label_index)
+    self.assertItemsEqual(index.LookupClients(["label-1"]),
+                          [m[host] for host in hosts])
 
 
 def main(argv):

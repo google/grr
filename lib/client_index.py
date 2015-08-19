@@ -76,7 +76,14 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
 
     Returns:
       A list of client URNs.
+
+    Raises:
+      ValueError: A string (single keyword) was passed instead of an iterable.
     """
+    if isinstance(keywords, basestring):
+      raise ValueError("Keywords should be an iterable, not a string (got %s)."
+                       % keywords)
+
     start_time, end_time, filtered_keywords, unversioned_keywords = (
         self._AnalyzeKeywords(keywords)
     )
@@ -236,6 +243,24 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
 
     self.AddKeywordsForName(*self.AnalyzeClient(client), **kwargs)
 
+  def RemoveClientLabels(self, client):
+    """Removes all labels for a given client object.
+
+    Args:
+      client: A VFSGRRClient record.
+    """
+    keywords = []
+    for label in client.GetLabelsNames():
+      keyword = self._NormalizeKeyword(utils.SmartStr(label))
+      # This might actually delete a keyword with the same name as the label (if
+      # there is one). Usually the client labels will get added right after the
+      # deletion of the old labels though so this can only be abused to destroy
+      # historic index data, the search functionality will not be affected.
+      keywords.append(keyword)
+      keywords.append("label:%s" % keyword)
+
+    self.RemoveKeywordsForName(self._ClientIdFromURN(client.urn), keywords)
+
 
 def GetClientURNsForHostnames(hostnames, token=None):
   """Gets all client_ids for a given list of hostnames or FQDNS.
@@ -301,6 +326,7 @@ def BulkLabel(label, hostnames, token, client_index=None):
                                        aff4_type="VFSGRRClient", mode="rw"):
     fqdn = utils.SmartStr(client.Get("FQDN")).lower()
     if fqdn not in fqdns:
+      client_index.RemoveClientLabels(client)
       client.RemoveLabels(label, owner="GRR")
       client.Flush()
       client_index.AddClient(client)
