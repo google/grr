@@ -262,6 +262,7 @@ class CronWorker(object):
     self.thread_name = thread_name
     self.sleep = sleep
 
+    # SetUID is required to write cronjobs under aff4:/cron/
     self.token = access_control.ACLToken(
         username="GRRCron", reason="Implied.").SetUID()
 

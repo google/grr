@@ -770,6 +770,8 @@ def UploadRaw(file_path, aff4_path, token=None):
 
 def GetToken():
   # Extend for user authorization
+  # SetUID is required to create and write to various aff4 paths when updating
+  # config.
   return access_control.ACLToken(username="GRRConsole").SetUID()
 
 

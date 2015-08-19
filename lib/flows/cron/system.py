@@ -391,6 +391,8 @@ class EndToEndTests(cronjobs.SystemCronFlow):
                "Test.end_to_end_client_ids")
       return
 
+    # SetUID is required to run a hunt on the configured end-to-end client
+    # targets without an approval.
     token = access_control.ACLToken(username="GRRWorker",
                                     reason="Running endtoend tests.").SetUID()
     runner_args = flow_runner.FlowRunnerArgs(flow_name="EndToEndTestFlow")

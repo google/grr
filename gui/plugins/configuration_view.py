@@ -248,6 +248,7 @@ class ConfigurationViewInitHook(registry.InitHook):
 
   def Run(self):
     """Create the necessary directories."""
+    # SetUID required to write into aff4:/config
     token = access_control.ACLToken(username="GRRSystem",
                                     reason="Init").SetUID()
     maintenance_utils.CreateBinaryConfigPaths(token=token)

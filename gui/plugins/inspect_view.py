@@ -295,9 +295,8 @@ class ResponsesTable(renderers.TableRenderer):
     state_queue = request_message.session_id.Add(
         "state/request:%08X" % request_message.request_id)
 
-    predicate_pre = (manager.FLOW_RESPONSE_PREFIX %
+    predicate_pre = (manager.FLOW_RESPONSE_PREFIX + "%08X" %
                      request_message.request_id)
-
     # Get all the responses for this request.
     for i, (predicate, serialized_message, _) in enumerate(
         data_store.DB.ResolvePrefix(state_queue, predicate_pre,

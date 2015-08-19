@@ -69,6 +69,9 @@ def HandleApiCall(renderer, args, token=None):
   if not hasattr(renderer, "Render"):
     renderer = api_call_renderer_base.ApiCallRenderer.classes[renderer]
 
+  # Privileged renderers bypass the approvals model to do things like check flow
+  # status across multiple clients or add labels to clients. They provide
+  # limited functionality and are responsible for their own checking.
   if renderer.privileged:
     token = token.SetUID()
 

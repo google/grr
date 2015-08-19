@@ -273,7 +273,9 @@ class Factory(object):
         max_size=config_lib.CONFIG["AFF4.intermediate_cache_max_size"],
         max_age=config_lib.CONFIG["AFF4.intermediate_cache_age"])
 
-    # Create a token for system level actions:
+    # Create a token for system level actions. This token is used by other
+    # classes such as HashFileStore and NSRLFilestore to create entries under
+    # aff4:/files, as well as to create top level paths like aff4:/foreman
     self.root_token = access_control.ACLToken(username="GRRSystem",
                                               reason="Maintenance").SetUID()
 

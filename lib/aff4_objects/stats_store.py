@@ -775,6 +775,7 @@ class StatsStoreInit(registry.InitHook):
   def RunOnce(self):
     """Initializes StatsStore and StatsStoreWorker."""
 
+    # SetUID is required to create and write to aff4:/stats_store
     token = access_control.ACLToken(username="grr-stats-store").SetUID()
 
     global STATS_STORE

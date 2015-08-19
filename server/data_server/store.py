@@ -285,6 +285,7 @@ class DataStoreService(object):
 
   def LoadServerMapping(self):
     """Retrieve server mapping from database."""
+    # TODO(user): this SetUID can likely be replaced with a read ACL.
     token = access_control.ACLToken(username="GRRSystem").SetUID()
     mapping_str, _ = self.db.Resolve(MAP_SUBJECT, MAP_VALUE_PREDICATE,
                                      token=token)
@@ -319,6 +320,7 @@ class DataStoreService(object):
       if self._DifferentPathing(new_pathing):
         self.pathing = new_pathing
         self.db.RecreatePathing(new_pathing)
+    # SetUID is required to write to aff4:/servers_map
     token = access_control.ACLToken(username="GRRSystem").SetUID()
     self.db.MultiSet(MAP_SUBJECT, {MAP_VALUE_PREDICATE: mapping}, token=token)
 
