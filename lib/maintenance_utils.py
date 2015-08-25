@@ -47,7 +47,7 @@ def UploadSignedConfigBlob(content, aff4_path, client_context=None,
   # target platform.
   if client_context is None:
     # Default to the windows client.
-    client_context = ["Platform:Windows", "Client"]
+    client_context = ["Platform:Windows", "Client Context"]
 
   config_lib.CONFIG.Validate(
       parameters="PrivateKeys.executable_signing_private_key")

@@ -18,7 +18,7 @@ add_library(core_lib
 )
 set(core_lib_DEPS boost_regex crypto protobuf z)
 
-add_library(http_comms_lib http_connection.cc)
+add_library(http_comms_lib http_connection.cc resource_monitor.cc)
 set(http_comms_lib_DEPS core_lib curl ${core_lib_DEPS})
 
 add_library(subprocess_delegator_lib subprocess_delegator.cc)

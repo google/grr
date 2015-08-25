@@ -50,6 +50,7 @@ from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
 
+
 flags.DEFINE_bool("list_storage", False,
                   "List all storage subsystems present.")
 

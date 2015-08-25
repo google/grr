@@ -836,9 +836,11 @@ class GRRFlow(aff4.AFF4Volume):
 
       runner_args.token = data_store.default_token.Copy()
 
-    # Make sure we are allowed to run this flow. If not, we raise here.
+    # Make sure we are allowed to run this flow. If not, we raise here. We
+    # respect SUID (supervisor) if it is already set. SUID cannot be set by the
+    # user since it isn't part of the ACLToken proto.
     data_store.DB.security_manager.CheckFlowAccess(
-        runner_args.token.RealUID(), runner_args.flow_name,
+        runner_args.token, runner_args.flow_name,
         runner_args.client_id)
 
     # For the flow itself we use a supervisor token.

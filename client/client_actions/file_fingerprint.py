@@ -5,7 +5,7 @@
 
 import hashlib
 
-from grr.parsers import fingerprint
+from grr.lib import fingerprint
 from grr.client import vfs
 from grr.client.client_actions import standard
 from grr.lib.rdfvalues import client as rdf_client

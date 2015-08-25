@@ -86,6 +86,10 @@ class MissingConfigDefinitionError(Error):
   """Raised when a config contains an undefined config option."""
 
 
+class InvalidContextError(Error):
+  """Raised when an invalid context is used."""
+
+
 class ConfigFilter(object):
   """A configuration filter can transform a configuration parameter."""
 
@@ -603,6 +607,7 @@ class GrrConfigManager(object):
     self.global_override = dict()
     self.context_descriptions = {}
     self.constants = set()
+    self.valid_contexts = set()
 
     # This is the type info set describing all configuration
     # parameters.
@@ -642,6 +647,7 @@ class GrrConfigManager(object):
     result.type_infos = self.type_infos
     result.defaults = self.defaults
     result.context = self.context
+    result.valid_contexts = self.valid_contexts
 
     return result
 
@@ -723,8 +729,14 @@ class GrrConfigManager(object):
     Args:
       context_string: A string which describes the global program.
       description: A description as to when this context applies.
+    Raises:
+      InvalidContextError: An undefined context was specified.
     """
     if context_string not in self.context:
+      if context_string not in self.valid_contexts:
+        raise InvalidContextError(
+            "Invalid context specified: %s" % context_string)
+
       self.context.append(context_string)
       self.context_descriptions[context_string] = description
 
@@ -836,6 +848,9 @@ class GrrConfigManager(object):
     self.defaults[descriptor.name] = descriptor.GetDefault()
     self.FlushCache()
 
+  def DefineContext(self, context_name):
+    self.valid_contexts.add(context_name)
+
   def FormatHelp(self):
     result = "Context: %s\n\n" % ",".join(self.context)
     for descriptor in sorted(self.type_infos, key=lambda x: x.name):
@@ -865,6 +880,8 @@ class GrrConfigManager(object):
     for k, v in merge_data.items():
       # A context clause.
       if isinstance(v, OrderedYamlDict):
+        if k not in self.valid_contexts:
+          raise InvalidContextError("Invalid context specified: %s" % k)
         context_data = raw_data.setdefault(k, OrderedYamlDict())
         self.MergeData(v, context_data)
 
@@ -1089,6 +1106,9 @@ class GrrConfigManager(object):
       path = []
 
     for element in context:
+      if element not in self.valid_contexts:
+        raise InvalidContextError("Invalid context specified: %s" % element)
+
       if element in raw_data:
         context_raw_data = raw_data[element]
 
@@ -1257,6 +1277,9 @@ class GrrConfigManager(object):
     self.AddOption(type_info.String(name=name, default=default or "",
                                     description=help), constant=True)
 
+  def DEFINE_context(self, name):
+    self.DefineContext(name)
+
   # pylint: enable=g-bad-name
 
 
@@ -1407,7 +1430,8 @@ def ParseConfigCommandLine():
 
   # Load additional contexts from the command line.
   for context in flags.FLAGS.context:
-    CONFIG.AddContext(context)
+    if context:
+      CONFIG.AddContext(context)
 
   if CONFIG["Config.writeback"]:
     CONFIG.SetWriteBack(CONFIG["Config.writeback"])

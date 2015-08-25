@@ -77,6 +77,7 @@ certificate = -----BEGIN CERTIFICATE-----
         uqnFquJfg8xMWHHJmPEocDpJT8Tlmbw=
         -----END CERTIFICATE-----
 """)
+    config_lib.CONFIG.context = []
 
     errors = config_lib.CONFIG.Validate("Frontend")
     self.assertItemsEqual(errors.keys(), ["Frontend.certificate"])
@@ -99,6 +100,7 @@ driver_signing_private_key = -----BEGIN RSA PRIVATE KEY-----
     wDcAa2GW9htKHmv9/Rzg05iAD+FYTsp8Gi2r4icV
     -----END RSA PRIVATE KEY-----
 """)
+    config_lib.CONFIG.context = []
 
     key = config_lib.CONFIG.Get("PrivateKeys.server_key")
     self.assertRaises(RSA.RSAError, key.GetPrivateKey)
@@ -116,6 +118,8 @@ driver_signing_public_key = -----BEGIN PUBLIC KEY-----
     QAI3WluLh0sW7/ro93eoIZ0FbipnTpzGkPpriONbSOXmxWNTo0b9ma8CAwEAAQ==
     -----END PUBLIC KEY-----
 """)
+    config_lib.CONFIG.context = []
+
     errors = config_lib.CONFIG.Validate("Client")
     self.assertItemsEqual(errors.keys(),
                           ["Client.executable_signing_public_key"])
@@ -128,6 +132,7 @@ driver_signing_private_key = -----BEGIN RSA PRIVATE KEY-----
         MIIBOgIBAAJBALnfFW1FffeKPs5PLUhFOSkNrr9TDCODQAI3WluLh0sW7/ro93eo
         -----END RSA PRIVATE KEY-----
 """)
+    config_lib.CONFIG.context = []
 
     key = config_lib.CONFIG.Get("PrivateKeys.driver_signing_private_key")
     self.assertRaises(RSA.RSAError, key.GetPrivateKey)

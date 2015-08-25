@@ -4455,6 +4455,117 @@
       "url": "/api/reflection/rdfvalue/ApiRDFValueCollectionRendererArgs"
     }
   ],
+  "ApiRemoteGetFileRenderer": [
+    {
+      "method": "POST",
+      "response": {
+        "flow_args": {
+          "age": 0,
+          "type": "FileFinderArgs",
+          "value": {
+            "action": {
+              "age": 0,
+              "type": "FileFinderAction",
+              "value": {
+                "action_type": {
+                  "age": 0,
+                  "type": "EnumNamedValue",
+                  "value": "DOWNLOAD"
+                }
+              }
+            },
+            "conditions": [
+              {
+                "age": 0,
+                "type": "FileFinderCondition",
+                "value": {
+                  "condition_type": {
+                    "age": 0,
+                    "type": "EnumNamedValue",
+                    "value": "SIZE"
+                  },
+                  "size": {
+                    "age": 0,
+                    "type": "FileFinderSizeCondition",
+                    "value": {
+                      "max_file_size": {
+                        "age": 0,
+                        "type": "long",
+                        "value": 20000000
+                      }
+                    }
+                  }
+                }
+              }
+            ],
+            "paths": [
+              {
+                "age": 0,
+                "type": "GlobExpression",
+                "value": "/tmp/test"
+              }
+            ]
+          }
+        },
+        "flow_id": {
+          "age": 0,
+          "type": "SessionID",
+          "value": "aff4:/C.1000000000000000/flows/W:ABCDEF"
+        },
+        "runner_args": {
+          "age": 0,
+          "type": "FlowRunnerArgs",
+          "value": {
+            "client_id": {
+              "age": 0,
+              "type": "ClientURN",
+              "value": "aff4:/C.1000000000000000"
+            },
+            "flow_name": {
+              "age": 0,
+              "type": "unicode",
+              "value": "FileFinder"
+            },
+            "network_bytes_limit": {
+              "age": 0,
+              "type": "long",
+              "value": 200000000
+            },
+            "output_plugins": [],
+            "token": {
+              "age": 0,
+              "type": "ACLToken",
+              "value": {
+                "expiry": {
+                  "age": 0,
+                  "type": "RDFDatetime",
+                  "value": 102000000
+                },
+                "process": {
+                  "age": 0,
+                  "type": "unicode",
+                  "value": "GRRAdminUI"
+                },
+                "reason": {
+                  "age": 0,
+                  "type": "unicode",
+                  "value": ""
+                },
+                "username": {
+                  "age": 0,
+                  "type": "unicode",
+                  "value": "test"
+                }
+              }
+            }
+          }
+        },
+        "status_url": "http://localhost:8000/api/flows/C.1000000000000000/W:ABCDEF/status"
+      },
+      "test_class": "ApiRemoteGetFileRendererRegressionTest",
+      "url": "/api/clients/C.1000000000000000/flows/remotegetfile"
+    }
+  ],
   "ApiStartFlowRenderer": [
     {
       "method": "POST",

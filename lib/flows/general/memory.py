@@ -520,10 +520,6 @@ def GetClientContext(client_id, token):
   if system:
     client_context.append("Platform:%s" % system)
 
-  release = client.Get(client.Schema.OS_RELEASE)
-  if release:
-    client_context.append(utils.SmartStr(release))
-
   arch = utils.SmartStr(client.Get(client.Schema.ARCH)).lower()
   # Support synonyms for i386.
   if arch == "x86":

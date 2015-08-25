@@ -13,6 +13,7 @@ from grr.lib import flow
 from grr.lib import flow_runner
 from grr.lib import output_plugin
 from grr.lib import test_lib
+from grr.lib import throttle
 from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.flows.general import file_finder
@@ -197,6 +198,56 @@ class ApiFlowDescriptorsListRendererRegressionTest(
         "FileFinder": file_finder.FileFinder
         }):
       self.Check("GET", "/api/flows/descriptors")
+
+
+class ApiRemoteGetFileRendererRegressionTest(
+    api_test_lib.ApiCallRendererRegressionTest):
+  renderer = "ApiRemoteGetFileRenderer"
+
+  def setUp(self):
+    super(ApiRemoteGetFileRendererRegressionTest, self).setUp()
+    self.client_id = self.SetupClients(1)[0]
+
+  def Run(self):
+    def ReplaceFlowId():
+      flows_dir_fd = aff4.FACTORY.Open(self.client_id.Add("flows"),
+                                       token=self.token)
+      flow_urn = list(flows_dir_fd.ListChildren())[0]
+      return {flow_urn.Basename(): "W:ABCDEF"}
+
+    with test_lib.FakeTime(42):
+      self.Check(
+          "POST",
+          "/api/clients/%s/flows/remotegetfile" % self.client_id.Basename(),
+          {"hostname": self.client_id.Basename(),
+           "paths": ["/tmp/test"]},
+          replace=ReplaceFlowId)
+
+
+class ApiRemoteGetFileRendererTest(test_lib.GRRBaseTest):
+  """Test for ApiRemoteGetFileRenderer."""
+
+  def setUp(self):
+    super(ApiRemoteGetFileRendererTest, self).setUp()
+    self.client_ids = self.SetupClients(4)
+    self.renderer = flow_plugin.ApiRemoteGetFileRenderer()
+
+  def testClientLookup(self):
+    """When multiple clients match, check we run on the latest one."""
+    args = flow_plugin.ApiRemoteGetFileRendererArgs(
+        hostname="Host", paths=["/test"])
+    result = self.renderer.Render(args, token=self.token)
+    self.assertIn("C.1000000000000003", result["status_url"])
+
+  def testThrottle(self):
+    """Calling the same flow should raise."""
+    args = flow_plugin.ApiRemoteGetFileRendererArgs(
+        hostname="Host", paths=["/test"])
+    result = self.renderer.Render(args, token=self.token)
+    self.assertIn("C.1000000000000003", result["status_url"])
+
+    with self.assertRaises(throttle.ErrorFlowDuplicate):
+      self.renderer.Render(args, token=self.token)
 
 
 def main(argv):

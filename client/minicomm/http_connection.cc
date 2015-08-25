@@ -1,4 +1,4 @@
-#include "http_connection.h"
+#include "grr/client/minicomm/http_connection.h"
 
 #include <math.h>
 #include <stddef.h>
@@ -17,6 +17,7 @@
 
 #include "grr/client/minicomm/comms_utils.h"
 #include "grr/client/minicomm/crypto.h"
+#include "grr/client/minicomm/resource_monitor.h"
 #include "grr/client/minicomm/util.h"
 #include "grr/proto/jobs.pb.h"
 
@@ -155,6 +156,8 @@ void HttpConnectionManager::Run() {
   std::vector<GrrMessage> to_send;
 
   NonceGenerator nonce_gen;
+  NetworkResourceMonitor network;
+  HardwareResourceMonitor hardware(outbox_);
 
   while (true) {
     // If the last try was a failure, wait 5 seconds before retrying. Otherwise
@@ -176,6 +179,13 @@ void HttpConnectionManager::Run() {
     // If we already have some messages to send, just send them.
     if (to_send.empty()) {
       to_send = outbox_->GetMessages(1000, 1000000, false);
+    }
+
+    if (network.WaitToSend(to_send) == false) {
+      // In case too much outgoing bandwidth would be used, drop the packet.
+      // TODO(user): Save network packet and send it later.
+      to_send.clear();
+      continue;
     }
 
     const uint64 nonce = nonce_gen.Generate();

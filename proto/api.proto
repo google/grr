@@ -4,6 +4,7 @@
 
 syntax = "proto2";
 
+import "grr/proto/jobs.proto";
 import "grr/proto/flows.proto";
 import "grr/proto/semantic.proto";
 
@@ -318,8 +319,8 @@ message ApiRDFValueCollectionRendererArgs {
       description: "Fetch this number of elements."
     }];
   optional bool with_total_count = 3 [(sem_type) = {
-      description: "Include total number of elements in the collection into the "
-        "response. NOTE: for some collections this may be expensive."
+      description: "Include total number of elements in the collection into the"
+        " response. NOTE: for some collections this may be expensive."
     }];
   optional string filter = 4 [(sem_type) = {
       description: "Return only collection items whose string representation "
@@ -334,3 +335,26 @@ message ApiRDFValueCollectionRendererArgs {
       "in their entirety."
     }, default = -1];
 }
+
+message ApiRemoteGetFileRendererArgs {
+  optional string hostname = 1 [(sem_type) = {
+      description: "Target host. Can be FQDN or client ID."
+    }];
+  repeated string paths = 2 [(sem_type) = {
+      type: "GlobExpression",
+      description: "Fetch this number of elements."
+    }];
+  optional uint64 max_file_size = 3 [(sem_type) = {
+      type: "ByteSize",
+      description: "Maximum size of file we will download.",
+    }, default=20000000]; // 20MB
+  optional FileFinderAction.Action action = 4 [(sem_type) = {
+      description: "Action to apply to found files"
+    }, default=DOWNLOAD];
+  optional PathSpec.PathType pathtype = 5 [(sem_type) = {
+      description: "Path type to glob in.",
+    }, default=OS];
+}
+
+
+

@@ -28,6 +28,8 @@ class YamlConfigTest(test_lib.GRRBaseTest):
                       """)
 
     conf.DEFINE_string("Section2.test", "", "A string")
+    conf.DEFINE_context("Client Context")
+    conf.DEFINE_context("Windows Context")
     conf.Initialize(parser=config_lib.YamlParser, data="""
 
 # Configuration options can be written as long hand, dot separated parameters.
@@ -79,6 +81,9 @@ Windows Context:
     conf = config_lib.GrrConfigManager()
 
     conf.DEFINE_integer("Section1.test", 0, "An integer")
+    conf.DEFINE_context("Client Context")
+    conf.DEFINE_context("Platform:Windows")
+    conf.DEFINE_context("Extra Context")
     conf.Initialize(parser=config_lib.YamlParser, data="""
 
 Section1.test: 2
@@ -119,6 +124,9 @@ Extra Context:
 
     conf.DEFINE_integer("Section1.test", 0, "An integer")
     conf.DEFINE_integer("Section1.test2", 9, "An integer")
+    conf.DEFINE_context("Client Context")
+    conf.DEFINE_context("Platform:Windows")
+    conf.DEFINE_context("Extra Context")
     conf.Initialize(parser=config_lib.YamlParser, data="""
 
 Section1.test: 2
@@ -192,11 +200,11 @@ class ConfigLibTest(test_lib.GRRBaseTest):
     # Check that the linux client have a different value from the windows
     # client.
     self.assertEqual(conf.Get("MemoryDriver.device_path",
-                              context=("Client", "Platform:Linux")),
+                              context=("Client Context", "Platform:Linux")),
                      "/dev/pmem")
 
     self.assertEqual(conf.Get("MemoryDriver.device_path",
-                              context=("Client", "Platform:Windows")),
+                              context=("Client Context", "Platform:Windows")),
                      r"\\.\pmem")
 
   def testSet(self):
@@ -615,6 +623,9 @@ Test3 Context:
     - windows_i386_exe
 """
     conf = config_lib.CONFIG.MakeNewConfig()
+    conf.DEFINE_context("Test1 Context")
+    conf.DEFINE_context("Test2 Context")
+    conf.DEFINE_context("Test3 Context")
     conf.Initialize(parser=config_lib.YamlParser, data=context)
     orig_context = copy.deepcopy(conf.context)
     config_orig = conf.ExportState()
@@ -654,6 +665,7 @@ Test1 Context:
     - windows_amd64_exe
 """
     conf = config_lib.CONFIG.MakeNewConfig()
+    conf.DEFINE_context("Test1 Context")
     conf.Initialize(parser=config_lib.YamlParser, data=context)
     conf.AddContext("Test1 Context")
     with self.assertRaises(type_info.TypeValueError):

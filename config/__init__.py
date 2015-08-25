@@ -10,6 +10,7 @@ from grr.config import build
 from grr.config import checks
 from grr.config import client
 from grr.config import config
+from grr.config import contexts
 from grr.config import data_server
 from grr.config import data_store
 from grr.config import local

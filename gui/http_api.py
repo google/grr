@@ -294,6 +294,9 @@ class HttpApiInitHook(registry.InitHook):
     RegisterHttpRouteHandler(
         "GET", "/api/clients/<client_id>/flows/<flow_id>/output-plugins",
         api_plugins.flow.ApiFlowOutputPluginsRenderer)
+    RegisterHttpRouteHandler("POST",
+                             "/api/clients/<client_id>/flows/remotegetfile",
+                             api_plugins.flow.ApiRemoteGetFileRenderer)
     RegisterHttpRouteHandler("POST", "/api/clients/<client_id>/flows/start",
                              api_plugins.flow.ApiStartFlowRenderer)
 

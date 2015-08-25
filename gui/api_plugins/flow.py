@@ -1,14 +1,22 @@
 #!/usr/bin/env python
 """API renderers for dealing with flows."""
 
+import urlparse
+
 from grr.gui import api_aff4_object_renderers
 from grr.gui import api_call_renderer_base
 from grr.gui import api_value_renderers
 
 from grr.lib import access_control
 from grr.lib import aff4
+from grr.lib import client_index
+from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flow
+from grr.lib import flow_runner
+from grr.lib import rdfvalue
+from grr.lib import throttle
+from grr.lib.flows.general import file_finder
 from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import api_pb2
@@ -143,6 +151,88 @@ class ApiFlowOutputPluginsRenderer(api_call_renderer_base.ApiCallRenderer):
           api_value_renderers.RenderValue(plugin_state))
 
     return result
+
+
+class ApiRemoteGetFileRendererArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiRemoteGetFileRendererArgs
+
+
+class ApiRemoteGetFileRenderer(api_call_renderer_base.ApiCallRenderer):
+  """Downloads files from specified machine without requiring approval."""
+  args_type = ApiRemoteGetFileRendererArgs
+
+  # Make this SetUID to be able to start it on any client without approval.
+  privileged = True
+
+  # Require explicit ACL to use this API. Since no approvals are required to
+  # initiate the download, we expect use to be tightly constrained using API
+  # ACLs.
+  enabled_by_default = False
+
+  def GetMostRecentClient(self, client_list, token=None):
+    last = rdfvalue.RDFDatetime(0)
+    client_urn = None
+    for client in aff4.FACTORY.MultiOpen(client_list, token=token):
+      client_last = client.Get(client.Schema.LAST)
+      if client_last > last:
+        last = client_last
+        client_urn = client.urn
+    return client_urn
+
+  def GetClientTarget(self, args, token=None):
+    # Find the right client to target using a hostname search.
+    index = aff4.FACTORY.Create(
+        client_index.MAIN_INDEX,
+        aff4_type="ClientIndex", mode="rw", token=token)
+
+    client_list = index.LookupClients([args.hostname])
+    if not client_list:
+      raise ValueError("No client found matching %s" % args.hostname)
+
+    # If we get more than one, take the one with the most recent poll.
+    if len(client_list) > 1:
+      return self.GetMostRecentClient(client_list, token=token)
+    else:
+      return client_list[0]
+
+  def Render(self, args, token=None):
+    client_urn = self.GetClientTarget(args, token=token)
+
+    size_condition = file_finder.FileFinderCondition(
+        condition_type=file_finder.FileFinderCondition.Type.SIZE,
+        size=file_finder.FileFinderSizeCondition(
+            max_file_size=args.max_file_size))
+
+    file_finder_args = file_finder.FileFinderArgs(
+        paths=args.paths,
+        action=file_finder.FileFinderAction(action_type=args.action),
+        conditions=[size_condition])
+
+    # Check our flow throttling limits, will raise if there are problems.
+    throttler = throttle.FlowThrottler()
+    throttler.EnforceLimits(client_urn, token.username,
+                            "FileFinder", file_finder_args,
+                            token=token)
+
+    # Limit the whole flow to 200MB so if a glob matches lots of small files we
+    # still don't have too much impact.
+    runner_args = flow_runner.FlowRunnerArgs(client_id=client_urn,
+                                             flow_name="FileFinder",
+                                             network_bytes_limit=200*1000*1000)
+
+    flow_id = flow.GRRFlow.StartFlow(runner_args=runner_args,
+                                     token=token,
+                                     args=file_finder_args)
+
+    # Provide a url where the caller can check on the flow status.
+    status_url = urlparse.urljoin(
+        config_lib.CONFIG["AdminUI.url"],
+        "/api/flows/%s/%s/status" % (client_urn.Basename(), flow_id.Basename()))
+    return dict(
+        flow_id=api_value_renderers.RenderValue(flow_id),
+        flow_args=api_value_renderers.RenderValue(file_finder_args),
+        runner_args=api_value_renderers.RenderValue(runner_args),
+        status_url=status_url)
 
 
 class ApiStartFlowRendererArgs(rdf_structs.RDFProtoStruct):

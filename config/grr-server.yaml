@@ -191,7 +191,7 @@ ClientBuilder Context:
 
     Client.prefix: dbg_
 
-CommandLine Context:
+Commandline Context:
   Logging.engines: stderr
 
   Logging.verbose: False
