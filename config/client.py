@@ -265,8 +265,3 @@ For example:
 
   HKEY_LOCAL_MACHINE\\Software\\GRR\\certificate -> Client.private_key
 """)
-
-config_lib.DEFINE_string("Installer.old_writeback", "/usr/lib/grr/grrd.conf",
-                         "OS X and linux client installers will check this "
-                         "location for old config data that should be "
-                         "preserved.")

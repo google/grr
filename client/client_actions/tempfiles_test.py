@@ -158,6 +158,21 @@ class DeleteGRRTempFiles(test_lib.EmptyActionTest):
     self.assertRaises(tempfiles.ErrorBadPath,
                       self.RunAction, "DeleteGRRTempFiles", self.pathspec)
 
+  def testOneFileFails(self):
+    # Sneak in a non existing file.
+    def listdir(path):
+      _ = path
+      res = []
+      res.append(os.path.basename(self.temp_fd.name))
+      res.append("not_really_a_file")
+      res.append(os.path.basename(self.temp_fd2.name))
+      return res
+
+    with utils.Stubber(os, "listdir", listdir):
+      result = self.RunAction("DeleteGRRTempFiles",
+                              self.pathspec)[0]
+      self.assertIn("not_really_a_file does not exist", result.data)
+
 
 def main(argv):
   test_lib.main(argv)

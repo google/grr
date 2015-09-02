@@ -657,6 +657,10 @@ class AnalyzeClientMemory(flow.GRRFlow):
       self.state.rekall_request.session[
           u"logging_level"] = u"DEBUG"
 
+    # We want to disable local profile building on the client machines.
+    self.state.rekall_request.session[
+        u"autodetect_build_local"] = u"none"
+
     # If a device is already provided, just us it.
     if self.state.rekall_request.device:
       self.CallClient("RekallAction", self.state.rekall_request,

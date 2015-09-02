@@ -3,9 +3,6 @@
 
 import logging
 
-# For various parsers use by artifacts. pylint: disable=unused-import
-from grr import parsers as _
-# pylint: enable=unused-import
 from grr.lib import aff4
 from grr.lib import artifact
 from grr.lib import artifact_registry
@@ -20,6 +17,9 @@ from grr.lib.flows.general import memory as _
 # pylint: enable=unused-import
 from grr.lib.rdfvalues import paths
 from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
+# For various parsers use by artifacts. pylint: disable=unused-import
+from grr.parsers import registry_init
+# pylint: enable=unused-import
 
 
 class ArtifactCollectorFlow(flow.GRRFlow):
@@ -756,18 +756,14 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
   def _GetArtifactFromName(self, name):
     """Get an artifact class from the cache in the flow."""
-    art_obj = artifact_registry.REGISTRY.GetArtifact(name)
-    if art_obj is not None:
-      return art_obj
-    # If we don't have an artifact, things shouldn't have passed validation
-    # so we assume its a new one in the datastore.
-    artifact_registry.REGISTRY.ClearRegistry()
-    art_obj = artifact_registry.REGISTRY.GetArtifact(name)
-    if art_obj is not None:
-      return art_obj
-
-    raise RuntimeError("ArtifactCollectorFlow failed due to unknown "
-                       "Artifact %s" % name)
+    try:
+      art_obj = artifact_registry.REGISTRY.GetArtifact(name)
+    except artifact_registry.ArtifactNotRegisteredError:
+      # If we don't have an artifact, things shouldn't have passed validation
+      # so we assume its a new one in the datastore.
+      artifact_registry.REGISTRY.ReloadDatastoreArtifacts()
+      art_obj = artifact_registry.REGISTRY.GetArtifact(name)
+    return art_obj
 
   @flow.StateHandler()
   def End(self):

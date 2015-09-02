@@ -848,7 +848,7 @@ def main(unused_argv):
       python_hack_root_urn = config_lib.CONFIG.Get("Config.python_hack_root")
       aff4_path = python_hack_root_urn.Add(os.path.basename(flags.FLAGS.file))
     context = ["Platform:%s" % flags.FLAGS.platform.title(),
-               "Client"]
+               "Client Context"]
     maintenance_utils.UploadSignedConfigBlob(content, aff4_path=aff4_path,
                                              client_context=context,
                                              token=token)
@@ -856,7 +856,7 @@ def main(unused_argv):
   elif flags.FLAGS.subparser_name == "upload_exe":
     content = open(flags.FLAGS.file).read(1024 * 1024 * 30)
     context = ["Platform:%s" % flags.FLAGS.platform.title(),
-               "Client"]
+               "Client Context"]
 
     if flags.FLAGS.dest_path:
       dest_path = rdfvalue.RDFURN(flags.FLAGS.dest_path)

@@ -34,6 +34,10 @@ class ErrorNotTempFile(Error):
   """Attempt to delete a file that isn't a GRR tempfile."""
 
 
+class ErrorNotAFile(Error):
+  """Attempt to delete a file that doesn't exist."""
+
+
 def CreateGRRTempFile(directory=None, filename=None, lifetime=0, mode="w+b",
                       suffix=""):
   """Open file with GRR prefix in directory to allow easy deletion.
@@ -158,8 +162,9 @@ def DeleteGRRTempFile(path):
 
   Raises:
     OSError: Permission denied, or file not found.
-    ErrorBadPath: Path must be absolute
-    ErrorNotTempFile: Filename must start with Client.tempfile_prefix
+    ErrorBadPath: Path must be absolute.
+    ErrorNotTempFile: Filename must start with Client.tempfile_prefix.
+    ErrorNotAFile: File to delete does not exist.
   """
   if not os.path.isabs(path):
     raise ErrorBadPath("Path must be absolute")
@@ -175,6 +180,8 @@ def DeleteGRRTempFile(path):
     # Clear our file handle cache so the file can be deleted.
     files.FILE_HANDLE_CACHE.Flush()
     os.remove(path)
+  else:
+    raise ErrorNotAFile("%s does not exist." % path)
 
 
 class DeleteGRRTempFiles(actions.ActionPlugin):
@@ -208,6 +215,7 @@ class DeleteGRRTempFiles(actions.ActionPlugin):
       path = config_lib.CONFIG["Client.tempdir"]
 
     deleted = []
+    errors = []
     if os.path.isdir(path):
       for filename in os.listdir(path):
         abs_filename = os.path.join(path, filename)
@@ -215,8 +223,12 @@ class DeleteGRRTempFiles(actions.ActionPlugin):
         try:
           DeleteGRRTempFile(abs_filename)
           deleted.append(abs_filename)
-        except ErrorNotTempFile:
-          pass
+        except Exception as e:  # pylint: disable=broad-except
+          # The error we are most likely to get is ErrorNotTempFile but
+          # especially on Windows there might be locking issues that raise
+          # various WindowsErrors so we just catch them all and continue
+          # deleting all other temp files in this directory.
+          errors.append(e)
 
     elif os.path.isfile(path):
       DeleteGRRTempFile(path)
@@ -227,5 +239,12 @@ class DeleteGRRTempFiles(actions.ActionPlugin):
     else:
       raise ErrorBadPath("Not a regular file or directory: %s" % path)
 
-    out_rdfvalue = rdf_client.LogMessage(data="Deleted: %s" % deleted)
-    self.SendReply(out_rdfvalue)
+    reply = ""
+    if deleted:
+      reply = "Deleted: %s." % deleted
+    else:
+      reply = "Nothing deleted."
+    if errors:
+      reply += "\n%s" % errors
+
+    self.SendReply(rdf_client.LogMessage(data=reply))

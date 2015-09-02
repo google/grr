@@ -311,6 +311,65 @@ class TestArtifactCollectorsInteractions(CollectorTest):
   def tearDown(self):
     super(TestArtifactCollectorsInteractions, self).tearDown()
 
+  def testNewArtifactLoaded(self):
+    """Simulate a new artifact being loaded into the store via the UI."""
+    cmd_artifact = """name: "TestCmdArtifact"
+doc: "Test command artifact for dpkg."
+sources:
+- type: "COMMAND"
+  attributes:
+    cmd: "/usr/bin/dpkg"
+    args: ["--list"]
+labels: [ "Software" ]
+supported_os: [ "Linux" ]
+"""
+    no_datastore_artifact = """name: "NotInDatastore"
+doc: "Test command artifact for dpkg."
+sources:
+- type: "COMMAND"
+  attributes:
+    cmd: "/usr/bin/dpkg"
+    args: ["--list"]
+labels: [ "Software" ]
+supported_os: [ "Linux" ]
+"""
+
+    collect_flow = collectors.ArtifactCollectorFlow(None, token=self.token)
+    artifact_registry.REGISTRY.GetArtifact("TestCmdArtifact")
+    artifact_registry.REGISTRY.ClearRegistry()
+    artifact_registry.REGISTRY._dirty = False
+    with self.assertRaises(artifact_registry.ArtifactNotRegisteredError):
+      artifact_registry.REGISTRY.GetArtifact("TestCmdArtifact")
+
+    with self.assertRaises(artifact_registry.ArtifactNotRegisteredError):
+      artifact_registry.REGISTRY.GetArtifact("NotInDatastore")
+
+    # Add artifact to datastore but not registry
+    for artifact_val in artifact_registry.REGISTRY.ArtifactsFromYaml(
+        cmd_artifact):
+      with aff4.FACTORY.Open("aff4:/artifact_store",
+                             aff4_type="RDFValueCollection", token=self.token,
+                             mode="rw") as artifact_coll:
+        artifact_coll.Add(artifact_val)
+
+    # Add artifact to registry but not datastore
+    for artifact_val in artifact_registry.REGISTRY.ArtifactsFromYaml(
+        no_datastore_artifact):
+      artifact_registry.REGISTRY.RegisterArtifact(
+          artifact_val, source="datastore",
+          overwrite_if_exists=False)
+
+    # This should succeeded because the artifacts will be reloaded from the
+    # datastore.
+    self.assertTrue(collect_flow._GetArtifactFromName("TestCmdArtifact"))
+
+    # We registered this artifact with datastore source but didn't write it into
+    # aff4. This simulates an artifact that was uploaded in the UI then later
+    # deleted. We expect it to get cleared when the artifacts are reloaded from
+    # the datastore.
+    with self.assertRaises(artifact_registry.ArtifactNotRegisteredError):
+      artifact_registry.REGISTRY.GetArtifact("NotInDatastore")
+
   def testProcessCollectedArtifacts(self):
     """Test downloading files from artifacts."""
     self._PrepareWindowsClient()

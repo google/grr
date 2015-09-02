@@ -413,11 +413,7 @@ class KnowledgeBaseInitializationFlow(CollectArtifactDependencies):
     kb_set = kb_base_set.union(kb_add) - kb_skip
 
     for artifact_name in kb_set:
-      if artifact_registry.REGISTRY.GetArtifact(artifact_name) is None:
-        raise RuntimeError("Attempt to specify unknown artifact %s in "
-                           "artifact configuration parameters. You may need"
-                           " to sync the artifact repo by running make in the"
-                           " artifacts directory." % artifact_name)
+      artifact_registry.REGISTRY.GetArtifact(artifact_name)
 
     no_deps_names = artifact_registry.REGISTRY.GetArtifactNames(
         os_name=self.state.knowledge_base.os, name_list=kb_set,

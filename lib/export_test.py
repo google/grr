@@ -554,11 +554,11 @@ class ExportTest(test_lib.GRRBaseTest):
             addresses=[
                 rdf_client.NetworkAddress(
                     address_type=rdf_client.NetworkAddress.Family.INET,
-                    packed_bytes=socket.inet_aton("127.0.0.1"),
+                    packed_bytes=socket.inet_pton(socket.AF_INET, "127.0.0.1"),
                 ),
                 rdf_client.NetworkAddress(
                     address_type=rdf_client.NetworkAddress.Family.INET,
-                    packed_bytes=socket.inet_aton("10.0.0.1"),
+                    packed_bytes=socket.inet_pton(socket.AF_INET, "10.0.0.1"),
                 ),
                 rdf_client.NetworkAddress(
                     address_type=rdf_client.NetworkAddress.Family.INET6,
@@ -586,11 +586,11 @@ class ExportTest(test_lib.GRRBaseTest):
         addresses=[
             rdf_client.NetworkAddress(
                 address_type=rdf_client.NetworkAddress.Family.INET,
-                packed_bytes=socket.inet_aton("127.0.0.1"),
+                packed_bytes=socket.inet_pton(socket.AF_INET, "127.0.0.1"),
             ),
             rdf_client.NetworkAddress(
                 address_type=rdf_client.NetworkAddress.Family.INET,
-                packed_bytes=socket.inet_aton("10.0.0.1"),
+                packed_bytes=socket.inet_pton(socket.AF_INET, "10.0.0.1"),
             ),
             rdf_client.NetworkAddress(
                 address_type=rdf_client.NetworkAddress.Family.INET6,
@@ -1444,8 +1444,6 @@ class RekallResponseToExportedRekallWindowsLoadedModuleConverterTest(
         is_in_init_list=True,
         is_in_load_list=True,
         is_in_mem_list=True)
-    print str(converted_values[0])
-    print str(model)
     self.assertEqual(converted_values[0], model)
 
   def testIgnoresIncompatibleMessage(self):
@@ -1460,6 +1458,200 @@ class RekallResponseToExportedRekallWindowsLoadedModuleConverterTest(
                                                    rekall_response,
                                                    token=self.token))
 
+    self.assertEqual(len(converted_values), 0)
+
+
+class ExportedLinuxSyscallTableEntryConverterTest(
+    test_lib.GRRBaseTest):
+  """Tests for ExportedLinuxSyscallTableEntryConverter."""
+
+  def setUp(self):
+    super(ExportedLinuxSyscallTableEntryConverterTest,
+          self).setUp()
+    self.converter = export.ExportedLinuxSyscallTableEntryConverter()
+
+  def testConvertsCompatibleMessage(self):
+    messages = [[
+        "r",
+        {
+            u"address": {
+                u"id": 9062,
+                u"mro": u"Pointer:NativeType:NumericProxyMixIn:"
+                        "BaseObject:object",
+                u"name": u"Array[198] ",
+                u"offset": 281472854434512,
+                u"target": 281472847827136,
+                u"target_obj": {
+                    u"id": 9069,
+                    u"mro": u"Function:BaseAddressComparisonMixIn:"
+                            "BaseObject:object",
+                    u"name": u"Array[198] ",
+                    u"offset": 281472847827136,
+                    u"type_name": u"Function",
+                    u"vm": u"AMD64PagedMemory"},
+                u"type_name": u"Pointer",
+                u"vm": u"AMD64PagedMemory"},
+            u"highlight": None,
+            u"index": 198,
+            u"symbol": u"linux!SyS_lchown",
+            u"table": u"ia32_sys_call_table"
+        }
+    ]]
+
+    rekall_response = rdf_rekall_types.RekallResponse(
+        plugin="check_syscall", json_messages=json.dumps(messages))
+    metadata = export.ExportedMetadata()
+    converted_values = list(self.converter.Convert(metadata,
+                                                   rekall_response,
+                                                   token=self.token))
+
+    self.assertEqual(len(converted_values), 1)
+
+    model = export.ExportedLinuxSyscallTableEntry(
+        table="ia32_sys_call_table",
+        index=198,
+        handler_address=281472847827136,
+        symbol="linux!SyS_lchown")
+    self.assertEqual(converted_values[0], model)
+
+  def testIgnoresIncompatibleMessage(self):
+    messages = [[
+        "r",
+        {"baseaddress": 0}
+        ]]
+
+    rekall_response = rdf_rekall_types.RekallResponse(
+        plugin="check_task_fops", json_messages=json.dumps(messages))
+    converted_values = list(self.converter.Convert(export.ExportedMetadata(),
+                                                   rekall_response,
+                                                   token=self.token))
+    self.assertEqual(len(converted_values), 0)
+
+
+class RekallResponseToExportedRekallLinuxTaskOpConverterTest(
+    test_lib.GRRBaseTest):
+  """Tests for RekallResponseToExportedRekallLinuxTaskOpConverter."""
+
+  def setUp(self):
+    super(RekallResponseToExportedRekallLinuxTaskOpConverterTest, self).setUp()
+    self.converter = export.RekallResponseToExportedRekallLinuxTaskOpConverter()
+
+  def testConvertsCompatibleMessage(self):
+    messages = [[
+        "r",
+        {
+            u"address": {
+                u"id": 12331,
+                u"mro":
+                    u"Function:BaseAddressComparisonMixIn:BaseObject:object",
+                u"name": u"write",
+                u"offset": 281472847829584,
+                u"type_name": u"Function",
+                u"vm": u"AMD64PagedMemory"},
+            u"comm": u"init",
+            u"highlight": None,
+            u"member": u"write",
+            u"module": u"linux",
+            u"pid": 1
+        }
+    ]]
+
+    rekall_response = rdf_rekall_types.RekallResponse(
+        plugin="check_task_fops", json_messages=json.dumps(messages))
+    metadata = export.ExportedMetadata()
+    converted_values = list(self.converter.Convert(metadata,
+                                                   rekall_response,
+                                                   token=self.token))
+
+    self.assertEqual(len(converted_values), 1)
+
+    task = export.ExportedRekallLinuxTask(
+        pid=1,
+        name="init")
+
+    model = export.ExportedRekallLinuxTaskOp(
+        operation="write",
+        handler_address=281472847829584,
+        module="linux",
+        task=task)
+    self.assertEqual(converted_values[0], model)
+
+  def testIgnoresIncompatibleMessage(self):
+    messages = [[
+        "r",
+        {"baseaddress": 0}
+        ]]
+
+    rekall_response = rdf_rekall_types.RekallResponse(
+        plugin="check_task_fops", json_messages=json.dumps(messages))
+    converted_values = list(self.converter.Convert(export.ExportedMetadata(),
+                                                   rekall_response,
+                                                   token=self.token))
+    self.assertEqual(len(converted_values), 0)
+
+
+class RekallResponseToExportedRekallLinuxProcOpConverterTest(
+    test_lib.GRRBaseTest):
+  """Tests for RekallResponseToExportedRekallLinuxProcOpConverter."""
+
+  def setUp(self):
+    super(RekallResponseToExportedRekallLinuxProcOpConverterTest, self).setUp()
+    self.converter = export.RekallResponseToExportedRekallLinuxProcOpConverter()
+
+  def testConvertsCompatibleMessage(self):
+    messages = [[
+        "r",
+        {
+            u"address": {
+                u"id": 11447,
+                u"mro":
+                    u"Function:BaseAddressComparisonMixIn:BaseObject:object",
+                u"name": u"read",
+                u"offset": 281472847976656,
+                u"type_name": u"Function",
+                u"vm": u"AMD64PagedMemory"},
+            u"highlight": None,
+            u"member": u"read",
+            u"module": u"linux",
+            u"path": u"/proc/fb",
+            u"proc_dir_entry": {
+                u"id": 11343,
+                u"mro": u"proc_dir_entry:Struct:BaseAddressComparisonMixIn:"
+                        "BaseObject:object",
+                u"name": u"next",
+                u"offset": 149567999345408,
+                u"type_name": u"proc_dir_entry",
+                u"vm": u"AMD64PagedMemory"}
+        }
+    ]]
+
+    rekall_response = rdf_rekall_types.RekallResponse(
+        plugin="check_proc_fops", json_messages=json.dumps(messages))
+    metadata = export.ExportedMetadata()
+    converted_values = list(self.converter.Convert(metadata,
+                                                   rekall_response,
+                                                   token=self.token))
+
+    self.assertEqual(len(converted_values), 1)
+
+    model = export.ExportedRekallLinuxProcOp(
+        operation="read",
+        handler_address=281472847976656,
+        module="linux",
+        fullpath="/proc/fb")
+    self.assertEqual(converted_values[0], model)
+
+  def testIgnoresIncompatibleMessage(self):
+    messages = [[
+        "r",
+        {"baseaddress": 0}
+        ]]
+
+    rekall_response = rdf_rekall_types.RekallResponse(
+        plugin="check_task_fops", json_messages=json.dumps(messages))
+    converted_values = list(self.converter.Convert(export.ExportedMetadata(),
+                                                   rekall_response,
+                                                   token=self.token))
     self.assertEqual(len(converted_values), 0)
 
 

@@ -4,4 +4,3 @@
 
 
 # These need to register plugins so, pylint: disable=unused-import
-from grr.client.linux import installers

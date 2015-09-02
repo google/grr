@@ -32,6 +32,10 @@ class ArtifactDefinitionError(Error):
   """Artifact is not well defined."""
 
 
+class ArtifactNotRegisteredError(Error):
+  """Artifact is not present in the registry."""
+
+
 class ArtifactRegistry(object):
   """A global registry of artifacts."""
 
@@ -158,7 +162,7 @@ class ArtifactRegistry(object):
 
   def ClearRegistry(self):
     self._artifacts = {}
-    self._dirty = False
+    self._dirty = True
 
   def _ReloadArtifacts(self):
     """Load artifacts from all sources."""
@@ -175,6 +179,20 @@ class ArtifactRegistry(object):
     except (IOError, OSError):
       logging.warn("Artifact directory not found: %s", dir_path)
 
+    self.ReloadDatastoreArtifacts()
+
+  def _UnregisterDatastoreArtifacts(self):
+    """Remove artifacts that came from the datastore."""
+    to_remove = []
+    for name, artifact in self._artifacts.iteritems():
+      if artifact.loaded_from.startswith("datastore"):
+        to_remove.append(name)
+    for key in to_remove:
+      self._artifacts.pop(key)
+
+  def ReloadDatastoreArtifacts(self):
+    # Make sure artifacts deleted by the UI don't reappear.
+    self._UnregisterDatastoreArtifacts()
     self._LoadArtifactsFromDatastore(self._sources["datastores"])
 
   def _CheckDirty(self, reload_datastore_artifacts=False):
@@ -183,7 +201,7 @@ class ArtifactRegistry(object):
       self._ReloadArtifacts()
     else:
       if reload_datastore_artifacts:
-        self._LoadArtifactsFromDatastore(self._sources["datastores"])
+        self.ReloadDatastoreArtifacts()
 
   def GetArtifacts(self, os_name=None, name_list=None,
                    source_type=None, exclude_dependents=False,
@@ -233,9 +251,29 @@ class ArtifactRegistry(object):
       results.add(artifact)
     return results
 
+  def GetRegisteredArtifactNames(self):
+    return [utils.SmartStr(x) for x in self._artifacts]
+
   def GetArtifact(self, name):
+    """Get artifact by name.
+
+    Args:
+      name: artifact name string.
+
+    Returns:
+      artifact object.
+    Raises:
+      ArtifactNotRegisteredError: if artifact doesn't exist in the registy.
+    """
     self._CheckDirty()
-    return self._artifacts.get(name)
+    result = self._artifacts.get(name)
+    if not result:
+      raise ArtifactNotRegisteredError(
+          "Artifact %s missing from registry which contains: %s. You may need "
+          "to sync the artifact repo by running make in the artifact "
+          "directory." % (
+              name, self.GetRegisteredArtifactNames()))
+    return result
 
   def GetArtifactNames(self, *args, **kwargs):
     return set([a.name for a in self.GetArtifacts(*args, **kwargs)])
@@ -647,15 +685,11 @@ class Artifact(structs.RDFProtoStruct):
     Raises:
       ArtifactDefinitionError: If artifact is invalid.
     """
-    cls_name = self.name
     self.ValidateSyntax()
 
     # Check all artifact dependencies exist.
     for dependency in self.GetArtifactDependencies():
-      if REGISTRY.GetArtifact(dependency) is None:
-        raise ArtifactDefinitionError(
-            "Artifact %s has an invalid dependency %s . Could not find artifact"
-            " definition." % (cls_name, dependency))
+      REGISTRY.GetArtifact(dependency)
 
 
 class ArtifactProcessorDescriptor(structs.RDFProtoStruct):

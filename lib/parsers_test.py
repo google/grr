@@ -2,16 +2,16 @@
 # -*- coding: utf-8 -*-
 """Tests for parsers."""
 
-# pylint: disable=unused-import
-from grr import parsers
-# pylint: enable=unused-import
-
 from grr.lib import artifact_registry
 from grr.lib import artifact_test
 from grr.lib import flags
 from grr.lib import parsers
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+
+# pylint: disable=unused-import
+from grr.parsers import registry_init
+# pylint: enable=unused-import
 
 
 class ArtifactParserTests(test_lib.GRRBaseTest):

@@ -565,7 +565,7 @@ class ListVADBinariesActionMock(action_mocks.ActionMock):
     # containing them. This is so they point to valid files in the fixture.
     if self.process_list:
       json_data = json.loads(response.json_messages)
-      template = json_data[11]
+      template = json_data[7]
       if template[1]["filename"] != ur"\Windows\System32\ntdll.dll":
         raise RuntimeError("Test data invalid.")
 

@@ -260,7 +260,7 @@ config_lib.DEFINE_string(
 
 config_lib.DEFINE_string(
     name="PyInstaller.template_basename",
-    default=("grr-client_%(Client.version_string)_%(Client.arch)"),
+    default=("%(Client.name)_%(Client.version_string)_%(Client.arch)"),
     help="The template name of the output package.")
 
 config_lib.DEFINE_string(

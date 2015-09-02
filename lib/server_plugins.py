@@ -12,8 +12,6 @@ modules that have been customized for your deployment.
 """
 # pylint: disable=unused-import,g-import-not-at-top
 
-from grr import parsers
-
 # Server code needs to know about client actions as well.
 from grr.client import client_plugins
 
@@ -33,5 +31,6 @@ from grr.lib.data_stores import registry_init
 from grr.lib.flows.cron import registry_init
 from grr.lib.flows.general import registry_init
 
+from grr.parsers import registry_init
 
 from grr.server import server_plugins

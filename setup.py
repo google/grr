@@ -151,15 +151,19 @@ grr_artifact_files = ("grr",
                       ["artifacts"],
                       ["*.yaml"])
 
+grr_check_files = ("grr",
+                   ["checks"],
+                   ["*.yaml"])
+
 grr_gui_data_files = ("grr.gui",
                       ["static", "templates", "local"],
                       ["*.css", "*.js", "*.gif", "*.html",
                        "*.jpg", "*.MF", "*.png", "*.ico",
                        "*.eot", "*.ttf", "*.svg", "*.woff"])
 
-grr_config_defs = ("grr.config",
-                   ["local"],
-                   ["*.txt"])
+grr_config_defs = ("grr",
+                   ["config"],
+                   ["*.yaml"])
 
 
 grr_client_data_files = ("grr.client",
@@ -196,6 +200,8 @@ grr_data_server = ("grr.server",
 
 
 grr_all_files = [grr_artifact_files,
+                 grr_check_files,
+                 grr_config_defs,
                  grr_client_data_files,
                  grr_client_nanny_files,
                  grr_data_server,

@@ -117,8 +117,8 @@ class RekallMock(action_mocks.MemoryClientMock):
 
   def RekallAction(self, _):
     # Generate this file with:
-    # rekall -r data -f win7_trial_64bit.raw pslist > rekall_pslist_result.dat
-    # and gzip rekall_pslist_result.dat
+    # rekal --output data -f win7_trial_64bit.raw \
+    # pslist | gzip - > rekall_pslist_result.dat.gz
     ps_list_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
                                 self.result_filename)
     result = rdf_rekall_types.RekallResponse(
@@ -359,7 +359,7 @@ class ArtifactFlowTest(ArtifactTest):
         ["RekallPsList"], RekallMock(
             self.client_id, "rekall_pslist_result.dat.gz"))
 
-    self.assertEqual(len(fd), 36)
+    self.assertEqual(len(fd), 35)
     self.assertEqual(fd[0].exe, "System")
     self.assertEqual(fd[0].pid, 4)
     self.assertIn("DumpIt.exe", [x.exe for x in fd])
@@ -379,7 +379,7 @@ class ArtifactFlowTest(ArtifactTest):
         ["FullVADBinaryList"], RekallMock(
             self.client_id, "rekall_vad_result.dat.gz"))
 
-    self.assertEqual(len(fd), 1986)
+    self.assertEqual(len(fd), 1705)
     self.assertEqual(fd[0].path, u"c:\\Windows\\System32\\ntdll.dll")
     for x in fd:
       self.assertEqual(x.pathtype, "OS")

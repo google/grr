@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 """This file defines valid configuration contexts."""
 
+# Also import the contexts needed for client building.
+# pylint: disable=unused-import
+from grr.config import build_contexts
+# pylint: enable=unused-import
 from grr.lib import config_lib
 
 # Different client platforms.
@@ -43,3 +47,6 @@ config_lib.CONFIG.DEFINE_context("Test Context")
 # Datastores.
 config_lib.CONFIG.DEFINE_context("MongoDataStore")
 config_lib.CONFIG.DEFINE_context("MySQLDataStore")
+
+# Client installer context.
+config_lib.CONFIG.DEFINE_context("Installer Context")

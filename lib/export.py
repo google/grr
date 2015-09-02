@@ -1052,6 +1052,11 @@ class RekallResponseConverter(ExportConverter):
 
   input_rdf_type = "RekallResponse"
 
+  REKALL_MESSAGE_ROW = "r"
+  REKALL_MESSAGE_TABLE = "t"
+  REKALL_MESSAGE_LEXICON = "l"
+  REKALL_MESSAGE_SECTION = "s"
+
   def HandleMessage(self, message):
     """Handles a single Rekall message.
 
@@ -1059,6 +1064,18 @@ class RekallResponseConverter(ExportConverter):
       message: Rekall message.
     Yields:
       Converted objects suitable for export.
+    """
+    if message[0] == self.REKALL_MESSAGE_ROW:
+      result = self.HandleTableRow(self.metadata, message)
+      if result:
+        yield result
+
+  @staticmethod
+  def HandleTableRow(unused_metadata, unused_message):
+    """Handles a RekallResponse row.
+
+    Returns:
+      An RDFType.
     """
     raise NotImplementedError()
 
@@ -1075,14 +1092,14 @@ class RekallResponseConverter(ExportConverter):
     for message in parsed_messages:
       # We do not decode lexicon-based responses. If there's non empty
       # lexicon in the message, we ignore the whole response altogether.
-      if message[0] == "l" and message[1]:
+      if message[0] == self.REKALL_MESSAGE_LEXICON and message[1]:
         # TODO(user): messages like these should bubble up and end up
         # somewhere in the hunt log UI.
         logging.warn("Non-empty lexicon found. Client %s is too old.",
                      self.rekall_response.client_urn)
         return
 
-      if message[0] in ["s", "t"]:
+      if message[0] in [self.REKALL_MESSAGE_SECTION, self.REKALL_MESSAGE_TABLE]:
         self.context_dict[message[0]] = message[1]
 
       for result in self.HandleMessage(message):
@@ -1253,7 +1270,8 @@ class DynamicRekallResponseConverter(RekallResponseConverter):
     result.metadata = metadata
 
     try:
-      result.section_name = self._RenderObject(context_dict["s"]["name"])
+      result.section_name = self._RenderObject(
+          context_dict[self.REKALL_MESSAGE_SECTION]["name"])
     except KeyError:
       pass
 
@@ -1261,8 +1279,8 @@ class DynamicRekallResponseConverter(RekallResponseConverter):
 
   def HandleMessages(self, parsed_messages):
     """Handles all messages in a Rekall response."""
-    if "t" in self.context_dict:
-      tables = [self.context_dict["t"]]
+    if self.REKALL_MESSAGE_TABLE in self.context_dict:
+      tables = [self.context_dict[self.REKALL_MESSAGE_TABLE]]
     else:
       tables = []
 
@@ -1270,14 +1288,14 @@ class DynamicRekallResponseConverter(RekallResponseConverter):
     for message in parsed_messages:
       # We do not decode lexicon-based responses. If there's non empty
       # lexicon in the message, we ignore the whole response altogether.
-      if message[0] == "l" and message[1]:
+      if message[0] == self.REKALL_MESSAGE_LEXICON and message[1]:
         # TODO(user): messages like these should bubble up and end up
         # somewhere in the hunt log UI.
         logging.warn("Non-empty lexicon found. Client %s is too old.",
                      self.rekall_response.client_urn)
         break
 
-      if message[0] == "t":
+      if message[0] == self.REKALL_MESSAGE_TABLE:
         tables.append(message[1])
 
     # Generate output class based on all table definitions.
@@ -1285,10 +1303,10 @@ class DynamicRekallResponseConverter(RekallResponseConverter):
 
     # Fill generated output class instances with values from every row.
     for message in parsed_messages:
-      if message[0] in ["s", "t"]:
+      if message[0] in [self.REKALL_MESSAGE_SECTION, self.REKALL_MESSAGE_TABLE]:
         self.context_dict[message[0]] = message[1]
 
-      if message[0] == "r":
+      if message[0] == self.REKALL_MESSAGE_ROW:
         yield self._HandleTableRow(self.metadata, self.context_dict, message,
                                    output_class)
 
@@ -1297,12 +1315,13 @@ class ExportedRekallProcess(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedRekallProcess
 
 
-class RekallResponseToExportedRekallProcessConverter(RekallResponseConverter):
+class RekallResponseToExportedRekallProcessConverter(
+    RekallResponseConverter):
   """Converts free-form RekallResponse to ExportedRekallProcess."""
 
   @staticmethod
   def HandleTableRow(metadata, message):
-    """Handles a table row, converting it if possile."""
+    """Handles a table row, converting it if possible."""
 
     row = message[1]
     try:
@@ -1354,7 +1373,7 @@ class RekallResponseToExportedRekallWindowsLoadedModuleConverter(
 
   @staticmethod
   def HandleTableRow(metadata, message):
-    """Handles a table row, converting it if possile."""
+    """Handles a table row, converting it if possible."""
 
     row = message[1]
     try:
@@ -1384,6 +1403,151 @@ class RekallResponseToExportedRekallWindowsLoadedModuleConverter(
         None, message)
     if process:
       result.process = process
+
+    return result
+
+  def HandleMessage(self, message):
+    """Handles a single Rekall message."""
+
+    if message[0] == "r":
+      result = self.HandleTableRow(self.metadata, message)
+      if result:
+        yield result
+
+
+class ExportedLinuxSyscallTableEntry(rdf_structs.RDFProtoStruct):
+  protobuf = export_pb2.ExportedLinuxSyscallTableEntry
+
+
+class ExportedLinuxSyscallTableEntryConverter(
+    RekallResponseConverter):
+  """Converts suitable RekallResponses to ExportedLinuxSyscallTableEntrys."""
+
+  input_rdf_type = "RekallResponse"
+
+  def HandleMessage(self, message):
+    """Handles a single Rekall message."""
+
+    if message[0] == "r":
+      result = self.HandleTableRow(self.metadata, message)
+      if result:
+        yield result
+
+  @staticmethod
+  def HandleTableRow(unused_metadata, message):
+    """Handles a table row, converting it if possible."""
+
+    row = message[1]
+    try:
+      result = ExportedLinuxSyscallTableEntry(
+          table=row["table"],
+          index=row["index"],
+          handler_address=row["address"]["target"],
+          symbol=row["symbol"])
+    except KeyError:
+      return
+
+    return result
+
+
+class ExportedRekallLinuxTask(rdf_structs.RDFProtoStruct):
+  protobuf = export_pb2.ExportedRekallLinuxTask
+
+
+class RekallResponseToExportedRekallLinuxTaskConverter(
+    RekallResponseConverter):
+  """Converts suitable RekallResponses to ExportedRekallLinuxTasks."""
+
+  input_rdf_type = "RekallResponse"
+
+  @staticmethod
+  def HandleTableRow(unused_metadata, message):
+    """Handles a table row, converting it if possible."""
+
+    row = message[1]
+    try:
+      # TODO(user): Add additional fields once they've been added to Rekall.
+      result = ExportedRekallLinuxTask(
+          pid=row["pid"],
+          name=row["comm"])
+    except KeyError:
+      return
+
+    return result
+
+  def HandleMessage(self, message):
+    """Handles a single Rekall message."""
+
+    if message[0] == "r":
+      result = self.HandleTableRow(self.metadata, message)
+      if result:
+        yield result
+
+
+class ExportedRekallLinuxTaskOp(rdf_structs.RDFProtoStruct):
+  protobuf = export_pb2.ExportedRekallLinuxTaskOp
+
+
+class RekallResponseToExportedRekallLinuxTaskOpConverter(
+    RekallResponseConverter):
+  """Converts suitable RekallResponses to ExportedRekallLinuxTaskOps."""
+
+  input_rdf_type = "RekallResponse"
+
+  @staticmethod
+  def HandleTableRow(unused_metadata, message):
+    """Handles a table row, converting it if possible."""
+
+    row = message[1]
+    try:
+
+      result = ExportedRekallLinuxTaskOp(
+          operation=row["member"],
+          handler_address=row["address"]["offset"],
+          module=row["module"])
+    except KeyError:
+      return
+
+    task = RekallResponseToExportedRekallLinuxTaskConverter.HandleTableRow(
+        None, message)
+    if task:
+      result.task = task
+
+    return result
+
+  def HandleMessage(self, message):
+    """Handles a single Rekall message."""
+
+    if message[0] == "r":
+      result = self.HandleTableRow(self.metadata, message)
+      if result:
+        yield result
+
+
+class ExportedRekallLinuxProcOp(rdf_structs.RDFProtoStruct):
+  protobuf = export_pb2.ExportedRekallLinuxProcOp
+
+
+class RekallResponseToExportedRekallLinuxProcOpConverter(
+    RekallResponseConverter):
+  """Converts suitable RekallResponses to ExportedRekallLinuxProcOps."""
+
+  input_rdf_type = "RekallResponse"
+
+  @staticmethod
+  def HandleTableRow(unused_metadata, message):
+    """Handles a table row, converting it if possible."""
+
+    row = message[1]
+    try:
+      result = ExportedRekallLinuxProcOp(
+          fullpath=row["path"],
+          operation=row["member"],
+          handler_address=row["address"]["offset"],
+          module=row["module"],
+          symbol=row.get("symbol"))
+    except KeyError:
+      return
 
     return result
 

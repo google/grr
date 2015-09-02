@@ -44,17 +44,15 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
   def testAddSources(self):
     artifact_registry.REGISTRY.ClearSources()
     artifact_registry.REGISTRY.AddFileSource(self.test_artifacts_file)
-    art = artifact_registry.REGISTRY.GetArtifact("TestCmdArtifact")
-    self.assertTrue(art)
-    art = artifact_registry.REGISTRY.GetArtifact("NonExistentArtifact")
-    self.assertFalse(art)
+    artifact_registry.REGISTRY.GetArtifact("TestCmdArtifact")
+    with self.assertRaises(artifact_registry.ArtifactNotRegisteredError):
+      artifact_registry.REGISTRY.GetArtifact("NonExistentArtifact")
 
     artifact_registry.REGISTRY.ClearSources()
     artifact_registry.REGISTRY.AddDirSource(self.test_artifacts_dir)
-    art = artifact_registry.REGISTRY.GetArtifact("TestCmdArtifact")
-    self.assertTrue(art)
-    art = artifact_registry.REGISTRY.GetArtifact("NonExistentArtifact")
-    self.assertFalse(art)
+    artifact_registry.REGISTRY.GetArtifact("TestCmdArtifact")
+    with self.assertRaises(artifact_registry.ArtifactNotRegisteredError):
+      artifact_registry.REGISTRY.GetArtifact("NonExistentArtifact")
 
   def _LoadAllArtifacts(self):
     artifact_registry.REGISTRY.ClearSources()
