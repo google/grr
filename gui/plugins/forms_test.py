@@ -32,43 +32,62 @@ class TestForms(test_lib.GRRSeleniumTest):
     # Open the "new hunt" form and select the DefaultArgsTestFlow.
     self.Open("/#main=ManageHunts")
     self.Click("css=button[name=NewHunt]")
-    self.Click("css=li[path='/Tests'] > a")
-    self.Click("css=li[path='/Tests/DefaultArgsTestFlow'] > a")
+
+    self.Click("css=#_Tests > ins.jstree-icon")
+    self.Click("link=DefaultArgsTestFlow")
+
     self.WaitUntil(self.IsTextPresent, "String value")
 
     # Check that shown default values of the controls are just default
     # values of the corresponding types.
     self.WaitUntilEqual(
-        "", self.GetValue, "css=#args-string_value.unset")
+        "", self.GetValue,
+        "css=grr-new-hunt-wizard-form "
+        ".form-group:has(label:contains('String value')) input")
     self.WaitUntilEqual(
-        "0", self.GetValue, "css=#args-int_value.unset")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=#args-bool_value.unset:not(:checked)")
-    self.WaitUntilEqual(
-        "OPTION_1", self.GetValue, "css=#args-enum_value.unset")
+        "0", self.GetValue,
+        "css=grr-new-hunt-wizard-form "
+        ".form-group:has(label:contains('Int value')) input")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-new-hunt-wizard-form "
+        ".form-group:has(label:contains('Bool value')) input:not(:checked)")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-new-hunt-wizard-form "
+        ".form-group:has(label:contains('Enum value')) select "
+        "option:selected(label='OPTION_1 (default)')")
 
   def testControlsWithDefaultValuesAreCorrectlyDisplayed(self):
     # Open the "new hunt" form and select the DefaultArgsTestFlow.
     self.Open("/#main=ManageHunts")
     self.Click("css=button[name=NewHunt]")
-    self.Click("css=li[path='/Tests'] > a")
-    self.Click("css=li[path='/Tests/DefaultArgsTestFlow'] > a")
+
+    self.Click("css=#_Tests > ins.jstree-icon")
+    self.Click("link=DefaultArgsTestFlow")
+
     self.WaitUntil(self.IsTextPresent, "String value")
 
     # Check that shown default values of the controls are the default values
     # that we specified in the RDFValue definition.
     self.WaitUntilEqual(
-        "default string",
-        self.GetValue, "css=#args-string_value_with_default.unset")
+        "default string", self.GetValue,
+        "css=grr-new-hunt-wizard-form "
+        ".form-group:has(label:contains('String value with default')) input")
     self.WaitUntilEqual(
-        "42",
-        self.GetValue, "css=#args-int_value_with_default.unset")
+        "42", self.GetValue,
+        "css=grr-new-hunt-wizard-form "
+        ".form-group:has(label:contains('Int value with default')) input")
     self.WaitUntil(
         self.IsElementPresent,
-        "css=#args-bool_value_with_default.unset:checked")
-    self.WaitUntilEqual(
-        "OPTION_2",
-        self.GetValue, "css=#args-enum_value_with_default.unset")
+        "css=grr-new-hunt-wizard-form "
+        ".form-group:has(label:contains('Bool value with default')) "
+        "input:checked")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-new-hunt-wizard-form "
+        ".form-group:has(label:contains('Enum value with default')) select "
+        "option:selected(label='OPTION_2 (default)')")
 
 
 def main(argv):

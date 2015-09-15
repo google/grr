@@ -8,4 +8,5 @@ pyinstaller==2.1
 python-crontab==1.9.2
 python-dateutil==2.3
 pytz==2014.10
+rekall-core==1.4.1
 urllib3==1.10

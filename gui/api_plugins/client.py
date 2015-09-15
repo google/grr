@@ -19,6 +19,9 @@ from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import api_pb2
 
 
+CATEGORY = "Clients"
+
+
 class ApiClientSearchRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiClientSearchRendererArgs
 
@@ -26,6 +29,7 @@ class ApiClientSearchRendererArgs(rdf_structs.RDFProtoStruct):
 class ApiClientSearchRenderer(api_call_renderer_base.ApiCallRenderer):
   """Renders results of a client search."""
 
+  category = CATEGORY
   args_type = ApiClientSearchRendererArgs
 
   def Render(self, args, token=None):
@@ -59,6 +63,7 @@ class ApiClientSummaryRendererArgs(rdf_structs.RDFProtoStruct):
 class ApiClientSummaryRenderer(api_call_renderer_base.ApiCallRenderer):
   """Renders summary of a given client."""
 
+  category = CATEGORY
   args_type = ApiClientSummaryRendererArgs
 
   def Render(self, args, token=None):
@@ -75,6 +80,7 @@ class ApiClientsAddLabelsRendererArgs(rdf_structs.RDFProtoStruct):
 class ApiClientsAddLabelsRenderer(api_call_renderer_base.ApiCallRenderer):
   """Adds labels to a given client."""
 
+  category = CATEGORY
   args_type = ApiClientsAddLabelsRendererArgs
   privileged = True
 
@@ -115,6 +121,7 @@ class ApiClientsRemoveLabelsRendererArgs(rdf_structs.RDFProtoStruct):
 class ApiClientsRemoveLabelsRenderer(api_call_renderer_base.ApiCallRenderer):
   """Remove labels from a given client."""
 
+  category = CATEGORY
   args_type = ApiClientsRemoveLabelsRendererArgs
   privileged = True
 
@@ -163,6 +170,8 @@ class ApiClientsRemoveLabelsRenderer(api_call_renderer_base.ApiCallRenderer):
 class ApiClientsLabelsListRenderer(api_call_renderer_base.ApiCallRenderer):
   """Lists all the available clients labels."""
 
+  category = CATEGORY
+
   def Render(self, args, token=None):
     labels_index = aff4.FACTORY.Create(
         aff4.VFSGRRClient.labels_index_urn, "AFF4LabelsIndex",
@@ -177,6 +186,8 @@ class ApiClientsLabelsListRenderer(api_call_renderer_base.ApiCallRenderer):
 
 class ApiListKbFieldsRenderer(api_call_renderer_base.ApiCallRenderer):
   """Lists all the available clients knowledge base fields."""
+
+  category = CATEGORY
 
   def Render(self, args, token=None):
     fields = rdf_client.KnowledgeBase().GetKbFieldNames()

@@ -41,20 +41,21 @@ grrUi.forms.outputPluginDescriptorFormDirective
     if (angular.isUndefined(
         this.scope_.$eval('value.value.plugin_name.value'))) {
       this.scope_['value']['value']['plugin_name'] = {
+        type: 'RDFString',
         value: this.allowedPluginsNames[0]
       };
     }
-  }.bind(this));
 
-  this.scope_.$watch('value.value.plugin_name.value', function(newValue) {
-    if (angular.isDefined(newValue)) {
-      var argsType = this.outputPluginsDescriptors[newValue]['args_type'];
-      this.grrReflectionService_.getRDFValueDescriptor(argsType).then(
-          function(descriptor) {
-            this.scope_['value']['value']['plugin_args'] =
-                angular.copy(descriptor['default']);
-          }.bind(this));
-    }
+    this.scope_.$watch('value.value.plugin_name.value', function(newValue) {
+      if (angular.isDefined(newValue)) {
+        var argsType = this.outputPluginsDescriptors[newValue]['args_type'];
+        this.grrReflectionService_.getRDFValueDescriptor(argsType).then(
+            function(descriptor) {
+              this.scope_['value']['value']['plugin_args'] =
+                  angular.copy(descriptor['default']);
+            }.bind(this));
+      }
+    }.bind(this));
   }.bind(this));
 };
 var OutputPluginDescriptorFormController =

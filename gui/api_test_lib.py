@@ -69,7 +69,7 @@ class ApiCallRendererRegressionTest(test_lib.GRRBaseTest):
                generated values (like hunts IDs) in the regression data.
     Raises:
       ValueError: if unsupported method argument is passed. Currently only
-                  "GET" is supported.
+                  "GET" and "POST" are supported.
     """
     parsed_url = urlparse.urlparse(url)
     request = utils.DataObject(method=method,
@@ -107,9 +107,15 @@ class ApiCallRendererRegressionTest(test_lib.GRRBaseTest):
         url = url.replace(substr, repl)
 
     parsed_content = json.loads(content)
-    self.checks.append(dict(method=method, url=url,
-                            test_class=self.__class__.__name__,
-                            response=parsed_content))
+    check_result = dict(method=method, url=url,
+                        test_class=self.__class__.__name__,
+                        response=parsed_content)
+
+    stripped_content = http_api.StripTypeInfo(parsed_content)
+    if parsed_content != stripped_content:
+      check_result["type_stripped_response"] = stripped_content
+
+    self.checks.append(check_result)
 
   @abc.abstractmethod
   def Run(self):

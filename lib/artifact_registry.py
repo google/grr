@@ -66,8 +66,18 @@ class ArtifactRegistry(object):
                         artifact_coll_urn)
 
     # Once all artifacts are loaded we can validate.
-    for artifact_value in loaded_artifacts:
-      artifact_value.Validate()
+    revalidate = True
+    while revalidate:
+      revalidate = False
+      for artifact_obj in loaded_artifacts[:]:
+        try:
+          artifact_obj.Validate()
+        except ArtifactDefinitionError as e:
+          logging.error("Artifact %s did not validate: %s",
+                        artifact_obj.name, e)
+          artifact_obj.error_message = utils.SmartStr(e)
+          loaded_artifacts.remove(artifact_obj)
+          revalidate = True
 
   def ArtifactsFromYaml(self, yaml_content):
     """Get a list of Artifacts from yaml."""
@@ -151,6 +161,7 @@ class ArtifactRegistry(object):
 
   def RegisterArtifact(self, artifact_rdfvalue, source="datastore",
                        overwrite_if_exists=False):
+    """Registers a new artifact."""
     if not overwrite_if_exists and artifact_rdfvalue.name in self._artifacts:
       raise ArtifactDefinitionError("Artifact named %s already exists and "
                                     "overwrite_if_exists is set to False." %
@@ -158,6 +169,8 @@ class ArtifactRegistry(object):
 
     # Preserve where the artifact was loaded from to help debugging.
     artifact_rdfvalue.loaded_from = source
+    # Clear any stale errors.
+    artifact_rdfvalue.error_message = None
     self._artifacts[artifact_rdfvalue.name] = artifact_rdfvalue
 
   def ClearRegistry(self):
@@ -168,16 +181,17 @@ class ArtifactRegistry(object):
     """Load artifacts from all sources."""
     self._artifacts = {}
     files_to_load = []
-    try:
-      for dir_path in self._sources.get("dirs", []):
+    for dir_path in self._sources.get("dirs", []):
+      try:
         for file_name in os.listdir(dir_path):
           if (file_name.endswith(".json") or file_name.endswith(".yaml") and
               not file_name.startswith("test")):
             files_to_load.append(os.path.join(dir_path, file_name))
-      files_to_load += self._sources.get("files", [])
-      self._LoadArtifactsFromFiles(files_to_load)
-    except (IOError, OSError):
-      logging.warn("Artifact directory not found: %s", dir_path)
+      except (IOError, OSError):
+        logging.warn("Artifact directory not found: %s", dir_path)
+    files_to_load += self._sources.get("files", [])
+    logging.debug("Loading artifacts from: %s", files_to_load)
+    self._LoadArtifactsFromFiles(files_to_load)
 
     self.ReloadDatastoreArtifacts()
 
@@ -269,10 +283,9 @@ class ArtifactRegistry(object):
     result = self._artifacts.get(name)
     if not result:
       raise ArtifactNotRegisteredError(
-          "Artifact %s missing from registry which contains: %s. You may need "
+          "Artifact %s missing from registry. You may need "
           "to sync the artifact repo by running make in the artifact "
-          "directory." % (
-              name, self.GetRegisteredArtifactNames()))
+          "directory." % name)
     return result
 
   def GetArtifactNames(self, *args, **kwargs):
@@ -388,6 +401,18 @@ class ArtifactSource(structs.RDFProtoStruct):
 
   def Validate(self):
     """Check the source is well constructed."""
+
+    if self.type == "COMMAND":
+      # specifying command execution artifacts with multiple arguments as a
+      # single string is a common mistake. For example the definition
+      # cmd: "ls"
+      # args: [-l -a]
+      # will give you args as ["-l -a"] but that will not work (try ls "-l -a").
+      args = self.attributes.GetItem("args")
+      if args and len(args) == 1 and " " in args[0]:
+        raise ArtifactDefinitionError(
+            "Cannot specify a single argument containing a space: %s." % args)
+
     # Catch common mistake of path vs paths.
     if self.attributes.GetItem("paths"):
       if not isinstance(self.attributes.GetItem("paths"), list):
@@ -687,9 +712,15 @@ class Artifact(structs.RDFProtoStruct):
     """
     self.ValidateSyntax()
 
-    # Check all artifact dependencies exist.
-    for dependency in self.GetArtifactDependencies():
-      REGISTRY.GetArtifact(dependency)
+    try:
+      # Check all artifact dependencies exist.
+      for dependency in self.GetArtifactDependencies():
+        dependency_obj = REGISTRY.GetArtifact(dependency)
+        if dependency_obj.error_message:
+          raise ArtifactDefinitionError(
+              "Dependency %s has an error!" % dependency)
+    except ArtifactNotRegisteredError as e:
+      raise ArtifactDefinitionError(e)
 
 
 class ArtifactProcessorDescriptor(structs.RDFProtoStruct):

@@ -32,7 +32,7 @@ def GetConfigMockClass(sections=None):
   missing = object()
 
   type_infos = []
-  option_values = {}
+  values = {}
   raw_values = {}
   default_values = {}
 
@@ -42,8 +42,8 @@ def GetConfigMockClass(sections=None):
       descriptor = utils.DataObject(section=section_name, name=name)
       type_infos.append(descriptor)
 
-      if "option_value" in parameter_data:
-        option_values[name] = parameter_data["option_value"]
+      if "value" in parameter_data:
+        values[name] = parameter_data["value"]
 
       if "raw_value" in parameter_data:
         raw_values[name] = parameter_data["raw_value"]
@@ -53,7 +53,7 @@ def GetConfigMockClass(sections=None):
 
   def Get(parameter, default=missing):
     try:
-      return option_values[parameter]
+      return values[parameter]
     except KeyError:
       if default is missing:
         return default_values[parameter]
@@ -102,46 +102,54 @@ class ApiConfigRendererTest(test_lib.GRRBaseTest):
     self._assertRendersConfig({"section": {}}, {})
 
   def testRendersSetting(self):
-    input_dict = {"section": {"parameter": {"option_value": u"value",
+    input_dict = {"section": {"parameter": {"value": u"value",
                                             "raw_value": u"value"}}}
-    output_dict = {"section": {"section.parameter": {"option_value": u"value",
-                                                     "is_default": False,
-                                                     "is_expanded": False,
-                                                     "raw_value": u"value",
-                                                     "type": "plain"}}}
+    output_dict = {
+        "section": {
+            "section.parameter": {
+                "value": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": u"value"
+                    },
+                "is_default": False,
+                "is_expanded": False,
+                "raw_value": u"value",
+                "type": "plain"
+                }
+            }
+        }
     self._assertRendersConfig(input_dict, output_dict)
 
-  def testRendersDefault(self):
+  def testAlwaysReportsIsDefaultAsFalse(self):
     input_dict = {"section": {"parameter": {"default_value": u"value"}}}
     rendering = self._RenderConfig(input_dict)
-    self.assertTrue(rendering["section"]["section.parameter"]["is_default"])
+    self.assertFalse(rendering["section"]["section.parameter"]["is_default"])
 
   def testRendersBinary(self):
-    input_dict = {"section": {"parameter": {"option_value": "value\xff",
+    input_dict = {"section": {"parameter": {"value": "value\xff",
                                             "raw_value": "value\xff"}}}
     rendering = self._RenderConfig(input_dict)
     self.assertEquals(rendering["section"]["section.parameter"]["type"],
                       "binary")
 
   def testRendersRedacted(self):
-    input_dict = {"Mysql": {"database_password": {"option_value": u"secret",
+    input_dict = {"Mysql": {"database_password": {"value": u"secret",
                                                   "raw_value": u"secret"}}}
     rendering = self._RenderConfig(input_dict)
     self.assertEquals(rendering["Mysql"]["Mysql.database_password"]["type"],
                       "redacted")
 
-  def testExpansion(self):
-    input_dict = {"section": {"parameter": {"option_value": u"%(answer)",
+  def testAlwaysReportsIsExpandedAsFalse(self):
+    input_dict = {"section": {"parameter": {"value": u"%(answer)",
                                             "raw_value": u"fourty-two"}}}
     rendering = self._RenderConfig(input_dict)
-    self.assertEquals(rendering["section"]["section.parameter"]["is_expanded"],
-                      True)
+    self.assertFalse(rendering["section"]["section.parameter"]["is_expanded"])
 
-    input_dict = {"section": {"parameter": {"option_value": u"fourty-two",
+    input_dict = {"section": {"parameter": {"value": u"fourty-two",
                                             "raw_value": u"fourty-two"}}}
     rendering = self._RenderConfig(input_dict)
-    self.assertEquals(rendering["section"]["section.parameter"]["is_expanded"],
-                      False)
+    self.assertFalse(rendering["section"]["section.parameter"]["is_expanded"])
 
 
 class ApiConfigRendererRegressionTest(
@@ -170,6 +178,60 @@ SectionBar.sample_string_option: "%(sAmPlE|lower)"
 
     with utils.Stubber(config_lib, "CONFIG", config_obj):
       self.Check("GET", "/api/config")
+
+
+class ApiConfigOptionRendererTest(test_lib.GRRBaseTest):
+  """Test for ApiConfigOptionRenderer."""
+
+  def setUp(self):
+    super(ApiConfigOptionRendererTest, self).setUp()
+    self.renderer = config_plugin.ApiConfigOptionRenderer()
+
+  def _ConfigStub(self, sections=None):
+    mock = GetConfigMockClass(sections)
+    config = config_lib.CONFIG
+    return utils.MultiStubber((config, "GetRaw", mock["GetRaw"]),
+                              (config, "Get", mock["Get"]),
+                              (config, "type_infos", mock["type_infos"]))
+
+  def _RenderConfigOption(self, stub_sections, name):
+    with self._ConfigStub(stub_sections):
+      rendering = self.renderer.Render(
+          config_plugin.ApiConfigOptionRendererArgs(name=name))
+
+    return rendering
+
+  def testRendersRedacted(self):
+    input_dict = {"Mysql": {"database_password": {"value": u"secret",
+                                                  "raw_value": u"secret"}}}
+    rendering = self._RenderConfigOption(input_dict, "Mysql.database_password")
+    self.assertEquals(rendering, dict(status="OK", type="redacted"))
+
+
+class ApiConfigOptionRendererRegressionTest(
+    api_test_lib.ApiCallRendererRegressionTest):
+
+  renderer = "ApiConfigOptionRenderer"
+
+  def Run(self):
+    config_obj = config_lib.GrrConfigManager()
+    config_obj.DEFINE_string("SectionFoo.sample_string_option", "",
+                             "Sample string option.")
+    config_obj.DEFINE_string("Mysql.database_password", "",
+                             "Secret password.")
+
+    config = """
+SectionBar.sample_string_option: "%(sAmPlE|lower)"
+Mysql.database_password: "THIS IS SECRET AND SHOULD NOT BE SEEN"
+"""
+
+    config_lib.LoadConfig(config_obj, StringIO.StringIO(config),
+                          parser=config_lib.YamlParser)
+
+    with utils.Stubber(config_lib, "CONFIG", config_obj):
+      self.Check("GET", "/api/config/SectionFoo.sample_string_option")
+      self.Check("GET", "/api/config/Mysql.database_password")
+      self.Check("GET", "/api/config/NonExistingOption")
 
 
 def main(argv):

@@ -1723,3 +1723,9 @@ grrUiApp.run(function($injector, $http, $cookies, grrReflectionService) {
  * TODO(user): Remove when dependency on jQuery-migrate is removed.
  */
 jQuery.migrateMute = true;
+
+/**
+ * Hardcoding jsTree themes folder so that it works correctly when used
+ * from a JS bundle file.
+ */
+$.jstree._themes = '/static/third-party/jstree-1.0rc3/themes/';

@@ -57,8 +57,9 @@ void Grep::ProcessRequest(ActionContext* context) {
 
     // Start and end expanded to include any needed extra bytes.
     const auto expanded_match_start =
-        m.match_start - std::min(m.match_start.FileOffset(),
-                                 static_cast<uint64>(req.bytes_before()));
+        m.match_start -
+        std::min(static_cast<uint64>(m.match_start.FileOffset()),
+                 static_cast<uint64>(req.bytes_before()));
     const auto expanded_match_end =
         m.match_end + std::min(static_cast<uint64>(req.bytes_after()),
                                static_cast<uint64>(result->size() -

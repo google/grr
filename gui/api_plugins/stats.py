@@ -13,6 +13,9 @@ from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import api_pb2
 
 
+CATEGORY = "Other"
+
+
 class ApiStatsStoreMetricsMetadataRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiStatsStoreMetricsMetadataRendererArgs
 
@@ -21,6 +24,7 @@ class ApiStatsStoreMetricsMetadataRenderer(
     api_call_renderer_base.ApiCallRenderer):
   """Renders available metrics descriptors for a given system component."""
 
+  category = CATEGORY
   args_type = ApiStatsStoreMetricsMetadataRendererArgs
 
   def Render(self, args, token=None):
@@ -43,6 +47,7 @@ class ApiStatsStoreMetricRendererArgs(rdf_structs.RDFProtoStruct):
 class ApiStatsStoreMetricRenderer(api_call_renderer_base.ApiCallRenderer):
   """Renders historical data for a given metric."""
 
+  category = CATEGORY
   args_type = ApiStatsStoreMetricRendererArgs
 
   def Render(self, args, token):

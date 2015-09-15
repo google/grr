@@ -5,12 +5,12 @@ namespace grr {
 bool ActionContext::PopulateArgs(google::protobuf::Message* args) {
   if (!grr_message_.has_args()) {
     SetError("Expected args of type: " + args->GetTypeName() +
-              ", but no args provided.");
+             ", but no args provided.");
     return false;
   }
   if (args->GetTypeName() != grr_message_.args_rdf_name()) {
     SetError("Expected args of type: " + args->GetTypeName() +
-              ", but received args of type: " + grr_message_.args_rdf_name());
+             ", but received args of type: " + grr_message_.args_rdf_name());
     return false;
   }
   if (!args->ParseFromString(grr_message_.args())) {

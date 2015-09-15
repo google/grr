@@ -27,14 +27,21 @@ function system_update() {
   fi
 }
 
-# Get a more modern version of openssl than is available on lucid
+# Get a more modern version of openssl than is available on lucid.
 function install_openssl() {
   SSL_VERSION=1.0.2d
+  SSL_SHA256=671c36487785628a703374c652ad2cebea45fa920ae5681515df25d9f2c9a8c8
   if [ -x "${WGET}" ]; then
     ${WGET} https://www.openssl.org/source/openssl-${SSL_VERSION}.tar.gz
   else
-    wget https://www.openssl.org/source/openssl-${SSL_VERSION}.tar.gz
-  fi;
+    # wget on CentOS 5.11 can't establish an SSL connection to openssl.org. So
+    # we use HTTP and verify hash.
+    RETRIEVED_HASH=$(wget -q -O - http://www.openssl.org/source/openssl-${SSL_VERSION}.tar.gz | tee openssl-${SSL_VERSION}.tar.gz | sha256sum | cut -d' ' -f1)
+    if [ "${RETRIEVED_HASH}" != "${SSL_SHA256}" ]; then
+      echo "Bad hash for openssl-${SSL_VERSION}.tar.gz, quitting"
+      exit 1
+    fi
+  fi
   tar zxf openssl-${SSL_VERSION}.tar.gz
   cd openssl-${SSL_VERSION}
   ./config -fPIC
@@ -122,17 +129,6 @@ function install_protobuf_libs() {
   cd -
 }
 
-# To make rekall work we need a newer version that what is available in a
-# release.  TODO: remove this and update requirements.txt once there is a
-# release we can use.
-function install_rekall_HEAD() {
-  rm -r rekall || true
-  git clone https://github.com/google/rekall.git
-  cd rekall
-  python setup.py install
-  cd -
-}
-
 # Install our python dependencies into a virtualenv that uses the new python
 # version
 function install_python_deps() {
@@ -169,7 +165,6 @@ function install_python_deps() {
   # http://stackoverflow.com/questions/13862562/google-protocol-buffers-not-found-when-trying-to-freeze-python-app
   touch PYTHON_ENV/lib/python2.7/site-packages/google/__init__.py
 
-  install_rekall_HEAD
 }
 
 # Install patched m2crypto, hopefully this patch will eventually be accepted so
@@ -259,3 +254,4 @@ install_m2crypto
 install_sleuthkit
 install_pytsk
 install_packagetools
+echo "Build environment provisioning complete."

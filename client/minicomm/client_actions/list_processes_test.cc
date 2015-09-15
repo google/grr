@@ -45,7 +45,7 @@ void CreateProcessDir(const std::string& dir, const Process& proc) {
 TEST(ListProcessesTest, ProcessRequest) {
   GrrMessage message;
   MessageQueue queue(1000, 20000);
-  ActionContext context(message, &queue);
+  ActionContext context(message, &queue, nullptr);
 
   actions::ListProcesses action;
   action.ProcessRequest(&context);

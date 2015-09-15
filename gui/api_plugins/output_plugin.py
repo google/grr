@@ -6,8 +6,13 @@ from grr.gui import api_call_renderer_base
 from grr.lib import output_plugin
 
 
+CATEGORY = "Other"
+
+
 class ApiOutputPluginsListRenderer(api_call_renderer_base.ApiCallRenderer):
   """Renders all available output plugins definitions."""
+
+  category = CATEGORY
 
   def Render(self, unused_args, token=None):
     result = {}

@@ -19,22 +19,16 @@ grrUi.core.forceRefreshDirective.ForceRefreshController = function(
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @private {Object} */
-  this.oldValue_;
-
   /** @export {boolean} */
   this.show = true;
 
   this.scope_.$watch('refreshTrigger', function(newValue) {
-    if (!angular.equals(newValue, this.oldValue_)) {
-      this.oldValue_ = newValue;
-      this.show = false;
+    this.show = false;
 
-      this.scope_.$evalAsync(function() {
-        this.show = true;
-      }.bind(this));
-    }
-  }.bind(this));
+    this.scope_.$evalAsync(function() {
+      this.show = true;
+    }.bind(this));
+  }.bind(this), true);
 };
 var ForceRefreshController =
     grrUi.core.forceRefreshDirective.ForceRefreshController;
@@ -49,7 +43,7 @@ var ForceRefreshController =
 grrUi.core.forceRefreshDirective.ForceRefreshDirective = function() {
   return {
     scope: {
-      refreshTrigger: '='
+      refreshTrigger: '=',
     },
     restrict: 'EA',
     transclude: true,

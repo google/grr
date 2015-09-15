@@ -44,6 +44,7 @@ from grr.client import local as _
 # pylint: enable=unused-import
 from grr.client import vfs
 from grr.client.client_actions import standard
+from grr.client.vfs_handlers import files
 
 from grr.lib import access_control
 from grr.lib import action_mocks
@@ -1066,6 +1067,8 @@ class GRRSeleniumTest(GRRBaseTest):
     if selector_type == "css":
       elems = self.driver.execute_script(
           "return $(\"" + effective_selector.replace("\"", "\\\"") + "\");")
+      elems = [e for e in elems if e.is_displayed()]
+
       if not elems:
         raise exceptions.NoSuchElementException()
       else:
@@ -2055,7 +2058,29 @@ class ClientFixture(object):
                               token=self.token).AddClient(aff4_object)
 
 
-class ClientVFSHandlerFixture(vfs.VFSHandler):
+class ClientVFSHandlerFixtureBase(vfs.VFSHandler):
+  """A base class for VFSHandlerFixtures."""
+
+  def ListNames(self):
+    for stat in self.ListFiles():
+      yield os.path.basename(stat.pathspec.path)
+
+  def IsDirectory(self):
+    return bool(self.ListFiles())
+
+  def _FakeDirStat(self):
+    # We return some fake data, this makes writing tests easier for some
+    # things but we give an error to the tester as it is often not what you
+    # want.
+    logging.warn("Fake value for %s under %s", self.path, self.prefix)
+    return rdf_client.StatEntry(pathspec=self.pathspec,
+                                st_mode=16877,
+                                st_size=12288,
+                                st_atime=1319796280,
+                                st_dev=1)
+
+
+class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
   """A client side VFS handler for the OS type - returns the fixture."""
   # A class wide cache for fixtures. Key is the prefix, and value is the
   # compiled fixture.
@@ -2178,13 +2203,6 @@ class ClientVFSHandlerFixture(vfs.VFSHandler):
     self.offset += len(data)
     return data
 
-  def ListNames(self):
-    for stat in self.ListFiles():
-      yield os.path.basename(stat.pathspec.path)
-
-  def IsDirectory(self):
-    return bool(self.ListFiles())
-
   def Stat(self):
     """Get Stat for self.path."""
     stat_data = self.paths.get(self._NormalizeCaseForPath(self.path, None))
@@ -2198,15 +2216,7 @@ class ClientVFSHandlerFixture(vfs.VFSHandler):
     if stat_data:
       return stat_data[1]  # Strip the vfs_type.
     else:
-      # We return some fake data, this makes writing tests easier for some
-      # things but we give an error to the tester as it is often not what you
-      # want.
-      logging.warn("Fake value for %s under %s", self.path, self.prefix)
-      return rdf_client.StatEntry(pathspec=self.pathspec,
-                                  st_mode=16877,
-                                  st_size=12288,
-                                  st_atime=1319796280,
-                                  st_dev=1)
+      return self._FakeDirStat()
 
 
 class FakeRegistryVFSHandler(ClientVFSHandlerFixture):
@@ -2221,14 +2231,35 @@ class FakeFullVFSHandler(ClientVFSHandlerFixture):
   supported_pathtype = rdf_paths.PathSpec.PathType.OS
 
 
-class FakeTestDataVFSHandler(ClientVFSHandlerFixture):
+class FakeTestDataVFSHandler(ClientVFSHandlerFixtureBase):
   """Client VFS mock that looks for files in the test_data directory."""
   prefix = "/fs/os"
   supported_pathtype = rdf_paths.PathSpec.PathType.OS
 
+  def __init__(self, base_fd=None, prefix=None, pathspec=None,
+               progress_callback=None, full_pathspec=None):
+    super(FakeTestDataVFSHandler, self).__init__(
+        base_fd, pathspec=pathspec, progress_callback=progress_callback,
+        full_pathspec=full_pathspec)
+    # This should not really be done since there might be more information
+    # in the pathspec than the path but here in the test is ok.
+    if not base_fd:
+      self.pathspec = pathspec
+    else:
+      self.pathspec.last.path = os.path.join(
+          self.pathspec.last.path, pathspec.CollapsePath().lstrip("/"))
+    self.path = self.pathspec.CollapsePath()
+
+  def _AbsPath(self, filename=None):
+    path = self.path
+    if filename:
+      path = os.path.join(path, filename)
+    return os.path.join(
+        config_lib.CONFIG["Test.data_dir"], "VFSFixture", path.lstrip("/"))
+
   def Read(self, length):
-    test_data_path = os.path.join(config_lib.CONFIG["Test.data_dir"],
-                                  os.path.basename(self.path))
+    test_data_path = self._AbsPath()
+
     if not os.path.exists(test_data_path):
       raise IOError("Could not find %s" % test_data_path)
 
@@ -2236,6 +2267,18 @@ class FakeTestDataVFSHandler(ClientVFSHandlerFixture):
 
     self.offset += len(data)
     return data
+
+  def Stat(self):
+    """Get Stat for self.path."""
+    test_data_path = self._AbsPath()
+    st = os.stat(test_data_path)
+    return files.MakeStatResponse(st, self.pathspec)
+
+  def ListFiles(self):
+    for f in os.listdir(self._AbsPath()):
+      ps = self.pathspec.Copy()
+      ps.last.path = os.path.join(ps.last.path, f)
+      yield files.MakeStatResponse(os.stat(self._AbsPath(f)), ps)
 
 
 class GrrTestProgram(unittest.TestProgram):

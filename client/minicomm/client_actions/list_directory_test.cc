@@ -36,7 +36,7 @@ TEST(ListDirectory, SimpleTest) {
   message.set_args_rdf_name("ListDirRequest");
 
   MessageQueue queue(5, 20000);
-  ActionContext context(message, &queue);
+  ActionContext context(message, &queue, nullptr);
   actions::ListDirectory action;
   action.ProcessRequest(&context);
 

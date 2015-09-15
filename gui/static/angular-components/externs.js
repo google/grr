@@ -111,8 +111,8 @@ var angularUi = {};
 
 /**
  * @typedef {{
- *   close: function(string),
- *   dismiss: function(string),
+ *   close: function(string=),
+ *   dismiss: function(string=),
  *   result: angular.$q.Promise
  *   }}
  */

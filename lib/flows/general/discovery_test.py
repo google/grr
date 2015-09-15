@@ -226,7 +226,8 @@ class TestClientInterrogate(artifact_test.ArtifactTest):
         self.SetLinuxClient()
         client_mock = action_mocks.InterrogatedClient(
             "TransferBuffer", "StatFile", "Find", "HashBuffer",
-            "ListDirectory", "FingerprintFile", "GetLibraryVersions")
+            "ListDirectory", "FingerprintFile", "GetLibraryVersions",
+            "HashFile")
         client_mock.InitializeClient()
 
         for _ in test_lib.TestFlowHelper("Interrogate", client_mock,

@@ -111,7 +111,7 @@ grrUi.client.clientSearchBoxDirective.ClientSearchBoxDirective = function() {
     scope: {
     },
     restrict: 'E',
-    templateUrl: 'static/angular-components/client/client-search-box.html',
+    templateUrl: '/static/angular-components/client/client-search-box.html',
     controller: ClientSearchBoxController,
     controllerAs: 'controller'
   };

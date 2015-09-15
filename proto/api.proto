@@ -209,6 +209,15 @@ message ApiHuntArchiveFilesRendererArgs {
   optional ExportHuntResultsFilesAsArchiveArgs.ArchiveFormat archive_format = 2;
 };
 
+message ApiCreateHuntRendererArgs {
+  optional HuntRunnerArgs hunt_runner_args = 1 [(sem_type) = {
+      description: "Hunt runner arguments."
+    }];
+  optional GenericHuntArgs hunt_args = 2 [(sem_type) = {
+      description: "Hunt arguments."
+    }];
+};
+
 
 message ApiRDFValueReflectionRendererArgs {
   optional string type = 1 [(sem_type) = {
@@ -292,6 +301,12 @@ message ApiArtifactsDeleteRendererArgs {
     }];
 }
 
+message ApiConfigOptionRendererArgs {
+  optional string name = 1 [(sem_type) = {
+      description: "Name of the config option to fetch."
+    }];
+}
+
 //
 // AFF4 object renderers arguments (see gui/api_aff4_object_renderers.py).
 //
@@ -355,6 +370,3 @@ message ApiRemoteGetFileRendererArgs {
       description: "Path type to glob in.",
     }, default=OS];
 }
-
-
-

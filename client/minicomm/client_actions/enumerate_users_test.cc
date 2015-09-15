@@ -12,7 +12,7 @@ namespace grr {
 TEST(EnumerateUsersTest, SimpleTest) {
   GrrMessage message;
   MessageQueue queue(5, 20000);
-  ActionContext context(message, &queue);
+  ActionContext context(message, &queue, nullptr);
 
   actions::EnumerateUsers action;
   action.ProcessRequest(&context);

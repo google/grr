@@ -9,6 +9,11 @@ class ApiCallRenderer(object):
 
   __metaclass__ = registry.MetaclassRegistry
 
+  # Identifies what this renderer is about. Category is an arbitrary string
+  # used by documentation rendering to group renderers together. Possible
+  # categories are: "Hunts", "Flows", "Configuration", etc.
+  category = None
+
   # RDFValue type used to handle API renderer arguments. This can be
   # a class object, an array of class objects or a function returning
   # either option.

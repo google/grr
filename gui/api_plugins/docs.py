@@ -6,18 +6,24 @@ from grr.gui import api_call_renderer_base
 from grr.gui import http_routing
 
 
+CATEGORY = "Other"
+
+
 class ApiDocsRenderer(api_call_renderer_base.ApiCallRenderer):
   """Renders HTTP API docs sources."""
 
+  category = CATEGORY
+
   def RenderApiCallRenderers(self, routing_rules):
-    result = {}
+    result = []
     for rule in routing_rules:
-      result[rule.rule] = dict(route=rule.rule,
-                               renderer=rule.endpoint.__name__,
-                               methods=list(rule.methods - set(["HEAD"])),
-                               doc=rule.endpoint.__doc__,
-                               args_type=(rule.endpoint.args_type and
-                                          rule.endpoint.args_type.__name__))
+      result.append(dict(route=rule.rule,
+                         renderer=rule.endpoint.__name__,
+                         category=rule.endpoint.category,
+                         methods=list(rule.methods - set(["HEAD"])),
+                         doc=rule.endpoint.__doc__,
+                         args_type=(rule.endpoint.args_type and
+                                    rule.endpoint.args_type.__name__)))
 
     return result
 

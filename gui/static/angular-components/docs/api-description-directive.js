@@ -55,7 +55,7 @@ grrUi.docs.apiDescriptionDirective.ApiDescriptionDirective = function() {
       value: '='
     },
     restrict: 'E',
-    templateUrl: 'static/angular-components/docs/api-description.html',
+    templateUrl: '/static/angular-components/docs/api-description.html',
     controller: ApiDescriptionController,
     controllerAs: 'controller'
   };

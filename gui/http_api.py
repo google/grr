@@ -280,6 +280,8 @@ class HttpApiInitHook(registry.InitHook):
 
     RegisterHttpRouteHandler("GET", "/api/config",
                              api_plugins.config.ApiConfigRenderer)
+    RegisterHttpRouteHandler("GET", "/api/config/<name>",
+                             api_plugins.config.ApiConfigOptionRenderer)
 
     RegisterHttpRouteHandler("GET", "/api/docs",
                              api_plugins.docs.ApiDocsRenderer)
@@ -316,10 +318,15 @@ class HttpApiInitHook(registry.InitHook):
                              api_plugins.hunt.ApiHuntResultsRenderer)
     RegisterHttpRouteHandler("GET", "/api/hunts/<hunt_id>/output-plugins",
                              api_plugins.hunt.ApiHuntOutputPluginsRenderer)
+    RegisterHttpRouteHandler("POST", "/api/hunts/create",
+                             api_plugins.hunt.ApiCreateHuntRenderer)
     RegisterHttpRouteHandler("POST",
                              "/api/hunts/<hunt_id>/results/archive-files",
                              api_plugins.hunt.ApiHuntArchiveFilesRenderer)
 
+    RegisterHttpRouteHandler(
+        "GET", "/api/reflection/aff4/attributes",
+        api_plugins.reflection.ApiAff4AttributesReflectionRenderer)
     RegisterHttpRouteHandler(
         "GET", "/api/reflection/rdfvalue/<type>",
         api_plugins.reflection.ApiRDFValueReflectionRenderer)

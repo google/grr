@@ -1,5 +1,11 @@
 <h5 class="preserve-linebreaks">{$ ::value.value.artifact.value.doc.value $}</h5>
 <table class="table table-bordered table-condensed">
+  <tr ng-if="::value.value.error_message.value">
+    <td class="col-md-3 proto_error">Error</td>
+    <td class="col-md-9 proto_error">
+      <grr-semantic-value value="::value.value.error_message.value" />
+    </td>
+  </tr>
   <tr>
     <td class="col-md-3">Labels</td>
     <td class="col-md-9">

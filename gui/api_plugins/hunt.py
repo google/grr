@@ -17,10 +17,15 @@ from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.aff4_objects import security as aff4_security
 
+from grr.lib.hunts import implementation
+
 from grr.lib.rdfvalues import structs as rdf_structs
+
 
 from grr.proto import api_pb2
 
+
+CATEGORY = "Hunts"
 
 HUNTS_ROOT_PATH = rdfvalue.RDFURN("aff4:/hunts")
 
@@ -86,6 +91,7 @@ class ApiHuntsListRendererArgs(rdf_structs.RDFProtoStruct):
 class ApiHuntsListRenderer(api_call_renderer_base.ApiCallRenderer):
   """Renders list of available hunts."""
 
+  category = CATEGORY
   args_type = ApiHuntsListRendererArgs
 
   def _RenderHuntList(self, hunt_list):
@@ -132,6 +138,7 @@ class ApiHuntSummaryRendererArgs(rdf_structs.RDFProtoStruct):
 class ApiHuntSummaryRenderer(api_call_renderer_base.ApiCallRenderer):
   """Renders hunt's summary."""
 
+  category = CATEGORY
   args_type = ApiHuntSummaryRendererArgs
 
   def Render(self, args, token=None):
@@ -150,6 +157,7 @@ class ApiHuntResultsRendererArgs(rdf_structs.RDFProtoStruct):
 class ApiHuntResultsRenderer(api_call_renderer_base.ApiCallRenderer):
   """Renders hunt results."""
 
+  category = CATEGORY
   args_type = ApiHuntResultsRendererArgs
 
   def Render(self, args, token=None):
@@ -171,6 +179,7 @@ class ApiHuntOutputPluginsRendererArgs(rdf_structs.RDFProtoStruct):
 class ApiHuntOutputPluginsRenderer(api_call_renderer_base.ApiCallRenderer):
   """Renders hunt's output plugins states."""
 
+  category = CATEGORY
   args_type = ApiHuntOutputPluginsRendererArgs
 
   def Render(self, args, token=None):
@@ -191,6 +200,7 @@ class ApiHuntLogRendererArgs(rdf_structs.RDFProtoStruct):
 class ApiHuntLogRenderer(api_call_renderer_base.ApiCallRenderer):
   """Renders hunt's log."""
 
+  category = CATEGORY
   args_type = ApiHuntLogRendererArgs
 
   def Render(self, args, token=None):
@@ -213,6 +223,7 @@ class ApiHuntErrorsRendererArgs(rdf_structs.RDFProtoStruct):
 class ApiHuntErrorsRenderer(api_call_renderer_base.ApiCallRenderer):
   """Renders hunt's errors."""
 
+  category = CATEGORY
   args_type = ApiHuntErrorsRendererArgs
 
   def Render(self, args, token=None):
@@ -235,6 +246,7 @@ class ApiHuntArchiveFilesRendererArgs(rdf_structs.RDFProtoStruct):
 class ApiHuntArchiveFilesRenderer(api_call_renderer_base.ApiCallRenderer):
   """Generates archive with all files references in hunt's results."""
 
+  category = CATEGORY
   args_type = ApiHuntArchiveFilesRendererArgs
 
   def Render(self, args, token=None):
@@ -257,3 +269,44 @@ class ApiHuntArchiveFilesRenderer(api_call_renderer_base.ApiCallRenderer):
                  args.hunt_id, urn)
 
     return dict(status="OK", flow_urn=utils.SmartStr(urn))
+
+
+class ApiCreateHuntRendererArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiCreateHuntRendererArgs
+
+
+class ApiCreateHuntRenderer(api_call_renderer_base.ApiCallRenderer):
+  """Handles hunt creation request."""
+
+  category = CATEGORY
+  args_type = ApiCreateHuntRendererArgs
+
+  # Anyone should be able to create a hunt (permissions are required to
+  # actually start it) so marking this renderer as privileged to turn off
+  # ACL checks.
+  privileged = True
+
+  def Render(self, args, token=None):
+    """Creates a new hunt."""
+
+    # We only create generic hunts with /hunts/create requests.
+    args.hunt_runner_args.hunt_name = "GenericHunt"
+
+    # Anyone can create the hunt but it will be created in the paused
+    # state. Permissions are required to actually start it.
+    with implementation.GRRHunt.StartHunt(
+        runner_args=args.hunt_runner_args,
+        args=args.hunt_args,
+        token=token) as hunt:
+
+      # Nothing really to do here - hunts are always created in the paused
+      # state.
+      logging.info("User %s created a new %s hunt (%s)",
+                   token.username, hunt.state.args.flow_runner_args.flow_name,
+                   hunt.urn)
+
+      return dict(
+          status="OK",
+          hunt_id=api_value_renderers.RenderValue(hunt.urn),
+          hunt_args=api_value_renderers.RenderValue(hunt.state.args),
+          hunt_runner_args=api_value_renderers.RenderValue(hunt.runner.args))

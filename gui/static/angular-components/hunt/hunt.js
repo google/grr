@@ -3,6 +3,7 @@
 goog.provide('grrUi.hunt.module');
 
 goog.require('grrUi.core.module');
+
 goog.require('grrUi.hunt.huntCrashesDirective.HuntCrashesDirective');
 goog.require('grrUi.hunt.huntErrorsDirective.HuntErrorsDirective');
 goog.require('grrUi.hunt.huntInspectorDirective.HuntInspectorDirective');
@@ -12,12 +13,16 @@ goog.require('grrUi.hunt.huntResultsDirective.HuntResultsDirective');
 goog.require('grrUi.hunt.huntsListDirective.HuntsListDirective');
 goog.require('grrUi.hunt.huntsViewDirective.HuntsViewDirective');
 
+goog.require('grrUi.hunt.newHuntWizard.module');
+
 
 /**
  * Angular module for hunts-related UI.
  */
-grrUi.hunt.module = angular.module('grrUi.hunt', ['ui.bootstrap',
-                                                  grrUi.core.module.name]);
+grrUi.hunt.module = angular.module('grrUi.hunt',
+                                   ['ui.bootstrap',
+                                    grrUi.core.module.name,
+                                    grrUi.hunt.newHuntWizard.module.name]);
 
 
 grrUi.hunt.module.directive(

@@ -263,7 +263,7 @@ class ActionTest(test_lib.EmptyActionTest):
     # Linux only
     if platform.system() != "Linux": return
 
-    path = os.path.join(self.base_path, "wtmp")
+    path = os.path.join(self.base_path, "VFSFixture/var/log/wtmp")
     old_open = __builtin__.open
     old_listdir = os.listdir
 

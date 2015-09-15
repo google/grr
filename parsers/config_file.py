@@ -333,6 +333,7 @@ class SshdConfigParser(parsers.FileParser):
                "x11displayoffset"]
   _booleans = ["allowagentforwarding",
                "challengeresponseauthentication",
+               "dsaauthentication"
                "gssapiauthentication",
                "gssapicleanupcredentials",
                "gssapikeyexchange",
@@ -345,7 +346,6 @@ class SshdConfigParser(parsers.FileParser):
                "kerberosauthentication",
                "passwordauthentication",
                "permitemptypasswords",
-               "permitrootlogin",
                "permittunnel",
                "permituserenvironment",
                "pubkeyauthentication",
@@ -375,6 +375,7 @@ class SshdConfigParser(parsers.FileParser):
                "protocol": r"[,]+",
                "subsystem": r"[\n]+"}
   _true = ["yes", "true", "1"]
+  _aliases = {"dsaauthentication": "pubkeyauthentication"}
   _match_keywords = [
       "acceptenv", "allowagentforwarding", "allowgroups", "allowtcpforwarding",
       "allowusers", "authenticationmethods", "authorizedkeyscommand",
@@ -440,6 +441,9 @@ class SshdConfigParser(parsers.FileParser):
     # Switch sections for new match blocks.
     if keyword == "match":
       self._NewMatchSection(values)
+    # If it's an alias, resolve it.
+    if keyword in self._aliases:
+      keyword = self._aliases[keyword]
     # Add the keyword/values to the section.
     self.processor(keyword, values)
 

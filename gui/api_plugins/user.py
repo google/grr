@@ -8,8 +8,13 @@ from grr.lib import aff4
 from grr.lib.aff4_objects import users as aff4_users
 
 
+CATEGORY = "Settings"
+
+
 class ApiUserSettingsRenderer(api_call_renderer_base.ApiCallRenderer):
   """Renders current user settings."""
+
+  category = CATEGORY
 
   def GetUserSettings(self, token):
     try:
@@ -31,6 +36,7 @@ class ApiUserSettingsRenderer(api_call_renderer_base.ApiCallRenderer):
 class ApiSetUserSettingsRenderer(api_call_renderer_base.ApiCallRenderer):
   """Sets current user settings."""
 
+  category = CATEGORY
   args_type = aff4_users.GUISettings
   privileged = True
 

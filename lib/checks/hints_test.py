@@ -5,6 +5,7 @@ from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib.checks import hints
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import config_file as rdf_config_file
 from grr.lib.rdfvalues import protodict as rdf_protodict
 
 
@@ -81,6 +82,15 @@ class HintsTests(test_lib.GRRBaseTest):
     hinter = hints.Hinter(template=template)
     expected = "skynet: 1997"
     result = hinter.Render(rdf)
+    self.assertEqual(expected, result)
+
+  def testRdfFormatterAttributedDict(self):
+    sshd = rdf_config_file.SshdConfig()
+    sshd.config = rdf_protodict.AttributedDict(skynet="operational")
+    template = "{config.skynet}"
+    hinter = hints.Hinter(template=template)
+    expected = "operational"
+    result = hinter.Render(sshd)
     self.assertEqual(expected, result)
 
   def testRdfFormatterFanOut(self):

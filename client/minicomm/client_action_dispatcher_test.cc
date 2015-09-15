@@ -45,7 +45,7 @@ TEST(ClientActionDispatcherTest, SimpleTest) {
   MessageQueue inbox(10, 100000);
   MessageQueue outbox(10, 100000);
 
-  ClientActionDispatcher dispatcher(&inbox, &outbox);
+  ClientActionDispatcher dispatcher(&inbox, &outbox, nullptr);
   dispatcher.AddAction("FastAction", new FastAction());
   dispatcher.AddAction("SlowAction", new SlowAction());
   dispatcher.StartProcessing();

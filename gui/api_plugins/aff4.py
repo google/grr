@@ -13,6 +13,9 @@ from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import api_pb2
 
 
+CATEGORY = "AFF4"
+
+
 class ApiAff4RendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiAff4RendererArgs
 
@@ -25,6 +28,7 @@ class ApiAff4Renderer(api_call_renderer_base.ApiCallRenderer):
   details.
   """
 
+  category = CATEGORY
   args_type = ApiAff4RendererArgs
 
   @classmethod
@@ -52,6 +56,7 @@ class ApiAff4IndexRendererArgs(rdf_structs.RDFProtoStruct):
 class ApiAff4IndexRenderer(api_call_renderer_base.ApiCallRenderer):
   """Returns list of children objects for the object with a given path."""
 
+  category = CATEGORY
   args_type = ApiAff4IndexRendererArgs
 
   def Render(self, args, token=None):

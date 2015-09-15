@@ -20,7 +20,7 @@ class TestCronTabParsing(test_lib.GRRBaseTest):
     client = "C.1000000000000000"
     results = []
 
-    path = os.path.join(self.base_path, "crontab")
+    path = os.path.join(self.base_path, "parser_test", "crontab")
     plist_file = open(path)
     stat = rdf_client.StatEntry(
         aff4path=rdf_client.ClientURN(client).Add("fs/os").Add(path),

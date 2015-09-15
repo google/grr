@@ -4,6 +4,7 @@ goog.provide('grrUi.forms.module');
 
 goog.require('grrUi.core.module');
 goog.require('grrUi.core.semanticRegistry.SemanticRegistryService');
+goog.require('grrUi.forms.aff4AttributeFormDirective.Aff4AttributeFormDirective');
 goog.require('grrUi.forms.datetimeFormDirective.DatetimeFormDirective');
 goog.require('grrUi.forms.dictFormDirective.DictFormDirective');
 goog.require('grrUi.forms.globExpressionFormDirective.GlobExpressionFormDirective');
@@ -33,6 +34,10 @@ grrUi.forms.module.service(
     grrUi.core.semanticRegistry.SemanticRegistryService);
 
 
+grrUi.forms.module.directive(
+    grrUi.forms.aff4AttributeFormDirective.Aff4AttributeFormDirective
+        .directive_name,
+    grrUi.forms.aff4AttributeFormDirective.Aff4AttributeFormDirective);
 grrUi.forms.module.directive(
     grrUi.forms.datetimeFormDirective.DatetimeFormDirective.directive_name,
     grrUi.forms.datetimeFormDirective.DatetimeFormDirective);
@@ -84,6 +89,10 @@ grrUi.forms.module.directive(
 grrUi.forms.module.run(function(grrSemanticFormDirectivesRegistryService) {
   var registry = grrSemanticFormDirectivesRegistryService;
 
+  registry.registerDirective(
+      grrUi.forms.aff4AttributeFormDirective.Aff4AttributeFormDirective
+          .semantic_type,
+      grrUi.forms.aff4AttributeFormDirective.Aff4AttributeFormDirective);
   registry.registerDirective(
       grrUi.forms.datetimeFormDirective.DatetimeFormDirective.semantic_type,
       grrUi.forms.datetimeFormDirective.DatetimeFormDirective);

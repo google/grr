@@ -32,6 +32,9 @@ void ClientTestBase::WriteValidConfigFile(bool include_private_key,
   ClientConfiguration config_proto;
   config_proto.add_control_url("http://localhost:8001/control");
   config_proto.set_ca_cert_pem(kCertPEM);
+
+  config_proto.set_temporary_directory(tmp_dir_);
+
   if (include_private_key) {
     config_proto.set_client_private_key_pem(kPrivateRSAPEM);
   }

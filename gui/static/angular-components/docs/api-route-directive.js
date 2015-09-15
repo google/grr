@@ -113,7 +113,7 @@ grrUi.docs.apiRouteDirective.ApiRouteDirective = function() {
       value: '='
     },
     restrict: 'E',
-    templateUrl: 'static/angular-components/docs/api-route.html',
+    templateUrl: '/static/angular-components/docs/api-route.html',
     controller: ApiRouteController,
     controllerAs: 'controller'
   };

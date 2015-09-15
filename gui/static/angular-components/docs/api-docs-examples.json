@@ -87,6 +87,29 @@
         "urn": "aff4:/foo/bar"
       },
       "test_class": "ApiAff4RendererRegressionTest",
+      "type_stripped_response": {
+        "aff4_class": "AFF4Volume",
+        "age_policy": "NEWEST_TIME",
+        "attributes": {
+          "aff4:labels_list": {
+            "labels": [
+              {
+                "name": "label1",
+                "owner": "test",
+                "timestamp": 42000000
+              },
+              {
+                "name": "label2",
+                "owner": "test",
+                "timestamp": 42000000
+              }
+            ]
+          },
+          "aff4:type": "AFF4Volume",
+          "metadata:last": 42000000
+        },
+        "urn": "aff4:/foo/bar"
+      },
       "url": "/api/aff4/foo/bar"
     }
   ],
@@ -177,6 +200,11 @@
                 "value": "{ \"conditions\": [ \"os_major_version >= 6\" ],\n  \"dependencies\": [],\n  \"doc\": \"Extract the installed drivers on Windows via WMI.\",\n  \"labels\": [ \"Software\" ],\n  \"name\": \"TestDrivers\",\n  \"provides\": [],\n  \"sources\": [\n    { \"attributes\": { \"query\": \"SELECT * from Win32_SystemDriver\"\n      },\n      \"conditions\": [],\n      \"returned_types\": [],\n      \"type\": \"WMI\"\n    }\n  ],\n  \"supported_os\": [ \"Windows\" ],\n  \"urls\": [ \"http://www.example.com\" ]\n}"
               },
               "dependencies": [],
+              "error_message": {
+                "age": 0,
+                "type": "unicode",
+                "value": ""
+              },
               "is_custom": {
                 "age": 0,
                 "type": "RDFBool",
@@ -190,6 +218,47 @@
         "total_count": 1
       },
       "test_class": "ArtifactRendererRegressionTest",
+      "type_stripped_response": {
+        "count": 1,
+        "items": [
+          {
+            "artifact": {
+              "conditions": [
+                "os_major_version >= 6"
+              ],
+              "doc": "Extract the installed drivers on Windows via WMI.",
+              "labels": [
+                "Software"
+              ],
+              "name": "TestDrivers",
+              "provides": [],
+              "sources": [
+                {
+                  "attributes": {
+                    "query": "SELECT * from Win32_SystemDriver"
+                  },
+                  "conditions": [],
+                  "returned_types": [],
+                  "type": "WMI"
+                }
+              ],
+              "supported_os": [
+                "Windows"
+              ],
+              "urls": [
+                "http://www.example.com"
+              ]
+            },
+            "artifact_source": "{ \"conditions\": [ \"os_major_version >= 6\" ],\n  \"dependencies\": [],\n  \"doc\": \"Extract the installed drivers on Windows via WMI.\",\n  \"labels\": [ \"Software\" ],\n  \"name\": \"TestDrivers\",\n  \"provides\": [],\n  \"sources\": [\n    { \"attributes\": { \"query\": \"SELECT * from Win32_SystemDriver\"\n      },\n      \"conditions\": [],\n      \"returned_types\": [],\n      \"type\": \"WMI\"\n    }\n  ],\n  \"supported_os\": [ \"Windows\" ],\n  \"urls\": [ \"http://www.example.com\" ]\n}",
+            "dependencies": [],
+            "error_message": "",
+            "is_custom": false,
+            "path_dependencies": []
+          }
+        ],
+        "offset": 0,
+        "total_count": 1
+      },
       "url": "/api/artifacts"
     }
   ],
@@ -316,6 +385,45 @@
         "query": "C.1000000000000000"
       },
       "test_class": "ApiClientSearchRendererRegressionTest",
+      "type_stripped_response": {
+        "count": 1,
+        "items": [
+          {
+            "aff4_class": "VFSGRRClient",
+            "age_policy": "NEWEST_TIME",
+            "attributes": {
+              "aff4:host_ips": "192.168.0.0\n2001:abcd::0",
+              "aff4:mac_addresses": "aabbccddee00\nbbccddeeff00",
+              "aff4:type": "VFSGRRClient",
+              "metadata:ClientInfo": {
+                "client_name": "GRR Monitor"
+              },
+              "metadata:fqdn": "Host-0.example.com",
+              "metadata:hostname": "Host-0",
+              "metadata:last": 42000000,
+              "metadata:ping": 42000000
+            },
+            "disk_warnings": [],
+            "summary": {
+              "client_id": "aff4:/C.1000000000000000",
+              "client_info": {
+                "client_name": "GRR Monitor"
+              },
+              "serial_number": "",
+              "system_info": {
+                "fqdn": "Host-0.example.com",
+                "node": "Host-0",
+                "version": ""
+              },
+              "system_manufacturer": "",
+              "timestamp": 42000000
+            },
+            "urn": "aff4:/C.1000000000000000"
+          }
+        ],
+        "offset": 0,
+        "query": "C.1000000000000000"
+      },
       "url": "/api/clients?query=C.1000000000000000"
     }
   ],
@@ -435,6 +543,38 @@
         "urn": "aff4:/C.1000000000000000"
       },
       "test_class": "ApiClientSummaryRendererRegressionTest",
+      "type_stripped_response": {
+        "aff4_class": "VFSGRRClient",
+        "age_policy": "NEWEST_TIME",
+        "attributes": {
+          "aff4:host_ips": "192.168.0.0\n2001:abcd::0",
+          "aff4:mac_addresses": "aabbccddee00\nbbccddeeff00",
+          "aff4:type": "VFSGRRClient",
+          "metadata:ClientInfo": {
+            "client_name": "GRR Monitor"
+          },
+          "metadata:fqdn": "Host-0.example.com",
+          "metadata:hostname": "Host-0",
+          "metadata:last": 42000000,
+          "metadata:ping": 42000000
+        },
+        "disk_warnings": [],
+        "summary": {
+          "client_id": "aff4:/C.1000000000000000",
+          "client_info": {
+            "client_name": "GRR Monitor"
+          },
+          "serial_number": "",
+          "system_info": {
+            "fqdn": "Host-0.example.com",
+            "node": "Host-0",
+            "version": ""
+          },
+          "system_manufacturer": "",
+          "timestamp": 42000000
+        },
+        "urn": "aff4:/C.1000000000000000"
+      },
       "url": "/api/clients/C.1000000000000000"
     }
   ],
@@ -478,7 +618,56 @@
         ]
       },
       "test_class": "ApiClientsLabelsListRendererRegressionTest",
+      "type_stripped_response": {
+        "labels": [
+          {
+            "name": "bar",
+            "owner": "test"
+          },
+          {
+            "name": "foo",
+            "owner": "test"
+          }
+        ]
+      },
       "url": "/api/clients/labels"
+    }
+  ],
+  "ApiConfigOptionRenderer": [
+    {
+      "method": "GET",
+      "response": {
+        "is_default": false,
+        "is_expanded": false,
+        "raw_value": "",
+        "status": "OK",
+        "type": "plain",
+        "value": {
+          "age": 0,
+          "type": "unicode",
+          "value": ""
+        }
+      },
+      "test_class": "ApiConfigOptionRendererRegressionTest",
+      "type_stripped_response": "",
+      "url": "/api/config/SectionFoo.sample_string_option"
+    },
+    {
+      "method": "GET",
+      "response": {
+        "status": "OK",
+        "type": "redacted"
+      },
+      "test_class": "ApiConfigOptionRendererRegressionTest",
+      "url": "/api/config/Mysql.database_password"
+    },
+    {
+      "method": "GET",
+      "response": {
+        "message": "u'Option NonExistingOption not defined.'"
+      },
+      "test_class": "ApiConfigOptionRendererRegressionTest",
+      "url": "/api/config/NonExistingOption"
     }
   ],
   "ApiConfigRenderer": [
@@ -487,38 +676,60 @@
       "response": {
         "SectionBar": {
           "SectionBar.sample_list_option": {
-            "is_default": true,
-            "is_expanded": true,
-            "option_value": "[]",
+            "is_default": false,
+            "is_expanded": false,
             "raw_value": [],
-            "type": "plain"
+            "type": "plain",
+            "value": []
           },
           "SectionBar.sample_string_option": {
             "is_default": false,
             "is_expanded": false,
-            "option_value": "sample",
             "raw_value": "%(sAmPlE|lower)",
-            "type": "plain"
+            "type": "plain",
+            "value": {
+              "age": 0,
+              "type": "unicode",
+              "value": "sample"
+            }
           }
         },
         "SectionFoo": {
           "SectionFoo.sample_boolean_option": {
             "is_default": false,
-            "is_expanded": true,
-            "option_value": "True",
+            "is_expanded": false,
             "raw_value": true,
-            "type": "plain"
+            "type": "plain",
+            "value": {
+              "age": 0,
+              "type": "long",
+              "value": 1
+            }
           },
           "SectionFoo.sample_integer_option": {
-            "is_default": true,
-            "is_expanded": true,
-            "option_value": "42",
+            "is_default": false,
+            "is_expanded": false,
             "raw_value": 42,
-            "type": "plain"
+            "type": "plain",
+            "value": {
+              "age": 0,
+              "type": "long",
+              "value": 42
+            }
           }
         }
       },
       "test_class": "ApiConfigRendererRegressionTest",
+      "type_stripped_response": {
+        "SectionBar": {
+          "SectionBar.sample_list_option": [],
+          "SectionBar.sample_string_option": "sample"
+        },
+        "SectionFoo": {
+          "SectionFoo.sample_boolean_option": 1,
+          "SectionFoo.sample_integer_option": 42
+        }
+      },
       "url": "/api/config"
     }
   ],
@@ -613,6 +824,81 @@
         ]
       },
       "test_class": "ApiFlowDescriptorsListRendererRegressionTest",
+      "type_stripped_response": {
+        "Filesystem": [
+          {
+            "args_type": "FileFinderArgs",
+            "behaviours": [
+              "ADVANCED",
+              "BASIC",
+              "Client Flow"
+            ],
+            "default_args": {
+              "paths": [
+                "c:\\windows\\system32\\notepad.*"
+              ]
+            },
+            "doc": "This flow looks for files matching given criteria and acts on them.\n\n  FileFinder searches for files that match glob expressions.  The \"action\"\n  (e.g. Download) is applied to files that match all given \"conditions\".\n  Matches are then written to the results collection. If there are no\n  \"conditions\" specified, \"action\" is just applied to all found files.\n\n  FileFinder replaces these deprecated flows: FetchFiles, FingerprintFile\n  and SearchFileContent.\n  \n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"FileFinder\", paths=paths, pathtype=pathtype, file_size=file_size, conditions=conditions, action=action, no_file_type_check=no_file_type_check)\n\n  Args:\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    file_size\n      description: Maximum number of bytes to download in each file.\n      type: ByteSize\n      default: 1000000000\n\n    no_file_type_check\n      description: Work with all kinds of files - not only with regular ones.NOTE: This is very dangerous and should be used with care, see MemoryCollector as an example.\n      type: RDFBool\n      default: 0\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n",
+            "friendly_name": "File Finder",
+            "name": "FileFinder",
+            "prototype": "FileFinder(paths, pathtype, file_size, conditions, action, no_file_type_check)",
+            "states": [
+              [
+                "End",
+                "",
+                "End"
+              ],
+              [
+                "ProcessGrep",
+                "",
+                "End"
+              ],
+              [
+                "Start",
+                "Issue the find request.",
+                "End"
+              ]
+            ]
+          }
+        ],
+        "Processes": [
+          {
+            "args_type": "ListProcessesArgs",
+            "behaviours": [
+              "ADVANCED",
+              "BASIC",
+              "Client Flow"
+            ],
+            "default_args": {},
+            "doc": "List running processes on a system.\n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"ListProcesses\", filename_regex=filename_regex, fetch_binaries=fetch_binaries)\n\n  Args:\n    fetch_binaries\n      description: \n      type: RDFBool\n      default: 0\n\n    filename_regex\n      description: Regex used to filter the list of processes.\n      type: RegularExpression\n      default: .\n",
+            "friendly_name": null,
+            "name": "ListProcesses",
+            "prototype": "ListProcesses(filename_regex, fetch_binaries)",
+            "states": [
+              [
+                "End",
+                "Save the results collection and update the notification line.",
+                "End"
+              ],
+              [
+                "HandleDownloadedFiles",
+                "Handle success/failure of the FileFinder flow.",
+                "End"
+              ],
+              [
+                "IterateProcesses",
+                "This stores the processes.",
+                "HandleDownloadedFiles"
+              ],
+              [
+                "Start",
+                "Start processing.",
+                "IterateProcesses"
+              ]
+            ]
+          }
+        ]
+      },
       "url": "/api/flows/descriptors"
     }
   ],
@@ -709,6 +995,31 @@
         ]
       },
       "test_class": "ApiFlowOutputPluginsRendererRegressionTest",
+      "type_stripped_response": {
+        "EmailOutputPlugin": [
+          {
+            "plugin_args": {
+              "email_address": "test@localhost",
+              "emails_limit": 42
+            },
+            "plugin_name": "EmailOutputPlugin"
+          },
+          {
+            "args": {
+              "email_address": "test@localhost",
+              "emails_limit": 42
+            },
+            "emails_sent": 0,
+            "output_base_urn": "aff4:/C.1000000000000000/analysis/ListProcesses-EmailOutputPlugin/test-42",
+            "source_urn": "aff4:/C.1000000000000000/analysis/ListProcesses/test-42",
+            "token": {
+              "expiry": 32427003069000000,
+              "reason": "Running tests",
+              "username": "test"
+            }
+          }
+        ]
+      },
       "url": "/api/clients/C.1000000000000000/flows/W:ABCDEF/output-plugins"
     }
   ],
@@ -820,6 +1131,38 @@
         "urn": "aff4:/C.1000000000000000/analysis/GetFile/test-42"
       },
       "test_class": "ApiFlowResultsRendererRegressionTest",
+      "type_stripped_response": {
+        "aff4_class": "RDFValueCollection",
+        "age_policy": "NEWEST_TIME",
+        "attributes": {
+          "aff4:size": 1,
+          "aff4:type": "RDFValueCollection",
+          "metadata:last": 42000000
+        },
+        "count": 1,
+        "items": [
+          {
+            "aff4path": "aff4:/C.1000000000000000/fs/os/tmp/evil.txt",
+            "pathspec": {
+              "path": "/tmp/evil.txt",
+              "pathtype": "OS"
+            },
+            "st_atime": 1336469177,
+            "st_ctime": 1336129892,
+            "st_dev": 64512,
+            "st_gid": 5000,
+            "st_ino": 1063090,
+            "st_mode": 33184,
+            "st_mtime": 1336129892,
+            "st_nlink": 1,
+            "st_size": 12,
+            "st_uid": 139592
+          }
+        ],
+        "offset": 0,
+        "total_count": 1,
+        "urn": "aff4:/C.1000000000000000/analysis/GetFile/test-42"
+      },
       "url": "/api/clients/C.1000000000000000/flows/W:ABCDEF/results"
     }
   ],
@@ -910,6 +1253,29 @@
         }
       },
       "test_class": "ApiFlowStatusRendererRegressionTest",
+      "type_stripped_response": {
+        "backtrace": null,
+        "client_resources": {
+          "cpu_usage": {}
+        },
+        "create_time": 42000000,
+        "creator": "test",
+        "current_state": "Start",
+        "flow_runner_args": {
+          "client_id": "aff4:/C.1000000000000000",
+          "flow_name": "Interrogate",
+          "token": {
+            "reason": "Running tests",
+            "username": "test"
+          }
+        },
+        "last_update_time": 42000000,
+        "network_bytes_sent": 0,
+        "output_urn": "aff4:/C.1000000000000000/analysis/Interrogate/test-42",
+        "result_count": 1,
+        "session_id": "aff4:/C.1000000000000000/flows/F:ABCDEF12",
+        "state": "RUNNING"
+      },
       "url": "/api/flows/C.1000000000000000/F:ABCDEF12/status"
     }
   ],
@@ -997,6 +1363,34 @@
         "urn": "aff4:/hunts/H:123456/ErrorClients"
       },
       "test_class": "ApiHuntErrorsRendererRegressionTest",
+      "type_stripped_response": {
+        "aff4_class": "PackedVersionedCollection",
+        "age_policy": "NEWEST_TIME",
+        "attributes": {
+          "aff4:data": {
+            "backtrace": "<some backtrace>",
+            "client_id": "aff4:/C.1111222233334444",
+            "log_message": "Error bar."
+          },
+          "aff4:type": "PackedVersionedCollection",
+          "metadata:last": 55000000
+        },
+        "count": 2,
+        "items": [
+          {
+            "client_id": "aff4:/C.0000111122223333",
+            "log_message": "Error foo."
+          },
+          {
+            "backtrace": "<some backtrace>",
+            "client_id": "aff4:/C.1111222233334444",
+            "log_message": "Error bar."
+          }
+        ],
+        "offset": 0,
+        "total_count": 2,
+        "urn": "aff4:/hunts/H:123456/ErrorClients"
+      },
       "url": "/api/hunts/H:123456/errors"
     },
     {
@@ -1061,6 +1455,29 @@
         "urn": "aff4:/hunts/H:123456/ErrorClients"
       },
       "test_class": "ApiHuntErrorsRendererRegressionTest",
+      "type_stripped_response": {
+        "aff4_class": "PackedVersionedCollection",
+        "age_policy": "NEWEST_TIME",
+        "attributes": {
+          "aff4:data": {
+            "backtrace": "<some backtrace>",
+            "client_id": "aff4:/C.1111222233334444",
+            "log_message": "Error bar."
+          },
+          "aff4:type": "PackedVersionedCollection",
+          "metadata:last": 55000000
+        },
+        "count": 1,
+        "items": [
+          {
+            "client_id": "aff4:/C.0000111122223333",
+            "log_message": "Error foo."
+          }
+        ],
+        "offset": 0,
+        "total_count": 2,
+        "urn": "aff4:/hunts/H:123456/ErrorClients"
+      },
       "url": "/api/hunts/H:123456/errors?count=1"
     },
     {
@@ -1130,6 +1547,30 @@
         "urn": "aff4:/hunts/H:123456/ErrorClients"
       },
       "test_class": "ApiHuntErrorsRendererRegressionTest",
+      "type_stripped_response": {
+        "aff4_class": "PackedVersionedCollection",
+        "age_policy": "NEWEST_TIME",
+        "attributes": {
+          "aff4:data": {
+            "backtrace": "<some backtrace>",
+            "client_id": "aff4:/C.1111222233334444",
+            "log_message": "Error bar."
+          },
+          "aff4:type": "PackedVersionedCollection",
+          "metadata:last": 55000000
+        },
+        "count": 1,
+        "items": [
+          {
+            "backtrace": "<some backtrace>",
+            "client_id": "aff4:/C.1111222233334444",
+            "log_message": "Error bar."
+          }
+        ],
+        "offset": 1,
+        "total_count": 2,
+        "urn": "aff4:/hunts/H:123456/ErrorClients"
+      },
       "url": "/api/hunts/H:123456/errors?offset=1&count=1"
     }
   ],
@@ -1222,6 +1663,35 @@
         "urn": "aff4:/hunts/H:123456/Logs"
       },
       "test_class": "ApiHuntLogRendererRegressionTest",
+      "type_stripped_response": {
+        "aff4_class": "PackedVersionedCollection",
+        "age_policy": "NEWEST_TIME",
+        "attributes": {
+          "aff4:data": {
+            "flow_name": "GenericHunt",
+            "log_message": "Sample message: bar.",
+            "urn": "aff4:/hunts/H:123456"
+          },
+          "aff4:type": "PackedVersionedCollection",
+          "metadata:last": 55000000
+        },
+        "count": 2,
+        "items": [
+          {
+            "flow_name": "GenericHunt",
+            "log_message": "Sample message: foo.",
+            "urn": "aff4:/hunts/H:123456"
+          },
+          {
+            "flow_name": "GenericHunt",
+            "log_message": "Sample message: bar.",
+            "urn": "aff4:/hunts/H:123456"
+          }
+        ],
+        "offset": 0,
+        "total_count": 2,
+        "urn": "aff4:/hunts/H:123456/Logs"
+      },
       "url": "/api/hunts/H:123456/log"
     },
     {
@@ -1291,6 +1761,30 @@
         "urn": "aff4:/hunts/H:123456/Logs"
       },
       "test_class": "ApiHuntLogRendererRegressionTest",
+      "type_stripped_response": {
+        "aff4_class": "PackedVersionedCollection",
+        "age_policy": "NEWEST_TIME",
+        "attributes": {
+          "aff4:data": {
+            "flow_name": "GenericHunt",
+            "log_message": "Sample message: bar.",
+            "urn": "aff4:/hunts/H:123456"
+          },
+          "aff4:type": "PackedVersionedCollection",
+          "metadata:last": 55000000
+        },
+        "count": 1,
+        "items": [
+          {
+            "flow_name": "GenericHunt",
+            "log_message": "Sample message: foo.",
+            "urn": "aff4:/hunts/H:123456"
+          }
+        ],
+        "offset": 0,
+        "total_count": 2,
+        "urn": "aff4:/hunts/H:123456/Logs"
+      },
       "url": "/api/hunts/H:123456/log?count=1"
     },
     {
@@ -1360,6 +1854,30 @@
         "urn": "aff4:/hunts/H:123456/Logs"
       },
       "test_class": "ApiHuntLogRendererRegressionTest",
+      "type_stripped_response": {
+        "aff4_class": "PackedVersionedCollection",
+        "age_policy": "NEWEST_TIME",
+        "attributes": {
+          "aff4:data": {
+            "flow_name": "GenericHunt",
+            "log_message": "Sample message: bar.",
+            "urn": "aff4:/hunts/H:123456"
+          },
+          "aff4:type": "PackedVersionedCollection",
+          "metadata:last": 55000000
+        },
+        "count": 1,
+        "items": [
+          {
+            "flow_name": "GenericHunt",
+            "log_message": "Sample message: bar.",
+            "urn": "aff4:/hunts/H:123456"
+          }
+        ],
+        "offset": 1,
+        "total_count": 2,
+        "urn": "aff4:/hunts/H:123456/Logs"
+      },
       "url": "/api/hunts/H:123456/log?offset=1&count=1"
     }
   ],
@@ -1492,7 +2010,7 @@
                   "expires": {
                     "age": 0,
                     "type": "RDFDatetime",
-                    "value": 42000000
+                    "value": 2678442000000
                   },
                   "kill_timestamp": {
                     "age": 0,
@@ -2334,7 +2852,7 @@
           "expires": {
             "age": 0,
             "type": "RDFDatetime",
-            "value": 42000000
+            "value": 2678442000000
           },
           "hunt_name": {
             "age": 0,
@@ -3043,6 +3561,474 @@
         "urn": "aff4:/hunts/H:123456"
       },
       "test_class": "ApiHuntSummaryRendererRegressionTest",
+      "type_stripped_response": {
+        "aff4_class": "GenericHunt",
+        "age_policy": "NEWEST_TIME",
+        "attributes": {
+          "aff4:hunt_state": "PAUSED",
+          "aff4:type": "GenericHunt",
+          "aff4:flow_state": {
+            "args": {
+              "flow_args": {
+                "pathspec": {
+                  "path": "/tmp/evil.txt",
+                  "pathtype": "OS"
+                }
+              },
+              "flow_runner_args": {
+                "flow_name": "GetFile"
+              }
+            },
+            "context": {
+              "args": {
+                "client_rate": 0.0,
+                "description": "the hunt",
+                "hunt_name": "GenericHunt",
+                "token": {
+                  "reason": "Running tests",
+                  "username": "test"
+                }
+              },
+              "backtrace": "None",
+              "client_resources": {},
+              "create_time": 42000000,
+              "creator": "test",
+              "current_state": "Start",
+              "expires": 2678442000000,
+              "kill_timestamp": "None",
+              "network_bytes_sent": 0,
+              "next_client_due": 0,
+              "next_outbound_id": 1,
+              "next_processed_request": 1,
+              "next_states": [],
+              "output_plugins_base_urn": "aff4:/hunts/H:123456/Results",
+              "outstanding_requests": 0,
+              "remaining_cpu_quota": 0,
+              "results_collection_urn": "aff4:/hunts/H:123456/Results",
+              "results_metadata_urn": "aff4:/hunts/H:123456/ResultsMetadata",
+              "session_id": "aff4:/hunts/H:123456",
+              "start_time": 42000000,
+              "state": "RUNNING",
+              "usage_stats": {
+                "network_bytes_sent_stats": {
+                  "histogram": {
+                    "bins": [
+                      {
+                        "range_max_value": 16.0
+                      },
+                      {
+                        "range_max_value": 32.0
+                      },
+                      {
+                        "range_max_value": 64.0
+                      },
+                      {
+                        "range_max_value": 128.0
+                      },
+                      {
+                        "range_max_value": 256.0
+                      },
+                      {
+                        "range_max_value": 512.0
+                      },
+                      {
+                        "range_max_value": 1024.0
+                      },
+                      {
+                        "range_max_value": 2048.0
+                      },
+                      {
+                        "range_max_value": 4096.0
+                      },
+                      {
+                        "range_max_value": 8192.0
+                      },
+                      {
+                        "range_max_value": 16384.0
+                      },
+                      {
+                        "range_max_value": 32768.0
+                      },
+                      {
+                        "range_max_value": 65536.0
+                      },
+                      {
+                        "range_max_value": 131072.0
+                      },
+                      {
+                        "range_max_value": 262144.0
+                      },
+                      {
+                        "range_max_value": 524288.0
+                      },
+                      {
+                        "range_max_value": 1048576.0
+                      },
+                      {
+                        "range_max_value": 2097152.0
+                      }
+                    ]
+                  }
+                },
+                "system_cpu_stats": {
+                  "histogram": {
+                    "bins": [
+                      {
+                        "range_max_value": 0.10000000149011612
+                      },
+                      {
+                        "range_max_value": 0.20000000298023224
+                      },
+                      {
+                        "range_max_value": 0.30000001192092896
+                      },
+                      {
+                        "range_max_value": 0.4000000059604645
+                      },
+                      {
+                        "range_max_value": 0.5
+                      },
+                      {
+                        "range_max_value": 0.75
+                      },
+                      {
+                        "range_max_value": 1.0
+                      },
+                      {
+                        "range_max_value": 1.5
+                      },
+                      {
+                        "range_max_value": 2.0
+                      },
+                      {
+                        "range_max_value": 2.5
+                      },
+                      {
+                        "range_max_value": 3.0
+                      },
+                      {
+                        "range_max_value": 4.0
+                      },
+                      {
+                        "range_max_value": 5.0
+                      },
+                      {
+                        "range_max_value": 6.0
+                      },
+                      {
+                        "range_max_value": 7.0
+                      },
+                      {
+                        "range_max_value": 8.0
+                      },
+                      {
+                        "range_max_value": 9.0
+                      },
+                      {
+                        "range_max_value": 10.0
+                      },
+                      {
+                        "range_max_value": 15.0
+                      },
+                      {
+                        "range_max_value": 20.0
+                      }
+                    ]
+                  }
+                },
+                "user_cpu_stats": {
+                  "histogram": {
+                    "bins": [
+                      {
+                        "range_max_value": 0.10000000149011612
+                      },
+                      {
+                        "range_max_value": 0.20000000298023224
+                      },
+                      {
+                        "range_max_value": 0.30000001192092896
+                      },
+                      {
+                        "range_max_value": 0.4000000059604645
+                      },
+                      {
+                        "range_max_value": 0.5
+                      },
+                      {
+                        "range_max_value": 0.75
+                      },
+                      {
+                        "range_max_value": 1.0
+                      },
+                      {
+                        "range_max_value": 1.5
+                      },
+                      {
+                        "range_max_value": 2.0
+                      },
+                      {
+                        "range_max_value": 2.5
+                      },
+                      {
+                        "range_max_value": 3.0
+                      },
+                      {
+                        "range_max_value": 4.0
+                      },
+                      {
+                        "range_max_value": 5.0
+                      },
+                      {
+                        "range_max_value": 6.0
+                      },
+                      {
+                        "range_max_value": 7.0
+                      },
+                      {
+                        "range_max_value": 8.0
+                      },
+                      {
+                        "range_max_value": 9.0
+                      },
+                      {
+                        "range_max_value": 10.0
+                      },
+                      {
+                        "range_max_value": 15.0
+                      },
+                      {
+                        "range_max_value": 20.0
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "metadata:last": 42000000
+        },
+        "summary": {
+          "all_clients_count": 0,
+          "args": {
+            "flow_args": {
+              "pathspec": {
+                "path": "/tmp/evil.txt",
+                "pathtype": "OS"
+              }
+            },
+            "flow_runner_args": {
+              "flow_name": "GetFile"
+            }
+          },
+          "client_limit": 0,
+          "client_rate": 0.0,
+          "completed_clients_count": 0,
+          "create_time": 42000000,
+          "creator": "test",
+          "description": "the hunt",
+          "expires": 2678442000000,
+          "hunt_name": "GenericHunt",
+          "integer_rules": [],
+          "outstanding_clients_count": 0,
+          "regex_rules": [],
+          "state": "PAUSED",
+          "stats": {
+            "network_bytes_sent_stats": {
+              "histogram": {
+                "bins": [
+                  {
+                    "range_max_value": 16.0
+                  },
+                  {
+                    "range_max_value": 32.0
+                  },
+                  {
+                    "range_max_value": 64.0
+                  },
+                  {
+                    "range_max_value": 128.0
+                  },
+                  {
+                    "range_max_value": 256.0
+                  },
+                  {
+                    "range_max_value": 512.0
+                  },
+                  {
+                    "range_max_value": 1024.0
+                  },
+                  {
+                    "range_max_value": 2048.0
+                  },
+                  {
+                    "range_max_value": 4096.0
+                  },
+                  {
+                    "range_max_value": 8192.0
+                  },
+                  {
+                    "range_max_value": 16384.0
+                  },
+                  {
+                    "range_max_value": 32768.0
+                  },
+                  {
+                    "range_max_value": 65536.0
+                  },
+                  {
+                    "range_max_value": 131072.0
+                  },
+                  {
+                    "range_max_value": 262144.0
+                  },
+                  {
+                    "range_max_value": 524288.0
+                  },
+                  {
+                    "range_max_value": 1048576.0
+                  },
+                  {
+                    "range_max_value": 2097152.0
+                  }
+                ]
+              }
+            },
+            "system_cpu_stats": {
+              "histogram": {
+                "bins": [
+                  {
+                    "range_max_value": 0.10000000149011612
+                  },
+                  {
+                    "range_max_value": 0.20000000298023224
+                  },
+                  {
+                    "range_max_value": 0.30000001192092896
+                  },
+                  {
+                    "range_max_value": 0.4000000059604645
+                  },
+                  {
+                    "range_max_value": 0.5
+                  },
+                  {
+                    "range_max_value": 0.75
+                  },
+                  {
+                    "range_max_value": 1.0
+                  },
+                  {
+                    "range_max_value": 1.5
+                  },
+                  {
+                    "range_max_value": 2.0
+                  },
+                  {
+                    "range_max_value": 2.5
+                  },
+                  {
+                    "range_max_value": 3.0
+                  },
+                  {
+                    "range_max_value": 4.0
+                  },
+                  {
+                    "range_max_value": 5.0
+                  },
+                  {
+                    "range_max_value": 6.0
+                  },
+                  {
+                    "range_max_value": 7.0
+                  },
+                  {
+                    "range_max_value": 8.0
+                  },
+                  {
+                    "range_max_value": 9.0
+                  },
+                  {
+                    "range_max_value": 10.0
+                  },
+                  {
+                    "range_max_value": 15.0
+                  },
+                  {
+                    "range_max_value": 20.0
+                  }
+                ]
+              }
+            },
+            "user_cpu_stats": {
+              "histogram": {
+                "bins": [
+                  {
+                    "range_max_value": 0.10000000149011612
+                  },
+                  {
+                    "range_max_value": 0.20000000298023224
+                  },
+                  {
+                    "range_max_value": 0.30000001192092896
+                  },
+                  {
+                    "range_max_value": 0.4000000059604645
+                  },
+                  {
+                    "range_max_value": 0.5
+                  },
+                  {
+                    "range_max_value": 0.75
+                  },
+                  {
+                    "range_max_value": 1.0
+                  },
+                  {
+                    "range_max_value": 1.5
+                  },
+                  {
+                    "range_max_value": 2.0
+                  },
+                  {
+                    "range_max_value": 2.5
+                  },
+                  {
+                    "range_max_value": 3.0
+                  },
+                  {
+                    "range_max_value": 4.0
+                  },
+                  {
+                    "range_max_value": 5.0
+                  },
+                  {
+                    "range_max_value": 6.0
+                  },
+                  {
+                    "range_max_value": 7.0
+                  },
+                  {
+                    "range_max_value": 8.0
+                  },
+                  {
+                    "range_max_value": 9.0
+                  },
+                  {
+                    "range_max_value": 10.0
+                  },
+                  {
+                    "range_max_value": 15.0
+                  },
+                  {
+                    "range_max_value": 20.0
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "urn": "aff4:/hunts/H:123456"
+      },
       "url": "/api/hunts/H:123456"
     }
   ],
@@ -3178,7 +4164,7 @@
                       "expires": {
                         "age": 0,
                         "type": "RDFDatetime",
-                        "value": 2000000000
+                        "value": 2680400000000
                       },
                       "kill_timestamp": {
                         "age": 0,
@@ -3335,7 +4321,7 @@
               "expires": {
                 "age": 0,
                 "type": "RDFDatetime",
-                "value": 2000000000
+                "value": 2680400000000
               },
               "hunt_name": {
                 "age": 0,
@@ -3476,7 +4462,7 @@
                       "expires": {
                         "age": 0,
                         "type": "RDFDatetime",
-                        "value": 1000000000
+                        "value": 2679400000000
                       },
                       "kill_timestamp": {
                         "age": 0,
@@ -3628,7 +4614,7 @@
               "expires": {
                 "age": 0,
                 "type": "RDFDatetime",
-                "value": 1000000000
+                "value": 2679400000000
               },
               "hunt_name": {
                 "age": 0,
@@ -3648,6 +4634,176 @@
         "total_count": 2
       },
       "test_class": "ApiHuntsListRendererRegressionTest",
+      "type_stripped_response": {
+        "count": 2,
+        "items": [
+          {
+            "aff4_class": "GenericHunt",
+            "age_policy": "NEWEST_TIME",
+            "attributes": {
+              "aff4:hunt_state": "STOPPED",
+              "aff4:type": "GenericHunt",
+              "aff4:flow_state": {
+                "args": {
+                  "flow_args": {
+                    "pathspec": {
+                      "path": "/tmp/evil.txt",
+                      "pathtype": "OS"
+                    }
+                  },
+                  "flow_runner_args": {
+                    "flow_name": "GetFile"
+                  }
+                },
+                "context": {
+                  "args": {
+                    "client_rate": 0.0,
+                    "description": "hunt_1",
+                    "hunt_name": "GenericHunt",
+                    "token": {
+                      "reason": "Running tests",
+                      "username": "test"
+                    }
+                  },
+                  "backtrace": "None",
+                  "client_resources": {},
+                  "create_time": 2000000000,
+                  "creator": "test",
+                  "current_state": "Start",
+                  "expires": 2680400000000,
+                  "kill_timestamp": "None",
+                  "network_bytes_sent": 0,
+                  "next_client_due": 0,
+                  "next_outbound_id": 1,
+                  "next_processed_request": 1,
+                  "next_states": "<lists are omitted>",
+                  "output_plugins_base_urn": "aff4:/hunts/H:000001/Results",
+                  "outstanding_requests": 0,
+                  "remaining_cpu_quota": 0,
+                  "results_collection_urn": "aff4:/hunts/H:000001/Results",
+                  "results_metadata_urn": "aff4:/hunts/H:000001/ResultsMetadata",
+                  "session_id": "aff4:/hunts/H:000001",
+                  "start_time": 2000000000,
+                  "state": "RUNNING",
+                  "status": "0 flows terminated.",
+                  "usage_stats": {
+                    "network_bytes_sent_stats": {
+                      "histogram": {
+                        "bins": "<lists are omitted>"
+                      }
+                    },
+                    "system_cpu_stats": {
+                      "histogram": {
+                        "bins": "<lists are omitted>"
+                      }
+                    },
+                    "user_cpu_stats": {
+                      "histogram": {
+                        "bins": "<lists are omitted>"
+                      }
+                    }
+                  }
+                }
+              },
+              "metadata:last": 2000000000
+            },
+            "summary": {
+              "client_limit": 0,
+              "client_rate": 0.0,
+              "create_time": 2000000000,
+              "creator": "test",
+              "description": "hunt_1",
+              "expires": 2680400000000,
+              "hunt_name": "GenericHunt",
+              "state": "STOPPED"
+            },
+            "urn": "aff4:/hunts/H:000001"
+          },
+          {
+            "aff4_class": "GenericHunt",
+            "age_policy": "NEWEST_TIME",
+            "attributes": {
+              "aff4:hunt_state": "PAUSED",
+              "aff4:type": "GenericHunt",
+              "aff4:flow_state": {
+                "args": {
+                  "flow_args": {
+                    "pathspec": {
+                      "path": "/tmp/evil.txt",
+                      "pathtype": "OS"
+                    }
+                  },
+                  "flow_runner_args": {
+                    "flow_name": "GetFile"
+                  }
+                },
+                "context": {
+                  "args": {
+                    "client_rate": 0.0,
+                    "description": "hunt_0",
+                    "hunt_name": "GenericHunt",
+                    "token": {
+                      "reason": "Running tests",
+                      "username": "test"
+                    }
+                  },
+                  "backtrace": "None",
+                  "client_resources": {},
+                  "create_time": 1000000000,
+                  "creator": "test",
+                  "current_state": "Start",
+                  "expires": 2679400000000,
+                  "kill_timestamp": "None",
+                  "network_bytes_sent": 0,
+                  "next_client_due": 0,
+                  "next_outbound_id": 1,
+                  "next_processed_request": 1,
+                  "next_states": "<lists are omitted>",
+                  "output_plugins_base_urn": "aff4:/hunts/H:000000/Results",
+                  "outstanding_requests": 0,
+                  "remaining_cpu_quota": 0,
+                  "results_collection_urn": "aff4:/hunts/H:000000/Results",
+                  "results_metadata_urn": "aff4:/hunts/H:000000/ResultsMetadata",
+                  "session_id": "aff4:/hunts/H:000000",
+                  "start_time": 1000000000,
+                  "state": "RUNNING",
+                  "usage_stats": {
+                    "network_bytes_sent_stats": {
+                      "histogram": {
+                        "bins": "<lists are omitted>"
+                      }
+                    },
+                    "system_cpu_stats": {
+                      "histogram": {
+                        "bins": "<lists are omitted>"
+                      }
+                    },
+                    "user_cpu_stats": {
+                      "histogram": {
+                        "bins": "<lists are omitted>"
+                      }
+                    }
+                  }
+                }
+              },
+              "metadata:last": 1000000000
+            },
+            "summary": {
+              "client_limit": 0,
+              "client_rate": 0.0,
+              "create_time": 1000000000,
+              "creator": "test",
+              "description": "hunt_0",
+              "expires": 2679400000000,
+              "hunt_name": "GenericHunt",
+              "state": "PAUSED"
+            },
+            "urn": "aff4:/hunts/H:000000"
+          }
+        ],
+        "offset": 0,
+        "total_count": 2
+      },
       "url": "/api/hunts"
     },
     {
@@ -3781,7 +4937,7 @@
                       "expires": {
                         "age": 0,
                         "type": "RDFDatetime",
-                        "value": 2000000000
+                        "value": 2680400000000
                       },
                       "kill_timestamp": {
                         "age": 0,
@@ -3938,7 +5094,7 @@
               "expires": {
                 "age": 0,
                 "type": "RDFDatetime",
-                "value": 2000000000
+                "value": 2680400000000
               },
               "hunt_name": {
                 "age": 0,
@@ -3958,6 +5114,95 @@
         "total_count": 2
       },
       "test_class": "ApiHuntsListRendererRegressionTest",
+      "type_stripped_response": {
+        "count": 1,
+        "items": [
+          {
+            "aff4_class": "GenericHunt",
+            "age_policy": "NEWEST_TIME",
+            "attributes": {
+              "aff4:hunt_state": "STOPPED",
+              "aff4:type": "GenericHunt",
+              "aff4:flow_state": {
+                "args": {
+                  "flow_args": {
+                    "pathspec": {
+                      "path": "/tmp/evil.txt",
+                      "pathtype": "OS"
+                    }
+                  },
+                  "flow_runner_args": {
+                    "flow_name": "GetFile"
+                  }
+                },
+                "context": {
+                  "args": {
+                    "client_rate": 0.0,
+                    "description": "hunt_1",
+                    "hunt_name": "GenericHunt",
+                    "token": {
+                      "reason": "Running tests",
+                      "username": "test"
+                    }
+                  },
+                  "backtrace": "None",
+                  "client_resources": {},
+                  "create_time": 2000000000,
+                  "creator": "test",
+                  "current_state": "Start",
+                  "expires": 2680400000000,
+                  "kill_timestamp": "None",
+                  "network_bytes_sent": 0,
+                  "next_client_due": 0,
+                  "next_outbound_id": 1,
+                  "next_processed_request": 1,
+                  "next_states": "<lists are omitted>",
+                  "output_plugins_base_urn": "aff4:/hunts/H:000001/Results",
+                  "outstanding_requests": 0,
+                  "remaining_cpu_quota": 0,
+                  "results_collection_urn": "aff4:/hunts/H:000001/Results",
+                  "results_metadata_urn": "aff4:/hunts/H:000001/ResultsMetadata",
+                  "session_id": "aff4:/hunts/H:000001",
+                  "start_time": 2000000000,
+                  "state": "RUNNING",
+                  "status": "0 flows terminated.",
+                  "usage_stats": {
+                    "network_bytes_sent_stats": {
+                      "histogram": {
+                        "bins": "<lists are omitted>"
+                      }
+                    },
+                    "system_cpu_stats": {
+                      "histogram": {
+                        "bins": "<lists are omitted>"
+                      }
+                    },
+                    "user_cpu_stats": {
+                      "histogram": {
+                        "bins": "<lists are omitted>"
+                      }
+                    }
+                  }
+                }
+              },
+              "metadata:last": 2000000000
+            },
+            "summary": {
+              "client_limit": 0,
+              "client_rate": 0.0,
+              "create_time": 2000000000,
+              "creator": "test",
+              "description": "hunt_1",
+              "expires": 2680400000000,
+              "hunt_name": "GenericHunt",
+              "state": "STOPPED"
+            },
+            "urn": "aff4:/hunts/H:000001"
+          }
+        ],
+        "offset": 0,
+        "total_count": 2
+      },
       "url": "/api/hunts?count=1"
     },
     {
@@ -4091,7 +5336,7 @@
                       "expires": {
                         "age": 0,
                         "type": "RDFDatetime",
-                        "value": 1000000000
+                        "value": 2679400000000
                       },
                       "kill_timestamp": {
                         "age": 0,
@@ -4243,7 +5488,7 @@
               "expires": {
                 "age": 0,
                 "type": "RDFDatetime",
-                "value": 1000000000
+                "value": 2679400000000
               },
               "hunt_name": {
                 "age": 0,
@@ -4263,6 +5508,94 @@
         "total_count": 2
       },
       "test_class": "ApiHuntsListRendererRegressionTest",
+      "type_stripped_response": {
+        "count": 1,
+        "items": [
+          {
+            "aff4_class": "GenericHunt",
+            "age_policy": "NEWEST_TIME",
+            "attributes": {
+              "aff4:hunt_state": "PAUSED",
+              "aff4:type": "GenericHunt",
+              "aff4:flow_state": {
+                "args": {
+                  "flow_args": {
+                    "pathspec": {
+                      "path": "/tmp/evil.txt",
+                      "pathtype": "OS"
+                    }
+                  },
+                  "flow_runner_args": {
+                    "flow_name": "GetFile"
+                  }
+                },
+                "context": {
+                  "args": {
+                    "client_rate": 0.0,
+                    "description": "hunt_0",
+                    "hunt_name": "GenericHunt",
+                    "token": {
+                      "reason": "Running tests",
+                      "username": "test"
+                    }
+                  },
+                  "backtrace": "None",
+                  "client_resources": {},
+                  "create_time": 1000000000,
+                  "creator": "test",
+                  "current_state": "Start",
+                  "expires": 2679400000000,
+                  "kill_timestamp": "None",
+                  "network_bytes_sent": 0,
+                  "next_client_due": 0,
+                  "next_outbound_id": 1,
+                  "next_processed_request": 1,
+                  "next_states": "<lists are omitted>",
+                  "output_plugins_base_urn": "aff4:/hunts/H:000000/Results",
+                  "outstanding_requests": 0,
+                  "remaining_cpu_quota": 0,
+                  "results_collection_urn": "aff4:/hunts/H:000000/Results",
+                  "results_metadata_urn": "aff4:/hunts/H:000000/ResultsMetadata",
+                  "session_id": "aff4:/hunts/H:000000",
+                  "start_time": 1000000000,
+                  "state": "RUNNING",
+                  "usage_stats": {
+                    "network_bytes_sent_stats": {
+                      "histogram": {
+                        "bins": "<lists are omitted>"
+                      }
+                    },
+                    "system_cpu_stats": {
+                      "histogram": {
+                        "bins": "<lists are omitted>"
+                      }
+                    },
+                    "user_cpu_stats": {
+                      "histogram": {
+                        "bins": "<lists are omitted>"
+                      }
+                    }
+                  }
+                }
+              },
+              "metadata:last": 1000000000
+            },
+            "summary": {
+              "client_limit": 0,
+              "client_rate": 0.0,
+              "create_time": 1000000000,
+              "creator": "test",
+              "description": "hunt_0",
+              "expires": 2679400000000,
+              "hunt_name": "GenericHunt",
+              "state": "PAUSED"
+            },
+            "urn": "aff4:/hunts/H:000000"
+          }
+        ],
+        "offset": 1,
+        "total_count": 2
+      },
       "url": "/api/hunts?offset=1&count=1"
     }
   ],
@@ -4358,6 +5691,20 @@
         "name": "Duration"
       },
       "test_class": "ApiRDFValueReflectionRendererRegressionTest",
+      "type_stripped_response": {
+        "default": 0,
+        "doc": "Duration value stored in seconds internally.",
+        "kind": "primitive",
+        "mro": [
+          "Duration",
+          "RDFInteger",
+          "RDFString",
+          "RDFBytes",
+          "RDFValue",
+          "object"
+        ],
+        "name": "Duration"
+      },
       "url": "/api/reflection/rdfvalue/Duration"
     },
     {
@@ -4452,6 +5799,71 @@
         "name": "ApiRDFValueCollectionRendererArgs"
       },
       "test_class": "ApiRDFValueReflectionRendererRegressionTest",
+      "type_stripped_response": {
+        "default": {},
+        "doc": "",
+        "fields": [
+          {
+            "default": 0,
+            "doc": "Fetch items starting from this offset.",
+            "dynamic": false,
+            "friendly_name": "Offset",
+            "index": 1,
+            "name": "offset",
+            "repeated": false,
+            "type": "RDFInteger"
+          },
+          {
+            "default": 0,
+            "doc": "Fetch this number of elements.",
+            "dynamic": false,
+            "friendly_name": "Count",
+            "index": 2,
+            "name": "count",
+            "repeated": false,
+            "type": "RDFInteger"
+          },
+          {
+            "default": false,
+            "doc": "Include total number of elements in the collection into the response. NOTE: for some collections this may be expensive.",
+            "dynamic": false,
+            "friendly_name": "With total count",
+            "index": 3,
+            "name": "with_total_count",
+            "repeated": false,
+            "type": "RDFBool"
+          },
+          {
+            "default": "",
+            "doc": "Return only collection items whose string representation contains given substring.",
+            "dynamic": false,
+            "friendly_name": "Filter",
+            "index": 4,
+            "name": "filter",
+            "repeated": false,
+            "type": "RDFString"
+          },
+          {
+            "default": -1,
+            "doc": "If >0, lists of values in the response will contain no more than specified number of items. This is an effective way to protect the UI from fetching and presenting enormously big datasets. If 0, no lists will be rendered at all. If -1, lists will be rendered in their entirety.",
+            "dynamic": false,
+            "friendly_name": "Items limit lists",
+            "index": 5,
+            "name": "items_limit_lists",
+            "repeated": false,
+            "type": "RDFInteger"
+          }
+        ],
+        "kind": "struct",
+        "mro": [
+          "ApiRDFValueCollectionRendererArgs",
+          "RDFProtoStruct",
+          "RDFStruct",
+          "RDFValue",
+          "object"
+        ],
+        "name": "ApiRDFValueCollectionRendererArgs"
+      },
       "url": "/api/reflection/rdfvalue/ApiRDFValueCollectionRendererArgs"
     }
   ],
@@ -4563,6 +5975,38 @@
         "status_url": "http://localhost:8000/api/flows/C.1000000000000000/W:ABCDEF/status"
       },
       "test_class": "ApiRemoteGetFileRendererRegressionTest",
+      "type_stripped_response": {
+        "flow_args": {
+          "action": {
+            "action_type": "DOWNLOAD"
+          },
+          "conditions": [
+            {
+              "condition_type": "SIZE",
+              "size": {
+                "max_file_size": 20000000
+              }
+            }
+          ],
+          "paths": [
+            "/tmp/test"
+          ]
+        },
+        "flow_id": "aff4:/C.1000000000000000/flows/W:ABCDEF",
+        "runner_args": {
+          "client_id": "aff4:/C.1000000000000000",
+          "flow_name": "FileFinder",
+          "network_bytes_limit": 200000000,
+          "output_plugins": [],
+          "token": {
+            "expiry": 102000000,
+            "process": "GRRAdminUI",
+            "reason": "",
+            "username": "test"
+          }
+        },
+        "status_url": "http://localhost:8000/api/flows/C.1000000000000000/W:ABCDEF/status"
+      },
       "url": "/api/clients/C.1000000000000000/flows/remotegetfile"
     }
   ],
@@ -4646,6 +6090,26 @@
         }
       },
       "test_class": "ApiStartFlowRendererRegressionTest",
+      "type_stripped_response": {
+        "flow_args": {
+          "fetch_binaries": true,
+          "filename_regex": "."
+        },
+        "flow_id": "aff4:/C.1000000000000000/flows/W:ABCDEF",
+        "runner_args": {
+          "client_id": "aff4:/C.1000000000000000",
+          "flow_name": "ListProcesses",
+          "notify_to_user": false,
+          "output_plugins": [],
+          "priority": "HIGH_PRIORITY",
+          "token": {
+            "expiry": 102000000,
+            "process": "GRRAdminUI",
+            "reason": "",
+            "username": "test"
+          }
+        }
+      },
       "url": "/api/clients/C.1000000000000000/flows/start"
     }
   ],
@@ -5171,6 +6635,26 @@
         }
       },
       "test_class": "ApiStatsStoreMetricsMetadataRendererRegressionTest",
+      "type_stripped_response": {
+        "sample_counter": {
+          "docstring": "Sample counter metric.",
+          "metric_type": "COUNTER",
+          "value_type": "INT",
+          "varname": "sample_counter"
+        },
+        "sample_event": {
+          "docstring": "Sample event metric.",
+          "metric_type": "EVENT",
+          "value_type": "DISTRIBUTION",
+          "varname": "sample_event"
+        },
+        "sample_gauge_value": {
+          "docstring": "Sample gauge metric.",
+          "metric_type": "GAUGE",
+          "value_type": "STR",
+          "varname": "sample_gauge_value"
+        }
+      },
       "url": "/api/stats/store/WORKER/metadata"
     }
   ],
@@ -5189,6 +6673,9 @@
         }
       },
       "test_class": "ApiUserSettingsRendererRegresstionTest",
+      "type_stripped_response": {
+        "canary_mode": true
+      },
       "url": "/api/users/me/settings"
     }
   ]

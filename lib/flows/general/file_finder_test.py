@@ -3,15 +3,18 @@
 
 
 
+import collections
 import glob
 import os
 
+from grr.client import vfs
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib import utils
 from grr.lib.flows.general import file_finder
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -58,7 +61,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
 
   def FileNameToURN(self, fname):
     return rdfvalue.RDFURN(self.client_id).Add("/fs/os").Add(
-        os.path.join(os.path.dirname(self.base_path), "test_data", fname))
+        os.path.join(self.base_path, "searching", fname))
 
   def CheckFilesHashed(self, fnames):
     """Checks the returned hashes."""
@@ -210,8 +213,8 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     super(TestFileFinderFlow, self).setUp()
     self.output_path = "analysis/file_finder"
     self.client_mock = FileFinderActionMock()
-    self.pattern = "test_data/*.log"
-    self.path = os.path.join(os.path.dirname(self.base_path), self.pattern)
+    self.fixture_path = os.path.join(self.base_path, "searching")
+    self.path = os.path.join(self.fixture_path, "*.log")
 
   def testFileFinderStatActionWithoutConditions(self):
     self.RunFlowAndCheckResults(
@@ -227,7 +230,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
         # Some directories.
         "a", "checks", "profiles"]
 
-    paths = [os.path.join(self.base_path, name) for name in files_to_check]
+    paths = [os.path.join(self.fixture_path, name) for name in files_to_check]
     expected_files = []
     for name in paths:
       for result in glob.glob(name):
@@ -400,7 +403,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     expected_files = ["dpkg.log", "dpkg_false.log"]
     non_expected_files = ["auth.log"]
 
-    sizes = [os.stat(os.path.join(self.base_path, f)).st_size
+    sizes = [os.stat(os.path.join(self.fixture_path, f)).st_size
              for f in expected_files]
 
     size_condition = file_finder.FileFinderCondition(
@@ -419,7 +422,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     expected_files = ["dpkg.log", "dpkg_false.log"]
     non_expected_files = ["auth.log"]
 
-    sizes = [os.stat(os.path.join(self.base_path, f)).st_size
+    sizes = [os.stat(os.path.join(self.fixture_path, f)).st_size
              for f in expected_files]
 
     action = file_finder.FileFinderAction(
@@ -445,7 +448,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     expected_files = []
     non_expected_files = files_over_size_limit + filtered_files
 
-    sizes = [os.stat(os.path.join(self.base_path, f)).st_size
+    sizes = [os.stat(os.path.join(self.fixture_path, f)).st_size
              for f in files_over_size_limit]
 
     size_condition = file_finder.FileFinderCondition(
@@ -536,8 +539,8 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     # No need to setup VFS handlers as we're not actually looking at the files,
     # as there's no condition/action specified.
 
-    paths = [os.path.join(os.path.dirname(self.base_path), "*.log"),
-             os.path.join(os.path.dirname(self.base_path), "auth.log")]
+    paths = [os.path.join(os.path.dirname(self.fixture_path), "*.log"),
+             os.path.join(os.path.dirname(self.fixture_path), "auth.log")]
 
     for _ in test_lib.TestFlowHelper(
         "FileFinder", self.client_mock, client_id=self.client_id,
@@ -556,8 +559,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
                                test_lib.FakeTestDataVFSHandler):
       with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.MEMORY,
                                  test_lib.FakeTestDataVFSHandler):
-        paths = [os.path.join(os.path.dirname(self.base_path), "auth.log"),
-                 os.path.join(os.path.dirname(self.base_path), "dpkg.log")]
+        paths = ["/var/log/auth.log", "/etc/ssh/sshd_config"]
 
         literal_condition = file_finder.FileFinderContentsLiteralMatchCondition
         all_hits = literal_condition.Mode.ALL_HITS
@@ -597,6 +599,79 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
           self.assertEqual(
               fd[0].matches[0].data,
               "session): session opened for user dearjohn by (uid=0")
+
+  def _RunTSKFileFinder(self, paths):
+
+    image_path = os.path.join(self.base_path, "ntfs_img.dd")
+    with utils.Stubber(vfs, "VFS_VIRTUALROOTS", {
+        rdf_paths.PathSpec.PathType.TSK: rdf_paths.PathSpec(
+            path=image_path, pathtype="OS", offset=63*512)}):
+
+      action = file_finder.FileFinderAction.Action.DOWNLOAD
+      for _ in test_lib.TestFlowHelper(
+          "FileFinder", self.client_mock,
+          client_id=self.client_id,
+          paths=paths,
+          pathtype=rdf_paths.PathSpec.PathType.TSK,
+          action=file_finder.FileFinderAction(
+              action_type=action),
+          token=self.token):
+        pass
+
+  def testRecursiveADSHandling(self):
+    """This tests some more obscure NTFS features - ADSs on directories."""
+    self._RunTSKFileFinder(["adstest/**"])
+    self._CheckDir()
+    self._CheckSubdir()
+
+  def testADSHandling(self):
+    self._RunTSKFileFinder(["adstest/*"])
+    self._CheckDir()
+
+  def _CheckDir(self):
+    output = self.client_id.Add("fs/tsk").Add(self.base_path).Add(
+        "ntfs_img.dd:63").Add("adstest")
+
+    results = list(aff4.FACTORY.Open(output, token=self.token).OpenChildren())
+
+    # There should be four entries:
+    # one file, one directory, and one ADS for each.
+    self.assertEqual(len(results), 4)
+
+    counter = collections.Counter([type(x) for x in results])
+
+    # There should be one directory and three files. It's important that all
+    # ADSs have been created as files or we won't be able to access the data.
+    self.assertEqual(counter[aff4.VFSBlobImage], 3)
+    self.assertEqual(counter[aff4.VFSDirectory], 1)
+
+    # Make sure we can access all the data.
+    fd = aff4.FACTORY.Open(output.Add("a.txt"), token=self.token)
+    self.assertEqual(fd.read(100), "This is a.txt")
+    fd = aff4.FACTORY.Open(output.Add("a.txt:ads.txt"), token=self.token)
+    self.assertEqual(fd.read(100), "This is the ads for a.txt")
+    fd = aff4.FACTORY.Open(output.Add("dir:ads.txt"), token=self.token)
+    self.assertEqual(fd.read(100), "This is the dir ads")
+
+  def _CheckSubdir(self):
+    # Also in the subdirectory.
+    output = self.client_id.Add("fs/tsk").Add(self.base_path).Add(
+        "ntfs_img.dd:63").Add("adstest").Add("dir")
+    fd = aff4.FACTORY.Open(output, token=self.token)
+    results = list(fd.OpenChildren())
+
+    # Here we have two files, one has an ads.
+    self.assertEqual(len(results), 3)
+    base_urn = fd.urn
+    # Make sure we can access all the data.
+    fd = aff4.FACTORY.Open(base_urn.Add("b.txt"), token=self.token)
+    self.assertEqual(fd.read(100), "This is b.txt")
+    fd = aff4.FACTORY.Open(base_urn.Add("b.txt:ads.txt"), token=self.token)
+    self.assertEqual(fd.read(100), "This is the ads for b.txt")
+    # This tests for a regression where ADS data attached to the base directory
+    # leaked into files inside the directory.
+    fd = aff4.FACTORY.Open(base_urn.Add("no_ads.txt"), token=self.token)
+    self.assertEqual(fd.read(100), "This file has no ads")
 
 
 def main(argv):

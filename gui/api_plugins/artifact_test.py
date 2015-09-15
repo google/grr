@@ -100,6 +100,21 @@ class ApiArtifactsDeleteRendererTest(test_lib.GRRBaseTest):
     # Check that we deleted exactly 2 artifacts.
     self.assertEqual(new_count, count - 2)
 
+  def testDeleteDependency(self):
+    self.UploadTestArtifacts()
+    args = self.renderer.args_type(names=["TestAggregationArtifact"])
+    with self.assertRaises(ValueError):
+      self.renderer.Render(args, token=self.token)
+
+  def testDeleteNonExistentArtifact(self):
+    self.UploadTestArtifacts()
+    args = self.renderer.args_type(names=["NonExistentArtifact"])
+    e = self.assertRaises(ValueError)
+    with e:
+      self.renderer.Render(args, token=self.token)
+    self.assertEqual(str(e.exception),
+                     "Artifact(s) to delete (NonExistentArtifact) not found.")
+
 
 def main(argv):
   test_lib.main(argv)

@@ -49,6 +49,12 @@ class ClientConfig {
     return ca_cert_;
   }
 
+  // Directory in which temporary files will be created and deleted.
+  std::string TemporaryDirectory() const {
+    std::unique_lock<std::mutex> l(lock_);
+    return temporary_directory_;
+  }
+
   std::vector<std::string> ControlUrls() const;
   std::vector<std::string> ProxyServers() const;
 
@@ -75,6 +81,7 @@ class ClientConfig {
   google::protobuf::RepeatedPtrField<std::string> proxy_servers_;
 
   ClientConfiguration::SubprocessConfig subprocess_config_;
+  std::string temporary_directory_;
 
   RSAKey key_;
   Certificate ca_cert_;

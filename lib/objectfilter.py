@@ -493,7 +493,10 @@ class ValueExpander(object):
         if len(path) > 2:
           # Expand any additional elements underneath the key.
           sub_obj = self.Expand(sub_obj, path[2:])
-        if isinstance(sub_obj, collections.Mapping):
+        if isinstance(sub_obj, basestring):
+          # If it is a string, stop here
+          yield sub_obj
+        elif isinstance(sub_obj, collections.Mapping):
           # If the result is a dict, return each key/value pair as a new dict.
           for k, v in sub_obj.items():
             yield {k: v}

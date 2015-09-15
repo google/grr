@@ -7,7 +7,6 @@ from grr.gui import runtests_test
 
 from grr.lib import access_control
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import output_plugin
@@ -24,6 +23,9 @@ class DummyOutputPlugin(output_plugin.OutputPlugin):
   name = "dummy"
   description = "Dummy do do."
   args_type = processes.ListProcessesArgs
+
+  def ProcessResponses(self, responses):
+    pass
 
 
 class TestNewHuntWizard(test_lib.GRRSeleniumTest):
@@ -101,94 +103,95 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     # Wait for flow configuration form to be rendered (just wait for first
     # input field).
     self.WaitUntil(self.IsElementPresent,
-                   "css=.Wizard input[id=args-paths-0]")
+                   "css=grr-new-hunt-wizard-form label:contains('Paths')")
 
     # Change "path" and "pathtype" values
-    self.Type("css=.Wizard input[id=args-paths-0]", "/tmp")
-    self.Select("css=.Wizard select[id=args-pathtype]", "TSK")
+    self.Type("css=grr-new-hunt-wizard-form "
+              "grr-form-proto-repeated-field:has(label:contains('Paths')) "
+              "input", "/tmp")
+    self.Select("css=grr-new-hunt-wizard-form "
+                "grr-form-proto-single-field:has(label:contains('Pathtype')) "
+                "select", "TSK")
 
     # Click on "Next" button
-    self.Click("css=.Wizard button.Next")
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
     self.WaitUntil(self.IsTextPresent, "Output Processing")
 
     # Click on "Back" button and check that all the values in the form
     # remain intact.
-    self.Click("css=.Wizard button.Back")
+    self.Click("css=grr-new-hunt-wizard-form button.Back")
     self.WaitUntil(self.IsElementPresent,
-                   "css=.Wizard input#args-paths-0")
+                   "css=grr-new-hunt-wizard-form label:contains('Paths')")
 
     self.assertEqual("/tmp", self.GetValue(
-        "css=.Wizard input#args-paths-0"))
+        "css=grr-new-hunt-wizard-form "
+        "grr-form-proto-repeated-field:has(label:contains('Paths')) input"))
 
-    self.assertEqual(
-        "TSK", self.GetSelectedLabel("css=.Wizard select#args-pathtype"))
+    self.assertEqual("TSK", self.GetSelectedLabel(
+        "css=grr-new-hunt-wizard-form "
+        "grr-form-proto-single-field:has(label:contains('Pathtype')) select"))
 
     # Click on "Next" button
-    self.Click("css=.Wizard button.Next")
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
     self.WaitUntil(self.IsTextPresent, "Output Processing")
 
-    self.Click("css=.Wizard button:contains('Add Output Plugin')")
+    self.Click("css=grr-new-hunt-wizard-form button[name=Add]")
     # Configure the hunt to send an email on results.
-    self.Select("css=.Wizard select[id=output_1-option]",
-                "Send an email for each result.")
-    self.Type("css=.Wizard input[id=output_1-email_address]",
-              "test@%s" % config_lib.CONFIG["Logging.domain"])
+    self.Select("css=grr-new-hunt-wizard-form select",
+                "DummyOutputPlugin")
+    self.Type(
+        "css=grr-new-hunt-wizard-form "
+        "grr-form-proto-single-field:has(label:contains('Filename Regex')) "
+        "input", "some regex")
 
     # Click on "Next" button
-    self.Click("css=.Wizard button.Next")
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
     self.WaitUntil(self.IsTextPresent, "Where to run?")
 
-    # Create 3 foreman rules
-    self.WaitUntil(
-        self.IsElementPresent,
-        "css=.Wizard select[id=rule_1-option]")
-    self.Select("css=.Wizard select[id=rule_1-option]",
-                "Regular Expressions")
-    self.Select("css=.Wizard select[id=rule_1-attribute_name]",
-                "System")
-    self.Type("css=.Wizard input[id=rule_1-attribute_regex]",
-              "Linux")
+    # Create 3 foreman rules. Note that "Add" button adds rules to the beginning
+    # of a list. So we always use :nth(0) selector.
+    self.Select("css=grr-new-hunt-wizard-form div.Rule:nth(0) select",
+                "Regular Expression")
+    self.Select(
+        "css=grr-new-hunt-wizard-form div.Rule:nth(0) "
+        "grr-form-proto-single-field:has(label:contains('Attribute name')) "
+        "select", "System")
+    self.Type(
+        "css=grr-new-hunt-wizard-form div.Rule:nth(0) "
+        "grr-form-proto-single-field:has(label:contains('Attribute regex')) "
+        "input", "Linux")
 
-    # Make the button visible by scrolling to the bottom.
-    self.driver.execute_script("""
-$("button:contains('Add Rule')").parent().scrollTop(10000)
-""")
-
-    self.Click("css=.Wizard button:contains('Add Rule')")
-    self.Select("css=.Wizard select[id=rule_2-option]",
+    self.Click("css=grr-new-hunt-wizard-form button[name=Add]")
+    self.Select("css=grr-new-hunt-wizard-form div.Rule:nth(0) select",
                 "Integer Rule")
-    self.Select("css=.Wizard select[id=rule_2-attribute_name]",
-                "Clock")
-    self.Select("css=.Wizard select[id=rule_2-operator]",
-                "GREATER_THAN")
-    self.Type("css=.Wizard input[id=rule_2-value]",
-              "1336650631137737")
+    self.Select(
+        "css=grr-new-hunt-wizard-form div.Rule:nth(0) "
+        "grr-form-proto-single-field:has(label:contains('Attribute name')) "
+        "select", "Clock")
+    self.Select(
+        "css=grr-new-hunt-wizard-form div.Rule:nth(0) "
+        "grr-form-proto-single-field:has(label:contains('Operator')) select",
+        "GREATER_THAN")
+    self.Type(
+        "css=grr-new-hunt-wizard-form div.Rule:nth(0) "
+        "grr-form-proto-single-field:has(label:contains('Value')) input",
+        "1336650631137737")
 
-    # Make the button visible by scrolling to the bottom.
-    self.driver.execute_script("""
-$("button:contains('Add Rule')").parent().scrollTop(10000)
-""")
-
-    self.Click("css=.Wizard button:contains('Add Rule')")
-    self.Select("css=.Wizard select[id=rule_3-option]",
-                "OSX")
-
-    # Make the button visible by scrolling to the bottom.
-    self.driver.execute_script("""
-$("button:contains('Add Rule')").parent().scrollTop(10000)
-""")
+    self.Click("css=grr-new-hunt-wizard-form button[name=Add]")
+    self.Select("css=grr-new-hunt-wizard-form div.Rule:nth(0) select",
+                "OS X")
 
     # Click on "Back" button
-    self.Click("css=.Wizard button.Back")
+    self.Click("css=grr-new-hunt-wizard-form button.Back")
     self.WaitUntil(self.IsTextPresent, "Output Processing")
 
     # Click on "Next" button again and check that all the values that we've just
     # entered remain intact.
-    self.Click("css=.Wizard button.Next")
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
     self.WaitUntil(self.IsTextPresent, "Where to run?")
 
     # Click on "Next" button
-    self.Click("css=.Wizard button.Next")
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
     self.WaitUntil(self.IsTextPresent, "Review")
 
     # Check that the arguments summary is present.
@@ -196,24 +199,22 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
     self.WaitUntil(self.IsTextPresent, "/tmp")
 
     # Check that output plugins are shown.
-    self.assertTrue(self.IsTextPresent("EmailOutputPlugin"))
-    self.assertTrue(self.IsTextPresent("test@%s" %
-                                       config_lib.CONFIG["Logging.domain"]))
+    self.assertTrue(self.IsTextPresent("DummyOutputPlugin"))
+    self.assertTrue(self.IsTextPresent("some regex"))
 
     # Check that rules summary is present.
     self.assertTrue(self.IsTextPresent("Regex rules"))
 
     # Click on "Run" button
-    self.Click("css=.Wizard button.Next")
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
 
-    self.WaitUntil(self.IsTextPresent,
-                   "Hunt was created!")
+    self.WaitUntil(self.IsTextPresent, "Created Hunt")
 
-    # Close the window and check that cron job object was created.
-    self.Click("css=button.Finish")
+    # Close the window and check that the hunt was created.
+    self.Click("css=button.Next")
 
     # Select newly created cron job.
-    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=grr-hunts-list td:contains('GenericHunt')")
 
     # Check that correct details are displayed in cron job details tab.
     self.WaitUntil(self.IsTextPresent, "GenericHunt")
@@ -222,9 +223,8 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
     self.assertTrue(self.IsTextPresent("Paths"))
     self.assertTrue(self.IsTextPresent("/tmp"))
 
-    self.assertTrue(self.IsTextPresent("EmailOutputPlugin"))
-    self.assertTrue(self.IsTextPresent("test@%s" %
-                                       config_lib.CONFIG["Logging.domain"]))
+    self.assertTrue(self.IsTextPresent("DummyOutputPlugin"))
+    self.assertTrue(self.IsTextPresent("some regex"))
 
     # Check that the hunt object was actually created
     hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
@@ -240,7 +240,7 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
                      rdf_paths.PathSpec.PathType.TSK)
     # self.assertEqual(hunt.state.args.flow_args.ignore_errors, True)
     self.assertTrue(hunt.state.args.output_plugins[0].plugin_name,
-                    "EmailOutputPlugin")
+                    "DummyOutputPlugin")
 
     # Check that hunt was not started
     self.assertEqual(hunt.Get(hunt.Schema.STATE), "PAUSED")
@@ -267,11 +267,11 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
     self.assertEqual(len(hunt_rules[0].regex_rules), 2)
     self.assertEqual(hunt_rules[0].regex_rules[0].path, "/")
     self.assertEqual(hunt_rules[0].regex_rules[0].attribute_name, "System")
-    self.assertEqual(hunt_rules[0].regex_rules[0].attribute_regex, "Linux")
+    self.assertEqual(hunt_rules[0].regex_rules[0].attribute_regex, "Darwin")
 
     self.assertEqual(hunt_rules[0].regex_rules[1].path, "/")
     self.assertEqual(hunt_rules[0].regex_rules[1].attribute_name, "System")
-    self.assertEqual(hunt_rules[0].regex_rules[1].attribute_regex, "Darwin")
+    self.assertEqual(hunt_rules[0].regex_rules[1].attribute_regex, "Linux")
 
     self.assertEqual(len(hunt_rules[0].integer_rules), 1)
     self.assertEqual(hunt_rules[0].integer_rules[0].path, "/")
@@ -289,7 +289,7 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
     self.Click("link=ListProcesses")
 
     # There should be no dummy output plugin visible.
-    self.Click("css=.Wizard button.Next")
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
     self.WaitUntil(self.IsTextPresent, "Output Processing")
     self.WaitUntilNot(self.IsTextPresent, "Dummy do do")
 
@@ -305,9 +305,9 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
       self.Click("link=ListProcesses")
 
       # Dummy output plugin should be added by default.
-      self.Click("css=.Wizard button.Next")
+      self.Click("css=grr-new-hunt-wizard-form button.Next")
       self.WaitUntil(self.IsTextPresent, "Output Processing")
-      self.WaitUntil(self.IsTextPresent, "Dummy do do")
+      self.WaitUntil(self.IsTextPresent, "DummyOutputPlugin")
 
   def testLabelsHuntRuleDisplaysAvailableLabels(self):
     with self.ACLChecksDisabled():
@@ -324,20 +324,25 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
     self.Click("link=ListProcesses")
 
     # Click 'Next' to go to output plugins page.
-    self.Click("css=.Wizard button.Next")
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
 
     # Click 'Next' to go to hunt rules page.
-    self.Click("css=.Wizard button.Next")
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
 
     # Select 'Clients With Label' rule.
-    self.Select("css=.Wizard select[id=rule_1-option]", "Clients With Label")
+    self.Select("css=grr-new-hunt-wizard-form div.Rule select",
+                "Clients With Label")
 
     # Check that there's an option present for labels 'bar' (this option should
     # be selected) and for label 'foo'.
     self.WaitUntil(self.IsElementPresent,
-                   "css=.Wizard select[id=rule_1] option:selected[value=bar]")
+                   "css=grr-new-hunt-wizard-form div.Rule "
+                   ".form-group:has(label:contains('Label')) "
+                   "select option:selected[label=bar]")
     self.WaitUntil(self.IsElementPresent,
-                   "css=.Wizard select[id=rule_1] option[value=bar]")
+                   "css=grr-new-hunt-wizard-form div.Rule "
+                   ".form-group:has(label:contains('Label')) "
+                   "select option:not(:selected)[label=foo]")
 
   def testLabelsHuntRuleCreatesForemanRegexRuleInResultingHunt(self):
     with self.ACLChecksDisabled():
@@ -353,23 +358,25 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
     self.Click("link=ListProcesses")
 
     # Click 'Next' to go to the output plugins page.
-    self.Click("css=.Wizard button.Next")
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
 
     # Click 'Next' to go to the hunt rules page.
-    self.Click("css=.Wizard button.Next")
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
 
     # Select 'Clients With Label' rule.
-    self.Select("css=.Wizard select[id=rule_1-option]", "Clients With Label")
-    self.Select("css=.Wizard select[id=rule_1]", "foo")
+    self.Select("css=grr-new-hunt-wizard-form div.Rule select",
+                "Clients With Label")
+    self.Select("css=grr-new-hunt-wizard-form div.Rule "
+                ".form-group:has(label:contains('Label')) select", "foo")
 
     # Click 'Next' to go to the hunt overview page. Check that generated regexp
     # is displayed there.
-    self.Click("css=.Wizard button.Next")
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
     self.WaitUntil(self.IsTextPresent, "(.+,|\\A)foo(,.+|\\Z)")
 
     # Click 'Next' to go to submit the hunt and wait until it's created.
-    self.Click("css=.Wizard button.Next")
-    self.WaitUntil(self.IsTextPresent, "Hunt was created!")
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
+    self.WaitUntil(self.IsTextPresent, "Created Hunt")
 
     # Get hunt's rules.
     with self.ACLChecksDisabled():
@@ -409,18 +416,20 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
     self.Click("link=ListProcesses")
 
     # Click 'Next' to go to the output plugins page and then to hunt rules page.
-    self.Click("css=.Wizard button.Next")
-    self.Click("css=.Wizard button.Next")
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
 
     # Select 'Clients With Label' rule.
-    self.Select("css=.Wizard select[id=rule_1-option]", "Clients With Label")
-    self.Select("css=.Wizard select[id=rule_1]", "foo")
+    self.Select("css=grr-new-hunt-wizard-form div.Rule select",
+                "Clients With Label")
+    self.Select("css=grr-new-hunt-wizard-form div.Rule "
+                ".form-group:has(label:contains('Label')) select", "foo")
 
     # Click 'Next' to go to hunt overview page.  Then click 'Next' to go to
     # submit the hunt and wait until it's created.
-    self.Click("css=.Wizard button.Next")
-    self.Click("css=.Wizard button.Next")
-    self.WaitUntil(self.IsTextPresent, "Hunt was created!")
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
+    self.WaitUntil(self.IsTextPresent, "Created Hunt")
 
     with self.ACLChecksDisabled():
       hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)

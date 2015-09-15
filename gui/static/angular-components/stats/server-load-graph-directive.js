@@ -190,7 +190,7 @@ grrUi.stats.serverLoadGraphDirective.ServerLoadGraphDirective = function() {
       endTime: '='
     },
     restrict: 'E',
-    templateUrl: 'static/angular-components/stats/server-load-graph.html',
+    templateUrl: '/static/angular-components/stats/server-load-graph.html',
     transclude: true,
     controller: ServerLoadGraphController,
     controllerAs: 'controller'

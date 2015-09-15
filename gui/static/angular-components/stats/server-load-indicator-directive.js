@@ -65,7 +65,7 @@ grrUi.stats.serverLoadIndicatorDirective.ServerLoadIndicatorDirective =
           status: '='
         },
         restrict: 'E',
-        templateUrl: 'static/angular-components/stats/' +
+        templateUrl: '/static/angular-components/stats/' +
             'server-load-indicator.html',
         controller: ServerLoadIndicatorController,
         controllerAs: 'controller'

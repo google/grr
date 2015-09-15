@@ -15,6 +15,7 @@ goog.require('grrUi.core.forceRefreshDirective.ForceRefreshDirective');
 goog.require('grrUi.core.infiniteTableDirective.InfiniteTableDirective');
 goog.require('grrUi.core.legacyRendererDirective.LegacyRendererDirective');
 goog.require('grrUi.core.memoryItemsProviderDirective.MemoryItemsProviderDirective');
+goog.require('grrUi.core.onScrollIntoViewDirective.OnScrollIntoViewDirective');
 goog.require('grrUi.core.pagedFilteredTableDirective.PagedFilteredTableDirective');
 goog.require('grrUi.core.pagedFilteredTableDirective.TableBottomDirective');
 goog.require('grrUi.core.pagedFilteredTableDirective.TableTopDirective');
@@ -24,6 +25,8 @@ goog.require('grrUi.core.splitterDirective.SplitterDirective');
 goog.require('grrUi.core.splitterDirective.SplitterPaneDirective');
 goog.require('grrUi.core.timeService.TimeService');
 goog.require('grrUi.core.timeSinceFilter.TimeSinceFilter');
+goog.require('grrUi.core.wizardFormDirective.WizardFormDirective');
+goog.require('grrUi.core.wizardFormPageDirective.WizardFormPageDirective');
 
 
 /**
@@ -51,6 +54,10 @@ grrUi.core.module.directive(
 grrUi.core.module.directive(
     grrUi.core.legacyRendererDirective.LegacyRendererDirective.directive_name,
     grrUi.core.legacyRendererDirective.LegacyRendererDirective);
+grrUi.core.module.directive(
+    grrUi.core.onScrollIntoViewDirective.OnScrollIntoViewDirective
+        .directive_name,
+    grrUi.core.onScrollIntoViewDirective.OnScrollIntoViewDirective);
 grrUi.core.module.directive(
     grrUi.core.memoryItemsProviderDirective.
         MemoryItemsProviderDirective.directive_name,
@@ -92,6 +99,12 @@ grrUi.core.module.directive(
         .DownloadCollectionFilesDirective.directive_name,
     grrUi.core.downloadCollectionFilesDirective
         .DownloadCollectionFilesDirective);
+grrUi.core.module.directive(
+    grrUi.core.wizardFormDirective.WizardFormDirective.directive_name,
+    grrUi.core.wizardFormDirective.WizardFormDirective);
+grrUi.core.module.directive(
+    grrUi.core.wizardFormPageDirective.WizardFormPageDirective.directive_name,
+    grrUi.core.wizardFormPageDirective.WizardFormPageDirective);
 
 grrUi.core.module.service(
     grrUi.core.reflectionService.ReflectionService.service_name,

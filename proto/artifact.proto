@@ -97,6 +97,9 @@ message Artifact {
     description: "A list of artifact sources.",
   }];
 
+  optional string error_message = 10 [(sem_type) = {
+      description: "The error message for artifacts that failed validation."
+    }];
 }
 
 
@@ -131,5 +134,8 @@ message ArtifactDescriptor {
     }];
   optional bool is_custom = 6 [(sem_type) = {
       description: "If True, this artifact was manually uploaded by the user."
+    }];
+  optional string error_message = 7 [(sem_type) = {
+      description: "The error message for artifacts that failed validation."
     }];
 }

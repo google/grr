@@ -66,8 +66,8 @@ class SshdConfigTest(test_lib.GRRBaseTest):
     block_1, block_2 = result.matches
     self.assertEqual("user root", block_1.criterion)
     self.assertEqual("address 192.168.3.12", block_2.criterion)
-    self.assertEqual(True, block_1.config.permitrootlogin)
-    self.assertEqual(False, block_2.config.permitrootlogin)
+    self.assertEqual("yes", block_1.config.permitrootlogin)
+    self.assertEqual("no", block_2.config.permitrootlogin)
     self.assertFalse(block_1.config.protocol)
 
 

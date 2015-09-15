@@ -18,19 +18,32 @@ from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 
 
+# This is all bits that define the type of the file in the stat mode. Equal to
+# 0b1111000000000000.
+stat_type_mask = (stat.S_IFREG | stat.S_IFDIR | stat.S_IFLNK | stat.S_IFBLK |
+                  stat.S_IFCHR | stat.S_IFIFO | stat.S_IFSOCK)
+
+
 def CreateAFF4Object(stat_response, client_id, token, sync=False):
   """This creates a File or a Directory from a stat response."""
 
   stat_response.aff4path = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
       stat_response.pathspec, client_id)
 
-  if stat.S_ISDIR(stat_response.st_mode):
-    fd = aff4.FACTORY.Create(stat_response.aff4path, "VFSDirectory",
-                             mode="w", token=token)
-  else:
-    fd = aff4.FACTORY.Create(stat_response.aff4path, "VFSFile", mode="w",
-                             token=token)
+  if stat_response.pathspec.last.stream_name:
+    # This is an ads. In that case we always need to create a file or
+    # we won't be able to access the data. New clients send the correct mode
+    # already but to make sure, we set this to a regular file anyways.
+    # Clear all file type bits:
+    stat_response.st_mode &= ~stat_type_mask
+    stat_response.st_mode |= stat.S_IFREG
 
+  if stat.S_ISDIR(stat_response.st_mode):
+    ftype = "VFSDirectory"
+  else:
+    ftype = "VFSFile"
+
+  fd = aff4.FACTORY.Create(stat_response.aff4path, ftype, mode="w", token=token)
   fd.Set(fd.Schema.STAT(stat_response))
   fd.Set(fd.Schema.PATHSPEC(stat_response.pathspec))
   fd.Close(sync=sync)

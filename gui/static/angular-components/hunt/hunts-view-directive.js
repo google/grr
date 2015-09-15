@@ -13,7 +13,7 @@ grrUi.hunt.huntsViewDirective.HuntsViewDirective = function() {
   return {
     restrict: 'E',
     scope: {},
-    templateUrl: 'static/angular-components/hunt/hunts-view.html',
+    templateUrl: '/static/angular-components/hunt/hunts-view.html',
     link: function(scope) {
       scope.selection = {};
     }

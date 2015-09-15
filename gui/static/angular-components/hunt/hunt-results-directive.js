@@ -65,7 +65,7 @@ grrUi.hunt.huntResultsDirective.HuntResultsDirective = function() {
       huntUrn: '='
     },
     restrict: 'E',
-    templateUrl: 'static/angular-components/hunt/hunt-results.html',
+    templateUrl: '/static/angular-components/hunt/hunt-results.html',
     controller: HuntResultsController,
     controllerAs: 'controller'
   };

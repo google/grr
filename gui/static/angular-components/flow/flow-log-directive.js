@@ -51,7 +51,7 @@ grrUi.flow.flowLogDirective.FlowLogDirective = function() {
       flowUrn: '='
     },
     restrict: 'E',
-    templateUrl: 'static/angular-components/flow/flow-log.html',
+    templateUrl: '/static/angular-components/flow/flow-log.html',
     controller: FlowLogController,
     controllerAs: 'controller'
   };

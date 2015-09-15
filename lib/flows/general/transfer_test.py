@@ -2,8 +2,8 @@
 """Test the file transfer mechanism."""
 
 
+import hashlib
 import os
-
 
 from grr.client.client_actions import standard
 from grr.lib import action_mocks
@@ -193,6 +193,43 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
 
     self.assertEqual(fd2.tell(), int(fd1.Get(fd1.Schema.SIZE)))
     self.CompareFDs(fd1, fd2)
+
+  def testMultiGetFileSizeLimit(self):
+    client_mock = action_mocks.ActionMock("TransferBuffer", "HashFile",
+                                          "StatFile", "HashBuffer")
+    image_path = os.path.join(self.base_path, "test_img.dd")
+    pathspec = rdf_paths.PathSpec(
+        pathtype=rdf_paths.PathSpec.PathType.OS,
+        path=image_path)
+
+    # Read a bit more than one chunk (600 * 1024).
+    expected_size = 750 * 1024
+    args = transfer.MultiGetFileArgs(pathspecs=[pathspec],
+                                     file_size=expected_size)
+    for _ in test_lib.TestFlowHelper("MultiGetFile", client_mock,
+                                     token=self.token,
+                                     client_id=self.client_id, args=args):
+      pass
+
+    urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
+    blobimage = aff4.FACTORY.Open(urn, token=self.token)
+    # Make sure a VFSBlobImage got written.
+    self.assertTrue(isinstance(blobimage, aff4.VFSBlobImage))
+
+    self.assertEqual(len(blobimage), expected_size)
+    data = blobimage.read(100 * expected_size)
+    self.assertEqual(len(data), expected_size)
+
+    expected_data = open(image_path, "rb").read(expected_size)
+
+    self.assertEqual(data, expected_data)
+    hash_obj = blobimage.Get(blobimage.Schema.HASH)
+
+    d = hashlib.sha1()
+    d.update(expected_data)
+    expected_hash = d.hexdigest()
+
+    self.assertEqual(hash_obj.sha1, expected_hash)
 
 
 def main(argv):

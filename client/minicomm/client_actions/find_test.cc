@@ -38,7 +38,7 @@ TEST(Find, RegexMatching) {
   message.set_args(spec.SerializeAsString());
   message.set_args_rdf_name("FindSpec");
   MessageQueue queue(5, 20000);
-  ActionContext context(message, &queue);
+  ActionContext context(message, &queue, nullptr);
 
   actions::Find action;
   action.ProcessRequest(&context);
@@ -79,7 +79,7 @@ TEST(Find, RegexDeepMatching) {
   message.set_args_rdf_name("FindSpec");
 
   MessageQueue queue(20, 20000);
-  ActionContext context(message, &queue);
+  ActionContext context(message, &queue, nullptr);
 
   actions::Find action;
   action.ProcessRequest(&context);

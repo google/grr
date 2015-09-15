@@ -89,6 +89,34 @@ class GRREProcessObjectRenderer(GRRRekallViewerObjectRenderer):
     return self.layout.RawHTML(this=item, data=self._Flatten("", item))
 
 
+class GRRProcRenderer(GRREProcessObjectRenderer):
+  renders_type = "proc"
+
+
+class GRRIdentityRenderer(GRRRekallViewerObjectRenderer):
+  renders_type = "Identity"
+  layout = renderers.Template("{{this.name|escape}}")
+
+  def RawHTML(self, item, **_):
+    return self.layout.RawHTML(this=item)
+
+
+class GRRVoidPointerRenderer(GRRRekallViewerObjectRenderer):
+  renders_type = "Void"
+  layout = renderers.Template("{{this.target|escape}}")
+
+  def RawHTML(self, item, **_):
+    return self.layout.RawHTML(this=item)
+
+
+class GRRDateTtimeRenderer(GRRRekallViewerObjectRenderer):
+  renders_type = "datetime"
+  layout = renderers.Template("{{this.string_value|escape}}")
+
+  def RawHTML(self, item, **_):
+    return self.layout.RawHTML(this=item)
+
+
 class GRRPointerObjectRenderer(GRRRekallViewerObjectRenderer):
   """Special rendering for Pointer objects."""
   renders_type = "Pointer"

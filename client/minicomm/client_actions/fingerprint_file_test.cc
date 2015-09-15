@@ -31,7 +31,7 @@ TEST(FingerprintFile, FingerprintNormal) {
     message.set_args(req.SerializeAsString());
     message.set_args_rdf_name("FingerprintRequest");
 
-    ActionContext context(message, &queue);
+    ActionContext context(message, &queue, nullptr);
     action.ProcessRequest(&context);
     const auto r = queue.GetMessages(5, 20000, true);
     ASSERT_EQ(r.size(), 1);
@@ -51,7 +51,7 @@ TEST(FingerprintFile, FingerprintNormal) {
     message.set_args(req.SerializeAsString());
     message.set_args_rdf_name("FingerprintRequest");
 
-    ActionContext context(message, &queue);
+    ActionContext context(message, &queue, nullptr);
     action.ProcessRequest(&context);
     const auto r = queue.GetMessages(5, 20000, true);
     ASSERT_EQ(r.size(), 1);

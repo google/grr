@@ -146,7 +146,8 @@ class HashFile(actions.ActionPlugin):
       bytes_read = 0
       while bytes_read < args.max_filesize:
         self.Progress()
-        data = file_obj.Read(MAX_BUFFER_SIZE)
+        to_read = min(MAX_BUFFER_SIZE, args.max_filesize - bytes_read)
+        data = file_obj.Read(to_read)
         if not data:
           break
         for hasher in hashers.values():
@@ -248,6 +249,12 @@ class ListDirectory(ReadBuffer):
 
     for response in files:
       self.SendReply(response)
+
+
+class DumpProcessMemory(actions.ActionPlugin):
+  """This action creates a memory dump of a process."""
+  in_rdfvalue = rdf_client.DumpProcessMemoryRequest
+  out_rdfvalue = rdf_paths.PathSpec
 
 
 class IteratedListDirectory(actions.IteratedAction):

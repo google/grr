@@ -70,11 +70,14 @@ class HardwareResourceMonitor {
   explicit HardwareResourceMonitor(MessageQueue*);
   ~HardwareResourceMonitor();
 
+  void ClientEnrolled();
+
  private:
   void RefreshLoop();  // Run by ticker_, sends resource usage stats to the
                        // server.
 
   std::atomic<bool> stop_thread_;
+  std::atomic<bool> enrolled_;
   std::thread ticker_;
   MessageQueue* const outbox_;
 };

@@ -99,19 +99,26 @@ HuntsListController.prototype.selectItem = function(item) {
  * @export
  */
 HuntsListController.prototype.newHunt = function() {
+  var modalScope = this.scope_.$new();
+  modalScope.resolve = function() {
+    modalInstance.close();
+  };
+  modalScope.reject = function() {
+    modalInstance.dismiss();
+  };
+  this.scope_.$on('$destroy', function() {
+    modalScope.$destroy();
+  });
+
   var modalInstance = this.modal_.open({
-    template: '<grr-legacy-renderer renderer="NewHunt" />',
-    scope: this.scope_,
+    template: '<grr-new-hunt-wizard-form on-resolve="resolve()" ' +
+        'on-reject="reject()" />',
+    scope: modalScope,
     windowClass: 'wide-modal high-modal',
     size: 'lg'
   });
 
-  // TODO(user): there's no need to trigger update on dismiss.
-  // Doing so only to maintain compatibility with legacy GRR code.
-  // Remove as soon as legacy GRR code is removed.
   modalInstance.result.then(function resolve() {
-    this.triggerUpdate();
-  }.bind(this), function dismiss() {
     this.triggerUpdate();
   }.bind(this));
 };
@@ -244,7 +251,7 @@ grrUi.hunt.huntsListDirective.HuntsListDirective = function() {
       selectedHuntUrn: '=?'
     },
     restrict: 'E',
-    templateUrl: 'static/angular-components/hunt/hunts-list.html',
+    templateUrl: '/static/angular-components/hunt/hunts-list.html',
     controller: HuntsListController,
     controllerAs: 'ctrl'
   };

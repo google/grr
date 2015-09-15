@@ -1,0 +1,7 @@
+Jan 26 19:35:30 myhost.log.mydomain.com sshd[1059]: Postponed keyboard-interactive/pam for dearjohn from 10.10.122.1 port 49567 ssh2 [preauth]
+Jan 26 19:35:30 myhost.log.mydomain.com sshd[1059]: Accepted keyboard-interactive/pam for dearjohn from 10.10.122.1 port 49567 ssh2
+Jan 26 19:35:30 myhost.log.mydomain.com sshd[1059]: pam_unix(ssh:session): session opened for user dearjohn by (uid=0)
+AWS 26 20:01:38 myhost.log.mydomain.com sshd[1059]: pam_unix(ssh:session): session closed for user dearjohn
+Wrong line format.... should not be here.
+Dec 24 20:35:30 myhost.log.mydomain.com pam_unix is increasing it's presence in the near future
+Jan 03 08:35:14 myhost.log.mydomain.com sshd[1059]: pam_unix(ssh:session): session opened for another grateful user in the future

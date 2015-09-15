@@ -23,33 +23,48 @@ TRIGGER_1 = ("DebianPackagesStatus", "Linux", None, None)
 TRIGGER_2 = ("WMIInstalledSoftware", "Windows", None, None)
 TRIGGER_3 = ("DebianPackagesStatus", None, None, "foo")
 
-# Load some dpkg data
-parser = linux_cmd_parser.DpkgCmdParser()
-test_data = os.path.join(config_lib.CONFIG["Test.data_dir"], "dpkg.out")
-with open(test_data) as f:
-  DPKG_SW = list(parser.Parse(
-      "/usr/bin/dpkg", ["-l"], f.read(), "", 0, 5, None))
-
-# Load some wmi data
-parser = wmi_parser.WMIInstalledSoftwareParser()
-test_data = os.path.join(config_lib.CONFIG["Test.data_dir"], "wmi_sw.yaml")
+DPKG_SW = []
 WMI_SW = []
-with open(test_data) as f:
-  wmi = yaml.safe_load(f)
-  for sw in wmi:
-    WMI_SW.extend(parser.Parse(None, sw, None))
-
-# Load an sshd config
-parser = config_file_parsers.SshdConfigParser()
-test_data = os.path.join(config_lib.CONFIG["Test.data_dir"], "sshd_config")
-with open(test_data) as f:
-  SSHD_CFG = list(parser.Parse(None, f, None))
+SSHD_CFG = []
 
 
-def _LoadCheck(cfg_file, check_id):
-  configs = checks.LoadConfigsFromFile(os.path.join(CHECKS_DIR, cfg_file))
-  cfg = configs.get(check_id)
-  return checks.Check(**cfg)
+def GetDPKGData():
+  if DPKG_SW:
+    return DPKG_SW
+
+  # Load some dpkg data
+  parser = linux_cmd_parser.DpkgCmdParser()
+  test_data = os.path.join(CHECKS_DIR, "data/dpkg.out")
+  with open(test_data) as f:
+    DPKG_SW.extend(parser.Parse(
+        "/usr/bin/dpkg", ["-l"], f.read(), "", 0, 5, None))
+  return DPKG_SW
+
+
+def GetWMIData():
+  if WMI_SW:
+    return WMI_SW
+
+  # Load some wmi data
+  parser = wmi_parser.WMIInstalledSoftwareParser()
+  test_data = os.path.join(CHECKS_DIR, "data/wmi_sw.yaml")
+  with open(test_data) as f:
+    wmi = yaml.safe_load(f)
+    for sw in wmi:
+      WMI_SW.extend(parser.Parse(None, sw, None))
+
+
+def GetSSHDConfig():
+  if SSHD_CFG:
+    return SSHD_CFG
+
+  # Load an sshd config
+  parser = config_file_parsers.SshdConfigParser()
+  test_data = os.path.join(config_lib.CONFIG["Test.data_dir"],
+                           "VFSFixture/etc/ssh/sshd_config")
+  with open(test_data) as f:
+    SSHD_CFG.extend(parser.Parse(None, f, None))
+  return SSHD_CFG
 
 
 class MatchMethodTests(test_lib.GRRBaseTest):
@@ -168,29 +183,34 @@ class CheckRegistryTests(test_lib.GRRBaseTest):
   sshd_chk = None
   sshd_perms = None
 
+  def _LoadCheck(self, cfg_file, check_id):
+    configs = checks.LoadConfigsFromFile(os.path.join(CHECKS_DIR, cfg_file))
+    cfg = configs.get(check_id)
+    return checks.Check(**cfg)
+
   def setUp(self):
     super(CheckRegistryTests, self).setUp()
     if self.sw_chk is None:
-      self.sw_chk = _LoadCheck("sw.yaml", "SW-CHECK")
+      self.sw_chk = self._LoadCheck("sw.yaml", "SW-CHECK")
       checks.CheckRegistry.RegisterCheck(check=self.sw_chk,
                                          source="dpkg.out",
                                          overwrite_if_exists=True)
     if self.sshd_chk is None:
-      self.sshd_chk = _LoadCheck("sshd.yaml", "SSHD-CHECK")
+      self.sshd_chk = self._LoadCheck("sshd.yaml", "SSHD-CHECK")
       checks.CheckRegistry.RegisterCheck(check=self.sshd_chk,
                                          source="sshd_config",
                                          overwrite_if_exists=True)
     if self.sshd_perms is None:
-      self.sshd_perms = _LoadCheck("sshd.yaml", "SSHD-PERMS")
+      self.sshd_perms = self._LoadCheck("sshd.yaml", "SSHD-PERMS")
       checks.CheckRegistry.RegisterCheck(check=self.sshd_perms,
                                          source="sshd_config",
                                          overwrite_if_exists=True)
     self.kb = rdf_client.KnowledgeBase()
     self.kb.hostname = "test.example.com"
     self.host_data = {"KnowledgeBase": self.kb,
-                      "WMIInstalledSoftware": WMI_SW,
-                      "DebianPackagesStatus": DPKG_SW,
-                      "SshdConfigFile": SSHD_CFG}
+                      "WMIInstalledSoftware": GetWMIData(),
+                      "DebianPackagesStatus": GetDPKGData(),
+                      "SshdConfigFile": GetSSHDConfig()}
 
   def testRegisterChecks(self):
     """Defined checks are present in the check registry."""
@@ -302,9 +322,10 @@ class ProcessHostDataTests(checks_test_lib.HostCheckTest):
                 symptom="Found: Malicious software.",
                 type="ANALYSIS_ANOMALY")])
 
-    self.data = {"WMIInstalledSoftware": self.SetArtifactData(parsed=WMI_SW),
-                 "DebianPackagesStatus": self.SetArtifactData(parsed=DPKG_SW),
-                 "SshdConfigFile": self.SetArtifactData(parsed=SSHD_CFG)}
+    self.data = {
+        "WMIInstalledSoftware": self.SetArtifactData(parsed=GetWMIData()),
+        "DebianPackagesStatus": self.SetArtifactData(parsed=GetDPKGData()),
+        "SshdConfigFile": self.SetArtifactData(parsed=GetSSHDConfig())}
 
   def testProcessLinuxHost(self):
     """Checks detect issues and return anomalies as check results."""
@@ -450,8 +471,10 @@ class CheckTest(ChecksTestBase):
       with open(config_file) as data:
         self.cfg = yaml.safe_load(data)
       self.host_data = {
-          "DebianPackagesStatus": {"ANOMALY": [], "PARSER": DPKG_SW, "RAW": []},
-          "WMIInstalledSoftware": {"ANOMALY": [], "PARSER": WMI_SW, "RAW": []}}
+          "DebianPackagesStatus": {
+              "ANOMALY": [], "PARSER": GetDPKGData(), "RAW": []},
+          "WMIInstalledSoftware": {
+              "ANOMALY": [], "PARSER": GetWMIData(), "RAW": []}}
 
   def testInitializeCheck(self):
     chk = checks.Check(**self.cfg)

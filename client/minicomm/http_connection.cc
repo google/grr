@@ -208,6 +208,9 @@ void HttpConnectionManager::Run() {
       failed = true;
       continue;
     }
+
+    hardware.ClientEnrolled();  // Notify hardware resource monitor that the
+                                // client has successfully enrolled.
     if (to_send.size()) {
       // We succeeded in sending to_send.
       GOOGLE_LOG(INFO) << "Sent " << to_send.size() << " messages.";

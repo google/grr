@@ -8,11 +8,13 @@ from grr.lib import aff4
 from grr.lib import artifact
 from grr.lib import artifact_registry
 from grr.lib import parsers
-from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import api_pb2
+
+
+CATEGORY = "Artifacts"
 
 
 class ApiArtifactsRendererArgs(rdf_structs.RDFProtoStruct):
@@ -22,12 +24,10 @@ class ApiArtifactsRendererArgs(rdf_structs.RDFProtoStruct):
 class ApiArtifactsRenderer(api_call_renderer_base.ApiCallRenderer):
   """Renders available artifacts definitions."""
 
+  category = CATEGORY
   args_type = ApiArtifactsRendererArgs
 
-  def RenderArtifacts(self, artifacts, custom_artifacts=None):
-    if custom_artifacts is None:
-      custom_artifacts = set()
-
+  def RenderArtifacts(self, artifacts):
     result = []
     for artifact_val in artifacts:
       descriptor = artifact_registry.ArtifactDescriptor(
@@ -35,7 +35,8 @@ class ApiArtifactsRenderer(api_call_renderer_base.ApiCallRenderer):
           artifact_source=artifact_val.ToPrettyJson(extended=True),
           dependencies=sorted(artifact_val.GetArtifactDependencies()),
           path_dependencies=sorted(artifact_val.GetArtifactPathDependencies()),
-          is_custom=artifact_val.name in custom_artifacts)
+          error_message=artifact_val.error_message,
+          is_custom=artifact_val.loaded_from.startswith("datastore:"))
 
       for processor in parsers.Parser.GetClassesByArtifact(artifact_val.name):
         descriptor.processors.append(
@@ -51,22 +52,10 @@ class ApiArtifactsRenderer(api_call_renderer_base.ApiCallRenderer):
   def Render(self, args, token=None):
     """Get available artifact information for rendering."""
 
-    # get custom artifacts from data store
-    artifact_urn = rdfvalue.RDFURN("aff4:/artifact_store")
-    try:
-      collection = aff4.FACTORY.Open(artifact_urn,
-                                     aff4_type="RDFValueCollection",
-                                     token=token)
-    except IOError:
-      collection = {}
-
-    custom_artifacts = set()
-    for artifact_val in collection:
-      custom_artifacts.add(artifact_val.name)
-
     # Get all artifacts that aren't Bootstrap and aren't the base class.
     artifacts = sorted(artifact_registry.REGISTRY.GetArtifacts(
-        reload_datastore_artifacts=True))
+        reload_datastore_artifacts=True), key=lambda art: art.name)
+
     total_count = len(artifacts)
 
     if args.count:
@@ -74,8 +63,7 @@ class ApiArtifactsRenderer(api_call_renderer_base.ApiCallRenderer):
     else:
       artifacts = artifacts[args.offset:]
 
-    rendered_artifacts = self.RenderArtifacts(artifacts,
-                                              custom_artifacts=custom_artifacts)
+    rendered_artifacts = self.RenderArtifacts(artifacts)
 
     return dict(total_count=total_count,
                 offset=args.offset,
@@ -90,6 +78,7 @@ class ApiArtifactsUploadRendererArgs(rdf_structs.RDFProtoStruct):
 class ApiArtifactsUploadRenderer(api_call_renderer_base.ApiCallRenderer):
   """Handles artifact upload."""
 
+  category = CATEGORY
   args_type = ApiArtifactsUploadRendererArgs
 
   def Render(self, args, token=None):
@@ -104,14 +93,32 @@ class ApiArtifactsDeleteRendererArgs(rdf_structs.RDFProtoStruct):
 class ApiArtifactsDeleteRenderer(api_call_renderer_base.ApiCallRenderer):
   """Handles artifact deletion."""
 
+  category = CATEGORY
   args_type = ApiArtifactsDeleteRendererArgs
 
   def Render(self, args, token=None):
+    artifacts = sorted(artifact_registry.REGISTRY.GetArtifacts(
+        reload_datastore_artifacts=True))
+
+    deps = set()
+    to_delete = set(args.names)
+    for artifact_obj in artifacts:
+      deps.update(artifact_obj.GetArtifactDependencies() & to_delete)
+
+    if deps:
+      raise ValueError(
+          "Artifact(s) %s depend(s) on one of the artifacts to delete." % (
+              ",".join(list(deps))))
+
     with aff4.FACTORY.Create("aff4:/artifact_store", mode="r",
                              aff4_type="RDFValueCollection",
                              token=token) as store:
-      filtered_artifacts = [artifact_value for artifact_value in store
-                            if artifact_value.name not in args.names]
+      all_artifacts = list(store)
+      filtered_artifacts = [artifact_value for artifact_value in all_artifacts
+                            if artifact_value.name not in to_delete]
+      if filtered_artifacts == all_artifacts:
+        raise ValueError(
+            "Artifact(s) to delete (%s) not found." % ",".join(list(to_delete)))
 
     # TODO(user): this is ugly and error- and race-condition- prone.
     # We need to store artifacts not in an RDFValueCollection, which is an

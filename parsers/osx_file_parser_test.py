@@ -53,7 +53,7 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
     plists = ["com.google.code.grr.plist", "com.google.code.grr.bplist"]
     results = []
     for plist in plists:
-      path = os.path.join(self.base_path, plist)
+      path = os.path.join(self.base_path, "parser_test", plist)
       plist_file = open(path)
       stat = rdf_client.StatEntry(
           aff4path=rdf_client.ClientURN(client).Add("fs/os").Add(path),

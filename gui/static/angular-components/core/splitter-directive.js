@@ -14,18 +14,22 @@ goog.scope(function() {
  * @constructor
  * @param {!angular.Scope} $scope
  * @param {!angular.JQLite} $element
+ * @param {!angular.$interval} $interval
  * @ngInject
  */
 grrUi.core.splitterDirective.SplitterController = function(
-    $scope, $element) {
+    $scope, $element, $interval) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @type {string} */
-  this.scope_.orientation;
-
   /** @private {!angular.JQLite} */
   this.element_ = $element;
+
+  /** @private {!angular.$interval} */
+  this.interval_ = $interval;
+
+  /** @type {string} */
+  this.scope_.orientation;
 
   /** @export {!Array<angular.Scope>} */
   this.panes = [];
@@ -76,7 +80,23 @@ SplitterController.prototype.link = function() {
   splitterOptions['A'] = $(this.panes[0].elem);
   splitterOptions['B'] = $(this.panes[1].elem);
 
-  $(this.element_).children('div.splitter').splitter(splitterOptions);
+  // Wait until DOM updates so that splitter is applied to a div that
+  // has a meaningful width and height. Give up after 5 attempts.
+  var count = 0;
+  var stop = this.interval_(function() {
+    if ($(this.element_).width() > 0 &&
+        $(this.element_).height() > 0 ||
+        count > 5) {
+      $(this.element_).children('div.splitter').splitter(splitterOptions);
+      this.interval_.cancel(stop);
+    } else {
+      count += 1;
+    }
+  }.bind(this), 100);
+
+  this.element_.on('$destroy', function() {
+    this.interval_.cancel(stop);
+  }.bind(this));
 };
 
 

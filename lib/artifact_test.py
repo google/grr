@@ -388,33 +388,20 @@ class ArtifactFlowTest(ArtifactTest):
 
   def testFilesArtifact(self):
     """Check GetFiles artifacts."""
-    # Update the artifact path to point to the test directory.
-    art_obj = artifact_registry.REGISTRY.GetArtifact(
-        "TestFilesArtifact")
-    orig_path = art_obj.sources[0].attributes["paths"]
-    try:
-      art_obj.sources[0].attributes["paths"] = (
-          [os.path.join(self.base_path, "auth.log")])
+    with test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.OS, test_lib.FakeTestDataVFSHandler):
       client_mock = action_mocks.ActionMock(
           "TransferBuffer", "StatFile", "Find",
           "HashBuffer", "ListDirectory", "FingerprintFile")
       self.RunCollectorAndGetCollection(["TestFilesArtifact"],
                                         client_mock=client_mock)
-      urn = self.client_id.Add("fs/os/").Add(self.base_path).Add("auth.log")
+      urn = self.client_id.Add("fs/os/").Add("var/log/auth.log")
       aff4.FACTORY.Open(urn, aff4_type="VFSBlobImage", token=self.token)
-    finally:
-      art_obj.sources[0].attributes["paths"] = orig_path
 
   def testLinuxPasswdHomedirsArtifact(self):
     """Check LinuxPasswdHomedirs artifacts."""
-    # Update the artifact path to point to the test directory.
-    art_obj = artifact_registry.REGISTRY.GetArtifact(
-        "LinuxPasswdHomedirs")
-    orig_path = art_obj.sources[0].attributes["paths"]
-    try:
-      art_obj.sources[0].attributes["paths"] = [
-          os.path.join(self.base_path, "passwd")]
-
+    with test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.OS, test_lib.FakeTestDataVFSHandler):
       client_mock = action_mocks.ActionMock(
           "TransferBuffer", "StatFile", "Find",
           "HashBuffer", "ListDirectory", "FingerprintFile", "Grep")
@@ -432,21 +419,12 @@ class ArtifactFlowTest(ArtifactTest):
           self.assertEqual(user.shell, u"/bin/sh")
           self.assertEqual(user.uid, 46)
 
-    finally:
-      art_obj.sources[0].attributes["paths"] = orig_path
-
   def testArtifactOutput(self):
     """Check we can run command based artifacts."""
     self.SetLinuxClient()
 
-    # Update the artifact path to point to the test directory.
-    art_obj = artifact_registry.REGISTRY.GetArtifact(
-        "TestFilesArtifact")
-    oldpaths = art_obj.sources[0].attributes["paths"]
-    try:
-      art_obj.sources[0].attributes["paths"] = [
-          os.path.join(self.base_path, "auth.log")]
-
+    with test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.OS, test_lib.FakeTestDataVFSHandler):
       client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile",
                                             "FingerprintFile", "HashBuffer",
                                             "ListDirectory", "Find")
@@ -466,8 +444,6 @@ class ArtifactFlowTest(ArtifactTest):
             split_output_by_artifact=True, on_no_results_error=True)
       if "collector returned 0 responses" not in str(context.exception):
         raise RuntimeError("0 responses should have been returned")
-    finally:
-      art_obj.sources[0].attributes["path"] = oldpaths
 
 
 class GrrKbTest(ArtifactTest):

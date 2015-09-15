@@ -2044,3 +2044,8 @@ message NSRLInformation {
 message PendingFlowTermination {
   optional string reason = 1;
 }
+
+message DumpProcessMemoryRequest {
+  optional int32 pid = 1;
+  optional bool pause = 2;
+}

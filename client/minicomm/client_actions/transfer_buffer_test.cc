@@ -43,7 +43,7 @@ TEST(TransferBuffer, SmallFile) {
     message.set_args_rdf_name("BufferReference");
     message.set_name("HashBuffer");
 
-    ActionContext context(message, &queue);
+    ActionContext context(message, &queue, nullptr);
     action.ProcessRequest(&context);
     const auto r = queue.GetMessages(5, 20000, true);
     ASSERT_EQ(r.size(), 1);
@@ -63,7 +63,7 @@ TEST(TransferBuffer, SmallFile) {
     message.set_args_rdf_name("BufferReference");
     message.set_name("TransferBuffer");
 
-    ActionContext context(message, &queue);
+    ActionContext context(message, &queue, nullptr);
     action.ProcessRequest(&context);
     const auto r = queue.GetMessages(5, 20000, true);
     ASSERT_EQ(r.size(), 2);

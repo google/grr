@@ -211,6 +211,11 @@ class FileTracker(object):
     # from the size as reported by stat() for special files (e.g. proc files).
     self.bytes_read = 0
 
+    # The number of bytes we are expected to fetch. This value depends on
+    # - the bytes available (stat_entry.st_size or bytes_read if available).
+    # - a limit to the file size in the flow (self.args.file_size).
+    self.size_to_download = 0
+
   def __str__(self):
     sha256 = self.hash_obj and self.hash_obj.sha256
     if sha256:
@@ -233,6 +238,7 @@ class FileTracker(object):
     Returns:
       filehandle open for write
     """
+
     # We create the file in the client namespace and populate with metadata.
     self.fd = aff4.FACTORY.Create(self.urn, filetype, mode="w",
                                   token=token)
@@ -348,6 +354,7 @@ class MultiGetFileMixin(object):
     """Add hash digest to tracker and check with filestore."""
     # Support old clients which may not have the new client action in place yet.
     # TODO(user): Deprecate once all clients have the HashFile action.
+
     if not responses.success and responses.request.request.name == "HashFile":
       logging.debug(
           "HashFile action not available, falling back to FingerprintFile.")
@@ -455,7 +462,6 @@ class MultiGetFileMixin(object):
         continue
 
       for file_tracker in hash_to_urn.get(hashset.sha256, []):
-
         # Due to potential filestore corruption, the existing_blob files can
         # have 0 size, make sure our size matches the actual size in that case.
         if existing_blob.size == 0:
@@ -497,12 +503,13 @@ class MultiGetFileMixin(object):
       # If we already know how big the file is we use that, otherwise fall back
       # to the size reported by stat.
       if file_tracker.bytes_read > 0:
-        size_to_download = file_tracker.bytes_read
+        file_tracker.size_to_download = file_tracker.bytes_read
       else:
-        size_to_download = file_tracker.stat_entry.st_size
+        file_tracker.size_to_download = file_tracker.stat_entry.st_size
 
       # We do not have the file here yet - we need to retrieve it.
-      expected_number_of_hashes = size_to_download / self.CHUNK_SIZE + 1
+      expected_number_of_hashes = (
+          file_tracker.size_to_download / self.CHUNK_SIZE + 1)
 
       # We just hash ALL the chunks in the file now. NOTE: This maximizes client
       # VFS cache hit rate and is far more efficient than launching multiple
@@ -510,9 +517,14 @@ class MultiGetFileMixin(object):
       self.state.files_to_fetch += 1
 
       for i in range(expected_number_of_hashes):
+        if i == expected_number_of_hashes - 1:
+          # The last chunk is short.
+          length = file_tracker.size_to_download % self.CHUNK_SIZE
+        else:
+          length = self.CHUNK_SIZE
         self.CallClient("HashBuffer", pathspec=file_tracker.pathspec,
                         offset=i * self.CHUNK_SIZE,
-                        length=self.CHUNK_SIZE, next_state="CheckHash",
+                        length=length, next_state="CheckHash",
                         request_data=dict(index=index))
 
     if self.state.files_hashed % 100 == 0:
@@ -599,7 +611,7 @@ class MultiGetFileMixin(object):
       file_tracker.fd.AddBlob(response.data, response.length)
 
       if (response.length < file_tracker.fd.chunksize or
-          response.offset + response.length >= file_tracker.stat_entry.st_size):
+          response.offset + response.length >= file_tracker.size_to_download):
         # File done, remove from the store and close it.
         self.RemoveInFlightFile(index)
 

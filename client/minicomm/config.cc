@@ -42,6 +42,7 @@ bool ClientConfig::ReadConfig() {
 
   key_.FromPEM(proto.client_private_key_pem());
   ca_cert_.FromPEM(proto.ca_cert_pem());
+  temporary_directory_ = proto.temporary_directory();
 
   client_id_ = MakeClientId();
   if (!control_urls_.size()) {

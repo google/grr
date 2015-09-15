@@ -10,8 +10,8 @@
 namespace grr {
 class ClientActionDispatcher {
  public:
-  ClientActionDispatcher(MessageQueue* inbox,
-                         MessageQueue* outbox);
+  ClientActionDispatcher(MessageQueue* inbox, MessageQueue* outbox,
+                         ClientConfig* config);
   ~ClientActionDispatcher();
 
   // Setup method. All calls should be made before StartProcessing. Takes
@@ -29,6 +29,7 @@ class ClientActionDispatcher {
   std::thread processing_thread_;
   void ActionLoop();
 
+  ClientConfig* const config_;
   MessageQueue* const inbox_;
   MessageQueue* const outbox_;
 

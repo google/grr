@@ -2,7 +2,6 @@
 """Load all flows so that they are visible in the registry.
 """
 
-
 # pylint: disable=unused-import
 # These imports populate the Flow registry
 from grr.lib.flows.general import administrative
@@ -14,6 +13,7 @@ from grr.lib.flows.general import ca_enroller
 from grr.lib.flows.general import checks
 from grr.lib.flows.general import collectors
 from grr.lib.flows.general import discovery
+from grr.lib.flows.general import dump_process_memory
 
 from grr.lib.flows.general import export
 

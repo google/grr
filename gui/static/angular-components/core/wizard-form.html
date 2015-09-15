@@ -1,0 +1,34 @@
+<div class="Wizard FormData">
+  <div class="WizardPage">
+    <div class="WizardBar modal-header">
+      <button type="button" class="close"
+              ng-click="controller.reject()" aria-hidden="true">
+        x
+      </button>
+
+      <h3>{$ title $} -
+        <span class="Description">
+          {$ controller.currentPage.title $}
+        </span>
+      </h3>
+    </div>
+
+    <ng-transclude></ng-transclude>
+  </div>
+
+  <div class="modal-footer navbar-inner">
+    <ul class="nav nav pull-right">
+      <button ng-if="!controller.isFirstPage && !controller.currentPage.noBackButton"
+              class="btn btn-default Back"
+              ng-click="controller.back()">
+        {$ controller.currentPage.prevButtonLabel $}
+      </button>
+      <button class="btn btn-primary Next"
+              ng-disabled="!controller.currentPage.isValid"
+              ng-click="controller.next()">
+        {$ controller.currentPage.nextButtonLabel $}
+      </button>
+    </ul>
+  </div>
+
+</div>

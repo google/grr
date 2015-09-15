@@ -39,10 +39,28 @@ grrUi.forms.semanticProtoFormDirective.SemanticProtoFormController = function(
   this.scope_.$watch('controller.editedValue.value',
                      this.onEditedValueChange_.bind(this),
                      true);
+
+  this.boundNotExplicitlyHiddenFields =
+      this.notExplicitlyHiddenFields_.bind(this);
 };
 var SemanticProtoFormController =
     grrUi.forms.semanticProtoFormDirective.SemanticProtoFormController;
 
+
+/**
+ * Filter function that returns true if the field wasn't explicitly mentioned
+ * in 'hidden-fields' directive's argument.
+ *
+ * @param {string} field Name of a field.
+ * @param {number} index Index of the field name in the names list.
+ * @return {boolean} True if the field is not hidden, false otherwise.
+ * @private
+ */
+SemanticProtoFormController.prototype.notExplicitlyHiddenFields_ = function(
+    field, index) {
+  return angular.isUndefined(this.scope_['hiddenFields']) ||
+      this.scope_['hiddenFields'].indexOf(field['name']) == -1;
+};
 
 /**
  * Predicate that returns true only for regular (non-hidden, non-advanced)
@@ -203,7 +221,8 @@ grrUi.forms.semanticProtoFormDirective.SemanticProtoFormDirective = function() {
   return {
     scope: {
       value: '=',
-      metadata: '=?'
+      metadata: '=?',
+      hiddenFields: '=?'
     },
     restrict: 'E',
     templateUrl: '/static/angular-components/forms/semantic-proto-form.html',

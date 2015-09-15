@@ -14,68 +14,108 @@
       </p>
       <p>
         <samp>/api/hunts?<strong>offset=100&amp;count=20</strong></samp><br>
-        <samp>/api/aff4/hunts/H:12345678/Results?RDFValueCollection.count=5&amp;RDFValueCollection.offset=0</samp>
+        <samp>/api/aff4/hunts/<strong>H:12345678</strong>/Results?<strong>RDFValueCollection.count=5&amp;RDFValueCollection.offset=0</strong></samp>
       </p>
+
+      <br/>
+      <h4>Permissions</h4>
       <p>
         If special permissions are required to access certain resources,
         &quot;reason&quot; query parameter may be specified.
         For example:</p>
       <p>
-        <samp>/api/aff4/C.123456789abcdef1/analysis/AnalyzeClientMemory/myusername-1435178456.2?RekallResponseCollection&amp;reason=InvestigationID+1234</samp>
-      </p><br/>
+        <samp>/api/aff4/C.123456789abcdef1/analysis/AnalyzeClientMemory/myusername-1435178456.2?<strong>reason=InvestigationID+1234</strong></samp>
+      </p>
 
-      <div class="doc-item"
-           ng-repeat="apiCallRenderer in ::controller.apiCallRenderers">
-        <p class="lead">
-          {$ ::apiCallRenderer.methods.join(', ') $}
-          <grr-api-route value="::apiCallRenderer.route"></grr-api-route>
-        </p>
+      <br/>
+      <h4>Type information</h4>
+      <p>
+        GRR API responses usually contain richly typed data. If you don't need the type information, you can strip it from any response by setting "strip_type_info" flag. For example:
+      </p>
+      <p>
+        <samp>/api/hunts?offset=100&amp;count=20&amp;<strong>strip_type_info=1</strong></samp><br>
+      </p>
+      <br/>
 
-        <grr-api-description value="::apiCallRenderer.doc"></grr-api-description>
-        <grr-api-query-spec args-type="::apiCallRenderer.args_type"></grr-api-query-spec>
+      <div class="panel panel-default doc-item-category"
+           ng-repeat="category in ::controller.categories">
 
-        <div ng-if="controller.examplesByRenderer[apiCallRenderer.renderer].length > 0">
-          <h4>Examples:</h4>
+        <div class="panel-heading" id="docs-category-{$ $index $}">
+          <h2>{$ category $}</h2>
+        </div>
 
-          <table class="example table table-condensed"
-                 ng-repeat="example in ::controller.examplesByRenderer[apiCallRenderer.renderer]">
-            <thead>
-              <th>
-                <grr-api-route value="::example.url" />
-              </th>
-            </thead>
-            <tbody>
-              <tr>
-                <td>
-                  <div class="json pre-scrollable">{$ ::example.response | json:2 $}</div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="panel-body" grr-on-scroll-into-view="controller.visibleCategory = category">
+          <div class="doc-item"
+               ng-repeat="apiCallRenderer in ::controller.apiCallRenderersByCategory[category]">
+            <p class="lead">
+              {$ ::apiCallRenderer.methods.join(', ') $}
+              <grr-api-route value="::apiCallRenderer.route"></grr-api-route>
+            </p>
+
+            <grr-api-description value="::apiCallRenderer.doc"></grr-api-description>
+            <grr-api-query-spec args-type="::apiCallRenderer.args_type"></grr-api-query-spec>
+
+            <div ng-if="controller.examplesByRenderer[apiCallRenderer.renderer].length > 0">
+              <h4>Examples:</h4>
+
+              <table class="example table table-condensed"
+                     ng-repeat="example in ::controller.examplesByRenderer[apiCallRenderer.renderer]">
+                <thead>
+                  <th>
+                    <grr-api-route value="::example.url"></grr-api-route>
+                    <div class="pull-right" ng-if="::example.type_stripped_response !== undefined">
+                      <input ng-model="example.showTypeStripped" type="checkbox">
+                        Show type-stripped response
+                      </input>
+                    </div>
+                  </th>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <div class="json pre-scrollable" ng-if="!example.showTypeStripped">{$ ::example.response | json:2 $}</div>
+                      <div class="json pre-scrollable" ng-if="example.showTypeStripped">{$ ::example.type_stripped_response | json:2 $}</div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div ng-if="apiCallRenderer.renderer == 'ApiAff4Renderer'">
+              <p>
+                When using <strong>/api/aff4/...</strong> API, set of accepted query parameters changes
+                depending on the type of the accessed objects.
+              </p>
+              <p>
+                You can influence the output by providing object-type-specific query parameters.
+                Below is the list of such parameters, grouped by object types.
+              </p>
+
+              <div class="doc-item"
+                   ng-repeat="(name, apiObjectRenderer) in ::controller.apiObjectRenderers"
+                   ng-if="::apiObjectRenderer.args_type.length > 0">
+                <p class="lead">{$ ::name $}</p>
+                <grr-api-query-spec prefix="::name + '.'"
+                                    args-type="::apiObjectRenderer.args_type"
+                                    no-header />
+              </div>
+            </div>
+
+          </div>
         </div>
 
       </div>
 
-      <div class="doc-item">
-        <h1>AFF4 object renderers</h2>
-        <p>
-          When using <strong>/api/aff4/...</strong> API, set of accepted query parameters changes
-          depending on the type of the accessed objects.
-        </p>
-        <p>
-          You can influence the output by providing object-type-specific query parameters.
-          Below is the list of such parameters, grouped by object types.
-        </p>
-      </div>
-
-      <div class="doc-item"
-           ng-repeat="(name, apiObjectRenderer) in ::controller.apiObjectRenderers"
-           ng-if="::apiObjectRenderer.args_type.length > 0">
-        <p class="lead">{$ ::name $}</p>
-        <grr-api-query-spec prefix="::name + '.'"
-                            args-type="::apiObjectRenderer.args_type"
-                            no-header />
-      </div>
     </div>
-  </div>
-</div>
+    <div class="col-md-3 vertically-padded">
+
+      <div class="list-group doc-toc">
+        <a ng-class="{'active': controller.visibleCategory == category}"
+           ng-repeat="category in controller.categories" class="list-group-item"
+           ng-click="controller.onCategoryLinkClick(category)">
+          {$ category $}
+        </a>
+      </ul>
+    </div>
+  </div>  <!-- div class=row -->
+</div>  <!-- div class=container-fluid -->

@@ -533,12 +533,15 @@ def UploadArtifactYamlFile(file_content, base_urn=None, token=None,
     base_urn = aff4.ROOT_URN.Add("artifact_store")
   registry_obj = artifact_registry.REGISTRY
 
+  new_artifacts = registry_obj.ArtifactsFromYaml(file_content)
+  # A quick syntax check before we upload anything.
+  for artifact_value in new_artifacts:
+    artifact_value.ValidateSyntax()
+
+  # Iterate through each artifact adding it to the collection.
   with aff4.FACTORY.Create(base_urn, aff4_type="RDFValueCollection",
                            token=token, mode="rw") as artifact_coll:
-
-    # Iterate through each artifact adding it to the collection.
-    for artifact_value in registry_obj.ArtifactsFromYaml(file_content):
-      artifact_value.ValidateSyntax()
+    for artifact_value in new_artifacts:
       artifact_coll.Add(artifact_value)
       registry_obj.RegisterArtifact(
           artifact_value, source="datastore:%s" % base_urn,

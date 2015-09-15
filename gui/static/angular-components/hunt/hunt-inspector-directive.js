@@ -55,7 +55,7 @@ grrUi.hunt.huntInspectorDirective.HuntInspectorDirective = function() {
       huntUrn: '='
     },
     restrict: 'E',
-    templateUrl: 'static/angular-components/hunt/hunt-inspector.html',
+    templateUrl: '/static/angular-components/hunt/hunt-inspector.html',
     controller: HuntInspectorController,
     controllerAs: 'controller'
   };

@@ -78,14 +78,8 @@ config_lib.DEFINE_list("Artifacts.interrogate_store_in_aff4_additions",
                        "interrogate_store_in_aff4 list. This allows per-site "
                        "tweaks without having to redefine the whole list.")
 
-# TODO(user): RootDiskVolumeUsage can be removed from the skip list after
-# people have had a chance to upgrade clients past 2.9.2.
-# TODO(user): LinuxHardwareInfo and OSXSPHardwareDataType can be removed from
-# the skip list after people have had a chance to upgrade clients past 3.0.0.3.
 config_lib.DEFINE_list("Artifacts.interrogate_store_in_aff4_skip",
-                       ["RootDiskVolumeUsage",
-                        "LinuxHardwareInfo",
-                        "OSXSPHardwareDataType"],
+                       [],
                        "Artifacts to remove from the "
                        "interrogate_store_in_aff4 list. This allows per-site "
                        "tweaks without having to redefine the whole list.")

@@ -54,7 +54,7 @@ grrUi.hunt.huntErrorsDirective.HuntErrorsDirective = function() {
       huntUrn: '='
     },
     restrict: 'E',
-    templateUrl: 'static/angular-components/hunt/hunt-errors.html',
+    templateUrl: '/static/angular-components/hunt/hunt-errors.html',
     controller: HuntErrorsController,
     controllerAs: 'controller'
   };

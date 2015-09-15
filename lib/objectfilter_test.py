@@ -81,7 +81,9 @@ class DummyFile(object):
   @property
   def mapping(self):
     return {"hashes": [HashObject(hash1), HashObject(hash2)],
-            "nested": {"attrs": [attr1, attr2]}}
+            "nested": {"attrs": [attr1, attr2]},
+            "string": "mate",
+            "float": 42.0}
 
   @property
   def size(self):
@@ -220,6 +222,14 @@ class ObjectFilterTest(unittest.TestCase):
     # Existing, non-repeated, leaf is a value
     values = self.value_expander().Expand(self.file, "size")
     self.assertListEqual(list(values), [10])
+
+    # Existing, non-repeated, leaf is a string in mapping
+    values = self.value_expander().Expand(self.file, "mapping.string")
+    self.assertListEqual(list(values), ["mate"])
+
+    # Existing, non-repeated, leaf is a scalar in mapping
+    values = self.value_expander().Expand(self.file, "mapping.float")
+    self.assertListEqual(list(values), [42.0])
 
     # Existing, non-repeated, leaf is iterable
     values = self.value_expander().Expand(self.file, "attributes")

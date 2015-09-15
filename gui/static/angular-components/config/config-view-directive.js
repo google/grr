@@ -35,7 +35,7 @@ directive.ConfigViewDirective = function() {
   return {
     restrict: 'E',
     scope: {},
-    templateUrl: 'static/angular-components/config/config-view.html',
+    templateUrl: '/static/angular-components/config/config-view.html',
     controller: ConfigViewController,
     controllerAs: 'ctrl'
   };

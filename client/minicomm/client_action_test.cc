@@ -31,7 +31,7 @@ class ActionContextTest : public ::testing::Test {
 };
 
 TEST_F(ActionContextTest, SendMessage) {
-  ActionContext context(request_message_, &message_queue_);
+  ActionContext context(request_message_, &message_queue_, nullptr);
 
   GrrMessage response_message;
   response_message.set_session_id("Session42");
@@ -43,7 +43,7 @@ TEST_F(ActionContextTest, SendMessage) {
 }
 
 TEST_F(ActionContextTest, SendResponse) {
-  ActionContext context(request_message_, &message_queue_);
+  ActionContext context(request_message_, &message_queue_, nullptr);
 
   Uname args;
   args.set_system("Nouveau Linux");
@@ -68,7 +68,7 @@ TEST_F(ActionContextTest, SendResponse) {
 }
 
 TEST_F(ActionContextTest, SetError) {
-  ActionContext context(request_message_, &message_queue_);
+  ActionContext context(request_message_, &message_queue_, nullptr);
   EXPECT_EQ(GrrStatus::OK, context.Status().status());
 
   context.SetError("Unable to fizz or buzz.");
@@ -79,7 +79,7 @@ TEST_F(ActionContextTest, SetError) {
 
 TEST_F(ActionContextTest, PopulateArgsNoArgs) {
   // Can't import if request doesn't have args attached.
-  ActionContext context(request_message_, &message_queue_);
+  ActionContext context(request_message_, &message_queue_, nullptr);
   BufferReference ref;
   EXPECT_FALSE(context.PopulateArgs(&ref));
 
@@ -92,7 +92,7 @@ TEST_F(ActionContextTest, PopulateArgsNoArgs) {
 TEST_F(ActionContextTest, PopulateArgsBadType) {
   request_message_.set_args_rdf_name("FingerprintRequest");
   request_message_.set_args("");
-  ActionContext context(request_message_, &message_queue_);
+  ActionContext context(request_message_, &message_queue_, nullptr);
   BufferReference ref;
   EXPECT_FALSE(context.PopulateArgs(&ref));
 
@@ -107,7 +107,7 @@ TEST_F(ActionContextTest, PopulateArgsBadType) {
 TEST_F(ActionContextTest, PopulateArgsBadData) {
   request_message_.set_args_rdf_name("BufferReference");
   request_message_.set_args("not a protocol buffer");
-  ActionContext context(request_message_, &message_queue_);
+  ActionContext context(request_message_, &message_queue_, nullptr);
   BufferReference ref;
   EXPECT_FALSE(context.PopulateArgs(&ref));
 
@@ -120,7 +120,7 @@ TEST_F(ActionContextTest, PopulateArgsEmptyArgs) {
   // Empty args is fine, so long as the rdf name is correct.
   request_message_.set_args_rdf_name("BufferReference");
   request_message_.set_args("");
-  ActionContext context(request_message_, &message_queue_);
+  ActionContext context(request_message_, &message_queue_, nullptr);
   BufferReference ref;
   EXPECT_TRUE(context.PopulateArgs(&ref));
 }
@@ -132,7 +132,7 @@ TEST_F(ActionContextTest, PopulateArgsSuccess) {
   request_message_.set_args(ref.SerializeAsString());
 
   ref.Clear();
-  ActionContext context(request_message_, &message_queue_);
+  ActionContext context(request_message_, &message_queue_, nullptr);
   EXPECT_TRUE(context.PopulateArgs(&ref));
 
   EXPECT_EQ(ref.offset(), 2600);

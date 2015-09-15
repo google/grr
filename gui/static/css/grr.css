@@ -315,7 +315,7 @@ a {
     left: 0;
     right: 0;
     top: 82px;
-    bottom: 73px;
+    bottom: 69px;
     max-height: none;
     padding: 0;
 }
@@ -375,6 +375,11 @@ dd.histogram > div {
 .horizontally-padded {
   padding-left: 1em;
   padding-right: 1em;
+}
+
+.vertically-padded {
+  padding-top: 1em;
+  padding-bottom: 1em;
 }
 
 .full-width {
@@ -683,6 +688,12 @@ td.lease_available {
 
 .preserve-linebreaks {
   white-space: pre-line;
+}
+
+.doc-toc {
+ position: fixed;
+ min-width: 15em;
+ max-width: 20em;
 }
 
 .doc-item {

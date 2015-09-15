@@ -33,7 +33,7 @@ NetworkResourceMonitor::GetInterface() {
     return previous_response_;
 
   previous_accessed_ = new_time;
-  if (GetInterfaceState("en0") == "up") {
+  if (GetInterfaceState("en0") == "up" || GetInterfaceState("em1") == "up") {
     return previous_response_ = Interface::Types::ETHERNET;
   }
 
@@ -71,7 +71,7 @@ NetworkResourceMonitor::NetworkResourceMonitor() {
   auto test_time = std::chrono::high_resolution_clock::now();
 
   interfaces_[Interface::Types::ETHERNET] =
-      Interface(0, test_time, 10);  // ~20GB per month
+      Interface(0, test_time, 100);  // ~200GB per month
 
   interfaces_[Interface::Types::WLAN] =
       Interface(0, test_time, 1);  // ~2GB per month
@@ -114,7 +114,7 @@ bool NetworkResourceMonitor::Interface::Sleep(const uint64 data_size) {
   GOOGLE_LOG(INFO) << "Size of data waiting to be sent: "
                    << static_cast<int>(data_size / 1024) << "kb";
 
-  if (diff > 10 * 1000) {  // 10 seconds
+  if (diff > 60 * 1000) {  // 1 min
     return false;  // this packet would take up too much bandwidth at once
   }
 
@@ -225,14 +225,16 @@ void HardwareResourceMonitor::RefreshLoop() {
     stats.set_request_id(0);
     stats.set_task_id(0);
 
-    outbox_->AddMessage(stats);
+    if (enrolled_) outbox_->AddMessage(stats);
 
     previous_cpu_sample = current_cpu_sample;
   }
 }
 
+void HardwareResourceMonitor::ClientEnrolled() { enrolled_ = true; }
+
 HardwareResourceMonitor::HardwareResourceMonitor(MessageQueue* outbox)
-    : outbox_(outbox), stop_thread_(false) {
+    : outbox_(outbox), stop_thread_(false), enrolled_(false) {
   ticker_ = std::thread(&HardwareResourceMonitor::RefreshLoop, this);
 }
 

@@ -525,6 +525,9 @@ def GetClientContext(client_id, token):
   if arch == "x86":
     arch = "i386"
 
+  if arch == "x86_64":
+    arch = "amd64"
+
   if arch:
     client_context.append("Arch:%s" % arch)
 

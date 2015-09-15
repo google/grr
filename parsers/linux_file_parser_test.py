@@ -122,7 +122,7 @@ super_group2 (-,user7,) super_group
   def testWtmpParser(self):
     """Test parsing of wtmp file."""
     parser = linux_file_parser.LinuxWtmpParser()
-    path = os.path.join(self.base_path, "wtmp")
+    path = os.path.join(self.base_path, "VFSFixture/var/log/wtmp")
     with open(path, "rb") as wtmp_fd:
       out = list(parser.Parse(None, wtmp_fd, None))
 

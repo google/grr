@@ -85,7 +85,7 @@ grrUi.docs.apiQuerySpecDirective.ApiQuerySpecDirective = function() {
       noHeader: '@'
     },
     restrict: 'E',
-    templateUrl: 'static/angular-components/docs/api-query-spec.html',
+    templateUrl: '/static/angular-components/docs/api-query-spec.html',
     controller: ApiQuerySpecController,
     controllerAs: 'controller'
   };

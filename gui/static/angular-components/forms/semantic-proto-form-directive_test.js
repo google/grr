@@ -41,11 +41,13 @@ describe('semantic proto form directive', function() {
         'grrSemanticFormDirectivesRegistryService');
   }));
 
-  var renderTestTemplate = function(value, metadata) {
+  var renderTestTemplate = function(value, metadata, hiddenFields) {
     $rootScope.value = value;
     $rootScope.metadata = metadata;
+    $rootScope.hiddenFields = hiddenFields;
 
-    var template = '<grr-form-proto value="value" metadata="metadata" />';
+    var template = '<grr-form-proto value="value" metadata="metadata" ' +
+        'hidden-fields="hiddenFields" />';
     var element = $compile(template)($rootScope);
     $rootScope.$apply();
 
@@ -129,6 +131,20 @@ describe('semantic proto form directive', function() {
       // Check that for every primitive field a grr-form-proto-single-field
       // directive is created.
       expect(element.find('grr-form-proto-single-field').length).toBe(2);
+    });
+
+    it('does not render fields listed in hidden-fields argument', function() {
+      var element = renderTestTemplate(defaultFooStructValue, undefined,
+                                       ['field_1']);
+
+      expect(element.find('grr-form-proto-single-field').length).toBe(1);
+
+      // Check that rendered field is actually field_2.
+      var field = element.find('grr-form-proto-single-field:nth(0)');
+      expect(field.scope().$eval(field.attr('value'))).toEqual({
+        type: 'PrimitiveType',
+        value: 'a foo bar'
+      });
     });
 
     it('does not prefill the model with defaults', function() {
@@ -328,6 +344,16 @@ describe('semantic proto form directive', function() {
       // Check that grr-form-proto-repeated-field directive is used to trender
       // the repeated field.
       expect(element.find('grr-form-proto-repeated-field').length).toBe(1);
+    });
+
+    it('does not render repeated field from the hidden-fields', function() {
+      var fooValue = {
+        type: 'Foo',
+        value: {}
+      };
+      var element = renderTestTemplate(fooValue, undefined, ['field_1']);
+
+      expect(element.find('grr-form-proto-repeated-field').length).toBe(0);
     });
   });
 

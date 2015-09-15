@@ -28,7 +28,7 @@ TEST(GrepTest, SimpleLiteralSearch) {
   message.set_args_rdf_name("GrepSpec");
 
   MessageQueue queue(5, 20000);
-  ActionContext context(message, &queue);
+  ActionContext context(message, &queue, nullptr);
 
   Grep action;
   action.ProcessRequest(&context);
@@ -66,7 +66,7 @@ TEST(GrepTest, MultipleHitLiteralSearch) {
   message.set_args_rdf_name("GrepSpec");
 
   MessageQueue queue(5, 20000);
-  ActionContext context(message, &queue);
+  ActionContext context(message, &queue, nullptr);
 
   Grep action;
   action.ProcessRequest(&context);
@@ -114,7 +114,7 @@ TEST(GrepTest, FirstHitLiteralSearch) {
   message.set_args_rdf_name("GrepSpec");
 
   MessageQueue queue(5, 20000);
-  ActionContext context(message, &queue);
+  ActionContext context(message, &queue, nullptr);
 
   Grep action;
   action.ProcessRequest(&context);
@@ -153,7 +153,7 @@ TEST(GrepTest, BytesBeforeLiteralSearch) {
   message.set_args_rdf_name("GrepSpec");
 
   MessageQueue queue(5, 20000);
-  ActionContext context(message, &queue);
+  ActionContext context(message, &queue, nullptr);
 
   Grep action;
   action.ProcessRequest(&context);
@@ -201,7 +201,7 @@ TEST(GrepTest, BytesAfterLiteralSearch) {
   message.set_args_rdf_name("GrepSpec");
 
   MessageQueue queue(5, 20000);
-  ActionContext context(message, &queue);
+  ActionContext context(message, &queue, nullptr);
 
   Grep action;
   action.ProcessRequest(&context);
@@ -241,7 +241,7 @@ TEST(GrepTest, SimpleRegexSearch) {
   message.set_args_rdf_name("GrepSpec");
 
   MessageQueue queue(5, 20000);
-  ActionContext context(message, &queue);
+  ActionContext context(message, &queue, nullptr);
 
   Grep action;
   action.ProcessRequest(&context);
@@ -275,7 +275,7 @@ TEST(GrepTest, BrokenRegexSearch) {
   message.set_args_rdf_name("GrepSpec");
 
   MessageQueue queue(5, 20000);
-  ActionContext context(message, &queue);
+  ActionContext context(message, &queue, nullptr);
 
   Grep action;
   action.ProcessRequest(&context);

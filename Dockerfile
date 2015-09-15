@@ -11,15 +11,15 @@ RUN bash /usr/share/grr/scripts/install_script_ubuntu.sh -dy
 # to deliver client templates and set up init scripts and config directories.
 # Actual python code will be overwritten with the latest from the repo in a
 # later step.
-RUN wget --quiet https://googledrive.com/host/0B1wsLqFoT7i2c3F0ZmI1RDJlUEU/grr-server_0.3.0-7_amd64.deb && \
-  dpkg --install grr-server_0.3.0-7_amd64.deb && \
-  rm -f grr-server_0.3.0-7_amd64.deb
+RUN wget --quiet https://googledrive.com/host/0B1wsLqFoT7i2c3F0ZmI1RDJlUEU/test-grr-server_0.3.0-8_amd64.deb && \
+  dpkg --install test-grr-server_0.3.0-8_amd64.deb && \
+  rm -f test-grr-server_0.3.0-8_amd64.deb
 
 # Get current rekall
 RUN apt-get -y update && apt-get install -y git && \
   git clone https://github.com/google/rekall.git && \
   cd rekall && \
-  python setup.py install
+  python setup.py sdist install
 
 # Copy the GRR code over
 ADD . /usr/share/grr/

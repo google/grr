@@ -161,7 +161,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
     self.Click("css=button[name=Proceed]")
 
     self.WaitUntil(self.IsTextPresent, "Cron job was ENABLEd successfully!")
-    self.assertTrue(self.IsElementPresent("css=button[name=Proceed][disabled]"))
+    self.assertFalse(self.IsElementPresent("css=button[name=Proceed]"))
 
     # Click on "Cancel" and check that dialog disappears.
     self.Click("css=button[name=Cancel]")
@@ -207,7 +207,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
     self.Click("css=button[name=Proceed]")
 
     self.WaitUntil(self.IsTextPresent, "Cron job was DISABLEd successfully!")
-    self.assertTrue(self.IsElementPresent("css=button[name=Proceed][disabled]"))
+    self.assertFalse(self.IsElementPresent("css=button[name=Proceed]"))
 
     # Click on "Cancel" and check that dialog disappears.
     self.Click("css=button[name=Cancel]")
@@ -253,7 +253,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
     self.Click("css=button[name=Proceed]")
 
     self.WaitUntil(self.IsTextPresent, "Cron job was DELETEd successfully!")
-    self.assertTrue(self.IsElementPresent("css=button[name=Proceed][disabled]"))
+    self.assertFalse(self.IsElementPresent("css=button[name=Proceed]"))
 
     # Click on "Cancel" and check that dialog disappears.
     self.Click("css=button[name=Cancel]")

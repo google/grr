@@ -11,7 +11,7 @@ namespace grr {
 TEST(GetPlatformInfoTest, SimpleTest) {
   GrrMessage message;
   MessageQueue queue(5, 20000);
-  ActionContext context(message, &queue);
+  ActionContext context(message, &queue, nullptr);
 
   actions::GetPlatformInfo action;
   action.ProcessRequest(&context);

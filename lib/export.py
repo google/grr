@@ -1328,6 +1328,7 @@ class RekallResponseToExportedRekallProcessConverter(
       eprocess = row["_EPROCESS"]
 
       result = ExportedRekallProcess(
+          metadata=metadata,
           pid=eprocess["Cybox"]["PID"],
           parent_pid=eprocess["Cybox"]["Parent_PID"],
           name=eprocess["Cybox"]["Name"],
@@ -1400,7 +1401,7 @@ class RekallResponseToExportedRekallWindowsLoadedModuleConverter(
       return
 
     process = RekallResponseToExportedRekallProcessConverter.HandleTableRow(
-        None, message)
+        metadata, message)
     if process:
       result.process = process
 
@@ -1434,12 +1435,13 @@ class ExportedLinuxSyscallTableEntryConverter(
         yield result
 
   @staticmethod
-  def HandleTableRow(unused_metadata, message):
+  def HandleTableRow(metadata, message):
     """Handles a table row, converting it if possible."""
 
     row = message[1]
     try:
       result = ExportedLinuxSyscallTableEntry(
+          metadata=metadata,
           table=row["table"],
           index=row["index"],
           handler_address=row["address"]["target"],
@@ -1461,13 +1463,14 @@ class RekallResponseToExportedRekallLinuxTaskConverter(
   input_rdf_type = "RekallResponse"
 
   @staticmethod
-  def HandleTableRow(unused_metadata, message):
+  def HandleTableRow(metadata, message):
     """Handles a table row, converting it if possible."""
 
     row = message[1]
     try:
       # TODO(user): Add additional fields once they've been added to Rekall.
       result = ExportedRekallLinuxTask(
+          metadata=metadata,
           pid=row["pid"],
           name=row["comm"])
     except KeyError:
@@ -1495,13 +1498,14 @@ class RekallResponseToExportedRekallLinuxTaskOpConverter(
   input_rdf_type = "RekallResponse"
 
   @staticmethod
-  def HandleTableRow(unused_metadata, message):
+  def HandleTableRow(metadata, message):
     """Handles a table row, converting it if possible."""
 
     row = message[1]
     try:
 
       result = ExportedRekallLinuxTaskOp(
+          metadata=metadata,
           operation=row["member"],
           handler_address=row["address"]["offset"],
           module=row["module"])
@@ -1509,7 +1513,7 @@ class RekallResponseToExportedRekallLinuxTaskOpConverter(
       return
 
     task = RekallResponseToExportedRekallLinuxTaskConverter.HandleTableRow(
-        None, message)
+        metadata, message)
     if task:
       result.task = task
 
@@ -1535,12 +1539,13 @@ class RekallResponseToExportedRekallLinuxProcOpConverter(
   input_rdf_type = "RekallResponse"
 
   @staticmethod
-  def HandleTableRow(unused_metadata, message):
+  def HandleTableRow(metadata, message):
     """Handles a table row, converting it if possible."""
 
     row = message[1]
     try:
       result = ExportedRekallLinuxProcOp(
+          metadata=metadata,
           fullpath=row["path"],
           operation=row["member"],
           handler_address=row["address"]["offset"],
@@ -1602,9 +1607,7 @@ def GetMetadata(client, token=None):
   metadata.mac_address = utils.SmartUnicode(
       client_fd.Get(client_fd.Schema.MAC_ADDRESS, u""))
 
-  client_info = client_fd.Get(client_fd.Schema.CLIENT_INFO)
-  if client_info is not None:
-    metadata.labels = u",".join(client_info.labels)
+  metadata.labels = u",".join(client_fd.GetLabelsNames())
 
   return metadata
 

@@ -62,7 +62,7 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
   def testDpkgCmdParser(self):
     """Ensure we can extract packages from dpkg output."""
     parser = linux_cmd_parser.DpkgCmdParser()
-    content = open(os.path.join(self.base_path, "dpkg.out")).read()
+    content = open(os.path.join(self.base_path, "checks/data/dpkg.out")).read()
     out = list(parser.Parse("/usr/bin/dpkg", ["--list"], content, "", 0, 5,
                             None))
     self.assertEqual(len(out), 181)

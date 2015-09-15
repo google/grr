@@ -16,7 +16,7 @@ class OSXQuarantineTest(test_lib.GRRBaseTest):
 
   def testBasicParsing(self):
     """Test we can parse a standard file."""
-    infile = os.path.join(self.base_path,
+    infile = os.path.join(self.base_path, "parser_test",
                           "com.apple.LaunchServices.QuarantineEvents")
     parser = osx_quarantine.OSXQuarantineEvents(open(infile))
     entries = [x for x in parser.Parse()]

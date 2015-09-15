@@ -22,6 +22,9 @@ from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import api_pb2
 
 
+CATEGORY = "Flows"
+
+
 class ApiFlowStatusRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiFlowStatusRendererArgs
 
@@ -33,6 +36,7 @@ class ApiFlowStatusRenderer(api_call_renderer_base.ApiCallRenderer):
   seconds since epoch.
   """
 
+  category = CATEGORY
   args_type = ApiFlowStatusRendererArgs
 
   # Make this SetUID, see comment below. Authentication is still required.
@@ -111,6 +115,7 @@ class ApiFlowResultsRendererArgs(rdf_structs.RDFProtoStruct):
 class ApiFlowResultsRenderer(api_call_renderer_base.ApiCallRenderer):
   """Renders results of a given flow."""
 
+  category = CATEGORY
   args_type = ApiFlowResultsRendererArgs
 
   def Render(self, args, token=None):
@@ -135,6 +140,7 @@ class ApiFlowOutputPluginsRendererArgs(rdf_structs.RDFProtoStruct):
 class ApiFlowOutputPluginsRenderer(api_call_renderer_base.ApiCallRenderer):
   """Renders output plugins descriptors and states for a given flow."""
 
+  category = CATEGORY
   args_type = ApiFlowOutputPluginsRendererArgs
 
   def Render(self, args, token=None):
@@ -159,6 +165,8 @@ class ApiRemoteGetFileRendererArgs(rdf_structs.RDFProtoStruct):
 
 class ApiRemoteGetFileRenderer(api_call_renderer_base.ApiCallRenderer):
   """Downloads files from specified machine without requiring approval."""
+
+  category = CATEGORY
   args_type = ApiRemoteGetFileRendererArgs
 
   # Make this SetUID to be able to start it on any client without approval.
@@ -252,6 +260,7 @@ class ApiStartFlowRendererArgs(rdf_structs.RDFProtoStruct):
 class ApiStartFlowRenderer(api_call_renderer_base.ApiCallRenderer):
   """Starts a flow on a given client with given parameters."""
 
+  category = CATEGORY
   args_type = ApiStartFlowRendererArgs
 
   def Render(self, args, token=None):
@@ -269,6 +278,8 @@ class ApiStartFlowRenderer(api_call_renderer_base.ApiCallRenderer):
 
 class ApiFlowDescriptorsListRenderer(api_call_renderer_base.ApiCallRenderer):
   """Renders all available flows descriptors."""
+
+  category = CATEGORY
 
   # Only show flows in the tree that specify all of these behaviours in their
   # behaviours attribute.

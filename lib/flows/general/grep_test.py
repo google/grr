@@ -161,10 +161,10 @@ class TestSearchFileContentWithFixture(GrepTests):
 class TestSearchFileContent(GrepTests):
 
   def testSearchFileContents(self):
-    pattern = "test_data/*.log"
+    pattern = "searching/*.log"
 
     client_mock = action_mocks.ActionMock("Find", "Grep", "StatFile")
-    path = os.path.join(os.path.dirname(self.base_path), pattern)
+    path = os.path.join(self.base_path, pattern)
 
     args = grep.SearchFileContentArgs(
         paths=[path], pathtype=rdf_paths.PathSpec.PathType.OS)
@@ -193,10 +193,10 @@ class TestSearchFileContent(GrepTests):
 
   def testSearchFileContentsNoGrep(self):
     """Search files without a grep specification."""
-    pattern = "test_data/*.log"
+    pattern = "searching/*.log"
 
     client_mock = action_mocks.ActionMock("Find", "Grep", "StatFile")
-    path = os.path.join(os.path.dirname(self.base_path), pattern)
+    path = os.path.join(self.base_path, pattern)
 
     # Do not provide a Grep expression - should match all files.
     args = grep.SearchFileContentArgs(paths=[path])
@@ -215,12 +215,12 @@ class TestSearchFileContent(GrepTests):
 
   def testSearchFileContentDownload(self):
 
-    pattern = "test_data/*.log"
+    pattern = "searching/*.log"
 
     client_mock = action_mocks.ActionMock("Find", "Grep", "StatFile",
                                           "FingerprintFile", "HashBuffer",
                                           "TransferBuffer")
-    path = os.path.join(os.path.dirname(self.base_path), pattern)
+    path = os.path.join(self.base_path, pattern)
 
     # Do not provide a Grep expression - should match all files.
     args = grep.SearchFileContentArgs(paths=[path],
@@ -239,7 +239,8 @@ class TestSearchFileContent(GrepTests):
     self.assertEqual(len(fd), 3)
 
     for log in aff4.FACTORY.Open(
-        rdfvalue.RDFURN(self.client_id).Add("/fs/os/").Add(self.base_path),
+        rdfvalue.RDFURN(self.client_id).Add("/fs/os/").Add(
+            self.base_path).Add("searching"),
         token=self.token).OpenChildren():
       self.assertTrue(isinstance(log, aff4.VFSBlobImage))
       # Make sure there is some data.

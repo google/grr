@@ -651,15 +651,16 @@ class ExportTest(test_lib.GRRBaseTest):
   def testGetMetadata(self):
     client_urn = rdf_client.ClientURN("C.0000000000000000")
     test_lib.ClientFixture(client_urn, token=self.token)
+    client = aff4.FACTORY.Open(client_urn, mode="rw", token=self.token)
+    client.SetLabels("client-label-24")
+    client.Close()
+
     metadata = export.GetMetadata(client_urn, token=self.token)
     self.assertEqual(metadata.os, u"Windows")
-    self.assertEqual(metadata.labels, u"client-label-23")
+    self.assertEqual(metadata.labels, u"client-label-24")
 
-    # Now set CLIENT_INFO with labels
-    client_info = rdf_client.ClientInformation(client_name="grr",
-                                               labels=["a", "b"])
     client = aff4.FACTORY.Open(client_urn, mode="rw", token=self.token)
-    client.Set(client.Schema.CLIENT_INFO(client_info))
+    client.SetLabels("a", "b")
     client.Flush()
     metadata = export.GetMetadata(client_urn, token=self.token)
     self.assertEqual(metadata.os, u"Windows")
@@ -1430,6 +1431,7 @@ class RekallResponseToExportedRekallWindowsLoadedModuleConverterTest(
     model = export.ExportedRekallWindowsLoadedModule(
         metadata=metadata,
         process=export.ExportedRekallProcess(
+            metadata=metadata,
             commandline="C:\\WINDOWS\\System32\\alg.exe",
             creation_time=1281506799000000,
             fullpath="C:\\WINDOWS\\System32\\alg.exe",
@@ -1508,6 +1510,7 @@ class ExportedLinuxSyscallTableEntryConverterTest(
     self.assertEqual(len(converted_values), 1)
 
     model = export.ExportedLinuxSyscallTableEntry(
+        metadata=metadata,
         table="ia32_sys_call_table",
         index=198,
         handler_address=281472847827136,
@@ -1566,10 +1569,12 @@ class RekallResponseToExportedRekallLinuxTaskOpConverterTest(
     self.assertEqual(len(converted_values), 1)
 
     task = export.ExportedRekallLinuxTask(
+        metadata=metadata,
         pid=1,
         name="init")
 
     model = export.ExportedRekallLinuxTaskOp(
+        metadata=metadata,
         operation="write",
         handler_address=281472847829584,
         module="linux",
@@ -1635,6 +1640,7 @@ class RekallResponseToExportedRekallLinuxProcOpConverterTest(
     self.assertEqual(len(converted_values), 1)
 
     model = export.ExportedRekallLinuxProcOp(
+        metadata=metadata,
         operation="read",
         handler_address=281472847976656,
         module="linux",

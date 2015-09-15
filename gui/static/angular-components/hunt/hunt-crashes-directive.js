@@ -55,7 +55,7 @@ grrUi.hunt.huntCrashesDirective.HuntCrashesDirective = function() {
       huntUrn: '='
     },
     restrict: 'E',
-    templateUrl: 'static/angular-components/hunt/hunt-crashes.html',
+    templateUrl: '/static/angular-components/hunt/hunt-crashes.html',
     controller: HuntCrashesController,
     controllerAs: 'controller'
   };

@@ -160,9 +160,9 @@ config_lib.DEFINE_string(
 config_lib.DEFINE_string("AdminUI.url", "http://localhost:8000/",
                          "The direct external URL for the user interface.")
 
-config_lib.DEFINE_string("AdminUI.use_precompiled_js", False,
-                         "If True - use Closure-compiled JS bundle. This flag "
-                         "is experimental and is not properly supported yet.")
+config_lib.DEFINE_bool("AdminUI.use_precompiled_js", False,
+                       "If True - use Closure-compiled JS bundle. This flag "
+                       "is experimental and is not properly supported yet.")
 
 config_lib.DEFINE_string("AdminUI.export_command",
                          "/usr/bin/grr_export",

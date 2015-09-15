@@ -3,8 +3,9 @@
 namespace grr {
 
 ClientActionDispatcher::ClientActionDispatcher(MessageQueue* inbox,
-                                               MessageQueue* outbox)
-    : inbox_(inbox), outbox_(outbox), shutting_down_(false) {}
+                                               MessageQueue* outbox,
+                                               ClientConfig* config)
+    : inbox_(inbox), outbox_(outbox), shutting_down_(false), config_(config) {}
 
 ClientActionDispatcher::~ClientActionDispatcher() {
   {
@@ -42,7 +43,7 @@ void ClientActionDispatcher::ActionLoop() {
           return;
         }
       }
-      ActionContext context(m, outbox_);
+      ActionContext context(m, outbox_, config_);
       const auto found = actions_.find(m.name());
       if (found == actions_.end()) {
         GOOGLE_LOG(ERROR) << "Unrecognized action: [" << m.name() << "]";

@@ -43,7 +43,7 @@ doc: Mac OS X system profiler.
 sources:
 - type: COMMAND
   attributes:
-    args: [-xml SPHardwareDataType]
+    args: ["-xml", "SPHardwareDataType"]
     cmd: /usr/sbin/system_profiler
   returned_types: [HardwareInfo]
 labels: [System]

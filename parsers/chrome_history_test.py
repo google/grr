@@ -18,7 +18,7 @@ class ChromeHistoryTest(test_lib.GRRBaseTest):
 
   def testBasicParsing(self):
     """Test we can parse a standard file."""
-    history_file = os.path.join(self.base_path, "History2")
+    history_file = os.path.join(self.base_path, "parser_test", "History2")
     history = chrome_history.ChromeParser(open(history_file))
     entries = [x for x in history.Parse()]
 
@@ -49,7 +49,7 @@ class ChromeHistoryTest(test_lib.GRRBaseTest):
 
   def testTimeOrderingDownload(self):
     """Test we can correctly time order downloads and visits."""
-    history_file = os.path.join(self.base_path, "History3")
+    history_file = os.path.join(self.base_path, "parser_test", "History3")
     history = chrome_history.ChromeParser(open(history_file))
     entries = [x for x in history.Parse()]
 
@@ -60,7 +60,7 @@ class ChromeHistoryTest(test_lib.GRRBaseTest):
 
   def testBasicParsingOldFormat(self):
     """Test we can parse a standard file."""
-    history_file = os.path.join(self.base_path, "History")
+    history_file = os.path.join(self.base_path, "parser_test", "History")
     history = chrome_history.ChromeParser(open(history_file))
     entries = [x for x in history.Parse()]
 

@@ -109,7 +109,8 @@ SemanticProtoRepeatedFieldFormController.prototype.onCustomDirective_ =
  * @export
  */
 SemanticProtoRepeatedFieldFormController.prototype.addItem = function() {
-  this.scope_.value.push(angular.copy(this.scope_.descriptor['default']));
+  this.scope_.value.splice(0, 0,
+                           angular.copy(this.scope_.descriptor['default']));
 };
 
 

@@ -83,6 +83,11 @@ class TSKFile(vfs.VFSHandler):
   # NTFS files carry an attribute identified by ntfs_type and ntfs_id.
   tsk_attribute = None
 
+  # This is all bits that define the type of the file in the stat mode. Equal to
+  # 0b1111000000000000.
+  stat_type_mask = (stat.S_IFREG | stat.S_IFDIR | stat.S_IFLNK | stat.S_IFBLK |
+                    stat.S_IFCHR | stat.S_IFIFO | stat.S_IFSOCK)
+
   def __init__(self, base_fd, pathspec=None, progress_callback=None,
                full_pathspec=None):
     """Use TSK to read the pathspec.
@@ -237,6 +242,19 @@ class TSKFile(vfs.VFSHandler):
       # Update the size with the attribute size.
       response.st_size = tsk_attribute.info.size
 
+      default = rdf_paths.PathSpec.tsk_fs_attr_type.TSK_FS_ATTR_TYPE_DEFAULT
+      last = child_pathspec.last
+      if last.ntfs_type != default or last.ntfs_id:
+        # This is an ads and should be treated as a file.
+        # Clear all file type bits.
+        response.st_mode &= ~self.stat_type_mask
+        response.st_mode |= stat.S_IFREG
+
+    else:
+      child_pathspec.last.ntfs_type = None
+      child_pathspec.last.ntfs_id = None
+      child_pathspec.last.stream_name = None
+
     if name:
       # Encode the type onto the st_mode response
       response.st_mode |= self.FILE_TYPE_LOOKUP.get(int(name.type), 0)
@@ -300,9 +318,21 @@ class TSKFile(vfs.VFSHandler):
       raise IOError("%s is not a directory" % self.pathspec.CollapsePath())
 
   def IsDirectory(self):
+    last = self.pathspec.last
+    default = rdf_paths.PathSpec.tsk_fs_attr_type.TSK_FS_ATTR_TYPE_DEFAULT
+    if last.ntfs_type != default or last.ntfs_id:
+      # This is an ads so treat as a file.
+      return False
+
     return self.fd.info.meta.type == pytsk3.TSK_FS_META_TYPE_DIR
 
   def IsFile(self):
+    last = self.pathspec.last
+    default = rdf_paths.PathSpec.tsk_fs_attr_type.TSK_FS_ATTR_TYPE_DEFAULT
+    if last.ntfs_type != default or last.ntfs_id:
+      # This is an ads so treat as a file.
+      return True
+
     return self.fd.info.meta.type == pytsk3.TSK_FS_META_TYPE_REG
 
   @classmethod

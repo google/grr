@@ -12,7 +12,8 @@
   <div ng-if="(metadata.depth === undefined || metadata.depth < 2 || controller.expanded)">
 
     <div ng-repeat="field in controller.valueDescriptor.fields |
-                    filter:controller.regularFieldsOnly">
+                    filter:controller.regularFieldsOnly |
+                    filter:controller.boundNotExplicitlyHiddenFields">
       <grr-form-proto-single-field value="controller.editedValue.value[field.name]"
                                    field="field"
                                    ng-if="!field.repeated">
@@ -41,7 +42,8 @@
 
       <div class="advanced-controls" ng-show="controller.advancedShown">
         <div ng-repeat="field in controller.valueDescriptor.fields |
-                        filter:controller.advancedFieldsOnly">
+                        filter:controller.advancedFieldsOnly |
+                        filter:controller.boundNotExplicitlyHiddenFields">
           <grr-form-proto-single-field value="controller.editedValue.value[field.name]"
                                        field="field"
                                        ng-if="!field.repeated">

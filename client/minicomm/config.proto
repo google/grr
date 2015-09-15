@@ -23,4 +23,5 @@ message ClientConfiguration {
     repeated string env = 3;
   }
   optional SubprocessConfig subprocess_config = 7;
+  optional string temporary_directory = 8;
 }

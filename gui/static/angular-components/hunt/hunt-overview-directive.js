@@ -96,7 +96,7 @@ grrUi.hunt.huntOverviewDirective.HuntOverviewDirective = function() {
       huntUrn: '='
     },
     restrict: 'E',
-    templateUrl: 'static/angular-components/hunt/hunt-overview.html',
+    templateUrl: '/static/angular-components/hunt/hunt-overview.html',
     controller: HuntOverviewController,
     controllerAs: 'controller'
   };

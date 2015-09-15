@@ -16,11 +16,11 @@ been changed from the default settings.</p>
 
   <tbody class="TableBody">
     <tr ng-repeat="(name, config) in ::section"
-        ng-class="::{info: !config.is_default, warning: config.type == 'redacted'}">
+        ng-class="::{warning: config.type == 'redacted'}">
       <td>{$ name $}</td>
       <td>
         <div ng-if="::(config.type == 'redacted')">(redacted)</div>
-        {$ config.option_value $}
+        <grr-semantic-value value="::config.value"></grr-semantic-value>
         <div ng-if="::config.is_expanded">
           <em>(expanded from {$ ::config.raw_value $})</em>
         </div>

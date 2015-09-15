@@ -4,11 +4,15 @@
 from grr.gui import api_call_renderer_base
 from grr.gui import api_value_renderers
 
+from grr.lib import aff4
 from grr.lib import rdfvalue
 
 from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import api_pb2
+
+
+CATEGORY = "Other"
 
 
 class ApiRDFValueReflectionRendererArgs(rdf_structs.RDFProtoStruct):
@@ -18,6 +22,7 @@ class ApiRDFValueReflectionRendererArgs(rdf_structs.RDFProtoStruct):
 class ApiRDFValueReflectionRenderer(api_call_renderer_base.ApiCallRenderer):
   """Renders descriptor of a given RDFValue type."""
 
+  category = CATEGORY
   args_type = ApiRDFValueReflectionRendererArgs
 
   def Render(self, args, token=None):
@@ -44,3 +49,20 @@ class ApiAllRDFValuesReflectionRenderer(ApiRDFValueReflectionRenderer):
   """Renders descriptors of all available RDFValues."""
 
   args_type = None
+
+
+class ApiAff4AttributesReflectionRenderer(
+    api_call_renderer_base.ApiCallRenderer):
+  """Renders available aff4 attributes."""
+
+  category = CATEGORY
+
+  def Render(self, unused_args, token=None):
+    _ = token
+
+    attributes = {}
+    for name in sorted(aff4.Attribute.NAMES.keys()):
+      attributes[name] = dict(name=name)
+
+    return dict(status="OK",
+                attributes=attributes)

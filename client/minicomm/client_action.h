@@ -2,6 +2,7 @@
 #define GRR_CLIENT_MINICOMM_CLIENT_ACTION_H_
 
 #include "grr/proto/jobs.pb.h"
+#include "grr/client/minicomm/config.h"
 #include "grr/client/minicomm/message_queue.h"
 
 namespace grr {
@@ -22,8 +23,12 @@ class ClientAction {
 // server.
 class ActionContext {
  public:
-  ActionContext(const GrrMessage& grr_message, MessageQueue* outbox)
-      : response_id_(1), outbox_(outbox), grr_message_(grr_message) {}
+  ActionContext(const GrrMessage& grr_message, MessageQueue* outbox,
+                ClientConfig* config)
+      : response_id_(1),
+        outbox_(outbox),
+        grr_message_(grr_message),
+        config_(config) {}
 
   ~ActionContext() {}
 
@@ -49,7 +54,14 @@ class ActionContext {
   // Report the current status.
   const GrrStatus& Status() const { return status_; }
 
+  // Reference to ClientConfig.
+  const ClientConfig& Config() const {
+    GOOGLE_DCHECK_NE(config_, nullptr);
+    return *config_;
+  }
+
  private:
+  ClientConfig* const config_;
   MessageQueue* const outbox_;
   const GrrMessage grr_message_;
 

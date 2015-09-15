@@ -156,7 +156,6 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
     # Call the source defined action for each source.
     for source in artifact_obj.sources:
-
       # Check conditions on the source.
       source_conditions_met = True
       self.ConvertSupportedOSToConditions(source, source.conditions)
@@ -352,7 +351,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
   def RunCommand(self, source):
     """Run a command."""
     self.CallClient("ExecuteCommand", cmd=source.attributes["cmd"],
-                    args=source.attributes.get("args", {}),
+                    args=source.attributes.get("args", []),
                     request_data={"artifact_name": self.current_artifact_name,
                                   "source": source.ToPrimitiveDict()},
                     next_state="ProcessCollected")

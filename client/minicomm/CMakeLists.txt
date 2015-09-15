@@ -27,6 +27,7 @@ set(subprocess_delegator_lib_DEPS core_lib ${core_lib_DEPS})
 add_library(client_actions_lib client_action.cc client_action_dispatcher.cc
   ../../proto/sysinfo.pb.cc
   ../../proto/knowledge_base.pb.cc
+  client_actions/dump_process_memory.cc
   client_actions/enumerate_filesystems.cc
   client_actions/enumerate_interfaces.cc
   client_actions/enumerate_users.cc
@@ -41,10 +42,12 @@ add_library(client_actions_lib client_action.cc client_action_dispatcher.cc
   client_actions/list_directory.cc
   client_actions/list_processes.cc
   client_actions/stat_file.cc
+  client_actions/delete_grr_temp_files.cc
   client_actions/transfer_buffer.cc
   file_contents.cc
   file_operations.cc
   paths.cc
+  tempfiles.cc
 )
 set(set_client_actions_lib_DEPS core_lib ${core_lib_DEPS})
 
@@ -78,6 +81,7 @@ set(test_helper_lib_DEPS gtest pthread)
 add_executable(unit_tests grr_test_main.cc
   client_action_dispatcher_test.cc
   client_action_test.cc
+  client_actions/delete_grr_temp_files_test.cc
   client_actions/enumerate_filesystems_test.cc
   client_actions/enumerate_interfaces_test.cc
   client_actions/enumerate_users_test.cc
@@ -97,6 +101,7 @@ add_executable(unit_tests grr_test_main.cc
   message_queue_test.cc
   paths_test.cc
 #  subprocess_delegator_test.cc
+  tempfiles_test.cc
   util_test.cc
 )
 set(unit_tests_external_DEPS

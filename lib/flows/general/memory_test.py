@@ -36,7 +36,8 @@ class DummyLoadMemoryDriverFlow(flow.GRRFlow):
   def Start(self):
     self.SendReply(rdf_rekall_types.MemoryInformation(
         device=rdf_paths.PathSpec(
-            path=os.path.join(config_lib.CONFIG["Test.data_dir"], "auth.log"),
+            path=os.path.join(config_lib.CONFIG["Test.data_dir"],
+                              "searching/auth.log"),
             pathtype=rdf_paths.PathSpec.PathType.OS),
         runs=[rdf_client.BufferReference(length=638976, offset=5),
               rdf_client.BufferReference(length=145184, offset=643074)]))
@@ -77,7 +78,7 @@ class TestMemoryCollector(MemoryTest):
     self.iv = rdf_crypto.AES128Key("2241b14c64874b1898dad4de7173d8c0")
 
     self.memory_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
-                                    "auth.log")
+                                    "searching/auth.log")
     with open(self.memory_file, "r") as f:
       self.memory_dump = f.read()
     self.assertTrue(self.memory_dump)

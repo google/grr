@@ -98,7 +98,7 @@ grrUi.hunt.huntLogDirective.HuntLogDirective = function() {
       huntUrn: '='
     },
     restrict: 'E',
-    templateUrl: 'static/angular-components/hunt/hunt-log.html',
+    templateUrl: '/static/angular-components/hunt/hunt-log.html',
     controller: HuntLogController,
     controllerAs: 'controller'
   };

@@ -437,11 +437,10 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
                    "Are you sure you want to run this hunt?")
 
     # Click on "Proceed" and wait for success label to appear.
-    # Also check that "Proceed" button gets disabled.
+    # Also check that "Proceed" button disappears.
     self.Click("css=button[name=Proceed]")
     self.WaitUntil(self.IsTextPresent, "Hunt started successfully")
-    self.assertTrue(self.IsElementPresent(
-        "css=button[name=Proceed][disabled!='']"))
+    self.assertFalse(self.IsElementPresent("css=button[name=Proceed]"))
 
     # Click on "Cancel" and check that dialog disappears.
     self.Click("css=button[name=Cancel]")
@@ -460,8 +459,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     # Also check that "Proceed" button gets disabled.
     self.Click("css=button[name=Proceed]")
     self.WaitUntil(self.IsTextPresent, "Hunt stopped successfully")
-    self.assertTrue(self.IsElementPresent(
-        "css=button[name=Proceed][disabled!='']"))
+    self.assertFalse(self.IsElementPresent("css=button[name=Proceed]"))
 
     # Click on "Cancel" and check that dialog disappears.
     self.Click("css=button[name=Cancel]")
@@ -480,8 +478,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     # Also check that "Proceed" button gets disabled.
     self.Click("css=button[name=Proceed]")
     self.WaitUntil(self.IsTextPresent, "Hunt modified successfully!")
-    self.assertTrue(self.IsElementPresent(
-        "css=button[name=Proceed][disabled!='']"))
+    self.assertFalse(self.IsElementPresent("css=button[name=Proceed]"))
 
     # Click on "Cancel" and check that dialog disappears.
     self.Click("css=button[name=Cancel]")

@@ -4,6 +4,8 @@
 
 #include "grr/client/minicomm/base.h"
 
+#include "grr/client/minicomm/client_actions/delete_grr_temp_files.h"
+#include "grr/client/minicomm/client_actions/dump_process_memory.h"
 #include "grr/client/minicomm/client_actions/enumerate_filesystems.h"
 #include "grr/client/minicomm/client_actions/enumerate_interfaces.h"
 #include "grr/client/minicomm/client_actions/enumerate_users.h"
@@ -26,7 +28,7 @@ Client::Client(const std::string& filename)
       inbox_(5000, 1000000),
       outbox_(5000, 1000000),
       connection_manager_(&config_, &inbox_, &outbox_),
-      client_action_dispatcher_(&inbox_, &outbox_) {
+      client_action_dispatcher_(&inbox_, &outbox_, &config_) {
   if (!config_.ReadConfig()) {
     GOOGLE_LOG(FATAL) << "Unable to read config.";
   }
@@ -42,6 +44,10 @@ void Client::StaticInit() {
 }
 
 void Client::Run() {
+  client_action_dispatcher_.AddAction("DumpProcessMemory",
+                                      new actions::DumpProcessMemory());
+  client_action_dispatcher_.AddAction("DeleteGRRTempFiles",
+                                      new actions::DeleteGRRTempFiles());
   client_action_dispatcher_.AddAction("EnumerateFilesystems",
                                       new actions::EnumerateFilesystems());
   client_action_dispatcher_.AddAction("EnumerateInterfaces",
@@ -66,7 +72,6 @@ void Client::Run() {
                                       new actions::FingerprintFile());
   client_action_dispatcher_.AddAction("ListDirectory",
                                       new actions::ListDirectory());
-
   client_action_dispatcher_.AddAction("ListProcesses",
                                       new actions::ListProcesses());
   client_action_dispatcher_.AddAction("StatFile", new actions::StatFile());

@@ -1,0 +1,37 @@
+<div grr-splitter orientation="vertical" class="rightSplitterContainer" closeable-to="0">
+
+  <div grr-splitter-pane class="leftPane">
+    <grr-flows-tree selected-descriptor="controller.flowDescriptor" />
+  </div>
+
+  <div grr-splitter-pane class="rightPane">
+
+    <div class="padded">
+      <div ng-if="flowArguments != null">
+        <legend>{$ flowName $}</legend>
+
+        <grr-form-value value="flowArguments">
+        </grr-form-value>
+
+        <legend>
+          Hunt Parameters
+          <a href="/help/user_manual.html#hunt-parameters" target="_blank">
+            <i class="glyphicon glyphicon-question-sign"></i>
+          </a>
+        </legend>
+        <grr-form-proto value="huntRunnerArgs"
+                        hidden-fields="['hunt_name', 'regex_rules', 'integer_rules']">
+        </grr-form-proto>
+
+        <br>
+        <legend>Description</legend>
+        <grr-flow-info descriptor="controller.flowDescriptor" />
+      </div>
+
+      <span ng-if="flowArguments == null">
+        Please select a flow from the tree on the left.
+      </span>
+    </div>
+
+  </div>
+</div>

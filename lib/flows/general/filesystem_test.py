@@ -113,7 +113,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
     # This glob selects all files which start with the username on this system.
     paths = [os.path.join(self.base_path, "%%Users.username%%*"),
-             os.path.join(self.base_path, "wtmp")]
+             os.path.join(self.base_path, "VFSFixture/var/*/wtmp")]
 
     # Set iterator really low to force iteration.
     with utils.Stubber(filesystem.Glob, "FILE_MAX_PER_DIR", 2):
@@ -129,13 +129,27 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     children = []
     fd = aff4.FACTORY.Open(output_path, token=self.token)
     for child in fd.ListChildren():
+      filename = child.Basename()
+      if filename != "VFSFixture":
+        children.append(filename)
+
+    expected = [filename for filename in os.listdir(self.base_path)
+                if filename.startswith("test") or filename.startswith("syslog")]
+    self.assertTrue([x for x in expected if x.startswith("test")],
+                    "Need a file starting with 'test'"
+                    " in test_data for this test!")
+    self.assertTrue([x for x in expected if x.startswith("syslog")],
+                    "Need a file starting with 'syslog'"
+                    " in test_data for this test!")
+    self.assertItemsEqual(expected, children)
+
+    children = []
+    fd = aff4.FACTORY.Open(output_path.Add("VFSFixture/var/log"),
+                           token=self.token)
+    for child in fd.ListChildren():
       children.append(child.Basename())
 
-    # We should find some files.
-    self.assertEqual(sorted(children),
-                     sorted(["syslog", "syslog_compress.gz",
-                             "syslog_false.gz", "test_img.dd", "test.plist",
-                             "tests", "tests_long", "wtmp"]))
+    self.assertItemsEqual(children, ["wtmp"])
 
   def _MockSendReply(self, reply=None):
     self.flow_replies.append(reply.pathspec.path)

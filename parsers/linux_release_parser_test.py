@@ -18,8 +18,12 @@ from grr.parsers import linux_release_parser
 class LinuxReleaseParserTest(test_lib.GRRBaseTest):
   """Test parsing of linux distribution collection."""
 
+  def setUp(self):
+    super(LinuxReleaseParserTest, self).setUp()
+    self.parser_test_dir = os.path.join(self.base_path, "parser_test")
+
   def testMalformedLsbReleaseFile(self):
-    path = os.path.join(self.base_path, "lsb-release-bad")
+    path = os.path.join(self.parser_test_dir, "lsb-release-bad")
     with open(path) as f:
       data = f.read()
     parser = linux_release_parser.LsbReleaseParseHandler(data)
@@ -30,7 +34,7 @@ class LinuxReleaseParserTest(test_lib.GRRBaseTest):
     self.assertTupleEqual((None, 0, 0), result)
 
   def testGoodLsbReleaseFile(self):
-    path = os.path.join(self.base_path, "lsb-release")
+    path = os.path.join(self.parser_test_dir, "lsb-release")
     with open(path) as f:
       data = f.read()
     parser = linux_release_parser.LsbReleaseParseHandler(data)
@@ -41,7 +45,7 @@ class LinuxReleaseParserTest(test_lib.GRRBaseTest):
     self.assertTupleEqual(("Ubuntu", 14, 4), result)
 
   def testFallbackLsbReleaseFile(self):
-    path = os.path.join(self.base_path, "lsb-release-notubuntu")
+    path = os.path.join(self.parser_test_dir, "lsb-release-notubuntu")
     with open(path) as f:
       data = f.read()
     parser = linux_release_parser.LsbReleaseParseHandler(data)
@@ -52,7 +56,7 @@ class LinuxReleaseParserTest(test_lib.GRRBaseTest):
     self.assertTupleEqual(("NotUbuntu", 0, 0), result)
 
   def testReleaseFileRedHatish(self):
-    path = os.path.join(self.base_path, "oracle-release")
+    path = os.path.join(self.parser_test_dir, "oracle-release")
     with open(path) as f:
       data = f.read()
     parser = linux_release_parser.ReleaseFileParseHandler("OracleLinux")
@@ -64,7 +68,7 @@ class LinuxReleaseParserTest(test_lib.GRRBaseTest):
     self.assertTupleEqual(("OracleLinux", 6, 5), result)
 
   def testMalformedReleaseFileRedHatish(self):
-    path = os.path.join(self.base_path, "oracle-release-bad")
+    path = os.path.join(self.parser_test_dir, "oracle-release-bad")
     with open(path) as f:
       data = f.read()
     parser = linux_release_parser.ReleaseFileParseHandler("OracleLinux")
@@ -92,7 +96,7 @@ class LinuxReleaseParserTest(test_lib.GRRBaseTest):
     parser = linux_release_parser.LinuxReleaseParser()
 
     testdata = [
-        ("/etc/lsb-release", os.path.join(self.base_path, "lsb-release")),
+        ("/etc/lsb-release", os.path.join(self.parser_test_dir, "lsb-release")),
     ]
     stats, files = self._CreateTestData(testdata)
 
@@ -107,9 +111,10 @@ class LinuxReleaseParserTest(test_lib.GRRBaseTest):
     parser = linux_release_parser.LinuxReleaseParser()
 
     testdata = [
-        ("/etc/lsb-release", os.path.join(self.base_path,
+        ("/etc/lsb-release", os.path.join(self.parser_test_dir,
                                           "lsb-release-notubuntu")),
-        ("/etc/oracle-release", os.path.join(self.base_path, "oracle-release")),
+        ("/etc/oracle-release", os.path.join(self.parser_test_dir,
+                                             "oracle-release")),
     ]
     stats, files = self._CreateTestData(testdata)
 

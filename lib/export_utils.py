@@ -11,10 +11,10 @@ import time
 import logging
 
 from grr.lib import aff4
+from grr.lib import client_index
 from grr.lib import rdfvalue
 from grr.lib import serialize
 from grr.lib import threadpool
-from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import file_finder
@@ -27,13 +27,11 @@ BUFFER_SIZE = 16 * 1024 * 1024
 
 def GetAllClients(token=None):
   """Return a list of all client urns."""
-  results = []
-  for urn in aff4.FACTORY.Open(aff4.ROOT_URN, token=token).ListChildren():
-    try:
-      results.append(rdf_client.ClientURN(urn))
-    except type_info.TypeValueError:
-      pass
-  return results
+  index = aff4.FACTORY.Create(
+      client_index.MAIN_INDEX, aff4_type="ClientIndex",
+      mode="rw", object_exists=True, token=token)
+
+  return index.LookupClients(["."])
 
 
 class IterateAllClientUrns(object):

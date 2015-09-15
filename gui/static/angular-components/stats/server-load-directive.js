@@ -234,7 +234,7 @@ grrUi.stats.serverLoadDirective.ServerLoadDirective = function() {
     scope: {
     },
     restrict: 'E',
-    templateUrl: 'static/angular-components/stats/server-load.html',
+    templateUrl: '/static/angular-components/stats/server-load.html',
     controller: ServerLoadController,
     controllerAs: 'controller'
   };
