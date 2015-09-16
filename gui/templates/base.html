@@ -39,9 +39,12 @@
   var CLOSURE_NO_DEPS = true;
 </script>
 <script src="/static/grr-ui.bundle.js?timestamp={{timestamp|escape}}"></script>
+
+<!-- This makes sure templates are loaded from the JS bundle. -->
 <script>
-  // This makes sure templates are loaded from the JS bundle.
   goog.require('grrUi.templates.module');
+</script>
+<script>
   grrUi.templates.module.value('forceCachedTemplates', true);
 </script>
 {% else %}
@@ -49,13 +52,16 @@
 <script src="/static/javascript/closure/base.js"></script>
 <script src="/static/javascript/closure/deps.js"></script>
 <script src="/local/static/javascript/closure/deps.js"></script>
+
+<!-- This bootstraps the applications and makes sure templates are loaded
+     from standalone html files. -->
 <script>
-  // This bootstraps the application.
   goog.require('grrUi.appController.module');
   goog.require('grrUiLocal.local.module');
 
-  // This makes sure templates are loaded from standalone html files.
   goog.require('grrUi.templates.module');
+</script>
+<script>
   grrUi.templates.module.value('forceUncachedTemplates', true);
 </script>
 {% endif %}

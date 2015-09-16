@@ -9,7 +9,8 @@
          type="number" ng-model="value.value" />
 
   <input ng-if="controller.valueType == 'RDFString' ||
-                controller.valueType == 'basestring'" class="form-control"
+                controller.valueType == 'basestring' ||
+                controller.valueType == 'RDFURN'" class="form-control"
          type="text" ng-model="value.value" />
 
   <input ng-if="controller.valueType == 'RDFBytes' ||

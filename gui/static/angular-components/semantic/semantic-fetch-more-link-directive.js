@@ -16,18 +16,20 @@ goog.scope(function() {
  */
 grrUi.semantic.fetchMoreLinkDirective.FetchMoreLinkDirective = function() {
   return {
-    scope: {
-      value: '='
-    },
+    scope: {value: '='},
     link: function(scope) {
       // TODO(user): turn into controller
-      scope.onClick = function() {
+      scope.onClick = function(e) {
         scope.continuationShown = true;
+        e.stopPropagation();  // onClick event should not be handleded by
+                              // anything other than this, otherwise the click
+                              // could be interpreted in the wrong way,
+                              // e.g. page could be redirected.
       };
     },
     restrict: 'E',
     templateUrl: '/static/angular-components/semantic/' +
-        'semantic-fetch-more-link.html',
+                     'semantic-fetch-more-link.html',
   };
 };
 

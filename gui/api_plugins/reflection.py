@@ -31,7 +31,10 @@ class ApiRDFValueReflectionRenderer(api_call_renderer_base.ApiCallRenderer):
     # We have to provide info for python primitive types as well, as sometimes
     # they may be used within FlowState objects.
     all_types = dict(rdfvalue.RDFValue.classes.items())
-    for cls in [bool, int, float, long, basestring, str, unicode, list, tuple]:
+    # We shouldn't render base RDFValue class.
+    all_types.pop("RDFValue", None)
+
+    for cls in [bool, int, float, long, str, unicode, list, tuple]:
       all_types[cls.__name__] = cls
 
     if self.args_type:

@@ -20,6 +20,14 @@ from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
 
 
+class Error(Exception):
+  pass
+
+
+class DefaultValueRenderingError(Error):
+  pass
+
+
 class ApiValueRenderer(object):
   """Baseclass for API renderers that render RDFValues."""
 
@@ -94,12 +102,34 @@ class ApiValueRenderer(object):
     """Renders given value into plain old python objects."""
     return self._IncludeTypeInfo(utils.SmartUnicode(value), value)
 
+  def RenderDefaultValue(self, value_cls):
+    """Renders default value of a given class.
+
+    Args:
+      value_cls: Default value of this class will be rendered. This class has
+                 to be (or to be a subclass of) a self.value_class (i.e.
+                 a class that this renderer is capable of rendering).
+    Returns:
+      Dictionary with a JSON-rendered value.
+
+    Raises:
+      DefaultValueRenderingError: if something goes wrong.
+    """
+    try:
+      return RenderValue(value_cls())
+    except Exception as e:   # pylint: disable=broad-except
+      logging.exception(e)
+      raise DefaultValueRenderingError(
+          "Can't create default for value %s: %s" % (
+              value_cls.__name__, e))
+
   def RenderMetadata(self, value_cls):
     """Renders metadata of a given value class.
 
     Args:
-      value_cls: Metadata of this class will be rendered. This class is
-                 guaranteed to be (or to be a subclass of) value_class.
+      value_cls: Metadata of this class will be rendered. This class has
+                 to be (or to be a subclass of) a self.value_class (i.e.
+                 a class that this renderer is capable of rendering).
     Returns:
       Dictionary with class metadata.
     """
@@ -108,12 +138,7 @@ class ApiValueRenderer(object):
                   doc=value_cls.__doc__ or "",
                   kind="primitive")
 
-    try:
-      default_value = RenderValue(value_cls())
-      result["default"] = default_value
-    except Exception as e:   # pylint: disable=broad-except
-      logging.debug("Can't create default for primitive %s: %s",
-                    value_cls.__name__, e)
+    result["default"] = self.RenderDefaultValue(value_cls)
 
     return result
 
@@ -180,6 +205,12 @@ class ApiRDFDictRenderer(ApiDictRenderer):
 
 class FetchMoreLink(rdfvalue.RDFValue):
   """Stub used to display 'More data available...' link."""
+
+  def ParseFromString(self, unused_string):
+    pass
+
+  def SerializeToString(self):
+    return ""
 
 
 class ApiListRenderer(ApiValueRenderer):
@@ -291,6 +322,17 @@ class ApiHashDigestRenderer(ApiValueRenderer):
   def RenderValue(self, value):
     result = utils.SmartStr(value)
     return self._IncludeTypeInfo(result, value)
+
+
+class ApiRDFURNRenderer(ApiValueRenderer):
+  """Renderer for RDFURNs."""
+
+  value_class = rdfvalue.RDFURN
+
+  def RenderDefaultValue(self, value_cls):
+    return dict(type=value_cls.__name__,
+                value="",
+                age=0)
 
 
 class ApiEmbeddedRDFValueRenderer(ApiValueRenderer):
