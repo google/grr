@@ -4,9 +4,6 @@
 <p align="center">
 GRR Rapid Response is an incident response framework focused on remote live forensics.
 
-Links  [![Build Status](https://travis-ci.org/google/grr.svg?branch=master)](https://travis-ci.org/google/grr)
------
-
  * [Quickstart: Fast automated installation](https://github.com/google/grr-doc/blob/master/quickstart.adoc)
  * [Downloads (installation files, client templates)](https://googledrive.com/host/0B1wsLqFoT7i2N3hveC1lSEpHUnM/)
  * [User Manual](https://github.com/google/grr-doc/blob/master/user_manual.adoc)
@@ -23,7 +20,8 @@ Links  [![Build Status](https://travis-ci.org/google/grr.svg?branch=master)](htt
  * [Troubleshooting](https://github.com/google/grr-doc/blob/master/troubleshooting.adoc)
 
 
-GRR is a python agent (client) that is installed on a target systems, and
+[![Build Status](https://travis-ci.org/google/grr.svg?branch=master)](https://travis-ci.org/google/grr)
+<br>GRR is a python agent (client) that is installed on target systems, and
 python server infrastructure that can manage and talk to the agent.<br>
 
 Client Features:
