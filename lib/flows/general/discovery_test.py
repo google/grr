@@ -132,7 +132,7 @@ class TestClientInterrogate(artifact_test.ArtifactTest):
     self.assertEqual(interfaces[0].mac_address, "123456")
     self.assertEqual(interfaces[0].addresses[0].human_readable, "100.100.100.1")
     self.assertEqual(socket.inet_ntop(
-        socket.AF_INET, interfaces[0].addresses[0].packed_bytes),
+        socket.AF_INET, str(interfaces[0].addresses[0].packed_bytes)),
                      "100.100.100.1")
 
     # Mac addresses should be available as hex for searching

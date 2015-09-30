@@ -33,8 +33,9 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     self.stats_store.WriteStats(process_id=self.process_id, timestamp=42,
                                 sync=True)
 
-    row = data_store.DB.ResolveRegex("aff4:/stats_store/some_pid", ".*",
-                                     token=self.token)
+    row = data_store.DB.ResolvePrefix("aff4:/stats_store/some_pid",
+                                      "",
+                                      token=self.token)
     counter = [x for x in row if x[0] == "aff4:stats_store/counter"]
     self.assertTrue(counter)
 
@@ -53,8 +54,9 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     self.stats_store.WriteStats(process_id=self.process_id, timestamp=42,
                                 sync=True)
 
-    row = data_store.DB.ResolveRegex("aff4:/stats_store/some_pid", ".*",
-                                     token=self.token)
+    row = data_store.DB.ResolvePrefix("aff4:/stats_store/some_pid",
+                                      "",
+                                      token=self.token)
     # Check that no plain counter is written.
     values = [stats_store.StatsStoreValue(x[1]) for x in row
               if x[0] == "aff4:stats_store/counter"]
@@ -91,8 +93,9 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     self.stats_store.WriteStats(process_id=self.process_id, timestamp=42,
                                 sync=True)
 
-    row = data_store.DB.ResolveRegex("aff4:/stats_store/some_pid", ".*",
-                                     token=self.token)
+    row = data_store.DB.ResolvePrefix("aff4:/stats_store/some_pid",
+                                      "",
+                                      token=self.token)
     values = [stats_store.StatsStoreValue(x[1]) for x in row
               if x[0] == "aff4:stats_store/foo_event"]
     self.assertEqual(len(values), 1)
@@ -111,8 +114,9 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     self.stats_store.WriteStats(process_id=self.process_id, timestamp=42,
                                 sync=True)
 
-    row = data_store.DB.ResolveRegex("aff4:/stats_store/some_pid", ".*",
-                                     token=self.token)
+    row = data_store.DB.ResolvePrefix("aff4:/stats_store/some_pid",
+                                      "",
+                                      token=self.token)
 
     values = [stats_store.StatsStoreValue(x[1]) for x in row
               if x[0] == "aff4:stats_store/foo_event"]
@@ -150,8 +154,9 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     self.stats_store.WriteStats(process_id=self.process_id, timestamp=42,
                                 sync=True)
 
-    row = data_store.DB.ResolveRegex("aff4:/stats_store/some_pid", ".*",
-                                     token=self.token)
+    row = data_store.DB.ResolvePrefix("aff4:/stats_store/some_pid",
+                                      "",
+                                      token=self.token)
     counter = [x for x in row if x[0] == "aff4:stats_store/str_gauge"]
     self.assertTrue(counter)
 
@@ -169,8 +174,9 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     self.stats_store.WriteStats(process_id=self.process_id, timestamp=42,
                                 sync=True)
 
-    row = data_store.DB.ResolveRegex("aff4:/stats_store/some_pid", ".*",
-                                     token=self.token)
+    row = data_store.DB.ResolvePrefix("aff4:/stats_store/some_pid",
+                                      "",
+                                      token=self.token)
     counter = [x for x in row if x[0] == "aff4:stats_store/int_gauge"]
     self.assertTrue(counter)
 
@@ -192,8 +198,9 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     self.stats_store.WriteStats(process_id=self.process_id, timestamp=43,
                                 sync=True)
 
-    row = data_store.DB.ResolveRegex("aff4:/stats_store/some_pid", ".*",
-                                     token=self.token)
+    row = data_store.DB.ResolvePrefix("aff4:/stats_store/some_pid",
+                                      "",
+                                      token=self.token)
     counters = [x for x in row if x[0] == "aff4:stats_store/counter"]
     self.assertEqual(len(counters), 2)
     counters = sorted(counters, key=lambda x: x[2])
@@ -262,7 +269,7 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
                                 sync=True)
 
     stats_history = self.stats_store.ReadStats(process_id=self.process_id,
-                                               predicate_regex="counter")
+                                               metric_name="counter")
     self.assertEqual(stats_history["counter"], [(1, 42), (2, 43)])
     self.assertTrue("int_gauge" not in stats_history)
 

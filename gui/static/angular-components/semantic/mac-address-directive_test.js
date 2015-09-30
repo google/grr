@@ -25,19 +25,16 @@ describe('mac address directive', function() {
   };
 
   it('shows "-" when value is empty', function() {
-    var element = renderTestTemplate(null);
+    var macAddress = {
+      type: 'MacAddress',
+      value: null
+    };
+    var element = renderTestTemplate(macAddress);
     expect(element.text().trim()).toBe('-');
   });
 
-  it('shows string value', function() {
-    var element = renderTestTemplate('+BZUBnli');
-    expect(element.text()).toContain('f8:16:54:06:79:62');
-  });
-
-  it('shows value with type information', function() {
+  it('expands base64-encoded value into a human-readable string', function() {
     var macAddress = {
-      age: 0,
-      mro: ['MacAddress', 'RDFBytes', 'RDFValue', 'object'],
       type: 'MacAddress',
       value: '+BZUBnli'
     };

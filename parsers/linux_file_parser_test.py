@@ -136,12 +136,12 @@ super_group2 (-,user7,) super_group
 class LinuxShadowParserTest(test_lib.GRRBaseTest):
   """Test parsing of linux shadow files."""
 
-  crypt = {"DES": "A.root/ootr.o",
-           "MD5": "$1$rootrootrootrootrootro",
-           "SHA256": "$5$saltsaltsalt${0}".format("r" * 43),
-           "SHA512": "$6$saltsalt${0}".format("r" * 86),
+  crypt = {"DES": "A.root/o0tr.o",
+           "MD5": "$1$roo/root/o07r.0tROOTro",
+           "SHA256": "$5$sal/s.lt5a17${0}".format("r" * 43),
+           "SHA512": "$6$sa./sa1T${0}".format("r" * 86),
            "UNSET": "*",
-           "DISABLED": "!$1$rootrootroootroooooootroooooooo",
+           "DISABLED": "!$1$roo/rootroootROOO0oooTroooooooo",
            "EMPTY": ""}
 
   def _GenFiles(self, passwd, shadow, group, gshadow):

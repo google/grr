@@ -212,12 +212,12 @@ class LinuxBaseShadowParser(parsers.FileParser):
   """Base parser to process user/groups with shadow files."""
 
   # A list of hash types and hash matching expressions.
-  hashes = [("SHA512", re.compile(r"\$6\$[A-z\d\.\\]{0,16}\$[A-z\d\.\\]{86}$")),
-            ("SHA256", re.compile(r"\$5\$[A-z\d\.\\]{0,16}\$[A-z\d\.\\]{43}$")),
+  hashes = [("SHA512", re.compile(r"\$6\$[A-z\d\./]{0,16}\$[A-z\d\./]{86}$")),
+            ("SHA256", re.compile(r"\$5\$[A-z\d\./]{0,16}\$[A-z\d\./]{43}$")),
             ("DISABLED", re.compile(r"!.*")), ("UNSET", re.compile(r"\*.*")),
-            ("MD5", re.compile(r"\$1\$([A-z\d\.\\]{1,8}\$)?[A-z\d\.\\]{22}$")),
-            ("DES", re.compile(r"[A-z\d\.\/]{2}.{11}$")),
-            ("BLOWFISH", re.compile(r"\$2a?\$\d\d\$[A-z\d\.\\]{22}$")),
+            ("MD5", re.compile(r"\$1\$([A-z\d\./]{1,8}\$)?[A-z\d\./]{22}$")),
+            ("DES", re.compile(r"[A-z\d\./]{2}.{11}$")),
+            ("BLOWFISH", re.compile(r"\$2a?\$\d\d\$[A-z\d\.\/]{22}$")),
             ("NTHASH", re.compile(r"\$3\$")), ("UNUSED", re.compile(r"\$4\$"))]
 
   # Prevents this from automatically registering.

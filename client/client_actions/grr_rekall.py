@@ -5,7 +5,7 @@ This module implements the Rekall enabled client actions.
 """
 
 
-
+import copy
 import logging
 import os
 import pdb
@@ -137,7 +137,8 @@ class GRRRekallRenderer(data_export.DataExportRenderer):
       self.action.SendReply(response_msg)
 
   def SendMessage(self, statement):
-    super(GRRRekallRenderer, self).SendMessage(statement)
+    # Copy required temporarily until Rekall 1.4.2 integration.
+    super(GRRRekallRenderer, self).SendMessage(copy.deepcopy(statement))
 
     if statement[0] in ["s", "t"]:
       self.new_context_messages[statement[0]] = statement[1]

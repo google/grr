@@ -116,6 +116,36 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
     # Make sure the manager told us that more data is available.
     self.assertTrue(more_data)
 
+  def testCountsActualNumberOfCompletedResponsesWhenApplyingTheLimit(self):
+    session_id = rdfvalue.SessionID(flow_name="test")
+
+    # Now queue more requests and responses:
+    with queue_manager.QueueManager(token=self.token) as manager:
+      # Start with request 1 - leave request 1 un-responded to.
+      for request_id in range(5):
+        request = rdf_flows.RequestState(
+            id=request_id, client_id=self.client_id,
+            next_state="TestState", session_id=session_id)
+
+        manager.QueueRequest(session_id, request)
+
+        # Don't queue any actual responses, just a status message with a
+        # fake response_id.
+        manager.QueueResponse(session_id, rdf_flows.GrrMessage(
+            request_id=request_id, response_id=1000,
+            type=rdf_flows.GrrMessage.Type.STATUS))
+
+    # Check that even though status message for every request indicates 1000
+    # responses, only the actual response count is used to apply the limit
+    # when FetchCompletedResponses is called.
+    completed_response = list(manager.FetchCompletedResponses(session_id,
+                                                              limit=5))
+    self.assertEqual(len(completed_response), 5)
+    for i, (request, responses) in enumerate(completed_response):
+      self.assertEqual(request.id, i)
+      # Responses contain just the status message.
+      self.assertEqual(len(responses), 1)
+
   def testDeleteFlowRequestStates(self):
     """Check that we can efficiently destroy a single flow request."""
     session_id = rdfvalue.SessionID(flow_name="test3")

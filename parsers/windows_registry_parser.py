@@ -253,7 +253,7 @@ class WinServicesParser(parsers.RegistryValueParser):
     return self.service_re.match(path).group(1)
 
   def _GetKeyName(self, path):
-    return self.service_re.match(path).group(3)
+    return self.service_re.match(path).group(3).lower()
 
   def ParseMultiple(self, stats, knowledge_base):
     """Parse Service registry keys and return WindowsServiceInformation."""
@@ -270,6 +270,10 @@ class WinServicesParser(parsers.RegistryValueParser):
                  "Type": "service_type",
                  "Parameters/ServiceDLL": "service_dll"}
 
+    # Field map key should be converted to lowercase because key aquired through
+    # self._GetKeyName could have some  characters in different case than the
+    # field map, e.g. ServiceDLL and ServiceDll.
+    field_map = {k.lower(): v for k, v in field_map.items()}
     for stat in stats:
 
       # Ignore subkeys
@@ -293,8 +297,9 @@ class WinServicesParser(parsers.RegistryValueParser):
           # Flatten multi strings into a simple string
           if (stat.registry_type ==
               rdf_client.StatEntry.RegistryType.REG_MULTI_SZ):
-            services[service_name].Set(field_map[key], utils.SmartUnicode(
-                stat.registry_data.GetValue()))
+            services[service_name].Set(field_map[key],
+                                       utils.SmartUnicode(
+                                           stat.registry_data.GetValue()))
           else:
             # Log failures for everything else
             # TODO(user): change this to yield a ParserAnomaly object.

@@ -115,6 +115,66 @@ describe('artifacts list form directive', function() {
     expect(element.text()).not.toContain('BarDarwinWindows');
   });
 
+  it('checks sources platform when filtering by platform', function() {
+    descriptorLinux = {
+      type: 'ArtifactDescriptor',
+      value: {
+        artifact: {
+          type: 'Artifact',
+          value: {
+            name: {type: 'ArtifactName', value: 'FooLinux'},
+            sources: [
+              {
+                type: 'ArtifactSource',
+                value: {
+                  supported_os: [
+                    {type: 'RDFString', value: 'Linux'}
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      }
+    };
+
+    descriptorDarwinWindows = {
+      type: 'ArtifactDescriptor',
+      value: {
+        artifact: {
+          type: 'Artifact',
+          value: {
+            name: {type: 'ArtifactName', value: 'BarDarwinWindows'},
+            sources: [
+              {
+                type: 'ArtifactSource',
+                value: {
+                  supported_os: [
+                    {type: 'RDFString', value: 'Darwin'},
+                    {type: 'RDFString', value: 'Windows'}
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      }
+    };
+
+    var element = renderTestTemplate([]);
+    browserTrigger(element.find('a:contains("Darwin")'), 'click');
+    expect(element.text()).not.toContain('FooLinux');
+    expect(element.text()).toContain('BarDarwinWindows');
+
+    browserTrigger(element.find('a:contains("Windows")'), 'click');
+    expect(element.text()).not.toContain('FooLinux');
+    expect(element.text()).toContain('BarDarwinWindows');
+
+    browserTrigger(element.find('a:contains("Linux")'), 'click');
+    expect(element.text()).toContain('FooLinux');
+    expect(element.text()).not.toContain('BarDarwinWindows');
+  });
+
   it('filters artifacts by name', function() {
     var element = renderTestTemplate([]);
 

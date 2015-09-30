@@ -285,21 +285,21 @@ class StatsStore(aff4.AFF4Volume):
 
     return results
 
-  def ReadStats(self, process_id=None, predicate_regex=".*",
+  def ReadStats(self, process_id=None, metric_name=None,
                 timestamp=ALL_TIMESTAMPS, limit=10000):
     """Reads stats values from the data store for the current process."""
     if not process_id:
       raise ValueError("process_id can't be None")
 
     results = self.MultiReadStats(process_ids=[process_id],
-                                  predicate_regex=predicate_regex,
+                                  metric_name=metric_name,
                                   timestamp=timestamp, limit=limit)
     try:
       return results[process_id]
     except KeyError:
       return {}
 
-  def MultiReadStats(self, process_ids=None, predicate_regex=".*",
+  def MultiReadStats(self, process_ids=None, metric_name=None,
                      timestamp=ALL_TIMESTAMPS, limit=10000):
     """Reads historical data for multiple process ids at once."""
     if not process_ids:
@@ -310,9 +310,12 @@ class StatsStore(aff4.AFF4Volume):
     subjects = [self.DATA_STORE_ROOT.Add(process_id)
                 for process_id in process_ids]
 
-    multi_query_results = data_store.DB.MultiResolveRegex(
-        subjects, StatsStoreProcessData.STATS_STORE_PREFIX + predicate_regex,
-        token=self.token, timestamp=timestamp, limit=limit)
+    multi_query_results = data_store.DB.MultiResolvePrefix(
+        subjects,
+        StatsStoreProcessData.STATS_STORE_PREFIX + (metric_name or ""),
+        token=self.token,
+        timestamp=timestamp,
+        limit=limit)
 
     results = {}
     for subject, subject_results in multi_query_results:

@@ -125,6 +125,7 @@ method:
     match: ALL
     probe:
       - artifact: 'ListProcessesGrr'
+        result_context: 'RAW'
         baseline:
           - type: 'ObjectFilter'
             expression: |
@@ -156,11 +157,7 @@ method:
     match: 'NONE'
     probe:
       - artifact: 'ListProcessesGrr'
-        mode: 'PARALLEL'
+        result_context: 'RAW'
         filters:
           - type: 'ObjectFilter'
-            expression: name is "rsyslogd"
-          - type: 'ObjectFilter'
-            expression: name is "syslogd"
-          - type: 'ObjectFilter'
-            expression: name is "syslog-ng"
+            expression: name inset ["rsyslogd", "syslog", "syslog-ng"]

@@ -85,10 +85,25 @@ ArtifactsListFormController.prototype.platformFilter = function(descriptor) {
     return true;
   }
 
-  var osList = descriptor['value']['artifact']['value']['supported_os'];
-  for (var index in osList) {
-    var os = osList[index];
-    if (os.value == this.selectedPlatform) {
+  var checkOsList = function(osList) {
+    for (var i in osList) {
+      var os = osList[i];
+      if (os.value == this.selectedPlatform) {
+        return true;
+      }
+    }
+    return false;
+  }.bind(this);
+
+  if (checkOsList(
+          descriptor['value']['artifact']['value']['supported_os'] || [])) {
+    return true;
+  }
+
+  var sourceList = descriptor['value']['artifact']['value']['sources'] || [];
+  for (var index in sourceList) {
+    var source = sourceList[index];
+    if (checkOsList(source['value']['supported_os'] || [])) {
       return true;
     }
   }

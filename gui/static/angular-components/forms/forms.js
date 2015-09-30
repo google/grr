@@ -7,6 +7,7 @@ goog.require('grrUi.core.semanticRegistry.SemanticRegistryService');
 goog.require('grrUi.forms.aff4AttributeFormDirective.Aff4AttributeFormDirective');
 goog.require('grrUi.forms.datetimeFormDirective.DatetimeFormDirective');
 goog.require('grrUi.forms.dictFormDirective.DictFormDirective');
+goog.require('grrUi.forms.durationFormDirective.DurationFormDirective');
 goog.require('grrUi.forms.globExpressionFormDirective.GlobExpressionFormDirective');
 goog.require('grrUi.forms.outputPluginDescriptorFormDirective.OutputPluginDescriptorFormDirective');
 goog.require('grrUi.forms.semanticEnumFormDirective.SemanticEnumFormDirective');
@@ -44,6 +45,9 @@ grrUi.forms.module.directive(
 grrUi.forms.module.directive(
     grrUi.forms.dictFormDirective.DictFormDirective.directive_name,
     grrUi.forms.dictFormDirective.DictFormDirective);
+grrUi.forms.module.directive(
+    grrUi.forms.durationFormDirective.DurationFormDirective.directive_name,
+    grrUi.forms.durationFormDirective.DurationFormDirective);
 grrUi.forms.module.directive(
     grrUi.forms.globExpressionFormDirective.GlobExpressionFormDirective
         .directive_name,
@@ -96,6 +100,7 @@ grrUi.forms.module.run(function(grrSemanticFormDirectivesRegistryService) {
   registry.registerDirective(
       grrUi.forms.datetimeFormDirective.DatetimeFormDirective.semantic_type,
       grrUi.forms.datetimeFormDirective.DatetimeFormDirective);
+
   var dictSemanticTypes =
       grrUi.forms.dictFormDirective.DictFormDirective.semantic_types;
   angular.forEach(dictSemanticTypes, function(dictSemanticType) {
@@ -103,6 +108,10 @@ grrUi.forms.module.run(function(grrSemanticFormDirectivesRegistryService) {
         dictSemanticType,
         grrUi.forms.dictFormDirective.DictFormDirective);
   });
+
+  registry.registerDirective(
+      grrUi.forms.durationFormDirective.DurationFormDirective.semantic_type,
+      grrUi.forms.durationFormDirective.DurationFormDirective);
 
   registry.registerDirective(
       grrUi.forms.globExpressionFormDirective.GlobExpressionFormDirective

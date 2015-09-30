@@ -168,8 +168,10 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
       fd.Add(rdf_flows.GrrMessage(request_id=1))
 
     # Check that items are stored in the versions.
-    items = list(data_store.DB.ResolveRegex(
-        fd.urn, fd.Schema.DATA.predicate, token=self.token,
+    items = list(data_store.DB.ResolvePrefix(
+        fd.urn,
+        fd.Schema.DATA.predicate,
+        token=self.token,
         timestamp=data_store.DB.ALL_TIMESTAMPS))
     self.assertEqual(len(items), 1)
 
@@ -185,8 +187,10 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
                  rdf_flows.GrrMessage(request_id=1)])
 
     # Check that items are stored in the versions.
-    items = list(data_store.DB.ResolveRegex(
-        fd.urn, fd.Schema.DATA.predicate, token=self.token,
+    items = list(data_store.DB.ResolvePrefix(
+        fd.urn,
+        fd.Schema.DATA.predicate,
+        token=self.token,
         timestamp=data_store.DB.ALL_TIMESTAMPS))
     self.assertEqual(len(items), 2)
 
@@ -206,10 +210,11 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
         token=self.token)
 
     # Check that items are stored in the versions.
-    items = list(data_store.DB.ResolveRegex(
+    items = list(data_store.DB.ResolvePrefix(
         self.collection_urn,
         aff4.PackedVersionedCollection.SchemaCls.DATA.predicate,
-        token=self.token, timestamp=data_store.DB.ALL_TIMESTAMPS))
+        token=self.token,
+        timestamp=data_store.DB.ALL_TIMESTAMPS))
     self.assertEqual(len(items), 2)
 
     # Check that no items are stored in the stream
@@ -343,7 +348,7 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
     # We have too many uncompacted values. First the compacted values
     # will be iterated in the correct order. Then uncompacted values
     # will be iterated in reversed order (due to the order of
-    # results returned by data_store.DB.ResolveRegex - see
+    # results returned by data_store.DB.ResolvePrefix - see
     # data_store.py for details).
     index_list = itertools.chain(
         range(5), reversed(range(5, fd.MAX_REVERSED_RESULTS + 6)))
@@ -494,8 +499,10 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
       self.assertTrue(fd)
 
     # Check that no items are stored in the versions.
-    items = list(data_store.DB.ResolveRegex(
-        fd.urn, fd.Schema.DATA.predicate, token=self.token,
+    items = list(data_store.DB.ResolvePrefix(
+        fd.urn,
+        fd.Schema.DATA.predicate,
+        token=self.token,
         timestamp=data_store.DB.ALL_TIMESTAMPS))
     self.assertEqual(len(items), 0)
 
@@ -514,8 +521,10 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
       fd.AddAll(elements)
 
     # Check that items are stored in the versions.
-    items = list(data_store.DB.ResolveRegex(
-        fd.urn, fd.Schema.DATA.predicate, token=self.token,
+    items = list(data_store.DB.ResolvePrefix(
+        fd.urn,
+        fd.Schema.DATA.predicate,
+        token=self.token,
         timestamp=data_store.DB.ALL_TIMESTAMPS))
     self.assertEqual(len(items), num_elements)
 
@@ -526,8 +535,10 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
       self.assertEqual(num_compacted, num_elements)
 
     # Check that no items are stored in the versions.
-    items = list(data_store.DB.ResolveRegex(
-        fd.urn, fd.Schema.DATA.predicate, token=self.token,
+    items = list(data_store.DB.ResolvePrefix(
+        fd.urn,
+        fd.Schema.DATA.predicate,
+        token=self.token,
         timestamp=data_store.DB.ALL_TIMESTAMPS))
     self.assertEqual(len(items), 0)
 
@@ -744,8 +755,10 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
     self.assertEqual(num_compacted, 4)
 
     # Check that one uncompacted item was left (see the comment above).
-    items = list(data_store.DB.ResolveRegex(
-        fd.urn, fd.Schema.DATA.predicate, token=self.token,
+    items = list(data_store.DB.ResolvePrefix(
+        fd.urn,
+        fd.Schema.DATA.predicate,
+        token=self.token,
         timestamp=data_store.DB.ALL_TIMESTAMPS))
     self.assertEqual(len(items), 1)
 

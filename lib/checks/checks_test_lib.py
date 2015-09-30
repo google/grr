@@ -189,6 +189,9 @@ class HostCheckTest(test_lib.GRRBaseTest):
 
     Returns:
       CheckResult containing any findings in sources_list against loaded checks.
+
+    Raises:
+      Error: When there are issues with the passed input.
     """
     if parser_list is None:
       parser_list = [None] * len(artifact_list)
@@ -218,7 +221,8 @@ class HostCheckTest(test_lib.GRRBaseTest):
     data = []
     for (name, pid, cmdline) in processes:
       data.append(rdf_client.Process(name=name, pid=pid, cmdline=cmdline))
-    host_data["ListProcessesGrr"] = self.SetArtifactData(parsed=data)
+    # ListProcessesGrr is a flow artifact, thus it needs stored as raw.
+    host_data["ListProcessesGrr"] = self.SetArtifactData(raw=data)
     return host_data
 
   @classmethod
@@ -270,6 +274,9 @@ class HostCheckTest(test_lib.GRRBaseTest):
 
     Returns:
       the host_data map populated with a knowledge base and artifact data.
+
+    Raises:
+      Error: When the handed parser was not initialized.
     """
     host_data = self.SetKnowledgeBase()
     if not parser:

@@ -990,7 +990,14 @@ message NetworkAddress {
   }
   optional Family address_type = 1;
   optional string human_readable = 2;  // deprecated
-  optional bytes packed_bytes = 3;
+  optional bytes packed_bytes = 3 [(sem_type) = {
+      type: "RDFBytes"
+    }];
+  // TODO(user): The whole code should be refactored so that bytes are
+  // automatically created as an RDFBytes, without explicit sem_type mapping or,
+  // alternatively, strings are automatically created as unicode and then "str"
+  // objects can be treated as raw bytes, not strings.
+
 };
 
 message Interface {

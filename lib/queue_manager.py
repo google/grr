@@ -3,6 +3,7 @@
 
 
 
+import collections
 import os
 import random
 import socket
@@ -230,36 +231,51 @@ class QueueManager(object):
 
   def FetchCompletedResponses(self, session_id, timestamp=None, limit=10000):
     """Fetch only completed requests and responses up to a limit."""
-    response_subjects = {}
 
     if timestamp is None:
       timestamp = (0, self.frozen_timestamp or rdfvalue.RDFDatetime().Now())
-    total_size = 0
-    for request, status in self.FetchCompletedRequests(
-        session_id, timestamp=timestamp):
-      # Make sure at least one response is fetched.
-      response_subject = self.GetFlowResponseSubject(session_id, request.id)
-      response_subjects[response_subject] = request
 
-      # Quit if there are too many responses.
-      total_size += status.response_id
-      if total_size > limit:
+    completed_requests = collections.deque(self.FetchCompletedRequests(
+        session_id, timestamp=timestamp))
+
+    total_size = 0
+    while True:
+      # No completed requests left, so finish processing.
+      if not completed_requests:
         break
 
-    response_data = dict(self.data_store.MultiResolvePrefix(
-        response_subjects, self.FLOW_RESPONSE_PREFIX, token=self.token,
-        timestamp=timestamp))
+      # Size reported in the status messages may be different from actual
+      # number of responses read from the database. Example: hunt responses
+      # may get deleted from the database and then worker may die before
+      # deleting the request. Then status.response_id will be >0, but no
+      # responses will be read from the DB.
+      projected_total_size = total_size
+      response_subjects = {}
+      while completed_requests:
+        request, status = completed_requests.popleft()
 
-    for response_urn, request in sorted(response_subjects.items()):
-      responses = []
-      for _, serialized, _ in response_data.get(response_urn, []):
-        responses.append(rdf_flows.GrrMessage(serialized))
+        # Make sure at least one response is fetched.
+        response_subject = self.GetFlowResponseSubject(session_id, request.id)
+        response_subjects[response_subject] = request
 
-      yield (request, sorted(responses, key=lambda msg: msg.response_id))
+        # Quit if there are too many responses.
+        projected_total_size += status.response_id
+        if projected_total_size > limit:
+          break
 
-    # Indicate to the caller that there are more messages.
-    if total_size > limit:
-      raise MoreDataException()
+      response_data = dict(self.data_store.MultiResolvePrefix(
+          response_subjects, self.FLOW_RESPONSE_PREFIX, token=self.token,
+          timestamp=timestamp))
+      for response_urn, request in sorted(response_subjects.items()):
+        responses = []
+        for _, serialized, _ in response_data.get(response_urn, []):
+          responses.append(rdf_flows.GrrMessage(serialized))
+
+        yield (request, sorted(responses, key=lambda msg: msg.response_id))
+
+        total_size += len(responses)
+        if total_size > limit:
+          raise MoreDataException()
 
   def FetchRequestsAndResponses(self, session_id, timestamp=None):
     """Fetches all outstanding requests and responses for this flow.

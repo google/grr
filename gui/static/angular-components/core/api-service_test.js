@@ -148,9 +148,9 @@ describe('API service', function() {
     });
 
     it('uses grr.state.reason in requests', function() {
-      grr.state.reason = 'some reason';
+      grr.state.reason = 'some reason ';
 
-      $httpBackend.whenGET('/api/some/path?reason=some+reason').
+      $httpBackend.whenGET('/api/some/path?reason=some+reason+').
           respond(200);
       grrApiService.get('some/path');
       $httpBackend.flush();
@@ -164,10 +164,10 @@ describe('API service', function() {
     });
 
     it('passes user-provided headers and reason in the request', function() {
-      grr.state.reason = 'some reason';
+      grr.state.reason = 'some reason ';
 
       $httpBackend.whenGET('/api/some/path?' +
-          'key1=value1&key2=value2&reason=some+reason').respond(200);
+          'key1=value1&key2=value2&reason=some+reason+').respond(200);
       grrApiService.get('some/path', {key1: 'value1', key2: 'value2'});
       $httpBackend.flush();
     });
@@ -186,11 +186,12 @@ describe('API service', function() {
       $httpBackend.flush();
     });
 
-    it('uses grr.state.reason in requests', function() {
-      grr.state.reason = 'some reason';
+    it('uses url-encoded grr.state.reason in requests', function() {
+      grr.state.reason = '区最 unicode reason ';
 
       $httpBackend.expectPOST('/api/some/path', {}, function(headers) {
-        return headers['grr-reason'] == 'some reason';
+        return headers[
+            'X-GRR-REASON'] == '%E5%8C%BA%E6%9C%80%20unicode%20reason%20';
       }).respond(200);
       grrApiService.post('some/path');
       $httpBackend.flush();
@@ -234,13 +235,14 @@ describe('API service', function() {
       $httpBackend.flush();
     });
 
-    it('passes user-provided headers and reason in the request', function() {
-      grr.state.reason = 'some reason';
-
+    it('passes user-provided headers and url-encoded reason in the request',
+        function() {
+      grr.state.reason = '区最 unicode reason ';
       $httpBackend.expectPOST(
           '/api/some/path',
           {key1: 'value1', key2: 'value2'}, function(headers) {
-            return headers['grr-reason'] == 'some reason';
+            return headers[
+                'X-GRR-REASON'] == '%E5%8C%BA%E6%9C%80%20unicode%20reason%20';
           }).respond(200);
 
       grrApiService.post('some/path', {key1: 'value1', key2: 'value2'});

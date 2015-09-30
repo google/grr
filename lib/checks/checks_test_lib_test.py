@@ -139,21 +139,21 @@ class CheckHelperTests(checks_test_lib.HostCheckTest):
   def testGenProcessData(self):
     """Test for the GenProcessData() method."""
     # Trivial empty case.
+    art_name = "ListProcessesGrr"
+    context = "RAW"
     result = self.GenProcessData([])
     self.assertTrue("KnowledgeBase" in result)
-    self.assertTrue("ListProcessesGrr" in result)
-    self.assertDictEqual(self.SetArtifactData(), result["ListProcessesGrr"])
+    self.assertTrue(art_name in result)
+    self.assertDictEqual(self.SetArtifactData(), result[art_name])
     # Now with data.
     result = self.GenProcessData([("proc1", 1, ["/bin/foo"]),
                                   ("proc2", 2, ["/bin/bar"])])
-    self.assertEquals("proc1", result["ListProcessesGrr"]["PARSER"][0].name)
-    self.assertEquals(1, result["ListProcessesGrr"]["PARSER"][0].pid)
-    self.assertEquals(["/bin/foo"],
-                      result["ListProcessesGrr"]["PARSER"][0].cmdline)
-    self.assertEquals("proc2", result["ListProcessesGrr"]["PARSER"][1].name)
-    self.assertEquals(2, result["ListProcessesGrr"]["PARSER"][1].pid)
-    self.assertEquals(["/bin/bar"],
-                      result["ListProcessesGrr"]["PARSER"][1].cmdline)
+    self.assertEquals("proc1", result[art_name][context][0].name)
+    self.assertEquals(1, result[art_name][context][0].pid)
+    self.assertEquals(["/bin/foo"], result[art_name][context][0].cmdline)
+    self.assertEquals("proc2", result[art_name][context][1].name)
+    self.assertEquals(2, result[art_name][context][1].pid)
+    self.assertEquals(["/bin/bar"], result[art_name][context][1].cmdline)
 
   def testGenFileData(self):
     """Test for the GenFileData() method."""

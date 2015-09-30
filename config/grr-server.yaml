@@ -16,13 +16,13 @@ Client.name: GRR
 
 Client.proxy_servers:
 
+# The final version number will be built in the same order as listed
+# here:
 Client.version_major: 3
-
 Client.version_minor: 0
+Client.version_revision: 7
+Client.version_release: 1
 
-Client.version_release: 7
-
-Client.version_revision: 0
 
 Client.foreman_check_frequency: 600
 

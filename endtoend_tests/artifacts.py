@@ -47,7 +47,7 @@ class TestRootDiskVolumeUsage(base.AutomatedTest):
     volume_list = list(collection)
     # Make sure there are at least some results.
     self.assertEqual(len(volume_list), 1)
-    self.assertEqual(volume_list[0].unix.mount_point, "/")
+    self.assertEqual(volume_list[0].unixvolume.mount_point, "/")
     self.assertTrue(isinstance(volume_list[0].FreeSpacePercent(), float))
 
 

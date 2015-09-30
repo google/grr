@@ -668,11 +668,6 @@ class AFF4Index(aff4.AFF4Object):
 
     return hits
 
-  def _QueryRaw(self, regex):
-    return set([(x, y) for (y, x, _) in data_store.DB.ResolveRegex(
-        self.urn, regex, token=self.token,
-        timestamp=data_store.DB.ALL_TIMESTAMPS)])
-
   def MultiQuery(self, attributes, regexes):
     """Query the index for the attribute, matching multiple regexes at a time.
 

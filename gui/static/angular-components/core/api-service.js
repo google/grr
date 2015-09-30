@@ -153,7 +153,7 @@ ApiService.prototype.post = function(apiPath, opt_params, opt_stripTypeInfo,
     };
     if (grr.state.reason) {
       request.headers = {
-        'grr-reason': grr.state.reason
+        'X-GRR-REASON': encodeURIComponent(grr.state.reason)
       };
     }
 
@@ -179,7 +179,7 @@ ApiService.prototype.post = function(apiPath, opt_params, opt_stripTypeInfo,
       }
     };
     if (grr.state.reason) {
-      request.headers['grr-reason'] = grr.state.reason;
+      request.headers['X-GRR-REASON'] = encodeURIComponent(grr.state.reason);
     }
 
     var promise = /** @type {function(Object)} */ (this.http_)(request);

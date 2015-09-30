@@ -164,14 +164,14 @@ class FileStoreImage(aff4_grr.VFSBlobImage):
   client files which matches their hash.
 
   It is possible to query for all clients which match a specific hash or a
-  regular expression of the aff4 path to the files on these clients.
+  prefix of the aff4 path to the files on these clients.
 
   e.g. on the console, you can query for all clients with a hash like this:
 
   In [31]: fd = aff4.FACTORY.Open("aff4:/files/hash/generic/sha256/2663a09072b9e
   a027ff1e3e3d21d351152c2534c2fe960a765c5321bfb7b6b25")
 
-  In [32]: list(fd.Query("aff4:/C.+"))
+  In [32]: list(fd.Query("aff4:/C"))
   Out[32]: [<aff4:/C.f2614de8d636797e/fs/os/usr/share/gimp/2.0/images/wilber.png
   age=1970-01-01 00:00:00>]
   """
@@ -190,11 +190,11 @@ class FileStoreImage(aff4_grr.VFSBlobImage):
     data_store.DB.MultiSet(self.urn, {predicate: target}, token=self.token,
                            replace=True, sync=False)
 
-  def Query(self, target_regex=".", limit=100):
-    """Search the index for matches to the file specified by the regex.
+  def Query(self, target_prefix="", limit=100):
+    """Search the index for matches starting with target_prefix.
 
     Args:
-       target_regex: The regular expression to match against the index.
+       target_prefix: The prefix to match against the index.
 
        limit: Either a tuple of (start, limit) or a maximum number of results to
          return.
@@ -203,8 +203,8 @@ class FileStoreImage(aff4_grr.VFSBlobImage):
       URNs of files which have the same data as this file - as read from the
       index.
     """
-    # Make the regular expression.
-    regex = ["index:target:%s" % target_regex.lower()]
+    # Make the full prefix.
+    prefix = ["index:target:%s" % target_prefix.lower()]
     if isinstance(limit, (tuple, list)):
       start, length = limit  # pylint: disable=unpacking-non-sequence
 
@@ -213,8 +213,8 @@ class FileStoreImage(aff4_grr.VFSBlobImage):
       length = limit
 
     # Get all the unique hits
-    for i, (_, hit, _) in enumerate(data_store.DB.ResolveRegex(
-        self.urn, regex, token=self.token, limit=limit)):
+    for i, (_, hit, _) in enumerate(data_store.DB.ResolvePrefix(
+        self.urn, prefix, token=self.token, limit=limit)):
 
       if i < start: continue
 

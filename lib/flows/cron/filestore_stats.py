@@ -88,7 +88,7 @@ class ClientCountHistogram(GraphDistribution):
     # The same file can be in multiple locations on the one client so we use a
     # set to kill the dups.
     clients = set()
-    for urn in fd.Query("aff4:/C.+"):
+    for urn in fd.Query("aff4:/C"):
       client, _ = urn.Split(2)
       clients.add(client)
     self.Record(len(clients))

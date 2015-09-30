@@ -58,13 +58,7 @@ var MacAddressController =
  * @suppress {missingProperties} as value can be anything.
  */
 MacAddressController.prototype.onValueChange = function(newValue) {
-  var address;
-  if (angular.isObject(newValue)) {
-    address = newValue.value;
-  } else {
-    address = newValue;
-  }
-
+  var address = newValue.value;
   if (angular.isString(address)) {
     this.convertedAddress = convertMacAddressToString(
         window.atob(address));

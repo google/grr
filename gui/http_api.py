@@ -4,6 +4,7 @@
 
 
 import json
+import urllib2
 
 
 # pylint: disable=g-bad-import-order,unused-import
@@ -23,6 +24,7 @@ from grr.gui import http_routing
 from grr.lib import access_control
 from grr.lib import rdfvalue
 from grr.lib import registry
+from grr.lib import utils
 
 
 def BuildToken(request, execution_time):
@@ -31,7 +33,10 @@ def BuildToken(request, execution_time):
   if request.method == "GET":
     reason = request.GET.get("reason", "")
   elif request.method == "POST":
-    reason = request.META.get("HTTP_GRR_REASON", "")
+    # The header X-GRR-REASON is set in api-service.js, which django converts to
+    # HTTP_X_GRR_REASON.
+    reason = utils.SmartUnicode(urllib2.unquote(
+        request.META.get("HTTP_X_GRR_REASON", "")))
 
   token = access_control.ACLToken(
       username=request.user,

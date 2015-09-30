@@ -1,9 +1,12 @@
 #!/usr/bin/env python
+# -*- mode: python; encoding: utf-8 -*-
+
 """Tests for HTTP API."""
 
 
 
 import json
+import urllib2
 
 from grr.gui import api_aff4_object_renderers
 from grr.gui import api_call_renderer_base
@@ -103,6 +106,12 @@ class RenderHttpResponseTest(test_lib.GRRBaseTest):
       response.content = response.content[5:]
 
     return response
+
+  def testBuildToken(self):
+    request = self._CreateRequest("POST", "/test_sample/some/path")
+    request.META["HTTP_X_GRR_REASON"] = urllib2.quote("区最 trailing space ")
+    token = http_api.BuildToken(request, 20)
+    self.assertEqual(token.reason, utils.SmartUnicode("区最 trailing space "))
 
   def testReturnsRendererMatchingUrlAndMethod(self):
     renderer, _ = http_api.GetRendererForHttpRequest(

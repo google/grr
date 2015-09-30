@@ -57,6 +57,8 @@ class TimeSyncTests(checks_test_lib.HostCheckTest):
     """Test for checking we don't allow queries by default."""
     parser = config_file.NtpdParser()
 
+    check_id = "TIME-NTP-NO-OPEN-QUERIES"
+    artifact_id = "NtpConfFile"
     good_config = {"/etc/ntp.conf": """
         restrict default nomodify noquery nopeer
         """}
@@ -69,25 +71,29 @@ class TimeSyncTests(checks_test_lib.HostCheckTest):
     # A good config should pass.
     results = self.RunChecks(
         self.GenFileData("NtpConfFile", good_config, parser))
-    self.assertCheckUndetected("TIME-NTP-VULN-2014-12", results)
+    self.assertCheckUndetected(check_id, results)
 
     found = ["Expected state was not found"]
     sym = ("Missing attribute: ntpd.conf is configured or defaults to open "
-           "queries. Can allow DDoS.")
+           "queries. Can allow DDoS. This configuration is an on-going "
+           "recommendation following the Ntp December 2014 Vulnerability "
+           "notice. (http://support.ntp.org/bin/view/Main/SecurityNotice)")
     # A bad one should detect a problem.
     results = self.RunChecks(
-        self.GenFileData("NtpConfFile", bad_config, parser))
-    self.assertCheckDetectedAnom("TIME-NTP-VULN-2014-12", results, sym, found)
+        self.GenFileData(artifact_id, bad_config, parser))
+    self.assertCheckDetectedAnom(check_id, results, sym, found)
 
     # And as the default is to be queryable, check we detect an empty config.
     results = self.RunChecks(
-        self.GenFileData("NtpConfFile", bad_default_config, parser))
-    self.assertCheckDetectedAnom("TIME-NTP-VULN-2014-12", results, sym, found)
+        self.GenFileData(artifact_id, bad_default_config, parser))
+    self.assertCheckDetectedAnom(check_id, results, sym, found)
 
   def testNtpHasMonitorDisabled(self):
     """Test for checking that monitor is disabled."""
     parser = config_file.NtpdParser()
 
+    check_id = "TIME-NTP-REFLECTION"
+    artifact_id = "NtpConfFile"
     good_config = {"/etc/ntp.conf": """
         disable monitor
         """}
@@ -111,24 +117,24 @@ class TimeSyncTests(checks_test_lib.HostCheckTest):
            "attacks.")
 
     results = self.RunChecks(
-        self.GenFileData("NtpConfFile", good_config, parser))
-    self.assertCheckUndetected("TIME-NTP-REFLECTION", results)
+        self.GenFileData(artifact_id, good_config, parser))
+    self.assertCheckUndetected(check_id, results)
 
     results = self.RunChecks(
-        self.GenFileData("NtpConfFile", good_tricky_config, parser))
-    self.assertCheckUndetected("TIME-NTP-REFLECTION", results)
+        self.GenFileData(artifact_id, good_tricky_config, parser))
+    self.assertCheckUndetected(check_id, results)
 
     results = self.RunChecks(
-        self.GenFileData("NtpConfFile", bad_config, parser))
-    self.assertCheckDetectedAnom("TIME-NTP-REFLECTION", results, sym, found)
+        self.GenFileData(artifact_id, bad_config, parser))
+    self.assertCheckDetectedAnom(check_id, results, sym, found)
 
     results = self.RunChecks(
-        self.GenFileData("NtpConfFile", bad_default_config, parser))
-    self.assertCheckDetectedAnom("TIME-NTP-REFLECTION", results, sym, found)
+        self.GenFileData(artifact_id, bad_default_config, parser))
+    self.assertCheckDetectedAnom(check_id, results, sym, found)
 
     results = self.RunChecks(
-        self.GenFileData("NtpConfFile", bad_tricky_config, parser))
-    self.assertCheckDetectedAnom("TIME-NTP-REFLECTION", results, sym, found)
+        self.GenFileData(artifact_id, bad_tricky_config, parser))
+    self.assertCheckDetectedAnom(check_id, results, sym, found)
 
 
 def main(argv):

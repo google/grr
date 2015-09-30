@@ -145,3 +145,18 @@ jQuery.prototype.jstree = function(data) {};
  * @type {Function}
  */
 moment.utc = function() {};
+
+/**
+ * @param {number} n
+ * @param {string=} opt_unit
+ */
+moment.duration = function(n, opt_unit) {};
+
+/**
+ * @typedef {{
+ *   as: function(string):number,
+ *   asSeconds: function():number,
+ *   humanize: function(boolean=):string
+ * }}
+ */
+moment.Duration;

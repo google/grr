@@ -334,9 +334,9 @@ class NetworkAddress(structs.RDFProtoStruct):
     else:
       try:
         if self.address_type == NetworkAddress.Family.INET:
-          return socket.inet_ntoa(self.packed_bytes)
+          return socket.inet_ntoa(str(self.packed_bytes))
         else:
-          return ipv6_utils.InetNtoA(self.packed_bytes)
+          return ipv6_utils.InetNtoA(str(self.packed_bytes))
       except ValueError as e:
         return str(e)
 
@@ -378,10 +378,10 @@ class Interface(structs.RDFProtoStruct):
       else:
         if address.address_type == NetworkAddress.Family.INET:
           results.append(socket.inet_ntop(socket.AF_INET,
-                                          address.packed_bytes))
+                                          str(address.packed_bytes)))
         else:
           results.append(socket.inet_ntop(socket.AF_INET6,
-                                          address.packed_bytes))
+                                          str(address.packed_bytes)))
     return results
 
 

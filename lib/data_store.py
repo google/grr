@@ -126,8 +126,9 @@ class DataStore(object):
     else:
       attribute_regex = [utils.SmartStr(x) for x in attribute_regex]
 
+    # TODO(user): Remove regex case when we remove *ResolveRegex.
     for regex in attribute_regex:
-      if regex == ".*":
+      if regex in (".*", ""):
         continue
 
       # Extract the column family

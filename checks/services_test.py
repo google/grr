@@ -134,8 +134,10 @@ class ListeningServiceTests(checks_test_lib.HostCheckTest):
                               connections=[loop4, loop6, ext4, ext6])
     sshd = rdf_client.Process(name="sshd", pid=1235,
                               connections=[loop4, loop6, ext4, ext6])
+    # Note: ListProcessesGrr is a flow artifact, hence it needs to be of
+    # raw context.
     host_data["ListProcessesGrr"] = self.SetArtifactData(
-        parsed=[x11, xorg, sshd])
+        raw=[x11, xorg, sshd])
     return host_data
 
   def testFindListeningServicesCheck(self):
@@ -149,6 +151,7 @@ class ListeningServiceTests(checks_test_lib.HostCheckTest):
   def testFindNoRunningLogserver(self):
     chk_id = "CIS-SERVICE-LOGSERVER-RUNNING"
     sym = "Missing attribute: Logging software is not running."
+    context = "RAW"
     found = ["Expected state was not found"]
     host_data = self.GenHostData()
     # Try it without rsyslog.
@@ -156,7 +159,42 @@ class ListeningServiceTests(checks_test_lib.HostCheckTest):
     self.assertCheckDetectedAnom(chk_id, results, sym, found)
     # Now rsyslog is running.
     logs = rdf_client.Process(name="rsyslogd", pid=1236)
-    host_data["ListProcessesGrr"]["PARSER"].append(logs)
+    host_data["ListProcessesGrr"][context].append(logs)
+    results = self.RunChecks(host_data)
+    self.assertCheckUndetected(chk_id, results)
+    # Check with some problematic real-world data.
+    host_data = self.GenHostData()  # Reset the host_data.
+    # Added a non-logger process. We expect to raise an anom.
+    proc1 = rdf_client.Process(name="python", pid=10554, ppid=1,
+                               exe="/usr/bin/python",
+                               cmdline=["/usr/bin/python",
+                                        "-E",
+                                        "/usr/sbin/foo_agent",
+                                        "/etc/foo/conf.d/rsyslogd.conf",
+                                        "/etc/foo/foobar.conf"])
+    host_data["ListProcessesGrr"][context].append(proc1)
+    results = self.RunChecks(host_data)
+    self.assertCheckDetectedAnom(chk_id, results, sym, found)
+
+    # Now added a logging service proc. We expect no anom. this time.
+    proc2 = rdf_client.Process(name="rsyslogd", pid=10200, ppid=1,
+                               exe="/sbin/rsyslogd",
+                               cmdline=["/sbin/rsyslogd",
+                                        "-i",
+                                        "/var/run/rsyslogd.pid",
+                                        "-m",
+                                        "0"])
+    host_data["ListProcessesGrr"][context].append(proc2)
+    results = self.RunChecks(host_data)
+    self.assertCheckUndetected(chk_id, results)
+
+    # Add yet another non-logger process. We should still raise no anom.
+    proc3 = rdf_client.Process(name="foobar", pid=31337, ppid=1,
+                               exe="/usr/local/bin/foobar",
+                               cmdline=["/usr/local/bin/foobar",
+                                        "--test",
+                                        "args"])
+    host_data["ListProcessesGrr"][context].append(proc3)
     results = self.RunChecks(host_data)
     self.assertCheckUndetected(chk_id, results)
 

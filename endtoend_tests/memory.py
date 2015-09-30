@@ -143,7 +143,7 @@ class TestAnalyzeClientMemoryMac(AbstractTestAnalyzeClientMemory,
     response = aff4.FACTORY.Open(self.client_id.Add(self.test_output_path),
                                  token=self.token)
     binary_name = config_lib.CONFIG.Get(
-        "Client.binary_name", context=["Client context", "Platform:Darwin"])
+        "Client.binary_name", context=["Client Context", "Platform:Darwin"])
 
     responses = list(response)
     self.assertTrue(len(responses))
