@@ -22,24 +22,14 @@ Links  [![Build Status](https://travis-ci.org/google/grr.svg?branch=master)](htt
  * [License Information](https://github.com/google/grr-doc/blob/master/licenses.adoc)
  * [Troubleshooting](https://github.com/google/grr-doc/blob/master/troubleshooting.adoc)
 
-Mailing Lists
--------------
 
- * GRR Users: [grr-users](https://groups.google.com/forum/#!forum/grr-users)
- * GRR Developers: [grr-dev](https://groups.google.com/forum/#!forum/grr-dev)
-
-Overview
---------
-
-GRR consists of an agent (client) that can be deployed to a target system, and
-server infrastructure that can manage and talk to the agent.<br>
+GRR is a python agent (client) that is installed on a target systems, and
+python server infrastructure that can manage and talk to the agent.<br>
 
 Client Features:
 
- * Cross-platform support for Linux, Mac OS X and Windows clients.
- * Live remote memory analysis using open source memory drivers for Linux, Mac
-   OS X and Windows, and the [Rekall](http://www.rekall-forensic.com/) memory
-   analysis framework.
+ * Cross-platform support for Linux, OS X and Windows clients.
+ * Live remote memory analysis using open source memory drivers for Linux, OS X and Windows via the [Rekall](http://www.rekall-forensic.com/) memory analysis framework.
  * Powerful search and download capabilities for files and the Windows registry.
  * Secure communication infrastructure designed for Internet deployment.
  * Client automatic update support.
@@ -57,12 +47,21 @@ Server Features:
  * Fast and simple collection of hundreds of digital forensic artifacts.
  * Asynchronous design allows future task scheduling for clients, designed to
    work with a large fleet of laptops.
- * Ajax Web UI.
+ * AngularJS Web UI and RESTful JSON API.
  * Fully scriptable IPython console access.
  * Basic system timelining features.
  * Basic reporting infrastructure.
 
 See [quickstart](https://github.com/google/grr-doc/blob/master/quickstart.adoc) to start using it.
+
+Contact Us
+----------
+
+Mailing lists:
+ * GRR Users: [grr-users](https://groups.google.com/forum/#!forum/grr-users)
+ * GRR Developers: [grr-dev](https://groups.google.com/forum/#!forum/grr-dev)
+
+Follow us [on twitter](https://twitter.com/grrresponse) for announcements of GRR user meetups.
 
 Screenshots
 -----------
