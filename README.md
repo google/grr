@@ -7,6 +7,8 @@ GRR Rapid Response is an incident response framework focused on remote live fore
 Links  [![Build Status](https://travis-ci.org/google/grr.svg?branch=master)](https://travis-ci.org/google/grr)
 -----
 
+[![Join the chat at https://gitter.im/google/grr](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/google/grr?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
  * [Quickstart: Fast automated installation](https://github.com/google/grr-doc/blob/master/quickstart.adoc)
  * [Downloads (installation files, client templates)](https://googledrive.com/host/0B1wsLqFoT7i2N3hveC1lSEpHUnM/)
  * [User Manual](https://github.com/google/grr-doc/blob/master/user_manual.adoc)
