@@ -29,7 +29,7 @@ def EnumMissingModules():
   """Enumerate all modules which match the patterns MODULE_PATTERNS.
 
   PyInstaller often fails to locate all dlls which are required at
-  runtime. We import all the client modules here, we simply introdpect
+  runtime. We import all the client modules here, we simply introspect
   all the modules we have loaded in our current running process, and
   all the ones matching the patterns are copied into the client
   package.

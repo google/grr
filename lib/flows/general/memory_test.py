@@ -314,6 +314,8 @@ class TestMemoryCollector(MemoryTest):
         literal_match=file_finder.FileFinderContentsLiteralMatchCondition(
             mode=
             file_finder.FileFinderContentsLiteralMatchCondition.Mode.ALL_HITS,
+            bytes_before=10,
+            bytes_after=10,
             literal="session opened for user dearjohn"))
 
     self.RunWithNoAction(conditions=[literal_condition])
@@ -333,6 +335,8 @@ class TestMemoryCollector(MemoryTest):
         regex_match=file_finder.FileFinderContentsRegexMatchCondition(
             mode=
             file_finder.FileFinderContentsLiteralMatchCondition.Mode.ALL_HITS,
+            bytes_before=10,
+            bytes_after=10,
             regex="session opened for user .*?john"))
 
     self.RunWithNoAction(conditions=[regex_condition])
@@ -352,6 +356,8 @@ class TestMemoryCollector(MemoryTest):
         literal_match=file_finder.FileFinderContentsLiteralMatchCondition(
             mode=
             file_finder.FileFinderContentsLiteralMatchCondition.Mode.ALL_HITS,
+            bytes_before=10,
+            bytes_after=10,
             literal="session opened for user dearjohn"))
     dump_option = memory.MemoryCollectorDumpOption(
         option_type=memory.MemoryCollectorDumpOption.Option.WITH_LOCAL_COPY,
@@ -386,6 +392,8 @@ class TestMemoryCollector(MemoryTest):
         literal_match=file_finder.FileFinderContentsLiteralMatchCondition(
             mode=
             file_finder.FileFinderContentsLiteralMatchCondition.Mode.ALL_HITS,
+            bytes_before=10,
+            bytes_after=10,
             literal="session opened for user foobar"))
     dump_option = memory.MemoryCollectorDumpOption(
         option_type=memory.MemoryCollectorDumpOption.Option.WITH_LOCAL_COPY,
@@ -409,6 +417,8 @@ class TestMemoryCollector(MemoryTest):
         literal_match=file_finder.FileFinderContentsLiteralMatchCondition(
             mode=
             file_finder.FileFinderContentsLiteralMatchCondition.Mode.ALL_HITS,
+            bytes_before=10,
+            bytes_after=10,
             literal="session opened for user dearjohn"))
     dump_option = memory.MemoryCollectorDumpOption(
         option_type=memory.MemoryCollectorDumpOption.Option.WITH_LOCAL_COPY,

@@ -14,8 +14,12 @@ msiexec /I ActivePerl-5.20.2.2001-MSWin32-x86-64int-298913.msi /q || echo "perl 
 SETX /M PATH "%PATH%;%SYSTEMDRIVE%\Perl\bin"
 call refreshenv
 
+:: Standard Win7 powershell can no longer establish an SSL connection to
+:: openssl.org.  Download over http and use fciv to verify.
+choco install fciv -y || echo "fciv install failed" && exit /b 1
 mkdir %SYSTEMDRIVE%\openssl
 cd %SYSTEMDRIVE%\openssl
-powershell -NoProfile -ExecutionPolicy unrestricted -Command "(new-object System.Net.WebClient).DownloadFile('https://www.openssl.org/source/openssl-1.0.2c.tar.gz', '%SYSTEMDRIVE%\openssl\openssl-1.0.2c.tar.gz')" || echo "Couldn't download openssl" && exit /b 1
-7z e openssl-1.0.2c.tar.gz
+powershell -NoProfile -ExecutionPolicy unrestricted -Command "(new-object System.Net.WebClient).DownloadFile('http://www.openssl.org/source/openssl-1.0.2d.tar.gz', '%SYSTEMDRIVE%\openssl\openssl-1.0.2d.tar.gz')" || echo "Couldn't download openssl" && exit /b 1
+fciv -sha1 %SYSTEMDRIVE%\openssl\openssl-1.0.2d.tar.gz | findstr /C:"d01d17b44663e8ffa6a33a5a30053779d9593c3d" || echo "Bad hash for openssl" && exit /b 1
+7z e openssl-1.0.2d.tar.gz
 

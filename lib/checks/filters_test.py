@@ -114,14 +114,19 @@ class ForEachTests(test_lib.GRRBaseTest):
 
     hit1 = rdf_protodict.AttributedDict(k1="v1", k2="v2", k3="v3")
     hit2 = rdf_protodict.AttributedDict(k1="v4", k2="v5", k3="v6")
-    meta = rdf_protodict.AttributedDict(foo=["foo", "bar"], target=[hit1, hit2])
+    meta = rdf_protodict.AttributedDict(foo=["foo", "bar"], target=[hit1, hit2],
+                                        null=[])
     objs = [meta]
 
     results = filt.Parse(objs, "target")
     self.assertEqual(2, len(results))
-    self.assertItemsEqual([hit1, hit2], results)
+    self.assertItemsEqual([hit1, hit2], [r.item for r in results])
 
     results = filt.Parse(objs, "foo")
+    self.assertEqual(2, len(results))
+    self.assertItemsEqual(["foo", "bar"], [r.item for r in results])
+
+    results = filt.Parse(objs, "null")
     self.assertEqual(0, len(results))
 
 

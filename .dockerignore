@@ -7,6 +7,7 @@ AUTHORS
 build
 debian
 executables
+!executables/windows/templates/unzipsfx/*.exe
 LICENSE
 README
 README.md

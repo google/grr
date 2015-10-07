@@ -70,6 +70,49 @@ class SshdCheckTests(checks_test_lib.HostCheckTest):
     found = ["PubkeyAuthentication (or DSAAuthentication) = True"]
     self.assertCheckDetectedAnom(chk_id, results, sym, found)
 
+  def testAuthorizedKeysCommandSucceed(self):
+    chk_id = "SSH-AUTHORIZED-KEYS"
+
+    test_data = {"/etc/ssh/sshd_config": ""}
+    host_data = self.GenFileData("SshdConfigFile", test_data, self.parser)
+    results = self.RunChecks(host_data)
+    self.assertCheckUndetected(chk_id, results)
+    test_data = {"/etc/ssh/sshd_config": "AuthorizedKeysCommand none"}
+    host_data = self.GenFileData("SshdConfigFile", test_data, self.parser)
+    results = self.RunChecks(host_data)
+    self.assertCheckUndetected(chk_id, results)
+
+  def testAuthorizedKeysCommandFail(self):
+    chk_id = "SSH-AUTHORIZED-KEYS"
+
+    test_data = {"/etc/ssh/sshd_config":
+                 "AuthorizedKeysCommand \"/bin/pubkey-helper -s %u\""}
+    host_data = self.GenFileData("SshdConfigFile", test_data, self.parser)
+    results = self.RunChecks(host_data)
+    sym = "Found: Sshd configuration sets an authorized key command."
+    found = ["AuthorizedKeysCommand = \"/bin/pubkey-helper -s %u\""]
+    self.assertCheckDetectedAnom(chk_id, results, sym, found)
+
+  def testAuthorizedKeysFileSucceed(self):
+    chk_id = "SSH-AUTHORIZED-KEYS"
+
+    test_data = {"/etc/ssh/sshd_config":
+                 "AuthorizedKeysFile none"}
+    host_data = self.GenFileData("SshdConfigFile", test_data, self.parser)
+    results = self.RunChecks(host_data)
+    self.assertCheckUndetected(chk_id, results)
+
+  def testAuthorizedKeysFileFail(self):
+    chk_id = "SSH-AUTHORIZED-KEYS"
+
+    test_data = {"/etc/ssh/sshd_config":
+                 "AuthorizedKeysFile none /etc/ssh_keys"}
+    host_data = self.GenFileData("SshdConfigFile", test_data, self.parser)
+    results = self.RunChecks(host_data)
+    sym = "Found: Sshd configuration sets an authorized key file."
+    found = ["AuthorizedKeysFile = /etc/ssh_keys"]
+    self.assertCheckDetectedAnom(chk_id, results, sym, found)
+
 
 def main(argv):
   test_lib.GrrTestProgram(argv=argv)

@@ -265,8 +265,7 @@ class ForEach(ObjectFilter):
     for obj in objs:
       repeated_vals = getattr(obj, expression)
       for val in repeated_vals:
-        if isinstance(val, rdfvalue.RDFValue):
-          yield val
+        yield rdf_protodict.AttributedDict({"item": val})
 
 
 class ItemFilter(ObjectFilter):

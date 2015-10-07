@@ -1,7 +1,13 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 
-"""An implementation of a data store based on mongo."""
+"""An implementation of a data store based on mongo.
+
+--------------->>>>>>>>>>>>>>> DEPRECATED <<<<<<<<<<<<<<<---------------
+Do not use!!!!
+This datastore will be removed in a future version of GRR.
+
+"""
 
 
 import hashlib
@@ -22,6 +28,11 @@ class MongoDataStore(data_store.DataStore):
   """A Mongo based data store."""
 
   def __init__(self):
+    logging.warning("Starting MongoDataStore. This Datastore is DEPRECATED!")
+    logging.warning("This datastore will be removed!!!")
+    logging.warning("Recommended alternatives include MySQLAdvancedDataStore")
+    logging.warning("and HTTPDataStore.")
+
     # Support various versions on the pymongo connection object.
     try:
       connector = pymongo.MongoClient

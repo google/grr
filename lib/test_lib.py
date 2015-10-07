@@ -49,6 +49,7 @@ from grr.client.vfs_handlers import files
 from grr.lib import access_control
 from grr.lib import action_mocks
 from grr.lib import aff4
+from grr.lib import artifact_registry
 from grr.lib import client_index
 from grr.lib import config_lib
 from grr.lib import data_store
@@ -78,6 +79,9 @@ from grr.lib.aff4_objects import users
 # pylint: disable=unused-import
 from grr.lib.data_stores import fake_data_store as _
 
+# Importing administrative to import ClientCrashHandler flow that
+# handles ClientCrash events triggered by CrashClientMock.
+from grr.lib.flows.general import administrative as _
 from grr.lib.flows.general import ca_enroller as _
 from grr.lib.flows.general import filesystem as _
 # pylint: enable=unused-import
@@ -1285,6 +1289,11 @@ class GRRSeleniumTest(GRRBaseTest):
 
     # This creates client fixtures for the UI tests.
     registry.InitHook.classes["RunTestsInit"]().Run()
+
+    # Clean artifacts sources.
+    artifact_registry.REGISTRY.ClearSources()
+    artifact_registry.REGISTRY.AddDatastoreSources(
+        [aff4.ROOT_URN.Add("artifact_store")])
 
     self.InstallACLChecks()
 

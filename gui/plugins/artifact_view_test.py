@@ -43,24 +43,26 @@ class TestArtifactRender(test_lib.GRRSeleniumTest):
     self.Click("css=grr-artifacts-list-form button:contains('All Platforms')")
     self.Click("css=grr-artifacts-list-form li:contains('Linux')")
 
-    # Check search works.
-    self.WaitUntil(self.IsTextPresent, "UnixPasswd")
-    self.WaitUntil(self.IsTextPresent, "SshdConfigFile")
+    # Check search works. Note that test artifacts names are used (see
+    # test_data/artifacts/test_artifacts.json for details.
+    self.WaitUntil(self.IsTextPresent, "TestCmdArtifact")
+    self.WaitUntil(self.IsTextPresent, "TestFilesArtifact")
 
-    self.Type("css=grr-artifacts-list-form input[type=text]", u"Uni")
-    self.WaitUntil(self.IsTextPresent, "UnixPasswd")
-    self.WaitUntilNot(self.IsTextPresent, "SshdConfigFile")
+    self.Type("css=grr-artifacts-list-form input[type=text]", u"Cmd")
+    self.WaitUntil(self.IsTextPresent, "TestCmdArtifact")
+    self.WaitUntilNot(self.IsTextPresent, "TestFilesArtifact")
 
     # Check we can add to the list.
-    self.Click("css=grr-artifacts-list-form tr:contains('UnixPasswd')")
+    self.Click("css=grr-artifacts-list-form tr:contains('TestCmdArtifact')")
     self.Click("css=grr-artifacts-list-form button:contains('Add')")
     # Selected artifacts should be highlighted in bold.
     self.WaitUntil(self.IsElementPresent,
-                   "css=grr-artifacts-list-form strong:contains('UnixPasswd')")
+                   "css=grr-artifacts-list-form "
+                   "strong:contains('TestCmdArtifact')")
 
     # Check the artifact description loaded.
-    self.WaitUntil(self.IsTextPresent, "Unix /etc/passwd file")
-    self.WaitUntil(self.IsTextPresent, "PasswdParser")
+    self.WaitUntil(self.IsTextPresent, "Test command artifact for dpkg.")
+    self.WaitUntil(self.IsTextPresent, "TestCmdProcessor")
 
 
 def main(argv):

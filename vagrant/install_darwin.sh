@@ -86,7 +86,7 @@ function install_yara() {
   git clone https://github.com/google/rekall.git
   cd rekall
   git submodule update --init --recursive
-  cd  python-yara/
+  cd third_party/python-yara/
   python setup.py install
   python -c "import yara"
   cd ../../../

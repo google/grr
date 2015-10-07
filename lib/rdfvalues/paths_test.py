@@ -174,6 +174,20 @@ class GlobExpressionTest(test_base.RDFValueTestCase):
     self.assertEqual(interpolated[0], "/home/user0/.mozilla/")
     self.assertEqual(interpolated[1], "/home/user1/.mozilla/")
 
+  def testGroupingInterpolation(self):
+    glob_expression = rdf_paths.GlobExpression()
+
+    interpolated = glob_expression.InterpolateGrouping(
+        "/home/*.{sh,deb}")
+    self.assertItemsEqual(interpolated, [u"/home/*.deb", u"/home/*.sh"])
+    interpolated = glob_expression.InterpolateGrouping(
+        "/home/*.{sh, deb}")
+    self.assertItemsEqual(interpolated, [u"/home/*. deb", u"/home/*.sh"])
+    interpolated = glob_expression.InterpolateGrouping(
+        "HKEY_CLASSES_ROOT/CLSID/{16d12736-7a9e-4765-bec6-f301d679caaa}")
+    self.assertItemsEqual(interpolated, [
+        u"HKEY_CLASSES_ROOT/CLSID/{16d12736-7a9e-4765-bec6-f301d679caaa}"])
+
   def testValidation(self):
     glob_expression = rdf_paths.GlobExpression(
         "/home/%%Users.username%%/**/.mozilla/")

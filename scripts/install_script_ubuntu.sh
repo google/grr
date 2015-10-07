@@ -202,9 +202,7 @@ run_cmd_confirm grr_config_updater initialize
 
 header "Enable grr services to start automatically on boot"
 run_cmd_confirm . /usr/share/grr/scripts/shell_helpers.sh
-run_cmd_confirm enable_services grr-http-server
-run_cmd_confirm enable_services grr-ui
-run_cmd_confirm enable_services grr-worker
+run_cmd_confirm grr_enable_all
 
 HOSTNAME=`hostname`
 header "Install complete. Congratulations. Point your browser at http://${HOSTNAME}:8000"

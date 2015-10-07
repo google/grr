@@ -10,6 +10,10 @@ from grr.lib import action_mocks
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import test_lib
+from grr.lib.flows.general import filesystem as flows_filesystem
+from grr.lib.flows.general import processes as flows_processes
+from grr.lib.flows.general import transfer as flows_transfer
+from grr.lib.flows.general import webhistory as flows_webhistory
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import tests_pb2
@@ -72,9 +76,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
 
     self.Click("css=a[grrtarget=LaunchFlows]")
     self.Click("css=#_Processes")
-
-    self.assertEqual("ListProcesses", self.GetText("link=ListProcesses"))
-    self.Click("link=ListProcesses")
+    self.Click("link=" + flows_processes.ListProcesses.__name__)
     self.WaitUntil(self.IsTextPresent, "C.0000000000000001")
 
     self.WaitUntil(self.IsTextPresent, "Prototype: ListProcesses")
@@ -82,21 +84,18 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     self.Click("css=button.Launch")
     self.WaitUntil(self.IsTextPresent, "Launched Flow ListProcesses")
 
-    self.Click("css=#_Network")
-    self.assertEqual("Netstat", self.GetText("link=Netstat"))
-
     self.Click("css=#_Browser")
-
     # Wait until the tree has expanded.
-    self.WaitUntil(self.IsTextPresent, "FirefoxHistory")
+    self.WaitUntil(self.IsTextPresent, flows_webhistory.FirefoxHistory.__name__)
 
     # Check that we can get a file in chinese
     self.Click("css=#_Filesystem")
 
     # Wait until the tree has expanded.
-    self.WaitUntil(self.IsTextPresent, "UpdateSparseImageChunks")
+    self.WaitUntil(self.IsTextPresent,
+                   flows_filesystem.UpdateSparseImageChunks.__name__)
 
-    self.Click("link=GetFile")
+    self.Click("link=" + flows_transfer.GetFile.__name__)
 
     self.Select("css=.form-group:has(> label:contains('Pathtype')) select",
                 "OS")
@@ -109,7 +108,8 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
 
     # Test that recursive tests are shown in a tree table.
     flow.GRRFlow.StartFlow(
-        client_id="aff4:/C.0000000000000001", flow_name="RecursiveTestFlow",
+        client_id="aff4:/C.0000000000000001",
+        flow_name=RecursiveTestFlow.__name__,
         token=self.token)
 
     self.Click("css=a:contains('Manage launched flows')")

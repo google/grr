@@ -159,8 +159,9 @@ class MasterTest(test_lib.GRRBaseTest):
         with libutils.Stubber(connectionpool,
                               "HTTPConnectionPool",
                               pool_class):
-          m = data_server.StandardDataServer(port)
-          data_server.NONCE_STORE = auth.NonceStore()
+          m = data_server.StandardDataServer(port,
+                                             data_server.DataServerHandler)
+          m.handler_cls.NONCE_STORE = auth.NonceStore()
 
           self.assertRaises(errors.DataServerError, m._DoRegister)
 

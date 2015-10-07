@@ -250,6 +250,34 @@ class TestArtifactCollectors(CollectorTest):
     fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
     self.assertEqual(fd.__class__.__name__, "AFF4Volume")
 
+  def testRegistryValueArtifact(self):
+    with test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.REGISTRY, test_lib.FakeRegistryVFSHandler):
+      with test_lib.VFSOverrider(
+          rdf_paths.PathSpec.PathType.OS, test_lib.FakeFullVFSHandler):
+
+        client_mock = action_mocks.ActionMock("StatFile")
+        coll1 = artifact_registry.ArtifactSource(
+            type=artifact_registry.ArtifactSource.SourceType.REGISTRY_VALUE,
+            attributes={"key_value_pairs": [{
+                "key": (r"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet"
+                        r"\Control\Session Manager"),
+                "value": "BootExecute"}]})
+        self.fakeartifact.sources.append(coll1)
+        artifact_list = ["FakeArtifact"]
+        for _ in test_lib.TestFlowHelper("ArtifactCollectorFlow", client_mock,
+                                         artifact_list=artifact_list,
+                                         token=self.token,
+                                         client_id=self.client_id,
+                                         output="test_artifact"):
+          pass
+
+    # Test the statentry got stored with the correct aff4path.
+    fd = aff4.FACTORY.Open(rdfvalue.RDFURN(self.client_id).Add("test_artifact"),
+                           token=self.token)
+    self.assertTrue(isinstance(list(fd)[0], rdf_client.StatEntry))
+    self.assertTrue(str(fd[0].aff4path).endswith("BootExecute"))
+
   def testSupportedOS(self):
     """Test supported_os inside the collector object."""
     # Run with false condition.

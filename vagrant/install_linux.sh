@@ -206,16 +206,6 @@ function install_pytsk() {
   cd -
 }
 
-# Use rekall script to install yara as a static library
-function install_yara() {
-  git clone https://github.com/google/rekall.git
-  cd rekall
-  git submodule update --init --recursive
-  cd  python-yara/
-  python setup.py install
-  python -c "import yara"
-  cd ../../../
-}
 
 # Lucid debhelper is too old to build debs that handle both upstart and init.d
 function install_packagetools() {
@@ -264,6 +254,8 @@ install_python_deps
 install_m2crypto
 install_sleuthkit
 install_pytsk
-install_yara
+# TODO: find a way to install yara on linux that actually works on lucid with
+# recent openssl.
+#install_yara
 install_packagetools
 echo "Build environment provisioning complete."

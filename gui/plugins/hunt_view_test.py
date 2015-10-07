@@ -20,6 +20,7 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import transfer
+from grr.lib.output_plugins import csv_plugin
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import foreman as rdf_foreman
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -624,7 +625,8 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
       # Create hunt without results.
       self.CreateSampleHunt(output_plugins=[
-          output_plugin.OutputPluginDescriptor(plugin_name="CSVOutputPlugin")])
+          output_plugin.OutputPluginDescriptor(
+              plugin_name=csv_plugin.CSVOutputPlugin.__name__)])
 
     self.Open("/#main=ManageHunts")
     self.Click("css=td:contains('GenericHunt')")
@@ -640,7 +642,8 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
       # Create hunt.
       self.CreateSampleHunt(output_plugins=[
-          output_plugin.OutputPluginDescriptor(plugin_name="CSVOutputPlugin")])
+          output_plugin.OutputPluginDescriptor(
+              plugin_name=csv_plugin.CSVOutputPlugin.__name__)])
 
       # Actually run created hunt.
       client_mock = test_lib.SampleHuntMock()

@@ -13,6 +13,7 @@ from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import test_lib
+from grr.lib.flows.general import timelines
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -49,8 +50,8 @@ class TestTimelineView(test_lib.GRRSeleniumTest):
 
       # Now make a timeline
       for _ in test_lib.TestFlowHelper(
-          "MACTimes", client_mock, client_id=client_id, token=token,
-          path="/", output=output_path):
+          timelines.MACTimes.__name__, client_mock, client_id=client_id,
+          token=token, path="/", output=output_path):
         pass
 
   def setUp(self):

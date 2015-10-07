@@ -480,6 +480,7 @@ class Artifact(structs.RDFProtoStruct):
       "Antivirus": "Antivirus related artifacts, e.g. quarantine files.",
       "Authentication": "Authentication artifacts.",
       "Browser": "Web Browser artifacts.",
+      "Cloud Storage": "Cloud Storage artifacts.",
       "Configuration Files": "Configuration files artifacts.",
       "Execution": "Contain execution events.",
       "External Media": "Contain external media data / events e.g. USB drives.",

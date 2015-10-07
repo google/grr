@@ -11,13 +11,13 @@ method:
           - type: 'ForEach'
             expression: entries
           - type: 'ObjectFilter'
-            expression: 'service is "ssh"'
+            expression: 'item.service is "ssh"'
           - type: 'ObjectFilter'
-            expression: 'type is "account"'
+            expression: 'item.type is "account"'
           - type: 'ObjectFilter'
-            expression: 'control is "required"'
+            expression: 'item.control is "required"'
           - type: 'ObjectFilter'
-            expression: 'module_path contains "pam_access.so"'
+            expression: 'item.module_path contains "pam_access.so"'
 ---
 check_id: 'PAM-SSH-UNCONDITIONAL-PERMIT'
 method:
@@ -27,20 +27,21 @@ method:
         hint:
           problem: 'PAM ssh service has unconditional authentication.'
           fix: 'Remove "auth done pam_permit.so" from the PAM ssh config.'
-          format: "In service '{service}': {type} {control} {module_path}
-             {module_args}"
+          format: >
+            In service '{item.service}': {item.type} {item.control}
+            {item.module_path} {item.module_args}
         match: 'ANY'
         filters:
           - type: 'ForEach'
             expression: entries
           - type: 'ObjectFilter'
-            expression: 'service is "ssh"'
+            expression: 'item.service is "ssh"'
           - type: 'ObjectFilter'
-            expression: 'type is "auth"'
+            expression: 'item.type is "auth"'
           - type: 'ObjectFilter'
-            expression: 'control is "done"'
+            expression: 'item.control is "done"'
           - type: 'ObjectFilter'
-            expression: 'module_path is "pam_permit.so"'
+            expression: 'item.module_path is "pam_permit.so"'
 ---
 check_id: 'PAM-SSH-DEFAULT-DENIES-AUTH'
 method:
@@ -56,21 +57,21 @@ method:
           - type: 'ForEach'
             expression: entries
           - type: 'ObjectFilter'
-            expression: 'service is "ssh"'
+            expression: 'item.service is "ssh"'
           - type: 'ObjectFilter'
-            expression: 'type is "auth"'
+            expression: 'item.type is "auth"'
         filters:
           - type: 'ObjectFilter'
             expression: |
               (
-                control inset ['required', 'requisite']
-                AND module_path is 'pam_deny.so'
+                item.control inset ['required', 'requisite']
+                AND item.module_path is 'pam_deny.so'
               )
               OR
               (
-                control is '[success=ok new_authtok_reqd=ok default=die]'
-                AND module_path is 'pam_unix.so'
-                AND module_args is 'try_first_pass'
+                item.control is '[success=ok new_authtok_reqd=ok default=die]'
+                AND item.module_path is 'pam_unix.so'
+                AND item.module_args is 'try_first_pass'
               )
 ---
 check_id: 'PAM-SSH-NO-NULL-PASSWORDS'
@@ -83,23 +84,25 @@ method:
              to login.'
           fix: |
             'Remove any password lines with "nullok" from the PAM ssh config.'
-          format: "In service '{service}': {type} {control} {module_path}
-             {module_args}"
+          format: >
+            In service '{item.service}': {item.type} {item.control}
+            {item.module_path} {item.module_args}
         match: 'ANY'
         baseline:
           - type: 'ForEach'
             expression: entries
           - type: 'ObjectFilter'
-            expression: 'service is "ssh"'
+            expression: 'item.service is "ssh"'
           - type: 'ObjectFilter'
-            expression: 'type is "password"'
+            expression: 'item.type is "password"'
           - type: 'ObjectFilter'
-            expression: 'control inset ["required", "requisite", "sufficient"]'
+            expression: >
+                item.control inset ["required", "requisite", "sufficient"]
           - type: 'ObjectFilter'
-            expression: 'module_path contains "pam_unix.so"'
+            expression: 'item.module_path contains "pam_unix.so"'
         filters:
           - type: 'ObjectFilter'
-            expression: 'module_args contains "nullok"'
+            expression: 'item.module_args contains "nullok"'
 ---
 check_id: 'PAM-SECURE-DEFAULTS'
 method:
@@ -111,19 +114,20 @@ method:
              denying/logging access."
           fix: "Remove any non pam_(deny|warn).so lines from the PAM 'other'
              config."
-          format: "In service '{service}': {type} {control} {module_path}
-             {module_args}"
+          format: >
+            In service '{item.service}': {item.type} {item.control}
+            {item.module_path} {item.module_args}"
         match: 'ANY'
         baseline:
           - type: 'ForEach'
             expression: entries
           - type: 'ObjectFilter'
-            expression: 'service is "other"'
+            expression: 'item.service is "other"'
         filters:
           - type: 'ObjectFilter'
-            expression: 'module_path notcontains "pam_deny.so"'
+            expression: 'item.module_path notcontains "pam_deny.so"'
           - type: 'ObjectFilter'
-            expression: 'module_path notcontains "pam_warn.so"'
+            expression: 'item.module_path notcontains "pam_warn.so"'
 ---
 check_id: 'PAM-EXTERNAL-CONFIG'
 method:

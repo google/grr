@@ -1304,8 +1304,8 @@ message FileFinderSizeCondition {
 
   optional uint64 max_file_size = 12 [(sem_type) = {
       description: "Maximum file size in bytes "
-      "(default=sys.maxint)."
-    }, default = 9223372036854775807];
+      "(default=20MB)."
+    }, default = 20000000];
 
 }
 
@@ -1329,12 +1329,12 @@ message FileFinderContentsRegexMatchCondition {
   optional uint32 bytes_before = 7 [(sem_type) = {
       description: "Include this many bytes before the hit.",
       label: ADVANCED,
-    }, default = 10];
+    }, default = 0];
 
   optional uint32 bytes_after = 8 [(sem_type) = {
       description: "Include this many bytes after the hit.",
       label: ADVANCED,
-    }, default = 10];
+    }, default = 0];
 
   optional uint64 start_offset = 2 [(sem_type) = {
       description: "Start searching at this file offset.",
@@ -1342,9 +1342,8 @@ message FileFinderContentsRegexMatchCondition {
     }, default = 0];
 
   optional uint64 length = 3 [(sem_type) = {
-      description: "How far (in bytes) into the file to search.",
-      label: ADVANCED,
-    }, default = 10737418240];
+      description: "How far (in bytes) into the file to search. Default=20MB.",
+    }, default = 20000000];
 }
 
 
@@ -1371,19 +1370,19 @@ message FileFinderContentsLiteralMatchCondition {
     }, default = 0];
 
   optional uint64 length = 3 [(sem_type) = {
-      description: "How far (in bytes) into the file to search.",
+      description: "How far (in bytes) into the file to search. Default=20MB",
       label: ADVANCED,
-    }, default = 10737418240];
+    }, default = 20000000];
 
   optional uint32 bytes_before = 7 [(sem_type) = {
       description: "Include this many bytes before the hit.",
       label: ADVANCED,
-    }, default = 10];
+    }, default = 0];
 
   optional uint32 bytes_after = 8 [(sem_type) = {
       description: "Include this many bytes after the hit.",
       label: ADVANCED,
-    }, default = 10];
+    }, default = 0];
 
   optional uint32 xor_in_key = 9 [(sem_type) = {
       description: "When searching memory we need to ensure we dont "

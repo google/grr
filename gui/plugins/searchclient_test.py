@@ -2,8 +2,6 @@
 """Tests for the main content view."""
 
 
-import time
-
 from grr.gui import runtests_test
 
 # We have to import test_lib first to properly initialize aff4 and rdfvalues.
@@ -15,7 +13,6 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
-from grr.lib import utils
 from grr.lib.aff4_objects import users as aff4_users
 from grr.lib.rdfvalues import client as rdf_client
 
@@ -43,11 +40,12 @@ class TestNavigatorView(SearchClientTestBase):
     return client_id
 
   def RecordCrash(self, client_id, timestamp):
-    with utils.Stubber(time, "time", timestamp.AsSecondsFromEpoch):
+    with test_lib.FakeTime(timestamp):
       client = test_lib.CrashClientMock(client_id, self.token)
       for _ in test_lib.TestFlowHelper(
-          "FlowWithOneClientRequest", client, client_id=client_id,
-          token=self.token, check_flow_errors=False):
+          test_lib.FlowWithOneClientRequest.__name__, client,
+          client_id=client_id, token=self.token,
+          check_flow_errors=False):
         pass
 
   def CreateClientWithVolumes(self, available=50):
@@ -129,8 +127,7 @@ class TestNavigatorView(SearchClientTestBase):
       self.RecordCrash(client_id, timestamp - rdfvalue.Duration("5s"))
       self.GrantClientApproval(client_id)
 
-    with utils.Stubber(time, "time",
-                       lambda: float(timestamp.AsSecondsFromEpoch())):
+    with test_lib.FakeTime(timestamp):
       self.Open("/#c=" + str(client_id))
       self.WaitUntil(self.IsTextPresent, "Last crash")
       self.WaitUntil(self.IsTextPresent, "5 seconds ago")
@@ -143,8 +140,7 @@ class TestNavigatorView(SearchClientTestBase):
       self.RecordCrash(client_id, timestamp - rdfvalue.Duration("5s"))
       self.GrantClientApproval(client_id)
 
-    with utils.Stubber(time, "time",
-                       lambda: float(timestamp.AsSecondsFromEpoch())):
+    with test_lib.FakeTime(timestamp):
       self.Open("/#c=" + str(client_id))
       self.WaitUntil(self.IsTextPresent, "Last crash")
       self.WaitUntil(self.IsTextPresent, "5 seconds ago")
@@ -158,8 +154,7 @@ class TestNavigatorView(SearchClientTestBase):
       self.RecordCrash(client_id, timestamp - rdfvalue.Duration("8d"))
       self.GrantClientApproval(client_id)
 
-    with utils.Stubber(time, "time",
-                       lambda: float(timestamp.AsSecondsFromEpoch())):
+    with test_lib.FakeTime(timestamp):
       self.Open("/#c=" + str(client_id))
       self.WaitUntil(self.IsTextPresent, "Host-0")
       # This one is not displayed, because it happened more than 24 hours ago.

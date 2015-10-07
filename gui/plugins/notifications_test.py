@@ -12,6 +12,7 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import test_lib
+from grr.lib.flows.general import discovery
 from grr.lib.rdfvalues import client as rdf_client
 
 
@@ -33,7 +34,8 @@ class TestNotifications(test_lib.GRRSeleniumTest):
 
     token = access_control.ACLToken(username="test", reason="test fixture")
     cls.session_id = flow.GRRFlow.StartFlow(
-        client_id="aff4:/C.0000000000000001", flow_name="Interrogate",
+        client_id="aff4:/C.0000000000000001",
+        flow_name=discovery.Interrogate.__name__,
         token=token)
 
     with aff4.FACTORY.Open(cls.session_id, mode="rw", token=token) as flow_obj:

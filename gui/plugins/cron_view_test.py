@@ -13,6 +13,7 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.aff4_objects import cronjobs
+from grr.lib.flows.cron import system as cron_system
 from grr.lib.rdfvalues import grr_rdf
 
 
@@ -29,11 +30,16 @@ class TestCronView(test_lib.GRRSeleniumTest):
   def setUp(self):
     super(TestCronView, self).setUp()
 
-    with self.ACLChecksDisabled():
-      with mock.patch.object(cronjobs, "GetStartTime", autospec=True,
-                             return_value=rdfvalue.RDFDatetime().Now()):
-        cronjobs.ScheduleSystemCronFlows(token=self.token)
-        cronjobs.CRON_MANAGER.RunOnce(token=self.token)
+    with test_lib.ConfigOverrider({
+        "Cron.enabled_system_jobs": [
+            cron_system.GRRVersionBreakDown.__name__,
+            cron_system.LastAccessStats.__name__,
+            cron_system.OSBreakDown.__name__]}):
+      with self.ACLChecksDisabled():
+        with mock.patch.object(cronjobs, "GetStartTime", autospec=True,
+                               return_value=rdfvalue.RDFDatetime().Now()):
+          cronjobs.ScheduleSystemCronFlows(token=self.token)
+          cronjobs.CRON_MANAGER.RunOnce(token=self.token)
 
   def testCronView(self):
     self.Open("/")

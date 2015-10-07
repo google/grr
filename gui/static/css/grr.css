@@ -58,6 +58,10 @@ grr-collection-td {
 
 #global-notification .alert {
   margin-bottom: 0;
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 10000;
 }
 
 #notifications_and_settings {

@@ -20,6 +20,7 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import cronjobs
+from grr.lib.flows.cron import system as cron_system
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import foreman as rdf_foreman
 
@@ -485,10 +486,13 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
 
   def testCronJobACLWorkflow(self):
-    with self.ACLChecksDisabled():
-      cronjobs.ScheduleSystemCronFlows(token=self.token)
-      cronjobs.CRON_MANAGER.DisableJob(
-          rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+    with test_lib.ConfigOverrider({
+        "Cron.enabled_system_jobs": [
+            cron_system.OSBreakDown.__name__]}):
+      with self.ACLChecksDisabled():
+        cronjobs.ScheduleSystemCronFlows(token=self.token)
+        cronjobs.CRON_MANAGER.DisableJob(
+            rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
 
     # Open up and click on Cron Job Viewer.
     self.Open("/")

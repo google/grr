@@ -118,16 +118,6 @@ class TestPluginInit(registry.InitHook):
 
 def main(_):
   """Run the main test harness."""
-  # For testing we use the test config file.
-  flags.FLAGS.config = config_lib.CONFIG["Test.config"]
-
-  # We are running a test so let the config system know that.
-  config_lib.CONFIG.AddContext(
-      "Test Context",
-      "Context applied when we run tests.")
-
-  # This is a standalone program and might need to use the config
-  # file.
   startup.TestInit()
 
   # Start up a server in another thread

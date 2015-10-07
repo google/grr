@@ -34,7 +34,7 @@ from grr.proto import jobs_pb2
 INTERPOLATED_REGEX = re.compile(r"%%([^%]+?)%%")
 
 # Grouping pattern: e.g. {test.exe,foo.doc,bar.txt}
-GROUPING_PATTERN = re.compile("{([^}]+)}")
+GROUPING_PATTERN = re.compile("{([^}]+,[^}]+)}")
 
 
 class PathSpec(rdf_structs.RDFProtoStruct):

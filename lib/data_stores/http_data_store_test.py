@@ -3,14 +3,17 @@
 
 
 import httplib
+import os
 import shutil
 import socket
+import tempfile
 import threading
 
 
 import portpicker
 
-from grr.lib import config_lib
+import logging
+
 from grr.lib import data_store
 from grr.lib import data_store_test
 from grr.lib import flags
@@ -46,30 +49,88 @@ class MockRequestHandler(data_server.DataServerHandler):
       return super(MockRequestHandler, self).do_POST()
 
 
+class MockRequestHandler1(MockRequestHandler):
+  pass
+
+
+class MockRequestHandler2(MockRequestHandler):
+  pass
+
+
 STARTED_SERVER = None
 HTTP_DB = None
 PORT = None
+TMP_DIR = tempfile.mkdtemp(dir=(os.environ.get("TEST_TMPDIR") or "/tmp"))
+CONFIG_OVERRIDER = None
 
 
-def _StartServer(temp_dir):
+def _StartServers():
   global HTTP_DB
   global STARTED_SERVER
-  HTTP_DB = sqlite_data_store.SqliteDataStore(temp_dir)
-  STARTED_SERVER = threading.Thread(
-      target=data_server.Start,
-      args=(HTTP_DB, PORT, True, StoppableHTTPServer, MockRequestHandler))
-  STARTED_SERVER.start()
+  logging.info("Using TMP_DIR:" + TMP_DIR)
+  temp_dir_1 = TMP_DIR + "/1"
+  temp_dir_2 = TMP_DIR + "/2"
+  os.mkdir(temp_dir_1)
+  os.mkdir(temp_dir_2)
+  HTTP_DB = [sqlite_data_store.SqliteDataStore(temp_dir_1),
+             sqlite_data_store.SqliteDataStore(temp_dir_2)]
+  STARTED_SERVER = [
+      threading.Thread(target=data_server.Start,
+                       args=(HTTP_DB[0], PORT[0], True,
+                             StoppableHTTPServer, MockRequestHandler1)),
+      threading.Thread(target=data_server.Start,
+                       args=(HTTP_DB[1], PORT[1], False,
+                             StoppableHTTPServer, MockRequestHandler2))]
+  STARTED_SERVER[0].start()
+  STARTED_SERVER[1].start()
+
+
+def _SetConfig():
+  global CONFIG_OVERRIDER
+  CONFIG_OVERRIDER = test_lib.ConfigOverrider({
+      "Dataserver.server_list": ["http://127.0.0.1:%d" % PORT[0],
+                                 "http://127.0.0.1:%d" % PORT[1]],
+      "Dataserver.server_username": "root",
+      "Dataserver.server_password": "root",
+      "Dataserver.client_credentials": ["user:user:rw"],
+      "HTTPDataStore.username": "user",
+      "HTTPDataStore.password": "user",
+      "Datastore.location": TMP_DIR})
+  CONFIG_OVERRIDER.Start()
 
 
 def _CloseServer():
   # Send an exit request.
-  conn = httplib.HTTPConnection("127.0.0.1", PORT)
+  conn = httplib.HTTPConnection("127.0.0.1", PORT[0])
+  conn.request("POST", "/exit")
+  conn.getresponse()
+  conn = httplib.HTTPConnection("127.0.0.1", PORT[1])
   conn.request("POST", "/exit")
   conn.getresponse()
 
 
+def SetupDataStore():
+  global PORT
+  if PORT:
+    return
+  PORT = [portpicker.PickUnusedPort(), portpicker.PickUnusedPort()]
+  _SetConfig()
+  _StartServers()
+
+  try:
+    data_store.DB = http_data_store.HTTPDataStore()
+  except http_data_store.HTTPDataStoreError:
+    data_store.DB = None
+    _CloseServer()
+
+
+def setUpModule():
+  SetupDataStore()
+
+
 def tearDownModule():
   _CloseServer()
+  CONFIG_OVERRIDER.Stop()
 
 
 class HTTPDataStoreMixin(object):
@@ -79,68 +140,48 @@ class HTTPDataStoreMixin(object):
     # These tests change the config so we preserve state.
     self.config_stubber = test_lib.PreserveConfig()
     self.config_stubber.Start()
-    if not PORT:
-      self.SetupDataStore()
-    else:
-      self._SetConfig(self.temp_dir)
 
   def tearDown(self):
     super(HTTPDataStoreMixin, self).tearDown()
     self.config_stubber.Stop()
 
-  def _SetConfig(self, path):
-    config_lib.CONFIG.Set("Dataserver.server_list",
-                          ["http://127.0.0.1:%d" % PORT])
-    config_lib.CONFIG.Set("Dataserver.server_username", "root")
-    config_lib.CONFIG.Set("Dataserver.server_password", "root")
-    config_lib.CONFIG.Set("Dataserver.client_credentials", ["user:user:rw"])
-    config_lib.CONFIG.Set("HTTPDataStore.username", "user")
-    config_lib.CONFIG.Set("HTTPDataStore.password", "user")
-    config_lib.CONFIG.Set("Datastore.location", path)
-
   def InitDatastore(self):
-    try:
-      if HTTP_DB:
-        shutil.rmtree(HTTP_DB.cache.root_path)
-    except (OSError, IOError):
-      pass
 
-  def SetupDataStore(self):
-    global PORT
-    if PORT:
-      return
-    PORT = portpicker.PickUnusedPort()
-    self._SetConfig(self.temp_dir)
-    _StartServer(self.temp_dir)
+    if HTTP_DB:
+      try:
+        shutil.rmtree(HTTP_DB[0].cache.root_path)
+      except (OSError, IOError):
+        pass
+      try:
+        shutil.rmtree(HTTP_DB[1].cache.root_path)
+      except (OSError, IOError):
+        pass
 
-    try:
-      data_store.DB = http_data_store.HTTPDataStore()
-    except http_data_store.HTTPDataStoreError as e:
-      data_store.DB = None
-      _CloseServer()
-      self.fail("Error: %s" % str(e))
-
-  old_security_manager = None
+  old_security_managers = None
 
   def _InstallACLChecks(self, forbidden_access):
-    if self.old_security_manager:
+    if self.old_security_managers:
       raise RuntimeError("Seems like _InstallACLChecks was called twice in one "
                          "test")
 
     # HTTP_DB doesn't get recreated every time this test runs. So make sure
     # that we can restore previous security manager later.
-    self.old_security_manager = HTTP_DB.security_manager
+    self.old_security_managers = [HTTP_DB[0].security_manager,
+                                  HTTP_DB[1].security_manager]
 
     # We have to install tuned MockSecurityManager not on data_store.DB, which
     # is a HttpDataStore, but on HTTP_DB which is an SqliteDataStore that
     # eventuall gets queries from HttpDataStore.
-    HTTP_DB.security_manager = test_lib.MockSecurityManager(
+    HTTP_DB[0].security_manager = test_lib.MockSecurityManager(
+        forbidden_datastore_access=forbidden_access)
+    HTTP_DB[1].security_manager = test_lib.MockSecurityManager(
         forbidden_datastore_access=forbidden_access)
 
   def DestroyDatastore(self):
-    if self.old_security_manager:
-      HTTP_DB.security_manager = self.old_security_manager
-      self.old_security_manager = None
+    if self.old_security_managers:
+      HTTP_DB[0].security_manager = self.old_security_managers[0]
+      HTTP_DB[1].security_manager = self.old_security_managers[1]
+      self.old_security_managers = None
 
 
 class HTTPDataStoreTest(HTTPDataStoreMixin,

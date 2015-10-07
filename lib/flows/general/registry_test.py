@@ -127,6 +127,8 @@ class TestRegistryFinderFlow(RegistryFlowTest):
 
   def testFindsNothingIfNothingMatchesLiteralMatchCondition(self):
     value_literal_match = file_finder.FileFinderContentsLiteralMatchCondition(
+        bytes_before=10,
+        bytes_after=10,
         literal="CanNotFindMe")
 
     self.RunFlow(
@@ -139,6 +141,8 @@ class TestRegistryFinderFlow(RegistryFlowTest):
 
   def testFindsKeyIfItMatchesLiteralMatchCondition(self):
     value_literal_match = file_finder.FileFinderContentsLiteralMatchCondition(
+        bytes_before=10,
+        bytes_after=10,
         literal="Windows Sidebar\\Sidebar.exe")
 
     self.RunFlow(
@@ -167,6 +171,8 @@ class TestRegistryFinderFlow(RegistryFlowTest):
 
   def testFindsNothingIfRegexMatchesNothing(self):
     value_regex_match = file_finder.FileFinderContentsRegexMatchCondition(
+        bytes_before=10,
+        bytes_after=10,
         regex=".*CanNotFindMe.*")
 
     self.RunFlow(
@@ -179,6 +185,8 @@ class TestRegistryFinderFlow(RegistryFlowTest):
 
   def testFindsKeyIfItMatchesRegexMatchCondition(self):
     value_regex_match = file_finder.FileFinderContentsRegexMatchCondition(
+        bytes_before=10,
+        bytes_after=10,
         regex="Windows.+\\.exe")
 
     self.RunFlow(
@@ -241,7 +249,7 @@ class TestRegistryFinderFlow(RegistryFlowTest):
     self.assertTrue([r for r in results
                      if r.stat_entry.aff4path.Basename() == "MctAdmin"])
 
-  def testFindsKeyWithLiteralAndModificaitonTimeConditions(self):
+  def testFindsKeyWithLiteralAndModificationTimeConditions(self):
     modification_time = file_finder.FileFinderModificationTimeCondition(
         min_last_modified_time=
         rdfvalue.RDFDatetime().FromSecondsFromEpoch(1247546054 - 1),
@@ -249,6 +257,8 @@ class TestRegistryFinderFlow(RegistryFlowTest):
         rdfvalue.RDFDatetime().FromSecondsFromEpoch(1247546054 + 1))
 
     value_literal_match = file_finder.FileFinderContentsLiteralMatchCondition(
+        bytes_before=10,
+        bytes_after=10,
         literal="Windows Sidebar\\Sidebar.exe")
 
     self.RunFlow(

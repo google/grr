@@ -1,7 +1,13 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 
-"""An implementation of a data store based on mysql."""
+"""An implementation of a data store based on mysql.
+
+--------------->>>>>>>>>>>>>>> DEPRECATED <<<<<<<<<<<<<<<---------------
+Do not use!!!!
+This datastore will be removed in a future version of GRR.
+
+"""
 
 
 import Queue
@@ -9,6 +15,8 @@ import threading
 import time
 import MySQLdb
 from MySQLdb import cursors
+
+import logging
 
 from grr.lib import config_lib
 from grr.lib import data_store
@@ -115,6 +123,11 @@ class MySQLDataStore(data_store.DataStore):
   POOL = None
 
   def __init__(self):
+    logging.warning("Starting MySQLDataStore. This Datastore is DEPRECATED!")
+    logging.warning("This datastore will be removed!!!")
+    logging.warning("Recommended alternatives include MySQLAdvancedDataStore")
+    logging.warning("and HTTPDataStore.")
+
     # Use the global connection pool.
     if MySQLDataStore.POOL is None:
       MySQLDataStore.POOL = ConnectionPool()

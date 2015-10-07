@@ -56,7 +56,7 @@ class SeleniumTestProgram(test_lib.GrrTestProgram):
 
 def main(argv):
   # Run the full test suite
-  SeleniumTestProgram(argv=argv)
+  SeleniumTestProgram(argv=argv, testLoader=SeleniumTestLoader())
 
 if __name__ == "__main__":
   flags.StartMain(main)

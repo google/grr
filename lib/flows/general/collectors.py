@@ -12,6 +12,7 @@ from grr.lib import flow
 from grr.lib import parsers
 from grr.lib import utils
 from grr.lib.flows.general import file_finder
+from grr.lib.flows.general import filesystem
 # For AnalyzeClientMemory. pylint: disable=unused-import
 from grr.lib.flows.general import memory as _
 # pylint: enable=unused-import
@@ -306,24 +307,37 @@ class ArtifactCollectorFlow(flow.GRRFlow):
   def GetRegistryValue(self, source):
     """Retrieve directly specified registry values, returning Stat objects."""
     new_paths = set()
+    has_glob = False
     for kvdict in source.attributes["key_value_pairs"]:
-      # TODO(user): this needs to be improved to support globbing for both
-      # key and value, and possibly also support forward slash.
+      if "*" in kvdict["key"] or paths.GROUPING_PATTERN.search(kvdict["key"]):
+        has_glob = True
+
+      # This currently only supports key value pairs specified using forward
+      # slash.
       path = "\\".join((kvdict["key"], kvdict["value"]))
 
       expanded_paths = artifact_utils.InterpolateKbAttributes(
           path, self.state.knowledge_base)
       new_paths.update(expanded_paths)
 
-    for new_path in new_paths:
-      pathspec = paths.PathSpec(path=new_path,
-                                pathtype=paths.PathSpec.PathType.REGISTRY)
-      self.CallClient(
-          "StatFile", pathspec=pathspec,
-          request_data={"artifact_name": self.current_artifact_name,
-                        "source": source.ToPrimitiveDict()},
-          next_state="ProcessCollected"
-      )
+    if has_glob:
+      self.CallFlow("Glob", paths=new_paths,
+                    pathtype=paths.PathSpec.PathType.REGISTRY,
+                    request_data={"artifact_name": self.current_artifact_name,
+                                  "source": source.ToPrimitiveDict()},
+                    next_state="ProcessCollected")
+    else:
+      # We call statfile directly for keys that don't include globs because it
+      # is faster and some artifacts rely on getting an IOError to trigger
+      # fallback processing.
+      for new_path in new_paths:
+        pathspec = paths.PathSpec(path=new_path,
+                                  pathtype=paths.PathSpec.PathType.REGISTRY)
+        self.CallClient(
+            "StatFile", pathspec=pathspec,
+            request_data={"artifact_name": self.current_artifact_name,
+                          "source": source.ToPrimitiveDict()},
+            next_state="ProcessCollectedRegistryStatEntry")
 
   def CollectArtifacts(self, source):
     self.CallFlow(
@@ -529,6 +543,31 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       self._FinalizeMappedAFF4Locations(artifact_name, aff4_output_map)
     if self.state.client_anomaly_store:
       self.state.client_anomaly_store.Flush()
+
+  @flow.StateHandler(next_state="ProcessCollected")
+  def ProcessCollectedRegistryStatEntry(self, responses):
+    """Create AFF4 objects for registry statentries.
+
+    We need to do this explicitly because we call StatFile client action
+    directly for performance reasons rather than using one of the flows that do
+    this step automatically.
+
+    Args:
+      responses: Response objects from the artifact source.
+    """
+    if responses.success:
+      new_responses = []
+      for response in responses:
+        # Create the aff4object and add the aff4path to the response object.
+        filesystem.CreateAFF4Object(response, self.client_id, self.token)
+        new_responses.append(response)
+
+      self.CallStateInline(next_state="ProcessCollected",
+                           request_data=responses.request_data,
+                           messages=new_responses)
+    else:
+      self.CallStateInline(next_state="ProcessCollected",
+                           responses=responses)
 
   @flow.StateHandler(next_state="ProcessCollected")
   def ProcessCollectedArtifactFiles(self, responses):

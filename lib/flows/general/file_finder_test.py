@@ -269,6 +269,8 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
         file_finder.FileFinderContentsLiteralMatchCondition(
             mode=
             file_finder.FileFinderContentsLiteralMatchCondition.Mode.ALL_HITS,
+            bytes_before=10,
+            bytes_after=10,
             literal="session opened for user dearjohn"))
 
     for action in sorted(
@@ -289,6 +291,36 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
       self.assertEqual(fd[0].matches[0].data,
                        "session): session opened for user dearjohn by (uid=0")
 
+  def testLiteralMatchConditionWithHexEncodedValue(self):
+    literal_condition = file_finder.FileFinderCondition(
+        condition_type=
+        file_finder.FileFinderCondition.Type.CONTENTS_LITERAL_MATCH,
+        contents_literal_match=
+        file_finder.FileFinderContentsLiteralMatchCondition(
+            mode=
+            file_finder.FileFinderContentsLiteralMatchCondition.Mode.FIRST_HIT,
+            bytes_before=10,
+            bytes_after=10,
+            literal="\x4D\x5A\x90"))
+
+    paths = [os.path.join(os.path.dirname(self.fixture_path), "hello.exe")]
+
+    for _ in test_lib.TestFlowHelper(
+        "FileFinder", self.client_mock, client_id=self.client_id,
+        paths=paths, pathtype=rdf_paths.PathSpec.PathType.OS,
+        conditions=[literal_condition],
+        token=self.token, output=self.output_path):
+      pass
+
+    # Check that the results' matches fields are correctly filled. Expecting a
+    # match from hello.exe
+    fd = aff4.FACTORY.Open(self.client_id.Add(self.output_path),
+                           aff4_type="RDFValueCollection", token=self.token)
+    self.assertEqual(len(fd[0].matches), 1)
+    self.assertEqual(fd[0].matches[0].offset, 0)
+    self.assertEqual(fd[0].matches[0].data,
+                     "MZ\x90\x00\x03\x00\x00\x00\x04\x00\x00\x00\xff")
+
   def testRegexMatchConditionWithDifferentActions(self):
     expected_files = ["auth.log"]
     non_expected_files = ["dpkg.log", "dpkg_false.log"]
@@ -299,6 +331,8 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
         contents_regex_match=file_finder.FileFinderContentsRegexMatchCondition(
             mode=
             file_finder.FileFinderContentsRegexMatchCondition.Mode.ALL_HITS,
+            bytes_before=10,
+            bytes_after=10,
             regex="session opened for user .*?john"))
 
     for action in sorted(
@@ -328,6 +362,8 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
         contents_regex_match=file_finder.FileFinderContentsRegexMatchCondition(
             mode=
             file_finder.FileFinderContentsRegexMatchCondition.Mode.ALL_HITS,
+            bytes_before=10,
+            bytes_after=10,
             regex="session opened for user .*?john"))
     regex_condition2 = file_finder.FileFinderCondition(
         condition_type=
@@ -335,6 +371,8 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
         contents_regex_match=file_finder.FileFinderContentsRegexMatchCondition(
             mode=
             file_finder.FileFinderContentsRegexMatchCondition.Mode.ALL_HITS,
+            bytes_before=10,
+            bytes_after=10,
             regex="format.*should"))
 
     for action in sorted(
@@ -369,6 +407,8 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
         contents_regex_match=file_finder.FileFinderContentsRegexMatchCondition(
             mode=
             file_finder.FileFinderContentsRegexMatchCondition.Mode.ALL_HITS,
+            bytes_before=10,
+            bytes_after=10,
             regex="session opened for user .*?john"))
     regex_condition2 = file_finder.FileFinderCondition(
         condition_type=
@@ -376,6 +416,8 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
         contents_regex_match=file_finder.FileFinderContentsRegexMatchCondition(
             mode=
             file_finder.FileFinderContentsRegexMatchCondition.Mode.FIRST_HIT,
+            bytes_before=10,
+            bytes_after=10,
             regex=".*"))
 
     for action in sorted(
@@ -462,6 +504,8 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
         contents_regex_match=file_finder.FileFinderContentsRegexMatchCondition(
             mode=
             file_finder.FileFinderContentsRegexMatchCondition.Mode.ALL_HITS,
+            bytes_before=10,
+            bytes_after=10,
             regex="session opened for user .*?john"))
 
     for action in sorted(
@@ -568,6 +612,8 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
             file_finder.FileFinderCondition.Type.CONTENTS_LITERAL_MATCH,
             contents_literal_match=literal_condition(
                 mode=all_hits,
+                bytes_before=10,
+                bytes_after=10,
                 literal="session opened for user dearjohn"))
 
         # Check this condition with all the actions. This makes sense, as we may

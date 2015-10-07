@@ -54,31 +54,84 @@ flags.DEFINE_bool("master", False,
                   "Mark this data server as the master.")
 
 
-# Data store service.
-SERVICE = None
-# MASTER is set if this data server is also running as master.
-MASTER = None
-# Set if the server is not the master.
-DATA_SERVER = None
-# Mapping information sent/created by the master.
-MAPPING = None
-CMDTABLE = None
-# Nonce store used for authentication.
-NONCE_STORE = None
-
-
-def GetStatistics():
-  """Build statistics object for the server."""
-  ok = rdf_data_server.DataServerState.Status.AVAILABLE
-  num_components, avg_component = SERVICE.GetComponentInformation()
-  stat = rdf_data_server.DataServerState(size=SERVICE.Size(), load=0, status=ok,
-                                         num_components=num_components,
-                                         avg_component=avg_component)
-  return stat
-
-
 class DataServerHandler(BaseHTTPRequestHandler, object):
   """Handler for HTTP requests to the data server."""
+
+  # Data store service.
+  SERVICE = None
+  # MASTER is set if this data server is also running as master.
+  MASTER = None
+  # Set if the server is not the master.
+  DATA_SERVER = None
+  # Mapping information sent/created by the master.
+  MAPPING = None
+  CMDTABLE = None
+  # Nonce store used for authentication.
+  NONCE_STORE = None
+
+  @classmethod
+  def InitMasterServer(cls, port):
+    cls.MASTER = master.DataMaster(port, cls.SERVICE)
+    cls.MAPPING = cls.MASTER.LoadMapping()
+    # Master is the only data server that knows about the client credentials.
+    # The credentials will be sent to other data servers once they login.
+    creds = auth.ClientCredentials()
+    creds.InitializeFromConfig()
+    cls.NONCE_STORE.SetClientCredentials(creds)
+    logging.info("Starting Data Master/Server on port %d ...", port)
+
+  @classmethod
+  def InitDataServer(cls, port):
+    """Initiates regular data server."""
+    cls.DATA_SERVER = StandardDataServer(port, cls)
+    # Connect to master server.
+    cls.DATA_SERVER.Register()
+    cls.MAPPING = cls.DATA_SERVER.LoadMapping()
+    cls.DATA_SERVER.PeriodicallySendStatistics()
+    logging.info("Starting Data Server on port %d ...", port)
+
+  @classmethod
+  def InitHandlerTables(cls):
+    """Initializes tables of handler callbacks."""
+    cls.HTTP_TABLE = {
+        "/manage": cls.HandleManager,
+        "/server/handshake": cls.HandleServerHandshake,
+        "/server/register": cls.HandleRegister,
+        "/server/state": cls.HandleState,
+        "/server/mapping": cls.HandleMapping,
+        "/client/start": cls.HandleDataStoreService,
+        "/client/handshake": cls.HandleClientHandshake,
+        "/client/mapping": cls.HandleMapping,
+        "/rebalance/phase1": cls.HandleRebalancePhase1,
+        "/rebalance/phase2": cls.HandleRebalancePhase2,
+        "/rebalance/statistics": cls.HandleRebalanceStatistics,
+        "/rebalance/copy": cls.HandleRebalanceCopy,
+        "/rebalance/commit": cls.HandleRebalanceCommit,
+        "/rebalance/perform": cls.HandleRebalancePerform,
+        "/rebalance/recover": cls.HandleRebalanceRecover,
+        "/servers/add/check": cls.HandleServerAddCheck,
+        "/servers/add": cls.HandleServerAdd,
+        "/servers/rem/check": cls.HandleServerRemCheck,
+        "/servers/rem": cls.HandleServerRem,
+        "/servers/sync": cls.HandleServerSync,
+        "/servers/sync-all": cls.HandleServerSyncAll
+        }
+
+    cls.STREAMING_TABLE = {
+        "/rebalance/copy-file": cls.HandleRebalanceCopyFile,
+        }
+
+  @classmethod
+  def GetStatistics(cls):
+    """Build statistics object for the server."""
+    ok = rdf_data_server.DataServerState.Status.AVAILABLE
+    num_components, avg_component = cls.SERVICE.GetComponentInformation()
+    stat = rdf_data_server.DataServerState(size=cls.SERVICE.Size(),
+                                           load=0,
+                                           status=ok,
+                                           num_components=num_components,
+                                           avg_component=avg_component)
+    return stat
 
   protocol_version = "HTTP/1.1"
 
@@ -150,7 +203,7 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
     request = cmd.request
     op = cmd.command
 
-    cmdinfo = CMDTABLE.get(op)
+    cmdinfo = self.CMDTABLE.get(op)
     if not cmdinfo:
       logging.error("Unrecognized command %d", op)
       return ""
@@ -169,7 +222,7 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
 
   def HandleRegister(self):
     """Registers a data server in the master."""
-    if not MASTER:
+    if not self.MASTER:
       self._EmptyResponse(constants.RESPONSE_NOT_MASTER_SERVER)
       return
     request = rdf_data_server.DataStoreRegistrationRequest(self.post_data)
@@ -177,16 +230,16 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
     port = request.port
     addr = self.client_address[0]
     token = request.token
-    if not NONCE_STORE.ValidateAuthTokenServer(token):
+    if not self.NONCE_STORE.ValidateAuthTokenServer(token):
       self._EmptyResponse(constants.RESPONSE_SERVER_NOT_AUTHORIZED)
       return
-    newserver = MASTER.RegisterServer(addr, port)
+    newserver = self.MASTER.RegisterServer(addr, port)
     if newserver:
       self.data_server = newserver
       index = newserver.Index()
       body = sutils.SIZE_PACKER.pack(index)
       # Need to send back the encrypted client credentials.
-      body += NONCE_STORE.EncryptClientCredentials()
+      body += self.NONCE_STORE.EncryptClientCredentials()
       self._Response(constants.RESPONSE_OK, body)
     else:
       # Could not register the Data Server.
@@ -196,7 +249,7 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
 
   def HandleState(self):
     """Respond to /server/state."""
-    if not MASTER:
+    if not self.MASTER:
       self._EmptyResponse(constants.RESPONSE_NOT_MASTER_SERVER)
       return
     if not self.data_server:
@@ -208,12 +261,12 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
     self.data_server.UpdateState(state)
     logging.info("Received new state from server %s", self.client_address)
     # Response with our mapping.
-    body = MAPPING.SerializeToString()
+    body = self.MAPPING.SerializeToString()
     self._Response(constants.RESPONSE_OK, body)
 
   def HandleHandshake(self):
     """Return a nonce to either a server or client."""
-    nonce = NONCE_STORE.NewNonce()
+    nonce = self.NONCE_STORE.NewNonce()
     if not nonce:
       raise errors.DataServerError("Could not generate new nonces! Too many "
                                    "requests and/or clients.")
@@ -225,7 +278,7 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
 
   def HandleServerHandshake(self):
     """Starts the handshake with data servers."""
-    if not MASTER:
+    if not self.MASTER:
       self._EmptyResponse(constants.RESPONSE_NOT_MASTER_SERVER)
       return
     self.HandleHandshake()
@@ -243,7 +296,7 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
 
     # But first we need to validate the client by reading the token.
     token = rdf_data_server.DataStoreAuthToken(self.post_data)
-    perms = NONCE_STORE.ValidateAuthTokenClient(token)
+    perms = self.NONCE_STORE.ValidateAuthTokenClient(token)
     if not perms:
       sock.sendall("IP\n")
       sock.close()
@@ -286,37 +339,37 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
 
   def HandleMapping(self):
     """Returns the mapping to a client or server."""
-    if not MAPPING:
+    if not self.MAPPING:
       self._EmptyResponse(constants.RESPONSE_MAPPING_NOT_FOUND)
       return
-    body = MAPPING.SerializeToString()
+    body = self.MAPPING.SerializeToString()
     self._Response(constants.RESPONSE_OK, body)
 
   def HandleManager(self):
-    if not MASTER:
+    if not self.MASTER:
       self._EmptyResponse(constants.RESPONSE_NOT_MASTER_SERVER)
       return
     # Response with our mapping.
-    body = MAPPING.SerializeToString()
+    body = self.MAPPING.SerializeToString()
     self._Response(constants.RESPONSE_OK, body)
 
   def HandleRebalancePhase1(self):
     """Call master to perform phase 1 of the rebalancing operation."""
-    if not MASTER:
+    if not self.MASTER:
       self._EmptyResponse(constants.RESPONSE_NOT_MASTER_SERVER)
       return
-    if MASTER.IsRebalancing():
+    if self.MASTER.IsRebalancing():
       self._EmptyResponse(constants.RESPONSE_MASTER_IS_REBALANCING)
       return
     new_mapping = rdf_data_server.DataServerMapping(self.post_data)
     rebalance_id = str(uuid.uuid4())
     reb = rdf_data_server.DataServerRebalance(id=rebalance_id,
                                               mapping=new_mapping)
-    if not MASTER.SetRebalancing(reb):
+    if not self.MASTER.SetRebalancing(reb):
       logging.warning("Could not contact servers for rebalancing")
       self._EmptyResponse(constants.RESPONSE_DATA_SERVERS_UNREACHABLE)
       return
-    if not MASTER.FetchRebalanceInformation():
+    if not self.MASTER.FetchRebalanceInformation():
       logging.warning("Could not contact servers for rebalancing statistics")
       self._EmptyResponse(constants.RESPONSE_DATA_SERVERS_UNREACHABLE)
       return
@@ -329,8 +382,8 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
     reb = rdf_data_server.DataServerRebalance(self.post_data)
     mapping = reb.mapping
     index = 0
-    if not MASTER:
-      index = DATA_SERVER.Index()
+    if not self.MASTER:
+      index = self.DATA_SERVER.Index()
     moving = rebalance.ComputeRebalanceSize(mapping, index)
     reb.moving.Append(moving)
     body = reb.SerializeToString()
@@ -339,8 +392,8 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
   def HandleRebalanceCopy(self):
     reb = rdf_data_server.DataServerRebalance(self.post_data)
     index = 0
-    if not MASTER:
-      index = DATA_SERVER.Index()
+    if not self.MASTER:
+      index = self.DATA_SERVER.Index()
     rebalance.CopyFiles(reb, index)
     self._EmptyResponse(constants.RESPONSE_OK)
 
@@ -351,60 +404,60 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
 
   def HandleRebalancePhase2(self):
     """Call master to perform phase 2 of rebalancing."""
-    if not MASTER:
+    if not self.MASTER:
       self._EmptyResponse(constants.RESPONSE_NOT_MASTER_SERVER)
       return
     reb = rdf_data_server.DataServerRebalance(self.post_data)
-    current = MASTER.IsRebalancing()
+    current = self.MASTER.IsRebalancing()
     if not current or current.id != reb.id:
       # Not the same ID.
       self._EmptyResponse(constants.RESPONSE_WRONG_TRANSACTION)
       return
-    if not MASTER.CopyRebalanceFiles():
+    if not self.MASTER.CopyRebalanceFiles():
       self._EmptyResponse(constants.RESPONSE_FILES_NOT_COPIED)
       return
     self._EmptyResponse(constants.RESPONSE_OK)
 
   def HandleRebalanceCommit(self):
     """Call master to commit rebalance transaction."""
-    if not MASTER:
+    if not self.MASTER:
       self._EmptyResponse(constants.RESPONSE_NOT_MASTER_SERVER)
       return
     reb = rdf_data_server.DataServerRebalance(self.post_data)
-    current = MASTER.IsRebalancing()
+    current = self.MASTER.IsRebalancing()
     if not current or current.id != reb.id:
       # Not the same ID.
       self._EmptyResponse(constants.RESPONSE_WRONG_TRANSACTION)
       return
-    new_mapping = MASTER.RebalanceCommit()
+    new_mapping = self.MASTER.RebalanceCommit()
     if not new_mapping:
       self._EmptyResponse(constants.RESPONSE_NOT_COMMITED)
       return
-    self._Response(constants.RESPONSE_OK, MAPPING.SerializeToString())
+    self._Response(constants.RESPONSE_OK, self.MAPPING.SerializeToString())
 
   def HandleRebalancePerform(self):
     """Call data server to perform rebalance transaction."""
     reb = rdf_data_server.DataServerRebalance(self.post_data)
-    if not rebalance.MoveFiles(reb, MASTER):
+    if not rebalance.MoveFiles(reb, self.MASTER):
       logging.critical("Failed to perform transaction %s", reb.id)
       self._EmptyResponse(constants.RESPONSE_FILES_NOT_MOVED)
       return
     # Update range of servers.
     # But only for regular data servers since the master is responsible for
     # starting the operation.
-    if DATA_SERVER:
+    if self.DATA_SERVER:
       for i, serv in enumerate(list(reb.mapping.servers)):
-        MAPPING.servers[i].interval.start = serv.interval.start
-        MAPPING.servers[i].interval.end = serv.interval.end
-      DATA_SERVER.SetMapping(MAPPING)
+        self.MAPPING.servers[i].interval.start = serv.interval.start
+        self.MAPPING.servers[i].interval.end = serv.interval.end
+      self.DATA_SERVER.SetMapping(self.MAPPING)
     # Send back server state.
-    stat = GetStatistics()
+    stat = self.GetStatistics()
     body = stat.SerializeToString()
     self._Response(constants.RESPONSE_OK, body)
 
   def HandleRebalanceRecover(self):
     """Call master to recover rebalance transaction."""
-    if not MASTER:
+    if not self.MASTER:
       return self._EmptyResponse(constants.RESPONSE_NOT_MASTER_SERVER)
     transid = self.post_data
     logging.info("Attempting to recover transaction %s", transid)
@@ -412,7 +465,7 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
     if not reb:
       self._EmptyResponse(constants.RESPONSE_TRANSACTION_NOT_FOUND)
       return
-    if not MASTER.SetRebalancing(reb):
+    if not self.MASTER.SetRebalancing(reb):
       logging.warning("Could not contact servers for rebalancing")
       return self._EmptyResponse(constants.RESPONSE_DATA_SERVERS_UNREACHABLE)
     body = reb.SerializeToString()
@@ -431,68 +484,68 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
 
   def HandleServerAddCheck(self):
     """Check if it is possible to add a new server."""
-    if not MASTER:
+    if not self.MASTER:
       return self._EmptyResponse(constants.RESPONSE_NOT_MASTER_SERVER)
-    if not MASTER.AllRegistered():
+    if not self.MASTER.AllRegistered():
       return self._EmptyResponse(constants.RESPONSE_DATA_SERVERS_UNREACHABLE)
     addr, port = self._UnpackNewServer()
     logging.info("Checking new server %s:%d", addr, port)
-    if MASTER.HasServer(addr, port):
+    if self.MASTER.HasServer(addr, port):
       return self._EmptyResponse(constants.RESPONSE_EQUAL_DATA_SERVER)
     else:
       return self._EmptyResponse(constants.RESPONSE_OK)
 
   def HandleServerSync(self):
     """Master wants to send the mapping to us."""
-    if MASTER:
+    if self.MASTER:
       return self._EmptyResponse(constants.RESPONSE_IS_MASTER_SERVER)
     mapping = rdf_data_server.DataServerMapping(self.post_data)
-    DATA_SERVER.SetMapping(mapping)
+    self.DATA_SERVER.SetMapping(mapping)
     # Return state server back.
-    body = GetStatistics().SerializeToString()
+    body = self.GetStatistics().SerializeToString()
     return self._Response(constants.RESPONSE_OK, body)
 
   def HandleServerAdd(self):
     """Add new server to the group."""
-    if not MASTER:
+    if not self.MASTER:
       return self._EmptyResponse(constants.RESPONSE_NOT_MASTER_SERVER)
-    if not MASTER.AllRegistered():
+    if not self.MASTER.AllRegistered():
       return self._EmptyResponse(constants.RESPONSE_DATA_SERVERS_UNREACHABLE)
-    if MASTER.IsRebalancing():
+    if self.MASTER.IsRebalancing():
       return self._EmptyResponse(constants.RESPONSE_MASTER_IS_REBALANCING)
     addr, port = self._UnpackNewServer()
     logging.info("Adding new server %s:%d", addr, port)
-    server = MASTER.AddServer(addr, port)
-    if MASTER.SyncMapping(skip=[server]):
-      body = MAPPING.SerializeToString()
+    server = self.MASTER.AddServer(addr, port)
+    if self.MASTER.SyncMapping(skip=[server]):
+      body = self.MAPPING.SerializeToString()
       self._Response(constants.RESPONSE_OK, body)
     else:
       return self._EmptyResponse(constants.RESPONSE_INCOMPLETE_SYNC)
 
   def HandleServerSyncAll(self):
     """Send mapping information to all servers."""
-    if not MASTER:
+    if not self.MASTER:
       return self._EmptyResponse(constants.RESPONSE_NOT_MASTER_SERVER)
-    if not MASTER.AllRegistered():
+    if not self.MASTER.AllRegistered():
       return self._EmptyResponse(constants.RESPONSE_DATA_SERVERS_UNREACHABLE)
-    if MASTER.IsRebalancing():
+    if self.MASTER.IsRebalancing():
       return self._EmptyResponse(constants.RESPONSE_MASTER_IS_REBALANCING)
-    if MASTER.SyncMapping():
-      body = MAPPING.SerializeToString()
+    if self.MASTER.SyncMapping():
+      body = self.MAPPING.SerializeToString()
       self._Response(constants.RESPONSE_OK, body)
     else:
       self._EmptyResponse(constants.RESPONSE_INCOMPLETE_SYNC)
 
   def HandleServerRemCheck(self):
     """Check if a data server can be removed."""
-    if not MASTER:
+    if not self.MASTER:
       return self._EmptyResponse(constants.RESPONSE_NOT_MASTER_SERVER)
-    if not MASTER.AllRegistered():
+    if not self.MASTER.AllRegistered():
       return self._EmptyResponse(constants.RESPONSE_DATA_SERVERS_UNREACHABLE)
-    if MASTER.IsRebalancing():
+    if self.MASTER.IsRebalancing():
       return self._EmptyResponse(constants.RESPONSE_MASTER_IS_REBALANCING)
     addr, port = self._UnpackNewServer()
-    server = MASTER.HasServer(addr, port)
+    server = self.MASTER.HasServer(addr, port)
     if not server:
       return self._EmptyResponse(constants.RESPONSE_DATA_SERVER_NOT_FOUND)
     # Interval range must be 0.
@@ -503,21 +556,21 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
 
   def HandleServerRem(self):
     """Remove a data server from the server group."""
-    if not MASTER:
+    if not self.MASTER:
       return self._EmptyResponse(constants.RESPONSE_NOT_MASTER_SERVER)
-    if not MASTER.AllRegistered():
+    if not self.MASTER.AllRegistered():
       return self._EmptyResponse(constants.RESPONSE_DATA_SERVERS_UNREACHABLE)
-    if MASTER.IsRebalancing():
+    if self.MASTER.IsRebalancing():
       return self._EmptyResponse(constants.RESPONSE_MASTER_IS_REBALANCING)
     addr, port = self._UnpackNewServer()
     logging.info("Removing server %s:%d", addr, port)
-    removed_server = MASTER.HasServer(addr, port)
+    removed_server = self.MASTER.HasServer(addr, port)
     if not removed_server:
       return self._EmptyResponse(constants.RESPONSE_DATA_SERVER_NOT_FOUND)
-    if not MASTER.RemoveServer(removed_server):
+    if not self.MASTER.RemoveServer(removed_server):
       return self._EmptyResponse(constants.RESPONSE_RANGE_NOT_EMPTY)
-    if MASTER.SyncMapping():
-      body = MAPPING.SerializeToString()
+    if self.MASTER.SyncMapping():
+      body = self.MAPPING.SerializeToString()
       self._Response(constants.RESPONSE_OK, body)
     else:
       return self._EmptyResponse(constants.RESPONSE_INCOMPLETE_SYNC)
@@ -525,14 +578,14 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
   def do_POST(self):  # pylint: disable=invalid-name
     self.post_data = None
 
-    fun = HTTP_TABLE.get(self.path)
+    fun = self.HTTP_TABLE.get(self.path)
     if fun:
       size = self.headers.get("Content-Length")
       if size:
         self.post_data = self.rfile.read(int(size))
       fun(self)
     else:
-      fun = STREAMING_TABLE.get(self.path)
+      fun = self.STREAMING_TABLE.get(self.path)
       if fun:
         # Streaming services use the rfile directly, possibly receiving large
         # amounts of data, so we can't cache the post_data here.
@@ -545,47 +598,17 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
     if self.data_server:
       logging.warning("Server %s disconnected", self.client_address)
       if not self.data_server.WasRemoved():
-        MASTER.DeregisterServer(self.data_server)
+        self.MASTER.DeregisterServer(self.data_server)
       self.data_server = None
     elif self.rebalance_id:
-      reb = MASTER.IsRebalancing()
+      reb = self.MASTER.IsRebalancing()
       if reb:
-        MASTER.CancelRebalancing()
+        self.MASTER.CancelRebalancing()
         logging.warning("Rebalancing operation %s canceled", reb.id)
       self.rebalance_id = False
     else:
       logging.warning("Client %s has stopped using the server",
                       self.client_address)
-
-
-# Table for HTTP requests.
-HTTP_TABLE = {
-    "/manage": DataServerHandler.HandleManager,
-    "/server/handshake": DataServerHandler.HandleServerHandshake,
-    "/server/register": DataServerHandler.HandleRegister,
-    "/server/state": DataServerHandler.HandleState,
-    "/server/mapping": DataServerHandler.HandleMapping,
-    "/client/start": DataServerHandler.HandleDataStoreService,
-    "/client/handshake": DataServerHandler.HandleClientHandshake,
-    "/client/mapping": DataServerHandler.HandleMapping,
-    "/rebalance/phase1": DataServerHandler.HandleRebalancePhase1,
-    "/rebalance/phase2": DataServerHandler.HandleRebalancePhase2,
-    "/rebalance/statistics": DataServerHandler.HandleRebalanceStatistics,
-    "/rebalance/copy": DataServerHandler.HandleRebalanceCopy,
-    "/rebalance/commit": DataServerHandler.HandleRebalanceCommit,
-    "/rebalance/perform": DataServerHandler.HandleRebalancePerform,
-    "/rebalance/recover": DataServerHandler.HandleRebalanceRecover,
-    "/servers/add/check": DataServerHandler.HandleServerAddCheck,
-    "/servers/add": DataServerHandler.HandleServerAdd,
-    "/servers/rem/check": DataServerHandler.HandleServerRemCheck,
-    "/servers/rem": DataServerHandler.HandleServerRem,
-    "/servers/sync": DataServerHandler.HandleServerSync,
-    "/servers/sync-all": DataServerHandler.HandleServerSyncAll
-}
-
-STREAMING_TABLE = {
-    "/rebalance/copy-file": DataServerHandler.HandleRebalanceCopyFile,
-}
 
 
 class ThreadedHTTPServer(SocketServer.ThreadingMixIn, HTTPServer):
@@ -599,7 +622,7 @@ class StandardDataServer(object):
 
   MASTER_RECONNECTION_TIME = 60
 
-  def __init__(self, my_port):
+  def __init__(self, my_port, handler_cls):
     servers = config_lib.CONFIG["Dataserver.server_list"]
     if not servers:
       raise errors.DataServerError("List of data servers not available.")
@@ -615,16 +638,18 @@ class StandardDataServer(object):
     self.registered = False
     self.periodic_fail = 0
 
+    self.handler_cls = handler_cls
+
   def _DoRegister(self):
     try:
-      username, password = NONCE_STORE.GetServerCredentials()
+      username, password = self.handler_cls.NONCE_STORE.GetServerCredentials()
       # First get a nonce.
       res = self.pool.urlopen("POST", "/server/handshake", "", headers={})
       if res.status != constants.RESPONSE_OK:
         raise errors.DataServerError("Could not register data server at "
                                      "data master.")
       nonce = res.data
-      token = NONCE_STORE.GenerateServerAuthToken(nonce)
+      token = self.handler_cls.NONCE_STORE.GenerateServerAuthToken(nonce)
       request = rdf_data_server.DataStoreRegistrationRequest(token=token,
                                                              port=self.my_port)
       body = request.SerializeToString()
@@ -648,7 +673,7 @@ class StandardDataServer(object):
       # Read client credentials so we know who to allow data store access.
       creds = auth.ClientCredentials()
       creds.InitializeFromEncryption(creds_str, username, password)
-      NONCE_STORE.SetClientCredentials(creds)
+      self.handler_cls.NONCE_STORE.SetClientCredentials(creds)
       return True
     except (urllib3.exceptions.HTTPError,
             urllib3.exceptions.PoolError):
@@ -676,14 +701,13 @@ class StandardDataServer(object):
     return self.index
 
   def SetMapping(self, mapping):
-    SERVICE.SaveServerMapping(mapping)
-    global MAPPING
-    MAPPING = mapping
+    self.handler_cls.SERVICE.SaveServerMapping(mapping)
+    self.handler_cls.MAPPING = mapping
 
   def _SendStatistics(self):
     """Send statistics to server."""
     try:
-      stat = GetStatistics()
+      stat = self.handler_cls.GetStatistics()
       body = stat.SerializeToString()
       headers = {"Content-Length": len(body)}
       res = self.pool.urlopen("POST", "/server/state", headers=headers,
@@ -698,7 +722,7 @@ class StandardDataServer(object):
         return False
       # Also receive the new mapping with new statistics.
       mapping = rdf_data_server.DataServerMapping(res.data)
-      SERVICE.SaveServerMapping(mapping)
+      self.handler_cls.SERVICE.SaveServerMapping(mapping)
       return True
     except (urllib3.exceptions.MaxRetryError, errors.DataServerError):
       logging.warning("Could not send statistics to data master.")
@@ -725,7 +749,7 @@ class StandardDataServer(object):
 
   def LoadMapping(self):
     """Load mapping from either the database or the master server."""
-    mapping = SERVICE.LoadServerMapping()
+    mapping = self.handler_cls.SERVICE.LoadServerMapping()
     if mapping:
       return mapping
     return self.RenewMapping()
@@ -738,7 +762,7 @@ class StandardDataServer(object):
         raise errors.DataServerError("Could not get server mapping from data "
                                      "master.")
       mapping = rdf_data_server.DataServerMapping(res.data)
-      SERVICE.SaveServerMapping(mapping)
+      self.handler_cls.SERVICE.SaveServerMapping(mapping)
       return mapping
     except urllib3.exceptions.MaxRetryError:
       raise errors.DataServerError("Error when attempting to communicate with"
@@ -749,55 +773,37 @@ class StandardDataServer(object):
       self.stat_thread.Stop()
 
 
-def InitMasterServer(port):
-  """Initiates master server."""
-  global MASTER
-  global MAPPING
-  MASTER = master.DataMaster(port, SERVICE)
-  MAPPING = MASTER.LoadMapping()
-  # Master is the only data server that knows about the client credentials.
-  # The credentials will be sent to other data servers once they login.
-  creds = auth.ClientCredentials()
-  creds.InitializeFromConfig()
-  NONCE_STORE.SetClientCredentials(creds)
-  logging.info("Starting Data Master/Server on port %d ...", port)
-
-
-def InitDataServer(port):
-  """Initiates regular data server."""
-  global DATA_SERVER
-  global MAPPING
-  DATA_SERVER = StandardDataServer(port)
-  # Connect to master server.
-  DATA_SERVER.Register()
-  MAPPING = DATA_SERVER.LoadMapping()
-  DATA_SERVER.PeriodicallySendStatistics()
-  logging.info("Starting Data Server on port %d ...", port)
-
-
 def Start(db, port=0, is_master=False, server_cls=ThreadedHTTPServer,
           reqhandler_cls=DataServerHandler):
   """Start the data server."""
   # This is the service that will handle requests to the data store.
-  global SERVICE
-  SERVICE = store.DataStoreService(db)
+
+  logging.info("Configuring! master: " + str(is_master) + " with handler " +
+               reqhandler_cls.__name__)
+
+  if reqhandler_cls.MASTER or reqhandler_cls.DATA_SERVER:
+    logging.fatal("Attempt to start server with duplicate request handler.")
+
+  if not reqhandler_cls.SERVICE:
+    reqhandler_cls.SERVICE = store.DataStoreService(db)
 
   # Create the command table for faster execution of remote calls.
   # Along with a method, each command has the required permissions.
-  global CMDTABLE
   cmd = rdf_data_server.DataStoreCommand.Command
-  CMDTABLE = {cmd.DELETE_ATTRIBUTES: (SERVICE.DeleteAttributes, "w"),
-              cmd.DELETE_SUBJECT: (SERVICE.DeleteSubject, "w"),
-              cmd.MULTI_SET: (SERVICE.MultiSet, "w"),
-              cmd.MULTI_RESOLVE_REGEX: (SERVICE.MultiResolveRegex, "r"),
-              cmd.RESOLVE_MULTI: (SERVICE.ResolveMulti, "r"),
-              cmd.LOCK_SUBJECT: (SERVICE.LockSubject, "w"),
-              cmd.EXTEND_SUBJECT: (SERVICE.ExtendSubject, "w"),
-              cmd.UNLOCK_SUBJECT: (SERVICE.UnlockSubject, "w")}
+  reqhandler_cls.CMDTABLE = {
+      cmd.DELETE_ATTRIBUTES: (reqhandler_cls.SERVICE.DeleteAttributes, "w"),
+      cmd.DELETE_SUBJECT: (reqhandler_cls.SERVICE.DeleteSubject, "w"),
+      cmd.MULTI_SET: (reqhandler_cls.SERVICE.MultiSet, "w"),
+      cmd.MULTI_RESOLVE_REGEX: (reqhandler_cls.SERVICE.MultiResolveRegex, "r"),
+      cmd.RESOLVE_MULTI: (reqhandler_cls.SERVICE.ResolveMulti, "r"),
+      cmd.LOCK_SUBJECT: (reqhandler_cls.SERVICE.LockSubject, "w"),
+      cmd.EXTEND_SUBJECT: (reqhandler_cls.SERVICE.ExtendSubject, "w"),
+      cmd.UNLOCK_SUBJECT: (reqhandler_cls.SERVICE.UnlockSubject, "w")
+  }
 
   # Initialize nonce store for authentication.
-  global NONCE_STORE
-  NONCE_STORE = auth.NonceStore()
+  if not reqhandler_cls.NONCE_STORE:
+    reqhandler_cls.NONCE_STORE = auth.NonceStore()
 
   if port == 0 or port is None:
     logging.debug("No port was specified as a parameter. Expecting to find "
@@ -810,10 +816,15 @@ def Start(db, port=0, is_master=False, server_cls=ThreadedHTTPServer,
 
   if is_master:
     logging.debug("Master server running on port '%i'", server_port)
-    InitMasterServer(server_port)
+    reqhandler_cls.InitMasterServer(server_port)
   else:
     logging.debug("Non-master data server running on port '%i'", server_port)
-    InitDataServer(server_port)
+    reqhandler_cls.InitDataServer(server_port)
+
+  reqhandler_cls.InitHandlerTables()
+
+  logging.info("Starting! master: " + str(is_master) + " with handler " +
+               reqhandler_cls.__name__)
 
   try:
     server = server_cls(("", server_port), reqhandler_cls)
@@ -824,10 +835,10 @@ def Start(db, port=0, is_master=False, server_cls=ThreadedHTTPServer,
   except socket.error:
     print "Service already running at port %s" % server_port
   finally:
-    if MASTER:
-      MASTER.Stop()
+    if reqhandler_cls.MASTER:
+      reqhandler_cls.MASTER.Stop()
     else:
-      DATA_SERVER.Stop()
+      reqhandler_cls.DATA_SERVER.Stop()
 
 
 def main(unused_argv):

@@ -258,7 +258,10 @@ class DataServerConnection(object):
 
   @utils.Synchronized
   def Sync(self):
-    self._Sync()
+    if self._Sync():
+      return True
+    self._RedoConnection()
+    return self._Sync()
 
   def NumPendingRequests(self):
     return len(self.requests)
@@ -296,6 +299,7 @@ class DataServer(object):
   @utils.Synchronized
   def Sync(self):
     for conn in self.connections:
+      # TODO(user): Consider adding error handling here.
       conn.Sync()
 
   @utils.Synchronized
