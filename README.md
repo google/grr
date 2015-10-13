@@ -58,7 +58,7 @@ Mailing lists:
  * GRR Users: [grr-users](https://groups.google.com/forum/#!forum/grr-users)
  * GRR Developers: [grr-dev](https://groups.google.com/forum/#!forum/grr-dev)
 
-Follow us [on twitter](https://twitter.com/grrresponse) for announcements of GRR user meetups.
+Follow us [on twitter](https://twitter.com/grrresponse) for announcements of GRR user meetups. We use [a gitter chat room](https://gitter.im/google/grr) during meetups.
 
 Screenshots
 -----------
