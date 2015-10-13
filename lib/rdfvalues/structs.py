@@ -747,7 +747,9 @@ class ProtoEnum(ProtoSignedInteger):
     # If the value is a string we need to try to convert it to an integer.
     checked_value = value
     if isinstance(value, basestring):
-      checked_value = self.enum.get(value)
+      # NOTE: that when initializing from string, enum values are
+      # case-insensitive.
+      checked_value = self.enum.get(value.upper())
       if checked_value is None and value.isdigit():
         checked_value = int(value)
       if checked_value is None:

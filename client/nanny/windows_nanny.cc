@@ -87,7 +87,7 @@ void WindowsEventLogger::WriteLog(std::string message) {
                 strings,              // array of strings
                 NULL);                // no binary data
   }
-};
+}
 
 // ---------------------------------------------------------
 // StdOutLogger: A logger to stdout.
@@ -158,7 +158,7 @@ class WindowsChildProcess : public grr::ChildProcess {
 
 EventLogger *WindowsChildProcess::GetEventLogger() {
   return &logger_;
-};
+}
 
 
 // Kills the child.
@@ -179,7 +179,7 @@ void WindowsChildProcess::KillChild(std::string msg) {
   CloseHandle(child_process.hThread);
   child_process.hProcess = NULL;
   return;
-};
+}
 
 // Returns the last time the child produced a heartbeat.
 time_t WindowsChildProcess::GetHeartbeat() {
@@ -224,7 +224,7 @@ void WindowsChildProcess::SetHeartbeat(unsigned int value) {
                   1024, NULL);
     logger_.Log("Unable to set heartbeat value: %s", errormsg);
   }
-};
+}
 
 // This sends a status message back to the server in case of a child kill.
 void WindowsChildProcess::SetNannyStatus(std::string msg) {
@@ -234,7 +234,7 @@ void WindowsChildProcess::SetNannyStatus(std::string msg) {
                      (DWORD)(msg.size() + 1)) != ERROR_SUCCESS) {
     logger_.Log("Unable to set Nanny status (%s).", msg.c_str());
   }
-};
+}
 
 void WindowsChildProcess::SetPendingNannyMessage(std::string msg) {
   pendingNannyMsg_ = msg;
@@ -248,7 +248,7 @@ void WindowsChildProcess::SetNannyMessage(std::string msg) {
                      (DWORD)(msg.size() + 1)) != ERROR_SUCCESS) {
     logger_.Log("Unable to set Nanny message (%s).", msg.c_str());
   }
-};
+}
 
 
 
@@ -303,11 +303,11 @@ bool WindowsChildProcess::CreateChildProcess() {
 // Return the current date and time in seconds since 1970.
 time_t WindowsChildProcess::GetCurrentTime() {
   return time(NULL);
-};
+}
 
 void WindowsChildProcess::ChildSleep(unsigned int milliseconds) {
   Sleep(milliseconds);
-};
+}
 
 
 size_t WindowsChildProcess::GetMemoryUsage() {
@@ -323,7 +323,7 @@ size_t WindowsChildProcess::GetMemoryUsage() {
   FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, 0, res, 0, errormsg, 1024, NULL);
   logger_.Log("Could not obtain memory information: %s", errormsg);
   return 0;
-};
+}
 
 bool WindowsChildProcess::IsAlive() {
   DWORD exit_code = 0;
@@ -334,7 +334,7 @@ bool WindowsChildProcess::IsAlive() {
     return false;
   }
   return exit_code == STILL_ACTIVE;
-};
+}
 
 bool WindowsChildProcess::Started() {
   return child_process.hProcess != NULL;
@@ -343,12 +343,12 @@ bool WindowsChildProcess::Started() {
 WindowsChildProcess::WindowsChildProcess()
     : logger_(NULL), pendingNannyMsg_("") {
   ClearHeartbeat();
-};
+}
 
 
 WindowsChildProcess::~WindowsChildProcess() {
   KillChild("Shutting down.");
-};
+}
 
 // -----------------------------------------------------------
 // Implementation of the WindowsControllerConfig configuration
@@ -363,6 +363,8 @@ WindowsControllerConfig::WindowsControllerConfig()
   // is killed.
   controller_config.unresponsive_kill_period = 180;
 
+  controller_config.unresponsive_grace_period = 600;
+
   controller_config.event_log_message_suppression = 60 * 60 * 24;
 
   controller_config.failure_count_to_revert = 0;
@@ -376,12 +378,12 @@ WindowsControllerConfig::WindowsControllerConfig()
   service_description[0] = '\0';
 
   action = TEXT("");
-};
+}
 
 WindowsControllerConfig::~WindowsControllerConfig() {
   if (service_key) {
     RegCloseKey(service_key);
-  };
+  }
 }
 
 
@@ -403,7 +405,7 @@ DWORD WindowsControllerConfig::ReadValue(const TCHAR *value_name,
   dest[len] = '\0';
 
   return ERROR_SUCCESS;
-};
+}
 
 
 // Parses configuration parameters from __argv.
@@ -417,7 +419,7 @@ DWORD WindowsControllerConfig::ParseConfiguration(void) {
       i++;
       service_key_name = __argv[i];
       continue;
-    };
+    }
 
     if (!strcmp(__argv[i], "install")) {
       action = __argv[i];
@@ -426,13 +428,13 @@ DWORD WindowsControllerConfig::ParseConfiguration(void) {
 
     logger_.Log("Unable to parse command line parameter %s", __argv[i]);
     return ERROR_INVALID_DATA;
-  };
+  }
 
   if (!service_key_name) {
     logger_.Log("No service key set. Please ensure --service_key is "
                 "specified.");
     return ERROR_INVALID_DATA;
-  };
+  }
 
   // Try to open the service key now.
   HRESULT result = RegOpenKeyEx(service_hive,
@@ -476,7 +478,7 @@ DWORD WindowsControllerConfig::ParseConfiguration(void) {
     service_description[0] = '\0';
 
   return ERROR_SUCCESS;
-};
+}
 
 
 
@@ -791,7 +793,7 @@ VOID WINAPI SvcCtrlHandler(DWORD control) {
     default:
       break;
   }
-};
+}
 
 // The main function for the service.
 VOID WINAPI ServiceMain(int argc, LPTSTR *argv) {
@@ -804,14 +806,14 @@ VOID WINAPI ServiceMain(int argc, LPTSTR *argv) {
   } else {
     printf("Unable to parse command line.");
     return;
-  };
+  }
 
   // Registers the handler function for the service.
   g_service_status_handler = RegisterServiceCtrlHandler(
     kNannyConfig->service_name, SvcCtrlHandler);
 
   if (!g_service_status_handler) {
-          logger.Log("RegisterServiceCtrlHandler failed.");
+    logger.Log("RegisterServiceCtrlHandler failed.");
     return;
   }
 
@@ -845,10 +847,12 @@ VOID WINAPI ServiceMain(int argc, LPTSTR *argv) {
 
   child.CreateChildProcess();
 
-  // Give the child process some time to start up.
+  // Give the child process some time to start up. During boot it sometimes
+  // takes significantly more time than the unresponsive_kill_period to start
+  // the child so we disable checking for heartbeats for a while.
   child.Heartbeat();
+  time_t sleep_time = kNannyConfig->controller_config.unresponsive_grace_period;
 
-  time_t sleep_time = 0;
   // Spin in this loop until the service is stopped.
   while (1) {
     for (unsigned int i = 0; i < sleep_time; i++) {
@@ -864,11 +868,16 @@ VOID WINAPI ServiceMain(int argc, LPTSTR *argv) {
         break;
       }
       if (child.Started() && !child.IsAlive()) {
-        // This could be part of a normal shutdown so we don't send the message
-        // right away.
-        child.SetPendingNannyMessage("Unexpected child process exit!");
-        child.KillChild("Child process exited.");
-        break;
+        int shutdown_pending = GetSystemMetrics(SM_SHUTTINGDOWN);
+        if (shutdown_pending == 0) {
+          child.SetPendingNannyMessage("Unexpected child process exit!");
+          child.KillChild("Child process exited.");
+          break;
+        } else {
+          // The machine is shutting down. We just keep going until we get
+          // the service_stop_event.
+          continue;
+        }
       }
     }
 
@@ -889,7 +898,7 @@ int _cdecl real_main(int argc, TCHAR *argv[]) {
   } else {
     printf("Unable to parse command line.\n");
     return -1;
-  };
+  }
 
   if (lstrcmpi(global_config.action, TEXT("install")) == 0) {
     return InstallService() ? 0 : -1;
@@ -921,4 +930,4 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 // Main entry point when build as a console application.
 int _tmain(int argc, char *argv[]) {
   return grr::real_main(argc, argv);
-};
+}

@@ -7,13 +7,15 @@ method:
       - artifact: 'NfsExportsFile'
         hint:
           problem: Wildcard clients with r/w NFS exports are too permissive.
-          format: 'hosts:{v.host} options:{v.options}'
+          format: 'hosts:{value.host} options:{value.options}'
           fix: Limit r/w access to specific hosts.
         filters:
           - type: 'AttrFilter'
             expression: clients
           - type: 'ObjectFilter'
-            expression: 'v.options contains "rw" and v.host contains "*"'
+            expression: >
+                    value.options contains "rw" and
+                    value.host contains "*"
       - artifact: 'NfsExportsFile'
         hint:
           problem: Default r/w NFS exports are too permissive.

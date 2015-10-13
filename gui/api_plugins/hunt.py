@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """API renderers for accessing hunts."""
 
+import functools
 import operator
 
 import logging
@@ -107,9 +108,43 @@ class ApiHuntsListRenderer(api_call_renderer_base.ApiCallRenderer):
 
     return encoded_hunt_list
 
-  def Render(self, args, token=None):
-    fd = aff4.FACTORY.Open("aff4:/hunts", mode="r", token=token)
+  def _CreatedByFilter(self, username, hunt_obj):
+    return hunt_obj.creator == username
 
+  def _DescriptionContainsFilter(self, substring, hunt_obj):
+    return substring in hunt_obj.state.context.args.description
+
+  def _Username(self, username, token):
+    if username == "me":
+      return token.username
+    else:
+      return username
+
+  def _BuildFilter(self, args, token):
+    filters = []
+
+    if args.created_by:
+      filters.append(functools.partial(self._CreatedByFilter,
+                                       self._Username(args.created_by, token)))
+
+    if args.description_contains:
+      filters.append(functools.partial(self._DescriptionContainsFilter,
+                                       args.description_contains))
+
+    if filters:
+      def Filter(x):
+        for f in filters:
+          if not f(x):
+            return False
+
+        return True
+
+      return Filter
+    else:
+      return None
+
+  def RenderNonFiltered(self, args, token):
+    fd = aff4.FACTORY.Open("aff4:/hunts", mode="r", token=token)
     children = list(fd.ListChildren())
     total_count = len(children)
     children.sort(key=operator.attrgetter("age"), reverse=True)
@@ -129,6 +164,44 @@ class ApiHuntsListRenderer(api_call_renderer_base.ApiCallRenderer):
                 offset=args.offset,
                 count=len(hunt_list),
                 items=self._RenderHuntList(hunt_list))
+
+  def RenderFiltered(self, filter_func, args, token):
+    fd = aff4.FACTORY.Open("aff4:/hunts", mode="r", token=token)
+    children = list(fd.ListChildren())
+    children.sort(key=operator.attrgetter("age"), reverse=True)
+
+    index = 0
+    hunt_list = []
+    children_map = {}
+    for hunt in fd.OpenChildren(children=children):
+      if (not isinstance(hunt, hunts.GRRHunt) or not hunt.state
+          or not filter_func(hunt)):
+        continue
+      children_map[hunt.urn] = hunt
+
+    for urn in children:
+      try:
+        hunt = children_map[urn]
+      except KeyError:
+        continue
+
+      if index >= args.offset:
+        hunt_list.append(hunt)
+
+      index += 1
+      if args.count and len(hunt_list) >= args.count:
+        break
+
+    return dict(offset=args.offset,
+                count=len(hunt_list),
+                items=self._RenderHuntList(hunt_list))
+
+  def Render(self, args, token=None):
+    filter_func = self._BuildFilter(args, token)
+    if filter_func:
+      return self.RenderFiltered(filter_func, args, token)
+    else:
+      return self.RenderNonFiltered(args, token)
 
 
 class ApiHuntSummaryRendererArgs(rdf_structs.RDFProtoStruct):

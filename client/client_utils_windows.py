@@ -349,3 +349,65 @@ def KeepAlive():
 
   kernel32 = Kernel32().kernel32
   kernel32.SetThreadExecutionState(ctypes.c_int(es_system_required))
+
+
+def RtlGetVersion(os_version_info_struct):
+  """Wraps the lowlevel RtlGetVersion routine.
+
+  Args:
+    os_version_info_struct: instance of either a RTL_OSVERSIONINFOW structure
+                            or a RTL_OSVERSIONINFOEXW structure,
+                            ctypes.Structure-wrapped, with the
+                            dwOSVersionInfoSize field preset to
+                            ctypes.sizeof(self).
+
+  Raises:
+    WindowsError: if the underlaying routine fails.
+
+  See: https://msdn.microsoft.com/en-us/library/
+  windows/hardware/ff561910(v=vs.85).aspx .
+  """
+  rc = ctypes.windll.Ntdll.RtlGetVersion(ctypes.byref(os_version_info_struct))
+  if rc != 0:
+    raise exceptions.WindowsError("Getting Windows version failed.")
+
+
+class RtlOSVersionInfoExw(ctypes.Structure):
+  """Wraps the lowlevel RTL_OSVERSIONINFOEXW struct.
+
+  See: https://msdn.microsoft.com/en-us/library/
+  windows/hardware/ff563620(v=vs.85).aspx .
+  """
+  _fields_ = [("dwOSVersionInfoSize", ctypes.c_ulong),
+              ("dwMajorVersion", ctypes.c_ulong),
+              ("dwMinorVersion", ctypes.c_ulong),
+              ("dwBuildNumber", ctypes.c_ulong),
+              ("dwPlatformId", ctypes.c_ulong),
+              ("szCSDVersion", ctypes.c_wchar*128),
+              ("wServicePackMajor", ctypes.c_ushort),
+              ("wServicePackMinor", ctypes.c_ushort),
+              ("wSuiteMask", ctypes.c_ushort),
+              ("wProductType", ctypes.c_byte),
+              ("wReserved", ctypes.c_byte)]
+
+  def __init__(self, **kwargs):
+    kwargs["dwOSVersionInfoSize"] = ctypes.sizeof(self)
+    super(RtlOSVersionInfoExw, self).__init__(**kwargs)
+
+
+def KernelVersion():
+  """Gets the kernel version as string, eg. "5.1.2600".
+
+  Returns:
+    The kernel version, or "unknown" in the case of failure.
+  """
+  rtl_osversioninfoexw = RtlOSVersionInfoExw()
+  try:
+    RtlGetVersion(rtl_osversioninfoexw)
+  except exceptions.WindowsError:
+    return "unknown"
+
+  return "%d.%d.%d" % (rtl_osversioninfoexw.dwMajorVersion,
+                       rtl_osversioninfoexw.dwMinorVersion,
+                       rtl_osversioninfoexw.dwBuildNumber)
+

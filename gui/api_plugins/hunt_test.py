@@ -6,6 +6,7 @@
 from grr.gui import api_test_lib
 from grr.gui.api_plugins import hunt as hunt_plugin
 
+from grr.lib import access_control
 from grr.lib import flags
 from grr.lib import flow_runner
 from grr.lib import hunts
@@ -81,6 +82,69 @@ class ApiHuntsListRendererTest(test_lib.GRRBaseTest):
     self.assertEqual(len(create_times), 2)
     self.assertEqual(create_times[0], 8 * 1000000000)
     self.assertEqual(create_times[1], 7 * 1000000000)
+
+  def testFiltersHuntsByCreator(self):
+    for i in range(5):
+      self.CreateSampleHunt("foo_hunt_%d" % i,
+                            token=access_control.ACLToken(username="user-foo"))
+
+    for i in range(3):
+      self.CreateSampleHunt("bar_hunt_%d" % i,
+                            token=access_control.ACLToken(username="user-bar"))
+
+    result = self.renderer.Render(hunt_plugin.ApiHuntsListRendererArgs(
+        created_by="user-foo"), token=self.token)
+    self.assertEqual(len(result["items"]), 5)
+    for item in result["items"]:
+      self.assertEqual(item["summary"]["creator"]["value"], "user-foo")
+
+    result = self.renderer.Render(hunt_plugin.ApiHuntsListRendererArgs(
+        created_by="user-bar"), token=self.token)
+    self.assertEqual(len(result["items"]), 3)
+    for item in result["items"]:
+      self.assertEqual(item["summary"]["creator"]["value"], "user-bar")
+
+  def testFiltersHuntsByDescriptionContainsMatch(self):
+    for i in range(5):
+      self.CreateSampleHunt("foo_hunt_%d" % i, token=self.token)
+
+    for i in range(3):
+      self.CreateSampleHunt("bar_hunt_%d" % i, token=self.token)
+
+    result = self.renderer.Render(hunt_plugin.ApiHuntsListRendererArgs(
+        description_contains="foo"), token=self.token)
+    self.assertEqual(len(result["items"]), 5)
+    for item in result["items"]:
+      self.assertTrue("foo" in item["summary"]["description"]["value"])
+
+    result = self.renderer.Render(hunt_plugin.ApiHuntsListRendererArgs(
+        description_contains="bar"), token=self.token)
+    self.assertEqual(len(result["items"]), 3)
+    for item in result["items"]:
+      self.assertTrue("bar" in item["summary"]["description"]["value"])
+
+  def testOffsetIsRelativeToFilteredResultsWhenFilterIsPresent(self):
+    for i in range(5):
+      self.CreateSampleHunt("foo_hunt_%d" % i, token=self.token)
+
+    for i in range(3):
+      self.CreateSampleHunt("bar_hunt_%d" % i, token=self.token)
+
+    result = self.renderer.Render(hunt_plugin.ApiHuntsListRendererArgs(
+        description_contains="bar", offset=1), token=self.token)
+    self.assertEqual(len(result["items"]), 2)
+    for item in result["items"]:
+      self.assertTrue("bar" in item["summary"]["description"]["value"])
+
+    result = self.renderer.Render(hunt_plugin.ApiHuntsListRendererArgs(
+        description_contains="bar", offset=2), token=self.token)
+    self.assertEqual(len(result["items"]), 1)
+    for item in result["items"]:
+      self.assertTrue("bar" in item["summary"]["description"]["value"])
+
+    result = self.renderer.Render(hunt_plugin.ApiHuntsListRendererArgs(
+        description_contains="bar", offset=3), token=self.token)
+    self.assertEqual(len(result["items"]), 0)
 
 
 class ApiHuntsListRendererRegressionTest(

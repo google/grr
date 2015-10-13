@@ -279,6 +279,12 @@ class RDFStructsTest(test_base.RDFValueTestCase):
     tested.type = "FIRST"
     self.assertEqual(tested.type, 1)
 
+    # Check that string assignments are case-insensitive.
+    tested.type = "second"
+    self.assertEqual(tested.type, 2)
+    tested.type = "ThIrD"
+    self.assertEqual(tested.type, 3)
+
     # Non-valid types are rejected.
     self.assertRaises(type_info.TypeValueError, setattr, tested, "type", "Foo")
 

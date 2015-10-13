@@ -19,6 +19,7 @@ import rekall
 import logging
 
 from grr.client import actions
+from grr.client import client_utils
 from grr.lib import config_lib
 from grr.lib import queues
 from grr.lib import rdfvalue
@@ -57,9 +58,10 @@ class GetPlatformInfo(actions.ActionPlugin):
     system = uname[0]
     if system == "Windows":
       service_pack = platform.win32_ver()[2]
-      kernel = uname[3]                           # 5.1.2600
+      kernel = client_utils.client_utils_windows.KernelVersion()
+                                                  # 5.1.2600
       release = uname[2]                          # XP, 2000, 7
-      version = uname[3] + service_pack           # 5.1.2600 SP3, 6.1.7601 SP1
+      version = kernel + service_pack             # 5.1.2600 SP3, 6.1.7601 SP1
     elif system == "Darwin":
       kernel = uname[2]                           # 12.2.0
       release = "OSX"                             # OSX

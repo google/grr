@@ -160,8 +160,6 @@ def IsExecutionWhitelisted(cmd, args):
         ("/bin/launchctl", ["unload",
                             config_lib.CONFIG["Client.plist_path"]]),
         ("/bin/echo", ["1"]),
-        ("/usr/sbin/screencapture", ["-x", "-t", "jpg", "/tmp/ss.dat"]),
-        ("/bin/rm", ["-f", "/tmp/ss.dat"]),
         ("/usr/sbin/system_profiler", ["-xml", "SPHardwareDataType"]),
         ("/usr/bin/who", []),
         ("/usr/bin/last", []),

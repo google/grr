@@ -36,9 +36,10 @@ class MockChildProcess : public ChildProcess {
 class ChildTest : public ::testing::Test {};
 
 const struct ControllerConfig kConfig = {
-  60,  // resurrection_period
-  30,  // unresponsive_kill_period
-  60,  // event_log_message_suppression
+  60,   // resurrection_period
+  30,   // unresponsive_kill_period
+  300,  // unresponsive_grace_period
+  60,   // event_log_message_suppression
 };
 
 
@@ -52,6 +53,9 @@ TEST_F(ChildTest, StartsChildAtStartUp) {
 
   EXPECT_CALL(child, GetCurrentTime())
       .WillOnce(Return(1000));
+
+  EXPECT_CALL(child, GetHeartbeat())
+      .WillOnce(Return(100));
 
   child_controller.Run();
 
@@ -89,7 +93,7 @@ TEST_F(ChildTest, KillUnresponsiveChild) {
       .WillByDefault(Assign(&alive, false));
 
   ON_CALL(child, GetHeartbeat())
-      .WillByDefault(Return(0));
+      .WillByDefault(Return(10));
 
   // Run for 20 seconds - child should start and not be killed.
   EXPECT_CALL(child, CreateChildProcess())
@@ -151,6 +155,9 @@ TEST_F(ChildTest, SteadyState) {
   EXPECT_CALL(child, KillChild(msg))
       .Times(0);
 
+  ON_CALL(child, GetHeartbeat())
+      .WillByDefault(Return(100));
+
   // Scan the time line.
   for (current_epoch = 1000; current_epoch < 1020; current_epoch++) {
     child_controller.Run();
@@ -179,7 +186,7 @@ TEST_F(ChildTest, SteadyState) {
 TEST_F(ChildTest, TestSuspending) {
   // This test verifies that when the machine suspends, the client does not
   // get killed.
-  int current_epoch, current_hb = 0;
+  int current_epoch, current_hb = 1;
   time_t sleep_time = 0;
   bool alive = false;
   MockChildProcess child;

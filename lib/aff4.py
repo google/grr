@@ -725,18 +725,25 @@ class Factory(object):
     if mode not in ["w", "r", "rw"]:
       raise RuntimeError("Invalid mode %s" % mode)
 
-    self.aff4_type = aff4_type
-
     symlinks = {}
     for urn, values in self.GetAttributes(urns, token=token, age=age):
       try:
         obj = self.Open(urn, mode=mode, ignore_cache=ignore_cache, token=token,
-                        local_cache={urn: values}, aff4_type=aff4_type, age=age,
+                        local_cache={urn: values}, age=age,
                         follow_symlinks=False)
+        # We can't pass aff4_type to Open since it will raise on AFF4Symlinks.
+        # Setting it here, if needed, so that BadGetAttributeError checking
+        # works.
+        if aff4_type:
+          obj.aff4_type = aff4_type
+
         if follow_symlinks and isinstance(obj, AFF4Symlink):
           target = obj.Get(obj.Schema.SYMLINK_TARGET)
           if target is not None:
             symlinks[target] = obj.urn
+        elif aff4_type:
+          if isinstance(obj, AFF4Object.classes[aff4_type]):
+            yield obj
         else:
           yield obj
       except IOError:

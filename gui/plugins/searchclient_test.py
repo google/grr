@@ -9,16 +9,183 @@ from grr.gui import runtests_test
 from grr.lib import test_lib
 # pylint: enable=g-bad-import-order
 
+from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import flags
+from grr.lib import flow
+from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib import utils
 from grr.lib.aff4_objects import users as aff4_users
 from grr.lib.rdfvalues import client as rdf_client
 
 
 class SearchClientTestBase(test_lib.GRRSeleniumTest):
   pass
+
+
+class TestUserDashboard(test_lib.GRRSeleniumTest):
+  """Tests for user dashboard shown on the home page."""
+
+  @staticmethod
+  def CreateSampleHunt(description, token=None):
+    return hunts.GRRHunt.StartHunt(
+        hunt_name="GenericHunt", description=description, token=token)
+
+  def testShowsNothingByDefault(self):
+    self.Open("/")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-user-dashboard "
+                   "div[name=RecentlyAccessedClients]:contains('None')")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-user-dashboard "
+                   "div[name=RecentlyCreatedHunts]:contains('None')")
+
+  def testShowsHuntCreatedByCurrentUser(self):
+    with self.ACLChecksDisabled():
+      self.CreateSampleHunt("foo-description", token=self.token)
+
+    self.Open("/")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-user-dashboard "
+                   "div[name=RecentlyCreatedHunts]:contains('foo-description')")
+
+  def testDoesNotShowHuntCreatedByAnotherUser(self):
+    with self.ACLChecksDisabled():
+      self.CreateSampleHunt(
+          "foo", token=access_control.ACLToken(username="another"))
+
+    self.Open("/")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-user-dashboard "
+                   "div[name=RecentlyCreatedHunts]:contains('None')")
+
+  def testClickingOnTheHuntRedirectsToThisHunt(self):
+    with self.ACLChecksDisabled():
+      self.CreateSampleHunt("foo-description", token=self.token)
+
+    self.Open("/")
+    self.Click("css=grr-user-dashboard "
+               "div[name=RecentlyCreatedHunts] td:contains('foo-description')")
+    self.WaitUntil(self.IsElementPresent, "css=grr-hunts-view")
+
+  def testShows5LatestHunts(self):
+    with self.ACLChecksDisabled():
+      for i in range(20):
+        with test_lib.FakeTime(1000 * i + 1):
+          if i % 2 == 0:
+            descr = "foo-%d" % i
+            token = access_control.ACLToken(username="another")
+          else:
+            descr = "bar-%d" % i
+            token = self.token
+          self.CreateSampleHunt(descr, token=token)
+
+    self.Open("/")
+    for i in range(11, 20, 2):
+      self.WaitUntil(self.IsElementPresent,
+                     "css=grr-user-dashboard "
+                     "div[name=RecentlyCreatedHunts]:contains('bar-%d')" % i)
+
+    self.WaitUntilNot(self.IsElementPresent,
+                      "css=grr-user-dashboard "
+                      "div[name=RecentlyCreatedHunts]:contains('for')")
+
+  def testShowsClientWithRequestedApproval(self):
+    with self.ACLChecksDisabled():
+      client_id = self.SetupClients(1)[0]
+      self.GrantClientApproval(client_id)
+
+    self.Open("/")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-user-dashboard "
+                   "div[name=RecentlyAccessedClients]"
+                   ":contains('%s')" % client_id.Basename())
+
+  def testShowsClientTwiceIfTwoApprovalsWereRequested(self):
+    with self.ACLChecksDisabled():
+      client_id = self.SetupClients(1)[0]
+      self.GrantClientApproval(client_id,
+                               token=access_control.ACLToken(
+                                   username="test", reason="foo-reason"))
+      self.GrantClientApproval(client_id,
+                               token=access_control.ACLToken(
+                                   username="test", reason="bar-reason"))
+
+    self.Open("/")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-user-dashboard "
+                   "div[name=RecentlyAccessedClients]:contains('foo-reason')")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-user-dashboard "
+                   "div[name=RecentlyAccessedClients]:contains('bar-reason')")
+
+  def testShowsMaxOf7Clients(self):
+    with self.ACLChecksDisabled():
+      client_ids = self.SetupClients(10)
+
+      with test_lib.FakeTime(1000, 1):
+        for c in client_ids:
+          self.GrantClientApproval(c)
+
+    self.Open("/")
+    for c in client_ids[3:]:
+      self.WaitUntil(self.IsElementPresent,
+                     "css=grr-user-dashboard "
+                     "div[name=RecentlyAccessedClients]"
+                     ":contains('%s')" % c.Basename())
+
+    for c in client_ids[:3]:
+      self.WaitUntilNot(self.IsElementPresent,
+                        "css=grr-user-dashboard "
+                        "div[name=RecentlyAccessedClients]"
+                        ":contains('%s')" % c.Basename())
+
+  def testValidApprovalIsNotMarked(self):
+    with self.ACLChecksDisabled():
+      client_id = self.SetupClients(1)[0]
+      self.GrantClientApproval(client_id)
+
+    self.Open("/")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-user-dashboard "
+                   "div[name=RecentlyAccessedClients] "
+                   "tr:contains('%s')" % client_id.Basename())
+    self.WaitUntilNot(
+        self.IsElementPresent,
+        "css=grr-user-dashboard "
+        "div[name=RecentlyAccessedClients] "
+        "tr:contains('%s').half-transparent" % client_id.Basename())
+
+  def testNonValidApprovalIsMarked(self):
+    with self.ACLChecksDisabled():
+      client_id = self.SetupClients(1)[0]
+      flow.GRRFlow.StartFlow(client_id=client_id,
+                             flow_name="RequestClientApprovalFlow",
+                             reason=self.token.reason,
+                             subject_urn=client_id,
+                             approver="approver",
+                             token=self.token)
+
+    self.Open("/")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-user-dashboard "
+                   "div[name=RecentlyAccessedClients] "
+                   "tr:contains('%s').half-transparent" % client_id.Basename())
+
+  def testClickingOnApprovalRedirectsToClient(self):
+    with self.ACLChecksDisabled():
+      client_id = self.SetupClients(1)[0]
+      self.GrantClientApproval(client_id)
+
+    self.Open("/")
+    self.Click("css=grr-user-dashboard "
+               "div[name=RecentlyAccessedClients] "
+               "tr:contains('%s')" % client_id.Basename())
+
+    self.WaitUntil(self.IsTextPresent, "VFSGRRClient")
+    self.WaitUntil(self.IsTextPresent, utils.SmartStr(client_id))
 
 
 class TestNavigatorView(SearchClientTestBase):

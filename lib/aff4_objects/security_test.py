@@ -1,12 +1,16 @@
 #!/usr/bin/env python
 """Tests for grr.lib.aff4_objects.security."""
 
+from grr.lib import aff4
 from grr.lib import flags
+from grr.lib import flow
+from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.aff4_objects import security
 
 
 class ApprovalWithReasonTest(test_lib.GRRBaseTest):
+  """Test for ApprovalWithReason mixin."""
 
   def setUp(self):
     super(ApprovalWithReasonTest, self).setUp()
@@ -37,6 +41,68 @@ class ApprovalWithReasonTest(test_lib.GRRBaseTest):
 
       for reason, result in test_pairs:
         self._CreateReason(reason, result)
+
+
+class ClientApprovalTest(test_lib.GRRBaseTest):
+  """Test for client approvals."""
+
+  def testCreatingApprovalCreatesSymlink(self):
+    client_id = self.SetupClients(1)[0]
+
+    flow.GRRFlow.StartFlow(client_id=client_id,
+                           flow_name="RequestClientApprovalFlow",
+                           reason=self.token.reason,
+                           subject_urn=client_id,
+                           approver="approver",
+                           token=self.token)
+
+    fd = aff4.FACTORY.Open(
+        "aff4:/users/test/approvals/client/C.1000000000000000/"
+        "UnVubmluZyB0ZXN0cw==", follow_symlinks=False, mode="r",
+        token=self.token)
+    self.assertEqual(fd.Get(fd.Schema.TYPE), "AFF4Symlink")
+    self.assertEqual(fd.Get(fd.Schema.SYMLINK_TARGET),
+                     "aff4:/ACL/C.1000000000000000/test/UnVubmluZyB0ZXN0cw==")
+
+
+class HuntApprovalTest(test_lib.GRRBaseTest):
+  """Test for hunt approvals."""
+
+  def testCreatingApprovalCreatesSymlink(self):
+    cron_urn = rdfvalue.RDFURN("aff4:/cron/CronJobName")
+
+    flow.GRRFlow.StartFlow(flow_name="RequestCronJobApprovalFlow",
+                           reason=self.token.reason,
+                           subject_urn=cron_urn,
+                           approver="approver",
+                           token=self.token)
+
+    fd = aff4.FACTORY.Open(
+        "aff4:/users/test/approvals/cron/CronJobName/UnVubmluZyB0ZXN0cw==",
+        follow_symlinks=False, mode="r", token=self.token)
+    self.assertEqual(fd.Get(fd.Schema.TYPE), "AFF4Symlink")
+    self.assertEqual(fd.Get(fd.Schema.SYMLINK_TARGET),
+                     "aff4:/ACL/cron/CronJobName/test/UnVubmluZyB0ZXN0cw==")
+
+
+class CronJobAprrovalTest(test_lib.GRRBaseTest):
+  """Test for cron job approvals."""
+
+  def testCreatingApprovalCreatesSymlink(self):
+    hunt_urn = rdfvalue.RDFURN("aff4:/hunts/H:ABCD1234")
+
+    flow.GRRFlow.StartFlow(flow_name="RequestHuntApprovalFlow",
+                           reason=self.token.reason,
+                           subject_urn=hunt_urn,
+                           approver="approver",
+                           token=self.token)
+
+    fd = aff4.FACTORY.Open(
+        "aff4:/users/test/approvals/hunt/H:ABCD1234/UnVubmluZyB0ZXN0cw==",
+        follow_symlinks=False, mode="r", token=self.token)
+    self.assertEqual(fd.Get(fd.Schema.TYPE), "AFF4Symlink")
+    self.assertEqual(fd.Get(fd.Schema.SYMLINK_TARGET),
+                     "aff4:/ACL/hunts/H:ABCD1234/test/UnVubmluZyB0ZXN0cw==")
 
 
 def main(argv):

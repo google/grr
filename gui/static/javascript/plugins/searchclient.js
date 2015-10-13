@@ -146,6 +146,11 @@ grr.Renderer('Navigator', {
       grr.layout(renderer, id);
     }, unique);
 
+    // Reload the navigator when a new hunt is selected.
+    grr.subscribe('hunt_selection', function() {
+      grr.layout(renderer, id);
+    }, unique);
+
     if (grr.hash.c && grr.hash.c != client_id) {
       grr.publish('client_selection', grr.hash.c);
     }
@@ -156,7 +161,10 @@ grr.Renderer('FrontPage', {
   Layout: function(state) {
     // Update main's state from the hash
     if (grr.hash.main) {
+      $.extend(grr.state, grr.hash);
       grr.layout(grr.hash.main, 'main');
+    } else {
+      grr.layout('UserDashboard', 'main');
     }
   }
 });

@@ -60,7 +60,6 @@ message ApiClientSearchRendererArgs {
   optional int64 count = 3 [(sem_type) = {
       description: "Number of found client to fetch."
     }];
-
 }
 
 message ApiClientSummaryRendererArgs {
@@ -146,6 +145,19 @@ message ApiHuntsListRendererArgs {
     }];
   optional int64 count = 2 [(sem_type) = {
       description: "Max number of items to fetch."
+    }];
+
+  // Filtering criterias.
+  optional string created_by = 3 [(sem_type) = {
+      description: "Only return hunts created by a given user. "
+      "If approved_by or/and description_contains are also supplied, "
+      "then logical AND is applied to all the criterias."
+    }];
+  optional string description_contains = 4 [(sem_type) = {
+      description: "Only return hunts where description contains given "
+      "substring (matching is case-insensitive)."
+      "If created_by or/and approved_by are also supplied, "
+      "then logical AND is applied to all the criterias."
     }];
 }
 
@@ -304,6 +316,23 @@ message ApiArtifactsDeleteRendererArgs {
 message ApiConfigOptionRendererArgs {
   optional string name = 1 [(sem_type) = {
       description: "Name of the config option to fetch."
+    }];
+}
+
+message ApiUserApprovalsListRendererArgs {
+  enum ApprovalType {
+    HUNT = 0;
+    CLIENT = 1;
+    CRON = 2;
+  }
+  optional ApprovalType approval_type = 1 [(sem_type) = {
+      description: "Approval type, i.e. 'hunt', 'client' or 'cron'."
+    }];
+  optional int64 offset = 2 [(sem_type) = {
+      description: "Approvals starting offset."
+    }];
+  optional int64 count = 3 [(sem_type) = {
+      description: "Number of approvals to fetch."
     }];
 }
 

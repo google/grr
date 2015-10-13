@@ -376,6 +376,10 @@ dd.histogram > div {
   padding: 1em;
 }
 
+.half-transparent {
+  opacity: 0.5;
+}
+
 .horizontally-padded {
   padding-left: 1em;
   padding-right: 1em;

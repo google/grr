@@ -5,6 +5,7 @@
 
 
 import os
+import shutil
 import stat
 
 
@@ -115,7 +116,6 @@ class VFSTest(test_lib.GRRBaseTest):
 
   def testFileCasing(self):
     """Test our ability to read the correct casing from filesystem."""
-    path = os.path.join(self.base_path, "numbers.txt")
     try:
       os.lstat(os.path.join(self.base_path, "nUmBeRs.txt"))
       os.lstat(os.path.join(self.base_path, "nuMbErs.txt"))
@@ -126,40 +126,46 @@ class VFSTest(test_lib.GRRBaseTest):
     except (IOError, OSError):
       pass
 
-    fd = vfs.VFSOpen(
-        rdf_paths.PathSpec(path=path,
-                           pathtype=rdf_paths.PathSpec.PathType.OS))
-    self.assertEqual(fd.pathspec.Basename(), "numbers.txt")
+    # Create 2 files with names that differ only in casing.
+    with utils.TempDirectory() as temp_dir:
+      path1 = os.path.join(temp_dir, "numbers.txt")
+      shutil.copy(os.path.join(self.base_path, "numbers.txt"), path1)
 
-    path = os.path.join(self.base_path, "numbers.TXT")
+      path2 = os.path.join(temp_dir, "numbers.TXT")
+      shutil.copy(os.path.join(self.base_path, "numbers.txt.ver2"), path2)
 
-    fd = vfs.VFSOpen(
-        rdf_paths.PathSpec(path=path,
-                           pathtype=rdf_paths.PathSpec.PathType.OS))
-    self.assertEqual(fd.pathspec.Basename(), "numbers.TXT")
+      fd = vfs.VFSOpen(
+          rdf_paths.PathSpec(path=path1,
+                             pathtype=rdf_paths.PathSpec.PathType.OS))
+      self.assertEqual(fd.pathspec.Basename(), "numbers.txt")
 
-    path = os.path.join(self.base_path, "Numbers.txt")
-    fd = vfs.VFSOpen(
-        rdf_paths.PathSpec(path=path,
-                           pathtype=rdf_paths.PathSpec.PathType.OS))
-    read_path = fd.pathspec.Basename()
+      fd = vfs.VFSOpen(
+          rdf_paths.PathSpec(path=path2,
+                             pathtype=rdf_paths.PathSpec.PathType.OS))
+      self.assertEqual(fd.pathspec.Basename(), "numbers.TXT")
 
-    # The exact file now is non deterministic but should be either of the two:
-    if read_path != "numbers.txt" and read_path != "numbers.TXT":
-      raise RuntimeError("read path is %s" % read_path)
+      path = os.path.join(self.base_path, "Numbers.txt")
+      fd = vfs.VFSOpen(
+          rdf_paths.PathSpec(path=path,
+                             pathtype=rdf_paths.PathSpec.PathType.OS))
+      read_path = fd.pathspec.Basename()
 
-    # Ensure that the produced pathspec specified no case folding:
-    s = fd.Stat()
-    self.assertEqual(s.pathspec.path_options,
-                     rdf_paths.PathSpec.Options.CASE_LITERAL)
+      # The exact file now is non deterministic but should be either of the two:
+      if read_path != "numbers.txt" and read_path != "numbers.TXT":
+        raise RuntimeError("read path is %s" % read_path)
 
-    # Case folding will only occur when requested - this should raise because we
-    # have the CASE_LITERAL option:
-    pathspec = rdf_paths.PathSpec(
-        path=path,
-        pathtype=rdf_paths.PathSpec.PathType.OS,
-        path_options=rdf_paths.PathSpec.Options.CASE_LITERAL)
-    self.assertRaises(IOError, vfs.VFSOpen, pathspec)
+      # Ensure that the produced pathspec specified no case folding:
+      s = fd.Stat()
+      self.assertEqual(s.pathspec.path_options,
+                       rdf_paths.PathSpec.Options.CASE_LITERAL)
+
+      # Case folding will only occur when requested - this should raise because
+      # we have the CASE_LITERAL option:
+      pathspec = rdf_paths.PathSpec(
+          path=path,
+          pathtype=rdf_paths.PathSpec.PathType.OS,
+          path_options=rdf_paths.PathSpec.Options.CASE_LITERAL)
+      self.assertRaises(IOError, vfs.VFSOpen, pathspec)
 
   def testTSKFile(self):
     """Test our ability to read from image files."""

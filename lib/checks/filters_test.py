@@ -51,16 +51,16 @@ class AttrFilterTests(test_lib.GRRBaseTest):
     results = filt.Parse(objs, "k1 k2 one.k3")
     self.assertEqual(5, len(results))
     r1, r2, r3, r4, r5 = results
-    self.assertEqual("k1", r1.k)
-    self.assertEqual("hit1", r1.v)
-    self.assertEqual("k1", r2.k)
-    self.assertEqual("hit2", r2.v)
-    self.assertEqual("k2", r3.k)
-    self.assertEqual("found1", r3.v)
-    self.assertEqual("k2", r4.k)
-    self.assertEqual("found2", r4.v)
-    self.assertEqual("one.k3", r5.k)
-    self.assertEqual([3, 4], r5.v)
+    self.assertEqual("k1", r1.key)
+    self.assertEqual("hit1", r1.value)
+    self.assertEqual("k1", r2.key)
+    self.assertEqual("hit2", r2.value)
+    self.assertEqual("k2", r3.key)
+    self.assertEqual("found1", r3.value)
+    self.assertEqual("k2", r4.key)
+    self.assertEqual("found2", r4.value)
+    self.assertEqual("one.k3", r5.key)
+    self.assertEqual([3, 4], r5.value)
 
 
 class ItemFilterTests(test_lib.GRRBaseTest):
@@ -76,28 +76,28 @@ class ItemFilterTests(test_lib.GRRBaseTest):
 
     results = filt.Parse(objs, "test1 is '1'")
     self.assertEqual(1, len(results))
-    self.assertEqual("test1", results[0].k)
-    self.assertEqual("1", results[0].v)
+    self.assertEqual("test1", results[0].key)
+    self.assertEqual("1", results[0].value)
 
     results = filt.Parse(objs, "test1 is '2'")
     self.assertFalse(results)
 
     results = filt.Parse(objs, "test2 contains 3")
     self.assertEqual(1, len(results))
-    self.assertEqual("test2", results[0].k)
-    self.assertEqual([2, 3], results[0].v)
+    self.assertEqual("test2", results[0].key)
+    self.assertEqual([2, 3], results[0].value)
 
     results = filt.Parse(objs, "test1 is '1' or test1 contains 'foo'")
     self.assertEqual(2, len(results))
-    self.assertEqual("test1", results[0].k)
-    self.assertEqual("1", results[0].v)
-    self.assertEqual("test1", results[1].k)
-    self.assertEqual("foo", results[1].v)
+    self.assertEqual("test1", results[0].key)
+    self.assertEqual("1", results[0].value)
+    self.assertEqual("test1", results[1].key)
+    self.assertEqual("foo", results[1].value)
 
     results = filt.Parse(objs, "mount_point is '/root'")
     self.assertEqual(1, len(results))
-    self.assertEqual("mount_point", results[0].k)
-    self.assertEqual("/root", results[0].v)
+    self.assertEqual("mount_point", results[0].key)
+    self.assertEqual("/root", results[0].value)
 
 
 class ForEachTests(test_lib.GRRBaseTest):

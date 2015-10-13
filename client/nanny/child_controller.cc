@@ -15,7 +15,7 @@ ChildProcess::ChildProcess() {}
 ChildProcess::~ChildProcess() {}
 EventLogger *ChildProcess::GetEventLogger() {
   return NULL;
-};
+}
 
 // -----------------------------------------------------------------
 // ChildController
@@ -36,7 +36,7 @@ ChildController::ChildController(const struct ControllerConfig config,
 
 void ChildController::KillChild(std::string msg) {
   child_->KillChild(msg);
-};
+}
 
 
 // The main controller loop. Will be called periodically by the nanny.
@@ -45,6 +45,9 @@ time_t ChildController::Run() {
 
   // Check the heartbeat from the child.
   time_t heartbeat = std::max(child_->GetHeartbeat(), last_heartbeat_time_);
+  if (heartbeat == 0) {
+    return 1;
+  }
   last_heartbeat_time_ = heartbeat;
 
   time_t call_delay = 0;
@@ -78,7 +81,7 @@ time_t ChildController::Run() {
     }
   }
   return call_delay;
-};
+}
 
 // -----------------------------------------------------------------
 

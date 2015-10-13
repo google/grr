@@ -346,6 +346,8 @@ class HttpApiInitHook(registry.InitHook):
         "GET", "/api/stats/store/<component>/metrics/<metric_name>",
         api_plugins.stats.ApiStatsStoreMetricRenderer)
 
+    RegisterHttpRouteHandler("GET", "/api/users/me/approvals/<approval_type>",
+                             api_plugins.user.ApiUserApprovalsListRenderer)
     RegisterHttpRouteHandler("GET", "/api/users/me/settings",
                              api_plugins.user.ApiUserSettingsRenderer)
     RegisterHttpRouteHandler("POST", "/api/users/me/settings",

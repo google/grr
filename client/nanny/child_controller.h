@@ -45,6 +45,9 @@ struct ControllerConfig {
   // will be killed if this is reached.
   int unresponsive_kill_period;
 
+  // The time we give the client on first startup to start heartbeating.
+  int unresponsive_grace_period;
+
   // Identical messages are suppressed in the event log for this many seconds.
   int event_log_message_suppression;
 

@@ -505,6 +505,9 @@ class FullAccessControlManager(BasicAccessControlManager):
     """
     h = CheckAccessHelper("query")
 
+    # User is allowed to do anything in his home dir.
+    h.Allow("aff4:/users/*", self.IsHomeDir)
+
     # Querying is allowed for aff4:/cron/*, as GUI renders list of current
     # cron jobs. Also, links to flows executed by every cron job are stored
     # below cron job object,

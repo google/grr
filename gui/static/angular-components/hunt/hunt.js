@@ -10,6 +10,7 @@ goog.require('grrUi.hunt.huntInspectorDirective.HuntInspectorDirective');
 goog.require('grrUi.hunt.huntLogDirective.HuntLogDirective');
 goog.require('grrUi.hunt.huntOverviewDirective.HuntOverviewDirective');
 goog.require('grrUi.hunt.huntResultsDirective.HuntResultsDirective');
+goog.require('grrUi.hunt.huntStatusIconDirective.HuntStatusIconDirective');
 goog.require('grrUi.hunt.huntsListDirective.HuntsListDirective');
 goog.require('grrUi.hunt.huntsViewDirective.HuntsViewDirective');
 
@@ -43,6 +44,9 @@ grrUi.hunt.module.directive(
 grrUi.hunt.module.directive(
     grrUi.hunt.huntResultsDirective.HuntResultsDirective.directive_name,
     grrUi.hunt.huntResultsDirective.HuntResultsDirective);
+grrUi.hunt.module.directive(
+    grrUi.hunt.huntStatusIconDirective.HuntStatusIconDirective.directive_name,
+    grrUi.hunt.huntStatusIconDirective.HuntStatusIconDirective);
 grrUi.hunt.module.directive(
     grrUi.hunt.huntsListDirective.HuntsListDirective.directive_name,
     grrUi.hunt.huntsListDirective.HuntsListDirective);

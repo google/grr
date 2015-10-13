@@ -181,7 +181,7 @@ class AttrFilter(Filter):
     expression: One or more attributes to fetch as comma separated items.
 
   Yields:
-    AttributedDict RDF values. k is the attribute name, v is the attribute
+    AttributedDict RDF values. key is the attribute name, value is the attribute
     value.
   """
 
@@ -212,7 +212,7 @@ class AttrFilter(Filter):
           # Dict won't accept rdfvalue.RepeatedFieldHelper
           if isinstance(val, structs.RepeatedFieldHelper):
             val = list(val)
-          yield rdf_protodict.AttributedDict({"k": key, "v": val})
+          yield rdf_protodict.AttributedDict({"key": key, "value": val})
 
   def Validate(self, expression):
     self._Attrs(expression)
@@ -281,8 +281,8 @@ class ItemFilter(ObjectFilter):
     expression: An objectfilter expression..
 
   Yields:
-     AttributedDict RDF values for matching items, where k is the attribute
-     name, and v is the attribute value.
+     AttributedDict RDF values for matching items, where key is the attribute
+     name, and value is the attribute value.
   """
 
   def ParseObjs(self, objs, expression):
@@ -290,7 +290,7 @@ class ItemFilter(ObjectFilter):
     key = expression.split(None, 1)[0]
     for result in filt.Filter(objs):
       val = getattr(result, key)
-      yield rdf_protodict.AttributedDict({"k": key, "v": val})
+      yield rdf_protodict.AttributedDict({"key": key, "value": val})
 
 
 class StatFilter(Filter):

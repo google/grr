@@ -11,7 +11,7 @@ method:
               - add "net.ipv4.icmp_echo_ignore_broadcasts = 1" to sysctl.conf
               - sysctl -w net.ipv4.icmp_echo_ignore_broadcasts 1
             (ref) CIS Debian Benchmark v1.0-5.1
-          format: "{k}: {v}"
+          format: "{key}: {value}"
         filters:
           - type: 'ItemFilter'
             expression: net_ipv4_icmp_echo_ignore_broadcasts is "0"
@@ -29,7 +29,7 @@ method:
               - sysctl -w net.ipv4.conf.all.send_redirects 0
               - add "net.ipv4.conf.all.send_redirects = 0" to sysctl.conf
             (ref) CIS Debian Benchmark v1.0-5.2
-          format: "{k}: {v}"
+          format: "{key}: {value}"
         filters:
           - type: 'ItemFilter'
             expression: net_ipv4_conf_all_send_redirects is "1"
@@ -48,10 +48,10 @@ method:
               - sysctl -w net.ipv4.conf.default.rp_filter 1
               - add "net.ipv4.conf.default.rp_filter = 1" to sysctl.conf
             (ref) CIS Debian Benchmark v1.0-5.1
-          format: "{k}: {v}"
+          format: "{key}: {value}"
         filters:
           - type: 'ItemFilter'
-            expression: net_ipv4_conf_default_rp_filter is "0"
+            expression: net_ipv4_conf_default_rp_filter isnot "1"
 ---
 check_id: CIS-NET-FORWARD-IP
 method:
@@ -74,7 +74,7 @@ method:
               - add "net.ipv4.ip_forward = 0" to sysctl.conf
               - add "net.ipv4.conf.all.mc_forwarding = 0" to sysctl.conf
             (ref) CIS Debian Benchmark v1.0-5.2
-          format: "{k}: {v}"
+          format: "{key}: {value}"
         filters:
           - type: 'ItemFilter'
             expression: net_ipv4_conf_all_forwarding is "1"
@@ -98,7 +98,7 @@ method:
               - sysctl -w net.ipv4.tcp_syncookies 1
               - add "net.ipv4.tcp_syncookies = 1" to sysctl.conf
             (ref) CIS Debian Benchmark v1.0-5.1
-          format: "{k}: {v}"
+          format: "{key}: {value}"
         filters:
           - type: 'ItemFilter'
             expression: net_ipv4_tcp_syncookies is "0"
@@ -121,7 +121,7 @@ method:
               - add "net.ipv4.conf.all.accept_redirects = 0" to sysctl.conf
               - add "net.ipv6.conf.all.accept_redirects = 0" to sysctl.conf
               (ref) CIS Debian Benchmark v1.0-5.1
-          format: "{k}: {v}"
+          format: "{key}: {value}"
         filters:
           - type: 'ItemFilter'
             expression: net_ipv4_conf_default_secure_redirects is "1"
@@ -143,7 +143,7 @@ method:
               - sysctl -w net.ipv4.conf.all.log_martians 1
               - add "net.ipv4.conf.all.log_martians = 1" to sysctl.conf
               (ref) CIS Debian Benchmark v1.0-13.9
-          format: "{k}: {v}"
+          format: "{key}: {value}"
         filters:
           - type: 'ItemFilter'
             expression: net_ipv4_conf_all_log_martians is "0"
@@ -161,7 +161,7 @@ method:
             - sysctl -w net.ipv4.conf.all.accept_source_route 0
             - add "net.ipv4.conf.all.accept_source_route = 0" to sysctl.conf
             (ref) CIS Debian Benchmark v1.0-5.1
-          format: "{k}: {v}"
+          format: "{key}: {value}"
         filters:
           - type: 'ItemFilter'
             expression: net_ipv4_conf_all_accept_source_route is "1"

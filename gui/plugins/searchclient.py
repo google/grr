@@ -540,23 +540,13 @@ class FrontPage(renderers.TemplateRenderer):
   """The front page of the GRR application."""
 
   layout_template = renderers.Template("""
-  <div id="main">
-
-   <div class="container-fluid">
-     <div class="row horizontally-padded">
-  <div id='front'><h2>Welcome to GRR</h2></div>
-  Query for a system to view in the search box above.
-
-  <p>
-  Type a search term to search for a machine using either a hostname,
-  mac address or username.
-  </p>
-     </div>  <!-- row -->
-   </div>  <!-- container -->
-
-  </div>
+  <div id="main"></div>
 """)
 
   def Layout(self, request, response):
     response = super(FrontPage, self).Layout(request, response)
     return self.CallJavascript(response, "FrontPage.Layout")
+
+
+class UserDashboard(renderers.AngularDirectiveRenderer):
+  directive = "grr-user-dashboard"

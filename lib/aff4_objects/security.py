@@ -34,8 +34,15 @@ class Approval(aff4.AFF4Object):
 
   class SchemaCls(aff4.AFF4Object.SchemaCls):
     """The Schema for the Approval class."""
+    REQUESTOR = aff4.Attribute("aff4:approval/requestor", rdfvalue.RDFString,
+                               "Requestor of the approval.")
+
     APPROVER = aff4.Attribute("aff4:approval/approver", rdfvalue.RDFString,
                               "An approver for the request.", "approver")
+
+    SUBJECT = aff4.Attribute("aff4:approval/subject", rdfvalue.RDFURN,
+                             "Subject of the approval. I.e. the resource that "
+                             "requires approved access.")
 
     REASON = aff4.Attribute("aff4:approval/reason",
                             rdfvalue.RDFString,
@@ -329,6 +336,10 @@ class AbstractApprovalWithReason(object):
     """Builds approval object urn."""
     raise NotImplementedError()
 
+  def BuildApprovalSymlinksUrns(self):
+    """Builds a list of symlinks to the approval object."""
+    return []
+
   def BuildSubjectTitle(self):
     """Returns the string with subject's title."""
     raise NotImplementedError()
@@ -360,6 +371,12 @@ class AbstractApprovalWithReason(object):
     return aff4.ROOT_URN.Add("ACL").Add(
         subject).Add(user).Add(utils.EncodeReasonString(reason))
 
+  @staticmethod
+  def ApprovalSymlinkUrnBuilder(approval_type, unique_id, user, reason):
+    """Build an approval symlink URN."""
+    return aff4.ROOT_URN.Add("users").Add(user).Add("approvals").Add(
+        approval_type).Add(unique_id).Add(utils.EncodeReasonString(reason))
+
 
 class RequestApprovalWithReasonFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.RequestApprovalWithReasonFlowArgs
@@ -376,31 +393,39 @@ class RequestApprovalWithReasonFlow(AbstractApprovalWithReason, flow.GRRFlow):
     subject_title = self.BuildSubjectTitle()
     email_msg_id = email.utils.make_msgid()
 
-    approval_request = aff4.FACTORY.Create(approval_urn, self.approval_type,
-                                           mode="w", token=self.token)
-    approval_request.Set(approval_request.Schema.REASON(self.args.reason))
-    approval_request.Set(approval_request.Schema.EMAIL_MSG_ID(email_msg_id))
+    with aff4.FACTORY.Create(approval_urn, self.approval_type,
+                             mode="w", token=self.token) as approval_request:
+      approval_request.Set(approval_request.Schema.SUBJECT(
+          self.args.subject_urn))
+      approval_request.Set(approval_request.Schema.REQUESTOR(
+          self.token.username))
+      approval_request.Set(approval_request.Schema.REASON(self.args.reason))
+      approval_request.Set(approval_request.Schema.EMAIL_MSG_ID(email_msg_id))
 
-    cc_addresses = (self.args.email_cc_address,
-                    config_lib.CONFIG.Get("Email.approval_cc_address"))
-    email_cc = ",".join(filter(None, cc_addresses))
+      cc_addresses = (self.args.email_cc_address,
+                      config_lib.CONFIG.Get("Email.approval_cc_address"))
+      email_cc = ",".join(filter(None, cc_addresses))
 
-    # When we reply with the approval we want to cc all the people to whom the
-    # original approval was sent, to avoid people approving stuff that was
-    # already approved.
-    if email_cc:
-      reply_cc = ",".join((self.args.approver, email_cc))
-    else:
-      reply_cc = self.args.approver
+      # When we reply with the approval we want to cc all the people to whom the
+      # original approval was sent, to avoid people approving stuff that was
+      # already approved.
+      if email_cc:
+        reply_cc = ",".join((self.args.approver, email_cc))
+      else:
+        reply_cc = self.args.approver
 
-    approval_request.Set(approval_request.Schema.EMAIL_CC(reply_cc))
+      approval_request.Set(approval_request.Schema.EMAIL_CC(reply_cc))
 
-    # We add ourselves as an approver as well (The requirement is that we have 2
-    # approvers, so the requester is automatically an approver).
-    approval_request.AddAttribute(
-        approval_request.Schema.APPROVER(self.token.username))
+      # We add ourselves as an approver as well (The requirement is that we have
+      # 2 approvers, so the requester is automatically an approver).
+      approval_request.AddAttribute(
+          approval_request.Schema.APPROVER(self.token.username))
 
-    approval_request.Close()
+    approval_link_urns = self.BuildApprovalSymlinksUrns()
+    for link_urn in approval_link_urns:
+      with aff4.FACTORY.Create(link_urn, "AFF4Symlink",
+                               mode="w", token=self.token) as link:
+        link.Set(link.Schema.SYMLINK_TARGET(approval_urn))
 
     # Notify to the users.
     for user in self.args.approver.split(","):
@@ -618,6 +643,12 @@ class RequestClientApprovalFlow(RequestApprovalWithReasonFlow):
     return self.ApprovalUrnBuilder(self.client_id.Path(), self.token.username,
                                    self.args.reason)
 
+  def BuildApprovalSymlinksUrns(self):
+    """Builds list of symlinks URNs for the approval object."""
+    return [self.ApprovalSymlinkUrnBuilder(
+        "client", self.client_id.Basename(), self.token.username,
+        self.args.reason)]
+
   def BuildSubjectTitle(self):
     """Returns the string with subject's title."""
     client = aff4.FACTORY.Open(self.client_id, token=self.token)
@@ -701,6 +732,12 @@ class RequestHuntApprovalFlow(RequestApprovalWithReasonFlow):
     return self.ApprovalUrnBuilder(self.args.subject_urn.Path(),
                                    self.token.username, self.args.reason)
 
+  def BuildApprovalSymlinksUrns(self):
+    """Builds list of symlinks URNs for the approval object."""
+    return [self.ApprovalSymlinkUrnBuilder(
+        "hunt", self.args.subject_urn.Basename(),
+        self.token.username, self.args.reason)]
+
   def BuildSubjectTitle(self):
     """Returns the string with subject's title."""
     return u"hunt %s" % self.args.subject_urn.Basename()
@@ -755,6 +792,12 @@ class RequestCronJobApprovalFlow(RequestApprovalWithReasonFlow):
 
     return self.ApprovalUrnBuilder(self.args.subject_urn.Path(),
                                    self.token.username, self.args.reason)
+
+  def BuildApprovalSymlinksUrns(self):
+    """Builds list of symlinks URNs for the approval object."""
+    return [self.ApprovalSymlinkUrnBuilder(
+        "cron", self.args.subject_urn.Basename(),
+        self.token.username, self.args.reason)]
 
   def BuildSubjectTitle(self):
     """Returns the string with subject's title."""

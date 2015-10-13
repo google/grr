@@ -5,6 +5,7 @@
 
 import codecs
 import datetime
+import email
 import functools
 import itertools
 import os
@@ -353,7 +354,20 @@ class GRRBaseTest(unittest.TestCase):
     aff4_grr.GRRAFF4Init().Run()
     filestore.FileStoreInit().Run()
 
+    # Stub out the email function
+    self.emails_sent = []
+
+    def SendEmailStub(from_user, to_user, subject, message, **unused_kwargs):
+      self.emails_sent.append((from_user, to_user, subject, message))
+
+    self.mail_stubber = utils.MultiStubber(
+        (email_alerts.EMAIL_ALERTER, "SendEmail", SendEmailStub),
+        (email.utils, "make_msgid", lambda: "<message id stub>"))
+    self.mail_stubber.Start()
+
   def tearDown(self):
+    self.mail_stubber.Stop()
+
     logging.info("Completed test: %s.%s (%.4fs)",
                  self.__class__.__name__, self._testMethodName,
                  time.time() - self.last_start_time)
@@ -998,23 +1012,12 @@ class GRRSeleniumTest(GRRBaseTest):
     self.acl_manager = ACLChecksEnabledContextManager()
     self.acl_manager.Start()
 
-    # Stub out the email function
-    self.emails_sent = []
-
-    def SendEmailStub(from_user, to_user, subject, message, **unused_kwargs):
-      self.emails_sent.append((from_user, to_user, subject, message))
-
-    self.mail_stubber = utils.Stubber(
-        email_alerts.EMAIL_ALERTER, "SendEmail", SendEmailStub)
-    self.mail_stubber.Start()
-
   def UninstallACLChecks(self):
     """Deinstall previously installed ACL checks."""
     if not self.acl_manager:
       return
 
     self.acl_manager.Stop()
-    self.mail_stubber.Stop()
     self.acl_manager = None
 
   def ACLChecksDisabled(self):

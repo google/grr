@@ -1671,6 +1671,31 @@ class AFF4SymlinkTest(test_lib.AFF4ObjectTest):
       else:
         raise ValueError("Unexpected URN: %s" % fd.urn)
 
+  def testMultiOpenMixedObjectWithCheckedAff4Type(self):
+    fd, _ = self.CreateAndOpenObjectAndSymlink()
+
+    fd_urn2 = rdfvalue.RDFURN("aff4:/C.0000000000000002")
+    fd = aff4.FACTORY.Create(fd_urn2, "AFF4Image",
+                             token=self.token)
+    fd.Close()
+
+    # AFF4Image object should be ignored due to aff4_type check.
+    # At the same, type check shouldn't filter out the symlink,
+    # but should check the symlinked object.
+    fds = list(aff4.FACTORY.MultiOpen([self.symlink_source_urn, fd_urn2],
+                                      aff4_type="AFF4SymlinkTestSubject",
+                                      token=self.token))
+    self.assertEqual(len(fds), 1)
+    self.assertTrue(isinstance(fds[0], AFF4SymlinkTestSubject))
+
+    # AFF4Image should be returned, but symlinked AFF4SymlinkTestSubject should
+    # get filtered out due to aff4_type restriction.
+    fds = list(aff4.FACTORY.MultiOpen([self.symlink_source_urn, fd_urn2],
+                                      aff4_type="AFF4Image",
+                                      token=self.token))
+    self.assertEqual(len(fds), 1)
+    self.assertTrue(isinstance(fds[0], aff4.AFF4Image))
+
   def testOpenedSymlinkAFF4AttributesAreEqualToTarget(self):
     fd, symlink_obj = self.CreateAndOpenObjectAndSymlink()
 
