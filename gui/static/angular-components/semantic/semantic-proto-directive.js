@@ -1,9 +1,129 @@
 'use strict';
 
+goog.provide('grrUi.semantic.semanticProtoDirective.SemanticProtoController');
 goog.provide('grrUi.semantic.semanticProtoDirective.SemanticProtoDirective');
+goog.provide('grrUi.semantic.semanticProtoDirective.buildItems');
+goog.provide('grrUi.semantic.semanticProtoDirective.buildUnionItems');
+goog.provide('grrUi.semantic.semanticProtoDirective.getUnionFieldValue');
 
 goog.scope(function() {
 
+
+/**
+ * Returns value of a union type field in a union structure.
+ *
+ * @param {!Object} value Value to be converted to an array of items.
+ * @param {!Object} descriptor Descriptor of the value.
+ * @return {string} Union field value.
+ * @throws {Error} when value and descriptor do not correspond to a union-type
+ *     structure or when value of the union type field can't be determined
+ *     (the latter shouldn't happen and means either a logic bug or a broken
+ *     data structure).
+ * @export
+ */
+grrUi.semantic.semanticProtoDirective.getUnionFieldValue = function(
+    value, descriptor) {
+  var unionFieldName = descriptor['union_field'];
+  if (angular.isUndefined(unionFieldName)) {
+    throw new Error('Not a union-type structure.');
+  }
+
+  if (angular.isDefined(value['value'][unionFieldName])) {
+      return value['value'][unionFieldName]['value'].toLowerCase();
+  } else {
+    var fieldsLength = descriptor['fields'].length;
+    for (var i = 0; i < fieldsLength; ++i) {
+      var field = descriptor['fields'][i];
+      if (field['name'] == unionFieldName) {
+        return field['default']['value'].toLowerCase();
+      }
+    }
+  }
+
+  throw new Error('Can\'t determine value of the union field.');
+};
+var getUnionFieldValue =
+    grrUi.semantic.semanticProtoDirective.getUnionFieldValue;
+
+
+/**
+ * Builds a list of items to display for union-type structures. These
+ * structures have a field that determines which of its nested structures
+ * should be used.
+ *
+ * @param {!Object} value Value to be converted to an array of items.
+ * @param {!Object} descriptor Descriptor of the value to be converted to an
+ *     array of items. Expected to have 'fields' attribute with list of fields
+ *     descriptors.
+ * @return {Array.<Object>} List of items to display. It will *always* have
+ *     *only* union type field and a field that union type field value points
+ *     to.
+ * @export
+ */
+grrUi.semantic.semanticProtoDirective.buildUnionItems = function(
+    value, descriptor) {
+  var items = [];
+
+  var unionFieldName = descriptor['union_field'];
+  var unionFieldValue = getUnionFieldValue(value, descriptor);
+
+  var fieldsLength = descriptor['fields'].length;
+  for (var i = 0; i < fieldsLength; ++i) {
+    var field = descriptor['fields'][i];
+    var key = field['name'];
+    if (key !== unionFieldName && key !== unionFieldValue) {
+      continue;
+    }
+    var keyValue = value.value[key];
+    if (angular.isUndefined(keyValue)) {
+      keyValue = field['default'];
+    }
+
+    items.push({
+      'value': keyValue,
+      'key': field['friendly_name'] || field['name'],
+      'desc': field['doc']
+    });
+  }
+
+  return items;
+};
+var buildUnionItems = grrUi.semantic.semanticProtoDirective.buildUnionItems;
+
+
+/**
+ * Builds a list of items to display from the given value. If value
+ * has type descriptors, friendly names will be used as keys and
+ * description will be filled in.
+ *
+ * @param {!Object} value Value to be converted to an array of items.
+ * @param {!Object} descriptor Descriptor of the value to be converted to an
+ *     array of items. Expected to have 'fields' attribute with list of fields
+ *     descriptors.
+ * @return {Array.<Object>} List of items to display.
+ * @export
+ */
+grrUi.semantic.semanticProtoDirective.buildItems = function(value, descriptor) {
+  var items = [];
+
+  var fieldsLength = descriptor['fields'].length;
+  for (var i = 0; i < fieldsLength; ++i) {
+    var field = descriptor['fields'][i];
+    var key = field['name'];
+    var keyValue = value.value[key];
+
+    if (angular.isDefined(keyValue)) {
+      items.push({
+        'value': keyValue,
+        'key': field['friendly_name'] || field['name'],
+        'desc': field['doc']
+      });
+    }
+  }
+
+  return items;
+};
+var buildItems = grrUi.semantic.semanticProtoDirective.buildItems;
 
 
 /**
@@ -21,9 +141,6 @@ var SemanticProtoController = function($scope, grrReflectionService) {
   /** @private {!grrUi.core.reflectionService.ReflectionService} */
   this.grrReflectionService_ = grrReflectionService;
 
-  /** @type {Object} */
-  this.scope_.value;
-
   /** @export {Array.<Object>} */
   this.items = [];
 
@@ -37,54 +154,21 @@ var SemanticProtoController = function($scope, grrReflectionService) {
  * @export
  */
 SemanticProtoController.prototype.onValueChange = function() {
-  if (angular.isObject(this.scope_.value)) {
-    var valueType = this.scope_.value['type'];
+  if (angular.isObject(this.scope_['value'])) {
+    var valueType = this.scope_['value']['type'];
     this.grrReflectionService_.getRDFValueDescriptor(valueType).then(
         function success(descriptor) {
-          this.items = this.buildItems(this.scope_.value, descriptor);
+          if (angular.isDefined(descriptor['union_field'])) {
+            this.items = buildUnionItems(this.scope_['value'], descriptor);
+          } else {
+            this.items = buildItems(this.scope_['value'], descriptor);
+          }
         }.bind(this)); // TODO(user): Reflection failure scenario should be
                        // handled globally by reflection service.
   } else {
     this.items = [];
   }
 };
-
-
-/**
- * Builds a list of items to display from the given value. If value
- * has type descriptors, friendly names will be used as keys and
- * description will be filled in.
- *
- * @param {!Object} value Value to be converted to an array of items.
- * @param {!Object} descriptor Descriptor of the value to be converted to an
- *     array of items. Expected to have 'fields' attribute with list of fields
- *     descriptors.
- * @return {Array.<Object>} List of items to display.
- * @export
- * @suppress {missingProperties} as value can have arbitrary data.
- */
-SemanticProtoController.prototype.buildItems = function(value, descriptor) {
-  var items = [];
-
-  var fieldsLength = descriptor.fields.length;
-  for (var i = 0; i < fieldsLength; ++i) {
-    var field = descriptor.fields[i];
-    var key = field['name'];
-    var keyValue = value.value[key];
-
-    if (angular.isDefined(keyValue)) {
-      items.push({
-        'value': keyValue,
-        'key': field['friendly_name'] || field['name'],
-        'desc': field['doc']
-      });
-    }
-  }
-
-  return items;
-};
-
-
 
 /**
  * Directive that displays semantic proto fetched from the server.

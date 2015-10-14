@@ -32,7 +32,7 @@ describe('flow results directive', function() {
   it('delegates rendering to grr-results-collection directive', function() {
     var element = renderTestTemplate('aff4:/C.0000111122223333/flows/F:1234');
     var directive = element.find('grr-results-collection:nth(0)');
-    expect(directive).toBeDefined();
+    expect(directive.length).toBe(1);
   });
 
   it('handles flow urn starting with aff4', function() {

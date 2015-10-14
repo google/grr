@@ -273,7 +273,8 @@ class ApiFlowArchiveFilesRendererRegressionTest(
                                        token=self.token)
 
       result = {}
-      for index, flow_urn in enumerate(flows_dir_fd.ListChildren()):
+      children = sorted(flows_dir_fd.ListChildren(), key=lambda x: x.age)
+      for index, flow_urn in enumerate(children):
         result[flow_urn.Basename()] = "W:ABCDE%d" % index
 
       return result

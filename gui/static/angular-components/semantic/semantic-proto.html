@@ -6,10 +6,7 @@
       </td>
       <td class="proto_key" ng-if="::item.desc === undefined">{$ ::item.key $}</td>
 
-      <td ng-if="::item.fetch_more_url !== undefined" class="proto_value">
-        List was truncated. More data actually available...
-      </td>
-      <td ng-if="::item.fetch_more_url === undefined" class="proto_value">
+      <td class="proto_value">
         <grr-semantic-value ng-if="::item.value !== undefined" value="::item.value" />
       </td>
     </tr>

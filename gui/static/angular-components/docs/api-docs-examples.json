@@ -6692,222 +6692,40 @@
             "attributes": {
               "aff4:approval/approver": [
                 {
-                  "age": 42,
-                  "type": "RDFString",
-                  "value": "test"
-                }
-              ],
-              "aff4:approval/email_cc": [
-                {
-                  "age": 42,
-                  "type": "RDFString",
-                  "value": "approver"
-                }
-              ],
-              "aff4:approval/email_msg_id": [
-                {
-                  "age": 42,
-                  "type": "RDFString",
-                  "value": "<message id stub>"
-                }
-              ],
-              "aff4:approval/requestor": [
-                {
-                  "age": 42,
-                  "type": "RDFString",
-                  "value": "test"
-                }
-              ],
-              "aff4:approval/subject": [
-                {
-                  "age": 42,
-                  "type": "RDFURN",
-                  "value": "aff4:/C.1000000000000000"
-                }
-              ],
-              "aff4:type": [
-                {
-                  "age": 42,
-                  "type": "RDFString",
-                  "value": "ClientApproval"
-                }
-              ],
-              "aff4:approval/reason": [
-                {
-                  "age": 42,
-                  "type": "RDFString",
-                  "value": "Running tests"
-                }
-              ],
-              "metadata:last": [
-                {
-                  "age": 42,
-                  "type": "RDFDatetime",
-                  "value": 42000000
-                }
-              ]
-            },
-            "is_valid": false,
-            "is_valid_message": "Requires 2 approvers for access.",
-            "subject": {
-              "aff4_class": "VFSGRRClient",
-              "age_policy": "NEWEST_TIME",
-              "attributes": {
-                "aff4:host_ips": {
-                  "age": 42,
-                  "type": "RDFString",
-                  "value": "192.168.0.0\n2001:abcd::0"
-                },
-                "aff4:mac_addresses": {
-                  "age": 42,
-                  "type": "RDFString",
-                  "value": "aabbccddee00\nbbccddeeff00"
-                },
-                "aff4:type": {
-                  "age": 42,
-                  "type": "RDFString",
-                  "value": "VFSGRRClient"
-                },
-                "metadata:ClientInfo": {
-                  "age": 42,
-                  "type": "ClientInformation",
-                  "value": {
-                    "client_name": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "GRR Monitor"
-                    }
-                  }
-                },
-                "metadata:cert": {
-                  "age": 42,
-                  "type": "RDFX509Cert",
-                  "value": "-----BEGIN CERTIFICATE-----\nMIIDXjCCAUagAwIBAgIJANdK3LO+9qOIMA0GCSqGSIb3DQEBCwUAMD4xCzAJBgNV\nBAYTAlVTMQwwCgYDVQQIEwNDQUwxCzAJBgNVBAcTAlNGMRQwEgYDVQQDEwtHUlIg\nVGVzdCBDQTAeFw03MDAxMDEwMDAwMzJaFw03MTAxMDEwMDAwMzJaMCMxITAfBgNV\nBAMMGGFmZjQ6L0MuZDc0YWRjYjNiZWY2YTM4ODCBnzANBgkqhkiG9w0BAQEFAAOB\njQAwgYkCgYEAx2As3HK8OdCy6qmyCjFwOSw7RKRNvDg3Tu1T0uoBKxdXcnNSwCDe\nPBTG4eUnVoQiB2b4BNJz4yL3Ji51hmicAIYDDHh871vZffqAUQ4ubDzNkWMlFWpt\nPpnGiFQWZpF54uBXHnpTbgKIOpv6EGNIi0NfWgZCDyUIetk4FDU8UusCAwEAATAN\nBgkqhkiG9w0BAQsFAAOCAgEANqvg0Wm6+Hz5aCsuKG2MPEDL2c8aOtbFWoeiJGBJ\nyAD6yRcC7R5JnuC2cuenHVK6ZZ0XQWZy7UUF+JuS1N9J9AnEAWyRHVfHe9to4O4Z\n6e35XnsEgLxL4W7hiOhSt4FGMa+yZ2v41lHfRmJFv46N6EKhQ2UzceOf3Kghaf5+\nfw3VClstl5/j8epuV9rfqQJpgFibQsx/CoyLj2dMJbjuP7yEfZL3JL2/TwlbFnYc\nkZNNRGMpYSLbXe36xAdxoPCoGWFrA5p4hQLDaS6FyX+QS50ohw0JrmPmH2lO8QZ3\naRQt2Bv5S98fLhGexZzlD7WyjZy70uXTCCH0QpcwUyUgAzxyajKgZ5/YdpQ4J2qt\nYD148VOIXQALaCqUN7iXtHCSHWC/JtU9COnEOm+KPeH7wL5zTg6c5SBV9H43x92c\n6lOUkUemcRp02olmzSn4NoN3xSDphsVtjzK2qjlANIsMEkvZNPNYSgN9ZIgvGZfF\nFfuQuAzJNynnD7nt28yMGzs/7R6HzskV+iALBO1KzIhOl6AJc+rsQD+A7+SxzHER\n07iaRggwWoTCdixZxyyBVI6Y0dxmyt3s0CvKTXpnCJefndgCFIexY/X2Ao7pp+BZ\nk/YyvzIfn9L47qik3P+o7fXwif6avONFp0OEO2jpjDh8EGvTKigm2sTxUreEoVN6\nxzI=\n-----END CERTIFICATE-----\n"
-                },
-                "metadata:fqdn": {
-                  "age": 42,
-                  "type": "RDFString",
-                  "value": "Host-0.example.com"
-                },
-                "metadata:hostname": {
-                  "age": 42,
-                  "type": "RDFString",
-                  "value": "Host-0"
-                },
-                "metadata:last": {
-                  "age": 42,
-                  "type": "RDFDatetime",
-                  "value": 42000000
-                },
-                "metadata:ping": {
-                  "age": 0,
-                  "type": "RDFDatetime",
-                  "value": 42000000
-                }
-              },
-              "disk_warnings": [],
-              "summary": {
-                "age": 0,
-                "type": "ClientSummary",
-                "value": {
-                  "client_id": {
-                    "age": 0,
-                    "type": "ClientURN",
-                    "value": "aff4:/C.1000000000000000"
-                  },
-                  "client_info": {
-                    "age": 42,
-                    "type": "ClientInformation",
-                    "value": {
-                      "client_name": {
-                        "age": 0,
-                        "type": "unicode",
-                        "value": "GRR Monitor"
-                      }
-                    }
-                  },
-                  "serial_number": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": ""
-                  },
-                  "system_info": {
-                    "age": 0,
-                    "type": "Uname",
-                    "value": {
-                      "fqdn": {
-                        "age": 0,
-                        "type": "unicode",
-                        "value": "Host-0.example.com"
-                      },
-                      "node": {
-                        "age": 0,
-                        "type": "unicode",
-                        "value": "Host-0"
-                      },
-                      "version": {
-                        "age": 0,
-                        "type": "unicode",
-                        "value": ""
-                      }
-                    }
-                  },
-                  "system_manufacturer": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": ""
-                  },
-                  "timestamp": {
-                    "age": 0,
-                    "type": "RDFDatetime",
-                    "value": 42000000
-                  }
-                }
-              },
-              "urn": "aff4:/C.1000000000000000"
-            },
-            "urn": "aff4:/ACL/C.1000000000000000/test/UnVubmluZyB0ZXN0cw=="
-          },
-          {
-            "aff4_class": "ClientApproval",
-            "age_policy": "ALL_TIMES",
-            "attributes": {
-              "aff4:approval/approver": [
-                {
                   "age": 84,
                   "type": "RDFString",
                   "value": "approver"
                 },
                 {
-                  "age": 42,
+                  "age": 45,
                   "type": "RDFString",
                   "value": "test"
                 }
               ],
               "aff4:approval/email_cc": [
                 {
-                  "age": 42,
+                  "age": 45,
                   "type": "RDFString",
                   "value": "approver"
                 }
               ],
               "aff4:approval/email_msg_id": [
                 {
-                  "age": 42,
+                  "age": 45,
                   "type": "RDFString",
                   "value": "<message id stub>"
                 }
               ],
               "aff4:approval/requestor": [
                 {
-                  "age": 42,
+                  "age": 45,
                   "type": "RDFString",
                   "value": "test"
                 }
               ],
               "aff4:approval/subject": [
                 {
-                  "age": 42,
+                  "age": 45,
                   "type": "RDFURN",
                   "value": "aff4:/C.1000000000000001"
                 }
@@ -6919,14 +6737,14 @@
                   "value": "ClientApproval"
                 },
                 {
-                  "age": 42,
+                  "age": 45,
                   "type": "RDFString",
                   "value": "ClientApproval"
                 }
               ],
               "aff4:approval/reason": [
                 {
-                  "age": 42,
+                  "age": 45,
                   "type": "RDFString",
                   "value": "Running tests"
                 }
@@ -6986,9 +6804,9 @@
                   "value": "Host-1"
                 },
                 "metadata:last": {
-                  "age": 42,
+                  "age": 45,
                   "type": "RDFDatetime",
-                  "value": 42000000
+                  "value": 45000000
                 },
                 "metadata:ping": {
                   "age": 0,
@@ -7058,41 +6876,66 @@
               "urn": "aff4:/C.1000000000000001"
             },
             "urn": "aff4:/ACL/C.1000000000000001/test/UnVubmluZyB0ZXN0cw=="
-          }
-        ],
-        "offset": 0
-      },
-      "test_class": "ApiUserApprovalsListRendererRegressionTest",
-      "type_stripped_response": {
-        "count": 2,
-        "items": [
+          },
           {
             "aff4_class": "ClientApproval",
             "age_policy": "ALL_TIMES",
             "attributes": {
               "aff4:approval/approver": [
-                "test"
+                {
+                  "age": 44,
+                  "type": "RDFString",
+                  "value": "test"
+                }
               ],
               "aff4:approval/email_cc": [
-                "approver"
+                {
+                  "age": 44,
+                  "type": "RDFString",
+                  "value": "approver"
+                }
               ],
               "aff4:approval/email_msg_id": [
-                "<message id stub>"
+                {
+                  "age": 44,
+                  "type": "RDFString",
+                  "value": "<message id stub>"
+                }
               ],
               "aff4:approval/requestor": [
-                "test"
+                {
+                  "age": 44,
+                  "type": "RDFString",
+                  "value": "test"
+                }
               ],
               "aff4:approval/subject": [
-                "aff4:/C.1000000000000000"
+                {
+                  "age": 44,
+                  "type": "RDFURN",
+                  "value": "aff4:/C.1000000000000000"
+                }
               ],
               "aff4:type": [
-                "ClientApproval"
+                {
+                  "age": 44,
+                  "type": "RDFString",
+                  "value": "ClientApproval"
+                }
               ],
               "aff4:approval/reason": [
-                "Running tests"
+                {
+                  "age": 44,
+                  "type": "RDFString",
+                  "value": "Running tests"
+                }
               ],
               "metadata:last": [
-                42000000
+                {
+                  "age": 44,
+                  "type": "RDFDatetime",
+                  "value": 44000000
+                }
               ]
             },
             "is_valid": false,
@@ -7101,37 +6944,128 @@
               "aff4_class": "VFSGRRClient",
               "age_policy": "NEWEST_TIME",
               "attributes": {
-                "aff4:host_ips": "192.168.0.0\n2001:abcd::0",
-                "aff4:mac_addresses": "aabbccddee00\nbbccddeeff00",
-                "aff4:type": "VFSGRRClient",
-                "metadata:ClientInfo": {
-                  "client_name": "GRR Monitor"
+                "aff4:host_ips": {
+                  "age": 42,
+                  "type": "RDFString",
+                  "value": "192.168.0.0\n2001:abcd::0"
                 },
-                "metadata:cert": "-----BEGIN CERTIFICATE-----\nMIIDXjCCAUagAwIBAgIJANdK3LO+9qOIMA0GCSqGSIb3DQEBCwUAMD4xCzAJBgNV\nBAYTAlVTMQwwCgYDVQQIEwNDQUwxCzAJBgNVBAcTAlNGMRQwEgYDVQQDEwtHUlIg\nVGVzdCBDQTAeFw03MDAxMDEwMDAwMzJaFw03MTAxMDEwMDAwMzJaMCMxITAfBgNV\nBAMMGGFmZjQ6L0MuZDc0YWRjYjNiZWY2YTM4ODCBnzANBgkqhkiG9w0BAQEFAAOB\njQAwgYkCgYEAx2As3HK8OdCy6qmyCjFwOSw7RKRNvDg3Tu1T0uoBKxdXcnNSwCDe\nPBTG4eUnVoQiB2b4BNJz4yL3Ji51hmicAIYDDHh871vZffqAUQ4ubDzNkWMlFWpt\nPpnGiFQWZpF54uBXHnpTbgKIOpv6EGNIi0NfWgZCDyUIetk4FDU8UusCAwEAATAN\nBgkqhkiG9w0BAQsFAAOCAgEANqvg0Wm6+Hz5aCsuKG2MPEDL2c8aOtbFWoeiJGBJ\nyAD6yRcC7R5JnuC2cuenHVK6ZZ0XQWZy7UUF+JuS1N9J9AnEAWyRHVfHe9to4O4Z\n6e35XnsEgLxL4W7hiOhSt4FGMa+yZ2v41lHfRmJFv46N6EKhQ2UzceOf3Kghaf5+\nfw3VClstl5/j8epuV9rfqQJpgFibQsx/CoyLj2dMJbjuP7yEfZL3JL2/TwlbFnYc\nkZNNRGMpYSLbXe36xAdxoPCoGWFrA5p4hQLDaS6FyX+QS50ohw0JrmPmH2lO8QZ3\naRQt2Bv5S98fLhGexZzlD7WyjZy70uXTCCH0QpcwUyUgAzxyajKgZ5/YdpQ4J2qt\nYD148VOIXQALaCqUN7iXtHCSHWC/JtU9COnEOm+KPeH7wL5zTg6c5SBV9H43x92c\n6lOUkUemcRp02olmzSn4NoN3xSDphsVtjzK2qjlANIsMEkvZNPNYSgN9ZIgvGZfF\nFfuQuAzJNynnD7nt28yMGzs/7R6HzskV+iALBO1KzIhOl6AJc+rsQD+A7+SxzHER\n07iaRggwWoTCdixZxyyBVI6Y0dxmyt3s0CvKTXpnCJefndgCFIexY/X2Ao7pp+BZ\nk/YyvzIfn9L47qik3P+o7fXwif6avONFp0OEO2jpjDh8EGvTKigm2sTxUreEoVN6\nxzI=\n-----END CERTIFICATE-----\n",
-                "metadata:fqdn": "Host-0.example.com",
-                "metadata:hostname": "Host-0",
-                "metadata:last": 42000000,
-                "metadata:ping": 42000000
+                "aff4:mac_addresses": {
+                  "age": 42,
+                  "type": "RDFString",
+                  "value": "aabbccddee00\nbbccddeeff00"
+                },
+                "aff4:type": {
+                  "age": 42,
+                  "type": "RDFString",
+                  "value": "VFSGRRClient"
+                },
+                "metadata:ClientInfo": {
+                  "age": 42,
+                  "type": "ClientInformation",
+                  "value": {
+                    "client_name": {
+                      "age": 0,
+                      "type": "unicode",
+                      "value": "GRR Monitor"
+                    }
+                  }
+                },
+                "metadata:cert": {
+                  "age": 42,
+                  "type": "RDFX509Cert",
+                  "value": "-----BEGIN CERTIFICATE-----\nMIIDXjCCAUagAwIBAgIJANdK3LO+9qOIMA0GCSqGSIb3DQEBCwUAMD4xCzAJBgNV\nBAYTAlVTMQwwCgYDVQQIEwNDQUwxCzAJBgNVBAcTAlNGMRQwEgYDVQQDEwtHUlIg\nVGVzdCBDQTAeFw03MDAxMDEwMDAwMzJaFw03MTAxMDEwMDAwMzJaMCMxITAfBgNV\nBAMMGGFmZjQ6L0MuZDc0YWRjYjNiZWY2YTM4ODCBnzANBgkqhkiG9w0BAQEFAAOB\njQAwgYkCgYEAx2As3HK8OdCy6qmyCjFwOSw7RKRNvDg3Tu1T0uoBKxdXcnNSwCDe\nPBTG4eUnVoQiB2b4BNJz4yL3Ji51hmicAIYDDHh871vZffqAUQ4ubDzNkWMlFWpt\nPpnGiFQWZpF54uBXHnpTbgKIOpv6EGNIi0NfWgZCDyUIetk4FDU8UusCAwEAATAN\nBgkqhkiG9w0BAQsFAAOCAgEANqvg0Wm6+Hz5aCsuKG2MPEDL2c8aOtbFWoeiJGBJ\nyAD6yRcC7R5JnuC2cuenHVK6ZZ0XQWZy7UUF+JuS1N9J9AnEAWyRHVfHe9to4O4Z\n6e35XnsEgLxL4W7hiOhSt4FGMa+yZ2v41lHfRmJFv46N6EKhQ2UzceOf3Kghaf5+\nfw3VClstl5/j8epuV9rfqQJpgFibQsx/CoyLj2dMJbjuP7yEfZL3JL2/TwlbFnYc\nkZNNRGMpYSLbXe36xAdxoPCoGWFrA5p4hQLDaS6FyX+QS50ohw0JrmPmH2lO8QZ3\naRQt2Bv5S98fLhGexZzlD7WyjZy70uXTCCH0QpcwUyUgAzxyajKgZ5/YdpQ4J2qt\nYD148VOIXQALaCqUN7iXtHCSHWC/JtU9COnEOm+KPeH7wL5zTg6c5SBV9H43x92c\n6lOUkUemcRp02olmzSn4NoN3xSDphsVtjzK2qjlANIsMEkvZNPNYSgN9ZIgvGZfF\nFfuQuAzJNynnD7nt28yMGzs/7R6HzskV+iALBO1KzIhOl6AJc+rsQD+A7+SxzHER\n07iaRggwWoTCdixZxyyBVI6Y0dxmyt3s0CvKTXpnCJefndgCFIexY/X2Ao7pp+BZ\nk/YyvzIfn9L47qik3P+o7fXwif6avONFp0OEO2jpjDh8EGvTKigm2sTxUreEoVN6\nxzI=\n-----END CERTIFICATE-----\n"
+                },
+                "metadata:fqdn": {
+                  "age": 42,
+                  "type": "RDFString",
+                  "value": "Host-0.example.com"
+                },
+                "metadata:hostname": {
+                  "age": 42,
+                  "type": "RDFString",
+                  "value": "Host-0"
+                },
+                "metadata:last": {
+                  "age": 44,
+                  "type": "RDFDatetime",
+                  "value": 44000000
+                },
+                "metadata:ping": {
+                  "age": 0,
+                  "type": "RDFDatetime",
+                  "value": 42000000
+                }
               },
               "disk_warnings": [],
               "summary": {
-                "client_id": "aff4:/C.1000000000000000",
-                "client_info": {
-                  "client_name": "GRR Monitor"
-                },
-                "serial_number": "",
-                "system_info": {
-                  "fqdn": "Host-0.example.com",
-                  "node": "Host-0",
-                  "version": ""
-                },
-                "system_manufacturer": "",
-                "timestamp": 42000000
+                "age": 0,
+                "type": "ClientSummary",
+                "value": {
+                  "client_id": {
+                    "age": 0,
+                    "type": "ClientURN",
+                    "value": "aff4:/C.1000000000000000"
+                  },
+                  "client_info": {
+                    "age": 42,
+                    "type": "ClientInformation",
+                    "value": {
+                      "client_name": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "GRR Monitor"
+                      }
+                    }
+                  },
+                  "serial_number": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": ""
+                  },
+                  "system_info": {
+                    "age": 0,
+                    "type": "Uname",
+                    "value": {
+                      "fqdn": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "Host-0.example.com"
+                      },
+                      "node": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "Host-0"
+                      },
+                      "version": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": ""
+                      }
+                    }
+                  },
+                  "system_manufacturer": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": ""
+                  },
+                  "timestamp": {
+                    "age": 0,
+                    "type": "RDFDatetime",
+                    "value": 42000000
+                  }
+                }
               },
               "urn": "aff4:/C.1000000000000000"
             },
             "urn": "aff4:/ACL/C.1000000000000000/test/UnVubmluZyB0ZXN0cw=="
-          },
+          }
+        ],
+        "offset": 0
+      },
+      "test_class": "ApiUserApprovalsListRendererRegressionTest",
+      "type_stripped_response": {
+        "count": 2,
+        "items": [
           {
             "aff4_class": "ClientApproval",
             "age_policy": "ALL_TIMES",
@@ -7177,7 +7111,7 @@
                 "metadata:cert": "-----BEGIN CERTIFICATE-----\nMIIDXjCCAUagAwIBAgIJANdK3LO+9qOIMA0GCSqGSIb3DQEBCwUAMD4xCzAJBgNV\nBAYTAlVTMQwwCgYDVQQIEwNDQUwxCzAJBgNVBAcTAlNGMRQwEgYDVQQDEwtHUlIg\nVGVzdCBDQTAeFw03MDAxMDEwMDAwMzJaFw03MTAxMDEwMDAwMzJaMCMxITAfBgNV\nBAMMGGFmZjQ6L0MuZDc0YWRjYjNiZWY2YTM4ODCBnzANBgkqhkiG9w0BAQEFAAOB\njQAwgYkCgYEAx2As3HK8OdCy6qmyCjFwOSw7RKRNvDg3Tu1T0uoBKxdXcnNSwCDe\nPBTG4eUnVoQiB2b4BNJz4yL3Ji51hmicAIYDDHh871vZffqAUQ4ubDzNkWMlFWpt\nPpnGiFQWZpF54uBXHnpTbgKIOpv6EGNIi0NfWgZCDyUIetk4FDU8UusCAwEAATAN\nBgkqhkiG9w0BAQsFAAOCAgEANqvg0Wm6+Hz5aCsuKG2MPEDL2c8aOtbFWoeiJGBJ\nyAD6yRcC7R5JnuC2cuenHVK6ZZ0XQWZy7UUF+JuS1N9J9AnEAWyRHVfHe9to4O4Z\n6e35XnsEgLxL4W7hiOhSt4FGMa+yZ2v41lHfRmJFv46N6EKhQ2UzceOf3Kghaf5+\nfw3VClstl5/j8epuV9rfqQJpgFibQsx/CoyLj2dMJbjuP7yEfZL3JL2/TwlbFnYc\nkZNNRGMpYSLbXe36xAdxoPCoGWFrA5p4hQLDaS6FyX+QS50ohw0JrmPmH2lO8QZ3\naRQt2Bv5S98fLhGexZzlD7WyjZy70uXTCCH0QpcwUyUgAzxyajKgZ5/YdpQ4J2qt\nYD148VOIXQALaCqUN7iXtHCSHWC/JtU9COnEOm+KPeH7wL5zTg6c5SBV9H43x92c\n6lOUkUemcRp02olmzSn4NoN3xSDphsVtjzK2qjlANIsMEkvZNPNYSgN9ZIgvGZfF\nFfuQuAzJNynnD7nt28yMGzs/7R6HzskV+iALBO1KzIhOl6AJc+rsQD+A7+SxzHER\n07iaRggwWoTCdixZxyyBVI6Y0dxmyt3s0CvKTXpnCJefndgCFIexY/X2Ao7pp+BZ\nk/YyvzIfn9L47qik3P+o7fXwif6avONFp0OEO2jpjDh8EGvTKigm2sTxUreEoVN6\nxzI=\n-----END CERTIFICATE-----\n",
                 "metadata:fqdn": "Host-1.example.com",
                 "metadata:hostname": "Host-1",
-                "metadata:last": 42000000,
+                "metadata:last": 45000000,
                 "metadata:ping": 42000000
               },
               "disk_warnings": [],
@@ -7198,6 +7132,72 @@
               "urn": "aff4:/C.1000000000000001"
             },
             "urn": "aff4:/ACL/C.1000000000000001/test/UnVubmluZyB0ZXN0cw=="
+          },
+          {
+            "aff4_class": "ClientApproval",
+            "age_policy": "ALL_TIMES",
+            "attributes": {
+              "aff4:approval/approver": [
+                "test"
+              ],
+              "aff4:approval/email_cc": [
+                "approver"
+              ],
+              "aff4:approval/email_msg_id": [
+                "<message id stub>"
+              ],
+              "aff4:approval/requestor": [
+                "test"
+              ],
+              "aff4:approval/subject": [
+                "aff4:/C.1000000000000000"
+              ],
+              "aff4:type": [
+                "ClientApproval"
+              ],
+              "aff4:approval/reason": [
+                "Running tests"
+              ],
+              "metadata:last": [
+                44000000
+              ]
+            },
+            "is_valid": false,
+            "is_valid_message": "Requires 2 approvers for access.",
+            "subject": {
+              "aff4_class": "VFSGRRClient",
+              "age_policy": "NEWEST_TIME",
+              "attributes": {
+                "aff4:host_ips": "192.168.0.0\n2001:abcd::0",
+                "aff4:mac_addresses": "aabbccddee00\nbbccddeeff00",
+                "aff4:type": "VFSGRRClient",
+                "metadata:ClientInfo": {
+                  "client_name": "GRR Monitor"
+                },
+                "metadata:cert": "-----BEGIN CERTIFICATE-----\nMIIDXjCCAUagAwIBAgIJANdK3LO+9qOIMA0GCSqGSIb3DQEBCwUAMD4xCzAJBgNV\nBAYTAlVTMQwwCgYDVQQIEwNDQUwxCzAJBgNVBAcTAlNGMRQwEgYDVQQDEwtHUlIg\nVGVzdCBDQTAeFw03MDAxMDEwMDAwMzJaFw03MTAxMDEwMDAwMzJaMCMxITAfBgNV\nBAMMGGFmZjQ6L0MuZDc0YWRjYjNiZWY2YTM4ODCBnzANBgkqhkiG9w0BAQEFAAOB\njQAwgYkCgYEAx2As3HK8OdCy6qmyCjFwOSw7RKRNvDg3Tu1T0uoBKxdXcnNSwCDe\nPBTG4eUnVoQiB2b4BNJz4yL3Ji51hmicAIYDDHh871vZffqAUQ4ubDzNkWMlFWpt\nPpnGiFQWZpF54uBXHnpTbgKIOpv6EGNIi0NfWgZCDyUIetk4FDU8UusCAwEAATAN\nBgkqhkiG9w0BAQsFAAOCAgEANqvg0Wm6+Hz5aCsuKG2MPEDL2c8aOtbFWoeiJGBJ\nyAD6yRcC7R5JnuC2cuenHVK6ZZ0XQWZy7UUF+JuS1N9J9AnEAWyRHVfHe9to4O4Z\n6e35XnsEgLxL4W7hiOhSt4FGMa+yZ2v41lHfRmJFv46N6EKhQ2UzceOf3Kghaf5+\nfw3VClstl5/j8epuV9rfqQJpgFibQsx/CoyLj2dMJbjuP7yEfZL3JL2/TwlbFnYc\nkZNNRGMpYSLbXe36xAdxoPCoGWFrA5p4hQLDaS6FyX+QS50ohw0JrmPmH2lO8QZ3\naRQt2Bv5S98fLhGexZzlD7WyjZy70uXTCCH0QpcwUyUgAzxyajKgZ5/YdpQ4J2qt\nYD148VOIXQALaCqUN7iXtHCSHWC/JtU9COnEOm+KPeH7wL5zTg6c5SBV9H43x92c\n6lOUkUemcRp02olmzSn4NoN3xSDphsVtjzK2qjlANIsMEkvZNPNYSgN9ZIgvGZfF\nFfuQuAzJNynnD7nt28yMGzs/7R6HzskV+iALBO1KzIhOl6AJc+rsQD+A7+SxzHER\n07iaRggwWoTCdixZxyyBVI6Y0dxmyt3s0CvKTXpnCJefndgCFIexY/X2Ao7pp+BZ\nk/YyvzIfn9L47qik3P+o7fXwif6avONFp0OEO2jpjDh8EGvTKigm2sTxUreEoVN6\nxzI=\n-----END CERTIFICATE-----\n",
+                "metadata:fqdn": "Host-0.example.com",
+                "metadata:hostname": "Host-0",
+                "metadata:last": 44000000,
+                "metadata:ping": 42000000
+              },
+              "disk_warnings": [],
+              "summary": {
+                "client_id": "aff4:/C.1000000000000000",
+                "client_info": {
+                  "client_name": "GRR Monitor"
+                },
+                "serial_number": "",
+                "system_info": {
+                  "fqdn": "Host-0.example.com",
+                  "node": "Host-0",
+                  "version": ""
+                },
+                "system_manufacturer": "",
+                "timestamp": 42000000
+              },
+              "urn": "aff4:/C.1000000000000000"
+            },
+            "urn": "aff4:/ACL/C.1000000000000000/test/UnVubmluZyB0ZXN0cw=="
           }
         ],
         "offset": 0
@@ -7215,58 +7215,58 @@
             "attributes": {
               "aff4:approval/approver": [
                 {
-                  "age": 42,
+                  "age": 43,
                   "type": "RDFString",
                   "value": "test"
                 }
               ],
               "aff4:approval/email_cc": [
                 {
-                  "age": 42,
+                  "age": 43,
                   "type": "RDFString",
                   "value": "approver"
                 }
               ],
               "aff4:approval/email_msg_id": [
                 {
-                  "age": 42,
+                  "age": 43,
                   "type": "RDFString",
                   "value": "<message id stub>"
                 }
               ],
               "aff4:approval/requestor": [
                 {
-                  "age": 42,
+                  "age": 43,
                   "type": "RDFString",
                   "value": "test"
                 }
               ],
               "aff4:approval/subject": [
                 {
-                  "age": 42,
+                  "age": 43,
                   "type": "RDFURN",
                   "value": "aff4:/hunts/H:123456"
                 }
               ],
               "aff4:type": [
                 {
-                  "age": 42,
+                  "age": 43,
                   "type": "RDFString",
                   "value": "HuntApproval"
                 }
               ],
               "aff4:approval/reason": [
                 {
-                  "age": 42,
+                  "age": 43,
                   "type": "RDFString",
                   "value": "Running tests"
                 }
               ],
               "metadata:last": [
                 {
-                  "age": 42,
+                  "age": 43,
                   "type": "RDFDatetime",
-                  "value": 42000000
+                  "value": 43000000
                 }
               ]
             },
@@ -8208,7 +8208,7 @@
                 "Running tests"
               ],
               "metadata:last": [
-                42000000
+                43000000
               ]
             },
             "is_valid": false,

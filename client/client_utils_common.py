@@ -164,6 +164,7 @@ def IsExecutionWhitelisted(cmd, args):
         ("/usr/bin/who", []),
         ("/usr/bin/last", []),
         ("/usr/sbin/kextstat", []),
+        ("/usr/bin/hdiutil", ["info"]),
     ]
   else:
     whitelist = []

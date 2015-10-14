@@ -93,17 +93,22 @@ class ApiUserApprovalsListRendererRegressionTest(
       hunt = hunts.GRRHunt.StartHunt(
           hunt_name="GenericHunt", token=self.token)
 
+    with test_lib.FakeTime(43):
       flow.GRRFlow.StartFlow(flow_name="RequestHuntApprovalFlow",
                              reason=self.token.reason,
                              subject_urn=hunt.urn,
                              approver="approver",
                              token=self.token)
+
+    with test_lib.FakeTime(44):
       flow.GRRFlow.StartFlow(client_id=clients[0],
                              flow_name="RequestClientApprovalFlow",
                              reason=self.token.reason,
                              subject_urn=clients[0],
                              approver="approver",
                              token=self.token)
+
+    with test_lib.FakeTime(45):
       flow.GRRFlow.StartFlow(client_id=clients[1],
                              flow_name="RequestClientApprovalFlow",
                              reason=self.token.reason,
