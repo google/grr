@@ -170,7 +170,9 @@ run_cmd_confirm python get-pip.py
 run_cmd_confirm pip install pip --upgrade
 
 header "Installing python dependencies"
-run_cmd_confirm wget --quiet https://raw.githubusercontent.com/google/grr/93cd1fd0cd1ca05e526af86ef33a996216273c8e/requirements.txt
+# Pin requirements.txt back to a specific commit once we have a working
+# requirements.txt committed to opensource
+run_cmd_confirm wget --quiet https://raw.githubusercontent.com/google/grr/master/requirements.txt
 run_cmd_confirm pip install -r requirements.txt
 
 # Set filehandle max to a high value if it isn't already set.
@@ -202,7 +204,12 @@ run_cmd_confirm grr_config_updater initialize
 
 header "Enable grr services to start automatically on boot"
 run_cmd_confirm . /usr/share/grr/scripts/shell_helpers.sh
-run_cmd_confirm grr_enable_all
+
+# These lines can be replaced with grr_enable_all once we have built a new
+# server package.
+run_cmd_confirm enable_services grr-http-server
+run_cmd_confirm enable_services grr-ui
+run_cmd_confirm enable_services grr-worker
 
 HOSTNAME=`hostname`
 header "Install complete. Congratulations. Point your browser at http://${HOSTNAME}:8000"
