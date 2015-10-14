@@ -85,7 +85,7 @@ class ApiCallRendererRegressionTest(test_lib.GRRBaseTest):
     if method == "GET":
       request.GET = dict(urlparse.parse_qsl(parsed_url.query))
     elif method == "POST":
-      request.body = json.dumps(payload)
+      request.body = json.dumps(payload or "")
     else:
       raise ValueError("Unsupported method: %s." % method)
 

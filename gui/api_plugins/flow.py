@@ -3,6 +3,8 @@
 
 import urlparse
 
+import logging
+
 from grr.gui import api_aff4_object_renderers
 from grr.gui import api_call_renderer_base
 from grr.gui import api_value_renderers
@@ -16,6 +18,8 @@ from grr.lib import flow
 from grr.lib import flow_runner
 from grr.lib import rdfvalue
 from grr.lib import throttle
+from grr.lib import utils
+from grr.lib.aff4_objects import security as aff4_security
 from grr.lib.flows.general import file_finder
 from grr.lib.rdfvalues import structs as rdf_structs
 
@@ -131,6 +135,49 @@ class ApiFlowResultsRenderer(api_call_renderer_base.ApiCallRenderer):
         [api_aff4_object_renderers.ApiRDFValueCollectionRendererArgs(
             offset=args.offset, count=args.count, filter=args.filter,
             with_total_count=True)])
+
+
+class ApiFlowArchiveFilesRendererArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiFlowArchiveFilesRendererArgs
+
+
+class ApiFlowArchiveFilesRenderer(api_call_renderer_base.ApiCallRenderer):
+  """Generates archive with all files referenced in flow's results."""
+
+  category = CATEGORY
+  args_type = ApiFlowArchiveFilesRendererArgs
+
+  def Render(self, args, token=None):
+    """Starts archive generation flow."""
+
+    flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())
+    try:
+      token = aff4_security.Approval.GetApprovalForObject(
+          args.client_id, token=token)
+    except access_control.UnauthorizedAccess:
+      pass
+
+    flow_obj = aff4.FACTORY.Open(flow_urn, aff4_type="GRRFlow", mode="r",
+                                 token=token)
+
+    collection_urn = flow_obj.GetRunner().output_urn
+    target_file_prefix = "flow_%s_%s" % (
+        flow_obj.state.context.args.flow_name,
+        flow_urn.Basename().replace(":", "_"))
+    notification_message = "Flow results for %s (%s) ready for download" % (
+        flow_obj.urn.Basename(), flow_obj.state.context.args.flow_name)
+
+    urn = flow.GRRFlow.StartFlow(client_id=args.client_id,
+                                 flow_name="ExportCollectionFilesAsArchive",
+                                 collection_urn=collection_urn,
+                                 target_file_prefix=target_file_prefix,
+                                 notification_message=notification_message,
+                                 format=args.archive_format,
+                                 token=token)
+    logging.info("Generating %s archive for %s with flow %s.", format,
+                 flow_obj.urn, urn)
+
+    return dict(status="OK", flow_urn=utils.SmartStr(urn))
 
 
 class ApiFlowOutputPluginsRendererArgs(rdf_structs.RDFProtoStruct):

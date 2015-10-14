@@ -1,12 +1,13 @@
 #!/usr/bin/env python
-# -*- mode: python; encoding: utf-8 -*-
-
 """Test the flow_management interface."""
 
+
+import os
 
 from grr.gui import runtests_test
 
 from grr.lib import action_mocks
+from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import test_lib
@@ -15,6 +16,7 @@ from grr.lib.flows.general import processes as flows_processes
 from grr.lib.flows.general import transfer as flows_transfer
 from grr.lib.flows.general import webhistory as flows_webhistory
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import tests_pb2
 
@@ -55,11 +57,17 @@ class FlowWithOneNetworkConnectionResult(flow.GRRFlow):
 class TestFlowManagement(test_lib.GRRSeleniumTest):
   """Test the flow management GUI."""
 
+  def setUp(self):
+    super(TestFlowManagement, self).setUp()
+
+    with self.ACLChecksDisabled():
+      self.client_id = rdf_client.ClientURN("C.0000000000000001")
+      self.GrantClientApproval(self.client_id)
+      self.action_mock = action_mocks.ActionMock(
+          "TransferBuffer", "StatFile", "HashFile", "HashBuffer")
+
   def testFlowManagement(self):
     """Test that scheduling flows works."""
-    with self.ACLChecksDisabled():
-      self.GrantClientApproval("C.0000000000000001")
-
     self.Open("/")
 
     self.Type("client_query", "C.0000000000000001")
@@ -146,16 +154,12 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
                    "css=.tab-content td.proto_value:contains(StatFile)")
 
   def testLogsCanBeOpenedByClickingOnLogsTab(self):
-    client_id = rdf_client.ClientURN("C.0000000000000001")
-
     # RecursiveTestFlow doesn't send any results back.
     with self.ACLChecksDisabled():
       for _ in test_lib.TestFlowHelper(
-          "RecursiveTestFlow", action_mocks.ActionMock(),
-          client_id=client_id, token=self.token):
+          "RecursiveTestFlow", self.action_mock,
+          client_id=self.client_id, token=self.token):
         pass
-
-      self.GrantClientApproval(client_id)
 
     self.Open("/#c=C.0000000000000001")
     self.Click("css=a:contains('Manage launched flows')")
@@ -166,15 +170,11 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Subflow call 0")
 
   def testResultsAreDisplayedInResultsTab(self):
-    client_id = rdf_client.ClientURN("C.0000000000000001")
-
     with self.ACLChecksDisabled():
       for _ in test_lib.TestFlowHelper(
-          "FlowWithOneStatEntryResult", action_mocks.ActionMock(),
-          client_id=client_id, token=self.token):
+          "FlowWithOneStatEntryResult", self.action_mock,
+          client_id=self.client_id, token=self.token):
         pass
-
-      self.GrantClientApproval(client_id)
 
     self.Open("/#c=C.0000000000000001")
     self.Click("css=a:contains('Manage launched flows')")
@@ -184,13 +184,12 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "aff4:/some/unique/path")
 
   def testEmptyTableIsDisplayedInResultsWhenNoResults(self):
-    client_id = "C.0000000000000001"
     with self.ACLChecksDisabled():
       flow.GRRFlow.StartFlow(flow_name="FlowWithOneStatEntryResult",
-                             client_id=client_id, sync=False, token=self.token)
-      self.GrantClientApproval(client_id)
+                             client_id=self.client_id, sync=False,
+                             token=self.token)
 
-    self.Open("/#c=" + client_id)
+    self.Open("/#c=" + self.client_id.Basename())
     self.Click("css=a:contains('Manage launched flows')")
     self.Click("css=td:contains('FlowWithOneStatEntryResult')")
     self.Click("css=#Results")
@@ -199,15 +198,11 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
                    "th:contains('Value')")
 
   def testExportTabIsEnabledForStatEntryResults(self):
-    client_id = rdf_client.ClientURN("C.0000000000000001")
-
     with self.ACLChecksDisabled():
       for _ in test_lib.TestFlowHelper(
-          "FlowWithOneStatEntryResult", action_mocks.ActionMock(),
-          client_id=client_id, token=self.token):
+          "FlowWithOneStatEntryResult", self.action_mock,
+          client_id=self.client_id, token=self.token):
         pass
-
-      self.GrantClientApproval(client_id)
 
     self.Open("/#c=C.0000000000000001")
     self.Click("css=a:contains('Manage launched flows')")
@@ -220,16 +215,12 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
         "--path aff4:/C.0000000000000001/analysis/FlowWithOneStatEntryResult")
 
   def testExportTabIsDisabledWhenNoResults(self):
-    client_id = rdf_client.ClientURN("C.0000000000000001")
-
     # RecursiveTestFlow doesn't send any results back.
     with self.ACLChecksDisabled():
       for _ in test_lib.TestFlowHelper(
-          "RecursiveTestFlow", action_mocks.ActionMock(),
-          client_id=client_id, token=self.token):
+          "RecursiveTestFlow", self.action_mock,
+          client_id=self.client_id, token=self.token):
         pass
-
-      self.GrantClientApproval(client_id)
 
     self.Open("/#c=C.0000000000000001")
     self.Click("css=a:contains('Manage launched flows')")
@@ -237,15 +228,11 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent, "css=#Export.disabled")
 
   def testExportTabIsDisabledForNonFileResults(self):
-    client_id = rdf_client.ClientURN("C.0000000000000001")
-
     with self.ACLChecksDisabled():
       for _ in test_lib.TestFlowHelper(
-          "FlowWithOneNetworkConnectionResult", action_mocks.ActionMock(),
-          client_id=client_id, token=self.token):
+          "FlowWithOneNetworkConnectionResult", self.action_mock,
+          client_id=self.client_id, token=self.token):
         pass
-
-      self.GrantClientApproval(client_id)
 
     self.Open("/#c=C.0000000000000001")
     self.Click("css=a:contains('Manage launched flows')")
@@ -254,11 +241,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
 
   def testCancelFlowWorksCorrectly(self):
     """Tests that cancelling flows works."""
-
-    with self.ACLChecksDisabled():
-      self.GrantClientApproval("C.0000000000000001")
-
-    flow.GRRFlow.StartFlow(client_id="aff4:/C.0000000000000001",
+    flow.GRRFlow.StartFlow(client_id=self.client_id,
                            flow_name="RecursiveTestFlow",
                            token=self.token)
 
@@ -292,6 +275,151 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     self.assertEqual("RunReport", self.GetText("link=RunReport"))
     self.Click("link=RunReport")
     self.WaitUntil(self.IsTextPresent, "Report name")
+
+  def testDoesNotShowGenerateArchiveButtonForNonExportableRDFValues(self):
+    with self.ACLChecksDisabled():
+      for _ in test_lib.TestFlowHelper(
+          "FlowWithOneNetworkConnectionResult", self.action_mock,
+          client_id=self.client_id, token=self.token):
+        pass
+
+    self.Open("/#c=C.0000000000000001")
+    self.Click("css=a:contains('Manage launched flows')")
+    self.Click("css=td:contains('FlowWithOneNetworkConnectionResult')")
+    self.Click("link=Results")
+
+    self.WaitUntil(self.IsTextPresent, "42")
+    self.WaitUntilNot(self.IsTextPresent,
+                      "Files referenced in this collection can be downloaded")
+
+  def testDoesNotShowGenerateArchiveButtonWhenResultsCollectionIsEmpty(self):
+    with self.ACLChecksDisabled():
+      for _ in test_lib.TestFlowHelper(
+          "RecursiveTestFlow", self.action_mock, client_id=self.client_id,
+          token=self.token):
+        pass
+
+    self.Open("/#c=C.0000000000000001")
+    self.Click("css=a:contains('Manage launched flows')")
+    self.Click("css=td:contains('RecursiveTestFlow')")
+    self.Click("link=Results")
+
+    self.WaitUntil(self.IsTextPresent, "Value")
+    self.WaitUntilNot(self.IsTextPresent,
+                      "Files referenced in this collection can be downloaded")
+
+  def testShowsGenerateArchiveButtonForGetFileFlow(self):
+    pathspec = rdf_paths.PathSpec(
+        path=os.path.join(self.base_path, "test.plist"),
+        pathtype=rdf_paths.PathSpec.PathType.OS)
+    with self.ACLChecksDisabled():
+      for _ in test_lib.TestFlowHelper(
+          "GetFile", self.action_mock, client_id=self.client_id,
+          pathspec=pathspec, token=self.token):
+        pass
+
+    self.Open("/#c=C.0000000000000001")
+    self.Click("css=a:contains('Manage launched flows')")
+    self.Click("css=td:contains('GetFile')")
+    self.Click("link=Results")
+
+    self.WaitUntil(self.IsTextPresent,
+                   "Files referenced in this collection can be downloaded")
+
+  def testGenerateArchiveButtonGetsDisabledAfterClick(self):
+    pathspec = rdf_paths.PathSpec(
+        path=os.path.join(self.base_path, "test.plist"),
+        pathtype=rdf_paths.PathSpec.PathType.OS)
+    with self.ACLChecksDisabled():
+      for _ in test_lib.TestFlowHelper(
+          "GetFile", self.action_mock, client_id=self.client_id,
+          pathspec=pathspec, token=self.token):
+        pass
+
+    self.Open("/#c=C.0000000000000001")
+    self.Click("css=a:contains('Manage launched flows')")
+    self.Click("css=td:contains('GetFile')")
+    self.Click("link=Results")
+    self.Click("css=button.DownloadButton")
+
+    self.WaitUntil(self.IsElementPresent,
+                   "css=button.DownloadButton[disabled]")
+    self.WaitUntil(self.IsTextPresent, "Generation has started")
+
+  def testStartsArchiveGenerationWhenGenerateArchiveButtonIsClicked(self):
+    pathspec = rdf_paths.PathSpec(
+        path=os.path.join(self.base_path, "test.plist"),
+        pathtype=rdf_paths.PathSpec.PathType.OS)
+    flow_urn = flow.GRRFlow.StartFlow(flow_name="GetFile",
+                                      client_id=self.client_id,
+                                      pathspec=pathspec,
+                                      token=self.token)
+
+    with self.ACLChecksDisabled():
+      for _ in test_lib.TestFlowHelper(
+          flow_urn, self.action_mock, client_id=self.client_id,
+          pathspec=pathspec, token=self.token):
+        pass
+      flow_results_urn = aff4.FACTORY.Open(
+          flow_urn, token=self.token).GetRunner().output_urn
+
+    self.Open("/#c=C.0000000000000001")
+    self.Click("css=a:contains('Manage launched flows')")
+    self.Click("css=td:contains('GetFile')")
+    self.Click("link=Results")
+    self.Click("css=button.DownloadButton")
+    self.WaitUntil(self.IsTextPresent, "Generation has started")
+
+    with self.ACLChecksDisabled():
+      flows_dir = aff4.FACTORY.Open(self.client_id.Add("flows"))
+      flows = list(flows_dir.OpenChildren())
+      export_flows = [
+          f for f in flows
+          if f.__class__.__name__ == "ExportCollectionFilesAsArchive"]
+      self.assertEqual(len(export_flows), 1)
+      self.assertEqual(export_flows[0].args.collection_urn, flow_results_urn)
+
+  def testShowsNotificationWhenArchiveGenerationIsDone(self):
+    pathspec = rdf_paths.PathSpec(
+        path=os.path.join(self.base_path, "test.plist"),
+        pathtype=rdf_paths.PathSpec.PathType.OS)
+    flow_urn = flow.GRRFlow.StartFlow(flow_name="GetFile",
+                                      client_id=self.client_id,
+                                      pathspec=pathspec,
+                                      token=self.token)
+
+    with self.ACLChecksDisabled():
+      for _ in test_lib.TestFlowHelper(
+          flow_urn, self.action_mock, client_id=self.client_id,
+          token=self.token):
+        pass
+
+    self.Open("/#c=C.0000000000000001")
+    self.Click("css=a:contains('Manage launched flows')")
+    self.Click("css=td:contains('GetFile')")
+    self.Click("link=Results")
+    self.Click("css=button.DownloadButton")
+    self.WaitUntil(self.IsTextPresent, "Generation has started")
+
+    with self.ACLChecksDisabled():
+      flows_dir = aff4.FACTORY.Open(self.client_id.Add("flows"))
+      flows = list(flows_dir.OpenChildren())
+      export_flows = [
+          f for f in flows
+          if f.__class__.__name__ == "ExportCollectionFilesAsArchive"]
+      export_flow_urn = export_flows[0].urn
+
+    self.Click("css=#notification_button")
+    self.WaitUntil(self.IsTextPresent, "File transferred successfully")
+    self.WaitUntilNot(self.IsTextPresent, "ready for download")
+    self.Click("css=button:contains('Close')")
+
+    with self.ACLChecksDisabled():
+      for _ in test_lib.TestFlowHelper(export_flow_urn, token=self.token):
+        pass
+
+    self.Click("css=#notification_button")
+    self.Click("css=tr:contains('ready for download')")
 
 
 def main(argv):

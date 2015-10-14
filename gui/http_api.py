@@ -219,7 +219,8 @@ def RenderHttpResponse(request):
           args.Set(name, fd.read())
       else:
         payload = json.loads(request.body)
-        args.FromDict(payload)
+        if payload:
+          args.FromDict(payload)
     except Exception as e:  # pylint: disable=broad-except
       logging.exception(
           "Error while parsing POST request %s (%s): %s",
@@ -306,6 +307,10 @@ class HttpApiInitHook(registry.InitHook):
                              api_plugins.flow.ApiRemoteGetFileRenderer)
     RegisterHttpRouteHandler("POST", "/api/clients/<client_id>/flows/start",
                              api_plugins.flow.ApiStartFlowRenderer)
+    RegisterHttpRouteHandler(
+        "POST",
+        "/api/clients/<client_id>/flows/<flow_id>/results/archive-files",
+        api_plugins.flow.ApiFlowArchiveFilesRenderer)
 
     RegisterHttpRouteHandler(
         "GET", "/api/output-plugins/all",

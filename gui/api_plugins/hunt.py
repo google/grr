@@ -12,6 +12,7 @@ from grr.gui import api_value_renderers
 
 from grr.lib import access_control
 from grr.lib import aff4
+from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import hunts
 from grr.lib import rdfvalue
@@ -317,29 +318,47 @@ class ApiHuntArchiveFilesRendererArgs(rdf_structs.RDFProtoStruct):
 
 
 class ApiHuntArchiveFilesRenderer(api_call_renderer_base.ApiCallRenderer):
-  """Generates archive with all files references in hunt's results."""
+  """Generates archive with all files referenced in hunt's results."""
 
   category = CATEGORY
   args_type = ApiHuntArchiveFilesRendererArgs
+  privileged = True
 
   def Render(self, args, token=None):
-    """Check if the user has access to the specified hunt."""
+    """Check if the user has access to the hunt and start archiving."""
     hunt_urn = rdfvalue.RDFURN("aff4:/hunts").Add(args.hunt_id.Basename())
 
     # TODO(user): This should be abstracted away into AccessControlManager
     # API.
     try:
-      approved_token = aff4_security.Approval.GetApprovalForObject(
-          hunt_urn, token=token)
+      token = aff4_security.Approval.GetApprovalForObject(
+          hunt_urn, token=token.RealUID())
     except access_control.UnauthorizedAccess:
-      approved_token = token
+      token = token.RealUID()
 
-    urn = flow.GRRFlow.StartFlow(flow_name="ExportHuntResultFilesAsArchive",
-                                 hunt_urn=hunt_urn,
+    # This check is needed for cases when security manager has custom
+    # non-approval-based ACL checking logic.
+    data_store.DB.security_manager.CheckHuntAccess(token, hunt_urn)
+
+    hunt = aff4.FACTORY.Open(aff4.ROOT_URN.Add("hunts").Add(
+        args.hunt_id.Basename()), aff4_type="GRRHunt", token=token)
+
+    collection_urn = hunt.state.context.results_collection_urn
+    target_file_prefix = "hunt_" + hunt.urn.Basename().replace(":", "_")
+    notification_message = ("Hunt results for %s ready for download" %
+                            hunt.urn.Basename())
+
+    urn = flow.GRRFlow.StartFlow(flow_name="ExportCollectionFilesAsArchive",
+                                 collection_urn=collection_urn,
+                                 target_file_prefix=target_file_prefix,
+                                 notification_message=notification_message,
                                  format=args.archive_format,
-                                 token=approved_token)
-    logging.info("Generating %s results for %s with flow %s.", format,
-                 args.hunt_id, urn)
+                                 # We have to run the flow with SetUID token,
+                                 # as it will have to read files from
+                                 # multiple clients.
+                                 token=token.SetUID())
+    logging.info("Generating %s archive for %s with flow %s.", format,
+                 hunt.urn, urn)
 
     return dict(status="OK", flow_urn=utils.SmartStr(urn))
 

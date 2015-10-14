@@ -733,6 +733,17 @@
       "url": "/api/config"
     }
   ],
+  "ApiFlowArchiveFilesRenderer": [
+    {
+      "method": "POST",
+      "response": {
+        "flow_urn": "aff4:/C.1000000000000000/flows/W:ABCDE1",
+        "status": "OK"
+      },
+      "test_class": "ApiFlowArchiveFilesRendererRegressionTest",
+      "url": "/api/clients/C.1000000000000000/flows/W:ABCDE0/results/archive-files"
+    }
+  ],
   "ApiFlowDescriptorsListRenderer": [
     {
       "method": "GET",
@@ -1277,6 +1288,17 @@
         "state": "RUNNING"
       },
       "url": "/api/flows/C.1000000000000000/F:ABCDEF12/status"
+    }
+  ],
+  "ApiHuntArchiveFilesRenderer": [
+    {
+      "method": "POST",
+      "response": {
+        "flow_urn": "aff4:/flows/W:123456",
+        "status": "OK"
+      },
+      "test_class": "ApiHuntArchiveFilesRendererRegressionTest",
+      "url": "/api/hunts/H:ABCDEF/results/archive-files"
     }
   ],
   "ApiHuntErrorsRenderer": [

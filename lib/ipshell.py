@@ -13,7 +13,7 @@ def IPShell(argv=None, user_ns=None, banner=None):
 
   try:
     from IPython.terminal.embed import InteractiveShellEmbed
-    from traitlets.config.loader import Config
+    from IPython.config.loader import Config
 
     cfg = Config()
     cfg.InteractiveShellEmbed.autocall = 2

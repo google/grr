@@ -5,11 +5,13 @@
 
 
 
+import os
 import traceback
 
 from grr.gui import runtests_test
 
 from grr.lib import access_control
+from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
@@ -31,9 +33,8 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
   reason = "Felt like it!"
 
-  def CreateSampleHunt(self, flow_runner_args=None, flow_args=None,
-                       stopped=False, output_plugins=None, client_limit=0,
-                       client_count=10, token=None):
+  def CreateSampleHunt(self, path=None, stopped=False, output_plugins=None,
+                       client_limit=0, client_count=10, token=None):
     token = token or self.token
     self.client_ids = self.SetupClients(client_count)
 
@@ -43,7 +44,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
             flow_name="GetFile"),
         flow_args=transfer.GetFileArgs(
             pathspec=rdf_paths.PathSpec(
-                path="/tmp/evil.txt",
+                path=path or "/tmp/evil.txt",
                 pathtype=rdf_paths.PathSpec.PathType.OS,
             )
         ),
@@ -615,9 +616,46 @@ class TestHuntView(test_lib.GRRSeleniumTest):
       flows = list(flows_dir.OpenChildren())
       export_flows = [
           f for f in flows
-          if f.__class__.__name__ == "ExportHuntResultFilesAsArchive"]
+          if f.__class__.__name__ == "ExportCollectionFilesAsArchive"]
       self.assertEqual(len(export_flows), 1)
-      self.assertEqual(export_flows[0].args.hunt_urn, hunt_urn)
+      self.assertEqual(export_flows[0].args.collection_urn,
+                       hunt_urn.Add("Results"))
+
+  def testShowsNotificationWhenArchiveGenerationIsDone(self):
+    with self.ACLChecksDisabled():
+      hunt = self.CreateSampleHunt(
+          path=os.path.join(self.base_path, "test.plist"))
+
+      action_mock = action_mocks.ActionMock(
+          "TransferBuffer", "StatFile", "HashFile", "HashBuffer")
+      test_lib.TestHuntHelper(action_mock, self.client_ids, False,
+                              self.token)
+      self.GrantHuntApproval(hunt.urn)
+
+    self.Open("/")
+    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=li[heading=Results]")
+    self.Click("css=button.DownloadButton")
+    self.WaitUntil(self.IsTextPresent, "Generation has started")
+
+    self.Click("css=#notification_button")
+    self.WaitUntil(self.IsTextPresent, "has granted you access")
+    self.WaitUntilNot(self.IsTextPresent, "ready for download")
+    self.Click("css=button:contains('Close')")
+
+    with self.ACLChecksDisabled():
+      flows_dir = aff4.FACTORY.Open("aff4:/flows")
+      flows = list(flows_dir.OpenChildren())
+      export_flows = [
+          f for f in flows
+          if f.__class__.__name__ == "ExportCollectionFilesAsArchive"]
+      export_flow_urn = export_flows[0].urn
+      for _ in test_lib.TestFlowHelper(export_flow_urn, token=self.token):
+        pass
+
+    self.Click("css=#notification_button")
+    self.Click("css=tr:contains('ready for download')")
 
   def testListOfCSVFilesIsNotShownWhenHuntProducedNoResults(self):
     with self.ACLChecksDisabled():

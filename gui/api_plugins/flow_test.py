@@ -250,6 +250,42 @@ class ApiRemoteGetFileRendererTest(test_lib.GRRBaseTest):
       self.renderer.Render(args, token=self.token)
 
 
+class ApiFlowArchiveFilesRendererRegressionTest(
+    api_test_lib.ApiCallRendererRegressionTest):
+  renderer = "ApiFlowArchiveFilesRenderer"
+
+  def setUp(self):
+    super(ApiFlowArchiveFilesRendererRegressionTest, self).setUp()
+
+    self.client_id = self.SetupClients(1)[0]
+
+    with test_lib.FakeTime(41):
+      self.file_finder_flow_urn = flow.GRRFlow.StartFlow(
+          flow_name=file_finder.FileFinder.__name__,
+          client_id=self.client_id,
+          paths=["/tmp/evil.txt"],
+          action=file_finder.FileFinderAction(action_type="DOWNLOAD"),
+          token=self.token)
+
+  def Run(self):
+    def ReplaceFlowId():
+      flows_dir_fd = aff4.FACTORY.Open(self.client_id.Add("flows"),
+                                       token=self.token)
+
+      result = {}
+      for index, flow_urn in enumerate(flows_dir_fd.ListChildren()):
+        result[flow_urn.Basename()] = "W:ABCDE%d" % index
+
+      return result
+
+    with test_lib.FakeTime(42):
+      self.Check(
+          "POST",
+          "/api/clients/%s/flows/%s/results/archive-files" % (
+              self.client_id.Basename(), self.file_finder_flow_urn.Basename()),
+          replace=ReplaceFlowId)
+
+
 def main(argv):
   test_lib.main(argv)
 

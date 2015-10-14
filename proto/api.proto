@@ -52,8 +52,10 @@ message ApiAff4IndexRendererArgs {
 
 message ApiClientSearchRendererArgs {
   optional string query = 1 [(sem_type) = {
-      description: "Search query string."
-    }];
+      description: "Search query string. See here for syntax: "
+      "https://github.com/google/grr-doc/blob/master/"
+      "user_manual.adoc#searching-for-a-client"
+  }];
   optional int64 offset = 2 [(sem_type) = {
       description: "Found clients starting offset."
     }];
@@ -122,6 +124,18 @@ message ApiFlowOutputPluginsRendererArgs {
       description: "Flow id."
     }];
 }
+
+message ApiFlowArchiveFilesRendererArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ClientURN",
+      description: "Client id."
+    }];
+  optional string flow_id = 2 [(sem_type) = {
+      description: "Flow id.",
+      type: "SessionID"
+    }];
+  optional ExportCollectionFilesAsArchiveArgs.ArchiveFormat archive_format = 3;
+};
 
 message ApiClientsAddLabelsRendererArgs {
   repeated string client_ids = 1 [(sem_type) = {
@@ -218,7 +232,7 @@ message ApiHuntArchiveFilesRendererArgs {
       description: "Hunt id.",
       type: "SessionID"
     }];
-  optional ExportHuntResultsFilesAsArchiveArgs.ArchiveFormat archive_format = 2;
+  optional ExportCollectionFilesAsArchiveArgs.ArchiveFormat archive_format = 2;
 };
 
 message ApiCreateHuntRendererArgs {

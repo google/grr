@@ -6,6 +6,7 @@
 from grr.gui import api_test_lib
 from grr.gui.api_plugins import hunt as hunt_plugin
 
+from grr.lib import aff4
 from grr.lib import access_control
 from grr.lib import flags
 from grr.lib import flow_runner
@@ -233,6 +234,31 @@ class ApiHuntErrorsRendererRegressionTest(
     self.Check("GET", ("/api/hunts/%s/errors?offset=1&count=1" %
                        hunt_obj.urn.Basename()),
                replace={hunt_obj.urn.Basename(): "H:123456"})
+
+
+class ApiHuntArchiveFilesRendererRegressionTest(
+    api_test_lib.ApiCallRendererRegressionTest):
+  renderer = "ApiHuntArchiveFilesRenderer"
+
+  def Run(self):
+    with test_lib.FakeTime(42):
+      with ApiHuntsListRendererTest.CreateSampleHunt(
+          "the hunt", token=self.token) as hunt_obj:
+        pass
+
+    def ReplaceFlowAndHuntId():
+      flows_fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add("flows"),
+                                   token=self.token)
+      flow_urn = list(flows_fd.ListChildren())[-1]
+
+      return {flow_urn.Basename(): "W:123456",
+              hunt_obj.urn.Basename(): "H:ABCDEF"}
+
+    with test_lib.FakeTime(42):
+      self.Check(
+          "POST",
+          "/api/hunts/%s/results/archive-files" % hunt_obj.urn.Basename(),
+          replace=ReplaceFlowAndHuntId)
 
 
 def main(argv):

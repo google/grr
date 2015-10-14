@@ -12,7 +12,6 @@ from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import email_alerts
 from grr.lib import flags
-from grr.lib import hunts
 from grr.lib import test_lib
 from grr.lib import utils
 # pylint: disable=unused-import
@@ -20,15 +19,14 @@ from grr.lib.flows.general import export
 # pylint: enable=unused-import
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
-from grr.lib.rdfvalues import foreman as rdf_foreman
 from grr.lib.rdfvalues import paths as rdf_paths
 
 
-class TestExportHuntResultsFilesAsArchive(test_lib.FlowTestsBaseclass):
-  """Tests ExportHuntResultFilesAsArchive flows."""
+class TestExportCollectionFilesAsArchive(test_lib.FlowTestsBaseclass):
+  """Tests ExportCollectionFilesAsArchive flows."""
 
   def setUp(self):
-    super(TestExportHuntResultsFilesAsArchive, self).setUp()
+    super(TestExportCollectionFilesAsArchive, self).setUp()
 
     path1 = "aff4:/C.0000000000000000/fs/os/foo/bar/hello1.txt"
     fd = aff4.FACTORY.Create(path1, "AFF4MemoryStream", token=self.token)
@@ -44,32 +42,18 @@ class TestExportHuntResultsFilesAsArchive(test_lib.FlowTestsBaseclass):
            rdf_crypto.Hash(sha256=hashlib.sha256("hello2").digest()))
     fd.Close()
 
+    self.collection_urn = aff4.ROOT_URN.Add("hunts/H:ABCDEF/Results")
     self.paths = [path1, path2]
+    with aff4.FACTORY.Create(
+        self.collection_urn, aff4_type="RDFValueCollection", mode="w",
+        token=self.token) as collection:
 
-    with hunts.GRRHunt.StartHunt(
-        hunt_name="GenericHunt",
-        regex_rules=[rdf_foreman.ForemanAttributeRegex(
-            attribute_name="GRR client",
-            attribute_regex="GRR")],
-        output_plugins=[],
-        token=self.token) as hunt:
-
-      self.hunt_urn = hunt.urn
-
-      runner = hunt.GetRunner()
-      runner.Start()
-
-      with aff4.FACTORY.Create(
-          runner.context.results_collection_urn,
-          aff4_type="RDFValueCollection", mode="w",
-          token=self.token) as collection:
-
-        for path in self.paths:
-          collection.Add(rdf_client.StatEntry(
-              aff4path=path,
-              pathspec=rdf_paths.PathSpec(
-                  path="fs/os/foo/bar/" + path.split("/")[-1],
-                  pathtype=rdf_paths.PathSpec.PathType.OS)))
+      for path in self.paths:
+        collection.Add(rdf_client.StatEntry(
+            aff4path=path,
+            pathspec=rdf_paths.PathSpec(
+                path="fs/os/foo/bar/" + path.split("/")[-1],
+                pathtype=rdf_paths.PathSpec.PathType.OS)))
 
   def _CheckEmailMessage(self, email_messages):
     self.assertEqual(len(email_messages), 1)
@@ -81,23 +65,27 @@ class TestExportHuntResultsFilesAsArchive(test_lib.FlowTestsBaseclass):
                        "grr-noreply@%s" % config_lib.CONFIG.Get(
                            "Logging.domain"))
       self.assertTrue("ready for download" in msg["title"])
-      self.assertTrue("2 of 2 files" in msg["message"])
+      self.assertTrue(" of 2 files" in msg["message"])
 
-  def SendEmailMock(self, address, sender, title, message, **_):
+  def _SendEmailMock(self, address, sender, title, message, **_):
     self.email_messages.append(dict(address=address, sender=sender,
                                     title=title, message=message))
 
-  def testNotifiesUserWithDownloadFileNotification(self):
-
+  def _RunFlow(self, archive_format=None):
     with utils.Stubber(
-        email_alerts.EMAIL_ALERTER, "SendEmail", self.SendEmailMock):
+        email_alerts.EMAIL_ALERTER, "SendEmail", self._SendEmailMock):
       self.email_messages = []
       for _ in test_lib.TestFlowHelper(
-          "ExportHuntResultFilesAsArchive", None,
-          hunt_urn=self.hunt_urn, token=self.token):
+          "ExportCollectionFilesAsArchive", None,
+          collection_urn=self.collection_urn, format=archive_format or "ZIP",
+          notification_message="Results ready for download",
+          target_file_prefix="prefix", token=self.token):
         pass
 
       self._CheckEmailMessage(self.email_messages)
+
+  def testNotifiesUserWithDownloadFileNotification(self):
+    self._RunFlow()
 
     user_fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add("users").Add("test"),
                                 token=self.token)
@@ -105,20 +93,23 @@ class TestExportHuntResultsFilesAsArchive(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(notifications), 1)
     self.assertEqual(notifications[0].type, "DownloadFile")
     self.assertTrue(notifications[0].message.startswith(
-        "Hunt results ready for download (archived 2 out of 2 results"))
+        "Results ready for download (archived 2 out of 2 results"))
 
-  def testCreatesZipContainingDeduplicatedHuntResultsFiles(self):
+  def testSkipsFilesWithoutHash(self):
+    for path in self.paths:
+      with aff4.FACTORY.Open(path, mode="rw", token=self.token) as fd:
+        fd.DeleteAttribute(fd.Schema.HASH)
 
-    with utils.Stubber(
-        email_alerts.EMAIL_ALERTER, "SendEmail", self.SendEmailMock):
-      self.email_messages = []
+    self._RunFlow()
 
-      for _ in test_lib.TestFlowHelper(
-          "ExportHuntResultFilesAsArchive", None,
-          hunt_urn=self.hunt_urn, format="ZIP", token=self.token):
-        pass
+    user_fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add("users").Add("test"),
+                                token=self.token)
+    notifications = user_fd.Get(user_fd.Schema.PENDING_NOTIFICATIONS)
+    self.assertTrue(notifications[0].message.startswith(
+        "Results ready for download (archived 0 out of 2 results"))
 
-      self._CheckEmailMessage(self.email_messages)
+  def testCreatesZipContainingDeduplicatedCollectionFiles(self):
+    self._RunFlow(archive_format="ZIP")
 
     user_fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add("users").Add("test"),
                                 token=self.token)
@@ -138,8 +129,7 @@ class TestExportHuntResultsFilesAsArchive(test_lib.FlowTestsBaseclass):
       # so we have to extract the files with command line tool.
       subprocess.check_call(["unzip", "-x", archive_path, "-d", temp_dir])
 
-      friendly_hunt_name = self.hunt_urn.Basename().replace(":", "_")
-      prefix = os.path.join(temp_dir, friendly_hunt_name,
+      prefix = os.path.join(temp_dir, "prefix",
                             "C.0000000000000000/fs/os/foo/bar")
 
       self.assertTrue(os.path.islink(os.path.join(prefix, "hello1.txt")))
@@ -153,18 +143,8 @@ class TestExportHuntResultsFilesAsArchive(test_lib.FlowTestsBaseclass):
           os.path.join(prefix, u"中国新闻网新闻中.txt")), "r") as fd:
         self.assertEqual(fd.read(), "hello2")
 
-  def testCreatesTarContainingDeduplicatedHuntResultsFiles(self):
-
-    with utils.Stubber(
-        email_alerts.EMAIL_ALERTER, "SendEmail", self.SendEmailMock):
-      self.email_messages = []
-
-      for _ in test_lib.TestFlowHelper(
-          "ExportHuntResultFilesAsArchive", None,
-          hunt_urn=self.hunt_urn, format="TAR_GZ", token=self.token):
-        pass
-
-      self._CheckEmailMessage(self.email_messages)
+  def testCreatesTarContainingDeduplicatedCollectionFiles(self):
+    self._RunFlow(archive_format="TAR_GZ")
 
     user_fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add("users").Add("test"),
                                 token=self.token)
@@ -182,8 +162,7 @@ class TestExportHuntResultsFilesAsArchive(test_lib.FlowTestsBaseclass):
 
       subprocess.check_call(["tar", "-xf", archive_path, "-C", temp_dir])
 
-      friendly_hunt_name = self.hunt_urn.Basename().replace(":", "_")
-      prefix = os.path.join(temp_dir, friendly_hunt_name,
+      prefix = os.path.join(temp_dir, "prefix",
                             "C.0000000000000000/fs/os/foo/bar")
 
       self.assertTrue(os.path.islink(os.path.join(prefix, "hello1.txt")))
