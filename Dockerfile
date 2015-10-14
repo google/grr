@@ -13,12 +13,6 @@ WORKDIR /usr/share/grr
 COPY scripts/download_client_templates.sh /usr/share/grr/scripts/download_client_templates.sh
 RUN bash /usr/share/grr/scripts/download_client_templates.sh
 
-# Get current rekall
-RUN apt-get -y update && apt-get install -y git && \
-  git clone https://github.com/google/rekall.git && \
-  cd rekall && \
-  python setup.py sdist install
-
 # Copy the GRR code over
 ADD . /usr/share/grr/
 

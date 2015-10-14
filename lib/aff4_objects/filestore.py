@@ -543,8 +543,8 @@ class HashFileStore(FileStore):
       raise ValueError("age==aff4.ALL_TIMES is not supported.")
     timestamp = aff4.FACTORY.ParseAgeSpecification(age)
 
-    for hash_obj, client_files in data_store.DB.MultiResolveRegex(
-        hashes, "index:target:.*", token=token, timestamp=timestamp):
+    for hash_obj, client_files in data_store.DB.MultiResolvePrefix(
+        hashes, "index:target:", token=token, timestamp=timestamp):
       yield (cls.FILE_HASH_TYPE(hash_obj),
              [file_urn for _, file_urn, _ in client_files])
 
