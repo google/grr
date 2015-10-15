@@ -12,6 +12,12 @@ from grr.lib.rdfvalues import standard as rdf_standard
 
 class SendEmailTests(test_lib.GRRBaseTest):
 
+  def setUp(self):
+    super(SendEmailTests, self).setUp()
+    # We have to stop mail_stubber, otherwise email_alerts.EMAIL_ALERTER will
+    # be just a stub and there will be nothing to test.
+    self.mail_stubber.Stop()
+
   def testSplitEmailsAndAppendEmailDomain(self):
     self.assertEqual(
         email_alerts.EMAIL_ALERTER.SplitEmailsAndAppendEmailDomain(""), [])

@@ -90,6 +90,13 @@ class ApiUserApprovalsListRendererRegressionTest(
       self.CreateAdminUser("approver")
 
       clients = self.SetupClients(2)
+      for client_id in clients:
+        # Delete the certificate as it's being regenerated every time the
+        # client is created.
+        with aff4.FACTORY.Open(client_id, mode="rw",
+                               token=self.token) as grr_client:
+          grr_client.DeleteAttribute(grr_client.Schema.CERT)
+
       hunt = hunts.GRRHunt.StartHunt(
           hunt_name="GenericHunt", token=self.token)
 

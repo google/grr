@@ -6788,11 +6788,6 @@
                     }
                   }
                 },
-                "metadata:cert": {
-                  "age": 42,
-                  "type": "RDFX509Cert",
-                  "value": "-----BEGIN CERTIFICATE-----\nMIIDXjCCAUagAwIBAgIJANdK3LO+9qOIMA0GCSqGSIb3DQEBCwUAMD4xCzAJBgNV\nBAYTAlVTMQwwCgYDVQQIEwNDQUwxCzAJBgNVBAcTAlNGMRQwEgYDVQQDEwtHUlIg\nVGVzdCBDQTAeFw03MDAxMDEwMDAwMzJaFw03MTAxMDEwMDAwMzJaMCMxITAfBgNV\nBAMMGGFmZjQ6L0MuZDc0YWRjYjNiZWY2YTM4ODCBnzANBgkqhkiG9w0BAQEFAAOB\njQAwgYkCgYEAx2As3HK8OdCy6qmyCjFwOSw7RKRNvDg3Tu1T0uoBKxdXcnNSwCDe\nPBTG4eUnVoQiB2b4BNJz4yL3Ji51hmicAIYDDHh871vZffqAUQ4ubDzNkWMlFWpt\nPpnGiFQWZpF54uBXHnpTbgKIOpv6EGNIi0NfWgZCDyUIetk4FDU8UusCAwEAATAN\nBgkqhkiG9w0BAQsFAAOCAgEANqvg0Wm6+Hz5aCsuKG2MPEDL2c8aOtbFWoeiJGBJ\nyAD6yRcC7R5JnuC2cuenHVK6ZZ0XQWZy7UUF+JuS1N9J9AnEAWyRHVfHe9to4O4Z\n6e35XnsEgLxL4W7hiOhSt4FGMa+yZ2v41lHfRmJFv46N6EKhQ2UzceOf3Kghaf5+\nfw3VClstl5/j8epuV9rfqQJpgFibQsx/CoyLj2dMJbjuP7yEfZL3JL2/TwlbFnYc\nkZNNRGMpYSLbXe36xAdxoPCoGWFrA5p4hQLDaS6FyX+QS50ohw0JrmPmH2lO8QZ3\naRQt2Bv5S98fLhGexZzlD7WyjZy70uXTCCH0QpcwUyUgAzxyajKgZ5/YdpQ4J2qt\nYD148VOIXQALaCqUN7iXtHCSHWC/JtU9COnEOm+KPeH7wL5zTg6c5SBV9H43x92c\n6lOUkUemcRp02olmzSn4NoN3xSDphsVtjzK2qjlANIsMEkvZNPNYSgN9ZIgvGZfF\nFfuQuAzJNynnD7nt28yMGzs/7R6HzskV+iALBO1KzIhOl6AJc+rsQD+A7+SxzHER\n07iaRggwWoTCdixZxyyBVI6Y0dxmyt3s0CvKTXpnCJefndgCFIexY/X2Ao7pp+BZ\nk/YyvzIfn9L47qik3P+o7fXwif6avONFp0OEO2jpjDh8EGvTKigm2sTxUreEoVN6\nxzI=\n-----END CERTIFICATE-----\n"
-                },
                 "metadata:fqdn": {
                   "age": 42,
                   "type": "RDFString",
@@ -6970,11 +6965,6 @@
                     }
                   }
                 },
-                "metadata:cert": {
-                  "age": 42,
-                  "type": "RDFX509Cert",
-                  "value": "-----BEGIN CERTIFICATE-----\nMIIDXjCCAUagAwIBAgIJANdK3LO+9qOIMA0GCSqGSIb3DQEBCwUAMD4xCzAJBgNV\nBAYTAlVTMQwwCgYDVQQIEwNDQUwxCzAJBgNVBAcTAlNGMRQwEgYDVQQDEwtHUlIg\nVGVzdCBDQTAeFw03MDAxMDEwMDAwMzJaFw03MTAxMDEwMDAwMzJaMCMxITAfBgNV\nBAMMGGFmZjQ6L0MuZDc0YWRjYjNiZWY2YTM4ODCBnzANBgkqhkiG9w0BAQEFAAOB\njQAwgYkCgYEAx2As3HK8OdCy6qmyCjFwOSw7RKRNvDg3Tu1T0uoBKxdXcnNSwCDe\nPBTG4eUnVoQiB2b4BNJz4yL3Ji51hmicAIYDDHh871vZffqAUQ4ubDzNkWMlFWpt\nPpnGiFQWZpF54uBXHnpTbgKIOpv6EGNIi0NfWgZCDyUIetk4FDU8UusCAwEAATAN\nBgkqhkiG9w0BAQsFAAOCAgEANqvg0Wm6+Hz5aCsuKG2MPEDL2c8aOtbFWoeiJGBJ\nyAD6yRcC7R5JnuC2cuenHVK6ZZ0XQWZy7UUF+JuS1N9J9AnEAWyRHVfHe9to4O4Z\n6e35XnsEgLxL4W7hiOhSt4FGMa+yZ2v41lHfRmJFv46N6EKhQ2UzceOf3Kghaf5+\nfw3VClstl5/j8epuV9rfqQJpgFibQsx/CoyLj2dMJbjuP7yEfZL3JL2/TwlbFnYc\nkZNNRGMpYSLbXe36xAdxoPCoGWFrA5p4hQLDaS6FyX+QS50ohw0JrmPmH2lO8QZ3\naRQt2Bv5S98fLhGexZzlD7WyjZy70uXTCCH0QpcwUyUgAzxyajKgZ5/YdpQ4J2qt\nYD148VOIXQALaCqUN7iXtHCSHWC/JtU9COnEOm+KPeH7wL5zTg6c5SBV9H43x92c\n6lOUkUemcRp02olmzSn4NoN3xSDphsVtjzK2qjlANIsMEkvZNPNYSgN9ZIgvGZfF\nFfuQuAzJNynnD7nt28yMGzs/7R6HzskV+iALBO1KzIhOl6AJc+rsQD+A7+SxzHER\n07iaRggwWoTCdixZxyyBVI6Y0dxmyt3s0CvKTXpnCJefndgCFIexY/X2Ao7pp+BZ\nk/YyvzIfn9L47qik3P+o7fXwif6avONFp0OEO2jpjDh8EGvTKigm2sTxUreEoVN6\nxzI=\n-----END CERTIFICATE-----\n"
-                },
                 "metadata:fqdn": {
                   "age": 42,
                   "type": "RDFString",
@@ -7108,7 +7098,6 @@
                 "metadata:ClientInfo": {
                   "client_name": "GRR Monitor"
                 },
-                "metadata:cert": "-----BEGIN CERTIFICATE-----\nMIIDXjCCAUagAwIBAgIJANdK3LO+9qOIMA0GCSqGSIb3DQEBCwUAMD4xCzAJBgNV\nBAYTAlVTMQwwCgYDVQQIEwNDQUwxCzAJBgNVBAcTAlNGMRQwEgYDVQQDEwtHUlIg\nVGVzdCBDQTAeFw03MDAxMDEwMDAwMzJaFw03MTAxMDEwMDAwMzJaMCMxITAfBgNV\nBAMMGGFmZjQ6L0MuZDc0YWRjYjNiZWY2YTM4ODCBnzANBgkqhkiG9w0BAQEFAAOB\njQAwgYkCgYEAx2As3HK8OdCy6qmyCjFwOSw7RKRNvDg3Tu1T0uoBKxdXcnNSwCDe\nPBTG4eUnVoQiB2b4BNJz4yL3Ji51hmicAIYDDHh871vZffqAUQ4ubDzNkWMlFWpt\nPpnGiFQWZpF54uBXHnpTbgKIOpv6EGNIi0NfWgZCDyUIetk4FDU8UusCAwEAATAN\nBgkqhkiG9w0BAQsFAAOCAgEANqvg0Wm6+Hz5aCsuKG2MPEDL2c8aOtbFWoeiJGBJ\nyAD6yRcC7R5JnuC2cuenHVK6ZZ0XQWZy7UUF+JuS1N9J9AnEAWyRHVfHe9to4O4Z\n6e35XnsEgLxL4W7hiOhSt4FGMa+yZ2v41lHfRmJFv46N6EKhQ2UzceOf3Kghaf5+\nfw3VClstl5/j8epuV9rfqQJpgFibQsx/CoyLj2dMJbjuP7yEfZL3JL2/TwlbFnYc\nkZNNRGMpYSLbXe36xAdxoPCoGWFrA5p4hQLDaS6FyX+QS50ohw0JrmPmH2lO8QZ3\naRQt2Bv5S98fLhGexZzlD7WyjZy70uXTCCH0QpcwUyUgAzxyajKgZ5/YdpQ4J2qt\nYD148VOIXQALaCqUN7iXtHCSHWC/JtU9COnEOm+KPeH7wL5zTg6c5SBV9H43x92c\n6lOUkUemcRp02olmzSn4NoN3xSDphsVtjzK2qjlANIsMEkvZNPNYSgN9ZIgvGZfF\nFfuQuAzJNynnD7nt28yMGzs/7R6HzskV+iALBO1KzIhOl6AJc+rsQD+A7+SxzHER\n07iaRggwWoTCdixZxyyBVI6Y0dxmyt3s0CvKTXpnCJefndgCFIexY/X2Ao7pp+BZ\nk/YyvzIfn9L47qik3P+o7fXwif6avONFp0OEO2jpjDh8EGvTKigm2sTxUreEoVN6\nxzI=\n-----END CERTIFICATE-----\n",
                 "metadata:fqdn": "Host-1.example.com",
                 "metadata:hostname": "Host-1",
                 "metadata:last": 45000000,
@@ -7174,7 +7163,6 @@
                 "metadata:ClientInfo": {
                   "client_name": "GRR Monitor"
                 },
-                "metadata:cert": "-----BEGIN CERTIFICATE-----\nMIIDXjCCAUagAwIBAgIJANdK3LO+9qOIMA0GCSqGSIb3DQEBCwUAMD4xCzAJBgNV\nBAYTAlVTMQwwCgYDVQQIEwNDQUwxCzAJBgNVBAcTAlNGMRQwEgYDVQQDEwtHUlIg\nVGVzdCBDQTAeFw03MDAxMDEwMDAwMzJaFw03MTAxMDEwMDAwMzJaMCMxITAfBgNV\nBAMMGGFmZjQ6L0MuZDc0YWRjYjNiZWY2YTM4ODCBnzANBgkqhkiG9w0BAQEFAAOB\njQAwgYkCgYEAx2As3HK8OdCy6qmyCjFwOSw7RKRNvDg3Tu1T0uoBKxdXcnNSwCDe\nPBTG4eUnVoQiB2b4BNJz4yL3Ji51hmicAIYDDHh871vZffqAUQ4ubDzNkWMlFWpt\nPpnGiFQWZpF54uBXHnpTbgKIOpv6EGNIi0NfWgZCDyUIetk4FDU8UusCAwEAATAN\nBgkqhkiG9w0BAQsFAAOCAgEANqvg0Wm6+Hz5aCsuKG2MPEDL2c8aOtbFWoeiJGBJ\nyAD6yRcC7R5JnuC2cuenHVK6ZZ0XQWZy7UUF+JuS1N9J9AnEAWyRHVfHe9to4O4Z\n6e35XnsEgLxL4W7hiOhSt4FGMa+yZ2v41lHfRmJFv46N6EKhQ2UzceOf3Kghaf5+\nfw3VClstl5/j8epuV9rfqQJpgFibQsx/CoyLj2dMJbjuP7yEfZL3JL2/TwlbFnYc\nkZNNRGMpYSLbXe36xAdxoPCoGWFrA5p4hQLDaS6FyX+QS50ohw0JrmPmH2lO8QZ3\naRQt2Bv5S98fLhGexZzlD7WyjZy70uXTCCH0QpcwUyUgAzxyajKgZ5/YdpQ4J2qt\nYD148VOIXQALaCqUN7iXtHCSHWC/JtU9COnEOm+KPeH7wL5zTg6c5SBV9H43x92c\n6lOUkUemcRp02olmzSn4NoN3xSDphsVtjzK2qjlANIsMEkvZNPNYSgN9ZIgvGZfF\nFfuQuAzJNynnD7nt28yMGzs/7R6HzskV+iALBO1KzIhOl6AJc+rsQD+A7+SxzHER\n07iaRggwWoTCdixZxyyBVI6Y0dxmyt3s0CvKTXpnCJefndgCFIexY/X2Ao7pp+BZ\nk/YyvzIfn9L47qik3P+o7fXwif6avONFp0OEO2jpjDh8EGvTKigm2sTxUreEoVN6\nxzI=\n-----END CERTIFICATE-----\n",
                 "metadata:fqdn": "Host-0.example.com",
                 "metadata:hostname": "Host-0",
                 "metadata:last": 44000000,
