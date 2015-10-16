@@ -82,11 +82,6 @@ flags.DEFINE_bool("exit_on_complete", True,
                   "set we keep the console alive after the code completes.")
 
 
-def Help():
-  """Print out help information."""
-  print "Help is not implemented yet"
-
-
 def Lister(arg):
   for x in arg:
     print x
@@ -94,8 +89,7 @@ def Lister(arg):
 
 def main(unused_argv):
   """Main."""
-  banner = ("\nWelcome to the GRR console\n"
-            "Type help<enter> to get help\n\n")
+  banner = ("\nWelcome to the GRR console\n")
 
   config_lib.CONFIG.AddContext("Commandline Context")
   config_lib.CONFIG.AddContext(
@@ -109,8 +103,6 @@ def main(unused_argv):
                                                      reason=flags.FLAGS.reason)
 
   locals_vars = {
-      "hilfe": Help,
-      "help": Help,
       "__name__": "GRR Console",
       "l": Lister,
       "o": aff4.FACTORY.Open,

@@ -422,3 +422,102 @@ def ClientIdToHostname(client_id, token=None):
   client = OpenClient(client_id, token=token)[0]
   if client and client.Get("Host"):
     return client.Get("Host").Summary()
+
+
+def _GetHWInfos(client_list, batch_size=10000, token=None):
+  """Opens the given clients in batches and returns hardware information."""
+
+  # This function returns a dict mapping each client_id to a set of reported
+  # hardware serial numbers reported by this client.
+  hw_infos = {}
+
+  logging.info("%d clients to process.", len(client_list))
+
+  c = 0
+
+  for batch in utils.Grouper(client_list, batch_size):
+    logging.info("Processing batch: %d-%d", c, c + batch_size)
+    c += len(batch)
+
+    client_objs = aff4.FACTORY.MultiOpen(batch, age=aff4.ALL_TIMES, token=token)
+
+    for client in client_objs:
+      hwi = client.GetValuesForAttribute(client.Schema.HARDWARE_INFO)
+
+      hw_infos[client.urn] = set(["%s" % x.serial_number for x in hwi])
+
+  return hw_infos
+
+
+def FindClonedClients(token=None):
+  """A script to find multiple machines reporting the same client_id.
+
+  This script looks at the hardware serial numbers that a client reported in
+  over time (they get collected with each regular interrogate). We have seen
+  that sometimes those serial numbers change - for example when a disk is put
+  in a new machine - so reporting multiple serial numbers does not flag a client
+  immediately as a cloned machine. In order to be shown here by this script, the
+  serial number has to be alternating between two values.
+
+  Args:
+    token: datastore token.
+  Returns:
+    A list of clients that report alternating hardware ids.
+  """
+
+  index = aff4.FACTORY.Create(
+      client_index.MAIN_INDEX, aff4_type="ClientIndex",
+      mode="rw", object_exists=True, token=token)
+
+  clients = index.LookupClients(["."])
+
+  hw_infos = _GetHWInfos(clients, token=token)
+
+  # We get all clients that have reported more than one hardware serial
+  # number over time. This doesn't necessarily indicate a cloned client - the
+  # machine might just have new hardware. We need to search for clients that
+  # alternate between different IDs.
+  clients_with_multiple_serials = [
+      client_id for client_id, serials in hw_infos.iteritems()
+      if len(serials) > 1]
+
+  client_list = aff4.FACTORY.MultiOpen(
+      clients_with_multiple_serials, age=aff4.ALL_TIMES, token=token)
+
+  cloned_clients = []
+  for c in client_list:
+    hwis = c.GetValuesForAttribute(c.Schema.HARDWARE_INFO)
+
+    # Here we search for the earliest and latest time each ID was reported.
+    max_index = {}
+    min_index = {}
+    ids = set()
+
+    for i, hwi in enumerate(hwis):
+      s = hwi.serial_number
+      max_index[s] = i
+      if s not in min_index:
+        min_index[s] = i
+      ids.add(s)
+
+    # Construct ranges [first occurrence, last occurrence] for every ID. If
+    # a client just changed from one ID to the other, those ranges of IDs should
+    # be disjunct. If they overlap at some point, it indicates that two IDs were
+    # reported in the same time frame.
+    ranges = []
+    for hwid in ids:
+      ranges.append((min_index[hwid], max_index[hwid]))
+    # Sort ranges by first occurrence time.
+    ranges.sort()
+
+    for i in xrange(len(ranges) - 1):
+      if ranges[i][1] > ranges[i+1][0]:
+        cloned_clients.append(c)
+
+        msg = "Found client with multiple, overlapping serial numbers: %s"
+        logging.info(msg, c.urn)
+        for hwi in c.GetValuesForAttribute(c.Schema.HARDWARE_INFO):
+          logging.info("%s %s", hwi.age, hwi.serial_number)
+        break
+
+  return cloned_clients
