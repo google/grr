@@ -300,13 +300,23 @@ class HttpApiInitHook(registry.InitHook):
         "GET", "/api/clients/<client_id>/flows/<flow_id>/results",
         api_plugins.flow.ApiFlowResultsRenderer)
     RegisterHttpRouteHandler(
+        "GET",
+        "/api/clients/<client_id>/flows/<flow_id>/results/export-command",
+        api_plugins.flow.ApiFlowResultsExportCommandRenderer)
+    RegisterHttpRouteHandler(
         "GET", "/api/clients/<client_id>/flows/<flow_id>/output-plugins",
         api_plugins.flow.ApiFlowOutputPluginsRenderer)
+    RegisterHttpRouteHandler("GET", "/api/clients/<client_id>/flows",
+                             api_plugins.flow.ApiClientFlowsListRenderer)
     RegisterHttpRouteHandler("POST",
                              "/api/clients/<client_id>/flows/remotegetfile",
                              api_plugins.flow.ApiRemoteGetFileRenderer)
     RegisterHttpRouteHandler("POST", "/api/clients/<client_id>/flows/start",
                              api_plugins.flow.ApiStartFlowRenderer)
+    RegisterHttpRouteHandler(
+        "POST",
+        "/api/clients/<client_id>/flows/<flow_id>/actions/cancel",
+        api_plugins.flow.ApiCancelFlowRenderer)
     RegisterHttpRouteHandler(
         "POST",
         "/api/clients/<client_id>/flows/<flow_id>/results/archive-files",
@@ -326,6 +336,9 @@ class HttpApiInitHook(registry.InitHook):
                              api_plugins.hunt.ApiHuntLogRenderer)
     RegisterHttpRouteHandler("GET", "/api/hunts/<hunt_id>/results",
                              api_plugins.hunt.ApiHuntResultsRenderer)
+    RegisterHttpRouteHandler(
+        "GET", "/api/hunts/<hunt_id>/results/export-command",
+        api_plugins.hunt.ApiHuntResultsExportCommandRenderer)
     RegisterHttpRouteHandler("GET", "/api/hunts/<hunt_id>/output-plugins",
                              api_plugins.hunt.ApiHuntOutputPluginsRenderer)
     RegisterHttpRouteHandler("POST", "/api/hunts/create",

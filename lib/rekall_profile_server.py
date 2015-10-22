@@ -15,6 +15,7 @@ from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import registry
+from grr.lib import threadpool
 from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 
 
@@ -134,22 +135,42 @@ class GRRRekallProfileServer(CachingProfileServer,
     inventory_json = zlib.decompress(inv_profile.data, 16 + zlib.MAX_WBITS)
     inventory = json.loads(inventory_json)
 
+    # Build a mapping between urns and profile names.
     cache_urn = rdfvalue.RDFURN(config_lib.CONFIG["Rekall.profile_cache_urn"])
-    profile_urns = {}
+    profile_to_urn = {}
+    urn_to_profile = {}
     for profile in inventory["$INVENTORY"]:
-      profile_urns[profile] = cache_urn.Add(version).Add(profile)
+      profile_urn = cache_urn.Add(version).Add(profile)
+      profile_to_urn[profile] = profile_urn
+      urn_to_profile[profile_urn] = profile
 
-    stats = aff4.FACTORY.Stat(profile_urns.values())
-    profile_infos = {}
-    for metadata in stats:
-      profile_infos[metadata["urn"]] = metadata["type"][1]
+    # Start off getting everything.
+    profiles_to_get = set(urn_to_profile)
 
-    for profile, profile_urn in sorted(profile_urns.items()):
-      if (profile_urn not in profile_infos or
-          profile_infos[profile_urn] != u"AFF4RekallProfile"):
+    for metadata in aff4.FACTORY.Stat(urn_to_profile):
+      timestamp = metadata["type"][-1]
+      profile_urn = metadata["urn"]
+      profile_name = urn_to_profile[profile_urn]
+
+      inventory_timestamp = inventory["$INVENTORY"][
+          profile_name].get("LastModified")
+
+      # Remove profiles which are newer than upstream.
+      if timestamp / 1e6 > inventory_timestamp:
+        profiles_to_get.remove(metadata["urn"])
+
+    # Make a threadpool for all the profiles.
+    pool = threadpool.ThreadPool.Factory("profiles", 50)
+    pool.Start()
+
+    try:
+      for urn in profiles_to_get:
+        profile = urn_to_profile[urn]
         logging.info("Getting missing profile: %s", profile)
         try:
-          self.GetProfileByName(
-              profile, ignore_cache=True, version=version)
+          pool.AddTask(self.GetProfileByName,
+                       (profile, version, True))
         except urllib2.URLError as e:
           logging.info("Exception: %s", e)
+    finally:
+      pool.Join()

@@ -27,6 +27,7 @@ grrUi.core.downloadCollectionFilesDirective.valuePointsToFile = function(
   }
 };
 
+
 /**
  * Controller for DownloadCollectionFilesDirective.
  *
@@ -62,6 +63,9 @@ grrUi.core.downloadCollectionFilesDirective.DownloadCollectionFilesController =
   /** @export {string} */
   this.fileArchiveGenerationError;
 
+  /** @export {string} */
+  this.exportCommand;
+
   if ($window.navigator.appVersion.indexOf('Mac') != -1) {
     this.primaryArchiveExtension = 'tar.gz';
     this.secondaryArchiveExtension = 'zip';
@@ -69,6 +73,18 @@ grrUi.core.downloadCollectionFilesDirective.DownloadCollectionFilesController =
     this.primaryArchiveExtension = 'zip';
     this.secondaryArchiveExtension = 'tar.gz';
   }
+
+  this.scope_.$watch('exportCommandUrl', function(newValue) {
+    if (angular.isUndefined(newValue)) {
+      return;
+    }
+
+    this.grrApiService_.get(newValue).then(function(response) {
+      if (angular.isDefined(response['data']['command'])) {
+          this.exportCommand = response['data']['command'];
+      }
+    }.bind(this));
+  }.bind(this));
 };
 var DownloadCollectionFilesController =
     grrUi.core.downloadCollectionFilesDirective
@@ -109,6 +125,7 @@ grrUi.core.downloadCollectionFilesDirective.DownloadCollectionFilesDirective =
     function() {
   return {
     scope: {
+      exportCommandUrl: '=?',
       downloadUrl: '='
     },
     restrict: 'E',

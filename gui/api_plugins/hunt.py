@@ -12,6 +12,7 @@ from grr.gui import api_value_renderers
 
 from grr.lib import access_control
 from grr.lib import aff4
+from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import hunts
@@ -124,6 +125,12 @@ class ApiHuntsListRenderer(api_call_renderer_base.ApiCallRenderer):
   def _BuildFilter(self, args, token):
     filters = []
 
+    if ((args.created_by or args.description_contains)
+        and not args.active_within):
+      raise ValueError("created_by/description_contains filters have to be "
+                       "used together with active_within filter (to prevent "
+                       "queries of death)")
+
     if args.created_by:
       filters.append(functools.partial(self._CreatedByFilter,
                                        self._Username(args.created_by, token)))
@@ -171,18 +178,31 @@ class ApiHuntsListRenderer(api_call_renderer_base.ApiCallRenderer):
     children = list(fd.ListChildren())
     children.sort(key=operator.attrgetter("age"), reverse=True)
 
+    if not args.active_within:
+      raise ValueError("active_within filter has to be used when "
+                       "any kind of filtering is done (to prevent "
+                       "queries of death)")
+
+    min_age = rdfvalue.RDFDatetime().Now() - args.active_within
+    active_children = []
+    for child in children:
+      if child.age > min_age:
+        active_children.append(child)
+      else:
+        break
+
     index = 0
     hunt_list = []
-    children_map = {}
-    for hunt in fd.OpenChildren(children=children):
+    active_children_map = {}
+    for hunt in fd.OpenChildren(children=active_children):
       if (not isinstance(hunt, hunts.GRRHunt) or not hunt.state
           or not filter_func(hunt)):
         continue
-      children_map[hunt.urn] = hunt
+      active_children_map[hunt.urn] = hunt
 
-    for urn in children:
+    for urn in active_children:
       try:
-        hunt = children_map[urn]
+        hunt = active_children_map[urn]
       except KeyError:
         continue
 
@@ -199,6 +219,13 @@ class ApiHuntsListRenderer(api_call_renderer_base.ApiCallRenderer):
 
   def Render(self, args, token=None):
     filter_func = self._BuildFilter(args, token)
+    if not filter_func and args.active_within:
+      # If no filters except for "active_within" were specified, just use
+      # a stub filter function that always returns True. Filtering by
+      # active_within is done by RenderFiltered code before other filters
+      # are applied.
+      filter_func = lambda x: True
+
     if filter_func:
       return self.RenderFiltered(filter_func, args, token)
     else:
@@ -244,6 +271,31 @@ class ApiHuntResultsRenderer(api_call_renderer_base.ApiCallRenderer):
         [api_aff4_object_renderers.ApiRDFValueCollectionRendererArgs(
             offset=args.offset, count=args.count, filter=args.filter,
             with_total_count=True)])
+
+
+class ApiHuntResultsExportCommandRendererArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiHuntResultsExportCommandRendererArgs
+
+
+class ApiHuntResultsExportCommandRenderer(
+    api_call_renderer_base.ApiCallRenderer):
+  """Renders GRR export tool command line that exports hunt results."""
+
+  category = CATEGORY
+  args_type = ApiHuntResultsExportCommandRendererArgs
+
+  def Render(self, args, token=None):
+    results_path = HUNTS_ROOT_PATH.Add(args.hunt_id).Add("Results")
+
+    export_command_str = " ".join([
+        config_lib.CONFIG["AdminUI.export_command"],
+        "--username", utils.ShellQuote(token.username),
+        "--reason", utils.ShellQuote(token.reason),
+        "collection_files",
+        "--path", utils.ShellQuote(results_path),
+        "--output", "."])
+
+    return dict(command=export_command_str)
 
 
 class ApiHuntOutputPluginsRendererArgs(rdf_structs.RDFProtoStruct):

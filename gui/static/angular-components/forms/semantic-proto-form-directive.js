@@ -143,22 +143,43 @@ SemanticProtoFormController.prototype.onValueChange_ = function(
  */
 SemanticProtoFormController.prototype.onEditedValueChange_ = function(
     newValue, oldValue) {
-  /**
-   * We only want to migrate edits that's done to the 'editedValue' to
-   * the user-bound 'value'. Therefore we expect both newValue and oldValue
-   * to be defined. We'll compare them and will update the 'value' with
-   * the changes.
-   */
-  if (angular.isDefined(newValue) && angular.isDefined(oldValue)) {
+  if (angular.isDefined(newValue)) {
     /**
-     * It's ok to traverse only the keys of newValue, because keys can't be
-     * removed, only added.
+     * Only apply changes to scope_.value if oldValue is defined, i.e.
+     * if the changes were actually made by the user editing the form.
+     * oldValue === null means that editedValue was just initialized
+     * from scope_.value, so no need to migrate any changes.
      */
-    angular.forEach(newValue, function(value, key) {
-      if (!angular.equals(oldValue[key], newValue[key])) {
-        this.scope_.value.value[key] = value;
+    if (angular.isDefined(oldValue)) {
+      /**
+       * It's ok to traverse only the keys of newValue, because keys can't be
+       * removed, only added.
+       */
+      angular.forEach(newValue, function(value, key) {
+        if (!angular.equals(oldValue[key], newValue[key])) {
+          this.scope_.value.value[key] = value;
+        }
+      }.bind(this));
+    }
+
+    /**
+     *  Remove the fields that are equal to their default values (by
+     *  "default" we mean either field default or value default).
+     */
+    angular.forEach(this.valueDescriptor['fields'], function(field) {
+      if (angular.isDefined(field['default'])) {
+        if (angular.equals(this.scope_.value.value[field.name],
+                           field['default'])) {
+          delete this.scope_.value.value[field.name];
+        }
+      } else {
+        if (angular.equals(this.scope_.value.value[field.name],
+                           this.descriptors[field.type]['default'])) {
+          delete this.scope_.value.value[field.name];
+        }
       }
     }.bind(this));
+
   }
 };
 

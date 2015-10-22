@@ -25,6 +25,9 @@ grrUi.flow.flowResultsDirective.FlowResultsController = function($scope) {
   /** @type {string} */
   this.downloadFilesUrl;
 
+  /** @type {string} */
+  this.exportCommand;
+
   $scope.$watch('flowUrn', this.onFlowUrnChange.bind(this));
 };
 var FlowResultsController =
@@ -64,6 +67,7 @@ FlowResultsController.prototype.onFlowUrnChange = function(newValue) {
       '/results';
   this.outputPluginsMetadataUrl = '/clients/' + clientId + '/flows/' +
       flowId + '/output-plugins';
+  this.exportCommandUrl = this.flowResultsUrl + '/export-command';
   this.downloadFilesUrl = this.flowResultsUrl + '/archive-files';
 };
 

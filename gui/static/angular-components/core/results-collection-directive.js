@@ -52,6 +52,7 @@ grrUi.core.resultsCollectionDirective.ResultsCollectionDirective = function() {
     scope: {
       resultsUrl: '=',
       outputPluginsUrl: '=',
+      exportCommandUrl: '=?',
       downloadFilesUrl: '='
     },
     restrict: 'E',

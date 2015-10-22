@@ -27,11 +27,14 @@ describe('download collection files directive', function() {
     grrApiService = $injector.get('grrApiService');
   }));
 
-  var renderTestTemplate = function() {
+  var renderTestTemplate = function(opt_withExportCommand) {
     $rootScope.downloadUrl = 'some/download/url';
+    if (opt_withExportCommand) {
+      $rootScope.exportCommandUrl = 'some/export-command/url';
+    }
 
     var template = '<grr-download-collection-files ' +
-        'download-url="downloadUrl" />';
+        'download-url="downloadUrl" export-command-url="exportCommandUrl" />';
     var element = $compile(template)($rootScope);
     $rootScope.$apply();
 
@@ -146,5 +149,44 @@ describe('download collection files directive', function() {
     $rootScope.$apply();
 
     expect(element.text()).toContain('Can\'t generate archive: FAIL');
+  });
+
+  describe('with export command url provided', function() {
+    var exportCommandDeferred;
+
+    beforeEach(function() {
+      $window.navigator.appVersion = 'Mac';
+
+      exportCommandDeferred = $q.defer();
+      spyOn(grrApiService, 'get').and.returnValue(
+          exportCommandDeferred.promise);
+    });
+
+    it('fetches export command', function() {
+      var element = renderTestTemplate(true);
+      expect(grrApiService.get).toHaveBeenCalledWith('some/export-command/url');
+    });
+
+    it('shows "Show GRR export tool command" link', function() {
+      exportCommandDeferred.resolve({
+        data: {
+          command: 'blah --foo'
+        }
+      });
+      var element = renderTestTemplate(true);
+      expect($('a:contains("Show GRR export tool command")', element).length)
+          .toBe(1);
+    });
+
+    it('renders export command', function() {
+      exportCommandDeferred.resolve({
+        data: {
+          command: 'blah --foo'
+        }
+      });
+      var element = renderTestTemplate(true);
+
+      expect($('pre:contains("blah --foo")', element).length).toBe(1);
+    });
   });
 });

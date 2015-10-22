@@ -47,8 +47,8 @@ HuntResultsController.prototype.onHuntUrnChange = function(huntUrn) {
   var huntId = components[components.length - 1];
 
   this.resultsUrl = '/hunts/' + huntId + '/results';
+  this.downloadFilesUrl = this.resultsUrl + '/archive-files';
   this.outputPluginsMetadataUrl = '/hunts/' + huntId + '/output-plugins';
-  this.downloadFilesUrl = '/hunts/' + huntId + '/results/archive-files';
 };
 
 

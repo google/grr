@@ -1,0 +1,28 @@
+<div class="padded" grr-force-refresh refresh-trigger="flowUrn">
+
+  <div ng-if="!flowUrn">
+    Please select a flow to see its details here.
+  </div>
+
+  <tabset ng-if="flowUrn">
+    <tab heading="Flow Information">
+      <grr-legacy-renderer renderer="ShowFlowInformation"
+                           query-params="{flow: flowUrn}" />
+    </tab>
+
+    <tab heading="Requests" select="requestsTabShown = true">
+      <grr-legacy-renderer renderer="FlowRequestView"
+                           query-params="{flow: flowUrn}"
+                           ng-if="requestsTabShown" />
+    </tab>
+
+    <tab heading="Results" select="resultsTabShown = true">
+      <grr-flow-results flow-urn="flowUrn" ng-if="resultsTabShown" />
+    </tab>
+
+    <tab heading="Log" select="logTabShown = true">
+      <grr-flow-log flow-urn="flowUrn" ng-if="logTabShown" />
+    </tab>
+  </tabset>
+
+</div>

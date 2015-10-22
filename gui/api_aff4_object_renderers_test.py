@@ -34,11 +34,11 @@ class ApiAFF4ObjectRendererTest(test_lib.GRRBaseTest):
                      {"age_policy": "NEWEST_TIME",
                       "attributes": {
                           "aff4:type": {
-                              "age": 42,
+                              "age": 42000000,
                               "type": "RDFString",
                               "value": "AFF4Volume"},
                           "metadata:last": {
-                              "age": 42,
+                              "age": 42000000,
                               "type": "RDFDatetime",
                               "value": 42000000}
                       },
@@ -71,7 +71,7 @@ class ApiRDFValueCollectionRendererTest(test_lib.GRRBaseTest):
     self.assertEqual(len(data["items"]), 10)
     for i in range(10):
       self.assertEqual(data["items"][i],
-                       {"age": 42,
+                       {"age": 42000000,
                         "type": "PathSpec",
                         "value": {
                             "path": {
@@ -96,7 +96,7 @@ class ApiRDFValueCollectionRendererTest(test_lib.GRRBaseTest):
 
     self.assertEqual(len(data["items"]), 2)
     self.assertEqual(data["items"][0],
-                     {"age": 42,
+                     {"age": 42000000,
                       "type": "PathSpec",
                       "value": {
                           "path": {
@@ -111,7 +111,7 @@ class ApiRDFValueCollectionRendererTest(test_lib.GRRBaseTest):
                               }
                           }})
     self.assertEqual(data["items"][1],
-                     {"age": 42,
+                     {"age": 42000000,
                       "type": "PathSpec",
                       "value": {
                           "path": {
@@ -136,7 +136,7 @@ class ApiRDFValueCollectionRendererTest(test_lib.GRRBaseTest):
 
     self.assertEqual(len(data["items"]), 2)
     self.assertEqual(data["items"][0],
-                     {"age": 42,
+                     {"age": 42000000,
                       "type": "PathSpec",
                       "value": {
                           "path": {
@@ -151,7 +151,7 @@ class ApiRDFValueCollectionRendererTest(test_lib.GRRBaseTest):
                               }
                           }})
     self.assertEqual(data["items"][1],
-                     {"age": 42,
+                     {"age": 42000000,
                       "type": "PathSpec",
                       "value": {
                           "path": {
@@ -177,7 +177,7 @@ class ApiRDFValueCollectionRendererTest(test_lib.GRRBaseTest):
 
     self.assertEqual(len(data["items"]), 2)
     self.assertEqual(data["items"][0],
-                     {"age": 42,
+                     {"age": 42000000,
                       "type": "PathSpec",
                       "value": {
                           "path": {
@@ -192,7 +192,7 @@ class ApiRDFValueCollectionRendererTest(test_lib.GRRBaseTest):
                               }
                           }})
     self.assertEqual(data["items"][1],
-                     {"age": 42,
+                     {"age": 42000000,
                       "type": "PathSpec",
                       "value": {
                           "path": {
@@ -222,7 +222,7 @@ class ApiRDFValueCollectionRendererTest(test_lib.GRRBaseTest):
 
     self.assertEqual(len(data["items"]), 1)
     self.assertEqual(data["items"][0],
-                     {"age": 42,
+                     {"age": 42000000,
                       "type": "PathSpec",
                       "value": {
                           "path": {
@@ -244,7 +244,7 @@ class ApiRDFValueCollectionRendererTest(test_lib.GRRBaseTest):
 
     self.assertEqual(len(data["items"]), 2)
     self.assertEqual(data["items"][0],
-                     {"age": 42,
+                     {"age": 42000000,
                       "type": "PathSpec",
                       "value": {
                           "path": {
@@ -259,7 +259,7 @@ class ApiRDFValueCollectionRendererTest(test_lib.GRRBaseTest):
                               }
                           }})
     self.assertEqual(data["items"][1],
-                     {"age": 42,
+                     {"age": 42000000,
                       "type": "PathSpec",
                       "value": {
                           "path": {

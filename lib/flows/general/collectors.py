@@ -172,16 +172,21 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         self.current_artifact_name = artifact_name
         if type_name == source_type.COMMAND:
           self.RunCommand(source)
+        elif (type_name == source_type.DIRECTORY or
+              type_name == source_type.LIST_FILES):
+          # TODO(user): LIST_FILES will be replaced in favor of
+          # DIRECTORY as used by the public artifacts repo.
+          self.Glob(source, self.state.path_type)
         elif type_name == source_type.FILE:
           self.GetFiles(source, self.state.path_type,
                         self.args.max_file_size)
         elif type_name == source_type.GREP:
           self.Grep(source, self.state.path_type)
-        elif type_name == source_type.LIST_FILES:
-          self.Glob(source, self.state.path_type)
         elif type_name == source_type.PATH:
-          # GRR currently ignores PATH types, they are currently only useful
-          # to plaso during bootstrapping when the registry is unavailable.
+          # TODO(user): GRR currently ignores PATH types, they are currently
+          # only useful to plaso during bootstrapping when the registry is
+          # unavailable. The intention is to remove this type in favor of a
+          # default fallback mechanism.
           pass
         elif type_name == source_type.REGISTRY_KEY:
           self.GetRegistryKey(source)

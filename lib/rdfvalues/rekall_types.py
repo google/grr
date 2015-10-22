@@ -4,6 +4,7 @@
 
 import zlib
 
+from grr.lib import rdfvalue
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import jobs_pb2
 
@@ -39,7 +40,7 @@ class RekallResponse(rdf_structs.RDFProtoStruct):
   def json_messages(self):
     json_messages = self.Get("compressed_json_messages")
     if json_messages:
-      return zlib.decompress(json_messages)
+      return json_messages.Uncompress()
 
     json_messages = self.Get("json_messages")
     if json_messages:
@@ -53,6 +54,10 @@ class RekallResponse(rdf_structs.RDFProtoStruct):
 
     # Clear any compressed data the proto already has.
     self.Set("compressed_json_messages", None)
+
+
+class ZippedJSONBytes(rdfvalue.RDFZippedBytes):
+  """Byte array containing zipped JSON bytes."""
 
 
 class RekallProfile(rdf_structs.RDFProtoStruct):

@@ -5,7 +5,8 @@
 
   <input ng-if="controller.valueType == 'RDFInteger' ||
                 controller.valueType == 'int' ||
-                controller.valueType == 'long'" class="form-control"
+                controller.valueType == 'long' ||
+                controller.valueType == 'float'" class="form-control"
          type="number" ng-model="value.value" />
 
   <input ng-if="controller.valueType == 'RDFString' ||

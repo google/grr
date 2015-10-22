@@ -677,3 +677,36 @@ message URI {
     description: "Fragment portion of the URI.",
   }];
 }
+
+// Windows WMI ActiveScriptEventConsumer
+// https://msdn.microsoft.com/en-us/library/aa384749(v=vs.85).aspx
+message WMIActiveScriptEventConsumer {
+  optional string creator_sid = 1 [(sem_type) = {
+    description: "SID of the event creator",
+  }];
+  optional uint64 kill_timeout = 2 [(sem_type) = {
+    description: "Seconds the script is allowed to run. "
+    "Default is 0, no limit.",
+  }];
+  optional string machine_name = 3 [(sem_type) = {
+    description: "Name of the computer to which WMI sends events.",
+  }];
+  optional uint64 max_queue_size = 4 [(sem_type) = {
+    description: "Maximum queue size in bytes for the consumer.",
+  }];
+  optional string name = 5 [(sem_type) = {
+    description: "Unique identifier for the event consumer.",
+  }];
+  optional string script_file_name = 6 [(sem_type) = {
+    description: "Name of the file from which the script text is read.",
+  }];
+  optional string scripting_engine = 7 [(sem_type) = {
+    description: "Name of the scripting engine to use, for example, 'VBScript'."
+    " This property cannot be NULL.",
+  }];
+  optional string script_text = 8 [(sem_type) = {
+    description: "Text of the script that is expressed in a language known to "
+    "the scripting engine. This property must be NULL if the ScriptFileName "
+    "property is not NULL."
+  }];
+}

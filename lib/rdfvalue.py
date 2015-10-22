@@ -18,6 +18,7 @@ import functools
 import posixpath
 import re
 import time
+import zlib
 
 import dateutil
 from dateutil import parser
@@ -249,6 +250,16 @@ class RDFBytes(RDFValue):
 
   def __len__(self):
     return len(self._value)
+
+
+class RDFZippedBytes(RDFBytes):
+  """Zipped bytes sequence."""
+
+  def Uncompress(self):
+    if self:
+      return zlib.decompress(self._value)
+    else:
+      return ""
 
 
 class RDFString(RDFBytes):

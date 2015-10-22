@@ -374,14 +374,20 @@ class FlowStateIcon(semantic.RDFValueRenderer):
     super(FlowStateIcon, self).Layout(request, response)
 
 
-class ManageFlows(renderers.Splitter2Way):
-  """View launched flows in a tree."""
+class ManageFlows(renderers.AngularDirectiveRenderer):
+  """View client's launched flows."""
+
+  post_parameters = ["client_id"]
+  directive = "grr-client-flows-view"
+
   description = "Manage launched flows"
   behaviours = frozenset(["Host"])
   order = 20
 
-  top_renderer = "ListFlowsTable"
-  bottom_renderer = "FlowTabView"
+  def Layout(self, request, response):
+    self.directive_args = {}
+    self.directive_args["client-id"] = request.REQ.get("client_id")
+    return super(ManageFlows, self).Layout(request, response)
 
 
 class FlowLogView(renderers.AngularDirectiveRenderer):

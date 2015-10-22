@@ -54,6 +54,34 @@ class WMIParserTest(test_lib.FlowTestsBaseclass):
                                                   "internal.example.com",
                                                   "example.com"])
 
+  def testWMIActiveScriptEventConsumerParser(self):
+    parser = wmi_parser.WMIActiveScriptEventConsumerParser()
+    rdf_dict = rdf_protodict.Dict()
+    rdf_dict["CreatorSID"] = [1, 5, 0, 0, 0, 0, 0, 5, 21, 0, 0, 0, 152, 18, 87,
+                              2, 226, 49, 80, 44]
+    rdf_dict["KillTimeout"] = 0
+    rdf_dict["MachineName"] = None
+    rdf_dict["MaximumQueueSize"] = None
+    rdf_dict["Name"] = "SomeName"
+    rdf_dict["ScriptFilename"] = None
+    rdf_dict["ScriptingEngine"] = "VBScript"
+    rdf_dict["ScriptText"] = r"""Dim objFS, objFile
+Set objFS = CreateObject("Scripting.FileSystemObject")
+Set objFile = objFS.OpenTextFile("C:\temp.log", 8, true)
+objFile.WriteLine "Time: " & Now & "; Entry made by: ASEC"
+objFile.WriteLine "Application closed. UserModeTime: " &
+TargetEvent.TargetInstance.UserModeTime &_ "; KernelModeTime: " &
+TargetEvent.TargetInstance.KernelModeTime & " [hundreds of nanoseconds]"
+objFile.Close"""
+
+    result_list = list(parser.Parse(
+        None, rdf_dict, None))
+    self.assertEqual(len(result_list), 1)
+    result = result_list[0]
+    self.assertEqual(result.creator_sid, "150000052100015218872226498044")
+    self.assertEqual(result.max_queue_size, 0)
+    self.assertFalse(result.script_file_name)
+
 
 def main(argv):
   test_lib.main(argv)

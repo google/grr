@@ -5,6 +5,7 @@ goog.require('grrUi.core.module');
 goog.require('grrUi.hunt.newHuntWizard.configureFlowPageDirective.ConfigureFlowPageDirective');
 goog.require('grrUi.hunt.newHuntWizard.configureOutputPluginsPageDirective.ConfigureOutputPluginsPageDirective');
 goog.require('grrUi.hunt.newHuntWizard.configureRulesPageDirective.ConfigureRulesPageDirective');
+goog.require('grrUi.hunt.newHuntWizard.copyFormDirective.CopyFormDirective');
 goog.require('grrUi.hunt.newHuntWizard.formDirective.FormDirective');
 goog.require('grrUi.hunt.newHuntWizard.reviewPageDirective.ReviewPageDirective');
 goog.require('grrUi.hunt.newHuntWizard.statusPageDirective.StatusPageDirective');
@@ -41,6 +42,9 @@ grrUi.hunt.newHuntWizard.module.directive(
         .directive_name,
     grrUi.hunt.newHuntWizard.statusPageDirective.StatusPageDirective);
 
+grrUi.hunt.newHuntWizard.module.directive(
+    grrUi.hunt.newHuntWizard.copyFormDirective.CopyFormDirective.directive_name,
+    grrUi.hunt.newHuntWizard.copyFormDirective.CopyFormDirective);
 grrUi.hunt.newHuntWizard.module.directive(
     grrUi.hunt.newHuntWizard.formDirective.FormDirective.directive_name,
     grrUi.hunt.newHuntWizard.formDirective.FormDirective);

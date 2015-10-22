@@ -982,7 +982,8 @@ class ProtoDynamicEmbedded(ProtoType):
   def Validate(self, value, container=None):
     required_type = self._type(container)
     if required_type and not isinstance(value, required_type):
-      raise ValueError("Expected value of type %s" % required_type)
+      raise ValueError("Expected value of type %s, but got %s" %
+                       (required_type, value.__class__.__name__))
 
     return value
 

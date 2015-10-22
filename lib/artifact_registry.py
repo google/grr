@@ -372,6 +372,8 @@ class ArtifactSource(structs.RDFProtoStruct):
                        "output_type": "StatEntry"},
               "GREP": {"required_attributes": ["paths", "content_regex_list"],
                        "output_type": "BufferReference"},
+              "DIRECTORY": {"required_attributes": ["paths"],
+                            "output_type": "StatEntry"},
               "LIST_FILES": {"required_attributes": ["paths"],
                              "output_type": "StatEntry"},
               "PATH": {"required_attributes": ["paths"],

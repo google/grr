@@ -49,11 +49,19 @@ grrUi.forms.outputPluginDescriptorFormDirective
     this.scope_.$watch('value.value.plugin_name.value', function(newValue) {
       if (angular.isDefined(newValue)) {
         var argsType = this.outputPluginsDescriptors[newValue]['args_type'];
-        this.grrReflectionService_.getRDFValueDescriptor(argsType).then(
-            function(descriptor) {
-              this.scope_['value']['value']['plugin_args'] =
-                  angular.copy(descriptor['default']);
-            }.bind(this));
+
+        var pluginArgs = this.scope_['value']['value']['plugin_args'];
+        // We want to replace the plugin args only if they're undefined or
+        // their type differs from the selected ones. This check helps
+        // prefilled forms to keep prefilled data.
+        if (angular.isUndefined(pluginArgs) ||
+            pluginArgs['type'] != argsType) {
+          this.grrReflectionService_.getRDFValueDescriptor(argsType).then(
+              function(descriptor) {
+                this.scope_['value']['value']['plugin_args'] =
+                    angular.copy(descriptor['default']);
+              }.bind(this));
+        }
       }
     }.bind(this));
   }.bind(this));

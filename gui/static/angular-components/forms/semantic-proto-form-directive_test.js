@@ -73,10 +73,6 @@ describe('semantic proto form directive', function() {
           'doc': 'This is a structure Foo.',
           'fields': [
             {
-              'default': {
-                'type': 'PrimitiveType',
-                'value': ''
-              },
               'doc': 'Field 1 description.',
               'dynamic': false,
               'friendly_name': 'Field 1',
@@ -131,6 +127,52 @@ describe('semantic proto form directive', function() {
       // Check that for every primitive field a grr-form-proto-single-field
       // directive is created.
       expect(element.find('grr-form-proto-single-field').length).toBe(2);
+    });
+
+    it('does not overwrite field prefilled with non-default value', function() {
+      var fooValue = defaultFooStructValue;
+      fooValue.value = {
+        field_2: {
+          type: 'PrimitiveType',
+          value: '42'
+        }
+      };
+      var element = renderTestTemplate(fooValue);
+
+      expect(fooValue.value).toEqual({
+        field_2: {
+          type: 'PrimitiveType',
+          value: '42'
+        }
+      });
+    });
+
+    it('erases the field with default value prefilled with default field ' +
+       'value', function() {
+      var fooValue = defaultFooStructValue;
+      fooValue.value = {
+        field_2: {
+          type: 'PrimitiveType',
+          value: 'a foo bar'
+        }
+      };
+      var element = renderTestTemplate(fooValue);
+
+      expect(fooValue.value).toEqual({});
+    });
+
+    it('erases the field without default prefilled with default type ' +
+        'value', function() {
+      var fooValue = defaultFooStructValue;
+      fooValue.value = {
+        field_1: {
+          type: 'PrimitiveType',
+          value: ''
+        }
+      };
+      var element = renderTestTemplate(fooValue);
+
+      expect(fooValue.value).toEqual({});
     });
 
     it('does not render fields listed in hidden-fields argument', function() {
@@ -310,6 +352,26 @@ describe('semantic proto form directive', function() {
       var element = renderTestTemplate(fooValue);
 
       expect(fooValue.value).toEqual({});
+    });
+
+    it('does not overwrite prefilled data', function() {
+      var fooValue = {
+        type: 'Foo',
+        value: {
+          field_1: [
+            {
+              type: 'PrimitiveType',
+              value: '42'
+            }
+          ]
+        }
+      };
+      var element = renderTestTemplate(fooValue);
+      expect(fooValue.value.field_1.length).toBe(1);
+      expect(fooValue.value.field_1[0]).toEqual({
+        type: 'PrimitiveType',
+        value: '42'
+      });
     });
 
     it('updates the model when repeated field is changed', function() {

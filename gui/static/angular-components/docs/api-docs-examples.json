@@ -74,12 +74,12 @@
             }
           },
           "aff4:type": {
-            "age": 42,
+            "age": 42000000,
             "type": "RDFString",
             "value": "AFF4Volume"
           },
           "metadata:last": {
-            "age": 42,
+            "age": 42000000,
             "type": "RDFDatetime",
             "value": 42000000
           }
@@ -262,6 +262,139 @@
       "url": "/api/artifacts"
     }
   ],
+  "ApiCancelFlowRenderer": [
+    {
+      "method": "POST",
+      "response": {
+        "status": "OK"
+      },
+      "test_class": "ApiCancelFlowRendererRegressionTest",
+      "url": "/api/clients/C.1000000000000000/flows/W:ABCDEF/actions/cancel"
+    }
+  ],
+  "ApiClientFlowsListRenderer": [
+    {
+      "method": "GET",
+      "response": {
+        "count": 2,
+        "items": [
+          {
+            "age": 0,
+            "type": "ApiFlow",
+            "value": {
+              "args": {
+                "age": 0,
+                "type": "ListProcessesArgs",
+                "value": {}
+              },
+              "creator": {
+                "age": 0,
+                "type": "unicode",
+                "value": "test"
+              },
+              "last_active_at": {
+                "age": 44000000,
+                "type": "RDFDatetime",
+                "value": 44000000
+              },
+              "name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "ListProcesses"
+              },
+              "nested_flows": [],
+              "started_at": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 44000000
+              },
+              "state": {
+                "age": 0,
+                "type": "EnumNamedValue",
+                "value": "RUNNING"
+              },
+              "urn": {
+                "age": 0,
+                "type": "SessionID",
+                "value": "aff4:/C.1000000000000000/flows/F:ABCDEF11"
+              }
+            }
+          },
+          {
+            "age": 0,
+            "type": "ApiFlow",
+            "value": {
+              "args": {
+                "age": 0,
+                "type": "InterrogateArgs",
+                "value": {}
+              },
+              "creator": {
+                "age": 0,
+                "type": "unicode",
+                "value": "test"
+              },
+              "last_active_at": {
+                "age": 43000000,
+                "type": "RDFDatetime",
+                "value": 43000000
+              },
+              "name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Interrogate"
+              },
+              "nested_flows": [],
+              "started_at": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 43000000
+              },
+              "state": {
+                "age": 0,
+                "type": "EnumNamedValue",
+                "value": "RUNNING"
+              },
+              "urn": {
+                "age": 0,
+                "type": "SessionID",
+                "value": "aff4:/C.1000000000000000/flows/F:ABCDEF10"
+              }
+            }
+          }
+        ],
+        "offset": 0
+      },
+      "test_class": "ApiClientFlowsListRendererRegressionTest",
+      "type_stripped_response": {
+        "count": 2,
+        "items": [
+          {
+            "args": {},
+            "creator": "test",
+            "last_active_at": 44000000,
+            "name": "ListProcesses",
+            "nested_flows": [],
+            "started_at": 44000000,
+            "state": "RUNNING",
+            "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF11"
+          },
+          {
+            "args": {},
+            "creator": "test",
+            "last_active_at": 43000000,
+            "name": "Interrogate",
+            "nested_flows": [],
+            "started_at": 43000000,
+            "state": "RUNNING",
+            "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF10"
+          }
+        ],
+        "offset": 0
+      },
+      "url": "/api/clients/C.1000000000000000/flows"
+    }
+  ],
   "ApiClientSearchRenderer": [
     {
       "method": "GET",
@@ -273,22 +406,22 @@
             "age_policy": "NEWEST_TIME",
             "attributes": {
               "aff4:host_ips": {
-                "age": 42,
+                "age": 42000000,
                 "type": "RDFString",
                 "value": "192.168.0.0\n2001:abcd::0"
               },
               "aff4:mac_addresses": {
-                "age": 42,
+                "age": 42000000,
                 "type": "RDFString",
                 "value": "aabbccddee00\nbbccddeeff00"
               },
               "aff4:type": {
-                "age": 42,
+                "age": 42000000,
                 "type": "RDFString",
                 "value": "VFSGRRClient"
               },
               "metadata:ClientInfo": {
-                "age": 42,
+                "age": 42000000,
                 "type": "ClientInformation",
                 "value": {
                   "client_name": {
@@ -299,17 +432,17 @@
                 }
               },
               "metadata:fqdn": {
-                "age": 42,
+                "age": 42000000,
                 "type": "RDFString",
                 "value": "Host-0.example.com"
               },
               "metadata:hostname": {
-                "age": 42,
+                "age": 42000000,
                 "type": "RDFString",
                 "value": "Host-0"
               },
               "metadata:last": {
-                "age": 42,
+                "age": 42000000,
                 "type": "RDFDatetime",
                 "value": 42000000
               },
@@ -330,7 +463,7 @@
                   "value": "aff4:/C.1000000000000000"
                 },
                 "client_info": {
-                  "age": 42,
+                  "age": 42000000,
                   "type": "ClientInformation",
                   "value": {
                     "client_name": {
@@ -435,22 +568,22 @@
         "age_policy": "NEWEST_TIME",
         "attributes": {
           "aff4:host_ips": {
-            "age": 42,
+            "age": 42000000,
             "type": "RDFString",
             "value": "192.168.0.0\n2001:abcd::0"
           },
           "aff4:mac_addresses": {
-            "age": 42,
+            "age": 42000000,
             "type": "RDFString",
             "value": "aabbccddee00\nbbccddeeff00"
           },
           "aff4:type": {
-            "age": 42,
+            "age": 42000000,
             "type": "RDFString",
             "value": "VFSGRRClient"
           },
           "metadata:ClientInfo": {
-            "age": 42,
+            "age": 42000000,
             "type": "ClientInformation",
             "value": {
               "client_name": {
@@ -461,17 +594,17 @@
             }
           },
           "metadata:fqdn": {
-            "age": 42,
+            "age": 42000000,
             "type": "RDFString",
             "value": "Host-0.example.com"
           },
           "metadata:hostname": {
-            "age": 42,
+            "age": 42000000,
             "type": "RDFString",
             "value": "Host-0"
           },
           "metadata:last": {
-            "age": 42,
+            "age": 42000000,
             "type": "RDFDatetime",
             "value": 42000000
           },
@@ -492,7 +625,7 @@
               "value": "aff4:/C.1000000000000000"
             },
             "client_info": {
-              "age": 42,
+              "age": 42000000,
               "type": "ClientInformation",
               "value": {
                 "client_name": {
@@ -1034,6 +1167,16 @@
       "url": "/api/clients/C.1000000000000000/flows/W:ABCDEF/output-plugins"
     }
   ],
+  "ApiFlowResultsExportCommandRenderer": [
+    {
+      "method": "GET",
+      "response": {
+        "command": "/usr/bin/grr_export --username test --reason '' collection_files --path aff4:/C.1000000000000000/analysis/ListProcesses/test-42 --output ."
+      },
+      "test_class": "ApiFlowResultsExportCommandRendererRegressionTest",
+      "url": "/api/clients/C.1000000000000000/flows/W:ABCDEF/results/export-command"
+    }
+  ],
   "ApiFlowResultsRenderer": [
     {
       "method": "GET",
@@ -1042,17 +1185,17 @@
         "age_policy": "NEWEST_TIME",
         "attributes": {
           "aff4:size": {
-            "age": 42,
+            "age": 42000000,
             "type": "RDFInteger",
             "value": 1
           },
           "aff4:type": {
-            "age": 42,
+            "age": 42000000,
             "type": "RDFString",
             "value": "RDFValueCollection"
           },
           "metadata:last": {
-            "age": 42,
+            "age": 42000000,
             "type": "RDFDatetime",
             "value": 42000000
           }
@@ -1060,7 +1203,7 @@
         "count": 1,
         "items": [
           {
-            "age": 42,
+            "age": 42000000,
             "type": "StatEntry",
             "value": {
               "aff4path": {
@@ -1237,7 +1380,7 @@
           }
         },
         "last_update_time": {
-          "age": 42,
+          "age": 42000000,
           "type": "RDFDatetime",
           "value": 42000000
         },
@@ -1309,7 +1452,7 @@
         "age_policy": "NEWEST_TIME",
         "attributes": {
           "aff4:data": {
-            "age": 55,
+            "age": 55000000,
             "type": "HuntError",
             "value": {
               "backtrace": {
@@ -1330,12 +1473,12 @@
             }
           },
           "aff4:type": {
-            "age": 42,
+            "age": 42000000,
             "type": "RDFString",
             "value": "PackedVersionedCollection"
           },
           "metadata:last": {
-            "age": 55,
+            "age": 55000000,
             "type": "RDFDatetime",
             "value": 55000000
           }
@@ -1343,7 +1486,7 @@
         "count": 2,
         "items": [
           {
-            "age": 52,
+            "age": 52000000,
             "type": "HuntError",
             "value": {
               "client_id": {
@@ -1359,7 +1502,7 @@
             }
           },
           {
-            "age": 55,
+            "age": 55000000,
             "type": "HuntError",
             "value": {
               "backtrace": {
@@ -1422,7 +1565,7 @@
         "age_policy": "NEWEST_TIME",
         "attributes": {
           "aff4:data": {
-            "age": 55,
+            "age": 55000000,
             "type": "HuntError",
             "value": {
               "backtrace": {
@@ -1443,12 +1586,12 @@
             }
           },
           "aff4:type": {
-            "age": 42,
+            "age": 42000000,
             "type": "RDFString",
             "value": "PackedVersionedCollection"
           },
           "metadata:last": {
-            "age": 55,
+            "age": 55000000,
             "type": "RDFDatetime",
             "value": 55000000
           }
@@ -1456,7 +1599,7 @@
         "count": 1,
         "items": [
           {
-            "age": 52,
+            "age": 52000000,
             "type": "HuntError",
             "value": {
               "client_id": {
@@ -1509,7 +1652,7 @@
         "age_policy": "NEWEST_TIME",
         "attributes": {
           "aff4:data": {
-            "age": 55,
+            "age": 55000000,
             "type": "HuntError",
             "value": {
               "backtrace": {
@@ -1530,12 +1673,12 @@
             }
           },
           "aff4:type": {
-            "age": 42,
+            "age": 42000000,
             "type": "RDFString",
             "value": "PackedVersionedCollection"
           },
           "metadata:last": {
-            "age": 55,
+            "age": 55000000,
             "type": "RDFDatetime",
             "value": 55000000
           }
@@ -1543,7 +1686,7 @@
         "count": 1,
         "items": [
           {
-            "age": 55,
+            "age": 55000000,
             "type": "HuntError",
             "value": {
               "backtrace": {
@@ -1596,6 +1739,16 @@
       "url": "/api/hunts/H:123456/errors?offset=1&count=1"
     }
   ],
+  "ApiHuntHuntResultsExportCommandRenderer": [
+    {
+      "method": "GET",
+      "response": {
+        "command": "/usr/bin/grr_export --username test --reason '' collection_files --path aff4:/hunts/H:123456/Results --output ."
+      },
+      "test_class": "ApiHuntResultsExportCommandRendererRegressionTest",
+      "url": "/api/hunts/H:123456/results/export-command"
+    }
+  ],
   "ApiHuntLogRenderer": [
     {
       "method": "GET",
@@ -1604,7 +1757,7 @@
         "age_policy": "NEWEST_TIME",
         "attributes": {
           "aff4:data": {
-            "age": 55,
+            "age": 55000000,
             "type": "FlowLog",
             "value": {
               "flow_name": {
@@ -1625,12 +1778,12 @@
             }
           },
           "aff4:type": {
-            "age": 55,
+            "age": 55000000,
             "type": "RDFString",
             "value": "PackedVersionedCollection"
           },
           "metadata:last": {
-            "age": 55,
+            "age": 55000000,
             "type": "RDFDatetime",
             "value": 55000000
           }
@@ -1638,7 +1791,7 @@
         "count": 2,
         "items": [
           {
-            "age": 52,
+            "age": 52000000,
             "type": "FlowLog",
             "value": {
               "flow_name": {
@@ -1659,7 +1812,7 @@
             }
           },
           {
-            "age": 55,
+            "age": 55000000,
             "type": "FlowLog",
             "value": {
               "flow_name": {
@@ -1723,7 +1876,7 @@
         "age_policy": "NEWEST_TIME",
         "attributes": {
           "aff4:data": {
-            "age": 55,
+            "age": 55000000,
             "type": "FlowLog",
             "value": {
               "flow_name": {
@@ -1744,12 +1897,12 @@
             }
           },
           "aff4:type": {
-            "age": 55,
+            "age": 55000000,
             "type": "RDFString",
             "value": "PackedVersionedCollection"
           },
           "metadata:last": {
-            "age": 55,
+            "age": 55000000,
             "type": "RDFDatetime",
             "value": 55000000
           }
@@ -1757,7 +1910,7 @@
         "count": 1,
         "items": [
           {
-            "age": 52,
+            "age": 52000000,
             "type": "FlowLog",
             "value": {
               "flow_name": {
@@ -1816,7 +1969,7 @@
         "age_policy": "NEWEST_TIME",
         "attributes": {
           "aff4:data": {
-            "age": 55,
+            "age": 55000000,
             "type": "FlowLog",
             "value": {
               "flow_name": {
@@ -1837,12 +1990,12 @@
             }
           },
           "aff4:type": {
-            "age": 55,
+            "age": 55000000,
             "type": "RDFString",
             "value": "PackedVersionedCollection"
           },
           "metadata:last": {
-            "age": 55,
+            "age": 55000000,
             "type": "RDFDatetime",
             "value": 55000000
           }
@@ -1850,7 +2003,7 @@
         "count": 1,
         "items": [
           {
-            "age": 55,
+            "age": 55000000,
             "type": "FlowLog",
             "value": {
               "flow_name": {
@@ -1916,7 +2069,7 @@
             "value": "PAUSED"
           },
           "aff4:type": {
-            "age": 42,
+            "age": 42000000,
             "type": "RDFString",
             "value": "GenericHunt"
           },
@@ -2061,7 +2214,7 @@
                   },
                   "next_states": [],
                   "output_plugins_base_urn": {
-                    "age": 42,
+                    "age": 42000000,
                     "type": "RDFURN",
                     "value": "aff4:/hunts/H:123456/Results"
                   },
@@ -2076,17 +2229,17 @@
                     "value": 0
                   },
                   "results_collection_urn": {
-                    "age": 42,
+                    "age": 42000000,
                     "type": "RDFURN",
                     "value": "aff4:/hunts/H:123456/Results"
                   },
                   "results_metadata_urn": {
-                    "age": 42,
+                    "age": 42000000,
                     "type": "RDFURN",
                     "value": "aff4:/hunts/H:123456/ResultsMetadata"
                   },
                   "session_id": {
-                    "age": 42,
+                    "age": 42000000,
                     "type": "SessionID",
                     "value": "aff4:/hunts/H:123456"
                   },
@@ -2791,7 +2944,7 @@
             }
           },
           "metadata:last": {
-            "age": 42,
+            "age": 42000000,
             "type": "RDFDatetime",
             "value": 42000000
           }
@@ -4070,7 +4223,7 @@
                 "value": "STOPPED"
               },
               "aff4:type": {
-                "age": 2000,
+                "age": 2000000000,
                 "type": "RDFString",
                 "value": "GenericHunt"
               },
@@ -4215,7 +4368,7 @@
                       },
                       "next_states": "<lists are omitted>",
                       "output_plugins_base_urn": {
-                        "age": 2000,
+                        "age": 2000000000,
                         "type": "RDFURN",
                         "value": "aff4:/hunts/H:000001/Results"
                       },
@@ -4230,17 +4383,17 @@
                         "value": 0
                       },
                       "results_collection_urn": {
-                        "age": 2000,
+                        "age": 2000000000,
                         "type": "RDFURN",
                         "value": "aff4:/hunts/H:000001/Results"
                       },
                       "results_metadata_urn": {
-                        "age": 2000,
+                        "age": 2000000000,
                         "type": "RDFURN",
                         "value": "aff4:/hunts/H:000001/ResultsMetadata"
                       },
                       "session_id": {
-                        "age": 2000,
+                        "age": 2000000000,
                         "type": "SessionID",
                         "value": "aff4:/hunts/H:000001"
                       },
@@ -4309,7 +4462,7 @@
                 }
               },
               "metadata:last": {
-                "age": 2000,
+                "age": 2000000000,
                 "type": "RDFDatetime",
                 "value": 2000000000
               }
@@ -4368,7 +4521,7 @@
                 "value": "PAUSED"
               },
               "aff4:type": {
-                "age": 1000,
+                "age": 1000000000,
                 "type": "RDFString",
                 "value": "GenericHunt"
               },
@@ -4513,7 +4666,7 @@
                       },
                       "next_states": "<lists are omitted>",
                       "output_plugins_base_urn": {
-                        "age": 1000,
+                        "age": 1000000000,
                         "type": "RDFURN",
                         "value": "aff4:/hunts/H:000000/Results"
                       },
@@ -4528,17 +4681,17 @@
                         "value": 0
                       },
                       "results_collection_urn": {
-                        "age": 1000,
+                        "age": 1000000000,
                         "type": "RDFURN",
                         "value": "aff4:/hunts/H:000000/Results"
                       },
                       "results_metadata_urn": {
-                        "age": 1000,
+                        "age": 1000000000,
                         "type": "RDFURN",
                         "value": "aff4:/hunts/H:000000/ResultsMetadata"
                       },
                       "session_id": {
-                        "age": 1000,
+                        "age": 1000000000,
                         "type": "SessionID",
                         "value": "aff4:/hunts/H:000000"
                       },
@@ -4602,7 +4755,7 @@
                 }
               },
               "metadata:last": {
-                "age": 1000,
+                "age": 1000000000,
                 "type": "RDFDatetime",
                 "value": 1000000000
               }
@@ -4843,7 +4996,7 @@
                 "value": "STOPPED"
               },
               "aff4:type": {
-                "age": 2000,
+                "age": 2000000000,
                 "type": "RDFString",
                 "value": "GenericHunt"
               },
@@ -4988,7 +5141,7 @@
                       },
                       "next_states": "<lists are omitted>",
                       "output_plugins_base_urn": {
-                        "age": 2000,
+                        "age": 2000000000,
                         "type": "RDFURN",
                         "value": "aff4:/hunts/H:000001/Results"
                       },
@@ -5003,17 +5156,17 @@
                         "value": 0
                       },
                       "results_collection_urn": {
-                        "age": 2000,
+                        "age": 2000000000,
                         "type": "RDFURN",
                         "value": "aff4:/hunts/H:000001/Results"
                       },
                       "results_metadata_urn": {
-                        "age": 2000,
+                        "age": 2000000000,
                         "type": "RDFURN",
                         "value": "aff4:/hunts/H:000001/ResultsMetadata"
                       },
                       "session_id": {
-                        "age": 2000,
+                        "age": 2000000000,
                         "type": "SessionID",
                         "value": "aff4:/hunts/H:000001"
                       },
@@ -5082,7 +5235,7 @@
                 }
               },
               "metadata:last": {
-                "age": 2000,
+                "age": 2000000000,
                 "type": "RDFDatetime",
                 "value": 2000000000
               }
@@ -5242,7 +5395,7 @@
                 "value": "PAUSED"
               },
               "aff4:type": {
-                "age": 1000,
+                "age": 1000000000,
                 "type": "RDFString",
                 "value": "GenericHunt"
               },
@@ -5387,7 +5540,7 @@
                       },
                       "next_states": "<lists are omitted>",
                       "output_plugins_base_urn": {
-                        "age": 1000,
+                        "age": 1000000000,
                         "type": "RDFURN",
                         "value": "aff4:/hunts/H:000000/Results"
                       },
@@ -5402,17 +5555,17 @@
                         "value": 0
                       },
                       "results_collection_urn": {
-                        "age": 1000,
+                        "age": 1000000000,
                         "type": "RDFURN",
                         "value": "aff4:/hunts/H:000000/Results"
                       },
                       "results_metadata_urn": {
-                        "age": 1000,
+                        "age": 1000000000,
                         "type": "RDFURN",
                         "value": "aff4:/hunts/H:000000/ResultsMetadata"
                       },
                       "session_id": {
-                        "age": 1000,
+                        "age": 1000000000,
                         "type": "SessionID",
                         "value": "aff4:/hunts/H:000000"
                       },
@@ -5476,7 +5629,7 @@
                 }
               },
               "metadata:last": {
-                "age": 1000,
+                "age": 1000000000,
                 "type": "RDFDatetime",
                 "value": 1000000000
               }
@@ -6692,66 +6845,66 @@
             "attributes": {
               "aff4:approval/approver": [
                 {
-                  "age": 84,
+                  "age": 84000000,
                   "type": "RDFString",
                   "value": "approver"
                 },
                 {
-                  "age": 45,
+                  "age": 45000000,
                   "type": "RDFString",
                   "value": "test"
                 }
               ],
               "aff4:approval/email_cc": [
                 {
-                  "age": 45,
+                  "age": 45000000,
                   "type": "RDFString",
                   "value": "approver"
                 }
               ],
               "aff4:approval/email_msg_id": [
                 {
-                  "age": 45,
+                  "age": 45000000,
                   "type": "RDFString",
                   "value": "<message id stub>"
                 }
               ],
               "aff4:approval/requestor": [
                 {
-                  "age": 45,
+                  "age": 45000000,
                   "type": "RDFString",
                   "value": "test"
                 }
               ],
               "aff4:approval/subject": [
                 {
-                  "age": 45,
+                  "age": 45000000,
                   "type": "RDFURN",
                   "value": "aff4:/C.1000000000000001"
                 }
               ],
               "aff4:type": [
                 {
-                  "age": 84,
+                  "age": 84000000,
                   "type": "RDFString",
                   "value": "ClientApproval"
                 },
                 {
-                  "age": 45,
+                  "age": 45000000,
                   "type": "RDFString",
                   "value": "ClientApproval"
                 }
               ],
               "aff4:approval/reason": [
                 {
-                  "age": 45,
+                  "age": 45000000,
                   "type": "RDFString",
                   "value": "Running tests"
                 }
               ],
               "metadata:last": [
                 {
-                  "age": 84,
+                  "age": 84000000,
                   "type": "RDFDatetime",
                   "value": 84000000
                 }
@@ -6763,22 +6916,22 @@
               "age_policy": "NEWEST_TIME",
               "attributes": {
                 "aff4:host_ips": {
-                  "age": 42,
+                  "age": 42000000,
                   "type": "RDFString",
                   "value": "192.168.0.1\n2001:abcd::1"
                 },
                 "aff4:mac_addresses": {
-                  "age": 42,
+                  "age": 42000000,
                   "type": "RDFString",
                   "value": "aabbccddee01\nbbccddeeff01"
                 },
                 "aff4:type": {
-                  "age": 42,
+                  "age": 42000000,
                   "type": "RDFString",
                   "value": "VFSGRRClient"
                 },
                 "metadata:ClientInfo": {
-                  "age": 42,
+                  "age": 42000000,
                   "type": "ClientInformation",
                   "value": {
                     "client_name": {
@@ -6789,17 +6942,17 @@
                   }
                 },
                 "metadata:fqdn": {
-                  "age": 42,
+                  "age": 42000000,
                   "type": "RDFString",
                   "value": "Host-1.example.com"
                 },
                 "metadata:hostname": {
-                  "age": 42,
+                  "age": 42000000,
                   "type": "RDFString",
                   "value": "Host-1"
                 },
                 "metadata:last": {
-                  "age": 45,
+                  "age": 45000000,
                   "type": "RDFDatetime",
                   "value": 45000000
                 },
@@ -6820,7 +6973,7 @@
                     "value": "aff4:/C.1000000000000001"
                   },
                   "client_info": {
-                    "age": 42,
+                    "age": 42000000,
                     "type": "ClientInformation",
                     "value": {
                       "client_name": {
@@ -6878,56 +7031,56 @@
             "attributes": {
               "aff4:approval/approver": [
                 {
-                  "age": 44,
+                  "age": 44000000,
                   "type": "RDFString",
                   "value": "test"
                 }
               ],
               "aff4:approval/email_cc": [
                 {
-                  "age": 44,
+                  "age": 44000000,
                   "type": "RDFString",
                   "value": "approver"
                 }
               ],
               "aff4:approval/email_msg_id": [
                 {
-                  "age": 44,
+                  "age": 44000000,
                   "type": "RDFString",
                   "value": "<message id stub>"
                 }
               ],
               "aff4:approval/requestor": [
                 {
-                  "age": 44,
+                  "age": 44000000,
                   "type": "RDFString",
                   "value": "test"
                 }
               ],
               "aff4:approval/subject": [
                 {
-                  "age": 44,
+                  "age": 44000000,
                   "type": "RDFURN",
                   "value": "aff4:/C.1000000000000000"
                 }
               ],
               "aff4:type": [
                 {
-                  "age": 44,
+                  "age": 44000000,
                   "type": "RDFString",
                   "value": "ClientApproval"
                 }
               ],
               "aff4:approval/reason": [
                 {
-                  "age": 44,
+                  "age": 44000000,
                   "type": "RDFString",
                   "value": "Running tests"
                 }
               ],
               "metadata:last": [
                 {
-                  "age": 44,
+                  "age": 44000000,
                   "type": "RDFDatetime",
                   "value": 44000000
                 }
@@ -6940,22 +7093,22 @@
               "age_policy": "NEWEST_TIME",
               "attributes": {
                 "aff4:host_ips": {
-                  "age": 42,
+                  "age": 42000000,
                   "type": "RDFString",
                   "value": "192.168.0.0\n2001:abcd::0"
                 },
                 "aff4:mac_addresses": {
-                  "age": 42,
+                  "age": 42000000,
                   "type": "RDFString",
                   "value": "aabbccddee00\nbbccddeeff00"
                 },
                 "aff4:type": {
-                  "age": 42,
+                  "age": 42000000,
                   "type": "RDFString",
                   "value": "VFSGRRClient"
                 },
                 "metadata:ClientInfo": {
-                  "age": 42,
+                  "age": 42000000,
                   "type": "ClientInformation",
                   "value": {
                     "client_name": {
@@ -6966,17 +7119,17 @@
                   }
                 },
                 "metadata:fqdn": {
-                  "age": 42,
+                  "age": 42000000,
                   "type": "RDFString",
                   "value": "Host-0.example.com"
                 },
                 "metadata:hostname": {
-                  "age": 42,
+                  "age": 42000000,
                   "type": "RDFString",
                   "value": "Host-0"
                 },
                 "metadata:last": {
-                  "age": 44,
+                  "age": 44000000,
                   "type": "RDFDatetime",
                   "value": 44000000
                 },
@@ -6997,7 +7150,7 @@
                     "value": "aff4:/C.1000000000000000"
                   },
                   "client_info": {
-                    "age": 42,
+                    "age": 42000000,
                     "type": "ClientInformation",
                     "value": {
                       "client_name": {
@@ -7203,56 +7356,56 @@
             "attributes": {
               "aff4:approval/approver": [
                 {
-                  "age": 43,
+                  "age": 43000000,
                   "type": "RDFString",
                   "value": "test"
                 }
               ],
               "aff4:approval/email_cc": [
                 {
-                  "age": 43,
+                  "age": 43000000,
                   "type": "RDFString",
                   "value": "approver"
                 }
               ],
               "aff4:approval/email_msg_id": [
                 {
-                  "age": 43,
+                  "age": 43000000,
                   "type": "RDFString",
                   "value": "<message id stub>"
                 }
               ],
               "aff4:approval/requestor": [
                 {
-                  "age": 43,
+                  "age": 43000000,
                   "type": "RDFString",
                   "value": "test"
                 }
               ],
               "aff4:approval/subject": [
                 {
-                  "age": 43,
+                  "age": 43000000,
                   "type": "RDFURN",
                   "value": "aff4:/hunts/H:123456"
                 }
               ],
               "aff4:type": [
                 {
-                  "age": 43,
+                  "age": 43000000,
                   "type": "RDFString",
                   "value": "HuntApproval"
                 }
               ],
               "aff4:approval/reason": [
                 {
-                  "age": 43,
+                  "age": 43000000,
                   "type": "RDFString",
                   "value": "Running tests"
                 }
               ],
               "metadata:last": [
                 {
-                  "age": 43,
+                  "age": 43000000,
                   "type": "RDFDatetime",
                   "value": 43000000
                 }
@@ -7270,7 +7423,7 @@
                   "value": "PAUSED"
                 },
                 "aff4:type": {
-                  "age": 42,
+                  "age": 42000000,
                   "type": "RDFString",
                   "value": "GenericHunt"
                 },
@@ -7382,7 +7535,7 @@
                         },
                         "next_states": [],
                         "output_plugins_base_urn": {
-                          "age": 42,
+                          "age": 42000000,
                           "type": "RDFURN",
                           "value": "aff4:/hunts/H:123456/Results"
                         },
@@ -7397,17 +7550,17 @@
                           "value": 0
                         },
                         "results_collection_urn": {
-                          "age": 42,
+                          "age": 42000000,
                           "type": "RDFURN",
                           "value": "aff4:/hunts/H:123456/Results"
                         },
                         "results_metadata_urn": {
-                          "age": 42,
+                          "age": 42000000,
                           "type": "RDFURN",
                           "value": "aff4:/hunts/H:123456/ResultsMetadata"
                         },
                         "session_id": {
-                          "age": 42,
+                          "age": 42000000,
                           "type": "SessionID",
                           "value": "aff4:/hunts/H:123456"
                         },
@@ -8112,7 +8265,7 @@
                   }
                 },
                 "metadata:last": {
-                  "age": 42,
+                  "age": 42000000,
                   "type": "RDFDatetime",
                   "value": 42000000
                 }
@@ -8462,7 +8615,7 @@
     {
       "method": "GET",
       "response": {
-        "age": 42,
+        "age": 42000000,
         "type": "GUISettings",
         "value": {
           "canary_mode": {

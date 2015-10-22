@@ -33,7 +33,7 @@ class ApiAff4RendererTest(test_lib.GRRBaseTest):
     self.assertEqual(result["attributes"]["metadata:last"], {
         "value": 42000000,
         "type": "RDFDatetime",
-        "age": 42})
+        "age": 42000000})
 
 
 class ApiAff4RendererRegressionTest(

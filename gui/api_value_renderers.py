@@ -17,6 +17,7 @@ from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr.lib.rdfvalues import structs as rdf_structs
 
 
@@ -90,7 +91,7 @@ class ApiValueRenderer(object):
     # Converted value is placed in the resulting dictionary under the 'value'
     # key.
     if hasattr(original_value, "age"):
-      age = original_value.age.AsSecondsFromEpoch()
+      age = original_value.age.AsMicroSecondsFromEpoch()
     else:
       age = 0
 
@@ -192,7 +193,7 @@ class ApiDictRenderer(ApiValueRenderer):
   def RenderValue(self, value):
     result = {}
     for k, v in value.items():
-      result[k] = self._PassThrough(v)
+      result[utils.SmartUnicode(k)] = self._PassThrough(v)
 
     return self._IncludeTypeInfo(result, value)
 
@@ -273,6 +274,26 @@ class ApiRDFBytesRenderer(ApiValueRenderer):
 
   def RenderValue(self, value):
     result = base64.b64encode(value.SerializeToString())
+    return self._IncludeTypeInfo(result, value)
+
+
+class ApiRDFZippedBytesRenderer(ApiValueRenderer):
+  """Renderer for RDFZippedBytes."""
+
+  value_class = rdfvalue.RDFZippedBytes
+
+  def RenderValue(self, value):
+    result = base64.b64encode(value.Uncompress())
+    return self._IncludeTypeInfo(result, value)
+
+
+class ApiZippedJSONBytesRenderer(ApiValueRenderer):
+  """Renderer for ZippedJSONBytes."""
+
+  value_class = rdf_rekall_types.ZippedJSONBytes
+
+  def RenderValue(self, value):
+    result = utils.SmartUnicode(value.Uncompress())
     return self._IncludeTypeInfo(result, value)
 
 

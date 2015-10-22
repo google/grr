@@ -1,0 +1,16 @@
+<div class="centered flow-state-icon"
+     ng-init="flowState = flow.value.state.value"
+     state="{$ ::flowState $}">
+  <img ng-if="::flowState == 'TERMINATED'"
+       title="Flow finished normally."
+       class="grr-icon grr-flow-icon" src="/static/images/stock_yes.png" />
+  <img ng-if="::flowState == 'RUNNING'"
+       title="Flow is still running."
+       class="grr-icon grr-flow-icon" src="/static/images/clock.png" />
+  <img ng-if="::flowState == 'ERROR'"
+       title="Flow terminated with an error."
+       class="grr-icon grr-flow-icon" src="/static/images/nuke.png" />
+  <img ng-if="::flowState == 'CLIENT_CRASHED'"
+       title="The client crashed while executing this flow."
+       class="grr-icon grr-flow-icon" src="/static/images/skull-icon.png" />
+</div>

@@ -1,0 +1,56 @@
+<table class="table table-striped table-condensed table-hover table-bordered full-width">
+  <colgroup>
+    <col style="width: 40px">
+    <col style="width: 20%">
+    <col style="width: 20%">
+    <col style="width: 20%">
+    <col style="width: 20%">
+    <col style="width: 20%">
+  </colgroup>
+  <thead>
+    <tr>
+      <th>State</th>
+      <th>Path</th>
+      <th>Flow Name</th>
+      <th>Creation Time</th>
+      <th>Last Active</th>
+      <th>Creator</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr grr-infinite-table grr-api-items-provider url="flowsUrl" page-size="25"
+        transform-items="controller.transformItems(items)"
+        trigger-update="triggerUpdate"
+        ng-click="controller.selectItem(item)"
+        ng-class="{'row-selected': item.value.urn.value == controller.selectedFlowUrn}"
+        ng-if="item.shown">
+      <td><grr-flow-status-icon flow="::item" /></td>
+      <td>
+        <span ng-if="::item.expanded === undefined"
+              style="float: left; margin-left: {$ ::item.depth $}em"
+              class="tree_leaf">
+        </span>
+        <span ng-if="::item.expanded !== undefined"
+              ng-class="{'tree_closed': !item.expanded, 'tree_opened': item.expanded}"
+              ng-click="item.expand($event)"
+              style="margin-left: {$ ::item.depth $}em"
+              class="tree_branch">
+        </span>
+        {$ ::item.shortUrn $}
+      </td>
+      <td>
+        <grr-semantic-value value="::item.value.name" />
+      </td>
+      <td>
+        <grr-semantic-value value="::item.value.started_at" />
+      </td>
+      <td>
+        <grr-semantic-value value="::item.value.last_active_at" />
+      </td>
+      <td>
+        <grr-semantic-value value="::item.value.creator" />
+      </td>
+    </tr>
+
+  </tbody>
+</table>

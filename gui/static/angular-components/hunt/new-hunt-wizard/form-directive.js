@@ -96,7 +96,7 @@ FormController.prototype.onGenericHuntArgsChange_ = function(newValue) {
         this.defaultOutputPluginName;
 
     newValue['value']['output_plugins'] = [defaultPluginDescriptor];
-  } else {
+  } else if (angular.isUndefined(newValue['value']['output_plugins'])) {
     newValue['value']['output_plugins'] = [];
   }
 };
@@ -111,8 +111,14 @@ FormController.prototype.onHuntRunnerArgsChange_ = function(newValue) {
   if (angular.isUndefined(newValue)) {
     this.scope_['huntRunnerArgs'] = angular.copy(
         this.descriptors_['HuntRunnerArgs']['default']);
-    this.scope_['huntRunnerArgs']['value']['integer_rules'] = [];
-    this.scope_['huntRunnerArgs']['value']['regex_rules'] = [];
+  }
+
+  var huntRunnerArgs = this.scope_['huntRunnerArgs']['value'];
+  if (angular.isUndefined(huntRunnerArgs['integer_rules'])) {
+   huntRunnerArgs['integer_rules'] = [];
+  }
+  if (angular.isUndefined(huntRunnerArgs['regex_rules'])) {
+    huntRunnerArgs['regex_rules'] = [];
   }
 };
 

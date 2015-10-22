@@ -264,10 +264,10 @@ class TestFileView(FileViewTestBase):
     # Interrogate. UpdateVFSFile triggers VFSGRRClient.Update() method which
     # triggers Interrogate.
     self.WaitUntilEqual("Interrogate", self.GetText,
-                        "//table/tbody/tr[1]/td[3]")
+                        "css=grr-client-flows-list tr:visible:nth(1) td:nth(2)")
     self.WaitUntilEqual("UpdateVFSFile", self.GetText,
-                        "//table/tbody/tr[2]/td[3]")
-    self.Click("//table/tbody/tr[2]/td[3]")
+                        "css=grr-client-flows-list tr:visible:nth(2) td:nth(2)")
+    self.Click("css=grr-client-flows-list tr:visible:nth(2)")
     self.WaitUntilEqual(
         "aff4:/C.0000000000000001", self.GetText,
         "css=table > tbody td.proto_key:contains(\"Vfs file urn\") "
@@ -277,8 +277,8 @@ class TestFileView(FileViewTestBase):
     # During the test this file is VFSMemoryFile, so its' Update method does
     # nothing, therefore UpdateVFSFile won't issue any other flows.
     self.WaitUntilEqual("UpdateVFSFile", self.GetText,
-                        "//table/tbody/tr[3]/td[3]")
-    self.Click("//table/tbody/tr[3]/td[3]")
+                        "css=grr-client-flows-list tr:visible:nth(3) td:nth(2)")
+    self.Click("css=grr-client-flows-list tr:visible:nth(3)")
     self.WaitUntilContains(
         "cat", self.GetText,
         "css=table > tbody td.proto_key:contains(\"Vfs file urn\") "

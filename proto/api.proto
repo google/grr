@@ -82,6 +82,17 @@ message ApiStartFlowRendererArgs {
     }];
 }
 
+message ApiCancelFlowRendererArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ClientURN",
+      description: "Client id."
+    }];
+  optional string flow_id = 2 [(sem_type) = {
+      type: "SessionID",
+      description: "Flow id."
+    }];
+}
+
 message ApiFlowStatusRendererArgs {
   optional string client_id = 1 [(sem_type) = {
       type: "ClientURN",
@@ -114,6 +125,17 @@ message ApiFlowResultsRendererArgs {
     }];
 }
 
+message ApiFlowResultsExportCommandRendererArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ClientURN",
+      description: "Client id."
+    }];
+  optional string flow_id = 2 [(sem_type) = {
+      type: "SessionID",
+      description: "Flow id."
+    }];
+}
+
 message ApiFlowOutputPluginsRendererArgs {
   optional string client_id = 1 [(sem_type) = {
       type: "ClientURN",
@@ -135,6 +157,19 @@ message ApiFlowArchiveFilesRendererArgs {
       type: "SessionID"
     }];
   optional ExportCollectionFilesAsArchiveArgs.ArchiveFormat archive_format = 3;
+};
+
+message ApiClientFlowsListRendererArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ClientURN",
+      description: "Client id."
+    }];
+  optional int64 offset = 2 [(sem_type) = {
+      description: "Starting offset."
+    }];
+  optional int64 count = 3 [(sem_type) = {
+      description: "Max number of flows to fetch."
+    }];
 };
 
 message ApiClientsAddLabelsRendererArgs {
@@ -165,13 +200,22 @@ message ApiHuntsListRendererArgs {
   optional string created_by = 3 [(sem_type) = {
       description: "Only return hunts created by a given user. "
       "If approved_by or/and description_contains are also supplied, "
-      "then logical AND is applied to all the criterias."
+      "then logical AND is applied to all the criterias. NOTE: this filter "
+      "can only be used in conjunction with 'active_within' filter (to "
+      "prevent queries of death)."
     }];
   optional string description_contains = 4 [(sem_type) = {
       description: "Only return hunts where description contains given "
       "substring (matching is case-insensitive)."
       "If created_by or/and approved_by are also supplied, "
-      "then logical AND is applied to all the criterias."
+      "then logical AND is applied to all the criterias. NOTE: this filter "
+      "can only be used in conjunction with 'active_within' filter (to "
+      "prevent queries of death)."
+    }];
+  optional uint64 active_within = 5 [(sem_type) = {
+      type: "Duration",
+      description: "Only return hunts that were active within given time "
+      "duration."
     }];
 }
 
@@ -218,6 +262,12 @@ message ApiHuntResultsRendererArgs {
   optional string filter = 4 [(sem_type) = {
       description: "Return only results whose string representation "
       "contains given substring."
+    }];
+};
+
+message ApiHuntResultsExportCommandRendererArgs {
+  optional string hunt_id = 1 [(sem_type) = {
+      description: "Hunt id."
     }];
 };
 
@@ -412,4 +462,49 @@ message ApiRemoteGetFileRendererArgs {
   optional PathSpec.PathType pathtype = 5 [(sem_type) = {
       description: "Path type to glob in.",
     }, default=OS];
+}
+
+// API entities. These are uses in API calls responses.
+
+message ApiFlow {
+  // Enum values here correspond to Flow.State values.
+  enum State {
+    RUNNING = 0;
+    TERMINATED = 1;
+    ERROR = 3;
+    CLIENT_CRASHED = 4;
+  };
+
+  optional string urn = 1 [(sem_type) = {
+      type: "SessionID",
+      description: "Flow URN."
+    }];
+  optional string name = 2 [(sem_type) = {
+      description: "Flow name.",
+    }];
+  optional bytes args = 3 [(sem_type) = {
+      description: "Flow arguments.",
+      dynamic_type: "GetArgsClass"
+    }];
+  optional FlowRunnerArgs runner_args = 4 [(sem_type) = {
+      description: "Flow runner arguments."
+    }];
+  optional State state = 5 [(sem_type) = {
+      description: "Current flow state."
+    }];
+  optional uint64 started_at = 6 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "When flow was created."
+    }];
+  optional uint64 last_active_at = 7 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "When flow was last active."
+    }];
+  optional string creator = 8 [(sem_type) = {
+      description: "Who started the flow."
+    }];
+
+  repeated ApiFlow nested_flows = 9 [(sem_type) = {
+      description: "Nested flows started by this flow."
+    }];
 }

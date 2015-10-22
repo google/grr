@@ -3,7 +3,7 @@
 goog.require('grrUi.flow.module');
 goog.require('grrUi.tests.module');
 
-describe('flows tree directive', function() {
+describe('flow descriptors tree directive', function() {
   var $compile, $rootScope, $q, grrApiService;
   var emptySettingsDeferred;
 
@@ -29,7 +29,7 @@ describe('flows tree directive', function() {
   });
 
   var renderTestTemplate = function(flowUrn) {
-    var template = '<grr-flows-tree ' +
+    var template = '<grr-flow-descriptors-tree ' +
         'selected-descriptor="selectedDescriptor.value" />';
     var element = $compile(template)($rootScope);
     $rootScope.selectedDescriptor = {

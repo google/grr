@@ -103,6 +103,6 @@ grrUi.forms.semanticPrimitiveFormDirective.SemanticPrimitiveFormDirective
  */
 grrUi.forms.semanticPrimitiveFormDirective.SemanticPrimitiveFormDirective
     .semantic_types = ['RDFBool', 'bool',
-                       'RDFInteger', 'int', 'long',
+                       'RDFInteger', 'int', 'long', 'float',
                        'RDFString', 'basestring', 'RDFURN',
                        'RDFBytes', 'bytes'];

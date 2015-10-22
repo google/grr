@@ -9,6 +9,31 @@ from grr.lib import parsers
 from grr.lib import rdfvalue
 from grr.lib import time_utils
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import wmi as rdf_wmi
+
+
+class WMIActiveScriptEventConsumerParser(parsers.WMIQueryParser):
+  """Parser for WMI ActiveScriptEventConsumers.
+
+  https://msdn.microsoft.com/en-us/library/aa384749(v=vs.85).aspx
+  """
+
+  output_types = ["WMIActiveScriptEventConsumer"]
+  supported_artifacts = ["WMIEnumerateASEC"]
+
+  def Parse(self, query, result, knowledge_base):
+    """Parse the wmi packages output."""
+    _ = query, knowledge_base
+    wmi_asec = rdf_wmi.WMIActiveScriptEventConsumer(
+        creator_sid="".join(str(x) for x in result["CreatorSID"]),
+        kill_timeout=result["KillTimeout"],
+        machine_name=result["MachineName"],
+        max_queue_size=result["MaximumQueueSize"],
+        name=result["Name"],
+        script_file_name=result["ScriptFilename"],
+        scripting_engine=result["ScriptingEngine"],
+        script_text=result["ScriptText"])
+    yield wmi_asec
 
 
 class WMIInstalledSoftwareParser(parsers.WMIQueryParser):

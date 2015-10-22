@@ -25,8 +25,12 @@ grrUi.user.userDashboardDirective.UserDashboardController = function(
 
   this.grrApiService_.get('/users/me/approvals/client', {count: 7}).then(
       this.onApprovals_.bind(this));
-  this.grrApiService_.get('/hunts', {count: 5, created_by: 'me'}).then(
-      this.onHunts_.bind(this));
+  this.grrApiService_.get('/hunts',
+                          {
+                            count: 5,
+                            active_within: '31d',
+                            created_by: 'me'
+                          }).then(this.onHunts_.bind(this));
 };
 var UserDashboardController =
     grrUi.user.userDashboardDirective.UserDashboardController;

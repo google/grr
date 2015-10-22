@@ -182,6 +182,10 @@ grr-dict-form button.close {
   float: left;
 }
 
+grr-download-collection-files .export-command {
+  margin-top: 1em;
+}
+
 /* Bootstrap tweaks */
 .navbar {
   margin-bottom: 0;
@@ -190,6 +194,14 @@ grr-dict-form button.close {
 .form-horizontal .form-group {
   margin-left: 0;
   margin-right: 0;
+}
+
+.breadcrumb .btn {
+  margin-right: 0 !important;
+}
+
+.breadcrumb .btn-group {
+  margin-right: 6px !important;
 }
 
 .context-help {

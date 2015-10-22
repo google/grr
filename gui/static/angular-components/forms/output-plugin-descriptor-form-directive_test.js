@@ -106,7 +106,6 @@ describe('grr-output-plugin-descriptor-form directive', function() {
     element.find('select').val(
         element.find('select option[label="FooOutputPlugin"]').val());
     browserTrigger(element.find('select'), 'change');
-
     expect($rootScope.value.value.plugin_args.type).toBe('FooOutputPluginArgs');
   });
 

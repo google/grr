@@ -1,0 +1,13 @@
+<div class="breadcrumb">
+  <li>
+    <button title="Cancel Selected Flows" class="btn btn-default" name="cancel_flow"
+            ng-disabled="!selectedFlowUrn"
+            ng-click="controller.cancelButtonClicked()">
+      <img src="/static/images/editdelete.png" class="toolbar_icon">
+    </button>
+  </li>
+</div>
+<grr-flows-list flows-url="controller.flowsUrl"
+                selected-flow-urn="selectedFlowUrn"
+                trigger-update="controller.triggerUpdate">
+</grr-flows-list>

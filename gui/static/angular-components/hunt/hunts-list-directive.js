@@ -194,6 +194,39 @@ HuntsListController.prototype.modifyHunt = function() {
 
 
 /**
+ * Shows 'New Hunt' dialog prefilled with the data of the currently selected
+ * hunt.
+ *
+ * @export
+ */
+HuntsListController.prototype.copyHunt = function() {
+  var modalScope = this.scope_.$new();
+  modalScope.huntUrn = this.selectedHuntUrn;
+  modalScope.resolve = function() {
+    modalInstance.close();
+  };
+  modalScope.reject = function() {
+    modalInstance.dismiss();
+  };
+
+  this.scope_.$on('$destroy', function() {
+    modalScope.$destroy();
+  });
+
+  var modalInstance = this.modal_.open({
+    template: '<grr-new-hunt-wizard-copy-form on-resolve="resolve()" ' +
+        'on-reject="reject()" hunt-urn="huntUrn" />',
+    scope: modalScope,
+    windowClass: 'wide-modal high-modal',
+    size: 'lg'
+  });
+  modalInstance.result.then(function resolve() {
+    this.triggerUpdate();
+  }.bind(this));
+};
+
+
+/**
  * Shows 'Delete Hunt' confirmation dialog.
  *
  * @export

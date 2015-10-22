@@ -17,6 +17,7 @@ message ArtifactSource {
     WMI = 4;
     ARTIFACT = 5;
     PATH = 6;
+    DIRECTORY = 7;
 
     // TODO(user): these types will likely be separated out from artifacts in
     // the future

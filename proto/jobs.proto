@@ -1209,7 +1209,9 @@ message RekallResponse {
   // Deprecated. Anything written in this field will be compressed and placed
   // into the compressed_json_messages field upon serialization.
   optional string json_messages = 1;
-  optional bytes compressed_json_messages = 7;
+  optional bytes compressed_json_messages = 7 [(sem_type) = {
+      type: "ZippedJSONBytes"
+    }];
 
   optional string json_context_messages = 5;
 

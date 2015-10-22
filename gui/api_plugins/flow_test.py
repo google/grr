@@ -16,6 +16,8 @@ from grr.lib import test_lib
 from grr.lib import throttle
 from grr.lib import type_info
 from grr.lib import utils
+from grr.lib.aff4_objects import collections as aff4_collections
+from grr.lib.flows.general import discovery
 from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import processes
 from grr.lib.flows.general import transfer
@@ -71,22 +73,57 @@ class ApiFlowStatusRendererRegressionTest(
                              token=self.token) as client_obj:
         client_obj.DeleteAttribute(client_obj.Schema.CERT)
 
-      flow_id = flow.GRRFlow.StartFlow(flow_name="Interrogate",
-                                       client_id=client_urn, token=self.token)
+      flow_id = flow.GRRFlow.StartFlow(
+          flow_name=discovery.Interrogate.__name__, client_id=client_urn,
+          token=self.token)
 
       # Put something in the output collection
-      flow_obj = aff4.FACTORY.Open(flow_id, aff4_type="GRRFlow",
+      flow_obj = aff4.FACTORY.Open(flow_id, aff4_type=flow.GRRFlow.__name__,
                                    token=self.token)
       flow_state = flow_obj.Get(flow_obj.Schema.FLOW_STATE)
 
       with aff4.FACTORY.Create(
           flow_state.context.output_urn,
-          aff4_type="RDFValueCollection", token=self.token) as collection:
+          aff4_type=aff4_collections.RDFValueCollection.__name__,
+          token=self.token) as collection:
         collection.Add(rdf_client.ClientSummary())
 
       self.Check("GET", "/api/flows/%s/%s/status" % (client_urn.Basename(),
                                                      flow_id.Basename()),
                  replace={flow_id.Basename(): "F:ABCDEF12"})
+
+
+class ApiClientFlowsListRendererRegressionTest(
+    api_test_lib.ApiCallRendererRegressionTest):
+  """Test client flows list renderer."""
+
+  renderer = "ApiClientFlowsListRenderer"
+
+  def Run(self):
+    with test_lib.FakeTime(42):
+      client_urn = self.SetupClients(1)[0]
+
+    with test_lib.FakeTime(43):
+      flow_id_1 = flow.GRRFlow.StartFlow(
+          flow_name=discovery.Interrogate.__name__, client_id=client_urn,
+          # TODO(user): output="" has to be specified because otherwise
+          # output collection object is created and stored in state.context.
+          # When AFF4Object is serialized, it gets serialized as
+          # <AFF4Object@[address] blah> which breaks the regression, because
+          # the address is always different. Storing AFF4Object in a state
+          # is bad, and we should use blind writes to write to the output
+          # collection. Remove output="" as soon as the issue is resolved.
+          output="", token=self.token)
+
+    with test_lib.FakeTime(44):
+      flow_id_2 = flow.GRRFlow.StartFlow(
+          flow_name=processes.ListProcesses.__name__, client_id=client_urn,
+          # TODO(user): See comment above regarding output="".
+          output="", token=self.token)
+
+    self.Check("GET", "/api/clients/%s/flows" % client_urn.Basename(),
+               replace={flow_id_1.Basename(): "F:ABCDEF10",
+                        flow_id_2.Basename(): "F:ABCDEF11"})
 
 
 class ApiFlowResultsRendererRegressionTest(
@@ -100,7 +137,8 @@ class ApiFlowResultsRendererRegressionTest(
     self.client_id = self.SetupClients(1)[0]
 
   def Run(self):
-    runner_args = flow_runner.FlowRunnerArgs(flow_name="GetFile")
+    runner_args = flow_runner.FlowRunnerArgs(
+        flow_name=transfer.GetFile.__name__)
 
     flow_args = transfer.GetFileArgs(
         pathspec=rdf_paths.PathSpec(
@@ -126,6 +164,29 @@ class ApiFlowResultsRendererRegressionTest(
                replace={flow_urn.Basename(): "W:ABCDEF"})
 
 
+class ApiFlowResultsExportCommandRendererRegressionTest(
+    api_test_lib.ApiCallRendererRegressionTest):
+  """Regression test for ApiFlowResultsExportCommandRenderer."""
+
+  renderer = "ApiFlowResultsExportCommandRenderer"
+
+  def setUp(self):
+    super(ApiFlowResultsExportCommandRendererRegressionTest, self).setUp()
+    self.client_id = self.SetupClients(1)[0]
+
+  def Run(self):
+    with test_lib.FakeTime(42):
+      flow_urn = flow.GRRFlow.StartFlow(
+          flow_name=processes.ListProcesses.__name__,
+          client_id=self.client_id,
+          token=self.token)
+
+    self.Check("GET",
+               "/api/clients/%s/flows/%s/results/export-command" % (
+                   self.client_id.Basename(), flow_urn.Basename()),
+               replace={flow_urn.Basename(): "W:ABCDEF"})
+
+
 class ApiFlowOutputPluginsRendererRegressionTest(
     api_test_lib.ApiCallRendererRegressionTest):
   """Regression test for ApiFlowOutputPluginsRenderer."""
@@ -143,10 +204,11 @@ class ApiFlowOutputPluginsRendererRegressionTest(
             email_address="test@localhost", emails_limit=42))
 
     with test_lib.FakeTime(42):
-      flow_urn = flow.GRRFlow.StartFlow(flow_name="ListProcesses",
-                                        client_id=self.client_id,
-                                        output_plugins=[email_descriptor],
-                                        token=self.token)
+      flow_urn = flow.GRRFlow.StartFlow(
+          flow_name=processes.ListProcesses.__name__,
+          client_id=self.client_id,
+          output_plugins=[email_descriptor],
+          token=self.token)
 
     self.Check("GET", "/api/clients/%s/flows/%s/output-plugins" % (
         self.client_id.Basename(), flow_urn.Basename()),
@@ -174,7 +236,7 @@ class ApiStartFlowRendererRegressionTest(
       self.Check("POST",
                  "/api/clients/%s/flows/start" % self.client_id.Basename(),
                  {"runner_args": {
-                     "flow_name": "ListProcesses",
+                     "flow_name": processes.ListProcesses.__name__,
                      "output_plugins": [],
                      "priority": "HIGH_PRIORITY",
                      "notify_to_user": False,
@@ -184,6 +246,28 @@ class ApiStartFlowRendererRegressionTest(
                       "fetch_binaries": True
                       }
                  }, replace=ReplaceFlowId)
+
+
+class ApiCancelFlowRendererRegressionTest(
+    api_test_lib.ApiCallRendererRegressionTest):
+  """Regression test for ApiCancelFlowRenderer."""
+
+  renderer = "ApiCancelFlowRenderer"
+
+  def setUp(self):
+    super(ApiCancelFlowRendererRegressionTest, self).setUp()
+    self.client_id = self.SetupClients(1)[0]
+
+  def Run(self):
+    with test_lib.FakeTime(42):
+      flow_urn = flow.GRRFlow.StartFlow(
+          flow_name=processes.ListProcesses.__name__,
+          client_id=self.client_id,
+          token=self.token)
+
+    self.Check("POST", "/api/clients/%s/flows/%s/actions/cancel" % (
+        self.client_id.Basename(), flow_urn.Basename()),
+               replace={flow_urn.Basename(): "W:ABCDEF"})
 
 
 class ApiFlowDescriptorsListRendererRegressionTest(

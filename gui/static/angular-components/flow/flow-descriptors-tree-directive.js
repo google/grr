@@ -1,14 +1,14 @@
 'use strict';
 
-goog.provide('grrUi.flow.flowsTreeDirective.FlowsTreeController');
-goog.provide('grrUi.flow.flowsTreeDirective.FlowsTreeDirective');
+goog.provide('grrUi.flow.flowDescriptorsTreeDirective.FlowDescriptorsTreeController');
+goog.provide('grrUi.flow.flowDescriptorsTreeDirective.FlowDescriptorsTreeDirective');
 
 goog.scope(function() {
 
 
 
 /**
- * Controller for FlowsTreeDirective.
+ * Controller for FlowDescriptorsTreeDirective.
  *
  * @constructor
  * @param {!angular.Scope} $scope
@@ -16,8 +16,8 @@ goog.scope(function() {
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
-grrUi.flow.flowsTreeDirective.FlowsTreeController = function(
-    $scope, $element, grrApiService) {
+grrUi.flow.flowDescriptorsTreeDirective.FlowDescriptorsTreeController =
+    function($scope, $element, grrApiService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
@@ -45,7 +45,8 @@ grrUi.flow.flowsTreeDirective.FlowsTreeController = function(
                            'controller.flowsDescriptors'],
                           this.onDescriptorsOrSettingsChange_.bind(this));
 };
-var FlowsTreeController = grrUi.flow.flowsTreeDirective.FlowsTreeController;
+var FlowDescriptorsTreeController =
+    grrUi.flow.flowDescriptorsTreeDirective.FlowDescriptorsTreeController;
 
 
 /**
@@ -55,7 +56,8 @@ var FlowsTreeController = grrUi.flow.flowsTreeDirective.FlowsTreeController;
  *
  * @private
  */
-FlowsTreeController.prototype.onDescriptorsOrSettingsChange_ = function() {
+FlowDescriptorsTreeController.prototype.onDescriptorsOrSettingsChange_ =
+    function() {
   if (angular.isUndefined(this.flowsDescriptors) ||
       angular.isUndefined(this.userSettings)) {
     return;
@@ -133,18 +135,19 @@ FlowsTreeController.prototype.onDescriptorsOrSettingsChange_ = function() {
 
 
 /**
- * FlowsTreeDirective definition.
+ * FlowDescriptorsTreeDirective definition.
 
  * @return {angular.Directive} Directive definition object.
  */
-grrUi.flow.flowsTreeDirective.FlowsTreeDirective = function() {
+grrUi.flow.flowDescriptorsTreeDirective.FlowDescriptorsTreeDirective =
+    function() {
   return {
     scope: {
       selectedDescriptor: '=?'
     },
     restrict: 'E',
     template: '<div class="tree"></div>',
-    controller: FlowsTreeController,
+    controller: FlowDescriptorsTreeController,
     controllerAs: 'controller'
   };
 };
@@ -156,8 +159,8 @@ grrUi.flow.flowsTreeDirective.FlowsTreeDirective = function() {
  * @const
  * @export
  */
-grrUi.flow.flowsTreeDirective.FlowsTreeDirective.directive_name =
-    'grrFlowsTree';
+grrUi.flow.flowDescriptorsTreeDirective.FlowDescriptorsTreeDirective
+    .directive_name = 'grrFlowDescriptorsTree';
 
 
 

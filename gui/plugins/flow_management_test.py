@@ -122,28 +122,24 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
 
     self.Click("css=a:contains('Manage launched flows')")
 
+    # Some rows are present in the DOM but hidden because parent flow row
+    # wasn't expanded yet. Due to this, we have to explicitly filter rows
+    # with "visible" jQuery filter.
     self.WaitUntilEqual("RecursiveTestFlow", self.GetText,
-                        "//table/tbody/tr[1]/td[3]")
+                        "css=grr-client-flows-list tr:visible:nth(1) td:nth(2)")
 
     self.WaitUntilEqual("GetFile", self.GetText,
-                        "//table/tbody/tr[2]/td[3]")
-
-    # Check that child flows are not shown.
-    self.assertNotEqual(self.GetText("//table/tbody/tr[2]/td[3]"),
-                        "RecursiveTestFlow")
+                        "css=grr-client-flows-list tr:visible:nth(2) td:nth(2)")
 
     # Click on the first tree_closed to open it.
-    self.Click("css=.tree_closed")
+    self.Click("css=grr-client-flows-list tr:visible:nth(1) .tree_closed")
 
     self.WaitUntilEqual("RecursiveTestFlow", self.GetText,
-                        "//table/tbody/tr[1]/td[3]")
-
-    self.WaitUntilEqual("RecursiveTestFlow", self.GetText,
-                        "//table/tbody/tr[2]/td[3]")
+                        "css=grr-client-flows-list tr:visible:nth(2) td:nth(2)")
 
     # Select the requests tab
-    self.Click("Requests")
     self.Click("css=td:contains(GetFile)")
+    self.Click("css=li[heading=Requests]")
 
     self.WaitUntil(self.IsElementPresent,
                    "css=td:contains(flow:request:00000001)")
@@ -164,7 +160,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     self.Open("/#c=C.0000000000000001")
     self.Click("css=a:contains('Manage launched flows')")
     self.Click("css=td:contains('RecursiveTestFlow')")
-    self.Click("css=li[renderer=FlowLogView]")
+    self.Click("css=li[heading=Log]")
 
     self.WaitUntil(self.IsTextPresent, "Subflow call 1")
     self.WaitUntil(self.IsTextPresent, "Subflow call 0")
@@ -179,7 +175,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     self.Open("/#c=C.0000000000000001")
     self.Click("css=a:contains('Manage launched flows')")
     self.Click("css=td:contains('FlowWithOneStatEntryResult')")
-    self.Click("css=#Results")
+    self.Click("css=li[heading=Results]")
 
     self.WaitUntil(self.IsTextPresent, "aff4:/some/unique/path")
 
@@ -192,7 +188,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     self.Open("/#c=" + self.client_id.Basename())
     self.Click("css=a:contains('Manage launched flows')")
     self.Click("css=td:contains('FlowWithOneStatEntryResult')")
-    self.Click("css=#Results")
+    self.Click("css=li[heading=Results]")
 
     self.WaitUntil(self.IsElementPresent, "css=#main_bottomPane table thead "
                    "th:contains('Value')")
@@ -207,14 +203,15 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     self.Open("/#c=C.0000000000000001")
     self.Click("css=a:contains('Manage launched flows')")
     self.Click("css=td:contains('FlowWithOneStatEntryResult')")
-    self.Click("css=#Export")
+    self.Click("css=li[heading=Results]")
+    self.Click("link=Show GRR export tool command")
 
     self.WaitUntil(
         self.IsTextPresent,
         "--username test --reason 'Running tests' collection_files "
         "--path aff4:/C.0000000000000001/analysis/FlowWithOneStatEntryResult")
 
-  def testExportTabIsDisabledWhenNoResults(self):
+  def testExportCommandIsNotDisabledWhenNoResults(self):
     # RecursiveTestFlow doesn't send any results back.
     with self.ACLChecksDisabled():
       for _ in test_lib.TestFlowHelper(
@@ -225,9 +222,12 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     self.Open("/#c=C.0000000000000001")
     self.Click("css=a:contains('Manage launched flows')")
     self.Click("css=td:contains('RecursiveTestFlow')")
-    self.WaitUntil(self.IsElementPresent, "css=#Export.disabled")
+    self.Click("css=li[heading=Results]")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-flow-results:contains('Value')")
+    self.WaitUntilNot(self.IsTextPresent, "Show GRR export tool command")
 
-  def testExportTabIsDisabledForNonFileResults(self):
+  def testExportCommandIsNotShownForNonFileResults(self):
     with self.ACLChecksDisabled():
       for _ in test_lib.TestFlowHelper(
           "FlowWithOneNetworkConnectionResult", self.action_mock,
@@ -237,7 +237,10 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     self.Open("/#c=C.0000000000000001")
     self.Click("css=a:contains('Manage launched flows')")
     self.Click("css=td:contains('FlowWithOneNetworkConnectionResult')")
-    self.WaitUntil(self.IsElementPresent, "css=#Export.disabled")
+    self.Click("css=li[heading=Results]")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-flow-results:contains('Value')")
+    self.WaitUntilNot(self.IsTextPresent, "Show GRR export tool command")
 
   def testCancelFlowWorksCorrectly(self):
     """Tests that cancelling flows works."""

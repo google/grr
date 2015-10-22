@@ -53,7 +53,6 @@ var SemanticProtoRepeatedFieldFormController =
 SemanticProtoRepeatedFieldFormController.prototype.onFieldDescriptorChange_ =
     function() {
   this.hasCustomTemplate = false;
-
   if (angular.isDefined(this.scope_['field']) &&
       angular.isDefined(this.scope_['descriptor'])) {
 

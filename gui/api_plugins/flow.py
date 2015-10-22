@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """API renderers for dealing with flows."""
 
+import itertools
 import urlparse
 
 import logging
@@ -27,6 +28,26 @@ from grr.proto import api_pb2
 
 
 CATEGORY = "Flows"
+
+
+class ApiFlow(rdf_structs.RDFProtoStruct):
+  """ApiFlow is used when rendering responses.
+
+  ApiFlow is meant to be more lightweight than automatically generated AFF4
+  representation. It's also meant to contain only the information needed by
+  the UI and and to not expose implementation defails.
+  """
+  protobuf = api_pb2.ApiFlow
+
+  def GetArgsClass(self):
+    if self.name:
+      flow_cls = flow.GRRFlow.classes.get(self.name)
+      if flow_cls is None:
+        raise ValueError("Flow %s not known by this implementation." %
+                         self.name)
+
+      # The required protobuf for this class is in args_type.
+      return flow_cls.args_type
 
 
 class ApiFlowStatusRendererArgs(rdf_structs.RDFProtoStruct):
@@ -137,6 +158,34 @@ class ApiFlowResultsRenderer(api_call_renderer_base.ApiCallRenderer):
             with_total_count=True)])
 
 
+class ApiFlowResultsExportCommandRendererArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiFlowResultsExportCommandRendererArgs
+
+
+class ApiFlowResultsExportCommandRenderer(
+    api_call_renderer_base.ApiCallRenderer):
+  """Renders GRR export tool command line that exports flow results."""
+
+  category = CATEGORY
+  args_type = ApiFlowResultsExportCommandRendererArgs
+
+  def Render(self, args, token=None):
+    flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())
+    flow_obj = aff4.FACTORY.Open(flow_urn, aff4_type="GRRFlow", mode="r",
+                                 token=token)
+    output_urn = flow_obj.GetRunner().output_urn
+
+    export_command_str = " ".join([
+        config_lib.CONFIG["AdminUI.export_command"],
+        "--username", utils.ShellQuote(token.username),
+        "--reason", utils.ShellQuote(token.reason),
+        "collection_files",
+        "--path", utils.ShellQuote(output_urn),
+        "--output", "."])
+
+    return dict(command=export_command_str)
+
+
 class ApiFlowArchiveFilesRendererArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiFlowArchiveFilesRendererArgs
 
@@ -203,6 +252,105 @@ class ApiFlowOutputPluginsRenderer(api_call_renderer_base.ApiCallRenderer):
           api_value_renderers.RenderValue(plugin_descriptor),
           api_value_renderers.RenderValue(plugin_state))
 
+    return result
+
+
+class ApiClientFlowsListRendererArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiClientFlowsListRendererArgs
+
+
+class ApiClientFlowsListRenderer(api_call_renderer_base.ApiCallRenderer):
+  """Lists flows launched on a given client."""
+
+  category = CATEGORY
+  args_type = ApiClientFlowsListRendererArgs
+
+  def _GetCreationTime(self, obj):
+    try:
+      return obj.state.context.get("create_time")
+    except AttributeError:
+      return obj.Get(obj.Schema.LAST, 0)
+
+  def _BuildApiFlowRepresentation(self, flow_obj):
+    result = ApiFlow(urn=flow_obj.urn,
+                     name=flow_obj.state.context.args.flow_name,
+                     started_at=flow_obj.state.context.create_time,
+                     last_active_at=flow_obj.Get(flow_obj.Schema.LAST),
+                     creator=flow_obj.state.context.creator)
+
+    if flow_obj.Get(flow_obj.Schema.CLIENT_CRASH):
+      result.state = "CLIENT_CRASHED"
+    else:
+      result.state = flow_obj.state.context.state
+
+    try:
+      result.args = flow_obj.args
+    except ValueError:
+      # If args class name has changed, ValueError will be raised. Handling
+      # this gracefully - we should still try to display some useful info
+      # about the flow.
+      pass
+
+    return result
+
+  def Render(self, args, token=None):
+    client_root_urn = args.client_id.Add("flows")
+
+    if not args.count:
+      stop = None
+    else:
+      stop = args.offset + args.count
+
+    root_children_urns = aff4.FACTORY.Open(
+        client_root_urn, token=token).ListChildren()
+    root_children_urns = sorted(root_children_urns,
+                                key=lambda x: x.age, reverse=True)
+    root_children_urns = root_children_urns[args.offset:stop]
+
+    root_children = aff4.FACTORY.MultiOpen(
+        root_children_urns, aff4_type=flow.GRRFlow.__name__,
+        token=token)
+    root_children = sorted(root_children, key=self._GetCreationTime,
+                           reverse=True)
+
+    nested_children_urns = dict(aff4.FACTORY.RecursiveMultiListChildren(
+        [fd.urn for fd in root_children], token=token))
+    nested_children = aff4.FACTORY.MultiOpen(
+        set(itertools.chain(*nested_children_urns.values())),
+        aff4_type=flow.GRRFlow.__name__, token=token)
+    nested_children_map = dict((x.urn, x) for x in nested_children)
+
+    def BuildList(fds):
+      """Builds list of flows recursively."""
+      result = []
+      for fd in fds:
+        api_flow = self._BuildApiFlowRepresentation(fd)
+
+        try:
+          children_urns = nested_children_urns[fd.urn]
+        except KeyError:
+          children_urns = []
+
+        children = []
+        for urn in children_urns:
+          try:
+            children.append(nested_children_map[urn])
+          except KeyError:
+            pass
+
+        children = sorted(children, key=self._GetCreationTime, reverse=True)
+        try:
+          api_flow.nested_flows = BuildList(children)
+        except KeyError:
+          pass
+        result.append(api_flow)
+
+      return result
+
+    items = BuildList(root_children)
+    result = dict(offset=args.offset,
+                  count=len(items),
+                  items=api_value_renderers.RenderValue(items))
     return result
 
 
@@ -321,6 +469,29 @@ class ApiStartFlowRenderer(api_call_renderer_base.ApiCallRenderer):
         flow_id=api_value_renderers.RenderValue(flow_id),
         flow_args=api_value_renderers.RenderValue(args.flow_args),
         runner_args=api_value_renderers.RenderValue(args.runner_args))
+
+
+class ApiCancelFlowRendererArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiCancelFlowRendererArgs
+
+
+class ApiCancelFlowRenderer(api_call_renderer_base.ApiCallRenderer):
+  """Cancels given flow on a given client."""
+
+  category = CATEGORY
+  args_type = ApiCancelFlowRendererArgs
+  privileged = True
+
+  def Render(self, args, token=None):
+    flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())
+    # If we can read the flow, we're allowed to terminate it.
+    data_store.DB.security_manager.CheckDataStoreAccess(
+        token.RealUID(), [flow_urn], "r")
+
+    flow.GRRFlow.TerminateFlow(flow_urn, reason="Cancelled in GUI",
+                               token=token, force=True)
+
+    return dict(status="OK")
 
 
 class ApiFlowDescriptorsListRenderer(api_call_renderer_base.ApiCallRenderer):

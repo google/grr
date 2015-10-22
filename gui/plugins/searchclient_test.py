@@ -71,9 +71,12 @@ class TestUserDashboard(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent, "css=grr-hunts-view")
 
   def testShows5LatestHunts(self):
+    # Only hunts created in the last 31 days will get shown, so we have
+    # to adjust their timestamps accordingly.
+    timestamp = rdfvalue.RDFDatetime().Now() - rdfvalue.Duration("1d")
     with self.ACLChecksDisabled():
       for i in range(20):
-        with test_lib.FakeTime(1000 * i + 1):
+        with test_lib.FakeTime(timestamp + rdfvalue.Duration(1000 * i)):
           if i % 2 == 0:
             descr = "foo-%d" % i
             token = access_control.ACLToken(username="another")
@@ -90,7 +93,26 @@ class TestUserDashboard(test_lib.GRRSeleniumTest):
 
     self.WaitUntilNot(self.IsElementPresent,
                       "css=grr-user-dashboard "
-                      "div[name=RecentlyCreatedHunts]:contains('for')")
+                      "div[name=RecentlyCreatedHunts]:contains('foo')")
+
+  def testDoesNotShowHuntsOlderThan31Days(self):
+    now = rdfvalue.RDFDatetime().Now()
+    with self.ACLChecksDisabled():
+      with test_lib.FakeTime(now - rdfvalue.Duration("30d")):
+        self.CreateSampleHunt("foo", token=self.token)
+
+      with test_lib.FakeTime(now - rdfvalue.Duration("32d")):
+        self.CreateSampleHunt("bar", token=self.token)
+
+    with test_lib.FakeTime(now):
+      self.Open("/")
+      self.WaitUntil(self.IsElementPresent,
+                     "css=grr-user-dashboard "
+                     "div[name=RecentlyCreatedHunts]:contains('foo')")
+
+      self.WaitUntilNot(self.IsElementPresent,
+                        "css=grr-user-dashboard "
+                        "div[name=RecentlyCreatedHunts]:contains('bar')")
 
   def testShowsClientWithRequestedApproval(self):
     with self.ACLChecksDisabled():
