@@ -6,6 +6,7 @@ from grr.gui import api_value_renderers
 
 from grr.lib import aff4
 from grr.lib import rdfvalue
+from grr.lib import timeseries
 from grr.lib import utils
 from grr.lib.aff4_objects import stats_store as stats_store_lib
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -68,11 +69,16 @@ class ApiStatsStoreMetricRenderer(api_call_renderer_base.ApiCallRenderer):
     if not start_time:
       start_time = end_time - rdfvalue.Duration("1h")
 
+    # Run for a little extra time at the start. This improves the quality of the
+    # first data points of counter metrics which don't appear in every interval.
+    base_start_time = start_time
+    start_time = start_time - rdfvalue.Duration("10m")
+
     if end_time <= start_time:
       raise ValueError("End time can't be less than start time.")
 
     result = dict(
-        start=start_time.AsMicroSecondsFromEpoch(),
+        start=base_start_time.AsMicroSecondsFromEpoch(),
         end=end_time.AsMicroSecondsFromEpoch(),
         metric_name=args.metric_name,
         timeseries=[])
@@ -103,8 +109,11 @@ class ApiStatsStoreMetricRenderer(api_call_renderer_base.ApiCallRenderer):
       sampling_duration = rdfvalue.Duration("30s")
 
     if metric_metadata.metric_type == metric_metadata.MetricType.COUNTER:
-      query.TakeValue().EnsureIsIncremental().Resample(sampling_duration)
-      query.FillMissing(rdfvalue.Duration("10m"))
+      query.TakeValue().MakeIncreasing().Normalize(
+          sampling_duration,
+          start_time,
+          end_time,
+          mode=timeseries.NORMALIZE_MODE_COUNTER)
     elif metric_metadata.metric_type == metric_metadata.MetricType.EVENT:
       if args.distribution_handling_mode == "DH_SUM":
         query.TakeDistributionSum()
@@ -113,12 +122,14 @@ class ApiStatsStoreMetricRenderer(api_call_renderer_base.ApiCallRenderer):
       else:
         raise ValueError("Unexpected request.distribution_handling_mode "
                          "value: %s." % args.distribution_handling_mode)
+      query.MakeIncreasing()
+      query.Normalize(sampling_duration,
+                      start_time,
+                      end_time,
+                      mode=timeseries.NORMALIZE_MODE_COUNTER)
 
-      query.EnsureIsIncremental().Resample(sampling_duration)
-      query.FillMissing(rdfvalue.Duration("10m"))
     elif metric_metadata.metric_type == metric_metadata.MetricType.GAUGE:
-      query.TakeValue().Resample(sampling_duration)
-      query.FillMissing(rdfvalue.Duration("10m"))
+      query.TakeValue().Normalize(sampling_duration, start_time, end_time)
     else:
       raise RuntimeError("Unsupported metric type.")
 
@@ -134,11 +145,14 @@ class ApiStatsStoreMetricRenderer(api_call_renderer_base.ApiCallRenderer):
 
     if (args.rate and
         metric_metadata.metric_type != metric_metadata.MetricType.GAUGE):
-      query.Rate(args.rate)
+      query.Rate()
 
-    timeseries = []
-    for timestamp, value in query.ts.iteritems():
-      timeseries.append((timestamp.value / 1e6, value))
+    query.InTimeRange(base_start_time, end_time)
 
-    result["timeseries"] = timeseries
+    ts = []
+    for value, timestamp in query.ts.data:
+      if value is not None:
+        ts.append((timestamp / 1e3, value))
+
+    result["timeseries"] = ts
     return result

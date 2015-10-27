@@ -2,10 +2,6 @@
 """Tests for the stats_store classes."""
 
 
-import math
-
-
-import pandas
 
 
 from grr.lib import aff4
@@ -14,6 +10,8 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import stats
 from grr.lib import test_lib
+from grr.lib import timeseries
+
 from grr.lib.aff4_objects import stats_store
 
 
@@ -576,8 +574,7 @@ class StatsStoreDataQueryTest(test_lib.AFF4ObjectTest):
         rdfvalue.RDFDatetime().FromSecondsFromEpoch(80),
         rdfvalue.RDFDatetime().FromSecondsFromEpoch(120)).ts
 
-    self.assertListEqual(list(ts), [2])
-    self.assertListEqual(list(ts.index), [pandas.Timestamp(100 * 1e9)])
+    self.assertListEqual(ts.data, [[2, 100 * 1e6]])
 
   def testInTimeRangeRaisesIfAppliedBeforeTakeMethod(self):
     stats_data = self.stats_store.ReadStats(process_id=self.process_id)
@@ -608,9 +605,7 @@ class StatsStoreDataQueryTest(test_lib.AFF4ObjectTest):
     # Get time series generated with TakeValue().
     query = stats_store.StatsStoreDataQuery(stats_data)
     ts = query.In("counter").TakeValue().ts
-    self.assertListEqual(list(ts), [1, 2])
-    self.assertListEqual(list(ts.index), [pandas.Timestamp(42 * 1e9),
-                                          pandas.Timestamp(100 * 1e9)])
+    self.assertListEqual(ts.data, [[1, 42 * 1e6], [2, 100 * 1e6]])
 
   def testTakeValueRaisesIfDistributionIsEncountered(self):
     # Initialize and write test data.
@@ -648,9 +643,7 @@ class StatsStoreDataQueryTest(test_lib.AFF4ObjectTest):
     query = stats_store.StatsStoreDataQuery(stats_data)
 
     ts = query.In("events").TakeDistributionCount().ts
-    self.assertListEqual(list(ts), [1, 2])
-    self.assertListEqual(list(ts.index), [pandas.Timestamp(42 * 1e9),
-                                          pandas.Timestamp(100 * 1e9)])
+    self.assertListEqual(ts.data, [[1, 42 * 1e6], [2, 100 * 1e6]])
 
   def testTakeDistributionCountRaisesIfPlainValueIsEncountered(self):
     # Initialize and write test data.
@@ -688,9 +681,7 @@ class StatsStoreDataQueryTest(test_lib.AFF4ObjectTest):
     query = stats_store.StatsStoreDataQuery(stats_data)
 
     ts = query.In("events").TakeDistributionSum().ts
-    self.assertListEqual(list(ts), [42, 85])
-    self.assertListEqual(list(ts.index), [pandas.Timestamp(42 * 1e9),
-                                          pandas.Timestamp(100 * 1e9)])
+    self.assertListEqual(ts.data, [[42, 42 * 1e6], [85, 100 * 1e6]])
 
   def testTakeDistributionSumRaisesIfPlainValueIsEncountered(self):
     # Initialize and write test data.
@@ -707,7 +698,7 @@ class StatsStoreDataQueryTest(test_lib.AFF4ObjectTest):
     query = stats_store.StatsStoreDataQuery(stats_data)
     self.assertRaises(ValueError, query.In("counter").TakeDistributionSum)
 
-  def testResampleCallResamplesTimeSeries(self):
+  def testNormalize(self):
     # Initialize and write test data.
     stats.STATS.RegisterCounterMetric("counter")
 
@@ -733,49 +724,11 @@ class StatsStoreDataQueryTest(test_lib.AFF4ObjectTest):
     stats_data = self.stats_store.ReadStats(process_id=self.process_id)
     query = stats_store.StatsStoreDataQuery(stats_data)
 
-    ts = query.In("counter").TakeValue().Resample(
-        rdfvalue.Duration("30s")).ts
-    self.assertAlmostEqual(ts[0], 1.5)
-    self.assertAlmostEqual(ts[1], 3.0)
-    self.assertListEqual(list(ts.index), [pandas.Timestamp(0 * 1e9),
-                                          pandas.Timestamp(30 * 1e9)])
+    ts = query.In("counter").TakeValue().Normalize(
+        rdfvalue.Duration("30s"), 0, rdfvalue.Duration("1m")).ts
+    self.assertListEqual(ts.data, [[1.5, 0 * 1e6], [3.0, 30 * 1e6]])
 
-  def testResampleCallDoesNotFillGaps(self):
-    # Initialize and write test data.
-    stats.STATS.RegisterCounterMetric("counter")
-
-    stats.STATS.IncrementCounter("counter")
-    self.stats_store.WriteStats(
-        process_id=self.process_id,
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(0),
-        sync=True)
-
-    stats.STATS.IncrementCounter("counter")
-    self.stats_store.WriteStats(
-        process_id=self.process_id,
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(75),
-        sync=True)
-
-    # Read data back.
-    stats_data = self.stats_store.ReadStats(process_id=self.process_id)
-    query = stats_store.StatsStoreDataQuery(stats_data)
-
-    ts = query.In("counter").TakeValue().Resample(
-        rdfvalue.Duration("30s")).ts
-    self.assertAlmostEqual(ts[0], 1.0)
-    self.assertTrue(math.isnan(ts[1]))
-    self.assertAlmostEqual(ts[2], 2.0)
-    self.assertListEqual(list(ts.index), [pandas.Timestamp(0 * 1e9),
-                                          pandas.Timestamp(30 * 1e9),
-                                          pandas.Timestamp(60 * 1e9)])
-
-  def testResampleRaisesIfAppliedBeforeTakeMethod(self):
-    stats_data = self.stats_store.ReadStats(process_id=self.process_id)
-    query = stats_store.StatsStoreDataQuery(stats_data)
-    self.assertRaises(RuntimeError, query.In("counter").Resample,
-                      rdfvalue.Duration("30s"))
-
-  def testFillMissingCallFillsGapsInTimeSeries(self):
+  def testNormalizeFillsGapsInTimeSeries(self):
     # Initialize and write test data.
     stats.STATS.RegisterCounterMetric("counter")
 
@@ -795,31 +748,16 @@ class StatsStoreDataQueryTest(test_lib.AFF4ObjectTest):
     stats_data = self.stats_store.ReadStats(process_id=self.process_id)
     query = stats_store.StatsStoreDataQuery(stats_data)
 
-    ts = query.In("counter").TakeValue().Resample(
-        rdfvalue.Duration("30s")).FillMissing(rdfvalue.Duration("60s")).ts
+    ts = query.In("counter").TakeValue().Normalize(
+        rdfvalue.Duration("30s"), 0, rdfvalue.Duration("130s")).ts
 
-    self.assertAlmostEqual(ts[0], 1.0)
-    self.assertAlmostEqual(ts[1], 1.0)
-    self.assertAlmostEqual(ts[2], 1.0)
-    self.assertAlmostEqual(ts[3], 2.0)
-    self.assertAlmostEqual(ts[4], 2.0)
-    self.assertListEqual(list(ts.index), [pandas.Timestamp(0 * 1e9),
-                                          pandas.Timestamp(30 * 1e9),
-                                          pandas.Timestamp(60 * 1e9),
-                                          pandas.Timestamp(90 * 1e9),
-                                          pandas.Timestamp(120 * 1e9)])
+    self.assertListEqual(ts.data, [[1.0, 0], [None, 30 * 1e6], [None, 60 * 1e6],
+                                   [None, 90 * 1e6], [2.0, 120 * 1e6]])
 
-  def testFillMissingRaisesIfAppliedBeforeTakeMethod(self):
+  def testNormalizeRaisesIfAppliedBeforeTakeMethod(self):
     stats_data = self.stats_store.ReadStats(process_id=self.process_id)
     query = stats_store.StatsStoreDataQuery(stats_data)
-    self.assertRaises(RuntimeError, query.In("counter").FillMissing, 3)
-
-  def testFillMissingRaisesIfTimeWindowIsNotDivisibleBySamplingInterval(self):
-    stats_data = self.stats_store.ReadStats(process_id=self.process_id)
-    query = stats_store.StatsStoreDataQuery(stats_data)
-
-    self.assertRaises(RuntimeError, query.In("counter").TakeValue().Resample(
-        rdfvalue.Duration("25s")).FillMissing, rdfvalue.Duration("60s"))
+    self.assertRaises(RuntimeError, query.In("counter").Normalize, 15, 0, 60)
 
   def testAggregateViaSumAggregatesMultipleTimeSeriesIntoOne(self):
     # Initialize and write test data.
@@ -850,9 +788,11 @@ class StatsStoreDataQueryTest(test_lib.AFF4ObjectTest):
     stats_data = self.stats_store.MultiReadStats(process_ids=["pid1", "pid2"])
     query = stats_store.StatsStoreDataQuery(stats_data)
 
-    ts = query.In("pid.*").In("counter").TakeValue().Resample(
-        rdfvalue.Duration("30s")).FillMissing(
-            rdfvalue.Duration("10m")).AggregateViaSum().ts
+    ts = query.In("pid.*").In("counter").TakeValue().Normalize(
+        rdfvalue.Duration("30s"),
+        0,
+        rdfvalue.Duration("2m"),
+        mode=timeseries.NORMALIZE_MODE_COUNTER).AggregateViaSum().ts
 
     # We expect 2 time series in the query:
     # 1970-01-01 00:00:00    1
@@ -871,85 +811,14 @@ class StatsStoreDataQueryTest(test_lib.AFF4ObjectTest):
     # 1970-01-01 00:00:30    3
     # 1970-01-01 00:01:00    3
     # 1970-01-01 00:01:30    6
-    self.assertAlmostEqual(ts[0], 3)
-    self.assertAlmostEqual(ts[1], 3)
-    self.assertAlmostEqual(ts[2], 3)
-    self.assertAlmostEqual(ts[3], 6)
-    self.assertListEqual(list(ts.index), [pandas.Timestamp(0 * 1e9),
-                                          pandas.Timestamp(30 * 1e9),
-                                          pandas.Timestamp(60 * 1e9),
-                                          pandas.Timestamp(90 * 1e9)])
+    self.assertAlmostEqual(ts.data[0][0], 3)
+    self.assertAlmostEqual(ts.data[1][0], 3)
+    self.assertAlmostEqual(ts.data[2][0], 3)
+    self.assertAlmostEqual(ts.data[3][0], 6)
+    self.assertListEqual([t for _, t in ts.data],
+                         [0.0 * 1e6, 30.0 * 1e6, 60.0 * 1e6, 90.0 * 1e6])
 
-  def testAggregateViaSumAlignsMultipleTimeSeriesBeforeAggregation(self):
-    # Initialize and write test data.
-    stats.STATS.RegisterCounterMetric("counter")
-
-    stats.STATS.IncrementCounter("counter")
-    self.stats_store.WriteStats(
-        process_id="pid1",
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(0),
-        sync=True)
-    self.stats_store.WriteStats(
-        process_id="pid1",
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(50),
-        sync=True)
-    self.stats_store.WriteStats(
-        process_id="pid2",
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(0),
-        sync=True)
-    self.stats_store.WriteStats(
-        process_id="pid2",
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(50),
-        sync=True)
-
-    self.stats_store.WriteStats(
-        process_id="pid2",
-        timestamp=rdfvalue.RDFDatetime().FromSecondsFromEpoch(150),
-        sync=True)
-
-    # After Resample and FillMissing call we end up with 2 time series:
-    # 1970-01-01 00:00:00    1
-    # 1970-01-01 00:00:30    1
-    #
-    # And:
-    # 1970-01-01 00:00:30    1
-    # 1970-01-01 00:01:00    1
-    # 1970-01-01 00:01:30    1
-    # 1970-01-01 00:02:00    1
-    # 1970-01-01 00:02:30    1
-    #
-    # Before they're agrregated, first time series should be interpolated
-    # to contain all the timestamps that the second one contains.
-    # Otherwise we'll get incorrect aggregation results.
-
-    stats_data = self.stats_store.MultiReadStats(process_ids=["pid1", "pid2"])
-    query = stats_store.StatsStoreDataQuery(stats_data)
-
-    ts = query.In("pid.*").In("counter").TakeValue().Resample(
-        rdfvalue.Duration("30s")).FillMissing(
-            rdfvalue.Duration("10m")).AggregateViaSum().ts
-
-    # Therefore we expect the sum to look like:
-    # 1970-01-01 00:00:00    2
-    # 1970-01-01 00:00:30    2
-    # 1970-01-01 00:01:00    2
-    # 1970-01-01 00:01:30    2
-    # 1970-01-01 00:02:00    2
-    # 1970-01-01 00:02:30    2
-    self.assertAlmostEqual(ts[0], 2)
-    self.assertAlmostEqual(ts[1], 2)
-    self.assertAlmostEqual(ts[2], 2)
-    self.assertAlmostEqual(ts[3], 2)
-    self.assertAlmostEqual(ts[4], 2)
-    self.assertAlmostEqual(ts[5], 2)
-    self.assertListEqual(list(ts.index), [pandas.Timestamp(0 * 1e9),
-                                          pandas.Timestamp(30 * 1e9),
-                                          pandas.Timestamp(60 * 1e9),
-                                          pandas.Timestamp(90 * 1e9),
-                                          pandas.Timestamp(120 * 1e9),
-                                          pandas.Timestamp(150 * 1e9)])
-
-  def testEnsureIsIncrementalHandlesValuesResets(self):
+  def testMakeIncreasingHandlesValuesResets(self):
     # Initialize and write test data.
     stats.STATS.RegisterCounterMetric("counter")
 
@@ -984,14 +853,12 @@ class StatsStoreDataQueryTest(test_lib.AFF4ObjectTest):
     stats_data = self.stats_store.ReadStats(process_id="pid1")
     query = stats_store.StatsStoreDataQuery(stats_data)
 
-    ts = query.In("counter").TakeValue().Resample(
-        rdfvalue.Duration("30s")).FillMissing(
-            rdfvalue.Duration("10m")).ts
+    ts = query.In("counter").TakeValue().ts
 
-    self.assertAlmostEqual(ts[0], 0)
-    self.assertAlmostEqual(ts[1], 1)
-    self.assertAlmostEqual(ts[2], 2)
-    self.assertAlmostEqual(ts[3], 0)
+    self.assertAlmostEqual(ts.data[0][0], 0)
+    self.assertAlmostEqual(ts.data[1][0], 1)
+    self.assertAlmostEqual(ts.data[2][0], 2)
+    self.assertAlmostEqual(ts.data[3][0], 0)
 
     # EnsureIsIncremental detects the reset and increments values that follow
     # the reset point:
@@ -999,12 +866,12 @@ class StatsStoreDataQueryTest(test_lib.AFF4ObjectTest):
     # 1970-01-01 00:00:30    1
     # 1970-01-01 00:01:00    2
     # 1970-01-01 00:01:30    2
-    ts = query.EnsureIsIncremental().ts
+    ts = query.MakeIncreasing().ts
 
-    self.assertAlmostEqual(ts[0], 0)
-    self.assertAlmostEqual(ts[1], 1)
-    self.assertAlmostEqual(ts[2], 2)
-    self.assertAlmostEqual(ts[3], 2)
+    self.assertAlmostEqual(ts.data[0][0], 0)
+    self.assertAlmostEqual(ts.data[1][0], 1)
+    self.assertAlmostEqual(ts.data[2][0], 2)
+    self.assertAlmostEqual(ts.data[3][0], 2)
 
   def testSeriesCountReturnsNumberOfDataSeriesInCurrentQuery(self):
     # Initialize and write test data.
@@ -1031,7 +898,7 @@ class StatsStoreDataQueryTest(test_lib.AFF4ObjectTest):
     query = stats_store.StatsStoreDataQuery(stats_data)
     self.assertEqual(query.In("pid.*").In("counter").SeriesCount(), 2)
 
-  def testRateAppliesRateRollingFunctionToSingleTimeSerie(self):
+  def testRate(self):
     # Initialize and write test data.
     stats.STATS.RegisterCounterMetric("counter")
 
@@ -1049,8 +916,8 @@ class StatsStoreDataQueryTest(test_lib.AFF4ObjectTest):
 
     # Get time series generated with TakeValue().
     query = stats_store.StatsStoreDataQuery(stats_data)
-    ts = query.In("counter").TakeValue().Resample(
-        rdfvalue.Duration("10s")).Rate(rdfvalue.Duration("30s")).ts
+    ts = query.In("counter").TakeValue().Normalize(
+        rdfvalue.Duration("10s"), 0, rdfvalue.Duration("50s")).Rate().ts
 
     # We expect following time serie:
     # 1970-01-01 00:00:00    0
@@ -1060,12 +927,14 @@ class StatsStoreDataQueryTest(test_lib.AFF4ObjectTest):
     # 1970-01-01 00:00:40    10
     #
     # Therefore we expect the following after applying Rate():
-    # 1970-01-01 00:00:30    0.2
-    # 1970-01-01 00:00:40    0.3
-    self.assertAlmostEqual(ts[0], 0.2)
-    self.assertAlmostEqual(ts[1], 0.3)
-    self.assertListEqual(list(ts.index), [pandas.Timestamp(30 * 1e9),
-                                          pandas.Timestamp(40 * 1e9)])
+    # 1970-01-01 00:00:00    0
+    # 1970-01-01 00:00:10    0.1
+    # 1970-01-01 00:00:20    0.2
+    # 1970-01-01 00:00:30    0.3
+    # 1970-01-01 00:00:40    0.4
+    self.assertListEqual(ts.data, [[0.1, 0], [0.2, 10 * 1e6],
+                                   [0.30000000000000004, 20 * 1e6], [0.4, 30 *
+                                                                     1e6]])
 
   def testScaleAppliesScaleFunctionToSingleTimeSerie(self):
     # Initialize and write test data.
@@ -1090,9 +959,7 @@ class StatsStoreDataQueryTest(test_lib.AFF4ObjectTest):
     query = stats_store.StatsStoreDataQuery(stats_data)
     ts = query.In("counter").TakeValue().Scale(3).ts
 
-    self.assertListEqual(list(ts), [3, 6])
-    self.assertListEqual(list(ts.index), [pandas.Timestamp(42 * 1e9),
-                                          pandas.Timestamp(100 * 1e9)])
+    self.assertListEqual(ts.data, [[3, 42 * 1e6], [6, 100 * 1e6]])
 
   def testMeanReturnsZeroIfQueryHasNoTimeSeries(self):
     # Read data back.

@@ -40,8 +40,6 @@ import threading
 import time
 
 
-import pandas
-
 import logging
 
 from grr.lib import access_control
@@ -51,6 +49,7 @@ from grr.lib import data_store
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
+from grr.lib import timeseries
 
 from grr.lib.rdfvalues import structs
 
@@ -399,14 +398,14 @@ class StatsStoreDataQuery(object):
     self.sample_interval = None
 
   def _TimeSeriesFromData(self, data, attr=None):
-    """Build pandas time series from StatsStore data."""
+    """Build time series from StatsStore data."""
 
-    values = []
-    timestamps = []
+    series = timeseries.Timeseries()
+
     for value, timestamp in data:
       if attr:
         try:
-          values.append(getattr(value, attr))
+          series.Append(getattr(value, attr), timestamp)
         except AttributeError:
           raise ValueError("Can't find attribute %s in value %s." % (
               attr, value))
@@ -414,25 +413,19 @@ class StatsStoreDataQuery(object):
         if hasattr(value, "sum") or hasattr(value, "count"):
           raise ValueError(
               "Can't treat complext type as simple value: %s" % value)
+        series.Append(value, timestamp)
 
-        values.append(value)
-
-      timestamps.append(pandas.Timestamp(timestamp * 1e3))
-
-    return pandas.Series(values, index=timestamps)
+    return series
 
   @property
   def ts(self):
-    """Return single pandas time series built by this query."""
+    """Return single timeseries.Timeseries built by this query."""
 
     if self.time_series is None:
       raise RuntimeError("Time series weren't built yet.")
 
     if not self.time_series:
-      return pandas.Series([], index=[])
-
-    if len(self.time_series) > 1:
-      raise RuntimeError("Time series weren't aggregated.")
+      return timeseries.Timeseries()
 
     return self.time_series[0]
 
@@ -490,77 +483,26 @@ class StatsStoreDataQuery(object):
 
     return self
 
-  def EnsureIsIncremental(self):
+  def MakeIncreasing(self):
     """Fixes the time series so that it does not decrement."""
     if self.time_series is None:
-      raise RuntimeError("EnsureIsIncremental must be called after Take*().")
+      raise RuntimeError("MakeIncreasing must be called after Take*().")
 
-    state = dict()
-    def FixIncremention(value):
-      if state["prev_value"] is None:
-        state["prev_value"] = value
-      elif state["prev_value"] > value:
-        state["increment"] += state["prev_value"]
-
-      state["prev_value"] = value
-      return value + state["increment"]
-
-    new_time_series = []
     for time_serie in self.time_series:
-      state["prev_value"] = None
-      state["increment"] = 0
-      new_time_series.append(time_serie.apply(FixIncremention))
-
-    self.time_series = new_time_series
+      time_serie.MakeIncreasing()
     return self
 
-  def Resample(self, interval):
+  def Normalize(self, period, start_time, stop_time, **kwargs):
     """Resample the query with given sampling interval."""
-
     if self.time_series is None:
-      raise RuntimeError("Resample must be called after Take*().")
+      raise RuntimeError("Normalize must be called after Take*().")
 
-    new_time_series = []
+    self.sample_interval = period
+    self.start_time = start_time
+    self.stop_time = stop_time
+
     for time_serie in self.time_series:
-      new_time_series.append(
-          time_serie.resample("%ds" % interval.seconds, how="mean"))
-
-    self.time_series = new_time_series
-    self.sample_interval = interval
-    return self
-
-  def FillMissing(self, time_window):
-    """Fill missing data in the current query."""
-
-    if self.time_series is None:
-      raise RuntimeError("FillMissing must be called after Take*().")
-
-    if self.sample_interval is None:
-      raise RuntimeError("Resample() must be called prior to Rate().")
-
-    if time_window.seconds % self.sample_interval.seconds:
-      raise RuntimeError("Rate's time window should be divisible by sampling "
-                         "time window (rate time window: %s, sampling time "
-                         "window: %s)." % (time_window, self.sample_interval))
-
-    limit = time_window.seconds / self.sample_interval.seconds
-
-    # Calculate joint index.
-    joint_index = self.time_series[0].index
-    for time_serie in self.time_series[1:]:
-      joint_index = joint_index.union(time_serie.index)
-
-    new_time_series = []
-    # Backfill beginnings of time series so that they are properly aligned.
-    # Forward-fill ends of time series so that they are properly aligned.
-    for time_serie in self.time_series:
-      new_time_serie = time_serie.reindex(joint_index, method="ffill",
-                                          limit=limit)
-      new_time_serie = new_time_serie.fillna(method="ffill", limit=limit)
-      new_time_serie = new_time_serie.fillna(method="bfill", limit=limit)
-      new_time_series.append(new_time_serie)
-
-    self.time_series = new_time_series
+      time_serie.Normalize(period, start_time, stop_time, **kwargs)
 
     return self
 
@@ -576,16 +518,9 @@ class StatsStoreDataQuery(object):
     if range_end is None:
       raise ValueError("range_end can't be None")
 
-    range_start = pandas.to_datetime(
-        range_start.AsMicroSecondsFromEpoch() * 1e3)
-    range_end = pandas.to_datetime(
-        range_end.AsMicroSecondsFromEpoch() * 1e3)
-
-    new_time_series = []
     for time_serie in self.time_series:
-      new_time_series.append(time_serie[range_start:range_end])
+      time_serie.FilterRange(start_time=range_start, stop_time=range_end)
 
-    self.time_series = new_time_series
     return self
 
   def TakeValue(self):
@@ -623,7 +558,6 @@ class StatsStoreDataQuery(object):
 
   def AggregateViaSum(self):
     """Aggregate multiple time series into one by summing them."""
-
     if self.time_series is None:
       raise RuntimeError("AggregateViaSum must be called after Take*().")
 
@@ -639,7 +573,7 @@ class StatsStoreDataQuery(object):
 
     current_serie = self.time_series[0]
     for serie in self.time_series[1:]:
-      current_serie = current_serie.add(serie, fill_value=0)
+      current_serie.Add(serie)
 
     self.time_series = [current_serie]
     return self
@@ -649,7 +583,7 @@ class StatsStoreDataQuery(object):
 
     num_time_series = len(self.time_series)
     self.AggregateViaSum()
-    self.ts.div(num_time_series)
+    self.ts.Rescale(1.0 / num_time_series)
 
     return self
 
@@ -664,32 +598,19 @@ class StatsStoreDataQuery(object):
     else:
       return len(self.time_series)
 
-  def Rate(self, time_window):
+  def Rate(self):
     """Apply rate function to all time series in this query."""
 
     if self.time_series is None:
       raise RuntimeError("Rate must be called after Take*().")
 
     if self.sample_interval is None:
-      raise RuntimeError("Resample() must be called prior to Rate().")
+      raise RuntimeError("Normalize() must be called prior to Rate().")
 
-    if time_window.seconds % self.sample_interval.seconds:
-      raise RuntimeError("Rate's time window should be divisible by sampling "
-                         "time window (rate time window: %s, sampling time "
-                         "window: %s)." % (time_window, self.sample_interval))
-
-    num_samples = time_window.seconds / self.sample_interval.seconds + 1
-    num_seconds = float(time_window.seconds)
-
-    def Rate(x):
-      return (x[-1] - x[0]) / num_seconds
-
-    new_time_series = []
     for time_serie in self.time_series:
-      new_time_series.append(pandas.rolling_apply(
-          time_serie, num_samples, Rate)[(num_samples - 1):])
+      time_serie.ToDeltas()
+      time_serie.Rescale(1.0 / self.sample_interval.seconds)
 
-    self.time_series = new_time_series
     return self
 
   def Scale(self, multiplier):
@@ -698,11 +619,9 @@ class StatsStoreDataQuery(object):
     if self.time_series is None:
       raise RuntimeError("Scale must be called after Take*().")
 
-    new_time_series = []
     for time_serie in self.time_series:
-      new_time_series.append(time_serie.apply(lambda x: x * multiplier))
+      time_serie.Rescale(multiplier)
 
-    self.time_series = new_time_series
     return self
 
   def Mean(self):
@@ -717,7 +636,7 @@ class StatsStoreDataQuery(object):
     if len(self.time_series) != 1:
       raise RuntimeError("Can only return mean for a single time serie.")
 
-    return self.time_series[0].mean()
+    return self.time_series[0].Mean()
 
 
 # Global StatsStore object

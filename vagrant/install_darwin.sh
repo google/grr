@@ -38,8 +38,8 @@ function install_python_deps() {
   pip install --egg protobuf==2.6.1
 
   # That isn't even enough, pyinstaller still fails to include it because there
-  # is no __init__.py as noted here:
-  # http://stackoverflow.com/questions/13862562/google-protocol-buffers-not-found-when-trying-to-freeze-python-app
+  # is no __init__.py:
+  # https://github.com/google/protobuf/issues/713
   touch PYTHON_ENV/lib/python2.7/site-packages/google/__init__.py
 }
 

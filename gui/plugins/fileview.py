@@ -1033,6 +1033,7 @@ As downloaded on {{ this.age|escape }}.<br>
                                    content_type="binary/octet-stream")
       # This must be a string.
       response["Content-Disposition"] = ("attachment; filename=%s" % filename)
+      response["Content-Length"] = len(response.content)
 
       return response
 

@@ -97,7 +97,7 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
       last_seen_map = {}
 
     # TODO(user): Make keyword index datetime aware so that
-    # AsMicroSecondsFromEpoch is unecessary.
+    # AsMicroSecondsFromEpoch is unnecessary.
 
     raw_results = self.Lookup(map(self._NormalizeKeyword, filtered_keywords),
                               start_time=start_time.AsMicroSecondsFromEpoch(),
@@ -253,9 +253,9 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
     for label in client.GetLabelsNames():
       keyword = self._NormalizeKeyword(utils.SmartStr(label))
       # This might actually delete a keyword with the same name as the label (if
-      # there is one). Usually the client labels will get added right after the
-      # deletion of the old labels though so this can only be abused to destroy
-      # historic index data, the search functionality will not be affected.
+      # there is one). Usually the client keywords will be rebuilt after the
+      # deletion of the old labels though, so this can only destroy historic
+      # index data; normal search functionality will not be affected.
       keywords.append(keyword)
       keywords.append("label:%s" % keyword)
 
@@ -316,9 +316,8 @@ def BulkLabel(label, hostnames, token, client_index=None):
   for hostname in hostnames:
     fqdns.add(hostname.lower())
 
-  # Find clients with this label.
-  label_index = aff4.FACTORY.Open("aff4:/index/labels/clients", token=token)
-  labelled_urns = label_index.FindUrnsByLabel(label)
+  labelled_urns = client_index.LookupClients(["+label:%s" % label])
+
   # If a labelled client fqdn isn't in the set of target fqdns remove the label.
   # Labelled clients with a target fqdn need no action and are removed from the
   # set of target fqdns.

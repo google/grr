@@ -230,11 +230,14 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         action_type=file_finder.FileFinderAction.Action.DOWNLOAD,
         download=file_finder.FileFinderDownloadActionOptions(max_size=max_size))
 
-    self.CallFlow(
-        "FileFinder", paths=new_path_list, pathtype=path_type, action=action,
-        request_data={"artifact_name": self.current_artifact_name,
-                      "source": source.ToPrimitiveDict()},
-        next_state="ProcessFileFinderResults")
+    self.CallFlow("FileFinder",
+                  paths=new_path_list,
+                  pathtype=path_type,
+                  action=action,
+                  file_size=max_size,
+                  request_data={"artifact_name": self.current_artifact_name,
+                                "source": source.ToPrimitiveDict()},
+                  next_state="ProcessFileFinderResults")
 
   @flow.StateHandler(next_state=["ProcessCollected"])
   def ProcessFileFinderResults(self, responses):

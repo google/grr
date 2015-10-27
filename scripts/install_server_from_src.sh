@@ -71,7 +71,7 @@ if ! $DOCKER; then
   install -p -m755 scripts/*sh $INSTALL_PREFIX/usr/share/grr/scripts/
 
   # Copy the templates from the current tree
-  for template in executables/*/templates/{grr,GRR}_*; do install -p -m755 ${template} $INSTALL_PREFIX/usr/share/grr/${template}; done
+  for template in executables/*/templates/{grr,GRR}_*; do install -p -m755 ${template} $INSTALL_PREFIX/usr/share/grr/$(dirname ${template}); done
 
   install -p -m755 executables/windows/templates/unzipsfx/*.* $INSTALL_PREFIX/usr/share/grr/executables/windows/templates/unzipsfx/
 
