@@ -321,6 +321,15 @@ message ExportedBytes {
 }
 
 
+message ExportedArtifactFilesDownloaderResult {
+  optional ExportedMetadata metadata = 1;
+
+  optional ExportedRegistryKey original_registry_key = 2;
+  optional string found_path = 3;
+  optional ExportedFile downloaded_file = 4;
+}
+
+
 // Rekall-specific protobufs for reliable exporting of data from plugins.
 
 // Contains the minimum information necessary from a Windows process so

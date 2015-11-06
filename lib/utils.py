@@ -707,14 +707,34 @@ def GuessWindowsFileNameFromString(str_in):
 
   # If paths are quoted as recommended, just use that path.
   if str_in.startswith(("\"", "'")):
-    guesses = [shlex.split(str_in)[0]]
+    components = shlex.split(str_in)
+    guesses = [components[0]]
+
+    # If first component has something like "rundll" in it, we expect the
+    # next one to point at a DLL and a function. For example:
+    # rundll32.exe "C:\Windows\system32\advpack.dll",DelNodeRunDLL32
+    if "rundll" in guesses[0] and len(components) > 1:
+      guesses.append(components[1].rsplit(",", 1)[0])
   else:
-    for component in str_in.split(" "):
+    components = str_in.split(" ")
+    while components:
+      component = components.pop(0)
+
       if current_str:
         current_str = " ".join((current_str, component))
       else:
         current_str = component
+
       guesses.append(current_str)
+      # If current str contains something like "rundll" in it, we expect the
+      # rest of the string to point to a DLL and a function. We don't know
+      # if the rest of the string is quoted or not, so we continue
+      # recursively.
+      if "rundll" in current_str:
+        for guess in GuessWindowsFileNameFromString(" ".join(components)):
+          guesses.append(guess.rsplit(",", 1)[0])
+
+        break
 
   return guesses
 

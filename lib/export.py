@@ -19,6 +19,7 @@ from grr.lib import registry
 from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.aff4_objects import filestore
+from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import export_pb2
@@ -105,6 +106,10 @@ class ExportedMatch(rdf_structs.RDFProtoStruct):
 
 class ExportedBytes(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedBytes
+
+
+class ExportedArtifactFilesDownloaderResult(rdf_structs.RDFProtoStruct):
+  protobuf = export_pb2.ExportedArtifactFilesDownloaderResult
 
 
 class ExportConverter(object):
@@ -1043,6 +1048,85 @@ class CheckResultConverter(ExportConverter):
       yield ExportedCheckResult(
           metadata=metadata,
           check_id=checkresult.check_id)
+
+
+class ArtifactFilesDownloaderResultConverter(ExportConverter):
+  """Converts ArtifactFilesDownloaderResult to its exported version."""
+
+  input_rdf_type = "ArtifactFilesDownloaderResult"
+
+  def GetExportedRegistryKey(self, original_result, token=None):
+    """Converts registry key StatEntry to an ExportedRegistryKey."""
+
+    registry_key_converter = StatEntryToExportedRegistryKeyConverter()
+
+    exported_registry_keys = list(registry_key_converter.Convert(
+        ExportedMetadata(), original_result, token=token))
+
+    if len(exported_registry_keys) > 1:
+      raise RuntimeError("Got > 1 exported registry keys from a single "
+                         "StatEntry, seems like a logical bug.")
+
+    if not exported_registry_keys:
+      return None
+    else:
+      return exported_registry_keys[0]
+
+  def IsRegistryStatEntry(self, original_result):
+    """Checks if given RDFValue is a registry StatEntry."""
+
+    if not isinstance(original_result, rdf_client.StatEntry):
+      return False
+
+    if (original_result.pathspec.pathtype !=
+        rdf_paths.PathSpec.PathType.REGISTRY):
+      return False
+
+    return True
+
+  def BatchConvert(self, metadata_value_pairs, token=None):
+    metadata_value_pairs = list(metadata_value_pairs)
+
+    results = []
+    for metadata, value in metadata_value_pairs:
+      original_result = value.original_result
+
+      if not self.IsRegistryStatEntry(original_result):
+        continue
+
+      exported_registry_key = self.GetExportedRegistryKey(original_result,
+                                                          token=token)
+      if not exported_registry_key:
+        continue
+
+      result = ExportedArtifactFilesDownloaderResult(
+          metadata=metadata, original_registry_key=exported_registry_key)
+
+      if value.HasField("found_pathspec"):
+        result.found_path = value.found_pathspec.CollapsePath()
+
+      downloaded_file = None
+      if value.HasField("downloaded_file"):
+        downloaded_file = value.downloaded_file
+
+      results.append((result, downloaded_file))
+
+    files_batch = [(r.metadata, f) for r, f in results if f is not None]
+    files_converter = StatEntryToExportedFileConverter(options=self.options)
+    converted_files = files_converter.BatchConvert(files_batch, token=token)
+    converted_files_map = dict((f.urn, f) for f in converted_files)
+
+    for result, downloaded_file in results:
+      if downloaded_file and downloaded_file.aff4path in converted_files_map:
+        result.downloaded_file = converted_files_map[downloaded_file.aff4path]
+
+      yield result
+
+  def Convert(self, metadata, value, token=None):
+    """Converts a single ArtifactFilesDownloaderResult."""
+
+    for r in self.BatchConvert([(metadata, value)], token=token):
+      yield r
 
 
 class RekallResponseConverter(ExportConverter):

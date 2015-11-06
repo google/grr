@@ -1,0 +1,10 @@
+<div class="centered cron-state-icon"
+     ng-init="cronJobState = cronJob.value.state.value"
+     state="{$ ::cronJobState $}">
+  <img ng-if="::cronJobState == 'ENABLED'"
+       title="Cron job is enabled."
+       class="grr-icon grr-cronJob-icon" src="/static/images/clock.png" />
+  <img ng-if="::cronJobState == 'DISABLED'"
+       title="Cron job is disabled."
+       class="grr-icon grr-cronJob-icon" src="/static/images/pause.png" />
+</div>

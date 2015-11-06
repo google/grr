@@ -1,0 +1,75 @@
+<ul class="breadcrumb">
+  <li>
+    <div class="btn-group">
+      <button title="Schedule Hunt" class="btn btn-default" name="ScheduleHuntCronJob"
+              ng-click="controller.newCronJob()">
+        <img src="/static/images/new.png" class="toolbar_icon">
+      </button>
+    </div>
+
+    <div class="btn-group">
+      <button title="Enable Cron Job" class="btn btn-default" name="EnableCronJob"
+              ng-click="controller.enableCronJob()"
+              ng-disabled="!controller.selectedCronJobUrn ||
+                           controller.cronJobsByUrn[controller.selectedCronJobUrn].value.state.value == 'ENABLED'">
+        <img src="/static/images/play_button.png" class="toolbar_icon">
+      </button>
+
+      <button title="Force Run Cron Job" class="btn btn-default" name="RunCronJob"
+              ng-click="controller.forceCronJobRun()"
+              ng-disabled="!controller.selectedCronJobUrn">
+        <img src="/static/images/play_force_button.png" class="toolbar_icon">
+      </button>
+
+      <button title="Disable Cron Job" class="btn btn-default" name="DisableCronJob"
+              ng-click="controller.disableCronJob()"
+              ng-disabled="!controller.selectedCronJobUrn ||
+                           controller.cronJobsByUrn[controller.selectedCronJobUrn].value.state.value == 'DISABLED'">
+        <img src="/static/images/pause_button.png" class="toolbar_icon">
+      </button>
+    </div>
+
+    <div class="btn-group">
+      <button title="Delete Cron Job" class="btn btn-default" name="DeleteCronJob"
+              ng-click="controller.deleteCronJob()"
+              ng-disabled="!controller.selectedCronJobUrn">
+        <img src="/static/images/editdelete.png" class="toolbar_icon">
+      </button>
+    </div>
+  </li>
+</ul>
+
+<table class="table table-striped table-condensed table-hover table-bordered full-width">
+  <colgroup>
+    <col style="width: 40px">
+    <col style="width: 10%">
+    <col style="width: 10%">
+    <col style="width: 10%">
+    <col style="width: 70%">
+  </colgroup>
+  <thead>
+    <tr>
+      <th>State</th>
+      <th>Name</th>
+      <th>Last Run</th>
+      <th>Frequency</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr grr-infinite-table grr-api-items-provider url="controller.cronUrl" page-size="50"
+        transform-items="controller.transformItems(items)"
+        trigger-update="controller.triggerUpdate"
+        ng-click="controller.selectItem(item)"
+        ng-class="{'row-selected': item.value.urn.value == controller.selectedCronJobUrn,
+                  'danger': item.value.is_failing.value == true,
+                  'warning': item.value.is_failing.value != true && item.isStuck == true}">
+      <td><grr-cron-job-status-icon cron-job="::item" /></td>
+      <td>{$::item.shortUrn $}</td>
+      <td><grr-semantic-value value="::item.value.last_run_time" /></td>
+      <td><grr-semantic-value value="::item.value.periodicity" /></td>
+      <td><grr-semantic-value value="::item.value.description" /></td>
+    </tr>
+
+  </tbody>
+</table>

@@ -249,7 +249,7 @@ class HuntRunner(flow_runner.FlowRunner):
                             description=self.args.description)
     flow.Events.PublishEvent("Audit", event, token=self.flow_obj.token)
 
-  def Start(self, add_foreman_rules=True):
+  def Start(self):
     """This uploads the rules to the foreman and, thus, starts the hunt."""
     # We are already running.
     if self.flow_obj.Get(self.flow_obj.Schema.STATE) == "STARTED":
@@ -276,7 +276,7 @@ class HuntRunner(flow_runner.FlowRunner):
     self.flow_obj.Set(self.flow_obj.Schema.STATE("STARTED"))
     self.flow_obj.Flush()
 
-    if not add_foreman_rules:
+    if not self.args.add_foreman_rules:
       return
 
     # Add a new rule to the foreman

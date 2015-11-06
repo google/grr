@@ -193,10 +193,10 @@ class SqliteConnection(object):
     self.conn.text_factory = str
     self.conn.create_function("REGEXP", 2, SqliteRegexpFunction)
     self.cursor = self.conn.cursor()
-    self.cursor.execute("PRAGMA synchronous = OFF")
-    self.cursor.execute("PRAGMA journal_mode = OFF")
-    self.cursor.execute("PRAGMA count_changes = OFF")
-    self.cursor.execute("PRAGMA cache_size = 10000")
+    self.Execute("PRAGMA synchronous = OFF")
+    self.Execute("PRAGMA journal_mode = OFF")
+    self.Execute("PRAGMA count_changes = OFF")
+    self.Execute("PRAGMA cache_size = 10000")
     self.lock = threading.RLock()
     self.dirty = False
     # Counter for vacuuming purposes.
@@ -206,13 +206,21 @@ class SqliteConnection(object):
   def Filename(self):
     return self.filename
 
+  def Execute(self, *args):
+    try:
+      return self.cursor.execute(*args)
+    except sqlite3.DatabaseError:
+      logging.exception("DB error in file: %s for query: %s", self.filename,
+                        args)
+      raise
+
   @utils.Synchronized
   def GetLock(self, subject):
     """Gets the expiration time for a given subject."""
     subject = utils.SmartStr(subject)
     query = "SELECT expires, token FROM lock WHERE subject = ?"
     args = (subject,)
-    data = self.cursor.execute(query, args).fetchone()
+    data = self.Execute(query, args).fetchone()
 
     if data:
       return data[0], data[1]
@@ -225,7 +233,7 @@ class SqliteConnection(object):
     subject = utils.SmartStr(subject)
     query = "INSERT OR REPLACE INTO lock VALUES(?, ?, ?)"
     args = (subject, expires, token)
-    self.cursor.execute(query, args)
+    self.Execute(query, args)
     self.dirty = True
 
   @utils.Synchronized
@@ -234,7 +242,7 @@ class SqliteConnection(object):
     subject = utils.SmartStr(subject)
     query = "DELETE FROM lock WHERE subject = ?"
     args = (subject,)
-    self.cursor.execute(query, args)
+    self.Execute(query, args)
     self.dirty = True
 
   @utils.Synchronized
@@ -247,7 +255,7 @@ class SqliteConnection(object):
                ORDER BY timestamp DESC
                LIMIT 1"""
     args = (subject, attribute)
-    data = self.cursor.execute(query, args).fetchone()
+    data = self.Execute(query, args).fetchone()
 
     if data:
       return (data[0], data[1])
@@ -278,7 +286,7 @@ class SqliteConnection(object):
       args = (subject, regex)
 
     # Reorder columns.
-    data = self.cursor.execute(query, args).fetchall()
+    data = self.Execute(query, args).fetchall()
     return [(pred, val, ts) for pred, ts, val in data]
 
   @utils.Synchronized
@@ -306,7 +314,7 @@ class SqliteConnection(object):
     else:
       args = (subject, regex, start, end)
 
-    data = self.cursor.execute(query, args).fetchall()
+    data = self.Execute(query, args).fetchall()
     return data
 
   @utils.Synchronized
@@ -334,7 +342,7 @@ class SqliteConnection(object):
       args = (subject, attribute, start, end, limit)
     else:
       args = (subject, attribute, start, end)
-    data = self.cursor.execute(query, args).fetchall()
+    data = self.Execute(query, args).fetchall()
     return data
 
   @utils.Synchronized
@@ -344,7 +352,7 @@ class SqliteConnection(object):
     attribute = utils.SmartStr(attribute)
     query = "DELETE FROM tbl WHERE subject = ? AND predicate = ?"
     args = (subject, attribute)
-    self.cursor.execute(query, args)
+    self.Execute(query, args)
     self.dirty = True
     self.deleted += self.cursor.rowcount
 
@@ -355,7 +363,7 @@ class SqliteConnection(object):
     attribute = utils.SmartStr(attribute)
     query = "INSERT INTO tbl VALUES (?, ?, ?, ?)"
     args = (subject, attribute, timestamp, value)
-    self.cursor.execute(query, args)
+    self.Execute(query, args)
     self.dirty = True
     self.deleted = max(0, self.deleted - self.cursor.rowcount)
 
@@ -367,7 +375,7 @@ class SqliteConnection(object):
     query = """DELETE FROM tbl WHERE subject = ? AND predicate = ?
                AND timestamp >= ? AND timestamp <= ?"""
     args = (subject, attribute, int(start), int(end))
-    self.cursor.execute(query, args)
+    self.Execute(query, args)
     self.dirty = True
     self.deleted += self.cursor.rowcount
 
@@ -377,14 +385,14 @@ class SqliteConnection(object):
     subject = utils.SmartStr(subject)
     query = "DELETE FROM tbl WHERE subject = ?"
     args = (subject,)
-    self.cursor.execute(query, args)
+    self.Execute(query, args)
     self.dirty = True
     self.deleted += self.cursor.rowcount
 
   def PrettyPrint(self):
     """Print the SQLite database."""
     query = "SELECT subject, predicate, timestamp, value FROM tbl"
-    for sub, pred, ts, val in self.cursor.execute(query):
+    for sub, pred, ts, val in self.Execute(query):
       print "(%s, %s, %s) = %s" % (sub, pred, ts, val)
     print "---------------------------------"
 
@@ -421,7 +429,7 @@ class SqliteConnection(object):
 
   def _NeedsVacuum(self):
     """Check if there are too many free pages."""
-    pages_result = self.cursor.execute("PRAGMA page_count").fetchone()
+    pages_result = self.Execute("PRAGMA page_count").fetchone()
     if not pages_result:
       return False
     pages = int(pages_result[0])
@@ -429,7 +437,7 @@ class SqliteConnection(object):
     if pages * SQLITE_PAGE_SIZE < vacuum_minsize:
       # Too few pages to worry about.
       return False
-    free_pages_result = self.cursor.execute("PRAGMA freelist_count").fetchone()
+    free_pages_result = self.Execute("PRAGMA freelist_count").fetchone()
     if not free_pages_result:
       return False
     free_pages = int(free_pages_result[0])
@@ -440,7 +448,7 @@ class SqliteConnection(object):
   def _HasRecentVacuum(self):
     """Check if a vacuum operation has been performed recently."""
     query = "SELECT value FROM statistics WHERE name = 'vacuum_time'"
-    data = self.cursor.execute(query).fetchone()
+    data = self.Execute(query).fetchone()
     if not data:
       return False
     try:
@@ -457,11 +465,11 @@ class SqliteConnection(object):
 
     logging.debug("Vacuuming database.")
 
-    self.cursor.execute("VACUUM")
+    self.Execute("VACUUM")
     # Write time of the vacuum operation.
     query = "INSERT OR REPLACE INTO statistics VALUES('vacuum_time', ?)"
     args = (str(int(now)),)
-    self.cursor.execute(query, args)
+    self.Execute(query, args)
     try:
       self.conn.commit()
     except sqlite3.OperationalError:

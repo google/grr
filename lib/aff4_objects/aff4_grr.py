@@ -315,6 +315,15 @@ class VFSGRRClient(standard.VFSDirectory):
 
     return summary
 
+  def AddLabels(self, *label_names, **kwargs):
+    super(VFSGRRClient, self).AddLabels(*label_names, **kwargs)
+    with aff4.FACTORY.Create(standard.LabelSet.CLIENT_LABELS_URN,
+                             "LabelSet",
+                             mode="w",
+                             token=self.token) as client_labels_index:
+      for label_name in label_names:
+        client_labels_index.Add(label_name)
+
 
 class UpdateVFSFileArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.UpdateVFSFileArgs
@@ -768,9 +777,11 @@ def GetAllClientLabels(token, include_catchall=False):
   Returns:
     set of label name strings, including the catchall "All"
   """
-  labels_index = aff4.FACTORY.Create(VFSGRRClient.labels_index_urn,
-                                     "AFF4LabelsIndex", mode="rw", token=token)
-  labels = set(labels_index.ListUsedLabelNames(owner="GRR"))
+  labels_index = aff4.FACTORY.Create(standard.LabelSet.CLIENT_LABELS_URN,
+                                     "LabelSet",
+                                     mode="r",
+                                     token=token)
+  labels = set(labels_index.ListLabels())
   if include_catchall:
     labels.add(ALL_CLIENTS_LABEL)
   return labels

@@ -27,6 +27,12 @@
       </colgroup>
 
       <tbody>
+        <tr ng-if="controller.descriptorsError" class="alert-danger danger">
+          <td>
+            <strong>Can't fetch artifacts list:</strong><br/>
+            <span class="preserve-linebreaks">{$ controller.descriptorsError $}</span>
+          </td>
+        </tr>
         <tr ng-repeat="descriptor in controller.descriptorsList |
                        orderBy:'value.artifact.value.name.value' |
                        filter:controller.searchFilterRef |

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 """Test of "New Hunt" wizard."""
 
 
@@ -13,6 +12,7 @@ from grr.lib import flow_runner
 from grr.lib import hunts
 from grr.lib import output_plugin
 from grr.lib import test_lib
+from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import processes
 from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import client as rdf_client
@@ -32,7 +32,7 @@ class DummyOutputPlugin(output_plugin.OutputPlugin):
 
 
 class TestNewHuntWizard(test_lib.GRRSeleniumTest):
-  """Test the Cron view GUI."""
+  """Test the "new hunt wizard" GUI."""
 
   @staticmethod
   def FindForemanRules(hunt, token):
@@ -138,8 +138,8 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     self.Click("css=grr-new-hunt-wizard-form button.Next")
     self.WaitUntil(self.IsTextPresent, "Output Processing")
 
+    # Configure the hunt to use dummy output plugin.
     self.Click("css=grr-new-hunt-wizard-form button[name=Add]")
-    # Configure the hunt to send an email on results.
     self.Select("css=grr-new-hunt-wizard-form select",
                 "DummyOutputPlugin")
     self.Type(
@@ -216,10 +216,10 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     # Close the window and check that the hunt was created.
     self.Click("css=button.Next")
 
-    # Select newly created cron job.
+    # Select newly created hunt.
     self.Click("css=grr-hunts-list td:contains('GenericHunt')")
 
-    # Check that correct details are displayed in cron job details tab.
+    # Check that correct details are displayed in hunt details tab.
     self.WaitUntil(self.IsTextPresent, "GenericHunt")
     self.WaitUntil(self.IsTextPresent, "Flow args")
 
@@ -237,7 +237,7 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     # Check that the hunt was created with a correct flow
     hunt = hunts_list[0]
     self.assertEqual(hunt.state.args.flow_runner_args.flow_name,
-                     "FileFinder")
+                     file_finder.FileFinder.__name__)
     self.assertEqual(hunt.state.args.flow_args.paths[0], "/tmp")
     self.assertEqual(hunt.state.args.flow_args.pathtype,
                      rdf_paths.PathSpec.PathType.TSK)
@@ -265,7 +265,7 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     self.assertEqual(len(hunt_rules), 1)
     self.assertTrue(
         abs(int(hunt_rules[0].expires - hunt_rules[0].created) -
-            31 * 24 * 60 * 60) <= 1)
+            14 * 24 * 60 * 60) <= 1)
 
     self.assertEqual(len(hunt_rules[0].regex_rules), 2)
     self.assertEqual(hunt_rules[0].regex_rules[0].path, "/")
@@ -282,6 +282,62 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     self.assertEqual(hunt_rules[0].integer_rules[0].operator,
                      rdf_foreman.ForemanAttributeInteger.Operator.GREATER_THAN)
     self.assertEqual(hunt_rules[0].integer_rules[0].value, 1336650631137737)
+
+  def testLiteralExpressionIsProcessedCorrectly(self):
+    """Literals are raw bytes. Testing that raw bytes are processed right."""
+
+    # Open up and click on View Hunts.
+    self.Open("/")
+    self.Click("css=a[grrtarget=ManageHunts]")
+
+    # Open up "New Hunt" wizard
+    self.Click("css=button[name=NewHunt]")
+    self.WaitUntil(self.IsTextPresent, "What to run?")
+
+    # Click on Filesystem item in flows list
+    self.WaitUntil(self.IsElementPresent, "css=#_Filesystem > ins.jstree-icon")
+    self.Click("css=#_Filesystem > ins.jstree-icon")
+
+    # Click on the FileFinder item in Filesystem flows list
+    self.Click("link=File Finder")
+
+    self.Click("css=label:contains('Conditions') ~ * button")
+    self.Select("css=label:contains('Condition type') ~ * select",
+                "CONTENTS_LITERAL_MATCH")
+    self.Type("css=label:contains('Literal') ~ * input", "foo\\x0d\\xc8bar")
+
+    # Click on "Next" button
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
+    self.WaitUntil(self.IsTextPresent, "Output Processing")
+    # Click on "Next" button
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
+    self.WaitUntil(self.IsTextPresent, "Where to run?")
+    # Click on "Next" button
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
+    self.WaitUntil(self.IsTextPresent, "Review")
+
+    # Check that the arguments summary is present.
+    self.WaitUntil(self.IsTextPresent, file_finder.FileFinder.__name__)
+    self.WaitUntil(self.IsTextPresent, "foo\\x0d\\xc8bar")
+
+    # Click on "Run" button
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
+    self.WaitUntil(self.IsTextPresent, "Created Hunt")
+    # Close the window and check that the hunt was created.
+    self.Click("css=button.Next")
+
+    # Check that the hunt object was actually created
+    hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
+    hunts_list = list(hunts_root.OpenChildren())
+    self.assertEqual(len(hunts_list), 1)
+
+    # Check that the hunt was created with a correct literal value.
+    hunt = hunts_list[0]
+    self.assertEqual(hunt.state.args.flow_runner_args.flow_name,
+                     file_finder.FileFinder.__name__)
+    self.assertEqual(
+        hunt.state.args.flow_args.conditions[0].contents_literal_match.literal,
+        "foo\x0d\xc8bar")
 
   def testOutputPluginsListEmptyWhenNoDefaultOutputPluginSet(self):
     self.Open("/#main=ManageHunts")
@@ -711,6 +767,106 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
       self.assertEqual(len(runner_args.regex_rules), 1)
       self.assertEqual(runner_args.regex_rules[0].attribute_name, "System")
       self.assertEqual(runner_args.regex_rules[0].attribute_regex, "Darwin")
+
+  def testCopyHuntHandlesLiteralExpressionCorrectly(self):
+    """Literals are raw bytes. Testing that raw bytes are processed right."""
+    literal_match = file_finder.FileFinderContentsLiteralMatchCondition(
+        literal="foo\x0d\xc8bar")
+
+    with self.ACLChecksDisabled():
+      hunts.GRRHunt.StartHunt(
+          hunt_name="GenericHunt",
+          description="model hunt",
+          flow_runner_args=flow_runner.FlowRunnerArgs(
+              flow_name=file_finder.FileFinder.__name__),
+          flow_args=file_finder.FileFinderArgs(
+              conditions=[
+                  file_finder.FileFinderCondition(
+                      condition_type="CONTENTS_LITERAL_MATCH",
+                      contents_literal_match=literal_match
+                      )
+                  ],
+              paths=["/tmp/evil.txt"]
+              ),
+          token=self.token)
+
+    self.Open("/#main=ManageHunts")
+    self.Click("css=tr:contains('model hunt')")
+    self.Click("css=button[name=CopyHunt]:not([disabled])")
+
+    # Wait until dialog appears.
+    self.WaitUntil(self.IsTextPresent, "What to run?")
+
+    # Check that non-default values of sample hunt are prefilled.
+    self.WaitUntilEqual("foo\\x0d\\xc8bar", self.GetValue,
+                        "css=grr-new-hunt-wizard-form "
+                        "label:contains('Literal') ~ * input:text")
+
+    # Click on "Next" button.
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
+    self.WaitUntil(self.IsTextPresent, "Output Processing")
+    # Click on "Next" button
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
+    self.WaitUntil(self.IsTextPresent, "Where to run?")
+    # Click on "Next" button
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
+    self.WaitUntil(self.IsTextPresent, "Review")
+
+    # Check that the arguments summary is present.
+    self.WaitUntil(self.IsTextPresent, file_finder.FileFinder.__name__)
+    self.WaitUntil(self.IsTextPresent, "foo\\x0d\\xc8bar")
+
+    # Click on "Run" button
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
+    self.WaitUntil(self.IsTextPresent, "Created Hunt")
+    # Close the window and check that the hunt was created.
+    self.Click("css=button.Next")
+
+    hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
+    hunts_list = sorted(list(hunts_root.ListChildren()),
+                        key=lambda x: x.age)
+
+    self.assertEqual(len(hunts_list), 2)
+    last_hunt = aff4.FACTORY.Open(hunts_list[-1], token=self.token)
+
+    # Check that the hunt was created with a correct literal value.
+    self.assertEqual(last_hunt.state.args.flow_runner_args.flow_name,
+                     file_finder.FileFinder.__name__)
+    self.assertEqual(
+        last_hunt.state.args.flow_args.conditions[0]
+        .contents_literal_match.literal,
+        "foo\x0d\xc8bar")
+
+  def testCopyHuntPreservesRuleType(self):
+    with self.ACLChecksDisabled():
+      hunts.GRRHunt.StartHunt(
+          hunt_name="GenericHunt",
+          description="model hunt",
+          flow_runner_args=flow_runner.FlowRunnerArgs(
+              flow_name="GetFile"),
+          flow_args=transfer.GetFileArgs(
+              pathspec=rdf_paths.PathSpec(
+                  path="/tmp/evil.txt",
+                  pathtype=rdf_paths.PathSpec.PathType.TSK,
+              )
+          ),
+          regex_rules=[rdf_foreman.ForemanAttributeRegex(
+              attribute_name="System",
+              attribute_regex="Darwin")], token=self.token)
+
+    self.Open("/#main=ManageHunts")
+    self.Click("css=tr:contains('model hunt')")
+    self.Click("css=button[name=CopyHunt]:not([disabled])")
+
+    # Wait until dialog appears.
+    self.WaitUntil(self.IsTextPresent, "What to run?")
+    # Click on "Next" button.
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
+    self.WaitUntil(self.IsTextPresent, "Output Processing")
+    # Click on "Next" button
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
+    self.WaitUntil(self.IsTextPresent, "Where to run?")
+    self.WaitUntil(self.IsTextPresent, "This rule will match all OS X systems.")
 
 
 def main(argv):

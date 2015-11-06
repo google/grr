@@ -22,7 +22,6 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
-from grr.lib.rdfvalues import aff4_rdfvalues
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import foreman as rdf_foreman
@@ -1532,55 +1531,6 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
     self.assertEqual(["label2", "label3"],
                      list(client.GetLabelsNames()))
-
-  def testLabelIndexesIsUpdatedWhenLabelIsAdded(self):
-    with aff4.FACTORY.Create("C.0000000000000001", "VFSGRRClient",
-                             mode="rw", token=self.token) as client:
-      labels = ["label1", "label2", "label3"]
-      client.AddLabels(*labels)
-
-    label_index = aff4.FACTORY.Open(aff4.VFSGRRClient.labels_index_urn,
-                                    token=self.token)
-    self.assertSetEqual(set(label_index.ListUsedLabels()),
-                        set([aff4_rdfvalues.AFF4ObjectLabel(name="label1",
-                                                            owner="test"),
-                             aff4_rdfvalues.AFF4ObjectLabel(name="label2",
-                                                            owner="test"),
-                             aff4_rdfvalues.AFF4ObjectLabel(name="label3",
-                                                            owner="test")]))
-
-    found_urns = label_index.MultiFindUrnsByLabel(labels)
-    self.assertListEqual(
-        found_urns[aff4_rdfvalues.AFF4ObjectLabel(name="label1",
-                                                  owner="test")],
-        [rdf_client.ClientURN("C.0000000000000001")])
-    self.assertListEqual(
-        found_urns[aff4_rdfvalues.AFF4ObjectLabel(name="label2",
-                                                  owner="test")],
-        [rdf_client.ClientURN("C.0000000000000001")])
-    self.assertListEqual(
-        found_urns[aff4_rdfvalues.AFF4ObjectLabel(name="label3",
-                                                  owner="test")],
-        [rdf_client.ClientURN("C.0000000000000001")])
-
-  def testLabelIndexIsNotUpdatedWhenLabelIsRemoved(self):
-    with aff4.FACTORY.Create("C.0000000000000001", "VFSGRRClient",
-                             mode="rw", token=self.token) as client:
-      labels = ["label1", "label2", "label3"]
-      client.AddLabels(*labels)
-
-    with aff4.FACTORY.Create("C.0000000000000001", "VFSGRRClient",
-                             mode="rw", token=self.token) as client:
-      labels = ["label1", "label2", "label3"]
-      client.RemoveLabels("label1")
-
-    label_index = aff4.FACTORY.Open(aff4.VFSGRRClient.labels_index_urn,
-                                    token=self.token)
-    self.assertTrue(aff4_rdfvalues.AFF4ObjectLabel(
-        name="label1", owner="test") in label_index.ListUsedLabels())
-    self.assertListEqual(
-        label_index.FindUrnsByLabel("label3"),
-        [rdf_client.ClientURN("C.0000000000000001")])
 
   def testPathSpecInterpolation(self):
     # Create a base directory containing a pathspec.

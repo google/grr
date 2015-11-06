@@ -17,7 +17,6 @@ from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import flow_runner
-from grr.lib import rdfvalue
 from grr.lib import throttle
 from grr.lib import utils
 from grr.lib.aff4_objects import security as aff4_security
@@ -372,16 +371,6 @@ class ApiRemoteGetFileRenderer(api_call_renderer_base.ApiCallRenderer):
   # ACLs.
   enabled_by_default = False
 
-  def GetMostRecentClient(self, client_list, token=None):
-    last = rdfvalue.RDFDatetime(0)
-    client_urn = None
-    for client in aff4.FACTORY.MultiOpen(client_list, token=token):
-      client_last = client.Get(client.Schema.LAST)
-      if client_last > last:
-        last = client_last
-        client_urn = client.urn
-    return client_urn
-
   def GetClientTarget(self, args, token=None):
     # Find the right client to target using a hostname search.
     index = aff4.FACTORY.Create(
@@ -394,7 +383,7 @@ class ApiRemoteGetFileRenderer(api_call_renderer_base.ApiCallRenderer):
 
     # If we get more than one, take the one with the most recent poll.
     if len(client_list) > 1:
-      return self.GetMostRecentClient(client_list, token=token)
+      return client_index.GetMostRecentClient(client_list, token=token)
     else:
       return client_list[0]
 

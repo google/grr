@@ -6,6 +6,7 @@ goog.provide('grrUi.semantic.module');
 
 goog.require('grrUi.core.module');
 goog.require('grrUi.core.semanticRegistry.SemanticRegistryService');
+goog.require('grrUi.semantic.bytesDirective.BytesDirective');
 goog.require('grrUi.semantic.clientUrnDirective.ClientUrnDirective');
 goog.require('grrUi.semantic.dictDirective.DictDirective');
 goog.require('grrUi.semantic.durationDirective.DurationDirective');
@@ -15,6 +16,7 @@ goog.require('grrUi.semantic.macAddressDirective.MacAddressDirective');
 goog.require('grrUi.semantic.networkAddressDirective.NetworkAddressDirective');
 goog.require('grrUi.semantic.objectLabelDirective.ObjectLabelDirective');
 goog.require('grrUi.semantic.objectLabelsListDirective.ObjectLabelsListDirective');
+goog.require('grrUi.semantic.primitiveDirective.PrimitiveDirective');
 goog.require('grrUi.semantic.semanticProtoDirective.SemanticProtoDirective');
 goog.require('grrUi.semantic.semanticValueDirective.SemanticValueDirective');
 goog.require('grrUi.semantic.timestampDirective.TimestampDirective');
@@ -30,6 +32,9 @@ grrUi.semantic.module = angular.module('grrUi.semantic',
                                         'ui.bootstrap']);
 
 
+grrUi.semantic.module.directive(
+    grrUi.semantic.bytesDirective.BytesDirective.directive_name,
+    grrUi.semantic.bytesDirective.BytesDirective);
 grrUi.semantic.module.directive(
     grrUi.semantic.clientUrnDirective.ClientUrnDirective.directive_name,
     grrUi.semantic.clientUrnDirective.ClientUrnDirective);
@@ -60,6 +65,9 @@ grrUi.semantic.module.directive(
         .directive_name,
     grrUi.semantic.objectLabelsListDirective.ObjectLabelsListDirective);
 grrUi.semantic.module.directive(
+    grrUi.semantic.primitiveDirective.PrimitiveDirective.directive_name,
+    grrUi.semantic.primitiveDirective.PrimitiveDirective);
+grrUi.semantic.module.directive(
     grrUi.semantic.semanticProtoDirective.SemanticProtoDirective.directive_name,
     grrUi.semantic.semanticProtoDirective.SemanticProtoDirective);
 grrUi.semantic.module.directive(
@@ -80,6 +88,9 @@ grrUi.semantic.module.service(
 grrUi.semantic.module.run(function(grrSemanticValueDirectivesRegistryService) {
   var registry = grrSemanticValueDirectivesRegistryService;
 
+  registry.registerDirective(
+      grrUi.semantic.bytesDirective.BytesDirective.semantic_type,
+      grrUi.semantic.bytesDirective.BytesDirective);
   registry.registerDirective(
       grrUi.semantic.clientUrnDirective.ClientUrnDirective.semantic_type,
       grrUi.semantic.clientUrnDirective.ClientUrnDirective);
@@ -117,6 +128,12 @@ grrUi.semantic.module.run(function(grrSemanticValueDirectivesRegistryService) {
     grrUi.semantic.objectLabelsListDirective.ObjectLabelsListDirective
         .semantic_type,
     grrUi.semantic.objectLabelsListDirective.ObjectLabelsListDirective);
+  angular.forEach(
+      grrUi.semantic.primitiveDirective.PrimitiveDirective.semantic_types,
+      function(type) {
+        registry.registerDirective(
+            type, grrUi.semantic.primitiveDirective.PrimitiveDirective);
+      }.bind(this));
   registry.registerDirective(
     grrUi.semantic.semanticProtoDirective.SemanticProtoDirective.semantic_type,
     grrUi.semantic.semanticProtoDirective.SemanticProtoDirective);

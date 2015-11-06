@@ -279,6 +279,25 @@ class UtilsTest(test_lib.GRRBaseTest):
     for in_str, result in fixture:
       self.assertTrue(result in g(in_str))
 
+  def testGuessWindowsFileNameFromStringHandlesRunDllCaseCorrectly(self):
+    g = utils.GuessWindowsFileNameFromString
+    fixture = [
+        (r"rundll32.exe C:\Windows\system32\advpack.dll,DelNodeRunDLL32",
+         r"rundll32.exe"),
+        (r"rundll32.exe C:\Windows\system32\advpack.dll,DelNodeRunDLL32",
+         r"C:\Windows\system32\advpack.dll"),
+        (r"rundll32.exe 'C:\Program Files\Realtek\Audio\blah.exe',blah",
+         r"rundll32.exe"),
+        (r"rundll32.exe 'C:\Program Files\Realtek\Audio\blah.exe',blah",
+         r"C:\Program Files\Realtek\Audio\blah.exe"),
+        (r"'rundll32.exe' 'C:\Program Files\Realtek\Audio\blah.exe',blah",
+         r"rundll32.exe"),
+        (r"'rundll32.exe' 'C:\Program Files\Realtek\Audio\blah.exe',blah",
+         r"C:\Program Files\Realtek\Audio\blah.exe")]
+
+    for in_str, result in fixture:
+      self.assertTrue(result in g(in_str))
+
   def testZipFileWithOneFile(self):
     """Test the zipfile implementation."""
     compressions = [zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED]

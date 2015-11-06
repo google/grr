@@ -724,11 +724,6 @@
                 "age": 0,
                 "type": "unicode",
                 "value": "bar"
-              },
-              "owner": {
-                "age": 0,
-                "type": "unicode",
-                "value": "test"
               }
             }
           },
@@ -740,11 +735,6 @@
                 "age": 0,
                 "type": "unicode",
                 "value": "foo"
-              },
-              "owner": {
-                "age": 0,
-                "type": "unicode",
-                "value": "test"
               }
             }
           }
@@ -754,12 +744,10 @@
       "type_stripped_response": {
         "labels": [
           {
-            "name": "bar",
-            "owner": "test"
+            "name": "bar"
           },
           {
-            "name": "foo",
-            "owner": "test"
+            "name": "foo"
           }
         ]
       },
@@ -864,6 +852,422 @@
         }
       },
       "url": "/api/config"
+    }
+  ],
+  "ApiCreateCronJobRenderer": [
+    {
+      "method": "POST",
+      "response": {
+        "age": 0,
+        "type": "ApiCronJob",
+        "value": {
+          "allow_overruns": {
+            "age": 0,
+            "type": "RDFBool",
+            "value": false
+          },
+          "description": {
+            "age": 0,
+            "type": "unicode",
+            "value": "Foobar!"
+          },
+          "flow_args": {
+            "age": 0,
+            "type": "CreateGenericHuntFlowArgs",
+            "value": {
+              "hunt_args": {
+                "age": 0,
+                "type": "GenericHuntArgs",
+                "value": {
+                  "flow_args": {
+                    "age": 0,
+                    "type": "FileFinderArgs",
+                    "value": {
+                      "paths": [
+                        {
+                          "age": 0,
+                          "type": "GlobExpression",
+                          "value": "c:\\windows\\system32\\notepad.*"
+                        }
+                      ]
+                    }
+                  },
+                  "flow_runner_args": {
+                    "age": 0,
+                    "type": "FlowRunnerArgs",
+                    "value": {
+                      "flow_name": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "FileFinder"
+                      }
+                    }
+                  }
+                }
+              },
+              "hunt_runner_args": {
+                "age": 0,
+                "type": "HuntRunnerArgs",
+                "value": {
+                  "description": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Foobar! (cron)"
+                  },
+                  "regex_rules": [
+                    {
+                      "age": 0,
+                      "type": "ForemanAttributeRegex",
+                      "value": {
+                        "attribute_name": {
+                          "age": 0,
+                          "type": "AFF4Attribute",
+                          "value": "System"
+                        },
+                        "attribute_regex": {
+                          "age": 0,
+                          "type": "RegularExpression",
+                          "value": "Windows"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "flow_name": {
+            "age": 0,
+            "type": "unicode",
+            "value": "CreateAndRunGenericHuntFlow"
+          },
+          "flow_runner_args": {
+            "age": 0,
+            "type": "FlowRunnerArgs",
+            "value": {
+              "flow_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "CreateAndRunGenericHuntFlow"
+              }
+            }
+          },
+          "is_failing": {
+            "age": 0,
+            "type": "RDFBool",
+            "value": false
+          },
+          "lifetime": {
+            "age": 0,
+            "type": "Duration",
+            "value": 3600
+          },
+          "periodicity": {
+            "age": 0,
+            "type": "Duration",
+            "value": 604800
+          },
+          "state": {
+            "age": 0,
+            "type": "EnumNamedValue",
+            "value": "DISABLED"
+          },
+          "urn": {
+            "age": 0,
+            "type": "RDFURN",
+            "value": "aff4:/cron/CreateAndRunGeneicHuntFlow_1234"
+          }
+        }
+      },
+      "test_class": "ApiCreateCronJobRendererRegressionTest",
+      "type_stripped_response": {
+        "allow_overruns": false,
+        "description": "Foobar!",
+        "flow_args": {
+          "hunt_args": {
+            "flow_args": {
+              "paths": [
+                "c:\\windows\\system32\\notepad.*"
+              ]
+            },
+            "flow_runner_args": {
+              "flow_name": "FileFinder"
+            }
+          },
+          "hunt_runner_args": {
+            "description": "Foobar! (cron)",
+            "regex_rules": [
+              {
+                "attribute_name": "System",
+                "attribute_regex": "Windows"
+              }
+            ]
+          }
+        },
+        "flow_name": "CreateAndRunGenericHuntFlow",
+        "flow_runner_args": {
+          "flow_name": "CreateAndRunGenericHuntFlow"
+        },
+        "is_failing": false,
+        "lifetime": 3600,
+        "periodicity": 604800,
+        "state": "DISABLED",
+        "urn": "aff4:/cron/CreateAndRunGeneicHuntFlow_1234"
+      },
+      "url": "/api/cron-jobs"
+    }
+  ],
+  "ApiCronJobsListRenderer": [
+    {
+      "method": "GET",
+      "response": {
+        "count": 3,
+        "items": [
+          {
+            "age": 0,
+            "type": "ApiCronJob",
+            "value": {
+              "allow_overruns": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "description": {
+                "age": 0,
+                "type": "unicode",
+                "value": "bar"
+              },
+              "flow_args": {
+                "age": 0,
+                "type": "EmptyFlowArgs",
+                "value": {}
+              },
+              "flow_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "OSBreakDown"
+              },
+              "flow_runner_args": {
+                "age": 0,
+                "type": "FlowRunnerArgs",
+                "value": {
+                  "flow_name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "OSBreakDown"
+                  }
+                }
+              },
+              "is_failing": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "lifetime": {
+                "age": 0,
+                "type": "Duration",
+                "value": 86400
+              },
+              "periodicity": {
+                "age": 0,
+                "type": "Duration",
+                "value": 604800
+              },
+              "state": {
+                "age": 0,
+                "type": "EnumNamedValue",
+                "value": "ENABLED"
+              },
+              "urn": {
+                "age": 0,
+                "type": "RDFURN",
+                "value": "aff4:/cron/OSBreakDown"
+              }
+            }
+          },
+          {
+            "age": 0,
+            "type": "ApiCronJob",
+            "value": {
+              "allow_overruns": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "description": {
+                "age": 0,
+                "type": "unicode",
+                "value": ""
+              },
+              "flow_args": {
+                "age": 0,
+                "type": "EmptyFlowArgs",
+                "value": {}
+              },
+              "flow_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "LastAccessStats"
+              },
+              "flow_runner_args": {
+                "age": 0,
+                "type": "FlowRunnerArgs",
+                "value": {
+                  "flow_name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "LastAccessStats"
+                  }
+                }
+              },
+              "is_failing": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": true
+              },
+              "last_run_time": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 230000000
+              },
+              "lifetime": {
+                "age": 0,
+                "type": "Duration",
+                "value": 86400
+              },
+              "periodicity": {
+                "age": 0,
+                "type": "Duration",
+                "value": 604800
+              },
+              "state": {
+                "age": 0,
+                "type": "EnumNamedValue",
+                "value": "ENABLED"
+              },
+              "urn": {
+                "age": 0,
+                "type": "RDFURN",
+                "value": "aff4:/cron/LastAccessStats"
+              }
+            }
+          },
+          {
+            "age": 0,
+            "type": "ApiCronJob",
+            "value": {
+              "allow_overruns": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "description": {
+                "age": 0,
+                "type": "unicode",
+                "value": "foo"
+              },
+              "flow_args": {
+                "age": 0,
+                "type": "EmptyFlowArgs",
+                "value": {}
+              },
+              "flow_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "GRRVersionBreakDown"
+              },
+              "flow_runner_args": {
+                "age": 0,
+                "type": "FlowRunnerArgs",
+                "value": {
+                  "flow_name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "GRRVersionBreakDown"
+                  }
+                }
+              },
+              "is_failing": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "lifetime": {
+                "age": 0,
+                "type": "Duration",
+                "value": 7200
+              },
+              "periodicity": {
+                "age": 0,
+                "type": "Duration",
+                "value": 86400
+              },
+              "state": {
+                "age": 0,
+                "type": "EnumNamedValue",
+                "value": "DISABLED"
+              },
+              "urn": {
+                "age": 0,
+                "type": "RDFURN",
+                "value": "aff4:/cron/GRRVersionBreakDown"
+              }
+            }
+          }
+        ],
+        "offset": 0
+      },
+      "test_class": "ApiCronJobsListRendererRegressionTest",
+      "type_stripped_response": {
+        "count": 3,
+        "items": [
+          {
+            "allow_overruns": false,
+            "description": "bar",
+            "flow_args": {},
+            "flow_name": "OSBreakDown",
+            "flow_runner_args": {
+              "flow_name": "OSBreakDown"
+            },
+            "is_failing": false,
+            "lifetime": 86400,
+            "periodicity": 604800,
+            "state": "ENABLED",
+            "urn": "aff4:/cron/OSBreakDown"
+          },
+          {
+            "allow_overruns": false,
+            "description": "",
+            "flow_args": {},
+            "flow_name": "LastAccessStats",
+            "flow_runner_args": {
+              "flow_name": "LastAccessStats"
+            },
+            "is_failing": true,
+            "last_run_time": 230000000,
+            "lifetime": 86400,
+            "periodicity": 604800,
+            "state": "ENABLED",
+            "urn": "aff4:/cron/LastAccessStats"
+          },
+          {
+            "allow_overruns": false,
+            "description": "foo",
+            "flow_args": {},
+            "flow_name": "GRRVersionBreakDown",
+            "flow_runner_args": {
+              "flow_name": "GRRVersionBreakDown"
+            },
+            "is_failing": false,
+            "lifetime": 7200,
+            "periodicity": 86400,
+            "state": "DISABLED",
+            "urn": "aff4:/cron/GRRVersionBreakDown"
+          }
+        ],
+        "offset": 0
+      },
+      "url": "/api/cron-jobs"
     }
   ],
   "ApiFlowArchiveFilesRenderer": [
@@ -2185,7 +2589,7 @@
                   "expires": {
                     "age": 0,
                     "type": "RDFDatetime",
-                    "value": 2678442000000
+                    "value": 1209642000000
                   },
                   "kill_timestamp": {
                     "age": 0,
@@ -3027,7 +3431,7 @@
           "expires": {
             "age": 0,
             "type": "RDFDatetime",
-            "value": 2678442000000
+            "value": 1209642000000
           },
           "hunt_name": {
             "age": 0,
@@ -3769,7 +4173,7 @@
               "create_time": 42000000,
               "creator": "test",
               "current_state": "Start",
-              "expires": 2678442000000,
+              "expires": 1209642000000,
               "kill_timestamp": "None",
               "network_bytes_sent": 0,
               "next_client_due": 0,
@@ -4001,7 +4405,7 @@
           "create_time": 42000000,
           "creator": "test",
           "description": "the hunt",
-          "expires": 2678442000000,
+          "expires": 1209642000000,
           "hunt_name": "GenericHunt",
           "integer_rules": [],
           "outstanding_clients_count": 0,
@@ -4339,7 +4743,7 @@
                       "expires": {
                         "age": 0,
                         "type": "RDFDatetime",
-                        "value": 2680400000000
+                        "value": 1211600000000
                       },
                       "kill_timestamp": {
                         "age": 0,
@@ -4496,7 +4900,7 @@
               "expires": {
                 "age": 0,
                 "type": "RDFDatetime",
-                "value": 2680400000000
+                "value": 1211600000000
               },
               "hunt_name": {
                 "age": 0,
@@ -4637,7 +5041,7 @@
                       "expires": {
                         "age": 0,
                         "type": "RDFDatetime",
-                        "value": 2679400000000
+                        "value": 1210600000000
                       },
                       "kill_timestamp": {
                         "age": 0,
@@ -4789,7 +5193,7 @@
               "expires": {
                 "age": 0,
                 "type": "RDFDatetime",
-                "value": 2679400000000
+                "value": 1210600000000
               },
               "hunt_name": {
                 "age": 0,
@@ -4845,7 +5249,7 @@
                   "create_time": 2000000000,
                   "creator": "test",
                   "current_state": "Start",
-                  "expires": 2680400000000,
+                  "expires": 1211600000000,
                   "kill_timestamp": "None",
                   "network_bytes_sent": 0,
                   "next_client_due": 0,
@@ -4888,7 +5292,7 @@
               "create_time": 2000000000,
               "creator": "test",
               "description": "hunt_1",
-              "expires": 2680400000000,
+              "expires": 1211600000000,
               "hunt_name": "GenericHunt",
               "state": "STOPPED"
             },
@@ -4927,7 +5331,7 @@
                   "create_time": 1000000000,
                   "creator": "test",
                   "current_state": "Start",
-                  "expires": 2679400000000,
+                  "expires": 1210600000000,
                   "kill_timestamp": "None",
                   "network_bytes_sent": 0,
                   "next_client_due": 0,
@@ -4969,7 +5373,7 @@
               "create_time": 1000000000,
               "creator": "test",
               "description": "hunt_0",
-              "expires": 2679400000000,
+              "expires": 1210600000000,
               "hunt_name": "GenericHunt",
               "state": "PAUSED"
             },
@@ -5112,7 +5516,7 @@
                       "expires": {
                         "age": 0,
                         "type": "RDFDatetime",
-                        "value": 2680400000000
+                        "value": 1211600000000
                       },
                       "kill_timestamp": {
                         "age": 0,
@@ -5269,7 +5673,7 @@
               "expires": {
                 "age": 0,
                 "type": "RDFDatetime",
-                "value": 2680400000000
+                "value": 1211600000000
               },
               "hunt_name": {
                 "age": 0,
@@ -5325,7 +5729,7 @@
                   "create_time": 2000000000,
                   "creator": "test",
                   "current_state": "Start",
-                  "expires": 2680400000000,
+                  "expires": 1211600000000,
                   "kill_timestamp": "None",
                   "network_bytes_sent": 0,
                   "next_client_due": 0,
@@ -5368,7 +5772,7 @@
               "create_time": 2000000000,
               "creator": "test",
               "description": "hunt_1",
-              "expires": 2680400000000,
+              "expires": 1211600000000,
               "hunt_name": "GenericHunt",
               "state": "STOPPED"
             },
@@ -5511,7 +5915,7 @@
                       "expires": {
                         "age": 0,
                         "type": "RDFDatetime",
-                        "value": 2679400000000
+                        "value": 1210600000000
                       },
                       "kill_timestamp": {
                         "age": 0,
@@ -5663,7 +6067,7 @@
               "expires": {
                 "age": 0,
                 "type": "RDFDatetime",
-                "value": 2679400000000
+                "value": 1210600000000
               },
               "hunt_name": {
                 "age": 0,
@@ -5719,7 +6123,7 @@
                   "create_time": 1000000000,
                   "creator": "test",
                   "current_state": "Start",
-                  "expires": 2679400000000,
+                  "expires": 1210600000000,
                   "kill_timestamp": "None",
                   "network_bytes_sent": 0,
                   "next_client_due": 0,
@@ -5761,7 +6165,7 @@
               "create_time": 1000000000,
               "creator": "test",
               "description": "hunt_0",
-              "expires": 2679400000000,
+              "expires": 1210600000000,
               "hunt_name": "GenericHunt",
               "state": "PAUSED"
             },
@@ -9074,7 +9478,7 @@
                         "expires": {
                           "age": 0,
                           "type": "RDFDatetime",
-                          "value": 2678442000000
+                          "value": 1209642000000
                         },
                         "kill_timestamp": {
                           "age": 0,
@@ -9867,7 +10271,7 @@
                 "expires": {
                   "age": 0,
                   "type": "RDFDatetime",
-                  "value": 2678442000000
+                  "value": 1209642000000
                 },
                 "hunt_name": {
                   "age": 0,
@@ -9946,7 +10350,7 @@
                     "create_time": 42000000,
                     "creator": "test",
                     "current_state": "Start",
-                    "expires": 2678442000000,
+                    "expires": 1209642000000,
                     "kill_timestamp": "None",
                     "network_bytes_sent": 0,
                     "next_client_due": 0,
@@ -10165,7 +10569,7 @@
                 "create_time": 42000000,
                 "creator": "test",
                 "description": "",
-                "expires": 2678442000000,
+                "expires": 1209642000000,
                 "hunt_name": "GenericHunt",
                 "state": "PAUSED"
               },

@@ -6,6 +6,7 @@ goog.require('grrUi.artifact.module');
 goog.require('grrUi.client.module');
 goog.require('grrUi.config.module');
 goog.require('grrUi.core.module');
+goog.require('grrUi.cron.module');
 goog.require('grrUi.docs.module');
 goog.require('grrUi.flow.module');
 goog.require('grrUi.forms.module');
@@ -31,6 +32,7 @@ grrUi.appController.module = angular.module('grrUi.appController',
                                              grrUi.client.module.name,
                                              grrUi.config.module.name,
                                              grrUi.core.module.name,
+                                             grrUi.cron.module.name,
                                              grrUi.docs.module.name,
                                              grrUi.flow.module.name,
                                              grrUi.forms.module.name,

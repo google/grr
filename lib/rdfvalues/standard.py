@@ -53,7 +53,7 @@ class RegularExpression(rdfvalue.RDFString):
 class LiteralExpression(rdfvalue.RDFBytes):
   """A RDFBytes literal for use in GrepSpec."""
 
-  context_help_url = "user_manual.html#_specifying_file_paths"
+  context_help_url = "user_manual.html#_literal_matches"
 
 
 class EmailAddress(rdfvalue.RDFString):

@@ -358,14 +358,6 @@ class Factory(object):
         for value, _ in values:
           index.setdefault(attribute.index, []).append((attribute, value))
 
-    if index:
-      for index_urn, index_data in index.items():
-        aff4index = self.Create(index_urn, "AFF4Index", mode="w",
-                                object_exists=True, token=token)
-        for attribute, value in index_data:
-          aff4index.Add(urn, attribute, value)
-        aff4index.Close()
-
     if add_child_index:
       self._UpdateChildIndex(urn, token)
 
@@ -2129,14 +2121,6 @@ class AFF4Object(object):
 
       raise
 
-  def _GetLabelsIndex(self):
-    """Creates and caches labels index object."""
-    if self._labels_index is None:
-      self._labels_index = FACTORY.Create(
-          self.labels_index_urn, "AFF4LabelsIndex", mode="w",
-          token=self.token)
-    return self._labels_index
-
   def AddLabels(self, *labels_names, **kwargs):
     """Add labels to the AFF4Object."""
     if not self.token and "owner" not in kwargs:
@@ -2144,15 +2128,13 @@ class AFF4Object(object):
                          "no access token available.")
     owner = kwargs.get("owner") or self.token.username
 
-    labels_index = self._GetLabelsIndex()
     current_labels = self.Get(self.Schema.LABELS, self.Schema.LABELS())
     for label_name in labels_names:
       label = aff4_rdfvalues.AFF4ObjectLabel(
           name=label_name,
           owner=owner,
           timestamp=rdfvalue.RDFDatetime().Now())
-      if current_labels.AddLabel(label):
-        labels_index.AddLabel(self.urn, label_name, owner=owner)
+      current_labels.AddLabel(label)
 
     self.Set(current_labels)
 
@@ -2163,13 +2145,10 @@ class AFF4Object(object):
                          "no access token available.")
     owner = kwargs.get("owner") or self.token.username
 
-    labels_index = self._GetLabelsIndex()
     current_labels = self.Get(self.Schema.LABELS)
     for label_name in labels_names:
       label = aff4_rdfvalues.AFF4ObjectLabel(name=label_name, owner=owner)
       current_labels.RemoveLabel(label)
-
-      labels_index.RemoveLabel(self.urn, label_name, owner=owner)
 
     self.Set(self.Schema.LABELS, current_labels)
 

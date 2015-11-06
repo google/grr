@@ -1,13 +1,16 @@
 'use strict';
 
+goog.provide('grrUi.hunt.newHuntWizard.formDirective.DEFAULT_PLUGIN_URL');
 goog.provide('grrUi.hunt.newHuntWizard.formDirective.FormController');
 goog.provide('grrUi.hunt.newHuntWizard.formDirective.FormDirective');
 
 goog.scope(function() {
 
 /** @const {string} */
-var DEFAULT_PLUGIN_URL = '/config/' +
+grrUi.hunt.newHuntWizard.formDirective.DEFAULT_PLUGIN_URL = '/config/' +
     'AdminUI.new_hunt_wizard.default_output_plugin';
+var DEFAULT_PLUGIN_URL =
+    grrUi.hunt.newHuntWizard.formDirective.DEFAULT_PLUGIN_URL;
 
 /**
  * Controller for FormDirective.
@@ -87,17 +90,19 @@ FormController.prototype.onGenericHuntArgsChange_ = function(newValue) {
         angular.copy(this.descriptors_['RDFString']['default']);
   }
 
-  if (this.defaultOutputPluginName) {
-    var defaultPluginDescriptor = angular.copy(
-        this.descriptors_['OutputPluginDescriptor']['default']);
-    defaultPluginDescriptor['value']['plugin_name'] = angular.copy(
-        this.descriptors_['RDFString']['default']);
-    defaultPluginDescriptor['value']['plugin_name']['value'] =
-        this.defaultOutputPluginName;
+  if (angular.isUndefined(newValue['value']['output_plugins'])) {
+    if (this.defaultOutputPluginName) {
+      var defaultPluginDescriptor = angular.copy(
+          this.descriptors_['OutputPluginDescriptor']['default']);
+      defaultPluginDescriptor['value']['plugin_name'] = angular.copy(
+          this.descriptors_['RDFString']['default']);
+      defaultPluginDescriptor['value']['plugin_name']['value'] =
+          this.defaultOutputPluginName;
 
-    newValue['value']['output_plugins'] = [defaultPluginDescriptor];
-  } else if (angular.isUndefined(newValue['value']['output_plugins'])) {
-    newValue['value']['output_plugins'] = [];
+      newValue['value']['output_plugins'] = [defaultPluginDescriptor];
+    } else if (angular.isUndefined(newValue['value']['output_plugins'])) {
+      newValue['value']['output_plugins'] = [];
+    }
   }
 };
 

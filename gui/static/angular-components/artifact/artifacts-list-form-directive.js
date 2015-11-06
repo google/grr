@@ -28,6 +28,9 @@ grrUi.artifact.artifactsListFormDirective.ArtifactsListFormController =
   /** @export {Object<string, Object>} */
   this.descriptors;
 
+  /** @export {string} */
+  this.descriptorsError;
+
   /** @export {Object} */
   this.selectedName;
 
@@ -47,7 +50,8 @@ grrUi.artifact.artifactsListFormDirective.ArtifactsListFormController =
   this.platformFilterRef = this.platformFilter.bind(this);
 
   this.grrApiService_.get('/artifacts').then(
-      this.onArtifactsResponse_.bind(this));
+      this.onArtifactsResponse_.bind(this),
+      this.onArtifactsRequestFailure_.bind(this));
 
   this.scope_.$watch('controller.descriptors',
                      this.onDescriptorsOrValueChange_.bind(this));
@@ -123,6 +127,18 @@ ArtifactsListFormController.prototype.onArtifactsResponse_ = function(
   angular.forEach(response['data']['items'], function(descriptor) {
     this.descriptors[descriptor.value.artifact.value.name.value] = descriptor;
   }.bind(this));
+};
+
+
+/**
+ * Handles errors that happen when requesting list of available artifacts.
+ *
+ * @param {Object} response
+ * @private
+ */
+ArtifactsListFormController.prototype.onArtifactsRequestFailure_ = function(
+    response) {
+  this.descriptorsError = response.data['message'];
 };
 
 /**

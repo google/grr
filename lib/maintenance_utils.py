@@ -13,7 +13,6 @@ from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import build
 from grr.lib import config_lib
-from grr.lib import data_store
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
@@ -287,53 +286,3 @@ def RepackAllBinaries(upload=False, debug_build=False, token=None):
       print "Failed to repack %s." % template_path
 
   return built
-
-
-# TODO(user): remove once people have had a chance to migrate their labels
-# from the older format.
-def RebuildIndex(urn, primary_attribute, indexed_attributes, token):
-  """Rebuild the Label Indexes."""
-  index_urn = rdfvalue.RDFURN(urn)
-
-  logging.info("Deleting index %s", urn)
-  data_store.DB.DeleteSubject(index_urn, sync=True, token=token)
-  attribute_predicates = [a.predicate for a in indexed_attributes]
-  filter_obj = data_store.DB.filter.HasPredicateFilter(
-      primary_attribute.predicate)
-
-  index = aff4.FACTORY.Create(index_urn, "AFF4Index",
-                              token=token, mode="w")
-
-  for row in data_store.DB.Query(attributes=attribute_predicates,
-                                 filter_obj=filter_obj, limit=1000000):
-    try:
-      subject = row["subject"][0][0]
-      urn = rdfvalue.RDFURN(subject)
-    except ValueError:
-      continue
-    for attribute in indexed_attributes:
-      value = row.get(attribute.predicate)
-      if value:
-        value = value[0][0]
-      if value:
-        logging.debug("Adding: %s %s %s", str(urn), attribute.predicate, value)
-        index.Add(urn, attribute, value)
-  logging.info("Flushing index %s", urn)
-  index.Flush(sync=True)
-
-
-def RebuildLabelIndexes(token):
-  """Rebuild the Label Indexes."""
-  RebuildIndex("/index/label",
-               primary_attribute=aff4.AFF4Object.SchemaCls.LABEL,
-               indexed_attributes=[aff4.AFF4Object.SchemaCls.LABEL],
-               token=token)
-
-
-def RebuildClientIndexes(token=None):
-  """Rebuild the Client Indexes."""
-  indexed_attributes = [a for a in aff4.VFSGRRClient.SchemaCls.ListAttributes()
-                        if a.index]
-  RebuildIndex("/index/client",
-               primary_attribute=aff4.VFSGRRClient.SchemaCls.HOSTNAME,
-               indexed_attributes=indexed_attributes, token=token)

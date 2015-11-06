@@ -19,6 +19,7 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.aff4_objects import filestore
 from grr.lib.checks import checks
+from grr.lib.flows.general import collectors
 # This test calls flows from these files. pylint: disable=unused-import
 from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import transfer
@@ -1012,6 +1013,83 @@ class ExportTest(test_lib.GRRBaseTest):
     self.assertEqual(len(results), 1)
     self.assertEqual(results[0].dns_servers, " ".join(dns_servers))
     self.assertEqual(results[0].dns_suffixes, " ".join(dns_suffixes))
+
+
+class ArtifactFilesDownloaderResultConverterTest(test_lib.GRRBaseTest):
+  """Tests for ArtifactFilesDownloaderResultConverter."""
+
+  def setUp(self):
+    super(ArtifactFilesDownloaderResultConverterTest, self).setUp()
+
+    self.registry_stat = rdf_client.StatEntry(
+        registry_type=rdf_client.StatEntry.RegistryType.REG_SZ,
+        pathspec=rdf_paths.PathSpec(
+            path="/HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/"
+            "CurrentVersion/Run/Sidebar",
+            pathtype=rdf_paths.PathSpec.PathType.REGISTRY),
+        registry_data=rdf_protodict.DataBlob(string="C:\\Windows\\Sidebar.exe"))
+
+  def testDoesNothingIfOriginalResultIsNotStatEntry(self):
+    result = collectors.ArtifactFilesDownloaderResult(
+        original_result=rdf_client.CpuSample())
+
+    converter = export.ArtifactFilesDownloaderResultConverter()
+    converted = list(converter.Convert(export.ExportedMetadata(), result,
+                                       token=self.token))
+
+    self.assertFalse(converted)
+
+  def testDoesNothingIfOriginalResultIsNotRegistryStatEntry(self):
+    stat = rdf_client.StatEntry(
+        aff4path=rdfvalue.RDFURN("aff4:/C.00000000000000/fs/os/some/path"),
+        pathspec=rdf_paths.PathSpec(path="/some/path",
+                                    pathtype=rdf_paths.PathSpec.PathType.OS))
+    result = collectors.ArtifactFilesDownloaderResult(original_result=stat)
+
+    converter = export.ArtifactFilesDownloaderResultConverter()
+    converted = list(converter.Convert(export.ExportedMetadata(), result,
+                                       token=self.token))
+
+    self.assertFalse(converted)
+
+  def testYieldsOneResultIfNoPathspecsWereFound(self):
+    result = collectors.ArtifactFilesDownloaderResult(
+        original_result=self.registry_stat)
+
+    converter = export.ArtifactFilesDownloaderResultConverter()
+    converted = list(converter.Convert(export.ExportedMetadata(), result,
+                                       token=self.token))
+
+    self.assertEquals(len(converted), 1)
+    self.assertEquals(converted[0].original_registry_key.type, "REG_SZ")
+    self.assertEquals(converted[0].original_registry_key.data,
+                      "C:\\Windows\\Sidebar.exe")
+
+  def testIncludesFoundPathspecIntoYieldedResult(self):
+    result = collectors.ArtifactFilesDownloaderResult(
+        original_result=self.registry_stat,
+        found_pathspec=rdf_paths.PathSpec(path="foo", pathtype="OS"))
+
+    converter = export.ArtifactFilesDownloaderResultConverter()
+    converted = list(converter.Convert(export.ExportedMetadata(), result,
+                                       token=self.token))
+
+    self.assertEquals(len(converted), 1)
+    self.assertEquals(converted[0].found_path, "foo")
+
+  def testIncludesDownloadedFileIfFoundAmongDownloadedFilesList(self):
+    result = collectors.ArtifactFilesDownloaderResult(
+        original_result=self.registry_stat,
+        found_pathspec=rdf_paths.PathSpec(path="foo", pathtype="OS"),
+        downloaded_file=rdf_client.StatEntry(
+            pathspec=rdf_paths.PathSpec(path="foo", pathtype="OS")))
+
+    converter = export.ArtifactFilesDownloaderResultConverter()
+    converted = list(converter.Convert(export.ExportedMetadata(), result,
+                                       token=self.token))
+
+    self.assertEquals(len(converted), 1)
+    self.assertEquals(converted[0].downloaded_file.basename, "foo")
 
 
 class DataAgnosticConverterTestValue(rdf_structs.RDFProtoStruct):

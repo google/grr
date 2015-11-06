@@ -211,8 +211,8 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
     self.assertEqual(index.LookupClients(["testlabel_1"]), [])
     self.assertEqual(index.LookupClients(["testlabel_2"]), client_list)
 
-  def _HostsHaveLabel(self, hosts, label, label_index):
-    urns = label_index.FindUrnsByLabel(label)
+  def _HostsHaveLabel(self, hosts, label, index):
+    urns = index.LookupClients(["+label:%s" % label])
     result = [utils.SmartStr(c.Get("Host")).lower()
               for c in aff4.FACTORY.MultiOpen(urns, token=self.token)]
     self.assertItemsEqual(hosts, result)
@@ -232,8 +232,6 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
       client.AddLabels("test_client", token=self.token)
       client.Flush()
       index.AddClient(client)
-    label_index = aff4.FACTORY.Open("aff4:/index/labels/clients",
-                                    token=self.token)
 
     # Maps hostnames used in the test to client urns.
     m = {"host-0": client_urns[0],
@@ -241,14 +239,14 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
 
     # No hostname.
     client_index.BulkLabel("label-0", ["host-3"], self.token, index)
-    self._HostsHaveLabel([], "label-0", label_index)
+    self._HostsHaveLabel([], "label-0", index)
 
     # Add label.
     hosts = ["host-0", "host-1"]
     client_index.BulkLabel("label-0", hosts, self.token, index)
     # host-0: label-0
     # host-1: label-0
-    self._HostsHaveLabel(hosts, "label-0", label_index)
+    self._HostsHaveLabel(hosts, "label-0", index)
     self.assertItemsEqual(index.LookupClients(["label-0"]),
                           [m[host] for host in hosts])
 
@@ -257,12 +255,12 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
     client_index.BulkLabel("label-1", hosts, self.token, index)
     # host-0: label-0
     # host-1: label-0, label-1
-    self._HostsHaveLabel(hosts, "label-1", label_index)
+    self._HostsHaveLabel(hosts, "label-1", index)
     self.assertItemsEqual(index.LookupClients(["label-1"]),
                           [m[host] for host in hosts])
     # and other labels remain unchanged.
     hosts = ["host-0", "host-1"]
-    self._HostsHaveLabel(hosts, "label-0", label_index)
+    self._HostsHaveLabel(hosts, "label-0", index)
     self.assertItemsEqual(index.LookupClients(["label-0"]),
                           [m[host] for host in hosts])
 
@@ -271,12 +269,12 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
     client_index.BulkLabel("label-0", hosts, self.token, index)
     # host-0: label-0
     # host-1: label-1
-    self._HostsHaveLabel(hosts, "label-0", label_index)
+    self._HostsHaveLabel(hosts, "label-0", index)
     self.assertItemsEqual(index.LookupClients(["label-0"]),
                           [m[host] for host in hosts])
     # and other labels remain unchanged.
     hosts = ["host-1"]
-    self._HostsHaveLabel(hosts, "label-1", label_index)
+    self._HostsHaveLabel(hosts, "label-1", index)
     self.assertItemsEqual(index.LookupClients(["label-1"]),
                           [m[host] for host in hosts])
 

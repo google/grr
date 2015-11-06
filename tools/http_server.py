@@ -20,6 +20,7 @@ import logging
 from grr.lib import server_plugins
 # pylint: enable=g-bad-import-order
 
+from grr.lib import aff4
 from grr.lib import communicator
 from grr.lib import config_lib
 from grr.lib import flags
@@ -41,6 +42,7 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
   """GRR HTTP handler for receiving client posts."""
 
   statustext = {200: "200 OK",
+                404: "404 Not Found",
                 406: "406 Not Acceptable",
                 500: "500 Internal Server Error"}
 
@@ -51,7 +53,7 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
            last_modified=0):
 
     self.wfile.write(("HTTP/1.0 %s\r\n"
-                      "Server: BaseHTTP/0.3 Python/2.6.5\r\n"
+                      "Server: GRR Server\r\n"
                       "Content-type: %s\r\n"
                       "Content-Length: %d\r\n"
                       "Last-Modified: %s\r\n"
@@ -62,8 +64,29 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
   def do_GET(self):
     """Server the server pem with GET requests."""
+    url_prefix = config_lib.CONFIG["Frontend.static_url_path_prefix"]
     if self.path.startswith("/server.pem"):
       self.ServerPem()
+    elif self.path.startswith(url_prefix):
+      path = self.path[len(url_prefix):]
+      self.ServeStatic(path)
+
+  AFF4_READ_BLOCK_SIZE = 10 * 1024 * 1024
+
+  def ServeStatic(self, path):
+    static_aff4_prefix = config_lib.CONFIG["Frontend.static_aff4_prefix"]
+    aff4_path = rdfvalue.RDFURN(static_aff4_prefix).Add(path)
+    try:
+      logging.info("Serving %s", aff4_path)
+      fd = aff4.FACTORY.Open(aff4_path)
+      while True:
+        data = fd.Read(self.AFF4_READ_BLOCK_SIZE)
+        if not data:
+          break
+
+        self.Send(data)
+    except (IOError, AttributeError):
+      self.Send("", status=404)
 
   def ServerPem(self):
     self.Send(self.server.server_cert)

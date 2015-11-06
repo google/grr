@@ -6,6 +6,7 @@ from grr.gui.api_plugins import aff4
 from grr.gui.api_plugins import artifact
 from grr.gui.api_plugins import client
 from grr.gui.api_plugins import config
+from grr.gui.api_plugins import cron
 from grr.gui.api_plugins import docs
 from grr.gui.api_plugins import flow
 from grr.gui.api_plugins import hunt

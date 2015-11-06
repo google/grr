@@ -13,6 +13,9 @@ from grr.lib import client_index
 from grr.lib import flow
 from grr.lib import utils
 
+from grr.lib.aff4_objects import standard
+
+from grr.lib.rdfvalues import aff4_rdfvalues
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import structs as rdf_structs
 
@@ -173,15 +176,15 @@ class ApiClientsLabelsListRenderer(api_call_renderer_base.ApiCallRenderer):
   category = CATEGORY
 
   def Render(self, args, token=None):
-    labels_index = aff4.FACTORY.Create(
-        aff4.VFSGRRClient.labels_index_urn, "AFF4LabelsIndex",
-        mode="rw", token=token)
-
+    labels_index = aff4.FACTORY.Create(standard.LabelSet.CLIENT_LABELS_URN,
+                                       "LabelSet",
+                                       mode="r",
+                                       token=token)
     rendered_labels = []
-    for label in labels_index.ListUsedLabels():
-      rendered_labels.append(api_value_renderers.RenderValue(label))
-
-    return dict(labels=sorted(rendered_labels))
+    for label in labels_index.ListLabels():
+      label_object = aff4_rdfvalues.AFF4ObjectLabel(name=label)
+      rendered_labels.append(api_value_renderers.RenderValue(label_object))
+    return dict(labels=rendered_labels)
 
 
 class ApiListKbFieldsRenderer(api_call_renderer_base.ApiCallRenderer):

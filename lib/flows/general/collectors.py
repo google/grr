@@ -10,17 +10,22 @@ from grr.lib import artifact_utils
 from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import parsers
+from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import filesystem
 # For AnalyzeClientMemory. pylint: disable=unused-import
 from grr.lib.flows.general import memory as _
 # pylint: enable=unused-import
+from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import paths
 from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
+from grr.lib.rdfvalues import structs as rdf_structs
 # For various parsers use by artifacts. pylint: disable=unused-import
 from grr.parsers import registry_init
 # pylint: enable=unused-import
+from grr.parsers import windows_persistence
+from grr.proto import flows_pb2
 
 
 class ArtifactCollectorFlow(flow.GRRFlow):
@@ -826,3 +831,101 @@ class ArtifactCollectorFlow(flow.GRRFlow):
                 "Completed artifact collection of %s. Collected %d. Errors %d."
                 % (self.args.artifact_list, self.state.response_count,
                    self.state.failed_count))
+
+
+class ArtifactFilesDownloaderFlowArgs(rdf_structs.RDFProtoStruct):
+  protobuf = flows_pb2.ArtifactFilesDownloaderFlowArgs
+
+
+class ArtifactFilesDownloaderResult(rdf_structs.RDFProtoStruct):
+  protobuf = flows_pb2.ArtifactFilesDownloaderResult
+
+  def GetOriginalResultType(self):
+    if self.HasField("original_result_type"):
+      return rdfvalue.RDFValue.classes.get(self.original_result_type)
+
+
+class ArtifactFilesDownloaderFlow(transfer.MultiGetFileMixin, flow.GRRFlow):
+  """Flow that downloads files referenced by collected artifacts."""
+
+  category = "/Collectors/"
+  args_type = ArtifactFilesDownloaderFlowArgs
+  behaviours = flow.GRRFlow.behaviours + "ADVANCED"
+
+  def FindMatchingPathspecs(self, response):
+    client = aff4.FACTORY.Open(self.client_id, token=self.token)
+    knowledge_base = artifact.GetArtifactKnowledgeBase(client)
+
+    if self.args.use_tsk:
+      path_type = paths.PathSpec.PathType.TSK
+    else:
+      path_type = paths.PathSpec.PathType.OS
+
+    parser = windows_persistence.WindowsPersistenceMechanismsParser()
+    parsed_items = list(parser.Parse(response, knowledge_base, path_type))
+
+    return [item.pathspec for item in parsed_items]
+
+  @flow.StateHandler(next_state=["DownloadFiles"])
+  def Start(self):
+    super(ArtifactFilesDownloaderFlow, self).Start()
+
+    self.state.file_size = self.args.max_file_size
+    self.state.Register("results_to_download", [])
+
+    self.CallFlow(ArtifactCollectorFlow.__name__,
+                  next_state="DownloadFiles",
+                  artifact_list=self.args.artifact_list,
+                  use_tsk=self.args.use_tsk,
+                  max_file_size=self.args.max_file_size)
+
+  @flow.StateHandler(next_state=["End"])
+  def DownloadFiles(self, responses):
+    if not responses.success:
+      self.Log("Failed to run ArtifactCollectorFlow: %s", responses.status)
+      return
+
+    results_with_pathspecs = []
+    results_without_pathspecs = []
+    for response in responses:
+      pathspecs = self.FindMatchingPathspecs(response)
+      if pathspecs:
+        for pathspec in pathspecs:
+          result = ArtifactFilesDownloaderResult(
+              original_result_type=response.__class__.__name__,
+              original_result=response,
+              found_pathspec=pathspec)
+          results_with_pathspecs.append(result)
+      else:
+        result = ArtifactFilesDownloaderResult(
+            original_result_type=response.__class__.__name__,
+            original_result=response)
+        results_without_pathspecs.append(result)
+
+    grouped_results = utils.GroupBy(results_with_pathspecs,
+                                    lambda x: x.found_pathspec)
+    for pathspec, group in grouped_results.items():
+      self.StartFileFetch(pathspec, request_data=dict(results=group))
+
+    for result in results_without_pathspecs:
+      self.SendReply(result)
+
+  def ReceiveFetchedFile(self, stat_entry, file_hash, request_data=None):
+    if not request_data:
+      raise RuntimeError("Expected non-empty request_data")
+
+    for result in request_data["results"]:
+      result.downloaded_file = stat_entry
+      self.SendReply(result)
+
+  def FileFetchFailed(self, pathspec, request_type, request_data=None):
+    if not request_data:
+      raise RuntimeError("Expected non-empty request_data")
+
+    # If file doesn't exist, FileFetchFailed will be called twice:
+    # once for StatFile client action, and then for HashFile client action (as
+    # they're scheduled in parallel). We do a request_type check here to
+    # avoid reporting same result twice.
+    if request_type == "StatFile":
+      for result in request_data["results"]:
+        self.SendReply(result)

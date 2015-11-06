@@ -3,7 +3,6 @@
 
 
 import hashlib
-import re
 import StringIO
 
 from grr.lib import aff4
@@ -11,7 +10,6 @@ from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.lib.rdfvalues import aff4_rdfvalues
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 
@@ -573,318 +571,69 @@ class AFF4SparseIndex(aff4.AFF4Image):
     super(AFF4SparseIndex, self).Flush(sync=sync)
 
 
-class AFF4Index(aff4.AFF4Object):
-  """An aff4 object which manages access to an index.
+class LabelSet(aff4.AFF4Object):
+  """An aff4 object which manages a set of labels.
 
-  This object has no actual attributes, it simply manages the index.
+  This object has no actual attributes, it simply manages the set.
   """
 
-  # Value to put in the cell for index hits.
+  # We expect the set to be quite small, so we simply store it as a collection
+  # attributes of the form "index:label_<label>" all unversioned (ts = 0).
+
   PLACEHOLDER_VALUE = "X"
 
-  def __init__(self, urn, **kwargs):
-    # Never read anything directly from the table by forcing an empty clone.
-    kwargs["clone"] = {}
-    super(AFF4Index, self).__init__(urn, **kwargs)
+  ATTRIBUTE_PREFIX = "index:label_"
+  ATTRIBUTE_PATTERN = "index:label_%s"
 
-    # We collect index data here until we flush.
+  # Location of the default set of labels, used to keep tract of active labels
+  # for clients.
+  CLIENT_LABELS_URN = "aff4:/index/labels/client_set"
+
+  def __init__(self, urn, **kwargs):
+    super(LabelSet, self).__init__(urn=self.CLIENT_LABELS_URN, **kwargs)
+
     self.to_set = set()
     self.to_delete = set()
 
   def Flush(self, sync=False):
     """Flush the data to the index."""
-    super(AFF4Index, self).Flush(sync=sync)
+    super(LabelSet, self).Flush(sync=sync)
 
-    # Remove entries from deletion set that are going to be added anyway.
     self.to_delete = self.to_delete.difference(self.to_set)
 
-    # Convert sets into dicts that MultiSet handles.
     to_set = dict(zip(self.to_set, self.PLACEHOLDER_VALUE * len(self.to_set)))
 
-    data_store.DB.MultiSet(self.urn, to_set, to_delete=list(self.to_delete),
-                           token=self.token, replace=True, sync=sync)
+    if to_set or self.to_delete:
+      data_store.DB.MultiSet(self.urn,
+                             to_set,
+                             to_delete=list(self.to_delete),
+                             timestamp=0,
+                             token=self.token,
+                             replace=True,
+                             sync=sync)
     self.to_set = set()
     self.to_delete = set()
 
   def Close(self, sync=False):
     self.Flush(sync=sync)
-    super(AFF4Index, self).Close(sync=sync)
+    super(LabelSet, self).Close(sync=sync)
 
-  def Add(self, urn, attribute, value):
-    """Add the attribute of an AFF4 object to the index.
+  def Add(self, label):
+    self.to_set.add(self.ATTRIBUTE_PATTERN % label)
 
-    Args:
-      urn: The URN of the AFF4 object this attribute belongs to.
-      attribute: The attribute to add to the index.
-      value: The value of the attribute to index.
+  def Remove(self, label):
+    self.to_delete.add(self.ATTRIBUTE_PATTERN % label)
 
-    Raises:
-      RuntimeError: If a bad URN is passed in.
-    """
-    if not isinstance(urn, rdfvalue.RDFURN):
-      raise RuntimeError("Bad urn parameter for index addition.")
-    column_name = "index:%s:%s:%s" % (
-        attribute.predicate, value.lower(), urn)
-    self.to_set.add(column_name)
-
-  def Query(self, attributes, regex, limit=100):
-    """Query the index for the attribute.
-
-    Args:
-      attributes: A list of attributes to query for.
-      regex: The regex to search this attribute.
-      limit: A (start, length) tuple of integers representing subjects to
-          return. Useful for paging. If its a single integer we take it as the
-          length limit (start=0).
-    Returns:
-      A list of RDFURNs which match the index search.
-    """
-    # Make the regular expressions.
-    regex = regex.lstrip("^")   # Begin and end string matches work because
-    regex = regex.rstrip("$")   # they are explicit in the storage.
-    regexes = ["index:%s:%s:.*" % (a.predicate, regex.lower())
-               for a in attributes]
-    start = 0
-    try:
-      start, length = limit  # pylint: disable=unpacking-non-sequence
-    except TypeError:
-      length = limit
-
-    # Get all the hits
-    index_hits = set()
-    for col, _, _ in data_store.DB.ResolveRegex(
-        self.urn, regexes, token=self.token,
-        timestamp=data_store.DB.ALL_TIMESTAMPS):
-      # Extract URN from the column_name.
-      index_hits.add(rdfvalue.RDFURN(col.rsplit("aff4:/", 1)[1]))
-
-    hits = []
-    for i, hit in enumerate(index_hits):
-      if i < start: continue
-      hits.append(hit)
-
-      if i >= start + length - 1:
-        break
-
-    return hits
-
-  def MultiQuery(self, attributes, regexes):
-    """Query the index for the attribute, matching multiple regexes at a time.
-
-    Args:
-      attributes: A list of attributes to query for.
-      regexes: A list of regexes to search the attributes for.
-    Returns:
-      A dict mapping each matched attribute name to a list of RDFURNs.
-    """
-    # Make the regular expressions.
-    combined_regexes = []
-    # Begin and end string matches work because they are explicit in storage.
-    regexes = [r.lstrip("^").rstrip("$").lower() for r in regexes]
-    for attribute in attributes:
-      combined_regexes.append("index:%s:(%s):.*" % (
-          attribute.predicate, "|".join(regexes)))
-
-    # Get all the hits
-    result = {}
-    for col, _, _ in data_store.DB.ResolveRegex(
-        self.urn, combined_regexes, token=self.token,
-        timestamp=data_store.DB.ALL_TIMESTAMPS):
-      # Extract the attribute name.
-      attribute_name = col.split(":")[3]
-      # Extract URN from the column_name.
-      urn = rdfvalue.RDFURN(col.rsplit("aff4:/", 1)[1])
-      result.setdefault(attribute_name, []).append(urn)
-
-    return result
-
-  def DeleteAttributeIndexesForURN(self, attribute, value, urn):
-    """Remove all entries for a given attribute referring to a specific urn."""
-    if not isinstance(urn, rdfvalue.RDFURN):
-      raise RuntimeError("Bad urn parameter for index deletion.")
-    column_name = "index:%s:%s:%s" % (
-        attribute.predicate, value.lower(), urn)
-    self.to_delete.add(column_name)
-
-
-class AFF4IndexSet(aff4.AFF4Object):
-  """Index that behaves as a set of strings."""
-
-  PLACEHOLDER_VALUE = "X"
-  INDEX_PREFIX = "index:"
-  INDEX_PREFIX_LEN = len(INDEX_PREFIX)
-
-  def Initialize(self):
-    super(AFF4IndexSet, self).Initialize()
-    self.to_set = {}
-    self.to_delete = set()
-
-  def Add(self, value):
-    column_name = self.INDEX_PREFIX + utils.SmartStr(value)
-    self.to_set[column_name] = self.PLACEHOLDER_VALUE
-
-  def Remove(self, value):
-    column_name = self.INDEX_PREFIX + utils.SmartStr(value)
-    self.to_delete.add(column_name)
-
-  def ListValues(self, limit=10000):
-    values = data_store.DB.ResolvePrefix(self.urn, self.INDEX_PREFIX,
-                                         token=self.token, limit=limit)
-
-    result = set()
-    for v in values:
-      column_name = v[0]
-      if column_name in self.to_delete:
-        continue
-
-      result.add(column_name[self.INDEX_PREFIX_LEN:])
-
-    for column_name in self.to_set:
-      if column_name in self.to_delete:
-        continue
-
-      result.add(column_name[self.INDEX_PREFIX_LEN:])
-
-    return result
-
-  def Flush(self, sync=False):
-    super(AFF4IndexSet, self).Flush(sync=sync)
-
-    data_store.DB.MultiSet(self.urn, self.to_set, token=self.token,
-                           to_delete=list(self.to_delete), replace=True,
-                           sync=sync)
-    self.to_set = {}
-    self.to_delete = set()
-
-  def Close(self, sync=False):
-    self.Flush(sync=sync)
-
-    super(AFF4IndexSet, self).Close(sync=sync)
-
-
-class AFF4LabelsIndex(aff4.AFF4Volume):
-  """Index for objects' labels with vaiorus querying capabilities."""
-
-  # Separator is a character that's not allowed in labels names.
-  SEPARATOR = "|"
-  ESCAPED_SEPARATOR = re.escape("|")
-
-  def Initialize(self):
-    super(AFF4LabelsIndex, self).Initialize()
-
-    self._urns_index = None
-    self._used_labels_index = None
-
-  @property
-  def urns_index(self):
-    if self._urns_index is None:
-      self._urns_index = aff4.FACTORY.Create(
-          self.urn.Add("urns_index"), "AFF4Index", mode=self.mode,
-          token=self.token)
-
-    return self._urns_index
-
-  @property
-  def used_labels_index(self):
-    if self._used_labels_index is None:
-      self._used_labels_index = aff4.FACTORY.Create(
-          self.urn.Add("used_labels_index"), "AFF4IndexSet", mode=self.mode,
-          token=self.token)
-
-    return self._used_labels_index
-
-  def IndexNameForLabel(self, label_name, label_owner):
-    return label_owner + self.SEPARATOR + label_name
-
-  def LabelForIndexName(self, index_name):
-    label_owner, label_name = utils.SmartStr(index_name).split(
-        self.SEPARATOR, 1)
-    return aff4_rdfvalues.AFF4ObjectLabel(name=label_name, owner=label_owner)
-
-  def AddLabel(self, urn, label_name, owner=None):
-    if owner is None:
-      raise ValueError("owner can't be None")
-
-    index_name = self.IndexNameForLabel(label_name, owner)
-    self.urns_index.Add(urn, aff4.AFF4Object.SchemaCls.LABELS, index_name)
-    self.used_labels_index.Add(index_name)
-
-  def RemoveLabel(self, urn, label_name, owner=None):
-    if owner is None:
-      raise ValueError("owner can't be None")
-
-    self.urns_index.DeleteAttributeIndexesForURN(
-        aff4.AFF4Object.SchemaCls.LABELS,
-        self.IndexNameForLabel(label_name, owner), urn)
-
-  def ListUsedLabels(self, owner=None):
-    results = []
-    index_results = self.used_labels_index.ListValues()
-    for name in index_results:
-      label = self.LabelForIndexName(name)
-      if label:
-        if owner and label.owner != owner:
-          continue
-        results.append(label)
-    return results
-
-  def ListUsedLabelNames(self, owner=None):
-    return [x.name for x in self.ListUsedLabels(owner=owner)]
-
-  def FindUrnsByLabel(self, label, owner=None):
-    results = self.MultiFindUrnsByLabel([label], owner=owner).values()
-    if not results:
-      return []
-    else:
-      return results[0]
-
-  def MultiFindUrnsByLabel(self, labels, owner=None):
-    if owner is None:
-      owner = ".+"
-    else:
-      owner = re.escape(owner)
-
-    query_results = self.urns_index.MultiQuery(
-        [aff4.AFF4Object.SchemaCls.LABELS],
-        [owner + self.ESCAPED_SEPARATOR + re.escape(label) for label in labels])
-
-    results = {}
-    for key, value in query_results.iteritems():
-      results[self.LabelForIndexName(key)] = value
-    return results
-
-  def FindUrnsByLabelNameRegex(self, label_name_regex, owner=None):
-    return self.MultiFindUrnsByLabelNameRegex([label_name_regex], owner=owner)
-
-  def MultiFindUrnsByLabelNameRegex(self, label_name_regexes, owner=None):
-    if owner is None:
-      owner = ".+"
-    else:
-      owner = re.escape(owner)
-
-    query_results = self.urns_index.MultiQuery(
-        [aff4.AFF4Object.SchemaCls.LABELS],
-        [owner + self.ESCAPED_SEPARATOR + regex
-         for regex in label_name_regexes])
-
-    results = {}
-    for key, value in query_results.iteritems():
-      results[self.LabelForIndexName(key)] = value
-    return results
-
-  def CleanUpUsedLabelsIndex(self):
-    raise NotImplementedError()
-
-  def Flush(self, sync=False):
-    super(AFF4LabelsIndex, self).Flush(sync=sync)
-
-    self.urns_index.Flush(sync=sync)
-    self.used_labels_index.Flush(sync=sync)
-
-  def Close(self, sync=False):
-    self.Flush(sync=sync)
-
-    super(AFF4LabelsIndex, self).Close(sync=sync)
+  def ListLabels(self):
+    # Flush, so that any pending changes are visible.
+    if self.to_set or self.to_delete:
+      self.Flush(sync=True)
+    result = []
+    for attribute, _, _ in data_store.DB.ResolvePrefix(self.urn,
+                                                       self.ATTRIBUTE_PREFIX,
+                                                       token=self.token):
+      result.append(attribute[len(self.ATTRIBUTE_PREFIX):])
+    return sorted(result)
 
 
 class TempMemoryFile(aff4.AFF4MemoryStream):

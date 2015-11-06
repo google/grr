@@ -284,6 +284,11 @@ class HttpApiInitHook(registry.InitHook):
     RegisterHttpRouteHandler("POST", "/api/clients/labels/remove",
                              api_plugins.client.ApiClientsRemoveLabelsRenderer)
 
+    RegisterHttpRouteHandler("GET", "/api/cron-jobs",
+                             api_plugins.cron.ApiCronJobsListRenderer)
+    RegisterHttpRouteHandler("POST", "/api/cron-jobs",
+                             api_plugins.cron.ApiCreateCronJobRenderer)
+
     RegisterHttpRouteHandler("GET", "/api/config",
                              api_plugins.config.ApiConfigRenderer)
     RegisterHttpRouteHandler("GET", "/api/config/<name>",

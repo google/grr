@@ -57,8 +57,9 @@ class WMIParserTest(test_lib.FlowTestsBaseclass):
   def testWMIActiveScriptEventConsumerParser(self):
     parser = wmi_parser.WMIActiveScriptEventConsumerParser()
     rdf_dict = rdf_protodict.Dict()
-    rdf_dict["CreatorSID"] = [1, 5, 0, 0, 0, 0, 0, 5, 21, 0, 0, 0, 152, 18, 87,
-                              2, 226, 49, 80, 44]
+    rdf_dict["CreatorSID"] = [1, 5, 0, 0, 0, 0, 0, 5, 21, 0, 0, 0,
+                              152, 18, 57, 8, 206, 29, 80, 44, 70, 38, 82, 8,
+                              244, 1, 0, 0]
     rdf_dict["KillTimeout"] = 0
     rdf_dict["MachineName"] = None
     rdf_dict["MaximumQueueSize"] = None
@@ -78,9 +79,123 @@ objFile.Close"""
         None, rdf_dict, None))
     self.assertEqual(len(result_list), 1)
     result = result_list[0]
-    self.assertEqual(result.creator_sid, "150000052100015218872226498044")
-    self.assertEqual(result.max_queue_size, 0)
-    self.assertFalse(result.script_file_name)
+    self.assertEqual(result.CreatorSID,
+                     "S-1-5-21-137958040-743448014-139601478-500")
+    self.assertEqual(result.MaximumQueueSize, 0)
+    self.assertFalse(result.ScriptFilename)
+
+  def testWMIEventConsumerParserDoesntFailOnMalformedSIDs(self):
+    parser = wmi_parser.WMIActiveScriptEventConsumerParser()
+    rdf_dict = rdf_protodict.Dict()
+    rdf_dict["CreatorSID"] = [1, 5, 0, 0, 0, 0, 0, 5, 21, 0, 0]
+    result_list = list(parser.Parse(None, rdf_dict, None))
+    self.assertEqual(len(result_list), 1)
+
+  def testWMIEventConsumerParserDoesntFailOnUnknownField(self):
+    parser = wmi_parser.WMIActiveScriptEventConsumerParser()
+    rdf_dict = rdf_protodict.Dict()
+    rdf_dict["NonexistentField"] = "Abcdef"
+    rdf_dict["Name"] = "Test event consumer"
+    self.assertEqual(1, len(list(parser.Parse(None, rdf_dict, None))))
+
+  def testWMIEventConsumerParser_EmptyConsumersYieldBlank(self):
+    parser = wmi_parser.WMIActiveScriptEventConsumerParser()
+    rdf_dict = rdf_protodict.Dict()
+    result_list = list(parser.Parse(None, rdf_dict, None))
+    self.assertEqual(1, len(result_list))
+    self.assertEqual(True, not result_list[0])
+
+  def testWMIEventConsumerParserConsumerWithNoKnownFieldsRaises(self):
+    parser = wmi_parser.WMIActiveScriptEventConsumerParser()
+    rdf_dict = rdf_protodict.Dict()
+    rdf_dict["NonexistentField"] = "Abcdef"
+    self.assertRaises(ValueError, list, parser.Parse(None, rdf_dict, None))
+
+  def testWMICommandLineEventConsumerParser(self):
+    parser = wmi_parser.WMICommandLineEventConsumerParser()
+    rdf_dict = rdf_protodict.Dict()
+    rdf_dict["CommandLineTemplate"] = "cscript KernCap.vbs"
+    rdf_dict["CreateNewConsole"] = False
+    rdf_dict["CreateNewProcessGroup"] = False
+    rdf_dict["CreateSeparateWowVdm"] = False
+    rdf_dict["CreateSharedWowVdm"] = False
+    rdf_dict["CreatorSID"] = [1, 5, 0, 0, 0, 0, 0, 5, 21, 0, 0, 0,
+                              133, 116, 119, 185, 124, 13, 122, 150,
+                              111, 189, 41, 154, 244, 1, 0, 0]
+    rdf_dict["DesktopName"] = None
+    rdf_dict["ExecutablePath"] = None
+    rdf_dict["FillAttribute"] = None
+    rdf_dict["ForceOffFeedback"] = False
+    rdf_dict["ForceOnFeedback"] = False
+    rdf_dict["KillTimeout"] = 0
+    rdf_dict["MachineName"] = None
+    rdf_dict["MaximumQueueSize"] = None
+    rdf_dict["Name"] = "BVTConsumer"
+    rdf_dict["Priority"] = 32
+    rdf_dict["RunInteractively"] = False
+    rdf_dict["ShowWindowCommand"] = None
+    rdf_dict["UseDefaultErrorMode"] = False
+    rdf_dict["WindowTitle"] = None
+    rdf_dict["WorkingDirectory"] = "C:\\tools\\kernrate"
+    rdf_dict["XCoordinate"] = None
+    rdf_dict["XNumCharacters"] = None
+    rdf_dict["XSize"] = None
+    rdf_dict["YCoordinate"] = None
+    rdf_dict["YNumCharacters"] = None
+    rdf_dict["YSize"] = None
+
+    result_list = list(parser.Parse(
+        None, rdf_dict, None))
+    self.assertEqual(len(result_list), 1)
+    result = result_list[0]
+    self.assertEqual(result.CreatorSID,
+                     "S-1-5-21-3111613573-2524581244-2586426735-500")
+    self.assertEqual(result.CommandLineTemplate, "cscript KernCap.vbs")
+    self.assertEqual(result.Name, "BVTConsumer")
+    self.assertEqual(result.KillTimeout, 0)
+    self.assertEqual(result.FillAttribute, 0)
+    self.assertEqual(result.FillAttributes, 0)
+    self.assertFalse(result.ForceOffFeedback)
+    self.assertFalse(result.ForceOnFeedback)
+
+
+class BinarySIDToStringSIDTest(test_lib.GRRBaseTest):
+
+  def setUp(self):
+    super(BinarySIDToStringSIDTest, self).setUp()
+
+    self.tests = [
+        ["", []],
+        ["S-1", [1]],
+        ["S-1-5", [1, 5, 0, 0, 0, 0, 0, 5]],
+        ["S-1-5-21", [1, 5, 0, 0, 0, 0, 0, 5, 21, 0, 0, 0]],
+        # Same as before but truncated.
+        [None, [1, 5, 0, 0, 0, 0, 0, 5, 21, 0, 0]],
+        # Even more truncation
+        [None, [1, 5, 0, 0, 0, 0, 0, 5, 21, 0]],
+        # All subauthorities truncated
+        ["S-1-5", [1, 5, 0, 0, 0, 0, 0, 5]],
+        # 5 subauthorities
+        ["S-1-5-21-3111613573-2524581244-2586426735-500",
+         [1, 5, 0, 0, 0, 0, 0, 5, 21, 0, 0, 0, 133, 116, 119, 185,
+          124, 13, 122, 150, 111, 189, 41, 154, 244, 1, 0, 0]],
+        # Last subauthority truncated
+        [None,
+         [1, 5, 0, 0, 0, 0, 0, 5, 21, 0, 0, 0, 133, 116, 119, 185,
+          124, 13, 122, 150, 111, 189, 41, 154, 244]],
+        ]
+
+  def testConversion(self):
+    for expected_value, binary in self.tests:
+      binary_sid = "".join([chr(x) for x in binary])
+
+      if expected_value is None:
+        # Test is meant to raise
+        self.assertRaises(ValueError,
+                          wmi_parser.BinarySIDtoStringSID, binary_sid)
+      else:
+        self.assertEqual(wmi_parser.BinarySIDtoStringSID(binary_sid),
+                         expected_value)
 
 
 def main(argv):

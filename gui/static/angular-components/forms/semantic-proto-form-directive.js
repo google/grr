@@ -9,11 +9,12 @@ goog.provide('grrUi.forms.semanticProtoFormDirective.SemanticProtoFormDirective'
  *
  * @constructor
  * @param {!angular.Scope} $scope
+ * @param {!angular.Attributes} $attrs
  * @param {!grrUi.core.reflectionService.ReflectionService} grrReflectionService
  * @ngInject
  */
 grrUi.forms.semanticProtoFormDirective.SemanticProtoFormController = function(
-    $scope, grrReflectionService) {
+    $scope, $attrs, grrReflectionService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
@@ -34,6 +35,13 @@ grrUi.forms.semanticProtoFormDirective.SemanticProtoFormController = function(
 
   /** @type {Object} */
   this.editedValue;
+
+  if (angular.isDefined($attrs['hiddenFields']) &&
+      angular.isDefined($attrs['visibleFields'])) {
+    debugger;
+    throw new Error('Either hidden-fields or visible-fields attribute may ' +
+                    'be specified, not both.');
+  }
 
   this.scope_.$watch('value', this.onValueChange_.bind(this));
   this.scope_.$watch('controller.editedValue.value',
@@ -58,8 +66,13 @@ var SemanticProtoFormController =
  */
 SemanticProtoFormController.prototype.notExplicitlyHiddenFields_ = function(
     field, index) {
-  return angular.isUndefined(this.scope_['hiddenFields']) ||
-      this.scope_['hiddenFields'].indexOf(field['name']) == -1;
+  if (angular.isDefined(this.scope_['hiddenFields'])) {
+    return this.scope_['hiddenFields'].indexOf(field['name']) == -1;
+  } else if (angular.isDefined(this.scope_['visibleFields'])) {
+    return this.scope_['visibleFields'].indexOf(field['name']) != -1;
+  } else {
+    return true;
+  }
 };
 
 /**
@@ -173,7 +186,9 @@ SemanticProtoFormController.prototype.onEditedValueChange_ = function(
           delete this.scope_.value.value[field.name];
         }
       } else {
-        if (angular.equals(this.scope_.value.value[field.name],
+        // Field.type may be undefined for dynamic fields.
+        if (field.type &&
+            angular.equals(this.scope_.value.value[field.name],
                            this.descriptors[field.type]['default'])) {
           delete this.scope_.value.value[field.name];
         }
@@ -243,7 +258,8 @@ grrUi.forms.semanticProtoFormDirective.SemanticProtoFormDirective = function() {
     scope: {
       value: '=',
       metadata: '=?',
-      hiddenFields: '=?'
+      hiddenFields: '=?',
+      visibleFields: '=?'
     },
     restrict: 'E',
     templateUrl: '/static/angular-components/forms/semantic-proto-form.html',

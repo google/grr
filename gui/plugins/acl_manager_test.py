@@ -554,7 +554,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.Click("css=td:contains('OSBreakDown')")
 
     # Click on Enable and wait for dialog again.
-    self.Click("css=button[name=EnableCronJob]")
+    self.Click("css=button[name=EnableCronJob]:not([disabled])")
     self.WaitUntil(self.IsTextPresent,
                    "Are you sure you want to ENABLE this cron job?")
     # Click on "Proceed" and wait for authorization dialog to appear.
@@ -584,7 +584,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "OSBreakDown")
 
     # Enable OSBreakDown cron job (it should be selected by default).
-    self.Click("css=button[name=EnableCronJob]")
+    self.Click("css=button[name=EnableCronJob]:not([disabled])")
     self.WaitUntil(self.IsTextPresent,
                    "Are you sure you want to ENABLE this cron job?")
     # Click on "Proceed" and wait for authorization dialog to appear.
@@ -607,7 +607,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.Click("css=td:contains('OSBreakDown')")
 
     # Click on Enable button and check that dialog appears.
-    self.Click("css=button[name=EnableCronJob]")
+    self.Click("css=button[name=EnableCronJob]:not([disabled])")
     self.WaitUntil(self.IsTextPresent,
                    "Are you sure you want to ENABLE this cron job?")
 

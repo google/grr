@@ -11,11 +11,16 @@ goog.scope(function() {
  *
  * @constructor
  * @param {!angular.Scope} $scope
+ * @param {!grrUi.core.reflectionService.ReflectionService} grrReflectionService
  * @ngInject
  */
-grrUi.forms.dictFormDirective.DictFormController = function($scope) {
+grrUi.forms.dictFormDirective.DictFormController = function(
+    $scope, grrReflectionService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
+
+  /** @private {!grrUi.core.reflectionService.ReflectionService} */
+  this.grrReflectionService_ = grrReflectionService;
 
   /** @type {Array<Object>} */
   this.keyValueList;
@@ -23,10 +28,20 @@ grrUi.forms.dictFormDirective.DictFormController = function($scope) {
   /** @type {Object} */
   this.keyValueDescriptor;
 
-  this.scope_.$watch('controller.keyValueList',
-                     this.onKeyValueListChange_.bind(this),
-                     true);
-  this.scope_.$watch('value.value', this.onValueChange_.bind(this), true);
+  /** @type {Object} */
+  this.stringDefault;
+
+  this.grrReflectionService_.getRDFValueDescriptor('RDFString').then(
+      function(descriptor) {
+        this.stringDefault = descriptor['default'];
+
+        // Only initialize watchers after the description is fetched.
+        this.scope_.$watch('controller.keyValueList',
+                           this.onKeyValueListChange_.bind(this),
+                           true);
+        this.scope_.$watch('value.value', this.onValueChange_.bind(this), true);
+      }.bind(this));
+
 };
 var DictFormController = grrUi.forms.dictFormDirective.DictFormController;
 
@@ -90,7 +105,8 @@ DictFormController.prototype.onValueChange_ = function(newValue) {
  * @export
  */
 DictFormController.prototype.addPair = function() {
-  this.keyValueList.push({key: '', value: ''});
+  this.keyValueList.push({key: '',
+                          value: angular.copy(this.stringDefault)});
 };
 
 

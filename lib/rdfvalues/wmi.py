@@ -10,3 +10,5 @@ class WMIActiveScriptEventConsumer(rdf_structs.RDFProtoStruct):
   protobuf = sysinfo_pb2.WMIActiveScriptEventConsumer
 
 
+class WMICommandLineEventConsumer(rdf_structs.RDFProtoStruct):
+  protobuf = sysinfo_pb2.WMICommandLineEventConsumer

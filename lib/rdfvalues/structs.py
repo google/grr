@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Semantic Protobufs are serialization agnostic, rich data types."""
 
+
+import base64
 import copy
 import struct
 
@@ -1914,6 +1916,8 @@ class RDFProtoStruct(RDFStruct):
           self.Set(key, value)
       elif isinstance(field_type_info, ProtoDynamicEmbedded):
         dynamic_fields.append(field_type_info)
+      elif field_type_info.proto_type_name == "bytes":
+        self.Set(key, base64.decodestring(value or ""))
       else:
         self.Set(key, value)
 
@@ -1946,6 +1950,8 @@ class RDFProtoStruct(RDFStruct):
       return self._ToPrimitive(value.AsDict())
     elif isinstance(value, (Enum, EnumValue, EnumNamedValue)):
       return str(value)
+    elif isinstance(value, rdfvalue.RDFBytes):
+      return base64.encodestring(value.SerializeToString())
     else:
       return value
 

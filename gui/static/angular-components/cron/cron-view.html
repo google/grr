@@ -1,0 +1,14 @@
+<div grr-splitter orientation="horizontal" class="rightSplitterContainer">
+  <div grr-splitter-pane id="content_rightPane" class="rightTopPane">
+    <grr-cron-jobs-list selected-cron-job-urn="controller.selectedCronJobUrn">
+    </grr-cron-jobs-list>
+  </div>
+
+  <div grr-splitter-pane id="main_bottomPane" class="rightBottomPane">
+    <grr-force-refresh refresh-trigger="controller.selectedCronJobUrn">
+      <grr-legacy-renderer renderer="CronJobManagementTabs"
+                           query-params="{cron_job_urn: controller.selectedCronJobUrn}">
+      </grr-legacy-renderer>
+    </grr-force-refresh>
+  </div>
+</div>

@@ -41,15 +41,6 @@ class AFF4ObjectLabelTest(test_base.RDFValueTestCase):
                       name="",
                       owner="test")
 
-  def testLabelWithoutAnOwnerIsNotAllowed(self):
-    self.assertRaises(type_info.TypeValueError, aff4_rdfvalues.AFF4ObjectLabel,
-                      name="foo")
-
-  def testLabelWithEmptyOwnerIsNotAllowed(self):
-    self.assertRaises(type_info.TypeValueError, aff4_rdfvalues.AFF4ObjectLabel,
-                      name="foo",
-                      owner="")
-
   def testNonAlphanumericsDotsColonOrForwardSlashAreNotAllowed(self):
     self.assertRaises(type_info.TypeValueError, aff4_rdfvalues.AFF4ObjectLabel,
                       name="label,42")

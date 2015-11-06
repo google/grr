@@ -105,4 +105,6 @@ grrUi.forms.semanticPrimitiveFormDirective.SemanticPrimitiveFormDirective
     .semantic_types = ['RDFBool', 'bool',
                        'RDFInteger', 'int', 'long', 'float',
                        'RDFString', 'basestring', 'RDFURN',
-                       'RDFBytes', 'bytes'];
+                       // TODO(user): check if we ever have to deal with
+                       // bytes type (RDFBytes is handled by grr-form-bytes).
+                       'bytes'];

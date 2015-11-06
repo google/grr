@@ -54,6 +54,14 @@ config_lib.DEFINE_list("Frontend.well_known_flows",
                        "Allow these well known flows to run directly on the "
                        "frontend. Other flows are scheduled as normal.")
 
+config_lib.DEFINE_string(
+    "Frontend.static_aff4_prefix", "aff4:/web/static/",
+    "The AFF4 URN prefix for all streams served publicly from the frontend.")
+
+config_lib.DEFINE_string(
+    "Frontend.static_url_path_prefix", "/static/",
+    "The URL prefix for all streams served publicly from the frontend.")
+
 # Smtp settings.
 config_lib.DEFINE_string("Worker.smtp_server", "localhost",
                          "The smtp server for sending email alerts.")

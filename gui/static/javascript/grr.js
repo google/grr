@@ -1700,8 +1700,8 @@ grrUiApp.config(function($httpProvider, $interpolateProvider,
   $httpProvider.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
   // We use recursive data model generation when rendering forms. Therefore
-  // have to increase the digestTtl limit to 15.
-  $rootScopeProvider.digestTtl(15);
+  // have to increase the digestTtl limit to 50.
+  $rootScopeProvider.digestTtl(50);
 });
 
 grrUiApp.run(function($injector, $http, $cookies, grrReflectionService) {

@@ -338,10 +338,25 @@ class MultiGetFileMixin(object):
                     StartFileFetch call.
     """
 
+  def FileFetchFailed(self, pathspec, request_name, request_data=None):
+    """This method will be called when stat or hash requests fail.
+
+    Args:
+      pathspec: Pathspec of a file that failed to be fetched.
+      request_name: Name of a failed client action.
+      request_data: Arbitrary dictionary that was passed to the corresponding
+                    StartFileFetch call.
+    """
+
   @flow.StateHandler()
   def StoreStat(self, responses):
+    """Stores stat entry in the flow's state."""
+
     if not responses.success:
       self.Log("Failed to stat file: %s", responses.status)
+      self.FileFetchFailed(responses.request.request.payload.pathspec,
+                           responses.request.request.name,
+                           request_data=responses.request_data)
       return
 
     stat_entry = responses.First()
@@ -367,6 +382,9 @@ class MultiGetFileMixin(object):
     if not responses.success:
       self.Log("Failed to hash file: %s", responses.status)
       self.state.pending_hashes.pop(index, None)
+      self.FileFetchFailed(responses.request.request.payload.pathspec,
+                           responses.request.request.name,
+                           request_data=responses.request_data)
       return
 
     self.state.files_hashed += 1
@@ -595,6 +613,7 @@ class MultiGetFileMixin(object):
   @flow.StateHandler(next_state="IterateFind")
   def WriteBuffer(self, responses):
     """Write the hash received to the blob image."""
+
     # Note that hashes must arrive at this state in the correct order since they
     # are sent in the correct order (either via CallState or CallClient).
     index = responses.request_data["index"]
@@ -631,6 +650,8 @@ class MultiGetFileMixin(object):
                    self.state.files_to_fetch)
 
   def RemoveInFlightFile(self, index):
+    """Removes a file from the pending files list."""
+
     file_tracker = self.state.pending_files.pop(index)
     if file_tracker:
       self.ReceiveFetchedFile(file_tracker.stat_entry, file_tracker.hash_obj,

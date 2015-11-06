@@ -258,6 +258,28 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
 
       self.assertEqual(i, 4)
 
+  def testHuntWithoutForemanRules(self):
+    """Check no foreman rules are created if we pass add_foreman_rules=False."""
+    hunt_urn = self.StartHunt(add_foreman_rules=False)
+    with aff4.FACTORY.Open("aff4:/foreman", mode="r", token=self.token,
+                           aff4_type="GRRForeman",
+                           ignore_cache=True) as foreman:
+      foreman_rules = foreman.Get(foreman.Schema.RULES,
+                                  default=foreman.Schema.RULES())
+      self.assertFalse(foreman_rules)
+
+    self.AssignTasksToClients()
+    self.RunHunt()
+    self.StopHunt(hunt_urn)
+
+    with aff4.FACTORY.Open(hunt_urn, age=aff4.ALL_TIMES,
+                           token=self.token) as hunt_obj:
+
+      started, finished, errors = hunt_obj.GetClientsCounts()
+      self.assertEqual(started, 0)
+      self.assertEqual(finished, 0)
+      self.assertEqual(errors, 0)
+
   def testProcessHunResultsCronFlowDoesNothingWhenThereAreNoResults(self):
     # There's no hunt, nothing. Just assert that cron job completes
     # successfully.

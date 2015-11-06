@@ -72,15 +72,6 @@ class TestClientInterrogate(artifact_test.ArtifactTest):
                      ["http://localhost:8001/control"])
     self.assertEqual(config_info["Client.poll_min"], 1.0)
 
-  def _CheckClientIndex(self, host_pattern):
-    """Check that the index has been updated."""
-    index_fd = aff4.FACTORY.Create(self.fd.Schema.client_index, "AFF4Index",
-                                   mode="r", token=self.token)
-
-    self.assertEqual(
-        [self.fd.urn],
-        [x for x in index_fd.Query([self.fd.Schema.HOSTNAME], host_pattern)])
-
   def _CheckClientKwIndex(self, keywords, expected_count):
     # Tests that the client index has expected_count results when
     # searched for keywords.
@@ -238,7 +229,6 @@ class TestClientInterrogate(artifact_test.ArtifactTest):
         self.fd = aff4.FACTORY.Open(self.client_id, token=self.token)
         self._CheckAFF4Object("test_node", "Linux", 100 * 1000000)
         self._CheckClientInfo()
-        self._CheckClientIndex(".*test.*")
         self._CheckGRRConfig()
         self._CheckNotificationsCreated()
         self._CheckClientSummary("Linux", "14.4", release="Ubuntu",
@@ -282,7 +272,6 @@ class TestClientInterrogate(artifact_test.ArtifactTest):
         self.fd = aff4.FACTORY.Open(self.client_id, token=self.token)
         self._CheckAFF4Object("test_node", "Windows", 100 * 1000000)
         self._CheckClientInfo()
-        self._CheckClientIndex(".*Host.*")
         self._CheckGRRConfig()
         self._CheckNotificationsCreated()
         self._CheckClientSummary("Windows", "6.1.7600", kernel="6.1.7601")

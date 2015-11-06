@@ -100,10 +100,13 @@ var buildUnionItems = grrUi.semantic.semanticProtoDirective.buildUnionItems;
  * @param {!Object} descriptor Descriptor of the value to be converted to an
  *     array of items. Expected to have 'fields' attribute with list of fields
  *     descriptors.
+ * @param {Object=} opt_visibleFields If provided, only shows fields with names
+ *     from this list.
  * @return {Array.<Object>} List of items to display.
  * @export
  */
-grrUi.semantic.semanticProtoDirective.buildItems = function(value, descriptor) {
+grrUi.semantic.semanticProtoDirective.buildItems = function(
+    value, descriptor, opt_visibleFields) {
   var items = [];
 
   var fieldsLength = descriptor['fields'].length;
@@ -112,13 +115,22 @@ grrUi.semantic.semanticProtoDirective.buildItems = function(value, descriptor) {
     var key = field['name'];
     var keyValue = value.value[key];
 
-    if (angular.isDefined(keyValue)) {
-      items.push({
-        'value': keyValue,
-        'key': field['friendly_name'] || field['name'],
-        'desc': field['doc']
-      });
+    if (opt_visibleFields && opt_visibleFields.indexOf(key) == -1) {
+      continue;
     }
+
+    if (angular.isUndefined(keyValue)) {
+      if (!opt_visibleFields) {
+        continue;
+      } else {
+        keyValue = angular.copy(field['default']);
+      }
+    }
+    items.push({
+      'value': keyValue,
+      'key': field['friendly_name'] || field['name'],
+      'desc': field['doc']
+    });
   }
 
   return items;
@@ -161,7 +173,9 @@ SemanticProtoController.prototype.onValueChange = function() {
           if (angular.isDefined(descriptor['union_field'])) {
             this.items = buildUnionItems(this.scope_['value'], descriptor);
           } else {
-            this.items = buildItems(this.scope_['value'], descriptor);
+            this.items = buildItems(this.scope_['value'],
+                                    descriptor,
+                                    this.scope_['visibleFields']);
           }
         }.bind(this)); // TODO(user): Reflection failure scenario should be
                        // handled globally by reflection service.
@@ -180,7 +194,8 @@ SemanticProtoController.prototype.onValueChange = function() {
 grrUi.semantic.semanticProtoDirective.SemanticProtoDirective = function() {
   return {
     scope: {
-      value: '='
+      value: '=',
+      visibleFields: '='
     },
     restrict: 'E',
     templateUrl: '/static/angular-components/semantic/semantic-proto.html',

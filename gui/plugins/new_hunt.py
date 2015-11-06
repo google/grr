@@ -263,8 +263,8 @@ class ClientLabelNameFormRenderer(forms.TypeDescriptorFormRenderer):
 
   def Layout(self, request, response):
     labels_index = aff4.FACTORY.Create(
-        aff4.VFSGRRClient.labels_index_urn, "AFF4LabelsIndex",
-        mode="rw", token=request.token)
+        standard.LabelSet.CLIENT_LABELS_URN, "LabelSet",
+        mode="r", token=request.token)
     self.labels = sorted(list(
         set([label.name for label in labels_index.ListUsedLabels()])))
 

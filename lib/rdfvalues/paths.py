@@ -215,7 +215,7 @@ class GlobExpression(rdfvalue.RDFString):
   3) Wild cards like * and ?
   """
 
-  context_help_url = "user_manual.html#_specifying_file_paths"
+  context_help_url = "user_manual.html#_path_globbing"
 
   RECURSION_REGEX = re.compile(r"\*\*(\d*)")
 

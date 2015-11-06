@@ -680,33 +680,173 @@ message URI {
 
 // Windows WMI ActiveScriptEventConsumer
 // https://msdn.microsoft.com/en-us/library/aa384749(v=vs.85).aspx
+// The following protobuf breaks the style-guide to maintain the same names
+// as the documented classes.
 message WMIActiveScriptEventConsumer {
-  optional string creator_sid = 1 [(sem_type) = {
+  optional string CreatorSID = 1 [(sem_type) = {
     description: "SID of the event creator",
   }];
-  optional uint64 kill_timeout = 2 [(sem_type) = {
+  optional uint64 KillTimeout = 2 [(sem_type) = {
     description: "Seconds the script is allowed to run. "
     "Default is 0, no limit.",
   }];
-  optional string machine_name = 3 [(sem_type) = {
+  optional string MachineName = 3 [(sem_type) = {
     description: "Name of the computer to which WMI sends events.",
   }];
-  optional uint64 max_queue_size = 4 [(sem_type) = {
+  optional uint64 MaximumQueueSize = 4 [(sem_type) = {
     description: "Maximum queue size in bytes for the consumer.",
   }];
-  optional string name = 5 [(sem_type) = {
+  optional string Name = 5 [(sem_type) = {
     description: "Unique identifier for the event consumer.",
   }];
-  optional string script_file_name = 6 [(sem_type) = {
+  optional string ScriptFilename = 6 [(sem_type) = {
     description: "Name of the file from which the script text is read.",
   }];
-  optional string scripting_engine = 7 [(sem_type) = {
+  optional string ScriptingEngine = 7 [(sem_type) = {
     description: "Name of the scripting engine to use, for example, 'VBScript'."
     " This property cannot be NULL.",
   }];
-  optional string script_text = 8 [(sem_type) = {
+  optional string ScriptText = 8 [(sem_type) = {
     description: "Text of the script that is expressed in a language known to "
     "the scripting engine. This property must be NULL if the ScriptFileName "
     "property is not NULL."
+  }];
+}
+
+// Windows WMI CommandLineEventConsumer
+// https://msdn.microsoft.com/en-us/library/aa389231(v=vs.85).aspx
+// The following protobuf breaks the style-guide to maintain the same names
+// as the documented classes.
+message WMICommandLineEventConsumer {
+  optional string CreatorSID = 1 [(sem_type) = {
+    description: "SID of the event creator",
+  }];
+  optional string CommandLineTemplate = 2 [(sem_type) = {
+    description: "Standard string template that specifies the process to be "
+    "started. This property can be NULL, and the ExecutablePath property is "
+    "used as the command line.",
+  }];
+  optional bool CreateNewConsole = 3 [(sem_type) = {
+    description: "Not used. If a value is assigned to this property, a tracing "
+    "message is generated.",
+  }];
+  optional bool CreateNewProcessGroup = 4 [(sem_type) = {
+    description: "If True, the new process is the root process of a new "
+    "process group. The process group includes all processes that are "
+    "descendants of this root process. The process identifier of the new "
+    "process group is the same as this process identifier.",
+  }];
+  optional bool CreateSeparateWowVdm = 5 [(sem_type) = {
+    description: "If True, the new process runs in a private Virtual DOS "
+    "Machine (VDM). This is only valid when starting an application running on "
+    "a 16-bit Windows operating system. If set to False, all applications "
+    "running on a 16-bit Windows operating system run as threads in a single, "
+    "shared VDM.",
+  }];
+  optional bool CreateSharedWowVdm = 6 [(sem_type) = {
+    description: "If True, the CreateProcess method runs the new process in "
+    "the shared Virtual DOS Machine (VDM). This property can override the "
+    "DefaultSeparateVDM switch in the Windows section of Win.ini if set to "
+    "True.",
+  }];
+  optional string DesktopName = 7 [(sem_type) = {
+    description: "Not used. If a value is assigned to this property a tracing "
+    "message is generated.",
+  }];
+  optional string ExecutablePath = 8 [(sem_type) = {
+    description: "Module to execute. The string can specify the full path and "
+    "file name of the module to execute, or it can specify a partial name. If "
+    "a partial name is specified, the current drive and current directory are "
+    "assumed. The ExecutablePath property can be NULL. In that case, the "
+    "module name must be the first white space-delimited token in the "
+    "CommandLineTemplate property value. If using a long file name that "
+    "contains a space, use quoted strings to indicate where the file name ends "
+    "and the arguments begin—to clarify the file name."
+  }];
+  optional uint32 FillAttribute = 9 [(sem_type) = {
+    description: "Specifies the initial text and background colors if a new "
+    "console window is created in a console application"
+  }];
+  optional uint32 FillAttributes = 10 [(sem_type) = {
+    description: "Initial text and background colors, if a new console window "
+    "is created in a console application. This property is ignored in a GUI "
+    "application."
+  }];
+  optional bool ForceOffFeedback = 11 [(sem_type) = {
+    description: "If True, the feedback cursor is forced off while the process "
+    "is starting. The normal cursor is displayed."
+  }];
+  optional bool ForceOnFeedback = 12 [(sem_type) = {
+    description: "If True, the cursor is in feedback mode for two seconds "
+    "after CreateProcess is called. During those two seconds, if the process "
+    "makes the first GUI call, the system gives five more seconds to the "
+    "process. During those five seconds, if the process shows a window, the "
+    "system gives another five seconds to the process to finish drawing the "
+    "window."
+  }];
+  optional uint32 KillTimeout = 13 [(sem_type) = {
+    description: "Number, in seconds, that the WMI service waits before "
+    "killing a process - 0 (zero) indicates a process is not to be killed. "
+    "Killing a process prevents a process from running indefinitely."
+  }];
+  optional string Name = 14 [(sem_type) = {
+    description: "Unique name of a consumer."
+  }];
+  optional int32 Priority = 15 [(sem_type) = {
+    description: "Scheduling priority level of the process threads. The "
+    "following table lists the priority levels available."
+  }];
+  optional bool RunInteractively = 16 [(sem_type) = {
+    description: "If True, the process is launched in the interactive "
+    "WinStation. If False, the process is launched in the default service "
+    "WinStation. This property overrides the DesktopName property. This "
+    "property is only used locally, and only if the interactive user is the "
+    "same user who set up the consumer. Starting with Windows Vista, the "
+    "process running the CommandLineEventConsumer instance is started under "
+    "the LocalSystem account and is in session 0. Services which run in "
+    "session 0 cannot interact with user sessions."
+  }];
+  optional uint32 ShowWindowCommand = 17 [(sem_type) = {
+    description: "Window show state."
+  }];
+  optional bool UseDefaultErrorMode = 18 [(sem_type) = {
+    description: "If True, the default error mode is used."
+  }];
+  optional string WindowTitle = 19 [(sem_type) = {
+    description: "Title that appears on the title bar of the process. This "
+    "property is ignored for GUI applications."
+  }];
+  optional string WorkingDirectory = 20 [(sem_type) = {
+    description: "Working directory for this process."
+  }];
+  optional uint32 XCoordinate = 21 [(sem_type) = {
+    description: "X-offset, in pixels, from the left edge of the screen to the "
+    "left edge of the window, if a new window is created."
+  }];
+  optional uint32 XNumCharacters = 22 [(sem_type) = {
+    description: "Screen buffer width, in character columns, if a new console "
+    "window is created. This property is ignored in a GUI process."
+  }];
+  optional uint32 XSize = 23 [(sem_type) = {
+    description: "Width, in pixels, of a new window, if a new window is "
+    "created."
+  }];
+  optional uint32 YCoordinate = 24 [(sem_type) = {
+    description: "Y-offset, in pixels, from the top edge of the screen to the "
+    "top edge of the window, if a new window is created."
+  }];
+  optional uint32 YNumCharacters = 25 [(sem_type) = {
+    description: "Screen buffer height, in character rows, if a new console "
+    "window is created. This property is ignored in a GUI process."
+  }];
+  optional uint32 YSize = 26 [(sem_type) = {
+    description: "Height, in pixels, of the new window, if a new window is "
+    "created."
+  }];
+  optional uint64 MaximumQueueSize = 27 [(sem_type) = {
+    description: "Maximum queue for a specific consumer, in bytes."
+  }];
+  optional uint64 MachineName = 28 [(sem_type) = {
+    description: "Maximum queue for a specific consumer, in bytes."
   }];
 }

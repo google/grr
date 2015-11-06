@@ -237,6 +237,95 @@ describe('grr-configure-rules-page new hunt wizard directive', function() {
         .toBe('(.+,|\\A)' + 'label_2' + '(,.+|\\Z)');
   });
 
+  it('recognizes Windows matching regex rule on init',
+     function() {
+    var regexRules = [
+      {
+        type: 'ForemanAttributeRegex',
+        value: {
+          attribute_name: {
+            type: 'RDFString',
+            value: 'System'
+          },
+          attribute_regex: {
+            type: 'RegularExpression',
+            value: 'Windows'
+          }
+        }
+      }
+    ];
+    var element = renderTestTemplate(regexRules);
+    expect(element.text()).toContain(
+        'This rule will match all Windows systems');
+  });
+
+  it('recognizes OS X matching regex rule on init',
+     function() {
+    var regexRules = [
+      {
+        type: 'ForemanAttributeRegex',
+        value: {
+          attribute_name: {
+            type: 'RDFString',
+            value: 'System'
+          },
+          attribute_regex: {
+            type: 'RegularExpression',
+            value: 'Darwin'
+          }
+        }
+      }
+    ];
+    var element = renderTestTemplate(regexRules);
+    expect(element.text()).toContain(
+        'This rule will match all OS X systems');
+  });
+
+  it('recognizes Linux matching regex rule on init',
+     function() {
+    var regexRules = [
+      {
+        type: 'ForemanAttributeRegex',
+        value: {
+          attribute_name: {
+            type: 'RDFString',
+            value: 'System'
+          },
+          attribute_regex: {
+            type: 'RegularExpression',
+            value: 'Linux'
+          }
+        }
+      }
+    ];
+    var element = renderTestTemplate(regexRules);
+    expect(element.text()).toContain(
+        'This rule will match all Linux systems');
+  });
+
+  it('recognizes client label matching rule on init',
+     function() {
+    var regexRules = [
+      {
+        type: 'ForemanAttributeRegex',
+        value: {
+          attribute_name: {
+            type: 'RDFString',
+            value: 'Labels'
+          },
+          attribute_regex: {
+            type: 'RegularExpression',
+            value: '(.+,|\\A)' + 'label_2' + '(,.+|\\Z)'
+          }
+        }
+      }
+    ];
+    var element = renderTestTemplate(regexRules);
+
+    expect(element.find('select').val()).toBe(
+        element.find('select option[label="Clients With Label"]').val());
+  });
+
   it('delegates regex rule rendering to grr-form-value', function() {
     var element = renderTestTemplate();
 

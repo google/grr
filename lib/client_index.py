@@ -290,6 +290,18 @@ def GetClientURNsForHostnames(hostnames, token=None):
   return result
 
 
+def GetMostRecentClient(client_list, token=None):
+  """Return most recent client from list of clients."""
+  last = rdfvalue.RDFDatetime(0)
+  client_urn = None
+  for client in aff4.FACTORY.MultiOpen(client_list, token=token):
+    client_last = client.Get(client.Schema.LAST)
+    if client_last > last:
+      last = client_last
+      client_urn = client.urn
+  return client_urn
+
+
 def BulkLabel(label, hostnames, token, client_index=None):
   """Assign a label to a group of clients based on hostname.
 

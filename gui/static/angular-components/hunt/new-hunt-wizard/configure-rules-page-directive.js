@@ -2,8 +2,46 @@
 
 goog.provide('grrUi.hunt.newHuntWizard.configureRulesPageDirective.ConfigureRulesPageController');
 goog.provide('grrUi.hunt.newHuntWizard.configureRulesPageDirective.ConfigureRulesPageDirective');
+goog.provide('grrUi.hunt.newHuntWizard.configureRulesPageDirective.clientLabelToRegex');
 
 goog.scope(function() {
+
+
+/**
+ * Prefix used to build labels regex.
+ * @const
+ */
+var LABEL_REGEX_PREFIX = '(.+,|\\A)';
+
+
+/**
+ * Suffix used to build labels regex.
+ * @const {string}
+ */
+var LABEL_REGEX_SUFFIX = '(,.+|\\Z)';
+
+
+/**
+ * Regexp used for escaping regex-sensitive chars in label name.
+ * @const {RegExp}
+ */
+var LABEL_ESCAPE_REGEX = /[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g;
+
+
+/**
+ * Builds a regex for matching client's Labels attribute against particular
+ * label.
+ * @param {string} label Label name.
+ * @return {string} Label regexp string.
+ */
+grrUi.hunt.newHuntWizard.configureRulesPageDirective.clientLabelToRegex =
+    function(label) {
+  var escapedLabel = label.replace(LABEL_ESCAPE_REGEX, '\\$&');
+  return LABEL_REGEX_PREFIX + escapedLabel + LABEL_REGEX_SUFFIX;
+};
+var clientLabelToRegex =
+    grrUi.hunt.newHuntWizard.configureRulesPageDirective.clientLabelToRegex;
+
 
 /**
  * Controller for ConfigureRulesPageDirective.
@@ -57,17 +95,22 @@ grrUi.hunt.newHuntWizard.configureRulesPageDirective
   this.labelsList = [];
   this.grrApiService_.get('/clients/labels').then(function(response) {
     this.labelsList = response['data']['labels'];
-  }.bind(this));
 
-  this.scope_.$watch('controller.rules',
-                     this.onInnerRulesChange_.bind(this),
-                     true);
-  this.scope_.$watchGroup(['regexRules', 'integerRules'],
-                          this.onOuterRulesBindingChange_.bind(this));
+    // Labels list should be loaded before watchers are set up, as
+    // onOuterRulesBindingChange may check the regex rules against
+    // the list of available labels.
+    this.scope_.$watch('controller.rules',
+                       this.onInnerRulesChange_.bind(this),
+                       true);
+    this.scope_.$watchGroup(['regexRules', 'integerRules'],
+                            this.onOuterRulesBindingChange_.bind(this));
+  }.bind(this));
 };
 var ConfigureRulesPageController =
     grrUi.hunt.newHuntWizard.configureRulesPageDirective
     .ConfigureRulesPageController;
+
+
 
 /**
  * Handles changes in rules representation currently bound to this directive's
@@ -122,13 +165,9 @@ ConfigureRulesPageController.prototype.onInnerRulesChange_ = function() {
         type: 'RDFString',
         value: 'Labels'
       };
-
-      var escapedLabel = rule['labelValue'].replace(
-          /[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, '\\$&');
-
       regexRule['value']['attribute_regex'] = {
         type: 'RegularExpression',
-        value: '(.+,|\\A)' + escapedLabel + '(,.+|\\Z)'
+        value: clientLabelToRegex(rule['labelValue'])
       };
     } else if (rule['type'] == 'regex') {
       regexRule = rule.regexValue;
@@ -162,7 +201,40 @@ ConfigureRulesPageController.prototype.onOuterRulesBindingChange_ = function() {
 
   this.rules = [];
 
+  // If regex rule matches one of our special rule types, we should
+  // add a rule of that type, and not plain regex rule.
   angular.forEach(this.scope_['regexRules'], function(regexRule) {
+    var attribute = regexRule['value']['attribute_name']['value'];
+    var regex = regexRule['value']['attribute_regex']['value'];
+    if (attribute == 'System') {
+      if (regex == 'Windows') {
+        this.rules.push({
+          type: 'windows'
+        });
+        return;
+      } else if (regex == 'Darwin') {
+        this.rules.push({
+          type: 'darwin'
+        });
+        return;
+      } else if (regex == 'Linux') {
+        this.rules.push({
+          type: 'linux'
+        });
+        return;
+      }
+    } else if (attribute == 'Labels') {
+      for (var i = 0; i < this.labelsList.length; ++i) {
+        if (clientLabelToRegex(this.labelsList[i].value.name.value) == regex) {
+          this.rules.push({
+            type: 'label',
+            labelValue: this.labelsList[i].value.name.value
+          });
+          return;
+        }
+      }
+    }
+
     this.rules.push({
       type: 'regex',
       regexValue: regexRule

@@ -4,11 +4,9 @@
 """Test the cron_view interface."""
 
 
-import mock
 
 from grr.gui import runtests_test
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -20,9 +18,9 @@ from grr.lib.rdfvalues import grr_rdf
 class TestCronView(test_lib.GRRSeleniumTest):
   """Test the Cron view GUI."""
 
-  def AddJobStatus(self, job, status):
+  def AddJobStatus(self, job_urn, status):
     with self.ACLChecksDisabled():
-      with aff4.FACTORY.OpenWithLock("aff4:/cron/OSBreakDown",
+      with aff4.FACTORY.OpenWithLock(job_urn,
                                      token=self.token) as job:
         job.Set(job.Schema.LAST_RUN_TIME(rdfvalue.RDFDatetime().Now()))
         job.Set(job.Schema.LAST_RUN_STATUS(status=status))
@@ -30,16 +28,18 @@ class TestCronView(test_lib.GRRSeleniumTest):
   def setUp(self):
     super(TestCronView, self).setUp()
 
-    with test_lib.ConfigOverrider({
-        "Cron.enabled_system_jobs": [
-            cron_system.GRRVersionBreakDown.__name__,
-            cron_system.LastAccessStats.__name__,
-            cron_system.OSBreakDown.__name__]}):
-      with self.ACLChecksDisabled():
-        with mock.patch.object(cronjobs, "GetStartTime", autospec=True,
-                               return_value=rdfvalue.RDFDatetime().Now()):
-          cronjobs.ScheduleSystemCronFlows(token=self.token)
-          cronjobs.CRON_MANAGER.RunOnce(token=self.token)
+    with self.ACLChecksDisabled():
+      for flow_name in [cron_system.GRRVersionBreakDown.__name__,
+                        cron_system.OSBreakDown.__name__,
+                        cron_system.LastAccessStats.__name__]:
+        cron_args = cronjobs.CreateCronJobFlowArgs(periodicity="7d",
+                                                   lifetime="1d")
+        cron_args.flow_runner_args.flow_name = flow_name
+        cronjobs.CRON_MANAGER.ScheduleFlow(cron_args,
+                                           job_name=flow_name,
+                                           token=self.token)
+
+      cronjobs.CRON_MANAGER.RunOnce(token=self.token)
 
   def testCronView(self):
     self.Open("/")
@@ -176,7 +176,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
     # View should be refreshed automatically.
     self.WaitUntil(self.IsTextPresent, "OSBreakDown")
     self.WaitUntil(self.IsElementPresent,
-                   "css=tr:contains('OSBreakDown') *[state=enabled]")
+                   "css=tr:contains('OSBreakDown') *[state=ENABLED]")
 
   def testDisableCronJob(self):
     with self.ACLChecksDisabled():
@@ -222,7 +222,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
     # View should be refreshed automatically.
     self.WaitUntil(self.IsTextPresent, "OSBreakDown")
     self.WaitUntil(self.IsElementPresent,
-                   "css=tr:contains('OSBreakDown') *[state=disabled]")
+                   "css=tr:contains('OSBreakDown') *[state=DISABLED]")
 
   def testDeleteCronJob(self):
     with self.ACLChecksDisabled():
@@ -233,8 +233,8 @@ class TestCronView(test_lib.GRRSeleniumTest):
     self.Click("css=a[grrtarget=ManageCron]")
     self.Click("css=td:contains('OSBreakDown')")
 
-    # Click on Enable button and check that dialog appears.
-    self.Click("css=button[name=DeleteCronJob]")
+    # Click on Delete button and check that dialog appears.
+    self.Click("css=button[name=DeleteCronJob]:not([disabled])")
     self.WaitUntil(self.IsTextPresent,
                    "Are you sure you want to DELETE this cron job?")
 
@@ -249,8 +249,8 @@ class TestCronView(test_lib.GRRSeleniumTest):
     with self.ACLChecksDisabled():
       self.GrantCronJobApproval(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
 
-    # Click on Disable button and check that dialog appears.
-    self.Click("css=button[name=DeleteCronJob]")
+    # Click on Delete button and check that dialog appears.
+    self.Click("css=button[name=DeleteCronJob]:not([disabled])")
     self.WaitUntil(self.IsTextPresent,
                    "Are you sure you want to DELETE this cron job?")
 
@@ -267,15 +267,26 @@ class TestCronView(test_lib.GRRSeleniumTest):
 
     # View should be refreshed automatically.
     self.WaitUntil(self.IsElementPresent,
-                   "css=#main_topPane td:contains('GRRVersionBreakDown')")
+                   "css=grr-cron-jobs-list "
+                   "td:contains('GRRVersionBreakDown')")
     self.WaitUntilNot(self.IsElementPresent,
-                      "css=#main_topPane td:contains('OSBreakDown')")
+                      "css=grr-cron-jobs-list "
+                      "td:contains('OSBreakDown')")
 
   def testHuntSchedulingWorksCorrectly(self):
     self.Open("/")
     self.Click("css=a[grrtarget=ManageCron]")
 
     self.Click("css=button[name=ScheduleHuntCronJob]")
+    self.WaitUntil(self.IsTextPresent, "Cron Job properties")
+
+    # Select daily periodicity
+    self.Type("css=grr-new-cron-job-wizard-form "
+              "label:contains('Periodicity') ~ * input", "1d")
+
+    # Click on "Next" button
+    self.Click("css=grr-new-cron-job-wizard-form button.Next")
+
     self.WaitUntil(self.IsTextPresent, "What to run?")
 
     # Click on Filesystem item in flows list
@@ -285,80 +296,66 @@ class TestCronView(test_lib.GRRSeleniumTest):
     # Click on Find Files item in Filesystem flows list
     self.Click("link=File Finder")
 
-    # Wait for flow configuration form to be rendered (just wait for first
-    # input field).
-    self.WaitUntil(self.IsElementPresent,
-                   "css=.Wizard input[id=args-paths-0]")
-
-    # Change "path", "pathtype", "depth" and "ignore_errors" values
-    self.Type("css=.Wizard input[id=args-paths-0]", "/tmp")
-    self.Select("css=.Wizard select[id=args-pathtype]", "TSK")
+    # Change "path" and "pathtype" values
+    self.Type("css=grr-new-cron-job-wizard-form "
+              "grr-form-proto-repeated-field:has(label:contains('Paths')) "
+              "input", "/tmp")
+    self.Select("css=grr-new-cron-job-wizard-form "
+                "grr-form-proto-single-field:has(label:contains('Pathtype')) "
+                "select", "TSK")
 
     # Click on "Next" button
-    self.Click("css=.Wizard button.Next")
+    self.Click("css=grr-new-cron-job-wizard-form button.Next")
     self.WaitUntil(self.IsTextPresent, "Output Processing")
 
-    # Configure the hunt to use a collection and also send an email on results.
-    self.Click("css=.Wizard button:contains('Add Output Plugin')")
-
-    self.Select("css=.Wizard select[id=output_1-option]",
-                "Send an email for each result.")
-    self.Type("css=.Wizard input[id=output_1-email_address]",
-              "test@%s" % config_lib.CONFIG["Logging.domain"])
+    # Configure the hunt to use dummy output plugin.
+    self.Click("css=grr-new-cron-job-wizard-form button[name=Add]")
+    self.Select("css=grr-new-cron-job-wizard-form select",
+                "DummyOutputPlugin")
+    self.Type(
+        "css=grr-new-cron-job-wizard-form "
+        "grr-form-proto-single-field:has(label:contains('Filename Regex')) "
+        "input", "some regex")
 
     # Click on "Next" button
     self.Click("css=.Wizard button.Next")
     self.WaitUntil(self.IsTextPresent, "Where to run?")
 
-    # Create 3 foreman rules
-    self.WaitUntil(
-        self.IsElementPresent,
-        "css=.Wizard select[id=rule_1-option]")
-    self.Select("css=.Wizard select[id=rule_1-option]",
-                "Regular Expressions")
-    self.Select("css=.Wizard select[id=rule_1-attribute_name]",
-                "System")
-    self.Type("css=.Wizard input[id=rule_1-attribute_regex]",
-              "Linux")
+    # Create 3 foreman rules. Note that "Add" button adds rules to the beginning
+    # of a list. So we always use :nth(0) selector.
+    self.Select("css=grr-new-cron-job-wizard-form div.Rule:nth(0) select",
+                "Regular Expression")
+    self.Select(
+        "css=grr-new-cron-job-wizard-form div.Rule:nth(0) "
+        "grr-form-proto-single-field:has(label:contains('Attribute name')) "
+        "select", "System")
+    self.Type(
+        "css=grr-new-cron-job-wizard-form div.Rule:nth(0) "
+        "grr-form-proto-single-field:has(label:contains('Attribute regex')) "
+        "input", "Linux")
 
-    # Make the button visible by scrolling to the bottom.
-    self.driver.execute_script("""
-$("button:contains('Add Rule')").parent().scrollTop(10000)
-""")
-
-    self.Click("css=.Wizard button:contains('Add Rule')")
-    self.Select("css=.Wizard select[id=rule_2-option]",
+    self.Click("css=grr-new-cron-job-wizard-form button[name=Add]")
+    self.Select("css=grr-new-cron-job-wizard-form div.Rule:nth(0) select",
                 "Integer Rule")
-    self.Select("css=.Wizard select[id=rule_2-attribute_name]",
-                "Clock")
-    self.Select("css=.Wizard select[id=rule_2-operator]",
-                "GREATER_THAN")
-    self.Type("css=.Wizard input[id=rule_2-value]",
-              "1336650631137737")
+    self.Select(
+        "css=grr-new-cron-job-wizard-form div.Rule:nth(0) "
+        "grr-form-proto-single-field:has(label:contains('Attribute name')) "
+        "select", "Clock")
+    self.Select(
+        "css=grr-new-cron-job-wizard-form div.Rule:nth(0) "
+        "grr-form-proto-single-field:has(label:contains('Operator')) select",
+        "GREATER_THAN")
+    self.Type(
+        "css=grr-new-cron-job-wizard-form div.Rule:nth(0) "
+        "grr-form-proto-single-field:has(label:contains('Value')) input",
+        "1336650631137737")
 
-    # Make the button visible by scrolling to the bottom.
-    self.driver.execute_script("""
-$("button:contains('Add Rule')").parent().scrollTop(10000)
-""")
-
-    self.Click("css=.Wizard button:contains('Add Rule')")
-    self.Select("css=.Wizard select[id=rule_3-option]",
-                "OSX")
-
-    # Make the button visible by scrolling to the bottom.
-    self.driver.execute_script("""
-$("button:contains('Add Rule')").parent().scrollTop(10000)
-""")
+    self.Click("css=grr-new-cron-job-wizard-form button[name=Add]")
+    self.Select("css=grr-new-cron-job-wizard-form div.Rule:nth(0) select",
+                "OS X")
 
     # Click on "Next" button
-    self.Click("css=.Wizard button.Next")
-    self.WaitUntil(self.IsTextPresent, "When to run?")
-
-    # Select daily periodicity
-    self.Type("css=.Wizard input[id=cron-periodicity]", "1d")
-
-    # Click on "Next" button
-    self.Click("css=.Wizard button.Next")
+    self.Click("css=grr-new-cron-job-wizard-form button.Next")
     self.WaitUntil(self.IsTextPresent, "Review")
 
     # Check that the arguments summary is present.
@@ -366,26 +363,24 @@ $("button:contains('Add Rule')").parent().scrollTop(10000)
     self.assertTrue(self.IsTextPresent("/tmp"))
 
     # Check that output plugins are shown.
-    self.assertTrue(self.IsTextPresent("EmailOutputPlugin"))
-    self.assertTrue(self.IsTextPresent("test@%s" %
-                                       config_lib.CONFIG["Logging.domain"]))
+    self.assertTrue(self.IsTextPresent("DummyOutputPlugin"))
 
     # Check that rules summary is present.
     self.assertTrue(self.IsTextPresent("Regex rules"))
 
     # Check that periodicity information is present in the review.
-    self.assertTrue(self.IsTextPresent("Hunt Periodicity"))
-    self.assertTrue(self.IsTextPresent("Hunt will run 1d."))
+    self.assertTrue(self.IsTextPresent("Periodicity"))
+    self.assertTrue(self.IsTextPresent("1d"))
 
     # Click on "Schedule" button
-    self.Click("css=.Wizard button.Next")
+    self.Click("css=grr-new-cron-job-wizard-form button.Next")
 
     # Anyone can schedule a hunt but we need an approval to actually start it.
     self.WaitUntil(self.IsTextPresent,
-                   "Hunt was successfully scheduled")
+                   "Created Cron Job:")
 
     # Close the window and check that cron job object was created.
-    self.Click("css=button.Finish")
+    self.Click("css=grr-new-cron-job-wizard-form button.Next")
 
     # Select newly created cron job.
     self.Click("css=td:contains('cron/CreateAndRunGenericHuntFlow_')")

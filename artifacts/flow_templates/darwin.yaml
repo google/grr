@@ -28,16 +28,6 @@ sources:
 labels: [System]
 supported_os: [Darwin]
 ---
-name: OSXUsers
-doc: User directories in /Users.
-sources:
-- type: LIST_FILES
-  attributes: {paths: ['/Users/*']}
-  returned_types: [KnowledgeBaseUser]
-labels: [Users]
-supported_os: [Darwin]
-provides: [users.username]
----
 name: OSXSPHardwareDataType
 doc: Mac OS X system profiler.
 sources:

@@ -3,7 +3,8 @@
 
 import binascii
 import calendar
-
+import logging
+import struct
 
 from grr.lib import parsers
 from grr.lib import rdfvalue
@@ -12,7 +13,97 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import wmi as rdf_wmi
 
 
-class WMIActiveScriptEventConsumerParser(parsers.WMIQueryParser):
+def BinarySIDtoStringSID(sid):
+  """Converts a binary SID to its string representation.
+
+  https://msdn.microsoft.com/en-us/library/windows/desktop/aa379597.aspx
+
+  The byte representation of an SID is as follows:
+    Offset  Length  Description
+    00      01      revision
+    01      01      sub-authority count
+    02      06      authority (big endian)
+    08      04      subauthority #1 (little endian)
+    0b      04      subauthority #2 (little endian)
+    ...
+
+  Args:
+    sid: A byte array.
+
+  Returns:
+    SID in string form.
+
+  Raises:
+    ValueError: If the binary SID is malformed.
+  """
+
+  if not sid:
+    return ""
+
+  str_sid_components = [ord(sid[0])]
+  # Now decode the 48-byte portion
+
+  if len(sid) >= 8:
+    subauthority_count = ord(sid[1])
+
+    identifier_authority = struct.unpack(">H", sid[2:4])[0]
+    identifier_authority <<= 32
+    identifier_authority |= struct.unpack(">L", sid[4:8])[0]
+    str_sid_components.append(identifier_authority)
+
+    start = 8
+    for i in range(subauthority_count):
+      authority = sid[start:start+4]
+      if not authority:
+        break
+
+      if len(authority) < 4:
+        raise ValueError("In binary SID '%s', component %d has been truncated. "
+                         "Expected 4 bytes, found %d: (%s)",
+                         ','.join([str(ord(c)) for c in sid]),
+                         i, len(authority), authority)
+      str_sid_components.append(struct.unpack("<L", authority)[0])
+      start += 4
+
+  return "S-%s" % ("-".join([str(x) for x in str_sid_components]))
+
+
+class WMIEventConsumerParser(parsers.WMIQueryParser):
+  """Base class for WMI EventConsumer Parsers."""
+
+  __abstract = True
+
+  def Parse(self, query, result, knowledge_base):
+    """Parse a WMI Event Consumer."""
+    _ = query, knowledge_base
+
+    wmi_dict = result.ToDict()
+
+    try:
+      wmi_dict["CreatorSID"] = BinarySIDtoStringSID(
+          "".join([chr(i) for i in wmi_dict["CreatorSID"]]))
+    except ValueError as e:
+      # We recover from corrupt SIDs by outputting it raw as a string
+      wmi_dict["CreatorSID"] = str(wmi_dict["CreatorSID"])
+    except KeyError as e:
+      pass
+
+    for output_type in self.output_types:
+      output = rdfvalue.RDFValue.classes[output_type]()
+      for k, v in wmi_dict.iteritems():
+        try:
+          output.Set(k, v)
+        except AttributeError:
+          # Skip any attribute we don't know about
+          pass
+
+      if wmi_dict and not output:
+        raise ValueError("Non-empty dict %s returned empty output.",
+                         wmi_dict)
+      yield output
+
+
+class WMIActiveScriptEventConsumerParser(WMIEventConsumerParser):
   """Parser for WMI ActiveScriptEventConsumers.
 
   https://msdn.microsoft.com/en-us/library/aa384749(v=vs.85).aspx
@@ -21,19 +112,15 @@ class WMIActiveScriptEventConsumerParser(parsers.WMIQueryParser):
   output_types = ["WMIActiveScriptEventConsumer"]
   supported_artifacts = ["WMIEnumerateASEC"]
 
-  def Parse(self, query, result, knowledge_base):
-    """Parse the wmi packages output."""
-    _ = query, knowledge_base
-    wmi_asec = rdf_wmi.WMIActiveScriptEventConsumer(
-        creator_sid="".join(str(x) for x in result["CreatorSID"]),
-        kill_timeout=result["KillTimeout"],
-        machine_name=result["MachineName"],
-        max_queue_size=result["MaximumQueueSize"],
-        name=result["Name"],
-        script_file_name=result["ScriptFilename"],
-        scripting_engine=result["ScriptingEngine"],
-        script_text=result["ScriptText"])
-    yield wmi_asec
+
+class WMICommandLineEventConsumerParser(WMIEventConsumerParser):
+  """Parser for WMI CommandLineEventConsumers.
+
+  https://msdn.microsoft.com/en-us/library/aa389231(v=vs.85).aspx
+  """
+
+  output_types = ["WMICommandLineEventConsumer"]
+  supported_artifacts = ["WMIEnumerateCLEC"]
 
 
 class WMIInstalledSoftwareParser(parsers.WMIQueryParser):
@@ -43,7 +130,7 @@ class WMIInstalledSoftwareParser(parsers.WMIQueryParser):
   supported_artifacts = ["WMIInstalledSoftware"]
 
   def Parse(self, query, result, knowledge_base):
-    """Parse the wmi packages output."""
+    """Parse the WMI packages output."""
     _ = query, knowledge_base
     status = rdf_client.SoftwarePackage.InstallState.INSTALLED
     soft = rdf_client.SoftwarePackage(
@@ -62,7 +149,7 @@ class WMIHotfixesSoftwareParser(parsers.WMIQueryParser):
   supported_artifacts = ["WMIHotFixes"]
 
   def Parse(self, query, result, knowledge_base):
-    """Parse the wmi packages output."""
+    """Parse the WMI packages output."""
     _ = query, knowledge_base
     status = rdf_client.SoftwarePackage.InstallState.INSTALLED
     result = result.ToDict()
@@ -96,7 +183,7 @@ class WMIUserParser(parsers.WMIQueryParser):
   }
 
   def Parse(self, query, result, knowledge_base):
-    """Parse the wmi Win32_UserAccount output."""
+    """Parse the WMI Win32_UserAccount output."""
     _ = query, knowledge_base
     kb_user = rdf_client.KnowledgeBaseUser()
     for wmi_key, kb_key in self.account_mapping.items():
@@ -119,7 +206,7 @@ class WMILogicalDisksParser(parsers.WMIQueryParser):
   supported_artifacts = ["WMILogicalDisks"]
 
   def Parse(self, query, result, knowledge_base):
-    """Parse the wmi packages output."""
+    """Parse the WMI packages output."""
     _ = query, knowledge_base
     result = result.ToDict()
     winvolume = rdf_client.WindowsVolume(drive_letter=result.get("DeviceID"),
@@ -213,7 +300,7 @@ class WMIInterfacesParser(parsers.WMIQueryParser):
     return output_dict
 
   def Parse(self, query, result, knowledge_base):
-    """Parse the wmi packages output."""
+    """Parse the WMI packages output."""
     _ = query, knowledge_base
 
     args = {"ifname": result["Description"]}
