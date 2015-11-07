@@ -1035,68 +1035,6 @@
               "description": {
                 "age": 0,
                 "type": "unicode",
-                "value": "bar"
-              },
-              "flow_args": {
-                "age": 0,
-                "type": "EmptyFlowArgs",
-                "value": {}
-              },
-              "flow_name": {
-                "age": 0,
-                "type": "unicode",
-                "value": "OSBreakDown"
-              },
-              "flow_runner_args": {
-                "age": 0,
-                "type": "FlowRunnerArgs",
-                "value": {
-                  "flow_name": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "OSBreakDown"
-                  }
-                }
-              },
-              "is_failing": {
-                "age": 0,
-                "type": "RDFBool",
-                "value": false
-              },
-              "lifetime": {
-                "age": 0,
-                "type": "Duration",
-                "value": 86400
-              },
-              "periodicity": {
-                "age": 0,
-                "type": "Duration",
-                "value": 604800
-              },
-              "state": {
-                "age": 0,
-                "type": "EnumNamedValue",
-                "value": "ENABLED"
-              },
-              "urn": {
-                "age": 0,
-                "type": "RDFURN",
-                "value": "aff4:/cron/OSBreakDown"
-              }
-            }
-          },
-          {
-            "age": 0,
-            "type": "ApiCronJob",
-            "value": {
-              "allow_overruns": {
-                "age": 0,
-                "type": "RDFBool",
-                "value": false
-              },
-              "description": {
-                "age": 0,
-                "type": "unicode",
                 "value": ""
               },
               "flow_args": {
@@ -1149,6 +1087,68 @@
                 "age": 0,
                 "type": "RDFURN",
                 "value": "aff4:/cron/LastAccessStats"
+              }
+            }
+          },
+          {
+            "age": 0,
+            "type": "ApiCronJob",
+            "value": {
+              "allow_overruns": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "description": {
+                "age": 0,
+                "type": "unicode",
+                "value": "bar"
+              },
+              "flow_args": {
+                "age": 0,
+                "type": "EmptyFlowArgs",
+                "value": {}
+              },
+              "flow_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "OSBreakDown"
+              },
+              "flow_runner_args": {
+                "age": 0,
+                "type": "FlowRunnerArgs",
+                "value": {
+                  "flow_name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "OSBreakDown"
+                  }
+                }
+              },
+              "is_failing": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "lifetime": {
+                "age": 0,
+                "type": "Duration",
+                "value": 86400
+              },
+              "periodicity": {
+                "age": 0,
+                "type": "Duration",
+                "value": 604800
+              },
+              "state": {
+                "age": 0,
+                "type": "EnumNamedValue",
+                "value": "ENABLED"
+              },
+              "urn": {
+                "age": 0,
+                "type": "RDFURN",
+                "value": "aff4:/cron/OSBreakDown"
               }
             }
           },
@@ -1223,20 +1223,6 @@
         "items": [
           {
             "allow_overruns": false,
-            "description": "bar",
-            "flow_args": {},
-            "flow_name": "OSBreakDown",
-            "flow_runner_args": {
-              "flow_name": "OSBreakDown"
-            },
-            "is_failing": false,
-            "lifetime": 86400,
-            "periodicity": 604800,
-            "state": "ENABLED",
-            "urn": "aff4:/cron/OSBreakDown"
-          },
-          {
-            "allow_overruns": false,
             "description": "",
             "flow_args": {},
             "flow_name": "LastAccessStats",
@@ -1249,6 +1235,20 @@
             "periodicity": 604800,
             "state": "ENABLED",
             "urn": "aff4:/cron/LastAccessStats"
+          },
+          {
+            "allow_overruns": false,
+            "description": "bar",
+            "flow_args": {},
+            "flow_name": "OSBreakDown",
+            "flow_runner_args": {
+              "flow_name": "OSBreakDown"
+            },
+            "is_failing": false,
+            "lifetime": 86400,
+            "periodicity": 604800,
+            "state": "ENABLED",
+            "urn": "aff4:/cron/OSBreakDown"
           },
           {
             "allow_overruns": false,
