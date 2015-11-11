@@ -133,16 +133,16 @@ class DataStoreService(object):
   @RPCWrapper
   def ResolveMulti(self, request, response):
     """Resolve multiple attributes for a given subject at once."""
-    attribute_regex = []
+    attribute_prefix = []
 
     for v in request.values:
-      attribute_regex.append(v.attribute)
+      attribute_prefix.append(v.attribute)
 
     timestamp = self.FromTimestampSpec(request.timestamp)
     subject = request.subject[0]
 
     values = self.db.ResolveMulti(
-        subject, attribute_regex, timestamp=timestamp,
+        subject, attribute_prefix, timestamp=timestamp,
         limit=request.limit, token=request.token)
 
     response.results.Append(
@@ -151,15 +151,15 @@ class DataStoreService(object):
                  for (attribute, value, ts) in values if value])
 
   @RPCWrapper
-  def MultiResolveRegex(self, request, response):
+  def MultiResolvePrefix(self, request, response):
     """Resolve multiple attributes for a given subject at once."""
-    attribute_regex = [utils.SmartUnicode(v.attribute) for v in request.values]
+    attribute_prefix = [utils.SmartUnicode(v.attribute) for v in request.values]
 
     timestamp = self.FromTimestampSpec(request.timestamp)
     subjects = list(request.subject)
 
-    for subject, values in self.db.MultiResolveRegex(
-        subjects, attribute_regex, timestamp=timestamp,
+    for subject, values in self.db.MultiResolvePrefix(
+        subjects, attribute_prefix, timestamp=timestamp,
         token=request.token,
         limit=request.limit):
       response.results.Append(

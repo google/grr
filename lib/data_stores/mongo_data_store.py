@@ -241,11 +241,11 @@ class MongoDataStore(data_store.DataStore):
             dict(subject=subject, predicate=attribute, prefix=prefix),
             document, upsert=True, w=1 if sync else 0)
 
-  def MultiResolveRegex(self, subjects, attribute_regex, timestamp=None,
-                        limit=None, token=None):
+  def MultiResolvePrefix(self, subjects, attribute_prefix, timestamp=None,
+                         limit=None, token=None):
     """Retrieves a bunch of subjects in one round trip."""
     self.security_manager.CheckDataStoreAccess(
-        token, subjects, self.GetRequiredResolveAccess(attribute_regex))
+        token, subjects, self.GetRequiredResolveAccess(attribute_prefix))
 
     if not subjects:
       return {}
@@ -259,8 +259,10 @@ class MongoDataStore(data_store.DataStore):
 
     # For a wildcard we just select all attributes by not applying a condition
     # at all.
-    if isinstance(attribute_regex, basestring):
-      attribute_regex = [attribute_regex]
+    if isinstance(attribute_prefix, basestring):
+      attribute_regex = [attribute_prefix + ".*"]
+    else:
+      attribute_regex = [prefix + ".*" for prefix in attribute_prefix]
 
     if attribute_regex != [".*"]:
       spec = {"$and": [

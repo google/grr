@@ -355,6 +355,7 @@ grr.Renderer('AngularDirectiveRenderer', {
         var valueName = 'var' + index.toString();
         isolatedScope[valueName] = value;
         template.attr(key, valueName);
+        ++index;
       }
     }
 

@@ -170,9 +170,7 @@ run_cmd_confirm python get-pip.py
 run_cmd_confirm pip install pip --upgrade
 
 header "Installing python dependencies"
-# Pin requirements.txt back to a specific commit once we have a working
-# requirements.txt committed to opensource
-run_cmd_confirm wget --quiet https://raw.githubusercontent.com/google/grr/master/requirements.txt
+run_cmd_confirm wget --quiet https://raw.githubusercontent.com/google/grr/99606f24b2f14e03dbba87aa6801b476ac7b9c20/requirements.txt
 run_cmd_confirm pip install -r requirements.txt
 
 # Set filehandle max to a high value if it isn't already set.

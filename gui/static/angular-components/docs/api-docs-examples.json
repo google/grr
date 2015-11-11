@@ -1369,6 +1369,231 @@
               ]
             ]
           }
+        ],
+        "Reporting": [
+          {
+            "args_type": "RunReportFlowArgs",
+            "behaviours": [
+              "ADVANCED",
+              "BASIC",
+              "Global Flow"
+            ],
+            "default_args": {
+              "age": 0,
+              "type": "RunReportFlowArgs",
+              "value": {}
+            },
+            "doc": "Run a report and send the result via email.\n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"RunReport\", report_name=report_name, email=email)\n\n  Args:\n    email\n      description: The email address that messages will be sent to.\n      type: DomainEmailAddress\n      default: None\n\n    report_name\n      description: The name of the report to run.\n      type: ReportName\n      default: None\n",
+            "friendly_name": null,
+            "name": "RunReport",
+            "prototype": "RunReport(report_name, email)",
+            "states": [
+              [
+                "RunReport",
+                "Run the report.",
+                "EmailReport"
+              ],
+              [
+                "Start",
+                "",
+                "RunReport"
+              ]
+            ]
+          }
+        ]
+      },
+      "test_class": "ApiFlowDescriptorsListRendererRegressionTest",
+      "type_stripped_response": {
+        "Filesystem": [
+          {
+            "args_type": "FileFinderArgs",
+            "behaviours": [
+              "ADVANCED",
+              "BASIC",
+              "Client Flow"
+            ],
+            "default_args": {
+              "paths": [
+                "c:\\windows\\system32\\notepad.*"
+              ]
+            },
+            "doc": "This flow looks for files matching given criteria and acts on them.\n\n  FileFinder searches for files that match glob expressions.  The \"action\"\n  (e.g. Download) is applied to files that match all given \"conditions\".\n  Matches are then written to the results collection. If there are no\n  \"conditions\" specified, \"action\" is just applied to all found files.\n\n  FileFinder replaces these deprecated flows: FetchFiles, FingerprintFile\n  and SearchFileContent.\n  \n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"FileFinder\", paths=paths, pathtype=pathtype, file_size=file_size, conditions=conditions, action=action, no_file_type_check=no_file_type_check)\n\n  Args:\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    file_size\n      description: Maximum number of bytes to download in each file.\n      type: ByteSize\n      default: 1000000000\n\n    no_file_type_check\n      description: Work with all kinds of files - not only with regular ones.NOTE: This is very dangerous and should be used with care, see MemoryCollector as an example.\n      type: RDFBool\n      default: 0\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n",
+            "friendly_name": "File Finder",
+            "name": "FileFinder",
+            "prototype": "FileFinder(paths, pathtype, file_size, conditions, action, no_file_type_check)",
+            "states": [
+              [
+                "End",
+                "",
+                "End"
+              ],
+              [
+                "ProcessGrep",
+                "",
+                "End"
+              ],
+              [
+                "Start",
+                "Issue the find request.",
+                "End"
+              ]
+            ]
+          }
+        ],
+        "Processes": [
+          {
+            "args_type": "ListProcessesArgs",
+            "behaviours": [
+              "ADVANCED",
+              "BASIC",
+              "Client Flow"
+            ],
+            "default_args": {},
+            "doc": "List running processes on a system.\n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"ListProcesses\", filename_regex=filename_regex, fetch_binaries=fetch_binaries)\n\n  Args:\n    fetch_binaries\n      description: \n      type: RDFBool\n      default: 0\n\n    filename_regex\n      description: Regex used to filter the list of processes.\n      type: RegularExpression\n      default: .\n",
+            "friendly_name": null,
+            "name": "ListProcesses",
+            "prototype": "ListProcesses(filename_regex, fetch_binaries)",
+            "states": [
+              [
+                "End",
+                "Save the results collection and update the notification line.",
+                "End"
+              ],
+              [
+                "HandleDownloadedFiles",
+                "Handle success/failure of the FileFinder flow.",
+                "End"
+              ],
+              [
+                "IterateProcesses",
+                "This stores the processes.",
+                "HandleDownloadedFiles"
+              ],
+              [
+                "Start",
+                "Start processing.",
+                "IterateProcesses"
+              ]
+            ]
+          }
+        ],
+        "Reporting": [
+          {
+            "args_type": "RunReportFlowArgs",
+            "behaviours": [
+              "ADVANCED",
+              "BASIC",
+              "Global Flow"
+            ],
+            "default_args": {},
+            "doc": "Run a report and send the result via email.\n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"RunReport\", report_name=report_name, email=email)\n\n  Args:\n    email\n      description: The email address that messages will be sent to.\n      type: DomainEmailAddress\n      default: None\n\n    report_name\n      description: The name of the report to run.\n      type: ReportName\n      default: None\n",
+            "friendly_name": null,
+            "name": "RunReport",
+            "prototype": "RunReport(report_name, email)",
+            "states": [
+              [
+                "RunReport",
+                "Run the report.",
+                "EmailReport"
+              ],
+              [
+                "Start",
+                "",
+                "RunReport"
+              ]
+            ]
+          }
+        ]
+      },
+      "url": "/api/flows/descriptors"
+    },
+    {
+      "method": "GET",
+      "response": {
+        "Filesystem": [
+          {
+            "args_type": "FileFinderArgs",
+            "behaviours": [
+              "ADVANCED",
+              "BASIC",
+              "Client Flow"
+            ],
+            "default_args": {
+              "age": 0,
+              "type": "FileFinderArgs",
+              "value": {
+                "paths": [
+                  {
+                    "age": 0,
+                    "type": "GlobExpression",
+                    "value": "c:\\windows\\system32\\notepad.*"
+                  }
+                ]
+              }
+            },
+            "doc": "This flow looks for files matching given criteria and acts on them.\n\n  FileFinder searches for files that match glob expressions.  The \"action\"\n  (e.g. Download) is applied to files that match all given \"conditions\".\n  Matches are then written to the results collection. If there are no\n  \"conditions\" specified, \"action\" is just applied to all found files.\n\n  FileFinder replaces these deprecated flows: FetchFiles, FingerprintFile\n  and SearchFileContent.\n  \n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"FileFinder\", paths=paths, pathtype=pathtype, file_size=file_size, conditions=conditions, action=action, no_file_type_check=no_file_type_check)\n\n  Args:\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    file_size\n      description: Maximum number of bytes to download in each file.\n      type: ByteSize\n      default: 1000000000\n\n    no_file_type_check\n      description: Work with all kinds of files - not only with regular ones.NOTE: This is very dangerous and should be used with care, see MemoryCollector as an example.\n      type: RDFBool\n      default: 0\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n",
+            "friendly_name": "File Finder",
+            "name": "FileFinder",
+            "prototype": "FileFinder(paths, pathtype, file_size, conditions, action, no_file_type_check)",
+            "states": [
+              [
+                "End",
+                "",
+                "End"
+              ],
+              [
+                "ProcessGrep",
+                "",
+                "End"
+              ],
+              [
+                "Start",
+                "Issue the find request.",
+                "End"
+              ]
+            ]
+          }
+        ],
+        "Processes": [
+          {
+            "args_type": "ListProcessesArgs",
+            "behaviours": [
+              "ADVANCED",
+              "BASIC",
+              "Client Flow"
+            ],
+            "default_args": {
+              "age": 0,
+              "type": "ListProcessesArgs",
+              "value": {}
+            },
+            "doc": "List running processes on a system.\n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"ListProcesses\", filename_regex=filename_regex, fetch_binaries=fetch_binaries)\n\n  Args:\n    fetch_binaries\n      description: \n      type: RDFBool\n      default: 0\n\n    filename_regex\n      description: Regex used to filter the list of processes.\n      type: RegularExpression\n      default: .\n",
+            "friendly_name": null,
+            "name": "ListProcesses",
+            "prototype": "ListProcesses(filename_regex, fetch_binaries)",
+            "states": [
+              [
+                "End",
+                "Save the results collection and update the notification line.",
+                "End"
+              ],
+              [
+                "HandleDownloadedFiles",
+                "Handle success/failure of the FileFinder flow.",
+                "End"
+              ],
+              [
+                "IterateProcesses",
+                "This stores the processes.",
+                "HandleDownloadedFiles"
+              ],
+              [
+                "Start",
+                "Start processing.",
+                "IterateProcesses"
+              ]
+            ]
+          }
         ]
       },
       "test_class": "ApiFlowDescriptorsListRendererRegressionTest",
@@ -1447,7 +1672,74 @@
           }
         ]
       },
-      "url": "/api/flows/descriptors"
+      "url": "/api/flows/descriptors?flow_type=client"
+    },
+    {
+      "method": "GET",
+      "response": {
+        "Reporting": [
+          {
+            "args_type": "RunReportFlowArgs",
+            "behaviours": [
+              "ADVANCED",
+              "BASIC",
+              "Global Flow"
+            ],
+            "default_args": {
+              "age": 0,
+              "type": "RunReportFlowArgs",
+              "value": {}
+            },
+            "doc": "Run a report and send the result via email.\n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"RunReport\", report_name=report_name, email=email)\n\n  Args:\n    email\n      description: The email address that messages will be sent to.\n      type: DomainEmailAddress\n      default: None\n\n    report_name\n      description: The name of the report to run.\n      type: ReportName\n      default: None\n",
+            "friendly_name": null,
+            "name": "RunReport",
+            "prototype": "RunReport(report_name, email)",
+            "states": [
+              [
+                "RunReport",
+                "Run the report.",
+                "EmailReport"
+              ],
+              [
+                "Start",
+                "",
+                "RunReport"
+              ]
+            ]
+          }
+        ]
+      },
+      "test_class": "ApiFlowDescriptorsListRendererRegressionTest",
+      "type_stripped_response": {
+        "Reporting": [
+          {
+            "args_type": "RunReportFlowArgs",
+            "behaviours": [
+              "ADVANCED",
+              "BASIC",
+              "Global Flow"
+            ],
+            "default_args": {},
+            "doc": "Run a report and send the result via email.\n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"RunReport\", report_name=report_name, email=email)\n\n  Args:\n    email\n      description: The email address that messages will be sent to.\n      type: DomainEmailAddress\n      default: None\n\n    report_name\n      description: The name of the report to run.\n      type: ReportName\n      default: None\n",
+            "friendly_name": null,
+            "name": "RunReport",
+            "prototype": "RunReport(report_name, email)",
+            "states": [
+              [
+                "RunReport",
+                "Run the report.",
+                "EmailReport"
+              ],
+              [
+                "Start",
+                "",
+                "RunReport"
+              ]
+            ]
+          }
+        ]
+      },
+      "url": "/api/flows/descriptors?flow_type=global"
     }
   ],
   "ApiFlowOutputPluginsRenderer": [

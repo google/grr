@@ -2,7 +2,6 @@
 """An implementation of an in-memory data store for testing."""
 
 
-import re
 import sys
 import threading
 import time
@@ -185,35 +184,6 @@ class FakeDataStore(data_store.DataStore):
       pass
 
   @utils.Synchronized
-  def MultiResolveRegex(self, subjects, attribute_regex, token=None,
-                        timestamp=None, limit=None):
-    required_access = self.GetRequiredResolveAccess(attribute_regex)
-
-    result = {}
-    for subject in subjects:
-      # If any of the subjects is forbidden we fail the entire request.
-      self.security_manager.CheckDataStoreAccess(token, [subject],
-                                                 required_access)
-
-      values = self.ResolveRegex(subject, attribute_regex, token=token,
-                                 timestamp=timestamp, limit=limit)
-
-      if not values:
-        continue
-
-      if limit:
-        if limit < len(values):
-          values = values[:limit]
-        result[subject] = values
-        limit -= len(values)
-        if limit <= 0:
-          return result.iteritems()
-      else:
-        result[subject] = values
-
-    return result.iteritems()
-
-  @utils.Synchronized
   def ResolveMulti(self, subject, attributes, timestamp=None, limit=None,
                    token=None):
     self.security_manager.CheckDataStoreAccess(
@@ -271,65 +241,6 @@ class FakeDataStore(data_store.DataStore):
             return
 
         yield (attribute, data, ts)
-
-  @utils.Synchronized
-  def ResolveRegex(self, subject, attribute_regex, token=None,
-                   timestamp=None, limit=None):
-    """Resolve all attributes for a subject matching a regex."""
-    self.security_manager.CheckDataStoreAccess(
-        token, [subject], self.GetRequiredResolveAccess(attribute_regex))
-
-    # Does timestamp represent a range?
-    if isinstance(timestamp, (list, tuple)):
-      start, end = timestamp  # pylint: disable=unpacking-non-sequence
-    else:
-      start, end = 0, (2 ** 63) - 1
-
-    start = int(start)
-    end = int(end)
-
-    if isinstance(attribute_regex, str):
-      attribute_regex = [attribute_regex]
-
-    subject = utils.SmartUnicode(subject)
-    try:
-      record = self.subjects[subject]
-    except KeyError:
-      return []
-
-    # Holds all the attributes which matched. Keys are attribute names, values
-    # are lists of timestamped data.
-    results = {}
-    nr_results = 0
-    for regex in attribute_regex:
-      regex = re.compile(regex, re.DOTALL)
-
-      for attribute, values in record.iteritems():
-        if limit and nr_results >= limit:
-          break
-        if regex.match(utils.SmartStr(attribute)):
-          for value, ts in values:
-            results_list = results.setdefault(attribute, [])
-            # If we are always after the latest ts we clear older ones.
-            if (results_list and timestamp == self.NEWEST_TIMESTAMP and
-                results_list[0][1] < ts):
-              results_list = []
-              results[attribute] = results_list
-
-            # Timestamp outside the range, drop it.
-            elif ts < start or ts > end:
-              continue
-
-            results_list.append((attribute, ts, value))
-            nr_results += 1
-            if limit and nr_results >= limit:
-              break
-
-    result = []
-    for k, values in sorted(results.items()):
-      for v in sorted(values, key=lambda x: x[1], reverse=True):
-        result.append((k, v[2], v[1]))
-    return result
 
   @utils.Synchronized
   def MultiResolvePrefix(self, subjects, attribute_prefix, token=None,

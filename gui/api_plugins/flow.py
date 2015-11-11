@@ -483,14 +483,26 @@ class ApiCancelFlowRenderer(api_call_renderer_base.ApiCallRenderer):
     return dict(status="OK")
 
 
+class ApiFlowDescriptorsListRendererArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiFlowDescriptorsListRendererArgs
+
+
 class ApiFlowDescriptorsListRenderer(api_call_renderer_base.ApiCallRenderer):
   """Renders all available flows descriptors."""
 
   category = CATEGORY
+  args_type = ApiFlowDescriptorsListRendererArgs
 
-  # Only show flows in the tree that specify all of these behaviours in their
-  # behaviours attribute.
-  flow_behaviors_to_render = flow.FlowBehaviour("Client Flow")
+  client_flow_behavior = flow.FlowBehaviour("Client Flow")
+  global_flow_behavior = flow.FlowBehaviour("Global Flow")
+
+  def _FlowTypeToBehavior(self, flow_type):
+    if flow_type == self.args_type.FlowType.CLIENT:
+      return self.client_flow_behavior
+    elif flow_type == self.args_type.FlowType.GLOBAL:
+      return self.global_flow_behavior
+    else:
+      raise ValueError("Unexpected flow type: " + str(flow_type))
 
   def Render(self, args, token=None):
     """Renders list of descriptors for all the flows."""
@@ -514,9 +526,11 @@ class ApiFlowDescriptorsListRenderer(api_call_renderer_base.ApiCallRenderer):
         except access_control.UnauthorizedAccess:
           continue
 
-      # Skip if there are behaviours that are not supported by the class.
-      if not self.flow_behaviors_to_render.IsSupported(cls.behaviours):
-        continue
+      if args.HasField("flow_type"):
+        # Skip if there are behaviours that are not supported by the class.
+        behavior = self._FlowTypeToBehavior(args.flow_type)
+        if not behavior.IsSupported(cls.behaviours):
+          continue
 
       states = []
 

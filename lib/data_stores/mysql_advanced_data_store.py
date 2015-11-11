@@ -234,14 +234,14 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       if limit is not None and limit <= 0:
         break
 
-  def MultiResolveRegex(self, subjects, attribute_regex, timestamp=None,
-                        limit=None, token=None):
+  def MultiResolvePrefix(self, subjects, attribute_prefix, timestamp=None,
+                         limit=None, token=None):
     """Result multiple subjects using one or more attribute regexps."""
     result = {}
 
     for subject in subjects:
-      values = self.ResolveRegex(subject, attribute_regex, token=token,
-                                 timestamp=timestamp, limit=limit)
+      values = self.ResolvePrefix(subject, attribute_prefix, token=token,
+                                  timestamp=timestamp, limit=limit)
 
       if values:
         result[subject] = values
@@ -253,14 +253,16 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
     return result.iteritems()
 
-  def ResolveRegex(self, subject, attribute_regex, timestamp=None, limit=None,
-                   token=None):
-    """ResolveRegex."""
+  def ResolvePrefix(self, subject, attribute_prefix, timestamp=None, limit=None,
+                    token=None):
+    """ResolvePrefix."""
     self.security_manager.CheckDataStoreAccess(
-        token, [subject], self.GetRequiredResolveAccess(attribute_regex))
+        token, [subject], self.GetRequiredResolveAccess(attribute_prefix))
 
-    if isinstance(attribute_regex, basestring):
-      attribute_regex = [attribute_regex]
+    if isinstance(attribute_prefix, basestring):
+      attribute_regex = [attribute_prefix + ".*"]
+    else:
+      attribute_regex = [prefix + ".*" for prefix in attribute_prefix]
 
     results = []
 

@@ -17,6 +17,7 @@ from grr.lib import throttle
 from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.aff4_objects import collections as aff4_collections
+from grr.lib.flows.general import administrative
 from grr.lib.flows.general import discovery
 from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import processes
@@ -279,9 +280,15 @@ class ApiFlowDescriptorsListRendererRegressionTest(
   def Run(self):
     with utils.Stubber(flow.GRRFlow, "classes", {
         "ListProcesses": processes.ListProcesses,
-        "FileFinder": file_finder.FileFinder
+        "FileFinder": file_finder.FileFinder,
+        "RunReport": administrative.RunReport
         }):
+      # RunReport flow is only shown for admins.
+      self.CreateAdminUser("test")
+
       self.Check("GET", "/api/flows/descriptors")
+      self.Check("GET", "/api/flows/descriptors?flow_type=client")
+      self.Check("GET", "/api/flows/descriptors?flow_type=global")
 
 
 class ApiRemoteGetFileRendererRegressionTest(

@@ -8,7 +8,8 @@ import "grr/proto/semantic.proto";
 message DataStoreCommand {
   enum Command {
     MULTI_SET = 0;
-    MULTI_RESOLVE_REGEX = 1;
+    // Deprecated
+    // MULTI_RESOLVE_REGEX = 1;
     RESOLVE_MULTI = 2;
     DELETE_SUBJECT = 3;
     DELETE_ATTRIBUTES = 4;
@@ -17,6 +18,7 @@ message DataStoreCommand {
     LOCK_SUBJECT = 6;
     UNLOCK_SUBJECT = 7;
     EXTEND_SUBJECT = 8;
+    MULTI_RESOLVE_PREFIX = 9;
   };
   optional Command command = 1;
   optional DataStoreRequest request = 2;

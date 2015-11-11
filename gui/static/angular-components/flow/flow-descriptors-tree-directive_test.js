@@ -28,10 +28,12 @@ describe('flow descriptors tree directive', function() {
     $(document.body).html('');
   });
 
-  var renderTestTemplate = function(flowUrn) {
+  var renderTestTemplate = function(flowType) {
     var template = '<grr-flow-descriptors-tree ' +
+        'flow-type="flowType" ' +
         'selected-descriptor="selectedDescriptor.value" />';
     var element = $compile(template)($rootScope);
+    $rootScope.flowType = flowType;
     $rootScope.selectedDescriptor = {
       value: undefined
     };
@@ -51,7 +53,18 @@ describe('flow descriptors tree directive', function() {
 
     renderTestTemplate();
 
-    expect(grrApiService.get).toHaveBeenCalledWith('/flows/descriptors');
+    expect(grrApiService.get).toHaveBeenCalledWith('/flows/descriptors', {});
+  });
+
+  it('fetches descriptors filtered by type if flow type is specified',
+     function() {
+    var deferred = $q.defer();
+    spyOn(grrApiService, 'get').and.returnValue(deferred.promise);
+
+    renderTestTemplate('CLIENT');
+
+    expect(grrApiService.get).toHaveBeenCalledWith('/flows/descriptors',
+                                                   {flow_type: 'client'});
   });
 
   it('fetches user settings from the server', function() {

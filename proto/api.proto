@@ -159,6 +159,17 @@ message ApiFlowArchiveFilesRendererArgs {
   optional ExportCollectionFilesAsArchiveArgs.ArchiveFormat archive_format = 3;
 };
 
+message ApiFlowDescriptorsListRendererArgs {
+  enum FlowType {
+    CLIENT = 0;
+    GLOBAL = 1;
+  };
+  optional FlowType flow_type = 1 [(sem_type) = {
+      description: "If specified, narrows the list to the given type of flows "
+      "only."
+    }];
+};
+
 message ApiClientFlowsListRendererArgs {
   optional string client_id = 1 [(sem_type) = {
       type: "ClientURN",

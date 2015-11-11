@@ -91,6 +91,39 @@ var StartFlowFormController =
  * @export
  */
 StartFlowFormController.prototype.onLaunchButtonClick = function() {
+  if (this.scope_['clientId']) {
+    this.startClientFlow_();
+  } else {
+    this.startGlobalFlow_();
+  }
+
+};
+
+
+/**
+ * Sends API request to start a global flow.
+ *
+ * @private
+ */
+StartFlowFormController.prototype.startGlobalFlow_ = function() {
+  this.grrApiService_.post('/flows', {
+    runner_args: this.grrApiService_.stripTypeInfo(this.flowRunnerArguments),
+    flow_args: this.grrApiService_.stripTypeInfo(this.flowArguments)
+  }).then(function success(response) {
+    this.responseData = response['data'];
+  }.bind(this), function failure(response) {
+    this.responseError = response['data']['message'] || 'Unknown error';
+  }.bind(this));
+  this.requestSent = true;
+};
+
+
+/**
+ * Sends API request to start a client flow.
+ *
+ * @private
+ */
+StartFlowFormController.prototype.startClientFlow_ = function() {
   var clientIdComponents = this.scope_.clientId.split('/');
   var clientId;
   if (clientIdComponents[0] == 'aff4:') {
@@ -119,7 +152,7 @@ StartFlowFormController.prototype.onLaunchButtonClick = function() {
 grrUi.flow.startFlowFormDirective.StartFlowFormDirective = function() {
   return {
     scope: {
-      clientId: '=',
+      clientId: '=?',
       descriptor: '='
     },
     restrict: 'E',

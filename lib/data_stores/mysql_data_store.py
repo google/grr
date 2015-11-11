@@ -279,10 +279,10 @@ class MySQLDataStore(data_store.DataStore):
 
     return query
 
-  def MultiResolveRegex(self, subjects, attribute_regex, timestamp=None,
-                        limit=None, token=None):
+  def MultiResolvePrefix(self, subjects, attribute_prefix, timestamp=None,
+                         limit=None, token=None):
     self.security_manager.CheckDataStoreAccess(
-        token, subjects, self.GetRequiredResolveAccess(attribute_regex))
+        token, subjects, self.GetRequiredResolveAccess(attribute_prefix))
 
     if not subjects:
       return {}
@@ -294,13 +294,15 @@ class MySQLDataStore(data_store.DataStore):
       )
 
       # Allow users to specify a single string here.
-      if isinstance(attribute_regex, basestring):
-        attribute_regex = [attribute_regex]
+      if isinstance(attribute_prefix, basestring):
+        attribute_pattern = [attribute_prefix + "%"]
+      else:
+        attribute_pattern = [prefix + "%" for prefix in attribute_prefix]
 
       query += "and (" + " or ".join(
-          ["attribute rlike %s"] * len(attribute_regex)) + ")"
+          ["attribute like %s"] * len(attribute_pattern)) + ")"
 
-      args = list(subjects) + list(subjects) + list(attribute_regex)
+      args = list(subjects) + list(subjects) + list(attribute_pattern)
 
       query += self._TimestampToQuery(timestamp, args)
 

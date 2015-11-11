@@ -177,11 +177,6 @@ class SqliteConnectionCache(utils.FastStore):
       return connection
 
 
-def SqliteRegexpFunction(expr, item):
-  reg = re.compile(expr, flags=re.DOTALL)
-  return reg.search(item) is not None
-
-
 class SqliteConnection(object):
   """A wrapper around the raw SQLite connection."""
 
@@ -191,7 +186,6 @@ class SqliteConnection(object):
                                 SQLITE_ISOLATION, False, SQLITE_FACTORY,
                                 SQLITE_CACHED_STATEMENTS)
     self.conn.text_factory = str
-    self.conn.create_function("REGEXP", 2, SqliteRegexpFunction)
     self.cursor = self.conn.cursor()
     self.Execute("PRAGMA synchronous = OFF")
     self.Execute("PRAGMA journal_mode = OFF")
@@ -263,39 +257,40 @@ class SqliteConnection(object):
       return None
 
   @utils.Synchronized
-  def GetNewestFromRegex(self, subject, regex, limit=None):
-    """Returns the newest values for attributes that match 'regex'.
+  def GetNewestFromPrefix(self, subject, prefix, limit=None):
+    """Returns the newest values for attributes that match 'prefix'.
 
     Args:
      subject: The subject.
-     regex: The attribute regex.
+     prefix: The attribute prefix.
      limit: The maximum number of records to return.
 
     Returns:
      A list of the form (attribute, value, timestamp).
     """
+    pattern = prefix + "%"
     subject = utils.SmartStr(subject)
     query = """SELECT predicate, MAX(timestamp), value FROM tbl
-               WHERE subject = ? AND predicate REGEXP ?
+               WHERE subject = ? AND predicate LIKE ?
                GROUP BY predicate"""
 
     if limit:
       query += " LIMIT ?"
-      args = (subject, regex, limit)
+      args = (subject, pattern, limit)
     else:
-      args = (subject, regex)
+      args = (subject, pattern)
 
     # Reorder columns.
     data = self.Execute(query, args).fetchall()
     return [(pred, val, ts) for pred, ts, val in data]
 
   @utils.Synchronized
-  def GetValuesFromRegex(self, subject, regex, start, end, limit=None):
-    """Returns the values of the attributes that match 'regex'.
+  def GetValuesFromPrefix(self, subject, prefix, start, end, limit=None):
+    """Returns the values of the attributes that match 'prefix'.
 
     Args:
      subject: The subject.
-     regex: The attribute regex.
+     prefix: The attribute prefix.
      start: The start timestamp.
      end: The end timestamp.
      limit: The maximum number of values to return.
@@ -303,16 +298,17 @@ class SqliteConnection(object):
     Returns:
      A list of the form (attribute, value, timestamp).
     """
+    pattern = prefix + "%"
     subject = utils.SmartStr(subject)
     query = """SELECT predicate, value, timestamp FROM tbl
-               WHERE subject = ? AND predicate REGEXP ?
+               WHERE subject = ? AND predicate LIKE ?
                      AND timestamp >= ? AND timestamp <= ?
                      ORDER BY timestamp DESC"""
     if limit:
       query += " LIMIT ?"
-      args = (subject, regex, start, end, limit)
+      args = (subject, pattern, start, end, limit)
     else:
-      args = (subject, regex, start, end)
+      args = (subject, pattern, start, end)
 
     data = self.Execute(query, args).fetchall()
     return data
@@ -593,15 +589,15 @@ class SqliteDataStore(data_store.DataStore):
     with self.cache.Get(subject) as sqlite_connection:
       sqlite_connection.DeleteSubject(subject)
 
-  def MultiResolveRegex(self, subjects, attribute_regex, timestamp=None,
-                        limit=None, token=None):
-    """Result multiple subjects using one or more attribute regexps."""
+  def MultiResolvePrefix(self, subjects, attribute_prefix, timestamp=None,
+                         limit=None, token=None):
+    """Result multiple subjects using one or more attribute prefixes."""
     result = {}
 
     remaining_limit = limit
     for subject in subjects:
-      values = self.ResolveRegex(subject, attribute_regex, token=token,
-                                 timestamp=timestamp, limit=remaining_limit)
+      values = self.ResolvePrefix(subject, attribute_prefix, token=token,
+                                  timestamp=timestamp, limit=remaining_limit)
 
       if values:
         if limit:
@@ -627,14 +623,14 @@ class SqliteDataStore(data_store.DataStore):
       except ValueError:
         return timestamp, timestamp
 
-  def ResolveRegex(self, subject, attribute_regex, timestamp=None,
-                   limit=None, token=None):
-    """Resolve all attributes for a subject matching a regex."""
+  def ResolvePrefix(self, subject, attribute_prefix, timestamp=None,
+                    limit=None, token=None):
+    """Resolve all attributes for a subject matching a prefix."""
     self.security_manager.CheckDataStoreAccess(
-        token, [subject], self.GetRequiredResolveAccess(attribute_regex))
+        token, [subject], self.GetRequiredResolveAccess(attribute_prefix))
 
-    if isinstance(attribute_regex, str):
-      attribute_regex = [attribute_regex]
+    if isinstance(attribute_prefix, str):
+      attribute_prefix = [attribute_prefix]
 
     start, end = self._GetStartEndTimestamp(timestamp)
 
@@ -643,7 +639,7 @@ class SqliteDataStore(data_store.DataStore):
     results = []
 
     with self.cache.Get(subject) as sqlite_connection:
-      for regex in attribute_regex:
+      for prefix in attribute_prefix:
         nr_results = len(results)
         if limit and nr_results >= limit:
           break
@@ -651,13 +647,14 @@ class SqliteDataStore(data_store.DataStore):
         if new_limit:
           new_limit -= nr_results
         if timestamp == self.NEWEST_TIMESTAMP:
-          data = sqlite_connection.GetNewestFromRegex(subject, regex, new_limit)
+          data = sqlite_connection.GetNewestFromPrefix(subject, prefix,
+                                                       new_limit)
           for attribute, value, ts in data:
             value = self._Decode(attribute, value)
             results.append((attribute, value, ts))
         else:
-          data = sqlite_connection.GetValuesFromRegex(subject, regex, start,
-                                                      end, new_limit)
+          data = sqlite_connection.GetValuesFromPrefix(subject, prefix, start,
+                                                       end, new_limit)
           for attribute, value, ts in data:
             value = self._Decode(attribute, value)
             results.append((attribute, value, ts))

@@ -357,8 +357,8 @@ class GRRBaseTest(unittest.TestCase):
     # Stub out the email function
     self.emails_sent = []
 
-    def SendEmailStub(from_user, to_user, subject, message, **unused_kwargs):
-      self.emails_sent.append((from_user, to_user, subject, message))
+    def SendEmailStub(to_user, from_user, subject, message, **unused_kwargs):
+      self.emails_sent.append((to_user, from_user, subject, message))
 
     self.mail_stubber = utils.MultiStubber(
         (email_alerts.EMAIL_ALERTER, "SendEmail", SendEmailStub),

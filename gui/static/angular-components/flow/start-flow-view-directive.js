@@ -14,6 +14,7 @@ grrUi.flow.startFlowViewDirective.StartFlowViewDirective = function() {
   return {
     restrict: 'E',
     scope: {
+      flowType: '=',
       clientId: '='
     },
     templateUrl: '/static/angular-components/flow/start-flow-view.html',

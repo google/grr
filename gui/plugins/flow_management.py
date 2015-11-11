@@ -37,7 +37,7 @@ class LaunchFlows(renderers.AngularDirectiveRenderer):
   directive = "grr-start-flow-view"
 
   def Layout(self, request, response):
-    self.directive_args = {}
+    self.directive_args = {"flow-type": "CLIENT"}
     self.directive_args["client-id"] = request.REQ.get("client_id")
     return super(LaunchFlows, self).Layout(request, response)
 
@@ -880,21 +880,18 @@ class ProgressGraphRenderer(renderers.ImageDownloadRenderer):
     return buf.read()
 
 
-class GlobalLaunchFlows(renderers.Splitter):
+class GlobalLaunchFlows(renderers.AngularDirectiveRenderer):
   """Launches flows that apply across clients."""
   description = "Start Global Flows"
   behaviours = frozenset(["General"])
   order = 10
 
-  left_renderer = "GlobalFlowTree"
-  top_right_renderer = "SemanticProtoFlowForm"
-  bottom_right_renderer = "FlowManagementTabs"
+  directive = "grr-start-flow-view"
 
-
-class GlobalFlowTree(FlowTree):
-  """Show flows that work across clients."""
-  publish_select_queue = "flow_select"
-  flow_behaviors_to_render = flow.FlowBehaviour("Global Flow")
+  def Layout(self, request, response):
+    self.directive_args = {"flow-type": "GLOBAL"}
+    self.directive_args["client-id"] = request.REQ.get("client_id")
+    return super(GlobalLaunchFlows, self).Layout(request, response)
 
 
 class GlobExpressionListFormRenderer(forms.RepeatedFieldFormRenderer):

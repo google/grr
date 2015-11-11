@@ -587,8 +587,10 @@ class TestContentView(SearchClientTestBase):
     self.Click("css=#_Administrative")
     self.Click("link=SetGlobalNotification")
 
-    self.Type("css=input#args-header", "Oh no, we're doomed!")
-    self.Type("css=input#args-content", "Houston, Houston, we have a prob...")
+    self.Type("css=grr-start-flow-form label:contains('Header') "
+              "~ * input", "Oh no, we're doomed!")
+    self.Type("css=grr-start-flow-form label:contains('Content') "
+              "~ * input", "Houston, Houston, we have a prob...")
 
     self.Click("css=button.Launch")
 

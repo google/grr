@@ -552,14 +552,14 @@ class HTTPDataStore(data_store.DataStore):
 
     return request
 
-  def MultiResolveRegex(self, subjects, attribute_regex,
-                        timestamp=None, limit=None, token=None):
-    """MultiResolveRegex."""
-    typ = rdf_data_server.DataStoreCommand.Command.MULTI_RESOLVE_REGEX
+  def MultiResolvePrefix(self, subjects, attribute_prefix,
+                         timestamp=None, limit=None, token=None):
+    """MultiResolvePrefix."""
+    typ = rdf_data_server.DataStoreCommand.Command.MULTI_RESOLVE_PREFIX
     results = {}
     remaining_limit = limit
     for subject in subjects:
-      request = self._MakeRequest([subject], attribute_regex,
+      request = self._MakeRequest([subject], attribute_prefix,
                                   timestamp=timestamp, token=token,
                                   limit=remaining_limit)
 
