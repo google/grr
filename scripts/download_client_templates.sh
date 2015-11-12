@@ -12,6 +12,8 @@ CLIENT_TEMPLATE_DIRECTORY="https://googledrive.com/host/0B1wsLqFoT7i2VXBtSlJHRF9
 CLIENT_TEMPLATE_VERSION="3.0.7.1"
 
 mkdir -p executables/darwin/templates/
+mkdir -p executables/linux/templates/
+mkdir -p executables/windows/templates/
 wget --quiet -P executables/darwin/templates/ ${CLIENT_TEMPLATE_DIRECTORY}/grr_${CLIENT_TEMPLATE_VERSION}_amd64.pkg.xar
 wget --quiet -P executables/linux/templates/ ${CLIENT_TEMPLATE_DIRECTORY}/grr_${CLIENT_TEMPLATE_VERSION}_amd64.deb.zip
 wget --quiet -P executables/linux/templates/ ${CLIENT_TEMPLATE_DIRECTORY}/grr_${CLIENT_TEMPLATE_VERSION}_i386.deb.zip
