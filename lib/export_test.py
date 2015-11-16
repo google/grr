@@ -1029,6 +1029,11 @@ class ArtifactFilesDownloaderResultConverterTest(test_lib.GRRBaseTest):
             pathtype=rdf_paths.PathSpec.PathType.REGISTRY),
         registry_data=rdf_protodict.DataBlob(string="C:\\Windows\\Sidebar.exe"))
 
+    self.file_stat = rdf_client.StatEntry(
+        pathspec=rdf_paths.PathSpec(
+            path="/tmp/bar.exe",
+            pathtype=rdf_paths.PathSpec.PathType.OS))
+
   def testDoesNothingIfOriginalResultIsNotStatEntry(self):
     result = collectors.ArtifactFilesDownloaderResult(
         original_result=rdf_client.CpuSample())
@@ -1039,11 +1044,12 @@ class ArtifactFilesDownloaderResultConverterTest(test_lib.GRRBaseTest):
 
     self.assertFalse(converted)
 
-  def testDoesNothingIfOriginalResultIsNotRegistryStatEntry(self):
+  def testDoesNothingIfOriginalResultIsNotRegistryOrFileStatEntry(self):
     stat = rdf_client.StatEntry(
         aff4path=rdfvalue.RDFURN("aff4:/C.00000000000000/fs/os/some/path"),
-        pathspec=rdf_paths.PathSpec(path="/some/path",
-                                    pathtype=rdf_paths.PathSpec.PathType.OS))
+        pathspec=rdf_paths.PathSpec(
+            path="some/path",
+            pathtype=rdf_paths.PathSpec.PathType.MEMORY))
     result = collectors.ArtifactFilesDownloaderResult(original_result=stat)
 
     converter = export.ArtifactFilesDownloaderResultConverter()
@@ -1052,7 +1058,18 @@ class ArtifactFilesDownloaderResultConverterTest(test_lib.GRRBaseTest):
 
     self.assertFalse(converted)
 
-  def testYieldsOneResultIfNoPathspecsWereFound(self):
+  def testYieldsOneResultForFileStatEntry(self):
+    result = collectors.ArtifactFilesDownloaderResult(
+        original_result=self.file_stat)
+
+    converter = export.ArtifactFilesDownloaderResultConverter()
+    converted = list(converter.Convert(export.ExportedMetadata(), result,
+                                       token=self.token))
+
+    self.assertEquals(len(converted), 1)
+    self.assertEquals(converted[0].original_file.basename, "bar.exe")
+
+  def testYieldsOneResultForRegistryStatEntryIfNoPathspecsWereFound(self):
     result = collectors.ArtifactFilesDownloaderResult(
         original_result=self.registry_stat)
 
@@ -1065,7 +1082,7 @@ class ArtifactFilesDownloaderResultConverterTest(test_lib.GRRBaseTest):
     self.assertEquals(converted[0].original_registry_key.data,
                       "C:\\Windows\\Sidebar.exe")
 
-  def testIncludesFoundPathspecIntoYieldedResult(self):
+  def testIncludesRegistryStatEntryFoundPathspecIntoYieldedResult(self):
     result = collectors.ArtifactFilesDownloaderResult(
         original_result=self.registry_stat,
         found_pathspec=rdf_paths.PathSpec(path="foo", pathtype="OS"))
@@ -1077,7 +1094,19 @@ class ArtifactFilesDownloaderResultConverterTest(test_lib.GRRBaseTest):
     self.assertEquals(len(converted), 1)
     self.assertEquals(converted[0].found_path, "foo")
 
-  def testIncludesDownloadedFileIfFoundAmongDownloadedFilesList(self):
+  def testIncludesFileStatEntryFoundPathspecIntoYieldedResult(self):
+    result = collectors.ArtifactFilesDownloaderResult(
+        original_result=self.file_stat,
+        found_pathspec=self.file_stat.pathspec)
+
+    converter = export.ArtifactFilesDownloaderResultConverter()
+    converted = list(converter.Convert(export.ExportedMetadata(), result,
+                                       token=self.token))
+
+    self.assertEquals(len(converted), 1)
+    self.assertEquals(converted[0].found_path, "/tmp/bar.exe")
+
+  def testIncludesDownloadedFileIntoResult(self):
     result = collectors.ArtifactFilesDownloaderResult(
         original_result=self.registry_stat,
         found_pathspec=rdf_paths.PathSpec(path="foo", pathtype="OS"),

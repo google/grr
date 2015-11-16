@@ -10,7 +10,7 @@ goog.require('grrUi.forms.semanticValueFormDirective.SemanticValueFormController
  *
  * @constructor
  * @param {!angular.Scope} $scope
- * @param {!angular.JQLite} $element
+ * @param {!angular.jQuery} $element
  * @param {!angular.$compile} $compile
  * @param {!grrUi.core.semanticRegistry.SemanticRegistryService}
  *     grrSemanticRepeatedFormDirectivesRegistryService
@@ -23,7 +23,7 @@ grrUi.forms.semanticProtoRepeatedFieldFormDirective
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @private {!angular.JQLite} */
+  /** @private {!angular.jQuery} */
   this.element_ = $element;
 
   /** @private {!angular.$compile} */

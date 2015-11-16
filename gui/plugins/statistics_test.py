@@ -67,11 +67,11 @@ class TestStats(test_lib.GRRSeleniumTest):
     # Go to Statistics
     self.Click("css=a:contains('Statistics')")
 
-    self.Click("css=#_Clients ins.jstree-icon")
+    self.Click("css=#_Clients i.jstree-icon")
 
-    self.Click("css=#_Clients-All ins.jstree-icon")
+    self.Click("css=#_Clients-All i.jstree-icon")
 
-    self.Click("css=#_Clients-All-OS_20Breakdown ins.jstree-icon")
+    self.Click("css=#_Clients-All-OS_20Breakdown i.jstree-icon")
 
     self.WaitUntil(self.IsElementPresent,
                    "css=#_Clients-All-OS_20Breakdown-_207_20Day_20Active")

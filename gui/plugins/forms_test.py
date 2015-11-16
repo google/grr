@@ -33,7 +33,7 @@ class TestForms(test_lib.GRRSeleniumTest):
     self.Open("/#main=ManageHunts")
     self.Click("css=button[name=NewHunt]")
 
-    self.Click("css=#_Tests > ins.jstree-icon")
+    self.Click("css=#_Tests > i.jstree-icon")
     self.Click("link=DefaultArgsTestFlow")
 
     self.WaitUntil(self.IsTextPresent, "String value")
@@ -63,7 +63,7 @@ class TestForms(test_lib.GRRSeleniumTest):
     self.Open("/#main=ManageHunts")
     self.Click("css=button[name=NewHunt]")
 
-    self.Click("css=#_Tests > ins.jstree-icon")
+    self.Click("css=#_Tests > i.jstree-icon")
     self.Click("link=DefaultArgsTestFlow")
 
     self.WaitUntil(self.IsTextPresent, "String value")

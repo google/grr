@@ -113,6 +113,14 @@ def GetClientURNFromPath(path):
     return None
 
 
+class PCIDevice(structs.RDFProtoStruct):
+  """A PCI device on the client.
+
+  This class describes a PCI device located on the client.
+  """
+  protobuf = sysinfo_pb2.PCIDevice
+
+
 # These are objects we store as attributes of the client.
 class Filesystem(structs.RDFProtoStruct):
   """A filesystem on the client.

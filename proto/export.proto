@@ -46,18 +46,31 @@ message ExportedMetadata {
       type: "ClientURN",
       description: "Client ID of a client that contains this entry."
     }];
-  optional string hostname = 2;
-  optional string os = 3;
+  optional string hostname = 2 [(sem_type) = {
+      description: "Client hostname."
+    }];
+  optional string os = 3 [(sem_type) = {
+      description: "Client Operating System class (Windows|Darwin|Linux)."
+    }];
   optional uint64 client_age = 4 [(sem_type) = {
       type: "RDFDatetime",
       description: "Age of the client."
     }];
-  optional string uname = 5;
-  optional string os_release = 6;
-  optional string os_version = 7;
-  optional string usernames = 8;
-  optional string mac_address = 9;
-
+  optional string uname = 5 [(sem_type) = {
+      description: "Uname string."
+    }];
+  optional string os_release = 6 [(sem_type) = {
+      description: "The OS release identifier e.g. 7, OSX, debian."
+    }];
+  optional string os_version = 7 [(sem_type) = {
+      description: "The OS version ID e.g. 6.1.7601SP1, 10.9.2, 14.04."
+    }];
+  optional string usernames = 8 [(sem_type) = {
+      description: "Username."
+    }];
+  optional string mac_address = 9 [(sem_type) = {
+      description: "MAC address."
+    }];
   optional uint64 timestamp = 10 [(sem_type) = {
       type: "RDFDatetime",
       description: "When data was exported."
@@ -71,7 +84,7 @@ message ExportedMetadata {
   // BEGIN DEPRECATED
   optional string deprecated_session_id = 11 [(sem_type) = {
       type: "SessionID",
-      description: "Session id of a hunt that collected the data."
+      description: "Deprecated session id of a hunt that collected the data."
     }, deprecated=true];
   // END_DEPRECATED
 
@@ -156,8 +169,12 @@ message ExportedFile {
   optional uint32 st_rdev = 16;
   optional string symlink = 17;
 
-  optional bytes content = 18;  // Actual content of the file if available.
-  optional string content_sha256 = 19;  // sha256 of content.
+  optional bytes content = 18 [(sem_type) = {
+      description: "Actual content of the file if available."
+    }];
+  optional string content_sha256 = 19 [(sem_type) = {
+      description: "SHA256 of content"
+    }];
 
   // client reported values for the hashes
   optional string hash_md5 = 20;
@@ -321,10 +338,13 @@ message ExportedBytes {
 }
 
 
+// Next field id: 6
 message ExportedArtifactFilesDownloaderResult {
   optional ExportedMetadata metadata = 1;
 
   optional ExportedRegistryKey original_registry_key = 2;
+  optional ExportedFile original_file = 5;
+
   optional string found_path = 3;
   optional ExportedFile downloaded_file = 4;
 }

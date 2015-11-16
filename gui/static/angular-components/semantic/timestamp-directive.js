@@ -12,7 +12,7 @@ goog.scope(function() {
  *
  * @param {!angular.Scope} $scope
  * @param {!angular.$filter} $filter
- * @param {!angular.JQLite} $element
+ * @param {!angular.jQuery} $element
  * @param {!grrUi.core.timeService.TimeService} grrTimeService
  * @constructor
  * @ngInject
@@ -34,7 +34,7 @@ grrUi.semantic.timestampDirective.TimestampController = function(
   /** @private {?number} */
   this.value;
 
-  /** @private {!angular.JQLite} $element */
+  /** @private {!angular.jQuery} $element */
   this.element_ = $element;
 
   /** @private {grrUi.core.timeService.TimeService} grrTimeService */

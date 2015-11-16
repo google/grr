@@ -19,6 +19,7 @@ from grr.lib import registry
 from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.aff4_objects import filestore
+from grr.lib.flows.general import collectors as flow_collectors
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -1053,36 +1054,33 @@ class CheckResultConverter(ExportConverter):
 class ArtifactFilesDownloaderResultConverter(ExportConverter):
   """Converts ArtifactFilesDownloaderResult to its exported version."""
 
-  input_rdf_type = "ArtifactFilesDownloaderResult"
+  input_rdf_type = flow_collectors.ArtifactFilesDownloaderResult.__name__
 
-  def GetExportedRegistryKey(self, original_result, token=None):
-    """Converts registry key StatEntry to an ExportedRegistryKey."""
+  def GetExportedResult(self, original_result, converter, token=None):
+    """Converts original result via given converter.."""
 
-    registry_key_converter = StatEntryToExportedRegistryKeyConverter()
-
-    exported_registry_keys = list(registry_key_converter.Convert(
+    exported_results = list(converter.Convert(
         ExportedMetadata(), original_result, token=token))
 
-    if len(exported_registry_keys) > 1:
-      raise RuntimeError("Got > 1 exported registry keys from a single "
-                         "StatEntry, seems like a logical bug.")
+    if not exported_results:
+      raise RuntimeError("Got 0 exported result when a single one "
+                         "was expected.")
 
-    if not exported_registry_keys:
-      return None
-    else:
-      return exported_registry_keys[0]
+    if len(exported_results) > 1:
+      raise RuntimeError("Got > 1 exported results when a single "
+                         "one was expected, seems like a logical bug.")
+
+    return exported_results[0]
 
   def IsRegistryStatEntry(self, original_result):
     """Checks if given RDFValue is a registry StatEntry."""
+    return (original_result.pathspec.pathtype ==
+            rdf_paths.PathSpec.PathType.REGISTRY)
 
-    if not isinstance(original_result, rdf_client.StatEntry):
-      return False
-
-    if (original_result.pathspec.pathtype !=
-        rdf_paths.PathSpec.PathType.REGISTRY):
-      return False
-
-    return True
+  def IsFileStatEntry(self, original_result):
+    """Checks if given RDFValue is a file StatEntry."""
+    return (original_result.pathspec.pathtype in
+            [rdf_paths.PathSpec.PathType.OS, rdf_paths.PathSpec.PathType.TSK])
 
   def BatchConvert(self, metadata_value_pairs, token=None):
     metadata_value_pairs = list(metadata_value_pairs)
@@ -1091,16 +1089,25 @@ class ArtifactFilesDownloaderResultConverter(ExportConverter):
     for metadata, value in metadata_value_pairs:
       original_result = value.original_result
 
-      if not self.IsRegistryStatEntry(original_result):
+      if not isinstance(original_result, rdf_client.StatEntry):
         continue
 
-      exported_registry_key = self.GetExportedRegistryKey(original_result,
-                                                          token=token)
-      if not exported_registry_key:
+      if self.IsRegistryStatEntry(original_result):
+        exported_registry_key = self.GetExportedResult(
+            original_result, StatEntryToExportedRegistryKeyConverter(),
+            token=token)
+        result = ExportedArtifactFilesDownloaderResult(
+            metadata=metadata, original_registry_key=exported_registry_key)
+      elif self.IsFileStatEntry(original_result):
+        exported_file = self.GetExportedResult(
+            original_result, StatEntryToExportedFileConverter(), token=token)
+        result = ExportedArtifactFilesDownloaderResult(
+            metadata=metadata, original_file=exported_file)
+      else:
+        # TODO(user): if original_result is not a registry key or a file,
+        # we should still somehow export the data, otherwise the user will get
+        # an impression that there was nothing to export at all.
         continue
-
-      result = ExportedArtifactFilesDownloaderResult(
-          metadata=metadata, original_registry_key=exported_registry_key)
 
       if value.HasField("found_pathspec"):
         result.found_path = value.found_pathspec.CollapsePath()

@@ -3,8 +3,10 @@
 
 from grr.lib import flags
 from grr.lib import test_lib
+from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.lib.rdfvalues import wmi as rdf_wmi
 from grr.parsers import wmi_parser
 from grr.test_data import client_fixture
 
@@ -87,16 +89,28 @@ objFile.Close"""
   def testWMIEventConsumerParserDoesntFailOnMalformedSIDs(self):
     parser = wmi_parser.WMIActiveScriptEventConsumerParser()
     rdf_dict = rdf_protodict.Dict()
-    rdf_dict["CreatorSID"] = [1, 5, 0, 0, 0, 0, 0, 5, 21, 0, 0]
-    result_list = list(parser.Parse(None, rdf_dict, None))
-    self.assertEqual(len(result_list), 1)
+    tests = [
+        [1, 5, 0, 0, 0, 0, 0, 5, 21, 0, 0],
+        "(1, 2, 3)",  # Older clients (3.0.0.3) return a the SID like this
+        1,
+        {1: 2},
+        (1, 2)]
+
+    for test in tests:
+      rdf_dict["CreatorSID"] = test
+      result_list = list(parser.Parse(None, rdf_dict, None))
+      self.assertEqual(len(result_list), 1)
 
   def testWMIEventConsumerParserDoesntFailOnUnknownField(self):
     parser = wmi_parser.WMIActiveScriptEventConsumerParser()
     rdf_dict = rdf_protodict.Dict()
     rdf_dict["NonexistentField"] = "Abcdef"
     rdf_dict["Name"] = "Test event consumer"
-    self.assertEqual(1, len(list(parser.Parse(None, rdf_dict, None))))
+    results = list(parser.Parse(None, rdf_dict, None))
+    self.assertEqual(2, len(results))
+    # Anomalies yield first
+    self.assertEqual(results[0].__class__, rdf_anomaly.Anomaly)
+    self.assertEqual(results[1].__class__, rdf_wmi.WMIActiveScriptEventConsumer)
 
   def testWMIEventConsumerParser_EmptyConsumersYieldBlank(self):
     parser = wmi_parser.WMIActiveScriptEventConsumerParser()
@@ -105,11 +119,13 @@ objFile.Close"""
     self.assertEqual(1, len(result_list))
     self.assertEqual(True, not result_list[0])
 
-  def testWMIEventConsumerParserConsumerWithNoKnownFieldsRaises(self):
+  def testWMIEventConsumerParserRaisesWhenNonEmptyDictReturnedEmpty(self):
     parser = wmi_parser.WMIActiveScriptEventConsumerParser()
     rdf_dict = rdf_protodict.Dict()
     rdf_dict["NonexistentField"] = "Abcdef"
-    self.assertRaises(ValueError, list, parser.Parse(None, rdf_dict, None))
+    with self.assertRaises(ValueError):
+      for output in parser.Parse(None, rdf_dict, None):
+        self.assertEqual(output.__class__, rdf_anomaly.Anomaly)
 
   def testWMICommandLineEventConsumerParser(self):
     parser = wmi_parser.WMICommandLineEventConsumerParser()

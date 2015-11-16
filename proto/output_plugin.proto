@@ -56,6 +56,17 @@ message EmailOutputPluginArgs {
   optional uint64 emails_limit = 2 [default=100];
 }
 
+message BigQueryOutputPluginArgs {
+  optional ExportOptions export_options = 2 [(sem_type) = {
+      description: "Export options.",
+      label: ADVANCED
+    }];
+  optional bool convert_values = 3 [(sem_type) = {
+      description: "If true, convert values for export-friendly format.",
+      label: HIDDEN
+    }, default=true];
+}
+
 message CSVOutputPluginArgs {
   optional ExportOptions export_options = 2 [(sem_type) = {
       description: "Export options.",

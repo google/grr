@@ -187,8 +187,8 @@ grr.grrTree = function(renderer, unique_id, opt_publishEvent, opt_state,
   tree.html('');
 
   tree.jstree({
-    'json_data' : {
-      'ajax' : {
+    'core' : {
+      'data' : {
         'url' : 'render/RenderAjax/' + renderer,
         'type': grr.ajax_method,
         dataType: '*', // Let the server decide on the mime type.
@@ -198,39 +198,32 @@ grr.grrTree = function(renderer, unique_id, opt_publishEvent, opt_state,
         'data' : function(n) {
           var new_state = $.extend({}, state);
 
-          if (n.attr) {
+          if (n.li_attr) {
             new_state.path = '/' + this.get_path(n).join('/');
-            new_state.id = n.attr('id');
+            new_state.id = n.li_attr.id;
           }
 
           return new_state;
         },
-
         'error': function(data, textStatus, jqXHR) {
           grr.RemoveFromAjaxQueue('#' + unique_id);
         },
         'success': function(data, textStatus, jqXHR) {
           grr.RemoveFromAjaxQueue('#' + unique_id);
-          var tree = this;
 
           if (opt_success_cb) {
             opt_success_cb(data, textStatus, jqXHR);
           }
-
-          return data.data;
         }
-      },
-
-      'correct_state': false
-     },
-     'plugins' : ['themes', 'json_data', 'ui']
+      }
+    }
   });
 
   /* Bind the select event to the publish queue */
-  tree.bind('select_node.jstree', function(event, data) {
-    var path = data.rslt.obj.attr('path');
-    var selected_id = data.rslt.obj.attr('id');
-    var update_hash = data.args[1];
+  tree.on('select_node.jstree', function(event, data) {
+    var path = data.node.li_attr.path;
+    var selected_id = data.node.li_attr.id;
+    var update_hash = true;
 
     // Publish the full AFF4 path of the object the user clicked on.
     var root = (state.aff4_root || '/');
@@ -244,21 +237,21 @@ grr.grrTree = function(renderer, unique_id, opt_publishEvent, opt_state,
   });
 
   /* Open the tree if the hash says to. */
-  tree.bind('loaded.jstree', function() {
+  tree.on('loaded.jstree', function() {
     if (grr.hash.t) {
       grr.openTree(tree, grr.hash.t);
     }
   });
 
   /* Each node that is opened will update the hash */
-  tree.bind('select_node.jstree', function(e, data) {
-    var selected_id = $(data.args[0]).parent().attr('id');
+  tree.on('select_node.jstree', function(e, data) {
+    var selected_id = data.node.id;
     grr.publish('hash_state', 't', selected_id);
   });
 
   /* We do not want jstree to cache the leafs when a tree is closed. */
-  tree.bind('close_node.jstree', function(e, data) {
-    $(data.args[0]).children('ul').html('');
+  tree.on('close_node.jstree', function(e, data) {
+    $('#' + data.node.id).children('ul').html('');
   });
 
   grr.subscribe('client_selection', function(message) {
@@ -1728,4 +1721,4 @@ jQuery.migrateMute = true;
  * Hardcoding jsTree themes folder so that it works correctly when used
  * from a JS bundle file.
  */
-$.jstree._themes = '/static/third-party/jstree-1.0rc3/themes/';
+$.jstree._themes = '/static/third-party/jstree/themes/';

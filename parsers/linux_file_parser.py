@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Simple parsers for Linux files."""
+import collections
 import os
 import re
 
@@ -11,6 +12,71 @@ from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.parsers import config_file
+
+
+class PCIDevicesInfoParser(parsers.FileParser):
+  """Parser for PCI devices' info files located in /sys/bus/pci/devices/*/*."""
+
+  output_types = ["PCIDevice"]
+  supported_artifacts = ["PCIDevicesInfoFiles"]
+  process_together = True
+
+  def ParseMultiple(self, stats, file_objects, unused_knowledge_base):
+
+    # Each file gives us only partial information for a particular PCI device.
+    # Iterate through all the files first to create a dictionary encapsulating
+    # complete information for each of the PCI device on the sysytem. We need
+    # all information for a PCI device before a proto for it can be created.
+    # We will store data in a dictionary of dictionaries that looks like this:
+    # data = { '0000:7f:0d.0': { 'class': '0x088000',
+    #                            'vendor': '0x8086',
+    #                            'device': '0x0ee1' } }
+    # The key is location of PCI device on system in extended B/D/F notation
+    # and value is a dictionary containing filename:data pairs for each file
+    # returned by artifact collection for that PCI device.
+
+    # Extended B/D/F is of form "domain:bus:device.function". Compile a regex
+    # so we can use it to skip parsing files that don't match it.
+    hc = r"[0-9A-Fa-f]"
+    bdf_regex = re.compile(r"^%s+:%s+:%s+\.%s+" % (hc, hc, hc, hc))
+
+    # This will make sure that when a non-existing 'key' (PCI location)
+    # is accessed for the first time a new 'key':{} pair is auto-created
+    data = collections.defaultdict(dict)
+
+    for stat, file_obj in zip(stats, file_objects):
+      filename = stat.pathspec.Basename()
+      # Location of PCI device is the name of parent directory of returned file.
+      bdf = stat.pathspec.Dirname().Basename()
+
+      # Make sure we only parse files that are under a valid B/D/F folder
+      if bdf_regex.match(bdf):
+        # Remove newlines from all files except config. Config contains raw data
+        # so we don't want to touch it even if it has a newline character.
+        file_data = file_obj.read(100000)
+        if filename != "config":
+          file_data = file_data.rstrip("\n")
+        data[bdf][filename] = file_data
+
+    # Now that we've captured all information for each PCI device. Let's convert
+    # the dictionary into a list of PCIDevice protos.
+    for bdf, bdf_filedata in data.iteritems():
+      pci_device = rdf_client.PCIDevice()
+      bdf_split = bdf.split(":")
+      df_split = bdf_split[2].split(".")
+
+      # We'll convert the hex into decimal to store in the protobuf.
+      pci_device.domain = int(bdf_split[0], 16)
+      pci_device.bus = int(bdf_split[1], 16)
+      pci_device.device = int(df_split[0], 16)
+      pci_device.function = int(df_split[1], 16)
+
+      pci_device.class_id = bdf_filedata.get("class")
+      pci_device.vendor = bdf_filedata.get("vendor")
+      pci_device.vendor_device_id = bdf_filedata.get("device")
+      pci_device.config = bdf_filedata.get("config")
+
+      yield pci_device
 
 
 class PasswdParser(parsers.FileParser):

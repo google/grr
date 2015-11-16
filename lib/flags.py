@@ -53,6 +53,11 @@ class ListParser(argparse.Action):
     setattr(namespace, self.dest, values.split(","))
 
 
+def DEFINE_integer_list(longopt, default, help):
+  PARSER.add_argument("--%s" % longopt, default=default, type=int,
+                      action=ListParser, help=help)
+
+
 def DEFINE_list(longopt, default, help):
   PARSER.add_argument("--%s" % longopt, default=default,
                       action=ListParser, help=help)

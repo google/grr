@@ -15,5 +15,6 @@ from grr.config import data_server
 from grr.config import data_store
 from grr.config import local
 from grr.config import logging
+from grr.config import output_plugins
 from grr.config import server
 from grr.config import test

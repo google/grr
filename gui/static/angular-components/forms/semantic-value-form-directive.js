@@ -29,7 +29,7 @@ grrUi.forms.semanticValueFormDirective.clearCaches = function() {
  * @constructor
  * @param {!angular.Scope} $scope
  * @param {!angular.$compile} $compile
- * @param {!angular.JQLite} $element
+ * @param {!angular.jQuery} $element
  * @param {!grrUi.core.semanticRegistry.SemanticRegistryService}
  *     grrSemanticFormDirectivesRegistryService
  * @ngInject
@@ -42,7 +42,7 @@ grrUi.forms.semanticValueFormDirective.SemanticValueFormController = function(
   /** @private {!angular.$compile} */
   this.compile_ = $compile;
 
-  /** @private {!angular.JQLite} */
+  /** @private {!angular.jQuery} */
   this.element_ = $element;
 
   /** @private {!grrUi.core.semanticRegistry.SemanticRegistryService} */

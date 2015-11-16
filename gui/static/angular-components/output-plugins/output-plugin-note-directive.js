@@ -12,7 +12,7 @@ goog.scope(function() {
  * @constructor
  * @param {!angular.Scope} $scope
  * @param {!angular.$compile} $compile
- * @param {!angular.JQLite} $element
+ * @param {!angular.jQuery} $element
  * @param {!grrUi.core.semanticRegistry.SemanticRegistryService}
  *     grrOutputPluginsDirectivesRegistryService
  * @ngInject
@@ -32,7 +32,7 @@ grrUi.outputPlugins.outputPluginNoteDirective.OutputPluginNoteController =
   /** @private {!angular.$compile} */
   this.compile_ = $compile;
 
-  /** @private {!angular.JQLite} */
+  /** @private {!angular.jQuery} */
   this.element_ = $element;
 
   /** @private {!grrUi.core.semanticRegistry.SemanticRegistryService} */
@@ -65,10 +65,10 @@ OutputPluginNoteController.prototype.camelCaseToDashDelimited = function(
  * @private
  */
 OutputPluginNoteController.prototype.onDescriptorOrStateChange_ = function() {
-  if (angular.isDefined(this.scope_.descriptor) &&
-      angular.isDefined(this.scope_.state)) {
+  if (angular.isDefined(this.scope_['descriptor']) &&
+      angular.isDefined(this.scope_['state'])) {
 
-    var pluginName = this.scope_.descriptor['value']['plugin_name']['value'];
+    var pluginName = this.scope_['descriptor']['value']['plugin_name']['value'];
     var directive = this.grrOutputPluginsDirectivesRegistryService_
         .findDirectiveForMro([pluginName]);
 

@@ -31,14 +31,14 @@ grrUi.docs.apiDocsDirective.ApiObjectRendererDescriptor;
  * Controller for ApiDocsDirective.
  *
  * @constructor
- * @param {!angular.JQLite} $element
+ * @param {!angular.jQuery} $element
  * @param {angular.$http} $http The Angular http service.
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
 grrUi.docs.apiDocsDirective.ApiDocsController = function($element, $http,
                                                          grrApiService) {
-  /** @private {!angular.JQLite} */
+  /** @private {!angular.jQuery} */
   this.element_ = $element;
 
   /** @private {angular.$http} */

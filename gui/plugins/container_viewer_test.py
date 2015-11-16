@@ -69,13 +69,13 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
 
     self.WaitUntil(self.IsElementPresent, "css=button[id=export]")
 
-    self.ClickUntil("css=#_C_2E0000000000000001 ins.jstree-icon",
+    self.ClickUntil("css=#_C_2E0000000000000001 i.jstree-icon",
                     self.IsElementPresent,
-                    "css=#_C_2E0000000000000001-fs ins.jstree-icon")
-    self.ClickUntil("css=#_C_2E0000000000000001-fs ins.jstree-icon",
+                    "css=#_C_2E0000000000000001-fs i.jstree-icon")
+    self.ClickUntil("css=#_C_2E0000000000000001-fs i.jstree-icon",
                     self.IsElementPresent,
-                    "css=#_C_2E0000000000000001-fs-os ins.jstree-icon")
-    self.ClickUntil("css=#_C_2E0000000000000001-fs-os ins.jstree-icon",
+                    "css=#_C_2E0000000000000001-fs-os i.jstree-icon")
+    self.ClickUntil("css=#_C_2E0000000000000001-fs-os i.jstree-icon",
                     self.IsElementPresent,
                     "link=c")
 

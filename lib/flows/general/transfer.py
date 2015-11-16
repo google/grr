@@ -10,6 +10,7 @@ import logging
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import rdfvalue
+from grr.lib import utils
 from grr.lib.aff4_objects import filestore
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
@@ -411,7 +412,15 @@ class MultiGetFileMixin(object):
         self.state.pending_hashes.pop(index, None)
         return
 
-    tracker = self.state.pending_hashes[index]
+    try:
+      tracker = self.state.pending_hashes[index]
+    except KeyError:
+      # TODO(user): implement a test for this and handle the failure
+      # gracefully: i.e. maybe we can continue with an empty StatEntry.
+      self.Error("Couldn't stat the file, but got the hash (%s): %s" %
+                 (utils.SmartStr(index), utils.SmartStr(response.pathspec)))
+      return
+
     tracker.hash_obj = hash_obj
     tracker.bytes_read = response.bytes_read
 

@@ -290,8 +290,8 @@ class TestCronView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "What to run?")
 
     # Click on Filesystem item in flows list
-    self.WaitUntil(self.IsElementPresent, "css=#_Filesystem > ins.jstree-icon")
-    self.Click("css=#_Filesystem > ins.jstree-icon")
+    self.WaitUntil(self.IsElementPresent, "css=#_Filesystem > i.jstree-icon")
+    self.Click("css=#_Filesystem > i.jstree-icon")
 
     # Click on Find Files item in Filesystem flows list
     self.Click("link=File Finder")

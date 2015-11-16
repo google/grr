@@ -79,7 +79,7 @@ class TestTimelineView(test_lib.GRRSeleniumTest):
     self.Click("css=a:contains('Browse Virtual Filesystem')")
 
     # Navigate to the analysis directory
-    self.Click("css=#_analysis ins.jstree-icon")
+    self.Click("css=#_analysis i.jstree-icon")
 
     self.Click("link=Timeline")
 

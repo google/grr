@@ -720,6 +720,16 @@ class ArtifactFilesDownloaderFlowTest(test_lib.FlowTestsBaseclass):
     self.RunFlow()
     self.assertFalse(self.start_file_fetch_args)
 
+  def testJustUsesPathSpecForFileStatEntry(self):
+    self.collector_replies = [self.MakeFileStatEntry("C:\\Windows\\bar.exe")]
+    self.failed_files = [self.collector_replies[0].pathspec]
+
+    results = self.RunFlow()
+
+    self.assertEquals(len(results), 1)
+    self.assertEquals(
+        results[0].found_pathspec, self.collector_replies[0].pathspec)
+
   def testSendsReplyEvenIfNoPathsAreGuessed(self):
     self.collector_replies = [self.MakeRegistryStatEntry(
         u"HKEY_LOCAL_MACHINE\\SOFTWARE\\foo", u"blah-blah")]

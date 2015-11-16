@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 
-# Copyright 2011 Google Inc. All Rights Reserved.
 """Linux specific utils."""
 
 
@@ -152,7 +151,25 @@ class NannyThread(threading.Thread):
         os._exit(-1)  # pylint: disable=protected-access
       else:
         # Sleep until the next heartbeat is due.
-        time.sleep(check_time - now)
+        self.Sleep(check_time - now)
+
+  def Sleep(self, seconds):
+    """Sleep a given time in 1 second intervals.
+
+    When a machine is suspended during a time.sleep(n) call for more
+    than n seconds, sometimes the sleep is interrupted and all threads
+    wake up at the same time. This leads to race conditions between
+    the threads issuing the heartbeat and the one checking for it. By
+    sleeping in small intervals, we make sure that even if one sleep
+    call is interrupted, we do not check for the heartbeat too early.
+
+    Args:
+      seconds: Number of seconds to sleep.
+
+    """
+    time.sleep(seconds - int(seconds))
+    for _ in range(int(seconds)):
+      time.sleep(1)
 
   def Stop(self):
     """Exits the main thread."""

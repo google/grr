@@ -124,7 +124,7 @@ StartFlowFormController.prototype.startGlobalFlow_ = function() {
  * @private
  */
 StartFlowFormController.prototype.startClientFlow_ = function() {
-  var clientIdComponents = this.scope_.clientId.split('/');
+  var clientIdComponents = this.scope_['clientId'].split('/');
   var clientId;
   if (clientIdComponents[0] == 'aff4:') {
     clientId = clientIdComponents[1];

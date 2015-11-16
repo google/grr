@@ -6,6 +6,7 @@
 from grr.lib import output_plugin
 
 # pylint: disable=unused-import
+from grr.lib.output_plugins import bigquery_plugin
 from grr.lib.output_plugins import csv_plugin
 from grr.lib.output_plugins import email_plugin
 

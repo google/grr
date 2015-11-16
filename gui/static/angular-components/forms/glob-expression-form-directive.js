@@ -10,7 +10,7 @@ goog.scope(function() {
  * Controller for GlobExpressionFormDirective.
  *
  * @constructor
- * @param {!angular.JQLite} $element
+ * @param {!angular.jQuery} $element
  * @param {!angular.$interval} $interval
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
@@ -18,7 +18,7 @@ goog.scope(function() {
 grrUi.forms.globExpressionFormDirective.GlobExpressionFormController = function(
     $element, $interval, grrApiService) {
 
-  /** @private {!angular.JQLite} */
+  /** @private {!angular.jQuery} */
   this.element_ = $element;
 
   /** @private {!angular.$interval} */

@@ -77,8 +77,8 @@ grrUi.core.pagedFilteredTableDirective.TableBottomDirective
  *
  * @constructor
  * @param {!angular.Scope} $scope
- * @param {!angular.JQLite} $element
- * @param {function(function(angular.JQLite, angular.Scope), angular.JQLite)}
+ * @param {!angular.jQuery} $element
+ * @param {function(function(angular.jQuery, angular.Scope), angular.jQuery)}
  *     $transclude
  * @param {!angular.$compile} $compile
  * @ngInject
@@ -93,12 +93,12 @@ grrUi.core.pagedFilteredTableDirective.PagedFilteredTableController = function(
   /** @type {?number} */
   this.scope_.pageSize;
 
-  /** @private {!angular.JQLite} */
+  /** @private {!angular.jQuery} */
   this.element_ = $element;
 
   /**
-   * @private {function(function(angular.JQLite, angular.Scope),
-   *     angular.JQLite)}
+   * @private {function(function(angular.jQuery, angular.Scope),
+   *     angular.jQuery)}
    */
   this.transclude_ = $transclude;
 
@@ -199,8 +199,8 @@ PagedFilteredTableController.DEFAULT_PAGE_SIZE = 50;
  * @private
  */
 PagedFilteredTableController.prototype.addTopDirective_ = function() {
-  var template = angular.element(
-      '<grr-paged-filtered-table-top parent-controller="controller" />');
+  var template = /** @type {angular.jQuery} */ (angular.element(
+      '<grr-paged-filtered-table-top parent-controller="controller" />'));
   var table = this.element_.closest('table');
   template.insertBefore(table);
   this.compile_(template)(this.scope_);
@@ -213,8 +213,8 @@ PagedFilteredTableController.prototype.addTopDirective_ = function() {
  * @private
  */
 PagedFilteredTableController.prototype.addBottomDirective_ = function() {
-  var template = angular.element(
-      '<grr-paged-filtered-table-bottom parent-controller="controller" />');
+  var template = /** @type {angular.jQuery} */ (angular.element(
+      '<grr-paged-filtered-table-bottom parent-controller="controller" />'));
   var table = this.element_.closest('table');
   template.insertAfter(table);
   this.compile_(template)(this.scope_);

@@ -3,6 +3,7 @@
 
 """Unit test for the linux file parser."""
 
+import operator
 import os
 import StringIO
 
@@ -20,6 +21,103 @@ from grr.parsers import linux_file_parser
 
 class LinuxFileParserTest(test_lib.GRRBaseTest):
   """Test parsing of linux files."""
+
+  def testPCIDevicesInfoParser(self):
+    """Ensure we can extract PCI devices info."""
+
+    # Test when there's data for one PCI device only.
+    test_data1 = {"/sys/bus/pci/devices/0000:00:01.0/vendor": "0x0e00\n",
+                  "/sys/bus/pci/devices/0000:00:01.0/class": "0x060400\n",
+                  "/sys/bus/pci/devices/0000:00:01.0/device": "0x0e02\n",
+                  "/sys/bus/pci/devices/0000:00:01.0/config": "0200"}
+    device_1 = rdf_client.PCIDevice(domain=0, bus=0, device=1, function=0,
+                                    class_id="0x060400", vendor="0x0e00",
+                                    vendor_device_id="0x0e02", config="0200")
+    parsed_results = self._ParsePCIDeviceTestData(test_data1)
+    self._MatchPCIDeviceResultToExpected(parsed_results, [device_1])
+
+    # Use raw bytes to test PCI device config works as expected.
+    bytes2 = bytearray([234, 232, 231, 188, 122, 132, 145])
+    test_data2 = {"/sys/bus/pci/devices/0000:00:00.0/vendor": "0x8086\n",
+                  "/sys/bus/pci/devices/0000:00:00.0/class": "0x060000\n",
+                  "/sys/bus/pci/devices/0000:00:00.0/device": "0x0e00\n",
+                  "/sys/bus/pci/devices/0000:00:00.0/config": bytes2}
+    device_2 = rdf_client.PCIDevice(domain=0, bus=0, device=0, function=0,
+                                    class_id="0x060000", vendor="0x8086",
+                                    vendor_device_id="0x0e00",
+                                    config=b"\xea\xe8\xe7\xbcz\x84\x91")
+    parsed_results = self._ParsePCIDeviceTestData(test_data2)
+    self._MatchPCIDeviceResultToExpected(parsed_results, [device_2])
+
+    # Test for when there's missing data.
+    test_data3 = {"/sys/bus/pci/devices/0000:00:03.0/vendor": "0x0e00\n",
+                  "/sys/bus/pci/devices/0000:00:03.0/config": "0030"}
+    device_3 = rdf_client.PCIDevice(domain=0, bus=0, device=3, function=0,
+                                    vendor="0x0e00", config="0030")
+    parsed_results = self._ParsePCIDeviceTestData(test_data3)
+    self._MatchPCIDeviceResultToExpected(parsed_results, [device_3])
+
+    # Test when data contains non-valid B/D/F folders/files.
+    test_data4 = {"/sys/bus/pci/devices/0000:00:05.0/vendor": "0x0e00\n",
+                  "/sys/bus/pci/devices/0000:00:05.0/class": "0x060400\n",
+                  "/sys/bus/pci/devices/0000:00:05.0/device": "0x0e02\n",
+                  "/sys/bus/pci/devices/0000:00:05.0/config": "0200",
+                  "/sys/bus/pci/devices/crazyrandomfile/test1": "test1",
+                  "/sys/bus/pci/devices/::./test2": "test2",
+                  "/sys/bus/pci/devices/00:5.0/test3": "test3"}
+    device_4 = rdf_client.PCIDevice(domain=0, bus=0, device=5, function=0,
+                                    class_id="0x060400", vendor="0x0e00",
+                                    vendor_device_id="0x0e02", config="0200")
+    parsed_results = self._ParsePCIDeviceTestData(test_data4)
+    self._MatchPCIDeviceResultToExpected(parsed_results, [device_4])
+
+    # Test when there's multiple PCI devices in the test_data.
+    combined_data = test_data1.copy()
+    combined_data.update(test_data3)
+    combined_data.update(test_data4)
+    combined_data.update(test_data2)
+    parsed_results = self._ParsePCIDeviceTestData(combined_data)
+    self._MatchPCIDeviceResultToExpected(parsed_results, [device_1, device_4,
+                                                          device_2, device_3])
+
+  def _ParsePCIDeviceTestData(self, test_data):
+    """Given test_data dictionary, parse it using PCIDevicesInfoParser."""
+    parser = linux_file_parser.PCIDevicesInfoParser()
+    stats = []
+    file_objs = []
+    kb_objs = []
+
+    # Populate stats, file_ojbs, kb_ojbs lists needed by the parser.
+    for filename, data in test_data.items():
+      pathspec = rdf_paths.PathSpec(path=filename, pathtype="OS")
+      stat = rdf_client.StatEntry(pathspec=pathspec)
+      file_obj = StringIO.StringIO(data)
+      stats.append(stat)
+      file_objs.append(file_obj)
+      kb_objs.append(None)
+
+    return list(parser.ParseMultiple(stats, file_objs, kb_objs))
+
+  def _MatchPCIDeviceResultToExpected(self, parsed_results, expected_output):
+    """Make sure the parsed_results match expected_output."""
+
+    # Check the size matches.
+    self.assertEqual(len(parsed_results), len(expected_output))
+
+    # Sort parsed_results and expected_outputs so we're comparing properly.
+    results = sorted(parsed_results, key=operator.attrgetter("device"))
+    outputs = sorted(expected_output, key=operator.attrgetter("device"))
+
+    # Check all the content matches.
+    for result, output in zip(results, outputs):
+      self.assertEqual(result.domain, output.domain)
+      self.assertEqual(result.bus, output.bus)
+      self.assertEqual(result.device, output.device)
+      self.assertEqual(result.function, output.function)
+      self.assertEqual(result.class_id, output.class_id)
+      self.assertEqual(result.vendor, output.vendor)
+      self.assertEqual(result.vendor_device_id, output.vendor_device_id)
+      self.assertEqual(result.config, output.config)
 
   def testPasswdParser(self):
     """Ensure we can extract users from a passwd file."""

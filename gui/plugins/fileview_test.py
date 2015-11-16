@@ -110,9 +110,9 @@ class TestFileView(FileViewTestBase):
     self.WaitUntilNot(self.IsTextPresent, "HostnameV1")
     self.WaitUntilNot(self.IsTextPresent, "HostnameV2")
 
-    self.Click("css=#_fs ins.jstree-icon")
-    self.Click("css=#_fs-os ins.jstree-icon")
-    self.Click("css=#_fs-os-c ins.jstree-icon")
+    self.Click("css=#_fs i.jstree-icon")
+    self.Click("css=#_fs-os i.jstree-icon")
+    self.Click("css=#_fs-os-c i.jstree-icon")
 
     # Test file versioning.
     self.WaitUntil(self.IsElementPresent, "css=#_fs-os-c-Downloads")
@@ -193,7 +193,7 @@ class TestFileView(FileViewTestBase):
     self.WaitUntil(self.IsTextPresent, u"fs/os/c/Downloads/中国新闻网新闻中.txt")
 
     # Test the hex viewer.
-    self.Click("css=#_fs-os-proc ins.jstree-icon")
+    self.Click("css=#_fs-os-proc i.jstree-icon")
     self.Click("css=#_fs-os-proc-10 a")
     self.Click("css=span[type=subject]:contains(\"cmdline\")")
     target_aff4_path = "aff4:/C.0000000000000001/fs/os/proc/10/cmdline"
@@ -316,8 +316,8 @@ class TestFileView(FileViewTestBase):
 
     # Go to Browse VFS
     self.Click("css=a:contains('Browse Virtual Filesystem')")
-    self.Click("css=#_fs ins.jstree-icon")
-    self.Click("css=#_fs-os ins.jstree-icon")
+    self.Click("css=#_fs i.jstree-icon")
+    self.Click("css=#_fs-os i.jstree-icon")
     self.Click("link=c")
 
     # Ensure that refresh button is enabled
@@ -367,8 +367,8 @@ class TestFileView(FileViewTestBase):
 
     # Go to Browse VFS
     self.Click("css=a:contains('Browse Virtual Filesystem')")
-    self.Click("css=#_fs ins.jstree-icon")
-    self.Click("css=#_fs-os ins.jstree-icon")
+    self.Click("css=#_fs i.jstree-icon")
+    self.Click("css=#_fs-os i.jstree-icon")
     self.Click("link=c")
 
     # Perform recursive refresh
@@ -501,7 +501,7 @@ class TestFileView(FileViewTestBase):
 
     # Now we should be inside the folder, and the tree should open.
     self.WaitUntil(self.IsElementPresent,
-                   "css=#_fs-os ins.jstree-icon")
+                   "css=#_fs-os i.jstree-icon")
     # Check that breadcrumbs got updated.
     self.WaitUntil(self.IsElementPresent,
                    "css=#main_rightTopPane .breadcrumb li:contains('fs')")

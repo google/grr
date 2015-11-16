@@ -101,7 +101,7 @@ DownloadCollectionFilesController.prototype.generateFileArchive = function(
     format) {
   var requestFormat = format.toUpperCase().replace('.', '_');
   this.grrApiService_.post(
-      this.scope_.downloadUrl, {archive_format: requestFormat}).then(
+      this.scope_['downloadUrl'], {archive_format: requestFormat}).then(
           function success() {
             this.fileArchiveGenerationSuccess = true;
           }.bind(this),

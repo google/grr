@@ -22,12 +22,6 @@ grrUi.core.legacyRendererDirective.LegacyRendererController = function($scope) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @type {string} */
-  this.scope_.renderer;
-
-  /** @type {Object<string, string|number|boolean>} */
-  this.scope_.queryParams;
-
   /**
    * Current value of the global counter. Legacy renderers expect to be
    * rendered inside divs with a unique id.
@@ -48,7 +42,7 @@ var LegacyRendererController =
  */
 LegacyRendererController.prototype.render_ = function() {
   var domId = 'legacy_' + this.idCounter.toString();
-  grr.layout(this.scope_.renderer, domId, this.scope_.queryParams,
+  grr.layout(this.scope_['renderer'], domId, this.scope_['queryParams'],
              function() {
                // Special case handling for dialogs shown through combination
                // of legacy rendering and Bootstrap UI's $modal.

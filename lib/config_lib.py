@@ -1266,6 +1266,12 @@ class GrrConfigManager(object):
     self.AddOption(type_info.String(name=name, default=default or "",
                                     description=help))
 
+  def DEFINE_integer_list(self, name, default, help):
+    """A helper for defining lists of integer options."""
+    self.AddOption(type_info.List(name=name, default=default,
+                                  description=help,
+                                  validator=type_info.Integer()))
+
   def DEFINE_list(self, name, default, help):
     """A helper for defining lists of strings options."""
     self.AddOption(type_info.List(name=name, default=default,
@@ -1344,6 +1350,13 @@ def DEFINE_multichoice(name, default, choices, help):
   CONFIG.AddOption(type_info.MultiChoice(
       name=name, default=default, choices=choices,
       description=help))
+
+
+def DEFINE_integer_list(name, default, help):
+  """A helper for defining lists of integer options."""
+  CONFIG.AddOption(type_info.List(name=name, default=default,
+                                  description=help,
+                                  validator=type_info.Integer()))
 
 
 def DEFINE_list(name, default, help):

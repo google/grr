@@ -85,16 +85,10 @@ grr.publish = function(name, value, opt_event, opt_data) {};
 
 
 /**
- * Angular definitions.
+ * A jQuery object that has been extended with Angular's extra methods.
+ * @typedef {(jQuery|angular.JQLite)}
  */
-
-/**
- * @typedef {{
- *   get: function(string)
- *   }}
- */
-angular.$cookies;
-
+angular.jQuery;
 
 
 /**

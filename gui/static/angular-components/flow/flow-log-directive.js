@@ -18,9 +18,6 @@ grrUi.flow.flowLogDirective.FlowLogController = function($scope) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @type {string} */
-  this.scope_.flowUrn;
-
   this.scope_.$watch('flowUrn', this.onFlowUrnChange.bind(this));
 };
 
@@ -33,7 +30,7 @@ var FlowLogController =
  * @export
  */
 FlowLogController.prototype.onFlowUrnChange = function() {
-  this.logsUrn = this.scope_.flowUrn + '/Logs';
+  this.logsUrn = this.scope_['flowUrn'] + '/Logs';
 };
 
 

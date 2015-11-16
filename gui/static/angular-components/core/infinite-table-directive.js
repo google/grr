@@ -14,10 +14,9 @@ goog.scope(function() {
  * @constructor
  * @param {!angular.Scope} $scope
  * @param {!angular.Attributes} $attrs
- * @param {!angular.JQLite} $element
+ * @param {!angular.jQuery} $element
  * @param {!angular.$interval} $interval
- * @param {function(function(angular.JQLite, angular.Scope), angular.JQLite)}
- *     $transclude
+ * @param {function(function(angular.jQuery, angular.Scope), angular.jQuery)} $transclude
  * @param {!angular.$parse} $parse
  * @ngInject
  */
@@ -31,15 +30,15 @@ grrUi.core.infiniteTableDirective.InfiniteTableController = function(
   /** @private {!angular.Attributes} */
   this.attrs_ = $attrs;
 
-  /** @private {!angular.JQLite} */
+  /** @private {!angular.jQuery} */
   this.element_ = $element;
 
   /** @private {!angular.$interval} */
   this.interval_ = $interval;
 
   /**
-   * @private {function(function(angular.JQLite, angular.Scope),
-   *     angular.JQLite)}
+   * @private {function(function(angular.jQuery, angular.Scope),
+   *     angular.jQuery)}
    */
   this.transclude_ = $transclude;
 
@@ -80,7 +79,7 @@ grrUi.core.infiniteTableDirective.InfiniteTableController = function(
 
   /**
    * Root element where all the rendered data will be appended to.
-   * @export {angular.JQLite}
+   * @export {angular.jQuery}
    */
   this.rootElement = this.element_.parent();
 

@@ -12,7 +12,7 @@ goog.scope(function() {
  *
  * @constructor
  * @param {!angular.Scope} $scope
- * @param {!angular.JQLite} $element
+ * @param {!angular.jQuery} $element
  * @param {!angular.$cookies} $cookies
  * @ngInject
  */
@@ -21,7 +21,7 @@ grrUi.core.aff4DownloadLinkDirective.Aff4DownloadLinkController = function(
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @private {!angular.JQLite} */
+  /** @private {!angular.jQuery} */
   this.element_ = $element;
 
   /** @private {!angular.$cookies} */
@@ -30,7 +30,7 @@ grrUi.core.aff4DownloadLinkDirective.Aff4DownloadLinkController = function(
   /** @export {string} */
   this.reason = grr.state.reason;
 
-  /** @export {string} */
+  /** @export {string|undefined} */
   this.csrfToken = $cookies.get('csrftoken');
 };
 var Aff4DownloadLinkController =

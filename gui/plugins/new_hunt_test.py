@@ -97,8 +97,8 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "What to run?")
 
     # Click on Filesystem item in flows list
-    self.WaitUntil(self.IsElementPresent, "css=#_Filesystem > ins.jstree-icon")
-    self.Click("css=#_Filesystem > ins.jstree-icon")
+    self.WaitUntil(self.IsElementPresent, "css=#_Filesystem > i.jstree-icon")
+    self.Click("css=#_Filesystem > i.jstree-icon")
 
     # Click on the FileFinder item in Filesystem flows list
     self.Click("link=File Finder")
@@ -295,8 +295,8 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "What to run?")
 
     # Click on Filesystem item in flows list
-    self.WaitUntil(self.IsElementPresent, "css=#_Filesystem > ins.jstree-icon")
-    self.Click("css=#_Filesystem > ins.jstree-icon")
+    self.WaitUntil(self.IsElementPresent, "css=#_Filesystem > i.jstree-icon")
+    self.Click("css=#_Filesystem > i.jstree-icon")
 
     # Click on the FileFinder item in Filesystem flows list
     self.Click("link=File Finder")
@@ -344,7 +344,7 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     self.Click("css=button[name=NewHunt]")
 
     # Select "List Processes" flow.
-    self.Click("css=#_Processes > ins.jstree-icon")
+    self.Click("css=#_Processes > i.jstree-icon")
     self.Click("link=ListProcesses")
 
     # There should be no dummy output plugin visible.
@@ -360,7 +360,7 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
       self.Click("css=button[name=NewHunt]")
 
       # Select "List Processes" flow.
-      self.Click("css=#_Processes > ins.jstree-icon")
+      self.Click("css=#_Processes > i.jstree-icon")
       self.Click("link=ListProcesses")
 
       # Dummy output plugin should be added by default.
@@ -379,7 +379,7 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     self.Click("css=button[name=NewHunt]")
 
     # Select "List Processes" flow.
-    self.Click("css=#_Processes > ins.jstree-icon")
+    self.Click("css=#_Processes > i.jstree-icon")
     self.Click("link=ListProcesses")
 
     # Click 'Next' to go to output plugins page.
@@ -413,7 +413,7 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     self.Click("css=button[name=NewHunt]")
 
     # Select "List Processes" flow.
-    self.Click("css=#_Processes > ins.jstree-icon")
+    self.Click("css=#_Processes > i.jstree-icon")
     self.Click("link=ListProcesses")
 
     # Click 'Next' to go to the output plugins page.
@@ -471,7 +471,7 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     self.Click("css=button[name=NewHunt]")
 
     # Select "List Processes" flow.
-    self.Click("css=#_Processes > ins.jstree-icon")
+    self.Click("css=#_Processes > i.jstree-icon")
     self.Click("link=ListProcesses")
 
     # Click 'Next' to go to the output plugins page and then to hunt rules page.

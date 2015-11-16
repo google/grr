@@ -71,18 +71,6 @@ method:
           - type: 'ObjectFilter'
             expression: 'config.permitemptypasswords is 1'
 ---
-check_id: 'SSH-PUB-KEY-AUTHENTICATION'
-method:
-  - target: {os: ['Linux', 'Darwin']}
-    probe:
-      - artifact: 'SshdConfigFile'
-        hint:
-          problem: 'Sshd configuration allows public key authentication.'
-          format: 'PubkeyAuthentication (or DSAAuthentication) = {config.pubkeyauthentication}'
-        filters:
-          - type: 'ObjectFilter'
-            expression: 'config.pubkeyauthentication is 1'
----
 check_id: 'SSH-AUTHORIZED-KEYS'
 method:
   - target: {os: ['Linux', 'Darwin']}

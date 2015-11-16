@@ -802,23 +802,24 @@ class TreeRenderer(TemplateRenderer):
         fullpath = os.path.join(path, name)
         if fullpath in self.hidden_branches:
           continue
-        data = dict(data=dict(title=friendly_name, icon=icon),
-                    attr=dict(id=DeriveIDFromPath(fullpath),
-                              path=fullpath))
+        data = dict(text=friendly_name,
+                    li_attr=dict(id=DeriveIDFromPath(fullpath),
+                                 path=fullpath))
         if behaviour == "branch":
-          data["state"] = "closed"
+          data["children"] = True
+        else:
+          data["icon"] = icon
 
         result.append(data)
 
     # If this is a completely empty tree we have to return at least something
     # or the tree will load forever.
     if not result and path == "/":
-      result.append(dict(data=dict(title=path, icon="branch"),
-                         attr=dict(id=DeriveIDFromPath(path),
-                                   path=path)))
+      result.append(dict(text=path,
+                         li_attr=dict(id=DeriveIDFromPath(path),
+                                      path=path)))
 
-    return JsonResponse(dict(
-        data=result, message=self.message, id=self.id))
+    return JsonResponse(result)
 
   def AddElement(self, name, behaviour="branch", icon=None, friendly_name=None):
     """This should be called by the RenderBranch method to prepare the tree."""

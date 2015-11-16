@@ -373,6 +373,7 @@ class SshdConfigParser(parsers.FileParser):
                "permitopen": r"[\s]+",
                "port": r"[,\n]+",
                "protocol": r"[,]+",
+               "pubkeyacceptedkeytypes": r"[,]+",
                "subsystem": r"[\n]+"}
   _true = ["yes", "true", "1"]
   _aliases = {"dsaauthentication": "pubkeyauthentication"}
@@ -386,9 +387,10 @@ class SshdConfigParser(parsers.FileParser):
       "kbdinteractiveauthentication", "kerberosauthentication", "magicudspath",
       "magicudsport", "maxauthtries", "maxsessions", "passwordauthentication",
       "permitemptypasswords", "permitopen", "permitrootlogin",
-      "permittemphomedir", "permittty", "permittunnel", "pubkeyauthentication",
-      "rekeylimit", "rhostsrsaauthentication", "rsaauthentication",
-      "temphomedirpath", "x11displayoffset", "x11forwarding", "x11uselocalhost"]
+      "permittemphomedir", "permittty", "permittunnel",
+      "pubkeyacceptedkeytypes", "pubkeyauthentication", "rekeylimit",
+      "rhostsrsaauthentication", "rsaauthentication", "temphomedirpath",
+      "x11displayoffset", "x11forwarding", "x11uselocalhost"]
 
   def __init__(self):
     super(SshdConfigParser, self).__init__()

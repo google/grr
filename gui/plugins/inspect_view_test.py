@@ -104,7 +104,7 @@ class TestDebugClientRequestsView(TestInspectViewBase):
     self.Click("css=td:contains('0001')")
 
     self.Click("css=a[grrtarget=LaunchFlows]")
-    self.Click("css=#_Administrative ins")
+    self.Click("css=#_Administrative i")
 
     self.Click("css=a:contains(Interrogate)")
 

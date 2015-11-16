@@ -13,7 +13,7 @@ goog.scope(function() {
  *
  * @constructor
  * @param {!angular.Scope} $scope
- * @param {!angular.JQLite} $element
+ * @param {!angular.jQuery} $element
  * @param {!angular.$interval} $interval
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
@@ -24,7 +24,7 @@ grrUi.client.clientSearchBoxDirective.ClientSearchBoxController = function(
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @private {!angular.JQLite} */
+  /** @private {!angular.jQuery} */
   this.element_ = $element;
 
   /** @private {!angular.$interval} */

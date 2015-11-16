@@ -48,28 +48,6 @@ class SshdCheckTests(checks_test_lib.HostCheckTest):
     results = self.RunChecks(host_data)
     self.assertCheckUndetected(chk_id, results)
 
-  def testPubKeyAllowedSucceed(self):
-    chk_id = "SSH-PUB-KEY-AUTHENTICATION"
-
-    # DSAAuthentication is an alias for PubKeyAuthentication.
-    # sshd uses the first configuration value, if repeated.
-    test_data = {"/etc/ssh/sshd_config":
-                 "DSAAuthentication no\nPubKeyAuthentication yes"}
-    host_data = self.GenFileData("SshdConfigFile", test_data, self.parser)
-    results = self.RunChecks(host_data)
-    self.assertCheckUndetected(chk_id, results)
-
-  def testPubKeyAllowedFail(self):
-    chk_id = "SSH-PUB-KEY-AUTHENTICATION"
-
-    test_data = {"/etc/ssh/sshd_config":
-                 "PubKeyAuthentication yes"}
-    host_data = self.GenFileData("SshdConfigFile", test_data, self.parser)
-    results = self.RunChecks(host_data)
-    sym = "Found: Sshd configuration allows public key authentication."
-    found = ["PubkeyAuthentication (or DSAAuthentication) = True"]
-    self.assertCheckDetectedAnom(chk_id, results, sym, found)
-
   def testAuthorizedKeysCommandSucceed(self):
     chk_id = "SSH-AUTHORIZED-KEYS"
 

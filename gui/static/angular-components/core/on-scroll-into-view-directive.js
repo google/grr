@@ -13,7 +13,7 @@ goog.scope(function() {
  * @constructor
  *
  * @param {!angular.Scope} $scope
- * @param {!angular.JQLite} $element
+ * @param {!angular.jQuery} $element
  * @param {!angular.Attributes} $attrs
  * @param {!angular.$interval} $interval
  * @param {!angular.$window} $window
@@ -29,7 +29,7 @@ grrUi.core.onScrollIntoViewDirective.OnScrollIntoViewController = function(
   /** @private {!angular.Attributes} */
   this.attrs_ = $attrs;
 
-  /** @private {!angular.JQLite} */
+  /** @private {!angular.jQuery} */
   this.element_ = $element;
 
   /** @private {!angular.$window} */

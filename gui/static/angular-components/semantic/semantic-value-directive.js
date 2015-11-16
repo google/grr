@@ -42,7 +42,7 @@ grrUi.semantic.semanticValueDirective.clearCaches = function() {
  * @constructor
  * @param {!angular.Scope} $scope
  * @param {!angular.$compile} $compile
- * @param {!angular.JQLite} $element
+ * @param {!jQuery} $element
  * @param {!grrUi.core.semanticRegistry.SemanticRegistryService}
  *     grrSemanticValueDirectivesRegistryService
  * @ngInject
@@ -58,7 +58,7 @@ grrUi.semantic.semanticValueDirective.SemanticValueController = function(
   /** @private {!angular.$compile} */
   this.compile_ = $compile;
 
-  /** @private {!angular.JQLite} */
+  /** @private {!jQuery} */
   this.element_ = $element;
 
   /** @private {!grrUi.core.semanticRegistry.SemanticRegistryService} */

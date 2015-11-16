@@ -10,6 +10,7 @@ from grr.lib import access_control_test
 from grr.lib import aff4_test
 from grr.lib import artifact_test
 from grr.lib import artifact_utils_test
+from grr.lib import bigquery_test
 from grr.lib import build_test
 from grr.lib import client_index_test
 from grr.lib import communicator_test

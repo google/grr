@@ -21,7 +21,7 @@ beforeEach(function() {
  * Trigger a browser event on the given element.
  * The triggered event will be the simplest possible - e.g. for mouse events,
  * the coordinates will be 0, 0 and the related target element is null.
- * @param {angular.jqLite} element
+ * @param {!angular.jQuery} element
  * @param {string} eventType
  * @export
  */

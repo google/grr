@@ -3,12 +3,12 @@
 
 import binascii
 import calendar
-import logging
 import struct
 
 from grr.lib import parsers
 from grr.lib import rdfvalue
 from grr.lib import time_utils
+from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import wmi as rdf_wmi
 
@@ -82,24 +82,37 @@ class WMIEventConsumerParser(parsers.WMIQueryParser):
     try:
       wmi_dict["CreatorSID"] = BinarySIDtoStringSID(
           "".join([chr(i) for i in wmi_dict["CreatorSID"]]))
-    except ValueError as e:
+    except (ValueError, TypeError) as e:
       # We recover from corrupt SIDs by outputting it raw as a string
       wmi_dict["CreatorSID"] = str(wmi_dict["CreatorSID"])
     except KeyError as e:
       pass
 
     for output_type in self.output_types:
+      anomalies = []
+
       output = rdfvalue.RDFValue.classes[output_type]()
       for k, v in wmi_dict.iteritems():
         try:
           output.Set(k, v)
-        except AttributeError:
+        except AttributeError as e:
           # Skip any attribute we don't know about
-          pass
+          anomalies.append("Unknown field %s, with value %s" % (k, v))
+        except ValueError as e:
+          anomalies.append("Invalid value %s for field %s: %s" % (v, k, e))
 
+      # Yield anomalies first to help with debugging
+      if anomalies:
+        yield rdf_anomaly.Anomaly(
+            type="PARSER_ANOMALY",
+            generated_by=self.__class__.__name__,
+            finding=anomalies)
+
+      # Raise if the parser generated no output but there were fields.
       if wmi_dict and not output:
         raise ValueError("Non-empty dict %s returned empty output.",
                          wmi_dict)
+
       yield output
 
 

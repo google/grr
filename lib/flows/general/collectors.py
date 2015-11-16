@@ -18,6 +18,7 @@ from grr.lib.flows.general import filesystem
 from grr.lib.flows.general import memory as _
 # pylint: enable=unused-import
 from grr.lib.flows.general import transfer
+from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths
 from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -853,6 +854,14 @@ class ArtifactFilesDownloaderFlow(transfer.MultiGetFileMixin, flow.GRRFlow):
   behaviours = flow.GRRFlow.behaviours + "ADVANCED"
 
   def FindMatchingPathspecs(self, response):
+    # If we're dealing with plain file StatEntry, just
+    # return it's pathspec - there's nothing to parse
+    # and guess.
+    if (isinstance(response, rdf_client.StatEntry) and
+        response.pathspec.pathtype in [paths.PathSpec.PathType.TSK,
+                                       paths.PathSpec.PathType.OS]):
+      return [response.pathspec]
+
     client = aff4.FACTORY.Open(self.client_id, token=self.token)
     knowledge_base = artifact.GetArtifactKnowledgeBase(client)
 

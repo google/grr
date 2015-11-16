@@ -44,6 +44,10 @@ describe('flow descriptors tree directive', function() {
     $(document.body).html('');
     $(document.body).append(element);
 
+    $(element.children('div.tree')[0]).on('loaded.jstree', function(e, data) {
+      $(this).jstree('open_all');
+    });
+
     return element;
   };
 

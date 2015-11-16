@@ -12,7 +12,7 @@ goog.scope(function() {
  *
  * @constructor
  * @param {!angular.Scope} $scope
- * @param {!angular.JQLite} $element
+ * @param {!angular.jQuery} $element
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
@@ -21,7 +21,7 @@ grrUi.flow.flowDescriptorsTreeDirective.FlowDescriptorsTreeController =
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @private {!angular.JQLite} */
+  /** @private {!angular.jQuery} */
   this.element_ = $element;
 
   /** @private {!grrUi.core.apiService.ApiService} */
@@ -99,10 +99,9 @@ FlowDescriptorsTreeController.prototype.onDescriptorsOrSettingsChange_ =
   var descriptorsKeys = Object.keys(this.flowsDescriptors).sort();
   angular.forEach(descriptorsKeys, function(category) {
     var categoryNode = {
-      data: category,
+      text: category,
       // Id is needed for Selenium tests backwards compatibility.
-      attr: {id: '_' + category},
-      state: 'closed',
+      li_attr: {id: '_' + category},
       children: []
     };
 
@@ -124,10 +123,11 @@ FlowDescriptorsTreeController.prototype.onDescriptorsOrSettingsChange_ =
       if (mode == 'DEBUG' || descriptor['behaviours'].indexOf(mode) != -1) {
 
         categoryNode['children'].push({
-          metadata: {descriptor: descriptor},
+          data: {descriptor: descriptor},
           // Id is needed for Selenium tests backwards compatibility.
-          attr: {id: '_' + category + '-' + descriptor['name']},
-          data: descriptor['friendly_name'] || descriptor['name']
+          li_attr: {id: '_' + category + '-' + descriptor['name']},
+          text: descriptor['friendly_name'] || descriptor['name'],
+          icon: 'file'
         });
       }
     }.bind(this));
@@ -137,16 +137,16 @@ FlowDescriptorsTreeController.prototype.onDescriptorsOrSettingsChange_ =
 
   var treeElem = $(this.element_).children('div.tree');
   treeElem.jstree({
-    'json_data': {
+    'core': {
       'data': treeNodes,
-    },
-    'plugins': ['json_data', 'themes', 'ui']
+    }
   });
   treeElem.on('select_node.jstree', function(e, data) {
-    data['inst']['toggle_node'](data['rslt']['obj']);
+    data['instance']['toggle_node'](data['node']);
 
-    var descriptor = data['rslt']['obj'].data('descriptor');
-    if (angular.isDefined(descriptor)) {
+    if (data.node.data !== null) {
+      var descriptor = data.node.data.descriptor;
+
       // Have to call apply as we're in event handler triggered by
       // non-Angular code.
       this.scope_.$apply(function() {

@@ -548,20 +548,9 @@ grr-start-flow-view .rightTopPane {
 }
 
 /* GRR-specific jstree css */
-.jstree-default .jstree-leaf > a ins {
-  background-position: 0px 0px;
-}
-
-div.jstree-default.jstree-focused {
-  background : white;
-}
-
-.jstree-default a.jstree-loading .jstree-icon, .jstree-loading-failed  {
-    background:url("throbber.gif") center center no-repeat !important;
-}
-
-.jstree-default ins {
-    background-image: url("/static/third-party/jstree-1.0rc3/themes/default/d.png");
+i.jstree-icon.file {
+    background-position: -4px -4px;
+    background-image: url("/static/third-party/jstree/themes/default/32px.png");
 }
 
 .ajax_spinner {
@@ -602,7 +591,7 @@ div.jstree-default.jstree-focused {
 }
 
 span.tree_branch {
-    background-image: url("/static/third-party/jstree-1.0rc3/themes/default/d.png");
+    background-image: url("/static/images/jstree_icon_set.png");
     background-repeat: no-repeat;
     background-color: transparent;
     background-position: 72px 0;
@@ -611,10 +600,8 @@ span.tree_branch {
     padding: 9px;
 }
 
-
-
 tr td span.tree_leaf {
-    background-image: url("/static/third-party/jstree-1.0rc3/themes/default/d.png");
+    background-image: url("/static/images/jstree_icon_set.png");
     background-repeat: no-repeat;
     background-color: transparent;
     background-position: 18px 0;

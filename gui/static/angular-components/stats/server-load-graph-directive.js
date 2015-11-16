@@ -13,7 +13,7 @@ goog.scope(function() {
  *
  * @constructor
  * @param {!angular.Scope} $scope
- * @param {!angular.JQLite} $element Element this directive operates on.
+ * @param {!angular.jQuery} $element Element this directive operates on.
  * @param {!angular.$interval} $interval
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
@@ -23,7 +23,7 @@ grrUi.stats.serverLoadGraphDirective.ServerLoadGraphController = function(
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @private {!angular.JQLite} */
+  /** @private {!angular.jQuery} */
   this.element_ = $element;
 
   /** @private {!angular.$interval} */
