@@ -738,6 +738,18 @@ class TestHuntView(test_lib.GRRSeleniumTest):
       self.WaitUntilNot(self.IsTextPresent, "Finished reading " +
                         str(client_id.Add("fs/os/tmp/evil.txt")))
 
+  def testLogsTabShowsDatesInUTC(self):
+    with self.ACLChecksDisabled():
+      with self.CreateSampleHunt() as hunt:
+        with test_lib.FakeTime(42):
+          hunt.Log("I do log.")
+
+    self.Open("/#main=ManageHunts")
+    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=li[heading=Log]")
+
+    self.WaitUntil(self.IsTextPresent, "1970-01-01 00:00:42 UTC")
+
   def testErrorsTabShowsErrorsFromAllClients(self):
     with self.ACLChecksDisabled():
       self.SetupHuntDetailView(failrate=1)
@@ -748,6 +760,20 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     for client_id in self.client_ids:
       self.WaitUntil(self.IsTextPresent, str(client_id))
+
+  def testErrorsTabShowsDatesInUTC(self):
+    with self.ACLChecksDisabled():
+      with self.CreateSampleHunt() as hunt:
+        with test_lib.FakeTime(42):
+          # Log an error just with some random traceback.
+          hunt.LogClientError(self.client_ids[0], "Client Error 1",
+                              traceback.format_exc())
+
+    self.Open("/#main=ManageHunts")
+    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=li[heading=Errors]")
+
+    self.WaitUntil(self.IsTextPresent, "1970-01-01 00:00:42 UTC")
 
   def testErrorsTabFiltersErrorsByString(self):
     with self.ACLChecksDisabled():

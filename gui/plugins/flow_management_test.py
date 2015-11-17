@@ -38,6 +38,14 @@ class RecursiveTestFlow(flow.GRRFlow):
                       next_state="End")
 
 
+class FlowWithOneLogStatement(flow.GRRFlow):
+  """Flow that logs a single statement."""
+
+  @flow.StateHandler(next_state="End")
+  def Start(self):
+    self.Log("I do log.")
+
+
 class FlowWithOneStatEntryResult(flow.GRRFlow):
   """Test flow that calls SendReply once with a StatEntry value."""
 
@@ -153,17 +161,31 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     # RecursiveTestFlow doesn't send any results back.
     with self.ACLChecksDisabled():
       for _ in test_lib.TestFlowHelper(
-          "RecursiveTestFlow", self.action_mock,
+          "FlowWithOneLogStatement", self.action_mock,
           client_id=self.client_id, token=self.token):
         pass
 
     self.Open("/#c=C.0000000000000001")
     self.Click("css=a:contains('Manage launched flows')")
-    self.Click("css=td:contains('RecursiveTestFlow')")
+    self.Click("css=td:contains('FlowWithOneLogStatement')")
     self.Click("css=li[heading=Log]")
 
-    self.WaitUntil(self.IsTextPresent, "Subflow call 1")
-    self.WaitUntil(self.IsTextPresent, "Subflow call 0")
+    self.WaitUntil(self.IsTextPresent, "I do log.")
+
+  def testLogTimestampsArePresentedInUTC(self):
+    with self.ACLChecksDisabled():
+      with test_lib.FakeTime(42):
+        for _ in test_lib.TestFlowHelper(
+            "FlowWithOneLogStatement", self.action_mock,
+            client_id=self.client_id, token=self.token):
+          pass
+
+    self.Open("/#c=C.0000000000000001")
+    self.Click("css=a:contains('Manage launched flows')")
+    self.Click("css=td:contains('FlowWithOneLogStatement')")
+    self.Click("css=li[heading=Log]")
+
+    self.WaitUntil(self.IsTextPresent, "1970-01-01 00:00:42 UTC")
 
   def testResultsAreDisplayedInResultsTab(self):
     with self.ACLChecksDisabled():

@@ -146,6 +146,22 @@ class TestCrashView(test_lib.GRRSeleniumTest):
         "Crash Message",
         "Client killed during transaction"])
 
+  def testHuntClientCrashesTabShowsDatesInUTC(self):
+    with self.ACLChecksDisabled():
+      self.SetUpCrashedFlowInHunt()
+
+    self.Open("/")
+
+    # Go to hunt manager, select a hunt, open "Crashes" tab.
+    self.Click("css=a[grrtarget=ManageHunts]")
+    self.WaitUntil(self.IsTextPresent, "SampleHunt")
+    self.Click("css=td:contains('SampleHunt')")
+    self.Click("css=li[heading=Crashes]")
+
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-hunt-crashes dt:contains('Timestamp') ~ dd:contains('UTC')")
+
 
 def main(argv):
   # Run the full test suite

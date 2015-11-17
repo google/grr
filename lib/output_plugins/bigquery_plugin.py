@@ -74,9 +74,12 @@ class BigQueryOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
                            "uint32": "INTEGER",
                            "uint64": "INTEGER"}
 
+  def __init__(self, *args, **kwargs):
+    super(BigQueryOutputPlugin, self).__init__(*args, **kwargs)
+    self.temp_output_trackers = {}
+
   def Initialize(self):
     super(BigQueryOutputPlugin, self).Initialize()
-    self.temp_output_trackers = {}
     # The last job ID if there was a failure. Keys are output types.
     self.state.Register("output_jobids", {})
     # Total number of BigQuery upload failures.
