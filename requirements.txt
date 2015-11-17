@@ -31,6 +31,7 @@ efilter==1438631774
 gevent-websocket==0.9.3
 gevent==1.0.2
 gnureadline==6.3.3
+google-api-python-client==1.4.2
 greenlet==0.4.5
 ipaddr==2.1.11
 ipython==2.3.1
