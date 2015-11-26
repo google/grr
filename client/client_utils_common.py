@@ -4,6 +4,7 @@
 
 
 import os
+import sys
 import platform
 import subprocess
 import threading
@@ -11,10 +12,25 @@ import time
 
 
 import logging
+import Queue
 
+from grr.client import actions
 from grr.lib import config_lib
 from grr.lib import utils
 
+launched_binary_io_heartbeat = 60    # in seconds
+launched_binary_io_max_lines = 128   # in lines
+
+launched_binary_io = Queue.Queue(launched_binary_io_max_lines)  # FIXME: is 128 enough?
+def read_from_stream(io_flag, stream):
+  if not stream:
+    launched_binary_io.put(('EXIT', io_flag))
+    return
+  for line in stream:
+    launched_binary_io.put((io_flag, line))
+  if not stream.closed:
+    stream.close()
+  launched_binary_io.put(('EXIT', io_flag))
 
 def HandleAlarm(process):
   try:
@@ -96,10 +112,38 @@ def _Execute(cmd, args, time_limit=-1, use_client_context=False):
     alarm.setDaemon(True)
     alarm.start()
 
-  stdout, stderr, exit_status = "", "", -1
-  start_time = time.time()
+  # FIXME: Tested only in Windows!
+  # replaces subprocess.Popen.communicate() with this code (and wait())
+  out_buf, err_buf, exit_status = "", "", -1
+  last_time = start_time = time.time()
+
+  threading.Thread(target=read_from_stream, name='stdout-stream', args=('STDOUT', p.stdout)).start()
+  threading.Thread(target=read_from_stream, name='stderr-stream', args=('STDERR', p.stderr)).start()
+
+  launched_binary_action = actions.ActionPlugin()
+  while True:
+    try:
+      item = launched_binary_io.get(True, 1)
+    except Queue.Empty:
+      if p.poll() is not None:
+          break
+    else:
+      present_time = time.time()
+      if present_time - last_time > launched_binary_io_heartbeat :
+          launched_binary_action.Progress()  # send a heartbeat via NannyController.HeartBeat()
+          last_time = present_time
+      io_flag, line = item
+      if io_flag == 'EXIT':
+          break
+      elif io_flag == 'STDOUT' :
+          out_buf = out_buf + line
+      elif io_flag == 'STDERR' :
+          err_buf = err_buf + line
+      else :
+          logging.error("queue: undefined stream io_flag=%s line=%s", io_flag , line)
+
   try:
-    stdout, stderr = p.communicate()
+    p.wait()
     exit_status = p.returncode
   except IOError:
     # If we end up here, the time limit was exceeded
@@ -108,7 +152,7 @@ def _Execute(cmd, args, time_limit=-1, use_client_context=False):
     if alarm:
       alarm.cancel()
 
-  return (stdout, stderr, exit_status, time.time() - start_time)
+  return (out_buf, err_buf, exit_status, time.time() - start_time)
 
 
 def IsExecutionWhitelisted(cmd, args):
