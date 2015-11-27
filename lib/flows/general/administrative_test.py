@@ -17,6 +17,8 @@ from grr.lib import config_lib
 from grr.lib import email_alerts
 from grr.lib import flags
 from grr.lib import flow
+from grr.lib import flow_runner
+from grr.lib import hunts
 from grr.lib import maintenance_utils
 from grr.lib import queues
 from grr.lib import rdfvalue
@@ -102,13 +104,13 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     self.assertEqual(crash.crash_message,
                      "Client killed during transaction")
 
-  def testClientKilled(self):
+  def testAlertEmailIsSentWhenClientKilled(self):
     """Test that client killed messages are handled correctly."""
-    self.email_message = {}
+    self.email_messages = []
 
     def SendEmail(address, sender, title, message, **_):
-      self.email_message.update(dict(address=address, sender=sender,
-                                     title=title, message=message))
+      self.email_messages.append(dict(address=address, sender=sender,
+                                      title=title, message=message))
 
     with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
       client = test_lib.CrashClientMock(self.client_id, self.token)
@@ -117,55 +119,87 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
           token=self.token, check_flow_errors=False):
         pass
 
-      # We expect the email to be sent.
-      self.assertEqual(self.email_message.get("address", ""),
-                       config_lib.CONFIG["Monitoring.alert_email"])
-      self.assertTrue(str(self.client_id) in self.email_message["title"])
+    self.assertEqual(len(self.email_messages), 1)
+    email_message = self.email_messages[0]
 
-      # Make sure the flow state is included in the email message.
-      for s in ["Flow name", "FlowWithOneClientRequest", "current_state"]:
-        self.assertTrue(s in self.email_message["message"])
+    # We expect the email to be sent.
+    self.assertEqual(email_message.get("address", ""),
+                     config_lib.CONFIG["Monitoring.alert_email"])
+    self.assertTrue(str(self.client_id) in email_message["title"])
 
-      flow_obj = aff4.FACTORY.Open(client.flow_id, age=aff4.ALL_TIMES,
-                                   token=self.token)
-      self.assertEqual(flow_obj.state.context.state, rdf_flows.Flow.State.ERROR)
+    # Make sure the flow state is included in the email message.
+    for s in ["Flow name", "FlowWithOneClientRequest", "current_state"]:
+      self.assertTrue(s in email_message["message"])
 
-      # Make sure client object is updated with the last crash.
-      client_obj = aff4.FACTORY.Open(self.client_id, token=self.token)
-      crash = client_obj.Get(client_obj.Schema.LAST_CRASH)
-      self.CheckCrash(crash, flow_obj.session_id)
+    flow_obj = aff4.FACTORY.Open(client.flow_id, age=aff4.ALL_TIMES,
+                                 token=self.token)
+    self.assertEqual(flow_obj.state.context.state, rdf_flows.Flow.State.ERROR)
 
-      # Make sure crashes RDFValueCollections are created and written
-      # into proper locations. First check the per-client crashes collection.
-      client_crashes = sorted(
-          list(aff4.FACTORY.Open(self.client_id.Add("crashes"),
-                                 aff4_type="PackedVersionedCollection",
-                                 token=self.token)),
-          key=lambda x: x.timestamp)
+    # Make sure client object is updated with the last crash.
+    client_obj = aff4.FACTORY.Open(self.client_id, token=self.token)
+    crash = client_obj.Get(client_obj.Schema.LAST_CRASH)
+    self.CheckCrash(crash, flow_obj.session_id)
 
-      self.assertTrue(len(client_crashes) >= 1)
-      crash = list(client_crashes)[0]
-      self.CheckCrash(crash, flow_obj.session_id)
+    # Make sure crashes RDFValueCollections are created and written
+    # into proper locations. First check the per-client crashes collection.
+    client_crashes = sorted(
+        list(aff4.FACTORY.Open(self.client_id.Add("crashes"),
+                               aff4_type="PackedVersionedCollection",
+                               token=self.token)),
+        key=lambda x: x.timestamp)
 
-      # Check per-flow crash collection. Check that crash written there is
-      # equal to per-client crash.
-      flow_crashes = sorted(
-          list(flow_obj.GetValuesForAttribute(flow_obj.Schema.CLIENT_CRASH)),
-          key=lambda x: x.timestamp)
-      self.assertEqual(len(flow_crashes), len(client_crashes))
-      for a, b in zip(flow_crashes, client_crashes):
-        self.assertEqual(a, b)
+    self.assertTrue(len(client_crashes) >= 1)
+    crash = list(client_crashes)[0]
+    self.CheckCrash(crash, flow_obj.session_id)
 
-      # Check global crash collection. Check that crash written there is
-      # equal to per-client crash.
-      global_crashes = sorted(
-          aff4.FACTORY.Open(aff4.ROOT_URN.Add("crashes"),
-                            aff4_type="PackedVersionedCollection",
-                            token=self.token),
-          key=lambda x: x.timestamp)
-      self.assertEqual(len(global_crashes), len(client_crashes))
-      for a, b in zip(global_crashes, client_crashes):
-        self.assertEqual(a, b)
+    # Check per-flow crash collection. Check that crash written there is
+    # equal to per-client crash.
+    flow_crashes = sorted(
+        list(flow_obj.GetValuesForAttribute(flow_obj.Schema.CLIENT_CRASH)),
+        key=lambda x: x.timestamp)
+    self.assertEqual(len(flow_crashes), len(client_crashes))
+    for a, b in zip(flow_crashes, client_crashes):
+      self.assertEqual(a, b)
+
+    # Check global crash collection. Check that crash written there is
+    # equal to per-client crash.
+    global_crashes = sorted(
+        aff4.FACTORY.Open(aff4.ROOT_URN.Add("crashes"),
+                          aff4_type="PackedVersionedCollection",
+                          token=self.token),
+        key=lambda x: x.timestamp)
+    self.assertEqual(len(global_crashes), len(client_crashes))
+    for a, b in zip(global_crashes, client_crashes):
+      self.assertEqual(a, b)
+
+  def testAlertEmailIsSentWhenClientKilledDuringHunt(self):
+    """Test that client killed messages are handled correctly for hunts."""
+    self.email_messages = []
+
+    def SendEmail(address, sender, title, message, **_):
+      self.email_messages.append(dict(address=address, sender=sender,
+                                      title=title, message=message))
+
+    with hunts.GRRHunt.StartHunt(
+        hunt_name="GenericHunt",
+        flow_runner_args=flow_runner.FlowRunnerArgs(
+            flow_name="FlowWithOneClientRequest"),
+        client_rate=0, crash_alert_email="crashes@example.com",
+        token=self.token) as hunt:
+      hunt.Run()
+      hunt.StartClients(hunt.session_id, self.client_id)
+
+    with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
+      client = test_lib.CrashClientMock(self.client_id, self.token)
+      test_lib.TestHuntHelper(
+          client, [self.client_id],
+          token=self.token, check_flow_errors=False)
+
+    self.assertEqual(len(self.email_messages), 2)
+    self.assertListEqual([self.email_messages[0]["address"],
+                          self.email_messages[1]["address"]],
+                         ["crashes@example.com",
+                          config_lib.CONFIG["Monitoring.alert_email"]])
 
   def testNannyMessage(self):
     nanny_message = "Oh no!"

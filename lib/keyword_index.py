@@ -119,7 +119,7 @@ class AFF4KeywordIndex(aff4.AFF4Object):
     for keyword in set(keywords):
       data_store.DB.DeleteAttributes(
           self._KeywordToURN(keyword),
-          self.INDEX_COLUMN_FORMAT % name,
+          [self.INDEX_COLUMN_FORMAT % name],
           token=self.token, sync=False)
     if sync:
       data_store.DB.Flush()

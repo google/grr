@@ -20,7 +20,9 @@ grrUi.core.downloadCollectionFilesDirective.valuePointsToFile = function(
     value = value['value']['payload'];
   }
 
-  if (value['type'] == 'StatEntry' || value['type'] == 'FileFinderResult') {
+  if (value['type'] == 'StatEntry' ||
+      value['type'] == 'FileFinderResult' ||
+      value['type'] == 'ArtifactFilesDownloaderResult') {
     return true;
   } else {
     return false;

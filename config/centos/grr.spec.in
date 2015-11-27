@@ -6,6 +6,7 @@ Group: Applications/System
 License: APL2
 Source: \%{name}-\%{version}.tar.gz
 URL: https://github.com/google/grr
+AutoReqProv: no
 
 # Disable binary stripping or pyinstaller files won't work.
 %global __os_install_post \%{nil}

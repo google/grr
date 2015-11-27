@@ -13,6 +13,7 @@ from grr.lib import email_alerts
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.flows.general import collectors
 from grr.lib.flows.general import file_finder
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
@@ -30,6 +31,7 @@ class ItemNotExportableError(Error):
 
 
 def CollectionItemToAff4Path(item):
+  """Converts given RDFValue to an RDFURN of a file to be downloaded."""
   if isinstance(item, rdf_flows.GrrMessage):
     item = item.payload
 
@@ -37,8 +39,11 @@ def CollectionItemToAff4Path(item):
     return item.aff4path
   elif isinstance(item, file_finder.FileFinderResult):
     return item.stat_entry.aff4path
-  else:
-    raise ItemNotExportableError()
+  elif isinstance(item, collectors.ArtifactFilesDownloaderResult):
+    if item.HasField("downloaded_file"):
+      return item.downloaded_file.aff4path
+
+  raise ItemNotExportableError()
 
 
 # pylint: disable=invalid-name

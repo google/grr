@@ -217,6 +217,10 @@ grr.grrTree = function(renderer, unique_id, opt_publishEvent, opt_state,
         }
       }
     }
+  }).on('changed.jstree', function(e, data) {
+    // This is needed so that when user clicks on an already opened node,
+    // it gets refreshed.
+    data.instance.refresh_node(data.node);
   });
 
   /* Bind the select event to the publish queue */

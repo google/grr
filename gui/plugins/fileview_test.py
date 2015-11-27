@@ -352,6 +352,26 @@ class TestFileView(FileViewTestBase):
     self.WaitUntilNot(self.IsElementPresent,
                       "css=button[id^=refresh][disabled]")
 
+  def testClickingOnTreeNodeRefrehsesChildrenFoldersList(self):
+    self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView")
+
+    # Go to Browse VFS
+    self.Click("css=a:contains('Browse Virtual Filesystem')")
+    self.Click("css=#_fs i.jstree-icon")
+    self.Click("css=#_fs-os i.jstree-icon")
+    self.Click("link=c")
+
+    self.WaitUntil(self.IsElementPresent, "link=Downloads")
+    self.WaitUntil(self.IsElementPresent, "link=bin")
+
+    with self.ACLChecksDisabled():
+      aff4.FACTORY.Delete("aff4:/C.0000000000000001/fs/os/c/bin",
+                          token=self.token)
+
+    self.Click("link=c")
+    self.WaitUntil(self.IsElementPresent, "link=Downloads")
+    self.WaitUntilNot(self.IsElementPresent, "link=bin")
+
   def testRecursiveListDirectory(self):
     """Tests that Recursive Refresh button triggers correct flow."""
     self.Open("/")

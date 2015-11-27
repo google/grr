@@ -287,6 +287,12 @@ message HuntRunnerArgs {
       label: ADVANCED
     }];
 
+  optional string crash_alert_email = 17 [ (sem_type) = {
+      description: "An email address to send mails to when a client crashes "
+      "during execution of this hunt.",
+      label: ADVANCED
+    }];
+
 };
 
 

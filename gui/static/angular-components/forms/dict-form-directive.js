@@ -47,6 +47,41 @@ var DictFormController = grrUi.forms.dictFormDirective.DictFormController;
 
 
 /**
+ * Converts given RDFValue object from RDFString to a more appropriate type,
+ * if needed. If conversion is impossible, or value is not an RDFValue,
+ * it's returned as-is.
+ *
+ * @param {Object|undefined} value Value to be converted.
+ * @return {Object|undefined} Converted value.
+ */
+DictFormController.prototype.convertFromRDFString = function(value) {
+  if (angular.isUndefined(value) ||
+      value['type'] != 'RDFString') {
+    return value;
+  }
+
+  value = angular.copy(value);
+  var s = value['value'].trim();
+
+  if (/^\d+$/.test(s)) {
+    value['value'] = parseInt(s, 10);
+    value['type'] = 'RDFInteger';
+  } else if (/^0x[0-9a-fA-F]+$/.test(s)) {
+    value['value'] = parseInt(s.substring(2), 16);
+    value['type'] = 'RDFInteger';
+  } else if (s.toLowerCase() == 'true') {
+    value['value'] = true;
+    value['type'] = 'RDFBool';
+  } else if (s.toLowerCase() == 'false') {
+    value['value'] = false;
+    value['type'] = 'RDFBool';
+  }
+
+  return value;
+};
+
+
+/**
  * Handles changes in key-value list (key-value list is a presentation-friendly
  * format). Gets converted into dictionary which is assigned to the 'value'
  * binding.
@@ -59,7 +94,8 @@ DictFormController.prototype.onKeyValueListChange_ = function(newValue) {
     this.scope_.value.value = {};
     for (var i = 0; i < this.keyValueList.length; ++i) {
       var pair = this.keyValueList[i];
-      this.scope_.value.value[pair['key']] = pair['value'];
+      this.scope_.value.value[pair['key']] =
+          this.convertFromRDFString(pair['value']);
     }
   }
 };
@@ -86,7 +122,28 @@ DictFormController.prototype.onValueChange_ = function(newValue) {
         var pair = this.keyValueList[i];
         if (pair['key'] == key) {
           found = true;
-          pair['value'] = value;
+
+          // This has to do with how Angular propagates changes. We have an
+          // object that we edit that's passed inside the directive. And it's a
+          // dictionary of random types. But in order to render the UI, etc we
+          // have to convert it to a list of objects - it's much more
+          // convenient.
+          //
+          // Then, given that we have 2 representations, we have to make sure
+          // they're in sync. The way it's done is that every time internal
+          // representation change, we update external one, and every time
+          // external one changes, we update the internal one.
+          //
+          // To avoid infinite loop of change notifications we only update the
+          // external representation if it has actually changed. This is why
+          // the check is here. We say: "ok, if we take current value and
+          // convert it to a proper type (RDFInteger or RDFBool), will it be
+          // equal to the object in the data model? If yes - then don't touch
+          // it, so that new change notification is not generated"
+          if (!angular.equals(this.convertFromRDFString(pair['value']),
+                              value)) {
+            pair['value'] = value;
+          }
         }
       }
 

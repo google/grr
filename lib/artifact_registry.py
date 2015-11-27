@@ -489,6 +489,7 @@ class Artifact(structs.RDFProtoStruct):
       "ExternalAccount": ("Information about any users\' account, e.g."
                           " username, account ID, etc."),
       "External Media": "Contain external media data / events e.g. USB drives.",
+      "History Files": "History files artifacts e.g. .bash_history.",
       "IM": "Instant Messaging / Chat applications artifacts.",
       "iOS": "Artifacts related to iOS devices connected to the system.",
       "KnowledgeBase": "Artifacts used in knowledgebase generation.",

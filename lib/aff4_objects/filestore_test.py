@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for grr.lib.aff4_objects.filestore."""
 
+import hashlib
 import os
 import StringIO
 import time
@@ -8,6 +9,7 @@ import time
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import config_lib
+from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -187,7 +189,7 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
     with utils.Stubber(time, "time", lambda: 42):
       self.AddFileToFileStore(
           rdf_paths.PathSpec(pathtype=rdf_paths.PathSpec.PathType.OS,
-                             path=os.path.join(self.base_path, "empty_file")),
+                             path=os.path.join(self.base_path, "one_a")),
           client_id=self.client_id, token=self.token)
 
     hashes = list(aff4.HashFileStore.ListHashes(token=self.token,
@@ -224,7 +226,7 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
     with utils.Stubber(time, "time", lambda: 42):
       self.AddFileToFileStore(
           rdf_paths.PathSpec(pathtype=rdf_paths.PathSpec.PathType.OS,
-                             path=os.path.join(self.base_path, "empty_file")),
+                             path=os.path.join(self.base_path, "one_a")),
           client_id=self.client_id, token=self.token)
 
     hashes = list(aff4.HashFileStore.ListHashes(token=self.token,
@@ -334,3 +336,42 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
     hits = dict(aff4.HashFileStore.GetClientsForHashes([hash1, hash2],
                                                        token=self.token))
     self.assertEqual(len(hits), 2)
+
+  def testEmptyFileHasNoBackreferences(self):
+
+    # First make sure we store backrefs for a non empty file.
+    filename = os.path.join(self.base_path, "tcpip.sig")
+    pathspec = rdf_paths.PathSpec(
+        pathtype=rdf_paths.PathSpec.PathType.OS,
+        path=filename)
+    self.AddFileToFileStore(pathspec, client_id=self.client_id,
+                            token=self.token)
+    self.assertEqual(len(self._GetBackRefs(filename)), 3)
+
+    # Now use the empty file.
+    filename = os.path.join(self.base_path, "empty_file")
+    pathspec = rdf_paths.PathSpec(
+        pathtype=rdf_paths.PathSpec.PathType.OS,
+        path=filename)
+    self.AddFileToFileStore(pathspec, client_id=self.client_id,
+                            token=self.token)
+    self.assertEqual(len(self._GetBackRefs(filename)), 0)
+
+  def _GetBackRefs(self, filename):
+    res = []
+    for name, algo in [
+        ("sha256", hashlib.sha256),
+        ("sha1", hashlib.sha1),
+        ("md5", hashlib.md5),
+        ]:
+      h = algo()
+      h.update(open(filename, "rb").read())
+
+      urn = rdfvalue.RDFURN("aff4:/files/hash/generic/").Add(name)
+      urn = urn.Add(h.hexdigest())
+
+      for _, target, _ in data_store.DB.ResolvePrefix(
+          urn, "index:target:", token=self.token):
+        res.append(target)
+
+    return res

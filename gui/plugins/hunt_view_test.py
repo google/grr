@@ -20,6 +20,7 @@ from grr.lib import hunts
 from grr.lib import output_plugin
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.flows.general import collectors
 from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import transfer
 from grr.lib.output_plugins import csv_plugin
@@ -551,6 +552,22 @@ class TestHuntView(test_lib.GRRSeleniumTest):
   def testShowsGenerateArchiveButtonForFileFinderHunt(self):
     stat_entry = rdf_client.StatEntry(aff4path="aff4:/foo/bar")
     values = [file_finder.FileFinderResult(stat_entry=stat_entry)]
+
+    with self.ACLChecksDisabled():
+      self.CreateGenericHuntWithCollection(values=values)
+
+    self.Open("/")
+    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=li[heading=Results]")
+
+    self.WaitUntil(self.IsTextPresent,
+                   "Files referenced in this collection can be downloaded")
+
+  def testShowsGenerateArchiveButtonForArtifactDownloaderHunt(self):
+    stat_entry = rdf_client.StatEntry(aff4path="aff4:/foo/bar")
+    values = [collectors.ArtifactFilesDownloaderResult(
+        downloaded_file=stat_entry)]
 
     with self.ACLChecksDisabled():
       self.CreateGenericHuntWithCollection(values=values)

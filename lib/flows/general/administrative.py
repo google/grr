@@ -51,6 +51,11 @@ class ClientCrashEventListener(flow.EventListener):
     collection.Add(crash_details)
     collection.Close(sync=False)
 
+  def _ExtractHuntId(self, flow_session_id):
+    hunt_str, hunt_id, _ = flow_session_id.Split(3)
+    if hunt_str == "hunts":
+      return aff4.ROOT_URN.Add("hunts").Add(hunt_id)
+
   def WriteAllCrashDetails(self, client_id, crash_details,
                            flow_session_id=None, hunt_session_id=None):
     # Update last crash attribute of the client.
@@ -71,12 +76,10 @@ class ClientCrashEventListener(flow.EventListener):
       aff4_flow.Set(aff4_flow.Schema.CLIENT_CRASH(crash_details))
       aff4_flow.Close(sync=False)
 
-      hunt_str, hunt_id, _ = flow_session_id.Split(3)
-      if hunt_str == "hunts":
-        hunt_session_id = aff4.ROOT_URN.Add("hunts").Add(hunt_id)
-        if hunt_session_id != flow_session_id:
-          self._AppendCrashDetails(
-              hunt_session_id.Add("crashes"), crash_details)
+      hunt_session_id = self._ExtractHuntId(flow_session_id)
+      if hunt_session_id and hunt_session_id != flow_session_id:
+        self._AppendCrashDetails(
+            hunt_session_id.Add("crashes"), crash_details)
 
 
 class GetClientStatsProcessResponseMixin(object):
@@ -652,7 +655,24 @@ P.S. The state of the failing flow was:
                               flow_session_id=message.session_id)
 
     # Also send email.
-    if config_lib.CONFIG["Monitoring.alert_email"]:
+    to_send = []
+
+    try:
+      hunt_session_id = self._ExtractHuntId(message.session_id)
+      if hunt_session_id and hunt_session_id != message.session_id:
+        hunt_obj = aff4.FACTORY.Open(hunt_session_id, aff4_type="GRRHunt",
+                                     token=self.token)
+        email = hunt_obj.GetRunner().args.crash_alert_email
+        if email:
+          to_send.append(email)
+    except aff4.InstantiationError:
+      logging.error("Failed to open hunt %s." % hunt_session_id)
+
+    email = config_lib.CONFIG["Monitoring.alert_email"]
+    if email:
+      to_send.append(email)
+
+    for email_address in to_send:
       if status.nanny_status:
         nanny_msg = "Nanny status: %s" % status.nanny_status
 
@@ -664,7 +684,7 @@ P.S. The state of the failing flow was:
       renderer = rendering.FindRendererForObject(flow_obj.state)
 
       email_alerts.EMAIL_ALERTER.SendEmail(
-          config_lib.CONFIG["Monitoring.alert_email"],
+          email_address,
           "GRR server",
           "Client %s reported a crash." % client_id,
           self.mail_template % dict(

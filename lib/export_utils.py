@@ -17,6 +17,7 @@ from grr.lib import serialize
 from grr.lib import threadpool
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
+from grr.lib.flows.general import collectors
 from grr.lib.flows.general import file_finder
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
@@ -248,6 +249,11 @@ def DownloadCollection(coll_path, target_path, token=None, overwrite=False,
       urn = rdfvalue.RDFURN(grr_message.aff4path)
     elif isinstance(grr_message, file_finder.FileFinderResult):
       urn = rdfvalue.RDFURN(grr_message.stat_entry.aff4path)
+    elif isinstance(grr_message, collectors.ArtifactFilesDownloaderResult):
+      if grr_message.HasField("downloaded_file"):
+        urn = grr_message.downloaded_file.aff4path
+      else:
+        continue
     elif isinstance(grr_message, rdfvalue.RDFBytes):
       try:
         os.makedirs(target_path)

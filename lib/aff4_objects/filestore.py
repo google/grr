@@ -380,7 +380,15 @@ class HashFileStore(FileStore):
       IOError: If there was an error writing the file.
     """
     file_store_files = []
+
     hashes = self._HashFile(fd)
+
+    # The empty file is very common, we don't keep the back references for it
+    # in the DB since it just takes up too much space.
+    empty_hash = ("e3b0c44298fc1c149afbf4c8996fb924"
+                  "27ae41e4649b934ca495991b7852b855")
+    if hashes.sha256 == empty_hash:
+      return
 
     for hash_type, hash_digest in hashes.ListSetFields():
 

@@ -315,8 +315,9 @@ class HuntRunner(flow_runner.FlowRunner):
   def _Complete(self):
     """Marks the hunt as completed."""
     self._RemoveForemanRule()
-    self.flow_obj.Set(self.flow_obj.Schema.STATE("COMPLETED"))
-    self.flow_obj.Flush()
+    if "w" in self.flow_obj.mode:
+      self.flow_obj.Set(self.flow_obj.Schema.STATE("COMPLETED"))
+      self.flow_obj.Flush()
 
   def Pause(self):
     """Pauses the hunt (removes Foreman rules, does not touch expiry time)."""
@@ -340,14 +341,14 @@ class HuntRunner(flow_runner.FlowRunner):
     data_store.DB.security_manager.CheckHuntAccess(
         self.flow_obj.token, self.session_id)
 
-    # Expire the hunt so the worker can destroy it.
-    self.args.expires = rdfvalue.RDFDatetime().Now()
     self._RemoveForemanRule()
-
     self.flow_obj.Set(self.flow_obj.Schema.STATE("STOPPED"))
     self.flow_obj.Flush()
 
     self._CreateAuditEvent("HUNT_STOPPED")
+
+  def IsCompleted(self):
+    return self.flow_obj.Get(self.flow_obj.Schema.STATE) == "COMPLETED"
 
   def IsRunning(self):
     """Hunts are always considered to be running.
@@ -361,6 +362,9 @@ class HuntRunner(flow_runner.FlowRunner):
       True
     """
     return True
+
+  def IsHuntExpired(self):
+    return self.context.expires < rdfvalue.RDFDatetime().Now()
 
   def IsHuntStarted(self):
     """Is this hunt considered started?
@@ -377,13 +381,17 @@ class HuntRunner(flow_runner.FlowRunner):
     if state != "STARTED":
       return False
 
-    # Hunt has expired.
-    if self.context.expires < rdfvalue.RDFDatetime().Now():
-      # Stop the hunt due to expiry.
-      self._Complete()
+    # Stop the hunt due to expiry.
+    if self.CheckExpiry():
       return False
 
     return True
+
+  def CheckExpiry(self):
+    if self.IsHuntExpired():
+      self._Complete()
+      return True
+    return False
 
   def OutstandingRequests(self):
     # Lie about it to prevent us from being destroyed.
@@ -996,6 +1004,12 @@ class GRRHunt(flow.GRRFlow):
       return log_vals
     else:
       return [val for val in log_vals if val.client_id == client_id]
+
+  def Save(self):
+    super(GRRHunt, self).Save()
+    runner = self.GetRunner()
+    if not runner.IsCompleted():
+      runner.CheckExpiry()
 
 
 class HuntInitHook(registry.InitHook):
