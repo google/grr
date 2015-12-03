@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Base test classes for API renderers tests."""
+"""Base test classes for API handlers tests."""
 
 
 
@@ -10,7 +10,7 @@ import urlparse
 
 from grr import gui
 from grr.gui import api_auth_manager
-from grr.gui import api_call_renderers
+from grr.gui import api_call_handlers
 from grr.gui import http_api
 from grr.lib import test_lib
 from grr.lib import utils
@@ -22,12 +22,12 @@ DOCUMENT_ROOT = os.path.join(os.path.dirname(gui.__file__), "static")
 class NullAPIAuthorizationManager(api_auth_manager.APIAuthorizationManager):
   """Authorization manager that allows everything. Used for testing only."""
 
-  def CheckAccess(self, unused_renderer, unused_username):
+  def CheckAccess(self, unused_handler, unused_username):
     return True
 
 
-class ApiCallRendererRegressionTest(test_lib.GRRBaseTest):
-  """Base class for API renderers regression tests.
+class ApiCallHandlerRegressionTest(test_lib.GRRBaseTest):
+  """Base class for API handlers regression tests.
 
   Regression tests are supposed to implement a single abstract Run() method.
 
@@ -38,22 +38,22 @@ class ApiCallRendererRegressionTest(test_lib.GRRBaseTest):
   exception will be raised if they're different.
 
   Alternatively, if this class is used in
-  api_renderers_regression_data_generate.py, then generated data will be
+  api_handlers_regression_data_generate.py, then generated data will be
   aggregated with data from other test classes and printed to the stdout.
 
   """
 
   __abstract = True  # pylint: disable=g-bad-name
 
-  # Name of the ApiCallRenderer that's tested in this class.
-  renderer = None
+  # Name of the ApiCallHandler that's tested in this class.
+  handler = None
 
   def setUp(self):
-    super(ApiCallRendererRegressionTest, self).setUp()
+    super(ApiCallHandlerRegressionTest, self).setUp()
     self.checks = []
 
   def NoAuthorizationChecks(self):
-    return utils.Stubber(api_call_renderers, "API_AUTH_MGR",
+    return utils.Stubber(api_call_handlers, "API_AUTH_MGR",
                          NullAPIAuthorizationManager())
 
   def Check(self, method, url, payload=None, replace=None):
@@ -130,7 +130,7 @@ class ApiCallRendererRegressionTest(test_lib.GRRBaseTest):
         DOCUMENT_ROOT, "angular-components/docs/api-docs-examples.json")) as fd:
       prev_data = json.load(fd)
 
-    checks = prev_data[self.renderer]
+    checks = prev_data[self.handler]
     relevant_checks = []
     for check in checks:
       if check["test_class"] == self.__class__.__name__:

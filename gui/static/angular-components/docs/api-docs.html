@@ -46,20 +46,20 @@
 
         <div class="panel-body" grr-on-scroll-into-view="controller.visibleCategory = category">
           <div class="doc-item"
-               ng-repeat="apiCallRenderer in ::controller.apiCallRenderersByCategory[category]">
+               ng-repeat="apiCallHandler in ::controller.apiCallHandlersByCategory[category]">
             <p class="lead">
-              {$ ::apiCallRenderer.methods.join(', ') $}
-              <grr-api-route value="::apiCallRenderer.route"></grr-api-route>
+              {$ ::apiCallHandler.methods.join(', ') $}
+              <grr-api-route value="::apiCallHandler.route"></grr-api-route>
             </p>
 
-            <grr-api-description value="::apiCallRenderer.doc"></grr-api-description>
-            <grr-api-query-spec args-type="::apiCallRenderer.args_type"></grr-api-query-spec>
+            <grr-api-description value="::apiCallHandler.doc"></grr-api-description>
+            <grr-api-query-spec args-type="::apiCallHandler.args_type"></grr-api-query-spec>
 
-            <div ng-if="controller.examplesByRenderer[apiCallRenderer.renderer].length > 0">
+            <div ng-if="controller.examplesByHandler[apiCallHandler.handler].length > 0">
               <h4>Examples:</h4>
 
               <table class="example table table-condensed"
-                     ng-repeat="example in ::controller.examplesByRenderer[apiCallRenderer.renderer]">
+                     ng-repeat="example in ::controller.examplesByHandler[apiCallHandler.handler]">
                 <thead>
                   <th>
                     <grr-api-route value="::example.url"></grr-api-route>
@@ -81,7 +81,7 @@
               </table>
             </div>
 
-            <div ng-if="apiCallRenderer.renderer == 'ApiAff4Renderer'">
+            <div ng-if="apiCallHandler.handler == 'ApiGetAff4ObjectHandler'">
               <p>
                 When using <strong>/api/aff4/...</strong> API, set of accepted query parameters changes
                 depending on the type of the accessed objects.

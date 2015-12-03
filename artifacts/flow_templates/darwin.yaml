@@ -3,7 +3,7 @@
 name: DarwinPersistenceMechanisms
 doc: Persistence mechanisms on Darwin.
 sources:
-- type: ARTIFACT
+- type: ARTIFACT_GROUP
   attributes:
     names: [OSXServices]
   returned_types: [PersistenceFile]

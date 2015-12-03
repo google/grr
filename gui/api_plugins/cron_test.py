@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""This module contains tests for cron-related API renderers."""
+"""This module contains tests for cron-related API handlers."""
 
 
 
@@ -14,11 +14,11 @@ from grr.lib.flows.cron import system as cron_system
 from grr.lib.rdfvalues import grr_rdf
 
 
-class ApiCronJobsListRendererRegressionTest(
-    api_test_lib.ApiCallRendererRegressionTest):
-  """Test cron jobs list renderer."""
+class ApiListCronJobsHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+  """Test cron jobs list handler."""
 
-  renderer = "ApiCronJobsListRenderer"
+  handler = "ApiListCronJobsHandler"
 
   def Run(self):
     # Add one "normal" cron job...
@@ -64,11 +64,11 @@ class ApiCronJobsListRendererRegressionTest(
     self.Check("GET", "/api/cron-jobs")
 
 
-class ApiCreateCronJobRendererRegressionTest(
-    api_test_lib.ApiCallRendererRegressionTest):
-  """Test renderer that creates a new cron job."""
+class ApiCreateCronJobHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+  """Test handler that creates a new cron job."""
 
-  renderer = "ApiCreateCronJobRenderer"
+  handler = "ApiCreateCronJobHandler"
 
   def Run(self):
     def ReplaceCronJobUrn():

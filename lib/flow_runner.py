@@ -65,10 +65,8 @@ from grr.client import actions
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import data_store
-# pylint: disable=unused-import
-# for OutputPluginDescriptor, needed implicitly by FlowRunnerArgs
-from grr.lib import output_plugin as _
-# pylint: enable=unused-import
+# Note: OutputPluginDescriptor is also needed implicitly by FlowRunnerArgs
+from grr.lib import output_plugin as output_plugin_lib
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import stats
@@ -268,6 +266,10 @@ class FlowRunner(object):
                             output_base_urn=output_base_urn, token=self.token)
       try:
         plugin.Initialize()
+
+        plugin.state.Register("logs", [])
+        plugin.state.Register("errors", [])
+
         output_plugins_states.append((plugin_descriptor, plugin.state))
       except Exception as e:  # pylint: disable=broad-except
         self.Log("Plugin %s failed to initialize (%s), ignoring it." %
@@ -975,9 +977,26 @@ class FlowRunner(object):
         output_plugin.ProcessResponses(replies)
         output_plugin.Flush()
 
+        log_item = output_plugin_lib.OutputPluginBatchProcessingStatus(
+            plugin_descriptor=plugin_descriptor,
+            status="SUCCESS",
+            batch_size=len(replies))
+        # Proving default here to make graceful deployment possible.
+        # TODO(user): remove default in Q1 2016.
+        plugin_state.get("logs", []).append(log_item)
+
         self.Log("Plugin %s sucessfully processed %d flow replies.",
                  plugin_descriptor, len(replies))
       except Exception as e:  # pylint: disable=broad-except
+        error = output_plugin_lib.OutputPluginBatchProcessingStatus(
+            plugin_descriptor=plugin_descriptor,
+            status="ERROR",
+            summary=utils.SmartStr(e),
+            batch_size=len(replies))
+        # Proving default here to make graceful deployment possible.
+        # TODO(user): remove default in Q1 2016.
+        plugin_state.get("errors", []).append(error)
+
         self.Log("Plugin %s failed to process %d replies due to: %s",
                  plugin_descriptor, len(replies), e)
 

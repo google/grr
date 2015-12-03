@@ -377,15 +377,13 @@ class TemplateRenderer(Renderer):
     return self.RawHTML()
 
 
-class AngularDirectiveRenderer(TemplateRenderer):
+class AngularDirectiveRendererBase(TemplateRenderer):
   """Renderers specified Angular directive with given parameters."""
+
+  __abstract = True  # pylint: disable=g-bad-name
 
   directive = None
   directive_args = None
-
-  layout_template = Template("""
-<div class="full-width-height" id="{{unique|escape}}"></div>
-""")
 
   def Layout(self, request, response, **kwargs):
     if self.directive is None:
@@ -393,11 +391,27 @@ class AngularDirectiveRenderer(TemplateRenderer):
 
     self.directive_args = self.directive_args or {}
 
-    response = super(AngularDirectiveRenderer, self).Layout(
+    response = super(AngularDirectiveRendererBase, self).Layout(
         request, response, **kwargs)
     return self.CallJavascript(response, "AngularDirectiveRenderer.Layout",
                                directive=self.directive,
                                directive_args=self.directive_args)
+
+
+class AngularDirectiveRenderer(AngularDirectiveRendererBase):
+  """Renderers specified Angular directive as div."""
+
+  layout_template = Template("""
+<div class="full-width-height" id="{{unique|escape}}"></div>
+""")
+
+
+class AngularSpanDirectiveRenderer(AngularDirectiveRendererBase):
+  """Renderers specified Angular directive as span."""
+
+  layout_template = Template("""
+<span id="{{unique|escape}}"></span>
+""")
 
 
 class EscapingRenderer(TemplateRenderer):

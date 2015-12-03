@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-"""API renderers for accessing artifacts."""
+"""API handlers for accessing artifacts."""
 
-from grr.gui import api_call_renderer_base
+from grr.gui import api_call_handler_base
 from grr.gui import api_value_renderers
 
 from grr.lib import aff4
@@ -17,15 +17,15 @@ from grr.proto import api_pb2
 CATEGORY = "Artifacts"
 
 
-class ApiArtifactsRendererArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiArtifactsRendererArgs
+class ApiListArtifactsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListArtifactsArgs
 
 
-class ApiArtifactsRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiListArtifactsHandler(api_call_handler_base.ApiCallHandler):
   """Renders available artifacts definitions."""
 
   category = CATEGORY
-  args_type = ApiArtifactsRendererArgs
+  args_type = ApiListArtifactsArgs
 
   def RenderArtifacts(self, artifacts):
     result = []
@@ -71,30 +71,30 @@ class ApiArtifactsRenderer(api_call_renderer_base.ApiCallRenderer):
                 items=rendered_artifacts)
 
 
-class ApiArtifactsUploadRendererArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiArtifactsUploadRendererArgs
+class ApiUploadArtifactArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiUploadArtifactArgs
 
 
-class ApiArtifactsUploadRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiUploadArtifactHandler(api_call_handler_base.ApiCallHandler):
   """Handles artifact upload."""
 
   category = CATEGORY
-  args_type = ApiArtifactsUploadRendererArgs
+  args_type = ApiUploadArtifactArgs
 
   def Render(self, args, token=None):
     urn = artifact.UploadArtifactYamlFile(args.artifact, token=token)
     return dict(status="OK", urn=utils.SmartStr(urn))
 
 
-class ApiArtifactsDeleteRendererArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiArtifactsDeleteRendererArgs
+class ApiDeleteArtifactsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiDeleteArtifactsArgs
 
 
-class ApiArtifactsDeleteRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiDeleteArtifactsHandler(api_call_handler_base.ApiCallHandler):
   """Handles artifact deletion."""
 
   category = CATEGORY
-  args_type = ApiArtifactsDeleteRendererArgs
+  args_type = ApiDeleteArtifactsArgs
 
   def Render(self, args, token=None):
     artifacts = sorted(artifact_registry.REGISTRY.GetArtifacts(
@@ -114,11 +114,18 @@ class ApiArtifactsDeleteRenderer(api_call_renderer_base.ApiCallRenderer):
                              aff4_type="RDFValueCollection",
                              token=token) as store:
       all_artifacts = list(store)
-      filtered_artifacts = [artifact_value for artifact_value in all_artifacts
-                            if artifact_value.name not in to_delete]
-      if filtered_artifacts == all_artifacts:
-        raise ValueError(
-            "Artifact(s) to delete (%s) not found." % ",".join(list(to_delete)))
+
+    filtered_artifacts, found_artifacts = [], []
+    for artifact_value in all_artifacts:
+      if artifact_value.name in to_delete:
+        found_artifacts.append(artifact_value)
+      else:
+        filtered_artifacts.append(artifact_value)
+
+    if len(found_artifacts) != len(to_delete):
+      not_found = to_delete - set(found_artifacts)
+      raise ValueError(
+          "Artifact(s) to delete (%s) not found." % ",".join(list(not_found)))
 
     # TODO(user): this is ugly and error- and race-condition- prone.
     # We need to store artifacts not in an RDFValueCollection, which is an
@@ -132,5 +139,8 @@ class ApiArtifactsDeleteRenderer(api_call_renderer_base.ApiCallRenderer):
                              token=token) as store:
       for artifact_value in filtered_artifacts:
         store.Add(artifact_value)
+
+    for artifact_value in to_delete:
+      artifact_registry.REGISTRY.UnregisterArtifact(artifact_value)
 
     return dict(status="OK")

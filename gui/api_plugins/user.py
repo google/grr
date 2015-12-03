@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-"""API renderers for user-related data and actions."""
+"""API handlers for user-related data and actions."""
 
 from grr.gui import api_aff4_object_renderers
-from grr.gui import api_call_renderer_base
+from grr.gui import api_call_handler_base
 from grr.gui import api_value_renderers
 
 from grr.lib import access_control
@@ -19,15 +19,15 @@ from grr.proto import api_pb2
 CATEGORY = "User"
 
 
-class ApiUserApprovalsListRendererArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiUserApprovalsListRendererArgs
+class ApiListUserApprovalsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListUserApprovalsArgs
 
 
-class ApiUserApprovalsListRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiListUserApprovalsHandler(api_call_handler_base.ApiCallHandler):
   """Renders list of all user approvals."""
 
   category = CATEGORY
-  args_type = ApiUserApprovalsListRendererArgs
+  args_type = ApiListUserApprovalsArgs
 
   def Render(self, args, token=None):
     approvals_base_urn = aff4.ROOT_URN.Add("users").Add(token.username).Add(
@@ -90,7 +90,7 @@ class ApiUserApprovalsListRenderer(api_call_renderer_base.ApiCallRenderer):
     return dict(items=items, offset=args.offset, count=len(items))
 
 
-class ApiUserSettingsRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiGetUserSettingsHandler(api_call_handler_base.ApiCallHandler):
   """Renders current user settings."""
 
   category = CATEGORY
@@ -112,7 +112,7 @@ class ApiUserSettingsRenderer(api_call_renderer_base.ApiCallRenderer):
     return api_value_renderers.RenderValue(user_settings)
 
 
-class ApiSetUserSettingsRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiUpdateUserSettingsHandler(api_call_handler_base.ApiCallHandler):
   """Sets current user settings."""
 
   category = CATEGORY

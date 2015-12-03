@@ -91,12 +91,12 @@ message DefaultArgsTestFlowArgs {
 }
 
 // For gui/http_api_test.py.
-message SampleGetRendererArgs {
+message SampleGetHandlerArgs {
   optional string path = 1;
   optional string foo = 2;
 }
 
-message SampleGetRendererWithAdditionalArgsArgs {
+message SampleGetHandlerWithAdditionalArgsArgs {
   optional string path = 1;
   optional string foo = 2;
   repeated ApiCallAdditionalArgs additional_args = 3;

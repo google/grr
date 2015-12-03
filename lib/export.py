@@ -1129,6 +1129,24 @@ class ArtifactFilesDownloaderResultConverter(ExportConverter):
 
       yield result
 
+    # Feed all original results into the export pipeline. There are 2 good
+    # reasons to do this:
+    # * Export output of ArtifactFilesDownloader flow will be similar to export
+    #   output of other file-related flows. I.e. it will produce
+    #   ExportedFile entries and ExportedRegistryKey entries and what not, but
+    #   in addition it will also generate ExportedArtifactFilesDownloaderResult
+    #   entries, that one can use to understand how and where file paths
+    #   were detected and how file paths detection algorithm can be possibly
+    #   improved.
+    # * ExportedArtifactFilesDownloaderResult can only be generated if original
+    #   value is a StatEntry. However, original value may be anything, and no
+    #   matter what type it has, we want it in the export output.
+    original_pairs = [(m, v.original_result) for m, v in metadata_value_pairs]
+    for result in ConvertValuesWithMetadata(original_pairs,
+                                            token=token,
+                                            options=None):
+      yield result
+
   def Convert(self, metadata, value, token=None):
     """Converts a single ArtifactFilesDownloaderResult."""
 

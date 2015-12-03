@@ -2,11 +2,11 @@
   {
    "name": "TestAggregationArtifact",
     "sources": [
-      { "type": "ARTIFACT",
+      { "type": "ARTIFACT_GROUP",
         "attributes": { "names": ["TestOSAgnostic"] },
         "returned_types": ["Process"]
       },
-      { "type": "ARTIFACT",
+      { "type": "ARTIFACT_GROUP",
         "attributes": { "names": [ "TestCmdArtifact" ]
         },
         "returned_types": [ "SoftwarePackage" ]
@@ -19,7 +19,7 @@
 
   { "name": "TestAggregationArtifactDeps",
     "sources": [
-      { "type": "ARTIFACT",
+      { "type": "ARTIFACT_GROUP",
         "attributes": { "names": [ "TestAggregationArtifact" ]
         },
         "returned_types": [ "Process" ]

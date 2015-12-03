@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""This module contains tests for reflection API renderers."""
+"""This module contains tests for reflection API handlers."""
 
 
 
@@ -11,11 +11,11 @@ from grr.lib import flags
 from grr.lib import test_lib
 
 
-class ApiRDFValueReflectionRendererRegressionTest(
-    api_test_lib.ApiCallRendererRegressionTest):
-  """Regression test for ApiRDFValueReflectionRenderer."""
+class ApiGetRDFValueDescriptorHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+  """Regression test for ApiGetRDFValueDescriptorHandler."""
 
-  renderer = "ApiRDFValueReflectionRenderer"
+  handler = "ApiGetRDFValueDescriptorHandler"
 
   def Run(self):
     self.Check("GET", "/api/reflection/rdfvalue/Duration")
@@ -23,11 +23,11 @@ class ApiRDFValueReflectionRendererRegressionTest(
                "ApiRDFValueCollectionRendererArgs")
 
 
-class ApiAllRDFValuesReflectionRendererTest(test_lib.GRRBaseTest):
-  """Test for ApiAllRDFValuesReflectionRenderer."""
+class ApiGetRDFValueDescriptorHandlerTest(test_lib.GRRBaseTest):
+  """Test for ApiGetRDFValueDescriptorHandler."""
 
   def testSuccessfullyRendersReflectionDataForAllTypes(self):
-    result = reflection.ApiAllRDFValuesReflectionRenderer().Render(
+    result = reflection.ApiListRDFValuesDescriptorsHandler().Render(
         None, token=self.token)
     self.assertTrue(result)
 

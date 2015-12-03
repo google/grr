@@ -13,17 +13,21 @@ describe('csv output plugin directive', function() {
   beforeEach(module(grrUi.outputPlugins.module.name));
   beforeEach(module(grrUi.tests.module.name));
 
+  grrUi.tests.stubDirective('grrAff4DownloadLink');
+
   beforeEach(inject(function($injector) {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
   }));
 
   var renderTestTemplate = function(state) {
-    $rootScope.descriptor = {};
-    $rootScope.state = state;
+    $rootScope.outputPlugin = {
+      value: {
+        state: state
+      }
+    };
 
-    var template = '<grr-csv-output-plugin descriptor="descriptor" ' +
-        'state="state" />';
+    var template = '<grr-csv-output-plugin output-plugin="outputPlugin" />';
     var element = $compile(template)($rootScope);
     $rootScope.$apply();
 
@@ -57,12 +61,14 @@ describe('csv output plugin directive', function() {
 
     expect(element.text()).toContain('Following files were written');
 
-    var link = element.find('grr-aff4-download-link:contains("ExportedFile")');
-    expect(link.scope().$eval(link.attr('aff4-path'))).toBe(
-        'aff4:/foo/bar/ExportedFile');
-
-    link = element.find('grr-aff4-download-link:contains("ExportedClient")');
-    expect(link.scope().$eval(link.attr('aff4-path'))).toBe(
-        'aff4:/foo/bar/ExportedClient');
+    var links = [];
+    element.find('grr-aff4-download-link').each(function(index, link) {
+      links.push($(link).scope().$eval($(link).attr('aff4-path')));
+    });
+    links.sort();
+    expect(links).toEqual([
+      'aff4:/foo/bar/ExportedClient',
+      'aff4:/foo/bar/ExportedFile'
+    ]);
  });
 });

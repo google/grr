@@ -19,7 +19,6 @@ config_lib.DEFINE_semantic(rdfvalue.Duration, "API.FlowDuplicateInterval",
                            "an identical flow to run on the same client. Set "
                            "to 0s to disable checking.")
 
-config_lib.DEFINE_string("API.RendererACLFile", "",
+config_lib.DEFINE_string("API.HandlerACLFile", "",
                          "The file containing API acls, see "
                          "grr/config/api_acls.yaml for an example.")
-

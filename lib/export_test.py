@@ -1034,17 +1034,22 @@ class ArtifactFilesDownloaderResultConverterTest(test_lib.GRRBaseTest):
             path="/tmp/bar.exe",
             pathtype=rdf_paths.PathSpec.PathType.OS))
 
-  def testDoesNothingIfOriginalResultIsNotStatEntry(self):
+  def testExportsOriginalResultAnywayIfItIsNotStatEntry(self):
     result = collectors.ArtifactFilesDownloaderResult(
-        original_result=rdf_client.CpuSample())
+        original_result=DataAgnosticConverterTestValue())
 
     converter = export.ArtifactFilesDownloaderResultConverter()
     converted = list(converter.Convert(export.ExportedMetadata(), result,
                                        token=self.token))
 
-    self.assertFalse(converted)
+    # Test that something gets exported and that this something wasn't
+    # produced by ArtifactFilesDownloaderResultConverter.
+    self.assertEqual(len(converted), 1)
+    self.assertFalse(isinstance(converted[0],
+                                export.ExportedArtifactFilesDownloaderResult))
 
-  def testDoesNothingIfOriginalResultIsNotRegistryOrFileStatEntry(self):
+  def testExportsOriginalResultIfOriginalResultIsNotRegistryOrFileStatEntry(
+      self):
     stat = rdf_client.StatEntry(
         aff4path=rdfvalue.RDFURN("aff4:/C.00000000000000/fs/os/some/path"),
         pathspec=rdf_paths.PathSpec(
@@ -1056,9 +1061,13 @@ class ArtifactFilesDownloaderResultConverterTest(test_lib.GRRBaseTest):
     converted = list(converter.Convert(export.ExportedMetadata(), result,
                                        token=self.token))
 
-    self.assertFalse(converted)
+    # Test that something gets exported and that this something wasn't
+    # produced by ArtifactFilesDownloaderResultConverter.
+    self.assertEqual(len(converted), 1)
+    self.assertFalse(isinstance(converted[0],
+                                export.ExportedArtifactFilesDownloaderResult))
 
-  def testYieldsOneResultForFileStatEntry(self):
+  def testYieldsOneResultAndOneOriginalValueForFileStatEntry(self):
     result = collectors.ArtifactFilesDownloaderResult(
         original_result=self.file_stat)
 
@@ -1066,8 +1075,15 @@ class ArtifactFilesDownloaderResultConverterTest(test_lib.GRRBaseTest):
     converted = list(converter.Convert(export.ExportedMetadata(), result,
                                        token=self.token))
 
-    self.assertEquals(len(converted), 1)
-    self.assertEquals(converted[0].original_file.basename, "bar.exe")
+    default_exports = [v for v in converted if not isinstance(
+        v, export.ExportedArtifactFilesDownloaderResult)]
+    self.assertEquals(len(default_exports), 1)
+    self.assertEquals(len(default_exports), 1)
+
+    downloader_exports = [v for v in converted if isinstance(
+        v, export.ExportedArtifactFilesDownloaderResult)]
+    self.assertEquals(len(downloader_exports), 1)
+    self.assertEquals(downloader_exports[0].original_file.basename, "bar.exe")
 
   def testYieldsOneResultForRegistryStatEntryIfNoPathspecsWereFound(self):
     result = collectors.ArtifactFilesDownloaderResult(
@@ -1077,9 +1093,12 @@ class ArtifactFilesDownloaderResultConverterTest(test_lib.GRRBaseTest):
     converted = list(converter.Convert(export.ExportedMetadata(), result,
                                        token=self.token))
 
-    self.assertEquals(len(converted), 1)
-    self.assertEquals(converted[0].original_registry_key.type, "REG_SZ")
-    self.assertEquals(converted[0].original_registry_key.data,
+    downloader_exports = [v for v in converted if isinstance(
+        v, export.ExportedArtifactFilesDownloaderResult)]
+    self.assertEquals(len(downloader_exports), 1)
+    self.assertEquals(downloader_exports[0].original_registry_key.type,
+                      "REG_SZ")
+    self.assertEquals(downloader_exports[0].original_registry_key.data,
                       "C:\\Windows\\Sidebar.exe")
 
   def testIncludesRegistryStatEntryFoundPathspecIntoYieldedResult(self):
@@ -1091,8 +1110,10 @@ class ArtifactFilesDownloaderResultConverterTest(test_lib.GRRBaseTest):
     converted = list(converter.Convert(export.ExportedMetadata(), result,
                                        token=self.token))
 
-    self.assertEquals(len(converted), 1)
-    self.assertEquals(converted[0].found_path, "foo")
+    downloader_exports = [v for v in converted if isinstance(
+        v, export.ExportedArtifactFilesDownloaderResult)]
+    self.assertEquals(len(downloader_exports), 1)
+    self.assertEquals(downloader_exports[0].found_path, "foo")
 
   def testIncludesFileStatEntryFoundPathspecIntoYieldedResult(self):
     result = collectors.ArtifactFilesDownloaderResult(
@@ -1103,8 +1124,10 @@ class ArtifactFilesDownloaderResultConverterTest(test_lib.GRRBaseTest):
     converted = list(converter.Convert(export.ExportedMetadata(), result,
                                        token=self.token))
 
-    self.assertEquals(len(converted), 1)
-    self.assertEquals(converted[0].found_path, "/tmp/bar.exe")
+    downloader_exports = [v for v in converted if isinstance(
+        v, export.ExportedArtifactFilesDownloaderResult)]
+    self.assertEquals(len(downloader_exports), 1)
+    self.assertEquals(downloader_exports[0].found_path, "/tmp/bar.exe")
 
   def testIncludesDownloadedFileIntoResult(self):
     result = collectors.ArtifactFilesDownloaderResult(
@@ -1117,8 +1140,10 @@ class ArtifactFilesDownloaderResultConverterTest(test_lib.GRRBaseTest):
     converted = list(converter.Convert(export.ExportedMetadata(), result,
                                        token=self.token))
 
-    self.assertEquals(len(converted), 1)
-    self.assertEquals(converted[0].downloaded_file.basename, "foo")
+    downloader_exports = [v for v in converted if isinstance(
+        v, export.ExportedArtifactFilesDownloaderResult)]
+    self.assertEquals(len(downloader_exports), 1)
+    self.assertEquals(downloader_exports[0].downloaded_file.basename, "foo")
 
 
 class DataAgnosticConverterTestValue(rdf_structs.RDFProtoStruct):

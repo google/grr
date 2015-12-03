@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-"""API renderers for accessing config."""
+"""API handlers for accessing config."""
 
-from grr.gui import api_call_renderer_base
+from grr.gui import api_call_handler_base
 from grr.gui import api_value_renderers
 
 from grr.lib import config_lib
@@ -44,7 +44,7 @@ def RenderConfigOption(name):
               type=value_type)
 
 
-class ApiConfigRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiGetConfigHandler(api_call_handler_base.ApiCallHandler):
   """Renders GRR's server configuration."""
 
   category = CATEGORY
@@ -90,15 +90,15 @@ class ApiConfigRenderer(api_call_renderer_base.ApiCallRenderer):
     return sections
 
 
-class ApiConfigOptionRendererArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiConfigOptionRendererArgs
+class ApiGetConfigOptionArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetConfigOptionArgs
 
 
-class ApiConfigOptionRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiGetConfigOptionHandler(api_call_handler_base.ApiCallHandler):
   """Renders single option from a GRR server's configuration."""
 
   category = CATEGORY
-  args_type = ApiConfigOptionRendererArgs
+  args_type = ApiGetConfigOptionArgs
 
   def Render(self, args, token=None):
     """Renders specified config option."""

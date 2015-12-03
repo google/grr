@@ -14,7 +14,6 @@ from M2Crypto import X509
 
 from grr.gui import renderers
 from grr.gui.plugins import fileview_widgets
-from grr.gui.plugins import forms
 from grr.gui.plugins import semantic
 from grr.lib import aff4
 from grr.lib import config_lib
@@ -22,7 +21,6 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.flows.general import export
-from grr.lib.flows.general import filesystem
 from grr.lib.rdfvalues import client as rdf_client
 
 
@@ -676,41 +674,24 @@ class FileSystemTree(renderers.TreeRenderer):
       self.message = "Error fetching %s: %s" % (urn, e)
 
 
-class RecursiveRefreshDialog(renderers.ConfirmationDialogRenderer):
-  """Dialog that allows user to recursively update directories."""
+class RecursiveListButtonRenderer(renderers.AngularSpanDirectiveRenderer):
+  """Renderer that bridges legacy code and Angular code."""
+  directive = "grr-recursive-list-button"
+
   post_parameters = ["aff4_path"]
 
-  header = "Recursive Refresh"
-  proceed_button_title = "Refresh!"
-
-  content_template = renderers.Template("""
-{{this.recursive_refresh_form|safe}}
-""")
-
-  ajax_template = renderers.Template("""
-<p class="text-info">Refresh started successfully!</p>
-""")
-
   def Layout(self, request, response):
-    args = filesystem.RecursiveListDirectoryArgs()
-    self.recursive_refresh_form = forms.SemanticProtoFormRenderer(
-        args, supressions=["pathspec"]).RawHTML(request)
-    return super(RecursiveRefreshDialog, self).Layout(request, response)
+    self.directive_args = {}
 
-  def RenderAjax(self, request, response):
-    aff4_path = rdfvalue.RDFURN(request.REQ.get("aff4_path"))
-    args = forms.SemanticProtoFormRenderer(
-        filesystem.RecursiveListDirectoryArgs()).ParseArgs(request)
+    if "aff4_path" in request.REQ:
+      aff4_path = rdfvalue.RDFURN(request.REQ.get("aff4_path"))
+      client_id = rdf_client.ClientURN(aff4_path.Split()[0])
+      vfs_path = aff4_path.RelativeName(client_id)
 
-    fd = aff4.FACTORY.Open(aff4_path, token=request.token)
-    args.pathspec = fd.real_pathspec
+      self.directive_args["client-id"] = client_id
+      self.directive_args["vfs-path"] = vfs_path
 
-    flow.GRRFlow.StartFlow(client_id=aff4_path.Split()[0],
-                           flow_name="RecursiveListDirectory",
-                           args=args,
-                           notify_to_user=True,
-                           token=request.token)
-    return self.RenderFromTemplate(self.ajax_template, response)
+    return super(RecursiveListButtonRenderer, self).Layout(request, response)
 
 
 class Toolbar(renderers.TemplateRenderer):
@@ -739,14 +720,8 @@ class Toolbar(renderers.TemplateRenderer):
       name="Refresh" title='Refresh this directory listing.'>
       <img src='/static/images/stock_refresh.png' class="toolbar_icon" />
     </button>
-    <button class="btn btn-default" id='recursive_refresh_{{unique|escape}}'
-      title='Refresh this directory listing.' style='position: relative'
-      name="RecursiveRefresh" data-toggle="modal"
-      data-target="#recursive_refresh_dialog_{{unique|escape}}">
-      <img src='/static/images/stock_refresh.png' class="toolbar_icon" />
-      <span style='position: absolute; left: 23px; top: 5px; font-weight: bold;
-       font-size: 18px; -webkit-text-stroke: 1px #000; color: #fff'>R</span>
-    </button>
+
+    {{this.recursive_list_button|safe}}
 
     <button class="btn btn-default" id='rweowned'
       title='Is this machine pwned?'>
@@ -773,13 +748,14 @@ class Toolbar(renderers.TemplateRenderer):
 
 <div id="refresh_action" class="hide"></div>
 <div id="rweowned_dialog" class="modal"></div>
-<div id="recursive_refresh_dialog_{{unique|escape}}"
-  class="modal" tabindex="-1" role="dialog" aria-hidden="true">
-</div>
 """)
 
   def Layout(self, request, response):
     """Render the toolbar."""
+
+    self.recursive_list_button = RecursiveListButtonRenderer().RawHTML(
+        request)
+
     self.state["client_id"] = client_id = request.REQ.get("client_id")
     self.state["aff4_path"] = aff4_path = request.REQ.get(
         "aff4_path", client_id)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""This modules contains tests for artifact API renderer."""
+"""This modules contains tests for artifact API handler."""
 
 
 
@@ -15,17 +15,17 @@ from grr.lib import flags
 from grr.lib import test_lib
 
 
-class ApiArtifactsRendererTest(artifact_test.ArtifactBaseTest):
-  """Test for ApiArtifactsRenderer."""
+class ApiListArtifactsHandlerTest(artifact_test.ArtifactBaseTest):
+  """Test for ApiListArtifactsHandler."""
 
   def setUp(self):
-    super(ApiArtifactsRendererTest, self).setUp()
-    self.renderer = artifact_plugin.ApiArtifactsRenderer()
+    super(ApiListArtifactsHandlerTest, self).setUp()
+    self.handler = artifact_plugin.ApiListArtifactsHandler()
     self.LoadTestArtifacts()
 
   def _renderEmptyArtifacts(self):
     artifact_registry.REGISTRY.ClearSources()
-    return self.renderer.Render(self.renderer.args_type(), token=self.token)
+    return self.handler.Render(self.handler.args_type(), token=self.token)
 
   def testNoArtifacts(self):
     rendering = self._renderEmptyArtifacts()
@@ -33,7 +33,7 @@ class ApiArtifactsRendererTest(artifact_test.ArtifactBaseTest):
                      {"count": 0, "items": [], "offset": 0, "total_count": 0})
 
   def _renderTestArtifacts(self):
-    return self.renderer.Render(self.renderer.args_type(), token=self.token)
+    return self.handler.Render(self.handler.args_type(), token=self.token)
 
   def testPrepackagedArtifacts(self):
     rendering = self._renderTestArtifacts()
@@ -56,10 +56,10 @@ class ApiArtifactsRendererTest(artifact_test.ArtifactBaseTest):
       self.assertIn(required_key, fake_artifact["artifact"]["value"])
 
 
-class ArtifactRendererRegressionTest(
-    api_test_lib.ApiCallRendererRegressionTest):
+class ArtifactHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
 
-  renderer = "ApiArtifactRenderer"
+  handler = "ApiArtifactHandler"
 
   def Run(self):
     artifact_registry.REGISTRY.ClearSources()
@@ -70,11 +70,11 @@ class ArtifactRendererRegressionTest(
     self.Check("GET", "/api/artifacts")
 
 
-class ApiArtifactsDeleteRendererTest(test_lib.GRRBaseTest):
+class ApiDeleteArtifactsHandlerTest(test_lib.GRRBaseTest):
 
   def setUp(self):
-    super(ApiArtifactsDeleteRendererTest, self).setUp()
-    self.renderer = artifact_plugin.ApiArtifactsDeleteRenderer()
+    super(ApiDeleteArtifactsHandlerTest, self).setUp()
+    self.handler = artifact_plugin.ApiDeleteArtifactsHandler()
 
   def UploadTestArtifacts(self):
     artifact_registry.REGISTRY.ClearRegistry()
@@ -88,30 +88,28 @@ class ApiArtifactsDeleteRendererTest(test_lib.GRRBaseTest):
     count = len(artifact_registry.REGISTRY.GetArtifacts(
         reload_datastore_artifacts=True))
 
-    args = self.renderer.args_type(names=["TestFilesArtifact",
-                                          "WMIActiveScriptEventConsumer"])
-    response = self.renderer.Render(args, token=self.token)
+    args = self.handler.args_type(names=["TestFilesArtifact",
+                                         "WMIActiveScriptEventConsumer"])
+    response = self.handler.Render(args, token=self.token)
     self.assertEqual(response, dict(status="OK"))
 
-    artifact_registry.REGISTRY.ClearRegistry()
-    new_count = len(artifact_registry.REGISTRY.GetArtifacts(
-        reload_datastore_artifacts=True))
+    new_count = len(artifact_registry.REGISTRY.GetArtifacts())
 
     # Check that we deleted exactly 2 artifacts.
     self.assertEqual(new_count, count - 2)
 
   def testDeleteDependency(self):
     self.UploadTestArtifacts()
-    args = self.renderer.args_type(names=["TestAggregationArtifact"])
+    args = self.handler.args_type(names=["TestAggregationArtifact"])
     with self.assertRaises(ValueError):
-      self.renderer.Render(args, token=self.token)
+      self.handler.Render(args, token=self.token)
 
   def testDeleteNonExistentArtifact(self):
     self.UploadTestArtifacts()
-    args = self.renderer.args_type(names=["NonExistentArtifact"])
+    args = self.handler.args_type(names=["NonExistentArtifact"])
     e = self.assertRaises(ValueError)
     with e:
-      self.renderer.Render(args, token=self.token)
+      self.handler.Render(args, token=self.token)
     self.assertEqual(str(e.exception),
                      "Artifact(s) to delete (NonExistentArtifact) not found.")
 

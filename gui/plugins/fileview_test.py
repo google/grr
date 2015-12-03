@@ -392,16 +392,16 @@ class TestFileView(FileViewTestBase):
     self.Click("link=c")
 
     # Perform recursive refresh
-    self.Click("css=button[id^=recursive_refresh]")
+    self.Click("css=button[name=RecursiveRefresh]")
 
     self.WaitUntil(self.IsTextPresent, "Recursive Refresh")
     self.WaitUntil(self.IsTextPresent, "Max depth")
 
-    self.Type("css=input[id=v_-max_depth]", "423")
+    self.Type("css=label:contains('Max depth') ~ * input", "423")
     self.Click("css=button[name=Proceed]")
 
     self.WaitUntil(self.IsTextPresent, "Refresh started successfully!")
-    self.Click("css=button[name=Cancel]")
+    self.Click("css=button[name=Close]")
 
     # Go to "Manage Flows" tab and check that RecursiveListDirectory flow has
     # been created.

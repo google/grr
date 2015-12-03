@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""HTTP API logic that ties API call renderers with HTTP routes."""
+"""HTTP API logic that ties API call handlers with HTTP routes."""
 
 
 
@@ -18,7 +18,7 @@ from werkzeug import routing
 
 import logging
 
-from grr.gui import api_call_renderers
+from grr.gui import api_call_handlers
 from grr.gui import api_plugins
 from grr.gui import http_routing
 from grr.lib import access_control
@@ -68,15 +68,15 @@ def StripTypeInfo(rendered_data):
     return rendered_data
 
 
-def RegisterHttpRouteHandler(method, route, renderer_cls):
-  """Registers given ApiCallRenderer for given method and route."""
+def RegisterHttpRouteHandler(method, route, handler_cls):
+  """Registers given ApiCallHandler for given method and route."""
   http_routing.HTTP_ROUTING_MAP.add(routing.Rule(
       route, methods=[method],
-      endpoint=renderer_cls))
+      endpoint=handler_cls))
 
 
-def GetRendererForHttpRequest(request):
-  """Returns a renderer to handle given HTTP request."""
+def GetHandlerForHttpRequest(request):
+  """Returns a handler to handle given HTTP request."""
 
   matcher = http_routing.HTTP_ROUTING_MAP.bind(
       "%s:%s" % (request.environ["SERVER_NAME"],
@@ -84,12 +84,12 @@ def GetRendererForHttpRequest(request):
   try:
     match = matcher.match(request.path, request.method)
   except werkzeug_exceptions.NotFound:
-    raise api_call_renderers.ApiCallRendererNotFoundError(
-        "No API renderer was found for (%s) %s" % (request.path,
-                                                   request.method))
+    raise api_call_handlers.ApiCallHandlerNotFoundError(
+        "No API handler was found for (%s) %s" % (request.path,
+                                                  request.method))
 
-  renderer_cls, route_args = match
-  return (renderer_cls(), route_args)
+  handler_cls, route_args = match
+  return (handler_cls(), route_args)
 
 
 def FillAdditionalArgsFromRequest(request, supported_types):
@@ -115,7 +115,7 @@ def FillAdditionalArgsFromRequest(request, supported_types):
 
   results_list = []
   for name, arg_obj in results.items():
-    additional_args = api_call_renderers.ApiCallAdditionalArgs(
+    additional_args = api_call_handlers.ApiCallAdditionalArgs(
         name=name, type=supported_types[name].__name__)
     additional_args.args = arg_obj
     results_list.append(additional_args)
@@ -124,12 +124,12 @@ def FillAdditionalArgsFromRequest(request, supported_types):
 
 
 class JSONEncoderWithRDFPrimitivesSupport(json.JSONEncoder):
-  """Custom JSON encoder that encodes renderers output.
+  """Custom JSON encoder that encodes handlers output.
 
   Custom encoder is required to facilitate usage of primitive values -
-  booleans, integers and strings - in renderers responses.
+  booleans, integers and strings - in handlers responses.
 
-  If renderer references an RDFString, RDFInteger or and RDFBOol when building a
+  If handler references an RDFString, RDFInteger or and RDFBOol when building a
   response, it will lead to JSON encoding failure when response encoded,
   unless this custom encoder is used. Another way to solve this issue would be
   to explicitly call api_value_renderers.RenderValue on every value returned
@@ -166,9 +166,9 @@ def BuildResponse(status, rendered_data):
 
 
 def RenderHttpResponse(request):
-  """Handles given HTTP request with one of the available API renderers."""
+  """Handles given HTTP request with one of the available API handlers."""
 
-  renderer, route_args = GetRendererForHttpRequest(request)
+  handler, route_args = GetHandlerForHttpRequest(request)
 
   strip_type_info = False
 
@@ -176,28 +176,28 @@ def RenderHttpResponse(request):
     if request.GET.get("strip_type_info", ""):
       strip_type_info = True
 
-    if renderer.args_type:
+    if handler.args_type:
       unprocessed_request = request.GET
       if hasattr(unprocessed_request, "dict"):
         unprocessed_request = unprocessed_request.dict()
 
-      args = renderer.args_type()
+      args = handler.args_type()
       for type_info in args.type_infos:
         if type_info.name in route_args:
           args.Set(type_info.name, route_args[type_info.name])
         elif type_info.name in unprocessed_request:
           args.Set(type_info.name, unprocessed_request[type_info.name])
 
-      if renderer.additional_args_types:
+      if handler.additional_args_types:
         if not hasattr(args, "additional_args"):
-          raise RuntimeError("Renderer %s defines additional arguments types "
+          raise RuntimeError("Handler %s defines additional arguments types "
                              "but its arguments object does not have "
-                             "'additional_args' field." % renderer)
+                             "'additional_args' field." % handler)
 
-        if hasattr(renderer.additional_args_types, "__call__"):
-          additional_args_types = renderer.additional_args_types()
+        if hasattr(handler.additional_args_types, "__call__"):
+          additional_args_types = handler.additional_args_types()
         else:
-          additional_args_types = renderer.additional_args_types
+          additional_args_types = handler.additional_args_types
 
         args.additional_args = FillAdditionalArgsFromRequest(
             unprocessed_request, additional_args_types)
@@ -206,7 +206,7 @@ def RenderHttpResponse(request):
       args = None
   elif request.method == "POST":
     try:
-      args = renderer.args_type()
+      args = handler.args_type()
       for type_info in args.type_infos:
         if type_info.name in route_args:
           args.Set(type_info.name, route_args[type_info.name])
@@ -230,11 +230,11 @@ def RenderHttpResponse(request):
   else:
     raise RuntimeError("Unsupported method: %s." % request.method)
 
-  token = BuildToken(request, renderer.max_execution_time)
+  token = BuildToken(request, handler.max_execution_time)
 
   try:
-    rendered_data = api_call_renderers.HandleApiCall(renderer, args,
-                                                     token=token)
+    rendered_data = api_call_handlers.HandleApiCall(handler, args,
+                                                    token=token)
 
     if strip_type_info:
       rendered_data = StripTypeInfo(rendered_data)
@@ -243,139 +243,156 @@ def RenderHttpResponse(request):
   except access_control.UnauthorizedAccess as e:
     logging.exception(
         "Access denied to %s (%s) with %s: %s", request.path,
-        request.method, renderer.__class__.__name__, e)
+        request.method, handler.__class__.__name__, e)
 
     return BuildResponse(403, dict(message="Access denied by ACL"))
   except Exception as e:  # pylint: disable=broad-except
     logging.exception(
         "Error while processing %s (%s) with %s: %s", request.path,
-        request.method, renderer.__class__.__name__, e)
+        request.method, handler.__class__.__name__, e)
 
     return BuildResponse(500, dict(message=str(e)))
 
 
 class HttpApiInitHook(registry.InitHook):
-  """Register HTTP API renderers."""
+  """Register HTTP API handlers."""
 
   def RunOnce(self):
     # The list is alphabetized by route.
     RegisterHttpRouteHandler("GET", "/api/aff4/<path:aff4_path>",
-                             api_plugins.aff4.ApiAff4Renderer)
+                             api_plugins.aff4.ApiGetAff4ObjectHandler)
     RegisterHttpRouteHandler("GET", "/api/aff4-index/<path:aff4_path>",
-                             api_plugins.aff4.ApiAff4IndexRenderer)
+                             api_plugins.aff4.ApiGetAff4IndexHandler)
 
     RegisterHttpRouteHandler("GET", "/api/artifacts",
-                             api_plugins.artifact.ApiArtifactsRenderer)
+                             api_plugins.artifact.ApiListArtifactsHandler)
     RegisterHttpRouteHandler("POST", "/api/artifacts/upload",
-                             api_plugins.artifact.ApiArtifactsUploadRenderer)
+                             api_plugins.artifact.ApiUploadArtifactHandler)
     RegisterHttpRouteHandler("POST", "/api/artifacts/delete",
-                             api_plugins.artifact.ApiArtifactsDeleteRenderer)
+                             api_plugins.artifact.ApiDeleteArtifactsHandler)
 
     RegisterHttpRouteHandler("GET", "/api/clients/kb-fields",
-                             api_plugins.client.ApiListKbFieldsRenderer)
+                             api_plugins.client.ApiListKbFieldsHandler)
     RegisterHttpRouteHandler("GET", "/api/clients",
-                             api_plugins.client.ApiClientSearchRenderer)
+                             api_plugins.client.ApiListClientsHandler)
     RegisterHttpRouteHandler("GET", "/api/clients/<client_id>",
-                             api_plugins.client.ApiClientSummaryRenderer)
+                             api_plugins.client.ApiGetClientHandler)
     RegisterHttpRouteHandler("GET", "/api/clients/labels",
-                             api_plugins.client.ApiClientsLabelsListRenderer)
+                             api_plugins.client.ApiListClientsLabelsHandler)
     RegisterHttpRouteHandler("POST", "/api/clients/labels/add",
-                             api_plugins.client.ApiClientsAddLabelsRenderer)
+                             api_plugins.client.ApiAddClientsLabelsHandler)
     RegisterHttpRouteHandler("POST", "/api/clients/labels/remove",
-                             api_plugins.client.ApiClientsRemoveLabelsRenderer)
+                             api_plugins.client.ApiRemoveClientsLabelsHandler)
+    RegisterHttpRouteHandler(
+        "POST", "/api/clients/<client_id>/vfs-refresh-operations",
+        api_plugins.client.ApiCreateVfsRefreshOperationHandler)
 
     RegisterHttpRouteHandler("GET", "/api/cron-jobs",
-                             api_plugins.cron.ApiCronJobsListRenderer)
+                             api_plugins.cron.ApiListCronJobsHandler)
     RegisterHttpRouteHandler("POST", "/api/cron-jobs",
-                             api_plugins.cron.ApiCreateCronJobRenderer)
+                             api_plugins.cron.ApiCreateCronJobHandler)
 
     RegisterHttpRouteHandler("GET", "/api/config",
-                             api_plugins.config.ApiConfigRenderer)
+                             api_plugins.config.ApiGetConfigHandler)
     RegisterHttpRouteHandler("GET", "/api/config/<name>",
-                             api_plugins.config.ApiConfigOptionRenderer)
+                             api_plugins.config.ApiGetConfigOptionHandler)
 
     RegisterHttpRouteHandler("GET", "/api/docs",
-                             api_plugins.docs.ApiDocsRenderer)
+                             api_plugins.docs.ApiGetDocsHandler)
 
     RegisterHttpRouteHandler("GET", "/api/flows/<client_id>/<flow_id>/status",
-                             api_plugins.flow.ApiFlowStatusRenderer)
+                             api_plugins.flow.ApiGetFlowStatusHandler)
     RegisterHttpRouteHandler("GET", "/api/flows/descriptors",
-                             api_plugins.flow.ApiFlowDescriptorsListRenderer)
+                             api_plugins.flow.ApiListFlowDescriptorsHandler)
     RegisterHttpRouteHandler(
         "GET", "/api/clients/<client_id>/flows/<flow_id>/results",
-        api_plugins.flow.ApiFlowResultsRenderer)
+        api_plugins.flow.ApiListFlowResultsHandler)
     RegisterHttpRouteHandler(
         "GET",
         "/api/clients/<client_id>/flows/<flow_id>/results/export-command",
-        api_plugins.flow.ApiFlowResultsExportCommandRenderer)
+        api_plugins.flow.ApiGetFlowResultsExportCommandHandler)
     RegisterHttpRouteHandler(
         "GET", "/api/clients/<client_id>/flows/<flow_id>/output-plugins",
-        api_plugins.flow.ApiFlowOutputPluginsRenderer)
+        api_plugins.flow.ApiListFlowOutputPluginsHandler)
+    RegisterHttpRouteHandler(
+        "GET", "/api/clients/<client_id>/flows/<flow_id>/"
+        "output-plugins/<plugin_id>/logs",
+        api_plugins.flow.ApiListFlowOutputPluginLogsHandler)
+    RegisterHttpRouteHandler(
+        "GET", "/api/clients/<client_id>/flows/<flow_id>/"
+        "output-plugins/<plugin_id>/errors",
+        api_plugins.flow.ApiListFlowOutputPluginErrorsHandler)
     RegisterHttpRouteHandler("GET", "/api/clients/<client_id>/flows",
-                             api_plugins.flow.ApiClientFlowsListRenderer)
-    RegisterHttpRouteHandler("POST",
-                             "/api/clients/<client_id>/flows/remotegetfile",
-                             api_plugins.flow.ApiRemoteGetFileRenderer)
+                             api_plugins.flow.ApiListClientFlowsHandler)
+    RegisterHttpRouteHandler(
+        "POST", "/api/clients/<client_id>/flows/remotegetfile",
+        api_plugins.flow.ApiStartGetFileOperationHandler)
     # This starts client flows.
     RegisterHttpRouteHandler("POST", "/api/clients/<client_id>/flows/start",
-                             api_plugins.flow.ApiStartFlowRenderer)
+                             api_plugins.flow.ApiCreateFlowHandler)
     # This starts global flows.
     RegisterHttpRouteHandler("POST", "/api/flows",
-                             api_plugins.flow.ApiStartFlowRenderer)
+                             api_plugins.flow.ApiCreateFlowHandler)
     RegisterHttpRouteHandler(
         "POST",
         "/api/clients/<client_id>/flows/<flow_id>/actions/cancel",
-        api_plugins.flow.ApiCancelFlowRenderer)
+        api_plugins.flow.ApiCancelFlowHandler)
     RegisterHttpRouteHandler(
         "POST",
         "/api/clients/<client_id>/flows/<flow_id>/results/archive-files",
-        api_plugins.flow.ApiFlowArchiveFilesRenderer)
+        api_plugins.flow.ApiArchiveFlowFilesHandler)
 
     RegisterHttpRouteHandler(
         "GET", "/api/output-plugins/all",
-        api_plugins.output_plugin.ApiOutputPluginsListRenderer)
+        api_plugins.output_plugin.ApiOutputPluginsListHandler)
 
     RegisterHttpRouteHandler("GET", "/api/hunts",
-                             api_plugins.hunt.ApiHuntsListRenderer)
+                             api_plugins.hunt.ApiListHuntsHandler)
     RegisterHttpRouteHandler("GET", "/api/hunts/<hunt_id>",
-                             api_plugins.hunt.ApiHuntSummaryRenderer)
+                             api_plugins.hunt.ApiGetHuntHandler)
     RegisterHttpRouteHandler("GET", "/api/hunts/<hunt_id>/errors",
-                             api_plugins.hunt.ApiHuntErrorsRenderer)
+                             api_plugins.hunt.ApiListHuntErrorsHandler)
     RegisterHttpRouteHandler("GET", "/api/hunts/<hunt_id>/log",
-                             api_plugins.hunt.ApiHuntLogRenderer)
+                             api_plugins.hunt.ApiListHuntLogsHandler)
     RegisterHttpRouteHandler("GET", "/api/hunts/<hunt_id>/results",
-                             api_plugins.hunt.ApiHuntResultsRenderer)
+                             api_plugins.hunt.ApiListHuntResultsHandler)
     RegisterHttpRouteHandler(
         "GET", "/api/hunts/<hunt_id>/results/export-command",
-        api_plugins.hunt.ApiHuntResultsExportCommandRenderer)
+        api_plugins.hunt.ApiGetHuntResultsExportCommandHandler)
     RegisterHttpRouteHandler("GET", "/api/hunts/<hunt_id>/output-plugins",
-                             api_plugins.hunt.ApiHuntOutputPluginsRenderer)
+                             api_plugins.hunt.ApiListHuntOutputPluginsHandler)
+    RegisterHttpRouteHandler(
+        "GET", "/api/hunts/<hunt_id>/output-plugins/<plugin_id>/logs",
+        api_plugins.hunt.ApiListHuntOutputPluginLogsHandler)
+    RegisterHttpRouteHandler(
+        "GET", "/api/hunts/<hunt_id>/output-plugins/<plugin_id>/errors",
+        api_plugins.hunt.ApiListHuntOutputPluginErrorsHandler)
     RegisterHttpRouteHandler("POST", "/api/hunts/create",
-                             api_plugins.hunt.ApiCreateHuntRenderer)
+                             api_plugins.hunt.ApiCreateHuntHandler)
     RegisterHttpRouteHandler("POST",
                              "/api/hunts/<hunt_id>/results/archive-files",
-                             api_plugins.hunt.ApiHuntArchiveFilesRenderer)
+                             api_plugins.hunt.ApiArchiveHuntFilesHandler)
 
     RegisterHttpRouteHandler(
         "GET", "/api/reflection/aff4/attributes",
-        api_plugins.reflection.ApiAff4AttributesReflectionRenderer)
+        api_plugins.reflection.ApiListAff4AttributesDescriptorsHandler)
     RegisterHttpRouteHandler(
         "GET", "/api/reflection/rdfvalue/<type>",
-        api_plugins.reflection.ApiRDFValueReflectionRenderer)
+        api_plugins.reflection.ApiGetRDFValueDescriptorHandler)
     RegisterHttpRouteHandler(
         "GET", "/api/reflection/rdfvalue/all",
-        api_plugins.reflection.ApiAllRDFValuesReflectionRenderer)
+        api_plugins.reflection.ApiListRDFValuesDescriptorsHandler)
 
     RegisterHttpRouteHandler(
         "GET", "/api/stats/store/<component>/metadata",
-        api_plugins.stats.ApiStatsStoreMetricsMetadataRenderer)
+        api_plugins.stats.ApiListStatsStoreMetricsMetadataHandler)
     RegisterHttpRouteHandler(
         "GET", "/api/stats/store/<component>/metrics/<metric_name>",
-        api_plugins.stats.ApiStatsStoreMetricRenderer)
+        api_plugins.stats.ApiGetStatsStoreMetricHandler)
 
     RegisterHttpRouteHandler("GET", "/api/users/me/approvals/<approval_type>",
-                             api_plugins.user.ApiUserApprovalsListRenderer)
+                             api_plugins.user.ApiListUserApprovalsHandler)
     RegisterHttpRouteHandler("GET", "/api/users/me/settings",
-                             api_plugins.user.ApiUserSettingsRenderer)
+                             api_plugins.user.ApiGetUserSettingsHandler)
     RegisterHttpRouteHandler("POST", "/api/users/me/settings",
-                             api_plugins.user.ApiSetUserSettingsRenderer)
+                             api_plugins.user.ApiUpdateUserSettingsHandler)

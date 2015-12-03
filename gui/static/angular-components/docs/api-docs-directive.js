@@ -1,6 +1,6 @@
 'use strict';
 
-goog.provide('grrUi.docs.apiDocsDirective.ApiCallRendererDescriptor');
+goog.provide('grrUi.docs.apiDocsDirective.ApiCallHandlerDescriptor');
 goog.provide('grrUi.docs.apiDocsDirective.ApiDocsController');
 goog.provide('grrUi.docs.apiDocsDirective.ApiDocsDirective');
 goog.provide('grrUi.docs.apiDocsDirective.ApiObjectRendererDescriptor');
@@ -15,7 +15,7 @@ goog.scope(function() {
  *             query_spec:Object.<string, Object>
  *           }}
  */
-grrUi.docs.apiDocsDirective.ApiCallRendererDescriptor;
+grrUi.docs.apiDocsDirective.ApiCallHandlerDescriptor;
 
 
 /** @typedef {{
@@ -48,9 +48,9 @@ grrUi.docs.apiDocsDirective.ApiDocsController = function($element, $http,
   this.grrApiService_ = grrApiService;
 
   /** @export {!Object<string,
-    *     Array<grrUi.docs.apiDocsDirective.ApiCallRendererDescriptor>>}
+    *     Array<grrUi.docs.apiDocsDirective.ApiCallHandlerDescriptor>>}
     */
-  this.apiCallRenderersByCategory;
+  this.apiCallHandlersByCategory;
 
   /** @export {Object.<string,
     *     grrUi.docs.apiDocsDirective.ApiObjectRendererDescriptor>}
@@ -58,7 +58,7 @@ grrUi.docs.apiDocsDirective.ApiDocsController = function($element, $http,
   this.apiObjectRenderers;
 
   /** @export {Object<string, *>} */
-  this.examplesByRenderer;
+  this.examplesByHandler;
 
   /** @export {Array<string>} */
   this.categories;
@@ -81,10 +81,10 @@ var ApiDocsController = grrUi.docs.apiDocsDirective.ApiDocsController;
  * @private
  */
 ApiDocsController.prototype.onDocsFetched_ = function(response) {
-  var apiCallRenderers = response.data['api_call_renderers'];
+  var apiCallHandlers = response.data['api_call_handlers'];
   var categoriesDict = {};
-  angular.forEach(apiCallRenderers, function(renderer) {
-    var category = renderer['category'];
+  angular.forEach(apiCallHandlers, function(handler) {
+    var category = handler['category'];
     if (!category) {
       category = 'Other';
     }
@@ -92,11 +92,11 @@ ApiDocsController.prototype.onDocsFetched_ = function(response) {
     if (categoriesDict[category] === undefined) {
       categoriesDict[category] = [];
     }
-    categoriesDict[category].push(renderer);
+    categoriesDict[category].push(handler);
   }.bind(this));
 
-  angular.forEach(categoriesDict, function(renderers) {
-    renderers.sort(function(a, b) {
+  angular.forEach(categoriesDict, function(handlers) {
+    handlers.sort(function(a, b) {
       var astr = a['method'] + '_' + a['route'];
       var bstr = b['method'] + '_' + b['route'];
       if (astr > bstr) {
@@ -108,7 +108,7 @@ ApiDocsController.prototype.onDocsFetched_ = function(response) {
       }
     });
   }.bind(this));
-  this.apiCallRenderersByCategory = categoriesDict;
+  this.apiCallHandlersByCategory = categoriesDict;
   this.categories = Object.keys(categoriesDict).sort();
   this.visibleCategory = this.categories[0];
 
@@ -123,7 +123,7 @@ ApiDocsController.prototype.onDocsFetched_ = function(response) {
  * @private
  */
 ApiDocsController.prototype.onExamplesFetched_ = function(response) {
-  this.examplesByRenderer = response.data;
+  this.examplesByHandler = response.data;
 };
 
 

@@ -789,7 +789,7 @@
 						this._data.core.themes.dots			= s.dots;
 						this._data.core.themes.stripes		= s.stripes;
 						this._data.core.themes.icons		= s.icons;
-						this.set_theme(s.name || "default-v3", s.url);
+						this.set_theme(s.name || "default", s.url);
 						this.set_theme_variant(s.variant);
 					}, this))
 				.on("loading.jstree", $.proxy(function () {

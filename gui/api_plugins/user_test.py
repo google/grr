@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""This module contains tests for user API renderers."""
+"""This module contains tests for user API handlers."""
 
 
 
@@ -17,13 +17,13 @@ from grr.lib import utils
 from grr.lib.aff4_objects import users as aff4_users
 
 
-class ApiUserApprovalsListRendererTest(test_lib.GRRBaseTest):
-  """Test for ApiUserApprovalsListRenderer."""
+class ApiListUserApprovalsHandlerTest(test_lib.GRRBaseTest):
+  """Test for ApiListUserApprovalsHandler."""
 
   def setUp(self):
-    super(ApiUserApprovalsListRendererTest, self).setUp()
+    super(ApiListUserApprovalsHandlerTest, self).setUp()
     self.client_id = self.SetupClients(1)[0]
-    self.renderer = user_plugin.ApiUserApprovalsListRenderer()
+    self.handler = user_plugin.ApiListUserApprovalsHandler()
 
   def testRendersRequestedClientApproval(self):
     flow.GRRFlow.StartFlow(client_id=self.client_id,
@@ -33,8 +33,8 @@ class ApiUserApprovalsListRendererTest(test_lib.GRRBaseTest):
                            approver="approver",
                            token=self.token)
 
-    args = user_plugin.ApiUserApprovalsListRendererArgs(approval_type="client")
-    result = self.renderer.Render(args, token=self.token)
+    args = user_plugin.ApiListUserApprovalsArgs(approval_type="client")
+    result = self.handler.Render(args, token=self.token)
 
     self.assertEqual(result["offset"], 0)
     self.assertEqual(result["count"], 1)
@@ -52,8 +52,8 @@ class ApiUserApprovalsListRendererTest(test_lib.GRRBaseTest):
                            approver="approver",
                            token=self.token)
 
-    args = user_plugin.ApiUserApprovalsListRendererArgs(approval_type="hunt")
-    result = self.renderer.Render(args, token=self.token)
+    args = user_plugin.ApiListUserApprovalsArgs(approval_type="hunt")
+    result = self.handler.Render(args, token=self.token)
 
     self.assertEqual(result["offset"], 0)
     self.assertEqual(result["count"], 1)
@@ -71,19 +71,19 @@ class ApiUserApprovalsListRendererTest(test_lib.GRRBaseTest):
                            approver="approver",
                            token=self.token)
 
-    args = user_plugin.ApiUserApprovalsListRendererArgs(approval_type="cron")
-    result = self.renderer.Render(args, token=self.token)
+    args = user_plugin.ApiListUserApprovalsArgs(approval_type="cron")
+    result = self.handler.Render(args, token=self.token)
 
     self.assertEqual(result["offset"], 0)
     self.assertEqual(result["count"], 1)
     self.assertEqual(len(result["items"]), 1)
 
 
-class ApiUserApprovalsListRendererRegressionTest(
-    api_test_lib.ApiCallRendererRegressionTest):
-  """Regression test for ApiUserApprovalsListRendererTest."""
+class ApiListUserApprovalsHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+  """Regression test for ApiListUserApprovalsHandlerTest."""
 
-  renderer = "ApiUserApprovalsListRenderer"
+  handler = "ApiListUserApprovalsHandler"
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -138,12 +138,12 @@ class ApiUserApprovalsListRendererRegressionTest(
                  replace={utils.SmartStr(hunt.urn.Basename()): "H:123456"})
 
 
-class ApiUserSettingsRendererTest(test_lib.GRRBaseTest):
-  """Test for ApiUserSettingsRenderer."""
+class ApiGetUserSettingsHandlerTest(test_lib.GRRBaseTest):
+  """Test for ApiGetUserSettingsHandler."""
 
   def setUp(self):
-    super(ApiUserSettingsRendererTest, self).setUp()
-    self.renderer = user_plugin.ApiUserSettingsRenderer()
+    super(ApiGetUserSettingsHandlerTest, self).setUp()
+    self.handler = user_plugin.ApiGetUserSettingsHandler()
 
   def testRendersSettingsForUserCorrespondingToToken(self):
     with aff4.FACTORY.Create(
@@ -154,18 +154,18 @@ class ApiUserSettingsRendererTest(test_lib.GRRBaseTest):
                                          canary_mode=True,
                                          docs_location="REMOTE"))
 
-    result = self.renderer.Render(None,
-                                  token=access_control.ACLToken(username="foo"))
+    result = self.handler.Render(None,
+                                 token=access_control.ACLToken(username="foo"))
     self.assertEqual(result["value"]["mode"]["value"], "ADVANCED")
     self.assertEqual(result["value"]["canary_mode"]["value"], True)
     self.assertEqual(result["value"]["docs_location"]["value"], "REMOTE")
 
 
-class ApiUserSettingsRendererRegresstionTest(
-    api_test_lib.ApiCallRendererRegressionTest):
-  """Regression test for ApiUserSettingsRenderer."""
+class ApiGetUserSettingsHandlerRegresstionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+  """Regression test for ApiGetUserSettingsHandler."""
 
-  renderer = "ApiUserSettingsRenderer"
+  handler = "ApiGetUserSettingsHandler"
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -178,12 +178,12 @@ class ApiUserSettingsRendererRegresstionTest(
     self.Check("GET", "/api/users/me/settings")
 
 
-class ApiSetUserSettingsRendererTest(test_lib.GRRBaseTest):
-  """Tests for ApiSetUserSettingsRenderer."""
+class ApiUpdateUserSettingsHandlerTest(test_lib.GRRBaseTest):
+  """Tests for ApiUpdateUserSettingsHandler."""
 
   def setUp(self):
-    super(ApiSetUserSettingsRendererTest, self).setUp()
-    self.renderer = user_plugin.ApiSetUserSettingsRenderer()
+    super(ApiUpdateUserSettingsHandlerTest, self).setUp()
+    self.handler = user_plugin.ApiUpdateUserSettingsHandler()
 
   def testSetsSettingsForUserCorrespondingToToken(self):
     settings = aff4_users.GUISettings(mode="ADVANCED",
@@ -191,8 +191,8 @@ class ApiSetUserSettingsRendererTest(test_lib.GRRBaseTest):
                                       docs_location="REMOTE")
 
     # Render the request - effectively applying the settings for user "foo".
-    result = self.renderer.Render(settings,
-                                  token=access_control.ACLToken(username="foo"))
+    result = self.handler.Render(settings,
+                                 token=access_control.ACLToken(username="foo"))
     self.assertEqual(result["status"], "OK")
 
     # Check that settings for user "foo" were applied.

@@ -25,7 +25,11 @@ grrUi.outputPlugins.outputPluginsNotesDirective.OutputPluginsNotesController =
   /** @export {?string} */
   this.error;
 
-  this.scope_.$watch('metadataUrl', this.onMetadataUrlChange_.bind(this));
+  /** @export {Array<Object>} */
+  this.outputPlugins;
+
+  this.scope_.$watch('outputPluginsUrl',
+                     this.onOutputPluginsUrlChange_.bind(this));
 };
 var OutputPluginsNotesController =
     grrUi.outputPlugins.outputPluginsNotesDirective
@@ -38,12 +42,12 @@ var OutputPluginsNotesController =
  * @param {?string} newValue New metadata url.
  * @private
  */
-OutputPluginsNotesController.prototype.onMetadataUrlChange_ = function(
+OutputPluginsNotesController.prototype.onOutputPluginsUrlChange_ = function(
     newValue) {
   if (angular.isDefined(newValue)) {
     this.grrApiService_.get(/** @type {string} */ (newValue)).then(
         function success(response) {
-          this.states = response['data'];
+          this.outputPlugins = response['data']['items'];
         }.bind(this),
         function failure(response) {
           this.error = response['data']['message'];
@@ -63,7 +67,7 @@ grrUi.outputPlugins.outputPluginsNotesDirective.OutputPluginsNotesDirective =
     function() {
   return {
     scope: {
-      metadataUrl: '='
+      outputPluginsUrl: '='
     },
     restrict: 'E',
     templateUrl: '/static/angular-components/output-plugins/' +

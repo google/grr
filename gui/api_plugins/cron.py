@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-"""API renderers for dealing with cron jobs."""
+"""API handlers for dealing with cron jobs."""
 
 import itertools
 
-from grr.gui import api_call_renderer_base
+from grr.gui import api_call_handler_base
 from grr.gui import api_value_renderers
 
 from grr.lib import aff4
@@ -85,15 +85,15 @@ def CronJobToApiCronJob(cron_job):
   return api_cron_job
 
 
-class ApiCronJobsListRendererArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiCronJobsListRendererArgs
+class ApiListCronJobsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListCronJobsArgs
 
 
-class ApiCronJobsListRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiListCronJobsHandler(api_call_handler_base.ApiCallHandler):
   """Lists flows launched on a given client."""
 
   category = CATEGORY
-  args_type = ApiCronJobsListRendererArgs
+  args_type = ApiListCronJobsArgs
 
   def Render(self, args, token=None):
     if not args.count:
@@ -113,7 +113,7 @@ class ApiCronJobsListRenderer(api_call_renderer_base.ApiCallRenderer):
     return result
 
 
-class ApiCreateCronJobRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiCreateCronJobHandler(api_call_handler_base.ApiCallHandler):
   """Creates a new cron job."""
 
   category = CATEGORY

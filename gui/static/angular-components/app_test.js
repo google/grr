@@ -75,7 +75,7 @@ grrUi.tests.stubDirective = function(directiveName) {
   angular.module(moduleName, []).directive(directiveName,
                                            function() {
                                              return {
-                                           priority: 100000,
+                                               priority: 100000,
                                                terminal: true
                                              };
                                            });

@@ -78,41 +78,11 @@ class InfiniteFlow(flow.GRRFlow):
     self.CallState(next_state="Start")
 
 
-class StandardHuntTest(test_lib.FlowTestsBaseclass):
-  """Tests the Hunt."""
+class StandardHuntTestMixin(object):
+  """Mixin with helper methods for hunt tests."""
 
-  def setUp(self):
-    super(StandardHuntTest, self).setUp()
-    # Set up 10 clients.
-    self.client_ids = self.SetupClients(10)
-
-    DummyHuntOutputPlugin.num_calls = 0
-    DummyHuntOutputPlugin.num_responses = 0
-    StatefulDummyHuntOutputPlugin.data = []
-    LongRunningDummyHuntOutputPlugin.num_calls = 0
-
-    with test_lib.FakeTime(0):
-      # Clean up the foreman to remove any rules.
-      with aff4.FACTORY.Open("aff4:/foreman", mode="rw",
-                             token=self.token) as foreman:
-        foreman.Set(foreman.Schema.RULES())
-
-    self.old_logging_error = logging.error
-    logging.error = self.AssertNoCollectionCorruption
-
-  def tearDown(self):
-    super(StandardHuntTest, self).tearDown()
-
-    logging.error = self.old_logging_error
-    self.DeleteClients(10)
-
-  def AssertNoCollectionCorruption(self, message, *args, **kwargs):
-    self.assertFalse(
-        "Results collection was changed outside of hunt" in message)
-    self.old_logging_error(message, *args, **kwargs)
-
-  def StartHunt(self, **kwargs):
-    with hunts.GRRHunt.StartHunt(
+  def CreateHunt(self, token=None, **kwargs):
+    return hunts.GRRHunt.StartHunt(
         hunt_name="GenericHunt",
         flow_runner_args=flow_runner.FlowRunnerArgs(flow_name="GetFile"),
         flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
@@ -123,7 +93,10 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
                                               attribute_regex="GRR"),
         ],
         client_rate=0,
-        token=self.token, **kwargs) as hunt:
+        token=token or self.token, **kwargs)
+
+  def StartHunt(self, **kwargs):
+    with self.CreateHunt(**kwargs) as hunt:
       hunt.Run()
 
     return hunt.urn
@@ -155,6 +128,40 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass):
     for _ in test_lib.TestFlowHelper(flow_urn, token=self.token):
       pass
     return flow_urn
+
+
+class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
+  """Tests the Hunt."""
+
+  def setUp(self):
+    super(StandardHuntTest, self).setUp()
+    # Set up 10 clients.
+    self.client_ids = self.SetupClients(10)
+
+    DummyHuntOutputPlugin.num_calls = 0
+    DummyHuntOutputPlugin.num_responses = 0
+    StatefulDummyHuntOutputPlugin.data = []
+    LongRunningDummyHuntOutputPlugin.num_calls = 0
+
+    with test_lib.FakeTime(0):
+      # Clean up the foreman to remove any rules.
+      with aff4.FACTORY.Open("aff4:/foreman", mode="rw",
+                             token=self.token) as foreman:
+        foreman.Set(foreman.Schema.RULES())
+
+    self.old_logging_error = logging.error
+    logging.error = self.AssertNoCollectionCorruption
+
+  def tearDown(self):
+    super(StandardHuntTest, self).tearDown()
+
+    logging.error = self.old_logging_error
+    self.DeleteClients(10)
+
+  def AssertNoCollectionCorruption(self, message, *args, **kwargs):
+    self.assertFalse(
+        "Results collection was changed outside of hunt" in message)
+    self.old_logging_error(message, *args, **kwargs)
 
   def testCreatesSymlinksOnClientsForEveryStartedFlow(self):
     hunt_urn = self.StartHunt()

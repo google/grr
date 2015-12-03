@@ -173,6 +173,12 @@ class ArtifactRegistry(object):
     artifact_rdfvalue.error_message = None
     self._artifacts[artifact_rdfvalue.name] = artifact_rdfvalue
 
+  def UnregisterArtifact(self, artifact_name):
+    try:
+      del self._artifacts[artifact_name]
+    except KeyError:
+      raise ValueError("Artifact %s unknown." % artifact_name)
+
   def ClearRegistry(self):
     self._artifacts = {}
     self._dirty = True
@@ -388,10 +394,15 @@ class ArtifactSource(structs.RDFProtoStruct):
                           "output_type": "ExecuteResponse"},
               "REKALL_PLUGIN": {"required_attributes": ["plugin"],
                                 "output_type": "RekallResponse"},
+              # ARTIFACT is the legacy name for ARTIFACT_GROUP
+              # per: https://github.com/ForensicArtifacts/artifacts/pull/143
+              # TODO(user): remove legacy support after migration.
               "ARTIFACT": {"required_attributes": ["names"],
                            "output_type": OUTPUT_UNDEFINED},
               "ARTIFACT_FILES": {"required_attributes": ["artifact_list"],
-                                 "output_type": "StatEntry"}}
+                                 "output_type": "StatEntry"},
+              "ARTIFACT_GROUP": {"required_attributes": ["names"],
+                                 "output_type": OUTPUT_UNDEFINED}}
 
   def __init__(self, initializer=None, age=None, **kwarg):
     # Support initializing from a mapping
@@ -599,7 +610,11 @@ class Artifact(structs.RDFProtoStruct):
     """
     deps = set()
     for source in self.sources:
-      if source.type == ArtifactSource.SourceType.ARTIFACT:
+      # ARTIFACT is the legacy name for ARTIFACT_GROUP
+      # per: https://github.com/ForensicArtifacts/artifacts/pull/143
+      # TODO(user): remove legacy support after migration.
+      if source.type in (ArtifactSource.SourceType.ARTIFACT,
+                         ArtifactSource.SourceType.ARTIFACT_GROUP):
         if source.attributes.GetItem("names"):
           deps.update(source.attributes.GetItem("names"))
 

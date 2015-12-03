@@ -8,8 +8,12 @@ describe('output plugin note directive', function() {
   var $compile, $rootScope;
   var grrOutputPluginsDirectivesRegistryService;
 
+  beforeEach(module('/static/angular-components/output-plugins/output-plugin-note.html'));
   beforeEach(module(grrUi.outputPlugins.module.name));
   beforeEach(module(grrUi.tests.module.name));
+
+  grrUi.tests.stubDirective('grrOutputPluginNoteBody');
+  grrUi.tests.stubDirective('grrOutputPluginLogs');
 
   beforeEach(inject(function($injector) {
     $compile = $injector.get('$compile');
@@ -19,78 +23,74 @@ describe('output plugin note directive', function() {
         'grrOutputPluginsDirectivesRegistryService');
   }));
 
-  var renderTestTemplate = function(descriptor, state) {
-    $rootScope.descriptor = descriptor;
-    $rootScope.state = state;
+  var defaultOutputPlugin = {
+    value: {
+      descriptor: {
+        value: {
+          plugin_name: {
+            value: 'Foo'
+          }
+        }
+      },
+      id: {
+        value: '42'
+      }
+    }
+  };
 
-    var template = '<grr-output-plugin-note descriptor="descriptor" ' +
-        'state="state" />';
+  var renderTestTemplate = function(outputPlugin) {
+    $rootScope.outputPlugin = outputPlugin || angular.copy(defaultOutputPlugin);
+    $rootScope.outputPluginsUrl = '/foo/bar';
+
+    var template = '<grr-output-plugin-note output-plugin="outputPlugin" ' +
+        'output-plugins-url="outputPluginsUrl" />';
     var element = $compile(template)($rootScope);
     $rootScope.$apply();
 
     return element;
   };
 
-  it('shows nothing if no corresponding directive found', function() {
-    var descriptor = {
-      value: {
-        plugin_name: {
-          value: 'Foo'
-        }
-      }
-    };
+  it('shows registered plugin title if registered', function() {
+    var element = renderTestTemplate();
+    expect(element.text()).toContain('');
 
-    var element = renderTestTemplate(descriptor, {});
-    expect(element.text().trim()).toBe('');
-  });
-
-  it('renders registered type with a corresponding directive', function() {
-    // This directive does not exist and Angular won't process it,
-    // but it still will be inserted into DOM and we can check
-    // that it's inserted correctly.
     var directiveMock = {
-      directive_name: 'theTestDirective'
+      directive_name: 'theTestDirective',
+      output_plugin_title: 'a bar plugin'
     };
-
     grrOutputPluginsDirectivesRegistryService.registerDirective(
         'Foo', directiveMock);
-    var descriptor = {
-      value: {
-        plugin_name: {
-          value: 'Foo'
-        }
-      }
-    };
 
-    var element = renderTestTemplate(descriptor, {});
-    expect($('the-test-directive', element).length).toBe(1);
+    var element = renderTestTemplate();
+    expect(element.text()).toContain('a bar plugin');
   });
 
-  it('passes descriptor and state to the corresponding directive', function() {
-    var directiveMock = {
-      directive_name: 'theTestDirective'
-    };
-
-    grrOutputPluginsDirectivesRegistryService.registerDirective(
-        'Foo', directiveMock);
-    var descriptor = {
-      value: {
-        plugin_name: {
-          value: 'Foo'
-        }
-      }
-    };
-    var state = {
-      value: {
-        foo: 'bar'
-      }
-    };
-
-    var element = renderTestTemplate(descriptor, state);
-    var directive = element.find('the-test-directive');
-    expect(directive.scope().$eval(directive.attr('descriptor'))).toEqual(
-        descriptor);
-    expect(directive.scope().$eval(directive.attr('state'))).toEqual(state);
+  it('shows plugin descriptor name if not registered', function() {
+    var element = renderTestTemplate();
+    expect(element.text()).toContain('Foo');
   });
 
+  it('delegates rendering to grr-output-plugin-note-body', function() {
+    var element = renderTestTemplate();
+
+    var body = element.find('grr-output-plugin-note-body');
+    expect(body.scope().$eval(body.attr('output-plugin'))).toEqual(
+        defaultOutputPlugin);
+  });
+
+  it('delegates logs info rendering to grr-output-plugin-logs', function() {
+    var element = renderTestTemplate();
+
+    var logs = element.find('grr-output-plugin-logs:nth(0)');
+    expect(logs.scope().$eval(logs.attr('url'))).toEqual(
+        '/foo/bar/42/logs');
+  });
+
+  it('delegates errors info rendering to grr-output-plugin-logs', function() {
+    var element = renderTestTemplate();
+
+    var errors = element.find('grr-output-plugin-logs:nth(1)');
+    expect(errors.scope().$eval(errors.attr('url'))).toEqual(
+        '/foo/bar/42/errors');
+  });
 });

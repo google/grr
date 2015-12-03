@@ -21,7 +21,7 @@ grrUi.hunt.huntResultsDirective.HuntResultsController = function(
   this.resultsUrl;
 
   /** @export {string} */
-  this.outputPluginsMetadataUrl;
+  this.outputPluginsUrl;
 
   /** @export {string} */
   this.downloadFilesUrl;
@@ -48,7 +48,7 @@ HuntResultsController.prototype.onHuntUrnChange = function(huntUrn) {
 
   this.resultsUrl = '/hunts/' + huntId + '/results';
   this.downloadFilesUrl = this.resultsUrl + '/archive-files';
-  this.outputPluginsMetadataUrl = '/hunts/' + huntId + '/output-plugins';
+  this.outputPluginsUrl = '/hunts/' + huntId + '/output-plugins';
 };
 
 

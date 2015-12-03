@@ -22,10 +22,12 @@ grrUi.outputPlugins.csvOutputPluginDirective.CsvOutputPluginController =
   /** @export {boolean} */
   this.hasStreams = false;
 
-  this.scope_.$watch('state.value.output_streams.value', function(newValue) {
-    this.hasStreams = angular.isDefined(newValue) &&
-        Object.keys(newValue).length > 0;
-  }.bind(this));
+  this.scope_.$watch(
+      'outputPlugin.value.state.value.output_streams.value',
+      function(newValue) {
+        this.hasStreams = angular.isDefined(newValue) &&
+            Object.keys(newValue).length > 0;
+      }.bind(this));
 };
 var CsvOutputPluginController =
     grrUi.outputPlugins.csvOutputPluginDirective.CsvOutputPluginController;
@@ -42,8 +44,7 @@ grrUi.outputPlugins.csvOutputPluginDirective.CsvOutputPluginDirective =
     function() {
   return {
     scope: {
-      descriptor: '=',
-      state: '='
+      outputPlugin: '='
     },
     restrict: 'E',
     templateUrl: '/static/angular-components/output-plugins/' +
@@ -62,6 +63,17 @@ grrUi.outputPlugins.csvOutputPluginDirective.CsvOutputPluginDirective =
  */
 grrUi.outputPlugins.csvOutputPluginDirective.CsvOutputPluginDirective
     .output_plugin_type = 'CSVOutputPlugin';
+
+
+/**
+ * Output plugin type this directive handles.
+ *
+ * @const
+ * @export
+ */
+grrUi.outputPlugins.csvOutputPluginDirective.CsvOutputPluginDirective
+    .output_plugin_title = 'CSV Output';
+
 
 /**
  * Directive's name in Angular.

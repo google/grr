@@ -1,14 +1,16 @@
 #!/usr/bin/env python
-"""API renderers for accessing hunts."""
+"""API handlers for accessing hunts."""
 
 import functools
+import itertools
 import operator
 
 import logging
 
 from grr.gui import api_aff4_object_renderers
-from grr.gui import api_call_renderer_base
+from grr.gui import api_call_handler_base
 from grr.gui import api_value_renderers
+from grr.gui.api_plugins import output_plugin as api_output_plugin
 
 from grr.lib import access_control
 from grr.lib import aff4
@@ -87,15 +89,15 @@ class ApiGRRHuntRenderer(
     return rendered_object
 
 
-class ApiHuntsListRendererArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiHuntsListRendererArgs
+class ApiListHuntsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListHuntsArgs
 
 
-class ApiHuntsListRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
   """Renders list of available hunts."""
 
   category = CATEGORY
-  args_type = ApiHuntsListRendererArgs
+  args_type = ApiListHuntsArgs
 
   def _RenderHuntList(self, hunt_list):
     hunts_list = sorted(hunt_list, reverse=True,
@@ -232,15 +234,15 @@ class ApiHuntsListRenderer(api_call_renderer_base.ApiCallRenderer):
       return self.RenderNonFiltered(args, token)
 
 
-class ApiHuntSummaryRendererArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiHuntSummaryRendererArgs
+class ApiGetHuntArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetHuntArgs
 
 
-class ApiHuntSummaryRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiGetHuntHandler(api_call_handler_base.ApiCallHandler):
   """Renders hunt's summary."""
 
   category = CATEGORY
-  args_type = ApiHuntSummaryRendererArgs
+  args_type = ApiGetHuntArgs
 
   def Render(self, args, token=None):
     hunt = aff4.FACTORY.Open(HUNTS_ROOT_PATH.Add(args.hunt_id),
@@ -251,15 +253,15 @@ class ApiHuntSummaryRenderer(api_call_renderer_base.ApiCallRenderer):
         [ApiGRRHuntRendererArgs(with_full_summary=True)])
 
 
-class ApiHuntResultsRendererArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiHuntResultsRendererArgs
+class ApiListHuntResultsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListHuntResultsArgs
 
 
-class ApiHuntResultsRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiListHuntResultsHandler(api_call_handler_base.ApiCallHandler):
   """Renders hunt results."""
 
   category = CATEGORY
-  args_type = ApiHuntResultsRendererArgs
+  args_type = ApiListHuntResultsArgs
 
   def Render(self, args, token=None):
     results = aff4.FACTORY.Create(
@@ -273,16 +275,16 @@ class ApiHuntResultsRenderer(api_call_renderer_base.ApiCallRenderer):
             with_total_count=True)])
 
 
-class ApiHuntResultsExportCommandRendererArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiHuntResultsExportCommandRendererArgs
+class ApiGetHuntResultsExportCommandArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetHuntResultsExportCommandArgs
 
 
-class ApiHuntResultsExportCommandRenderer(
-    api_call_renderer_base.ApiCallRenderer):
+class ApiGetHuntResultsExportCommandHandler(
+    api_call_handler_base.ApiCallHandler):
   """Renders GRR export tool command line that exports hunt results."""
 
   category = CATEGORY
-  args_type = ApiHuntResultsExportCommandRendererArgs
+  args_type = ApiGetHuntResultsExportCommandArgs
 
   def Render(self, args, token=None):
     results_path = HUNTS_ROOT_PATH.Add(args.hunt_id).Add("Results")
@@ -298,36 +300,116 @@ class ApiHuntResultsExportCommandRenderer(
     return dict(command=export_command_str)
 
 
-class ApiHuntOutputPluginsRendererArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiHuntOutputPluginsRendererArgs
+class ApiListHuntOutputPluginsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListHuntOutputPluginsArgs
 
 
-class ApiHuntOutputPluginsRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiListHuntOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
   """Renders hunt's output plugins states."""
 
   category = CATEGORY
-  args_type = ApiHuntOutputPluginsRendererArgs
+  args_type = ApiListHuntOutputPluginsArgs
 
   def Render(self, args, token=None):
     metadata = aff4.FACTORY.Create(
         HUNTS_ROOT_PATH.Add(args.hunt_id).Add("ResultsMetadata"), mode="r",
         aff4_type="HuntResultsMetadata", token=token)
 
-    # We don't need rendered type information, so we return just the "value"
-    # part of the result.
-    return api_value_renderers.RenderValue(
-        metadata.Get(metadata.Schema.OUTPUT_PLUGINS, {}))["value"]
+    plugins = metadata.Get(metadata.Schema.OUTPUT_PLUGINS, {})
+
+    result = []
+    for plugin_name, (plugin_descriptor, plugin_state) in plugins.items():
+      api_plugin = api_output_plugin.ApiOutputPlugin(
+          id=plugin_name, descriptor=plugin_descriptor,
+          state=plugin_state)
+      result.append(api_plugin)
+
+    return dict(offset=0, count=len(result), total_count=len(result),
+                items=api_value_renderers.RenderValue(result))
 
 
-class ApiHuntLogRendererArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiHuntLogRendererArgs
+class ApiListHuntOutputPluginLogsHandlerBase(
+    api_call_handler_base.ApiCallHandler):
+  """Base class used to define log and status messages handlerers."""
+
+  __abstract = True  # pylint: disable=g-bad-name
+
+  collection_name = None
+  category = CATEGORY
+
+  def Render(self, args, token=None):
+    if not self.collection_name:
+      raise ValueError("collection_name can't be None")
+
+    metadata = aff4.FACTORY.Create(
+        HUNTS_ROOT_PATH.Add(args.hunt_id).Add("ResultsMetadata"), mode="r",
+        aff4_type="HuntResultsMetadata", token=token)
+    plugins = metadata.Get(metadata.Schema.OUTPUT_PLUGINS, {})
+    plugin_descriptor = plugins.get(args.plugin_id)[0]
+
+    stop = None
+    if args.count:
+      stop = args.offset + args.count
+
+    # Currently all logs and errors are written not in per-plugin
+    # collections, but in per-hunt collections. Thiis doesn't make
+    # much sense, because to show errors of particular plugin, we have
+    # to filter the collection. Still, things are not too bad, because
+    # typically only one output plugin is used.
+    #
+    # TODO(user): Write errors/logs per-plugin, so that we don't
+    # have to do the filtering.
+    logs_collection = aff4.FACTORY.Create(
+        HUNTS_ROOT_PATH.Add(args.hunt_id).Add(self.collection_name),
+        aff4_type="RDFValueCollection", mode="r", token=token)
+    if len(plugins) == 1:
+      total_count = len(logs_collection)
+      logs = list(itertools.islice(logs_collection, args.offset, stop))
+    else:
+      all_logs_for_plugin = [x for x in logs_collection
+                             if x.plugin_descriptor == plugin_descriptor]
+      total_count = len(all_logs_for_plugin)
+      logs = all_logs_for_plugin[args.offset:stop]
+
+    return dict(offset=args.offset,
+                count=len(logs),
+                total_count=total_count,
+                items=api_value_renderers.RenderValue(logs))
 
 
-class ApiHuntLogRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiListHuntOutputPluginLogsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListHuntOutputPluginLogsArgs
+
+
+class ApiListHuntOutputPluginLogsHandler(
+    ApiListHuntOutputPluginLogsHandlerBase):
+  """Renders hunt's output plugin's log."""
+
+  collection_name = "OutputPluginsStatus"
+  args_type = ApiListHuntOutputPluginLogsArgs
+
+
+class ApiListHuntOutputPluginErrorsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListHuntOutputPluginErrorsArgs
+
+
+class ApiListHuntOutputPluginErrorsHandler(
+    ApiListHuntOutputPluginLogsHandlerBase):
+  """Renders hunt's output plugin's errors."""
+
+  collection_name = "OutputPluginsErrors"
+  args_type = ApiListHuntOutputPluginErrorsArgs
+
+
+class ApiListHuntLogsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListHuntLogsArgs
+
+
+class ApiListHuntLogsHandler(api_call_handler_base.ApiCallHandler):
   """Renders hunt's log."""
 
   category = CATEGORY
-  args_type = ApiHuntLogRendererArgs
+  args_type = ApiListHuntLogsArgs
 
   def Render(self, args, token=None):
     # TODO(user): handle cases when hunt doesn't exists.
@@ -342,15 +424,15 @@ class ApiHuntLogRenderer(api_call_renderer_base.ApiCallRenderer):
             offset=args.offset, count=args.count, with_total_count=True)])
 
 
-class ApiHuntErrorsRendererArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiHuntErrorsRendererArgs
+class ApiListHuntErrorsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListHuntErrorsArgs
 
 
-class ApiHuntErrorsRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiListHuntErrorsHandler(api_call_handler_base.ApiCallHandler):
   """Renders hunt's errors."""
 
   category = CATEGORY
-  args_type = ApiHuntErrorsRendererArgs
+  args_type = ApiListHuntErrorsArgs
 
   def Render(self, args, token=None):
     # TODO(user): handle cases when hunt doesn't exists.
@@ -365,15 +447,15 @@ class ApiHuntErrorsRenderer(api_call_renderer_base.ApiCallRenderer):
             offset=args.offset, count=args.count, with_total_count=True)])
 
 
-class ApiHuntArchiveFilesRendererArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiHuntArchiveFilesRendererArgs
+class ApiArchiveHuntFilesArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiArchiveHuntFilesArgs
 
 
-class ApiHuntArchiveFilesRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiArchiveHuntFilesHandler(api_call_handler_base.ApiCallHandler):
   """Generates archive with all files referenced in hunt's results."""
 
   category = CATEGORY
-  args_type = ApiHuntArchiveFilesRendererArgs
+  args_type = ApiArchiveHuntFilesArgs
   privileged = True
 
   def Render(self, args, token=None):
@@ -415,18 +497,18 @@ class ApiHuntArchiveFilesRenderer(api_call_renderer_base.ApiCallRenderer):
     return dict(status="OK", flow_urn=utils.SmartStr(urn))
 
 
-class ApiCreateHuntRendererArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiCreateHuntRendererArgs
+class ApiCreateHuntArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiCreateHuntArgs
 
 
-class ApiCreateHuntRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiCreateHuntHandler(api_call_handler_base.ApiCallHandler):
   """Handles hunt creation request."""
 
   category = CATEGORY
-  args_type = ApiCreateHuntRendererArgs
+  args_type = ApiCreateHuntArgs
 
   # Anyone should be able to create a hunt (permissions are required to
-  # actually start it) so marking this renderer as privileged to turn off
+  # actually start it) so marking this handler as privileged to turn off
   # ACL checks.
   privileged = True
 

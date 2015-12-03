@@ -202,7 +202,10 @@ class ArtifactCollectorFlow(flow.GRRFlow):
           self.WMIQuery(source)
         elif type_name == source_type.REKALL_PLUGIN:
           self.RekallPlugin(source)
-        elif type_name == source_type.ARTIFACT:
+        # ARTIFACT is the legacy name for ARTIFACT_GROUP
+        # per: https://github.com/ForensicArtifacts/artifacts/pull/143
+        # TODO(user): remove legacy support after migration.
+        elif type_name in (source_type.ARTIFACT, source_type.ARTIFACT_GROUP):
           self.CollectArtifacts(source)
         elif type_name == source_type.ARTIFACT_FILES:
           self.CollectArtifactFiles(source)

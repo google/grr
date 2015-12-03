@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""This modules contains tests for config API renderer."""
+"""This modules contains tests for config API handler."""
 
 
 
@@ -15,7 +15,7 @@ from grr.lib import utils
 
 
 def GetConfigMockClass(sections=None):
-  """Mocks a configuration file for use by the API renderer.
+  """Mocks a configuration file for use by the API handler.
 
   Args:
     sections: A dict containing one key per config section
@@ -70,12 +70,12 @@ def GetConfigMockClass(sections=None):
   return {"Get": Get, "GetRaw": GetRaw, "type_infos": type_infos}
 
 
-class ApiConfigRendererTest(test_lib.GRRBaseTest):
-  """Test for ApiConfigRendererTest."""
+class ApiGetConfigHandlerTest(test_lib.GRRBaseTest):
+  """Test for ApiGetConfigHandlerTest."""
 
   def setUp(self):
-    super(ApiConfigRendererTest, self).setUp()
-    self.renderer = config_plugin.ApiConfigRenderer()
+    super(ApiGetConfigHandlerTest, self).setUp()
+    self.handler = config_plugin.ApiGetConfigHandler()
 
   def _ConfigStub(self, sections=None):
     mock = GetConfigMockClass(sections)
@@ -87,7 +87,7 @@ class ApiConfigRendererTest(test_lib.GRRBaseTest):
   def _RenderConfig(self, sections):
     with self._ConfigStub(sections):
       mock_request = utils.DataObject()
-      rendering = self.renderer.Render(mock_request)
+      rendering = self.handler.Render(mock_request)
 
     return rendering
 
@@ -152,10 +152,10 @@ class ApiConfigRendererTest(test_lib.GRRBaseTest):
     self.assertFalse(rendering["section"]["section.parameter"]["is_expanded"])
 
 
-class ApiConfigRendererRegressionTest(
-    api_test_lib.ApiCallRendererRegressionTest):
+class ApiGetConfigHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
 
-  renderer = "ApiConfigRenderer"
+  handler = "ApiGetConfigHandler"
 
   def Run(self):
     config_obj = config_lib.GrrConfigManager()
@@ -180,12 +180,12 @@ SectionBar.sample_string_option: "%(sAmPlE|lower)"
       self.Check("GET", "/api/config")
 
 
-class ApiConfigOptionRendererTest(test_lib.GRRBaseTest):
-  """Test for ApiConfigOptionRenderer."""
+class ApiGetConfigOptionHandlerTest(test_lib.GRRBaseTest):
+  """Test for ApiGetConfigOptionHandler."""
 
   def setUp(self):
-    super(ApiConfigOptionRendererTest, self).setUp()
-    self.renderer = config_plugin.ApiConfigOptionRenderer()
+    super(ApiGetConfigOptionHandlerTest, self).setUp()
+    self.handler = config_plugin.ApiGetConfigOptionHandler()
 
   def _ConfigStub(self, sections=None):
     mock = GetConfigMockClass(sections)
@@ -196,8 +196,8 @@ class ApiConfigOptionRendererTest(test_lib.GRRBaseTest):
 
   def _RenderConfigOption(self, stub_sections, name):
     with self._ConfigStub(stub_sections):
-      rendering = self.renderer.Render(
-          config_plugin.ApiConfigOptionRendererArgs(name=name))
+      rendering = self.handler.Render(
+          config_plugin.ApiGetConfigOptionArgs(name=name))
 
     return rendering
 
@@ -208,10 +208,10 @@ class ApiConfigOptionRendererTest(test_lib.GRRBaseTest):
     self.assertEquals(rendering, dict(status="OK", type="redacted"))
 
 
-class ApiConfigOptionRendererRegressionTest(
-    api_test_lib.ApiCallRendererRegressionTest):
+class ApiGetConfigOptionHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
 
-  renderer = "ApiConfigOptionRenderer"
+  handler = "ApiGetConfigOptionHandler"
 
   def Run(self):
     config_obj = config_lib.GrrConfigManager()

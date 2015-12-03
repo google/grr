@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""This module contains tests for output plugins-related API renderers."""
+"""This module contains tests for output plugins-related API handlers."""
 
 
 
@@ -12,11 +12,11 @@ from grr.lib.output_plugins import csv_plugin
 from grr.lib.output_plugins import email_plugin
 
 
-class ApiOutputPluginsListRendererRegressionTest(
-    api_test_lib.ApiCallRendererRegressionTest):
-  """Regression test for ApiOutputPluginsListRenderer."""
+class ApiOutputPluginsListHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+  """Regression test for ApiOutputPluginsListHandler."""
 
-  renderer = "ApiOutputPluginsListRenderer"
+  handler = "ApiOutputPluginsListHandler"
 
   def Run(self):
     with utils.Stubber(output_plugin.OutputPlugin, "classes", {

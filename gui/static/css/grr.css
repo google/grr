@@ -697,6 +697,10 @@ td.lease_available {
   white-space: pre-line;
 }
 
+.preserve-whitespace {
+  white-space: pre;
+}
+
 .doc-toc {
  position: fixed;
  min-width: 15em;

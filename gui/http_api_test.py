@@ -9,8 +9,8 @@ import json
 import urllib2
 
 from grr.gui import api_aff4_object_renderers
-from grr.gui import api_call_renderer_base
-from grr.gui import api_call_renderers
+from grr.gui import api_call_handler_base
+from grr.gui import api_call_handlers
 from grr.gui import http_api
 
 from grr.lib import flags
@@ -21,13 +21,13 @@ from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import tests_pb2
 
 
-class SampleGetRendererArgs(rdf_structs.RDFProtoStruct):
-  protobuf = tests_pb2.SampleGetRendererArgs
+class SampleGetHandlerArgs(rdf_structs.RDFProtoStruct):
+  protobuf = tests_pb2.SampleGetHandlerArgs
 
 
-class SampleGetRenderer(api_call_renderer_base.ApiCallRenderer):
+class SampleGetHandler(api_call_handler_base.ApiCallHandler):
 
-  args_type = SampleGetRendererArgs
+  args_type = SampleGetHandlerArgs
 
   def Render(self, args, token=None):
     return {
@@ -37,14 +37,14 @@ class SampleGetRenderer(api_call_renderer_base.ApiCallRenderer):
     }
 
 
-class SampleGetRendererWithAdditionalArgsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = tests_pb2.SampleGetRendererWithAdditionalArgsArgs
+class SampleGetHandlerWithAdditionalArgsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = tests_pb2.SampleGetHandlerWithAdditionalArgsArgs
 
 
-class SampleGetRendererWithAdditionalArgs(
-    api_call_renderer_base.ApiCallRenderer):
+class SampleGetHandlerWithAdditionalArgs(
+    api_call_handler_base.ApiCallHandler):
 
-  args_type = SampleGetRendererWithAdditionalArgsArgs
+  args_type = SampleGetHandlerWithAdditionalArgsArgs
   additional_args_types = {
       "AFF4Object": api_aff4_object_renderers.ApiAFF4ObjectRendererArgs,
       "RDFValueCollection": (api_aff4_object_renderers.
@@ -71,14 +71,14 @@ class TestHttpRoutingInit(registry.InitHook):
 
   def RunOnce(self):
     http_api.RegisterHttpRouteHandler(
-        "GET", "/test_sample/<path:path>", SampleGetRenderer)
+        "GET", "/test_sample/<path:path>", SampleGetHandler)
     http_api.RegisterHttpRouteHandler(
         "GET", "/test_sample_with_additional_args/<path:path>",
-        SampleGetRendererWithAdditionalArgs)
+        SampleGetHandlerWithAdditionalArgs)
 
 
 class RenderHttpResponseTest(test_lib.GRRBaseTest):
-  """Test for api_call_renderers.RenderHttpResponse logic."""
+  """Test for api_call_handlers.RenderHttpResponse logic."""
 
   def _CreateRequest(self, method, path, query_parameters=None):
     if not query_parameters:
@@ -113,23 +113,23 @@ class RenderHttpResponseTest(test_lib.GRRBaseTest):
     token = http_api.BuildToken(request, 20)
     self.assertEqual(token.reason, utils.SmartUnicode("区最 trailing space "))
 
-  def testReturnsRendererMatchingUrlAndMethod(self):
-    renderer, _ = http_api.GetRendererForHttpRequest(
+  def testReturnsHandlerMatchingUrlAndMethod(self):
+    handler, _ = http_api.GetHandlerForHttpRequest(
         self._CreateRequest("GET", "/test_sample/some/path"))
-    self.assertTrue(isinstance(renderer, SampleGetRenderer))
+    self.assertTrue(isinstance(handler, SampleGetHandler))
 
-  def testPathParamsAreReturnedWithMatchingRenderer(self):
-    _, path_params = http_api.GetRendererForHttpRequest(
+  def testPathParamsAreReturnedWithMatchingHandler(self):
+    _, path_params = http_api.GetHandlerForHttpRequest(
         self._CreateRequest("GET", "/test_sample/some/path"))
     self.assertEqual(path_params, {"path": "some/path"})
 
-  def testRaisesIfNoRendererMatchesUrl(self):
-    self.assertRaises(api_call_renderers.ApiCallRendererNotFoundError,
-                      http_api.GetRendererForHttpRequest,
+  def testRaisesIfNoHandlerMatchesUrl(self):
+    self.assertRaises(api_call_handlers.ApiCallHandlerNotFoundError,
+                      http_api.GetHandlerForHttpRequest,
                       self._CreateRequest("GET",
                                           "/some/missing/path"))
 
-  def testRendersGetRendererCorrectly(self):
+  def testRendersGetHandlerCorrectly(self):
     response = self._RenderResponse(
         self._CreateRequest("GET", "/test_sample/some/path"))
 
@@ -140,7 +140,7 @@ class RenderHttpResponseTest(test_lib.GRRBaseTest):
          "foo": ""})
     self.assertEqual(response.status_code, 200)
 
-  def testQueryParamsArePassedIntoRendererArgs(self):
+  def testQueryParamsArePassedIntoHandlerArgs(self):
     response = self._RenderResponse(
         self._CreateRequest("GET", "/test_sample/some/path",
                             query_parameters={"foo": "bar"}))
@@ -184,7 +184,7 @@ class RenderHttpResponseTest(test_lib.GRRBaseTest):
          api_aff4_object_renderers.ApiRDFValueCollectionRendererArgs(
              with_total_count=True)])
 
-  def testAdditionalArgumentsAreFoundAndPassedToTheRenderer(self):
+  def testAdditionalArgumentsAreFoundAndPassedToTheHandler(self):
     response = self._RenderResponse(
         self._CreateRequest("GET",
                             "/test_sample_with_additional_args/some/path",

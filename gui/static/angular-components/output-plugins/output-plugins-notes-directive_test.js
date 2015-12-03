@@ -12,6 +12,8 @@ describe('output plugins notes list directive', function() {
   beforeEach(module(grrUi.outputPlugins.module.name));
   beforeEach(module(grrUi.tests.module.name));
 
+  grrUi.tests.stubDirective('grrOutputPluginNote');
+
   beforeEach(inject(function($injector) {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
@@ -20,9 +22,10 @@ describe('output plugins notes list directive', function() {
   }));
 
   var renderTestTemplate = function() {
-    $rootScope.metadataUrl = '/foo/bar/metadata';
+    $rootScope.outputPluginsUrl = '/foo/bar/plugins';
 
-    var template = '<grr-output-plugins-notes metadata-url="metadataUrl" />';
+    var template = '<grr-output-plugins-notes ' +
+        'output-plugins-url="outputPluginsUrl" />';
     var element = $compile(template)($rootScope);
     $rootScope.$apply();
 
@@ -35,7 +38,7 @@ describe('output plugins notes list directive', function() {
 
     var element = renderTestTemplate();
 
-    expect(grrApiService.get).toHaveBeenCalledWith('/foo/bar/metadata');
+    expect(grrApiService.get).toHaveBeenCalledWith('/foo/bar/plugins');
   });
 
   it('shows an error when API request fails', function() {
@@ -44,7 +47,7 @@ describe('output plugins notes list directive', function() {
     deferred.reject({data: {message: 'FAIL'}});
 
     var element = renderTestTemplate();
-    expect(element.text()).toContain('Can\'t fetch output plugins metadata: ' +
+    expect(element.text()).toContain('Can\'t fetch output plugins list: ' +
         'FAIL');
   });
 
@@ -52,35 +55,15 @@ describe('output plugins notes list directive', function() {
     var deferred = $q.defer();
     spyOn(grrApiService, 'get').and.returnValue(deferred.promise);
 
-    var descriptor1 = {
-      value: {
-        plugin_name: {
-          value: 'plugin1'
-        }
-      }
+    var plugin1 = {
+      value: 'foo'
     };
-    var descriptor2 = {
-      value: {
-        plugin_name: {
-          value: 'plugin2'
-        }
-      }
-    };
-
-    var state1 = {
-      value: {
-        'foo': 'bar1'
-      }
-    };
-    var state2 = {
-      value: {
-        'foo': 'bar2'
-      }
+    var plugin2 = {
+      value: 'bar'
     };
     deferred.resolve({
       data: {
-        'Output1': [descriptor1, state1],
-        'Output2': [descriptor2, state2]
+        items: [plugin1, plugin2]
       }
     });
 
@@ -88,13 +71,11 @@ describe('output plugins notes list directive', function() {
     expect(element.find('grr-output-plugin-note').length).toBe(2);
 
     var directive = element.find('grr-output-plugin-note:nth(0)');
-    expect(directive.scope().$eval(directive.attr('descriptor'))).toEqual(
-        descriptor1);
-    expect(directive.scope().$eval(directive.attr('state'))).toEqual(state1);
+    expect(directive.scope().$eval(directive.attr('output-plugin'))).toEqual(
+        plugin1);
 
     directive = element.find('grr-output-plugin-note:nth(1)');
-    expect(directive.scope().$eval(directive.attr('descriptor'))).toEqual(
-        descriptor2);
-    expect(directive.scope().$eval(directive.attr('state'))).toEqual(state2);
+    expect(directive.scope().$eval(directive.attr('output-plugin'))).toEqual(
+        plugin2);
   });
 });

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""API renderers for dealing with flows."""
+"""API handlers for dealing with flows."""
 
 import itertools
 import urlparse
@@ -7,8 +7,9 @@ import urlparse
 import logging
 
 from grr.gui import api_aff4_object_renderers
-from grr.gui import api_call_renderer_base
+from grr.gui import api_call_handler_base
 from grr.gui import api_value_renderers
+from grr.gui.api_plugins import output_plugin as api_output_plugin
 
 from grr.lib import access_control
 from grr.lib import aff4
@@ -49,11 +50,11 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
       return flow_cls.args_type
 
 
-class ApiFlowStatusRendererArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiFlowStatusRendererArgs
+class ApiGetFlowStatusArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetFlowStatusArgs
 
 
-class ApiFlowStatusRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiGetFlowStatusHandler(api_call_handler_base.ApiCallHandler):
   """Renders summary of a given flow.
 
   Only top-level flows can be targeted. Times returned in the response are micro
@@ -61,7 +62,7 @@ class ApiFlowStatusRenderer(api_call_renderer_base.ApiCallRenderer):
   """
 
   category = CATEGORY
-  args_type = ApiFlowStatusRendererArgs
+  args_type = ApiGetFlowStatusArgs
 
   # Make this SetUID, see comment below. Authentication is still required.
   privileged = True
@@ -72,16 +73,16 @@ class ApiFlowStatusRenderer(api_call_renderer_base.ApiCallRenderer):
   def Render(self, args, token=None):
     """Render flow status.
 
-    This renderer needs to be setuid because it needs to access any top level
+    This handler needs to be setuid because it needs to access any top level
     flow on any client. The ACL model operates at the object level, and doesn't
     give us the ability to target specific attributes of the object. This
-    renderer relies on ClientURN and SessionID type validation to check the
+    handler relies on ClientURN and SessionID type validation to check the
     input parameters to avoid allowing arbitrary reads into the client aff4
-    space. This renderer filters out only the attributes that are appropriate to
+    space. This handler filters out only the attributes that are appropriate to
     release without authorization (authentication is still required).
 
     Args:
-      args: ApiFlowStatusRendererArgs object
+      args: ApiGetFlowStatusArgs object
       token: access token
     Returns:
       dict representing flow state
@@ -132,15 +133,15 @@ class ApiFlowStatusRenderer(api_call_renderer_base.ApiCallRenderer):
     return result
 
 
-class ApiFlowResultsRendererArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiFlowResultsRendererArgs
+class ApiListFlowResultsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListFlowResultsArgs
 
 
-class ApiFlowResultsRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiListFlowResultsHandler(api_call_handler_base.ApiCallHandler):
   """Renders results of a given flow."""
 
   category = CATEGORY
-  args_type = ApiFlowResultsRendererArgs
+  args_type = ApiListFlowResultsArgs
 
   def Render(self, args, token=None):
     flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())
@@ -157,16 +158,16 @@ class ApiFlowResultsRenderer(api_call_renderer_base.ApiCallRenderer):
             with_total_count=True)])
 
 
-class ApiFlowResultsExportCommandRendererArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiFlowResultsExportCommandRendererArgs
+class ApiGetFlowResultsExportCommandArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetFlowResultsExportCommandArgs
 
 
-class ApiFlowResultsExportCommandRenderer(
-    api_call_renderer_base.ApiCallRenderer):
+class ApiGetFlowResultsExportCommandHandler(
+    api_call_handler_base.ApiCallHandler):
   """Renders GRR export tool command line that exports flow results."""
 
   category = CATEGORY
-  args_type = ApiFlowResultsExportCommandRendererArgs
+  args_type = ApiGetFlowResultsExportCommandArgs
 
   def Render(self, args, token=None):
     flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())
@@ -185,15 +186,15 @@ class ApiFlowResultsExportCommandRenderer(
     return dict(command=export_command_str)
 
 
-class ApiFlowArchiveFilesRendererArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiFlowArchiveFilesRendererArgs
+class ApiArchiveFlowFilesArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiArchiveFlowFilesArgs
 
 
-class ApiFlowArchiveFilesRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiArchiveFlowFilesHandler(api_call_handler_base.ApiCallHandler):
   """Generates archive with all files referenced in flow's results."""
 
   category = CATEGORY
-  args_type = ApiFlowArchiveFilesRendererArgs
+  args_type = ApiArchiveFlowFilesArgs
 
   def Render(self, args, token=None):
     """Starts archive generation flow."""
@@ -228,15 +229,15 @@ class ApiFlowArchiveFilesRenderer(api_call_renderer_base.ApiCallRenderer):
     return dict(status="OK", flow_urn=utils.SmartStr(urn))
 
 
-class ApiFlowOutputPluginsRendererArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiFlowOutputPluginsRendererArgs
+class ApiListFlowOutputPluginsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListFlowOutputPluginsArgs
 
 
-class ApiFlowOutputPluginsRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiListFlowOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
   """Renders output plugins descriptors and states for a given flow."""
 
   category = CATEGORY
-  args_type = ApiFlowOutputPluginsRendererArgs
+  args_type = ApiListFlowOutputPluginsArgs
 
   def Render(self, args, token=None):
     flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())
@@ -245,24 +246,111 @@ class ApiFlowOutputPluginsRenderer(api_call_renderer_base.ApiCallRenderer):
 
     output_plugins_states = flow_obj.GetRunner().context.output_plugins_states
 
-    result = {}
+    type_indices = {}
+    result = []
     for plugin_descriptor, plugin_state in output_plugins_states:
-      result[plugin_descriptor.plugin_name] = (
-          api_value_renderers.RenderValue(plugin_descriptor),
-          api_value_renderers.RenderValue(plugin_state))
+      type_index = type_indices.setdefault(plugin_descriptor.plugin_name, 0)
+      type_indices[plugin_descriptor.plugin_name] += 1
 
-    return result
+      # Output plugins states are stored differently for hunts and for flows:
+      # as a dictionary for hunts and as a simple list for flows.
+      #
+      # TODO(user): store output plugins states in the same way for flows
+      # and hunts. Until this is done, we can emulate the same interface in
+      # the HTTP API.
+      api_plugin = api_output_plugin.ApiOutputPlugin(
+          id=plugin_descriptor.plugin_name + "_%d" % type_index,
+          descriptor=plugin_descriptor, state=plugin_state)
+      result.append(api_plugin)
+
+    return dict(offset=0, count=len(result), total_count=len(result),
+                items=api_value_renderers.RenderValue(result))
 
 
-class ApiClientFlowsListRendererArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiClientFlowsListRendererArgs
+class ApiListFlowOutputPluginLogsHandlerBase(
+    api_call_handler_base.ApiCallHandler):
+  """Base class used to define log and error messages handlers."""
+
+  __abstract = True  # pylint: disable=g-bad-name
+
+  attribute_name = None
+  category = CATEGORY
+
+  def Render(self, args, token=None):
+    if not self.attribute_name:
+      raise ValueError("attribute_name can't be None")
+
+    flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())
+    flow_obj = aff4.FACTORY.Open(flow_urn, aff4_type="GRRFlow", mode="r",
+                                 token=token)
+
+    output_plugins_states = flow_obj.GetRunner().context.output_plugins_states
+
+    # Flow output plugins don't use collections to store status/error
+    # information. Instead, it's stored in plugin's state. Nevertheless,
+    # we emulate collections API here. Having similar API interface allows
+    # one to reuse the code when handling hunts and flows output plugins.
+    # Good example is the UI code.
+    type_indices = {}
+    found_state = None
+    for plugin_descriptor, plugin_state in output_plugins_states:
+      type_index = type_indices.setdefault(plugin_descriptor.plugin_name, 0)
+      type_indices[plugin_descriptor.plugin_name] += 1
+
+      if args.plugin_id == plugin_descriptor.plugin_name + "_%d" % type_index:
+        found_state = plugin_state
+        break
+
+    if not found_state:
+      raise RuntimeError("Flow %s doesn't have output plugin %s" % (
+          flow_urn, args.plugin_id))
+
+    stop = None
+    if args.count:
+      stop = args.offset + args.count
+
+    logs_collection = found_state.get(self.attribute_name, [])
+    sliced_collection = logs_collection[args.offset:stop]
+
+    return dict(offset=args.offset,
+                count=len(sliced_collection),
+                total_count=len(logs_collection),
+                items=api_value_renderers.RenderValue(sliced_collection))
 
 
-class ApiClientFlowsListRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiListFlowOutputPluginLogsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListFlowOutputPluginLogsArgs
+
+
+class ApiListFlowOutputPluginLogsHandler(
+    ApiListFlowOutputPluginLogsHandlerBase):
+  """Renders flow's output plugin's logs."""
+
+  attribute_name = "logs"
+  args_type = ApiListFlowOutputPluginLogsArgs
+
+
+class ApiListFlowOutputPluginErrorsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListFlowOutputPluginErrorsArgs
+
+
+class ApiListFlowOutputPluginErrorsHandler(
+    ApiListFlowOutputPluginLogsHandlerBase):
+  """Renders flow's output plugin's errors."""
+
+  attribute_name = "errors"
+  args_type = ApiListFlowOutputPluginErrorsArgs
+
+
+class ApiListClientFlowsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListClientFlowsArgs
+
+
+class ApiListClientFlowsHandler(api_call_handler_base.ApiCallHandler):
   """Lists flows launched on a given client."""
 
   category = CATEGORY
-  args_type = ApiClientFlowsListRendererArgs
+  args_type = ApiListClientFlowsArgs
 
   def _GetCreationTime(self, obj):
     try:
@@ -353,15 +441,16 @@ class ApiClientFlowsListRenderer(api_call_renderer_base.ApiCallRenderer):
     return result
 
 
-class ApiRemoteGetFileRendererArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiRemoteGetFileRendererArgs
+class ApiStartGetFileOperationArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiStartGetFileOperationArgs
 
 
-class ApiRemoteGetFileRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiStartGetFileOperationHandler(
+    api_call_handler_base.ApiCallHandler):
   """Downloads files from specified machine without requiring approval."""
 
   category = CATEGORY
-  args_type = ApiRemoteGetFileRendererArgs
+  args_type = ApiStartGetFileOperationArgs
 
   # Make this SetUID to be able to start it on any client without approval.
   privileged = True
@@ -427,8 +516,8 @@ class ApiRemoteGetFileRenderer(api_call_renderer_base.ApiCallRenderer):
         status_url=status_url)
 
 
-class ApiStartFlowRendererArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiStartFlowRendererArgs
+class ApiCreateFlowArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiCreateFlowArgs
 
   def GetFlowArgsClass(self):
     if self.runner_args.flow_name:
@@ -441,11 +530,11 @@ class ApiStartFlowRendererArgs(rdf_structs.RDFProtoStruct):
       return flow_cls.args_type
 
 
-class ApiStartFlowRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiCreateFlowHandler(api_call_handler_base.ApiCallHandler):
   """Starts a flow on a given client with given parameters."""
 
   category = CATEGORY
-  args_type = ApiStartFlowRendererArgs
+  args_type = ApiCreateFlowArgs
 
   def Render(self, args, token=None):
     flow_id = flow.GRRFlow.StartFlow(client_id=args.client_id,
@@ -460,15 +549,15 @@ class ApiStartFlowRenderer(api_call_renderer_base.ApiCallRenderer):
         runner_args=api_value_renderers.RenderValue(args.runner_args))
 
 
-class ApiCancelFlowRendererArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiCancelFlowRendererArgs
+class ApiCancelFlowArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiCancelFlowArgs
 
 
-class ApiCancelFlowRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiCancelFlowHandler(api_call_handler_base.ApiCallHandler):
   """Cancels given flow on a given client."""
 
   category = CATEGORY
-  args_type = ApiCancelFlowRendererArgs
+  args_type = ApiCancelFlowArgs
   privileged = True
 
   def Render(self, args, token=None):
@@ -483,15 +572,15 @@ class ApiCancelFlowRenderer(api_call_renderer_base.ApiCallRenderer):
     return dict(status="OK")
 
 
-class ApiFlowDescriptorsListRendererArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiFlowDescriptorsListRendererArgs
+class ApiListFlowDescriptorsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListFlowDescriptorsArgs
 
 
-class ApiFlowDescriptorsListRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiListFlowDescriptorsHandler(api_call_handler_base.ApiCallHandler):
   """Renders all available flows descriptors."""
 
   category = CATEGORY
-  args_type = ApiFlowDescriptorsListRendererArgs
+  args_type = ApiListFlowDescriptorsArgs
 
   client_flow_behavior = flow.FlowBehaviour("Client Flow")
   global_flow_behavior = flow.FlowBehaviour("Global Flow")

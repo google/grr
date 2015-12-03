@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""This module contains tests for stats API renderers."""
+"""This module contains tests for stats API handlers."""
 
 
 
@@ -15,10 +15,10 @@ from grr.lib import utils
 # TODO(user): Implement unit tests in addition to regression tests.
 
 
-class ApiStatsStoreMetricsMetadataRendererRegressionTest(
-    api_test_lib.ApiCallRendererRegressionTest):
+class ApiListStatsStoreMetricsMetadataHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
 
-  renderer = "ApiStatsStoreMetricsMetadataRenderer"
+  handler = "ApiListStatsStoreMetricsMetadataHandler"
 
   def Run(self):
     stats_collector = stats.StatsCollector()
@@ -40,10 +40,10 @@ class ApiStatsStoreMetricsMetadataRendererRegressionTest(
     self.Check("GET", "/api/stats/store/WORKER/metadata")
 
 
-class ApiStatsStoreMetricRendererRegressionTest(
-    api_test_lib.ApiCallRendererRegressionTest):
+class ApiGetStatsStoreMetricHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
 
-  renderer = "ApiStatsStoreMetricRenderer"
+  handler = "ApiGetStatsStoreMetricHandler"
 
   def Run(self):
     stats_collector = stats.StatsCollector()

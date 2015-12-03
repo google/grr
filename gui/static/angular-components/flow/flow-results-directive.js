@@ -65,7 +65,7 @@ FlowResultsController.prototype.onFlowUrnChange = function(newValue) {
 
   this.flowResultsUrl = '/clients/' + clientId + '/flows/' + flowId +
       '/results';
-  this.outputPluginsMetadataUrl = '/clients/' + clientId + '/flows/' +
+  this.outputPluginsUrl = '/clients/' + clientId + '/flows/' +
       flowId + '/output-plugins';
   this.exportCommandUrl = this.flowResultsUrl + '/export-command';
   this.downloadFilesUrl = this.flowResultsUrl + '/archive-files';

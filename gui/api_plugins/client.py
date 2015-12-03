@@ -1,11 +1,11 @@
 #!/usr/bin/env python
-"""API renderers for accessing and searching clients and managing labels."""
+"""API handlers for accessing and searching clients and managing labels."""
 
 import shlex
 import sys
 
 from grr.gui import api_aff4_object_renderers
-from grr.gui import api_call_renderer_base
+from grr.gui import api_call_handler_base
 from grr.gui import api_value_renderers
 
 from grr.lib import aff4
@@ -14,6 +14,8 @@ from grr.lib import flow
 from grr.lib import utils
 
 from grr.lib.aff4_objects import standard
+
+from grr.lib.flows.general import filesystem
 
 from grr.lib.rdfvalues import aff4_rdfvalues
 from grr.lib.rdfvalues import client as rdf_client
@@ -25,15 +27,15 @@ from grr.proto import api_pb2
 CATEGORY = "Clients"
 
 
-class ApiClientSearchRendererArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiClientSearchRendererArgs
+class ApiListClientsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListClientsArgs
 
 
-class ApiClientSearchRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiListClientsHandler(api_call_handler_base.ApiCallHandler):
   """Renders results of a client search."""
 
   category = CATEGORY
-  args_type = ApiClientSearchRendererArgs
+  args_type = ApiListClientsArgs
 
   def Render(self, args, token=None):
     end = args.count or sys.maxint
@@ -59,15 +61,15 @@ class ApiClientSearchRenderer(api_call_renderer_base.ApiCallRenderer):
                 items=rendered_clients)
 
 
-class ApiClientSummaryRendererArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiClientSummaryRendererArgs
+class ApiGetClientArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetClientArgs
 
 
-class ApiClientSummaryRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiGetClientHandler(api_call_handler_base.ApiCallHandler):
   """Renders summary of a given client."""
 
   category = CATEGORY
-  args_type = ApiClientSummaryRendererArgs
+  args_type = ApiGetClientArgs
 
   def Render(self, args, token=None):
     client = aff4.FACTORY.Open(args.client_id, aff4_type="VFSGRRClient",
@@ -76,15 +78,15 @@ class ApiClientSummaryRenderer(api_call_renderer_base.ApiCallRenderer):
     return api_aff4_object_renderers.RenderAFF4Object(client)
 
 
-class ApiClientsAddLabelsRendererArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiClientsAddLabelsRendererArgs
+class ApiAddClientsLabelsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiAddClientsLabelsArgs
 
 
-class ApiClientsAddLabelsRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiAddClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
   """Adds labels to a given client."""
 
   category = CATEGORY
-  args_type = ApiClientsAddLabelsRendererArgs
+  args_type = ApiAddClientsLabelsArgs
   privileged = True
 
   def Render(self, args, token=None):
@@ -108,7 +110,7 @@ class ApiClientsAddLabelsRenderer(api_call_renderer_base.ApiCallRenderer):
         audit_events.append(
             flow.AuditEvent(
                 user=token.username, action="CLIENT_ADD_LABEL",
-                flow_name="renderer.ApiClientsAddLabelsRenderer",
+                flow_name="handler.ApiAddClientsLabelsHandler",
                 client=client_obj.urn, description=audit_description))
 
       return dict(status="OK")
@@ -117,15 +119,15 @@ class ApiClientsAddLabelsRenderer(api_call_renderer_base.ApiCallRenderer):
                                         token=token)
 
 
-class ApiClientsRemoveLabelsRendererArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiClientsRemoveLabelsRendererArgs
+class ApiRemoveClientsLabelsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiRemoveClientsLabelsArgs
 
 
-class ApiClientsRemoveLabelsRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiRemoveClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
   """Remove labels from a given client."""
 
   category = CATEGORY
-  args_type = ApiClientsRemoveLabelsRendererArgs
+  args_type = ApiRemoveClientsLabelsArgs
   privileged = True
 
   def RemoveClientLabels(self, client, labels_names):
@@ -161,7 +163,7 @@ class ApiClientsRemoveLabelsRenderer(api_call_renderer_base.ApiCallRenderer):
         audit_events.append(
             flow.AuditEvent(
                 user=token.username, action="CLIENT_REMOVE_LABEL",
-                flow_name="renderer.ApiClientsRemoveLabelsRenderer",
+                flow_name="handler.ApiRemoveClientsLabelsHandler",
                 client=client_obj.urn, description=audit_description))
     finally:
       flow.Events.PublishMultipleEvents({"Audit": audit_events},
@@ -170,7 +172,7 @@ class ApiClientsRemoveLabelsRenderer(api_call_renderer_base.ApiCallRenderer):
     return dict(status="OK")
 
 
-class ApiClientsLabelsListRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiListClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
   """Lists all the available clients labels."""
 
   category = CATEGORY
@@ -187,7 +189,7 @@ class ApiClientsLabelsListRenderer(api_call_renderer_base.ApiCallRenderer):
     return dict(labels=rendered_labels)
 
 
-class ApiListKbFieldsRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiListKbFieldsHandler(api_call_handler_base.ApiCallHandler):
   """Lists all the available clients knowledge base fields."""
 
   category = CATEGORY
@@ -195,3 +197,36 @@ class ApiListKbFieldsRenderer(api_call_renderer_base.ApiCallRenderer):
   def Render(self, args, token=None):
     fields = rdf_client.KnowledgeBase().GetKbFieldNames()
     return dict(fields=sorted(fields))
+
+
+class ApiVfsRefreshOperation(rdf_structs.RDFProtoStruct):
+  """ApiVfsRefreshOperation used for updating VFS paths."""
+  protobuf = api_pb2.ApiVfsRefreshOperation
+
+
+class ApiCreateVfsRefreshOperationHandler(
+    api_call_handler_base.ApiCallHandler):
+  """Creates a new refresh operation for a given VFS path.
+
+  This effectively triggers a refresh of a given VFS path. Refresh status
+  can be monitored by polling the returned URL of the operation (not implemented
+  yet).
+  """
+
+  category = CATEGORY
+  args_type = ApiVfsRefreshOperation
+
+  def Render(self, args, token=None):
+    aff4_path = args.client_id.Add(args.vfs_path)
+    fd = aff4.FACTORY.Open(aff4_path, aff4_type="VFSDirectory", token=token)
+
+    flow_args = filesystem.RecursiveListDirectoryArgs(
+        pathspec=fd.real_pathspec,
+        max_depth=args.max_depth)
+
+    flow.GRRFlow.StartFlow(client_id=args.client_id,
+                           flow_name="RecursiveListDirectory",
+                           args=flow_args,
+                           notify_to_user=True,
+                           token=token)
+    return dict(status="OK")

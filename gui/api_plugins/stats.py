@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-"""API renderers for stats."""
+"""API handlers for stats."""
 
-from grr.gui import api_call_renderer_base
+from grr.gui import api_call_handler_base
 from grr.gui import api_value_renderers
 
 from grr.lib import aff4
@@ -17,16 +17,16 @@ from grr.proto import api_pb2
 CATEGORY = "Other"
 
 
-class ApiStatsStoreMetricsMetadataRendererArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiStatsStoreMetricsMetadataRendererArgs
+class ApiListStatsStoreMetricsMetadataArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListStatsStoreMetricsMetadataArgs
 
 
-class ApiStatsStoreMetricsMetadataRenderer(
-    api_call_renderer_base.ApiCallRenderer):
+class ApiListStatsStoreMetricsMetadataHandler(
+    api_call_handler_base.ApiCallHandler):
   """Renders available metrics descriptors for a given system component."""
 
   category = CATEGORY
-  args_type = ApiStatsStoreMetricsMetadataRendererArgs
+  args_type = ApiListStatsStoreMetricsMetadataArgs
 
   def Render(self, args, token=None):
     stats_store = aff4.FACTORY.Create(None, aff4_type="StatsStore",
@@ -41,15 +41,15 @@ class ApiStatsStoreMetricsMetadataRenderer(
       return api_value_renderers.RenderValue(metadata)
 
 
-class ApiStatsStoreMetricRendererArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiStatsStoreMetricRendererArgs
+class ApiGetStatsStoreMetricArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetStatsStoreMetricArgs
 
 
-class ApiStatsStoreMetricRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiGetStatsStoreMetricHandler(api_call_handler_base.ApiCallHandler):
   """Renders historical data for a given metric."""
 
   category = CATEGORY
-  args_type = ApiStatsStoreMetricRendererArgs
+  args_type = ApiGetStatsStoreMetricArgs
 
   def Render(self, args, token):
     stats_store = aff4.FACTORY.Create(

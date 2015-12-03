@@ -6,16 +6,17 @@ syntax = "proto2";
 
 import "grr/proto/jobs.proto";
 import "grr/proto/flows.proto";
+import "grr/proto/output_plugin.proto";
 import "grr/proto/semantic.proto";
 
 
 //
-// API call renderers arguments (see gui/api_call_renderers.py).
+// API call handlers arguments (see gui/api_call_handlers.py).
 //
 
 message ApiAuthorization {
-  optional string renderer = 1 [(sem_type) = {
-      description: "api_call_renderers.ApiCallRenderer class name that this "
+  optional string handler = 1 [(sem_type) = {
+      description: "api_call_handlers.ApiCallHandler class name that this "
                    "authorization applies to."
     }];
   repeated string users = 2 [(sem_type) = {
@@ -34,7 +35,7 @@ message ApiCallAdditionalArgs {
     }];
 }
 
-message ApiAff4RendererArgs {
+message ApiGetAff4ObjectArgs {
   optional string aff4_path = 1 [(sem_type) = {
       type: "RDFURN",
       description: "Path of the object to be rendered."
@@ -43,14 +44,14 @@ message ApiAff4RendererArgs {
   repeated ApiCallAdditionalArgs additional_args = 2;
 }
 
-message ApiAff4IndexRendererArgs {
+message ApiGetAff4IndexArgs {
   optional string aff4_path = 1 [(sem_type) = {
       type: "RDFURN",
       description: "Path of the object to be rendered."
     }];
 }
 
-message ApiClientSearchRendererArgs {
+message ApiListClientsArgs {
   optional string query = 1 [(sem_type) = {
       description: "Search query string. See here for syntax: "
       "https://github.com/google/grr-doc/blob/master/"
@@ -64,14 +65,14 @@ message ApiClientSearchRendererArgs {
     }];
 }
 
-message ApiClientSummaryRendererArgs {
+message ApiGetClientArgs {
   optional string client_id = 1 [(sem_type) = {
       type: "ClientURN",
       description: "Client id."
     }];
 }
 
-message ApiStartFlowRendererArgs {
+message ApiCreateFlowArgs {
   optional string client_id = 1 [(sem_type) = {
       type: "ClientURN",
       description: "Client id."
@@ -82,7 +83,7 @@ message ApiStartFlowRendererArgs {
     }];
 }
 
-message ApiCancelFlowRendererArgs {
+message ApiCancelFlowArgs {
   optional string client_id = 1 [(sem_type) = {
       type: "ClientURN",
       description: "Client id."
@@ -93,7 +94,7 @@ message ApiCancelFlowRendererArgs {
     }];
 }
 
-message ApiFlowStatusRendererArgs {
+message ApiGetFlowStatusArgs {
   optional string client_id = 1 [(sem_type) = {
       type: "ClientURN",
       description: "Client id."
@@ -104,7 +105,7 @@ message ApiFlowStatusRendererArgs {
     }];
 }
 
-message ApiFlowResultsRendererArgs {
+message ApiListFlowResultsArgs {
   optional string client_id = 1 [(sem_type) = {
       type: "ClientURN",
       description: "Client id."
@@ -125,7 +126,7 @@ message ApiFlowResultsRendererArgs {
     }];
 }
 
-message ApiFlowResultsExportCommandRendererArgs {
+message ApiGetFlowResultsExportCommandArgs {
   optional string client_id = 1 [(sem_type) = {
       type: "ClientURN",
       description: "Client id."
@@ -136,7 +137,7 @@ message ApiFlowResultsExportCommandRendererArgs {
     }];
 }
 
-message ApiFlowOutputPluginsRendererArgs {
+message ApiListFlowOutputPluginsArgs {
   optional string client_id = 1 [(sem_type) = {
       type: "ClientURN",
       description: "Client id."
@@ -147,7 +148,49 @@ message ApiFlowOutputPluginsRendererArgs {
     }];
 }
 
-message ApiFlowArchiveFilesRendererArgs {
+message ApiListFlowOutputPluginLogsArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ClientURN",
+      description: "Client id."
+    }];
+  optional string flow_id = 2 [(sem_type) = {
+      type: "SessionID",
+      description: "Flow id."
+    }];
+  optional string plugin_id = 3 [(sem_type) = {
+      description: "Output plugin id."
+    }];
+
+  optional int64 offset = 4 [(sem_type) = {
+      description: "Logs starting offset."
+    }];
+  optional int64 count = 5 [(sem_type) = {
+      description: "Max number of log entries."
+    }];
+}
+
+message ApiListFlowOutputPluginErrorsArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ClientURN",
+      description: "Client id."
+    }];
+  optional string flow_id = 2 [(sem_type) = {
+      type: "SessionID",
+      description: "Flow id."
+    }];
+  optional string plugin_id = 3 [(sem_type) = {
+      description: "Output plugin id."
+    }];
+
+  optional int64 offset = 4 [(sem_type) = {
+      description: "Errors starting offset."
+    }];
+  optional int64 count = 5 [(sem_type) = {
+      description: "Max number of errors."
+    }];
+}
+
+message ApiArchiveFlowFilesArgs {
   optional string client_id = 1 [(sem_type) = {
       type: "ClientURN",
       description: "Client id."
@@ -159,7 +202,7 @@ message ApiFlowArchiveFilesRendererArgs {
   optional ExportCollectionFilesAsArchiveArgs.ArchiveFormat archive_format = 3;
 };
 
-message ApiFlowDescriptorsListRendererArgs {
+message ApiListFlowDescriptorsArgs {
   enum FlowType {
     CLIENT = 0;
     GLOBAL = 1;
@@ -170,7 +213,7 @@ message ApiFlowDescriptorsListRendererArgs {
     }];
 };
 
-message ApiClientFlowsListRendererArgs {
+message ApiListClientFlowsArgs {
   optional string client_id = 1 [(sem_type) = {
       type: "ClientURN",
       description: "Client id."
@@ -183,7 +226,7 @@ message ApiClientFlowsListRendererArgs {
     }];
 };
 
-message ApiClientsAddLabelsRendererArgs {
+message ApiAddClientsLabelsArgs {
   repeated string client_ids = 1 [(sem_type) = {
       type: "ClientURN",
       description: "Client id."
@@ -191,7 +234,7 @@ message ApiClientsAddLabelsRendererArgs {
   repeated string labels = 2;
 }
 
-message ApiClientsRemoveLabelsRendererArgs {
+message ApiRemoveClientsLabelsArgs {
   repeated string client_ids = 1 [(sem_type) = {
       type: "ClientURN",
       description: "Client id."
@@ -199,7 +242,7 @@ message ApiClientsRemoveLabelsRendererArgs {
   repeated string labels = 2;
 }
 
-message ApiHuntsListRendererArgs {
+message ApiListHuntsArgs {
   optional int64 offset = 1 [(sem_type) = {
       description: "Starting offset."
     }];
@@ -230,13 +273,13 @@ message ApiHuntsListRendererArgs {
     }];
 }
 
-message ApiHuntSummaryRendererArgs {
+message ApiGetHuntArgs {
   optional string hunt_id = 1 [(sem_type) = {
       description: "Hunt id."
     }];
 }
 
-message ApiHuntLogRendererArgs {
+message ApiListHuntLogsArgs {
   optional string hunt_id = 1 [(sem_type) = {
       description: "Hunt id."
     }];
@@ -248,7 +291,7 @@ message ApiHuntLogRendererArgs {
     }];
 };
 
-message ApiHuntErrorsRendererArgs {
+message ApiListHuntErrorsArgs {
   optional string hunt_id = 1 [(sem_type) = {
       description: "Hunt id."
     }];
@@ -260,7 +303,7 @@ message ApiHuntErrorsRendererArgs {
     }];
 };
 
-message ApiHuntResultsRendererArgs {
+message ApiListHuntResultsArgs {
   optional string hunt_id = 1 [(sem_type) = {
       description: "Hunt id."
     }];
@@ -276,19 +319,51 @@ message ApiHuntResultsRendererArgs {
     }];
 };
 
-message ApiHuntResultsExportCommandRendererArgs {
+message ApiGetHuntResultsExportCommandArgs {
   optional string hunt_id = 1 [(sem_type) = {
       description: "Hunt id."
     }];
 };
 
-message ApiHuntOutputPluginsRendererArgs {
+message ApiListHuntOutputPluginsArgs {
   optional string hunt_id = 1 [(sem_type) = {
       description: "Hunt id."
     }];
 };
 
-message ApiHuntArchiveFilesRendererArgs {
+message ApiListHuntOutputPluginLogsArgs {
+  optional string hunt_id = 1 [(sem_type) = {
+      description: "Hunt id."
+    }];
+  optional string plugin_id = 2 [(sem_type) = {
+      description: "Plugin id."
+    }];
+
+  optional int64 offset = 3 [(sem_type) = {
+      description: "Status messages offset."
+    }];
+  optional int64 count = 4 [(sem_type) = {
+      description: "Number of status messages to fetch."
+    }];
+};
+
+message ApiListHuntOutputPluginErrorsArgs {
+  optional string hunt_id = 1 [(sem_type) = {
+      description: "Hunt id."
+    }];
+  optional string plugin_id = 2 [(sem_type) = {
+      description: "Plugin id."
+    }];
+
+  optional int64 offset = 3 [(sem_type) = {
+      description: "Errors offset."
+    }];
+  optional int64 count = 4 [(sem_type) = {
+      description: "Number of errors messages to fetch."
+    }];
+};
+
+message ApiArchiveHuntFilesArgs {
   optional string hunt_id = 1 [(sem_type) = {
       description: "Hunt id.",
       type: "SessionID"
@@ -296,7 +371,7 @@ message ApiHuntArchiveFilesRendererArgs {
   optional ExportCollectionFilesAsArchiveArgs.ArchiveFormat archive_format = 2;
 };
 
-message ApiCreateHuntRendererArgs {
+message ApiCreateHuntArgs {
   optional HuntRunnerArgs hunt_runner_args = 1 [(sem_type) = {
       description: "Hunt runner arguments."
     }];
@@ -305,13 +380,13 @@ message ApiCreateHuntRendererArgs {
     }];
 };
 
-message ApiRDFValueReflectionRendererArgs {
+message ApiGetRDFValueDescriptorArgs {
   optional string type = 1 [(sem_type) = {
       description: "RDFValue type name."
     }];
 }
 
-message ApiStatsStoreMetricsMetadataRendererArgs {
+message ApiListStatsStoreMetricsMetadataArgs {
   enum Component {
     WORKER = 0;
     FRONTEND = 1;
@@ -319,7 +394,7 @@ message ApiStatsStoreMetricsMetadataRendererArgs {
   optional Component component = 1;
 }
 
-message ApiCronJobsListRendererArgs {
+message ApiListCronJobsArgs {
   optional int64 offset = 1 [(sem_type) = {
       description: "Starting offset."
     }];
@@ -330,7 +405,7 @@ message ApiCronJobsListRendererArgs {
 
 
 // Next field number: 8
-message ApiStatsStoreMetricRendererArgs {
+message ApiGetStatsStoreMetricArgs {
   enum Component {
     WORKER = 0;
     FRONTEND = 1;
@@ -376,7 +451,7 @@ message ApiStatsStoreMetricRendererArgs {
     }];
 }
 
-message ApiArtifactsRendererArgs {
+message ApiListArtifactsArgs {
   optional int64 offset = 1 [(sem_type) = {
       description: "Starting offset."
     }];
@@ -385,25 +460,25 @@ message ApiArtifactsRendererArgs {
     }];
 }
 
-message ApiArtifactsUploadRendererArgs {
+message ApiUploadArtifactArgs {
   optional bytes artifact = 1 [(sem_type) = {
       description: "Artifact YAML definition."
     }];
 }
 
-message ApiArtifactsDeleteRendererArgs {
+message ApiDeleteArtifactsArgs {
   repeated string names = 1 [(sem_type) = {
       description: "Names of the artifacts to be deleted."
     }];
 }
 
-message ApiConfigOptionRendererArgs {
+message ApiGetConfigOptionArgs {
   optional string name = 1 [(sem_type) = {
       description: "Name of the config option to fetch."
     }];
 }
 
-message ApiUserApprovalsListRendererArgs {
+message ApiListUserApprovalsArgs {
   enum ApprovalType {
     HUNT = 0;
     CLIENT = 1;
@@ -418,6 +493,26 @@ message ApiUserApprovalsListRendererArgs {
   optional int64 count = 3 [(sem_type) = {
       description: "Number of approvals to fetch."
     }];
+}
+
+message ApiStartGetFileOperationArgs {
+  optional string hostname = 1 [(sem_type) = {
+      description: "Target host. Can be FQDN or client ID."
+    }];
+  repeated string paths = 2 [(sem_type) = {
+      type: "GlobExpression",
+      description: "Fetch this number of elements."
+    }];
+  optional uint64 max_file_size = 3 [(sem_type) = {
+      type: "ByteSize",
+      description: "Maximum size of file we will download.",
+    }, default=20000000]; // 20MB
+  optional FileFinderAction.Action action = 4 [(sem_type) = {
+      description: "Action to apply to found files"
+    }, default=DOWNLOAD];
+  optional PathSpec.PathType pathtype = 5 [(sem_type) = {
+      description: "Path type to glob in.",
+    }, default=OS];
 }
 
 //
@@ -464,25 +559,6 @@ message ApiRDFValueCollectionRendererArgs {
     }, default = -1];
 }
 
-message ApiRemoteGetFileRendererArgs {
-  optional string hostname = 1 [(sem_type) = {
-      description: "Target host. Can be FQDN or client ID."
-    }];
-  repeated string paths = 2 [(sem_type) = {
-      type: "GlobExpression",
-      description: "Fetch this number of elements."
-    }];
-  optional uint64 max_file_size = 3 [(sem_type) = {
-      type: "ByteSize",
-      description: "Maximum size of file we will download.",
-    }, default=20000000]; // 20MB
-  optional FileFinderAction.Action action = 4 [(sem_type) = {
-      description: "Action to apply to found files"
-    }, default=DOWNLOAD];
-  optional PathSpec.PathType pathtype = 5 [(sem_type) = {
-      description: "Path type to glob in.",
-    }, default=OS];
-}
 
 // API entities. These are uses in API calls responses.
 
@@ -577,5 +653,31 @@ message ApiCronJob {
     }];
   optional bool is_failing = 11 [(sem_type) = {
       description: "Is this cron job constantly failing?"
+    }];
+}
+
+message ApiOutputPlugin {
+  optional string id = 1 [(sem_type) = {
+      description: "String identifying the output plugin."
+    }];
+  optional OutputPluginDescriptor descriptor = 2 [(sem_type) = {
+      description: "Descriptor of the output plugin."
+    }];
+  optional bytes state = 3 [(sem_type) = {
+      dynamic_type: "GetStateClass",
+      description: "State of the plugin."
+    }];
+}
+
+message ApiVfsRefreshOperation {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ClientURN",
+      description: "Client id."
+    }];
+  optional string vfs_path = 2 [(sem_type) = {
+      description: "AFF4 path of a VFS folder to be refreshed."
+    }];
+  optional uint64 max_depth = 3 [(sem_type) = {
+      description: "Maximum recursion depth.",
     }];
 }

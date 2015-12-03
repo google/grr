@@ -1,15 +1,19 @@
 #!/usr/bin/env python
-"""API renderers for dealing with output_plugins."""
+"""API handlers for dealing with output_plugins."""
 
-from grr.gui import api_call_renderer_base
+from grr.gui import api_call_handler_base
 
 from grr.lib import output_plugin
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import structs as rdf_structs
+
+from grr.proto import api_pb2
 
 
 CATEGORY = "Other"
 
 
-class ApiOutputPluginsListRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiOutputPluginsListHandler(api_call_handler_base.ApiCallHandler):
   """Renders all available output plugins definitions."""
 
   category = CATEGORY
@@ -24,3 +28,11 @@ class ApiOutputPluginsListRenderer(api_call_renderer_base.ApiCallRenderer):
                             args_type=cls.args_type.__name__)
 
     return result
+
+
+class ApiOutputPlugin(rdf_structs.RDFProtoStruct):
+  """Output plugin API entity."""
+  protobuf = api_pb2.ApiOutputPlugin
+
+  def GetStateClass(self):
+    return rdf_flows.FlowState

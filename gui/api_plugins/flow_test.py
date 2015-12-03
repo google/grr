@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""This module contains tests for flows-related API renderers."""
+"""This module contains tests for flows-related API handlers."""
 
 
 
@@ -12,6 +12,7 @@ from grr.lib import flags
 from grr.lib import flow
 from grr.lib import flow_runner
 from grr.lib import output_plugin
+from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import throttle
 from grr.lib import type_info
@@ -22,21 +23,22 @@ from grr.lib.flows.general import discovery
 from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import processes
 from grr.lib.flows.general import transfer
+from grr.lib.hunts import standard_test
 from grr.lib.output_plugins import email_plugin
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 
 
-class ApiFlowStatusRendererTest(test_lib.GRRBaseTest):
-  """Test for ApiFlowStatusRenderer."""
+class ApiGetFlowStatusHandlerTest(test_lib.GRRBaseTest):
+  """Test for ApiGetFlowStatusHandler."""
 
   def setUp(self):
-    super(ApiFlowStatusRendererTest, self).setUp()
+    super(ApiGetFlowStatusHandlerTest, self).setUp()
     self.client_id = self.SetupClients(1)[0]
-    self.renderer = flow_plugin.ApiFlowStatusRenderer()
+    self.handler = flow_plugin.ApiGetFlowStatusHandler()
 
   def testIsDisabledByDefault(self):
-    self.assertFalse(self.renderer.enabled_by_default)
+    self.assertFalse(self.handler.enabled_by_default)
 
   def testParameterValidation(self):
     """Check bad parameters are rejected.
@@ -44,24 +46,24 @@ class ApiFlowStatusRendererTest(test_lib.GRRBaseTest):
     Make sure our input is validated because this API doesn't require
     authorization.
     """
-    bad_flowid = flow_plugin.ApiFlowStatusRendererArgs(
+    bad_flowid = flow_plugin.ApiGetFlowStatusArgs(
         client_id=self.client_id.Basename(), flow_id="X:<script>")
     with self.assertRaises(ValueError):
-      self.renderer.Render(bad_flowid, token=self.token)
+      self.handler.Render(bad_flowid, token=self.token)
 
     with self.assertRaises(type_info.TypeValueError):
-      flow_plugin.ApiFlowStatusRendererArgs(
+      flow_plugin.ApiGetFlowStatusArgs(
           client_id="C.123456<script>", flow_id="X:1245678")
 
 
-class ApiFlowStatusRendererRegressionTest(
-    api_test_lib.ApiCallRendererRegressionTest):
-  """Test flow status renderer.
+class ApiGetFlowStatusHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+  """Test flow status handler.
 
-  This renderer is disabled by default in the ACLs so we need to do some
+  This handler is disabled by default in the ACLs so we need to do some
   patching to get the proper output and not just "access denied".
   """
-  renderer = "ApiFlowStatusRenderer"
+  handler = "ApiGetFlowStatusHandler"
 
   def Run(self):
     # Fix the time to avoid regressions.
@@ -94,11 +96,11 @@ class ApiFlowStatusRendererRegressionTest(
                  replace={flow_id.Basename(): "F:ABCDEF12"})
 
 
-class ApiClientFlowsListRendererRegressionTest(
-    api_test_lib.ApiCallRendererRegressionTest):
-  """Test client flows list renderer."""
+class ApiListClientFlowsHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+  """Test client flows list handler."""
 
-  renderer = "ApiClientFlowsListRenderer"
+  handler = "ApiListClientFlowsHandler"
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -127,14 +129,14 @@ class ApiClientFlowsListRendererRegressionTest(
                         flow_id_2.Basename(): "F:ABCDEF11"})
 
 
-class ApiFlowResultsRendererRegressionTest(
-    api_test_lib.ApiCallRendererRegressionTest):
-  """Regression test for ApiFlowResultsRenderer."""
+class ApiListFlowResultsHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+  """Regression test for ApiListFlowResultsHandler."""
 
-  renderer = "ApiFlowResultsRenderer"
+  handler = "ApiListFlowResultsHandler"
 
   def setUp(self):
-    super(ApiFlowResultsRendererRegressionTest, self).setUp()
+    super(ApiListFlowResultsHandlerRegressionTest, self).setUp()
     self.client_id = self.SetupClients(1)[0]
 
   def Run(self):
@@ -165,14 +167,14 @@ class ApiFlowResultsRendererRegressionTest(
                replace={flow_urn.Basename(): "W:ABCDEF"})
 
 
-class ApiFlowResultsExportCommandRendererRegressionTest(
-    api_test_lib.ApiCallRendererRegressionTest):
-  """Regression test for ApiFlowResultsExportCommandRenderer."""
+class ApiGetFlowResultsExportCommandHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+  """Regression test for ApiGetFlowResultsExportCommandHandler."""
 
-  renderer = "ApiFlowResultsExportCommandRenderer"
+  handler = "ApiGetFlowResultsExportCommandHandler"
 
   def setUp(self):
-    super(ApiFlowResultsExportCommandRendererRegressionTest, self).setUp()
+    super(ApiGetFlowResultsExportCommandHandlerRegressionTest, self).setUp()
     self.client_id = self.SetupClients(1)[0]
 
   def Run(self):
@@ -188,19 +190,19 @@ class ApiFlowResultsExportCommandRendererRegressionTest(
                replace={flow_urn.Basename(): "W:ABCDEF"})
 
 
-class ApiFlowOutputPluginsRendererRegressionTest(
-    api_test_lib.ApiCallRendererRegressionTest):
-  """Regression test for ApiFlowOutputPluginsRenderer."""
+class ApiListFlowOutputPluginsHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+  """Regression test for ApiListFlowOutputPluginsHandler."""
 
-  renderer = "ApiFlowOutputPluginsRenderer"
+  handler = "ApiListFlowOutputPluginsHandler"
 
   def setUp(self):
-    super(ApiFlowOutputPluginsRendererRegressionTest, self).setUp()
+    super(ApiListFlowOutputPluginsHandlerRegressionTest, self).setUp()
     self.client_id = self.SetupClients(1)[0]
 
   def Run(self):
     email_descriptor = output_plugin.OutputPluginDescriptor(
-        plugin_name="EmailOutputPlugin",
+        plugin_name=email_plugin.EmailOutputPlugin.__name__,
         plugin_args=email_plugin.EmailOutputPluginArgs(
             email_address="test@localhost", emails_limit=42))
 
@@ -216,14 +218,90 @@ class ApiFlowOutputPluginsRendererRegressionTest(
                replace={flow_urn.Basename(): "W:ABCDEF"})
 
 
-class ApiStartFlowRendererRegressionTest(
-    api_test_lib.ApiCallRendererRegressionTest):
-  """Regression test for ApiStartFlowRenderer."""
+class DummyFlowWithSingleReply(flow.GRRFlow):
+  """Just emits 1 reply."""
 
-  renderer = "ApiStartFlowRenderer"
+  @flow.StateHandler()
+  def Start(self, unused_response=None):
+    self.CallState(next_state="SendSomething")
+
+  @flow.StateHandler()
+  def SendSomething(self, unused_response=None):
+    self.SendReply(rdfvalue.RDFString("oh"))
+
+
+class ApiListFlowOutputPluginLogsHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+  """Regression test for ApiListFlowOutputPluginLogsHandler."""
+
+  handler = "ApiListFlowOutputPluginLogsHandler"
 
   def setUp(self):
-    super(ApiStartFlowRendererRegressionTest, self).setUp()
+    super(ApiListFlowOutputPluginLogsHandlerRegressionTest, self).setUp()
+    self.client_id = self.SetupClients(1)[0]
+
+  def Run(self):
+    email_descriptor = output_plugin.OutputPluginDescriptor(
+        plugin_name=email_plugin.EmailOutputPlugin.__name__,
+        plugin_args=email_plugin.EmailOutputPluginArgs(
+            email_address="test@localhost", emails_limit=42))
+
+    with test_lib.FakeTime(42):
+      flow_urn = flow.GRRFlow.StartFlow(
+          flow_name=DummyFlowWithSingleReply.__name__,
+          client_id=self.client_id,
+          output_plugins=[email_descriptor],
+          token=self.token)
+
+    with test_lib.FakeTime(43):
+      for _ in test_lib.TestFlowHelper(flow_urn, token=self.token):
+        pass
+
+    self.Check("GET", "/api/clients/%s/flows/%s/output-plugins/"
+               "EmailOutputPlugin_0/logs" % (self.client_id.Basename(),
+                                             flow_urn.Basename()),
+               replace={flow_urn.Basename(): "W:ABCDEF"})
+
+
+class ApiListFlowOutputPluginErrorsHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+  """Regression test for ApiListFlowOutputPluginErrorsHandler."""
+
+  handler = "ApiListFlowOutputPluginErrorsHandler"
+
+  def setUp(self):
+    super(ApiListFlowOutputPluginErrorsHandlerRegressionTest, self).setUp()
+    self.client_id = self.SetupClients(1)[0]
+
+  def Run(self):
+    failing_descriptor = output_plugin.OutputPluginDescriptor(
+        plugin_name=standard_test.FailingDummyHuntOutputPlugin.__name__)
+
+    with test_lib.FakeTime(42):
+      flow_urn = flow.GRRFlow.StartFlow(
+          flow_name=DummyFlowWithSingleReply.__name__,
+          client_id=self.client_id,
+          output_plugins=[failing_descriptor],
+          token=self.token)
+
+    with test_lib.FakeTime(43):
+      for _ in test_lib.TestFlowHelper(flow_urn, token=self.token):
+        pass
+
+    self.Check("GET", "/api/clients/%s/flows/%s/output-plugins/"
+               "FailingDummyHuntOutputPlugin_0/errors" % (
+                   self.client_id.Basename(), flow_urn.Basename()),
+               replace={flow_urn.Basename(): "W:ABCDEF"})
+
+
+class ApiCreateFlowHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+  """Regression test for ApiCreateFlowHandler."""
+
+  handler = "ApiCreateFlowHandler"
+
+  def setUp(self):
+    super(ApiCreateFlowHandlerRegressionTest, self).setUp()
     self.client_id = self.SetupClients(1)[0]
 
   def Run(self):
@@ -249,14 +327,14 @@ class ApiStartFlowRendererRegressionTest(
                  }, replace=ReplaceFlowId)
 
 
-class ApiCancelFlowRendererRegressionTest(
-    api_test_lib.ApiCallRendererRegressionTest):
-  """Regression test for ApiCancelFlowRenderer."""
+class ApiCancelFlowHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+  """Regression test for ApiCancelFlowHandler."""
 
-  renderer = "ApiCancelFlowRenderer"
+  handler = "ApiCancelFlowHandler"
 
   def setUp(self):
-    super(ApiCancelFlowRendererRegressionTest, self).setUp()
+    super(ApiCancelFlowHandlerRegressionTest, self).setUp()
     self.client_id = self.SetupClients(1)[0]
 
   def Run(self):
@@ -271,11 +349,11 @@ class ApiCancelFlowRendererRegressionTest(
                replace={flow_urn.Basename(): "W:ABCDEF"})
 
 
-class ApiFlowDescriptorsListRendererRegressionTest(
-    api_test_lib.ApiCallRendererRegressionTest):
-  """Regression test for ApiFlowDescriptorsListRenderer."""
+class ApiListFlowDescriptorsHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+  """Regression test for ApiListFlowDescriptorsHandler."""
 
-  renderer = "ApiFlowDescriptorsListRenderer"
+  handler = "ApiListFlowDescriptorsHandler"
 
   def Run(self):
     with utils.Stubber(flow.GRRFlow, "classes", {
@@ -291,12 +369,12 @@ class ApiFlowDescriptorsListRendererRegressionTest(
       self.Check("GET", "/api/flows/descriptors?flow_type=global")
 
 
-class ApiRemoteGetFileRendererRegressionTest(
-    api_test_lib.ApiCallRendererRegressionTest):
-  renderer = "ApiRemoteGetFileRenderer"
+class ApiStartGetFileOperationHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+  handler = "ApiStartGetFileOperationHandler"
 
   def setUp(self):
-    super(ApiRemoteGetFileRendererRegressionTest, self).setUp()
+    super(ApiStartGetFileOperationHandlerRegressionTest, self).setUp()
     self.client_id = self.SetupClients(1)[0]
 
   def Run(self):
@@ -315,38 +393,38 @@ class ApiRemoteGetFileRendererRegressionTest(
           replace=ReplaceFlowId)
 
 
-class ApiRemoteGetFileRendererTest(test_lib.GRRBaseTest):
-  """Test for ApiRemoteGetFileRenderer."""
+class ApiStartGetFileOperationHandlerTest(test_lib.GRRBaseTest):
+  """Test for ApiStartGetFileOperationHandler."""
 
   def setUp(self):
-    super(ApiRemoteGetFileRendererTest, self).setUp()
+    super(ApiStartGetFileOperationHandlerTest, self).setUp()
     self.client_ids = self.SetupClients(4)
-    self.renderer = flow_plugin.ApiRemoteGetFileRenderer()
+    self.handler = flow_plugin.ApiStartGetFileOperationHandler()
 
   def testClientLookup(self):
     """When multiple clients match, check we run on the latest one."""
-    args = flow_plugin.ApiRemoteGetFileRendererArgs(
+    args = flow_plugin.ApiStartGetFileOperationArgs(
         hostname="Host", paths=["/test"])
-    result = self.renderer.Render(args, token=self.token)
+    result = self.handler.Render(args, token=self.token)
     self.assertIn("C.1000000000000003", result["status_url"])
 
   def testThrottle(self):
     """Calling the same flow should raise."""
-    args = flow_plugin.ApiRemoteGetFileRendererArgs(
+    args = flow_plugin.ApiStartGetFileOperationArgs(
         hostname="Host", paths=["/test"])
-    result = self.renderer.Render(args, token=self.token)
+    result = self.handler.Render(args, token=self.token)
     self.assertIn("C.1000000000000003", result["status_url"])
 
     with self.assertRaises(throttle.ErrorFlowDuplicate):
-      self.renderer.Render(args, token=self.token)
+      self.handler.Render(args, token=self.token)
 
 
-class ApiFlowArchiveFilesRendererRegressionTest(
-    api_test_lib.ApiCallRendererRegressionTest):
-  renderer = "ApiFlowArchiveFilesRenderer"
+class ApiArchiveFlowFilesHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+  handler = "ApiArchiveFlowFilesHandler"
 
   def setUp(self):
-    super(ApiFlowArchiveFilesRendererRegressionTest, self).setUp()
+    super(ApiArchiveFlowFilesHandlerRegressionTest, self).setUp()
 
     self.client_id = self.SetupClients(1)[0]
 

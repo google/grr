@@ -1,10 +1,10 @@
 #!/usr/bin/env python
-"""The base class for ApiCallRenderers."""
+"""The base class for ApiCallHandlers."""
 
 from grr.lib import registry
 
 
-class ApiCallRenderer(object):
+class ApiCallHandler(object):
   """Baseclass for restful API renderers."""
 
   __metaclass__ = registry.MetaclassRegistry

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Renderers for API calls (that can be bound to HTTP API, for example)."""
+"""Handlers for API calls (that can be bound to HTTP API, for example)."""
 
 
 
@@ -7,7 +7,7 @@ import logging
 
 
 from grr.gui import api_auth_manager
-from grr.gui import api_call_renderer_base
+from grr.gui import api_call_handler_base
 # pylint:disable=unused-import
 # Import all api_plugins so they are available when we set up acls.
 from grr.gui import api_plugins
@@ -23,11 +23,11 @@ from grr.proto import api_pb2
 
 
 class Error(Exception):
-  """Base class for API renderers exception."""
+  """Base class for API handlers exception."""
 
 
-class ApiCallRendererNotFoundError(Error):
-  """Raised when no renderer found for a given URL."""
+class ApiCallHandlerNotFoundError(Error):
+  """Raised when no handler found for a given URL."""
 
 
 class ApiCallAdditionalArgs(structs.RDFProtoStruct):
@@ -46,9 +46,9 @@ class APIACLInit(registry.InitHook):
 
   def RunOnce(self):
     stats.STATS.RegisterCounterMetric("grr_api_auth_success",
-                                      fields=[("renderer", str), ("user", str)])
+                                      fields=[("handler", str), ("user", str)])
     stats.STATS.RegisterCounterMetric("grr_api_auth_fail",
-                                      fields=[("renderer", str), ("user", str)])
+                                      fields=[("handler", str), ("user", str)])
 
     global API_AUTH_MGR
     auth_mgr_cls = config_lib.CONFIG["API.AuthorizationManager"]
@@ -56,26 +56,26 @@ class APIACLInit(registry.InitHook):
     API_AUTH_MGR = api_auth_manager.SimpleAPIAuthorizationManager.classes[
         auth_mgr_cls]()
 
-    # Quickly validate the list of renderers.
-    for renderer in API_AUTH_MGR.ACLedRenderers():
-      if renderer not in api_call_renderer_base.ApiCallRenderer.classes:
-        raise ApiCallRendererNotFoundError(
-            "%s not a valid renderer" % renderer)
+    # Quickly validate the list of handlers.
+    for handler in API_AUTH_MGR.ACLedHandlers():
+      if handler not in api_call_handler_base.ApiCallHandler.classes:
+        raise ApiCallHandlerNotFoundError(
+            "%s not a valid handler" % handler)
 
 
-def HandleApiCall(renderer, args, token=None):
-  """Handles API call to a given renderers with given args and token."""
+def HandleApiCall(handler, args, token=None):
+  """Handles API call to a given handlers with given args and token."""
 
-  if not hasattr(renderer, "Render"):
-    renderer = api_call_renderer_base.ApiCallRenderer.classes[renderer]()
+  if not hasattr(handler, "Render"):
+    handler = api_call_handler_base.ApiCallHandler.classes[handler]()
 
-  # Privileged renderers bypass the approvals model to do things like check flow
+  # Privileged handlers bypass the approvals model to do things like check flow
   # status across multiple clients or add labels to clients. They provide
   # limited functionality and are responsible for their own checking.
-  if renderer.privileged:
+  if handler.privileged:
     token = token.SetUID()
 
   # Raises on access denied
-  API_AUTH_MGR.CheckAccess(renderer, token.username)
+  API_AUTH_MGR.CheckAccess(handler, token.username)
 
-  return renderer.Render(args, token=token)
+  return handler.Render(args, token=token)

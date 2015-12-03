@@ -5,8 +5,8 @@ MAINTAINER Greg Castle github@mailgreg.com
 RUN mkdir -p /usr/share/grr/scripts
 COPY scripts/install_script_ubuntu.sh /usr/share/grr/scripts/install_script_ubuntu.sh
 ENV UPGRADE=false
-# Install our dependencies
-RUN bash /usr/share/grr/scripts/install_script_ubuntu.sh -dy
+# Install our dependencies, use latest requirements.txt
+RUN bash /usr/share/grr/scripts/install_script_ubuntu.sh -dy -r https://raw.githubusercontent.com/google/grr/master/requirements.txt
 
 # Download the client templates now to get better caching from Docker.
 WORKDIR /usr/share/grr

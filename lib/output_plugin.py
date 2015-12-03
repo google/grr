@@ -15,6 +15,11 @@ from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import output_plugin_pb2
 
 
+class OutputPluginBatchProcessingStatus(rdf_structs.RDFProtoStruct):
+  """Describes processing status of a single batch by a hunt output plugin."""
+  protobuf = output_plugin_pb2.OutputPluginBatchProcessingStatus
+
+
 class Error(Exception):
   """Output plugins-related exception."""
 

@@ -15,10 +15,16 @@ class DumpProcessMemoryArgs(rdf_structs.RDFProtoStruct):
 
 
 class DumpProcessMemory(flow.GRRFlow):
-  """Dump memory from process running on a system."""
+  """Flow to dump memory from processes using C++ client.
+
+  Note that this flow currently requires the experimental C++ client, which
+  currently only works on Linux. The intention is to implement similar
+  functionality in the regular python client and make it work across OS X and
+  Windows as well.
+  """
 
   category = "/Memory/"
-  behaviours = flow.GRRFlow.behaviours + "BASIC"
+  behaviours = flow.GRRFlow.behaviours + "ADVANCED"
   args_type = DumpProcessMemoryArgs
 
   @flow.StateHandler(next_state=["DownloadImage"])

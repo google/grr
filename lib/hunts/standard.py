@@ -11,6 +11,7 @@ from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flow
+from grr.lib import output_plugin
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
@@ -25,12 +26,6 @@ from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.parsers import wmi_parser
 from grr.proto import flows_pb2
-from grr.proto import output_plugin_pb2
-
-
-class OutputPluginBatchProcessingStatus(rdf_structs.RDFProtoStruct):
-  """Describes processing status of a single batch by a hunt output plugin."""
-  protobuf = output_plugin_pb2.OutputPluginBatchProcessingStatus
 
 
 class Error(Exception):
@@ -393,7 +388,7 @@ class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
                                      delta=len(batch),
                                      fields=[plugin_def.plugin_name])
 
-        plugin_status = OutputPluginBatchProcessingStatus(
+        plugin_status = output_plugin.OutputPluginBatchProcessingStatus(
             plugin_descriptor=plugin_def,
             status="SUCCESS",
             batch_index=batch_index,
@@ -402,7 +397,7 @@ class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
         stats.STATS.IncrementCounter("hunt_output_plugin_errors",
                                      fields=[plugin_def.plugin_name])
 
-        plugin_status = OutputPluginBatchProcessingStatus(
+        plugin_status = output_plugin.OutputPluginBatchProcessingStatus(
             plugin_descriptor=plugin_def,
             status="ERROR",
             summary=utils.SmartStr(e),

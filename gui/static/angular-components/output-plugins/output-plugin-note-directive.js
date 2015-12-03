@@ -11,52 +11,36 @@ goog.scope(function() {
  *
  * @constructor
  * @param {!angular.Scope} $scope
- * @param {!angular.$compile} $compile
- * @param {!angular.jQuery} $element
  * @param {!grrUi.core.semanticRegistry.SemanticRegistryService}
  *     grrOutputPluginsDirectivesRegistryService
  * @ngInject
  */
 grrUi.outputPlugins.outputPluginNoteDirective.OutputPluginNoteController =
-    function($scope, $compile, $element,
-             grrOutputPluginsDirectivesRegistryService) {
+    function($scope, grrOutputPluginsDirectivesRegistryService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
   /** @type {Object} */
-  this.scope_.descriptor;
+  this.scope_.outputPlugin;
 
-  /** @type {Object} */
-  this.scope_.state;
+  /** @type {string} */
+  this.pluginTitle;
 
-  /** @private {!angular.$compile} */
-  this.compile_ = $compile;
+  /** @type {string} */
+  this.pluginLogsUrl;
 
-  /** @private {!angular.jQuery} */
-  this.element_ = $element;
+  /** @type {string} */
+  this.pluginErrorsUrl;
 
   /** @private {!grrUi.core.semanticRegistry.SemanticRegistryService} */
   this.grrOutputPluginsDirectivesRegistryService_ =
       grrOutputPluginsDirectivesRegistryService;
 
-  this.scope_.$watchGroup(['descriptor', 'state'],
-                          this.onDescriptorOrStateChange_.bind(this));
+  this.scope_.$watchGroup(['outputPlugin', 'outputPluginsUrl'],
+                          this.onOutputPluginChange_.bind(this));
 };
 var OutputPluginNoteController =
     grrUi.outputPlugins.outputPluginNoteDirective.OutputPluginNoteController;
-
-
-
-/**
- * Converts camelCaseStrings to dash-delimited-strings.
- *
- * @param {string} directiveName String to be converted.
- * @return {string} Converted string.
- */
-OutputPluginNoteController.prototype.camelCaseToDashDelimited = function(
-    directiveName) {
-  return directiveName.replace(/([a-z\d])([A-Z])/g, '$1-$2').toLowerCase();
-};
 
 
 /**
@@ -64,29 +48,25 @@ OutputPluginNoteController.prototype.camelCaseToDashDelimited = function(
  *
  * @private
  */
-OutputPluginNoteController.prototype.onDescriptorOrStateChange_ = function() {
-  if (angular.isDefined(this.scope_['descriptor']) &&
-      angular.isDefined(this.scope_['state'])) {
+OutputPluginNoteController.prototype.onOutputPluginChange_ = function() {
+  if (angular.isDefined(this.scope_['outputPlugin']) &&
+      angular.isDefined(this.scope_['outputPluginsUrl'])) {
+    var descriptor =
+        this.scope_['outputPlugin']['value']['descriptor'];
+    var pluginName = descriptor['value']['plugin_name']['value'];
 
-    var pluginName = this.scope_['descriptor']['value']['plugin_name']['value'];
     var directive = this.grrOutputPluginsDirectivesRegistryService_
         .findDirectiveForMro([pluginName]);
-
     if (angular.isDefined(directive)) {
-      var element = angular.element('<span />');
-      element.html('<' +
-        this.camelCaseToDashDelimited(directive.directive_name) +
-        ' descriptor="descriptor" state="state" />');
-
-      var template = this.compile_(element);
-      template(this.scope_, function(cloned, opt_scope) {
-        this.element_.html('');
-        this.element_.append(cloned);
-      }.bind(this));
+      this.pluginTitle = directive.output_plugin_title;
     } else {
-      this.element_.html('');
+      this.pluginTitle = pluginName;
     }
 
+    var logsUrlBase = this.scope_['outputPluginsUrl'] + '/' +
+        this.scope_['outputPlugin']['value']['id']['value'];
+    this.pluginLogsUrl = logsUrlBase + '/logs';
+    this.pluginErrorsUrl = logsUrlBase + '/errors';
   }
 };
 
@@ -101,10 +81,12 @@ grrUi.outputPlugins.outputPluginNoteDirective.OutputPluginNoteDirective =
     function() {
   return {
     scope: {
-      descriptor: '=',
-      state: '='
+      outputPluginsUrl: '=',
+      outputPlugin: '='
     },
     restrict: 'E',
+    templateUrl: '/static/angular-components/output-plugins/' +
+        'output-plugin-note.html',
     controller: OutputPluginNoteController,
     controllerAs: 'controller'
   };

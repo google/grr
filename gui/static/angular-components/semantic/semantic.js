@@ -12,6 +12,7 @@ goog.require('grrUi.semantic.dictDirective.DictDirective');
 goog.require('grrUi.semantic.durationDirective.DurationDirective');
 goog.require('grrUi.semantic.encryptionKeyDirective.EncryptionKeyDirective');
 goog.require('grrUi.semantic.fetchMoreLinkDirective.FetchMoreLinkDirective');
+goog.require('grrUi.semantic.jsonDirective.JsonDirective');
 goog.require('grrUi.semantic.macAddressDirective.MacAddressDirective');
 goog.require('grrUi.semantic.networkAddressDirective.NetworkAddressDirective');
 goog.require('grrUi.semantic.objectLabelDirective.ObjectLabelDirective');
@@ -50,6 +51,9 @@ grrUi.semantic.module.directive(
 grrUi.semantic.module.directive(
     grrUi.semantic.fetchMoreLinkDirective.FetchMoreLinkDirective.directive_name,
     grrUi.semantic.fetchMoreLinkDirective.FetchMoreLinkDirective);
+grrUi.semantic.module.directive(
+    grrUi.semantic.jsonDirective.JsonDirective.directive_name,
+    grrUi.semantic.jsonDirective.JsonDirective);
 grrUi.semantic.module.directive(
     grrUi.semantic.macAddressDirective.MacAddressDirective.directive_name,
     grrUi.semantic.macAddressDirective.MacAddressDirective);
@@ -111,6 +115,9 @@ grrUi.semantic.module.run(function(grrSemanticValueDirectivesRegistryService) {
       grrUi.semantic.fetchMoreLinkDirective.FetchMoreLinkDirective
           .semantic_type,
       grrUi.semantic.fetchMoreLinkDirective.FetchMoreLinkDirective);
+  registry.registerDirective(
+      grrUi.semantic.jsonDirective.JsonDirective.semantic_type,
+      grrUi.semantic.jsonDirective.JsonDirective);
   registry.registerDirective(
       grrUi.semantic.macAddressDirective.MacAddressDirective.semantic_type,
       grrUi.semantic.macAddressDirective.MacAddressDirective);

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""This modules contains tests for clients API renderers."""
+"""This modules contains tests for clients API handlers."""
 
 
 
@@ -14,23 +14,22 @@ from grr.lib import test_lib
 from grr.lib.rdfvalues import client as rdf_client
 
 
-class ApiClientsAddLabelsRendererTest(test_lib.GRRBaseTest):
-  """Test for ApiClientsAddLabelsRenderer."""
+class ApiAddClientsLabelsHandlerTest(test_lib.GRRBaseTest):
+  """Test for ApiAddClientsLabelsHandler."""
 
   def setUp(self):
-    super(ApiClientsAddLabelsRendererTest, self).setUp()
+    super(ApiAddClientsLabelsHandlerTest, self).setUp()
     self.client_ids = self.SetupClients(3)
-    self.renderer = client_plugin.ApiClientsAddLabelsRenderer()
+    self.handler = client_plugin.ApiAddClientsLabelsHandler()
 
   def testAddsSingleLabelToSingleClient(self):
     for client_id in self.client_ids:
       self.assertFalse(
           aff4.FACTORY.Open(client_id, token=self.token).GetLabels())
 
-    result = self.renderer.Render(client_plugin.ApiClientsAddLabelsRendererArgs(
+    result = self.handler.Render(client_plugin.ApiAddClientsLabelsArgs(
         client_ids=[self.client_ids[0]],
-        labels=["foo"]),
-                                  token=self.token)
+        labels=["foo"]), token=self.token)
     self.assertEqual(result["status"], "OK")
 
     labels = aff4.FACTORY.Open(self.client_ids[0],
@@ -48,10 +47,9 @@ class ApiClientsAddLabelsRendererTest(test_lib.GRRBaseTest):
       self.assertFalse(
           aff4.FACTORY.Open(client_id, token=self.token).GetLabels())
 
-    result = self.renderer.Render(client_plugin.ApiClientsAddLabelsRendererArgs(
+    result = self.handler.Render(client_plugin.ApiAddClientsLabelsArgs(
         client_ids=[self.client_ids[0], self.client_ids[1]],
-        labels=["foo", "bar"]),
-                                  token=self.token)
+        labels=["foo", "bar"]), token=self.token)
     self.assertEqual(result["status"], "OK")
 
     for client_id in self.client_ids[:2]:
@@ -66,7 +64,7 @@ class ApiClientsAddLabelsRendererTest(test_lib.GRRBaseTest):
         aff4.FACTORY.Open(self.client_ids[2], token=self.token).GetLabels())
 
   def testAuditEntryIsCreatedForEveryClient(self):
-    self.renderer.Render(client_plugin.ApiClientsAddLabelsRendererArgs(
+    self.handler.Render(client_plugin.ApiAddClientsLabelsArgs(
         client_ids=self.client_ids,
         labels=["drei", "ein", "zwei"]), token=self.token)
 
@@ -93,21 +91,21 @@ class ApiClientsAddLabelsRendererTest(test_lib.GRRBaseTest):
       self.assertEqual(found_event.description, "test.drei,test.ein,test.zwei")
 
 
-class ApiClientsRemoveLabelsRendererTest(test_lib.GRRBaseTest):
-  """Test for ApiClientsRemoveLabelsRenderer."""
+class ApiRemoveClientsLabelsHandlerTest(test_lib.GRRBaseTest):
+  """Test for ApiRemoveClientsLabelsHandler."""
 
   def setUp(self):
-    super(ApiClientsRemoveLabelsRendererTest, self).setUp()
+    super(ApiRemoveClientsLabelsHandlerTest, self).setUp()
     self.client_ids = self.SetupClients(3)
-    self.renderer = client_plugin.ApiClientsRemoveLabelsRenderer()
+    self.handler = client_plugin.ApiRemoveClientsLabelsHandler()
 
   def testRemovesUserLabelFromSingleClient(self):
     with aff4.FACTORY.Open(self.client_ids[0], mode="rw",
                            token=self.token) as grr_client:
       grr_client.AddLabels("foo", "bar")
 
-    result = self.renderer.Render(
-        client_plugin.ApiClientsRemoveLabelsRendererArgs(
+    result = self.handler.Render(
+        client_plugin.ApiRemoveClientsLabelsArgs(
             client_ids=[self.client_ids[0]],
             labels=["foo"]),
         token=self.token)
@@ -123,8 +121,8 @@ class ApiClientsRemoveLabelsRendererTest(test_lib.GRRBaseTest):
                            token=self.token) as grr_client:
       grr_client.AddLabels("foo", owner="GRR")
 
-    result = self.renderer.Render(
-        client_plugin.ApiClientsRemoveLabelsRendererArgs(
+    result = self.handler.Render(
+        client_plugin.ApiRemoveClientsLabelsArgs(
             client_ids=[self.client_ids[0]],
             labels=["foo"]),
         token=self.token)
@@ -139,8 +137,8 @@ class ApiClientsRemoveLabelsRendererTest(test_lib.GRRBaseTest):
       grr_client.AddLabels("foo")
       grr_client.AddLabels("foo", owner="GRR")
 
-    result = self.renderer.Render(
-        client_plugin.ApiClientsRemoveLabelsRendererArgs(
+    result = self.handler.Render(
+        client_plugin.ApiRemoveClientsLabelsArgs(
             client_ids=[self.client_ids[0]],
             labels=["foo"]),
         token=self.token)
@@ -152,10 +150,10 @@ class ApiClientsRemoveLabelsRendererTest(test_lib.GRRBaseTest):
     self.assertEqual(labels[0].owner, "GRR")
 
 
-class ApiClientSearchRendererRegressionTest(
-    api_test_lib.ApiCallRendererRegressionTest):
+class ApiListClientsHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
 
-  renderer = "ApiClientSearchRenderer"
+  handler = "ApiListClientsHandler"
 
   def Run(self):
     # Fix the time to avoid regressions.
@@ -171,10 +169,10 @@ class ApiClientSearchRendererRegressionTest(
       self.Check("GET", "/api/clients?query=%s" % client_ids[0].Basename())
 
 
-class ApiClientSummaryRendererRegressionTest(
-    api_test_lib.ApiCallRendererRegressionTest):
+class ApiGetClientHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
 
-  renderer = "ApiClientSummaryRenderer"
+  handler = "ApiGetClientHandler"
 
   def Run(self):
     # Fix the time to avoid regressions.
@@ -190,10 +188,10 @@ class ApiClientSummaryRendererRegressionTest(
     self.Check("GET", "/api/clients/%s" % client_ids[0].Basename())
 
 
-class ApiClientsLabelsListRendererRegressionTest(
-    api_test_lib.ApiCallRendererRegressionTest):
+class ApiListClientsLabelsHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
 
-  renderer = "ApiClientsLabelsListRenderer"
+  handler = "ApiListClientsLabelsHandler"
 
   def Run(self):
     # Fix the time to avoid regressions.
@@ -211,12 +209,33 @@ class ApiClientsLabelsListRendererRegressionTest(
     self.Check("GET", "/api/clients/labels")
 
 
-class ApiListKbFieldsRendererTest(api_test_lib.ApiCallRendererRegressionTest):
+class ApiListKbFieldsHandlerTest(api_test_lib.ApiCallHandlerRegressionTest):
 
-  renderer = "ApiListKbFieldsRenderer"
+  handler = "ApiListKbFieldsHandler"
 
   def Run(self):
     self.Check("GET", "/api/clients/kb-fields")
+
+
+class ApiCreateVfsRefreshOperationHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+
+  handler = "ApiCreateVfsRefreshOperationHandler"
+
+  def Run(self):
+    client_ids = self.SetupClients(1)
+    # This creates client fixtures that include VFSDirectories.
+    test_lib.ClientFixture(client_ids[0], token=self.token)
+
+    self.Check(
+        "POST",
+        "/api/clients/%s/vfs-refresh-operations" % client_ids[0].Basename(),
+        dict(vfs_path="non/existing", max_depth=1))
+
+    self.Check(
+        "POST",
+        "/api/clients/%s/vfs-refresh-operations" % client_ids[0].Basename(),
+        dict(vfs_path="fs/os/c", max_depth=1))
 
 
 def main(argv):

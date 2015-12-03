@@ -1,10 +1,10 @@
 #!/usr/bin/env python
-"""API renderers for accessing AFF4 objects."""
+"""API handlers for accessing AFF4 objects."""
 
 
 
 from grr.gui import api_aff4_object_renderers
-from grr.gui import api_call_renderer_base
+from grr.gui import api_call_handler_base
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import rdfvalue
@@ -16,20 +16,20 @@ from grr.proto import api_pb2
 CATEGORY = "AFF4"
 
 
-class ApiAff4RendererArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiAff4RendererArgs
+class ApiGetAff4ObjectArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetAff4ObjectArgs
 
 
-class ApiAff4Renderer(api_call_renderer_base.ApiCallRenderer):
+class ApiGetAff4ObjectHandler(api_call_handler_base.ApiCallHandler):
   """Renders AFF4 objects in JSON format.
 
   Query parameters interpretation depends on the type of the AFF4 object
-  that's being fetched. See documentation on AFF4 object renderers for
+  that's being fetched. See documentation on AFF4 object handlers for
   details.
   """
 
   category = CATEGORY
-  args_type = ApiAff4RendererArgs
+  args_type = ApiGetAff4ObjectArgs
 
   @classmethod
   def GetAdditionalArgsTypes(cls):
@@ -49,15 +49,15 @@ class ApiAff4Renderer(api_call_renderer_base.ApiCallRenderer):
     return rendered_data
 
 
-class ApiAff4IndexRendererArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiAff4IndexRendererArgs
+class ApiGetAff4IndexArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetAff4IndexArgs
 
 
-class ApiAff4IndexRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiGetAff4IndexHandler(api_call_handler_base.ApiCallHandler):
   """Returns list of children objects for the object with a given path."""
 
   category = CATEGORY
-  args_type = ApiAff4IndexRendererArgs
+  args_type = ApiGetAff4IndexArgs
 
   def Render(self, args, token=None):
     encoded_urns = []

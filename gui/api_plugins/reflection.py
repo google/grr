@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-"""API renderer for rendering descriptors of GRR data structures."""
+"""API handler for rendering descriptors of GRR data structures."""
 
-from grr.gui import api_call_renderer_base
+from grr.gui import api_call_handler_base
 from grr.gui import api_value_renderers
 
 from grr.lib import aff4
@@ -15,15 +15,15 @@ from grr.proto import api_pb2
 CATEGORY = "Other"
 
 
-class ApiRDFValueReflectionRendererArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiRDFValueReflectionRendererArgs
+class ApiGetRDFValueDescriptorArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetRDFValueDescriptorArgs
 
 
-class ApiRDFValueReflectionRenderer(api_call_renderer_base.ApiCallRenderer):
+class ApiGetRDFValueDescriptorHandler(api_call_handler_base.ApiCallHandler):
   """Renders descriptor of a given RDFValue type."""
 
   category = CATEGORY
-  args_type = ApiRDFValueReflectionRendererArgs
+  args_type = ApiGetRDFValueDescriptorArgs
 
   def Render(self, args, token=None):
     _ = token
@@ -48,14 +48,14 @@ class ApiRDFValueReflectionRenderer(api_call_renderer_base.ApiCallRenderer):
       return results
 
 
-class ApiAllRDFValuesReflectionRenderer(ApiRDFValueReflectionRenderer):
+class ApiListRDFValuesDescriptorsHandler(ApiGetRDFValueDescriptorHandler):
   """Renders descriptors of all available RDFValues."""
 
   args_type = None
 
 
-class ApiAff4AttributesReflectionRenderer(
-    api_call_renderer_base.ApiCallRenderer):
+class ApiListAff4AttributesDescriptorsHandler(
+    api_call_handler_base.ApiCallHandler):
   """Renders available aff4 attributes."""
 
   category = CATEGORY

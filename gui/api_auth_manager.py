@@ -22,7 +22,7 @@ class InvalidAPIAuthorization(Error):
 
 
 class APIAuthorization(structs.RDFProtoStruct):
-  """Authorization for users/groups to use an API renderer."""
+  """Authorization for users/groups to use an API handler."""
   protobuf = api_pb2.ApiAuthorization
 
   @property
@@ -46,12 +46,12 @@ class APIAuthorization(structs.RDFProtoStruct):
     self.Set("groups", value)
 
   @property
-  def renderer(self):
-    return self.Get("renderer")
+  def handler(self):
+    return self.Get("handler")
 
-  @renderer.setter
-  def renderer(self, value):
-    self.Set("renderer", value)
+  @handler.setter
+  def handler(self, value):
+    self.Set("handler", value)
 
 
 class APIAuthorizationImporter(object):
@@ -69,19 +69,19 @@ class APIAuthorizationImporter(object):
     logging.debug("Adding %s acls", len(raw_list))
     for acl in raw_list:
       api_auth = APIAuthorization(**acl)
-      if api_auth.renderer in self.acl_dict:
+      if api_auth.handler in self.acl_dict:
         raise InvalidAPIAuthorization(
-            "Duplicate ACLs for %s" % api_auth.renderer)
-      self.acl_dict[api_auth.renderer] = api_auth
+            "Duplicate ACLs for %s" % api_auth.handler)
+      self.acl_dict[api_auth.handler] = api_auth
 
   def GetACLs(self):
     return self.acl_dict.values()
 
-  def GetACLedRenderers(self):
+  def GetACLedHandlers(self):
     return self.acl_dict.keys()
 
   def LoadACLsFromFile(self):
-    file_path = config_lib.CONFIG["API.RendererACLFile"]
+    file_path = config_lib.CONFIG["API.HandlerACLFile"]
     if file_path:
       logging.info("Loading acls from %s", file_path)
       # Deliberately raise if this doesn't exist, we don't want silently ignored
@@ -96,15 +96,15 @@ class APIAuthorizationManager(object):
   __metaclass__ = registry.MetaclassRegistry
   __abstract = True  # pylint: disable=g-bad-name
 
-  def CheckAccess(self, renderer_name, username):
+  def CheckAccess(self, handler_name, username):
     """Check access against ACL file, if defined.
 
     Args:
-      renderer_name: string, base name of renderer class
+      handler_name: string, base name of handler class
       username: username string
 
     Raises:
-      access_control.UnauthorizedAccess: if the renderer is listed in the ACL
+      access_control.UnauthorizedAccess: if the handler is listed in the ACL
         file, but the user isn't authorized.
     """
     raise NotImplementedError("This requires subclassing.")
@@ -131,45 +131,45 @@ class SimpleAPIAuthorizationManager(APIAuthorizationManager):
             "GRR doesn't have in-built groups. Override this class with one "
             "that can resolve group membership in your environment.")
 
-      user_set = self.auth_dict.setdefault(acl.renderer, set())
+      user_set = self.auth_dict.setdefault(acl.handler, set())
       user_set.update(acl.users)
 
-  def ACLedRenderers(self):
-    """List of renderers which are mentioned in the ACL file."""
-    return self.auth_import.GetACLedRenderers()
+  def ACLedHandlers(self):
+    """List of handlers which are mentioned in the ACL file."""
+    return self.auth_import.GetACLedHandlers()
 
-  def _CheckPermission(self, username, renderer_name):
-    """Apply ACLs for specific renderers if they exist."""
-    if renderer_name in self.auth_dict:
-      return username in self.auth_dict[renderer_name]
+  def _CheckPermission(self, username, handler_name):
+    """Apply ACLs for specific handlers if they exist."""
+    if handler_name in self.auth_dict:
+      return username in self.auth_dict[handler_name]
     return True
 
-  def CheckAccess(self, renderer, username):
+  def CheckAccess(self, handler, username):
     """Check access against ACL file, if defined.
 
     Args:
-      renderer: renderer class object
+      handler: handler class object
       username: username string
 
     Raises:
-      access_control.UnauthorizedAccess: If the renderer is listed in the ACL
+      access_control.UnauthorizedAccess: If the handler is listed in the ACL
       file, but the user isn't authorized. Or if enabled_by_default=False and no
       ACL applies.
     """
-    renderer_name = renderer.__class__.__name__
-    if renderer_name in self.ACLedRenderers():
-      if not self._CheckPermission(username, renderer_name):
+    handler_name = handler.__class__.__name__
+    if handler_name in self.ACLedHandlers():
+      if not self._CheckPermission(username, handler_name):
         stats.STATS.IncrementCounter("grr_api_auth_fail",
-                                     fields=[renderer_name, username])
+                                     fields=[handler_name, username])
         raise access_control.UnauthorizedAccess(
-            "User %s not authorized for renderer %s." % (
-                username, renderer_name))
-    elif not renderer.enabled_by_default:
+            "User %s not authorized for handler %s." % (
+                username, handler_name))
+    elif not handler.enabled_by_default:
       raise access_control.UnauthorizedAccess(
           "%s has enabled_by_default=False and no explicit ACL set. Add ACL"
-          " to ACL list (see API.RendererACLFile config option) to use "
-          "this API" % renderer)
+          " to ACL list (see API.HandlerACLFile config option) to use "
+          "this API" % handler)
 
-    logging.debug("Authorizing %s for API %s", username, renderer_name)
+    logging.debug("Authorizing %s for API %s", username, handler_name)
     stats.STATS.IncrementCounter("grr_api_auth_success",
-                                 fields=[renderer_name, username])
+                                 fields=[handler_name, username])

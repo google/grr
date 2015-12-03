@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Generator of regression tests data for API call renderers."""
+"""Generator of regression tests data for API call handlers."""
 
 
 
@@ -17,11 +17,11 @@ from grr.lib import flags
 from grr.lib import startup
 
 
-def GroupRegressionTestsByRenderer():
+def GroupRegressionTestsByHandler():
   result = {}
-  for cls in api_test_lib.ApiCallRendererRegressionTest.classes.values():
-    if getattr(cls, "renderer", None):
-      result.setdefault(cls.renderer, []).append(cls)
+  for cls in api_test_lib.ApiCallHandlerRegressionTest.classes.values():
+    if getattr(cls, "handler", None):
+      result.setdefault(cls.handler, []).append(cls)
 
   return result
 
@@ -29,8 +29,8 @@ def GroupRegressionTestsByRenderer():
 def main(unused_argv):
   sample_data = {}
 
-  tests = GroupRegressionTestsByRenderer()
-  for renderer, test_classes in tests.items():
+  tests = GroupRegressionTestsByHandler()
+  for handler, test_classes in tests.items():
 
     for test_class in sorted(test_classes, key=lambda cls: cls.__name__):
       if flags.FLAGS.tests and test_class.__name__ not in flags.FLAGS.tests:
@@ -44,7 +44,7 @@ def main(unused_argv):
         test_instance.setUp()
 
         test_instance.Run()
-        sample_data.setdefault(renderer, []).extend(test_instance.checks)
+        sample_data.setdefault(handler, []).extend(test_instance.checks)
       finally:
         try:
           test_instance.tearDown()

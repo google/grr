@@ -20,6 +20,7 @@ GRR_STABLE_VERSION=0.3.0-7
 GRR_TEST_VERSION=
 SERVER_DEB_STABLE_BASE_URL=https://googledrive.com/host/0B1wsLqFoT7i2c3F0ZmI1RDJlUEU/grr-server_
 SERVER_DEB_TEST_BASE_URL=https://googledrive.com/host/0B1wsLqFoT7i2c3F0ZmI1RDJlUEU/test-grr-server_
+REQUIREMENTS_URL=https://raw.githubusercontent.com/google/grr/99606f24b2f14e03dbba87aa6801b476ac7b9c20/requirements.txt
 
 if [ "$EUID" -ne 0 ]
   then echo "Please run as root"
@@ -40,13 +41,14 @@ GRR_LOCAL_TEST=0
 GRR_TESTING=0;
 
 OPTIND=1
-while getopts "h?ltdy" opt; do
+while getopts "h?ltdyr:" opt; do
     case "$opt" in
     h|\?)
         echo "Usage: ./install_script_ubuntu.sh [OPTIONS]"
         echo " -l Test locally (no download), get deb from current path"
         echo " -t Install the GRR beta testing version"
         echo " -d Only install build dependencies"
+        echo " -r [requirements.txt url] Specify requiremnts.txt"
         echo " -y Don't prompt, i.e. answer yes to everything"
         exit 0
         ;;
@@ -55,6 +57,8 @@ while getopts "h?ltdy" opt; do
     t)  GRR_TESTING=1;
         ;;
     d)  BUILD_DEPS_ONLY=1;
+        ;;
+    r)  REQUIREMENTS_URL=$OPTARG;
         ;;
     y)  ALL_YES=1;
         ;;
@@ -170,7 +174,7 @@ run_cmd_confirm python get-pip.py
 run_cmd_confirm pip install pip --upgrade
 
 header "Installing python dependencies"
-run_cmd_confirm wget --quiet https://raw.githubusercontent.com/google/grr/99606f24b2f14e03dbba87aa6801b476ac7b9c20/requirements.txt
+run_cmd_confirm wget --quiet $REQUIREMENTS_URL
 run_cmd_confirm pip install -r requirements.txt
 
 # Set filehandle max to a high value if it isn't already set.

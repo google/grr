@@ -1,0 +1,20 @@
+<div class="panel panel-default">
+  <div class="panel-heading">
+    {$ controller.pluginTitle $}
+    <div class="pull-right">
+      <grr-output-plugin-logs url="controller.pluginLogsUrl"
+                              label="logs"
+                              css-class="label-default">
+      </grr-output-plugin-logs>
+      &nbsp;
+      <grr-output-plugin-logs url="controller.pluginErrorsUrl"
+                              label="errors"
+                              css-class="label-danger"
+                              icon="glyphicon-exclamation-mark">
+      </grr-output-plugin-logs>
+    </div>
+  </div>
+  <div class="panel-body">
+    <grr-output-plugin-note-body output-plugin="outputPlugin" />
+  </div>
+</div>

@@ -7,6 +7,7 @@ goog.require('grrUi.client.clientSearchBoxDirective.ClientSearchBoxDirective');
 goog.require('grrUi.client.clientStatusIconsDirective.ClientStatusIconsDirective');
 goog.require('grrUi.client.clientUsernamesDirective.ClientUsernamesDirective');
 goog.require('grrUi.client.clientsListDirective.ClientsListDirective');
+goog.require('grrUi.client.fileview.module');
 goog.require('grrUi.client.removeClientsLabelsDialogDirective.RemoveClientsLabelsDialogDirective');
 goog.require('grrUi.core.module');
 goog.require('grrUi.semantic.module');
@@ -16,7 +17,7 @@ goog.require('grrUi.semantic.module');
  * Angular module for clients-related UI.
  */
 grrUi.client.module = angular.module('grrUi.client',
-                                     ['ui.bootstrap',
+                                     [grrUi.client.fileview.module.name,
                                       grrUi.core.module.name,
                                       grrUi.semantic.module.name]);
 

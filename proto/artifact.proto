@@ -15,9 +15,11 @@ message ArtifactSource {
     REGISTRY_KEY = 2;
     REGISTRY_VALUE = 3;
     WMI = 4;
+    // ARTIFACT has been deprecated in favor of ARTIFACT_GROUP.
     ARTIFACT = 5;
     PATH = 6;
     DIRECTORY = 7;
+    ARTIFACT_GROUP = 8;
 
     // TODO(user): these types will likely be separated out from artifacts in
     // the future
