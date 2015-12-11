@@ -20,6 +20,6 @@ choco install fciv -y || echo "fciv install failed" && exit /b 1
 mkdir %SYSTEMDRIVE%\openssl
 cd %SYSTEMDRIVE%\openssl
 powershell -NoProfile -ExecutionPolicy unrestricted -Command "(new-object System.Net.WebClient).DownloadFile('http://www.openssl.org/source/openssl-1.0.2e.tar.gz', '%SYSTEMDRIVE%\openssl\openssl-1.0.2e.tar.gz')" || echo "Couldn't download openssl" && exit /b 1
-fciv -sha1 %SYSTEMDRIVE%\openssl\openssl-1.0.2e.tar.gz | findstr /C:"d01d17b44663e8ffa6a33a5a30053779d9593c3d" || echo "Bad hash for openssl" && exit /b 1
+fciv -sha1 %SYSTEMDRIVE%\openssl\openssl-1.0.2e.tar.gz | findstr /C:"2c5691496761cb18f98476eefa4d35c835448fb6" || echo "Bad hash for openssl" && exit /b 1
 7z e openssl-1.0.2e.tar.gz
 
