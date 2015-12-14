@@ -2,13 +2,13 @@
 """Test the webhistory flows."""
 
 import os
+import time
 
 from grr.client import client_utils_linux
 from grr.client import client_utils_osx
 from grr.client.client_actions import standard
 from grr.lib import action_mocks
 from grr.lib import aff4
-from grr.lib import artifact_test
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib import utils
@@ -144,26 +144,61 @@ class TestWebHistory(WebHistoryFlowTest):
                      "/home/test/.config/google-chrome/Default/Cache/data_1")
 
 
-class TestWebHistoryWithArtifacts(WebHistoryFlowTest,
-                                  artifact_test.ArtifactTest):
+class TestWebHistoryWithArtifacts(WebHistoryFlowTest):
   """Test the browser history flows."""
 
   def setUp(self):
     super(TestWebHistoryWithArtifacts, self).setUp()
-    self.SetLinuxClient()
+    self.SetupClients(1, system="Linux", os_version="12.04")
     fd = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
-    self.kb = fd.Schema.KNOWLEDGE_BASE()
+    self.kb = fd.Get(fd.Schema.KNOWLEDGE_BASE)
     self.kb.users.Append(rdf_client.KnowledgeBaseUser(username="test",
                                                       full_name="test user",
                                                       homedir="/home/test/",
                                                       last_logon=250))
-    self.kb.os = "Linux"
     fd.AddAttribute(fd.Schema.KNOWLEDGE_BASE, self.kb)
     fd.Flush()
 
     self.client_mock = action_mocks.ActionMock(
-        "ReadBuffer", "FingerprintFile", "HashBuffer", "TransferBuffer",
-        "StatFile", "Find", "ListDirectory")
+        "ReadBuffer", "FingerprintFile", "HashBuffer",
+        "HashFile", "TransferBuffer", "StatFile", "Find", "ListDirectory")
+
+  def MockClientMountPointsWithImage(self, image_path, fs_type="ext2"):
+    """Mock the client to run off a test image.
+
+    Args:
+       image_path: The path to the image file.
+       fs_type: The filesystem in the image.
+
+    Returns:
+        A context manager which ensures that client actions are served off the
+        test image.
+    """
+    def MockGetMountpoints():
+      return {"/": (image_path, fs_type)}
+
+    return utils.MultiStubber(
+        (client_utils_linux, "GetMountpoints", MockGetMountpoints),
+        (client_utils_osx, "GetMountpoints", MockGetMountpoints),
+        (standard, "HASH_CACHE", utils.FastStore(100)))
+
+  def RunCollectorAndGetCollection(self, artifact_list, client_mock=None,
+                                   **kw):
+    """Helper to handle running the collector flow."""
+    if client_mock is None:
+      client_mock = self.MockClient(client_id=self.client_id)
+
+    output_name = "/analysis/output/%s" % int(time.time())
+
+    for _ in test_lib.TestFlowHelper(
+        "ArtifactCollectorFlow", client_mock=client_mock, output=output_name,
+        client_id=self.client_id, artifact_list=artifact_list,
+        token=self.token, **kw):
+      pass
+
+    output_urn = self.client_id.Add(output_name)
+    return aff4.FACTORY.Open(output_urn, aff4_type="RDFValueCollection",
+                             token=self.token)
 
   def testChrome(self):
     """Check we can run WMI based artifacts."""

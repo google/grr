@@ -7,6 +7,7 @@ import os
 
 from grr.lib import action_mocks
 from grr.lib import aff4
+from grr.lib import artifact_utils
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
@@ -103,10 +104,10 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
     # Add some usernames we can interpolate later.
     client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
-    users = client.Schema.USER()
-    users.Append(username="test")
-    users.Append(username="syslog")
-    client.Set(users)
+    kb = client.Get(client.Schema.KNOWLEDGE_BASE)
+    kb.MergeOrAddUser(rdf_client.KnowledgeBaseUser(username="test"))
+    kb.MergeOrAddUser(rdf_client.KnowledgeBaseUser(username="syslog"))
+    client.Set(kb)
     client.Close()
 
     client_mock = action_mocks.ActionMock("Find", "StatFile")
@@ -382,31 +383,25 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
     # Add some usernames we can interpolate later.
     client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
-    user_attribute = client.Schema.USER()
 
-    user_record = rdf_client.User()
-    user_record.special_folders.app_data = "test_data/index.dat"
-    user_attribute.Append(user_record)
-
-    user_record = rdf_client.User()
-    user_record.special_folders.app_data = "test_data/History"
-    user_attribute.Append(user_record)
-
+    kb = client.Get(client.Schema.KNOWLEDGE_BASE)
+    kb.MergeOrAddUser(rdf_client.KnowledgeBaseUser(
+        username="test", appdata="test_data/index.dat"))
+    kb.MergeOrAddUser(rdf_client.KnowledgeBaseUser(
+        username="test2", appdata="test_data/History"))
     # This is a record which means something to the interpolation system. We
     # should not process this especially.
-    user_record = rdf_client.User()
-    user_record.special_folders.app_data = "%%PATH%%"
-    user_attribute.Append(user_record)
+    kb.MergeOrAddUser(rdf_client.KnowledgeBaseUser(
+        username="test3", appdata="%%PATH%%"))
 
-    client.Set(user_attribute)
-
+    client.Set(kb)
     client.Close()
 
     client_mock = action_mocks.ActionMock("Find", "StatFile")
 
     # This glob selects all files which start with the username on this system.
     path = os.path.join(os.path.dirname(self.base_path),
-                        "%%Users.special_folders.app_data%%")
+                        "%%users.appdata%%")
 
     # Run the flow.
     for _ in test_lib.TestFlowHelper(
@@ -443,8 +438,8 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
     # Run the flow - we expect an AttributeError error to be raised from the
     # flow since Weird_illegal_attribute is not a valid client attribute.
-    self.assertRaises(AttributeError, flow.GRRFlow.StartFlow,
-                      flow_name="Glob", paths=paths,
+    self.assertRaises(artifact_utils.KnowledgeBaseInterpolationError,
+                      flow.GRRFlow.StartFlow, flow_name="Glob", paths=paths,
                       client_id=self.client_id, token=self.token)
 
   def testIllegalGlobAsync(self):
@@ -464,7 +459,8 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
       pass
 
     fd = aff4.FACTORY.Open(session_id, token=self.token)
-    self.assertTrue("AttributeError" in fd.state.context.backtrace)
+    self.assertTrue(
+        "KnowledgeBaseInterpolationError" in fd.state.context.backtrace)
     self.assertEqual("ERROR", str(fd.state.context.state))
 
   def testGlobRoundtrips(self):
@@ -545,7 +541,8 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
                                test_lib.ClientVFSHandlerFixture):
       # Mock the client actions FileFinder uses.
       client_mock = action_mocks.ActionMock(
-          "FingerprintFile", "HashBuffer", "StatFile", "Find", "TransferBuffer")
+          "FingerprintFile", "HashBuffer", "HashFile", "StatFile", "Find",
+          "TransferBuffer")
 
       for _ in test_lib.TestFlowHelper(
           "FileFinder", client_mock, client_id=self.client_id,
@@ -586,7 +583,8 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
       # Mock the client actions FileFinder uses.
       client_mock = action_mocks.ActionMock(
-          "FingerprintFile", "HashBuffer", "StatFile", "Find", "TransferBuffer")
+          "FingerprintFile", "HashBuffer", "HashFile", "StatFile", "Find",
+          "TransferBuffer")
 
       for _ in test_lib.TestFlowHelper(
           "FileFinder", client_mock, client_id=self.client_id,
@@ -648,7 +646,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     urn = fd.urn
 
     self.client_mock = action_mocks.ActionMock("FingerprintFile", "HashBuffer",
-                                               "StatFile", "Find",
+                                               "HashFile", "StatFile", "Find",
                                                "TransferBuffer", "ReadBuffer")
     for _ in test_lib.TestFlowHelper(
         "FetchBufferForSparseImage", self.client_mock, client_id=self.client_id,
@@ -728,8 +726,8 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
         path=path, pathtype=rdf_paths.PathSpec.PathType.OS)
 
     client_mock = action_mocks.ActionMock("FingerprintFile", "HashBuffer",
-                                          "StatFile", "Find", "TransferBuffer",
-                                          "ReadBuffer")
+                                          "HashFile", "StatFile", "Find",
+                                          "TransferBuffer", "ReadBuffer")
 
     # Get everything as an AFF4SparseImage
     for _ in test_lib.TestFlowHelper(
@@ -780,9 +778,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
       self.assertEqual(len(results), 2)
 
   def testDiskVolumeInfoWindows(self):
-    client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
-    client.Set(client.Schema.SYSTEM("Windows"))
-    client.Flush()
+    self.SetupClients(1, system="Windows")
     with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
                                test_lib.FakeRegistryVFSHandler):
 

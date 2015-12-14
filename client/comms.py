@@ -1003,7 +1003,6 @@ class GRRHTTPClient(object):
       A Status() object indicating how the last POST went.
     """
     while True:
-      self.consecutive_connection_errors = 0
       while self.active_server_url is None:
         if self.EstablishConnection():
           # Everything went as expected - we don't need to return to

@@ -5,7 +5,8 @@ import os
 
 
 from grr.lib import artifact
-from grr.lib import artifact_test
+from grr.lib import artifact_registry
+from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import parsers
 from grr.lib import test_lib
@@ -76,8 +77,20 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     hardware = parser.Parse(
         "/usr/sbin/dmidecode", ["-q"], content, "", 0, 5, None)
     self.assertTrue(isinstance(hardware, rdf_client.HardwareInfo))
+
     self.assertEqual(hardware.serial_number, "2UA25107BB")
     self.assertEqual(hardware.system_manufacturer, "Hewlett-Packard")
+    self.assertEqual(hardware.system_product_name, "HP Z420 Workstation")
+    self.assertEqual(hardware.system_uuid,
+                     "4596BF80-41F0-11E2-A3B4-10604B5C7F38")
+    self.assertEqual(hardware.system_sku_number, "C2R51UC#ABA")
+    self.assertEqual(hardware.system_family, "103C_53335X G=D")
+
+    self.assertEqual(hardware.bios_vendor, "Hewlett-Packard")
+    self.assertEqual(hardware.bios_version, "J61 v02.08")
+    self.assertEqual(hardware.bios_release_date, "10/17/2012")
+    self.assertEqual(hardware.bios_rom_size, "16384 kB")
+    self.assertEqual(hardware.bios_revision, "2.8")
 
   def testPsCmdParser(self):
     """Tests for the PsCmdParser class."""
@@ -129,7 +142,11 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
 
   def testPsCmdParserValidation(self):
     """Test the PsCmdParser pass Validation() method."""
-    artifact_test.ArtifactTest.LoadTestArtifacts()
+    test_artifacts_file = os.path.join(
+        config_lib.CONFIG["Test.data_dir"],
+        "artifacts", "test_artifacts.json")
+    artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
+
     parser = linux_cmd_parser.PsCmdParser
 
     # Test with no ps cmd artifact.

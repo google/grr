@@ -574,6 +574,128 @@ class _DataStoreTest(test_lib.GRRBaseTest):
       self.assertEqual(predicate2_results[result_index],
                        (predicate2, str(i), i * 100))
 
+  def testScanAttribute(self):
+    data_store.DB.Set("aff4:/A", "aff4:foo", "A value", token=self.token)
+    for i in range(1, 10):
+      data_store.DB.Set("aff4:/B/" + str(i),
+                        "aff4:foo",
+                        "B " + str(i) + " old value",
+                        timestamp=1000,
+                        token=self.token)
+      data_store.DB.Set("aff4:/B/" + str(i),
+                        "aff4:foo",
+                        "B " + str(i) + " value",
+                        timestamp=1000,
+                        token=self.token)
+      data_store.DB.Set("aff4:/B/" + str(i),
+                        "aff4:foo",
+                        "B " + str(i) + " older value",
+                        timestamp=900,
+                        token=self.token,
+                        replace=False)
+
+    # Something with a different attribute, which should not be included.
+    data_store.DB.Set("aff4:/B/1.1",
+                      "aff4:foo2",
+                      "B 1.1 other value",
+                      timestamp=1000,
+                      token=self.token)
+    data_store.DB.Set("aff4:/C", "aff4:foo", "C value", token=self.token)
+    values = [(r[1], r[2])
+              for r in data_store.DB.ScanAttribute("aff4:/B",
+                                                   "aff4:foo",
+                                                   token=self.token)]
+    self.assertEqual(values, [(1000, "B " + str(i) + " value")
+                              for i in range(1, 10)])
+
+    values = [r[2] for r in data_store.DB.ScanAttribute("aff4:/B",
+                                                        "aff4:foo",
+                                                        max_records=2,
+                                                        token=self.token)]
+    self.assertEqual(values, ["B " + str(i) + " value" for i in range(1, 3)])
+
+    values = [r[2] for r in data_store.DB.ScanAttribute("aff4:/B",
+                                                        "aff4:foo",
+                                                        after_urn="aff4:/B/2",
+                                                        token=self.token)]
+    self.assertEqual(values, ["B " + str(i) + " value" for i in range(3, 10)])
+
+    values = [r[2] for r in data_store.DB.ScanAttribute("aff4:/B",
+                                                        "aff4:foo",
+                                                        after_urn="aff4:/B/2",
+                                                        max_records=2,
+                                                        token=self.token)]
+    self.assertEqual(values, ["B " + str(i) + " value" for i in range(3, 5)])
+
+    values = [r[2] for r in data_store.DB.ScanAttribute("aff4:/",
+                                                        "aff4:foo",
+                                                        token=self.token)]
+    self.assertEqual(values,
+                     ["A value"] + ["B " + str(i) + " value"
+                                    for i in range(1, 10)] + ["C value"])
+
+    values = [r[2] for r in data_store.DB.ScanAttribute("",
+                                                        "aff4:foo",
+                                                        token=self.token)]
+    self.assertEqual(values,
+                     ["A value"] + ["B " + str(i) + " value"
+                                    for i in range(1, 10)] + ["C value"])
+
+    data_store.DB.Set("aff4:/files/hash/generic/sha1/",
+                      "aff4:hash",
+                      "h1",
+                      token=self.token)
+    data_store.DB.Set("aff4:/files/hash/generic/sha1/AAAAA",
+                      "aff4:hash",
+                      "h2",
+                      token=self.token)
+    data_store.DB.Set("aff4:/files/hash/generic/sha1/AAAAB",
+                      "aff4:hash",
+                      "h3",
+                      token=self.token)
+    data_store.DB.Set("aff4:/files/hash/generic/sha256/",
+                      "aff4:hash",
+                      "h4",
+                      token=self.token)
+    data_store.DB.Set("aff4:/files/hash/generic/sha256/AAAAA",
+                      "aff4:hash",
+                      "h5",
+                      token=self.token)
+    data_store.DB.Set("aff4:/files/hash/generic/sha256/AAAAB",
+                      "aff4:hash",
+                      "h6",
+                      token=self.token)
+    data_store.DB.Set("aff4:/files/hash/generic/sha90000",
+                      "aff4:hash",
+                      "h7",
+                      token=self.token)
+
+    (value, _) = data_store.DB.Resolve("aff4:/files/hash/generic/sha90000",
+                                       "aff4:hash",
+                                       token=self.token)
+    self.assertEqual(value, "h7")
+
+    values = [r[2] for r in data_store.DB.ScanAttribute("aff4:/files/hash",
+                                                        "aff4:hash",
+                                                        token=self.token)]
+    self.assertEqual(values, ["h1", "h2", "h3", "h4", "h5", "h6", "h7"])
+
+    values = [r[2] for r in data_store.DB.ScanAttribute("aff4:/files/hash",
+                                                        "aff4:hash",
+                                                        token=self.token,
+                                                        relaxed_order=True)]
+    self.assertEqual(sorted(values), ["h1", "h2", "h3", "h4", "h5", "h6", "h7"])
+
+  def testScanAttributeRequiresReadAccess(self):
+    self._InstallACLChecks("r")
+    v = data_store.DB.ScanAttribute("aff4:/", "aff4:hash", token=self.token)
+    self.assertRaises(access_control.UnauthorizedAccess, v.next)
+
+  def testScanAttributeRequiresQueryAccess(self):
+    self._InstallACLChecks("q")
+    v = data_store.DB.ScanAttribute("aff4:/", "aff4:hash", token=self.token)
+    self.assertRaises(access_control.UnauthorizedAccess, v.next)
+
   def testRDFDatetimeTimestamps(self):
 
     test_rows = self._MakeTimestampedRows()
@@ -1309,6 +1431,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
            "Resolve",
            "ResolveMulti",
            "ResolvePrefix",
+           "ScanAttribute",
            "Set",
            "Transaction"]
 

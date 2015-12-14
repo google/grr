@@ -24,6 +24,7 @@ from grr.lib.flows.general import file_finder
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import rekall_types
 from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import flows_pb2
@@ -107,16 +108,33 @@ class MemoryCollector(flow.GRRFlow):
 
     return result
 
-  @flow.StateHandler(next_state="StoreMemoryInformation")
+  @flow.StateHandler(next_state=["StoreMemoryInformation",
+                                 "CheckAnalyzeClientMemory"])
   def Start(self):
     self.state.Register("memory_information", None)
     self.state.Register(
         "destdir",
         self.args.action.download.dump_option.with_local_copy.destdir)
 
-    self.CallFlow("LoadMemoryDriver",
-                  driver_installer=self.args.driver_installer,
-                  next_state="StoreMemoryInformation")
+    # If it is a Linux client, use Rekall instead to grab memory.
+    # Unlike AnalyzeClientMemory, we skip manually checking for kcore's
+    # existence since Rekall does it for us and runs additionally checks (like
+    # the actual usability of kcore).
+    client = aff4.FACTORY.Open(self.client_id, token=self.token)
+    system = client.Get(client.Schema.SYSTEM)
+    if system == "Linux":
+      if (self.args.action.action_type !=
+          MemoryCollectorAction.Action.DOWNLOAD):
+        raise ValueError("Linux only supports downloading memory.")
+      plugin = rekall_types.PluginRequest(plugin="ewfacquire")
+      request = rekall_types.RekallRequest(plugins=[plugin])
+      self.CallFlow("AnalyzeClientMemory", request=request,
+                    max_file_size_download=self.action_options.max_file_size,
+                    next_state="CheckAnalyzeClientMemory")
+    else:
+      self.CallFlow("LoadMemoryDriver",
+                    driver_installer=self.args.driver_installer,
+                    next_state="StoreMemoryInformation")
 
   def _DiskFreeCheckRequired(self):
     ac = self.args.action
@@ -126,10 +144,18 @@ class MemoryCollector(flow.GRRFlow):
         dump_option.option_type == "WITH_LOCAL_COPY",
         dump_option.with_local_copy.check_disk_free_space])
 
+  @flow.StateHandler()
+  def CheckAnalyzeClientMemory(self, responses):
+    if not responses.success:
+      raise flow.FlowError("Unable to image memory: %s." % responses.status)
+
+    self.Log("Memory imaged successfully.")
+    self.Status("Memory imaged successfully")
+
   @flow.StateHandler(next_state=["Filter", "StoreTmpDir", "CheckDiskFree"])
   def StoreMemoryInformation(self, responses):
     if not responses.success:
-      raise flow.FlowError("Failed due to no memory driver:%s." %
+      raise flow.FlowError("Failed due to no memory driver: %s." %
                            responses.status)
 
     self.state.memory_information = responses.First()
@@ -777,13 +803,15 @@ class AnalyzeClientMemory(flow.GRRFlow):
       if self.state.output_files:
         self.Log("Getting %i files.", len(self.state.output_files))
         self.CallFlow("MultiGetFile", pathspecs=self.state.output_files,
+                      file_size=self.args.max_file_size_download,
                       next_state="DeleteFiles")
 
   @flow.StateHandler(next_state="LogDeleteFiles")
   def DeleteFiles(self, responses):
-    # Check that the GetFiles flow worked.
+    # Check that the MultiGetFile flow worked.
     if not responses.success:
       raise flow.FlowError("Could not get files: %s" % responses.status)
+
     for output_file in self.state.output_files:
       self.CallClient("DeleteGRRTempFiles", output_file,
                       next_state="LogDeleteFiles")

@@ -7,7 +7,6 @@ from grr.lib import flags
 from grr.lib import flow_utils
 from grr.lib import rdfvalue
 from grr.lib import test_lib
-from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class TestInterpolatePath(test_lib.FlowTestsBaseclass):
@@ -65,16 +64,6 @@ class TestInterpolatePath(test_lib.FlowTestsBaseclass):
     new_path = flow_utils.InterpolatePath("{does_not_exist}", self.client,
                                           users=["test"])
     self.assertEqual(new_path, [])
-
-  def testInterpolateClientAttributes(self):
-
-    path = rdf_paths.GlobExpression(u"%%Users.homedir%%\\.ssh")
-
-    res = list(path.InterpolateClientAttributes(self.client))
-
-    self.assertEqual(len(res), 2)
-    self.assertTrue("c:\\Users\\test\\.ssh" in res)
-    self.assertTrue("c:\\Users\\test2\\.ssh" in res)
 
 
 def main(argv):

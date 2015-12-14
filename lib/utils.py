@@ -397,7 +397,7 @@ class TimeBasedCache(FastStore):
 
 
 class Memoize(object):
-  """A decorator to produce a memoizing version of a method f.
+  """A decorator to produce a memoizing version of a method.
   """
 
   def __init__(self, deep_copy=False):
@@ -437,7 +437,47 @@ class Memoize(object):
         return copy.deepcopy(f.memo_pad[key])
       else:
         return f.memo_pad[key]
+    return Wrapped
 
+
+class MemoizeFunction(object):
+  """A decorator to produce a memoizing version a function.
+  """
+
+  def __init__(self, deep_copy=False):
+    """Constructor.
+
+    Args:
+      deep_copy: Whether to perform a deep copy of the returned object.
+          Otherwise, a direct reference is returned.
+    """
+    self.deep_copy = deep_copy
+
+  def __call__(self, f):
+    """Produce a memoizing version of f.
+
+    Requires that all parameters are hashable. Also, it does not copy the return
+    value, so changes to a returned object may be visible in future invocations.
+
+    Args:
+      f: The function which will be wrapped.
+
+    Returns:
+      A wrapped function which memoizes all values returned by f, keyed by
+      the arguments to f.
+
+    """
+    f.memo_pad = {}
+    f.memo_deep_copy = self.deep_copy
+    @functools.wraps(f)
+    def Wrapped(*args, **kwargs):
+      key = tuple(args), tuple(sorted(kwargs.items(), key=lambda x: x[0]))
+      if key not in f.memo_pad:
+        f.memo_pad[key] = f(*args, **kwargs)
+      if f.memo_deep_copy:
+        return copy.deepcopy(f.memo_pad[key])
+      else:
+        return f.memo_pad[key]
     return Wrapped
 
 

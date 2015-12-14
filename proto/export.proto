@@ -371,12 +371,14 @@ message ExportedRekallProcess {
                    "process was started."
     }];
 
-  optional uint64 creation_time = 5[(sem_type) = {
+  optional uint64 creation_time = 5 [(sem_type) = {
+      type: "RDFDatetime",
       description: "When the process was created. In microseconds from UNIX "
                    "epoch. UTC."
     }];
 
-  optional uint64 exit_time = 6[(sem_type) = {
+  optional uint64 exit_time = 6 [(sem_type) = {
+      type: "RDFDatetime",
       description: "When the process exitted. In microseconds from UNIX "
                    "epoch. UTC."
     }];
@@ -515,6 +517,7 @@ message ExportedRekallLinuxTask {
     }];
 
   optional uint64 creation_time = 5 [(sem_type) = {
+      type: "RDFDatetime",
       description: "When the process was created. In microseconds from UNIX "
                    "epoch. UTC."
     }];

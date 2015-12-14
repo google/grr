@@ -104,12 +104,12 @@ class DataStore(object):
     self.flusher_thread.start()
     self.monitor_thread = None
 
-  def GetRequiredResolveAccess(self, attribute_regex):
+  def GetRequiredResolveAccess(self, attribute_prefix):
     """Returns required level of access for resolve operations.
 
     Args:
-      attribute_regex: A string (single attribute) or a list of
-                       strings (multiple attributes).
+      attribute_prefix: A string (single attribute) or a list of
+                        strings (multiple attributes).
 
     Returns:
       "r" when only read access is needed for resolve operation to succeed.
@@ -119,23 +119,21 @@ class DataStore(object):
       trees of objects (see AFF4Volume.ListChildren for details).
     """
 
-    # TODO(user): This should not be regex specific.
-    if isinstance(attribute_regex, basestring):
-      attribute_regex = [utils.SmartStr(attribute_regex)]
+    if isinstance(attribute_prefix, basestring):
+      attribute_prefix = [utils.SmartStr(attribute_prefix)]
     else:
-      attribute_regex = [utils.SmartStr(x) for x in attribute_regex]
+      attribute_prefix = [utils.SmartStr(x) for x in attribute_prefix]
 
-    # TODO(user): Remove regex case when we remove *ResolveRegex.
-    for regex in attribute_regex:
-      if regex in (".*", ""):
-        continue
+    for prefix in attribute_prefix:
+      if not prefix:
+        return "rq"
 
       # Extract the column family
       try:
-        column_family, unused_regex = regex.split(":", 1)
+        column_family, _ = prefix.split(":", 1)
       except ValueError:
-        raise RuntimeError("You must have an attribute prefix "
-                           "prior to the regex: " + regex)
+        raise RuntimeError("The attribute prefix must contain the column "
+                           "family: %s" % prefix)
 
       # Columns with index require the query permission.
       if column_family.startswith("index"):
@@ -410,6 +408,39 @@ class DataStore(object):
       self.Flush()
     except Exception:  # pylint: disable=broad-except
       pass
+
+  @abc.abstractmethod
+  def ScanAttribute(self, subject_prefix, attribute,
+                    after_urn=None, max_records=None, token=None,
+                    relaxed_order=False):
+    """Scan for values of an attribute accross a range of rows.
+
+    Scans rows for values of attribute. Reads the most recent value stored in
+    each row.
+
+    Args:
+      subject_prefix: Subject beginning with this prefix can be scanned. Must
+        be an aff4 object and a directory - "/" will be appended if necessary.
+        User must have read and query permissions on this directory.
+
+      attribute: The name of the attribute to scan.
+
+      after_urn: If set, only scan records which come after this urn.
+
+      max_records: The maximum number of records to scan.
+
+      token: The security token to authenticate with.
+
+      relaxed_order: By default, ScanAttribute yields results in lexographic
+        order. If this is set, a datastore may yield results in a more
+        convenient order. For certain datastores this might greatly increase
+        the performance of large scans.
+
+
+    Yields: Tuples (subject, timestamp, value), indicating that subject has
+      attribute with value set at timestamp.
+
+    """
 
 
 class Transaction(object):

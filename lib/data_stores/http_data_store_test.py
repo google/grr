@@ -146,13 +146,20 @@ class HTTPDataStoreMixin(object):
     self.config_stubber.Stop()
 
   def InitDatastore(self):
+    # Make sure that there are no rpc calls in progress. (Some Inithooks
+    # create aff4 objects with sync=False)
+    if data_store.DB:
+      data_store.DB.Flush()
 
+    # Hard reset of the sqlite directory trees.
     if HTTP_DB:
       try:
+        HTTP_DB[0].cache.Flush()
         shutil.rmtree(HTTP_DB[0].cache.root_path)
       except (OSError, IOError):
         pass
       try:
+        HTTP_DB[1].cache.Flush()
         shutil.rmtree(HTTP_DB[1].cache.root_path)
       except (OSError, IOError):
         pass

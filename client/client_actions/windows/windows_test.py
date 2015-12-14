@@ -14,7 +14,6 @@ from grr.lib import utils
 # For RegistryFinder pylint: disable=unused-import
 from grr.lib.flows.general import registry as _
 # pylint: enable=unused-import
-from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.test_data import client_fixture
@@ -274,8 +273,7 @@ class RegistryVFSTests(test_lib.EmptyActionTest):
         "FingerprintFile", "Grep", "StatFile")
 
     output_path = "analysis/file_finder"
-
-    client_id = rdf_client.ClientURN("C.0000000000000001")
+    client_id = self.SetupClients(1)[0]
 
     aff4.FACTORY.Delete(client_id.Add(output_path),
                         token=self.token)

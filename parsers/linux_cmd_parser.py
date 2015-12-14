@@ -114,37 +114,59 @@ class DmidecodeCmdParser(parsers.CommandParser):
   output_types = ["HardwareInfo"]
   supported_artifacts = ["LinuxHardwareInfo"]
 
+  def _re_compile(self, search_str):
+    return re.compile(r"\s*%s: ([0-9a-zA-Z-\s./#_=]*)" % (search_str))
+
   def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
             knowledge_base):
     """Parse the dmidecode output. All data is parsed into a dictionary."""
     _ = stderr, time_taken, args, knowledge_base  # Unused.
     self.CheckReturn(cmd, return_val)
     output = iter(stdout.splitlines())
-    system_information = []
-    serial_number = ""
-    system_manufacturer = ""
 
-    system_info = re.compile(r"\s*System Information")
+    # Compile all regexes in advance.
+    sys_info_re = re.compile(r"\s*System Information")
+    sys_regexes = {
+        "system_manufacturer": self._re_compile("Manufacturer"),
+        "serial_number": self._re_compile("Serial Number"),
+        "system_product_name": self._re_compile("Product Name"),
+        "system_uuid": self._re_compile("UUID"),
+        "system_sku_number": self._re_compile("SKU Number"),
+        "system_family": self._re_compile("Family")}
+
+    bios_info_re = re.compile(r"\s*BIOS Information")
+    bios_regexes = {
+        "bios_vendor": self._re_compile("Vendor"),
+        "bios_version": self._re_compile("Version"),
+        "bios_release_date": self._re_compile("Release Date"),
+        "bios_rom_size": self._re_compile("ROM Size"),
+        "bios_revision": self._re_compile("BIOS Revision")}
+
+    # Initialize RDF.
+    dmi_info = rdf_client.HardwareInfo()
+
     for line in output:
-      if system_info.match(line):
+      if sys_info_re.match(line):
         # Collect all System Information until we hit a blank line.
         while line:
-          system_information.append(line)
+          for attr, regex in sys_regexes.iteritems():
+            match = regex.match(line)
+            if match:
+              setattr(dmi_info, attr, match.group(1).strip())
+              break
           line = output.next()
-        break
 
-    system_re = re.compile(r"\s*Manufacturer: ([0-9a-zA-Z-]*)")
-    serial_re = re.compile(r"\s*Serial Number: ([0-9a-zA-Z-]*)")
-    for line in system_information:
-      match_sn = serial_re.match(line)
-      match_manf = system_re.match(line)
-      if match_sn:
-        serial_number = match_sn.groups()[0].strip()
-      elif match_manf:
-        system_manufacturer = match_manf.groups()[0].strip()
+      elif bios_info_re.match(line):
+        # Collect all BIOS Information until we hit a blank line.
+        while line:
+          for attr, regex in bios_regexes.iteritems():
+            match = regex.match(line)
+            if match:
+              setattr(dmi_info, attr, match.group(1).strip())
+              break
+          line = output.next()
 
-    return rdf_client.HardwareInfo(serial_number=serial_number,
-                                   system_manufacturer=system_manufacturer)
+    return dmi_info
 
 
 class UserParser(parsers.GenericResponseParser):

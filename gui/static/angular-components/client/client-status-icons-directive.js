@@ -72,7 +72,7 @@ ClientStatusIconsController.prototype.onClientChange_ = function(newValue) {
         'client.attributes["aff4:last_crash"].value.timestamp.value'));
     if (angular.isDefined(crashTime) &&
         (currentTimeMs / 1000 - crashTime / 1000000) < 60 * 60 * 24) {
-      this.crashTime = crashTime / 1000;
+      this.crashTime = crashTime;
     }
   }
 };

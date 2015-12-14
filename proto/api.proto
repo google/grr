@@ -660,7 +660,7 @@ message ApiOutputPlugin {
   optional string id = 1 [(sem_type) = {
       description: "String identifying the output plugin."
     }];
-  optional OutputPluginDescriptor descriptor = 2 [(sem_type) = {
+  optional OutputPluginDescriptor plugin_descriptor = 2 [(sem_type) = {
       description: "Descriptor of the output plugin."
     }];
   optional bytes state = 3 [(sem_type) = {

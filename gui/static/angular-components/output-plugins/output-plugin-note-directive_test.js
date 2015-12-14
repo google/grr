@@ -25,7 +25,7 @@ describe('output plugin note directive', function() {
 
   var defaultOutputPlugin = {
     value: {
-      descriptor: {
+      plugin_descriptor: {
         value: {
           plugin_name: {
             value: 'Foo'

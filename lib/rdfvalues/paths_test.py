@@ -6,7 +6,6 @@
 
 
 
-from grr.lib import aff4
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import test_base
 from grr.proto import jobs_pb2
@@ -149,30 +148,6 @@ class GlobExpressionTest(test_base.RDFValueTestCase):
 
   def GenerateSample(self, number=0):
     return self.rdfvalue_class("/home/%%User.username%%/*" + str(number))
-
-  def testClientInterpolation(self):
-    client_id = "C.0000000000000001"
-
-    fd = aff4.FACTORY.Create(client_id, "VFSGRRClient", token=self.token)
-    users = fd.Schema.USER()
-
-    # Add 2 users
-    for i in range(2):
-      account_info = self.USER_ACCOUNT.copy()
-      account_info["username"] = "user%s" % i
-      users.Append(**account_info)
-
-    fd.Set(users)
-    fd.Close()
-
-    fd = aff4.FACTORY.Open(client_id, token=self.token)
-    glob_expression = rdf_paths.GlobExpression(
-        "/home/%%Users.username%%/.mozilla/")
-
-    interpolated = sorted(glob_expression.InterpolateClientAttributes(
-        client=fd))
-    self.assertEqual(interpolated[0], "/home/user0/.mozilla/")
-    self.assertEqual(interpolated[1], "/home/user1/.mozilla/")
 
   def testGroupingInterpolation(self):
     glob_expression = rdf_paths.GlobExpression()

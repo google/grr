@@ -320,7 +320,7 @@ class ApiListHuntOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
     result = []
     for plugin_name, (plugin_descriptor, plugin_state) in plugins.items():
       api_plugin = api_output_plugin.ApiOutputPlugin(
-          id=plugin_name, descriptor=plugin_descriptor,
+          id=plugin_name, plugin_descriptor=plugin_descriptor,
           state=plugin_state)
       result.append(api_plugin)
 

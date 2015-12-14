@@ -19,6 +19,7 @@ message DataStoreCommand {
     UNLOCK_SUBJECT = 7;
     EXTEND_SUBJECT = 8;
     MULTI_RESOLVE_PREFIX = 9;
+    SCAN_ATTRIBUTE = 10;
   };
   optional Command command = 1;
   optional DataStoreRequest request = 2;

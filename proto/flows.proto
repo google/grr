@@ -599,6 +599,12 @@ message ArtifactCollectorFlowArgs {
       label: ADVANCED,
     }, default=USE_CACHED];
 
+  optional bool ignore_interpolation_errors = 12 [(sem_type) = {
+      description: "If true, don't die if %%users.homedir%% and similar fail"
+          " to expand. It's common on windows for some user attributes to be"
+          " missing if users have never logged in. Enable this when you have"
+          " multiple artifacts or paths and want to report partial results.",
+    }, default=false];
 }
 
 message ArtifactFilesDownloaderFlowArgs {
@@ -732,6 +738,11 @@ message AnalyzeClientMemoryArgs {
       description: "Use DEBUG level logging.",
       friendly_name: "DEBUG logging."
     }, default=false];
+
+  optional uint64 max_file_size_download = 5 [(sem_type) = {
+      description: "Obtain at most max_file_size_download bytes of each file "
+      "outputted by Rekall."
+    }, default=35433480192];  // 33 Gb
 }
 
 message ScanMemoryArgs {
@@ -1643,6 +1654,10 @@ message MemoryCollectorDownloadAction {
   optional MemoryCollectorDumpOption dump_option = 1 [(sem_type) = {
       description: "Memory dump options."
     }];
+
+  optional uint64 max_file_size = 2 [(sem_type) = {
+    description: "Maximum length to read off the dumped memory file (in bytes)."
+  }, default=35433480192];  // 33 Gb
 }
 
 message MemoryCollectorSendToSocketAction {
@@ -1684,7 +1699,7 @@ message MemoryCollectorAction {
     SEND_TO_SOCKET = 2 [(description) = "Send memory dump to socket"];
   }
 
-  optional Action action_type = 1 [default = NONE, (sem_type) = {
+  optional Action action_type = 1 [default = DOWNLOAD, (sem_type) = {
       friendly_name: "Action",
       description: "What to do with the memory"
     }];

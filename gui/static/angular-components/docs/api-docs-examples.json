@@ -621,6 +621,17 @@
             "type": "RDFString",
             "value": "Host-0"
           },
+          "metadata:knowledge_base": {
+            "age": 42000000,
+            "type": "KnowledgeBase",
+            "value": {
+              "hostname": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Host-0.example.com"
+              }
+            }
+          },
           "metadata:last": {
             "age": 42000000,
             "type": "RDFDatetime",
@@ -706,6 +717,9 @@
           },
           "metadata:fqdn": "Host-0.example.com",
           "metadata:hostname": "Host-0",
+          "metadata:knowledge_base": {
+            "hostname": "Host-0.example.com"
+          },
           "metadata:last": 42000000,
           "metadata:ping": 42000000
         },
@@ -5554,6 +5568,17 @@
                 "type": "RDFDatetime",
                 "value": 42000000
               },
+              "metadata:knowledge_base": {
+                "age": 42000000,
+                "type": "KnowledgeBase",
+                "value": {
+                  "hostname": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  }
+                }
+              },
               "metadata:ping": {
                 "age": 0,
                 "type": "RDFDatetime",
@@ -5641,6 +5666,9 @@
               },
               "metadata:fqdn": "Host-0.example.com",
               "metadata:hostname": "Host-0",
+              "metadata:knowledge_base": {
+                "hostname": "Host-0.example.com"
+              },
               "metadata:last": 42000000,
               "metadata:ping": 42000000
             },
@@ -5717,6 +5745,68 @@
       "response": {
         "count": 3,
         "items": [
+          {
+            "age": 0,
+            "type": "ApiCronJob",
+            "value": {
+              "allow_overruns": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "description": {
+                "age": 0,
+                "type": "unicode",
+                "value": "foo"
+              },
+              "flow_args": {
+                "age": 0,
+                "type": "EmptyFlowArgs",
+                "value": {}
+              },
+              "flow_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "GRRVersionBreakDown"
+              },
+              "flow_runner_args": {
+                "age": 0,
+                "type": "FlowRunnerArgs",
+                "value": {
+                  "flow_name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "GRRVersionBreakDown"
+                  }
+                }
+              },
+              "is_failing": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "lifetime": {
+                "age": 0,
+                "type": "Duration",
+                "value": 7200
+              },
+              "periodicity": {
+                "age": 0,
+                "type": "Duration",
+                "value": 86400
+              },
+              "state": {
+                "age": 0,
+                "type": "EnumNamedValue",
+                "value": "DISABLED"
+              },
+              "urn": {
+                "age": 0,
+                "type": "RDFURN",
+                "value": "aff4:/cron/GRRVersionBreakDown"
+              }
+            }
+          },
           {
             "age": 0,
             "type": "ApiCronJob",
@@ -5845,68 +5935,6 @@
                 "value": "aff4:/cron/OSBreakDown"
               }
             }
-          },
-          {
-            "age": 0,
-            "type": "ApiCronJob",
-            "value": {
-              "allow_overruns": {
-                "age": 0,
-                "type": "RDFBool",
-                "value": false
-              },
-              "description": {
-                "age": 0,
-                "type": "unicode",
-                "value": "foo"
-              },
-              "flow_args": {
-                "age": 0,
-                "type": "EmptyFlowArgs",
-                "value": {}
-              },
-              "flow_name": {
-                "age": 0,
-                "type": "unicode",
-                "value": "GRRVersionBreakDown"
-              },
-              "flow_runner_args": {
-                "age": 0,
-                "type": "FlowRunnerArgs",
-                "value": {
-                  "flow_name": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "GRRVersionBreakDown"
-                  }
-                }
-              },
-              "is_failing": {
-                "age": 0,
-                "type": "RDFBool",
-                "value": false
-              },
-              "lifetime": {
-                "age": 0,
-                "type": "Duration",
-                "value": 7200
-              },
-              "periodicity": {
-                "age": 0,
-                "type": "Duration",
-                "value": 86400
-              },
-              "state": {
-                "age": 0,
-                "type": "EnumNamedValue",
-                "value": "DISABLED"
-              },
-              "urn": {
-                "age": 0,
-                "type": "RDFURN",
-                "value": "aff4:/cron/GRRVersionBreakDown"
-              }
-            }
           }
         ],
         "offset": 0
@@ -5915,6 +5943,20 @@
       "type_stripped_response": {
         "count": 3,
         "items": [
+          {
+            "allow_overruns": false,
+            "description": "foo",
+            "flow_args": {},
+            "flow_name": "GRRVersionBreakDown",
+            "flow_runner_args": {
+              "flow_name": "GRRVersionBreakDown"
+            },
+            "is_failing": false,
+            "lifetime": 7200,
+            "periodicity": 86400,
+            "state": "DISABLED",
+            "urn": "aff4:/cron/GRRVersionBreakDown"
+          },
           {
             "allow_overruns": false,
             "description": "",
@@ -5943,20 +5985,6 @@
             "periodicity": 604800,
             "state": "ENABLED",
             "urn": "aff4:/cron/OSBreakDown"
-          },
-          {
-            "allow_overruns": false,
-            "description": "foo",
-            "flow_args": {},
-            "flow_name": "GRRVersionBreakDown",
-            "flow_runner_args": {
-              "flow_name": "GRRVersionBreakDown"
-            },
-            "is_failing": false,
-            "lifetime": 7200,
-            "periodicity": 86400,
-            "state": "DISABLED",
-            "urn": "aff4:/cron/GRRVersionBreakDown"
           }
         ],
         "offset": 0
@@ -6571,7 +6599,12 @@
             "age": 0,
             "type": "ApiOutputPlugin",
             "value": {
-              "descriptor": {
+              "id": {
+                "age": 0,
+                "type": "unicode",
+                "value": "EmailOutputPlugin_0"
+              },
+              "plugin_descriptor": {
                 "age": 0,
                 "type": "OutputPluginDescriptor",
                 "value": {
@@ -6597,11 +6630,6 @@
                     "value": "EmailOutputPlugin"
                   }
                 }
-              },
-              "id": {
-                "age": 0,
-                "type": "unicode",
-                "value": "EmailOutputPlugin_0"
               },
               "state": {
                 "age": 0,
@@ -6674,14 +6702,14 @@
         "count": 1,
         "items": [
           {
-            "descriptor": {
+            "id": "EmailOutputPlugin_0",
+            "plugin_descriptor": {
               "plugin_args": {
                 "email_address": "test@localhost",
                 "emails_limit": 42
               },
               "plugin_name": "EmailOutputPlugin"
             },
-            "id": "EmailOutputPlugin_0",
             "state": {
               "args": {
                 "email_address": "test@localhost",
@@ -7715,7 +7743,12 @@
             "age": 0,
             "type": "ApiOutputPlugin",
             "value": {
-              "descriptor": {
+              "id": {
+                "age": 0,
+                "type": "unicode",
+                "value": "DummyOutputPlugin_0"
+              },
+              "plugin_descriptor": {
                 "age": 0,
                 "type": "OutputPluginDescriptor",
                 "value": {
@@ -7741,11 +7774,6 @@
                     "value": "DummyOutputPlugin"
                   }
                 }
-              },
-              "id": {
-                "age": 0,
-                "type": "unicode",
-                "value": "DummyOutputPlugin_0"
               },
               "state": {
                 "age": 0,
@@ -7806,14 +7834,14 @@
         "count": 1,
         "items": [
           {
-            "descriptor": {
+            "id": "DummyOutputPlugin_0",
+            "plugin_descriptor": {
               "plugin_args": {
                 "fetch_binaries": true,
                 "filename_regex": "blah!"
               },
               "plugin_name": "DummyOutputPlugin"
             },
-            "id": "DummyOutputPlugin_0",
             "state": {
               "args": {
                 "fetch_binaries": true,
@@ -9689,6 +9717,17 @@
                   "type": "RDFString",
                   "value": "Host-1"
                 },
+                "metadata:knowledge_base": {
+                  "age": 42000000,
+                  "type": "KnowledgeBase",
+                  "value": {
+                    "hostname": {
+                      "age": 0,
+                      "type": "unicode",
+                      "value": "Host-1.example.com"
+                    }
+                  }
+                },
                 "metadata:last": {
                   "age": 45000000,
                   "type": "RDFDatetime",
@@ -9866,6 +9905,17 @@
                   "type": "RDFString",
                   "value": "Host-0"
                 },
+                "metadata:knowledge_base": {
+                  "age": 42000000,
+                  "type": "KnowledgeBase",
+                  "value": {
+                    "hostname": {
+                      "age": 0,
+                      "type": "unicode",
+                      "value": "Host-0.example.com"
+                    }
+                  }
+                },
                 "metadata:last": {
                   "age": 44000000,
                   "type": "RDFDatetime",
@@ -9991,6 +10041,9 @@
                 },
                 "metadata:fqdn": "Host-1.example.com",
                 "metadata:hostname": "Host-1",
+                "metadata:knowledge_base": {
+                  "hostname": "Host-1.example.com"
+                },
                 "metadata:last": 45000000,
                 "metadata:ping": 42000000
               },
@@ -10056,6 +10109,9 @@
                 },
                 "metadata:fqdn": "Host-0.example.com",
                 "metadata:hostname": "Host-0",
+                "metadata:knowledge_base": {
+                  "hostname": "Host-0.example.com"
+                },
                 "metadata:last": 44000000,
                 "metadata:ping": 42000000
               },

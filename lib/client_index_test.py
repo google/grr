@@ -14,19 +14,6 @@ CLIENT_ID = "C.00aaeccbb45f33a3"
 
 class ClientIndexTest(test_lib.AFF4ObjectTest):
 
-  def testClientIdToFromURN(self):
-    index = aff4.FACTORY.Create("aff4:/client-index/",
-                                aff4_type="ClientIndex",
-                                mode="rw",
-                                token=self.token)
-    # Capitalization is fixed if necessary.
-    self.assertEqual(
-        CLIENT_ID,
-        index._ClientIdFromURN(
-            rdf_client.ClientURN("aff4:/C.00AAeccbb45f33a3")))
-    self.assertEqual(rdf_client.ClientURN("aff4:/C.00aaeccbb45f33a3"),
-                     index._URNFromClientID(CLIENT_ID))
-
   def testAnalyzeClient(self):
     index = aff4.FACTORY.Create("aff4:/client-index/",
                                 aff4_type="ClientIndex",

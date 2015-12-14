@@ -565,7 +565,6 @@ class MultiShardedQueueManagerTest(QueueManagerTest):
 
   def testGetNotificationsForAllShards(self):
     manager = queue_manager.QueueManager(token=self.token)
-    print "notification shards:" + str(manager.num_notification_shards)
     manager.QueueNotification(session_id=rdfvalue.SessionID(base="aff4:/hunts",
                                                             queue=queues.HUNTS,
                                                             flow_name="42"))
@@ -579,7 +578,6 @@ class MultiShardedQueueManagerTest(QueueManagerTest):
     live_shard_count = 0
     for _ in range(manager.num_notification_shards):
       shard_sessions = manager.GetNotifications(queues.HUNTS)
-      print "retrieved sessions:" + str(shard_sessions)
       self.assertLess(len(shard_sessions), 2)
       if len(shard_sessions) == 1:
         live_shard_count += 1

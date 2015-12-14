@@ -479,6 +479,12 @@ class UtilsTest(test_lib.GRRBaseTest):
     # proportionaly to the output value.
     self.assertEqual(Fibber.fib_count, 21)
 
+  def testMemoizeFunction(self):
+    @utils.MemoizeFunction()
+    def concat(prefix, suffix):
+      return prefix + "," + suffix
+    self.assertEqual(concat(prefix="a", suffix="b"), "a,b")
+
 
 def main(argv):
   test_lib.main(argv)

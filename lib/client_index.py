@@ -30,9 +30,6 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
   def _ClientIdFromURN(self, urn):
     return urn.Basename()
 
-  def _URNFromClientID(self, client_id):
-    return rdf_client.ClientURN(client_id)
-
   def _NormalizeKeyword(self, keyword):
     return keyword.lower()
 
@@ -88,12 +85,8 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
         self._AnalyzeKeywords(keywords)
     )
 
-    # If there are any unversioned keywords in the query, add the universal
-    # keyword so we are assured to have an accurate last update time for each
-    # client.
     last_seen_map = None
     if unversioned_keywords:
-      filtered_keywords.append(".")
       last_seen_map = {}
 
     # TODO(user): Make keyword index datetime aware so that
@@ -103,15 +96,28 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
                               start_time=start_time.AsMicroSecondsFromEpoch(),
                               end_time=end_time.AsMicroSecondsFromEpoch(),
                               last_seen_map=last_seen_map)
+    if not raw_results:
+      return []
 
-    old_results = set()
-    for keyword in unversioned_keywords:
-      for result in raw_results:
-        if last_seen_map[(keyword, result)] < last_seen_map[(".", result)]:
-          old_results.add(result)
-    raw_results -= old_results
+    if unversioned_keywords:
+      universal_last_seen_raw = {}
+      self.ReadPostingLists(map(self._NormalizeKeyword, raw_results),
+                            start_time=start_time.AsMicroSecondsFromEpoch(),
+                            end_time=end_time.AsMicroSecondsFromEpoch(),
+                            last_seen_map=universal_last_seen_raw)
 
-    return map(self._URNFromClientID, raw_results)
+      universal_last_seen = {}
+      for (_, client_id), ts in universal_last_seen_raw.iteritems():
+        universal_last_seen[client_id] = ts
+
+      old_results = set()
+      for keyword in unversioned_keywords:
+        for result in raw_results:
+          if last_seen_map[(keyword, result)] < universal_last_seen[result]:
+            old_results.add(result)
+      raw_results -= old_results
+
+    return [rdf_client.ClientURN(result) for result in raw_results]
 
   def ReadClientPostingLists(self, keywords):
     """Looks up all clients associated with any of the given keywords.
@@ -302,7 +308,7 @@ def GetMostRecentClient(client_list, token=None):
   return client_urn
 
 
-def BulkLabel(label, hostnames, token, client_index=None):
+def BulkLabel(label, hostnames, token=None, client_index=None):
   """Assign a label to a group of clients based on hostname.
 
   Sets a label as an identifier to a group of clients. Removes the label from
@@ -347,8 +353,11 @@ def BulkLabel(label, hostnames, token, client_index=None):
   # The residual set of fqdns needs labelling.
   # Get the latest URN for these clients and open them to add the label.
   urns = []
-  for fqdn in fqdns:
-    urns.extend(client_index.LookupClients(["+host:%s" % fqdn]))
+  keywords = ["+host:%s" % fqdn for fqdn in fqdns]
+  for client_list in client_index.ReadClientPostingLists(keywords).itervalues():
+    for client_id in client_list:
+      urns.append(rdfvalue.RDFURN(client_id))
+
   for client in aff4.FACTORY.MultiOpen(urns, token=token,
                                        aff4_type="VFSGRRClient", mode="rw"):
     client.AddLabels(label, owner="GRR")

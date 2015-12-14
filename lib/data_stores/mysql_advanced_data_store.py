@@ -18,6 +18,7 @@ from MySQLdb import cursors
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import data_store
+from grr.lib import rdfvalue
 from grr.lib import utils
 
 
@@ -200,6 +201,10 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     if not attributes:
       return
 
+    if isinstance(attributes, basestring):
+      raise ValueError(
+          "String passed to DeleteAttributes (non string iterable expected).")
+
     for attribute in attributes:
       timestamp = self._MakeTimestamp(start, end)
       attribute = utils.SmartUnicode(attribute)
@@ -277,6 +282,45 @@ class MySQLAdvancedDataStore(data_store.DataStore):
         results.append((attribute, value, row["timestamp"]))
 
     return results
+
+  def ScanAttribute(self,
+                    subject_prefix,
+                    attribute,
+                    after_urn=None,
+                    max_records=None,
+                    token=None,
+                    relaxed_order=False):
+    subject_prefix = utils.SmartStr(rdfvalue.RDFURN(subject_prefix))
+    if subject_prefix[-1] != "/":
+      subject_prefix += "/"
+    self.security_manager.CheckDataStoreAccess(token, [subject_prefix],
+                                               "qr")
+
+    query = """
+    SELECT t1.subject AS subject,
+           t2.value AS value,
+           t2.timestamp AS timestamp
+    FROM subjects AS t1, aff4 AS t2,
+         (SELECT t3.subject_hash AS hash, MAX(t3.timestamp) AS ts FROM
+            aff4 AS t3, subjects AS t4
+          WHERE t3.subject_hash = t4.hash AND
+                t3.attribute_hash = unhex(md5(%s)) AND
+                t4.subject LIKE %s AND
+                t4.subject > %s
+          GROUP BY t3.subject_hash) AS s1
+    WHERE t1.hash = t2.subject_hash AND
+      t2.timestamp = s1.ts AND
+      t2.subject_hash = s1.hash AND
+      t2.attribute_hash = unhex(md5(%s))
+    """
+    args = [attribute, subject_prefix + "%", after_urn or "", attribute]
+    if max_records:
+      query += " LIMIT %s"
+      args += [max_records]
+    result = self.ExecuteQuery(query, args)
+    for row in result:
+      yield (row["subject"], row["timestamp"], self._Decode(attribute,
+                                                            row["value"]))
 
   def MultiSet(self, subject, values, timestamp=None, replace=True, sync=True,
                to_delete=None, token=None):
@@ -545,7 +589,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
           rlike = regex.groups()[1]
 
           if rlike:
-             # If there is a regex component attempt to replace with like
+            # If there is a regex component attempt to replace with like
             like = regex.groups()[0] + "%"
             criteria += " AND attributes.attribute like %s"
             args.append(like)
@@ -656,7 +700,8 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     self.ExecuteQuery("""
     CREATE TABLE IF NOT EXISTS `subjects` (
       hash BINARY(16) PRIMARY KEY NOT NULL,
-      subject TEXT CHARACTER SET utf8 NULL
+      subject TEXT CHARACTER SET utf8 NULL,
+      KEY `subject` (`subject`(512))
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT ='Table for storing subjects';
     """)
 

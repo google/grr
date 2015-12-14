@@ -17,6 +17,7 @@ import logging
 from grr.lib import access_control
 from grr.lib import config_lib
 from grr.lib import data_store
+from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.data_stores import common
 from grr.lib.rdfvalues import data_server as rdf_data_server
@@ -140,8 +141,6 @@ class DataServerConnection(object):
     except httplib.HTTPException:
       pass
     try:
-      logging.info("Attempting to connect to data server %s:%d",
-                   self.Address(), self.Port())
       self.conn = httplib.HTTPConnection(self.Address(), self.Port())
       username = config_lib.CONFIG.Get("HTTPDataStore.username")
       password = config_lib.CONFIG.Get("HTTPDataStore.password")
@@ -438,6 +437,30 @@ class RemoteMappingCache(utils.FastStore):
 
       return data_server
 
+  def AllDatabases(self):
+    for server in self.inquirer.servers:
+      yield server
+
+  def GetPrefix(self, prefix):
+    """Yields all databases which could contain records begining with prefix."""
+    components = common.Components(prefix)
+
+    components = [common.ConvertStringToFilename(x) for x in components]
+    path_prefix = utils.JoinPath(*components)
+    if path_prefix == "/":
+      path_prefix = ""
+
+    for regex in self.path_regexes:
+      result = common.EvaluatePrefix(path_prefix, regex)
+      if result == "MATCH":
+        yield self.Get(prefix)
+        return
+      if result == "POSSIBLE":
+        for data_server in self.AllDatabases():
+          yield data_server
+        return
+    yield self.Get(prefix)
+
 
 class HTTPDataStore(data_store.DataStore):
   """A data store which calls a remote server."""
@@ -453,6 +476,10 @@ class HTTPDataStore(data_store.DataStore):
 
   def GetServer(self, subject):
     return self.cache.Get(subject).GetConnection()
+
+  def GetServersForPrefix(self, prefix):
+    for s in self.cache.GetPrefix(prefix):
+      yield s.GetConnection()
 
   def TimestampSpecFromTimestamp(self, timestamp):
     """Create a timestamp spec from a timestamp value.
@@ -499,9 +526,18 @@ class HTTPDataStore(data_store.DataStore):
     else:
       return server.MakeRequestAndContinue(cmd, subject)
 
+  def _MakeRequestsForPrefix(self, prefix, typ, request):
+    cmd = rdf_data_server.DataStoreCommand(command=typ, request=request)
+    for server in self.GetServersForPrefix(prefix):
+      yield server.SyncAndMakeRequest(cmd)
+
   def DeleteAttributes(self, subject, attributes, start=None, end=None,
                        sync=True, token=None):
     request = rdf_data_store.DataStoreRequest(subject=[subject])
+
+    if isinstance(attributes, basestring):
+      raise ValueError(
+          "String passed to DeleteAttributes (non string iterable expected).")
 
     # Set timestamp.
     start = start or 0
@@ -576,8 +612,38 @@ class HTTPDataStore(data_store.DataStore):
           remaining_limit -= len(values)
 
         results[result_set.subject] = values
-
     return results.iteritems()
+
+  def ScanAttribute(self, subject_prefix, attribute,
+                    after_urn=None, max_records=None, token=None,
+                    relaxed_order=False):
+
+    """ScanAttribute."""
+
+    subject_prefix = utils.SmartStr(rdfvalue.RDFURN(subject_prefix))
+    if subject_prefix[-1] != "/":
+      subject_prefix += "/"
+
+    typ = rdf_data_server.DataStoreCommand.Command.SCAN_ATTRIBUTE
+    subjects = [subject_prefix]
+    if after_urn:
+      subjects.append(after_urn)
+    request = self._MakeRequest(subjects, attribute,
+                                token=token,
+                                limit=max_records)
+    if relaxed_order:
+      for response in self._MakeRequestsForPrefix(subject_prefix, typ, request):
+        for result in response.results:
+          for (value, ts) in result.payload:
+            yield (result.subject, ts, self._Decode(value))
+    else:
+      results = []
+      for response in self._MakeRequestsForPrefix(subject_prefix, typ, request):
+        for result in response.results:
+          for (value, ts) in result.payload:
+            results.append((result.subject, ts, self._Decode(value)))
+      for r in sorted(results, key=lambda x: x[0]):
+        yield r
 
   def MultiSet(self, subject, values, timestamp=None, replace=True,
                sync=True, to_delete=None, token=None):

@@ -778,9 +778,6 @@ def Start(db, port=0, is_master=False, server_cls=ThreadedHTTPServer,
   """Start the data server."""
   # This is the service that will handle requests to the data store.
 
-  logging.info("Configuring! master: " + str(is_master) + " with handler " +
-               reqhandler_cls.__name__)
-
   if reqhandler_cls.MASTER or reqhandler_cls.DATA_SERVER:
     logging.fatal("Attempt to start server with duplicate request handler.")
 
@@ -799,7 +796,8 @@ def Start(db, port=0, is_master=False, server_cls=ThreadedHTTPServer,
       cmd.RESOLVE_MULTI: (reqhandler_cls.SERVICE.ResolveMulti, "r"),
       cmd.LOCK_SUBJECT: (reqhandler_cls.SERVICE.LockSubject, "w"),
       cmd.EXTEND_SUBJECT: (reqhandler_cls.SERVICE.ExtendSubject, "w"),
-      cmd.UNLOCK_SUBJECT: (reqhandler_cls.SERVICE.UnlockSubject, "w")
+      cmd.UNLOCK_SUBJECT: (reqhandler_cls.SERVICE.UnlockSubject, "w"),
+      cmd.SCAN_ATTRIBUTE: (reqhandler_cls.SERVICE.ScanAttribute, "r")
   }
 
   # Initialize nonce store for authentication.

@@ -52,7 +52,7 @@ OutputPluginNoteController.prototype.onOutputPluginChange_ = function() {
   if (angular.isDefined(this.scope_['outputPlugin']) &&
       angular.isDefined(this.scope_['outputPluginsUrl'])) {
     var descriptor =
-        this.scope_['outputPlugin']['value']['descriptor'];
+        this.scope_['outputPlugin']['value']['plugin_descriptor'];
     var pluginName = descriptor['value']['plugin_name']['value'];
 
     var directive = this.grrOutputPluginsDirectivesRegistryService_

@@ -260,7 +260,7 @@ class ApiListFlowOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
       # the HTTP API.
       api_plugin = api_output_plugin.ApiOutputPlugin(
           id=plugin_descriptor.plugin_name + "_%d" % type_index,
-          descriptor=plugin_descriptor, state=plugin_state)
+          plugin_descriptor=plugin_descriptor, state=plugin_state)
       result.append(api_plugin)
 
     return dict(offset=0, count=len(result), total_count=len(result),

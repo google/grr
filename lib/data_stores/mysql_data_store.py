@@ -175,6 +175,8 @@ class MySQLDataStore(data_store.DataStore):
   """ % config_lib.CONFIG["Mysql.table_name"])
       connection.Execute("CREATE INDEX attribute ON `%s` (attribute(300));" %
                          config_lib.CONFIG["Mysql.table_name"])
+      connection.Execute("CREATE INDEX subject ON `%s` (subject(300));" %
+                         config_lib.CONFIG["Mysql.table_name"])
 
   def DeleteAttributes(self, subject, attributes, start=None, end=None,
                        sync=True, token=None):
@@ -265,6 +267,43 @@ class MySQLDataStore(data_store.DataStore):
       value = self.DecodeValue(row)
 
       yield row["attribute"], value, rdfvalue.RDFDatetime(row["age"])
+
+  def ScanAttribute(self,
+                    subject_prefix,
+                    attribute,
+                    after_urn=None,
+                    max_records=None,
+                    token=None,
+                    relaxed_order=False):
+    subject_prefix = utils.SmartStr(rdfvalue.RDFURN(subject_prefix))
+    if subject_prefix[-1] != "/":
+      subject_prefix += "/"
+    self.security_manager.CheckDataStoreAccess(token, [subject_prefix],
+                                               "qr")
+
+    query = """select t1.subject as subject,
+                      t1.attribute as attribute,
+                      t1.age as age,
+                      t1.value_string as value_string,
+                      t1.value_integer as value_integer,
+                      t1.value_binary as value_binary
+               from `%s` as t1,
+                    (select hash, max(age) as max_age from `%s`
+                       where subject like %%s and subject > %%s
+                         and attribute = %%s group by hash) as t2
+               where t1.hash = t2.hash and
+                     t1.age = t2.max_age and
+                     t1.attribute = %%s
+               order by t1.subject""" % (self.table_name, self.table_name)
+    args = [subject_prefix + "%", after_urn or "", attribute, attribute]
+    if max_records:
+      query += " limit %s"
+      args += [max_records]
+    with self.pool.GetConnection() as cursor:
+      for row in cursor.Execute(query, args):
+        yield (row["subject"],
+               rdfvalue.RDFDatetime(row["age"]).AsMicroSecondsFromEpoch(),
+               self.DecodeValue(row))
 
   def _TimestampToQuery(self, timestamp, args):
     """Convert the timestamp to a query fragment and add args."""

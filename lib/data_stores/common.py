@@ -7,9 +7,10 @@ import os
 import re
 import stat
 
+import logging
+
 from grr.lib import rdfvalue
 from grr.lib import utils
-
 
 from grr.server.data_server import constants
 
@@ -30,6 +31,110 @@ def ConvertStringToFilename(name):
                 name, flags=re.UNICODE).rstrip("/")
 
 
+def Components(subject):
+  if isinstance(subject, rdfvalue.RDFURN):
+    return subject.Split()
+  else:
+    # If it is not a URN, we convert to unicode and then try to strip
+    # aff4:/ from the beginning of the string.
+    path = utils.SmartUnicode(subject)
+    if not path.startswith("aff4:/"):
+      return "aff4", ""
+    path = path[len("aff4:/"):]
+    return path.split(os.path.sep)
+
+
+@utils.MemoizeFunction()
+def _LiteralPrefix(regex):
+  """Returns longest prefix of regex which consists of literal characters."""
+  start = list(regex)
+  result = []
+
+  while True:
+    if not start:
+      return "".join(result)
+    if start[0] == "\\":
+      # A bar \ is a mystery, we do nothing with it.
+      if len(start) == 1:
+        return "".join(result)
+      # A \ followed by certain characters is a special and we don't handle
+      # specials.
+      if start[1] in "0123456789AbBdDsSwWZ":
+        return "".join(result)
+      # These are unlikely to appear in a regex, but just in case:
+      if start[1] == "a":
+        result += "\a"
+        start = start[2:]
+        continue
+      if start[1] == "b":
+        result += "\b"
+        start = start[2:]
+        continue
+      if start[1] == "f":
+        result += "\f"
+        start = start[2:]
+        continue
+      if start[1] == "n":
+        result += "\n"
+        start = start[2:]
+        continue
+      if start[1] == "r":
+        result += "\r"
+        start = start[2:]
+        continue
+      if start[1] == "t":
+        result += "\t"
+        start = start[2:]
+        continue
+      if start[1] == "v":
+        result += "\v"
+        start = start[2:]
+        continue
+      # A \ followed by another character, e.g. '.' is a literal of that
+      # character.
+      result += start[1]
+      start = start[2:]
+      continue
+    if start[0] in ".^$*+?{}[]|()":
+      return "".join(result)
+    result += start[0]
+    start = start[1:]
+
+
+KNOWN_PATH_REGEX_PREFIX = "(?P<path>"
+
+
+def EvaluatePrefix(prefix, path_regex):
+  """Estimate if subjects beginning with prefix might match path_regex."""
+  if path_regex.match(prefix):
+    # The prefix is a match for this regex. We assume regex is sane enough
+    # that all extentions of prefix will also match.
+    return "MATCH"
+
+  path_regex_string = path_regex.pattern
+  if not path_regex_string.startswith(KNOWN_PATH_REGEX_PREFIX):
+    # We don't know how to analyze this regex. Assume that extensions of prefix
+    # might match the regex.
+    logging.warning("Unrecognized regex format, being pessimistic: %s",
+                    path_regex_string)
+    return "POSSIBLE"
+
+  literal_prefix = _LiteralPrefix(path_regex_string[len(
+      KNOWN_PATH_REGEX_PREFIX):])
+  if literal_prefix.startswith(prefix):
+    # There are extensions of prefix which match regex.
+    return "POSSIBLE"
+
+  if prefix.startswith(literal_prefix):
+    # It is possible that some extension of prefix will match
+    # regex.
+    return "POSSIBLE"
+
+  # There is a character in the literal prefix which does not match
+  # the corresponding character in prefix. Therefore no match is possible.
+  return "NO_MATCH"
+
+
 def ResolveSubjectDestination(subject, regexes):
   """Returns the directory/filename where the subject will be stored.
 
@@ -40,16 +145,7 @@ def ResolveSubjectDestination(subject, regexes):
   Returns:
    File name and directory.
   """
-  if isinstance(subject, rdfvalue.RDFURN):
-    components = subject.Split()
-  else:
-    # If it is not a URN, we convert to unicode and then try to strip
-    # aff4:/ from the beginning of the string.
-    path = utils.SmartUnicode(subject)
-    if not path.startswith("aff4:/"):
-      return "aff4", ""
-    path = path[len("aff4:/"):]
-    components = path.split(os.path.sep)
+  components = Components(subject)
   if not components:
     # No components to work with.
     return "aff4", ""

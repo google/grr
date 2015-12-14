@@ -107,6 +107,7 @@ class ApiListCronJobsHandler(api_call_handler_base.ApiCallHandler):
         cron_jobs_urns, aff4_type="CronJob", token=token, age=aff4.ALL_TIMES)
 
     items = [CronJobToApiCronJob(cron_job) for cron_job in cron_jobs]
+    items.sort(key=lambda item: item.urn)
     result = dict(offset=args.offset,
                   count=len(items),
                   items=api_value_renderers.RenderValue(items))

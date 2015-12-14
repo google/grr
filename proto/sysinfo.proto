@@ -582,6 +582,43 @@ message HardwareInfo {
       description: "System Manufacturer."
     }];
 
+  optional string system_product_name = 3 [(sem_type) = {
+      description: "System Product Name."
+    }];
+
+  optional string system_uuid = 4 [(sem_type) = {
+      description: "System UUID."
+    }];
+
+  optional string system_sku_number = 5 [(sem_type) = {
+      description: "System SKU Number."
+    }];
+
+  optional string system_family = 6 [(sem_type) = {
+      description: "System Family."
+    }];
+
+  // BIOS related information
+  optional string bios_vendor = 7 [(sem_type) = {
+      description: "BIOS Vendor."
+    }];
+
+  optional string bios_version = 8 [(sem_type) = {
+      description: "BIOS Version."
+    }];
+
+  optional string bios_release_date = 9 [(sem_type) = {
+      description: "BIOS Release Date."
+    }];
+
+  optional string bios_rom_size = 10 [(sem_type) = {
+      description: "BIOS ROM Size."
+    }];
+
+  optional string bios_revision = 11 [(sem_type) = {
+      description: "BIOS Revision."
+    }];
+
 }
 
 // OSX Plist dictionary of strings entry

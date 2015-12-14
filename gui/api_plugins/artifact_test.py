@@ -9,19 +9,20 @@ from grr.gui import api_test_lib
 from grr.gui.api_plugins import artifact as artifact_plugin
 from grr.lib import artifact
 from grr.lib import artifact_registry
-from grr.lib import artifact_test
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import test_lib
 
 
-class ApiListArtifactsHandlerTest(artifact_test.ArtifactBaseTest):
+class ApiListArtifactsHandlerTest(test_lib.FlowTestsBaseclass):
   """Test for ApiListArtifactsHandler."""
 
   def setUp(self):
     super(ApiListArtifactsHandlerTest, self).setUp()
     self.handler = artifact_plugin.ApiListArtifactsHandler()
-    self.LoadTestArtifacts()
+    test_artifacts_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
+                                       "artifacts", "test_artifacts.json")
+    artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
 
   def _renderEmptyArtifacts(self):
     artifact_registry.REGISTRY.ClearSources()

@@ -6,6 +6,7 @@ SQLite database files are created by taking the root of each AFF4 object.
 
 
 
+import itertools
 import os
 import re
 import stat
@@ -21,10 +22,11 @@ import logging
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import data_store
+from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.data_stores import common
 
-SQLITE_EXTENSION = "sqlite"
+SQLITE_EXTENSION = ".sqlite"
 SQLITE_TIMEOUT = 600.0
 SQLITE_ISOLATION = "DEFERRED"
 SQLITE_SUBJECT_SPEC = "TEXT"
@@ -136,6 +138,7 @@ class SqliteConnectionCache(utils.FastStore):
       pathing = config_lib.CONFIG.Get("Datastore.pathing")
     try:
       self.path_regexes = [re.compile(path) for path in pathing]
+      self.pathing = pathing
     except re.error:
       raise data_store.Error("Invalid regular expression in Datastore.pathing")
 
@@ -158,7 +161,7 @@ class SqliteConnectionCache(utils.FastStore):
       return super(SqliteConnectionCache, self).Get(key)
     except KeyError:
       dirname = utils.JoinPath(self.root_path, directory)
-      path = utils.JoinPath(dirname, filename) + "." + SQLITE_EXTENSION
+      path = utils.JoinPath(dirname, filename) + SQLITE_EXTENSION
       dirname = utils.SmartStr(dirname)
       path = utils.SmartStr(path)
 
@@ -168,13 +171,74 @@ class SqliteConnectionCache(utils.FastStore):
           os.makedirs(dirname)
         except OSError:
           pass
-
       self._EnsureDatabaseExists(path)
       connection = SqliteConnection(path)
 
       super(SqliteConnectionCache, self).Put(key, connection)
 
       return connection
+
+  def GetPrefix(self, subject_prefix):
+    """Return list of databases matching subject_prefix."""
+
+    components = common.Components(subject_prefix)
+
+    components = [common.ConvertStringToFilename(x) for x in components]
+    path_prefix = utils.JoinPath(*components)
+    if path_prefix == "/":
+      path_prefix = ""
+    for regex in self.path_regexes:
+      result = common.EvaluatePrefix(path_prefix, regex)
+      if result == "MATCH":
+        yield self.Get(subject_prefix)
+        return
+      if result == "POSSIBLE":
+        for conn in self.DatabasesByPath(path_prefix):
+          yield conn
+        return
+    yield self.Get(subject_prefix)
+
+  def DatabasesInDir(self, directory):
+    """Returns a list of the database files in directory."""
+    for (path, dirs, files) in os.walk(directory, topdown=True):
+      dirs.sort()  # controls os.walk recurse order!
+      files.sort()
+      for f in files:
+        if f.endswith(SQLITE_EXTENSION):
+          f = f[:-len(SQLITE_EXTENSION)]
+          yield utils.JoinPath(path, f)
+
+  @utils.Synchronized
+  def DatabasesByPath(self, path_prefix):
+    """Yields connections which might contain data prefixed by path_prefix."""
+
+    # We are looking for database files which start with this prefix, or
+    # which could be extended to match this prefix.
+    dir_prefix = utils.JoinPath(self.root_path, path_prefix)
+
+    # Shortened path_prefix - we will shorten it one component at a time
+    # checking directories for databases of interest as we go.
+    shortened_path_prefix = path_prefix
+
+    databases_found = set()
+    while True:
+      shortened_path = utils.JoinPath(self.root_path, shortened_path_prefix)
+      if os.path.isdir(shortened_path):
+        for db in self.DatabasesInDir(shortened_path):
+          if db in databases_found:
+            continue
+          mod_db = db
+          if mod_db == utils.JoinPath(self.root_path, "aff4"):
+            mod_db = self.root_path
+          if mod_db.startswith(dir_prefix) or dir_prefix.startswith(mod_db):
+            databases_found.add(db)
+            yield SqliteConnection(db + SQLITE_EXTENSION)
+      if not shortened_path_prefix:
+        break
+      components = shortened_path_prefix.split(os.path.sep)
+      shortened_path_prefix = utils.JoinPath(*(components[:-1]))
+      if shortened_path_prefix == "/":
+        shortened_path_prefix = ""
 
 
 class SqliteConnection(object):
@@ -340,6 +404,55 @@ class SqliteConnection(object):
       args = (subject, attribute, start, end)
     data = self.Execute(query, args).fetchall()
     return data
+
+  @utils.Synchronized
+  def ScanAttribute(self,
+                    subject_prefix,
+                    attribute,
+                    after_urn=None,
+                    max_records=None):
+    """Returns the values of attribute for a range of subjexts.
+
+    Args:
+     subject_prefix: Returns records for all subjects which begin with
+       subject_prefix.
+     attribute: The attribute of interest.
+     after_urn: If set, restrict to records which come after.
+     max_records: The maximum number of values to return.
+
+    Yields:
+     Records of the form (subject, timestamp, value).
+    """
+    query = """SELECT t1.subject, t1.timestamp, t1.value
+               FROM tbl AS t1,
+                    (SELECT subject, MAX(timestamp) AS max_ts FROM tbl
+                       WHERE subject LIKE ? AND subject > ?
+                         AND predicate = ? GROUP BY subject) AS t2
+               WHERE t1.subject = t2.subject AND
+                     t1.timestamp = t2.max_ts AND
+                     t1.predicate = ?
+               ORDER BY t1.subject
+            """
+    subject_prefix = utils.SmartStr(subject_prefix)
+    if after_urn:
+      after_urn = utils.SmartStr(after_urn)
+    else:
+      after_urn = ""
+
+    if not max_records:
+      args = (subject_prefix + "%", after_urn, attribute, attribute)
+    else:
+      query += " LIMIT ?"
+      args = (subject_prefix + "%", after_urn, attribute, attribute,
+              max_records)
+
+    self.cursor.execute(query, args)
+    while True:
+      results = self.cursor.fetchmany(500)
+      if not results:
+        return
+      for result in results:
+        yield result
 
   @utils.Synchronized
   def DeleteAttribute(self, subject, attribute):
@@ -567,6 +680,10 @@ class SqliteDataStore(data_store.DataStore):
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
     _ = sync
 
+    if isinstance(attributes, basestring):
+      raise ValueError(
+          "String passed to DeleteAttributes (non string iterable expected).")
+
     with self.cache.Get(subject) as sqlite_connection:
       if start is None and end is None:
         # This is done when we delete all attributes at once without
@@ -660,6 +777,61 @@ class SqliteDataStore(data_store.DataStore):
             results.append((attribute, value, ts))
 
       return results
+
+  def ScanAttribute(self,
+                    subject_prefix,
+                    attribute,
+                    after_urn=None,
+                    max_records=None,
+                    token=None,
+                    relaxed_order=False):
+    self.security_manager.CheckDataStoreAccess(token, [subject_prefix], "rq")
+
+    subject_prefix = utils.SmartStr(rdfvalue.RDFURN(subject_prefix))
+    if subject_prefix[-1] != "/":
+      subject_prefix += "/"
+
+    if after_urn:
+      after_urn = str(after_urn)
+
+    connection_iter = self.cache.GetPrefix(subject_prefix)
+    if relaxed_order:
+      for sqlite_connection in connection_iter:
+        with sqlite_connection:
+          for (subject, timestamp, value) in sqlite_connection.ScanAttribute(
+              subject_prefix,
+              attribute,
+              after_urn=after_urn,
+              max_records=max_records):
+            yield (subject, timestamp, self._Decode(attribute, value))
+      return
+    first_connections = []
+    try:
+      first_connections.append(connection_iter.next())
+      first_connections.append(connection_iter.next())
+    except StopIteration:
+      pass
+    if not first_connections:
+      return
+    if len(first_connections) == 1:
+      with first_connections[0] as sqlite_connection:
+        for (subject, timestamp, value) in sqlite_connection.ScanAttribute(
+            subject_prefix,
+            attribute,
+            after_urn=after_urn,
+            max_records=max_records):
+          yield (subject, timestamp, self._Decode(attribute, value))
+      return
+    raw_results = []
+    for sqlite_connection in itertools.chain(first_connections,
+                                             connection_iter):
+      for record in sqlite_connection.ScanAttribute(subject_prefix,
+                                                    attribute,
+                                                    after_urn=after_urn,
+                                                    max_records=max_records):
+        raw_results.append(record)
+    for (subject, timestamp, value) in sorted(raw_results, key=lambda x: x[0]):
+      yield (subject, timestamp, self._Decode(attribute, value))
 
   def ResolveMulti(self, subject, attributes, timestamp=None,
                    limit=None, token=None):

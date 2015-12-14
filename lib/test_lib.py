@@ -50,6 +50,7 @@ from grr.client.vfs_handlers import files
 from grr.lib import access_control
 from grr.lib import action_mocks
 from grr.lib import aff4
+from grr.lib import artifact
 from grr.lib import artifact_registry
 from grr.lib import client_index
 from grr.lib import config_lib
@@ -564,7 +565,7 @@ class GRRBaseTest(unittest.TestCase):
                            delegate=token.username,
                            token=approver_token)
 
-  def SetupClients(self, nr_clients):
+  def SetupClients(self, nr_clients, system=None, os_version=None, arch=None):
     client_ids = []
     with aff4.FACTORY.Create(client_index.MAIN_INDEX, aff4_type="ClientIndex",
                              mode="rw", token=self.token) as index:
@@ -590,6 +591,17 @@ class GRRBaseTest(unittest.TestCase):
           fd.Set(
               fd.Schema.MAC_ADDRESS("aabbccddee%02x\nbbccddeeff%02x" % (i, i)))
           fd.Set(fd.Schema.HOST_IPS("192.168.0.%d\n2001:abcd::%x" % (i, i)))
+
+          if system:
+            fd.Set(fd.Schema.SYSTEM(system))
+          if os_version:
+            fd.Set(fd.Schema.OS_VERSION(os_version))
+          if arch:
+            fd.Set(fd.Schema.ARCH(arch))
+
+          kb = rdf_client.KnowledgeBase()
+          artifact.SetCoreGRRKnowledgeBaseValues(kb, fd)
+          fd.Set(fd.Schema.KNOWLEDGE_BASE, kb)
           fd.Flush()
 
           index.AddClient(fd)
@@ -2011,6 +2023,7 @@ class ClientFixture(object):
         aff4_object = aff4.FACTORY.Create(self.client_id.Add(path),
                                           aff4_type, mode="rw",
                                           token=self.token)
+
         for attribute_name, value in attributes.items():
           attribute = aff4.Attribute.PREDICATES[attribute_name]
           if isinstance(value, (str, unicode)):
@@ -2059,6 +2072,12 @@ class ClientFixture(object):
             aff4_object.Write(rdfvalue_object)
           else:
             aff4_object.AddAttribute(attribute, rdfvalue_object)
+
+        # Populate the KB from the client attributes.
+        if aff4_type == "VFSGRRClient":
+          kb = rdf_client.KnowledgeBase()
+          artifact.SetCoreGRRKnowledgeBaseValues(kb, aff4_object)
+          aff4_object.Set(aff4_object.Schema.KNOWLEDGE_BASE, kb)
 
         # Make sure we do not actually close the object here - we only want to
         # sync back its attributes, not run any finalization code.

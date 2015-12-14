@@ -9,10 +9,6 @@ This module loads and registers all the data store tests.
 # pylint: disable=unused-import,g-import-not-at-top
 
 from grr.lib.data_stores import fake_data_store_test
-try:
-  from grr.lib.data_stores import mongo_data_store_test
-except ImportError:
-  pass
 
 try:
   from grr.lib.data_stores import mysql_data_store_test

@@ -435,7 +435,8 @@ class GRRForeman(aff4.AFF4Object):
   class SchemaCls(aff4.AFF4Object.SchemaCls):
     """Attributes specific to VFSDirectory."""
     RULES = aff4.Attribute("aff4:rules", rdf_foreman.ForemanRules,
-                           "The rules the foreman uses.",
+                           "The rules the foreman uses.", versioned=False,
+                           creates_new_object_version=False,
                            default=rdf_foreman.ForemanRules())
 
   def ExpireRules(self):

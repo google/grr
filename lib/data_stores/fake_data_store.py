@@ -8,6 +8,7 @@ import time
 
 from grr.lib import config_lib
 from grr.lib import data_store
+from grr.lib import rdfvalue
 from grr.lib import utils
 
 
@@ -15,6 +16,7 @@ class FakeTransaction(data_store.CommonTransaction):
   """A fake transaction object for testing."""
 
   def __init__(self, store, subject, lease_time=None, token=None):
+    subject = utils.SmartUnicode(subject)
     super(FakeTransaction, self).__init__(store, subject, lease_time=lease_time,
                                           token=token)
     self.locked = False
@@ -96,6 +98,7 @@ class FakeDataStore(data_store.DataStore):
   @utils.Synchronized
   def DeleteSubject(self, subject, sync=False, token=None):
     _ = sync
+    subject = utils.SmartUnicode(subject)
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
     try:
       del self.subjects[subject]
@@ -116,10 +119,11 @@ class FakeDataStore(data_store.DataStore):
   def Set(self, subject, attribute, value, timestamp=None, token=None,
           replace=True, sync=True):
     """Set the value into the data store."""
+    subject = utils.SmartUnicode(subject)
+
     _ = sync
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
 
-    subject = utils.SmartUnicode(subject)
     attribute = utils.SmartUnicode(attribute)
 
     if timestamp is None or timestamp == self.NEWEST_TIMESTAMP:
@@ -131,12 +135,14 @@ class FakeDataStore(data_store.DataStore):
     if replace or attribute not in self.subjects[subject]:
       self.subjects[subject][attribute] = []
 
-    self.subjects[subject][attribute].append(
-        [self._Encode(value), int(timestamp)])
+    self.subjects[subject][attribute].append([self._Encode(value), int(
+        timestamp)])
+    self.subjects[subject][attribute].sort(key=lambda x: x[1])
 
   @utils.Synchronized
   def MultiSet(self, subject, values, timestamp=None, token=None,
                replace=True, sync=True, to_delete=None):
+    subject = utils.SmartUnicode(subject)
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
 
     if to_delete:
@@ -157,6 +163,11 @@ class FakeDataStore(data_store.DataStore):
                        token=None, sync=None):
     _ = sync  # Unimplemented.
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
+
+    if isinstance(attributes, basestring):
+      raise ValueError(
+          "String passed to DeleteAttributes (non string iterable expected).")
+
     subject = utils.SmartUnicode(subject)
     try:
       record = self.subjects[subject]
@@ -184,8 +195,41 @@ class FakeDataStore(data_store.DataStore):
       pass
 
   @utils.Synchronized
+  def ScanAttribute(self,
+                    subject_prefix,
+                    attribute,
+                    after_urn="",
+                    max_records=None,
+                    token=None,
+                    relaxed_order=False):
+    subject_prefix = utils.SmartStr(rdfvalue.RDFURN(subject_prefix))
+    if subject_prefix[-1] != "/":
+      subject_prefix += "/"
+    if after_urn:
+      after_urn = utils.SmartUnicode(after_urn)
+    self.security_manager.CheckDataStoreAccess(token, [subject_prefix],
+                                               "qr")
+    subjects = []
+    for s in self.subjects.keys():
+      if s.startswith(subject_prefix) and s > after_urn:
+        subjects.append(s)
+    subjects.sort()
+
+    return_count = 0
+    for s in subjects:
+      if max_records and return_count >= max_records:
+        return
+      r = self.subjects[s]
+      attribute_list = r.get(attribute)
+      if attribute_list:
+        value, timestamp = attribute_list[-1]
+        yield (s, timestamp, value)
+        return_count += 1
+
+  @utils.Synchronized
   def ResolveMulti(self, subject, attributes, timestamp=None, limit=None,
                    token=None):
+    subject = utils.SmartUnicode(subject)
     self.security_manager.CheckDataStoreAccess(
         token, [subject], self.GetRequiredResolveAccess(attributes))
 
@@ -201,7 +245,6 @@ class FakeDataStore(data_store.DataStore):
     if isinstance(attributes, str):
       attributes = [attributes]
 
-    subject = utils.SmartUnicode(subject)
     try:
       record = self.subjects[subject]
     except KeyError:
@@ -249,8 +292,10 @@ class FakeDataStore(data_store.DataStore):
 
     result = {}
     for subject in subjects:
+      s = utils.SmartUnicode(subject)
+
       # If any of the subjects is forbidden we fail the entire request.
-      self.security_manager.CheckDataStoreAccess(token, [subject],
+      self.security_manager.CheckDataStoreAccess(token, [s],
                                                  required_access)
 
       values = self.ResolvePrefix(subject, attribute_prefix, token=token,
@@ -262,12 +307,12 @@ class FakeDataStore(data_store.DataStore):
       if limit:
         if limit < len(values):
           values = values[:limit]
-        result[subject] = values
+        result[s] = values
         limit -= len(values)
         if limit <= 0:
           return result.iteritems()
       else:
-        result[subject] = values
+        result[s] = values
 
     return result.iteritems()
 
@@ -275,6 +320,8 @@ class FakeDataStore(data_store.DataStore):
   def ResolvePrefix(self, subject, attribute_prefix, token=None,
                     timestamp=None, limit=None):
     """Resolve all attributes for a subject starting with a prefix."""
+    subject = utils.SmartUnicode(subject)
+
     self.security_manager.CheckDataStoreAccess(
         token, [subject], self.GetRequiredResolveAccess(attribute_prefix))
 

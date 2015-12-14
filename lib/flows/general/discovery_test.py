@@ -8,7 +8,6 @@ import socket
 from grr.client.client_actions import admin
 from grr.lib import action_mocks
 from grr.lib import aff4
-from grr.lib import artifact_test
 from grr.lib import client_index
 from grr.lib import config_lib
 from grr.lib import flags
@@ -36,7 +35,7 @@ class DiscoveryTestEventListener(flow.EventListener):
     DiscoveryTestEventListener.event = event
 
 
-class TestClientInterrogate(artifact_test.ArtifactTest):
+class TestClientInterrogate(test_lib.FlowTestsBaseclass):
   """Test the interrogate flow."""
 
   def _CheckUsers(self, all_users):
@@ -206,6 +205,7 @@ class TestClientInterrogate(artifact_test.ArtifactTest):
   def testInterrogateLinuxWithWtmp(self):
     """Test the Interrogate flow."""
     test_lib.ClientFixture(self.client_id, token=self.token)
+    self.SetupClients(1, system="Linux", os_version="12.04")
 
     with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                test_lib.FakeTestDataVFSHandler):
@@ -214,7 +214,6 @@ class TestClientInterrogate(artifact_test.ArtifactTest):
                                         "NetgroupConfiguration",
                                         "LinuxRelease"],
            "Artifacts.netgroup_filter_regexes": [r"^login$"]}):
-        self.SetLinuxClient()
         client_mock = action_mocks.InterrogatedClient(
             "TransferBuffer", "StatFile", "Find", "HashBuffer",
             "ListDirectory", "FingerprintFile", "GetLibraryVersions",
@@ -247,8 +246,8 @@ class TestClientInterrogate(artifact_test.ArtifactTest):
 
   def testInterrogateWindows(self):
     """Test the Interrogate flow."""
-
     test_lib.ClientFixture(self.client_id, token=self.token)
+    self.SetupClients(1, system="Windows", os_version="6.2", arch="AMD64")
 
     with test_lib.VFSOverrider(
         rdf_paths.PathSpec.PathType.REGISTRY, test_lib.FakeRegistryVFSHandler):
@@ -259,7 +258,6 @@ class TestClientInterrogate(artifact_test.ArtifactTest):
             "TransferBuffer", "StatFile", "Find", "HashBuffer",
             "ListDirectory", "FingerprintFile", "GetLibraryVersions")
 
-        self.SetWindowsClient()
         client_mock.InitializeClient(system="Windows", version="6.1.7600",
                                      kernel="6.1.7601")
 

@@ -104,12 +104,6 @@ class TestMemoryCollector(MemoryTest):
     flow.GRRFlow.classes["DiskVolumeInfo"] = self.old_diskvolume_flow
     self.vfs_overrider.Stop()
 
-  def testCallWithDefaultArgumentsDoesNothing(self):
-    for _ in test_lib.TestFlowHelper(
-        "MemoryCollector", action_mocks.ActionMock(), client_id=self.client_id,
-        token=self.token):
-      pass
-
   def RunWithDownload(self, dump_option, conditions=None):
     download_action = memory.MemoryCollectorDownloadAction(
         dump_option=dump_option)
@@ -595,12 +589,7 @@ class ListVADBinariesTest(MemoryTest):
 
   def setUp(self):
     super(ListVADBinariesTest, self).setUp()
-
-    client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
-    client.Set(client.Schema.SYSTEM("Windows"))
-    client.Set(client.Schema.OS_VERSION("6.2"))
-    client.Flush()
-
+    self.SetupClients(1, system="Windows", os_version="6.2", arch="AMD64")
     self.os_overrider = test_lib.VFSOverrider(
         rdf_paths.PathSpec.PathType.OS, test_lib.ClientVFSHandlerFixture)
     self.reg_overrider = test_lib.VFSOverrider(
@@ -610,11 +599,14 @@ class ListVADBinariesTest(MemoryTest):
 
     # Add some user accounts to this client.
     fd = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
-    users = fd.Schema.USER()
-    users.Append(rdf_client.User(
-        username="LocalService", domain="testing-PC",
-        homedir=r"C:\Users\localservice", sid="S-1-5-20"))
-    fd.Set(users)
+    kb = fd.Get(fd.Schema.KNOWLEDGE_BASE)
+    kb.environ_systemdrive = "C:"
+    kb.MergeOrAddUser(
+        rdf_client.KnowledgeBaseUser(username="LocalService",
+                                     userdomain="testing-PC",
+                                     homedir=r"C:\Users\localservice",
+                                     sid="S-1-5-20"))
+    fd.Set(kb)
     fd.Close()
 
     self.old_driver_flow = flow.GRRFlow.classes["LoadMemoryDriver"]

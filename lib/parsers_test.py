@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """Tests for parsers."""
+import os
 
 from grr.lib import artifact_registry
-from grr.lib import artifact_test
+from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import parsers
 from grr.lib import rdfvalue
@@ -46,7 +47,10 @@ class ArtifactParserTests(test_lib.GRRBaseTest):
 
   def testValidation(self):
     """Ensure all parsers pass validation."""
-    artifact_test.ArtifactTest.LoadTestArtifacts()
+    test_artifacts_file = os.path.join(
+        config_lib.CONFIG["Test.data_dir"], "artifacts", "test_artifacts.json")
+    artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
+
     for p_cls in parsers.Parser.classes:
       parser = parsers.Parser.classes[p_cls]
       self.ValidateParser(parser)

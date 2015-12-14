@@ -3,10 +3,21 @@
 """Test the artifact rendering interface."""
 
 
+import os
+
 from grr.gui import runtests_test
-from grr.lib import artifact_test
+from grr.lib import artifact
+from grr.lib import artifact_registry
+from grr.lib import config_lib
 from grr.lib import flags
+from grr.lib import parsers
 from grr.lib import test_lib
+
+
+class TestCmdProcessor(parsers.CommandParser):
+
+  output_types = ["SoftwarePackage"]
+  supported_artifacts = ["TestCmdArtifact"]
 
 
 class TestArtifactRender(test_lib.GRRSeleniumTest):
@@ -14,7 +25,14 @@ class TestArtifactRender(test_lib.GRRSeleniumTest):
 
   def setUp(self):
     super(TestArtifactRender, self).setUp()
-    artifact_test.ArtifactTest.LoadTestArtifacts()
+    artifact_registry.REGISTRY.ClearRegistry()
+    test_artifacts_file = os.path.join(
+        config_lib.CONFIG["Test.data_dir"], "artifacts", "test_artifacts.json")
+    artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
+
+  def tearDown(self):
+    super(TestArtifactRender, self).tearDown()
+    artifact.ArtifactLoader().RunOnce()
 
   def testArtifactRendering(self):
     self.Open("/")

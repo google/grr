@@ -3,6 +3,8 @@
 
 
 
+import pdb
+
 from grr.gui import api_test_lib
 
 from grr.gui.api_plugins import hunt as hunt_plugin
@@ -468,7 +470,8 @@ class ApiListHuntOutputPluginErrorsHandlerRegressionTest(
           try:
             self.ProcessHuntOutputPlugins()
           except standard.ResultsProcessingError:
-            pass
+            if flags.FLAGS.debug:
+              pdb.post_mortem()
 
     self.Check(
         "GET", "/api/hunts/%s/output-plugins/"

@@ -137,7 +137,8 @@ def StartFlowAndWait(client_id, token=None, timeout=DEFAULT_TIMEOUT,
   return flow_urn
 
 
-# TODO(user): Deprecate this function once Browser History is Artifacted.
+# TODO(user): Deprecate this function once there is an alternative for
+# CacheGrep.
 def InterpolatePath(path, client, users=None, path_args=None, depth=0):
   """Take a string as a path on a client and interpolate with client data.
 

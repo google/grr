@@ -233,7 +233,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     for path in source.attributes["paths"]:
       # Interpolate any attributes from the knowledgebase.
       new_path_list.extend(artifact_utils.InterpolateKbAttributes(
-          path, self.state.knowledge_base))
+          path, self.state.knowledge_base,
+          ignore_errors=self.args.ignore_interpolation_errors))
 
     action = file_finder.FileFinderAction(
         action_type=file_finder.FileFinderAction.Action.DOWNLOAD,
@@ -329,12 +330,19 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       if "*" in kvdict["key"] or paths.GROUPING_PATTERN.search(kvdict["key"]):
         has_glob = True
 
-      # This currently only supports key value pairs specified using forward
-      # slash.
-      path = "\\".join((kvdict["key"], kvdict["value"]))
+      if kvdict["value"]:
+        # This currently only supports key value pairs specified using forward
+        # slash.
+        path = "\\".join((kvdict["key"], kvdict["value"]))
+      else:
+        # If value is not set, we want to get the default value. In
+        # GRR this is done by specifying the key only, so this is what
+        # we do here.
+        path = kvdict["key"]
 
       expanded_paths = artifact_utils.InterpolateKbAttributes(
-          path, self.state.knowledge_base)
+          path, self.state.knowledge_base,
+          ignore_errors=self.args.ignore_interpolation_errors)
       new_paths.update(expanded_paths)
 
     if has_glob:
@@ -391,7 +399,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     """Run a Windows WMI Query."""
     query = source.attributes["query"]
     queries = artifact_utils.InterpolateKbAttributes(
-        query, self.state.knowledge_base)
+        query, self.state.knowledge_base,
+        ignore_errors=self.args.ignore_interpolation_errors)
     base_object = source.attributes.get("base_object")
     for query in queries:
       self.CallClient(
@@ -419,7 +428,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
   def _GetSingleExpansion(self, value):
     results = list(artifact_utils.InterpolateKbAttributes(
-        value, self.state.knowledge_base))
+        value, self.state.knowledge_base,
+        ignore_errors=self.args.ignore_interpolation_errors))
     if len(results) > 1:
       raise ValueError("Interpolation generated multiple results, use a"
                        " list for multi-value expansions. %s yielded: %s" %
@@ -456,7 +466,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     for value in input_list:
       if isinstance(value, basestring):
         results = list(artifact_utils.InterpolateKbAttributes(
-            value, self.state.knowledge_base))
+            value, self.state.knowledge_base,
+            ignore_errors=self.args.ignore_interpolation_errors))
         new_args.extend(results)
       else:
         new_args.extend(value)
