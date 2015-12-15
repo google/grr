@@ -733,11 +733,6 @@ class FileStoreCreateFile(flow.EventListener):
 
   CHUNK_SIZE = 512 * 1024
 
-  def UpdateIndex(self, target_urn, src_urn):
-    """Update the index from the source to the target."""
-    idx = aff4.FACTORY.Create(src_urn, "AFF4Index", mode="w", token=self.token)
-    idx.Add(target_urn, "", target_urn)
-
   @flow.EventHandler()
   def ProcessMessage(self, message=None, event=None):
     """Process the new file and add to the file store."""
@@ -801,6 +796,48 @@ class TransferStore(flow.WellKnownFlow):
   """Store a buffer into a determined location."""
   well_known_session_id = rdfvalue.SessionID(flow_name="TransferStore")
 
+  def WriteBlob(self, message, sync=True):
+
+    read_buffer = rdf_protodict.DataBlob(message.payload)
+
+    # Only store non empty buffers
+    if not read_buffer.data:
+      return
+
+    data = read_buffer.data
+
+    if (read_buffer.compression ==
+        rdf_protodict.DataBlob.CompressionType.ZCOMPRESSION):
+      cdata = data
+      data = zlib.decompress(cdata)
+    elif (read_buffer.compression ==
+          rdf_protodict.DataBlob.CompressionType.UNCOMPRESSED):
+      cdata = zlib.compress(data)
+    else:
+      raise RuntimeError("Unsupported compression")
+
+    # The hash is done on the uncompressed data
+    digest = hashlib.sha256(data).digest()
+    urn = rdfvalue.RDFURN("aff4:/blobs").Add(digest.encode("hex"))
+
+    fd = aff4.FACTORY.Create(urn, "AFF4UnversionedMemoryStream", mode="w",
+                             token=self.token)
+    fd.OverwriteAndClose(cdata, len(data), sync=sync)
+
+    logging.debug("Got blob %s (length %s)", digest.encode("hex"),
+                  len(cdata))
+
+  def ProcessMessages(self, msg_list):
+    for message in msg_list:
+      if (message.auth_state !=
+          rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED):
+        logging.error("TransferStore request from %s is not authenticated.",
+                      message.source)
+        continue
+      self.WriteBlob(message, sync=False)
+
+    aff4.FACTORY.Flush()
+
   def ProcessMessage(self, message):
     """Write the blob into the AFF4 blob storage area."""
     # Check that the message is authenticated
@@ -810,32 +847,7 @@ class TransferStore(flow.WellKnownFlow):
                     message.source)
       return
 
-    read_buffer = rdf_protodict.DataBlob(message.payload)
-
-    # Only store non empty buffers
-    if read_buffer.data:
-      data = read_buffer.data
-
-      if (read_buffer.compression ==
-          rdf_protodict.DataBlob.CompressionType.ZCOMPRESSION):
-        cdata = data
-        data = zlib.decompress(cdata)
-      elif (read_buffer.compression ==
-            rdf_protodict.DataBlob.CompressionType.UNCOMPRESSED):
-        cdata = zlib.compress(data)
-      else:
-        raise RuntimeError("Unsupported compression")
-
-      # The hash is done on the uncompressed data
-      digest = hashlib.sha256(data).digest()
-      urn = rdfvalue.RDFURN("aff4:/blobs").Add(digest.encode("hex"))
-
-      fd = aff4.FACTORY.Create(urn, "AFF4MemoryStream", mode="w",
-                               token=self.token)
-      fd.OverwriteAndClose(cdata, len(data), sync=True)
-
-      logging.debug("Got blob %s (length %s)", digest.encode("hex"),
-                    len(cdata))
+    self.WriteBlob(message)
 
 
 class SendFile(flow.GRRFlow):

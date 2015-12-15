@@ -184,6 +184,57 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
 
     self.assertEqual(len(queued_messages), 9)
 
+  def testWellKnownFlowsNotifications(self):
+    test_lib.WellKnownSessionTest.messages = []
+    test_lib.WellKnownSessionTest2.messages = []
+    session_id1 = test_lib.WellKnownSessionTest.well_known_session_id
+    session_id2 = test_lib.WellKnownSessionTest2.well_known_session_id
+
+    messages = []
+    for i in range(1, 5):
+      messages.append(rdf_flows.GrrMessage(request_id=0,
+                                           response_id=0,
+                                           session_id=session_id1,
+                                           payload=rdfvalue.RDFInteger(i)))
+      messages.append(rdf_flows.GrrMessage(request_id=0,
+                                           response_id=0,
+                                           session_id=session_id2,
+                                           payload=rdfvalue.RDFInteger(i)))
+
+    # This test whitelists only one flow.
+    self.assertIn(session_id1.FlowName(), self.server.well_known_flows)
+    self.assertNotIn(session_id2.FlowName(), self.server.well_known_flows)
+
+    self.server.ReceiveMessages(self.client_id, messages)
+
+    # Wait for async actions to complete
+    self.server.thread_pool.Join()
+
+    # Flow 1 should have been processed right away.
+    test_lib.WellKnownSessionTest.messages.sort()
+    self.assertEqual(test_lib.WellKnownSessionTest.messages,
+                     list(range(1, 5)))
+
+    # But not Flow 2.
+    self.assertEqual(test_lib.WellKnownSessionTest2.messages, [])
+
+    manager = queue_manager.WellKnownQueueManager(token=self.token)
+
+    notifications = manager.GetNotificationsForAllShards(session_id1.Queue())
+
+    # Flow 1 was proecessed on the frontend, no queued responses available.
+    responses = list(manager.FetchRequestsAndResponses(session_id1))
+    self.assertEqual(responses, [])
+    # And also no notifications.
+    self.assertNotIn(session_id1, [notification.session_id
+                                   for notification in notifications])
+
+    # But for Flow 2 there should be some responses + a notification.
+    responses = list(manager.FetchRequestsAndResponses(session_id2))
+    self.assertEqual(len(responses), 4)
+    self.assertIn(session_id2, [notification.session_id
+                                for notification in notifications])
+
   def testDrainUpdateSessionRequestStates(self):
     """Draining the flow requests and preparing messages."""
     # This flow sends 10 messages on Start()

@@ -279,6 +279,22 @@ class DataStore(object):
       token: An ACL token.
     """
 
+  def MultiDeleteAttributes(self, subjects, attributes, start=None, end=None,
+                            sync=True, token=None):
+    """Remove all specified attributes from a list of subjects.
+
+    Args:
+      subjects: The list of subjects that will have these attributes removed.
+      attributes: A list of attributes.
+      start: A timestamp, attributes older than start will not be deleted.
+      end: A timestamp, attributes newer than end will not be deleted.
+      sync: If true we block until the operation completes.
+      token: An ACL token.
+    """
+    for subject in subjects:
+      self.DeleteAttributes(subject, attributes, start=start, end=end,
+                            sync=sync, token=token)
+
   @abc.abstractmethod
   def DeleteAttributes(self, subject, attributes, start=None, end=None,
                        sync=True, token=None):

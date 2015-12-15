@@ -88,10 +88,10 @@ config_lib.DEFINE_list(
     help="List of valid proxy servers the client should try.",
     default=[])
 
-config_lib.DEFINE_integer("Client.max_post_size", 8000000,
+config_lib.DEFINE_integer("Client.max_post_size", 40000000,
                           "Maximum size of the post.")
 
-config_lib.DEFINE_integer("Client.max_out_queue", 10240000,
+config_lib.DEFINE_integer("Client.max_out_queue", 51200000,
                           "Maximum size of the output queue.")
 
 config_lib.DEFINE_integer("Client.foreman_check_frequency", 1800,

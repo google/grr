@@ -1106,7 +1106,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     # Create a blob.
     digest = hashlib.sha256(data).digest()
     urn = aff4.ROOT_URN.Add("blobs").Add(digest.encode("hex"))
-    blob_fd = aff4.FACTORY.Create(urn, "AFF4MemoryStream", mode="w",
+    blob_fd = aff4.FACTORY.Create(urn, "AFF4UnversionedMemoryStream", mode="w",
                                   token=self.token)
     blob_fd.Write(data)
     blob_fd.Close(sync=True)
@@ -1424,6 +1424,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
 
   def testApi(self):
     api = ["DeleteAttributes",
+           "MultiDeleteAttributes",
            "DeleteSubject",
            "DeleteSubjects",
            "MultiResolvePrefix",
@@ -1833,8 +1834,8 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
       digest = hashlib.sha256(data).digest()
       code = digest.encode("hex")
       urn = aff4.ROOT_URN.Add("blobs").Add(code)
-      blob_fd = aff4.FACTORY.Create(urn, "AFF4MemoryStream", mode="w",
-                                    token=self.token)
+      blob_fd = aff4.FACTORY.Create(urn, "AFF4UnversionedMemoryStream",
+                                    mode="w", token=self.token)
       blob_fd.Write(data)
       blob_fd.Close(sync=True)
 

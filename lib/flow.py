@@ -1139,6 +1139,11 @@ class WellKnownFlow(GRRFlow):
       thread_pool.AddTask(target=self._SafeProcessMessage,
                           args=(response,), name=self.__class__.__name__)
 
+  def ProcessMessages(self, msgs):
+    for msg in msgs:
+      self.ProcessMessage(msg)
+      self.HeartBeat()
+
   def ProcessMessage(self, msg):
     """This is where messages get processed.
 
@@ -1769,82 +1774,83 @@ class FrontEndServer(object):
     now = time.time()
     with queue_manager.QueueManager(
         token=self.token, store=self.data_store) as manager:
-      for msg in messages:
-        # Messages for well known flows should notify even though they dont have
-        # a status.
-        if msg.request_id == 0:
-          manager.QueueNotification(session_id=msg.session_id,
-                                    priority=msg.priority)
-
-        elif msg.type == rdf_flows.GrrMessage.Type.STATUS:
-          # If we receive a status message from the client it means the client
-          # has finished processing this request. We therefore can de-queue it
-          # from the client queue.
-          manager.DeQueueClientRequest(client_id, msg.task_id)
-          manager.QueueNotification(session_id=msg.session_id,
-                                    priority=msg.priority,
-                                    last_status=msg.request_id)
-
-          status = rdf_flows.GrrStatus(msg.payload)
-          if status.status == rdf_flows.GrrStatus.ReturnedStatus.CLIENT_KILLED:
-            # A client crashed while performing an action, fire an event.
-            Events.PublishEvent("ClientCrash", rdf_flows.GrrMessage(msg),
-                                token=self.token)
-
       sessions_handled = []
-      for session_id, messages in utils.GroupBy(
+      for session_id, msgs in utils.GroupBy(
           messages, operator.attrgetter("session_id")).iteritems():
 
         # Remove and handle messages to WellKnownFlows
-        messages = self.HandleWellKnownFlows(messages)
+        unprocessed_msgs = self.HandleWellKnownFlows(msgs)
 
-        if not messages: continue
+        if not unprocessed_msgs: continue
 
         # Keep track of all the flows we handled in this request.
         sessions_handled.append(session_id)
 
-        for msg in messages:
+        for msg in unprocessed_msgs:
           manager.QueueResponse(session_id, msg)
+
+        for msg in unprocessed_msgs:
+          # Messages for well known flows should notify even though they don't
+          # have a status.
+          if msg.request_id == 0:
+            manager.QueueNotification(session_id=msg.session_id,
+                                      priority=msg.priority)
+            # Those messages are all the same, one notification is enough.
+            break
+          elif msg.type == rdf_flows.GrrMessage.Type.STATUS:
+            # If we receive a status message from the client it means the client
+            # has finished processing this request. We therefore can de-queue it
+            # from the client queue.
+            manager.DeQueueClientRequest(client_id, msg.task_id)
+            manager.QueueNotification(session_id=msg.session_id,
+                                      priority=msg.priority,
+                                      last_status=msg.request_id)
+
+            stat = rdf_flows.GrrStatus(msg.payload)
+            if stat.status == rdf_flows.GrrStatus.ReturnedStatus.CLIENT_KILLED:
+              # A client crashed while performing an action, fire an event.
+              Events.PublishEvent("ClientCrash", rdf_flows.GrrMessage(msg),
+                                  token=self.token)
 
     logging.debug("Received %s messages in %s sec", len(messages),
                   time.time() - now)
 
   def HandleWellKnownFlows(self, messages):
     """Hands off messages to well known flows."""
+    msgs_by_wkf = {}
     result = []
     for msg in messages:
       # Regular message - queue it.
       if msg.response_id != 0:
         result.append(msg)
+        continue
 
       # Well known flows:
+      flow_name = msg.session_id.FlowName()
+      if flow_name in self.well_known_flows:
+        # This message should be processed directly on the front end.
+        msgs_by_wkf.setdefault(flow_name, []).append(msg)
+
+        # TODO(user): Deprecate in favor of 'well_known_flow_requests'
+        # metric.
+        stats.STATS.IncrementCounter("grr_well_known_flow_requests")
+
+        stats.STATS.IncrementCounter("well_known_flow_requests",
+                                     fields=[str(msg.session_id)])
       else:
-        if msg.session_id.FlowName() in self.well_known_flows:
-          # This message should be processed directly on the front end.
-          flow = self.well_known_flows[msg.session_id.FlowName()]
-          flow.ProcessMessage(msg)
-          flow.HeartBeat()
+        # Message should be queued to be processed in the backend.
 
-          # Remove the notification from the well known flows.
-          queue_manager.QueueManager(token=self.token).DeleteNotification(
-              msg.session_id)
+        # Well known flows have a response_id==0, but if we queue up the state
+        # as that it will overwrite some other message that is queued. So we
+        # change it to a random number here.
+        msg.response_id = utils.PRNG.GetULong()
 
-          # TODO(user): Deprecate in favor of 'well_known_flow_requests'
-          # metric.
-          stats.STATS.IncrementCounter("grr_well_known_flow_requests")
+        # Queue the message in the data store.
+        result.append(msg)
 
-          stats.STATS.IncrementCounter("well_known_flow_requests",
-                                       fields=[str(msg.session_id)])
-        else:
-          # Message should be queued to be processed in the backend.
-
-          # Well known flows have a response_id==0, but if we queue up the state
-          # as that it will overwrite some other message that is queued. So we
-          # change it to a random number here.
-          msg.response_id = utils.PRNG.GetULong()
-
-          # Queue the message in the data store.
-          result.append(msg)
+    for flow_name, msg_list in msgs_by_wkf.iteritems():
+      flow = self.well_known_flows[flow_name]
+      flow.ProcessMessages(msg_list)
 
     return result
 

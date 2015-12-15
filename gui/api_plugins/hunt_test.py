@@ -293,7 +293,7 @@ class ApiGetHuntResultsExportCommandHandlerRegressionTest(
         replace={hunt_obj.urn.Basename(): "H:123456"})
 
 
-class DummyOutputPlugin(output_plugin.OutputPlugin):
+class DummyHuntTestOutputPlugin(output_plugin.OutputPlugin):
   """A dummy output plugin."""
 
   name = "dummy"
@@ -316,8 +316,8 @@ class ApiListHuntOutputPluginsHandlerRegressionTest(
           description="the hunt",
           output_plugins=[
               output_plugin.OutputPluginDescriptor(
-                  plugin_name=DummyOutputPlugin.__name__,
-                  plugin_args=DummyOutputPlugin.args_type(
+                  plugin_name=DummyHuntTestOutputPlugin.__name__,
+                  plugin_args=DummyHuntTestOutputPlugin.args_type(
                       filename_regex="blah!",
                       fetch_binaries=True))]) as hunt_obj:
         pass
@@ -338,12 +338,12 @@ class ApiListHuntOutputPluginLogsHandlerTest(
     self.handler = hunt_plugin.ApiListHuntOutputPluginLogsHandler()
     self.output_plugins = [
         output_plugin.OutputPluginDescriptor(
-            plugin_name=DummyOutputPlugin.__name__,
-            plugin_args=DummyOutputPlugin.args_type(
+            plugin_name=DummyHuntTestOutputPlugin.__name__,
+            plugin_args=DummyHuntTestOutputPlugin.args_type(
                 filename_regex="foo")),
         output_plugin.OutputPluginDescriptor(
-            plugin_name=DummyOutputPlugin.__name__,
-            plugin_args=DummyOutputPlugin.args_type(
+            plugin_name=DummyHuntTestOutputPlugin.__name__,
+            plugin_args=DummyHuntTestOutputPlugin.args_type(
                 filename_regex="bar"))]
 
   def RunHuntWithOutputPlugins(self, output_plugins):
@@ -363,7 +363,7 @@ class ApiListHuntOutputPluginLogsHandlerTest(
     result = self.handler.Render(
         hunt_plugin.ApiListHuntOutputPluginLogsArgs(
             hunt_id=hunt_urn.Basename(),
-            plugin_id=DummyOutputPlugin.__name__ + "_0"),
+            plugin_id=DummyHuntTestOutputPlugin.__name__ + "_0"),
         token=self.token)
 
     self.assertEqual(result["count"], 5)
@@ -380,7 +380,7 @@ class ApiListHuntOutputPluginLogsHandlerTest(
     result = self.handler.Render(
         hunt_plugin.ApiListHuntOutputPluginLogsArgs(
             hunt_id=hunt_urn.Basename(),
-            plugin_id=DummyOutputPlugin.__name__ + "_1"),
+            plugin_id=DummyHuntTestOutputPlugin.__name__ + "_1"),
         token=self.token)
 
     self.assertEqual(result["count"], 5)
@@ -397,7 +397,7 @@ class ApiListHuntOutputPluginLogsHandlerTest(
     result = self.handler.Render(
         hunt_plugin.ApiListHuntOutputPluginLogsArgs(
             hunt_id=hunt_urn.Basename(), offset=2, count=2,
-            plugin_id=DummyOutputPlugin.__name__ + "_0"),
+            plugin_id=DummyHuntTestOutputPlugin.__name__ + "_0"),
         token=self.token)
 
     self.assertEqual(result["count"], 2)
@@ -409,7 +409,7 @@ class ApiListHuntOutputPluginLogsHandlerTest(
     result = self.handler.Render(
         hunt_plugin.ApiListHuntOutputPluginLogsArgs(
             hunt_id=hunt_urn.Basename(), offset=2, count=2,
-            plugin_id=DummyOutputPlugin.__name__ + "_1"),
+            plugin_id=DummyHuntTestOutputPlugin.__name__ + "_1"),
         token=self.token)
 
     self.assertEqual(result["count"], 2)
@@ -429,8 +429,8 @@ class ApiListHuntOutputPluginLogsHandlerRegressionTest(
           description="the hunt",
           output_plugins=[
               output_plugin.OutputPluginDescriptor(
-                  plugin_name=DummyOutputPlugin.__name__,
-                  plugin_args=DummyOutputPlugin.args_type(
+                  plugin_name=DummyHuntTestOutputPlugin.__name__,
+                  plugin_args=DummyHuntTestOutputPlugin.args_type(
                       filename_regex="blah!",
                       fetch_binaries=True))])
 
@@ -443,7 +443,7 @@ class ApiListHuntOutputPluginLogsHandlerRegressionTest(
 
     self.Check(
         "GET", "/api/hunts/%s/output-plugins/"
-        "DummyOutputPlugin_0/logs" % hunt_urn.Basename(),
+        "DummyHuntTestOutputPlugin_0/logs" % hunt_urn.Basename(),
         replace={hunt_urn.Basename(): "H:123456"})
 
 

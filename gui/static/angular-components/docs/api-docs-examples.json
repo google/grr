@@ -5563,11 +5563,6 @@
                 "type": "RDFString",
                 "value": "Host-0"
               },
-              "metadata:last": {
-                "age": 42000000,
-                "type": "RDFDatetime",
-                "value": 42000000
-              },
               "metadata:knowledge_base": {
                 "age": 42000000,
                 "type": "KnowledgeBase",
@@ -5578,6 +5573,11 @@
                     "value": "Host-0.example.com"
                   }
                 }
+              },
+              "metadata:last": {
+                "age": 42000000,
+                "type": "RDFDatetime",
+                "value": 42000000
               },
               "metadata:ping": {
                 "age": 0,
@@ -7635,7 +7635,7 @@
                   "plugin_name": {
                     "age": 0,
                     "type": "unicode",
-                    "value": "DummyOutputPlugin"
+                    "value": "DummyHuntTestOutputPlugin"
                   }
                 }
               },
@@ -7683,7 +7683,7 @@
                   "plugin_name": {
                     "age": 0,
                     "type": "unicode",
-                    "value": "DummyOutputPlugin"
+                    "value": "DummyHuntTestOutputPlugin"
                   }
                 }
               },
@@ -7710,7 +7710,7 @@
                 "fetch_binaries": true,
                 "filename_regex": "blah!"
               },
-              "plugin_name": "DummyOutputPlugin"
+              "plugin_name": "DummyHuntTestOutputPlugin"
             },
             "status": "SUCCESS"
           },
@@ -7722,7 +7722,7 @@
                 "fetch_binaries": true,
                 "filename_regex": "blah!"
               },
-              "plugin_name": "DummyOutputPlugin"
+              "plugin_name": "DummyHuntTestOutputPlugin"
             },
             "status": "SUCCESS"
           }
@@ -7730,7 +7730,7 @@
         "offset": 0,
         "total_count": 2
       },
-      "url": "/api/hunts/H:123456/output-plugins/DummyOutputPlugin_0/logs"
+      "url": "/api/hunts/H:123456/output-plugins/DummyHuntTestOutputPlugin_0/logs"
     }
   ],
   "ApiListHuntOutputPluginsHandler": [
@@ -7746,7 +7746,7 @@
               "id": {
                 "age": 0,
                 "type": "unicode",
-                "value": "DummyOutputPlugin_0"
+                "value": "DummyHuntTestOutputPlugin_0"
               },
               "plugin_descriptor": {
                 "age": 0,
@@ -7771,7 +7771,7 @@
                   "plugin_name": {
                     "age": 0,
                     "type": "unicode",
-                    "value": "DummyOutputPlugin"
+                    "value": "DummyHuntTestOutputPlugin"
                   }
                 }
               },
@@ -7798,7 +7798,7 @@
                   "output_base_urn": {
                     "age": 42000000,
                     "type": "RDFURN",
-                    "value": "aff4:/hunts/H:123456/Results/DummyOutputPlugin"
+                    "value": "aff4:/hunts/H:123456/Results/DummyHuntTestOutputPlugin"
                   },
                   "source_urn": {
                     "age": 42000000,
@@ -7834,20 +7834,20 @@
         "count": 1,
         "items": [
           {
-            "id": "DummyOutputPlugin_0",
+            "id": "DummyHuntTestOutputPlugin_0",
             "plugin_descriptor": {
               "plugin_args": {
                 "fetch_binaries": true,
                 "filename_regex": "blah!"
               },
-              "plugin_name": "DummyOutputPlugin"
+              "plugin_name": "DummyHuntTestOutputPlugin"
             },
             "state": {
               "args": {
                 "fetch_binaries": true,
                 "filename_regex": "blah!"
               },
-              "output_base_urn": "aff4:/hunts/H:123456/Results/DummyOutputPlugin",
+              "output_base_urn": "aff4:/hunts/H:123456/Results/DummyHuntTestOutputPlugin",
               "source_urn": "aff4:/hunts/H:123456/Results",
               "token": {
                 "reason": "Running tests",

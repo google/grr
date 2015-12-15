@@ -698,10 +698,17 @@ class QueueManager(object):
         sync=sync, replace=False, token=self.token)
 
   def DeleteNotification(self, session_id, start=None, end=None):
+    self.DeleteNotifications([session_id], start=start, end=end)
+
+  def DeleteNotifications(self, session_ids, start=None, end=None):
     """This deletes the notification when all messages have been processed."""
-    if not isinstance(session_id, rdfvalue.SessionID):
-      raise RuntimeError(
-          "Can only delete notifications for rdfvalue.SessionIDs.")
+    if not session_ids:
+      return
+
+    for session_id in session_ids:
+      if not isinstance(session_id, rdfvalue.SessionID):
+        raise RuntimeError(
+            "Can only delete notifications for rdfvalue.SessionIDs.")
 
     if start is None:
       start = 0
@@ -711,9 +718,12 @@ class QueueManager(object):
     if end is None:
       end = self.frozen_timestamp or rdfvalue.RDFDatetime().Now()
 
-    for queue_shard in self.GetAllNotificationShards(session_id.Queue()):
-      data_store.DB.DeleteAttributes(
-          queue_shard, [self.NOTIFY_PREDICATE_TEMPLATE % session_id],
+    for queue, ids in utils.GroupBy(
+        session_ids, lambda session_id: session_id.Queue()).iteritems():
+      queue_shards = self.GetAllNotificationShards(queue)
+      data_store.DB.MultiDeleteAttributes(
+          queue_shards, [self.NOTIFY_PREDICATE_TEMPLATE % session_id
+                         for session_id in ids],
           token=self.token, start=start, end=end, sync=True)
 
   def Query(self, queue, limit=1, task_id=None):

@@ -186,11 +186,17 @@ class BlobImage(aff4.AFF4Image):
       blob_hash = hashlib.sha256(blob).digest()
       blob_urn = rdfvalue.RDFURN("aff4:/blobs").Add(blob_hash.encode("hex"))
 
+      # Historic data may be stored as an AFFMemoryStream, but we store new
+      # objects as AFFUnversioned MemoryStreams.
       try:
-        fd = aff4.FACTORY.Open(blob_urn, "AFF4MemoryStream", mode="r",
+        fd = aff4.FACTORY.Open(blob_urn,
+                               "AFF4MemoryStreamBase",
+                               mode="r",
                                token=self.token)
       except IOError:
-        fd = aff4.FACTORY.Create(blob_urn, "AFF4MemoryStream", mode="w",
+        fd = aff4.FACTORY.Create(blob_urn,
+                                 "AFF4UnversionedMemoryStream",
+                                 mode="w",
                                  token=self.token)
         fd.Write(blob)
         fd.Close(sync=True)

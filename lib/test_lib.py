@@ -237,6 +237,12 @@ class WellKnownSessionTest(flow.WellKnownFlow):
     self.messages.append(int(message.payload))
 
 
+class WellKnownSessionTest2(WellKnownSessionTest):
+  """Another testing well known flow."""
+  well_known_session_id = rdfvalue.SessionID(queue=rdfvalue.RDFURN("test"),
+                                             flow_name="TestSessionId2")
+
+
 class MockSecurityManager(user_managers.BasicAccessControlManager):
   """A simple in memory ACL manager which enforces the Admin label.
 

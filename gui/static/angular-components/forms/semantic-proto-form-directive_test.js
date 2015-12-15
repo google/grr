@@ -175,6 +175,24 @@ describe('semantic proto form directive', function() {
       expect(fooValue.value).toEqual({});
     });
 
+    it('does not erase hidden fields', function() {
+      var fooValue = defaultFooStructValue;
+      fooValue.value = {
+        field_1: {
+          type: 'PrimitiveType',
+          value: ''
+        }
+      };
+      var element = renderTestTemplate(fooValue, undefined, ['field_1']);
+
+      expect(fooValue.value).toEqual({
+        field_1: {
+          type: 'PrimitiveType',
+          value: ''
+        }
+      });
+    });
+
     it('does not render fields listed in hidden-fields argument', function() {
       var element = renderTestTemplate(defaultFooStructValue, undefined,
                                        ['field_1']);

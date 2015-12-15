@@ -60,12 +60,13 @@ var SemanticProtoFormController =
  * in 'hidden-fields' directive's argument.
  *
  * @param {string} field Name of a field.
- * @param {number} index Index of the field name in the names list.
+ * @param {number=} opt_index Index of the field name in the names list
+ *                            (optional).
  * @return {boolean} True if the field is not hidden, false otherwise.
  * @private
  */
 SemanticProtoFormController.prototype.notExplicitlyHiddenFields_ = function(
-    field, index) {
+    field, opt_index) {
   if (angular.isDefined(this.scope_['hiddenFields'])) {
     return this.scope_['hiddenFields'].indexOf(field['name']) == -1;
   } else if (angular.isDefined(this.scope_['visibleFields'])) {
@@ -180,17 +181,19 @@ SemanticProtoFormController.prototype.onEditedValueChange_ = function(
      *  "default" we mean either field default or value default).
      */
     angular.forEach(this.valueDescriptor['fields'], function(field) {
-      if (angular.isDefined(field['default'])) {
-        if (angular.equals(this.scope_.value.value[field.name],
-                           field['default'])) {
-          delete this.scope_.value.value[field.name];
-        }
-      } else {
-        // Field.type may be undefined for dynamic fields.
-        if (field.type &&
-            angular.equals(this.scope_.value.value[field.name],
-                           this.descriptors[field.type]['default'])) {
-          delete this.scope_.value.value[field.name];
+      if (this.notExplicitlyHiddenFields_(field)) {
+        if (angular.isDefined(field['default'])) {
+          if (angular.equals(this.scope_.value.value[field.name],
+                             field['default'])) {
+            delete this.scope_.value.value[field.name];
+          }
+        } else {
+          // Field.type may be undefined for dynamic fields.
+          if (field.type &&
+              angular.equals(this.scope_.value.value[field.name],
+                             this.descriptors[field.type]['default'])) {
+            delete this.scope_.value.value[field.name];
+          }
         }
       }
     }.bind(this));

@@ -1511,8 +1511,23 @@ message GetClientStatsRequest {
 }
 
 
+// This rule will fire if the client OS is marked as true in the proto.
+message ForemanOsClientRule {
+  optional bool os_windows = 1;
+  optional bool os_linux = 2;
+  optional bool os_darwin = 3;
+}
+
+// This rule will fire if the client has the selected label.
+message ForemanLabelClientRule {
+  optional string label_name = 1 [(sem_type) = {
+      type: "Label",
+      description: "A label name"
+    }];
+}
+
 // The Foreman schedules flows based on these rules firing.
-message ForemanAttributeRegex {
+message ForemanRegexClientRule {
   // A relative path under the client which the attribute applies to
   optional string path = 1 [default = "/"];
 
@@ -1529,7 +1544,7 @@ message ForemanAttributeRegex {
 }
 
 // This rule will fire if the expression operator(attribute, value) is true.
-message ForemanAttributeInteger {
+message ForemanIntegerClientRule {
   // A relative path under the client which the attribute applies to
   optional string path = 1 [default = "/"];
 
@@ -1545,6 +1560,27 @@ message ForemanAttributeInteger {
   }
   optional Operator operator = 3 [default = EQUAL];
   optional uint64 value = 4;
+}
+
+// "Base class" proto for foreman client rule protos.
+message ForemanClientRule {
+  option (semantic) = {
+    union_field: "rule_type"
+  };
+
+  enum Type {
+    OS = 0 [(description) = "Operating system"];
+    LABEL = 1 [(description) = "Label"];
+    REGEX = 2 [(description) = "Regex"];
+    INTEGER = 3 [(description) = "Integer"];
+  }
+
+  optional Type rule_type = 1;
+
+  optional ForemanOsClientRule os = 2;
+  optional ForemanLabelClientRule label = 3;
+  optional ForemanRegexClientRule regex = 4;
+  optional ForemanIntegerClientRule integer = 5;
 }
 
 // This action happens when the rule fires
@@ -1563,10 +1599,62 @@ message ForemanRuleAction {
   optional uint64 client_limit = 5;
 };
 
+message ForemanClientRuleSet {
+  enum MatchMode {
+    MATCH_ALL = 0 [(description) = "Match all"];
+    MATCH_ANY = 1 [(description) = "Match any"];
+  }
+
+  // If this is MATCH_ANY then we fire when any rule matches
+  optional MatchMode match_mode = 1 [default=MATCH_ALL];
+
+  repeated ForemanClientRule rules = 2;
+}
+
+// [deprecated] The Foreman schedules flows based on these rules firing.
+message ForemanAttributeRegex {
+  // A relative path under the client which the attribute applies to
+  optional string path = 1 [default = "/"];
+
+  optional string attribute_name = 2 [(sem_type) = {
+      type: "AFF4Attribute",
+      description: "An AFF4 attribute name"
+    }];
+
+  optional string attribute_regex = 3 [(sem_type) = {
+      type: "RegularExpression",
+      description: "If these are specified we fire when the attribute's str() "
+      "representation matches the regex."
+    }];
+}
+
+// [deprecated] This rule will fire if the expression
+//              operator(attribute, value) is true.
+message ForemanAttributeInteger {
+  // A relative path under the client which the attribute applies to
+  optional string path = 1 [default = "/"];
+
+  optional string attribute_name = 2 [(sem_type) = {
+      type: "AFF4Attribute",
+      description: "An AFF4 attribute name"
+    }];
+
+  enum Operator {
+    EQUAL = 0;
+    LESS_THAN = 1;
+    GREATER_THAN = 2;
+  }
+  optional Operator operator = 3 [default = EQUAL];
+  optional uint64 value = 4;
+}
+
 message ForemanRule {
-  // We fire when all these rules match
+  // [deprecated] We fire when all these rules match
   repeated ForemanAttributeRegex regex_rules = 1;
   repeated ForemanAttributeInteger integer_rules = 2;
+
+  // [NYI] We fire when all these rules match
+  optional ForemanClientRuleSet rules = 7;
 
   // These will all run in case this rule fires
   repeated ForemanRuleAction actions = 3;

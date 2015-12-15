@@ -207,13 +207,17 @@ message HuntRunnerArgs {
     }];
 
   repeated ForemanAttributeRegex regex_rules = 3 [(sem_type) = {
-      description: "Regex rules that trigger this hunt. "
+      description: "[deprecated] Regex rules that trigger this hunt. "
       "Note that all rules must match."
     }];
 
   repeated ForemanAttributeInteger integer_rules = 4 [(sem_type) = {
-      description: "Integer rules that trigger this hunt."
+      description: "[deprecated] Integer rules that trigger this hunt."
       "All rules must match."
+    }];
+
+  optional ForemanClientRuleSet rules = 18 [(sem_type) = {
+      description: "[NYI] Rules that trigger this hunt."
     }];
 
   optional GrrMessage.Priority priority = 5 [(sem_type) = {
