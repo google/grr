@@ -593,7 +593,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.Click("css=li[heading=Results]")
     self.Click("css=button.DownloadButton")
 
-    self.WaitUntil(self.IsElementPresent, "acl_dialog")
+    self.WaitUntil(self.IsTextPresent, "Create a new approval request")
 
   def testGenerateZipButtonGetsDisabledAfterClick(self):
     stat_entry = rdf_client.StatEntry(aff4path="aff4:/foo/bar")

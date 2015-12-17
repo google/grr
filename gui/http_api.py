@@ -245,7 +245,9 @@ def RenderHttpResponse(request):
         "Access denied to %s (%s) with %s: %s", request.path,
         request.method, handler.__class__.__name__, e)
 
-    return BuildResponse(403, dict(message="Access denied by ACL"))
+    return BuildResponse(403, dict(
+        message="Access denied by ACL: %s" % e.message,
+        subject=utils.SmartStr(e.subject)))
   except Exception as e:  # pylint: disable=broad-except
     logging.exception(
         "Error while processing %s (%s) with %s: %s", request.path,

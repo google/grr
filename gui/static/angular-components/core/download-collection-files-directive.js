@@ -109,7 +109,14 @@ DownloadCollectionFilesController.prototype.generateFileArchive = function(
           }.bind(this),
           function failure(response) {
             this.fileArchiveGenerationError =
-                response.data.message || 'Unknown error';
+                response.data['message'] || 'Unknown error';
+
+            if (response.status == 403) {
+              // TODO(user): Refactor handling of 403 errors in the Angular
+              // way.
+              grr.publish('unauthorized', response.data['subject'],
+                          response.data['message']);
+            }
           }.bind(this));
 
   this.fileArchiveGenerationStarted = true;
