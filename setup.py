@@ -19,9 +19,7 @@ class MyBuild(build_py):
   def run(self):
     # Compile the protobufs.
     base_dir = os.getcwd()
-    os.chdir("proto")
     subprocess.check_call(["make"], shell=True)
-    os.chdir(base_dir)
 
     # Sync the artifact repo with upstream. While grr can function with no
     # artifacts, for interrogate to work we need the core artifacts to be

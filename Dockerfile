@@ -17,7 +17,6 @@ RUN bash /usr/share/grr/scripts/download_client_templates.sh
 ADD . /usr/share/grr/
 
 # Compile protos
-WORKDIR /usr/share/grr/proto
 RUN make
 
 # Install GRR
