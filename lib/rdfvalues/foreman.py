@@ -37,7 +37,7 @@ class ForemanRegexClientRule(rdf_structs.RDFProtoStruct):
       raise ValueError("ForemanRegexClientRule rule invalid - "
                        "attribute name not set.")
 
-    self.rule_name.Validate()
+    self.attribute_name.Validate()
 
 
 class ForemanIntegerClientRule(rdf_structs.RDFProtoStruct):
@@ -48,7 +48,7 @@ class ForemanIntegerClientRule(rdf_structs.RDFProtoStruct):
       raise ValueError("ForemanIntegerClientRule rule invalid - "
                        "attribute name not set.")
 
-    self.rule_name.Validate()
+    self.attribute_name.Validate()
 
 
 class ForemanClientRule(rdf_structs.RDFProtoStruct):

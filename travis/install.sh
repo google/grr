@@ -15,11 +15,9 @@ done
 echo "Compiling proto files..."
 echo "protoc version:"
 protoc --version
-cd proto
-echo "Running make in proto dir..."
+echo "Running make..."
 pwd
 make
-cd -
 
 echo "Compiling artifact files..."
 cd artifacts
