@@ -28,6 +28,7 @@ class SqliteTestMixin(object):
       self.DestroyDatastore()
 
       data_store.DB = sqlite_data_store.SqliteDataStore()
+      data_store.DB.Initialize()
       data_store.DB.security_manager = test_lib.MockSecurityManager()
 
   def testCorrectDataStore(self):

@@ -14,8 +14,12 @@ import requests
 import logging
 
 from grr.gui import runtests
+from grr.gui.api_client import api as grr_api
+from grr.lib import aff4
 from grr.lib import flags
+from grr.lib import flow
 from grr.lib import test_lib
+from grr.lib.flows.general import processes
 
 
 class HTTPApiEndToEndTestProgram(test_lib.GrrTestProgram):
@@ -23,6 +27,8 @@ class HTTPApiEndToEndTestProgram(test_lib.GrrTestProgram):
   server_port = None
 
   def setUp(self):
+    super(HTTPApiEndToEndTestProgram, self).setUp()
+
     # Select a free port
     port = portpicker.PickUnusedPort()
     HTTPApiEndToEndTestProgram.server_port = port
@@ -30,6 +36,98 @@ class HTTPApiEndToEndTestProgram(test_lib.GrrTestProgram):
 
     self.trd = runtests.DjangoThread(port)
     self.trd.StartAndWaitUntilServing()
+
+
+class ApiClientTest(test_lib.GRRBaseTest):
+  """Tests GRR Python API client library."""
+
+  def setUp(self):
+    super(ApiClientTest, self).setUp()
+
+    port = HTTPApiEndToEndTestProgram.server_port
+    endpoint = "http://localhost:%s" % port
+    self.api = grr_api.InitHttp(api_endpoint=endpoint)
+
+  def testListWithNoClients(self):
+    clients = list(self.api.ListClients(query="."))
+    self.assertEqual(clients, [])
+
+  def testListClientsWith2Clients(self):
+    client_urns = sorted(self.SetupClients(2))
+
+    clients = sorted(self.api.ListClients(query="."),
+                     key=lambda c: c.client_id)
+    self.assertEqual(len(clients), 2)
+
+    for i in range(2):
+      self.assertEqual(clients[i].client_id, client_urns[i].Basename())
+      self.assertEqual(clients[i].data["urn"], client_urns[i])
+
+  def testListFlowsFromClientRef(self):
+    client_urn = self.SetupClients(1)[0]
+    flow_urn = flow.GRRFlow.StartFlow(
+        client_id=client_urn,
+        flow_name=processes.ListProcesses.__name__,
+        token=self.token)
+
+    flows = list(self.api.Client(client_id=client_urn.Basename()).ListFlows())
+
+    self.assertEqual(len(flows), 1)
+    self.assertEqual(flows[0].client_id, client_urn.Basename())
+    self.assertEqual(flows[0].flow_id, flow_urn.Basename())
+    self.assertEqual(flows[0].data["urn"], flow_urn)
+
+  def testListFlowsFromClientObject(self):
+    client_urn = self.SetupClients(1)[0]
+    flow_urn = flow.GRRFlow.StartFlow(
+        client_id=client_urn,
+        flow_name=processes.ListProcesses.__name__,
+        token=self.token)
+
+    client = self.api.Client(client_id=client_urn.Basename()).Get()
+    flows = list(client.ListFlows())
+
+    self.assertEqual(len(flows), 1)
+    self.assertEqual(flows[0].client_id, client_urn.Basename())
+    self.assertEqual(flows[0].flow_id, flow_urn.Basename())
+    self.assertEqual(flows[0].data["urn"], flow_urn)
+
+  def testCreateFlowFromClientRef(self):
+    client_urn = self.SetupClients(1)[0]
+    args = processes.ListProcessesArgs(filename_regex="blah",
+                                       fetch_binaries=True)
+
+    children = aff4.FACTORY.Open(client_urn, token=self.token).ListChildren()
+    self.assertEqual(len(list(children)), 0)
+
+    client_ref = self.api.Client(client_id=client_urn.Basename())
+    result_flow = client_ref.CreateFlow(
+        name=processes.ListProcesses.__name__,
+        args=args.AsPrimitiveProto())
+
+    children = aff4.FACTORY.Open(client_urn, token=self.token).ListChildren()
+    self.assertEqual(len(list(children)), 1)
+    result_flow_obj = aff4.FACTORY.Open(result_flow.data["urn"],
+                                        token=self.token)
+    self.assertEqual(result_flow_obj.state.args, args)
+
+  def testCreateFlowFromClientObject(self):
+    client_urn = self.SetupClients(1)[0]
+    args = processes.ListProcessesArgs(filename_regex="blah",
+                                       fetch_binaries=True)
+
+    children = aff4.FACTORY.Open(client_urn, token=self.token).ListChildren()
+    self.assertEqual(len(list(children)), 0)
+
+    client = self.api.Client(client_id=client_urn.Basename()).Get()
+    result_flow = client.CreateFlow(name=processes.ListProcesses.__name__,
+                                    args=args.AsPrimitiveProto())
+
+    children = aff4.FACTORY.Open(client_urn, token=self.token).ListChildren()
+    self.assertEqual(len(list(children)), 1)
+    result_flow_obj = aff4.FACTORY.Open(result_flow.data["urn"],
+                                        token=self.token)
+    self.assertEqual(result_flow_obj.state.args, args)
 
 
 class CSRFProtectionTest(test_lib.GRRBaseTest):

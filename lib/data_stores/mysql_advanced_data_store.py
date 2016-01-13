@@ -158,6 +158,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     super(MySQLAdvancedDataStore, self).__init__()
 
   def Initialize(self):
+    super(MySQLAdvancedDataStore, self).Initialize()
     try:
       self.ExecuteQuery("desc `aff4`")
     except MySQLdb.Error:

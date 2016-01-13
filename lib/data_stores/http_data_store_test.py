@@ -119,6 +119,7 @@ def SetupDataStore():
 
   try:
     data_store.DB = http_data_store.HTTPDataStore()
+    data_store.DB.Initialize()
   except http_data_store.HTTPDataStoreError:
     data_store.DB = None
     _CloseServer()

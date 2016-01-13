@@ -11,6 +11,9 @@ from grr.gui import api_call_handler_base
 # pylint:disable=unused-import
 # Import all api_plugins so they are available when we set up acls.
 from grr.gui import api_plugins
+# pylint: enable=unused-import
+from grr.gui import api_value_renderers
+# pylint:disable=unused-import
 # Import any local auth_managers.
 from grr.gui import local_auth_managers
 # pylint: enable=unused-import
@@ -28,6 +31,10 @@ class Error(Exception):
 
 class ApiCallHandlerNotFoundError(Error):
   """Raised when no handler found for a given URL."""
+
+
+class UnexpectedResultTypeError(Error):
+  """Raised when handler returns type different from its result_type."""
 
 
 class ApiCallAdditionalArgs(structs.RDFProtoStruct):
@@ -78,4 +85,34 @@ def HandleApiCall(handler, args, token=None):
   # Raises on access denied
   API_AUTH_MGR.CheckAccess(handler, token.username)
 
-  return handler.Render(args, token=token)
+  try:
+    result = handler.Handle(args, token=token)
+  except NotImplementedError:
+    # Fall back to legacy Render() method if Handle() is not implemented.
+    return handler.Render(args, token=token)
+
+  expected_type = handler.result_type
+  if expected_type is None:
+    expected_type = None.__class__
+
+  if result.__class__.__name__ != expected_type.__name__:
+    raise UnexpectedResultTypeError("Expected %s, but got %s." % (
+        expected_type.__name__, result.__class__.__name__))
+
+  if result is None:
+    return dict(status="OK")
+  else:
+    if handler.strip_json_root_fields_types:
+      result_dict = {}
+      for field, value in result.ListSetFields():
+        if isinstance(field, (structs.ProtoDynamicEmbedded,
+                              structs.ProtoEmbedded,
+                              structs.ProtoList)):
+          result_dict[field.name] = api_value_renderers.RenderValue(value)
+        else:
+          result_dict[field.name] = api_value_renderers.RenderValue(
+              value)["value"]
+    else:
+      result_dict = api_value_renderers.RenderValue(result)
+
+    return result_dict

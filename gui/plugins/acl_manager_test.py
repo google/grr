@@ -174,10 +174,14 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent,
                    "css=h3:contains('Create a new approval')")
 
-    options = self.GetText("css=select[id=acl_recent_reasons]").split("\n")
-    self.assertEqual(len(options), 2)
-    self.assertEqual(options[0].strip(), "Enter New Reason...")
-    self.assertEqual(options[1].strip(), test_reason)
+    self.WaitUntilEqual(2, self.GetCssCount,
+                        "css=select[id=acl_recent_reasons] option")
+    self.assertEqual(
+        "Enter New Reason...",
+        self.GetText("css=select[id=acl_recent_reasons] option:nth(0)"))
+    self.assertEqual(
+        test_reason,
+        self.GetText("css=select[id=acl_recent_reasons] option:nth(1)"))
 
     # The reason text box should be there and enabled.
     element = self.GetElement("css=input[id=acl_reason]")
@@ -399,7 +403,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     # This should be rejected now and a form request is made.
     self.WaitUntil(self.IsTextPresent, "Create a new approval")
-    self.WaitUntil(self.IsTextPresent, "No approvals available")
+    self.WaitUntil(self.IsTextPresent, "No approvals found")
 
     self.Click("css=#acl_dialog button[name=Close]")
     # Wait for dialog to disappear.
@@ -419,7 +423,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     # This should be rejected now and a form request is made.
     self.WaitUntil(self.IsTextPresent, "Create a new approval")
-    self.WaitUntil(self.IsTextPresent, "No approvals available")
+    self.WaitUntil(self.IsTextPresent, "No approvals found")
 
     self.Click("css=#acl_dialog button[name=Close]")
     # Wait for dialog to disappear.
@@ -486,13 +490,11 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
 
   def testCronJobACLWorkflow(self):
-    with test_lib.ConfigOverrider({
-        "Cron.enabled_system_jobs": [
-            cron_system.OSBreakDown.__name__]}):
-      with self.ACLChecksDisabled():
-        cronjobs.ScheduleSystemCronFlows(token=self.token)
-        cronjobs.CRON_MANAGER.DisableJob(
-            rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+    with self.ACLChecksDisabled():
+      cronjobs.ScheduleSystemCronFlows(names=[cron_system.OSBreakDown.__name__],
+                                       token=self.token)
+      cronjobs.CRON_MANAGER.DisableJob(
+          rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
 
     # Open up and click on Cron Job Viewer.
     self.Open("/")

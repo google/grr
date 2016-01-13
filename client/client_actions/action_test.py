@@ -218,6 +218,14 @@ class ActionTest(test_lib.EmptyActionTest):
 
   def testSuspendableActionException(self):
 
+    class testActionWorker(actions.ClientActionWorker):
+
+      def run(self):
+        try:
+          return super(testActionWorker, self).run()
+        except Exception as e:  # pylint: disable=broad-except
+          logging.info("Expected exception: %s", e)
+
     class RaisingListDirectory(standard.SuspendableListDirectory):
 
       iterations = 3
@@ -229,8 +237,6 @@ class ActionTest(test_lib.EmptyActionTest):
 
         return super(RaisingListDirectory, self).Suspend()
 
-    logging.info("The following test is expected to raise a "
-                 "'Ran out of iterations' backtrace.")
     p = rdf_paths.PathSpec(path=self.base_path,
                            pathtype=rdf_paths.PathSpec.PathType.OS)
     request = rdf_client.ListDirRequest(pathspec=p)
@@ -240,7 +246,8 @@ class ActionTest(test_lib.EmptyActionTest):
     grr_worker = worker_mocks.FakeClientWorker()
     while request.iterator.state != request.iterator.State.FINISHED:
       responses = self.ExecuteAction("RaisingListDirectory", request,
-                                     grr_worker=grr_worker)
+                                     grr_worker=grr_worker,
+                                     action_worker_cls=testActionWorker)
       results.extend(responses)
 
       for response in responses:

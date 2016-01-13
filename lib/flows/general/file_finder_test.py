@@ -97,25 +97,10 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
       self.assertEqual(str(hash_obj.sha256),
                        file_hashes[2])
 
-      # FINGERPRINT is deprecated in favour of HASH, but we check it anyway.
-      fingerprint = fd.Get(fd.Schema.FINGERPRINT)
-      self.assertEqual(fingerprint.GetFingerprint(
-          "generic")["sha1"].encode("hex"),
-                       file_hashes[0])
-      self.assertEqual(fingerprint.GetFingerprint(
-          "generic")["md5"].encode("hex"),
-                       file_hashes[1])
-      self.assertEqual(fingerprint.GetFingerprint(
-          "generic")["sha256"].encode("hex"),
-                       file_hashes[2])
-
   def CheckFilesNotHashed(self, fnames):
     for fname in fnames:
       fd = aff4.FACTORY.Open(self.FileNameToURN(fname), token=self.token)
-      self.assertTrue(fd.Get(fd.Schema.HASH) is None)
-
-      # FINGERPRINT is deprecated in favour of HASH, but we check it anyway.
-      self.assertTrue(fd.Get(fd.Schema.FINGERPRINT) is None)
+      self.assertIsNone(fd.Get(fd.Schema.HASH))
 
   def CheckFilesDownloaded(self, fnames):
     for fname in fnames:

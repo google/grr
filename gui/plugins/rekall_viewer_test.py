@@ -3,12 +3,11 @@
 
 """Test the Rekall collection viewer interface."""
 
-
-from grr.client.client_actions import grr_rekall_test
+from grr.client.components.rekall_support import grr_rekall_test
+from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.gui import runtests_test
 from grr.lib import flags
 from grr.lib import test_lib
-from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 
 
 class TestRekallViewer(test_lib.GRRSeleniumTest,

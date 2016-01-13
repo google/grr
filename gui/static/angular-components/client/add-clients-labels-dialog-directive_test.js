@@ -33,12 +33,22 @@ describe('add clients labels dialog', function() {
 
   var clients = [
     {
-      urn: 'C.0000111122223333',
-      attributes: {}
+      type: 'ApiClient',
+      value: {
+        urn: {
+          value: 'C.0000111122223333',
+          type: 'RDFURN'
+        }
+      }
     },
     {
-      urn: 'C.1111222233334444',
-      attributes: {}
+      type: 'ApiClient',
+      value: {
+        urn: {
+          value: 'C.1111222233334444',
+          type: 'RDFURN'
+        },
+      }
     }
   ];
 

@@ -9,7 +9,6 @@ import urllib
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import config_lib
-from grr.lib import data_store
 from grr.lib import email_alerts
 from grr.lib import flow
 from grr.lib import rdfvalue
@@ -98,42 +97,43 @@ class Approval(aff4.AFF4Object):
 
     if not username:
       username = token.username
-    approval_urn = aff4.ROOT_URN.Add("ACL").Add(object_urn.Path()).Add(
+
+    approvals_root_urn = aff4.ROOT_URN.Add("ACL").Add(object_urn.Path()).Add(
         username)
 
-    error = "No approvals available"
-    fd = aff4.FACTORY.Open(approval_urn, mode="r", token=token)
+    children_urns = list(aff4.FACTORY.ListChildren(
+        approvals_root_urn, token=token))
+    if not children_urns:
+      raise access_control.UnauthorizedAccess(
+          "No approvals found for user %s" % utils.SmartStr(username),
+          subject=object_urn)
 
-    for auth_request in fd.OpenChildren():
+    last_error = None
+    approvals = aff4.FACTORY.MultiOpen(children_urns, mode="r",
+                                       aff4_type=Approval.__name__,
+                                       age=aff4.ALL_TIMES,
+                                       token=token)
+    for approval in approvals:
       try:
-        reason = utils.DecodeReasonString(auth_request.urn.Basename())
-      except TypeError:
-        continue
+        test_token = access_control.ACLToken(
+            username=username, reason=approval.Get(approval.Schema.REASON))
+        approval.CheckAccess(token)
 
-      # Check authorization using the data_store for an authoritative source.
-      test_token = access_control.ACLToken(username=username, reason=reason)
-      try:
-        # TODO(user): stop making assumptions about URNs
-        if object_urn.Split()[0] == "cron":
-          # Checking that we can access the cron job
-          flow.GRRFlow.StartFlow(flow_name="ManageCronJobFlow",
-                                 token=test_token, urn=object_urn)
-
-        elif object_urn.Split()[0] == "hunts":
-          # Checking that we can access the hunt
-          flow.GRRFlow.StartFlow(flow_name="CheckHuntAccessFlow",
-                                 token=test_token, hunt_urn=object_urn)
-        else:
-          # Check if we can access a non-existent path under this one.
-          aff4.FACTORY.Open(rdfvalue.RDFURN(object_urn).Add("acl_chk"),
-                            mode="r", token=test_token)
         return test_token
       except access_control.UnauthorizedAccess as e:
-        error = e
+        last_error = e
 
-    # We tried all auth_requests, but got no usable results.
-    raise access_control.UnauthorizedAccess(
-        error, subject=object_urn)
+    if last_error:
+      # We tried all possible approvals, but got no usable results.
+      raise access_control.UnauthorizedAccess(last_error, subject=object_urn)
+    else:
+      # If last error is None, means that none of the URNs in children_urns
+      # could be opened. This shouldn't really happen ever, but we have
+      # to make sure to provide a meaningful error message.
+      raise access_control.UnauthorizedAccess(
+          "Couldn't open any of %d approvals "
+          "for user %s" % (len(children_urns), utils.SmartStr(username)),
+          subject=object_urn)
 
 
 class ApprovalWithApproversAndReason(Approval):
@@ -227,10 +227,12 @@ class ApprovalWithApproversAndReason(Approval):
       # inspect other user's labels.
       for approver in approvers:
         try:
-          data_store.DB.security_manager.CheckUserLabels(
-              approver, [self.checked_approvers_label], token=token.SetUID())
-          approvers_with_label.append(approver)
-        except access_control.UnauthorizedAccess:
+          user = aff4.FACTORY.Open("aff4:/users/%s" % approver,
+                                   aff4_type="GRRUser",
+                                   token=token.SetUID())
+          if self.checked_approvers_label in user.GetLabelsNames():
+            approvers_with_label.append(approver)
+        except IOError:
           pass
 
       if len(approvers_with_label) < self.min_approvers_with_label:

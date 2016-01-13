@@ -41,7 +41,10 @@ var GlobExpressionFormController =
  * @private
  */
 GlobExpressionFormController.prototype.onGetFields_ = function(response) {
-  var fieldsNames = response['data']['fields'];
+  var fieldsNames = [];
+  angular.forEach(response['data']['items'], function(field) {
+    fieldsNames.push(field['value']);
+  }.bind(this));
 
   var intervalPromise = this.interval_(function() {
     var inputBox = $(this.element_).find('input');

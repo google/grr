@@ -53,13 +53,28 @@
     <dt>Total network traffic</dt>
     <dd>{$ controller.huntSummary.stats.value.network_bytes_sent_stats.value.sum.value | number:0 $}b</dd>
 
-    <dt>Regex Rules</dt>
-    <dd ng-if="!controller.huntSummary.regex_rules.length">-</dd>
-    <dd ng-if="controller.huntSummary.regex_rules.length"><grr-semantic-value value="controller.huntSummary.regex_rules" /></dd>
+    <span ng-if="controller.huntSummary.regex_rules.length ||
+                 controller.huntSummary.integer_rules.length">
+      <dt>Regex Rules</dt>
+      <dd ng-if="!controller.huntSummary.regex_rules.length">-</dd>
+      <dd ng-if="controller.huntSummary.regex_rules.length">
+        <grr-semantic-value value="controller.huntSummary.regex_rules" />
+      </dd>
 
-    <dt>Integer Rules</dt>
-    <dd ng-if="!controller.huntSummary.integer_rules.length">-</dd>
-    <dd ng-if="controller.huntSummary.integer_rules.length"><grr-semantic-value value="controller.huntSummary.integer_rules" /></dd>
+      <dt>Integer Rules</dt>
+      <dd ng-if="!controller.huntSummary.integer_rules.length">-</dd>
+      <dd>
+        <grr-semantic-value value="controller.huntSummary.integer_rules" />
+      </dd>
+    </span>
+
+    <span ng-if="!controller.huntSummary.regex_rules.length &&
+                 !controller.huntSummary.integer_rules.length">
+      <dt>Rules</dt>
+      <dd>
+        <grr-semantic-value value="controller.huntSummary.rules" />
+      </dd>
+    </span>
 
     <dt>Arguments</dt>
     <dd><grr-semantic-value value="controller.huntSummary.args" /></dd>

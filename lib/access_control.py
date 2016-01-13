@@ -62,6 +62,19 @@ class AccessControlManager(object):
 
   __metaclass__ = registry.MetaclassRegistry
 
+  def CheckClientAccess(self, token, client_urn):
+    """Checks access to the given client.
+
+    Args:
+      token: User credentials token.
+      client_urn: URN of a client to check.
+
+    Returns:
+      True if access is allowed, raises otherwise.
+    """
+    logging.debug("Checking %s for client %s access.", token, client_urn)
+    raise NotImplementedError()
+
   def CheckHuntAccess(self, token, hunt_urn):
     """Checks access to the given hunt.
 
@@ -94,14 +107,17 @@ class AccessControlManager(object):
     logging.debug("Checking %s for cron job %s access.", token, cron_job_urn)
     raise NotImplementedError()
 
-  def CheckFlowAccess(self, token, flow_name, client_id=None):
-    """Checks access to the given flow.
+  def CheckIfCanStartFlow(self, token, flow_name):
+    """Checks if the given flow can be started by the given user.
+
+    If the flow is to be started on a particular client, it's assumed that
+    CheckClientAccess passes on that client. If the flow is to be started
+    as a global flow, no additional checks will be made. See GRRFlow.StartFlow
+    implementation in lib/flow.py for details.
 
     Args:
       token: User credentials token.
       flow_name: Name of the flow to check.
-      client_id: Client id of the client where the flow is going to be
-                 started. Defaults to None.
 
     Returns:
       True if access is allowed, raises otherwise.
@@ -109,8 +125,7 @@ class AccessControlManager(object):
     Raises:
       access_control.UnauthorizedAccess if access is rejected.
     """
-    logging.debug("Checking %s for flow %s access (client: %s).", token,
-                  flow_name, client_id)
+    logging.debug("Checking %s for flow %s access.", token, flow_name)
     raise NotImplementedError()
 
   def CheckDataStoreAccess(self, token, subjects, requested_access="r"):
@@ -132,10 +147,6 @@ class AccessControlManager(object):
     logging.debug("Checking %s: %s for %s", token, subjects, requested_access)
     raise NotImplementedError()
 
-  def CheckUserLabels(self, username, authorized_labels, token=None):
-    """Subclasses verify that the username has all the authorized_labels set."""
-    raise NotImplementedError()
-
 
 class ACLInit(registry.InitHook):
   """Install the selected security manager.
@@ -147,9 +158,8 @@ class ACLInit(registry.InitHook):
   pre = ["StatsInit"]
 
   def RunOnce(self):
-    stats.STATS.RegisterEventMetric("acl_check_time")
     stats.STATS.RegisterCounterMetric("grr_expired_tokens")
-    stats.STATS.RegisterCounterMetric("grr_unauthorised_requests")
+
 
 # This will register all classes into this modules's namespace regardless of
 # where they are defined. This allows us to decouple the place of definition of
@@ -173,6 +183,7 @@ class ACLToken(rdf_structs.RDFProtoStruct):
 
   def CheckExpiry(self):
     if self.expiry and time.time() > self.expiry:
+      stats.STATS.IncrementCounter("grr_expired_tokens")
       raise ExpiryError("Token expired.")
 
   def __str__(self):

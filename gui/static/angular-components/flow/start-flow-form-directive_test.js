@@ -145,14 +145,16 @@ describe('start flow form directive', function() {
     browserTrigger(element.find('button.Launch'), 'click');
 
     expect(grrApiService.post).toHaveBeenCalledWith(
-        '/clients/C.0000111122223333/flows/start', {
-          runner_args: {
-            flow_name: 'FooFlow',
-            output_plugins: [],
-            foo: 'bar'
-          },
-          flow_args: {
-            foo: 'bar'
+        '/clients/C.0000111122223333/flows', {
+          flow: {
+            runner_args: {
+              flow_name: 'FooFlow',
+              output_plugins: [],
+              foo: 'bar'
+            },
+            args: {
+              foo: 'bar'
+            }
           }
         });
   });
@@ -181,16 +183,18 @@ describe('start flow form directive', function() {
     browserTrigger(element.find('button.Launch'), 'click');
 
     expect(grrApiService.post).toHaveBeenCalledWith(
-        '/clients/C.0000111122223333/flows/start', {
-          runner_args: {
-            flow_name: 'FooFlow',
-            output_plugins: [42],
-            changed: true,
-            foo: 'bar'
-          },
-          flow_args: {
-            foo: 'bar',
-            changed: true
+        '/clients/C.0000111122223333/flows', {
+          flow: {
+            runner_args: {
+              flow_name: 'FooFlow',
+              output_plugins: [42],
+              changed: true,
+              foo: 'bar'
+            },
+            args: {
+              foo: 'bar',
+              changed: true
+            }
           }
         });
   });
@@ -214,27 +218,17 @@ describe('start flow form directive', function() {
 
     browserTrigger(element.find('button.Launch'), 'click');
 
+    var flow = {
+      args: {'foo1': 'bar1'},
+      runner_args: {'foo2': 'bar2'}
+    };
     deferred.resolve({
-      data: {
-        flow_id: 'flow_id',
-        flow_args: {'foo1': 'bar1'},
-        runner_args: {'foo2': 'bar2'}
-      }
+      data: flow
     });
     $rootScope.$apply();
 
     var directive = element.find('grr-semantic-value:nth(0)');
-    expect(directive.scope().$eval(directive.attr('value'))).toEqual('flow_id');
-
-    directive = element.find('grr-semantic-value:nth(1)');
-    expect(directive.scope().$eval(directive.attr('value'))).toEqual({
-      'foo1': 'bar1'
-    });
-
-    directive = element.find('grr-semantic-value:nth(2)');
-    expect(directive.scope().$eval(directive.attr('value'))).toEqual({
-      'foo2': 'bar2'
-    });
+    expect(directive.scope().$eval(directive.attr('value'))).toEqual(flow);
   });
 
   it('shows failure message when launch fails', function() {

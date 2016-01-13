@@ -40,14 +40,40 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiFlow
 
   def GetArgsClass(self):
-    if self.name:
-      flow_cls = flow.GRRFlow.classes.get(self.name)
+    flow_name = self.name
+    if not flow_name:
+      flow_name = self.runner_args.flow_name
+
+    if flow_name:
+      flow_cls = flow.GRRFlow.classes.get(flow_name)
       if flow_cls is None:
         raise ValueError("Flow %s not known by this implementation." %
-                         self.name)
+                         flow_name)
 
       # The required protobuf for this class is in args_type.
       return flow_cls.args_type
+
+  def InitFromAff4Object(self, flow_obj):
+    self.urn = flow_obj.urn
+    self.name = flow_obj.state.context.args.flow_name
+    self.started_at = flow_obj.state.context.create_time
+    self.last_active_at = flow_obj.Get(flow_obj.Schema.LAST)
+    self.creator = flow_obj.state.context.creator
+
+    if flow_obj.Get(flow_obj.Schema.CLIENT_CRASH):
+      self.state = "CLIENT_CRASHED"
+    else:
+      self.state = flow_obj.state.context.state
+
+    try:
+      self.args = flow_obj.args
+    except ValueError:
+      # If args class name has changed, ValueError will be raised. Handling
+      # this gracefully - we should still try to display some useful info
+      # about the flow.
+      pass
+
+    return self
 
 
 class ApiGetFlowStatusArgs(rdf_structs.RDFProtoStruct):
@@ -233,13 +259,19 @@ class ApiListFlowOutputPluginsArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiListFlowOutputPluginsArgs
 
 
+class ApiListFlowOutputPluginsResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListFlowOutputPluginsResult
+
+
 class ApiListFlowOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
   """Renders output plugins descriptors and states for a given flow."""
 
   category = CATEGORY
-  args_type = ApiListFlowOutputPluginsArgs
 
-  def Render(self, args, token=None):
+  args_type = ApiListFlowOutputPluginsArgs
+  result_type = ApiListFlowOutputPluginsResult
+
+  def Handle(self, args, token=None):
     flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())
     flow_obj = aff4.FACTORY.Open(flow_urn, aff4_type="GRRFlow", mode="r",
                                  token=token)
@@ -263,8 +295,7 @@ class ApiListFlowOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
           plugin_descriptor=plugin_descriptor, state=plugin_state)
       result.append(api_plugin)
 
-    return dict(offset=0, count=len(result), total_count=len(result),
-                items=api_value_renderers.RenderValue(result))
+    return ApiListFlowOutputPluginsResult(items=result)
 
 
 class ApiListFlowOutputPluginLogsHandlerBase(
@@ -346,11 +377,17 @@ class ApiListClientFlowsArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiListClientFlowsArgs
 
 
+class ApiListClientFlowsResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListClientFlowsResult
+
+
 class ApiListClientFlowsHandler(api_call_handler_base.ApiCallHandler):
   """Lists flows launched on a given client."""
 
   category = CATEGORY
+
   args_type = ApiListClientFlowsArgs
+  result_type = ApiListClientFlowsResult
 
   def _GetCreationTime(self, obj):
     try:
@@ -358,29 +395,7 @@ class ApiListClientFlowsHandler(api_call_handler_base.ApiCallHandler):
     except AttributeError:
       return obj.Get(obj.Schema.LAST, 0)
 
-  def _BuildApiFlowRepresentation(self, flow_obj):
-    result = ApiFlow(urn=flow_obj.urn,
-                     name=flow_obj.state.context.args.flow_name,
-                     started_at=flow_obj.state.context.create_time,
-                     last_active_at=flow_obj.Get(flow_obj.Schema.LAST),
-                     creator=flow_obj.state.context.creator)
-
-    if flow_obj.Get(flow_obj.Schema.CLIENT_CRASH):
-      result.state = "CLIENT_CRASHED"
-    else:
-      result.state = flow_obj.state.context.state
-
-    try:
-      result.args = flow_obj.args
-    except ValueError:
-      # If args class name has changed, ValueError will be raised. Handling
-      # this gracefully - we should still try to display some useful info
-      # about the flow.
-      pass
-
-    return result
-
-  def Render(self, args, token=None):
+  def Handle(self, args, token=None):
     client_root_urn = args.client_id.Add("flows")
 
     if not args.count:
@@ -411,7 +426,7 @@ class ApiListClientFlowsHandler(api_call_handler_base.ApiCallHandler):
       """Builds list of flows recursively."""
       result = []
       for fd in fds:
-        api_flow = self._BuildApiFlowRepresentation(fd)
+        api_flow = ApiFlow().InitFromAff4Object(fd)
 
         try:
           children_urns = nested_children_urns[fd.urn]
@@ -434,11 +449,7 @@ class ApiListClientFlowsHandler(api_call_handler_base.ApiCallHandler):
 
       return result
 
-    items = BuildList(root_children)
-    result = dict(offset=args.offset,
-                  count=len(items),
-                  items=api_value_renderers.RenderValue(items))
-    return result
+    return ApiListClientFlowsResult(items=BuildList(root_children))
 
 
 class ApiStartGetFileOperationArgs(rdf_structs.RDFProtoStruct):
@@ -519,34 +530,31 @@ class ApiStartGetFileOperationHandler(
 class ApiCreateFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiCreateFlowArgs
 
-  def GetFlowArgsClass(self):
-    if self.runner_args.flow_name:
-      flow_cls = flow.GRRFlow.classes.get(self.runner_args.flow_name)
-      if flow_cls is None:
-        raise ValueError("Flow %s not known by this implementation." %
-                         self.runner_args.flow_name)
-
-      # The required protobuf for this class is in args_type.
-      return flow_cls.args_type
-
 
 class ApiCreateFlowHandler(api_call_handler_base.ApiCallHandler):
   """Starts a flow on a given client with given parameters."""
 
   category = CATEGORY
+
   args_type = ApiCreateFlowArgs
+  result_type = ApiFlow
+  strip_json_root_fields_types = False
 
-  def Render(self, args, token=None):
+  def Handle(self, args, token=None):
+    flow_name = args.flow.name
+    if not flow_name:
+      flow_name = args.flow.runner_args.flow_name
+    if not flow_name:
+      raise RuntimeError("Flow name is not specified.")
+
     flow_id = flow.GRRFlow.StartFlow(client_id=args.client_id,
-                                     flow_name=args.runner_args.flow_name,
+                                     flow_name=flow_name,
                                      token=token,
-                                     args=args.flow_args,
-                                     runner_args=args.runner_args)
+                                     args=args.flow.args,
+                                     runner_args=args.flow.runner_args)
 
-    return dict(
-        flow_id=api_value_renderers.RenderValue(flow_id),
-        flow_args=api_value_renderers.RenderValue(args.flow_args),
-        runner_args=api_value_renderers.RenderValue(args.runner_args))
+    fd = aff4.FACTORY.Open(flow_id, aff4_type="GRRFlow", token=token)
+    return ApiFlow().InitFromAff4Object(fd)
 
 
 class ApiCancelFlowArgs(rdf_structs.RDFProtoStruct):
@@ -560,7 +568,7 @@ class ApiCancelFlowHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiCancelFlowArgs
   privileged = True
 
-  def Render(self, args, token=None):
+  def Handle(self, args, token=None):
     flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())
     # If we can read the flow, we're allowed to terminate it.
     data_store.DB.security_manager.CheckDataStoreAccess(
@@ -568,8 +576,6 @@ class ApiCancelFlowHandler(api_call_handler_base.ApiCallHandler):
 
     flow.GRRFlow.TerminateFlow(flow_urn, reason="Cancelled in GUI",
                                token=token, force=True)
-
-    return dict(status="OK")
 
 
 class ApiListFlowDescriptorsArgs(rdf_structs.RDFProtoStruct):
@@ -605,15 +611,11 @@ class ApiListFlowDescriptorsHandler(api_call_handler_base.ApiCallHandler):
       if not getattr(cls, "category", None):
         continue
 
-      # If a flow is tagged as AUTHORIZED_LABELS, the user must have the correct
-      # label to see it.
-      if cls.AUTHORIZED_LABELS:
-        try:
-          data_store.DB.security_manager.CheckUserLabels(
-              token.username, cls.AUTHORIZED_LABELS,
-              token=token)
-        except access_control.UnauthorizedAccess:
-          continue
+      # Only show flows that the user is allowed to start.
+      try:
+        data_store.DB.security_manager.CheckIfCanStartFlow(token, name)
+      except access_control.UnauthorizedAccess:
+        continue
 
       if args.HasField("flow_type"):
         # Skip if there are behaviours that are not supported by the class.

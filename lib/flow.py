@@ -839,9 +839,16 @@ class GRRFlow(aff4.AFF4Volume):
     # Make sure we are allowed to run this flow. If not, we raise here. We
     # respect SUID (supervisor) if it is already set. SUID cannot be set by the
     # user since it isn't part of the ACLToken proto.
-    data_store.DB.security_manager.CheckFlowAccess(
-        runner_args.token, runner_args.flow_name,
-        runner_args.client_id)
+    data_store.DB.security_manager.CheckIfCanStartFlow(
+        runner_args.token, runner_args.flow_name)
+
+    flow_cls = GRRFlow.GetPlugin(runner_args.flow_name)
+    # If client id was specified and flow doesn't have exemption from ACL
+    # checking policy, then check that the user has access to the client
+    # where the flow is going to run.
+    if flow_cls.ACL_ENFORCED and runner_args.client_id:
+      data_store.DB.security_manager.CheckClientAccess(runner_args.token,
+                                                       runner_args.client_id)
 
     # For the flow itself we use a supervisor token.
     token = runner_args.token.SetUID()
@@ -885,12 +892,6 @@ class GRRFlow(aff4.AFF4Volume):
     runner = flow_obj.CreateRunner(parent_runner=parent_runner,
                                    runner_args=runner_args,
                                    _store=_store or data_store.DB)
-
-    # Also check for needed labels.
-    if flow_obj.AUTHORIZED_LABELS:
-      data_store.DB.security_manager.CheckUserLabels(
-          runner.context.creator, flow_obj.AUTHORIZED_LABELS,
-          runner_args.token)
 
     logging.info(u"Scheduling %s(%s) on %s", flow_obj.urn,
                  runner_args.flow_name, runner_args.client_id)
@@ -969,16 +970,18 @@ class GRRFlow(aff4.AFF4Volume):
       if reason is None:
         reason = "Manual termination by console."
 
+      # Make sure we are only allowed to terminate this flow, if we are
+      # allowed to start it. The fact that we could open the flow object
+      # means that we have access to the client (if it's not a global
+      # flow).
+      data_store.DB.security_manager.CheckIfCanStartFlow(
+          token.RealUID(), flow_obj.Name())
+
       runner.Error(reason, status=status)
       runner.Terminate()
 
       flow_obj.Log("Terminated by user {0}. Reason: {1}".format(
           token.username, reason))
-
-      # Make sure we are only allowed to terminate this flow, if we are
-      # allowed to run it.
-      data_store.DB.security_manager.CheckFlowAccess(
-          token.RealUID(), flow_obj.Name(), client_id=flow_obj.client_id)
 
       # From now on we run with supervisor access
       super_token = token.SetUID()

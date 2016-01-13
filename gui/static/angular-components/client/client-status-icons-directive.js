@@ -29,8 +29,8 @@ grrUi.client.clientStatusIconsDirective.ClientStatusIconsController = function(
   /** @export {?number} */
   this.crashTime;
 
-  /** @export {?boolean} */
-  this.showDiskFullIcon;
+  /** @export {Array<Object>} */
+  this.diskWarnings = [];
 
   /** @export {?number} */
   this.lastPing;
@@ -48,11 +48,12 @@ var ClientStatusIconsController =
  * @private
  */
 ClientStatusIconsController.prototype.onClientChange_ = function(newValue) {
-  this.iconName = this.showCrashIcon = this.showDiskFullIcon = null;
+  this.iconName = this.showCrashIcon = null;
+  this.diskWarnings = [];
 
   if (angular.isObject(newValue)) {
     this.lastPing = /** @type {number} */ (this.scope_.$eval(
-        'client.attributes["metadata:ping"].value'));
+        'client.value.last_seen_at.value'));
     if (angular.isUndefined(this.lastPing)) {
       this.lastPing = 0;
     }
@@ -69,11 +70,30 @@ ClientStatusIconsController.prototype.onClientChange_ = function(newValue) {
     }
 
     var crashTime = /** @type {number} */ (this.scope_.$eval(
-        'client.attributes["aff4:last_crash"].value.timestamp.value'));
+        'client.value.last_crash_at.value'));
     if (angular.isDefined(crashTime) &&
         (currentTimeMs / 1000 - crashTime / 1000000) < 60 * 60 * 24) {
       this.crashTime = crashTime;
     }
+
+    angular.forEach(newValue['value']['volumes'] || [], function(volume) {
+      if (volume['value']['windowsvolume'] &&
+          volume['value']['windowsvolume']['value']['drive_type']['value'] ==
+          'DRIVE_CDROM') {
+        return;
+      }
+
+      var percent = (
+          volume['value']['actual_available_allocation_units']['value'] /
+          volume['value']['total_allocation_units']['value']) * 100;
+      if (percent <= 5) {
+        var volumeName = '';
+        if (volume['value']['name']) {
+          volumeName = volume['value']['name']['value'];
+        }
+        this.diskWarnings.push([volumeName, percent]);
+      }
+    }.bind(this));
   }
 };
 

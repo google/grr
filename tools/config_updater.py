@@ -310,6 +310,17 @@ parser_upload_exe = subparsers.add_parser(
     help="Sign and upload an executable which can be used to execute code on "
     "a client.")
 
+parser_upload_component = subparsers.add_parser(
+    "upload_component", parents=[],
+    help="Sign and upload a client component.")
+
+parser_upload_component.add_argument(
+    "component_filename", help="Path to the compiled component to upload.")
+
+parser_upload_component.add_argument(
+    "--overwrite", default=False, action="store_true",
+    help="Allow overwriting of the component path.")
+
 parser_upload_memory_driver = subparsers.add_parser(
     "upload_memory_driver",
     parents=[parser_upload_args, parser_upload_signed_args],
@@ -449,9 +460,9 @@ The Server URL specifies the URL that the clients will connect to
 communicate with the server. For best results this should be publicly
 accessible. By default this will be port 8080 with the URL ending in /control.
 """
-  frontend_url = RetryQuestion("Frontend URL", "^http://.*/control$",
-                               "http://%s:8080/control" % hostname)
-  config.Set("Client.control_urls", [frontend_url])
+  frontend_url = RetryQuestion("Frontend URL", "^http://.*/$",
+                               "http://%s:8080/" % hostname)
+  config.Set("Client.server_urls", [frontend_url])
 
   frontend_port = urlparse.urlparse(frontend_url).port or config_lib.CONFIG.Get(
       "Frontend.bind_port")
@@ -591,8 +602,19 @@ communicate with. In the standard configuration this will be used to host both
 the client facing server and the admin user interface.\n"""
 
   existing_ui_urn = config_lib.CONFIG.Get("AdminUI.url", default=None)
-  existing_frontend_urn = config_lib.CONFIG.Get("Client.control_urls",
-                                                default=None)
+  existing_frontend_urn = config_lib.CONFIG.Get("Client.server_urls")
+  if not existing_frontend_urn:
+    # Port from older deprecated setting Client.control_urls.
+    existing_control_urns = config_lib.CONFIG.Get(
+        "Client.control_urls", default=None)
+    if existing_control_urns is not None:
+      existing_frontend_urn = []
+      for existing_control_urn in existing_control_urns:
+        if not existing_control_urn.endswith("control"):
+          raise RuntimeError(
+              "Invalid existing control URL: %s" % existing_control_urn)
+
+        existing_frontend_urn.append(existing_control_urn.rsplit("/", 1)[0])
 
   if not existing_frontend_urn or not existing_ui_urn:
     ConfigureHostnames(config)
@@ -738,7 +760,7 @@ def InitializeNoPrompt(config=None, token=None):
   GenerateKeys(config)
   config_dict["Datastore.implementation"] = "SqliteDataStore"
   hostname = flags.FLAGS.external_hostname
-  config_dict["Client.control_urls"] = ["http://%s:%s/control" % (
+  config_dict["Client.server_urls"] = ["http://%s:%s/" % (
       hostname, config.Get("Frontend.bind_port"))]
 
   config_dict["AdminUI.url"] = "http://%s:%s" % (
@@ -871,6 +893,10 @@ def main(unused_argv):
                                              token=token)
 
     print "Uploaded to %s" % dest_path
+
+  elif flags.FLAGS.subparser_name == "upload_component":
+    maintenance_utils.SignComponent(flags.FLAGS.component_filename,
+                                    overwrite=flags.FLAGS.overwrite)
 
   elif flags.FLAGS.subparser_name == "upload_memory_driver":
     client_context = ["Platform:%s" % flags.FLAGS.platform.title(),

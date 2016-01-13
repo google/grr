@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 """Tests for grr.lib.aff4_objects.standard."""
 
-import hashlib
 import StringIO
-import zlib
 
 
 from grr.lib import aff4
+from grr.lib import data_store
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.rdfvalues import client as rdf_client
@@ -75,20 +74,7 @@ class LabelSetTest(test_lib.AFF4ObjectTest):
 class AFF4SparseImageTest(test_lib.AFF4ObjectTest):
 
   def AddBlobToBlobStore(self, blob_contents):
-
-    blob_hash = hashlib.sha256(blob_contents).digest()
-    # The compressed blob data.
-    cdata = zlib.compress(blob_contents)
-
-    urn = rdfvalue.RDFURN("aff4:/blobs").Add(blob_hash.encode("hex"))
-
-    # Write the blob to the data store. We cheat here and just store the
-    # compressed data to avoid recompressing it.
-    blob_fd = aff4.FACTORY.Create(urn, "AFF4MemoryStream", mode="w",
-                                  token=self.token)
-    blob_fd.OverwriteAndClose(cdata, len(blob_contents), sync=True)
-
-    return blob_hash
+    return data_store.DB.StoreBlob(blob_contents, token=self.token)
 
   def assertChunkEqual(self, fd, chunk, contents):
     fd.Seek(chunk * fd.chunksize)
@@ -101,33 +87,32 @@ class AFF4SparseImageTest(test_lib.AFF4ObjectTest):
     urn = aff4.ROOT_URN.Add("temp_sparse_image.dd")
     fd = aff4.FACTORY.Create(urn, aff4_type="AFF4SparseImage",
                              token=self.token, mode="rw")
+    fd.Set(fd.Schema._CHUNKSIZE, rdfvalue.RDFInteger(1024))
+    fd.chunksize = 1024
+    fd.Flush()
+
     chunk_number = 0
-    # 64*1024 characters.
-    blob_contents = "test" * 1024 * 16
-    blob_hash = self.AddBlobToBlobStore(blob_contents)
+    # 1024 characters.
+    blob_contents = "A" * fd.chunksize
+    blob_hash = self.AddBlobToBlobStore(blob_contents).decode("hex")
 
     fd.AddBlob(blob_hash=blob_hash, length=len(blob_contents),
                chunk_number=chunk_number)
-    fd.index.seek(0)
-    fd.index.read(32)
     fd.Flush()
 
-    # Make sure us and our index have been increased in size properly.
+    # Make sure the size is correct.
     self.assertEqual(fd.size, len(blob_contents))
-    self.assertEqual(fd.index.size, len(blob_hash))
 
     self.assertChunkEqual(fd, chunk_number, blob_contents)
 
     # Change the contents of the blob.
-    blob_contents = blob_contents.replace("test", "estt")
-    blob_hash = self.AddBlobToBlobStore(blob_contents)
+    blob_contents = "B" * fd.chunksize
+    blob_hash = self.AddBlobToBlobStore(blob_contents).decode("hex")
 
     # This time we're updating the blob.
     fd.AddBlob(blob_hash, len(blob_contents), chunk_number=chunk_number)
     # The size shouldn't get any bigger, since we got rid of the old blob.
     self.assertEqual(fd.size, len(blob_contents))
-    # Similarly for the index.
-    self.assertEqual(fd.index.size, len(blob_hash))
 
     self.assertChunkEqual(fd, chunk_number, blob_contents)
 
@@ -137,29 +122,30 @@ class AFF4SparseImageTest(test_lib.AFF4ObjectTest):
     urn = aff4.ROOT_URN.Add("temp_sparse_image.dd")
     fd = aff4.FACTORY.Create(urn, aff4_type="AFF4SparseImage",
                              token=self.token, mode="rw")
+    fd.Set(fd.Schema._CHUNKSIZE, rdfvalue.RDFInteger(1024))
+    fd.chunksize = 1024
+    fd.Flush()
+
     start_chunk = 1000
     blob_hashes = []
     blobs = []
     num_chunks = 5
     for chunk in xrange(start_chunk, start_chunk + num_chunks):
       # Make sure the blobs have unique content.
-      blob_contents = str(chunk % 10) * 64 * 1024
+      blob_contents = str(chunk % 10) * fd.chunksize
       blobs.append(blob_contents)
-      blob_hash = self.AddBlobToBlobStore(blob_contents)
+      blob_hash = self.AddBlobToBlobStore(blob_contents).decode("hex")
       fd.AddBlob(blob_hash=blob_hash, length=len(blob_contents),
                  chunk_number=chunk)
       blob_hashes.append(blob_hash)
 
     self.assertEqual(fd.size, fd.chunksize * num_chunks)
-    self.assertEqual(fd.index.size, fd.index.chunksize * num_chunks)
 
     # Read the first chunk.
     fd.Seek(start_chunk * fd.chunksize)
     fd.Read(fd.chunksize)
 
-    # The cache will have the chunks, but maybe in a different order, so we use
-    # assertItemsEqual here, not assertSequenceEqual.
-    self.assertItemsEqual(blob_hashes, fd.chunk_cache._hash.keys())
+    self.assertEqual(len(fd.chunk_cache._hash), num_chunks)
 
     fd.Flush()
     # They shouldn't be in cache anymore, so the chunk_cache should be empty.
@@ -174,6 +160,9 @@ class AFF4SparseImageTest(test_lib.AFF4ObjectTest):
     urn = aff4.ROOT_URN.Add("temp_sparse_image.dd")
     fd = aff4.FACTORY.Create(urn, aff4_type="AFF4SparseImage",
                              token=self.token, mode="rw")
+    fd.Set(fd.Schema._CHUNKSIZE, rdfvalue.RDFInteger(1024))
+    fd.chunksize = 1024
+    fd.Flush()
 
     # We shouldn't be able to get any chunks yet.
     self.assertFalse(fd.Read(10000))
@@ -182,8 +171,8 @@ class AFF4SparseImageTest(test_lib.AFF4ObjectTest):
     num_chunks = 5
     for chunk in xrange(start_chunk, start_chunk + num_chunks):
       # Make sure the blobs have unique content.
-      blob_contents = str(chunk % 10) * 64 * 1024
-      blob_hash = self.AddBlobToBlobStore(blob_contents)
+      blob_contents = str(chunk % 10) * fd.chunksize
+      blob_hash = self.AddBlobToBlobStore(blob_contents).decode("hex")
       fd.AddBlob(blob_hash=blob_hash, length=len(blob_contents),
                  chunk_number=chunk)
 

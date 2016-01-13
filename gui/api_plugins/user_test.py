@@ -17,13 +17,13 @@ from grr.lib import utils
 from grr.lib.aff4_objects import users as aff4_users
 
 
-class ApiListUserApprovalsHandlerTest(test_lib.GRRBaseTest):
+class ApiListUserClientApprovalsHandlerTest(test_lib.GRRBaseTest):
   """Test for ApiListUserApprovalsHandler."""
 
   def setUp(self):
-    super(ApiListUserApprovalsHandlerTest, self).setUp()
+    super(ApiListUserClientApprovalsHandlerTest, self).setUp()
     self.client_id = self.SetupClients(1)[0]
-    self.handler = user_plugin.ApiListUserApprovalsHandler()
+    self.handler = user_plugin.ApiListUserClientApprovalsHandler()
 
   def testRendersRequestedClientApproval(self):
     flow.GRRFlow.StartFlow(client_id=self.client_id,
@@ -33,12 +33,18 @@ class ApiListUserApprovalsHandlerTest(test_lib.GRRBaseTest):
                            approver="approver",
                            token=self.token)
 
-    args = user_plugin.ApiListUserApprovalsArgs(approval_type="client")
-    result = self.handler.Render(args, token=self.token)
+    args = user_plugin.ApiListUserClientApprovalsArgs()
+    result = self.handler.Handle(args, token=self.token)
 
-    self.assertEqual(result["offset"], 0)
-    self.assertEqual(result["count"], 1)
-    self.assertEqual(len(result["items"]), 1)
+    self.assertEqual(len(result.items), 1)
+
+
+class ApiListUserHuntApprovalsHandlerTest(test_lib.GRRBaseTest):
+  """Test for ApiListUserHuntApprovalsHandler."""
+
+  def setUp(self):
+    super(ApiListUserHuntApprovalsHandlerTest, self).setUp()
+    self.handler = user_plugin.ApiListUserHuntApprovalsHandler()
 
   def testRendersRequestedHuntAppoval(self):
     hunt_urn = aff4.ROOT_URN.Add("hunts").Add("H:ABCD1234")
@@ -52,12 +58,18 @@ class ApiListUserApprovalsHandlerTest(test_lib.GRRBaseTest):
                            approver="approver",
                            token=self.token)
 
-    args = user_plugin.ApiListUserApprovalsArgs(approval_type="hunt")
+    args = user_plugin.ApiListUserHuntApprovalsArgs()
     result = self.handler.Render(args, token=self.token)
 
-    self.assertEqual(result["offset"], 0)
-    self.assertEqual(result["count"], 1)
     self.assertEqual(len(result["items"]), 1)
+
+
+class ApiListUserCronApprovalsHandlerTest(test_lib.GRRBaseTest):
+  """Test for ApiListUserCronApprovalsHandler."""
+
+  def setUp(self):
+    super(ApiListUserCronApprovalsHandlerTest, self).setUp()
+    self.handler = user_plugin.ApiListUserCronApprovalsHandler()
 
   def testRendersRequestedCronJobApproval(self):
     cron_urn = aff4.ROOT_URN.Add("cron").Add("CronJobFoo")
@@ -71,19 +83,17 @@ class ApiListUserApprovalsHandlerTest(test_lib.GRRBaseTest):
                            approver="approver",
                            token=self.token)
 
-    args = user_plugin.ApiListUserApprovalsArgs(approval_type="cron")
+    args = user_plugin.ApiListUserCronApprovalsArgs()
     result = self.handler.Render(args, token=self.token)
 
-    self.assertEqual(result["offset"], 0)
-    self.assertEqual(result["count"], 1)
     self.assertEqual(len(result["items"]), 1)
 
 
-class ApiListUserApprovalsHandlerRegressionTest(
+class ApiListUserClientApprovalsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
-  """Regression test for ApiListUserApprovalsHandlerTest."""
+  """Regression test for ApiListUserClientApprovalsHandlerTest."""
 
-  handler = "ApiListUserApprovalsHandler"
+  handler = "ApiListUserClientApprovalsHandler"
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -96,16 +106,6 @@ class ApiListUserApprovalsHandlerRegressionTest(
         with aff4.FACTORY.Open(client_id, mode="rw",
                                token=self.token) as grr_client:
           grr_client.DeleteAttribute(grr_client.Schema.CERT)
-
-      hunt = hunts.GRRHunt.StartHunt(
-          hunt_name="GenericHunt", token=self.token)
-
-    with test_lib.FakeTime(43):
-      flow.GRRFlow.StartFlow(flow_name="RequestHuntApprovalFlow",
-                             reason=self.token.reason,
-                             subject_urn=hunt.urn,
-                             approver="approver",
-                             token=self.token)
 
     with test_lib.FakeTime(44):
       flow.GRRFlow.StartFlow(client_id=clients[0],
@@ -134,6 +134,29 @@ class ApiListUserApprovalsHandlerRegressionTest(
 
     with test_lib.FakeTime(126):
       self.Check("GET", "/api/users/me/approvals/client")
+
+
+class ApiListUserHuntApprovalsHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+  """Regression test for ApiListUserClientApprovalsHandlerTest."""
+
+  handler = "ApiListUserHuntApprovalsHandler"
+
+  def Run(self):
+    with test_lib.FakeTime(42):
+      self.CreateAdminUser("approver")
+
+      hunt = hunts.GRRHunt.StartHunt(
+          hunt_name="GenericHunt", token=self.token)
+
+    with test_lib.FakeTime(43):
+      flow.GRRFlow.StartFlow(flow_name="RequestHuntApprovalFlow",
+                             reason=self.token.reason,
+                             subject_urn=hunt.urn,
+                             approver="approver",
+                             token=self.token)
+
+    with test_lib.FakeTime(126):
       self.Check("GET", "/api/users/me/approvals/hunt",
                  replace={utils.SmartStr(hunt.urn.Basename()): "H:123456"})
 

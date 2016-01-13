@@ -4,29 +4,29 @@
 
 import zlib
 
+from grr.client.components.rekall_support import rekall_pb2
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto import jobs_pb2
 
 
 class PluginRequest(rdf_structs.RDFProtoStruct):
   """A request to the Rekall subsystem on the client."""
-  protobuf = jobs_pb2.PluginRequest
+  protobuf = rekall_pb2.PluginRequest
 
 
 class RekallRequest(rdf_structs.RDFProtoStruct):
   """A request to the Rekall subsystem on the client."""
-  protobuf = jobs_pb2.RekallRequest
+  protobuf = rekall_pb2.RekallRequest
 
 
 class MemoryInformation(rdf_structs.RDFProtoStruct):
   """Information about the client's memory geometry."""
-  protobuf = jobs_pb2.MemoryInformation
+  protobuf = rekall_pb2.MemoryInformation
 
 
 class RekallResponse(rdf_structs.RDFProtoStruct):
   """The result of running a plugin."""
-  protobuf = jobs_pb2.RekallResponse
+  protobuf = rekall_pb2.RekallResponse
 
   def SerializeToString(self):
     json_messages = self.Get("json_messages")
@@ -61,4 +61,4 @@ class ZippedJSONBytes(rdfvalue.RDFZippedBytes):
 
 
 class RekallProfile(rdf_structs.RDFProtoStruct):
-  protobuf = jobs_pb2.RekallProfile
+  protobuf = rekall_pb2.RekallProfile

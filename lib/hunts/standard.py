@@ -3,6 +3,7 @@
 
 
 
+import operator
 import threading
 
 import logging
@@ -345,6 +346,11 @@ class HuntResultsMetadata(aff4.AFF4Object):
         "aff4:output_plugins_state", rdf_flows.FlowState,
         "Pickled output plugins.", versioned=False)
 
+    OUTPUT_PLUGINS_VERIFICATION_RESULTS = aff4.Attribute(
+        "aff4:output_plugins_verification_results",
+        output_plugin.OutputPluginVerificationResultsList,
+        "Verification results list.", versioned=False)
+
 
 class ProcessHuntResultsCronFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ProcessHuntResultsCronFlowArgs
@@ -412,13 +418,28 @@ class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
                  (hunt_urn, plugin_def.plugin_name, batch_index, e))
         exceptions_by_plugin[plugin_def] = e
 
-      collections.PackedVersionedCollection.AddToCollection(
-          self.StatusCollectionUrn(hunt_urn),
-          [plugin_status], sync=False, token=self.token)
-      if plugin_status.status == plugin_status.Status.ERROR:
+      # TODO(user): Change to use StaticAdd once all active hunts are
+      # migrated.
+      try:
+        aff4.FACTORY.Open(self.StatusCollectionUrn(hunt_urn),
+                          "PluginStatusCollection",
+                          mode="w",
+                          token=self.token).Add(plugin_status)
+      except IOError:
         collections.PackedVersionedCollection.AddToCollection(
-            self.ErrorsCollectionUrn(hunt_urn),
+            self.StatusCollectionUrn(hunt_urn),
             [plugin_status], sync=False, token=self.token)
+
+      if plugin_status.status == plugin_status.Status.ERROR:
+        try:
+          aff4.FACTORY.Open(self.ErrorsCollectionUrn(hunt_urn),
+                            "PluginStatusCollection",
+                            mode="w",
+                            token=self.token).Add(plugin_status)
+        except IOError:
+          collections.PackedVersionedCollection.AddToCollection(
+              self.ErrorsCollectionUrn(hunt_urn),
+              [plugin_status], sync=False, token=self.token)
 
     return exceptions_by_plugin
 
@@ -556,6 +577,121 @@ class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
           for exception in exceptions:
             e.RegisterSubException(hunt_urn, plugin_name, exception)
       raise e
+
+
+class HuntVerificationError(Error):
+  """Used when something goes wrong during the verification."""
+
+
+class MultiHuntVerificationSummaryError(HuntVerificationError):
+  """Used when problem is detected in at least one verified hunt."""
+
+  def __init__(self, errors):
+    super(MultiHuntVerificationSummaryError, self).__init__()
+    self.errors = errors
+
+  def __str__(self):
+    return "\n".join(str(error) for error in self.errors)
+
+
+class VerifyHuntOutputPluginsCronFlowArgs(rdf_structs.RDFProtoStruct):
+  protobuf = flows_pb2.VerifyHuntOutputPluginsCronFlowArgs
+
+
+class VerifyHuntOutputPluginsCronFlow(cronjobs.SystemCronFlow):
+  """Runs Verify() method of output plugins of active hunts."""
+
+  frequency = rdfvalue.Duration("4h")
+  lifetime = rdfvalue.Duration("4h")
+
+  args_type = VerifyHuntOutputPluginsCronFlowArgs
+
+  def _VerifyHunt(self, hunt):
+    results_metadata = aff4.FACTORY.Open(
+        hunt.urn.Add("ResultsMetadata"), aff4_type=HuntResultsMetadata.__name__,
+        token=hunt.token)
+
+    results = []
+    for plugin_id, (plugin_descriptor, _) in results_metadata.Get(
+        results_metadata.Schema.OUTPUT_PLUGINS, {}).items():
+
+      plugin_verifiers = plugin_descriptor.GetPluginVerifiers()
+      if not plugin_verifiers:
+        new_results = [output_plugin.OutputPluginVerificationResult(
+            status=output_plugin.OutputPluginVerificationResult.Status.N_A,
+            status_message=("Plugin %s is not verifiable." %
+                            plugin_descriptor.plugin_name))]
+      else:
+        new_results = []
+        for plugin_verifier in plugin_verifiers:
+          new_results.append(
+              plugin_verifier.VerifyHuntOutput(
+                  plugin_descriptor.plugin_args, hunt))
+
+      for result in new_results:
+        result.timestamp = rdfvalue.RDFDatetime().Now()
+        result.plugin_id = plugin_id
+        result.plugin_descriptor = plugin_descriptor
+
+        self.Log("Verification result for %s: (%s) %s." % (
+            utils.SmartStr(hunt.urn),
+            utils.SmartStr(result.status),
+            utils.SmartStr(result.status_message)))
+
+      results.extend(new_results)
+
+    return results
+
+  def _WriteVerificationResults(self, hunt, results):
+    with aff4.FACTORY.Create(
+        hunt.urn.Add("ResultsMetadata"), aff4_type=HuntResultsMetadata.__name__,
+        mode="w", token=hunt.token) as results_metadata:
+      results_metadata.Set(
+          results_metadata.Schema.OUTPUT_PLUGINS_VERIFICATION_RESULTS,
+          output_plugin.OutputPluginVerificationResultsList(results=results))
+
+  def _UpdateStatsCounters(self, results):
+    for result in results:
+      stats.STATS.IncrementCounter("hunt_output_plugin_verifications",
+                                   fields=[utils.SmartStr(result.status)])
+
+  @flow.StateHandler()
+  def Start(self):
+    hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
+
+    if not self.state.args.check_range:
+      self.state.args.check_range = rdfvalue.Duration(
+          "%ds" % int(self.__class__.frequency.seconds * 2))
+
+    range_end = rdfvalue.RDFDatetime().Now()
+    range_start = rdfvalue.RDFDatetime().Now() - self.state.args.check_range
+
+    children_urns = list(hunts_root.ListChildren(age=(range_start, range_end)))
+    children_urns.sort(key=operator.attrgetter("age"), reverse=True)
+
+    self.Log("Will verify %d hunts." % len(children_urns))
+
+    errors = []
+    for hunt in hunts_root.OpenChildren(children_urns):
+      # Skip non-GenericHunts or hunts that could not be unpickled.
+      if not isinstance(hunt, GenericHunt) or not hunt.state:
+        self.Log("Skipping: %s." % utils.SmartStr(hunt.urn))
+        continue
+
+      try:
+        results = self._VerifyHunt(hunt)
+      except Exception as e:  # pylint: disable=broad-except
+        self.Log("Error while verifying %s: %s." % (utils.SmartStr(hunt.urn),
+                                                    utils.SmartStr(e)))
+        errors.append(HuntVerificationError(e))
+        stats.STATS.IncrementCounter("hunt_output_plugin_verification_errors")
+        continue
+
+      self._WriteVerificationResults(hunt, results)
+      self._UpdateStatsCounters(results)
+
+    if errors:
+      raise MultiHuntVerificationSummaryError(errors)
 
 
 class GenericHuntArgs(rdf_structs.RDFProtoStruct):
@@ -874,6 +1010,10 @@ class StandardHuntInitHook(registry.InitHook):
 
   def RunOnce(self):
     """Register standard hunt-related stats."""
+    stats.STATS.RegisterCounterMetric("hunt_output_plugin_verifications",
+                                      fields=[("status", str)])
+    stats.STATS.RegisterCounterMetric(
+        "hunt_output_plugin_verification_errors")
     stats.STATS.RegisterCounterMetric("hunt_output_plugin_errors",
                                       fields=[("plugin", str)])
     stats.STATS.RegisterCounterMetric("hunt_results_ran_through_plugin",

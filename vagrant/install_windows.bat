@@ -4,21 +4,24 @@
 :: install_visual_studio.bat separately, since installing them is very slow and
 :: requires multiple reboots.
 
+:: Fix the absolute path for all build operations at c:\grr\build
+mkdir c:\grr_build\
+cd c:\grr_build\
+
 :: Not strictly neccessary since this should be a new shell, but use this to
 :: test if chocolatey got installed.
-
 call refreshenv || echo "refreshenv failed - run install_visual_studio.bat first" && exit /b 1
 
 :: python chocolatey packages are broken since the MSI doesn't accept ALLUSERS,
 :: so we do this ourselves. 64bit
-powershell -NoProfile -ExecutionPolicy unrestricted -Command "(new-object System.Net.WebClient).DownloadFile('https://www.python.org/ftp/python/2.7.9/python-2.7.9.amd64.msi', 'python-2.7.9.amd64.msi')"
-msiexec /i "python-2.7.9.amd64.msi" /passive TARGETDIR="C:\tools\python2" || echo "64bit python install failed" && exit /b 1
+powershell -NoProfile -ExecutionPolicy unrestricted -Command "(new-object System.Net.WebClient).DownloadFile('https://www.python.org/ftp/python/2.7.11/python-2.7.11.amd64.msi', 'python-2.7.11.amd64.msi')"
+msiexec /i "python-2.7.11.amd64.msi" /passive TARGETDIR="C:\tools\python2" || echo "64bit python install failed" && exit /b 1
 SETX PATH ""
 SETX /M PATH "%PATH%;C:\tools\python2;C:\tools\python2\Scripts"
 call refreshenv
 
-powershell -NoProfile -ExecutionPolicy unrestricted -Command "(new-object System.Net.WebClient).DownloadFile('https://www.python.org/ftp/python/2.7.9/python-2.7.9.msi', 'python-2.7.9.msi')"
-msiexec /i "python-2.7.9.msi" /passive TARGETDIR="C:\tools\python2-x86_32" || echo "32bit python install failed" && exit /b 1
+powershell -NoProfile -ExecutionPolicy unrestricted -Command "(new-object System.Net.WebClient).DownloadFile('https://www.python.org/ftp/python/2.7.11/python-2.7.11.msi', 'python-2.7.11.msi')"
+msiexec /i "python-2.7.11.msi" /passive TARGETDIR="C:\tools\python2-x86_32" || echo "32bit python install failed" && exit /b 1
 
 :: This should put git on the path, but it doesn't
 choco install git -y || echo "git install failed" && exit /b 1
@@ -47,6 +50,7 @@ cmd /c "C:\grr\vagrant\windows\32bitopenssl.bat" || echo "32bitopenssl.bat faile
 cmd /c "C:\grr\vagrant\windows\64bitopenssl.bat" || echo "64bitopenssl.bat failed" && exit /b 1
 
 cmd /c "C:\grr\vagrant\windows\install_pytsk.bat" || echo "install_pytsk.bat failed" && exit /b 1
+cmd /c "C:\grr\vagrant\windows\install_protobuf.bat" || echo "install_protobuf.bat failed" && exit /b 1
 call refreshenv
 
 cmd /c ""C:\grr\vagrant\windows\64bitenv.bat" && C:\grr\vagrant\windows\python_deps.bat" || echo "64bitpython_deps.bat failed" && exit /b 1

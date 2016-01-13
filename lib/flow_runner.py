@@ -74,6 +74,7 @@ from grr.lib import utils
 # for RDFValueCollection pylint: disable=unused-import
 from grr.lib.aff4_objects import collections as _
 # pylint: enable=unused-import
+from grr.lib.aff4_objects import sequential_collection
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
@@ -92,6 +93,10 @@ class FlowRunnerArgs(rdf_structs.RDFProtoStruct):
   flows state.context.arg attribute.
   """
   protobuf = flows_pb2.FlowRunnerArgs
+
+
+class FlowLogCollection(sequential_collection.IndexedSequentialCollection):
+  RDF_TYPE = rdf_flows.FlowLog
 
 
 class FlowRunner(object):
@@ -223,12 +228,12 @@ class FlowRunner(object):
       logs_collection_urn: RDFURN pointing to parent logs collection
       mode: Mode to use for opening, "r", "w", or "rw".
     Returns:
-      PackedVersionedCollection open for writing.
+      FlowLogCollection open with mode.
     Raises:
       RuntimeError: on parent missing logs_collection.
     """
     return aff4.FACTORY.Create(self._GetLogsCollectionURN(logs_collection_urn),
-                               "PackedVersionedCollection", mode=mode,
+                               "FlowLogCollection", mode=mode,
                                object_exists=True, token=self.token)
 
   def InitializeContext(self, args):

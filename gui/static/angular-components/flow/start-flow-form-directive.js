@@ -107,8 +107,10 @@ StartFlowFormController.prototype.onLaunchButtonClick = function() {
  */
 StartFlowFormController.prototype.startGlobalFlow_ = function() {
   this.grrApiService_.post('/flows', {
-    runner_args: this.grrApiService_.stripTypeInfo(this.flowRunnerArguments),
-    flow_args: this.grrApiService_.stripTypeInfo(this.flowArguments)
+    flow: {
+      runner_args: this.grrApiService_.stripTypeInfo(this.flowRunnerArguments),
+      args: this.grrApiService_.stripTypeInfo(this.flowArguments)
+    }
   }).then(function success(response) {
     this.responseData = response['data'];
   }.bind(this), function failure(response) {
@@ -132,9 +134,11 @@ StartFlowFormController.prototype.startClientFlow_ = function() {
     clientId = clientIdComponents[0];
   }
 
-  this.grrApiService_.post('/clients/' + clientId + '/flows/start', {
-    runner_args: this.grrApiService_.stripTypeInfo(this.flowRunnerArguments),
-    flow_args: this.grrApiService_.stripTypeInfo(this.flowArguments)
+  this.grrApiService_.post('/clients/' + clientId + '/flows', {
+    flow: {
+      runner_args: this.grrApiService_.stripTypeInfo(this.flowRunnerArguments),
+      args: this.grrApiService_.stripTypeInfo(this.flowArguments)
+    }
   }).then(function success(response) {
     this.responseData = response['data'];
   }.bind(this), function failure(response) {

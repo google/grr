@@ -17,9 +17,9 @@ from django import template
 
 import logging
 
-from grr.lib import data_store
 from grr.lib import registry
 from grr.lib import utils
+from grr.lib.aff4_objects import user_managers
 
 
 # Global counter for ids
@@ -298,7 +298,7 @@ class UserLabelCheckMixin(object):
   @classmethod
   def CheckAccess(cls, request):
     """If the user is not in the AUTHORIZED_LABELS, reject this renderer."""
-    data_store.DB.security_manager.CheckUserLabels(
+    user_managers.CheckUserForLabels(
         request.token.username, cls.AUTHORIZED_LABELS,
         token=request.token)
 

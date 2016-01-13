@@ -2,6 +2,7 @@
 """Configuration parameters for the client."""
 
 from grr.lib import config_lib
+from grr.lib import rdfvalue
 from grr.lib.rdfvalues import crypto
 
 
@@ -34,6 +35,10 @@ config_lib.DEFINE_string("Client.arch", "amd64",
 config_lib.DEFINE_string("Client.build_time", "Unknown",
                          "The time the client was built.")
 
+config_lib.DEFINE_string("Client.build_environment", None,
+                         "The output of Uname.get_build_system() on the "
+                         "system the client was built on.")
+
 config_lib.DEFINE_integer("Client.rsa_key_length", 2048,
                           "The key length of the client keys in bits.")
 
@@ -43,13 +48,36 @@ config_lib.DEFINE_string(
     help="Where the client binaries are installed.")
 
 config_lib.DEFINE_string(
+    name="Client.component_path",
+    default=r"%(Client.install_path)/components",
+    help="Where the client components are installed on the client.")
+
+config_lib.DEFINE_string(
+    name="Client.component_url_stem",
+    default="%(Frontend.static_url_path_prefix)components/",
+    help="A URL path where components will be served from.")
+
+config_lib.DEFINE_semantic(
+    rdfvalue.RDFURN,
+    "Client.component_aff4_stem",
+    default="%(Frontend.static_aff4_prefix)/components/",
+    description="A common AFF4 stem where components will be served from.")
+
+config_lib.DEFINE_string(
     name="Client.rekall_profile_cache_path",
     default=r"%(Client.install_path)\\rekall_profiles",
     help="Where GRR stores cached Rekall profiles needed for memory analysis")
 
+config_lib.DEFINE_list(name="Client.server_urls",
+                       default=[], help="Base URL for client control.")
+
+# Deprecated. Remove when all installations switch to Client.server_urls.
 config_lib.DEFINE_list("Client.control_urls",
                        ["http://localhost:8080/control"],
                        "List of URLs of the controlling server.")
+
+config_lib.DEFINE_integer("Client.http_timeout", 100,
+                          "Timeout for HTTP requests.")
 
 config_lib.DEFINE_string("Client.plist_path",
                          "/Library/LaunchDaemons/com.google.code.grrd.plist",
@@ -82,6 +110,11 @@ config_lib.DEFINE_integer("Client.connection_error_limit", 60 * 24,
                           "If the client encounters this many connection "
                           "errors, it exits and restarts. Retries are one "
                           "minute apart.")
+
+config_lib.DEFINE_integer("Client.retry_error_limit", 10,
+                          "If the client encounters this many connection "
+                          "errors, it searches for a new proxy/server url "
+                          "combination.")
 
 config_lib.DEFINE_list(
     name="Client.proxy_servers",

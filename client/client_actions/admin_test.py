@@ -14,6 +14,7 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import stats
 from grr.lib import test_lib
+from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import protodict as rdf_protodict
 
@@ -43,9 +44,10 @@ class ConfigActionTest(test_lib.EmptyActionTest):
     # Make sure the file is gone
     self.assertRaises(IOError, open, self.config_file)
 
-    location = ["http://www.example1.com/", "http://www.example2.com/"]
+    location = ["http://www.example1.com/",
+                "http://www.example2.com/"]
     request = rdf_protodict.Dict()
-    request["Client.control_urls"] = location
+    request["Client.server_urls"] = location
     request["Client.foreman_check_frequency"] = 3600
 
     result = self.RunAction("UpdateConfiguration", request)
@@ -55,7 +57,7 @@ class ConfigActionTest(test_lib.EmptyActionTest):
 
     # Test the config file got written.
     data = open(self.config_file).read()
-    self.assertTrue("control_urls: {0}".format(",".join(location)) in data)
+    self.assertTrue("server_urls: {0}".format(",".join(location)) in data)
 
     self.urls = []
     # Now test that our location was actually updated.
@@ -65,28 +67,28 @@ class ConfigActionTest(test_lib.EmptyActionTest):
       self.urls.append(req.get_full_url())
       return StringIO.StringIO()
 
-    comms.urllib2.urlopen = FakeUrlOpen
-    client_context = comms.GRRHTTPClient(worker=MockClientWorker)
-    client_context.MakeRequest("", comms.Status())
+    with utils.Stubber(comms.urllib2, "urlopen", FakeUrlOpen):
+      client_context = comms.GRRHTTPClient(worker=MockClientWorker)
+      client_context.MakeRequest("")
 
+    # Since the request is successful we only connect to one location.
     self.assertTrue(location[0] in self.urls[0])
-    self.assertTrue(location[1] in self.urls[1])
 
   def testUpdateConfigBlacklist(self):
     """Tests that disallowed fields are not getting updated."""
     with test_lib.ConfigOverrider({
-        "Client.control_urls": ["http://something.com/"],
+        "Client.server_urls": ["http://something.com/"],
         "Client.server_serial_number": 1}):
 
       location = ["http://www.example.com"]
       request = rdf_protodict.Dict()
-      request["Client.control_urls"] = location
+      request["Client.server_urls"] = location
       request["Client.server_serial_number"] = 10
 
       self.RunAction("UpdateConfiguration", request)
 
       # Location can be set.
-      self.assertEqual(config_lib.CONFIG["Client.control_urls"], location)
+      self.assertEqual(config_lib.CONFIG["Client.server_urls"], location)
 
       # But the server serial number can not be updated.
       self.assertEqual(config_lib.CONFIG["Client.server_serial_number"], 1)
@@ -96,7 +98,7 @@ class ConfigActionTest(test_lib.EmptyActionTest):
     # Use UpdateConfig to generate a config.
     location = ["http://example.com"]
     request = rdf_protodict.Dict()
-    request["Client.control_urls"] = location
+    request["Client.server_urls"] = location
     request["Client.foreman_check_frequency"] = 3600
 
     self.RunAction("UpdateConfiguration", request)
@@ -104,7 +106,7 @@ class ConfigActionTest(test_lib.EmptyActionTest):
     self.RunAction("GetConfiguration")
 
     self.assertEqual(config_lib.CONFIG["Client.foreman_check_frequency"], 3600)
-    self.assertEqual(config_lib.CONFIG["Client.control_urls"], location)
+    self.assertEqual(config_lib.CONFIG["Client.server_urls"], location)
 
 
 class MockStatsCollector(object):

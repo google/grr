@@ -15,11 +15,10 @@ import win32process
 from grr.lib import build
 from grr.lib import config_lib
 
-MODULE_PATTERNS = [re.compile("distorm.*.dll", re.I),
-
-                   # Visual Studio runtime libs.
-                   re.compile("msvcr.+.dll", re.I),
-                   re.compile("msvcp.+.dll", re.I)]
+MODULE_PATTERNS = [
+    # Visual Studio runtime libs.
+    re.compile("msvcr.+.dll", re.I),
+    re.compile("msvcp.+.dll", re.I)]
 
 PROCESS_QUERY_INFORMATION = 0x400
 PROCESS_VM_READ = 0x10

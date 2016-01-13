@@ -347,103 +347,71 @@
     {
       "method": "POST",
       "response": {
-        "flow_args": {
-          "age": 0,
-          "type": "ListProcessesArgs",
-          "value": {
-            "fetch_binaries": {
-              "age": 0,
-              "type": "RDFBool",
-              "value": true
-            },
-            "filename_regex": {
-              "age": 0,
-              "type": "RegularExpression",
-              "value": "."
-            }
-          }
-        },
-        "flow_id": {
-          "age": 0,
-          "type": "SessionID",
-          "value": "aff4:/C.1000000000000000/flows/W:ABCDEF"
-        },
-        "runner_args": {
-          "age": 0,
-          "type": "FlowRunnerArgs",
-          "value": {
-            "client_id": {
-              "age": 0,
-              "type": "ClientURN",
-              "value": "aff4:/C.1000000000000000"
-            },
-            "flow_name": {
-              "age": 0,
-              "type": "unicode",
-              "value": "ListProcesses"
-            },
-            "notify_to_user": {
-              "age": 0,
-              "type": "RDFBool",
-              "value": false
-            },
-            "output_plugins": [],
-            "priority": {
-              "age": 0,
-              "type": "EnumNamedValue",
-              "value": "HIGH_PRIORITY"
-            },
-            "token": {
-              "age": 0,
-              "type": "ACLToken",
-              "value": {
-                "expiry": {
-                  "age": 0,
-                  "type": "RDFDatetime",
-                  "value": 102000000
-                },
-                "process": {
-                  "age": 0,
-                  "type": "unicode",
-                  "value": "GRRAdminUI"
-                },
-                "reason": {
-                  "age": 0,
-                  "type": "unicode",
-                  "value": ""
-                },
-                "username": {
-                  "age": 0,
-                  "type": "unicode",
-                  "value": "test"
-                }
+        "age": 0,
+        "type": "ApiFlow",
+        "value": {
+          "args": {
+            "age": 0,
+            "type": "ListProcessesArgs",
+            "value": {
+              "fetch_binaries": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": true
+              },
+              "filename_regex": {
+                "age": 0,
+                "type": "RegularExpression",
+                "value": "."
               }
             }
+          },
+          "creator": {
+            "age": 0,
+            "type": "unicode",
+            "value": "test"
+          },
+          "last_active_at": {
+            "age": 42000000,
+            "type": "RDFDatetime",
+            "value": 42000000
+          },
+          "name": {
+            "age": 0,
+            "type": "unicode",
+            "value": "ListProcesses"
+          },
+          "started_at": {
+            "age": 0,
+            "type": "RDFDatetime",
+            "value": 42000000
+          },
+          "state": {
+            "age": 0,
+            "type": "EnumNamedValue",
+            "value": "RUNNING"
+          },
+          "urn": {
+            "age": 0,
+            "type": "SessionID",
+            "value": "aff4:/C.1000000000000000/flows/W:ABCDEF"
           }
         }
       },
       "test_class": "ApiCreateFlowHandlerRegressionTest",
       "type_stripped_response": {
-        "flow_args": {
+        "args": {
           "fetch_binaries": true,
           "filename_regex": "."
         },
-        "flow_id": "aff4:/C.1000000000000000/flows/W:ABCDEF",
-        "runner_args": {
-          "client_id": "aff4:/C.1000000000000000",
-          "flow_name": "ListProcesses",
-          "notify_to_user": false,
-          "output_plugins": [],
-          "priority": "HIGH_PRIORITY",
-          "token": {
-            "expiry": 102000000,
-            "process": "GRRAdminUI",
-            "reason": "",
-            "username": "test"
-          }
-        }
+        "creator": "test",
+        "last_active_at": 42000000,
+        "name": "ListProcesses",
+        "started_at": 42000000,
+        "state": "RUNNING",
+        "urn": "aff4:/C.1000000000000000/flows/W:ABCDEF"
       },
-      "url": "/api/clients/C.1000000000000000/flows/start"
+      "url": "/api/clients/C.1000000000000000/flows"
     }
   ],
   "ApiCreateVfsRefreshOperationHandler": [
@@ -582,123 +550,42 @@
     {
       "method": "GET",
       "response": {
-        "aff4_class": "VFSGRRClient",
-        "age_policy": "NEWEST_TIME",
-        "attributes": {
-          "aff4:host_ips": {
-            "age": 42000000,
-            "type": "RDFString",
-            "value": "192.168.0.0\n2001:abcd::0"
-          },
-          "aff4:mac_addresses": {
-            "age": 42000000,
-            "type": "RDFString",
-            "value": "aabbccddee00\nbbccddeeff00"
-          },
-          "aff4:type": {
-            "age": 42000000,
-            "type": "RDFString",
-            "value": "VFSGRRClient"
-          },
-          "metadata:ClientInfo": {
-            "age": 42000000,
-            "type": "ClientInformation",
-            "value": {
-              "client_name": {
-                "age": 0,
-                "type": "unicode",
-                "value": "GRR Monitor"
-              }
+        "agent_info": {
+          "age": 42000000,
+          "type": "ClientInformation",
+          "value": {
+            "client_name": {
+              "age": 0,
+              "type": "unicode",
+              "value": "GRR Monitor"
             }
-          },
-          "metadata:fqdn": {
-            "age": 42000000,
-            "type": "RDFString",
-            "value": "Host-0.example.com"
-          },
-          "metadata:hostname": {
-            "age": 42000000,
-            "type": "RDFString",
-            "value": "Host-0"
-          },
-          "metadata:knowledge_base": {
-            "age": 42000000,
-            "type": "KnowledgeBase",
-            "value": {
-              "hostname": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Host-0.example.com"
-              }
-            }
-          },
-          "metadata:last": {
-            "age": 42000000,
-            "type": "RDFDatetime",
-            "value": 42000000
-          },
-          "metadata:ping": {
-            "age": 0,
-            "type": "RDFDatetime",
-            "value": 42000000
           }
         },
-        "disk_warnings": [],
-        "summary": {
+        "hardware_info": {
           "age": 0,
-          "type": "ClientSummary",
+          "type": "HardwareInfo",
+          "value": {}
+        },
+        "labels": [],
+        "last_seen_at": 42000000,
+        "os_info": {
+          "age": 0,
+          "type": "Uname",
           "value": {
-            "client_id": {
+            "fqdn": {
               "age": 0,
-              "type": "ClientURN",
-              "value": "aff4:/C.1000000000000000"
+              "type": "unicode",
+              "value": "Host-0.example.com"
             },
-            "client_info": {
-              "age": 42000000,
-              "type": "ClientInformation",
-              "value": {
-                "client_name": {
-                  "age": 0,
-                  "type": "unicode",
-                  "value": "GRR Monitor"
-                }
-              }
+            "node": {
+              "age": 0,
+              "type": "unicode",
+              "value": "Host-0"
             },
-            "serial_number": {
+            "version": {
               "age": 0,
               "type": "unicode",
               "value": ""
-            },
-            "system_info": {
-              "age": 0,
-              "type": "Uname",
-              "value": {
-                "fqdn": {
-                  "age": 0,
-                  "type": "unicode",
-                  "value": "Host-0.example.com"
-                },
-                "node": {
-                  "age": 0,
-                  "type": "unicode",
-                  "value": "Host-0"
-                },
-                "version": {
-                  "age": 0,
-                  "type": "unicode",
-                  "value": ""
-                }
-              }
-            },
-            "system_manufacturer": {
-              "age": 0,
-              "type": "unicode",
-              "value": ""
-            },
-            "timestamp": {
-              "age": 0,
-              "type": "RDFDatetime",
-              "value": 42000000
             }
           }
         },
@@ -706,37 +593,16 @@
       },
       "test_class": "ApiGetClientHandlerRegressionTest",
       "type_stripped_response": {
-        "aff4_class": "VFSGRRClient",
-        "age_policy": "NEWEST_TIME",
-        "attributes": {
-          "aff4:host_ips": "192.168.0.0\n2001:abcd::0",
-          "aff4:mac_addresses": "aabbccddee00\nbbccddeeff00",
-          "aff4:type": "VFSGRRClient",
-          "metadata:ClientInfo": {
-            "client_name": "GRR Monitor"
-          },
-          "metadata:fqdn": "Host-0.example.com",
-          "metadata:hostname": "Host-0",
-          "metadata:knowledge_base": {
-            "hostname": "Host-0.example.com"
-          },
-          "metadata:last": 42000000,
-          "metadata:ping": 42000000
+        "agent_info": {
+          "client_name": "GRR Monitor"
         },
-        "disk_warnings": [],
-        "summary": {
-          "client_id": "aff4:/C.1000000000000000",
-          "client_info": {
-            "client_name": "GRR Monitor"
-          },
-          "serial_number": "",
-          "system_info": {
-            "fqdn": "Host-0.example.com",
-            "node": "Host-0",
-            "version": ""
-          },
-          "system_manufacturer": "",
-          "timestamp": 42000000
+        "hardware_info": {},
+        "labels": [],
+        "last_seen_at": 42000000,
+        "os_info": {
+          "fqdn": "Host-0.example.com",
+          "node": "Host-0",
+          "version": ""
         },
         "urn": "aff4:/C.1000000000000000"
       },
@@ -1986,6 +1852,11 @@
               }
             }
           ],
+          "rules": {
+            "age": 0,
+            "type": "ForemanClientRuleSet",
+            "value": {}
+          },
           "state": {
             "age": 0,
             "type": "RDFString",
@@ -2962,6 +2833,7 @@
               "attribute_regex": "GRR"
             }
           ],
+          "rules": {},
           "state": "PAUSED",
           "stats": {
             "network_bytes_sent_stats": {
@@ -3167,7 +3039,7 @@
     {
       "method": "GET",
       "response": {
-        "command": "/usr/bin/grr_export --username test --reason '' collection_files --path aff4:/hunts/H:123456/Results --output ."
+        "command": "/usr/bin/grr_export --username test collection_files --path aff4:/hunts/H:123456/Results --output ."
       },
       "test_class": "ApiGetHuntResultsExportCommandHandlerRegressionTest",
       "url": "/api/hunts/H:123456/results/export-command"
@@ -5398,7 +5270,6 @@
     {
       "method": "GET",
       "response": {
-        "count": 2,
         "items": [
           {
             "age": 0,
@@ -5484,12 +5355,10 @@
               }
             }
           }
-        ],
-        "offset": 0
+        ]
       },
       "test_class": "ApiListClientFlowsHandlerRegressionTest",
       "type_stripped_response": {
-        "count": 2,
         "items": [
           {
             "args": {},
@@ -5511,8 +5380,7 @@
             "state": "RUNNING",
             "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF10"
           }
-        ],
-        "offset": 0
+        ]
       },
       "url": "/api/clients/C.1000000000000000/flows"
     }
@@ -5521,28 +5389,12 @@
     {
       "method": "GET",
       "response": {
-        "count": 1,
         "items": [
           {
-            "aff4_class": "VFSGRRClient",
-            "age_policy": "NEWEST_TIME",
-            "attributes": {
-              "aff4:host_ips": {
-                "age": 42000000,
-                "type": "RDFString",
-                "value": "192.168.0.0\n2001:abcd::0"
-              },
-              "aff4:mac_addresses": {
-                "age": 42000000,
-                "type": "RDFString",
-                "value": "aabbccddee00\nbbccddeeff00"
-              },
-              "aff4:type": {
-                "age": 42000000,
-                "type": "RDFString",
-                "value": "VFSGRRClient"
-              },
-              "metadata:ClientInfo": {
+            "age": 0,
+            "type": "ApiClient",
+            "value": {
+              "agent_info": {
                 "age": 42000000,
                 "type": "ClientInformation",
                 "value": {
@@ -5553,145 +5405,65 @@
                   }
                 }
               },
-              "metadata:fqdn": {
-                "age": 42000000,
-                "type": "RDFString",
-                "value": "Host-0.example.com"
+              "hardware_info": {
+                "age": 0,
+                "type": "HardwareInfo",
+                "value": {}
               },
-              "metadata:hostname": {
-                "age": 42000000,
-                "type": "RDFString",
-                "value": "Host-0"
-              },
-              "metadata:knowledge_base": {
-                "age": 42000000,
-                "type": "KnowledgeBase",
-                "value": {
-                  "hostname": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "Host-0.example.com"
-                  }
-                }
-              },
-              "metadata:last": {
-                "age": 42000000,
-                "type": "RDFDatetime",
-                "value": 42000000
-              },
-              "metadata:ping": {
+              "labels": [],
+              "last_seen_at": {
                 "age": 0,
                 "type": "RDFDatetime",
                 "value": 42000000
-              }
-            },
-            "disk_warnings": [],
-            "summary": {
-              "age": 0,
-              "type": "ClientSummary",
-              "value": {
-                "client_id": {
-                  "age": 0,
-                  "type": "ClientURN",
-                  "value": "aff4:/C.1000000000000000"
-                },
-                "client_info": {
-                  "age": 42000000,
-                  "type": "ClientInformation",
-                  "value": {
-                    "client_name": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "GRR Monitor"
-                    }
+              },
+              "os_info": {
+                "age": 0,
+                "type": "Uname",
+                "value": {
+                  "fqdn": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
+                  "node": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Host-0"
+                  },
+                  "version": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": ""
                   }
-                },
-                "serial_number": {
-                  "age": 0,
-                  "type": "unicode",
-                  "value": ""
-                },
-                "system_info": {
-                  "age": 0,
-                  "type": "Uname",
-                  "value": {
-                    "fqdn": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "Host-0.example.com"
-                    },
-                    "node": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "Host-0"
-                    },
-                    "version": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": ""
-                    }
-                  }
-                },
-                "system_manufacturer": {
-                  "age": 0,
-                  "type": "unicode",
-                  "value": ""
-                },
-                "timestamp": {
-                  "age": 0,
-                  "type": "RDFDatetime",
-                  "value": 42000000
                 }
+              },
+              "urn": {
+                "age": 0,
+                "type": "ClientURN",
+                "value": "aff4:/C.1000000000000000"
               }
-            },
-            "urn": "aff4:/C.1000000000000000"
+            }
           }
-        ],
-        "offset": 0,
-        "query": "C.1000000000000000"
+        ]
       },
       "test_class": "ApiListClientsHandlerRegressionTest",
       "type_stripped_response": {
-        "count": 1,
         "items": [
           {
-            "aff4_class": "VFSGRRClient",
-            "age_policy": "NEWEST_TIME",
-            "attributes": {
-              "aff4:host_ips": "192.168.0.0\n2001:abcd::0",
-              "aff4:mac_addresses": "aabbccddee00\nbbccddeeff00",
-              "aff4:type": "VFSGRRClient",
-              "metadata:ClientInfo": {
-                "client_name": "GRR Monitor"
-              },
-              "metadata:fqdn": "Host-0.example.com",
-              "metadata:hostname": "Host-0",
-              "metadata:knowledge_base": {
-                "hostname": "Host-0.example.com"
-              },
-              "metadata:last": 42000000,
-              "metadata:ping": 42000000
+            "agent_info": {
+              "client_name": "GRR Monitor"
             },
-            "disk_warnings": [],
-            "summary": {
-              "client_id": "aff4:/C.1000000000000000",
-              "client_info": {
-                "client_name": "GRR Monitor"
-              },
-              "serial_number": "",
-              "system_info": {
-                "fqdn": "Host-0.example.com",
-                "node": "Host-0",
-                "version": ""
-              },
-              "system_manufacturer": "",
-              "timestamp": 42000000
+            "hardware_info": {},
+            "labels": [],
+            "last_seen_at": 42000000,
+            "os_info": {
+              "fqdn": "Host-0.example.com",
+              "node": "Host-0",
+              "version": ""
             },
             "urn": "aff4:/C.1000000000000000"
           }
-        ],
-        "offset": 0,
-        "query": "C.1000000000000000"
+        ]
       },
       "url": "/api/clients?query=C.1000000000000000"
     }
@@ -5700,7 +5472,7 @@
     {
       "method": "GET",
       "response": {
-        "labels": [
+        "items": [
           {
             "age": 0,
             "type": "AFF4ObjectLabel",
@@ -5727,7 +5499,7 @@
       },
       "test_class": "ApiListClientsLabelsHandlerRegressionTest",
       "type_stripped_response": {
-        "labels": [
+        "items": [
           {
             "name": "bar"
           },
@@ -6593,7 +6365,6 @@
     {
       "method": "GET",
       "response": {
-        "count": 1,
         "items": [
           {
             "age": 0,
@@ -6693,13 +6464,10 @@
               }
             }
           }
-        ],
-        "offset": 0,
-        "total_count": 1
+        ]
       },
       "test_class": "ApiListFlowOutputPluginsHandlerRegressionTest",
       "type_stripped_response": {
-        "count": 1,
         "items": [
           {
             "id": "EmailOutputPlugin_0",
@@ -6727,9 +6495,7 @@
               }
             }
           }
-        ],
-        "offset": 0,
-        "total_count": 1
+        ]
       },
       "url": "/api/clients/C.1000000000000000/flows/W:ABCDEF/output-plugins"
     }
@@ -6881,39 +6647,18 @@
     {
       "method": "GET",
       "response": {
-        "aff4_class": "PackedVersionedCollection",
+        "aff4_class": "HuntErrorCollection",
         "age_policy": "NEWEST_TIME",
         "attributes": {
-          "aff4:data": {
-            "age": 55000000,
-            "type": "HuntError",
-            "value": {
-              "backtrace": {
-                "age": 0,
-                "type": "unicode",
-                "value": "<some backtrace>"
-              },
-              "client_id": {
-                "age": 0,
-                "type": "ClientURN",
-                "value": "aff4:/C.1111222233334444"
-              },
-              "log_message": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Error bar."
-              }
-            }
-          },
           "aff4:type": {
             "age": 42000000,
             "type": "RDFString",
-            "value": "PackedVersionedCollection"
+            "value": "HuntErrorCollection"
           },
           "metadata:last": {
-            "age": 55000000,
+            "age": 42000000,
             "type": "RDFDatetime",
-            "value": 55000000
+            "value": 42000000
           }
         },
         "count": 2,
@@ -6962,16 +6707,11 @@
       },
       "test_class": "ApiListHuntErrorsHandlerRegressionTest",
       "type_stripped_response": {
-        "aff4_class": "PackedVersionedCollection",
+        "aff4_class": "HuntErrorCollection",
         "age_policy": "NEWEST_TIME",
         "attributes": {
-          "aff4:data": {
-            "backtrace": "<some backtrace>",
-            "client_id": "aff4:/C.1111222233334444",
-            "log_message": "Error bar."
-          },
-          "aff4:type": "PackedVersionedCollection",
-          "metadata:last": 55000000
+          "aff4:type": "HuntErrorCollection",
+          "metadata:last": 42000000
         },
         "count": 2,
         "items": [
@@ -6994,39 +6734,18 @@
     {
       "method": "GET",
       "response": {
-        "aff4_class": "PackedVersionedCollection",
+        "aff4_class": "HuntErrorCollection",
         "age_policy": "NEWEST_TIME",
         "attributes": {
-          "aff4:data": {
-            "age": 55000000,
-            "type": "HuntError",
-            "value": {
-              "backtrace": {
-                "age": 0,
-                "type": "unicode",
-                "value": "<some backtrace>"
-              },
-              "client_id": {
-                "age": 0,
-                "type": "ClientURN",
-                "value": "aff4:/C.1111222233334444"
-              },
-              "log_message": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Error bar."
-              }
-            }
-          },
           "aff4:type": {
             "age": 42000000,
             "type": "RDFString",
-            "value": "PackedVersionedCollection"
+            "value": "HuntErrorCollection"
           },
           "metadata:last": {
-            "age": 55000000,
+            "age": 42000000,
             "type": "RDFDatetime",
-            "value": 55000000
+            "value": 42000000
           }
         },
         "count": 1,
@@ -7054,16 +6773,11 @@
       },
       "test_class": "ApiListHuntErrorsHandlerRegressionTest",
       "type_stripped_response": {
-        "aff4_class": "PackedVersionedCollection",
+        "aff4_class": "HuntErrorCollection",
         "age_policy": "NEWEST_TIME",
         "attributes": {
-          "aff4:data": {
-            "backtrace": "<some backtrace>",
-            "client_id": "aff4:/C.1111222233334444",
-            "log_message": "Error bar."
-          },
-          "aff4:type": "PackedVersionedCollection",
-          "metadata:last": 55000000
+          "aff4:type": "HuntErrorCollection",
+          "metadata:last": 42000000
         },
         "count": 1,
         "items": [
@@ -7081,39 +6795,18 @@
     {
       "method": "GET",
       "response": {
-        "aff4_class": "PackedVersionedCollection",
+        "aff4_class": "HuntErrorCollection",
         "age_policy": "NEWEST_TIME",
         "attributes": {
-          "aff4:data": {
-            "age": 55000000,
-            "type": "HuntError",
-            "value": {
-              "backtrace": {
-                "age": 0,
-                "type": "unicode",
-                "value": "<some backtrace>"
-              },
-              "client_id": {
-                "age": 0,
-                "type": "ClientURN",
-                "value": "aff4:/C.1111222233334444"
-              },
-              "log_message": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Error bar."
-              }
-            }
-          },
           "aff4:type": {
             "age": 42000000,
             "type": "RDFString",
-            "value": "PackedVersionedCollection"
+            "value": "HuntErrorCollection"
           },
           "metadata:last": {
-            "age": 55000000,
+            "age": 42000000,
             "type": "RDFDatetime",
-            "value": 55000000
+            "value": 42000000
           }
         },
         "count": 1,
@@ -7146,16 +6839,11 @@
       },
       "test_class": "ApiListHuntErrorsHandlerRegressionTest",
       "type_stripped_response": {
-        "aff4_class": "PackedVersionedCollection",
+        "aff4_class": "HuntErrorCollection",
         "age_policy": "NEWEST_TIME",
         "attributes": {
-          "aff4:data": {
-            "backtrace": "<some backtrace>",
-            "client_id": "aff4:/C.1111222233334444",
-            "log_message": "Error bar."
-          },
-          "aff4:type": "PackedVersionedCollection",
-          "metadata:last": 55000000
+          "aff4:type": "HuntErrorCollection",
+          "metadata:last": 42000000
         },
         "count": 1,
         "items": [
@@ -7176,34 +6864,13 @@
     {
       "method": "GET",
       "response": {
-        "aff4_class": "PackedVersionedCollection",
+        "aff4_class": "FlowLogCollection",
         "age_policy": "NEWEST_TIME",
         "attributes": {
-          "aff4:data": {
-            "age": 55000000,
-            "type": "FlowLog",
-            "value": {
-              "flow_name": {
-                "age": 0,
-                "type": "unicode",
-                "value": "GenericHunt"
-              },
-              "log_message": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Sample message: bar."
-              },
-              "urn": {
-                "age": 0,
-                "type": "RDFURN",
-                "value": "aff4:/hunts/H:123456"
-              }
-            }
-          },
           "aff4:type": {
             "age": 55000000,
             "type": "RDFString",
-            "value": "PackedVersionedCollection"
+            "value": "FlowLogCollection"
           },
           "metadata:last": {
             "age": 55000000,
@@ -7262,15 +6929,10 @@
       },
       "test_class": "ApiListHuntLogsHandlerRegressionTest",
       "type_stripped_response": {
-        "aff4_class": "PackedVersionedCollection",
+        "aff4_class": "FlowLogCollection",
         "age_policy": "NEWEST_TIME",
         "attributes": {
-          "aff4:data": {
-            "flow_name": "GenericHunt",
-            "log_message": "Sample message: bar.",
-            "urn": "aff4:/hunts/H:123456"
-          },
-          "aff4:type": "PackedVersionedCollection",
+          "aff4:type": "FlowLogCollection",
           "metadata:last": 55000000
         },
         "count": 2,
@@ -7295,34 +6957,13 @@
     {
       "method": "GET",
       "response": {
-        "aff4_class": "PackedVersionedCollection",
+        "aff4_class": "FlowLogCollection",
         "age_policy": "NEWEST_TIME",
         "attributes": {
-          "aff4:data": {
-            "age": 55000000,
-            "type": "FlowLog",
-            "value": {
-              "flow_name": {
-                "age": 0,
-                "type": "unicode",
-                "value": "GenericHunt"
-              },
-              "log_message": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Sample message: bar."
-              },
-              "urn": {
-                "age": 0,
-                "type": "RDFURN",
-                "value": "aff4:/hunts/H:123456"
-              }
-            }
-          },
           "aff4:type": {
             "age": 55000000,
             "type": "RDFString",
-            "value": "PackedVersionedCollection"
+            "value": "FlowLogCollection"
           },
           "metadata:last": {
             "age": 55000000,
@@ -7360,15 +7001,10 @@
       },
       "test_class": "ApiListHuntLogsHandlerRegressionTest",
       "type_stripped_response": {
-        "aff4_class": "PackedVersionedCollection",
+        "aff4_class": "FlowLogCollection",
         "age_policy": "NEWEST_TIME",
         "attributes": {
-          "aff4:data": {
-            "flow_name": "GenericHunt",
-            "log_message": "Sample message: bar.",
-            "urn": "aff4:/hunts/H:123456"
-          },
-          "aff4:type": "PackedVersionedCollection",
+          "aff4:type": "FlowLogCollection",
           "metadata:last": 55000000
         },
         "count": 1,
@@ -7388,34 +7024,13 @@
     {
       "method": "GET",
       "response": {
-        "aff4_class": "PackedVersionedCollection",
+        "aff4_class": "FlowLogCollection",
         "age_policy": "NEWEST_TIME",
         "attributes": {
-          "aff4:data": {
-            "age": 55000000,
-            "type": "FlowLog",
-            "value": {
-              "flow_name": {
-                "age": 0,
-                "type": "unicode",
-                "value": "GenericHunt"
-              },
-              "log_message": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Sample message: bar."
-              },
-              "urn": {
-                "age": 0,
-                "type": "RDFURN",
-                "value": "aff4:/hunts/H:123456"
-              }
-            }
-          },
           "aff4:type": {
             "age": 55000000,
             "type": "RDFString",
-            "value": "PackedVersionedCollection"
+            "value": "FlowLogCollection"
           },
           "metadata:last": {
             "age": 55000000,
@@ -7453,15 +7068,10 @@
       },
       "test_class": "ApiListHuntLogsHandlerRegressionTest",
       "type_stripped_response": {
-        "aff4_class": "PackedVersionedCollection",
+        "aff4_class": "FlowLogCollection",
         "age_policy": "NEWEST_TIME",
         "attributes": {
-          "aff4:data": {
-            "flow_name": "GenericHunt",
-            "log_message": "Sample message: bar.",
-            "urn": "aff4:/hunts/H:123456"
-          },
-          "aff4:type": "PackedVersionedCollection",
+          "aff4:type": "FlowLogCollection",
           "metadata:last": 55000000
         },
         "count": 1,
@@ -9441,7 +9051,212 @@
     {
       "method": "GET",
       "response": {
-        "fields": [
+        "items": [
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "code_page"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "current_control_set"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "domain"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "environ_allusersappdata"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "environ_allusersprofile"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "environ_path"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "environ_programfiles"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "environ_programfilesx86"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "environ_systemdrive"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "environ_systemroot"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "environ_temp"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "environ_windir"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "hostname"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "os"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "os_major_version"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "os_minor_version"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "os_release"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "time_zone"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "users.appdata"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "users.cookies"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "users.desktop"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "users.full_name"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "users.gid"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "users.gids"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "users.homedir"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "users.internet_cache"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "users.last_logon"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "users.localappdata"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "users.localappdata_low"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "users.personal"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "users.pw_entry"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "users.recent"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "users.shell"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "users.sid"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "users.startup"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "users.temp"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "users.uid"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "users.userdomain"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "users.username"
+          },
+          {
+            "age": 0,
+            "type": "unicode",
+            "value": "users.userprofile"
+          }
+        ]
+      },
+      "test_class": "ApiListKbFieldsHandlerTest",
+      "type_stripped_response": {
+        "items": [
           "code_page",
           "current_control_set",
           "domain",
@@ -9484,7 +9299,6 @@
           "users.userprofile"
         ]
       },
-      "test_class": "ApiListKbFieldsHandlerTest",
       "url": "/api/clients/kb-fields"
     }
   ],
@@ -9599,157 +9413,30 @@
       "url": "/api/stats/store/WORKER/metadata"
     }
   ],
-  "ApiListUserApprovalsHandler": [
+  "ApiListUserClientApprovalsHandler": [
     {
       "method": "GET",
       "response": {
-        "count": 2,
         "items": [
           {
-            "aff4_class": "ClientApproval",
-            "age_policy": "ALL_TIMES",
-            "attributes": {
-              "aff4:approval/approver": [
-                {
-                  "age": 84000000,
-                  "type": "RDFString",
-                  "value": "approver"
-                },
-                {
-                  "age": 45000000,
-                  "type": "RDFString",
-                  "value": "test"
-                }
-              ],
-              "aff4:approval/email_cc": [
-                {
-                  "age": 45000000,
-                  "type": "RDFString",
-                  "value": "approver"
-                }
-              ],
-              "aff4:approval/email_msg_id": [
-                {
-                  "age": 45000000,
-                  "type": "RDFString",
-                  "value": "<message id stub>"
-                }
-              ],
-              "aff4:approval/requestor": [
-                {
-                  "age": 45000000,
-                  "type": "RDFString",
-                  "value": "test"
-                }
-              ],
-              "aff4:approval/subject": [
-                {
-                  "age": 45000000,
-                  "type": "RDFURN",
-                  "value": "aff4:/C.1000000000000001"
-                }
-              ],
-              "aff4:type": [
-                {
-                  "age": 84000000,
-                  "type": "RDFString",
-                  "value": "ClientApproval"
-                },
-                {
-                  "age": 45000000,
-                  "type": "RDFString",
-                  "value": "ClientApproval"
-                }
-              ],
-              "aff4:approval/reason": [
-                {
-                  "age": 45000000,
-                  "type": "RDFString",
-                  "value": "Running tests"
-                }
-              ],
-              "metadata:last": [
-                {
-                  "age": 84000000,
-                  "type": "RDFDatetime",
-                  "value": 84000000
-                }
-              ]
-            },
-            "is_valid": true,
-            "subject": {
-              "aff4_class": "VFSGRRClient",
-              "age_policy": "NEWEST_TIME",
-              "attributes": {
-                "aff4:host_ips": {
-                  "age": 42000000,
-                  "type": "RDFString",
-                  "value": "192.168.0.1\n2001:abcd::1"
-                },
-                "aff4:mac_addresses": {
-                  "age": 42000000,
-                  "type": "RDFString",
-                  "value": "aabbccddee01\nbbccddeeff01"
-                },
-                "aff4:type": {
-                  "age": 42000000,
-                  "type": "RDFString",
-                  "value": "VFSGRRClient"
-                },
-                "metadata:ClientInfo": {
-                  "age": 42000000,
-                  "type": "ClientInformation",
-                  "value": {
-                    "client_name": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "GRR Monitor"
-                    }
-                  }
-                },
-                "metadata:fqdn": {
-                  "age": 42000000,
-                  "type": "RDFString",
-                  "value": "Host-1.example.com"
-                },
-                "metadata:hostname": {
-                  "age": 42000000,
-                  "type": "RDFString",
-                  "value": "Host-1"
-                },
-                "metadata:knowledge_base": {
-                  "age": 42000000,
-                  "type": "KnowledgeBase",
-                  "value": {
-                    "hostname": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "Host-1.example.com"
-                    }
-                  }
-                },
-                "metadata:last": {
-                  "age": 45000000,
-                  "type": "RDFDatetime",
-                  "value": 45000000
-                },
-                "metadata:ping": {
-                  "age": 0,
-                  "type": "RDFDatetime",
-                  "value": 42000000
-                }
-              },
-              "disk_warnings": [],
-              "summary": {
+            "age": 0,
+            "type": "ApiUserClientApproval",
+            "value": {
+              "is_valid": {
                 "age": 0,
-                "type": "ClientSummary",
+                "type": "RDFBool",
+                "value": true
+              },
+              "reason": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Running tests"
+              },
+              "subject": {
+                "age": 0,
+                "type": "ApiClient",
                 "value": {
-                  "client_id": {
-                    "age": 0,
-                    "type": "ClientURN",
-                    "value": "aff4:/C.1000000000000001"
-                  },
-                  "client_info": {
+                  "agent_info": {
                     "age": 42000000,
                     "type": "ClientInformation",
                     "value": {
@@ -9760,12 +9447,18 @@
                       }
                     }
                   },
-                  "serial_number": {
+                  "hardware_info": {
                     "age": 0,
-                    "type": "unicode",
-                    "value": ""
+                    "type": "HardwareInfo",
+                    "value": {}
                   },
-                  "system_info": {
+                  "labels": [],
+                  "last_seen_at": {
+                    "age": 0,
+                    "type": "RDFDatetime",
+                    "value": 42000000
+                  },
+                  "os_info": {
                     "age": 0,
                     "type": "Uname",
                     "value": {
@@ -9786,158 +9479,39 @@
                       }
                     }
                   },
-                  "system_manufacturer": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": ""
-                  },
-                  "timestamp": {
-                    "age": 0,
-                    "type": "RDFDatetime",
-                    "value": 42000000
-                  }
-                }
-              },
-              "urn": "aff4:/C.1000000000000001"
-            },
-            "urn": "aff4:/ACL/C.1000000000000001/test/UnVubmluZyB0ZXN0cw=="
-          },
-          {
-            "aff4_class": "ClientApproval",
-            "age_policy": "ALL_TIMES",
-            "attributes": {
-              "aff4:approval/approver": [
-                {
-                  "age": 44000000,
-                  "type": "RDFString",
-                  "value": "test"
-                }
-              ],
-              "aff4:approval/email_cc": [
-                {
-                  "age": 44000000,
-                  "type": "RDFString",
-                  "value": "approver"
-                }
-              ],
-              "aff4:approval/email_msg_id": [
-                {
-                  "age": 44000000,
-                  "type": "RDFString",
-                  "value": "<message id stub>"
-                }
-              ],
-              "aff4:approval/requestor": [
-                {
-                  "age": 44000000,
-                  "type": "RDFString",
-                  "value": "test"
-                }
-              ],
-              "aff4:approval/subject": [
-                {
-                  "age": 44000000,
-                  "type": "RDFURN",
-                  "value": "aff4:/C.1000000000000000"
-                }
-              ],
-              "aff4:type": [
-                {
-                  "age": 44000000,
-                  "type": "RDFString",
-                  "value": "ClientApproval"
-                }
-              ],
-              "aff4:approval/reason": [
-                {
-                  "age": 44000000,
-                  "type": "RDFString",
-                  "value": "Running tests"
-                }
-              ],
-              "metadata:last": [
-                {
-                  "age": 44000000,
-                  "type": "RDFDatetime",
-                  "value": 44000000
-                }
-              ]
-            },
-            "is_valid": false,
-            "is_valid_message": "Requires 2 approvers for access.",
-            "subject": {
-              "aff4_class": "VFSGRRClient",
-              "age_policy": "NEWEST_TIME",
-              "attributes": {
-                "aff4:host_ips": {
-                  "age": 42000000,
-                  "type": "RDFString",
-                  "value": "192.168.0.0\n2001:abcd::0"
-                },
-                "aff4:mac_addresses": {
-                  "age": 42000000,
-                  "type": "RDFString",
-                  "value": "aabbccddee00\nbbccddeeff00"
-                },
-                "aff4:type": {
-                  "age": 42000000,
-                  "type": "RDFString",
-                  "value": "VFSGRRClient"
-                },
-                "metadata:ClientInfo": {
-                  "age": 42000000,
-                  "type": "ClientInformation",
-                  "value": {
-                    "client_name": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "GRR Monitor"
-                    }
-                  }
-                },
-                "metadata:fqdn": {
-                  "age": 42000000,
-                  "type": "RDFString",
-                  "value": "Host-0.example.com"
-                },
-                "metadata:hostname": {
-                  "age": 42000000,
-                  "type": "RDFString",
-                  "value": "Host-0"
-                },
-                "metadata:knowledge_base": {
-                  "age": 42000000,
-                  "type": "KnowledgeBase",
-                  "value": {
-                    "hostname": {
-                      "age": 0,
-                      "type": "unicode",
-                      "value": "Host-0.example.com"
-                    }
-                  }
-                },
-                "metadata:last": {
-                  "age": 44000000,
-                  "type": "RDFDatetime",
-                  "value": 44000000
-                },
-                "metadata:ping": {
-                  "age": 0,
-                  "type": "RDFDatetime",
-                  "value": 42000000
-                }
-              },
-              "disk_warnings": [],
-              "summary": {
-                "age": 0,
-                "type": "ClientSummary",
-                "value": {
-                  "client_id": {
+                  "urn": {
                     "age": 0,
                     "type": "ClientURN",
-                    "value": "aff4:/C.1000000000000000"
-                  },
-                  "client_info": {
+                    "value": "aff4:/C.1000000000000001"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "age": 0,
+            "type": "ApiUserClientApproval",
+            "value": {
+              "is_valid": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "is_valid_message": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Requires 2 approvers for access."
+              },
+              "reason": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Running tests"
+              },
+              "subject": {
+                "age": 0,
+                "type": "ApiClient",
+                "value": {
+                  "agent_info": {
                     "age": 42000000,
                     "type": "ClientInformation",
                     "value": {
@@ -9948,12 +9522,18 @@
                       }
                     }
                   },
-                  "serial_number": {
+                  "hardware_info": {
                     "age": 0,
-                    "type": "unicode",
-                    "value": ""
+                    "type": "HardwareInfo",
+                    "value": {}
                   },
-                  "system_info": {
+                  "labels": [],
+                  "last_seen_at": {
+                    "age": 0,
+                    "type": "RDFDatetime",
+                    "value": 42000000
+                  },
+                  "os_info": {
                     "age": 0,
                     "type": "Uname",
                     "value": {
@@ -9974,175 +9554,66 @@
                       }
                     }
                   },
-                  "system_manufacturer": {
+                  "urn": {
                     "age": 0,
-                    "type": "unicode",
-                    "value": ""
-                  },
-                  "timestamp": {
-                    "age": 0,
-                    "type": "RDFDatetime",
-                    "value": 42000000
+                    "type": "ClientURN",
+                    "value": "aff4:/C.1000000000000000"
                   }
                 }
-              },
-              "urn": "aff4:/C.1000000000000000"
-            },
-            "urn": "aff4:/ACL/C.1000000000000000/test/UnVubmluZyB0ZXN0cw=="
+              }
+            }
           }
-        ],
-        "offset": 0
+        ]
       },
-      "test_class": "ApiListUserApprovalsHandlerRegressionTest",
+      "test_class": "ApiListUserClientApprovalsHandlerRegressionTest",
       "type_stripped_response": {
-        "count": 2,
         "items": [
           {
-            "aff4_class": "ClientApproval",
-            "age_policy": "ALL_TIMES",
-            "attributes": {
-              "aff4:approval/approver": [
-                "approver",
-                "test"
-              ],
-              "aff4:approval/email_cc": [
-                "approver"
-              ],
-              "aff4:approval/email_msg_id": [
-                "<message id stub>"
-              ],
-              "aff4:approval/requestor": [
-                "test"
-              ],
-              "aff4:approval/subject": [
-                "aff4:/C.1000000000000001"
-              ],
-              "aff4:type": [
-                "ClientApproval",
-                "ClientApproval"
-              ],
-              "aff4:approval/reason": [
-                "Running tests"
-              ],
-              "metadata:last": [
-                84000000
-              ]
-            },
             "is_valid": true,
+            "reason": "Running tests",
             "subject": {
-              "aff4_class": "VFSGRRClient",
-              "age_policy": "NEWEST_TIME",
-              "attributes": {
-                "aff4:host_ips": "192.168.0.1\n2001:abcd::1",
-                "aff4:mac_addresses": "aabbccddee01\nbbccddeeff01",
-                "aff4:type": "VFSGRRClient",
-                "metadata:ClientInfo": {
-                  "client_name": "GRR Monitor"
-                },
-                "metadata:fqdn": "Host-1.example.com",
-                "metadata:hostname": "Host-1",
-                "metadata:knowledge_base": {
-                  "hostname": "Host-1.example.com"
-                },
-                "metadata:last": 45000000,
-                "metadata:ping": 42000000
+              "agent_info": {
+                "client_name": "GRR Monitor"
               },
-              "disk_warnings": [],
-              "summary": {
-                "client_id": "aff4:/C.1000000000000001",
-                "client_info": {
-                  "client_name": "GRR Monitor"
-                },
-                "serial_number": "",
-                "system_info": {
-                  "fqdn": "Host-1.example.com",
-                  "node": "Host-1",
-                  "version": ""
-                },
-                "system_manufacturer": "",
-                "timestamp": 42000000
+              "hardware_info": {},
+              "labels": [],
+              "last_seen_at": 42000000,
+              "os_info": {
+                "fqdn": "Host-1.example.com",
+                "node": "Host-1",
+                "version": ""
               },
               "urn": "aff4:/C.1000000000000001"
-            },
-            "urn": "aff4:/ACL/C.1000000000000001/test/UnVubmluZyB0ZXN0cw=="
+            }
           },
           {
-            "aff4_class": "ClientApproval",
-            "age_policy": "ALL_TIMES",
-            "attributes": {
-              "aff4:approval/approver": [
-                "test"
-              ],
-              "aff4:approval/email_cc": [
-                "approver"
-              ],
-              "aff4:approval/email_msg_id": [
-                "<message id stub>"
-              ],
-              "aff4:approval/requestor": [
-                "test"
-              ],
-              "aff4:approval/subject": [
-                "aff4:/C.1000000000000000"
-              ],
-              "aff4:type": [
-                "ClientApproval"
-              ],
-              "aff4:approval/reason": [
-                "Running tests"
-              ],
-              "metadata:last": [
-                44000000
-              ]
-            },
             "is_valid": false,
             "is_valid_message": "Requires 2 approvers for access.",
+            "reason": "Running tests",
             "subject": {
-              "aff4_class": "VFSGRRClient",
-              "age_policy": "NEWEST_TIME",
-              "attributes": {
-                "aff4:host_ips": "192.168.0.0\n2001:abcd::0",
-                "aff4:mac_addresses": "aabbccddee00\nbbccddeeff00",
-                "aff4:type": "VFSGRRClient",
-                "metadata:ClientInfo": {
-                  "client_name": "GRR Monitor"
-                },
-                "metadata:fqdn": "Host-0.example.com",
-                "metadata:hostname": "Host-0",
-                "metadata:knowledge_base": {
-                  "hostname": "Host-0.example.com"
-                },
-                "metadata:last": 44000000,
-                "metadata:ping": 42000000
+              "agent_info": {
+                "client_name": "GRR Monitor"
               },
-              "disk_warnings": [],
-              "summary": {
-                "client_id": "aff4:/C.1000000000000000",
-                "client_info": {
-                  "client_name": "GRR Monitor"
-                },
-                "serial_number": "",
-                "system_info": {
-                  "fqdn": "Host-0.example.com",
-                  "node": "Host-0",
-                  "version": ""
-                },
-                "system_manufacturer": "",
-                "timestamp": 42000000
+              "hardware_info": {},
+              "labels": [],
+              "last_seen_at": 42000000,
+              "os_info": {
+                "fqdn": "Host-0.example.com",
+                "node": "Host-0",
+                "version": ""
               },
               "urn": "aff4:/C.1000000000000000"
-            },
-            "urn": "aff4:/ACL/C.1000000000000000/test/UnVubmluZyB0ZXN0cw=="
+            }
           }
-        ],
-        "offset": 0
+        ]
       },
       "url": "/api/users/me/approvals/client"
-    },
+    }
+  ],
+  "ApiListUserHuntApprovalsHandler": [
     {
       "method": "GET",
       "response": {
-        "count": 1,
         "items": [
           {
             "aff4_class": "HuntApproval",
@@ -11110,12 +10581,10 @@
             },
             "urn": "aff4:/ACL/hunts/H:123456/test/UnVubmluZyB0ZXN0cw=="
           }
-        ],
-        "offset": 0
+        ]
       },
-      "test_class": "ApiListUserApprovalsHandlerRegressionTest",
+      "test_class": "ApiListUserHuntApprovalsHandlerRegressionTest",
       "type_stripped_response": {
-        "count": 1,
         "items": [
           {
             "aff4_class": "HuntApproval",
@@ -11399,8 +10868,7 @@
             },
             "urn": "aff4:/ACL/hunts/H:123456/test/UnVubmluZyB0ZXN0cw=="
           }
-        ],
-        "offset": 0
+        ]
       },
       "url": "/api/users/me/approvals/hunt"
     }

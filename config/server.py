@@ -101,13 +101,17 @@ config_lib.DEFINE_bool("Cron.active", False,
                        "Set to true to run a cron thread on this binary.")
 
 config_lib.DEFINE_list("Cron.enabled_system_jobs", [],
-                       "List of system cron jobs that will be "
-                       "automatically scheduled on worker startup. "
-                       "If cron jobs from this list were disabled "
-                       "before, they will be enabled on worker "
-                       "startup. Vice versa, if they were enabled "
-                       "but are not specified in the list, they "
-                       "will be disabled.")
+                       "DEPRECATED: Use Cron.disabled_system_jobs instead. "
+                       "If Cron.enabled_system_jobs is set, only the listed "
+                       "cron flows will be run as system cron jobs. Cannot "
+                       "be used together with Cron.disabled_system_jobs.")
+
+config_lib.DEFINE_list("Cron.disabled_system_jobs", [],
+                       "Normally, all subclasses of SystemCronFlow are "
+                       "considered system jobs and run automatically. System "
+                       "jobs listed here will not be run. Many system jobs are "
+                       "important. Leave empty unless you are sure that you "
+                       "know what you are doing.")
 
 config_lib.DEFINE_integer("ACL.approvers_required", 2,
                           "The number of approvers required for access.")
@@ -200,6 +204,16 @@ config_lib.DEFINE_string("AdminUI.new_hunt_wizard.default_output_plugin",
                          None,
                          "Output plugin that will be added by default in the "
                          "'New Hunt' wizard output plugins selection page.")
+
+config_lib.DEFINE_bool("AdminUI.new_hunt_wizard.use_object_oriented_hunt_rules",
+                       default=False,
+                       help="If True, the hunt rules configuration UI will put "
+                       "the rules into the 'rules' field of the "
+                       "'huntRunnerArgs' variable, instead of using "
+                       "'integerRules' and 'regexRules'. Note that further "
+                       "handling this kind of rules is not yet implemented on "
+                       "the server side, so this flag should only be used "
+                       "for testing purposes right now.")
 
 config_lib.DEFINE_string("Server.master_watcher_class", "DefaultMasterWatcher",
                          "The master watcher class to use.")

@@ -19,12 +19,15 @@ from grr.lib import queues
 from grr.lib import rdfvalue
 
 
+AUDIT_EVENT = "Audit"
+
+
 class AuditEventListener(flow.EventListener):
   """Receive the audit events."""
   well_known_session_id = rdfvalue.SessionID(base="aff4:/audit",
                                              queue=queues.FLOWS,
                                              flow_name="listener")
-  EVENTS = ["Audit"]
+  EVENTS = [AUDIT_EVENT]
 
   @flow.EventHandler(auth_required=False)
   def ProcessMessage(self, message=None, event=None):

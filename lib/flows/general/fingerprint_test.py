@@ -54,11 +54,6 @@ class TestFingerprintFlow(test_lib.FlowTestsBaseclass):
     fd = aff4.FACTORY.Open(urn, token=self.token)
     self.assertEqual(fd.__class__, aff4_grr.VFSFile)
 
-    # FINGERPRINT is deprecated in favour of HASH, check it anyway
-    fingerprint = fd.Get(fd.Schema.FINGERPRINT)
-    pecoff = fingerprint.GetFingerprint("pecoff")["sha1"].encode("hex")
-    self.assertEqual(pecoff, "1f32fa4eedfba023653c094143d90999f6b9bc4f")
-
     hash_obj = fd.Get(fd.Schema.HASH)
     self.assertEqual(hash_obj.pecoff_sha1,
                      "1f32fa4eedfba023653c094143d90999f6b9bc4f")

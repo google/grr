@@ -58,16 +58,16 @@ var ClientsListController = grrUi.client.clientsListDirective
  * @export
  */
 ClientsListController.prototype.onClientClick = function(client) {
-  grr.state.client_id = client['urn'];
+  grr.state.client_id = client['value']['urn']['value'];
 
-  grr.publish('hash_state', 'c', client['urn']);
+  grr.publish('hash_state', 'c', client['value']['urn']['value']);
 
   // Clear the authorization for new clients.
   grr.publish('hash_state', 'reason', '');
   grr.state.reason = '';
 
   grr.publish('hash_state', 'main', null);
-  grr.publish('client_selection', client['urn']);
+  grr.publish('client_selection', client['value']['urn']['value']);
 };
 
 
@@ -100,9 +100,19 @@ ClientsListController.prototype.updateNumSelectedClients = function() {
  */
 ClientsListController.prototype.onClientsFetched = function(items) {
   angular.forEach(items, function(item) {
-    var urn = item['urn'];
+    var urn = item['value']['urn']['value'];
     this.clients[urn] = item;
     this.selectedClients[urn] = false;
+
+    item['_mac_addresses'] = [];
+    angular.forEach(item['value']['interfaces'], function(iface) {
+      item['_mac_addresses'].push(iface['value']['mac_address']);
+    }.bind(this));
+
+    item['_usernames'] = [];
+    angular.forEach(item['value']['users'], function(user) {
+      item['_usernames'].push(user['value']['username']);
+    }.bind(this));
   }.bind(this));
 
   return items;

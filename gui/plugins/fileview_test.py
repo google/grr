@@ -299,7 +299,7 @@ class TestFileView(FileViewTestBase):
     # Check that export tool download hint is displayed.
     self.WaitUntil(
         self.IsTextPresent, "/usr/bin/grr_export "
-        "--username test --reason 'Running tests' file --path "
+        "--username test file --path "
         "aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt --output .")
 
   def testUpdateButton(self):
@@ -470,8 +470,8 @@ class TestFileView(FileViewTestBase):
     # 'Export' tab should be there, since we're dealing with StatEntries.
     self.Click("css=#Export")
     self.WaitUntil(self.IsTextPresent,
-                   "--username test --reason 'Running tests' collection_files "
-                   "--path aff4:/C.0000000000000001/analysis/SomeFlow/results")
+                   "--username test collection_files --path "
+                   "aff4:/C.0000000000000001/analysis/SomeFlow/results")
 
   def testFileViewHasExportTabWhenCollectionHasStatEntries(self):
     collection_urn = "aff4:/C.0000000000000001/analysis/SomeFlow/results"

@@ -8,7 +8,6 @@ import platform
 
 # These import populate the VFSHandler registry
 from grr.client.vfs_handlers import files
-from grr.client.vfs_handlers import memory
 from grr.client.vfs_handlers import sleuthkit
 
 # pylint: disable=g-import-not-at-top

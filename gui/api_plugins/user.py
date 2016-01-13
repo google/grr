@@ -5,6 +5,8 @@ from grr.gui import api_aff4_object_renderers
 from grr.gui import api_call_handler_base
 from grr.gui import api_value_renderers
 
+from grr.gui.api_plugins import client as api_client
+
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import utils
@@ -19,19 +21,34 @@ from grr.proto import api_pb2
 CATEGORY = "User"
 
 
-class ApiListUserApprovalsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListUserApprovalsArgs
+class ApiUserClientApproval(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiUserClientApproval
 
 
-class ApiListUserApprovalsHandler(api_call_handler_base.ApiCallHandler):
+class ApiListUserClientApprovalsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListUserClientApprovalsArgs
+
+
+class ApiListUserClientApprovalsResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListUserClientApprovalsResult
+
+
+class ApiListUserHuntApprovalsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListUserHuntApprovalsArgs
+
+
+class ApiListUserCronApprovalsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListUserCronApprovalsArgs
+
+
+class ApiListUserApprovalsHandlerBase(api_call_handler_base.ApiCallHandler):
   """Renders list of all user approvals."""
 
   category = CATEGORY
-  args_type = ApiListUserApprovalsArgs
 
-  def Render(self, args, token=None):
+  def _GetApprovals(self, approval_type, offset, count, token=None):
     approvals_base_urn = aff4.ROOT_URN.Add("users").Add(token.username).Add(
-        "approvals").Add(args.approval_type.name.lower())
+        "approvals").Add(approval_type)
 
     all_children = aff4.FACTORY.RecursiveMultiListChildren(
         [approvals_base_urn], token=token)
@@ -44,22 +61,36 @@ class ApiListUserApprovalsHandler(api_call_handler_base.ApiCallHandler):
       approvals_urns.append(subject)
 
     approvals_urns.sort(key=lambda x: x.age, reverse=True)
-    if args.count:
-      right_edge = args.offset + args.count
+    if count:
+      right_edge = offset + count
     else:
       right_edge = len(approvals_urns)
-    approvals_urns = approvals_urns[args.offset:right_edge]
+    approvals_urns = approvals_urns[offset:right_edge]
 
     approvals = list(aff4.FACTORY.MultiOpen(
         approvals_urns, mode="r", aff4_type=aff4_security.Approval.__name__,
         age=aff4.ALL_TIMES, token=token))
+    approvals_by_urn = {}
+    for approval in approvals:
+      approvals_by_urn[approval.symlink_urn
+                       or approval.urn] = approval
+    sorted_approvals = []
+    for approval_urn in approvals_urns:
+      try:
+        sorted_approvals.append(approvals_by_urn[approval_urn])
+      except KeyError:
+        pass
+
     subjects_urns = [a.Get(a.Schema.SUBJECT) for a in approvals]
     subjects_by_urn = {}
     for subject in aff4.FACTORY.MultiOpen(subjects_urns, mode="r",
                                           token=token):
       subjects_by_urn[subject.urn] = subject
 
-    rendered_approvals_by_urn = {}
+    return sorted_approvals, subjects_by_urn
+
+  def _RenderApprovals(self, approvals, subjects_by_urn):
+    rendered_approvals = []
     for approval in approvals:
       try:
         subject = subjects_by_urn[approval.Get(approval.Schema.SUBJECT)]
@@ -77,17 +108,72 @@ class ApiListUserApprovalsHandler(api_call_handler_base.ApiCallHandler):
         rendered_approval["is_valid"] = False
         rendered_approval["is_valid_message"] = utils.SmartStr(e)
 
-      rendered_approvals_by_urn[approval.symlink_urn
-                                or approval.urn] = rendered_approval
+      rendered_approvals.append(rendered_approval)
 
-    items = []
-    for urn in approvals_urns:
+    return dict(items=rendered_approvals)
+
+  def _HandleApprovals(self, approvals, subjects_by_urn, convert_func):
+    converted_approvals = []
+    for approval in approvals:
       try:
-        items.append(rendered_approvals_by_urn[urn])
+        subject = subjects_by_urn[approval.Get(approval.Schema.SUBJECT)]
       except KeyError:
-        pass
+        continue
 
-    return dict(items=items, offset=args.offset, count=len(items))
+      converted_approval = convert_func(approval, subject)
+      converted_approvals.append(converted_approval)
+
+    return converted_approvals
+
+
+class ApiListUserClientApprovalsHandler(ApiListUserApprovalsHandlerBase):
+  """Returns list of user's clients approvals."""
+
+  args_type = ApiListUserClientApprovalsArgs
+  result_type = ApiListUserClientApprovalsResult
+
+  def _ApprovalToApiApproval(self, approval_obj, subject):
+    result = ApiUserClientApproval(
+        subject=api_client.ApiGetClientHandler.VFSGRRClientToApiClient(subject),
+        reason=approval_obj.Get(approval_obj.Schema.REASON))
+
+    try:
+      approval_obj.CheckAccess(approval_obj.token)
+      result.is_valid = True
+    except access_control.UnauthorizedAccess as e:
+      result.is_valid = False
+      result.is_valid_message = utils.SmartStr(e)
+
+    return result
+
+  def Handle(self, args, token=None):
+    approvals, subjects_by_urn = self._GetApprovals(
+        "client", args.offset, args.count, token=token)
+    return ApiListUserClientApprovalsResult(
+        items=self._HandleApprovals(approvals, subjects_by_urn,
+                                    self._ApprovalToApiApproval))
+
+
+class ApiListUserHuntApprovalsHandler(ApiListUserApprovalsHandlerBase):
+  """Returns list of user's hunts approvals."""
+
+  args_type = ApiListUserHuntApprovalsArgs
+
+  def Render(self, args, token=None):
+    approvals, subjects_by_urn = self._GetApprovals(
+        "hunt", args.offset, args.count, token=token)
+    return self._RenderApprovals(approvals, subjects_by_urn)
+
+
+class ApiListUserCronApprovalsHandler(ApiListUserApprovalsHandlerBase):
+  """Returns list of user's cron jobs approvals."""
+
+  args_type = ApiListUserCronApprovalsArgs
+
+  def Render(self, args, token=None):
+    approvals, subjects_by_urn = self._GetApprovals(
+        "cron", args.offset, args.count, token=token)
+    return self._RenderApprovals(approvals, subjects_by_urn)
 
 
 class ApiGetUserSettingsHandler(api_call_handler_base.ApiCallHandler):

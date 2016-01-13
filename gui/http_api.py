@@ -172,10 +172,10 @@ def RenderHttpResponse(request):
 
   strip_type_info = False
 
-  if request.method == "GET":
-    if request.GET.get("strip_type_info", ""):
-      strip_type_info = True
+  if hasattr(request, "GET") and request.GET.get("strip_type_info", ""):
+    strip_type_info = True
 
+  if request.method == "GET":
     if handler.args_type:
       unprocessed_request = request.GET
       if hasattr(unprocessed_request, "dict"):
@@ -329,8 +329,11 @@ class HttpApiInitHook(registry.InitHook):
     RegisterHttpRouteHandler(
         "POST", "/api/clients/<client_id>/flows/remotegetfile",
         api_plugins.flow.ApiStartGetFileOperationHandler)
-    # This starts client flows.
+    # DEPRECATED: This handler is deprecated as the URL breaks REST conventions.
     RegisterHttpRouteHandler("POST", "/api/clients/<client_id>/flows/start",
+                             api_plugins.flow.ApiCreateFlowHandler)
+    # This starts client flows.
+    RegisterHttpRouteHandler("POST", "/api/clients/<client_id>/flows",
                              api_plugins.flow.ApiCreateFlowHandler)
     # This starts global flows.
     RegisterHttpRouteHandler("POST", "/api/flows",
@@ -392,8 +395,16 @@ class HttpApiInitHook(registry.InitHook):
         "GET", "/api/stats/store/<component>/metrics/<metric_name>",
         api_plugins.stats.ApiGetStatsStoreMetricHandler)
 
-    RegisterHttpRouteHandler("GET", "/api/users/me/approvals/<approval_type>",
-                             api_plugins.user.ApiListUserApprovalsHandler)
+    RegisterHttpRouteHandler(
+        "GET", "/api/users/me/approvals/client",
+        api_plugins.user.ApiListUserClientApprovalsHandler)
+    RegisterHttpRouteHandler(
+        "GET", "/api/users/me/approvals/hunt",
+        api_plugins.user.ApiListUserHuntApprovalsHandler)
+    RegisterHttpRouteHandler(
+        "GET", "/api/users/me/approvals/cron",
+        api_plugins.user.ApiListUserCronApprovalsHandler)
+
     RegisterHttpRouteHandler("GET", "/api/users/me/settings",
                              api_plugins.user.ApiGetUserSettingsHandler)
     RegisterHttpRouteHandler("POST", "/api/users/me/settings",

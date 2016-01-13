@@ -20,6 +20,7 @@ from grr.lib import flow_runner
 from grr.lib import hunts
 from grr.lib import output_plugin
 from grr.lib import rdfvalue
+from grr.lib import stats
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import user_managers
@@ -66,6 +67,44 @@ class LongRunningDummyHuntOutputPlugin(output_plugin.OutputPlugin):
     time.time = lambda: 100
 
 
+class VerifiableDummyHuntOutputPlugin(output_plugin.OutputPlugin):
+
+  def ProcessResponses(self, unused_responses):
+    pass
+
+
+class VerifiableDummyHuntOutputPluginVerfier(
+    output_plugin.OutputPluginVerifier):
+  plugin_name = VerifiableDummyHuntOutputPlugin.__name__
+
+  num_calls = 0
+
+  def VerifyHuntOutput(self, plugin, hunt):
+    VerifiableDummyHuntOutputPluginVerfier.num_calls += 1
+    return output_plugin.OutputPluginVerificationResult(status="SUCCESS",
+                                                        status_message="yo")
+
+  def VerifyFlowOutput(self, plugin, hunt):
+    pass
+
+
+class DummyHuntOutputPluginWithRaisingVerifier(output_plugin.OutputPlugin):
+
+  def ProcessResponses(self, unused_responses):
+    pass
+
+
+class DummyHuntOutputPluginWithRaisingVerifierVerifier(
+    output_plugin.OutputPluginVerifier):
+  plugin_name = DummyHuntOutputPluginWithRaisingVerifier.__name__
+
+  def VerifyHuntOutput(self, plugin, hunt):
+    raise RuntimeError("foobar")
+
+  def VerifyFlowOutput(self, plugin, hunt):
+    pass
+
+
 class InfiniteFlow(flow.GRRFlow):
   """Flow that never ends."""
 
@@ -84,7 +123,8 @@ class StandardHuntTestMixin(object):
   def CreateHunt(self, token=None, **kwargs):
     return hunts.GRRHunt.StartHunt(
         hunt_name="GenericHunt",
-        flow_runner_args=flow_runner.FlowRunnerArgs(flow_name="GetFile"),
+        flow_runner_args=flow_runner.FlowRunnerArgs(
+            flow_name="GetFile"),
         flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
             path="/tmp/evil.txt",
             pathtype=rdf_paths.PathSpec.PathType.OS)),
@@ -693,7 +733,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
                              token=self.token) as win_client:
         win_client.Set(win_client.Schema.SYSTEM("Windows"))
 
-      with test_lib.FakeTime(0, increment=0.01):
+      with test_lib.FakeTime(0, increment=1e-6):
         with hunts.GRRHunt.StartHunt(
             hunt_name="StatsHunt", client_rate=0, token=self.token,
             output_plugins=[
@@ -716,7 +756,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
 
       # Lets advance the time and re-run the hunt. The clients should now
       # receive their messages.
-      with test_lib.FakeTime(10 + interval.seconds, increment=0.01):
+      with test_lib.FakeTime(10 + interval.seconds, increment=1e-6):
         test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
 
         self.assertEqual(client_mock.response_count, len(self.client_ids))
@@ -1136,6 +1176,152 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       with self.assertRaises(RuntimeError):
         flow.GRRFlow.StartFlow(flow_name="DeleteHuntFlow",
                                token=token1, hunt_urn=hunt.urn)
+
+
+class VerifyHuntOutputPluginsCronFlowTest(
+    test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
+  """Tests VerifyHuntOutputPluginsCronFlow."""
+
+  def setUp(self):
+    super(VerifyHuntOutputPluginsCronFlowTest, self).setUp()
+    self.client_ids = self.SetupClients(1)
+    VerifiableDummyHuntOutputPluginVerfier.num_calls = 0
+
+  def GetVerificationsStats(self):
+    fields = stats.STATS.GetMetricFields("hunt_output_plugin_verifications")
+
+    result = {}
+    for field_value in fields:
+      result[field_value[0]] = stats.STATS.GetMetricValue(
+          "hunt_output_plugin_verifications", fields=field_value)
+
+    return sum(result.values()), result
+
+  def testDoesNothingWithNonGenericHunts(self):
+    hunts.GRRHunt.StartHunt(hunt_name="SampleHunt",
+                            token=self.token)
+
+    prev_count, _ = self.GetVerificationsStats()
+    flow.GRRFlow.StartFlow(flow_name="VerifyHuntOutputPluginsCronFlow",
+                           token=self.token)
+    count, _ = self.GetVerificationsStats()
+
+    self.assertEqual(count - prev_count, 0)
+
+  def testDoesNothinngWithGenericHuntWithNoPlugins(self):
+    self.StartHunt()
+    self.AssignTasksToClients()
+    self.RunHunt()
+
+    prev_count, _ = self.GetVerificationsStats()
+    flow.GRRFlow.StartFlow(flow_name="VerifyHuntOutputPluginsCronFlow",
+                           token=self.token)
+    count, _ = self.GetVerificationsStats()
+
+    self.assertEqual(count - prev_count, 0)
+
+  def testReturnsNAStatusForGenericHuntWithUnverifiableOutputPlugins(self):
+    self.StartHunt(output_plugins=[output_plugin.OutputPluginDescriptor(
+        plugin_name=DummyHuntOutputPlugin.__name__)])
+    self.AssignTasksToClients()
+    self.RunHunt()
+
+    _, prev_results = self.GetVerificationsStats()
+    flow.GRRFlow.StartFlow(flow_name="VerifyHuntOutputPluginsCronFlow",
+                           token=self.token)
+    _, results = self.GetVerificationsStats()
+
+    self.assertEqual(results["N_A"] - prev_results.get("N_A", 0), 1)
+
+  def testWritesStatusToHuntResultsMetadata(self):
+    hunt_urn = self.StartHunt(
+        output_plugins=[output_plugin.OutputPluginDescriptor(
+            plugin_name=DummyHuntOutputPlugin.__name__)])
+    self.AssignTasksToClients()
+    self.RunHunt()
+
+    flow.GRRFlow.StartFlow(flow_name="VerifyHuntOutputPluginsCronFlow",
+                           token=self.token)
+
+    results_metadata = aff4.FACTORY.Open(hunt_urn.Add("ResultsMetadata"),
+                                         token=self.token)
+    verification_results_list = results_metadata.Get(
+        results_metadata.Schema.OUTPUT_PLUGINS_VERIFICATION_RESULTS)
+    self.assertEqual(len(verification_results_list.results), 1)
+    self.assertEqual(verification_results_list.results[0].status,
+                     "N_A")
+
+  def testRunsCorrespondingVerifierIfThereIsOne(self):
+    self.StartHunt(output_plugins=[output_plugin.OutputPluginDescriptor(
+        plugin_name=VerifiableDummyHuntOutputPlugin.__name__)])
+    self.AssignTasksToClients()
+    self.RunHunt()
+
+    _, prev_results = self.GetVerificationsStats()
+    flow.GRRFlow.StartFlow(flow_name="VerifyHuntOutputPluginsCronFlow",
+                           token=self.token)
+    _, results = self.GetVerificationsStats()
+
+    self.assertEqual(results["SUCCESS"] - prev_results.get("SUCCESS", 0), 1)
+
+  def testRaisesIfVerifierRaises(self):
+    self.StartHunt(output_plugins=[output_plugin.OutputPluginDescriptor(
+        plugin_name=DummyHuntOutputPluginWithRaisingVerifier.__name__)])
+    self.AssignTasksToClients()
+    self.RunHunt()
+
+    prev_count, _ = self.GetVerificationsStats()
+    self.assertRaises(standard.HuntVerificationError, flow.GRRFlow.StartFlow,
+                      flow_name="VerifyHuntOutputPluginsCronFlow",
+                      token=self.token)
+    count, _ = self.GetVerificationsStats()
+    self.assertEqual(count - prev_count, 0)
+
+  def testUpdatesStatsCounterOnException(self):
+    self.StartHunt(output_plugins=[output_plugin.OutputPluginDescriptor(
+        plugin_name=DummyHuntOutputPluginWithRaisingVerifier.__name__)])
+    self.AssignTasksToClients()
+    self.RunHunt()
+
+    prev_count = stats.STATS.GetMetricValue(
+        "hunt_output_plugin_verification_errors")
+    try:
+      flow.GRRFlow.StartFlow(flow_name="VerifyHuntOutputPluginsCronFlow",
+                             token=self.token)
+    except standard.HuntVerificationError:
+      pass
+    count = stats.STATS.GetMetricValue(
+        "hunt_output_plugin_verification_errors")
+    self.assertEqual(count - prev_count, 1)
+
+  def testChecksAllHuntsEvenIfOneRaises(self):
+    self.StartHunt(output_plugins=[output_plugin.OutputPluginDescriptor(
+        plugin_name=DummyHuntOutputPluginWithRaisingVerifier.__name__)])
+    self.StartHunt(output_plugins=[output_plugin.OutputPluginDescriptor(
+        plugin_name=VerifiableDummyHuntOutputPlugin.__name__)])
+    self.AssignTasksToClients()
+    self.RunHunt()
+
+    _, prev_results = self.GetVerificationsStats()
+    self.assertRaises(standard.HuntVerificationError, flow.GRRFlow.StartFlow,
+                      flow_name="VerifyHuntOutputPluginsCronFlow",
+                      token=self.token)
+    _, results = self.GetVerificationsStats()
+    self.assertEqual(results["SUCCESS"] - prev_results.get("SUCCESS", 0), 1)
+
+  def testDoesNotCheckHuntsOutsideOfCheckRange(self):
+    now = rdfvalue.RDFDatetime().Now()
+    with test_lib.FakeTime(now - rdfvalue.Duration("61m"), increment=1e-6):
+      self.StartHunt(output_plugins=[output_plugin.OutputPluginDescriptor(
+          plugin_name=VerifiableDummyHuntOutputPlugin.__name__)])
+      self.AssignTasksToClients()
+      self.RunHunt()
+
+    prev_count, _ = self.GetVerificationsStats()
+    flow.GRRFlow.StartFlow(flow_name="VerifyHuntOutputPluginsCronFlow",
+                           check_range="60m", token=self.token)
+    count, _ = self.GetVerificationsStats()
+    self.assertEqual(count - prev_count, 0)
 
 
 def main(argv):

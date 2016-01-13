@@ -7,8 +7,8 @@ import json
 import os
 import socket
 
-from grr.client.client_actions import grr_rekall
-
+from grr.client.components.rekall_support import grr_rekall
+from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import export
@@ -30,7 +30,6 @@ from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
-from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import tests_pb2
 

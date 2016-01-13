@@ -1,4 +1,4 @@
-<ul  class="breadcrumb">
+<ul class="breadcrumb">
   <li>
     <button title="Add Labels" class="btn btn-default"
             ng-disabled="controller.numSelectedClients == 0"
@@ -58,8 +58,8 @@
       <!-- Selection checkbox -->
       <td>
         <input type="checkbox" class="client-checkbox"
-               client_urn="{$ item.urn $}"
-               ng-model="controller.selectedClients[item.urn]"
+               client_urn="{$ item.value.urn.value $}"
+               ng-model="controller.selectedClients[item.value.urn.value]"
                ng-change="controller.updateNumSelectedClients()"
                ng-click="$event.stopPropagation()"
                />
@@ -72,52 +72,52 @@
 
       <!-- Subject -->
       <td>
-        <span type="subject">{$ ::item.urn | grrBasename $}</span>
+        <span type="subject">{$ ::item.value.urn.value | grrBasename $}</span>
       </td>
 
       <!-- Host -->
       <td>
-        <grr-semantic-value value="::item.attributes['metadata:hostname']" />
+        <grr-semantic-value value="::item.value.os_info.value.node" />
       </td>
 
       <!-- OS Version -->
       <td>
-        <grr-semantic-value value="::item.attributes['metadata:os_version']" />
+        <grr-semantic-value value="::item.value.os_info.value.version" />
       </td>
 
       <!-- MAC -->
       <td>
-        <grr-semantic-value value="::item.attributes['aff4:mac_addresses']" />
+        <grr-semantic-value value="::item._mac_addresses" />
       </td>
 
       <!-- Usernames -->
       <td>
-        <grr-client-usernames value="::item.attributes['aff4:user_names']" />
+        <grr-semantic-value value="::item._usernames" />
       </td>
 
       <!-- First seen -->
       <td>
-        <grr-semantic-value value="::item.attributes['metadata:FirstSeen']" />
+        <grr-semantic-value value="::item.value.first_seen_at.value" />
       </td>
 
       <!-- Client version -->
       <td>
-        <grr-semantic-value value="::item.attributes['metadata:ClientInfo']['value']['client_version']" />
+        <grr-semantic-value value="::item.value.agent_info.value.client_version" />
       </td>
 
       <!-- Labels -->
       <td>
-        <grr-semantic-value value="item.attributes['aff4:labels_list']" />
+        <grr-semantic-value value="::item.value.labels" />
       </td>
 
       <!-- Latest checkin -->
       <td>
-        <grr-semantic-value value="::item.attributes['metadata:clock']" />
+        <grr-semantic-value value="::item.value.last_clock" />
       </td>
 
       <!-- OS install date -->
       <td>
-        <grr-semantic-value value="::item.attributes['metadata:install_date']" />
+        <grr-semantic-value value="::item.value.os_info.value.install_date" />
       </td>
 
     </tr>

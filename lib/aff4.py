@@ -836,8 +836,14 @@ class Factory(object):
     if isinstance(urns, basestring):
       raise RuntimeError("Expected an iterable, not string.")
     for subject, values in data_store.DB.MultiResolvePrefix(
-        urns, ["aff4:type"], token=token):
-      yield dict(urn=rdfvalue.RDFURN(subject), type=values[0])
+        urns, ["aff4:type", "metadata:last"], token=token):
+      res = dict(urn=rdfvalue.RDFURN(subject))
+      for v in values:
+        if v[0] == "aff4:type":
+          res["type"] = v
+        elif v[0] == "metadata:last":
+          res["last"] = rdfvalue.RDFDatetime(v[1])
+      yield res
 
   def Create(self, urn, aff4_type, mode="w", token=None, age=NEWEST_TIME,
              ignore_cache=False, force_new_version=True,
@@ -1043,6 +1049,23 @@ class Factory(object):
 
     for subject in set(urns) - checked_subjects:
       yield subject, []
+
+  def ListChildren(self, urn, token=None, limit=None, age=NEWEST_TIME):
+    """Lists bunch of directories efficiently.
+
+    Args:
+      urn: Urn to list children.
+      token: Security token.
+      limit: Max number of children to list.
+      age: The age of the items to retrieve. Should be one of ALL_TIMES,
+           NEWEST_TIME or a range.
+
+    Returns:
+      RDFURNs instances of each child.
+    """
+    _, children_urns = list(self.MultiListChildren(
+        [urn], token=token, limit=limit, age=age))[0]
+    return children_urns
 
   def RecursiveMultiListChildren(self, urns, token=None, limit=None,
                                  age=NEWEST_TIME):
@@ -2559,6 +2582,7 @@ class AFF4MemoryStreamBase(AFF4Stream):
 
   def Initialize(self):
     """Try to load the data from the store."""
+    super(AFF4MemoryStreamBase, self).Initialize()
     contents = ""
 
     if "r" in self.mode:
@@ -2648,11 +2672,21 @@ class AFF4UnversionedMemoryStream(AFF4MemoryStreamBase):
                         versioned=False)
 
 
-class AFF4ObjectCache(utils.FastStore):
+class ChunkCache(utils.FastStore):
   """A cache which closes its objects when they expire."""
 
+  def __init__(self, kill_cb=None, *args, **kw):
+    self.kill_cb = kill_cb
+    super(ChunkCache, self).__init__(*args, **kw)
+
   def KillObject(self, obj):
-    obj.Close(sync=True)
+    if self.kill_cb:
+      self.kill_cb(obj)
+
+  def __getstate__(self):
+    if self.kill_cb:
+      raise NotImplementedError("Can't pickle callback.")
+    return self.__dict__
 
 
 class AFF4ImageBase(AFF4Stream):
@@ -2687,10 +2721,9 @@ class AFF4ImageBase(AFF4Stream):
   def Initialize(self):
     """Build a cache for our chunks."""
     super(AFF4ImageBase, self).Initialize()
-
     self.offset = 0
     # A cache for segments - When we get pickled we want to discard them.
-    self.chunk_cache = AFF4ObjectCache(100)
+    self.chunk_cache = ChunkCache(self._WriteChunk, 100)
 
     if "r" in self.mode:
       self.size = int(self.Get(self.Schema.SIZE))
@@ -2735,46 +2768,72 @@ class AFF4ImageBase(AFF4Stream):
     self.offset = offset
     self.chunk_cache.Flush()
 
-  def _GetChunkForWriting(self, chunk):
-    chunk_name = self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk)
-    try:
-      fd = self.chunk_cache.Get(chunk_name)
-    except KeyError:
-      fd = FACTORY.Create(chunk_name, self.STREAM_TYPE, mode="rw",
-                          token=self.token)
-      self.chunk_cache.Put(chunk_name, fd)
+  def _ReadChunk(self, chunk):
+    self._ReadChunks([chunk])
+    return self.chunk_cache.Get(chunk)
 
+  def _ReadChunks(self, chunks):
+    chunk_names = {self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk): chunk
+                   for chunk in chunks}
+    for child in FACTORY.MultiOpen(
+        chunk_names, mode="rw", token=self.token, age=self.age_policy):
+      if isinstance(child, AFF4Stream):
+        fd = StringIO.StringIO(child.read())
+        fd.dirty = False
+        fd.chunk = chunk_names[child.urn]
+        self.chunk_cache.Put(fd.chunk, fd)
+
+  def _WriteChunk(self, chunk):
+    if chunk.dirty:
+      chunk_name = self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk.chunk)
+      with FACTORY.Create(
+          chunk_name, self.STREAM_TYPE, mode="rw", token=self.token) as fd:
+        fd.write(chunk.getvalue())
+
+  def _GetChunkForWriting(self, chunk):
+    """Opens a chunk for writing, creating a new one if it doesn't exist yet."""
+    try:
+      chunk = self.chunk_cache.Get(chunk)
+      chunk.dirty = True
+      return chunk
+    except KeyError:
+      pass
+
+    try:
+      chunk = self._ReadChunk(chunk)
+      chunk.dirty = True
+      return chunk
+    except KeyError:
+      pass
+
+    fd = StringIO.StringIO()
+    fd.chunk = chunk
+    fd.dirty = True
+    self.chunk_cache.Put(chunk, fd)
     return fd
 
   def _GetChunkForReading(self, chunk):
     """Returns the relevant chunk from the datastore and reads ahead."""
-
-    chunk_name = self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk)
     try:
-      fd = self.chunk_cache.Get(chunk_name)
+      return self.chunk_cache.Get(chunk)
     except KeyError:
-      # The most common read access pattern is contiguous reading. Here we
-      # readahead to reduce round trips.
-      missing_chunks = []
-      for chunk_number in range(chunk, chunk + 10):
-        new_chunk_name = self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk_number)
-        try:
-          self.chunk_cache.Get(new_chunk_name)
-        except KeyError:
-          missing_chunks.append(new_chunk_name)
+      pass
 
-      for child in FACTORY.MultiOpen(
-          missing_chunks, mode="rw", token=self.token, age=self.age_policy):
-        if isinstance(child, AFF4Stream):
-          self.chunk_cache.Put(child.urn, child)
+    # We don't have this chunk already cached. The most common read
+    # access pattern is contiguous reading so since we have to go to
+    # the data store already, we read ahead to reduce round trips.
 
-      # This should work now - otherwise we just give up.
-      try:
-        fd = self.chunk_cache.Get(chunk_name)
-      except KeyError:
-        raise ChunkNotFoundError("Cannot open chunk %s" % chunk_name)
+    missing_chunks = []
+    for chunk_number in range(chunk, chunk + 10):
+      if chunk_number not in self.chunk_cache:
+        missing_chunks.append(chunk_number)
 
-    return fd
+    self._ReadChunks(missing_chunks)
+    # This should work now - otherwise we just give up.
+    try:
+      return self.chunk_cache.Get(chunk)
+    except KeyError:
+      raise ChunkNotFoundError("Cannot open chunk %s" % chunk)
 
   def _ReadPartial(self, length):
     """Read as much as possible, but not more than length."""
@@ -2798,9 +2857,9 @@ class AFF4ImageBase(AFF4Stream):
     if retries >= self.NUM_RETRIES:
       raise IOError("Chunk not found for reading.")
 
-    fd.Seek(chunk_offset)
+    fd.seek(chunk_offset)
 
-    result = fd.Read(available_to_read)
+    result = fd.read(available_to_read)
     self.offset += len(result)
 
     return result
@@ -2832,9 +2891,9 @@ class AFF4ImageBase(AFF4Stream):
     available_to_write = min(len(data), self.chunksize - chunk_offset)
 
     fd = self._GetChunkForWriting(chunk)
-    fd.Seek(chunk_offset)
+    fd.seek(chunk_offset)
 
-    fd.Write(data[:available_to_write])
+    fd.write(data[:available_to_write])
     self.offset += available_to_write
 
     return data[available_to_write:]
@@ -2856,7 +2915,7 @@ class AFF4ImageBase(AFF4Stream):
       if self.content_last is not None:
         self.Set(self.Schema.CONTENT_LAST, self.content_last)
 
-    # Flushing the cache will call Close() on all the chunks.
+    # Flushing the cache will write all chunks to the blob store.
     self.chunk_cache.Flush()
     super(AFF4ImageBase, self).Flush(sync=sync)
 
@@ -2870,6 +2929,19 @@ class AFF4ImageBase(AFF4Stream):
 
   def GetContentAge(self):
     return self.content_last
+
+  def __getstate__(self):
+    # We can't pickle the callback.
+    if "chunk_cache" in self.__dict__:
+      self.chunk_cache.Flush()
+      res = self.__dict__.copy()
+      del res["chunk_cache"]
+      return res
+    return self.__dict__
+
+  def __setstate__(self, state):
+    self.__dict__ = state
+    self.chunk_cache = ChunkCache(self._WriteChunk, 100)
 
 
 class AFF4Image(AFF4ImageBase):

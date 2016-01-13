@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """The base classes for RDFValue tests."""
 import time
-
+from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -10,7 +10,6 @@ from grr.lib import type_info
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
-from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 
 # pylint:mode=test
 

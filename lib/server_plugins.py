@@ -27,6 +27,7 @@ from grr.lib import output_plugin
 from grr.lib import output_plugins
 from grr.lib import stats
 from grr.lib.aff4_objects import registry_init
+from grr.lib.blob_stores import registry_init
 from grr.lib.data_stores import registry_init
 from grr.lib.flows.cron import registry_init
 from grr.lib.flows.general import registry_init

@@ -6,6 +6,7 @@ import __builtin__
 import mock
 
 from grr.gui import api_auth_manager
+from grr.gui import api_call_handler_base
 from grr.gui import api_call_handlers
 from grr.lib import access_control
 from grr.lib import flags
@@ -13,13 +14,17 @@ from grr.lib import test_lib
 from grr.lib.rdfvalues import test_base
 
 
+class DummyAuthManagerTestApiHandler(api_call_handler_base.ApiCallHandler):
+  pass
+
+
 class SimpleAPIAuthorizationManagerTest(test_lib.GRRBaseTest):
 
   def setUp(self):
     super(SimpleAPIAuthorizationManagerTest, self).setUp()
-    self.mock_handler = mock.MagicMock()
+    self.mock_handler = DummyAuthManagerTestApiHandler()
     self.mock_handler.enabled_by_default = True
-    self.mock_handler.__class__.__name__ = "ApiCallHandler"
+
     # API ACLs are off by default, we need to set this to something so the tests
     # exercise the functionality. Each test will supply its own ACL data.
     self.aclfile_overrider = test_lib.ConfigOverrider({
@@ -32,7 +37,7 @@ class SimpleAPIAuthorizationManagerTest(test_lib.GRRBaseTest):
 
   def testSimpleAPIAuthorizationManager(self):
     acls = """
-handler: "ApiCallHandler"
+handler: "DummyAuthManagerTestApiHandler"
 users:
 - "u1"
 - "u2"
@@ -47,7 +52,7 @@ users:
 
   def testDenyAll(self):
     acls = """
-handler: "ApiCallHandler"
+handler: "DummyAuthManagerTestApiHandler"
 """
     with mock.patch.object(__builtin__, "open", mock.mock_open(read_data=acls)):
       auth_mgr = api_auth_manager.SimpleAPIAuthorizationManager()
@@ -68,7 +73,7 @@ handler: "ApiCallHandler"
   def testRaiseIfGroupsDefined(self):
     """We have no way to expand groups, so raise if defined."""
     acls = """
-handler: "ApiCallHandler"
+handler: "DummyAuthManagerTestApiHandler"
 groups: ["g1"]
 """
     with mock.patch.object(__builtin__, "open", mock.mock_open(read_data=acls)):
@@ -88,7 +93,7 @@ groups: ["g1"]
   def testHandleApiCallNotEnabledWithACL(self):
     """Matching ACL and enabled_by_default=False is allowed."""
     acls = """
-handler: "ApiCallHandler"
+handler: "DummyAuthManagerTestApiHandler"
 users:
 - "test"
 """
@@ -96,17 +101,22 @@ users:
       auth_mgr = api_auth_manager.SimpleAPIAuthorizationManager()
 
     self.mock_handler.enabled_by_default = False
-    with mock.patch.object(api_call_handlers, "API_AUTH_MGR", auth_mgr):
-      api_call_handlers.HandleApiCall(self.mock_handler, "", token=self.token)
 
-    self.mock_handler.Render.assert_called_once_with("", token=self.token)
+    with mock.patch.object(api_call_handlers, "API_AUTH_MGR", auth_mgr):
+      with mock.patch.object(self.mock_handler, "Handle"):
+        self.mock_handler.Handle.return_value = None
+
+        api_call_handlers.HandleApiCall(self.mock_handler, None,
+                                        token=self.token)
+
+        self.mock_handler.Handle.assert_called_once_with(None, token=self.token)
 
 
 class APIAuthorizationImporterTest(test_lib.GRRBaseTest):
 
   def testACLs(self):
     acls = """
-handler: "ApiCallHandler"
+handler: "DummyAuthManagerTestApiHandler"
 users:
   - "u1"
   - "u2"
@@ -114,19 +124,21 @@ groups: ["g1"]
 """
     acl_mgr = api_auth_manager.APIAuthorizationImporter()
     acl_mgr.CreateACLs(acls)
-    self.assertItemsEqual(acl_mgr.acl_dict["ApiCallHandler"].users,
-                          ["u1", "u2"])
-    self.assertItemsEqual(acl_mgr.acl_dict["ApiCallHandler"].groups, ["g1"])
+    self.assertItemsEqual(
+        acl_mgr.acl_dict["DummyAuthManagerTestApiHandler"].users,
+        ["u1", "u2"])
+    self.assertItemsEqual(
+        acl_mgr.acl_dict["DummyAuthManagerTestApiHandler"].groups, ["g1"])
 
   def testRaiseOnDuplicateACLs(self):
     acls = """
-handler: "ApiCallHandler"
+handler: "DummyAuthManagerTestApiHandler"
 users:
   - "u1"
   - "u2"
 groups: ["g1"]
 ---
-handler: "ApiCallHandler"
+handler: "DummyAuthManagerTestApiHandler"
 users: ["u3"]
 """
 
@@ -139,16 +151,17 @@ class APIAuthorizationTest(test_base.RDFValueTestCase):
   rdfvalue_class = api_auth_manager.APIAuthorization
 
   def GenerateSample(self, number=0):
-    return api_auth_manager.APIAuthorization(handler="ApiCallHandler",
-                                             users=["user%s" % number])
+    return api_auth_manager.APIAuthorization(
+        handler="DummyAuthManagerTestApiHandler",
+        users=["user%s" % number])
 
   def testACLValidation(self):
     api_auth_manager.APIAuthorization(
-        handler="ApiCallHandler",
+        handler="DummyAuthManagerTestApiHandler",
         users=["u1", "u2"], groups=["g1", "g2"])
 
     api_auth_manager.APIAuthorization(
-        handler="ApiCallHandler")
+        handler="DummyAuthManagerTestApiHandler")
 
   def testACLValidationBadHandler(self):
     acls = """
@@ -166,13 +179,13 @@ users:
   def testACLValidationBadUsers(self):
     with self.assertRaises(api_auth_manager.InvalidAPIAuthorization):
       api_auth_manager.APIAuthorization(
-          handler="ApiCallHandler",
+          handler="DummyAuthManagerTestApiHandler",
           users="u1", groups=["g1"])
 
   def testACLValidationBadGroups(self):
     with self.assertRaises(api_auth_manager.InvalidAPIAuthorization):
       api_auth_manager.APIAuthorization(
-          handler="ApiCallHandler",
+          handler="DummyAuthManagerTestApiHandler",
           users=["u1"], groups="g1")
 
 

@@ -4,13 +4,15 @@
 import socket
 
 from grr.client import actions
+from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
+from grr.lib import access_control
+from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import worker_mocks
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
-from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr.test_data import client_fixture
 
 
@@ -134,6 +136,19 @@ class WindowsVolumeClientMock(ActionMock):
 class MemoryClientMock(ActionMock):
   """A mock of client state including memory actions."""
 
+  def __init__(self, *args, **kwargs):
+    super(MemoryClientMock, self).__init__(
+        "LoadComponent", "StatFile", "HashFile", "HashBuffer",
+        "TransferBuffer", *args, **kwargs)
+
+    # Create a fake component so we can launch the LoadComponent flow.
+    fd = aff4.FACTORY.Create(
+        "aff4:/config/component/grr-rekall_0.1", "ComponentObject",
+        mode="w", token=access_control.ACLToken(username="test",
+                                                reason="reason"))
+    fd.Set(fd.Schema.COMPONENT(name="grr-rekall", version="0.1"))
+    fd.Close()
+
   def InstallDriver(self, _):
     return []
 
@@ -216,7 +231,7 @@ class InterrogatedClient(ActionMock):
   def GetConfiguration(self, _):
     self.response_count += 1
     return [rdf_protodict.Dict({
-        "Client.control_urls": ["http://localhost:8001/control"],
+        "Client.server_urls": ["http://localhost:8001/"],
         "Client.poll_min": 1.0
     })]
 

@@ -88,10 +88,6 @@ class FingerprintFileMixin(object):
                 revision=data[0], cert_type=data[1], certificate=data[2])
 
     fd.Set(fd.Schema.HASH, hash_obj)
-
-    # TODO(user): This attribute will be deprecated in the future. Do not
-    # use.
-    fd.Set(fd.Schema.FINGERPRINT(response))
     fd.Close(sync=True)
 
     self.ReceiveFileFingerprint(

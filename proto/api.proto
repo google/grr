@@ -8,6 +8,8 @@ import "grr/proto/jobs.proto";
 import "grr/proto/flows.proto";
 import "grr/proto/output_plugin.proto";
 import "grr/proto/semantic.proto";
+import "grr/proto/sysinfo.proto";
+
 
 
 //
@@ -65,6 +67,10 @@ message ApiListClientsArgs {
     }];
 }
 
+message ApiListClientsResult {
+  repeated ApiClient items = 1;
+}
+
 message ApiGetClientArgs {
   optional string client_id = 1 [(sem_type) = {
       type: "ClientURN",
@@ -77,10 +83,7 @@ message ApiCreateFlowArgs {
       type: "ClientURN",
       description: "Client id."
     }];
-  optional FlowRunnerArgs runner_args = 2;
-  optional bytes flow_args = 3 [(sem_type) = {
-      dynamic_type: "GetFlowArgsClass"
-    }];
+  optional ApiFlow flow = 2;
 }
 
 message ApiCancelFlowArgs {
@@ -146,6 +149,10 @@ message ApiListFlowOutputPluginsArgs {
       type: "SessionID",
       description: "Flow id."
     }];
+}
+
+message ApiListFlowOutputPluginsResult {
+  repeated ApiOutputPlugin items = 2;
 }
 
 message ApiListFlowOutputPluginLogsArgs {
@@ -226,6 +233,10 @@ message ApiListClientFlowsArgs {
     }];
 };
 
+message ApiListClientFlowsResult {
+  repeated ApiFlow items = 1;
+};
+
 message ApiAddClientsLabelsArgs {
   repeated string client_ids = 1 [(sem_type) = {
       type: "ClientURN",
@@ -240,6 +251,14 @@ message ApiRemoveClientsLabelsArgs {
       description: "Client id."
     }];
   repeated string labels = 2;
+}
+
+message ApiListClientsLabelsResult {
+  repeated AFF4ObjectLabel items = 1;
+}
+
+message ApiListKbFieldsResult {
+  repeated string items = 2;
 }
 
 message ApiListHuntsArgs {
@@ -478,21 +497,35 @@ message ApiGetConfigOptionArgs {
     }];
 }
 
-message ApiListUserApprovalsArgs {
-  enum ApprovalType {
-    HUNT = 0;
-    CLIENT = 1;
-    CRON = 2;
-  }
-  optional ApprovalType approval_type = 1 [(sem_type) = {
-      description: "Approval type, i.e. 'hunt', 'client' or 'cron'."
-    }];
-  optional int64 offset = 2 [(sem_type) = {
+message ApiListUserHuntApprovalsArgs {
+  optional int64 offset = 1 [(sem_type) = {
       description: "Approvals starting offset."
     }];
-  optional int64 count = 3 [(sem_type) = {
+  optional int64 count = 2 [(sem_type) = {
       description: "Number of approvals to fetch."
     }];
+}
+
+message ApiListUserCronApprovalsArgs {
+  optional int64 offset = 1 [(sem_type) = {
+      description: "Approvals starting offset."
+    }];
+  optional int64 count = 2 [(sem_type) = {
+      description: "Number of approvals to fetch."
+    }];
+}
+
+message ApiListUserClientApprovalsArgs {
+  optional int64 offset = 1 [(sem_type) = {
+      description: "Approvals starting offset."
+    }];
+  optional int64 count = 2 [(sem_type) = {
+      description: "Number of approvals to fetch."
+    }];
+}
+
+message ApiListUserClientApprovalsResult {
+  repeated ApiUserClientApproval items = 1;
 }
 
 message ApiStartGetFileOperationArgs {
@@ -562,6 +595,51 @@ message ApiRDFValueCollectionRendererArgs {
 
 // API entities. These are uses in API calls responses.
 
+message ApiUserClientApproval {
+  optional ApiClient subject = 1;
+
+  optional string reason = 2;
+  optional bool is_valid = 3;
+  optional string is_valid_message = 4;
+}
+
+message ApiClient {
+  optional string urn = 1 [(sem_type) = {
+      type: "ClientURN",
+      description: "Client URN."
+    }];
+
+  optional ClientInformation agent_info = 2;
+  optional HardwareInfo hardware_info = 3;
+  optional Uname os_info = 4;
+
+  optional uint64 first_seen_at = 6 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "When flow was created."
+    }];
+  optional uint64 last_seen_at = 7 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Last time when client checked in."
+    }];
+  optional uint64 last_booted_at = 8 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Last boot time."
+    }];
+  optional uint64 last_clock = 9 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Client clocks value during latest checkin."
+    }];
+  optional uint64 last_crash_at = 10 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Last crash time."
+    }];
+
+  repeated AFF4ObjectLabel labels = 11;
+  repeated Interface interfaces = 12;
+  repeated User users = 13;
+  repeated Volume volumes = 14;
+}
+
 message ApiFlow {
   // Enum values here correspond to Flow.State values.
   enum State {
@@ -578,7 +656,7 @@ message ApiFlow {
   optional string name = 2 [(sem_type) = {
       description: "Flow name.",
     }];
-  optional bytes args = 3 [(sem_type) = {
+  optional AnyValue args = 3 [(sem_type) = {
       description: "Flow arguments.",
       dynamic_type: "GetArgsClass"
     }];
@@ -621,7 +699,7 @@ message ApiCronJob {
   optional string flow_name = 3 [(sem_type) = {
       description: "Cron flow name."
     }];
-  optional bytes flow_args = 4 [(sem_type) = {
+  optional AnyValue flow_args = 4 [(sem_type) = {
       description: "Cron flow arguments.",
       dynamic_type: "GetArgsClass"
     }];
@@ -663,9 +741,17 @@ message ApiOutputPlugin {
   optional OutputPluginDescriptor plugin_descriptor = 2 [(sem_type) = {
       description: "Descriptor of the output plugin."
     }];
-  optional bytes state = 3 [(sem_type) = {
-      dynamic_type: "GetStateClass",
-      description: "State of the plugin."
+  optional AnyValue state = 3 [(sem_type) = {
+      description: "State of the plugin.",
+      dynamic_type: "GetStateClass"
+    }];
+  optional OutputPluginVerificationResult last_verification_result = 4 [(sem_type) = {
+      description: "Results of the last verification check done on the output "
+      "of this plugin. Verification checks check that expected output exists "
+      "and that it's complete. Not all output plugins support verification. "
+      "For example CSV and Email plugins output can't be verified. On the "
+      "other hand, BigQuery output can be verified, as BigQuery service can "
+      "be queried for the results that were supposed to be uploaded."
     }];
 }
 

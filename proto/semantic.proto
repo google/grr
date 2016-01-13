@@ -3,6 +3,13 @@ syntax = "proto2";
 import "google/protobuf/descriptor.proto";  // for FieldOptions
 
 
+
+message AnyValue {
+  optional string type_url = 1; // URL of the protobuf corresponding to value.
+  optional bytes value = 2; // Serialized protobuf pointed to by type_url.
+}
+
+
 message SemanticDescriptor {
   // The semantic name of the SemanticValue contained in this field.
   optional string type = 1;

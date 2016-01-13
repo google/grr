@@ -56,9 +56,9 @@ RemoveClientsLabelsDialogController.prototype.onClientsChange_ = function(
 
   if (angular.isDefined(newValue)) {
     angular.forEach(newValue, function(client) {
-      if (angular.isDefined(client.attributes['aff4:labels_list'])) {
+      if (angular.isDefined(client['value']['labels'])) {
         angular.forEach(
-            client.attributes['aff4:labels_list'].value.labels,
+            client['value']['labels'],
             function(label) {
               // Don't show system labels (i.e. the ones where "GRR" is the
               // owner).
@@ -86,7 +86,7 @@ RemoveClientsLabelsDialogController.prototype.onClientsChange_ = function(
 RemoveClientsLabelsDialogController.prototype.proceed = function() {
   var clients = [];
   angular.forEach(this.scope_.clients, function(clientObj) {
-    clients.push(clientObj['urn']);
+    clients.push(clientObj['value']['urn']['value']);
   });
 
   this.grrApiService_.post(

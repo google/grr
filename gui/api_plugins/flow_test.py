@@ -313,17 +313,19 @@ class ApiCreateFlowHandlerRegressionTest(
 
     with test_lib.FakeTime(42):
       self.Check("POST",
-                 "/api/clients/%s/flows/start" % self.client_id.Basename(),
-                 {"runner_args": {
-                     "flow_name": processes.ListProcesses.__name__,
-                     "output_plugins": [],
-                     "priority": "HIGH_PRIORITY",
-                     "notify_to_user": False,
-                     },
-                  "flow_args": {
-                      "filename_regex": ".",
-                      "fetch_binaries": True
-                      }
+                 "/api/clients/%s/flows" % self.client_id.Basename(),
+                 {"flow": {
+                     "name": processes.ListProcesses.__name__,
+                     "args": {
+                         "filename_regex": ".",
+                         "fetch_binaries": True
+                         },
+                     "runner_args": {
+                         "output_plugins": [],
+                         "priority": "HIGH_PRIORITY",
+                         "notify_to_user": False,
+                         },
+                     }
                  }, replace=ReplaceFlowId)
 
 

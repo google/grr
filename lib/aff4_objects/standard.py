@@ -2,7 +2,6 @@
 """These are standard aff4 objects."""
 
 
-import hashlib
 import StringIO
 
 from grr.lib import aff4
@@ -84,7 +83,7 @@ class HashList(rdfvalue.RDFBytes):
         self._value[idx * self.HASH_SIZE: (idx + 1) * self.HASH_SIZE])
 
 
-class BlobImage(aff4.AFF4Image):
+class BlobImage(aff4.AFF4ImageBase):
   """An AFF4 stream which stores chunks by hashes.
 
   The hash stream is kept within an AFF4 Attribute, instead of another stream
@@ -119,39 +118,44 @@ class BlobImage(aff4.AFF4Image):
 
   def _GetChunkForReading(self, chunk):
     """Retrieve the relevant blob from the AFF4 data store or cache."""
-    result = None
     offset = chunk * self._HASH_SIZE
     self.index.seek(offset)
 
-    chunk_name = self.index.read(self._HASH_SIZE)
+    chunk_name = self.index.read(self._HASH_SIZE).encode("hex")
+
     try:
-      result = self.chunk_cache.Get(chunk_name)
+      return self.chunk_cache.Get(chunk_name)
     except KeyError:
-      # Read ahead a few chunks.
-      self.index.seek(offset)
-      readahead = {}
+      pass
 
-      for _ in range(self._READAHEAD):
-        name = self.index.read(self._HASH_SIZE)
-        if name and name not in self.chunk_cache:
-          urn = aff4.ROOT_URN.Add("blobs").Add(name.encode("hex"))
-          readahead[urn] = name
+    # We don't have this chunk already cached. The most common read
+    # access pattern is contiguous reading so since we have to go to
+    # the data store already, we read ahead to reduce round trips.
+    self.index.seek(offset)
+    readahead = []
 
-      fds = aff4.FACTORY.MultiOpen(readahead, mode="r", token=self.token)
-      for fd in fds:
-        name = readahead[fd.urn]
+    for _ in range(self._READAHEAD):
+      name = self.index.read(self._HASH_SIZE).encode("hex")
+      if name and name not in self.chunk_cache:
+        readahead.append(name)
 
-        # Remember the right fd
-        if name == chunk_name:
-          result = fd
+    self._ReadChunks(readahead)
+    try:
+      return self.chunk_cache.Get(chunk_name)
+    except KeyError:
+      raise aff4.ChunkNotFoundError("Cannot open chunk %s" % chunk)
 
-        # Put back into the cache
-        self.chunk_cache.Put(readahead[fd.urn], fd)
+  def _ReadChunks(self, chunks):
+    res = data_store.DB.ReadBlobs(chunks, token=self.token)
+    for blob_hash, content in res.iteritems():
+      fd = StringIO.StringIO(content)
+      fd.dirty = False
+      fd.chunk = blob_hash
+      self.chunk_cache.Put(blob_hash, fd)
 
-    if result is None:
-      raise IOError("Chunk '%s' not found for reading!" % chunk)
-
-    return result
+  def _WriteChunk(self, chunk):
+    if chunk.dirty:
+      data_store.DB.StoreBlob(chunk.getvalue(), token=self.token)
 
   def FromBlobImage(self, fd):
     """Copy this file cheaply from another BlobImage."""
@@ -183,25 +187,9 @@ class BlobImage(aff4.AFF4Image):
       blob = src_fd.read(self.chunksize)
       if not blob:
         break
-      blob_hash = hashlib.sha256(blob).digest()
-      blob_urn = rdfvalue.RDFURN("aff4:/blobs").Add(blob_hash.encode("hex"))
 
-      # Historic data may be stored as an AFFMemoryStream, but we store new
-      # objects as AFFUnversioned MemoryStreams.
-      try:
-        fd = aff4.FACTORY.Open(blob_urn,
-                               "AFF4MemoryStreamBase",
-                               mode="r",
-                               token=self.token)
-      except IOError:
-        fd = aff4.FACTORY.Create(blob_urn,
-                                 "AFF4UnversionedMemoryStream",
-                                 mode="w",
-                                 token=self.token)
-        fd.Write(blob)
-        fd.Close(sync=True)
-
-      self.AddBlob(blob_hash, len(blob))
+      blob_hash = data_store.DB.StoreBlob(blob, token=self.token)
+      self.AddBlob(blob_hash.decode("hex"), len(blob))
 
     self.Flush()
 
@@ -234,11 +222,6 @@ class BlobImage(aff4.AFF4Image):
 
     HASHES = aff4.Attribute("aff4:hashes", HashList,
                             "List of hashes of each chunk in this file.")
-
-    FINGERPRINT = aff4.Attribute("aff4:fingerprint",
-                                 rdf_client.FingerprintResponse,
-                                 "DEPRECATED protodict containing arrays of "
-                                 " hashes. Use AFF4Stream.HASH instead.")
 
     FINALIZED = aff4.Attribute("aff4:finalized",
                                rdfvalue.RDFBool,
@@ -284,36 +267,32 @@ class HashImage(aff4.AFF4Image):
 
   def _GetChunkForReading(self, chunk):
     """Retrieve the relevant blob from the AFF4 data store or cache."""
-    result = None
     self._OpenIndex()
     self.index.Seek(chunk * self._HASH_SIZE)
 
     chunk_name = self.index.Read(self._HASH_SIZE)
     try:
-      result = self.chunk_cache.Get(chunk_name)
+      return self.chunk_cache.Get(chunk_name)
     except KeyError:
-      # Read ahead a few chunks.
-      self.index.Seek(-self._HASH_SIZE, whence=1)
-      readahead = {}
+      pass
 
-      for _ in range(self._READAHEAD):
-        name = self.index.Read(self._HASH_SIZE)
-        if name and name not in self.chunk_cache:
-          urn = aff4.ROOT_URN.Add("blobs").Add(name.encode("hex"))
-          readahead[urn] = name
+    # Read ahead a few chunks.
+    self.index.Seek(-self._HASH_SIZE, whence=1)
+    readahead = []
 
-      fds = aff4.FACTORY.MultiOpen(readahead, mode="r", token=self.token)
-      for fd in fds:
-        name = readahead[fd.urn]
+    for _ in range(self._READAHEAD):
+      name = self.index.Read(self._HASH_SIZE)
+      if name and name not in self.chunk_cache:
+        readahead.append(name.encode("hex"))
 
-        # Remember the right fd
-        if name == chunk_name:
-          result = fd
+    res = data_store.DB.ReadBlobs(readahead, token=self.token)
+    for blob_hash, content in res.iteritems():
+      fd = StringIO.StringIO(content)
+      fd.dirty = False
+      fd.chunk = blob_hash
+      self.chunk_cache.Put(blob_hash.decode("hex"), fd)
 
-        # Put back into the cache
-        self.chunk_cache.Put(readahead[fd.urn], fd)
-
-    return result
+    return self.chunk_cache.Get(chunk_name)
 
   def Close(self, sync=True):
     if self._data_dirty:
@@ -335,101 +314,111 @@ class HashImage(aff4.AFF4Image):
   class SchemaCls(aff4.AFF4Image.SchemaCls):
     """The schema for AFF4 files in the GRR VFS."""
     STAT = aff4.AFF4Object.VFSDirectory.SchemaCls.STAT
-    CONTENT_LOCK = aff4.Attribute(
-        "aff4:content_lock", rdfvalue.RDFURN,
-        "This lock contains a URN pointing to the flow that is currently "
-        "updating this object.")
-
-    FINGERPRINT = aff4.Attribute("aff4:fingerprint",
-                                 rdf_client.FingerprintResponse,
-                                 "DEPRECATED protodict containing arrays of "
-                                 " hashes. Use AFF4Stream.HASH instead.")
 
 
-class AFF4SparseImage(BlobImage):
+class AFF4SparseImage(aff4.AFF4ImageBase):
   """A class to store partial files."""
 
-  class SchemaCls(aff4.BlobImage.SchemaCls):
+  _HASH_SIZE = 32
+
+  _READAHEAD = 10
+
+  chunksize = 512 * 1024
+
+  class SchemaCls(aff4.AFF4ImageBase.SchemaCls):
+
     PATHSPEC = VFSDirectory.SchemaCls.PATHSPEC
 
-  def Initialize(self):
-    super(AFF4SparseImage, self).Initialize()
-    self._OpenIndex()
+    STAT = aff4.AFF4Object.VFSDirectory.SchemaCls.STAT
 
-  def _OpenIndex(self):
-    """Create the index if it doesn't exist, otherwise open it."""
-    index_urn = self.urn.Add("index")
-    self.index = aff4.FACTORY.Create(index_urn, "AFF4SparseIndex", mode="rw",
-                                     token=self.token)
+    _CHUNKSIZE = aff4.Attribute("aff4:chunksize", rdfvalue.RDFInteger,
+                                "Total size of each chunk.", default=512 * 1024)
 
-  def Truncate(self, offset=0):
-    if offset != 0:
-      raise IOError("Non-zero truncation not supported for AFF4SparseImage")
-    super(AFF4SparseImage, self).Truncate(0)
-    self._OpenIndex()
-    self.finalized = False
+    LAST_CHUNK = aff4.Attribute("aff4:lastchunk", rdfvalue.RDFInteger,
+                                "The highest numbered chunk in this object.",
+                                default=-1)
 
-  def Read(self, length):
-    result = []
+  def _ReadChunks(self, chunks):
+    chunk_hashes = self._ChunkNrsToHashes(chunks)
+    chunk_nrs = {}
+    for k, v in chunk_hashes.iteritems():
+      chunk_nrs.setdefault(v, []).append(k)
+    res = data_store.DB.ReadBlobs(chunk_hashes.values(), token=self.token)
+    for blob_hash, content in res.iteritems():
+      for chunk_nr in chunk_nrs[blob_hash]:
+        fd = StringIO.StringIO(content)
+        fd.dirty = False
+        fd.chunk = chunk_nr
+        self.chunk_cache.Put(chunk_nr, fd)
 
-    while length > 0:
-      data = self._ReadPartial(length)
-      if not data:
-        break
-      length -= len(data)
-      result.append(data)
+  def _WriteChunk(self, chunk):
+    if chunk.dirty:
+      data_store.DB.StoreBlob(chunk.getvalue(), token=self.token)
 
-    return "".join(result)
+  def _ChunkNrToHash(self, chunk_nr):
+    return self._ChunkNrsToHashes([chunk_nr])[chunk_nr]
+
+  def _ChunkNrsToHashes(self, chunk_nrs):
+    chunk_names = {self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk_nr): chunk_nr
+                   for chunk_nr in chunk_nrs}
+    res = {}
+    for obj in aff4.FACTORY.MultiOpen(chunk_names, mode="r", token=self.token):
+      if isinstance(obj, aff4.AFF4Stream):
+        hsh = obj.read(self._HASH_SIZE)
+        if hsh:
+          res[chunk_names[obj.urn]] = hsh.encode("hex")
+    return res
 
   def _GetChunkForReading(self, chunk):
-    """Retrieve the relevant blob from the AFF4 data store or cache."""
-    result = None
-    offset = chunk * self._HASH_SIZE
-    self.index.seek(offset)
-    chunk_name = self.index.read(self._HASH_SIZE)
+    """Returns the relevant chunk from the datastore and reads ahead."""
     try:
-      result = self.chunk_cache.Get(chunk_name)
-      # Cache hit, so we're done.
-      return result
+      return self.chunk_cache.Get(chunk)
     except KeyError:
-      # Read ahead a few chunks.
-      self.index.seek(offset)
-      readahead = {}
+      pass
 
-      # Read all the hashes in one go, then split up the result.
-      chunks = self.index.read(self._HASH_SIZE * self._READAHEAD)
-      chunk_names = [chunks[i:i + self._HASH_SIZE]
-                     for i in xrange(0, len(chunks), self._HASH_SIZE)]
+    # We don't have this chunk already cached. The most common read
+    # access pattern is contiguous reading so since we have to go to
+    # the data store already, we read ahead to reduce round trips.
 
-      for name in chunk_names:
-        # Try and read ahead a few chunks from the datastore and add them to the
-        # cache. If the chunks ahead aren't there, that's okay, we just can't
-        # cache them. We still keep reading to see if chunks after them are
-        # there, since the image is sparse.
-        try:
-          if name not in self.chunk_cache:
-            urn = aff4.ROOT_URN.Add("blobs").Add(name.encode("hex"))
-            readahead[urn] = name
-        except aff4.ChunkNotFoundError:
-          pass
+    missing_chunks = []
+    for chunk_number in range(chunk, chunk + 10):
+      if chunk_number not in self.chunk_cache:
+        missing_chunks.append(chunk_number)
 
-      fds = aff4.FACTORY.MultiOpen(readahead, mode="r", token=self.token)
-      for fd in fds:
-        name = readahead[fd.urn]
+    self._ReadChunks(missing_chunks)
+    # This should work now - otherwise we just give up.
+    try:
+      return self.chunk_cache.Get(chunk)
+    except KeyError:
+      raise aff4.ChunkNotFoundError("Cannot open chunk %s" % chunk)
 
-        # Remember the right fd
-        if name == chunk_name:
-          result = fd
+  def _GetChunkForWriting(self, chunk):
+    """Returns the relevant chunk from the datastore."""
+    try:
+      chunk = self.chunk_cache.Get(chunk)
+      chunk.dirty = True
+      return chunk
+    except KeyError:
+      pass
 
-        # Put back into the cache
-        self.chunk_cache.Put(readahead[fd.urn], fd)
+    try:
+      chunk = self._ReadChunk(chunk)
+      chunk.dirty = True
+      return chunk
+    except KeyError:
+      pass
 
-      if result is None:
-        raise aff4.ChunkNotFoundError("Chunk '%s' (urn: %s) not "
-                                      "found for reading!"
-                                      % (chunk, chunk_name))
+    fd = StringIO.StringIO()
+    fd.chunk = chunk
+    fd.dirty = True
+    self.chunk_cache.Put(chunk, fd)
 
-    return result
+    # Keep track of the biggest chunk_number we've seen so far.
+    if chunk > self.last_chunk:
+      self.last_chunk = chunk
+      self._dirty = True
+
+    return fd
 
   def _ReadPartial(self, length):
     """Read as much as possible, but not more than length."""
@@ -439,121 +428,23 @@ class AFF4SparseImage(BlobImage):
     # If we're past the end of the file, we don't have a chunk to read from, so
     # we can't read anymore. We return the empty string here so we can read off
     # the end of a file without raising, and get as much data as is there.
-    if chunk > self.index.last_chunk:
+    if chunk > self.last_chunk:
       return ""
 
     available_to_read = min(length, self.chunksize - chunk_offset)
 
     fd = self._GetChunkForReading(chunk)
 
-    fd.Seek(chunk_offset)
+    fd.seek(chunk_offset)
 
-    result = fd.Read(available_to_read)
+    result = fd.read(available_to_read)
     self.offset += len(result)
 
     return result
 
-  def AddBlob(self, blob_hash, length, chunk_number):
-    """Add another blob to this image using its hash."""
-
-    # TODO(user) Allow the index's chunksize to be > self._HASH_SIZE.
-    # This will reduce the number of rows we need to store in the datastore.
-    # We'll fill chunks with 0s when we don't have enough information to write
-    # to them fully, and ignore 0s when we're reading chunks.
-
-    # There's one hash in the index for each chunk in the file.
-    offset = chunk_number * self.index.chunksize
-    self.index.Seek(offset)
-
-    # If we're adding a new blob, we should increase the size. If we're just
-    # updating an existing blob, the size should stay the same.
-    # That is, if we read the index at the right offset and no hash is there, we
-    # must not have seen this blob before, so we say we're adding a new one and
-    # increase in size.
-    if not self.index.ChunkExists(chunk_number):
-      # We say that we've increased in size by the size of the blob,
-      # but really we only store its hash in the AFF4SparseImage.
-      self.size += length
-
-    # Seek back in case we've read past the offset we're meant to write to.
-    self.index.Seek(offset)
-    self.index.Write(blob_hash)
-
-    self._dirty = True
-
-  def Flush(self, sync=True):
-    if self._dirty:
-      self.index.Flush(sync=sync)
-    super(AFF4SparseImage, self).Flush(sync=sync)
-
-
-class AFF4SparseIndex(aff4.AFF4Image):
-  """A sparse index for AFF4SparseImage."""
-
-  # TODO(user) Allow for a bigger chunk size. At the moment, the
-  # chunksize must be exactly the hash size.
-
-  chunksize = 32
-
-  class SchemaCls(aff4.AFF4Image.SchemaCls):
-    _CHUNKSIZE = aff4.Attribute("aff4:chunksize", rdfvalue.RDFInteger,
-                                "Total size of each chunk.", default=32)
-    LAST_CHUNK = aff4.Attribute("aff4:lastchunk", rdfvalue.RDFInteger,
-                                "The highest numbered chunk in this object.",
-                                default=-1)
-
-  def Initialize(self):
-    # The rightmost chunk we've seen so far. We'll use this to keep track of
-    # what the biggest possible size this file could be is.
-    self.last_chunk = self.Get(self.Schema.LAST_CHUNK)
-    super(AFF4SparseIndex, self).Initialize()
-
-  def _GetChunkForWriting(self, chunk):
-    """Look in the datastore for a chunk, and create it if it isn't there."""
-    chunk_name = self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk)
-    try:
-      fd = self.chunk_cache.Get(chunk_name)
-    except KeyError:
-      # Try and get a lock on the chunk.
-      fd = aff4.FACTORY.OpenWithLock(chunk_name, token=self.token)
-      # If the chunk didn't exist in the datastore, create it.
-      if fd.Get(fd.Schema.LAST) is None:
-        # Each time we create a new chunk, we grow in size.
-        self.size += self.chunksize
-        self._dirty = True
-        fd = aff4.FACTORY.Create(chunk_name, "AFF4MemoryStream", mode="rw",
-                                 token=self.token)
-      self.chunk_cache.Put(chunk_name, fd)
-
-      # Keep track of the biggest chunk_number we've seen so far.
-      if chunk > self.last_chunk:
-        self.last_chunk = chunk
-        self._dirty = True
-
-    return fd
-
-  def ChunkExists(self, chunk_number):
-    """Do we have this chunk in the index?"""
-    try:
-      self._GetChunkForReading(chunk_number)
-      return True
-    except aff4.ChunkNotFoundError:
-      return False
-
-  def Write(self, data):
-    """Write data to the file."""
-    self._dirty = True
-    if not isinstance(data, bytes):
-      raise IOError("Cannot write unencoded string.")
-    while data:
-      data = self._WritePartial(data)
-
   def Read(self, length):
-    """Read a block of data from the file."""
-    result = ""
+    result = []
 
-    # The total available size in the file
-    length = int(length)
     # Make sure we don't read past the "end" of the file. We say the end is the
     # end of the last chunk. If we do try and read past the end, we should
     # return an empty string.
@@ -565,16 +456,92 @@ class AFF4SparseIndex(aff4.AFF4Image):
       data = self._ReadPartial(length)
       if not data:
         break
-
       length -= len(data)
-      result += data
+      result.append(data)
 
-    return result
+    return "".join(result)
+
+  def Initialize(self):
+    super(AFF4SparseImage, self).Initialize()
+    if "r" in self.mode:
+      # pylint: disable=protected-access
+      self.chunksize = int(self.Get(self.Schema._CHUNKSIZE))
+      # pylint: enable=protected-access
+      self.content_last = self.Get(self.Schema.CONTENT_LAST)
+      # The chunk with the highest index we've seen so far. We'll use
+      # this to keep track of what the biggest possible size this file
+      # could be is.
+      self.last_chunk = self.Get(self.Schema.LAST_CHUNK)
+    else:
+      self.size = 0
+      self.content_last = None
+      self.last_chunk = -1
+
+  def Truncate(self, offset=0):
+    if offset != 0:
+      raise IOError("Non-zero truncation not supported for AFF4SparseImage")
+    super(AFF4SparseImage, self).Truncate(0)
+
+  def AddBlob(self, blob_hash, length, chunk_number):
+    """Add another blob to this image using its hash."""
+    if len(blob_hash) != self._HASH_SIZE:
+      raise ValueError("Hash '%s' doesn't have correct length (%d)." % (
+          blob_hash, self._HASH_SIZE))
+
+    # If we're adding a new blob, we should increase the size. If we're just
+    # updating an existing blob, the size should stay the same.
+    # That is, if we read the index at the right offset and no hash is there, we
+    # must not have seen this blob before, so we say we're adding a new one and
+    # increase in size.
+    if not self.ChunkExists(chunk_number):
+      # We say that we've increased in size by the size of the blob,
+      # but really we only store its hash in the AFF4SparseImage.
+      self.size += length
+      self._dirty = True
+      # Keep track of the biggest chunk_number we've seen so far.
+      if chunk_number > self.last_chunk:
+        self.last_chunk = chunk_number
+        self._dirty = True
+
+    index_urn = self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk_number)
+    with aff4.FACTORY.Create(
+        index_urn, "AFF4MemoryStream", token=self.token) as fd:
+      fd.write(blob_hash)
+    if chunk_number in self.chunk_cache:
+      self.chunk_cache.Pop(chunk_number)
+
+  def ChunkExists(self, chunk_number):
+    return self.ChunksExist([chunk_number])[chunk_number]
+
+  def ChunksExist(self, chunk_numbers):
+    """Do we have this chunk in the index?"""
+    index_urns = {
+        self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk_number): chunk_number
+        for chunk_number in chunk_numbers}
+
+    res = {chunk_number: False for chunk_number in chunk_numbers}
+
+    for metadata in aff4.FACTORY.Stat(index_urns, token=self.token):
+      res[index_urns[metadata["urn"]]] = True
+
+    return res
+
+  def ChunksMetadata(self, chunk_numbers):
+    index_urns = {
+        self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk_number): chunk_number
+        for chunk_number in chunk_numbers}
+
+    res = {}
+
+    for metadata in aff4.FACTORY.Stat(index_urns, token=self.token):
+      res[index_urns[metadata["urn"]]] = metadata
+
+    return res
 
   def Flush(self, sync=True):
     if self._dirty:
       self.Set(self.Schema.LAST_CHUNK, rdfvalue.RDFInteger(self.last_chunk))
-    super(AFF4SparseIndex, self).Flush(sync=sync)
+    super(AFF4SparseImage, self).Flush(sync=sync)
 
 
 class LabelSet(aff4.AFF4Object):

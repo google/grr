@@ -1,12 +1,104 @@
 #!/usr/bin/env python
 """Tests for grr.lib.aff4_objects.security."""
 
+from grr.lib import access_control
 from grr.lib import aff4
+from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib import utils
 from grr.lib.aff4_objects import security
+
+
+class ApprovalTest(test_lib.GRRBaseTest):
+  """Test for Approval."""
+
+  def setUp(self):
+    super(ApprovalTest, self).setUp()
+    self.client_id = self.SetupClients(1)[0]
+    self.approval_expiration = rdfvalue.Duration(
+        "%ds" % config_lib.CONFIG["ACL.token_expiry"])
+
+  def testGetApprovalForObjectRaisesWhenTokenIsNone(self):
+    with self.assertRaisesRegexp(access_control.UnauthorizedAccess,
+                                 "No token given"):
+      security.Approval.GetApprovalForObject(self.client_id, token=None)
+
+  def testGetApprovalForObjectRaisesIfNoApprovals(self):
+    with self.assertRaisesRegexp(access_control.UnauthorizedAccess,
+                                 "No approvals found"):
+      security.Approval.GetApprovalForObject(self.client_id, token=self.token)
+
+  def testGetApprovalForObjectRaisesIfSingleAvailableApprovalExpired(self):
+    self.GrantClientApproval(self.client_id, token=self.token)
+
+    # Make sure approval is expired by the time we call GetApprovalForObject.
+    now = rdfvalue.RDFDatetime().Now()
+    with test_lib.FakeTime(now + self.approval_expiration +
+                           rdfvalue.Duration("1s")):
+      with self.assertRaisesRegexp(access_control.UnauthorizedAccess,
+                                   "Requires 2 approvers for access."):
+        security.Approval.GetApprovalForObject(self.client_id, token=self.token)
+
+  def testGetApprovalForObjectRaisesIfAllAvailableApprovalsExpired(self):
+    # Set up 2 approvals with different reasons.
+    token1 = access_control.ACLToken(username=self.token.username,
+                                     reason="reason1")
+    self.GrantClientApproval(self.client_id, token=token1)
+
+    token2 = access_control.ACLToken(username=self.token.username,
+                                     reason="reason2")
+    self.GrantClientApproval(self.client_id, token=token2)
+
+    # Make sure that approvals are expired by the time we call
+    # GetApprovalForObject.
+    now = rdfvalue.RDFDatetime().Now()
+    with test_lib.FakeTime(now + self.approval_expiration +
+                           rdfvalue.Duration("1s")):
+      with self.assertRaisesRegexp(access_control.UnauthorizedAccess,
+                                   "Requires 2 approvers for access."):
+        security.Approval.GetApprovalForObject(self.client_id, token=self.token)
+
+  def testGetApprovalForObjectReturnsSingleAvailableApproval(self):
+    self.GrantClientApproval(self.client_id, token=self.token)
+
+    approved_token = security.Approval.GetApprovalForObject(
+        self.client_id, token=self.token)
+    self.assertEqual(approved_token.reason, self.token.reason)
+
+  def testGetApprovalForObjectReturnsNonExpiredApprovalFromMany(self):
+    token1 = access_control.ACLToken(username=self.token.username,
+                                     reason="reason1")
+    self.GrantClientApproval(self.client_id, token=token1)
+
+    now = rdfvalue.RDFDatetime().Now()
+    with test_lib.FakeTime(now + self.approval_expiration, increment=1e-6):
+      token2 = access_control.ACLToken(username=self.token.username,
+                                       reason="reason2")
+      self.GrantClientApproval(self.client_id, token=token2)
+
+    # Make sure only the first approval is expired by the time
+    # GetApprovalForObject is called.
+    with test_lib.FakeTime(now + self.approval_expiration +
+                           rdfvalue.Duration("1h")):
+      approved_token = security.Approval.GetApprovalForObject(
+          self.client_id, token=self.token)
+      self.assertEqual(approved_token.reason, token2.reason)
+
+  def testGetApprovalForObjectRaisesIfApprovalsAreOfWrongType(self):
+    # Create AFF4Volume object where Approval is expected to be.
+    approval_urn = aff4.ROOT_URN.Add("ACL").Add(
+        self.client_id.Path()).Add(self.token.username).Add(
+            utils.EncodeReasonString(self.token.reason))
+    with aff4.FACTORY.Create(approval_urn, aff4.AFF4Volume.__name__,
+                             token=self.token) as _:
+      pass
+
+    with self.assertRaisesRegexp(access_control.UnauthorizedAccess,
+                                 "Couldn't open any of 1 approvals"):
+      security.Approval.GetApprovalForObject(self.client_id, token=self.token)
 
 
 class ApprovalWithReasonTest(test_lib.GRRBaseTest):

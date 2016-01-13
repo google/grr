@@ -3,6 +3,7 @@
 
 
 from grr.gui import renderers
+from grr.gui.api_plugins import user as api_user
 from grr.gui.plugins import cron_view
 from grr.gui.plugins import fileview
 from grr.gui.plugins import hunt_view
@@ -362,7 +363,7 @@ class CheckAccess(renderers.TemplateRenderer):
     <div class="controls">
       <input id="acl_cc_approval" type=checkbox class="unset"
        name="cc_approval" value="yesplease" class="form-control" checked />
-      <label for="acl_cc_approval">CC {{this.cc_address}}</label>
+      <label for="acl_cc_approval">CC {{this.cc_address|escape}}</label>
     </div>
   </div>
   {% endif %}
@@ -371,6 +372,9 @@ class CheckAccess(renderers.TemplateRenderer):
     <div class="controls">
       <select id="acl_recent_reasons" class="form-control">
         <option value="new_reason">Enter New Reason...</option>
+        {% for recent_reason in this.recent_reasons %}
+          <option value="{{recent_reason|escape}}">{{recent_reason|escape}}</option>
+        {% endfor %}
       </select>
     </div>
   </div>
@@ -442,6 +446,11 @@ Authorization request ({{this.reason|escape}}) failed:
                                  silent=self.silent)
 
     self.cc_address = config_lib.CONFIG["Email.approval_optional_cc_address"]
+
+    recent_reasons_list = api_user.ApiListUserClientApprovalsHandler().Handle(
+        api_user.ApiListUserClientApprovalsArgs(count=5),
+        token=request.token)
+    self.recent_reasons = [x.reason for x in recent_reasons_list.items]
 
     if namespace == "hunts":
       self.approval_renderer = "HuntApprovalRequestRenderer"

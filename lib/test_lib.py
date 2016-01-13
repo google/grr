@@ -45,6 +45,7 @@ from grr.client import local as _
 # pylint: enable=unused-import
 from grr.client import vfs
 from grr.client.client_actions import standard
+from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.client.vfs_handlers import files
 
 from grr.lib import access_control
@@ -79,6 +80,8 @@ from grr.lib.aff4_objects import user_managers
 from grr.lib.aff4_objects import users
 
 # pylint: disable=unused-import
+from grr.lib.blob_stores import registry_init as _
+
 from grr.lib.data_stores import fake_data_store as _
 
 # Importing administrative to import ClientCrashHandler flow that
@@ -93,7 +96,6 @@ from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
-from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import tests_pb2
@@ -272,35 +274,14 @@ class MockSecurityManager(user_managers.BasicAccessControlManager):
 
     self.forbidden_datastore_access = forbidden_datastore_access
 
-  def CheckFlowAccess(self, token, flow_name, client_id=None):
-    _ = flow_name, client_id
-    if token is None:
-      raise RuntimeError("Security Token is not set correctly.")
-    return True
-
-  def CheckHuntAccess(self, token, hunt_urn):
-    _ = hunt_urn
-    if token is None:
-      raise RuntimeError("Security Token is not set correctly.")
-    return True
-
-  def CheckCronJobAccess(self, token, cron_job_urn):
-    _ = cron_job_urn
-    if token is None:
-      raise RuntimeError("Security Token is not set correctly.")
-    return True
-
   def CheckDataStoreAccess(self, token, subjects, requested_access="r"):
-    _ = subjects, requested_access
-    if token is None:
-      raise RuntimeError("Security Token is not set correctly.")
-
     for access in requested_access:
       if access in self.forbidden_datastore_access:
         raise access_control.UnauthorizedAccess("%s access is is not allowed" %
                                                 access)
 
-    return True
+    return super(MockSecurityManager, self).CheckDataStoreAccess(
+        token, subjects, requested_access=requested_access)
 
 
 class GRRBaseTest(unittest.TestCase):
@@ -712,13 +693,15 @@ class EmptyActionTest(GRRBaseTest):
 
   __metaclass__ = registry.MetaclassRegistry
 
-  def RunAction(self, action_name, arg=None, grr_worker=None):
+  def RunAction(self, action_name, arg=None, grr_worker=None,
+                action_worker_cls=None):
     if arg is None:
       arg = rdf_flows.GrrMessage()
 
     self.results = []
-    action = self._GetActionInstantace(action_name, arg=arg,
-                                       grr_worker=grr_worker)
+    action = self._GetActionInstance(action_name, arg=arg,
+                                     grr_worker=grr_worker,
+                                     action_worker_cls=action_worker_cls)
 
     action.status = rdf_flows.GrrStatus(
         status=rdf_flows.GrrStatus.ReturnedStatus.OK)
@@ -726,19 +709,22 @@ class EmptyActionTest(GRRBaseTest):
 
     return self.results
 
-  def ExecuteAction(self, action_name, arg=None, grr_worker=None):
+  def ExecuteAction(self, action_name, arg=None, grr_worker=None,
+                    action_worker_cls=None):
     message = rdf_flows.GrrMessage(name=action_name, payload=arg,
                                    auth_state="AUTHENTICATED")
 
     self.results = []
-    action = self._GetActionInstantace(action_name, arg=arg,
-                                       grr_worker=grr_worker)
+    action = self._GetActionInstance(action_name, arg=arg,
+                                     grr_worker=grr_worker,
+                                     action_worker_cls=action_worker_cls)
 
     action.Execute(message)
 
     return self.results
 
-  def _GetActionInstantace(self, action_name, arg=None, grr_worker=None):
+  def _GetActionInstance(self, action_name, arg=None, grr_worker=None,
+                         action_worker_cls=None):
     """Run an action and generate responses.
 
     This basically emulates GRRClientWorker.HandleMessage().
@@ -748,6 +734,8 @@ class EmptyActionTest(GRRBaseTest):
        arg: A protobuf to pass the action.
        grr_worker: The GRRClientWorker instance to use. If not provided we make
          a new one.
+       action_worker_cls: The action worker class to use for iterated actions.
+         If not provided we use the default.
     Returns:
       A list of response protobufs.
     """
@@ -767,7 +755,11 @@ class EmptyActionTest(GRRBaseTest):
 
     except (AttributeError, KeyError):
       action_cls = actions.ActionPlugin.classes[action_name]
-      action = action_cls(grr_worker=grr_worker)
+      if issubclass(action_cls, actions.SuspendableAction):
+        action = action_cls(grr_worker=grr_worker,
+                            action_worker_cls=action_worker_cls)
+      else:
+        action = action_cls(grr_worker=grr_worker)
 
     action.SendReply = types.MethodType(MockSendReply, action)
 
@@ -1902,9 +1894,14 @@ def TestHuntHelperWithMultipleMocks(client_mocks, check_flow_errors=False,
 
   total_flows = set()
 
+  # Worker always runs with absolute privileges, therefore making the token
+  # SetUID().
+  token = token.SetUID()
+
   client_mocks = [MockClient(client_id, client_mock, token=token)
                   for client_id, client_mock in client_mocks.iteritems()]
-  worker_mock = MockWorker(check_flow_errors=check_flow_errors, token=token)
+  worker_mock = MockWorker(check_flow_errors=check_flow_errors,
+                           token=token)
 
   # Run the clients and worker until nothing changes any more.
   while iteration_limit is None or iteration_limit > 0:

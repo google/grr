@@ -48,6 +48,33 @@ message OutputPluginBatchProcessingStatus {
     }];
 }
 
+message OutputPluginVerificationResult {
+  optional string plugin_id = 1 [(sem_type) = {
+      description: "String identifying the output plugin being checked."
+    }];
+  optional OutputPluginDescriptor plugin_descriptor = 2 [(sem_type) = {
+      description: "Descriptor of the plugin that's being checked."
+    }];
+
+  enum Status {
+    N_A = 0;
+    SUCCESS = 1;
+    WARNING = 2;
+    FAILURE = 3;
+  };
+  optional Status status = 3;
+  optional string status_message = 4;
+
+  optional uint64 timestamp = 5 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Timestamp of the check."
+    }];
+}
+
+message OutputPluginVerificationResultsList {
+  repeated OutputPluginVerificationResult results = 1;
+}
+
 message EmailOutputPluginArgs {
   optional string email_address = 1 [(sem_type) = {
       type: "DomainEmailAddress",

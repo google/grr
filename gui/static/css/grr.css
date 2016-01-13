@@ -439,8 +439,8 @@ dd.histogram > div {
 }
 
 .monospace {
-  font-family:     "Courier New"
-                    Courier
+  font-family:     "Courier New",
+                    Courier,
                     monospace;
   font-size: 13px;
   color: black;

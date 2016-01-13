@@ -33,9 +33,16 @@ from grr.lib import test_lib
 from grr.lib import threadpool
 from grr.lib import utils
 from grr.lib import worker
+from grr.lib.aff4_objects import collections
+from grr.lib.aff4_objects import sequential_collection
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
+
+
+class StringSequentialCollection(
+    sequential_collection.IndexedSequentialCollection):
+  RDF_TYPE = rdfvalue.RDFString
 
 
 def DeletionTest(f):
@@ -305,6 +312,41 @@ class _DataStoreTest(test_lib.GRRBaseTest):
                                         token=self.token)
 
     self.assertEqual(stored, None)
+
+  @DeletionTest
+  def testMultiDeleteAttributes(self):
+    """Test we can delete multiple attributes at once."""
+
+    test_rows = ["aff4:/row/%i" % i for i in range(0, 10)]
+    predicate_1 = "metadata:predicate1"
+    predicate_2 = "metadata:predicate2"
+
+    for row in test_rows:
+      data_store.DB.Set(row, predicate_1, "hello", token=self.token)
+      data_store.DB.Set(row, predicate_2, "hello", token=self.token)
+
+    self.assertEqual(
+        10,
+        sum(1 for _ in data_store.DB.ScanAttribute("aff4:/row/",
+                                                   predicate_1,
+                                                   token=self.token)))
+    self.assertEqual(
+        10,
+        sum(1 for _ in data_store.DB.ScanAttribute("aff4:/row/",
+                                                   predicate_2,
+                                                   token=self.token)))
+    data_store.DB.MultiDeleteAttributes(
+        test_rows, [predicate_1, predicate_2], token=self.token)
+    self.assertEqual(
+        0,
+        sum(1 for _ in data_store.DB.ScanAttribute("aff4:/row/",
+                                                   predicate_1,
+                                                   token=self.token)))
+    self.assertEqual(
+        0,
+        sum(1 for _ in data_store.DB.ScanAttribute("aff4:/row/",
+                                                   predicate_2,
+                                                   token=self.token)))
 
   def CheckLength(self, predicate, l):
     all_attributes = data_store.DB.ResolveMulti(
@@ -1103,13 +1145,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     # 500k
     data = "randomdata" * 50 * 1024
 
-    # Create a blob.
-    digest = hashlib.sha256(data).digest()
-    urn = aff4.ROOT_URN.Add("blobs").Add(digest.encode("hex"))
-    blob_fd = aff4.FACTORY.Create(urn, "AFF4UnversionedMemoryStream", mode="w",
-                                  token=self.token)
-    blob_fd.Write(data)
-    blob_fd.Close(sync=True)
+    data_store.DB.StoreBlob(data, token=self.token)
 
     # Now create the image containing the blob.
     fd = aff4.FACTORY.Create("aff4:/C.1235/image", "HashImage",
@@ -1117,6 +1153,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     fd.SetChunksize(512 * 1024)
     fd.Set(fd.Schema.STAT())
 
+    digest = hashlib.sha256(data).digest()
     fd.AddBlob(digest, len(data))
     fd.Close(sync=True)
 
@@ -1823,23 +1860,12 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
   def _AddBlobs(self, howmany, size):
     """Adds 'howmany' blobs with size 'size' kbs."""
     self.test_name = "add blobs %dx%dk" % (howmany, size)
-    blob_info = []
     count = 0
     often = howmany / 10
 
     for count in xrange(howmany):
       data = self._GenerateRandomString(1024 * size)
-
-      # Create a blob.
-      digest = hashlib.sha256(data).digest()
-      code = digest.encode("hex")
-      urn = aff4.ROOT_URN.Add("blobs").Add(code)
-      blob_fd = aff4.FACTORY.Create(urn, "AFF4UnversionedMemoryStream",
-                                    mode="w", token=self.token)
-      blob_fd.Write(data)
-      blob_fd.Close(sync=True)
-
-      blob_info.append(urn)
+      data_store.DB.StoreBlob(data, token=self.token)
 
       if count % often == 0:
         # Because adding blobs, takes too long we force the output of
@@ -1848,7 +1874,6 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
 
     self.Register(force=True)
     data_store.DB.Flush()
-    return blob_info
 
   @test_lib.SetLabel("benchmark")
   def manySubjectsFewAttrs(self):
@@ -2006,6 +2031,135 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
   nr_clients = 4
   nr_dirs = 4
   files_per_dir = 500
+
+  def _GenerateRandomString(self, chars):
+    return "".join([self.rand.choice(string.ascii_letters)
+                    for _ in xrange(chars)])
+
+  # Constants to control the size of testCollections. These numbers run in a
+  # reasonable amount of time for a unit test [O(20s)] on most data stores.
+  RECORDS = 5000
+  RECORD_SIZE = 1000
+  READ_COUNT = 50
+  BIG_READ_SIZE = 25
+
+  # The sequential collection index is only computed for records 5m old, so we
+  # write records this far in the past in order to force index creation.
+  INDEX_DELAY = rdfvalue.Duration("10m")
+
+  @test_lib.SetLabel("benchmark")
+  def testCollections(self):
+
+    self.rand = random.Random(42)
+
+    #
+    # Populate and exercise a packed versioned collection.
+    #
+    packed_collection_urn = rdfvalue.RDFURN("aff4:/test_packed_collection")
+    packed_collection = aff4.FACTORY.Create(packed_collection_urn,
+                                            "PackedVersionedCollection",
+                                            mode="w",
+                                            token=self.token)
+    packed_collection.Close()
+
+    start_time = time.time()
+    for _ in range(self.RECORDS):
+      collections.PackedVersionedCollection.AddToCollection(
+          packed_collection_urn,
+          rdfvalue.RDFString(self._GenerateRandomString(self.RECORD_SIZE)),
+          token=self.token)
+    elapsed_time = time.time() - start_time
+    self.AddResult("Packed Coll. Add (size %d)" % self.RECORD_SIZE,
+                   elapsed_time, self.RECORDS)
+
+    with aff4.FACTORY.OpenWithLock(packed_collection_urn,
+                                   lease_time=3600,
+                                   token=self.token) as packed_collection:
+      start_time = time.time()
+      packed_collection.Compact()
+      elapsed_time = time.time() - start_time
+    self.AddResult("Packed Coll. Compact", elapsed_time, 1)
+
+    packed_collection = aff4.FACTORY.Create(packed_collection_urn,
+                                            "PackedVersionedCollection",
+                                            mode="r",
+                                            token=self.token)
+    start_time = time.time()
+    for _ in range(self.READ_COUNT):
+      for _ in packed_collection.GenerateItems(
+          offset=self.rand.randint(0, self.RECORDS - 1)):
+        break
+    elapsed_time = time.time() - start_time
+    self.AddResult("Packed Coll. random 1 record reads", elapsed_time,
+                   self.READ_COUNT)
+
+    start_time = time.time()
+    for _ in range(self.READ_COUNT):
+      count = 0
+      for _ in packed_collection.GenerateItems(
+          offset=self.rand.randint(0, self.RECORDS - self.BIG_READ_SIZE)):
+        count += 1
+        if count >= self.BIG_READ_SIZE:
+          break
+    elapsed_time = time.time() - start_time
+    self.AddResult("Packed Coll. random %d record reads" % self.BIG_READ_SIZE,
+                   elapsed_time, self.READ_COUNT)
+
+    start_time = time.time()
+    for _ in packed_collection.GenerateItems():
+      pass
+    elapsed_time = time.time() - start_time
+    self.AddResult("Packed Coll. full sequential read", elapsed_time, 1)
+
+    #
+    # Populate and exercise an indexed sequential collection.
+    #
+
+    indexed_collection = aff4.FACTORY.Create("aff4:/test_seq_collection",
+                                             "StringSequentialCollection",
+                                             mode="rw",
+                                             token=self.token)
+
+    start_time = time.time()
+    for _ in range(self.RECORDS):
+      indexed_collection.Add(
+          rdfvalue.RDFString(self._GenerateRandomString(self.RECORD_SIZE)),
+          timestamp=rdfvalue.RDFDatetime().Now() - self.INDEX_DELAY)
+    elapsed_time = time.time() - start_time
+    self.AddResult("Seq. Coll. Add (size %d)" % self.RECORD_SIZE, elapsed_time,
+                   self.RECORDS)
+
+    start_time = time.time()
+    self.assertEqual(len(indexed_collection), self.RECORDS)
+    elapsed_time = time.time() - start_time
+    self.AddResult("Seq. Coll. Read to end", elapsed_time, 1)
+
+    start_time = time.time()
+    for _ in range(self.READ_COUNT):
+      for _ in indexed_collection.GenerateItems(
+          offset=self.rand.randint(0, self.RECORDS - 1)):
+        break
+    elapsed_time = time.time() - start_time
+    self.AddResult("Seq. Coll. random 1 record reads", elapsed_time,
+                   self.READ_COUNT)
+
+    start_time = time.time()
+    for _ in range(self.READ_COUNT):
+      count = 0
+      for _ in indexed_collection.GenerateItems(
+          offset=self.rand.randint(0, self.RECORDS - self.BIG_READ_SIZE)):
+        count += 1
+        if count >= self.BIG_READ_SIZE:
+          break
+    elapsed_time = time.time() - start_time
+    self.AddResult("Seq. Coll. random %d record reads" % self.BIG_READ_SIZE,
+                   elapsed_time, self.READ_COUNT)
+
+    start_time = time.time()
+    for _ in indexed_collection.GenerateItems():
+      pass
+    elapsed_time = time.time() - start_time
+    self.AddResult("Seq. Coll. full sequential read", elapsed_time, 1)
 
   @test_lib.SetLabel("benchmark")
   def testSimulateFlows(self):

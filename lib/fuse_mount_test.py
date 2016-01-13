@@ -269,10 +269,26 @@ class GRRFuseTest(GRRFuseTestBase):
 
   def testUpdateSparseImageChunks(self):
     """Make sure the right chunks get updated when we read a sparse file."""
+    with utils.MultiStubber(
+        (self.grr_fuse, "force_sparse_image", True),
+        (self.grr_fuse, "max_age_before_refresh",
+         datetime.timedelta(seconds=30)),
+        (self.grr_fuse, "size_threshold", 0)):
+      self._testUpdateSparseImageChunks()
+
+  def _testUpdateSparseImageChunks(self):
+    """Make sure the right chunks get updated when we read a sparse file."""
     filename = "bigfile.txt"
     path = os.path.join(self.temp_dir, filename)
-    contents = "bigdata!" * 1024 * 8 * 20
-    start_point = 1024 * 64 * 10
+    chunksize = aff4.AFF4SparseImage.chunksize
+
+    # 8 chunks of data.
+    contents = "bigdata!" * chunksize
+    # We want to start reading in the middle of a chunk.
+    start_point = int(2.5 * chunksize)
+    read_len = int(2.5 * chunksize)
+
+    client_path = self.ClientPathToAFF4Path(path)
 
     with open(path, "w") as f:
       f.seek(start_point)
@@ -281,74 +297,50 @@ class GRRFuseTest(GRRFuseTestBase):
     # Update the directory listing so we can see the file.
     self.ListDirectoryOnClient(self.temp_dir)
 
-    # Backup the previous settings.
-    old_size_threshold = self.grr_fuse.size_threshold
-    old_max_age = self.grr_fuse.max_age_before_refresh
-
-    # Make sure the file is a sparse image (It's too small to fulfil the default
-    # size requirements).
-    self.grr_fuse.force_sparse_image = True
-    self.grr_fuse.size_threshold = 0
-
-    # Temporarily use cache so we can check which chunks are missing properly.
-    self.grr_fuse.max_age_before_refresh = datetime.timedelta(seconds=30)
-
-    self.assertEqual(self.grr_fuse.Read(self.ClientPathToAFF4Path(path),
-                                        length=len(contents),
-                                        offset=start_point),
-                     contents)
+    # Read 3 chunks, from #2 to #4.
+    data = self.grr_fuse.Read(client_path, length=read_len, offset=start_point)
+    self.assertEqual(data, contents[start_point:start_point + read_len],
+                     "Fuse contents don't match.")
 
     # Make sure it's an AFF4SparseImage
-    fd = aff4.FACTORY.Open(self.ClientPathToAFF4Path(path), token=self.token)
-    fd.Flush()
+    fd = aff4.FACTORY.Open(client_path, mode="rw", token=self.token)
     self.assertIsInstance(fd, standard.AFF4SparseImage)
 
     missing_chunks = self.grr_fuse.GetMissingChunks(
-        fd,
-        # Subtract 1 so we don't overflow into the next chunk (30), which is of
-        # course missing.
-        length=len(contents) + start_point - 1,
-        offset=0)
-
-    # We don't have anything written before start_point,
-    # so we should say the chunks are missing.
-    self.assertSequenceEqual(missing_chunks, range(10))
+        fd, length=10 * chunksize, offset=0)
+    # 10 chunks but not #2 - #4 that we already got.
+    self.assertEqual(missing_chunks, [0, 1, 5, 6, 7, 8, 9])
 
     # Now we read and make sure the contents are as we expect.
-    fuse_contents = self.grr_fuse.Read(self.ClientPathToAFF4Path(path),
-                                       length=len(contents),
-                                       offset=start_point)
+    fuse_contents = self.grr_fuse.Read(
+        client_path, length=8 * chunksize, offset=0)
+    expected_contents = ("\x00" * start_point + contents)[:8 * chunksize]
 
-    self.assertEqual(fuse_contents, contents)
+    self.assertEqual(fuse_contents, expected_contents,
+                     "Fuse contents don't match.")
+
+    expected_contents = ("Y" * start_point + contents)[:8 * chunksize]
 
     # Now, we'll write to the file in those previously missing chunks.
     with open(path, "w+") as f:
       f.seek(0)
-      f.write("Y" * (start_point))
+      f.write(expected_contents)
 
     # Expire the chunks so we update all of them.
     self.grr_fuse.max_age_before_refresh = datetime.timedelta(seconds=0)
-    # After we read, there should be no missing chunks in the range from before.
-    # Note that we read from offset 0, not from start_point.
-    # We also only read halfway into the data from before.
-    fuse_contents = self.grr_fuse.Read(self.ClientPathToAFF4Path(path),
-                                       length=len(contents), offset=0)
+
+    fuse_contents = self.grr_fuse.Read(
+        client_path, length=len(contents), offset=0)
+
+    self.assertEqual(fuse_contents, expected_contents,
+                     "Fuse contents don't match.")
 
     # Put a cache time back on, all chunks should be not missing.
     self.grr_fuse.max_age_before_refresh = datetime.timedelta(seconds=30)
     missing_chunks = self.grr_fuse.GetMissingChunks(
-        fd,
-        # Subtract 1 so we don't overflow into the next chunk (30), which is of
-        # course missing.
-        length=len(contents) + start_point - 1,
-        offset=0)
+        fd, length=8 * chunksize, offset=0)
 
-    self.assertFalse(missing_chunks)
-
-    # Reset all the flags we set earlier.
-    self.grr_fuse.force_sparse_image = False
-    self.grr_fuse.size_threshold = old_size_threshold
-    self.grr_fuse.max_age_before_refresh = old_max_age
+    self.assertEqual(missing_chunks, [])
 
   def testCacheExpiry(self):
     with test_lib.FakeDateTimeUTC(1000):

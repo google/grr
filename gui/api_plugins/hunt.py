@@ -17,6 +17,7 @@ from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flow
+from grr.lib import flow_runner
 from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -75,6 +76,11 @@ class ApiGRRHuntRenderer(
           regex_rules=runner.args.regex_rules or [],
           integer_rules=runner.args.integer_rules or [],
           args=hunt.state.args)
+
+      try:
+        typed_summary_part["rules"] = runner.args.rules
+      except AttributeError:
+        typed_summary_part["rules"] = []
 
     for k, v in untyped_summary_part.items():
       untyped_summary_part[k] = api_value_renderers.RenderValue(v)
@@ -292,7 +298,8 @@ class ApiGetHuntResultsExportCommandHandler(
     export_command_str = " ".join([
         config_lib.CONFIG["AdminUI.export_command"],
         "--username", utils.ShellQuote(token.username),
-        "--reason", utils.ShellQuote(token.reason),
+        # NOTE: passing reason is no longer necessary, as necessary
+        # approval will be found and cached automatically.
         "collection_files",
         "--path", utils.ShellQuote(results_path),
         "--output", "."])
@@ -347,29 +354,31 @@ class ApiListHuntOutputPluginLogsHandlerBase(
     plugins = metadata.Get(metadata.Schema.OUTPUT_PLUGINS, {})
     plugin_descriptor = plugins.get(args.plugin_id)[0]
 
-    stop = None
-    if args.count:
-      stop = args.offset + args.count
-
     # Currently all logs and errors are written not in per-plugin
-    # collections, but in per-hunt collections. Thiis doesn't make
+    # collections, but in per-hunt collections. This doesn't make
     # much sense, because to show errors of particular plugin, we have
     # to filter the collection. Still, things are not too bad, because
     # typically only one output plugin is used.
     #
     # TODO(user): Write errors/logs per-plugin, so that we don't
     # have to do the filtering.
-    logs_collection = aff4.FACTORY.Create(
+
+    logs_collection = aff4.FACTORY.Open(
         HUNTS_ROOT_PATH.Add(args.hunt_id).Add(self.collection_name),
-        aff4_type="RDFValueCollection", mode="r", token=token)
+        mode="r", token=token)
+
     if len(plugins) == 1:
       total_count = len(logs_collection)
-      logs = list(itertools.islice(logs_collection, args.offset, stop))
+      logs = list(itertools.islice(
+          logs_collection.GenerateItems(offset=args.offset),
+          args.count or None))
     else:
       all_logs_for_plugin = [x for x in logs_collection
                              if x.plugin_descriptor == plugin_descriptor]
       total_count = len(all_logs_for_plugin)
-      logs = all_logs_for_plugin[args.offset:stop]
+      logs = all_logs_for_plugin[args.offset:]
+      if args.count:
+        logs = logs[:args.count]
 
     return dict(offset=args.offset,
                 count=len(logs),
@@ -414,9 +423,15 @@ class ApiListHuntLogsHandler(api_call_handler_base.ApiCallHandler):
   def Render(self, args, token=None):
     # TODO(user): handle cases when hunt doesn't exists.
     # TODO(user): Use hunt's logs_collection_urn to open logs collection.
-    logs_collection = aff4.FACTORY.Create(
-        HUNTS_ROOT_PATH.Add(args.hunt_id).Add("Logs"),
-        aff4_type="RDFValueCollection", mode="r", token=token)
+    try:
+      logs_collection = aff4.FACTORY.Open(
+          HUNTS_ROOT_PATH.Add(args.hunt_id).Add("Logs"),
+          aff4_type=flow_runner.FlowLogCollection.__name__, mode="r",
+          token=token)
+    except IOError:
+      logs_collection = aff4.FACTORY.Create(
+          HUNTS_ROOT_PATH.Add(args.hunt_id).Add("Logs"),
+          aff4_type="RDFValueCollection", mode="r", token=token)
 
     return api_aff4_object_renderers.RenderAFF4Object(
         logs_collection,
@@ -437,9 +452,11 @@ class ApiListHuntErrorsHandler(api_call_handler_base.ApiCallHandler):
   def Render(self, args, token=None):
     # TODO(user): handle cases when hunt doesn't exists.
     # TODO(user): Use hunt's logs_collection_urn to open errors collection.
-    errors_collection = aff4.FACTORY.Create(
+
+    errors_collection = aff4.FACTORY.Open(
         HUNTS_ROOT_PATH.Add(args.hunt_id).Add("ErrorClients"),
-        aff4_type="RDFValueCollection", mode="r", token=token)
+        mode="r",
+        token=token)
 
     return api_aff4_object_renderers.RenderAFF4Object(
         errors_collection,

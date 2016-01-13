@@ -18,7 +18,6 @@ from grr.lib.rdfvalues import nsrl
 from grr.lib.rdfvalues import paths
 from grr.lib.rdfvalues import plist
 from grr.lib.rdfvalues import protodict
-from grr.lib.rdfvalues import rekall_types
 from grr.lib.rdfvalues import stats
 from grr.lib.rdfvalues import structs
 from grr.lib.rdfvalues import webhistory

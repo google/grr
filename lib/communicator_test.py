@@ -14,7 +14,6 @@ from M2Crypto import X509
 import logging
 
 from grr.client import actions
-from grr.client import client
 from grr.client import comms
 from grr.lib import aff4
 from grr.lib import communicator
@@ -304,6 +303,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
     self.urlopen_stubber = utils.Stubber(urllib2, "urlopen", self.UrlMock)
     self.urlopen_stubber.Start()
+    self.sleep_stubber = utils.Stubber(time, "sleep", lambda x: None)
+    self.sleep_stubber.Start()
 
     self.messages = []
 
@@ -326,6 +327,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     self.urlopen_stubber.Stop()
     self.out_queue_overrider.Stop()
     self.config_stubber.Stop()
+    self.sleep_stubber.Stop()
     super(HTTPClientTests, self).tearDown()
 
   def CreateNewClientObject(self):
@@ -340,6 +342,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     # Build a client context with preloaded server certificates
     self.client_communicator.communicator.LoadServerCertificate(
         self.server_certificate, config_lib.CONFIG["CA.certificate"])
+
+    self.client_communicator.http_manager.retry_error_limit = 5
 
   def UrlMock(self, req, num_messages=10, **kwargs):
     """A mock for url handler processing from the server's POV."""
@@ -419,7 +423,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
     # Clear the certificate so we can generate a new one.
     with test_lib.ConfigOverrider({
-        "Client.private_key": ""}):
+        "Client.private_key": "",
+        "Client.retry_error_limit": 5}):
       self.CreateNewClientObject()
 
       # Client should get a new Common Name.
@@ -428,7 +433,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
       self.client_cn = self.client_communicator.communicator.common_name
 
-      # Now communicate with the server.
+      # The client will sleep and re-attempt to connect multiple times.
       status = self.client_communicator.RunOnce()
 
       self.assertEqual(status.code, 406)
@@ -517,11 +522,6 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     self.CheckClientQueue()
 
   def _CheckFastPoll(self, require_fastpoll, expected_sleeptime):
-    sleeptime = []
-
-    def RecordSleep(_, interval, **unused_kwargs):
-      sleeptime.append(interval)
-
     self.server_response = dict(session_id="aff4:/W:session", name="Echo",
                                 response_id=2, priority="LOW_PRIORITY",
                                 require_fastpoll=require_fastpoll)
@@ -530,18 +530,14 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     # fastpoll setting from the input messages we send
     self.assertEqual(self.client_communicator.client_worker.OutQueueSize(), 0)
 
-    status = self.client_communicator.RunOnce()
-    self.assertEqual(status.received_count, 10)
-    self.assertEqual(status.require_fastpoll, require_fastpoll)
-    with utils.Stubber(comms.GRRHTTPClient, "Sleep", RecordSleep):
-      self.client_communicator.Wait(status)
-
-    self.assertEqual(len(sleeptime), 1)
-    self.assertEqual(sleeptime[0], expected_sleeptime)
+    self.client_communicator.RunOnce()
+    # Make sure the timer is set to the correct value.
+    self.assertEqual(
+        self.client_communicator.timer.sleep_time, expected_sleeptime)
     self.CheckClientQueue()
 
   def testNoFastPoll(self):
-    """Test the the fast poll False is respected on input messages.
+    """Test that the fast poll False is respected on input messages.
 
     Also make sure we wait the correct amount of time before next poll.
     """
@@ -582,10 +578,9 @@ class HTTPClientTests(test_lib.GRRBaseTest):
       """Futz with some of the fields."""
       self.client_communication = rdf_flows.ClientCommunication(req.data)
 
-      if self.corruptor_field:
+      if self.corruptor_field and "server.pem" not in req.get_full_url():
         field_data = getattr(self.client_communication, self.corruptor_field)
         modified_data = array.array("c", field_data)
-
         offset = len(field_data) / 2
         modified_data[offset] = chr((ord(field_data[offset]) % 250) + 1)
         setattr(self.client_communication, self.corruptor_field,
@@ -631,7 +626,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     num_messages = 10
 
     def FlakyServer(req, timeout=None):  # pylint: disable=unused-argument
-      if not fail:
+      if not fail or "server.pem" in req.get_full_url():
         return self.UrlMock(req, num_messages=num_messages)
 
       raise urllib2.HTTPError(url=None, code=500, msg=None, hdrs=None, fp=None)
@@ -656,18 +651,6 @@ class HTTPClientTests(test_lib.GRRBaseTest):
       # We have received 10 client messages.
       self.assertEqual(self.client_communicator.client_worker.InQueueSize(), 10)
       self.CheckClientQueue()
-      # But we don't send anything to the server on the first successful
-      # connection.
-      self.assertEqual(len(self.messages), 0)
-
-      # There are no more messages coming in from the server.
-      num_messages = 0
-
-      status = self.client_communicator.RunOnce()
-
-      self.assertEqual(status.code, 200)
-
-      self.assertEqual(self.client_communicator.client_worker.InQueueSize(), 0)
 
       # Server should have received 10 messages this time.
       self.assertEqual(len(self.messages), 10)
@@ -761,7 +744,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
         self.assertEqual(len(runs), 0)
 
       self.client_communicator.client_worker.HandleMessage(
-          rdf_flows.GrrMessage())
+          rdf_flows.GrrMessage(name="HashFile"))
 
       # HandleMessage was called, but one minute hasn't passed, so
       # stats should not be sent.
@@ -779,19 +762,20 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     raise urllib2.URLError("Not a real connection.")
 
   def testClientConnectionErrors(self):
-    client_obj = client.GRRClient()
-
+    client_obj = comms.GRRHTTPClient()
     # Make the connection unavailable and skip the retry interval.
     with utils.MultiStubber((urllib2, "urlopen", self.RaiseError),
                             (time, "sleep", lambda s: None)):
 
-      # Simulate a client run but keep control.
-      generator = client_obj.client.Run()
-      for _ in range(config_lib.CONFIG["Client.connection_error_limit"]):
-        generator.next()
+      with test_lib.ConfigOverrider({"Client.connection_error_limit": 8}):
+        # Simulate a client run. The client will retry the connection limit by
+        # itself. The Run() method will quit when connection_error_limit is
+        # reached. This will make the real client quit.
+        client_obj.Run()
 
-      # One too many connection errors, this should raise.
-      self.assertRaises(RuntimeError, generator.next)
+        self.assertEqual(
+            client_obj.http_manager.consecutive_connection_errors,
+            config_lib.CONFIG["Client.connection_error_limit"] + 1)
 
 
 def main(argv):

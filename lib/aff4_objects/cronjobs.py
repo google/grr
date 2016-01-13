@@ -228,9 +228,16 @@ def GetStartTime(cron_cls):
   return rdfvalue.RDFDatetime(start_time_ms)
 
 
-def ScheduleSystemCronFlows(token=None):
+def ScheduleSystemCronFlows(names=None, token=None):
   """Schedule all the SystemCronFlows found."""
 
+  if (config_lib.CONFIG["Cron.enabled_system_jobs"] and
+      config_lib.CONFIG["Cron.disabled_system_jobs"]):
+    raise RuntimeError("Can't have both Cron.enabled_system_jobs and "
+                       "Cron.disabled_system_jobs specified in the config.")
+
+  # TODO(user): remove references to Cron.enabled_system_jobs by the end
+  # of Q1 2016.
   for name in config_lib.CONFIG["Cron.enabled_system_jobs"]:
     try:
       cls = flow.GRRFlow.classes[name]
@@ -241,15 +248,33 @@ def ScheduleSystemCronFlows(token=None):
       raise ValueError("Enabled system cron job name doesn't correspond to "
                        "a flow inherited from SystemCronFlow: %s" % name)
 
-  for name, cls in flow.GRRFlow.classes.items():
-    if aff4.issubclass(cls, SystemCronFlow):
+  for name in config_lib.CONFIG["Cron.disabled_system_jobs"]:
+    try:
+      cls = flow.GRRFlow.classes[name]
+    except KeyError:
+      raise KeyError("No such flow: %s." % name)
 
+    if not aff4.issubclass(cls, SystemCronFlow):
+      raise ValueError("Disabled system cron job name doesn't correspond to "
+                       "a flow inherited from SystemCronFlow: %s" % name)
+
+  if names is None:
+    names = flow.GRRFlow.classes.keys()
+
+  for name in names:
+    cls = flow.GRRFlow.classes[name]
+
+    if aff4.issubclass(cls, SystemCronFlow):
       cron_args = CreateCronJobFlowArgs(periodicity=cls.frequency)
       cron_args.flow_runner_args.flow_name = name
       cron_args.lifetime = cls.lifetime
       cron_args.start_time = GetStartTime(cls)
 
-      disabled = name not in config_lib.CONFIG["Cron.enabled_system_jobs"]
+      if config_lib.CONFIG["Cron.enabled_system_jobs"]:
+        disabled = name not in config_lib.CONFIG["Cron.enabled_system_jobs"]
+      else:
+        disabled = name in config_lib.CONFIG["Cron.disabled_system_jobs"]
+
       CRON_MANAGER.ScheduleFlow(cron_args=cron_args,
                                 job_name=name, token=token,
                                 disabled=disabled)

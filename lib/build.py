@@ -14,8 +14,6 @@ import subprocess
 import zipfile
 
 
-import distorm3
-
 # pylint: disable=g-import-not-at-top
 # This is a workaround so we don't need to maintain the whole PyInstaller
 # codebase as a full-fledged dependency.
@@ -30,6 +28,7 @@ except ImportError:
 from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import client as rdf_client
 # pylint: enable=g-import-not-at-top
 
 
@@ -93,7 +92,7 @@ class ClientBuilder(BuilderBase):
                                  context=self.context)]
     cwd = os.path.join(
         config_lib.CONFIG.Get("ClientBuilder.source", context=self.context),
-        "grr", "proto")
+        "grr")
     logging.info("Compiling protos with %s in dir: %s", cmd, cwd)
     subprocess.check_call(cmd, cwd=cwd)
 
@@ -150,21 +149,12 @@ class ClientBuilder(BuilderBase):
     logging.info("Running pyinstaller: %s", args)
     PyInstallerMain.run(pyi_args=[utils.SmartStr(x) for x in args])
 
-  def CopyMissingModules(self):
-    # Distorm has a stupid way of importing its library that PyInstaller cannot
-    # analyze. Thus, we copy that library manually.
+    with open(os.path.join(self.output_dir, "build.yaml"), "w") as fd:
+      fd.write("Client.build_environment: %s" %
+               rdf_client.Uname.FromCurrentSystem().signature())
 
-    # Similar to distorm3 __init__.py.
-    distorm_path = os.path.dirname(distorm3.__file__)
-    potential_libs = ["distorm3.dll", "libdistorm3.dll",
-                      "libdistorm3.so", "libdistorm3.dylib"]
-    for potential_lib in potential_libs:
-      try:
-        path = os.path.join(distorm_path, potential_lib)
-        shutil.copy(path, self.output_dir)
-        logging.info("Copying additional dll %s.", path)
-      except IOError:
-        pass
+  def CopyMissingModules(self):
+    """Copy any additional DLLs that cant be found."""
 
   def MakeExecutableTemplate(self, output_file=None):
     """Create the executable template.
@@ -255,6 +245,11 @@ class ClientDeployer(BuilderBase):
 
       new_config.Set("Client.build_time",
                      str(rdfvalue.RDFDatetime().Now()))
+
+      # Mark the client with the current build environment.
+      new_config.Set("Client.build_environment",
+                     rdf_client.Uname.FromCurrentSystem().signature())
+
       # Update the plugins list in the configuration file. Note that by
       # stripping away directory information, the client will load these from
       # its own install path.
@@ -273,10 +268,10 @@ class ClientDeployer(BuilderBase):
   def ValidateEndConfig(self, config, errors_fatal=True):
     """Given a generated client config, attempt to check for common errors."""
     errors = []
-    location = config.Get("Client.control_urls", context=self.context)
+    location = config.Get("Client.server_urls", context=self.context)
     for url in location:
       if not url.startswith("http"):
-        errors.append("Bad Client.control_urls specified %s" % url)
+        errors.append("Bad Client.server_urls specified %s" % url)
 
     keys = ["Client.executable_signing_public_key",
             "Client.driver_signing_public_key"]

@@ -87,7 +87,7 @@ grrUi.core.infiniteTableDirective.InfiniteTableController = function(
    * Page size - if not specified by the user, defaults to 50.
    * @export {number}
    */
-  this.pageSize = Number($scope.$eval(this.attrs_.pageSize)) ||
+  this.pageSize = Number($scope.$eval(this.attrs_['pageSize'])) ||
       InfiniteTableController.DEFAULT_PAGE_SIZE;
 
   // Replace the directive's element with table-loading row.
@@ -96,8 +96,8 @@ grrUi.core.infiniteTableDirective.InfiniteTableController = function(
 
   // If triggerUpdate attribute is defined, assign own triggerUpdate function
   // to it. This way users of the directive will be able to trigger updates.
-  if (angular.isDefined(this.attrs_.triggerUpdate)) {
-    var parsedExpression = $parse(this.attrs_.triggerUpdate);
+  if (angular.isDefined(this.attrs_['triggerUpdate'])) {
+    var parsedExpression = $parse(this.attrs_['triggerUpdate']);
     parsedExpression.assign(this.scope_, this.triggerUpdate.bind(this));
   }
 

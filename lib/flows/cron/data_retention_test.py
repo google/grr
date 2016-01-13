@@ -32,7 +32,8 @@ class CleanHuntsTest(test_lib.FlowTestsBaseclass):
       for i in range(self.NUM_HUNTS):
         hunt = hunts.GRRHunt.StartHunt(
             hunt_name=standard.SampleHunt.__name__,
-            expiry_time=rdfvalue.Duration("1m") * i)
+            expiry_time=rdfvalue.Duration("1m") * i,
+            token=self.token)
         hunt.Run()
         self.hunts_urns.append(hunt.urn)
 

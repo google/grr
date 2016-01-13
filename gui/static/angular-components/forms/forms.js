@@ -13,6 +13,7 @@ goog.require('grrUi.forms.durationFormDirective.DurationFormDirective');
 goog.require('grrUi.forms.globExpressionFormDirective.GlobExpressionFormDirective');
 goog.require('grrUi.forms.outputPluginDescriptorFormDirective.OutputPluginDescriptorFormDirective');
 goog.require('grrUi.forms.semanticEnumFormDirective.SemanticEnumFormDirective');
+goog.require('grrUi.forms.semanticLabelFormDirective.SemanticLabelFormDirective');
 goog.require('grrUi.forms.semanticPrimitiveFormDirective.SemanticPrimitiveFormDirective');
 goog.require('grrUi.forms.semanticProtoFormDirective.SemanticProtoFormDirective');
 goog.require('grrUi.forms.semanticProtoRepeatedFieldFormDirective.SemanticProtoRepeatedFieldFormDirective');
@@ -71,6 +72,10 @@ grrUi.forms.module.directive(
     grrUi.forms.semanticEnumFormDirective.SemanticEnumFormDirective
         .directive_name,
     grrUi.forms.semanticEnumFormDirective.SemanticEnumFormDirective);
+grrUi.forms.module.directive(
+    grrUi.forms.semanticLabelFormDirective.SemanticLabelFormDirective
+        .directive_name,
+    grrUi.forms.semanticLabelFormDirective.SemanticLabelFormDirective);
 grrUi.forms.module.directive(
     grrUi.forms.semanticPrimitiveFormDirective.SemanticPrimitiveFormDirective
         .directive_name,
@@ -156,6 +161,10 @@ grrUi.forms.module.run(function(grrSemanticFormDirectivesRegistryService) {
       grrUi.forms.semanticEnumFormDirective.SemanticEnumFormDirective
           .semantic_type,
       grrUi.forms.semanticEnumFormDirective.SemanticEnumFormDirective);
+  registry.registerDirective(
+      grrUi.forms.semanticLabelFormDirective.SemanticLabelFormDirective
+          .semantic_type,
+      grrUi.forms.semanticLabelFormDirective.SemanticLabelFormDirective);
   registry.registerDirective(
       grrUi.forms.semanticProtoFormDirective.SemanticProtoFormDirective
           .semantic_type,

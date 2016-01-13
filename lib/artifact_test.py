@@ -13,6 +13,7 @@ import time
 from grr.client import client_utils_linux
 from grr.client import client_utils_osx
 from grr.client.client_actions import standard
+from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import artifact
@@ -30,7 +31,6 @@ from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
-from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 
 # pylint: mode=test
 
@@ -104,7 +104,9 @@ class MultiProvideParser(parsers.RegistryValueParser):
 
 class RekallMock(action_mocks.MemoryClientMock):
 
-  def __init__(self, client_id, result_filename):
+  def __init__(self, client_id, result_filename, *args, **kwargs):
+    super(RekallMock, self).__init__(*args, **kwargs)
+
     self.result_filename = result_filename
     self.client_id = client_id
 

@@ -26,6 +26,7 @@ from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import flow_runner
+from grr.lib import output_plugin
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import registry
@@ -33,6 +34,7 @@ from grr.lib import stats
 from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.aff4_objects import collections as aff4_collections
+from grr.lib.aff4_objects import sequential_collection
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import foreman as rdf_foreman
@@ -52,6 +54,18 @@ class HuntRunnerArgs(rdf_structs.RDFProtoStruct):
 
     if self.HasField("integer_rules"):
       self.integer_rules.Validate()
+
+
+class UrnCollection(sequential_collection.IndexedSequentialCollection):
+  RDF_TYPE = rdf_client.ClientURN
+
+
+class HuntErrorCollection(sequential_collection.IndexedSequentialCollection):
+  RDF_TYPE = rdf_flows.HuntError
+
+
+class PluginStatusCollection(sequential_collection.IndexedSequentialCollection):
+  RDF_TYPE = output_plugin.OutputPluginBatchProcessingStatus
 
 
 class HuntRunner(flow_runner.FlowRunner):
@@ -537,6 +551,10 @@ class GRRHunt(flow.GRRFlow):
     return self.urn.Add("ErrorClients")
 
   @property
+  def clients_with_results_collection_urn(self):
+    return self.urn.Add("ClientsWithResults")
+
+  @property
   def output_plugins_status_collection_urn(self):
     return self.urn.Add("OutputPluginsStatus")
 
@@ -548,25 +566,48 @@ class GRRHunt(flow.GRRFlow):
   def creator(self):
     return self.state.context.creator
 
-  def _AddObjectToCollection(self, obj, collection_urn):
-    aff4_collections.PackedVersionedCollection.AddToCollection(
-        collection_urn, [obj], sync=False, token=self.token)
+  def _AddURNToCollection(self, urn, collection_urn):
+    # TODO(user): Change to use StaticAdd once all active hunts are
+    # migrated.
+    try:
+      aff4.FACTORY.Open(collection_urn,
+                        "UrnCollection",
+                        mode="w",
+                        token=self.token).Add(urn)
+    except IOError:
+      aff4_collections.PackedVersionedCollection.AddToCollection(
+          collection_urn, [urn], sync=False, token=self.token)
+
+  def _AddHuntErrorToCollection(self, error, collection_urn):
+    # TODO(user) Change to use StaticAdd once all active hunts are
+    # migrated.
+    try:
+      aff4.FACTORY.Open(collection_urn,
+                        "HuntErrorCollection",
+                        mode="w",
+                        token=self.token).Add(error)
+    except IOError:
+      aff4_collections.PackedVersionedCollection.AddToCollection(
+          collection_urn, [error], sync=False, token=self.token)
 
   def _GetCollectionItems(self, collection_urn):
-    collection = aff4.FACTORY.Create(collection_urn,
-                                     "PackedVersionedCollection",
-                                     mode="r", token=self.token)
+    collection = aff4.FACTORY.Open(collection_urn,
+                                   mode="r", token=self.token)
     return collection.GenerateItems()
 
   def _ClientSymlinkUrn(self, client_id):
     return client_id.Add("flows").Add("%s:hunt" % (self.urn.Basename()))
 
   def RegisterClient(self, client_urn):
-    self._AddObjectToCollection(client_urn, self.all_clients_collection_urn)
+    self._AddURNToCollection(client_urn, self.all_clients_collection_urn)
 
   def RegisterCompletedClient(self, client_urn):
-    self._AddObjectToCollection(client_urn,
-                                self.completed_clients_collection_urn)
+    self._AddURNToCollection(client_urn,
+                             self.completed_clients_collection_urn)
+
+  def RegisterClientWithResults(self, client_urn):
+    self._AddURNToCollection(client_urn,
+                             self.clients_with_results_collection_urn)
 
   def RegisterClientError(self, client_id, log_message=None, backtrace=None):
     error = rdf_flows.HuntError(client_id=client_id,
@@ -574,7 +615,7 @@ class GRRHunt(flow.GRRFlow):
     if log_message:
       error.log_message = utils.SmartUnicode(log_message)
 
-    self._AddObjectToCollection(error, self.clients_errors_collection_urn)
+    self._AddHuntErrorToCollection(error, self.clients_errors_collection_urn)
 
   def OnDelete(self, deletion_pool=None):
     super(GRRHunt, self).OnDelete(deletion_pool=deletion_pool)
@@ -725,6 +766,9 @@ class GRRHunt(flow.GRRFlow):
         aff4.ResultsOutputCollection.AddToCollection(
             self.state.context.results_collection_urn, msgs,
             sync=True, token=self.token)
+
+        if responses:
+          self.RegisterClientWithResults(client_id)
 
         # Update stats.
         stats.STATS.IncrementCounter("hunt_results_added",
@@ -894,22 +938,40 @@ class GRRHunt(flow.GRRFlow):
 
       results_metadata.Set(results_metadata.Schema.OUTPUT_PLUGINS(state))
 
-    # Create results collection.
+    # Create the collection for results.
     with aff4.FACTORY.Create(
         self.state.context.results_collection_urn, "ResultsOutputCollection",
         mode="w", token=self.token) as results_collection:
       results_collection.Set(results_collection.Schema.RESULTS_SOURCE,
                              self.urn)
 
-    # Create all other hunt-related collections.
-    for urn in [self.logs_collection_urn,
-                self.all_clients_collection_urn,
+    # Create the collection for logs.
+    with aff4.FACTORY.Create(self.logs_collection_urn,
+                             flow_runner.FlowLogCollection.__name__,
+                             mode="w",
+                             token=self.token):
+      pass
+
+    # Create the collections for urns.
+    for urn in [self.all_clients_collection_urn,
                 self.completed_clients_collection_urn,
-                self.clients_errors_collection_urn,
-                self.output_plugins_status_collection_urn,
+                self.clients_with_results_collection_urn]:
+      with aff4.FACTORY.Create(urn, "UrnCollection",
+                               mode="w", token=self.token):
+        pass
+
+    # Create the collection for errors.
+    with aff4.FACTORY.Create(self.clients_errors_collection_urn,
+                             "HuntErrorCollection",
+                             mode="w",
+                             token=self.token):
+      pass
+
+    # Create the collections for PluginStatus messages.
+    for urn in [self.output_plugins_status_collection_urn,
                 self.output_plugins_errors_collection_urn]:
-      with aff4.FACTORY.Create(urn, "PackedVersionedCollection", mode="w",
-                               token=self.token):
+      with aff4.FACTORY.Create(urn, "PluginStatusCollection",
+                               mode="w", token=self.token):
         pass
 
     if not self.state.context.args.description:
@@ -948,7 +1010,7 @@ class GRRHunt(flow.GRRFlow):
     collections = aff4.FACTORY.MultiOpen(
         [self.all_clients_collection_urn, self.completed_clients_collection_urn,
          self.clients_errors_collection_urn],
-        aff4_type="PackedVersionedCollection", mode="r", token=self.token)
+        mode="r", token=self.token)
     collections_dict = dict((coll.urn, coll) for coll in collections)
 
     def CollectionLen(collection_urn):
@@ -997,9 +1059,8 @@ class GRRHunt(flow.GRRFlow):
         yield (fd.urn, result)
 
   def GetLog(self, client_id=None):
-    log_vals = aff4.FACTORY.Create(
-        self.logs_collection_urn, mode="r",
-        aff4_type="PackedVersionedCollection", token=self.token)
+    log_vals = aff4.FACTORY.Open(
+        self.logs_collection_urn, mode="r", token=self.token)
     if not client_id:
       return log_vals
     else:

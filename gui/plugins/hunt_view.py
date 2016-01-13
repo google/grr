@@ -430,6 +430,9 @@ class HuntOverviewRenderer(AbstractLogRenderer):
   <dt>Integer Rules</dt>
   <dd>{{ this.integer_rules|safe }}</dd>
 
+  <dt>Rules</dt>
+  <dd>{{ this.rules|safe }}</dd>
+
   <dt>Arguments</dt><dd>{{ this.args_str|safe }}</dd>
 
 {% for key, val in this.data.items %}

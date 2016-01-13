@@ -68,15 +68,11 @@ class FlowTree(renderers.TreeRenderer):
       if not getattr(cls, "category", None):
         continue
 
-      # If a flow is tagged as AUTHORIZED_LABELS, the user must have the correct
-      # label to see it.
-      if cls.AUTHORIZED_LABELS:
-        try:
-          data_store.DB.security_manager.CheckUserLabels(
-              request.token.username, cls.AUTHORIZED_LABELS,
-              token=request.token)
-        except access_control.UnauthorizedAccess:
-          continue
+      # Skip the flow if the user is not allowed to start it.
+      try:
+        data_store.DB.security_manager.CheckIfCanStartFlow(request.token, name)
+      except access_control.UnauthorizedAccess:
+        continue
 
       # Skip if there are behaviours that are not supported by the class.
       if not flow_behaviors_to_render.IsSupported(cls.behaviours):

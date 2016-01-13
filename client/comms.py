@@ -1,7 +1,77 @@
 #!/usr/bin/env python
 """This class handles the GRR Client Communication.
 
-Tests are in lib/communicator_test.py
+The GRR client uses HTTP to communicate with the server.
+
+The client connections are controlled via a number of config parameters:
+
+- Client.retry_error_limit: Number of times the client will try existing
+  connections before giving up.
+
+- Client.connection_error_limit: The client will exit after this many
+  consecutive errors.
+
+- Client.error_poll_min: Time to wait between retries in an ERROR state.
+
+- Client.server_urls: A list of URLs for the base control server.
+
+- Client.proxy_servers: A list of proxies to try to connect through.
+
+- Client.poll_max, Client.poll_min: Parameters for timing of SLOW POLL and FAST
+  POLL modes.
+
+The client goes through a state machine:
+
+1) In the INITIAL state, the client has no active server URL or active proxy and
+   it is therefore searching through the list of proxies and connection URLs for
+   one that works. The client will try each combination of proxy/URL in turn
+   without delay until a 200 or a 406 message is seen. If all possibilities are
+   exhausted, and a connection is not established, the client will switch to
+   SLOW POLL mode (and retry connection every Client.poll_max).
+
+2) In SLOW POLL mode the client will wait Client.poll_max between re-connection
+   attempts.
+
+3) If a server is detected, the client will communicate with it. If the server
+   returns a 406 error, the client will send an enrollment request. Enrollment
+   requests are only re-sent every 10 minutes (regardless of the frequency of
+   406 responses). Note that a 406 message is considered a valid connection and
+   the client will not search for URL/Proxy combinations as long as it keep
+   receiving 406 responses.
+
+4) During CONNECTED state, the client has a valid server certificate, receives
+   200 responses from the server and is able to send messages to the server. The
+   polling frequency in this state is determined by the polling mode requested
+   by the messages received or send. If any message from the server or from the
+   worker queue (to the server) has the require_fastpoll flag set, the client
+   switches into FAST POLL mode.
+
+5) When not in FAST POLL mode, the polling frequency is controlled by the
+   Timer() object. It is currently a geometrically decreasing function which
+   starts at the Client.poll_min and approaches the Client.poll_max setting.
+
+6) If a 500 error occurs in the CONNECTED state, the client will assume that the
+   server is temporarily down. The client will switch to the RETRY state and
+   retry sending the data with a fixed frequency determined by
+   Client.error_poll_min to the same URL/Proxy combination. The client will
+   retry for Client.retry_error_limit times (default 10) before exiting the
+   CONNECTED state and returning to the INITIAL state (i.e. the client will
+   start searching for a new URL/Proxy combination). If a retry is successful,
+   the client will return to its designated polling frequency.
+
+7) If there are Client.connection_error_limit failures, the client will
+   exit. Hopefully the nanny will restart the client.
+
+Examples:
+
+1) Client starts up on a disconnected network: Client will try every URL/Proxy
+   combination once every Client.poll_max (default 10 minutes).
+
+2) Client connects successful but loses network connectivity. Client will re-try
+   Client.retry_error_limit (10 times) every Client.error_poll_min (1 Min) to
+   resent the last message. If it does not succeed it starts searching for a new
+   URL/Proxy combination as in example 1.
+
 """
 
 
@@ -25,8 +95,6 @@ from M2Crypto import RSA
 from M2Crypto import X509
 import psutil
 
-from google.protobuf import message as proto2_message
-
 import logging
 
 from grr.client import actions
@@ -47,9 +115,298 @@ from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
 
 
-# This determines after how many consecutive errors
-# GRR will retry all known proxies.
-PROXY_SCAN_ERROR_LIMIT = 10
+class HTTPObject(object):
+  """Data returned from a HTTP connection."""
+
+  def __init__(self, url="", data="", proxy="", code=500, duration=0):
+    self.url = url
+    self.data = data
+    self.proxy = proxy
+    self.code = code
+    # Contains the decoded data from the 'control' endpoint.
+    self.messages = self.source = self.nonce = None
+    self.duration = duration
+
+  def Success(self):
+    """Returns if the request was successful."""
+    return self.code in (200, 406)
+
+
+class HTTPManager(object):
+  """A manager for all HTTP/S connections.
+
+  NOTE: This HTTPManager is not thread safe and should not be shared between
+  threads.
+  """
+
+  def __init__(self, heart_beat_cb=None):
+    self.heart_beat_cb = heart_beat_cb
+    self.proxies = self._GetProxies()
+    self.base_urls = self._GetBaseURLs()
+
+    # We start checking with this proxy.
+    self.last_proxy_index = 0
+    self.last_base_url_index = 0
+
+    # If we have connected previously but now suddenly fail to connect, we try
+    # the connection a few times (Client.retry_error_limit) before we determine
+    # that it is failed.
+    self.consecutive_connection_errors = 0
+    self.retry_error_limit = config_lib.CONFIG["Client.retry_error_limit"]
+
+    self.active_base_url = None
+    self.error_poll_min = config_lib.CONFIG["Client.error_poll_min"]
+
+  def _GetBaseURLs(self):
+    """Gathers a list of base URLs we will try."""
+    result = config_lib.CONFIG["Client.server_urls"]
+    if not result:
+      # Backwards compatibility - deduce server_urls from Client.control_urls.
+      for control_url in config_lib.CONFIG["Client.control_urls"]:
+        result.append(posixpath.dirname(control_url) + "/")
+
+    # Check the URLs for trailing /. This traps configuration errors.
+    for url in result:
+      if not url.endswith("/"):
+        raise RuntimeError("Base URLs must end with /")
+
+    return result
+
+  def _GetProxies(self):
+    """Gather a list of proxies to use."""
+    # Detect proxies from the OS environment.
+    result = client_utils.FindProxies()
+
+    # Also try to connect directly if all proxies fail.
+    result.append("")
+
+    # Also try all proxies configured in the config system.
+    result.extend(config_lib.CONFIG["Client.proxy_servers"])
+
+    return result
+
+  def _ConcatenateURL(self, base, url):
+    if not url.startswith("/"):
+      url = "/" + url
+
+    if base.endswith("/"):
+      base = base[:-1]
+
+    return base + url
+
+  def OpenServerEndpoint(self, path, verify_cb=lambda x: True, data=None,
+                         request_opts=None):
+    """Search through all the base URLs to connect to one that works."""
+    tries = 0
+    last_error = HTTPObject(code=404)
+
+    while tries < len(self.base_urls):
+      base_url_index = self.last_base_url_index % len(self.base_urls)
+      active_base_url = self.base_urls[base_url_index]
+
+      result = self.OpenURL(self._ConcatenateURL(active_base_url, path),
+                            data=data, verify_cb=verify_cb,
+                            request_opts=request_opts)
+
+      if not result.Success():
+        tries += 1
+        self.last_base_url_index += 1
+        last_error = result
+        continue
+
+      # The URL worked - we record that.
+      self.active_base_url = active_base_url
+
+      return result
+
+    # No connection is possible at all.
+    logging.info("Could not connect to GRR servers %s, directly or through "
+                 "these proxies: %s.", self.base_urls, self.proxies)
+
+    return last_error
+
+  def OpenURL(self, url, verify_cb=lambda x: True, data=None,
+              request_opts=None):
+    """Get the requested URL.
+
+    Note that we do not have any concept of timing here - we try to connect
+    through all proxies as fast as possible until one works. Timing and poll
+    frequency is left to the calling code.
+
+    Args:
+      url: The URL to fetch
+      verify_cb: An optional callback which can be used to validate the URL. It
+        receives the HTTPObject and return True if this seems OK, False
+        otherwise. For example, if we are behind a captive portal we might
+        receive invalid object even though HTTP status is 200.
+      data: If specified, we POST this data to the server.
+      request_opts: A dict containing optional headers.
+
+    Returns:
+      An HTTPObject instance or None if a connection could not be made.
+    """
+    # Start checking the proxy from the last value found.
+    tries = 0
+    last_error = 500
+
+    while tries < len(self.proxies):
+      proxy_index = self.last_proxy_index % len(self.proxies)
+      proxy = self.proxies[proxy_index]
+      try:
+        proxydict = {}
+        if proxy:
+          proxydict["http"] = proxy
+          proxydict["https"] = proxy
+
+        proxy_support = urllib2.ProxyHandler(proxydict)
+        opener = urllib2.build_opener(proxy_support)
+        urllib2.install_opener(opener)
+
+        request_opts = (request_opts or {}).copy()
+        request_opts["Cache-Control"] = "no-cache"
+        request = urllib2.Request(url, data, request_opts)
+
+        duration, handle = self._RetryRequest(request)
+        data = handle.read()
+
+        result = HTTPObject(url=url, data=data, proxy=proxy, code=200,
+                            duration=duration)
+
+        if not verify_cb(result):
+          raise urllib2.HTTPError(url=url, code=500, msg="Data not verified.",
+                                  hdrs=[], fp=handle)
+
+        # The last connection worked.
+        self.consecutive_connection_errors = 0
+        return result
+
+      except urllib2.HTTPError as e:
+        # Especially trap a 406 error message - it means the client needs to
+        # enroll.
+        if e.code == 406:
+          # A 406 is not considered an error as the frontend is reachable. If we
+          # considered it as an error the client would be unable to send the
+          # enrollment request since connection errors disable message draining.
+          self.consecutive_connection_errors = 0
+          return HTTPObject(code=406)
+
+        # Try the next proxy
+        self.last_proxy_index = proxy_index + 1
+        tries += 1
+        last_error = e.code
+
+      except urllib2.URLError as e:
+        # Try the next proxy
+        self.last_proxy_index = proxy_index + 1
+        tries += 1
+        last_error = 500
+
+    # We failed to connect at all here.
+    return HTTPObject(code=last_error)
+
+  def _RetryRequest(self, request):
+    """Retry the request a few times before we determine it failed.
+
+    Sometimes the frontend becomes loaded and issues a 500 error to throttle the
+    clients. We wait Client.error_poll_min seconds between each attempt to back
+    off the frontend. Note that this does not affect any timing algorithm in the
+    client itself which is controlled by the Timer() class.
+
+    Args:
+      request: A urllib2 request object.
+
+    Returns:
+      a tuple of duration, urllib2.urlopen response.
+
+    """
+    while True:
+      try:
+        now = time.time()
+        result = urllib2.urlopen(request, timeout=config_lib.CONFIG[
+            "Client.http_timeout"])
+
+        return time.time() - now, result
+
+      except (urllib2.HTTPError, urllib2.URLError) as e:
+        self.consecutive_connection_errors += 1
+
+        # Request failed. If we connected successfully before we attempt a few
+        # connections before we determine that it really failed. This might
+        # happen if the front end is loaded and returns a few throttling 500
+        # messages.
+        if self.active_base_url is not None:
+          # Propagate 406 immediately without retrying, as 406 is a valid
+          # response that inidicate a need for enrollment.
+          if e.code == 406:
+            raise
+
+          if self.consecutive_connection_errors >= self.retry_error_limit:
+            # We tried several times but this really did not work, just fail it.
+            logging.info(
+                "Too many connection errors to %s, retrying another URL",
+                self.active_base_url)
+            self.active_base_url = None
+            raise e
+
+          # Back off hard to allow the front end to recover.
+          logging.debug(
+              "Unable to connect to frontend. Backing off %s seconds.",
+              self.error_poll_min)
+          self.Wait(self.error_poll_min)
+
+        # We never previously connected, maybe the URL/proxy is wrong? Just fail
+        # right away to allow callers to try a different URL.
+        else:
+          raise e
+
+  def Wait(self, timeout):
+    """Wait for the specified timeout."""
+    time.sleep(timeout - int(timeout))
+
+    # Split a long sleep interval into 1 second intervals so we can heartbeat.
+    for _ in range(int(timeout)):
+      time.sleep(1)
+
+      if self.heart_beat_cb:
+        self.heart_beat_cb()
+
+
+class Timer(object):
+  """Implements the polling policy.
+
+  External code simply calls our Wait() method without regard to the exact
+  timing policy.
+  """
+
+  def __init__(self, heart_beat_cb=None):
+    self.heart_beat_cb = heart_beat_cb
+    self.poll_min = config_lib.CONFIG["Client.poll_min"]
+    self.sleep_time = self.poll_max = config_lib.CONFIG["Client.poll_max"]
+    self.poll_slew = config_lib.CONFIG["Client.poll_slew"]
+
+  def FastPoll(self):
+    """Switch to fast poll mode."""
+    self.sleep_time = self.poll_min
+
+  def SlowPoll(self):
+    """Switch to slow poll mode."""
+    self.sleep_time = self.poll_max
+
+  def Wait(self):
+    """Wait until the next action is needed."""
+    time.sleep(self.sleep_time - int(self.sleep_time))
+
+    # Split a long sleep interval into 1 second intervals so we can heartbeat.
+    for _ in range(int(self.sleep_time)):
+      time.sleep(1)
+
+      if self.heart_beat_cb:
+        self.heart_beat_cb()
+
+    # Back off slowly at first and fast if no answer.
+    self.sleep_time = min(
+        self.poll_max,
+        max(self.poll_min, self.sleep_time) * self.poll_slew)
 
 
 class CommsInit(registry.InitHook):
@@ -144,6 +501,12 @@ class GRRClientWorker(object):
       GRRClientWorker.stats_collector.start()
 
     self.lock = threading.RLock()
+
+    # The worker may communicate over HTTP independently from the comms
+    # thread. This way we do not need to synchronize the HTTP manager between
+    # the two threads.
+    self.http_manager = HTTPManager(
+        heart_beat_cb=self.nanny_controller.Heartbeat)
 
   def Sleep(self, timeout):
     """Sleeps the calling thread with heartbeat."""
@@ -292,9 +655,6 @@ class GRRClientWorker(object):
     """
     self._is_active = True
     try:
-      # Write the message to the transaction log.
-      self.nanny_controller.WriteTransactionLog(message)
-
       # Try to retrieve a suspended action from the client worker.
       try:
         suspended_action_id = message.payload.iterator.suspended_action
@@ -302,9 +662,14 @@ class GRRClientWorker(object):
 
       except (AttributeError, KeyError):
         # Otherwise make a new action instance.
-        action_cls = actions.ActionPlugin.classes.get(
-            message.name, actions.ActionPlugin)
+        action_cls = actions.ActionPlugin.classes.get(message.name)
+        if action_cls is None:
+          raise RuntimeError("Client action %r not known" % message.name)
+
         action = action_cls(grr_worker=self)
+
+      # Write the message to the transaction log.
+      self.nanny_controller.WriteTransactionLog(message)
 
       # Heartbeat so we have the full period to work on this message.
       action.Progress()
@@ -663,11 +1028,11 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
       except Exception as e:  # pylint: disable=broad-except
         logging.warn("%s", e)
         self.SendReply(
-            rdf_flows.GrrStats(
+            rdf_flows.GrrStatus(
                 status=rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR,
                 error_message=utils.SmartUnicode(e)),
             request_id=message.request_id,
-            response_id=message.response_id,
+            response_id=1,
             session_id=message.session_id,
             task_id=message.task_id,
             message_type=rdf_flows.GrrMessage.Type.STATUS)
@@ -689,7 +1054,10 @@ class GRRHTTPClient(object):
   The client worker is then created - this will be the main thread for executing
   server messages.
 
-  The HTTP engine simply reads pending messages from the client worker queues
+  The client then creates a HTTPManager() instance to control communication with
+  the front end over HTTP, and a Timer() instance to control polling policy.
+
+  The HTTP client simply reads pending messages from the client worker queues
   and makes POST requests to the server. The POST request may return the
   following error conditions:
 
@@ -704,6 +1072,8 @@ class GRRHTTPClient(object):
     - A status code of 500 is an error, the messages are re-queued and the
       client waits and retried to send them later.
   """
+
+  http_manager_class = HTTPManager
 
   def __init__(self, ca_cert=None, worker=None, private_key=None):
     """Constructor.
@@ -721,13 +1091,23 @@ class GRRHTTPClient(object):
     if private_key is None:
       private_key = config_lib.CONFIG.Get("Client.private_key", default=None)
 
+    # The server's PEM encoded certificate.
+    self.server_certificate = None
+
+    # This manages our HTTP connections. Note: The comms thread is allowed to
+    # block indefinitely since the worker thread is responsible for
+    # heart-beating the nanny. We assume that HTTP requests can not block
+    # indefinitely.
+    self.http_manager = self.http_manager_class()
+
+    # The communicator manages our crypto with the server.
     self.communicator = ClientCommunicator(private_key=private_key)
 
-    self.active_server_url = None
+    # This controls our polling frequency.
+    self.timer = Timer()
 
-    self.consecutive_connection_errors = 0
-
-    # The time we last sent an enrollment request.
+    # The time we last sent an enrollment request. Enrollment requests are
+    # throttled especially to a maximum of one every 10 minutes.
     self.last_enrollment_time = 0
 
     # The time we last checked with the foreman.
@@ -739,124 +1119,89 @@ class GRRHTTPClient(object):
     else:
       self.client_worker = GRRThreadedWorker()
 
-    # Start off with a maximum polling interval
-    self.sleep_time = config_lib.CONFIG["Client.poll_max"]
+  def VerifyServerPEM(self, http_object):
+    """Check the server PEM for validity.
 
-  def GetServerUrl(self):
-    if not self.active_server_url:
-      if not self.EstablishConnection():
-        return ""
-    return self.active_server_url
+    This is used to determine connectivity to the server. Sometimes captive
+    portals return a valid HTTP status, but the data is corrupted.
 
-  def EstablishConnection(self):
-    """Finds a connection to the server and initializes the client.
-
-    This method tries all pairs of location urls and known proxies until it
-    finds one that works.
-
-    It does so by downloading the server.pem from the GRR server and verifies
-    it directly. Note that this also refreshes the server certificate.
+    Args:
+      http_object: The response received from the server.
 
     Returns:
-      A boolean indicating success.
-    Side-effect:
-      On success we set self.active_server_url, which is used by other methods
-      to check if we have made a successful connection in the past.
+      True if the response contains a valid server certificate.
     """
-    # This gets proxies from the platform specific proxy settings.
-    proxies = client_utils.FindProxies()
-
-    # Also try to connect directly if all proxies fail.
-    proxies.append("")
-
-    # Also try all proxies configured in the config system.
-    proxies.extend(config_lib.CONFIG["Client.proxy_servers"])
-    for server_url in config_lib.CONFIG["Client.control_urls"]:
-      for proxy in proxies:
-        try:
-          proxydict = {}
-          if proxy:
-            proxydict["http"] = proxy
-          proxy_support = urllib2.ProxyHandler(proxydict)
-          opener = urllib2.build_opener(proxy_support)
-          urllib2.install_opener(opener)
-
-          cert_url = "/".join((posixpath.dirname(server_url), "server.pem"))
-          request = urllib2.Request(cert_url, None,
-                                    {"Cache-Control": "no-cache"})
-          handle = urllib2.urlopen(request, timeout=10)
-          server_pem = handle.read()
-          if "BEGIN CERTIFICATE" in server_pem:
-            # Now we know that this proxy is working. We still have
-            # to verify the certificate.
-            self.communicator.LoadServerCertificate(
-                server_certificate=server_pem, ca_certificate=self.ca_cert)
-
-            # If we reach this point, the server can be reached and the
-            # certificate is valid.
-            self.server_certificate = server_pem
-            self.active_server_url = server_url
-            handle.close()
-            return True
-        except urllib2.URLError:
-          pass
-        except Exception as e:  # pylint: disable=broad-except
-          logging.info("Unable to verify server certificate at %s: %s",
-                       cert_url, e)
-
-    # No connection is possible at all.
-    logging.info("Could not connect to GRR servers %s, directly or through "
-                 "these proxies: %s.", config_lib.CONFIG["Client.control_urls"],
-                 proxies)
-    return False
-
-  def MakeRequest(self, data, status):
-    """Make a HTTP Post request and return the raw results."""
-    status.sent_len = len(data)
-    stats.STATS.IncrementCounter("grr_client_sent_bytes", len(data))
-    return_msg = ""
-
     try:
-      # Now send the request using POST
-      start = time.time()
-      url = "%s?api=%s" % (self.GetServerUrl(),
-                           config_lib.CONFIG["Network.api"])
+      server_pem = http_object.data
+      server_url = http_object.url
 
-      req = urllib2.Request(utils.SmartStr(url), data,
-                            {"Content-Type": "binary/octet-stream"})
-      handle = urllib2.urlopen(req)
-      data = handle.read()
-      logging.debug("Request took %s Seconds", time.time() - start)
+      if "BEGIN CERTIFICATE" in server_pem:
+        # Now we know that this proxy is working. We still have to verify the
+        # certificate. This will raise if the server cert is invalid.
+        self.communicator.LoadServerCertificate(
+            server_certificate=server_pem, ca_certificate=self.ca_cert)
 
-      self.consecutive_connection_errors = 0
+        logging.info("Server PEM re-keyed.")
+        return True
+    except Exception as e:  # pylint: disable=broad-except
+      logging.info("Unable to verify server certificate at %s: %s",
+                   server_url, e)
 
-      stats.STATS.IncrementCounter("grr_client_received_bytes", len(data))
-      return data
+      return False
 
-    except urllib2.HTTPError as e:
-      status.code = e.code
-      # Server can not talk with us - re-enroll.
-      if e.code == 406:
-        self.InitiateEnrolment(status)
-        return_msg = ""
-      else:
-        self.consecutive_connection_errors += 1
-        if self.consecutive_connection_errors % PROXY_SCAN_ERROR_LIMIT == 0:
-          # Reset the active connection, this will trigger a reconnect attempt.
-          self.active_server_url = None
-        return_msg = str(e)
+  def VerifyServerControlResponse(self, http_object):
+    """Verify the server response to a 'control' endpoint POST message.
 
-    except urllib2.URLError as e:
-      status.code = 500
-      self.consecutive_connection_errors += 1
-      if self.consecutive_connection_errors % PROXY_SCAN_ERROR_LIMIT == 0:
-        # Reset the active connection, this will trigger a reconnect attempt.
-        self.active_server_url = None
-      return_msg = str(e)
+    We consider the message correct if and only if we can decrypt it
+    properly. Note that in practice we can not use the HTTP status to figure out
+    if the request worked because captive proxies have a habit of lying and
+    returning a HTTP success code even when there is no connectivity.
 
-    # Error path:
-    status.sent_count = 0
-    return return_msg
+    Args:
+      http_object: The HTTPObject returned from the HTTP transaction.
+
+    Returns:
+      True if the http_object is correct. False if it is not valid.
+
+    Side Effect:
+      Fill in the decoded_data attribute in the http_object.
+    """
+    if http_object.code != 200:
+      return False
+
+    # Try to decrypt the message into the http_object.
+    try:
+      http_object.messages, http_object.source, http_object.nonce = (
+          self.communicator.DecryptMessage(http_object.data))
+
+      return True
+
+    # Something went wrong - the response seems invalid!
+    except communicator.DecodingError as e:
+      logging.info("Protobuf decode error: %s.", e)
+      return False
+
+  def MakeRequest(self, data):
+    """Make a HTTP Post request to the server 'control' endpoint."""
+    stats.STATS.IncrementCounter("grr_client_sent_bytes", len(data))
+
+    # Verify the response is as it should be from the control endpoint.
+    response = self.http_manager.OpenServerEndpoint(
+        path="control?api=%s" % config_lib.CONFIG["Network.api"],
+        verify_cb=self.VerifyServerControlResponse,
+        data=data, request_opts={"Content-Type": "binary/octet-stream"})
+
+    if response.code == 406:
+      self.InitiateEnrolment()
+      return response
+
+    if response.code == 200:
+      stats.STATS.IncrementCounter("grr_client_received_bytes",
+                                   len(response.data))
+      return response
+
+    # An unspecified error occured.
+    return response
 
   def RunOnce(self):
     """Makes a single request to the GRR server.
@@ -864,123 +1209,106 @@ class GRRHTTPClient(object):
     Returns:
       A Status() object indicating how the last POST went.
     """
-    try:
-      status = Status()
+    # Attempt to fetch and load server certificate.
+    if not self._FetchServerCertificate():
+      self.timer.Wait()
+      return HTTPObject(code=500)
 
-      # Here we only drain messages if we were able to connect to the server in
-      # the last poll request. Otherwise we just wait until the connection comes
-      # back so we don't expire our messages too fast.
-      if self.consecutive_connection_errors == 0:
-        # Grab some messages to send
-        message_list = self.client_worker.Drain(
-            max_size=config_lib.CONFIG["Client.max_post_size"])
-      else:
-        message_list = rdf_flows.MessageList()
+    # Here we only drain messages if we were able to connect to the server in
+    # the last poll request. Otherwise we just wait until the connection comes
+    # back so we don't expire our messages too fast.
+    if self.http_manager.consecutive_connection_errors == 0:
+      # Grab some messages to send
+      message_list = self.client_worker.Drain(
+          max_size=config_lib.CONFIG["Client.max_post_size"])
+    else:
+      message_list = rdf_flows.MessageList()
 
-      sent_count = 0
-      sent = {}
-      require_fastpoll = False
+    # If any outbound messages require fast poll we switch to fast poll mode.
+    for message in message_list.job:
+      if message.require_fastpoll:
+        self.timer.FastPoll()
+        break
 
-      for message in message_list.job:
-        sent_count += 1
+    # Make new encrypted ClientCommunication rdfvalue.
+    payload = rdf_flows.ClientCommunication()
 
-        require_fastpoll |= message.require_fastpoll
+    # If our memory footprint is too large, we advertise that our input queue
+    # is full. This will prevent the server from sending us any messages, and
+    # hopefully allow us to work down our memory usage, by processing any
+    # outstanding messages.
+    if self.client_worker.MemoryExceeded():
+      logging.info("Memory exceeded, will not retrieve jobs.")
+      payload.queue_size = 1000000
+    else:
+      # Let the server know how many messages are currently queued in
+      # the input queue.
+      payload.queue_size = self.client_worker.InQueueSize()
 
-        sent.setdefault(message.priority, 0)
-        sent[message.priority] += 1
+    nonce = self.communicator.EncodeMessages(message_list, payload)
+    payload_data = payload.SerializeToString()
+    response = self.MakeRequest(payload_data)
 
-      status = Status(sent_count=sent_count, sent=sent,
-                      require_fastpoll=require_fastpoll)
+    # Unable to decode response or response not valid.
+    if response.code != 200 or response.messages is None:
+      # We don't print response here since it should be encrypted and will
+      # cause ascii conversion errors.
+      logging.info("%s: Could not connect to server at %s, status %s",
+                   self.communicator.common_name,
+                   self.http_manager.active_base_url,
+                   response.code)
 
-      # Make new encrypted ClientCommunication rdfvalue.
-      payload = rdf_flows.ClientCommunication()
+      # Force the server pem to be reparsed on the next connection.
+      self.server_certificate = None
 
-      # If our memory footprint is too large, we advertise that our input queue
-      # is full. This will prevent the server from sending us any messages, and
-      # hopefully allow us to work down our memory usage, by processing any
-      # outstanding messages.
-      if self.client_worker.MemoryExceeded():
-        logging.info("Memory exceeded, will not retrieve jobs.")
-        payload.queue_size = 1000000
-      else:
-        # Let the server know how many messages are currently queued in
-        # the input queue.
-        payload.queue_size = self.client_worker.InQueueSize()
+      # Reschedule the tasks back on the queue so they get retried next time.
+      messages = list(message_list.job)
+      for message in messages:
+        message.priority = rdf_flows.GrrMessage.Priority.HIGH_PRIORITY
+        message.require_fastpoll = False
+        message.ttl -= 1
+        if message.ttl > 0:
+          # Schedule with high priority to make it jump the queue.
+          self.client_worker.QueueResponse(
+              message, rdf_flows.GrrMessage.Priority.HIGH_PRIORITY + 1)
+        else:
+          logging.info("Dropped message due to retransmissions.")
 
-      nonce = self.communicator.EncodeMessages(message_list, payload)
-      response = self.MakeRequest(payload.SerializeToString(), status)
+      return response
 
-      if status.code != 200:
-        # We don't print response here since it should be encrypted and will
-        # cause ascii conversion errors.
-        logging.info("%s: Could not connect to server at %s, status %s",
-                     self.communicator.common_name,
-                     self.GetServerUrl(),
-                     status.code)
+    # Check the decoded nonce was as expected.
+    if response.nonce != nonce:
+      logging.info("Nonce not matched.")
+      response.code = 500
+      return response
 
-        # Reschedule the tasks back on the queue so they get retried next time.
-        messages = list(message_list.job)
-        for message in messages:
-          message.priority = rdf_flows.GrrMessage.Priority.HIGH_PRIORITY
-          message.require_fastpoll = False
-          message.ttl -= 1
-          if message.ttl > 0:
-            # Schedule with high priority to make it jump the queue.
-            self.client_worker.QueueResponse(
-                message, rdf_flows.GrrMessage.Priority.HIGH_PRIORITY + 1)
-          else:
-            logging.info("Dropped message due to retransmissions.")
-        return status
+    if response.source != self.communicator.server_name:
+      logging.info("Received a message not from the server "
+                   "%s, expected %s.", response.source,
+                   self.communicator.server_name)
+      response.code = 500
+      return response
 
-      if not response:
-        return status
+    # Check to see if any inbound messages want us to fastpoll. This means we
+    # drop to fastpoll immediately on a new request rather than waiting for the
+    # next beacon to report results.
+    for message in response.messages:
+      if message.require_fastpoll:
+        self.timer.FastPoll()
+        break
 
-      try:
-        tmp = self.communicator.DecryptMessage(response)
-        (messages, source, server_nonce) = tmp
+    # Process all messages. Messages can be processed by clients in
+    # any order since clients do not have state.
+    self.client_worker.QueueMessages(response.messages)
 
-        if server_nonce != nonce:
-          logging.info("Nonce not matched.")
-          status.code = 500
-          return status
+    cn = self.communicator.common_name
+    logging.info("%s: Sending %s(%s), Received %s messages in %s sec. "
+                 "Sleeping for %s",
+                 cn, len(message_list), len(payload_data),
+                 len(response.messages),
+                 response.duration, self.timer.sleep_time)
 
-      except proto2_message.DecodeError:
-        logging.info("Protobuf decode error. Bad URL or auth.")
-        status.code = 500
-        return status
-
-      if source != self.communicator.server_name:
-        logging.info("Received a message not from the server "
-                     "%s, expected %s.", source,
-                     self.communicator.server_name)
-        status.code = 500
-        return status
-
-      status.received_count = len(messages)
-
-      # If we're not going to fastpoll based on outbound messages, check to see
-      # if any inbound messages want us to fastpoll. This means we drop to
-      # fastpoll immediately on a new request rather than waiting for the next
-      # beacon to report results.
-      if not status.require_fastpoll:
-        for message in messages:
-          if message.require_fastpoll:
-            status.require_fastpoll = True
-            break
-
-      # Process all messages. Messages can be processed by clients in
-      # any order since clients do not have state.
-      self.client_worker.QueueMessages(messages)
-
-    except Exception:  # pylint: disable=broad-except
-      # Catch everything, yes, this is terrible but necessary
-      logging.warn("Uncaught exception caught: %s", traceback.format_exc())
-      if status:
-        status.code = 500
-      if flags.FLAGS.debug:
-        pdb.post_mortem()
-
-    return status
+    return response
 
   def SendForemanRequest(self):
     self.client_worker.SendReply(
@@ -989,38 +1317,38 @@ class GRRHTTPClient(object):
         priority=rdf_flows.GrrMessage.Priority.LOW_PRIORITY,
         require_fastpoll=False)
 
+  def _FetchServerCertificate(self):
+    """Attempts to fetch the server cert.
+
+    Returns:
+      True if we succeed.
+    """
+    # Certificate is loaded and still valid.
+    if self.server_certificate:
+      return True
+
+    response = self.http_manager.OpenServerEndpoint(
+        "server.pem", verify_cb=self.VerifyServerPEM)
+
+    if response.Success():
+      self.server_certificate = response.data
+      return True
+
+    # We failed to fetch the cert, switch to slow poll mode.
+    self.timer.SlowPoll()
+    return False
+
   def Run(self):
-    """A Generator which makes a single request to the GRR server.
+    """The main run method of the client.
 
-    Callers should generate this when they wish to make a connection
-    to the server. It is up to the caller to sleep between calls in
-    order to enforce the required network and CPU utilization
-    policies.
-
-    Raises:
-      RuntimeError: Too many connection errors have been encountered.
-    Yields:
-      A Status() object indicating how the last POST went.
+    This method does not normally return. Only if there have been more than
+    Client.connection_error_limit failures, the method returns and allows the
+    client to exit.
     """
     while True:
-      while self.active_server_url is None:
-        if self.EstablishConnection():
-          # Everything went as expected - we don't need to return to
-          # the main loop (which would mean sleeping for a poll_time).
-          break
-        else:
-          # If we can't reconnect to the server for a long time, we restart
-          # to reset our state. In some very rare cases, the urrlib can get
-          # confused and we need to reset it before we can start talking to
-          # the server again.
-          self.consecutive_connection_errors += 1
-          limit = config_lib.CONFIG["Client.connection_error_limit"]
-          if self.consecutive_connection_errors > limit:
-            raise RuntimeError("Too many connection errors, exiting.")
-
-          # Constantly retrying will not work, we back off a bit.
-          time.sleep(60)
-        yield Status()
+      if self.http_manager.consecutive_connection_errors > config_lib.CONFIG[
+          "Client.connection_error_limit"]:
+        return
 
       # Check if there is a message from the nanny to be sent.
       self.client_worker.SendNannyMessage()
@@ -1042,7 +1370,13 @@ class GRRHTTPClient(object):
         except Queue.Full:
           pass
 
-      status = self.RunOnce()
+      try:
+        self.RunOnce()
+      except Exception:  # pylint: disable=broad-except
+        # Catch everything, yes, this is terrible but necessary
+        logging.warn("Uncaught exception caught: %s", traceback.format_exc())
+        if flags.FLAGS.debug:
+          pdb.post_mortem()
 
       # We suicide if our memory is exceeded, and there is no more work to do
       # right now. Our death should not result in loss of messages since we are
@@ -1062,62 +1396,22 @@ class GRRHTTPClient(object):
         # And done for now.
         sys.exit(-1)
 
-      self.Wait(status)
+      self.timer.Wait()
 
-      yield status
-
-  def Wait(self, status):
-    """This function implements the backoff algorithm.
-
-    We sleep for the required amount of time based on the status of the last
-    request.
-
-    Args:
-      status: The status of the last request.
-    """
-    if status.code == 500:
-      # In this case, the server just became unavailable. We have been able
-      # to make connections before but now we can't anymore for some reason.
-      # We want to wait at least some time before retrying in case the frontend
-      # served a 500 error because it is overloaded already.
-      error_sleep_time = max(config_lib.CONFIG["Client.error_poll_min"],
-                             self.sleep_time)
-      logging.debug("Could not reach server. Sleeping for %s", error_sleep_time)
-      self.Sleep(error_sleep_time, heartbeat=False)
-      return
-
-    # If we communicated this time we want to continue aggressively
-    if status.require_fastpoll > 0:
-      self.sleep_time = config_lib.CONFIG["Client.poll_min"]
-
-    cn = self.communicator.common_name
-    logging.debug("%s: Sending %s(%s), Received %s messages. Sleeping for %s",
-                  cn, status.sent_count, status.sent_len,
-                  status.received_count,
-                  self.sleep_time)
-
-    self.Sleep(self.sleep_time, heartbeat=False)
-
-    # Back off slowly at first and fast if no answer.
-    self.sleep_time = min(
-        config_lib.CONFIG["Client.poll_max"],
-        max(config_lib.CONFIG["Client.poll_min"], self.sleep_time) *
-        config_lib.CONFIG["Client.poll_slew"])
-
-  def InitiateEnrolment(self, status):
+  def InitiateEnrolment(self):
     """Initiate the enrollment process.
 
-    We do not sent more than one request every 10 minutes.
-
-    Args:
-      status: The http status object, used to set fastpoll mode if this is the
-              first enrollment request sent since restart.
+    We do not sent more than one enrollment request every 10 minutes. Note that
+    we still communicate to the server in fast poll mode, but these requests are
+    not carrying any payload.
     """
+    logging.debug("sending enrollment request")
     now = time.time()
     if now > self.last_enrollment_time + 10 * 60:
       if not self.last_enrollment_time:
-        # This is the first enrolment request - we should enter fastpoll mode.
-        status.require_fastpoll = True
+        # This is the first enrollment request - we should enter fastpoll mode.
+        self.timer.FastPoll()
+
       self.last_enrollment_time = now
       # Send registration request:
       self.client_worker.SendReply(
@@ -1125,12 +1419,6 @@ class GRRHTTPClient(object):
                                  pem=self.communicator.GetCSR()),
           session_id=rdfvalue.SessionID(
               queue=queues.ENROLLMENT, flow_name="Enrol"))
-
-  def Sleep(self, timeout, heartbeat=False):
-    if not heartbeat:
-      time.sleep(timeout)
-    else:
-      self.client_worker.Sleep(timeout)
 
 
 class ClientCommunicator(communicator.Communicator):

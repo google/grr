@@ -63,7 +63,7 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                       self.date_time_string(last_modified), data))
 
   def do_GET(self):
-    """Server the server pem with GET requests."""
+    """Serve the server pem with GET requests."""
     url_prefix = config_lib.CONFIG["Frontend.static_url_path_prefix"]
     if self.path.startswith("/server.pem"):
       self.ServerPem()

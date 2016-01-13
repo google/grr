@@ -467,25 +467,17 @@ class GRRFuse(GRRFuseDatastoreOnly):
     Returns:
       A list of chunk numbers.
     """
-    # Seek in the index for where the hashes of the specified length/offset
-    # should be.
     start_chunk = offset / fd.chunksize
-    end_chunk = (offset + length) / fd.chunksize
+    end_chunk = (offset + length - 1) / fd.chunksize
 
-    missing_chunks = []
-    for chunk in xrange(start_chunk, end_chunk + 1):
-      try:
-        # pylint: disable=protected-access
-        chunk_name = fd._GetChunkForReading(chunk)
-        # pylint: enable=protected-access
-      except aff4.ChunkNotFoundError:
-        missing_chunks.append(chunk)
-      else:
-        chunk_last = chunk_name.Get(chunk_name.Schema.LAST)
-        if self.DataRefreshRequired(last=chunk_last):
-          missing_chunks.append(chunk)
+    relevant_chunks = xrange(start_chunk, end_chunk + 1)
 
-    return missing_chunks
+    missing_chunks = set(relevant_chunks)
+    for idx, metadata in fd.ChunksMetadata(relevant_chunks).iteritems():
+      if not self.DataRefreshRequired(last=metadata.get("last", None)):
+        missing_chunks.remove(idx)
+
+    return sorted(missing_chunks)
 
   def UpdateSparseImageIfNeeded(self, fd, length, offset):
     missing_chunks = self.GetMissingChunks(fd, length, offset)

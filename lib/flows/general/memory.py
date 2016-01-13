@@ -10,7 +10,8 @@ performing basic analysis.
 import json
 
 import logging
-
+from grr.client.components.rekall_support import rekall_pb2
+from grr.client.components.rekall_support import rekall_types
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flow
@@ -20,13 +21,13 @@ from grr.lib import utils
 # For RekallResponseCollection pylint: disable=unused-import
 from grr.lib.aff4_objects import aff4_rekall
 # pylint: enable=unused-import
+
 from grr.lib.flows.general import file_finder
+from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
-from grr.lib.rdfvalues import rekall_types
 from grr.lib.rdfvalues import structs as rdf_structs
-
 from grr.proto import flows_pb2
 
 
@@ -648,10 +649,10 @@ def GetDriverFromURN(urn, token=None):
 
 
 class AnalyzeClientMemoryArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.AnalyzeClientMemoryArgs
+  protobuf = rekall_pb2.AnalyzeClientMemoryArgs
 
 
-class AnalyzeClientMemory(flow.GRRFlow):
+class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
   """Runs client side analysis using Rekall.
 
   This flow takes a list of Rekall plugins to run. It first calls
@@ -667,9 +668,15 @@ class AnalyzeClientMemory(flow.GRRFlow):
   args_type = AnalyzeClientMemoryArgs
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
+  @flow.StateHandler(next_state="ComponentLoaded")
+  def Start(self):
+    # Load all the components we will be needing on the client.
+    self.LoadComponentOnClient(name="grr-rekall", version="0.1",
+                               next_state="StartAnalysis")
+
   @flow.StateHandler(next_state=["RunPlugins", "KcoreStatResult",
                                  "StoreResults"])
-  def Start(self, _):
+  def StartAnalysis(self, responses):
     # Our output collection is a RekallResultCollection.
     if self.runner.output is not None:
       self.runner.output = aff4.FACTORY.Create(
@@ -747,6 +754,7 @@ class AnalyzeClientMemory(flow.GRRFlow):
     """Stores the results."""
     if not responses.success:
       self.state.plugin_errors.append(unicode(responses.status.error_message))
+      return
 
     self.Log("Rekall returned %s responses." % len(responses))
     for response in responses:

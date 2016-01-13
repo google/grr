@@ -46,9 +46,14 @@ SemanticEnumFormController.prototype.onAllowedValuesChange_ = function(
         defaultLabel = ' (default)';
       }
 
+      var label = option.name;
+      if (option.doc) {
+        label = option.doc;
+      }
+
       this.allowedOptions.push({
         value: option.name,
-        label: option.name + defaultLabel
+        label: label + defaultLabel
       });
     }.bind(this));
   }

@@ -14,6 +14,9 @@ config_lib.DEFINE_string("Datastore.security_manager",
 config_lib.DEFINE_string("Datastore.implementation", "FakeDataStore",
                          "Storage subsystem to use.")
 
+config_lib.DEFINE_string("Blobstore.implementation", "",
+                         "Blob storage subsystem to use.")
+
 config_lib.DEFINE_integer("Datastore.transaction_timeout", default=600,
                           help="How long do we wait for a transaction lock.")
 

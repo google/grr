@@ -256,31 +256,31 @@ class CronTest(test_lib.AFF4ObjectTest):
       self.assertEqual(start1.AsSecondsFromEpoch(), start2.AsSecondsFromEpoch())
 
   def testSystemCronJobSetsStartTime(self):
-    with test_lib.ConfigOverrider({"Cron.enabled_system_jobs":
-                                   ["DummySystemCronJob",
-                                    "DummySystemCronJobStartNow"]}):
-      with test_lib.FakeTime(100):
-        now = rdfvalue.RDFDatetime().Now()
-        cronjobs.ScheduleSystemCronFlows(token=self.token)
-        random_time = "aff4:/cron/DummySystemCronJob"
-        no_random_time = "aff4:/cron/DummySystemCronJobStartNow"
+    with test_lib.FakeTime(100):
+      now = rdfvalue.RDFDatetime().Now()
+      cronjobs.ScheduleSystemCronFlows(
+          names=[DummySystemCronJob.__name__,
+                 DummySystemCronJobStartNow.__name__],
+          token=self.token)
+      random_time = "aff4:/cron/DummySystemCronJob"
+      no_random_time = "aff4:/cron/DummySystemCronJobStartNow"
 
-        random_time_job = aff4.FACTORY.Open(random_time,
-                                            aff4_type="CronJob",
-                                            token=self.token)
+      random_time_job = aff4.FACTORY.Open(random_time,
+                                          aff4_type="CronJob",
+                                          token=self.token)
 
-        no_random_time_job = aff4.FACTORY.Open(no_random_time,
-                                               aff4_type="CronJob",
-                                               token=self.token)
+      no_random_time_job = aff4.FACTORY.Open(no_random_time,
+                                             aff4_type="CronJob",
+                                             token=self.token)
 
-        start_time_now = no_random_time_job.Get(
-            no_random_time_job.Schema.CRON_ARGS).start_time
-        self.assertEqual(start_time_now, now)
+      start_time_now = no_random_time_job.Get(
+          no_random_time_job.Schema.CRON_ARGS).start_time
+      self.assertEqual(start_time_now, now)
 
-        random_start_time = random_time_job.Get(
-            random_time_job.Schema.CRON_ARGS).start_time
-        self.assertTrue(now < random_start_time < (
-            now + DummySystemCronJob.frequency))
+      random_start_time = random_time_job.Get(
+          random_time_job.Schema.CRON_ARGS).start_time
+      self.assertTrue(now < random_start_time < (
+          now + DummySystemCronJob.frequency))
 
   def testCronJobRunMonitorsRunningFlowState(self):
     cron_manager = cronjobs.CronManager()
@@ -650,41 +650,28 @@ class CronTest(test_lib.AFF4ObjectTest):
     self.assertEqual(statuses[1].status, grr_rdf.CronJobRunStatus.Status.ERROR)
 
   def testSystemCronFlowsGetScheduledAutomatically(self):
-    with test_lib.ConfigOverrider({
-        "Cron.enabled_system_jobs": ["DummySystemCronJob"]}):
-      cronjobs.ScheduleSystemCronFlows(token=self.token)
+    cronjobs.ScheduleSystemCronFlows(
+        names=[DummySystemCronJob.__name__], token=self.token)
 
-      jobs = cronjobs.CRON_MANAGER.ListJobs(token=self.token)
-      dummy_jobs = [j for j in jobs
-                    if j.Basename() == "DummySystemCronJob"]
-      self.assertTrue(dummy_jobs)
+    jobs = cronjobs.CRON_MANAGER.ListJobs(token=self.token)
+    dummy_jobs = [j for j in jobs
+                  if j.Basename() == "DummySystemCronJob"]
+    self.assertTrue(dummy_jobs)
 
-      # System cron job should be enabled by default.
-      job = aff4.FACTORY.Open(dummy_jobs[0], aff4_type="CronJob",
-                              token=self.token)
-      self.assertFalse(job.Get(job.Schema.DISABLED))
+    # System cron job should be enabled by default.
+    job = aff4.FACTORY.Open(dummy_jobs[0], aff4_type="CronJob",
+                            token=self.token)
+    self.assertFalse(job.Get(job.Schema.DISABLED))
 
   def testSystemCronFlowsMayBeDisabledViaConfig(self):
     with test_lib.ConfigOverrider({
-        "Cron.enabled_system_jobs": ["DummySystemCronJob"]}):
+        "Cron.disabled_system_jobs": ["DummySystemCronJob"]}):
       cronjobs.ScheduleSystemCronFlows(token=self.token)
 
       jobs = cronjobs.CRON_MANAGER.ListJobs(token=self.token)
       dummy_jobs = [j for j in jobs
                     if j.Basename() == "DummySystemCronJob"]
       self.assertTrue(dummy_jobs)
-
-      # System cron job should be enabled.
-      job = aff4.FACTORY.Open(dummy_jobs[0], aff4_type="CronJob",
-                              token=self.token)
-      self.assertFalse(job.Get(job.Schema.DISABLED))
-
-    # Now remove the cron job from the list and check that it gets disabled
-    # after next ScheduleSystemCronFlows() call.
-    with test_lib.ConfigOverrider({
-        "Cron.enabled_system_jobs": []}):
-
-      cronjobs.ScheduleSystemCronFlows(token=self.token)
 
       # This cron job should be disabled, because it's listed in
       # Cron.disabled_system_jobs config variable.
@@ -692,9 +679,21 @@ class CronTest(test_lib.AFF4ObjectTest):
                               token=self.token)
       self.assertTrue(job.Get(job.Schema.DISABLED))
 
+    # Now remove the cron job from the list and check that it gets disabled
+    # after next ScheduleSystemCronFlows() call.
+    with test_lib.ConfigOverrider({
+        "Cron.disabled_system_jobs": []}):
+
+      cronjobs.ScheduleSystemCronFlows(token=self.token)
+
+      # System cron job should be enabled.
+      job = aff4.FACTORY.Open(dummy_jobs[0], aff4_type="CronJob",
+                              token=self.token)
+      self.assertFalse(job.Get(job.Schema.DISABLED))
+
   def testScheduleSystemCronFlowsRaisesWhenFlowCanNotBeFound(self):
     with test_lib.ConfigOverrider({
-        "Cron.enabled_system_jobs": ["NonExistent"]}):
+        "Cron.disabled_system_jobs": ["NonExistent"]}):
       self.assertRaises(KeyError, cronjobs.ScheduleSystemCronFlows,
                         token=self.token)
 
@@ -706,18 +705,19 @@ class CronTest(test_lib.AFF4ObjectTest):
   def testStatefulSystemCronFlowMaintainsState(self):
     DummyStatefulSystemCronJob.VALUES = []
 
-    with test_lib.ConfigOverrider({
-        "Cron.enabled_system_jobs": ["DummyStatefulSystemCronJob"]}):
-      cronjobs.ScheduleSystemCronFlows(token=self.token)
+    # We need to have a cron job started to have a place to maintain
+    # state.
+    cronjobs.ScheduleSystemCronFlows(
+        names=[DummyStatefulSystemCronJob.__name__], token=self.token)
 
-      flow.GRRFlow.StartFlow(flow_name="DummyStatefulSystemCronJob",
-                             token=self.token)
-      flow.GRRFlow.StartFlow(flow_name="DummyStatefulSystemCronJob",
-                             token=self.token)
-      flow.GRRFlow.StartFlow(flow_name="DummyStatefulSystemCronJob",
-                             token=self.token)
+    flow.GRRFlow.StartFlow(flow_name="DummyStatefulSystemCronJob",
+                           token=self.token)
+    flow.GRRFlow.StartFlow(flow_name="DummyStatefulSystemCronJob",
+                           token=self.token)
+    flow.GRRFlow.StartFlow(flow_name="DummyStatefulSystemCronJob",
+                           token=self.token)
 
-      self.assertListEqual(DummyStatefulSystemCronJob.VALUES, [0, 1, 2])
+    self.assertListEqual(DummyStatefulSystemCronJob.VALUES, [0, 1, 2])
 
 
 def main(argv):

@@ -81,11 +81,28 @@ class PEMPublicKey(rdfvalue.RDFString):
 class PEMPrivateKey(rdfvalue.RDFString):
   """An RSA private key encoded as a pem file."""
 
+  _private_key_cache = None
+
   def GetPrivateKey(self, callback=None):
     if callback is None:
       callback = lambda: ""
 
-    return RSA.load_key_string(self._value, callback=callback)
+    # Cache the decoded private key so it does not need to be unlocked all the
+    # time. Unfortunately due to M2Crypto's horrible memory management issues we
+    # can only ever hold a reference to strings so we need to PEM encode the
+    # private key with no password and cache that.
+    if self._private_key_cache:
+      return RSA.load_key_string(self._private_key_cache)
+
+    # Unlock the private key if needed.
+    private_key = RSA.load_key_string(self._value, callback=callback)
+
+    # Re-encode it as a PEM and cache that.
+    m = BIO.MemoryBuffer()
+    private_key.save_key_bio(m, cipher=None)
+    self._private_key_cache = m.getvalue()
+
+    return private_key
 
   def GetPublicKey(self):
     rsa = self.GetPrivateKey()
@@ -164,6 +181,9 @@ class SignedBlob(rdf_structs.RDFProtoStruct):
         contains the public key.
       prompt: If True we allow a password prompt to be presented.
 
+    Returns:
+      self for call chaining.
+
     Raises:
       IOError: On bad key.
     """
@@ -192,11 +212,18 @@ class SignedBlob(rdf_structs.RDFProtoStruct):
     # Verify our own data.
     self.Verify(verify_key)
 
+    return self
+
 
 class EncryptionKey(rdfvalue.RDFBytes):
   """Base class for encryption keys."""
   # Size of the key in bits.
   length = 128
+
+  def __init__(self, *args, **kwargs):
+    super(EncryptionKey, self).__init__(*args, **kwargs)
+    if not self._value:
+      self.Generate()
 
   def ParseFromString(self, string):
     # Support both hex encoded and raw serializations.
@@ -206,7 +233,7 @@ class EncryptionKey(rdfvalue.RDFBytes):
       self._value = string
 
     else:
-      raise CipherError("%s must be exactly %s bit longs." %
+      raise CipherError("%s must be exactly %s bits long." %
                         (self.__class__.__name__, self.length))
 
   def __str__(self):
@@ -246,20 +273,20 @@ class Cipher(object):
   OP_DECRYPT = 0
   OP_ENCRYPT = 1
 
-  def Update(self, data):
-    pass
+  algorithm = None
 
-  def Final(self):
-    pass
+  def __init__(self, key, iv, mode=None):
+    self.key = key.RawBytes()
+    self.iv = iv.RawBytes()
+    if mode is None:
+      mode = self.OP_DECRYPT
 
+    self.mode = mode
+    self.Reinitialize()
 
-class AES128CBCCipher(Cipher):
-  """An aes_128_cbc cipher."""
-
-  def __init__(self, key, iv, mode=Cipher.OP_DECRYPT):
-    super(AES128CBCCipher, self).__init__()
-    self.cipher = EVP.Cipher(alg="aes_128_cbc", key=key.RawBytes(),
-                             iv=iv.RawBytes(), op=mode)
+  def Reinitialize(self):
+    self.cipher = EVP.Cipher(alg=self.algorithm, key=self.key,
+                             iv=self.iv, op=self.mode)
 
   def Update(self, data):
     """Encrypts the data up to blocksize."""
@@ -277,7 +304,63 @@ class AES128CBCCipher(Cipher):
 
   def Encrypt(self, data):
     """A convenience method which pads and encrypts at once."""
+    self.mode = self.OP_ENCRYPT
+    self.Reinitialize()
+
     try:
       return self.Update(data) + self.Final()
     except EVP.EVPError as e:
       raise CipherError(e)
+
+  def Decrypt(self, data):
+    """A convenience method which pads and encrypts at once."""
+    self.mode = self.OP_DECRYPT
+    self.Reinitialize()
+
+    try:
+      return self.Update(data) + self.Final()
+    except EVP.EVPError as e:
+      raise CipherError(e)
+
+
+class AES128CBCCipher(Cipher):
+  """An aes_128_cbc cipher."""
+
+  algorithm = "aes_128_cbc"
+
+
+class SymmetricCipher(rdf_structs.RDFProtoStruct):
+  """Abstract symmetric cipher operations."""
+  protobuf = jobs_pb2.SymmetricCipher
+
+  cipher = None
+
+  def SetAlgorithm(self, algorithm):
+    self._algorithm = algorithm
+    if algorithm == self.Algorithm.AES128CBC:
+      self.key = AES128Key()
+      self._key = self.key.RawBytes()
+      self.iv = AES128Key()
+      self._iv = self.iv.RawBytes()
+      return self
+
+    else:
+      raise RuntimeError("Algorithm not supported.")
+
+  def _get_cipher(self):
+    if self._algorithm == self.Algorithm.AES128CBC:
+      return AES128CBCCipher(AES128Key(self._key), AES128Key(self._iv))
+
+    raise CipherError("Unknown cipher type %s" % self._algorithm)
+
+  def Encrypt(self, data):
+    if self._algorithm == self.Algorithm.NONE:
+      raise TypeError("Empty encryption is not allowed.")
+
+    return self._get_cipher().Encrypt(data)
+
+  def Decrypt(self, data):
+    if self._algorithm == self.Algorithm.NONE:
+      raise TypeError("Empty encryption is not allowed.")
+
+    return self._get_cipher().Decrypt(data)

@@ -29,18 +29,68 @@ class SequentialCollection(aff4.AFF4Object):
   # The largest possible suffix - maximum value expressible by 6 hex digits.
   MAX_SUFFIX = 2**24 - 1
 
-  def _MakeURN(self, timestamp, suffix=None):
+  @classmethod
+  def _MakeURN(cls, urn, timestamp, suffix=None):
     if suffix is None:
       # Disallow 0 so that subtracting 1 from a normal suffix doesn't require
       # special handling.
-      suffix = random.randint(1, self.MAX_SUFFIX)
-    return self.urn.Add("Results").Add("%016x.%06x" % (timestamp, suffix))
+      suffix = random.randint(1, cls.MAX_SUFFIX)
+    return urn.Add("Results").Add("%016x.%06x" % (timestamp, suffix))
 
   def _ParseURN(self, urn):
     string_urn = utils.SmartUnicode(urn)
     if len(string_urn) < 31 or string_urn[-7] != ".":
       return None
     return (int(string_urn[-23:-7], 16), int(string_urn[-6:], 16))
+
+  @classmethod
+  def StaticAdd(cls, collection_urn, token, rdf_value,
+                timestamp=None, suffix=None, **kwargs):
+    """Adds an rdf value to a collection.
+
+    Adds an rdf value to a collection. Does not require that the collection be
+    open. NOTE: The caller is responsible for ensuring that the collection
+    exists and is of the correct type.
+
+    Args:
+      collection_urn: The urn of the collection to add to.
+
+      token: The database access token to write with.
+
+      rdf_value: The rdf value to add to the collection.
+
+      timestamp: The timestamp (in microseconds) to store the rdf value
+          at. Defaults to the current time.
+
+      suffix: A 'fractional timestamp' suffix to reduce the chance of
+          collisions. Defaults to a random number.
+
+      **kwargs: Keyword arguments to pass through to the underlying database
+        call.
+
+    Raises:
+      ValueError: rdf_value has unexpected type.
+
+    """
+    if not isinstance(rdf_value, cls.RDF_TYPE):
+      raise ValueError("This collection only accepts values of type %s." %
+                       cls.RDF_TYPE.__name__)
+
+    if timestamp is None:
+      timestamp = rdfvalue.RDFDatetime().Now()
+    if isinstance(timestamp, rdfvalue.RDFDatetime):
+      timestamp = timestamp.AsMicroSecondsFromEpoch()
+
+    if not isinstance(collection_urn, rdfvalue.RDFURN):
+      collection_urn = rdfvalue.RDFURN(collection_urn)
+
+    result_subject = cls._MakeURN(collection_urn, timestamp, suffix)
+    data_store.DB.Set(result_subject,
+                      cls.ATTRIBUTE,
+                      rdf_value.SerializeToString(),
+                      timestamp=timestamp,
+                      token=token,
+                      **kwargs)
 
   def Add(self, rdf_value, timestamp=None, suffix=None, **kwargs):
     """Adds an rdf value to the collection.
@@ -64,23 +114,8 @@ class SequentialCollection(aff4.AFF4Object):
       ValueError: rdf_value has unexpected type.
 
     """
-    if not isinstance(rdf_value, self.RDF_TYPE):
-      raise ValueError("This collection only accepts values of type %s." %
-                       self.RDF_TYPE.__name__)
-
-    if timestamp is None:
-      timestamp = rdfvalue.RDFDatetime().Now()
-
-    if isinstance(timestamp, rdfvalue.RDFDatetime):
-      timestamp = timestamp.AsMicroSecondsFromEpoch()
-
-    result_subject = self._MakeURN(timestamp, suffix)
-    data_store.DB.Set(result_subject,
-                      self.ATTRIBUTE,
-                      rdf_value.SerializeToString(),
-                      timestamp=timestamp,
-                      token=self.token,
-                      **kwargs)
+    self.StaticAdd(self.urn, self.token, rdf_value,
+                   timestamp=timestamp, suffix=suffix, **kwargs)
 
   def Scan(self, after_timestamp=None, include_suffix=False, max_records=None):
     """Scans for stored records.
@@ -110,7 +145,8 @@ class SequentialCollection(aff4.AFF4Object):
         after_timestamp = after_timestamp[0]
       else:
         suffix = self.MAX_SUFFIX
-      after_urn = self._MakeURN(after_timestamp, suffix=suffix)
+      after_urn = utils.SmartStr(self._MakeURN(self.urn, after_timestamp,
+                                               suffix=suffix))
 
     for subject, timestamp, value in data_store.DB.ScanAttribute(
         self.urn.Add("Results"),
@@ -118,12 +154,13 @@ class SequentialCollection(aff4.AFF4Object):
         after_urn=after_urn,
         max_records=max_records,
         token=self.token):
+      rdf_value = self.RDF_TYPE(value)  # pylint: disable=not-callable
+      rdf_value.age = timestamp
+
       if include_suffix:
-        yield (self._ParseURN(subject),
-               self.RDF_TYPE(value))  # pylint: disable=not-callable
+        yield (self._ParseURN(subject), rdf_value)
       else:
-        yield (timestamp,
-               self.RDF_TYPE(value))  # pylint: disable=not-callable
+        yield (timestamp, rdf_value)
 
 
 class IndexedSequentialCollection(SequentialCollection):
@@ -220,24 +257,26 @@ class IndexedSequentialCollection(SequentialCollection):
       idx += 1
 
   def GenerateItems(self, offset=0):
-    for (idx, _, value) in self._IndexedScan(offset):
-      yield (idx, value)
+    for (_, _, value) in self._IndexedScan(offset):
+      yield value
 
   def __getitem__(self, index):
     if index >= 0:
       for (_, _, value) in self._IndexedScan(index, max_records=1):
         return value
-      return None
+      raise IndexError("collection index out of range")
     else:
       raise RuntimeError("Index must be >= 0")
 
   def CalculateLength(self):
     if not self._index:
       self._ReadIndex()
-    last_idx = self._max_indexed
-    for (i, _, _) in self._IndexedScan(last_idx):
-      last_idx = i
-    return last_idx + 1
+    highest_index = None
+    for (i, _, _) in self._IndexedScan(self._max_indexed):
+      highest_index = i
+    if highest_index is None:
+      return 0
+    return highest_index + 1
 
   def __len__(self):
     return self.CalculateLength()

@@ -27,10 +27,9 @@ class ApiAddClientsLabelsHandlerTest(test_lib.GRRBaseTest):
       self.assertFalse(
           aff4.FACTORY.Open(client_id, token=self.token).GetLabels())
 
-    result = self.handler.Render(client_plugin.ApiAddClientsLabelsArgs(
+    self.handler.Handle(client_plugin.ApiAddClientsLabelsArgs(
         client_ids=[self.client_ids[0]],
         labels=["foo"]), token=self.token)
-    self.assertEqual(result["status"], "OK")
 
     labels = aff4.FACTORY.Open(self.client_ids[0],
                                token=self.token).GetLabels()
@@ -47,10 +46,9 @@ class ApiAddClientsLabelsHandlerTest(test_lib.GRRBaseTest):
       self.assertFalse(
           aff4.FACTORY.Open(client_id, token=self.token).GetLabels())
 
-    result = self.handler.Render(client_plugin.ApiAddClientsLabelsArgs(
+    self.handler.Handle(client_plugin.ApiAddClientsLabelsArgs(
         client_ids=[self.client_ids[0], self.client_ids[1]],
         labels=["foo", "bar"]), token=self.token)
-    self.assertEqual(result["status"], "OK")
 
     for client_id in self.client_ids[:2]:
       labels = aff4.FACTORY.Open(client_id, token=self.token).GetLabels()
@@ -64,7 +62,7 @@ class ApiAddClientsLabelsHandlerTest(test_lib.GRRBaseTest):
         aff4.FACTORY.Open(self.client_ids[2], token=self.token).GetLabels())
 
   def testAuditEntryIsCreatedForEveryClient(self):
-    self.handler.Render(client_plugin.ApiAddClientsLabelsArgs(
+    self.handler.Handle(client_plugin.ApiAddClientsLabelsArgs(
         client_ids=self.client_ids,
         labels=["drei", "ein", "zwei"]), token=self.token)
 
@@ -104,12 +102,11 @@ class ApiRemoveClientsLabelsHandlerTest(test_lib.GRRBaseTest):
                            token=self.token) as grr_client:
       grr_client.AddLabels("foo", "bar")
 
-    result = self.handler.Render(
+    self.handler.Handle(
         client_plugin.ApiRemoveClientsLabelsArgs(
             client_ids=[self.client_ids[0]],
             labels=["foo"]),
         token=self.token)
-    self.assertEqual(result["status"], "OK")
 
     labels = aff4.FACTORY.Open(self.client_ids[0], token=self.token).GetLabels()
     self.assertEqual(len(labels), 1)
@@ -121,12 +118,11 @@ class ApiRemoveClientsLabelsHandlerTest(test_lib.GRRBaseTest):
                            token=self.token) as grr_client:
       grr_client.AddLabels("foo", owner="GRR")
 
-    result = self.handler.Render(
+    self.handler.Handle(
         client_plugin.ApiRemoveClientsLabelsArgs(
             client_ids=[self.client_ids[0]],
             labels=["foo"]),
         token=self.token)
-    self.assertEqual(result["status"], "OK")
 
     labels = aff4.FACTORY.Open(self.client_ids[0], token=self.token).GetLabels()
     self.assertEqual(len(labels), 1)
@@ -137,12 +133,11 @@ class ApiRemoveClientsLabelsHandlerTest(test_lib.GRRBaseTest):
       grr_client.AddLabels("foo")
       grr_client.AddLabels("foo", owner="GRR")
 
-    result = self.handler.Render(
+    self.handler.Handle(
         client_plugin.ApiRemoveClientsLabelsArgs(
             client_ids=[self.client_ids[0]],
             labels=["foo"]),
         token=self.token)
-    self.assertEqual(result["status"], "OK")
 
     labels = aff4.FACTORY.Open(self.client_ids[0], token=self.token).GetLabels()
     self.assertEqual(len(labels), 1)

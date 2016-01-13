@@ -292,7 +292,6 @@ class UpdateSparseImageChunks(flow.GRRFlow):
 
     fd = aff4.FACTORY.Open(self.state.args.file_urn, token=self.token,
                            aff4_type="AFF4SparseImage", mode="rw")
-
     pathspec = fd.Get(fd.Schema.PATHSPEC)
     self.state.Register("pathspec", pathspec)
     self.state.Register("fd", fd)
@@ -312,17 +311,15 @@ class UpdateSparseImageChunks(flow.GRRFlow):
   def UpdateChunk(self, responses):
     if not responses.success:
       raise IOError("Error running TransferBuffer: %s" % responses.status)
-
     response = responses.First()
 
+    chunk_number = response.offset / self.state.chunksize
+    self.state.fd.AddBlob(blob_hash=response.data,
+                          length=response.length,
+                          chunk_number=chunk_number)
+    self.state.fd.Flush()
+
     if len(self.state.missing_chunks) >= 1:
-      chunk_number = response.offset / self.state.chunksize
-      self.state.fd.AddBlob(blob_hash=response.data,
-                            length=response.length,
-                            chunk_number=chunk_number)
-
-      self.state.fd.Flush()
-
       next_chunk = self.state.missing_chunks.Pop(0)
       request = self.GetBufferForChunk(next_chunk)
       self.CallClient("TransferBuffer", request, next_state="UpdateChunk")
@@ -373,7 +370,6 @@ class FetchBufferForSparseImage(flow.GRRFlow):
     request = rdf_client.BufferReference(pathspec=self.state.pathspec,
                                          length=self.state.chunksize,
                                          offset=self.state.current_offset)
-
     # Remember where we're up to, and that we're about to read one chunk.
     self.state.bytes_left_to_read -= chunksize
     self.state.current_offset += chunksize
@@ -404,7 +400,6 @@ class FetchBufferForSparseImage(flow.GRRFlow):
       request = rdf_client.BufferReference(pathspec=self.state.pathspec,
                                            length=length_to_read,
                                            offset=self.state.current_offset)
-
       # TODO(user): Again, this is going to be too slow, since we're
       # waiting for a client response every time we request a buffer. We need to
       # queue up multiple reads.
@@ -491,8 +486,6 @@ class MakeNewAFF4SparseImage(flow.GRRFlow):
     if client_stat.st_size > self.state.args.size_threshold:
       urn = aff4_grr.VFSGRRClient.PathspecToURN(self.state.pathspec,
                                                 self.client_id)
-
-      fd = aff4.FACTORY.Open(urn, token=self.token)
 
       # TODO(user) When we can check the last update time of the
       # contents of a file, raise if the contents have been updated before here.

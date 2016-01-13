@@ -94,14 +94,6 @@ class CallClientParentFlow(NoRequestParentFlow):
   child_flow = "CallClientChildFlow"
 
 
-class AdminOnlyChildFlow(CallClientChildFlow):
-  AUTHORIZED_LABELS = ["admin"]
-
-
-class AdminOnlyParentFlow(NoRequestParentFlow):
-  child_flow = "AdminOnlyChildFlow"
-
-
 class BasicFlowTest(test_lib.FlowTestsBaseclass):
   pass
 
@@ -826,44 +818,6 @@ class GeneralFlowsTest(BasicFlowTest):
     self.assertEqual(len(subflows), 1)
     child_flow = aff4.FACTORY.Open(subflows[0], token=self.token)
     self.assertEqual(child_flow.GetRunner().context.creator, "original_user")
-
-  def testFlowLabelChecking(self):
-
-    self.CreateUser("noadmin")
-    noadmin_token = access_control.ACLToken(username="noadmin",
-                                            reason="testing")
-
-    with self.assertRaises(access_control.UnauthorizedAccess):
-      for _ in test_lib.TestFlowHelper("AdminOnlyChildFlow", ClientMock(),
-                                       client_id=self.client_id,
-                                       token=noadmin_token, sync=False):
-        pass
-
-    with self.assertRaises(RuntimeError):
-      for _ in test_lib.TestFlowHelper("AdminOnlyParentFlow", ClientMock(),
-                                       client_id=self.client_id,
-                                       token=noadmin_token, sync=False):
-        pass
-
-    self.CreateAdminUser("adminuser")
-    admin_token = access_control.ACLToken(username="adminuser",
-                                          reason="testing")
-
-    session_id = flow.GRRFlow.StartFlow(
-        client_id=self.client_id, flow_name="AdminOnlyChildFlow", sync=False,
-        token=admin_token)
-    for _ in test_lib.TestFlowHelper(session_id, ClientMock(),
-                                     client_id=self.client_id,
-                                     token=noadmin_token):
-      pass
-
-    session_id = flow.GRRFlow.StartFlow(
-        client_id=self.client_id, flow_name="AdminOnlyParentFlow", sync=False,
-        token=admin_token)
-    for _ in test_lib.TestFlowHelper(session_id, ClientMock(),
-                                     client_id=self.client_id,
-                                     token=noadmin_token):
-      pass
 
   def testBrokenChainedFlow(self):
     """Test that exceptions are properly handled in chain flows."""

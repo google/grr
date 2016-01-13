@@ -50,7 +50,7 @@ message GrrMessage {
   optional bytes args = 5;
 
   // Due to superceed the args field (not yet implemented). Contains the
-  // arguement to the client action, or the response from the client action.
+  // argument to the client action, or the response from the client action.
   optional EmbeddedRDFValue arg = 20;
 
   optional string source = 6  [(sem_type) = {
@@ -936,6 +936,21 @@ message Uname {
   optional string fqdn = 7 [(sem_type) = {
       description: "The system's fully qualified domain name.",
     }];
+
+  optional uint64 install_date = 8 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "When system was installed."
+    }];
+
+  optional string libc_ver = 9 [(sem_type) = {
+      description: "The C library version",
+    }];
+
+  optional string architecture = 10 [(sem_type) = {
+      description: "The architecture of this binary. (Note this can be "
+      "different from the machine architecture in the case of a 32 bit binary "
+      "running on a 64 bit system)",
+    }];
 };
 
 message FolderInformation {
@@ -1048,17 +1063,6 @@ message Interface {
 
 };
 
-message MemoryInformation {
-  option (semantic) = {
-    description: "Describe the memory geometry."
-  };
-
-  optional PathSpec device = 1;
-  repeated BufferReference runs = 2;
-  optional uint64 cr3 = 3;
-}
-
-
 message Hash {
   optional bytes sha256 = 1 [(sem_type) = {
       type: "HashDigest",
@@ -1157,6 +1161,22 @@ message SignedBlob {
   optional SignatureType signature_type = 5;  //Type of the signature.
 }
 
+// Message representing a symmetric cipher. Note that users of this should only
+// use the Encrypt/Decrypt methods provided by the semantic protobuf.
+message SymmetricCipher {
+  enum Algorithm {
+    NONE = 0;
+    AES128CBC = 1;
+  };
+
+  optional Algorithm _algorithm = 1 [(sem_type) = {
+      description: "The algorithm to use."
+    }];
+
+  optional bytes _key = 2;
+  optional bytes _iv = 3;
+}
+
 // Message containing request to execute python in the context of the client.
 message ExecutePythonRequest {
   optional SignedBlob python_code = 1;
@@ -1169,80 +1189,56 @@ message ExecutePythonResponse {
   optional int32 time_used = 2;
 }
 
-message PluginRequest {
-  optional string plugin = 2 [(sem_type) = {
-      description: "The plugin name to run.",
-    }];
 
-  optional Dict args = 3 [(sem_type) = {
-      description: "The args to the plugin.",
-    }];
-}
-
-// Issue a request for Rekall memory analysis.
-message RekallRequest {
-  optional Iterator iterator = 1 [(sem_type) = {
-      label: HIDDEN
-    }];
-
-  repeated PluginRequest plugins = 2 [(sem_type) = {
-      description: "We can execute multiple plugins in the same session. "
-      "This can take advantage of caching in the session to be more efficient."
-    }];
-
-  optional PathSpec device = 4 [(sem_type) = {
-      description: "The raw device to use.",
-    }];
-
-  optional Dict session = 6 [(sem_type) = {
-      description: "These parameters are used to initialize the session.",
-    }];
-
-  optional RekallProfile profile_data = 8 [(sem_type) = {
-      description: "Profiles sent by the server to store on the client.",
-      label: HIDDEN
-    }];
-}
-
-// Next field: 8
-message RekallResponse {
-  // Deprecated. Anything written in this field will be compressed and placed
-  // into the compressed_json_messages field upon serialization.
-  optional string json_messages = 1;
-  optional bytes compressed_json_messages = 7 [(sem_type) = {
-      type: "ZippedJSONBytes"
-    }];
-
-  optional string json_context_messages = 5;
-
-  optional string plugin = 2;
-
-  optional string client_urn = 3 [(sem_type) = {
-      type: "ClientURN",
-      description: "The client this response comes from."
-    }];
-
-  optional string missing_profile = 4 [(sem_type) = {
-      description: "Missing profiles that should be retrieved from "
-      "the server."
-    }];
-
-  optional string repository_version = 6 [(sem_type) = {
-      description: "The version of the repository we want to use."
-    }, default="v1.0"];
-}
-
-message RekallProfile {
+// The summary describes important information about the component.
+message ClientComponentSummary {
   optional string name = 1 [(sem_type) = {
-      description: "The name of this profile."
+      description: "The name of the component."
     }];
 
-  optional bytes data = 2 [(sem_type) = {
-      description: "A Rekall profile as a data blob."
+  optional string version = 2 [(sem_type) = {
+      description: "The version string of the component."
     }];
 
-  optional string version = 3 [(sem_type) = {
-      description: "The version of this profile."
+  optional Uname build_system = 3 [(sem_type) = {
+      // This should ideally be the same as the client.
+      description: "The platform this component was built on."
+    }];
+
+  optional string seed = 4 [(sem_type) = {
+      description: "A ramdom seed for this component."
+    }];
+
+  repeated string modules = 5 [(sem_type) = {
+      description: "The modules which will be imported."
+    }];
+
+  optional string url = 6 [(sem_type) = {
+      description: "The URL that a signed blob of this component can be "
+      "downloaded from."
+    }];
+
+  optional SymmetricCipher cipher = 7 [(sem_type) = {
+      description: "This cipher will be used to encrypt the ClientComponent."
+    }];
+}
+
+// This is the actual component data. It is stored inside a SignedBlob which is
+// encrypted using the cipher in the summary.
+message ClientComponent {
+  optional ClientComponentSummary summary = 1 [(sem_type) = {
+      description: "Information about the component."
+    }];
+
+  optional bytes raw_data = 2 [(sem_type) = {
+      description: "The raw ZIP file which will be installed. "
+    }];
+};
+
+// Used to launch a client action from a component.
+message LoadComponent {
+  optional ClientComponentSummary summary = 1 [(sem_type) = {
+      description: "The component to load."
     }];
 }
 
@@ -1520,10 +1516,7 @@ message ForemanOsClientRule {
 
 // This rule will fire if the client has the selected label.
 message ForemanLabelClientRule {
-  optional string label_name = 1 [(sem_type) = {
-      type: "Label",
-      description: "A label name"
-    }];
+  optional string label_name = 1;
 }
 
 // The Foreman schedules flows based on these rules firing.

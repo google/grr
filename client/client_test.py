@@ -2,6 +2,7 @@
 """Tests for the client."""
 
 
+
 # Need to import client to add the flags.
 from grr.client import actions
 
@@ -71,7 +72,7 @@ class BasicContextTests(test_lib.GRRBaseTest):
 
     self.assertEqual(message_list[0].session_id, self.session_id)
     self.assertEqual(message_list[0].response_id, 1)
-    self.assert_("hello" in message_list[0].payload.data)
+    self.assertIn("hello", message_list[0].payload.data)
     self.assertEqual(message_list[1].response_id, 2)
     self.assertEqual(message_list[1].type, rdf_flows.GrrMessage.Type.STATUS)
 
@@ -91,7 +92,7 @@ class BasicContextTests(test_lib.GRRBaseTest):
     self.assertEqual(message_list[0].session_id, self.session_id)
     self.assertEqual(message_list[0].response_id, 1)
     status = rdf_flows.GrrStatus(message_list[0].payload)
-    self.assert_("RuntimeError" in status.error_message)
+    self.assertIn("RuntimeError", status.error_message)
     self.assertNotEqual(status.status, rdf_flows.GrrStatus.ReturnedStatus.OK)
 
   def testUnauthenticated(self):
@@ -116,8 +117,8 @@ class BasicContextTests(test_lib.GRRBaseTest):
     self.assertEqual(message_list[0].session_id, self.session_id)
     self.assertEqual(message_list[0].response_id, 1)
     status = rdf_flows.GrrStatus(message_list[0].payload)
-    self.assert_("not Authenticated" in status.error_message)
-    self.assert_("RuntimeError" in status.error_message)
+    self.assertIn("not Authenticated", status.error_message)
+    self.assertIn("RuntimeError", status.error_message)
     self.assertNotEqual(status.status, rdf_flows.GrrStatus.ReturnedStatus.OK)
 
   def testPriorityAndFastPoll(self):

@@ -96,6 +96,24 @@ class DynamicTypeTest(structs.RDFProtoStruct):
   )
 
 
+class DynamicAnyValueTypeTest(structs.RDFProtoStruct):
+  """A protobuf with dynamic types stored in AnyValue messages."""
+
+  type_description = type_info.TypeDescriptorSet(
+      type_info.ProtoString(
+          name="type", field_number=1,
+          # By default return the TestStruct proto.
+          description="A string value"),
+
+      type_info.ProtoDynamicAnyValueEmbedded(
+          name="dynamic",
+          # The callback here returns the type specified by the type member.
+          dynamic_cb=lambda x: structs.RDFProtoStruct.classes.get(x.type),
+          field_number=2,
+          description="A dynamic value based on another field."),
+      )
+
+
 class LateBindingTest(structs.RDFProtoStruct):
   type_description = type_info.TypeDescriptorSet(
       # A nested protobuf referring to an undefined type.
@@ -133,6 +151,38 @@ class RDFStructsTest(test_base.RDFValueTestCase):
     test_pb.dynamic.foobar = "Hello"
     self.assertTrue(isinstance(test_pb.dynamic, TestStruct))
 
+    # Test serialization/deserialization.
+    self.assertEqual(DynamicTypeTest(test_pb.SerializeToString()), test_pb)
+
+    # Test proto definition.
+    self.assertEqual(DynamicTypeTest.EmitProto(),
+                     "message DynamicTypeTest {\n\n  "
+                     "// A string value\n  optional string type = 1 "
+                     "[default = u'TestStruct'];\n\n  "
+                     "// A dynamic value based on another field.\n  "
+                     "optional bytes dynamic = 2;\n  "
+                     "optional User nested = 3;\n}\n")
+
+  def testDynamicAnyValueType(self):
+    test_pb = DynamicAnyValueTypeTest(type="TestStruct")
+    # We can not assign arbitrary values to the dynamic field.
+    self.assertRaises(ValueError, setattr, test_pb, "dynamic", "hello")
+
+    # Can assign a nested field.
+    test_pb.dynamic.foobar = "Hello"
+    self.assertTrue(isinstance(test_pb.dynamic, TestStruct))
+
+    # Test serialization/deserialization.
+    self.assertEqual(DynamicAnyValueTypeTest(test_pb.SerializeToString()),
+                     test_pb)
+
+    # Test proto definition.
+    self.assertEqual(DynamicAnyValueTypeTest.EmitProto(),
+                     "message DynamicAnyValueTypeTest {\n\n  "
+                     "// A string value\n  optional string type = 1;\n\n  "
+                     "// A dynamic value based on another field.\n  "
+                     "optional AnyValue dynamic = 2;\n}\n")
+
   def testProtoFileDescriptorIsGeneratedForDynamicType(self):
     test_pb_file_descriptor, deps = DynamicTypeTest.EmitProtoFileDescriptor(
         "grr_export")
@@ -153,6 +203,40 @@ class RDFStructsTest(test_base.RDFValueTestCase):
         type="foo", nested=rdf_client.User(username="bar"))
     self.assertEqual(new_dynamic_instance.type, "foo")
     self.assertEqual(new_dynamic_instance.nested.username, "bar")
+
+  def testProtoFileDescriptorIsGeneratedForDynamicAnyValueType(self):
+    test_pb_file_descriptor, deps = (
+        DynamicAnyValueTypeTest.EmitProtoFileDescriptor(
+            "grr_export"))
+
+    pool = descriptor_pool.DescriptorPool()
+    for file_descriptor in [test_pb_file_descriptor] + deps:
+      pool.Add(file_descriptor)
+    proto_descriptor = pool.FindMessageTypeByName(
+        "grr_export.DynamicAnyValueTypeTest")
+    factory = message_factory.MessageFactory()
+    proto_class = factory.GetPrototype(proto_descriptor)
+
+    # Now let's define an RDFProtoStruct for the dynamically generated
+    # proto_class.
+    new_dynamic_class = type("DynamicAnyValueTypeTestReversed",
+                             (structs.RDFProtoStruct,),
+                             dict(protobuf=proto_class))
+    new_dynamic_instance = new_dynamic_class(type="foo")
+    self.assertEqual(new_dynamic_instance.type, "foo")
+
+    # Test that a proto can be deserialized from serialized RDFValue
+    # with a dynamic AnyValue field.
+    test_pb = DynamicAnyValueTypeTest(type="TestStruct")
+    test_pb.dynamic.foobar = "Hello"
+
+    proto_value = proto_class()
+    proto_value.ParseFromString(test_pb.SerializeToString())
+
+    self.assertEqual(proto_value.type, "TestStruct")
+    self.assertEqual(proto_value.dynamic.type_url, "TestStruct")
+    self.assertEqual(proto_value.dynamic.value,
+                     test_pb.dynamic.SerializeToString())
 
   def testStructDefinition(self):
     """Ensure that errors in struct definitions are raised."""

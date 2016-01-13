@@ -1157,7 +1157,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     self.assertListEqual(sorted([x.urn for x in all_children]),
                          [root_urn.Add("some1"), root_urn.Add("some2")])
 
-  def testListChildren(self):
+  def testObjectListChildren(self):
     root_urn = aff4.ROOT_URN.Add("path")
 
     f = aff4.FACTORY.Create(root_urn.Add("some1"), "AFF4Volume",
@@ -1175,18 +1175,16 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
                          [root_urn.Add("some1"), root_urn.Add("some2")])
 
   def testMultiListChildren(self):
-    client1 = "C.%016X" % 0
-    client2 = "C.%016X" % 1
-    client1_urn = rdfvalue.RDFURN(client1)
-    client2_urn = rdfvalue.RDFURN(client2)
+    client1_urn = rdfvalue.RDFURN("C.%016X" % 0)
+    client2_urn = rdfvalue.RDFURN("C.%016X" % 1)
 
-    f = aff4.FACTORY.Create(client1_urn.Add("some1"), "AFF4Volume",
-                            token=self.token)
-    f.Close()
+    with aff4.FACTORY.Create(client1_urn.Add("some1"), "AFF4Volume",
+                             token=self.token):
+      pass
 
-    f = aff4.FACTORY.Create(client2_urn.Add("some2"), "AFF4Volume",
-                            token=self.token)
-    f.Close()
+    with aff4.FACTORY.Create(client2_urn.Add("some2"), "AFF4Volume",
+                             token=self.token):
+      pass
 
     children = dict(aff4.FACTORY.MultiListChildren([client1_urn, client2_urn],
                                                    token=self.token))
@@ -1197,6 +1195,21 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
                          [client1_urn.Add("some1")])
     self.assertListEqual(children[client2_urn],
                          [client2_urn.Add("some2")])
+
+  def testFactoryListChildren(self):
+    client_urn = rdfvalue.RDFURN("C.%016X" % 0)
+
+    with aff4.FACTORY.Create(client_urn.Add("some1"), "AFF4Volume",
+                             token=self.token):
+      pass
+
+    with aff4.FACTORY.Create(client_urn.Add("some2"), "AFF4Volume",
+                             token=self.token):
+      pass
+
+    children = aff4.FACTORY.ListChildren(client_urn, token=self.token)
+    self.assertListEqual(sorted(children),
+                         [client_urn.Add("some1"), client_urn.Add("some2")])
 
   def testIndexNotUpdatedWhenWrittenWithinIntermediateCacheAge(self):
     with utils.Stubber(time, "time", lambda: 100):

@@ -5,7 +5,7 @@ This module implements the Rekall enabled client actions.
 """
 
 
-import copy
+
 import logging
 import os
 import pdb
@@ -30,12 +30,12 @@ import logging
 from grr.client import actions
 from grr.client import vfs
 from grr.client.client_actions import tempfiles
+from grr.client.components.rekall_support import rekall_types
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import utils
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
-from grr.lib.rdfvalues import rekall_types
 
 
 class Error(Exception):
@@ -137,9 +137,7 @@ class GRRRekallRenderer(data_export.DataExportRenderer):
       self.action.SendReply(response_msg)
 
   def SendMessage(self, statement):
-    # Copy required temporarily until Rekall 1.4.2 integration.
-    super(GRRRekallRenderer, self).SendMessage(copy.deepcopy(statement))
-
+    super(GRRRekallRenderer, self).SendMessage(statement)
     if statement[0] in ["s", "t"]:
       self.new_context_messages[statement[0]] = statement[1]
 

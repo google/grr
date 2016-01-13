@@ -1,0 +1,13 @@
+<div class="form-group">
+  <label class="control-label">Label name</label>
+  <div class="controls">
+    <select class="form-control"
+            name="Labels"
+            ng-model="value.value.label_name.value"
+            ng-options="label.value.name.value as label.value.name.value
+                        for label in controller.labelsList">
+      <!-- hide the implicit empty option -->
+      <option value="" ng-if="false"></option>
+    </select>
+  </div>
+</div>

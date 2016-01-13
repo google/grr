@@ -136,3 +136,66 @@ driver_signing_private_key = -----BEGIN RSA PRIVATE KEY-----
 
     key = config_lib.CONFIG.Get("PrivateKeys.driver_signing_private_key")
     self.assertRaises(RSA.RSAError, key.GetPrivateKey)
+
+
+class CryptoUtilTests(test_lib.GRRBaseTest):
+
+  def testAES128Key(self):
+    key = rdf_crypto.AES128Key()
+    iv = rdf_crypto.AES128Key()
+    # Empty keys are initialized to a random string.
+    self.assertEqual(len(key), key.length / 8)
+
+    self.assertNotEqual(key, iv)
+    self.assertNotEqual(key.RawBytes(), iv.RawBytes())
+
+    # This key is too short.
+    self.assertRaises(rdf_crypto.CipherError, rdf_crypto.AES128Key, "foo")
+
+    # Deserialize from hex encoded.
+    copied_key = rdf_crypto.AES128Key(key.RawBytes().encode("hex"))
+    self.assertEqual(copied_key, key)
+    self.assertEqual(copied_key.RawBytes(), key.RawBytes())
+
+    copied_key = rdf_crypto.AES128Key(key.RawBytes())
+    self.assertEqual(copied_key, key)
+
+  def testAES128CBCCipher(self):
+    key = rdf_crypto.AES128Key()
+    iv = rdf_crypto.AES128Key()
+
+    cipher = rdf_crypto.AES128CBCCipher(key, iv)
+    plain_text = "hello world!"
+    cipher_text = cipher.Encrypt(plain_text)
+
+    # Repeatadly calling Encrypt should repeat the same cipher text.
+    self.assertEqual(cipher_text, cipher.Encrypt(plain_text))
+
+    self.assertNotEqual(cipher_text, plain_text)
+    self.assertEqual(cipher.Decrypt(cipher_text), plain_text)
+
+
+class SymmetricCipherTest(test_base.RDFValueTestCase):
+  rdfvalue_class = rdf_crypto.SymmetricCipher
+
+  sample_cache = {}
+
+  def GenerateSample(self, seed=1):
+    # We need to generate consistent new samples for each seed.
+    result = SymmetricCipherTest.sample_cache.get(seed)
+    if result is None:
+      result = self.rdfvalue_class().SetAlgorithm("AES128CBC")
+      SymmetricCipherTest.sample_cache[seed] = result
+
+    return result
+
+  def testEncrypt(self):
+    sample = self.GenerateSample()
+    self.assertEqual(len(sample.key.RawBytes()), 16)
+    self.assertEqual(len(sample.iv.RawBytes()), 16)
+    self.assertEqual(sample.key.RawBytes(), sample._key)
+
+    plain_text = "hello world!"
+    cipher_text = sample.Encrypt(plain_text)
+    self.assertNotEqual(cipher_text, plain_text)
+    self.assertEqual(sample.Decrypt(cipher_text), plain_text)

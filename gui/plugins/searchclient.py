@@ -397,11 +397,18 @@ class Navigator(renderers.TemplateRenderer):
     self.client_id = request.REQ.get("client_id")
     if self.client_id:
       client = aff4.FACTORY.Open(self.client_id, token=request.token)
+
       self.hosts.append((self.client_id, client.Get(client.Schema.HOSTNAME)))
 
       try:
         # Also check for proper access.
         aff4.FACTORY.Open(client.urn.Add("acl_check"), token=request.token)
+
+        # If we acquired a reason while opening the client (this happens
+        # when original token didn't have a reason), then show  the found reason
+        # in the UI.
+        if request.token.reason != self.reason:
+          self.reason = request.token.reason
 
       except access_control.UnauthorizedAccess as e:
         self.unauthorized = True

@@ -10,8 +10,8 @@ import os
 import socket
 import threading
 
-from grr.client.client_actions import grr_rekall_test
-
+from grr.client.components.rekall_support import grr_rekall_test
+from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import config_lib
@@ -26,7 +26,6 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
-from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 
 
 class DummyLoadMemoryDriverFlow(flow.GRRFlow):
@@ -506,7 +505,7 @@ class TestMemoryAnalysis(MemoryTest, grr_rekall_test.RekallTestSuite):
     self.assertEqual(fd[0].data, "\n85\n86\n87\n88\n89\n90\n91\n")
 
 
-class LinuxKcoreMemoryMock(action_mocks.ActionMock):
+class LinuxKcoreMemoryMock(action_mocks.MemoryClientMock):
   """Mock a linux client with kcore available.
 
   Validates that the kcore is used.
@@ -550,13 +549,13 @@ class TestLinuxMemoryAnalysis(MemoryTest, grr_rekall_test.RekallTestSuite):
       pass
 
 
-class ListVADBinariesActionMock(action_mocks.ActionMock):
+class ListVADBinariesActionMock(action_mocks.MemoryClientMock):
   """Client with real file actions and mocked-out RekallAction."""
 
   def __init__(self, process_list=None):
     super(ListVADBinariesActionMock, self).__init__(
         "TransferBuffer", "StatFile", "Find", "HashBuffer", "FingerprintFile",
-        "ListDirectory")
+        "ListDirectory", "WmiQuery", "HashFile", "LoadComponent")
     self.process_list = process_list or []
 
   def RekallAction(self, _):

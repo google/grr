@@ -5,12 +5,11 @@
 
 import gzip
 import os
-
+from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr.parsers import rekall_artifact_parser
 
 

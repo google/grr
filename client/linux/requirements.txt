@@ -1,5 +1,4 @@
 binplist==0.1.4
-gnureadline==6.3.3
 ipaddr==2.1.11
 pexpect==3.3
 psutil==2.1.3
@@ -8,5 +7,5 @@ pyinstaller==2.1
 python-crontab==1.9.2
 python-dateutil==2.3
 pytz==2014.10
-rekall-core==1.4.1
-urllib3==1.10
+protobuf==2.6.1
+-e git+https://github.com/scudette/M2Crypto.git@855d6b403464d8f9bf0db4b57ec504f3590c063c#egg=M2Crypto-master

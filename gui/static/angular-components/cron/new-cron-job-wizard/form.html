@@ -33,9 +33,10 @@
   <grr-wizard-form-page title="Where to run?" is-valid="controller.huntRunnerArgs.value.regex_rules.length > 0 ||
                                                         controller.huntRunnerArgs.value.integer_rules.length > 0">
 
-    <grr-configure-rules-page regex-rules="controller.huntRunnerArgs.value.regex_rules"
-                              integer-rules="controller.huntRunnerArgs.value.integer_rules">
-    </grr-configure-rules-page>
+    <grr-configure-deprecated-rules-page
+        regex-rules="controller.huntRunnerArgs.value.regex_rules"
+        integer-rules="controller.huntRunnerArgs.value.integer_rules">
+    </grr-configure-deprecated-rules-page>
 
   </grr-wizard-form-page>
 

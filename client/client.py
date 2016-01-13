@@ -29,25 +29,6 @@ flags.DEFINE_bool("debug_client_actions", False,
                   " action.")
 
 
-class GRRClient(object):
-  """A stand alone GRR client, which uses the HTTP mechanism."""
-
-  stop = False
-
-  def __init__(self, ca_cert=None, private_key=None):
-    super(GRRClient, self).__init__()
-    ca_cert = ca_cert or config_lib.CONFIG["CA.certificate"]
-    private_key = private_key or config_lib.CONFIG.Get("Client.private_key",
-                                                       default=None)
-    self.client = comms.GRRHTTPClient(ca_cert=ca_cert, private_key=private_key)
-
-  def Run(self):
-    """The client main loop - never exits."""
-    # Generate the client forever.
-    for _ in self.client.Run():
-      pass
-
-
 def main(unused_args):
   # Allow per platform configuration.
   config_lib.CONFIG.AddContext(
@@ -66,10 +47,13 @@ def main(unused_args):
 
   enrollment_necessary = not config_lib.CONFIG.Get("Client.private_key")
   # Instantiating the client will create a private_key so we need to use a flag.
-  client = GRRClient()
+  client = comms.GRRHTTPClient(
+      ca_cert=config_lib.CONFIG["CA.certificate"],
+      private_key=config_lib.CONFIG.Get("Client.private_key", default=None))
+
   if enrollment_necessary:
     logging.info("No private key found, starting enrollment.")
-    client.client.InitiateEnrolment(comms.Status())
+    client.InitiateEnrolment()
 
   if flags.FLAGS.break_on_start:
     pdb.set_trace()

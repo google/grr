@@ -2,6 +2,7 @@
 """Flows for handling the collection for artifacts."""
 
 import logging
+from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 
 from grr.lib import aff4
 from grr.lib import artifact
@@ -20,7 +21,6 @@ from grr.lib.flows.general import memory as _
 from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths
-from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr.lib.rdfvalues import structs as rdf_structs
 # For various parsers use by artifacts. pylint: disable=unused-import
 from grr.parsers import registry_init

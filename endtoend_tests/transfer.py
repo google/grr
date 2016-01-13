@@ -64,8 +64,8 @@ class MultiGetFileTestFlow(flow.GRRFlow):
     for response in responses:
       fd = aff4.FACTORY.Open(response.file_urn, "VFSFile", mode="r",
                              token=self.token)
-      binary_hash = fd.Get(fd.Schema.FINGERPRINT)
-      hash_digest = binary_hash.results[0].GetItem("sha256").encode("hex")
+      binary_hash = fd.Get(fd.Schema.HASH)
+      hash_digest = str(binary_hash.sha256)
       self.state.client_hashes[str(response.file_urn)] = hash_digest
 
       self.CallFlow("MultiGetFile", pathspecs=[binary_hash.pathspec],

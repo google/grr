@@ -303,7 +303,7 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
     self.Click("css=label:contains('Conditions') ~ * button")
     self.Select("css=label:contains('Condition type') ~ * select",
-                "CONTENTS_LITERAL_MATCH")
+                "Contents literal match")
     self.Type("css=label:contains('Literal') ~ * input", "foo\\x0d\\xc8bar")
 
     # Click on "Next" button
@@ -709,10 +709,10 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Where to run?")
 
     # Replace a rule with another one.
-    self.Click("css=grr-configure-rules-page button[name=Remove]")
-    self.Click("css=grr-configure-rules-page button[name=Add]")
-    self.Select("css=grr-configure-rules-page label:contains('Rule Type') "
-                "~ * select", "OS X")
+    self.Click("css=grr-configure-deprecated-rules-page button[name=Remove]")
+    self.Click("css=grr-configure-deprecated-rules-page button[name=Add]")
+    self.Select("css=grr-configure-deprecated-rules-page "
+                "label:contains('Rule Type') ~ * select", "OS X")
 
     # Click on "Next" button.
     self.Click("css=grr-new-hunt-wizard-form button.Next")
@@ -867,6 +867,182 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     self.Click("css=grr-new-hunt-wizard-form button.Next")
     self.WaitUntil(self.IsTextPresent, "Where to run?")
     self.WaitUntil(self.IsTextPresent, "This rule will match all OS X systems.")
+
+  def testOoConfigureRulesPage(self):
+    with test_lib.ConfigOverrider({
+        "AdminUI.new_hunt_wizard.use_object_oriented_hunt_rules": True}):
+      self.Open("/#main=ManageHunts")
+
+      # Open up "New Hunt" wizard
+      self.Click("css=button[name=NewHunt]")
+      self.WaitUntil(self.IsTextPresent, "What to run?")
+
+      # Click on Filesystem item in flows list
+      self.WaitUntil(self.IsElementPresent, "css=#_Filesystem > i.jstree-icon")
+      self.Click("css=#_Filesystem > i.jstree-icon")
+
+      # Click on the FileFinder item in Filesystem flows list
+      self.Click("link=File Finder")
+
+      # Click on "Next" button
+      self.Click("css=grr-new-hunt-wizard-form button.Next")
+      self.WaitUntil(self.IsTextPresent, "Output Processing")
+
+      # Click on "Next" button
+      self.Click("css=grr-new-hunt-wizard-form button.Next")
+      self.WaitUntil(self.IsTextPresent, "Where to run?")
+
+      # Empty set of rules should be valid.
+      self.WaitUntil(self.IsElementPresent, "css=button.Next:not([disabled])")
+
+      # A note informs what an empty set of rules means.
+      self.WaitUntil(self.IsTextPresent, "No rules specified! "
+                                         "The hunt will run on all clients.")
+
+      # Alternative match mode that matches a client if
+      # any of the rules evaluates to true can be selected.
+      self.Select("css=grr-configure-rules-page select:nth(0)", "Match any")
+
+      # The note depends on the match mode.
+      self.WaitUntil(self.IsTextPresent, "No rules specified! "
+                                         "The hunt won't run on any client.")
+
+      # Create 3 foreman rules. Note that "Add" button adds rules
+      # to the beginning of a list. So we always use :nth(0) selector.
+      self.Click("css=grr-configure-rules-page button[name=Add]")
+
+      self.Select("css=grr-configure-rules-page div.well:nth(0) select",
+                  "Regex")
+      self.Select(
+          "css=grr-configure-rules-page div.well:nth(0) "
+          "grr-form-proto-single-field:has(label:contains('Attribute name')) "
+          "select", "System")
+      self.Type(
+          "css=grr-configure-rules-page div.well:nth(0) "
+          "grr-form-proto-single-field:has(label:contains('Attribute regex')) "
+          "input", "Linux")
+
+      self.Click("css=grr-configure-rules-page button[name=Add]")
+      self.Select("css=grr-configure-rules-page div.well:nth(0) select",
+                  "Integer")
+      self.Select(
+          "css=grr-configure-rules-page div.well:nth(0) "
+          "grr-form-proto-single-field:has(label:contains('Attribute name')) "
+          "select", "Clock")
+      self.Select(
+          "css=grr-configure-rules-page div.well:nth(0) "
+          "grr-form-proto-single-field:has(label:contains('Operator')) select",
+          "GREATER_THAN")
+      self.Type(
+          "css=grr-configure-rules-page div.well:nth(0) "
+          "grr-form-proto-single-field:has(label:contains('Value')) input",
+          "1336650631137737")
+
+      self.Click("css=grr-configure-rules-page button[name=Add]")
+      self.Click("css=grr-configure-rules-page div.well:nth(0) "
+                 "grr-form-proto-single-field:has(label:contains('Os darwin')) "
+                 "input[type=checkbox]")
+
+      # Click on "Back" button
+      self.Click("css=grr-new-hunt-wizard-form button.Back")
+      self.WaitUntil(self.IsTextPresent, "Output Processing")
+
+      # Click on "Next" button again and check that all the values that
+      # we've just entered remain intact.
+      self.Click("css=grr-new-hunt-wizard-form button.Next")
+      self.WaitUntil(self.IsTextPresent, "Where to run?")
+
+      # Click on "Next" button
+      self.Click("css=grr-new-hunt-wizard-form button.Next")
+      self.WaitUntil(self.IsTextPresent, "Review")
+
+      # Check that there's no deprecated rules summary.
+      self.assertFalse(self.IsTextPresent("Regex rules"))
+      self.assertFalse(self.IsTextPresent("Integer rules"))
+
+      # Check that rules summary is present.
+      self.assertTrue(self.IsTextPresent("Rules"))
+
+      # Click on "Run" button
+      self.Click("css=grr-new-hunt-wizard-form button.Next")
+
+      self.WaitUntil(self.IsTextPresent, "Created Hunt")
+
+      # Close the window and check that the hunt was created.
+      self.Click("css=button.Next")
+
+      # Select newly created hunt.
+      self.Click("css=grr-hunts-list td:contains('GenericHunt')")
+
+      # Check that correct details are displayed in hunt details tab.
+      self.WaitUntil(self.IsTextPresent, "GenericHunt")
+      self.WaitUntil(self.IsTextPresent, "Flow args")
+
+      # Check that there's no deprecated rules summary.
+      self.assertFalse(self.IsTextPresent("Regex rules"))
+      self.assertFalse(self.IsTextPresent("Integer rules"))
+
+      # Check that rules summary is present.
+      self.assertTrue(self.IsTextPresent("Rules"))
+
+      # Check that the hunt object was actually created
+      hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
+      hunts_list = list(hunts_root.OpenChildren())
+      self.assertEqual(len(hunts_list), 1)
+
+      # Check that the hunt was created with a correct flow
+      hunt = hunts_list[0]
+      self.assertEqual(hunt.state.args.flow_runner_args.flow_name,
+                       file_finder.FileFinder.__name__)
+
+      # Check that hunt was not started
+      self.assertEqual(hunt.Get(hunt.Schema.STATE), "PAUSED")
+
+      # Now try to start the hunt.
+      self.Click("css=button[name=RunHunt]")
+
+      # Note that hunt ACL controls are already tested in acl_manager_test.py.
+
+      # Run the hunt.
+      with self.ACLChecksDisabled():
+        with aff4.FACTORY.Open(hunt.urn, mode="rw", token=self.token) as hunt:
+          hunt.Run()
+
+      # Check that the hunt was created with correct rules
+      with self.ACLChecksDisabled():
+        hunt_rules = self.FindForemanRules(hunt, token=self.token)
+
+      self.assertEqual(len(hunt_rules), 1)
+      self.assertTrue(
+          abs(int(hunt_rules[0].expires - hunt_rules[0].created) -
+              14 * 24 * 60 * 60) <= 1)
+
+# [NYI]
+#      r = hunt_rules[0].rules
+#
+#      self.assertEqual(r.match_mode,
+#          rdf_foreman.ForemanClientRuleSet.MatchMode.MATCH_ANY)
+#      self.assertEqual(len(r.rules), 3)
+#
+#      self.assertEqual(r.rules[0].rule_type,
+#          rdf_foreman.ForemanClientRule.Type.OS)
+#      self.assertEqual(r.rules[0].os.os_windows, False)
+#      self.assertEqual(r.rules[0].os.os_linux, False)
+#      self.assertEqual(r.rules[0].os.os_darwin, True)
+#
+#      self.assertEqual(r.rules[1].rule_type,
+#          rdf_foreman.ForemanClientRule.Type.INTEGER)
+#      self.assertEqual(r.rules[1].integer.path, "/")
+#      self.assertEqual(r.rules[1].integer.attribute_name, "Clock")
+#      self.assertEqual(r.rules[1].integer.operator,
+#          rdf_foreman.ForemanIntegerClientRule.Operator.GREATER_THAN)
+#      self.assertEqual(r.rules[1].integer.value, 1336650631137737)
+#
+#      self.assertEqual(r.rules[2].rule_type,
+#          rdf_foreman.ForemanClientRule.Type.REGEX)
+#      self.assertEqual(r.rules[2].regex.path, "/")
+#      self.assertEqual(r.rules[2].regex.attribute_name, "System")
+#      self.assertEqual(r.rules[2].regex.attribute_regex, "Linux")
 
 
 def main(argv):

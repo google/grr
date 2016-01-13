@@ -12,9 +12,9 @@ from grr.lib import rdfvalue
 from grr.lib import rdfvalues
 from grr.client import actions
 from grr.client.client_actions import admin
+from grr.client.client_actions import components
 from grr.client.client_actions import enrol
 from grr.client.client_actions import file_fingerprint
-from grr.client.client_actions import grr_rekall
 from grr.client.client_actions import network
 from grr.client.client_actions import plist
 from grr.client.client_actions import searching

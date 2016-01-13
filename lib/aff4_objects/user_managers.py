@@ -12,6 +12,7 @@ AccessControlManager Classes:
 
 
 import fnmatch
+import functools
 import re
 
 import logging
@@ -21,14 +22,218 @@ from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
+from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
 
-from grr.lib.aff4_objects import aff4_grr
-# For Approval. pylint: disable=unused-import
 from grr.lib.aff4_objects import security
-# pylint: enable=unused-import
 from grr.lib.rdfvalues import client as rdf_client
+
+
+class LoggedACL(object):
+  """A decorator to automatically log result of the ACL check."""
+
+  def __init__(self, access_type):
+    self.access_type = access_type
+
+  def __call__(self, func):
+
+    @functools.wraps(func)
+    def Decorated(this, token, *args, **kwargs):
+      try:
+        result = func(this, token, *args, **kwargs)
+        logging.debug(u"%s GRANTED by %s to %s (%s, %s) with reason: %s",
+                      utils.SmartUnicode(self.access_type),
+                      utils.SmartUnicode(this.__class__.__name__),
+                      utils.SmartUnicode(token and token.username),
+                      utils.SmartUnicode(args),
+                      utils.SmartUnicode(kwargs),
+                      utils.SmartUnicode(token and token.reason))
+
+        return result
+      except access_control.UnauthorizedAccess:
+        logging.debug(u"%s REJECTED by %s to %s (%s, %s) with reason: %s",
+                      utils.SmartUnicode(self.access_type),
+                      utils.SmartUnicode(this.__class__.__name__),
+                      utils.SmartUnicode(token and token.username),
+                      utils.SmartUnicode(args),
+                      utils.SmartUnicode(kwargs),
+                      utils.SmartUnicode(token and token.reason))
+
+        raise
+
+    return Decorated
+
+
+class NullAccessControlManager(access_control.AccessControlManager):
+  """An ACL manager which does not enforce any ACLs or check user privilege."""
+
+  # pylint: disable=unused-argument
+  def CheckClientAccess(self, token, client_urn):
+    """Allow all access."""
+    return True
+
+  def CheckHuntAccess(self, token, hunt_urn):
+    """Allow all access."""
+    return True
+
+  def CheckCronJobAccess(self, token, cron_job_urn):
+    """Allow all access."""
+    return True
+
+  def CheckIfCanStartFlow(self, token, flow_name):
+    """Allow all access."""
+    return True
+
+  def CheckDataStoreAccess(self, token, subjects, requested_access="r"):
+    """Allow all access."""
+    return True
+  # pylint: enable=unused-argument
+
+
+def ValidateToken(token, targets):
+  """Does basic token validation.
+
+  Args:
+    token: User's credentials as access_control.ACLToken.
+    targets: List of targets that were meant to be accessed by the token.
+             This is used for logging purposes only.
+  Returns:
+    True if token is valid.
+
+  Raises:
+    access_control.UnauthorizedAccess: if token is not valid.
+    ValueError: if targets list is empty.
+  """
+
+  def GetSubjectForError():
+    if len(targets) == 1:
+      return list(targets)[0]
+    else:
+      return None
+
+  # All accesses need a token.
+  if not token:
+    raise access_control.UnauthorizedAccess(
+        "Must give an authorization token for %s" % targets,
+        subject=GetSubjectForError())
+
+  # Token must not be expired here.
+  token.CheckExpiry()
+
+  # Token must have identity
+  if not token.username:
+    raise access_control.UnauthorizedAccess(
+        "Must specify a username for access to %s." % targets,
+        subject=GetSubjectForError())
+
+  return True
+
+
+def ValidateAccessAndSubjects(requested_access, subjects):
+  """Does basic requested access validation.
+
+  Args:
+    requested_access: String consisting or 'r', 'w' and 'q' characters.
+    subjects: A list of subjects that are about to be accessed with a
+              given requested_access. Used for logging purposes only.
+
+  Returns:
+    True if requested_access is valid.
+
+  Raises:
+    access_control.UnauthorizedAccess: if requested_access is not valid.
+    ValueError: if subjects list is empty.
+  """
+
+  if not requested_access:
+    raise access_control.UnauthorizedAccess(
+        "Must specify requested access type for %s" % subjects)
+
+  for s in requested_access:
+    if s not in "rwq":
+      raise ValueError("Invalid access requested for %s: %s" % (
+          subjects, requested_access))
+
+  if "q" in requested_access and "r" not in requested_access:
+    raise access_control.UnauthorizedAccess(
+        "Invalid access request: query permissions require read permissions "
+        "for %s" % subjects, requested_access=requested_access)
+
+  return True
+
+
+def CheckUserForLabels(username, authorized_labels, token=None):
+  """Verify that the username has all the authorized_labels set."""
+  authorized_labels = set(authorized_labels)
+
+  try:
+    user = aff4.FACTORY.Open("aff4:/users/%s" % username, aff4_type="GRRUser",
+                             token=token)
+
+    # Only return if all the authorized_labels are found in the user's
+    # label list, otherwise raise UnauthorizedAccess.
+    if (authorized_labels.intersection(
+        user.GetLabelsNames()) == authorized_labels):
+      return True
+    else:
+      raise access_control.UnauthorizedAccess(
+          "User %s is missing labels (required: %s)." % (username,
+                                                         authorized_labels))
+  except IOError:
+    raise access_control.UnauthorizedAccess("User %s not found." % username)
+
+
+def CheckFlowAuthorizedLabels(token, flow_name):
+  """Checks if user has a label in flow's authorized_labels list."""
+  flow_cls = flow.GRRFlow.GetPlugin(flow_name)
+
+  if flow_cls.AUTHORIZED_LABELS:
+    return CheckUserForLabels(token.username, flow_cls.AUTHORIZED_LABELS,
+                              token=token)
+  else:
+    return True
+
+
+class BasicAccessControlManager(access_control.AccessControlManager):
+  """Basic ACL manager that does identity and labels checks only.
+
+  When accessing clients/hunts/cron jobs/data store, BasicAccessControlManager
+  just checks that the token is valid and requested access is valid and,
+  basically, grants access to everybody.
+
+  When checking if one can start a flow, it does checks against user labels if
+  flow has AUTHORIZED_LABELS attribute set. If flow has no AUTHORIZED_LABELS
+  set, it grants permission to start the flow for anyone with a valid token.
+  """
+
+  @LoggedACL("client_access")
+  def CheckClientAccess(self, token, client_urn):
+    """Allow all access if token is valid."""
+    return ValidateToken(token, [client_urn])
+
+  @LoggedACL("hunt_access")
+  def CheckHuntAccess(self, token, hunt_urn):
+    """Allow all access if token is valid."""
+    return ValidateToken(token, [hunt_urn])
+
+  @LoggedACL("cron_job_access")
+  def CheckCronJobAccess(self, token, cron_job_urn):
+    """Allow all access if token is valid."""
+    return ValidateToken(token, [cron_job_urn])
+
+  @LoggedACL("can_start_flow")
+  def CheckIfCanStartFlow(self, token, flow_name):
+    """Check labels, ACL_ENFORCED attribute, and validate the token."""
+    return ValidateToken(token, [flow_name]) and (
+        token.supervisor or
+        CheckFlowAuthorizedLabels(token, flow_name))
+
+  @LoggedACL("data_store_access")
+  def CheckDataStoreAccess(self, token, subjects, requested_access="r"):
+    """Allow all access if token and requested access are valid."""
+    return (ValidateAccessAndSubjects(requested_access, subjects) and
+            ValidateToken(token, subjects))
 
 
 class CheckAccessHelper(object):
@@ -126,231 +331,40 @@ class CheckAccessHelper(object):
         "Access to %s rejected: (no matched rules)." % subject, subject=subject)
 
 
-class NullAccessControlManager(access_control.AccessControlManager):
-  """An ACL manager which does not enforce any ACLs or check user privilege."""
-
-  # pylint: disable=unused-argument
-  def CheckUserLabels(self, username, authorized_labels, token=None):
-    """Allow all access."""
-    return True
-
-  def CheckHuntAccess(self, token, hunt_urn):
-    """Allow all access."""
-    return True
-
-  def CheckFlowAccess(self, token, flow_name, client_id=None):
-    """Allow all access."""
-    return True
-
-  def CheckCronJobAccess(self, token, cron_job_urn):
-    """Allow all access."""
-    return True
-
-  def CheckDataStoreAccess(self, token, subjects, requested_access="r"):
-    """Allow all access."""
-    return True
-  # pylint: enable=unused-argument
-
-
-class BasicAccessControlManager(NullAccessControlManager):
-  """Basic ACL manager that uses the config file for user management.
-
-  This access control manager enforces valid identity but that is all.  Users
-  are allowed to read/write/query everywhere.
-  """
-
-  CLIENT_URN_PATTERN = "aff4:/C." + "[0-9a-fA-F]" * 16
-
-  def __init__(self):
-    self.client_id_re = aff4_grr.VFSGRRClient.CLIENT_ID_RE
-    self.acl_cache = utils.AgeBasedCache(
-        max_size=10000, max_age=config_lib.CONFIG["ACL.cache_age"])
-
-    self.flow_cache = utils.FastStore(max_size=10000)
-    self.super_token = access_control.ACLToken(username="GRRSystem").SetUID()
-
-    self.write_access_helper = self._CreateWriteAccessHelper()
-    self.read_access_helper = self._CreateReadAccessHelper()
-    self.query_access_helper = self._CreateQueryAccessHelper()
-
-    super(BasicAccessControlManager, self).__init__()
-
-  def CheckUserLabels(self, username, authorized_labels, token=None):
-    """Verify that the username has all the authorized_labels set."""
-    authorized_labels = set(authorized_labels)
-
-    try:
-      user = aff4.FACTORY.Open("aff4:/users/%s" % username, aff4_type="GRRUser",
-                               token=token)
-
-      # Only return if all the authorized_labels are found in the user's
-      # label list, otherwise raise UnauthorizedAccess.
-      if (authorized_labels.intersection(
-          user.GetLabelsNames()) == authorized_labels):
-        return
-      raise access_control.UnauthorizedAccess(
-          "User %s is missing labels (required: %s)." % (username,
-                                                         authorized_labels))
-    except IOError:
-      raise access_control.UnauthorizedAccess("User %s not found." % username)
-
-  @stats.Timed("acl_check_time")
-  def CheckFlowAccess(self, token, flow_name, client_id=None):
-    client_urn = None
-    if client_id:
-      client_urn = rdf_client.ClientURN(client_id)
-
-    self.ValidateToken(token, client_urn)
-
-    flow_cls = flow.GRRFlow.GetPlugin(flow_name)
-
-    # Flows which are not enforced can run all the time.
-    if not flow_cls.ACL_ENFORCED:
-      logging.debug("ACL access granted by ACL_ENFORCED bypass for %s.",
-                    flow_name)
-      return True
-
-    return self.CheckACL(token, client_urn)
-
-  @stats.Timed("acl_check_time")
-  def CheckHuntAccess(self, token, hunt_urn):
-    self.ValidateToken(token, hunt_urn)
-    return self.CheckACL(token, hunt_urn)
-
-  @stats.Timed("acl_check_time")
-  def CheckCronJobAccess(self, token, cron_job_urn):
-    self.ValidateToken(token, cron_job_urn)
-    return self.CheckACL(token, cron_job_urn)
-
-  def CheckClientAccess(self, subject, token):
-    client_id, _ = rdfvalue.RDFURN(subject).Split(2)
-    client_urn = rdf_client.ClientURN(client_id)
-    return self.CheckACL(token, client_urn)
-
-  @stats.Timed("acl_check_time")
-  def CheckDataStoreAccess(self, token, subjects, requested_access="r"):
-    """Allow all access."""
-
-    self.ValidateToken(token, subjects)
-    self.ValidateRequestedAccess(requested_access, subjects)
-
-    # The supervisor may bypass all ACL checks.
-    if token.supervisor:
-      logging.debug(u"Datastore access granted to %s on %s. Mode: %s "
-                    u"Supervisor: %s", utils.SmartUnicode(token.username),
-                    utils.SmartUnicode(subjects), requested_access,
-                    token.supervisor)
-      return True
-
-    # Direct writes are not allowed. Specialised flows (with ACL_ENFORCED=False)
-    # have to be used instead.
-    access_checkers = {"w": self.write_access_helper.CheckAccess,
-                       "r": self.read_access_helper.CheckAccess,
-                       "q": self.query_access_helper.CheckAccess}
-
-    for subject in subjects:
-      for access in requested_access:
-        try:
-          access_checkers[access](subject, token)
-
-        except KeyError:
-          raise access_control.UnauthorizedAccess(
-              "Invalid access requested for %s" % subject, subject=subject,
-              requested_access=requested_access)
-        except access_control.UnauthorizedAccess as e:
-          logging.warn(u"Datastore access denied to %s on %s. Mode: %s "
-                       u"Error: %s", utils.SmartUnicode(token.username),
-                       utils.SmartUnicode(subjects), requested_access, e)
-          e.requested_access = requested_access
-          raise
-
-    return True
-
-  def ValidateToken(self, token, target):
-    """Validate Basic Token Issues."""
-    # All accesses need a token.
-    if not token:
-      raise access_control.UnauthorizedAccess(
-          "Must give an authorization token for %s" % target, subject=target
-          )
-
-    # Token must not be expired here.
-    token.CheckExpiry()
-
-    # Token must have identity
-    if not token.username:
-      raise access_control.UnauthorizedAccess(
-          "Must specify a username for access to %s." % target, subject=target
-          )
-
-  def ValidateRequestedAccess(self, requested_access, subjects):
-    if not requested_access:
-      raise access_control.UnauthorizedAccess(
-          "Must specify requested access type for %s" % subjects)
-
-    if "q" in requested_access and "r" not in requested_access:
-      raise access_control.UnauthorizedAccess(
-          "Invalid access request: query permissions require read permissions "
-          "for %s" % subjects, requested_access=requested_access)
-
-  def _CreateWriteAccessHelper(self):
-    """Creates a CheckAccessHelper for controlling write access."""
-    h = CheckAccessHelper("write")
-
-    h.Allow("*")
-
-    return h
-
-  def _CreateReadAccessHelper(self):
-    """Creates a CheckAccessHelper for controlling read access.
-
-    This function and _CreateQueryAccessHelper essentially define GRR's ACL
-    policy. Please refer to these 2 functions to either review or modify
-    GRR's ACLs.
-
-    Returns:
-      CheckAccessHelper for controlling read access.
-    """
-    h = CheckAccessHelper("read")
-
-    h.Allow("*")
-
-    return h
-
-  def _CreateQueryAccessHelper(self):
-    """Creates a CheckAccessHelper for controlling query access.
-
-    This function and _CreateReadAccessHelper essentially define GRR's ACL
-    policy. Please refer to these 2 functions to either review or modify
-    GRR's ACLs.
-
-    Returns:
-      CheckAccessHelper for controlling query access.
-    """
-    h = CheckAccessHelper("query")
-
-    h.Allow("*")
-
-    return h
-
-  def CheckACL(self, token, target):
-    logging.debug(u"ACL access granted to %s on %s. Supervisor: %s",
-                  utils.SmartUnicode(token.username), target, token.supervisor)
-    return True
-
-
-class FullAccessControlManager(BasicAccessControlManager):
+class FullAccessControlManager(access_control.AccessControlManager):
   """Control read/write/query access for multi-party authorization system.
 
   This access control manager enforces valid identity and a scheme of
   read/write/query access that works with the GRR approval system.
   """
 
-  def UserHasAdminLabel(self, subject, token):
-    """Checks whether a user has admin label. Used by CheckAccessHelper."""
-    self.CheckUserLabels(token.username, ["admin"], token=token)
+  CLIENT_URN_PATTERN = "aff4:/C." + "[0-9a-fA-F]" * 16
 
-  def IsHomeDir(self, subject, token):
+  def __init__(self):
+    super(FullAccessControlManager, self).__init__()
+
+    self.acl_cache = utils.AgeBasedCache(
+        max_size=10000, max_age=config_lib.CONFIG["ACL.cache_age"])
+    self.super_token = access_control.ACLToken(username="GRRSystem").SetUID()
+
+    self.helpers = {
+        "w": self._CreateWriteAccessHelper(),
+        "r": self._CreateReadAccessHelper(),
+        "q": self._CreateQueryAccessHelper()
+    }
+
+  def _HasAccessToClient(self, subject, token):
+    """Checks if user has access to a client under given URN."""
+    client_id, _ = rdfvalue.RDFURN(subject).Split(2)
+    client_urn = rdf_client.ClientURN(client_id)
+
+    return self.CheckClientAccess(token, client_urn)
+
+  def _UserHasAdminLabel(self, subject, token):
+    """Checks whether a user has admin label. Used by CheckAccessHelper."""
+    return CheckUserForLabels(token.username, ["admin"], token=token)
+
+  def _IsHomeDir(self, subject, token):
     """Checks user access permissions for paths under aff4:/users."""
     h = CheckAccessHelper("IsHomeDir")
     h.Allow("aff4:/users/%s" % token.username)
@@ -400,10 +414,10 @@ class FullAccessControlManager(BasicAccessControlManager):
     h.Allow("aff4:/users")
 
     # User is allowed to access anything in his home dir.
-    h.Allow("aff4:/users/*", self.IsHomeDir)
+    h.Allow("aff4:/users/*", self._IsHomeDir)
 
     # Administrators are allowed to see current set of foreman rules.
-    h.Allow("aff4:/foreman", self.UserHasAdminLabel)
+    h.Allow("aff4:/foreman", self._UserHasAdminLabel)
 
     # Querying is not allowed for the blob namespace. Blobs are stored by hashes
     # as filename. If the user already knows the hash, they can access the blob,
@@ -471,7 +485,7 @@ class FullAccessControlManager(BasicAccessControlManager):
 
     # Namespace for clients.
     h.Allow(self.CLIENT_URN_PATTERN)
-    h.Allow(self.CLIENT_URN_PATTERN + "/*", self.CheckClientAccess)
+    h.Allow(self.CLIENT_URN_PATTERN + "/*", self._HasAccessToClient)
 
     # Namespace for temporary scratch space. Note that Querying this area is not
     # allowed. Users should create files with random names if they want to
@@ -506,7 +520,7 @@ class FullAccessControlManager(BasicAccessControlManager):
     h = CheckAccessHelper("query")
 
     # User is allowed to do anything in his home dir.
-    h.Allow("aff4:/users/*", self.IsHomeDir)
+    h.Allow("aff4:/users/*", self._IsHomeDir)
 
     # Querying is allowed for aff4:/cron/*, as GUI renders list of current
     # cron jobs. Also, links to flows executed by every cron job are stored
@@ -571,54 +585,42 @@ class FullAccessControlManager(BasicAccessControlManager):
 
     return h
 
-  def CheckACL(self, token, target):
-    # The supervisor may bypass all ACL checks.
-    if token.supervisor:
-      logging.debug(u"ACL access granted to %s on %s. Supervisor: %s",
-                    utils.SmartUnicode(token.username), target,
-                    token.supervisor)
-      return True
+  def _CheckAccessWithHelpers(self, token, subjects, requested_access):
+    for subject in subjects:
+      for access in requested_access:
+        try:
+          self.helpers[access].CheckAccess(subject, token)
+        except access_control.UnauthorizedAccess as e:
+          e.requested_access = requested_access
+          raise
 
-    # Target may be None for flows not specifying a client.
-    # Only aff4.GRRUser.SYSTEM_USERS can run these flows.
-    if not target:
-      if token.username not in aff4.GRRUser.SYSTEM_USERS:
-        raise access_control.UnauthorizedAccess(
-            "ACL access denied for flow without client_urn for %s" %
-            token.username)
+    return True
 
-      return True
-
-    if not token.reason:
-      raise access_control.UnauthorizedAccess(
-          "Must specify a reason for access.",
-          subject=target)
-
+  def _CheckApprovalsForTokenWithReason(self, token, target):
     # Build the approval URN.
     approval_urn = aff4.ROOT_URN.Add("ACL").Add(target.Path()).Add(
         token.username).Add(utils.EncodeReasonString(token.reason))
 
     try:
-      token.is_emergency = self.acl_cache.Get(approval_urn)
-      logging.debug(u"ACL access granted to %s on %s. Supervisor: %s",
-                    utils.SmartUnicode(token.username), target,
-                    token.supervisor)
+      cached_token = self.acl_cache.Get(approval_urn)
+      stats.STATS.IncrementCounter("approval_searches",
+                                   fields=["with_reason", "cache"])
+      token.is_emergency = cached_token.is_emergency
+
       return True
     except KeyError:
+      stats.STATS.IncrementCounter("approval_searches",
+                                   fields=["with_reason", "data_store"])
       try:
         # Retrieve the approval object with superuser privileges so we can check
         # it.
         approval_request = aff4.FACTORY.Open(
-            approval_urn, aff4_type="Approval", mode="r",
-            token=self.super_token, age=aff4.ALL_TIMES)
+            approval_urn, aff4_type=security.Approval.__name__, mode="r",
+            token=token, age=aff4.ALL_TIMES)
 
         if approval_request.CheckAccess(token):
           # Cache this approval for fast path checking.
-          self.acl_cache.Put(approval_urn, token.is_emergency)
-          logging.debug(
-              u"ACL access granted to %s on %s. Supervisor: %s",
-              utils.SmartUnicode(token.username), target,
-              token.supervisor)
+          self.acl_cache.Put(approval_urn, token)
           return True
 
         raise access_control.UnauthorizedAccess(
@@ -630,3 +632,120 @@ class FullAccessControlManager(BasicAccessControlManager):
         raise access_control.UnauthorizedAccess(
             "No approval found for %s." % target,
             subject=target)
+
+  def _CheckApprovalsForTokenWithoutReason(self, token, target):
+    approval_root_urn = aff4.ROOT_URN.Add("ACL").Add(target.Path()).Add(
+        token.username)
+
+    try:
+      cached_token = self.acl_cache.Get(approval_root_urn)
+      stats.STATS.IncrementCounter("approval_searches",
+                                   fields=["without_reason", "cache"])
+
+      token.is_emergency = cached_token.is_emergency
+      token.reason = cached_token.reason
+
+      return True
+    except KeyError:
+      stats.STATS.IncrementCounter("approval_searches",
+                                   fields=["without_reason", "data_store"])
+
+      approved_token = aff4.Approval.GetApprovalForObject(
+          target, token=token)
+      token.reason = approved_token.reason
+      token.is_emergency = approved_token.is_emergency
+
+      self.acl_cache.Put(approval_root_urn, approved_token)
+
+      return True
+
+  def _CheckApprovals(self, token, target):
+    # Target may be None for flows not specifying a client.
+    # Only aff4.GRRUser.SYSTEM_USERS can run these flows.
+    if not target:
+      if token.username not in aff4.GRRUser.SYSTEM_USERS:
+        raise access_control.UnauthorizedAccess(
+            "ACL access denied for flow without client_urn for %s" %
+            token.username)
+
+      return True
+
+    if token.reason:
+      # If reason is not specified, try searching for a matching approval.
+      return self._CheckApprovalsForTokenWithReason(token, target)
+    else:
+      return self._CheckApprovalsForTokenWithoutReason(token, target)
+
+  @LoggedACL("client_access")
+  @stats.Timed("acl_check_time", fields=["client_access"])
+  def CheckClientAccess(self, token, client_urn):
+    if not client_urn:
+      raise ValueError("Client urn can't be empty.")
+    client_urn = rdf_client.ClientURN(client_urn)
+
+    return ValidateToken(token, [client_urn]) and (
+        token.supervisor or
+        self._CheckApprovals(token, client_urn))
+
+  @LoggedACL("hunt_access")
+  @stats.Timed("acl_check_time", fields=["hunt_access"])
+  def CheckHuntAccess(self, token, hunt_urn):
+    if not hunt_urn:
+      raise ValueError("Hunt urn can't be empty.")
+    hunt_urn = rdfvalue.RDFURN(hunt_urn)
+
+    return ValidateToken(token, [hunt_urn]) and (
+        token.supervisor or
+        self._CheckApprovals(token, hunt_urn))
+
+  @LoggedACL("cron_job_access")
+  @stats.Timed("acl_check_time", fields=["cron_job_access"])
+  def CheckCronJobAccess(self, token, cron_job_urn):
+    if not cron_job_urn:
+      raise ValueError("Cron job urn can't be empty.")
+    cron_job_urn = rdfvalue.RDFURN(cron_job_urn)
+
+    return ValidateToken(token, [cron_job_urn]) and (
+        token.supervisor or
+        self._CheckApprovals(token, cron_job_urn))
+
+  @LoggedACL("can_start_flow")
+  @stats.Timed("acl_check_time", fields=["can_start_flow"])
+  def CheckIfCanStartFlow(self, token, flow_name):
+    if not flow_name:
+      raise ValueError("Flow name can't be empty.")
+
+    return ValidateToken(token, [flow_name]) and (
+        token.supervisor or
+        CheckFlowAuthorizedLabels(token, flow_name))
+
+  @LoggedACL("can_start_flow")
+  @stats.Timed("acl_check_time", fields=["data_store_access"])
+  def CheckDataStoreAccess(self, token, subjects, requested_access="r"):
+    """Allow all access if token and requested access are valid."""
+    if not subjects or any(not x for x in subjects):
+      raise ValueError("Subjects list can't be empty or contain empty URNs.")
+    subjects = map(rdfvalue.RDFURN, subjects)
+
+    return (ValidateAccessAndSubjects(requested_access, subjects) and
+            ValidateToken(token, subjects) and (
+                token.supervisor or
+                self._CheckAccessWithHelpers(token, subjects,
+                                             requested_access)))
+
+
+class UserManagersInit(registry.InitHook):
+  """Install the selected security manager.
+
+  Since many security managers depend on AFF4, we must run after the AFF4
+  subsystem is ready.
+  """
+
+  pre = ["StatsInit"]
+
+  def RunOnce(self):
+    stats.STATS.RegisterEventMetric("acl_check_time",
+                                    fields=[("check_type", str)])
+    stats.STATS.RegisterCounterMetric("approval_searches",
+                                      fields=[("reason_presence", str),
+                                              ("source", str)])

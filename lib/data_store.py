@@ -43,6 +43,7 @@ import time
 import logging
 
 from grr.lib import access_control
+from grr.lib import blob_store
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import registry
@@ -93,6 +94,8 @@ class DataStore(object):
   flusher_thread = None
   monitor_thread = None
 
+  default_blobstore = "MemoryStreamBlobstore"
+
   def __init__(self):
     security_manager = access_control.BasicAccessControlManager.GetPlugin(
         config_lib.CONFIG["Datastore.security_manager"])()
@@ -141,6 +144,17 @@ class DataStore(object):
 
     return "r"
 
+  def InitializeBlobstore(self):
+
+    blobstore_name = config_lib.CONFIG.Get("Blobstore.implementation",
+                                           self.default_blobstore)
+    try:
+      cls = blob_store.Blobstore.GetPlugin(blobstore_name)
+    except KeyError:
+      raise RuntimeError("No blob store %s found." % blobstore_name)
+
+    self.blobstore = cls()
+
   def InitializeMonitorThread(self):
     """Start the thread that registers the size of the DataStore."""
     if self.monitor_thread:
@@ -155,6 +169,7 @@ class DataStore(object):
 
   def Initialize(self):
     """Initialization of the datastore."""
+    self.InitializeBlobstore()
 
   @abc.abstractmethod
   def DeleteSubject(self, subject, sync=False, token=None):
@@ -457,6 +472,24 @@ class DataStore(object):
       attribute with value set at timestamp.
 
     """
+
+  def ReadBlob(self, digest, token=None):
+    return self.blobstore.ReadBlob(digest, token=token)
+
+  def ReadBlobs(self, digests, token=None):
+    return self.blobstore.ReadBlobs(digests, token=token)
+
+  def StoreBlob(self, content, token=None):
+    return self.blobstore.StoreBlob(content, token=token)
+
+  def StoreBlobs(self, contents, token=None):
+    return self.blobstore.StoreBlobs(contents, token=token)
+
+  def BlobExists(self, digest, token=None):
+    return self.blobstore.BlobExists(digest, token=token)
+
+  def BlobsExist(self, digests, token=None):
+    return self.blobstore.BlobExists(digests, token=token)
 
 
 class Transaction(object):

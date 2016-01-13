@@ -50,12 +50,22 @@ describe('remove clients labels dialog', function() {
   it('shows list of affected clients', function() {
     var clients = [
       {
-        urn: 'C.0000111122223333',
-        attributes: {}
+        type: 'ApiClient',
+        value: {
+          urn: {
+            value: 'C.0000111122223333',
+            type: 'RDFURN'
+          }
+        }
       },
       {
-        urn: 'C.1111222233334444',
-        attributes: {}
+        type: 'ApiClient',
+        value: {
+          urn: {
+            value: 'C.1111222233334444',
+            type: 'RDFURN'
+          },
+        }
       }
     ];
     var element = renderTestTemplate(clients);
@@ -65,95 +75,93 @@ describe('remove clients labels dialog', function() {
 
   var clientsWithTwoUserLabels = [
     {
-      urn: 'C.0000111122223333',
-      attributes: {
-        'aff4:labels_list': {
-          value: {
-            labels: [
-              {
-                value: {
-                  name: {
-                    value: 'foo',
-                  },
-                  owner: {
-                    value: 'test2'
-                  }
-                }
+      type: 'ApiClient',
+      value: {
+        urn: {
+          value: 'C.0000111122223333',
+          type: 'RDFURN'
+        },
+        labels: [
+          {
+            value: {
+              name: {
+                value: 'foo',
+              },
+              owner: {
+                value: 'test2'
               }
-            ]
+            }
           }
-        }
+        ]
       }
     },
     {
-      urn: 'C.1111222233334444',
-      attributes: {
-        'aff4:labels_list': {
-          value: {
-            labels: [
-              {
-                value: {
-                  name: {
-                    value: 'bar',
-                  },
-                  owner: {
-                    value: 'test2'
-                  }
-                }
+      type: 'ApiClient',
+      value: {
+        urn: {
+          value: 'C.1111222233334444',
+          type: 'RDFURN'
+        },
+        labels: [
+          {
+            value: {
+              name: {
+                value: 'bar',
+              },
+              owner: {
+                value: 'test2'
               }
-            ]
+            }
           }
-        }
+        ]
       }
     }
   ];
 
   var clientsWithOneUserLabelAndOneSystemLabel = [
     {
-      urn: 'C.0000111122223333',
-      attributes: {
-        'aff4:labels_list': {
-          value: {
-            labels: [
-              {
-                value: {
-                  name: {
-                    value: 'foo',
-                  },
-                  owner: {
-                      value: 'GRR'
-                    }
-                  }
-                }
-              ]
-            }
-          }
-        }
-      },
-      {
-        urn: 'C.1111222233334444',
-        attributes: {
-          'aff4:labels_list': {
+      type: 'ApiClient',
+      value: {
+        urn: {
+          value: 'C.0000111122223333',
+          type: 'RDFURN'
+        },
+        labels: [
+          {
             value: {
-              labels: [
-                {
-                  value: {
-                    name: {
-                      value: 'bar',
-                    },
-                    owner: {
-                      value: 'test2'
-                    }
-                  }
-                }
-              ]
+              name: {
+                value: 'foo',
+              },
+              owner: {
+                value: 'GRR'
+              }
             }
           }
-        }
+        ]
       }
-    ];
-
-
+    },
+    {
+      type: 'ApiClient',
+      value: {
+        urn: {
+          value: 'C.1111222233334444',
+          type: 'RDFURN'
+        },
+        labels: [
+          {
+            value: {
+              name: {
+                value: 'bar',
+              },
+              owner: {
+                value: 'test2'
+              }
+            }
+          }
+        ]
+      }
+    }
+  ];
 
   it('shows dropdown with a union of labels from all clients', function() {
     var element = renderTestTemplate(clientsWithTwoUserLabels);

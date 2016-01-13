@@ -405,13 +405,12 @@ class SqliteConnection(object):
     data = self.Execute(query, args).fetchall()
     return data
 
-  @utils.Synchronized
   def ScanAttribute(self,
                     subject_prefix,
                     attribute,
                     after_urn=None,
                     max_records=None):
-    """Returns the values of attribute for a range of subjexts.
+    """Yields the values of attribute for a range of subjexts.
 
     Args:
      subject_prefix: Returns records for all subjects which begin with
@@ -423,6 +422,13 @@ class SqliteConnection(object):
     Yields:
      Records of the form (subject, timestamp, value).
     """
+
+    # A generator cannot really be synchronized, and in any case, this might be
+    # long running. So we just make our own cursor.
+    cursor = self.conn.cursor()
+    cursor.execute("PRAGMA synchronous = OFF")
+    cursor.execute("PRAGMA cache_size = 10000")
+
     query = """SELECT t1.subject, t1.timestamp, t1.value
                FROM tbl AS t1,
                     (SELECT subject, MAX(timestamp) AS max_ts FROM tbl
@@ -446,13 +452,9 @@ class SqliteConnection(object):
       args = (subject_prefix + "%", after_urn, attribute, attribute,
               max_records)
 
-    self.cursor.execute(query, args)
-    while True:
-      results = self.cursor.fetchmany(500)
-      if not results:
-        return
-      for result in results:
-        yield result
+    cursor.execute(query, args)
+    for r in cursor:
+      yield r
 
   @utils.Synchronized
   def DeleteAttribute(self, subject, attribute):

@@ -4,9 +4,7 @@
 import shlex
 import sys
 
-from grr.gui import api_aff4_object_renderers
 from grr.gui import api_call_handler_base
-from grr.gui import api_value_renderers
 
 from grr.lib import aff4
 from grr.lib import client_index
@@ -15,6 +13,7 @@ from grr.lib import utils
 
 from grr.lib.aff4_objects import standard
 
+from grr.lib.flows.general import audit
 from grr.lib.flows.general import filesystem
 
 from grr.lib.rdfvalues import aff4_rdfvalues
@@ -27,19 +26,28 @@ from grr.proto import api_pb2
 CATEGORY = "Clients"
 
 
+class ApiClient(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiClient
+
+
 class ApiListClientsArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiListClientsArgs
+
+
+class ApiListClientsResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListClientsResult
 
 
 class ApiListClientsHandler(api_call_handler_base.ApiCallHandler):
   """Renders results of a client search."""
 
   category = CATEGORY
-  args_type = ApiListClientsArgs
 
-  def Render(self, args, token=None):
+  args_type = ApiListClientsArgs
+  result_type = ApiListClientsResult
+
+  def Handle(self, args, token=None):
     end = args.count or sys.maxint
-    rendered_clients = []
 
     keywords = shlex.split(args.query)
 
@@ -51,14 +59,11 @@ class ApiListClientsHandler(api_call_handler_base.ApiCallHandler):
                          key=str)[args.offset:args.offset + end]
     result_set = aff4.FACTORY.MultiOpen(result_urns, token=token)
 
+    api_clients = []
     for child in result_set:
-      rendered_client = api_aff4_object_renderers.RenderAFF4Object(child)
-      rendered_clients.append(rendered_client)
+      api_clients.append(ApiGetClientHandler.VFSGRRClientToApiClient(child))
 
-    return dict(query=args.query,
-                offset=args.offset,
-                count=len(rendered_clients),
-                items=rendered_clients)
+    return ApiListClientsResult(items=api_clients)
 
 
 class ApiGetClientArgs(rdf_structs.RDFProtoStruct):
@@ -69,13 +74,56 @@ class ApiGetClientHandler(api_call_handler_base.ApiCallHandler):
   """Renders summary of a given client."""
 
   category = CATEGORY
-  args_type = ApiGetClientArgs
 
-  def Render(self, args, token=None):
+  args_type = ApiGetClientArgs
+  result_type = ApiClient
+
+  @staticmethod
+  def VFSGRRClientToApiClient(client_obj):
+    # TODO(user): Check if ProtoString.Validate should be fixed
+    # to do an isinstance() check on a value. Is simple type
+    # equality check used there for performance reasons?
+    os_version = client_obj.Get(client_obj.Schema.OS_VERSION, "")
+    if os_version is not None:
+      os_version = utils.SmartStr(os_version)
+
+    last_crash_at = None
+    crash = client_obj.Get(client_obj.Schema.LAST_CRASH)
+    if crash is not None:
+      last_crash_at = crash.timestamp
+
+    return ApiClient(
+        urn=client_obj.urn,
+
+        agent_info=client_obj.Get(client_obj.Schema.CLIENT_INFO),
+        hardware_info=client_obj.Get(client_obj.Schema.HARDWARE_INFO),
+        os_info=rdf_client.Uname(
+            system=client_obj.Get(client_obj.Schema.SYSTEM),
+            node=client_obj.Get(client_obj.Schema.HOSTNAME),
+            release=client_obj.Get(client_obj.Schema.OS_RELEASE),
+            version=os_version,
+            kernel=client_obj.Get(client_obj.Schema.KERNEL),
+            machine=client_obj.Get(client_obj.Schema.ARCH),
+            fqdn=client_obj.Get(client_obj.Schema.FQDN),
+            install_date=client_obj.Get(client_obj.Schema.INSTALL_DATE)
+        ),
+
+        first_seen_at=client_obj.Get(client_obj.Schema.FIRST_SEEN),
+        last_seen_at=client_obj.Get(client_obj.Schema.PING),
+        last_booted_at=client_obj.Get(client_obj.Schema.LAST_BOOT_TIME),
+        last_clock=client_obj.Get(client_obj.Schema.CLOCK),
+        last_crash_at=last_crash_at,
+
+        labels=client_obj.GetLabels(),
+        interfaces=client_obj.Get(client_obj.Schema.LAST_INTERFACES),
+        users=client_obj.Get(client_obj.Schema.USER),
+        volumes=client_obj.Get(client_obj.Schema.VOLUMES))
+
+  def Handle(self, args, token=None):
     client = aff4.FACTORY.Open(args.client_id, aff4_type="VFSGRRClient",
                                token=token)
 
-    return api_aff4_object_renderers.RenderAFF4Object(client)
+    return self.VFSGRRClientToApiClient(client)
 
 
 class ApiAddClientsLabelsArgs(rdf_structs.RDFProtoStruct):
@@ -89,7 +137,7 @@ class ApiAddClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiAddClientsLabelsArgs
   privileged = True
 
-  def Render(self, args, token=None):
+  def Handle(self, args, token=None):
     audit_description = ",".join(
         [token.username + u"." + utils.SmartUnicode(name)
          for name in args.labels])
@@ -112,10 +160,8 @@ class ApiAddClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
                 user=token.username, action="CLIENT_ADD_LABEL",
                 flow_name="handler.ApiAddClientsLabelsHandler",
                 client=client_obj.urn, description=audit_description))
-
-      return dict(status="OK")
     finally:
-      flow.Events.PublishMultipleEvents({"Audit": audit_events},
+      flow.Events.PublishMultipleEvents({audit.AUDIT_EVENT: audit_events},
                                         token=token)
 
 
@@ -141,7 +187,7 @@ class ApiRemoveClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
     for owner in affected_owners:
       client.RemoveLabels(*labels_names, owner=owner)
 
-  def Render(self, args, token=None):
+  def Handle(self, args, token=None):
     audit_description = ",".join(
         [token.username + u"." + utils.SmartUnicode(name)
          for name in args.labels])
@@ -166,37 +212,45 @@ class ApiRemoveClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
                 flow_name="handler.ApiRemoveClientsLabelsHandler",
                 client=client_obj.urn, description=audit_description))
     finally:
-      flow.Events.PublishMultipleEvents({"Audit": audit_events},
+      flow.Events.PublishMultipleEvents({audit.AUDIT_EVENT: audit_events},
                                         token=token)
 
-    return dict(status="OK")
+
+class ApiListClientsLabelsResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListClientsLabelsResult
 
 
 class ApiListClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
   """Lists all the available clients labels."""
 
   category = CATEGORY
+  result_type = ApiListClientsLabelsResult
 
-  def Render(self, args, token=None):
+  def Handle(self, args, token=None):
     labels_index = aff4.FACTORY.Create(standard.LabelSet.CLIENT_LABELS_URN,
                                        "LabelSet",
                                        mode="r",
                                        token=token)
-    rendered_labels = []
+    label_objects = []
     for label in labels_index.ListLabels():
-      label_object = aff4_rdfvalues.AFF4ObjectLabel(name=label)
-      rendered_labels.append(api_value_renderers.RenderValue(label_object))
-    return dict(labels=rendered_labels)
+      label_objects.append(aff4_rdfvalues.AFF4ObjectLabel(name=label))
+
+    return ApiListClientsLabelsResult(items=label_objects)
+
+
+class ApiListKbFieldsResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListKbFieldsResult
 
 
 class ApiListKbFieldsHandler(api_call_handler_base.ApiCallHandler):
   """Lists all the available clients knowledge base fields."""
 
   category = CATEGORY
+  result_type = ApiListKbFieldsResult
 
-  def Render(self, args, token=None):
+  def Handle(self, args, token=None):
     fields = rdf_client.KnowledgeBase().GetKbFieldNames()
-    return dict(fields=sorted(fields))
+    return ApiListKbFieldsResult(items=sorted(fields))
 
 
 class ApiVfsRefreshOperation(rdf_structs.RDFProtoStruct):
@@ -216,7 +270,7 @@ class ApiCreateVfsRefreshOperationHandler(
   category = CATEGORY
   args_type = ApiVfsRefreshOperation
 
-  def Render(self, args, token=None):
+  def Handle(self, args, token=None):
     aff4_path = args.client_id.Add(args.vfs_path)
     fd = aff4.FACTORY.Open(aff4_path, aff4_type="VFSDirectory", token=token)
 
@@ -229,4 +283,3 @@ class ApiCreateVfsRefreshOperationHandler(
                            args=flow_args,
                            notify_to_user=True,
                            token=token)
-    return dict(status="OK")

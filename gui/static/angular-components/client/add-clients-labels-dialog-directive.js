@@ -45,7 +45,7 @@ var AddClientsLabelsDialogController =
 AddClientsLabelsDialogController.prototype.proceed = function() {
   var clients = [];
   angular.forEach(this.scope_.clients, function(clientObj) {
-    clients.push(clientObj['urn']);
+    clients.push(clientObj['value']['urn']['value']);
   });
 
   this.grrApiService_.post(

@@ -250,7 +250,7 @@ Test Context:
 
   # Increase the client memory limit to 4GB.
   Client.rss_max: 4000
-  Client.control_urls: ["http://localhost:8080/control"]
+  Client.server_urls: ["http://localhost:8080/"]
   Client.foreman_check_frequency: 5
   Client.poll_max: 5
   Frontend.bind_address: 127.0.0.1

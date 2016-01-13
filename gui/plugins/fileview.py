@@ -958,7 +958,6 @@ As downloaded on {{ this.age|escape }}.<br>
       self.export_command_str = u" ".join([
           config_lib.CONFIG["AdminUI.export_command"],
           "--username", utils.ShellQuote(request.token.username),
-          "--reason", utils.ShellQuote(request.token.reason),
           "file",
           "--path", utils.ShellQuote(aff4_path),
           "--output", "."])
@@ -1396,7 +1395,6 @@ dump client info in YAML format.</em></p>
     self.export_command_str = " ".join([
         config_lib.CONFIG["AdminUI.export_command"],
         "--username", utils.ShellQuote(request.token.username),
-        "--reason", utils.ShellQuote(request.token.reason),
         "collection_files",
         "--path", utils.ShellQuote(aff4_path),
         "--output", "."])

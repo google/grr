@@ -1,0 +1,72 @@
+<div class="padded">
+  <div class="form-group">
+    <label class="control-label">Rules</label>
+    <div class="controls">
+      <button class="btn btn-default form-add" name="Add" ng-click="controller.addRule()">
+        <i class="glyphicon glyphicon-plus"></i>
+      </button>
+
+    </div>
+  </div>
+
+  <div ng-repeat="rule in controller.rules" class="Rule">
+    <button type="button" class="control-label close" name="Remove"
+            ng-click="controller.removeRule($index)">
+      ×
+    </button>
+
+    <div class="controls">
+      <div class="well well-large">
+        <div class="form-group">
+          <label class="control-label">Rule Type</label>
+
+          <div class="controls" style="margin-bottom: 1em">
+            <select class="form-control"
+                    name="RuleType"
+                    ng-change="controller.ruleTypeChanged(rule)"
+                    ng-model="rule.type"
+                    ng-options="optionValue.value as optionValue.title
+                                for optionValue in controller.allowedRuleTypes">
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="controls" ng-if="rule.type == 'windows'">
+            This rule will match all <strong>Windows</strong> systems.
+          </div>
+
+          <div class="controls" ng-if="rule.type == 'linux'">
+            This rule will match all <strong>Linux</strong> systems.
+          </div>
+
+          <div class="controls" ng-if="rule.type == 'darwin'">
+            This rule will match all <strong>OS X</strong> systems.
+          </div>
+
+          <div ng-show="rule.type == 'label'">
+            <label class="control-label">Label</label>
+            <div class="controls">
+              <select class="form-control"
+                      name="Labels"
+                      ng-model="rule.labelValue"
+                      ng-options="label.value.name.value as label.value.name.value
+                                  for label in controller.labelsList">
+              </select>
+            </div>
+          </div>
+
+          <div ng-show="rule.type == 'regex'">
+            <grr-form-value name="RegexRuleForm" value="rule.regexValue"></grr-form-value>
+          </div>
+
+          <div ng-show="rule.type == 'integer'">
+            <grr-form-value name="IntegerRuleForm" value="rule.integerValue"></grr-form-value>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

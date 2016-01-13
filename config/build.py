@@ -99,16 +99,10 @@ config_lib.DEFINE_option(PathTypeInfo(
     help="Path to the main pyinstaller.py file."))
 
 config_lib.DEFINE_string(
-    name="PyInstaller.distorm_lib",
-    help="The name of the distorm library in this system.",
-    default="libdistorm3.so")
-
-config_lib.DEFINE_string(
     name="PyInstaller.spec",
     help="The spec file contents to use for building the client.",
     default=r"""
 import os
-import distorm3
 
 # By default build in one dir mode.
 client_path = os.path.join\(r"%(%(ClientBuilder.source)|fixpathsep)", "grr", "client", "client.py"\)
@@ -123,9 +117,6 @@ for prefix in ["IPython"]:
     for item in collection[:]:
       if item[0].startswith\(prefix\):
         collection.remove\(item\)
-
-# Workaround for distorm conditional imports
-    LIBDISTORM3 = os.path.join\(distorm3.__path__[0], r"%(PyInstaller.distorm_lib)"\)
 
 pyz = PYZ\(
     a.pure\)
@@ -143,7 +134,7 @@ exe = EXE\(
 
 coll = COLLECT\(
     exe,
-    a.binaries + [\(os.path.join\("distorm3", r"%(PyInstaller.distorm_lib)"\), LIBDISTORM3, "BINARY"\)],
+    a.binaries,
     a.zipfiles,
     a.datas,
     strip=False,

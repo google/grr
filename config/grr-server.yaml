@@ -170,8 +170,6 @@ ClientBuilder Context:
     # This is where the pyinstaller svn checkout lives on the build server.
     PyInstaller.path: C:\\grr_build\\pyinstaller\\pyinstaller.py
 
-    PyInstaller.distorm_lib: distorm3.dll
-
     ClientBuilder.make_command: C:\\tools\\cygwin\\bin\\make.exe
 
   # This indicates that we are building a client for debugging.
@@ -354,15 +352,3 @@ DataServer Context:
 # By default use an sqlite backend.
   Datastore.implementation: SqliteDataStore
 
-
-# These jobs will be enabled by default both for Worker Context and
-# Test Context. They will only actually run if Cron.active is True.
-Cron.enabled_system_jobs:
-- FilestoreStatsCronFlow
-- GRRVersionBreakDown
-- InterrogateClientsCronFlow
-- LastAccessStats
-- OSBreakDown
-- ProcessHuntResultsCronFlow
-- PurgeClientStats
-- PackedVersionedCollectionCompactor

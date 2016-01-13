@@ -7,6 +7,7 @@ client.
 
 from hashlib import sha256
 
+import platform
 import re
 import socket
 import stat
@@ -709,7 +710,57 @@ class ExecuteResponse(structs.RDFProtoStruct):
 
 
 class Uname(structs.RDFProtoStruct):
+  """A protobuf to represent the current system."""
   protobuf = jobs_pb2.Uname
+
+  @property
+  def arch(self):
+    """Return a more standard representation of the architecture."""
+    if self.machine in ["x86_64", "AMD64"]:
+      # 32 bit binaries running on AMD64 will still have a i386 arch.
+      if self.architecture == "32bit":
+        return "i386"
+
+      return "amd64"
+    elif self.machine in "x86":
+      return "i386"
+
+  def signature(self):
+    """Returns a unique string that encapsulates the architecture."""
+    attributes = ["libc_ver", "arch", "release", "system"]
+    return "_".join([getattr(self, x) for x in attributes])
+
+  @classmethod
+  def FromCurrentSystem(cls):
+    """Fill a Uname from the currently running platform."""
+    uname = platform.uname()
+    fqdn = socket.getfqdn()
+    system = uname[0]
+    architecture, _ = platform.architecture()
+    if system == "Windows":
+      service_pack = platform.win32_ver()[2]
+      kernel = uname[3]                           # 5.1.2600
+      release = uname[2]                          # XP, 2000, 7
+      version = uname[3] + service_pack           # 5.1.2600 SP3, 6.1.7601 SP1
+    elif system == "Darwin":
+      kernel = uname[2]                           # 12.2.0
+      release = "OSX"                             # OSX
+      version = platform.mac_ver()[0]             # 10.8.2
+    elif system == "Linux":
+      kernel = uname[2]                           # 3.2.5
+      release = platform.linux_distribution()[0]  # Ubuntu
+      version = platform.linux_distribution()[1]  # 12.04
+
+    return cls(system=system,
+               architecture=architecture,
+               node=uname[1],
+               release=release,
+               version=version,
+               machine=uname[4],              # x86, x86_64
+               kernel=kernel,
+               fqdn=fqdn,
+               libc_ver="_".join(platform.libc_ver()),
+              )
 
 
 class StartupInfo(structs.RDFProtoStruct):
@@ -845,3 +896,17 @@ class GetClientStatsRequest(structs.RDFProtoStruct):
   """Request for GetClientStats action."""
   protobuf = jobs_pb2.GetClientStatsRequest
 
+
+class LoadComponent(structs.RDFProtoStruct):
+  """Request to launch a client action through a component."""
+  protobuf = jobs_pb2.LoadComponent
+
+
+class ClientComponentSummary(structs.RDFProtoStruct):
+  """A client component summary."""
+  protobuf = jobs_pb2.ClientComponentSummary
+
+
+class ClientComponent(structs.RDFProtoStruct):
+  """A client component."""
+  protobuf = jobs_pb2.ClientComponent

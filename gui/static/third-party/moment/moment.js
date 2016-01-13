@@ -1,4 +1,10 @@
 /**
+ * @fileoverview
+ * @suppress {checkTypes|uselessCode}
+ *     checkType - library contains multiple functions that do not pass
+ *         type-checking on compilation.
+ *     uselesCode - library contains unreachable return statement in
+ *         cloneWithOffset.
  * @license
  *
  * moment.js

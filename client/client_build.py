@@ -21,6 +21,7 @@ from grr.lib import builders
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import startup
+from grr.lib.builders import component
 from grr.lib.builders import signing
 
 parser = flags.PARSER
@@ -133,6 +134,17 @@ parser_buildanddeploy.add_argument("--templatedir", default="", help="Directory"
 
 parser_buildanddeploy.add_argument("--debug_build", action="store_true",
                                    default=False, help="Create a debug client.")
+
+parser_build_component = subparsers.add_parser(
+    "build_component", help="Build a client component.")
+
+parser_build_component.add_argument(
+    "setup_file",
+    help="Path to the setup.py file for the component.")
+
+parser_build_component.add_argument(
+    "output", help="Path to store the compiled component.")
+
 args = parser.parse_args()
 
 
@@ -374,7 +386,7 @@ def SetArchContextFromArgs(context):
 
 
 def SetDebugContextFromArgs(context):
-  if args.subparser_name != "build" and args.debug_build:
+  if args.subparser_name != "build" and getattr(args, "debug_build", None):
     context += ["DebugClientBuild Context"]
   return context
 
@@ -424,6 +436,16 @@ def main(_):
       BuildAndDeployWindows(signer=signer)
     else:
       BuildAndDeploy(context, signer=signer)
+  elif args.subparser_name == "build_component":
+    setup_file = flags.FLAGS.setup_file
+    client_component = component.BuildComponent(setup_file)
+    output = os.path.join(flags.FLAGS.output, "%s_%s_%s.bin" % (
+        client_component.summary.name, client_component.summary.version,
+        client_component.summary.build_system.signature()))
+
+    with open(output, "wb") as fd:
+      fd.write(client_component.SerializeToString())
+      print "Built component %s" % output
 
 
 if __name__ == "__main__":

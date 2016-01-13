@@ -60,21 +60,21 @@ UserDashboardController.prototype.onHunts_ = function(response) {
 /**
  * Handles clicks in the client panel.
  *
- * @param {!Object} client Client object corresponding to a clicked row.
+ * @param {string} clientUrn Client urn corresponding to a clicked row.
  * @export
  */
-UserDashboardController.prototype.onClientClicked = function(client) {
+UserDashboardController.prototype.onClientClicked = function(clientUrn) {
   // TODO(user): abstract this code away into a service.
-  grr.state.client_id = client['urn'];
+  grr.state.client_id = clientUrn;
 
-  grr.publish('hash_state', 'c', client['urn']);
+  grr.publish('hash_state', 'c', clientUrn);
 
   // Clear the authorization for new clients.
   grr.publish('hash_state', 'reason', '');
   grr.state.reason = '';
 
   grr.publish('hash_state', 'main', null);
-  grr.publish('client_selection', client['urn']);
+  grr.publish('client_selection', clientUrn);
 };
 
 /**

@@ -6,6 +6,7 @@ import functools
 import os
 
 import logging
+from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 
 from grr.lib import action_mocks
 from grr.lib import aff4
@@ -19,7 +20,6 @@ from grr.lib.flows.general import registry
 from grr.lib.flows.general import transfer
 # pylint: enable=unused-import
 from grr.lib.rdfvalues import paths as rdf_paths
-from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 
 
 class RekallTestSuite(test_lib.EmptyActionTest):
@@ -125,8 +125,8 @@ class RekallTests(RekallTestSuite):
             plugin="pslist", args=dict(
                 method=["PsActiveProcessHead", "CSRSS"]
             )),
-        rdf_rekall_types.PluginRequest(plugin="modules")]
-
+        rdf_rekall_types.PluginRequest(plugin="modules")
+        ]
     self.LaunchRekallPlugin(request)
 
     # Get the result collection - it should be a RekallResponseCollection.

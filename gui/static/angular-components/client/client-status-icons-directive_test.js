@@ -28,8 +28,9 @@ describe('client status icons', function() {
 
   it('shows online icon when last ping is 1 minute ago', function() {
     var client = {
-      attributes: {
-        'metadata:ping': {
+      type: 'ApiClient',
+      value: {
+        'last_seen_at': {
           value: 42 * 1000000
         }
       }
@@ -48,8 +49,9 @@ describe('client status icons', function() {
 
   it('shows online-1day icon when last ping is 23 hours ago', function() {
     var client = {
-      attributes: {
-        'metadata:ping': {
+      type: 'ApiClient',
+      value: {
+        'last_seen_at': {
           value: 42 * 1000000
         }
       }
@@ -68,8 +70,9 @@ describe('client status icons', function() {
 
   it('shows offline icon when last ping is is 3 days ago', function() {
     var client = {
-      attributes: {
-        'metadata:ping': {
+      type: 'ApiClient',
+      value: {
+        'last_seen_at': {
           value: 42 * 1000000
         }
       }
@@ -88,8 +91,8 @@ describe('client status icons', function() {
 
   it('does not show crash icon if no crash happened', function() {
     var client = {
-      attributes: {
-      }
+      type: 'ApiClient',
+      value: {}
     };
 
     var element = render(client);
@@ -100,13 +103,10 @@ describe('client status icons', function() {
 
   it('does not show crash icon if crash happened 1 week ago', function() {
     var client = {
-      attributes: {
-        'aff4:last_crash': {
-          value: {
-            timestamp: {
-              value: 42 * 1000000
-            }
-          }
+      type: 'ApiClient',
+      value: {
+        'last_crash_at': {
+          value: 42 * 1000000
         }
       }
     };
@@ -121,13 +121,10 @@ describe('client status icons', function() {
 
   it('shows crash icon if crash happened 1 hour ago', function() {
     var client = {
-      attributes: {
-        'aff4:last_crash': {
-          value: {
-            timestamp: {
-              value: 42 * 1000000
-            }
-          }
+      type: 'ApiClient',
+      value: {
+        'last_crash_at': {
+          value: 42 * 1000000
         }
       }
     };
@@ -144,18 +141,53 @@ describe('client status icons', function() {
   });
 
   it('shows no disk warning if none are present', function() {
-    var element = render({});
+    var element = render({
+      type: 'ApiClient',
+      value: {}
+    });
     var warningElement = $('span[name=clientDiskWarnings]', element);
     expect(warningElement.length).toBe(0);
   });
 
   it('shows two disk warnings correctly', function() {
-    var client = {
-      disk_warnings: [
-        ['/Volume/A', 3],
-        ['C:', 4]
-      ]
+    var volume1 = {
+      name: {
+        value: '/Volume/A'
+      },
+      total_allocation_units: {
+        value: 100
+      },
+      actual_available_allocation_units: {
+        value: 3
+      }
     };
+    var volume2 = {
+      name: {
+        value: 'C:'
+      },
+      total_allocation_units: {
+        value: 100
+      },
+      actual_available_allocation_units: {
+        value: 4
+      }
+    };
+    var client = {
+      type: 'ApiClient',
+      value: {
+        volumes: [
+          {
+            type: 'Volume',
+            value: volume1
+          },
+          {
+            type: 'Volume',
+            value: volume2
+          }
+        ]
+      }
+    };
+
     var element = render(client);
     var warningElement = $('span[name=clientDiskWarnings]', element);
 

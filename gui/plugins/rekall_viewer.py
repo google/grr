@@ -14,7 +14,7 @@ from rekall.ui import json_renderer
 
 import logging
 
-from grr.client.client_actions import grr_rekall
+from grr.client.components.rekall_support import grr_rekall
 from grr.gui import renderers
 from grr.gui.plugins import semantic
 from grr.lib import aff4

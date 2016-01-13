@@ -8,6 +8,8 @@ import zlib
 
 import logging
 from grr.lib import aff4
+from grr.lib import config_lib
+from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -189,8 +191,7 @@ class HashTracker(object):
   def __init__(self, hash_response, is_known=False):
     self.hash_response = hash_response
     self.is_known = is_known
-    self.blob_urn = rdfvalue.RDFURN("aff4:/blobs").Add(
-        hash_response.data.encode("hex"))
+    self.digest = hash_response.data.encode("hex")
 
 
 class FileTracker(object):
@@ -579,7 +580,7 @@ class MultiGetFileMixin(object):
     hash_tracker = HashTracker(hash_response)
     file_tracker.hash_list.append(hash_tracker)
 
-    self.state.blobs_we_need.add(hash_tracker.blob_urn)
+    self.state.blobs_we_need.add(hash_tracker.digest)
 
     if len(self.state.blobs_we_need) > self.MIN_CALL_TO_FILE_STORE:
       self.FetchFileContent()
@@ -604,7 +605,7 @@ class MultiGetFileMixin(object):
         # Make sure we read the correct pathspec on the client.
         hash_tracker.hash_response.pathspec = file_tracker.pathspec
 
-        if hash_tracker.blob_urn in blobs_we_have:
+        if hash_tracker.digest in blobs_we_have:
           # If we have the data we may call our state directly.
           self.CallState([hash_tracker.hash_response],
                          next_state="WriteBuffer",
@@ -784,8 +785,8 @@ class GetMBR(flow.GRRFlow):
 
     response = responses.First()
 
-    mbr = aff4.FACTORY.Create(self.client_id.Add("mbr"), "VFSMemoryFile",
-                              mode="rw", token=self.token)
+    mbr = aff4.FACTORY.Create(self.client_id.Add("mbr"), "VFSFile",
+                              mode="w", token=self.token)
     mbr.write(response.data)
     mbr.Close()
     self.Log("Successfully stored the MBR (%d bytes)." % len(response.data))
@@ -796,58 +797,36 @@ class TransferStore(flow.WellKnownFlow):
   """Store a buffer into a determined location."""
   well_known_session_id = rdfvalue.SessionID(flow_name="TransferStore")
 
-  def WriteBlob(self, message, sync=True):
-
-    read_buffer = rdf_protodict.DataBlob(message.payload)
-
-    # Only store non empty buffers
-    if not read_buffer.data:
-      return
-
-    data = read_buffer.data
-
-    if (read_buffer.compression ==
-        rdf_protodict.DataBlob.CompressionType.ZCOMPRESSION):
-      cdata = data
-      data = zlib.decompress(cdata)
-    elif (read_buffer.compression ==
-          rdf_protodict.DataBlob.CompressionType.UNCOMPRESSED):
-      cdata = zlib.compress(data)
-    else:
-      raise RuntimeError("Unsupported compression")
-
-    # The hash is done on the uncompressed data
-    digest = hashlib.sha256(data).digest()
-    urn = rdfvalue.RDFURN("aff4:/blobs").Add(digest.encode("hex"))
-
-    fd = aff4.FACTORY.Create(urn, "AFF4UnversionedMemoryStream", mode="w",
-                             token=self.token)
-    fd.OverwriteAndClose(cdata, len(data), sync=sync)
-
-    logging.debug("Got blob %s (length %s)", digest.encode("hex"),
-                  len(cdata))
-
   def ProcessMessages(self, msg_list):
+    blobs = []
     for message in msg_list:
       if (message.auth_state !=
           rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED):
         logging.error("TransferStore request from %s is not authenticated.",
                       message.source)
         continue
-      self.WriteBlob(message, sync=False)
 
-    aff4.FACTORY.Flush()
+      read_buffer = message.payload
+      data = read_buffer.data
+      if not data:
+        continue
+
+      if (read_buffer.compression ==
+          rdf_protodict.DataBlob.CompressionType.ZCOMPRESSION):
+        data = zlib.decompress(data)
+      elif (read_buffer.compression ==
+            rdf_protodict.DataBlob.CompressionType.UNCOMPRESSED):
+        pass
+      else:
+        raise RuntimeError("Unsupported compression")
+
+      blobs.append(data)
+
+    data_store.DB.StoreBlobs(blobs, token=self.token)
 
   def ProcessMessage(self, message):
     """Write the blob into the AFF4 blob storage area."""
-    # Check that the message is authenticated
-    if (message.auth_state !=
-        rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED):
-      logging.error("TransferStore request from %s is not authenticated.",
-                    message.source)
-      return
-
-    self.WriteBlob(message)
+    return self.ProcessMessages([message])
 
 
 class SendFile(flow.GRRFlow):
@@ -876,3 +855,44 @@ class SendFile(flow.GRRFlow):
     if not responses.success:
       self.Log(responses.status.error_message)
       raise flow.FlowError(responses.status.error_message)
+
+
+class LoadComponentMixin(object):
+  """A mixin which loads components on the client.
+
+  Use this mixin to force the client to load the required components prior to
+  launching client actions implemented by those components.
+  """
+
+  def LoadComponentOnClient(self, name=None, version=None, next_state=None):
+    """Load the component with the specified name and version."""
+    if next_state is None:
+      raise TypeError("next_state not specified.")
+
+    # Get the component summary.
+    component_urn = config_lib.CONFIG.Get(
+        "Config.aff4_root").Add("component").Add("%s_%s" % (name, version))
+
+    try:
+      fd = aff4.FACTORY.Open(component_urn, aff4_type="ComponentObject",
+                             mode="r", token=self.token)
+    except IOError as e:
+      raise IOError("Required component not found: %s" % e)
+
+    component_summary = fd.Get(fd.Schema.COMPONENT)
+    if component_summary is None:
+      raise RuntimeError("Component %s (%s) does not exist in data store." %
+                         (name, version))
+
+    self.CallClient("LoadComponent", summary=component_summary,
+                    next_state="ComponentLoaded", request_data=dict(
+                        next_state=next_state))
+
+  @flow.StateHandler()
+  def ComponentLoaded(self, responses):
+    if not responses.success:
+      self.Log(responses.status.error_message)
+      raise flow.FlowError(responses.status.error_message)
+
+    self.Log("Loaded component %s", responses.First().summary.name)
+    self.CallStateInline(next_state=responses.request_data["next_state"])

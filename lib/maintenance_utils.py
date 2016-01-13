@@ -5,6 +5,7 @@
 
 import hashlib
 import os
+import time
 
 
 import logging
@@ -14,6 +15,7 @@ from grr.lib import aff4
 from grr.lib import build
 from grr.lib import config_lib
 from grr.lib import rdfvalue
+from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 
@@ -286,3 +288,66 @@ def RepackAllBinaries(upload=False, debug_build=False, token=None):
       print "Failed to repack %s." % template_path
 
   return built
+
+
+def SignComponent(component_filename, overwrite=False):
+  """Sign and upload the component to the data store."""
+  component = rdf_client.ClientComponent(open(component_filename).read())
+  print "Opened component %s from %s" % (component.summary.name,
+                                         component_filename)
+
+  summary = component.summary
+  client_context = ["Platform:%s" % summary.build_system.system.title(),
+                    "Arch:%s" % summary.build_system.arch]
+
+  sig_key = config_lib.CONFIG.Get(
+      "PrivateKeys.executable_signing_private_key",
+      context=client_context)
+
+  ver_key = config_lib.CONFIG.Get("Client.executable_signing_public_key",
+                                  context=client_context)
+
+  # For each platform specific component, we have a component summary object
+  # which contains high level information in common to all components of this
+  # specific version.
+  component_urn = config_lib.CONFIG.Get(
+      "Config.aff4_root").Add("components").Add(
+          "%s_%s" % (component.summary.name, component.summary.version))
+
+  component_fd = aff4.FACTORY.Create(component_urn, "ComponentObject",
+                                     mode="rw")
+
+  component_summary = component_fd.Get(component_fd.Schema.COMPONENT)
+  if overwrite or component_summary is None:
+    print "Storing component summary at %s" % component_urn
+
+    component_summary = component.summary
+    component_summary.seed = "%x%x" % (time.time(), utils.PRNG.GetULong())
+    component_summary.url = (
+        config_lib.CONFIG.Get(
+            "Client.component_url_stem",
+            context=client_context) + component_summary.seed)
+
+    component_fd.Set(component_fd.Schema.COMPONENT, component_summary)
+    component_fd.Close()
+
+  else:
+    print "Using Stored component summary at %s" % component_urn
+    component.summary = component_summary
+
+  # Sign the component, encrypt it and store it at the static aff4 location.
+  signed_component = rdf_crypto.SignedBlob()
+  signed_component.Sign(component.SerializeToString(), sig_key, ver_key,
+                        prompt=True)
+
+  aff4_urn = config_lib.CONFIG.Get(
+      "Client.component_aff4_stem", context=client_context).Add(
+          component.summary.seed).Add(
+              component.summary.build_system.signature())
+
+  print "Storing signed component at %s" % aff4_urn
+  with aff4.FACTORY.Create(aff4_urn, "AFF4MemoryStream") as fd:
+    fd.Write(component_summary.cipher.Encrypt(
+        signed_component.SerializeToString()))
+
+  return component

@@ -9,13 +9,12 @@ import time
 
 import logging
 
-from grr.client import client
-
 # pylint: disable=unused-import
 # Make sure we load the client plugins
 from grr.client import client_plugins
 # pylint: enable=unused-import
 
+from grr.client import comms
 from grr.client import vfs
 from grr.lib import config_lib
 from grr.lib import flags
@@ -34,30 +33,26 @@ flags.DEFINE_bool("enroll_only", False,
                   "If specified, the script will enroll all clients and exit.")
 
 
-class PoolGRRClient(client.GRRClient, threading.Thread):
+class PoolGRRClient(threading.Thread):
   """A GRR client for running in pool mode."""
 
-  def __init__(self, *args, **kw):
+  def __init__(self, ca_cert=None, private_key=None):
     """Constructor."""
-    super(PoolGRRClient, self).__init__(*args, **kw)
+    super(PoolGRRClient, self).__init__()
+    self.private_key = private_key
     self.daemon = True
-    self.stop = False
 
+    self.client = comms.GRRHTTPClient(ca_cert=ca_cert, private_key=private_key)
+    self.stop = False
     # Is this client already enrolled?
     self.enrolled = False
 
-    self.common_name = self.client.communicator.common_name
-    self.private_key = self.client.communicator.private_key
-
   def Run(self):
-    for status in self.client.Run():
-      # if the status is 200 we assume we have successfully enrolled.
+    while not self.stop:
+      status = self.client.RunOnce()
       if status.code == 200:
         self.enrolled = True
-
-      # Thread should stop now.
-      if self.stop:
-        break
+      self.client.timer.Wait()
 
   def Stop(self):
     self.stop = True
@@ -77,7 +72,8 @@ def CreateClientPool(n):
     fd.close()
 
     for certificate in certificates:
-      clients.append(PoolGRRClient(private_key=certificate))
+      clients.append(PoolGRRClient(private_key=certificate,
+                                   ca_cert=config_lib.CONFIG["CA.certificate"]))
 
     clients_loaded = True
   except (IOError, EOFError):
@@ -91,7 +87,8 @@ def CreateClientPool(n):
     # Generate a new RSA key pair for each client.
     bits = config_lib.CONFIG["Client.rsa_key_length"]
     key = rdf_crypto.PEMPrivateKey.GenKey(bits=bits)
-    clients.append(PoolGRRClient(private_key=key))
+    clients.append(PoolGRRClient(private_key=key,
+                                 ca_cert=config_lib.CONFIG["CA.certificate"]))
 
   # Start all the clients now.
   for c in clients:
@@ -142,7 +139,8 @@ def CreateClientPool(n):
 
 def CheckLocation():
   """Checks that the poolclient is not accidentally ran against production."""
-  for url in config_lib.CONFIG["Client.control_urls"]:
+  for url in (config_lib.CONFIG["Client.server_urls"] +
+              config_lib.CONFIG["Client.control_urls"]):
     if "staging" in url or "localhost" in url:
       # This is ok.
       return

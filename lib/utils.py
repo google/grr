@@ -268,6 +268,7 @@ class FastStore(object):
     node = self._hash.get(key)
 
     if node:
+      del self._hash[key]
       self._age.Unlink(node)
 
       return node.data

@@ -8,8 +8,6 @@ sudo apt-get update -q
 
 sudo apt-get install -y \
   git-core \
-  libdistorm64-dev \
-  libdistorm64-1 \
   libfreetype6-dev \
   libpng-dev \
   libprotobuf-dev \
@@ -34,4 +32,3 @@ sudo -H pip install pip --upgrade
 # https://github.com/pypa/pip/issues/2438
 #
 # sudo -H pip install distribute --upgrade
-

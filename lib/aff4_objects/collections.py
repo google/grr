@@ -24,6 +24,15 @@ from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import jobs_pb2
 
 
+class ComponentObject(aff4.AFF4Object):
+  """An object holding a component."""
+
+  class SchemaCls(aff4.AFF4Object.SchemaCls):
+    COMPONENT = aff4.Attribute(
+        "aff4:component", rdf_client.ClientComponentSummary,
+        "The component of the client.")
+
+
 class AFF4CollectionView(rdf_protodict.RDFValueArray):
   """A view specifies how an AFF4Collection is seen."""
 
@@ -302,7 +311,7 @@ class GRRSignedBlobCollection(RDFValueCollection):
   _rdf_type = rdf_crypto.SignedBlob
 
 
-class GRRSignedBlob(aff4.AFF4MemoryStream):
+class GRRSignedBlob(aff4.AFF4Object):
   """A container for storing a signed binary blob such as a driver."""
 
   def Initialize(self):
@@ -330,6 +339,9 @@ class GRRSignedBlob(aff4.AFF4MemoryStream):
   def Close(self):
     super(GRRSignedBlob, self).Close()
     self.collection.Close()
+
+  def __len__(self):
+    return self.size
 
 
 class GRRMemoryDriver(GRRSignedBlob):

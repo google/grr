@@ -3,6 +3,7 @@
 goog.provide('grrUi.hunt.newHuntWizard.formDirective.DEFAULT_PLUGIN_URL');
 goog.provide('grrUi.hunt.newHuntWizard.formDirective.FormController');
 goog.provide('grrUi.hunt.newHuntWizard.formDirective.FormDirective');
+goog.provide('grrUi.hunt.newHuntWizard.formDirective.USE_OO_HUNT_RULES_URL');
 
 goog.scope(function() {
 
@@ -11,6 +12,12 @@ grrUi.hunt.newHuntWizard.formDirective.DEFAULT_PLUGIN_URL = '/config/' +
     'AdminUI.new_hunt_wizard.default_output_plugin';
 var DEFAULT_PLUGIN_URL =
     grrUi.hunt.newHuntWizard.formDirective.DEFAULT_PLUGIN_URL;
+
+/** @const {string} */
+grrUi.hunt.newHuntWizard.formDirective.USE_OO_HUNT_RULES_URL = '/config/' +
+    'AdminUI.new_hunt_wizard.use_object_oriented_hunt_rules';
+var USE_OO_HUNT_RULES_URL =
+    grrUi.hunt.newHuntWizard.formDirective.USE_OO_HUNT_RULES_URL;
 
 /**
  * Controller for FormDirective.
@@ -38,7 +45,17 @@ grrUi.hunt.newHuntWizard.formDirective.FormController =
   /** @private {?string} */
   this.defaultOutputPluginName;
 
-  this.grrApiService_.get(DEFAULT_PLUGIN_URL).then(function(response) {
+  /** @private {boolean} */
+  this.ooHuntRulesEnabled;
+
+  /** @private {boolean} */
+  this.useOoHuntRulesDirective;
+
+  this.grrApiService_.get(USE_OO_HUNT_RULES_URL).then(function(response) {
+    this.ooHuntRulesEnabled = response['data']['raw_value'];
+
+    return this.grrApiService_.get(DEFAULT_PLUGIN_URL);
+  }.bind(this)).then(function(response) {
     if (angular.isDefined(response['data']['value'])) {
       this.defaultOutputPluginName = response['data']['value']['value'];
     }
@@ -119,11 +136,39 @@ FormController.prototype.onHuntRunnerArgsChange_ = function(newValue) {
   }
 
   var huntRunnerArgs = this.scope_['huntRunnerArgs']['value'];
-  if (angular.isUndefined(huntRunnerArgs['integer_rules'])) {
-   huntRunnerArgs['integer_rules'] = [];
+
+  if (angular.isUndefined(this.useOoHuntRulesDirective)) {
+    this.useOoHuntRulesDirective = this.ooHuntRulesEnabled;
+
+    if (angular.isDefined(huntRunnerArgs['rules'])) {
+      if (angular.isDefined(huntRunnerArgs['rules']['value']['match_mode']) ||
+          angular.isDefined(huntRunnerArgs['rules']['value']['rules'])) {
+        this.useOoHuntRulesDirective = true;
+      }
+    }
+
+    if (angular.isDefined(huntRunnerArgs['integer_rules']) &&
+        huntRunnerArgs['integer_rules']['length'] > 0) {
+      this.useOoHuntRulesDirective = false;
+    }
+    if (angular.isDefined(huntRunnerArgs['regex_rules']) &&
+        huntRunnerArgs['regex_rules']['length'] > 0) {
+      this.useOoHuntRulesDirective = false;
+    }
   }
-  if (angular.isUndefined(huntRunnerArgs['regex_rules'])) {
-    huntRunnerArgs['regex_rules'] = [];
+
+  if (this.useOoHuntRulesDirective) {
+    if (angular.isUndefined(huntRunnerArgs['rules'])) {
+      huntRunnerArgs['rules'] = angular.copy(
+          this.descriptors_['ForemanClientRuleSet']['default']);
+    }
+  } else {
+    if (angular.isUndefined(huntRunnerArgs['integer_rules'])) {
+      huntRunnerArgs['integer_rules'] = [];
+    }
+    if (angular.isUndefined(huntRunnerArgs['regex_rules'])) {
+      huntRunnerArgs['regex_rules'] = [];
+    }
   }
 };
 

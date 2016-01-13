@@ -3,23 +3,19 @@
 
 
 import os
-import platform
 import socket
 import time
 import traceback
 
 
-from distorm3 import _distorm
 import M2Crypto
 import pkg_resources
 import psutil
 import pytsk3
-import rekall
 
 import logging
 
 from grr.client import actions
-from grr.client import client_utils
 from grr.lib import config_lib
 from grr.lib import queues
 from grr.lib import rdfvalue
@@ -53,31 +49,7 @@ class GetPlatformInfo(actions.ActionPlugin):
 
   def Run(self, unused_args):
     """Populate platform information into a Uname response."""
-    uname = platform.uname()
-    fqdn = socket.getfqdn()
-    system = uname[0]
-    if system == "Windows":
-      service_pack = platform.win32_ver()[2]
-      kernel = client_utils.client_utils_windows.KernelVersion()
-                                                  # 5.1.2600
-      release = uname[2]                          # XP, 2000, 7
-      version = kernel + service_pack             # 5.1.2600 SP3, 6.1.7601 SP1
-    elif system == "Darwin":
-      kernel = uname[2]                           # 12.2.0
-      release = "OSX"                             # OSX
-      version = platform.mac_ver()[0]             # 10.8.2
-    elif system == "Linux":
-      kernel = uname[2]                           # 3.2.5
-      release = platform.linux_distribution()[0]  # Ubuntu
-      version = platform.linux_distribution()[1]  # 12.04
-
-    self.SendReply(system=system,
-                   node=uname[1],
-                   release=release,
-                   version=version,
-                   machine=uname[4],              # x86, x86_64
-                   kernel=kernel,
-                   fqdn=fqdn)
+    self.SendReply(rdf_client.Uname.FromCurrentSystem())
 
 
 class Kill(actions.ActionPlugin):
@@ -188,17 +160,11 @@ class GetLibraryVersions(actions.ActionPlugin):
   def GetProtoVersion(self):
     return pkg_resources.get_distribution("protobuf").version
 
-  def GetRekallVersion(self):
-    return rekall.constants.VERSION
-
   def GetTSKVersion(self):
     return pytsk3.TSK_VERSION_STR
 
   def GetPyTSKVersion(self):
     return pytsk3.get_version()
-
-  def GetDistormVersion(self):
-    return hex(_distorm.distorm_version())
 
   library_map = {
       "pytsk": GetPyTSKVersion,
@@ -206,8 +172,6 @@ class GetLibraryVersions(actions.ActionPlugin):
       "M2Crypto": GetM2CryptoVersion,
       "SSL": GetSSLVersion,
       "psutil": GetPSUtilVersion,
-      "rekall": GetRekallVersion,
-      "distorm3": GetDistormVersion,
       }
 
   error_str = "Unable to determine library version: %s"
@@ -229,7 +193,7 @@ class UpdateConfiguration(actions.ActionPlugin):
 
   UPDATEABLE_FIELDS = ["Client.compression",
                        "Client.foreman_check_frequency",
-                       "Client.control_urls",
+                       "Client.server_urls",
                        "Client.max_post_size",
                        "Client.max_out_queue",
                        "Client.poll_min",

@@ -3,11 +3,11 @@
 goog.require('grrUi.hunt.newHuntWizard.module');
 goog.require('grrUi.tests.module');
 
-describe('grr-configure-rules-page new hunt wizard directive', function() {
+describe('grr-configure-deprecated-rules-page new hunt wizard directive', function() {
   var $compile, $rootScope, $q, grrApiService, grrReflectionService;
 
   beforeEach(module('/static/angular-components/hunt/new-hunt-wizard/' +
-      'configure-rules-page.html'));
+      'configure-deprecated-rules-page.html'));
   beforeEach(module(grrUi.hunt.newHuntWizard.module.name));
   beforeEach(module(grrUi.tests.module.name));
 
@@ -53,7 +53,7 @@ describe('grr-configure-rules-page new hunt wizard directive', function() {
 
         deferred.resolve({
           data: {
-            labels: [
+            items: [
               {
                 type: 'AFF4ObjectLabel',
                 value: {
@@ -95,7 +95,7 @@ describe('grr-configure-rules-page new hunt wizard directive', function() {
     $rootScope.regexRules = regexRules;
     $rootScope.integerRules = integerRules;
 
-    var template = '<grr-configure-rules-page ' +
+    var template = '<grr-configure-deprecated-rules-page ' +
         'regex-rules="regexRules" integer-rules="integerRules" />';
     var element = $compile(template)($rootScope);
     $rootScope.$apply();

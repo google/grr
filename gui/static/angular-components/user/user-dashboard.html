@@ -40,57 +40,48 @@
               <th>Online</th>
               <th>Subject</th>
               <th>Host</th>
-              <th>MAC</th>
               <th>Labels</th>
               <th>Last Checkin</th>
               <th>Reason</th>
             </tr>
           </thead>
           <tr ng-repeat="approval in ::controller.clientApprovals"
-              ng-class="::{'half-transparent': !approval.is_valid}"
-              ng-click="controller.onClientClicked(approval.subject)">
+              ng-class="::{'half-transparent': !approval.value.is_valid.value}"
+              ng-click="controller.onClientClicked(approval.value.subject.value.urn.value)">
             <!-- Online status -->
             <td>
-              <grr-client-status-icons client="::approval.subject" />
+              <grr-client-status-icons client="::approval.value.subject" />
             </td>
 
-            <!-- Subject -->
+            <!-- Client URN -->
             <td>
               <span type="subject">
-                {$ ::approval.subject.urn | grrBasename $}
+                {$ ::approval.value.subject.value.urn.value | grrBasename $}
               </span>
             </td>
 
-            <!-- Host -->
+            <!-- Client Host -->
             <td>
               <grr-semantic-value
-                 value="::approval.subject.attributes['metadata:hostname']" />
+                 value="::approval.value.subject.value.os_info.value.node" />
             </td>
 
-            <!-- MAC -->
+            <!-- Client Labels -->
             <td>
               <grr-semantic-value
-                 value="::approval.subject.attributes['aff4:mac_addresses']" />
+                 value="::approval.value.subject.value.labels" />
             </td>
 
-            <!-- Labels -->
+            <!-- Client Latest checkin -->
             <td>
               <grr-semantic-value
-                 value="::approval.subject.attributes['aff4:labels_list']" />
+                 value="::approval.value.subject.value.last_clock" />
             </td>
 
-            <!-- Latest checkin -->
+            <!-- Reason -->
             <td>
               <grr-semantic-value
-                 value="::approval.subject.attributes['metadata:clock']" />
-            </td>
-
-            <!-- Reason. Note that approvals are rendered as objects with
-                 age_policy set to ALL_TIMES, therefore each attribute is a
-                 list of all the versions. -->
-            <td>
-              <grr-semantic-value
-                 value="::approval.attributes['aff4:approval/reason'][0]" />
+                 value="::approval.value.reason" />
             </td>
 
           </tr>

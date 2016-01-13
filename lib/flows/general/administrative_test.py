@@ -66,7 +66,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
 
     loc = "http://www.example.com"
     new_config = rdf_protodict.Dict(
-        {"Client.control_urls": [loc],
+        {"Client.server_urls": [loc],
          "Client.foreman_check_frequency": 3600,
          "Client.poll_min": 1})
 
@@ -89,7 +89,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
 
     fd = aff4.FACTORY.Open(self.client_id, token=self.token)
     config_dat = fd.Get(fd.Schema.GRR_CONFIGURATION)
-    self.assertEqual(config_dat["Client.control_urls"], [loc])
+    self.assertEqual(config_dat["Client.server_urls"], [loc])
     self.assertEqual(config_dat["Client.poll_min"], 1)
 
   def CheckCrash(self, crash, expected_session_id):

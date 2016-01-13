@@ -189,6 +189,20 @@ def SplitBuffer(buff, index=0, length=None):
       raise rdfvalue.DecodeError("Unexpected Tag.")
 
 
+def SerializeEntries(entries):
+  """Serializes given triplets of python and wire values and a descriptor."""
+  output = []
+  for python_format, wire_format, type_descriptor in entries:
+
+    if wire_format is None or (python_format and
+                               type_descriptor.IsDirty(python_format)):
+      wire_format = type_descriptor.ConvertToWireFormat(python_format)
+
+    output.extend(wire_format)
+
+  return "".join(output)
+
+
 def ReadIntoObject(buff, index, value_obj, length=0):
   """Reads all tags until the next end group and store in the value_obj."""
   raw_data = value_obj.GetRawData()
@@ -867,17 +881,7 @@ class ProtoEmbedded(ProtoType):
 
   def ConvertToWireFormat(self, value):
     """Encode the nested protobuf into wire format."""
-    output = []
-    for entry in value.GetRawData().itervalues():
-      python_format, wire_format, type_descriptor = entry
-
-      if wire_format is None or (python_format and
-                                 type_descriptor.IsDirty(python_format)):
-        wire_format = type_descriptor.ConvertToWireFormat(python_format)
-
-      output.extend(wire_format)
-
-    output = "".join(output)
+    output = SerializeEntries(value.GetRawData().itervalues())
     return (self.encoded_tag, VarintEncode(len(output)), output)
 
   def LateBind(self, target=None):
@@ -957,6 +961,8 @@ class ProtoDynamicEmbedded(ProtoType):
 
   set_default_on_access = True
 
+  proto_type_name = "bytes"
+
   def __init__(self, dynamic_cb=None, **kwargs):
     """Initialize the type descriptor.
 
@@ -997,6 +1003,33 @@ class ProtoDynamicEmbedded(ProtoType):
   def Format(self, value):
     for line in value.Format():
       yield "  %s" % line
+
+  def _FormatDefault(self):
+    return ""
+
+
+class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
+  """An embedded dynamic field which that is stored as AnyValue struct."""
+
+  proto_type_name = "AnyValue"
+
+  def ConvertFromWireFormat(self, value, container=None):
+    """The wire format is an AnyValue message."""
+    result = AnyValue()
+    ReadIntoObject(value[2], 0, result)
+
+    # TODO(user): Type stored in type_url is currently ignored when value is
+    # decoded. We should use it to deserialize the value and then check
+    # that value type and dynamic type are compatible.
+    return self._type(container)(result.value)
+
+  def ConvertToWireFormat(self, value):
+    """Encode the nested protobuf into wire format."""
+    data = value.SerializeToString()
+    any_value = AnyValue(type_url=value.__class__.__name__, value=data)
+    output = SerializeEntries(any_value.GetRawData().itervalues())
+
+    return (self.encoded_tag, VarintEncode(len(output)), output)
 
 
 class RepeatedFieldHelper(object):
@@ -1215,15 +1248,10 @@ class ProtoList(ProtoType):
     Returns:
       A wire format representation of the value.
     """
-    output = []
-    for python_format, wire_format in value.wrapped_list:
-      if wire_format is None or (python_format and
-                                 value.type_descriptor.IsDirty(python_format)):
-        wire_format = value.type_descriptor.ConvertToWireFormat(python_format)
-
-      output.extend(wire_format)
-
-    return ("", "", "".join(output))
+    output = SerializeEntries(
+        (python_format, wire_format, value.type_descriptor)
+        for python_format, wire_format in value.wrapped_list)
+    return ("", "", output)
 
   def Format(self, value):
     yield "["
@@ -1639,17 +1667,7 @@ class RDFStruct(rdfvalue.RDFValue):
     self.dirty = True
 
   def SerializeToString(self):
-    output = []
-    for entry in self._data.itervalues():
-      python_format, wire_format, type_descriptor = entry
-
-      if wire_format is None or (python_format and
-                                 type_descriptor.IsDirty(python_format)):
-        wire_format = type_descriptor.ConvertToWireFormat(python_format)
-
-      output.extend(wire_format)
-
-    return "".join(output)
+    return SerializeEntries(self._data.itervalues())
 
   def ParseFromString(self, string):
     ReadIntoObject(string, 0, self)
@@ -1927,7 +1945,8 @@ class RDFProtoStruct(RDFStruct):
       nested_value = dynamic_field.GetDefault(container=self)
       if nested_value is None:
         raise RuntimeError("Can't initialize dynamic field %s, probably some "
-                           "necessary fields weren't supplied.")
+                           "necessary fields weren't supplied." %
+                           dynamic_field.name)
       nested_value.FromDict(dictionary[dynamic_field.name])
       self.Set(dynamic_field.name, nested_value)
 
@@ -2023,6 +2042,19 @@ class RDFProtoStruct(RDFStruct):
         else:
           raise NotImplementedError("Can't emit proto descriptor for values "
                                     "with nested non-protobuf-based values.")
+
+      elif isinstance(desc, type_info.ProtoDynamicAnyValueEmbedded):
+        field = message_type.field.add()
+        field.type = descriptor_pb2.FieldDescriptorProto.TYPE_MESSAGE
+
+        field.type_name = semantic_pb2.AnyValue.DESCRIPTOR.full_name
+        descriptors[field.type_name] = semantic_pb2.AnyValue.DESCRIPTOR
+
+        if (semantic_pb2.AnyValue.DESCRIPTOR.file.name not in
+            file_descriptor.dependency):
+          file_descriptor.dependency.append(
+              semantic_pb2.AnyValue.DESCRIPTOR.file.name)
+
       elif isinstance(desc, type_info.ProtoList):
         field = message_type.field.add()
         field.type = descriptor_pb2.FieldDescriptorProto.TYPE_MESSAGE
@@ -2128,7 +2160,21 @@ class RDFProtoStruct(RDFStruct):
           lambda self, x: self._Set(x, field_desc),
           None, field_desc.description))
 
+  def UnionCast(self):
+    union_field = getattr(self, self.union_field)
+    cast_field_name = str(union_field).lower()
+
+    try:
+      return getattr(self, cast_field_name)
+    except AttributeError:
+      raise AttributeError("union_field not initialized.")
+
 
 class SemanticDescriptor(RDFProtoStruct):
   """A semantic protobuf describing the .proto extension."""
   protobuf = semantic_pb2.SemanticDescriptor
+
+
+class AnyValue(RDFProtoStruct):
+  """Protobuf with arbitrary serialized proto and its type."""
+  protobuf = semantic_pb2.AnyValue

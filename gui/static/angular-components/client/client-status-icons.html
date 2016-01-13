@@ -6,15 +6,12 @@
   <img ng-if="::controller.crashTime != null" class="grr-icon"
        ng-src="/static/images/skull-icon.png" name="clientCrashIcon"
        title="{$ ::controller.crashTime | grrTimeSince $}" />
-  <img ng-if="::controller.diskFull != null" class="grr-icon"
-       ng-src="/static/images/hdd-bang-icon.png"
-       title="{$ ::controller.diskFull $}" />
 
-  <span ng-if="::client.disk_warnings.length > 0"
+  <span ng-if="::controller.diskWarnings.length > 0"
         name="clientDiskWarnings">
     <img class="grr-icon" ng-src="/static/images/hdd-bang-icon.png" />
     <strong>Disk free space low:</strong><br/>
-    <span ng-repeat="warning in ::client.disk_warnings">
+    <span ng-repeat="warning in ::controller.diskWarnings">
       {$ ::warning[0] $} {$ warning[1] | number:0 $}% free<br/>
     </span>
   </span>

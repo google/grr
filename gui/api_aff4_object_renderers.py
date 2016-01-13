@@ -94,8 +94,8 @@ class ApiRDFValueCollectionRenderer(ApiAFF4ObjectRendererBase):
             break
     else:
       items = list(itertools.islice(
-          aff4_object.GenerateItems(), args.offset,
-          args.count and (args.offset + args.count) or sys.maxint))
+          aff4_object.GenerateItems(offset=args.offset),
+          args.count or sys.maxint))
 
     result = {}
     result["offset"] = args.offset
@@ -111,6 +111,10 @@ class ApiRDFValueCollectionRenderer(ApiAFF4ObjectRendererBase):
       result["total_count"] = total_count
 
     return result
+
+
+class ApiIndexedSequentialCollectionRenderer(ApiRDFValueCollectionRenderer):
+  aff4_type = "IndexedSequentialCollection"
 
 
 class VFSGRRClientApiObjectRenderer(ApiAFF4ObjectRendererBase):

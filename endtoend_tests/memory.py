@@ -3,12 +3,11 @@
 
 import os
 
-
+from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.endtoend_tests import base
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 
 
 class TestGrepMemory(base.AutomatedTest):

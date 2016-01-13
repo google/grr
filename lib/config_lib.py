@@ -998,7 +998,7 @@ class GrrConfigManager(object):
       self.parser = parser(data=data)
       self.MergeData(self.parser.RawData())
 
-    else:
+    elif must_exist:
       raise RuntimeError("Registry path not provided.")
 
     self.initialized = True
@@ -1426,6 +1426,8 @@ def ParseConfigCommandLine():
   # The user may specify the primary config file on the command line.
   if flags.FLAGS.config:
     CONFIG.Initialize(filename=flags.FLAGS.config, must_exist=True)
+  else:
+    raise RuntimeError("A config file is not specified.")
 
   # Allow secondary configuration files to be specified.
   if flags.FLAGS.secondary_configs:

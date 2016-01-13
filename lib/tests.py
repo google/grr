@@ -5,12 +5,16 @@ This module loads and registers all the GRR library tests.
 """
 
 
-# These need to register plugins so, pylint: disable=unused-import
-from grr.lib import access_control_test
+# These need to register plugins so, pylint: disable=unused-import,g-import-not-at-top
+# pylint: disable=g-import-not-at-top
 from grr.lib import aff4_test
 from grr.lib import artifact_test
 from grr.lib import artifact_utils_test
-from grr.lib import bigquery_test
+try:
+  from grr.lib import bigquery_test
+except ImportError:
+  pass
+
 from grr.lib import build_test
 from grr.lib import client_index_test
 from grr.lib import communicator_test

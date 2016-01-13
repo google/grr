@@ -14,6 +14,7 @@ from grr.lib import flow
 from grr.lib import output_plugin
 from grr.lib import test_lib
 from grr.lib.aff4_objects import filestore as aff4_filestore
+from grr.lib.flows.general import processes
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.tools.export_plugins import hash_file_store_plugin
@@ -21,6 +22,7 @@ from grr.tools.export_plugins import hash_file_store_plugin
 
 class DummyOutputPlugin(output_plugin.OutputPlugin):
   name = "dummy"
+  args_type = processes.ListProcessesArgs
 
   responses = []
 

@@ -1,3 +1,6 @@
+mkdir %USERPROFILE%\build\
+cd %USERPROFILE%\build\ || echo "Cant switch to build directory" && exit /b 1
+
 :: Install the extra things we need to build openssl from src.
 choco install nasm -y || echo "nasm install failed" && exit /b 1
 SETX /M PATH "%PATH%;C:\Program Files (x86)\nasm"
@@ -17,9 +20,9 @@ call refreshenv
 :: Standard Win7 powershell can no longer establish an SSL connection to
 :: openssl.org.  Download over http and use fciv to verify.
 choco install fciv -y || echo "fciv install failed" && exit /b 1
-mkdir %SYSTEMDRIVE%\openssl
-cd %SYSTEMDRIVE%\openssl
-powershell -NoProfile -ExecutionPolicy unrestricted -Command "(new-object System.Net.WebClient).DownloadFile('http://www.openssl.org/source/openssl-1.0.2e.tar.gz', '%SYSTEMDRIVE%\openssl\openssl-1.0.2e.tar.gz')" || echo "Couldn't download openssl" && exit /b 1
-fciv -sha1 %SYSTEMDRIVE%\openssl\openssl-1.0.2e.tar.gz | findstr /C:"2c5691496761cb18f98476eefa4d35c835448fb6" || echo "Bad hash for openssl" && exit /b 1
-7z e openssl-1.0.2e.tar.gz
 
+powershell -NoProfile -ExecutionPolicy unrestricted -Command "(new-object System.Net.WebClient).DownloadFile('http://www.openssl.org/source/openssl-1.0.2e.tar.gz', 'openssl-1.0.2e.tar.gz')" || echo "Couldn't download openssl" && exit /b 1
+
+fciv -sha1 openssl-1.0.2e.tar.gz | findstr /C:"2c5691496761cb18f98476eefa4d35c835448fb6" || echo "Bad hash for openssl" && exit /b 1
+7z e -y openssl-1.0.2e.tar.gz
+7z x -y openssl-1.0.2e.tar

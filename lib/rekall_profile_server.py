@@ -9,14 +9,13 @@ import zlib
 from rekall import constants
 
 import logging
-
+from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import threadpool
-from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 
 
 class ProfileServer(object):

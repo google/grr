@@ -8,6 +8,8 @@ import SocketServer
 import ssl
 from wsgiref import simple_server
 
+import ipaddr
+
 # pylint: disable=unused-import,g-bad-import-order
 from grr.gui import django_lib
 from grr.lib import server_plugins
@@ -31,9 +33,14 @@ def main(_):
   startup.Init()
 
   # Start up a server in another thread
+  bind_address = config_lib.CONFIG["AdminUI.bind"]
+  ip = ipaddr.IPAddress(bind_address)
+  if ip.version == 4:
+    # Address looks like an IPv4 address.
+    ThreadingDjango.address_family = socket.AF_INET
 
   # Make a simple reference implementation WSGI server
-  server = simple_server.make_server(config_lib.CONFIG["AdminUI.bind"],
+  server = simple_server.make_server(bind_address,
                                      config_lib.CONFIG["AdminUI.port"],
                                      django_lib.GetWSGIHandler(),
                                      server_class=ThreadingDjango)

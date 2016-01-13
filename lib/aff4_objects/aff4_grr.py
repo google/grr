@@ -7,6 +7,7 @@ import time
 
 
 import logging
+from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import flow
@@ -21,7 +22,6 @@ from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import foreman as rdf_foreman
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
-from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 
@@ -353,8 +353,8 @@ class UpdateVFSFile(flow.GRRFlow):
         priority=rdf_flows.GrrMessage.Priority.HIGH_PRIORITY)
 
 
-class VFSFile(aff4.AFF4Image):
-  """A VFSFile object."""
+class VFSAnalysisFile(aff4.AFF4Image):
+  """A file object in the VFS space."""
 
   class SchemaCls(aff4.AFF4Image.SchemaCls):
     """The schema for AFF4 files in the GRR VFS."""
@@ -369,10 +369,17 @@ class VFSFile(aff4.AFF4Image):
         "aff4:pathspec", rdf_paths.PathSpec,
         "The pathspec used to retrieve this object from the client.")
 
-    FINGERPRINT = aff4.Attribute("aff4:fingerprint",
-                                 rdf_client.FingerprintResponse,
-                                 "DEPRECATED protodict containing arrays of "
-                                 " hashes. Use AFF4Stream.HASH instead.")
+
+class VFSFile(VFSAnalysisFile):
+  """A file object that can be updated under lock."""
+
+  class SchemaCls(VFSAnalysisFile.SchemaCls):
+    """The schema for AFF4 files in the GRR VFS."""
+
+    CONTENT_LOCK = aff4.Attribute(
+        "aff4:content_lock", rdfvalue.RDFURN,
+        "This lock contains a URN pointing to the flow that is currently "
+        "updating this flow.")
 
   def Update(self, attribute=None, priority=None):
     """Update an attribute from the client."""
@@ -419,14 +426,6 @@ class VFSMemoryFile(aff4.AFF4MemoryStream):
     HASH = VFSFile.SchemaCls.HASH
     PATHSPEC = VFSFile.SchemaCls.PATHSPEC
     CONTENT_LOCK = VFSFile.SchemaCls.CONTENT_LOCK
-    FINGERPRINT = VFSFile.SchemaCls.FINGERPRINT
-
-
-class VFSAnalysisFile(VFSFile):
-  """A VFS file which has no Update method."""
-
-  def Update(self, attribute=None):
-    pass
 
 
 class GRRForeman(aff4.AFF4Object):
@@ -755,10 +754,10 @@ class VFSBlobImage(aff4.BlobImage, aff4.VFSFile):
     pass
 
 
-class AFF4RekallProfile(aff4.AFF4MemoryStream):
+class AFF4RekallProfile(aff4.AFF4Object):
   """A Rekall profile in the AFF4 namespace."""
 
-  class SchemaCls(aff4.AFF4MemoryStream.SchemaCls):
+  class SchemaCls(aff4.AFF4Object.SchemaCls):
     PROFILE = aff4.Attribute("aff4:profile", rdf_rekall_types.RekallProfile,
                              "A Rekall profile.")
 

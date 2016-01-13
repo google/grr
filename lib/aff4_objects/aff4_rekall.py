@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """AFF4 objects for managing Rekall responses."""
 
+from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.lib.aff4_objects import collections
-from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 
 
 class RekallResponseCollection(collections.RDFValueCollection):

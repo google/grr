@@ -67,8 +67,8 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
   def _CheckGRRConfig(self):
     """Check old and new client config."""
     config_info = self.fd.Get(self.fd.Schema.GRR_CONFIGURATION)
-    self.assertEqual(config_info["Client.control_urls"],
-                     ["http://localhost:8001/control"])
+    self.assertEqual(config_info["Client.server_urls"],
+                     ["http://localhost:8001/"])
     self.assertEqual(config_info["Client.poll_min"], 1.0)
 
   def _CheckClientKwIndex(self, keywords, expected_count):

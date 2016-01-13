@@ -419,12 +419,15 @@ class SuspendableAction(ActionPlugin):
      contains an opaque client_state dict.
 
   9) The client finds the unique key in the Iterator.client_state dict, which
-     allows it to trieve the SuspendableAction() from the GRRClientWorker()'s
+     allows it to retrieve the SuspendableAction() from the GRRClientWorker()'s
      suspended_actions store. We then call the Run method, which switched
      execution to the ClientActionWorker() thread.
   """
 
   def __init__(self, *args, **kw):
+    # We allow specifying the worker class.
+    self.worker_cls = kw.pop("action_worker_cls", None)
+
     super(SuspendableAction, self).__init__(*args, **kw)
     self.exceptions = []
 
@@ -441,7 +444,8 @@ class SuspendableAction(ActionPlugin):
 
     # We need to start a new worker thread.
     if not self.worker:
-      self.worker = ClientActionWorker(action=self)
+      worker_cls = self.worker_cls or ClientActionWorker
+      self.worker = worker_cls(action=self)
 
       # Grab the lock before the thread is started.
       self.worker.cond.acquire()

@@ -9,7 +9,7 @@ import numbers
 
 
 import logging
-
+from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import registry
@@ -17,7 +17,6 @@ from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
-from grr.lib.rdfvalues import rekall_types as rdf_rekall_types
 from grr.lib.rdfvalues import structs as rdf_structs
 
 
@@ -375,7 +374,7 @@ class ApiRDFProtoStructRenderer(ApiValueRenderer):
 
   def RenderValue(self, value):
     result = value.AsDict()
-    for k, v in value.AsDict().items():
+    for k, v in result.items():
       result[k] = self._PassThrough(v)
 
     for processor in self.value_processors:
