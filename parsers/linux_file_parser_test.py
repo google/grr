@@ -128,8 +128,8 @@ user2:x:1001:1001:User2 Name,,,:/home/user2:/bin/bash
 """
     out = list(parser.Parse(None, StringIO.StringIO(dat), None))
     self.assertEqual(len(out), 2)
-    self.assertTrue(isinstance(out[1], rdf_client.KnowledgeBaseUser))
-    self.assertTrue(isinstance(out[1], rdf_client.KnowledgeBaseUser))
+    self.assertTrue(isinstance(out[1], rdf_client.User))
+    self.assertTrue(isinstance(out[1], rdf_client.User))
     self.assertEqual(out[0].username, "user1")
     self.assertEqual(out[0].full_name, "User1 Name,,,")
     dat = """
@@ -152,8 +152,8 @@ user2:x:1001:1001:User2 Name,,,:/home/user
     ff_result = file_finder.FileFinderResult(matches=[buf1, buf2])
     out = list(parser.Parse(ff_result, None))
     self.assertEqual(len(out), 2)
-    self.assertTrue(isinstance(out[1], rdf_client.KnowledgeBaseUser))
-    self.assertTrue(isinstance(out[1], rdf_client.KnowledgeBaseUser))
+    self.assertTrue(isinstance(out[1], rdf_client.User))
+    self.assertTrue(isinstance(out[1], rdf_client.User))
     self.assertEqual(out[0].username, "user1")
     self.assertEqual(out[0].full_name, "User1 Name,,,")
 
@@ -334,9 +334,8 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
       self.assertEqual(expect.type, result.type)
 
   def GetExpectedUser(self, algo, user_store, group_store):
-    user = rdf_client.KnowledgeBaseUser(username="user", full_name="User",
-                                        uid="1001", gid="1001",
-                                        homedir="/home/user", shell="/bin/bash")
+    user = rdf_client.User(username="user", full_name="User", uid="1001",
+                           gid="1001", homedir="/home/user", shell="/bin/bash")
     user.pw_entry = rdf_client.PwEntry(store=user_store, hash_type=algo)
     user.gids = [1001]
     grp = rdf_client.Group(gid=1001, members=["user"], name="user")
@@ -360,7 +359,7 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
     stats, files = self._GenFiles(passwd, shadow, group, gshadow)
     parser = linux_file_parser.LinuxSystemPasswdParser()
     results = list(parser.ParseMultiple(stats, files, None))
-    usrs = [r for r in results if isinstance(r, rdf_client.KnowledgeBaseUser)]
+    usrs = [r for r in results if isinstance(r, rdf_client.User)]
     grps = [r for r in results if isinstance(r, rdf_client.Group)]
     self.assertEqual(1, len(usrs), "Different number of usr %s results" % algo)
     self.assertEqual(1, len(grps), "Different number of grp %s results" % algo)

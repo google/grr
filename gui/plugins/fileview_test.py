@@ -537,7 +537,7 @@ class TestHostInformation(FileViewTestBase):
     with self.ACLChecksDisabled():
       self.GrantClientApproval(self.client_id)
       with aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token) as fd:
-        fd.Set(fd.Schema.USER, rdf_client.Users())
+        fd.Set(fd.Schema.OS_VERSION, rdf_client.VersionString("6.1.7601"))
 
   def testClickingOnPlusOpensHistoricalAttributes(self):
     """Test the fileview interface."""
@@ -545,14 +545,12 @@ class TestHostInformation(FileViewTestBase):
     self.Open("/#c=" + self.client_id)
     self.WaitUntil(self.IsTextPresent, "VFSGRRClient")
 
-    # We removed all the users, so no 'Steve O'Bryan' should be visible.
-    self.WaitUntilNot(self.IsTextPresent, "Steve O'Bryan")
+    # 7601 is the latest so it should be visible.
+    self.WaitUntil(self.IsTextPresent, "6.1.7601")
 
-    # We click on '+' in USER cell and should see historical values of the
-    # USER attribute. "Steve O'Bryan" was full name of a user that we've
-    # deleted.
-    self.Click("css=td.attribute_opener[attribute=USER]")
-    self.WaitUntil(self.IsTextPresent, "Steve O'Bryan")
+    # We click on '+' and should see the historical value.
+    self.Click("css=td.attribute_opener[attribute=OS_VERSION]")
+    self.WaitUntil(self.IsTextPresent, "6.1.7600")
 
 
 def main(argv):

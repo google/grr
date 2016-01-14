@@ -102,7 +102,7 @@ class TestRegistryFinderFlow(RegistryFlowTest):
   def testFindsKeyWithInterpolatedGlobWithoutConditions(self):
     # Initialize client's knowledge base in order for the interpolation
     # to work.
-    user = rdf_client.KnowledgeBaseUser(
+    user = rdf_client.User(
         sid="S-1-5-21-2911950750-476812067-1487428992-1001")
     kb = rdf_client.KnowledgeBase(users=[user])
 
@@ -302,12 +302,12 @@ class TestRegistryFlows(RegistryFlowTest):
 
     # Add some user accounts to this client.
     fd = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
-    users = fd.Schema.USER()
-    users.Append(rdf_client.User(
-        username="testing", domain="testing-PC",
+    kb = fd.Get(fd.Schema.KNOWLEDGE_BASE)
+    kb.users.Append(rdf_client.User(
+        username="testing", userdomain="testing-PC",
         homedir=r"C:\Users\testing", sid="S-1-5-21-2911950750-476812067-"
         "1487428992-1001"))
-    fd.Set(users)
+    fd.Set(kb)
     fd.Close()
 
     # Run the flow in the emulated way.

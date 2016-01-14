@@ -20,7 +20,7 @@ class ListProcessesMock(action_mocks.ActionMock):
   def __init__(self, processes_list):
     super(ListProcessesMock, self).__init__("TransferBuffer", "StatFile",
                                             "Find", "HashBuffer",
-                                            "FingerprintFile")
+                                            "HashFile")
     self.processes_list = processes_list
 
   def ListProcesses(self, _):

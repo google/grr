@@ -195,7 +195,7 @@ class VFSTest(test_lib.GRRBaseTest):
     # Check that the new pathspec is correctly reduced to two components.
     self.assertEqual(
         fd.pathspec.first.path,
-        os.path.normpath(os.path.join(self.base_path, "test_img.dd")))
+        utils.NormalizePath(os.path.join(self.base_path, "test_img.dd")))
     self.assertEqual(fd.pathspec[1].path, "/Test Directory/numbers.txt")
 
     # And the correct inode is placed in the final branch.

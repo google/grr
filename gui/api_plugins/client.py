@@ -92,6 +92,11 @@ class ApiGetClientHandler(api_call_handler_base.ApiCallHandler):
     if crash is not None:
       last_crash_at = crash.timestamp
 
+    kb = client_obj.Get(client_obj.Schema.KNOWLEDGE_BASE)
+    users = []
+    if kb:
+      users = kb.users
+
     return ApiClient(
         urn=client_obj.urn,
 
@@ -116,7 +121,7 @@ class ApiGetClientHandler(api_call_handler_base.ApiCallHandler):
 
         labels=client_obj.GetLabels(),
         interfaces=client_obj.Get(client_obj.Schema.LAST_INTERFACES),
-        users=client_obj.Get(client_obj.Schema.USER),
+        users=users,
         volumes=client_obj.Get(client_obj.Schema.VOLUMES))
 
   def Handle(self, args, token=None):

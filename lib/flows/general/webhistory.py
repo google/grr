@@ -329,7 +329,8 @@ class CacheGrep(flow.GRRFlow):
           self.runner.output.Schema.DESCRIPTION("CacheGrep for {0}".format(
               self.args.data_regex)))
 
-    usernames = ["%s\\%s" % (u.domain, u.username) for u in self.state.users]
+    usernames = [
+        "%s\\%s" % (u.userdomain, u.username) for u in self.state.users]
     usernames = [u.lstrip("\\") for u in usernames]  # Strip \\ if no domain.
 
     condition = file_finder.FileFinderCondition(

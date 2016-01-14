@@ -58,7 +58,8 @@ class HintsTests(test_lib.GRRBaseTest):
     rdf.system_info.system = "Linux"
     rdf.system_info.node = "coreai.skynet.com"
     # Users (repeated)
-    rdf.users = [rdf_client.User(username=u) for u in ("root", "jconnor")]
+    rdf.users = [
+        rdf_client.User(username=u) for u in ("root", "jconnor")]
     # Interface (nested, repeated)
     addresses = [rdf_client.NetworkAddress(human_readable=a) for a in (
         "1.1.1.1", "2.2.2.2", "3.3.3.3")]
@@ -95,8 +96,8 @@ class HintsTests(test_lib.GRRBaseTest):
 
   def testRdfFormatterFanOut(self):
     rdf = rdf_protodict.Dict()
-    user1 = rdf_client.KnowledgeBaseUser(username="drexler")
-    user2 = rdf_client.KnowledgeBaseUser(username="joy")
+    user1 = rdf_client.User(username="drexler")
+    user2 = rdf_client.User(username="joy")
     rdf["cataclysm"] = "GreyGoo"
     rdf["thinkers"] = [user1, user2]
     rdf["reference"] = {"ecophage": ["bots", ["nanobots", ["picobots"]]],

@@ -23,7 +23,7 @@ void EnumerateUsers::ProcessRequest(ActionContext* args) {
   struct passwd* result;
 
   for (const auto& user : users) {
-    KnowledgeBaseUser u;
+    User u;
     u.set_username(user.first);
     u.set_last_logon(std::max(0, user.second));
 #ifdef ANDROID

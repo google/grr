@@ -34,21 +34,6 @@ class SpaceSeparatedStringArray(rdfvalue.RDFString):
       yield value
 
 
-class VersionString(rdfvalue.RDFString):
-
-  @property
-  def versions(self):
-    version = str(self)
-    result = []
-    for x in version.split("."):
-      try:
-        result.append(int(x))
-      except ValueError:
-        break
-
-    return result
-
-
 class VFSGRRClient(standard.VFSDirectory):
   """A Remote client."""
 
@@ -92,7 +77,7 @@ class VFSGRRClient(standard.VFSDirectory):
                            "Uname string.", "Uname")
     OS_RELEASE = aff4.Attribute("metadata:os_release", rdfvalue.RDFString,
                                 "OS Major release number.", "Release")
-    OS_VERSION = aff4.Attribute("metadata:os_version", VersionString,
+    OS_VERSION = aff4.Attribute("metadata:os_version", rdf_client.VersionString,
                                 "OS Version number.", "Version")
 
     # ARCH values come from platform.uname machine value, e.g. x86_64, AMD64.
@@ -116,9 +101,6 @@ class VFSGRRClient(standard.VFSDirectory):
     LIBRARY_VERSIONS = aff4.Attribute(
         "aff4:library_versions", rdf_protodict.Dict,
         "Running library versions for the client.", "Libraries")
-
-    USER = aff4.Attribute("aff4:users", rdf_client.Users,
-                          "A user of the system.", "Users")
 
     USERNAMES = aff4.Attribute("aff4:user_names", SpaceSeparatedStringArray,
                                "A space separated list of system users.",
@@ -301,11 +283,9 @@ class VFSGRRClient(standard.VFSDirectory):
     summary.system_info.machine = self.Get(self.Schema.ARCH)
     summary.system_info.install_date = self.Get(
         self.Schema.INSTALL_DATE)
-    # This should be summary.users = self.Get(self.Schema.USER) but older
-    # clients may return serialized users here.
-    users = self.Get(self.Schema.USER)
-    if users:
-      summary.users = [rdf_client.User(u) for u in users]
+    kb = self.Get(self.Schema.KNOWLEDGE_BASE)
+    if kb:
+      summary.users = kb.users
     summary.interfaces = self.Get(self.Schema.LAST_INTERFACES)
     summary.client_info = self.Get(self.Schema.CLIENT_INFO)
     summary.serial_number = self.Get(self.Schema.HARDWARE_INFO).serial_number

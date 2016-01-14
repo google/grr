@@ -135,7 +135,7 @@ class WinUserSids(parsers.RegistryParser):
   This reads a listing of the profile paths to extract a list of SIDS for
   users with profiles on a system.
   """
-  output_types = ["KnowledgeBaseUser"]
+  output_types = ["User"]
   supported_artifacts = ["WindowsRegistryProfiles"]
 
   def Parse(self, stat, knowledge_base):
@@ -144,7 +144,7 @@ class WinUserSids(parsers.RegistryParser):
     sid_str = stat.pathspec.Dirname().Basename()
 
     if SID_RE.match(sid_str):
-      kb_user = rdf_client.KnowledgeBaseUser()
+      kb_user = rdf_client.User()
       kb_user.sid = sid_str
       if stat.pathspec.Basename() == "ProfileImagePath":
         if stat.resident:
@@ -175,7 +175,7 @@ class WinUserSpecialDirs(parsers.RegistryParser):
   Known folder GUIDs:
   http://msdn.microsoft.com/en-us/library/windows/desktop/dd378457(v=vs.85).aspx
   """
-  output_types = ["KnowledgeBaseUser"]
+  output_types = ["User"]
   supported_artifacts = ["UserShellFolders"]
   process_together = True
   # Required for environment variable expansion
@@ -210,7 +210,7 @@ class WinUserSpecialDirs(parsers.RegistryParser):
       sid_str = stat.pathspec.path.split("/", 3)[2]
       if SID_RE.match(sid_str):
         if sid_str not in user_dict:
-          user_dict[sid_str] = rdf_client.KnowledgeBaseUser(sid=sid_str)
+          user_dict[sid_str] = rdf_client.User(sid=sid_str)
 
         if stat.registry_data.GetValue():
           # Look up in the mapping if we can use this entry to populate a user

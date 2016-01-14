@@ -5,6 +5,7 @@
 syntax = "proto2";
 
 import "grr/proto/semantic.proto";
+import "grr/proto/knowledge_base.proto";
 
 
 
@@ -976,24 +977,6 @@ message FolderInformation {
   optional string templates = 20;
 };
 
-message User {
-  option (semantic) = {
-    description: "User account information."
-  };
-
-  optional string username = 1;
-  optional string full_name = 2;
-  optional string comment = 3;
-  optional uint64 last_logon = 4 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "The last logon time for this user."
-    }];
-  optional string domain = 5;
-  optional string homedir = 6;
-  optional string sid = 7;
-  optional FolderInformation special_folders = 8;
-};
-
 message NetworkAddress {
   option (semantic) = {
     description: "Network Address information."
@@ -1908,9 +1891,8 @@ message ClientSummary {
       description: "The date the system was installed.",
     }];
 
-  repeated User users = 6 [(sem_type) = {
-      description: "User accounts on the system."
-    }];
+  // 6 previously used by deprecated jobs.User proto. Migrated to
+  // knowledge_base.User proto.
 
   repeated Interface interfaces = 7 [(sem_type) = {
       description: "All interfaces on the system.",
@@ -1923,6 +1905,11 @@ message ClientSummary {
   optional string system_manufacturer = 9 [(sem_type) = {
       description: "System Manufacturer from HW info."
    }];
+
+  repeated User users = 10 [(sem_type) = {
+      description: "User accounts on the system."
+    }];
+
 }
 
 

@@ -181,7 +181,7 @@ class WMIHotfixesSoftwareParser(parsers.WMIQueryParser):
 class WMIUserParser(parsers.WMIQueryParser):
   """Parser for WMI Win32_UserAccount and Win32_UserProfile output."""
 
-  output_types = ["KnowledgeBaseUser"]
+  output_types = ["User"]
   supported_artifacts = ["WMIProfileUsersHomeDir",
                          "WMIAccountUsersDomain",
                          "WMIUsers"]
@@ -198,7 +198,7 @@ class WMIUserParser(parsers.WMIQueryParser):
   def Parse(self, query, result, knowledge_base):
     """Parse the WMI Win32_UserAccount output."""
     _ = query, knowledge_base
-    kb_user = rdf_client.KnowledgeBaseUser()
+    kb_user = rdf_client.User()
     for wmi_key, kb_key in self.account_mapping.items():
       try:
         kb_user.Set(kb_key, result[wmi_key])

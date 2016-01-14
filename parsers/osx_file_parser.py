@@ -16,7 +16,7 @@ from grr.lib.rdfvalues import plist as rdf_plist
 class OSXUsersParser(parsers.ArtifactFilesParser):
   """Parser for Glob of /Users/*."""
 
-  output_types = ["KnowledgeBaseUser"]
+  output_types = ["User"]
   supported_artifacts = ["OSXUsers"]
   blacklist = ["Shared"]
 
@@ -29,8 +29,7 @@ class OSXUsersParser(parsers.ArtifactFilesParser):
         homedir = stat_entry.pathspec.path
         username = os.path.basename(homedir)
         if username not in self.blacklist:
-          yield rdf_client.KnowledgeBaseUser(username=username,
-                                             homedir=homedir)
+          yield rdf_client.User(username=username, homedir=homedir)
 
 
 class OSXSPHardwareDataTypeParser(parsers.CommandParser):

@@ -95,7 +95,7 @@ message Group {
 }
 
 
-message KnowledgeBaseUser {
+message User {
   optional string username = 1 [(sem_type) = {
       description: "The name of the user.",
     }];
@@ -208,7 +208,7 @@ message KnowledgeBaseUser {
 
 message KnowledgeBase {
 
-  repeated KnowledgeBaseUser users = 1;
+  repeated User users = 1;
 
   optional string hostname = 2 [(sem_type) = {
       description: "The fully qualified domain name reported by the OS. E.g. "

@@ -75,26 +75,6 @@ class WindowsActionTests(test_lib.OSSpecificClientTests):
                            "dddd:0:8888:6666:bbbb:aaaa:eeee:bbbb",
                            "dddd:0:8888:6666:bbbb:aaaa:ffff:bbbb"])
 
-  def testGetWMIAccount(self):
-    enum_users = self.windows.EnumerateUsers()
-    enum_users.special_folders = []
-    result = enum_users.GetWMIAccount(
-        client_fixture.USR_ACCOUNT_WMI,
-        "S-1-5-21-3067777777-777777777-7777777774-500", "Users/Auser",
-        client_fixture.USR_ACCOUNT_WMI_SIDS)
-
-    self.assertEqual(result["username"], "Auser")
-    self.assertEqual(result["domain"], "MYHOST-WIN")
-    self.assertEqual(result["sid"],
-                     "S-1-5-21-3067777777-777777777-7777777774-500")
-
-    # SID not in known SIDs
-    result = enum_users.GetWMIAccount(
-        client_fixture.USR_ACCOUNT_WMI,
-        "S-1-5-21-3067777777-777777777-7777777774-500", "Users/Auser",
-        ["S-1-5-21"])
-    self.assertEqual(result, None)
-
   def testRunWMI(self):
     wmi_obj = self.windows.win32com.client.GetObject.return_value
     mock_query_result = mock.MagicMock()

@@ -19,7 +19,7 @@ TEST(EnumerateUsersTest, SimpleTest) {
 
   const auto r = queue.GetMessages(10, 20000, true);
   for (const auto& m : r) {
-    KnowledgeBaseUser u;
+    User u;
     ASSERT_TRUE(u.ParseFromString(m.args()));
     GOOGLE_LOG(INFO) << u.DebugString();
   }

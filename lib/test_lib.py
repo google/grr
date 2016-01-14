@@ -306,7 +306,7 @@ class GRRBaseTest(unittest.TestCase):
       methodName: The test method to run.
     """
     super(GRRBaseTest, self).__init__(methodName=methodName or "__init__")
-    self.base_path = config_lib.CONFIG["Test.data_dir"]
+    self.base_path = utils.NormalizePath(config_lib.CONFIG["Test.data_dir"])
     self.token = access_control.ACLToken(username="test",
                                          reason="Running tests")
 

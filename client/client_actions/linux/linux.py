@@ -204,11 +204,9 @@ class EnumerateUsers(actions.ActionPlugin):
   this client action to avoid collecting every wtmp on every interrogate, and to
   allow for the metadata (homedir) expansion to occur on the client, where we
   have access to LDAP.
-
-  This client action used to return rdf_client.User.  To allow for backwards
-  compatibility we expect it to be called via the LinuxUserProfiles artifact and
-  we convert User to KnowledgeBaseUser in the artifact parser on the server.
   """
+  # TODO(user): change to rdf_client.User after we change out_rdfvalue to be
+  # a list of acceptable classes to allow backwards compatibility.
   out_rdfvalue = rdf_client.KnowledgeBaseUser
 
   def ParseWtmp(self):

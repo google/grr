@@ -73,24 +73,18 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
 
   def testClientSubfieldGet(self):
     """Test we can get subfields of the client."""
-
     fd = aff4.FACTORY.Create("C.0000000000000000", "VFSGRRClient",
                              token=self.token, age=aff4.ALL_TIMES)
 
-    users = fd.Schema.USER()
+    kb = fd.Schema.KNOWLEDGE_BASE()
     for i in range(5):
-      folder = "C:/Users/user%s" % i
-      user = rdf_client.User(username="user%s" % i)
-      user.special_folders.app_data = folder
-      users.Append(user)
-
-    fd.AddAttribute(users)
+      kb.users.Append(rdf_client.User(username="user%s" % i))
+    fd.Set(kb)
     fd.Close()
 
-    # Check the repeated Users array.
-    for i, folder in enumerate(
-        fd.GetValuesForAttribute("Users.special_folders.app_data")):
-      self.assertEqual(folder, "C:/Users/user%s" % i)
+    for i, user in enumerate(
+        fd.GetValuesForAttribute("KnowledgeBase.users").next()):
+      self.assertEqual(user.username, "user%s" % i)
 
   def testRegexChangeNotification(self):
     """Test the AFF4RegexNotificationRule rule."""
@@ -240,7 +234,8 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
     with utils.Stubber(time, "time", lambda: timestamp):
       with aff4.FACTORY.Create("C.0000000000000000", "VFSGRRClient", mode="rw",
                                token=self.token) as fd:
-
+        kb = rdf_client.KnowledgeBase()
+        kb.users.Append(userobj)
         empty_summary = fd.GetSummary()
         self.assertEqual(empty_summary.client_id, "C.0000000000000000")
         self.assertFalse(empty_summary.system_info.version)
@@ -256,7 +251,7 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
         fd.Set(fd.Schema.FQDN(fqdn))
         fd.Set(fd.Schema.ARCH(arch))
         fd.Set(fd.Schema.INSTALL_DATE(install_time))
-        fd.Set(fd.Schema.USER([userobj]))
+        fd.Set(fd.Schema.KNOWLEDGE_BASE(kb))
         fd.Set(fd.Schema.USERNAMES([user]))
         fd.Set(fd.Schema.LAST_INTERFACES([interface]))
 

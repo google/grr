@@ -199,15 +199,17 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
     TryAppend("", client.Get(s.KERNEL))
     TryAppend("", client.Get(s.ARCH))
 
-    for user in client.Get(s.USER, []):
-      TryAppend("user", user.username)
-      TryAppend("", user.full_name)
-      if user.full_name:
-        for name in user.full_name.split():
-          # full_name often includes nicknames and similar, wrapped in
-          # punctuation, e.g. "Thomas 'TJ' Jones". We remove the most common
-          # wrapping characters.
-          TryAppend("", name.strip("\"'()"))
+    kb = client.Get(s.KNOWLEDGE_BASE)
+    if kb:
+      for user in kb.users:
+        TryAppend("user", user.username)
+        TryAppend("", user.full_name)
+        if user.full_name:
+          for name in user.full_name.split():
+            # full_name often includes nicknames and similar, wrapped in
+            # punctuation, e.g. "Thomas 'TJ' Jones". We remove the most common
+            # wrapping characters.
+            TryAppend("", name.strip("\"'()"))
 
     for username in client.Get(s.USERNAMES, []):
       TryAppend("user", username)

@@ -169,20 +169,6 @@ class DmidecodeCmdParser(parsers.CommandParser):
     return dmi_info
 
 
-class UserParser(parsers.GenericResponseParser):
-  """Convert User to KnowledgeBaseUser for backwards compatibility."""
-
-  output_types = ["KnowledgeBaseUser"]
-  supported_artifacts = ["LinuxUserProfiles"]
-
-  def Parse(self, user, knowledge_base):
-    _ = knowledge_base
-    if isinstance(user, rdf_client.User):
-      yield user.ToKnowledgeBaseUser()
-    else:
-      yield user
-
-
 class PsCmdParser(parsers.CommandParser):
   """Parser for '/bin/ps' output. Yields Process rdfvalues."""
 

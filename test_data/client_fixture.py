@@ -56,17 +56,6 @@ revision: 0
 build_time: "unknown"
 labels: "client-label-23"
 """,
-        "aff4:users":
-            [u"""
-username: "Bert"
-full_name: "Eric (Bertrand ) 'Russell' \\"Logician\\" Jacobson"
-comment: "A Muppet"
-""",
-             u"""
-username: "Ernie"
-full_name: "Steve O'Bryan"
-comment: "A Muppet"
-"""],
     })),
     (u"/fs/os/c/regex.*?][{}--", ("VFSDirectory", {
         })),

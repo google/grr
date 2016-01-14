@@ -4,8 +4,9 @@
 
 syntax = "proto2";
 
-import "grr/proto/jobs.proto";
 import "grr/proto/flows.proto";
+import "grr/proto/jobs.proto";
+import "grr/proto/knowledge_base.proto";
 import "grr/proto/output_plugin.proto";
 import "grr/proto/semantic.proto";
 import "grr/proto/sysinfo.proto";

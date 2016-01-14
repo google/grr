@@ -8,6 +8,7 @@ from grr.lib import type_info
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import jobs_pb2
+from grr.proto import knowledge_base_pb2
 
 
 class StructGrrMessage(rdf_structs.RDFProtoStruct):
@@ -61,14 +62,14 @@ class RDFValueBenchmark(test_lib.AverageMicroBenchmarks):
 
   USER_ACCOUNT = dict(
       username=u"user", full_name=u"John Smith",
-      comment=u"This is a user", last_logon=10000,
-      domain=u"Some domain name",
+      last_logon=10000,
+      userdomain=u"Some domain name",
       homedir=u"/home/user",
       sid=u"some sid")
 
   def testObjectCreation(self):
     """Compare the speed of object creation to raw protobufs."""
-    test_proto = jobs_pb2.User(**self.USER_ACCOUNT)
+    test_proto = knowledge_base_pb2.User(**self.USER_ACCOUNT)
     test_proto = test_proto.SerializeToString()
 
     def RDFStructCreateAndSerialize():
@@ -87,18 +88,18 @@ class RDFValueBenchmark(test_lib.AverageMicroBenchmarks):
       s.SerializeToString()
 
     def ProtoCreateAndSerialize():
-      s = jobs_pb2.User(**self.USER_ACCOUNT)
+      s = knowledge_base_pb2.User(**self.USER_ACCOUNT)
       s.SerializeToString()
 
     def ProtoCreateAndSerializeSetValue():
-      s = jobs_pb2.User()
+      s = knowledge_base_pb2.User()
       for k, v in self.USER_ACCOUNT.iteritems():
         setattr(s, k, v)
 
       s.SerializeToString()
 
     def ProtoCreateAndSerializeFromProto():
-      s = jobs_pb2.User()
+      s = knowledge_base_pb2.User()
       s.ParseFromString(test_proto)
       self.assertEqual(s.SerializeToString(), test_proto)
 
@@ -235,12 +236,12 @@ class RDFValueBenchmark(test_lib.AverageMicroBenchmarks):
     but only a few fields are examined.
     """
 
-    s = jobs_pb2.User(**self.USER_ACCOUNT)
+    s = knowledge_base_pb2.User(**self.USER_ACCOUNT)
 
     data = s.SerializeToString()
 
     def ProtoDecode():
-      new_s = jobs_pb2.User()
+      new_s = knowledge_base_pb2.User()
       new_s.ParseFromString(data)
 
       self.assertEqual(new_s.username, "user")

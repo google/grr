@@ -21,13 +21,13 @@ def GetUserInfo(client, user):
   Returns:
     A User rdfvalue or None
   """
+  kb = client.Get(client.Schema.KNOWLEDGE_BASE)
   if "\\" in user:
     domain, user = user.split("\\", 1)
-    users = [u for u in client.Get(client.Schema.USER, []) if u.username == user
-             and u.domain == domain]
+    users = [u for u in kb.users if u.username == user
+             and u.userdomain == domain]
   else:
-    users = [u for u in client.Get(client.Schema.USER, [])
-             if u.username == user]
+    users = [u for u in kb.users if u.username == user]
 
   if not users:
     return
@@ -172,10 +172,6 @@ def InterpolatePath(path, client, users=None, path_args=None, depth=0):
       user = GetUserInfo(client, user)
       if user:
         formatters = dict((x.name, y) for x, y in user.ListSetFields())
-        special_folders = dict(
-            (x.name, y) for x, y in user.special_folders.ListSetFields())
-
-        formatters.update(special_folders)
         formatters.update(sys_formatters)
         try:
           results.append(path.format(**formatters))

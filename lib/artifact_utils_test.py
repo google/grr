@@ -198,8 +198,8 @@ class ArtifactKBTest(test_lib.GRRBaseTest):
                           "test%%users.username%%test", kb))
 
     # Now we have two users
-    kb.users.Append(rdf_client.KnowledgeBaseUser(username="joe", uid=1))
-    kb.users.Append(rdf_client.KnowledgeBaseUser(username="jim", uid=2))
+    kb.users.Append(rdf_client.User(username="joe", uid=1))
+    kb.users.Append(rdf_client.User(username="jim", uid=2))
     kb.Set("environ_allusersprofile", "c:\\programdata")
 
     paths = artifact_utils.InterpolateKbAttributes("test%%users.username%%test",
@@ -232,7 +232,7 @@ class ArtifactKBTest(test_lib.GRRBaseTest):
     # One user has users.temp defined, the others do not.  This is common on
     # windows where users have been created but have never logged in. We should
     # get just one value back.
-    kb.users.Append(rdf_client.KnowledgeBaseUser(
+    kb.users.Append(rdf_client.User(
         username="jason", uid=1, temp="C:\\Users\\jason\\AppData\\Local\\Temp"))
     paths = artifact_utils.InterpolateKbAttributes(
         r"%%users.temp%%\abcd", kb)
@@ -257,33 +257,30 @@ class ArtifactParserTest(test_lib.GRRBaseTest):
               (processor, output_type))
 
 
-class KnowledgeBaseUserMergeTest(test_lib.GRRBaseTest):
+class UserMergeTest(test_lib.GRRBaseTest):
 
   def testUserMergeWindows(self):
     """Check Windows users are accurately merged."""
     kb = rdf_client.KnowledgeBase()
     self.assertEqual(len(kb.users), 0)
-    kb.MergeOrAddUser(rdf_client.KnowledgeBaseUser(sid="1234"))
+    kb.MergeOrAddUser(rdf_client.User(sid="1234"))
     self.assertEqual(len(kb.users), 1)
-    kb.MergeOrAddUser(rdf_client.KnowledgeBaseUser(sid="5678",
-                                                   username="test1"))
+    kb.MergeOrAddUser(rdf_client.User(sid="5678", username="test1"))
     self.assertEqual(len(kb.users), 2)
 
     _, conflicts = kb.MergeOrAddUser(
-        rdf_client.KnowledgeBaseUser(sid="5678", username="test2"))
+        rdf_client.User(sid="5678", username="test2"))
     self.assertEqual(len(kb.users), 2)
     self.assertEqual(conflicts[0], ("username", "test1", "test2"))
     self.assertEqual(kb.GetUser(sid="5678").username, "test2")
 
     # This should merge on user name as we have no other data.
-    kb.MergeOrAddUser(rdf_client.KnowledgeBaseUser(username="test2",
-                                                   homedir="a"))
+    kb.MergeOrAddUser(rdf_client.User(username="test2", homedir="a"))
     self.assertEqual(len(kb.users), 2)
 
     # This should create a new user since the sid is different.
     new_attrs, conflicts = kb.MergeOrAddUser(
-        rdf_client.KnowledgeBaseUser(username="test2", sid="12345",
-                                     temp="/blah"))
+        rdf_client.User(username="test2", sid="12345", temp="/blah"))
     self.assertEqual(len(kb.users), 3)
     self.assertItemsEqual(new_attrs, ["users.username", "users.temp",
                                       "users.sid"])
@@ -293,29 +290,25 @@ class KnowledgeBaseUserMergeTest(test_lib.GRRBaseTest):
     """Check Linux users are accurately merged."""
     kb = rdf_client.KnowledgeBase()
     self.assertEqual(len(kb.users), 0)
-    kb.MergeOrAddUser(rdf_client.KnowledgeBaseUser(username="blake",
-                                                   last_logon=1111))
+    kb.MergeOrAddUser(rdf_client.User(username="blake", last_logon=1111))
     self.assertEqual(len(kb.users), 1)
     # This should merge since the username is the same.
-    kb.MergeOrAddUser(rdf_client.KnowledgeBaseUser(uid="12", username="blake"))
+    kb.MergeOrAddUser(rdf_client.User(uid="12", username="blake"))
     self.assertEqual(len(kb.users), 1)
 
     # This should create a new record because the uid is different
-    kb.MergeOrAddUser(
-        rdf_client.KnowledgeBaseUser(username="blake",
-                                     uid="13", desktop="/home/blake/Desktop"))
+    kb.MergeOrAddUser(rdf_client.User(username="blake", uid="13",
+                                      desktop="/home/blake/Desktop"))
     self.assertEqual(len(kb.users), 2)
 
-    kb.MergeOrAddUser(
-        rdf_client.KnowledgeBaseUser(username="newblake",
-                                     uid="14", desktop="/home/blake/Desktop"))
+    kb.MergeOrAddUser(rdf_client.User(username="newblake", uid="14",
+                                      desktop="/home/blake/Desktop"))
 
     self.assertEqual(len(kb.users), 3)
 
     # Check merging where we don't specify uid works
     new_attrs, conflicts = kb.MergeOrAddUser(
-        rdf_client.KnowledgeBaseUser(username="newblake",
-                                     desktop="/home/blakey/Desktop"))
+        rdf_client.User(username="newblake", desktop="/home/blakey/Desktop"))
     self.assertEqual(len(kb.users), 3)
     self.assertItemsEqual(new_attrs, ["users.username", "users.desktop"])
     self.assertItemsEqual(conflicts, [("desktop", u"/home/blake/Desktop",

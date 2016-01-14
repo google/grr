@@ -71,9 +71,9 @@ class TestArtifactCollectors(CollectorTest):
     collect_flow.state.Register("knowledge_base", rdf_client.KnowledgeBase())
     collect_flow.current_artifact_name = "blah"
     collect_flow.state.knowledge_base.MergeOrAddUser(
-        rdf_client.KnowledgeBaseUser(username="test1"))
+        rdf_client.User(username="test1"))
     collect_flow.state.knowledge_base.MergeOrAddUser(
-        rdf_client.KnowledgeBaseUser(username="test2"))
+        rdf_client.User(username="test2"))
     collect_flow.args = artifact_utils.ArtifactCollectorFlowArgs()
 
     test_rdf = rdf_client.KnowledgeBase()
@@ -137,9 +137,9 @@ class TestArtifactCollectors(CollectorTest):
       collect_flow.state.Register("knowledge_base", rdf_client.KnowledgeBase())
       collect_flow.current_artifact_name = "blah"
       collect_flow.state.knowledge_base.MergeOrAddUser(
-          rdf_client.KnowledgeBaseUser(username="test1"))
+          rdf_client.User(username="test1"))
       collect_flow.state.knowledge_base.MergeOrAddUser(
-          rdf_client.KnowledgeBaseUser(username="test2"))
+          rdf_client.User(username="test2"))
 
       collector = artifact_registry.ArtifactSource(
           type=artifact_registry.ArtifactSource.SourceType.GREP,

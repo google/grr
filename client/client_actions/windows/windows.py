@@ -9,7 +9,6 @@ libs/server_stubs.py
 
 import binascii
 import ctypes
-import exceptions
 import logging
 import os
 import tempfile
@@ -29,7 +28,6 @@ from grr.client import actions
 from grr.client.client_actions import standard
 
 from grr.lib import config_lib
-from grr.lib import constants
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import protodict as rdf_protodict
 
@@ -69,123 +67,6 @@ class GetInstallDate(actions.ActionPlugin):
         0, _winreg.KEY_READ)
     install_date = _winreg.QueryValueEx(subkey, "InstallDate")
     self.SendReply(integer=install_date[0])
-
-
-class EnumerateUsers(actions.ActionPlugin):
-  """Enumerates all the users on this system."""
-  out_rdfvalue = rdf_client.User
-
-  def GetUsersAndHomeDirs(self):
-    """Gets the home directory from the registry for all users on the system.
-
-    Returns:
-      A list of tuples containing (username, sid, homedirectory) for each user.
-    """
-
-    profiles_key = r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList"
-    results = []
-
-    try:
-      # Don't use _winreg.KEY_WOW64_64KEY since it breaks on Windows 2000
-      user_key = _winreg.OpenKey(
-          _winreg.HKEY_LOCAL_MACHINE, profiles_key, 0,
-          _winreg.KEY_ENUMERATE_SUB_KEYS)
-      try:
-        index = 0
-        while True:
-          sid = _winreg.EnumKey(user_key, index)
-          index += 1
-
-          # Don't use _winreg.KEY_WOW64_64KEY since it breaks on Windows 2000
-          homedir_key = _winreg.OpenKey(
-              _winreg.HKEY_LOCAL_MACHINE, profiles_key + "\\" + sid, 0,
-              _winreg.KEY_QUERY_VALUE)
-
-          (homedir, _) = _winreg.QueryValueEx(homedir_key, "ProfileImagePath")
-
-          username = os.path.basename(homedir)
-          results.append((username, sid, homedir))
-
-          _winreg.CloseKey(homedir_key)
-
-      except exceptions.WindowsError:
-        # No more values.
-        pass
-
-      _winreg.CloseKey(user_key)
-
-    except exceptions.WindowsError:
-      logging.error("Could not enumerate users.")
-
-    return results
-
-  def GetSpecialFolders(self, sid):
-    """Retrieves all the special folders from the registry."""
-    folders_key = (r"%s\Software\Microsoft\Windows"
-                   r"\CurrentVersion\Explorer\Shell Folders")
-    try:
-      key = _winreg.OpenKey(_winreg.HKEY_USERS, folders_key % sid)
-    except exceptions.WindowsError:
-      # For users that are not logged in this key will not exist. If we return
-      # None here, they will be guessed for now.
-      return
-
-    response = {}
-
-    for (reg_key, _, pb_field) in self.special_folders:
-      try:
-        (folder, _) = _winreg.QueryValueEx(key, reg_key)
-        if folder:
-          response[pb_field] = folder
-      except exceptions.WindowsError:
-        pass
-    return rdf_client.FolderInformation(**response)
-
-  def GetWMIAccount(self, result, sid, homedir, known_sids):
-
-    if result["SID"] not in known_sids:
-      # There could be a user in another domain with the same name,
-      # we just ignore this.
-      return None
-
-    response = {"username": result["Name"],
-                "domain": result["Domain"],
-                "sid": result["SID"],
-                "homedir": homedir}
-
-    profile_folders = self.GetSpecialFolders(sid)
-    if not profile_folders:
-      # TODO(user): The user's registry file is not mounted. The right
-      # way would be to open the ntuser.dat and parse the keys from there
-      # but we don't have registry file reading capability yet. For now,
-      # we just try to guess the folders.
-      folders_found = {}
-      for (_, folder, field) in self.special_folders:
-        path = os.path.join(homedir, folder)
-        try:
-          os.stat(path)
-          folders_found[field] = path
-        except exceptions.WindowsError:
-          pass
-      profile_folders = rdf_client.FolderInformation(**folders_found)
-
-    response["special_folders"] = profile_folders
-    return response
-
-  def Run(self, unused_args):
-    """Enumerate all users on this machine."""
-
-    self.special_folders = constants.profile_folders
-    homedirs = self.GetUsersAndHomeDirs()
-    known_sids = [sid for (_, sid, _) in homedirs]
-
-    for (user, sid, homedir) in homedirs:
-      # This query determines if the sid corresponds to a real user account.
-      for result in RunWMIQuery("SELECT * FROM Win32_UserAccount "
-                                "WHERE name=\"%s\"" % user):
-        response = self.GetWMIAccount(result, sid, homedir, known_sids)
-        if response:
-          self.SendReply(**response)
 
 
 class EnumerateInterfaces(actions.ActionPlugin):

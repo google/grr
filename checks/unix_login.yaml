@@ -9,7 +9,7 @@ method:
       - artifact: 'LoginPolicyConfiguration'
         baseline:
           - type: 'RDFFilter'
-            expression: KnowledgeBaseUser
+            expression: User
         filters:
           - type: 'ObjectFilter'
             expression: "pw_entry.hash_type inset ['DES','MD5','NTHASH','UNUSED']"
@@ -26,7 +26,7 @@ method:
       - artifact: 'LoginPolicyConfiguration'
         baseline:
           - type: 'RDFFilter'
-            expression: KnowledgeBaseUser
+            expression: User
         filters:
           - type: 'ObjectFilter'
             expression: pw_entry.hash_type is "EMPTY"
@@ -43,7 +43,7 @@ method:
       - artifact: 'LoginPolicyConfiguration'
         baseline:
           - type: 'RDFFilter'
-            expression: KnowledgeBaseUser
+            expression: User
           - type: 'ObjectFilter'
             expression: "pw_entry.hash_type notinset ['DISABLED', 'UNSET']"
         filters:
@@ -63,7 +63,7 @@ method:
           format: 'User account {username} is a NIS account marker.'
         baseline:
           - type: 'RDFFilter'
-            expression: KnowledgeBaseUser
+            expression: User
         filters:
           - type: 'ObjectFilter'
             expression: username regexp "\+\w*"

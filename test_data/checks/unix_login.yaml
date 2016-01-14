@@ -9,7 +9,7 @@ method:
       - artifact: 'LoginPolicyConfiguration'
         baseline:
           - type: 'RDFFilter'
-            expression: KnowledgeBaseUser
+            expression: User
         filters:
           - type: 'ObjectFilter'
             expression: "pw_entry.store != 'UNKNOWN'"

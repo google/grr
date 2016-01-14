@@ -105,8 +105,8 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     # Add some usernames we can interpolate later.
     client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
     kb = client.Get(client.Schema.KNOWLEDGE_BASE)
-    kb.MergeOrAddUser(rdf_client.KnowledgeBaseUser(username="test"))
-    kb.MergeOrAddUser(rdf_client.KnowledgeBaseUser(username="syslog"))
+    kb.MergeOrAddUser(rdf_client.User(username="test"))
+    kb.MergeOrAddUser(rdf_client.User(username="syslog"))
     client.Set(kb)
     client.Close()
 
@@ -170,10 +170,10 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
     # Add some usernames we can interpolate later.
     client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
-    users = client.Schema.USER()
-    users.Append(username="test")
-    users.Append(username="syslog")
-    client.Set(users)
+    kb = client.Get(client.Schema.KNOWLEDGE_BASE)
+    kb.MergeOrAddUser(rdf_client.User(username="test"))
+    kb.MergeOrAddUser(rdf_client.User(username="syslog"))
+    client.Set(kb)
     client.Close()
 
     client_mock = action_mocks.ActionMock("Find", "StatFile")
@@ -385,13 +385,13 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
 
     kb = client.Get(client.Schema.KNOWLEDGE_BASE)
-    kb.MergeOrAddUser(rdf_client.KnowledgeBaseUser(
+    kb.MergeOrAddUser(rdf_client.User(
         username="test", appdata="test_data/index.dat"))
-    kb.MergeOrAddUser(rdf_client.KnowledgeBaseUser(
+    kb.MergeOrAddUser(rdf_client.User(
         username="test2", appdata="test_data/History"))
     # This is a record which means something to the interpolation system. We
     # should not process this especially.
-    kb.MergeOrAddUser(rdf_client.KnowledgeBaseUser(
+    kb.MergeOrAddUser(rdf_client.User(
         username="test3", appdata="%%PATH%%"))
 
     client.Set(kb)

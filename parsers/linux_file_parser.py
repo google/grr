@@ -80,9 +80,9 @@ class PCIDevicesInfoParser(parsers.FileParser):
 
 
 class PasswdParser(parsers.FileParser):
-  """Parser for passwd files. Yields KnowledgeBaseUser semantic values."""
+  """Parser for passwd files. Yields User semantic values."""
 
-  output_types = ["KnowledgeBaseUser"]
+  output_types = ["User"]
   supported_artifacts = ["UnixPasswd"]
 
   @classmethod
@@ -91,12 +91,9 @@ class PasswdParser(parsers.FileParser):
     try:
       if not line: return
       dat = dict(zip(fields, line.split(":")))
-      user = rdf_client.KnowledgeBaseUser(username=dat["username"],
-                                          uid=int(dat["uid"]),
-                                          homedir=dat["homedir"],
-                                          shell=dat["shell"],
-                                          gid=int(dat["gid"]),
-                                          full_name=dat["fullname"])
+      user = rdf_client.User(username=dat["username"], uid=int(dat["uid"]),
+                             homedir=dat["homedir"], shell=dat["shell"],
+                             gid=int(dat["gid"]), full_name=dat["fullname"])
       return user
 
     except (IndexError, KeyError):
@@ -116,7 +113,7 @@ class PasswdParser(parsers.FileParser):
 class PasswdBufferParser(parsers.GrepParser):
   """Parser for lines grepped from passwd files."""
 
-  output_types = ["KnowledgeBaseUser"]
+  output_types = ["User"]
   supported_artifacts = ["LinuxPasswdHomedirs", "NssCacheLinuxPasswdHomedirs"]
 
   def Parse(self, filefinderresult, knowledge_base):
@@ -151,10 +148,10 @@ class UtmpStruct(utils.Struct):
 class LinuxWtmpParser(parsers.FileParser):
   """Simplified parser for linux wtmp files.
 
-  Yields KnowledgeBaseUser semantic values for USER_PROCESS events.
+  Yields User semantic values for USER_PROCESS events.
   """
 
-  output_types = ["KnowledgeBaseUser"]
+  output_types = ["User"]
   supported_artifacts = ["LinuxWtmp"]
 
   def Parse(self, stat, file_object, knowledge_base):
@@ -185,14 +182,14 @@ class LinuxWtmpParser(parsers.FileParser):
         users[record.user] = record.sec
 
     for user, last_login in users.iteritems():
-      yield rdf_client.KnowledgeBaseUser(username=utils.SmartUnicode(user),
-                                         last_logon=last_login * 1000000)
+      yield rdf_client.User(username=utils.SmartUnicode(user),
+                            last_logon=last_login * 1000000)
 
 
 class NetgroupParser(parsers.FileParser):
   """Parser that extracts users from a netgroup file."""
 
-  output_types = ["KnowledgeBaseUser"]
+  output_types = ["User"]
   supported_artifacts = ["NetgroupConfiguration"]
   # From useradd man page
   USERNAME_REGEX = r"^[a-z_][a-z0-9_-]{0,30}[$]?$"
@@ -232,14 +229,14 @@ class NetgroupParser(parsers.FileParser):
                                           symptom="Invalid username: %s" % user)
               else:
                 users.add(user)
-                yield rdf_client.KnowledgeBaseUser(
+                yield rdf_client.User(
                     username=utils.SmartUnicode(user))
           except ValueError:
             raise parsers.ParseError("Invalid netgroup file at line %d: %s" %
                                      (index + 1, line))
 
   def Parse(self, stat, file_object, knowledge_base):
-    """Parse the netgroup file and return KnowledgeBaseUser objects.
+    """Parse the netgroup file and return User objects.
 
     Lines are of the form:
       group1 (-,user1,) (-,user2,) (-,user3,)
@@ -256,7 +253,7 @@ class NetgroupParser(parsers.FileParser):
       knowledge_base: unused
 
     Returns:
-      rdf_client.KnowledgeBaseUser
+      rdf_client.User
     """
     _, _ = stat, knowledge_base
     lines = [l.strip() for l in file_object.read(100000).splitlines()]
@@ -266,7 +263,7 @@ class NetgroupParser(parsers.FileParser):
 class NetgroupBufferParser(parsers.GrepParser):
   """Parser for lines grepped from /etc/netgroup files."""
 
-  output_types = ["KnowledgeBaseUser"]
+  output_types = ["User"]
 
   def Parse(self, filefinderresult, knowledge_base):
     _ = knowledge_base
@@ -522,7 +519,7 @@ class LinuxSystemGroupParser(LinuxBaseShadowParser):
 class LinuxSystemPasswdParser(LinuxBaseShadowParser):
   """Parser for local accounts."""
 
-  output_types = ["KnowledgeBaseUser"]
+  output_types = ["User"]
   supported_artifacts = ["LoginPolicyConfiguration"]
   process_together = True
 
@@ -566,7 +563,7 @@ class LinuxSystemPasswdParser(LinuxBaseShadowParser):
     if line:
       rslt = dict(zip(fields, line.split(":")))
       user = self.entry.setdefault(rslt["uname"],
-                                   rdf_client.KnowledgeBaseUser())
+                                   rdf_client.User())
       user.username = rslt["uname"]
       user.pw_entry.store = self.GetPwStore(rslt["passwd"])
       if user.pw_entry.store == self.base_store:
@@ -666,7 +663,7 @@ class LinuxSystemPasswdParser(LinuxBaseShadowParser):
       fileset: A dict of files mapped from path to an open file.
 
     Yields:
-      - A series of KnowledgeBaseUser entries, each of which is populated with
+      - A series of User entries, each of which is populated with
          group memberships and indications of the shadow state of the account.
       - A series of anomalies in cases where there are mismatches between passwd
         and shadow state.

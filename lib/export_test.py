@@ -1340,6 +1340,7 @@ class DynamicRekallResponseConverterTest(test_lib.GRRBaseTest):
     converted_values = list(self.converter.Convert(export.ExportedMetadata(),
                                                    self.messages[0],
                                                    token=self.token))
+
     self.assertEqual(len(converted_values), 2)
     self.assertEqual(converted_values[0].__class__.__name__,
                      "RekallExport_sample")

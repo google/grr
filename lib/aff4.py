@@ -1876,8 +1876,8 @@ class AFF4Object(object):
                            attribute)
 
     if not isinstance(value, attribute.attribute_type):
-      raise ValueError("Value for attribute %s must be of type %s()",
-                       attribute, attribute.attribute_type.__name__)
+      raise ValueError("Value for attribute %s must be of type %s()" % (
+          attribute, attribute.attribute_type.__name__))
 
   def Copy(self, to_attribute, from_fd, from_attribute):
     values = from_fd.GetValuesForAttribute(from_attribute)

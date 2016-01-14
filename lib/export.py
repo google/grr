@@ -1710,8 +1710,9 @@ def GetMetadata(client, token=None):
   metadata.os_version = utils.SmartUnicode(
       client_fd.Get(client_fd.Schema.OS_VERSION, u""))
 
-  metadata.usernames = utils.SmartUnicode(
-      client_fd.Get(client_fd.Schema.USERNAMES, u""))
+  kb = client_fd.Get(client_fd.Schema.KNOWLEDGE_BASE)
+  usernames = [user.username for user in kb.users]
+  metadata.usernames = utils.SmartUnicode(usernames or u"")
 
   metadata.mac_address = utils.SmartUnicode(
       client_fd.Get(client_fd.Schema.MAC_ADDRESS, u""))

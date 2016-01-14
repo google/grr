@@ -151,7 +151,8 @@ class GetMRU(flow.GRRFlow):
   def Start(self):
     """Call the find flow to get the MRU data for each user."""
     fd = aff4.FACTORY.Open(self.client_id, mode="r", token=self.token)
-    for user in fd.Get(fd.Schema.USER):
+    kb = fd.Get(fd.Schema.KNOWLEDGE_BASE)
+    for user in kb.users:
       mru_path = ("HKEY_USERS/%s/Software/Microsoft/Windows"
                   "/CurrentVersion/Explorer/ComDlg32"
                   "/OpenSavePidlMRU" % user.sid)

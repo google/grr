@@ -278,9 +278,9 @@ class ArtifactFlowLinuxTest(ArtifactTest):
 
       # Add some users
       kb = fd.Get(fd.Schema.KNOWLEDGE_BASE)
-      kb.MergeOrAddUser(rdf_client.KnowledgeBaseUser(username="gogol"))
-      kb.MergeOrAddUser(rdf_client.KnowledgeBaseUser(username="gevulot"))
-      kb.MergeOrAddUser(rdf_client.KnowledgeBaseUser(username="exomemory"))
+      kb.MergeOrAddUser(rdf_client.User(username="gogol"))
+      kb.MergeOrAddUser(rdf_client.User(username="gevulot"))
+      kb.MergeOrAddUser(rdf_client.User(username="exomemory"))
       fd.Set(kb)
 
     self.LoadTestArtifacts()
@@ -615,7 +615,6 @@ class GrrKbLinuxTest(GrrKbTest):
         self.assertEqual(kb.os_major_version, 14)
         self.assertEqual(kb.os_minor_version, 4)
         # user 1,2,3 from wtmp. yagharek from netgroup.
-        # Bert and Ernie not present (Users fixture overriden by kb).
         self.assertItemsEqual([x.username for x in kb.users],
                               ["user1", "user2", "user3", "yagharek"])
         user = kb.GetUser(username="user1")
@@ -644,7 +643,6 @@ class GrrKbLinuxTest(GrrKbTest):
         self.assertEqual(kb.os_major_version, 14)
         self.assertEqual(kb.os_minor_version, 4)
         # user 1,2,3 from wtmp.
-        # Bert and Ernie not present (Users fixture overriden by kb).
         self.assertItemsEqual([x.username for x in kb.users], ["user1", "user2",
                                                                "user3"])
         user = kb.GetUser(username="user1")
@@ -704,7 +702,6 @@ class GrrKbDarwinTest(GrrKbTest):
         self.assertEqual(kb.os_major_version, 10)
         self.assertEqual(kb.os_minor_version, 9)
         # scalzi from /Users dir listing.
-        # Bert and Ernie not present (Users fixture overriden by kb).
         self.assertItemsEqual([x.username for x in kb.users], ["scalzi"])
         user = kb.GetUser(username="scalzi")
         self.assertEqual(user.homedir, "/Users/scalzi")

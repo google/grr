@@ -589,7 +589,8 @@
             }
           }
         },
-        "urn": "aff4:/C.1000000000000000"
+        "urn": "aff4:/C.1000000000000000",
+        "users": []
       },
       "test_class": "ApiGetClientHandlerRegressionTest",
       "type_stripped_response": {
@@ -604,7 +605,8 @@
           "node": "Host-0",
           "version": ""
         },
-        "urn": "aff4:/C.1000000000000000"
+        "urn": "aff4:/C.1000000000000000",
+        "users": []
       },
       "url": "/api/clients/C.1000000000000000"
     }
@@ -5441,7 +5443,8 @@
                 "age": 0,
                 "type": "ClientURN",
                 "value": "aff4:/C.1000000000000000"
-              }
+              },
+              "users": []
             }
           }
         ]
@@ -5461,7 +5464,8 @@
               "node": "Host-0",
               "version": ""
             },
-            "urn": "aff4:/C.1000000000000000"
+            "urn": "aff4:/C.1000000000000000",
+            "users": []
           }
         ]
       },
@@ -9483,7 +9487,8 @@
                     "age": 0,
                     "type": "ClientURN",
                     "value": "aff4:/C.1000000000000001"
-                  }
+                  },
+                  "users": []
                 }
               }
             }
@@ -9558,7 +9563,8 @@
                     "age": 0,
                     "type": "ClientURN",
                     "value": "aff4:/C.1000000000000000"
-                  }
+                  },
+                  "users": []
                 }
               }
             }
@@ -9583,7 +9589,8 @@
                 "node": "Host-1",
                 "version": ""
               },
-              "urn": "aff4:/C.1000000000000001"
+              "urn": "aff4:/C.1000000000000001",
+              "users": []
             }
           },
           {
@@ -9602,7 +9609,8 @@
                 "node": "Host-0",
                 "version": ""
               },
-              "urn": "aff4:/C.1000000000000000"
+              "urn": "aff4:/C.1000000000000000",
+              "users": []
             }
           }
         ]

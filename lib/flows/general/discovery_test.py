@@ -43,8 +43,6 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
     summary = self.fd.GetSummary()
     self.assertItemsEqual([x.username for x in summary.users], all_users)
 
-    users = [x.username for x in self.fd.Get(self.fd.Schema.USER)]
-    self.assertItemsEqual(users, all_users)
     self.assertItemsEqual(self.fd.Get(self.fd.Schema.USERNAMES), all_users)
 
     # Check kb users
@@ -274,8 +272,6 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
         self._CheckNotificationsCreated()
         self._CheckClientSummary("Windows", "6.1.7600", kernel="6.1.7601")
 
-        # users Bert and Ernie added by the fixture should not be present (USERS
-        # overriden by kb)
         # jim parsed from registry profile keys
         self._CheckUsers(["jim", "kovacs"])
         self._CheckNetworkInfo()

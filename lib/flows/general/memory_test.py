@@ -600,11 +600,10 @@ class ListVADBinariesTest(MemoryTest):
     fd = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
     kb = fd.Get(fd.Schema.KNOWLEDGE_BASE)
     kb.environ_systemdrive = "C:"
-    kb.MergeOrAddUser(
-        rdf_client.KnowledgeBaseUser(username="LocalService",
-                                     userdomain="testing-PC",
-                                     homedir=r"C:\Users\localservice",
-                                     sid="S-1-5-20"))
+    kb.MergeOrAddUser(rdf_client.User(username="LocalService",
+                                      userdomain="testing-PC",
+                                      homedir=r"C:\Users\localservice",
+                                      sid="S-1-5-20"))
     fd.Set(kb)
     fd.Close()
 

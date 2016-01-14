@@ -24,6 +24,14 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
                                  aff4_type="VFSGRRClient",
                                  mode="rw",
                                  token=self.token)
+    kb = rdf_client.KnowledgeBase()
+    kb.users.Append(rdf_client.User(
+        username="Bert",
+        full_name="Eric (Bertrand ) 'Russell' \"Logician\" Jacobson"))
+    kb.users.Append(rdf_client.User(
+        username="Ernie",
+        full_name="Steve O'Bryan"))
+    client.Set(client.Schema.KNOWLEDGE_BASE(kb))
     _, keywords = index.AnalyzeClient(client)
 
     # Should not contain an empty string.

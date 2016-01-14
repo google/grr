@@ -61,21 +61,21 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
 
   def setUp(self):
     super(TestEndToEndTestFlow, self).setUp()
+    self.SetupClients(1, system="Linux", os_version="14.04", arch="x86_64")
     install_time = rdfvalue.RDFDatetime().Now()
     user = "testuser"
     userobj = rdf_client.User(username=user)
     interface = rdf_client.Interface(ifname="eth0")
     self.client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient", mode="rw",
                                       token=self.token, age=aff4.ALL_TIMES)
+    kb = self.client.Get(self.client.Schema.KNOWLEDGE_BASE)
+    kb.users.Append(userobj)
     self.client.Set(self.client.Schema.HOSTNAME("hostname"))
-    self.client.Set(self.client.Schema.SYSTEM("Linux"))
     self.client.Set(self.client.Schema.OS_RELEASE("debian"))
-    self.client.Set(self.client.Schema.OS_VERSION("14.04"))
     self.client.Set(self.client.Schema.KERNEL("3.15-rc2"))
     self.client.Set(self.client.Schema.FQDN("hostname.example.com"))
-    self.client.Set(self.client.Schema.ARCH("x86_64"))
     self.client.Set(self.client.Schema.INSTALL_DATE(install_time))
-    self.client.Set(self.client.Schema.USER([userobj]))
+    self.client.Set(self.client.Schema.KNOWLEDGE_BASE(kb))
     self.client.Set(self.client.Schema.USERNAMES([user]))
     self.client.Set(self.client.Schema.LAST_INTERFACES([interface]))
     self.client.Flush()
@@ -108,6 +108,8 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
 
   def testNoApplicableTests(self):
     """Try to run linux tests on windows."""
+    self.SetupClients(1, system="Windows", os_version="6.1.7601SP1",
+                      arch="AMD64")
     install_time = rdfvalue.RDFDatetime().Now()
     user = "testuser"
     userobj = rdf_client.User(username=user)
@@ -115,15 +117,14 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
     self.client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient", mode="rw",
                                       token=self.token, age=aff4.ALL_TIMES)
 
+    kb = self.client.Get(self.client.Schema.KNOWLEDGE_BASE)
+    kb.users.Append(userobj)
     self.client.Set(self.client.Schema.HOSTNAME("hostname"))
-    self.client.Set(self.client.Schema.SYSTEM("Windows"))
     self.client.Set(self.client.Schema.OS_RELEASE("7"))
-    self.client.Set(self.client.Schema.OS_VERSION("6.1.7601SP1"))
     self.client.Set(self.client.Schema.KERNEL("6.1.7601"))
     self.client.Set(self.client.Schema.FQDN("hostname.example.com"))
-    self.client.Set(self.client.Schema.ARCH("AMD64"))
     self.client.Set(self.client.Schema.INSTALL_DATE(install_time))
-    self.client.Set(self.client.Schema.USER([userobj]))
+    self.client.Set(self.client.Schema.KNOWLEDGE_BASE(kb))
     self.client.Set(self.client.Schema.USERNAMES([user]))
     self.client.Set(self.client.Schema.LAST_INTERFACES([interface]))
     self.client.Flush()

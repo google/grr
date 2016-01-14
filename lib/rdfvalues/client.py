@@ -159,62 +159,6 @@ class ManagementAgent(structs.RDFProtoStruct):
   protobuf = sysinfo_pb2.ManagementAgent
 
 
-class User(structs.RDFProtoStruct):
-  """A user of the client system.
-
-  This stores information related to a specific user of the client system.
-  """
-  protobuf = jobs_pb2.User
-
-  kb_user_mapping = {
-      "username": "username",
-      "domain": "userdomain",
-      "homedir": "homedir",
-      "sid": "sid",
-      "full_name": "full_name",
-      "last_logon": "last_logon",
-      "special_folders.cookies": "cookies",
-      "special_folders.local_app_data": "localappdata",
-      "special_folders.app_data": "appdata",
-      "special_folders.cache": "internet_cache",
-      "special_folders.personal": "personal",
-      "special_folders.desktop": "desktop",
-      "special_folders.startup": "startup",
-      "special_folders.recent": "recent",
-  }
-
-  def ToKnowledgeBaseUser(self):
-    """Convert a User value into a KnowledgeBaseUser value."""
-    kb_user = KnowledgeBaseUser()
-    for old_pb_name, new_pb_name in self.kb_user_mapping.items():
-      if len(old_pb_name.split(".")) > 1:
-        attr, old_pb_name = old_pb_name.split(".", 1)
-        val = getattr(getattr(self, attr), old_pb_name)
-      else:
-        val = getattr(self, old_pb_name)
-      if val:
-        kb_user.Set(new_pb_name, val)
-    return kb_user
-
-  def FromKnowledgeBaseUser(self, kbuser):
-    """Convert a KnowledgeBaseUser into a User value."""
-    folders = FolderInformation()
-    for old_pb_name, new_pb_name in self.kb_user_mapping.items():
-      val = getattr(kbuser, new_pb_name)
-      if val:
-        if len(old_pb_name.split(".")) > 1:
-          folders.Set(old_pb_name.split(".")[1], val)
-        else:
-          self.Set(old_pb_name, val)
-    self.Set("special_folders", folders)
-    return self
-
-
-class Users(protodict.RDFValueArray):
-  """A list of user accounts on the client system."""
-  rdf_type = User
-
-
 class PwEntry(structs.RDFProtoStruct):
   """Information about password structures."""
   protobuf = knowledge_base_pb2.PwEntry
@@ -237,7 +181,7 @@ class KnowledgeBase(structs.RDFProtoStruct):
     """Merge a user into existing users or add new if it doesn't exist.
 
     Args:
-      kb_user: A KnowledgeBaseUser rdfvalue.
+      kb_user: A User rdfvalue.
 
     Returns:
       A list of strings with the set attribute names, e.g. ["users.sid"]
@@ -259,7 +203,7 @@ class KnowledgeBase(structs.RDFProtoStruct):
     return new_attrs, merge_conflicts
 
   def GetUser(self, sid=None, uid=None, username=None):
-    """Retrieve a KnowledgeBaseUser based on sid, uid or username.
+    """Retrieve a User based on sid, uid or username.
 
     On windows we first get a SID and use it to find the username.  We want to
     avoid combining users with name collisions, which occur when local users
@@ -271,7 +215,7 @@ class KnowledgeBase(structs.RDFProtoStruct):
     records.
 
     TODO(user): this won't work at all well with a query for uid=0 because
-    that is also the default for KnowledgeBaseUser objects that don't have uid
+    that is also the default for User objects that don't have uid
     set.
 
     Args:
@@ -279,7 +223,7 @@ class KnowledgeBase(structs.RDFProtoStruct):
       uid: Linux/Darwin user id
       username: string
     Returns:
-      rdf_client.KnowledgeBaseUser or None
+      rdf_client.User or None
     """
     if sid:
       for user in self.users:
@@ -308,9 +252,17 @@ class KnowledgeBase(structs.RDFProtoStruct):
     return sorted(fields)
 
 
-class KnowledgeBaseUser(structs.RDFProtoStruct):
+class User(structs.RDFProtoStruct):
   """Information about the users."""
-  protobuf = knowledge_base_pb2.KnowledgeBaseUser
+  protobuf = knowledge_base_pb2.User
+
+
+class KnowledgeBaseUser(User):
+  """Backwards compatibility for old clients.
+
+  Linux client action EnumerateUsers previously returned KnowledgeBaseUser
+  objects.
+  """
 
 
 class NetworkEndpoint(structs.RDFProtoStruct):
@@ -895,6 +847,21 @@ class ClientSummary(structs.RDFProtoStruct):
 class GetClientStatsRequest(structs.RDFProtoStruct):
   """Request for GetClientStats action."""
   protobuf = jobs_pb2.GetClientStatsRequest
+
+
+class VersionString(rdfvalue.RDFString):
+
+  @property
+  def versions(self):
+    version = str(self)
+    result = []
+    for x in version.split("."):
+      try:
+        result.append(int(x))
+      except ValueError:
+        break
+
+    return result
 
 
 class LoadComponent(structs.RDFProtoStruct):

@@ -8,14 +8,6 @@ sources:
   returned_types: [NetworkConnection]
 labels: [Network]
 ---
-name: EnumerateUsersGrr
-doc: List users using the GRR EnumerateUsers client action.
-sources:
-- type: GRR_CLIENT_ACTION
-  attributes: {client_action: EnumerateUsers}
-  returned_types: [User]
-labels: [Users]
----
 name: EnumerateFilesystemsGrr
 doc: List mounted file systems using GRR EnumerateFilesystems client action.
 sources:

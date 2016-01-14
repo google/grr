@@ -32,12 +32,10 @@ class TestWebHistory(WebHistoryFlowTest):
     self.client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
     self.client.Set(self.client.Schema.SYSTEM("Linux"))
 
-    user_list = self.client.Schema.USER()
-    user_list.Append(rdf_client.User(username="test",
-                                     full_name="test user",
-                                     homedir="/home/test/",
-                                     last_logon=250))
-    self.client.AddAttribute(self.client.Schema.USER, user_list)
+    kb = self.client.Get(self.client.Schema.KNOWLEDGE_BASE)
+    kb.MergeOrAddUser(rdf_client.User(username="test", full_name="test user",
+                                      homedir="/home/test/", last_logon=250))
+    self.client.Set(kb)
     self.client.Close()
 
     self.client_mock = action_mocks.ActionMock(
@@ -152,10 +150,8 @@ class TestWebHistoryWithArtifacts(WebHistoryFlowTest):
     self.SetupClients(1, system="Linux", os_version="12.04")
     fd = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
     self.kb = fd.Get(fd.Schema.KNOWLEDGE_BASE)
-    self.kb.users.Append(rdf_client.KnowledgeBaseUser(username="test",
-                                                      full_name="test user",
-                                                      homedir="/home/test/",
-                                                      last_logon=250))
+    self.kb.users.Append(rdf_client.User(username="test", full_name="test user",
+                                         homedir="/home/test/", last_logon=250))
     fd.AddAttribute(fd.Schema.KNOWLEDGE_BASE, self.kb)
     fd.Flush()
 

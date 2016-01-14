@@ -287,14 +287,14 @@ class CollectArtifactDependencies(flow.GRRFlow):
         logging.error("Artifact %s returned an Anomaly: %s", artifact_name,
                       response)
         continue
-      if isinstance(response, rdf_client.KnowledgeBaseUser):
+      if isinstance(response, rdf_client.User):
         # MergeOrAddUser will update or add a user based on the attributes
-        # returned by the artifact in the KnowledgeBaseUser.
+        # returned by the artifact in the User.
         attrs_provided, merge_conflicts = (
             self.state.knowledge_base.MergeOrAddUser(response))
         provided.update(attrs_provided)
         for key, old_val, val in merge_conflicts:
-          self.Log("KnowledgeBaseUser merge conflict in %s. Old value: %s, "
+          self.Log("User merge conflict in %s. Old value: %s, "
                    "Newly written value: %s", key, old_val, val)
 
       else:
@@ -333,24 +333,14 @@ class CollectArtifactDependencies(flow.GRRFlow):
 
     return provided
 
-  def CopyUsersFromKnowledgeBase(self, client):
-    """Copy users from knowledgebase to USER.
-
-    TODO(user): deprecate USER completely in favour of KNOWLEDGE_BASE.user
+  def CopyUserNamesFromKnowledgeBase(self, client):
+    """Copy usernames from knowledgebase to USERNAMES.
 
     Args:
       client: client object open for writing
     """
-    usernames = []
-    user_list = client.Schema.USER()
-    for kbuser in self.state.knowledge_base.users:
-      user_list.Append(rdf_client.User().FromKnowledgeBaseUser(kbuser))
-
-      if kbuser.username:
-        usernames.append(kbuser.username)
-
-    # Store it now
-    client.AddAttribute(client.Schema.USER, user_list)
+    kb = self.state.knowledge_base.users
+    usernames = [user.username for user in kb if user.username]
     client.AddAttribute(client.Schema.USERNAMES(
         " ".join(usernames)))
 
@@ -373,7 +363,7 @@ class CollectArtifactDependencies(flow.GRRFlow):
     """Finish up and write the results."""
     client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
     client.Set(client.Schema.KNOWLEDGE_BASE, self.state.knowledge_base)
-    self.CopyUsersFromKnowledgeBase(client)
+    self.CopyUserNamesFromKnowledgeBase(client)
     self.CopyOSReleaseFromKnowledgeBase(client)
     client.Flush()
     self.Notify("ViewObject", client.urn, "Knowledge Base Updated.")

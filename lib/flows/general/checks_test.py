@@ -48,7 +48,7 @@ class TestCheckFlows(test_lib.FlowTestsBaseclass,
     client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
     kb = client.Schema.KNOWLEDGE_BASE()
     kb.os = "Linux"
-    user = rdf_client.KnowledgeBaseUser(username="user1", homedir="/home/user1")
+    user = rdf_client.User(username="user1", homedir="/home/user1")
     kb.users = [user]
     client.Set(client.Schema.KNOWLEDGE_BASE, kb)
     client.Set(client.Schema.SYSTEM("Linux"))

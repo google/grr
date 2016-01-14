@@ -7,6 +7,7 @@ from grr.lib import flags
 from grr.lib import flow_utils
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.rdfvalues import client as rdf_client
 
 
 class TestInterpolatePath(test_lib.FlowTestsBaseclass):
@@ -17,22 +18,18 @@ class TestInterpolatePath(test_lib.FlowTestsBaseclass):
     # Set up client info
     self.client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
     self.client.Set(self.client.Schema.SYSTEM("Windows"))
-    user_list = self.client.Schema.USER()
-    user_list.Append(username="test",
-                     domain="TESTDOMAIN",
-                     full_name="test user",
-                     homedir="c:\\Users\\test",
-                     last_logon=rdfvalue.RDFDatetime("2012-11-10"))
+    kb = self.client.Get(self.client.Schema.KNOWLEDGE_BASE)
+    kb.users.Append(
+        rdf_client.User(
+            username="test", userdomain="TESTDOMAIN", full_name="test user",
+            homedir="c:\\Users\\test",
+            last_logon=rdfvalue.RDFDatetime("2012-11-10")))
 
-    user_list.Append(username="test2",
-                     domain="TESTDOMAIN",
-                     full_name="test user 2",
-                     homedir="c:\\Users\\test2",
-                     last_logon=100)
-
-    self.client.AddAttribute(self.client.Schema.USER, user_list)
-    self.client.Close()
-    self.client = aff4.FACTORY.Open(self.client_id, token=self.token)
+    kb.users.Append(rdf_client.User(username="test2", userdomain="TESTDOMAIN",
+                                    full_name="test user 2",
+                                    homedir="c:\\Users\\test2", last_logon=100))
+    self.client.Set(kb)
+    self.client.Flush()
 
   def testBasicInterpolation(self):
     """Test Basic."""
