@@ -20,7 +20,7 @@ from grr.lib.rdfvalues import flows as rdf_flows
 
 class MockAction(actions.ActionPlugin):
   in_rdfvalue = rdf_client.LogMessage
-  out_rdfvalue = rdf_client.LogMessage
+  out_rdfvalues = [rdf_client.LogMessage]
 
   def Run(self, message):
     self.SendReply(rdf_client.EchoRequest(
@@ -30,7 +30,7 @@ class MockAction(actions.ActionPlugin):
 class RaiseAction(actions.ActionPlugin):
   """A mock action which raises an error."""
   in_rdfvalue = rdf_client.LogMessage
-  out_rdfvalue = rdf_client.LogMessage
+  out_rdfvalues = [rdf_client.LogMessage]
 
   def Run(self, unused_args):
     raise RuntimeError("I dont like.")

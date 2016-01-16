@@ -29,7 +29,7 @@ from grr.lib.rdfvalues import protodict as rdf_protodict
 class Echo(actions.ActionPlugin):
   """Returns a message to the server."""
   in_rdfvalue = rdf_client.EchoRequest
-  out_rdfvalue = rdf_client.LogMessage
+  out_rdfvalues = [rdf_client.LogMessage]
 
   def Run(self, args):
     self.SendReply(args)
@@ -37,7 +37,7 @@ class Echo(actions.ActionPlugin):
 
 class GetHostname(actions.ActionPlugin):
   """Retrieves the host name of the client."""
-  out_rdfvalue = rdf_protodict.DataBlob
+  out_rdfvalues = [rdf_protodict.DataBlob]
 
   def Run(self, unused_args):
     self.SendReply(string=socket.gethostname())
@@ -45,7 +45,7 @@ class GetHostname(actions.ActionPlugin):
 
 class GetPlatformInfo(actions.ActionPlugin):
   """Retrieves platform information."""
-  out_rdfvalue = rdf_client.Uname
+  out_rdfvalues = [rdf_client.Uname]
 
   def Run(self, unused_args):
     """Populate platform information into a Uname response."""
@@ -57,7 +57,7 @@ class Kill(actions.ActionPlugin):
 
   Used for testing process respawn.
   """
-  out_rdfvalue = rdf_flows.GrrMessage
+  out_rdfvalues = [rdf_flows.GrrMessage]
 
   def Run(self, unused_arg):
     """Run the kill."""
@@ -119,14 +119,14 @@ class Bloat(actions.ActionPlugin):
 class GetConfiguration(actions.ActionPlugin):
   """Retrieves the running configuration parameters."""
   in_rdfvalue = None
-  out_rdfvalue = rdf_protodict.Dict
+  out_rdfvalues = [rdf_protodict.Dict]
 
   BLOCKED_PARAMETERS = ["Client.private_key"]
 
   def Run(self, unused_arg):
     """Retrieve the configuration except for the blocked parameters."""
 
-    out = self.out_rdfvalue()
+    out = self.out_rdfvalues[0]()
     for descriptor in config_lib.CONFIG.type_infos:
       if descriptor.name in self.BLOCKED_PARAMETERS:
         value = "[Redacted]"
@@ -146,7 +146,7 @@ class GetConfiguration(actions.ActionPlugin):
 class GetLibraryVersions(actions.ActionPlugin):
   """Retrieves version information for installed libraries."""
   in_rdfvalue = None
-  out_rdfvalue = rdf_protodict.Dict
+  out_rdfvalues = [rdf_protodict.Dict]
 
   def GetSSLVersion(self):
     return M2Crypto.m2.OPENSSL_VERSION_TEXT
@@ -177,7 +177,7 @@ class GetLibraryVersions(actions.ActionPlugin):
   error_str = "Unable to determine library version: %s"
 
   def Run(self, unused_arg):
-    result = self.out_rdfvalue()
+    result = self.out_rdfvalues[0]()
     for lib, f in self.library_map.iteritems():
       try:
         result[lib] = f(self)
@@ -233,7 +233,7 @@ def GetClientInformation():
 
 class GetClientInfo(actions.ActionPlugin):
   """Obtains information about the GRR client installed."""
-  out_rdfvalue = rdf_client.ClientInformation
+  out_rdfvalues = [rdf_client.ClientInformation]
 
   def Run(self, unused_args):
     self.SendReply(GetClientInformation())
@@ -242,7 +242,7 @@ class GetClientInfo(actions.ActionPlugin):
 class GetClientStats(actions.ActionPlugin):
   """This retrieves some stats about the GRR process."""
   in_rdfvalue = rdf_client.GetClientStatsRequest
-  out_rdfvalue = rdf_client.ClientStats
+  out_rdfvalues = [rdf_client.ClientStats]
 
   def Run(self, arg):
     """Returns the client stats."""
@@ -305,7 +305,7 @@ class GetClientStatsAuto(GetClientStats):
 class SendStartupInfo(actions.ActionPlugin):
 
   in_rdfvalue = None
-  out_rdfvalue = rdf_client.StartupInfo
+  out_rdfvalues = [rdf_client.StartupInfo]
 
   well_known_session_id = rdfvalue.SessionID(flow_name="Startup")
 

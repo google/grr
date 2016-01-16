@@ -252,7 +252,7 @@ class RekallCachingIOManager(io_manager.DirectoryIOManager):
 class RekallAction(actions.SuspendableAction):
   """Runs a Rekall command on live memory."""
   in_rdfvalue = rekall_types.RekallRequest
-  out_rdfvalue = rekall_types.RekallResponse
+  out_rdfvalues = [rekall_types.RekallResponse]
 
   def Iterate(self):
     """Run a Rekall plugin and return the result."""
@@ -296,7 +296,7 @@ class GetMemoryInformation(actions.ActionPlugin):
   """Loads the driver for memory access and returns a Stat for the device."""
 
   in_rdfvalue = rdf_paths.PathSpec
-  out_rdfvalue = rekall_types.MemoryInformation
+  out_rdfvalues = [rekall_types.MemoryInformation]
 
   def Run(self, args):
     """Run."""

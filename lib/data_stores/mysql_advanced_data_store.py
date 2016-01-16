@@ -284,13 +284,13 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
     return results
 
-  def ScanAttribute(self,
-                    subject_prefix,
-                    attribute,
-                    after_urn=None,
-                    max_records=None,
-                    token=None,
-                    relaxed_order=False):
+  def ScanAttributes(self,
+                     subject_prefix,
+                     attributes,
+                     after_urn=None,
+                     max_records=None,
+                     token=None,
+                     relaxed_order=False):
     subject_prefix = utils.SmartStr(rdfvalue.RDFURN(subject_prefix))
     if subject_prefix[-1] != "/":
       subject_prefix += "/"
@@ -299,29 +299,51 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
     query = """
     SELECT t1.subject AS subject,
+           t5.attribute as attribute,
            t2.value AS value,
            t2.timestamp AS timestamp
-    FROM subjects AS t1, aff4 AS t2,
-         (SELECT t3.subject_hash AS hash, MAX(t3.timestamp) AS ts FROM
+    FROM subjects AS t1,
+         aff4 AS t2,
+         attributes AS t5,
+         (SELECT t3.subject_hash AS hash,
+                 t3.attribute_hash AS attribute_hash,
+                 MAX(t3.timestamp) AS ts FROM
             aff4 AS t3, subjects AS t4
           WHERE t3.subject_hash = t4.hash AND
-                t3.attribute_hash = unhex(md5(%s)) AND
-                t4.subject LIKE %s AND
-                t4.subject > %s
-          GROUP BY t3.subject_hash) AS s1
+                t3.attribute_hash in (%s) AND
+                t4.subject LIKE %%s AND
+                t4.subject > %%s
+          GROUP BY t3.subject_hash, t3.attribute_hash) AS s1
     WHERE t1.hash = t2.subject_hash AND
       t2.timestamp = s1.ts AND
       t2.subject_hash = s1.hash AND
-      t2.attribute_hash = unhex(md5(%s))
-    """
-    args = [attribute, subject_prefix + "%", after_urn or "", attribute]
+      t2.attribute_hash = s1.attribute_hash AND
+      t5.hash = s1.attribute_hash
+    ORDER BY t1.subject
+    """ % ",".join(["unhex(md5(%s))"] * len(attributes))
+    args = attributes + [subject_prefix + "%", after_urn or ""]
     if max_records:
       query += " LIMIT %s"
-      args += [max_records]
+      args += [max_records * len(attributes)]
     result = self.ExecuteQuery(query, args)
+
+    current_subject = None
+    current_results = {}
+    result_count = 0
     for row in result:
-      yield (row["subject"], row["timestamp"], self._Decode(attribute,
-                                                            row["value"]))
+      current_subject = current_subject or row["subject"]
+      if row["subject"] != current_subject:
+        yield (current_subject, current_results)
+        result_count += 1
+        if max_records and result_count >= max_records:
+          return
+        current_subject = row["subject"]
+        current_results = {}
+      current_results[row["attribute"]] = (row["timestamp"],
+                                           self._Decode(row["attribute"],
+                                                        row["value"]))
+    if current_subject:
+      yield (current_subject, current_results)
 
   def MultiSet(self, subject, values, timestamp=None, replace=True, sync=True,
                to_delete=None, token=None):

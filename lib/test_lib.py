@@ -742,8 +742,7 @@ class EmptyActionTest(GRRBaseTest):
     # A mock SendReply() method to collect replies.
     def MockSendReply(mock_self, reply=None, **kwargs):
       if reply is None:
-        reply = mock_self.out_rdfvalue(**kwargs)
-
+        reply = mock_self.out_rdfvalues[0](**kwargs)
       self.results.append(reply)
 
     if grr_worker is None:
@@ -1713,7 +1712,7 @@ class Popen(object):
 class Test(actions.ActionPlugin):
   """A test action which can be used in mocks."""
   in_rdfvalue = rdf_protodict.DataBlob
-  out_rdfvalue = rdf_protodict.DataBlob
+  out_rdfvalues = [rdf_protodict.DataBlob]
 
 
 def CheckFlowErrors(total_flows, token=None):

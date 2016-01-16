@@ -56,7 +56,7 @@ def UnicodeFromCodePage(string):
 
 class GetInstallDate(actions.ActionPlugin):
   """Estimate the install date of this system."""
-  out_rdfvalue = rdf_protodict.DataBlob
+  out_rdfvalues = [rdf_protodict.DataBlob]
 
   def Run(self, unused_args):
     """Estimate the install date of this system."""
@@ -75,7 +75,7 @@ class EnumerateInterfaces(actions.ActionPlugin):
   Win32_NetworkAdapterConfiguration definition:
     http://msdn.microsoft.com/en-us/library/aa394217(v=vs.85).aspx
   """
-  out_rdfvalue = rdf_client.Interface
+  out_rdfvalues = [rdf_client.Interface]
 
   def RunNetAdapterWMIQuery(self):
     pythoncom.CoInitialize()
@@ -101,7 +101,7 @@ class EnumerateInterfaces(actions.ActionPlugin):
 
 class EnumerateFilesystems(actions.ActionPlugin):
   """Enumerate all unique filesystems local to the system."""
-  out_rdfvalue = rdf_client.Filesystem
+  out_rdfvalues = [rdf_client.Filesystem]
 
   def Run(self, unused_args):
     """List all local filesystems mounted on this system."""
@@ -121,7 +121,7 @@ class EnumerateFilesystems(actions.ActionPlugin):
 
 class Uninstall(actions.ActionPlugin):
   """Remove the service that starts us at startup."""
-  out_rdfvalue = rdf_protodict.DataBlob
+  out_rdfvalues = [rdf_protodict.DataBlob]
 
   def Run(self, unused_arg):
     """This kills us with no cleanups."""
@@ -157,7 +157,7 @@ def QueryService(svc_name):
 class WmiQuery(actions.ActionPlugin):
   """Runs a WMI query and returns the results to a server callback."""
   in_rdfvalue = rdf_client.WMIRequest
-  out_rdfvalue = rdf_protodict.Dict
+  out_rdfvalues = [rdf_protodict.Dict]
 
   def Run(self, args):
     """Run the WMI query and return the data."""

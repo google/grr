@@ -40,7 +40,7 @@ MAX_BUFFER_SIZE = 640 * 1024
 class ReadBuffer(actions.ActionPlugin):
   """Reads a buffer from a file and returns it to a server callback."""
   in_rdfvalue = rdf_client.BufferReference
-  out_rdfvalue = rdf_client.BufferReference
+  out_rdfvalues = [rdf_client.BufferReference]
 
   def Run(self, args):
     """Reads a buffer on the client and sends it to the server."""
@@ -71,7 +71,7 @@ HASH_CACHE = utils.FastStore(100)
 class TransferBuffer(actions.ActionPlugin):
   """Reads a buffer from a file and returns it to the server efficiently."""
   in_rdfvalue = rdf_client.BufferReference
-  out_rdfvalue = rdf_client.BufferReference
+  out_rdfvalues = [rdf_client.BufferReference]
 
   def Run(self, args):
     """Reads a buffer on the client and sends it to the server."""
@@ -105,7 +105,7 @@ class TransferBuffer(actions.ActionPlugin):
 class HashBuffer(actions.ActionPlugin):
   """Hash a buffer from a file and returns it to the server efficiently."""
   in_rdfvalue = rdf_client.BufferReference
-  out_rdfvalue = rdf_client.BufferReference
+  out_rdfvalues = [rdf_client.BufferReference]
 
   def Run(self, args):
     """Reads a buffer on the client and sends it to the server."""
@@ -126,7 +126,7 @@ class HashBuffer(actions.ActionPlugin):
 class HashFile(actions.ActionPlugin):
   """Hash an entire file using multiple algorithms."""
   in_rdfvalue = rdf_client.FingerprintRequest
-  out_rdfvalue = rdf_client.FingerprintResponse
+  out_rdfvalues = [rdf_client.FingerprintResponse]
 
   _hash_types = {
       "MD5": hashlib.md5,
@@ -167,7 +167,7 @@ class HashFile(actions.ActionPlugin):
 class CopyPathToFile(actions.ActionPlugin):
   """Copy contents of a pathspec to a file on disk."""
   in_rdfvalue = rdf_client.CopyPathToFileRequest
-  out_rdfvalue = rdf_client.CopyPathToFileRequest
+  out_rdfvalues = [rdf_client.CopyPathToFileRequest]
 
   BLOCK_SIZE = 10 * 1024 * 1024
 
@@ -234,7 +234,7 @@ class CopyPathToFile(actions.ActionPlugin):
 class ListDirectory(ReadBuffer):
   """Lists all the files in a directory."""
   in_rdfvalue = rdf_client.ListDirRequest
-  out_rdfvalue = rdf_client.StatEntry
+  out_rdfvalues = [rdf_client.StatEntry]
 
   def Run(self, args):
     """Lists a directory."""
@@ -254,13 +254,13 @@ class ListDirectory(ReadBuffer):
 class DumpProcessMemory(actions.ActionPlugin):
   """This action creates a memory dump of a process."""
   in_rdfvalue = rdf_client.DumpProcessMemoryRequest
-  out_rdfvalue = rdf_paths.PathSpec
+  out_rdfvalues = [rdf_paths.PathSpec]
 
 
 class IteratedListDirectory(actions.IteratedAction):
   """Lists a directory as an iterator."""
   in_rdfvalue = rdf_client.ListDirRequest
-  out_rdfvalue = rdf_client.StatEntry
+  out_rdfvalues = [rdf_client.StatEntry]
 
   def Iterate(self, request, client_state):
     """Restores its way through the directory using an Iterator."""
@@ -284,7 +284,7 @@ class IteratedListDirectory(actions.IteratedAction):
 class SuspendableListDirectory(actions.SuspendableAction):
   """Lists a directory as a suspendable client action."""
   in_rdfvalue = rdf_client.ListDirRequest
-  out_rdfvalue = rdf_client.StatEntry
+  out_rdfvalues = [rdf_client.StatEntry]
 
   def Iterate(self):
     try:
@@ -304,7 +304,7 @@ class SuspendableListDirectory(actions.SuspendableAction):
 class StatFile(ListDirectory):
   """Sends a StatEntry for a single file."""
   in_rdfvalue = rdf_client.ListDirRequest
-  out_rdfvalue = rdf_client.StatEntry
+  out_rdfvalues = [rdf_client.StatEntry]
 
   def Run(self, args):
     """Sends a StatEntry for a single file."""
@@ -321,7 +321,7 @@ class StatFile(ListDirectory):
 class ExecuteCommand(actions.ActionPlugin):
   """Executes one of the predefined commands."""
   in_rdfvalue = rdf_client.ExecuteRequest
-  out_rdfvalue = rdf_client.ExecuteResponse
+  out_rdfvalues = [rdf_client.ExecuteResponse]
 
   def Run(self, command):
     """Run."""
@@ -361,7 +361,7 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
   will have the more_data flag enabled, indicating more data is coming.
   """
   in_rdfvalue = rdf_client.ExecuteBinaryRequest
-  out_rdfvalue = rdf_client.ExecuteBinaryResponse
+  out_rdfvalues = [rdf_client.ExecuteBinaryResponse]
 
   def WriteBlobToFile(self, request):
     """Writes the blob to a file and returns its path."""
@@ -443,7 +443,7 @@ class ExecutePython(actions.ActionPlugin):
   should be stored offline and well protected.
   """
   in_rdfvalue = rdf_client.ExecutePythonRequest
-  out_rdfvalue = rdf_client.ExecutePythonResponse
+  out_rdfvalues = [rdf_client.ExecutePythonResponse]
 
   def Run(self, args):
     """Run."""
@@ -492,7 +492,7 @@ class ExecutePython(actions.ActionPlugin):
 class Segfault(actions.ActionPlugin):
   """This action is just for debugging. It induces a segfault."""
   in_rdfvalue = None
-  out_rdfvalue = None
+  out_rdfvalues = [None]
 
   def Run(self, unused_args):
     """Does the segfaulting."""
@@ -506,7 +506,7 @@ class Segfault(actions.ActionPlugin):
 class ListProcesses(actions.ActionPlugin):
   """This action lists all the processes running on a machine."""
   in_rdfvalue = None
-  out_rdfvalue = rdf_client.Process
+  out_rdfvalues = [rdf_client.Process]
 
   def Run(self, unused_arg):
     # psutil will cause an active loop on Windows 2000
@@ -631,7 +631,7 @@ class ListProcesses(actions.ActionPlugin):
 class SendFile(actions.ActionPlugin):
   """This action encrypts and sends a file to a remote listener."""
   in_rdfvalue = rdf_client.SendFileRequest
-  out_rdfvalue = rdf_client.StatEntry
+  out_rdfvalues = [rdf_client.StatEntry]
 
   BLOCK_SIZE = 1024 * 1024 * 10  # 10 MB
 
@@ -687,7 +687,7 @@ class StatFS(actions.ActionPlugin):
   unavailable, e.g. due to no network, will result in the call blocking.
   """
   in_rdfvalue = rdf_client.StatFSRequest
-  out_rdfvalue = rdf_client.Volume
+  out_rdfvalues = [rdf_client.Volume]
 
   def Run(self, args):
     if platform.system() == "Windows":

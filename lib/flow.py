@@ -178,7 +178,7 @@ class Responses(object):
     """An iterator which returns all the responses in order."""
     old_response_id = None
     action_registry = actions.ActionPlugin.classes
-    expected_response_cls = None
+    expected_response_classes = []
     is_client_request = False
     # This is the client request so this response packet was sent by a client.
     if self.request.HasField("request"):
@@ -187,7 +187,8 @@ class Responses(object):
       if client_action_name not in action_registry:
         raise RuntimeError("Got unknown client action: %s." %
                            client_action_name)
-      expected_response_cls = action_registry[client_action_name].out_rdfvalue
+      expected_response_classes = action_registry[
+          client_action_name].out_rdfvalues
 
     for message in self._responses:
       self.message = rdf_flows.GrrMessage(message)
@@ -202,7 +203,7 @@ class Responses(object):
       if self.message.type == self.message.Type.MESSAGE:
         if is_client_request:
           # Let's do some verification for requests that came from clients.
-          if not expected_response_cls:
+          if not expected_response_classes:
             raise RuntimeError(
                 "Client action %s does not specify out_rdfvalue." %
                 client_action_name)
@@ -211,10 +212,12 @@ class Responses(object):
             if not args_rdf_name:
               raise RuntimeError("Deprecated message format received: "
                                  "args_rdf_name is None.")
-            elif args_rdf_name != expected_response_cls.__name__:
+            elif args_rdf_name not in [
+                x.__name__ for x in expected_response_classes]:
               raise RuntimeError(
                   "Response type was %s but expected %s for %s." %
-                  (args_rdf_name, expected_response_cls, client_action_name))
+                  (args_rdf_name, expected_response_classes,
+                   client_action_name))
 
         yield self.message.payload
 

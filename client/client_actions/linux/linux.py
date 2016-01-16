@@ -112,7 +112,7 @@ Ifaddrs._fields_ = [  # pylint: disable=protected-access
 
 class EnumerateInterfaces(actions.ActionPlugin):
   """Enumerates all MAC addresses on this system."""
-  out_rdfvalue = rdf_client.Interface
+  out_rdfvalues = [rdf_client.Interface]
 
   def Run(self, unused_args):
     """Enumerate all interfaces and collect their MAC addresses."""
@@ -173,7 +173,7 @@ class EnumerateInterfaces(actions.ActionPlugin):
 
 class GetInstallDate(actions.ActionPlugin):
   """Estimate the install date of this system."""
-  out_rdfvalue = rdf_protodict.DataBlob
+  out_rdfvalues = [rdf_protodict.DataBlob]
 
   def Run(self, unused_args):
     self.SendReply(integer=int(os.stat("/lost+found").st_ctime))
@@ -205,9 +205,9 @@ class EnumerateUsers(actions.ActionPlugin):
   allow for the metadata (homedir) expansion to occur on the client, where we
   have access to LDAP.
   """
-  # TODO(user): change to rdf_client.User after we change out_rdfvalue to be
-  # a list of acceptable classes to allow backwards compatibility.
-  out_rdfvalue = rdf_client.KnowledgeBaseUser
+  # Client versions 3.0.7.1 and older used to return KnowledgeBaseUser.
+  # KnowledgeBaseUser was renamed to User.
+  out_rdfvalues = [rdf_client.User, rdf_client.KnowledgeBaseUser]
 
   def ParseWtmp(self):
     """Parse wtmp and extract the last logon time."""
@@ -275,7 +275,7 @@ class EnumerateFilesystems(actions.ActionPlugin):
   """
   acceptable_filesystems = set(["ext2", "ext3", "ext4", "vfat", "ntfs",
                                 "btrfs", "Reiserfs", "XFS", "JFS", "squashfs"])
-  out_rdfvalue = rdf_client.Filesystem
+  out_rdfvalues = [rdf_client.Filesystem]
 
   def CheckMounts(self, filename):
     """Parses the currently mounted devices."""
@@ -312,7 +312,7 @@ class EnumerateRunningServices(actions.ActionPlugin):
   TODO(user): This is a placeholder and needs to be implemented.
   """
   in_rdfvalue = None
-  out_rdfvalue = None
+  out_rdfvalues = [None]
 
   def Run(self, unused_arg):
     raise RuntimeError("Not implemented")
@@ -324,7 +324,7 @@ class Uninstall(actions.ActionPlugin):
   Note this needs to handle the different distributions separately, e.g. Redhat
   vs Debian.
   """
-  out_rdfvalue = rdf_protodict.DataBlob
+  out_rdfvalues = [rdf_protodict.DataBlob]
 
   def Run(self, unused_arg):
     raise RuntimeError("Not implemented")

@@ -10,6 +10,7 @@ import platform
 import posix
 import stat
 
+import mock
 import psutil
 
 # Populate the action registry
@@ -105,7 +106,7 @@ class MockWindowsProcess(object):
 class ProgressAction(actions.ActionPlugin):
   """A mock action which just calls Progress."""
   in_rdfvalue = rdf_client.LogMessage
-  out_rdfvalue = rdf_client.LogMessage
+  out_rdfvalues = [rdf_client.LogMessage]
 
   time = 100
 
@@ -382,6 +383,21 @@ class ActionTest(test_lib.EmptyActionTest):
 
       self.assertEqual(len(received_messages), 1)
       self.assertEqual(received_messages[0], "Cpu limit exceeded.")
+
+  def testSendReplyMultipleOutputTypes(self):
+    """Check we can SendReply with multiple out_rdfvalues."""
+    fake_worker = mock.MagicMock()
+    actionplugin = actions.ActionPlugin(grr_worker=fake_worker)
+    actionplugin.message = mock.MagicMock()
+    actionplugin.out_rdfvalues = [rdf_client.BufferReference,
+                                  rdf_client.Process]
+
+    actionplugin.SendReply(data="blah")
+    self.assertTrue(isinstance(fake_worker.SendReply.call_args[0][0],
+                               rdf_client.BufferReference))
+
+    with self.assertRaises(AttributeError):
+      actionplugin.SendReply(badkeyword=10)
 
   def testStatFS(self):
     f_bsize = 4096

@@ -144,7 +144,7 @@ class FlowCreationTest(BasicFlowTest):
     class TestClientMock(object):
 
       in_rdfvalue = rdf_client.EchoRequest
-      out_rdfvalue = rdf_protodict.DataBlob
+      out_rdfvalues = [rdf_protodict.DataBlob]
 
       def __init__(self):
         # Register us as an action plugin.
@@ -1222,7 +1222,7 @@ class ClientMock(object):
   """Mock of client actions."""
 
   in_rdfvalue = None
-  out_rdfvalue = rdfvalue.RDFString
+  out_rdfvalues = [rdfvalue.RDFString]
 
   def __init__(self):
     # Register us as an action plugin.

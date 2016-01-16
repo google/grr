@@ -168,23 +168,26 @@ class DataStoreService(object):
                    for (attribute, value, ts) in values])
 
   @RPCWrapper
-  def ScanAttribute(self, request, response):
+  def ScanAttributes(self, request, response):
     subject_prefix = request.subject[0]
-    attribute = utils.SmartUnicode(request.values[0].attribute)
+    attributes = [utils.SmartUnicode(v.attribute) for v in request.values]
     after_urn = None
     if len(request.subject) > 1:
       after_urn = request.subject[1]
     max_records = request.limit
-    for (subject, timestamp, value) in self.db.ScanAttribute(
+    for (subject, results) in self.db.ScanAttributes(
         subject_prefix,
-        attribute,
+        attributes,
         after_urn=after_urn,
         max_records=max_records,
         token=request.token,
         relaxed_order=True):
+      encoded_results = []
+      for attribute, (ts, value) in results.iteritems():
+        encoded_results.append((attribute, (ts, self._Encode(value))))
       response.results.Append(
           subject=subject,
-          payload=[(self._Encode(value), int(timestamp))])
+          payload=encoded_results)
 
   @RPCWrapper
   def DeleteAttributes(self, request, unused_response):

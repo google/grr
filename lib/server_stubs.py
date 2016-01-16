@@ -15,10 +15,10 @@ from grr.lib.rdfvalues import protodict as rdf_protodict
 class WmiQuery(actions.ActionPlugin):
   """Runs a WMI query and returns the results to a server callback."""
   in_rdfvalue = rdf_client.WMIRequest
-  out_rdfvalue = rdf_protodict.Dict
+  out_rdfvalues = [rdf_protodict.Dict]
 
 
 class OSXEnumerateRunningServices(actions.ActionPlugin):
   """Enumerate all running launchd jobs."""
   in_rdfvalue = None
-  out_rdfvalue = rdf_client.OSXServiceInformation
+  out_rdfvalues = [rdf_client.OSXServiceInformation]

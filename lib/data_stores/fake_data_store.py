@@ -195,13 +195,13 @@ class FakeDataStore(data_store.DataStore):
       pass
 
   @utils.Synchronized
-  def ScanAttribute(self,
-                    subject_prefix,
-                    attribute,
-                    after_urn="",
-                    max_records=None,
-                    token=None,
-                    relaxed_order=False):
+  def ScanAttributes(self,
+                     subject_prefix,
+                     attributes,
+                     after_urn="",
+                     max_records=None,
+                     token=None,
+                     relaxed_order=False):
     subject_prefix = utils.SmartStr(rdfvalue.RDFURN(subject_prefix))
     if subject_prefix[-1] != "/":
       subject_prefix += "/"
@@ -218,13 +218,17 @@ class FakeDataStore(data_store.DataStore):
     return_count = 0
     for s in subjects:
       if max_records and return_count >= max_records:
-        return
+        break
       r = self.subjects[s]
-      attribute_list = r.get(attribute)
-      if attribute_list:
-        value, timestamp = attribute_list[-1]
-        yield (s, timestamp, value)
+      results = {}
+      for attribute in attributes:
+        attribute_list = r.get(attribute)
+        if attribute_list:
+          value, timestamp = attribute_list[-1]
+          results[attribute] = (timestamp, value)
+      if results:
         return_count += 1
+        yield (s, results)
 
   @utils.Synchronized
   def ResolveMulti(self, subject, attributes, timestamp=None, limit=None,

@@ -7,7 +7,7 @@ from grr.lib.rdfvalues import client as rdf_client
 
 class TestComponentAction(actions.ActionPlugin):
   in_rdfvalue = rdf_client.ListDirRequest
-  out_rdfvalue = rdf_client.StatEntry
+  out_rdfvalues = [rdf_client.StatEntry]
 
   def Run(self, args):
     print args

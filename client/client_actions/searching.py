@@ -17,7 +17,7 @@ from grr.lib.rdfvalues import flows as rdf_flows
 class Find(actions.IteratedAction):
   """Recurses through a directory returning files which match conditions."""
   in_rdfvalue = rdf_client.FindSpec
-  out_rdfvalue = rdf_client.FindSpec
+  out_rdfvalues = [rdf_client.FindSpec]
 
   # If this is true we cross filesystem boundaries.
   # This defaults to true so you can see mountpoints with ListDirectory.
@@ -198,7 +198,7 @@ class Find(actions.IteratedAction):
 class Grep(actions.ActionPlugin):
   """Search a file for a pattern."""
   in_rdfvalue = rdf_client.GrepSpec
-  out_rdfvalue = rdf_client.BufferReference
+  out_rdfvalues = [rdf_client.BufferReference]
 
   def FindRegex(self, regex, data):
     """Search the data for a hit."""

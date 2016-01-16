@@ -343,6 +343,15 @@ class GRRSignedBlob(aff4.AFF4Object):
   def __len__(self):
     return self.size
 
+  def Read(self, length):
+    return self.fd.read(int(length))
+
+  def Tell(self):
+    return self.fd.tell()
+
+  def Seek(self, offset, whence=0):
+    self.fd.seek(offset, whence)
+
 
 class GRRMemoryDriver(GRRSignedBlob):
   """A driver for acquiring memory."""

@@ -36,7 +36,7 @@ class PlistQuery(actions.ActionPlugin):
   """
 
   in_rdfvalue = rdfplist.PlistRequest
-  out_rdfvalue = protodict.RDFValueArray
+  out_rdfvalues = [protodict.RDFValueArray]
   MAX_PLIST_SIZE = 1024 * 1024 * 100  # 100 MB
 
   def Run(self, args):

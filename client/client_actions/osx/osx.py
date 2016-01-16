@@ -138,7 +138,7 @@ setattr(Ifaddrs, "_fields_", [
 
 class EnumerateInterfaces(actions.ActionPlugin):
   """Enumerate all MAC addresses of all NICs."""
-  out_rdfvalue = rdf_client.Interface
+  out_rdfvalues = [rdf_client.Interface]
 
   def Run(self, unused_args):
     """Enumerate all MAC addresses."""
@@ -201,7 +201,7 @@ class EnumerateInterfaces(actions.ActionPlugin):
 
 class GetInstallDate(actions.ActionPlugin):
   """Estimate the install date of this system."""
-  out_rdfvalue = rdf_protodict.DataBlob
+  out_rdfvalues = [rdf_protodict.DataBlob]
 
   def Run(self, unused_args):
     for f in ["/var/log/CDIS.custom", "/var", "/private"]:
@@ -216,7 +216,7 @@ class GetInstallDate(actions.ActionPlugin):
 
 class EnumerateFilesystems(actions.ActionPlugin):
   """Enumerate all unique filesystems local to the system."""
-  out_rdfvalue = rdf_client.Filesystem
+  out_rdfvalues = [rdf_client.Filesystem]
 
   def Run(self, unused_args):
     """List all local filesystems mounted on this system."""
@@ -251,7 +251,7 @@ class EnumerateFilesystems(actions.ActionPlugin):
 class OSXEnumerateRunningServices(actions.ActionPlugin):
   """Enumerate all running launchd jobs."""
   in_rdfvalue = None
-  out_rdfvalue = rdf_client.OSXServiceInformation
+  out_rdfvalues = [rdf_client.OSXServiceInformation]
 
   def GetRunningLaunchDaemons(self):
     """Get running launchd jobs from objc ServiceManagement framework."""
@@ -314,7 +314,7 @@ class OSXEnumerateRunningServices(actions.ActionPlugin):
 
 class Uninstall(actions.ActionPlugin):
   """Remove the service that starts us at startup."""
-  out_rdfvalue = rdf_protodict.DataBlob
+  out_rdfvalues = [rdf_protodict.DataBlob]
 
   def Run(self, unused_arg):
     """This kills us with no cleanups."""

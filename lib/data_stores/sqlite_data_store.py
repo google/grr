@@ -405,17 +405,17 @@ class SqliteConnection(object):
     data = self.Execute(query, args).fetchall()
     return data
 
-  def ScanAttribute(self,
-                    subject_prefix,
-                    attribute,
-                    after_urn=None,
-                    max_records=None):
+  def ScanAttributes(self,
+                     subject_prefix,
+                     attributes,
+                     after_urn=None,
+                     max_records=None):
     """Yields the values of attribute for a range of subjexts.
 
     Args:
      subject_prefix: Returns records for all subjects which begin with
        subject_prefix.
-     attribute: The attribute of interest.
+     attributes: A list of the attributes of interest.
      after_urn: If set, restrict to records which come after.
      max_records: The maximum number of values to return.
 
@@ -429,30 +429,32 @@ class SqliteConnection(object):
     cursor.execute("PRAGMA synchronous = OFF")
     cursor.execute("PRAGMA cache_size = 10000")
 
-    query = """SELECT t1.subject, t1.timestamp, t1.value
+    query = """SELECT t1.subject, t1.predicate, t1.timestamp, t1.value
                FROM tbl AS t1,
-                    (SELECT subject, MAX(timestamp) AS max_ts FROM tbl
+                    (SELECT subject, predicate,
+                            MAX(timestamp) AS max_ts FROM tbl
                        WHERE subject LIKE ? AND subject > ?
-                         AND predicate = ? GROUP BY subject) AS t2
+                         AND predicate in (%s)
+                       GROUP BY subject, predicate) AS t2
                WHERE t1.subject = t2.subject AND
                      t1.timestamp = t2.max_ts AND
-                     t1.predicate = ?
+                     t1.predicate = t2.predicate
                ORDER BY t1.subject
-            """
+            """ % ",".join("?"*len(attributes))
     subject_prefix = utils.SmartStr(subject_prefix)
     if after_urn:
       after_urn = utils.SmartStr(after_urn)
     else:
       after_urn = ""
 
-    if not max_records:
-      args = (subject_prefix + "%", after_urn, attribute, attribute)
-    else:
+    args = [subject_prefix + "%", after_urn] + attributes
+
+    if max_records:
       query += " LIMIT ?"
-      args = (subject_prefix + "%", after_urn, attribute, attribute,
-              max_records)
+      args.append(max_records * len(attributes))
 
     cursor.execute(query, args)
+
     for r in cursor:
       yield r
 
@@ -780,13 +782,32 @@ class SqliteDataStore(data_store.DataStore):
 
       return results
 
-  def ScanAttribute(self,
-                    subject_prefix,
-                    attribute,
-                    after_urn=None,
-                    max_records=None,
-                    token=None,
-                    relaxed_order=False):
+  def _GroupSubjects(self, collection, max_records):
+    """Group results by subject and convert to ScanAttribute output format."""
+    record_count = 0
+    current_subject = None
+    current_results = {}
+    for subject, attribute, timestamp, value in collection:
+      if not current_subject:
+        current_subject = subject
+      if current_subject != subject:
+        yield (current_subject, current_results)
+        record_count += 1
+        if max_records and record_count >= max_records:
+          return
+        current_results = {}
+        current_subject = subject
+      current_results[attribute] = (timestamp, self._Decode(attribute, value))
+    if current_results:
+      yield (current_subject, current_results)
+
+  def ScanAttributes(self,
+                     subject_prefix,
+                     attributes,
+                     after_urn=None,
+                     max_records=None,
+                     token=None,
+                     relaxed_order=False):
     self.security_manager.CheckDataStoreAccess(token, [subject_prefix], "rq")
 
     subject_prefix = utils.SmartStr(rdfvalue.RDFURN(subject_prefix))
@@ -800,12 +821,12 @@ class SqliteDataStore(data_store.DataStore):
     if relaxed_order:
       for sqlite_connection in connection_iter:
         with sqlite_connection:
-          for (subject, timestamp, value) in sqlite_connection.ScanAttribute(
+          for r in self._GroupSubjects(list(sqlite_connection.ScanAttributes(
               subject_prefix,
-              attribute,
+              attributes,
               after_urn=after_urn,
-              max_records=max_records):
-            yield (subject, timestamp, self._Decode(attribute, value))
+              max_records=max_records)), max_records):
+            yield r
       return
     first_connections = []
     try:
@@ -817,23 +838,24 @@ class SqliteDataStore(data_store.DataStore):
       return
     if len(first_connections) == 1:
       with first_connections[0] as sqlite_connection:
-        for (subject, timestamp, value) in sqlite_connection.ScanAttribute(
+        for r in self._GroupSubjects(list(sqlite_connection.ScanAttributes(
             subject_prefix,
-            attribute,
+            attributes,
             after_urn=after_urn,
-            max_records=max_records):
-          yield (subject, timestamp, self._Decode(attribute, value))
+            max_records=max_records)), max_records):
+          yield r
       return
     raw_results = []
     for sqlite_connection in itertools.chain(first_connections,
                                              connection_iter):
-      for record in sqlite_connection.ScanAttribute(subject_prefix,
-                                                    attribute,
-                                                    after_urn=after_urn,
-                                                    max_records=max_records):
+      for record in sqlite_connection.ScanAttributes(subject_prefix,
+                                                     attributes,
+                                                     after_urn=after_urn,
+                                                     max_records=max_records):
         raw_results.append(record)
-    for (subject, timestamp, value) in sorted(raw_results, key=lambda x: x[0]):
-      yield (subject, timestamp, self._Decode(attribute, value))
+    for r in self._GroupSubjects(sorted(raw_results, key=lambda x: x[0]),
+                                 max_records):
+      yield r
 
   def ResolveMulti(self, subject, attributes, timestamp=None,
                    limit=None, token=None):

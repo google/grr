@@ -738,6 +738,55 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     v = data_store.DB.ScanAttribute("aff4:/", "aff4:hash", token=self.token)
     self.assertRaises(access_control.UnauthorizedAccess, v.next)
 
+  def testScanAttributes(self):
+    for i in range(0, 7):
+      data_store.DB.Set("aff4:/C/" + str(i),
+                        "aff4:foo",
+                        "C foo " + str(i) + " value",
+                        timestamp=1000,
+                        token=self.token)
+      data_store.DB.Set("aff4:/C/" + str(i),
+                        "aff4:foo",
+                        "C foo " + str(i) + " old value",
+                        timestamp=900,
+                        token=self.token,
+                        replace=False)
+    for i in range(3, 10):
+      data_store.DB.Set("aff4:/C/" + str(i),
+                        "aff4:bar",
+                        "C bar " + str(i) + " value",
+                        timestamp=1500,
+                        token=self.token)
+      data_store.DB.Set("aff4:/C/" + str(i),
+                        "aff4:bar",
+                        "C bar " + str(i) + " old value",
+                        timestamp=950,
+                        token=self.token,
+                        replace=False)
+    data_store.DB.Set("aff4:/C/5a",
+                      "aff4:baz",
+                      "C baz value",
+                      timestamp=980,
+                      token=self.token)
+
+    results = list(data_store.DB.ScanAttributes("aff4:/C",
+                                                ["aff4:foo", "aff4:bar"],
+                                                token=self.token))
+    self.assertEqual(len(results), 10)
+    self.assertEqual([s for s, _ in results],
+                     ["aff4:/C/"+ str(i) for i in range(10)])
+
+    self.assertEqual(results[0][1], {"aff4:foo": (1000, "C foo 0 value")})
+    self.assertEqual(results[5][1], {"aff4:bar": (1500, "C bar 5 value"),
+                                     "aff4:foo": (1000, "C foo 5 value")})
+    self.assertEqual(results[9][1], {"aff4:bar": (1500, "C bar 9 value")})
+
+    results = list(data_store.DB.ScanAttributes("aff4:/C",
+                                                ["aff4:foo", "aff4:bar"],
+                                                max_records=5,
+                                                token=self.token))
+    self.assertEqual(len(results), 5)
+
   def testRDFDatetimeTimestamps(self):
 
     test_rows = self._MakeTimestampedRows()
@@ -1470,6 +1519,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
            "ResolveMulti",
            "ResolvePrefix",
            "ScanAttribute",
+           "ScanAttributes",
            "Set",
            "Transaction"]
 

@@ -29,6 +29,17 @@ class UserTests(test_base.RDFValueTestCase):
 
     return result
 
+  def testKBUserBackwardsCompatibility(self):
+    """Check User can be created from deprecated KBUser."""
+    kbuser = rdf_client.KnowledgeBaseUser()
+    kbuser.username = "user1"
+    kbuser.desktop = "User Desktop 1"
+
+    user = rdf_client.User(kbuser)
+
+    self.assertEqual(user.username, "user1")
+    self.assertEqual(user.desktop, "User Desktop 1")
+
   def testCompatibility(self):
     proto = knowledge_base_pb2.User(username="user1")
     proto.desktop = "User Desktop 1"

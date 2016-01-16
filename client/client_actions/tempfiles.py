@@ -187,7 +187,7 @@ def DeleteGRRTempFile(path):
 class DeleteGRRTempFiles(actions.ActionPlugin):
   """Delete all the GRR temp files in a directory."""
   in_rdfvalue = rdf_paths.PathSpec
-  out_rdfvalue = rdf_client.LogMessage
+  out_rdfvalues = [rdf_client.LogMessage]
 
   def Run(self, args):
     """Delete all the GRR temp files in path.

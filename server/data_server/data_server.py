@@ -797,7 +797,7 @@ def Start(db, port=0, is_master=False, server_cls=ThreadedHTTPServer,
       cmd.LOCK_SUBJECT: (reqhandler_cls.SERVICE.LockSubject, "w"),
       cmd.EXTEND_SUBJECT: (reqhandler_cls.SERVICE.ExtendSubject, "w"),
       cmd.UNLOCK_SUBJECT: (reqhandler_cls.SERVICE.UnlockSubject, "w"),
-      cmd.SCAN_ATTRIBUTE: (reqhandler_cls.SERVICE.ScanAttribute, "r")
+      cmd.SCAN_ATTRIBUTES: (reqhandler_cls.SERVICE.ScanAttributes, "r")
   }
 
   # Initialize nonce store for authentication.

@@ -441,9 +441,9 @@ class DataStore(object):
       pass
 
   @abc.abstractmethod
-  def ScanAttribute(self, subject_prefix, attribute,
-                    after_urn=None, max_records=None, token=None,
-                    relaxed_order=False):
+  def ScanAttributes(self, subject_prefix, attributes,
+                     after_urn=None, max_records=None, token=None,
+                     relaxed_order=False):
     """Scan for values of an attribute accross a range of rows.
 
     Scans rows for values of attribute. Reads the most recent value stored in
@@ -454,7 +454,7 @@ class DataStore(object):
         be an aff4 object and a directory - "/" will be appended if necessary.
         User must have read and query permissions on this directory.
 
-      attribute: The name of the attribute to scan.
+      attributes: A list of attribute names to scan.
 
       after_urn: If set, only scan records which come after this urn.
 
@@ -468,10 +468,21 @@ class DataStore(object):
         the performance of large scans.
 
 
-    Yields: Tuples (subject, timestamp, value), indicating that subject has
-      attribute with value set at timestamp.
+    Yields: Pairs (subject, result_dict) where result_dict maps attribute to
+      (timestamp, value) pairs.
 
     """
+
+  def ScanAttribute(self, subject_prefix, attribute,
+                    after_urn=None, max_records=None, token=None,
+                    relaxed_order=False):
+    for s, r in self.ScanAttributes(subject_prefix, [attribute],
+                                    after_urn=after_urn,
+                                    max_records=max_records,
+                                    token=token,
+                                    relaxed_order=relaxed_order):
+      ts, v = r[attribute]
+      yield (s, ts, v)
 
   def ReadBlob(self, digest, token=None):
     return self.blobstore.ReadBlob(digest, token=token)

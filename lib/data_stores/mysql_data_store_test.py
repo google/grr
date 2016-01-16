@@ -29,6 +29,7 @@ class MysqlTestMixin(object):
         data_store.DB.flusher_thread.Stop()
         data_store.DB.security_manager = test_lib.MockSecurityManager()
         data_store.DB.RecreateDataBase()
+        data_store.DB.Initialize()
       except Exception as e:
         logging.debug("Error while connecting to MySQL db: %s.", e)
         raise unittest.SkipTest("Skipping since Mysql db is not reachable.")

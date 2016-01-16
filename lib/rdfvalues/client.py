@@ -256,6 +256,17 @@ class User(structs.RDFProtoStruct):
   """Information about the users."""
   protobuf = knowledge_base_pb2.User
 
+  def __init__(self, initializer=None, age=None, **kwargs):
+    if isinstance(initializer, KnowledgeBaseUser):
+      # KnowledgeBaseUser was renamed to User, the protos are identical. This
+      # allows for backwards compatibility with clients returning KBUser
+      # objects.
+      # TODO(user): remove once all clients are newer than 3.0.7.1.
+      super(User, self).__init__(initializer=initializer.SerializeToString(),
+                                 age=age, **kwargs)
+    else:
+      super(User, self).__init__(initializer=initializer, age=age, **kwargs)
+
 
 class KnowledgeBaseUser(User):
   """Backwards compatibility for old clients.

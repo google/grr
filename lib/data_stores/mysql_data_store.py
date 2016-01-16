@@ -140,6 +140,8 @@ class MySQLDataStore(data_store.DataStore):
     super(MySQLDataStore, self).__init__()
 
   def Initialize(self):
+    super(MySQLDataStore, self).Initialize()
+
     with self.pool.GetConnection() as connection:
       try:
         connection.Execute("desc `%s`" % self.table_name)
@@ -268,13 +270,13 @@ class MySQLDataStore(data_store.DataStore):
 
       yield row["attribute"], value, rdfvalue.RDFDatetime(row["age"])
 
-  def ScanAttribute(self,
-                    subject_prefix,
-                    attribute,
-                    after_urn=None,
-                    max_records=None,
-                    token=None,
-                    relaxed_order=False):
+  def ScanAttributes(self,
+                     subject_prefix,
+                     attributes,
+                     after_urn=None,
+                     max_records=None,
+                     token=None,
+                     relaxed_order=False):
     subject_prefix = utils.SmartStr(rdfvalue.RDFURN(subject_prefix))
     if subject_prefix[-1] != "/":
       subject_prefix += "/"
@@ -288,22 +290,36 @@ class MySQLDataStore(data_store.DataStore):
                       t1.value_integer as value_integer,
                       t1.value_binary as value_binary
                from `%s` as t1,
-                    (select hash, max(age) as max_age from `%s`
+                    (select hash, attribute, max(age) as max_age from `%s`
                        where subject like %%s and subject > %%s
-                         and attribute = %%s group by hash) as t2
+                         and attribute in (%s) group by hash, attribute) as t2
                where t1.hash = t2.hash and
                      t1.age = t2.max_age and
-                     t1.attribute = %%s
-               order by t1.subject""" % (self.table_name, self.table_name)
-    args = [subject_prefix + "%", after_urn or "", attribute, attribute]
+                     t1.attribute = t2.attribute
+               order by t1.subject""" % (self.table_name, self.table_name,
+                                         ",".join(["%s"] * len(attributes)))
+    args = [subject_prefix + "%", after_urn or ""] + attributes
     if max_records:
       query += " limit %s"
-      args += [max_records]
+      args += [max_records*len(attributes)]
     with self.pool.GetConnection() as cursor:
+      current_subject = None
+      current_results = {}
+      result_count = 0
       for row in cursor.Execute(query, args):
-        yield (row["subject"],
-               rdfvalue.RDFDatetime(row["age"]).AsMicroSecondsFromEpoch(),
-               self.DecodeValue(row))
+        current_subject = current_subject or row["subject"]
+        if row["subject"] != current_subject:
+          yield (current_subject, current_results)
+          result_count += 1
+          if max_records and result_count >= max_records:
+            return
+          current_subject = row["subject"]
+          current_results = {}
+        current_results[row["attribute"]] = (
+            rdfvalue.RDFDatetime(row["age"]).AsMicroSecondsFromEpoch(),
+            self.DecodeValue(row))
+      if current_subject:
+        yield (current_subject, current_results)
 
   def _TimestampToQuery(self, timestamp, args):
     """Convert the timestamp to a query fragment and add args."""

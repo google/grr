@@ -6,11 +6,13 @@ import itertools
 import math
 
 from grr.lib import aff4
+from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import collections
+from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
@@ -133,6 +135,34 @@ class TestCollections(test_lib.AFF4ObjectTest):
                              mode="w", token=self.token)
 
     self.assertRaises(ValueError, fd.AddAll, [None])
+
+  def testSignedBlob(self):
+    test_string = "Sample 5"
+
+    with aff4.FACTORY.Create("aff4:/test/signedblob",
+                             "GRRSignedBlob", mode="rw",
+                             token=self.token) as fd:
+      blob = rdf_crypto.SignedBlob()
+      config_lib.CONFIG.Validate(
+          parameters="PrivateKeys.executable_signing_private_key")
+
+      sig_key = config_lib.CONFIG.Get(
+          "PrivateKeys.executable_signing_private_key")
+      ver_key = config_lib.CONFIG.Get("Client.executable_signing_public_key")
+      blob.Sign(test_string, sig_key, ver_key)
+      fd.Add(blob)
+
+    sample = aff4.FACTORY.Open(fd.urn, token=self.token)
+    self.assertEqual(sample.size, len(test_string))
+    self.assertEqual(sample.Tell(), 0)
+    self.assertEqual(sample.Read(3), test_string[:3])
+    self.assertEqual(sample.Tell(), 3)
+    self.assertEqual(sample.Read(30), test_string[3:])
+    self.assertEqual(sample.Tell(), len(test_string))
+    self.assertEqual(sample.Read(30), "")
+    sample.Seek(3)
+    self.assertEqual(sample.Tell(), 3)
+    self.assertEqual(sample.Read(3), test_string[3:6])
 
 
 class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):

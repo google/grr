@@ -15,7 +15,7 @@ from grr.lib.rdfvalues import client as rdf_client
 class Netstat(actions.ActionPlugin):
   """Gather open network connection stats."""
   in_rdfvalue = None
-  out_rdfvalue = rdf_client.NetworkConnection
+  out_rdfvalues = [rdf_client.NetworkConnection]
 
   def Run(self, unused_args):
     netstat = []

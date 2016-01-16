@@ -106,7 +106,7 @@ config_lib.DEFINE_list("Cron.enabled_system_jobs", [],
                        "cron flows will be run as system cron jobs. Cannot "
                        "be used together with Cron.disabled_system_jobs.")
 
-config_lib.DEFINE_list("Cron.disabled_system_jobs", [],
+config_lib.DEFINE_list("Cron.disabled_system_jobs", ["StatsHuntCronFlow"],
                        "Normally, all subclasses of SystemCronFlow are "
                        "considered system jobs and run automatically. System "
                        "jobs listed here will not be run. Many system jobs are "

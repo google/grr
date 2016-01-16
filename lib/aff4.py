@@ -2672,6 +2672,15 @@ class AFF4UnversionedMemoryStream(AFF4MemoryStreamBase):
                         versioned=False)
 
 
+# Still needed for backwards compatibility.
+# TODO(user): Remove when current flows (Jan 14) have finished processing.
+class AFF4ObjectCache(utils.FastStore):
+  """A cache which closes its objects when they expire."""
+
+  def KillObject(self, obj):
+    obj.Close(sync=True)
+
+
 class ChunkCache(utils.FastStore):
   """A cache which closes its objects when they expire."""
 

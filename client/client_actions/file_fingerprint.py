@@ -26,7 +26,7 @@ class Fingerprinter(fingerprint.Fingerprinter):
 class FingerprintFile(standard.ReadBuffer):
   """Apply a set of fingerprinting methods to a file."""
   in_rdfvalue = rdf_client.FingerprintRequest
-  out_rdfvalue = rdf_client.FingerprintResponse
+  out_rdfvalues = [rdf_client.FingerprintResponse]
 
   _hash_types = {
       rdf_client.FingerprintTuple.HashType.MD5: hashlib.md5,

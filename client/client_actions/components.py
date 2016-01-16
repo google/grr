@@ -20,7 +20,7 @@ from grr.lib.rdfvalues import crypto as rdf_crypto
 class LoadComponent(actions.ActionPlugin):
   """Launches an external client action through a component."""
   in_rdfvalue = rdf_client.LoadComponent
-  out_rdfvalue = rdf_client.LoadComponent
+  out_rdfvalues = [rdf_client.LoadComponent]
 
   def LoadComponent(self, summary):
     """Import all the required modules as specified in the request."""

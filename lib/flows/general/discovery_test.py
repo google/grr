@@ -211,6 +211,7 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
           {"Artifacts.knowledge_base": ["LinuxWtmp",
                                         "NetgroupConfiguration",
                                         "LinuxRelease"],
+           "Artifacts.interrogate_store_in_aff4": [],
            "Artifacts.netgroup_filter_regexes": [r"^login$"]}):
         client_mock = action_mocks.InterrogatedClient(
             "TransferBuffer", "StatFile", "Find", "HashBuffer",

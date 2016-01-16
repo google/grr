@@ -614,9 +614,9 @@ class HTTPDataStore(data_store.DataStore):
         results[result_set.subject] = values
     return results.iteritems()
 
-  def ScanAttribute(self, subject_prefix, attribute,
-                    after_urn=None, max_records=None, token=None,
-                    relaxed_order=False):
+  def ScanAttributes(self, subject_prefix, attributes,
+                     after_urn=None, max_records=None, token=None,
+                     relaxed_order=False):
 
     """ScanAttribute."""
 
@@ -624,24 +624,28 @@ class HTTPDataStore(data_store.DataStore):
     if subject_prefix[-1] != "/":
       subject_prefix += "/"
 
-    typ = rdf_data_server.DataStoreCommand.Command.SCAN_ATTRIBUTE
+    typ = rdf_data_server.DataStoreCommand.Command.SCAN_ATTRIBUTES
     subjects = [subject_prefix]
     if after_urn:
       subjects.append(after_urn)
-    request = self._MakeRequest(subjects, attribute,
+    request = self._MakeRequest(subjects, attributes,
                                 token=token,
                                 limit=max_records)
     if relaxed_order:
       for response in self._MakeRequestsForPrefix(subject_prefix, typ, request):
         for result in response.results:
-          for (value, ts) in result.payload:
-            yield (result.subject, ts, self._Decode(value))
+          values = {}
+          for attribute, (ts, value) in result.payload:
+            values[attribute] = (ts, self._Decode(value))
+          yield (result.subject, values)
     else:
       results = []
       for response in self._MakeRequestsForPrefix(subject_prefix, typ, request):
         for result in response.results:
-          for (value, ts) in result.payload:
-            results.append((result.subject, ts, self._Decode(value)))
+          values = {}
+          for attribute, (ts, value) in result.payload:
+            values[attribute] = (ts, self._Decode(value))
+          results.append((result.subject, values))
       for r in sorted(results, key=lambda x: x[0]):
         yield r
 
