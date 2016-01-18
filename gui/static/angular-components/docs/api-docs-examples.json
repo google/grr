@@ -1035,7 +1035,7 @@
                     "value": "aff4:/hunts/H:123456/ResultsMetadata"
                   },
                   "session_id": {
-                    "age": 42000000,
+                    "age": 0,
                     "type": "SessionID",
                     "value": "aff4:/hunts/H:123456"
                   },
@@ -7103,11 +7103,6 @@
             "age": 100042000000,
             "type": "OutputPluginBatchProcessingStatus",
             "value": {
-              "batch_index": {
-                "age": 0,
-                "type": "long",
-                "value": 0
-              },
               "batch_size": {
                 "age": 0,
                 "type": "long",
@@ -7140,11 +7135,6 @@
             "age": 100142000000,
             "type": "OutputPluginBatchProcessingStatus",
             "value": {
-              "batch_index": {
-                "age": 0,
-                "type": "long",
-                "value": 0
-              },
               "batch_size": {
                 "age": 0,
                 "type": "long",
@@ -7182,7 +7172,6 @@
         "count": 2,
         "items": [
           {
-            "batch_index": 0,
             "batch_size": 1,
             "plugin_descriptor": {
               "plugin_name": "FailingDummyHuntOutputPlugin"
@@ -7191,7 +7180,6 @@
             "summary": "Oh no!"
           },
           {
-            "batch_index": 0,
             "batch_size": 1,
             "plugin_descriptor": {
               "plugin_name": "FailingDummyHuntOutputPlugin"
@@ -7216,11 +7204,6 @@
             "age": 100042000000,
             "type": "OutputPluginBatchProcessingStatus",
             "value": {
-              "batch_index": {
-                "age": 0,
-                "type": "long",
-                "value": 0
-              },
               "batch_size": {
                 "age": 0,
                 "type": "long",
@@ -7264,11 +7247,6 @@
             "age": 100142000000,
             "type": "OutputPluginBatchProcessingStatus",
             "value": {
-              "batch_index": {
-                "age": 0,
-                "type": "long",
-                "value": 0
-              },
               "batch_size": {
                 "age": 0,
                 "type": "long",
@@ -7317,7 +7295,6 @@
         "count": 2,
         "items": [
           {
-            "batch_index": 0,
             "batch_size": 1,
             "plugin_descriptor": {
               "plugin_args": {
@@ -7329,7 +7306,6 @@
             "status": "SUCCESS"
           },
           {
-            "batch_index": 0,
             "batch_size": 1,
             "plugin_descriptor": {
               "plugin_args": {
@@ -7663,7 +7639,7 @@
                         "value": "aff4:/hunts/H:000001/ResultsMetadata"
                       },
                       "session_id": {
-                        "age": 2000000000,
+                        "age": 0,
                         "type": "SessionID",
                         "value": "aff4:/hunts/H:000001"
                       },
@@ -7962,7 +7938,7 @@
                         "value": "aff4:/hunts/H:000000/ResultsMetadata"
                       },
                       "session_id": {
-                        "age": 1000000000,
+                        "age": 0,
                         "type": "SessionID",
                         "value": "aff4:/hunts/H:000000"
                       },
@@ -8440,7 +8416,7 @@
                         "value": "aff4:/hunts/H:000001/ResultsMetadata"
                       },
                       "session_id": {
-                        "age": 2000000000,
+                        "age": 0,
                         "type": "SessionID",
                         "value": "aff4:/hunts/H:000001"
                       },
@@ -8841,7 +8817,7 @@
                         "value": "aff4:/hunts/H:000000/ResultsMetadata"
                       },
                       "session_id": {
-                        "age": 1000000000,
+                        "age": 0,
                         "type": "SessionID",
                         "value": "aff4:/hunts/H:000000"
                       },
@@ -9833,7 +9809,7 @@
                           "value": "aff4:/hunts/H:123456/ResultsMetadata"
                         },
                         "session_id": {
-                          "age": 42000000,
+                          "age": 0,
                           "type": "SessionID",
                           "value": "aff4:/hunts/H:123456"
                         },

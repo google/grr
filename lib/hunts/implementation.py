@@ -35,6 +35,7 @@ from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.aff4_objects import collections as aff4_collections
 from grr.lib.aff4_objects import sequential_collection
+from grr.lib.hunts import results as hunts_results
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import foreman as rdf_foreman
@@ -572,7 +573,7 @@ class GRRHunt(flow.GRRFlow):
     try:
       aff4.FACTORY.Open(collection_urn,
                         "UrnCollection",
-                        mode="w",
+                        mode="rw",
                         token=self.token).Add(urn)
     except IOError:
       aff4_collections.PackedVersionedCollection.AddToCollection(
@@ -584,7 +585,7 @@ class GRRHunt(flow.GRRFlow):
     try:
       aff4.FACTORY.Open(collection_urn,
                         "HuntErrorCollection",
-                        mode="w",
+                        mode="rw",
                         token=self.token).Add(error)
     except IOError:
       aff4_collections.PackedVersionedCollection.AddToCollection(
@@ -763,9 +764,17 @@ class GRRHunt(flow.GRRFlow):
 
         msgs = [rdf_flows.GrrMessage(payload=response, source=client_id)
                 for response in responses]
-        aff4.ResultsOutputCollection.AddToCollection(
-            self.state.context.results_collection_urn, msgs,
-            sync=True, token=self.token)
+        try:
+          with aff4.FACTORY.Open(self.state.context.results_collection_urn,
+                                 hunts_results.HuntResultCollection.__name__,
+                                 mode="rw",
+                                 token=self.token) as collection:
+            for msg in msgs:
+              collection.Add(msg)
+        except IOError:
+          aff4.ResultsOutputCollection.AddToCollection(
+              self.state.context.results_collection_urn, msgs,
+              sync=True, token=self.token)
 
         if responses:
           self.RegisterClientWithResults(client_id)
@@ -906,6 +915,7 @@ class GRRHunt(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     """Initializes this hunt from arguments."""
+
     self.state.context.Register("results_metadata_urn",
                                 self.urn.Add("ResultsMetadata"))
     self.state.context.Register("results_collection_urn",
@@ -939,11 +949,11 @@ class GRRHunt(flow.GRRFlow):
       results_metadata.Set(results_metadata.Schema.OUTPUT_PLUGINS(state))
 
     # Create the collection for results.
-    with aff4.FACTORY.Create(
-        self.state.context.results_collection_urn, "ResultsOutputCollection",
-        mode="w", token=self.token) as results_collection:
-      results_collection.Set(results_collection.Schema.RESULTS_SOURCE,
-                             self.urn)
+    with aff4.FACTORY.Create(self.state.context.results_collection_urn,
+                             "HuntResultCollection",
+                             mode="w",
+                             token=self.token):
+      pass
 
     # Create the collection for logs.
     with aff4.FACTORY.Create(self.logs_collection_urn,

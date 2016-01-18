@@ -280,6 +280,8 @@ class MySQLDataStore(data_store.DataStore):
     subject_prefix = utils.SmartStr(rdfvalue.RDFURN(subject_prefix))
     if subject_prefix[-1] != "/":
       subject_prefix += "/"
+    if after_urn:
+      after_urn = utils.SmartStr(after_urn)
     self.security_manager.CheckDataStoreAccess(token, [subject_prefix],
                                                "qr")
 

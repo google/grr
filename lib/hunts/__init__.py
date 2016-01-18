@@ -8,6 +8,7 @@
 from grr.lib import aff4
 from grr.lib.hunts import implementation
 from grr.lib.hunts import output_plugins
+from grr.lib.hunts import results
 from grr.lib.hunts import standard
 
 

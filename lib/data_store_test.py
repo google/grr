@@ -662,11 +662,13 @@ class _DataStoreTest(test_lib.GRRBaseTest):
                                                         token=self.token)]
     self.assertEqual(values, ["B " + str(i) + " value" for i in range(3, 10)])
 
-    values = [r[2] for r in data_store.DB.ScanAttribute("aff4:/B",
-                                                        "aff4:foo",
-                                                        after_urn="aff4:/B/2",
-                                                        max_records=2,
-                                                        token=self.token)]
+    values = [r[2]
+              for r in data_store.DB.ScanAttribute("aff4:/B",
+                                                   u"aff4:foo",
+                                                   after_urn=rdfvalue.RDFURN(
+                                                       "aff4:/B/2"),
+                                                   max_records=2,
+                                                   token=self.token)]
     self.assertEqual(values, ["B " + str(i) + " value" for i in range(3, 5)])
 
     values = [r[2] for r in data_store.DB.ScanAttribute("aff4:/",

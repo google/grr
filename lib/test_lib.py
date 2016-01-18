@@ -91,6 +91,8 @@ from grr.lib.flows.general import ca_enroller as _
 from grr.lib.flows.general import filesystem as _
 # pylint: enable=unused-import
 
+from grr.lib.hunts import results as hunts_results
+
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
@@ -341,6 +343,7 @@ class GRRBaseTest(unittest.TestCase):
     # Create a Foreman and Filestores, they are used in many tests.
     aff4_grr.GRRAFF4Init().Run()
     filestore.FileStoreInit().Run()
+    hunts_results.ResultQueueInitHook().Run()
 
     # Stub out the email function
     self.emails_sent = []

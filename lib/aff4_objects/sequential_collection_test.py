@@ -43,13 +43,28 @@ class SequentialCollectionTest(test_lib.AFF4ObjectTest):
         token=self.token) as collection:
       time = rdfvalue.RDFDatetime().Now()
       for i in range(10):
-        collection.Add(rdfvalue.RDFInteger(i), timestamp=time)
+        ts = collection.Add(rdfvalue.RDFInteger(i), timestamp=time)
+        self.assertEqual(ts[0], time)
 
       i = 0
       for (ts, _) in collection.Scan():
         self.assertEqual(ts, time)
         i += 1
       self.assertEqual(i, 10)
+
+  def testMultiResolve(self):
+    with aff4.FACTORY.Create("aff4:/sequential_collection/testAddScan",
+                             "TestSequentialCollection",
+                             token=self.token) as collection:
+      timestamps = []
+      for i in range(100):
+        timestamps.append(collection.Add(rdfvalue.RDFInteger(i)))
+
+      even_results = sorted([r for r in collection.MultiResolve(timestamps[::2])
+                            ])
+      self.assertEqual(len(even_results), 50)
+      self.assertEqual(even_results[0], 0)
+      self.assertEqual(even_results[49], 98)
 
 
 class TestIndexedSequentialCollection(

@@ -14,7 +14,7 @@ from grr.lib import flags
 from grr.lib import output_plugin
 from grr.lib import test_lib
 from grr.lib.flows.general import processes
-from grr.lib.hunts import standard
+from grr.lib.hunts import process_results
 from grr.lib.hunts import standard_test
 from grr.lib.rdfvalues import client as rdf_client
 
@@ -469,7 +469,7 @@ class ApiListHuntOutputPluginErrorsHandlerRegressionTest(
         with test_lib.FakeTime(100042 + index * 100):
           try:
             self.ProcessHuntOutputPlugins()
-          except standard.ResultsProcessingError:
+          except process_results.ResultsProcessingError:
             if flags.FLAGS.debug:
               pdb.post_mortem()
 

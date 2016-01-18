@@ -311,45 +311,119 @@ class GRRSignedBlobCollection(RDFValueCollection):
   _rdf_type = rdf_crypto.SignedBlob
 
 
-class GRRSignedBlob(aff4.AFF4Object):
+class GRRSignedBlob(aff4.AFF4Stream):
   """A container for storing a signed binary blob such as a driver."""
 
-  def Initialize(self):
-    self.collection = aff4.FACTORY.Create(
-        self.urn.Add("collection"), "GRRSignedBlobCollection", mode=self.mode,
-        token=self.token)
-    self.fd = cStringIO.StringIO()
+  collection = None
 
-    if "r" in self.mode:
-      for x in self.collection:
-        self.fd.write(x.data)
+  @classmethod
+  def NewFromContent(cls, content, urn, chunk_size=1024,
+                     token=None, private_key=None, public_key=None,
+                     prompt=True):
+    """Alternate constructor for GRRSignedBlob.
 
-      self.size = self.fd.tell()
-      self.fd.seek(0)
+    Creates a GRRSignedBlob from a content string by chunking it and signing
+    each chunk.
 
-    # How many chunks we have?
-    self.chunks = len(self.collection)
+    Args:
+      content: The data to stored in the GRRSignedBlob.
+      urn: The AFF4 URN to create.
+
+      chunk_size: Data will be chunked into this size (each chunk is
+        individually signed.
+      token: The ACL Token.
+      private_key: An rdf_crypto.PEMPrivateKey() instance.
+      public_key: An rdf_crypto.PEMPublicKey() instance.
+      prompt: If True we may present a prompt to unlock the key.
+
+    Returns:
+      the URN of the new object written.
+    """
+    with aff4.FACTORY.Create(
+        urn, cls.__name__, mode="w", token=token) as fd:
+      for start_of_chunk in xrange(0, len(content), chunk_size):
+        chunk = content[start_of_chunk:start_of_chunk + chunk_size]
+        blob_rdf = rdf_crypto.SignedBlob()
+        blob_rdf.Sign(chunk, private_key, public_key, prompt=prompt)
+        fd.Add(blob_rdf)
+
+    return urn
+
+  @property
+  def size(self):
+    self._EnsureInitialized()
+    return self._size
+
+  @size.setter
+  def size(self, value):
+    self._size = value
+
+  @property
+  def chunks(self):
+    """Returns the total number of chunks."""
+    self._EnsureInitialized()
+    return len(self.collection)
+
+  def _EnsureInitialized(self):
+    if self.collection is None:
+      if self.mode == "r":
+        self.collection = aff4.FACTORY.Open(
+            self.urn.Add("collection"), mode="r", token=self.token)
+        self.fd = cStringIO.StringIO()
+        for x in self.collection:
+          self.fd.write(x.data)
+
+        self._size = self.fd.tell()
+        self.fd.seek(0)
+
+      elif self.mode == "w":
+        self.fd = cStringIO.StringIO()
+        self._size = 0
+
+        # Blind write.
+        self.collection = aff4.FACTORY.Create(
+            self.urn.Add("collection"), "GRRSignedBlobCollection", mode="w",
+            token=self.token)
+
+      else:
+        raise RuntimeError(
+            "GRRSignedBlob can not be opened in mixed (rw) mode.")
+
+  def Write(self, length):
+    raise IOError("GRRSignedBlob is not writable. Please use "
+                  "NewFromContent() to create a new GRRSignedBlob.")
+
+  def Read(self, length):
+    if self.mode != "r":
+      raise IOError("Reading GRRSignedBlob opened for writing.")
+
+    self._EnsureInitialized()
+    return self.fd.read(length)
 
   def Add(self, item):
+    if "r" in self.mode:
+      raise IOError("GRRSignedBlob does not support appending.")
+    self._EnsureInitialized()
     self.collection.Add(item)
 
   def __iter__(self):
+    self._EnsureInitialized()
     return iter(self.collection)
 
   def Close(self):
     super(GRRSignedBlob, self).Close()
-    self.collection.Close()
+    if self.collection is not None:
+      self.collection.Close()
 
   def __len__(self):
     return self.size
 
-  def Read(self, length):
-    return self.fd.read(int(length))
-
   def Tell(self):
+    self._EnsureInitialized()
     return self.fd.tell()
 
   def Seek(self, offset, whence=0):
+    self._EnsureInitialized()
     self.fd.seek(offset, whence)
 
 

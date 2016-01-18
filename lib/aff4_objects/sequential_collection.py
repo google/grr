@@ -37,7 +37,8 @@ class SequentialCollection(aff4.AFF4Object):
       suffix = random.randint(1, cls.MAX_SUFFIX)
     return urn.Add("Results").Add("%016x.%06x" % (timestamp, suffix))
 
-  def _ParseURN(self, urn):
+  @classmethod
+  def _ParseURN(cls, urn):
     string_urn = utils.SmartUnicode(urn)
     if len(string_urn) < 31 or string_urn[-7] != ".":
       return None
@@ -68,6 +69,10 @@ class SequentialCollection(aff4.AFF4Object):
       **kwargs: Keyword arguments to pass through to the underlying database
         call.
 
+    Returns:
+      The pair (timestamp, suffix) which identifies the value within the
+      collection.
+
     Raises:
       ValueError: rdf_value has unexpected type.
 
@@ -91,6 +96,7 @@ class SequentialCollection(aff4.AFF4Object):
                       timestamp=timestamp,
                       token=token,
                       **kwargs)
+    return cls._ParseURN(result_subject)
 
   def Add(self, rdf_value, timestamp=None, suffix=None, **kwargs):
     """Adds an rdf value to the collection.
@@ -110,12 +116,16 @@ class SequentialCollection(aff4.AFF4Object):
       **kwargs: Keyword arguments to pass through to the underlying database
         call.
 
+    Returns:
+      The pair (timestamp, suffix) which identifies the value within the
+      collection.
+
     Raises:
       ValueError: rdf_value has unexpected type.
 
     """
-    self.StaticAdd(self.urn, self.token, rdf_value,
-                   timestamp=timestamp, suffix=suffix, **kwargs)
+    return self.StaticAdd(self.urn, self.token, rdf_value,
+                          timestamp=timestamp, suffix=suffix, **kwargs)
 
   def Scan(self, after_timestamp=None, include_suffix=False, max_records=None):
     """Scans for stored records.
@@ -161,6 +171,17 @@ class SequentialCollection(aff4.AFF4Object):
         yield (self._ParseURN(subject), rdf_value)
       else:
         yield (timestamp, rdf_value)
+
+  def MultiResolve(self, timestamps):
+    """Lookup multiple values by (timestamp, suffix) pairs."""
+    for _, v in data_store.DB.MultiResolvePrefix(
+        [self._MakeURN(self.urn, ts, suffix) for (ts, suffix) in timestamps],
+        self.ATTRIBUTE,
+        token=self.token):
+      _, value, timestamp = v[0]
+      rdf_value = self.RDF_TYPE(value)  # pylint: disable=not-callable
+      rdf_value.age = timestamp
+      yield rdf_value
 
 
 class IndexedSequentialCollection(SequentialCollection):
@@ -286,8 +307,11 @@ class GeneralIndexedCollection(IndexedSequentialCollection):
   """An indexed sequential collection of RDFValues with different types."""
   RDF_TYPE = rdf_protodict.EmbeddedRDFValue
 
-  def Add(self, rdf_value, **kwargs):
-    super(GeneralIndexedCollection, self).Add(
+  @classmethod
+  def StaticAdd(cls, collection_urn, token, rdf_value, **kwargs):
+    super(GeneralIndexedCollection, cls).StaticAdd(
+        collection_urn,
+        token,
         rdf_protodict.EmbeddedRDFValue(payload=rdf_value),
         **kwargs)
 

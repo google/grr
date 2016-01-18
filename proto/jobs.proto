@@ -370,6 +370,20 @@ message HuntNotification {
   optional Status status = 3;
 }
 
+message HuntResultNotification {
+  optional string result_collection_urn = 1 [(sem_type) = {
+      type: "RDFURN",
+      description: "The URN of the result collection containing this result."
+    }];
+  optional uint64 timestamp = 2 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "The timestamp identifying the result within the result collection."
+    }];
+  optional uint64 suffix = 3 [(sem_type) = {
+      description: "The suffix identifying the result within the result collection."
+    }];
+}
+
 message FlowNotification {
   optional string session_id = 1 [(sem_type) = {
       type: "SessionID"

@@ -23,8 +23,10 @@ from grr.lib import test_lib
 from grr.lib.flows.general import collectors
 from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import transfer
+from grr.lib.hunts import process_results
 from grr.lib.output_plugins import csv_plugin
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import foreman as rdf_foreman
 from grr.lib.rdfvalues import paths as rdf_paths
 
@@ -86,13 +88,13 @@ class TestHuntView(test_lib.GRRSeleniumTest):
       runner = hunt.GetRunner()
       runner.Start()
 
-      with aff4.FACTORY.Create(
+      with aff4.FACTORY.Open(
           runner.context.results_collection_urn,
-          aff4_type="RDFValueCollection", mode="w",
+          aff4_type="HuntResultCollection", mode="w",
           token=self.token) as collection:
 
         for value in values:
-          collection.Add(value)
+          collection.Add(rdf_flows.GrrMessage(payload=value))
 
       return hunt.urn
 
@@ -705,8 +707,10 @@ class TestHuntView(test_lib.GRRSeleniumTest):
       test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
 
       # Make sure results are processed.
-      flow_urn = flow.GRRFlow.StartFlow(flow_name="ProcessHuntResultsCronFlow",
-                                        token=self.token)
+      flow_urn = flow.GRRFlow.StartFlow(
+          flow_name=
+          process_results.ProcessHuntResultCollectionsCronFlow.__name__,
+          token=self.token)
       for _ in test_lib.TestFlowHelper(flow_urn, token=self.token):
         pass
 

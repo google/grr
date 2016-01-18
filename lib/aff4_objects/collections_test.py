@@ -12,7 +12,6 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import collections
-from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
@@ -46,6 +45,33 @@ class TestCollections(test_lib.AFF4ObjectTest):
       self.assertEqual(fd[j].request_id, j)
 
     self.assertIsNone(fd[5])
+
+  def testGRRSignedBlob(self):
+    urn = "aff4:/test/collection"
+
+    # The only way to create a GRRSignedBlob is via this constructor.
+    fd = collections.GRRSignedBlob.NewFromContent(
+        "hello world", urn, chunk_size=2, token=self.token,
+        private_key=config_lib.CONFIG[
+            "PrivateKeys.executable_signing_private_key"],
+        public_key=config_lib.CONFIG[
+            "Client.executable_signing_public_key"])
+
+    fd = aff4.FACTORY.Open(urn, token=self.token)
+
+    # Reading works as expected.
+    self.assertEqual(fd.read(10000), "hello world")
+    self.assertEqual(fd.size, 11)
+
+    # We have 6 collections.
+    self.assertEqual(len(fd.collection), 6)
+
+    # Chunking works ok.
+    self.assertEqual(fd.collection[0].data, "he")
+    self.assertEqual(fd.collection[1].data, "ll")
+
+    # GRRSignedBlob do  not support writing.
+    self.assertRaises(IOError, fd.write, "foo")
 
   def testRDFValueCollectionsAppend(self):
     urn = "aff4:/test/collection"
@@ -139,20 +165,16 @@ class TestCollections(test_lib.AFF4ObjectTest):
   def testSignedBlob(self):
     test_string = "Sample 5"
 
-    with aff4.FACTORY.Create("aff4:/test/signedblob",
-                             "GRRSignedBlob", mode="rw",
-                             token=self.token) as fd:
-      blob = rdf_crypto.SignedBlob()
-      config_lib.CONFIG.Validate(
-          parameters="PrivateKeys.executable_signing_private_key")
+    urn = "aff4:/test/signedblob"
+    collections.GRRSignedBlob.NewFromContent(
+        test_string, urn,
+        private_key=config_lib.CONFIG[
+            "PrivateKeys.executable_signing_private_key"],
+        public_key=config_lib.CONFIG[
+            "Client.executable_signing_public_key"],
+        token=self.token)
 
-      sig_key = config_lib.CONFIG.Get(
-          "PrivateKeys.executable_signing_private_key")
-      ver_key = config_lib.CONFIG.Get("Client.executable_signing_public_key")
-      blob.Sign(test_string, sig_key, ver_key)
-      fd.Add(blob)
-
-    sample = aff4.FACTORY.Open(fd.urn, token=self.token)
+    sample = aff4.FACTORY.Open(urn, token=self.token)
     self.assertEqual(sample.size, len(test_string))
     self.assertEqual(sample.Tell(), 0)
     self.assertEqual(sample.Read(3), test_string[:3])

@@ -409,11 +409,11 @@ sys.test_code_ran_here = py_args['value']
     # Ensure the aff4 collection has many items.
     fd = aff4.FACTORY.Open(upload_path, token=self.token)
 
-    # There should be 24 parts to this binary.
-    self.assertEqual(len(fd.collection), 24)
-
     # Total size is 2400.
     self.assertEqual(len(fd), 2400)
+
+    # There should be 24 parts to this binary.
+    self.assertEqual(len(fd.collection), 24)
 
     # This flow has an acl, the user needs to be admin.
     user = aff4.FACTORY.Create("aff4:/users/%s" % self.token.username,

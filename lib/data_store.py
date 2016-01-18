@@ -762,7 +762,7 @@ class DataStoreInit(registry.InitHook):
   Depends on the stats module being initialized.
   """
 
-  pre = ["StatsInit"]
+  pre = ["StatsInit", "UserManagersInit"]
 
   def Run(self):
     """Initialize the data_store."""

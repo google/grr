@@ -2612,7 +2612,7 @@ class AFF4MemoryStreamBase(AFF4Stream):
 
     self._dirty = True
     self.fd.write(data)
-    self.size = self.fd.len
+    self.size = max(self.size, self.fd.tell())
 
   def Tell(self):
     return self.fd.tell()

@@ -270,9 +270,9 @@ class ApiListHuntResultsHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiListHuntResultsArgs
 
   def Render(self, args, token=None):
-    results = aff4.FACTORY.Create(
+    results = aff4.FACTORY.Open(
         HUNTS_ROOT_PATH.Add(args.hunt_id).Add("Results"), mode="r",
-        aff4_type="RDFValueCollection", token=token)
+        token=token)
 
     return api_aff4_object_renderers.RenderAFF4Object(
         results,

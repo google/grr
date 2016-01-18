@@ -16,6 +16,7 @@ from grr.lib import build
 from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.aff4_objects import collections
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 
@@ -58,17 +59,12 @@ def UploadSignedConfigBlob(content, aff4_path, client_context=None,
 
   ver_key = config_lib.CONFIG.Get("Client.executable_signing_public_key",
                                   context=client_context)
-  with aff4.FACTORY.Create(
-      aff4_path, "GRRSignedBlob", mode="w", token=token) as fd:
 
-    for start_of_chunk in xrange(0, len(content), limit):
-      chunk = content[start_of_chunk:start_of_chunk + limit]
+  urn = collections.GRRSignedBlob.NewFromContent(
+      content, aff4_path, chunk_size=limit, token=token,
+      private_key=sig_key, public_key=ver_key)
 
-      blob_rdf = rdf_crypto.SignedBlob()
-      blob_rdf.Sign(chunk, sig_key, ver_key, prompt=True)
-      fd.Add(blob_rdf)
-
-  logging.info("Uploaded to %s", fd.urn)
+  logging.info("Uploaded to %s", urn)
 
 
 def UploadSignedDriverBlob(content, aff4_path=None, client_context=None,

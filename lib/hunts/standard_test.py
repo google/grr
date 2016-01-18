@@ -26,6 +26,7 @@ from grr.lib import utils
 from grr.lib.aff4_objects import user_managers
 from grr.lib.flows.general import administrative
 from grr.lib.flows.general import transfer
+from grr.lib.hunts import process_results
 from grr.lib.hunts import standard
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import foreman as rdf_foreman
@@ -163,8 +164,9 @@ class StandardHuntTestMixin(object):
       hunt_obj.Stop()
 
   def ProcessHuntOutputPlugins(self, **flow_args):
-    flow_urn = flow.GRRFlow.StartFlow(flow_name="ProcessHuntResultsCronFlow",
-                                      token=self.token, **flow_args)
+    flow_urn = flow.GRRFlow.StartFlow(
+        flow_name=process_results.ProcessHuntResultCollectionsCronFlow.__name__,
+        token=self.token, **flow_args)
     for _ in test_lib.TestFlowHelper(flow_urn, token=self.token):
       pass
     return flow_urn
@@ -461,7 +463,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     self.RunHunt(failrate=-1)
     try:
       self.ProcessHuntOutputPlugins()
-    except standard.ResultsProcessingError:
+    except process_results.ResultsProcessingError:
       pass
 
     hunt = aff4.FACTORY.Open(hunt_urn, token=self.token)
@@ -514,7 +516,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
 
     # We shouldn't get any more calls after the first call to
     # ProcessHuntResultsCronFlow.
-    self.assertRaises(standard.ResultsProcessingError,
+    self.assertRaises(process_results.ResultsProcessingError,
                       self.ProcessHuntOutputPlugins)
     for _ in range(5):
       self.ProcessHuntOutputPlugins()
@@ -544,7 +546,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     # ProcessHuntResultsCronFlow.
     try:
       self.ProcessHuntOutputPlugins()
-    except standard.ResultsProcessingError as e:
+    except process_results.ResultsProcessingError as e:
       self.assertEqual(len(e.exceptions_by_hunt), 1)
       self.assertTrue(hunt_urn in e.exceptions_by_hunt)
       self.assertEqual(len(e.exceptions_by_hunt[hunt_urn]), 1)
@@ -653,29 +655,24 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     self.assertEqual(DummyHuntOutputPlugin.num_responses, 0)
 
     # Generate new results while the plugin is working.
+    self.num_processed = 0
     def ProcessResponsesStub(_, responses):
-      self.assertEqual(len(responses), 5)
-      self.AssignTasksToClients(self.client_ids[5:])
-      self.RunHunt(failrate=-1)
+      # Add 5 more results the first time we are called.
+      if not self.num_processed:
+        self.AssignTasksToClients(self.client_ids[5:])
+        self.RunHunt(failrate=-1)
+      # Just count the total number processed - we don't care about batch size
+      # at this point.
+      self.num_processed += len(responses)
 
     with utils.Stubber(DummyHuntOutputPlugin, "ProcessResponses",
                        ProcessResponsesStub):
-      # Process first 5 clients.
       self.AssignTasksToClients(self.client_ids[:5])
       self.RunHunt(failrate=-1)
       self.ProcessHuntOutputPlugins()
 
-    # Stub was running instead of actual plugin, so counters couldn't be
-    # updated. Assert that they're 0 indeed.
-    self.assertEqual(DummyHuntOutputPlugin.num_calls, 0)
-    self.assertEqual(DummyHuntOutputPlugin.num_responses, 0)
-
-    # Run another round of results processing.
-    self.ProcessHuntOutputPlugins()
-    # New results (the ones that arrived while the old were being processed)
-    # should get processed now.
-    self.assertEqual(DummyHuntOutputPlugin.num_calls, 1)
-    self.assertEqual(DummyHuntOutputPlugin.num_responses, 5)
+    self.assertEqual(10, self.num_processed)
+    del self.num_processed
 
   def _AppendFlowRequest(self, flows, client_id, file_id):
     flows.Append(

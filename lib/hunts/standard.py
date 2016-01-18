@@ -20,6 +20,7 @@ from grr.lib import utils
 from grr.lib.aff4_objects import collections
 from grr.lib.aff4_objects import cronjobs
 from grr.lib.hunts import implementation
+from grr.lib.hunts import process_results
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -31,31 +32,6 @@ from grr.proto import flows_pb2
 
 class Error(Exception):
   pass
-
-
-class HuntError(Error):
-  pass
-
-
-class ResultsProcessingError(Error):
-  """This exception is raised when errors happen during results processing."""
-
-  def __init__(self):
-    self.exceptions_by_hunt = {}
-    super(ResultsProcessingError, self).__init__()
-
-  def RegisterSubException(self, hunt_urn, plugin_name, exception):
-    self.exceptions_by_hunt.setdefault(hunt_urn, {}).setdefault(
-        plugin_name, []).append(exception)
-
-  def __repr__(self):
-    messages = []
-    for hunt_urn, exceptions_by_plugin in self.exceptions_by_hunt.items():
-      for plugin_name, exception in exceptions_by_plugin.items():
-        messages.append("Exception for hunt %s (plugin %s): %s" %
-                        (hunt_urn, plugin_name, exception))
-
-    return "\n".join(messages)
 
 
 class CreateGenericHuntFlowArgs(rdf_structs.RDFProtoStruct):
@@ -571,7 +547,7 @@ class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
         break
 
     if exceptions_by_hunt:
-      e = ResultsProcessingError()
+      e = process_results.ResultsProcessingError()
       for hunt_urn, exceptions_by_plugin in exceptions_by_hunt.items():
         for plugin_name, exceptions in exceptions_by_plugin.items():
           for exception in exceptions:

@@ -160,9 +160,7 @@ class ExportCollectionFilesAsArchive(flow.GRRFlow):
       self.Log("Will create output on %s" % outfd.urn)
       self.state.output_archive_urn = outfd.urn
 
-      collection = aff4.FACTORY.Open(
-          self.args.collection_urn, aff4_type="RDFValueCollection",
-          token=self.token)
+      collection = aff4.FACTORY.Open(self.args.collection_urn, token=self.token)
 
       buffered_outfd = io.BufferedWriter(RawIOBaseBridge(outfd),
                                          buffer_size=1024 * 1024 * 12)
