@@ -27,7 +27,7 @@ def GetDistro():
     distribution = platform.linux_distribution()[0].lower()
     if distribution in ["ubuntu", "debian"]:
       return "debian"
-    if distribution in ["red hat enterprise linux server"]:
+    if distribution in ["red hat enterprise linux server", "centos linux"]:
       return "redhat"
   raise RuntimeError("Missing distro specific config. Please update "
                      "distro_entry.py.")
