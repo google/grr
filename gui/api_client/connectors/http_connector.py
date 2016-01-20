@@ -29,7 +29,7 @@ class HttpConnector(connector.Connector):
 
   HANDLERS_MAP = routing.Map([
       routing.Rule("/api/clients", methods=["GET"],
-                   endpoint="ListClients"),
+                   endpoint="SearchClients"),
       routing.Rule("/api/clients/<client_id>", methods=["GET"],
                    endpoint="GetClient"),
       routing.Rule("/api/clients/<client_id>/flows", methods=["GET"],

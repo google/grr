@@ -9,3 +9,4 @@ python-dateutil==2.3
 pytz==2014.10
 protobuf==2.6.1
 -e git+https://github.com/scudette/M2Crypto.git@855d6b403464d8f9bf0db4b57ec504f3590c063c#egg=M2Crypto-master
+PyYAML

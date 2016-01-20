@@ -871,7 +871,7 @@ class LoadComponentMixin(object):
 
     # Get the component summary.
     component_urn = config_lib.CONFIG.Get(
-        "Config.aff4_root").Add("component").Add("%s_%s" % (name, version))
+        "Config.aff4_root").Add("components").Add("%s_%s" % (name, version))
 
     try:
       fd = aff4.FACTORY.Open(component_urn, aff4_type="ComponentObject",

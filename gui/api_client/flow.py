@@ -23,10 +23,10 @@ class FlowBase(object):
 
     self.client_id = client_id
     self.flow_id = flow_id
-    self.context = context
+    self._context = context
 
   def Cancel(self):
-    self.context.SendRequest("CancelFlow")
+    self._context.SendRequest("CancelFlow")
 
 
 class FlowRef(FlowBase):
@@ -35,8 +35,10 @@ class FlowRef(FlowBase):
   def Get(self):
     """Fetch flow's data and return proper Flow object."""
 
-    args = api_pb2.ApiGetClientArgs(client_id=self.client_id)
-    return self.context.SendRequest("GetClient", args)
+    args = api_pb2.ApiGetFlowArgs(client_id=self.client_id,
+                                  flow_id=self.flow_id)
+    data = self._context.SendRequest("GetFlow", args)
+    return Flow(data=data, context=self._context)
 
 
 class Flow(FlowBase):

@@ -10,6 +10,7 @@ import logging
 from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.lib import access_control
 from grr.lib import aff4
+from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
@@ -313,6 +314,8 @@ class UpdateVFSFile(flow.GRRFlow):
   """A flow to update VFS file."""
   args_type = UpdateVFSFileArgs
 
+  ACL_ENFORCED = False
+
   def Init(self):
     self.state.Register("get_file_flow_urn")
 
@@ -320,6 +323,10 @@ class UpdateVFSFile(flow.GRRFlow):
   def Start(self):
     """Calls the Update() method of a given VFSFile/VFSDirectory object."""
     self.Init()
+
+    client_id = rdf_client.ClientURN(self.args.vfs_file_urn.Split()[0])
+    data_store.DB.security_manager.CheckClientAccess(self.token.RealUID(),
+                                                     client_id)
 
     fd = aff4.FACTORY.Open(self.args.vfs_file_urn, mode="rw",
                            token=self.token)

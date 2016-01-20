@@ -26,17 +26,17 @@ if [ $1 == "windows_7_64" ]; then
   # because the next step runs on linux and needs to know where to find them.
   vagrant reload --provision windows_7_64
   if [ $? -eq 0 ]; then
-    vagrant halt $1
+    vagrant halt "$1"
   fi
   cd ../../
   PYTHONPATH=. python grr/client/client_build.py --config=grr/config/grr-server.yaml --platform windows --sign buildanddeploy --templatedir grr/executables/windows/templates
   cd -
 else
-  vagrant up $1
+  vagrant up "$1"
   # We need to compile the protos inside the build environment because the host
   # may not have the correct proto compiler.
-  vagrant ssh -c "cd /grr/proto/ && make && cd / && source ~/PYTHON_ENV/bin/activate && PYTHONPATH=. python grr/client/client_build.py --config=grr/config/grr-server.yaml buildanddeploy" $1
+  vagrant ssh -c "cd /grr/ && make && cd / && source ~/PYTHON_ENV/bin/activate && PYTHONPATH=. python grr/client/client_build.py --config=grr/config/grr-server.yaml buildanddeploy" "$1"
   if [ $? -eq 0 ]; then
-    vagrant halt $1
+    vagrant halt "$1"
   fi
 fi

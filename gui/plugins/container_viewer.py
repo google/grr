@@ -18,7 +18,11 @@ from grr.lib import rdfvalue
 from grr.lib import utils
 
 # This reads the environment and inits the right locale.
-locale.setlocale(locale.LC_ALL, "")
+try:
+  locale.setlocale(locale.LC_ALL, "")
+except locale.Error as e:
+  logging.warn("%s, falling back to 'en_US.UTF-8'" % e)
+  locale.setlocale(locale.LC_ALL, "en_US.UTF-8")
 
 
 class RDFValueCollectionViewRenderer(semantic.RDFValueArrayRenderer):

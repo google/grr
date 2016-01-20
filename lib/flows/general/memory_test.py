@@ -17,6 +17,7 @@ from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import flow
+from grr.lib import maintenance_utils
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.flows.general import file_finder
@@ -62,7 +63,13 @@ class DummyDiskVolumeInfo(flow.GRRFlow):
 
 
 class MemoryTest(test_lib.FlowTestsBaseclass):
-  pass
+
+  def setUp(self):
+    super(MemoryTest, self).setUp()
+    maintenance_utils.SignComponent(
+        os.path.join(self.base_path,
+                     "grr-rekall_0.1_glibc_2.4_amd64_Ubuntu_Linux.bin"),
+        token=self.token)
 
 
 class TestMemoryCollector(MemoryTest):

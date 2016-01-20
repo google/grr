@@ -122,6 +122,17 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
         subject_urn=rdf_client.ClientURN("C.0000000000000001"),
         token=token)
 
+    # Check if we see that the approval has already been granted.
+    self.Open("/")
+
+    self.Click("notification_button")
+
+    self.ClickUntilNotVisible(
+        "css=td:contains('grant access to GRR client')")
+
+    self.WaitUntilContains("This approval has already been granted!",
+                           self.GetText, "css=div#main")
+
     # Try again:
     self.Open("/")
 
@@ -324,6 +335,15 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     with self.ACLChecksDisabled():
       self.CreateAdminUser("approver")
 
+    # Check if we see that the approval has already been granted.
+    self.Open("/")
+    self.Click("notification_button")
+
+    self.ClickUntilNotVisible(
+        "css=td:contains('Please grant access to hunt')")
+
+    self.WaitUntilContains("This approval has already been granted!",
+                           self.GetText, "css=div#main")
     # And try again
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")

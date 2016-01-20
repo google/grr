@@ -29,12 +29,16 @@ class RecursiveTestFlow(flow.GRRFlow):
   """A test flow which starts some subflows."""
   args_type = RecursiveTestFlowArgs
 
+  # If a flow doesn't have a category, it can't be started/terminated by a
+  # non-supervisor user when FullAccessControlManager is used.
+  category = "/Test/"
+
   @flow.StateHandler(next_state="End")
   def Start(self):
     if self.args.depth < 2:
       for i in range(2):
         self.Log("Subflow call %d", i)
-        self.CallFlow("RecursiveTestFlow", depth=self.args.depth + 1,
+        self.CallFlow(RecursiveTestFlow.__name__, depth=self.args.depth + 1,
                       next_state="End")
 
 
@@ -123,10 +127,11 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Launched Flow GetFile")
 
     # Test that recursive tests are shown in a tree table.
-    flow.GRRFlow.StartFlow(
-        client_id="aff4:/C.0000000000000001",
-        flow_name=RecursiveTestFlow.__name__,
-        token=self.token)
+    with self.ACLChecksDisabled():
+      flow.GRRFlow.StartFlow(
+          client_id="aff4:/C.0000000000000001",
+          flow_name=RecursiveTestFlow.__name__,
+          token=self.token)
 
     self.Click("css=a:contains('Manage launched flows')")
 
@@ -237,7 +242,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     # RecursiveTestFlow doesn't send any results back.
     with self.ACLChecksDisabled():
       for _ in test_lib.TestFlowHelper(
-          "RecursiveTestFlow", self.action_mock,
+          RecursiveTestFlow.__name__, self.action_mock,
           client_id=self.client_id, token=self.token):
         pass
 
@@ -267,7 +272,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
   def testCancelFlowWorksCorrectly(self):
     """Tests that cancelling flows works."""
     flow.GRRFlow.StartFlow(client_id=self.client_id,
-                           flow_name="RecursiveTestFlow",
+                           flow_name=RecursiveTestFlow.__name__,
                            token=self.token)
 
     # Open client and find the flow
@@ -320,8 +325,8 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
   def testDoesNotShowGenerateArchiveButtonWhenResultsCollectionIsEmpty(self):
     with self.ACLChecksDisabled():
       for _ in test_lib.TestFlowHelper(
-          "RecursiveTestFlow", self.action_mock, client_id=self.client_id,
-          token=self.token):
+          RecursiveTestFlow.__name__, self.action_mock,
+          client_id=self.client_id, token=self.token):
         pass
 
     self.Open("/#c=C.0000000000000001")

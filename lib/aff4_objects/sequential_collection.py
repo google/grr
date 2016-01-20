@@ -4,6 +4,7 @@
 
 import random
 
+from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import rdfvalue
@@ -234,14 +235,20 @@ class IndexedSequentialCollection(SequentialCollection):
       # past: hacky defense against a late write changing the count.
       if ts[0] < (rdfvalue.RDFDatetime().Now() -
                   self.INDEX_WRITE_DELAY).AsMicroSecondsFromEpoch():
-        data_store.DB.Set(self.urn,
-                          self.INDEX_ATTRIBUTE_PREFIX + "%08x" % i,
-                          "%06x" % ts[1],
-                          ts[0],
-                          token=self.token,
-                          replace=True)
-        self._index[i] = ts
-        self._max_indexed = max(i, self._max_indexed)
+        # We may be used in contexts were we don't have write access, so simply
+        # give up in that case. TODO(user): Remove this when the ACL
+        # system allows.
+        try:
+          data_store.DB.Set(self.urn,
+                            self.INDEX_ATTRIBUTE_PREFIX + "%08x" % i,
+                            "%06x" % ts[1],
+                            ts[0],
+                            token=self.token,
+                            replace=True)
+          self._index[i] = ts
+          self._max_indexed = max(i, self._max_indexed)
+        except access_control.UnauthorizedAccess:
+          pass
 
   def _IndexedScan(self, i, max_records=None):
     """Scan records starting with index i."""

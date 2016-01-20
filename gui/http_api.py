@@ -276,7 +276,7 @@ class HttpApiInitHook(registry.InitHook):
     RegisterHttpRouteHandler("GET", "/api/clients/kb-fields",
                              api_plugins.client.ApiListKbFieldsHandler)
     RegisterHttpRouteHandler("GET", "/api/clients",
-                             api_plugins.client.ApiListClientsHandler)
+                             api_plugins.client.ApiSearchClientsHandler)
     RegisterHttpRouteHandler("GET", "/api/clients/<client_id>",
                              api_plugins.client.ApiGetClientHandler)
     RegisterHttpRouteHandler("GET", "/api/clients/labels",
@@ -302,6 +302,8 @@ class HttpApiInitHook(registry.InitHook):
     RegisterHttpRouteHandler("GET", "/api/docs",
                              api_plugins.docs.ApiGetDocsHandler)
 
+    RegisterHttpRouteHandler("GET", "/api/flows/<client_id>/<flow_id>",
+                             api_plugins.flow.ApiGetFlowHandler)
     RegisterHttpRouteHandler("GET", "/api/flows/<client_id>/<flow_id>/status",
                              api_plugins.flow.ApiGetFlowStatusHandler)
     RegisterHttpRouteHandler("GET", "/api/flows/descriptors",

@@ -7,8 +7,10 @@ import io
 import os
 import zipfile
 
+from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import config_lib
+from grr.lib import data_store
 from grr.lib import email_alerts
 from grr.lib import flow
 from grr.lib import rdfvalue
@@ -89,6 +91,8 @@ class ExportCollectionFilesAsArchive(flow.GRRFlow):
 
   BATCH_SIZE = 1024
 
+  ACL_ENFORCED = False
+
   def ResultsToUrns(self, results):
     for result in results:
       try:
@@ -133,6 +137,18 @@ class ExportCollectionFilesAsArchive(flow.GRRFlow):
   @flow.StateHandler(next_state="CreateArchive")
   def Start(self):
     """Register state variables and proceed to download the files."""
+
+    # TODO(user): URN hackery should go away after ACL system is refactored.
+    first_component = self.args.collection_urn.Split()[0]
+    if first_component == "hunts":
+      pass
+    elif aff4.AFF4Object.VFSGRRClient.CLIENT_ID_RE.match(first_component):
+      data_store.DB.security_manager.CheckClientAccess(self.token.RealUID(),
+                                                       first_component)
+    else:
+      raise access_control.UnauthorizedAccess(
+          "Collection URN points to neither clients nor hunts "
+          "namespaces: %s" % utils.SmartStr(self.args.collection_urn))
 
     self.state.Register("total_files", 0)
     self.state.Register("archived_files", 0)

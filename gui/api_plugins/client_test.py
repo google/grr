@@ -145,10 +145,10 @@ class ApiRemoveClientsLabelsHandlerTest(test_lib.GRRBaseTest):
     self.assertEqual(labels[0].owner, "GRR")
 
 
-class ApiListClientsHandlerRegressionTest(
+class ApiSearchClientsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
 
-  handler = "ApiListClientsHandler"
+  handler = "ApiSearchClientsHandler"
 
   def Run(self):
     # Fix the time to avoid regressions.

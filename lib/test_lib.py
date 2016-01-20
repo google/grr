@@ -170,6 +170,11 @@ class SendingFlow(flow.GRRFlow):
   """Tests sending messages to clients."""
   args_type = SendingFlowArgs
 
+  # Flow has to have a category otherwise FullAccessControlManager won't
+  # let non-supervisor users to run it at all (it will be considered
+  # externally inaccessible).
+  category = "/Test/"
+
   @flow.StateHandler(next_state="Process")
   def Start(self, unused_response=None):
     """Just send a few messages."""

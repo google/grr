@@ -30,21 +30,21 @@ class ApiClient(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiClient
 
 
-class ApiListClientsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListClientsArgs
+class ApiSearchClientsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiSearchClientsArgs
 
 
-class ApiListClientsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListClientsResult
+class ApiSearchClientsResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiSearchClientsResult
 
 
-class ApiListClientsHandler(api_call_handler_base.ApiCallHandler):
+class ApiSearchClientsHandler(api_call_handler_base.ApiCallHandler):
   """Renders results of a client search."""
 
   category = CATEGORY
 
-  args_type = ApiListClientsArgs
-  result_type = ApiListClientsResult
+  args_type = ApiSearchClientsArgs
+  result_type = ApiSearchClientsResult
 
   def Handle(self, args, token=None):
     end = args.count or sys.maxint
@@ -63,7 +63,7 @@ class ApiListClientsHandler(api_call_handler_base.ApiCallHandler):
     for child in result_set:
       api_clients.append(ApiGetClientHandler.VFSGRRClientToApiClient(child))
 
-    return ApiListClientsResult(items=api_clients)
+    return ApiSearchClientsResult(items=api_clients)
 
 
 class ApiGetClientArgs(rdf_structs.RDFProtoStruct):

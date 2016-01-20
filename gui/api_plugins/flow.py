@@ -76,6 +76,28 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
     return self
 
 
+class ApiGetFlowArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetFlowArgs
+
+
+class ApiGetFlowHandler(api_call_handler_base.ApiCallHandler):
+  """Renders given flow.
+
+  Only top-level flows can be targeted. Times returned in the response are micro
+  seconds since epoch.
+  """
+
+  category = CATEGORY
+  args_type = ApiGetFlowArgs
+
+  def Handle(self, args, token=None):
+    flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())
+    flow_obj = aff4.FACTORY.Open(flow_urn, aff4_type="GRRFlow", mode="r",
+                                 token=token)
+
+    return ApiFlow().InitFromAff4Object(flow_obj)
+
+
 class ApiGetFlowStatusArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiGetFlowStatusArgs
 
@@ -612,16 +634,37 @@ class ApiListFlowDescriptorsHandler(api_call_handler_base.ApiCallHandler):
         continue
 
       # Only show flows that the user is allowed to start.
+      can_be_started_on_client = False
       try:
-        data_store.DB.security_manager.CheckIfCanStartFlow(token, name)
+        data_store.DB.security_manager.CheckIfCanStartFlow(
+            token, name, with_client_id=True)
+        can_be_started_on_client = True
       except access_control.UnauthorizedAccess:
-        continue
+        pass
+
+      can_be_started_globally = False
+      try:
+        data_store.DB.security_manager.CheckIfCanStartFlow(
+            token, name, with_client_id=False)
+        can_be_started_globally = True
+      except access_control.UnauthorizedAccess:
+        pass
 
       if args.HasField("flow_type"):
         # Skip if there are behaviours that are not supported by the class.
         behavior = self._FlowTypeToBehavior(args.flow_type)
         if not behavior.IsSupported(cls.behaviours):
           continue
+
+        if (args.flow_type == self.args_type.FlowType.CLIENT and
+            not can_be_started_on_client):
+          continue
+
+        if (args.flow_type == self.args_type.FlowType.GLOBAL and
+            not can_be_started_globally):
+          continue
+      elif not (can_be_started_on_client or can_be_started_globally):
+        continue
 
       states = []
 

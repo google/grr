@@ -5387,91 +5387,6 @@
       "url": "/api/clients/C.1000000000000000/flows"
     }
   ],
-  "ApiListClientsHandler": [
-    {
-      "method": "GET",
-      "response": {
-        "items": [
-          {
-            "age": 0,
-            "type": "ApiClient",
-            "value": {
-              "agent_info": {
-                "age": 42000000,
-                "type": "ClientInformation",
-                "value": {
-                  "client_name": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "GRR Monitor"
-                  }
-                }
-              },
-              "hardware_info": {
-                "age": 0,
-                "type": "HardwareInfo",
-                "value": {}
-              },
-              "labels": [],
-              "last_seen_at": {
-                "age": 0,
-                "type": "RDFDatetime",
-                "value": 42000000
-              },
-              "os_info": {
-                "age": 0,
-                "type": "Uname",
-                "value": {
-                  "fqdn": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "Host-0.example.com"
-                  },
-                  "node": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "Host-0"
-                  },
-                  "version": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": ""
-                  }
-                }
-              },
-              "urn": {
-                "age": 0,
-                "type": "ClientURN",
-                "value": "aff4:/C.1000000000000000"
-              },
-              "users": []
-            }
-          }
-        ]
-      },
-      "test_class": "ApiListClientsHandlerRegressionTest",
-      "type_stripped_response": {
-        "items": [
-          {
-            "agent_info": {
-              "client_name": "GRR Monitor"
-            },
-            "hardware_info": {},
-            "labels": [],
-            "last_seen_at": 42000000,
-            "os_info": {
-              "fqdn": "Host-0.example.com",
-              "node": "Host-0",
-              "version": ""
-            },
-            "urn": "aff4:/C.1000000000000000",
-            "users": []
-          }
-        ]
-      },
-      "url": "/api/clients?query=C.1000000000000000"
-    }
-  ],
   "ApiListClientsLabelsHandler": [
     {
       "method": "GET",
@@ -10874,6 +10789,91 @@
       },
       "test_class": "ApiOutputPluginsListHandlerRegressionTest",
       "url": "/api/output-plugins/all"
+    }
+  ],
+  "ApiSearchClientsHandler": [
+    {
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": 0,
+            "type": "ApiClient",
+            "value": {
+              "agent_info": {
+                "age": 42000000,
+                "type": "ClientInformation",
+                "value": {
+                  "client_name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "GRR Monitor"
+                  }
+                }
+              },
+              "hardware_info": {
+                "age": 0,
+                "type": "HardwareInfo",
+                "value": {}
+              },
+              "labels": [],
+              "last_seen_at": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 42000000
+              },
+              "os_info": {
+                "age": 0,
+                "type": "Uname",
+                "value": {
+                  "fqdn": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
+                  "node": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Host-0"
+                  },
+                  "version": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": ""
+                  }
+                }
+              },
+              "urn": {
+                "age": 0,
+                "type": "ClientURN",
+                "value": "aff4:/C.1000000000000000"
+              },
+              "users": []
+            }
+          }
+        ]
+      },
+      "test_class": "ApiSearchClientsHandlerRegressionTest",
+      "type_stripped_response": {
+        "items": [
+          {
+            "agent_info": {
+              "client_name": "GRR Monitor"
+            },
+            "hardware_info": {},
+            "labels": [],
+            "last_seen_at": 42000000,
+            "os_info": {
+              "fqdn": "Host-0.example.com",
+              "node": "Host-0",
+              "version": ""
+            },
+            "urn": "aff4:/C.1000000000000000",
+            "users": []
+          }
+        ]
+      },
+      "url": "/api/clients?query=C.1000000000000000"
     }
   ],
   "ApiStartGetFileOperationHandler": [

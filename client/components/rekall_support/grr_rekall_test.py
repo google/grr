@@ -12,6 +12,7 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flags
+from grr.lib import maintenance_utils
 from grr.lib import test_lib
 
 # This test runs flows from these modules. pylint: disable=unused-import
@@ -35,6 +36,10 @@ class RekallTestSuite(test_lib.EmptyActionTest):
   def setUp(self):
     super(RekallTestSuite, self).setUp()
     self.client_id = self.SetupClients(1)[0]
+    maintenance_utils.SignComponent(
+        os.path.join(self.base_path,
+                     "grr-rekall_0.1_glibc_2.4_amd64_Ubuntu_Linux.bin"),
+        token=self.token)
 
   def CreateClient(self):
     client = aff4.FACTORY.Create(self.client_id,

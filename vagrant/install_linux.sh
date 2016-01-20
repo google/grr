@@ -198,8 +198,8 @@ function install_sleuthkit() {
 }
 
 function install_pytsk() {
-  ${WGET} https://github.com/py4n6/pytsk/releases/download/20150111/pytsk-20150111.tgz
-  tar zxf pytsk-20150111.tgz
+  ${WGET} https://github.com/py4n6/pytsk/releases/download/20160111.tgz/pytsk-20160111.tgz
+  tar zxf pytsk-20160111.tgz
   cd pytsk
   python2.7 setup.py build
   python2.7 setup.py install

@@ -1,5 +1,5 @@
 /**
- * @license AngularJS v1.4.9-local+sha.7caf913
+ * @license AngularJS v1.4.9-local+sha.ed7777d
  * (c) 2010-2015 Google, Inc. http://angularjs.org
  * License: MIT
  */
@@ -2602,6 +2602,7 @@ var $$AnimateQueueProvider = ['$animateProvider', function($animateProvider) {
             parentHost = parentElement.data(NG_ANIMATE_PIN_DATA);
             if (parentHost) {
               parentElement = parentHost;
+              rootElementDetected = true;
             }
           }
         }

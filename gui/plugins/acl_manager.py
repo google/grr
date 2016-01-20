@@ -213,9 +213,10 @@ class GrantAccess(fileview.HostInformation):
   <blockquote>
     {{this.reason|escape}}
   </blockquote>
-  <button id="{{unique|escape}}_approve" class="btn btn-success">
+  <button id="{{unique|escape}}_approve" class="{{this.btn_cls|escape}}">
     Approve
   </button>
+  {{this.already_approved_text|escape}}
   <h3>{{this.detail_header|escape}}</h3>
   <div id="details_{{unique|escape}}" class="well"></div>
 </div>
@@ -270,10 +271,21 @@ You have granted access for {{this.subject|escape}} to {{this.user|escape}}
           "Approval object is not well formed.")
 
     approval_request = aff4.FACTORY.Open(approval_urn, mode="r",
+                                         age=aff4.ALL_TIMES,
                                          token=request.token)
-
     self.user = username
     self.reason = approval_request.Get(approval_request.Schema.REASON)
+
+    user_token = access_control.ACLToken(username=self.user, reason=self.reason)
+    self.already_approved_text = ""
+    self.btn_cls = "btn btn-success"
+    try:
+      if approval_request.CheckAccess(user_token):
+        self.already_approved_text = "This approval has already been granted!"
+        self.btn_cls = "btn btn-warning"
+    except access_control.UnauthorizedAccess:
+      pass
+
     response = renderers.TemplateRenderer.Layout(self, request, response)
     return self.CallJavascript(response, "GrantAccess.Layout",
                                renderer=self.__class__.__name__,

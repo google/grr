@@ -36,3 +36,7 @@ override_dh_shlibdeps:
 	# These add a lot of unnecessary dependencies to the deb package because
 	# it just looks for .so files and adds them as dependencies. Since we
 	# are shipping our .so's with Pyinstaller this is unnecessary
+
+override_dh_builddeb:
+	# Older distros don't support xz so we use gzip instead.
+	dh_builddeb -- -Zgzip

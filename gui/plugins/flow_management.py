@@ -70,7 +70,8 @@ class FlowTree(renderers.TreeRenderer):
 
       # Skip the flow if the user is not allowed to start it.
       try:
-        data_store.DB.security_manager.CheckIfCanStartFlow(request.token, name)
+        data_store.DB.security_manager.CheckIfCanStartFlow(
+            request.token, name, with_client_id=True)
       except access_control.UnauthorizedAccess:
         continue
 

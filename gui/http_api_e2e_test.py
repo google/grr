@@ -48,14 +48,14 @@ class ApiClientTest(test_lib.GRRBaseTest):
     endpoint = "http://localhost:%s" % port
     self.api = grr_api.InitHttp(api_endpoint=endpoint)
 
-  def testListWithNoClients(self):
-    clients = list(self.api.ListClients(query="."))
+  def testSearchWithNoClients(self):
+    clients = list(self.api.SearchClients(query="."))
     self.assertEqual(clients, [])
 
-  def testListClientsWith2Clients(self):
+  def testSearchClientsWith2Clients(self):
     client_urns = sorted(self.SetupClients(2))
 
-    clients = sorted(self.api.ListClients(query="."),
+    clients = sorted(self.api.SearchClients(query="."),
                      key=lambda c: c.client_id)
     self.assertEqual(len(clients), 2)
 

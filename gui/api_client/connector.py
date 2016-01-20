@@ -7,5 +7,5 @@ class Connector(object):
   def SendRequest(self, handler_name, args):
     raise NotImplementedError()
 
-  def GenerateCollectionItems(self, handler_name, args):
+  def SendIteratorRequest(self, handler_name, args):
     raise NotImplementedError()

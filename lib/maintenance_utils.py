@@ -286,7 +286,7 @@ def RepackAllBinaries(upload=False, debug_build=False, token=None):
   return built
 
 
-def SignComponent(component_filename, overwrite=False):
+def SignComponent(component_filename, overwrite=False, token=None):
   """Sign and upload the component to the data store."""
   component = rdf_client.ClientComponent(open(component_filename).read())
   print "Opened component %s from %s" % (component.summary.name,
@@ -311,7 +311,7 @@ def SignComponent(component_filename, overwrite=False):
           "%s_%s" % (component.summary.name, component.summary.version))
 
   component_fd = aff4.FACTORY.Create(component_urn, "ComponentObject",
-                                     mode="rw")
+                                     mode="rw", token=token)
 
   component_summary = component_fd.Get(component_fd.Schema.COMPONENT)
   if overwrite or component_summary is None:
@@ -342,7 +342,7 @@ def SignComponent(component_filename, overwrite=False):
               component.summary.build_system.signature())
 
   print "Storing signed component at %s" % aff4_urn
-  with aff4.FACTORY.Create(aff4_urn, "AFF4MemoryStream") as fd:
+  with aff4.FACTORY.Create(aff4_urn, "AFF4MemoryStream", token=token) as fd:
     fd.Write(component_summary.cipher.Encrypt(
         signed_component.SerializeToString()))
 

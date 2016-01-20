@@ -18,8 +18,8 @@ class GrrApi(object):
   def Client(self, client_id):
     return client.ClientRef(client_id=client_id, context=self.context)
 
-  def ListClients(self, query=None):
-    for c in client.ListClients(query, context=self.context):
+  def SearchClients(self, query=None):
+    for c in client.SearchClients(query, context=self.context):
       yield c
 
 

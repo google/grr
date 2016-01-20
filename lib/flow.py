@@ -843,7 +843,8 @@ class GRRFlow(aff4.AFF4Volume):
     # respect SUID (supervisor) if it is already set. SUID cannot be set by the
     # user since it isn't part of the ACLToken proto.
     data_store.DB.security_manager.CheckIfCanStartFlow(
-        runner_args.token, runner_args.flow_name)
+        runner_args.token, runner_args.flow_name,
+        with_client_id=runner_args.client_id)
 
     flow_cls = GRRFlow.GetPlugin(runner_args.flow_name)
     # If client id was specified and flow doesn't have exemption from ACL
@@ -977,8 +978,11 @@ class GRRFlow(aff4.AFF4Volume):
       # allowed to start it. The fact that we could open the flow object
       # means that we have access to the client (if it's not a global
       # flow).
+      # TODO(user): here we assume that we terminate flows on clients.
+      # Maybe we should infer from the flow's URN whether the flow
+      # was started on a client or globally.
       data_store.DB.security_manager.CheckIfCanStartFlow(
-          token.RealUID(), flow_obj.Name())
+          token.RealUID(), flow_obj.Name(), with_client_id=True)
 
       runner.Error(reason, status=status)
       runner.Terminate()

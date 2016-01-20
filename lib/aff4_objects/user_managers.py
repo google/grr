@@ -81,7 +81,7 @@ class NullAccessControlManager(access_control.AccessControlManager):
     """Allow all access."""
     return True
 
-  def CheckIfCanStartFlow(self, token, flow_name):
+  def CheckIfCanStartFlow(self, token, flow_name, with_client_id=False):
     """Allow all access."""
     return True
 
@@ -184,6 +184,59 @@ def CheckUserForLabels(username, authorized_labels, token=None):
     raise access_control.UnauthorizedAccess("User %s not found." % username)
 
 
+def CheckFlowCanBeStartedOnClient(flow_name):
+  """Checks if flow can be started on a particular client.
+
+  Two kinds of flows can be started on clients by unprivileged users:
+  1) ACL_ENFORCED=False flows, because they're expected to do their own ACL
+     checking and are often used by AdminUI to execute code with elevated
+     privileges.
+  2) Flows with a category. Having a category means that the flow will be
+     accessible from the UI.
+
+  Args:
+    flow_name: Name of the flow to check access for.
+  Returns:
+    True if flow is externally accessible.
+  Raises:
+    access_control.UnauthorizedAccess: if flow is not externally accessible.
+  """
+  flow_cls = flow.GRRFlow.GetPlugin(flow_name)
+
+  if not flow_cls.ACL_ENFORCED or flow_cls.category:
+    return True
+  else:
+    raise access_control.UnauthorizedAccess(
+        "Flow %s can't be started on a client by non-suid users." % flow_name)
+
+
+def CheckFlowCanBeStartedAsGlobal(flow_name):
+  """Checks if flow can be started without a client id.
+
+  Two kinds of flows can be started on clients by unprivileged users:
+  1) ACL_ENFORCED=False flows, because they're expected to do their own ACL
+     checking and are often used by AdminUI to execute code with elevated
+     privileges.
+  2) Flows inherited from GRRGlobalFlow, with a category. Having a category
+     means that the flow will be accessible from the UI.
+
+  Args:
+    flow_name: Name of the flow to check access for.
+  Returns:
+    True if flow is externally accessible.
+  Raises:
+    access_control.UnauthorizedAccess: if flow is not externally accessible.
+  """
+  flow_cls = flow.GRRFlow.GetPlugin(flow_name)
+
+  if (not flow_cls.ACL_ENFORCED or
+      aff4.issubclass(flow_cls, flow.GRRGlobalFlow) and flow_cls.category):
+    return True
+  else:
+    raise access_control.UnauthorizedAccess(
+        "Flow %s can't be started globally by non-suid users" % flow_name)
+
+
 def CheckFlowAuthorizedLabels(token, flow_name):
   """Checks if user has a label in flow's authorized_labels list."""
   flow_cls = flow.GRRFlow.GetPlugin(flow_name)
@@ -223,7 +276,7 @@ class BasicAccessControlManager(access_control.AccessControlManager):
     return ValidateToken(token, [cron_job_urn])
 
   @LoggedACL("can_start_flow")
-  def CheckIfCanStartFlow(self, token, flow_name):
+  def CheckIfCanStartFlow(self, token, flow_name, with_client_id=False):
     """Check labels, ACL_ENFORCED attribute, and validate the token."""
     return ValidateToken(token, [flow_name]) and (
         token.supervisor or
@@ -660,16 +713,6 @@ class FullAccessControlManager(access_control.AccessControlManager):
       return True
 
   def _CheckApprovals(self, token, target):
-    # Target may be None for flows not specifying a client.
-    # Only aff4.GRRUser.SYSTEM_USERS can run these flows.
-    if not target:
-      if token.username not in aff4.GRRUser.SYSTEM_USERS:
-        raise access_control.UnauthorizedAccess(
-            "ACL access denied for flow without client_urn for %s" %
-            token.username)
-
-      return True
-
     if token.reason:
       # If reason is not specified, try searching for a matching approval.
       return self._CheckApprovalsForTokenWithReason(token, target)
@@ -711,20 +754,26 @@ class FullAccessControlManager(access_control.AccessControlManager):
 
   @LoggedACL("can_start_flow")
   @stats.Timed("acl_check_time", fields=["can_start_flow"])
-  def CheckIfCanStartFlow(self, token, flow_name):
+  def CheckIfCanStartFlow(self, token, flow_name, with_client_id=False):
     if not flow_name:
       raise ValueError("Flow name can't be empty.")
 
+    if with_client_id:
+      can_start_flow = CheckFlowCanBeStartedOnClient
+    else:
+      can_start_flow = CheckFlowCanBeStartedAsGlobal
+
     return ValidateToken(token, [flow_name]) and (
-        token.supervisor or
-        CheckFlowAuthorizedLabels(token, flow_name))
+        token.supervisor or (
+            can_start_flow(flow_name) and
+            CheckFlowAuthorizedLabels(token, flow_name)))
 
   @LoggedACL("can_start_flow")
   @stats.Timed("acl_check_time", fields=["data_store_access"])
   def CheckDataStoreAccess(self, token, subjects, requested_access="r"):
     """Allow all access if token and requested access are valid."""
-    if not subjects or any(not x for x in subjects):
-      raise ValueError("Subjects list can't be empty or contain empty URNs.")
+    if any(not x for x in subjects):
+      raise ValueError("Subjects list can't contain empty URNs.")
     subjects = map(rdfvalue.RDFURN, subjects)
 
     return (ValidateAccessAndSubjects(requested_access, subjects) and

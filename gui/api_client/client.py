@@ -20,13 +20,13 @@ class ClientBase(object):
       raise ValueError("context can't be empty.")
 
     self.client_id = client_id
-    self.context = context
+    self._context = context
 
   def Flow(self, flow_id):
     """Return a reference to a flow with a given id on this client."""
 
     return flow.FlowRef(client_id=self.client_id, flow_id=flow_id,
-                        context=self.context)
+                        context=self._context)
 
   def CreateFlow(self, name=None, args=None, runner_args=None):
     """Create new flow on this client."""
@@ -44,8 +44,8 @@ class ClientBase(object):
       request.flow.args.value = args.SerializeToString()
       request.flow.args.type_url = utils.GetTypeUrl(args)
 
-    data = self.context.SendRequest("CreateFlow", request)
-    return flow.Flow(data=data, context=self.context)
+    data = self._context.SendRequest("CreateFlow", request)
+    return flow.Flow(data=data, context=self._context)
 
   def ListFlows(self, offset=0, count=0):
     """List flows that ran on this client."""
@@ -54,9 +54,9 @@ class ClientBase(object):
                                           offset=offset,
                                           count=count)
 
-    items = self.context.SendIteratorRequest("ListClientFlows", args)
+    items = self._context.SendIteratorRequest("ListClientFlows", args)
     return utils.MapItemsIterator(
-        lambda data: flow.Flow(data=data, context=self.context),
+        lambda data: flow.Flow(data=data, context=self._context),
         items)
 
 
@@ -67,8 +67,8 @@ class ClientRef(ClientBase):
     """Fetch client's data and return a proper Client object."""
 
     args = api_pb2.ApiGetClientArgs(client_id=self.client_id)
-    data = self.context.SendRequest("GetClient", args)
-    return Client(data=data, context=self.context)
+    data = self._context.SendRequest("GetClient", args)
+    return Client(data=data, context=self._context)
 
 
 class Client(ClientBase):
@@ -85,12 +85,12 @@ class Client(ClientBase):
     self.data = data
 
 
-def ListClients(query=None, context=None):
+def SearchClients(query=None, context=None):
   """List clients conforming to a givent query."""
 
-  args = api_pb2.ApiListClientsArgs(query=query)
+  args = api_pb2.ApiSearchClientsArgs(query=query)
 
-  items = context.SendIteratorRequest("ListClients", args)
+  items = context.SendIteratorRequest("SearchClients", args)
   return utils.MapItemsIterator(
       lambda data: Client(data=data, context=context),
       items)

@@ -14,7 +14,6 @@ from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import security
 from grr.lib.aff4_objects import user_managers
-from grr.lib.flows.general import processes
 from grr.lib.rdfvalues import aff4_rdfvalues
 from grr.lib.rdfvalues import client as rdf_client
 
@@ -118,6 +117,11 @@ class CheckAccessHelperTest(test_lib.GRRBaseTest):
 class AdminOnlyFlow(flow.GRRFlow):
   AUTHORIZED_LABELS = ["admin"]
 
+  # Flow has to have a category otherwise FullAccessControlManager won't
+  # let non-supervisor users to run it at all (it will be considered
+  # externally inaccessible).
+  category = "/Test/"
+
 
 class BasicAccessControlManagerTest(test_lib.GRRBaseTest):
   """Unit tests for FullAccessControlManager."""
@@ -133,7 +137,12 @@ class BasicAccessControlManagerTest(test_lib.GRRBaseTest):
 
     with self.assertRaises(access_control.UnauthorizedAccess):
       self.access_manager.CheckIfCanStartFlow(nonadmin_token,
-                                              AdminOnlyFlow.__name__)
+                                              AdminOnlyFlow.__name__,
+                                              with_client_id=False)
+    with self.assertRaises(access_control.UnauthorizedAccess):
+      self.access_manager.CheckIfCanStartFlow(nonadmin_token,
+                                              AdminOnlyFlow.__name__,
+                                              with_client_id=True)
 
   def testUserWithAuthorizedLabelsCanStartFlow(self):
     self.CreateAdminUser("admin")
@@ -141,7 +150,11 @@ class BasicAccessControlManagerTest(test_lib.GRRBaseTest):
                                           reason="testing")
 
     self.access_manager.CheckIfCanStartFlow(admin_token,
-                                            AdminOnlyFlow.__name__)
+                                            AdminOnlyFlow.__name__,
+                                            with_client_id=False)
+    self.access_manager.CheckIfCanStartFlow(admin_token,
+                                            AdminOnlyFlow.__name__,
+                                            with_client_id=True)
 
 
 class FullAccessControlManagerTest(test_lib.GRRBaseTest):
@@ -267,7 +280,9 @@ class FullAccessControlManagerTest(test_lib.GRRBaseTest):
     self.assertTrue(self.access_manager.CheckCronJobAccess(
         token, "aff4:/cron/blah"))
     self.assertTrue(self.access_manager.CheckIfCanStartFlow(
-        token, "SomeFlow"))
+        token, "SomeFlow", with_client_id=True))
+    self.assertTrue(self.access_manager.CheckIfCanStartFlow(
+        token, "SomeFlow", with_client_id=False))
     self.assertTrue(self.access_manager.CheckDataStoreAccess(
         token, ["aff4:/foo/bar"], requested_access="w"))
 
@@ -284,14 +299,35 @@ class FullAccessControlManagerTest(test_lib.GRRBaseTest):
       self.access_manager.CheckCronJobAccess(token, "")
 
     with self.assertRaises(ValueError):
-      self.access_manager.CheckDataStoreAccess(token, [],
+      self.access_manager.CheckDataStoreAccess(token, [""],
                                                requested_access="r")
 
-  def testCheckIfCanStartFlowAcceptsEmptySubjectWhenSystemUser(self):
-    # Unless it is a system user
-    token = access_control.ACLToken(username="GRRSystem", reason="bcause")
+  def testCheckIfCanStartFlowReturnsTrueForClientFlowOnClient(self):
     self.assertTrue(self.access_manager.CheckIfCanStartFlow(
-        token, processes.ListProcesses.__name__))
+        self.token, ClientFlowWithCategory.__name__, with_client_id=True))
+
+  def testCheckIfCanStartFlowRaisesForClientFlowWithoutCategoryOnClient(self):
+    with self.assertRaises(access_control.UnauthorizedAccess):
+      self.access_manager.CheckIfCanStartFlow(
+          self.token, ClientFlowWithoutCategory.__name__, with_client_id=True)
+
+  def testCheckIfCanStartFlowReturnsTrueForNotEnforcedFlowOnClient(self):
+    self.assertTrue(self.access_manager.CheckIfCanStartFlow(
+        self.token, NotEnforcedFlow.__name__, with_client_id=True))
+
+  def testCheckIfCanStartFlowRaisesForClientFlowAsGlobal(self):
+    with self.assertRaises(access_control.UnauthorizedAccess):
+      self.access_manager.CheckIfCanStartFlow(
+          self.token, ClientFlowWithCategory.__name__, with_client_id=False)
+
+  def testCheckIfCanStartFlowRaisesForGlobalFlowWithoutCategoryAsGlobal(self):
+    with self.assertRaises(access_control.UnauthorizedAccess):
+      self.access_manager.CheckIfCanStartFlow(
+          self.token, GlobalFlowWithoutCategory.__name__, with_client_id=False)
+
+  def testCheckIfCanStartFlowReturnsTrueForGlobalFlowWithCategoryAsGlobal(self):
+    self.assertTrue(self.access_manager.CheckIfCanStartFlow(
+        self.token, GlobalFlowWithCategory.__name__, with_client_id=False))
 
   def testNoReasonShouldSearchForApprovals(self):
     token_without_reason = access_control.ACLToken(username="unknown")
@@ -321,6 +357,26 @@ class ValidateTokenTest(test_lib.GRRBaseTest):
     token = access_control.ACLToken(reason="For testing")
     with self.assertRaises(access_control.UnauthorizedAccess):
       user_managers.ValidateToken(token, "aff4:/C.0000000000000001")
+
+
+class ClientFlowWithoutCategory(flow.GRRFlow):
+  pass
+
+
+class ClientFlowWithCategory(flow.GRRFlow):
+  category = "/Test/"
+
+
+class NotEnforcedFlow(flow.GRRFlow):
+  ACL_ENFORCED = False
+
+
+class GlobalFlowWithoutCategory(flow.GRRGlobalFlow):
+  pass
+
+
+class GlobalFlowWithCategory(flow.GRRGlobalFlow):
+  category = "/Test/"
 
 
 class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
@@ -575,13 +631,14 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
     client_id = "C." + "a" * 16
 
     self.assertRaises(access_control.UnauthorizedAccess, flow.GRRFlow.StartFlow,
-                      client_id=client_id, flow_name="SendingFlow",
+                      client_id=client_id,
+                      flow_name=test_lib.SendingFlow.__name__,
                       message_count=1, token=token)
 
     self.GrantClientApproval(client_id, token)
     sid = flow.GRRFlow.StartFlow(
-        client_id=client_id, flow_name="SendingFlow", message_count=1,
-        token=token)
+        client_id=client_id, flow_name=test_lib.SendingFlow.__name__,
+        message_count=1, token=token)
 
     # Check we can open the flow object.
     flow_obj = aff4.FACTORY.Open(sid, mode="r", token=token)
@@ -614,8 +671,8 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
     self.GrantClientApproval(client_id, token)
 
     sid = flow.GRRFlow.StartFlow(
-        client_id=client_id, flow_name="SendingFlow", message_count=1,
-        token=token)
+        client_id=client_id, flow_name=test_lib.SendingFlow.__name__,
+        message_count=1, token=token)
 
     # Fill all the caches.
     aff4.FACTORY.Open(sid, mode="r", token=token)
@@ -701,6 +758,42 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
     flow.GRRFlow.StartFlow(flow_name=AdminOnlyFlow.__name__,
                            client_id=client_id, token=admin_token,
                            sync=False)
+
+  def testNotAclEnforcedFlowCanBeStartedWithClient(self):
+    with self.ACLChecksDisabled():
+      client_id = self.SetupClients(1)[0]
+
+    flow.GRRFlow.StartFlow(flow_name=NotEnforcedFlow.__name__,
+                           client_id=client_id, token=self.token, sync=False)
+
+  def testClientFlowWithoutCategoryCanNotBeStartedWithClient(self):
+    with self.ACLChecksDisabled():
+      client_id = self.SetupClients(1)[0]
+
+    with self.assertRaises(access_control.UnauthorizedAccess):
+      flow.GRRFlow.StartFlow(flow_name=ClientFlowWithoutCategory.__name__,
+                             client_id=client_id, token=self.token)
+
+  def testClientFlowWithCategoryCanBeStartedWithClient(self):
+    with self.ACLChecksDisabled():
+      client_id = self.SetupClients(1)[0]
+      self.GrantClientApproval(client_id, token=self.token)
+
+    flow.GRRFlow.StartFlow(flow_name=ClientFlowWithCategory.__name__,
+                           client_id=client_id, token=self.token, sync=False)
+
+  def testGlobalFlowWithoutCategoryCanNotBeStartedGlobally(self):
+    with self.assertRaises(access_control.UnauthorizedAccess):
+      flow.GRRFlow.StartFlow(flow_name=GlobalFlowWithoutCategory.__name__,
+                             token=self.token, sync=False)
+
+  def testGlobalFlowWithCategoryCanBeStartedGlobally(self):
+    flow.GRRFlow.StartFlow(flow_name=GlobalFlowWithCategory.__name__,
+                           token=self.token, sync=False)
+
+  def testNotEnforcedFlowCanBeStartedGlobally(self):
+    flow.GRRFlow.StartFlow(flow_name=NotEnforcedFlow.__name__,
+                           token=self.token, sync=False)
 
 
 def main(argv):

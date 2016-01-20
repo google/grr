@@ -674,6 +674,15 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
     self.LoadComponentOnClient(name="grr-rekall", version="0.1",
                                next_state="StartAnalysis")
 
+  @flow.StateHandler()
+  def ComponentLoaded(self, responses):
+    # Try to call the next state anyway in case this is an old client and has no
+    # components installed.
+    if not responses.success:
+      self.Log("Component Loading failed: %s" % responses.status.error_message)
+
+    self.CallStateInline(next_state=responses.request_data["next_state"])
+
   @flow.StateHandler(next_state=["RunPlugins", "KcoreStatResult",
                                  "StoreResults"])
   def StartAnalysis(self, responses):
